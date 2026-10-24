@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {appendWalletProjectControlReview} from '../src/wallet-project-control-review-ui.mjs';
 const now=1800000000000;
-function fixture(change={}){
+function fixture(change={},walletAccount){
  const command={RequestID:'request',Action:'project.publisher',ProjectID:'project',TeamID:'',SubjectAccount:'publisher-owner',PublisherID:'publisher',RuntimeOrigin:'',ExpectedRevision:'2',GrantExpiresMS:String(now+20000),Read:false,Publish:false,Runtime:false,Revoke:false,ExpiresMS:String(now+10000),PublicOriginalSHA256:'a'.repeat(64)};
  const publisher={Account:'publisher-owner',ProjectID:'project',PublisherID:'publisher',KeyRole:'ide-artifact-publisher',PublicSHA256:'a'.repeat(64),RegistrationRef:'registration',ExpiresMS:String(now+30000)};
  const review={reviewId:'opaque',account:'controller',networkId:'testnet',command,publisher,...change};
  if(review.publisher===undefined)delete review.publisher;
- const children=[],calls=[],messages=[];let state={account:'controller',revision:1,locked:false,authenticating:false},reply=async(id,decision)=>({ok:true,value:{reviewId:id,decision,recorded:true}}),clock=now;
- const ui=appendWalletProjectControlReview({container:{append:x=>children.push(x)},review,api:{async decideIDEProjectControl(id,d){calls.push([id,d]);return reply(id,d);}},getKeyState:()=>state,isCurrent:()=>true,onResult:x=>messages.push(x),now:()=>clock,document:{createElement:()=>({addEventListener(k,f){this[k]=f;}})}});
+ const children=[],calls=[],messages=[];let state={account:walletAccount??'controller',revision:1,locked:false,authenticating:false},reply=async(id,decision)=>({ok:true,value:{reviewId:id,decision,recorded:true}}),clock=now;
+ const ui=appendWalletProjectControlReview({container:{append:x=>children.push(x)},review,walletAccount,api:{async decideIDEProjectControl(id,d){calls.push([id,d]);return reply(id,d);}},getKeyState:()=>state,isCurrent:()=>true,onResult:x=>messages.push(x),now:()=>clock,document:{createElement:()=>({addEventListener(k,f){this[k]=f;}})}});
  return{children,calls,messages,ui,buttons:children.filter(x=>x.type==='button'),state:s=>{state={...state,...s};},reply:f=>{reply=f;},clock:n=>{clock=n;}};
 }
 test('separate control review renders exact command and publisher binding; sends only opaque ID and decision',async()=>{
@@ -22,6 +22,11 @@ test('foreign public binding and artifact-release payload cannot become a contro
 test('primary review uses readable action, target, permissions and expiry labels',()=>{
  const f=fixture();for(const value of ['动作：注册发布者','公钥指纹（SHA-256）','本次确认到期','技术摘要'])assert(f.children.some(x=>x.textContent.includes(value)),value);
  for(const prefix of ['RequestID:','GrantExpiresMS:','PublicOriginalSHA256:','Read:','Publish:','Runtime:'])assert(!f.children.some(x=>x.textContent.startsWith(prefix)));
+});
+test('YNX principal stays visible while the separately matched local EVM account fences decisions',async()=>{
+ const principal='ynx1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg36avh43',wallet='0x'+'1'.repeat(40),f=fixture({account:principal},wallet);
+ assert(f.children.some(x=>x.textContent.includes(principal)));assert(f.children.some(x=>x.textContent.includes(wallet)));assert.equal(f.buttons[0].disabled,false);
+ f.state({account:'0x'+'2'.repeat(40)});f.ui.refresh();await f.buttons[0].click();assert.equal(f.calls.length,0);assert.equal(f.buttons[0].disabled,true);
 });
 test('expiry and lock fence a choice without enabling a replacement operation',async()=>{
  for(const mode of ['expiry','lock']){const f=fixture();if(mode==='expiry')f.clock(now+10000);else f.state({locked:true});await f.buttons[0].click();assert.equal(f.calls.length,0);}

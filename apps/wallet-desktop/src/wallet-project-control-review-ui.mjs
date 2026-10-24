@@ -43,10 +43,11 @@ export function inspectWalletProjectControlReviewData(review,at){
  }else if(r.publisher!==undefined)fail();
  return Object.freeze({...r,command:Object.freeze(c),...(p?{publisher:Object.freeze(p)}:{})});
 }
-export function appendWalletProjectControlReview({container,review,api,getKeyState,isCurrent,onResult,now=Date.now,document:doc=document}){
+export function appendWalletProjectControlReview({container,review,walletAccount=review.account,api,getKeyState,isCurrent,onResult,now=Date.now,document:doc=document}){
  const openedAt=now(),own=inspectWalletProjectControlReviewData(review,openedAt),initial={...getKeyState()},buttons=[];let entered=false,floor=openedAt;
  if(typeof api?.decideIDEProjectControl!=='function'||[getKeyState,isCurrent,onResult,now].some(f=>typeof f!=='function'))fail();
- const live=()=>{const s=getKeyState(),at=now();if(!Number.isSafeInteger(at)||at<floor)return false;floor=at;return isCurrent()&&!s.locked&&!s.authenticating&&s.account===own.account&&s.account===initial.account&&s.revision===initial.revision&&BigInt(at)<BigInt(own.command.ExpiresMS)&&(own.command.Revoke||own.command.GrantExpiresMS==='0'||BigInt(at)<BigInt(own.command.GrantExpiresMS));};
+ if(!text(walletAccount))fail();
+ const live=()=>{const s=getKeyState(),at=now();if(!Number.isSafeInteger(at)||at<floor)return false;floor=at;return isCurrent()&&!s.locked&&!s.authenticating&&s.account===walletAccount&&s.account===initial.account&&s.revision===initial.revision&&BigInt(at)<BigInt(own.command.ExpiresMS)&&(own.command.Revoke||own.command.GrantExpiresMS==='0'||BigInt(at)<BigInt(own.command.GrantExpiresMS));};
  const line=(tag,text)=>{const el=doc.createElement(tag);el.textContent=text;container.append(el);};
  line('h3','项目控制批准 / Project control consent');
  line('p','仅批准下列明确控制操作；不是制品签名、转账或 Root 授权。 / This exact control operation only; not artifact signing, transfer or Root authorization.');
@@ -54,6 +55,7 @@ export function appendWalletProjectControlReview({container,review,api,getKeySta
  const actions={'project.create':'创建项目','team.create':'创建团队','team.member':c.Revoke?'移除团队成员':'添加或更新团队成员','project.member':c.Revoke?'撤销账户的项目权限':'授予或更新账户的项目权限','project.team':c.Revoke?'撤销团队的项目权限':'授予或更新团队的项目权限','project.origin':'更改运行站点','project.revoke':'撤销项目','team.revoke':'撤销团队','project.publisher':c.Revoke?'撤销发布者':'注册发布者'};
  const time=value=>new Date(Number(value)).toISOString()+'（UTC）';
  line('p','批准账户：'+own.account);line('p','网络：'+own.networkId);
+ if(walletAccount!==own.account)line('p','对应的本地钱包账户：'+walletAccount);
  line('p','动作：'+actions[c.Action]);
  if(c.ProjectID)line('p','项目：'+c.ProjectID);
  if(c.TeamID)line('p','团队：'+c.TeamID);

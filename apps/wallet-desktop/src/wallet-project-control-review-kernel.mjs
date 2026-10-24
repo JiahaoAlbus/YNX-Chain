@@ -9,7 +9,7 @@ const fail=code=>{throw Object.assign(Error(code),{code});};
 export class WalletProjectControlReviewKernel {
  #deps;#owner=null;#review=null;#context=null;#selected=null;#phase='idle';#busy=false;#retired=false;#sequence=0;#first;#storage;#hasFirst=false;#hasStorage=false;#needsSave=false;#nativeEntered=false;
  #retainFirst(cause){if(!this.#hasFirst){this.#hasFirst=true;this.#first=cause;}}
- constructor({isOwner,persist,now=Date.now}){if([isOwner,persist,now].some(v=>typeof v!=='function'))fail('CONTROL_DEPENDENCY_REQUIRED');this.#deps={isOwner,persist,now};}
+ constructor({isOwner,persist,now=Date.now,accountMatches=(original,selected)=>original===selected}){if([isOwner,persist,now,accountMatches].some(v=>typeof v!=='function'))fail('CONTROL_DEPENDENCY_REQUIRED');this.#deps={isOwner,persist,now,accountMatches};}
  #current(guard){
   if(this.#retired||!guard||guard.locked||guard.authenticating||guard.account!==this.#context.account||guard.revision!==this.#context.revision)fail('CONTROL_CONTEXT_CHANGED');
   const now=this.#deps.now();if(!Number.isSafeInteger(now)||now<this.#context.floor||BigInt(now)>=BigInt(this.#review.command.ExpiresMS))fail('CONTROL_EXPIRED');this.#context.floor=now;
@@ -22,7 +22,7 @@ export class WalletProjectControlReviewKernel {
   this.#owner=owner;this.#busy=true;
   try{
    if(owner.assertCurrent()!==undefined)fail('CONTROL_NATIVE_CURRENT_REFUSED');const at=this.#deps.now(),review=inspectWalletProjectControlReviewData(owner.copyOriginalReview(),at);
-   const guard=getGuard();if(guard.account!==review.account)fail('CONTROL_ACCOUNT_CHANGED');
+   const guard=getGuard();if(this.#deps.accountMatches(review.account,guard.account)!==true)fail('CONTROL_ACCOUNT_CHANGED');
    this.#review=review;this.#context={account:guard.account,revision:guard.revision,floor:at};this.#current(guard);
    if(!isDeepStrictEqual(review,inspectWalletProjectControlReviewData(owner.copyOriginalReview(),at)))fail('CONTROL_ORIGINAL_CHANGED');
    this.#phase='review-ready';await this.#save();this.#current(getGuard());return review;

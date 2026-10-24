@@ -1,5 +1,6 @@
 import {createRequire} from 'node:module';
 import {WalletProjectControlReviewKernel} from './wallet-project-control-review-kernel.mjs';
+import {evmAddressFromYNX} from '@ynx-chain/wallet-auth';
 const require=createRequire(import.meta.url);
 // Sole fixed normal Main image. No caller-selected module, Source, signing
 // provider, raw request or current flag. Old packages fail visibly; never
@@ -17,8 +18,11 @@ export function createOriginalWalletProjectControl(){
    if(ended){owner=null;kernel=null;ended=false;}
    try{load();owner=native.captureOriginalWalletProjectControlReview();
     if(native.isOriginalWalletProjectControlReview(owner)!==true)throw Error('CONTROL_ORIGINAL_NATIVE_REQUIRED');
-    kernel=new WalletProjectControlReviewKernel({isOwner:native.isOriginalWalletProjectControlReview,persist:record=>owner.persistOriginalLifecycle(JSON.stringify(record))});
-    return await kernel.capture(owner,getGuard);
+    kernel=new WalletProjectControlReviewKernel({isOwner:native.isOriginalWalletProjectControlReview,persist:record=>owner.persistOriginalLifecycle(JSON.stringify(record)),accountMatches:(original,selected)=>evmAddressFromYNX(original)===selected});
+    const review=await kernel.capture(owner,getGuard),walletAccount=getGuard().account;
+    // Presentation wrapper only. Keep Auth's original ynx principal and all
+    // signed bytes untouched; UI checks the separately matched local account.
+    return Object.freeze({review,walletAccount});
    }finally{busy=false;}
   },
   decide(reviewId,decision,getGuard){if(!kernel||closed)throw Error('CONTROL_ORIGINAL_REVIEW_REQUIRED');return kernel.decide(reviewId,decision,getGuard);},
