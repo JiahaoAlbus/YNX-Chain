@@ -222,6 +222,28 @@ function nativeEvidencePlan(cwd,sourceCommit){
   const root=git(cwd,'rev-parse','--show-toplevel'),sdk=JSON.parse(git(root,'show',`${sourceCommit}:packages/wallet-auth/package.json`));
   return canonicalNativeEvidencePlan(sdk.version,name=>execFileSync('git',['show',`${sourceCommit}:${name}`],{cwd:root,maxBuffer:262144}));
 }
+/** Source-selected runtime manifests and normal pack filters must agree.
+ * This is an early refusal, not a new manifest/projection or admission. Only
+ * independently pinned existing tables are read; no row is removed or granted
+ * runtime status merely because a package happened to include it.
+ */
+export function assertSDKRuntimePackCoverage(cwd,sourceCommit){
+ const root=git(cwd,'rev-parse','--show-toplevel'),metadata=JSON.parse(git(root,'show',`${sourceCommit}:apps/wallet-desktop/package.json`));
+ if(!Array.isArray(metadata.build?.files)||metadata.build.files.some(p=>typeof p!=='string'))throw Error('SDK_RUNTIME_PACK_FILTER_REQUIRED');
+ const {FileMatcher}=createRequire(import.meta.url)('app-builder-lib/out/fileMatcher');
+ const selected=new FileMatcher(cwd,'/PUBLIC/not-an-output',value=>value,metadata.build.files).createFilter(),manifests=fixedSDKRuntimeManifestSources(root,sourceCommit),seen=new Set();
+ for(const manifest of manifests){const body=JSON.parse(git(root,'show',`${sourceCommit}:${manifest}`));
+  if(!Array.isArray(body.files))throw Error('SDK_RUNTIME_MANIFEST_INVALID');
+  for(const row of body.files){const relative=row.path;
+   // Type declarations/Native source and dependency layout have their own
+   // existing gates. Here check actual executable SDK source rows only.
+   if(typeof relative!=='string'||!/^(?:src|native|scripts)\/.+\.(?:js|mjs|cjs|json)$/.test(relative))continue;
+   if(!selected(path.join(cwd,SDK_ALIAS,relative),{isDirectory:()=>false}))throw Object.assign(Error('SDK_RUNTIME_MANIFEST_PACK_SELECTION_CONFLICT:'+relative),{code:'SDK_RUNTIME_MANIFEST_PACK_SELECTION_CONFLICT',path:relative,manifest});
+   seen.add(relative);
+  }
+ }
+ return Object.freeze({manifests,executableSDKRowsChecked:seen.size,runtimeQualified:false});
+}
 function ensureUnchangedMembers(before, after, plan, metadataInput,dependencies,evidence) {
   const expected=canonicalArchivePlan(before,metadataInput,[...dependencies.rows,...evidence.rows]).after;
   if(!isDeepStrictEqual(after,expected))throw new Error('Canonical packaging changed unexpected archive members');
@@ -274,6 +296,7 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
   asar.uncache(archive);
   const metadata=JSON.parse(asar.extractFile(archive,"package.json").toString("utf8"));
   const expected=desktopReleaseIdentity(cwd,metadata.version),plan=relocationPlan(cwd,expected);
+  assertSDKRuntimePackCoverage(cwd,expected.sourceCommit);
   const before=archiveInventory(asar,archive);
   const metadataInput=asar.extractFile(archive,'package.json');
   const dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit);
@@ -326,6 +349,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   asar.uncache(archive);
   const metadata = JSON.parse(asar.extractFile(archive, "package.json").toString("utf8"));
   const expected = desktopReleaseIdentity(cwd, metadata.version);
+  assertSDKRuntimePackCoverage(cwd,expected.sourceCommit);
   const actual = JSON.parse(readFileSync(path.join(resources, "ynx-wallet-build-identity.json"), "utf8"));
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("Embedded build identity does not match the checkout");
   const plan=relocationPlan(cwd,expected);
