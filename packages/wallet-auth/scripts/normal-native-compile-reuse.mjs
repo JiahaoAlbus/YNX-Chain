@@ -5,6 +5,7 @@ import {resolve,join,isAbsolute,dirname} from 'node:path';
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {fileURLToPath} from 'node:url';
+import {createMainComponentCompileReuseBinding} from './normal-native-main-component-reuse.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const same=(a,b,code)=>{if(!isDeepStrictEqual(a,b))fail(code);};
@@ -177,7 +178,9 @@ function actualRole(record,plan,root,fileType){
  * executedRecord is a pin of the ORIGINAL YNX_WALLET_ORIGINAL_NATIVE_BUILD.
  * This returns a derived non-executed binding, never edits/relabels that record.
  */
-export function createNormalNativeCompileReuseBinding({sourceTuplePath,targetTuplePath,executedRecord,executionEvidence}){
+export function createNormalNativeCompileReuseBinding(request){
+ if(Object.hasOwn(request,'sourceExecutionHandoff')||Object.hasOwn(request,'targetMainProfileHandoff'))return createMainComponentCompileReuseBinding(request);
+ const {sourceTuplePath,targetTuplePath,executedRecord,executionEvidence}=request;
  const original=pinned(executedRecord),record=JSON.parse(original);
  if(record.schema==='YNX_SDK23_R196_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1')return actualAReuse({sourceTuplePath,targetTuplePath,executedRecord,executionEvidence},original,record);
  if(record.schema!==undefined||record.kind!=='YNX_WALLET_ORIGINAL_NATIVE_BUILD'||record.schemaVersion!==1)fail('NATIVE_REUSE_RECORD');
