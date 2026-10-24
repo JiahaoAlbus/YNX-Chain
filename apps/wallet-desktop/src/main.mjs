@@ -32,6 +32,7 @@ import { createHash, randomUUID } from "node:crypto";
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {createRecipientCameraPermission} from "./recipient-camera-permission.mjs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+import {readPackagedWalletBuildInfo} from './wallet-build-info.mjs';
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {installReceivingPNGDownloadOptions} from './receiving-png-download-options.mjs';
@@ -455,7 +456,7 @@ async function recordEvidence(status, window, { launch = false } = {}) {
 }
 
 handleWalletIPC("wallet:status", rpcStatus);
-handleWalletIPC("wallet:app-info", () => ({ version: app.getVersion() }));
+handleWalletIPC("wallet:app-info", () => readPackagedWalletBuildInfo({version:app.getVersion(),isPackaged:app.isPackaged,identityPath:path.join(process.resourcesPath??'', 'ynx-wallet-build-identity.json')}));
 handleWalletIPC("wallet:security-status", () => keyAccess.status());
 handleWalletIPC("wallet:unlock", (_event, input) => safeIPC(() => {
   if (accountChangeInProgress) throw Object.assign(new Error("Finish the current account action first"), { code: "ACCOUNT_CHANGE_IN_PROGRESS" });

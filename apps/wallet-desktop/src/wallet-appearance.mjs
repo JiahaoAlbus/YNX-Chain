@@ -1,4 +1,5 @@
 import {initWalletLocale,setWalletCopy} from "./wallet-locale.mjs";
+import {mountWalletBuildInfo} from './wallet-build-info-ui.mjs';
 export const WALLET_APPEARANCE_KEY = "ynx-wallet-ui-size-v1";
 export const WALLET_UI_SIZES = Object.freeze(["compact", "standard", "larger"]);
 export function parseWalletAppearance(raw) {
@@ -43,4 +44,5 @@ export function initWalletAppearance({ document, getStorage = () => null }) {
 if (typeof document !== "undefined" && typeof window !== "undefined") {
   if(document.querySelector("#wallet-language"))initWalletLocale({document,getStorage:()=>window.localStorage,systemLanguages:window.navigator?.languages??[]});
   initWalletAppearance({ document, getStorage: () => window.localStorage });
+  mountWalletBuildInfo({document,readInfo:()=>window.ynxWallet.appInfo()});
 }
