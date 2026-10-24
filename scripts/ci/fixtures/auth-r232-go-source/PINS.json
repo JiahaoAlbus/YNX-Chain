@@ -1,0 +1,33 @@
+{
+  "kind": "YNX-R232-PUBLIC-GO-DELTA-FIXTURE/v1",
+  "PUBLIC": true,
+  "Source13": false,
+  "Root": false,
+  "production": false,
+  "supplierHandoff": {
+    "bytes": 28026,
+    "sha256": "8b02cc79e1c29bd4facbc948c785e5f46d8476e4477574fa9de07d4377b8fdc9"
+  },
+  "parents": [
+    {
+      "bytes": 32674,
+      "sha256": "180fcc139b3fd5fe060bb51055ded1d812dada9cb128db65c430ab1acea1ff2f"
+    },
+    {
+      "bytes": 24787,
+      "sha256": "6e5676f29fc88b6d35580aae9175f410507d83e6b9ff09b6155e312c044cb8b8"
+    }
+  ],
+  "R231Linux": {
+    "bytes": 6668,
+    "sha256": "b7513fd11ffc0ac663613f617c9b8972be0e0033d7d74e1c52fc2e56f761f3ca"
+  },
+  "files": [
+    {
+      "path": "source/internal/developerauthority/original_full_pinned_continuation_recheck_test.go",
+      "bytes": 2920,
+      "sha256": "b451dc5b39e27e6b33c2f1f07a08c8414eb6cca43b71e62db079d02e462e5b55",
+      "parent": null
+    }
+  ]
+}
