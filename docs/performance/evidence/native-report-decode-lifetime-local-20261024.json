@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "kind": "strict-native-report-decode-byte-lifetime-optimization",
+  "sourceParent": "19f30ec475ccdbd92fa3678bbe540f6585eea3e8",
+  "sourceFiles": {
+    "scripts/loadtest/supply-linux-window.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/supply-linux-window.py",
+      "bytes": 177792,
+      "sha256": "02c125e61aeb1fbc6815a9fa95b7c122dbda2f2e768a2b76895dbbc659ec09fa"
+    },
+    "scripts/loadtest/test_native_stream_pair.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/test_native_stream_pair.py",
+      "bytes": 26869,
+      "sha256": "91986079e2ce6b7e289fe3075e100293f869eef3ebd244068701b2c77df993ec"
+    }
+  },
+  "sameOriginalReportMeasurement": {
+    "schema": 1,
+    "kind": "same-original-report-parser-allocation-not-network-RSS",
+    "originalReportBytes": 7189495,
+    "originalReportSHA256": "3cbd538f66b56576d8b360874548732eb8405d4a1da49f6d3653d8af64590405",
+    "parsedObjectCanonicalSHA256": "42ec69dd070cdde022b9afe748127da9fb30c0a11bd9b51139b6ca39a617047d",
+    "samples": [
+      {
+        "sample": 1,
+        "mode": "original",
+        "liveTracedBytes": 11308673,
+        "peakTracedBytes": 25702653,
+        "elapsedWithTracemallocNs": 87865625
+      },
+      {
+        "sample": 1,
+        "mode": "dropRawBeforeObjects",
+        "liveTracedBytes": 11308105,
+        "peakTracedBytes": 18512549,
+        "elapsedWithTracemallocNs": 83086708
+      },
+      {
+        "sample": 2,
+        "mode": "original",
+        "liveTracedBytes": 11307873,
+        "peakTracedBytes": 25701837,
+        "elapsedWithTracemallocNs": 81973500
+      },
+      {
+        "sample": 2,
+        "mode": "dropRawBeforeObjects",
+        "liveTracedBytes": 11308105,
+        "peakTracedBytes": 18512533,
+        "elapsedWithTracemallocNs": 83359750
+      },
+      {
+        "sample": 3,
+        "mode": "original",
+        "liveTracedBytes": 11307877,
+        "peakTracedBytes": 25701821,
+        "elapsedWithTracemallocNs": 82280708
+      },
+      {
+        "sample": 3,
+        "mode": "dropRawBeforeObjects",
+        "liveTracedBytes": 11308105,
+        "peakTracedBytes": 18512509,
+        "elapsedWithTracemallocNs": 82875542
+      }
+    ],
+    "fullObjectIdentityEqual": true,
+    "networkBytes": 0,
+    "productionGCAdded": false,
+    "networkRSSRepairProven": false,
+    "sourceSHA256": "02c125e61aeb1fbc6815a9fa95b7c122dbda2f2e768a2b76895dbbc659ec09fa",
+    "interpretation": "Same exact original7189495B report, alternating3pairs. Peak traced Python allocations include capture/hash/strict parse; canonical object comparison is outside measurement. GC is diagnostic only. Times include instrumentation, not a throughput claim; no nodes or full stream qualification."
+  },
+  "medianPeakTracedBytes": {
+    "original": 25701837,
+    "dropRawBeforeObjects": 18512533
+  },
+  "peakAllocationReductionPercent": 27.97194612976497,
+  "originalSingleReportDiagnostic": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-block-tip-pair-run-40068452896/original-report-parser-allocation.json",
+    "bytes": 1104,
+    "sha256": "703efc695d9a47eec049ec133a0fb41d009f097fa3bb92ec0dc12da6a7a95fa7"
+  },
+  "evidence": {
+    "native-report-decode-lifetime-tests-final.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-report-decode-lifetime-tests-final.raw",
+      "bytes": 121,
+      "sha256": "9848d310fa07dfec848259451766ef5b53ac41349286effe515cb5ad1609eeca"
+    },
+    "native-report-decode-supply-tests.raw": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-report-decode-supply-tests.raw",
+      "bytes": 189,
+      "sha256": "46256211a8aa2b82cd3d8f598ccbfe33764b4bbdffadb06561733c0c0111338a"
+    },
+    "native-report-decode-same-original-measurement.json": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/native-report-decode-same-original-measurement.json",
+      "bytes": 1916,
+      "sha256": "8c8c442cf0fea312f763c2c1b62f7b94f2f24140234055642418fe5aa3db95e5"
+    },
+    "measure-original-report-decode-lifetime.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-stream-small-source/measure-original-report-decode-lifetime.py",
+      "bytes": 2370,
+      "sha256": "ad5ec34d9a253d5bcad2264f77d9201b6bc3ec819abb9d0ecaf79fb9c630e22a"
+    }
+  },
+  "inflightNetwork": {
+    "runId": 40070727578,
+    "sourceCommit": "19f30ec475ccdbd92fa3678bbe540f6585eea3e8",
+    "thisLaterChangeIncluded": false
+  },
+  "networkRSSRepairProven": false,
+  "networkImprovementMeasured": false,
+  "sustained1000Qualified": false,
+  "interpretation": "Same7189495B original report3alternating pairs; old/new canonical full decoded objects identical. Peak traced Python allocation reduction is a parser component result, not OS RSS or a speed claim. Original bytes SHA/strict duplicate+nonfinite checks/encoding semantics preserved. Production has no added GC."
+}

@@ -895,6 +895,20 @@ def re_full_uuid(value):
     return re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",value) is not None
 
 
+def read_native_stream_report(path,expected_sha=None):
+    # Own the captured bytes only until their exact digest and JSON text exist.
+    # json.loads(bytes) otherwise retains both bytes and decoded text while
+    # constructing thousands of report objects. Keep its original encoding and
+    # surrogate decoding semantics and the same strict duplicate/nonfinite gate.
+    raw=stream_evidence.capture(path,16<<20)
+    digest=hashlib.sha256(raw).hexdigest()
+    if expected_sha is not None and digest!=expected_sha:raise RuntimeError("native pair original client hash differs")
+    try:text=raw.decode(json.detect_encoding(raw),'surrogatepass')
+    except (ValueError,UnicodeError) as error:raise RuntimeError("invalid stream JSON") from error
+    del raw
+    return stream_evidence.strict_json(text),digest
+
+
 def native_stream_pair_case(row,case,mode,current_input_reuse=True,canonical_certificate=False,native_suffix_setup=False,block_tip_hint=False):
     expected=recipe("grpc",STREAM_PROFILE,mode,True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=current_input_reuse,canonical_certificate=canonical_certificate,native_suffix_setup=native_suffix_setup,block_tip_hint=block_tip_hint)
     if row.get("nativeCanonicalCertificate",False) is not canonical_certificate:raise RuntimeError("native pair canonical certificate selection differs")
@@ -904,9 +918,8 @@ def native_stream_pair_case(row,case,mode,current_input_reuse=True,canonical_cer
         if row.get(key)!=expected[key]:raise RuntimeError("native stream pair case selection differs: "+key)
     if row.get("firstCause") is not None or row.get("cleanupComplete") is not True or row.get("nodesStarted") is not True:
         raise RuntimeError("native stream pair original business/cleanup incomplete")
-    raw=native.bounded(case/"network/transactions-result.json",16<<20)
-    if hashlib.sha256(raw).hexdigest()!=row.get("resultSHA256"):raise RuntimeError("native pair original client hash differs")
-    client=stream_evidence.strict_json(raw)
+    if not stream_evidence.hex_digest(row.get("resultSHA256")):raise RuntimeError("native pair original client hash differs")
+    client,_=read_native_stream_report(case/"network/transactions-result.json",row.get("resultSHA256"))
     measured=validate_native_stream_report(client,case/"network",pacing=mode,expected_input_reuse=row.get("nativeCurrentInputReuse"),expected_canonical_certificate=canonical_certificate,expected_native_suffix=native_suffix_setup,expected_block_tip_hint=block_tip_hint)
     phases=validate_observer_phases(client,block_tip_hint)
     if measured!=row.get("measurement") or phases!=row.get("observerPhases"):
@@ -1810,7 +1823,8 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
             output = network / "transactions-result.json"
             mark("client_start")
             wait(spawn("client",supply_client_command(build,manifest_path,network,output,profile,pacing,observer_phases,shared_replay,endpoint_fair,endpoint_elastic,prefix_replay,prefix_native_clone,native_submit8,native_suffix_setup,observer_native_facts,client_procs2,native_stream8,current_input_reuse,canonical_certificate,block_tip_hint)))
-            client_report=json.loads(native.bounded(output,16 << 20))
+            if native_stream8:client_report,captured_client_sha=read_native_stream_report(output)
+            else:client_report=json.loads(native.bounded(output,16 << 20))
             if native_stream8:
                 mark("stream_readback_start")
                 result["measurement"]=validate_native_stream_report(client_report,network,pacing=pacing,expected_input_reuse=result.get("nativeCurrentInputReuse",False),expected_canonical_certificate=canonical_certificate,expected_native_suffix=native_suffix_setup,expected_block_tip_hint=block_tip_hint)
@@ -1831,7 +1845,7 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
                 if observer_native_facts:result["observerNativeFactVerification"]=validate_observer_native_facts(client_report,True)
                 if one_shot:result["runtimeMeasurements"]=validate_runtime_measurements(client_report,2048,require=True,native_submit8=native_submit8)
             mark("client_complete")
-            result["resultSHA256"] = native.digest(output)
+            result["resultSHA256"] = captured_client_sha if native_stream8 else native.digest(output)
     except Exception as error:
         result["firstCause"] = str(error)
         try:

@@ -234,6 +234,44 @@ class NativeStreamPairTests(unittest.TestCase):
             terminal=json.loads(output.getvalue().split('YNX_NATIVE_STREAM_PAIR_TERMINAL ')[-1])
             return code,calls,terminal
 
+    def test_pair_report_still_requires_original_report_hash(self):
+        row=supply.recipe('grpc',supply.STREAM_PROFILE,'bounded-cadence',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True)
+        row.update(cleanupComplete=True,nodesStarted=True,firstCause=None)
+        for value in (None,False,'bad'):
+            row['resultSHA256']=value
+            with patch.object(supply,'read_native_stream_report',side_effect=AssertionError('unbound report decoded')):
+                with self.assertRaisesRegex(RuntimeError,'hash differs'):supply.native_stream_pair_case(row,Path('unused'),'bounded-cadence')
+
+    def test_report_reader_releases_raw_before_strict_decode(self):
+        class Capture(bytearray):pass
+        refs=[];raw=b'{"counter":1}';original=supply.stream_evidence.strict_json
+        def capture(path,limit):
+            self.assertEqual(limit,16<<20);value=Capture(raw);refs.append(weakref.ref(value));return value
+        def decode(text):
+            self.assertIsInstance(text,str)
+            self.assertIsNone(refs[-1](),'raw bytes survive strict object decoding')
+            return original(text)
+        with patch.object(supply.stream_evidence,'capture',new=capture),patch.object(supply.stream_evidence,'strict_json',new=decode):
+            row,digest=supply.read_native_stream_report(Path('original'),hashlib.sha256(raw).hexdigest())
+        self.assertEqual(row,dict(counter=1));self.assertEqual(digest,hashlib.sha256(raw).hexdigest())
+
+    def test_report_reader_preserves_hash_encoding_and_strict_failures(self):
+        with tempfile.TemporaryDirectory() as d:
+            path=Path(d)/'report.json';expected=dict(text='original '+chr(0x4e2d),number=1)
+            for encoding in ('utf-8','utf-8-sig','utf-16','utf-16-le','utf-16-be','utf-32','utf-32-le','utf-32-be'):
+                raw=json.dumps(expected,ensure_ascii=False).encode(encoding);path.write_bytes(raw)
+                row,digest=supply.read_native_stream_report(path,hashlib.sha256(raw).hexdigest())
+                self.assertEqual(row,supply.stream_evidence.strict_json(raw));self.assertEqual(row,expected)
+                self.assertEqual(digest,hashlib.sha256(raw).hexdigest())
+            with self.assertRaisesRegex(RuntimeError,'hash differs'):supply.read_native_stream_report(path,'0'*64)
+            for raw in (b'{"a":1,"a":2}',b'{"value":NaN}',b'{} trailing',b'"'+bytes([0xff])+b'"'):
+                path.write_bytes(raw)
+                with self.subTest(raw=raw),self.assertRaises(RuntimeError):supply.read_native_stream_report(path)
+            link=Path(d)/'link.json';link.symlink_to(path)
+            with self.assertRaises(RuntimeError):supply.read_native_stream_report(link)
+            with path.open('wb') as f:f.truncate((16<<20)+1)
+            with self.assertRaises(RuntimeError):supply.read_native_stream_report(path)
+
     def test_compact_identity_preserves_all_original_comparison_fields(self):
         row=dict(sourceCommit='source',sourceTree='tree',internalTree='internal',compiler='compiler',binaries={'ELF':'hash'},environment={'GOMAXPROCS':'1'},host=dict(uname=['Linux'],cpuCount=4,cpuinfo='large diagnostic'),samples=['retained only on disk'])
         identity=supply.native_stream_case_identity(row)
