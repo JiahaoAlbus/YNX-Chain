@@ -1,0 +1,286 @@
+{
+  "schema": 1,
+  "runId": 40085358438,
+  "sourceCommit": "c8b7a2f6b14034acbf4a4e801a3260b86a659368",
+  "nativePairQualified": false,
+  "sustainedTPSQualified": false,
+  "slotReturned": true,
+  "originalMarkers": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/original-terminal-markers.json",
+    "bytes": 2953,
+    "sha256": "f09551f16b25defbfb293447dadf48b9dfd31275c66b80b5bdf6a9bdb9a076de"
+  },
+  "invalidVerdict": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-run-40085358438/independent-invalid-verdict-01.json",
+    "bytes": 8520,
+    "sha256": "5cc624a70a9e9e5059eceed60e4cc8c22fab5e6706974cc2529f92d8a20c01e5"
+  },
+  "diagnosticOnly": true,
+  "firstCauseChain": [
+    "native verifier: stream worker scope differs",
+    "post-fsync stream scope differs"
+  ],
+  "cases": [
+    {
+      "label": "before-native-submit8",
+      "report": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-run-40085358438/capture/before-native-submit8/network/transactions-result.json",
+        "bytes": 7203558,
+        "sha256": "0d6908043cb14dcdeb9162c59deff6b89f0b8e865deee261700e25f8fa6665e4"
+      },
+      "receipt": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-run-40085358438/capture/before-native-submit8/evidence/actual.json",
+        "bytes": 1420490,
+        "sha256": "2f9bf26e43ba04cf38bd04b564a16f4f5efd6a6836d0f4e3a461e1c7fd82954e"
+      },
+      "firstCause": null,
+      "clientExit": {
+        "pid": 39743,
+        "returncode": 0
+      },
+      "clientEvidenceVerified": true,
+      "selfReportedSummary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 48732,
+        "measurementWindowSeconds": 31.246024155,
+        "rpcSubmissionsPerMeasurementSecond": 262.1773560489651,
+        "checkTxAcceptedPerMeasurementSecond": 262.1773560489651,
+        "codeZeroIncludedPerMeasurementSecond": 262.1773560489651,
+        "effectiveBusinessIncludedPerMeasurementSecond": 262.1773560489651,
+        "quorumConfirmedPerMeasurementSecond": 262.1773560489651,
+        "finalSubmittedPerMeasurementSecond": 262.1773560489651,
+        "offeredEventSpanSeconds": 29.039527111,
+        "offeredInterarrivalRate": 282.06382179334105,
+        "submissionEventSpanSeconds": 29.811809452,
+        "submissionInterarrivalRate": 274.75688831261084,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "CPU": {
+        "available": true,
+        "samples": 2,
+        "userNs": 23464238000,
+        "systemNs": 753396000,
+        "totalNs": 24217634000,
+        "measurementWallNs": 31246024155,
+        "sampleBracketWallNs": 31246031179,
+        "sampleBracketOverheadNs": 7024,
+        "cpuPercentOfOneCore": 77.50627227267287,
+        "scope": "RUSAGE_SELF process user/system CPU includes client HTTP, observer, decoder, Go runtime and GC; excludes separate nodes/other processes. Two cumulative samples bracket the client measurement; neither CPU nor wall durations are additive phase attribution."
+      },
+      "occupancy": {
+        "callbackStarted": 8192,
+        "callbackReturned": 8192,
+        "activeCallbacksAtEnd": 0,
+        "peakActiveCallbacks": 8,
+        "callbackBusyNs": 194548338943,
+        "queueWaitSamples": 8192,
+        "queueWaitNs": 758220251459,
+        "peakQueueWaitNs": 1061855223,
+        "measurementWallNs": 31246024155,
+        "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+      },
+      "derived": {
+        "averageActiveCallbacks": 6.226339004857625,
+        "callbackMeanWallMs": 23.74857653112793,
+        "queueWaitMeanMs": 92.55618303942872,
+        "queuePeakMs": 1061.855223
+      }
+    },
+    {
+      "label": "after-native-submit16",
+      "report": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-run-40085358438/capture/after-native-submit16/network/transactions-result.json",
+        "bytes": 6985801,
+        "sha256": "a8a0a3c897a4f18afbbd8a2329a3306b039225dedee7607c2d55d7a00c52f7b1"
+      },
+      "receipt": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-run-40085358438/capture/after-native-submit16/evidence/actual.json",
+        "bytes": 914452,
+        "sha256": "07a9edaf6272cb483fe6148edb3cdd812ad5827859b84afabf5491b8b9565ba4"
+      },
+      "firstCause": "native verifier: stream worker scope differs",
+      "clientExit": {
+        "pid": 39851,
+        "returncode": 0
+      },
+      "clientEvidenceVerified": true,
+      "selfReportedSummary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 47865,
+        "measurementWindowSeconds": 29.710246518,
+        "rpcSubmissionsPerMeasurementSecond": 275.729788880643,
+        "checkTxAcceptedPerMeasurementSecond": 275.729788880643,
+        "codeZeroIncludedPerMeasurementSecond": 275.729788880643,
+        "effectiveBusinessIncludedPerMeasurementSecond": 275.729788880643,
+        "quorumConfirmedPerMeasurementSecond": 275.729788880643,
+        "finalSubmittedPerMeasurementSecond": 275.729788880643,
+        "offeredEventSpanSeconds": 28.341224799,
+        "offeredInterarrivalRate": 289.0136209035332,
+        "submissionEventSpanSeconds": 28.560835345,
+        "submissionInterarrivalRate": 286.79133159296606,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "CPU": {
+        "available": true,
+        "samples": 2,
+        "userNs": 22310615000,
+        "systemNs": 613112000,
+        "totalNs": 22923727000,
+        "measurementWallNs": 29710246518,
+        "sampleBracketWallNs": 29710254483,
+        "sampleBracketOverheadNs": 7965,
+        "cpuPercentOfOneCore": 77.15762587330511,
+        "scope": "RUSAGE_SELF process user/system CPU includes client HTTP, observer, decoder, Go runtime and GC; excludes separate nodes/other processes. Two cumulative samples bracket the client measurement; neither CPU nor wall durations are additive phase attribution."
+      },
+      "occupancy": {
+        "callbackStarted": 8192,
+        "callbackReturned": 8192,
+        "activeCallbacksAtEnd": 0,
+        "peakActiveCallbacks": 16,
+        "callbackBusyNs": 316009890382,
+        "queueWaitSamples": 8192,
+        "queueWaitNs": 325846523448,
+        "peakQueueWaitNs": 481490297,
+        "measurementWallNs": 29710246518,
+        "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+      },
+      "derived": {
+        "averageActiveCallbacks": 10.636394086819337,
+        "callbackMeanWallMs": 38.575426072021486,
+        "queueWaitMeanMs": 39.77618694433594,
+        "queuePeakMs": 481.490297
+      }
+    }
+  ],
+  "rawLocalFixEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/post-fsync-submit16-red.raw",
+      "bytes": 1070,
+      "sha256": "226f50523433180dcc2348bd8a2564342d406483a0dedeab3c5c80e883772d69"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/submit16-runtime-fold-red.raw",
+      "bytes": 2430,
+      "sha256": "3d2c763913030bfa868aeae5322fc99aef7727aae7dd3c47f4c3ebf8ff54f18f"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/submit16-firstcause-full-green.raw",
+      "bytes": 190,
+      "sha256": "3c41718d79448892c147843583524e6db3c55f06df54b02c7683c262fd5dc691"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-source-c8b7a2f6b/submit16-firstcause-pair-green.raw",
+      "bytes": 131,
+      "sha256": "72ef1916f775b3a8c90d9ae24283ee342ed076580c16657ae3925fe902872d6c"
+    }
+  ],
+  "interpretation": "Original run remains failed. Client report metrics are diagnostic self-reported observations from individually recovered original ZIP members, not successful original pair admission. Do not replace or repair original receipts. Two missing explicit16 forwarding boundaries are fixed in new source only; no skipped signature/state/nonce/evidence/resource checks, no budget increase. Observed queue reduction with little offer gain motivates further client/node bottleneck diagnosis, not sustained capacity."
+}

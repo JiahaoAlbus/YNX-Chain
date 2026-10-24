@@ -1141,14 +1141,32 @@ class SupplySourceTests(unittest.TestCase):
             if str(path).endswith("streaming-plan.json"):return raw_plan
             if str(path).endswith("network-manifest.json"):return raw_manifest
             return json.dumps(dict(transactions=initial)).encode()
-        def check(row,canonical=False,suffix=False,tip=False):
+        def check(row,canonical=False,suffix=False,tip=False,submitters=8):
             with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
-                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip)
+                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters)
                 self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
                 self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
                 self.assertFalse(out["sustainedTPSQualified"])
                 return out
         check(client)
+        # Full source route must carry the producer's explicit16 selection
+        # through the nested runtime fold validator, not just the outer plan.
+        saved_plan=raw_plan
+        wide_plan=copy.deepcopy(plan);wide_plan['profile']='scoped_native_prefix_stream16_v1';wide_plan['nativePrefix']['submitters']=16
+        raw_plan=json.dumps(wide_plan).encode()
+        wide=copy.deepcopy(client);wide.update(concurrency=16,nativeStreamSubmitters=16);wide['pacedWorkers']['submitters']=16
+        wide['streamingWorkload'].update(name=wide_plan['profile'],planSha256=hashlib.sha256(raw_plan).hexdigest())
+        check(wide,submitters=16)
+        with self.assertRaises(RuntimeError):check(wide)
+        for fault in ('marker','inventory','fold','queue','callback'):
+            bad=copy.deepcopy(wide)
+            if fault=='marker':bad['nativeStreamSubmitters']=8
+            if fault=='inventory':bad['pacedWorkers']['submitters']=8
+            if fault=='fold':bad['submissionOccupancy']['callbackReturned']=2048
+            if fault=='queue':bad['submissionOccupancy']['queueWaitNs']+=8193
+            if fault=='callback':bad['submissionOccupancy']['peakActiveCallbacks']=17
+            with self.subTest(submit16Fault=fault),self.assertRaises(RuntimeError):check(bad,submitters=16)
+        raw_plan=saved_plan
         # One explicit choice must bind producer expectation, durable plan,
         # top-level report, actual backend and accepted/fallback child counters.
         original_raw=raw_plan
@@ -1257,6 +1275,35 @@ class SupplySourceTests(unittest.TestCase):
             if kind=="rate":bad["summary"]["finalSubmittedPerMeasurementSecond"]+=1
             if kind=="plan":bad["streamingWorkload"]["planSha256"]="0"*64
             with self.subTest(kind=kind),self.assertRaises(RuntimeError):check(bad)
+
+    def test_native_submit16_post_fsync_preserves_complete_qualification_contract(self):
+        selected=supply.pair_recipe(supply.STREAM_SUBMIT16_PAIR)['cases'][1]
+        base=dict(selected,firstCause=None,nodesStarted=True,cleanupComplete=True,launcher=7,case='/unit/after-native-submit16',closureScans=[dict(owned=[7],launcherStartTicks=1)]*2,measurement=dict(summary=dict(finalSubmitted=8192)))
+        with tempfile.TemporaryDirectory() as d:
+            receipt=Path(d)/'receipt.json';receipt.write_text(json.dumps(base))
+            for fault in (None,'incomplete','cleanup','firstcause'):
+                row=copy.deepcopy(base)
+                if fault=='incomplete':row['measurement']['summary']['finalSubmitted']=8191
+                if fault=='cleanup':row['cleanupComplete']=False
+                if fault=='firstcause':row['firstCause']='original resource failure'
+                out=io.StringIO()
+                with patch.object(supply.time,'monotonic',return_value=1),patch.object(supply,'post_fsync_owned_closure',return_value=dict(owned=[7],launcherStartTicks=1)) as closure,patch.object(supply,'native_verifier_case_result',return_value={}) as verifier,contextlib.redirect_stdout(out):
+                    qualified=supply.oneshot_post_fsync(row,receipt,lambda:dict(privateBytes=1),0,native_stream8=True)
+                self.assertEqual(qualified,fault is None);self.assertEqual(closure.call_count,2)
+                self.assertEqual(verifier.call_args.args[2]['expected_submitters'],16)
+                terminal=json.loads(out.getvalue().split('YNX_NATIVE_STREAM_TERMINAL ')[1]);self.assertEqual(terminal['qualified'],qualified)
+                self.assertEqual(len(terminal['postFsyncClosureScans']),2)
+                if fault=='firstcause':self.assertEqual(terminal['firstCause'],'original resource failure')
+            for marker in (None,True,8,32,'16'):
+                bad=copy.deepcopy(base)
+                if marker is None:bad.pop('nativeStreamSubmitters')
+                else:bad['nativeStreamSubmitters']=marker
+                bad['firstCause']='original verifier failure'
+                out=io.StringIO()
+                with patch.object(supply.time,'monotonic',return_value=1),contextlib.redirect_stdout(out):
+                    self.assertFalse(supply.oneshot_post_fsync(bad,receipt,lambda:dict(privateBytes=1),0,native_stream8=True))
+                terminal=json.loads(out.getvalue().split('YNX_NATIVE_STREAM_TERMINAL ')[1])
+                self.assertEqual(terminal['firstCause'],'original verifier failure');self.assertFalse(terminal['qualified'])
 
     def test_native_stream_post_fsync_requires8192_and_fresh_original_identity(self):
         plan=supply.recipe(**self.stream_config())

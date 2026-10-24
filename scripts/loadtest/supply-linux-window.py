@@ -731,9 +731,9 @@ def validate_submitter_selection(report,expected=False,require_inventory=False,t
     return dict(nativeSubmit8=expected,pacedWorkers=inventory)
 
 
-def validate_runtime_measurements(report,total=2048,require=False,native_submit8=False,*,stream_metrics=None):
+def validate_runtime_measurements(report,total=2048,require=False,native_submit8=False,*,stream_metrics=None,stream_submitters=8):
     streaming=stream_metrics is not None
-    validate_submitter_selection(report,native_submit8,total=2048 if streaming else total,native_stream8=streaming)
+    validate_submitter_selection(report,native_submit8,total=2048 if streaming else total,native_stream8=streaming,stream_submitters=stream_submitters)
     cpu=report.get("processCPU");occupancy=report.get("submissionOccupancy")
     if cpu is None and occupancy is None and not require:return None
     if not isinstance(cpu,dict) or not isinstance(occupancy,dict):raise RuntimeError("actual CPU and submission occupancy required")
@@ -1445,7 +1445,7 @@ def validate_native_stream_report(report,network,*,runtime_network=None,pacing="
     prefix=validate_prefix_replay(report,True,True,True,expected_native_suffix,native_stream8=True,expected_canonical_certificate=canonical)
     facts=validate_observer_native_facts(report,True,native_stream8=True,total=total,expected_native_suffix=expected_native_suffix)
     workers=validate_submitter_selection(report,False,True,total=2048,native_stream8=True,stream_submitters=expected_submitters)
-    runtime=validate_runtime_measurements(report,total,True,stream_metrics=metrics)
+    runtime=validate_runtime_measurements(report,total,True,stream_metrics=metrics,stream_submitters=expected_submitters)
     timeline=bounded.get("timeSeries",{});bins=timeline.get("buckets",[])
     client_clock=stream_evidence.client_clock_measurements(timeline,total,required=plan.get("nativePrefix",{}).get("clientClockTiming",False))
     need(timeline.get("valid") is True and type(timeline.get("invalidRows")) is int and timeline["invalidRows"]==0 and timeline.get("bucketNs")==1000000000 and 1<=len(bins)<=1024,"stream monotonic timeline incomplete")
@@ -1593,10 +1593,10 @@ def post_fsync_owned_closure(result):
 
 def oneshot_post_fsync(result,receipt,capture_sample,started,*,native_stream8=False):
     expected=8192 if native_stream8 else 2048
-    if native_stream8 and result.get("profile")!=native_stream_profile(result.get("pacingMode","relative")):
-        raise RuntimeError("post-fsync stream scope differs")
     sampled=None
     try:
+        if native_stream8 and result.get("profile")!=native_stream_profile(result.get("pacingMode","relative"),result.get("nativeStreamSubmitters",8)):
+            raise RuntimeError("post-fsync stream scope differs")
         sampled=capture_sample()
         if (time.monotonic()-started)*1000>60000:
             raise RuntimeError("one-shot total including receipt fsync exceeded60s")
