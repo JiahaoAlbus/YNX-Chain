@@ -12,7 +12,7 @@ test('Auth32 selects its own99-input inventory and actual R224 build tool; no31 
  const p=walletNativeSourceProfile(version);assert.equal(p.supplierNodeInputs,99);assert.equal(p.requiresRuntimeUnion,true);
  assert.deepEqual(p.inventory,{bytes:76220,sha256:'20cf1f242571d679028539b5201591bc274d5f6ca710a608342f9d57605e5ead'});
  assert.deepEqual(p.tool,{bytes:15467,sha256:'d39bdb9f8507ce82c4e184007eaf804cfb94dbbd441e93290bf7253d26883480'});
- assert.equal(walletNativeSourceProfile('1.3.0-pq.3.32-auth.31').supplierNodeInputs,92);assert.throws(()=>sdkRuntimeUnionProfile(version));
+ assert.equal(walletNativeSourceProfile('1.3.0-pq.3.32-auth.31').supplierNodeInputs,92);assert.deepEqual(sdkRuntimeUnionProfile(version),{bytes:1466009,sha256:'7543115cdd892e2a84c2af71a3e99200c17dd760ab0bcd4823df824748658e32',files:9424,totalBytes:77829265});
 });
 test('Auth32 composes actual15-source ordering plus Main3 exactly once and retains one co-resident archive',()=>{
  const f=base(),result=composeWalletPublisherNativeBuildPlan(f.plan,f.repo,99,true,true,true);
