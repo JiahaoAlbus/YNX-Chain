@@ -29,6 +29,7 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  fixed['1.3.0-pq.3.32-auth.26']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.26'].inventory;
  fixed['1.3.0-pq.3.32-auth.28']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.28'].inventory;
  fixed['1.3.0-pq.3.32-auth.31']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.31'].inventory;
+ fixed['1.3.0-pq.3.32-auth.32']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.32'].inventory;
  if(!Object.hasOwn(fixed,sdkVersion))return {inputs:names,evidenceAssets};
  const pin=fixed[sdkVersion];
  const bad=()=>{throw Error('Canonical Native source inventory differs');};
@@ -41,7 +42,7 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  const pairedInputCount=relay?WALLET_NATIVE_SOURCE_PROFILES[sdkVersion].supplierNodeInputs+5:67;
  if(paired&&(helperNative.length!==3||new Set([...pins,...helper].map(p=>p.path)).size!==pairedInputCount))bad();
  const artifactRelease=WALLET_ARTIFACT_CABI_INPUTS.slice(0,2).some(p=>names.includes(p.path));
- if(artifactRelease&&!['1.3.0-pq.3.32-auth.20','1.3.0-pq.3.32-auth.26','1.3.0-pq.3.32-auth.28','1.3.0-pq.3.32-auth.31'].includes(sdkVersion))bad();
+ if(artifactRelease&&!['1.3.0-pq.3.32-auth.20','1.3.0-pq.3.32-auth.26','1.3.0-pq.3.32-auth.28','1.3.0-pq.3.32-auth.31','1.3.0-pq.3.32-auth.32'].includes(sdkVersion))bad();
  const projectControl=WALLET_PROJECT_CONTROL_INPUTS.some(p=>names.includes(p.path));
  const controlCABI=WALLET_PROJECT_CONTROL_CABI_INPUTS.slice(0,2).some(p=>names.includes(p.path));
  const availableWallet=relay?walletPublisherNativeInputs(pins.length,artifactRelease,projectControl,controlCABI):[];
@@ -149,6 +150,9 @@ export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,
  const transport=['apps/wallet-desktop/native/original-ide-wallet-identity-source-owner.inc.mm',...['original-ide-wallet-identity-source.h','original-ide-wallet-identity-source.mm','original-ide-wallet-peer-launch.h','original-ide-wallet-peer-launch.mm'].map(n=>'packages/wallet-auth/native/'+n)];
  const selected=transport.map(name=>expectedInputs.includes(name)),withTransport=selected.some(Boolean);
  if(withTransport&&!selected.every(Boolean))bad();
+ const pqCatalog=['apps/wallet-desktop/native/original-pq-host-catalog-source-owner.inc.mm',...['original-pq-host-catalog-source.h','original-pq-host-catalog-source.mm','original-pq-host-catalog-source-state.h','original-pq-host-catalog-receipt.h','original-pq-host-catalog-source-contract.mjs','original-pq-host-catalog-task-exit.h'].map(n=>'packages/wallet-auth/native/'+n)];
+ const pqSelected=pqCatalog.map(name=>expectedInputs.includes(name));if(pqSelected.some(Boolean)&&!pqSelected.every(Boolean))bad();
+ if(pqSelected.every(Boolean))sourceRel.push('packages/wallet-auth/native/original-pq-host-catalog-source.mm');
  if(withTransport)sourceRel.push('packages/wallet-auth/native/original-ide-wallet-identity-source.mm','packages/wallet-auth/native/original-ide-wallet-peer-launch.mm');
  const selectGroup=group=>{const selected=group.map(name=>expectedInputs.includes(name));if(selected.some(Boolean)&&!selected.every(Boolean))bad();return selected.every(Boolean);};
  const helper=['original-ide-helper-client.h','original-ide-helper-client.mm','original-ide-helper-xpc-peer.h','original-ide-helper-xpc-peer.mm','original-ide-helper-build-release.h','original-ide-helper-service-contract.h','original-ide-helper-service-install.mm'].map(n=>'packages/wallet-auth/native/'+n);
