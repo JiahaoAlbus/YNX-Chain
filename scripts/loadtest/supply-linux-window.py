@@ -588,8 +588,9 @@ def validate_prefix_replay(report,expected,require_work_phases=False,expected_na
     if phases is not None:
         phase_names={"gateWait","prefixCheck","privateJSON","privateValidate","fullReplay","suffixSetup","suffixReplay","suffixEncode","canonicalCopy","certificatePublish"}
         if expected_native_clone:phase_names.add("privateNativeClone")
-        if not isinstance(phases,dict) or set(phases)!=phase_names:raise RuntimeError("prefix phase inventory differs")
-        for phase in phases.values():
+        details_name={"certificatePublishDetails"} if isinstance(phases,dict) and "certificatePublishDetails" in phases else set()
+        if not isinstance(phases,dict) or set(phases)!=phase_names|details_name:raise RuntimeError("prefix phase inventory differs")
+        for phase in (phases[k] for k in phase_names):
             if (not isinstance(phase,dict) or set(phase)!={"calls","errors","durationNs"}
                     or any(type(v) is not int or v<0 for v in phase.values()) or phase["errors"]>phase["calls"] or phase["calls"]>stats["calls"]
                     or phase["calls"]==0 and (phase["errors"]!=0 or phase["durationNs"]!=0) or phase["calls"]>0 and phase["durationNs"]<=0):raise RuntimeError("invalid actual prefix phase counts/time")
@@ -601,7 +602,8 @@ def validate_prefix_replay(report,expected,require_work_phases=False,expected_na
                 or calls("privateValidate")!=success("privateJSON")+native_success or calls("suffixSetup")+calls("canonicalCopy")>success("privateValidate")
                 or calls("suffixReplay")!=success("suffixSetup") or calls("suffixEncode")!=success("suffixReplay")
                 or calls("certificatePublish")>success("fullReplay")+success("suffixEncode")
-                or sum(p["durationNs"] for p in phases.values())>stats["durationNs"]):raise RuntimeError("prefix child phases differ from actual sequential branches/parent time")
+                or sum(phases[k]["durationNs"] for k in phase_names)>stats["durationNs"]):raise RuntimeError("prefix child phases differ from actual sequential branches/parent time")
+        stream_evidence.certificate_publish_measurements(phases,canonical_limit,required=native_stream8,native_clone=expected_native_clone)
     if expected_native_clone:
         cache=stats.get("nativeCloneCache")
         keys={"canonicalBytes","height","accounts","feeEvents","lotEntries"}

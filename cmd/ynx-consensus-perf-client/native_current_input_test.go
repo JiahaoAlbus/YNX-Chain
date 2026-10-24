@@ -50,6 +50,14 @@ func TestNativeStreamingCurrentInputReuseAvoidsDuplicateDecode(t *testing.T) {
 	if actual.SnapshotValidations != 1 || actual.TransactionVerifications != 2 || !two.SnapshotCacheHit {
 		t.Fatalf("duplicate current input decoded/validated again: validations=%d verification=%d hit=%v", actual.SnapshotValidations, actual.TransactionVerifications, two.SnapshotCacheHit)
 	}
+	parts := actual.PrefixReplay.WorkPhases.CertificatePublishDetails
+	if parts == nil || parts.PayloadCopy.Calls != 1 || parts.StrictJSON.Calls != 1 || parts.NativeClone.Calls != 1 || parts.PrefixBytesHashed != uint64(len(data)) || parts.PayloadBytes == 0 {
+		t.Fatalf("real native certificate child timing/bytes absent: %+v", parts)
+	}
+	parts.StrictJSON.Calls = 999
+	if r.stats().PrefixReplay.WorkPhases.CertificatePublishDetails.StrictJSON.Calls != 1 {
+		t.Fatal("caller timing mutation reached private reader totals")
+	}
 }
 
 func currentInputFixture(t *testing.T) (*durableReader, *consensus.Application, string, string, []byte, int64) {

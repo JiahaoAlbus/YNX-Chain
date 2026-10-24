@@ -1101,6 +1101,11 @@ class SupplySourceTests(unittest.TestCase):
         ready["supply"].update(signAttempts=6144,encodeAttempts=6144,signedSuccessors=6144,journalDurableEnvelopes=8192,terminalSinkAttempts=8192,signNs=1,encodeNs=1,journalAppendNs=1,terminalSinkNs=1,journalSetupNs=1,journalDurableBytes=123,
             pacingWaitAttempts=8192,offerDecodeAttempts=8192,dispatchAttempts=8192,pacingFutureTargetAttempts=8191,pacingAlreadyDueAttempts=1,pacingPositiveRemainingNs=1,pacingWakeLatenessNs=1,pacingMaxWakeLatenessNs=1,pacingCatchupTargets=0,pacingCadenceResets=0,pacingPeakCatchupTargets=0)
         reader=client["durableReadback"];reader["prefixReplay"]["canonicalByteLimit"]=32<<20
+        certificate=reader['prefixReplay']['workPhases']['certificatePublish']
+        certificate['durationNs']=3
+        reader['prefixReplay']['workPhases']['certificatePublishDetails']=dict(
+            **{k:dict(calls=certificate['calls'],errors=0,durationNs=1) for k in ('payloadCopy','strictJSON','nativeClone')},
+            payloadBytes=100,prefixBytesHashed=100)
         reader["prefixReplay"]["nativeCloneCache"].update(accounts=2048,feeEvents=8192)
         reader["blockJournalNativeVerificationFacts"].update(successful_verifications=8192,lookups=8192)
         reader.update(attempts=1,readerGate=dict(acquisitions=1,waitNs=1,maxWaitNs=1,holdNs=1,maxHoldNs=1),transactionVerifications=8192,observerNativeFacts=dict(enabled=True,lookups=8192,hits=8192,misses=0,fallbackMathVerifications=0,fallbackFailures=0),readerBudget=dict(storeByteLimit=32<<20,cacheInputByteBudget=64<<20,cachedInputBytes=1))

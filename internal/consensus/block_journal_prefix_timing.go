@@ -11,17 +11,54 @@ type BlockJournalPrefixPhase struct {
 	DurationNs int64  `json:"durationNs"`
 }
 type BlockJournalPrefixWorkPhases struct {
-	GateWait           BlockJournalPrefixPhase  `json:"gateWait"`
-	PrefixCheck        BlockJournalPrefixPhase  `json:"prefixCheck"`
-	PrivateJSON        BlockJournalPrefixPhase  `json:"privateJSON"`
-	PrivateValidate    BlockJournalPrefixPhase  `json:"privateValidate"`
-	FullReplay         BlockJournalPrefixPhase  `json:"fullReplay"`
-	SuffixSetup        BlockJournalPrefixPhase  `json:"suffixSetup"`
-	SuffixReplay       BlockJournalPrefixPhase  `json:"suffixReplay"`
-	SuffixEncode       BlockJournalPrefixPhase  `json:"suffixEncode"`
-	CanonicalCopy      BlockJournalPrefixPhase  `json:"canonicalCopy"`
-	CertificatePublish BlockJournalPrefixPhase  `json:"certificatePublish"`
-	PrivateNativeClone *BlockJournalPrefixPhase `json:"privateNativeClone,omitempty"`
+	CertificatePublishDetails *BlockJournalPrefixCertificatePhases `json:"certificatePublishDetails,omitempty"`
+	GateWait                  BlockJournalPrefixPhase              `json:"gateWait"`
+	PrefixCheck               BlockJournalPrefixPhase              `json:"prefixCheck"`
+	PrivateJSON               BlockJournalPrefixPhase              `json:"privateJSON"`
+	PrivateValidate           BlockJournalPrefixPhase              `json:"privateValidate"`
+	FullReplay                BlockJournalPrefixPhase              `json:"fullReplay"`
+	SuffixSetup               BlockJournalPrefixPhase              `json:"suffixSetup"`
+	SuffixReplay              BlockJournalPrefixPhase              `json:"suffixReplay"`
+	SuffixEncode              BlockJournalPrefixPhase              `json:"suffixEncode"`
+	CanonicalCopy             BlockJournalPrefixPhase              `json:"canonicalCopy"`
+	CertificatePublish        BlockJournalPrefixPhase              `json:"certificatePublish"`
+	PrivateNativeClone        *BlockJournalPrefixPhase             `json:"privateNativeClone,omitempty"`
+}
+
+// Sequential children already included in CertificatePublish. These counters
+// are selected only by DecodeWithCertificatePhaseTiming; the original timed and
+// untimed APIs retain their output shape and do not read these child clocks.
+type BlockJournalPrefixCertificatePhases struct {
+	PayloadCopy       BlockJournalPrefixPhase `json:"payloadCopy"` // Original payload copy plus current input-prefix digest.
+	StrictJSON        BlockJournalPrefixPhase `json:"strictJSON"`
+	NativeClone       BlockJournalPrefixPhase `json:"nativeClone"` // Original private copy plus payload digest/identity sealing.
+	PayloadBytes      uint64                  `json:"payloadBytes"`
+	PrefixBytesHashed uint64                  `json:"prefixBytesHashed"`
+}
+
+func (p *BlockJournalPrefixWorkPhases) measureCertificate(name string, action func() error) error {
+	if p == nil || p.CertificatePublishDetails == nil {
+		return action()
+	}
+	var phase *BlockJournalPrefixPhase
+	switch name {
+	case "payloadCopy":
+		phase = &p.CertificatePublishDetails.PayloadCopy
+	case "strictJSON":
+		phase = &p.CertificatePublishDetails.StrictJSON
+	case "nativeClone":
+		phase = &p.CertificatePublishDetails.NativeClone
+	default:
+		panic("unregistered certificate publish phase")
+	}
+	started := time.Now()
+	phase.Calls++
+	err := action()
+	phase.DurationNs += time.Since(started).Nanoseconds()
+	if err != nil {
+		phase.Errors++
+	}
+	return err
 }
 
 func (p *BlockJournalPrefixWorkPhases) measure(name string, action func() error) error {
@@ -70,6 +107,21 @@ func (p *BlockJournalPrefixWorkPhases) measure(name string, action func() error)
 
 // Add copies counters from a completed call, including failed phase attempts.
 func (p *BlockJournalPrefixWorkPhases) Add(other BlockJournalPrefixWorkPhases) {
+	if other.CertificatePublishDetails != nil {
+		if p.CertificatePublishDetails == nil {
+			p.CertificatePublishDetails = new(BlockJournalPrefixCertificatePhases)
+		}
+		target, source := p.CertificatePublishDetails, other.CertificatePublishDetails
+		target.PayloadBytes += source.PayloadBytes
+		target.PrefixBytesHashed += source.PrefixBytesHashed
+		targets := []*BlockJournalPrefixPhase{&target.PayloadCopy, &target.StrictJSON, &target.NativeClone}
+		for i, v := range []BlockJournalPrefixPhase{source.PayloadCopy, source.StrictJSON, source.NativeClone} {
+			phase := targets[i]
+			phase.Calls += v.Calls
+			phase.Errors += v.Errors
+			phase.DurationNs += v.DurationNs
+		}
+	}
 	if other.PrivateNativeClone != nil {
 		if p.PrivateNativeClone == nil {
 			p.PrivateNativeClone = new(BlockJournalPrefixPhase)

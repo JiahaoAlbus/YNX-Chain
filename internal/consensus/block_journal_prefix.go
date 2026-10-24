@@ -86,6 +86,16 @@ func (d *BlockJournalPrefixDecoder) DecodeWithPhaseTiming(ctx context.Context, d
 	return out, err
 }
 
+// DecodeWithCertificatePhaseTiming additionally measures the existing payload
+// capture, strict JSON normalization and native clone inside certificatePublish.
+// It changes no validation, publication, high-water or byte ownership rules.
+func (d *BlockJournalPrefixDecoder) DecodeWithCertificatePhaseTiming(ctx context.Context, data []byte) (BlockJournalPrefixReadback, error) {
+	phases := &BlockJournalPrefixWorkPhases{CertificatePublishDetails: new(BlockJournalPrefixCertificatePhases)}
+	out, err := d.decode(ctx, data, phases)
+	out.WorkPhases = phases
+	return out, err
+}
+
 func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, phases *BlockJournalPrefixWorkPhases) (BlockJournalPrefixReadback, error) {
 	var out BlockJournalPrefixReadback
 	if err := ctx.Err(); err != nil {
@@ -211,21 +221,9 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 	// a newer validated state. Rotation at equal/newer height can replace it.
 	if len(out.SnapshotJSON) <= d.ByteLimit() && (p == nil || out.State.Height >= p.height) {
 		err := phases.measure("certificatePublish", func() error {
-			certificate := &blockJournalPrefix{payload: append([]byte(nil), out.SnapshotJSON...), digest: sha256.Sum256(data[:out.CompleteBytes]), end: out.CompleteBytes, blocks: logicalBlocks, height: out.State.Height}
-			if d.nativeClone {
-				// Decode once per newly certified prefix to retain exactly the old
-				// JSON normalization semantics. Repeated captures clone this private
-				// object, while every result still runs the original full Validate.
-				var canonical CommittedState
-				if err := decodeStrictJSON(certificate.payload, &canonical); err != nil {
-					return err
-				}
-				if private, ok := cloneNativeCommittedState(canonical); ok {
-					certificate.native = &private
-					certificate.payloadDigest = sha256.Sum256(certificate.payload)
-					certificate.nativeAppHash = canonical.AppHash
-					certificate.nativeInitialized = canonical.Initialized
-				}
+			certificate, err := d.makePrefixCertificate(data, out.BlockJournalReadback, logicalBlocks, phases)
+			if err != nil {
+				return err
 			}
 			d.prefix = certificate
 			return nil
@@ -235,6 +233,43 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 		}
 	}
 	return out, nil
+}
+
+// The caller publishes only a fully constructed certificate. Failed strict JSON
+// normalization must leave the prior private certificate/high-water untouched.
+func (d *BlockJournalPrefixDecoder) makePrefixCertificate(data []byte, out BlockJournalReadback, logicalBlocks int, phases *BlockJournalPrefixWorkPhases) (*blockJournalPrefix, error) {
+	var certificate *blockJournalPrefix
+	err := phases.measureCertificate("payloadCopy", func() error {
+		certificate = &blockJournalPrefix{payload: append([]byte(nil), out.SnapshotJSON...), digest: sha256.Sum256(data[:out.CompleteBytes]), end: out.CompleteBytes, blocks: logicalBlocks, height: out.State.Height}
+		if phases != nil && phases.CertificatePublishDetails != nil {
+			phases.CertificatePublishDetails.PayloadBytes += uint64(len(out.SnapshotJSON))
+			phases.CertificatePublishDetails.PrefixBytesHashed += uint64(out.CompleteBytes)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if d.nativeClone {
+		// Preserve the original strict JSON normalization semantics and private
+		// clone. Every reused result still performs the original full Validate.
+		var canonical CommittedState
+		if err := phases.measureCertificate("strictJSON", func() error { return decodeStrictJSON(certificate.payload, &canonical) }); err != nil {
+			return nil, err
+		}
+		if err := phases.measureCertificate("nativeClone", func() error {
+			if private, ok := cloneNativeCommittedState(canonical); ok {
+				certificate.native = &private
+				certificate.payloadDigest = sha256.Sum256(certificate.payload)
+				certificate.nativeAppHash = canonical.AppHash
+				certificate.nativeInitialized = canonical.Initialized
+			}
+			return nil
+		}); err != nil {
+			return nil, err
+		}
+	}
+	return certificate, nil
 }
 
 // VerificationStats reports only the original bounded native mathematical facts;

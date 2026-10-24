@@ -23,6 +23,16 @@ class NativeStreamEvidenceTests(unittest.TestCase):
         self.assertEqual(clock,timeline['clock'])
         stats=evidence.current_input_reuse_measurements(d["durableReadback"],True)
         self.assertTrue(stats["enabled"])
+    def test_original_go_certificate_publish_has_nested_actual_costs(self):
+        phases=self.meta['durableReadback']['prefixReplay']['workPhases']
+        self.assertIn('certificatePublishDetails',phases)
+        details=phases['certificatePublishDetails'];parent=phases['certificatePublish']
+        self.assertEqual(details['payloadCopy']['calls'],parent['calls'])
+        self.assertEqual(details['strictJSON']['calls'],parent['calls'])
+        self.assertEqual(details['nativeClone']['calls'],parent['calls'])
+        self.assertGreater(details['payloadBytes'],0);self.assertGreater(details['prefixBytesHashed'],0)
+        self.assertLessEqual(sum(details[k]['durationNs'] for k in ('payloadCopy','strictJSON','nativeClone')),parent['durationNs'])
+        self.assertEqual(evidence.certificate_publish_measurements(phases,32<<20,True,True),details)
     def test_real_go_unit_fixture_cannot_invent_missing_network_node_identity(self):
         endpoints,phases,timeline,_=NodeCompletionJoinTests().fixture()
         records=self.meta['terminalStream']['records'];timeline['clock']['samples']=3*records
@@ -179,6 +189,30 @@ class CurrentInputReuseMeasurementTests(unittest.TestCase):
         for changed in (dict(hits=5),dict(misses=2),dict(attempts=3),dict(lookupNs=0),dict(retainedInputBytes=12001),dict(enabled=False)):
             with self.subTest(changed=changed),self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(dict(reader,currentInputReuse=dict(stats,**changed)),True)
         with self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(reader,False)
+
+class CertificatePublishMeasurementTests(unittest.TestCase):
+    def fixture(self):
+        return dict(certificatePublish=dict(calls=2,errors=0,durationNs=100),certificatePublishDetails=dict(payloadCopy=dict(calls=2,errors=0,durationNs=10),strictJSON=dict(calls=2,errors=0,durationNs=60),nativeClone=dict(calls=2,errors=0,durationNs=20),payloadBytes=200,prefixBytesHashed=120))
+    def test_nested_costs_are_copied_and_not_added_twice(self):
+        phases=self.fixture();result=evidence.certificate_publish_measurements(phases,1024,True,True)
+        result['strictJSON']['calls']=999
+        self.assertEqual(phases['certificatePublishDetails']['strictJSON']['calls'],2)
+        self.assertIsNone(evidence.certificate_publish_measurements({},1024))
+        with self.assertRaises(RuntimeError):evidence.certificate_publish_measurements({},1024,True,True)
+        for key in ('strictJSON','nativeClone'):phases['certificatePublishDetails'][key]=dict(calls=0,errors=0,durationNs=0)
+        self.assertIsNotNone(evidence.certificate_publish_measurements(phases,1024,True,False))
+    def test_missing_extra_mistyped_or_impossible_children_refuse(self):
+        for change in ('missing','extra','bool','time','calls','errors','bytes','zero_bytes'):
+            phases=self.fixture();parts=phases['certificatePublishDetails']
+            if change=='missing':del parts['strictJSON']
+            if change=='extra':parts['unknown']=0
+            if change=='bool':parts['nativeClone']['calls']=True
+            if change=='time':parts['strictJSON']['durationNs']=101
+            if change=='calls':parts['nativeClone']['calls']=3
+            if change=='errors':parts['strictJSON']['errors']=1
+            if change=='bytes':parts['payloadBytes']=2049
+            if change=='zero_bytes':parts['prefixBytesHashed']=0
+            with self.subTest(change=change),self.assertRaises(RuntimeError):evidence.certificate_publish_measurements(phases,1024,True,True)
 
 class NodeCompletionJoinTests(unittest.TestCase):
     """Synthetic correlation counterexamples only, no network/finality claim."""

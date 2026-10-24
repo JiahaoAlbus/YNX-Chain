@@ -104,6 +104,7 @@ type durableReader struct {
 	cacheEvictions           uint64
 	signatureFacts           *durableSignatureFacts
 	measurePhases            bool               // Set only during construction, before any observer starts.
+	measureCertificatePhases bool               // Native stream diagnostic only; immutable after construction.
 	sharedReplay             *sharedReplayCache // Explicit candidate only; never enabled by timing.
 }
 
@@ -170,6 +171,10 @@ func (r *durableReader) stats() durableReaderStats {
 	if r.prefixDecoder != nil {
 		r.prefixMu.Lock()
 		v := r.prefixStats
+		if v.WorkPhases.CertificatePublishDetails != nil {
+			details := *v.WorkPhases.CertificatePublishDetails
+			v.WorkPhases.CertificatePublishDetails = &details
+		}
 		if v.WorkPhases.PrivateNativeClone != nil {
 			private := *v.WorkPhases.PrivateNativeClone
 			v.WorkPhases.PrivateNativeClone = &private

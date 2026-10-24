@@ -262,6 +262,28 @@ def client_clock_measurements(timeline,records,required=False):
     return dict(clock)
 
 
+def certificate_publish_measurements(phases,canonical_limit,required=False,native_clone=False):
+    """Nested costs are already inside certificatePublish; never sum twice."""
+    need(type(required) is bool and type(native_clone) is bool and integer(canonical_limit,1,512<<20),'certificate timing selection/bound differs')
+    details=phases.get('certificatePublishDetails')
+    if details is None:
+        need(not required,'selected certificatePublish child costs absent')
+        return None
+    phase_names=('payloadCopy','strictJSON','nativeClone')
+    need(type(details) is dict and set(details)==set(phase_names)|{'payloadBytes','prefixBytesHashed'},'certificate child inventory differs')
+    parent=phases.get('certificatePublish',{})
+    for part in (parent,*(details[k] for k in phase_names)):
+        need(type(part) is dict and set(part)=={'calls','errors','durationNs'} and all(integer(v,0,2**63-1) for v in part.values()),'certificate child counts/time invalid')
+        need(part['errors']<=part['calls'] and (part['calls']>0 and part['durationNs']>0 or part['calls']==part['errors']==part['durationNs']==0),'certificate child empty/error coverage differs')
+    payload,strict,native=(details[k] for k in phase_names)
+    need(payload['calls']==parent['calls'] and strict['calls']==(payload['calls']-payload['errors'] if native_clone else 0) and native['calls']==(strict['calls']-strict['errors'] if native_clone else 0),'certificate child branch coverage differs')
+    need(sum(details[k]['errors'] for k in phase_names)==parent['errors'] and sum(details[k]['durationNs'] for k in phase_names)<=parent['durationNs'],'certificate child errors/time exceed parent')
+    for key in ('payloadBytes','prefixBytesHashed'):
+        need(integer(details[key],0,min(2**63-1,parent['calls']*canonical_limit)),'certificate copied/hashed byte budget differs')
+        need(payload['calls']==0 and details[key]==0 or payload['calls']>0 and (payload['errors']==payload['calls'] or details[key]>0),'certificate actual byte coverage absent')
+    return {k:dict(v) if type(v) is dict else v for k,v in details.items()}
+
+
 def utc_nanoseconds(value):
     """Go UTC timestamps, parsed without a float or loss of nanoseconds."""
     need(type(value) is str,'exact UTC timestamp required')

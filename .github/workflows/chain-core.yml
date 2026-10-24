@@ -271,7 +271,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 90
       - name: Verify actual prefix decoder phases and held-gate cancellation
-        run: go test -p 1 ./internal/consensus -run '^TestBlockJournal(Prefix|BoundedPrefix)' -count=1 -timeout=30s -v
+        run: go test -p 1 ./internal/consensus -run '^TestBlockJournal(Prefix|BoundedPrefix|Certificate)' -count=1 -timeout=30s -v
       - name: Verify opt-in node phase timings against real durable execution
         run: go test -p 1 ./cmd/ynx-abci -run '^TestPhaseTiming' -count=1 -timeout=45s -v
       - name: Measure bounded real signed fee history

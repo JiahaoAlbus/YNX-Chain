@@ -54,6 +54,8 @@ func (r *durableReader) decodePrefixSnapshot(ctx context.Context, data []byte) (
 	var err error
 	if !consensus.IsBlockJournal(data) {
 		err = errors.New("prefix replay requires original block-journal input")
+	} else if r.measureCertificatePhases {
+		result, err = r.prefixDecoder.DecodeWithCertificatePhaseTiming(ctx, data)
 	} else {
 		result, err = r.prefixDecoder.DecodeWithPhaseTiming(ctx, data)
 	}

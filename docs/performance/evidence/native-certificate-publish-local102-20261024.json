@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "kind": "local_actual_signed102_certificate_phase_diagnostic_not_network",
+  "environment": {
+    "observedAt": "2026-10-24T01:48:12.774976+00:00",
+    "platform": "macOS-27.2-arm64-arm-64bit-Mach-O",
+    "architecture": "arm64",
+    "go": "go version go1.25.7 darwin/arm64",
+    "cpu": "Apple M4",
+    "logicalCPUs": 10,
+    "environment": {
+      "GOMAXPROCS": "1",
+      "GOGC": "100",
+      "GOMEMLIMIT": "off"
+    },
+    "scope": "Local signed102 application/reader timing only; no nodes or network TPS; not a same-VM comparison against GitHub Linux."
+  },
+  "concurrentSourceLightTests": true,
+  "transactionScope": {
+    "realSignedExecutedPersisted": 102,
+    "senderSlots": 3,
+    "nonceCycles": 34,
+    "independentBFTProof": false
+  },
+  "parent": {
+    "calls": 102,
+    "errors": 0,
+    "durationNs": 38008414
+  },
+  "children": {
+    "payloadCopy": {
+      "calls": 102,
+      "errors": 0,
+      "durationNs": 2547459
+    },
+    "strictJSON": {
+      "calls": 102,
+      "errors": 0,
+      "durationNs": 32677634
+    },
+    "nativeClone": {
+      "calls": 102,
+      "errors": 0,
+      "durationNs": 2707745
+    },
+    "payloadBytes": 4123395,
+    "prefixBytesHashed": 3526513
+  },
+  "strictJSONShareOfParent": 0.8597473706742933,
+  "originalFixtureMetadataSHA256": "90e5ed0ec85ec51c905acba5527160f513d5be9dcd3f398fe0dd7d9239c558f5",
+  "networkTPSQualified": false,
+  "sustainedTPSQualified": false,
+  "interpretation": "Local non-race GOMAXPROCS1 actual signed execution/Commit/reader evidence. Wall times include scheduler/GC and shared-host light-test interference; no Linux network speedup inference. Children are already included in parent. payloadCopy includes prefix hashing; nativeClone includes canonical digest/native identity seal."
+}

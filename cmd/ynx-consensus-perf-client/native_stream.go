@@ -71,6 +71,8 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	r.signatureFacts = nil
 	r.observerNativeFacts = true
 	r.measurePhases = true
+	r.measureCertificatePhases = true
+	r.prefixStats.WorkPhases.CertificatePublishDetails = new(consensus.BlockJournalPrefixCertificatePhases)
 	if r.profileMu != nil {
 		r.readerGate = &durableReaderGateStats{}
 	}
