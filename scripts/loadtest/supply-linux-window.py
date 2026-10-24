@@ -284,7 +284,7 @@ def pair_recipe(comparison="relative-bounded"):
             order=" then ".join(label for label,_,_ in native_stream_pair_spec(comparison))+"; no second activation after any first failure/UNKNOWN/incomplete raw/unclean closure",
             input=dict(run_linux_supply=True,linux_supply_transport="grpc",linux_supply_profile=STREAM_PROFILE,linux_supply_pacing="paired-"+comparison,measure_observer_phases=True,prefix_durable_replay=False),
             binaries="one original four-ELF build; SHA/buildInfo/source unchanged across both original cases",
-            interpretation="Explicit pair only: each8192 signed business inputs, original45+15/60s and RSS/thread/process/log guards, private256MiB each; aggregate retained512MiB including receipts, total120s/log2MiB/build1GiB. Same boot/PID namespace/host/launcher/source/ELFs, separate fresh ephemeral fixtures. Only the selected cadence or exact-input-cache boolean changes; cache comparison uses bounded-cadence on both sides. No network or sustained TPS qualification from a recipe.")
+            interpretation="Explicit pair only: each8192 signed business inputs, original45+15/60s and RSS/thread/process/log guards, private256MiB each; aggregate retained512MiB including receipts, total120s/log2MiB/build1GiB. Same boot/PID namespace/host/launcher/source/ELFs, separate fresh ephemeral fixtures. Only the registered cadence, exact-input-cache or canonical-certificate axis changes; cache and certificate comparisons use bounded-cadence on both sides. No network or sustained TPS qualification from a recipe.")
     if comparison == "native-client-procs2-data64":
         selected=pair_recipe("native-observer-facts-data64")
         selected.update(kind="fixed-same-VM-native-client-procs2-data64-pair",
