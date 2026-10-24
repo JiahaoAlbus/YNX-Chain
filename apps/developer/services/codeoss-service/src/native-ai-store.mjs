@@ -124,7 +124,9 @@ export function createNativeAIStore({ filename, keyPath, now = Date.now } = {}) 
   }
   function create({ owner, projectId, prompt, context, model, review } = {}) {
     scope(owner, projectId); bounded(prompt, NATIVE_AI_LIMITS.promptBytes, 'prompt');
-    bounded(context, NATIVE_AI_LIMITS.contextBytes, 'context', true); bounded(model, 120, 'model');
+    // An empty reviewed selection means provider default, not a guessed model.
+    // Only a successful original result can populate the actual model later.
+    bounded(context, NATIVE_AI_LIMITS.contextBytes, 'context', true); bounded(model, 120, 'model', true);
     return transaction(() => {
       if (review !== undefined && (!review || typeof review.binding !== 'string' || review.binding.length > 2048 ||
         !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(review.sessionId || '') || typeof review.proposalId !== 'string' || review.proposalId.length > 128 ||

@@ -276,7 +276,7 @@ export function createAgentOrchestrator({
           const context = request.attachments.length ? JSON.stringify({ prompt: request.prompt, attachments: request.attachments,
             includedContext: request.includedContext, excludedContext: request.excludedContext }) : request.prompt;
           conversation = aiStore.create({ owner: modelOwner, projectId: projectIdForModel,
-            prompt: `YNX Code ${input.role} Agent`, context, model: input.model || "qwen3:4b" });
+            prompt: `YNX Code ${input.role} Agent`, context, model: input.model || "" });
         }
         try {
           const result = await waitForOperation(() => modelRouter.generate({ ...input, ownerId: modelOwner,

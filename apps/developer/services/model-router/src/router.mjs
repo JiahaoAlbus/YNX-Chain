@@ -37,7 +37,7 @@ export function createModelRouter({
   fetchImpl = globalThis.fetch,
   hostedBaseURL = process.env.YNX_CODE_HOSTED_AI_URL ||
     "http://127.0.0.1:18111/ai-build",
-  hostedModel = process.env.YNX_CODE_HOSTED_AI_MODEL || "qwen3:4b",
+  hostedModel = process.env.YNX_CODE_HOSTED_AI_MODEL || null,
   maxConcurrent = Number(process.env.YNX_CODE_AI_CONCURRENCY || 4),
   maxQueued = Number(process.env.YNX_CODE_AI_QUEUE || 64),
   maxPerOwner = Number(process.env.YNX_CODE_AI_OWNER_CONCURRENCY || 1),
@@ -75,7 +75,7 @@ export function createModelRouter({
       protocolVersion: PROTOCOL,
       hosted: {
         id: "ynx-hosted",
-        label: "YNX hosted open model",
+        label: "YNX AI",
         model: null,
         configuredModel: hostedModel,
         modelConfidence: 'unknown',
@@ -91,7 +91,9 @@ export function createModelRouter({
         defaultModel: value.defaultModel,
         credentialMode: value.keyMode,
       })),
-      localFamilies: ["Qwen", "Llama", "DeepSeek"],
+      // A release must not recommend an unselected third-party model or imply
+      // it is the owned assistant's verified generation supply.
+      localFamilies: [],
       ...queue.state(),
       scheduling: "round-robin-by-authenticated-owner",
       capacityScope: "single-router-process",
