@@ -12,12 +12,14 @@ export function verifySDK332R140Source(sourceRoot){
   const root=realpathSync(sourceRoot);
   const contract=JSON.parse(readFileSync(join(root,'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json')));
   const pkg=JSON.parse(readFileSync(join(root,'packages/wallet-auth/package.json')));
-  if(contract.version!=='1.3.0-pq.3.32-auth.22'||pkg.version!==contract.version||!isDeepStrictEqual(pkg.exports,contract.publicExports))fail('SDK332_R140_PACKAGE_SELECTION_INVALID');
+  if(contract.version!=='1.3.0-pq.3.32-auth.23'||pkg.version!==contract.version||!isDeepStrictEqual(pkg.exports,contract.publicExports))fail('SDK332_R140_PACKAGE_SELECTION_INVALID');
   // Pure deployment codecs join this canonical Auth line; independent file pins
-  // bind the supplier bytes while Native selection requires matching77 Node/82 paired inputs.
+  // bind the supplier bytes while Native selection requires matching82 Node/87 paired inputs.
   const pure=['pq-contract-deployment-transport.js','pq-contract-deployment-transport.d.ts','pq-contract-deployment-transport-node.js','pq-contract-deployment-transport-node.d.ts'].map(n=>'packages/wallet-auth/src/'+n);
   if(!Array.isArray(contract.pureDeploymentInputs)||JSON.stringify(contract.pureDeploymentInputs.map(p=>p.path))!==JSON.stringify(pure))fail('SDK332_R140_DEPLOYMENT_INVENTORY_INVALID');
-  if(!Array.isArray(contract.NativeInputs)||contract.NativeInputs.length!==77||!Array.isArray(contract.HelperInputs)||contract.HelperInputs.length!==5)fail('SDK332_R140_NATIVE_INVENTORY_INVALID');
+  if(!Array.isArray(contract.NativeInputs)||contract.NativeInputs.length!==82||!Array.isArray(contract.HelperInputs)||contract.HelperInputs.length!==5)fail('SDK332_R140_NATIVE_INVENTORY_INVALID');
+  const control=["original-ide-project-control-source.inc.mm","original-ide-project-control-capture.mjs","original-ide-project-control-contract.mjs","original-developer-principal-data.mjs","original-ide-publication-approval-contract.mjs"].map(n=>'packages/wallet-auth/native/'+n);
+  if(!control.every(p=>contract.NativeInputs.some(pin=>pin.path===p)))fail('SDK332_R140_CONTROL_INVENTORY_INVALID');
   const ioPath='packages/wallet-auth/native/original-source-current-dirfd-node.cpp';
   if(!Array.isArray(contract.sourceCurrentIOInputs)||contract.sourceCurrentIOInputs.length!==1||contract.sourceCurrentIOInputs[0].path!==ioPath)fail('SDK332_R140_SOURCE_CURRENT_IO_INVENTORY_INVALID');
   if(contract.require?.translationUnits!==13||contract.require?.helperTranslationUnits!==11||contract.require?.NAPI!==8||contract.require?.minMacOS!=='13.0'||contract.require?.sameSourceBuild!==true||contract.require?.pairedHelperRequired!==true||contract.require?.prebuiltSDK330ModuleAllowed!==false||contract.require?.prebuiltR140ModuleAllowed!==false||!isDeepStrictEqual(contract.require?.frameworks,['Foundation','Security','AppKit','ServiceManagement'])||!isDeepStrictEqual(contract.require?.helperFrameworks,['Foundation','Security','ServiceManagement']))fail('SDK332_R140_NORMAL_REQUIREMENTS_INVALID');

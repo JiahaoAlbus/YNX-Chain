@@ -1,4 +1,5 @@
 #import "original-auth-identity-source-authority.h"
+#import <Security/Security.h>
 #import "original-ide-helper-xpc-peer.h"
 #import "original-ide-helper-client.h"
 #include "original-source-verifier-io.h"
@@ -39,7 +40,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  NSMutableArray<NSFileHandle *> *_pipeHandles;NSMutableArray<NSNumber *> *_pipeStates;
  uint64_t _sequence,_floor,_timeFloor,_cachedCurrentExpiresMS;NSString *_headDigest,*_observationHeight;
  BOOL _relayLocalEntered;
- BOOL _projectLocalEntered,_ideProjectConsumer;
+ BOOL _projectLocalEntered,_ideProjectConsumer,_ideControlConsumer,_controlLocalEntered;
  BOOL _relayRuntimePinned,_relayRuntimeEntered;
  NSData *_relayRuntimeManifestOriginal;
  BOOL _proofClosurePinned,_ideProofSelected,_ideProofVerified;
@@ -190,10 +191,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "original-ide-contract-relay-source.inc.mm"
 #include "original-ide-contract-relay-runtime.inc.mm"
 #include "original-ide-project-authority-source.inc.mm"
+#include "original-ide-project-control-source.inc.mm"
 - (BOOL)assertCurrent:(NSError **)error {return [self assertAuthenticatedNativePurpose:error];}
 - (BOOL)assertAuthenticatedNativePurpose:(NSError **)error {
  @synchronized(self){
-  if(_entered||_relayLocalEntered||_relayRuntimeEntered||_projectLocalEntered)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_REENTRANT" error:error];
+  if(_entered||_relayLocalEntered||_relayRuntimeEntered||_projectLocalEntered||_controlLocalEntered)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_REENTRANT" error:error];
   if(![self heldCurrent:error])return NO;_entered=YES;
   @try{
    uint64_t before=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);if(before<_timeFloor)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CLOCK_ROLLBACK" error:error];

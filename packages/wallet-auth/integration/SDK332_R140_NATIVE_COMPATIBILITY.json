@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.22",
+  "version": "1.3.0-pq.3.32-auth.23",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -314,13 +314,13 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
-      "bytes": 1131,
-      "sha256": "b79289a6cd61804b76e8fc02b4235878b0de5f868d72a39a6d5a64c3bade655b"
+      "bytes": 1206,
+      "sha256": "bdf37c7c11d483cba9f2b44dcdf3e9b3766b582ee6da86aece3a5b465e92605b"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
-      "bytes": 11917,
-      "sha256": "f8047587f8f3a92a125ed5642cec2eb002b00f006369b875c3fd78050456a911"
+      "bytes": 12591,
+      "sha256": "8a2441c76515cb1c7de6def4a08392ee302d03c78a8f1a4aed1042ff6668ba42"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
@@ -334,18 +334,18 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
-      "bytes": 6855,
-      "sha256": "ccf8162de16fcb552f138500c162a8dfb9462887301425f9ea7df5873c334478"
+      "bytes": 7012,
+      "sha256": "41183eddf0f4f3c657ca981d9b63f15b05d08079606241d96ccf70ee513658c8"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-      "bytes": 46433,
-      "sha256": "d8c5ea1b8bc971642fdf192f4d6bfb57ea6ce0842acb9dcaa8170e25b3ed4b45"
+      "bytes": 46580,
+      "sha256": "72777453136db7a0c0e21051a3699ab4b31b7ae11ac2cac58452b6a358f687e2"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 24944,
-      "sha256": "c5fc04c171de4f472fc3b20e752fd2e3388ae6809e56b675f3b4b76d133c1f8d"
+      "bytes": 29551,
+      "sha256": "3c1470e2ebf02b7acd3be545ab733b7951fd30d0fad5a487a82ae98d321129a8"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -626,12 +626,37 @@
       "path": "packages/wallet-auth/native/original-ide-artifact-result-data.h",
       "bytes": 6399,
       "sha256": "3ffdd61262dd71854e5d8f9f6df71a98185afd23d297f4b733e2f04ada805ad5"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-source.inc.mm",
+      "bytes": 7963,
+      "sha256": "d122f5ac46c6823d170fb1c544a9b39d6b34b4a8a193cc9ce8531d0f367b9c96"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-capture.mjs",
+      "bytes": 5031,
+      "sha256": "923987c3100910a1e479ddee5c239e36151c3a4e087614116f90428803c94507"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-contract.mjs",
+      "bytes": 10198,
+      "sha256": "86bad0df3624396d12b5c66f0affb3820ce9cd15cf7a92ad59161693da545677"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-developer-principal-data.mjs",
+      "bytes": 2381,
+      "sha256": "7e0748cb9ab85839843469c6dca087ed0a0bc5d4ffcde34a2d0bf12d8ac9aab3"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-publication-approval-contract.mjs",
+      "bytes": 11587,
+      "sha256": "c37462cbf7bdb9ee7b327f0d33e8712d3bbc7b6aa0ae43a39f7ca426c69e33f6"
     }
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 12727,
-    "sha256": "7893621afaeb63b0a6dd6b1b5f54f95aa0c643b3495da264861ac9ecaadd7222"
+    "bytes": 13487,
+    "sha256": "c78a2448c9892a9943051bc7c5409f473f2a2838a11a165e908754ccd3090adf"
   },
   "require": {
     "translationUnits": 13,
@@ -720,7 +745,7 @@
       "sha256": "26ca559ff885f5270d31bbab0f32367d54dce471d122d770bc342903682b6c1e"
     }
   ],
-  "profile": "R186-source-v2-sign-attempt-partial-custody-successor",
+  "profile": "R193-R196-shared-native-project-control-source-only",
   "HelperInputs": [
     {
       "path": "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
@@ -1427,6 +1452,110 @@
     "Source13Complete": false,
     "serviceStarted": false,
     "installed": false,
+    "production": false
+  },
+  "supplierR193": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r193/HANDOFF.json",
+      "bytes": 8987,
+      "sha256": "bbfbb6f1752028b88c743e7805b8d512f005d851a854d8c9ba5885340967e129"
+    },
+    "sourceParentCommit": "b743cc20c0320a46c885b76268de93deab4cfb9f",
+    "sourceEvidenceReused": true,
+    "pending": [
+      "actual normal Auth host deployment/source+TLS authority commissioning and full Main matching build",
+      "server root/profile/registered live Native issuer/actual user acceptance not run",
+      "full Source13 ProjectControl+publisher registry/capture/current glue remains owned CODE; no always-deny facade"
+    ],
+    "actualServiceDeployment": false,
+    "actualRootOrIssuer": false,
+    "fullSource13": false,
+    "production": false
+  },
+  "supplierR196": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r196/HANDOFF.json",
+      "bytes": 12606,
+      "sha256": "2c26d1d99328cf0ea355988d1b81d2e37d4e57995d946e78b7036384c4a8ea95"
+    },
+    "cumulativeSDKParent": "b743cc20c0320a46c885b76268de93deab4cfb9f",
+    "verifierIntermediateParent": {
+      "handoff": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r189/HANDOFF.json",
+        "bytes": 21720,
+        "sha256": "d838ab7ad734ad210f723a50b6f1052b37fbcaed4c68bac644945bf4448481ba"
+      },
+      "baseline": {
+        "bytes": 24944,
+        "sha256": "c5fc04c171de4f472fc3b20e752fd2e3388ae6809e56b675f3b4b76d133c1f8d"
+      },
+      "formalIntermediate": {
+        "bytes": 28016,
+        "sha256": "6ec478cdef317f6d959f60761f39581d469e005f80820e81137f884b3903653f"
+      }
+    },
+    "verifierFinal": {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+      "bytes": 29551,
+      "sha256": "3c1470e2ebf02b7acd3be545ab733b7951fd30d0fad5a487a82ae98d321129a8"
+    },
+    "newRelativeClosure": [
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-source.inc.mm",
+        "bytes": 7963,
+        "sha256": "d122f5ac46c6823d170fb1c544a9b39d6b34b4a8a193cc9ce8531d0f367b9c96"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-capture.mjs",
+        "bytes": 5031,
+        "sha256": "923987c3100910a1e479ddee5c239e36151c3a4e087614116f90428803c94507"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-contract.mjs",
+        "bytes": 10198,
+        "sha256": "86bad0df3624396d12b5c66f0affb3820ce9cd15cf7a92ad59161693da545677"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-developer-principal-data.mjs",
+        "bytes": 2381,
+        "sha256": "7e0748cb9ab85839843469c6dca087ed0a0bc5d4ffcde34a2d0bf12d8ac9aab3"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-publication-approval-contract.mjs",
+        "bytes": 11587,
+        "sha256": "c37462cbf7bdb9ee7b327f0d33e8712d3bbc7b6aa0ae43a39f7ca426c69e33f6"
+      }
+    ],
+    "sourceEvidenceReused": true,
+    "normalNativeInputs": 82,
+    "helperInputs": 5,
+    "normalCanonicalInputs": 92,
+    "extendedSourceClosure": 93,
+    "normalTranslationUnits": 13,
+    "helperTranslationUnits": 11,
+    "independentIOInputUnchanged": {
+      "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+      "bytes": 5009,
+      "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+    },
+    "independentIOQualifications": {
+      "openV2Existing": false,
+      "publicationReadOnly": false,
+      "old6336QualificationBorrowed": false
+    },
+    "pending": [
+      "Main real5 Native review/decision producer and purpose-specific protected signing CABI; decision-retained still not issued proof",
+      "server control/custodian registration capture+once/current/revoke writer and full Source13 integration",
+      "normal current protected capture delivery catalogue/issuer commissioning, no per-click new Root/release is asserted by this static reader; actual normal dynamic capture writer remains owned CODE"
+    ],
+    "NativeBuild": false,
+    "matchingApp": false,
+    "NativeTestsReexecuted": false,
+    "RootOrSourceAdmission": false,
+    "realApproval": false,
+    "protectedSigning": false,
+    "fullSource13": false,
+    "HTTPProofIssuerCommissioned": false,
     "production": false
   }
 }

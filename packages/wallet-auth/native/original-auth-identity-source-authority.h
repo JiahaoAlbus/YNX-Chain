@@ -48,6 +48,8 @@ struct JointLifecycle {
 + (instancetype)acquireOriginalIDEConsumerSource:(NSError **)error;
 + (instancetype)acquireOriginalIDEContractRelaySource:(NSError **)error;
 + (instancetype)acquireOriginalIDEProjectAuthoritySource:(NSError **)error;
++ (instancetype)acquireOriginalIDEProjectControlAuthoritySource:(NSError **)error;
+- (NSDictionary *)copyOriginalIDEProjectControlCapture:(NSError **)error;
 // Dedicated original Source purpose only, never Relay/old login/key-call ACL.
 // Read-only Native snapshots; caller project/publisher IDs restrict selection.
 - (NSDictionary *)copyOriginalIDECurrentProject:(NSString *)projectID error:(NSError **)error;

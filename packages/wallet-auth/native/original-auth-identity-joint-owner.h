@@ -8,6 +8,7 @@
 + (instancetype)acquireOriginalIDEConsumerProfile:(NSError **)error;
 + (instancetype)acquireOriginalIDEContractRelayProfile:(NSError **)error;
 + (instancetype)acquireOriginalIDEProjectAuthorityProfile:(NSError **)error;
++ (instancetype)acquireOriginalIDEProjectControlProfile:(NSError **)error;
 + (instancetype)acquireOriginalIDERegistryProfile:(NSError **)error;
 - (NSString *)copyOriginalResourceDirectory:(NSError **)error;
 - (NSData *)copyOriginalProfile:(NSError **)error;
