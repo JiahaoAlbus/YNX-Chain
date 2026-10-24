@@ -1141,9 +1141,9 @@ class SupplySourceTests(unittest.TestCase):
             if str(path).endswith("streaming-plan.json"):return raw_plan
             if str(path).endswith("network-manifest.json"):return raw_manifest
             return json.dumps(dict(transactions=initial)).encode()
-        def check(row,canonical=False,suffix=False,tip=False,submitters=8):
+        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False):
             with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
-                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters)
+                out=supply.validate_native_stream_report(row,network,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared)
                 self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
                 self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
                 self.assertFalse(out["sustainedTPSQualified"])
@@ -1166,6 +1166,29 @@ class SupplySourceTests(unittest.TestCase):
             if fault=='queue':bad['submissionOccupancy']['queueWaitNs']+=8193
             if fault=='callback':bad['submissionOccupancy']['peakActiveCallbacks']=17
             with self.subTest(submit16Fault=fault),self.assertRaises(RuntimeError):check(bad,submitters=16)
+        prepared_plan=copy.deepcopy(plan);prepared_plan['profile']='scoped_native_prefix_stream8_prepared_v1';prepared_plan['nativePrefix']['preparedCertificate']=True
+        raw_plan=json.dumps(prepared_plan).encode()
+        prepared_client=copy.deepcopy(client);prepared_client['nativePreparedCertificate']=True
+        prepared_client['streamingWorkload'].update(name=prepared_plan['profile'],planSha256=hashlib.sha256(raw_plan).hexdigest())
+        prepared_stats=prepared_client['durableReadback']['prefixReplay'];prepared_stats['preparedCertificate']=True
+        prepared_phases=prepared_stats['workPhases']
+        prepared_phases['canonicalCopy']=dict(calls=0,errors=0,durationNs=0)
+        for phase in ('suffixSetup','suffixReplay','suffixEncode'):prepared_phases[phase]=dict(calls=1,errors=0,durationNs=1)
+        prepared_phases['certificatePublish']['calls']=2
+        prepared_details=prepared_phases['certificatePublishDetails'];prepared_details['preparedNativeAccepted']=1
+        prepared_details['payloadCopy']['calls']=2;prepared_details['nativeClone']['calls']=2
+        # One original strict cold publication plus one actual suffix encoding.
+        self.assertEqual(prepared_details['strictJSON']['calls'],1)
+        check(prepared_client,prepared=True)
+        with self.assertRaises(RuntimeError):check(prepared_client)
+        for fault in ('marker','backend','count','encoding','runtime'):
+            bad=copy.deepcopy(prepared_client);stats=bad['durableReadback']['prefixReplay']
+            if fault=='marker':bad['nativePreparedCertificate']=False
+            if fault=='backend':stats['preparedCertificate']=False
+            if fault=='count':stats['workPhases']['certificatePublishDetails']['preparedNativeAccepted']=True
+            if fault=='encoding':stats['workPhases']['certificatePublishDetails']['preparedNativeAccepted']=100
+            if fault=='runtime':bad['submissionOccupancy']['callbackReturned']=2048
+            with self.subTest(preparedFault=fault),self.assertRaises(RuntimeError):check(bad,prepared=True)
         raw_plan=saved_plan
         # One explicit choice must bind producer expectation, durable plan,
         # top-level report, actual backend and accepted/fallback child counters.
@@ -1275,6 +1298,24 @@ class SupplySourceTests(unittest.TestCase):
             if kind=="rate":bad["summary"]["finalSubmittedPerMeasurementSecond"]+=1
             if kind=="plan":bad["streamingWorkload"]["planSha256"]="0"*64
             with self.subTest(kind=kind),self.assertRaises(RuntimeError):check(bad)
+
+    def test_native_prepared_post_fsync_binds_profile_worker_and_cleanup(self):
+        selected=supply.pair_recipe(supply.STREAM_PREPARED_PAIR)['cases'][1]
+        base=dict(selected,firstCause=None,nodesStarted=True,cleanupComplete=True,launcher=7,case='/unit/after-native-prepared-owned',closureScans=[dict(owned=[7],launcherStartTicks=1)]*2,measurement=dict(summary=dict(finalSubmitted=8192)))
+        with tempfile.TemporaryDirectory() as d:
+            receipt=Path(d)/'receipt.json';receipt.write_text(json.dumps(base))
+            for fault in (None,'missingmarker','incomplete','cleanup','firstcause'):
+                row=copy.deepcopy(base)
+                if fault=='missingmarker':row.pop('nativePreparedCertificate')
+                if fault=='incomplete':row['measurement']['summary']['finalSubmitted']=8191
+                if fault=='cleanup':row['cleanupComplete']=False
+                if fault=='firstcause':row['firstCause']='original failure'
+                out=io.StringIO()
+                with patch.object(supply.time,'monotonic',return_value=1),patch.object(supply,'post_fsync_owned_closure',return_value=dict(owned=[7],launcherStartTicks=1)),patch.object(supply,'native_verifier_case_result',return_value={}) as verify,contextlib.redirect_stdout(out):
+                    qualified=supply.oneshot_post_fsync(row,receipt,lambda:dict(privateBytes=1),0,native_stream8=True)
+                self.assertEqual(qualified,fault is None)
+                if fault!='missingmarker':self.assertIs(verify.call_args.args[2]['expected_prepared_certificate'],True)
+                if fault=='firstcause':self.assertEqual(row['firstCause'],'original failure')
 
     def test_native_submit16_post_fsync_preserves_complete_qualification_contract(self):
         selected=supply.pair_recipe(supply.STREAM_SUBMIT16_PAIR)['cases'][1]

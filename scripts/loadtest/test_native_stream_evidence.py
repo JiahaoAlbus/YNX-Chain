@@ -204,6 +204,34 @@ class CurrentInputReuseMeasurementTests(unittest.TestCase):
             with self.subTest(changed=changed),self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(dict(reader,currentInputReuse=dict(stats,**changed)),True)
         with self.assertRaises(RuntimeError):evidence.current_input_reuse_measurements(reader,False)
 
+class NativePreparedClientFixtureTests(unittest.TestCase):
+    def setUp(self):
+        original=os.environ.get('YNX_NATIVE_PREPARED_PUBLIC_FIXTURE_DIR')
+        self.assertTrue(original,'required actual prepared Go public fixture absent; no skipped positive')
+        self.root=Path(original).resolve();self.meta=evidence.strict_json((self.root/'PUBLIC_FIXTURE_SCOPE.json').read_bytes())
+        self.assertEqual(self.meta['kind'],'native_stream_public_unit_fixture_not_network');self.assertIs(self.meta['independentBFTProof'],False)
+    def test_actual_prepared_plan_backend_and_encoding_counts_match(self):
+        stats=self.meta['durableReadback']['prefixReplay'];phases=stats['workPhases']
+        plan=evidence.strict_json((self.root/'transactions-result.json.streaming-plan.json').read_bytes())
+        self.assertEqual(plan['profile'],'scoped_native_prefix_stream8_prepared_v1');self.assertIs(plan['nativePrefix']['preparedCertificate'],True);self.assertIs(stats['preparedCertificate'],True)
+        self.assertNotIn('canonicalCertificate',stats);self.assertNotIn('nativeSuffixSetup',stats)
+        parts=evidence.certificate_publish_measurements(phases,32<<20,True,True,prepared_native=True)
+        self.assertGreater(parts['preparedNativeAccepted'],0);self.assertGreater(parts['strictJSON']['calls'],0)
+        self.assertEqual(parts['preparedNativeAccepted']+parts['strictJSON']['calls'],102);self.assertEqual(parts['nativeClone']['calls'],102)
+        with self.assertRaises(RuntimeError):evidence.certificate_publish_measurements(phases,32<<20,True,True)
+        for fault in ('missing','bool','too-many','encoding','strict'):
+            bad=copy.deepcopy(phases);details=bad['certificatePublishDetails']
+            if fault=='missing':details.pop('preparedNativeAccepted')
+            if fault=='bool':details['preparedNativeAccepted']=True
+            if fault=='too-many':details['preparedNativeAccepted']=103
+            if fault=='encoding':bad['suffixEncode']['calls']=0;bad['suffixEncode']['durationNs']=0
+            if fault=='strict':details['strictJSON']['calls']-=1
+            with self.subTest(fault=fault),self.assertRaises(RuntimeError):evidence.certificate_publish_measurements(bad,32<<20,True,True,prepared_native=True)
+    def test_complete_actual_prepared_signed_terminal_stream(self):
+        d=self.meta;initial=evidence.strict_json((self.root/'transactions.json').read_bytes())['transactions']
+        result=evidence.verify_streams(self.root,d['runtimeNetworkRoot'],d['runtimeOutput'],(self.root/'network-manifest.json').read_bytes(),initial,d['intents'],d['terminalStream'],d['latest'],d['rounds'],4<<20)
+        self.assertEqual(result['validatedRecords'],102);self.assertEqual(result['matchedLatestSlots'],3)
+
 class NativeCanonicalClientFixtureTests(unittest.TestCase):
     def setUp(self):
         original=os.environ.get('YNX_NATIVE_CANONICAL_PUBLIC_FIXTURE_DIR')

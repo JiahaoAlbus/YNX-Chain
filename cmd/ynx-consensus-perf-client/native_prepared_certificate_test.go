@@ -23,6 +23,6 @@ func TestNativeStreamingPreparedCertificateExplicitScope(t *testing.T) {
 		t.Fatal("default changed")
 	}
 }
-func TestNativeStreamingPreparedCertificateRealExecutionNonceEvidenceAndRecovery(t *testing.T) {
+func TestPreparedNativeStreamingRealExecutionNonceEvidenceAndRecovery(t *testing.T) {
 	testStreamingWorkloadRealExecution(t, true, true, false, false, false, false, true)
 }

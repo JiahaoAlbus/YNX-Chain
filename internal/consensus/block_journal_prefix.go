@@ -227,6 +227,8 @@ func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, pha
 		var payload []byte
 		err = phases.measure("suffixEncode", func() error {
 			var e error
+			// Prepared mode includes private normalization and the independent public
+			// byte copy in this encoding phase; these are not free publication work.
 			if d.preparedNative {
 				payload, prepared, e = d.encodePreparedPrefixSnapshot(next)
 			} else {

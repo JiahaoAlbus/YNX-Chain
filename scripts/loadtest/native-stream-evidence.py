@@ -264,20 +264,25 @@ def client_clock_measurements(timeline,records,required=False):
     return dict(clock)
 
 
-def certificate_publish_measurements(phases,canonical_limit,required=False,native_clone=False,canonical_native=False):
+def certificate_publish_measurements(phases,canonical_limit,required=False,native_clone=False,canonical_native=False,prepared_native=False):
     """Nested costs are already inside certificatePublish; never sum twice."""
     need(type(required) is bool and type(native_clone) is bool and type(canonical_native) is bool and (not canonical_native or native_clone) and integer(canonical_limit,1,512<<20),'certificate timing selection/bound differs')
+    need(type(prepared_native) is bool and not(prepared_native and (canonical_native or not native_clone)),'prepared timing selection differs')
     details=phases.get('certificatePublishDetails')
     if details is None:
         need(not required,'selected certificatePublish child costs absent')
         return None
     phase_names=('payloadCopy','strictJSON','nativeClone')
     base=set(phase_names)|{'payloadBytes','prefixBytesHashed'}
-    optional={'canonicalNative','canonicalNativeAccepted'} if canonical_native else set()
+    optional=({'canonicalNative','canonicalNativeAccepted'} if canonical_native else set())|({'preparedNativeAccepted'} if prepared_native else set())
     need(type(details) is dict and base<=set(details)<=base|optional,'certificate child inventory differs')
     candidate=details.get('canonicalNative')
     accepted=details.get('canonicalNativeAccepted',0)
     need(integer(accepted,0,2**63-1),'canonical native accepted count invalid')
+    prepared_accepted=details.get('preparedNativeAccepted',0)
+    need(integer(prepared_accepted,0,2**63-1),'prepared accepted count invalid')
+    if prepared_native:
+        suffix=phases.get('suffixEncode',{});need(integer(suffix.get('calls'),0,2**63-1) and integer(suffix.get('errors'),0,2**63-1) and 0<prepared_accepted<=suffix['calls']-suffix['errors'],'prepared accepted lacks successful owned encoding')
     children=[details[k] for k in phase_names]+([candidate] if candidate is not None else [])
     parent=phases.get('certificatePublish',{})
     for part in (parent,*children):
@@ -287,6 +292,7 @@ def certificate_publish_measurements(phases,canonical_limit,required=False,nativ
     payload_success=payload['calls']-payload['errors']
     if canonical_native:
         need((candidate is not None and candidate['calls']==payload_success and candidate['errors']==0 and accepted<=candidate['calls']) or (candidate is None and payload_success==accepted==0),'canonical native branch coverage differs')
+    accepted+=prepared_accepted
     need(payload['calls']==parent['calls'] and strict['calls']==(payload_success-accepted if native_clone else 0) and native['calls']==(accepted+strict['calls']-strict['errors'] if native_clone else 0),'certificate child branch coverage differs')
     need(sum(p['errors'] for p in children)==parent['errors'] and sum(p['durationNs'] for p in children)<=parent['durationNs'],'certificate child errors/time exceed parent')
     for key in ('payloadBytes','prefixBytesHashed'):

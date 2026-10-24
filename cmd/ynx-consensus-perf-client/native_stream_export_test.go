@@ -19,6 +19,9 @@ func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats
 	if reader.PrefixReplay != nil && reader.PrefixReplay.CanonicalCertificate {
 		destination = os.Getenv("YNX_NATIVE_CANONICAL_PUBLIC_FIXTURE_DIR")
 	}
+	if reader.PrefixReplay != nil && reader.PrefixReplay.PreparedCertificate {
+		destination = os.Getenv("YNX_NATIVE_PREPARED_PUBLIC_FIXTURE_DIR")
+	}
 	if destination == "" {
 		return
 	}

@@ -10,6 +10,37 @@ def measurement(rate=300,upper=2000000000):
     return dict(summary=dict(finalSubmittedPerMeasurementSecond=rate),offerLatencyIntervalsNs={n:copy.deepcopy(distribution) for n in ('offerToEffectiveBusinessInclusion','offerToFinal')})
 
 class NativeStreamPairTests(unittest.TestCase):
+    def test_prepared_pair_changes_only_private_publication(self):
+        plan=supply.pair_recipe(supply.STREAM_PREPARED_PAIR);before,after=plan['cases']
+        self.assertEqual(plan['kind'],'fixed-same-VM-native-prepared-certificate-pair')
+        self.assertEqual(plan['input']['linux_supply_pacing'],'paired-native-prepared-certificate')
+        self.assertNotIn('nativePreparedCertificate',before);self.assertIs(after['nativePreparedCertificate'],True)
+        a=copy.deepcopy(after);b=copy.deepcopy(before);a.pop('nativePreparedCertificate')
+        self.assertEqual(a['profile']['name'],b['profile']['name']+'-prepared');a['profile']['name']=b['profile']['name'];self.assertEqual(a,b)
+        commands=[]
+        for prepared,row in [(False,before),(True,after)]:
+            self.assertEqual(row['profile']['concurrency'],8)
+            commands.append(supply.supply_client_command(Path('/build'),Path('/network/manifest'),Path('/network'),Path('/network/result'),row['profile'],'bounded-cadence',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,prepared=prepared))
+        self.assertEqual(commands[0],[x for x in commands[1] if x!='-native-prepared-certificate'])
+        selected=supply.native_verifier_selection('bounded-cadence',True,False,False,False,8,True)
+        self.assertIs(selected['expected_prepared_certificate'],True);supply.stream_verifier.check_selection(supply._verifier_controller(),selected)
+        for value in (False,1,'true',None):
+            bad=dict(selected,expected_prepared_certificate=value)
+            with self.assertRaises(RuntimeError):supply.stream_verifier.check_selection(supply._verifier_controller(),bad)
+        for delta in [dict(submitters=16),dict(canonical_certificate=True),dict(native_suffix_setup=True),dict(block_tip_hint=True),dict(native_stream8=False),dict(prepared=1)]:
+            args=dict(transport='grpc',profile_name=supply.STREAM_PROFILE,pacing='bounded-cadence',observer_phases=True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,prepared=True);args.update(delta)
+            with self.assertRaises(RuntimeError):supply.recipe(**args)
+        with self.assertRaises(RuntimeError):supply.supply_client_command(Path('/build'),Path('/m'),Path('/n'),Path('/o'),before['profile'],'bounded-cadence',prepared=True)
+        for action in ('prepare','execute'):self.assertIn('--'+action+'-pair --pair-kind native-prepared-certificate --observer-phases',Path('.github/workflows/chain-core.yml').read_text())
+
+    def test_prepared_pair_original_recovery_and_first_failure_stop(self):
+        self.check_pair_recovery(supply.STREAM_PREPARED_PAIR)
+        code,calls,terminal=self.run_pair(comparison=supply.STREAM_PREPARED_PAIR)
+        self.assertEqual(code,0);self.assertEqual(calls,['bounded-cadence','bounded-cadence']);self.assertTrue(terminal['qualified'])
+        for fault in ('unknown','closure','binary','host'):
+            code,calls,terminal=self.run_pair(fault,supply.STREAM_PREPARED_PAIR)
+            self.assertEqual(code,1);self.assertEqual(len(calls),1);self.assertFalse(terminal['qualified'])
+
     def test_submit16_pair_changes_only_explicit_worker_scope(self):
         plan=supply.pair_recipe(supply.STREAM_SUBMIT16_PAIR)
         before,after=plan['cases']
@@ -207,11 +238,12 @@ class NativeStreamPairTests(unittest.TestCase):
                 suffix=kind==supply.STREAM_SUFFIX_PAIR and index==1
                 tip=kind==supply.STREAM_TIP_PAIR and index==1
                 submitters=16 if kind==supply.STREAM_SUBMIT16_PAIR and index==1 else 8
+                prepared=kind==supply.STREAM_PREPARED_PAIR and index==1
                 case=('before-' if index==0 else 'after-')+label
                 directory=root/case/'evidence';directory.mkdir(parents=True)
-                row=dict(**({"nativeStreamSubmitters":16} if submitters==16 else {}),sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=reuse,**({"nativeCanonicalCertificate":True} if canonical else {}),**({"nativeSuffixSetup":True} if suffix else {}),**({"nativeBlockTipHint":True} if tip else {}),binaries=pair['compiledBinaries'])
+                row=dict(**({"nativePreparedCertificate":True} if prepared else {}),**({"nativeStreamSubmitters":16} if submitters==16 else {}),sourceCommit=head,sourceTree='tree',internalTree='internal',compiler='compiler',environment={},host=dict(uname='unit',cpuCount=4,meminfo=str(index)),case='/unit/pair/'+case,pacingMode=mode,nativeCurrentInputReuse=reuse,**({"nativeCanonicalCertificate":True} if canonical else {}),**({"nativeSuffixSetup":True} if suffix else {}),**({"nativeBlockTipHint":True} if tip else {}),binaries=pair['compiledBinaries'])
                 raw=json.dumps(row).encode();(directory/'actual.json').write_bytes(raw);rows.append((directory/'actual.json',raw))
-                cases.append(dict(**({"submitters":submitters} if kind==supply.STREAM_SUBMIT16_PAIR else {}),order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if kind==supply.STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if kind==supply.STREAM_TIP_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
+                cases.append(dict(**({"preparedCertificate":prepared} if kind==supply.STREAM_PREPARED_PAIR else {}),**({"submitters":submitters} if kind==supply.STREAM_SUBMIT16_PAIR else {}),order=index+1,label=label,mode=mode,currentInputReuse=reuse,**({"canonicalCertificate":canonical} if kind==supply.STREAM_CERTIFICATE_PAIR else {}),**({"nativeSuffixSetup":suffix} if kind==supply.STREAM_SUFFIX_PAIR else {}),**({"blockTipHint":tip} if kind==supply.STREAM_TIP_PAIR else {}),code=0,firstCause=None,sha256=hashlib.sha256(raw).hexdigest(),hostIdentity=pair['hostIdentity'],measurement=measurement(300+index),receipt='/unit/evidence/'+label+'-actual.json'))
             pair['cases']=cases;pair['jointObservation']=supply.native_stream_pair_observation(cases)
             def verify(destination,mode,head,**kwargs):
                 index=0 if Path(destination).name.startswith('before-') else 1
@@ -224,6 +256,14 @@ class NativeStreamPairTests(unittest.TestCase):
             for fault in ('order','hostIdentity','sha256','measurement','mode','canonicalCertificate','nativeSuffixSetup','blockTipHint'):
                 changed=copy.deepcopy(pair);changed['cases'][1][fault]='changed'
                 with self.subTest(fault=fault),self.assertRaises(RuntimeError):check(changed)
+            if kind==supply.STREAM_PREPARED_PAIR:
+                changed=copy.deepcopy(pair);changed['cases'][1]['preparedCertificate']=False
+                with self.assertRaises(RuntimeError):check(changed)
+                bad_receipt=json.loads(rows[1][1]);bad_receipt['nativePreparedCertificate']=False
+                bad_raw=json.dumps(bad_receipt).encode();rows[1][0].write_bytes(bad_raw)
+                rebound=copy.deepcopy(pair);rebound['cases'][1]['sha256']=hashlib.sha256(bad_raw).hexdigest()
+                with self.assertRaisesRegex(RuntimeError,'prepared producer'):check(rebound)
+                rows[1][0].write_bytes(rows[1][1])
             if kind==supply.STREAM_SUBMIT16_PAIR:
                 changed=copy.deepcopy(pair);changed['cases'][1]['submitters']=8
                 with self.assertRaises(RuntimeError):check(changed)
@@ -281,6 +321,9 @@ class NativeStreamPairTests(unittest.TestCase):
                     self.assertIs(kwargs['current_input_reuse'],True)
                 if comparison==supply.STREAM_SUBMIT16_PAIR:
                     self.assertEqual(kwargs['submitters'],16 if calls else 8)
+                    self.assertFalse(kwargs['block_tip_hint']);self.assertFalse(kwargs['canonical_certificate']);self.assertFalse(kwargs['native_suffix_setup']);self.assertTrue(kwargs['current_input_reuse'])
+                if comparison==supply.STREAM_PREPARED_PAIR:
+                    self.assertIs(kwargs['prepared'],len(calls)==1);self.assertEqual(kwargs['submitters'],8)
                     self.assertFalse(kwargs['block_tip_hint']);self.assertFalse(kwargs['canonical_certificate']);self.assertFalse(kwargs['native_suffix_setup']);self.assertTrue(kwargs['current_input_reuse'])
                 calls.append(pace);case.mkdir()
                 row=dict(sourceCommit='a'*40,sourceTree='tree',internalTree='internal',compiler='compiler',binaries=pins,environment={},host=dict(uname='unit',cpuCount=4),nodePhases={},firstCause=None)

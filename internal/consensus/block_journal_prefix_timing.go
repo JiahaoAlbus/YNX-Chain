@@ -33,9 +33,9 @@ type BlockJournalPrefixCertificatePhases struct {
 	CanonicalNative         *BlockJournalPrefixPhase `json:"canonicalNative,omitempty"` // Explicit candidate copy plus exact encoded-byte comparison.
 	PreparedNativeAccepted  uint64                   `json:"preparedNativeAccepted,omitempty"`
 	CanonicalNativeAccepted uint64                   `json:"canonicalNativeAccepted,omitempty"`
-	PayloadCopy             BlockJournalPrefixPhase  `json:"payloadCopy"` // Original payload copy plus current input-prefix digest.
+	PayloadCopy             BlockJournalPrefixPhase  `json:"payloadCopy"` // Payload ownership (copy or private adoption) plus current input-prefix digest.
 	StrictJSON              BlockJournalPrefixPhase  `json:"strictJSON"`
-	NativeClone             BlockJournalPrefixPhase  `json:"nativeClone"` // Original private copy plus payload digest/identity sealing.
+	NativeClone             BlockJournalPrefixPhase  `json:"nativeClone"` // Private state ownership (copy or adoption) plus payload digest/identity sealing.
 	PayloadBytes            uint64                   `json:"payloadBytes"`
 	PrefixBytesHashed       uint64                   `json:"prefixBytesHashed"`
 }

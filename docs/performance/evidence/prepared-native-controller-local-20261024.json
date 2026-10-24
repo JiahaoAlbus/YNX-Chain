@@ -1,0 +1,258 @@
+{
+  "schema": 1,
+  "scope": "prepared-publication-control-versus-candidate, both8 submitters",
+  "plan": {
+    "schema": 1,
+    "kind": "fixed-same-VM-native-prepared-certificate-pair",
+    "execute": false,
+    "requiresSeparateRootGrant": true,
+    "nodesStarted": false,
+    "pairCaps": {
+      "totalMs": 120000,
+      "retainedBytes": 536870912,
+      "logBytes": 2097152,
+      "buildBytes": 1073741824,
+      "metadataReserveMs": 500
+    },
+    "cases": [
+      {
+        "schema": 1,
+        "profile": {
+          "name": "supply-native-stream-2048x4-grpc-bounded-cadence",
+          "senders": 2048,
+          "rounds": 4,
+          "offeredRate": 1000,
+          "concurrency": 8,
+          "observers": 4,
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedProcesses": 10,
+          "longLivedChildren": 9,
+          "ownedRSSBytes": 1073741824,
+          "privateBytes": 268435456,
+          "threads": 320,
+          "availableMemoryFloorBytes": 1207959552,
+          "senderMode": "ready-pool"
+        },
+        "abciTransport": "grpc",
+        "pacingMode": "bounded-cadence",
+        "environment": {
+          "GOMAXPROCS": "1",
+          "GOGC": "100",
+          "GOMEMLIMIT": "off"
+        },
+        "execute": false,
+        "nativeStream8": true,
+        "nativeStreamVerifier": true,
+        "verifierLifecycle": {
+          "clientExitRequired": true,
+          "completeCheckerPasses": 2,
+          "withinOriginalActiveMs": 45000,
+          "maximumConcurrentOwnedProcesses": 10,
+          "recordedChildRoles": 11
+        },
+        "observerPhaseTiming": true,
+        "prefixDurableReplay": true,
+        "prefixNativeClone": true,
+        "observerNativeFacts": true,
+        "nativeCurrentInputReuse": true,
+        "streamBudget": {
+          "evidenceBytes": 67108864,
+          "durableStoreBytes": 33554432,
+          "durableCacheBytes": 67108864,
+          "timeoutMs": 40000
+        },
+        "resourceCaps": {
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedRSSBytes": 1073741824,
+          "threads": 320,
+          "ownedProcesses": 10,
+          "privateBytes": 268435456,
+          "buildBytes": 1073741824,
+          "logBytes": 1048576,
+          "diskFloorBytes": 1073741824,
+          "rootReserveBytes": 445644800,
+          "compileReserveBytes": 1073741824,
+          "availableMemoryFloorBytes": 1207959552,
+          "sampleMs": 200,
+          "longLivedChildren": 9
+        },
+        "requiresSeparateRootGrant": true,
+        "nodesStarted": false,
+        "platform": "Linux native /proc; not macOS pressure1",
+        "interpretation": "Explicit small-history8192 input probe, not sustained1000TPS or ten-minute capacity. No automatic fallback/retry or default promotion."
+      },
+      {
+        "schema": 1,
+        "profile": {
+          "name": "supply-native-stream-2048x4-grpc-bounded-cadence-prepared",
+          "senders": 2048,
+          "rounds": 4,
+          "offeredRate": 1000,
+          "concurrency": 8,
+          "observers": 4,
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedProcesses": 10,
+          "longLivedChildren": 9,
+          "ownedRSSBytes": 1073741824,
+          "privateBytes": 268435456,
+          "threads": 320,
+          "availableMemoryFloorBytes": 1207959552,
+          "senderMode": "ready-pool"
+        },
+        "abciTransport": "grpc",
+        "pacingMode": "bounded-cadence",
+        "environment": {
+          "GOMAXPROCS": "1",
+          "GOGC": "100",
+          "GOMEMLIMIT": "off"
+        },
+        "execute": false,
+        "nativeStream8": true,
+        "nativePreparedCertificate": true,
+        "nativeStreamVerifier": true,
+        "verifierLifecycle": {
+          "clientExitRequired": true,
+          "completeCheckerPasses": 2,
+          "withinOriginalActiveMs": 45000,
+          "maximumConcurrentOwnedProcesses": 10,
+          "recordedChildRoles": 11
+        },
+        "observerPhaseTiming": true,
+        "prefixDurableReplay": true,
+        "prefixNativeClone": true,
+        "observerNativeFacts": true,
+        "nativeCurrentInputReuse": true,
+        "streamBudget": {
+          "evidenceBytes": 67108864,
+          "durableStoreBytes": 33554432,
+          "durableCacheBytes": 67108864,
+          "timeoutMs": 40000
+        },
+        "resourceCaps": {
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "totalMs": 60000,
+          "ownedRSSBytes": 1073741824,
+          "threads": 320,
+          "ownedProcesses": 10,
+          "privateBytes": 268435456,
+          "buildBytes": 1073741824,
+          "logBytes": 1048576,
+          "diskFloorBytes": 1073741824,
+          "rootReserveBytes": 445644800,
+          "compileReserveBytes": 1073741824,
+          "availableMemoryFloorBytes": 1207959552,
+          "sampleMs": 200,
+          "longLivedChildren": 9
+        },
+        "requiresSeparateRootGrant": true,
+        "nodesStarted": false,
+        "platform": "Linux native /proc; not macOS pressure1",
+        "interpretation": "Explicit small-history8192 input probe, not sustained1000TPS or ten-minute capacity. No automatic fallback/retry or default promotion."
+      }
+    ],
+    "order": "native-prepared-control then native-prepared-owned; no second activation after any first failure/UNKNOWN/incomplete raw/unclean closure",
+    "input": {
+      "run_linux_supply": true,
+      "linux_supply_transport": "grpc",
+      "linux_supply_profile": "supply-native-stream-2048x4",
+      "linux_supply_pacing": "paired-native-prepared-certificate",
+      "measure_observer_phases": true,
+      "prefix_durable_replay": false
+    },
+    "binaries": "one original four-ELF build; SHA/buildInfo/source unchanged across both original cases",
+    "interpretation": "Explicit pair only: each8192 signed business inputs, original45+15/60s and RSS/thread/process/log guards, private256MiB each; aggregate retained512MiB including receipts, total120s/log2MiB/build1GiB. Same boot/PID namespace/host/launcher/source/ELFs, separate fresh ephemeral fixtures. Only the registered cadence, exact-input-cache, canonical-certificate or private-suffix axis changes; cache/certificate/suffix comparisons use bounded-cadence on both sides. No network or sustained TPS qualification from a recipe."
+  },
+  "planPin": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-controller-plan.json",
+    "bytes": 5955,
+    "sha256": "32e8062d9360a5816a0d95ee5224c17fcff683cf94d43fc8b11cd3bcd8e753c0"
+  },
+  "localTests": {
+    "controller": 91,
+    "pair": 34,
+    "archive": 23,
+    "crossLanguage": 45
+  },
+  "actualPreparedGoFixture": {
+    "successfulSignedExecutedPersisted": 102,
+    "accounts": 3,
+    "rounds": 34,
+    "preparedPublications": 95,
+    "strictColdPublications": 7,
+    "publicScope": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-controller-public-fixtures/prepared/PUBLIC_FIXTURE_SCOPE.json",
+      "bytes": 21140,
+      "sha256": "e609e4d997c312177e254c897df5a9d00ab10c2bc3cdd8ba8fe212b6bdc76f98"
+    },
+    "independentBFTProof": false
+  },
+  "actualFourModesGoFixtures": {
+    "signedExecutedPersisted": 408,
+    "packageSeconds": 25.46
+  },
+  "CIGroupingRepair": {
+    "failedRun": 40088915713,
+    "failedHead": "789f7771f4d146d722ef8708e7030d84ea3c03d3",
+    "firstCause": "original native-facts group30s timeout after added prepared actual-business test",
+    "oldTimeoutSeconds": 30,
+    "preparedExistingStepTimeoutSeconds": 30,
+    "jobMinutes": 20,
+    "onlyAddedPreparedCaseMovedToPreparedStep": true,
+    "allCasesRetained": true,
+    "automaticOldCIRerun": false,
+    "originalFailure": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-integration-ci400889-failed.raw",
+      "bytes": 37217,
+      "sha256": "992f7039f3b6af6061f7757344661af78126a7d00843007e76071c458433b196"
+    }
+  },
+  "raw": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-controller-full-first.raw",
+      "bytes": 3210,
+      "sha256": "a3cb4c14345009476c6154d6b4de17366f6c4b45aaf4ff9ec8efda1e01096339"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-controller-full-green-02.raw",
+      "bytes": 191,
+      "sha256": "0ac489c6fb3fc519726e4ab7d4a67467a3ae8ccb6fa654f7b84a83a55019cdcc"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-controller-pair-final-03.raw",
+      "bytes": 133,
+      "sha256": "23c1c60771d5ad7092d7724da757d2ed8761ae765fe712fd7bfbcde225bd1d88"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-archive-green-first.raw",
+      "bytes": 378,
+      "sha256": "25f43ed0b3d3bae6c57a82ad1b1dc4259c84a70ad9eef9e4a49a7398a1f63b40"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-controller-actual-go-fixtures.raw",
+      "bytes": 3160,
+      "sha256": "bc5a1884293fe4bfa49206892f62b3c8a80079e944ddf33abb7e1914ccfa2dd6"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-cross-language-evidence-first.raw",
+      "bytes": 1113,
+      "sha256": "e6a31e153c30fa2201b8b425484f58218206f37d114f7db3010c4f1383673a4b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-scope-fix-pair-source-9d96820e6/prepared-dedicated-step-race.raw",
+      "bytes": 3191,
+      "sha256": "ee6220b946ffd1e20914ad5f841a452740e7ca201184480acb02b678ae680b34"
+    }
+  ],
+  "defaultChanged": false,
+  "newNetworkRunDispatched": false,
+  "networkImprovementMeasured": false,
+  "sustainedTPSQualified": false,
+  "interpretation": "Source/control and actual application fixtures only. Complete ephemeral-node/BFT/RSS/persistence/finality measurement requires new frozen source+normalCI and fresh Root window. Original9d run400872 independent full readback still pending; previous failed400853 never retroqualified. No worker/concurrency/cap change mixed into prepared comparison."
+}
