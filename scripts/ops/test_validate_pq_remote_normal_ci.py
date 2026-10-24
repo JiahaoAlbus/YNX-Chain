@@ -568,7 +568,7 @@ def assert_workflow_contract(raw):
     focused_group = ("${{ github.event_name == 'workflow_dispatch' && ("
                      + " || ".join("inputs." + name for name in heavy_modes)
                      + ") && '" + heavy_group
-                     + "' || format('ynx-pq-source-{0}-{1}', github.workflow, github.ref) }}")
+                     + "' || format('ynx-pq-source-{0}-{1}-{2}', github.workflow, github.ref, github.sha) }}")
     need("      group: " + focused_group + "\n      cancel-in-progress: false\n" in job)
     paired_job, _ = workflow_steps(raw, "pq-paired-n1")
     need("    concurrency:\n      group: " + heavy_group + "\n      cancel-in-progress: false\n" in paired_job)
@@ -1006,6 +1006,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             self.assertNotEqual(changed, group_line)
             mutations.append(raw.replace(group_line, changed, 1))
         mutations.extend([
+            raw.replace(group_line, group_line.replace("format('ynx-pq-source-{0}-{1}-{2}', github.workflow, github.ref, github.sha)", "format('ynx-pq-source-{0}-{1}', github.workflow, github.ref)", 1), 1),
             raw.replace(group_line, group_line.replace("github.event_name == 'workflow_dispatch'", "true", 1), 1),
             raw.replace(group_line, group_line.replace("'ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade'", "format('ynx-pq-heavy-{0}', github.ref)", 1), 1),
             raw.replace(group_line, "      group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade", 1),

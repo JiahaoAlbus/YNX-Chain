@@ -19,8 +19,10 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cometbft/cometbft/crypto/ed25519"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
+	cmttypes "github.com/cometbft/cometbft/types"
 )
 
 // These are precisely the existing healthy predicates in the fixed Wallet's
@@ -99,7 +101,14 @@ func (f *walletStatusFixture) serve(w http.ResponseWriter, r *http.Request) {
 		}
 		result = status
 	case "/validators":
-		result = map[string]any{"block_height": strconv.FormatInt(info.LastBlockHeight, 10), "validators": make([]struct{}, 4)}
+		// Use Comet's real RPC DTO and registered public-key type. Its codec
+		// cannot serialize arbitrary interface-valued scalar map entries.
+		validators := make([]*cmttypes.Validator, 4)
+		for i := range validators {
+			key := ed25519.GenPrivKeyFromSecret([]byte("wallet-status-public-test-validator-" + strconv.Itoa(i)))
+			validators[i] = cmttypes.NewValidator(key.PubKey(), 1)
+		}
+		result = coretypes.ResultValidators{BlockHeight: info.LastBlockHeight, Validators: validators, Count: len(validators), Total: len(validators)}
 	case "/abci_info":
 		if f.mode == "info-error" {
 			writeJSON(w, 200, map[string]any{"error": map[string]any{"code": -32603, "message": "Info unavailable"}})
