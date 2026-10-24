@@ -1,0 +1,1408 @@
+{
+  "schema": 1,
+  "runId": 40085358438,
+  "originalPairQualified": false,
+  "posthocControllerRepairUsed": true,
+  "diagnosticCompleteStreamReadback": true,
+  "sustainedTPSQualified": false,
+  "diagnosticEvidence": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-submit16-pair-run-40085358438/posthoc-complete-diagnostic-01.json",
+    "bytes": 436468,
+    "sha256": "31b7f52e0800d8460631269efb66d563c93672898ac49e618560bcd1ee54b6a4"
+  },
+  "cases": [
+    {
+      "label": "before-native-submit8",
+      "submitters": 8,
+      "summary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 48732,
+        "measurementWindowSeconds": 31.246024155,
+        "rpcSubmissionsPerMeasurementSecond": 262.1773560489651,
+        "checkTxAcceptedPerMeasurementSecond": 262.1773560489651,
+        "codeZeroIncludedPerMeasurementSecond": 262.1773560489651,
+        "effectiveBusinessIncludedPerMeasurementSecond": 262.1773560489651,
+        "quorumConfirmedPerMeasurementSecond": 262.1773560489651,
+        "finalSubmittedPerMeasurementSecond": 262.1773560489651,
+        "offeredEventSpanSeconds": 29.039527111,
+        "offeredInterarrivalRate": 282.06382179334105,
+        "submissionEventSpanSeconds": 29.811809452,
+        "submissionInterarrivalRate": 274.75688831261084,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "latencies": {
+        "latencyIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 8386,
+            "maxNs": 1061855223,
+            "p50": {
+              "valid": true,
+              "lowerNs": 8386,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 443000000,
+              "upperNs": 443999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 585000000,
+              "upperNs": 585999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 608953,
+            "maxNs": 332387324,
+            "p50": {
+              "valid": true,
+              "lowerNs": 3000000,
+              "upperNs": 3999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 101000000,
+              "upperNs": 101999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 192000000,
+              "upperNs": 192999999,
+              "overflow": false
+            }
+          },
+          "authenticatedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 471495251,
+            "maxNs": 1791663404,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1164000000,
+              "upperNs": 1164999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1508000000,
+              "upperNs": 1508999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1746000000,
+              "upperNs": 1746999999,
+              "overflow": false
+            }
+          },
+          "effectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 471495251,
+            "maxNs": 1791663404,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1164000000,
+              "upperNs": 1164999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1508000000,
+              "upperNs": 1508999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1746000000,
+              "upperNs": 1746999999,
+              "overflow": false
+            }
+          },
+          "final": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 704346268,
+            "maxNs": 1967273048,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1446000000,
+              "upperNs": 1446999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1729000000,
+              "upperNs": 1729999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1833000000,
+              "upperNs": 1833999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 709861448,
+            "maxNs": 2590490458,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1477000000,
+              "upperNs": 1477999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 2028000000,
+              "upperNs": 2028999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2280000000,
+              "upperNs": 2280999999,
+              "overflow": false
+            }
+          }
+        },
+        "offerLatencyIntervalsNs": {
+          "offerToEffectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 471748061,
+            "maxNs": 2422327747,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1198000000,
+              "upperNs": 1198999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1776000000,
+              "upperNs": 1776999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1962000000,
+              "upperNs": 1962999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 709861448,
+            "maxNs": 2590490458,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1477000000,
+              "upperNs": 1477999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 2028000000,
+              "upperNs": 2028999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2280000000,
+              "upperNs": 2280999999,
+              "overflow": false
+            }
+          }
+        },
+        "stageGapIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 8386,
+            "maxNs": 1061855223,
+            "p50": {
+              "valid": true,
+              "lowerNs": 8386,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 443000000,
+              "upperNs": 443999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 585000000,
+              "upperNs": 585999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 608953,
+            "maxNs": 332387324,
+            "p50": {
+              "valid": true,
+              "lowerNs": 3000000,
+              "upperNs": 3999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 101000000,
+              "upperNs": 101999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 192000000,
+              "upperNs": 192999999,
+              "overflow": false
+            }
+          },
+          "checkToObservedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 419020516,
+            "maxNs": 1788853634,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1152000000,
+              "upperNs": 1152999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1488000000,
+              "upperNs": 1488999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1745000000,
+              "upperNs": 1745999999,
+              "overflow": false
+            }
+          },
+          "observedInclusionToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 2407990,
+            "maxNs": 481361319,
+            "p50": {
+              "valid": true,
+              "lowerNs": 279000000,
+              "upperNs": 279999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 442000000,
+              "upperNs": 442999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 475000000,
+              "upperNs": 475999999,
+              "overflow": false
+            }
+          }
+        }
+      },
+      "nodeCompletion": {
+        "records": 8192,
+        "publishedInfoAheadRows": 0,
+        "durableStateAheadRows": 0,
+        "maximumCalibrationErrorBoundNs": 25427,
+        "nodeCompletionLatencyIntervalsNs": {
+          "offerToNodeFinalizeReturn": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 290326308,
+            "maximumUpperBoundNs": 2252677978,
+            "p50": {
+              "lowerNs": 983949146,
+              "upperNs": 984999999
+            },
+            "p95": {
+              "lowerNs": 1565949146,
+              "upperNs": 1566999999
+            },
+            "p99": {
+              "lowerNs": 1665949146,
+              "upperNs": 1666999999
+            }
+          },
+          "offerToNodeDurableCommitReturn": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 327294030,
+            "maximumUpperBoundNs": 2297845879,
+            "p50": {
+              "lowerNs": 1028949146,
+              "upperNs": 1029999999
+            },
+            "p95": {
+              "lowerNs": 1611949146,
+              "upperNs": 1612999999
+            },
+            "p99": {
+              "lowerNs": 1705949146,
+              "upperNs": 1706999999
+            }
+          },
+          "nodeCommitToClientFinalObservation": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 268548367,
+            "maximumUpperBoundNs": 758378987,
+            "p50": {
+              "lowerNs": 437949146,
+              "upperNs": 438999999
+            },
+            "p95": {
+              "lowerNs": 622949146,
+              "upperNs": 623999999
+            },
+            "p99": {
+              "lowerNs": 658949146,
+              "upperNs": 659999999
+            }
+          }
+        },
+        "independentSameVMAdmission": false,
+        "independentBFTVerification": false,
+        "bftQuorumFormationInstantMeasured": false,
+        "networkQualified": false,
+        "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+      },
+      "runtime": {
+        "processCPU": {
+          "available": true,
+          "samples": 2,
+          "userNs": 23464238000,
+          "systemNs": 753396000,
+          "totalNs": 24217634000,
+          "measurementWallNs": 31246024155,
+          "sampleBracketWallNs": 31246031179,
+          "sampleBracketOverheadNs": 7024,
+          "cpuPercentOfOneCore": 77.50627227267287,
+          "scope": "RUSAGE_SELF process user/system CPU includes client HTTP, observer, decoder, Go runtime and GC; excludes separate nodes/other processes. Two cumulative samples bracket the client measurement; neither CPU nor wall durations are additive phase attribution."
+        },
+        "submissionOccupancy": {
+          "callbackStarted": 8192,
+          "callbackReturned": 8192,
+          "activeCallbacksAtEnd": 0,
+          "peakActiveCallbacks": 8,
+          "callbackBusyNs": 194548338943,
+          "queueWaitSamples": 8192,
+          "queueWaitNs": 758220251459,
+          "peakQueueWaitNs": 1061855223,
+          "measurementWallNs": 31246024155,
+          "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+        },
+        "innerReadyWindowNs": 31245323241,
+        "outerClientWindowNs": 31246024155,
+        "interpretation": "CPU/occupancy include stream setup and close; cumulative ready window is nested inside it. Resource case also charges full evidence readback and cleanup. No pure node/GC cost or sustained capacity inference."
+      },
+      "readerPhaseTotalsNs": {
+        "loadNs": 13109582677,
+        "hashNs": 426041485,
+        "captureNs": 533607084,
+        "decodeNs": 11998374769,
+        "indexPublishNs": 140252614,
+        "transactionVerifyNs": 17828430
+      },
+      "readerGate": {
+        "acquisitions": 134,
+        "waitNs": 16237193692,
+        "maxWaitNs": 387853302,
+        "holdNs": 13128376939,
+        "maxHoldNs": 463715943
+      },
+      "prefixWorkPhases": {
+        "certificatePublishDetails": {
+          "payloadCopy": {
+            "calls": 38,
+            "errors": 0,
+            "durationNs": 114245625
+          },
+          "strictJSON": {
+            "calls": 38,
+            "errors": 0,
+            "durationNs": 2590482996
+          },
+          "nativeClone": {
+            "calls": 38,
+            "errors": 0,
+            "durationNs": 162473310
+          },
+          "payloadBytes": 171236440,
+          "prefixBytesHashed": 129685433
+        },
+        "gateWait": {
+          "calls": 38,
+          "errors": 0,
+          "durationNs": 45489
+        },
+        "prefixCheck": {
+          "calls": 38,
+          "errors": 0,
+          "durationNs": 89479417
+        },
+        "privateJSON": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "privateValidate": {
+          "calls": 35,
+          "errors": 0,
+          "durationNs": 1311409867
+        },
+        "fullReplay": {
+          "calls": 3,
+          "errors": 0,
+          "durationNs": 894933642
+        },
+        "suffixSetup": {
+          "calls": 35,
+          "errors": 0,
+          "durationNs": 1085209615
+        },
+        "suffixReplay": {
+          "calls": 35,
+          "errors": 0,
+          "durationNs": 3903268610
+        },
+        "suffixEncode": {
+          "calls": 35,
+          "errors": 0,
+          "durationNs": 1590382984
+        },
+        "canonicalCopy": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "certificatePublish": {
+          "calls": 38,
+          "errors": 0,
+          "durationNs": 2867268782
+        },
+        "privateNativeClone": {
+          "calls": 35,
+          "errors": 0,
+          "durationNs": 255820007
+        }
+      },
+      "supplyPhases": {
+        "completionWaitAttempts": 12,
+        "completionWaitNs": 2128261286,
+        "completionSupplyWaitAttempts": 0,
+        "completionSupplyWaitNs": 0,
+        "completionDrainWaitAttempts": 12,
+        "completionDrainWaitNs": 2128261286,
+        "completionFailureWaitAttempts": 0,
+        "completionFailureWaitNs": 0,
+        "terminalSinkAttempts": 8192,
+        "terminalSinkNs": 832523224,
+        "offerDecodeAttempts": 8192,
+        "offerDecodeNs": 143413154,
+        "pacingWaitAttempts": 8192,
+        "pacingWaitNs": 24899936360,
+        "pacingFutureTargetAttempts": 7030,
+        "pacingAlreadyDueAttempts": 1162,
+        "pacingPositiveRemainingNs": 4949213161,
+        "pacingWakeLatenessNs": 19950334587,
+        "pacingMaxWakeLatenessNs": 56585810,
+        "pacingCatchupTargets": 973,
+        "pacingCadenceResets": 1403,
+        "pacingPeakCatchupTargets": 3,
+        "dispatchAttempts": 8192,
+        "dispatchNs": 3276164,
+        "signAttempts": 6144,
+        "signNs": 922519936,
+        "encodeAttempts": 6144,
+        "encodeNs": 1981823604,
+        "signedSuccessors": 6144,
+        "journalSetupNs": 215992,
+        "journalAppendAttempts": 128,
+        "journalAppendNs": 264660367,
+        "journalDurableEnvelopes": 8192,
+        "journalDurableBytes": 5668329
+      },
+      "perNodeBusinessCounts": [
+        8192,
+        8192,
+        8192,
+        8192
+      ],
+      "businessCommitPhases": {
+        "commit": {
+          "samples": 152,
+          "totalNs": 6190117945,
+          "meanNs": 40724460.16447368,
+          "p50Ns": 38352982,
+          "p95Ns": 73240335,
+          "p99Ns": 86462141
+        },
+        "close_file": {
+          "samples": 152,
+          "totalNs": 1494249,
+          "meanNs": 9830.58552631579,
+          "p50Ns": 8476,
+          "p95Ns": 12233,
+          "p99Ns": 31649
+        },
+        "delta_encode": {
+          "samples": 152,
+          "totalNs": 33990757,
+          "meanNs": 223623.40131578947,
+          "p50Ns": 159316,
+          "p95Ns": 465416,
+          "p99Ns": 2149830
+        },
+        "file_sync": {
+          "samples": 152,
+          "totalNs": 147271567,
+          "meanNs": 968891.8881578947,
+          "p50Ns": 568420,
+          "p95Ns": 2998249,
+          "p99Ns": 3726033
+        },
+        "journal_maintenance": {
+          "samples": 152,
+          "totalNs": 263085668,
+          "meanNs": 1730826.7631578948,
+          "p50Ns": 81802,
+          "p95Ns": 21964669,
+          "p99Ns": 42783717
+        },
+        "prepare_file": {
+          "samples": 152,
+          "totalNs": 5728650,
+          "meanNs": 37688.48684210526,
+          "p50Ns": 31478,
+          "p95Ns": 57227,
+          "p99Ns": 181388
+        },
+        "validate": {
+          "samples": 152,
+          "totalNs": 5702864792,
+          "meanNs": 37518847.315789476,
+          "p50Ns": 36124697,
+          "p95Ns": 68005142,
+          "p99Ns": 75902668
+        },
+        "write": {
+          "samples": 152,
+          "totalNs": 33948963,
+          "meanNs": 223348.44078947368,
+          "p50Ns": 154778,
+          "p95Ns": 450718,
+          "p99Ns": 1848760
+        },
+        "validate.app_hash": {
+          "samples": 152,
+          "totalNs": 3775917670,
+          "meanNs": 24841563.61842105,
+          "p50Ns": 23845509,
+          "p95Ns": 45509025,
+          "p99Ns": 53609068
+        },
+        "validate.semantics": {
+          "samples": 152,
+          "totalNs": 1916555131,
+          "meanNs": 12608915.335526315,
+          "p50Ns": 11628456,
+          "p95Ns": 24376127,
+          "p99Ns": 27335281
+        }
+      }
+    },
+    {
+      "label": "after-native-submit16",
+      "submitters": 16,
+      "summary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 47865,
+        "measurementWindowSeconds": 29.710246518,
+        "rpcSubmissionsPerMeasurementSecond": 275.729788880643,
+        "checkTxAcceptedPerMeasurementSecond": 275.729788880643,
+        "codeZeroIncludedPerMeasurementSecond": 275.729788880643,
+        "effectiveBusinessIncludedPerMeasurementSecond": 275.729788880643,
+        "quorumConfirmedPerMeasurementSecond": 275.729788880643,
+        "finalSubmittedPerMeasurementSecond": 275.729788880643,
+        "offeredEventSpanSeconds": 28.341224799,
+        "offeredInterarrivalRate": 289.0136209035332,
+        "submissionEventSpanSeconds": 28.560835345,
+        "submissionInterarrivalRate": 286.79133159296606,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "latencies": {
+        "latencyIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 8415,
+            "maxNs": 481490297,
+            "p50": {
+              "valid": true,
+              "lowerNs": 8415,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 244000000,
+              "upperNs": 244999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 389000000,
+              "upperNs": 389999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 595048,
+            "maxNs": 350319425,
+            "p50": {
+              "valid": true,
+              "lowerNs": 5000000,
+              "upperNs": 5999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 177000000,
+              "upperNs": 177999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 250000000,
+              "upperNs": 250999999,
+              "overflow": false
+            }
+          },
+          "authenticatedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 421096361,
+            "maxNs": 2125749882,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1216000000,
+              "upperNs": 1216999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1583000000,
+              "upperNs": 1583999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1798000000,
+              "upperNs": 1798999999,
+              "overflow": false
+            }
+          },
+          "effectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 421096361,
+            "maxNs": 2125749882,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1216000000,
+              "upperNs": 1216999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1583000000,
+              "upperNs": 1583999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1798000000,
+              "upperNs": 1798999999,
+              "overflow": false
+            }
+          },
+          "final": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 661620406,
+            "maxNs": 2172013533,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1483000000,
+              "upperNs": 1483999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1802000000,
+              "upperNs": 1802999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1898000000,
+              "upperNs": 1898999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 661651925,
+            "maxNs": 2462144676,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1490000000,
+              "upperNs": 1490999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1914000000,
+              "upperNs": 1914999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2226000000,
+              "upperNs": 2226999999,
+              "overflow": false
+            }
+          }
+        },
+        "offerLatencyIntervalsNs": {
+          "offerToEffectiveBusinessInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 421165931,
+            "maxNs": 2415881025,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1227000000,
+              "upperNs": 1227999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1727000000,
+              "upperNs": 1727999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2036000000,
+              "upperNs": 2036999999,
+              "overflow": false
+            }
+          },
+          "offerToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 661651925,
+            "maxNs": 2462144676,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1490000000,
+              "upperNs": 1490999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1914000000,
+              "upperNs": 1914999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 2226000000,
+              "upperNs": 2226999999,
+              "overflow": false
+            }
+          }
+        },
+        "stageGapIntervalsNs": {
+          "queue": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 8415,
+            "maxNs": 481490297,
+            "p50": {
+              "valid": true,
+              "lowerNs": 8415,
+              "upperNs": 999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 244000000,
+              "upperNs": 244999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 389000000,
+              "upperNs": 389999999,
+              "overflow": false
+            }
+          },
+          "checkTx": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 595048,
+            "maxNs": 350319425,
+            "p50": {
+              "valid": true,
+              "lowerNs": 5000000,
+              "upperNs": 5999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 177000000,
+              "upperNs": 177999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 250000000,
+              "upperNs": 250999999,
+              "overflow": false
+            }
+          },
+          "checkToObservedInclusion": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 345555141,
+            "maxNs": 1944245618,
+            "p50": {
+              "valid": true,
+              "lowerNs": 1203000000,
+              "upperNs": 1203999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 1557000000,
+              "upperNs": 1557999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 1762000000,
+              "upperNs": 1762999999,
+              "overflow": false
+            }
+          },
+          "observedInclusionToFinal": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minNs": 1978060,
+            "maxNs": 577366281,
+            "p50": {
+              "valid": true,
+              "lowerNs": 270000000,
+              "upperNs": 270999999,
+              "overflow": false
+            },
+            "p95": {
+              "valid": true,
+              "lowerNs": 441000000,
+              "upperNs": 441999999,
+              "overflow": false
+            },
+            "p99": {
+              "valid": true,
+              "lowerNs": 503000000,
+              "upperNs": 503999999,
+              "overflow": false
+            }
+          }
+        }
+      },
+      "nodeCompletion": {
+        "records": 8192,
+        "publishedInfoAheadRows": 0,
+        "durableStateAheadRows": 0,
+        "maximumCalibrationErrorBoundNs": 30856,
+        "nodeCompletionLatencyIntervalsNs": {
+          "offerToNodeFinalizeReturn": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 339177449,
+            "maximumUpperBoundNs": 1772289738,
+            "p50": {
+              "lowerNs": 968938288,
+              "upperNs": 969999999
+            },
+            "p95": {
+              "lowerNs": 1399938288,
+              "upperNs": 1400999999
+            },
+            "p99": {
+              "lowerNs": 1651938288,
+              "upperNs": 1652999999
+            }
+          },
+          "offerToNodeDurableCommitReturn": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 377185198,
+            "maximumUpperBoundNs": 1890213152,
+            "p50": {
+              "lowerNs": 1012938288,
+              "upperNs": 1013999999
+            },
+            "p95": {
+              "lowerNs": 1454938288,
+              "upperNs": 1455999999
+            },
+            "p99": {
+              "lowerNs": 1700938288,
+              "upperNs": 1701999999
+            }
+          },
+          "nodeCommitToClientFinalObservation": {
+            "samples": 8192,
+            "resolutionNs": 1000000,
+            "overflowSamples": 0,
+            "minimumLowerBoundNs": 198360862,
+            "maximumUpperBoundNs": 684988060,
+            "p50": {
+              "lowerNs": 473938288,
+              "upperNs": 474999999
+            },
+            "p95": {
+              "lowerNs": 633938288,
+              "upperNs": 634999999
+            },
+            "p99": {
+              "lowerNs": 657938288,
+              "upperNs": 658999999
+            }
+          }
+        },
+        "independentSameVMAdmission": false,
+        "independentBFTVerification": false,
+        "bftQuorumFormationInstantMeasured": false,
+        "networkQualified": false,
+        "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+      },
+      "runtime": {
+        "processCPU": {
+          "available": true,
+          "samples": 2,
+          "userNs": 22310615000,
+          "systemNs": 613112000,
+          "totalNs": 22923727000,
+          "measurementWallNs": 29710246518,
+          "sampleBracketWallNs": 29710254483,
+          "sampleBracketOverheadNs": 7965,
+          "cpuPercentOfOneCore": 77.15762587330511,
+          "scope": "RUSAGE_SELF process user/system CPU includes client HTTP, observer, decoder, Go runtime and GC; excludes separate nodes/other processes. Two cumulative samples bracket the client measurement; neither CPU nor wall durations are additive phase attribution."
+        },
+        "submissionOccupancy": {
+          "callbackStarted": 8192,
+          "callbackReturned": 8192,
+          "activeCallbacksAtEnd": 0,
+          "peakActiveCallbacks": 16,
+          "callbackBusyNs": 316009890382,
+          "queueWaitSamples": 8192,
+          "queueWaitNs": 325846523448,
+          "peakQueueWaitNs": 481490297,
+          "measurementWallNs": 29710246518,
+          "scope": "Original paced submit callback entry/return wall occupancy across workers; busy durations overlap and are not pure server/network/CPU. Queue wait sums actual offered-to-submit monotonic intervals for callbacks with a start timestamp; unfinished/unoffered inputs are not invented."
+        },
+        "innerReadyWindowNs": 29709542508,
+        "outerClientWindowNs": 29710246518,
+        "interpretation": "CPU/occupancy include stream setup and close; cumulative ready window is nested inside it. Resource case also charges full evidence readback and cleanup. No pure node/GC cost or sustained capacity inference."
+      },
+      "readerPhaseTotalsNs": {
+        "loadNs": 12352944709,
+        "hashNs": 399761345,
+        "captureNs": 425776403,
+        "decodeNs": 11379692042,
+        "indexPublishNs": 138131744,
+        "transactionVerifyNs": 17322508
+      },
+      "readerGate": {
+        "acquisitions": 125,
+        "waitNs": 15017181093,
+        "maxWaitNs": 392967599,
+        "holdNs": 12371162137,
+        "maxHoldNs": 483448813
+      },
+      "prefixWorkPhases": {
+        "certificatePublishDetails": {
+          "payloadCopy": {
+            "calls": 35,
+            "errors": 0,
+            "durationNs": 100463657
+          },
+          "strictJSON": {
+            "calls": 35,
+            "errors": 0,
+            "durationNs": 2414309094
+          },
+          "nativeClone": {
+            "calls": 35,
+            "errors": 0,
+            "durationNs": 135036422
+          },
+          "payloadBytes": 154053702,
+          "prefixBytesHashed": 116253934
+        },
+        "gateWait": {
+          "calls": 35,
+          "errors": 0,
+          "durationNs": 42992
+        },
+        "prefixCheck": {
+          "calls": 35,
+          "errors": 0,
+          "durationNs": 116456315
+        },
+        "privateJSON": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "privateValidate": {
+          "calls": 32,
+          "errors": 0,
+          "durationNs": 1099723944
+        },
+        "fullReplay": {
+          "calls": 3,
+          "errors": 0,
+          "durationNs": 953400544
+        },
+        "suffixSetup": {
+          "calls": 32,
+          "errors": 0,
+          "durationNs": 1160756637
+        },
+        "suffixReplay": {
+          "calls": 32,
+          "errors": 0,
+          "durationNs": 3823311218
+        },
+        "suffixEncode": {
+          "calls": 32,
+          "errors": 0,
+          "durationNs": 1327661234
+        },
+        "canonicalCopy": {
+          "calls": 0,
+          "errors": 0,
+          "durationNs": 0
+        },
+        "certificatePublish": {
+          "calls": 35,
+          "errors": 0,
+          "durationNs": 2649868053
+        },
+        "privateNativeClone": {
+          "calls": 32,
+          "errors": 0,
+          "durationNs": 248041432
+        }
+      },
+      "supplyPhases": {
+        "completionWaitAttempts": 6,
+        "completionWaitNs": 1336748242,
+        "completionSupplyWaitAttempts": 0,
+        "completionSupplyWaitNs": 0,
+        "completionDrainWaitAttempts": 6,
+        "completionDrainWaitNs": 1336748242,
+        "completionFailureWaitAttempts": 0,
+        "completionFailureWaitNs": 0,
+        "terminalSinkAttempts": 8192,
+        "terminalSinkNs": 862151017,
+        "offerDecodeAttempts": 8192,
+        "offerDecodeNs": 142756310,
+        "pacingWaitAttempts": 8192,
+        "pacingWaitNs": 24007496813,
+        "pacingFutureTargetAttempts": 6933,
+        "pacingAlreadyDueAttempts": 1259,
+        "pacingPositiveRemainingNs": 4801753156,
+        "pacingWakeLatenessNs": 19205379808,
+        "pacingMaxWakeLatenessNs": 55522788,
+        "pacingCatchupTargets": 1063,
+        "pacingCadenceResets": 1326,
+        "pacingPeakCatchupTargets": 3,
+        "dispatchAttempts": 8192,
+        "dispatchNs": 3782150,
+        "signAttempts": 6144,
+        "signNs": 971374845,
+        "encodeAttempts": 6144,
+        "encodeNs": 2153634965,
+        "signedSuccessors": 6144,
+        "journalSetupNs": 218629,
+        "journalAppendAttempts": 128,
+        "journalAppendNs": 151926848,
+        "journalDurableEnvelopes": 8192,
+        "journalDurableBytes": 5668201
+      },
+      "perNodeBusinessCounts": [
+        8192,
+        8192,
+        8192,
+        8192
+      ],
+      "businessCommitPhases": {
+        "commit": {
+          "samples": 140,
+          "totalNs": 5819772939,
+          "meanNs": 41569806.70714286,
+          "p50Ns": 38704475,
+          "p95Ns": 79324713,
+          "p99Ns": 111022421
+        },
+        "close_file": {
+          "samples": 140,
+          "totalNs": 1181855,
+          "meanNs": 8441.82142857143,
+          "p50Ns": 7935,
+          "p95Ns": 10299,
+          "p99Ns": 23904
+        },
+        "delta_encode": {
+          "samples": 140,
+          "totalNs": 31268120,
+          "meanNs": 223343.7142857143,
+          "p50Ns": 161019,
+          "p95Ns": 451891,
+          "p99Ns": 1398402
+        },
+        "file_sync": {
+          "samples": 140,
+          "totalNs": 152936799,
+          "meanNs": 1092405.7071428571,
+          "p50Ns": 606498,
+          "p95Ns": 3132569,
+          "p99Ns": 5170815
+        },
+        "journal_maintenance": {
+          "samples": 140,
+          "totalNs": 302910495,
+          "meanNs": 2163646.3928571427,
+          "p50Ns": 80229,
+          "p95Ns": 22265979,
+          "p99Ns": 45587982
+        },
+        "prepare_file": {
+          "samples": 140,
+          "totalNs": 7894323,
+          "meanNs": 56388.02142857143,
+          "p50Ns": 31149,
+          "p95Ns": 63699,
+          "p99Ns": 256286
+        },
+        "validate": {
+          "samples": 140,
+          "totalNs": 5293469199,
+          "meanNs": 37810494.27857143,
+          "p50Ns": 36041130,
+          "p95Ns": 71246422,
+          "p99Ns": 95183831
+        },
+        "write": {
+          "samples": 140,
+          "totalNs": 28384109,
+          "meanNs": 202743.63571428572,
+          "p50Ns": 159576,
+          "p95Ns": 324163,
+          "p99Ns": 885097
+        },
+        "validate.app_hash": {
+          "samples": 140,
+          "totalNs": 3465545338,
+          "meanNs": 24753895.27142857,
+          "p50Ns": 24299991,
+          "p95Ns": 43190862,
+          "p99Ns": 61470277
+        },
+        "validate.semantics": {
+          "samples": 140,
+          "totalNs": 1817520761,
+          "meanNs": 12982291.15,
+          "p50Ns": 10876908,
+          "p95Ns": 30702036,
+          "p99Ns": 35690407
+        }
+      }
+    }
+  ],
+  "interpretation": "Complete original signed streams and node observations pass only a posthoc repaired diagnostic controller. Original failed verifier/terminal/resource admission is never replaced, and no original pair improvement or sustained1000 qualification is created. Nested phases overlap and four node execution samples are not four times business throughput."
+}
