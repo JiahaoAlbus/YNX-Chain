@@ -28,6 +28,15 @@ export function preparePQHostSelectionRequest(original,binding){
  const stdin=JSON.stringify(body);if(Buffer.byteLength(stdin)>4096)invalid();
  return Object.freeze({stdin,stdinSha256:hash(stdin)});
 }
+// Exact original Protocol --wallet-request-stdin contract. Only saved original
+// validation supplies these six values; no Source paths, pins, receipt, role or
+// owner flag can be taken from a renderer or prospective catalog here.
+export function preparePQHostCatalogBinding(original,binding){
+ const {version,...request}=JSON.parse(preparePQHostSelectionRequest(original,binding).stdin);
+ const result={...request,originalHash:'0x'+request.nativeWireHash};
+ if(Buffer.byteLength(JSON.stringify(result))>4096)invalid();
+ return Object.freeze(result);
+}
 // Exactly four flat JSON strings, rejecting duplicate decoded keys (including
 // escaped aliases) BEFORE parsing into a normal object. No nested extensions.
 function parse(text){

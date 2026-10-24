@@ -6,7 +6,7 @@ import {recordRPCMetadataFailure} from './rpc-metadata-failure-record.mjs';
 import {createPackagedPQFinalityVerifier,createPackagedPQHostProducer,createPackagedPQHostSelector} from './wallet-pq-verifier-assets.mjs';
 import {originalPQVerifierReceipt} from './wallet-pq-runtime-component.mjs';
 import {createOriginalPQHostCatalogReceiver} from './wallet-pq-host-catalog-registration.mjs';
-import {preparePQHostSelectionRequest} from './wallet-pq-host-selection.mjs';
+import {createOriginalPQHostSource} from './wallet-pq-original-source.mjs';
 import {createPQHostSelectionCapture} from './wallet-pq-host-selection-capture.mjs';
 import {createProductWalletReturnPublisher} from '@ynx-chain/wallet-auth/product-wallet-connection';
 import {createOriginalAdmissionController} from './original-admission-controller.mjs';
@@ -135,13 +135,9 @@ const createOriginalPQFinalityVerifier=()=>createPackagedPQFinalityVerifier({app
 const createOriginalPQHostProducer=()=>createPackagedPQHostProducer({app,independentReceipt:originalPQVerifierReceipt});
 const createOriginalPQHostSelector=()=>createPackagedPQHostSelector({app,independentReceipt:originalPQVerifierReceipt});
 let originalPQHostCatalogReceiver;
-// Select using the actual saved original, not a renderer/manifest operation.
-// The receiver remains private Main; only the independently qualified original
-// source handoff may call receive(), never arbitrary local files or IPC.
-const readOriginalPQHostSourceCatalog=(original,binding)=>{
- const {version,...journalBinding}=JSON.parse(preparePQHostSelectionRequest(original,binding).stdin);
- return originalPQHostCatalogReceiver.select({...journalBinding,originalHash:'0x'+journalBinding.nativeWireHash});
-};
+// A protected original SourceOwner, not a receipt or local file, supplies the
+// normal ingress. Its consumer derives the exact six fields from the journal,
+// receives/persists the original DATA pair, then selects under that same owner.
 const pqBroadcastApprovalContext=new AsyncLocalStorage();
 async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard}){
   const context={request,capsule,borrow,guard,selected:false,closed:false};let failed=false,cause,result;
@@ -902,7 +898,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const originalPQNodeTransport=createPQTransactionNodeTransport();
   const originalPQFinalityEvidence=new PQFinalityEvidence({directory:path.join(userData,'pq-finality-evidence-v1')});
   originalPQHostCatalogReceiver=createOriginalPQHostCatalogReceiver({directory:path.join(userData,'pq-host-registrations-v1')});
-  const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,verifierReceipt:originalPQVerifierReceipt,createSelection:(original,binding)=>createPQHostSelectionCapture({original,binding,evidence:originalPQFinalityEvidence,sourceCatalog:readOriginalPQHostSourceCatalog(original,binding),selector:createOriginalPQHostSelector()}),createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier,persistObservation:(original,record)=>originalTransactionIntentStore.savePQFinalityObservation(original,record),flushObservation:(original,record,guard)=>originalTransactionIntentStore.flushPQFinalityObservation(original.account,original.hash,pqFinalityRecordGeneration(record),()=>guard.assert()),adoptTerminal:(original,token,guard)=>originalTransactionIntentStore.adoptPQFinalityTerminal(original,token,()=>guard.assert())});
+  const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,verifierReceipt:originalPQVerifierReceipt,createSource:(original,binding)=>createOriginalPQHostSource({original,binding,receiver:originalPQHostCatalogReceiver}),createSelection:(original,binding,sourceCatalog)=>createPQHostSelectionCapture({original,binding,evidence:originalPQFinalityEvidence,sourceCatalog,selector:createOriginalPQHostSelector()}),createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier,persistObservation:(original,record)=>originalTransactionIntentStore.savePQFinalityObservation(original,record),flushObservation:(original,record,guard)=>originalTransactionIntentStore.flushPQFinalityObservation(original.account,original.hash,pqFinalityRecordGeneration(record),()=>guard.assert()),adoptTerminal:(original,token,guard)=>originalTransactionIntentStore.adoptPQFinalityTerminal(original,token,()=>guard.assert())});
   pqFinalityCollection=createPQFinalityCollection({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,evidence:originalPQFinalityEvidence,transport:originalPQNodeTransport,typedTransport:createPQTypedActionFinalityNodeReader(),verification:originalPQFinalityVerification});
   pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,
     readTypedOriginal:createPQTypedActionNodeReader().readOriginal,
