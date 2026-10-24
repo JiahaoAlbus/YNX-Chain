@@ -66,5 +66,14 @@
   "normalCIPending": true,
   "sourceFreezePending": true,
   "newHeavyDispatch": false,
-  "originalRunStillUnqualified": 40101270671
+  "originalRunStillUnqualified": 40101270671,
+  "codeCommit": "d11da95f7c4303b9a8fc7e82203ca4e324e93ea9",
+  "sourceGuard": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-pair-source-1f21f1f2e/rss-retirement-pair-trace-source-guard-01.raw",
+    "bytes": 4435,
+    "sha256": "ae467ae68a769c936cf3b6d091be8ce6f56e343ee839451c48c875fff81ffa88",
+    "tests": 24,
+    "passed": true,
+    "seconds": 15.811625208
+  }
 }
