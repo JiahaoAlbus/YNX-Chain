@@ -17,5 +17,5 @@ test('required relative native JS closure is included without new public credent
  for(const f of ['original-developer-principal-data.mjs','original-ide-project-control-contract.mjs','original-ide-approval-state-head-data.mjs','original-ide-publication-approval-contract.mjs'])assert.ok(p.files.includes('native/'+f),f);
  assert.equal(p.exports['./product-session-gateway-node-host'].import,'./src/product-session-gateway-node-host.js');
  for(const s of Object.keys(p.exports))assert.doesNotMatch(s,/credential|project-control|developer-principal/);
- assert.equal(p.version,'1.3.0-pq.3.32-auth.25'); // source-only successor; no published or installed package implied.
+ assert.equal(p.version,'1.3.0-pq.3.32-auth.26'); // source-only successor; no published or installed package implied.
 });

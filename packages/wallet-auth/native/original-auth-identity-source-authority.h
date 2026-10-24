@@ -61,6 +61,9 @@ struct JointLifecycle {
 - (BOOL)assertCurrent:(NSError **)error;
 - (BOOL)assertAuthenticatedNativePurpose:(NSError **)error;
 - (NSDictionary *)copyOriginalSelection:(NSError **)error;
+// Native Wallet only. Requires the dedicated Root-signed CONTROL custody
+// selection; old capture-only profiles cannot lend private key permission.
+- (NSDictionary *)copyOriginalIDEProjectControlSigningContext:(NSError **)error;
 - (NSNumber *)copyOriginalCurrentSequence:(NSError **)error;
 // Private provisioning receiver input: exact signed public originals, DATA only.
 // This never lends a current signer or authenticates a reserve request.

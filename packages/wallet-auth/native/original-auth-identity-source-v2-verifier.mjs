@@ -21,6 +21,7 @@ const projectPurpose='ide-project-authority-v1',projectOps=['CurrentProject','Cu
 const controlPurpose='ide-project-control-authority-v1',controlOps=['CaptureProjectControl','RecheckProjectControl'];
 import{inspectOriginalProjectControlCaptureDATA}from'./original-ide-project-control-capture.mjs';
 import{evmAddressFromYNX}from'../src/crypto.js';
+import{inspectOriginalProjectControlCustodyDATA}from'./original-ide-project-control-custody-data.mjs';
 const publicationOps=['approval.capture','approval.current','approval.revoke'];
 const purposes=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOURCE-PROFILE',current:'AUTH-SOURCE-CURRENT'});
 const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -141,6 +142,7 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  }else if(Object.hasOwn(s,'contractRelay')||Object.hasOwn(s,'projectCurrent'))fail('AUTH_SOURCE_V2_RELAY_DEDICATED_PURPOSE_REQUIRED');
  if(control){const peer=s.identityPeerBinding;exact(peer,['walletCodeIdentity','ideCodeIdentity','nodeCodeIdentity','nodeSHA256','entrySHA256','provenanceSHA256']);if(typeof peer.walletCodeIdentity!=='string'||!peer.walletCodeIdentity.length||peer.walletCodeIdentity.length>256||Buffer.from(peer.walletCodeIdentity,'base64').toString('base64')!==peer.walletCodeIdentity||['walletCodeIdentity','ideCodeIdentity','nodeCodeIdentity'].some(k=>typeof peer[k]!=='string'||!peer[k].length||Buffer.byteLength(peer[k])>1024)||['nodeSHA256','entrySHA256','provenanceSHA256'].some(k=>!hex(peer[k])))fail('AUTH_SOURCE_V2_CONTROL_CALLER');if(evmAddressFromYNX(a.account)!==p.subjectOwner)fail('AUTH_SOURCE_V2_CONTROL_SUBJECT');inspectOriginalProjectControlCaptureDATA(s.projectControlCapture,a,root.networkId,peer.walletCodeIdentity,p.issuedAtMs,p.expiresAtMs,atMs);}
  else if(Object.hasOwn(s,'projectControlCapture'))fail('AUTH_SOURCE_V2_CONTROL_DEDICATED_PURPOSE_REQUIRED');
+ if(Object.hasOwn(s,'projectControlCustody')){if(!control)fail('AUTH_SOURCE_V2_CONTROL_DEDICATED_PURPOSE_REQUIRED');inspectOriginalProjectControlCustodyDATA(s.projectControlCustody,root.networkId,p.subjectOwner,registrations.subject,p.issuedAtMs,p.expiresAtMs,atMs);}
  if(projectAuthority){verifyProjectAuthority(s,p,e,root,registrations,atMs);if(Object.hasOwn(s,'projectSelection'))verifyProjectSelection(s,p,atMs);}
  else if(Object.hasOwn(s,'projectAuthority')||Object.hasOwn(s,'projectSelection'))fail('AUTH_SOURCE_V2_PROJECT_DEDICATED_PURPOSE_REQUIRED');
  window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
