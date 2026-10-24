@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.34",
+  "version": "1.3.0-pq.3.32-auth.35",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -239,6 +239,11 @@
       "types": "./src/pq-contract-deployment-material.d.ts",
       "import": "./src/pq-contract-deployment-material.js",
       "default": "./src/pq-contract-deployment-material.js"
+    },
+    "./ide-artifact-release-result": {
+      "types": "./src/ide-artifact-release-result.d.ts",
+      "import": "./src/ide-artifact-release-result.js",
+      "default": "./src/ide-artifact-release-result.js"
     }
   },
   "NativeInputs": [
@@ -1994,5 +1999,31 @@
     "Source": false,
     "Root": false,
     "App": false
+  },
+  "publicationReleaseResultDATA": {
+    "wireVersion": "YNX-IDE-ARTIFACT-RELEASE-RESULT/v1",
+    "API": "decodeIDEArtifactReleaseResultData(resultOriginal:Uint8Array):Readonly<IDEArtifactReleaseResultData>",
+    "subpath": "./ide-artifact-release-result",
+    "sourceFiles": [
+      {
+        "path": "packages/wallet-auth/src/ide-artifact-release-result.js",
+        "bytes": 5952,
+        "sha256": "538e1433f3b2e24b2c0905bd15a445b2029483fad21dffe9d38577f70faf5f20"
+      },
+      {
+        "path": "packages/wallet-auth/src/ide-artifact-release-result.d.ts",
+        "bytes": 1934,
+        "sha256": "ef3f84d7e6028c43d44547c08a69c3a6e056a080349d178eeec779e9d7771c21"
+      }
+    ],
+    "elevenOriginalStringFields": true,
+    "retainsOriginalUTF8Bytes": true,
+    "everyByteGetterReturnsIndependentCopy": true,
+    "nestedOriginalsValidated": false,
+    "signatureVerified": false,
+    "authorization": false,
+    "proofOriginalProvided": false,
+    "resourceResultProducerSupplied": false,
+    "NativeBuildRequiredByNewDecoder": false
   }
 }
