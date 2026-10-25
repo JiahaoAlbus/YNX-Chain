@@ -1,0 +1,161 @@
+{
+  "schema": 1,
+  "kind": "conditional-ready-only-no-dispatch",
+  "sourceCommit": "c14aee1e21894407cb09aff19ff26786e22eddf8",
+  "codeCommit": "4d016eb1e81f6093717dbb1c7732fdb132b8e30c",
+  "frozenRef": "codex/chain-snapshot-json-pair-c14aee1e21",
+  "normalCI": {
+    "runId": 40194100827,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40194100827",
+    "headSha": "c14aee1e21894407cb09aff19ff26786e22eddf8",
+    "conclusion": "success",
+    "jobId": 121171862923,
+    "completedAt": "2026-10-25T12:49:16Z",
+    "requiredSuccessSteps": [
+      "Run make consensus-abci-check",
+      "Verify native parsed-key reuse and original signature refusal semantics",
+      "Verify Linux Supply isolation and refusal counterexamples (no nodes)",
+      "Verify prepared native snapshot ownership and signed stream candidate",
+      "Verify fixed client1 private snapshot JSON encoder pair and cancellation",
+      "Verify both actual signed snapshot encoder public streams and corruption negatives",
+      "Verify bounded original segmented ZIP range recovery (no network)",
+      "Verify prefix candidate and original frozen source contracts"
+    ],
+    "fourNodeStep": "skipped",
+    "originalAPI": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/normal-ci-completed.json",
+      "bytes": 10931,
+      "sha256": "7088ab829727ddf7c64f101d7f8713b91713d6a5f4a9fd5c7e61187ada05d39d"
+    },
+    "originalFullLog": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/normal-ci-full.raw",
+      "bytes": 796312,
+      "sha256": "27fcb27942a054edb50eeb18f7c0ec2187b642ed1986d90e973a2ad120453df3"
+    }
+  },
+  "request": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/prepared-json-encoding-pair-source-c14aee1e21/root-scheduling-request-with-evidence.json",
+    "bytes": 10375,
+    "sha256": "71a1e5bb7ccd4da0065ee8ce597db38898fca625221ebc8bcd88044203b51b18"
+  },
+  "validation": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/prepared-json-encoding-pair-source-c14aee1e21/ready-validation-01.json",
+    "bytes": 778,
+    "sha256": "589c8e789ae8d5ce6466aec46e2fbf0bd9a7620eda031dd1f59a00dbc9a213e9"
+  },
+  "sourceQualification": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/prepared-json-encoding-pair-source-c14aee1e21/source-ci-qualified-original.json",
+    "bytes": 2800,
+    "sha256": "23d6b239fab8b81a96d263ed1100e32ed6b25a45a18c7b476efce81f7ddfa78b"
+  },
+  "sourceSnapshotIndex": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/prepared-json-encoding-pair-source-c14aee1e21/frozen-source-files.json",
+    "bytes": 12677,
+    "sha256": "78c6470889c92172b2ce6c7fd4f48d3e7646b452f3dee15e1f851c6d70975b2b"
+  },
+  "snapshotCount": 32,
+  "frozenReaderCount": 15,
+  "exactReferenceChecks": 60,
+  "independentPaths": 54,
+  "firstFailureAndMinimalRepair": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/prepared-json-encoding-pair-source-c14aee1e21/first-cause-preserved.json",
+    "bytes": 1508,
+    "sha256": "667a85d767e620c6406afcdeb7d4c91a1bdcbdd378fe11db3defa008d02dc210"
+  },
+  "originalSlotTerminal": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/prepared-json-encoding-pair-source-c14aee1e21/original-slot-terminal.json",
+    "bytes": 602,
+    "sha256": "e1bc80eb0805721a7ab4dfe898fbcb081cc9c4e0f63ed3b3ab673fc647569050"
+  },
+  "freshQueue": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/prepared-json-encoding-pair-source-c14aee1e21/fresh-queue-observation.json",
+    "bytes": 536,
+    "sha256": "ea7c6dc7cc563bba87f96f48e127f5e284d34838ff8abb56f0773c05f023ce92"
+  },
+  "onlyAxis": "private prepared snapshot JSON encoder: original-json -> fee-time-json-indent",
+  "fixed": {
+    "clientGOMAXPROCS": 1,
+    "nodeGOMAXPROCS": 1,
+    "submitters": 8,
+    "observers": 4,
+    "pacing": "grouped-cadence4",
+    "prepared": true,
+    "currentInputReuse": true,
+    "replayTiming": true,
+    "stateHash": "original",
+    "businessInputsPerCase": 8192
+  },
+  "caseCaps": {
+    "activeMs": 45000,
+    "cleanupMs": 15000,
+    "totalMs": 60000,
+    "ownedRSSBytes": 1073741824,
+    "threads": 320,
+    "ownedProcesses": 10,
+    "privateBytes": 268435456,
+    "buildBytes": 1073741824,
+    "logBytes": 1048576,
+    "diskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "compileReserveBytes": 1073741824,
+    "availableMemoryFloorBytes": 1207959552,
+    "sampleMs": 200,
+    "longLivedChildren": 9
+  },
+  "pairCaps": {
+    "totalMs": 120000,
+    "retainedBytes": 536870912,
+    "logBytes": 2097152,
+    "buildBytes": 1073741824,
+    "metadataReserveMs": 500
+  },
+  "streamBudget": {
+    "evidenceBytes": 67108864,
+    "durableStoreBytes": 33554432,
+    "durableCacheBytes": 67108864,
+    "timeoutMs": 40000
+  },
+  "runtimeCapacityRequirements": {
+    "newLinuxCapacityObserved": false,
+    "macPressureIsNotRemoteCapacity": true,
+    "prebuildCheckRunner": true,
+    "prebuildBeforeFourBuilds": true,
+    "pairInitialSample": true,
+    "caseInitialAnd200msSamples": true,
+    "prebuildRequiredDiskBytes": 2626682880,
+    "pairInitialDiskBytes": 3129999360,
+    "continuousDiskBytes": 1519386624,
+    "memoryAvailableFloorBytes": 1207959552,
+    "caseCaps": {
+      "activeMs": 45000,
+      "cleanupMs": 15000,
+      "totalMs": 60000,
+      "ownedRSSBytes": 1073741824,
+      "threads": 320,
+      "ownedProcesses": 10,
+      "privateBytes": 268435456,
+      "buildBytes": 1073741824,
+      "logBytes": 1048576,
+      "diskFloorBytes": 1073741824,
+      "rootReserveBytes": 445644800,
+      "compileReserveBytes": 1073741824,
+      "availableMemoryFloorBytes": 1207959552,
+      "sampleMs": 200,
+      "longLivedChildren": 9
+    },
+    "pairCaps": {
+      "totalMs": 120000,
+      "retainedBytes": 536870912,
+      "logBytes": 2097152,
+      "buildBytes": 1073741824,
+      "metadataReserveMs": 500
+    }
+  },
+  "rootGrantReceived": false,
+  "executionAdmitted": false,
+  "dispatched": false,
+  "actualELFSHA256": null,
+  "newLinuxCapacityObserved": false,
+  "networkGainMeasured": false,
+  "sustained1000Qualified": false
+}

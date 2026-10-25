@@ -10,6 +10,6 @@ selector 绑定 CLI、plan、实际 decoder constructor getter、真实正数编
 
 原 45s active+15s cleanup/case、60s/case、120s/pair、RSS1GiB/threads320/process10、private256MiB/case/retained512MiB/pair、原 log/build/disk/memory/stream bounds 不变。client 退出后两遍独立完整 checker 仍计入原45s；post-fsync 双 launcher-only closure 仍强制。首因/UNKNOWN/不完整证据/清理失败禁止 after。新 workflow choice 已准备，但只在 Root 核新窗口与 once grant 后运行；旧105129已消费，不复用；本机 heavy 未获授权。
 
-普通 CI 完成后另封固定 SOURCE/ref/CI 的单次条件 READY。目标仍是持续有效1000TPS及真实入块、最终确认延迟；本次有限每组8192输入不等于600秒持续验收。最早按投票权 BFT quorum 形成时刻仍须区分节点 Finalize、durable Commit 和客户端观察，不能以第三副本替代。
+普通 CI40194100827已SUCCESS，四节点步骤skipped；见[固定 SOURCE/ref/CI 的单次条件 READY](PREPARED_JSON_ENCODING_PAIR_READY_20261025.md)。目标仍是持续有效1000TPS及真实入块、最终确认延迟；本次有限每组8192输入不等于600秒持续验收。最早按投票权 BFT quorum 形成时刻仍须区分节点 Finalize、durable Commit 和客户端观察，不能以第三副本替代。
 
 证据：[源码与轻测索引](evidence/prepared-json-encoding-pair-source-20261025.json)。大型原始日志保留在西数既有 owner 目录。

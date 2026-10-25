@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "sourceCommit": "c14aee1e21894407cb09aff19ff26786e22eddf8",
+  "codeCommit": "4d016eb1e81f6093717dbb1c7732fdb132b8e30c",
+  "ordinaryCI": {
+    "runId": 40194100827,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40194100827",
+    "headSha": "c14aee1e21894407cb09aff19ff26786e22eddf8",
+    "conclusion": "success",
+    "jobId": 121171862923,
+    "completedAt": "2026-10-25T12:49:16Z",
+    "requiredSuccessSteps": [
+      "Run make consensus-abci-check",
+      "Verify native parsed-key reuse and original signature refusal semantics",
+      "Verify Linux Supply isolation and refusal counterexamples (no nodes)",
+      "Verify prepared native snapshot ownership and signed stream candidate",
+      "Verify fixed client1 private snapshot JSON encoder pair and cancellation",
+      "Verify both actual signed snapshot encoder public streams and corruption negatives",
+      "Verify bounded original segmented ZIP range recovery (no network)",
+      "Verify prefix candidate and original frozen source contracts"
+    ],
+    "fourNodeStep": "skipped",
+    "originalAPI": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/normal-ci-completed.json",
+      "bytes": 10931,
+      "sha256": "7088ab829727ddf7c64f101d7f8713b91713d6a5f4a9fd5c7e61187ada05d39d"
+    },
+    "originalFullLog": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/normal-ci-full.raw",
+      "bytes": 796312,
+      "sha256": "27fcb27942a054edb50eeb18f7c0ec2187b642ed1986d90e973a2ad120453df3"
+    }
+  },
+  "sourceSnapshots": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/prepared-json-encoding-pair-source-c14aee1e21/frozen-source-files.json",
+    "bytes": 12677,
+    "sha256": "78c6470889c92172b2ce6c7fd4f48d3e7646b452f3dee15e1f851c6d70975b2b"
+  },
+  "sourceSnapshotFiles": 32,
+  "frozenReaders": 15,
+  "watch": {
+    "session": 73894,
+    "exitCode": 0,
+    "original": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/final-source-ci-watch-01.raw",
+      "bytes": 41266,
+      "sha256": "c51d8664acceb53a0edd662024fbb4f2d7358f255d649635cae6b2024fe08a21"
+    }
+  },
+  "firstFailureAndRepair": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/prepared-json-encoding-pair-source-c14aee1e21/first-cause-preserved.json",
+    "bytes": 1508,
+    "sha256": "667a85d767e620c6406afcdeb7d4c91a1bdcbdd378fe11db3defa008d02dc210"
+  },
+  "networkExecuted": false,
+  "networkGainMeasured": false,
+  "sustained1000Qualified": false
+}
