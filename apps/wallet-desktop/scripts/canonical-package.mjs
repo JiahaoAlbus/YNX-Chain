@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import path from 'node:path';
+import {verifyNativeContinuationReceipt} from './wallet-native-continuation.mjs';
 import {PQ_NATIVE_INPUTS,PQ_NATIVE_ARCHIVE,PQ_NATIVE_PROVENANCE,isPQNativeSelection,pqNativeSupplierInputs,pqNativeReceiptCommands} from './wallet-pq-native-build.mjs';
 import {WALLET_PUBLISHER_NATIVE_INPUTS,WALLET_NATIVE_SOURCE_PROFILES,walletPublisherNativeInputs,WALLET_PUBLISHER_APPROVAL_INPUT,WALLET_PUBLISHER_APPROVAL_FLAG,WALLET_ARTIFACT_CABI_INPUTS,WALLET_ARTIFACT_CABI_FLAG,WALLET_PROJECT_CONTROL_INPUTS,WALLET_PROJECT_CONTROL_FLAG,WALLET_PROJECT_CONTROL_CABI_INPUTS,WALLET_PROJECT_CONTROL_CABI_FLAG} from './wallet-publisher-native-build.mjs';
 export const CANONICAL_MAIN='code/apps/wallet-desktop/src/main.mjs';
@@ -180,6 +181,8 @@ export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,
  if(!pinShape(receipt.output)||receipt.output.relative!=='apps/wallet-desktop/native/original-auth-identity.node'||moduleBytes.length!==receipt.output.bytes||digest(moduleBytes)!==receipt.output.sha256)bad();
  const arches=receipt.architectures;if(arches.length<1||arches.length>2||new Set(arches).size!==arches.length||arches.some(a=>!['arm64','x86_64'].includes(a)))bad();
  const pqNative=isPQNativeSelection(expectedInputs);
+ if(Object.hasOwn(receipt,'buildContinuation')&&!pqNative)bad();
+ verifyNativeContinuationReceipt(receipt);
  let commands=receipt.commands;
  if(pqNative){
   commands=pqNativeReceiptCommands(receipt);
