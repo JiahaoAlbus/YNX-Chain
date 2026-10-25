@@ -1,0 +1,209 @@
+{
+  "schema": 1,
+  "runId": 40176399057,
+  "sourceCommit": "31fe7b86ca74c290dfcd410eea27d1b44f379b31",
+  "codeCommit": "a0f41eb38c129247cceb9e24d988f58edfb2e31c",
+  "nativePairQualified": true,
+  "slotReturned": true,
+  "sustainedTPSQualified": false,
+  "defaultPromotionQualified": false,
+  "jointObservation": {
+    "finiteFinalRateIncreased": true,
+    "offerInclusionTailNotWorse": true,
+    "offerFinalTailNotWorse": false,
+    "finiteFinalP95UpperBoundWithin3s": true,
+    "finiteJointImprovementObserved": false,
+    "sustainedTPSQualified": false,
+    "interpretation": "Same-VM finite pair only; compare original complete-window rates and bounded per-row offer latency intervals, preserve worse results, drops/catchups/errors/backlogs. No default or sustained1000 promotion."
+  },
+  "finiteFinalRateChangePercent": 50.63278546221894,
+  "actualOfferRateChangePercent": 51.875724819206816,
+  "originalEvidence": {
+    "independent-native-verdict-01.json": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-grouped-procs2-run-40176399057/independent-native-verdict-01.json",
+      "bytes": 506190,
+      "sha256": "b62b34d309f78796f08928d0dfbc13befdcf1eb02f3c4840214d00b656fb23ce"
+    },
+    "complete-original-public-recovery.json": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-grouped-procs2-run-40176399057/complete-original-public-recovery.json",
+      "bytes": 55755,
+      "sha256": "bdb0d24932f6c64849222172fc89e05f5145a4e43b81ebd4dbaf9d5bdfe1bc86"
+    },
+    "original-business-checkpoint-phases-01.json": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-grouped-procs2-run-40176399057/original-business-checkpoint-phases-01.json",
+      "bytes": 98132,
+      "sha256": "ad0a1b1860d0647fb06f924a68a953acf479d693ad9f54293eacd62f0ff1c503"
+    },
+    "paired-ci-full.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-grouped-procs2-run-40176399057/paired-ci-full.raw",
+      "bytes": 815994,
+      "sha256": "1a34f5cfa2fd575f15952920c681c3e1ff1d144cbc797e84a3d81ec10965b4c3"
+    },
+    "original-complete-run-api.json": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-grouped-procs2-run-40176399057/original-complete-run-api.json",
+      "bytes": 12362,
+      "sha256": "e2b472ce222fcd9220c6c4ce76c091d0b641142047ca34414d9f77cb8880bb6f"
+    }
+  },
+  "interpretation": [
+    "Same VM/source/four ELFs; only client scheduler1\u21922; nodes remain1; each8192 finite business inputs, not1000\u00d7600s.",
+    "Latency P50/P95/P99 are upper bounds from1ms bins; node completion calibration errors retained. Endpoint Finalize is executed completion, not proposal arrival; node Commit is durable completion; earliest BFT quorum formation unmeasured; third replica is not voting-power quorum.",
+    "Reader wait/load/decode, nested AppHash and checkpoint maintenance children overlap parents. Phase quantiles must not be added or subtracted.",
+    "28\u219218 business blocks/replica changes packing; compare per-block means with block sizes and cumulative totals. Four replicas are not fourfold business TPS.",
+    "Sampled RSS and one-second bucket-end pending maxima are not hard memory or instantaneous backlog peaks. Error-fact occurrences are repeated diagnostics, not failed business transactions.",
+    "Final P95 slightly worsened despite improved node completion; finite joint improvement is false. One finite pair and variable fsync do not establish a stable causal gain or authorize default promotion."
+  ],
+  "cases": [
+    {
+      "name": "before-native-grouped-procs1",
+      "clientGOMAXPROCS": 1,
+      "nodeGOMAXPROCS": 1,
+      "effectiveFinalTransactions": 8192,
+      "actualOfferRate": 329.20466945978626,
+      "finiteFinalRate": 311.1717921969349,
+      "measurementWindowSeconds": 26.326293724,
+      "businessErrors": {
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "executionFailed": 0,
+        "observationFailed": 0,
+        "checkTxRejected": 0
+      },
+      "sampledPeaks": {
+        "rssBytes": 1001312256,
+        "threads": 69,
+        "privateBytes": 128528754,
+        "buildBytes": 119802228
+      },
+      "oneSecondBucketEndPendingMaximum": 896,
+      "finalPending": 0,
+      "latencyUpperBoundsMs": {
+        "offerToEffectiveBusinessInclusion": {
+          "p50": 1260,
+          "p95": 2102,
+          "p99": 2411
+        },
+        "offerToFinal": {
+          "p50": 1463,
+          "p95": 2262,
+          "p99": 2582
+        },
+        "offerToNodeFinalizeReturn": {
+          "p50": 1076,
+          "p95": 1856,
+          "p99": 2181
+        },
+        "offerToNodeDurableCommitReturn": {
+          "p50": 1140,
+          "p95": 1978,
+          "p99": 2248
+        },
+        "nodeCommitToClientFinalObservation": {
+          "p50": 331,
+          "p95": 513,
+          "p99": 624
+        },
+        "offerToFirstReplicaDurableCommit": {
+          "p50": 1094,
+          "p95": 1906,
+          "p99": 2189
+        },
+        "offerToThirdReplicaDurableCommit": {
+          "p50": 1140,
+          "p95": 2004,
+          "p99": 2235
+        },
+        "offerToAllReplicaDurableCommit": {
+          "p50": 1175,
+          "p95": 2029,
+          "p99": 2251
+        },
+        "replicaDurableCommitSpread": {
+          "p50": 78,
+          "p95": 339,
+          "p99": 389
+        }
+      },
+      "businessBlocksPerReplica": 28,
+      "meanTransactionsPerBusinessBlock": 292.57142857142856
+    },
+    {
+      "name": "after-native-grouped-procs2",
+      "clientGOMAXPROCS": 2,
+      "nodeGOMAXPROCS": 1,
+      "effectiveFinalTransactions": 8192,
+      "actualOfferRate": 499.98197788072434,
+      "finiteFinalRate": 468.7267381589507,
+      "measurementWindowSeconds": 17.477133974,
+      "businessErrors": {
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "executionFailed": 0,
+        "observationFailed": 0,
+        "checkTxRejected": 0
+      },
+      "sampledPeaks": {
+        "rssBytes": 1024692224,
+        "threads": 69,
+        "privateBytes": 124330631,
+        "buildBytes": 119802228
+      },
+      "oneSecondBucketEndPendingMaximum": 1288,
+      "finalPending": 0,
+      "latencyUpperBoundsMs": {
+        "offerToEffectiveBusinessInclusion": {
+          "p50": 1213,
+          "p95": 2021,
+          "p99": 2225
+        },
+        "offerToFinal": {
+          "p50": 1480,
+          "p95": 2277,
+          "p99": 2486
+        },
+        "offerToNodeFinalizeReturn": {
+          "p50": 1041,
+          "p95": 1803,
+          "p99": 1990
+        },
+        "offerToNodeDurableCommitReturn": {
+          "p50": 1095,
+          "p95": 1845,
+          "p99": 2022
+        },
+        "nodeCommitToClientFinalObservation": {
+          "p50": 389,
+          "p95": 579,
+          "p99": 616
+        },
+        "offerToFirstReplicaDurableCommit": {
+          "p50": 1050,
+          "p95": 1781,
+          "p99": 1949
+        },
+        "offerToThirdReplicaDurableCommit": {
+          "p50": 1129,
+          "p95": 1873,
+          "p99": 2069
+        },
+        "offerToAllReplicaDurableCommit": {
+          "p50": 1169,
+          "p95": 1890,
+          "p99": 2086
+        },
+        "replicaDurableCommitSpread": {
+          "p50": 112,
+          "p95": 239,
+          "p99": 264
+        }
+      },
+      "businessBlocksPerReplica": 18,
+      "meanTransactionsPerBusinessBlock": 455.1111111111111
+    }
+  ],
+  "fullQualifiedMetrics": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-grouped-procs2-run-40176399057/qualified-metrics-and-node-completion-01.json",
+    "bytes": 25859,
+    "sha256": "cfc68f06b847a16a540d590befaa28b3dbcaf5ef209498ea643208c357f75ede"
+  }
+}

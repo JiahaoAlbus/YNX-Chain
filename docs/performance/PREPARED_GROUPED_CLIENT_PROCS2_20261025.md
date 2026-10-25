@@ -1,5 +1,7 @@
 # Prepared/grouped client scheduler candidate
 
+Completed: actual run40176399057 is independently qualified; see [measured result](NATIVE_PROCS2_RUN40176399057_QUALIFIED_20261025.md). The original preparation/checkpoint statements below are historical. Final effective rate increased in this finite pair, while client final P95 slightly worsened; no sustained1000 qualification or default promotion.
+
 The original qualified run 40113221553 offered 344.033→372.533 effective business inputs/s against configured 1000/s; final rates were 322.028→349.861/s. It did not establish a chain capacity ceiling. After-case reader hold was 6.624 s, including 5.906 s decode; per-input transaction verification was only 18.318 ms. These overlapping phase totals motivate a client scheduling experiment, not removing signature checks or changing Commit durability.
 
 The new explicit `native-prepared-grouped-client-procs2` pair uses prepared certificates, current-input reuse, eight submitters/four observers and grouped-cadence4 on both sides. Only the after client adds `-client-procs2`. Both cases inherit original GOMAXPROCS=1/GOGC=100/GOMEMLIMIT=off; the client alone temporarily selects runtime GOMAXPROCS=2 and restores the previous value on return. Nodes retain one scheduler core. Cached hash/canonical/suffix/tip/submit16 and other pacing combinations are rejected. Default and prior pair contracts remain unchanged.
