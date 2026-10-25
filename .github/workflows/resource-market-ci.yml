@@ -1925,6 +1925,16 @@ jobs:
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -run '^TestProofHost' ./internal/consensus
           test -s "$YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT"
           sha256sum "$YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT"
+      - name: Verify initial registration and funded transfer through the original proof CLI
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
+        timeout-minutes: 2
+        env:
+          YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json
+        run: |
+          set -euo pipefail
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestTransactionProofInitialPreparedFundingOriginalCLI$' ./cmd/ynx-consensus-proof-verify | tee "$RUNNER_TEMP/ynx-initial-funded-proof-cli.log"
+          grep -F -- '--- PASS: TestTransactionProofInitialPreparedFundingOriginalCLI (' "$RUNNER_TEMP/ynx-initial-funded-proof-cli.log"
+          test "$(grep -F -c 'PQ_INITIAL_FUNDED_TRANSACTION_CLI_VERIFIED_DATA_ONLY' "$RUNNER_TEMP/ynx-initial-funded-proof-cli.log")" -eq 1
       - name: Verify complete large original migration through normal package and cold recovery
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3

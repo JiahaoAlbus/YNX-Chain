@@ -117,7 +117,7 @@ func decodeTransactionExpected(raw []byte) (transactionExpected, consensus.PQTra
 		return e, decoded, errors.New("same-chain adjacent independently pinned headers required")
 	}
 	switch e.TransactionType {
-	case consensus.PQTransferType, consensus.PQMigrationType, consensus.PQRevocationType, consensus.PQWholeType, consensus.PQActionType, consensus.PQEthereumValueType:
+	case consensus.PQTransferType, consensus.PQMigrationType, consensus.PQInitialRegistrationType, consensus.PQRevocationType, consensus.PQWholeType, consensus.PQActionType, consensus.PQEthereumValueType:
 	default:
 		return e, decoded, errors.New("unsupported original PQ transaction type")
 	}
