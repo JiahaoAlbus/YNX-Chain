@@ -37,6 +37,10 @@ test('actual build-mac control flow refuses failed SDK46 helper verification bef
   const file=String(value);if(file.endsWith('/packages/wallet-auth/package.json'))return JSON.stringify({version:'1.3.0-pq.3.32-auth.46'});
   if(file.endsWith('/package.json'))return JSON.stringify(metadata);if(file.endsWith('/YNXIdentityReceiver'))return helper;return plist;
  },assertSelectedProofVerifierForSDK:()=>{},verifyPackagedPQVerifierAssets:async()=>{},originalPQVerifierReceipt:{},spawnSync:()=>({status:0}),verifySDK13HelperBundle:(...args)=>{calls.push(args);throw failure;},SDK13_HELPER_ASSET:'apps/wallet-desktop/native/YNXIdentityReceiver',SDK13_HELPER_PLIST:'apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist',withMacDmgSource:async()=>{image=true;},execFileSync:()=>{throw Error('unexpected disk image operation');}};
+ context.assertNativeComponentGitSourceClosure=()=>{};
+ context.execFileSync=(tool,args)=>{if(tool==='git')return args.includes('HEAD')?'a'.repeat(40)+'\n':'/PUBLIC/source\n';throw Error('unexpected disk image operation');};
  const code=source.replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',JSON.stringify(url.href));runInNewContext('this.run=async()=>{'+code+'\n};',context);
  await assert.rejects(context.run(),e=>e===failure);assert.equal(image,false);assert.equal(calls.length,1);assert.deepEqual(calls[0].slice(1),[helper,plist]);assert(calls[0][0].endsWith('/dist/mac-arm64/YNX Wallet.app/Contents'));
+ const closureFailure=Error('CONTROLLED missing immutable Native source closure');context.assertNativeComponentGitSourceClosure=()=>{throw closureFailure;};context.spawnSync=()=>{throw Error('builder must not run with missing source closure');};
+ await assert.rejects(context.run(),e=>e===closureFailure);assert.equal(image,false);assert.equal(calls.length,1);
 });

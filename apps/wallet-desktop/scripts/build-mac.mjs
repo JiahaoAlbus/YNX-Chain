@@ -7,6 +7,7 @@ import {verifyPackagedPQVerifierAssets} from '../src/wallet-pq-verifier-assets.m
 import {originalPQVerifierReceipt} from '../src/wallet-pq-runtime-component.mjs';
 import {assertSelectedProofVerifierForSDK} from './proof-verifier-source-policy.mjs';
 import {verifySDK13HelperBundle,SDK13_HELPER_ASSET,SDK13_HELPER_PLIST} from './sdk13-native-component.mjs';
+import {assertNativeComponentGitSourceClosure} from './native-component-source-closure.mjs';
 
 if (process.platform !== "darwin") throw new Error("Build the macOS package on macOS");
 const arch = process.argv[2] || "universal";
@@ -41,6 +42,11 @@ if(electronDist!==null){
 // Packaging never silently compiles/downloads a missing authority implementation.
 const originalAuthNative=await stat(path.join(root,'native/original-auth-identity.node'));
 if(!originalAuthNative.isFile()||originalAuthNative.size===0)throw Error('AUTH_NATIVE_FROZEN_MODULE_REQUIRED');
+if(matchedSDK.version==='1.3.0-pq.3.32-auth.46'){
+  const sourceRoot=execFileSync('git',['rev-parse','--show-toplevel'],{cwd:root,encoding:'utf8'}).trim();
+  const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
+  assertNativeComponentGitSourceClosure(sourceRoot,sourceCommit,await readFile(path.join(root,'native/original-auth-identity-build.json')));
+}
 const result = spawnSync(process.execPath, [fileURLToPath(new URL("../node_modules/electron-builder/cli.js", import.meta.url)), "--mac", "--dir", `--${arch}`, "--publish", "never", ...builderOptions], {
   stdio: "inherit", cwd: root, env: {...process.env,YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE:proofVerifierStage??''}
 });
