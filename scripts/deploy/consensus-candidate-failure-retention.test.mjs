@@ -723,7 +723,11 @@ test('actual runtime preparation original PQ caller prepares only its phase help
     assert.equal(result.receipt.copiedBinaryCount, 1);
     assert.equal(result.receipt.binaryExecuted, false);
     assert.deepEqual(result.toolEntries, ['SOURCE.json', binary].sort());
-    assert.deepEqual(result.workEntries, ['runtime-tool-prepared.json', 'tool']);
+    // The helper's two-item reservation is checked above. The real caller has
+    // since created its exclusive intent/attempt and retained reserve evidence.
+    const attempts = result.workEntries.filter(name => /^attempt\.[A-Za-z0-9]{12}$/.test(name));
+    assert.equal(attempts.length, 1, 'normal caller must reserve exactly one new attempt');
+    assert.deepEqual(result.workEntries, [attempts[0], 'intent.txt', 'public', 'reserve.stderr', 'reserve.stdout', 'runtime-tool-prepared.json', 'tool'].sort());
     for (const name of runtimeNames) assert.equal(result.prepared[name].value?.kind ?? null, name === binary ? 'file' : null);
   });
 });
