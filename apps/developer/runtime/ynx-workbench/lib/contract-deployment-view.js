@@ -2,7 +2,7 @@
 const {BaseWidget}=require('@theia/core/lib/browser/widgets');
 const {CommonMenus}=require('@theia/core/lib/browser/common-menus');
 const ID='ynx-contract-deployment',UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
-const errorKey=error=>({PQ_CONTRACT_DEPLOYMENT_MATERIAL_INVALID:'deployInvalidMaterial',IDE_CONTRACT_MATERIAL_REVIEW_REQUIRED:'deployReviewAgain',IDE_CONTRACT_EXECUTION_REVIEW_REQUIRED:'executeInvalidCall',PQ_NATIVE_ACTION_INVALID:'executeInvalidCall',IDE_CONTRACT_NOT_CONNECTED:'deployConnectFirst',IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED:'deployOriginalQueryRequired',IDE_CONTRACT_REFERENCE_EXISTS:'deployOriginalQueryRequired',IDE_CONTRACT_SIGNED_REFERENCE_INVALID:'deployOriginalQueryRequired',IDE_CONTRACT_REFERENCE_NOT_DURABLE:'deployOriginalQueryRequired'})[error?.code];
+const errorKey=error=>({PQ_CONTRACT_DEPLOYMENT_MATERIAL_INVALID:'deployInvalidMaterial',IDE_CONTRACT_MATERIAL_REVIEW_REQUIRED:'deployReviewAgain',IDE_CONTRACT_EXECUTION_REVIEW_REQUIRED:'executeInvalidCall',PQ_NATIVE_ACTION_INVALID:'executeInvalidCall',IDE_CONTRACT_ORIGINAL_RESULT_INVALID:'deployOriginalQueryRequired',IDE_CONTRACT_NOT_CONNECTED:'deployConnectFirst',IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED:'deployOriginalQueryRequired',IDE_CONTRACT_REFERENCE_EXISTS:'deployOriginalQueryRequired',IDE_CONTRACT_SIGNED_REFERENCE_INVALID:'deployOriginalQueryRequired',IDE_CONTRACT_REFERENCE_NOT_DURABLE:'deployOriginalQueryRequired'})[error?.code];
 function element(document,tag,text){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node;}
 class ContractDeploymentWidget extends BaseWidget{
  constructor(project,target,commands,translate){

@@ -1,4 +1,5 @@
 import {createHash, randomUUID} from 'node:crypto';
+import {types} from 'node:util';
 import {openRelayContractReferenceJournal,contractBroadcastReferenceId} from './wallet-contract-reference-journal.mjs';
 export {contractBroadcastReferenceId} from './wallet-contract-reference-journal.mjs';
 import {createContractScopeFence} from './contract-relay-scope.mjs';
@@ -10,6 +11,19 @@ const validOperationId = value => typeof value === 'string' && /^[A-Za-z0-9_-]{1
 function signedReference(value,account){
   if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).sort().join()!=='account,confirmed,hash,memberHash,operationId,savedLocally,submitted,transportHash,version'||value.version!==1||value.account!==account||value.hash!==value.transportHash||!/^0x[a-f0-9]{64}$/.test(value.transportHash)||!/^0x[a-f0-9]{64}$/.test(value.memberHash)||!validOperationId(value.operationId)||value.savedLocally!==true||value.submitted!==false||value.confirmed!==false)throw failure('IDE_CONTRACT_SIGNED_REFERENCE_INVALID');
   return{operationId:value.operationId,transportHash:value.transportHash,memberHash:value.memberHash};
+}
+function originalQueryResult(value,account,original){
+  const invalid=()=>{throw failure('IDE_CONTRACT_ORIGINAL_RESULT_INVALID');};
+  if(!value||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)invalid();
+  const fields=['version','operationId','account','origin','kind','transportHash','memberHash','status','observation','queryOnly','canRetry','consensusFinality'],descriptors=Object.getOwnPropertyDescriptors(value),keys=Reflect.ownKeys(descriptors);
+  if(keys.length!==fields.length||keys.some(key=>!fields.includes(key))||fields.some(key=>!descriptors[key]||!descriptors[key].enumerable||!Object.hasOwn(descriptors[key],'value')))invalid();
+  if(value.version!==1||value.account!==account||value.origin!=='https://developer.ynxweb4.com'||!validOperationId(value.operationId)||!['contract_deploy','contract_execute'].includes(value.kind)||!/^0x[a-f0-9]{64}$/.test(value.transportHash)||!/^0x[a-f0-9]{64}$/.test(value.memberHash)||typeof value.status!=='string'||!value.status.length||value.status.length>128)invalid();
+  for(const key of ['operationId','transportHash','memberHash'])if(original[key]!==null&&original[key]!==value[key])invalid();
+  // This is the current Wallet query-only V1 result, not an independent
+  // finality proof. A future trusted-finality ABI must be consumed explicitly.
+  if(value.queryOnly!==true||value.canRetry!==false||value.consensusFinality!==false)invalid();
+  if(value.observation!==null){const observed=value.observation;if(!observed||types.isProxy(observed)||Object.getPrototypeOf(observed)!==Object.prototype)invalid();const ds=Object.getOwnPropertyDescriptors(observed),keys=Reflect.ownKeys(ds);if(keys.length!==2||keys.some(key=>!['outcome','status'].includes(key))||['outcome','status'].some(key=>!Object.hasOwn(ds[key],'value')||!ds[key].enumerable))invalid();}
+  return {}; // Do not rewrite or elevate the original signing journal row.
 }
 
 // Backend-only consumer. The production caller supplies the SDK's fixed
@@ -136,18 +150,25 @@ export async function openProjectContractClient({context, relayAuthority, create
     listReferences(){return exclusive(()=>journal.history());},
     query(referenceId, {refresh = false} = {}) { return exclusive(async () => {
       let original = await journal.read(referenceId);
-      if(original?.method==='ynx_preparePQContractBroadcast'){
+      if(original&&original.method!=='ynx_preparePQContractAction'){
         // Wallet binds original-result lookup to the signing request's
         // initiator, not the later broadcast RPC. Keep both original records;
         // this association grants query coordinates only, never replay.
-        const parents=(await journal.list(true)).filter(row=>row.method==='ynx_preparePQContractAction'&&row.account===original.account&&contractBroadcastReferenceId(row.referenceId)===referenceId);
+        const parents=(await journal.list(true)).filter(row=>{
+          if(row.method!=='ynx_preparePQContractAction'||row.account!==original.account)return false;
+          if(original.method==='ynx_preparePQContractBroadcast')return contractBroadcastReferenceId(row.referenceId)===referenceId;
+          // A saved query has its own transport request hash. Match its exact
+          // captured read payload back to the original signing initiator.
+          if(original.method!=='ynx_getPQContractOriginal'||!row.originalRequestKeyHash)return false;
+          return [false,true].some(refresh=>hash({method:'ynx_getPQContractOriginal',params:[{version:1,account:row.account,originalRequestKeyHash:row.originalRequestKeyHash,refresh}]})===original.requestPayloadSHA256);
+        });
         if(parents.length!==1)throw failure('IDE_CONTRACT_QUERY_UNAVAILABLE');
         original=parents[0];
       }
       if (!original?.originalRequestKeyHash || typeof refresh !== 'boolean') throw failure('IDE_CONTRACT_QUERY_UNAVAILABLE');
       const account = await walletAccount();
       if (original.account !== account) throw failure('IDE_CONTRACT_WALLET_CHANGED');
-      return execute(randomUUID(), {method:'ynx_getPQContractOriginal',params:[{version:1,account,originalRequestKeyHash:original.originalRequestKeyHash,refresh}]});
+      return execute(randomUUID(), {method:'ynx_getPQContractOriginal',params:[{version:1,account,originalRequestKeyHash:original.originalRequestKeyHash,refresh}]},value=>originalQueryResult(value,account,original));
     }); },
     async close() { closed = true; provider = undefined; await connection?.cancel?.(); },
     cleanupSnapshot() { return connection?.cleanupSnapshot?.()||Object.freeze({scope:'local-only',connection:'not-started',remoteCleanup:'not-proven'}); },

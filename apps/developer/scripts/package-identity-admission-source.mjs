@@ -136,6 +136,27 @@ async function verifyRows(root, rows) {
   }
   return expected;
 }
+// Build-only module selection. The source selection includes two generated
+// manifests and may deliberately have no node_modules; never import that
+// dependencyless directory as if it were the executable SDK runtime.
+export async function canonicalPQActionTestSource(){
+  const inputs=await canonicalInputs(),runtimeRoot=dirname(canonicalDependencies);
+  if(!canonicalDependencies.endsWith('/node_modules'))throw Error('Canonical SDK runtime dependency layout differs.');
+  const aliases=new Set(inputs.productProjection.generated.map(p=>p.destination));
+  // This is a newly consumed source location, not a new dependency install.
+  // Match every original SDK source here. The normal producer already checks
+  // the separately declared complete dependencies before this test step.
+  await verifyRows(runtimeRoot,inputs.files.filter(p=>!aliases.has(p.path)));
+  const batch=inputs.dependencies.find(p=>p.path==='@ynx/batch-v01-candidate/package.json');
+  if(!batch)throw Error('Canonical batch runtime input missing.');
+  await verifyRows(canonicalDependencies,[batch]);
+  const resolved=createRequire(join(runtimeRoot,'package.json')).resolve('@ynx/batch-v01-candidate');
+  if(!resolved.startsWith(canonicalDependencies+'/'))throw Error('Canonical batch runtime escaped declared dependencies.');
+  const entry=inputs.dependencies.find(p=>p.path===resolved.slice(canonicalDependencies.length+1));
+  if(!entry)throw Error('Canonical batch entry is not declared.');
+  await verifyRows(canonicalDependencies,[entry]);
+  return join(runtimeRoot,'src/pq-native-action.js');
+}
 export async function verifyCanonicalIdentityAdmissionSource(root = canonicalOwned, dependencies = root === canonicalOwned ? canonicalDependencies : join(root, 'node_modules')) {
   const stat = await lstat(root);
   if (!stat.isDirectory() || stat.isSymbolicLink()) throw Error('Regular canonical identity directory required.');
@@ -494,7 +515,8 @@ export async function verifySealedCanonicalNativeModule(resources) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  if (process.argv[2] === '--native-source-root') console.log((await verifyCanonicalNativeSourceSelection()).root);
+  if (process.argv[2] === '--pq-action-test-source') console.log(await canonicalPQActionTestSource());
+  else if (process.argv[2] === '--native-source-root') console.log((await verifyCanonicalNativeSourceSelection()).root);
   else if (process.argv[2] === '--seal-native') await sealCanonicalNativeModule(process.argv[3]);
   else if (process.argv[2] === '--verify-native') console.log(JSON.stringify(await verifySealedCanonicalNativeModule(process.argv[3])));
   else if (process.argv[2] === '--copy-native') console.log(JSON.stringify(await copyCanonicalNativeModule(process.argv[3])));
