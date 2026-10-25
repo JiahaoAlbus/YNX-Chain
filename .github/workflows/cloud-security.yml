@@ -84,7 +84,15 @@ jobs:
           set -euo pipefail
           node_path="$(node -p 'process.execPath')"
           test -x "$node_path"
-          printf 'YNX_IDE_TEST_NODE=%s\n' "$node_path" >> "$GITHUB_ENV"
+          # The original verifier also protects every ancestor of its Node
+          # pin. Hosted tool caches are not an admitted private fixture root.
+          # Keep the selected executable bytes, not a symlink or another Node.
+          private_node="$(mktemp -d "$HOME/.ynx-ide-ci-node.XXXXXX")"
+          chmod 0700 "$private_node"
+          cp -- "$node_path" "$private_node/node"
+          chmod 0500 "$private_node/node"
+          cmp -- "$node_path" "$private_node/node"
+          printf 'YNX_IDE_TEST_NODE=%s\n' "$private_node/node" >> "$GITHUB_ENV"
       - name: IDE deployment and Auth source integration
         run: >-
           go test -count=1 -timeout=90s

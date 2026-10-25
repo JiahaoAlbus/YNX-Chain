@@ -81,3 +81,13 @@ test('source-only CI admits only the two original recipe leaves, without activat
   assert.ok(workflow.includes('node --test apps/cloud/tests/ide-deployment*.test.mjs'));
   assert.match(workflow, /security-recovery:\n    if: >-\n      \$\{\{ !\(github\.event_name == 'pull_request'/);
 });
+
+test('strict Source fixtures pin the selected Node bytes in a private CI directory', () => {
+  const workflow = read('.github/workflows/cloud-security.yml');
+  assert.ok(workflow.includes('node_path="$(node -p \'process.execPath\')"'));
+  assert.ok(workflow.includes('mktemp -d "$HOME/.ynx-ide-ci-node.XXXXXX"'));
+  assert.ok(workflow.includes('chmod 0700 "$private_node"'));
+  assert.ok(workflow.includes('chmod 0500 "$private_node/node"'));
+  assert.ok(workflow.includes('cmp -- "$node_path" "$private_node/node"'));
+  assert.ok(workflow.includes('printf \'YNX_IDE_TEST_NODE=%s\\n\' "$private_node/node"'));
+});
