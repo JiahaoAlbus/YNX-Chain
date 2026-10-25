@@ -4,6 +4,13 @@ import {readFileSync,lstatSync,realpathSync} from 'node:fs';
 import path from 'node:path';
 import {SDK_CANONICAL} from './canonical-package.mjs';
 const base='runtime-projections/sdk46-product/';
+// Original supplier's two build-input tables, not the two Native-reader
+// product slots. Preserve them in frozen Git; never carry these extra tables
+// into the closed 9573+2 product archive or count them as finite-policy rows.
+const SDK46_BUILD_INPUT_MANIFESTS=Object.freeze([
+ Object.freeze({path:'native/original-auth-runtime-manifest.json',bytes:81401,sha256:'8caa2a369c923c4ad8249c2d897ff4a9882c7f5a58b8a647decd07eeb38ced4a'}),
+ Object.freeze({path:'native/walletconnect-runtime-manifest.json',bytes:1566605,sha256:'f069c4299614f2fd5429c65f40f1b0c5d2f0e75389e488be6c4ece8835d72c82'})
+]);
 export const SDK46_PRODUCT_PINS=Object.freeze({
   "original-ide-auth-runtime-manifest.json": {
     "bytes": 79964,
@@ -79,11 +86,18 @@ export function readSDK46ProductRuntime(root,sourceCommit){
  return Object.freeze({public:publicData,manifestRows,contents,selected,authRows,unionRows,excluded,
   prepare(before){
    const old=new Map(before.map(row=>[row.path.startsWith('node_modules/@ynx-chain/wallet-auth/')?SDK_CANONICAL+row.path.slice('node_modules/@ynx-chain/wallet-auth'.length):row.path,row])),missing=new Set(),dataRows=[];
+   const buildInputRows=[];
+   for(const pin of SDK46_BUILD_INPUT_MANIFESTS){
+    const target=SDK_CANONICAL+'/'+pin.path,existing=old.get(target);if(!existing)continue;
+    const original=git('show',sourceCommit+':packages/wallet-auth/'+pin.path);
+    if(original.length!==pin.bytes||hash(original)!==pin.sha256||existing.type!=='file'||existing.unpacked||existing.executable||!equalRow(existing,pin))fail('SDK46_PRODUCT_BUILD_INPUT_MANIFEST_DIFFERS');
+    buildInputRows.push({...pin,path:target});
+   }
    for(const row of selected.values()){const target=SDK_CANONICAL+'/'+row.path,existing=old.get(target);let executable=existing?.executable??false;
     if(!existing){const{stat}=inputFile(row.path);if(stat.size!==row.bytes)fail('SDK46_PRODUCT_SOURCE_SIZE_DIFFERS');executable=!!(stat.mode&0o111);missing.add(target);}
     dataRows.push({path:target,type:'file',unpacked:false,executable,physicalMode:null,bytes:row.bytes,sha256:row.sha256});
    }
-   return{public:publicData,manifestRows,contents,dataRows,excludedRows:[...excluded.values()].map(row=>({...row,path:SDK_CANONICAL+'/'+row.path})),missing,
+   return{public:publicData,manifestRows,contents,dataRows,excludedRows:[...[...excluded.values()].map(row=>({...row,path:SDK_CANONICAL+'/'+row.path})),...buildInputRows],missing,
     readAdditional(target){if(!missing.has(target))return undefined;const name=target.slice(SDK_CANONICAL.length+1),row=selected.get(name),{file,stat}=inputFile(name),raw=readFileSync(file),after=lstatSync(file);if(raw.length!==row.bytes||hash(raw)!==row.sha256||['dev','ino','size','mtimeMs','ctimeMs','mode'].some(k=>stat[k]!==after[k]))fail('SDK46_PRODUCT_SOURCE_BYTES_DIFFERS');return raw;}
    };
   }
