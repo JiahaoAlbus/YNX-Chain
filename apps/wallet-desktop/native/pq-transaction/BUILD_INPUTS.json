@@ -101,10 +101,16 @@
     "sameAddon": "native/original-auth-identity.node",
     "sameNativeThread": true,
     "linkGoArchiveExactlyOnce": {
-      "sourceCommit": "8c1a372ff",
-      "path": "/Volumes/西部数据/YNX-large-work/protocol/native-tx-8c1a372ff/darwin-arm64/libynx_artifact_release.a",
-      "bytes": 10106960,
-      "sha256": "a459fb3fbd7d4a45ea8287f9c5b2283a166716db2db6673f0a9380126eafd3cf",
+      "sourceCommit": "74457f76d395da289cca6b3a6b353fa1349366df",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/native-tx-74457f76d/darwin-arm64/libynx_artifact_release.a",
+      "bytes": 10251632,
+      "sha256": "2256d6e3a6355771185fcd65a4b686de9d950de78a30054183c7fffed6f0b9f6",
+      "goVersion": "go version go1.26.10 darwin/arm64",
+      "sourceRecord": {
+        "path": "apps/wallet-desktop/native/pq-transaction/PROTOCOL_SOURCE.json",
+        "bytes": 19055,
+        "sha256": "f8393a99b0f64caa9cfea96f90fe6f15442b9d0757e14aeb5c36cb7508d9a91d"
+      },
       "includes": [
         "ARTIFACT",
         "CONTROL",

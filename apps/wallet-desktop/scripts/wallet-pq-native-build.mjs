@@ -2,13 +2,25 @@ import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 const fail=()=>{throw Error('WALLET_PQ_NATIVE_BUILD_ROLE_DIFFERS');};
-export const PQ_NATIVE_MANIFEST=Object.freeze({path:'apps/wallet-desktop/native/pq-transaction/BUILD_INPUTS.json',bytes:4790,sha256:'44736d84e10f04068315486263e4be187d0eadd1da7960835d5c62149db1ce0f'});
+export const PQ_NATIVE_MANIFEST=Object.freeze({path:'apps/wallet-desktop/native/pq-transaction/BUILD_INPUTS.json',bytes:5101,sha256:'e23f610a2e8ecc6a4129f31904691c8fec71a9ae6bc62ca8fc23a1e2cf74cced'});
 const bytes=readFileSync(new URL('../native/pq-transaction/BUILD_INPUTS.json',import.meta.url));
 if(bytes.length!==PQ_NATIVE_MANIFEST.bytes||createHash('sha256').update(bytes).digest('hex')!==PQ_NATIVE_MANIFEST.sha256)fail();
 const contract=JSON.parse(bytes),overlay=contract.MainTranslationUnitOverlay;
-export const PQ_NATIVE_ARCHIVE=Object.freeze({path:'apps/wallet-desktop/native/libynx_artifact_release.a',bytes:10106960,sha256:'a459fb3fbd7d4a45ea8287f9c5b2283a166716db2db6673f0a9380126eafd3cf'});
-export const PQ_NATIVE_INPUTS=Object.freeze([...contract.inputs.filter(p=>p.path!==overlay.path),PQ_NATIVE_MANIFEST,PQ_NATIVE_ARCHIVE].map(p=>Object.freeze({...p})));
-export const PQ_NATIVE_PROVENANCE=Object.freeze({kind:'YNX_WALLET_MAIN_PQ_NATIVE_R2/v1',manifest:PQ_NATIVE_MANIFEST,override:{path:overlay.path,before:overlay.supplierBase,after:overlay.after}});
+export const PQ_NATIVE_ARCHIVE=Object.freeze({path:'apps/wallet-desktop/native/libynx_artifact_release.a',bytes:10251632,sha256:'2256d6e3a6355771185fcd65a4b686de9d950de78a30054183c7fffed6f0b9f6'});
+export const PQ_NATIVE_SOURCE=Object.freeze({path:'apps/wallet-desktop/native/pq-transaction/PROTOCOL_SOURCE.json',bytes:19055,sha256:'f8393a99b0f64caa9cfea96f90fe6f15442b9d0757e14aeb5c36cb7508d9a91d'});
+export const PQ_NATIVE_PROTOCOL=Object.freeze({commit:'74457f76d395da289cca6b3a6b353fa1349366df',goVersion:'go version go1.26.10 darwin/arm64',source:PQ_NATIVE_SOURCE,archive:PQ_NATIVE_ARCHIVE});
+export function verifyPQNativeProtocolSource(bytes){
+ if(!Buffer.isBuffer(bytes)||bytes.length!==PQ_NATIVE_SOURCE.bytes||createHash('sha256').update(bytes).digest('hex')!==PQ_NATIVE_SOURCE.sha256)fail();
+ const s=JSON.parse(bytes),pins=contract.inputs,header=(actual,expected)=>actual?.bytes===expected?.bytes&&actual?.sha256===expected?.sha256;
+ if(s.commit!==PQ_NATIVE_PROTOCOL.commit||s.goVersion!==PQ_NATIVE_PROTOCOL.goVersion||s.host?.os!=='darwin'||s.host?.arch!=='arm64'||s.minimumSystemVersion!=='13.0'||!header(s.archive,PQ_NATIVE_ARCHIVE)||!header(s.transactionHeader,pins.find(p=>p.path.endsWith('/tx_batch.h')))||!header(s.initialAccountHeader,pins.find(p=>p.path.endsWith('/account_initial.h')))||!header(s.header,{bytes:5089,sha256:'1da905e0b38581ad34a9cf995c36f8d368425df9242a35f4e49d7b41c8100616'}))fail();
+ if(['actualCABIExecuted','actualTransactionCABIExecuted','actualInitialAccountCABIExecuted','independentGoDualANDVerified','transactionIndependentGoDualANDVerified','initialAccountIndependentGoDualANDVerified'].some(k=>s[k]!==true)||['nativeRootAuthorized','publisherAuthorized','transactionAccountAuthorized','initialAccountAuthorized','productInstalled','publicDeployment','pqActivation'].some(k=>s[k]!==false))fail();
+ return Object.freeze({commit:s.commit,goVersion:s.goVersion,source:PQ_NATIVE_SOURCE,archive:PQ_NATIVE_ARCHIVE,componentCABI:true,wholeCIPassed:false,Root:false,approval:false,installed:false,publicActivation:false});
+}
+const protocol=contract.build.linkGoArchiveExactlyOnce;
+if(protocol.sourceCommit!==PQ_NATIVE_PROTOCOL.commit||protocol.goVersion!==PQ_NATIVE_PROTOCOL.goVersion||protocol.bytes!==PQ_NATIVE_ARCHIVE.bytes||protocol.sha256!==PQ_NATIVE_ARCHIVE.sha256||JSON.stringify(protocol.sourceRecord)!==JSON.stringify(PQ_NATIVE_SOURCE))fail();
+verifyPQNativeProtocolSource(readFileSync(new URL('../native/pq-transaction/PROTOCOL_SOURCE.json',import.meta.url)));
+export const PQ_NATIVE_INPUTS=Object.freeze([...contract.inputs.filter(p=>p.path!==overlay.path),PQ_NATIVE_MANIFEST,PQ_NATIVE_SOURCE,PQ_NATIVE_ARCHIVE].map(p=>Object.freeze({...p})));
+export const PQ_NATIVE_PROVENANCE=Object.freeze({kind:'YNX_WALLET_MAIN_PQ_NATIVE_R2/v1',manifest:PQ_NATIVE_MANIFEST,protocol:PQ_NATIVE_PROTOCOL,override:{path:overlay.path,before:overlay.supplierBase,after:overlay.after}});
 export function pqNativeSupplierInputs(pins,enabled){
  if(!enabled)return pins;
  const before=pins.filter(p=>p.path===overlay.path);if(before.length!==1||['path','bytes','sha256'].some(k=>before[0][k]!==overlay.supplierBase[k]))fail();
