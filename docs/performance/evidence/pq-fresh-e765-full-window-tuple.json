@@ -1,0 +1,446 @@
+{
+  "version": "YNX-PQ-FRESH-FULL-WINDOW-TUPLE/v1",
+  "recordedAtUTC": "2026-10-25T23:12:43.049155+00:00",
+  "remote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "workflow": "resource-market-ci.yml",
+  "ref": null,
+  "candidate": "e76573c139f0265c10b93f2eb493be082daec2eb",
+  "dispatchInputs": {
+    "candidate_sha": "e76573c139f0265c10b93f2eb493be082daec2eb",
+    "normal_ci_run_id": "40239167157",
+    "paired_n1": false,
+    "consensus_e2e": false,
+    "consensus_e2e_retained_history": false,
+    "consensus_remote_e2e_retained_history": false,
+    "consensus_fresh_paired_business": true,
+    "remote_signer_process": false,
+    "remote_checkpoint_layout": "atomic-json",
+    "remote_process_authorization": "",
+    "remote_manifest_sha256": "",
+    "remote_test_sha256": "",
+    "remote_daemon_sha256": ""
+  },
+  "refAdmission": "REF_REFUSED_NO_COMPATIBLE_BRANCH_OR_TAG_AT_E765",
+  "exactRemoteRefs": [
+    "refs/pull/310/head"
+  ],
+  "remoteRefSnapshotSHA256": "cb9d6bfa645d8598f2ffa9a7fd2b7cf114743499ad5937ab19eaf538ad058c8a",
+  "observedBranchHeads": {
+    "refs/heads/codex/ynx-pq-perf-integration": "62f097e9c29959c3da1b0d2dcfc3cb62776f30e6",
+    "refs/heads/codex/ynx-pq-public-upgrade": "cbaf8122f8155de6c3d1edf660503952ce3795ab",
+    "refs/heads/main": "0dcffa5fd55bd4c66003b3fb0d0973eef87d4774"
+  },
+  "handoffSHA256": "a7b1fb23b8180650a2b349439d3112e41e5cc1c0802c36765627575887bc3d64",
+  "sourcePins": {
+    ".github/workflows/resource-market-ci.yml": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/.github/workflows/resource-market-ci.yml",
+      "bytes": 288069,
+      "sha256": "01ce5806a71004e3eddadae4e18bf2c11ec5d9946f4d40046efc29ab17537ed4",
+      "gitBlob": "c5ad8b4149594fdb618ae701a16d74bdf2c1de81"
+    },
+    "scripts/loadtest/pq-paired-linux-window.py": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/scripts/loadtest/pq-paired-linux-window.py",
+      "bytes": 95951,
+      "sha256": "433efda1d668204d160fc4b6cac1ad5b27cb87ae4d77c4af7121fde01147f9ef",
+      "gitBlob": "5cf968753af9290713bfaea8ba980765560d5fc2"
+    },
+    "scripts/loadtest/pq-paired-recipe.mjs": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/scripts/loadtest/pq-paired-recipe.mjs",
+      "bytes": 2359,
+      "sha256": "673eb8965329025e7a516a67e8e04f6a54c3a102b00aafa72f78e86c8748c3eb",
+      "gitBlob": "fa63e7a514645afdc88b05e8482bdc6bac1d3b7e"
+    },
+    "scripts/loadtest/prepare-pq-paired-benchmark.mjs": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/scripts/loadtest/prepare-pq-paired-benchmark.mjs",
+      "bytes": 3558,
+      "sha256": "6d4b36d283cfb3371a6cb6a0019ec885bf082d858c0e0046a5ef637d17ae33bb",
+      "gitBlob": "f44c175479c46508c5368d2560da5505803e56b1"
+    },
+    "scripts/ops/validate-pq-remote-normal-ci.py": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/scripts/ops/validate-pq-remote-normal-ci.py",
+      "bytes": 16856,
+      "sha256": "6d617c4ba97f82d59db512962873df1202fabfc6f5422c1b56452f020fbb8475",
+      "gitBlob": "a6f33296f0c5bd2f6167186179c17ad2e14bbb26"
+    },
+    "scripts/ops/pq-ci-stage-inputs.py": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/scripts/ops/pq-ci-stage-inputs.py",
+      "bytes": 8415,
+      "sha256": "1e98fa2567a0ee78fb11e1561065b39416d4d6d275cf6b0a46bdfb4d390b7457",
+      "gitBlob": "b02b4aa7cfa0871df3538eed279ef46ad819ec8f"
+    },
+    "internal/ynxconsensusauth/signer.go": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/internal/ynxconsensusauth/signer.go",
+      "bytes": 16974,
+      "sha256": "ff4320b518f92359aa23d29fa641c1f2db58add88bc1b93892fab6e300b97355",
+      "gitBlob": "f165b6186e29815bdc0824b8acb0c21a3c3680ff"
+    },
+    "internal/ynxconsensusauth/host_key_vault.go": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/internal/ynxconsensusauth/host_key_vault.go",
+      "bytes": 14664,
+      "sha256": "da6f1dda6f497ca426de25784964df27e33f1301c52e9c4e2750ea73f5bf5d1b",
+      "gitBlob": "b74f92e09ed358a1be0a9b1d7a64b138ad8ad590"
+    },
+    "internal/ynxconsensusauth/object_signer.go": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/internal/ynxconsensusauth/object_signer.go",
+      "bytes": 8631,
+      "sha256": "3a677292bbd889682db53858b53c4f046bde44686c31505df5f4a4e93f00e960",
+      "gitBlob": "c285dea8fb219b9e29e50a5dd7c8ef24a29404c8"
+    },
+    "internal/ynxbatch/provider.go": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/internal/ynxbatch/provider.go",
+      "bytes": 5818,
+      "sha256": "18b57e0165ef1f403f2278429c03786bcdec69d8604be1a7b00cd902fc9b2872",
+      "gitBlob": "2b9672dfc5584b6f6ae091aaac4eb06ccd113df5"
+    },
+    "internal/ynxbatch/sign.go": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/internal/ynxbatch/sign.go",
+      "bytes": 3768,
+      "sha256": "ba3537bacac9813098fb02dad51e289b3cb8d6ce5586f5c01536df8b429c02b7",
+      "gitBlob": "de99191c1b962a88db89acac1814ee2d1f9f228a"
+    }
+  },
+  "binaries": {
+    "consensus.test": {
+      "bytes": 53727150,
+      "commit": "e76573c139f0265c10b93f2eb493be082daec2eb",
+      "path": "/home/runner/work/_temp/ynx-pq-fresh-paired-business-build/build/consensus.test",
+      "sha256": "131c2254d7d70d9f9126ee6818ce19cbdd25edc7046e1845142c4c416c4145a6"
+    },
+    "ynx-bft-gatewayd": {
+      "bytes": 35391522,
+      "commit": "e76573c139f0265c10b93f2eb493be082daec2eb",
+      "path": "/home/runner/work/_temp/ynx-pq-fresh-paired-business-build/build/ynx-bft-gatewayd",
+      "sha256": "a118601dadc1e70d2af39de0467294996b5efc616f337dd8e2f82d1453f21f77"
+    },
+    "ynx-consensus-perf-client": {
+      "bytes": 38595797,
+      "commit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+      "path": "/home/runner/work/_temp/ynx-pq-fresh-paired-business-build/build/ynx-consensus-perf-client",
+      "sha256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec"
+    },
+    "ynx-consensus-proof-verify": {
+      "bytes": 36642176,
+      "commit": "e76573c139f0265c10b93f2eb493be082daec2eb",
+      "path": "/home/runner/work/_temp/ynx-pq-fresh-paired-business-build/build/ynx-consensus-proof-verify",
+      "sha256": "9cfc43a0fdacec7fdeaf6f4113a823cfc1f51e47ef54c4c0edc9b4450568cd1a"
+    }
+  },
+  "artifact": {
+    "artifactId": 12616358136,
+    "name": "ynx-pq-fresh-paired-business-build-e76573c139f0265c10b93f2eb493be082daec2eb-40239167157-1",
+    "officialDigest": "sha256:9266d7cd1f2cc90e52871993b6e26525d27ebc6bfa9348a2573d2313f5e9c6f9",
+    "zip": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build.zip",
+      "bytes": 81046042,
+      "sha256": "9266d7cd1f2cc90e52871993b6e26525d27ebc6bfa9348a2573d2313f5e9c6f9"
+    }
+  },
+  "runner": {
+    "job": "focused-go",
+    "label": "ubuntu-24.04",
+    "architecture": "linux/amd64",
+    "vmCount": 1,
+    "actualRunnerIdentity": null,
+    "actualBootId": null,
+    "sameJobAdmissionRelocationExecutionCleanup": true,
+    "outerTimeoutMinutes": 12,
+    "concurrencyGroup": "ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade",
+    "cancelInProgress": false
+  },
+  "stepConditions": [
+    {
+      "entry": "- uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "condition": "success()"
+    },
+    {
+      "entry": "- uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+      "condition": "success()"
+    },
+    {
+      "entry": "- name: Verify exact public TLS fixture and fail-closed secret scanning",
+      "condition": "success()"
+    },
+    {
+      "entry": "- name: Record exact candidate identity",
+      "condition": "success()"
+    },
+    {
+      "entry": "- name: Check reachable vulnerabilities in the eight production runtime commands",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && github.event_name == 'push') }}"
+    },
+    {
+      "entry": "- name: Verify same-source completed normal CI before remote network execution",
+      "condition": "${{ !cancelled() && steps.identity.outcome == 'success' && github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}"
+    },
+    {
+      "entry": "- name: Verify original-copy observation controls without touching the original case",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify Linux window controls without starting a node",
+      "condition": "${{ !cancelled() && steps.identity.outcome == 'success' }}"
+    },
+    {
+      "entry": "- name: Verify pure dual-PQ protocol and account authorization",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload only actual Go public artifact-purpose vectors",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqprotocol.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload public canonical action vectors from the actual Go codec",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqprotocol.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify forked engine keys and actual consensus objects",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Compile forked state and consensus engine without starting nodes",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify exact-height maintenance stop with real engine commit and cold stores",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce and repair same-directory database ownership without starting nodes",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify real profile state transition and historical store without starting nodes",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce and repair real Commit and engine checkpoint read ordering",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify bounded remote signer transport and unchanged legacy protobuf vectors",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify actual engine signing caller uses committed height key and round context",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Measure fresh single and bounded concurrent dual signature paths",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Measure actual policy certificate cache consumer cold and warm paths",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Install pinned contract build runtime",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify failed candidate deployment preserves services and signing history",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify original-state operator transition preserves custody and uncertain attempts",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify original key ceremony retains partial custody and never creates during resume",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Compile frozen measured production overlay without executing cases",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Generate canonical IDE contract fixture",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify actual IDE compiler materials with original Go deployment callees",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify existing Wallet inbox materials with original Go deployment callees",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload only public contract deployment registry from the actual Go caller",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqcontractregistry.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify native ledger and HTTP PQ integration",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Compile production entry points",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce opaque classic staking refusal with original successful transactions",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce the original missing PQ validator staking entry",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce source log response budget overrun before later records",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify complete state bridge and sponsor continuity",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce signed-history overwrite and unsafe rollback callers",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce source-authority initialization coupling and verify independent execution",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce JSON-only signing source and verify real journal recovery",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce atomic-only Comet operator startup and verify normal journal selection",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce Ethereum mutable-lot provenance counterexamples and verify cold recovery",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce historical AA policy counterexamples against the original state validator",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce source evidence rehash counterexamples and verify original-label coverage",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce history pagination movement across real application commits",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce the existing Wallet health refusal with the complete original Gateway",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify Whole BFT gateway and native container readback",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload only public compiled contract deploy and finality interoperability fixture",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqgateway.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload only public classic staking originals and actual HTTP interoperability fixture",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqgateway.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify existing Chain readback and recovery after protocol integration",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}"
+    },
+    {
+      "entry": "- name: Verify existing Chain SDK after protocol integration",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}"
+    },
+    {
+      "entry": "- name: Emit application-backed public Wallet HTTP fixture",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload only public Wallet HTTP fixture",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.walletfixture.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify shared Wallet policy and Chain payment authorization regressions",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce private verifier process-exit telemetry counterexample",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify operator checkpoint format and original read-lock admission",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Build and pin normal signer process binaries without running them",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha) }}"
+    },
+    {
+      "entry": "- name: Run the separately authorized normal remote signer process",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history) }}"
+    },
+    {
+      "entry": "- name: Preserve only public remote process receipt",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (always() && (steps.pqremoteprocess.outcome == 'success' || steps.pqremoteprocess.outcome == 'failure')) }}"
+    },
+    {
+      "entry": "- name: Install pinned contract runtime for remote network prerequisites",
+      "condition": "${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' }}"
+    },
+    {
+      "entry": "- name: Prepare same-source compiled contracts before remote network execution",
+      "condition": "${{ success() && steps.pqnetworknode.outcome == 'success' && github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' }}"
+    },
+    {
+      "entry": "- name: Relocate exact normal-CI fresh business inputs without starting nodes",
+      "condition": "${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_fresh_paired_business && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history && !inputs.remote_signer_process }}"
+    },
+    {
+      "entry": "- name: Build exact bounded network binaries and recipe without starting nodes",
+      "condition": "${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success')) }}"
+    },
+    {
+      "entry": "- name: Run the authorized bounded four-validator transition",
+      "condition": "${{ success() && github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && ((steps.pqnetworkbuild.outcome == 'success' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && !inputs.consensus_fresh_paired_business && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'))) || (inputs.consensus_fresh_paired_business && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' && steps.pqfreshprepare.outcome == 'success' && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history)) }}"
+    },
+    {
+      "entry": "- name: Record public retained network-file size metadata after owned cleanup",
+      "condition": "${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}"
+    },
+    {
+      "entry": "- name: Preserve only public network-test logs and guard receipt",
+      "condition": "${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}"
+    },
+    {
+      "entry": "- name: Seal only successful same-source public delivery inputs",
+      "condition": "${{ success() && github.event_name == 'push' }}"
+    },
+    {
+      "entry": "- name: Upload exact same-run public delivery inputs",
+      "condition": "${{ success() && github.event_name == 'push' && steps.stagepack.outcome == 'success' }}"
+    }
+  ],
+  "runtimeCaps": {
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "totalMs": 120000,
+    "ownedRSSBytes": 1073741824,
+    "threads": 320,
+    "ownedProcesses": 16,
+    "privateBytes": 536870912,
+    "buildBytes": 1073741824,
+    "logBytes": 1048576,
+    "diskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "compileReserveBytes": 1073741824,
+    "availableMemoryFloorBytes": 1207959552,
+    "sampleMs": 200
+  },
+  "normalAdmissionTimeoutMinutes": 1,
+  "relocationTimeoutMinutes": 3,
+  "executionStepTimeoutMinutes": 3,
+  "remainingOuterSecondsRequired": 150,
+  "rootWindowAuthorized": false,
+  "dispatchExecuted": false,
+  "preparedProduced": false,
+  "nodesStarted": false,
+  "executionReady": false
+}

@@ -98,3 +98,85 @@ receipt and caller identity. Those artifacts do not exist yet. The next action
 belongs to Root's caller/window scheduling and, if a preparation-only workflow
 is selected, the original Protocol workflow owner. Input readback alone is not
 execution readiness, throughput measurement, public activation or goal completion.
+
+## Root choice B: whole original job, pending compatible ref and window
+
+Root selected B: retain the original workflow, with admission, relocation, both
+fresh arms, proof checks and cleanup in the same ephemeral Linux job. No
+preparation-only workflow change is requested. Root has not yet signed this
+complete execution tuple or authorized dispatch.
+
+The frozen machine-readable tuple is
+`evidence/pq-fresh-e765-full-window-tuple.json`. It includes all thirteen
+structured dispatch inputs, all 67 original focused-go step names/conditions,
+original H/artifact/binary/source pins, concurrency, caps and actual remote ref
+readback. The separate `DISPATCH_INPUTS.json` is retained beside the WD readback.
+It selects only `consensus_fresh_paired_business=true`, normal run `40239167157`
+and candidate e765; all other five window selectors are false, signer layout is
+the unused default `atomic-json`, and signer authorization/digest inputs are empty.
+
+The ref admission currently refuses execution. Actual remote heads were:
+
+| Ref | Actual HEAD |
+| --- | --- |
+| main | 0dcffa5fd55bd4c66003b3fb0d0973eef87d4774 |
+| codex/ynx-pq-perf-integration | 62f097e9c29959c3da1b0d2dcfc3cb62776f30e6 |
+| codex/ynx-pq-public-upgrade | cbaf8122f8155de6c3d1edf660503952ce3795ab |
+
+The complete `git ls-remote origin` snapshot locates e765 only at
+`refs/pull/310/head`, with no branch or tag at that commit. `gh workflow run
+--help` specifies a branch or tag for `--ref`; the original fresh entry also
+accepts only main, the two original branches or a matching original frozen
+`codex/ynx-pq-remote-*` branch. A PR ref, a newer branch with candidate e765, or
+an invented current run ID does not satisfy that entry. Therefore the tuple's
+`ref` is null and `executionReady=false`; no API dispatch was attempted. Original
+Protocol must supply a genuinely compatible normal source/ref. Do not move a
+shared branch, manufacture a replacement ref or substitute a newer candidate
+while keeping the old normal-CI/artifact pins. Revalidate the entire tuple if
+the candidate changes.
+
+When compatible and Root signed, the existing CLI entry takes structured input:
+
+```sh
+gh workflow run resource-market-ci.yml --repo JiahaoAlbus/YNX-Chain \
+  --ref "$ROOT_APPROVED_COMPATIBLE_REF" --json < DISPATCH_INPUTS.json
+```
+
+This is a command template, not a currently dispatchable command. Immediately
+before dispatch, read that exact approved remote ref again and require HEAD to
+equal the tuple candidate and its workflow bytes to equal the approved SHA256.
+Preserve dispatch API output, resolve the one actual run ID, and follow only
+that run. No automatic retry, rerun or second window after failure.
+
+For a compatible fresh dispatch, only focused-go runs. verify, caddy-source,
+artifact-release-cabi (both platform matrix arms), protocol-delivery,
+proof-verifier-macos and pq-paired-n1 are excluded by their original job
+conditions. Within focused-go the real path is checkout full exact source,
+setup original Go, TLS/secret checks, identity, same-source normal-CI admission,
+Linux window control tests, pqfreshprepare, pqnetwork, file-size metadata and
+public log/receipt upload. The Linux control step has its original `!cancelled`
+condition and may still run after normal admission fails; node execution still
+requires successful normal admission and relocation. Normal full source Go
+regressions, signing benchmarks, Node/contract compilation, new network binary
+compilation, remote signer process and public stage export are excluded for
+fresh. The source tuple retains every exact condition rather than treating all
+source tests as absent by assumption.
+
+Outer timeout is 12 minutes; normal admission is capped at 1 minute, relocation
+at 3, node execution step at 3. Runtime remains the original 105+15/120 second
+guard, with >=150 seconds outer time left required before node start. The
+runtime RSS cap applies to owned runtime processes, not the entire GitHub job.
+Setup/control work uses original GOMAXPROCS=2, GOGC=50 and GOMEMLIMIT=1536MiB;
+these are not hardware or cgroup limits. Actual runner CPU/RAM/free disk/boot
+identity must be recorded by the original runner/guard. No measured hardware
+capacity or stronger hard limit is claimed here. All original disk/memory
+floors and reserves remain as supplied in the tuple.
+
+The four actual Comet Nodes, gateway, fixed client and verifier are confined to
+that one VM and its fresh private case/build/intake. Both 16-transfer arms use
+the same supplied binary hashes and fixed configuration with distinct fresh
+epochs. Normal synthetic local Host signers remain test identities. Receipt,
+stdout/stderr, file-size metadata, prepared, business manifest and relocation
+receipt are uploaded for seven days by the original always-on-terminal path.
+Retain failure/UNKNOWN and cleanup evidence before considering any new window.
+The calibration cannot qualify sustained 1000 TPS or earliest BFT formation.
