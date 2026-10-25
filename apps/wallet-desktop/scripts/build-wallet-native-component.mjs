@@ -21,7 +21,7 @@ function assertMatchedOriginalBuild(){
 }
 export function walletNativeComponentBuildPlan(arch,headers,artifactRelease=false,projectControl=false,controlCABI=false,pqNative=false){
  const profile=assertMatchedOriginalBuild();
- if(pqNative&&profile.version!=='1.3.0-pq.3.32-auth.42')throw Error('WALLET_PQ_NATIVE_MATCHED_SDK42_REQUIRED');
+ if(pqNative&&!['1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46'].includes(profile.version))throw Error('WALLET_PQ_NATIVE_MATCHED_SDK42_OR_46_REQUIRED');
  for(const pin of walletPublisherNativeInputs(profile.supplierNodeInputs,artifactRelease,projectControl,controlCABI,pqNative)){const file=path.join(repo,pin.path),stat=lstatSync(file),bytes=readFileSync(file);if(!stat.isFile()||stat.isSymbolicLink()||bytes.length!==pin.bytes||hash(bytes)!==pin.sha256)throw Error('WALLET_NATIVE_PUBLISHER_SOURCE_DIFFERS');}
  return composeWalletPublisherNativeBuildPlan(originalBuild.originalAuthNativeBuildPlan(arch,headers),repo,profile.supplierNodeInputs,artifactRelease,projectControl,controlCABI,pqNative);
 }
