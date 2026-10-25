@@ -145,6 +145,22 @@ type ideSourceFixture struct {
 	http                                          *httpPrincipalFixture
 }
 
+// PUBLIC fixture timing only. Logs never contain profiles, originals, keys,
+// Principal identifiers, file paths or process output. The measured call is
+// unchanged and owns all its real pre/post expiry checks.
+func ideSourceFixtureStep(t *testing.T, f *ideSourceFixture, name string, call func() error) error {
+	t.Helper()
+	started := time.Now()
+	f.http.mu.Lock()
+	observation := f.http.observationDeadline
+	f.http.mu.Unlock()
+	t.Logf("PUBLIC_SOURCE_STAGE name=%s event=start wallMS=%d observationRemainingMS=%d approvalRemainingMS=%d", name, started.UnixMilli(), observation-started.UnixMilli(), f.cmd.ExpiresMS-started.UnixMilli())
+	err := call()
+	ended := time.Now()
+	t.Logf("PUBLIC_SOURCE_STAGE name=%s event=end wallMS=%d elapsedUS=%d observationRemainingMS=%d approvalRemainingMS=%d failed=%t verifierPhase=%s", name, ended.UnixMilli(), ended.Sub(started).Microseconds(), observation-ended.UnixMilli(), f.cmd.ExpiresMS-ended.UnixMilli(), err != nil, f.o.verifier.FailurePhase())
+	return err
+}
+
 func ideSourceFactoryFixture(t *testing.T) *ideSourceFixture {
 	t.Helper()
 	ctx := context.Background()
@@ -182,7 +198,10 @@ func ideSourceFactoryFixture(t *testing.T) *ideSourceFixture {
 	if preAuth || len(state.approvals) != 0 {
 		t.Fatal("fixture selected HTTP/approval before original Source startup")
 	}
+	constructorStarted := time.Now()
+	t.Logf("PUBLIC_SOURCE_STAGE name=SourceCtor event=start wallMS=%d", constructorStarted.UnixMilli())
 	o, e := OpenOriginalIDEPublicationSource(ctx, db, OriginalIDEPublicationSourceConfig{fixturePin(t, path), cfg})
+	t.Logf("PUBLIC_SOURCE_STAGE name=SourceCtor event=end wallMS=%d elapsedUS=%d failed=%t", time.Now().UnixMilli(), time.Since(constructorStarted).Microseconds(), e != nil)
 	if e != nil {
 		if o != nil {
 			_ = o.Close()
@@ -194,7 +213,9 @@ func ideSourceFactoryFixture(t *testing.T) *ideSourceFixture {
 	f.o = o
 	t.Cleanup(func() { _ = o.Close() })
 	startupCompleted := time.Now().UnixMilli()
+	t.Logf("PUBLIC_SOURCE_STAGE name=authenticate event=start wallMS=%d", startupCompleted)
 	actual, e := principal.CurrentExistingPrincipal(ctx, actualPrincipalRequest())
+	t.Logf("PUBLIC_SOURCE_STAGE name=authenticate event=end wallMS=%d elapsedSinceStartupUS=%d failed=%t", time.Now().UnixMilli(), time.Now().UnixMilli()*1000-startupCompleted*1000, e != nil)
 	if e != nil || actual != p {
 		t.Fatal("post-startup same real HTTP principal", e)
 	}
@@ -207,6 +228,7 @@ func ideSourceFactoryFixture(t *testing.T) *ideSourceFixture {
 	// New independently captured flow, NOT a renewed prior approval. Keep
 	// request/approval <=30s even though the PUBLIC session lasts longer.
 	expires := time.Now().Add(30 * time.Second).UnixMilli()
+	t.Logf("PUBLIC_SOURCE_STAGE name=approvalSelected wallMS=%d approvalExpiresMS=%d", expires-30000, expires)
 	f.cmd = Command{RequestID: "control_original", Action: "project.publisher", ProjectID: "project", SubjectAccount: p.Account, PublisherID: "publisher", GrantExpiresMS: expires - 100, ExpiresMS: expires, PublicOriginalSHA256: hash([]byte("PUBLIC-R13"))}
 	f.key = Publisher{Account: p.Account, ProjectID: "project", PublisherID: "publisher", KeyRole: "ide-artifact-publisher", PublicSHA256: hash([]byte("PUBLIC-R13")), RegistrationRef: "registered", PublicOriginal: []byte("PUBLIC-R13"), Revision: 9, ExpiresMS: expires}
 	f.binding = ArtifactBinding{ProjectID: "project", Version: "v1", ContentDigest: strings.Repeat("a", 64), PublishPurpose: "artifact", TargetEnvironment: "testnet", ByteSize: 10}
@@ -256,11 +278,12 @@ func TestOriginalIDEFactoryActualConstructorAndAllThirteenMethods(t *testing.T) 
 		run  func(*testing.T, *ideSourceFixture)
 	}{
 		{"principal_source_catalog", func(t *testing.T, f *ideSourceFixture) {
-			if e := f.o.AssertSourceCurrent(ctx); e != nil {
+			if e := ideSourceFixtureStep(t, f, "AssertSourceCurrent", func() error { return f.o.AssertSourceCurrent(ctx) }); e != nil {
 				t.Fatal(e)
 			}
 			for i := 0; i < 2; i++ {
-				p, e := f.o.CurrentExistingPrincipal(ctx, actualPrincipalRequest())
+				var p Principal
+				e := ideSourceFixtureStep(t, f, "CurrentExistingPrincipal", func() (e error) { p, e = f.o.CurrentExistingPrincipal(ctx, actualPrincipalRequest()); return e })
 				if e != nil || p != f.p {
 					t.Fatal("same HTTP reborrow", e)
 				}
@@ -276,58 +299,72 @@ func TestOriginalIDEFactoryActualConstructorAndAllThirteenMethods(t *testing.T) 
 			if auth != 1 {
 				t.Fatal("PSv2 proof authenticated twice", auth)
 			}
-			if e := f.o.AssertPrincipalCurrent(ctx, f.p); e != nil {
+			if e := ideSourceFixtureStep(t, f, "AssertPrincipalCurrent", func() error { return f.o.AssertPrincipalCurrent(ctx, f.p) }); e != nil {
 				t.Fatal(e)
 			}
-			if e := f.o.AssertCatalogAuthorityCurrent(ctx, f.p); e != nil {
+			if e := ideSourceFixtureStep(t, f, "AssertCatalogAuthorityCurrent", func() error { return f.o.AssertCatalogAuthorityCurrent(ctx, f.p) }); e != nil {
 				t.Fatal(e)
 			}
 		}},
 		{"control_and_same_approval_current", func(t *testing.T, f *ideSourceFixture) {
-			a, e := f.o.AuthorizeProjectControl(ctx, f.p, f.cmd, f.control)
+			var a Approval
+			e := ideSourceFixtureStep(t, f, "AuthorizeProjectControl", func() (e error) { a, e = f.o.AuthorizeProjectControl(ctx, f.p, f.cmd, f.control); return e })
 			if e != nil {
 				t.Fatal("control", e)
 			}
-			if e = f.o.AssertControlCurrent(ctx, f.p, a); e != nil {
+			if e = ideSourceFixtureStep(t, f, "AssertControlCurrent", func() error { return f.o.AssertControlCurrent(ctx, f.p, a) }); e != nil {
 				t.Fatal("control current", e)
 			}
 		}},
 		{"publisher_registration_and_current", func(t *testing.T, f *ideSourceFixture) {
-			if _, e := f.o.VerifyProtectedPublisherOriginal(ctx, f.p, f.cmd, f.key.PublicOriginal); e != nil {
+			if e := ideSourceFixtureStep(t, f, "VerifyProtectedPublisherOriginal", func() error {
+				_, e := f.o.VerifyProtectedPublisherOriginal(ctx, f.p, f.cmd, f.key.PublicOriginal)
+				return e
+			}); e != nil {
 				t.Fatal("registration", e)
 			}
-			if e := f.o.AssertPublisherCurrent(ctx, f.p, f.key); e != nil {
+			if e := ideSourceFixtureStep(t, f, "AssertPublisherCurrent", func() error { return f.o.AssertPublisherCurrent(ctx, f.p, f.key) }); e != nil {
 				t.Fatal("publisher current", e)
 			}
 		}},
 		{"selector_artifact_and_same_approval_current", func(t *testing.T, f *ideSourceFixture) {
-			id, e := f.o.OriginalPublicationPublisherID(ctx, f.p, f.signature)
+			var id string
+			e := ideSourceFixtureStep(t, f, "OriginalPublicationPublisherID", func() (e error) { id, e = f.o.OriginalPublicationPublisherID(ctx, f.p, f.signature); return e })
 			if e != nil || id != "publisher" {
 				t.Fatal("selector", id, e)
 			}
 			access := Access{Principal: f.p, ProjectID: "project", CurrentReference: "project-current", ProjectRevision: 3, CatalogRevision: 4, Publish: true, ExpiresMS: f.key.ExpiresMS}
-			v, e := f.o.VerifyOriginalArtifactApproval(ctx, f.p, access, f.key, f.binding, f.manifest, f.request, f.result, f.signature, f.ref)
+			var v VerifiedPublication
+			e = ideSourceFixtureStep(t, f, "VerifyOriginalArtifactApproval", func() (e error) {
+				v, e = f.o.VerifyOriginalArtifactApproval(ctx, f.p, access, f.key, f.binding, f.manifest, f.request, f.result, f.signature, f.ref)
+				return e
+			})
 			if e != nil {
 				t.Fatal("artifact", e)
 			}
 			if v.ResultSHA256 != hash(f.result) || v.SignatureSHA256 != hash(f.signature) {
 				t.Fatal("original digest alias")
 			}
-			if e = f.o.AssertOriginalArtifactApprovalCurrent(ctx, f.p, v); e != nil {
+			if e = ideSourceFixtureStep(t, f, "AssertOriginalArtifactApprovalCurrent", func() error { return f.o.AssertOriginalArtifactApprovalCurrent(ctx, f.p, v) }); e != nil {
 				t.Fatal("artifact current", e)
 			}
 		}},
 		{"same_artifact_resource_and_current", func(t *testing.T, f *ideSourceFixture) {
 			access := Access{Principal: f.p, ProjectID: "project", CurrentReference: "project-current", ProjectRevision: 3, CatalogRevision: 4, Publish: true, ExpiresMS: f.key.ExpiresMS}
-			v, e := f.o.VerifyOriginalArtifactApproval(ctx, f.p, access, f.key, f.binding, f.manifest, f.request, f.result, f.signature, f.ref)
+			var v VerifiedPublication
+			e := ideSourceFixtureStep(t, f, "VerifyOriginalArtifactApproval", func() (e error) {
+				v, e = f.o.VerifyOriginalArtifactApproval(ctx, f.p, access, f.key, f.binding, f.manifest, f.request, f.result, f.signature, f.ref)
+				return e
+			})
 			if e != nil {
 				t.Fatal("resource original artifact prerequisite", e)
 			}
-			resource, e := f.o.VerifyOriginalResourceApproval(ctx, f.p, v)
+			var resource ResourceApproval
+			e = ideSourceFixtureStep(t, f, "VerifyOriginalResourceApproval", func() (e error) { resource, e = f.o.VerifyOriginalResourceApproval(ctx, f.p, v); return e })
 			if e != nil {
 				t.Fatal("resource", e)
 			}
-			if e = f.o.AssertOriginalResourceApprovalCurrent(ctx, f.p, resource); e != nil {
+			if e = ideSourceFixtureStep(t, f, "AssertOriginalResourceApprovalCurrent", func() error { return f.o.AssertOriginalResourceApprovalCurrent(ctx, f.p, resource) }); e != nil {
 				t.Fatal("resource current", e)
 			}
 		}},

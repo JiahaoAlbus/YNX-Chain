@@ -104,12 +104,21 @@ jobs:
           set -euo pipefail
           # Whole independent-flow matrix budget, NOT an authorization window.
           # Each original approval/current/observation still enforces <=30s.
+          normal_status=0
+          go test -count=1 -timeout=240s -json \
+            -run '^TestOriginalIDEFactoryActualConstructorAndAllThirteenMethods$' \
+            ./internal/developerauthority \
+            | tee "$RUNNER_TEMP/ide-source-normal.jsonl" || normal_status=$?
+          race_status=0
           go test -race -count=1 -timeout=240s -json \
             -run '^(TestIDERuntime|TestPostgres|TestOriginalIDE(Factory|Wire)|TestIDECommissioning)' \
             ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd \
-            | tee "$RUNNER_TEMP/ide-source-race.jsonl"
+            | tee "$RUNNER_TEMP/ide-source-race.jsonl" || race_status=$?
+          printf 'normal_exit=%s race_exit=%s\n' "$normal_status" "$race_status"
+          test "$normal_status" -eq 0
+          test "$race_status" -eq 0
       - name: Require actual complete race execution evidence
-        run: node apps/cloud/tests/ide-deployment-race-evidence.test.mjs --verify "$RUNNER_TEMP/ide-source-race.jsonl"
+        run: node apps/cloud/tests/ide-deployment-race-evidence.test.mjs --verify "$RUNNER_TEMP/ide-source-race.jsonl" "$RUNNER_TEMP/ide-source-normal.jsonl"
       - name: Original SDK transport and observation integration
         run: node --test apps/cloud/tests/ide-deployment*.test.mjs
   # Full checks remain defined, but are NOT authorized for this narrow draft PR.

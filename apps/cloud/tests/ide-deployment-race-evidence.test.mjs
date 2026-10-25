@@ -40,12 +40,32 @@ export function requireOriginalRaceEvidence(records) {
   return {testsIncludingSubcases: runs.size, packages: packages.size};
 }
 
+export function requireOriginalNormalFlows(records) {
+  const runs = new Set(), passes = new Set();
+  let packagePassed = false;
+  for (const r of records) {
+    assert.ok(r && typeof r.Action === 'string', 'invalid normal event');
+    assert.ok(r.Action !== 'fail' && r.Action !== 'skip', 'normal failure or skip');
+    if (r.Package !== authority) continue;
+    if (r.Test && r.Action === 'run') runs.add(r.Test);
+    if (r.Test && r.Action === 'pass') passes.add(r.Test);
+    if (!r.Test && r.Action === 'pass') packagePassed = true;
+  }
+  assert.ok(packagePassed, 'missing actual normal package pass');
+  for (const name of [all13, ...flows.map(f => all13 + '/' + f)]) assert.ok(runs.has(name) && passes.has(name), 'normal flow missing: ' + name);
+  for (const name of runs) assert.ok(passes.has(name), 'unfinished normal test: ' + name);
+  return {testsIncludingSubcases: runs.size};
+}
+
 if (process.argv[2] === '--verify') {
-  assert.equal(process.argv.length, 4, 'one original Go JSON log required');
-  const raw = readFileSync(process.argv[3], 'utf8');
-  assert.ok(raw.trim(), 'race log empty');
-  const records = raw.trim().split(/\r?\n/).map(line => JSON.parse(line));
-  process.stdout.write(JSON.stringify(requireOriginalRaceEvidence(records)) + '\n');
+  assert.equal(process.argv.length, 5, 'independent original race and normal logs required');
+  assert.notEqual(process.argv[3], process.argv[4], 'normal/race evidence must be separate');
+  const records = file => {
+    const raw = readFileSync(file, 'utf8');
+    assert.ok(raw.trim(), 'execution log empty');
+    return raw.trim().split(/\r?\n/).map(line => JSON.parse(line));
+  };
+  process.stdout.write(JSON.stringify({race: requireOriginalRaceEvidence(records(process.argv[3])), normal: requireOriginalNormalFlows(records(process.argv[4]))}) + '\n');
 } else {
   function fixture() {
     const names = [all13, lease, startup, ...flows.map(f => all13 + '/' + f),
@@ -75,5 +95,16 @@ if (process.argv[2] === '--verify') {
   });
   test('started but unfinished cases are rejected', () => {
     assert.throws(() => requireOriginalRaceEvidence([...fixture(), {Action: 'run', Package: main, Test: 'TestIDERuntimeUnfinished'}]));
+  });
+  const normalFixture = () => fixture().filter(r => r.Package === authority && (!r.Test || r.Test === all13 || r.Test.startsWith(all13 + '/')));
+  test('normal comparison retains the same five complete workflows', () => {
+    assert.equal(requireOriginalNormalFlows(normalFixture()).testsIncludingSubcases, 6);
+  });
+  test('normal comparison refuses missing workflow and compile-only output', () => {
+    assert.throws(() => requireOriginalNormalFlows(normalFixture().filter(r => r.Test !== all13 + '/' + flows[4])));
+    assert.throws(() => requireOriginalNormalFlows([{Action: 'pass', Package: authority}]));
+  });
+  test('normal comparison never ignores skips or failure', () => {
+    for (const Action of ['skip', 'fail']) assert.throws(() => requireOriginalNormalFlows([...normalFixture(), {Action, Package: authority, Test: all13}]));
   });
 }
