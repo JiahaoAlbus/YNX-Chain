@@ -62,6 +62,7 @@ import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
 import { FileTransactionIntentStore } from "./transaction-intent-store.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-service.mjs";
 import {captureOriginalWalletTransactionApprovalIPC,retireUnusedOriginalWalletTransactionApproval,acquireOriginalWalletTransactionPermission,isOriginalWalletTransactionPermission} from './original-policy-supplier/transaction-permission.mjs';
+import {captureOriginalWalletAccountInitialApprovalIPC,retireUnusedOriginalWalletAccountInitialApproval,acquireOriginalWalletAccountInitialPermission,isOriginalWalletAccountInitialPermission} from './original-policy-supplier/account-initial-permission.mjs';
 import {createPQTransactionSubmission} from './features/pq-transaction/submission.mjs';
 import {PQFinalityEvidence} from './wallet-pq-finality-evidence.mjs';
 import {createPQFinalityCollection} from './wallet-pq-finality-collection.mjs';
@@ -748,16 +749,18 @@ handleWalletIPC("wallet:provider-action", (event, id, action) => sensitiveIPC(as
   const lease = keyAccess.current();
   const transport = walletConnectRequests.get(id);
   if(transport){const entry=walletConnectInbox.get(transport.entryKey);await walletConnectInbox.markDecided(entry,lease.assert);}
-  let response,capsule;
+  let response,capsule,initialCapsule=false;
   try {
     if (accountChangeInProgress) throw Object.assign(new Error("The selected account changed"), { code: 4100 });
-    if(action==='approve'&&walletAuthority.isPendingPQTransactionReview(id))capsule=captureOriginalWalletTransactionApprovalIPC(event,id,'sign');
+    const initial=action==='approve'?walletAuthority.isPendingPQAccountInitialReview(id):null;
+    if(initial){capsule=captureOriginalWalletAccountInitialApprovalIPC(event,id,initial);initialCapsule=true;}
+    else if(action==='approve'&&walletAuthority.isPendingPQTransactionReview(id))capsule=captureOriginalWalletTransactionApprovalIPC(event,id,'sign');
     else if(action==='approve'&&walletAuthority.isPendingPQBroadcastReview(id))capsule=captureOriginalWalletTransactionApprovalIPC(event,id,'broadcast');
     response = action === "approve" ? await walletAuthority.approve(id,capsule) : rejectProviderRequest(id);
   } catch (error) {
     response = { status: "error", code: Number.isInteger(error?.code) ? error.code : 4001, message: error?.message ?? "Provider request failed", ...(error?.data ? { data: error.data } : {}) };
   }
-  finally{if(capsule)retireUnusedOriginalWalletTransactionApproval(capsule);}
+  finally{if(capsule)(initialCapsule?retireUnusedOriginalWalletAccountInitialApproval:retireUnusedOriginalWalletTransactionApproval)(capsule);}
   if (transport) {
     try {
       const send = () => { walletConnectInbox.finish(transport.entryKey); return walletConnect.respond(transport.topic, transport.jsonRpcId, response); };
@@ -945,6 +948,10 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     pqPolicyRecognized:isOriginalWalletTransactionPolicy,
     pqTransactionPermissionSource:acquireOriginalWalletTransactionPermission,
     pqTransactionPermissionRecognized:isOriginalWalletTransactionPermission,
+    pqAccountInitialPermissionSource:acquireOriginalWalletAccountInitialPermission,
+    pqAccountInitialPermissionRecognized:isOriginalWalletAccountInitialPermission,
+    // Independently admitted Genesis/pin and same-H unused-owner Source is
+    // not yet supplied. A normal active transfer policy is not a substitute.
     pqBroadcastSource:executeOriginalPQBroadcast,
     pqSessionSource:acquireOriginalAccountPolicy,
     pqSessionRecognized:isOriginalAccountPolicyResource,

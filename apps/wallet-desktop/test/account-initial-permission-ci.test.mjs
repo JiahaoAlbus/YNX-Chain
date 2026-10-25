@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {mkdtempSync,mkdirSync,copyFileSync,writeFileSync,symlinkSync} from 'node:fs';import {tmpdir} from 'node:os';import path from 'node:path';import {fileURLToPath} from 'node:url';import {spawnSync} from 'node:child_process';
+test('installed initial permission modules execute fourteen original controls in normal CI',()=>{
+ const root=path.dirname(fileURLToPath(import.meta.url)),out=mkdtempSync(path.join(tmpdir(),'ynx-initial-permission-ci-')),fixtures=path.join(root,'fixtures/initial-permission');
+ mkdirSync(path.join(out,'src/original-policy-supplier'),{recursive:true});mkdirSync(path.join(out,'node_modules/@ynx-chain'),{recursive:true});mkdirSync(path.join(out,'node_modules/electron'));
+ const sdk=path.dirname(path.dirname(fileURLToPath(import.meta.resolve('@ynx-chain/wallet-auth/pq-wallet-authorization'))));symlinkSync(sdk,path.join(out,'node_modules/@ynx-chain/wallet-auth'),'dir');
+ writeFileSync(path.join(out,'node_modules/electron/package.json'),JSON.stringify({type:'module',exports:'./index.mjs'}));copyFileSync(path.join(fixtures,'mock-electron.mjs'),path.join(out,'node_modules/electron/index.mjs'));copyFileSync(path.join(fixtures,'mock-authority.mjs'),path.join(out,'src/desktop-wallet-authority.mjs'));
+ for(const name of ['account-initial-permission.mjs','account-initial-permission-kernel.mjs'])copyFileSync(path.join(root,'../src/original-policy-supplier',name),path.join(out,'src/original-policy-supplier',name));
+ copyFileSync(path.join(root,'../src/wallet-ipc-policy.mjs'),path.join(out,'src/wallet-ipc-policy.mjs'));copyFileSync(path.join(fixtures,'controls.test.mjs'),path.join(out,'controls.test.mjs'));copyFileSync(path.join(root,'fixtures/pq-account-initial-public.json'),path.join(out,'fixture.json'));
+ const env={...process.env};delete env.NODE_TEST_CONTEXT;const r=spawnSync(process.execPath,['--test','--test-reporter=tap',path.join(out,'controls.test.mjs')],{env,encoding:null,timeout:30000,maxBuffer:8<<20});for(const name of ['stdout','stderr'])writeFileSync(path.join(out,name),r[name]??'');assert.equal(r.status,0,'Actual initial module controls failed: '+out);assert.match(String(r.stdout),/# pass 14/);assert.match(String(r.stdout),/# skipped 0/);
+});

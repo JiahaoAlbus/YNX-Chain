@@ -9,7 +9,7 @@ import {inspectPQWalletActionPolicy,planPQNativeTransfer,assertPQAuthorizationCu
 import {createPQWalletMigrationPossession,signPQWalletProductSessionApproval,signPQWalletAccountRevocation} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
 import {captureProductSessionAccountPolicy,readProductSessionAccountPolicy,pqProductSessionRegisteredPublicBinding} from '@ynx-chain/wallet-auth/product-session-account-policy';
 import {preparePQProductSessionApproval,verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
-import {pqPublicBindingToRegistrationKeys,encodePQNativeTransfer,decodePQTransferRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {pqPublicBindingToRegistrationKeys,encodePQNativeTransfer,decodePQTransferRequest,encodePQRegistrationIntent,decodePQAccountInitialRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {readPQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
 import {pqBroadcastPermissionRequest} from './features/pq-transaction/submission.mjs';
 import {encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
@@ -32,6 +32,8 @@ const MAX_PENDING_REQUESTS = 64;
 const MAX_PENDING_REQUESTS_PER_ORIGIN = 8;
 const originalPQTransactionReviewBorrows=new WeakSet();
 export const isOriginalPQTransactionReviewBorrow=value=>originalPQTransactionReviewBorrows.has(value);
+const originalPQAccountInitialReviewBorrows=new WeakSet();
+export const isOriginalPQAccountInitialReviewBorrow=value=>originalPQAccountInitialReviewBorrows.has(value);
 export const APPROVAL_METHODS = Object.freeze([
   "eth_requestAccounts",
   "wallet_requestPermissions",
@@ -55,7 +57,8 @@ export class DesktopWalletAuthority {
   #pqTxSource; #pqTxRecognized; #pqTxOwners=new Set();
   #pqBroadcastSource;
   #pqInitialReviews=new WeakMap(); #pqInitialAcquiring=false;
-  constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null, pqSessionSource = null, pqSessionRecognized = null, sessionReturnClient = null, pqTransactionPermissionSource=null, pqTransactionPermissionRecognized=null, pqBroadcastSource=null }) {
+  #pqInitialSource; #pqInitialSourceRecognized; #pqInitialPermission; #pqInitialPermissionRecognized; #pqInitialOwners=new Set();
+  constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null, pqSessionSource = null, pqSessionRecognized = null, sessionReturnClient = null, pqTransactionPermissionSource=null, pqTransactionPermissionRecognized=null, pqBroadcastSource=null,pqAccountInitialSource=null,pqAccountInitialSourceRecognized=null,pqAccountInitialPermissionSource=null,pqAccountInitialPermissionRecognized=null }) {
     this.vault = vault;
     this.permissions = permissions;
     this.transactionSender = transactionSender;
@@ -74,6 +77,8 @@ export class DesktopWalletAuthority {
     if(pqTransactionPermissionSource!==null&&typeof pqTransactionPermissionSource!=='function'||pqTransactionPermissionRecognized!==null&&typeof pqTransactionPermissionRecognized!=='function')throw Error('PQ_TRANSACTION_PERMISSION_SOURCE_INVALID');
     this.#pqTxSource=pqTransactionPermissionSource;this.#pqTxRecognized=pqTransactionPermissionRecognized;
     if(pqBroadcastSource!==null&&typeof pqBroadcastSource!=='function')throw Error('PQ_BROADCAST_SOURCE_INVALID');this.#pqBroadcastSource=pqBroadcastSource;
+    if([pqAccountInitialSource,pqAccountInitialSourceRecognized,pqAccountInitialPermissionSource,pqAccountInitialPermissionRecognized].some(v=>v!==null&&typeof v!=='function'))throw Error('PQ_INITIAL_SOURCE_INVALID');
+    this.#pqInitialSource=pqAccountInitialSource;this.#pqInitialSourceRecognized=pqAccountInitialSourceRecognized;this.#pqInitialPermission=pqAccountInitialPermissionSource;this.#pqInitialPermissionRecognized=pqAccountInitialPermissionRecognized;
   }
   #closePQ(owner,...causes){
     if(causes.length)owner.retire(causes[0]);
@@ -94,7 +99,7 @@ export class DesktopWalletAuthority {
   requestPQAccountInitialBroadcast(hash){return this.#trackPQ(()=>this.#preparePQAccountInitial(null,hash));}
   async #preparePQAccountInitial(input,hash=null){
     if(hash===null)input=normalizePQAccountInitialInput(input);
-    if(this.#pqInitialAcquiring||this.#pqAcquiring||this.#pqOwners.size||this.#pqTxOwners.size||[...this.pending.values(),...this.#activeReviews.values()].some(p=>this.#pqInitialReviews.has(p)))throw providerError(4100,'PQ_INITIAL_REVIEW_IN_PROGRESS','Finish the original registration preview first.');
+    if(this.#pqInitialAcquiring||this.#pqInitialOwners.size||this.#pqAcquiring||this.#pqOwners.size||this.#pqTxOwners.size||[...this.pending.values(),...this.#activeReviews.values()].some(p=>this.#pqInitialReviews.has(p)))throw providerError(4100,'PQ_INITIAL_REVIEW_IN_PROGRESS','Finish the original registration preview first.');
     const guard=this.vault.authorization.current(),permission=this.permissions.authorizationLease('ynx-wallet:local-pq');guard.assert();permission.assert();
     if(!this.#pqNetworkId)throw providerError(4100,'PQ_INITIAL_NETWORK_REQUIRED','The selected original network is required.');
     this.#pqInitialAcquiring=true;
@@ -484,6 +489,7 @@ export class DesktopWalletAuthority {
 
   isPendingPQTransactionReview(id){const p=this.pending.get(id);return p?.method==='ynx_signPQAccountInitial'?this.#pqInitialReviews.has(p):['ynx_signPQNativeTransfer','ynx_signPQNativeAction'].includes(p?.method)&&this.#pqReviews.has(p);}
   isPendingPQBroadcastReview(id){const p=this.pending.get(id);return p?.method==='ynx_broadcastPQAccountInitial'?this.#pqInitialReviews.has(p):['ynx_broadcastPQNativeTransfer','ynx_broadcastPQNativeAction'].includes(p?.method)&&this.#pqReviews.has(p);}
+  isPendingPQAccountInitialReview(id){const p=this.pending.get(id);return this.#pqInitialReviews.has(p)?(p.method==='ynx_signPQAccountInitial'?'sign':'broadcast'):null;}
   approve(id,capsule){const pending=this.pending.get(id);return this.#pqReviews.has(pending)||this.#pqInitialReviews.has(pending)?this.#trackPQ(()=>this.#approve(id,capsule)):this.#approve(id,capsule);}
   async #approve(id,capsule) {
     const pending = this.#take(id);
@@ -506,7 +512,8 @@ export class DesktopWalletAuthority {
         while(this.#pqInFlight.size)await Promise.allSettled([...this.#pqInFlight]);
         await Promise.allSettled([...this.#pqOwners].map(owner=>this.#closePQ(owner)));
         await Promise.allSettled([...this.#pqTxOwners].map(owner=>this.#closePQTransactionPermission(owner)));
-        if(this.#pqTxOwners.size||[...this.#pqOwners].some(owner=>owner.status().cleanupDebt||!owner.status().closed)||this.vault.pqCleanupUnresolved?.()===true)throw providerError(4100,'PQ_POLICY_CLEANUP_UNKNOWN','Keep Wallet open; original policy cleanup is unresolved.');
+        await Promise.allSettled([...this.#pqInitialOwners].map(owner=>this.#closePQInitialSource(owner)));
+        if(this.#pqInitialOwners.size||this.#pqTxOwners.size||[...this.#pqOwners].some(owner=>owner.status().cleanupDebt||!owner.status().closed)||this.vault.pqCleanupUnresolved?.()===true)throw providerError(4100,'PQ_POLICY_CLEANUP_UNKNOWN','Keep Wallet open; original policy cleanup is unresolved.');
         resolve();
       }catch(error){reject(error);}
     })();void this.#pqShutdownPass.catch(()=>{});return this.#pqShutdownPass;
@@ -536,6 +543,26 @@ export class DesktopWalletAuthority {
   async #closePQTransactionPermission(owner){
     await owner.close();this.#pqTxOwners.delete(owner);
   }
+  async #closePQInitialSource(owner){await owner.close();this.#pqInitialOwners.delete(owner);}
+  #borrowPQAccountInitialReview(pending,guard,source,request,memberBytes=null){
+    let retired=false,entered=false,completed=null,produced=request.action==='broadcast'?{transportHash:request.transportHash,abciTransactionHash:request.abciTransactionHash}:null;
+    const issuedAt=this.clock().toISOString(),expiresAt=new Date(Math.min(Date.parse(request.expiresAt),Date.parse(issuedAt)+30000)).toISOString();
+    const current=()=>{
+      if(retired||this.#activeReviews.get(pending.id)!==pending||this.#pqInitialReviews.get(pending)!==request||this.clock().getTime()>=Date.parse(expiresAt))throw providerError(4100,'PQ_INITIAL_REVIEW_RETIRED','The original registration review is not current.');
+      guard.assert();this.#reviewLeases.get(pending).lease.assert();if(source.assertCurrent()!==undefined)throw providerError(4100,'PQ_INITIAL_SOURCE_NOT_CURRENT','Original initial Source currentness was not confirmed.');
+    };
+    const borrow=Object.freeze({
+      readApprovalIdentity:()=>{current();return{kind:'pq-account-initial',reviewId:pending.id,operationId:request.operationId,action:request.action};},
+      readOriginal:()=>{current();const original=source.readOriginal();current();return{request,issuedAt,expiresAt,source:{...original,memberBytes:memberBytes===null?null:Uint8Array.from(memberBytes)}};},
+      assertCurrent:current,
+      recheck:async()=>{current();if(await source.recheck()!==undefined)throw providerError(4100,'PQ_INITIAL_SOURCE_NOT_CURRENT','Original initial Source changed.');current();},
+      enterOriginal:action=>{current();if(entered||action!==request.action)throw providerError(4100,'PQ_INITIAL_SIGN_ONCE','Original initial approval is single-use.');entered=true;},
+      completeOriginal:result=>{if(!entered||completed||!produced||result.transportHash!==produced.transportHash||result.abciTransactionHash!==produced.abciTransactionHash)throw providerError(4100,'PQ_INITIAL_RESULT_BINDING','Keep the original registration result.');completed=result;current();},
+      assertCompletedCurrent:result=>{if(result!==completed)throw providerError(4100,'PQ_INITIAL_RESULT_BINDING','Keep the original registration result.');current();},
+      retire:()=>{retired=true;},join:async()=>{},close:async()=>{retired=true;}
+    });originalPQAccountInitialReviewBorrows.add(borrow);
+    return{borrow,captureProduced:value=>{if(!entered||produced)throw providerError(4100,'PQ_INITIAL_SIGN_ONCE','Keep the original registration result.');produced=value;}};
+  }
   async #approvePending(pending,capsule) {
     const permission=this.#reviewLeases.get(pending)?.lease;
     const guard = bindPermissionGuard(this.vault.authorization?.current(),permission);
@@ -553,11 +580,34 @@ export class DesktopWalletAuthority {
       case 'ynx_broadcastPQAccountInitial': {
         const request=this.#pqInitialReviews.get(pending);
         if(!request||!capsule)throw providerError(4100,'PQ_INITIAL_INDEPENDENT_APPROVAL_REQUIRED','A separate original registration approval is required.');
-        // The concrete request and normal local approval are retained, but
-        // neither is an authenticated Genesis, free-owner grant or Native
-        // permission. Never feed it to a transfer/migration signer or kernel.
-        // Actual Auth purpose custody must be supplied before effects exist.
-        throw providerError(4100,'PQ_INITIAL_NATIVE_PERMISSION_NOT_SUPPLIED','Original Genesis, independent pin, unused owner and Native account-initial permission must be supplied. Preview was not signed or submitted.');
+        if(!this.#pqInitialSource||!this.#pqInitialSourceRecognized||!this.#pqInitialPermission||!this.#pqInitialPermissionRecognized)throw providerError(4100,'PQ_INITIAL_NATIVE_PERMISSION_NOT_SUPPLIED','Original Genesis issuer, independent pin, same-height unused owner Source and independent registration permission are required.');
+        if(request.action==='broadcast')throw providerError(4100,'PQ_INITIAL_BROADCAST_CONTROLLER_NOT_SUPPLIED','Keep the original registration; no transfer permission or automatic POST fallback.');
+        const store=this.transactionSender?.submissions?.intentStore;
+        if(typeof store?.capturePQAccountInitialMember!=='function'||typeof this.vault.withPQNativeAccountInitial!=='function'||typeof this.vault.assertPQNativeInitialAvailable!=='function')throw providerError(4100,'PQ_INITIAL_NATIVE_PERMISSION_NOT_SUPPLIED','Original Native initial custody and protected journal are required.');
+        let source,auth,borrowed,hash,failed=false;
+        try{
+          try{source=await this.#pqInitialSource(request);}catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value')&&d.value){source=d.value;this.#pqInitialOwners.add(source);}throw error;}
+          this.#pqInitialOwners.add(source);guard.assert();if(this.#pqInitialSourceRecognized(source)!==true)throw providerError(4100,'PQ_INITIAL_SOURCE_NOT_SUPPLIED','A genuine independently admitted initial Source is required.');
+          borrowed=this.#borrowPQAccountInitialReview(pending,guard,source,request);
+          try{auth=await this.#pqInitialPermission(request,capsule,borrowed.borrow);}catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value')&&d.value){auth=d.value;this.#pqTxOwners.add(auth);}throw error;}
+          this.#pqTxOwners.add(auth);guard.assert();if(this.#pqInitialPermissionRecognized(auth)!==true||await auth.recheck()!==undefined||auth.assertCurrent()!==undefined)throw providerError(4100,'PQ_INITIAL_INDEPENDENT_APPROVAL_REQUIRED','Original initial permission is not current.');
+          this.vault.assertPQNativeInitialAvailable();
+          const original=auth.readOriginal(),genesis=Buffer.from(auth.copyOriginalGenesisBytes()),binding=await this.vault.readPQProposalBinding(request.networkId);guard.assert();
+          const keys=pqPublicBindingToRegistrationKeys(binding);if(keys.pkA!==request.intent.pkA||keys.pkB!==request.intent.pkB||binding.owner!==status.account)throw providerError(4100,'PQ_INITIAL_ORIGINAL_BINDING','The protected original pair changed.');
+          const expected={chainId:request.networkId,owner:status.account,pkA:keys.pkA,pkB:keys.pkB,executionHeight:original.source.executionHeight};
+          await store.reserveOriginal(status.account,'pq-account-initial');guard.assert();if(auth.enterSign()!==undefined)throw providerError(4100,'PQ_INITIAL_INDEPENDENT_APPROVAL_REQUIRED','Original initial sign entry was not confirmed.');
+          await this.vault.withPQNativeAccountInitial(binding,{messageOriginal:Buffer.from(encodePQRegistrationIntent(request.intent)),genesisOriginal:genesis,genesisPin:Buffer.from(original.source.genesisSHA256,'hex'),nativeChainId:request.nativeChainId,executionHeight:expected.executionHeight},outcome=>{
+            const captured=store.capturePQAccountInitialMember(status.account,outcome.member,{operationId:request.operationId,expected});hash=captured.transportHash;
+            const decoded=decodePQAccountInitialRequest(outcome.member,expected);if(!Buffer.from(decoded.intentBytes).equals(Buffer.from(encodePQRegistrationIntent(request.intent))))throw providerError(4100,'PQ_INITIAL_ORIGINAL_BINDING','Keep the original registration Member.');
+            borrowed.captureProduced(captured);if(auth.complete({outcome:'returned',...captured})!==undefined)throw providerError(4100,'PQ_INITIAL_RESULT_BINDING','Keep the original initial result.');
+          },Object.freeze({assert:()=>{permission.assert();guard.assert();if(auth.assertCurrent()!==undefined)throw providerError(4100,'PQ_INITIAL_INDEPENDENT_APPROVAL_REQUIRED','Original initial permission expired.');}}));
+          const current=()=>{guard.assert();auth.assertCurrent();};current();const saved=await store.saveOriginal(status.account,hash,current);current();return success(saved);
+        }catch(error){failed=true;store.originalFailed(status.account,error);throw error;}
+        finally{
+          let closeFailed=false,closeCause;
+          for(const action of [()=>auth?this.#closePQTransactionPermission(auth):borrowed?.borrow.close(),()=>source?this.#closePQInitialSource(source):undefined])try{await action();}catch(error){if(!closeFailed){closeFailed=true;closeCause=error;}}
+          if(!failed&&closeFailed)throw closeCause;
+        }
       }
       case 'ynx_signPQNativeAction': {
         const reviewed=this.#pqReviews.get(pending),store=this.transactionSender?.submissions?.intentStore;
