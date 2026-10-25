@@ -48,7 +48,7 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
  same(helper.architectures,record.architectures);same(helper.commands,sdk13HelperBuildCommands(record.sourceRoot,record.architectures));same(helper.exitCodes,helper.commands.map(()=>0));
  same(record.exitCodes,record.commands.map(()=>0));
  const pqNative=isPQNativeSelection(record.inputFiles?.map(p=>p.relative)??[]);
- if(pqNative&&profile.version!=='1.3.0-pq.3.32-auth.42')fail();
+ if(pqNative&&!['1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46'].includes(profile.version))fail();
  const selectedNative=pqNativeSupplierInputs(inventory.NativeInputs,pqNative),supplier=[...selectedNative,...inventory.HelperInputs];
  const rows=supplier.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.relative.localeCompare(b.relative,'en'));
  same(helper.inputFiles,rows);

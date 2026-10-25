@@ -184,6 +184,7 @@ export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,
  const pqNative=isPQNativeSelection(expectedInputs);
  if(Object.hasOwn(receipt,'buildContinuation')&&!pqNative)bad();
  verifyNativeContinuationReceipt(receipt);
+ verifySDK46RecordFinalizationReceipt(receipt);
  let commands=receipt.commands;
  if(pqNative){
   commands=pqNativeReceiptCommands(receipt);
@@ -231,3 +232,4 @@ export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,
  if(arches.length===2){const output=path.join(receipt.sourceRoot,receipt.output.relative),last=receipt.commands[2];if(last.tool!=='/usr/bin/lipo'||JSON.stringify(last.argv)!==JSON.stringify(['-create',output+'.arm64',output+'.x64','-output',output]))bad();}
  return {output:receipt.output,pinsVerified:true,headerVersion:receipt.headerVersion,napiVersion:receipt.napiVersion,minimumSystemVersion:receipt.minimumSystemVersion,readbackOnly:receipt.readbackOnly,commandsKind:receipt.commandsKind,appSigned:false,nativeQualified:false};
 }
+import {verifySDK46RecordFinalizationReceipt} from './wallet-native-record-finalization.mjs';
