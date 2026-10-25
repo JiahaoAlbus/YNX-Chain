@@ -22,6 +22,12 @@ export const PQ_REVOCATION_INTENT_DOMAIN:'YNX-ACCOUNT-REVOCATION/v1';
 export const PQ_REVOCATION_DOMAIN:'YNX-ACCOUNT-REVOCATION-ENVELOPE/v1';
 export const PQ_POLICY_VERSION: 'YNX-ACCOUNT-POLICY/v1';
 export const PQ_U64_MAX: bigint;
+/** Original signed-64 ledger total limit, amount plus fee. */
+export const PQ_NATIVE_TRANSFER_TOTAL_MAX: bigint;
+/** Exact integer wire units only; no decimal conversion, account/nonce lookup,
+ * fee approval, current policy, signature or transaction authority is created.
+ * The normal reviewed plan still independently requires fee='1'. */
+export function normalizePQNativeTransferAmounts(value:Readonly<{amount:PQU64;fee:PQU64}>):Readonly<{amount:string;fee:string}>;
 export function pqU64(value: PQU64): bigint;
 export function pqCanonicalAddress(value: string): string;
 export function pqHex(value: string, size: number): Uint8Array;
