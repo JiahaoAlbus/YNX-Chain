@@ -2,6 +2,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# YNX_MACOS_PACKAGE_STAGE_SELECTION_BEGIN
+# Explicit producer stage only; this does not grant execution or mount access.
+package_stage="${YNX_DEVELOPER_MACOS_PACKAGE_STAGE-full}"
+case "$package_stage" in
+  app|full) ;;
+  *) echo "Invalid macOS package stage: choose exactly app or full." >&2; exit 2 ;;
+esac
+# YNX_MACOS_PACKAGE_STAGE_SELECTION_END
+
 repo_root=$(/usr/bin/git -C "$PWD" rev-parse --show-toplevel)
 tracked_changes=$(/usr/bin/git -C "$repo_root" status --porcelain --untracked-files=no -- apps/developer packages/developer-client packages/wallet-auth apps/wallet-desktop/native)
 if [[ -n "$tracked_changes" ]]; then
@@ -22,7 +31,7 @@ node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs s
 node --test scripts/native-wallet-transport-recipe.test.mjs
 node --test scripts/native-source-ownership.test.mjs
 node --test scripts/admit-derived-native.test.mjs
-node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-macos-release.test.mjs
+node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-macos-release.test.mjs scripts/package-local-macos-stage.test.mjs
 node --test desktop/wallet-identity-v2-caller.test.mjs desktop/wallet-identity-v2-startup.test.mjs
 node --test desktop/native-identity-channel.test.mjs
 node --test desktop/native-identity-ui.test.mjs
@@ -414,6 +423,28 @@ fi
 node scripts/build-output-root.mjs verify "$root"
 node scripts/package-macos-branding.mjs verify-app "$app"
 /usr/bin/codesign --verify --deep --strict "$app"
+# YNX_MACOS_APP_STAGE_BOUNDARY_BEGIN
+# Reaching this point means the original App checks above completed. Keep the
+# image producer/its mount validation as a separate, explicitly requested stage.
+node --input-type=module - "$app" "$root/app-stage.json" "$source_commit" "$source_tree" "$package_stage" <<'NODE_APP_STAGE'
+import { readFile, writeFile, lstat, realpath } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
+const [app, receipt, sourceCommit, sourceTree, requestedStage] = process.argv.slice(2);
+if (!['app','full'].includes(requestedStage) || !/^[a-f0-9]{40}$/.test(sourceCommit) || !/^[a-f0-9]{40}$/.test(sourceTree)
+  || resolve(app) !== app || await realpath(app) !== app || !(await lstat(app)).isDirectory()) throw Error('Invalid normal App stage identity.');
+const provenance=JSON.parse(await readFile(join(app,'Contents/Resources/build-provenance.json'),'utf8'));
+if (provenance.sourceCommit !== sourceCommit || provenance.sourceTree !== sourceTree) throw Error('Normal App provenance differs at stage boundary.');
+await writeFile(receipt, JSON.stringify({schemaVersion:1, stage:'app', requestedStage, app, sourceCommit, sourceTree,
+  receiptScope:'App-stage checkpoint only; later DMG and release outcomes are not represented',
+  completedChecks:['original-app-producer-prerequisites','original-build-output-root','original-app-branding','codesign-deep-strict'],
+  dmg:{state:requestedStage==='app'?'not-requested':'pending',created:false,mounted:false},
+  signing:'ad-hoc local preview; not Developer ID signed or notarized'},null,2)+'\n',{flag:'wx'});
+NODE_APP_STAGE
+if [[ "$package_stage" == app ]]; then
+  echo "Validated normal macOS App stage only. DMG creation, mount validation, publication and GUI acceptance remain separate."
+  exit 0
+fi
+# YNX_MACOS_APP_STAGE_BOUNDARY_END
 dmg_root="$root/dmg-root"
 dmg="$root/ynx-developer-testnet-preview-${platform}-unsigned.dmg"
 mkdir -p "$dmg_root"
