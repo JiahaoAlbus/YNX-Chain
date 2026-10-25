@@ -14,6 +14,15 @@ export const PQ_REVOCATION_DOMAIN = 'YNX-ACCOUNT-REVOCATION-ENVELOPE/v1';
 export const PQ_POLICY_VERSION = 'YNX-ACCOUNT-POLICY/v1';
 export const PQ_U64_MAX = (1n << 64n) - 1n;
 const I64_MAX = (1n << 63n) - 1n;
+/** Existing native transfer ledger total bound. Integer wire units only;
+ * no EVM decimals, current-account policy or spending permission is implied. */
+export const PQ_NATIVE_TRANSFER_TOTAL_MAX = I64_MAX;
+export function normalizePQNativeTransferAmounts(value) {
+  exactPQRecord(value, ['amount', 'fee']);
+  const amount = pqU64(value.amount), fee = pqU64(value.fee);
+  if (!amount || amount > I64_MAX || amount + fee > I64_MAX) throw pqError('PQ_TRANSFER_VALUES_INVALID');
+  return Object.freeze({amount: amount.toString(), fee: fee.toString()});
+}
 export function pqU64(value) {
   if (typeof value !== 'bigint' && !(typeof value === 'string' && /^(0|[1-9][0-9]{0,19})$/.test(value))) throw pqError('PQ_U64_REQUIRED');
   const n = BigInt(value);
@@ -66,8 +75,9 @@ export function normalizePQNativeTransfer(value) {
   exactPQRecord(value, transferFields);
   const chainId = pqHex(value.chainId, 32).toString('hex'), from = pqCanonicalAddress(value.from), to = pqCanonicalAddress(value.to);
   const nativeChainId = pqU64(value.nativeChainId), amount = pqU64(value.amount), fee = pqU64(value.fee), nonce = pqU64(value.nonce);
-  if (!nativeChainId || nativeChainId > I64_MAX || from === to || !amount || amount > I64_MAX || amount + fee > I64_MAX || !nonce) throw pqError('PQ_TRANSFER_VALUES_INVALID');
-  return Object.freeze({chainId, nativeChainId: nativeChainId.toString(), from, to, amount: amount.toString(), fee: fee.toString(), nonce: nonce.toString()});
+  if (!nativeChainId || nativeChainId > I64_MAX || from === to || !nonce) throw pqError('PQ_TRANSFER_VALUES_INVALID');
+  const values = normalizePQNativeTransferAmounts({amount, fee});
+  return Object.freeze({chainId, nativeChainId: nativeChainId.toString(), from, to, amount: values.amount, fee: values.fee, nonce: nonce.toString()});
 }
 export function encodePQNativeTransfer(value) {
   const t = normalizePQNativeTransfer(value);
