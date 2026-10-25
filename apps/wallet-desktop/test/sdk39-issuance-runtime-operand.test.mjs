@@ -7,12 +7,12 @@ import {relocateDesktopRuntimeSource} from '../scripts/release-provenance.mjs';
 const name='packages/wallet-auth/src/original-auth-source-issuance-v2.js';
 const operand='../../../apps/wallet-desktop/native/original-source-current-dirfd.node';
 const sample=Buffer.from(`const io=createRequire(import.meta.url)(fileURLToPath(new URL('${operand}',import.meta.url)));\n`);
-const versions=['1.3.0-pq.3.32-auth.38','1.3.0-pq.3.32-auth.39','1.3.0-pq.3.32-auth.40','1.3.0-pq.3.32-auth.41'];
-test('SDK38 through41 exact issuance operand is preserved under normal package and verification reader',()=>{
+const versions=['1.3.0-pq.3.32-auth.38','1.3.0-pq.3.32-auth.39','1.3.0-pq.3.32-auth.40','1.3.0-pq.3.32-auth.41','1.3.0-pq.3.32-auth.42'];
+test('SDK38 through42 exact issuance operand is preserved under normal package and verification reader',()=>{
  for(const version of versions){const result=relocateDesktopRuntimeSource(name,sample,version);assert(result.bytes.equals(sample));assert.deepEqual(result.operands,[{kind:'url',from:operand,to:operand,count:1}]);assert.equal(path.posix.normalize(path.posix.join(path.posix.dirname('code/'+name),operand)),'code/apps/wallet-desktop/native/original-source-current-dirfd.node');}
 });
 test('issuance operand selection does not admit old or unknown versions or an unknown source',()=>{
- for(const version of ['1.3.0-pq.3.32-auth.37','1.3.0-pq.3.32-auth.42'])assert.throws(()=>relocateDesktopRuntimeSource(name,sample,version),/Unlisted repository operand/);
+ for(const version of ['1.3.0-pq.3.32-auth.37','1.3.0-pq.3.32-auth.43'])assert.throws(()=>relocateDesktopRuntimeSource(name,sample,version),/Unlisted repository operand/);
  assert.throws(()=>relocateDesktopRuntimeSource(name.replace('issuance-v2','foreign'),sample,versions[1]),/Unlisted repository operand/);
 });
 test('issuance closed rule rejects missing duplicate changed and extra repository operands',()=>{
