@@ -204,6 +204,7 @@ jobs:
       - name: Runtime filler and secret gates
         run: |
           bash scripts/validate/no-placeholder-check.sh
+          bash scripts/validate/secret-scan-check.sh
           bash scripts/validate/secret-scan.sh
       - name: Go correctness and race gates
         run: |
@@ -618,6 +619,8 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Verify exact public TLS fixture and fail-closed secret scanning
+        run: bash scripts/validate/secret-scan-check.sh
       - name: Record exact candidate identity
         id: identity
         env:
