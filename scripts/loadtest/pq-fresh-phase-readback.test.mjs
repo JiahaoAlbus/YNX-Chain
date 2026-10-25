@@ -227,3 +227,30 @@ test('bounded original result gate refuses mixed tests, trailing diagnostics and
  assert.throws(()=>read(f),/summary exceeds 256 KiB/);
  const padded=originalLog(f);assert.throws(()=>readGuardedFreshPhaseLog(padded,logGuard(f,padded),f.expected),/summary exceeds 256 KiB/);
 });
+
+test('business flow integrates original backlog exactly and never invents a distinct acceptance rate',()=>{
+ const f=originalFixture(),flow=read(f).arms[0].flow;
+ assert.equal(flow.acceptedThroughput,null);assert.equal(flow.distinctAcceptanceTimeMeasured,false);
+ assert.deepEqual(flow.buckets[0].counts,{offered:16,firstNodeExecutionCompleted:16,firstNodeDurable:16,independentProofCompleted:16});
+ assert.deepEqual(flow.backlog.offeredAwaitingFirstDurable,{peak:16,atEnd:0,timeWeightedMean:{numeratorCountNs:'1320',denominatorNs:'200'}});
+ assert.deepEqual(flow.backlog.firstDurableAwaitingIndependentProof,{peak:16,atEnd:0,timeWeightedMean:{numeratorCountNs:'960',denominatorNs:'200'}});
+ assert.equal(flow.offerLatenessNs.missingSamples,16);
+ assert.equal(flow.buckets[0].observedRates.offered.denominatorNs,'200');
+ const legacy=fixture();legacy.data.arms[0].business.push(structuredClone(legacy.data.arms[0].business[0]));
+ assert.equal(read(legacy).arms[0].flow.buckets[0].counts.offered,2);
+});
+test('flow uses left-inclusive second buckets, includes final proof endpoint and retains reconciled UNKNOWN',()=>{
+ const f=originalFixture(),scale=10000000;
+ for(const a of f.data.arms){
+  a.businessWindowNs*=scale;
+  for(const r of a.rows){for(const key of ['offerOffsetNs','observedCompletionNs','independentCompletionNs','offerToIndependentNs'])r[key]*=scale;r.offerLatenessNs=0;}
+ }
+ for(const r of f.data.phaseRows){r.startNs*=scale;r.endNs*=scale;if(r.commitTiming){r.commitTiming.elapsedNs*=scale;for(const k of Object.keys(r.commitTiming.stagesNs))r.commitTiming.stagesNs[k]*=scale;}}
+ const last=f.data.arms[0].rows[15];last.independentCompletionNs=200*scale;last.offerToIndependentNs=last.independentCompletionNs-last.offerOffsetNs;
+ const o=f.data.arms[0].rows[0].submission;Object.assign(o,{status:'submission_unknown',initialSubmissionUnknown:true,effectiveBusinessIncludedObserved:0,submissionToFirstCommittedRPCObservationNs:null,firstCommittedRPCObservationSource:'',firstCommittedRPCHeight:'0',firstCommittedRPCIndex:null});
+ const flow=read(f).arms[0].flow;
+ assert.equal(flow.buckets.length,2);assert.equal(flow.buckets[0].counts.offered,16);assert.equal(flow.buckets[0].counts.firstNodeDurable,0);
+ assert.equal(flow.buckets[1].counts.firstNodeDurable,16);assert.equal(flow.buckets[1].counts.independentProofCompleted,16);
+ assert.equal(flow.buckets[1].backlogAtEnd.offeredAwaitingFirstDurable,0);assert.equal(flow.buckets[1].backlogAtEnd.firstDurableAwaitingIndependentProof,0);
+ assert.equal(flow.initialSubmissionUnknown,1);assert.deepEqual(flow.submissionUnknownFraction,{numerator:1,denominator:16});assert.equal(flow.independentlyReconciledUnknownSubmissions,1);assert.equal(flow.offerLatenessNs.samples,16);
+});

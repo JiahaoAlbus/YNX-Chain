@@ -82,7 +82,7 @@ and is not the instant of BFT formation. The small 2/s pair cannot qualify the
 
 ## Verification status
 
-Sixteen Node tests pass, including actual CLI consumption of both receipt shapes,
+Eighteen Node tests pass, including actual CLI consumption of both receipt shapes,
 immutable output and unchanged inputs, missing/unsafe numeric clocks, wrong
 source and ELF pins, UNKNOWN, original hash binding, registration exclusion,
 per-height deduplication, missing node/fsync and incomplete cleanup rejection.
@@ -187,3 +187,39 @@ four-node measurement. Raw output:
 chain-performance directory. Validate the matching new original caller once
 its complete supply/recipe/real outputs are handed over; do not launch another
 driver or repeat the already verified public binary downloads.
+
+
+## Original parent-clock flow and backlog
+
+Each completed qualified arm now reports one-second buckets for original
+coordinator dispatch, first-node execution completion, first-node durable
+Commit and completion of the independent proof observation. Buckets use the
+original parent clock and explicit durations; a partial last bucket has its
+actual denominator. Internal boundaries are left-inclusive and the final
+measurement endpoint is counted in the last bucket. Business events are
+counted by unique original transaction identity; per-block persistence spans
+remain counted once per physical node/height.
+
+The offered-awaiting-first-durable and durable-awaiting-proof queues include
+peak, final count and exact time-weighted mean as count-nanoseconds/window-ns.
+Events at the same timestamp are applied together, preventing artificial
+instantaneous peaks. The first queue area equals the sum of original
+commit-minus-offer durations; the second equals proof-minus-commit durations.
+These are observed queues, not measurements of when a BFT quorum first formed.
+Distinct RPC acceptance time remains missing and accepted throughput is null.
+Original reported offer lateness is retained with sample/missing counts.
+
+Initial UNKNOWN and UNKNOWN before independent readback have separate counts
+and exact fractions over all planned business identities. Independently
+reconciled UNKNOWN remains one original operation, never another submission.
+This report requires the complete qualified arm: aborted/failed windows remain
+original guard failures, not a success report with zero errors. A small finite
+pair still cannot qualify sustained 1000 TPS or ten-minute stability.
+
+Eighteen focused contract/arithmetic/CLI tests pass. New cases verify exact
+queue areas by hand-derived expectations, cross-second boundaries, final
+endpoints, missing acceptance, duplicate-readback deduplication and reconciled
+UNKNOWN. Raw output is `pq-fresh-parent-clock-flow-and-backlog-20261026.raw` in
+the existing external performance directory. No new producer fields, driver,
+Node, resource grant or private key is introduced; this adds only analysis of
+the original rows already emitted by the frozen callee.

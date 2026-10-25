@@ -101,6 +101,40 @@ function compareArms(before,after){
  }),...(before.clientStagesNs&&after.clientStagesNs?{clientStagesNs:Object.fromEntries(['observation','confirmation'].map(role=>[role,compareQuantiles(before.clientStagesNs[role],after.clientStagesNs[role])]))}:{})};
 }
 
+function businessFlow(originals,start,end){
+ const width=1000000000n,count=Number((end-start+width-1n)/width),kinds=['offered','firstNodeExecutionCompleted','firstNodeDurable','independentProofCompleted'];
+ const buckets=Array.from({length:count},(_,i)=>{
+  const a=start+BigInt(i)*width,b=a+width<end?a+width:end;
+  return {startNs:String(a),endNs:String(b),durationNs:String(b-a),counts:Object.fromEntries(kinds.map(k=>[k,0]))};
+ });
+ const events=[];let initiallyUnknown=0,submissionUnknown=0;const lateness=[];
+ for(const b of originals.values()){
+  for(const [kind,t]of [['offered',b.offer],['firstNodeExecutionCompleted',b.firstExecution],['firstNodeDurable',b.firstDurable],['independentProofCompleted',b.proof]]){
+   requireValue(t>=start&&t<=end,'business flow event outside original measurement');
+   const index=Math.min(count-1,Number((t-start)/width));buckets[index].counts[kind]++;events.push({kind,t});
+  }
+  if(b.observation.initialSubmissionUnknown===true)initiallyUnknown++;
+  if(b.observation.status==='submission_unknown')submissionUnknown++;
+  if(b.offerLatenessNs!==undefined)lateness.push(numericDuration(b.offerLatenessNs,'reported offer lateness'));
+ }
+ events.sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:0);
+ let offered=0,durable=0,proof=0,previous=start,q1=0,q2=0,peak1=0,peak2=0,area1=0n,area2=0n;
+ for(let i=0;i<events.length;){
+  const t=events[i].t;area1+=BigInt(q1)*(t-previous);area2+=BigInt(q2)*(t-previous);
+  while(i<events.length&&events[i].t===t){const k=events[i++].kind;if(k==='offered')offered++;else if(k==='firstNodeDurable')durable++;else if(k==='independentProofCompleted')proof++;}
+  q1=offered-durable;q2=durable-proof;requireValue(q1>=0&&q2>=0,'business flow has negative backlog');
+  peak1=Math.max(peak1,q1);peak2=Math.max(peak2,q2);previous=t;
+ }
+ area1+=BigInt(q1)*(end-previous);area2+=BigInt(q2)*(end-previous);
+ let pending1=0,pending2=0;
+ for(const b of buckets){
+  pending1+=b.counts.offered-b.counts.firstNodeDurable;pending2+=b.counts.firstNodeDurable-b.counts.independentProofCompleted;
+  b.backlogAtEnd={offeredAwaitingFirstDurable:pending1,firstDurableAwaitingIndependentProof:pending2};
+  b.observedRates=Object.fromEntries(kinds.map(k=>[k,{numerator:String(BigInt(b.counts[k])*width),denominatorNs:b.durationNs}]));
+ }
+ return {bucketWidthNs:String(width),buckets,distinctAcceptanceTimeMeasured:false,acceptedThroughput:null,interpretation:'Parent-clock events from the original callee. Execution/durability completion and queued proof observation are distinct; none is a measurement of earliest BFT formation. Internal boundaries are left-inclusive; the final endpoint is included in the last bucket.',backlog:{offeredAwaitingFirstDurable:{peak:peak1,atEnd:q1,timeWeightedMean:{numeratorCountNs:String(area1),denominatorNs:String(end-start)}},firstDurableAwaitingIndependentProof:{peak:peak2,atEnd:q2,timeWeightedMean:{numeratorCountNs:String(area2),denominatorNs:String(end-start)}}},offerLatenessNs:{...freshTimingQuantiles(lateness),missingSamples:originals.size-lateness.length},initialSubmissionUnknown:initiallyUnknown,initialSubmissionUnknownFraction:{numerator:initiallyUnknown,denominator:originals.size},submissionUnknownBeforeIndependentReadback:submissionUnknown,submissionUnknownFraction:{numerator:submissionUnknown,denominator:originals.size},independentlyReconciledUnknownSubmissions:submissionUnknown,coverage:'All planned business identities in this completed qualified arm. Failed/aborted windows remain original guard failures and are not represented as zero-error success here.'};
+}
+
 function completedScans(scans,projected){
  if(!Array.isArray(scans))return false;
  if(!projected)return scans.length===2&&scans.every(scan=>Array.isArray(scan)&&scan.length===0);
@@ -206,6 +240,7 @@ function readBoundFreshPhasePair(raw,guard,expected,stdoutSHA256){
    }
    const min=v=>v.reduce((a,b)=>a<b?a:b),max=v=>v.reduce((a,b)=>a>b?a:b);
    requireValue(b.proof>=min(commit),'proof completion precedes every captured durable execution');
+   b.firstExecution=min(finalize);b.firstDurable=min(commit);
    duration.firstNodeFinalize.push(min(finalize)-b.offer);duration.firstNodeDurable.push(min(commit)-b.offer);duration.allNodesDurable.push(max(commit)-b.offer);duration.independentProofCompletion.push(b.proof-b.offer);if(b.client!==null)duration.clientSubmissionToFirstCommittedRPC.push(b.client);
    firstOffer=firstOffer===null?b.offer:firstOffer<b.offer?firstOffer:b.offer;lastProof=lastProof>b.proof?lastProof:b.proof;
   }
@@ -216,7 +251,7 @@ function readBoundFreshPhasePair(raw,guard,expected,stdoutSHA256){
    const storage=commits[0].commitTiming.storage;requireValue(commits.every(c=>c.commitTiming.storage===storage),'one arm changed storage profile');
    nodeBlocks.push({nodeIndex:node,storage,businessBlockCount:heights.size,finalizeNs:freshTimingQuantiles(finals.map(f=>f.end-f.start)),outerCommitNs:freshTimingQuantiles(commits.map(c=>c.end-c.start)),persistenceSampleNs:freshTimingQuantiles(commits.map(c=>c.sampleElapsed)),unattributedOuterCommitNs:freshTimingQuantiles(commits.map(c=>c.end-c.start-c.sampleElapsed)),stagesNs:Object.fromEntries([...stageNames].sort().map(k=>[k,freshTimingQuantiles(commits.filter(c=>Object.hasOwn(c.commitTiming.stagesNs,k)).map(c=>BigInt(c.commitTiming.stagesNs[k])))]))});
   }
-  summaries.push({name,epochId:arm.epochId,readbackIndexMode:mode,receiptQualifiedBusiness:originals.size,repeatedReadbacks,finalizedBusinessHashes:[...originals.keys()],latencyNs:Object.fromEntries(Object.entries(duration).map(([k,v])=>[k,{...freshTimingQuantiles(v),missingSamples:originals.size-v.length}])),...(projected?{clientStagesNs:projectedClientStages(originals)}:{}),observedWindowNs:String(lastProof-firstOffer),measurementWindowNs:String(measureEnd-measureStart),receiptWindowRate:{transactions:originals.size,perSecondNumerator:String(BigInt(originals.size)*1000000000n),denominatorNs:String(measureEnd-measureStart)},nodeBlocks});
+  summaries.push({name,epochId:arm.epochId,readbackIndexMode:mode,receiptQualifiedBusiness:originals.size,repeatedReadbacks,finalizedBusinessHashes:[...originals.keys()],latencyNs:Object.fromEntries(Object.entries(duration).map(([k,v])=>[k,{...freshTimingQuantiles(v),missingSamples:originals.size-v.length}])),flow:businessFlow(originals,measureStart,measureEnd),...(projected?{clientStagesNs:projectedClientStages(originals)}:{}),observedWindowNs:String(lastProof-firstOffer),measurementWindowNs:String(measureEnd-measureStart),receiptWindowRate:{transactions:originals.size,perSecondNumerator:String(BigInt(originals.size)*1000000000n),denominatorNs:String(measureEnd-measureStart)},nodeBlocks});
  }
  return {schema:'ynx-pq-fresh-phase-readback-v1',classification:'measurement-data-not-authority',sourceCommit:expected.protocolCommit,resultSource:stdoutSHA256?'original-go-stdout':'original-json-file',rawResultSHA256:createHash('sha256').update(raw).digest('hex'),...(stdoutSHA256?{stdoutSHA256}:{}),inputEvidence:projected?'original-callee-projected-client-receipts':'embedded-canonical-verifier-output',vmIdentityEvidence:projected?'external-runner-binding-only':'receipt-and-external-binding',arms:summaries,pairedQuantileDeltas:compareArms(summaries[0],summaries[1]),independentProofReverifiedHere:false,earliestBFTFormationMeasured:false,executionAuthorized:false,sustainedTPSQualified:false,interpretation:'Original qualified callee/verifier receipts required. Exact per-H physical Commit samples are not multiplied by tx count. Four-node durable times and proof-completion upper bounds are separate; no third-replica/BFT inference or target qualification.'};
 }
