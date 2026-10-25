@@ -192,6 +192,71 @@ try{
     }
   }
   console.log('PUBLIC_BFT_FINAL_SNAPSHOT_READONLY_PASS: independent inputs, original bytes, no service env, exclusive output and UNKNOWN preserved');
+  // New asset preparation remains an explicit normal caller. These controls
+  // stub only transport; no real host, Python helper or production state runs.
+  const driverSource=fs.readFileSync(path.join(repo,'scripts/ops/public-bft-production-driver.sh'),'utf8');
+  const assetsBody=driverSource.match(/^prepare_testnet_assets_phase\(\) \{\n[\s\S]*?^\}/m)?.[0];
+  assert.ok(assetsBody,'normal testnet asset caller missing');
+  assert.match(driverSource,/if \[\[ "\$action" == prepare_testnet_assets \]\]; then/);
+  assert.match(driverSource,/if \[\[ "\$testnet_assets_action" == true \]\]; then\n  prepare_testnet_assets_phase\n  exit 0/);
+  const automatic=fs.readFileSync(path.join(repo,'scripts/ops/public-bft-cutover-transaction.sh'),'utf8').match(/^forward_phases=\(\n([\s\S]*?)^\)/m)?.[1];
+  assert.ok(automatic,'normal cutover sequence missing');
+  assert.equal(automatic.includes('prepare_testnet_assets'),false,'asset reset was added to automatic cutover');
+  async function assetsCaller(name,phase='extract-public-identity'){
+    const root=path.join(tmp,'asset-caller-'+name),tx='asset-control-'+name,dir=path.join(root,tx),log=path.join(root,'transport.log'),script=path.join(root,'caller.sh');
+    fs.mkdirSync(dir,{recursive:true,mode:0o700});
+    write(script,`#!/bin/bash\nset -Eeuo pipefail\ncd ${q(repo)}\nynx_ops_ssh(){ printf 'ATTEMPTS=%s SSH %s\\n' "$YNX_DEPLOY_CONNECTION_ATTEMPTS" "$*" >> ${q(log)}; [[ "\${ASSET_CONTROL_FAIL_TRANSPORT:-}" != ssh ]] || return 255; printf 'transport-stub-data-only\\n'; }\nynx_ops_copy(){ printf 'ATTEMPTS=%s COPY %s\\n' "$YNX_DEPLOY_CONNECTION_ATTEMPTS" "$*" >> ${q(log)}; [[ "\${ASSET_CONTROL_FAIL_TRANSPORT:-}" != copy ]] || return 255; }\ncommit=${q(commit)}\n${assetsBody}\nprepare_testnet_assets_phase\n`,0o700);
+    const remote='/var/backups/ynx-chain/public-bft-cutover/'+tx;
+    const env={...process.env,YNX_DEPLOY_CONNECTION_ATTEMPTS:'5',PRIMARY_NODE_HOST:'43.153.202.237',PRIMARY_NODE_USER:'ubuntu',PRIMARY_NODE_SSH_KEY:'/unused/test-only-key',PUBLIC_BFT_TESTNET_ASSET_PREPARATION_APPROVED:'yes',PUBLIC_BFT_TESTNET_ASSET_PHASE:phase,PUBLIC_BFT_CUTOVER_COMMIT:commit,PUBLIC_BFT_CUTOVER_RELEASE:release,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:dir,BACKUP_STORAGE_PATH:'/var/backups/ynx-chain',PUBLIC_BFT_TESTNET_ASSET_SNAPSHOT_SOURCE:remote+'/capture/snapshot-source.json',PUBLIC_BFT_TESTNET_ASSET_SNAPSHOT_SOURCE_SHA256:'1'.repeat(64),PUBLIC_BFT_TESTNET_ASSET_PRIMARY_FREEZE_SHA256:'2'.repeat(64),PUBLIC_BFT_TESTNET_ASSET_PRIMARY_PAUSE_SHA256:'3'.repeat(64)};
+    delete env.PUBLIC_BFT_TESTNET_ASSET_PUBLIC_IDENTITY_SHA256;delete env.PUBLIC_BFT_TESTNET_ASSET_ORIGINAL_PID;delete env.ASSET_CONTROL_FAIL_TRANSPORT;
+    if(phase==='archive-original-assets'){env.PUBLIC_BFT_TESTNET_ASSET_PUBLIC_IDENTITY_SHA256='4'.repeat(64);env.PUBLIC_BFT_TESTNET_ASSET_ORIGINAL_PID='123456789';}
+    return {dir,log,script,env,remote,phase};
+  }
+  for(const phase of ['extract-public-identity','archive-original-assets']){
+    const a=await assetsCaller('allowed-'+phase,phase);await execute('bash',[a.script],{env:a.env});
+    const transport=fs.readFileSync(a.log,'utf8'),lines=transport.trimEnd().split('\n');
+    assert.equal(lines.length,4,'caller ran an extra phase or repeated transport');
+    assert.ok(lines.every(line=>line.startsWith('ATTEMPTS=1 ')),'inherited transport retries were not disabled');
+    assert.match(transport,new RegExp('--phase '+phase));assert.ok(transport.includes('--snapshot-source '+a.remote+'/capture/snapshot-source.json'));
+    assert.ok(transport.includes('--primary-freeze '+a.remote+'/primary-freeze.json'));
+    assert.ok(transport.includes('--primary-pause '+a.remote+'/primary-pause-authoritative.json'));
+    assert.ok(transport.includes('--output-dir '+a.remote+'/testnet-assets-'+phase));
+    assert.equal(transport.includes('rm -'),false,'caller would erase partial/UNKNOWN');
+    assert.equal(transport.includes('systemctl '),false,'caller performed implicit service stop/start');
+    if(phase==='archive-original-assets'){
+      assert.ok(transport.includes('--public-identity '+a.remote+'/testnet-assets-extract-public-identity/public-identity.json'));
+      assert.ok(transport.includes('--original-pid 123456789'));
+    }else{assert.equal(transport.includes('--public-identity '),false);assert.equal(transport.includes('--original-pid '),false);}
+    await assert.rejects(execute('bash',[a.script],{env:a.env}));
+    assert.equal(fs.readFileSync(a.log,'utf8'),transport,'existing phase intent redispatched an UNKNOWN');
+  }
+  for(const [field,bad] of [['PUBLIC_BFT_TESTNET_ASSET_PREPARATION_APPROVED','no'],['PUBLIC_BFT_TESTNET_ASSET_PHASE',''],['PUBLIC_BFT_TESTNET_ASSET_PHASE','extract-public-identity,archive-original-assets'],['PRIMARY_NODE_HOST','not-a-real-host'],['PRIMARY_NODE_USER','root'],['PUBLIC_BFT_CUTOVER_COMMIT','0'.repeat(12)],['PUBLIC_BFT_CUTOVER_RELEASE','ynx-bft-gateway-'+'0'.repeat(12)],['PUBLIC_BFT_TESTNET_ASSET_SNAPSHOT_SOURCE','/outside/snapshot-source.json'],['PUBLIC_BFT_TESTNET_ASSET_PUBLIC_IDENTITY_SHA256','4'.repeat(64)]]){
+    const a=await assetsCaller('refuse-'+field+'-'+hash(bad).slice(0,6));
+    await assert.rejects(execute('bash',[a.script],{env:{...a.env,[field]:bad}}));
+    assert.equal(fs.existsSync(a.log),false,'invalid asset caller input reached transport: '+field);
+  }
+  for(const field of ['PUBLIC_BFT_TESTNET_ASSET_SNAPSHOT_SOURCE_SHA256','PUBLIC_BFT_TESTNET_ASSET_PRIMARY_FREEZE_SHA256','PUBLIC_BFT_TESTNET_ASSET_PRIMARY_PAUSE_SHA256']){
+    for(const bad of ['', '0'.repeat(64),'A'.repeat(64)]){
+      const a=await assetsCaller('refuse-pin-'+field+'-'+hash(bad).slice(0,6));
+      await assert.rejects(execute('bash',[a.script],{env:{...a.env,[field]:bad}}));
+      assert.equal(fs.existsSync(a.log),false,'missing/noncanonical pin reached transport');
+    }
+  }
+  for(const field of ['PUBLIC_BFT_TESTNET_ASSET_PUBLIC_IDENTITY_SHA256','PUBLIC_BFT_TESTNET_ASSET_ORIGINAL_PID']){
+    const a=await assetsCaller('refuse-archive-'+field,'archive-original-assets');
+    await assert.rejects(execute('bash',[a.script],{env:{...a.env,[field]:''}}));
+    assert.equal(fs.existsSync(a.log),false,'archive without original identity/stop PID reached transport');
+  }
+  for(const fail of ['ssh','copy']){
+    const a=await assetsCaller('unknown-'+fail);
+    await assert.rejects(execute('bash',[a.script],{env:{...a.env,ASSET_CONTROL_FAIL_TRANSPORT:fail}}));
+    const original=fs.readFileSync(a.log,'utf8');
+    assert.equal(original.trimEnd().split('\n').length,fail==='ssh'?1:2,'transport255 was automatically retried');
+    assert.ok(fs.existsSync(path.join(a.dir,'testnet-assets-'+a.phase,'intent.txt')),'UNKNOWN intent was removed');
+    await assert.rejects(execute('bash',[a.script],{env:a.env}));
+    assert.equal(fs.readFileSync(a.log,'utf8'),original,'UNKNOWN was restarted after observation');
+  }
+  console.log('PUBLIC_BFT_TESTNET_ASSET_CALLER_PASS: explicit phase, independent inputs, one transport attempt, no implicit service action and UNKNOWN preserved');
 }finally{await new Promise(resolve=>server.close(resolve));fs.rmSync(tmp,{recursive:true,force:true});}
 NODE
 [[ "${1:-}" != --snapshot-only ]] || exit 0

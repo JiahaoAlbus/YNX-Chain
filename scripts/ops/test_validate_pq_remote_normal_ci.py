@@ -904,6 +904,9 @@ def assert_workflow_contract(raw):
     need("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' ./internal/consensus" in non_host)
     need("-run '^TestProofHost' ./internal/consensus" in host)
     need("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public" in host)
+    need("YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json" in host)
+    need('test -s "$YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT"' in host
+         and 'sha256sum "$YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT"' in host)
     large = by_name("Verify complete large original migration through normal package and cold recovery")[0]
     need(large in delivery_steps and "        timeout-minutes: 3\n" in large)
     need(large.count("go test ") == 1 and "-timeout=180s -v -run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$' ./internal/consensus" in large)
@@ -1036,8 +1039,10 @@ def assert_workflow_contract(raw):
                    '${{ runner.temp }}/ynx-proof-host-source-cli-public-receipt.json',
                    '${{ runner.temp }}/ynx-proof-host-source-public/typed-delivery',
                    '${{ runner.temp }}/ynx-proof-host-source-public/typed-request.json',
-                   '${{ runner.temp }}/ynx-proof-host-typed-source-cli-public-receipt.json'])
+                   '${{ runner.temp }}/ynx-proof-host-typed-source-cli-public-receipt.json',
+                   '${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json'])
     need("test_pq_ci_stage_inputs.py" in controls[0])
+    need("          python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v\n" in controls[0])
 
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
@@ -1316,6 +1321,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("      - name: Verify original public cutover caller preserves independent operator and runtime pins\n", "      - name: Silently skipped original caller\n"),
             ("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)'", "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestABCI)'"),
             ("-run '^TestProofHost'", "-run '^TestProofHostMissing'"),
+            ("YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json", "UNUSED_INITIAL_FUNDED_FIXTURE: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json"),
             ("      - name: Verify complete large original migration through normal package and cold recovery\n", "      - name: Silently omitted large migration recovery\n"),
             ("-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$'", "-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecoveryMissing$'"),
             ("steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'", "true"),
@@ -1328,6 +1334,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("steps.pqnetworkbuild.outcome == 'success'", "true"),
             ("scripts/loadtest/pq-paired-linux-window.py --consensus-remote-e2e-retained-history", "scripts/loadtest/pq-paired-linux-window.py --consensus-e2e"),
             ("      - name: Verify Linux window controls without starting a node\n", "      - name: Silently omitted controls\n"),
+            ("          python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v\n", "          # test_prepare_testnet_assets.py deliberately omitted\n"),
             ("timeout 45s python3 -B scripts/ops/test_verify_original_native_copy_once.py", "timeout 90s python3 -B scripts/ops/test_verify_original_native_copy_once.py"),
             ("test_verify_original_native_copy_once.py -v 2>&1 | tee", "test_verify_original_native_copy_once.py -v 2>&1 || true | tee"),
             ("timeout 45s python3 -B scripts/ops/test_verify_retained_migration_preservation_once.py", "timeout 90s python3 -B scripts/ops/test_verify_retained_migration_preservation_once.py"),

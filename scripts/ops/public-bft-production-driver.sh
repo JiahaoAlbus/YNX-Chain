@@ -10,7 +10,14 @@ ynx_ops_init
 source scripts/deploy/deploy-consensus-candidate.sh
 
 action="${1:-rehearse}"
-[[ "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
+if [[ "$action" == prepare_testnet_assets ]]; then
+  # The explicit asset phase is handled below; it is never inserted into the
+  # original automatic cutover/rehearsal sequence.
+  testnet_assets_action=true
+else
+  testnet_assets_action=false
+fi
+[[ "$testnet_assets_action" == true || "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
@@ -35,7 +42,7 @@ public_bft_native_context() {
   if [[ ! -e "$approved_path" && ! -L "$approved_path" ]]; then
     approved_path="$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/preparation-approval.json"
     if [[ ! -e "$approved_path" && ! -L "$approved_path" ]]; then return 0; fi
-    case "$action" in preflight|backup|freeze_mutations|pause_authoritative) ;; *) echo "native preparation cannot authorize this phase; retain paused original state" >&2; return 1 ;; esac
+    case "$action" in preflight|backup|freeze_mutations|pause_authoritative|prepare_testnet_assets) ;; *) echo "native preparation cannot authorize this phase; retain paused original state" >&2; return 1 ;; esac
     approval_mode=(--prepare-native)
   fi
   [[ -f "$approved_path" && ! -L "$approved_path" ]] || { echo "original protected approval projection must be a regular non-symlink file" >&2; return 1; }
@@ -304,6 +311,65 @@ final_snapshot_phase() {
   [[ -n "$expected_sha" && "$actual_sha" == "$expected_sha" ]] || { echo "downloaded final snapshot checksum mismatch" >&2; exit 1; }
   (set -C; env -i PATH=/usr/bin:/bin "$local_root/tools/ynx-consensus-package" -verify-migration-state "$local_root/migration.json" >"$local_root/local-validation.txt")
   echo "production BFT final snapshot passed: transaction=$transaction_id evidence=$transaction_dir/final-snapshot"
+}
+
+prepare_testnet_assets_phase() {
+  [[ "${PUBLIC_BFT_TESTNET_ASSET_PREPARATION_APPROVED:-}" == yes ]] || { echo "explicit testnet asset preparation approval is required" >&2; return 1; }
+  local phase="${PUBLIC_BFT_TESTNET_ASSET_PHASE:-}"
+  [[ "$phase" == extract-public-identity || "$phase" == archive-original-assets ]] || { echo "select exactly one testnet asset phase" >&2; return 1; }
+  [[ "$PRIMARY_NODE_HOST" == 43.153.202.237 && "$PRIMARY_NODE_USER" == ubuntu ]] || { echo "testnet asset preparation is scoped to the original primary" >&2; return 1; }
+  [[ "${PUBLIC_BFT_CUTOVER_COMMIT:-}" == "$commit" && "${PUBLIC_BFT_CUTOVER_RELEASE:-}" == "ynx-bft-gateway-$commit" ]] || { echo "asset preparation version differs from normal cutover" >&2; return 1; }
+  local transaction_dir="${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}" tx source source_pin freeze_pin pause_pin identity_pin
+  [[ -n "$transaction_dir" && -d "$transaction_dir" && ! -L "$transaction_dir" ]] || { echo "original protected transaction directory is required" >&2; return 1; }
+  tx="$(basename "$transaction_dir")"
+  [[ "$tx" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || return 1
+  local remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/$tx"
+  [[ "$remote_root" =~ ^/[A-Za-z0-9._/-]+$ && "$remote_root" != *..* ]] || return 1
+  source="${PUBLIC_BFT_TESTNET_ASSET_SNAPSHOT_SOURCE:-}"
+  source_pin="${PUBLIC_BFT_TESTNET_ASSET_SNAPSHOT_SOURCE_SHA256:-}"
+  freeze_pin="${PUBLIC_BFT_TESTNET_ASSET_PRIMARY_FREEZE_SHA256:-}"
+  pause_pin="${PUBLIC_BFT_TESTNET_ASSET_PRIMARY_PAUSE_SHA256:-}"
+  [[ "$source" == "$remote_root/"* && "$source" == */snapshot-source.json && "$source" =~ ^/[A-Za-z0-9._/-]+$ && "$source" != *..* ]] || { echo "existing normal snapshot-source path is required" >&2; return 1; }
+  local pin
+  for pin in "$source_pin" "$freeze_pin" "$pause_pin"; do
+    [[ "$pin" =~ ^[0-9a-f]{64}$ && "$pin" != "$(printf '0%.0s' {1..64})" ]] || { echo "independent source/freeze/pause pins are required" >&2; return 1; }
+  done
+  local -a identity_args=()
+  if [[ "$phase" == archive-original-assets ]]; then
+    identity_pin="${PUBLIC_BFT_TESTNET_ASSET_PUBLIC_IDENTITY_SHA256:-}"
+    [[ "$identity_pin" =~ ^[0-9a-f]{64}$ && "$identity_pin" != "$(printf '0%.0s' {1..64})" ]] || { echo "independent original extraction pin is required before archive" >&2; return 1; }
+    local original_pid="${PUBLIC_BFT_TESTNET_ASSET_ORIGINAL_PID:-}"
+    [[ "$original_pid" =~ ^[1-9][0-9]{0,9}$ ]] || { echo "original PID from the current normal stop evidence is required" >&2; return 1; }
+    identity_args=(--public-identity "$remote_root/testnet-assets-extract-public-identity/public-identity.json" --public-identity-sha256 "$identity_pin" --original-pid "$original_pid")
+  else
+    [[ -z "${PUBLIC_BFT_TESTNET_ASSET_PUBLIC_IDENTITY_SHA256:-}" ]] || { echo "extract does not consume an existing identity" >&2; return 1; }
+  fi
+  # Existing transport, but exactly one attempt. An SSH255 after a rename is
+  # UNKNOWN, not permission to repeat a mutating command through a retry loop.
+  local YNX_DEPLOY_CONNECTION_ATTEMPTS=1
+  export YNX_DEPLOY_CONNECTION_ATTEMPTS
+  local local_root="$transaction_dir/testnet-assets-$phase" remote_stage="/tmp/ynx-public-bft-testnet-assets-$tx-$phase"
+  local helper=scripts/ops/remote/public-bft-prepare-testnet-assets.py capture=scripts/ops/remote/public-bft-capture-snapshot-source.py helper_pin capture_pin
+  helper_pin="$(shasum -a 256 "$helper" | awk '{print $1}')"
+  capture_pin="$(shasum -a 256 "$capture" | awk '{print $1}')"
+  # No combined extract/archive, stop, start, rollback or cleanup follows this
+  # explicit phase. Every local/remote stage and partial result is exclusive.
+  (umask 077; mkdir "$local_root")
+  (set -C; printf 'phase=%s\ntransactionId=%s\nhelperSHA256=%s\ncaptureSHA256=%s\nretry=false\n' "$phase" "$tx" "$helper_pin" "$capture_pin" >"$local_root/intent.txt")
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "umask 077; mkdir '$remote_stage'"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$helper" "$remote_stage/public-bft-prepare-testnet-assets.py"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$capture" "$remote_stage/public-bft-capture-snapshot-source.py"
+  local remote_command
+  printf -v remote_command '%q ' sudo -n /usr/bin/timeout --signal=TERM --kill-after=1 25 env -i PATH=/usr/bin:/bin /usr/bin/python3 -B "$remote_stage/public-bft-prepare-testnet-assets.py" \
+    --phase "$phase" --transaction-id "$tx" --commit "$commit" --capture-helper-sha256 "$capture_pin" \
+    --snapshot-source "$source" --snapshot-source-sha256 "$source_pin" \
+    --primary-freeze "$remote_root/primary-freeze.json" --primary-freeze-sha256 "$freeze_pin" \
+    --primary-pause "$remote_root/primary-pause-authoritative.json" --primary-pause-sha256 "$pause_pin" \
+    --output-dir "$remote_root/testnet-assets-$phase" "${identity_args[@]}"
+  # Hash both copied sources before the privileged normal callee. No public
+  # identity, state digest, validator key or approval is generated by the driver.
+  (set -C; ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "set -e; test \"\$(sha256sum '$remote_stage/public-bft-prepare-testnet-assets.py' | cut -d' ' -f1)\" = '$helper_pin'; test \"\$(sha256sum '$remote_stage/public-bft-capture-snapshot-source.py' | cut -d' ' -f1)\" = '$capture_pin'; $remote_command" >"$local_root/result.json")
+  echo "testnet asset phase completed: phase=$phase evidence=$local_root; no candidate start or activation performed"
 }
 
 candidate_context() {
@@ -863,6 +929,10 @@ NODE
 commit="$(git rev-parse --short=12 HEAD)"
 release="ynx-chain-${commit}"
 public_bft_native_context
+if [[ "$testnet_assets_action" == true ]]; then
+  prepare_testnet_assets_phase
+  exit 0
+fi
 
 backup_phase() {
   [[ "${PUBLIC_BFT_PRODUCTION_BACKUP_APPROVED:-}" == "yes" ]] || {

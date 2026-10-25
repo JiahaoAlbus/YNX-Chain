@@ -69,7 +69,11 @@ func (a *Application) applyPQInitialRegistration(state executionState, payload [
 	if err != nil {
 		return fail(err)
 	}
-	next, err := state.accountPolicy.AdmitPQInitialRegistration(wire, trusted, uint64(height), initialOwnerOccupied(state, intent.Owner))
+	occupied, err := a.initialOwnerRequiresVacancy(state, intent.Owner)
+	if err != nil {
+		return fail(err)
+	}
+	next, err := state.accountPolicy.AdmitPQInitialRegistration(wire, trusted, uint64(height), occupied)
 	if err != nil {
 		return fail(err)
 	}

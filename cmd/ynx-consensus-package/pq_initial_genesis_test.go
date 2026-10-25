@@ -20,11 +20,30 @@ import (
 
 func initialGenesisCLIInputs(t *testing.T) ([]string, map[string][]byte, chain.ConsensusMigrationState) {
 	t.Helper()
+	return initialGenesisCLIInputsWithFunding(t, false)
+}
+
+func initialGenesisCLIInputsWithFunding(t *testing.T, prepared bool) ([]string, map[string][]byte, chain.ConsensusMigrationState) {
+	t.Helper()
 	validators, err := chain.NormalizeValidators([]chain.Validator{{Address: "ynx_validator_initial_cli", Moniker: "synthetic-initial-cli", VotingPower: 1, Active: true}})
 	if err != nil {
 		t.Fatal("invalid synthetic original validator fixture", err)
 	}
 	d := chain.NewDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), validators)
+	pq, pub, err := ynxbatch.KeyGen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pq.Destroy()
+	owner := "0x" + strings.Repeat("8", 40)
+	var faucetHash string
+	if prepared {
+		faucet, err := d.Faucet(owner, 100)
+		if err != nil {
+			t.Fatal(err)
+		}
+		faucetHash = faucet.Hash
+	}
 	d.ProduceBlock()
 	if err := d.EnableAccountPQ(2); err != nil {
 		t.Fatal(err)
@@ -53,12 +72,14 @@ func initialGenesisCLIInputs(t *testing.T) ([]string, map[string][]byte, chain.C
 	if err != nil {
 		t.Fatal(err)
 	}
-	pq, pub, err := ynxbatch.KeyGen()
-	if err != nil {
-		t.Fatal(err)
+	binding := consensus.PQInitialAccountBinding{Owner: owner, PKA: hex.EncodeToString(pub.PKA), PKB: hex.EncodeToString(pub.PKB)}
+	if prepared {
+		binding, err = consensus.PreparePQInitialPreparedFundingBinding(m, owner, pub.PKA, pub.PKB, faucetHash)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
-	pq.Destroy()
-	config, err := json.Marshal(consensus.PQInitialAccountConfiguration{Version: consensus.PQInitialAccountsVersion, NetworkID: m.OriginalGenesisHash, EnableAt: "2", BirthFee: "0", Accounts: []consensus.PQInitialAccountBinding{{Owner: "0x" + strings.Repeat("8", 40), PKA: hex.EncodeToString(pub.PKA), PKB: hex.EncodeToString(pub.PKB)}}})
+	config, err := json.Marshal(consensus.PQInitialAccountConfiguration{Version: consensus.PQInitialAccountsVersion, NetworkID: m.OriginalGenesisHash, EnableAt: "2", BirthFee: "0", Accounts: []consensus.PQInitialAccountBinding{binding}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,6 +92,63 @@ func initialGenesisCLIInputs(t *testing.T) ([]string, map[string][]byte, chain.C
 	}
 	args := []string{"-prepare-pq-initial-genesis", filepath.Join(root, "original-genesis.json"), "-genesis-sha256", operatorFixtureHash(genesis), "-migration-state", filepath.Join(root, "migration.json"), "-migration-file-sha256", operatorFixtureHash(migration), "-initial-accounts", filepath.Join(root, "initial-accounts.json"), "-initial-accounts-sha256", operatorFixtureHash(config), "-initial-genesis-output", filepath.Join(root, "candidate-genesis.json")}
 	return args, inputs, m
+}
+
+func TestPQInitialGenesisCLIPreparedFundingUsesOnlyPinnedNormalSource(t *testing.T) {
+	args, inputs, migration := initialGenesisCLIInputsWithFunding(t, true)
+	var config consensus.PQInitialAccountConfiguration
+	if err := json.Unmarshal(inputs[args[9]], &config); err != nil || len(config.Accounts) != 1 || config.Accounts[0].PreparedFunding == nil {
+		t.Fatal("normal source producer omitted the prepared funding binding", err)
+	}
+	for _, field := range []string{"sourceStateHash", "faucetHash"} {
+		changed := append([]string{}, args...)
+		mutated := config
+		mutated.Accounts = append([]consensus.PQInitialAccountBinding{}, config.Accounts...)
+		funding := *config.Accounts[0].PreparedFunding
+		mutated.Accounts[0].PreparedFunding = &funding
+		if field == "sourceStateHash" {
+			funding.SourceStateHash = strings.Repeat("f", 64)
+		} else {
+			funding.FaucetHash = "0x" + strings.Repeat("f", 64)
+		}
+		raw, err := json.Marshal(mutated)
+		if err != nil {
+			t.Fatal(err)
+		}
+		changed[9] = filepath.Join(filepath.Dir(args[9]), field+"-assignments.json")
+		changed[11] = operatorFixtureHash(raw)
+		changed[len(changed)-1] = filepath.Join(filepath.Dir(args[9]), field+"-candidate.json")
+		if err := os.WriteFile(changed[9], raw, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		var stdout, stderr bytes.Buffer
+		if err := runCommand(changed, &stdout, &stderr); err == nil || stdout.Len() != 0 {
+			t.Fatal("independently pinned assignment bypassed original funding validation", field, err)
+		}
+		if _, err := os.Lstat(changed[len(changed)-1]); !os.IsNotExist(err) {
+			t.Fatal("invalid funding created a candidate", field, err)
+		}
+	}
+	var stdout, stderr bytes.Buffer
+	if err := runCommand(args, &stdout, &stderr); err != nil {
+		t.Fatal("normal CLI rejected the original committed Faucet binding", err)
+	}
+	raw, err := os.ReadFile(args[len(args)-1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := consensus.NewConsensusBootstrap(raw, consensus.ConsensusBootstrapPins{CometGenesisSHA256: operatorFixtureHash(raw), OriginalGenesisHash: migration.OriginalGenesisHash, MigrationStateHash: migration.StateHash}, migration); err != nil {
+		t.Fatal("normal candidate could not reopen with its actual source", err)
+	}
+	if !bytes.Contains(raw, []byte(`"preparedFunding":`)) || !strings.Contains(stdout.String(), "authorityInstalled=false runtimeStarted=false deployed=false activated=false") {
+		t.Fatal("candidate lost the binding or claimed live authority")
+	}
+	for path, want := range inputs {
+		got, err := os.ReadFile(path)
+		if err != nil || !bytes.Equal(got, want) {
+			t.Fatal("funded candidate preparation rewrote original data", err)
+		}
+	}
 }
 
 func TestPQInitialGenesisCLIProducesExclusiveCandidateWithoutChangingOriginals(t *testing.T) {

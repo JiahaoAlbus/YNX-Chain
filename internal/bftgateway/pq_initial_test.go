@@ -39,9 +39,15 @@ type gatewayInitialFixture struct {
 
 func newGatewayInitialFixture(t *testing.T) *gatewayInitialFixture {
 	t.Helper()
-	// Independent synthetic Genesis assigns an unused canonical owner to a full
-	// pair. No source account, classic migration, Root or public-chain claim is
-	// manufactured; the only original allocation is to a distinct donor.
+	return newGatewayInitialFixturePrepared(t, false)
+}
+
+func newGatewayInitialFixturePrepared(t *testing.T, funded bool) *gatewayInitialFixture {
+	t.Helper()
+	// Independent synthetic Genesis assigns a canonical owner to a full pair.
+	// The default keeps that owner absent; the optional funded case uses only
+	// an actual normal source Faucet and its independently pinned binding.
+	// Neither case supplies classic migration, Root or a public-chain claim.
 	f := &pqGatewayFixture{owner: "0x" + strings.Repeat("3", 40), recipient: "0x" + strings.Repeat("4", 40)}
 	var err error
 	f.d, err = chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), t.TempDir())
@@ -50,6 +56,13 @@ func newGatewayInitialFixture(t *testing.T) *gatewayInitialFixture {
 	}
 	if _, err = f.d.Faucet(f.recipient, 1000); err != nil {
 		t.Fatal(err)
+	}
+	var fundingReceipt chain.Transaction
+	if funded {
+		fundingReceipt, err = f.d.Faucet(f.owner, 100)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	f.d.ProduceBlock()
 	if err = f.d.EnableAccountPQ(2); err != nil {
@@ -89,6 +102,13 @@ func newGatewayInitialFixture(t *testing.T) *gatewayInitialFixture {
 	}
 	configuration := consensus.PQInitialAccountConfiguration{Version: consensus.PQInitialAccountsVersion, NetworkID: f.migration.OriginalGenesisHash,
 		EnableAt: "2", BirthFee: "0", Accounts: []consensus.PQInitialAccountBinding{{Owner: f.owner, PKA: hex.EncodeToString(public.PKA), PKB: hex.EncodeToString(public.PKB)}}}
+	if funded {
+		binding, err := consensus.PreparePQInitialPreparedFundingBinding(f.migration, f.owner, public.PKA, public.PKB, fundingReceipt.Hash)
+		if err != nil {
+			t.Fatal(err)
+		}
+		configuration.Accounts = []consensus.PQInitialAccountBinding{binding}
+	}
 	result := &gatewayInitialFixture{f: f, path: filepath.Join(t.TempDir(), "initial-state.json")}
 	result.raw, err = consensus.EncodePQInitialAccountGenesis(plain, f.migration, configuration)
 	if err != nil {

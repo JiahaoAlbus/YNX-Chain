@@ -53,6 +53,8 @@ on:
       - 'scripts/ops/remote/public-bft-final-snapshot.sh'
       - 'scripts/ops/remote/public-bft-native-identity.py'
       - 'scripts/ops/remote/public-bft-capture-snapshot-source.py'
+      - 'scripts/ops/remote/public-bft-prepare-testnet-assets.py'
+      - 'scripts/ops/test_prepare_testnet_assets.py'
       - 'scripts/verify/public-bft-native-identity-check.sh'
       - 'scripts/verify/pq-checkpoint-dual-uid-check.sh'
       - 'scripts/verify/test_public_bft_capture_snapshot_source.py'
@@ -696,6 +698,7 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_signer_process.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_validate_pq_remote_normal_ci.py' -v
           python3 -B -m unittest discover -s scripts/ops -p 'test_pq_ci_stage_inputs.py' -v
+          python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v
       - name: Verify pure dual-PQ protocol and account authorization
         id: pqprotocol
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
@@ -1912,7 +1915,11 @@ jobs:
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
           YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
-        run: YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -run '^TestProofHost' ./internal/consensus
+          YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json
+        run: |
+          YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -run '^TestProofHost' ./internal/consensus
+          test -s "$YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT"
+          sha256sum "$YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT"
       - name: Verify complete large original migration through normal package and cold recovery
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
@@ -2848,6 +2855,7 @@ jobs:
             ${{ runner.temp }}/ynx-proof-host-source-public/typed-delivery
             ${{ runner.temp }}/ynx-proof-host-source-public/typed-request.json
             ${{ runner.temp }}/ynx-proof-host-typed-source-cli-public-receipt.json
+            ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json
           if-no-files-found: error
           retention-days: 7
       - name: Upload only public transaction proof fixture and normal CLI receipt

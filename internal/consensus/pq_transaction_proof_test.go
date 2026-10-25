@@ -47,6 +47,15 @@ func newPQTransactionProofFixture(t *testing.T) *pqTransactionProofFixture {
 
 func newPQTransactionProofFixtureWithInitial(t *testing.T, initialAccount bool) *pqTransactionProofFixture {
 	t.Helper()
+	return newPQTransactionProofFixtureWithInitialFunding(t, initialAccount, false)
+}
+
+func newPQTransactionProofFixtureWithInitialFunding(t *testing.T, initialAccount, fundedInitial bool) *pqTransactionProofFixture {
+	t.Helper()
+	if fundedInitial && !initialAccount {
+		t.Fatal("funded initial fixture requires explicit initial-account mode")
+	}
+	const initialOwner = "0x4444444444444444444444444444444444444444"
 	account := &abciRevocationFixture{classic: deterministicPrivateKey(211), otherClassic: deterministicPrivateKey(212)}
 	account.owner, account.other = mustNativeAddress(t, account.classic), mustNativeAddress(t, account.otherClassic)
 	t.Cleanup(account.classic.Zero)
@@ -59,6 +68,14 @@ func newPQTransactionProofFixtureWithInitial(t *testing.T, initialAccount bool) 
 	})
 	if _, err := d.Faucet(account.owner, 100); err != nil {
 		t.Fatal(err)
+	}
+	var initialFunding chain.Transaction
+	if fundedInitial {
+		var err error
+		initialFunding, err = d.Faucet(initialOwner, 100)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	d.ProduceBlock()
 	if err := d.EnableAccountPQ(2); err != nil {
@@ -104,9 +121,14 @@ func newPQTransactionProofFixtureWithInitial(t *testing.T, initialAccount bool) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	const initialOwner = "0x4444444444444444444444444444444444444444"
 	if initialAccount {
 		configuration := PQInitialAccountConfiguration{Version: PQInitialAccountsVersion, NetworkID: f.migration.OriginalGenesisHash, EnableAt: "2", BirthFee: "0", Accounts: []PQInitialAccountBinding{{Owner: initialOwner, PKA: hex.EncodeToString(account.public.PKA), PKB: hex.EncodeToString(account.public.PKB)}}}
+		if fundedInitial {
+			configuration.Accounts[0], err = PreparePQInitialPreparedFundingBinding(f.migration, initialOwner, account.public.PKA, account.public.PKB, initialFunding.Hash)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
 		f.raw, err = EncodePQInitialAccountGenesis(f.raw, f.migration, configuration)
 		if err != nil {
 			t.Fatal(err)
@@ -209,7 +231,23 @@ func newPQTransactionProofFixtureWithInitial(t *testing.T, initialAccount bool) 
 		envelopes = append(envelopes, payload)
 	}
 	h.apply(t, envelopes)
-	h.apply(t, nil)
+	var fundedTransfer []byte
+	if fundedInitial {
+		message, err := (ynxauth.Transfer{ChainID: account.network, NativeChainID: uint64(f.migration.Network.ChainID), From: initialOwner, To: account.other, Amount: 7, Fee: 1, Nonce: 2}).SigningBytes()
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, member := consensusPQProof(t, account.key, account.network, initialOwner, ynxauth.TransactionPurpose, message)
+		fundedTransfer = mustPQEnvelope(t, PQTransferType, member)
+		h.apply(t, cmttypes.Txs{fundedTransfer})
+		h.apply(t, nil)
+		index, exists := accountIndex(h.app.committed.Accounts, initialOwner)
+		if !exists || h.app.committed.Accounts[index].Balance != 92 || h.app.committed.Accounts[index].Nonce != 2 {
+			t.Fatal("prepared Faucet owner did not execute the actual fee1/nonce2 transfer")
+		}
+	} else {
+		h.apply(t, nil)
+	}
 	results, err := h.raw.LoadFinalizeBlockResponse(height)
 	if err != nil {
 		t.Fatal(err)
@@ -236,13 +274,21 @@ func newPQTransactionProofFixtureWithInitial(t *testing.T, initialAccount bool) 
 	light := &pqLightProofFixture{harness: h, schedule: schedule, authorization: authorization}
 	block, successor := light.block(t, height), light.block(t, height+1)
 	light.trust = PQLightProofTrust{Snapshot: snapshot, TrustedLightBlock: light.block(t, schedule.ActivationHeight), TrustingPeriod: time.Hour, MaxClockDrift: time.Second, TrustLevel: cmtmath.Fraction{Numerator: 1, Denominator: 3}, Now: successor.Time.Add(time.Second)}
+	if fundedInitial {
+		light.trust.Now = light.block(t, height+2).Time.Add(time.Second)
+	}
 	blockExpectation := func(b *cmttypes.LightBlock) PQLightProofExpectation {
 		return PQLightProofExpectation{ChainID: b.ChainID, HeaderHeight: b.Height, BlockHash: bytes.Clone(b.Hash()), StateHeight: b.Height - 1, StateAppHash: bytes.Clone(b.AppHash)}
 	}
 	light.expected, light.proof = blockExpectation(block), light.encode(t, block)
 	out := &pqTransactionProofFixture{light: light}
-	actualBlock := h.blocks.LoadBlock(height)
-	for i, envelope := range envelopes {
+	appendProof := func(at int64, envelope cmttypes.Tx, i int) {
+		actualBlock := h.blocks.LoadBlock(at)
+		block, successor := light.block(t, at), light.block(t, at+1)
+		results, err := h.raw.LoadFinalizeBlockResponse(at)
+		if err != nil {
+			t.Fatal(err)
+		}
 		kind, wire, err := pqTransactionWire(envelope)
 		if err != nil {
 			t.Fatal(err)
@@ -259,6 +305,16 @@ func newPQTransactionProofFixtureWithInitial(t *testing.T, initialAccount bool) 
 		}
 		out.expected = append(out.expected, expected)
 		out.proofs = append(out.proofs, PQTransactionProofRequest{Version: PQTransactionProofVersion, Block: light.encode(t, block), Successor: light.encode(t, successor), TransactionProof: txProof, ExecutionResult: execution, ExecutionProof: resultProof})
+	}
+	for i, envelope := range envelopes {
+		appendProof(height, envelope, i)
+	}
+	if fundedInitial {
+		result, err := h.raw.LoadFinalizeBlockResponse(height + 1)
+		if err != nil || len(result.TxResults) != 1 || result.TxResults[0].Code != 0 {
+			t.Fatal("original funded sender transfer did not actually succeed", err)
+		}
+		appendProof(height+1, fundedTransfer, 0)
 	}
 	return out
 }

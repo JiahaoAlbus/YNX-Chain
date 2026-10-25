@@ -18,17 +18,19 @@ const PQInitialAccountsVersion = "YNX-PQ-INITIAL-ACCOUNTS/v1"
 const PQInitialAccountsGenesisField = "pq_initial_accounts"
 const maxPQInitialAccountsBytes = 8 << 20
 
-// PQInitialAccountBinding is an operator assignment of an unused canonical
+// PQInitialAccountBinding is an operator assignment of a fresh canonical
 // address to a complete pair. It does not define a key-to-address derivation.
 type PQInitialAccountBinding struct {
-	Owner string `json:"owner"`
-	PKA   string `json:"pkA"`
-	PKB   string `json:"pkB"`
+	Owner           string                    `json:"owner"`
+	PKA             string                    `json:"pkA"`
+	PKB             string                    `json:"pkB"`
+	PreparedFunding *PQInitialPreparedFunding `json:"preparedFunding,omitempty"`
 }
 
 // PQInitialAccountConfiguration is part of the exact independently pinned
 // Genesis, never transaction/HTTP input. The finite allowlist only authorizes
-// fee0/nonce1/zero-balance birth, not funding, delegation or ordinary execution.
+// fee0/nonce1 birth, not funding, delegation or ordinary execution. The explicit
+// testnet branch may preserve only the original prepared Faucet account.
 type PQInitialAccountConfiguration struct {
 	Version   string                    `json:"version"`
 	NetworkID string                    `json:"networkId"`
@@ -55,6 +57,7 @@ func (c PQInitialAccountConfiguration) validate(m chain.ConsensusMigrationState)
 		return errors.New("initial accounts cannot rewrite the original policy admission height")
 	}
 	previous := ""
+	preparedSourceValidated := false
 	for _, binding := range c.Accounts {
 		if !accountaddress.IsCanonical(binding.Owner) || binding.Owner <= previous {
 			return errors.New("initial account bindings must have unique sorted canonical owners")
@@ -66,7 +69,7 @@ func (c PQInitialAccountConfiguration) validate(m chain.ConsensusMigrationState)
 		if _, ok := canonicalInitialKey(binding.PKB, ynxbatch.PublicKeyBSize); !ok {
 			return errors.New("initial account binding requires full canonical key B")
 		}
-		if _, exists := accountIndex(m.Accounts, binding.Owner); exists {
+		if _, exists := accountIndex(m.Accounts, binding.Owner); exists && binding.PreparedFunding == nil {
 			return errors.New("initial account binding cannot occupy an original account")
 		}
 		for _, record := range m.AccountPolicy.Records {
@@ -74,9 +77,27 @@ func (c PQInitialAccountConfiguration) validate(m chain.ConsensusMigrationState)
 				return errors.New("initial account binding cannot replace an original policy owner")
 			}
 		}
+		for _, revoked := range m.AccountPolicy.Revocations {
+			if revoked.Owner == binding.Owner {
+				return errors.New("initial account binding cannot replace an original revoked owner")
+			}
+		}
 		if m.Runtime != nil {
 			if _, exists := m.Runtime.Contracts[binding.Owner]; exists {
 				return errors.New("initial account binding cannot occupy an original contract")
+			}
+		}
+		if binding.PreparedFunding != nil {
+			// Validate the complete pinned migration once, even when a finite
+			// configuration prepares more than one fresh Faucet recipient.
+			if !preparedSourceValidated {
+				if err := m.Validate(); err != nil {
+					return err
+				}
+				preparedSourceValidated = true
+			}
+			if err := validatePQInitialPreparedFunding(m, binding); err != nil {
+				return err
 			}
 		}
 	}

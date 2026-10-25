@@ -79,7 +79,9 @@ func validatePQInitialRegistrationHistory(state CommittedState, migration chain.
 		return err
 	}
 	if _, exists := accountIndex(migration.Accounts, tx.From); exists {
-		return errors.New("initial registration replaced an original account")
+		if _, prepared := state.bootstrap.initialPreparedAccount(migration, tx.From); !prepared {
+			return errors.New("initial registration replaced an original account")
+		}
 	}
 	index, exists := accountIndex(state.Accounts, tx.From)
 	if !exists || state.Accounts[index].Nonce < 1 || state.Accounts[index].ResourceUsage.BandwidthUsed < 1 {

@@ -32,6 +32,11 @@ type pqInitialFixture struct {
 
 func newPQInitialFixture(t *testing.T) *pqInitialFixture {
 	t.Helper()
+	return newPQInitialFixtureWithFunding(t, false)
+}
+
+func newPQInitialFixtureWithFunding(t *testing.T, funded bool) *pqInitialFixture {
+	t.Helper()
 	donor := mustNativeAddress(t, deterministicPrivateKey(218))
 	// The operator assigns this canonical address; the unrelated QA classic key
 	// is retained only to prove that even a valid classic signature is refused.
@@ -44,6 +49,14 @@ func newPQInitialFixture(t *testing.T) *pqInitialFixture {
 	})
 	if _, err := d.Faucet(donor, 1000); err != nil {
 		t.Fatal(err)
+	}
+	var funding chain.Transaction
+	if funded {
+		var err error
+		funding, err = d.Faucet(owner, 100)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	d.ProduceBlock()
 	if err := d.EnableAccountPQ(2); err != nil {
@@ -72,6 +85,12 @@ func newPQInitialFixture(t *testing.T) *pqInitialFixture {
 	}
 	t.Cleanup(key.Destroy)
 	configuration := PQInitialAccountConfiguration{Version: PQInitialAccountsVersion, NetworkID: migration.OriginalGenesisHash, EnableAt: "2", BirthFee: "0", Accounts: []PQInitialAccountBinding{{Owner: owner, PKA: hex.EncodeToString(public.PKA), PKB: hex.EncodeToString(public.PKB)}}}
+	if funded {
+		configuration.Accounts[0], err = PreparePQInitialPreparedFundingBinding(migration, owner, public.PKA, public.PKB, funding.Hash)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 	f := &validatorRegistryFixture{migration: migration, legacy: legacy}
 	t.Cleanup(func() {
 		for _, key := range legacy {

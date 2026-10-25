@@ -48,8 +48,8 @@ static Blob read_blob(const char *directory,const char *name,size_t maximum) {
     }
     uint8_t extra; require(read(fd,&extra,1)==0 && close(fd)==0,"fixture_read_end"); return b;
 }
-static void write_public(const char *directory,const uint8_t *bytes,size_t length) {
-    char path[4096];path_for(path,sizeof(path),directory,"memberOriginal.bin");
+static void write_public(const char *directory,const char *name,const uint8_t *bytes,size_t length) {
+    char path[4096];path_for(path,sizeof(path),directory,name);
     int fd=open(path,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW,0600);
     require(fd>=0,"exclusive_public_member");size_t used=0;
     while(used<length) {
@@ -113,7 +113,27 @@ int main(int argc,char **argv) {
     require(length>0 && length<=CAP && cleanup==YNX_INITIAL_CLEANUP_LOGICAL_COMPLETE_V1,"success_bounds_cleanup");
     for(size_t i=length;i<CAP+GUARD;i++) {require(out[i]==0xa5,"success_touched_unused_capacity");}
     require(memcmp(a.bytes,saved_a,54)==0 && memcmp(b.bytes,saved_b,150)==0,"borrowed_secret_modified");
-    write_public(argv[1],out,length);cases++;
+    write_public(argv[1],"memberOriginal.bin",out,length);cases++;
+    /* Keep the original three-field binding call above. A second independent
+     * complete Genesis/intent consumes optional preparedFunding metadata via
+     * the same API/archive/KEY7. This grants no funding or bootstrap authority. */
+    Blob funded_message=read_blob(argv[1],"funded-message.bin",4096);
+    Blob funded_genesis=read_blob(argv[1],"funded-genesis.json",67108864);
+    Blob funded_pin=read_blob(argv[1],"funded-genesis-sha256.bin",32);
+    Blob funded_network=read_blob(argv[1],"funded-network-id.bin",32);
+    require(funded_pin.length==32 && funded_network.length==32,"exact_funded_public_tuple");
+    YNXAccountInitialRequestV1 funded=r;
+    funded.message_original=span(funded_message.bytes,funded_message.length);
+    funded.genesis_original=span(funded_genesis.bytes,funded_genesis.length);
+    funded.expected.genesis_sha256=span(funded_pin.bytes,funded_pin.length);
+    funded.expected.network_id=span(funded_network.bytes,funded_network.length);
+    memset(out,0xa5,CAP+GUARD);length=0;cleanup=YNX_INITIAL_CLEANUP_UNKNOWN_V1;
+    require(YNXAccountInitialSignV1(&funded,out,CAP,&length,&cleanup)==YNX_INITIAL_OK_V1,"actual_source_prepared_initial_sign");
+    require(length>0 && length<=CAP && cleanup==YNX_INITIAL_CLEANUP_LOGICAL_COMPLETE_V1,"funded_success_bounds_cleanup");
+    for(size_t i=length;i<CAP+GUARD;i++) {require(out[i]==0xa5,"funded_success_touched_unused_capacity");}
+    require(memcmp(a.bytes,saved_a,54)==0 && memcmp(b.bytes,saved_b,150)==0,"funded_borrowed_secret_modified");
+    write_public(argv[1],"fundedMemberOriginal.bin",out,length);cases++;
+    free(funded_message.bytes);free(funded_genesis.bytes);free(funded_pin.bytes);free(funded_network.bytes);
     memset(out,0xa5,CAP+GUARD);wipe(a.bytes,a.length);wipe(b.bytes,b.length);
     reject(&r,out,CAP,YNX_INITIAL_KEY_MATERIAL_V1,YNX_INITIAL_CLEANUP_LOGICAL_COMPLETE_V1,0,"no_retained_key_after_borrow_removed");
     wipe(saved_a,sizeof(saved_a));wipe(saved_b,sizeof(saved_b));

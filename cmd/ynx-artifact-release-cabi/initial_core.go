@@ -9,6 +9,7 @@ import (
 	"io"
 	"math"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -51,9 +52,18 @@ type initialPlan struct {
 // address derivation or a self-signed registration source. Full Genesis bytes
 // and their independently selected SHA are still Main/Auth's responsibility.
 type initialGenesisBinding struct {
-	Owner string `json:"owner"`
-	PKA   string `json:"pkA"`
-	PKB   string `json:"pkB"`
+	Owner           string                         `json:"owner"`
+	PKA             string                         `json:"pkA"`
+	PKB             string                         `json:"pkB"`
+	PreparedFunding *initialGenesisPreparedFunding `json:"preparedFunding,omitempty"`
+}
+
+// Public source preparation DATA only. Complete migration/last-block Faucet
+// receipt/lot/occupancy checks belong to the independently pinned bootstrap.
+// Native checks this exact optional shape and syntax, never a balance or grant.
+type initialGenesisPreparedFunding struct {
+	SourceStateHash string `json:"sourceStateHash"`
+	FaucetHash      string `json:"faucetHash"`
 }
 
 type initialGenesisConfiguration struct {
@@ -174,6 +184,16 @@ func initialGenesisRegistration(raw []byte, expected initialExpected, height uin
 		b, bok := initialCanonicalKey(binding.PKB, ynxbatch.PublicKeyBSize)
 		if !aok || !bok {
 			return fail()
+		}
+		if funding := binding.PreparedFunding; funding != nil {
+			_, sourceOK := initialCanonicalKey(funding.SourceStateHash, 32)
+			if expected.NativeChainID != 6423 || !sourceOK || len(funding.FaucetHash) != 66 || !strings.HasPrefix(funding.FaucetHash, "0x") {
+				return fail()
+			}
+			faucet, err := hex.DecodeString(funding.FaucetHash[2:])
+			if err != nil || len(faucet) != 32 || hex.EncodeToString(faucet) != funding.FaucetHash[2:] {
+				return fail()
+			}
 		}
 		if binding.Owner == expected.Owner {
 			if !bytes.Equal(a, expected.PKA) || !bytes.Equal(b, expected.PKB) {

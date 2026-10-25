@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 	"github.com/cometbft/cometbft/crypto/ed25519"
@@ -272,6 +273,104 @@ func TestAccountInitialRejectsOtherMessagesAndPrivateMismatch(t *testing.T) {
 	}
 }
 
+func initialFundedFixture(t *testing.T, in initialInputs) initialInputs {
+	t.Helper()
+	intent, err := ynxauth.DecodeRegistrationIntent(in.message)
+	must(t, err)
+	// Real normal source preparation supplies the two public identifiers. This
+	// test deliberately exercises only Native parsing/math, not the bootstrap's
+	// separate complete ledger, latest-block receipt and lot validation.
+	source := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	must(t, source.EnableAccountPQ(2))
+	receipt, err := source.Faucet(in.expected.Owner, 100)
+	must(t, err)
+	source.ProduceBlock()
+	migration, err := source.ExportConsensusMigrationState()
+	must(t, err)
+	network, err := hex.DecodeString(migration.OriginalGenesisHash)
+	must(t, err)
+	in.expected.NetworkID = network
+	intent.ChainID = bytes.Clone(network)
+	in.message, err = intent.SigningBytes()
+	must(t, err)
+	var fields map[string]json.RawMessage
+	must(t, json.Unmarshal(in.genesis, &fields))
+	var configuration initialGenesisConfiguration
+	must(t, json.Unmarshal(fields["pq_initial_accounts"], &configuration))
+	configuration.NetworkID = migration.OriginalGenesisHash
+	configuration.Accounts[0].PreparedFunding = &initialGenesisPreparedFunding{SourceStateHash: migration.StateHash, FaucetHash: receipt.Hash}
+	fields["pq_initial_accounts"], err = json.Marshal(configuration)
+	must(t, err)
+	fields["app_hash"], err = json.Marshal(strings.ToUpper(migration.StateHash))
+	must(t, err)
+	fields["app_state"], err = migration.CanonicalJSON()
+	must(t, err)
+	in.genesis, err = json.Marshal(fields)
+	must(t, err)
+	return repinInitialFixture(in)
+}
+
+func TestAccountInitialPreparedFundingFromNormalSourceReceipt(t *testing.T) {
+	in, _, material := initialFixture(t)
+	zeroConfiguration := bytes.Clone(in.genesis)
+	if bytes.Contains(zeroConfiguration, []byte(`"preparedFunding"`)) {
+		t.Fatal("optional funding changed the original zero-balance Genesis bytes")
+	}
+	in = initialFundedFixture(t, in)
+	plan := requireInitialPlan(t, in)
+	wire, code, cleanup := signInitialPrepared(plan, material)
+	defer clear(wire)
+	if code != resultOK || cleanup != cleanupLogicalComplete {
+		t.Fatal("normal source-prepared funding metadata blocked Native initial signing")
+	}
+	must(t, inspectInitialMember(plan, wire))
+	for _, tc := range []struct {
+		name string
+		edit func(initialInputs) initialInputs
+	}{
+		{"zero source hash", func(x initialInputs) initialInputs {
+			return mutateInitialConfiguration(t, x, func(c *initialGenesisConfiguration) {
+				c.Accounts[0].PreparedFunding.SourceStateHash = strings.Repeat("0", 64)
+			})
+		}},
+		{"uppercase source hash", func(x initialInputs) initialInputs {
+			return mutateInitialConfiguration(t, x, func(c *initialGenesisConfiguration) {
+				c.Accounts[0].PreparedFunding.SourceStateHash = strings.Repeat("A", 64)
+			})
+		}},
+		{"faucet without prefix", func(x initialInputs) initialInputs {
+			return mutateInitialConfiguration(t, x, func(c *initialGenesisConfiguration) {
+				c.Accounts[0].PreparedFunding.FaucetHash = strings.Repeat("1", 64)
+			})
+		}},
+		{"uppercase faucet hash", func(x initialInputs) initialInputs {
+			return mutateInitialConfiguration(t, x, func(c *initialGenesisConfiguration) {
+				c.Accounts[0].PreparedFunding.FaucetHash = "0x" + strings.Repeat("A", 64)
+			})
+		}},
+		{"balance self-grant field", func(x initialInputs) initialInputs {
+			x.genesis = bytes.Replace(x.genesis, []byte(`"sourceStateHash":`), []byte(`"balance":"100","sourceStateHash":`), 1)
+			return repinInitialFixture(x)
+		}},
+		{"wrong network profile", func(x initialInputs) initialInputs {
+			var original map[string]json.RawMessage
+			must(t, json.Unmarshal(x.genesis, &original))
+			original["chain_id"] = json.RawMessage(`"ynx_1-1"`)
+			var err error
+			x.genesis, err = json.Marshal(original)
+			must(t, err)
+			x.expected.NativeChainID = 1
+			return repinInitialFixture(x)
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, code := prepareInitial(tc.edit(in), initialMemberCapacity); code != resultPublicBinding {
+				t.Fatal("invalid optional source-funding metadata accepted")
+			}
+		})
+	}
+}
+
 func TestAccountInitialCABIProcess(t *testing.T) {
 	mode := os.Getenv("YNX_INITIAL_CABI_FIXTURE_MODE")
 	if mode == "" {
@@ -297,6 +396,11 @@ func TestAccountInitialCABIProcess(t *testing.T) {
 		must(t, os.Mkdir(directory, 0700))
 		in, _, material := initialFixture(t)
 		for name, raw := range map[string][]byte{"message.bin": in.message, "genesis.json": in.genesis, "genesis-sha256.bin": in.expected.GenesisSHA256, "pk-a.bin": material.PKA, "pk-b.bin": material.PKB, "SYNTHETIC-ONLY-a.der": material.PKCS8A, "SYNTHETIC-ONLY-b.der": material.PKCS8B} {
+			write(name, raw)
+		}
+		funded := initialFundedFixture(t, in)
+		for name, raw := range map[string][]byte{"funded-message.bin": funded.message, "funded-genesis.json": funded.genesis,
+			"funded-genesis-sha256.bin": funded.expected.GenesisSHA256, "funded-network-id.bin": funded.expected.NetworkID} {
 			write(name, raw)
 		}
 		return
@@ -338,11 +442,50 @@ func TestAccountInitialCABIProcess(t *testing.T) {
 			t.Fatal("actual initial C output accepted corrupt AND branch")
 		}
 	}
+	// This is a second real C call with the SAME borrowed pair/archive and a
+	// source-prepared funded configuration. Independently check its original
+	// synthetic source record, then only claim Native parsing and AND math.
+	funded := initialInputs{message: read("funded-message.bin", initialMessageMaximum), genesis: read("funded-genesis.json", initialGenesisMaximum),
+		expected: initialExpected{GenesisSHA256: read("funded-genesis-sha256.bin", 32), NetworkID: read("funded-network-id.bin", 32),
+			Owner: in.expected.Owner, NativeChainID: 6423, ExecutionHeight: "2", PKA: public.PKA, PKB: public.PKB}}
+	var fundedFields map[string]json.RawMessage
+	must(t, json.Unmarshal(funded.genesis, &fundedFields))
+	var source chain.ConsensusMigrationState
+	must(t, json.Unmarshal(fundedFields["app_state"], &source))
+	must(t, source.Validate())
+	var fundingConfig initialGenesisConfiguration
+	must(t, json.Unmarshal(fundedFields["pq_initial_accounts"], &fundingConfig))
+	if len(fundingConfig.Accounts) != 1 || fundingConfig.Accounts[0].PreparedFunding == nil || source.Runtime == nil ||
+		fundingConfig.Accounts[0].PreparedFunding.SourceStateHash != source.StateHash || source.OriginalGenesisHash != hex.EncodeToString(funded.expected.NetworkID) {
+		t.Fatal("actual C funded fixture lost its original source tuple")
+	}
+	funding := fundingConfig.Accounts[0].PreparedFunding
+	foundReceipt := 0
+	for _, block := range source.Runtime.Blocks {
+		for _, tx := range block.Transactions {
+			if tx.Hash == funding.FaucetHash && tx.Type == "faucet" && tx.From == chain.FaucetAddress && tx.To == funded.expected.Owner && tx.Amount == 100 {
+				foundReceipt++
+			}
+		}
+	}
+	if foundReceipt != 1 {
+		t.Fatal("actual C funding fixture did not retain its normal Faucet receipt")
+	}
+	fundedPlan := requireInitialPlan(t, funded)
+	fundedWire := read("fundedMemberOriginal.bin", initialMemberCapacity)
+	must(t, inspectInitialMember(fundedPlan, fundedWire))
+	fundedDigest := sha256.Sum256(fundedWire)
 	digest := sha256.Sum256(wire)
-	raw, err := json.Marshal(map[string]any{"version": "YNX-ACCOUNT-INITIAL-CABI-PUBLIC-INTEROP/v1", "classification": "synthetic-data", "actualCABIExecuted": true, "purpose": ynxauth.TransactionPurpose, "keyVersion": "1", "networkId": hex.EncodeToString(in.expected.NetworkID), "owner": in.expected.Owner, "nativeChainId": "6423", "executionHeight": "2", "genesisSHA256": hex.EncodeToString(in.expected.GenesisSHA256), "genesisOriginalBase64Url": base64.RawURLEncoding.EncodeToString(in.genesis), "messageOriginalBase64Url": base64.RawURLEncoding.EncodeToString(in.message), "memberOriginalBase64Url": base64.RawURLEncoding.EncodeToString(wire), "memberSHA256": hex.EncodeToString(digest[:]), "memberBytes": len(wire), "rootGranted": false, "authorityGranted": false, "submitted": false})
+	raw, err := json.Marshal(map[string]any{"version": "YNX-ACCOUNT-INITIAL-CABI-PUBLIC-INTEROP/v1", "classification": "synthetic-data", "actualCABIExecuted": true, "purpose": ynxauth.TransactionPurpose, "keyVersion": "1", "networkId": hex.EncodeToString(in.expected.NetworkID), "owner": in.expected.Owner, "nativeChainId": "6423", "executionHeight": "2", "genesisSHA256": hex.EncodeToString(in.expected.GenesisSHA256), "genesisOriginalBase64Url": base64.RawURLEncoding.EncodeToString(in.genesis), "messageOriginalBase64Url": base64.RawURLEncoding.EncodeToString(in.message), "memberOriginalBase64Url": base64.RawURLEncoding.EncodeToString(wire), "memberSHA256": hex.EncodeToString(digest[:]), "memberBytes": len(wire),
+		"funded": map[string]any{"actualCABIExecuted": true, "networkId": hex.EncodeToString(funded.expected.NetworkID), "genesisSHA256": hex.EncodeToString(funded.expected.GenesisSHA256),
+			"genesisOriginalBase64Url": base64.RawURLEncoding.EncodeToString(funded.genesis), "messageOriginalBase64Url": base64.RawURLEncoding.EncodeToString(funded.message),
+			"memberOriginalBase64Url": base64.RawURLEncoding.EncodeToString(fundedWire), "memberSHA256": hex.EncodeToString(fundedDigest[:]), "memberBytes": len(fundedWire),
+			"sourceStateHash": funding.SourceStateHash, "faucetHash": funding.FaucetHash, "bootstrapFundingAuthorized": false}, "rootGranted": false, "authorityGranted": false, "submitted": false})
 	must(t, err)
 	write("PUBLIC-INTEROP.json", append(raw, '\n'))
-	raw, err = json.Marshal(map[string]any{"version": "YNX-ACCOUNT-INITIAL-CABI-RECEIPT/v1", "actualCABIExecuted": true, "goANDVerified": true, "memberSHA256": hex.EncodeToString(digest[:]), "memberBytes": len(wire), "privateUploaded": false, "rootGranted": false, "authorityGranted": false})
+	raw, err = json.Marshal(map[string]any{"version": "YNX-ACCOUNT-INITIAL-CABI-RECEIPT/v1", "actualCABIExecuted": true, "goANDVerified": true, "memberSHA256": hex.EncodeToString(digest[:]), "memberBytes": len(wire),
+		"actualFundedCABIExecuted": true, "fundedGoANDVerified": true, "fundedMemberSHA256": hex.EncodeToString(fundedDigest[:]), "fundedMemberBytes": len(fundedWire), "bootstrapFundingAuthorized": false,
+		"privateUploaded": false, "rootGranted": false, "authorityGranted": false})
 	must(t, err)
 	write("PUBLIC-RECEIPT.json", append(raw, '\n'))
 }
