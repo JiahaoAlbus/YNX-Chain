@@ -202,10 +202,10 @@ func (v PQWalletAccountView) MarshalJSON() ([]byte, error) {
 	if p := v.Policy; p != nil {
 		out.Policy = &pqWalletPolicyJSON{Version: p.Version, NetworkID: hex.EncodeToString(p.NetworkID), EnableAt: p.EnableAt, Records: []pqWalletRecordJSON{}}
 		for _, r := range p.Records {
-			out.Policy.Records = append(out.Policy.Records, pqWalletRecordJSON{r.AlgorithmVersion, r.Owner, hex.EncodeToString(r.PKA), hex.EncodeToString(r.PKB), r.Revision, r.RegisteredAt, r.ActiveFrom, r.LedgerNonce})
+			out.Policy.Records = append(out.Policy.Records, pqWalletRecordJSON{AlgorithmVersion: r.AlgorithmVersion, Owner: r.Owner, PKA: hex.EncodeToString(r.PKA), PKB: hex.EncodeToString(r.PKB), Revision: r.Revision, RegisteredAt: r.RegisteredAt, ActiveFrom: r.ActiveFrom, LedgerNonce: r.LedgerNonce})
 		}
 		for _, r := range p.Revocations {
-			out.Policy.Revocations = append(out.Policy.Revocations, pqWalletRevocationJSON{r.Owner, r.AuthorizingRevision, r.ThroughRevision, r.RegisteredAt, r.RevokedFrom, r.LedgerNonce})
+			out.Policy.Revocations = append(out.Policy.Revocations, pqWalletRevocationJSON{Owner: r.Owner, AuthorizingRevision: r.AuthorizingRevision, ThroughRevision: r.ThroughRevision, RegisteredAt: r.RegisteredAt, RevokedFrom: r.RevokedFrom, LedgerNonce: r.LedgerNonce})
 		}
 	}
 	return json.Marshal(out)
