@@ -51,58 +51,64 @@ type pqCasePhases struct {
 	ProofDurabilityNs             int64 `json:"proofDurabilityNs,string"`
 }
 type pqWholeCaseReport struct {
-	ConsensusExecutionOutcome         string            `json:"consensusExecutionOutcome,omitempty"`
-	FinalizedBusinessHashes           []string          `json:"finalizedBusinessHashes,omitempty"`
-	RegistrationFinalized             bool              `json:"registrationFinalized"`
-	VerifierProcessStarted            bool              `json:"verifierProcessStarted"`
-	VerifierInterrupted               bool              `json:"verifierInterrupted"`
-	VerifierExitCode                  *int              `json:"verifierExitCode,omitempty"`
-	ProofVerifierSHA256               string            `json:"proofVerifierSha256,omitempty"`
-	TrustContextSHA256                string            `json:"trustContextSha256,omitempty"`
-	EffectiveBusinessFinalized        int               `json:"effectiveBusinessFinalized"`
-	ActualOfferToFinalityMeasured     bool              `json:"actualOfferToFinalityMeasured"`
-	VerifierPreparationNs             int64             `json:"verifierPreparationNs,string"`
-	VerifierProcessNs                 int64             `json:"verifierProcessNs,string"`
-	VerifierEvidenceDurabilityNs      int64             `json:"verifierEvidenceDurabilityNs,string"`
-	VerifierResultValidationNs        int64             `json:"verifierResultValidationNs,string"`
-	ProofVerificationNs               int64             `json:"proofVerificationNs,string"`
-	ProofVerificationStatus           string            `json:"proofVerificationStatus,omitempty"`
-	ProofVerificationError            string            `json:"proofVerificationError,omitempty"`
-	VerifierEvidencePath              string            `json:"verifierEvidencePath,omitempty"`
-	VerifierEvidenceSHA256            string            `json:"verifierEvidenceSha256,omitempty"`
-	CometIndex                        *uint32           `json:"cometIndex,omitempty"`
-	Phases                            pqCasePhases      `json:"clientPhases"`
-	ProofCollectionStatus             string            `json:"proofCollectionStatus,omitempty"`
-	ProofCollectionError              string            `json:"proofCollectionError,omitempty"`
-	ProofEvidencePath                 string            `json:"proofEvidencePath,omitempty"`
-	ProofEvidenceSHA256               string            `json:"proofEvidenceSha256,omitempty"`
-	ProofEvidenceBytes                int               `json:"proofEvidenceBytes,omitempty"`
-	RegistrationObserved              bool              `json:"registrationObserved"`
-	AccountActivationHeight           uint64            `json:"accountActivationHeight,string,omitempty"`
-	TransactionType                   string            `json:"transactionType"`
-	NativeTransactionHash             string            `json:"nativeTransactionHash"`
-	Protocol                          string            `json:"protocol"`
-	Status                            string            `json:"status"`
-	BatchHash                         string            `json:"batchHash,omitempty"`
-	ABCITransactionHash               string            `json:"abciTransactionHash"`
-	Members                           int               `json:"members"`
-	SubmissionAttempts                int               `json:"submissionAttempts"`
-	OriginalReadbackAttempts          int               `json:"originalReadbackAttempts"`
-	InitialSubmissionUnknown          bool              `json:"initialSubmissionUnknown"`
-	EffectiveBusinessIncludedObserved int               `json:"effectiveBusinessIncludedObserved"`
-	RejectedMembers                   int               `json:"rejectedMembers"`
-	ExecutionHeight                   uint64            `json:"executionHeight,string"`
-	ObservationElapsedNs              int64             `json:"observationElapsedNs,string"`
-	ConfiguredRPCObservationOnly      bool              `json:"configuredRPCObservationOnly"`
-	IndependentFinalityVerified       bool              `json:"independentFinalityVerified"`
-	SustainedTPSQualified             bool              `json:"sustainedTPSQualified"`
-	Error                             string            `json:"error,omitempty"`
-	GoVersion                         string            `json:"goVersion"`
-	BuildSettings                     map[string]string `json:"buildSettings"`
+	ReadbackIndexMode                          string            `json:"readbackIndexMode"`
+	ReadbackOnly                               bool              `json:"readbackOnly"`
+	SubmissionToFirstCommittedRPCObservationNs *int64            `json:"submissionToFirstCommittedRPCObservationNs,string,omitempty"`
+	FirstCommittedRPCObservationSource         string            `json:"firstCommittedRPCObservationSource,omitempty"`
+	FirstCommittedRPCHeight                    uint64            `json:"firstCommittedRPCHeight,string,omitempty"`
+	FirstCommittedRPCIndex                     *uint32           `json:"firstCommittedRPCIndex,omitempty"`
+	ConsensusExecutionOutcome                  string            `json:"consensusExecutionOutcome,omitempty"`
+	FinalizedBusinessHashes                    []string          `json:"finalizedBusinessHashes,omitempty"`
+	RegistrationFinalized                      bool              `json:"registrationFinalized"`
+	VerifierProcessStarted                     bool              `json:"verifierProcessStarted"`
+	VerifierInterrupted                        bool              `json:"verifierInterrupted"`
+	VerifierExitCode                           *int              `json:"verifierExitCode,omitempty"`
+	ProofVerifierSHA256                        string            `json:"proofVerifierSha256,omitempty"`
+	TrustContextSHA256                         string            `json:"trustContextSha256,omitempty"`
+	EffectiveBusinessFinalized                 int               `json:"effectiveBusinessFinalized"`
+	ActualOfferToFinalityMeasured              bool              `json:"actualOfferToFinalityMeasured"`
+	VerifierPreparationNs                      int64             `json:"verifierPreparationNs,string"`
+	VerifierProcessNs                          int64             `json:"verifierProcessNs,string"`
+	VerifierEvidenceDurabilityNs               int64             `json:"verifierEvidenceDurabilityNs,string"`
+	VerifierResultValidationNs                 int64             `json:"verifierResultValidationNs,string"`
+	ProofVerificationNs                        int64             `json:"proofVerificationNs,string"`
+	ProofVerificationStatus                    string            `json:"proofVerificationStatus,omitempty"`
+	ProofVerificationError                     string            `json:"proofVerificationError,omitempty"`
+	VerifierEvidencePath                       string            `json:"verifierEvidencePath,omitempty"`
+	VerifierEvidenceSHA256                     string            `json:"verifierEvidenceSha256,omitempty"`
+	CometIndex                                 *uint32           `json:"cometIndex,omitempty"`
+	Phases                                     pqCasePhases      `json:"clientPhases"`
+	ProofCollectionStatus                      string            `json:"proofCollectionStatus,omitempty"`
+	ProofCollectionError                       string            `json:"proofCollectionError,omitempty"`
+	ProofEvidencePath                          string            `json:"proofEvidencePath,omitempty"`
+	ProofEvidenceSHA256                        string            `json:"proofEvidenceSha256,omitempty"`
+	ProofEvidenceBytes                         int               `json:"proofEvidenceBytes,omitempty"`
+	RegistrationObserved                       bool              `json:"registrationObserved"`
+	AccountActivationHeight                    uint64            `json:"accountActivationHeight,string,omitempty"`
+	TransactionType                            string            `json:"transactionType"`
+	NativeTransactionHash                      string            `json:"nativeTransactionHash"`
+	Protocol                                   string            `json:"protocol"`
+	Status                                     string            `json:"status"`
+	BatchHash                                  string            `json:"batchHash,omitempty"`
+	ABCITransactionHash                        string            `json:"abciTransactionHash"`
+	Members                                    int               `json:"members"`
+	SubmissionAttempts                         int               `json:"submissionAttempts"`
+	OriginalReadbackAttempts                   int               `json:"originalReadbackAttempts"`
+	InitialSubmissionUnknown                   bool              `json:"initialSubmissionUnknown"`
+	EffectiveBusinessIncludedObserved          int               `json:"effectiveBusinessIncludedObserved"`
+	RejectedMembers                            int               `json:"rejectedMembers"`
+	ExecutionHeight                            uint64            `json:"executionHeight,string"`
+	ObservationElapsedNs                       int64             `json:"observationElapsedNs,string"`
+	ConfiguredRPCObservationOnly               bool              `json:"configuredRPCObservationOnly"`
+	IndependentFinalityVerified                bool              `json:"independentFinalityVerified"`
+	SustainedTPSQualified                      bool              `json:"sustainedTPSQualified"`
+	Error                                      string            `json:"error,omitempty"`
+	GoVersion                                  string            `json:"goVersion"`
+	BuildSettings                              map[string]string `json:"buildSettings"`
 }
 
 func pqWholeCaseSelected(o options) bool {
-	return o.pqRegistrationWire != "" || o.pqMemberWire != "" || o.pqWholeWire != "" || o.pqGateway != "" || o.pqReadbackOnly || o.pqCollectProof || pqCaseVerifierSelected(o)
+	return o.pqRegistrationWire != "" || o.pqMemberWire != "" || o.pqWholeWire != "" || o.pqGateway != "" || o.pqReadbackOnly || o.pqCollectProof || pqCaseVerifierSelected(o) || o.pqReadbackIndexBaseline
 }
 func validatePQWholeCaseOptions(o options) error {
 	if err := validatePQCaseVerifierOptions(o); err != nil {
@@ -246,7 +252,25 @@ func (p pqWholeCase) committedResponse(raw []byte) (int, int, uint64, *uint32, e
 	n, rejected, e := p.validateCommitted(v)
 	return n, rejected, v.ExecutionHeight, v.CometIndex, e
 }
-func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gateway string, readOnly bool) pqWholeCaseReport {
+func (p pqWholeCase) committedReadback(raw []byte, baseline bool) (int, int, uint64, *uint32, error) {
+	n, rejected, height, index, e := p.committedResponse(raw)
+	if e != nil || !baseline {
+		return n, rejected, height, index, e
+	}
+	// Exact original extra GET parse, retained only for a same-binary paired
+	// measurement. It cannot change validation, wire, signature or RPC behavior.
+	var repeated struct {
+		CometIndex *uint32 `json:"cometIndex"`
+	}
+	if e = json.Unmarshal(raw, &repeated); e != nil {
+		return 0, 0, 0, nil, e
+	}
+	if repeated.CometIndex == nil || index == nil || *repeated.CometIndex != *index {
+		return 0, 0, 0, nil, errors.New("repeated readback index differs from strict original decode")
+	}
+	return n, rejected, height, index, nil
+}
+func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gateway string, readOnly bool, baseline ...bool) pqWholeCaseReport {
 	started := time.Now()
 	r := pqWholeCaseReport{TransactionType: p.kind, NativeTransactionHash: p.native, Protocol: ynxbatch.Version, Status: "submission_unknown", BatchHash: p.batch, ABCITransactionHash: p.outer, Members: len(p.members), ConfiguredRPCObservationOnly: true, GoVersion: runtime.Version(), BuildSettings: map[string]string{}}
 	if info, ok := debug.ReadBuildInfo(); ok {
@@ -254,6 +278,24 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 			if strings.HasPrefix(s.Key, "vcs.") {
 				r.BuildSettings[s.Key] = s.Value
 			}
+		}
+	}
+	repeatIndex := len(baseline) > 0 && baseline[0]
+	r.ReadbackIndexMode = "reuse-validated-index"
+	if repeatIndex {
+		r.ReadbackIndexMode = "decode-index-again"
+	}
+	r.ReadbackOnly = readOnly
+	var submissionStarted time.Time
+	recordFirstCommitted := func(source string, height uint64, index *uint32) {
+		if r.FirstCommittedRPCObservationSource != "" {
+			return
+		}
+		r.FirstCommittedRPCObservationSource = source
+		r.FirstCommittedRPCHeight, r.FirstCommittedRPCIndex = height, index
+		if !readOnly && !submissionStarted.IsZero() {
+			elapsed := time.Since(submissionStarted).Nanoseconds()
+			r.SubmissionToFirstCommittedRPCObservationNs = &elapsed
 		}
 	}
 	broadcast, readback := "/transactions/pq/batches/broadcast", "/transactions/pq/wholes/"+p.outer
@@ -268,12 +310,16 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 	if !readOnly {
 		r.SubmissionAttempts = 1
 		phaseStart := time.Now()
+		submissionStarted = phaseStart
 		v, e := pqCaseHTTP(ctx, client, http.MethodPost, strings.TrimRight(gateway, "/")+broadcast, p.wire)
 		r.Phases.SubmissionHTTPNs = time.Since(phaseStart).Nanoseconds()
 		phaseStart = time.Now()
-		_, _, _, _, identityError := p.committedResponse(v)
+		_, _, height, index, identityError := p.committedResponse(v)
 		r.Phases.SubmissionValidationNs = time.Since(phaseStart).Nanoseconds()
 		r.InitialSubmissionUnknown = e != nil || identityError != nil
+		if !r.InitialSubmissionUnknown {
+			recordFirstCommitted("post_response", height, index)
+		}
 	}
 	// Always reconcile the original identity. Never rebroadcast after UNKNOWN.
 	r.OriginalReadbackAttempts = 1
@@ -286,13 +332,19 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 		return r
 	}
 	phaseStart = time.Now()
-	admitted, rejected, height, index, e := p.committedResponse(v)
+	admitted, rejected, height, index, e := p.committedReadback(v, repeatIndex)
 	r.Phases.OriginalReadbackValidationNs = time.Since(phaseStart).Nanoseconds()
 	if e != nil {
 		r.Error = e.Error()
 		r.ObservationElapsedNs = time.Since(started).Nanoseconds()
 		return r
 	}
+	if r.FirstCommittedRPCObservationSource != "" && (r.FirstCommittedRPCHeight != height || r.FirstCommittedRPCIndex == nil || index == nil || *r.FirstCommittedRPCIndex != *index) {
+		r.Error = "original POST/readback committed coordinates differ"
+		r.ObservationElapsedNs = time.Since(started).Nanoseconds()
+		return r
+	}
+	recordFirstCommitted("original_get", height, index)
 	r.CometIndex = index
 	r.Status = "committed_observed"
 	if p.kind == consensus.PQInitialRegistrationType {
@@ -379,7 +431,7 @@ func executePQWholeCase(o options) (returned error) {
 	transport := &http.Transport{DisableKeepAlives: true, MaxConnsPerHost: 1}
 	defer transport.CloseIdleConnections()
 	client := &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	report := runPQWholeCase(ctx, client, p, o.pqGateway, o.pqReadbackOnly)
+	report := runPQWholeCase(ctx, client, p, o.pqGateway, o.pqReadbackOnly, o.pqReadbackIndexBaseline)
 	report.Phases.InputPreparationNs = inputPreparationNs
 	report.Phases.IntentDurabilityNs = intentDurabilityNs
 	if o.pqCollectProof && (report.Status == "committed_observed" || report.Status == "registration_observed") {

@@ -64,6 +64,10 @@ func TestPQWholeCaseReadbackReturnsValidatedIndexWithoutSecondDecode(t *testing.
 	if _, _, _, _, e = p.committedResponse(changed); e == nil {
 		t.Fatal("missing index bypassed original committed validation")
 	}
+	beforeN, beforeRejected, beforeHeight, beforeIndex, beforeErr := p.committedReadback(raw, true)
+	if beforeErr != nil || beforeN != admitted || beforeRejected != rejected || beforeHeight != height || beforeIndex == nil || *beforeIndex != *index {
+		t.Fatal("same-binary baseline changed original results", beforeErr)
+	}
 	t.Logf("UNIT_READBACK_ONLY members=%d wireBytes=%d responseBytes=%d; no actual business execution/TPS", len(p.members), len(p.wire), len(raw))
 }
 
