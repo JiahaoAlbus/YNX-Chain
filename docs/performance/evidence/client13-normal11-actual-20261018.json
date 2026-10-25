@@ -1,0 +1,58 @@
+{
+  "case": "client13-normal-11",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-11.json",
+  "rawSHA256": "cb7198216e83a1f17346e1b8077822bab60f3c96466bc7a00428575a029ae375",
+  "rawBytes": 82199,
+  "launcher": 45005,
+  "controllerSession": 16127,
+  "elapsedMs": 22505,
+  "go": {
+    "pid": 45050,
+    "code": null,
+    "signal": "SIGKILL",
+    "stdout": "=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/complete\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/gap\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/partial\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/corrupt\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/bad_signature\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/wrong_fixture\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/budget\n--- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves (0.33s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/complete (0.06s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/gap (0.05s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/partial (0.04s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/corrupt (0.05s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/bad_signature (0.05s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/wrong_fixture (0.04s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/budget (0.04s)\n=== RUN   TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged\n--- PASS: TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged (0.03s)\n=== RUN   TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix\n",
+    "stderr": "",
+    "exited": true
+  },
+  "sourceChecks": [
+    {
+      "head": "dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c",
+      "sourceCommit": "dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "0b03f3ea50294ffc0d24c2252de08ed5e97e80ed"
+      }
+    },
+    {
+      "head": "dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c",
+      "sourceCommit": "dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "0b03f3ea50294ffc0d24c2252de08ed5e97e80ed"
+      }
+    }
+  ],
+  "driverPins": {
+    "consensus-light-window.mjs": "ffb6f56f2c77ffa6dad1c85a6ce8e84111038431fbdcb2ff1bc036df21b47632",
+    "consensus-light-plan.mjs": "7a12fa93a968fcb384c2968b0ab56504bb18e78516ac4e5cbbd6ad789e2d9e6a",
+    "native-resource-sample.mjs": "dae49d8576fdb49d0f25c1590ae29f2d59af9b7a7fdab182408ce3eb36e883ad",
+    "owned-process-race.mjs": "edeaa6284921b805eb8eb7b45a24c51580da1de131a0d830c11b3ce92e10127c",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "firstCause": "ENOENT: no such file or directory, lstat '/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/light-client13-GcOH7v/tests/TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix985142246/001/network/validator-3'",
+  "groupGone": true,
+  "peakRSS": 433373184,
+  "peakLowerBoundRSS": 433373184,
+  "peakThreads": 21,
+  "peakScratchBytes": 34041856,
+  "actualTopLevelPasses": [
+    "TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves",
+    "TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged"
+  ],
+  "actualSupplyPhaseRows": [],
+  "interpretation": "Private Go test scratch cleanup raced lstat; original guard killed test before phase helper. No complete13 or phase sample inferred. Concurrent A START was reported to Root with actual timing; no task was manually killed/restarted. Original raw retained, no retry of11."
+}

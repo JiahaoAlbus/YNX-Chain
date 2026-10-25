@@ -89,6 +89,8 @@ type ProductionCandidatePackageManifest struct {
 	GenesisTime        string            `json:"genesisTime"`
 	Roles              []string          `json:"roles"`
 	Files              map[string]string `json:"files"`
+	OperatorProfile    string            `json:"operatorProfile,omitempty"`
+	OperatorPlanHash   string            `json:"operatorPlanHash,omitempty"`
 }
 
 func (m ProductionValidatorManifest) Validate(migration chain.ConsensusMigrationState) error {
@@ -178,6 +180,10 @@ func (m ProductionValidatorManifest) Validate(migration chain.ConsensusMigration
 }
 
 func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState, validatorManifest ProductionValidatorManifest, output string, genesisTime time.Time) (manifest ProductionCandidatePackageManifest, err error) {
+	return generateProductionCandidatePackage(migration, validatorManifest, output, genesisTime, nil, "")
+}
+
+func generateProductionCandidatePackage(migration chain.ConsensusMigrationState, validatorManifest ProductionValidatorManifest, output string, genesisTime time.Time, operator *ProductionOperatorPlan, operatorHash string) (manifest ProductionCandidatePackageManifest, err error) {
 	if err := validatorManifest.Validate(migration); err != nil {
 		return ProductionCandidatePackageManifest{}, err
 	}
@@ -202,7 +208,7 @@ func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 	}
 	completed := false
 	defer func() {
-		if !completed {
+		if !completed && operator == nil {
 			_ = os.RemoveAll(root)
 		}
 	}()
@@ -212,10 +218,6 @@ func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 		bindings = append(bindings, chain.ConsensusValidatorKeyBinding{ValidatorAddress: node.ValidatorAddress, KeyType: node.ConsensusKeyType, PublicKey: node.ConsensusPubKey, ConsensusAddress: node.ConsensusAddress})
 	}
 	boundMigration, err := migration.BindConsensusValidatorKeys(bindings)
-	if err != nil {
-		return manifest, err
-	}
-	genesis, err := BuildCometGenesis(boundMigration, genesisTime)
 	if err != nil {
 		return manifest, err
 	}
@@ -231,8 +233,25 @@ func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 		return manifest, err
 	}
 	commonGenesisPath := filepath.Join(commonDir, "genesis.json")
-	if err := genesis.SaveAs(commonGenesisPath); err != nil {
-		return manifest, err
+	if operator == nil {
+		genesis, err := BuildCometGenesis(boundMigration, genesisTime)
+		if err != nil {
+			return manifest, err
+		}
+		if err := genesis.SaveAs(commonGenesisPath); err != nil {
+			return manifest, err
+		}
+	} else {
+		if err := writeModeFile(commonGenesisPath, operator.ConsensusGenesis, 0o600); err != nil {
+			return manifest, err
+		}
+		raw, err := json.Marshal(operator)
+		if err != nil {
+			return manifest, err
+		}
+		if err := writeModeFile(filepath.Join(commonDir, "operator-plan.json"), raw, 0o600); err != nil {
+			return manifest, err
+		}
 	}
 	genesisPayload, err := os.ReadFile(commonGenesisPath)
 	if err != nil {
@@ -273,6 +292,10 @@ func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 		config.PrivValidatorState = filepath.Join(ProductionCandidateRoot, "data", "priv_validator_state.json")
 		config.NodeKey = productionNodeKeyPath(node.Role)
 		config.Genesis = filepath.Join(ProductionCandidateRoot, "config", "genesis.json")
+		var operatorRole ProductionOperatorRole
+		if operator != nil {
+			operatorRole = operator.role(node.Role)
+		}
 		config.RPC.ListenAddress = fmt.Sprintf("tcp://127.0.0.1:%d", ProductionCandidateRPCPort)
 		config.P2P.ListenAddress = fmt.Sprintf("tcp://0.0.0.0:%d", node.P2PPort)
 		config.P2P.ExternalAddress = fmt.Sprintf("tcp://%s:%d", node.PrivateP2PHost, node.P2PPort)
@@ -281,6 +304,9 @@ func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 		config.P2P.AddrBookStrict = true
 		config.Instrumentation.Prometheus = true
 		config.Instrumentation.PrometheusListenAddr = fmt.Sprintf("127.0.0.1:%d", ProductionCandidateMetricsPort)
+		if operator != nil {
+			config = productionOperatorCometConfig(node, nodes, operatorRole)
+		}
 		if err := config.ValidateBasic(); err != nil {
 			return manifest, fmt.Errorf("validate production CometBFT config for %s: %w", node.Role, err)
 		}
@@ -301,13 +327,21 @@ func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 			PrivateValidatorKeyPath: productionPrivateValidatorKeyPath(node.Role),
 			NodeKeyPath:             productionNodeKeyPath(node.Role),
 		}
+		if operator != nil {
+			roleManifest.PrivateValidatorKeyPath = operatorRole.LegacyKeyPath
+			roleManifest.NodeKeyPath = operatorRole.NodeKeyPath
+		}
 		if err := writeJSON(filepath.Join(roleDir, "role-manifest.json"), roleManifest, 0o600); err != nil {
 			return manifest, err
 		}
-		if err := writeProductionServices(roleDir, node.Role); err != nil {
+		if err := writeProductionRoleScripts(roleDir, node.Role); err != nil {
 			return manifest, err
 		}
-		if err := writeProductionRoleScripts(roleDir, node.Role); err != nil {
+		if operator == nil {
+			if err := writeProductionServices(roleDir, node.Role); err != nil {
+				return manifest, err
+			}
+		} else if err := writeProductionOperatorRole(roleDir, operator, operatorRole); err != nil {
 			return manifest, err
 		}
 	}
@@ -322,6 +356,10 @@ func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 		Roles:              roles,
 		Files:              map[string]string{},
 	}
+	if operator != nil {
+		manifest.OperatorProfile = ProductionOperatorPlanVersion
+		manifest.OperatorPlanHash = operatorHash
+	}
 	files, err := packageFileHashes(root)
 	if err != nil {
 		return manifest, err
@@ -330,7 +368,7 @@ func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 	if err := writeJSON(filepath.Join(root, "package-manifest.json"), manifest, 0o600); err != nil {
 		return manifest, err
 	}
-	if err := VerifyProductionCandidatePackage(root); err != nil {
+	if err := verifyProductionCandidatePackage(root, operatorHash); err != nil {
 		return manifest, err
 	}
 	completed = true
@@ -338,6 +376,10 @@ func GenerateProductionCandidatePackage(migration chain.ConsensusMigrationState,
 }
 
 func VerifyProductionCandidatePackage(root string) error {
+	return verifyProductionCandidatePackage(root, "")
+}
+
+func verifyProductionCandidatePackage(root, independentOperatorHash string) error {
 	payload, err := os.ReadFile(filepath.Join(root, "package-manifest.json"))
 	if err != nil {
 		return fmt.Errorf("read production candidate package manifest: %w", err)
@@ -345,6 +387,12 @@ func VerifyProductionCandidatePackage(root string) error {
 	var manifest ProductionCandidatePackageManifest
 	if err := json.Unmarshal(payload, &manifest); err != nil {
 		return fmt.Errorf("decode production candidate package manifest: %w", err)
+	}
+	if (manifest.OperatorProfile != "" || manifest.OperatorPlanHash != "") && independentOperatorHash == "" {
+		return errors.New("operator package requires independent operator plan hash at verification")
+	}
+	if independentOperatorHash != "" && (manifest.OperatorProfile != ProductionOperatorPlanVersion || manifest.OperatorPlanHash != independentOperatorHash) {
+		return errors.New("operator package differs from independent plan pin or attempts a legacy downgrade")
 	}
 	if manifest.Version != ProductionCandidatePackageVersion || manifest.Purpose != ProductionValidatorManifestPurpose || manifest.CandidateRoot != ProductionCandidateRoot || len(manifest.Roles) != 4 || len(manifest.Files) == 0 {
 		return errors.New("production candidate package manifest is incomplete")
@@ -379,6 +427,30 @@ func VerifyProductionCandidatePackage(root string) error {
 	if err := migration.ValidateConsensusValidatorKeys(); err != nil {
 		return fmt.Errorf("validate common production migration: %w", err)
 	}
+	canonicalMigration, err := migration.CanonicalJSON()
+	if err != nil {
+		return err
+	}
+	if _, _, err := validateCometMigrationAppState(genesis.AppState, migration, canonicalMigration); err != nil {
+		return fmt.Errorf("common genesis differs from complete original migration sidecar: %w", err)
+	}
+	var operator *ProductionOperatorPlan
+	if manifest.OperatorProfile != "" || manifest.OperatorPlanHash != "" {
+		if manifest.OperatorProfile != ProductionOperatorPlanVersion {
+			return errors.New("unsupported production operator profile")
+		}
+		raw, err := os.ReadFile(filepath.Join(root, "common", "operator-plan.json"))
+		if err != nil {
+			return err
+		}
+		decoded, err := DecodeProductionOperatorPlan(raw, independentOperatorHash)
+		if err != nil {
+			return err
+		}
+		operator = &decoded
+	} else if _, err := os.Lstat(filepath.Join(root, "common", "operator-plan.json")); !errors.Is(err, os.ErrNotExist) {
+		return errors.New("operator plan cannot be consumed as a legacy package")
+	}
 	appHash, err := hex.DecodeString(migration.StateHash)
 	if err != nil || migration.StateHash != manifest.MigrationStateHash || !bytes.Equal(genesis.AppHash, appHash) {
 		return errors.New("production candidate migration AppHash is inconsistent")
@@ -402,7 +474,11 @@ func VerifyProductionCandidatePackage(root string) error {
 		if err := json.Unmarshal(rolePayload, &roleManifest); err != nil {
 			return err
 		}
-		if roleManifest.Version != manifest.Version || roleManifest.Purpose != manifest.Purpose || roleManifest.ChainID != manifest.ChainID || roleManifest.CandidateRoot != manifest.CandidateRoot || roleManifest.GenesisHash != manifest.GenesisHash || roleManifest.MigrationStateHash != manifest.MigrationStateHash || roleManifest.Node.Role != role || roleManifest.PrivateValidatorKeyPath != productionPrivateValidatorKeyPath(role) || roleManifest.NodeKeyPath != productionNodeKeyPath(role) {
+		keyPath, nodePath := productionPrivateValidatorKeyPath(role), productionNodeKeyPath(role)
+		if operator != nil {
+			keyPath, nodePath = operator.role(role).LegacyKeyPath, operator.role(role).NodeKeyPath
+		}
+		if roleManifest.Version != manifest.Version || roleManifest.Purpose != manifest.Purpose || roleManifest.ChainID != manifest.ChainID || roleManifest.CandidateRoot != manifest.CandidateRoot || roleManifest.GenesisHash != manifest.GenesisHash || roleManifest.MigrationStateHash != manifest.MigrationStateHash || roleManifest.Node.Role != role || roleManifest.PrivateValidatorKeyPath != keyPath || roleManifest.NodeKeyPath != nodePath {
 			return fmt.Errorf("production candidate role manifest for %s is inconsistent", role)
 		}
 		nodes = append(nodes, roleManifest.Node)
@@ -424,8 +500,8 @@ func VerifyProductionCandidatePackage(root string) error {
 			fmt.Sprintf(`laddr = "tcp://127.0.0.1:%d"`, ProductionCandidateRPCPort),
 			fmt.Sprintf(`laddr = "tcp://0.0.0.0:%d"`, roleManifest.Node.P2PPort),
 			fmt.Sprintf(`external_address = "tcp://%s:%d"`, roleManifest.Node.PrivateP2PHost, roleManifest.Node.P2PPort),
-			productionPrivateValidatorKeyPath(role),
-			productionNodeKeyPath(role),
+			keyPath,
+			nodePath,
 		} {
 			if !strings.Contains(configText, required) {
 				return fmt.Errorf("production candidate role %s config is missing required boundary %q", role, required)
@@ -440,6 +516,17 @@ func VerifyProductionCandidatePackage(root string) error {
 	publicManifest := ProductionValidatorManifest{Version: ProductionValidatorManifestVersion, Purpose: ProductionValidatorManifestPurpose, ChainID: manifest.ChainID, Validators: nodes}
 	if err := publicManifest.Validate(migration); err != nil {
 		return fmt.Errorf("validate production candidate role set: %w", err)
+	}
+	if operator != nil {
+		if err := validateProductionOperatorPlan(*operator, migration, publicManifest, genesisTime); err != nil {
+			return err
+		}
+		if !bytes.Equal(operator.ConsensusGenesis, commonGenesis) {
+			return errors.New("operator original genesis bytes differ")
+		}
+		if err := verifyProductionOperatorFiles(root, operator); err != nil {
+			return err
+		}
 	}
 	for relativePath, expectedHash := range manifest.Files {
 		clean := filepath.Clean(relativePath)
@@ -618,12 +705,19 @@ test "$(id -u)" = 0 || { echo "candidate install requires root" >&2; exit 1; }
 role_dir="$(cd "$(dirname "$0")/.." && pwd)"
 binary_dir="$(cd "$role_dir/../bin" && pwd)"
 key_dir=/etc/ynx/consensus-candidate/%s
+umask 077
 test -x "$binary_dir/ynx-abci"
 test -x "$binary_dir/ynx-consensus-keycheck"
 test -x "$binary_dir/cometbft"
 test -s "$key_dir/priv_validator_key.json"
 test -s "$key_dir/node_key.json"
+test -s "$key_dir/priv_validator_state.json"
 "$binary_dir/ynx-consensus-keycheck" -role-manifest "$role_dir/role-manifest.json" -private-validator-key "$key_dir/priv_validator_key.json" -node-key "$key_dir/node_key.json"
+# Claim a NEW tree atomically after real key verification. EEXIST also refuses
+# symlinks, partial installs, old HRS and a concurrent install. Never clean up a
+# failed claim or partial install: it may already contain signing history.
+mkdir -p /var/lib/ynx-chain
+mkdir -m 0700 /var/lib/ynx-chain/consensus-candidate
 install -d -m 0755 -o root -g root /var/lib/ynx-chain/consensus-candidate/bin
 install -m 0755 -o root -g root "$binary_dir/ynx-abci" /var/lib/ynx-chain/consensus-candidate/bin/ynx-abci
 install -m 0755 -o root -g root "$binary_dir/ynx-consensus-keycheck" /var/lib/ynx-chain/consensus-candidate/bin/ynx-consensus-keycheck
@@ -633,25 +727,35 @@ install -m 0600 -o ynx -g ynx "$key_dir/priv_validator_state.json" /var/lib/ynx-
 install -m 0600 -o ynx -g ynx "$role_dir/config/config.toml" /var/lib/ynx-chain/consensus-candidate/config/config.toml
 install -m 0600 -o ynx -g ynx "$role_dir/config/genesis.json" /var/lib/ynx-chain/consensus-candidate/config/genesis.json
 install -m 0600 -o ynx -g ynx "$role_dir/config/bound-migration.json" /var/lib/ynx-chain/consensus-candidate/config/bound-migration.json
+# Permit the service account to traverse the root only after installation.
+chmod 0755 /var/lib/ynx-chain/consensus-candidate
 install -m 0644 "$role_dir/systemd/ynx-consensus-abci-candidate.service" /etc/systemd/system/ynx-consensus-abci-candidate.service
 install -m 0644 "$role_dir/systemd/ynx-consensus-comet-candidate.service" /etc/systemd/system/ynx-consensus-comet-candidate.service
 systemctl daemon-reload
 systemctl enable --now ynx-consensus-abci-candidate.service ynx-consensus-comet-candidate.service
-echo "candidate installed on parallel ports; authoritative ynx-chaind was not modified"
+echo "fresh candidate tree installed without replacing prior signing state; protocol activation or recovery is not established"
 `, role),
 		"backup-candidate.sh": `#!/usr/bin/env bash
 set -euo pipefail
 test "$(id -u)" = 0 || { echo "candidate backup requires root" >&2; exit 1; }
 output="${1:?candidate snapshot archive is required}"
+test "$#" = 1
 test -d /var/lib/ynx-chain/consensus-candidate
+umask 077
 mkdir -p "$(dirname "$output")"
 partial="$output.partial"
-rm -f "$partial"
-tar -czf "$partial" /var/lib/ynx-chain/consensus-candidate /etc/systemd/system/ynx-consensus-abci-candidate.service /etc/systemd/system/ynx-consensus-comet-candidate.service
+if test -e "$output" || test -L "$output"; then
+  echo "candidate backup output already exists; retained unchanged" >&2
+  exit 1
+fi
+# GNU dd conv=excl claims the partial with O_EXCL, including symlinks/FIFOs.
+# pipefail retains tar/dd's failure and any partial bytes without a retry.
+tar -czf - /var/lib/ynx-chain/consensus-candidate /etc/systemd/system/ynx-consensus-abci-candidate.service /etc/systemd/system/ynx-consensus-comet-candidate.service | dd of="$partial" conv=excl status=none
 tar -tzf "$partial" >/dev/null
-mv "$partial" "$output"
-chmod 0600 "$output"
-echo "candidate state snapshot created; validator private keys require separate owner-controlled backup"
+# A hard link publishes without overwriting any competing destination; -T
+# also rejects directory destinations. Retain the partial on success or error.
+ln -T -- "$partial" "$output"
+echo "candidate archive captured; partial retained; online consistency is not established and automatic signing-state restoration is forbidden"
 `,
 		"verify-candidate.sh": `#!/usr/bin/env bash
 set -euo pipefail
@@ -675,17 +779,10 @@ set -euo pipefail
 test "$(id -u)" = 0 || { echo "candidate rollback requires root" >&2; exit 1; }
 snapshot="${1:?candidate snapshot archive is required}"
 test -s "$snapshot"
-while IFS= read -r entry; do
-  case "$entry" in
-    var/lib/ynx-chain/consensus-candidate|var/lib/ynx-chain/consensus-candidate/*|etc/systemd/system/ynx-consensus-abci-candidate.service|etc/systemd/system/ynx-consensus-comet-candidate.service) ;;
-    *) echo "unsafe candidate snapshot entry: $entry" >&2; exit 1 ;;
-  esac
-done < <(tar -tzf "$snapshot")
-systemctl stop ynx-consensus-comet-candidate.service ynx-consensus-abci-candidate.service || true
-rm -rf /var/lib/ynx-chain/consensus-candidate
-tar -xzf "$snapshot" -C /
-systemctl daemon-reload
-echo "candidate state restored; authoritative ynx-chaind was not modified"
+# A snapshot cannot prove that its HRS and signed history are still current.
+# Do not stop services, remove the tree, extract old state, or report success.
+echo "unsafe automatic candidate state rollback refused: preserve current HRS, signed history and archive; independently review recovery without rewinding signing state" >&2
+exit 1
 `,
 	}
 	for name, body := range scripts {

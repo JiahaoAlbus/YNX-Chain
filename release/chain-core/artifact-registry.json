@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 2,
+  "source": "YNX Chain Core release process",
+  "asOf": "2026-07-29T19:06:46Z",
+  "artifacts": [
+    {
+      "id": "chain-core-source-7c724e5",
+      "kind": "source-archive",
+      "product": "YNX Chain Core",
+      "version": "0.2.0-source-candidate",
+      "release": "source-candidate",
+      "environment": "github-prerelease",
+      "sourceCommit": "7c724e5f330afd4e7863b101cb230d84e3f9cd69",
+      "path": "ynx-chain-core-source-7c724e5f330a.tar.gz",
+      "sha256": "6828d6c0b008964394716de87646e90ea64b59faaae85be16e030b24c63995b6",
+      "bytes": 6474374,
+      "mediaType": "application/gzip",
+      "platform": "source",
+      "architecture": "any",
+      "buildRun": "git-archive:7c724e5f330afd4e7863b101cb230d84e3f9cd69",
+      "signingClass": "unsigned-source",
+      "minimumOs": "Any operating system with gzip and POSIX tar support",
+      "installEvidence": "not-applicable-source-archive",
+      "coldStartEvidence": "not-applicable-source-archive",
+      "reproducibilityStatus": "download-digest-reverified",
+      "verificationStatus": "verified-hosted-source",
+      "verificationEvidence": "GitHub release asset digest and independent post-upload download SHA-256 match",
+      "revocationStatus": "active",
+      "publicReleaseEligible": false,
+      "hostedStatus": "github-source-prerelease",
+      "downloadUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/download/chain-core-v0.2.0-source-candidate/ynx-chain-core-source-7c724e5f330a.tar.gz",
+      "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/chain-core-v0.2.0-source-candidate",
+      "releaseTag": "chain-core-v0.2.0-source-candidate",
+      "productionSigned": false
+    }
+  ]
+}

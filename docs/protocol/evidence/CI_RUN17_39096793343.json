@@ -1,0 +1,225 @@
+{
+  "conclusion": "failure",
+  "jobs": [
+    {
+      "completedAt": "2026-10-18T04:24:14Z",
+      "conclusion": "failure",
+      "databaseId": 117584820846,
+      "name": "focused-go",
+      "startedAt": "2026-10-18T04:21:20Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-18T04:21:22Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-18T04:21:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:21:30Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "startedAt": "2026-10-18T04:21:22Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:21:37Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "number": 3,
+          "startedAt": "2026-10-18T04:21:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:21:37Z",
+          "conclusion": "success",
+          "name": "Record exact candidate identity",
+          "number": 4,
+          "startedAt": "2026-10-18T04:21:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:22:33Z",
+          "conclusion": "failure",
+          "name": "Verify pure dual-PQ protocol and account authorization",
+          "number": 5,
+          "startedAt": "2026-10-18T04:21:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:22:40Z",
+          "conclusion": "failure",
+          "name": "Verify forked engine keys and actual consensus objects",
+          "number": 6,
+          "startedAt": "2026-10-18T04:22:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:22:54Z",
+          "conclusion": "success",
+          "name": "Compile forked state and consensus engine without starting nodes",
+          "number": 7,
+          "startedAt": "2026-10-18T04:22:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:22:55Z",
+          "conclusion": "success",
+          "name": "Measure bounded certificate cache cold and warm paths",
+          "number": 8,
+          "startedAt": "2026-10-18T04:22:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:23:02Z",
+          "conclusion": "success",
+          "name": "Install pinned contract build runtime",
+          "number": 9,
+          "startedAt": "2026-10-18T04:22:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:23:06Z",
+          "conclusion": "success",
+          "name": "Compile frozen measured production overlay without executing cases",
+          "number": 10,
+          "startedAt": "2026-10-18T04:23:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:23:12Z",
+          "conclusion": "success",
+          "name": "Generate canonical IDE contract fixture",
+          "number": 11,
+          "startedAt": "2026-10-18T04:23:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:23:47Z",
+          "conclusion": "success",
+          "name": "Verify native ledger and HTTP PQ integration",
+          "number": 12,
+          "startedAt": "2026-10-18T04:23:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:23:51Z",
+          "conclusion": "success",
+          "name": "Compile production entry points",
+          "number": 13,
+          "startedAt": "2026-10-18T04:23:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:24:02Z",
+          "conclusion": "success",
+          "name": "Verify complete state bridge and sponsor continuity",
+          "number": 14,
+          "startedAt": "2026-10-18T04:23:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:24:09Z",
+          "conclusion": "success",
+          "name": "Verify Whole BFT gateway and native container readback",
+          "number": 15,
+          "startedAt": "2026-10-18T04:24:02Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:24:10Z",
+          "conclusion": "success",
+          "name": "Emit public inverse interop fixture",
+          "number": 16,
+          "startedAt": "2026-10-18T04:24:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:24:11Z",
+          "conclusion": "success",
+          "name": "Upload public signature fixture",
+          "number": 17,
+          "startedAt": "2026-10-18T04:24:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:24:11Z",
+          "conclusion": "skipped",
+          "name": "Post Install pinned contract build runtime",
+          "number": 32,
+          "startedAt": "2026-10-18T04:24:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:24:11Z",
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "number": 33,
+          "startedAt": "2026-10-18T04:24:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:24:11Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 34,
+          "startedAt": "2026-10-18T04:24:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:24:11Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 35,
+          "startedAt": "2026-10-18T04:24:11Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39096793343/job/117584820846"
+    },
+    {
+      "completedAt": "2026-10-18T04:21:18Z",
+      "conclusion": "skipped",
+      "databaseId": 117584821998,
+      "name": "verify",
+      "startedAt": "2026-10-18T04:21:19Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39096793343/job/117584821998"
+    },
+    {
+      "completedAt": "2026-10-18T04:24:14Z",
+      "conclusion": "skipped",
+      "databaseId": 117585318243,
+      "name": "pq-paired-n1",
+      "startedAt": "2026-10-18T04:24:15Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39096793343/job/117585318243"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39096793343",
+  "schema": 1,
+  "runId": "39096793343",
+  "sourceCommit": "a50f7bc4fd28ca5a17780c1be674c54c66657c1b",
+  "rawLog": {
+    "sha256": "9a243bdd3d9e872cefde65decf44819b1afa6fe3b3db948b0b82473244b9018c",
+    "bytes": 102445
+  },
+  "actualFailures": [
+    "TestStockCometRejectsCandidateEnvelope: legacy structural assertion in fork context",
+    "TestRealPQDuplicateEvidenceUsesBothVotesAndHistoricalKeys: legacy structural assertion in fork context",
+    "TestYNXFullKeyOneofWireDescriptorAndReflection: unsupported gogo Buffer deterministic API"
+  ],
+  "acceptance": {
+    "completeVersionPassed": false,
+    "publicActivation": false,
+    "forkStateAndConsensus": "compile-only; no nodes",
+    "walletRestoredGoConsumer": "actual package PASS",
+    "chainAPIAndConsensus": "actual package PASS"
+  }
+}

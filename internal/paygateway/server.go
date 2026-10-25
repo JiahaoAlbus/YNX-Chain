@@ -2,6 +2,7 @@ package paygateway
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -104,9 +105,13 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	s.service.StartRequest()
 	resp, err := s.service.Proxy(r.Context(), r.Method, r.URL.Path, r.URL.RawQuery, body, requestID)
 	if err != nil {
-		s.service.FinishRequest(http.StatusBadGateway)
-		s.audit(r, requestID, body, http.StatusBadGateway, "upstream_error")
-		writeError(w, http.StatusBadGateway, requestID, err.Error())
+		status, outcome := http.StatusBadGateway, "upstream_error"
+		if errors.Is(err, ErrMerchantObjectForbidden) {
+			status, outcome = http.StatusForbidden, "merchant_object_forbidden"
+		}
+		s.service.FinishRequest(status)
+		s.audit(r, requestID, body, status, outcome)
+		writeError(w, status, requestID, err.Error())
 		return
 	}
 	defer resp.Body.Close()

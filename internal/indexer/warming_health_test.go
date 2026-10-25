@@ -74,3 +74,30 @@ func TestHealthWaitsForOrdinaryLoadedStoreWriteInsteadOfReportingWarming(t *test
 		t.Fatalf("loaded-store health returned %d: %s", response.Code, response.Body.String())
 	}
 }
+
+func TestHealthPreservesFailedSyncWhileUnloadedStoreIsBusy(t *testing.T) {
+	store := NewStore(t.TempDir() + "/indexer-db.json")
+	server := NewServer(&Indexer{store: store})
+	server.lastError = "upstream connection failed"
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	response := httptest.NewRecorder()
+	done := make(chan struct{})
+	go func() {
+		server.Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/health", nil))
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(250 * time.Millisecond):
+		t.Fatal("failed-sync health waited for the initial store lock")
+	}
+	var payload map[string]any
+	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+		t.Fatal(err)
+	}
+	dependency := payload["dependencies"].(map[string]any)["chainRpc"].(map[string]any)
+	if response.Code != http.StatusServiceUnavailable || payload["ok"] != false || dependency["status"] != "unavailable" {
+		t.Fatalf("warming masked the original failed sync: %d %s", response.Code, response.Body.String())
+	}
+}

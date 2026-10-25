@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-17T17:57:59.062Z",
+  "sourceCommit": "65efa82e06158f9616172144c3c9efdd8088f227",
+  "sourceDerivation": "SHA-256(UTF8(genesis)||00||UTF8(testnet)||00||UTF8(6423)||00)",
+  "expectedNetworkID": "16366ff25bcc73c6bb95d12733be74d1ac885d3daf518ddd0e4bd4438cff243f",
+  "url": "https://rpc.ynxweb4.com/blocks/0",
+  "status": 200,
+  "body": "{\"height\":0,\"hash\":\"16366ff25bcc73c6bb95d12733be74d1ac885d3daf518ddd0e4bd4438cff243f\",\"parentHash\":\"\",\"time\":\"2026-07-11T11:42:50.262450202Z\",\"validator\":\"ynx_validator_primary\",\"transactions\":null}\n"
+}

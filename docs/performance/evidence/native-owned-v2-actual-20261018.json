@@ -1,0 +1,153 @@
+{
+  "schema": 1,
+  "kind": "native-owned-v2-actual-qualified-limits",
+  "noInflight": true,
+  "compile": {
+    "actualExit": 0,
+    "tool": "c0062b",
+    "launcher": 97526,
+    "clang": 97553,
+    "elapsedMs": 280,
+    "firstCause": null,
+    "sampledPeakRSS": 57835520,
+    "interpretation": "Compile completed before first periodic500ms sample; sampled peak is not a measured whole-compile high-water mark."
+  },
+  "differential": {
+    "actualOuterExit": 0,
+    "tool": "1d34d6",
+    "launcher": 97610,
+    "job": {
+      "pid": 97613,
+      "exited": true,
+      "code": 1,
+      "signal": null
+    },
+    "children": [
+      {
+        "pid": 97614,
+        "group": false
+      },
+      {
+        "pid": 97615,
+        "group": true
+      }
+    ],
+    "elapsedMs": 429,
+    "sampledPeakRSS": 113655808,
+    "peakThreads": 18,
+    "checks": [
+      {
+        "kind": "real_stable_family_native_ps_identity_equivalence",
+        "nativeOwned": [
+          97610,
+          97613,
+          97614,
+          97615
+        ],
+        "psOwned": [
+          97610,
+          97613,
+          97614,
+          97615
+        ],
+        "passed": true
+      },
+      {
+        "kind": "seven_fault_mutations_of_actual_native_sample",
+        "passed": true
+      }
+    ],
+    "pressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 1,
+      "errno": 0
+    },
+    "inventoryComplete": true,
+    "unresolved": 0,
+    "host": {
+      "processCount": 858,
+      "uid": 501,
+      "uidProcessCount": 674,
+      "unreadableBsdInfo": 184,
+      "scanComplete": true,
+      "maxproc": 6000,
+      "maxprocperuid": 4000,
+      "rlimitNprocSoft": 4000
+    },
+    "hostDifference": {
+      "onlyNative": [
+        97616
+      ],
+      "onlyPs": [
+        97618
+      ],
+      "interpretation": "Sequential host observations; differences outside the controlled family are retained, not declared atomic equality."
+    }
+  },
+  "cleanup": {
+    "tool": "d1ffde",
+    "actualExit": 0,
+    "identities": [
+      97526,
+      97553,
+      -97553,
+      97610,
+      97613,
+      -97613,
+      97527,
+      -97527,
+      97611,
+      -97611,
+      97616,
+      -97616,
+      97614,
+      97615,
+      -97615,
+      97618
+    ],
+    "allTwiceESRCH": true,
+    "times": [
+      "2026-10-17T18:05:37.104Z",
+      "2026-10-17T18:05:37.206Z"
+    ]
+  },
+  "binaries": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure",
+      "bytes": 34688,
+      "sha256": "3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ynx-consensus-perf-host-owned-v2",
+      "bytes": 34880,
+      "sha256": "a67da4639c9d51146a1024c0cb0fc2b687a8b3883260fa69b4ba39ba86c9882e"
+    }
+  ],
+  "originals": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-owned-v2-compile-light-20261018-01.json",
+      "bytes": 7723,
+      "sha256": "d84c66ecbea021531445975d235be1200bd78d2ba43f0633e60da0b8f7ee74ad"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-owned-v2-host-differential-20261018-01.json",
+      "bytes": 291965,
+      "sha256": "d0c5c6ec418103ccd5d70e5c21a7cb947c9136c37ff9e9f5eccd994d6f090596"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-owned-v2-actual-cleanup-20261018-01.json",
+      "bytes": 3237,
+      "sha256": "7590c41f3e93f8921d7cc0bac694594db5c2234c0595a1724598b72c7d309f79"
+    }
+  ],
+  "qualification": {
+    "nativeCCompiled": true,
+    "realControlledFamilyIdentityDifferential": true,
+    "realSampleSevenFaultMutationsRejected": true,
+    "completeSuitePass": false,
+    "workerExitUnresolved": true,
+    "workerLogs": "stdio ignored in original harness; no original stderr available. Do not invent an explanation or rewrite original receipt.",
+    "adoption": "Candidate pin only. No automatic adoption by another runner until worker/harness qualification is closed and Root authorizes. No Go/network or public deployment proved."
+  }
+}

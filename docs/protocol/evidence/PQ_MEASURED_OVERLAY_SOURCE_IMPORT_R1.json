@@ -1,0 +1,54 @@
+{
+  "upstreamCommit": "b654bb57156138310a2e14f12dd9180596f98e05",
+  "upstreamManifestSha256": "e498eb8e7a2962ce21eb33c9db050e18616e7225f02b20b573db9e4e62a3cea5",
+  "existingProductionMeasurementAPICommit": "6a3b8f813bcc5a2ee8ab0280783b6ebddf3d9c71",
+  "importedLeaves": [
+    {
+      "path": "scripts/loadtest/overlays/pq_paired_performance_test.go.in",
+      "beforeBytes": 18973,
+      "beforeSha256": "ddc6efe9afbb48b1a6f6ea40d2f4ce729bd2b818eeea57bd087dc75fbe5f58d9",
+      "afterBytes": 21453,
+      "afterSha256": "d07ea5853752b987dd94a741e58807d36583126c752a5900747ad89002830da8"
+    },
+    {
+      "path": "scripts/loadtest/prepare-pq-paired-benchmark.mjs",
+      "beforeBytes": 3227,
+      "beforeSha256": "3c37029cd121e1755a1a12ce4f40c13fedd27c2f51ee00a7c033491fab48628b",
+      "afterBytes": 3558,
+      "afterSha256": "6d4b36d283cfb3371a6cb6a0019ec885bf082d858c0e0046a5ef637d17ae33bb"
+    },
+    {
+      "path": "scripts/loadtest/pq-paired-recipe.mjs",
+      "beforeBytes": 2082,
+      "beforeSha256": "13b6a7f90b7d9a41458620eaa30eb5398d3ca04d428fa63a59d0d19384e8ed55",
+      "afterBytes": 2359,
+      "afterSha256": "673eb8965329025e7a516a67e8e04f6a54c3a102b00aafa72f78e86c8748c3eb"
+    },
+    {
+      "path": "scripts/loadtest/pq-paired-recipe.test.mjs",
+      "beforeBytes": 1559,
+      "beforeSha256": "66a172bffe1fa64edde1ee68c62254c743a69607e714359b4b17525a220836a5",
+      "afterBytes": 2062,
+      "afterSha256": "3c71d622cababc330c51e5464f82eace8ef442717ac41ba7c419c00c34176b05"
+    },
+    {
+      "path": "scripts/loadtest/pq-paired-linux-window.py",
+      "beforeBytes": 26144,
+      "beforeSha256": "4f7f8afae8fb556833e29f024e8b435dc61d43c104d420e31bbac5192097ea14",
+      "afterBytes": 30839,
+      "afterSha256": "560131f7e8f31affef37a47d3305248cdbd2376e4c8b38f008e8deaed10e38ed"
+    },
+    {
+      "path": "scripts/loadtest/test_pq_paired_linux_window.py",
+      "beforeBytes": 9757,
+      "beforeSha256": "a992d1f592702b1fd732d15dff1cbe7337e4bd4ab5063039c4afeef42c84048c",
+      "afterBytes": 12596,
+      "afterSha256": "d8903a4df38e819976d1aa34ef6d14fd64d6cf848358cc378ee95568fee364d9"
+    }
+  ],
+  "clientSourceExcluded": "420f/b654 client package not copied; 27f separate immutable checkout only",
+  "goOverlayCompiled": false,
+  "pairExecuted": false,
+  "N16ExecutionAuthorized": false,
+  "requestedNextGate": "original normal CI compile overlay only with -run ^$; no paired test executed"
+}

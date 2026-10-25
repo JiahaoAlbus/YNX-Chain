@@ -28,18 +28,21 @@ type upstreamHealth struct {
 }
 
 type Health struct {
-	OK              bool                      `json:"ok"`
-	Service         string                    `json:"service"`
-	BrowserBoundary string                    `json:"browserBoundary"`
-	NativeBoundary  string                    `json:"nativeBoundary"`
-	WalletBoundary  string                    `json:"walletBoundary"`
-	OwnershipProof  string                    `json:"ownershipProof"`
-	SessionStorage  string                    `json:"sessionStorage"`
-	ActiveSessions  int                       `json:"activeSessions"`
-	RemoteDeployed  bool                      `json:"remoteDeployed"`
-	Upstreams       map[string]upstreamHealth `json:"upstreams"`
-	TruthfulStatus  string                    `json:"truthfulStatus"`
-	Build           buildinfo.Info            `json:"build"`
+	OK                      bool                      `json:"ok"`
+	Service                 string                    `json:"service"`
+	BrowserBoundary         string                    `json:"browserBoundary"`
+	NativeBoundary          string                    `json:"nativeBoundary"`
+	WalletBoundary          string                    `json:"walletBoundary"`
+	OwnershipProof          string                    `json:"ownershipProof"`
+	AccountPolicyConfigured bool                      `json:"accountPolicyConfigured"`
+	ClassicSessionPolicy    string                    `json:"classicSessionPolicy"`
+	PQSessionSupported      bool                      `json:"pqSessionSupported"`
+	SessionStorage          string                    `json:"sessionStorage"`
+	ActiveSessions          int                       `json:"activeSessions"`
+	RemoteDeployed          bool                      `json:"remoteDeployed"`
+	Upstreams               map[string]upstreamHealth `json:"upstreams"`
+	TruthfulStatus          string                    `json:"truthfulStatus"`
+	Build                   buildinfo.Info            `json:"build"`
 }
 
 func NewServer(gateway *Gateway) *Server {
@@ -112,6 +115,8 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		status = "remote-first-party-app-gateway"
 	}
 	health := Health{OK: ok, Service: "ynx-app-gatewayd", BrowserBoundary: "exact-https-origin", NativeBoundary: nativeMobileClient, WalletBoundary: "p256-product-session-proof", OwnershipProof: "ynx1-secp256k1-plus-ed25519-device", SessionStorage: "integrity-checked-atomic-mode-0600-token-hashes-only", ActiveSessions: s.gateway.ActiveSessionCount(), RemoteDeployed: s.gateway.cfg.RemoteDeployed, Upstreams: upstreams, TruthfulStatus: status, Build: s.build}
+	health.AccountPolicyConfigured = s.gateway.cfg.AccountPolicyURL != "" && s.gateway.cfg.AccountPolicyNetworkID != ""
+	health.ClassicSessionPolicy = "requires-live-pinned-core-legacy-policy-at-next-execution-height"
 	code := http.StatusOK
 	if !ok {
 		code = http.StatusServiceUnavailable
@@ -246,7 +251,11 @@ func (s *Server) app(w http.ResponseWriter, r *http.Request) {
 		}
 		session, err := s.gateway.AuthenticateSession(binding, r.Header.Get("X-YNX-App-Session"), r.Header.Get("X-YNX-Device-ID"))
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, "account-bound app session required")
+			if errors.Is(err, ErrAccountPolicyUnavailable) || errors.Is(err, ErrPQSessionRequired) {
+				writeSessionError(w, err)
+			} else {
+				writeError(w, http.StatusUnauthorized, "account-bound app session required")
+			}
 			return
 		}
 		authenticatedSession = session
@@ -439,6 +448,14 @@ func decodeOne(body []byte, out any) error {
 }
 
 func writeSessionError(w http.ResponseWriter, err error) {
+	if errors.Is(err, ErrAccountPolicyUnavailable) || errors.Is(err, ErrPQSessionRequired) {
+		status, code := http.StatusServiceUnavailable, "account_policy_unavailable"
+		if errors.Is(err, ErrPQSessionRequired) {
+			status, code = http.StatusForbidden, "pq_session_required"
+		}
+		writeJSON(w, status, map[string]any{"error": err.Error(), "code": code, "pqSessionSupported": false, "flow": "legacy-app-session-v1"})
+		return
+	}
 	status := http.StatusInternalServerError
 	switch {
 	case errors.Is(err, ErrInvalidSessionRequest):

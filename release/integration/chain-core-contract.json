@@ -1,0 +1,386 @@
+{
+  "schema": "ynx-integration-contract/v1",
+  "product": "chain-core",
+  "owner": "01-chain-core",
+  "sourceCommit": "cb20b1591f81328a26ce5c412600135ffb6894bb",
+  "contractVersion": "1.12.0",
+  "stateSchema": {
+    "committedStateVersion": 12,
+    "applicationVersion": 18,
+    "appHashDomain": "YNX_ABCI_STATE_V12",
+    "stateSyncSnapshotFormat": 1,
+    "stateSyncSnapshotMaxBytes": 67108864
+  },
+  "networkIdentity": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainIdDecimal": 6423,
+    "evmChainIdHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "nativeAddressPrefix": "ynx1",
+    "evmCompatibilityAddressPrefix": "0x"
+  },
+  "authority": {
+    "chainCoreOwns": [
+      "network-identity",
+      "committed-state",
+      "app-hash",
+      "transaction-finality",
+      "chain-level-events",
+      "native-fee-records",
+      "asset-authorization-primitives"
+    ],
+    "externalOwners": {
+      "walletAuth": "Wallet/Auth",
+      "productSessionIntrospection": "Wallet/Auth and App Gateway",
+      "canonicalEventsAndBillingLedger": "Data Fabric",
+      "priceAndMarketFacts": "Oracle",
+      "crossChainLifecycle": "Bridge",
+      "publicMetadata": "Website",
+      "releasePolicy": "Security/SRE"
+    }
+  },
+  "authBoundary": {
+    "state": "dependency-not-accepted",
+    "scopeOwner": "Wallet/Auth",
+    "requiredChecks": [
+      "product",
+      "bundle",
+      "device",
+      "account",
+      "ordered-scopes",
+      "issued-at",
+      "expiry",
+      "revocation",
+      "replay"
+    ],
+    "failClosed": true,
+    "parallelAuthProtocolAllowed": false
+  },
+  "transactionEnvelopes": [
+    {
+      "type": "transfer",
+      "version": 1,
+      "source": "internal/consensus/transaction.go"
+    },
+    {
+      "type": "application_action",
+      "version": 1,
+      "source": "internal/consensus/action_transaction.go"
+    },
+    {
+      "type": "ethereum_legacy_eip155_value_transfer",
+      "version": 1,
+      "source": "internal/consensus/ethereum_transaction.go"
+    },
+    {
+      "type": "ethereum_access_list_eip2930_empty_value_transfer",
+      "version": 1,
+      "source": "internal/consensus/ethereum_transaction.go"
+    },
+    {
+      "type": "ethereum_dynamic_fee_eip1559_zero_base_fee_value_transfer",
+      "version": 1,
+      "source": "internal/consensus/ethereum_transaction.go"
+    }
+  ],
+  "routeClasses": {
+    "publicRead": [
+      "GET /health",
+      "GET /status",
+      "GET /blocks/{height}",
+      "GET /txs",
+      "GET /txs/{hash}",
+      "GET /accounts/{address}",
+      "GET /validators",
+      "GET /node/identity",
+      "GET /economics/fees",
+      "GET /staking/summary",
+      "GET /treasury/snapshot",
+      "GET /solvency/snapshot",
+      "GET /solvency/liabilities/{address}"
+    ],
+    "signedMutation": [
+      "POST /transactions/broadcast",
+      "POST /quant/mandates",
+      "POST /quant/mandates/{id}/revoke",
+      "POST /quant/mandates/{id}/kill",
+      "POST /quant/vaults",
+      "POST /quant/vaults/{id}/deposit",
+      "POST /quant/vaults/{id}/withdraw",
+      "POST /quant/vaults/{id}/emergency-exit",
+      "POST /aa/accounts",
+      "POST /aa/paymasters",
+      "POST /aa/user-operations",
+      "POST /staking/delegations",
+      "POST /staking/unbondings",
+      "POST /staking/withdrawals"
+    ],
+    "evmCompatibility": [
+      "POST /evm",
+      "POST /{$}"
+    ]
+  },
+  "evmRpc": {
+    "transport": "JSON-RPC 2.0",
+    "methods": [
+      "eth_chainId",
+      "net_version",
+      "eth_blockNumber",
+      "eth_gasPrice",
+      "eth_maxPriorityFeePerGas",
+      "eth_feeHistory",
+      "eth_getBlockByNumber",
+      "eth_getBlockByHash",
+      "eth_getBlockTransactionCountByNumber",
+      "eth_getBlockTransactionCountByHash",
+      "eth_getTransactionByBlockNumberAndIndex",
+      "eth_getTransactionByBlockHashAndIndex",
+      "eth_getBalance",
+      "eth_getTransactionCount",
+      "eth_getCode",
+      "eth_call",
+      "eth_estimateGas",
+      "eth_sendRawTransaction",
+      "eth_getTransactionByHash",
+      "eth_getTransactionReceipt",
+      "eth_getLogs"
+    ],
+    "signedTransactionEnvelope": "YNX canonical transfer/v1, bounded Ethereum legacy EIP-155 type-0, bounded EIP-2930 type-0x01 empty-access-list, or bounded EIP-1559 type-0x02 zero-base-fee value transfer encoded as 0x data",
+    "ethereumLegacyTransactionProfile": {
+      "transactionType": "0x0",
+      "chainId": 6423,
+      "gasLimit": 21000,
+      "contractCreation": false,
+      "calldata": false,
+      "accessLists": false,
+      "typedTransactions": false,
+      "signatureRecovery": true,
+      "dualHashIdentity": true,
+      "receiptAuditValidation": true
+    },
+    "ethereumAccessListTransactionProfile": {
+      "transactionType": "0x1",
+      "standard": "EIP-2930",
+      "chainId": 6423,
+      "gasLimit": 21000,
+      "accessList": "empty-only",
+      "contractCreation": false,
+      "calldata": false,
+      "eip1559Fees": false,
+      "signatureRecovery": true,
+      "yParity": true,
+      "dualHashIdentity": true,
+      "receiptAuditValidation": true
+    },
+    "ethereumDynamicFeeTransactionProfile": {
+      "transactionType": "0x2",
+      "standard": "EIP-1559",
+      "chainId": 6423,
+      "gasLimit": 21000,
+      "accessList": "empty-only",
+      "contractCreation": false,
+      "calldata": false,
+      "baseFeePerGas": 0,
+      "effectiveGasPrice": "maxPriorityFeePerGas",
+      "priorityFeeRule": "0 < maxPriorityFeePerGas <= maxFeePerGas",
+      "maximumFeeExposureRequired": true,
+      "maximumAffordabilityCheck": "value-plus-maxFeePerGas-times-gasLimit",
+      "finalDebit": "value-plus-effectiveGasPrice-times-gasLimit",
+      "dynamicBaseFeeMarket": false,
+      "burn": false,
+      "signatureRecovery": true,
+      "yParity": true,
+      "dualHashIdentity": true,
+      "receiptAuditValidation": true
+    },
+    "feeSuggestionProfile": {
+      "minimumAcceptedGasPrice": 1,
+      "gasPriceResponse": "0x1",
+      "maxPriorityFeePerGasResponse": "0x1",
+      "params": "omitted-or-empty-array-only",
+      "marketEstimate": false,
+      "historicalFeeHistory": "conditional-retained-committed-only",
+      "ethFeeHistorySupported": true,
+      "dynamicBaseFeeMarket": false
+    },
+    "feeHistoryProfile": {
+      "blockCount": "canonical-hex-quantity-1-to-1024",
+      "newestBlock": "retained-committed-block-only",
+      "retainedRangeClamped": true,
+      "baseFeePerGas": 0,
+      "gasUsedSource": "CometBFT block_results",
+      "gasLimitSource": "CometBFT committed consensus_params block.max_gas",
+      "positiveMaxGasRequired": true,
+      "nonPositiveMaxGasRpcCode": -32004,
+      "rewardPercentiles": "omitted-or-empty-array-only",
+      "rewardEstimatesAvailable": false,
+      "pendingAvailable": false,
+      "dynamicBaseFeeMarket": false,
+      "localFourValidatorProof": {
+        "consensusMaxGas": 42000,
+        "committedGasUsed": 21000,
+        "gasUsedRatio": 0.5,
+        "transactionType": "0x2",
+        "validatorCount": 4,
+        "public": false,
+        "productionSigned": false
+      }
+    },
+    "signerCliProfile": {
+      "command": "ynx-consensus-tx",
+      "envelopes": ["ynx", "eip155", "eip2930", "eip1559"],
+      "outputFormats": ["raw", "json"],
+      "keyFilePermissions": "0600",
+      "privateKeyOutput": false,
+      "dualHashEvidence": true
+    },
+    "committedBroadcastEvidence": {
+      "broadcastCommitRequired": true,
+      "blockMembershipRequired": true,
+      "appHashRequired": true,
+      "dataHashRequiredWhenTransactionsPresent": true,
+      "blockResultsGasMustMatchBroadcast": true,
+      "receiptAuditMustMatchBlockTransaction": true,
+      "ethereumAndCometHashesMustMatchTheirDomains": true,
+      "duplicateCometCacheErrorRpcCode": -32003,
+      "upstreamOrEvidenceMismatchRpcCode": -32603
+    },
+    "committedOnly": true,
+    "historicalAccountState": false,
+    "historicalContractState": false,
+    "pendingBlockAvailable": false,
+    "boundedContractRuntimeMode": "pinned-artifact-bounded-evm-subset",
+    "boundedCallNonZeroValue": false,
+    "boundedCallStateOverrides": false,
+    "estimateGasSemantics": "0x1 after successful bounded evaluation because ABCI v18 accounts one consensus resource unit per accepted transaction; not Ethereum gas pricing",
+    "stateRootSemantics": "CometBFT AppHash over YNX committed state v12",
+    "transactionsRootSemantics": "CometBFT data hash; not an Ethereum MPT",
+    "rejectionCodes": {
+      "invalidParams": -32602,
+      "transactionRejected": -32003,
+      "feeHistoryUnavailable": -32004,
+      "upstreamOrEvidenceFailure": -32603
+    }
+  },
+  "accountAbstraction": {
+    "smartAccountOwnerAuthority": "inner UserOperation signature plus outer Bundler application-action signature",
+    "bundlerNonceSource": "GET /accounts/{bundlerAddress}",
+    "bundlerSubmission": "POST /aa/user-operations",
+    "bundlerReceipt": "GET /aa/user-operations/{id}",
+    "paymasterFeeYNXT": 1,
+    "committedEvidenceRequired": [
+      "operation-id",
+      "operation-hash",
+      "account",
+      "bundler",
+      "fee-payer",
+      "paymaster-id",
+      "call-count",
+      "transferred-value",
+      "fee",
+      "block-height",
+      "executed-at",
+      "transaction-hash",
+      "audit-hash"
+    ],
+    "replayRejectedByNonceDomain": true,
+    "testedThroughRealLocalABCICometGatewayBundler": true,
+    "publicBundlerDeployed": false
+  },
+  "strategyVault": {
+    "ownerOnlyWithdrawal": true,
+    "ownerOnlyEmergencyExit": true,
+    "fundingAllowedOnlyWhen": [
+      "mandate-not-expired",
+      "mandate-not-revoked",
+      "mandate-kill-switch-inactive",
+      "vault-open"
+    ],
+    "withdrawalAvailableAfterKillOrRevoke": true,
+    "closedVaultCanBeRefunded": false,
+    "rejectedMutationAtomicity": [
+      "no-fee",
+      "no-nonce-consumption",
+      "no-balance-change",
+      "no-lot-change",
+      "no-audit-event"
+    ],
+    "gatewayCommittedEvidence": [
+      "canonical-audit-identity",
+      "signed-action-record-binding",
+      "lifecycle-sensitive-final-record"
+    ]
+  },
+  "schemas": {
+    "strategyMandate": "chain/governance/strategy-mandate.schema.json",
+    "userOperation": "chain/accounts/user-operation.schema.json",
+    "validatorManifest": "chain/consensus/production-validator-manifest.schema.json"
+  },
+  "localConsensusLab": {
+    "command": "ynx-consensus-lab",
+    "fixtureBalanceConfigurable": true,
+    "fixtureBalancePositiveOnly": true,
+    "ephemeralLocalOnly": true,
+    "publicDeploymentEvidence": false
+  },
+  "recovery": {
+    "abciStateSync": {
+      "implementedLocal": true,
+      "testedLocal": true,
+      "trustedAppHashRequired": true,
+      "strictCommittedStateValidation": true,
+      "atomicPersistence": true
+    },
+    "validatorBackupRestoreRollback": {
+      "implementedLocal": true,
+      "testedLocal": true,
+      "checksumBound": true,
+      "archiveEntriesValidated": true,
+      "rollbackReplayToCurrentAppHash": true,
+      "remoteDrillComplete": false
+    },
+    "fourValidatorEIP1559CommitProof": {
+      "script": "scripts/verify/consensus-eip1559-commit-check.sh",
+      "mode": "local-ephemeral-four-validator",
+      "validatorCount": 4,
+      "gatewayBroadcastCommit": true,
+      "ethereumAndCometDualIdentityValidated": true,
+      "blockNumberAndHashReadbackValidated": true,
+      "cometTransactionMembershipValidated": true,
+      "auditedReceiptValidated": true,
+      "allValidatorAppHashEqual": true,
+      "allValidatorReceiptEvidenceEqual": true,
+      "allValidatorAccountStateEqual": true,
+      "accountBalanceAndNonceReadbackValidated": true,
+      "backupRollbackReplayIncludesDynamicFeeState": true,
+      "wrongChainRejected": true,
+      "replayRejected": true,
+      "deployedPublic": false,
+      "productionSigned": false
+    },
+    "indexerPersistence": {
+      "schemaVersion": 2,
+      "checkpointPermissions": "0600",
+      "strictUnknownFieldRejection": true,
+      "blockAndTransactionInvariantValidation": true,
+      "writeAheadLogFsync": true,
+      "checkpointAtomicRenameAndDirectoryFsync": true,
+      "symlinkAndNonRegularFileRejection": true,
+      "checkpointWalOverlapRecovery": true,
+      "deepCloneSnapshotBoundary": true,
+      "testedLocal": true,
+      "remoteDrillComplete": false
+    }
+  },
+  "releaseStatus": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": true,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

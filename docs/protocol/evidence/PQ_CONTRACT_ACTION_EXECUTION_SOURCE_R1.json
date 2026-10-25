@@ -1,0 +1,55 @@
+{
+  "base": "70a8b3a3b8197fa9bcaca40e4a771b424e34f03d",
+  "sourceOwner": "original policy/revocation owner; pq_snapshot.go hook original Root owner",
+  "goExecuted": false,
+  "publicDeployment": false,
+  "tests": 10,
+  "leaves": [
+    {
+      "path": "internal/chain/pq_action_contract.go",
+      "bytes": 15759,
+      "sha256": "e21313b5933320ddbd291b46fd47adc931352aa1f6ef35547a86c1d41f9ae7e1"
+    },
+    {
+      "path": "internal/chain/pq_action_contract_snapshot.go",
+      "bytes": 17630,
+      "sha256": "22af594a7e3609531d18a7348a2ed897cc5ac10cc5e0c19966d30bfdbdd586c9"
+    },
+    {
+      "path": "internal/chain/pq_action_contract_test.go",
+      "bytes": 31524,
+      "sha256": "1176ef03b2bd57d977ea5b1eb1c65fb07c8ef89575bb1f157b25837e6c933738"
+    },
+    {
+      "path": "internal/chain/pq_action.go",
+      "bytes": 13083,
+      "sha256": "65633de72334e7a79543c205c1666341ac6515f5323a49aa1c750300b1037782"
+    },
+    {
+      "path": "internal/chain/pq_action_snapshot.go",
+      "bytes": 10860,
+      "sha256": "f89696426d04242e42f7e28515e2d4532d7570fb8a8c935b75982280ba0c448b"
+    },
+    {
+      "path": "internal/chain/types.go",
+      "bytes": 53000,
+      "sha256": "e825af43b2f14bad7e99f5204774176fbe8296ca192f3c541eb807cf1ac898be"
+    },
+    {
+      "path": "internal/chain/pq_snapshot.go",
+      "bytes": 10804,
+      "sha256": "f7e33686e3ea775bc9d8b9f68a77d2b4a49e0a251d74d5195fcf68154c4cc39d"
+    },
+    {
+      "path": "docs/protocol/PQ_CONTRACT_ACTION_EXECUTION_R1.md",
+      "bytes": 10887,
+      "sha256": "d87c0f1a6a52dd70e23bcd219e099f2eaf83a898ebd1eab6d862d0bccc33a0e1"
+    }
+  ],
+  "notClaims": [
+    "legacy fee parity",
+    "full original compiler build-info recovery",
+    "selfsealed snapshot antirollback without external trusted checkpoint",
+    "ABCI direct PQ contract action execution"
+  ]
+}

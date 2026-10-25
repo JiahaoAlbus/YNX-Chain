@@ -1,0 +1,169 @@
+{
+  "case": "client13-normal-03",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-03.json",
+  "rawSha256": "e9940a7b31139344001c7b1a312e2244e6e5eacb72fe390bfcd93b2f6a7311d1",
+  "startedAt": "2026-10-18T02:56:23.345Z",
+  "launcher": 65895,
+  "controllerSession": 5843,
+  "terminalCode": 1,
+  "elapsedMs": 21448,
+  "sourceChecks": [
+    {
+      "head": "ef70a83c9e78fac6837da391c04f54f3185270e5",
+      "sourceCommit": "7cf9d332ddb6cd32cd7663da6dda5282d12a9b39",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "605730a6967b987cf31e57e824de007b9015d7b4"
+      }
+    }
+  ],
+  "actualGoArgs": [
+    "-n",
+    "10",
+    "/opt/homebrew/bin/go",
+    "test",
+    "-p",
+    "1",
+    "./cmd/ynx-consensus-perf-client",
+    "-run",
+    "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$",
+    "-count=1",
+    "-timeout=22095ms",
+    "-v"
+  ],
+  "cacheBefore": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3355426816,
+      11753926656
+    ],
+    "totalBytes": 15109353472,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cachePhases": [
+    {
+      "startedAt": "2026-10-18T02:56:23.460Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 29884,
+      "endedAt": "2026-10-18T02:56:31.248Z"
+    },
+    {
+      "startedAt": "2026-10-18T02:56:32.789Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 20555,
+      "failed": true,
+      "endedAt": "2026-10-18T02:56:44.792Z"
+    }
+  ],
+  "go": {
+    "pid": 65939,
+    "code": null,
+    "signal": "SIGKILL",
+    "stdout": "FAIL\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client [build failed]\nFAIL\n",
+    "stderr": "# github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client [github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client.test]\ncmd/ynx-consensus-perf-client/partial_observation_test.go:54:59: too few values in struct literal of type partialWindowPlan\ncmd/ynx-consensus-perf-client/partial_observation_test.go:60:77: too few values in struct literal of type partialWindowPlan\ncmd/ynx-consensus-perf-client/partial_observation_test.go:68:59: too few values in struct literal of type partialWindowPlan\ncmd/ynx-consensus-perf-client/partial_observation_test.go:115:147: too few values in struct literal of type partialWindowPlan\n",
+    "exited": true
+  },
+  "actualPassedFunctions": [],
+  "firstCause": "owned task info unavailable: {\"pid\":66056,\"readable\":false,\"errno\":3}",
+  "lastAttemptedResourceSample": {
+    "schema": 1,
+    "scope": "proc_pidtaskinfo watched processes",
+    "processes": [
+      {
+        "pid": 65895,
+        "readable": true,
+        "rssBytes": 61505536,
+        "virtualBytes": 501368635392,
+        "threads": 7
+      },
+      {
+        "pid": 65939,
+        "readable": true,
+        "rssBytes": 40943616,
+        "virtualBytes": 475997831168,
+        "threads": 5
+      },
+      {
+        "pid": 66056,
+        "readable": false,
+        "errno": 3
+      }
+    ],
+    "watchedRssBytes": 102449152,
+    "watchedThreads": 12,
+    "samplerRssBytes": 1769472,
+    "samplerThreads": 1,
+    "rssWithControlReserveBytes": 105988096,
+    "threadsWithControlReserve": 14,
+    "memoryPressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 2,
+      "errno": 0
+    },
+    "host": {
+      "processCount": 774,
+      "uid": 501,
+      "uidProcessCount": 592,
+      "unreadableBsdInfo": 182,
+      "scanComplete": true,
+      "maxproc": 6000,
+      "maxprocperuid": 4000,
+      "rlimitNprocSoft": 4000
+    },
+    "hostEnumeration": {
+      "requiredBytes": 3176,
+      "capacityBytes": 7272,
+      "returnedBytes": 3100,
+      "queryErrno": 0,
+      "readErrno": 0,
+      "slots": 775,
+      "nonPositiveEntries": 1,
+      "positiveEntries": 774,
+      "duplicateEntries": 0,
+      "readableBsdInfo": 592,
+      "esrch": 0,
+      "eperm": 182,
+      "eacces": 0,
+      "noErrno": 0,
+      "otherErrno": 0
+    },
+    "forkProbe": {
+      "available": true,
+      "forkSucceeded": true,
+      "forkErrno": 0,
+      "waitErrno": 0,
+      "childExitCode": 0,
+      "childSignal": 0
+    },
+    "elapsedMicroseconds": 1141
+  },
+  "peakRSS": 105791488,
+  "peakThreads": 17,
+  "peakScratchBytes": 36864,
+  "groupGone": true,
+  "retryExecuted": false,
+  "interpretation": "Real Go compile failure: four old positional partialWindowPlan literal sites missing the added field. Monitoring also refused an unreadable child with ESRCH and killed the group. No test passes, benchmark, nodes, throughput or finality evidence.",
+  "cacheOccupancyError": {
+    "command": "/usr/bin/du",
+    "args": [
+      "-sk",
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "timeoutMs": 12000,
+    "code": null,
+    "signal": "SIGKILL",
+    "killed": true,
+    "stdout": "",
+    "stderr": "",
+    "message": "Command failed: /usr/bin/du -sk /Users/huangjiahao/Library/Caches/go-build /Users/huangjiahao/go/pkg/mod\n"
+  },
+  "sourceRepairCommit": "6597ca8f55e6eb5e84091883f92315b3d296b147",
+  "sourceRepairGoTested": false
+}

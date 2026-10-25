@@ -1,0 +1,18 @@
+{
+  "at": "2026-10-17T18:01:13.461Z",
+  "ciRun": 39056001285,
+  "sourceCommit": "a5466bebcf1b298360db1a9bbeb7f57dc745e59a",
+  "fixtureSHA256": "06a78f1c16b01f93f781c9f9d1fd6c0b363583abb07abeba905fd8a55179865e",
+  "node": "26.7.0",
+  "openssl": "3.6.4",
+  "GoToOpenSSLWhole": true,
+  "GoToOpenSSLMember": true,
+  "GoToNobleAND": true,
+  "N": 2,
+  "certificateBytes": 57528,
+  "initialRuntimeGuardRejection": {
+    "executable": "/usr/local/bin/node",
+    "version": "24.19.0",
+    "result": "unvalidated crypto runtime; no guard bypass"
+  }
+}

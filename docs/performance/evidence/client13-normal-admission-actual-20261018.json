@@ -1,0 +1,45 @@
+{
+  "kind": "actual-original-normal-client13-admission-refusal",
+  "driverCommit": "da9630595490e4e8a1ea44cc3763b36070526c40",
+  "declaredGoSourceCommit": "7cf9d332ddb6cd32cd7663da6dda5282d12a9b39",
+  "sourceChecksPerformed": false,
+  "rawReceipt": {
+    "path": "artifacts/chain-performance-20261017/client13-normal-20261018-01.json",
+    "bytes": 7985,
+    "sha256": "ec060683bf6f935c1fe751d14b2c9bd90818247a7798d361e61490b383226551"
+  },
+  "elapsedMs": 18,
+  "firstCause": "native memory pressure is not normal: {\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":2,\"errno\":0}",
+  "testJobStarted": false,
+  "goEnvironmentReadStarted": false,
+  "cacheOccupancyReadStarted": false,
+  "scratchCreated": false,
+  "actualGoPassedFunctions": [],
+  "native": {
+    "memoryPressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 2,
+      "errno": 0
+    },
+    "rssWithControlReserveBytes": 58032128,
+    "threadsWithControlReserve": 9,
+    "forkProbe": {
+      "available": true,
+      "forkSucceeded": true,
+      "forkErrno": 0,
+      "waitErrno": 0,
+      "childExitCode": 0,
+      "childSignal": 0
+    }
+  },
+  "groupGone": true,
+  "controlProbes": [
+    {
+      "pid": 43899,
+      "exited": true,
+      "groupGone": true
+    }
+  ],
+  "interpretation": "One authorized admission was used and refused on actual dispatch2. No test/build or go env started. Raw native RSS is retained; reported peakRSS=0 is an unpopulated counter after early rejection, not zero memory use. No retry or alternate entry."
+}

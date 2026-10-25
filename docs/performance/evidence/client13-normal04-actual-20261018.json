@@ -1,0 +1,178 @@
+{
+  "case": "client13-normal-04",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-04.json",
+  "rawSha256": "cdcd85e86a8ce5c89fd1c675334403c58a9d09b61226ce1106aae26b53f98791",
+  "startedAt": "2026-10-18T02:58:39.324Z",
+  "launcher": 74793,
+  "controllerSession": 85067,
+  "terminalCode": 1,
+  "elapsedMs": 24347,
+  "sourceChecks": [
+    {
+      "head": "6597ca8f55e6eb5e84091883f92315b3d296b147",
+      "sourceCommit": "6597ca8f55e6eb5e84091883f92315b3d296b147",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "fa815ca2eaabee4fe37d8959ba5bac10995eae7c"
+      }
+    },
+    {
+      "head": "6597ca8f55e6eb5e84091883f92315b3d296b147",
+      "sourceCommit": "6597ca8f55e6eb5e84091883f92315b3d296b147",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "fa815ca2eaabee4fe37d8959ba5bac10995eae7c"
+      }
+    }
+  ],
+  "actualGoArgs": [
+    "-n",
+    "10",
+    "/opt/homebrew/bin/go",
+    "test",
+    "-p",
+    "1",
+    "./cmd/ynx-consensus-perf-client",
+    "-run",
+    "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$",
+    "-count=1",
+    "-timeout=22089ms",
+    "-v"
+  ],
+  "cacheBefore": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3355676672,
+      11753926656
+    ],
+    "totalBytes": 15109603328,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cacheAfter": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3361427456,
+      11753926656
+    ],
+    "totalBytes": 15115354112,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cachePhases": [
+    {
+      "startedAt": "2026-10-18T02:58:39.427Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 29897,
+      "endedAt": "2026-10-18T02:58:47.234Z"
+    },
+    {
+      "startedAt": "2026-10-18T02:58:50.277Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 19047,
+      "endedAt": "2026-10-18T02:59:00.963Z"
+    }
+  ],
+  "cacheNetGrowthBytes": 5750784,
+  "go": {
+    "pid": 74833,
+    "code": null,
+    "signal": "SIGKILL",
+    "stdout": "",
+    "stderr": "",
+    "exited": true
+  },
+  "actualPassedFunctions": [],
+  "firstCause": "400MiB control/owned RSS cap",
+  "peakRSS": 432111616,
+  "peakThreads": 16,
+  "peakScratchBytes": 26914816,
+  "peakSample": {
+    "at": "2026-10-18T02:58:50.268Z",
+    "schema": 1,
+    "scope": "proc_pidtaskinfo watched processes",
+    "processes": [
+      {
+        "pid": 74793,
+        "readable": true,
+        "rssBytes": 66502656,
+        "virtualBytes": 501373353984,
+        "threads": 7
+      },
+      {
+        "pid": 74833,
+        "readable": true,
+        "rssBytes": 40861696,
+        "virtualBytes": 475989950464,
+        "threads": 4
+      },
+      {
+        "pid": 74858,
+        "readable": true,
+        "rssBytes": 321208320,
+        "virtualBytes": 476230926336,
+        "threads": 3
+      }
+    ],
+    "watchedRssBytes": 428572672,
+    "watchedThreads": 14,
+    "samplerRssBytes": 1769472,
+    "samplerThreads": 1,
+    "rssWithControlReserveBytes": 432111616,
+    "threadsWithControlReserve": 16,
+    "memoryPressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 2,
+      "errno": 0
+    },
+    "host": {
+      "processCount": 756,
+      "uid": 501,
+      "uidProcessCount": 573,
+      "unreadableBsdInfo": 183,
+      "scanComplete": true,
+      "maxproc": 6000,
+      "maxprocperuid": 4000,
+      "rlimitNprocSoft": 4000
+    },
+    "hostEnumeration": {
+      "requiredBytes": 3104,
+      "capacityBytes": 7200,
+      "returnedBytes": 3028,
+      "queryErrno": 0,
+      "readErrno": 0,
+      "slots": 757,
+      "nonPositiveEntries": 1,
+      "positiveEntries": 756,
+      "duplicateEntries": 0,
+      "readableBsdInfo": 573,
+      "esrch": 0,
+      "eperm": 183,
+      "eacces": 0,
+      "noErrno": 0,
+      "otherErrno": 0
+    },
+    "forkProbe": {
+      "available": true,
+      "forkSucceeded": true,
+      "forkErrno": 0,
+      "waitErrno": 0,
+      "childExitCode": 0,
+      "childSignal": 0
+    },
+    "elapsedMicroseconds": 1309
+  },
+  "exitedDuringSample": [],
+  "groupGone": true,
+  "retryExecuted": false,
+  "interpretation": "Actual Go started against repaired source, but original 400MiB owned/control sampled RSS cap fired. SIGKILL with no test stdout/stderr, no PASS or performance evidence. Native race handling did not suppress RSS limits."
+}

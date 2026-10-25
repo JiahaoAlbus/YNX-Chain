@@ -163,6 +163,13 @@ func (a *Application) applyTrustAction(state executionState, raw []byte, tx Sign
 		}
 		recordID = ApplicationActionRecordID("trust-evidence", txHash)
 		labels := chainLabelsForSubject(state.trustLabels, input.Subject)
+		if state.legacyTrustSource != nil {
+			imported, err := legacyTrustLabelsWithCurrent(state.legacyTrustSource, a.migration, CommittedState{Height: height, AccountPolicy: state.accountPolicy, TrustLabels: state.trustLabels}, input.Subject)
+			if err != nil {
+				return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+			}
+			labels = imported
+		}
 		if _, accountExists := accountIndex(state.accounts, input.Subject); !accountExists && len(labels) == 0 {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Trust evidence subject has no committed account or label state"))
 		}
@@ -314,7 +321,12 @@ func buildExecutionTrustTrace(state executionState, subject string) chain.TrustT
 		}
 		sort.Strings(ids)
 		for _, id := range ids {
-			lots = append(lots, chain.TrustTraceLot{LotID: id, Amount: state.accounts[index].Lots[id], Origin: "committed-chain-lineage"})
+			lot, ok := state.traceLots[id]
+			if !ok {
+				lot = chain.TrustTraceLot{LotID: id, Origin: "committed-chain-lineage"}
+			}
+			lot.Amount = state.accounts[index].Lots[id]
+			lots = append(lots, lot)
 		}
 	}
 	labels := chainLabelsForSubject(state.trustLabels, subject)
@@ -329,7 +341,7 @@ func buildExecutionTrustTrace(state executionState, subject string) chain.TrustT
 }
 
 func buildBFTTrustTrace(state CommittedState, subject string) chain.TrustTrace {
-	return buildExecutionTrustTrace(executionState{accounts: state.Accounts, trustLabels: state.TrustLabels}, subject)
+	return buildExecutionTrustTrace(executionState{accounts: state.Accounts, trustLabels: state.TrustLabels, traceLots: state.TraceLots}, subject)
 }
 
 func trustPacketJSONHash(packet chain.EvidencePacket) string {

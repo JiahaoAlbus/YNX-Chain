@@ -1,0 +1,33 @@
+{
+  "qualifiedAt": "2026-10-18T03:35:55.403Z",
+  "consumerSource": "scripts/loadtest/same-control-readback.mjs",
+  "consumerSourceSHA256": "4802665fbc211520ec8a6593d50860ba13130eb94342c41d8343e0ceff420a77",
+  "result": {
+    "kind": "original baseline proof bound to separately inspected retained Go verifier receipt",
+    "guardSHA256": "a619b5d95e6ebde1830bb1c20db37ec967795b68c016202eb06654c49f402fe4",
+    "observationSHA256": "5afd182240f0376b4db717afa0f73f41cedfad10202ee7588a8978b695cae4db",
+    "replaySHA256": "742fcf2c9d41713ed2b52676fd2f7a0365d27251a8da21c5dfe7ac243142c2c7",
+    "accountsSHA256": "35f505984573f9472d24b8318932af3e571da9caf3a692324eae1e3cdcb35880",
+    "originalStores": 4,
+    "verifiedBusinessInputsPerStore": 1024,
+    "signedBlockHeights": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "finalHeight": 11,
+    "finalAppHash": "0b5f7dc95b604177c8a018643f185ecf31d03959b1645c45ed629c4f57e792a9",
+    "canonicalSnapshotSHA256": "dae4b281f0b450067c95aa7bccae92c72f97bcf722174083293e2698fec6fe74",
+    "cryptographicVerifier": "existing retained Go VerifyCommitLight and application replay; no cryptographic re-verification in this JavaScript consumer",
+    "newThroughputOrLatencySamples": false
+  },
+  "lightTestGroups": 4,
+  "actualGoProofReexecuted": false
+}

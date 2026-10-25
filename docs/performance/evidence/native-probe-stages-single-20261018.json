@@ -1,0 +1,189 @@
+{
+  "rawPath": "artifacts/chain-performance-20261017/probe-stages-20261018-01/receipt.json",
+  "rawSHA256": "6f8e626b629d6f6f58e571b5704c692b543295ca39c57db4b143d7c08ae96595",
+  "kind": "single independent native probe diagnosis, no Go/node/benchmark",
+  "sourcePins": {
+    "scripts/loadtest/darwin-process-snapshot.c": "d35d05b5032b4b03df62f53b331219e0ca5304522134af4531492221e2aa340c",
+    "scripts/loadtest/owned-process-snapshot.h": "764b45afde4f32c4dab4d3fa30f493390d5e892b5d2a0c720f6c1d22f95543e3",
+    "scripts/loadtest/process-snapshot-counts.h": "aff5c2518e34e7eecd4c20c1706b224f6ac339cffce33cb4b5f01d8416ff89c1",
+    "scripts/loadtest/native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "binary": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages",
+    "sha256": "bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d",
+    "bytes": 34872
+  },
+  "controller": 89103,
+  "compile": {
+    "code": 0,
+    "stdout": "",
+    "stderr": "        0.11 real         0.09 user         0.04 sys\n            50708480  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7196  page reclaims\n                 460  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                   0  signals received\n                 163  voluntary context switches\n                 659  involuntary context switches\n           136680959  instructions retired\n            51918219  cycles elapsed\n             2949528  peak memory footprint\n"
+  },
+  "actualProbe": {
+    "command": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages",
+    "args": [
+      "--full",
+      "89103"
+    ],
+    "launcherPID": 89103,
+    "launcherParentPID": 1093,
+    "runtime": {
+      "platform": "darwin",
+      "arch": "arm64",
+      "node": "v26.7.0"
+    },
+    "spawnRequestedAt": "2026-10-18T03:04:53.499Z",
+    "spawnedAt": "2026-10-18T03:04:53.499Z",
+    "spawnElapsedMs": 0.5429159999999911,
+    "startedAt": "2026-10-18T03:04:53.499Z",
+    "pid": 89108,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":89103,\"readable\":true,\"rssBytes\":53592064,\"virtualBytes\":501401075712,\"threads\":11}],\"watchedRssBytes\":53592064,\"watchedThreads\":11,\"samplerRssBytes\":1785856,\"samplerThreads\":1,\"rssWithControlReserveBytes\":57163776,\"threadsWithControlReserve\":13,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":2,\"errno\":0},\"host\":{\"processCount\":730,\"uid\":501,\"uidProcessCount\":547,\"unreadableBsdInfo\":183,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3000,\"capacityBytes\":7096,\"returnedBytes\":2924,\"queryErrno\":0,\"readErrno\":0,\"slots\":731,\"nonPositiveEntries\":1,\"positiveEntries\":730,\"duplicateEntries\":0,\"readableBsdInfo\":547,\"esrch\":0,\"eperm\":183,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":2871}\n",
+    "stderr": "{\"stage\":\"main_entry\",\"pid\":89108,\"elapsedMicroseconds\":0}\n{\"stage\":\"arguments_validated\",\"pid\":89108,\"elapsedMicroseconds\":20}\n{\"stage\":\"watched_query_begin\",\"pid\":89108,\"watchedPID\":89103,\"index\":0}\n{\"stage\":\"watched_query_end\",\"pid\":89108,\"watchedPID\":89103,\"index\":0,\"returnedBytes\":96,\"errno\":0}\n{\"stage\":\"self_query_begin\",\"pid\":89108,\"elapsedMicroseconds\":53}\n{\"stage\":\"self_query_end\",\"pid\":89108,\"elapsedMicroseconds\":57}\n{\"stage\":\"pressure_query_begin\",\"pid\":89108,\"elapsedMicroseconds\":60}\n{\"stage\":\"pressure_query_end\",\"pid\":89108,\"elapsedMicroseconds\":72}\n{\"stage\":\"list_query\",\"pid\":89108,\"elapsedMicroseconds\":73}\n{\"stage\":\"list_returned\",\"pid\":89108,\"elapsedMicroseconds\":316}\n{\"stage\":\"bsd_scan_complete\",\"pid\":89108,\"elapsedMicroseconds\":1350}\n{\"stage\":\"fork_begin\",\"pid\":89108,\"elapsedMicroseconds\":1366}\n{\"stage\":\"wait_begin\",\"pid\":89108,\"elapsedMicroseconds\":2274}\n{\"stage\":\"fork_complete\",\"pid\":89108,\"elapsedMicroseconds\":2860}\n",
+    "exited": true,
+    "groupGone": true,
+    "elapsedMs": 357.625208
+  },
+  "telemetry": {
+    "schema": 1,
+    "scope": "proc_pidtaskinfo watched processes",
+    "processes": [
+      {
+        "pid": 89103,
+        "readable": true,
+        "rssBytes": 53592064,
+        "virtualBytes": 501401075712,
+        "threads": 11
+      }
+    ],
+    "watchedRssBytes": 53592064,
+    "watchedThreads": 11,
+    "samplerRssBytes": 1785856,
+    "samplerThreads": 1,
+    "rssWithControlReserveBytes": 57163776,
+    "threadsWithControlReserve": 13,
+    "memoryPressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 2,
+      "errno": 0
+    },
+    "host": {
+      "processCount": 730,
+      "uid": 501,
+      "uidProcessCount": 547,
+      "unreadableBsdInfo": 183,
+      "scanComplete": true,
+      "maxproc": 6000,
+      "maxprocperuid": 4000,
+      "rlimitNprocSoft": 4000
+    },
+    "hostEnumeration": {
+      "requiredBytes": 3000,
+      "capacityBytes": 7096,
+      "returnedBytes": 2924,
+      "queryErrno": 0,
+      "readErrno": 0,
+      "slots": 731,
+      "nonPositiveEntries": 1,
+      "positiveEntries": 730,
+      "duplicateEntries": 0,
+      "readableBsdInfo": 547,
+      "esrch": 0,
+      "eperm": 183,
+      "eacces": 0,
+      "noErrno": 0,
+      "otherErrno": 0
+    },
+    "forkProbe": {
+      "available": true,
+      "forkSucceeded": true,
+      "forkErrno": 0,
+      "waitErrno": 0,
+      "childExitCode": 0,
+      "childSignal": 0
+    },
+    "elapsedMicroseconds": 2871
+  },
+  "stages": [
+    {
+      "stage": "main_entry",
+      "pid": 89108,
+      "elapsedMicroseconds": 0
+    },
+    {
+      "stage": "arguments_validated",
+      "pid": 89108,
+      "elapsedMicroseconds": 20
+    },
+    {
+      "stage": "watched_query_begin",
+      "pid": 89108,
+      "watchedPID": 89103,
+      "index": 0
+    },
+    {
+      "stage": "watched_query_end",
+      "pid": 89108,
+      "watchedPID": 89103,
+      "index": 0,
+      "returnedBytes": 96,
+      "errno": 0
+    },
+    {
+      "stage": "self_query_begin",
+      "pid": 89108,
+      "elapsedMicroseconds": 53
+    },
+    {
+      "stage": "self_query_end",
+      "pid": 89108,
+      "elapsedMicroseconds": 57
+    },
+    {
+      "stage": "pressure_query_begin",
+      "pid": 89108,
+      "elapsedMicroseconds": 60
+    },
+    {
+      "stage": "pressure_query_end",
+      "pid": 89108,
+      "elapsedMicroseconds": 72
+    },
+    {
+      "stage": "list_query",
+      "pid": 89108,
+      "elapsedMicroseconds": 73
+    },
+    {
+      "stage": "list_returned",
+      "pid": 89108,
+      "elapsedMicroseconds": 316
+    },
+    {
+      "stage": "bsd_scan_complete",
+      "pid": 89108,
+      "elapsedMicroseconds": 1350
+    },
+    {
+      "stage": "fork_begin",
+      "pid": 89108,
+      "elapsedMicroseconds": 1366
+    },
+    {
+      "stage": "wait_begin",
+      "pid": 89108,
+      "elapsedMicroseconds": 2274
+    },
+    {
+      "stage": "fork_complete",
+      "pid": 89108,
+      "elapsedMicroseconds": 2860
+    }
+  ],
+  "firstCause": null,
+  "interpretation": "This one native probe entered main and completed actual watched/self/pressure/list/fork stages under unchanged 1500ms timeout. Does not explain or erase normal06 timeout, establish reliability under Go load, or prove any Go test.",
+  "limits": "One independent probe only, timeout1500ms unchanged. No Go, nodes, benchmark or source test execution. Host total357.625ms vs native elapsed2860us cannot identify normal06 cause or attribute the gap without additional timing evidence. Original frozen runtime binary remains unchanged."
+}

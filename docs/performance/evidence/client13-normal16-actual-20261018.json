@@ -1,0 +1,318 @@
+{
+  "case": "client13-normal-16",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-16.json",
+  "rawSHA256": "787351dc5e7c50993957697a3dd4825e23e5c7252d392a74780964ec9d68562b",
+  "rawBytes": 183551,
+  "controllerSession": 24172,
+  "launcher": 22379,
+  "elapsedMs": 30003,
+  "peakRSS": 423608320,
+  "peakThreads": 21,
+  "firstCause": "current cache occupancy unavailable: Command failed: /usr/bin/du -sk /Users/huangjiahao/go/pkg/mod\n",
+  "sourceChecks": [
+    {
+      "head": "7b9941e30c82a54723c5d7182fa9b3aa2d585a05",
+      "sourceCommit": "dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "0b03f3ea50294ffc0d24c2252de08ed5e97e80ed"
+      }
+    }
+  ],
+  "driverPins": {
+    "consensus-light-window.mjs": "11daabf140e045996f7a63b6d4dc6504afea1c6ead8cab47bf74d35d4f2b35b7",
+    "consensus-light-plan.mjs": "98578954bd96ca8a99731f06a384e9180f24641229be31eb97affec34320d000",
+    "native-resource-sample.mjs": "bce308b136d741611e9da472bea3151ca07a717831e0d34c1d0a3d1d3a491bab",
+    "owned-process-race.mjs": "9cd25ffdcf0f1fa522a757e681998e682cae069a4eee3289c98a8536ddce23a7",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "cachePhases": [
+    {
+      "startedAt": "2026-10-18T04:20:38.881Z",
+      "timeoutMs": 20000,
+      "remainingActiveMs": 29737,
+      "measurements": [
+        {
+          "path": "/Users/huangjiahao/Library/Caches/go-build",
+          "startedAt": "2026-10-18T04:20:38.881Z",
+          "pid": 22553,
+          "code": 0,
+          "signal": null,
+          "killed": false,
+          "timeoutMs": 20000,
+          "stdout": "3309004\t/Users/huangjiahao/Library/Caches/go-build\n",
+          "stderr": "",
+          "bytes": 3388420096,
+          "endedAt": "2026-10-18T04:20:39.730Z"
+        },
+        {
+          "path": "/Users/huangjiahao/go/pkg/mod",
+          "startedAt": "2026-10-18T04:20:38.885Z",
+          "pid": 22554,
+          "code": 0,
+          "signal": null,
+          "killed": false,
+          "timeoutMs": 19996,
+          "stdout": "11478444\t/Users/huangjiahao/go/pkg/mod\n",
+          "stderr": "",
+          "bytes": 11753926656,
+          "endedAt": "2026-10-18T04:20:56.932Z"
+        }
+      ],
+      "endedAt": "2026-10-18T04:20:56.932Z"
+    },
+    {
+      "startedAt": "2026-10-18T04:21:07.329Z",
+      "timeoutMs": 1289,
+      "remainingActiveMs": 1289,
+      "measurements": [
+        {
+          "path": "/Users/huangjiahao/Library/Caches/go-build",
+          "startedAt": "2026-10-18T04:21:07.329Z",
+          "pid": 26041,
+          "code": 0,
+          "signal": null,
+          "killed": false,
+          "timeoutMs": 1289,
+          "stdout": "3309004\t/Users/huangjiahao/Library/Caches/go-build\n",
+          "stderr": "",
+          "bytes": 3388420096,
+          "endedAt": "2026-10-18T04:21:07.909Z"
+        },
+        {
+          "path": "/Users/huangjiahao/go/pkg/mod",
+          "startedAt": "2026-10-18T04:21:07.331Z",
+          "pid": 26042,
+          "code": null,
+          "signal": "SIGKILL",
+          "killed": true,
+          "timeoutMs": 1287,
+          "error": "Command failed: /usr/bin/du -sk /Users/huangjiahao/go/pkg/mod\n",
+          "stdout": "",
+          "stderr": "",
+          "endedAt": "2026-10-18T04:21:08.621Z"
+        }
+      ],
+      "failed": true,
+      "endedAt": "2026-10-18T04:21:08.621Z"
+    }
+  ],
+  "cacheOccupancyError": {
+    "command": "/usr/bin/du",
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "timeoutMs": 1289,
+    "measurements": [
+      {
+        "path": "/Users/huangjiahao/Library/Caches/go-build",
+        "startedAt": "2026-10-18T04:21:07.329Z",
+        "pid": 26041,
+        "code": 0,
+        "signal": null,
+        "killed": false,
+        "timeoutMs": 1289,
+        "stdout": "3309004\t/Users/huangjiahao/Library/Caches/go-build\n",
+        "stderr": "",
+        "bytes": 3388420096,
+        "endedAt": "2026-10-18T04:21:07.909Z"
+      },
+      {
+        "path": "/Users/huangjiahao/go/pkg/mod",
+        "startedAt": "2026-10-18T04:21:07.331Z",
+        "pid": 26042,
+        "code": null,
+        "signal": "SIGKILL",
+        "killed": true,
+        "timeoutMs": 1287,
+        "error": "Command failed: /usr/bin/du -sk /Users/huangjiahao/go/pkg/mod\n",
+        "stdout": "",
+        "stderr": "",
+        "endedAt": "2026-10-18T04:21:08.621Z"
+      }
+    ],
+    "message": "current cache occupancy unavailable: Command failed: /usr/bin/du -sk /Users/huangjiahao/go/pkg/mod\n"
+  },
+  "groupGone": true,
+  "go": {
+    "pid": 25941,
+    "code": 0,
+    "signal": null,
+    "exited": true
+  },
+  "actualPassedFunctions": [
+    "TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves",
+    "TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged",
+    "TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix",
+    "TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption",
+    "TestReadyIntentSegmentsPersistAndStreamExactSignedInputs",
+    "TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence",
+    "TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding",
+    "TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts",
+    "TestSegmentedIntentOptionsRequireBoundedEvidenceMode",
+    "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities",
+    "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+    "TestReadySenderSegmentedIntentBarrierAndRecovery",
+    "TestReadySenderSegmentedIntentFailureNeverSubmits"
+  ],
+  "observedSupplyPhases": [
+    {
+      "schema": "ynx-ready-supply-phase-sample-v1",
+      "mode": "flat-full-history",
+      "businessTransactions": 6,
+      "controllerNs": 124728500,
+      "supply": {
+        "completionWaitAttempts": 4,
+        "completionWaitNs": 75007791,
+        "terminalSinkAttempts": 6,
+        "terminalSinkNs": 279916,
+        "offerDecodeAttempts": 6,
+        "offerDecodeNs": 60916,
+        "pacingWaitAttempts": 6,
+        "pacingWaitNs": 20800377,
+        "dispatchAttempts": 6,
+        "dispatchNs": 2335,
+        "signAttempts": 3,
+        "signNs": 247501,
+        "encodeAttempts": 3,
+        "encodeNs": 381667,
+        "signedSuccessors": 3,
+        "journalSetupNs": 7665791,
+        "journalAppendAttempts": 3,
+        "journalAppendNs": 20185458,
+        "journalDurableEnvelopes": 6,
+        "journalDurableBytes": 4072
+      },
+      "finalizeCalls": 6,
+      "finalizeNs": 2143667,
+      "commitCalls": 6,
+      "commitNs": 97651376,
+      "terminalCloseNs": 5902083,
+      "restartReadNs": 585084,
+      "scope": "Real six signed local business executions and durable restart; controlled slow-peer scheduling; quorum flags are unit gate inputs, no RPC or network finality. Initial fixture signing excluded; callback totals overlap concurrent execution and are not additive.",
+      "phaseMs": {
+        "successorSign": 0.247501,
+        "successorEncode": 0.381667,
+        "intentSetup": 7.665791,
+        "intentAppend": 20.185458,
+        "offerDecode": 0.060916,
+        "pacingWait": 20.800377,
+        "dispatch": 0.002335,
+        "completionWait": 75.007791,
+        "terminalSink": 0.279916,
+        "finalize": 2.143667,
+        "durableCommit": 97.651376,
+        "terminalClose": 5.902083,
+        "restartRead": 0.585084,
+        "controllerElapsed": 124.7285
+      }
+    },
+    {
+      "schema": "ynx-ready-supply-phase-sample-v1",
+      "mode": "flat-reused-slots",
+      "businessTransactions": 6,
+      "controllerNs": 178915250,
+      "supply": {
+        "completionWaitAttempts": 6,
+        "completionWaitNs": 127824624,
+        "terminalSinkAttempts": 6,
+        "terminalSinkNs": 157167,
+        "offerDecodeAttempts": 6,
+        "offerDecodeNs": 92416,
+        "pacingWaitAttempts": 6,
+        "pacingWaitNs": 1095332,
+        "dispatchAttempts": 6,
+        "dispatchNs": 4543,
+        "signAttempts": 3,
+        "signNs": 222041,
+        "encodeAttempts": 3,
+        "encodeNs": 325458,
+        "signedSuccessors": 3,
+        "journalSetupNs": 16042708,
+        "journalAppendAttempts": 4,
+        "journalAppendNs": 32138124,
+        "journalDurableEnvelopes": 6,
+        "journalDurableBytes": 4072
+      },
+      "finalizeCalls": 6,
+      "finalizeNs": 1539916,
+      "commitCalls": 6,
+      "commitNs": 124919543,
+      "terminalCloseNs": 7920000,
+      "restartReadNs": 319709,
+      "scope": "Real six signed local business executions and durable restart; controlled slow-peer scheduling; quorum flags are unit gate inputs, no RPC or network finality. Initial fixture signing excluded; callback totals overlap concurrent execution and are not additive.",
+      "phaseMs": {
+        "successorSign": 0.222041,
+        "successorEncode": 0.325458,
+        "intentSetup": 16.042708,
+        "intentAppend": 32.138124,
+        "offerDecode": 0.092416,
+        "pacingWait": 1.095332,
+        "dispatch": 0.004543,
+        "completionWait": 127.824624,
+        "terminalSink": 0.157167,
+        "finalize": 1.539916,
+        "durableCommit": 124.919543,
+        "terminalClose": 7.92,
+        "restartRead": 0.319709,
+        "controllerElapsed": 178.91525
+      }
+    },
+    {
+      "schema": "ynx-ready-supply-phase-sample-v1",
+      "mode": "segmented-reused-slots",
+      "businessTransactions": 6,
+      "controllerNs": 130216708,
+      "supply": {
+        "completionWaitAttempts": 4,
+        "completionWaitNs": 84075417,
+        "terminalSinkAttempts": 6,
+        "terminalSinkNs": 110543,
+        "offerDecodeAttempts": 6,
+        "offerDecodeNs": 68416,
+        "pacingWaitAttempts": 6,
+        "pacingWaitNs": 13160083,
+        "dispatchAttempts": 6,
+        "dispatchNs": 2916,
+        "signAttempts": 3,
+        "signNs": 211668,
+        "encodeAttempts": 3,
+        "encodeNs": 318750,
+        "signedSuccessors": 3,
+        "journalSetupNs": 5273333,
+        "journalAppendAttempts": 4,
+        "journalAppendNs": 25775540,
+        "journalDurableEnvelopes": 6,
+        "journalDurableBytes": 6256
+      },
+      "finalizeCalls": 6,
+      "finalizeNs": 1605416,
+      "commitCalls": 6,
+      "commitNs": 93600082,
+      "terminalCloseNs": 7094458,
+      "restartReadNs": 426291,
+      "scope": "Real six signed local business executions and durable restart; controlled slow-peer scheduling; quorum flags are unit gate inputs, no RPC or network finality. Initial fixture signing excluded; callback totals overlap concurrent execution and are not additive.",
+      "phaseMs": {
+        "successorSign": 0.211668,
+        "successorEncode": 0.31875,
+        "intentSetup": 5.273333,
+        "intentAppend": 25.77554,
+        "offerDecode": 0.068416,
+        "pacingWait": 13.160083,
+        "dispatch": 0.002916,
+        "completionWait": 84.075417,
+        "terminalSink": 0.110543,
+        "finalize": 1.605416,
+        "durableCommit": 93.600082,
+        "terminalClose": 7.094458,
+        "restartRead": 0.426291,
+        "controllerElapsed": 130.216708
+      }
+    }
+  ],
+  "windowPassed": false,
+  "interpretation": "Real fixed13 Go tests passed and three actual six-business-transaction phase rows were observed. Overall wrapper failed at shared30s deadline during post-run module-cache accounting, so resource/cached-growth gate did not pass. These local callback intervals overlap; no network inclusion/finality or sustained TPS claim."
+}

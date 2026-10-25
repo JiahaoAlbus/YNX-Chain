@@ -8,6 +8,7 @@ export {getTestnetEndpoints, testnetEndpointProfiles} from "./testnet-endpoints.
 export {canonicalEndpointAuthorityPayload,validateEndpointAuthority,selectAuthorityEndpoint} from "./endpoint-authority.js";
 export {endpointAuthorityPin,bundledEndpointAuthority,verifyBundledEndpointAuthority} from "./endpoint-authority-bundle.js";
 export {YNXWalletError, ensureYNXTestnet, ynxTestnetAddEthereumChainParameter} from "./wallet.js";
+export {createStrategyMandate, createUserOperation, sessionScope, userOperationDigest} from "./primitives.js";
 
 export class YNXSDKError extends Error {
   constructor(message, {cause, status, code} = {}) {

@@ -225,9 +225,25 @@ func validateResourceCommittedState(s CommittedState, migration chain.ConsensusM
 		}
 		expectedStake[value.Beneficiary] += value.AmountYNXT
 	}
+	contributions, err := pqNativeStakeContributions(s)
+	if err != nil {
+		return err
+	}
+	for owner, amount := range contributions {
+		if amount < 0 || expectedStake[owner] > math.MaxInt64-amount {
+			return errors.New("committed PQ native stake contribution overflows int64")
+		}
+		expectedStake[owner] += amount
+	}
+	for _, value := range s.StakeDelegations {
+		if expectedStake[value.Delegator] > math.MaxInt64-value.AmountYNXT {
+			return errors.New("committed expected validator delegation stake overflows int64")
+		}
+		expectedStake[value.Delegator] += value.AmountYNXT
+	}
 	for _, account := range s.Accounts {
 		if account.Staked != expectedStake[account.Address] {
-			return errors.New("committed staked YNXT differs from migration plus Resource delegations")
+			return errors.New("committed staked YNXT differs from migration plus Resource and validator delegations")
 		}
 		delete(expectedStake, account.Address)
 	}

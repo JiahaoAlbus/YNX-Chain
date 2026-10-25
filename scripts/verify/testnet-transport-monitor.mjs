@@ -14,6 +14,7 @@ export const ROUTES = [
   ["canonical", "faucet", "https://faucet-testnet.ynxweb4.com/health"],
 ].map(([role, kind, url]) => ({role, kind, url, origin: null}));
 const MARKER = "\n__YNX_CURL_METADATA__";
+const HEADER_MARKER = "\n__YNX_CURL_HEADER_JSON__";
 const MAX_BYTES = 1048576;
 const HOST_SCRIPT = new URL("./testnet-transport-host-snapshot.py", import.meta.url);
 const now = () => new Date().toISOString();
@@ -58,8 +59,12 @@ export function curlArgs(route, probeId, localPort = null, options = {}) {
   assert(localPort === null || (Number.isInteger(localPort) && localPort >= 20000 && localPort <= 65000), "invalid local probe port");
   return ["--disable", "--silent", "--show-error", "--proto", "=https", "--request", "GET",
     "--connect-timeout", "5", "--max-time", "8", "--max-filesize", String(MAX_BYTES),
-    "--header", `X-YNX-Probe-ID: ${probeId}`, "--dump-header", "/dev/stderr",
-    "--write-out", MARKER + "%{json}", ...(localPort === null ? [] : ["--local-port", String(localPort)]),
+    "--header", `X-YNX-Probe-ID: ${probeId}`,
+    // Node's piped stderr can be a socket on Linux. Reopening /dev/stderr
+    // with --dump-header fails before DNS (curl 23). Use curl's existing
+    // stderr stream, keeping body/transfer metadata separate on stdout and
+    // selecting only approved headers below. No raw-header file is created.
+    "--write-out", MARKER + "%{json}%{stderr}" + HEADER_MARKER + "%{header_json}\n", ...(localPort === null ? [] : ["--local-port", String(localPort)]),
     ...(options.direct || options.pinOrigin ? ["--noproxy", "*"] : []),
     ...(options.pinOrigin ? ["--resolve", new URL(route.url).hostname + ":443:43.153.202.237"] : []), route.url];
 }
@@ -100,12 +105,33 @@ export function interpret(route, raw, probeId, startedAt) {
   const cut = raw.stdout.lastIndexOf(MARKER);
   let meta = {};
   try { meta = JSON.parse(raw.stdout.slice(cut + MARKER.length)); } catch { /* explicit missing evidence below */ }
-  const base = interpretProbe(route, raw);
+  let base = interpretProbe(route, raw);
   const body = cut < 0 ? "" : raw.stdout.slice(0, cut);
   const headers = {};
-  for (const line of raw.stderr.split(/\r?\n/)) {
-    const match = line.match(/^(server|content-type|via|retry-after|x-request-id):\s*(.*)$/i);
-    if (match) headers[match[1].toLowerCase()] = match[2].slice(0, 200);
+  const headerCut = raw.stderr.lastIndexOf(HEADER_MARKER);
+  let headerMetadataValid = true;
+  if (headerCut >= 0) {
+    try {
+      const values = JSON.parse(raw.stderr.slice(headerCut + HEADER_MARKER.length));
+      assert(values && typeof values === "object" && !Array.isArray(values));
+      for (const [name, entries] of Object.entries(values)) {
+        assert(Array.isArray(entries) && entries.every(value => typeof value === "string"));
+        if (/^(server|content-type|via|retry-after|x-request-id)$/i.test(name) && entries.length)
+          headers[name.toLowerCase()] = entries.at(-1).slice(0, 200);
+      }
+    } catch {
+      // Unsupported curl header_json or malformed output is missing client
+      // evidence, never a healthy response. Preserve an earlier transport error.
+      headerMetadataValid = false;
+      if (base.ready) base = {...base, ready: false, failure: "invalid-curl-header-metadata"};
+    }
+  } else {
+    // Preserve interpretation of historical observations from the old capture
+    // format. New curlArguments always emits the explicit JSON marker.
+    for (const line of raw.stderr.split(/\r?\n/)) {
+      const match = line.match(/^(server|content-type|via|retry-after|x-request-id):\s*(.*)$/i);
+      if (match) headers[match[1].toLowerCase()] = match[2].slice(0, 200);
+    }
   }
   let health = {};
   try {
@@ -115,7 +141,7 @@ export function interpret(route, raw, probeId, startedAt) {
   } catch { /* raw body deliberately not retained */ }
   const fields = ["time_namelookup", "time_connect", "time_appconnect", "time_pretransfer", "time_starttransfer", "time_total", "remote_ip", "local_port", "remote_port", "http_version", "http_code", "num_connects", "num_redirects", "ssl_verify_result", "proxy_used", "exitcode"];
   const result = {...base, probeId, startedAt, finishedAt: now(),
-    classification: cut < 0 ? "client-metadata-unavailable" : classify(meta, raw.exitCode, base.ready),
+    classification: cut < 0 || (!headerMetadataValid && raw.exitCode === 0 && meta.exitcode === 0) ? "client-metadata-unavailable" : classify(meta, raw.exitCode, base.ready),
     client: Object.fromEntries(fields.map(k => [k, meta[k] ?? null])), headers, health,
     clientError: typeof meta.errormsg === "string" ? meta.errormsg.replace(/[\r\n]/g, " ").slice(0, 400) : null,
     processKilled: !!raw.killed, rawBodyRetained: false, rawHeadersRetained: false};

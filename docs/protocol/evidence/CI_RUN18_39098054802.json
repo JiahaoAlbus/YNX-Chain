@@ -1,0 +1,398 @@
+{
+  "conclusion": "success",
+  "jobs": [
+    {
+      "completedAt": "2026-10-18T04:47:21Z",
+      "conclusion": "success",
+      "databaseId": 117588481481,
+      "name": "focused-go",
+      "startedAt": "2026-10-18T04:43:03Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-18T04:43:06Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-18T04:43:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:43:15Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "startedAt": "2026-10-18T04:43:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:43:23Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "number": 3,
+          "startedAt": "2026-10-18T04:43:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:43:24Z",
+          "conclusion": "success",
+          "name": "Record exact candidate identity",
+          "number": 4,
+          "startedAt": "2026-10-18T04:43:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:44:28Z",
+          "conclusion": "success",
+          "name": "Verify pure dual-PQ protocol and account authorization",
+          "number": 5,
+          "startedAt": "2026-10-18T04:43:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:44:35Z",
+          "conclusion": "success",
+          "name": "Verify forked engine keys and actual consensus objects",
+          "number": 6,
+          "startedAt": "2026-10-18T04:44:28Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:44:50Z",
+          "conclusion": "success",
+          "name": "Compile forked state and consensus engine without starting nodes",
+          "number": 7,
+          "startedAt": "2026-10-18T04:44:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:44:51Z",
+          "conclusion": "success",
+          "name": "Verify real profile state transition and historical store without starting nodes",
+          "number": 8,
+          "startedAt": "2026-10-18T04:44:50Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:44:54Z",
+          "conclusion": "success",
+          "name": "Measure fresh single and bounded concurrent dual signature paths",
+          "number": 9,
+          "startedAt": "2026-10-18T04:44:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:44:58Z",
+          "conclusion": "success",
+          "name": "Measure actual policy certificate cache consumer cold and warm paths",
+          "number": 10,
+          "startedAt": "2026-10-18T04:44:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:45:05Z",
+          "conclusion": "success",
+          "name": "Install pinned contract build runtime",
+          "number": 11,
+          "startedAt": "2026-10-18T04:44:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:45:10Z",
+          "conclusion": "success",
+          "name": "Compile frozen measured production overlay without executing cases",
+          "number": 12,
+          "startedAt": "2026-10-18T04:45:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:45:17Z",
+          "conclusion": "success",
+          "name": "Generate canonical IDE contract fixture",
+          "number": 13,
+          "startedAt": "2026-10-18T04:45:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:45:55Z",
+          "conclusion": "success",
+          "name": "Verify native ledger and HTTP PQ integration",
+          "number": 14,
+          "startedAt": "2026-10-18T04:45:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:46:01Z",
+          "conclusion": "success",
+          "name": "Compile production entry points",
+          "number": 15,
+          "startedAt": "2026-10-18T04:45:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:46:21Z",
+          "conclusion": "success",
+          "name": "Verify complete state bridge and sponsor continuity",
+          "number": 16,
+          "startedAt": "2026-10-18T04:46:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:46:30Z",
+          "conclusion": "success",
+          "name": "Verify Whole BFT gateway and native container readback",
+          "number": 17,
+          "startedAt": "2026-10-18T04:46:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:46:32Z",
+          "conclusion": "success",
+          "name": "Verify shared Wallet policy and Chain payment authorization regressions",
+          "number": 18,
+          "startedAt": "2026-10-18T04:46:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:46:37Z",
+          "conclusion": "success",
+          "name": "Checkout fixed repaired performance client",
+          "number": 19,
+          "startedAt": "2026-10-18T04:46:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:47:10Z",
+          "conclusion": "success",
+          "name": "Verify fixed segmented client integration with original assertions",
+          "number": 20,
+          "startedAt": "2026-10-18T04:46:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:47:10Z",
+          "conclusion": "success",
+          "name": "Emit public inverse interop fixture",
+          "number": 21,
+          "startedAt": "2026-10-18T04:47:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:47:12Z",
+          "conclusion": "success",
+          "name": "Upload public signature fixture",
+          "number": 22,
+          "startedAt": "2026-10-18T04:47:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:47:12Z",
+          "conclusion": "success",
+          "name": "Post Checkout fixed repaired performance client",
+          "number": 41,
+          "startedAt": "2026-10-18T04:47:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:47:12Z",
+          "conclusion": "success",
+          "name": "Post Install pinned contract build runtime",
+          "number": 42,
+          "startedAt": "2026-10-18T04:47:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:47:18Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "number": 43,
+          "startedAt": "2026-10-18T04:47:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:47:18Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 44,
+          "startedAt": "2026-10-18T04:47:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:47:18Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 45,
+          "startedAt": "2026-10-18T04:47:18Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39098054802/job/117588481481"
+    },
+    {
+      "completedAt": "2026-10-18T04:43:01Z",
+      "conclusion": "skipped",
+      "databaseId": 117588482078,
+      "name": "verify",
+      "startedAt": "2026-10-18T04:43:01Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39098054802/job/117588482078"
+    },
+    {
+      "completedAt": "2026-10-18T04:47:21Z",
+      "conclusion": "skipped",
+      "databaseId": 117589211213,
+      "name": "pq-paired-n1",
+      "startedAt": "2026-10-18T04:47:21Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39098054802/job/117589211213"
+    }
+  ],
+  "status": "completed",
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39098054802",
+  "schema": 1,
+  "runId": "39098054802",
+  "sourceCommit": "66d29db440c7e3864ec855734f77bf5a0ae65ee2",
+  "rawLog": {
+    "sha256": "c8dd42ee33315743750fdd4ac63cd3e61e3afcfd2dac1e8224d0a4599f2a78bb",
+    "bytes": 163671
+  },
+  "benchmarks": [
+    {
+      "name": "BenchmarkParallelProviderFreshN1Sign/sequential-2",
+      "iterations": 10,
+      "rawMetrics": "59524366 ns/op\t         2.000 gomaxprocs\t         0 parallel_pairs/op\t         0 peak_extra_workers\t         0 serial_fallbacks/op\t  244264 B/op\t     120 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderFreshN1Sign/parallel-2",
+      "iterations": 10,
+      "rawMetrics": "59137104 ns/op\t         2.000 gomaxprocs\t         1.000 parallel_pairs/op\t         1.000 peak_extra_workers\t         0 serial_fallbacks/op\t  244782 B/op\t     125 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderFreshN1Verify/valid/sequential-2",
+      "iterations": 10,
+      "rawMetrics": "1948692 ns/op\t         2.000 gomaxprocs\t         0 parallel_pairs/op\t         0 peak_extra_workers\t         0 serial_fallbacks/op\t         2.000 sigchecks/op\t  527736 B/op\t     152 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderFreshN1Verify/valid/parallel-2",
+      "iterations": 10,
+      "rawMetrics": "1941997 ns/op\t         2.000 gomaxprocs\t         1.000 parallel_pairs/op\t         1.000 peak_extra_workers\t         0 serial_fallbacks/op\t         2.000 sigchecks/op\t  528060 B/op\t     157 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderFreshN1Verify/invalidA/sequential-2",
+      "iterations": 10,
+      "rawMetrics": "1935092 ns/op\t         2.000 gomaxprocs\t         0 parallel_pairs/op\t         0 peak_extra_workers\t         0 serial_fallbacks/op\t         2.000 sigchecks/op\t  505899 B/op\t     105 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderFreshN1Verify/invalidA/parallel-2",
+      "iterations": 10,
+      "rawMetrics": "1912622 ns/op\t         2.000 gomaxprocs\t         1.000 parallel_pairs/op\t         1.000 peak_extra_workers\t         0 serial_fallbacks/op\t         2.000 sigchecks/op\t  506120 B/op\t     110 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderFreshN1Verify/invalidB/sequential-2",
+      "iterations": 10,
+      "rawMetrics": "1935083 ns/op\t         2.000 gomaxprocs\t         0 parallel_pairs/op\t         0 peak_extra_workers\t         0 serial_fallbacks/op\t         2.000 sigchecks/op\t  505892 B/op\t     105 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderFreshN1Verify/invalidB/parallel-2",
+      "iterations": 10,
+      "rawMetrics": "1862334 ns/op\t         2.000 gomaxprocs\t         1.000 parallel_pairs/op\t         1.000 peak_extra_workers\t         0 serial_fallbacks/op\t         2.000 sigchecks/op\t  506300 B/op\t     110 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderConcurrent/sign/sequential-2",
+      "iterations": 10,
+      "rawMetrics": "30054429 ns/op\t         2.000 gomaxprocs\t         0 parallel_pairs/op\t         0 peak_extra_workers\t         0 serial_fallbacks/op\t  244358 B/op\t     120 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderConcurrent/sign/parallel-2",
+      "iterations": 10,
+      "rawMetrics": "30635434 ns/op\t         2.000 gomaxprocs\t         0.5000 parallel_pairs/op\t         2.000 peak_extra_workers\t         0.5000 serial_fallbacks/op\t  244692 B/op\t     124 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderConcurrent/verify_valid/sequential-2",
+      "iterations": 10,
+      "rawMetrics": "1084162 ns/op\t         2.000 gomaxprocs\t         0 parallel_pairs/op\t         0 peak_extra_workers\t         0 serial_fallbacks/op\t         2.000 sigchecks/op\t  527886 B/op\t     152 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderConcurrent/verify_valid/parallel-2",
+      "iterations": 10,
+      "rawMetrics": "1104325 ns/op\t         2.000 gomaxprocs\t         0.8000 parallel_pairs/op\t         2.000 peak_extra_workers\t         0.2000 serial_fallbacks/op\t         2.000 sigchecks/op\t  528081 B/op\t     157 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderConcurrent/verify_invalidA/sequential-2",
+      "iterations": 10,
+      "rawMetrics": "1063876 ns/op\t         2.000 gomaxprocs\t         0 parallel_pairs/op\t         0 peak_extra_workers\t         0 serial_fallbacks/op\t         2.000 sigchecks/op\t  506000 B/op\t     105 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderConcurrent/verify_invalidA/parallel-2",
+      "iterations": 10,
+      "rawMetrics": "1061588 ns/op\t         2.000 gomaxprocs\t         0.8000 parallel_pairs/op\t         2.000 peak_extra_workers\t         0.2000 serial_fallbacks/op\t         2.000 sigchecks/op\t  506208 B/op\t     110 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderConcurrent/verify_invalidB/sequential-2",
+      "iterations": 10,
+      "rawMetrics": "1063356 ns/op\t         2.000 gomaxprocs\t         0 parallel_pairs/op\t         0 peak_extra_workers\t         0 serial_fallbacks/op\t         2.000 sigchecks/op\t  506004 B/op\t     105 allocs/op"
+    },
+    {
+      "name": "BenchmarkParallelProviderConcurrent/verify_invalidB/parallel-2",
+      "iterations": 10,
+      "rawMetrics": "1060357 ns/op\t         2.000 gomaxprocs\t         0.9000 parallel_pairs/op\t         2.000 peak_extra_workers\t         0.1000 serial_fallbacks/op\t         2.000 sigchecks/op\t  506224 B/op\t     110 allocs/op"
+    },
+    {
+      "name": "BenchmarkPQCertificateConsumer/N1/members1/old-2",
+      "iterations": 10,
+      "rawMetrics": "2038123 ns/op\t         0 cache_hits/op\t         0 cache_misses/op\t         1.000 members/op\t         0 policy_roots/op\t  683300 B/op\t     192 allocs/op"
+    },
+    {
+      "name": "BenchmarkPQCertificateConsumer/N1/members1/new-2",
+      "iterations": 10,
+      "rawMetrics": "1968542 ns/op\t         0 cache_hits/op\t         0 cache_misses/op\t         1.000 members/op\t         0 policy_roots/op\t  551443 B/op\t     161 allocs/op"
+    },
+    {
+      "name": "BenchmarkPQCertificateConsumer/N16/members1/old-2",
+      "iterations": 10,
+      "rawMetrics": "1970781 ns/op\t         0 cache_hits/op\t         0 cache_misses/op\t         1.000 members/op\t         0 policy_roots/op\t  690465 B/op\t     326 allocs/op"
+    },
+    {
+      "name": "BenchmarkPQCertificateConsumer/N16/members1/new-2",
+      "iterations": 10,
+      "rawMetrics": "2085209 ns/op\t         0 cache_hits/op\t         1.000 cache_misses/op\t         1.000 members/op\t         1.000 policy_roots/op\t  569125 B/op\t     283 allocs/op"
+    },
+    {
+      "name": "BenchmarkPQCertificateConsumer/N16/members16/old-2",
+      "iterations": 10,
+      "rawMetrics": "32064021 ns/op\t         0 cache_hits/op\t         0 cache_misses/op\t        16.00 members/op\t         0 policy_roots/op\t11047440 B/op\t    5216 allocs/op"
+    },
+    {
+      "name": "BenchmarkPQCertificateConsumer/N16/members16/new-2",
+      "iterations": 10,
+      "rawMetrics": "5750941 ns/op\t        15.00 cache_hits/op\t         1.000 cache_misses/op\t        16.00 members/op\t         1.000 policy_roots/op\t 7476572 B/op\t    3470 allocs/op"
+    }
+  ],
+  "fixedPerformanceClient": {
+    "commit": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+    "actualPassedTestFunctions": [
+      "TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves",
+      "TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged",
+      "TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix",
+      "TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption",
+      "TestReadyIntentSegmentsPersistAndStreamExactSignedInputs",
+      "TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence",
+      "TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding",
+      "TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts",
+      "TestSegmentedIntentOptionsRequireBoundedEvidenceMode",
+      "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities",
+      "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+      "TestReadySenderSegmentedIntentBarrierAndRecovery",
+      "TestReadySenderSegmentedIntentFailureNeverSubmits"
+    ]
+  },
+  "acceptance": {
+    "fixedCandidateCorrectness": "PASS",
+    "boundedMicrobenchmarks": "22 actual rows; 10 iterations each; not finality or chain TPS",
+    "forkState": "new exact profile state transition test PASS; remaining state+consensus compile-only",
+    "publicActivation": false,
+    "multiValidatorActivationRehearsal": false
+  }
+}

@@ -1,0 +1,1442 @@
+{
+  "schema": 1,
+  "sourceCommit": "c68642365",
+  "receipt": {
+    "hostBinary": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure",
+      "sha256": "3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6"
+    },
+    "startedAt": "2026-10-17T16:14:51.648Z",
+    "launcher": 24147,
+    "sharedParentExcluded": 24146,
+    "ownedScope": "launcher plus complete Go process group/descendants; native sampler and conservative fork-child reserve",
+    "goEnvironment": {
+      "GOMAXPROCS": "1",
+      "GOGC": "50",
+      "GOMEMLIMIT": "160MiB"
+    },
+    "firstCause": null,
+    "peakRSS": 398671872,
+    "peakThreads": 21,
+    "samples": [
+      {
+        "at": "2026-10-17T16:14:52.008Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 53428224,
+            "virtualBytes": 501367029760,
+            "threads": 7
+          }
+        ],
+        "watchedRssBytes": 53428224,
+        "watchedThreads": 7,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 56967168,
+        "threadsWithControlReserve": 9,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 880,
+          "uid": 501,
+          "uidProcessCount": 716,
+          "unreadableBsdInfo": 164,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3600,
+          "capacityBytes": 7696,
+          "returnedBytes": 3524,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 881,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 880,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 716,
+          "esrch": 0,
+          "eperm": 164,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 2872
+      },
+      {
+        "at": "2026-10-17T16:14:52.545Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 54968320,
+            "virtualBytes": 501367816192,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 37732352,
+            "virtualBytes": 476041297920,
+            "threads": 4
+          }
+        ],
+        "watchedRssBytes": 92700672,
+        "watchedThreads": 11,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 96239616,
+        "threadsWithControlReserve": 13,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 883,
+          "uid": 501,
+          "uidProcessCount": 719,
+          "unreadableBsdInfo": 164,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3612,
+          "capacityBytes": 7708,
+          "returnedBytes": 3536,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 884,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 883,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 719,
+          "esrch": 0,
+          "eperm": 164,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1270
+      },
+      {
+        "at": "2026-10-17T16:14:53.046Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 56377344,
+            "virtualBytes": 501369126912,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 40075264,
+            "virtualBytes": 476041297920,
+            "threads": 4
+          }
+        ],
+        "watchedRssBytes": 96452608,
+        "watchedThreads": 11,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 99991552,
+        "threadsWithControlReserve": 13,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 884,
+          "uid": 501,
+          "uidProcessCount": 720,
+          "unreadableBsdInfo": 164,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3616,
+          "capacityBytes": 7712,
+          "returnedBytes": 3540,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 885,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 884,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 720,
+          "esrch": 0,
+          "eperm": 164,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1343
+      },
+      {
+        "at": "2026-10-17T16:14:53.545Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 58556416,
+            "virtualBytes": 501370175488,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 40894464,
+            "virtualBytes": 476041297920,
+            "threads": 4
+          },
+          {
+            "pid": 24193,
+            "readable": true,
+            "rssBytes": 42958848,
+            "virtualBytes": 475957739520,
+            "threads": 3
+          }
+        ],
+        "watchedRssBytes": 142409728,
+        "watchedThreads": 14,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 145948672,
+        "threadsWithControlReserve": 16,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 883,
+          "uid": 501,
+          "uidProcessCount": 719,
+          "unreadableBsdInfo": 164,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3612,
+          "capacityBytes": 7708,
+          "returnedBytes": 3536,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 884,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 883,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 719,
+          "esrch": 0,
+          "eperm": 164,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1404
+      },
+      {
+        "at": "2026-10-17T16:14:54.045Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 58703872,
+            "virtualBytes": 501370175488,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 40894464,
+            "virtualBytes": 476041297920,
+            "threads": 4
+          },
+          {
+            "pid": 24193,
+            "readable": true,
+            "rssBytes": 106708992,
+            "virtualBytes": 476027092992,
+            "threads": 3
+          }
+        ],
+        "watchedRssBytes": 206307328,
+        "watchedThreads": 14,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 209846272,
+        "threadsWithControlReserve": 16,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 885,
+          "uid": 501,
+          "uidProcessCount": 721,
+          "unreadableBsdInfo": 164,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3620,
+          "capacityBytes": 7716,
+          "returnedBytes": 3544,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 886,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 885,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 721,
+          "esrch": 0,
+          "eperm": 164,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1108
+      },
+      {
+        "at": "2026-10-17T16:14:54.546Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 58736640,
+            "virtualBytes": 501370175488,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 40910848,
+            "virtualBytes": 476041297920,
+            "threads": 4
+          },
+          {
+            "pid": 24204,
+            "readable": true,
+            "rssBytes": 25591808,
+            "virtualBytes": 476143157248,
+            "threads": 3
+          }
+        ],
+        "watchedRssBytes": 125239296,
+        "watchedThreads": 14,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 128778240,
+        "threadsWithControlReserve": 16,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 885,
+          "uid": 501,
+          "uidProcessCount": 721,
+          "unreadableBsdInfo": 164,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3620,
+          "capacityBytes": 7716,
+          "returnedBytes": 3544,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 886,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 885,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 721,
+          "esrch": 0,
+          "eperm": 164,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1525
+      },
+      {
+        "at": "2026-10-17T16:14:55.047Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 58802176,
+            "virtualBytes": 501370175488,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 40910848,
+            "virtualBytes": 476041297920,
+            "threads": 4
+          },
+          {
+            "pid": 24204,
+            "readable": true,
+            "rssBytes": 169803776,
+            "virtualBytes": 476208824320,
+            "threads": 3
+          }
+        ],
+        "watchedRssBytes": 269516800,
+        "watchedThreads": 14,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 273055744,
+        "threadsWithControlReserve": 16,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 885,
+          "uid": 501,
+          "uidProcessCount": 721,
+          "unreadableBsdInfo": 164,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3620,
+          "capacityBytes": 7716,
+          "returnedBytes": 3544,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 886,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 885,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 721,
+          "esrch": 0,
+          "eperm": 164,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1315
+      },
+      {
+        "at": "2026-10-17T16:14:55.549Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 61767680,
+            "virtualBytes": 501370175488,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 40910848,
+            "virtualBytes": 476041297920,
+            "threads": 4
+          },
+          {
+            "pid": 24204,
+            "readable": true,
+            "rssBytes": 292454400,
+            "virtualBytes": 476208824320,
+            "threads": 3
+          }
+        ],
+        "watchedRssBytes": 395132928,
+        "watchedThreads": 14,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 398671872,
+        "threadsWithControlReserve": 16,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 887,
+          "uid": 501,
+          "uidProcessCount": 723,
+          "unreadableBsdInfo": 164,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3628,
+          "capacityBytes": 7724,
+          "returnedBytes": 3552,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 888,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 887,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 723,
+          "esrch": 0,
+          "eperm": 164,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1475
+      },
+      {
+        "at": "2026-10-17T16:14:56.051Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 62128128,
+            "virtualBytes": 501370437632,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 40976384,
+            "virtualBytes": 476041297920,
+            "threads": 4
+          },
+          {
+            "pid": 24228,
+            "readable": false,
+            "errno": 3
+          }
+        ],
+        "watchedRssBytes": 103104512,
+        "watchedThreads": 11,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 106643456,
+        "threadsWithControlReserve": 13,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 890,
+          "uid": 501,
+          "uidProcessCount": 724,
+          "unreadableBsdInfo": 166,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3640,
+          "capacityBytes": 7736,
+          "returnedBytes": 3564,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 891,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 890,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 724,
+          "esrch": 0,
+          "eperm": 166,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1453
+      },
+      {
+        "at": "2026-10-17T16:14:56.551Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 62308352,
+            "virtualBytes": 501370437632,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 41058304,
+            "virtualBytes": 476043018240,
+            "threads": 7
+          },
+          {
+            "pid": 24236,
+            "readable": true,
+            "rssBytes": 32768,
+            "virtualBytes": 474683981824,
+            "threads": 1
+          }
+        ],
+        "watchedRssBytes": 103399424,
+        "watchedThreads": 15,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 106938368,
+        "threadsWithControlReserve": 17,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 892,
+          "uid": 501,
+          "uidProcessCount": 726,
+          "unreadableBsdInfo": 166,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3648,
+          "capacityBytes": 7744,
+          "returnedBytes": 3572,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 893,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 892,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 726,
+          "esrch": 0,
+          "eperm": 166,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1760
+      },
+      {
+        "at": "2026-10-17T16:14:57.065Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 62308352,
+            "virtualBytes": 501370437632,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 41025536,
+            "virtualBytes": 476043018240,
+            "threads": 7
+          },
+          {
+            "pid": 24236,
+            "readable": true,
+            "rssBytes": 28426240,
+            "virtualBytes": 501815656448,
+            "threads": 4
+          }
+        ],
+        "watchedRssBytes": 131760128,
+        "watchedThreads": 18,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 135299072,
+        "threadsWithControlReserve": 20,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 893,
+          "uid": 501,
+          "uidProcessCount": 727,
+          "unreadableBsdInfo": 166,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3660,
+          "capacityBytes": 7756,
+          "returnedBytes": 3576,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 894,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 893,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 727,
+          "esrch": 0,
+          "eperm": 166,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1683
+      },
+      {
+        "at": "2026-10-17T16:14:57.551Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 62324736,
+            "virtualBytes": 501370437632,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 41009152,
+            "virtualBytes": 476043018240,
+            "threads": 7
+          },
+          {
+            "pid": 24236,
+            "readable": true,
+            "rssBytes": 30588928,
+            "virtualBytes": 501824094208,
+            "threads": 5
+          },
+          {
+            "pid": 24269,
+            "readable": false,
+            "errno": 3
+          }
+        ],
+        "watchedRssBytes": 133922816,
+        "watchedThreads": 19,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 137461760,
+        "threadsWithControlReserve": 21,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 895,
+          "uid": 501,
+          "uidProcessCount": 729,
+          "unreadableBsdInfo": 166,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3660,
+          "capacityBytes": 7756,
+          "returnedBytes": 3584,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 896,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 895,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 729,
+          "esrch": 0,
+          "eperm": 166,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1066
+      },
+      {
+        "at": "2026-10-17T16:14:58.063Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 24147,
+            "readable": true,
+            "rssBytes": 62357504,
+            "virtualBytes": 501370437632,
+            "threads": 7
+          },
+          {
+            "pid": 24174,
+            "readable": true,
+            "rssBytes": 41009152,
+            "virtualBytes": 476043018240,
+            "threads": 7
+          },
+          {
+            "pid": 24236,
+            "readable": true,
+            "rssBytes": 34324480,
+            "virtualBytes": 501824356352,
+            "threads": 5
+          }
+        ],
+        "watchedRssBytes": 137691136,
+        "watchedThreads": 19,
+        "samplerRssBytes": 1769472,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 141230080,
+        "threadsWithControlReserve": 21,
+        "memoryPressure": {
+          "source": "kern.memorystatus_vm_pressure_level",
+          "readable": true,
+          "dispatchLevel": 1,
+          "errno": 0
+        },
+        "host": {
+          "processCount": 895,
+          "uid": 501,
+          "uidProcessCount": 729,
+          "unreadableBsdInfo": 166,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3660,
+          "capacityBytes": 7756,
+          "returnedBytes": 3584,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 896,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 895,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 729,
+          "esrch": 0,
+          "eperm": 166,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 2300
+      }
+    ],
+    "probes": [
+      {
+        "startedAt": "2026-10-17T16:14:51.651Z",
+        "pid": 24148,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":53428224,\"virtualBytes\":501367029760,\"threads\":7}],\"watchedRssBytes\":53428224,\"watchedThreads\":7,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":56967168,\"threadsWithControlReserve\":9,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":880,\"uid\":501,\"uidProcessCount\":716,\"unreadableBsdInfo\":164,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3600,\"capacityBytes\":7696,\"returnedBytes\":3524,\"queryErrno\":0,\"readErrno\":0,\"slots\":881,\"nonPositiveEntries\":1,\"positiveEntries\":880,\"duplicateEntries\":0,\"readableBsdInfo\":716,\"esrch\":0,\"eperm\":164,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":2872}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":65}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":203}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":1429}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":1468}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":2374}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":2858}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 357.369125
+      },
+      {
+        "startedAt": "2026-10-17T16:14:52.542Z",
+        "pid": 24183,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":54968320,\"virtualBytes\":501367816192,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":37732352,\"virtualBytes\":476041297920,\"threads\":4}],\"watchedRssBytes\":92700672,\"watchedThreads\":11,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":96239616,\"threadsWithControlReserve\":13,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":883,\"uid\":501,\"uidProcessCount\":719,\"unreadableBsdInfo\":164,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3612,\"capacityBytes\":7708,\"returnedBytes\":3536,\"queryErrno\":0,\"readErrno\":0,\"slots\":884,\"nonPositiveEntries\":1,\"positiveEntries\":883,\"duplicateEntries\":0,\"readableBsdInfo\":719,\"esrch\":0,\"eperm\":164,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1270}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":14}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":124}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":561}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":569}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1028}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1267}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 3.466833000000065
+      },
+      {
+        "startedAt": "2026-10-17T16:14:53.042Z",
+        "pid": 24188,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":56377344,\"virtualBytes\":501369126912,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":40075264,\"virtualBytes\":476041297920,\"threads\":4}],\"watchedRssBytes\":96452608,\"watchedThreads\":11,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":99991552,\"threadsWithControlReserve\":13,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":884,\"uid\":501,\"uidProcessCount\":720,\"unreadableBsdInfo\":164,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3616,\"capacityBytes\":7712,\"returnedBytes\":3540,\"queryErrno\":0,\"readErrno\":0,\"slots\":885,\"nonPositiveEntries\":1,\"positiveEntries\":884,\"duplicateEntries\":0,\"readableBsdInfo\":720,\"esrch\":0,\"eperm\":164,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1343}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":14}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":131}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":591}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":600}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1101}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1339}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 4.063792000000149
+      },
+      {
+        "startedAt": "2026-10-17T16:14:53.541Z",
+        "pid": 24195,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":58556416,\"virtualBytes\":501370175488,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":40894464,\"virtualBytes\":476041297920,\"threads\":4},{\"pid\":24193,\"readable\":true,\"rssBytes\":42958848,\"virtualBytes\":475957739520,\"threads\":3}],\"watchedRssBytes\":142409728,\"watchedThreads\":14,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":145948672,\"threadsWithControlReserve\":16,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":883,\"uid\":501,\"uidProcessCount\":719,\"unreadableBsdInfo\":164,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3612,\"capacityBytes\":7708,\"returnedBytes\":3536,\"queryErrno\":0,\"readErrno\":0,\"slots\":884,\"nonPositiveEntries\":1,\"positiveEntries\":883,\"duplicateEntries\":0,\"readableBsdInfo\":719,\"esrch\":0,\"eperm\":164,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1404}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":22}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":146}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":665}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":679}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1117}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1399}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 4.101167000000032
+      },
+      {
+        "startedAt": "2026-10-17T16:14:54.041Z",
+        "pid": 24200,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":58703872,\"virtualBytes\":501370175488,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":40894464,\"virtualBytes\":476041297920,\"threads\":4},{\"pid\":24193,\"readable\":true,\"rssBytes\":106708992,\"virtualBytes\":476027092992,\"threads\":3}],\"watchedRssBytes\":206307328,\"watchedThreads\":14,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":209846272,\"threadsWithControlReserve\":16,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":885,\"uid\":501,\"uidProcessCount\":721,\"unreadableBsdInfo\":164,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3620,\"capacityBytes\":7716,\"returnedBytes\":3544,\"queryErrno\":0,\"readErrno\":0,\"slots\":886,\"nonPositiveEntries\":1,\"positiveEntries\":885,\"duplicateEntries\":0,\"readableBsdInfo\":721,\"esrch\":0,\"eperm\":164,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1108}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":17}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":128}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":579}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":586}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":845}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1102}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 3.303625000000011
+      },
+      {
+        "startedAt": "2026-10-17T16:14:54.543Z",
+        "pid": 24206,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":58736640,\"virtualBytes\":501370175488,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":40910848,\"virtualBytes\":476041297920,\"threads\":4},{\"pid\":24204,\"readable\":true,\"rssBytes\":25591808,\"virtualBytes\":476143157248,\"threads\":3}],\"watchedRssBytes\":125239296,\"watchedThreads\":14,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":128778240,\"threadsWithControlReserve\":16,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":885,\"uid\":501,\"uidProcessCount\":721,\"unreadableBsdInfo\":164,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3620,\"capacityBytes\":7716,\"returnedBytes\":3544,\"queryErrno\":0,\"readErrno\":0,\"slots\":886,\"nonPositiveEntries\":1,\"positiveEntries\":885,\"duplicateEntries\":0,\"readableBsdInfo\":721,\"esrch\":0,\"eperm\":164,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1525}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":15}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":120}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":903}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":913}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1237}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1519}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 3.5313750000000255
+      },
+      {
+        "startedAt": "2026-10-17T16:14:55.044Z",
+        "pid": 24209,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":58802176,\"virtualBytes\":501370175488,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":40910848,\"virtualBytes\":476041297920,\"threads\":4},{\"pid\":24204,\"readable\":true,\"rssBytes\":169803776,\"virtualBytes\":476208824320,\"threads\":3}],\"watchedRssBytes\":269516800,\"watchedThreads\":14,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":273055744,\"threadsWithControlReserve\":16,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":885,\"uid\":501,\"uidProcessCount\":721,\"unreadableBsdInfo\":164,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3620,\"capacityBytes\":7716,\"returnedBytes\":3544,\"queryErrno\":0,\"readErrno\":0,\"slots\":886,\"nonPositiveEntries\":1,\"positiveEntries\":885,\"duplicateEntries\":0,\"readableBsdInfo\":721,\"esrch\":0,\"eperm\":164,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1315}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":16}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":118}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":550}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":558}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1004}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1310}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 3.4668750000000728
+      },
+      {
+        "startedAt": "2026-10-17T16:14:55.545Z",
+        "pid": 24214,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":61767680,\"virtualBytes\":501370175488,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":40910848,\"virtualBytes\":476041297920,\"threads\":4},{\"pid\":24204,\"readable\":true,\"rssBytes\":292454400,\"virtualBytes\":476208824320,\"threads\":3}],\"watchedRssBytes\":395132928,\"watchedThreads\":14,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":398671872,\"threadsWithControlReserve\":16,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":887,\"uid\":501,\"uidProcessCount\":723,\"unreadableBsdInfo\":164,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3628,\"capacityBytes\":7724,\"returnedBytes\":3552,\"queryErrno\":0,\"readErrno\":0,\"slots\":888,\"nonPositiveEntries\":1,\"positiveEntries\":887,\"duplicateEntries\":0,\"readableBsdInfo\":723,\"esrch\":0,\"eperm\":164,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1475}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":19}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":141}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":813}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":827}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1123}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1470}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 3.9542920000003505
+      },
+      {
+        "startedAt": "2026-10-17T16:14:56.047Z",
+        "pid": 24230,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":62128128,\"virtualBytes\":501370437632,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":40976384,\"virtualBytes\":476041297920,\"threads\":4},{\"pid\":24228,\"readable\":false,\"errno\":3}],\"watchedRssBytes\":103104512,\"watchedThreads\":11,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":106643456,\"threadsWithControlReserve\":13,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":890,\"uid\":501,\"uidProcessCount\":724,\"unreadableBsdInfo\":166,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3640,\"capacityBytes\":7736,\"returnedBytes\":3564,\"queryErrno\":0,\"readErrno\":0,\"slots\":891,\"nonPositiveEntries\":1,\"positiveEntries\":890,\"duplicateEntries\":0,\"readableBsdInfo\":724,\"esrch\":0,\"eperm\":166,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1453}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":15}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":194}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":775}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":784}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1067}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1447}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 3.938000000000102
+      },
+      {
+        "startedAt": "2026-10-17T16:14:56.546Z",
+        "pid": 24242,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":62308352,\"virtualBytes\":501370437632,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":41058304,\"virtualBytes\":476043018240,\"threads\":7},{\"pid\":24236,\"readable\":true,\"rssBytes\":32768,\"virtualBytes\":474683981824,\"threads\":1}],\"watchedRssBytes\":103399424,\"watchedThreads\":15,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":106938368,\"threadsWithControlReserve\":17,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":892,\"uid\":501,\"uidProcessCount\":726,\"unreadableBsdInfo\":166,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3648,\"capacityBytes\":7744,\"returnedBytes\":3572,\"queryErrno\":0,\"readErrno\":0,\"slots\":893,\"nonPositiveEntries\":1,\"positiveEntries\":892,\"duplicateEntries\":0,\"readableBsdInfo\":726,\"esrch\":0,\"eperm\":166,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1760}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":18}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":181}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":1033}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":1053}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1516}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1755}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 4.972999999999956
+      },
+      {
+        "startedAt": "2026-10-17T16:14:57.059Z",
+        "pid": 24259,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":62308352,\"virtualBytes\":501370437632,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":41025536,\"virtualBytes\":476043018240,\"threads\":7},{\"pid\":24236,\"readable\":true,\"rssBytes\":28426240,\"virtualBytes\":501815656448,\"threads\":4}],\"watchedRssBytes\":131760128,\"watchedThreads\":18,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":135299072,\"threadsWithControlReserve\":20,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":893,\"uid\":501,\"uidProcessCount\":727,\"unreadableBsdInfo\":166,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3660,\"capacityBytes\":7756,\"returnedBytes\":3576,\"queryErrno\":0,\"readErrno\":0,\"slots\":894,\"nonPositiveEntries\":1,\"positiveEntries\":893,\"duplicateEntries\":0,\"readableBsdInfo\":727,\"esrch\":0,\"eperm\":166,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1683}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":18}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":139}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":628}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":637}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1177}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1643}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 6.266624999999294
+      },
+      {
+        "startedAt": "2026-10-17T16:14:57.548Z",
+        "pid": 24271,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":62324736,\"virtualBytes\":501370437632,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":41009152,\"virtualBytes\":476043018240,\"threads\":7},{\"pid\":24236,\"readable\":true,\"rssBytes\":30588928,\"virtualBytes\":501824094208,\"threads\":5},{\"pid\":24269,\"readable\":false,\"errno\":3}],\"watchedRssBytes\":133922816,\"watchedThreads\":19,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":137461760,\"threadsWithControlReserve\":21,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":895,\"uid\":501,\"uidProcessCount\":729,\"unreadableBsdInfo\":166,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3660,\"capacityBytes\":7756,\"returnedBytes\":3584,\"queryErrno\":0,\"readErrno\":0,\"slots\":896,\"nonPositiveEntries\":1,\"positiveEntries\":895,\"duplicateEntries\":0,\"readableBsdInfo\":729,\"esrch\":0,\"eperm\":166,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1066}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":18}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":135}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":567}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":575}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":790}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":1061}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 3.3639170000005834
+      },
+      {
+        "startedAt": "2026-10-17T16:14:58.057Z",
+        "pid": 24274,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":24147,\"readable\":true,\"rssBytes\":62357504,\"virtualBytes\":501370437632,\"threads\":7},{\"pid\":24174,\"readable\":true,\"rssBytes\":41009152,\"virtualBytes\":476043018240,\"threads\":7},{\"pid\":24236,\"readable\":true,\"rssBytes\":34324480,\"virtualBytes\":501824356352,\"threads\":5}],\"watchedRssBytes\":137691136,\"watchedThreads\":19,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":141230080,\"threadsWithControlReserve\":21,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":895,\"uid\":501,\"uidProcessCount\":729,\"unreadableBsdInfo\":166,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3660,\"capacityBytes\":7756,\"returnedBytes\":3584,\"queryErrno\":0,\"readErrno\":0,\"slots\":896,\"nonPositiveEntries\":1,\"positiveEntries\":895,\"duplicateEntries\":0,\"readableBsdInfo\":729,\"esrch\":0,\"eperm\":166,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":2300}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":23}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":149}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":1059}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":1074}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1594}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":2290}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 5.852208999999675
+      }
+    ],
+    "go": {
+      "pid": 24174,
+      "code": 0,
+      "signal": null,
+      "stdout": "ok  \tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\t2.144s\n",
+      "stderr": "",
+      "exited": true
+    },
+    "lastAttemptedResourceSample": {
+      "schema": 1,
+      "scope": "proc_pidtaskinfo watched processes",
+      "processes": [
+        {
+          "pid": 24147,
+          "readable": true,
+          "rssBytes": 62357504,
+          "virtualBytes": 501370437632,
+          "threads": 7
+        },
+        {
+          "pid": 24174,
+          "readable": true,
+          "rssBytes": 41009152,
+          "virtualBytes": 476043018240,
+          "threads": 7
+        },
+        {
+          "pid": 24236,
+          "readable": true,
+          "rssBytes": 34324480,
+          "virtualBytes": 501824356352,
+          "threads": 5
+        }
+      ],
+      "watchedRssBytes": 137691136,
+      "watchedThreads": 19,
+      "samplerRssBytes": 1769472,
+      "samplerThreads": 1,
+      "rssWithControlReserveBytes": 141230080,
+      "threadsWithControlReserve": 21,
+      "memoryPressure": {
+        "source": "kern.memorystatus_vm_pressure_level",
+        "readable": true,
+        "dispatchLevel": 1,
+        "errno": 0
+      },
+      "host": {
+        "processCount": 895,
+        "uid": 501,
+        "uidProcessCount": 729,
+        "unreadableBsdInfo": 166,
+        "scanComplete": true,
+        "maxproc": 6000,
+        "maxprocperuid": 4000,
+        "rlimitNprocSoft": 4000
+      },
+      "hostEnumeration": {
+        "requiredBytes": 3660,
+        "capacityBytes": 7756,
+        "returnedBytes": 3584,
+        "queryErrno": 0,
+        "readErrno": 0,
+        "slots": 896,
+        "nonPositiveEntries": 1,
+        "positiveEntries": 895,
+        "duplicateEntries": 0,
+        "readableBsdInfo": 729,
+        "esrch": 0,
+        "eperm": 166,
+        "eacces": 0,
+        "noErrno": 0,
+        "otherErrno": 0
+      },
+      "forkProbe": {
+        "available": true,
+        "forkSucceeded": true,
+        "forkErrno": 0,
+        "waitErrno": 0,
+        "childExitCode": 0,
+        "childSignal": 0
+      },
+      "elapsedMicroseconds": 2300
+    },
+    "vmStat": {
+      "sampledAt": "2026-10-17T16:14:52.014Z",
+      "raw": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                    61423.\nPages active:                                 371280.\nPages inactive:                               365211.\nPages speculative:                              3258.\nPages throttled:                                   0.\nPages wired down:                             267603.\nPages purgeable:                               16620.\n\"Translation faults\":                      565548023.\nPages copy-on-write:                        37474166.\nPages zero filled:                         342985849.\nPages reactivated:                          38478691.\nPages purged:                                3143675.\nFile-backed pages:                            240317.\nAnonymous pages:                              499432.\nPages stored in compressor:                   823952.\nPages occupied by compressor:                 470630.\nDecompressions:                             32394597.\nCompressions:                               53088577.\nPageins:                                    10751784.\nPageouts:                                      28711.\nSwapins:                                      121962.\nSwapouts:                                     598448.\n",
+      "freePageBytes": 1006354432,
+      "interpretation": "Diagnostic free pages only, not available bytes; admission uses native memoryPressure dispatch level and actual owned RSS cap"
+    },
+    "groupGone": true,
+    "elapsedMs": 6867
+  },
+  "independentCleanup": {
+    "verifiedAt": "2026-10-17T16:15:49.834Z",
+    "checks": [
+      {
+        "pid": 24146,
+        "absent": true
+      },
+      {
+        "pid": 24147,
+        "absent": true
+      },
+      {
+        "pid": 24174,
+        "absent": true
+      },
+      {
+        "pid": 24148,
+        "absent": true
+      },
+      {
+        "pid": 24183,
+        "absent": true
+      },
+      {
+        "pid": 24188,
+        "absent": true
+      },
+      {
+        "pid": 24195,
+        "absent": true
+      },
+      {
+        "pid": 24200,
+        "absent": true
+      },
+      {
+        "pid": 24206,
+        "absent": true
+      },
+      {
+        "pid": 24209,
+        "absent": true
+      },
+      {
+        "pid": 24214,
+        "absent": true
+      },
+      {
+        "pid": 24230,
+        "absent": true
+      },
+      {
+        "pid": 24242,
+        "absent": true
+      },
+      {
+        "pid": 24259,
+        "absent": true
+      },
+      {
+        "pid": 24271,
+        "absent": true
+      },
+      {
+        "pid": 24274,
+        "absent": true
+      },
+      {
+        "pid": 24193,
+        "absent": true
+      },
+      {
+        "pid": 24204,
+        "absent": true
+      },
+      {
+        "pid": 24228,
+        "absent": true
+      },
+      {
+        "pid": 24236,
+        "absent": true
+      },
+      {
+        "pid": 24269,
+        "absent": true
+      }
+    ],
+    "groupChecks": [
+      {
+        "pgid": 24174,
+        "absent": true
+      },
+      {
+        "pgid": 24148,
+        "absent": true
+      },
+      {
+        "pgid": 24183,
+        "absent": true
+      },
+      {
+        "pgid": 24188,
+        "absent": true
+      },
+      {
+        "pgid": 24195,
+        "absent": true
+      },
+      {
+        "pgid": 24200,
+        "absent": true
+      },
+      {
+        "pgid": 24206,
+        "absent": true
+      },
+      {
+        "pgid": 24209,
+        "absent": true
+      },
+      {
+        "pgid": 24214,
+        "absent": true
+      },
+      {
+        "pgid": 24230,
+        "absent": true
+      },
+      {
+        "pgid": 24242,
+        "absent": true
+      },
+      {
+        "pgid": 24259,
+        "absent": true
+      },
+      {
+        "pgid": 24271,
+        "absent": true
+      },
+      {
+        "pgid": 24274,
+        "absent": true
+      }
+    ],
+    "allAbsent": true
+  },
+  "inputs": [
+    {
+      "path": "artifacts/chain-performance-20261017/ready-slots-pressure-light-result.json",
+      "bytes": 53726,
+      "sha256": "d6475ddcf357512a720a19edea1a65870b69908a1ef1b5d28d7c3c2ebe253b6a"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/ready-slots-pressure-light-cleanup.json",
+      "bytes": 2013,
+      "sha256": "fbd80ff762504ffdd6ebf4bad018de7141256b5c72e01a28b738a2b06dbe5e0e"
+    },
+    {
+      "path": "scripts/loadtest/consensus-light-window.mjs",
+      "bytes": 5602,
+      "sha256": "9c3728f96a7886a1e1a3f6ab3d861681691a753a4298cd52a109484978f6b452"
+    },
+    {
+      "path": "scripts/loadtest/native-resource-probe.mjs",
+      "bytes": 3217,
+      "sha256": "57e6cc9764ccbeab062fe859f725bbe34753280c2ab25272379570dbf17c0a84"
+    },
+    {
+      "path": "scripts/loadtest/native-resource-sample.mjs",
+      "bytes": 1073,
+      "sha256": "d590df868098366e14fb7137f9015e70038ea18c3df20ba796f819baba5182be"
+    },
+    {
+      "path": "scripts/loadtest/owned-process-set.mjs",
+      "bytes": 1683,
+      "sha256": "46495a37051c13829d6567e8a1ef51342fc5c6e497e930267811e5404fc0151a"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure",
+      "bytes": 34688,
+      "sha256": "3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/ready_sender.go",
+      "bytes": 12686,
+      "sha256": "023b9d892b516aab591b88c64da0801576def3012c55d64d3f3ab15c938c7627"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/ready_summary.go",
+      "bytes": 7445,
+      "sha256": "38d065f404d6b920a6eb490e60ce6da2aa0305dded3274b99f316ca8209a90c7"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/terminal_readback.go",
+      "bytes": 5980,
+      "sha256": "20562e54b9311270879d7e641601b5521899f99ed0eccd254d6e4a698d69671d"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/terminal_readback_test.go",
+      "bytes": 6599,
+      "sha256": "336c16ef237ff854d6fca3306f1001c14ddafc9dae607ae1af2e617d197d8f6d"
+    }
+  ],
+  "scope": "Actual focused Go package run with selector TestTerminalStream|TestReadySender, including new cumulative/slot/readback unit cases and both real local execution/restart retention cases. No stopped-network env tests, full package/race or standalone loadmetrics package tests were run. No four-node TPS evidence is inferred."
+}

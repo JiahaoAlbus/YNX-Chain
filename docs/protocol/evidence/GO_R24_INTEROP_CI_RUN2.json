@@ -1,0 +1,8 @@
+{
+  "binary": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r24-canonical-full-matching-20261018/output/mac-arm64/YNX Wallet.app/Contents/MacOS/YNX Wallet",
+  "runAsNodeFuseByte": 49,
+  "scriptSHA256": "234f8059fe7ef6491a2baa79b638afc4010aa1a3f4a60e6dc653b10f6ad50312",
+  "exitCode": 0,
+  "stdout": "{\"fixtureSHA256\":\"06a78f1c16b01f93f781c9f9d1fd6c0b363583abb07abeba905fd8a55179865e\",\"fixtureBytes\":230631,\"certificateBytes\":57528,\"N\":2,\"provider\":\"portable\",\"electron\":\"42.10.0\",\"node\":\"24.18.1\",\"GoToR24Whole\":true,\"GoToR24Member\":true,\"independentBranchA\":true,\"independentBranchB\":true,\"branchATamperRejected\":true,\"branchBTamperRejected\":true,\"wholeTamperRejected\":true,\"memberTamperRejected\":true,\"scope\":\"Public signature/codec interoperability only; no chain registration, production Source, migration, N1 Wallet acceptance or finality\"}\n",
+  "stderr": ""
+}

@@ -1,0 +1,75 @@
+{
+  "schema": "ynx-ide-main-inbox-public-negative-positive-data-1",
+  "fixtures": [
+    {
+      "classification": "PUBLIC synthetic sizing fixture; never sent or treated as approved identity",
+      "materialHandoff": {
+        "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-canonical-abi-20261023/HANDOFF.json",
+        "bytes": 9966,
+        "sha256": "2f9a0fa4fc9a579cd60d26ab213ab3abe286e004ae2d3252e6ef020e3eeba372"
+      },
+      "request": {
+        "path": "/Volumes/西部数据/YNX-large-work/ide-wallet-contract-consumer-20261023/go-validated-over-inbox-SampleEVMWriteCounter-request.json",
+        "bytes": 25628,
+        "sha256": "54d54e4e2882f603468ea44426315152aa4be0ab3b559d1827808cc387d98eea"
+      },
+      "paramsSha256": "b9406dcd42000c38c2d1c87abc1c634d12cfee4ffe65a60580730fd8a0b3d78f",
+      "paramsBytes": 25555,
+      "normalInboxLimit": 65536
+    },
+    {
+      "classification": "PUBLIC synthetic sizing fixture; never sent or treated as approved identity",
+      "materialHandoff": {
+        "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-canonical-abi-20261023/HANDOFF.json",
+        "bytes": 9966,
+        "sha256": "2f9a0fa4fc9a579cd60d26ab213ab3abe286e004ae2d3252e6ef020e3eeba372"
+      },
+      "request": {
+        "path": "/Volumes/西部数据/YNX-large-work/ide-wallet-contract-consumer-20261023/go-validated-over-inbox-SampleYNXTCompatibleERC20-request.json",
+        "bytes": 75208,
+        "sha256": "cd3c5bd6a72653c7f6b28d04241fd916e7e5c25b2ac18a726d6f87bd48e52403"
+      },
+      "paramsSha256": "35466ccaefa27d81724b4f4d28b13faeb1b35719501f197ead4980a097780877",
+      "paramsBytes": 75135,
+      "normalInboxLimit": 65536
+    },
+    {
+      "classification": "PUBLIC synthetic sizing fixture; never sent or treated as approved identity",
+      "materialHandoff": {
+        "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-wallet-inbox-20261023/HANDOFF.json",
+        "bytes": 11159,
+        "sha256": "f4cd73d2580dabeefa441ac12d0279056caffb70ecf33923ee8abfe6e4042d22"
+      },
+      "request": {
+        "path": "/Volumes/西部数据/YNX-large-work/ide-wallet-contract-consumer-20261023/input-only-pending-go-SampleEVMWriteCounter-request.json",
+        "bytes": 6540,
+        "sha256": "ed099b72aca9afc0d60aefa933f40843bdb546365f041bb3d7484442cf7854dd"
+      },
+      "paramsSha256": "98f00e36ccde0772ab99b4bc3fa196a92759629bc56d7f56d075a25c91f68158",
+      "paramsBytes": 6467,
+      "normalInboxLimit": 65536
+    },
+    {
+      "classification": "PUBLIC synthetic sizing fixture; never sent or treated as approved identity",
+      "materialHandoff": {
+        "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-wallet-inbox-20261023/HANDOFF.json",
+        "bytes": 11159,
+        "sha256": "f4cd73d2580dabeefa441ac12d0279056caffb70ecf33923ee8abfe6e4042d22"
+      },
+      "request": {
+        "path": "/Volumes/西部数据/YNX-large-work/ide-wallet-contract-consumer-20261023/input-only-pending-go-SampleYNXTCompatibleERC20-request.json",
+        "bytes": 14556,
+        "sha256": "a097a7782bef7ef78a21dd51ff63006b7cdbfe4801ad7c97541669dbf6c4d139"
+      },
+      "paramsSha256": "bb2b8bb689e2b8976e5e5e346889c8c578c1c94f697a2398f45bbbe541679048",
+      "paramsBytes": 14483,
+      "normalInboxLimit": 65536
+    }
+  ],
+  "actualAccount": false,
+  "nonceSelected": false,
+  "approved": false,
+  "signed": false,
+  "submitted": false,
+  "originalJSONRPCIdentity": false
+}

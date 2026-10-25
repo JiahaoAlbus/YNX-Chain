@@ -1,0 +1,55 @@
+{
+  "version": "ynx-pq-batch-measurement-v1",
+  "consumerCommit": "6a3b8f813bcc5a2ee8ab0280783b6ebddf3d9c71",
+  "sourceCommit": "473312b2e4b6c37f260b589db84c77af817d1096",
+  "remoteRun": "39087492005",
+  "remoteRunOverall": "failure",
+  "relevantStep": "Verify native ledger and HTTP PQ integration",
+  "relevantStepConclusion": "success",
+  "actualPackages": {
+    "internal/chain": "18.531s",
+    "internal/api": "4.298s"
+  },
+  "phaseSourcePins": [
+    {
+      "path": "internal/chain/pq_batch.go",
+      "bytes": 14317,
+      "sha256": "2539e731c352a5489c08513df0c1d03adaeb27bf14aadfb215d9b217cb2fd312"
+    },
+    {
+      "path": "internal/chain/pq_batch_measurement.go",
+      "bytes": 5239,
+      "sha256": "352f78879645e508ada2892314eb9890db5e707a35b963685b347a4a1f153e09"
+    },
+    {
+      "path": "internal/chain/pq_batch_measurement_test.go",
+      "bytes": 11725,
+      "sha256": "df9c79ce235f42a33f67d22b26d950120aebe87d3d221b05697ee386a1332f15"
+    },
+    {
+      "path": "internal/chain/devnet.go",
+      "bytes": 207564,
+      "sha256": "b4199db5e57f32c61085d4217fa3e4256a1feac4bc0034b60ef5931843a89c9a"
+    },
+    {
+      "path": "internal/chain/replication.go",
+      "bytes": 32505,
+      "sha256": "71ac912b1c51900c4543fd44de23ff351e25e0c7b0a791aefc85ba300399b60e"
+    },
+    {
+      "path": "docs/protocol/PQ_BATCH_PRODUCTION_MEASUREMENT_R1.md",
+      "bytes": 6126,
+      "sha256": "a7e07585fb89365dff8fb4c6eef1249205177d6a0897af81048cd2d6213d5154"
+    }
+  ],
+  "actualGoTests": "full internal/chain includes all four new measurement/fault/replay tests, no local Go",
+  "sourceReview": "PQ_BATCH_MEASUREMENT_REVIEW_R1.json",
+  "activationBlocker": "ordinary consensus genesis domain remained genuinely RED in this fixed source; v2 repair is a separate source/CI gate",
+  "notEvidenceOf": [
+    "TPS or P95/P99",
+    "remote weighted BFT finality",
+    "live Comet node operation",
+    "public deployment or activation",
+    "Wallet business acceptance"
+  ]
+}

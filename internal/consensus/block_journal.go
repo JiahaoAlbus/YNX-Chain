@@ -1,0 +1,628 @@
+package consensus
+
+import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/binary"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"io"
+	"os"
+	"path/filepath"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	abci "github.com/cometbft/cometbft/abci/types"
+)
+
+const blockJournalMagic = "YNX_ABCI_BLOCK_JOURNAL_V2\n"
+const blockJournalMaxFrame = 512 << 20
+const blockJournalMaxRequest = 8 << 20
+const blockJournalCheckpointBlocks = 16
+const blockJournalTailTarget = 4 << 20
+
+type blockJournalRecord struct {
+	Kind          string          `json:"kind"`
+	Snapshot      *CommittedState `json:"snapshot,omitempty"`
+	Request       []byte          `json:"request,omitempty"`
+	BeforeAppHash string          `json:"beforeAppHash,omitempty"`
+	AppHash       string          `json:"appHash,omitempty"`
+	ResponseHash  string          `json:"responseHash,omitempty"`
+}
+
+type blockJournal struct {
+	io                     *snapshotJournal // framing, fixed writer/read locks and owned fault hooks
+	tailBytes              int64
+	blocks                 int
+	checkpointBytesWritten int64
+	appHash                string
+	stateVersion           int // authenticated checkpoint/replay state; never a request field
+	replayedTxInputs       int
+}
+
+func finalizeResponseHash(response *abci.ResponseFinalizeBlock) (string, error) {
+	raw, err := response.Marshal()
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:]), nil
+}
+
+func blockJournalFrame(payload []byte) []byte {
+	header := make([]byte, snapshotJournalHeader)
+	binary.BigEndian.PutUint64(header[:8], uint64(len(payload)))
+	sum := sha256.Sum256(header[:8])
+	copy(header[8:40], sum[:])
+	sum = journalRecordDigest(header[:8], payload)
+	copy(header[40:], sum[:])
+	return header
+}
+
+func readBlockJournalFrame(r io.Reader) ([]byte, int64, bool, error) {
+	return readBlockJournalFrameLimit(r, blockJournalMaxFrame)
+}
+
+func readBlockJournalFrameLimit(r io.Reader, limit uint64) ([]byte, int64, bool, error) {
+	header := make([]byte, snapshotJournalHeader)
+	n, err := io.ReadFull(r, header)
+	if err == io.EOF || err == io.ErrUnexpectedEOF {
+		return nil, 0, n != 0, nil
+	}
+	if err != nil {
+		return nil, 0, false, err
+	}
+	sum := sha256.Sum256(header[:8])
+	if !bytes.Equal(sum[:], header[8:40]) {
+		return nil, 0, false, errors.New("block journal length checksum mismatch")
+	}
+	length := binary.BigEndian.Uint64(header[:8])
+	if length == 0 || length > limit {
+		return nil, 0, false, errors.New("block journal frame exceeds bounds")
+	}
+	// A valid length checksum is not permission to allocate absent tail bytes.
+	// Both file recovery and pure byte readback provide a known remaining size.
+	available := int64(-1)
+	if bounded, ok := r.(interface{ Len() int }); ok {
+		available = int64(bounded.Len())
+	}
+	if section, ok := r.(*io.SectionReader); ok {
+		position, err := section.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return nil, 0, false, err
+		}
+		available = section.Size() - position
+	}
+	if available >= 0 && uint64(available) < length {
+		return nil, 0, true, nil
+	}
+	payload := make([]byte, int(length))
+	if _, err := io.ReadFull(r, payload); err == io.EOF || err == io.ErrUnexpectedEOF {
+		return nil, 0, true, nil
+	} else if err != nil {
+		return nil, 0, false, err
+	}
+	sum = journalRecordDigest(header[:8], payload)
+	if !bytes.Equal(sum[:], header[40:]) {
+		return nil, 0, false, errors.New("complete block journal checksum mismatch")
+	}
+	return payload, int64(snapshotJournalHeader) + int64(length), false, nil
+}
+
+// Full FinalizeBlock requests are stored as owned protobuf bytes, including
+// failed transactions and metadata; replay compares the entire response hash.
+func replayBlockJournal(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal) (CommittedState, error) {
+	return replayBlockJournalWithFacts(ctx, r, migration, j, nil)
+}
+
+func replayBlockJournalWithFacts(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal, facts *nativeVerificationCache) (CommittedState, error) {
+	return replayBlockJournalWithAuthority(ctx, r, migration, j, facts, nil)
+}
+
+func replayBlockJournalWithAuthority(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal, facts *nativeVerificationCache, authority *blockJournalReplayAuthority) (CommittedState, error) {
+	var bootstrap *ConsensusBootstrap
+	if authority != nil {
+		bootstrap = authority.bootstrap
+	}
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return CommittedState{}, err
+	}
+	if authority != nil {
+		ownedAuthority := *authority
+		ownedAuthority.bootstrap = witness.bootstrap
+		authority = &ownedAuthority
+	}
+	return replayBlockJournalOwned(ctx, r, witness, j, facts, authority)
+}
+
+func replayBlockJournalOwned(ctx context.Context, r io.Reader, witness *validatedMigration, j *blockJournal, facts *nativeVerificationCache, authority *blockJournalReplayAuthority) (CommittedState, error) {
+	var bootstrap *ConsensusBootstrap
+	if authority != nil {
+		bootstrap = authority.bootstrap
+	}
+	if err := witness.binds(bootstrap); err != nil {
+		return CommittedState{}, err
+	}
+	header := make([]byte, len(j.io.header))
+	if _, err := io.ReadFull(r, header); err != nil || !bytes.Equal(header, j.io.header) {
+		return CommittedState{}, errors.New("block journal format/migration mismatch")
+	}
+	replay, err := newPersistentApplicationOwned(witness, "", nil, nil)
+	if err != nil {
+		return CommittedState{}, err
+	}
+	replay.committed.Initialized = true
+	replay.replayVerificationFacts = facts
+	if authority != nil {
+		replay.bootstrap = authority.bootstrap
+		replay.pqEngineAuthorization = authority.engine
+	}
+	j.io.end = int64(len(header))
+	for {
+		if err := ctx.Err(); err != nil {
+			return CommittedState{}, err
+		}
+		limit := uint64(blockJournalMaxFrame)
+		if j.io.records > 0 {
+			limit = 2 * blockJournalMaxRequest
+		}
+		payload, frameBytes, _, err := readBlockJournalFrameLimit(r, limit)
+		if err != nil {
+			return CommittedState{}, err
+		}
+		if payload == nil {
+			break
+		}
+		var record blockJournalRecord
+		if err := decodeStrictJSON(payload, &record); err != nil {
+			return CommittedState{}, err
+		}
+		if j.io.records == 0 {
+			if record.Kind != "checkpoint" || record.Snapshot == nil || len(record.Request) != 0 || record.BeforeAppHash != "" || record.AppHash != "" || record.ResponseHash != "" {
+				return CommittedState{}, errors.New("block journal must begin with one canonical checkpoint")
+			}
+			if authority != nil {
+				record.Snapshot.bootstrap = authority.bootstrap
+				if err := authority.validateCheckpoint(*record.Snapshot); err != nil {
+					return CommittedState{}, err
+				}
+			}
+			if err := record.Snapshot.validateOwned(witness); err != nil {
+				return CommittedState{}, err
+			}
+			replay.committed = *record.Snapshot
+			// Old V2 journals contain no version per delta. Keep their original
+			// execution/hash domain for this decoder only, using the validated
+			// checkpoint rather than anything supplied by a transaction. The
+			// application returned by the constructor is a separate normal
+			// instance, so its next live Commit uses the current state version.
+			if record.Snapshot.Version <= 13 {
+				replay.replayStateVersion = record.Snapshot.Version
+			}
+		} else {
+			if record.Kind != "block" || record.Snapshot != nil || len(record.Request) == 0 || len(record.Request) > blockJournalMaxRequest || record.BeforeAppHash != replay.committed.AppHash {
+				return CommittedState{}, errors.New("invalid block journal delta or prior AppHash")
+			}
+			if j.blocks >= blockJournalCheckpointBlocks {
+				return CommittedState{}, errors.New("block journal replay exceeds checkpoint interval")
+			}
+			var req abci.RequestFinalizeBlock
+			if err := req.Unmarshal(record.Request); err != nil {
+				return CommittedState{}, err
+			}
+			if authority != nil {
+				if err := authority.validateDelta(replay.committed, req.Height); err != nil {
+					return CommittedState{}, err
+				}
+			}
+			j.replayedTxInputs += len(req.Txs)
+			response, err := replay.FinalizeBlock(ctx, &req)
+			if err != nil {
+				return CommittedState{}, err
+			}
+			hash, err := finalizeResponseHash(response)
+			if err != nil {
+				return CommittedState{}, err
+			}
+			if hex.EncodeToString(response.AppHash) != record.AppHash || hash != record.ResponseHash {
+				return CommittedState{}, errors.New("block journal replay state/transaction response mismatch")
+			}
+			if _, err := replay.Commit(ctx, &abci.RequestCommit{}); err != nil {
+				return CommittedState{}, err
+			}
+			if authority != nil {
+				if err := authority.validateCheckpoint(replay.committed); err != nil {
+					return CommittedState{}, err
+				}
+			}
+			j.blocks++
+			j.tailBytes += frameBytes
+		}
+		j.io.records++
+		j.io.end += frameBytes
+	}
+	if j.io.records == 0 {
+		return CommittedState{}, errors.New("block journal missing complete checkpoint")
+	}
+	if err := replay.committed.validateOwned(witness); err != nil {
+		return CommittedState{}, err
+	}
+	j.io.height = replay.committed.Height
+	j.appHash = replay.committed.AppHash
+	j.stateVersion = replay.committed.Version
+	return replay.committed, nil
+}
+
+func encodeBlockCheckpoint(state CommittedState) ([]byte, error) {
+	return json.Marshal(blockJournalRecord{Kind: "checkpoint", Snapshot: &state})
+}
+
+func openBlockJournal(path string, migration chain.ConsensusMigrationState) (*blockJournal, CommittedState, error) {
+	return openBlockJournalWithAuthority(path, migration, nil, nil)
+}
+
+func openBlockJournalWithAuthority(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization) (*blockJournal, CommittedState, error) {
+	return openBlockJournalWithRuntimeAuthority(path, migration, bootstrap, authorization, nil)
+}
+
+func openBlockJournalWithRuntimeAuthority(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization) (*blockJournal, CommittedState, error) {
+	var preflight os.FileInfo
+	if runtime != nil {
+		var err error
+		preflight, err = preflightRuntimeJournalAuthority(path, migration, bootstrap, authorization, runtime, true)
+		if err != nil {
+			return nil, CommittedState{}, err
+		}
+	}
+	j := &blockJournal{io: &snapshotJournal{path: path, header: []byte(blockJournalMagic + migration.StateHash + "\n")}}
+	initial := initialCommittedState(migration)
+	initial.bootstrap = bootstrap
+	if bootstrap != nil {
+		if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
+			if err := validateJournalAuthority(initial, migration, bootstrap, authorization); err != nil {
+				return nil, CommittedState{}, err
+			}
+		} else if err != nil {
+			return nil, CommittedState{}, err
+		}
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return nil, CommittedState{}, err
+	}
+	lock, err := j.io.lock()
+	if err != nil {
+		return nil, CommittedState{}, err
+	}
+	defer releaseJournalLock(lock)
+	var f *os.File
+	err = os.ErrExist
+	if runtime == nil {
+		f, err = os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
+	}
+	if err == nil {
+		if err := initial.Validate(migration); err != nil {
+			_ = f.Close()
+			return nil, CommittedState{}, err
+		}
+		payload, err := encodeBlockCheckpoint(initial)
+		if err != nil {
+			_ = f.Close()
+			return nil, CommittedState{}, err
+		}
+		if len(payload) > blockJournalMaxFrame {
+			_ = f.Close()
+			return nil, CommittedState{}, errors.New("initial checkpoint exceeds block journal frame bound")
+		}
+		if n, err := f.Write(j.io.header); err != nil || n != len(j.io.header) {
+			_ = f.Close()
+			return nil, CommittedState{}, errors.Join(err, io.ErrShortWrite)
+		}
+		if err := j.writeFrame(f, payload, false); err != nil {
+			_ = f.Close()
+			return nil, CommittedState{}, err
+		}
+		if err := errors.Join(f.Sync(), f.Close(), syncJournalDirectory(path)); err != nil {
+			return nil, CommittedState{}, err
+		}
+	} else if !errors.Is(err, os.ErrExist) {
+		return nil, CommittedState{}, err
+	}
+	f, err = journalRegularFile(path, os.O_RDWR)
+	if err != nil {
+		return nil, CommittedState{}, err
+	}
+	defer f.Close()
+	info, err := f.Stat()
+	if err != nil {
+		return nil, CommittedState{}, err
+	}
+	if preflight != nil && !samePQStateFile(preflight, info) {
+		return nil, CommittedState{}, errors.New("runtime block journal changed after authority preflight")
+	}
+	if info.Size() > int64(blockJournalMaxFrame+blockJournalCheckpointBlocks*(2*blockJournalMaxRequest+snapshotJournalHeader)+len(j.io.header)) {
+		return nil, CommittedState{}, errors.New("block journal file exceeds bounded checkpoint/tail capacity")
+	}
+	var authority *blockJournalReplayAuthority
+	if bootstrap != nil {
+		authority = &blockJournalReplayAuthority{bootstrap: bootstrap, engine: authorization, runtime: runtime}
+	}
+	state, err := replayBlockJournalWithAuthority(context.Background(), io.NewSectionReader(f, 0, info.Size()), migration, j, nil, authority)
+	if err != nil {
+		return nil, CommittedState{}, err
+	}
+	if bootstrap != nil {
+		if j.io.end != info.Size() {
+			return nil, CommittedState{}, errors.New("authorized block journal has an incomplete tail; original bytes retained")
+		}
+		state.bootstrap = bootstrap
+		if err := validateJournalRuntimeAuthority(state, migration, bootstrap, authorization, runtime); err != nil {
+			return nil, CommittedState{}, err
+		}
+	}
+	if err := f.Sync(); err != nil {
+		return nil, CommittedState{}, err
+	}
+	j.io.identity, j.io.observedSize = info, info.Size()
+	return j, state, nil
+}
+
+func (j *blockJournal) writeFrame(f *os.File, payload []byte, hooks bool) error {
+	header := blockJournalFrame(payload)
+	if n, err := f.Write(header); err != nil || n != len(header) {
+		return errors.Join(err, io.ErrShortWrite)
+	}
+	if hooks {
+		if err := j.io.checkpoint("append_header_written"); err != nil {
+			return err
+		}
+	}
+	if n, err := f.Write(payload); err != nil || n != len(payload) {
+		return errors.Join(err, io.ErrShortWrite)
+	}
+	if hooks {
+		return j.io.checkpoint("append_payload_written")
+	}
+	return nil
+}
+
+func (j *blockJournal) checkCurrentFile() (*os.File, error) {
+	f, err := journalRegularFile(j.io.path, os.O_RDWR)
+	if err != nil {
+		return nil, err
+	}
+	info, err := f.Stat()
+	if err != nil || !os.SameFile(info, j.io.identity) || info.Size() != j.io.observedSize {
+		_ = f.Close()
+		return nil, errors.New("block journal changed since load or prior save")
+	}
+	return f, nil
+}
+
+func (j *blockJournal) replaceCheckpointLocked(state CommittedState) error {
+	payload, err := encodeBlockCheckpoint(state)
+	if err != nil {
+		return err
+	}
+	if len(payload) > blockJournalMaxFrame {
+		return errors.New("checkpoint exceeds block journal frame bound")
+	}
+	temp, err := os.CreateTemp(filepath.Dir(j.io.path), ".ynx-block-checkpoint-*")
+	if err != nil {
+		return err
+	}
+	defer temp.Close()
+	defer os.Remove(temp.Name())
+	if err := temp.Chmod(0o600); err != nil {
+		return err
+	}
+	if n, err := temp.Write(j.io.header); err != nil || n != len(j.io.header) {
+		return errors.Join(err, io.ErrShortWrite)
+	}
+	if err := j.writeFrame(temp, payload, false); err != nil {
+		return err
+	}
+	if err := errors.Join(temp.Sync(), temp.Close()); err != nil {
+		return err
+	}
+	if err := j.io.checkpoint("compaction_synced"); err != nil {
+		return err
+	}
+	if err := os.Rename(temp.Name(), j.io.path); err != nil {
+		return err
+	}
+	if err := j.io.checkpoint("compaction_renamed"); err != nil {
+		return err
+	}
+	if err := syncJournalDirectory(j.io.path); err != nil {
+		return err
+	}
+	j.io.identity, err = os.Stat(j.io.path)
+	if err != nil {
+		return err
+	}
+	j.io.end = int64(len(j.io.header) + snapshotJournalHeader + len(payload))
+	j.io.observedSize = j.io.end
+	j.io.height = state.Height
+	j.appHash = state.AppHash
+	j.stateVersion = state.Version
+	j.io.records = 1
+	j.io.compactions++
+	j.blocks = 0
+	j.tailBytes = 0
+	j.checkpointBytesWritten += int64(len(payload))
+	return nil
+}
+
+func (j *blockJournal) replaceCheckpoint(state CommittedState, migration chain.ConsensusMigrationState) (err error) {
+	if j.io.poisoned {
+		return errors.New("block journal write outcome uncertain; reopen for recovery")
+	}
+	witness, err := newValidatedMigration(migration, state.bootstrap)
+	if err != nil {
+		j.io.poisoned = true
+		return err
+	}
+	state.bootstrap = witness.bootstrap
+	return j.replaceCheckpointOwned(state, witness)
+}
+
+func (j *blockJournal) replaceCheckpointOwned(state CommittedState, witness *validatedMigration) (err error) {
+	if j.io.poisoned {
+		return errors.New("block journal write outcome uncertain; reopen for recovery")
+	}
+	defer func() {
+		if err != nil {
+			j.io.poisoned = true
+		}
+	}()
+	if err := state.validateOwned(witness); err != nil {
+		return err
+	}
+	if state.Height < j.io.height {
+		return errors.New("block journal checkpoint cannot roll back height")
+	}
+	if state.Height == j.io.height && state.AppHash != j.appHash {
+		return errors.New("block journal cannot replace same-height state with another AppHash")
+	}
+	lock, err := j.io.lock()
+	if err != nil {
+		return err
+	}
+	defer releaseJournalLock(lock)
+	f, err := j.checkCurrentFile()
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return j.replaceCheckpointLocked(state)
+}
+
+func (j *blockJournal) saveBlock(previous, next CommittedState, request []byte, responseHash string, migration chain.ConsensusMigrationState, timings *commitTimings) (err error) {
+	if j.io.poisoned {
+		return errors.New("block journal write outcome uncertain; reopen for recovery")
+	}
+	witness, err := newValidatedMigration(migration, next.bootstrap)
+	if err != nil {
+		j.io.poisoned = true
+		return err
+	}
+	next.bootstrap = witness.bootstrap
+	return j.saveBlockOwned(previous, next, request, responseHash, witness, timings)
+}
+
+func (j *blockJournal) saveBlockOwned(previous, next CommittedState, request []byte, responseHash string, witness *validatedMigration, timings *commitTimings) (err error) {
+	if j.io.poisoned {
+		return errors.New("block journal write outcome uncertain; reopen for recovery")
+	}
+	defer func() {
+		if err != nil {
+			j.io.poisoned = true
+		}
+	}()
+	started := timings.start()
+	if err := next.validateOwned(witness); err != nil {
+		return err
+	}
+	if previous.Height != j.io.height || previous.AppHash != j.appHash || previous.Version != j.stateVersion || next.Version < previous.Version || next.Height != previous.Height+1 || len(request) == 0 || len(request) > blockJournalMaxRequest {
+		return errors.New("invalid block journal pending request/height")
+	}
+	if value, err := hex.DecodeString(responseHash); err != nil || len(value) != sha256.Size {
+		return errors.New("invalid pending block response hash")
+	}
+	var req abci.RequestFinalizeBlock
+	if err := req.Unmarshal(request); err != nil || req.Height != next.Height {
+		return errors.New("block journal request differs from pending height")
+	}
+	started = timings.mark("validate", started)
+	payload, err := json.Marshal(blockJournalRecord{Kind: "block", Request: request, BeforeAppHash: previous.AppHash, AppHash: next.AppHash, ResponseHash: responseHash})
+	if err != nil {
+		return err
+	}
+	if len(payload) > 2*blockJournalMaxRequest {
+		return errors.New("block journal delta exceeds encoding bound")
+	}
+	if timings != nil {
+		timings.bytes = len(payload)
+	}
+	started = timings.mark("delta_encode", started)
+	lock, err := j.io.lock()
+	if err != nil {
+		return err
+	}
+	defer releaseJournalLock(lock)
+	f, err := j.checkCurrentFile()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if f != nil {
+			_ = f.Close()
+		}
+	}()
+	if next.Version != previous.Version {
+		// A decoder binds every delta to its checkpoint's execution version.
+		// A new-domain block therefore commits as a complete NEXT checkpoint,
+		// never as an old checkpoint followed by an unverifiable new delta.
+		// Reuse the existing sync/rename/directory-sync boundary: failure
+		// before rename leaves the old journal intact; after rename the
+		// poisoned writer must reopen to reconcile the complete new state.
+		beforeBytes := j.checkpointBytesWritten
+		if err := j.replaceCheckpointLocked(next); err != nil {
+			return err
+		}
+		if timings != nil {
+			timings.bytes = int(j.checkpointBytesWritten - beforeBytes)
+		}
+		timings.mark("version_checkpoint", started)
+		return nil
+	}
+	if j.blocks >= blockJournalCheckpointBlocks || (j.blocks > 0 && j.tailBytes+int64(snapshotJournalHeader+len(payload)) > blockJournalTailTarget) {
+		if err := j.replaceCheckpointLocked(previous); err != nil {
+			return err
+		}
+		if err := f.Close(); err != nil {
+			return err
+		}
+		f = nil
+		f, err = journalRegularFile(j.io.path, os.O_RDWR)
+		if err != nil {
+			return err
+		}
+	}
+	started = timings.mark("journal_maintenance", started)
+	if err := f.Truncate(j.io.end); err != nil {
+		return err
+	}
+	if _, err := f.Seek(j.io.end, io.SeekStart); err != nil {
+		return err
+	}
+	started = timings.mark("prepare_file", started)
+	if err := j.writeFrame(f, payload, true); err != nil {
+		return err
+	}
+	started = timings.mark("write", started)
+	if err := f.Sync(); err != nil {
+		return err
+	}
+	if err := j.io.checkpoint("append_synced"); err != nil {
+		return err
+	}
+	started = timings.mark("file_sync", started)
+	if err := f.Close(); err != nil {
+		f = nil
+		return err
+	}
+	f = nil
+	timings.mark("close_file", started)
+	frameBytes := int64(snapshotJournalHeader + len(payload))
+	j.io.end += frameBytes
+	j.io.observedSize = j.io.end
+	j.io.height = next.Height
+	j.appHash = next.AppHash
+	j.io.records++
+	j.blocks++
+	j.tailBytes += frameBytes
+	return nil
+}

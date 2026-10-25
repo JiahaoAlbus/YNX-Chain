@@ -1,0 +1,226 @@
+{
+  "kind": "actual independent original four stopped-node baseline verification",
+  "rawPath": "artifacts/chain-performance-20261017/offline-baseline-stopped-20261018-01.json",
+  "rawBytes": 109698,
+  "rawSha256": "a619b5d95e6ebde1830bb1c20db37ec967795b68c016202eb06654c49f402fe4",
+  "startedAt": "2026-10-18T03:28:03.950Z",
+  "launcher": 86613,
+  "controllerSession": 46418,
+  "terminalCode": 0,
+  "elapsedMs": 2381,
+  "go": {
+    "pid": 86644,
+    "code": 0,
+    "signal": null,
+    "stdout": "=== RUN   TestStoppedReadySenderAccountReadback\n    stopped_ready_accounts_test.go:123: four stopped nodes each verify 256 senders at nonce 4 with exact balance and 1024 fee events\n--- PASS: TestStoppedReadySenderAccountReadback (0.59s)\n=== RUN   TestStoppedNetworkReplay\n    stopped_replay_test.go:275: four stopped nodes: signed blocks verified, 1024 transactions per node replayed, complete state byte-equal\n--- PASS: TestStoppedNetworkReplay (1.33s)\nPASS\n",
+    "stderr": "",
+    "exited": true
+  },
+  "actualPassedFunctions": [
+    "TestStoppedReadySenderAccountReadback",
+    "TestStoppedNetworkReplay"
+  ],
+  "plan": {
+    "mode": "stopped_replay",
+    "command": "nice",
+    "args": [
+      "-n",
+      "10",
+      "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/partial-reconciliation-client.test",
+      "-test.run",
+      "^(TestStoppedNetworkReplay|TestStoppedReadySenderAccountReadback)$",
+      "-test.count=1",
+      "-test.v",
+      "-test.timeout=45s"
+    ],
+    "env": {
+      "GOMAXPROCS": "1",
+      "GOGC": "50",
+      "GOMEMLIMIT": "160MiB",
+      "YNX_CHAIN_STOPPED_WINDOW": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-eEfGE7"
+    },
+    "window": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-eEfGE7",
+    "binary": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/partial-reconciliation-client.test",
+    "binarySHA256": "a77ce29169a4277df163a4cb4b156e32f7a7d3cf2b99bb75d1a6ae66853a19cc"
+  },
+  "hostBinary": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure",
+    "sha256": "3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6"
+  },
+  "driverPins": {
+    "consensus-light-window.mjs": "8e5cce49e9ed0e95fb78b1f17d9d3ac17668eb365d7589ade62d52a32da9f5e1",
+    "consensus-light-plan.mjs": "bec319d5b1759c78ec3e2d8809cf8c618293b8d16416b7be50e4b50449ee2a63",
+    "native-resource-sample.mjs": "c0e1ec07ff60f8987f49d2792ca94541fb20721a3a4475d70080e6c3fd17737b",
+    "owned-process-race.mjs": "edeaa6284921b805eb8eb7b45a24c51580da1de131a0d830c11b3ce92e10127c",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "allowedPressure": [
+    1,
+    2
+  ],
+  "firstCause": null,
+  "originalWindow": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-eEfGE7",
+  "originalsUnchanged": true,
+  "originalInventory": {
+    "rows": 138,
+    "files": 114,
+    "totalBytes": 19665830,
+    "beforeSHA256": "2b493b0e416dacd134bda56b9107ac228795332a7a894f955f3dad933ab2b7ef",
+    "afterSHA256": "2b493b0e416dacd134bda56b9107ac228795332a7a894f955f3dad933ab2b7ef"
+  },
+  "ownerChecks": [
+    {
+      "stage": "before",
+      "kind": "12 loopback listeners",
+      "startedAt": "2026-10-18T03:28:04.042Z",
+      "pid": 86617,
+      "code": 1,
+      "signal": null,
+      "killed": false,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "stage": "before",
+      "kind": "original input open-file owners",
+      "startedAt": "2026-10-18T03:28:04.077Z",
+      "pid": 86619,
+      "code": 1,
+      "signal": null,
+      "killed": false,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "stage": "after",
+      "kind": "12 loopback listeners",
+      "startedAt": "2026-10-18T03:28:06.206Z",
+      "pid": 86659,
+      "code": 1,
+      "signal": null,
+      "killed": false,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "stage": "after",
+      "kind": "original input open-file owners",
+      "startedAt": "2026-10-18T03:28:06.235Z",
+      "pid": 86661,
+      "code": 1,
+      "signal": null,
+      "killed": false,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "proofArtifacts": [
+    {
+      "source": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-eEfGE7/stopped-replay.json",
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/offline-baseline-stopped-01-stopped-replay.json",
+      "sha256": "742fcf2c9d41713ed2b52676fd2f7a0365d27251a8da21c5dfe7ac243142c2c7",
+      "bytes": 610995,
+      "sourceSHA256": "742fcf2c9d41713ed2b52676fd2f7a0365d27251a8da21c5dfe7ac243142c2c7",
+      "copiedEvidenceSHA256": "742fcf2c9d41713ed2b52676fd2f7a0365d27251a8da21c5dfe7ac243142c2c7"
+    },
+    {
+      "source": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-eEfGE7/ready-account-readback.json",
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/offline-baseline-stopped-01-ready-account-readback.json",
+      "sha256": "35f505984573f9472d24b8318932af3e571da9caf3a692324eae1e3cdcb35880",
+      "bytes": 1227,
+      "sourceSHA256": "35f505984573f9472d24b8318932af3e571da9caf3a692324eae1e3cdcb35880",
+      "copiedEvidenceSHA256": "35f505984573f9472d24b8318932af3e571da9caf3a692324eae1e3cdcb35880"
+    }
+  ],
+  "replayNodes": [
+    {
+      "name": "local-perf-0",
+      "height": 11,
+      "appHash": "0b5f7dc95b604177c8a018643f185ecf31d03959b1645c45ed629c4f57e792a9",
+      "snapshotSha256": "dae4b281f0b450067c95aa7bccae92c72f97bcf722174083293e2698fec6fe74",
+      "storeSha256": "9f7178cba93a918a97949e84ea4f7e1012784c8a992e8a8ebb34f7de013d6268",
+      "storeFormat": "block-journal",
+      "replayedTransactions": 1024,
+      "readOnlyBlockstore": true,
+      "exactStateEqual": true
+    },
+    {
+      "name": "local-perf-1",
+      "height": 11,
+      "appHash": "0b5f7dc95b604177c8a018643f185ecf31d03959b1645c45ed629c4f57e792a9",
+      "snapshotSha256": "dae4b281f0b450067c95aa7bccae92c72f97bcf722174083293e2698fec6fe74",
+      "storeSha256": "9f7178cba93a918a97949e84ea4f7e1012784c8a992e8a8ebb34f7de013d6268",
+      "storeFormat": "block-journal",
+      "replayedTransactions": 1024,
+      "readOnlyBlockstore": true,
+      "exactStateEqual": true
+    },
+    {
+      "name": "local-perf-2",
+      "height": 11,
+      "appHash": "0b5f7dc95b604177c8a018643f185ecf31d03959b1645c45ed629c4f57e792a9",
+      "snapshotSha256": "dae4b281f0b450067c95aa7bccae92c72f97bcf722174083293e2698fec6fe74",
+      "storeSha256": "9f7178cba93a918a97949e84ea4f7e1012784c8a992e8a8ebb34f7de013d6268",
+      "storeFormat": "block-journal",
+      "replayedTransactions": 1024,
+      "readOnlyBlockstore": true,
+      "exactStateEqual": true
+    },
+    {
+      "name": "local-perf-3",
+      "height": 11,
+      "appHash": "0b5f7dc95b604177c8a018643f185ecf31d03959b1645c45ed629c4f57e792a9",
+      "snapshotSha256": "dae4b281f0b450067c95aa7bccae92c72f97bcf722174083293e2698fec6fe74",
+      "storeSha256": "9f7178cba93a918a97949e84ea4f7e1012784c8a992e8a8ebb34f7de013d6268",
+      "storeFormat": "block-journal",
+      "replayedTransactions": 1024,
+      "readOnlyBlockstore": true,
+      "exactStateEqual": true
+    }
+  ],
+  "accountNodes": [
+    {
+      "name": "local-perf-0",
+      "height": 11,
+      "sendersVerified": 256,
+      "expectedNonce": 4,
+      "feeEvents": 1024,
+      "snapshotSha256": "dae4b281f0b450067c95aa7bccae92c72f97bcf722174083293e2698fec6fe74",
+      "storeSha256": "9f7178cba93a918a97949e84ea4f7e1012784c8a992e8a8ebb34f7de013d6268"
+    },
+    {
+      "name": "local-perf-1",
+      "height": 11,
+      "sendersVerified": 256,
+      "expectedNonce": 4,
+      "feeEvents": 1024,
+      "snapshotSha256": "dae4b281f0b450067c95aa7bccae92c72f97bcf722174083293e2698fec6fe74",
+      "storeSha256": "9f7178cba93a918a97949e84ea4f7e1012784c8a992e8a8ebb34f7de013d6268"
+    },
+    {
+      "name": "local-perf-2",
+      "height": 11,
+      "sendersVerified": 256,
+      "expectedNonce": 4,
+      "feeEvents": 1024,
+      "snapshotSha256": "dae4b281f0b450067c95aa7bccae92c72f97bcf722174083293e2698fec6fe74",
+      "storeSha256": "9f7178cba93a918a97949e84ea4f7e1012784c8a992e8a8ebb34f7de013d6268"
+    },
+    {
+      "name": "local-perf-3",
+      "height": 11,
+      "sendersVerified": 256,
+      "expectedNonce": 4,
+      "feeEvents": 1024,
+      "snapshotSha256": "dae4b281f0b450067c95aa7bccae92c72f97bcf722174083293e2698fec6fe74",
+      "storeSha256": "9f7178cba93a918a97949e84ea4f7e1012784c8a992e8a8ebb34f7de013d6268"
+    }
+  ],
+  "publicSignedBlocks": 10,
+  "observationSHA256": "5afd182240f0376b4db717afa0f73f41cedfad10202ee7588a8978b695cae4db",
+  "peakRSS": 160710656,
+  "peakLowerBoundRSS": 160710656,
+  "peakThreads": 17,
+  "groupGone": true,
+  "interpretation": "Original all-four stopped stores verified with actual genesis-weighted commit signatures and full signed-input execution replay, exact canonical state, sender balances/nonces/fee counts. The original baseline throughput/latencies are unchanged; this is neither a new network run nor the cached after result nor1000TPS evidence."
+}

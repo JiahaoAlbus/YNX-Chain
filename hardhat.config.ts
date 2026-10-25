@@ -1,3 +1,4 @@
+import { hardhatArtifactsPath } from "./scripts/contracts/hardhat-output.mjs";
 import hardhatEthers from "@nomicfoundation/hardhat-ethers";
 import { configVariable, defineConfig } from "hardhat/config";
 
@@ -20,7 +21,7 @@ export default defineConfig({
   paths: {
     sources: "./contracts",
     tests: "./test/contracts",
-    artifacts: "./artifacts",
+    artifacts: hardhatArtifactsPath,
     cache: "./cache/hardhat"
   },
   networks: {

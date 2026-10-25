@@ -421,14 +421,18 @@ func testConfig(t *testing.T, chatURL, squareURL string, rate int) Config {
 	t.Helper()
 	_, payServer := startUpstream(t, "pay", "X-YNX-Pay-Key", testPayKey)
 	_, walletServer := startUpstream(t, "wallet", "", "")
-	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, PayURL: payServer.URL, PayAPIKey: testPayKey, WalletURL: walletServer.URL, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
+	cfg := Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, PayURL: payServer.URL, PayAPIKey: testPayKey, WalletURL: walletServer.URL, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
+	configureLegacyPolicy(t, &cfg)
+	return cfg
 }
 
 func testConfigWithSocial(t *testing.T, chatURL, squareURL, socialURL string, rate int) Config {
 	t.Helper()
 	_, payServer := startUpstream(t, "pay", "X-YNX-Pay-Key", testPayKey)
 	_, walletServer := startUpstream(t, "wallet", "", "")
-	return Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, SocialURL: socialURL, SocialAPIKey: testSocialKey, PayURL: payServer.URL, PayAPIKey: testPayKey, WalletURL: walletServer.URL, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
+	cfg := Config{ChatURL: chatURL, ChatAPIKey: testChatKey, SquareURL: squareURL, SquareAPIKey: testSquareKey, SocialURL: socialURL, SocialAPIKey: testSocialKey, PayURL: payServer.URL, PayAPIKey: testPayKey, WalletURL: walletServer.URL, AllowedOrigins: []string{testOrigin, "https://ynxweb4.com"}, MaxBodyBytes: 4096, MaxResponseBytes: 4096, RateLimitMax: rate, RateLimitWindow: time.Minute, StatePath: filepath.Join(t.TempDir(), "state.json"), ChainID: 6423, ChallengeTTL: 5 * time.Minute, SessionTTL: 30 * time.Minute, Now: time.Now}
+	configureLegacyPolicy(t, &cfg)
+	return cfg
 }
 
 func newTestGateway(t *testing.T, chatURL, squareURL string, rate int) *Gateway {

@@ -17,12 +17,16 @@ func (a *Application) applyResourceSponsorAction(state executionState, raw []byt
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
-	idempotencyID := ResourceSponsorIdempotencyID(tx.Signer, idempotencyKey)
-	if i := sort.Search(len(state.resourceSponsorIdempotency), func(i int) bool { return state.resourceSponsorIdempotency[i].ID >= idempotencyID }); i < len(state.resourceSponsorIdempotency) && state.resourceSponsorIdempotency[i].ID == idempotencyID {
-		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Resource sponsor idempotency key is already committed"))
-	}
 	if tx.Fee != 0 || tx.AIUnits != 0 || tx.PayUnits != 0 || tx.TrustUnits != 0 {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Resource sponsor actions must not move YNXT or charge typed user resources"))
+	}
+	if result, replay, err := a.sourceSponsorReplay(state, tx, idempotencyKey); replay {
+		return state, result, err
+	}
+	idempotencyID := ResourceSponsorIdempotencyID(tx.Signer, idempotencyKey)
+	if i := sort.Search(len(state.resourceSponsorIdempotency), func(i int) bool { return state.resourceSponsorIdempotency[i].ID >= idempotencyID }); i < len(state.resourceSponsorIdempotency) && state.resourceSponsorIdempotency[i].ID == idempotencyID {
+		result, err := nativeSponsorReplay(tx, state.resourceSponsorIdempotency[i])
+		return state, result, err
 	}
 	txHash, objectID, objectType, poolID := ApplicationActionHash(raw), "", "", ""
 	var poolSnapshot *BFTResourcePool
@@ -168,11 +172,19 @@ func (a *Application) applyResourceSponsorAction(state executionState, raw []byt
 			return executionState{}, transactionExecution{}, err
 		}
 		refID := ResourceSponsorActionRefID(input.ActionReference)
+		if state.legacyResourceSponsor != nil {
+			if _, exists := state.legacyResourceSponsor.ActionRefs[input.ActionReference]; exists {
+				return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Resource sponsorship action reference was consumed before migration"))
+			}
+		}
 		if i := sort.Search(len(state.resourceSponsorActionRefs), func(i int) bool { return state.resourceSponsorActionRefs[i].ID >= refID }); i < len(state.resourceSponsorActionRefs) && state.resourceSponsorActionRefs[i].ID == refID {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Resource sponsorship action reference is already consumed"))
 		}
 		poolIndex, pool, err := selectBFTResourcePool(state.resourcePools, input, blockTime, validationOnly)
 		if err != nil {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+		}
+		if err := requireConsensusLegacy(state.accountPolicy, pool.Owner, height); err != nil {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 		}
 		pool.Consumed, err = consumeBFTResourceUnit(pool.Consumed, input.ResourceType, input.Amount)
@@ -196,11 +208,11 @@ func (a *Application) applyResourceSponsorAction(state executionState, raw []byt
 
 	idem := BFTResourceSponsorIdempotency{ID: idempotencyID, Signer: tx.Signer, IdempotencyKey: idempotencyKey, Action: tx.Action, RequestHash: tx.PayloadHash, ObjectType: objectType, ObjectID: objectID, TxHash: txHash, PoolSnapshot: poolSnapshot, SponsorshipSnapshot: sponsorshipSnapshot}
 	state.resourceSponsorIdempotency = insertResourceRecord(state.resourceSponsorIdempotency, idem, func(v BFTResourceSponsorIdempotency) string { return v.ID })
-	previousHash := ""
+	previousHash, sequenceOffset := sourceSponsorAuditTail(state.legacyResourceSponsor)
 	if len(state.resourceSponsorAudit) > 0 {
 		previousHash = state.resourceSponsorAudit[len(state.resourceSponsorAudit)-1].AuditHash
 	}
-	audit := BFTResourceSponsorAudit{ID: ApplicationActionRecordID("resource-sponsor-audit", txHash), Sequence: uint64(len(state.resourceSponsorAudit) + 1), Action: tx.Action, Signer: tx.Signer, PoolID: poolID, ObjectID: objectID, RequestHash: tx.PayloadHash, PreviousHash: previousHash, BlockHeight: height, TxHash: txHash, CreatedAt: blockTime}
+	audit := BFTResourceSponsorAudit{ID: ApplicationActionRecordID("resource-sponsor-audit", txHash), Sequence: sequenceOffset + uint64(len(state.resourceSponsorAudit)+1), Action: tx.Action, Signer: tx.Signer, PoolID: poolID, ObjectID: objectID, RequestHash: tx.PayloadHash, PreviousHash: previousHash, BlockHeight: height, TxHash: txHash, CreatedAt: blockTime}
 	audit.AuditHash = resourceSponsorAuditHash(audit)
 	state.resourceSponsorAudit = append(state.resourceSponsorAudit, audit)
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.resource_sponsor_action", Attributes: []abcitypes.EventAttribute{{Key: "action", Value: tx.Action, Index: true}, {Key: "signer", Value: tx.Signer, Index: true}, {Key: "pool_id", Value: poolID, Index: true}, {Key: "object_id", Value: objectID, Index: true}}}}, nil

@@ -1,0 +1,44 @@
+{
+  "kind": "offline-field-gate-readback-not-Go-execution",
+  "source": "artifacts/chain-network-performance/window-eEfGE7/transactions-result.json",
+  "sourceBytes": 2950379,
+  "sourceSHA256": "5afd182240f0376b4db717afa0f73f41cedfad10202ee7588a8978b695cae4db",
+  "oldEligible": 1024,
+  "newEligible": 1024,
+  "finalSubmittedPerMeasurementSecond": 135.5765762138212,
+  "qualifiedFinalLatencyMs": {
+    "p50": 1176.174834,
+    "p95": 1767.879958,
+    "p99": 1851.966167
+  },
+  "mutatedOriginalRowControls": [
+    {
+      "name": "missingSnapshot",
+      "oldGateCountsFinal": true,
+      "newGateCountsFinal": false
+    },
+    {
+      "name": "laggingHeight",
+      "oldGateCountsFinal": true,
+      "newGateCountsFinal": false
+    },
+    {
+      "name": "failedExecution",
+      "oldGateCountsFinal": true,
+      "newGateCountsFinal": false
+    },
+    {
+      "name": "unverifiedAck",
+      "oldGateCountsFinal": true,
+      "newGateCountsFinal": false
+    },
+    {
+      "name": "timeout",
+      "oldGateCountsFinal": true,
+      "newGateCountsFinal": false
+    }
+  ],
+  "goCompiled": false,
+  "goExecuted": false,
+  "interpretation": "Node re-evaluation of saved field predicates only; does not reverify signatures, replay state, execute Go tests or establish new network performance. Original source untouched."
+}

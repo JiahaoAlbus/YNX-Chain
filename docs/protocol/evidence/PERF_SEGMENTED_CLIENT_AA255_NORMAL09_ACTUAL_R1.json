@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "sourceCommit": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+  "packageTree": "1614f4ad2bc419612f3aba5bde492ad24a9920b6",
+  "sourceEvidenceSHA256": "3c97b3d0cee46661661db3287a1cdf297a5bc9ef5bc398983baf1be685d75244",
+  "raw": {
+    "sha256": "62f5ad63f612c9c2e0e12e732002f4fbb23ddda25f7285d2fa96542a18a7c762",
+    "bytes": 87144
+  },
+  "actualGoArgs": [
+    "-n",
+    "10",
+    "/opt/homebrew/bin/go",
+    "test",
+    "-p",
+    "1",
+    "./cmd/ynx-consensus-perf-client",
+    "-run",
+    "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$",
+    "-count=1",
+    "-timeout=21041ms",
+    "-v"
+  ],
+  "terminalCode": 0,
+  "goCode": 0,
+  "actualPassedFunctions": [
+    "TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves",
+    "TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged",
+    "TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix",
+    "TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption",
+    "TestReadyIntentSegmentsPersistAndStreamExactSignedInputs",
+    "TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence",
+    "TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding",
+    "TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts",
+    "TestSegmentedIntentOptionsRequireBoundedEvidenceMode",
+    "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities",
+    "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+    "TestReadySenderSegmentedIntentBarrierAndRecovery",
+    "TestReadySenderSegmentedIntentFailureNeverSubmits"
+  ],
+  "packageSeconds": 1.72,
+  "scope": "Original performance client correctness; includes all nine CI15 functions and the selected intent-format reuse repair. No PQ N16 execution, throughput, finality or deployment."
+}

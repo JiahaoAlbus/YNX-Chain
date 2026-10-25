@@ -15,27 +15,29 @@ import (
 )
 
 type Config struct {
-	ChatURL          string
-	ChatAPIKey       string
-	SquareURL        string
-	SquareAPIKey     string
-	SocialURL        string
-	SocialAPIKey     string
-	PayURL           string
-	PayAPIKey        string
-	WalletURL        string
-	AllowedOrigins   []string
-	MaxBodyBytes     int64
-	MaxResponseBytes int64
-	RateLimitMax     int
-	RateLimitWindow  time.Duration
-	StatePath        string
-	ChainID          int64
-	ChallengeTTL     time.Duration
-	SessionTTL       time.Duration
-	RemoteDeployed   bool
-	Now              func() time.Time
-	Random           io.Reader
+	ChatURL                string
+	ChatAPIKey             string
+	SquareURL              string
+	SquareAPIKey           string
+	SocialURL              string
+	SocialAPIKey           string
+	PayURL                 string
+	PayAPIKey              string
+	WalletURL              string
+	AccountPolicyURL       string
+	AccountPolicyNetworkID string
+	AllowedOrigins         []string
+	MaxBodyBytes           int64
+	MaxResponseBytes       int64
+	RateLimitMax           int
+	RateLimitWindow        time.Duration
+	StatePath              string
+	ChainID                int64
+	ChallengeTTL           time.Duration
+	SessionTTL             time.Duration
+	RemoteDeployed         bool
+	Now                    func() time.Time
+	Random                 io.Reader
 }
 
 type Gateway struct {
@@ -105,6 +107,9 @@ func New(cfg Config) (*Gateway, error) {
 }
 
 func ValidateConfig(cfg Config) error {
+	if err := validateAccountPolicyConfig(cfg); err != nil {
+		return err
+	}
 	if err := validateLoopbackURL("YNX_APP_GATEWAY_CHAT_URL", cfg.ChatURL); err != nil {
 		return err
 	}

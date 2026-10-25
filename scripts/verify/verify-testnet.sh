@@ -4,6 +4,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 # shellcheck source=../deploy/lib.sh
 source scripts/deploy/lib.sh
+# shellcheck source=replication-proof.sh
+source scripts/verify/replication-proof.sh
 ynx_load_env
 
 PRIMARY_NODE_HOST="${PRIMARY_NODE_HOST:-43.153.202.237}"
@@ -239,11 +241,11 @@ check_replication_convergence() {
         replica_hash="$(printf '%s' "$replica_block" | node -e 'let x={}; try{x=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{} process.stdout.write(String(x.hash ?? ""));')"
         primary_block="$(ssh -i "$PRIMARY_NODE_SSH_KEY" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$PRIMARY_NODE_USER@$PRIMARY_NODE_HOST" "curl -fsS http://127.0.0.1:6420/blocks/$observed_height" 2>/dev/null || true)"
         primary_hash="$(printf '%s' "$primary_block" | node -e 'let x={}; try{x=JSON.parse(require("fs").readFileSync(0,"utf8"))}catch{} process.stdout.write(String(x.hash ?? ""));')"
-        [[ "$replica_hash" == "$observed_hash" && "$primary_hash" == "$observed_hash" ]] && break
+        ynx_replication_proof_matches "$observed_height" "$observed_hash" "$replica_hash" "$primary_hash" && break
       fi
       sleep 1
     done
-    [[ "$replica_hash" == "$observed_hash" && "$primary_hash" == "$observed_hash" ]] || { echo "replicationConvergence.$role=failed lifecycle-or-canonical-hash"; return 1; }
+    ynx_replication_proof_matches "$observed_height" "$observed_hash" "$replica_hash" "$primary_hash" || { echo "replicationConvergence.$role=failed lifecycle-or-canonical-hash"; return 1; }
     write_code="$(ssh -i "$key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 "$user@$host" "curl -sS -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{\"address\":\"ynx_replica_write_probe\",\"amount\":1}' http://127.0.0.1:6420/faucet")" || return 1
     [[ "$write_code" == "409" ]] || { echo "replicationReadOnly.$role=failed HTTP=$write_code"; return 1; }
     echo "replicationConvergence.$role=ok height=$observed_height hash=$observed_hash"

@@ -1,0 +1,29 @@
+{
+  "time": "2026-10-17T16:59:30.546Z",
+  "scope": "Public read-only identity probes; no mutation or secrets; not authenticated server deployment attestation",
+  "results": [
+    {
+      "name": "appHealth",
+      "url": "https://api.ynxweb4.com/app/health",
+      "error": "The operation was aborted due to timeout"
+    },
+    {
+      "name": "explorerHealth",
+      "url": "https://explorer.ynxweb4.com/health",
+      "status": 200,
+      "body": "{\"ok\":true,\"service\":\"ynx-explorerd\",\"network\":{\"name\":\"YNX Testnet\",\"slug\":\"testnet\",\"chainId\":6423,\"nativeCoinName\":\"YNXT\",\"nativeCurrencySymbol\":\"YNXT\",\"decimals\":18,\"isPublicNet\":true,\"chainIdConflictCheck\":\"chainid.network snapshot checked on 2026-07-01: 6420, 6423, 6425 not listed; repeat before mainnet launch\"},\"rpcHeight\":1931738,\"indexedHeight\":1931738,\"indexedBlockCount\":1931739,\"indexedTxCount\":5725,\"syncLagBlocks\":0,\"latestBlockHash\":\"efdf1583a2ed0563c92930fae5e803bf58f401a58a8113a8d32e52abbf5a8bb6\",\"latestBlockTime\":\"2026-10-17T16:59:17.695452712Z\",\"validatorCount\":4,\"pendingTxCount\":0,\"nativeSymbol\":\"YNXT\",\"indexerOk\":true,\"wallet\":{\"chainIdHex\":\"0x1917\",\"chainName\":\"YNX Testnet\",\"nativeCurrencyName\":\"YNXT\",\"nativeSymbol\":\"YNXT\",\"decimals\":18,\"rpcUrls\":[\"https://rpc.ynxweb4.com\"],\"blockExplorerUrls\":[\"https://explorer.ynxweb4.com\"]},\"build\":{\"commit\":\"e12f048596bed823d4f4e8be4ff5f0434e0b1f55\",\"release\":\"ynx-explorer-details-e12f048596be\",\"buildTime\":\"2026-09-12T11:00:15Z\"},\"startedAt\":\"2026-09-12T11:07:03.405107961Z\",\"resourceStatus\":\"available-through-resource-endpoints\",\"feeStatus\":\"available-per-transaction\",\"truthfulStatus\":\"rpc-and-indexer-backed\",\"lastCheckedAt\":\"2026-10-17T16:59:20.991435731Z\"}\n"
+    },
+    {
+      "name": "chainId",
+      "url": "https://evm.ynxweb4.com",
+      "status": 200,
+      "body": "{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x1917\"}\n"
+    },
+    {
+      "name": "latestBlock",
+      "url": "https://evm.ynxweb4.com",
+      "status": 200,
+      "body": "{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"difficulty\":\"0x0\",\"extraData\":\"0x\",\"gasLimit\":\"0x1c9c380\",\"gasUsed\":\"0x0\",\"hash\":\"0xefdf1583a2ed0563c92930fae5e803bf58f401a58a8113a8d32e52abbf5a8bb6\",\"logsBloom\":\"0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\",\"miner\":\"0x0000000000000000000000000000000000000000\",\"nonce\":\"0x0000000000000000\",\"number\":\"0x1d79da\",\"parentHash\":\"0xde223ca7e5eee7d68a1e93b33c588a69a70ab70c3afa0925c86ced04b29bbe93\",\"receiptsRoot\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"stateRoot\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"timestamp\":\"0x6ad3a965\",\"totalDifficulty\":\"0x0\",\"transactionCount\":0,\"transactions\":[],\"transactionsRoot\":\"0x0000000000000000000000000000000000000000000000000000000000000000\",\"uncles\":[]}}\n"
+    }
+  ]
+}

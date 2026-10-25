@@ -1,0 +1,104 @@
+{
+  "case": "client13-normal-10",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-10.json",
+  "rawBytes": 97230,
+  "rawSHA256": "22f7d6606e080be8c3f70860c2f7b2f65826229d70721013531da9f092b422bf",
+  "launcher": 28578,
+  "controllerSession": 31933,
+  "startedAt": "2026-10-18T03:37:44.248Z",
+  "elapsedMs": 21650,
+  "go": {
+    "pid": 28625,
+    "code": 0,
+    "signal": null,
+    "stdout": "=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/complete\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/gap\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/partial\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/corrupt\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/bad_signature\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/wrong_fixture\n=== RUN   TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/budget\n--- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves (0.37s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/complete (0.06s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/gap (0.09s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/partial (0.05s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/corrupt (0.04s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/bad_signature (0.04s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/wrong_fixture (0.04s)\n    --- PASS: TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves/budget (0.05s)\n=== RUN   TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged\n--- PASS: TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged (0.04s)\n=== RUN   TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix\n--- PASS: TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix (0.02s)\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/no_plan\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/missing_receipt\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/poisoned\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/full_receipt\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/corrupt_acknowledged\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/mixed\n=== RUN   TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/escaped\n--- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption (0.24s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/no_plan (0.03s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/missing_receipt (0.04s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/poisoned (0.04s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/full_receipt (0.03s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/corrupt_acknowledged (0.03s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/mixed (0.03s)\n    --- PASS: TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption/escaped (0.03s)\n=== RUN   TestReadyIntentSegmentsPersistAndStreamExactSignedInputs\n--- PASS: TestReadyIntentSegmentsPersistAndStreamExactSignedInputs (0.03s)\n=== RUN   TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence\n=== RUN   TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/false\n=== RUN   TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/true\n--- PASS: TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence (0.04s)\n    --- PASS: TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/false (0.02s)\n    --- PASS: TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence/true (0.02s)\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/missing\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/extra\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/corrupt\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/manifest\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/chain\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/budget\n=== RUN   TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/signature\n--- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding (0.20s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/missing (0.03s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/extra (0.03s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/corrupt (0.03s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/manifest (0.03s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/chain (0.03s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/budget (0.03s)\n    --- PASS: TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding/signature (0.03s)\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/valid\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/missing_receipt\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/mixed\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/escaped\n=== RUN   TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/poisoned\n--- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts (0.14s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/valid (0.03s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/missing_receipt (0.03s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/mixed (0.03s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/escaped (0.03s)\n    --- PASS: TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts/poisoned (0.03s)\n=== RUN   TestSegmentedIntentOptionsRequireBoundedEvidenceMode\n--- PASS: TestSegmentedIntentOptionsRequireBoundedEvidenceMode (0.00s)\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/fixture\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/duplicate\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_hash\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/nonce_gap\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_signature\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/unknown_field\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/cancel\n=== RUN   TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/partial\n--- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities (0.04s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/fixture (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/duplicate (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_hash (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/nonce_gap (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/bad_signature (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/unknown_field (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/cancel (0.00s)\n    --- PASS: TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities/partial (0.00s)\n=== RUN   TestReadySenderFastAccountAdvancesBeforeSlowPeer\n=== RUN   TestReadySenderFastAccountAdvancesBeforeSlowPeer/full_history\n=== RUN   TestReadySenderFastAccountAdvancesBeforeSlowPeer/reused_slots\n--- PASS: TestReadySenderFastAccountAdvancesBeforeSlowPeer (0.30s)\n    --- PASS: TestReadySenderFastAccountAdvancesBeforeSlowPeer/full_history (0.15s)\n    --- PASS: TestReadySenderFastAccountAdvancesBeforeSlowPeer/reused_slots (0.15s)\n=== RUN   TestReadySenderSegmentedIntentBarrierAndRecovery\n--- PASS: TestReadySenderSegmentedIntentBarrierAndRecovery (0.15s)\n=== RUN   TestReadySenderSegmentedIntentFailureNeverSubmits\n--- PASS: TestReadySenderSegmentedIntentFailureNeverSubmits (0.02s)\nPASS\nok  \tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\t2.098s\n",
+    "stderr": "",
+    "exited": true
+  },
+  "sourceChecks": [
+    {
+      "head": "b40aba5d36af684070a0e38f7e78a66136e5ae08",
+      "sourceCommit": "463562ad5edacd8678b00472aafdc104cc4ada7a",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "261a70b1e4f532e5b621d11b1660c5d2412b110a"
+      }
+    },
+    {
+      "head": "b40aba5d36af684070a0e38f7e78a66136e5ae08",
+      "sourceCommit": "463562ad5edacd8678b00472aafdc104cc4ada7a",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "261a70b1e4f532e5b621d11b1660c5d2412b110a"
+      }
+    }
+  ],
+  "driverPins": {
+    "consensus-light-window.mjs": "8249f9619c98db4fc071d111ec25d99cd4695726726cd84f9124ba2ef241a77f",
+    "consensus-light-plan.mjs": "c81fbdbb1f5f767919099d651a3fbbf0dc35cc109347f916fbbd11d7eba93e91",
+    "native-resource-sample.mjs": "370fb10def82ef00cca39a4013f0cf6dc08d83a156d9da811a30383c70e6a6e1",
+    "owned-process-race.mjs": "edeaa6284921b805eb8eb7b45a24c51580da1de131a0d830c11b3ce92e10127c",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "hostBinary": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages",
+    "sha256": "bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d"
+  },
+  "actualGoArgs": [
+    "-n",
+    "10",
+    "/opt/homebrew/bin/go",
+    "test",
+    "-p",
+    "1",
+    "./cmd/ynx-consensus-perf-client",
+    "-run",
+    "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$",
+    "-count=1",
+    "-timeout=21891ms",
+    "-v"
+  ],
+  "actualPassedFunctions": [
+    "TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves",
+    "TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged",
+    "TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix",
+    "TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption",
+    "TestReadyIntentSegmentsPersistAndStreamExactSignedInputs",
+    "TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence",
+    "TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding",
+    "TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts",
+    "TestSegmentedIntentOptionsRequireBoundedEvidenceMode",
+    "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities",
+    "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+    "TestReadySenderSegmentedIntentBarrierAndRecovery",
+    "TestReadySenderSegmentedIntentFailureNeverSubmits"
+  ],
+  "firstCause": null,
+  "groupGone": true,
+  "peakRSS": 403324928,
+  "peakReadableRSSLowerBoundBytes": 403324928,
+  "peakThreads": 21,
+  "peakScratchBytes": 27525120,
+  "cacheNetGrowthBytes": 5767168,
+  "phaseCounterAssertions": {
+    "evidence": "Existing actual six-signed-business-transaction execution/restart helper asserted these values in full-history, reused-slots and segmented modes; not numerical phase stdout.",
+    "offerDecodeAttempts": 6,
+    "pacingWaitAttempts": 6,
+    "dispatchAttempts": 6,
+    "terminalSinkAttempts": 6,
+    "successorSignAttempts": 3,
+    "successorEncodeAttempts": 3,
+    "durableIntentEnvelopes": 6
+  },
+  "phaseDurationsMeasuredBySourceButNotPrintedHere": true,
+  "phaseDurationValues": null,
+  "lightControls": {
+    "groups": 38,
+    "exitCode": 0
+  },
+  "interpretation": "New source463562ad5 compiled and ran all fixed13 in one invocation. Correctness/count assertions only, no runtime phase latency distribution, network benchmark, independent extra BFT proof or throughput improvement inferred."
+}

@@ -1,0 +1,57 @@
+{
+  "case": "client13-normal-13",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-13.json",
+  "rawSHA256": "84d886b02fc709f2c634376c2e0d64f36f66c3cfc43c7eb6f88457cee1dbb296",
+  "rawBytes": 14521,
+  "launcher": 22572,
+  "controllerSession": 36684,
+  "elapsedMs": 12165,
+  "go": null,
+  "sourceChecks": [
+    {
+      "head": "1b955c88418b8ad3f2acd1d1d0c66eb2888f8c36",
+      "sourceCommit": "dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "0b03f3ea50294ffc0d24c2252de08ed5e97e80ed"
+      }
+    }
+  ],
+  "driverPins": {
+    "consensus-light-window.mjs": "5697e2cf4d724fce5aee8662dcf351da1cfb3f495997e80ee55c1859ee3e26db",
+    "consensus-light-plan.mjs": "ad4b0ba44de66785976249ea209818537c9ade0507d671b73928e55281e9c8d9",
+    "native-resource-sample.mjs": "7d57c8baf4e809d951fe13b684d60df8a6355a3a63026ddc050d9a99ea057a00",
+    "owned-process-race.mjs": "9cd25ffdcf0f1fa522a757e681998e682cae069a4eee3289c98a8536ddce23a7",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "firstCause": "Command failed: /usr/bin/du -sk /Users/huangjiahao/Library/Caches/go-build /Users/huangjiahao/go/pkg/mod\n",
+  "cachePhases": [
+    {
+      "startedAt": "2026-10-18T04:11:42.461Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 29867,
+      "failed": true,
+      "endedAt": "2026-10-18T04:11:54.493Z"
+    }
+  ],
+  "cacheOccupancyError": {
+    "command": "/usr/bin/du",
+    "args": [
+      "-sk",
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "timeoutMs": 12000,
+    "code": null,
+    "signal": "SIGKILL",
+    "killed": true,
+    "stdout": "",
+    "stderr": "",
+    "message": "Command failed: /usr/bin/du -sk /Users/huangjiahao/Library/Caches/go-build /Users/huangjiahao/go/pkg/mod\n"
+  },
+  "groupGone": true,
+  "actualSupplyPhases": [],
+  "interpretation": "Combined current GOCACHE/GOMODCACHE du exceeded original12s phase budget. No Go started, no phase samples. No reused prior cache size or skipped accounting."
+}

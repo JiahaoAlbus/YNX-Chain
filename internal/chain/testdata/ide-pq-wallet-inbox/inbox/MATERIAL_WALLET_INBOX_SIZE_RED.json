@@ -1,0 +1,23 @@
+{
+  "schema": "ynx-ide-material-wallet-inbox-size-red-1",
+  "sourceHandoff": {
+    "path": "/Volumes/西部数据/YNX-large-work/ide-pq-deployment-material-canonical-abi-20261023/HANDOFF.json",
+    "bytes": 9966,
+    "sha256": "2f9a0fa4fc9a579cd60d26ab213ab3abe286e004ae2d3252e6ef020e3eeba372"
+  },
+  "sizes": [
+    {
+      "contract": "SampleEVMWriteCounter",
+      "paramsBytes": 25555,
+      "inboxLimit": 65536,
+      "withinLimit": true
+    },
+    {
+      "contract": "SampleYNXTCompatibleERC20",
+      "paramsBytes": 75135,
+      "inboxLimit": 65536,
+      "withinLimit": false
+    }
+  ],
+  "passedGoMaterialDoesNotProveWalletTransport": true
+}

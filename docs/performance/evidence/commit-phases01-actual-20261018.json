@@ -1,0 +1,338 @@
+{
+  "case": "commit-phases-01",
+  "rawPath": "artifacts/chain-performance-20261017/commit-phases-20261018-01.json",
+  "rawSHA256": "4a8b8c0183241dd5bbfde53f3e08e7ea21ff8731bdc695c7f9372fcb3d353f24",
+  "rawBytes": 202490,
+  "controllerSession": 87800,
+  "launcher": 42796,
+  "elapsedMs": 29884,
+  "peakRSS": 605290496,
+  "peakThreads": 33,
+  "peakScratchBytes": 74338304,
+  "cacheNetGrowthBytes": 24334336,
+  "cacheBefore": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3388420096,
+      11753926656
+    ],
+    "totalBytes": 15142346752,
+    "measurements": [
+      {
+        "path": "/Users/huangjiahao/Library/Caches/go-build",
+        "startedAt": "2026-10-18T04:25:47.425Z",
+        "pid": 42829,
+        "code": 0,
+        "signal": null,
+        "killed": false,
+        "timeoutMs": 20000,
+        "stdout": "3309004\t/Users/huangjiahao/Library/Caches/go-build\n",
+        "stderr": "",
+        "bytes": 3388420096,
+        "endedAt": "2026-10-18T04:25:48.053Z"
+      },
+      {
+        "path": "/Users/huangjiahao/go/pkg/mod",
+        "startedAt": "2026-10-18T04:25:47.426Z",
+        "pid": 42830,
+        "code": 0,
+        "signal": null,
+        "killed": false,
+        "timeoutMs": 19999,
+        "stdout": "11478444\t/Users/huangjiahao/go/pkg/mod\n",
+        "stderr": "",
+        "bytes": 11753926656,
+        "endedAt": "2026-10-18T04:25:56.448Z"
+      }
+    ],
+    "method": "two actual du -sk scans in parallel under one unchanged phase/global deadline; no cache copied/deleted/redirected or old sizes reused"
+  },
+  "cacheAfter": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3412754432,
+      11753926656
+    ],
+    "totalBytes": 15166681088,
+    "measurements": [
+      {
+        "path": "/Users/huangjiahao/Library/Caches/go-build",
+        "startedAt": "2026-10-18T04:26:08.495Z",
+        "pid": 43013,
+        "code": 0,
+        "signal": null,
+        "killed": false,
+        "timeoutMs": 20000,
+        "stdout": "3332768\t/Users/huangjiahao/Library/Caches/go-build\n",
+        "stderr": "",
+        "bytes": 3412754432,
+        "endedAt": "2026-10-18T04:26:08.944Z"
+      },
+      {
+        "path": "/Users/huangjiahao/go/pkg/mod",
+        "startedAt": "2026-10-18T04:26:08.496Z",
+        "pid": 43014,
+        "code": 0,
+        "signal": null,
+        "killed": false,
+        "timeoutMs": 19999,
+        "stdout": "11478444\t/Users/huangjiahao/go/pkg/mod\n",
+        "stderr": "",
+        "bytes": 11753926656,
+        "endedAt": "2026-10-18T04:26:17.082Z"
+      }
+    ],
+    "method": "two actual du -sk scans in parallel under one unchanged phase/global deadline; no cache copied/deleted/redirected or old sizes reused"
+  },
+  "sourceChecks": [
+    {
+      "head": "cdf035378ad81188da49e8a9068a84096c87be51",
+      "sourceCommit": "2706dcbd1ea0e85d19b041d5b3fdca25e17388ac",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d769586194a83974fb4310c338188d691461dd9c",
+        "cmd/ynx-consensus-perf-client": "dac5d95e9327908eb0dfbd802e1bff7924bc48b8"
+      }
+    },
+    {
+      "head": "cdf035378ad81188da49e8a9068a84096c87be51",
+      "sourceCommit": "2706dcbd1ea0e85d19b041d5b3fdca25e17388ac",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d769586194a83974fb4310c338188d691461dd9c",
+        "cmd/ynx-consensus-perf-client": "dac5d95e9327908eb0dfbd802e1bff7924bc48b8"
+      }
+    }
+  ],
+  "driverPins": {
+    "consensus-light-window.mjs": "7a61aebb31fb1ba05707ac2a77b442d869a11c114f52bc0e959a1991b08b2a19",
+    "consensus-light-plan.mjs": "21e0d98f6c49e4936b19b1422eaa1abfab445455372e2d73abfff8ae48330bdc",
+    "native-resource-sample.mjs": "2b4146fc3a66026fddeda3fea20173fb377bea9302f9c4248345dd91c118afb8",
+    "owned-process-race.mjs": "9cd25ffdcf0f1fa522a757e681998e682cae069a4eee3289c98a8536ddce23a7",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "firstCause": null,
+  "groupGone": true,
+  "actualPassedFunctions": [
+    "TestCommitTimingObservesRealStorageWithoutChangingReplay",
+    "TestCommitTimingNeverLabelsMemoryOnlyExecutionDurable",
+    "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+    "TestReadySenderSegmentedIntentBarrierAndRecovery"
+  ],
+  "actualSupplyPhases": [
+    {
+      "schema": "ynx-ready-supply-phase-sample-v1",
+      "mode": "flat-full-history",
+      "businessTransactions": 6,
+      "controllerNs": 211775083,
+      "supply": {
+        "completionWaitAttempts": 6,
+        "completionWaitNs": 150760291,
+        "terminalSinkAttempts": 6,
+        "terminalSinkNs": 458292,
+        "offerDecodeAttempts": 6,
+        "offerDecodeNs": 248166,
+        "pacingWaitAttempts": 6,
+        "pacingWaitNs": 19626084,
+        "dispatchAttempts": 6,
+        "dispatchNs": 11332,
+        "signAttempts": 3,
+        "signNs": 282375,
+        "encodeAttempts": 3,
+        "encodeNs": 631167,
+        "signedSuccessors": 3,
+        "journalSetupNs": 7975416,
+        "journalAppendAttempts": 4,
+        "journalAppendNs": 31608834,
+        "journalDurableEnvelopes": 6,
+        "journalDurableBytes": 4064
+      },
+      "finalizeCalls": 6,
+      "finalizeNs": 4328958,
+      "commitCalls": 6,
+      "commitNs": 175648085,
+      "commitStagesNs": {
+        "close_file": 115583,
+        "directory_sync": 54887124,
+        "file_sync": 95122375,
+        "json_encode": 289540,
+        "prepare_file": 1553793,
+        "rename": 10008918,
+        "validate": 188042,
+        "write": 13231000
+      },
+      "terminalCloseNs": 9072250,
+      "restartReadNs": 335167,
+      "scope": "Real six signed local business executions and durable restart; controlled slow-peer scheduling; quorum flags are unit gate inputs, no RPC or network finality. Initial fixture signing excluded; callback totals overlap concurrent execution and are not additive.",
+      "phaseMs": {
+        "successorSign": 0.282375,
+        "successorEncode": 0.631167,
+        "intentSetup": 7.975416,
+        "intentAppend": 31.608834,
+        "offerDecode": 0.248166,
+        "pacingWait": 19.626084,
+        "dispatch": 0.011332,
+        "completionWait": 150.760291,
+        "terminalSink": 0.458292,
+        "finalize": 4.328958,
+        "durableCommit": 175.648085,
+        "terminalClose": 9.07225,
+        "restartRead": 0.335167,
+        "controllerElapsed": 211.775083
+      }
+    },
+    {
+      "schema": "ynx-ready-supply-phase-sample-v1",
+      "mode": "flat-reused-slots",
+      "businessTransactions": 6,
+      "controllerNs": 118299750,
+      "supply": {
+        "completionWaitAttempts": 4,
+        "completionWaitNs": 69096667,
+        "terminalSinkAttempts": 6,
+        "terminalSinkNs": 112790,
+        "offerDecodeAttempts": 6,
+        "offerDecodeNs": 97042,
+        "pacingWaitAttempts": 6,
+        "pacingWaitNs": 19877875,
+        "dispatchAttempts": 6,
+        "dispatchNs": 3583,
+        "signAttempts": 3,
+        "signNs": 207542,
+        "encodeAttempts": 3,
+        "encodeNs": 413584,
+        "signedSuccessors": 3,
+        "journalSetupNs": 5909250,
+        "journalAppendAttempts": 3,
+        "journalAppendNs": 20976416,
+        "journalDurableEnvelopes": 6,
+        "journalDurableBytes": 4072
+      },
+      "finalizeCalls": 6,
+      "finalizeNs": 1821708,
+      "commitCalls": 6,
+      "commitNs": 84213043,
+      "commitStagesNs": {
+        "close_file": 124250,
+        "directory_sync": 38789960,
+        "file_sync": 40303958,
+        "json_encode": 290459,
+        "prepare_file": 939874,
+        "rename": 1188750,
+        "validate": 187666,
+        "write": 2178583
+      },
+      "terminalCloseNs": 5386125,
+      "restartReadNs": 328917,
+      "scope": "Real six signed local business executions and durable restart; controlled slow-peer scheduling; quorum flags are unit gate inputs, no RPC or network finality. Initial fixture signing excluded; callback totals overlap concurrent execution and are not additive.",
+      "phaseMs": {
+        "successorSign": 0.207542,
+        "successorEncode": 0.413584,
+        "intentSetup": 5.90925,
+        "intentAppend": 20.976416,
+        "offerDecode": 0.097042,
+        "pacingWait": 19.877875,
+        "dispatch": 0.003583,
+        "completionWait": 69.096667,
+        "terminalSink": 0.11279,
+        "finalize": 1.821708,
+        "durableCommit": 84.213043,
+        "terminalClose": 5.386125,
+        "restartRead": 0.328917,
+        "controllerElapsed": 118.29975
+      }
+    },
+    {
+      "schema": "ynx-ready-supply-phase-sample-v1",
+      "mode": "segmented-reused-slots",
+      "businessTransactions": 6,
+      "controllerNs": 117628708,
+      "supply": {
+        "completionWaitAttempts": 4,
+        "completionWaitNs": 66895459,
+        "terminalSinkAttempts": 6,
+        "terminalSinkNs": 125958,
+        "offerDecodeAttempts": 6,
+        "offerDecodeNs": 251001,
+        "pacingWaitAttempts": 6,
+        "pacingWaitNs": 12878501,
+        "dispatchAttempts": 6,
+        "dispatchNs": 8499,
+        "signAttempts": 3,
+        "signNs": 214083,
+        "encodeAttempts": 3,
+        "encodeNs": 389042,
+        "signedSuccessors": 3,
+        "journalSetupNs": 11261167,
+        "journalAppendAttempts": 4,
+        "journalAppendNs": 24473458,
+        "journalDurableEnvelopes": 6,
+        "journalDurableBytes": 6248
+      },
+      "finalizeCalls": 6,
+      "finalizeNs": 1742208,
+      "commitCalls": 6,
+      "commitNs": 74923626,
+      "commitStagesNs": {
+        "close_file": 103042,
+        "directory_sync": 37871165,
+        "file_sync": 33394749,
+        "json_encode": 243126,
+        "prepare_file": 722374,
+        "rename": 1666585,
+        "validate": 173916,
+        "write": 569833
+      },
+      "terminalCloseNs": 9530417,
+      "restartReadNs": 530542,
+      "scope": "Real six signed local business executions and durable restart; controlled slow-peer scheduling; quorum flags are unit gate inputs, no RPC or network finality. Initial fixture signing excluded; callback totals overlap concurrent execution and are not additive.",
+      "phaseMs": {
+        "successorSign": 0.214083,
+        "successorEncode": 0.389042,
+        "intentSetup": 11.261167,
+        "intentAppend": 24.473458,
+        "offerDecode": 0.251001,
+        "pacingWait": 12.878501,
+        "dispatch": 0.008499,
+        "completionWait": 66.895459,
+        "terminalSink": 0.125958,
+        "finalize": 1.742208,
+        "durableCommit": 74.923626,
+        "terminalClose": 9.530417,
+        "restartRead": 0.530542,
+        "controllerElapsed": 117.628708
+      }
+    }
+  ],
+  "measurementLimits": "Sampled native RSS/scratch, not hard OS enforcement; short peaks may occur between samples. Private scratch includes compiler/tests; original shared Go cache occupancy is separately read before/after and positive net growth is conservatively combined with peak scratch; no hard cache peak enforcement, actual free disk is separately checked.",
+  "go": {
+    "pid": 42870,
+    "code": 0,
+    "signal": null,
+    "exited": true
+  },
+  "windowPassed": true,
+  "interpretation": "Local Commit instrumentation and required delta validation passed including original before/after cache and source gates. Three controlled six-business-transaction modes are observations, not a matched performance improvement comparison. No four-node network, inclusion/finality or sustained1000TPS claim.",
+  "aggregateCommit": {
+    "calls": 18,
+    "totalNs": 334784754,
+    "stageNs": {
+      "close_file": 342875,
+      "directory_sync": 131548249,
+      "file_sync": 168821082,
+      "json_encode": 823125,
+      "prepare_file": 3216041,
+      "rename": 12864253,
+      "validate": 549624,
+      "write": 15979416
+    }
+  }
+}

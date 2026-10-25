@@ -23,6 +23,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ethnative"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 )
 
 const (
@@ -64,6 +65,9 @@ var requestValidityRules = []RequestValidityRule{
 }
 
 type Devnet struct {
+	pqBatches                map[string]PQBatchProof
+	accountPolicy            *ynxauth.State
+	pqCertificateCache       *PQCertificateCache
 	mu                       sync.RWMutex
 	persistenceMu            sync.Mutex
 	durableCheckpoint        atomic.Pointer[transactionCheckpoint]
@@ -264,6 +268,8 @@ func NormalizeValidatorPeers(peers []ValidatorPeer) ([]ValidatorPeer, error) {
 }
 
 type devnetSnapshot struct {
+	PQBatches        map[string]PQBatchProof               `json:"pqBatches,omitempty"`
+	AccountPolicy    *ynxauth.State                        `json:"accountPolicy,omitempty"`
 	Version          int                                   `json:"version"`
 	SavedAt          time.Time                             `json:"savedAt"`
 	StateIntegrity   string                                `json:"stateIntegrity,omitempty"`
@@ -430,6 +436,7 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 		normalizedPeers = nil
 	}
 	d := &Devnet{
+		pqCertificateCache:   NewPQCertificateCache(),
 		cfg:                  cfg,
 		accounts:             map[string]*Account{},
 		validatorPeers:       peersFromValidators(normalized),
@@ -474,6 +481,10 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 	d.blocks = append(d.blocks, Block{
 		Height: 0, Hash: hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID)), Time: time.Now().UTC(), Validator: normalized[0].Address,
 	})
+	// Apply the same metadata defaults before the first checkpoint as on
+	// recovery. Otherwise a pending-only ledger changes at its first restart
+	// (notably validator PeerStatus), even when no transaction is re-executed.
+	d.ensureStateDefaults()
 	return d
 }
 
@@ -995,6 +1006,9 @@ func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(from); err != nil {
+		return Transaction{}, err
+	}
 	sender, receiver := d.accountReadOnly(from), d.accountReadOnly(to)
 	const fee int64 = 1
 	if amount > math.MaxInt64-fee || sender.Balance < amount+fee {
@@ -1074,39 +1088,54 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 		}
 		return existing, true, nil
 	}
+	if err := d.verifyPQTransferLocked(input); err != nil {
+		return Transaction{}, false, err
+	}
+	tx, undo, err := d.applySignedTransferLocked(input, ethereumTransfer)
+	if err != nil {
+		return Transaction{}, false, err
+	}
+	tx, err = d.persistTransferLocked(tx, undo)
+	return tx, false, err
+}
+
+// applySignedTransferLocked runs business rules after its caller authenticates
+// under d.mu. Only native admission and private PQ admission call this helper.
+// It does not accept an externally supplied verification flag or persist state.
+func (d *Devnet) applySignedTransferLocked(input SignedTransferInput, ethereumTransfer *ethnative.Transfer) (Transaction, transferUndo, error) {
 	sender, ok := d.accounts[input.From]
 	if !ok {
-		return Transaction{}, false, errors.New("signed transaction sender account does not exist")
+		return Transaction{}, transferUndo{}, errors.New("signed transaction sender account does not exist")
 	}
 	if sender.Nonce == math.MaxUint64 {
-		return Transaction{}, false, errors.New("signed transaction sender nonce is exhausted")
+		return Transaction{}, transferUndo{}, errors.New("signed transaction sender nonce is exhausted")
 	}
 	if input.Nonce != sender.Nonce+1 {
-		return Transaction{}, false, fmt.Errorf("signed transaction nonce %d must equal next account nonce %d", input.Nonce, sender.Nonce+1)
+		return Transaction{}, transferUndo{}, fmt.Errorf("signed transaction nonce %d must equal next account nonce %d", input.Nonce, sender.Nonce+1)
 	}
 	if input.Amount > math.MaxInt64-input.Fee || sender.Balance < input.Amount+input.Fee {
-		return Transaction{}, false, errors.New("insufficient YNXT balance for amount and fee")
+		return Transaction{}, transferUndo{}, errors.New("insufficient YNXT balance for amount and fee")
 	}
 	if ethereumTransfer != nil {
 		if _, exists := d.contracts[input.To]; exists {
-			return Transaction{}, false, errors.New("native Ethereum adapter does not execute contracts")
+			return Transaction{}, transferUndo{}, errors.New("native Ethereum adapter does not execute contracts")
 		}
 		budget := new(big.Int).Add(ethereumTransfer.Value, new(big.Int).Mul(new(big.Int).SetUint64(ethereumTransfer.Gas), ethereumTransfer.GasPrice))
 		if ethnative.Wei(sender.Balance).Cmp(budget) < 0 {
-			return Transaction{}, false, errors.New("insufficient funds for value plus gas budget")
+			return Transaction{}, transferUndo{}, errors.New("insufficient funds for value plus gas budget")
 		}
 	}
 	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
-		return Transaction{}, false, errors.New("sender bandwidth usage is exhausted")
+		return Transaction{}, transferUndo{}, errors.New("sender bandwidth usage is exhausted")
 	}
 	validator := d.nextValidatorAddressLocked()
 	if err := d.validateTransferCreditsLocked(input.From, input.To, validator, input.Amount, input.Fee); err != nil {
-		return Transaction{}, false, err
+		return Transaction{}, transferUndo{}, err
 	}
 	receiver := d.accountReadOnly(input.To)
 	flows, err := d.planLotMovementLocked(sender, receiver, input.Amount)
 	if err != nil {
-		return Transaction{}, false, err
+		return Transaction{}, transferUndo{}, err
 	}
 	undo := d.transferUndoLocked(input.From, input.To, validator, flows)
 	receiver = d.account(input.To)
@@ -1124,9 +1153,11 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 	if len(input.EthereumRaw) > 0 {
 		tx.Memo = ethnative.MemoPrefix + hex.EncodeToString(input.EthereumRaw)
 	}
+	if len(input.PQMember) > 0 {
+		tx.Memo = pqTransferMemo + hex.EncodeToString(input.PQMember)
+	}
 	d.pending = append(d.pending, tx)
-	tx, err = d.persistTransferLocked(tx, undo)
-	return tx, false, err
+	return tx, undo, nil
 }
 
 func (d *Devnet) validateTransferCreditsLocked(from, to, validator string, amount, fee int64) error {
@@ -1250,7 +1281,11 @@ func (d *Devnet) persistMutationLocked(tx Transaction, rollback func()) (Transac
 }
 
 func (d *Devnet) confirmTransactionPersistenceLocked() error {
-	err := d.persistSnapshotLocked()
+	return d.confirmTransactionPersistenceLockedMeasured(nil)
+}
+
+func (d *Devnet) confirmTransactionPersistenceLockedMeasured(measurement *PQSnapshotMeasurement) error {
+	err := d.persistSnapshotLockedMeasured(measurement)
 	if err != nil {
 		// Retry failure cannot undo a prior admission or prove its current
 		// in-memory block inclusion was durably recorded.
@@ -1271,6 +1306,19 @@ func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalan
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(address); err != nil {
+		return Transaction{}, ResourceBalance{}, err
+	}
+	tx, balance, err := d.applyStakeLocked(address, amount)
+	if err != nil {
+		return Transaction{}, ResourceBalance{}, err
+	}
+	err = d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return tx, balance, err
+}
+
+func (d *Devnet) applyStakeLocked(address string, amount int64) (Transaction, ResourceBalance, error) {
 	account := d.account(address)
 	if account.Balance < amount {
 		return Transaction{}, ResourceBalance{}, errors.New("insufficient balance")
@@ -1280,9 +1328,7 @@ func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalan
 	account.ResourceUsage.ComputeUsed++
 	tx := d.newTxLocked("stake", address, "ynx_staking", amount, 0, nil, "stake for resources and voting weight")
 	d.pending = append(d.pending, tx)
-	err := d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return tx, resourceBalance(account, d.resourcePolicy), err
+	return tx, resourceBalance(account, d.resourcePolicy), nil
 }
 
 func (d *Devnet) Resources(address string) (ResourceBalance, error) {
@@ -2524,6 +2570,19 @@ func (d *Devnet) DelegateResources(provider, beneficiary string, amount int64) (
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(provider); err != nil {
+		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, err
+	}
+	delegation, tx, balance, err := d.applyResourceDelegationLocked(provider, beneficiary, amount)
+	if err != nil {
+		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, err
+	}
+	err = d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return delegation, tx, balance, err
+}
+
+func (d *Devnet) applyResourceDelegationLocked(provider, beneficiary string, amount int64) (ResourceDelegation, Transaction, ResourceBalance, error) {
 	policy := d.resourcePolicy.withCurrentHash()
 	if err := policy.Validate(); err != nil {
 		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, err
@@ -2554,9 +2613,7 @@ func (d *Devnet) DelegateResources(provider, beneficiary string, amount int64) (
 	d.resourceDelegations[delegation.ID] = delegation
 	tx := d.newTxLocked("resource_delegate", provider, beneficiary, amount, 0, nil, "delegate YNXT into resource capacity")
 	d.pending = append(d.pending, tx)
-	err := d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return delegation, tx, resourceBalance(beneficiaryAccount, policy), err
+	return delegation, tx, resourceBalance(beneficiaryAccount, policy), nil
 }
 
 func (d *Devnet) ResourceDelegations(address string) []ResourceDelegation {
@@ -2579,6 +2636,21 @@ func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiC
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(address); err != nil {
+		return ResourceRental{}, ResourceBalance{}, err
+	}
+	rental, balance, err := d.applyResourceRentalLocked(provider, quote)
+	if err != nil {
+		return ResourceRental{}, ResourceBalance{}, err
+	}
+	err = d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return rental, balance, err
+}
+
+func (d *Devnet) applyResourceRentalLocked(provider string, quote ResourceQuote) (ResourceRental, ResourceBalance, error) {
+	address := quote.Address
+	bandwidth, compute, aiCredits, trustCredits := quote.Bandwidth, quote.Compute, quote.AICredits, quote.TrustCredits
 	if provider == "" {
 		provider = ProtocolResourceProvider
 	}
@@ -2595,7 +2667,7 @@ func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiC
 		return ResourceRental{}, ResourceBalance{}, err
 	}
 	if provider != ProtocolResourceProvider {
-		providerIncome = quote.PriceYNXT * policy.ProviderShareBps / 10000
+		providerIncome = quote.PriceYNXT/10000*policy.ProviderShareBps + quote.PriceYNXT%10000*policy.ProviderShareBps/10000
 	}
 	protocolFee := quote.PriceYNXT - providerIncome
 	account.Balance -= quote.PriceYNXT
@@ -2655,9 +2727,7 @@ func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiC
 		}
 		d.resourceIncome[income.ID] = income
 	}
-	err = d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return rental, resourceBalance(account, policy), err
+	return rental, resourceBalance(account, policy), nil
 }
 
 func (d *Devnet) ResourceIncome(address string) []ResourceIncomeRecord {
@@ -2718,6 +2788,9 @@ func (d *Devnet) DeployContractWithArgs(deployer, name, source string, construct
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(deployer); err != nil {
+		return ContractArtifact{}, Transaction{}, err
+	}
 	account := d.account(deployer)
 	const fee int64 = 10
 	if account.Balance < fee {
@@ -2751,10 +2824,28 @@ func (d *Devnet) VerifyContract(address, source string) (ContractArtifact, error
 		return ContractArtifact{}, errors.New("source hash does not match deployed contract")
 	}
 	verifiedAt := time.Now().UTC()
-	deployedAt := artifact.DeployedAt
 	constructorArgs := append([]string(nil), artifact.ConstructorArgs...)
-	artifact = buildContractArtifactWithArgs(artifact.Address, artifact.Deployer, artifact.Name, source, true, &verifiedAt, constructorArgs)
-	artifact.DeployedAt = deployedAt
+	verification := buildContractArtifactWithArgs(artifact.Address, artifact.Deployer, artifact.Name, source, true, &verifiedAt, constructorArgs)
+	if verification.SourceHash != artifact.SourceHash || verification.BytecodeHash != artifact.BytecodeHash || verification.DeployedBytecodeHash != artifact.DeployedBytecodeHash || verification.ArtifactHash != artifact.ArtifactHash || verification.ArtifactKind != artifact.ArtifactKind || verification.CompilerConfigHash != artifact.CompilerConfigHash {
+		return ContractArtifact{}, errors.New("verification identity differs from deployed contract")
+	}
+	if (verification.CompilerArtifact == nil) != (artifact.CompilerArtifact == nil) {
+		return ContractArtifact{}, errors.New("verification compiler provenance differs from deployed contract")
+	}
+	if original, candidate := artifact.CompilerArtifact, verification.CompilerArtifact; original != nil {
+		if original.SourceName != candidate.SourceName || original.ContractName != candidate.ContractName || original.BuildInfoID != candidate.BuildInfoID || original.ArtifactPath != candidate.ArtifactPath || original.BytecodeHash != candidate.BytecodeHash || original.DeployedBytecodeHash != candidate.DeployedBytecodeHash || original.ABIHash != candidate.ABIHash {
+			return ContractArtifact{}, errors.New("verification compiler identity differs from deployed contract")
+		}
+	}
+	// Public source verification updates evidence only. Replacing the deployed
+	// artifact would reset executed storage to constructor values and could
+	// replace code/ABI identity without the runtime mutation's authorization.
+	artifact.Verified = verification.Verified
+	artifact.VerifiedAt = verification.VerifiedAt
+	artifact.VerifierStatus = verification.VerifierStatus
+	artifact.ReproducibleBuild = verification.ReproducibleBuild
+	artifact.ReproducibilityStatus = verification.ReproducibilityStatus
+	artifact.DeployedBytecodeComparisonStatus = verification.DeployedBytecodeComparisonStatus
 	d.contracts[address] = artifact
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
@@ -2860,6 +2951,9 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(caller); err != nil {
+		return ContractCallResult{}, Transaction{}, err
+	}
 	artifact, ok := d.contracts[address]
 	if !ok {
 		artifact, ok = d.contracts[evmAddressForLog(address)]
@@ -2911,6 +3005,15 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 		bytecode, ok := hardhatDeployedBytecode(artifact.CompilerArtifact.ArtifactPath)
 		if !ok {
 			return ContractCallResult{}, Transaction{}, errors.New("bounded local contract execution requires deployed bytecode")
+		}
+		// Anchored history replays the original pinned executable. Reject drift
+		// before running it or changing the checkpoint, including legacy callers
+		// whose account has not migrated to the PQ authorization policy.
+		if artifact.PQAnchorTransactionHash != "" {
+			codeHash, codeErr := ValidateBoundedPinnedIdentity(artifact.Name, artifact.SourceHash, bytecode)
+			if codeErr != nil || codeHash != artifact.DeployedBytecodeHash {
+				return ContractCallResult{}, Transaction{}, errors.New("PQ-anchored contract deployed bytecode differs from its pinned execution identity")
+			}
 		}
 		transition, err := runStatefulEVMSubset(bytecode, normalizedCallData, caller, artifact.RuntimeStorage)
 		if err != nil {
@@ -3034,13 +3137,11 @@ func (d *Devnet) nextValidatorAddressLocked() string {
 
 func (d *Devnet) ensureValidatorAccountsLocked() {
 	for _, validator := range d.validators {
-		account := d.account(validator.Address)
-		if account.Staked == 0 {
-			account.Staked = validator.VotingPower * 10_000_000
+		if _, exists := d.accounts[validator.Address]; !exists {
+			d.accounts[validator.Address] = &Account{Address: validator.Address, Balance: 10_000_000, Staked: validator.VotingPower * 10_000_000, Lots: map[string]int64{}}
 		}
-		if account.Balance == 0 {
-			account.Balance = 10_000_000
-		}
+		// Zero balance/stake in an existing account is ledger state, not a
+		// missing configuration value. Restart must never mint funds or stake.
 	}
 }
 
@@ -3430,11 +3531,18 @@ func (d *Devnet) loadSnapshot() error {
 	if err != nil {
 		return err
 	}
-	if snapshot.Version != legacyDevnetSnapshotVersion && snapshot.Version != devnetSnapshotVersion {
+	if snapshot.Version != legacyDevnetSnapshotVersion && snapshot.Version != devnetSnapshotVersion && snapshot.Version != pqDevnetSnapshotVersion {
 		return fmt.Errorf("unsupported devnet snapshot version %d", snapshot.Version)
 	}
 	if markerPresent && snapshot.Version < devnetSnapshotVersion {
 		return errors.New("devnet snapshot integrity downgrade rejected after v2 migration")
+	}
+	marker, markerErr := readSnapshotIntegrityVersion(d.snapshotIntegrityMarkerPath())
+	if markerErr != nil {
+		return markerErr
+	}
+	if marker == pqDevnetSnapshotVersion && snapshot.Version != pqDevnetSnapshotVersion {
+		return errors.New("PQ snapshot downgrade rejected")
 	}
 	if snapshot.Config.ChainID != d.cfg.ChainID {
 		return fmt.Errorf("snapshot chain ID %d does not match configured chain ID %d", snapshot.Config.ChainID, d.cfg.ChainID)
@@ -3450,6 +3558,9 @@ func (d *Devnet) loadSnapshot() error {
 	}
 	if err := validateResourceSponsorSnapshot(snapshot); err != nil {
 		return fmt.Errorf("validate Resource sponsor snapshot: %w", err)
+	}
+	if err := validateAccountPolicySnapshot(snapshot); err != nil {
+		return err
 	}
 	d.applySnapshotLocked(snapshot)
 	return nil
@@ -3484,15 +3595,36 @@ func (d *Devnet) persistSnapshotWithWriter(write func(devnetSnapshot) error) err
 }
 
 func (d *Devnet) persistSnapshotLocked() error {
+	return d.persistSnapshotLockedMeasured(nil)
+}
+
+func (d *Devnet) persistSnapshotLockedMeasured(measurement *PQSnapshotMeasurement) (err error) {
 	path := d.snapshotPath()
 	if path == "" {
 		return nil
 	}
-	snapshot, err := sealDevnetSnapshot(d.snapshotLocked())
+	enabled := measurement != nil
+	var ignored PQSnapshotMeasurement
+	if measurement == nil {
+		measurement = &ignored
+	}
+	totalStart := measurement.Total.begin(enabled)
+	defer func() { measurement.Total.finish(enabled, totalStart, err) }()
+	start := measurement.SnapshotBuild.begin(enabled)
+	snapshot := d.snapshotLocked()
+	measurement.SnapshotBuild.finish(enabled, start, nil)
+	start = measurement.IntegritySeal.begin(enabled)
+	snapshot, err = sealDevnetSnapshot(snapshot)
+	measurement.IntegritySeal.finish(enabled, start, err)
 	if err != nil {
 		return fmt.Errorf("seal devnet snapshot: %w", err)
 	}
-	return d.persistPreparedSnapshot(snapshot)
+	var selected *PQSnapshotMeasurement
+	if enabled {
+		measurement.CandidateIntegrity = snapshot.StateIntegrity
+		selected = measurement
+	}
+	return d.persistPreparedSnapshotMeasured(snapshot, selected)
 }
 
 func writeDurableSnapshotJSON(path string, value any) error {
@@ -3500,8 +3632,21 @@ func writeDurableSnapshotJSON(path string, value any) error {
 }
 
 func writeDurableSnapshotJSONWithDirectorySync(path string, value any, syncDirectory func(string) error) (err error) {
+	return writeDurableSnapshotJSONMeasured(path, value, syncDirectory, nil)
+}
+
+func writeDurableSnapshotJSONMeasured(path string, value any, syncDirectory func(string) error, measurement *PQDurableFileMeasurement) (err error) {
+	enabled := measurement != nil
+	var ignored PQDurableFileMeasurement
+	if measurement == nil {
+		measurement = &ignored
+	}
+	totalStart := measurement.Total.begin(enabled)
+	defer func() { measurement.Total.finish(enabled, totalStart, err) }()
 	tmpPath := path + ".tmp"
+	start := measurement.OpenTemp.begin(enabled)
 	file, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	measurement.OpenTemp.finish(enabled, start, err)
 	if err != nil {
 		return fmt.Errorf("open devnet snapshot temp file: %w", err)
 	}
@@ -3513,27 +3658,47 @@ func writeDurableSnapshotJSONWithDirectorySync(path string, value any, syncDirec
 			_ = os.Remove(tmpPath)
 		}
 	}()
-	stream := jsonBodyWriter{target: file}
+	var target io.Writer = file
+	if enabled {
+		target = pqMeasuredWriter{target: file, file: measurement}
+	}
+	stream := jsonBodyWriter{target: target}
+	start = measurement.EncodeWrite.begin(enabled)
 	encoder := json.NewEncoder(&stream)
 	encoder.SetIndent("", "  ")
 	if err = encoder.Encode(value); err != nil {
+		measurement.EncodeWrite.finish(enabled, start, err)
 		return fmt.Errorf("encode devnet snapshot: %w", err)
 	}
 	if err = stream.Finish(); err != nil {
+		measurement.EncodeWrite.finish(enabled, start, err)
 		return fmt.Errorf("finish devnet snapshot: %w", err)
 	}
-	if err = file.Sync(); err != nil {
+	measurement.EncodeWrite.finish(enabled, start, nil)
+	start = measurement.FileSync.begin(enabled)
+	err = file.Sync()
+	measurement.FileSync.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("sync devnet snapshot: %w", err)
 	}
-	if err = file.Close(); err != nil {
+	start = measurement.Close.begin(enabled)
+	err = file.Close()
+	measurement.Close.finish(enabled, start, err)
+	if err != nil {
 		file = nil
 		return fmt.Errorf("close devnet snapshot: %w", err)
 	}
 	file = nil
-	if err = os.Rename(tmpPath, path); err != nil {
+	start = measurement.Rename.begin(enabled)
+	err = os.Rename(tmpPath, path)
+	measurement.Rename.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("replace devnet snapshot: %w", err)
 	}
-	if err = syncDirectory(filepath.Dir(path)); err != nil {
+	start = measurement.DirectorySync.begin(enabled)
+	err = syncDirectory(filepath.Dir(path))
+	measurement.DirectorySync.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("%w: %w", ErrSnapshotDurabilityUncertain, err)
 	}
 	return nil
@@ -3550,15 +3715,28 @@ func validateSnapshotIntegrityMarker(path string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("read devnet snapshot integrity marker: %w", err)
 	}
-	if string(payload) != "2\n" {
+	if string(payload) != "2\n" && string(payload) != "3\n" {
 		return false, errors.New("devnet snapshot integrity marker is invalid")
 	}
 	return true, nil
 }
 
 func writeDurableSnapshot(path string, payload []byte) (err error) {
+	return writeDurableSnapshotMeasured(path, payload, nil)
+}
+
+func writeDurableSnapshotMeasured(path string, payload []byte, measurement *PQDurableFileMeasurement) (err error) {
+	enabled := measurement != nil
+	var ignored PQDurableFileMeasurement
+	if measurement == nil {
+		measurement = &ignored
+	}
+	totalStart := measurement.Total.begin(enabled)
+	defer func() { measurement.Total.finish(enabled, totalStart, err) }()
 	tmpPath := path + ".tmp"
+	start := measurement.OpenTemp.begin(enabled)
 	file, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	measurement.OpenTemp.finish(enabled, start, err)
 	if err != nil {
 		return fmt.Errorf("open devnet snapshot temp file: %w", err)
 	}
@@ -3570,21 +3748,40 @@ func writeDurableSnapshot(path string, payload []byte) (err error) {
 			_ = os.Remove(tmpPath)
 		}
 	}()
-	if _, err = file.Write(payload); err != nil {
+	start = measurement.EncodeWrite.begin(enabled)
+	n, err := file.Write(payload)
+	if enabled {
+		measurement.WriteCalls++
+		measurement.BytesWritten += uint64(n)
+	}
+	measurement.EncodeWrite.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("write devnet snapshot: %w", err)
 	}
-	if err = file.Sync(); err != nil {
+	start = measurement.FileSync.begin(enabled)
+	err = file.Sync()
+	measurement.FileSync.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("sync devnet snapshot: %w", err)
 	}
-	if err = file.Close(); err != nil {
+	start = measurement.Close.begin(enabled)
+	err = file.Close()
+	measurement.Close.finish(enabled, start, err)
+	if err != nil {
 		file = nil
 		return fmt.Errorf("close devnet snapshot: %w", err)
 	}
 	file = nil
-	if err = os.Rename(tmpPath, path); err != nil {
+	start = measurement.Rename.begin(enabled)
+	err = os.Rename(tmpPath, path)
+	measurement.Rename.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("replace devnet snapshot: %w", err)
 	}
-	if err = syncSnapshotDirectory(filepath.Dir(path)); err != nil {
+	start = measurement.DirectorySync.begin(enabled)
+	err = syncSnapshotDirectory(filepath.Dir(path))
+	measurement.DirectorySync.finish(enabled, start, err)
+	if err != nil {
 		return fmt.Errorf("%w: %w", ErrSnapshotDurabilityUncertain, err)
 	}
 	return nil
@@ -4175,96 +4372,8 @@ func buildContractArtifact(address, deployer, name, source string, verified bool
 }
 
 func buildContractArtifactWithArgs(address, deployer, name, source string, verified bool, verifiedAt *time.Time, constructorArgs []string) ContractArtifact {
-	sourceHash := hashParts("source", source)
-	compiler := SolidityCompilerConfig()
 	compilerArtifact, hasCompilerArtifact := resolvePinnedCompilerArtifact(name, source)
-	events := extractContractEvents(source)
-	functions := extractContractFunctions(source)
-	runtimeStorageSlots := extractRuntimeStorageSlots(source)
-	runtimeStorage := extractRuntimeStorage(source, deployer, constructorArgs)
-	if hasCompilerArtifact {
-		events = mergeCompilerArtifactEvents(compilerArtifact.ABIEvents, events)
-		functions = mergeCompilerArtifactFunctions(compilerArtifact.ABIFunctions, functions, source)
-	}
-	abi := make([]ContractABIEntry, 0, len(events)+len(functions))
-	for _, event := range events {
-		abi = append(abi, ContractABIEntry{Type: "event", Name: event.Name, Signature: event.Signature, Topic: event.Topic, Inputs: event.Inputs})
-	}
-	for _, function := range functions {
-		abi = append(abi, ContractABIEntry{Type: "function", Name: function.Name, Signature: function.Signature, Selector: function.Selector, Inputs: function.Inputs, Outputs: function.Outputs, StateMutability: function.StateMutability})
-	}
-	status := "unverified"
-	reproducibilityStatus := "unverified; pinned compiler config recorded but source match has not been checked"
-	artifactKind := contractArtifactKind
-	compilerMode := compiler.CompilerMode
-	compilerExecutionStatus := "hardhat_artifact_not_found_for_submitted_source"
-	bytecodeHash := hashParts("bytecode", compiler.ConfigHash, contractArtifactKind, sourceHash, strings.Join(contractFunctionSignatures(functions), "|"))
-	deployedBytecodeHash := hashParts("deployed-bytecode", compiler.ConfigHash, contractArtifactKind, sourceHash, strings.Join(contractFunctionSignatures(functions), "|"))
-	deployedComparisonStatus := "not_checked_no_pinned_solc_artifact"
-	if hasCompilerArtifact {
-		artifactKind = contractPinnedArtifactKind
-		compilerMode = contractPinnedCompilerMode
-		compilerExecutionStatus = "matched_existing_hardhat_solc_0_8_24_artifact"
-		bytecodeHash = compilerArtifact.BytecodeHash
-		deployedBytecodeHash = compilerArtifact.DeployedBytecodeHash
-		deployedComparisonStatus = "not_checked_until_verify"
-		reproducibilityStatus = "pinned Hardhat artifact matched submitted source; deployed bytecode comparison not checked until verification"
-	}
-	if verified {
-		status = "source_hash_and_pinned_compiler_config_matched_local_artifact"
-		reproducibilityStatus = "source hash and pinned compiler config matched local deterministic artifact"
-		if hasCompilerArtifact {
-			status = "source_hash_compiler_config_and_deployed_bytecode_matched_local_artifact"
-			reproducibilityStatus = "source hash, pinned compiler config, artifact bytecode, and local deployed bytecode hash matched"
-			deployedComparisonStatus = "matched_local_deployed_bytecode_hash"
-		}
-	}
-	limitations := append([]string{
-		"compiler version/settings are pinned and hashed; arbitrary IDE snippets remain analyzer artifacts unless they match a Hardhat artifact",
-		"runtime supports simple pure/view return literals for devnet verification",
-	}, compiler.Limitations...)
-	if hasCompilerArtifact {
-		limitations = append([]string{
-			"matched repository Hardhat artifact with pinned Solidity 0.8.24 bytecode hashes",
-			"artifact-backed local staticcall subset requires the ABI selector to appear in solc deployed bytecode",
-			"local devnet interprets a bounded read-only EVM opcode subset for supported static calls, simple constructor-seeded storage, and mapping/SHA3-backed reads; it also supports a generic pinned-artifact write-call subset for supported nonpayable/payable calldata through the local EVM subset with CALLER, SLOAD, SSTORE, LOG, and RETURN coverage, but it does not support full EVM bytecode state transitions, arbitrary opcode coverage, complex dynamic storage layouts, or remote public proof",
-		}, compiler.Limitations...)
-	}
-	runtimeMode := "deterministic-devnet-pure-view-runtime"
-	if hasCompilerArtifact {
-		runtimeMode = "hardhat-artifact-local-evm-opcode-staticcall-subset"
-	}
-	return ContractArtifact{
-		Address:                          address,
-		Name:                             name,
-		Deployer:                         deployer,
-		SourceHash:                       sourceHash,
-		BytecodeHash:                     bytecodeHash,
-		DeployedBytecodeHash:             deployedBytecodeHash,
-		ArtifactHash:                     hashParts("artifact", compiler.ConfigHash, artifactKind, name, sourceHash, bytecodeHash, deployedBytecodeHash, fmt.Sprint(len(abi))),
-		ArtifactKind:                     artifactKind,
-		CompilerMode:                     compilerMode,
-		CompilerConfigHash:               compiler.ConfigHash,
-		Compiler:                         compiler,
-		CompilerArtifact:                 compilerArtifact,
-		CompilerExecutionStatus:          compilerExecutionStatus,
-		RuntimeMode:                      runtimeMode,
-		VerifierMode:                     compiler.VerifierMode,
-		ReproducibleBuild:                verified,
-		ReproducibilityStatus:            reproducibilityStatus,
-		DeployedBytecodeComparisonStatus: deployedComparisonStatus,
-		ConstructorArgs:                  cleanConstructorArgs(constructorArgs),
-		RuntimeStorage:                   runtimeStorage,
-		RuntimeStorageSlots:              runtimeStorageSlots,
-		ABI:                              abi,
-		Events:                           events,
-		Functions:                        functions,
-		Limitations:                      limitations,
-		Verified:                         verified,
-		VerifierStatus:                   status,
-		DeployedAt:                       time.Now().UTC(),
-		VerifiedAt:                       verifiedAt,
-	}
+	return buildContractArtifactFromCompiler(address, deployer, name, source, verified, verifiedAt, constructorArgs, compilerArtifact, hasCompilerArtifact, time.Now().UTC())
 }
 
 func mergeCompilerArtifactEvents(abiEvents, sourceEvents []ContractEventABI) []ContractEventABI {

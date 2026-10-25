@@ -1,0 +1,111 @@
+//go:build unix
+
+package main
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/spf13/cobra"
+)
+
+// Register existing public DATA after the original SourceOwner independently
+// qualifies its delivery and binding. This bypasses EnsureRoot, never Node.Start.
+func newRegisterProofHostSourceCommand() *cobra.Command {
+	var manifest, manifestPin, binding, bindingPin, output, walletOutput, walletRequestStdin, walletReconcileExisting string
+	c := &cobra.Command{Use: "register-proof-host-source", Short: "Register one independently pinned original proof source DATA catalog; no Root or Host grant",
+		Args: cobra.NoArgs, SilenceUsage: true, SilenceErrors: true,
+		PersistentPreRunE: func(*cobra.Command, []string) error { return nil },
+		RunE: func(cmd *cobra.Command, _ []string) (resultErr error) {
+			if walletRequestStdin != "" && walletRequestStdin != "true" && walletRequestStdin != "false" {
+				return errors.New("wallet-request-stdin requires an explicit canonical true or false")
+			}
+			if walletReconcileExisting != "" && walletReconcileExisting != "true" && walletReconcileExisting != "false" {
+				return errors.New("wallet-reconcile-existing requires an explicit canonical true or false")
+			}
+			if walletReconcileExisting == "true" && (walletRequestStdin != "true" || walletOutput != "") {
+				return errors.New("Wallet reconciliation requires explicit Wallet request stdin and cannot write a static source module")
+			}
+			if walletRequestStdin == "true" {
+				if walletOutput != "" {
+					return errors.New("Wallet request stdin and static Wallet source module output cannot be combined")
+				}
+				raw, err := io.ReadAll(io.LimitReader(cmd.InOrStdin(), consensus.MaxProofHostSourceSelectionRequestBytes+1))
+				if err != nil {
+					return fmt.Errorf("read bounded complete Wallet transaction request stdin: %w", err)
+				}
+				if len(raw) > consensus.MaxProofHostSourceSelectionRequestBytes {
+					return errors.New("bounded complete Wallet transaction request stdin required")
+				}
+				var receipt consensus.ProofHostSourceCatalogReceipt
+				if walletReconcileExisting == "true" {
+					receipt, err = consensus.ReconcileProofHostSourceCatalogForWallet(raw, manifest, manifestPin, binding, bindingPin, output)
+				} else {
+					receipt, err = consensus.RegisterProofHostSourceCatalogForWallet(raw, manifest, manifestPin, binding, bindingPin, output)
+				}
+				if err != nil {
+					return err
+				}
+				if err = json.NewEncoder(cmd.OutOrStdout()).Encode(receipt); err != nil {
+					if walletReconcileExisting == "true" {
+						return fmt.Errorf("existing catalog retained; Wallet reconciliation stdout UNKNOWN: %w", err)
+					}
+					return fmt.Errorf("registered catalog retained; Wallet receipt stdout UNKNOWN: %w", err)
+				}
+				return nil
+			}
+			var wallet *proofHostWalletHandoff
+			if walletOutput != "" {
+				if walletOutput == output {
+					return errors.New("catalog and Wallet source handoff must be distinct new files")
+				}
+				var err error
+				wallet, err = prepareProofHostWalletHandoff(walletOutput)
+				if err != nil {
+					return err
+				}
+				defer func() { resultErr = errors.Join(resultErr, wallet.close()) }()
+			}
+			receipt, err := consensus.RegisterProofHostSourceCatalog(manifest, manifestPin, binding, bindingPin, output)
+			if err != nil {
+				return err
+			}
+			if wallet != nil {
+				if err = wallet.write(receipt, binding, bindingPin, nil); err != nil {
+					return fmt.Errorf("registered catalog retained; Wallet handoff may be partial/UNKNOWN: %w", err)
+				}
+				if err = wallet.close(); err != nil {
+					return fmt.Errorf("registered catalog and Wallet handoff retained; close UNKNOWN: %w", err)
+				}
+			}
+			// Failed stdout retains the exclusive catalog for reconciliation.
+			if err = json.NewEncoder(cmd.OutOrStdout()).Encode(receipt); err != nil && wallet != nil {
+				return fmt.Errorf("registered catalog and Wallet handoff retained; stdout UNKNOWN: %w", err)
+			}
+			return err
+		},
+	}
+	for _, option := range []struct {
+		name string
+		dest *string
+		help string
+	}{
+		{"delivery-manifest", &manifest, "existing original delivery.json, not a capture or RPC endpoint"},
+		{"delivery-manifest-sha256", &manifestPin, "independent SHA256 of the complete original delivery manifest"},
+		{"binding", &binding, "independent original operation/account/network and both transaction hashes"},
+		{"binding-sha256", &bindingPin, "independent SHA256 of the complete original binding file"},
+		{"output", &output, "new exclusive 0600 catalog beneath an existing private 0700 parent"},
+	} {
+		c.Flags().Var(&initializationStringFlag{target: option.dest}, option.name, option.help)
+		if err := c.MarkFlagRequired(option.name); err != nil {
+			panic(err)
+		}
+	}
+	c.Flags().Var(&initializationStringFlag{target: &walletOutput}, "wallet-main-registration-output", "optional new fixed-name private Wallet source module; DATA handoff only, no install or Root grant")
+	c.Flags().Var(&initializationStringFlag{target: &walletRequestStdin}, "wallet-request-stdin", "explicit true to bind the exact six-field Wallet journal request on bounded stdin; cannot write a static Wallet module, DATA only")
+	c.Flags().Var(&initializationStringFlag{target: &walletReconcileExisting}, "wallet-reconcile-existing", "explicit true with Wallet request stdin to read-only reconcile the existing output catalog against original independent pins; never register or repair")
+	return c
+}

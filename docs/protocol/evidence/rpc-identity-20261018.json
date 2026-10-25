@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-17T17:00:01.284Z",
+  "out": [
+    {
+      "url": "https://rpc.ynxweb4.com/health",
+      "status": 200,
+      "body": "{\"network\":{\"name\":\"YNX Testnet\",\"slug\":\"testnet\",\"chainId\":6423,\"nativeCoinName\":\"YNXT\",\"nativeCurrencySymbol\":\"YNXT\",\"decimals\":18,\"isPublicNet\":true,\"chainIdConflictCheck\":\"chainid.network snapshot checked on 2026-07-01: 6420, 6423, 6425 not listed; repeat before mainnet launch\"},\"ok\":true,\"service\":\"ynx-chaind\",\"timestamp\":\"2026-10-17T16:59:57.419043012Z\"}\n"
+    },
+    {
+      "url": "https://rpc.ynxweb4.com/status",
+      "status": 200,
+      "body": "{\"build\":{\"commit\":\"65efa82e0615\",\"release\":\"ynx-network-surgical-65efa82e0615\",\"buildTime\":\"2026-09-25T00:00:00Z\"},\"catchingUp\":false,\"chainId\":6423,\"chainIdConflictCheck\":\"chainid.network snapshot checked on 2026-07-01: 6420, 6423, 6425 not listed; repeat before mainnet launch\",\"decimals\":18,\"height\":1931741,\"latestBlockHash\":\"864e72d2a832302e5d21becc00b639720f1f70337cd621c0885af740eae4d2dd\",\"latestBlockTime\":\"2026-10-17T16:59:45.209200329Z\",\"mainnetReady\":false,\"nativeCoinName\":\"YNXT\",\"nativeCurrencySymbol\":\"YNXT\",\"network\":\"YNX Testnet\",\"nodeIdentity\":{\"configured\":true,\"validatorAddress\":\"ynx_validator_primary\",\"validatorMoniker\":\"ynx-primary\",\"validatorRole\":\"primary validator\",\"validatorHost\":\"43.153.202.237\",\"validatorPeerId\":\"primary-43.153.202.237\",\"expectedValidatorCount\":4,\"peerSyncTargetCount\":3,\"peerSyncTargetAddresses\":[\"ynx_validator_seoul\",\"ynx_validator_silicon_valley\",\"ynx_validator_singapore\"],\"peerSyncInterval\":\"5s\",\"blockProductionEnabled\":true,\"replicationMode\":\"authoritative_producer\",\"runtimeEvidence\":\"local-runtime-config\",\"build\":{\"commit\":\"65efa82e0615\",\"release\":\"ynx-network-surgical-65efa82e0615\",\"buildTime\":\"2026-09-25T00:00:00Z\"},\"peerSyncFreshness\":{\"status\":\"stale_peer_sync\",\"targetCount\":3,\"synced\":3,\"lagging\":0,\"missing\":0,\"stale\":1,\"fresh\":2,\"totalRecords\":3,\"staleAfterSeconds\":15,\"generatedAt\":\"2026-10-17T16:59:54.252820885Z\",\"records\":[{\"target\":\"ynx_validator_seoul\",\"status\":\"synced\",\"updatedAt\":\"2026-10-17T16:59:36.05531311Z\",\"ageSeconds\":18,\"fresh\":false,\"evidence\":\"peer-rpc-poll:http://43.164.132.81:6420/status\"},{\"target\":\"ynx_validator_silicon_valley\",\"status\":\"synced\",\"updatedAt\":\"2026-10-17T16:59:54.198369616Z\",\"fresh\":true,\"evidence\":\"peer-rpc-poll:http://43.162.100.54:6420/status\"},{\"target\":\"ynx_validator_singapore\",\"status\":\"synced\",\"updatedAt\":\"2026-10-17T16:59:45.209030647Z\",\"ageSeconds\":9,\"fresh\":true,\"evidence\":\"peer-rpc-poll:http://43.134.23.58:6420/status\"}]},\"replication\":{\"configured\":false,\"status\":\"not_configured\",\"catchingUp\":false,\"fresh\":true,\"localHeight\":1931741,\"localBlockHash\":\"864e72d2a832302e5d21becc00b639720f1f70337cd621c0885af740eae4d2dd\",\"sourceHeight\":0,\"lagBlocks\":0,\"attempts\":0,\"successes\":0,\"failures\":0,\"consecutiveFailures\":0}},\"pendingTxCount\":0,\"persistence\":true,\"persistenceError\":\"\",\"publicNetwork\":true,\"readyValidatorCount\":4,\"replication\":{\"configured\":false,\"status\":\"not_configured\",\"catchingUp\":false,\"fresh\":true,\"localHeight\":1931741,\"localBlockHash\":\"864e72d2a832302e5d21becc00b639720f1f70337cd621c0885af740eae4d2dd\",\"sourceHeight\":0,\"lagBlocks\":0,\"attempts\":0,\"successes\":0,\"failures\":0,\"consecutiveFailures\":0},\"slug\":\"testnet\",\"truthfulStatus\":\"ynx-testnet-node\",\"validatorCount\":4,\"validatorPeerDiscovery\":{\"expected\":4,\"observed\":4,\"total\":4},\"validatorPeerReadiness\":{\"ready\":4,\"total\":4},\"validatorPeerSync\":{\"lagging\":0,\"synced\":3,\"total\":3}}\n"
+    },
+    {
+      "url": "https://rpc.ynxweb4.com/version",
+      "status": 405,
+      "body": "Method Not Allowed\n"
+    }
+  ]
+}

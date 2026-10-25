@@ -1,0 +1,151 @@
+{
+  "run": 39101039433,
+  "head": "586ad4a6f7ff43cbdaa2c7af005c41254a630dcd",
+  "conclusion": "failure",
+  "rawLogBytes": 161744,
+  "rawLogSHA256": "3703c6e5e39b517e2be155b7e28fc544a2fd9c6f4e534a388cdbb393c3b7a101",
+  "actualFailure": [
+    "TestMigratedResourceMarketPreservesSettlementAndProviderEligibility: restart lost original settlements or live Resource state",
+    "TestMigratedSponsorExecutesReplaysAndRestarts: diagnostic reflect.Value.Interface panic on private field masked the restart difference"
+  ],
+  "repair": "Normalize empty omitempty DexEvents/NativeFlows to nil in the actual shared deep clone; retain all nonempty original fields and deep isolation. Keep both full-state restart assertions. Diagnostic loop skips non-interfaceable private fields only. R1 source snapshot is retained; R2 records successor.",
+  "jobs": [
+    {
+      "name": "focused-go",
+      "conclusion": "failure",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "conclusion": "success"
+        },
+        {
+          "name": "Record exact candidate identity",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify pure dual-PQ protocol and account authorization",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify forked engine keys and actual consensus objects",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compile forked state and consensus engine without starting nodes",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify real profile state transition and historical store without starting nodes",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify bounded remote signer transport and unchanged legacy protobuf vectors",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify actual engine signing caller uses committed height key and round context",
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure fresh single and bounded concurrent dual signature paths",
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure actual policy certificate cache consumer cold and warm paths",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pinned contract build runtime",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify failed candidate deployment preserves services and signing history",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compile frozen measured production overlay without executing cases",
+          "conclusion": "success"
+        },
+        {
+          "name": "Generate canonical IDE contract fixture",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify native ledger and HTTP PQ integration",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compile production entry points",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify complete state bridge and sponsor continuity",
+          "conclusion": "failure"
+        },
+        {
+          "name": "Verify Whole BFT gateway and native container readback",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify shared Wallet policy and Chain payment authorization regressions",
+          "conclusion": "success"
+        },
+        {
+          "name": "Checkout fixed repaired performance client",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify fixed segmented client integration with original assertions",
+          "conclusion": "success"
+        },
+        {
+          "name": "Emit public inverse interop fixture",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload public signature fixture",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout fixed repaired performance client",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Install pinned contract build runtime",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Post Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "verify",
+      "conclusion": "skipped",
+      "steps": []
+    },
+    {
+      "name": "pq-paired-n1",
+      "conclusion": "skipped",
+      "steps": []
+    }
+  ],
+  "noMultiNodeOrActivationClaim": true
+}
