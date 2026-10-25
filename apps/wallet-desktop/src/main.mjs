@@ -43,6 +43,7 @@ import { YNX_TESTNET_CHAIN_QUANTITY, WALLET_AUTH_PROTOCOL_SOURCE } from "./walle
 import { DesktopAuthorizationController, parseWalletConnectActivation } from "./callback-policy.mjs";
 import { PasswordWalletVault } from "./password-wallet-vault.mjs";
 import {createPQKeyPreparationEntry} from './wallet-pq-key-entry.mjs';
+import {readPQPublicProposal} from './wallet-pq-public-proposal.mjs';
 import {createPQBackupActions} from './pq-backup-actions.mjs';
 import {PQBackupFile} from './pq-backup-file.mjs';
 import {createRegisteredPQRestore} from './wallet-pq-registered-restore.mjs';
@@ -523,6 +524,10 @@ handleWalletIPC("wallet:invoice-reference-qr",(_event,input)=>safeIPC(()=>{
 handleWalletIPC("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
 // The custody controller owns its lifecycle.run; do not nest sensitiveIPC.
 handleWalletIPC('wallet:pq-keys-status',()=>safeIPC(()=>pqKeyPreparation.status()));
+handleWalletIPC('wallet:pq-public-proposal',(_event,...args)=>sensitiveIPC(async()=>{
+  if(args.length)throw Object.assign(Error('PQ_PUBLIC_PROPOSAL_ARGUMENTS_FORBIDDEN'),{code:'PQ_PUBLIC_PROPOSAL_ARGUMENTS_FORBIDDEN'});
+  return readPQPublicProposal({vault:passwordVault,networkId:PQ_CANONICAL_NETWORK_ID,guard:keyAccess.current()});
+}));
 handleWalletIPC('wallet:pq-keys-recover',()=>safeIPC(()=>pqKeyPreparation.recover()));
 handleWalletIPC('wallet:pq-keys-generate',()=>safeIPC(()=>pqKeyPreparation.generate()));
 handleWalletIPC('wallet:pq-keys-reconcile',()=>safeIPC(()=>pqKeyPreparation.reconcile()));
