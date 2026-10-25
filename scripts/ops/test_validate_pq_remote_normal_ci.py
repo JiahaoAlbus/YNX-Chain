@@ -1041,13 +1041,21 @@ def assert_workflow_contract(raw):
         need(token in initial_cli[0])
     need(delivery_steps.index(by_name("Verify original Host source, live lifecycle and delivery persistence")[0]) < delivery_steps.index(initial_cli[0]))
     vulnerability = by_name("Check reachable vulnerabilities in the eight production runtime commands")
-    need(len(vulnerability) == 1 and vulnerability[0] in delivery_steps)
-    need(condition(vulnerability[0]) == "${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}")
+    need(len(vulnerability) == 1 and vulnerability[0] in steps
+         and raw.count("      - name: Check reachable vulnerabilities in the eight production runtime commands\n") == 1)
+    need(condition(vulnerability[0]) == "${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success' && github.event_name == 'push') }}")
     need("        timeout-minutes: 3\n" in vulnerability[0] and "        run: >-\n" in vulnerability[0])
-    need("go run golang.org/x/vuln/cmd/govulncheck@v1.1.4" in vulnerability[0] and "||" not in vulnerability[0])
+    need("go run golang.org/x/vuln/cmd/govulncheck@v1.1.4" in vulnerability[0]
+         and "||" not in vulnerability[0] and "continue-on-error:" not in vulnerability[0])
     need(re.findall(r"\./cmd/([a-z-]+)", vulnerability[0]) == ["ynx-abci", "ynx-comet", "ynx-bft-gatewayd",
          "ynx-consensus-pq-remote-signer", "ynx-consensus-pq-key-init", "ynx-consensus-proof-verify", "ynx-consensus-package", "ynx-consensus-keycheck"])
-    need(delivery_steps.index(vulnerability[0]) < delivery_steps.index(by_name("Build public Linux runtime candidate without starting services")[0]))
+    need(job.index("      - uses: actions/setup-go@") < job.index("      - name: Record exact candidate identity\n")
+         and steps.index(vulnerability[0]) == steps.index(by_id("identity")) + 1
+         and steps.index(vulnerability[0]) < steps.index(protocol[0]))
+    # A reachable vulnerability blocks this job and the delivery dependency,
+    # while independent source/implementation checks still get their results.
+    need(condition(protocol[0]) == "${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}")
+    need(condition(non_host) == "${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}")
     focused_signer, delivery_signer = by_name(signer_name)
     need("success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process" in condition(focused_signer))
     need("github.event_name == 'push' ||" in condition(delivery_signer))
@@ -1488,10 +1496,11 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             self.assertIn(before, raw)
             with self.subTest(before=before), self.assertRaises(AssertionError):
                 assert_workflow_contract(raw.replace(before, after, 1))
-        # The generic verify job has the same govuln command before delivery.
+        # The generic verify job has the same govuln command before focused-go.
         # Mutate the actual named runtime gate, not the first global occurrence.
+        _, focused_steps = workflow_steps(raw, "focused-go")
         _, delivery_steps = workflow_steps(raw, "protocol-delivery")
-        vulnerability = [step for step in delivery_steps if step.startswith(
+        vulnerability = [step for step in focused_steps if step.startswith(
             "      - name: Check reachable vulnerabilities in the eight production runtime commands\n")]
         self.assertEqual(len(vulnerability), 1)
         command = "go run golang.org/x/vuln/cmd/govulncheck@v1.1.4"
@@ -1501,8 +1510,28 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             command, "true # omitted production runtime vulnerability check", 1), 1)
         self.assertNotEqual(omitted_vulnerability, raw)
         self.assertEqual(workflow_steps(omitted_vulnerability, "verify"), workflow_steps(raw, "verify"))
-        with self.subTest(before=command, job="protocol-delivery"), self.assertRaises(AssertionError):
+        with self.subTest(before=command, job="focused-go"), self.assertRaises(AssertionError):
             assert_workflow_contract(omitted_vulnerability)
+        vulnerability = vulnerability[0]
+        pure = next(step for step in focused_steps if step.startswith(
+            "      - name: Verify pure dual-PQ protocol and account authorization\n"))
+        runtime = next(step for step in delivery_steps if step.startswith(
+            "      - name: Build public Linux runtime candidate without starting services\n"))
+        gate_changes = [raw.replace(vulnerability, "", 1),
+            raw.replace(vulnerability, vulnerability + vulnerability, 1),
+            raw.replace(vulnerability, vulnerability.replace("timeout-minutes: 3", "timeout-minutes: 4", 1), 1),
+            raw.replace(vulnerability, vulnerability.replace("github.event_name == 'push'", "github.event_name == 'workflow_dispatch'", 1), 1),
+            raw.replace(vulnerability, vulnerability.replace("steps.identity.outcome == 'success'", "true", 1), 1),
+            raw.replace(vulnerability, vulnerability.replace("        run: >-\n", "        continue-on-error: true\n        run: >-\n", 1), 1),
+            raw.replace(vulnerability, vulnerability.replace("./cmd/ynx-consensus-keycheck", "./cmd/ynx-consensus-keycheck || true", 1), 1),
+            raw.replace(vulnerability, "", 1).replace(pure, pure + vulnerability, 1),
+            raw.replace(vulnerability, "", 1).replace(runtime, vulnerability + runtime, 1),
+            raw.replace(pure, pure.replace("!cancelled()", "success()", 1), 1)]
+        for index, changed in enumerate(gate_changes):
+            self.assertNotEqual(changed, raw)
+            self.assertEqual(workflow_steps(changed, "verify"), workflow_steps(raw, "verify"))
+            with self.subTest(runtime_vulnerability=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(changed)
         # Keep the complete original controls block, its condition and every
         # command; changing only its position after pure PQ must be refused.
         assert_workflow_contract(raw)
