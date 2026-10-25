@@ -19,6 +19,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	cmtconfig "github.com/cometbft/cometbft/config"
+	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
@@ -615,21 +616,40 @@ func VerifyProductionKeyFiles(roleManifestPath, privateValidatorKeyPath, nodeKey
 	if err != nil {
 		return err
 	}
+	defer clear(keyPayload)
 	var validatorKey privval.FilePVKey
+	defer func() {
+		if validatorKey.PrivKey != nil {
+			clear(validatorKey.PrivKey.Bytes())
+		}
+	}()
 	if err := cmtjson.Unmarshal(keyPayload, &validatorKey); err != nil {
 		return fmt.Errorf("decode production private validator key: %w", err)
 	}
-	if validatorKey.PrivKey == nil || validatorKey.PubKey == nil || !bytes.Equal(validatorKey.PrivKey.PubKey().Bytes(), validatorKey.PubKey.Bytes()) {
+	public, err := validatedProductionEd25519PublicKey(validatorKey.PrivKey)
+	expectedPublic, publicOK := validatorKey.PubKey.(cmted25519.PubKey)
+	if err != nil || !publicOK || !bytes.Equal(public, expectedPublic) || !bytes.Equal(validatorKey.Address, public.Address()) {
 		return errors.New("production private validator key does not match its public key")
 	}
-	if !strings.EqualFold(hex.EncodeToString(validatorKey.Address), role.Node.ConsensusAddress) || base64.StdEncoding.EncodeToString(validatorKey.PubKey.Bytes()) != role.Node.ConsensusPubKey {
+	if !strings.EqualFold(hex.EncodeToString(validatorKey.Address), role.Node.ConsensusAddress) || base64.StdEncoding.EncodeToString(public) != role.Node.ConsensusPubKey {
 		return errors.New("production private validator key does not match the approved role manifest")
 	}
-	nodeKey, err := p2p.LoadNodeKey(nodeKeyPath)
+	nodePayload, err := os.ReadFile(nodeKeyPath)
 	if err != nil {
 		return fmt.Errorf("decode production node key: %w", err)
 	}
-	if string(nodeKey.ID()) != strings.ToLower(role.Node.NodeID) {
+	defer clear(nodePayload)
+	var nodeKey p2p.NodeKey
+	defer func() {
+		if nodeKey.PrivKey != nil {
+			clear(nodeKey.PrivKey.Bytes())
+		}
+	}()
+	if err := cmtjson.Unmarshal(nodePayload, &nodeKey); err != nil {
+		return fmt.Errorf("decode production node key: %w", err)
+	}
+	nodePublic, err := validatedProductionEd25519PublicKey(nodeKey.PrivKey)
+	if err != nil || string(p2p.PubKeyToID(nodePublic)) != strings.ToLower(role.Node.NodeID) {
 		return errors.New("production node key does not match the approved role manifest")
 	}
 	return nil

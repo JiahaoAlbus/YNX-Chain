@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"bytes"
+	stded25519 "crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -14,6 +15,8 @@ import (
 	"strings"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	cmtcrypto "github.com/cometbft/cometbft/crypto"
+	cmted25519 "github.com/cometbft/cometbft/crypto/ed25519"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 	"github.com/cometbft/cometbft/p2p"
 	"github.com/cometbft/cometbft/privval"
@@ -180,23 +183,42 @@ func ReadProductionKeyRecord(role, keyDir string) (ProductionKeyCeremonyRecord, 
 		return ProductionKeyCeremonyRecord{}, err
 	}
 	var validatorKey privval.FilePVKey
+	defer clear(keyPayload)
+	defer func() {
+		if validatorKey.PrivKey != nil {
+			clear(validatorKey.PrivKey.Bytes())
+		}
+	}()
 	if err := cmtjson.Unmarshal(keyPayload, &validatorKey); err != nil {
 		return ProductionKeyCeremonyRecord{}, err
 	}
-	if validatorKey.PrivKey == nil || validatorKey.PubKey == nil || !bytes.Equal(validatorKey.PrivKey.PubKey().Bytes(), validatorKey.PubKey.Bytes()) {
+	public, err := validatedProductionEd25519PublicKey(validatorKey.PrivKey)
+	expectedPublic, publicOK := validatorKey.PubKey.(cmted25519.PubKey)
+	if err != nil || !publicOK || !bytes.Equal(public, expectedPublic) {
 		return ProductionKeyCeremonyRecord{}, errors.New("production private validator key does not match its public key")
 	}
-	publicBytes := validatorKey.PubKey.Bytes()
-	if len(publicBytes) != 32 {
-		return ProductionKeyCeremonyRecord{}, errors.New("production validator public key is invalid")
-	}
+	publicBytes := public.Bytes()
 	derived := sha256Address(publicBytes)
 	if !strings.EqualFold(hex.EncodeToString(validatorKey.Address), derived) {
 		return ProductionKeyCeremonyRecord{}, errors.New("production validator public key does not match its address")
 	}
-	nodeKey, err := p2p.LoadNodeKey(nodeKeyPath)
+	nodePayload, err := os.ReadFile(nodeKeyPath)
 	if err != nil {
 		return ProductionKeyCeremonyRecord{}, err
+	}
+	defer clear(nodePayload)
+	var nodeKey p2p.NodeKey
+	defer func() {
+		if nodeKey.PrivKey != nil {
+			clear(nodeKey.PrivKey.Bytes())
+		}
+	}()
+	if err := cmtjson.Unmarshal(nodePayload, &nodeKey); err != nil {
+		return ProductionKeyCeremonyRecord{}, err
+	}
+	nodePublic, err := validatedProductionEd25519PublicKey(nodeKey.PrivKey)
+	if err != nil {
+		return ProductionKeyCeremonyRecord{}, errors.New("production node private key material is inconsistent")
 	}
 	return ProductionKeyCeremonyRecord{
 		Version:          1,
@@ -206,9 +228,25 @@ func ReadProductionKeyRecord(role, keyDir string) (ProductionKeyCeremonyRecord, 
 		ConsensusKeyType: chain.ConsensusPubKeyTypeEd25519,
 		ConsensusPubKey:  base64.StdEncoding.EncodeToString(publicBytes),
 		ConsensusAddress: derived,
-		NodeID:           string(nodeKey.ID()),
+		NodeID:           string(p2p.PubKeyToID(nodePublic)),
 		CustodyBoundary:  "owner-controlled-host-local",
 	}, nil
+}
+
+// Comet's Ed25519 PubKey method only copies the public half of a private key.
+// Recompute the complete key from its seed before trusting either identity.
+// The detached public result remains valid after the caller clears its key.
+func validatedProductionEd25519PublicKey(value cmtcrypto.PrivKey) (cmted25519.PubKey, error) {
+	private, ok := value.(cmted25519.PrivKey)
+	if !ok || len(private) != stded25519.PrivateKeySize {
+		return nil, errors.New("production identity requires a complete Ed25519 private key")
+	}
+	derived := stded25519.NewKeyFromSeed(private[:stded25519.SeedSize])
+	defer clear(derived)
+	if !bytes.Equal(private, derived) {
+		return nil, errors.New("production private key seed and public half differ")
+	}
+	return cmted25519.PubKey(bytes.Clone(derived[stded25519.SeedSize:])), nil
 }
 
 func sha256Address(publicKey []byte) string {
