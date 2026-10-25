@@ -128,3 +128,18 @@ test('Main POST progress uses original POST decoder for error-only and rejected 
  assert.throws(()=>parsePQProgressResult({...saved,phase:'read'},record),{code:'PQ_TYPED_PROGRESS_INVALID'});
  assert.throws(()=>parsePQProgressResult({...saved,method:'GET'},record),{code:'PQ_TYPED_PROGRESS_INVALID'});
 });
+
+test('cold UNKNOWN reconciliation persists the native original route and refuses a replacement send',async t=>{
+ const packet={...response('unknown','GET'),requestPath:'/transactions/pq/actions/originals/'+record.typed.memberHash};
+ const f=await setup(t,{readPacket:packet});
+ await f.store.beginPQSubmission(record.account,record.hash,()=>{});
+ const coldController=f.create(f.cold()),out=await coldController.reconcile(record.hash,f.fresh());
+ assert.equal(out.status,'submission-unknown');assert.equal(out.canRetry,false);assert.equal(out.clearsOriginal,false);assert.equal(out.consensusFinality,false);
+ const saved=JSON.parse(await fs.readFile(f.filePath,'utf8')),progress=saved.pqProgress.find(p=>p.hash===record.hash);
+ assert.equal(progress.result.method,'GET');assert.equal(progress.result.requestPath,packet.requestPath);
+ const decoded=parsePQProgressResult(progress.result,record);assert.equal(decoded.observed.memberHash,record.typed.memberHash);assert.equal(decoded.observed.transportHash,record.hash);assert.equal(decoded.observed.observedStatus,'unknown');
+ assert.deepEqual((await f.cold().readPQOriginals(record.account,()=>{}))[0],record);
+ await assert.rejects(f.create(f.cold()).broadcast(record.hash,f.fresh(),permission()),{code:'PQ_TRANSACTION_ALREADY_ENTERED'});
+ assert.equal(f.counts().reads,1);assert.equal(f.counts().posts,0);assert.equal(f.counts().acquires,0);
+ const reopened=await f.cold().readPQProgress(record.account,record.hash,()=>{});assert.equal(reopened.status,'submission-unknown');assert.equal(reopened.storageConfirmed,true);assert.equal(reopened.retryAuthorized,false);
+});
