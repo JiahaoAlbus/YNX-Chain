@@ -1,0 +1,40 @@
+{
+  "status": "initial_collector_source_and_unit_test_verified_initial_offline_verifier_pending_canonical_owner",
+  "baseCommit": "e84b1d4ee8464352f3d4d096d620ed82d74065df",
+  "canonicalRoutes": [
+    "POST /accounts/{signedOwner}/authorization/register",
+    "GET /transactions/pq/originals/{nativeHash}",
+    "GET /txs/{ABCIhash}/pq-finality-proof"
+  ],
+  "test": {
+    "name": "TestPQRegistrationCaseOriginalProofCollectorNeverCountsBirthAsBusiness",
+    "race": true,
+    "elapsedSeconds": 1.983,
+    "scope": "real canonical dual-signed possession input, unit RPC collector observations only; no independent consensus proof from this unit object"
+  },
+  "raw": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-initial-proof-collector-race-20261026.raw",
+    "bytes": 250,
+    "sha256": "1439516a96f68d727c807ee2ab124b8110599ee6971980de12a72d22127fcbf7"
+  },
+  "invariants": [
+    "birth observed and proof collection do not count included or finalized business",
+    "successful independently verified initial registration uses registrationFinalized, business remains zero",
+    "original read-only proof recovery never POSTs",
+    "wrong proof height rejected and raw response retained",
+    "initial Member legal canonical N/index retained; no extra N1 restriction",
+    "Whole proof collection remains unavailable rather than invented"
+  ],
+  "canonicalOwningGap": {
+    "file": "cmd/ynx-consensus-proof-verify/transaction.go",
+    "function": "decodeTransactionExpected",
+    "missing": "PQInitialRegistrationType in supported type switch",
+    "ownerNotified": "01a14abb-5066-7db0-8814-e08c0d4b35a8",
+    "existingCore": "pq_transaction_proof.go already supports initial; canonical initial source direct-verifier test passed",
+    "requestedInputs": "original existing funded public fixture path/artifact or existing signed public producer initial case; no new fixture framework"
+  },
+  "actualInitialIndependentVerificationExecuted": false,
+  "realMultiNodeRun": false,
+  "actualOfferToFinalityMeasured": false,
+  "sustainedTPSQualified": false
+}

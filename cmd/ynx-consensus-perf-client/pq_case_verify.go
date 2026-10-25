@@ -27,8 +27,8 @@ func validatePQCaseVerifierOptions(o options) error {
 	if !pqCaseVerifierSelected(o) {
 		return nil
 	}
-	if !o.pqReadbackOnly || !o.pqCollectProof || o.pqMemberWire == "" || !filepath.IsAbs(o.pqProofVerifier) || !filepath.IsAbs(o.pqTrustContext) || !pqCaseHashPin(o.pqProofVerifierSHA256) || !pqCaseHashPin(o.pqTrustContextSHA256) {
-		return errors.New("offline verification requires readback-only N1 proof collection, original absolute verifier/context paths and independent SHA256 pins")
+	if !o.pqReadbackOnly || !o.pqCollectProof || (o.pqMemberWire == "" && o.pqRegistrationWire == "") || !filepath.IsAbs(o.pqProofVerifier) || !filepath.IsAbs(o.pqTrustContext) || !pqCaseHashPin(o.pqProofVerifierSHA256) || !pqCaseHashPin(o.pqTrustContextSHA256) {
+		return errors.New("offline verification requires readback-only transfer/registration proof collection, original absolute verifier/context paths and independent SHA256 pins")
 	}
 	return nil
 }
@@ -205,6 +205,7 @@ func verifyPQCaseCollectedProof(ctx context.Context, o options, p pqWholeCase, r
 	r.IndependentFinalityVerified = false
 	r.ConfiguredRPCObservationOnly = true
 	r.EffectiveBusinessFinalized = 0
+	r.RegistrationFinalized = false
 	r.VerifierProcessStarted, r.VerifierInterrupted, r.VerifierExitCode = false, false, nil
 	fail := func(e error) { r.ProofVerificationError = e.Error() }
 	if e := ctx.Err(); e != nil {
@@ -269,7 +270,11 @@ func verifyPQCaseCollectedProof(ctx context.Context, o options, p pqWholeCase, r
 		fail(errors.New("canonical verifier result does not establish successful finality of the original transaction"))
 		return
 	}
-	r.EffectiveBusinessFinalized = 1
+	if p.kind == consensus.PQInitialRegistrationType {
+		r.RegistrationFinalized = true
+	} else {
+		r.EffectiveBusinessFinalized = 1
+	}
 	r.IndependentFinalityVerified = true
 	r.ConfiguredRPCObservationOnly = false
 	r.ProofVerificationStatus = "verified_original_transaction"

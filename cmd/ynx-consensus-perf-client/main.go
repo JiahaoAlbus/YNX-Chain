@@ -202,7 +202,7 @@ func main() {
 	flag.StringVar(&o.pqWholeWire, "pq-whole", "", "canonical signed YNX-BATCH/v0.1 Whole input")
 	flag.StringVar(&o.pqGateway, "pq-gateway", "", "normal PQ gateway base URL for the bounded Whole case")
 	flag.BoolVar(&o.pqReadbackOnly, "pq-readback-only", false, "query the original Whole identity without broadcasting")
-	flag.BoolVar(&o.pqCollectProof, "pq-collect-proof", false, "collect original N1 transfer proof without claiming independent finality")
+	flag.BoolVar(&o.pqCollectProof, "pq-collect-proof", false, "collect original transfer/initial registration proof without claiming independent finality")
 	flag.StringVar(&o.pqProofVerifier, "pq-proof-verifier", "", "absolute original offline consensus verifier executable")
 	flag.StringVar(&o.pqProofVerifierSHA256, "pq-proof-verifier-sha256", "", "independent SHA256 of original verifier")
 	flag.StringVar(&o.pqTrustContext, "pq-trust-context", "", "original independently pinned transaction trust context")

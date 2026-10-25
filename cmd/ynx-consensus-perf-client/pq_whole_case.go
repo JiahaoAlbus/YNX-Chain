@@ -51,6 +51,7 @@ type pqCasePhases struct {
 	ProofDurabilityNs             int64 `json:"proofDurabilityNs,string"`
 }
 type pqWholeCaseReport struct {
+	RegistrationFinalized             bool              `json:"registrationFinalized"`
 	VerifierProcessStarted            bool              `json:"verifierProcessStarted"`
 	VerifierInterrupted               bool              `json:"verifierInterrupted"`
 	VerifierExitCode                  *int              `json:"verifierExitCode,omitempty"`
@@ -110,8 +111,8 @@ func validatePQWholeCaseOptions(o options) error {
 		return errors.New("PQ case requires an explicit normal gateway base URL")
 	}
 	profiles := 0
-	if o.pqCollectProof && (o.pqMemberWire == "" || o.pqWholeWire != "" || o.pqRegistrationWire != "") {
-		return errors.New("original proof collection currently requires the canonical N1 transfer Member route")
+	if o.pqCollectProof && (o.pqMemberWire == "" && o.pqRegistrationWire == "" || o.pqWholeWire != "") {
+		return errors.New("original proof collection requires a canonical transfer or initial registration Member route")
 	}
 	for _, path := range []string{o.pqWholeWire, o.pqMemberWire, o.pqRegistrationWire} {
 		if path != "" {
@@ -383,7 +384,7 @@ func executePQWholeCase(o options) (returned error) {
 	report := runPQWholeCase(ctx, client, p, o.pqGateway, o.pqReadbackOnly)
 	report.Phases.InputPreparationNs = inputPreparationNs
 	report.Phases.IntentDurabilityNs = intentDurabilityNs
-	if o.pqCollectProof && report.Status == "committed_observed" {
+	if o.pqCollectProof && (report.Status == "committed_observed" || report.Status == "registration_observed") {
 		collectPQCaseProof(ctx, client, p, o.pqGateway, o.output+".pq-proof.json", &report)
 	}
 	if pqCaseVerifierSelected(o) && report.ProofCollectionStatus == "collected_unverified" {

@@ -53,7 +53,7 @@ func collectPQCaseProof(ctx context.Context, client *http.Client, p pqWholeCase,
 }
 
 func (p pqWholeCase) validateCollectedProof(v bftgateway.PQFinalityView, report *pqWholeCaseReport) error {
-	if p.kind != consensus.PQTransferType || v.Version != "YNX-PQ-RPC-TRANSACTION-PROOF/v1" || v.Source != "configured-comet-rpc" || v.Status != "collected" || v.ObservedExecutionStatus != "committed" || v.NativeTransactionHash != p.native || v.ABCITransactionHash != p.outer || v.ExecutionHeight != report.ExecutionHeight || v.CometIndex == nil || report.CometIndex == nil || *v.CometIndex != *report.CometIndex || v.IndependentFinality || v.ProofVerification != "not-performed" || v.Error != "" || v.Proof == nil || v.Proof.Version != consensus.PQTransactionProofVersion {
+	if (p.kind != consensus.PQTransferType && p.kind != consensus.PQInitialRegistrationType) || v.Version != "YNX-PQ-RPC-TRANSACTION-PROOF/v1" || v.Source != "configured-comet-rpc" || v.Status != "collected" || v.ObservedExecutionStatus != "committed" || v.NativeTransactionHash != p.native || v.ABCITransactionHash != p.outer || v.ExecutionHeight != report.ExecutionHeight || v.CometIndex == nil || report.CometIndex == nil || *v.CometIndex != *report.CometIndex || v.IndependentFinality || v.ProofVerification != "not-performed" || v.Error != "" || v.Proof == nil || v.Proof.Version != consensus.PQTransactionProofVersion {
 		return errors.New("original proof collector identity/status differs or proof remains unavailable")
 	}
 	return nil
