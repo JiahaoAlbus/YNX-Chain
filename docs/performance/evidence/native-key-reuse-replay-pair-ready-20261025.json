@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "kind": "conditional-ready-only-no-dispatch",
+  "sourceCommit": "f2ffa01ba006a8a2aba3ca3a9f09b04311857731",
+  "codeCommit": "e7beff99ac8b4e19efa83e5d6a5f4198182cdf9e",
+  "frozenRef": "codex/chain-native-key-reuse-replay-pair-f2ffa01ba0",
+  "normalCI": {
+    "runId": 40185564279,
+    "status": "completed",
+    "conclusion": "success",
+    "headSha": "f2ffa01ba006a8a2aba3ca3a9f09b04311857731",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40185564279",
+    "api": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-verification-key-reuse-20261025/normal-ci-completed.json",
+      "bytes": 10510,
+      "sha256": "36c53475e0e5f88a3cee95c5ef9edcba80aa54a4139a806394b8a0da8bc7a996"
+    },
+    "fullLog": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-verification-key-reuse-20261025/normal-ci-full.raw",
+      "bytes": 775733,
+      "sha256": "2034e308c40c2bc739f7e2d5b944e17f4974ff00ccae773d7b90a66e1f50c64e"
+    }
+  },
+  "request": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/root-scheduling-request-with-evidence.json",
+    "bytes": 20709,
+    "sha256": "bb09af5bb9ec7dbec1eeb85a01d5d7e68b777fafafa276a00fc242ad084e2cf3"
+  },
+  "validation": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/ready-validation-01.json",
+    "bytes": 1189,
+    "sha256": "80fa3a7c9cad36118dd18334125b3c394dfdabf981e6d24fed23379570f62bdb"
+  },
+  "sourceQualification": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/source-ci-qualified-original.json",
+    "bytes": 2957,
+    "sha256": "58432f959d7b02fc7ab71dae885197a121e314240de8a24c27a8cef9e57156d9"
+  },
+  "frozenTagRemote": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-verification-key-reuse-20261025/frozen-tag-remote-01.raw",
+    "bytes": 103,
+    "sha256": "415ea9520782dc4a948907500f9185be587959494117cd4f6f2144b8c1b0df95"
+  },
+  "originalSlotTerminal": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/original-slot-terminal.json",
+    "bytes": 968,
+    "sha256": "57a57bb39d5cd0583d66a52484703b9007decef9b9dbbd70b65109aee8bd5082"
+  },
+  "clientArgv": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/client-argv.json",
+    "bytes": 3223,
+    "sha256": "b036cec5211134d558d30bc7f9bf1a8c5ebcd82b1cf489ac963089922ab9c0cc"
+  },
+  "nodeArgv": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/node-argv-contract.json",
+    "bytes": 1079,
+    "sha256": "c2f2d13b6784a3d54c340c2953fbbd9445b98bc432f67884dee03434e4287c10"
+  },
+  "exactBinaryBuildContract": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/binary-build-contract.json",
+    "bytes": 3323,
+    "sha256": "ada62854e7818c2ac6f33a50bdfa0bf3ea0b3d0eb8697fdd99ab6cf0b9547f60"
+  },
+  "freshRemoteAdmission": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/fresh-remote-admission-contract.json",
+    "bytes": 2187,
+    "sha256": "685bfac169a297491c1bf6c524eab850f68716c62e8505b023b376cab4650c14"
+  },
+  "normalDispatchTransport": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/normal-dispatch-command.json",
+    "bytes": 995,
+    "sha256": "e7ba4242395bea3f7a7e4ccba751c8d1c5965d779aa595f61ede03ddcadbe754"
+  },
+  "frozenReaderCount": 14,
+  "capacityRequirements": {
+    "derivedFromExactFrozenNativeCaps": true,
+    "prebuildDiskFloorRootCompileAndPrivateReserveBytes": 2626682880,
+    "prebuildNativePrivateReserveBytes": 33554432,
+    "pairInitialDiskRequirementBytes": 3129999360,
+    "continuousDiskFloorAndRootReserveBytes": 1519386624,
+    "memAvailableFloorBytes": 1207959552
+  },
+  "runtimeCaps": {
+    "pair": {
+      "totalMs": 120000,
+      "retainedBytes": 536870912,
+      "logBytes": 2097152,
+      "buildBytes": 1073741824,
+      "metadataReserveMs": 500
+    },
+    "case": {
+      "activeMs": 45000,
+      "cleanupMs": 15000,
+      "totalMs": 60000,
+      "ownedRSSBytes": 1073741824,
+      "threads": 320,
+      "ownedProcesses": 10,
+      "privateBytes": 268435456,
+      "buildBytes": 1073741824,
+      "logBytes": 1048576,
+      "diskFloorBytes": 1073741824,
+      "rootReserveBytes": 445644800,
+      "compileReserveBytes": 1073741824,
+      "availableMemoryFloorBytes": 1207959552,
+      "sampleMs": 200,
+      "longLivedChildren": 9
+    },
+    "stream": {
+      "evidenceBytes": 67108864,
+      "durableStoreBytes": 33554432,
+      "durableCacheBytes": 67108864,
+      "timeoutMs": 40000
+    }
+  },
+  "axis": "client-local GOMAXPROCS1 versus2; diagnostic true on both; all nodes remain1",
+  "rootGrantReceived": false,
+  "executionAdmitted": false,
+  "dispatched": false,
+  "automaticRetry": false,
+  "newLinuxCapacityObserved": false,
+  "actualBinariesBuilt": false,
+  "networkGainMeasured": false,
+  "crossVMSourceComparisonQualified": false,
+  "sustained1000Qualified": false,
+  "interpretation": "Prepare existing exact limited pair only. Await fresh Root window/once grant and actual original Linux admission. Prior run is accepted context only; no old artifact/rerun/revalidation or causal cross-VM comparison."
+}
