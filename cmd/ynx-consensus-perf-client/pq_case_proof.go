@@ -53,7 +53,16 @@ func collectPQCaseProof(ctx context.Context, client *http.Client, p pqWholeCase,
 }
 
 func (p pqWholeCase) validateCollectedProof(v bftgateway.PQFinalityView, report *pqWholeCaseReport) error {
-	if (p.kind != consensus.PQTransferType && p.kind != consensus.PQInitialRegistrationType) || v.Version != "YNX-PQ-RPC-TRANSACTION-PROOF/v1" || v.Source != "configured-comet-rpc" || v.Status != "collected" || v.ObservedExecutionStatus != "committed" || v.NativeTransactionHash != p.native || v.ABCITransactionHash != p.outer || v.ExecutionHeight != report.ExecutionHeight || v.CometIndex == nil || report.CometIndex == nil || *v.CometIndex != *report.CometIndex || v.IndependentFinality || v.ProofVerification != "not-performed" || v.Error != "" || v.Proof == nil || v.Proof.Version != consensus.PQTransactionProofVersion {
+	status := "committed"
+	if p.kind == consensus.PQWholeType {
+		if report.EffectiveBusinessIncludedObserved <= 0 || report.RejectedMembers < 0 || report.EffectiveBusinessIncludedObserved+report.RejectedMembers != len(p.members) {
+			return errors.New("Whole observation lacks complete original member counts")
+		}
+		if report.RejectedMembers > 0 {
+			status = "partial"
+		}
+	}
+	if (p.kind != consensus.PQTransferType && p.kind != consensus.PQInitialRegistrationType && p.kind != consensus.PQWholeType) || v.Version != "YNX-PQ-RPC-TRANSACTION-PROOF/v1" || v.Source != "configured-comet-rpc" || v.Status != "collected" || v.ObservedExecutionStatus != status || v.NativeTransactionHash != p.native || v.ABCITransactionHash != p.outer || v.ExecutionHeight != report.ExecutionHeight || v.CometIndex == nil || report.CometIndex == nil || *v.CometIndex != *report.CometIndex || v.IndependentFinality || v.ProofVerification != "not-performed" || v.Error != "" || v.Proof == nil || v.Proof.Version != consensus.PQTransactionProofVersion {
 		return errors.New("original proof collector identity/status differs or proof remains unavailable")
 	}
 	return nil

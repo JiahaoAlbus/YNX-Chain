@@ -119,8 +119,8 @@ func validatePQWholeCaseOptions(o options) error {
 		return errors.New("PQ case requires an explicit normal gateway base URL")
 	}
 	profiles := 0
-	if o.pqCollectProof && (o.pqMemberWire == "" && o.pqRegistrationWire == "" || o.pqWholeWire != "") {
-		return errors.New("original proof collection requires a canonical transfer or initial registration Member route")
+	if o.pqCollectProof && (o.pqMemberWire == "" && o.pqRegistrationWire == "" && o.pqWholeWire == "") {
+		return errors.New("original proof collection requires a canonical Whole, transfer or initial registration route")
 	}
 	for _, path := range []string{o.pqWholeWire, o.pqMemberWire, o.pqRegistrationWire} {
 		if path != "" {

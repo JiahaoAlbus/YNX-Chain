@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -141,5 +142,46 @@ func TestPQMemberCaseProofPendingOrMismatchedNeverFinalizes(t *testing.T) {
 				t.Fatal("lost committed state or proof failure evidence", report)
 			}
 		})
+	}
+}
+
+func TestPQWholeCaseProofOptions(t *testing.T) {
+	// Option validation only: these are paths/pins, not generated authority.
+	base := options{pqWholeWire: "original-whole", pqGateway: "http://127.0.0.1:1234", pqCollectProof: true, output: "new-report", timeout: time.Second}
+	if err := validatePQWholeCaseOptions(base); err != nil {
+		t.Fatal("canonical Whole proof collection must use its original ABCI route", err)
+	}
+	base.pqReadbackOnly = true
+	base.pqProofVerifier, base.pqTrustContext = "/original/verifier", "/original/context"
+	base.pqProofVerifierSHA256, base.pqTrustContextSHA256 = strings.Repeat("a", 64), strings.Repeat("b", 64)
+	if err := validatePQWholeCaseOptions(base); err != nil {
+		t.Fatal("read-only Whole verification with independent pins", err)
+	}
+	base.pqReadbackOnly = false
+	if validatePQWholeCaseOptions(base) == nil {
+		t.Fatal("Whole proof verification must never submit")
+	}
+}
+
+func TestPQWholeCaseCollectorContractKeepsPartialUnverified(t *testing.T) {
+	// DATA-only identity contract. A collector object is not a valid signed proof.
+	p := pqWholeCase{kind: consensus.PQWholeType, native: "native-original", outer: "abci-original", members: []string{"effect0", "effect1"}}
+	index := uint32(2)
+	report := pqWholeCaseReport{ExecutionHeight: 7, CometIndex: &index, EffectiveBusinessIncludedObserved: 1, RejectedMembers: 1}
+	v := bftgateway.PQFinalityView{Version: "YNX-PQ-RPC-TRANSACTION-PROOF/v1", Source: "configured-comet-rpc", Status: "collected", ObservedExecutionStatus: "partial", NativeTransactionHash: p.native, ABCITransactionHash: p.outer, ExecutionHeight: 7, CometIndex: &index, ProofVerification: "not-performed", Proof: &consensus.PQTransactionProofRequest{Version: consensus.PQTransactionProofVersion}}
+	if err := p.validateCollectedProof(v, &report); err != nil {
+		t.Fatal(err)
+	}
+	if report.IndependentFinalityVerified || report.EffectiveBusinessFinalized != 0 {
+		t.Fatal("collector DATA became independent finality")
+	}
+	v.ObservedExecutionStatus = "committed"
+	if p.validateCollectedProof(v, &report) == nil {
+		t.Fatal("partial Whole advertised as complete success")
+	}
+	v.ObservedExecutionStatus = "partial"
+	v.IndependentFinality = true
+	if p.validateCollectedProof(v, &report) == nil {
+		t.Fatal("RPC self-authorized independent finality")
 	}
 }

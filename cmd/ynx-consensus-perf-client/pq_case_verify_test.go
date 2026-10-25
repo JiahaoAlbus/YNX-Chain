@@ -17,6 +17,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/bftgateway"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	abci "github.com/cometbft/cometbft/abci/types"
 )
 
 func pqCaseTestSHA(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToString(h[:]) }
@@ -50,6 +51,12 @@ func TestPQMemberCaseVerifierRequiresIndependentPinsAndReadOnly(t *testing.T) {
 // and actual original verifier executable. No network, live accounts or
 // production roots; absence is an explicit skip, never proof qualification.
 func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
+	testPQCaseOriginalVerifierSignedPublicFixture(t, false)
+}
+func TestPQWholeCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
+	testPQCaseOriginalVerifierSignedPublicFixture(t, true)
+}
+func testPQCaseOriginalVerifierSignedPublicFixture(t *testing.T, whole bool) {
 	fixturePath, verifier := os.Getenv("YNX_PERF_PQ_PROOF_FIXTURE"), os.Getenv("YNX_PERF_PQ_PROOF_VERIFIER")
 	if fixturePath == "" || verifier == "" {
 		t.Skip("requires original signed public fixture and original verifier; no proof PASS from skip")
@@ -90,6 +97,11 @@ func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
+	caseIndex, wantedBusiness := 0, 1
+	if whole {
+		caseIndex, wantedBusiness = 2, 3
+	}
+	originalCase := f.Cases[caseIndex]
 	light := f.TrustContextParameters
 	for k, name := range f.TrustContextFiles {
 		light[k] = filepath.Join(dir, name)
@@ -98,7 +110,7 @@ func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
 		Version    string            `json:"version"`
 		LightTrust map[string]string `json:"lightTrust"`
 		Expected   json.RawMessage   `json:"expectedTransaction"`
-	}{"YNX-CONSENSUS-TRANSACTION-PROOF-TRUST/v1", light, f.Cases[0].ExpectedTransaction})
+	}{"YNX-CONSENSUS-TRANSACTION-PROOF-TRUST/v1", light, originalCase.ExpectedTransaction})
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -111,8 +123,13 @@ func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
 			Height string `json:"headerHeight"`
 		} `json:"block"`
 	}
-	json.Unmarshal(f.Cases[0].ExpectedTransaction, &expected)
-	p, e := preparePQMemberCase(expected.NativeWire)
+	json.Unmarshal(originalCase.ExpectedTransaction, &expected)
+	var p pqWholeCase
+	if whole {
+		p, e = preparePQWholeCase(expected.NativeWire)
+	} else {
+		p, e = preparePQMemberCase(expected.NativeWire)
+	}
 	if e != nil {
 		t.Fatal("original signed fixture member", e)
 	}
@@ -128,8 +145,11 @@ func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
 	var request struct {
 		Proof *consensus.PQTransactionProofRequest `json:"proof"`
 	}
-	json.Unmarshal(f.Cases[0].Request, &request)
+	json.Unmarshal(originalCase.Request, &request)
 	view := bftgateway.PQFinalityView{Version: "YNX-PQ-RPC-TRANSACTION-PROOF/v1", Source: "configured-comet-rpc", Status: "collected", ObservedExecutionStatus: "committed", NativeTransactionHash: p.native, ABCITransactionHash: p.outer, ExecutionHeight: height, CometIndex: &index, ProofVerification: "not-performed", Proof: request.Proof}
+	if whole {
+		view.ObservedExecutionStatus = "partial"
+	}
 	response, _ := json.Marshal(view)
 	proofPath := filepath.Join(dir, "original-collector.json")
 	os.WriteFile(proofPath, response, 0600)
@@ -142,14 +162,34 @@ func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
 		t.Fatal(e)
 	}
 	o := options{pqMemberWire: "original", pqReadbackOnly: true, pqCollectProof: true, pqProofVerifier: verifier, pqProofVerifierSHA256: pqCaseTestSHA(binary), pqTrustContext: contextPath, pqTrustContextSHA256: pqCaseTestSHA(originalContext), output: filepath.Join(dir, "result")}
+	if whole {
+		o.pqMemberWire, o.pqWholeWire = "", "original"
+	}
 	if e = validatePQCaseVerifierOptions(o); e != nil {
 		t.Fatal(e)
 	}
 	var posts atomic.Int32
-	memberView := pqMemberUnitView(p)
-	memberView.ExecutionHeight = height
-	memberView.CometIndex = &index
-	memberView.Transaction.BlockNum = height
+	var observation any
+	var readbackURL string
+	if whole {
+		var execution abci.ExecTxResult
+		if e = execution.Unmarshal(request.Proof.ExecutionResult); e != nil {
+			t.Fatal(e)
+		}
+		var batch consensus.PQBatchExecutionResult
+		if e = json.Unmarshal(execution.Data, &batch); e != nil {
+			t.Fatal(e)
+		}
+		wholeView := pqWholeUnitView(p)
+		wholeView.ExecutionHeight, wholeView.CometIndex = height, &index
+		wholeView.Results, wholeView.FeeYNXT = batch.Results, uint64(wantedBusiness)
+		observation, readbackURL = wholeView, wholeView.ReadbackURL
+	} else {
+		memberView := pqMemberUnitView(p)
+		memberView.ExecutionHeight, memberView.CometIndex = height, &index
+		memberView.Transaction.BlockNum = height
+		observation, readbackURL = memberView, memberView.ReadbackURL
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			posts.Add(1)
@@ -160,16 +200,19 @@ func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
 			w.Write(response)
 			return
 		}
-		if r.URL.Path != memberView.ReadbackURL {
+		if r.URL.Path != readbackURL {
 			http.NotFound(w, r)
 			return
 		}
-		json.NewEncoder(w).Encode(memberView)
+		json.NewEncoder(w).Encode(observation)
 	}))
 	defer server.Close()
 	memberPath := filepath.Join(dir, "original-member.bin")
 	os.WriteFile(memberPath, p.wire, 0600)
 	o.pqMemberWire = memberPath
+	if whole {
+		o.pqMemberWire, o.pqWholeWire = "", memberPath
+	}
 	o.pqGateway = server.URL
 	o.timeout = 10 * time.Second
 	if e = execute(o); e != nil {
@@ -183,12 +226,15 @@ func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
 	if e = json.Unmarshal(reportRaw, &report); e != nil {
 		t.Fatal(e)
 	}
-	if posts.Load() != 0 || report.SubmissionAttempts != 0 || report.EffectiveBusinessIncludedObserved != 1 {
+	if whole && (report.ConsensusExecutionOutcome != "partial" || report.RejectedMembers != len(p.members)-wantedBusiness) {
+		t.Fatal("partial Whole lost original member outcomes", report)
+	}
+	if posts.Load() != 0 || report.SubmissionAttempts != 0 || report.EffectiveBusinessIncludedObserved != wantedBusiness {
 		t.Fatal("proof recovery rebroadcast or lost original business", report)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if !report.IndependentFinalityVerified || report.ConfiguredRPCObservationOnly || report.SustainedTPSQualified || report.ProofVerificationStatus != "verified_original_transaction" || report.ProofVerificationNs <= 0 || report.EffectiveBusinessFinalized != 1 || report.ActualOfferToFinalityMeasured || report.VerifierPreparationNs <= 0 || report.VerifierProcessNs <= 0 || report.VerifierEvidenceDurabilityNs <= 0 || report.VerifierResultValidationNs <= 0 || !report.VerifierProcessStarted || report.VerifierInterrupted || report.VerifierExitCode == nil || *report.VerifierExitCode != 0 {
+	if !report.IndependentFinalityVerified || report.ConfiguredRPCObservationOnly || report.SustainedTPSQualified || report.ProofVerificationStatus != "verified_original_transaction" || report.ProofVerificationNs <= 0 || report.EffectiveBusinessFinalized != wantedBusiness || report.ActualOfferToFinalityMeasured || report.VerifierPreparationNs <= 0 || report.VerifierProcessNs <= 0 || report.VerifierEvidenceDurabilityNs <= 0 || report.VerifierResultValidationNs <= 0 || !report.VerifierProcessStarted || report.VerifierInterrupted || report.VerifierExitCode == nil || *report.VerifierExitCode != 0 {
 		t.Fatal("original actual verifier did not verify signed fixture", report)
 	}
 	t.Logf("SYNTHETIC_SIGNED_QA_ONLY original canonical offline verifier PASS; totalNs=%d preparationNs=%d processNs=%d evidenceDurabilityNs=%d resultValidationNs=%d; no actual node/TPS/Native grant", report.ProofVerificationNs, report.VerifierPreparationNs, report.VerifierProcessNs, report.VerifierEvidenceDurabilityNs, report.VerifierResultValidationNs)
@@ -210,7 +256,8 @@ func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
 	corrupt, _ := json.Marshal(view)
 	corruptPath := filepath.Join(dir, "corrupt-collector.json")
 	os.WriteFile(corruptPath, corrupt, 0600)
-	bad = pqWholeCaseReport{CometIndex: &index, ExecutionHeight: height, ProofEvidencePath: corruptPath, ProofEvidenceSHA256: pqCaseTestSHA(corrupt), ConfiguredRPCObservationOnly: true}
+	bad = report
+	bad.ProofEvidencePath, bad.ProofEvidenceSHA256 = corruptPath, pqCaseTestSHA(corrupt)
 	o.output = filepath.Join(dir, "corrupt-proof")
 	verifyPQCaseCollectedProof(ctx, o, p, &bad)
 	if bad.IndependentFinalityVerified || bad.ProofVerificationError == "" || bad.VerifierEvidencePath == "" || !bad.VerifierProcessStarted || bad.VerifierExitCode == nil || *bad.VerifierExitCode == 0 {

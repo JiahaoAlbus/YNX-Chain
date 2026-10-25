@@ -27,8 +27,8 @@ func validatePQCaseVerifierOptions(o options) error {
 	if !pqCaseVerifierSelected(o) {
 		return nil
 	}
-	if !o.pqReadbackOnly || !o.pqCollectProof || (o.pqMemberWire == "" && o.pqRegistrationWire == "") || !filepath.IsAbs(o.pqProofVerifier) || !filepath.IsAbs(o.pqTrustContext) || !pqCaseHashPin(o.pqProofVerifierSHA256) || !pqCaseHashPin(o.pqTrustContextSHA256) {
-		return errors.New("offline verification requires readback-only transfer/registration proof collection, original absolute verifier/context paths and independent SHA256 pins")
+	if !o.pqReadbackOnly || !o.pqCollectProof || (o.pqMemberWire == "" && o.pqRegistrationWire == "" && o.pqWholeWire == "") || !filepath.IsAbs(o.pqProofVerifier) || !filepath.IsAbs(o.pqTrustContext) || !pqCaseHashPin(o.pqProofVerifierSHA256) || !pqCaseHashPin(o.pqTrustContextSHA256) {
+		return errors.New("offline verification requires readback-only Whole/transfer/registration proof collection, original absolute verifier/context paths and independent SHA256 pins")
 	}
 	return nil
 }
@@ -347,6 +347,9 @@ func (p pqWholeCase) verifiedBusinessIdentities(v pqCaseVerifierOutput, r *pqWho
 		default:
 			return nil, errors.New("unknown Whole member outcome")
 		}
+	}
+	if len(effects) != r.EffectiveBusinessIncludedObserved || len(p.members)-len(effects) != r.RejectedMembers {
+		return nil, errors.New("Whole verified outcomes differ from original observed member counts")
 	}
 	if len(effects) == 0 || result.Outcome == "partial" && len(effects) == len(p.members) || result.Outcome == "succeeded" && len(effects) != len(p.members) {
 		return nil, errors.New("Whole outcome differs from admitted effect coverage")

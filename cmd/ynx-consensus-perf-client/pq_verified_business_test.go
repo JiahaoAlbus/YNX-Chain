@@ -62,10 +62,22 @@ func TestPQWholeCaseVerifiedBusinessCountsOriginalPartialAndRejectedEffects(t *t
 			}
 			index := uint32(n)
 			report := pqWholeCaseReport{ExecutionHeight: h, CometIndex: &index}
+			if p.kind == consensus.PQWholeType {
+				report.EffectiveBusinessIncludedObserved = 3
+				report.RejectedMembers = len(p.members) - 3
+			}
 			effects, e := p.verifiedBusinessIdentities(c.Response, &report)
 			want := []int{1, 0, 3}[i]
 			if e != nil || len(effects) != want {
 				t.Fatal("proof effects became envelope/failed transaction count", effects, e)
+			}
+			if p.kind == consensus.PQWholeType {
+				wrong := report
+				wrong.EffectiveBusinessIncludedObserved++
+				wrong.RejectedMembers--
+				if _, err := p.verifiedBusinessIdentities(c.Response, &wrong); err == nil {
+					t.Fatal("independent proof disagrees with observed member counts")
+				}
 			}
 			again, e := p.verifiedBusinessIdentities(c.Response, &report)
 			if e != nil || !reflect.DeepEqual(again, effects) {

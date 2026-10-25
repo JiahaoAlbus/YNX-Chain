@@ -110,6 +110,50 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
         with:
           go-version: "1.26.10"
+      - name: Build current Whole-proof successor client without replacing frozen fresh client
+        env:
+          GOMAXPROCS: "1"
+          GOMEMLIMIT: "160MiB"
+        run: |
+          test -z "$(git status --porcelain)"
+          mkdir -m 0700 "$RUNNER_TEMP/ynx-pq-performance-successor-client"
+          go build -p 1 -trimpath -buildvcs=true -o "$RUNNER_TEMP/ynx-pq-performance-successor-client/ynx-consensus-perf-client" ./cmd/ynx-consensus-perf-client
+          go version -m "$RUNNER_TEMP/ynx-pq-performance-successor-client/ynx-consensus-perf-client" > "$RUNNER_TEMP/ynx-pq-performance-successor-client/go-build-info.txt"
+          python3 - "$RUNNER_TEMP/ynx-pq-performance-successor-client" <<'PYMETA'
+          import hashlib, json, os, pathlib, subprocess, sys
+          root = pathlib.Path(sys.argv[1])
+          version = subprocess.check_output(['go', 'version'], text=True).strip()
+          assert version == 'go version go1.26.10 linux/amd64', version
+          commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          assert commit == os.environ['GITHUB_SHA']
+          info = (root / 'go-build-info.txt').read_text()
+          assert 'vcs.revision=' + commit in info and 'vcs.modified=false' in info
+          files = {}
+          for name in ('ynx-consensus-perf-client', 'go-build-info.txt'):
+              path = root / name
+              assert path.is_file() and not path.is_symlink() and 0 < path.stat().st_size <= 128 << 20
+              digest = hashlib.sha256()
+              with path.open('rb') as handle:
+                  for chunk in iter(lambda: handle.read(65536), b''):
+                      digest.update(chunk)
+              files[name] = dict(bytes=path.stat().st_size, sha256=digest.hexdigest())
+          result = dict(kind='ynx-pq-performance-successor-client-build', commit=commit, producerCommit=os.environ['GITHUB_SHA'],
+                        sourceTree=subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
+                        clientCodeTree=subprocess.check_output(['git', 'rev-parse', 'HEAD:cmd/ynx-consensus-perf-client'], text=True).strip(),
+                        target='linux-amd64', goVersion=version, files=files,
+                        normalSourceTestsToolchain='original chain-core Go 1.25 source job',
+                        frozenFresh70ClientReplaced=False, executionAuthorized=False, publicDeployment=False)
+          with (root / 'SOURCE.json').open('x') as handle:
+              json.dump(result, handle, sort_keys=True, separators=(',', ':'))
+              handle.write('\n')
+          PYMETA
+      - name: Upload current successor client with separate source identity
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ynx-pq-performance-successor-client-linux-amd64-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-pq-performance-successor-client/
+          if-no-files-found: error
+          retention-days: 7
       - name: Checkout exact client source required by original fresh callee
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
