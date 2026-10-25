@@ -229,7 +229,8 @@ if (process.platform === 'darwin') {
   macosCompatibility = { architecture: process.arch, minimumOS: binaries.flatMap(item => item.slices.map(slice => slice.minimumOS)).sort(compareVersions).at(-1),
     nativeArchitectureComplete: foreignArchitectureBinaries.length === 0, foreignArchitectureBinaries, binaries };
 }
-const manifest = { kind: 'ynx-theia', version: '1.76.0', architecture: `${process.platform}-${process.arch}`,
+const manifest = { ynxOwnedBuild: { workbenchTreeSha256: buildReceipt.workbenchTreeSha256,
+    compiledTreeSha256: buildReceipt.compiledTreeSha256 }, kind: 'ynx-theia', version: '1.76.0', architecture: `${process.platform}-${process.arch}`,
   ...macosCompatibility ? { macosCompatibility } : {},
   ...nativeTrash ? { nativeTrash: { ...nativeTrash, path: 'lib/backend/macos-trash',
     receipt: 'lib/backend/macos-trash.receipt.json', sandboxQualification: 'Separate exact-sandbox QA required; no permission expansion' } } : {},

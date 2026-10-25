@@ -22,18 +22,29 @@ test('compressed sealed payload uses the normal launcher and preserves modes, pi
     await chmod(join(source, 'lib/backend/main.js'), 0o755);
     await writeFile(join(source, 'lib/frontend/index.html'), '<html></html>');
     const pin = { kind: 'ynx-theia', version: '1.76.0', architecture: `darwin-${process.arch}`, lockSha256: sha('{}'), treeSha256: await composedTreeDigest(source) };
-    const manifest = { ...pin, entry: 'lib/backend/main.js', frontend: 'lib/frontend/index.html', nodeVersion: 'v24.19.0' };
+    const manifest = { ...pin, entry: 'lib/backend/main.js', frontend: 'lib/frontend/index.html', nodeVersion: 'v24.19.0', ynxOwnedBuild: { workbenchTreeSha256: await composedTreeDigest(fileURLToPath(new URL('../runtime/ynx-workbench', import.meta.url))) } };
     const raw = JSON.stringify(manifest);
     await writeFile(join(source, 'YNX-COMPOSED-RUNTIME.json'), raw);
     pin.manifestSha256 = sha(raw);
     const pinPath = join(root, 'pin.json'); await writeFile(pinPath, JSON.stringify(pin));
-    const bundle = () => execFileSync(process.execPath, [fileURLToPath(new URL('./bundle-composed-core.mjs', import.meta.url)), source, pinPath, output], { env: { ...process.env, YNX_DEVELOPER_LOCAL_WORKBENCH_PAYLOAD: '1' }, stdio: 'pipe' });
+    const bundle = (target = output) => execFileSync(process.execPath, [fileURLToPath(new URL('./bundle-composed-core.mjs', import.meta.url)), source, pinPath, target], { env: { ...process.env, YNX_DEVELOPER_LOCAL_WORKBENCH_PAYLOAD: '1' }, stdio: 'pipe' });
+    for (const receipt of [undefined, { workbenchTreeSha256: '0'.repeat(64) }]) {
+      const staleRaw = JSON.stringify({ ...manifest, ynxOwnedBuild: receipt });
+      await writeFile(join(source, 'YNX-COMPOSED-RUNTIME.json'), staleRaw);
+      await writeFile(pinPath, JSON.stringify({ ...pin, manifestSha256: sha(staleRaw) }));
+      const target = join(root, receipt ? 'stale-payload' : 'unbound-payload');
+      assert.throws(() => bundle(target), /current owned workbench source/, 'valid artifact pin cannot authorize an old or unbound workbench');
+      await assert.rejects(stat(target), { code: 'ENOENT' }, 'reject before claiming an output');
+    }
+    await writeFile(join(source, 'YNX-COMPOSED-RUNTIME.json'), raw);
+    await writeFile(pinPath, JSON.stringify(pin));
     bundle();
     const archive = await readFile(join(output, 'workbench.tar'));
     assert.deepEqual([...archive.subarray(0, 2)], [0x1f, 0x8b], 'normal payload must be compressed before image staging');
     assert.ok(archive.length < 16384, 'small compressible control must avoid a full tar copy');
     const distribution = JSON.parse(await readFile(join(output, 'distribution.json')));
     assert.equal(distribution.archiveCompression, 'gzip');
+    assert.equal(distribution.ownedWorkbenchSourceSha256, manifest.ynxOwnedBuild.workbenchTreeSha256);
     assert.equal(distribution.archiveSha256, sha(archive));
     assert.equal(distribution.roundTripTreeVerified, true);
     assert.deepEqual(distribution.runtimeArtifact, pin);

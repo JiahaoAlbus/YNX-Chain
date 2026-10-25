@@ -4,6 +4,10 @@ class DebugSelectionContribution {
   constructor(commands, editors, configurations, debugView) { Object.assign(this, { commands, editors, configurations, debugView }); }
   currentFileCommand(debug) {
     const editor = this.editors?.currentEditor?.editor;
+    // A current-file request must have a saved local file. Closing the editor,
+    // opening an untitled buffer or inspecting debug source must never run the
+    // workspace's previous launch target. Explicit project Debug is separate.
+    if (!debug && editor?.uri?.scheme !== 'file') return undefined;
     const language = editor?.uri?.scheme === 'file' ? editor.document?.languageId : undefined;
     // Solidity has a real local compiler, not a directly executable process or
     // an admitted default debugger. Explicit Debug still keeps its selection.
@@ -19,6 +23,10 @@ class DebugSelectionContribution {
     // debugger. A C++ launch must not intercept a newly opened JS/Python/Go
     // file. Keep the selection intact for explicit Debug and project commands.
     if (!debug && pair) return pair[0];
+    // A config/artifact/document tab is not a runnable source file. Keep
+    // explicit project Run/Debug commands available, but do not route the
+    // current-file triangle into an unrelated previously selected launcher.
+    if (!debug && ['json', 'jsonc', 'markdown', 'plaintext'].includes(language)) return undefined;
     if (this.configurations?.current) return debug ? 'workbench.action.debug.start' : 'workbench.action.debug.run';
     if (editor?.uri?.scheme !== 'file') return debug ? 'select.debug.configuration' : 'workbench.action.debug.run';
     if (language === 'solidity') return undefined;

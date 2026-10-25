@@ -1,9 +1,10 @@
 import { readFile, writeFile, mkdir, realpath, lstat, mkdtemp, rm } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { verifyComposedRuntime, validateRuntimeArtifact } from '../services/codeoss-service/src/composed-runtime.mjs';
+import { verifyComposedRuntime, validateRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 import { reviewedMacNodeVersion } from './bundle-local-node-runtime.mjs';
 import { assertBundledAssistantPolicy } from './bundled-assistant-policy.mjs';
 
@@ -15,6 +16,11 @@ if (await realpath(source) !== source || !(await lstat(source)).isDirectory() ||
 const pinBytes = await readFile(pinPath), pin = validateRuntimeArtifact(JSON.parse(pinBytes));
 if (pin.architecture !== `darwin-${process.arch}`) throw Error('Composed artifact architecture does not match this macOS package.');
 const manifest = await verifyComposedRuntime(source, pin);
+// A self-consistent historical pin is insufficient for the current release.
+// Bind the composed frontend to the source beside this normal packaging script.
+const workbenchSource = fileURLToPath(new URL('../runtime/ynx-workbench', import.meta.url));
+if (manifest.ynxOwnedBuild?.workbenchTreeSha256 !== await composedTreeDigest(workbenchSource))
+  throw Error('Composed payload does not contain the current owned workbench source. Rebuild the normal runtime.');
 const assistantDistribution = await assertBundledAssistantPolicy(source);
 if (pin.architecture.startsWith('darwin-') && !reviewedMacNodeVersion(manifest.nodeVersion)) throw Error('Composed macOS payload has no exact reviewed Node version.');
 await mkdir(output, { mode: 0o755 }); // Never replace an existing payload.
@@ -33,6 +39,7 @@ try {
 await writeFile(join(output, 'workbench.pin.json'), pinBytes, { flag: 'wx' });
 const receipt = {
   schemaVersion: 1, runtimeArtifact: pin, requiredNodeVersion: manifest.nodeVersion, assistantDistribution,
+  ownedWorkbenchSourceSha256: manifest.ynxOwnedBuild.workbenchTreeSha256,
   ...manifest.macosCompatibility ? { macosCompatibility: manifest.macosCompatibility } : {},
   archive: 'workbench.tar', archiveCompression: 'gzip', archiveSha256: createHash('sha256').update(await readFile(archive)).digest('hex'),
   roundTripTreeVerified: true, upstreamNotices: 'component-notices/index.json inside archive',

@@ -86,3 +86,28 @@ test('standard debug view action opens and focuses the existing view without tog
   assert.equal(configurations.current, selected);
   assert.equal(registry.getCommand('workbench.action.debug.start'), undefined, 'opening the view must not need a debugger or run command');
 });
+
+// Configuration/artifact tabs never select a stale project launcher.
+const nonProgramTargetFixture=language=>new DebugSelectionContribution({isEnabled:()=>true},{currentEditor:{editor:{uri:{scheme:'file'},document:{languageId:language}}}},{current:{type:'pwa-node',name:'Last unrelated Node target'}},{openView:async()=>{}});
+for(const language of ['json','jsonc','markdown','plaintext'])test('current-file Run on '+language+' must not launch the last workspace debugger',()=>{assert.equal(nonProgramTargetFixture(language).currentFileCommand(false),undefined);});
+test('explicit Debug preserves the configured project entry',()=>{assert.equal(nonProgramTargetFixture('jsonc').currentFileCommand(true),'workbench.action.debug.start');});
+test('supported source Run stays language-specific after inspecting configuration files',()=>{const f=nonProgramTargetFixture('cpp');assert.equal(f.currentFileCommand(false),'ynx.cpp.runActive');f.editors.currentEditor.editor.document.languageId='python';assert.equal(f.currentFileCommand(false),'python.execInTerminal');f.editors.currentEditor.editor.document.languageId='go';assert.equal(f.currentFileCommand(false),'ynx.go.run');f.editors.currentEditor.editor.document.languageId='solidity';assert.equal(f.currentFileCommand(false),'ynx.compileSolidity');});
+test('other extension project debuggers retain the existing fallback',()=>{assert.equal(nonProgramTargetFixture('rust').currentFileCommand(false),'workbench.action.debug.run');});
+test('registered current-file action stays disabled for config and executes no unrelated launcher',()=>{const f=nonProgramTargetFixture('jsonc'),handlers=new Map(),calls=[];f.commands.executeCommand=command=>calls.push(command);f.registerCommands({registerCommand:(command,handler)=>handlers.set(command.id,handler)});const run=handlers.get('ynx.workbench.runCurrentFile');assert.equal(run.isEnabled(),false);assert.throws(()=>run.execute(),/No applicable/);assert.deepEqual(calls,[]);f.editors.currentEditor.editor.document.languageId='cpp';assert.equal(run.isEnabled(),true);run.execute();assert.deepEqual(calls,['ynx.cpp.runActive']);});
+
+for (const [label, editors] of [
+  ['no active editor', {}],
+  ['unsaved buffer', {currentEditor:{editor:{uri:{scheme:'untitled'},document:{languageId:'cpp'}}}}],
+  ['debug source', {currentEditor:{editor:{uri:{scheme:'debug'},document:{languageId:'javascript'}}}}],
+  ['editor without resource', {currentEditor:{editor:{document:{languageId:'go'}}}}],
+]) test('current-file Run cannot execute the last project target with '+label,()=>{
+  const calls=[],handlers=new Map(),selected={name:'Unrelated saved launch',type:'pwa-node'};
+  const f=new DebugSelectionContribution({executeCommand:id=>calls.push(id),isEnabled:()=>true},editors,{current:selected});
+  f.registerCommands({registerCommand:(command,handler)=>handlers.set(command.id,handler)});
+  const run=handlers.get('ynx.workbench.runCurrentFile');
+  assert.equal(run.isEnabled(),false);
+  assert.throws(()=>run.execute(),/No applicable/);
+  assert.deepEqual(calls,[]);
+  assert.equal(f.configurations.current,selected);
+  assert.equal(f.currentFileCommand(true),'workbench.action.debug.start','explicit project Debug remains available');
+});
