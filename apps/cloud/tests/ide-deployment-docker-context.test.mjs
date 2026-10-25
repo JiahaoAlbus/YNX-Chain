@@ -98,3 +98,13 @@ test('independent race flows have a bounded matrix budget rather than a wider gr
   assert.ok(workflow.includes("-run '^(TestIDERuntime|TestPostgres|TestOriginalIDE(Factory|Wire)|TestIDECommissioning)'"));
   assert.ok(workflow.includes('timeout-minutes: 15'));
 });
+
+test('race command cannot disappear into a folded YAML comment', () => {
+  const workflow = read('.github/workflows/cloud-security.yml');
+  const step = workflow.slice(workflow.indexOf('      - name: Original pool and normal-main ownership race regressions'), workflow.indexOf('      - name: Original SDK transport and observation integration'));
+  assert.ok(step.includes('run: |\n          set -euo pipefail'));
+  assert.ok(step.includes('go test -race -count=1 -timeout=240s -json \\\n'));
+  assert.ok(step.includes('| tee "$RUNNER_TEMP/ide-source-race.jsonl"'));
+  assert.ok(step.includes('      - name: Require actual complete race execution evidence\n'));
+  assert.ok(step.includes('ide-deployment-race-evidence.test.mjs --verify'));
+});

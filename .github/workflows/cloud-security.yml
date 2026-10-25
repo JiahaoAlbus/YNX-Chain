@@ -99,12 +99,17 @@ jobs:
           -run '^(TestIDEDeployment|TestCatalog|TestPublication)'
           ./internal/cloud ./internal/developerauthority
       - name: Original pool and normal-main ownership race regressions
-        run: >-
+        shell: bash
+        run: |
+          set -euo pipefail
           # Whole independent-flow matrix budget, NOT an authorization window.
           # Each original approval/current/observation still enforces <=30s.
-          go test -race -count=1 -timeout=240s
-          -run '^(TestIDERuntime|TestPostgres|TestOriginalIDE(Factory|Wire)|TestIDECommissioning)'
-          ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd
+          go test -race -count=1 -timeout=240s -json \
+            -run '^(TestIDERuntime|TestPostgres|TestOriginalIDE(Factory|Wire)|TestIDECommissioning)' \
+            ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd \
+            | tee "$RUNNER_TEMP/ide-source-race.jsonl"
+      - name: Require actual complete race execution evidence
+        run: node apps/cloud/tests/ide-deployment-race-evidence.test.mjs --verify "$RUNNER_TEMP/ide-source-race.jsonl"
       - name: Original SDK transport and observation integration
         run: node --test apps/cloud/tests/ide-deployment*.test.mjs
   # Full checks remain defined, but are NOT authorized for this narrow draft PR.
