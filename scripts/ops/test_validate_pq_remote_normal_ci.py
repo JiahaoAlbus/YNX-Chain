@@ -546,6 +546,8 @@ def assert_native_cabi_workflow_contract(raw):
                  "scripts/verify/transaction-batch-cabi-check.sh",
                  "scripts/fixtures/verify-account-initial-cabi/**",
                  "scripts/verify/account-initial-cabi-check.sh",
+                 "scripts/fixtures/verify-publisher-registration-cabi/**",
+                 "scripts/verify/publisher-registration-cabi-check.sh",
                  "scripts/fixtures/verify-project-control-cabi/**",
                  "scripts/verify/project-control-cabi-check.sh",
                  "scripts/verify/seal-project-control-cabi.py"):
@@ -569,7 +571,11 @@ def assert_native_cabi_workflow_contract(raw):
                   "Verify original operator runtime preparation on the actual platform")
     wallet_names = ("Execute Wallet transaction ABI from the same native archive",
                     "Execute initial-account ABI from the same native archive")
-    ordered_names = names[:1] + data_names + names[1:4] + wallet_names + names[4:]
+    publisher_names = ("Execute fixed publisher generation and both registration proofs from the same archive",
+                       "Seal the same executed archive with dedicated publisher public evidence",
+                       "Upload only public publisher archive headers and real native evidence")
+    ordered_names = (names[:1] + data_names + names[1:4] + wallet_names + publisher_names[:1]
+                     + names[4:9] + publisher_names[1:] + names[9:])
     need(len(steps) == len(ordered_names))
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, ordered_names)))
     named = {name: step for name, step in zip(ordered_names, steps)}
@@ -591,6 +597,14 @@ def assert_native_cabi_workflow_contract(raw):
         '          bash scripts/verify/account-initial-cabi-check.sh \\',
         '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
         '            "$RUNNER_TEMP/ynx-account-initial-cabi"'])
+    # The fixed publisher caller executes the archive already built by the
+    # original C-ABI step. Its dedicated seven-leaf seal follows the original
+    # same-source seal, and upload follows both successful real call and seals.
+    need(lines(named[publisher_names[0]]) == ["      - name: " + publisher_names[0],
+        "        run: |", "          set -euo pipefail",
+        '          bash scripts/verify/publisher-registration-cabi-check.sh \\',
+        '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
+        '            "$RUNNER_TEMP/ynx-publisher-registration-cabi"'])
     steps = [named[name] for name in names]
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, names)))
     need([line for line in lines(steps[0]) if not line.lstrip().startswith("#")] == ["      - name: " + names[0],
@@ -613,7 +627,8 @@ def assert_native_cabi_workflow_contract(raw):
         '          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" -verify_arch arm64',
         '          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64',
         '          lipo "$RUNNER_TEMP/ynx-transaction-batch-cabi/tx-c-driver" -verify_arch arm64',
-        '          lipo "$RUNNER_TEMP/ynx-account-initial-cabi/initial-c-driver" -verify_arch arm64'])
+        '          lipo "$RUNNER_TEMP/ynx-account-initial-cabi/initial-c-driver" -verify_arch arm64',
+        '          lipo "$RUNNER_TEMP/ynx-publisher-registration-cabi/publisher-c-driver" -verify_arch arm64'])
     need(lines(steps[5]) == ["      - name: " + names[5], "        if: runner.os == 'macOS'",
         "        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020", "        with:",
         "          node-version: '24.19.0'", "          cache: npm"])
@@ -646,7 +661,8 @@ def assert_native_cabi_workflow_contract(raw):
         "'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-artifact-release-cabi',",
         "'scripts/fixtures/verify-transaction-batch-cabi', 'scripts/verify/artifact-release-cabi-check.sh',",
         "'scripts/verify/transaction-batch-cabi-check.sh', 'scripts/fixtures/verify-account-initial-cabi',",
-        "'scripts/verify/account-initial-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()",
+        "'scripts/verify/account-initial-cabi-check.sh', 'scripts/fixtures/verify-publisher-registration-cabi',",
+        "'scripts/verify/publisher-registration-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()",
         "sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}",
         "native_os, native_arch = command('go','env','GOOS'), command('go','env','GOARCH')",
         "targets = [('native-host', case / 'libynx_artifact_release.a', native_os, native_arch, True)]",
@@ -716,6 +732,73 @@ def assert_native_cabi_workflow_contract(raw):
         ("libynx_project_control.a", "ynx_project_control.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json"))
     expected.extend(["          if-no-files-found: error", "          retention-days: 7"])
     need(lines(steps[13]) == expected)
+
+    # Exact dedicated DATA sealer: the wildcard upload below is safe only
+    # behind this closed seven-file catalog, same executed archive/source pins,
+    # fixed public headers/evidence and explicit absence of real authority or
+    # private material. Reject extra commands as well as weakened predicates.
+    need(lines(named[publisher_names[1]]) == lines(r"""      - name: Seal the same executed archive with dedicated publisher public evidence
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B - <<'PY'
+          import hashlib, json, os, shutil, stat, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          original = root / 'ynx-artifact-release-cabi/delivery/native-host'
+          case = root / 'ynx-publisher-registration-cabi'
+          out = case / 'delivery'
+          out.mkdir(mode=0o700)
+          def pin(path):
+              s = path.lstat()
+              if not stat.S_ISREG(s.st_mode) or s.st_nlink != 1 or not 0 < s.st_size <= 128 << 20:
+                  raise RuntimeError('bounded original public leaf required')
+              with path.open('rb') as source:
+                  return dict(bytes=s.st_size, sha256=hashlib.file_digest(source, 'sha256').hexdigest())
+          parent = json.loads((original / 'SOURCE.json').read_bytes())
+          if (parent['commit'] != os.environ['GITHUB_SHA'] or parent['runId'] != os.environ['GITHUB_RUN_ID']
+                  or not parent['actualCABIExecuted'] or not parent['nativeHostCoreTestsPassed']
+                  or parent['crossCompiled'] or parent['privateMaterialIncluded']):
+              raise RuntimeError('same executed native archive producer required')
+          names = ('ynx_artifact_release.h', 'ynx_project_control.h', 'publisher_registration.h')
+          for name in names:
+              shutil.copyfile(Path('cmd/ynx-artifact-release-cabi') / name, out / name)
+          shutil.copyfile(original / 'libynx_artifact_release.a', out / 'libynx_artifact_release.a')
+          if pin(out / 'libynx_artifact_release.a') != parent['archive']:
+              raise RuntimeError('shared archive changed after actual publisher calls')
+          public_names = ('PUBLIC-INTEROP.json', 'PUBLIC-RECEIPT.json')
+          for name in public_names:
+              shutil.copyfile(case / 'input' / name, out / name)
+          record = dict(version='YNX-PUBLISHER-REGISTRATION-CABI-CANDIDATE/v1', commit=parent['commit'],
+              sourceTree=parent['sourceTree'], runId=parent['runId'], runAttempt=parent['runAttempt'],
+              host=parent['host'], target=parent['target'], minimumSystemVersion=parent['minimumSystemVersion'],
+              deploymentTargetEnvironment=parent['deploymentTargetEnvironment'], goVersion=parent['goVersion'],
+              compilerVersion=parent['compilerVersion'], circl=parent['circl'], goMod=parent['goMod'], goSum=parent['goSum'],
+              originalArchiveSource=pin(original / 'SOURCE.json'), archive=parent['archive'],
+              sources=parent['sources'], headers={name:pin(out / name) for name in names},
+              publicEvidence={name:pin(out / name) for name in public_names},
+              abiVersion=1, functions=['YNXPublisherGenerateV1','YNXPublisherPoPSignV1','YNXPublisherCustodianSignV1'],
+              capacities=dict(private=16384, public=8192, member=131072),
+              suite=parent['suite'], callerRecipe='scripts/verify/publisher-registration-cabi-check.sh',
+              actualCABIExecuted=True, independentGoDualANDVerified=True, typedN1Inspected=True,
+              sharedOriginalArchive=True, syntheticTestKeysOnly=True, privateMaterialIncluded=False,
+              crossCompiled=False, protectedMainCustodyVerified=False, sourceOwnerQualified=False,
+              publisherAuthorized=False, nativeRootAuthorized=False, productInstalled=False,
+              publicDeployment=False, pqActivation=False,
+              cleanup='logical Clear/Destroy plus caller-owned transfer-buffer wipe; no physical provider erasure guarantee')
+          with (out / 'SOURCE.json').open('x') as sink:
+              sink.write(json.dumps(record, sort_keys=True, separators=(',', ':'))+'\n')
+          if {p.name for p in out.iterdir()} != set(names) | set(public_names) | {'SOURCE.json','libynx_artifact_release.a'}:
+              raise RuntimeError('closed publisher public artifact catalog differs')
+          if subprocess.check_output(['git','status','--porcelain','--untracked-files=normal'], text=True):
+              raise RuntimeError('publisher Native CI modified source checkout')
+          print('YNX_PUBLISHER_REGISTRATION_CABI_CANDIDATE '+json.dumps(record,sort_keys=True,separators=(',',':')))
+          PY"""))
+    need(lines(named[publisher_names[2]]) == ["      - name: " + publisher_names[2],
+        "        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", "        with:",
+        "          name: ynx-publisher-registration-cabi-native-${{ matrix.runner }}-${{ github.sha }}",
+        "          path: ${{ runner.temp }}/ynx-publisher-registration-cabi/delivery/*",
+        "          if-no-files-found: error", "          retention-days: 7"])
 
 
 def assert_runtime_gateway_identity_workflow_contract(raw):
@@ -1737,6 +1820,83 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_native_cabi_workflow_contract(changed)
+
+    def test_publisher_native_cabi_requires_actual_shared_archive_before_closed_public_seal(self):
+        # Source-contract mutations only. The unchanged real C caller retains
+        # its four positives/sixty negatives; this test executes no C/Go/SDK.
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "artifact-release-cabi")
+
+        def named(name):
+            found = [step for step in steps if step.startswith("      - name: " + name + "\n")]
+            self.assertEqual(len(found), 1)
+            return found[0]
+
+        actual = named("Execute actual C ABI and independently verify both signatures")
+        execute = named("Execute fixed publisher generation and both registration proofs from the same archive")
+        original_seal = named("Seal only native library public outputs and exact compile inputs")
+        seal = named("Seal the same executed archive with dedicated publisher public evidence")
+        upload = named("Upload only public publisher archive headers and real native evidence")
+        arm = named("Verify the executed original Main arm64 target")
+
+        def change(step, before, after):
+            self.assertIn(before, step)
+            self.assertEqual(raw.count(step), 1)
+            return raw.replace(step, step.replace(before, after, 1), 1)
+
+        command = "bash scripts/verify/publisher-registration-cabi-check.sh"
+        mutations = [
+            raw.replace(execute, "", 1), raw.replace(execute, execute + execute, 1),
+            raw.replace(seal, "", 1), raw.replace(seal, seal + seal, 1),
+            raw.replace(upload, "", 1), raw.replace(upload, upload + upload, 1),
+            change(execute, command, "true # " + command),
+            change(execute, '"$RUNNER_TEMP/ynx-publisher-registration-cabi"',
+                   '"$RUNNER_TEMP/ynx-publisher-registration-cabi" || true'),
+            change(execute, '"$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"',
+                   '"$RUNNER_TEMP/other/libynx_artifact_release.a"'),
+            change(execute, "        run: |\n", "        if: false\n        run: |\n"),
+            change(execute, "        run: |\n", "        continue-on-error: true\n        run: |\n"),
+            raw.replace(execute, "", 1).replace(actual, execute + actual, 1),
+            raw.replace(execute, "", 1).replace(seal, seal + execute, 1),
+            raw.replace(seal, "", 1).replace(original_seal, seal + original_seal, 1),
+            raw.replace(upload, "", 1).replace(seal, upload + seal, 1),
+            change(arm, '          lipo "$RUNNER_TEMP/ynx-publisher-registration-cabi/publisher-c-driver" -verify_arch arm64\n', ""),
+            raw.replace("      - 'scripts/fixtures/verify-publisher-registration-cabi/**'\n", "", 1),
+            raw.replace("      - 'scripts/verify/publisher-registration-cabi-check.sh'\n", "", 1),
+            change(original_seal, "'scripts/fixtures/verify-publisher-registration-cabi'", "'scripts/fixtures/old-public-fixture'"),
+            change(original_seal, "'scripts/verify/publisher-registration-cabi-check.sh'", "'scripts/verify/old-caller.sh'"),
+            change(seal, "        run: |\n", "        if: always()\n        run: |\n"),
+            change(seal, "python3 -B - <<'PY'", "python3 -B - <<'PY' || true"),
+            change(seal, "parent['commit'] != os.environ['GITHUB_SHA']", "False"),
+            change(seal, "parent['runId'] != os.environ['GITHUB_RUN_ID']", "False"),
+            change(seal, "not parent['actualCABIExecuted']", "False"),
+            change(seal, "not parent['nativeHostCoreTestsPassed']", "False"),
+            change(seal, "parent['crossCompiled'] or parent['privateMaterialIncluded']", "False"),
+            change(seal, "pin(out / 'libynx_artifact_release.a') != parent['archive']", "False"),
+            change(seal, "'publisher_registration.h'", "'account_initial.h'"),
+            change(seal, "public_names = ('PUBLIC-INTEROP.json', 'PUBLIC-RECEIPT.json')",
+                   "public_names = ('PUBLIC-INTEROP.json', 'SYNTHETIC-ONLY-custodian-a.der')"),
+            change(seal, "sources=parent['sources']", "sources={}"),
+            change(seal, "originalArchiveSource=pin(original / 'SOURCE.json')", "originalArchiveSource={}"),
+            change(seal, "'YNXPublisherCustodianSignV1'", "'YNXArtifactPublicationSignV1'"),
+            change(seal, "capacities=dict(private=16384, public=8192, member=131072)",
+                   "capacities=dict(private=32768, public=8192, member=131072)"),
+            change(seal, "syntheticTestKeysOnly=True", "syntheticTestKeysOnly=False"),
+            change(seal, "if {p.name for p in out.iterdir()} != set(names) | set(public_names) | {'SOURCE.json','libynx_artifact_release.a'}:", "if False:"),
+            change(seal, "          PY\n", "          shutil.copyfile(case / 'input/SYNTHETIC-ONLY-custodian-a.der', out / 'PRIVATE.der')\n          PY\n"),
+            change(upload, "/ynx-publisher-registration-cabi/delivery/*", "/ynx-publisher-registration-cabi/**"),
+            change(upload, "/ynx-publisher-registration-cabi/delivery/*", "/ynx-publisher-registration-cabi/input/*"),
+            change(upload, "if-no-files-found: error", "if-no-files-found: ignore"),
+            change(upload, "        with:\n", "        if: always()\n        with:\n"),
+        ]
+        for field in ("privateMaterialIncluded", "crossCompiled", "protectedMainCustodyVerified", "sourceOwnerQualified",
+                      "publisherAuthorized", "nativeRootAuthorized", "productInstalled", "publicDeployment", "pqActivation"):
+            mutations.append(change(seal, field + "=False", field + "=True"))
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(publisher_native=index), self.assertRaises(AssertionError):
                 assert_native_cabi_workflow_contract(changed)
 
     def test_independent_caddy_source_failure_or_wrong_source_cannot_qualify_delivery(self):
