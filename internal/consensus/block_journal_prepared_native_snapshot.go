@@ -27,7 +27,7 @@ func prepareCanonicalNativeSnapshotWithTiming(state CommittedState, phases *Bloc
 	var payload []byte
 	err := phases.measurePrepared("jsonEncode", func() error {
 		var err error
-		payload, err = encodeCommittedStateJSON(private)
+		payload, err = encodePreparedNativeStateJSON(private)
 		return err
 	})
 	if err != nil {

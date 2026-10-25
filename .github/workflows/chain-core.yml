@@ -274,7 +274,7 @@ jobs:
         env:
           YNX_NATIVE_GROUPED_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-grouped-public-fixture
           YNX_NATIVE_PREPARED_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-prepared-public-fixture
-        run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(PreparedNativeSnapshot|BlockJournalPreparedPrefix|PreparedNativeStreaming)' -count=1 -timeout=30s -v
+        run: go test -p 1 -race ./internal/consensus ./cmd/ynx-consensus-perf-client -run '^Test(PreparedNative(JSON|Snapshot)|BlockJournalPreparedPrefix|PreparedNativeStreaming)' -count=1 -timeout=30s -v
       - name: Verify explicit native replay timing signed workload and cancellation
         env:
           YNX_NATIVE_REPLAY_TIMING_PUBLIC_FIXTURE_DIR: ${{ runner.temp }}/ynx-native-replay-timing-public-fixture

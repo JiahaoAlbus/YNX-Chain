@@ -1,7 +1,8 @@
 package consensus
 
-// Explicit timestamp-reuse experiment only. Production hashCommittedStateDocument remains on
-// the measured borrowed encoder. All original history bytes are still hashed.
+// Exact-byte timestamp encoding shared by the explicit hash candidate and the
+// prepared reader snapshot. The default state hash remains on the measured
+// borrowed encoder. All original history bytes are still hashed.
 import (
 	"crypto/sha256"
 	"encoding/hex"
