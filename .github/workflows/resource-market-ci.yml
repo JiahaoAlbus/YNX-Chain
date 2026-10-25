@@ -2128,19 +2128,32 @@ jobs:
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
         timeout-minutes: 3
         run: |
+          set -euo pipefail
           YNX_RUNTIME_CANDIDATE="$RUNNER_TEMP/ynx-pq-linux-runtime-candidate"
-          export YNX_RUNTIME_CANDIDATE
+          YNX_RUNTIME_SOURCE="$RUNNER_TEMP/ynx-pq-runtime-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          YNX_RUNTIME_EXPECTED_TREE=$(git rev-parse "$GITHUB_SHA^{tree}")
+          export YNX_RUNTIME_CANDIDATE YNX_RUNTIME_SOURCE YNX_RUNTIME_EXPECTED_TREE
           umask 077
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test ! -e "$YNX_RUNTIME_SOURCE" && test ! -L "$YNX_RUNTIME_SOURCE"
+          git worktree add --detach "$YNX_RUNTIME_SOURCE" "$GITHUB_SHA"
+          cd "$YNX_RUNTIME_SOURCE"
+          YNX_RUNTIME_BEFORE_HEAD=$(git rev-parse HEAD)
+          YNX_RUNTIME_BEFORE_TREE=$(git rev-parse HEAD^{tree})
+          YNX_RUNTIME_BEFORE_STATUS=$(git status --porcelain --untracked-files=all)
+          export YNX_RUNTIME_BEFORE_HEAD YNX_RUNTIME_BEFORE_TREE YNX_RUNTIME_BEFORE_STATUS
+          test "$YNX_RUNTIME_BEFORE_HEAD" = "$GITHUB_SHA"
+          test "$YNX_RUNTIME_BEFORE_TREE" = "$YNX_RUNTIME_EXPECTED_TREE"
+          test -z "$YNX_RUNTIME_BEFORE_STATUS"
           mkdir "$YNX_RUNTIME_CANDIDATE" "$YNX_RUNTIME_CANDIDATE/operator"
-          for YNX_RUNTIME_COMMAND in ynx-abci ynx-comet ynx-consensus-keycheck ynx-consensus-package ynx-consensus-pq-key-init ynx-consensus-proof-verify; do
-            go build -p 1 -trimpath -o "$YNX_RUNTIME_CANDIDATE/$YNX_RUNTIME_COMMAND" "./cmd/$YNX_RUNTIME_COMMAND"
+          for YNX_RUNTIME_COMMAND in ynx-abci ynx-comet ynx-consensus-keycheck ynx-consensus-package ynx-consensus-pq-key-init ynx-consensus-proof-verify ynx-consensus-pq-remote-signer; do
+            go build -p 1 -trimpath -buildvcs=true -o "$YNX_RUNTIME_CANDIDATE/$YNX_RUNTIME_COMMAND" "./cmd/$YNX_RUNTIME_COMMAND"
           done
-          cp "$YNX_REMOTE_BUILD/ynx-consensus-pq-remote-signer" "$YNX_RUNTIME_CANDIDATE/ynx-consensus-pq-remote-signer"
           YNX_RUNTIME_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           YNX_RUNTIME_GATEWAY_COMMIT=${GITHUB_SHA:0:12}
           YNX_RUNTIME_BUILD_OBSERVATION="$RUNNER_TEMP/ynx-pq-runtime-gateway-build-info.json"
           export YNX_RUNTIME_BUILD_TIME YNX_RUNTIME_BUILD_OBSERVATION
-          go build -p 1 -trimpath -ldflags "-X main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildRelease=ynx-bft-gateway-$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildTime=$YNX_RUNTIME_BUILD_TIME" -o "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd
+          go build -p 1 -trimpath -buildvcs=true -ldflags "-X main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildRelease=ynx-bft-gateway-$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildTime=$YNX_RUNTIME_BUILD_TIME" -o "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd
           # Exercise this exact ELF's informational exit. Invalid service inputs
           # make any accidental gateway construction fail before a listener.
           (set -C; timeout 5s "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" --build-info --comet-rpc not-a-url --http invalid-address --migration-height 1 >"$YNX_RUNTIME_BUILD_OBSERVATION")
@@ -2152,6 +2165,41 @@ jobs:
           import hashlib, json, os, subprocess
           from pathlib import Path
           root = Path(os.environ['YNX_RUNTIME_CANDIDATE'])
+          source_root = Path.cwd().resolve(strict=True)
+          if source_root != Path(os.environ['YNX_RUNTIME_SOURCE']).resolve(strict=True):
+              raise RuntimeError('runtime compiler left its independent original source')
+          source_before = dict(head=os.environ['YNX_RUNTIME_BEFORE_HEAD'], tree=os.environ['YNX_RUNTIME_BEFORE_TREE'], porcelain=os.environ['YNX_RUNTIME_BEFORE_STATUS'])
+          if source_before != dict(head=os.environ['GITHUB_SHA'], tree=os.environ['YNX_RUNTIME_EXPECTED_TREE'], porcelain=''):
+              raise RuntimeError('runtime original source was not clean before all eight builds')
+          def source_observation():
+              def git(*args):
+                  return subprocess.check_output(['git', *args], cwd=source_root, text=True, timeout=10).rstrip('\n')
+              return dict(head=git('rev-parse', 'HEAD'), tree=git('rev-parse', 'HEAD^{tree}'),
+                  porcelain=git('status', '--porcelain', '--untracked-files=all'))
+          def go_info(path):
+              result = subprocess.run(['go', 'version', '-m', str(path)], cwd=source_root,
+                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=5, check=False)
+              if result.returncode != 0 or not 0 < len(result.stdout) <= 65536 or len(result.stderr) > 4096:
+                  raise RuntimeError('bounded original ELF Go metadata unavailable')
+              raw = result.stdout.decode('utf8', errors='strict')
+              lines = raw.splitlines()
+              if not lines or ': go' not in lines[0]:
+                  raise RuntimeError('actual Go version metadata missing')
+              settings = {}
+              for line in lines[1:]:
+                  columns = line.split('\t')
+                  if len(columns) > 1 and columns[1] == 'build':
+                      if len(columns) != 3 or '=' not in columns[2]:
+                          raise RuntimeError('malformed original Go build setting')
+                      key, value = columns[2].split('=', 1)
+                      if not key or key in settings:
+                          raise RuntimeError('duplicate original Go build setting')
+                      settings[key] = value
+              if (settings.get('vcs') != 'git' or settings.get('vcs.revision') != os.environ['GITHUB_SHA']
+                      or settings.get('vcs.modified') != 'false' or settings.get('GOOS') != 'linux'
+                      or settings.get('GOARCH') != 'amd64' or settings.get('CGO_ENABLED') != '0'):
+                  raise RuntimeError('actual runtime ELF is not the exact clean same-source Linux build')
+              return dict(goVersion=lines[0].rsplit(': ', 1)[-1], settings=settings, raw=raw)
           observation = Path(os.environ['YNX_RUNTIME_BUILD_OBSERVATION'])
           if not 0 < observation.stat().st_size <= 1024:
               raise RuntimeError('actual gateway build identity exceeds its bound')
@@ -2169,7 +2217,7 @@ jobs:
               with path.open('rb') as source:
                   digest = hashlib.file_digest(source, 'sha256').hexdigest()
               return dict(bytes=path.stat().st_size, sha256=digest)
-          binaries = {}
+          binaries, go_infos = {}, {}
           for name in names:
               path = root / name
               with path.open('rb') as source:
@@ -2177,9 +2225,13 @@ jobs:
               if header[:6] != b'\x7fELF\x02\x01' or header[18:20] != b'\x3e\x00':
                   raise RuntimeError('candidate requires actual Linux amd64 ELF')
               binaries[name] = pin(path)
+              go_infos[name] = go_info(path)
           if not all(1 << 20 < p['bytes'] <= 128 << 20 for p in binaries.values()) or sum(p['bytes'] for p in binaries.values()) > 512 << 20:
               raise RuntimeError('candidate binary artifact size bound exceeded')
           operator = {p.name:pin(p) for p in (root / 'operator').iterdir()}
+          source_after = source_observation()
+          if source_after != source_before:
+              raise RuntimeError('runtime original source changed during the eight ELF builds')
           record = dict(version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2',
               commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], platform='linux/amd64',
               cometForkTree=subprocess.check_output(['git','rev-parse','HEAD:third_party/cometbft'],text=True).strip(),
@@ -2199,6 +2251,10 @@ jobs:
               binary=binaries['ynx-bft-gatewayd'], build=gateway_build,
               runtimeStarted=False, publicDeployment=False, pqActivation=False), sort_keys=True, separators=(',', ':')))
           print('YNX_LINUX_RUNTIME_CANDIDATE ' + json.dumps(record, sort_keys=True, separators=(',', ':')))
+          print('YNX_LINUX_RUNTIME_CLEAN_BUILD ' + json.dumps(dict(sourcePath=str(source_root),
+              sourceCommit=source_after['head'], sourceTree=source_after['tree'], before=source_before, after=source_after,
+              sourceClean=(source_after['porcelain'] == ''), goInfo=go_infos,
+              servicesStarted=False, publicDeployment=False, pqActivation=False), sort_keys=True, separators=(',', ':')))
           PY
       - name: Verify original candidate delivery with pinned archive permissions
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}

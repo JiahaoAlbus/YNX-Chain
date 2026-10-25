@@ -641,7 +641,7 @@ def assert_runtime_gateway_identity_workflow_contract(raw):
         'YNX_RUNTIME_GATEWAY_COMMIT=${GITHUB_SHA:0:12}',
         'YNX_RUNTIME_BUILD_OBSERVATION="$RUNNER_TEMP/ynx-pq-runtime-gateway-build-info.json"',
         'export YNX_RUNTIME_BUILD_TIME YNX_RUNTIME_BUILD_OBSERVATION',
-        'go build -p 1 -trimpath -ldflags "-X main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildRelease=ynx-bft-gateway-$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildTime=$YNX_RUNTIME_BUILD_TIME" -o "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd',
+        'go build -p 1 -trimpath -buildvcs=true -ldflags "-X main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildRelease=ynx-bft-gateway-$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildTime=$YNX_RUNTIME_BUILD_TIME" -o "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd',
         '(set -C; timeout 5s "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" --build-info --comet-rpc not-a-url --http invalid-address --migration-height 1 >"$YNX_RUNTIME_BUILD_OBSERVATION")',
         "observation = Path(os.environ['YNX_RUNTIME_BUILD_OBSERVATION'])",
         'if not 0 < observation.stat().st_size <= 1024:',
@@ -659,6 +659,39 @@ def assert_runtime_gateway_identity_workflow_contract(raw):
         raise AssertionError("runtime gateway build/observation identity changed")
     if lines.index(required[3]) >= lines.index(required[4]) or lines.index(required[4]) >= lines.index(required[5]):
         raise AssertionError("actual runtime identity observation must follow its build")
+    clean_required = (
+        'YNX_RUNTIME_SOURCE="$RUNNER_TEMP/ynx-pq-runtime-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"',
+        'YNX_RUNTIME_EXPECTED_TREE=$(git rev-parse "$GITHUB_SHA^{tree}")',
+        'test ! -e "$YNX_RUNTIME_SOURCE" && test ! -L "$YNX_RUNTIME_SOURCE"',
+        'git worktree add --detach "$YNX_RUNTIME_SOURCE" "$GITHUB_SHA"',
+        'cd "$YNX_RUNTIME_SOURCE"',
+        'YNX_RUNTIME_BEFORE_HEAD=$(git rev-parse HEAD)',
+        'YNX_RUNTIME_BEFORE_TREE=$(git rev-parse HEAD^{tree})',
+        'YNX_RUNTIME_BEFORE_STATUS=$(git status --porcelain --untracked-files=all)',
+        'test "$YNX_RUNTIME_BEFORE_HEAD" = "$GITHUB_SHA"',
+        'test "$YNX_RUNTIME_BEFORE_TREE" = "$YNX_RUNTIME_EXPECTED_TREE"',
+        'test -z "$YNX_RUNTIME_BEFORE_STATUS"',
+        'for YNX_RUNTIME_COMMAND in ynx-abci ynx-comet ynx-consensus-keycheck ynx-consensus-package ynx-consensus-pq-key-init ynx-consensus-proof-verify ynx-consensus-pq-remote-signer; do',
+        'go build -p 1 -trimpath -buildvcs=true -o "$YNX_RUNTIME_CANDIDATE/$YNX_RUNTIME_COMMAND" "./cmd/$YNX_RUNTIME_COMMAND"',
+        "result = subprocess.run(['go', 'version', '-m', str(path)], cwd=source_root,",
+        'go_infos[name] = go_info(path)',
+        'source_after = source_observation()',
+        'if source_after != source_before:',
+    )
+    if any(lines.count(line) != 1 for line in clean_required):
+        raise AssertionError("eight runtime ELFs must come from their exact independent clean source")
+    if not (lines.index(clean_required[3]) < lines.index(clean_required[4]) < lines.index(clean_required[7])
+            < lines.index(clean_required[11]) < lines.index(required[3]) < lines.index(clean_required[14]) < lines.index(clean_required[15])):
+        raise AssertionError("runtime clean source and actual Go metadata checks must bracket all builds")
+    for token in ("source_before != dict(head=os.environ['GITHUB_SHA'], tree=os.environ['YNX_RUNTIME_EXPECTED_TREE'], porcelain='')",
+                  "settings.get('vcs.revision') != os.environ['GITHUB_SHA']", "settings.get('vcs.modified') != 'false'",
+                  "key in settings", "timeout=5, check=False", "len(result.stdout) <= 65536",
+                  "print('YNX_LINUX_RUNTIME_CLEAN_BUILD '", "sourceClean=(source_after['porcelain'] == '')", "goInfo=go_infos"):
+        if token not in step:
+            raise AssertionError("actual eight-ELF clean VCS metadata/readback required")
+    if any(token in step for token in ('-buildvcs=false', '-buildvcs=auto', 'git clean ', 'git reset ', 'worktree remove ',
+                                       'cp "$YNX_REMOTE_BUILD/ynx-consensus-pq-remote-signer"')):
+        raise AssertionError("runtime source and VCS metadata cannot be cleaned, bypassed or substituted")
 
 
 def assert_macos_source_register_workflow_contract(raw):
@@ -1346,6 +1379,18 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("gateway_build = json.loads(observation.read_text(encoding='utf8'))", 'gateway_build = expected_build'),
             ('if gateway_build != expected_build:', 'if False:'),
             ("binary=binaries['ynx-bft-gatewayd'], build=gateway_build,", "binary=binaries['ynx-comet'], build=gateway_build,"),
+            ('git worktree add --detach "$YNX_RUNTIME_SOURCE" "$GITHUB_SHA"', 'git worktree add --detach "$YNX_RUNTIME_SOURCE" main'),
+            ('cd "$YNX_RUNTIME_SOURCE"', 'cd "$GITHUB_WORKSPACE"'),
+            ('YNX_RUNTIME_BEFORE_STATUS=$(git status --porcelain --untracked-files=all)', "YNX_RUNTIME_BEFORE_STATUS=''"),
+            ('test "$YNX_RUNTIME_BEFORE_TREE" = "$YNX_RUNTIME_EXPECTED_TREE"', 'true # omitted original tree check'),
+            ('ynx-consensus-proof-verify ynx-consensus-pq-remote-signer; do', 'ynx-consensus-proof-verify; do'),
+            ('-buildvcs=true', '-buildvcs=false'),
+            ("settings.get('vcs.revision') != os.environ['GITHUB_SHA']", 'False'),
+            ("settings.get('vcs.modified') != 'false'", "settings.get('vcs.modified') != 'true'"),
+            ('go_infos[name] = go_info(path)', 'go_infos[name] = {}'),
+            ('source_after = source_observation()', 'source_after = source_before'),
+            ('if source_after != source_before:', 'if False:'),
+            ("print('YNX_LINUX_RUNTIME_CLEAN_BUILD '", "print('OLD_UNPINNED_RUNTIME '"),
         )
         for before, after in mutations:
             self.assertIn(before, build)
