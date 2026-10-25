@@ -57,6 +57,7 @@ func detachValidatedBootstrap(original *ConsensusBootstrap) *ConsensusBootstrap 
 	}
 	owned := *original
 	owned.record = cloneValidatorBootstrapRecord(original.record)
+	owned.rawGenesis = bytes.Clone(original.rawGenesis)
 	owned.appState = bytes.Clone(original.appState)
 	owned.genesisID = bytes.Clone(original.genesisID)
 	owned.validatorSetHash = bytes.Clone(original.validatorSetHash)

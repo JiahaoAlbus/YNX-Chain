@@ -38,6 +38,7 @@ type ConsensusBootstrapPins struct {
 // It does not authorize PQ consensus or any validator-set/parameter update.
 type ConsensusBootstrap struct {
 	record             ValidatorBootstrapRecord
+	rawGenesis         []byte
 	appState           []byte
 	migrationReference *cometMigrationReference
 	genesisID          []byte
@@ -88,6 +89,9 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 	if len(rawGenesis) == 0 || len(rawGenesis) > MaxCometGenesisBytes {
 		return nil, errors.New("raw Comet genesis must fit the existing nonempty 64 MiB input bound")
 	}
+	// Hold the exact bytes used for pin verification and parsing. Neither the
+	// caller's input nor a later readonly query may mutate this private source.
+	rawGenesis = bytes.Clone(rawGenesis)
 	sum := sha256.Sum256(rawGenesis)
 	if !bytes.Equal(sum[:], genesisID) {
 		return nil, errors.New("raw Comet genesis differs from independent operator pin")
@@ -139,8 +143,8 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 		return nil, errors.New("pinned genesis must contain exactly the active migration validator set")
 	}
 	b := &ConsensusBootstrap{
-		record:   ValidatorBootstrapRecord{CometGenesisSHA256: pins.CometGenesisSHA256, OriginalGenesisHash: pins.OriginalGenesisHash, MigrationStateHash: pins.MigrationStateHash, ChainID: doc.ChainID, InitialHeight: doc.InitialHeight, GenesisTime: doc.GenesisTime.UTC(), Params: doc.ConsensusParams.ToProto()},
-		appState: appState, genesisID: bytes.Clone(genesisID), members: make(map[string]ValidatorBootstrapMember),
+		record:     ValidatorBootstrapRecord{CometGenesisSHA256: pins.CometGenesisSHA256, OriginalGenesisHash: pins.OriginalGenesisHash, MigrationStateHash: pins.MigrationStateHash, ChainID: doc.ChainID, InitialHeight: doc.InitialHeight, GenesisTime: doc.GenesisTime.UTC(), Params: doc.ConsensusParams.ToProto()},
+		rawGenesis: rawGenesis, appState: appState, genesisID: bytes.Clone(genesisID), members: make(map[string]ValidatorBootstrapMember),
 	}
 	if referenced {
 		ref := newCometMigrationReference(migration, canonical)
