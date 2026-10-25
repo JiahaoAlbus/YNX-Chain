@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "codeCommit": "c6521f78d583209277c97894cd2ef0a1858c312d",
+  "status": "source_and_light_tests_verified_not_network",
+  "networkExecuted": false,
+  "sustained1000Qualified": false,
+  "onlyAxis": [
+    "private_prepared_snapshot_json_encoder"
+  ],
+  "before": "original-json",
+  "after": "fee-time-json-indent",
+  "fixed": {
+    "clientGOMAXPROCS": 1,
+    "submitters": 8,
+    "observers": 4,
+    "pacing": "grouped-cadence4",
+    "prepared": true,
+    "currentInputReuse": true,
+    "replayTiming": true,
+    "stateHash": "original"
+  },
+  "originalGuardsUnchanged": true,
+  "ordinaryCI": null,
+  "references": {
+    "actual-encoder-pair-race-02.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/actual-encoder-pair-race-02.raw",
+      "bytes": 3903,
+      "sha256": "9dd4b864fd3c2db8d46b187594df102bc9ce54bc7e5cfbac47c7f421fbda262d"
+    },
+    "actual-encoder-cli-02.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/actual-encoder-cli-02.raw",
+      "bytes": 706,
+      "sha256": "31d7954b60ff8f6dc53e0e1cdfa33876df6f190cc03c77cd20422655d44c48fd"
+    },
+    "public-encoder-02.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/public-encoder-02.raw",
+      "bytes": 400,
+      "sha256": "5cf57ef81f96092289c80645fc2de51d4fc0a8c192ffc078a4557b549c6e3536"
+    },
+    "controller-report-02.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/controller-report-02.raw",
+      "bytes": 16867,
+      "sha256": "fc981437cf52906892a8ddca7e1322d2f548fcbec1f99c8fc2cadcf3971a3c3b"
+    },
+    "controller-pair-02.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/controller-pair-02.raw",
+      "bytes": 7619,
+      "sha256": "92a7daf0d7ae4367f459de8e1b31c8272a21b8ef70dcc16fddee6c58f116add4"
+    },
+    "artifact-reader-02.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/artifact-reader-02.raw",
+      "bytes": 4156,
+      "sha256": "430fb3f6fb6984838ac945f563e9ba13b24f1acdc5f57e8c2d012623e0ea041a"
+    },
+    "source-guard-01.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/source-guard-01.raw",
+      "bytes": 4684,
+      "sha256": "56fb3b625f03932f7739b4fc9ea2d44029a20235d76139c7db23578bdeaa05f2"
+    },
+    "recipe-02.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/recipe-02.json",
+      "bytes": 6092,
+      "sha256": "c556c1f38a0e7425aca114eee443557d9db4e679130e381e77743cf92b591d89"
+    }
+  },
+  "retainedFirstFailures": [
+    "artifact-reader-01.raw: missing fixture environment; corrected invocation passed",
+    "recipe-01.json: empty output from rejected wrong CLI profile; correct recipe-02 retained"
+  ],
+  "testResults": {
+    "actualGoRaceSignedPerEncoder": 102,
+    "realCLI": [
+      "original-json",
+      "fee-time-json-indent",
+      "unknown-rejected-before-setup"
+    ],
+    "controllerTests": 101,
+    "controllerPlatformSkipped": 2,
+    "pairTests": 47,
+    "artifactTests": 23,
+    "sourceGuardTests": 26,
+    "oldRecipesCompared": 11
+  }
+}
