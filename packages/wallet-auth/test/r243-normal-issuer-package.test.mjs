@@ -10,7 +10,7 @@ const pkgRoot=fileURLToPath(new URL('../',import.meta.url));
 const sha=b=>createHash('sha256').update(b).digest('hex');
 test('R243 SDK normal issuer bin and exact supplier Native input are selected without activation',()=>{
  const pkg=JSON.parse(fs.readFileSync(path.join(pkgRoot,'package.json'))),lock=JSON.parse(fs.readFileSync(path.join(pkgRoot,'package-lock.json'))),inventory=JSON.parse(fs.readFileSync(path.join(pkgRoot,'integration/SDK332_R140_NATIVE_COMPATIBILITY.json')));
- assert.equal(pkg.version,'1.3.0-pq.3.32-auth.40');assert.equal(lock.version,pkg.version);assert.equal(inventory.version,pkg.version);
+ assert.equal(pkg.version,'1.3.0-pq.3.32-auth.41');assert.equal(lock.version,pkg.version);assert.equal(inventory.version,pkg.version);
  assert.equal(pkg.bin['ynx-auth-source-issue'],'scripts/ynx-auth-source-issue.mjs');assert.equal(lock.packages[''].bin['ynx-auth-source-issue'],pkg.bin['ynx-auth-source-issue']);
  const raw=fs.readFileSync(path.join(pkgRoot,'native/original-auth-identity-source-v2-verifier.mjs')),pin=inventory.NativeInputs.find(r=>r.path==='packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs');
  assert.equal(pin.bytes,raw.length);assert.equal(pin.sha256,sha(raw));assert.equal(inventory.NativeInputs.length,99);
