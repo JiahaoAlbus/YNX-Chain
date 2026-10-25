@@ -46,12 +46,22 @@ export function parsePQProgress(input,original){
  return Object.freeze({...input,result:input.result?Object.freeze({...input.result}):null,firstCause:input.firstCause?Object.freeze({...input.firstCause}):null,storageCause:input.storageCause?Object.freeze({...input.storageCause}):null});
 }
 export const initialPQProgress=original=>parsePQProgress({version:1,...pqSubmissionIdentity(original),status:'submission-unknown',result:null,firstCause:null,storageCause:null},original);
+// Comparison only. Execution authority remains the independently checked
+// decimal-string fields. Legacy JSON integers can exceed Number's exact range;
+// preserve their original token rather than round it or reject a duplicate.
+function observationComparison(text){
+ return canonicalJSON(JSON.parse(text,(_key,value,context)=>{
+  if(typeof value!=='number'||Number.isSafeInteger(value))return value;
+  if(typeof context?.source!=='string'||! /^-?(0|[1-9][0-9]*)$/.test(context.source))throw Object.assign(Error('Invalid legacy observation number.'),{code:'PQ_PROGRESS_OBSERVATION_CONFLICT'});
+  return {legacyJSONInteger:context.source};
+ }));
+}
 export function mergePQProgressResult(current,result,original){
  const prior=parsePQProgress(current,original),next=parsePQProgressResult(result,original);
  const rank=statuses.indexOf(next.status)-statuses.indexOf(prior.status);
  if(rank<0)return prior; // A later UNKNOWN never erases a known observation.
  if(prior.result&&rank===0){
-  if(prior.status==='inclusion-observed'&&canonicalJSON(JSON.parse(prior.result.text))!==canonicalJSON(JSON.parse(next.result.text)))throw Object.assign(Error('Conflicting observations for the same original; do not retry.'),{code:'PQ_PROGRESS_OBSERVATION_CONFLICT'});
+  if(prior.status==='inclusion-observed'&&observationComparison(prior.result.text)!==observationComparison(next.result.text))throw Object.assign(Error('Conflicting observations for the same original; do not retry.'),{code:'PQ_PROGRESS_OBSERVATION_CONFLICT'});
   return prior; // Duplicate callbacks/UNKNOWN reasons never rewrite history.
  }
  return parsePQProgress({...prior,status:next.status,result:next.result},original);

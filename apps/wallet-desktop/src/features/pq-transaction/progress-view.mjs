@@ -1,6 +1,6 @@
 // Public DATA projection only. Its input must come from the original journal
 // or BFT parser; this module supplies no authority, transport or finality proof.
-const kinds = ['pq-transfer', 'pq-migration', 'pq-revocation', 'pq-typed-action'];
+const kinds = ['pq-transfer', 'pq-migration', 'pq-revocation', 'pq-typed-action', 'pq-account-initial'];
 const statuses = ['signed-unsubmitted', 'submission-unknown', 'rejection-observed', 'inclusion-observed','finality-save-unknown','finalized-succeeded','finalized-rejected'];
 const terminal=status=>['finalized-succeeded','finalized-rejected'].includes(status);
 const hashPattern = /^0x[0-9a-f]{64}$/;
@@ -63,6 +63,7 @@ function journalView(input, binding) {
   const value = record(input, ['account', 'hash', 'kind', 'status', 'storageConfirmed', 'metadataConfirmed',
     'localResultHeld', 'firstCause', 'storageCause', 'retryAuthorized', 'clearsOriginal', 'consensusFinality']);
   sameOriginal(value, binding);
+  if(binding.kind==='pq-account-initial'&&['finality-save-unknown','finalized-succeeded','finalized-rejected'].includes(value.status))invalid();
   if (!statuses.includes(value.status) || ['storageConfirmed', 'metadataConfirmed', 'localResultHeld'].some(key => typeof value[key] !== 'boolean') ||
       value.metadataConfirmed && !value.storageConfirmed || value.status === 'signed-unsubmitted' &&
       (value.storageConfirmed || value.metadataConfirmed || value.localResultHeld)||terminal(value.status)&&(!value.storageConfirmed||!value.metadataConfirmed||value.localResultHeld)) invalid();
@@ -89,7 +90,8 @@ function bftView(input, binding) {
     if (!Object.hasOwn(value, 'abciTransactionHash') || !Number.isSafeInteger(value.cometIndex) || value.cometIndex < 0 || value.cometIndex > 4294967295) invalid();
     const decimals = record(value.decimalFields, ['amount', 'fee', 'nonce']);
     uint64(decimals.amount); uint64(decimals.nonce, true);
-    if (decimals.fee !== '1') invalid();
+    if(binding.kind==='pq-account-initial'){if(decimals.amount!=='0'||decimals.fee!=='0'||decimals.nonce!=='1')invalid();}
+    else if (decimals.fee !== '1') invalid();
   } else if (Object.hasOwn(value, 'decimalFields') || Object.hasOwn(value, 'cometIndex')) invalid();
   if (included && binding.kind === 'pq-revocation') {
     const revocation = record(value.signedRevocation, ['authorizingRevision', 'throughRevision', 'executeAt', 'revokeAt']);

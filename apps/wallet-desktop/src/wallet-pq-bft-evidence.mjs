@@ -1,32 +1,35 @@
 import {createHash,timingSafeEqual} from 'node:crypto';
-import {decodePQTransferRequest,decodePQMigrationRequest,decodePQRevocationRequest,pqU64} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {decodePQTransferRequest,decodePQMigrationRequest,decodePQRevocationRequest,decodePQAccountInitialRequest,pqU64} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {parsePQOriginalRecord} from './wallet-pq-intent-record.mjs';
 // Candidate source contract only. Not deployed, no changed operator pin and
 // NOT the native authoritative_producer/local-durability response contract.
 export const PQ_BFT_CONTRACT_SOURCE='af1cbaf94313e628e212aabad60d05d85c2aa3fc';
+export const PQ_BFT_INITIAL_CONTRACT_SOURCE='fa55a5ef654b84b01a1dbb5322de412b4d69b149';
 const fail=()=>{throw Object.assign(Error('The BFT observation does not match this original.'),{code:'PQ_BFT_RESPONSE_INVALID'});};
 const hexHash=v=>typeof v==='string'&&/^0x[0-9a-f]{64}$/.test(v);
 const decimal=(v,positive=false)=>{if(typeof v!=='string')fail();let number;try{number=pqU64(v);}catch{fail();}if(positive&&number===0n)fail();return v;};
 const allFields=['type','status','committed','source','nativeTransactionHash','abciTransactionHash','wire','executionHeight','cometIndex','from','to','amount','fee','nonce','transaction','readbackUrl','error'];
 function expected(value){
- const original=parsePQOriginalRecord(value),wire=Buffer.from(original.wire,'base64url'),migration=original.kind==='pq-migration',revocation=original.kind==='pq-revocation';
- if(wire.length>(migration?262144:revocation?131072:65536))fail();
- const type=migration?'account_migration':revocation?'account_revocation':'pq_transfer';
+ const original=parsePQOriginalRecord(value),wire=Buffer.from(original.wire,'base64url'),migration=original.kind==='pq-migration',revocation=original.kind==='pq-revocation',initial=original.kind==='pq-account-initial';
+ if(wire.length>(migration?262144:revocation?131072:initial?98304:65536))fail();
+ const type=migration?'account_migration':revocation?'account_revocation':initial?'account_initial':'pq_transfer';
  // Exactly consensus.PQTransaction {Version,Type,WireHex}, Go json.Marshal
  // order at the pinned source. These fixed strings and lowercase hex need no
  // Go HTML escaping. This envelope is hashed only, NEVER sent in place of wire.
  const envelope=Buffer.from(JSON.stringify({version:1,type,wireHex:wire.toString('hex')}));
  const abciHash='0x'+createHash('sha256').update(envelope).digest('hex');
- const decoded=migration?decodePQMigrationRequest(wire).intent:revocation?decodePQRevocationRequest(wire).intent:decodePQTransferRequest(wire).transfer;
- if(!migration&&!revocation&&decoded.fee!=='1')fail();
- return {original,wire,migration,revocation,type,abciHash,from:migration||revocation?decoded.owner:decoded.from,to:migration||revocation?decoded.owner:decoded.to,amount:migration||revocation?'0':decoded.amount,fee:'1',nonce:migration||revocation?decoded.ledgerNonce:decoded.nonce,...(revocation?{revocationIntent:decoded}:{})};
+ const decoded=migration?decodePQMigrationRequest(wire).intent:revocation?decodePQRevocationRequest(wire).intent:initial?decodePQAccountInitialRequest(wire,original.initialBinding).intent:decodePQTransferRequest(wire).transfer;
+ if(!migration&&!revocation&&!initial&&decoded.fee!=='1')fail();
+ if(initial&&abciHash!==original.abciTransactionHash)fail();
+ return {original,wire,migration,revocation,initial,type,abciHash,from:migration||revocation||initial?decoded.owner:decoded.from,to:migration||revocation||initial?decoded.owner:decoded.to,amount:migration||revocation||initial?'0':decoded.amount,fee:initial?'0':'1',nonce:migration||revocation||initial?decoded.ledgerNonce:decoded.nonce,...(revocation?{revocationIntent:decoded}:{}),...(initial?{initialIntent:decoded,signingHeight:original.initialBinding.executionHeight}:{})};
 }
 export function pqBFTOriginalIdentity(original){const e=expected(original);return Object.freeze({source:'comet-rpc',nativeTransactionHash:e.original.hash,abciTransactionHash:e.abciHash,readbackUrl:'/transactions/pq/originals/'+e.original.hash});}
 const txFields=['hash','type','from','to','amount','fee','nonce','blockHash','blockNumber','timestamp','lotFlows','logs','memo','sponsor','sponsorPoolId','resourceSource','resourceType','resourceConsumed','actionReference'];
 function transaction(value,e,height){
  if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).some(k=>!txFields.includes(k)))fail();
- if(value.hash!==e.original.hash||value.type!==(e.migration?'account_migration':e.revocation?'account_revocation':'transfer')||value.from!==e.from||value.to!==e.to||value.memo!==(e.migration?'ynx-pq-migration-v1:':e.revocation?'ynx-pq-revocation-v1:':'ynx-pq-transfer-v1:')+e.wire.toString('hex'))fail();
+ if(value.hash!==e.original.hash||value.type!==(e.migration?'account_migration':e.revocation?'account_revocation':e.initial?'account_initial':'transfer')||value.from!==e.from||value.to!==e.to||value.memo!==(e.migration?'ynx-pq-migration-v1:':e.revocation?'ynx-pq-revocation-v1:':e.initial?'ynx-pq-account-initial-v1:':'ynx-pq-transfer-v1:')+e.wire.toString('hex'))fail();
  if(e.revocation&&height!==e.revocationIntent.executeAt)fail();
+ if(e.initial&&(BigInt(height)<BigInt(e.signingHeight)||BigInt(height)>=BigInt(e.initialIntent.activateAt)))fail();
  if(typeof value.timestamp!=='string'||!/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,9})?Z$/.test(value.timestamp)||!Number.isFinite(Date.parse(value.timestamp)))fail();
  for(const [key,wanted] of Object.entries({amount:e.amount,fee:e.fee,nonce:e.nonce,blockNumber:height})){
   if(!Object.hasOwn(value,key)){if(key==='amount'&&wanted==='0')continue;fail();}

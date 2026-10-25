@@ -72,6 +72,9 @@ export function createPQTransactionSubmission({intentStore, networkId,
       if (typeof guard?.submit !== 'function' || typeof guard?.assertEffectCurrent !== 'function') throw failure('PQ_TRANSACTION_EFFECT_GUARD_REQUIRED');
       return exclusive(guard, async () => {
         const plan = await readPQSubmissionOriginal(intentStore, hash, {account:guard.account, networkId, guard});
+        // Initial birth has a distinct Main/Auth permission contract. A transfer
+        // capsule or typed request can never authorize its broadcast.
+        if(plan.initial)throw failure('PQ_ACCOUNT_INITIAL_BROADCAST_PERMISSION_REQUIRED');
         if (typeof transport?.[plan.typed?'submitTypedAction':'submitTransfer'] !== 'function') throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
         if (!plan.typed && typedBroadcastRequest !== null) throw failure('PQ_TRANSACTION_PERMISSION_BINDING');
         const before = await intentStore.readPQProgress(guard.account, hash, () => guard.assert());
