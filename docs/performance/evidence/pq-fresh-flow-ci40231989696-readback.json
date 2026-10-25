@@ -1,0 +1,35 @@
+{
+  "schema": "YNX-PERFORMANCE-SOURCE-CI-READBACK/v1",
+  "sourceCommit": "7b225a9f9f1647ffa61514b2393d0bbfdbe175c7",
+  "runId": 40231989696,
+  "event": "push",
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40231989696",
+  "rawLog": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-flow-ci40231989696.log",
+  "rawLogSHA256": "78986b9dfde478d3ae9e71b98856176a2539a3bdb34bf4fa023853f49a747e00",
+  "localTests": {
+    "passed": 18,
+    "failed": 0,
+    "durationMs": 383.925125
+  },
+  "verifiedSteps": [
+    {
+      "name": "Verify bounded performance controller and evidence contracts",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run make consensus-abci-check",
+      "conclusion": "success"
+    },
+    {
+      "name": "Verify actual ready-sender Commit phase observations",
+      "conclusion": "success"
+    }
+  ],
+  "scope": "Read-only derivation of observed original parent-clock flow and backlog. No node run or new RPC; original fixed70 client and original stdout admission unchanged.",
+  "fourNodeMeasurement": false,
+  "throughputQualified": false,
+  "finalityLatencyMeasured": false,
+  "newGoArtifactsConsumed": false
+}
