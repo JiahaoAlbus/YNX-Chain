@@ -64,3 +64,33 @@ Protocol fresh leaf已提交 `5aebd8362414265f4894b818b6033a910d651cab`，
 然后Root实测压力等级1并排原新once，两arm共32有效业务与真实四节点phase输出。
 原调用没有执行之前，不把artifact、parser DATA、4DATA或完整CI当成Node结果。
 当前计划仍executionAuthorized:false/rootGrant:null，未提高任何资源上限。
+
+
+## 2f36 包体一次读回与真实 VCS 字段
+
+性能线程现已完成公开包的一次下载，原ZIP/API SHA匹配；闭合11文件、
+四ELF合计164,345,707B、三source leaf与Git2f36原字节/Blob匹配。
+SOURCE3539B/SHA256
+`1d562f647f3942a09650411f47c26ce58e3607587ff49feee5cca8e9968878bb`，
+manifest1743B/SHA256
+`54b18871df40e55c0cede2c20ecf917c6512d90b099ce50550305330d42a29f8`。
+两者与原CI producer record及独立PIN逐字对应；原runtime的Go module、
+Comet fork tree、proof-verifier source pins也与Git2f36匹配。
+固定client70e7仍是原38595797B/a34a55字节，未混Whole后继。
+原件和完整原日志保留在
+`/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh2f36-ci40223021096`。
+
+独立ELF元数据：四份均Go1.26.10/linux-amd64；consensus.test无VCS字段；
+Gateway和proof-verifier的revision均2f36但modified=true；client70e7为false。
+初次临时reader错误地假设所有protocol ELF都必须false，产生了断言失败；
+这是本次reader假设，不是原CI失败或文件hash失配。原workflow确有
+qa-owned-performance-client嵌套checkout先于runtime编译，但没有编译瞬间
+完整gitstatus，不能推断它是唯一原因，也不能把全部tracked输入冒为clean。
+原owner需如实解释来源；本reader不修改原controller的准入规则，不抹除字段，
+也不因这条临时断言创建新的运行授权或发布审查流程。
+
+原normal完整包命令已覆盖fresh DATA的选择范围并返回consensus package
+ok/108.363s，未用verbose逐项打印PASS。它仍不是四节点运行证据。
+[完整读回与范围说明](evidence/pq-fresh2f36-ci40223021096-readback.json)明确保留
+这些边界。包体读回已交Root/Protocol复用，不重复下载；原caller relocation、
+封闭prepared/run contract及Root压力等级1新once仍需连续完成。未执行任何ELF。

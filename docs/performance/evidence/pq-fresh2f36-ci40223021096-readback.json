@@ -1,0 +1,96 @@
+{
+  "readback": {
+    "allTrackedCompileInputsCleanNotAttestedHere": true,
+    "archiveSHA256": "cc7f620cccf885ef329ae0a0cbe7f9af290bccce7308e69c0198ff387df7c70e",
+    "artifactId": 12611050415,
+    "binaries": {
+      "consensus.test": {
+        "bytes": 53716572,
+        "embeddedVCS": {},
+        "expectedCommit": "2f36f5e7acd433c565f7ae366954a3fa0e763b14",
+        "goVersion": "go1.26.10",
+        "sha256": "f681b2030b99c75032c43011e4344441318652b4832a6f5cf283b64ed3ede693"
+      },
+      "ynx-bft-gatewayd": {
+        "bytes": 35391402,
+        "embeddedVCS": {
+          "vcs.modified": "true",
+          "vcs.revision": "2f36f5e7acd433c565f7ae366954a3fa0e763b14",
+          "vcs.time": "2026-10-25T18:48:42Z"
+        },
+        "expectedCommit": "2f36f5e7acd433c565f7ae366954a3fa0e763b14",
+        "goVersion": "go1.26.10",
+        "sha256": "62dedbd87ddaa29496c4229afbaef86cd0d41c60ea28a9a75c94502b476c0f89"
+      },
+      "ynx-consensus-perf-client": {
+        "bytes": 38595797,
+        "embeddedVCS": {
+          "vcs.modified": "false",
+          "vcs.revision": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+          "vcs.time": "2026-10-25T17:02:05Z"
+        },
+        "expectedCommit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+        "goVersion": "go1.26.10",
+        "sha256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec"
+      },
+      "ynx-consensus-proof-verify": {
+        "bytes": 36641936,
+        "embeddedVCS": {
+          "vcs.modified": "true",
+          "vcs.revision": "2f36f5e7acd433c565f7ae366954a3fa0e763b14",
+          "vcs.time": "2026-10-25T18:48:42Z"
+        },
+        "expectedCommit": "2f36f5e7acd433c565f7ae366954a3fa0e763b14",
+        "goVersion": "go1.26.10",
+        "sha256": "d68015acf2815eae8d399f814c8cb42fea3279104e70ca47c2005ed272a8d78f"
+      }
+    },
+    "binariesExecutedHere": false,
+    "classification": "data-not-run-admission",
+    "elfBytes": 164345707,
+    "executionAuthorized": false,
+    "files": 11,
+    "initialProbeAssumptionFailure": "Ad hoc reader incorrectly required vcs.modified=false for every protocol ELF; original normal pipeline did not fail.",
+    "manifest": {
+      "bytes": 1743,
+      "sha256": "54b18871df40e55c0cede2c20ecf917c6512d90b099ce50550305330d42a29f8"
+    },
+    "namedFreshDATATestsVisibleInLogs": [],
+    "nestedCheckoutBeforeRuntimeCompileProven": true,
+    "nestedCheckoutSoleCauseOfModifiedNotProven": true,
+    "nodesStarted": false,
+    "normalLogSHA256": "9ea93eb5636d4dd17298cb5f64f9bdd66f4be80582c55d9b4e6641706ba148d4",
+    "normalRunId": "40223021096",
+    "originalCallerRelocationAndPreparedRecipeRequired": true,
+    "originalOwnerProvenanceReconciliationRequired": true,
+    "priorRuntimeModuleForkAndProofSourcesMatched": true,
+    "producerLogAndPinsMatched": true,
+    "protocolCommit": "2f36f5e7acd433c565f7ae366954a3fa0e763b14",
+    "source": {
+      "bytes": 3539,
+      "sha256": "1d562f647f3942a09650411f47c26ce58e3607587ff49feee5cca8e9968878bb"
+    },
+    "sourceLeavesMatchedCommittedGit": true,
+    "sustainedTPSQualified": false,
+    "version": "YNX-PQ-FRESH-NORMAL-SUPPLY-READBACK/v1"
+  },
+  "scope": {
+    "cleanTrackedCompileInputsNotProvenByThisReader": true,
+    "explanation": "The ad hoc initial all-clean stamp assumption was not an original gate. Preserve the true stamps, producer records, hashes and source pins; original owner reconciles provenance and original caller bindings. No signature, consensus or durability check is relaxed.",
+    "modifiedStampSoleCauseNotProven": true,
+    "noRunAdmissionDecisionMade": true,
+    "normalRunId": "40223021096",
+    "originalNormalPipelineConclusion": "success",
+    "originalPipelineDidNotRequireAllProtocolELFsVCSModifiedFalse": true,
+    "packageDATAEvidence": {
+      "command": "YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' ./internal/consensus",
+      "freshDATAFunctionsIncludedBySelection": true,
+      "individualVerbosePASSLinesAvailable": false,
+      "notFourNodeEvidence": true,
+      "packageResult": "ok github.com/JiahaoAlbus/YNX-Chain/internal/consensus 108.363s",
+      "step": "Verify complete state bridge and sponsor continuity"
+    },
+    "readbackDoesNotChangeOriginalControllerAdmissionRules": true,
+    "version": "YNX-PQ-FRESH-SUPPLY-READBACK-SCOPE/v1"
+  }
+}

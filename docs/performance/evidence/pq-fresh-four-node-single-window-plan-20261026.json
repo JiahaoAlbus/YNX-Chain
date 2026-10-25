@@ -1,5 +1,5 @@
 {
-  "status": "PREPARING_NOT_EXECUTABLE_PENDING_ORIGINAL_SUPPLY_READBACK_CALLER_BINDING_AND_ROOT_RUN_ADMISSION",
+  "status": "PREPARING_NOT_EXECUTABLE_PENDING_ORIGINAL_CALLER_BINDING_AND_ROOT_RUN_ADMISSION",
   "executionAuthorized": false,
   "rootGrant": null,
   "purpose": "first isolated new-PQ four-validator paired correctness/latency baseline; no claim of 1000 TPS qualification",
@@ -42,7 +42,8 @@
       "committedControllerOrigin": "1eea5564122df29a13febd7ad266f31f21f8f03e",
       "baseCLI": "--consensus-signed-business",
       "baseReviewedProfile": "consensus-signed-business-v1"
-    }
+    },
+    "bytes": 95951
   },
   "sameConditions": {
     "oneLinuxVM": true,
@@ -246,5 +247,24 @@
     "nodeWindowStarted": false,
     "executionAuthorized": false,
     "sustainedTPSQualified": false
+  },
+  "freshArtifactBodyReadback": {
+    "path": "pq-fresh2f36-ci40223021096-readback.json",
+    "source": {
+      "bytes": 3539,
+      "sha256": "1d562f647f3942a09650411f47c26ce58e3607587ff49feee5cca8e9968878bb"
+    },
+    "manifest": {
+      "bytes": 1743,
+      "sha256": "54b18871df40e55c0cede2c20ecf917c6512d90b099ce50550305330d42a29f8"
+    },
+    "elfBytes": 164345707,
+    "producerLogAndPinsMatched": true,
+    "archiveDownloadedOnce": true,
+    "sourceAndELFsReadBack": true,
+    "protocolGatewayAndVerifierVCSModifiedTrue": true,
+    "allTrackedCompileInputsCleanNotAttested": true,
+    "originalOwnerExplanationPending": true,
+    "notRunAdmission": true
   }
 }
