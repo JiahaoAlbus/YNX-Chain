@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -157,6 +158,14 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		o.nativeCurrentInputReuse = true
 		o.nativePreparedCertificate = len(candidates) >= 5 && candidates[4]
 		o.nativeCachedFeeJSON = len(candidates) >= 6 && candidates[5]
+		o.clientProcs2 = len(candidates) >= 8 && candidates[7]
+		if o.clientProcs2 {
+			restore := configureClientProcs(true)
+			defer restore()
+			if runtime.GOMAXPROCS(0) != 2 {
+				t.Fatal("actual client scheduler differs")
+			}
+		}
 		if len(candidates) >= 7 && candidates[6] {
 			o.pacingMode = "grouped-cadence4"
 		}
@@ -353,6 +362,9 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		if actual.PrefixReplay.PreparedCertificate != o.nativePreparedCertificate || plan.NativePrefix.PreparedCertificate != o.nativePreparedCertificate {
 			t.Fatal("prepared actual backend/plan differs")
 		}
+		if plan.NativePrefix.ClientProcs2 != o.clientProcs2 {
+			t.Fatal("client scheduler plan selection differs")
+		}
 		if plan.NativePrefix.ClientCachedFeeJSON != o.nativeCachedFeeJSON {
 			t.Fatal("cached fee JSON plan selection differs")
 		}
@@ -416,7 +428,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 	if err := claimSenderPool(path); err == nil {
 		t.Fatal("completed fixture claim was silently reusable")
 	}
-	if native && o.nativeStreamSubmitters == 0 {
+	if native && o.nativeStreamSubmitters == 0 && !o.clientProcs2 {
 		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, finalNativeStats, o.pacingMode)
 	}
 	t.Logf("application_pipeline_only real_signed_executed_persisted=%d sender_slots=%d nonce_cycles=%d evidence_attempted_bytes=%d; quorum flags synthetic, no network TPS", signed, len(results), stats.RoundsCompleted, o.evidenceBudget.AttemptedBytes)

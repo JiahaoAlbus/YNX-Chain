@@ -1364,9 +1364,9 @@ class SupplySourceTests(unittest.TestCase):
             if str(path).endswith("streaming-plan.json"):return raw_plan
             if str(path).endswith("network-manifest.json"):return raw_manifest
             return json.dumps(dict(transactions=initial)).encode()
-        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False,cached=False,pacing="relative"):
+        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False,cached=False,pacing="relative",procs2=False):
             with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
-                out=supply.validate_native_stream_report(row,network,pacing=pacing,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_cached_fee_json=cached)
+                out=supply.validate_native_stream_report(row,network,pacing=pacing,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_cached_fee_json=cached,expected_client_procs2=procs2,expected_input_reuse=True if procs2 else None)
                 self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
                 self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
                 self.assertFalse(out["sustainedTPSQualified"])
@@ -1442,6 +1442,23 @@ class SupplySourceTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):check(bad,prepared=True,pacing='grouped-cadence4')
         bad=copy.deepcopy(grouped_client);bad['nativeCachedFeeJSON']=True
         with self.assertRaises(RuntimeError):check(bad,prepared=True,pacing='grouped-cadence4')
+        procs_plan=copy.deepcopy(grouped_plan);procs_plan['profile']='scoped_native_prefix_stream8_prepared_grouped_procs2_v1';procs_plan['nativePrefix']['clientProcs2']=True
+        raw_plan=json.dumps(procs_plan).encode();procs_client=copy.deepcopy(grouped_client);procs_client.update(clientProcs2=True,gomaxprocs=2)
+        procs_client['streamingWorkload'].update(name=procs_plan['profile'],planSha256=hashlib.sha256(raw_plan).hexdigest())
+        check(procs_client,prepared=True,pacing='grouped-cadence4',procs2=True)
+        with self.assertRaises(RuntimeError):check(procs_client,prepared=True,pacing='grouped-cadence4')
+        for fault in ('marker','runtime','bool','plan','profile','mixed'):
+            bad=copy.deepcopy(procs_client)
+            if fault=='marker':bad['clientProcs2']=False
+            if fault=='runtime':bad['gomaxprocs']=1
+            if fault=='bool':bad['gomaxprocs']=True
+            if fault=='profile':bad['streamingWorkload']['name']=grouped_plan['profile']
+            if fault=='mixed':bad['nativeCachedFeeJSON']=True
+            saved_procs_raw=raw_plan
+            if fault=='plan':
+                wrong=copy.deepcopy(procs_plan);wrong['nativePrefix'].pop('clientProcs2');raw_plan=json.dumps(wrong).encode();bad['streamingWorkload']['planSha256']=hashlib.sha256(raw_plan).hexdigest()
+            with self.subTest(procs2Fault=fault),self.assertRaises(RuntimeError):check(bad,prepared=True,pacing='grouped-cadence4',procs2=True)
+            raw_plan=saved_procs_raw
         raw_plan=saved_plan
         # One explicit choice must bind producer expectation, durable plan,
         # top-level report, actual backend and accepted/fallback child counters.
