@@ -68,13 +68,14 @@ function createProjectContractsAttempt({context, openClient, openPublication, op
       busy=true;
       try {
         if(action==='deployment-preview'){const result=await(await deploymentOwner()).preview(body);await current();return result;}
+        if(action==='execution-preview'){const result=await(await deploymentOwner()).previewExecution(body);await current();return result;}
         if(action==='publication-preview'||action==='publication-observe'){
           if(!publication){if(typeof openPublication!=='function')throw unavailable();acquiringPublication ||= Promise.resolve().then(()=>openPublication(context));publication=await acquiringPublication;if(retired){await close();throw unavailable();}}
           await current();const result=action==='publication-preview'?await publication.preview(body):await publication.observe(body.requestId);await current();return result;
         }
         if(action==='read'){const result=await (await acquire()).read(body.referenceId);await current();return result;}
         if(action==='references'){const result=await(await acquire()).listReferences();await current();return result;}
-        if(!['connect','query','deployment-prepare','deployment-broadcast'].includes(action))throw unavailable();
+        if(!['connect','query','deployment-prepare','deployment-broadcast','execution-prepare','execution-broadcast'].includes(action))throw unavailable();
         // A product session or a project DATA object is not network admission.
         // The actual owner must supply this guard; absence never starts Relay.
         if(typeof assertNetworkApproved!=='function')throw unavailable();
@@ -82,6 +83,8 @@ function createProjectContractsAttempt({context, openClient, openPublication, op
         const owned=await acquire();
         if(action==='deployment-prepare'){const result=await(await deploymentOwner()).prepare(body.draftId,owned);await current();return result;}
         if(action==='deployment-broadcast'){const result=await(await deploymentOwner()).broadcast(body.referenceId,owned);await current();return result;}
+        if(action==='execution-prepare'){const result=await(await deploymentOwner()).prepareExecution(body.draftId,owned);await current();return result;}
+        if(action==='execution-broadcast'){const result=await(await deploymentOwner()).broadcastExecution(body.referenceId,owned);await current();return result;}
         if(action==='connect') {
           uri=null;
           const result=await owned.connect({onURI:value=>{if(!retired)uri=value;}});

@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {randomUUID,createHash} from 'node:crypto';
 import {contractBroadcastReferenceId} from './wallet-contract-client.mjs';
 import {createContractScopeFence} from './contract-relay-scope.mjs';
+import {createProjectContractExecution} from './project-contract-execution.mjs';
 const fail=()=>Object.assign(Error('Review the actual project compiler materials again. Nothing was automatically signed or submitted.'),{code:'IDE_CONTRACT_MATERIAL_REVIEW_REQUIRED'});
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 // The published Go transport expects strings.TrimSpace(source), whereas a
@@ -13,7 +14,8 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 // remains the sole fixed-registry/commitment builder and rejects unknown data.
 const goEdgeSpace='\\u0009-\\u000d\\u0020\\u0085\\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000';
 const goEdges=new RegExp('^['+goEdgeSpace+']+|['+goEdgeSpace+']+$','gu');
-export function createProjectContractDeployment({context,relayAuthority,loadMaterialBuilder,now=Date.now}){
+export function createProjectContractDeployment({context,relayAuthority,loadMaterialBuilder,loadExecutionCodec,now=Date.now}){
+ const execution=createProjectContractExecution({relayAuthority,loadExecutionCodec,now});
  let closed=false,draft,busy=false;
  const scopeCurrent=createContractScopeFence({relayAuthority,now});
  async function current(){if(closed)throw fail();await scopeCurrent();if(closed)throw fail();}
@@ -34,6 +36,9 @@ export function createProjectContractDeployment({context,relayAuthority,loadMate
   });},
   prepare(draftId,client){return exclusive(async()=>{const value=await recheck();if(value.id!==draftId||value.entered)throw fail();value.entered=true;const data=value.data,material=data.material;const result=await client.prepareDeployment({referenceId:value.referenceId,action:{kind:'contract_deploy',fee:data.fee,payload:{name:data.name,sourceHash:data.sourceHash,deployedBytecodeHash:data.deployedBytecodeHash,compilerConfigHash:data.compilerConfigHash,constructorArgs:[...data.constructorArgs],value:data.value}},deployment:{source:data.source,material:{artifactFile:Buffer.from(material.artifactFile).toString('base64'),buildInfoFile:Buffer.from(material.buildInfoFile).toString('base64')}}});await current();value.prepared=true;return result;});},
   broadcast(referenceId,client){return exclusive(async()=>{const value=await recheck();if(value.referenceId!==referenceId||!value.prepared)throw fail();return client.broadcastDeployment(referenceId);});},
-  close(){closed=true;draft=undefined;},
+  previewExecution:payload=>execution.preview(payload),
+  prepareExecution:(draftId,client)=>execution.prepare(draftId,client),
+  broadcastExecution:(referenceId,client)=>execution.broadcast(referenceId,client),
+  close(){closed=true;draft=undefined;execution.close();},
  });
 }

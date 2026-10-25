@@ -8,6 +8,16 @@ import { createRequire } from 'node:module';
 import { pathToFileURL,fileURLToPath } from 'node:url';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+export async function loadBundledContractExecutionCodec(){
+  const metadataURL=new URL('../../../packages/wallet-auth/package.json',import.meta.url),metadata=JSON.parse(await fs.readFile(metadataURL,'utf8'));
+  const unavailable=()=>Object.assign(Error('Original contract call codec is unavailable.'),{code:'IDE_CONTRACT_NOT_SUPPLIED'});
+  if(metadata.name!=='@ynx-chain/wallet-auth')throw unavailable();
+  const root=await fs.realpath(path.dirname(fileURLToPath(metadataURL))),sdk=createRequire(metadataURL),entry=await fs.realpath(sdk.resolve('@ynx-chain/wallet-auth/pq-native-action'));
+  if(!entry.startsWith(root+path.sep))throw unavailable();
+  const original=await import(pathToFileURL(entry).href);
+  if(typeof original.encodePQNativeActionPayload!=='function'||typeof original.decodePQNativeActionPayload!=='function')throw unavailable();
+  return original;
+}
 export async function loadBundledContractMaterialBuilder(){
   const metadataURL=new URL('../../../packages/wallet-auth/package.json',import.meta.url),metadata=JSON.parse(await fs.readFile(metadataURL,'utf8'));
   if(metadata.name!=='@ynx-chain/wallet-auth')throw Object.assign(Error('Original bounded contract material builder is unavailable.'),{code:'IDE_CONTRACT_NOT_SUPPLIED'});
@@ -45,7 +55,7 @@ export async function openBundledContractRelayAuthority({serverModuleURL,expecte
 }
 export async function createBundledProjectContractRuntime({context,serverModuleURL}){
   const {createProjectContractRuntime}=await import('./project-contract-runtime.mjs');
-  return createProjectContractRuntime({context,loadMaterialBuilder:()=>loadBundledContractMaterialBuilder(),acquireAuthority:localContext=>openBundledContractRelayAuthority({serverModuleURL,localContext})});
+  return createProjectContractRuntime({context,loadMaterialBuilder:()=>loadBundledContractMaterialBuilder(),loadExecutionCodec:()=>loadBundledContractExecutionCodec(),acquireAuthority:localContext=>openBundledContractRelayAuthority({serverModuleURL,localContext})});
 }
 
 // Separate from the old four session operations: identity receive/recovery can

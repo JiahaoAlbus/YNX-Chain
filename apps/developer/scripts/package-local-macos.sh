@@ -43,6 +43,7 @@ node --test scripts/ai-unconfigured-default.test.mjs desktop/admitted-local-proj
 node --test desktop/wallet-contract-reference-journal.test.mjs desktop/wallet-contract-client.test.mjs
 node --test desktop/contract-relay-scope.test.mjs
 node --test desktop/contract-relay-startup.test.mjs
+node --test desktop/project-contract-execution.test.mjs desktop/project-contract-execution-channel.test.mjs
 node --test desktop/project-contract-runtime.test.mjs
 node --test desktop/artifact-publication-client.test.mjs desktop/artifact-publication-key-call.test.mjs desktop/publication-result-originals.test.mjs desktop/publication-result-normal-prefix.test.mjs
 node --test desktop/artifact-publication-lifecycle.test.mjs
@@ -157,7 +158,7 @@ cp desktop/native-tools-client.mjs desktop/local-ai-tools-host.mjs desktop/admit
 cp desktop/marketplace-catalog-policy.mjs desktop/marketplace-catalog-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/marketplace-artifact-policy.mjs desktop/marketplace-artifact-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/chain-public-reader.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
-cp desktop/project-contracts-host.mjs desktop/wallet-contract-client.mjs desktop/wallet-contract-reference-journal.mjs desktop/contract-relay-scope.mjs desktop/project-contract-deployment.mjs desktop/project-contract-runtime.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/project-contracts-host.mjs desktop/wallet-contract-client.mjs desktop/wallet-contract-reference-journal.mjs desktop/contract-relay-scope.mjs desktop/project-contract-deployment.mjs desktop/project-contract-execution.mjs desktop/project-contract-runtime.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/artifact-publication-host.mjs desktop/artifact-publication-client.mjs desktop/artifact-publication-lifecycle.mjs desktop/original-publication-project.mjs desktop/publication-result-originals.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 node scripts/package-identity-admission-source.mjs "$app/Contents/Resources/code"
 node scripts/package-identity-admission-source.mjs --copy-native "$app/Contents/Resources/code"

@@ -107,6 +107,11 @@ export async function openProjectContractClient({context, relayAuthority, create
       throw error;
     }
   }
+  async function broadcastPrepared(referenceId){
+    const original=await journal.read(referenceId),account=await walletAccount();
+    if(!original||original.method!=='ynx_preparePQContractAction'||original.state!=='saved'||!validOperationId(original.operationId)||!original.transportHash||!original.memberHash||original.account!==account)throw failure('IDE_CONTRACT_BROADCAST_NOT_PREPARED');
+    return execute(contractBroadcastReferenceId(referenceId),{method:'ynx_preparePQContractBroadcast',params:[{version:1,account,operationId:original.operationId}]});
+  }
   return Object.freeze({
     connect(options = {}) { return exclusive(async () => {
       if (Object.keys(options).some(key => key !== 'onURI') || options.onURI !== undefined && typeof options.onURI !== 'function') throw failure('IDE_CONTRACT_REQUEST_INVALID');
@@ -119,11 +124,14 @@ export async function openProjectContractClient({context, relayAuthority, create
       const account=await walletAccount();
       return execute(referenceId,{method:'ynx_preparePQContractAction',params:[{version:1,account,action:{...action,deployment}}]},signedReference);
     });},
-    broadcastDeployment(referenceId){return exclusive(async()=>{
-      const original=await journal.read(referenceId),account=await walletAccount();
-      if(!original||original.method!=='ynx_preparePQContractAction'||original.state!=='saved'||!validOperationId(original.operationId)||!original.transportHash||!original.memberHash||original.account!==account)throw failure('IDE_CONTRACT_BROADCAST_NOT_PREPARED');
-      return execute(contractBroadcastReferenceId(referenceId),{method:'ynx_preparePQContractBroadcast',params:[{version:1,account,operationId:original.operationId}]});
+    prepareExecution({referenceId,payload}){return exclusive(async()=>{
+      const account=await walletAccount();
+      return execute(referenceId,{method:'ynx_preparePQContractAction',params:[{version:1,account,action:{kind:'contract_execute',fee:'2',payload}}]},signedReference);
     });},
+    broadcastDeployment(referenceId){return exclusive(async()=>{
+      return broadcastPrepared(referenceId);
+    });},
+    broadcastExecution(referenceId){return exclusive(()=>broadcastPrepared(referenceId));},
     read(referenceId) { return exclusive(() => journal.read(referenceId)); },
     listReferences(){return exclusive(()=>journal.history());},
     query(referenceId, {refresh = false} = {}) { return exclusive(async () => {
