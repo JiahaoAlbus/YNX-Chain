@@ -1,0 +1,15 @@
+// Build-time SDK38 DATA selection, not enrollment/profile issuance authority.
+export function validateSDK38ProjectionContract({handoff,inventory,selection,receipt,policy,metadata}){
+ const version='1.3.0-pq.3.32-auth.38',fail=m=>{throw Error('SDK38 '+m);};
+ if(handoff.versionSDK!==version||handoff.sourceCommit!=='8db2223910f0fb1848e85f2e563d5a68dab2dffe'||receipt.versionSDK!==version||policy.versionSDK!==version||receipt.sourceCommit!==handoff.sourceCommit||receipt.projectionMetadataRevision!==1)fail('projection identity differs.');
+ if(inventory.files.length!==9583||selection.files.length!==9568||receipt.excluded?.length!==15||policy.excluded?.length!==15||policy.count!==15||receipt.oldSDK37IdentityOrAdmissionInherited!==false||policy.oldSDK37IdentityOrAdmissionInherited!==false)fail('finite exclusion policy differs.');
+ if(receipt.ASTSources!==202||receipt.literalEdges!==672||receipt.existingJSSourceGraphUnchanged!==false)fail('new source graph differs.');
+ const all=new Map(inventory.files.map(p=>[p.path,p])),selected=new Map(selection.files.map(p=>[p.path,p])),excluded=new Map(policy.excluded.map(p=>[p.path,p])),equal=(a,b)=>a&&b&&a.path===b.path&&a.bytes===b.bytes&&a.sha256===b.sha256;
+ if(all.size!==9583||selected.size!==9568||excluded.size!==15)fail('duplicate paths.');for(const p of receipt.excluded)if(!equal(p,excluded.get(p.path))||!equal(p,all.get(p.path)))fail('excluded leaf differs.');for(const p of inventory.files){if(excluded.has(p.path)){if(selected.has(p.path))fail('excluded input entered product.');}else if(!equal(p,selected.get(p.path)))fail('product closure differs.');}
+ if(handoff.normalPrefix.delta.length!==9||handoff.normalPrefix.delta.filter(p=>p.before===null).length!==2)fail('source delta shape differs.');for(const p of handoff.normalPrefix.delta)if(!equal(p.after,all.get(p.path)))fail('source delta pin differs.');
+ if(metadata.name!=='@ynx-chain/wallet-auth'||metadata.version!==version||metadata.bin?.['ynx-auth-source-issue']!=='scripts/ynx-auth-source-issue.mjs')fail('fixed administrative bin differs.');
+ for(const path of['src/original-auth-source-issuance-v2.js','scripts/ynx-auth-source-issue.mjs'])if(!selected.has(path))fail('normal issuance entry omitted.');
+ if(handoff.normalCallee.releaseSelection!=='EMPTY'||handoff.normalCallee.sourceEnrollmentType!=='OriginalAuthSourceV2EnrollmentData (dataOnly true/nativeAdmission false)')fail('unconfigured release boundary differs.');
+ return {selected:selection.files,excluded:policy.excluded,SourceAdmission:false,NativeAdmission:false,matchingNewComponentRequired:true};
+}
+export function canonicalSDK38ProjectionData(record,receipt,policy,metadata){const aliases=new Set(record.productProjection.generated.map(p=>p.destination));return{handoff:record.sdk38SupplierContract,inventory:{files:[...record.files.filter(p=>!aliases.has(p.path)),...record.dependencies.map(p=>({...p,path:'node_modules/'+p.path}))]},selection:{files:[...record.productProjection.files.filter(p=>!aliases.has(p.path)),...record.dependencies.map(p=>({...p,path:'node_modules/'+p.path}))]},receipt,policy,metadata};}

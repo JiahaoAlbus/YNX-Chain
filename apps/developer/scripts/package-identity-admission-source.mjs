@@ -1,6 +1,6 @@
-import {validateSDK37NativeComponent} from './sdk37-native-component.mjs';
-import {validateSDK37ProjectionContract,canonicalSDK37ProjectionData} from './sdk37-projection-contract.mjs';
-import {inspectSDK37CanonicalRuntimeManifest} from './sdk37-canonical-runtime-manifest.mjs';
+import {validateSDK39NativeComponent} from './sdk39-native-component.mjs';
+import {validateSDK39ProjectionContract,canonicalSDK39ProjectionData} from './sdk39-projection-contract.mjs';
+import {inspectSDK39CanonicalRuntimeManifest} from './sdk39-canonical-runtime-manifest.mjs';
 import { readFile, lstat, mkdir, copyFile, readdir, chmod } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -12,7 +12,7 @@ import {sdk14NativeBuildReceipt} from './sdk14-native-build-receipt.mjs';
 import {sdk19NativeBuildReceipt} from './sdk19-native-build-receipt.mjs';
 import {sdk20NativeBuildReceipt} from './sdk20-native-build-receipt.mjs';
 
-import {sdk37ProductLayout} from './sdk37-product-layout.mjs';
+import {sdk39ProductLayout} from './sdk39-product-layout.mjs';
 
 const developer = dirname(dirname(fileURLToPath(import.meta.url)));
 const owned = join(developer, 'vendor/identity-admission');
@@ -87,7 +87,7 @@ export async function copyIdentityAdmissionSource(destination) {
 }
 // Canonical source custody is independent of runtime service admission. Keep the
 // original SDK loader relative to its unique apps/wallet-desktop Native module.
-export const CANONICAL_IDENTITY_INPUTS_SHA256 = '356e3ee4752312eba890bceb479602c6d6111fceda23c9e05a047b2877a9967b';
+export const CANONICAL_IDENTITY_INPUTS_SHA256 = "6c8b33efc832f4deccc2974657f300cb8e26e84167a5d84d0dc11413cfbf6971";
 // These select source custody, never runtime authority. Every selected byte is
 // still checked against the immutable manifest; there is no fallback on error.
 const canonicalOwned = resolve(process.env.YNX_DEVELOPER_CANONICAL_SDK_ROOT || resolve(developer, '../../packages/wallet-auth'));
@@ -103,22 +103,22 @@ async function build(options) {
   if(!stat.isDirectory() || stat.isSymbolicLink() || metadata.name!=='esbuild' || metadata.version!=='0.25.9') throw Error('Declared canonical esbuild 0.25.9 required.');
   return createRequire(import.meta.url)(tool).build(options);
 }
-async function verifySDK37ProjectionSelection(record){
+async function verifySDK39ProjectionSelection(record){
  const ref=record.productProjection.receipt,policyRef=record.productProjection.finitePolicy;
- async function load(pin){const raw=await readFile(join(repository,pin.source));if(raw.length!==pin.bytes||sha256(raw)!==pin.sha256)throw Error('SDK37 fixed projection source pin differs.');return JSON.parse(raw);}
+ async function load(pin){const raw=await readFile(join(repository,pin.source));if(raw.length!==pin.bytes||sha256(raw)!==pin.sha256)throw Error('SDK39 fixed projection source pin differs.');return JSON.parse(raw);}
  const receipt=await load(ref),policy=await load(policyRef);
- validateSDK37ProjectionContract(canonicalSDK37ProjectionData(record,receipt,policy));
+ validateSDK39ProjectionContract(canonicalSDK39ProjectionData(record,receipt,policy,JSON.parse(await readFile(join(canonicalOwned,"package.json")))));
 }
-async function canonicalInputs() {
+export async function canonicalInputs() {
   const bytes = await readFile(new URL('./canonical-identity-inputs.json', import.meta.url));
   if (sha256(bytes) !== CANONICAL_IDENTITY_INPUTS_SHA256) throw Error('Canonical identity source manifest differs.');
   const record = JSON.parse(bytes);
-  if (record.schemaVersion !== 1 || record.sourceOnly !== true || record.sdkCommit !== '7bb0e17d2bd1aa6d4bde96f45c14774fcc4ccff9' || record.sdkTree !== 'bf326a19ab99375d8f1c9309c12ff9b2f193cb48') throw Error('Canonical identity source selection differs.');
+  if (record.schemaVersion !== 1 || record.sourceOnly !== true || record.sdkCommit !== '74a44b86f27456685f4a153dfdd8f4e51aaa0cc8' || record.sdkTree !== 'f0e7f73968dfb02cb3b674948cc4f45ab6db87ef') throw Error('Canonical identity source selection differs.');
   for (const rows of [record.files, record.dependencies, record.nativeSources, record.nativeBuildInputs]) {
     if (!Array.isArray(rows) || !rows.length || new Set(rows.map(x => x.path)).size !== rows.length) throw Error('Canonical identity source inventory differs.');
     for (const row of rows) if (!/^[A-Za-z0-9_@. /-]+$/.test(row.path) || row.path.startsWith('/') || row.path.split('/').some(p => !p || p === '.' || p === '..') || !Number.isSafeInteger(row.bytes) || !/^[a-f0-9]{64}$/.test(row.sha256)) throw Error('Canonical identity source pin differs.');
   }
-  await verifySDK37ProjectionSelection(record);
+  await verifySDK39ProjectionSelection(record);
   return record;
 }
 async function verifyRows(root, rows) {
@@ -140,18 +140,18 @@ export async function verifyCanonicalIdentityAdmissionSource(root = canonicalOwn
   const stat = await lstat(root);
   if (!stat.isDirectory() || stat.isSymbolicLink()) throw Error('Regular canonical identity directory required.');
   const sourceRecord = await canonicalInputs();
-  const record = sourceRecord.sdkVersion==='1.3.0-pq.3.32-auth.37' && root!==canonicalOwned ? sdk37ProductLayout(sourceRecord) : sourceRecord;
+  const record = sourceRecord.sdkVersion==='1.3.0-pq.3.32-auth.39' && root!==canonicalOwned ? sdk39ProductLayout(sourceRecord) : sourceRecord;
   const canonicalRuntimeManifests=new Map();
   for(const part of [record.runtimeClosure.Auth,record.runtimeClosure.contractRelay]){
     const manifestRaw=await readFile(join(root,part.manifest.destination));
-    if(manifestRaw.length!==part.manifest.bytes||sha256(manifestRaw)!==part.manifest.sha256)throw Error('SDK37 early runtime manifest pin differs.');
-    canonicalRuntimeManifests.set(part.manifest.destination,inspectSDK37CanonicalRuntimeManifest(manifestRaw,part.files));
+    if(manifestRaw.length!==part.manifest.bytes||sha256(manifestRaw)!==part.manifest.sha256)throw Error('SDK39 early runtime manifest pin differs.');
+    canonicalRuntimeManifests.set(part.manifest.destination,inspectSDK39CanonicalRuntimeManifest(manifestRaw,part.files));
   }
   await verifyRows(root, record.files);
   await verifyRows(dependencies, record.dependencies);
   const closure=record.runtimeClosure,relay=closure?.contractRelay;
-  if((record.sdkVersion==='1.3.0-pq.3.32-auth.37' ? closure?.Auth?.files!==(root===canonicalOwned?566:556) : closure?.Auth?.files!==475||closure.Auth.edges!==134)||closure.WalletConnect?.files!==9072||closure.WalletConnect.edges!==181||closure.WalletConnect.packages!==112
-    ||(record.sdkVersion==='1.3.0-pq.3.32-auth.37' ? relay?.files!==(root===canonicalOwned?9426:9417) : relay?.files!==9335)||relay.nativeQualified!==false||relay.registrationAccepted!==false
+  if((record.sdkVersion==='1.3.0-pq.3.32-auth.39' ? closure?.Auth?.files!==(root===canonicalOwned?567:557) : closure?.Auth?.files!==475||closure.Auth.edges!==134)||closure.WalletConnect?.files!==9072||closure.WalletConnect.edges!==181||closure.WalletConnect.packages!==112
+    ||(record.sdkVersion==='1.3.0-pq.3.32-auth.39' ? relay?.files!==(root===canonicalOwned?9427:9418) : relay?.files!==9335)||relay.nativeQualified!==false||relay.registrationAccepted!==false
     ||relay.manifest?.destination!=='native/original-ide-contract-relay-runtime-manifest.json')throw Error('Canonical SDK20 runtime closure selection differs.');
   const rows=new Map([...record.files,...record.dependencies.map(row=>({...row,path:'node_modules/'+row.path}))].map(row=>[row.path,row]));
   for(const part of [closure.Auth,relay]){
@@ -200,7 +200,7 @@ export async function copyCanonicalIdentityAdmissionSource(codeRoot) {
   const packageStat = await lstat(dirname(destination));
   if (!packageStat.isDirectory() || packageStat.isSymbolicLink()) throw Error('Regular canonical packages directory required.');
   await mkdir(destination); // No merging or replacement of an existing payload.
-  const selected=record.sdkVersion==='1.3.0-pq.3.32-auth.37' ? sdk37ProductLayout(record) : record;
+  const selected=record.sdkVersion==='1.3.0-pq.3.32-auth.39' ? sdk39ProductLayout(record) : record;
   const generated=new Set(record.productProjection?.generated.map(p=>p.destination)||[]);
   for (const [source, targetRoot, rows] of [[canonicalOwned,destination,selected.files.filter(p=>!generated.has(p.path))],
     [canonicalDependencies,join(destination,'node_modules'),record.dependencies]]) {
@@ -259,7 +259,7 @@ export function validateOriginalIdentityAppSources(inputs, receipt) {
 
 // A build receipt records compilation, never registration or service rights.
 export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchitecture = process.arch) {
-  if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.37')validateSDK37NativeComponent(record,inputs);
+  if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.39')validateSDK39NativeComponent(record,inputs);
   if(record?.schema==='YNX_SDK20_R181_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1')record=sdk20NativeBuildReceipt(record,inputs);
   if(record?.schema==='YNX_SDK19_R177_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1')record=sdk19NativeBuildReceipt(record,inputs);
   if(record?.schema==='YNX_SDK14_R166_ORIGINAL_A_EXECUTED_NATIVE_RECORD_V1')record=sdk14NativeBuildReceipt(record,inputs);
@@ -341,7 +341,7 @@ export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchit
 async function verifyComponentEvidence(record, packagedCodeRoot) {
   if (!record.readbackOnly) {
     const inputs=await canonicalInputs();
-    if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.37')await verifyRows(packagedCodeRoot||canonicalNativeRoot,inputs.nativeComponent.producerEvidence.files);
+    if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.39')await verifyRows(packagedCodeRoot||canonicalNativeRoot,inputs.nativeComponent.producerEvidence.files);
     return undefined;
   }
   const pin=record.existingComponentEvidence;
@@ -358,6 +358,8 @@ async function verifyComponentEvidence(record, packagedCodeRoot) {
 // original component or compiling the IDE's own shell. SDK tar Native files
 // are not a substitute for this closure.
 export async function verifyCanonicalNativeSourceSelection(root = canonicalNativeRoot, ideRoot = repository) {
+  const selectedInputs=await canonicalInputs();
+  if(!selectedInputs.nativeComponent)throw Error("SDK39_MATCHING_NATIVE_COMPONENT_NOT_SUPPLIED");
   const stat=await lstat(root);
   if (resolve(root)!==root || !stat.isDirectory() || stat.isSymbolicLink()) throw Error('Regular canonical Native source root required.');
   const inputs=await canonicalInputs();
@@ -369,7 +371,7 @@ export async function verifyCanonicalNativeSourceSelection(root = canonicalNativ
   if(receiptBytes.length!==inputs.nativeComponent.receipt.bytes || sha256(receiptBytes)!==inputs.nativeComponent.receipt.sha256) throw Error('Canonical Native receipt bytes differ.');
   const record=validateCanonicalNativeBuildReceipt(JSON.parse(receiptBytes),inputs);
   await verifyRows(root,[inputs.nativeComponent.module]);
-  if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.37')await verifyComponentEvidence(record,root);
+  if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.39')await verifyComponentEvidence(record,root);
   return {root,sourceLeaves:inputs.nativeSources.length,buildInputLeaves:inputs.nativeBuildInputs.length,nativeQualified:false,registrationAccepted:false};
 }
 

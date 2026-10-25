@@ -5,18 +5,18 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {verifyCanonicalIdentityAdmissionSource,verifyCanonicalNativeSourceSelection,canonicalNativeSourcesForOwner} from './package-identity-admission-source.mjs';
-import {sdk37ProductLayout} from './sdk37-product-layout.mjs';
+import {sdk39ProductLayout} from './sdk39-product-layout.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('normal selection validates exact SDK37 and complete Main18/helper11 Native without loading Native',async()=>{
+test('normal selection validates exact SDK39 and complete Main18/helper11 Native without loading Native',async()=>{
  const sdk=await verifyCanonicalIdentityAdmissionSource();
  const native=await verifyCanonicalNativeSourceSelection();
- assert.equal(sdk.sdkCommit,'7bb0e17d2bd1aa6d4bde96f45c14774fcc4ccff9');assert.equal(sdk.files.length,406); // 404 full-source payloads plus two original full-build inventories.
+ assert.equal(sdk.sdkCommit,'74a44b86f27456685f4a153dfdd8f4e51aaa0cc8');assert.equal(sdk.files.length,408); // 406 full-source payloads plus two original full-build inventories.
  assert.equal(sdk.dependencies.length,9177);assert.equal(native.sourceLeaves,124);assert.equal(native.buildInputLeaves,112);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
- assert.equal(inputs.predecessorManifestSha256,'9232a12e1a810082d0acc4658688daba4e850eb347a97da77856351ec4d69a02');
- assert.equal(inputs.nativeSourceCommit,'d1941b64b6bb8b8e49e316d4de3c5a38af91185d');
- assert.equal(sdk.runtimeClosure.contractRelay.files,9426);assert.equal(sdk.runtimeClosure.Auth.files,566);
- assert.equal(inputs.nativeComponent.module.sha256,'5d0be548d09bc10ba93c641a007371dac60c35d72efe7d7e381ab6cdcc5cf03a');
+ assert.equal(inputs.predecessorManifestSha256,'4ca385d9cdd39c9fb9371752676f1618a10f74d365baedef20c71b2e7ac45610');
+ assert.equal(inputs.nativeSourceCommit,'634e050615d0c9a0b857137ebcdd010dc07731ae');
+ assert.equal(sdk.runtimeClosure.contractRelay.files,9427);assert.equal(sdk.runtimeClosure.Auth.files,567);
+ assert.equal(inputs.nativeComponent.module.sha256,'2806a974f1cb64e9f8027e8cbd077aa70252252f0cb4aa6d3fe00664f804e95f');
  assert.equal(inputs.helperComponent.registered,false);
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{
@@ -25,7 +25,7 @@ test('wrong SDK bytes, missing source and a symlink are refused on the selected 
  const deps=process.env.YNX_DEVELOPER_CANONICAL_DEPENDENCY_ROOT;
  assert.ok(source&&deps,'Run source-selection controls with the original fixed supplier roots.');
  try{
-  const product=sdk37ProductLayout(inputs);
+  const product=sdk39ProductLayout(inputs);
   for(const row of product.files){const p=join(root,row.path);await mkdir(join(p,'..'),{recursive:true});const generated=inputs.productProjection.generated.find(g=>g.destination===row.path);const origin=generated?fileURLToPath(new URL('../../../'+generated.source,import.meta.url)):join(source,row.path);await copyFile(origin,p);}
   await verifyCanonicalIdentityAdmissionSource(root,deps);
   const path=join(root,'package.json'),original=await readFile(path);
