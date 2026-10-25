@@ -298,9 +298,19 @@ export class PasswordWalletVault {
     this.#pqNativeCustody.assertAvailable();
   }
   async withPQNativeTransaction(expectedBinding,request,capture,permission){
+    return this.#withPQNativeOriginal(expectedBinding,request,capture,permission,false);
+  }
+  assertPQNativeInitialAvailable(){
+    if(this.pqCleanupUnresolved())fail('PQ_KEY_CLEANUP_UNRESOLVED','Preserve original cleanup before another key acquisition.');
+    this.#pqNativeCustody.assertInitialAvailable();
+  }
+  async withPQNativeAccountInitial(expectedBinding,request,capture,permission){
+    return this.#withPQNativeOriginal(expectedBinding,request,capture,permission,true);
+  }
+  async #withPQNativeOriginal(expectedBinding,request,capture,permission,initial){
     if(typeof capture!=='function'||typeof permission?.assert!=='function')fail('PQ_NATIVE_ORIGINAL_APPROVAL_REQUIRED','Original transaction approval and public result capture are required.');
     permission.assert();if(this.pqCleanupUnresolved())fail('PQ_KEY_CLEANUP_UNRESOLVED','Preserve original cleanup before another key acquisition.');
-    this.assertPQNativeTransactionAvailable();
+    if(initial)this.assertPQNativeInitialAvailable();else this.assertPQNativeTransactionAvailable();
     const sdk=this.#pqRequired(),guard=bindPermissionGuard(this.authorization.current(),permission),security=this.authorization.status();
     const current=await this.#readUnlocked(guard),account=current.vault.activeAccount;
     if(guard.account!==account||expectedBinding?.owner!==account)throw cancelled();
@@ -310,10 +320,10 @@ export class PasswordWalletVault {
     const unsubscribe=this.authorization.subscribe(state=>{if(owner&&(state.locked||state.account!==account||state.revision!==security.revision))try{owner.retire();}catch(error){cleanupFailed=true;cleanupCause??=error;this.#pqNativeDebt.add(owner);}});
     try{
       guard.assert();payload=await decryptPasswordVaultPQRecord(current.vault,account,current.session,options(guard));guard.assert();
-      try{owner=this.#pqNativeCustody.open(payload.wire,payload.credential,expectedBinding);}catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value'))owner=d.value;throw error;}
+      try{owner=initial?this.#pqNativeCustody.openInitial(payload.wire,payload.credential,expectedBinding,request):this.#pqNativeCustody.open(payload.wire,payload.credential,expectedBinding);}catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value'))owner=d.value;throw error;}
       // Capture original owner BEFORE post-open current/file checks.
       guard.assert();owner.assertCurrent();await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();
-      result=owner.transactionOnce(request,capture);guard.assert();owner.assertCurrent();
+      result=initial?owner.initialOnce(capture):owner.transactionOnce(request,capture);guard.assert();owner.assertCurrent();
     }catch(error){failed=true;cause=error;}
     finally{
       if(owner)try{owner.close(capture);}catch(error){if(!cleanupFailed){cleanupFailed=true;cleanupCause=error;}}

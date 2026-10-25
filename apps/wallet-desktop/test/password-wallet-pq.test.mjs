@@ -280,6 +280,20 @@ test('actual password Vault Native TX path never restores portable keys and capt
   assert.equal(held.length,1);assert.match(held[0].toString(),/PUBLIC-NATIVE-CONTROL/);assert.equal(restores,baseline);assert.equal(native.counts.open,1);assert.equal(native.counts.once,1);assert.equal(native.counts.close,1);assert.equal(native.counts.release,1);assert.equal(f.vault.pqCleanupUnresolved(),false);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
  }
 });
+test('actual password Vault dedicated Native initial path keeps original capture across late lock without portable restoration',async t=>{
+ for(const lateLock of [false,true]){
+  let restores=0;const native=controlledNativeTransaction(),sdk={...SDK,restorePQWalletKeyHandle(...args){restores++;return SDK.restorePQWalletKeyHandle(...args);}},f=await fixture(t,sdk,native.custody);
+  native.api.originalPQCapabilities=()=>3;
+  const ordinary=native.api.originalPQTransactionOnce;
+  native.api.originalPQOpenInitial=(wire,credential,binding,message,genesis,pin,chain,height)=>{assert.equal(message.toString(),'PUBLIC E15');assert.equal(genesis.toString(),'PUBLIC FULL GENESIS');assert.equal(pin.length,32);assert.equal(chain,6423n);assert.equal(height.toString(),'30');return native.api.originalPQOpen(wire,credential,binding);};
+  native.api.originalPQInitialOnce=id=>{assert.equal(id,1n);return ordinary();};native.api.originalPQTransactionOnce=()=>assert.fail('No ordinary transfer purpose');
+  await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'PUBLIC-initial-source'}));const before=await fs.readFile(f.filePath,'utf8'),baseline=restores,held=[];
+  const request={messageOriginal:Buffer.from('PUBLIC E15'),genesisOriginal:Buffer.from('PUBLIC FULL GENESIS'),genesisPin:Buffer.alloc(32,7),nativeChainId:'6423',executionHeight:'30'};
+  const run=()=>f.lifecycle.run(()=>f.vault.withPQNativeAccountInitial(f.binding,request,out=>{held.push(Buffer.from(out.member));if(lateLock)f.lifecycle.lock('focus-lost');},{assert(){}}));
+  if(lateLock)await assert.rejects(run());else assert.equal((await run()).selected,true);
+  assert.equal(held.length,1);assert.equal(restores,baseline);assert.equal(native.counts.once,1);assert.equal(native.counts.release,1);assert.equal(f.vault.pqCleanupUnresolved(),false);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+ }
+});
 test('actual password Vault refuses missing Native role or approval without portable key entry',async t=>{
  const native=controlledNativeTransaction(),f=await fixture(t,SDK,native.custody);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'PUBLIC-native-source'}));native.api.originalPQCapabilities=()=>0;
  await assert.rejects(f.lifecycle.run(()=>f.vault.withPQNativeTransaction(f.binding,{},()=>{},{assert(){}})),{code:'PQ_NATIVE_MATCHED_BINDING_REQUIRED'});await assert.rejects(f.lifecycle.run(()=>f.vault.withPQNativeTransaction(f.binding,{},()=>{})),e=>e.data?.code==='PQ_NATIVE_ORIGINAL_APPROVAL_REQUIRED');assert.equal(native.counts.open,0);assert.equal(native.counts.once,0);

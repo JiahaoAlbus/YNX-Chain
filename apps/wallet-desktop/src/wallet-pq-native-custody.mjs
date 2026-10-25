@@ -10,12 +10,12 @@ function fixedNative(){if(process.platform!=='darwin')throw failure('PQ_NATIVE_P
 // approval. No portable fallback, store, renderer/preload export or async pool.
 export function createOriginalNativePQCustody({load=fixedNative}={}){
  let native;const held=new Set();
- function available(){native??=load();if(names.some(name=>typeof native?.[name]!=='function')||(native.originalPQCapabilities()&1)!==1)throw failure('PQ_NATIVE_MATCHED_BINDING_REQUIRED');return native;}
- function open(wire,credential,expected){
-  const api=available(),binding=validatePQPublicBinding(expected);
+ function available(initial=false){native??=load();const required=initial?[...names,'originalPQOpenInitial','originalPQInitialOnce']:names,capability=initial?3:1;if(required.some(name=>typeof native?.[name]!=='function')||(native.originalPQCapabilities()&capability)!==capability)throw failure('PQ_NATIVE_MATCHED_BINDING_REQUIRED');return native;}
+ function openOwner(wire,credential,expected,initial=null){
+  const api=available(initial!==null),binding=validatePQPublicBinding(expected);
   if(!buffer(wire,196608)||typeof credential!=='string'||! /^[A-Za-z0-9_-]{43}$/.test(credential))throw failure('PQ_NATIVE_BACKUP_BINDING_REQUIRED');
   const password=Buffer.from(credential,'ascii');let packet;
-  try{packet=api.originalPQOpen(wire,password,Buffer.from(JSON.stringify(binding)));}finally{password.fill(0);}
+  try{packet=initial===null?api.originalPQOpen(wire,password,Buffer.from(JSON.stringify(binding))):api.originalPQOpenInitial(wire,password,Buffer.from(JSON.stringify(binding)),initial.messageOriginal,initial.genesisOriginal,initial.genesisPin,BigInt(initial.nativeChainId),Buffer.from(initial.executionHeight));}finally{password.fill(0);}
   // Retain the original returned ID before inspecting status/currentness.
   const id=Object.getOwnPropertyDescriptor(packet??{},'ownerId')?.value;
   let selected=false,retired=false,released=false,firstOutcome=null,notified=false,closeResult=null,closeEntered=false,debt=false;
@@ -37,10 +37,10 @@ export function createOriginalNativePQCustody({load=fixedNative}={}){
   function retire(){if(released||retired)return;retired=true;try{check(api.originalPQRetire(id));}catch(error){debt=true;throw error;}}
   function transaction(request,capture){
    if(typeof capture!=='function')throw failure('PQ_NATIVE_ORIGINAL_CAPTURE_REQUIRED');current();if(selected)throw failure('PQ_NATIVE_SIGN_ONCE');
-   exactPQRecord(request,['messageOriginal','policyOriginal','nativeChainId','keyVersion','executionHeight']);
-   if(!buffer(request.messageOriginal,8192)||!buffer(request.policyOriginal,8388608)||typeof request.nativeChainId!=='string'||! /^[1-9][0-9]{0,19}$/.test(request.nativeChainId)||BigInt(request.nativeChainId)>18446744073709551615n||![request.keyVersion,request.executionHeight].every(v=>typeof v==='string'&&/^[1-9][0-9]{0,19}$/.test(v)&&BigInt(v)<=18446744073709551615n))throw failure('PQ_NATIVE_TRANSACTION_BINDING_REQUIRED');
+   if(initial===null){exactPQRecord(request,['messageOriginal','policyOriginal','nativeChainId','keyVersion','executionHeight']);
+   if(!buffer(request.messageOriginal,8192)||!buffer(request.policyOriginal,8388608)||typeof request.nativeChainId!=='string'||! /^[1-9][0-9]{0,19}$/.test(request.nativeChainId)||BigInt(request.nativeChainId)>18446744073709551615n||![request.keyVersion,request.executionHeight].every(v=>typeof v==='string'&&/^[1-9][0-9]{0,19}$/.test(v)&&BigInt(v)<=18446744073709551615n))throw failure('PQ_NATIVE_TRANSACTION_BINDING_REQUIRED');}
    selected=true;let raw,failed=false,cause;
-   try{raw=api.originalPQTransactionOnce(id,request.messageOriginal,request.policyOriginal,BigInt(request.nativeChainId),Buffer.from(request.keyVersion),Buffer.from(request.executionHeight));retain(raw,capture);}catch(error){failed=true;cause=error;}
+   try{raw=initial===null?api.originalPQTransactionOnce(id,request.messageOriginal,request.policyOriginal,BigInt(request.nativeChainId),Buffer.from(request.keyVersion),Buffer.from(request.executionHeight)):api.originalPQInitialOnce(id);retain(raw,capture);}catch(error){failed=true;cause=error;}
    if(failed){try{copy(capture);}catch{}throw cause;}
    check(raw.callStatus);if(raw.primitiveStatus!==0||raw.cleanupStatus!==2||raw.selected!==true||!raw.member.length)throw failure('PQ_NATIVE_SIGN_RESULT_UNCONFIRMED',raw.primitiveStatus);
    return firstOutcome;
@@ -58,9 +58,17 @@ export function createOriginalNativePQCustody({load=fixedNative}={}){
    if(debt&&!failed){failed=true;cause=failure('PQ_NATIVE_CLEANUP_UNRESOLVED');}
    closeResult={failed,cause};if(failed)throw cause;
   }
-  Object.assign(owner,{assertCurrent:current,transactionOnce:transaction,retire,close,cleanupUnresolved:()=>debt||!released,copyOutcome:copy});Object.freeze(owner);
+  Object.assign(owner,{assertCurrent:current,...(initial===null?{transactionOnce:transaction}:{initialOnce:capture=>transaction(null,capture)}),retire,close,cleanupUnresolved:()=>debt||!released,copyOutcome:copy});Object.freeze(owner);
   if(typeof id!=='bigint'||id<=0n||packet?.status!==0){const error=failure('PQ_NATIVE_OPEN_FAILED',packet?.status);if(typeof id==='bigint'&&id>0n)Object.defineProperty(error,'partial',{value:owner});throw error;}
   return owner;
  }
- return Object.freeze({assertAvailable:()=>{available();},open,cleanupUnresolved:()=>held.size!==0});
+ function openInitial(wire,credential,expected,request){
+  exactPQRecord(request,['messageOriginal','genesisOriginal','genesisPin','nativeChainId','executionHeight']);
+  if(!buffer(request.messageOriginal,4096)||!buffer(request.genesisOriginal,67108864)||!buffer(request.genesisPin,32)||request.genesisPin.length!==32||request.nativeChainId!=='6423'||typeof request.executionHeight!=='string'||! /^[1-9][0-9]{0,19}$/.test(request.executionHeight)||BigInt(request.executionHeight)>18446744073709551615n)throw failure('PQ_NATIVE_INITIAL_BINDING_REQUIRED');
+  // Freeze exact public operands before opening keys. The Native initial owner
+  // accepts no replacement message/Genesis/pin/height at sign-once entry.
+  const initial=Object.freeze({...request,messageOriginal:Buffer.from(request.messageOriginal),genesisOriginal:Buffer.from(request.genesisOriginal),genesisPin:Buffer.from(request.genesisPin)});
+  return openOwner(wire,credential,expected,initial);
+ }
+ return Object.freeze({assertAvailable:()=>{available();},assertInitialAvailable:()=>{available(true);},open:(wire,credential,expected)=>openOwner(wire,credential,expected),openInitial,cleanupUnresolved:()=>held.size!==0});
 }
