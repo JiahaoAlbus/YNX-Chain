@@ -1,7 +1,7 @@
 // Account wire R1, frozen by Chain commit c9ed856. Parsing/framing is not
 // account authority, trusted registration, signature validation, or finality.
 import {Buffer} from 'node:buffer';
-import {encodeFields, u32, decodeWhole, decodeMember, VERSION} from '@ynx/batch-v01-candidate';
+import {encodeFields, u32, decodeWhole, decodeMember, createVerifier, VERSION} from '@ynx/batch-v01-candidate';
 import {secp256k1} from '@noble/curves/secp256k1.js';
 import {sha256} from '@noble/hashes/sha2.js';
 import {keccak_256} from '@noble/hashes/sha3.js';
@@ -119,6 +119,40 @@ export function decodePQRegistrationIntent(wire) {
 }
 function certificateMatches(c, {chainId, owner}, purpose) {
   if (c.owner !== owner || !c.chainId.equals(pqHex(chainId, 32)) || c.purpose !== purpose) throw pqError('PQ_PROOF_CONTEXT_MISMATCH');
+}
+// Protocol fa55a5ef: public initial registration is an original E15 Member,
+// never a migration envelope. Expected bytes are caller-selected DATA; this
+// parser does not authenticate their Genesis issuer/pin or account occupancy.
+export function decodePQAccountInitialRequest(wire, expected) {
+  exactPQRecord(expected, ['chainId', 'owner', 'pkA', 'pkB', 'executionHeight']);
+  const chainId = pqHex(expected.chainId, 32).toString('hex'), owner = pqCanonicalAddress(expected.owner);
+  const pkA = pqHex(expected.pkA, 2592), pkB = pqHex(expected.pkB, 64);
+  if (typeof expected.executionHeight !== 'string' || !pqU64(expected.executionHeight)) throw pqError('PQ_INITIAL_HEIGHT_REQUIRED');
+  const body = copyWire(wire, 98304), member = decodeMember(body), c = member.certificate;
+  const intent = decodePQRegistrationIntent(member.message);
+  certificateMatches(c, intent, 'TX-BATCH');
+  if (c.N !== 1 || member.index !== 0 || member.pathA.length || member.pathB.length) throw pqError('PQ_STANDALONE_N1_REQUIRED');
+  if (intent.priorRevision !== '0' || intent.newRevision !== '1' || intent.ledgerNonce !== '1' || pqU64(intent.activateAt) <= pqU64(expected.executionHeight)) throw pqError('PQ_INITIAL_SEQUENCE_INVALID');
+  if (intent.chainId !== chainId || intent.owner !== owner || intent.pkA !== pkA.toString('hex') || intent.pkB !== pkB.toString('hex') || !c.pkA.equals(pkA) || !c.pkB.equals(pkB)) throw pqError('PQ_INITIAL_BINDING_MISMATCH');
+  // Existing candidate AND verifier with a local mathematical coordinate only.
+  // This adapter binds the already selected full pair, and is never returned,
+  // branded as a registered snapshot or persisted as an active account policy.
+  // Actual U64 H and future activation were compared above without Number.
+  const verifier = createVerifier({provider: 'portable', chainId: Buffer.from(chainId, 'hex'), purpose: 'TX-BATCH', cacheEntries: 0,
+    resolveTrustedOwner: () => ({algorithmVersion: VERSION, enabled: true, chainId: Buffer.from(chainId, 'hex'), owner, pkA, pkB, purpose: 'TX-BATCH', policyRevision: 'birth-math-only', activeFrom: 0, revokedAt: null})});
+  try { if (!verifier.verifyOne(body, {height: 0})) throw pqError('PQ_INITIAL_SIGNATURE_INVALID'); }
+  finally { verifier.clear(); }
+  const message = Buffer.from(member.message);
+  // Same field order/hex encoding as consensus.EncodePQTransaction, no newline.
+  const envelope = Buffer.from(JSON.stringify({version: 1, type: 'account_initial', wireHex: body.toString('hex')}));
+  return Object.freeze({intent, get intentBytes() { return Buffer.from(message); }, get rawMember() { return Buffer.from(body); },
+    purpose: 'TX-BATCH', N: 1, index: 0, transportHash: pqWireHash(body), abciTransactionHash: pqWireHash(envelope),
+    signatureVerified: true, dataOnly: true, bootstrapAdmission: false});
+}
+export function preparePQAccountInitialTransport(wire, expected) {
+  const decoded = decodePQAccountInitialRequest(wire, expected), body = decoded.rawMember;
+  return Object.freeze({method: 'POST', path: '/accounts/' + decoded.intent.owner + '/authorization/register', contentType: 'application/octet-stream',
+    get body() { return Buffer.from(body); }, transportHash: decoded.transportHash, abciTransactionHash: decoded.abciTransactionHash, admissionIsFinality: false});
 }
 function validateClassicAuthorization(publicKey, signature, intent, owner) {
   try {
