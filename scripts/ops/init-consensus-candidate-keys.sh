@@ -98,20 +98,20 @@ PUBLIC_PIN
   # format, local ELF execution or per-host go build. Import returns functions.
   source scripts/deploy/deploy-consensus-candidate.sh
   [[ $(git rev-parse HEAD) == "$full_commit" ]] || { echo 'operator source must match the independently pinned runtime commit' >&2; return 1; }
-  validate_runtime_bundle "$bundle" "$full_commit" "$manifest_pin" || return
-  mkdir -p -- "$(dirname -- "$work")"
-  mkdir -m 0700 -- "$work"
+  # Full original artifact admission happens once inside this helper, before
+  # its exclusive work reservation; only this phase's fixed tool is copied.
+  prepare_runtime_tool "$bundle" "$full_commit" "$manifest_pin" "$work" "$binary" || return
   work="$(cd "$work" && pwd -P)"
   trap 'status=$?; printf "PQ ceremony UNKNOWN/failed attempt retained (exit=%s): %s; inspect the original, never regenerate or approve automatically\n" "$status" "$work" >&2; exit "$status"' ERR
   mkdir -m 0700 -- "$work/public"
   printf 'phase=%s\nrole=%s\ncommit=%s\nruntimeManifestSHA256=%s\npublicInputSHA256=%s\nconsensusGenesisSHA256=%s\noutDirectory=%s\nstateDirectory=%s\napprovalDirectory=%s\nrecoveryParent=%s\nrecoveryPublicManifest=%s\n' "$phase" "$role" "$full_commit" "$manifest_pin" "$input_pin" "$genesis_pin" "$out" "$state" "$approval" "$recovery_parent" "$recovery_manifest" >"$work/intent.txt"
-  prepare_runtime_bundle "$bundle" "$full_commit" "$manifest_pin" "$work/runtime"
-  binary_pin="$(python3 -B -c 'import json,sys; from pathlib import Path; print(json.loads((Path(sys.argv[1])/"SOURCE.json").read_bytes())["binaries"][sys.argv[2]]["sha256"])' "$work/runtime" "$binary")"
-  pq_public_pin "$work/runtime/$binary" "$binary_pin" 134217728
+  binary_pin="$(python3 -B -c 'import json,sys; from pathlib import Path; print(json.loads((Path(sys.argv[1])/"SOURCE.json").read_bytes())["binaries"][sys.argv[2]]["sha256"])' "$work/tool" "$binary")"
+  pq_public_pin "$work/tool/$binary" "$binary_pin" 134217728
   attempt="$(basename "$(mktemp -d "$work/attempt.XXXXXXXXXXXX")")"
   stage="/var/tmp/ynx-consensus-pq-ceremony-${full_commit:0:12}-${attempt}-${role}"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "umask 077; mkdir -m 0700 '$stage'" >"$work/reserve.stdout" 2>"$work/reserve.stderr"
-  ynx_ops_copy "$role" "$user" "$host" "$key" "$work/runtime/$binary" "$stage/$binary" >"$work/binary.copy.stdout" 2>"$work/binary.copy.stderr"
+  ynx_ops_copy "$role" "$user" "$host" "$key" "$work/tool/$binary" "$stage/$binary" >"$work/binary.copy.stdout" 2>"$work/binary.copy.stderr"
+  (set -C; printf 'tool=%s\nsha256=%s\n' "$binary" "$binary_pin" >"$work/binary.copy.complete")
   if [[ $phase != pq-inspect && $phase != legacy-verify-recovery ]]; then
     ynx_ops_copy "$role" "$user" "$host" "$key" "$input" "$stage/public-input.json" >"$work/input.copy.stdout" 2>"$work/input.copy.stderr"
     ynx_ops_copy "$role" "$user" "$host" "$key" "$genesis" "$stage/genesis.json" >"$work/genesis.copy.stdout" 2>"$work/genesis.copy.stderr"

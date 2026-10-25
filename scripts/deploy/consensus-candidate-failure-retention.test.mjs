@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -503,5 +503,198 @@ test('actual runtime preparation never overwrites prior attempts or removes a pa
       if (mode === 'copy_unknown') { assert.equal(result.status, 31); assert.equal(result.copies, 2); }
       else assert.equal(result.copies, 12);
     }
+  });
+});
+
+const selectedRuntimeTools = ['ynx-consensus-keycheck', 'ynx-consensus-pq-key-init', 'ynx-comet'];
+const metadata = path => {
+  const info = lstatSync(path, { bigint: true });
+  return Object.fromEntries(['dev', 'ino', 'mode', 'uid', 'gid', 'nlink', 'size', 'mtimeNs', 'ctimeNs'].map(key => [key, info[key]]));
+};
+
+function originalLateSnapshotSource() {
+  // Rebuild the complete previously frozen production source, not a mock of
+  // the missing check. Only this fix's small metadata-witness diff is reversed.
+  const begin = current.indexOf('  local originals_snapshot\n', current.indexOf('prepare_runtime_tool() {\n'));
+  const end = current.indexOf('  validate_runtime_bundle "$1" "$2" "$3" || return', begin);
+  assert.ok(begin >= 0 && end > begin);
+  let source = current.slice(0, begin) + current.slice(end);
+  source = source.replace('  python3 -B - "$1" "$2" "$3" "$4" "$5" "$originals_snapshot"', '  python3 -B - "$1" "$2" "$3" "$4" "$5"');
+  source = source.replace('    source_arg, commit, manifest_sha, work_arg, binary, snapshot_raw = sys.argv[1:]', '    source_arg, commit, manifest_sha, work_arg, binary = sys.argv[1:]');
+  const bindBegin = source.indexOf('    # Bind the pre-validation witness; never adopt a later source identity.\n');
+  const bindEnd = source.indexOf('    source_pin, _, raw = read_pin(', bindBegin);
+  assert.ok(bindBegin >= 0 && bindEnd > bindBegin);
+  source = source.slice(0, bindBegin) + '    originals = {path: identity(path.lstat()) for path in paths}\n' + source.slice(bindEnd);
+  source = source.replace("    require(source_snapshot_matches(), 'pre-validation original source witness changed before completion')\n", '');
+  assert.equal(Buffer.byteLength(source), 28705);
+  assert.equal(sha256(source), 'ced96ba9f82c1677d150511350d1b103798635f0115ecc9a75d725e0ed537704');
+  return source;
+}
+
+const lateUnusedMutation = 'LATE_UNUSED_FIXTURE_CHANGE\n';
+
+function runtimeToolPreparation(mode, binary = selectedRuntimeTools[0], phase = null, toolSource = current) {
+  const directory = realpathSync(mkdtempSync(join(tmpdir(), 'ynx-runtime-tool-')));
+  try {
+    const fixture = runtimeFixture(directory);
+    let work = join(directory, 'new-work');
+    if (mode === 'bad_pin') fixture.pin = 'e'.repeat(64);
+    if (mode === 'altered_selected' || mode === 'altered_unused') {
+      const path = join(fixture.bundle, mode === 'altered_selected' ? binary : 'ynx-abci');
+      const raw = readFileSync(path); raw[65] ^= 1; writeFileSync(path, raw);
+    }
+    if (mode === 'symlink_selected') {
+      const original = join(fixture.bundle, binary), alias = join(directory, 'alias-original');
+      writeFileSync(alias, readFileSync(original)); rmSync(original); symlinkSync(alias, original);
+    }
+    if (mode === 'hardlink_selected') linkSync(join(fixture.bundle, binary), join(directory, 'alias-original'));
+    if (mode === 'existing_directory') { mkdirSync(work, { mode: 0o700 }); writeFileSync(join(work, 'UNKNOWN'), 'preserve prior attempt'); }
+    if (mode === 'existing_file') writeFileSync(work, 'preserve prior file');
+    if (mode === 'existing_symlink') symlinkSync(join(directory, 'absent'), work);
+    if (mode === 'unsafe_parent') {
+      mkdirSync(join(directory, 'real-parent'), { mode: 0o700 });
+      symlinkSync(join(directory, 'real-parent'), join(directory, 'alias-parent'));
+      work = join(directory, 'alias-parent', 'new-work');
+    }
+    const entries = ['SOURCE.json', ...runtimeNames, ...operatorNames.map(name => `operator/${name}`)];
+    const before = Object.fromEntries(entries.map(name => [name, { value: savedPath(join(fixture.bundle, name)), metadata: metadata(join(fixture.bundle, name)) }]));
+    const oldWork = savedPath(work), trace = join(directory, 'validation.calls'), transport = join(directory, 'transport.calls');
+    const publicInput = join(directory, 'request.json'), genesis = join(directory, 'genesis.json');
+    writeFileSync(publicInput, '{"syntheticOnly":true}'); writeFileSync(genesis, '{"syntheticOnly":true}');
+    const env = { ...process.env, YNX_TOOL_BUNDLE: fixture.bundle, YNX_TOOL_COMMIT: fixture.commit, YNX_TOOL_PIN: fixture.pin,
+      YNX_TOOL_WORK: work, YNX_TOOL_BINARY: binary, YNX_TOOL_TRACE: trace, YNX_TOOL_TRANSPORT: transport, YNX_TOOL_MODE: mode };
+    let script;
+    if (phase) {
+      const source = readFileSync(join(root, 'scripts/ops/init-consensus-candidate-keys.sh'), 'utf8');
+      const start = source.indexOf('pq_key_ceremony() {\n'), end = source.indexOf('\nif [[ $phase != legacy ]]; then\n', start);
+      assert.ok(start >= 0 && end > start);
+      const caller = source.slice(start, end);
+      assert.equal(caller.split('prepare_runtime_tool ').length - 1, 1);
+      assert.doesNotMatch(caller, /prepare_runtime_bundle |validate_runtime_bundle /);
+      Object.assign(env, {
+        CONSENSUS_CANDIDATE_KEY_ROLE: 'primary', CONSENSUS_CANDIDATE_KEY_WORK_ROOT: work,
+        CONSENSUS_CANDIDATE_KEY_CEREMONY_RESUME: '',
+        CONSENSUS_CANDIDATE_RUNTIME_BUNDLE: fixture.bundle, CONSENSUS_CANDIDATE_RUNTIME_COMMIT: fixture.commit,
+        CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256: fixture.pin,
+        CONSENSUS_PQ_KEY_DIRECTORY: phase === 'pq-approve-first-registration' || phase === 'legacy-verify-recovery' ? '' : join(directory, 'remote-custody'),
+        CONSENSUS_PQ_STATE_DIRECTORY: phase === 'pq-approve-first-registration' || phase === 'legacy-verify-recovery' ? '' : join(directory, 'remote-history'),
+        CONSENSUS_PQ_EPOCH_REQUEST: phase === 'pq-new-epoch' ? publicInput : '', CONSENSUS_PQ_EPOCH_REQUEST_SHA256: phase === 'pq-new-epoch' ? filePin(readFileSync(publicInput)).sha256 : '',
+        CONSENSUS_PQ_CONSENSUS_GENESIS: phase === 'pq-inspect' || phase === 'legacy-verify-recovery' ? '' : genesis,
+        CONSENSUS_PQ_CONSENSUS_GENESIS_SHA256: phase === 'pq-inspect' || phase === 'legacy-verify-recovery' ? '' : filePin(readFileSync(genesis)).sha256,
+        CONSENSUS_PQ_ENCRYPTED_CREDENTIAL_SHA256: phase === 'pq-new-epoch' ? 'c'.repeat(64) : '',
+        CONSENSUS_PQ_PUBLIC_RECORD: phase === 'pq-approve-first-registration' ? publicInput : '',
+        CONSENSUS_PQ_PUBLIC_RECORD_SHA256: phase === 'pq-approve-first-registration' ? filePin(readFileSync(publicInput)).sha256 : '',
+        CONSENSUS_PQ_APPROVAL_DIRECTORY: phase === 'pq-approve-first-registration' ? join(directory, 'remote-approval') : '',
+        CONSENSUS_LEGACY_RECOVERY_PARENT: phase === 'legacy-verify-recovery' ? join(directory, 'remote-recovery') : '',
+        CONSENSUS_LEGACY_RECOVERY_ROLE_MANIFEST_REMOTE: phase === 'legacy-verify-recovery' ? `/opt/ynx-chain/consensus-candidates/ynx-consensus-candidate-${fixture.commit.slice(0, 12)}/primary/role/role-manifest.json` : '',
+        CONSENSUS_LEGACY_RECOVERY_ROLE_MANIFEST_SHA256: phase === 'legacy-verify-recovery' ? 'd'.repeat(64) : '',
+      });
+      script = ['set -Eeuo pipefail', 'umask 077', `phase=${phase}`, 'PRIMARY_NODE_USER=fixture; PRIMARY_NODE_HOST=fixture.invalid; PRIMARY_NODE_SSH_KEY=public-reference-only',
+        'git() { [[ "$#" -eq 2 && "$1" == rev-parse && "$2" == HEAD ]] || return 94; printf "%s\\n" "$YNX_TOOL_COMMIT"; }',
+        'go() { printf "unexpected local build\\n" >&2; return 95; }',
+        'ynx_ops_ssh() { printf "reserve\\n" >> "$YNX_TOOL_TRANSPORT"; return 23; }',
+        'ynx_ops_copy() { printf "unexpected-copy\\n" >> "$YNX_TOOL_TRANSPORT"; return 96; }', caller, 'pq_key_ceremony'].join('\n');
+    } else {
+      script = ['set -Eeuo pipefail', 'umask 077', 'ulimit -c 0',
+        actualFunction(current, 'validate_runtime_bundle').replace(/^validate_runtime_bundle\(\)/, 'original_validate_runtime_bundle()'),
+        'validate_runtime_bundle() { printf "validate\\n" >> "$YNX_TOOL_TRACE"; original_validate_runtime_bundle "$@" || return; if [[ "$YNX_TOOL_MODE" == late_unused ]]; then printf "LATE_UNUSED_FIXTURE_CHANGE\\n" >> "$YNX_TOOL_BUNDLE/ynx-abci"; fi; }',
+        actualFunction(toolSource, 'prepare_runtime_tool'), ...(mode === 'partial_write' ? ['ulimit -f 128'] : []),
+        'prepare_runtime_tool "$YNX_TOOL_BUNDLE" "$YNX_TOOL_COMMIT" "$YNX_TOOL_PIN" "$YNX_TOOL_WORK" "$YNX_TOOL_BINARY"'].join('\n');
+    }
+    const result = spawnSync('bash', ['-c', script], { cwd: root, encoding: 'utf8', env, timeout: 30000, maxBuffer: 65536 });
+    assert.equal(result.error, undefined);
+    for (const name of entries) {
+      const path = join(fixture.bundle, name);
+      if (mode === 'late_unused' && name === 'ynx-abci') {
+        assert.deepEqual(readFileSync(path), Buffer.concat([before[name].value.bytes, Buffer.from(lateUnusedMutation)]), 'fixture must change precisely the unused ELF after real full validation');
+        assert.notEqual(filePin(readFileSync(path)).sha256, filePin(before[name].value.bytes).sha256);
+      } else assert.deepEqual({ value: savedPath(path), metadata: metadata(path) }, before[name], `tool preparation changed original ${name}`);
+    }
+    const prepared = Object.fromEntries(runtimeNames.map(name => [name, { value: savedPath(join(work, 'tool', name)), mode: existsSync(join(work, 'tool', name)) ? lstatSync(join(work, 'tool', name)).mode & 0o777 : null }]));
+    const receiptPath = join(work, 'runtime-tool-prepared.json');
+    return { status: result.status, stdout: result.stdout, stderr: result.stderr, oldWork, work: savedPath(work),
+      prepared, before, sourceCopy: savedPath(join(work, 'tool', 'SOURCE.json')),
+      toolEntries: existsSync(join(work, 'tool')) ? readdirSync(join(work, 'tool')).sort() : [],
+      toolMode: existsSync(join(work, 'tool')) ? lstatSync(join(work, 'tool')).mode & 0o777 : null,
+      receipt: existsSync(receiptPath) ? JSON.parse(readFileSync(receiptPath, 'utf8')) : null,
+      validationCalls: existsSync(trace) ? readFileSync(trace, 'utf8').trim().split('\n').length : 0,
+      transport: existsSync(transport) ? readFileSync(transport, 'utf8').trim().split('\n') : [],
+      unknown: existsSync(join(work, 'UNKNOWN')) ? readFileSync(join(work, 'UNKNOWN'), 'utf8') : null };
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+test('actual runtime preparation selects one fixed PUBLIC tool after exactly one complete bundle validation', async t => {
+  for (const binary of selectedRuntimeTools) await t.test(binary, () => {
+    const result = runtimeToolPreparation('fresh', binary);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, '', 'preparation must not mix DATA diagnostics into a ceremony receipt');
+    assert.equal(result.validationCalls, 1);
+    assert.deepEqual(result.sourceCopy, result.before['SOURCE.json'].value);
+    assert.deepEqual(result.toolEntries, ['SOURCE.json', binary].sort());
+    assert.equal(result.toolMode, 0o700);
+    for (const name of runtimeNames) {
+      if (name === binary) { assert.deepEqual(result.prepared[name].value, result.before[name].value); assert.equal(result.prepared[name].mode, 0o755); }
+      else assert.equal(result.prepared[name].value, null, `unused ${name} was copied`);
+    }
+    assert.deepEqual(result.receipt, { version: 'YNX-PUBLIC-RUNTIME-TOOL-PREPARATION/v1', classification: 'data',
+      commit: 'a'.repeat(40), sourceManifestSHA256: sha256(result.sourceCopy.bytes), selectedTool: binary,
+      binaryPin: filePin(result.prepared[binary].value.bytes), fullSourceBinaryCount: 8, copiedBinaryCount: 1,
+      originalSourceUnchanged: true, selectedDirectoryIsRuntimeBundle: false, binaryExecuted: false, authorityGranted: false });
+  });
+});
+
+test('actual runtime preparation refuses unused ELF replacement between real complete validation and work reservation', () => {
+  const original = runtimeToolPreparation('late_unused', selectedRuntimeTools[0], null, originalLateSnapshotSource());
+  assert.equal(original.status, 0, original.stderr);
+  assert.equal(original.validationCalls, 1);
+  assert.equal(original.receipt.originalSourceUnchanged, true, 'old late snapshot absorbed the injected unused-file change');
+  assert.equal(original.work.kind, 'directory');
+  assert.deepEqual(original.transport, []);
+  const fixed = runtimeToolPreparation('late_unused');
+  assert.notEqual(fixed.status, 0, fixed.stderr);
+  assert.match(fixed.stderr, /original source changed after full validation/);
+  assert.equal(fixed.validationCalls, 1, 'do not repeat the eight-ELF full hashing pass');
+  assert.equal(fixed.work, null, 'changed source must be refused before work or SSH');
+  assert.equal(fixed.receipt, null);
+  assert.deepEqual(fixed.transport, []);
+});
+
+test('actual runtime preparation selected tool rejects unselected corruption aliases unsafe paths and retained UNKNOWN', async t => {
+  for (const mode of ['bad_pin', 'altered_selected', 'altered_unused', 'symlink_selected', 'hardlink_selected', 'unsafe_parent', 'existing_directory', 'existing_file', 'existing_symlink', 'partial_write']) await t.test(mode, () => {
+    const result = runtimeToolPreparation(mode);
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.equal(result.validationCalls, ['symlink_selected', 'hardlink_selected'].includes(mode) ? 0 : 1);
+    assert.equal(result.receipt, null);
+    assert.equal(result.transport.length, 0);
+    if (mode === 'partial_write') {
+      assert.equal(result.work.kind, 'directory', 'partial preparation was deleted');
+      assert.deepEqual(result.sourceCopy, result.before['SOURCE.json'].value);
+      assert.equal(result.prepared['ynx-consensus-keycheck'].value.kind, 'file');
+      assert.equal(result.prepared['ynx-consensus-keycheck'].mode, 0o600, 'partial copy became executable');
+    } else {
+      assert.deepEqual(result.work, result.oldWork);
+      assert.ok(runtimeNames.every(name => result.prepared[name].value === null));
+      if (mode === 'existing_directory') assert.equal(result.unknown, 'preserve prior attempt');
+    }
+  });
+  const invalid = runtimeToolPreparation('fresh', 'ynx-bft-gatewayd');
+  assert.notEqual(invalid.status, 0);
+  assert.equal(invalid.validationCalls, 0);
+  assert.equal(invalid.work, null);
+});
+
+test('actual runtime preparation original PQ caller prepares only its phase helper before any transport or local build', async t => {
+  for (const [phase, binary] of [['legacy-verify-recovery', 'ynx-consensus-keycheck'], ['pq-inspect', 'ynx-consensus-pq-key-init'], ['pq-new-epoch', 'ynx-consensus-pq-key-init'], ['pq-approve-first-registration', 'ynx-comet']]) await t.test(phase, () => {
+    const result = runtimeToolPreparation('fresh', binary, phase);
+    assert.equal(result.status, 23, result.stderr);
+    assert.equal(result.stdout, '');
+    assert.deepEqual(result.transport, ['reserve'], 'caller reached copy, remote execution or another role');
+    assert.equal(result.receipt.selectedTool, binary);
+    assert.equal(result.receipt.copiedBinaryCount, 1);
+    assert.equal(result.receipt.binaryExecuted, false);
+    assert.deepEqual(result.toolEntries, ['SOURCE.json', binary].sort());
+    for (const name of runtimeNames) assert.equal(result.prepared[name].value?.kind ?? null, name === binary ? 'file' : null);
   });
 });

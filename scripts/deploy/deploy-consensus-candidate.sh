@@ -151,6 +151,241 @@ prepare_runtime_bundle() {
   done
 }
 
+# A key ceremony needs one fixed PUBLIC helper, not another eight-ELF bundle.
+# Verify the complete original artifact once before reserving any new attempt.
+# The new work root contains tool/{SOURCE.json,selected ELF}; that directory is
+# deliberately not a runtime bundle and must never replace the original one.
+prepare_runtime_tool() {
+  [[ "$#" -eq 5 ]] || { echo 'runtime tool requires five fixed preparation inputs' >&2; return 1; }
+  case "$5" in
+    ynx-consensus-keycheck|ynx-consensus-pq-key-init|ynx-comet) ;;
+    *) echo 'unapproved public runtime tool' >&2; return 1 ;;
+  esac
+  local originals_snapshot
+  originals_snapshot="$(python3 -B - "$1" <<'SNAPSHOT'
+import json, os, stat, sys
+from pathlib import Path
+
+def require(value, message):
+    if not value:
+        raise ValueError(message)
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_uid,
+            info.st_gid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+try:
+    root_arg = sys.argv[1]
+    root = Path(root_arg)
+    require(root.is_absolute() and str(root.resolve(strict=True)) == root_arg,
+            'canonical original source directory required before validation')
+    names = ('ynx-abci', 'ynx-comet', 'ynx-bft-gatewayd', 'ynx-consensus-pq-remote-signer',
+             'ynx-consensus-pq-key-init', 'ynx-consensus-proof-verify', 'ynx-consensus-package', 'ynx-consensus-keycheck')
+    operators = ('ynx-consensus-pq-remote-signer.service.in', 'ynx-consensus-pq-remote-signer-launch.sh',
+                 'ynx-consensus-pq-remote-signer.conf.in')
+    directories = {}
+    for name, path in (('.', root), ('operator', root / 'operator')):
+        before = path.lstat()
+        require(stat.S_ISDIR(before.st_mode) and str(path.resolve(strict=True)) == str(path),
+                'original source directory alias refused')
+        fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        try:
+            require(identity(os.fstat(fd)) == identity(before) == identity(path.lstat()),
+                    'original directory changed during metadata observation')
+        finally:
+            os.close(fd)
+        directories[name] = identity(before)
+    require({path.name for path in root.iterdir()} == set(names) | {'SOURCE.json', 'operator'}
+            and {path.name for path in (root / 'operator').iterdir()} == set(operators),
+            'complete original source catalog required before validation')
+    files = {}
+    for name in ('SOURCE.json',) + names + tuple('operator/' + name for name in operators):
+        path = root / name
+        before = path.lstat()
+        require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and 0 < before.st_size <= 128 << 20,
+                'original source must be bounded single-link regular data')
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+        try:
+            require(identity(os.fstat(fd)) == identity(before) == identity(path.lstat()),
+                    'original file changed during metadata observation')
+        finally:
+            os.close(fd)
+        files[name] = identity(before)
+    require(all(identity((root / name).lstat()) == value for name, value in files.items())
+            and all(identity((root if name == '.' else root / name).lstat()) == value
+                    for name, value in directories.items()), 'original snapshot changed during observation')
+    raw = json.dumps(dict(directories=directories, files=files), sort_keys=True, separators=(',', ':'))
+    require(len(raw) <= 16384, 'original metadata witness exceeds its bound')
+    print(raw)
+except (OSError, ValueError, TypeError) as error:
+    print('runtime tool metadata rejected: ' + str(error), file=sys.stderr)
+    sys.exit(1)
+SNAPSHOT
+  )" || return
+  validate_runtime_bundle "$1" "$2" "$3" || return
+  python3 -B - "$1" "$2" "$3" "$4" "$5" "$originals_snapshot" <<'PY'
+import hashlib, json, os, stat, sys
+from pathlib import Path
+
+def require(value, message):
+    if not value:
+        raise ValueError(message)
+
+def identity(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_uid,
+            info.st_gid, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+def unique(pairs):
+    value = {}
+    for key, item in pairs:
+        require(key not in value, 'duplicate original SOURCE field')
+        value[key] = item
+    return value
+
+read_identities = {}
+
+def read_pin(path, maximum, original=None, material=False):
+    before = path.lstat()
+    require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1
+            and 0 < before.st_size <= maximum, 'bounded single-link regular input required')
+    require(original is None or identity(before) == original, 'original source identity changed')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    with os.fdopen(fd, 'rb') as source:
+        require(identity(os.fstat(source.fileno())) == identity(before), 'input changed before read')
+        digest, size, header, chunks = hashlib.sha256(), 0, b'', []
+        for chunk in iter(lambda: source.read(1 << 20), b''):
+            size += len(chunk)
+            require(size <= maximum, 'input exceeded its bound')
+            digest.update(chunk)
+            if not header:
+                header = chunk[:64]
+            if material:
+                chunks.append(chunk)
+        require(size == before.st_size and identity(os.fstat(source.fileno())) == identity(before)
+                and identity(path.lstat()) == identity(before), 'input changed during read')
+    read_identities[path] = identity(before)
+    return dict(bytes=size, sha256=digest.hexdigest()), header, b''.join(chunks)
+
+def copy_original(path, destination, wanted, maximum):
+    before = path.lstat()
+    require(identity(before) == originals[path], 'original changed before copy')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    target_fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    with os.fdopen(fd, 'rb') as source, os.fdopen(target_fd, 'wb') as target:
+        require(identity(os.fstat(source.fileno())) == identity(before), 'source changed at copy open')
+        digest, size = hashlib.sha256(), 0
+        for chunk in iter(lambda: source.read(1 << 20), b''):
+            size += len(chunk)
+            require(size <= maximum, 'copy exceeded its source bound')
+            digest.update(chunk)
+            target.write(chunk)
+        target.flush()
+        os.fsync(target.fileno())
+        require(dict(bytes=size, sha256=digest.hexdigest()) == wanted
+                and identity(os.fstat(source.fileno())) == identity(before)
+                and identity(path.lstat()) == identity(before), 'original copy bytes or identity differ')
+    actual, header, _ = read_pin(destination, maximum)
+    require(actual == wanted, 'selected copy readback differs')
+    return actual, header
+
+try:
+    source_arg, commit, manifest_sha, work_arg, binary, snapshot_raw = sys.argv[1:]
+    require(binary in ('ynx-consensus-keycheck', 'ynx-consensus-pq-key-init', 'ynx-comet'), 'fixed tool required')
+    root, work = Path(source_arg), Path(work_arg)
+    require(root.is_absolute() and str(root.resolve(strict=True)) == source_arg,
+            'original canonical runtime path required')
+    require(work.is_absolute() and str(work.parent.resolve(strict=True) / work.name) == work_arg
+            and work.name not in ('', '.', '..') and work != root and root not in work.parents,
+            'new canonical tool work root outside original bundle required')
+    parent = work.parent.lstat()
+    require(stat.S_ISDIR(parent.st_mode) and parent.st_uid == os.geteuid()
+            and not parent.st_mode & 0o022, 'protected original work parent required')
+    require(not os.path.lexists(work), 'tool work already exists; retain and reconcile UNKNOWN')
+    names = ('ynx-abci', 'ynx-comet', 'ynx-bft-gatewayd', 'ynx-consensus-pq-remote-signer',
+             'ynx-consensus-pq-key-init', 'ynx-consensus-proof-verify', 'ynx-consensus-package', 'ynx-consensus-keycheck')
+    operators = ('ynx-consensus-pq-remote-signer.service.in', 'ynx-consensus-pq-remote-signer-launch.sh',
+                 'ynx-consensus-pq-remote-signer.conf.in')
+    require({path.name for path in root.iterdir()} == set(names) | {'SOURCE.json', 'operator'}
+            and not (root / 'operator').is_symlink() and (root / 'operator').is_dir()
+            and {path.name for path in (root / 'operator').iterdir()} == set(operators),
+            'original full source catalog changed after validation')
+    paths = [root / 'SOURCE.json'] + [root / name for name in names] + [root / 'operator' / name for name in operators]
+    require(all(stat.S_ISREG(path.lstat().st_mode) and path.lstat().st_nlink == 1 for path in paths),
+            'original full source file identity changed after validation')
+    # Bind the pre-validation witness; never adopt a later source identity.
+    require(len(snapshot_raw) <= 16384, 'original metadata witness exceeds its bound')
+    snapshot = json.loads(snapshot_raw, object_pairs_hook=unique)
+    require(type(snapshot) is dict and set(snapshot) == {'directories', 'files'}
+            and type(snapshot['directories']) is dict and set(snapshot['directories']) == {'.', 'operator'}
+            and type(snapshot['files']) is dict and set(snapshot['files']) == {str(path.relative_to(root)) for path in paths}
+            and all(type(value) is list and len(value) == 9 and all(type(item) is int for item in value)
+                    for group in snapshot.values() for value in group.values()), 'closed original metadata witness required')
+    originals = {root / name: tuple(value) for name, value in snapshot['files'].items()}
+    original_directories = {root if name == '.' else root / name: tuple(value)
+                            for name, value in snapshot['directories'].items()}
+    def source_snapshot_matches():
+        return (all(identity(path.lstat()) == original for path, original in originals.items())
+                and all(identity(path.lstat()) == original for path, original in original_directories.items()))
+    require(source_snapshot_matches(), 'original source changed after full validation')
+    source_pin, _, raw = read_pin(root / 'SOURCE.json', 128 << 10, originals[root / 'SOURCE.json'], True)
+    require(source_pin['sha256'] == manifest_sha, 'original SOURCE independent pin changed')
+    record = json.loads(raw.decode('utf8'), object_pairs_hook=unique)
+    require(record['version'] == 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2' and record['commit'] == commit,
+            'original runtime identity changed')
+    wanted = record['binaries'][binary]
+    require(set(wanted) == {'bytes', 'sha256'} and type(wanted['bytes']) is int
+            and 1 << 20 < wanted['bytes'] <= 128 << 20, 'selected original bound required')
+    work.mkdir(mode=0o700)
+    require(str(work.resolve(strict=True)) == work_arg and work.lstat().st_uid == os.geteuid()
+            and stat.S_IMODE(work.lstat().st_mode) == 0o700, 'exclusive private work reservation required')
+    tool = work / 'tool'
+    tool.mkdir(mode=0o700)
+    def directory_identity(path):
+        info = path.lstat()
+        require(stat.S_ISDIR(info.st_mode) and info.st_uid == os.geteuid()
+                and stat.S_IMODE(info.st_mode) == 0o700, 'private selected directory changed')
+        return info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_uid, info.st_gid
+    work_identity, tool_identity = directory_identity(work), directory_identity(tool)
+    copy_original(root / 'SOURCE.json', tool / 'SOURCE.json', source_pin, 128 << 10)
+    actual, header = copy_original(root / binary, tool / binary, wanted, 128 << 20)
+    require(len(header) == 64 and header[:7] == b'\x7fELF\x02\x01\x01'
+            and header[16:18] in (b'\x02\x00', b'\x03\x00')
+            and header[18:24] == b'\x3e\x00\x01\x00\x00\x00', 'selected tool is not the original amd64 ELF')
+    require(all(identity(path.lstat()) == original for path, original in originals.items()),
+            'original runtime files changed during tool preparation')
+    require({path.name for path in tool.iterdir()} == {'SOURCE.json', binary}, 'selected tool catalog changed')
+    fd = os.open(tool / binary, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+    with os.fdopen(fd, 'rb') as target:
+        require(identity(os.fstat(target.fileno())) == read_identities[tool / binary]
+                and identity((tool / binary).lstat()) == read_identities[tool / binary],
+                'selected tool was replaced before executable mode')
+        os.fchmod(target.fileno(), 0o755)
+        require(stat.S_IMODE(os.fstat(target.fileno()).st_mode) == 0o755
+                and identity(os.fstat(target.fileno())) == identity((tool / binary).lstat()),
+                'selected executable copy identity changed')
+    require(all(identity(path.lstat()) == original for path, original in originals.items()),
+            'original runtime files changed before preparation completion')
+    require(source_snapshot_matches(), 'pre-validation original source witness changed before completion')
+    require(directory_identity(work) == work_identity and directory_identity(tool) == tool_identity
+            and str(work.resolve(strict=True)) == work_arg
+            and identity((tool / 'SOURCE.json').lstat()) == read_identities[tool / 'SOURCE.json'],
+            'selected directory or original SOURCE copy identity changed')
+    receipt = dict(version='YNX-PUBLIC-RUNTIME-TOOL-PREPARATION/v1', classification='data',
+        commit=commit, sourceManifestSHA256=manifest_sha, selectedTool=binary, binaryPin=actual,
+        fullSourceBinaryCount=8, copiedBinaryCount=1, originalSourceUnchanged=True,
+        selectedDirectoryIsRuntimeBundle=False, binaryExecuted=False, authorityGranted=False)
+    fd = os.open(work / 'runtime-tool-prepared.json', os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    with os.fdopen(fd, 'w', encoding='utf8') as output:
+        json.dump(receipt, output, sort_keys=True, separators=(',', ':'))
+        output.write('\n')
+        output.flush()
+        os.fsync(output.fileno())
+except (OSError, ValueError, TypeError, KeyError) as error:
+    print('runtime tool rejected: ' + str(error), file=sys.stderr)
+    sys.exit(1)
+PY
+}
+
 # The operator plan is authority input, so its expected hash must come from the
 # operator's independent environment. Never infer it from the candidate itself.
 # The normal verifier rejects an operator package when this pin is absent.
