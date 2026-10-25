@@ -1,0 +1,318 @@
+{
+  "schema": 1,
+  "codeCommit": "fac954ca6f8b4e2cc58076dbccb6ffd68fb321bf",
+  "sourceStatus": "local verified; exact-source ordinary CI pending; not deployed",
+  "runtimeScope": "Only existing explicit prepared prefix snapshot encode. Default hash backend, durability, nonce/signature checks, reader gate and all cache/resource limits unchanged.",
+  "benchmark": {
+    "platform": "darwin/arm64 Apple M4",
+    "gomaxprocs": 1,
+    "benchtime": "200ms",
+    "count": 3,
+    "order": "ABBA subgroups, each three samples",
+    "scope": "Native normalization + exact snapshot JSON + independent public byte copy; not complete decode/Commit/network/TPS",
+    "shapes": {
+      "ActualHistory": {
+        "originalMedian": {
+          "nsPerOp": 3119385.0,
+          "bytesPerOp": 2500536.0,
+          "allocsPerOp": 4001.0
+        },
+        "currentMedian": {
+          "nsPerOp": 2971755.5,
+          "bytesPerOp": 2272200.5,
+          "allocsPerOp": 2996.0
+        },
+        "durationReductionPercent": 4.732647621245856,
+        "samples": [
+          {
+            "candidate": false,
+            "nsPerOp": 3079217,
+            "bytesPerOp": 2500539,
+            "allocsPerOp": 4001
+          },
+          {
+            "candidate": false,
+            "nsPerOp": 3118096,
+            "bytesPerOp": 2500536,
+            "allocsPerOp": 4001
+          },
+          {
+            "candidate": false,
+            "nsPerOp": 3118881,
+            "bytesPerOp": 2500534,
+            "allocsPerOp": 4001
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 3009732,
+            "bytesPerOp": 2272203,
+            "allocsPerOp": 2996
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 2940791,
+            "bytesPerOp": 2272201,
+            "allocsPerOp": 2996
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 2933341,
+            "bytesPerOp": 2272199,
+            "allocsPerOp": 2996
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 2944714,
+            "bytesPerOp": 2272199,
+            "allocsPerOp": 2996
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 3031645,
+            "bytesPerOp": 2272202,
+            "allocsPerOp": 2996
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 2998797,
+            "bytesPerOp": 2272200,
+            "allocsPerOp": 2996
+          },
+          {
+            "candidate": false,
+            "nsPerOp": 3138849,
+            "bytesPerOp": 2500538,
+            "allocsPerOp": 4001
+          },
+          {
+            "candidate": false,
+            "nsPerOp": 3119889,
+            "bytesPerOp": 2500535,
+            "allocsPerOp": 4001
+          },
+          {
+            "candidate": false,
+            "nsPerOp": 3126491,
+            "bytesPerOp": 2500536,
+            "allocsPerOp": 4001
+          }
+        ]
+      },
+      "GroupedHistory": {
+        "originalMedian": {
+          "nsPerOp": 364653.0,
+          "bytesPerOp": 290813.0,
+          "allocsPerOp": 302.0
+        },
+        "currentMedian": {
+          "nsPerOp": 325337.0,
+          "bytesPerOp": 249548.0,
+          "allocsPerOp": 181.0
+        },
+        "durationReductionPercent": 10.781756903138051,
+        "samples": [
+          {
+            "candidate": false,
+            "nsPerOp": 362102,
+            "bytesPerOp": 290811,
+            "allocsPerOp": 302
+          },
+          {
+            "candidate": false,
+            "nsPerOp": 367412,
+            "bytesPerOp": 290814,
+            "allocsPerOp": 302
+          },
+          {
+            "candidate": false,
+            "nsPerOp": 372065,
+            "bytesPerOp": 290814,
+            "allocsPerOp": 302
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 325621,
+            "bytesPerOp": 249548,
+            "allocsPerOp": 181
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 325737,
+            "bytesPerOp": 249548,
+            "allocsPerOp": 181
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 325053,
+            "bytesPerOp": 249548,
+            "allocsPerOp": 181
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 317109,
+            "bytesPerOp": 249547,
+            "allocsPerOp": 181
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 322881,
+            "bytesPerOp": 249548,
+            "allocsPerOp": 181
+          },
+          {
+            "candidate": true,
+            "nsPerOp": 358378,
+            "bytesPerOp": 249547,
+            "allocsPerOp": 181
+          },
+          {
+            "candidate": false,
+            "nsPerOp": 361692,
+            "bytesPerOp": 290813,
+            "allocsPerOp": 302
+          },
+          {
+            "candidate": false,
+            "nsPerOp": 367204,
+            "bytesPerOp": 290813,
+            "allocsPerOp": 302
+          },
+          {
+            "candidate": false,
+            "nsPerOp": 359018,
+            "bytesPerOp": 290813,
+            "allocsPerOp": 302
+          }
+        ]
+      }
+    }
+  },
+  "rejectedCompactPrototype": {
+    "activated": false,
+    "fullBytesMatched": true,
+    "performanceRejected": true,
+    "source": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/compact-prototype-source.go",
+      "bytes": 976,
+      "sha256": "8928f550a14abd0cf2dfef40dd95a04c9134719c9b74522a7a26f63a7610b3e2"
+    },
+    "reason": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/compact-prototype-rejected.json",
+      "bytes": 300,
+      "sha256": "721499bc1d111a63ca5932ee6dca90716a22c5c3a60b19ea162a28e29fd3ea11"
+    }
+  },
+  "validation": {
+    "integratedRaceTopLevelPasses": 23,
+    "integratedRaceSeconds": 5.915,
+    "originalPreparedCIGroupInternalSeconds": 5.706,
+    "originalPreparedCIGroupClientSeconds": 8.211,
+    "framingDeltaRaceSeconds": 1.898,
+    "sourceGuardPasses": 25,
+    "completeSnapshotBytesAndStateRetained": true,
+    "actualSignedGroupedHistory": {
+      "effectiveTransactions": 128,
+      "blocks": 4,
+      "rejectedDuplicateNonce": 4,
+      "rejectedMalformed": 4,
+      "durableCommitFullReplayValidateRestartAndReplayRejection": true
+    },
+    "originalRetainedHistoryTransactions": 1024
+  },
+  "rawEvidence": {
+    "compact-prototype-source.go": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/compact-prototype-source.go",
+      "bytes": 976,
+      "sha256": "8928f550a14abd0cf2dfef40dd95a04c9134719c9b74522a7a26f63a7610b3e2"
+    },
+    "compact-prototype-rejected.json": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/compact-prototype-rejected.json",
+      "bytes": 300,
+      "sha256": "721499bc1d111a63ca5932ee6dca90716a22c5c3a60b19ea162a28e29fd3ea11"
+    },
+    "compact-prototype-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/compact-prototype-01.raw",
+      "bytes": 675,
+      "sha256": "f9268bd42f9b5d5b9de98684290ccdb8495e28cb790ea62ad9a72a58e579167a"
+    },
+    "scaffold-prototype-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/scaffold-prototype-01.raw",
+      "bytes": 675,
+      "sha256": "16295d876b20df89a39b44192eafa69ded6eb813870d7638058003e18cfd8755"
+    },
+    "signed-grouped-prototype-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/signed-grouped-prototype-01.raw",
+      "bytes": 1239,
+      "sha256": "4d76c65393e763b8027ce42d1546c71a3d2ec19294b0d5cd7a2073d07b3ab53e"
+    },
+    "integrated-race-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/integrated-race-01.raw",
+      "bytes": 6062,
+      "sha256": "e5c932d8c714bff5ff949a9a8ce66008b2b264a83a1fd9d276e494c1ba298740"
+    },
+    "integrated-pipeline-matched-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/integrated-pipeline-matched-01.raw",
+      "bytes": 3407,
+      "sha256": "ff9de9e6b646d222d8c12709c20b40d805da960e9f1114e971c111e2515f032a"
+    },
+    "framing-delta-race-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/framing-delta-race-01.raw",
+      "bytes": 1369,
+      "sha256": "20c9fe72415a10a9a8855f419dec5f7a16c825d4a09ead47cfd18aec00003bfd"
+    },
+    "original-ci-group-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/original-ci-group-01.raw",
+      "bytes": 8652,
+      "sha256": "1707d95228a6b9bdcf9b7c603e0d5cc7d15e0eaf9c1f0e401dcf6866da91bb51"
+    },
+    "final-code-pipeline-matched-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/final-code-pipeline-matched-01.raw",
+      "bytes": 3407,
+      "sha256": "c0953279b1536e8c349887decd11fee936c8df3e2d891eee38d12bfd59712ce2"
+    },
+    "source-guard-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/source-guard-01.raw",
+      "bytes": 4550,
+      "sha256": "c8c7eae36680b8880ff72ffa9af15888ac3791c7c3468f5c95f8e0989b687f47"
+    }
+  },
+  "sourceFiles": {
+    "internal/consensus/block_journal_prepared_native_json.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_journal_prepared_native_json.go",
+      "bytes": 2046,
+      "sha256": "14cf5c4db9aad2f4815a081309c9fa05d9b03e4bc80d1b7964d3d11785c94b0e"
+    },
+    "internal/consensus/block_journal_prepared_native_json_test.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_journal_prepared_native_json_test.go",
+      "bytes": 10149,
+      "sha256": "1e1ffe47104846ed29b0d5e3187bd8eacab9641b1c8d5712432f50a8d47d3a05"
+    },
+    "internal/consensus/block_journal_prepared_native_snapshot.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/block_journal_prepared_native_snapshot.go",
+      "bytes": 2334,
+      "sha256": "2b105218f1f75375fdf50236b82c7e5ff46652f1db7649ff2e8c4aba0a29824e"
+    },
+    "internal/consensus/state_hash_cached_fee_candidate.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/state_hash_cached_fee_candidate.go",
+      "bytes": 5927,
+      "sha256": "482231af04db4dffb45ae3161672479e6405aa9df7513e81c60d02087a9ff5cd"
+    },
+    ".github/workflows/chain-core.yml": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/.github/workflows/chain-core.yml",
+      "bytes": 52307,
+      "sha256": "5f65cc0409bf61d975183ea85caeb1ca537d52568832f8d17b520c2641a63797"
+    },
+    "scripts/verify/perf-prefix-replay-candidate-check.mjs": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/verify/perf-prefix-replay-candidate-check.mjs",
+      "bytes": 5848,
+      "sha256": "ea8706c4eb126c8d798f6bf97155e6ab16834beacf5253c1b37816677e970719"
+    }
+  },
+  "newMultiNodeRun": false,
+  "networkBenefitMeasured": false,
+  "clientDefaultProcsChanged": false,
+  "cacheLimitsChanged": false,
+  "readerGateChanged": false,
+  "durabilityChanged": false,
+  "sustainedTPSQualified": false
+}
