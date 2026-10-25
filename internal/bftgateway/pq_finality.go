@@ -251,11 +251,81 @@ func (g *Gateway) collectPQFinality(ctx context.Context, hash string) (PQFinalit
 // A committed outcome still takes the existing complete history validation.
 func (g *Gateway) collectPQABCIFinality(ctx context.Context, hash string) (PQFinalityView, error) {
 	view := PQFinalityView{Version: "YNX-PQ-RPC-TRANSACTION-PROOF/v1", Source: "configured-comet-rpc", Status: "unavailable", ABCITransactionHash: hash, ProofVerification: "not-performed"}
-	original, err := g.finalityLookupGateway().lookupPQMemberABCI(ctx, hash)
+	lookup := g.finalityLookupGateway()
+	tx, err := lookup.readPQMemberIndex(ctx, hash)
 	if err != nil {
 		return view, err
 	}
+	envelope, wire, err := consensus.DecodePQTransaction(tx.Tx)
+	if err != nil {
+		return view, err
+	}
+	// The canonical indexed envelope selects the existing ingress profile. A
+	// failed Whole lookup is never retried as a Member or another transaction.
+	if envelope.Type == consensus.PQWholeType {
+		_, payload, err := decodeIngressWhole(wire)
+		if err != nil || !bytes.Equal(payload, tx.Tx) {
+			return view, errors.New("indexed Whole is outside the supported ingress profile")
+		}
+		original, err := lookup.projectPQWhole(ctx, tx)
+		if err != nil {
+			return view, err
+		}
+		rejected := original.Status == "rejected"
+		if original.ABCITransactionHash != hash || original.ExecutionHeight == 0 || original.ExecutionHeight >= math.MaxInt64 || original.CometIndex == nil || (!rejected && (original.Status != "committed" || !original.Committed || !bytes.Equal(original.Whole, wire))) || (rejected && original.Committed) {
+			return view, errors.New("terminal indexed Whole execution unavailable")
+		}
+		outcome, err := pqWholeFinalityOutcome(wire, payload, tx.TxResult.Code, tx.TxResult.Data, original.ExecutionHeight)
+		if err != nil {
+			return view, err
+		}
+		firstResult := &pqWholeFinalityResult{code: tx.TxResult.Code, data: bytes.Clone(tx.TxResult.Data)}
+		return g.collectPQExecutionFinality(ctx, view, consensus.PQWholeType, outcome, wire, payload, original.BatchHash, original.ABCITransactionHash, original.ExecutionHeight, *original.CometIndex, firstResult)
+	}
+	original, err := lookup.projectPQMemberWithHistory(ctx, tx, nil, 0)
+	if err != nil {
+		return view, err
+	}
+	if original.ABCITransactionHash != hash {
+		return view, errors.New("original single PQ ABCI lookup hash mismatch")
+	}
 	return g.collectPQOriginalFinality(ctx, view, original)
+}
+
+// Whole Code0 may include rejected members. Its original canonical result is
+// retained in the deterministic execution proof, never replaced by a success
+// hash or by fabricated individual Comet transactions. A rejection before
+// admission may instead have no member results at all.
+func pqWholeFinalityOutcome(wire, payload []byte, code uint32, data []byte, height uint64) (string, error) {
+	if code != 0 && len(data) == 0 {
+		return "rejected", nil
+	}
+	result, fee, err := decodePQExecution(wire, payload, data, height)
+	if err != nil || (code == 0 && fee == 0) || (code != 0 && fee != 0) {
+		return "", errors.New("Whole finality lacks matching canonical execution outcomes")
+	}
+	partial := false
+	for _, member := range result.Results {
+		if len(member.Error) > 256 {
+			return "", errors.New("Whole finality member error exceeds proof profile")
+		}
+		partial = partial || member.Outcome == "rejected"
+	}
+	if code != 0 {
+		return "rejected", nil
+	}
+	if partial {
+		return "partial", nil
+	}
+	return "committed", nil
+}
+
+// This is the first indexed result used by projectPQWhole, not a new source of
+// trust. The second index read must preserve its exact outcome and member bytes
+// before any block/proof collection, even when both results remain partial.
+type pqWholeFinalityResult struct {
+	code uint32
+	data []byte
 }
 
 func (g *Gateway) collectPQOriginalFinality(ctx context.Context, view PQFinalityView, original PQMemberView) (PQFinalityView, error) {
@@ -267,7 +337,7 @@ func (g *Gateway) collectPQOriginalFinality(ctx context.Context, view PQFinality
 	if err != nil {
 		return view, err
 	}
-	return g.collectPQExecutionFinality(ctx, view, original.Status, original.Wire, payload, original.NativeTransactionHash, original.ABCITransactionHash, original.ExecutionHeight, *original.CometIndex)
+	return g.collectPQExecutionFinality(ctx, view, original.Type, original.Status, original.Wire, payload, original.NativeTransactionHash, original.ABCITransactionHash, original.ExecutionHeight, *original.CometIndex, nil)
 }
 
 // Typed actions retain their complete executor transport. Re-encoding a bare
@@ -296,14 +366,14 @@ func (g *Gateway) collectPQActionFinality(ctx context.Context, hash string, abci
 	if err != nil || !bytes.Equal(wire, original.Wire) || action.Kind != original.Type || action.Owner != original.From || action.Nonce != original.Nonce || action.Fee != original.Fee {
 		return view, errors.New("indexed action differs from complete original transport")
 	}
-	return g.collectPQExecutionFinality(ctx, view, original.Status, wire, original.Transport, original.NativeTransactionHash, original.ABCITransactionHash, original.ExecutionHeight, *original.CometIndex)
+	return g.collectPQExecutionFinality(ctx, view, consensus.PQActionType, original.Status, wire, original.Transport, original.NativeTransactionHash, original.ABCITransactionHash, original.ExecutionHeight, *original.CometIndex, nil)
 }
 
 // This read-only collector checks exact original bytes against actual Comet
 // index/result proofs. It neither builds an expected transaction/trust context
 // nor verifies consensus signatures: those remain independently pinned inputs
 // to the normal VerifyPQTransactionProof/CLI, including rejected outcomes.
-func (g *Gateway) collectPQExecutionFinality(ctx context.Context, view PQFinalityView, outcome string, wire, payload []byte, nativeHash, abciHash string, height uint64, index uint32) (PQFinalityView, error) {
+func (g *Gateway) collectPQExecutionFinality(ctx context.Context, view PQFinalityView, kind, outcome string, wire, payload []byte, nativeHash, abciHash string, height uint64, index uint32, firstWholeResult *pqWholeFinalityResult) (PQFinalityView, error) {
 	if consensus.SignedTransactionHash(wire) != nativeHash || consensus.SignedTransactionHash(payload) != abciHash {
 		return view, errors.New("indexed native identity differs from exact original wire")
 	}
@@ -318,7 +388,15 @@ func (g *Gateway) collectPQExecutionFinality(ctx context.Context, view PQFinalit
 	if tx.Height != h || tx.Index != index || !bytes.Equal(tx.Tx, payload) || consensus.SignedTransactionHash(tx.Tx) != abciHash || !bytes.Equal(tx.Hash, tx.Tx.Hash()) {
 		return view, errors.New("finality indexed transaction differs from exact original")
 	}
-	if rejected && (tx.TxResult.Code == 0 || len(tx.TxResult.Data) != 0) || !rejected && (tx.TxResult.Code != 0 || !bytes.Equal(tx.TxResult.Data, []byte(abciHash))) {
+	if kind == consensus.PQWholeType {
+		if firstWholeResult == nil || tx.TxResult.Code != firstWholeResult.code || !bytes.Equal(tx.TxResult.Data, firstWholeResult.data) {
+			return view, errors.New("finality Whole execution result differs from first indexed original")
+		}
+		actualOutcome, err := pqWholeFinalityOutcome(wire, payload, tx.TxResult.Code, tx.TxResult.Data, height)
+		if err != nil || actualOutcome != outcome {
+			return view, errors.New("finality Whole execution outcome differs from indexed original")
+		}
+	} else if rejected && (tx.TxResult.Code == 0 || len(tx.TxResult.Data) != 0) || !rejected && (tx.TxResult.Code != 0 || !bytes.Equal(tx.TxResult.Data, []byte(abciHash))) {
 		return view, errors.New("finality execution outcome or data differs from indexed original")
 	}
 	block, first, err := g.finalityBlock(ctx, h)
