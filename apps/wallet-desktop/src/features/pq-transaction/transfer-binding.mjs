@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {encodePQNativeTransfer, decodePQTransferRequest, preparePQTransferTransport, preparePQOriginalLookup} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {encodePQNativeTransfer, decodePQTransferRequest, preparePQTransferTransport, preparePQOriginalLookup, decodePQMigrationRequest, preparePQMigrationTransport} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {parsePQOriginalRecord} from '../../wallet-pq-intent-record.mjs';
 import {pqSubmissionIdentity} from '../../wallet-pq-progress.mjs';
 
@@ -44,6 +44,24 @@ export function preparePQTransferOriginal(value, {account, networkId}) {
   const transfer = bindTransfer(decoded.transfer, account, networkId);
   const request = preparePQTransferTransport(wire), identity = pqSubmissionIdentity(original);
   return Object.freeze({original, request, binding: Object.freeze({account, operationId:original.operationId, kind:original.kind, hash:original.hash, ...transfer, abciTransactionHash:identity.abciTransactionHash}), lookup: preparePQOriginalLookup(original.hash)});
+}
+
+/** Existing signed E6 only. No registration, new signature or authority is
+ * inferred from these public bytes; the independent migration owner admits
+ * the current policy at execution H. Keep the complete nested proofs intact. */
+export function preparePQMigrationOriginal(value,{account,networkId}) {
+  const original=parsePQOriginalRecord(value);networkBinding(account,networkId);
+  if(original.kind!=='pq-migration'||original.account!==account)fail('PQ_TRANSACTION_ORIGINAL_BINDING');
+  const wire=Buffer.from(original.wire,'base64url'),decoded=decodePQMigrationRequest(wire),intent=Object.freeze({...decoded.intent});
+  if(intent.owner!==account||intent.chainId!==networkId)fail('PQ_TRANSACTION_NETWORK_BINDING');
+  const request=preparePQMigrationTransport(wire),identity=pqSubmissionIdentity(original);
+  if(request.transportHash!==original.hash)fail('PQ_TRANSACTION_ORIGINAL_BINDING');
+  return Object.freeze({original,request,migration:true,binding:Object.freeze({account,operationId:original.operationId,kind:original.kind,hash:original.hash,chainId:networkId,nativeChainId:'6423',abciTransactionHash:identity.abciTransactionHash,transactionType:'account_migration',intent,currentAuthorization:decoded.currentAuthorization,intentSha256:createHash('sha256').update(decoded.intentBytes).digest('hex'),currentPQMemberHash:decoded.currentPQMember.length?'0x'+createHash('sha256').update(decoded.currentPQMember).digest('hex'):null,newKeyWholeProofHash:'0x'+createHash('sha256').update(decoded.newKeyWholeProof).digest('hex')})});
+}
+/** Backward-compatible standalone DATA dispatch; initial/typed stay on their
+ * existing separate paths, and may not be coerced to a transfer or migration. */
+export function preparePQStandaloneOriginal(value,binding){
+  return Object.getOwnPropertyDescriptor(value??{},'kind')?.value==='pq-migration'?preparePQMigrationOriginal(value,binding):preparePQTransferOriginal(value,binding);
 }
 
 export async function readPQTransferOriginal(intentStore, hash, {account, networkId, guard}) {

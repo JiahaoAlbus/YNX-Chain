@@ -2,6 +2,7 @@ import type {PQReviewedTypedTransportOriginal} from './typed-action-reviewed-tra
 import type {PQTypedActionHTTPResponse,PQTypedActionBroadcastHTTPResponse} from './typed-action-query.mjs';
 export type PQTransactionNodeTransport=Readonly<{
  submitTransfer(input:unknown,assertCurrent:()=>void):Promise<Readonly<{status:number;text:string}>>;
+ submitMigration(input:unknown,assertCurrent:()=>void):Promise<Readonly<{method:'POST';requestPath:string;status:number;contentType:string;cacheControl:string;body:Uint8Array}>>;
  readOriginal(hash:string):Promise<Readonly<{status:number;text:string}>>;
  readFinalityProof(original:unknown,binding:Readonly<{account:string;networkId:string}>):Promise<Readonly<{status:number;rawBytes:Uint8Array}>>;
  submitTypedAction(review:unknown,raw:Uint8Array,original:PQReviewedTypedTransportOriginal,assertCurrent:()=>void):Promise<PQTypedActionBroadcastHTTPResponse>;
@@ -11,6 +12,7 @@ export function createPQTransactionNodeTransport():PQTransactionNodeTransport;
 export class PQTransactionNodeTransportKernel {
  constructor(requestImpl:(...args:any[])=>any,clock?:()=>number);
  submitTransfer:PQTransactionNodeTransport['submitTransfer'];
+ submitMigration:PQTransactionNodeTransport['submitMigration'];
  readOriginal:PQTransactionNodeTransport['readOriginal'];
  readFinalityProof:PQTransactionNodeTransport['readFinalityProof'];
  submitTypedAction:PQTransactionNodeTransport['submitTypedAction'];

@@ -92,7 +92,7 @@ function networkFixture({status=200,headers={},payload=bytes(view()),events,onSt
 }
 const submit=(f,guard=()=>{},inputRaw=raw)=>f.kernel.submitTypedAction(review,inputRaw,original,guard);
 test('existing transport factory adds typed POST with exact JSON body, preflight pins and no followup request',async()=>{
- assert.deepEqual(Object.keys(createPQTransactionNodeTransport()),['submitTransfer','submitAccountInitial','readAccountInitialFinalityProof','readOriginal','readFinalityProof','submitTypedAction']);
+ assert.deepEqual(Object.keys(createPQTransactionNodeTransport()),['submitTransfer','submitMigration','submitAccountInitial','readAccountInitialFinalityProof','readOriginal','readFinalityProof','submitTypedAction']);
  const f=networkFixture(),r=await submit(f);assert.deepEqual(f.calls.map(c=>[c.options.method,c.url.pathname]),[['GET','/status'],['GET','/blocks/0'],['POST',path]]);
  for(const c of f.calls){assert.equal(c.url.origin,NORMAL_OPERATOR.origin);assert.equal(c.options.rejectUnauthorized,true);assert.equal(typeof c.options.checkServerIdentity,'function')}
  const post=f.calls[2];assert.equal(post.options.headers['content-type'],'application/json');assert.equal(post.options.headers['content-length'],String(raw.length));assert.deepEqual(post.body,raw);assert.equal(r.method,'POST');assert.equal(r.requestPath,path);assert.equal(inspectPQReviewedTypedActionBroadcast(review,raw,original,r).outcome,'inclusion-observed');

@@ -119,7 +119,7 @@ function transactionResult(value,code,expected){
  * All finality/authorization/retry decisions remain with the original owner. */
 export function parsePQTransferFinalityVerifierResult(original,binding,hostExpectedTransaction,execution){
   const expected=preparePQTransferFinalityTarget(original,binding,hostExpectedTransaction);
-  return parseResult({account:original.account,operationId:original.operationId,kind:'pq-transfer'},expected,execution);
+  return parseResult({account:original.account,operationId:original.operationId,kind:original.kind},expected,execution);
 }
 
 /** Same bounded CLI result DATA profile; original bytes and both snapshots
