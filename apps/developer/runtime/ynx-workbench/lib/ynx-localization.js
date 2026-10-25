@@ -4,6 +4,19 @@
 // pack supplies the host/editor translations; this contribution never claims
 // to be a complete display language on its own.
 const entries = [
+  ["contractOperation","Contract operation","合约操作"],
+  ["contractOperationdeploy","Deploy supported contract","部署受支持的合约"],
+  ["contractOperationexecute","Call deployed contract","调用已部署合约"],
+  ["executeFieldtarget","Deployed contract address","已部署合约地址"],
+  ["executeFieldsourceHash","Registered source hash","已登记的源码哈希"],
+  ["executeFielddeployedBytecodeHash","Deployed bytecode hash","已部署字节码哈希"],
+  ["executeFieldcompilerConfigHash","Compiler configuration hash","编译配置哈希"],
+  ["executeFieldexpectedStorageCommitment","Expected storage commitment","预期存储承诺"],
+  ["executeFieldcalldata","Encoded function call","已编码的函数调用"],
+  ["executeReview","Review contract call","审阅合约调用"],
+  ["contractReviewRequired","Review the current materials or contract call before requesting Wallet approval.","请求钱包批准前，请先审阅当前材料或合约调用。"],
+  ["executeInvalidCall","Review the supported contract, registered hashes, current storage commitment and encoded call. No transaction was automatically retried.","请核对受支持的合约、已登记哈希、当前存储承诺和已编码调用。本次没有自动重试交易。"],
+  ["deployButtoncancel","Cancel pending request","取消待处理请求"],
   ['deployTitle','Review testnet deployment','审阅测试网部署'],
   ['deployRecent','Saved project requests','已保存的项目请求'],
   ['deployInvalidMaterial','Choose matching compiler files for one of the two supported contracts and an explicit uint64 constructor value.','请选择当前支持的两种合约之一及匹配的编译文件，并明确填写 uint64 构造参数。'],
