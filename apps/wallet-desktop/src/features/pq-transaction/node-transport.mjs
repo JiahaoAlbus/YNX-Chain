@@ -32,9 +32,10 @@ export class PQTransactionNodeTransportKernel {
     return new Promise((resolve,reject)=>{
       let settled=false,size=0,timer,req,response,slab=null,used=0;const chunks=[];
       const destroy=stream=>{try {stream?.destroy();}catch {/* Preserve the original failure. */}};
-      const finish=(error,value)=>{
+      const finish=(...args)=>{
+        const [error,value]=args,failed=args.length===1;
         if(settled)return;settled=true;clearTimeout(timer);chunks.length=0;slab=null;used=0;
-        if(error){destroy(response);destroy(req);reject(error);}else resolve(value);
+        if(failed){destroy(response);destroy(req);reject(error);}else resolve(value);
       };
       const stop=code=>finish(Object.assign(Error(code),{code}));
       const maximum=typedQuery||typedBroadcast?PQ_TYPED_QUERY_MAX_BYTES:finalityBytes||typedProof?PQ_FINALITY_COLLECTOR_LIMITS.proofBytes+PQ_FINALITY_COLLECTOR_LIMITS.envelopeBytes:PQ_PROGRESS_RESPONSE_BYTES;
