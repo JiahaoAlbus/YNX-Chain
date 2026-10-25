@@ -40,6 +40,7 @@ const SESSION_FIELDS = [
 const SNAPSHOT_FIELDS = ["schemaVersion", "sessions", "issuedChallenges", "consumedNonces", "consumedStates", "consumedRequests", "consumedChallenges", "revokedSessions", "revokedDevices", "revokedAccounts"];
 
 export function createProductSessionRequest(registryInput, input, at = new Date()) {
+  if(input?.deviceAlgorithm===PQ_SUITE)return createRequestV4(registryInput,input,at);
   exactFields(input, ["productId", "platform", "deviceId", "deviceKey", "scopes", "purpose", "nonce", "state", ...(Object.hasOwn(input, "finiteServiceSeconds") ? ["finiteServiceSeconds"] : [])], "Product Session request input");
   const binding = productPlatformBinding(registryInput, input.productId, input.platform);
   const now = validDate(at);
@@ -56,7 +57,7 @@ export function createProductSessionRequest(registryInput, input, at = new Date(
     callback: binding.callback,
     deviceId: opaque(input.deviceId, "deviceId"),
     deviceAlgorithm: "p256-sha256",
-    deviceKey: deviceKey(input.deviceKey),
+    deviceKey: legacyDeviceKey(input.deviceKey),
     nonce: token(input.nonce, "nonce"),
     state: token(input.state, "state"),
     scopes: scopes(input.scopes, binding.scopes),
@@ -88,6 +89,7 @@ export function migrateLegacyProductSessionRequest(registryInput, legacy, contex
 }
 
 export function parseProductSessionRequest(registryInput, input, at = new Date()) {
+  if(input?.version==='4')return parseRequestV4(registryInput,input,at);
   exactFields(input, consentFields(input, REQUEST_FIELDS), "Product Session request");
   const now = validDate(at);
   if (input.version !== PRODUCT_SESSION_PROTOCOL_VERSION || input.chainId !== "ynx_6423-1" || !PRODUCT_SESSION_PLATFORMS.includes(input.platform)) fail("INVALID_SESSION_REQUEST", "Product Session protocol, chain or platform is unsupported");
@@ -105,7 +107,7 @@ export function parseProductSessionRequest(registryInput, input, at = new Date()
     callback: canonicalCallback(input.callback),
     deviceId: opaque(input.deviceId, "deviceId"),
     deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/),
-    deviceKey: deviceKey(input.deviceKey),
+    deviceKey: legacyDeviceKey(input.deviceKey),
     nonce: token(input.nonce, "nonce"),
     state: token(input.state, "state"),
     scopes: Object.freeze(scopes(input.scopes, binding.scopes)),
@@ -126,11 +128,12 @@ export function parseProductSessionRequest(registryInput, input, at = new Date()
 }
 
 export function productSessionRequestDigest(registryInput, request, at = new Date()) {
-  return digestHex("YNX_PRODUCT_SESSION_REQUEST_V2", parseProductSessionRequest(registryInput, request, at));
+  return digestHex(request?.version==='4'?"YNX_PRODUCT_SESSION_REQUEST_V4":"YNX_PRODUCT_SESSION_REQUEST_V2", parseProductSessionRequest(registryInput, request, at));
 }
 
 export function signProductSessionApproval(registryInput, requestInput, input, at = new Date()) {
   const request = parseProductSessionRequest(registryInput, requestInput, at);
+  if(request.version==='4')fail('PQ_ACCOUNT_APPROVAL_REQUIRED','Version4 approval cannot use a classic account signer');
   exactFields(input, ["accountSecret", "scopes", "expiresAt", ...(request.serviceConsent ? ["approvedServiceConsent"] : [])], "Product Session approval input");
   if (request.serviceConsent && canonicalJSON(parseFinanceFiniteServiceConsent(request, input.approvedServiceConsent, {requestIssuedAt: request.issuedAt})) !== canonicalJSON(request.serviceConsent)) fail("SERVICE_CONSENT_BINDING_MISMATCH", "Wallet must explicitly approve the exact displayed finite service consent");
   const secret = accountSecret(input.accountSecret);
@@ -170,7 +173,8 @@ export function signProductSessionApproval(registryInput, requestInput, input, a
 
 export function parseProductSessionApproval(registryInput, requestInput, input, at = new Date(), verifiedPQApproval = null) {
   const request = parseProductSessionRequest(registryInput, requestInput, at);
-  if (input?.version === "3") return captureVerifiedPQSessionApproval(verifiedPQApproval, input, productSessionRequestDigest(registryInput, request, at), at);
+  if((request.version==='4')!==(input?.version==='4'))fail('PQ_APPROVAL_VERSION_MISMATCH','Device version and account approval version cannot cross');
+  if (input?.version === "3" || input?.version === "4") return captureVerifiedPQSessionApproval(verifiedPQApproval, input, productSessionRequestDigest(registryInput, request, at), at);
   exactFields(input, [...APPROVAL_FIELDS, ...(request.serviceConsent ? ["serviceConsent"] : [])], "Product Session approval");
   const approval = Object.freeze({
     ...input,
@@ -183,7 +187,7 @@ export function parseProductSessionApproval(registryInput, requestInput, input, 
     bundleId: platformIdentity(input.bundleId, "bundleId"),
     packageId: platformIdentity(input.packageId, "packageId"),
     origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback),
-    deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey),
+    deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: legacyDeviceKey(input.deviceKey),
     nonce: token(input.nonce, "nonce"), state: token(input.state, "state"),
     account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),
     accountPublicKey: pattern(input.accountPublicKey, "accountPublicKey", /^(02|03)[0-9a-f]{64}$/),
@@ -211,6 +215,10 @@ export function createProductSessionChallenge(registryInput, requestInput, appro
 }
 
 function challengeFromVerifiedApproval(registryInput, request, approval, input, at) {
+  if(request.version==='4'){
+    const now=validDate(at),b=productPlatformBinding(registryInput,request.productId,request.platform),expiresAt=new Date(Math.min(+now+CHALLENGE_MAX_LIFETIME_MS,Date.parse(approval.expiresAt))).toISOString();
+    return parseChallengeV4({version:'4',...v4Binding(request),...v4DeviceFields(request),challenge:token(input.challenge,'challenge'),requestDigest:approval.requestDigest,approvalDigest:productSessionApprovalDigest(approval),nonce:request.nonce,state:request.state,account:approval.account,accountAuthorization:approval.accountAuthorization,scopes:approval.scopes,issuedAt:now.toISOString(),expiresAt,sessionExpiresAt:new Date(Math.min(Date.parse(approval.expiresAt),+now+b.sessionDurationSeconds*1000)).toISOString()});
+  }
   const binding = productPlatformBinding(registryInput, request.productId, request.platform);
   const now = validDate(at);
   const expiresAt = new Date(Math.min(now.getTime() + CHALLENGE_MAX_LIFETIME_MS, Date.parse(approval.expiresAt))).toISOString();
@@ -228,6 +236,7 @@ function challengeFromVerifiedApproval(registryInput, request, approval, input, 
 
 export function signProductSessionChallenge(challengeInput, deviceSecretInput) {
   const challenge = parseChallenge(challengeInput);
+  if(challenge.version==='4')fail('PQ_DEVICE_REQUIRED','Version4 challenge cannot use a classic device signer');
   const secret = deviceSecret(deviceSecretInput);
   if (encodeBase64url(p256.getPublicKey(secret, true)) !== challenge.deviceKey) fail("DEVICE_CHANGED", "Product device key changed before session completion");
   const signature = p256.sign(utf8ToBytes(challengeSignBytes(challenge)), secret, { format: "der" });
@@ -236,6 +245,7 @@ export function signProductSessionChallenge(challengeInput, deviceSecretInput) {
 
 export async function signProductSessionChallengeWith(challengeInput, signer) {
   const challenge = parseChallenge(challengeInput);
+  if(challenge.version==='4')fail('PQ_DEVICE_REQUIRED','Version4 challenge requires fixed dual-PQ Native producer');
   if (typeof signer !== "function") fail("INVALID_DEVICE", "Product Session requires a platform device signer");
   const payload = encodeBase64url(utf8ToBytes(challengeSignBytes(challenge)));
   let deviceSignature;
@@ -342,12 +352,13 @@ export class ProductSessionAuthority {
 
 export function parseProductSession(input) { return parseSession(input); }
 export function parseProductSessionAuthoritySnapshot(input) { return parseSnapshot(input); }
-export function productSessionApprovalDigest(approval) { return digestHex(approval.version === "3" ? "YNX_PRODUCT_SESSION_APPROVAL_V3" : "YNX_PRODUCT_SESSION_APPROVAL_V2", approval); }
+export function productSessionApprovalDigest(approval) { return digestHex(approval.version==='4'?"YNX_PRODUCT_SESSION_APPROVAL_V4":approval.version === "3" ? "YNX_PRODUCT_SESSION_APPROVAL_V3" : "YNX_PRODUCT_SESSION_APPROVAL_V2", approval); }
 export function deviceBinding(requestOrSession, account) { return digestHex("YNX_PRODUCT_SESSION_DEVICE_V2", { chainId: requestOrSession.chainId, productId: requestOrSession.productId, clientId: requestOrSession.clientId, platform: requestOrSession.platform, applicationId: requestOrSession.applicationId, bundleId: requestOrSession.bundleId, packageId: requestOrSession.packageId, origin: requestOrSession.origin, callback: requestOrSession.callback, account, deviceId: requestOrSession.deviceId, deviceAlgorithm: requestOrSession.deviceAlgorithm, deviceKey: requestOrSession.deviceKey }); }
 
 function parseChallenge(input) {
+  if(input?.version==='4')return parseChallengeV4(input);
   exactFields(input, consentFields(input, CHALLENGE_FIELDS), "Product Session challenge");
-  const value = Object.freeze({ ...input, ...parseConsent(input), version: pattern(input.version, "version", /^2$/), challenge: token(input.challenge, "challenge"), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), chainId: pattern(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), scopes: Object.freeze(scopes(input.scopes, input.scopes)), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt"), sessionExpiresAt: time(input.sessionExpiresAt, "sessionExpiresAt") });
+  const value = Object.freeze({ ...input, ...parseConsent(input), version: pattern(input.version, "version", /^2$/), challenge: token(input.challenge, "challenge"), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), chainId: pattern(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: legacyDeviceKey(input.deviceKey), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), scopes: Object.freeze(scopes(input.scopes, input.scopes)), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt"), sessionExpiresAt: time(input.sessionExpiresAt, "sessionExpiresAt") });
   validatePlatformIdentifiers(value);
   const serviceValid = value.serviceConsent
     ? value.sessionExpiresAt === value.serviceConsent.expiresAt && value.issuedAt >= value.serviceConsent.issuedAt && Date.parse(value.expiresAt) <= Date.parse(value.serviceConsent.issuedAt) + REQUEST_MAX_LIFETIME_MS
@@ -358,6 +369,33 @@ function parseChallenge(input) {
 // Version4 sessions retain the original session codec/authority, with a new
 // device registration binding. Decoding never supplies its active Source.
 const SESSION_FIELDS_V4=SESSION_FIELDS.filter(k=>!['deviceKey','deviceBinding'].includes(k)).concat(['deviceRegistrationId','deviceRegistrationRevision','deviceRegistrationDigest','accountAuthorization']);
+const DEVICE_FIELDS_V4=['deviceRegistrationId','deviceRegistrationRevision','deviceRegistrationDigest'];
+const REQUEST_FIELDS_V4=REQUEST_FIELDS.filter(k=>k!=='deviceKey').concat(DEVICE_FIELDS_V4);
+const CHALLENGE_FIELDS_V4=CHALLENGE_FIELDS.filter(k=>k!=='deviceKey').concat(DEVICE_FIELDS_V4,['accountAuthorization']);
+function v4DeviceFields(input){
+ if(input.deviceAlgorithm!==PQ_SUITE)fail('PQ_DEVICE_REQUIRED','Only the dual-PQ device suite is allowed');
+ const revision=pattern(input.deviceRegistrationRevision,'deviceRegistrationRevision',/^[1-9][0-9]{0,19}$/);if(BigInt(revision)>((1n<<64n)-1n))fail('INVALID_SESSION','Device revision exceeds U64');
+ return {deviceId:opaque(input.deviceId,'deviceId'),deviceAlgorithm:PQ_SUITE,deviceRegistrationId:pattern(input.deviceRegistrationId,'deviceRegistrationId',/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),deviceRegistrationRevision:revision,deviceRegistrationDigest:digest(input.deviceRegistrationDigest,'deviceRegistrationDigest')};
+}
+function v4Binding(input){
+ const value={chainId:pattern(input.chainId,'chainId',/^ynx_6423-1$/),productId:pattern(input.productId,'productId',/^[a-z][a-z0-9-]{1,31}$/),clientId:pattern(input.clientId,'clientId',/^[a-z][a-z0-9._-]{2,63}$/),platform:pattern(input.platform,'platform',/^(android|ios|linux|macos|web|windows)$/),applicationId:pattern(input.applicationId,'applicationId',/^[A-Za-z][A-Za-z0-9.-]{2,131}$/),bundleId:platformIdentity(input.bundleId,'bundleId'),packageId:platformIdentity(input.packageId,'packageId'),origin:canonicalOrigin(input.origin),callback:canonicalCallback(input.callback)};validatePlatformIdentifiers(value);return value;
+}
+function createRequestV4(registry,input,at){
+ exactPQRecord(input,['productId','platform','deviceId','deviceAlgorithm',...DEVICE_FIELDS_V4,'scopes','purpose','nonce','state']);
+ const b=productPlatformBinding(registry,input.productId,input.platform),now=validDate(at);
+ return parseRequestV4(registry,{...v4Binding(b),version:'4',...v4DeviceFields(input),nonce:input.nonce,state:input.state,scopes:input.scopes,purpose:input.purpose,issuedAt:now.toISOString(),expiresAt:new Date(+now+REQUEST_MAX_LIFETIME_MS).toISOString()},at);
+}
+function parseRequestV4(registry,input,at){
+ exactPQRecord(input,REQUEST_FIELDS_V4);const b=productPlatformBinding(registry,input.productId,input.platform),bound=v4Binding(input),now=validDate(at);
+ for(const k of Object.keys(bound))if(bound[k]!==b[k])fail('SESSION_BINDING_MISMATCH','Original version4 product binding changed');
+ const value=Object.freeze({version:'4',...bound,...v4DeviceFields(input),nonce:token(input.nonce,'nonce'),state:token(input.state,'state'),scopes:Object.freeze(scopes(input.scopes,b.scopes)),purpose:text(input.purpose,'purpose',1,180),issuedAt:time(input.issuedAt,'issuedAt'),expiresAt:time(input.expiresAt,'expiresAt')});
+ if(value.expiresAt<=value.issuedAt||Date.parse(value.expiresAt)-Date.parse(value.issuedAt)>REQUEST_MAX_LIFETIME_MS||Date.parse(value.issuedAt)>+now+30000||Date.parse(value.expiresAt)<=+now)fail('INVALID_EXPIRY','Version4 request time refused');return value;
+}
+function parseChallengeV4(input){
+ exactPQRecord(input,CHALLENGE_FIELDS_V4);
+ const account=pattern(input.account,'account',/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),value=Object.freeze({version:'4',...v4Binding(input),...v4DeviceFields(input),account,accountAuthorization:parseSessionAccountAuthorization(input.accountAuthorization,account),challenge:token(input.challenge,'challenge'),requestDigest:digest(input.requestDigest,'requestDigest'),approvalDigest:digest(input.approvalDigest,'approvalDigest'),nonce:token(input.nonce,'nonce'),state:token(input.state,'state'),scopes:Object.freeze(scopes(input.scopes,input.scopes)),issuedAt:time(input.issuedAt,'issuedAt'),expiresAt:time(input.expiresAt,'expiresAt'),sessionExpiresAt:time(input.sessionExpiresAt,'sessionExpiresAt')});
+ if(value.expiresAt<=value.issuedAt||Date.parse(value.expiresAt)-Date.parse(value.issuedAt)>CHALLENGE_MAX_LIFETIME_MS||value.sessionExpiresAt<value.expiresAt||Date.parse(value.sessionExpiresAt)-Date.parse(value.issuedAt)>REQUEST_MAX_LIFETIME_MS)fail('INVALID_EXPIRY','Version4 challenge time refused');return value;
+}
 function sessionV4Core(input){
  const value={...parseConsent(input),version:'4',chainId:pattern(input.chainId,'chainId',/^ynx_6423-1$/),productId:pattern(input.productId,'productId',/^[a-z][a-z0-9-]{1,31}$/),clientId:pattern(input.clientId,'clientId',/^[a-z][a-z0-9._-]{2,63}$/),platform:pattern(input.platform,'platform',/^(android|ios|linux|macos|web|windows)$/),applicationId:pattern(input.applicationId,'applicationId',/^[A-Za-z][A-Za-z0-9.-]{2,131}$/),bundleId:platformIdentity(input.bundleId,'bundleId'),packageId:platformIdentity(input.packageId,'packageId'),origin:canonicalOrigin(input.origin),callback:canonicalCallback(input.callback),account:pattern(input.account,'account',/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),deviceId:opaque(input.deviceId,'deviceId'),deviceAlgorithm:PQ_SUITE,deviceRegistrationId:pattern(input.deviceRegistrationId,'deviceRegistrationId',/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/),deviceRegistrationRevision:pattern(input.deviceRegistrationRevision,'deviceRegistrationRevision',/^[1-9][0-9]{0,19}$/),deviceRegistrationDigest:digest(input.deviceRegistrationDigest,'deviceRegistrationDigest'),nonce:token(input.nonce,'nonce'),state:token(input.state,'state'),scopes:Object.freeze(scopes(input.scopes,input.scopes)),requestDigest:digest(input.requestDigest,'requestDigest'),approvalDigest:digest(input.approvalDigest,'approvalDigest'),issuedAt:time(input.issuedAt,'issuedAt'),expiresAt:time(input.expiresAt,'expiresAt'),accountAuthorization:parseSessionAccountAuthorization(input.accountAuthorization,input.account)};
  if(input.version!=='4'||input.deviceAlgorithm!==PQ_SUITE||BigInt(value.deviceRegistrationRevision)>((1n<<64n)-1n)||value.expiresAt<=value.issuedAt)fail('INVALID_SESSION','Invalid version4 session binding or lifetime');
@@ -376,7 +414,7 @@ function parseSessionV4(input){
  if(binding!==digestHex('YNX_PRODUCT_SESSION_BINDING_V4',core))fail('INVALID_SESSION','Version4 session requires its complete original registration binding');
  return Object.freeze({...core,sessionBinding:binding});
 }
-function parseSession(input) { if(input?.version==='4')return parseSessionV4(input); exactFields(input, consentFields(input, input?.version === "3" ? [...SESSION_FIELDS,"accountAuthorization"] : SESSION_FIELDS), "Product Session"); const value = Object.freeze({ ...input, ...(input.version === "3" ? {accountAuthorization: parseSessionAccountAuthorization(input.accountAuthorization,input.account)} : {}), ...parseConsent(input), version: pattern(input.version, "version", /^(2|3)$/), sessionBinding: digest(input.sessionBinding, "sessionBinding"), chainId: pattern(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), deviceBinding: digest(input.deviceBinding, "deviceBinding"), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), scopes: Object.freeze(scopes(input.scopes, input.scopes)), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt") }); validatePlatformIdentifiers(value); if (value.serviceConsent && (value.expiresAt !== value.serviceConsent.expiresAt || value.issuedAt < value.serviceConsent.issuedAt || Date.parse(value.issuedAt) >= Date.parse(value.serviceConsent.issuedAt) + REQUEST_MAX_LIFETIME_MS)) fail("INVALID_SERVICE_CONSENT_TIME", "Stored finite service session is outside its approved window"); if (value.expiresAt <= value.issuedAt || value.deviceBinding !== deviceBinding(value, value.account)) fail("INVALID_SESSION", "Product Session security binding or lifetime is invalid"); return value; }
+function parseSession(input) { if(input?.version==='4')return parseSessionV4(input); exactFields(input, consentFields(input, input?.version === "3" ? [...SESSION_FIELDS,"accountAuthorization"] : SESSION_FIELDS), "Product Session"); const value = Object.freeze({ ...input, ...(input.version === "3" ? {accountAuthorization: parseSessionAccountAuthorization(input.accountAuthorization,input.account)} : {}), ...parseConsent(input), version: pattern(input.version, "version", /^(2|3)$/), sessionBinding: digest(input.sessionBinding, "sessionBinding"), chainId: pattern(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: legacyDeviceKey(input.deviceKey), deviceBinding: digest(input.deviceBinding, "deviceBinding"), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), scopes: Object.freeze(scopes(input.scopes, input.scopes)), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt") }); validatePlatformIdentifiers(value); if (value.serviceConsent && (value.expiresAt !== value.serviceConsent.expiresAt || value.issuedAt < value.serviceConsent.issuedAt || Date.parse(value.issuedAt) >= Date.parse(value.serviceConsent.issuedAt) + REQUEST_MAX_LIFETIME_MS)) fail("INVALID_SERVICE_CONSENT_TIME", "Stored finite service session is outside its approved window"); if (value.expiresAt <= value.issuedAt || value.deviceBinding !== deviceBinding(value, value.account)) fail("INVALID_SESSION", "Product Session security binding or lifetime is invalid"); return value; }
 function parseSnapshot(input) { exactFields(input, SNAPSHOT_FIELDS, "Product Session authority snapshot"); if (input.schemaVersion !== PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION) fail("INVALID_SESSION_STORE", "Product Session authority snapshot version is unsupported"); const value = { schemaVersion: input.schemaVersion, sessions: sortedUnique(input.sessions.map(parseSession), (item) => item.sessionBinding, "sessions"), issuedChallenges: sortedUnique(input.issuedChallenges.map(parseChallenge), (item) => item.challenge, "issuedChallenges"), consumedNonces: stringSet(input.consumedNonces, /^[A-Za-z0-9_-]{32,64}$/, "consumedNonces"), consumedStates: stringSet(input.consumedStates, /^[A-Za-z0-9_-]{32,64}$/, "consumedStates"), consumedRequests: stringSet(input.consumedRequests, /^[0-9a-f]{64}$/, "consumedRequests"), consumedChallenges: stringSet(input.consumedChallenges, /^[A-Za-z0-9_-]{32,64}$/, "consumedChallenges"), revokedSessions: stringSet(input.revokedSessions, /^[0-9a-f]{64}$/, "revokedSessions"), revokedDevices: stringSet(input.revokedDevices, /^[0-9a-f]{64}$/, "revokedDevices"), revokedAccounts: sortedUnique(input.revokedAccounts.map((item) => { exactFields(item, ["account", "before"], "revoked account"); return Object.freeze({ account: pattern(item.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), before: time(item.before, "before") }); }), (item) => item.account, "revokedAccounts") }; if (value.sessions.length !== value.consumedNonces.length || value.sessions.length !== value.consumedStates.length || value.sessions.length !== value.consumedRequests.length || value.sessions.length !== value.consumedChallenges.length || value.issuedChallenges.some((item) => value.consumedChallenges.includes(item.challenge))) fail("INVALID_SESSION_STORE", "Issued and consumed records must exactly cover Product Sessions without overlap"); return freezeSnapshot(value); }
 function emptySnapshot() { return { schemaVersion: PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION, sessions: [], issuedChallenges: [], consumedNonces: [], consumedStates: [], consumedRequests: [], consumedChallenges: [], revokedSessions: [], revokedDevices: [], revokedAccounts: [] }; }
 // Match sortedUnique's default string ordering, including mixed-case base64url
@@ -397,7 +435,7 @@ function platformIdentity(value, label) { return value === null ? null : pattern
 function validatePlatformIdentifiers(value, errorCode = "SESSION_BINDING_MISMATCH") { const expectsBundle = value.platform === "ios" || value.platform === "macos"; const expectsPackage = value.platform === "android" || value.platform === "linux" || value.platform === "windows"; if ((value.bundleId !== null) !== expectsBundle || (value.packageId !== null) !== expectsPackage || (value.bundleId !== null && value.bundleId !== value.applicationId) || (value.packageId !== null && value.packageId !== value.applicationId)) fail(errorCode, "Product Session bundleId/packageId does not match its registered platform identity"); }
 function canonicalOrigin(value) { const normalized = text(value, "origin", 8, 512); let parsed; try { parsed = new URL(normalized); } catch { fail("INVALID_ORIGIN", "Product Session origin is invalid"); } if (parsed.protocol === "https:" && parsed.origin === normalized && !parsed.port) return normalized; if (parsed.protocol === "app:" && /^app:\/\/(android|ios|linux|macos|windows)\/[A-Za-z][A-Za-z0-9.-]{2,127}$/.test(normalized)) return normalized; fail("INVALID_ORIGIN", "Product Session origin must be an exact HTTPS or registered native origin"); }
 function canonicalCallback(value) { const normalized = text(value, "callback", 8, 512); let parsed; try { parsed = new URL(normalized); } catch { fail("CALLBACK_MISMATCH", "Product Session callback is invalid"); } if (["data:", "file:", "http:", "javascript:"].includes(parsed.protocol) || parsed.username || parsed.password || parsed.hash || parsed.search || parsed.toString() !== normalized) fail("CALLBACK_MISMATCH", "Product Session callback is unsafe or non-canonical"); return normalized; }
-function deviceKey(value) { const normalized = pattern(value, "deviceKey", /^[A-Za-z0-9_-]{44}$/); const bytes = decodeBase64url(normalized, "deviceKey"); if (bytes.length !== 33 || encodeBase64url(bytes) !== normalized) fail("INVALID_DEVICE_KEY", "Product Session device key is invalid"); try { p256.Point.fromBytes(bytes); } catch { fail("INVALID_DEVICE_KEY", "Product Session device key is not P-256"); } return normalized; }
+function legacyDeviceKey(value) { const normalized = pattern(value, "deviceKey", /^[A-Za-z0-9_-]{44}$/); const bytes = decodeBase64url(normalized, "deviceKey"); if (bytes.length !== 33 || encodeBase64url(bytes) !== normalized) fail("INVALID_DEVICE_KEY", "Product Session device key is invalid"); try { p256.Point.fromBytes(bytes); } catch { fail("INVALID_DEVICE_KEY", "Product Session device key is not P-256"); } return normalized; }
 function accountSecret(value) { if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value)) fail("INVALID_SECRET", "Wallet account secret is invalid"); const bytes = hexToBytes(value); if (!secp256k1.utils.isValidSecretKey(bytes)) fail("INVALID_SECRET", "Wallet account secret is outside secp256k1"); return bytes; }
 function deviceSecret(value) { const bytes = decodeBase64url(value, "deviceSecret"); if (bytes.length !== 32 || !p256.utils.isValidSecretKey(bytes)) fail("INVALID_SECRET", "Product device secret is invalid"); return bytes; }
 function token(value, label) { return pattern(value, label, /^[A-Za-z0-9_-]{32,64}$/); }
@@ -411,6 +449,9 @@ function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function fail(code, message) { throw new WalletAuthError(code, message); }
 
 function sessionFromApprovalChallenge(request,approval,challenge){
+  if(request.version==='4'){
+    const core={version:'4',...v4Binding(request),...v4DeviceFields(request),account:approval.account,accountAuthorization:approval.accountAuthorization,nonce:request.nonce,state:request.state,scopes:approval.scopes,requestDigest:approval.requestDigest,approvalDigest:challenge.approvalDigest,issuedAt:challenge.issuedAt,expiresAt:challenge.sessionExpiresAt};return parseSessionV4({...core,sessionBinding:deriveProductSessionBindingV4Data(core)});
+  }
   return parseSession({
       version: approval.version,
       ...(approval.version === "3" ? {accountAuthorization: approval.accountAuthorization} : {}),
@@ -443,4 +484,15 @@ export function deriveProductSessionCompletionTarget(registry,raw,verification,a
   if(canonicalJSON(challenge)!==canonicalJSON(original.completion.challenge))fail("SESSION_BINDING_MISMATCH","Completion challenge changed");
   const request=parseProductSessionRequest(registry,original.request,new Date(challenge.issuedAt));
   return sessionFromApprovalChallenge(request,held.approval,challenge);
+}
+
+/** Caller must independently verify the full account approval and device PoP,
+ * same original pending registration/current and once native approval before
+ * committing through the existing Auth pairing/session transaction. */
+export function deriveProductSessionV4TargetData(registry,request,approval,challenge){
+ const at=new Date(challenge?.issuedAt),r=parseProductSessionRequest(registry,request,at),c=parseProductSessionChallenge(challenge);
+ if(r.version!=='4'||approval?.version!=='4'||c.version!=='4'||c.requestDigest!==productSessionRequestDigest(registry,r,at)||c.approvalDigest!==productSessionApprovalDigest(approval))fail('PQ_SESSION_V4_REQUIRED','Exact version4 originals required');
+ for(const k of ['chainId','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId','deviceAlgorithm','deviceRegistrationId','deviceRegistrationRevision','deviceRegistrationDigest','nonce','state'])if(c[k]!==r[k]||approval[k]!==r[k])fail('SESSION_BINDING_MISMATCH','Original version4 request tuple changed');
+ if(c.account!==approval.account||canonicalJSON(c.accountAuthorization)!==canonicalJSON(approval.accountAuthorization)||canonicalJSON(c.scopes)!==canonicalJSON(r.scopes)||canonicalJSON(c.scopes)!==canonicalJSON(approval.scopes)||c.sessionExpiresAt>approval.expiresAt||c.expiresAt>approval.expiresAt)fail('SESSION_BINDING_MISMATCH','Original version4 approval/challenge changed');
+ return Object.freeze({session:sessionFromApprovalChallenge(r,approval,c),dataOnly:true,registered:false,authorized:false,nativeAdmission:false});
 }

@@ -11,6 +11,7 @@ export const PQ_PRODUCT_SESSION_PURPOSE='PRODUCT-SESSION-APPROVAL';
 const fail=code=>{throw new WalletAuthError(code,code)};
 function unsigned(registry,request,input,policyRef,at,sourceAt=at){
   const r=parseProductSessionRequest(registry,request,at);
+  if(r.version==='4')fail('PQ_APPROVAL_V4_REQUIRED');
   const view=readAccountPolicyObservation(policyRef,input.account,sourceAt);
   const authorization=accountAuthorizationFromView(view);
   const issuedAt=input.issuedAt,expiresAt=input.expiresAt;
@@ -26,6 +27,7 @@ function signingBytes(request,value){
 }
 export function preparePQProductSessionApproval(registry,request,input,policyRef,at=new Date()){
   const r=parseProductSessionRequest(registry,request,at);
+  if(r.version==='4')fail('PQ_APPROVAL_V4_REQUIRED');
   exactPQRecord(input,['account','expiresAt',...(r.serviceConsent?['approvedServiceConsent']:[])]);
   if(r.serviceConsent&&canonicalJSON(input.approvedServiceConsent)!==canonicalJSON(r.serviceConsent))fail('SERVICE_CONSENT_BINDING_MISMATCH');
   const value=unsigned(registry,r,{...input,issuedAt:at.toISOString()},policyRef,at);

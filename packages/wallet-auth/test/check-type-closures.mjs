@@ -5,7 +5,7 @@ import path from 'node:path';
 const argument=prefix=>process.argv.find(a=>a.startsWith(prefix))?.slice(prefix.length);
 const root=realpathSync(argument('--root=')??process.cwd());
 const selected=argument('--only=');
-const configurations={main:'tsconfig.types.json',browser:'tsconfig.browser-types.json','node-private':'tsconfig.node-private-types.json'};
+const configurations={main:'tsconfig.types.json',browser:'tsconfig.browser-types.json','node-private':'tsconfig.node-private-types.json','device-v4':'test/tsconfig.device-v4-consumer.json'};
 if(selected&&!Object.hasOwn(configurations,selected))throw Error('SDK_TYPE_PROJECT_UNKNOWN');
 const localModules=path.join(root,'node_modules');
 if(lstatSync(localModules).isSymbolicLink())throw Error('SDK_TYPE_CLOSURE_CANNOT_USE_NODE_MODULES_ALIAS');
@@ -17,9 +17,10 @@ for(const [kind,file] of Object.entries(configurations)){
   const pkg=JSON.parse(readFileSync(path.join(root,'package.json')));
   if(pkg.devDependencies?.['@types/node']!==nodeMeta.version)throw Error('SDK_NODE_TYPES_VERSION_NOT_DECLARED');
  }
- const input=ts.readConfigFile(path.join(root,file),ts.sys.readFile);
+ const configPath=path.join(root,file);
+ const input=ts.readConfigFile(configPath,ts.sys.readFile);
  if(input.error)throw Error(ts.flattenDiagnosticMessageText(input.error.messageText,'\n'));
- const config=ts.parseJsonConfigFileContent(input.config,ts.sys,root);
+ const config=ts.parseJsonConfigFileContent(input.config,ts.sys,path.dirname(configPath),undefined,configPath);
  if(config.errors.length)throw Error(ts.formatDiagnosticsWithColorAndContext(config.errors,{getCanonicalFileName:f=>f,getCurrentDirectory:()=>root,getNewLine:()=> '\n'}));
  const program=ts.createProgram(config.fileNames,config.options);
  const externalTypes=program.getSourceFiles().filter(f=>f.fileName.includes('/node_modules/@types/')&&!path.resolve(f.fileName).startsWith(localModules+path.sep));

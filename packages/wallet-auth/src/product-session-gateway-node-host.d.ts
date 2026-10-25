@@ -26,6 +26,7 @@ export type ProductSessionGatewayNodeHostOptions=Readonly<{
   centralBackend?:Readonly<{backendClients:readonly Readonly<{clientId:string;keyId:string;publicKey:string}>[];familySealKey:unknown}>;
   centralOIDC?:unknown;
   accountPolicy?:Readonly<{mode:'required';run:OriginalAccountPolicyRunner}>;
+  deviceCurrent?:import('./product-session-device-v4.js').OriginalProductSessionDeviceCurrentSourceV4;
 }>;
 /** familySealKey must be a Node Buffer of 32 bytes; explicit central adoption and exact provisioned public keys are required. */
 export declare class ProductSessionGatewayNodeHost {
@@ -33,6 +34,8 @@ export declare class ProductSessionGatewayNodeHost {
   handler():(request:unknown,response:unknown)=>Promise<void>;
   snapshot():Readonly<Record<string,unknown>>;
   authenticateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;
+  authenticateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
+  revalidateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
   currentExistingDeveloperPrincipal(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPPrincipalDATA>;
   /** Observation of an already-consumed original proof; never a new nonce or business execution. */
   revalidateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;

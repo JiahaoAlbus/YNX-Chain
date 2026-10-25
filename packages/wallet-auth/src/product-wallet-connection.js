@@ -32,15 +32,16 @@ export function createProductWalletReturnPublisher(config){
  * HTTPS clock only; no session DTO, endpoint, fetch, login or restore input.
  * The platform owns read consent/Source/current and the actual key capability. */
 export async function createProductWalletBusinessReadClient(config){
-  exactFields(config,['registry','productId','platform','storage','device','gatewayTimeoutMs'],'Existing native business read configuration');
+  if(config?.device?.version!=='4')throw new WalletAuthError('PQ_DEVICE_REQUIRED','New normal reads require dual-PQ; no classic fallback');
+  exactFields(config,['registry','productId','platform','storage','device','deviceCurrent','abortContext','gatewayTimeoutMs'],'Existing native business read configuration');
   if(config.platform==='web')throw new WalletAuthError('NATIVE_BUSINESS_READ_REQUIRED','Existing business read requires native custody');
   assertProductRuntime();
   if(typeof globalThis.fetch!=='function')throw new WalletAuthError('INVALID_GATEWAY','Normal read requires the platform HTTPS transport');
-  exactFields(config.device,['id','key','sign','scopes','purpose'],'Native existing read signer');
-  if(typeof config.device.sign!=='function')throw new WalletAuthError('INVALID_DEVICE','Existing read requires the original protected signer');
+  exactFields(config.device,['version','algorithm','readContext','produceHTTPProof'],'Version4 native read device');
+  if(config.device.version!=='4'||config.device.algorithm!=='ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512')throw new WalletAuthError('PQ_DEVICE_REQUIRED','New normal device reads require dual-PQ; use explicit legacy data readers for history');
   const inapplicable=()=>{throw new WalletAuthError('BUSINESS_READ_ONLY','Read client cannot discover or reconnect Wallet');};
   const gateway=new ProductSessionGatewayFetchAdapter({endpoint:PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,fetch:globalThis.fetch.bind(globalThis),walletInstalled:inapplicable,schemeRegistered:inapplicable,timeoutMs:config.gatewayTimeoutMs});
-  const client=new RecoverableProductSessionClient({registry:config.registry,productId:config.productId,platform:config.platform,storage:config.storage,gateway,device:config.device,tokenFactory:secureToken,clock:authorityClockRequired});
+  const client=new RecoverableProductSessionClient({registry:config.registry,productId:config.productId,platform:config.platform,storage:config.storage,gateway,device:config.device,deviceCurrent:config.deviceCurrent,abortContext:config.abortContext,tokenFactory:secureToken,clock:authorityClockRequired});
   return client.openExistingBusinessRead();
 }
 
@@ -49,10 +50,10 @@ export async function createProductWalletBusinessReadClient(config){
  * Product code supplies capabilities, never a callback, origin, route or Session.
  */
 export function createProductWalletConnection(config) {
-  exactFields(config, CONFIG_FIELDS, "Product Wallet connection configuration");
+  if(config?.device?.version!=='4')throw new WalletAuthError('PQ_DEVICE_REQUIRED','New normal device connections require dual-PQ; no classic fallback');
+  exactFields(config, [...CONFIG_FIELDS,'deviceCurrent','abortContext'], "Product Wallet connection configuration");
   assertProductRuntime();
-  exactFields(config.device, ["id", "key", "sign", "scopes", "purpose"], "Product Wallet secure device signer");
-  if (typeof config.device.sign !== "function") throw new WalletAuthError("INVALID_DEVICE", "Product Wallet connection requires a platform secure device signer");
+  throw new WalletAuthError('PQ_DEVICE_ISSUER_NOT_SUPPLIED','Original v4 device pairing and issuer are not supplied; no legacy login may run');
   const privateBridge = hasOriginalWalletServicePrivateBridge();
   const gateway = privateBridge ? new ProductSessionGatewayPrivateAdapter({walletInstalled: config.walletInstalled, schemeRegistered: config.schemeRegistered, timeoutMs: config.gatewayTimeoutMs}) : new ProductSessionGatewayFetchAdapter({
     endpoint: PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,

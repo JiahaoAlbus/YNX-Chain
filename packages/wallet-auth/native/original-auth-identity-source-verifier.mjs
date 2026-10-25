@@ -154,6 +154,18 @@ async function run(){
  }
  // Version4 HTTP-device mathematics only, selected by original trusted callers.
  // This does not resolve a registration, sign a header or consume a nonce.
+ // Fixed v4 encoder operations only. They neither choose a purpose nor sign.
+ if(['product-session-http-message-data/v4','product-session-device-challenge-message-data/v4','product-session-device-registration-message-data/v4'].includes(input?.operation)){
+  if(size>262144)bad('PRODUCT_SESSION_PROOF_V4_DISPATCH_CAPACITY');let message,purpose;
+  if(input.operation==='product-session-http-message-data/v4'){
+   exact(input,['operation','networkId','unsigned']);const {encodeProductSessionHTTPProofV4Message}=await import('../src/product-session-proof-v4.js');message=encodeProductSessionHTTPProofV4Message(input.unsigned,input.networkId);purpose='PRODUCT-SESSION-HTTP-PROOF';
+  }else{
+   const challenge=input.operation==='product-session-device-challenge-message-data/v4';exact(input,challenge?['operation','challenge','registrationOriginal']:['operation','registrationOriginal']);
+   const original=Buffer.from(input.registrationOriginal,'base64url');if(typeof input.registrationOriginal!=='string'||original.toString('base64url')!==input.registrationOriginal||original.length>16384)bad('PRODUCT_SESSION_DEVICE_ORIGINAL_INVALID');
+   const codec=await import('../src/product-session-pq-v4-codec.js');message=challenge?codec.encodeProductSessionDeviceChallengeV4Message(input.challenge,original):codec.encodeProductSessionDeviceRegistrationV4Message(original);purpose=challenge?'PRODUCT-SESSION-DEVICE-CHALLENGE':'PRODUCT-SESSION-DEVICE-REGISTRATION';
+  }
+  if(message.length>16384)bad('PRODUCT_SESSION_PROOF_V4_MESSAGE_CAPACITY');process.stdout.write(canonical({version:'4',purpose,message:Buffer.from(message).toString('base64url'),dataOnly:true,SourceAdmission:false,NativeAdmission:false,approval:false})+'\n');return;
+ }
  if(input?.operation==='product-session-http-proof-data/v4'){
   if(size>262144)bad('PRODUCT_SESSION_PROOF_V4_DISPATCH_CAPACITY');
   exact(input,['operation','proofHeader','expected']);
