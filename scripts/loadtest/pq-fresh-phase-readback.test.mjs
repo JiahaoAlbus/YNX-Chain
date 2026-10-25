@@ -32,7 +32,8 @@ function fixture(){
  const data={schema:freshPhaseSchema,...Object.fromEntries(['protocolCommit','performanceClientCommit','clientSourceTree','clientCodeTree','vmBootId','clockDomain','binaries'].map(k=>[k,structuredClone(expected[k])])),arms};
  return {data,expected};
 }
-function read(f){const raw=Buffer.from(JSON.stringify(f.data));const guard={firstCause:null,child:{code:0},cleanupComplete:true,emptyOwnedScans:[[],[]],sourceCommit:f.expected.protocolCommit,resultSHA256:hash(raw)};return readGuardedFreshPhasePair(raw,guard,f.expected);}
+function cleanupScans(f){return f.data.version==='YNX-PQ-NETWORK-FRESH-PAIRED-BUSINESS/v1'?[{elapsedMs:1000,hostIdentities:42},{elapsedMs:1051,hostIdentities:43}]:[[],[]];}
+function read(f){const raw=Buffer.from(JSON.stringify(f.data));const guard={firstCause:null,child:{code:0,pid:f.expected.sameProcessPID},cleanupComplete:true,emptyOwnedScans:cleanupScans(f),sourceCommit:f.expected.protocolCommit,resultSHA256:hash(raw)};return readGuardedFreshPhasePair(raw,guard,f.expected);}
 
 test('unit-only original per-H phases are not multiplied by transaction count; no authority or TPS qualification',()=>{
  const f=fixture(),r=read(f);
@@ -79,7 +80,7 @@ test('normal guard, external bindings and exact raw digest remain mandatory',()=
 for(const makeFixture of [fixture,originalFixture])test('actual read-only CLI preserves source bytes, creates one synced output and refuses overwrite/symlink: '+makeFixture.name,()=>{
  const parent=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'pq-phase-cli-')));
  try{
-  const f=makeFixture(),raw=Buffer.from(JSON.stringify(f.data)),guard={firstCause:null,child:{code:0},cleanupComplete:true,emptyOwnedScans:[[],[]],sourceCommit:f.expected.protocolCommit,resultSHA256:hash(raw)};
+  const f=makeFixture(),raw=Buffer.from(JSON.stringify(f.data)),guard={firstCause:null,child:{code:0,pid:f.expected.sameProcessPID},cleanupComplete:true,emptyOwnedScans:cleanupScans(f),sourceCommit:f.expected.protocolCommit,resultSHA256:hash(raw)};
   const files={result:raw,guard:Buffer.from(JSON.stringify(guard)),expected:Buffer.from(JSON.stringify(f.expected))};
   for(const [name,bytes]of Object.entries(files))fs.writeFileSync(path.join(parent,name+'.json'),bytes,{mode:0o600,flag:'wx'});
   const output=path.join(parent,'readback.json'),script=new URL('./pq-fresh-phase-readback.mjs',import.meta.url);
@@ -137,4 +138,14 @@ test('actual callee projection rejects wrong source, clock, numeric shape, count
   f=>f.data.arms[0].rows[0].readback.finalizedBusinessHashes=[h(1)],
   f=>delete f.data.arms[0].rows[0].readback.clientPhases.proofDurabilityNs,
  ]){const f=originalFixture();mutate(f);assert.throws(()=>read(f));}
+});
+
+test('original completed controller cleanup records are consumed without rewriting the guard',()=>{
+ const f=originalFixture(),raw=Buffer.from(JSON.stringify(f.data));
+ const guard={firstCause:null,child:{code:0,pid:f.expected.sameProcessPID},cleanupComplete:true,emptyOwnedScans:[{elapsedMs:1000,hostIdentities:42},{elapsedMs:1051,hostIdentities:43}],sourceCommit:f.expected.protocolCommit,resultSHA256:hash(raw)};
+ assert.equal(readGuardedFreshPhasePair(raw,guard,f.expected).arms[0].receiptQualifiedBusiness,16);
+ assert.throws(()=>readGuardedFreshPhasePair(raw,{...guard,child:{code:0,pid:124}},f.expected),/guard child/);
+ for(const scans of [[[],[]],[{elapsedMs:1000,hostIdentities:42}],[{elapsedMs:1000,hostIdentities:42},{elapsedMs:999,hostIdentities:43}],[{elapsedMs:1000,hostIdentities:42},{elapsedMs:120001,hostIdentities:43}]]){
+  assert.throws(()=>readGuardedFreshPhasePair(raw,{...guard,emptyOwnedScans:scans},f.expected),/completed guard/);
+ }
 });

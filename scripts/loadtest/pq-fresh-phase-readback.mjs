@@ -82,6 +82,20 @@ function projectedClientStages(originals){
  ])]));
 }
 
+function completedScans(scans,projected){
+ if(!Array.isArray(scans))return false;
+ if(!projected)return scans.length===2&&scans.every(scan=>Array.isArray(scan)&&scan.length===0);
+ // Original controller appends metadata only when its owned PID set is empty.
+ // The list can retain an earlier empty scan if a later scan saw a child;
+ // cleanupComplete records that the final two were consecutive empty scans.
+ if(scans.length<2||scans.length>2400)return false;
+ let prior=-1;
+ return scans.every(scan=>{
+  if(!object(scan)||Object.keys(scan).length!==2||!Number.isSafeInteger(scan.elapsedMs)||scan.elapsedMs<prior||scan.elapsedMs<0||scan.elapsedMs>120000||!Number.isSafeInteger(scan.hostIdentities)||scan.hostIdentities<1)return false;
+  prior=scan.elapsedMs;return true;
+ });
+}
+
 function adaptOriginal(data,expected){
  requireValue(data.sameVM===true&&Number.isSafeInteger(data.sameProcessPID)&&data.sameProcessPID>0&&data.sameProcessPID===expected.sameProcessPID&&data.clockDomain==='pq-fresh:'+data.sameProcessPID&&data.clockDomain===expected.clockDomain,'original shared process clock differs');
  requireValue(data.syntheticOnly===true&&data.publicDeployment===false&&data.nativeGrant===false&&data.sustainedTPSQualified===false&&data.protocolCommit===expected.protocolCommit&&data.clientCommit===expected.performanceClientCommit&&data.clientTree===expected.clientSourceTree,'original callee source or classification differs');
@@ -110,8 +124,9 @@ function adaptOriginal(data,expected){
 export function readGuardedFreshPhasePair(raw,guard,expected){
  requireValue(Buffer.isBuffer(raw)&&raw.length>0&&raw.length<=1<<20,'bounded original pair DATA required');
  requireValue(object(expected)&&hex(expected.protocolCommit,40)&&hex(expected.performanceClientCommit,40)&&hex(expected.clientSourceTree,40)&&hex(expected.clientCodeTree,40)&&typeof expected.vmBootId==='string'&&expected.vmBootId.length>0&&typeof expected.clockDomain==='string'&&expected.clockDomain.length>0&&Number.isSafeInteger(expected.businessPerArm)&&expected.businessPerArm>0&&expected.businessPerArm<=16&&object(expected.epochs)&&hex(expected.epochs.before,64)&&hex(expected.epochs.after,64)&&expected.epochs.before!==expected.epochs.after&&sameBinaries(expected.binaries,expected.binaries)&&Object.hasOwn(expected.binaries,expected.verifierRole),'external original case/source/clock/binary bindings required');
- requireValue(guard?.firstCause===null&&guard.child?.code===0&&guard.cleanupComplete===true&&Array.isArray(guard.emptyOwnedScans)&&guard.emptyOwnedScans.length===2&&guard.emptyOwnedScans.every(scan=>Array.isArray(scan)&&scan.length===0)&&guard.sourceCommit===expected.protocolCommit&&guard.resultSHA256===createHash('sha256').update(raw).digest('hex'),'original completed guard and raw result digest required');
  const input=json(raw,'original phase result'),projected=input.version===originalFreshVersion;
+ requireValue(guard?.firstCause===null&&guard.child?.code===0&&guard.cleanupComplete===true&&completedScans(guard.emptyOwnedScans,projected)&&guard.sourceCommit===expected.protocolCommit&&guard.resultSHA256===createHash('sha256').update(raw).digest('hex'),'original completed guard and raw result digest required');
+ if(projected)requireValue(guard.child.pid===expected.sameProcessPID,'original guard child differs from the phase clock process');
  const data=projected?adaptOriginal(input,expected):input;
  requireValue(data.schema===freshPhaseSchema&&['protocolCommit','performanceClientCommit','clientSourceTree','clientCodeTree','vmBootId','clockDomain'].every(k=>data[k]===expected[k])&&sameBinaries(data.binaries,expected.binaries)&&Array.isArray(data.arms)&&data.arms.length===2,'fresh pair source/VM/binary identity differs');
  const used=new Set(), summaries=[];

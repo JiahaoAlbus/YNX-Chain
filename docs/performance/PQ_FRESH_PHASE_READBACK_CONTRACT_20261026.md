@@ -22,8 +22,8 @@ All inputs must be canonical absolute, bounded, protected regular files, without
 symlinks or hardlinks. Output is new-only mode 0600, synced with its directory.
 The consumer does not send transactions, start processes, or grant resources.
 The original controller must supply the completed guard: `firstCause:null`,
-`child.code:0`, `cleanupComplete:true`, exactly two empty `emptyOwnedScans`
-arrays, exact protocol `sourceCommit`, and SHA256 of the original raw result
+`child.code:0` and `child.pid` matching the original phase-clock PID, `cleanupComplete:true`, the original `emptyOwnedScans` metadata records (at least two, bounded
+monotonic `elapsedMs` and positive `hostIdentities`), exact protocol `sourceCommit`, and SHA256 of the original raw result
 in `resultSHA256`. Do not invent a success guard for a failed or unfinished run.
 
 External expected bindings are `protocolCommit`, `performanceClientCommit`,
@@ -82,7 +82,7 @@ and is not the instant of BFT formation. The small 2/s pair cannot qualify the
 
 ## Verification status
 
-Nine Node tests pass, including actual CLI consumption of both receipt shapes,
+Ten Node tests pass, including actual CLI consumption of both receipt shapes,
 immutable output and unchanged inputs, missing/unsafe numeric clocks, wrong
 source and ELF pins, UNKNOWN, original hash binding, registration exclusion,
 per-height deduplication, missing node/fsync and incomplete cleanup rejection.
@@ -90,3 +90,9 @@ These are arithmetic/contract tests, not signatures or four running nodes.
 Raw output: `pq-fresh-original-phase-adapter-20261026.raw` under the existing
 external chain-performance artifact directory. Original Go DATA tests and the
 four-node pair remain the Protocol owner's normal build/run handoff.
+
+The original controller emits metadata records, not empty arrays, for empty
+owned-process scans. A real-format RED case was preserved and repaired in the
+consumer. `cleanupComplete:true` is required: scan metadata alone cannot prove
+cleanup. The consumer does not rewrite the original guard. The generic legacy
+arithmetic fixture schema retains its distinct two-empty-array contract.
