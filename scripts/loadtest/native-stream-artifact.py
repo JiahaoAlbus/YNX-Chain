@@ -130,7 +130,7 @@ class Archive:
         return dict(bytes=written,sha256=sha.hexdigest(),crc32=crc)
 
 class Selection:
-    LABELS=('native-stream-relative','native-stream-bounded','native-input-separate','native-input-shared','native-certificate-json','native-certificate-canonical','native-suffix-original','native-suffix-private','native-tip-full-block','native-tip-status','native-submit8','native-submit16','native-prepared-control','native-prepared-owned','native-prepared-bounded','native-prepared-grouped','native-mm-bounded','native-mm-grouped','native-grouped-procs1','native-grouped-procs2','native-replay-procs1','native-replay-procs2')
+    LABELS=('native-stream-relative','native-stream-bounded','native-input-separate','native-input-shared','native-certificate-json','native-certificate-canonical','native-suffix-original','native-suffix-private','native-tip-full-block','native-tip-status','native-submit8','native-submit16','native-prepared-control','native-prepared-owned','native-prepared-bounded','native-prepared-grouped','native-mm-bounded','native-mm-grouped','native-grouped-procs1','native-grouped-procs2','native-replay-procs1','native-replay-procs2','native-prepared-original-json','native-prepared-fee-json')
     def __init__(self,mode):
         need(mode in ('unit','network','network-pair'),'explicit public artifact selection required');self.mode=mode;self.children=[Selection("network") for _ in range(len(self.LABELS))] if mode=="network-pair" else [];self.seen=set();self.bits=[bytearray((MAX_ENTRIES+7)//8) for _ in range(2)]
     def select(self,name):
@@ -329,10 +329,11 @@ def verify_network_pair(root,head,evidence,controller):
         suffix=kind==controller.STREAM_SUFFIX_PAIR and index==1
         tip=kind==controller.STREAM_TIP_PAIR and index==1
         submitters=16 if kind==controller.STREAM_SUBMIT16_PAIR and index==1 else 8
-        replay_timing=kind==controller.STREAM_REPLAY_PAIR
+        replay_timing=kind in (controller.STREAM_REPLAY_PAIR,controller.STREAM_JSON_PAIR)
+        prepared_json_encoding=controller.PREPARED_JSON_ENCODINGS[index] if kind==controller.STREAM_JSON_PAIR else ""
         client_procs2=kind in (controller.STREAM_PROCS_PAIR,controller.STREAM_REPLAY_PAIR) and index==1
-        exit_mm_proof=kind in (controller.STREAM_MM_PAIR,controller.STREAM_PROCS_PAIR,controller.STREAM_REPLAY_PAIR)
-        prepared=kind in (controller.STREAM_GROUPED_PAIR,controller.STREAM_MM_PAIR,controller.STREAM_PROCS_PAIR,controller.STREAM_REPLAY_PAIR) or kind==controller.STREAM_PREPARED_PAIR and index==1
+        exit_mm_proof=kind in (controller.STREAM_MM_PAIR,controller.STREAM_PROCS_PAIR,controller.STREAM_REPLAY_PAIR,controller.STREAM_JSON_PAIR)
+        prepared=kind in (controller.STREAM_GROUPED_PAIR,controller.STREAM_MM_PAIR,controller.STREAM_PROCS_PAIR,controller.STREAM_REPLAY_PAIR,controller.STREAM_JSON_PAIR) or kind==controller.STREAM_PREPARED_PAIR and index==1
         case=('before-' if index==0 else 'after-')+label
         selected=pair['cases'][index]
         raw=evidence.capture(root/case/'evidence/actual.json',16<<20);receipt=evidence.strict_json(raw)
@@ -343,9 +344,10 @@ def verify_network_pair(root,head,evidence,controller):
         need(selected.get('exitMMProof',False) is exit_mm_proof and receipt.get('nativeExitMMProof',False) is exit_mm_proof,'original pair exit-mm proof axis differs')
         need(selected.get('clientProcs2',False) is client_procs2 and receipt.get('clientProcs2',False) is client_procs2,'original pair client scheduler axis differs')
         need(selected.get('replayTiming',False) is replay_timing and receipt.get('nativeReplayTiming',False) is replay_timing,'original pair replay timing axis differs')
+        need(selected.get('preparedJSONEncoding','')==prepared_json_encoding and receipt.get('nativePreparedJSONEncoding','')==prepared_json_encoding,'original pair snapshot JSON encoding axis differs')
         controller.validate_exit_mm_samples(receipt,exit_mm_proof)
         need(receipt.get('nativePreparedCertificate',False) is prepared,'original pair prepared producer differs')
-        if kind in (controller.STREAM_PREPARED_PAIR,controller.STREAM_GROUPED_PAIR,controller.STREAM_MM_PAIR,controller.STREAM_PROCS_PAIR,controller.STREAM_REPLAY_PAIR):need(selected.get('preparedCertificate') is prepared,'original pair prepared axis differs')
+        if kind in (controller.STREAM_PREPARED_PAIR,controller.STREAM_GROUPED_PAIR,controller.STREAM_MM_PAIR,controller.STREAM_PROCS_PAIR,controller.STREAM_REPLAY_PAIR,controller.STREAM_JSON_PAIR):need(selected.get('preparedCertificate') is prepared,'original pair prepared axis differs')
         need(receipt.get('nativeStreamSubmitters',0)==(16 if submitters==16 else 0),'original pair explicit submitter receipt differs')
         if kind==controller.STREAM_SUBMIT16_PAIR:need(type(selected.get('submitters')) is int and selected['submitters']==submitters,'original pair submitter axis differs')
         need(selected.get('sha256')==hashlib.sha256(raw).hexdigest(),'original pair case receipt SHA differs')
@@ -383,10 +385,12 @@ def verify_capture(destination,mode,head,*,expected_case="ynx-linux-supply-case"
     receipt=evidence.strict_json(evidence.capture(root/'evidence/actual.json',16<<20))
     controller=load('supply-linux-window');pacing=receipt.get('pacingMode')
     exit_mm_proof=receipt.get('nativeExitMMProof',False)
-    need(type(exit_mm_proof) is bool and exit_mm_proof==(expected_case in ('before-native-mm-bounded','after-native-mm-grouped','before-native-grouped-procs1','after-native-grouped-procs2','before-native-replay-procs1','after-native-replay-procs2')),'original exit-mm receipt scope differs')
+    need(type(exit_mm_proof) is bool and exit_mm_proof==(expected_case in ('before-native-mm-bounded','after-native-mm-grouped','before-native-grouped-procs1','after-native-grouped-procs2','before-native-replay-procs1','after-native-replay-procs2','before-native-prepared-original-json','after-native-prepared-fee-json')),'original exit-mm receipt scope differs')
     controller.validate_exit_mm_samples(receipt,exit_mm_proof)
     client_procs2=expected_case in ('after-native-grouped-procs2','after-native-replay-procs2')
-    replay_timing=expected_case in ('before-native-replay-procs1','after-native-replay-procs2')
+    replay_timing=expected_case in ('before-native-replay-procs1','after-native-replay-procs2','before-native-prepared-original-json','after-native-prepared-fee-json')
+    prepared_json_encoding={'before-native-prepared-original-json':'original-json','after-native-prepared-fee-json':'fee-time-json-indent'}.get(expected_case,'')
+    need(receipt.get('nativePreparedJSONEncoding','')==prepared_json_encoding,'original snapshot JSON receipt scope differs')
     need(receipt.get('nativeReplayTiming',False) is replay_timing,'original replay timing receipt scope differs')
     need(receipt.get('clientProcs2',False) is client_procs2,'original client scheduler receipt scope differs')
     prepared=receipt.get('nativePreparedCertificate',False)
@@ -399,10 +403,10 @@ def verify_capture(destination,mode,head,*,expected_case="ynx-linux-supply-case"
     report_raw=evidence.capture(root/'network/transactions-result.json',16<<20)
     need(hashlib.sha256(report_raw).hexdigest()==receipt.get('resultSHA256'),'original client result hash differs')
     report=evidence.strict_json(report_raw)
-    measured=controller.validate_native_stream_report(report,root/'network',runtime_network=case/'network',pacing=pacing,expected_input_reuse=receipt.get('nativeCurrentInputReuse',False),expected_canonical_certificate=receipt.get('nativeCanonicalCertificate',False),expected_native_suffix=receipt.get('nativeSuffixSetup',False),expected_block_tip_hint=receipt.get('nativeBlockTipHint',False),expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_procs2=client_procs2,expected_replay_timing=replay_timing)
+    measured=controller.validate_native_stream_report(report,root/'network',runtime_network=case/'network',pacing=pacing,expected_input_reuse=receipt.get('nativeCurrentInputReuse',False),expected_canonical_certificate=receipt.get('nativeCanonicalCertificate',False),expected_native_suffix=receipt.get('nativeSuffixSetup',False),expected_block_tip_hint=receipt.get('nativeBlockTipHint',False),expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_procs2=client_procs2,expected_replay_timing=replay_timing,expected_prepared_json_encoding=prepared_json_encoding)
     need(canonical(measured)==canonical(receipt.get('measurement')),'recovered complete stream differs from original controller measurement')
     if receipt.get('nativeStreamVerifier') is True:
-        controller.native_verifier_case_result(receipt,root,controller.native_verifier_selection(pacing,receipt.get('nativeCurrentInputReuse',False),receipt.get('nativeCanonicalCertificate',False),receipt.get('nativeSuffixSetup',False),receipt.get('nativeBlockTipHint',False),submitters,prepared,client_procs2,replay_timing),relocated=True)
+        controller.native_verifier_case_result(receipt,root,controller.native_verifier_selection(pacing,receipt.get('nativeCurrentInputReuse',False),receipt.get('nativeCanonicalCertificate',False),receipt.get('nativeSuffixSetup',False),receipt.get('nativeBlockTipHint',False),submitters,prepared,client_procs2,replay_timing,prepared_json_encoding),relocated=True)
     return dict(measurement=measured,streamReadbackVerified=True,postFsyncTerminalStillRequiresOriginalCILog=True,independentNativeResourceAdmission=False,networkQualified=False,sustainedTPSQualified=False)
 
 def recovery_timeout(signum,frame):

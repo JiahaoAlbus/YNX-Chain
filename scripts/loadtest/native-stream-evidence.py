@@ -264,6 +264,30 @@ def client_clock_measurements(timeline,records,required=False):
     return dict(clock)
 
 
+def prepared_json_encoding_measurements(report,selected=""):
+    """Bind the actual private snapshot encoder; hash/durability backends stay original."""
+    need(type(report) is dict and type(selected) is str and selected in ('','original-json','fee-time-json-indent'),'prepared JSON selection invalid')
+    need(type(report.get('nativePreparedJSONEncoding','')) is str and report.get('nativePreparedJSONEncoding','')==selected,'prepared JSON report selection differs')
+    reader=report.get('durableReadback',{});prefix=reader.get('prefixReplay',{}) if type(reader) is dict else {}
+    if not selected:
+        need(type(prefix) is not dict or not prefix.get('preparedJSONEncoding'),'unselected prepared JSON encoder present')
+        return None
+    need(report.get('nativePreparedCertificate') is True and report.get('nativeReplayTiming') is True and report.get('clientProcs2',False) is False and type(report.get('gomaxprocs')) is int and report['gomaxprocs']==1,'prepared JSON runtime/scope differs')
+    need(report.get('nativeCachedFeeJSON',False) is False and 'clientStateHashEncoding' not in report,'prepared JSON changed hash backend')
+    need(type(prefix) is dict and prefix.get('preparedCertificate') is True and prefix.get('preparedJSONEncoding')==selected,'actual prepared constructor selection differs')
+    phases=prefix.get('workPhases',{});need(type(phases) is dict,'prepared JSON phases absent');parts=phases.get('preparedEncodeDetails',{})
+    need(type(parts) is dict,'prepared JSON encode parts absent')
+    counts=[]
+    for name in ('normalize','jsonEncode','publicCopy'):
+        part=parts.get(name,{})
+        need(type(part) is dict and integer(part.get('calls'),1,2**63-1) and type(part.get('errors')) is int and part['errors']==0 and integer(part.get('durationNs'),1,2**63-1),'actual prepared JSON work absent/failed')
+        counts.append(part['calls'])
+    publication=phases.get('certificatePublishDetails',{});need(type(publication) is dict,'prepared JSON publication absent')
+    accepted=publication.get('preparedNativeAccepted')
+    need(type(accepted) is int and len(set(counts))==1 and accepted==counts[0],'prepared JSON coverage differs')
+    return dict(mode=selected,actualPreparedEncodes=counts[0],localReaderSnapshotOnly=True,stateHashBackendChanged=False)
+
+
 def client_hash_encoding_measurements(report,selected=False):
     """Actual explicit client process window counters, never finality authority."""
     need(type(report) is dict and type(selected) is bool and report.get('nativeCachedFeeJSON',False) is selected,'client hash encoding selection differs')

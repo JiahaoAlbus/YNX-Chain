@@ -11,6 +11,7 @@ import (
 // Successful output work only. Failed attempts retain their separate count and
 // duration; partial failed replay work is not reported as completed blocks.
 type durablePrefixReplayStats struct {
+	PreparedJSONEncoding      string                                 `json:"preparedJSONEncoding,omitempty"`
 	PreparedCertificate       bool                                   `json:"preparedCertificate,omitempty"`
 	CanonicalCertificate      bool                                   `json:"canonicalCertificate,omitempty"`
 	NativeSuffixSetup         bool                                   `json:"nativeSuffixSetup,omitempty"`

@@ -9,6 +9,9 @@ import (
 // Separate opt-in scope. The original nativeSubmit8 single-round contract and
 // the default four-worker ready sender are deliberately unchanged.
 func validateNativeStreamingOptions(o options) error {
+	if o.nativePreparedJSONEncoding != "" && (o.nativePreparedJSONEncoding != consensus.PreparedNativeOriginalJSON && o.nativePreparedJSONEncoding != consensus.PreparedNativeFeeJSON || !o.nativeReplayTiming || !o.nativePreparedCertificate || o.clientProcs2) {
+		return errors.New("prepared JSON encoding requires explicit original/fee encoder and isolated replay-timed prepared/grouped/client1 stream")
+	}
 	if o.nativeReplayTiming && (!o.nativeStream8 || !o.nativePreparedCertificate || !o.nativeCurrentInputReuse || o.concurrency != 8 || o.nativeStreamSubmitters != 0 || o.pacingMode != "grouped-cadence4" || o.nativeCachedFeeJSON || o.nativeCanonicalCertificate || o.nativeSuffixSetup || o.nativeBlockTipHint) {
 		return errors.New("replay timing requires isolated prepared/current-reuse8 grouped stream and original hash")
 	}
@@ -103,7 +106,12 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	} else if o.nativeSuffixSetup {
 		constructor = consensus.NewBoundedBlockJournalNativeSuffixPrefixDecoder
 	}
-	decoder, err := constructor(r.migration, int(limit))
+	var decoder *consensus.BlockJournalPrefixDecoder
+	if o.nativePreparedJSONEncoding != "" {
+		decoder, err = consensus.NewBoundedBlockJournalPreparedNativeJSONPrefixDecoder(r.migration, int(limit), o.nativePreparedJSONEncoding)
+	} else {
+		decoder, err = constructor(r.migration, int(limit))
+	}
 	if err != nil {
 		return err
 	}
@@ -119,6 +127,12 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 		return errors.New("actual prepared publication constructor differs")
 	}
 	r.prefixStats.PreparedCertificate = o.nativePreparedCertificate
+	if o.nativePreparedJSONEncoding != "" {
+		if decoder.PreparedNativeJSONEncoding() != o.nativePreparedJSONEncoding {
+			return errors.New("actual prepared snapshot JSON constructor differs")
+		}
+		r.prefixStats.PreparedJSONEncoding = decoder.PreparedNativeJSONEncoding()
+	}
 	r.prefixStats.CanonicalCertificate = o.nativeCanonicalCertificate
 	r.prefixStats.NativeSuffixSetup = decoder.NativeSuffixSetupEnabled()
 	r.prefixStats.WorkPhases.PrivateNativeClone = new(consensus.BlockJournalPrefixPhase)
@@ -137,6 +151,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 // Persist public mode/resource identities before issuance. This is a scoped
 // client plan, not a network admission or proof that its target was achieved.
 type nativeStreamingPlan struct {
+	PreparedJSONEncoding   string  `json:"preparedJSONEncoding,omitempty"`
 	ReplayTiming           bool    `json:"replayTiming,omitempty"`
 	ClientProcs2           bool    `json:"clientProcs2,omitempty"`
 	ClientCachedFeeJSON    bool    `json:"clientCachedFeeJSON,omitempty"`
@@ -158,6 +173,12 @@ type nativeStreamingPlan struct {
 
 func streamingProfileName(o options) string {
 	if o.nativeStream8 {
+		if o.nativePreparedJSONEncoding != "" {
+			if o.nativePreparedJSONEncoding == consensus.PreparedNativeOriginalJSON {
+				return "scoped_native_prefix_stream8_prepared_grouped_snapshot_original_json_v1"
+			}
+			return "scoped_native_prefix_stream8_prepared_grouped_snapshot_fee_json_v1"
+		}
 		if o.nativeReplayTiming {
 			if o.clientProcs2 {
 				return "scoped_native_prefix_stream8_prepared_grouped_replay_timing_procs2_v1"

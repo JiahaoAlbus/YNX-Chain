@@ -17,14 +17,15 @@ const blockJournalPrefixLimit = 16 << 20
 // It must not be copied. Callers still capture stable current bytes and verify
 // publication/quorum/business evidence independently.
 type BlockJournalPrefixDecoder struct {
-	full              *BlockJournalDecoder
-	gate              chan struct{}
-	prefix            *blockJournalPrefix
-	nativeClone       bool
-	nativeSuffixSetup bool
-	canonicalNative   bool
-	preparedNative    bool
-	byteLimit         int // Immutable; zero preserves the original16MiB limit.
+	full                 *BlockJournalDecoder
+	gate                 chan struct{}
+	prefix               *blockJournalPrefix
+	nativeClone          bool
+	nativeSuffixSetup    bool
+	canonicalNative      bool
+	preparedNative       bool
+	preparedOriginalJSON bool // Immutable diagnostic control; no hash backend change.
+	byteLimit            int  // Immutable; zero preserves the original16MiB limit.
 }
 type blockJournalPrefix struct {
 	payload           []byte

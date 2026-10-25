@@ -63,6 +63,7 @@ type options struct {
 	prefixDurableReplay            bool
 	prefixNativeClone              bool
 	nativeCurrentInputReuse        bool
+	nativePreparedJSONEncoding     string
 	nativeReplayTiming             bool
 	nativePreparedCertificate      bool
 	nativeCachedFeeJSON            bool
@@ -208,6 +209,7 @@ type report struct {
 	PrefixNativeClone          bool                      `json:"prefixNativeClone,omitempty"`
 	NativeCurrentInputReuse    bool                      `json:"nativeCurrentInputReuse,omitempty"`
 	NativeBlockTipHint         bool                      `json:"nativeBlockTipHint,omitempty"`
+	NativePreparedJSONEncoding string                    `json:"nativePreparedJSONEncoding,omitempty"`
 	NativeReplayTiming         bool                      `json:"nativeReplayTiming,omitempty"`
 	NativePreparedCertificate  bool                      `json:"nativePreparedCertificate,omitempty"`
 	NativeCachedFeeJSON        bool                      `json:"nativeCachedFeeJSON,omitempty"`
@@ -265,6 +267,7 @@ func main() {
 	flag.BoolVar(&o.observerNativeFacts, "observer-native-facts", false, "candidate: reuse exact bytes+expected-chain signature facts from verified replay; native8 or native-stream8 with original suffix setup")
 	flag.BoolVar(&o.nativeSuffixSetup, "native-suffix-setup", false, "candidate: validated private suffix initialization; explicit native8 data64 or native stream8 only")
 	flag.BoolVar(&o.nativeCurrentInputReuse, "native-current-input-reuse", false, "explicit native stream only: share privately validated identical freshly captured input under original reader budget")
+	flag.StringVar(&o.nativePreparedJSONEncoding, "native-prepared-json-encoding", "", "isolated prepared/grouped/client1 diagnostic: original-json or fee-time-json-indent; hash backend unchanged")
 	flag.BoolVar(&o.nativeReplayTiming, "native-replay-timing", false, "explicit prepared/grouped stream diagnostic: retain certificate and incremental replay child timings; local replay is not node durability")
 	flag.BoolVar(&o.nativePreparedCertificate, "native-prepared-certificate", false, "explicit native stream candidate: private normalized suffix snapshot encoded once; original strict fallback/full state checks retained")
 	flag.BoolVar(&o.nativeCachedFeeJSON, "native-cached-fee-json", false, "explicit prepared stream8 client-only exact-byte fee timestamp JSON reuse; full state/hash/history validation retained")
@@ -999,6 +1002,7 @@ func execute(o options) error {
 	r.NativeCanonicalCertificate = o.nativeCanonicalCertificate
 	r.NativePreparedCertificate = o.nativePreparedCertificate
 	r.NativeReplayTiming = o.nativeReplayTiming
+	r.NativePreparedJSONEncoding = o.nativePreparedJSONEncoding
 	if o.nativeReplayTiming {
 		r.Interpretation = append(r.Interpretation, "Selected suffix children measure local reader replay. Replay Finalize/MemoryCommit are not node execution or disk durability; nested durations are not additional wall time or earliest BFT formation.")
 	}

@@ -5,6 +5,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -38,6 +39,19 @@ func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats
 	}
 	if len(replayTiming) > 0 && replayTiming[0] {
 		destination = os.Getenv("YNX_NATIVE_REPLAY_TIMING_PUBLIC_FIXTURE_DIR")
+	}
+	if reader.PrefixReplay != nil && reader.PrefixReplay.PreparedJSONEncoding != "" {
+		base := os.Getenv("YNX_NATIVE_PREPARED_JSON_PUBLIC_FIXTURE_DIR")
+		destination = ""
+		if base != "" {
+			if !filepath.IsAbs(base) {
+				t.Fatal("prepared JSON public fixture base must be absolute")
+			}
+			if err := os.MkdirAll(base, 0700); err != nil {
+				t.Fatal(err)
+			}
+			destination = filepath.Join(base, reader.PrefixReplay.PreparedJSONEncoding)
+		}
 	}
 	if destination == "" {
 		return
@@ -92,6 +106,13 @@ func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats
 		metadata["clientCachedFeeJSON"] = true
 		metadata["clientStateHashEncoding"] = currentClientHashEncoding()
 		metadata["unitProducerSharesProcess"] = true
+	}
+	if reader.PrefixReplay != nil && reader.PrefixReplay.PreparedJSONEncoding != "" {
+		metadata["preparedJSONEncoding"] = reader.PrefixReplay.PreparedJSONEncoding
+		metadata["gomaxprocs"] = runtime.GOMAXPROCS(0)
+		metadata["nativePreparedJSONEncoding"] = reader.PrefixReplay.PreparedJSONEncoding
+		metadata["nativePreparedCertificate"] = reader.PrefixReplay.PreparedCertificate
+		metadata["nativeReplayTiming"] = len(replayTiming) > 0 && replayTiming[0]
 	}
 	data, err := json.Marshal(metadata)
 	if err != nil {

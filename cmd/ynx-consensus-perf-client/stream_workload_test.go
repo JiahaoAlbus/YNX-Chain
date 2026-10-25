@@ -160,6 +160,12 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		o.nativeCachedFeeJSON = len(candidates) >= 6 && candidates[5]
 		o.clientProcs2 = len(candidates) >= 8 && candidates[7]
 		o.nativeReplayTiming = len(candidates) >= 9 && candidates[8]
+		if len(candidates) >= 10 && candidates[9] {
+			o.nativePreparedJSONEncoding = consensus.PreparedNativeFeeJSON
+			if len(candidates) >= 11 && candidates[10] {
+				o.nativePreparedJSONEncoding = consensus.PreparedNativeOriginalJSON
+			}
+		}
 		if o.clientProcs2 {
 			restore := configureClientProcs(true)
 			defer restore()
@@ -360,6 +366,12 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 			t.Fatal("persisted plan does not bind actual worker scope", plan.NativePrefix)
 		}
 		actual := nativeReader.stats()
+		if plan.NativePrefix.PreparedJSONEncoding != o.nativePreparedJSONEncoding || actual.PrefixReplay.PreparedJSONEncoding != o.nativePreparedJSONEncoding {
+			t.Fatal("prepared JSON plan/actual constructor differs")
+		}
+		if o.nativePreparedJSONEncoding != "" && (nativeReader.prefixDecoder.PreparedNativeJSONEncoding() != o.nativePreparedJSONEncoding || actual.PrefixReplay.WorkPhases.PreparedEncodeDetails == nil || actual.PrefixReplay.WorkPhases.PreparedEncodeDetails.JSONEncode.Calls == 0) {
+			t.Fatal("selected prepared encoder has no actual work")
+		}
 		if plan.NativePrefix.ReplayTiming != o.nativeReplayTiming || (actual.PrefixReplay.WorkPhases.SuffixReplayDetails != nil) != o.nativeReplayTiming {
 			t.Fatal("actual replay child selection differs")
 		}
@@ -438,7 +450,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 	if err := claimSenderPool(path); err == nil {
 		t.Fatal("completed fixture claim was silently reusable")
 	}
-	if native && o.nativeStreamSubmitters == 0 && ((!o.clientProcs2 && !o.nativeReplayTiming) || (o.clientProcs2 && o.nativeReplayTiming)) {
+	if native && o.nativeStreamSubmitters == 0 && (o.nativePreparedJSONEncoding != "" || (!o.clientProcs2 && !o.nativeReplayTiming) || (o.clientProcs2 && o.nativeReplayTiming)) {
 		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, finalNativeStats, o.pacingMode, o.nativeReplayTiming)
 	}
 	t.Logf("application_pipeline_only real_signed_executed_persisted=%d sender_slots=%d nonce_cycles=%d evidence_attempted_bytes=%d; quorum flags synthetic, no network TPS", signed, len(results), stats.RoundsCompleted, o.evidenceBudget.AttemptedBytes)

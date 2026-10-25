@@ -15,6 +15,10 @@ func prepareCanonicalNativeSnapshot(state CommittedState) (*preparedCanonicalNat
 }
 
 func prepareCanonicalNativeSnapshotWithTiming(state CommittedState, phases *BlockJournalPrefixWorkPhases) (*preparedCanonicalNativeSnapshot, error) {
+	return prepareCanonicalNativeSnapshotEncoding(state, phases, false)
+}
+
+func prepareCanonicalNativeSnapshotEncoding(state CommittedState, phases *BlockJournalPrefixWorkPhases, originalJSON bool) (*preparedCanonicalNativeSnapshot, error) {
 	var private CommittedState
 	var ok bool
 	_ = phases.measurePrepared("normalize", func() error {
@@ -27,7 +31,11 @@ func prepareCanonicalNativeSnapshotWithTiming(state CommittedState, phases *Bloc
 	var payload []byte
 	err := phases.measurePrepared("jsonEncode", func() error {
 		var err error
-		payload, err = encodePreparedNativeStateJSON(private)
+		if originalJSON {
+			payload, err = encodeCommittedStateJSON(private)
+		} else {
+			payload, err = encodePreparedNativeStateJSON(private)
+		}
 		return err
 	})
 	if err != nil {
@@ -42,7 +50,7 @@ func (d *BlockJournalPrefixDecoder) encodePreparedPrefixSnapshot(state Committed
 
 func (d *BlockJournalPrefixDecoder) encodePreparedPrefixSnapshotWithTiming(state CommittedState, phases *BlockJournalPrefixWorkPhases) ([]byte, *preparedCanonicalNativeSnapshot, error) {
 	if d != nil && d.preparedNative {
-		prepared, err := prepareCanonicalNativeSnapshotWithTiming(state, phases)
+		prepared, err := prepareCanonicalNativeSnapshotEncoding(state, phases, d.preparedOriginalJSON)
 		if err != nil {
 			return nil, nil, err
 		}

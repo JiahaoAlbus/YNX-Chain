@@ -1364,9 +1364,9 @@ class SupplySourceTests(unittest.TestCase):
             if str(path).endswith("streaming-plan.json"):return raw_plan
             if str(path).endswith("network-manifest.json"):return raw_manifest
             return json.dumps(dict(transactions=initial)).encode()
-        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False,cached=False,pacing="relative",procs2=False,replay=False):
+        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False,cached=False,pacing="relative",procs2=False,replay=False,json_encoding=""):
             with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
-                out=supply.validate_native_stream_report(row,network,pacing=pacing,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_cached_fee_json=cached,expected_client_procs2=procs2,expected_input_reuse=True if procs2 or replay else None,expected_replay_timing=replay)
+                out=supply.validate_native_stream_report(row,network,pacing=pacing,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_cached_fee_json=cached,expected_client_procs2=procs2,expected_input_reuse=True if procs2 or replay else None,expected_replay_timing=replay,expected_prepared_json_encoding=json_encoding)
                 self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
                 self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
                 self.assertFalse(out["sustainedTPSQualified"])
@@ -1480,6 +1480,28 @@ class SupplySourceTests(unittest.TestCase):
                 wrong=copy.deepcopy(replay_plan);wrong['nativePrefix'].pop('replayTiming');raw_plan=json.dumps(wrong).encode();bad['streamingWorkload']['planSha256']=hashlib.sha256(raw_plan).hexdigest()
             with self.subTest(replayTimingFault=fault),self.assertRaises(RuntimeError):check(bad,prepared=True,pacing='grouped-cadence4',procs2=True,replay=True)
             raw_plan=saved_replay_raw
+        for encoding in supply.PREPARED_JSON_ENCODINGS:
+            encoder_plan=copy.deepcopy(replay_plan);encoder_plan['nativePrefix'].pop('clientProcs2')
+            encoder_plan['nativePrefix']['preparedJSONEncoding']=encoding
+            encoder_plan['profile']='scoped_native_prefix_stream8_prepared_grouped_snapshot_'+('original_json' if encoding=='original-json' else 'fee_json')+'_v1'
+            raw_plan=json.dumps(encoder_plan).encode();encoder_client=copy.deepcopy(replay_client)
+            encoder_client.pop('clientProcs2');encoder_client.update(gomaxprocs=1,nativePreparedJSONEncoding=encoding)
+            encoder_client['durableReadback']['prefixReplay']['preparedJSONEncoding']=encoding
+            encoder_client['streamingWorkload'].update(name=encoder_plan['profile'],planSha256=hashlib.sha256(raw_plan).hexdigest())
+            check(encoder_client,prepared=True,pacing='grouped-cadence4',replay=True,json_encoding=encoding)
+            for fault in ('top','backend','plan','zero','bool','hash','runtime'):
+                bad=copy.deepcopy(encoder_client);saved_encoder_raw=raw_plan
+                if fault=='top':bad['nativePreparedJSONEncoding']='unknown'
+                if fault=='backend':bad['durableReadback']['prefixReplay']['preparedJSONEncoding']='unknown'
+                if fault=='zero':bad['durableReadback']['prefixReplay']['workPhases']['preparedEncodeDetails']['jsonEncode']['calls']=0
+                if fault=='bool':bad['durableReadback']['prefixReplay']['workPhases']['certificatePublishDetails']['preparedNativeAccepted']=True
+                if fault=='hash':bad['nativeCachedFeeJSON']=True
+                if fault=='runtime':bad['gomaxprocs']=2
+                if fault=='plan':
+                    wrong=copy.deepcopy(encoder_plan);wrong['nativePrefix']['preparedJSONEncoding']='unknown';raw_plan=json.dumps(wrong).encode();bad['streamingWorkload']['planSha256']=hashlib.sha256(raw_plan).hexdigest()
+                with self.subTest(encoder=encoding,fault=fault),self.assertRaises(RuntimeError):check(bad,prepared=True,pacing='grouped-cadence4',replay=True,json_encoding=encoding)
+                raw_plan=saved_encoder_raw
+            with self.assertRaises(RuntimeError):check(encoder_client,prepared=True,pacing='grouped-cadence4',replay=True)
         raw_plan=saved_plan
         # One explicit choice must bind producer expectation, durable plan,
         # top-level report, actual backend and accepted/fallback child counters.

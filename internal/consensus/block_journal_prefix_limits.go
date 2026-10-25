@@ -75,3 +75,30 @@ func NewBoundedBlockJournalPreparedNativePrefixDecoder(migration chain.Consensus
 func (d *BlockJournalPrefixDecoder) PreparedNativePublicationEnabled() bool {
 	return d != nil && d.preparedNative
 }
+
+const PreparedNativeOriginalJSON = "original-json"
+const PreparedNativeFeeJSON = "fee-time-json-indent"
+
+// NewBoundedBlockJournalPreparedNativeJSONPrefixDecoder selects only the
+// prepared snapshot encoder at construction. Both encoders retain the same
+// normalization, bounds, full validation, publication and independent copies.
+func NewBoundedBlockJournalPreparedNativeJSONPrefixDecoder(migration chain.ConsensusMigrationState, limit int, encoding string) (*BlockJournalPrefixDecoder, error) {
+	if encoding != PreparedNativeOriginalJSON && encoding != PreparedNativeFeeJSON {
+		return nil, errors.New("unsupported prepared native snapshot JSON encoding")
+	}
+	d, err := NewBoundedBlockJournalPreparedNativePrefixDecoder(migration, limit)
+	if err == nil {
+		d.preparedOriginalJSON = encoding == PreparedNativeOriginalJSON
+	}
+	return d, err
+}
+
+func (d *BlockJournalPrefixDecoder) PreparedNativeJSONEncoding() string {
+	if d == nil || !d.preparedNative {
+		return ""
+	}
+	if d.preparedOriginalJSON {
+		return PreparedNativeOriginalJSON
+	}
+	return PreparedNativeFeeJSON
+}
