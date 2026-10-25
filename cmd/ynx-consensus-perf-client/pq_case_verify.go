@@ -205,7 +205,13 @@ func verifyPQCaseCollectedProof(ctx context.Context, o options, p pqWholeCase, r
 	r.IndependentFinalityVerified = false
 	r.ConfiguredRPCObservationOnly = true
 	r.EffectiveBusinessFinalized = 0
+	r.VerifierProcessStarted, r.VerifierInterrupted, r.VerifierExitCode = false, false, nil
 	fail := func(e error) { r.ProofVerificationError = e.Error() }
+	if e := ctx.Err(); e != nil {
+		r.VerifierInterrupted = true
+		fail(e)
+		return
+	}
 	input, e := pqCaseVerificationRequest(o, p, r)
 	if e != nil {
 		fail(e)
@@ -223,6 +229,12 @@ func verifyPQCaseCollectedProof(ctx context.Context, o options, p pqWholeCase, r
 	cmd.Stderr = &diagnostic
 	phaseStart := time.Now()
 	executionErr := cmd.Run()
+	r.VerifierProcessStarted = cmd.Process != nil
+	r.VerifierInterrupted = ctx.Err() != nil
+	if cmd.ProcessState != nil {
+		code := cmd.ProcessState.ExitCode()
+		r.VerifierExitCode = &code
+	}
 	r.VerifierProcessNs = time.Since(phaseStart).Nanoseconds()
 	phaseStart = time.Now()
 	path := o.output + ".pq-verification.json"

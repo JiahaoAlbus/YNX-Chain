@@ -188,7 +188,7 @@ func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if !report.IndependentFinalityVerified || report.ConfiguredRPCObservationOnly || report.SustainedTPSQualified || report.ProofVerificationStatus != "verified_original_transaction" || report.ProofVerificationNs <= 0 || report.EffectiveBusinessFinalized != 1 || report.ActualOfferToFinalityMeasured || report.VerifierPreparationNs <= 0 || report.VerifierProcessNs <= 0 || report.VerifierEvidenceDurabilityNs <= 0 || report.VerifierResultValidationNs <= 0 {
+	if !report.IndependentFinalityVerified || report.ConfiguredRPCObservationOnly || report.SustainedTPSQualified || report.ProofVerificationStatus != "verified_original_transaction" || report.ProofVerificationNs <= 0 || report.EffectiveBusinessFinalized != 1 || report.ActualOfferToFinalityMeasured || report.VerifierPreparationNs <= 0 || report.VerifierProcessNs <= 0 || report.VerifierEvidenceDurabilityNs <= 0 || report.VerifierResultValidationNs <= 0 || !report.VerifierProcessStarted || report.VerifierInterrupted || report.VerifierExitCode == nil || *report.VerifierExitCode != 0 {
 		t.Fatal("original actual verifier did not verify signed fixture", report)
 	}
 	t.Logf("SYNTHETIC_SIGNED_QA_ONLY original canonical offline verifier PASS; totalNs=%d preparationNs=%d processNs=%d evidenceDurabilityNs=%d resultValidationNs=%d; no actual node/TPS/Native grant", report.ProofVerificationNs, report.VerifierPreparationNs, report.VerifierProcessNs, report.VerifierEvidenceDurabilityNs, report.VerifierResultValidationNs)
@@ -213,7 +213,17 @@ func TestPQMemberCaseOriginalVerifierSignedPublicFixture(t *testing.T) {
 	bad = pqWholeCaseReport{CometIndex: &index, ExecutionHeight: height, ProofEvidencePath: corruptPath, ProofEvidenceSHA256: pqCaseTestSHA(corrupt), ConfiguredRPCObservationOnly: true}
 	o.output = filepath.Join(dir, "corrupt-proof")
 	verifyPQCaseCollectedProof(ctx, o, p, &bad)
-	if bad.IndependentFinalityVerified || bad.ProofVerificationError == "" || bad.VerifierEvidencePath == "" {
+	if bad.IndependentFinalityVerified || bad.ProofVerificationError == "" || bad.VerifierEvidencePath == "" || !bad.VerifierProcessStarted || bad.VerifierExitCode == nil || *bad.VerifierExitCode == 0 {
 		t.Fatal("actual verifier accepted corrupted execution proof", bad)
+	}
+	// Cancellation must not launch even the pinned original executable, replay
+	// the transaction, or retain an earlier successful finality classification.
+	cancelled, stop := context.WithCancel(context.Background())
+	stop()
+	interrupted := report
+	o.output = filepath.Join(dir, "interrupted")
+	verifyPQCaseCollectedProof(cancelled, o, p, &interrupted)
+	if interrupted.IndependentFinalityVerified || interrupted.EffectiveBusinessFinalized != 0 || !interrupted.VerifierInterrupted || interrupted.VerifierProcessStarted || interrupted.VerifierExitCode != nil || posts.Load() != 0 {
+		t.Fatal("cancelled verification launched/replayed or retained success", interrupted)
 	}
 }

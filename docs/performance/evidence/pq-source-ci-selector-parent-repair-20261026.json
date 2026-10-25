@@ -1,0 +1,66 @@
+{
+  "status": "repaired_source_focused_tests_pass_full_ci_pending",
+  "baseCommit": "e40b8637a2e5cb37a0b22a7e011f2d32b60c0af5",
+  "canonicalFix": "ce7bca49c08766a45e22b017e2c6e14a91363b36",
+  "localCanonicalFixCommit": "f877c118c",
+  "importScope": "only internal/consensus/proof_host_source_test.go, parent blob verified equal; no main merge or publisher permission change",
+  "ci40208347215": "terminal failure, producer/client/controller/static/streambft passed, ABCI failed selector metadata and default publication parent",
+  "rootCauses": [
+    {
+      "cause": "hardhat artifacts exist but ethers keccak selector metadata absent",
+      "repair": "run original npm run contracts:selectors immediately after original hardhat:build in own workflow",
+      "localValidation": "Node syntax and YAML parse PASS; full artifact-backed execution left to original CI, local node_modules/artifacts not installed"
+    },
+    {
+      "cause": "default proof fixture TempDir permission incompatible with unchanged private publisher",
+      "red": {
+        "test": "TestProofHostSource(InitialAccountFromOriginalLedger|FromOriginalLedger)",
+        "elapsedSeconds": 6.034,
+        "result": "FAIL"
+      },
+      "green": {
+        "test": "same exact two source tests including transfer/typed-action",
+        "elapsedSeconds": 7.068,
+        "result": "PASS"
+      },
+      "repair": "canonical helper creates original private child 0700 rather than relaxing publisher"
+    }
+  ],
+  "clientTerminalEvidence": {
+    "fields": [
+      "verifierProcessStarted",
+      "verifierExitCode",
+      "verifierInterrupted"
+    ],
+    "signedProofAndCancelRaceSeconds": 4.214,
+    "actualOriginalVerifierRejectsCorruptProof": true,
+    "cancelledContextStartsVerifier": false,
+    "replaysOriginalTransaction": false,
+    "clearsPriorVerifiedClassification": true
+  },
+  "rawEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-original-verifier-source-ci-failed-20261025.raw",
+      "bytes": 16852,
+      "sha256": "2c3d416adcfee3d049736c22f9ef8a28bc3cafaf00e75c0908cce7c27a18426d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-default-source-parent-red-20261025.raw",
+      "bytes": 897,
+      "sha256": "bffc19d24bfaa0f92294c0a69cb6a53f79715aef106846a91642bf7c796a5dd3"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-default-source-parent-green-20261026.raw",
+      "bytes": 565,
+      "sha256": "8c4afd74770e40c16b93c08147319f47541fa35de483df10a1a97400cf8c8f6e"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-verifier-terminal-and-cancel-race-20261025.raw",
+      "bytes": 463,
+      "sha256": "5faf28683fa3a5cea3a95e74abef9217b7d2c8b421580663083a68837aab69b3"
+    }
+  ],
+  "realMultiNodeRun": false,
+  "actualOfferToFinalityMeasured": false,
+  "sustainedTPSQualified": false
+}

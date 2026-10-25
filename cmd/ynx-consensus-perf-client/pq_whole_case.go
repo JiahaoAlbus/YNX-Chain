@@ -51,6 +51,9 @@ type pqCasePhases struct {
 	ProofDurabilityNs             int64 `json:"proofDurabilityNs,string"`
 }
 type pqWholeCaseReport struct {
+	VerifierProcessStarted            bool              `json:"verifierProcessStarted"`
+	VerifierInterrupted               bool              `json:"verifierInterrupted"`
+	VerifierExitCode                  *int              `json:"verifierExitCode,omitempty"`
 	ProofVerifierSHA256               string            `json:"proofVerifierSha256,omitempty"`
 	TrustContextSHA256                string            `json:"trustContextSha256,omitempty"`
 	EffectiveBusinessFinalized        int               `json:"effectiveBusinessFinalized"`

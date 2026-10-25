@@ -87,6 +87,8 @@ jobs:
           scripts/loadtest/same-control-readback.test.mjs
       - run: npm ci
       - run: npm run hardhat:build
+      - name: Generate original contract selectors required by ABCI execution fixtures
+        run: npm run contracts:selectors
       - name: Verify compiler output preserves controlled evidence and scanner failures
         run: node --test scripts/contracts/hardhat-output.test.mjs
       - run: make static-check
