@@ -1,4 +1,4 @@
-import type {ProductSessionPlatform,ProductSessionPlatformSigner,WalletConnectionCoordinator,ProductSessionPublicationOutcome} from "./index.js";
+import type {ProductSessionPlatform,ProductSessionPlatformSigner,WalletConnectionCoordinator,ProductSessionPublicationOutcome,ProductBusinessReadClient} from "./index.js";
 export declare const PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN: "https://wallet-auth.ynxweb4.com";
 /** Fixed normal HTTPS caller only; not Native/Source or deployment admission.
  * No endpoint/fetch/key/provider option and no automatic publish retry. */
@@ -37,3 +37,9 @@ export interface ProductWalletConnectionConfiguration {
 }
 /** Composition only; constructor does not approve egress, project access or a Product Session. */
 export declare function createProductWalletConnection(config:ProductWalletConnectionConfiguration):WalletConnectionCoordinator;
+
+/** New explicit native read lease; actual protected storage/device ports are
+ * supplied by the platform owner after its visible narrow read permission.
+ * No endpoint/session/provider/credential or login/restore input is accepted. */
+export type ProductWalletBusinessReadConfiguration=Readonly<Pick<ProductWalletConnectionConfiguration,'registry'|'productId'|'storage'|'device'|'gatewayTimeoutMs'>&{platform:Exclude<ProductSessionPlatform,'web'>}>;
+export declare function createProductWalletBusinessReadClient(config:ProductWalletBusinessReadConfiguration):Promise<ProductBusinessReadClient>;

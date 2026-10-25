@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.47",
+  "version": "1.3.0-pq.3.32-auth.48",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -2217,5 +2217,20 @@
     "newTUs": 0,
     "SourceAdmission": false,
     "NativeAdmission": false
+  },
+  "existingBusinessReadSuccessor": {
+    "factory": "@ynx-chain/wallet-auth/product-wallet-connection::createProductWalletBusinessReadClient",
+    "existingClientCore": "RecoverableProductSessionClient.openExistingBusinessRead",
+    "constructorNetwork": false,
+    "constructorSigning": false,
+    "storageWrites": false,
+    "loginOrRestore": false,
+    "fakeConnected": false,
+    "methods": [
+      "createBusinessProof(GET exact route empty body requiredScopes)",
+      "close"
+    ],
+    "NativeAdmission": false,
+    "SourceAdmission": false
   }
 }

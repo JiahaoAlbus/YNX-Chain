@@ -28,6 +28,22 @@ export function createProductWalletReturnPublisher(config){
   });
 }
 
+/** Fresh native-approved read of an existing protected session. Fixed original
+ * HTTPS clock only; no session DTO, endpoint, fetch, login or restore input.
+ * The platform owns read consent/Source/current and the actual key capability. */
+export async function createProductWalletBusinessReadClient(config){
+  exactFields(config,['registry','productId','platform','storage','device','gatewayTimeoutMs'],'Existing native business read configuration');
+  if(config.platform==='web')throw new WalletAuthError('NATIVE_BUSINESS_READ_REQUIRED','Existing business read requires native custody');
+  assertProductRuntime();
+  if(typeof globalThis.fetch!=='function')throw new WalletAuthError('INVALID_GATEWAY','Normal read requires the platform HTTPS transport');
+  exactFields(config.device,['id','key','sign','scopes','purpose'],'Native existing read signer');
+  if(typeof config.device.sign!=='function')throw new WalletAuthError('INVALID_DEVICE','Existing read requires the original protected signer');
+  const inapplicable=()=>{throw new WalletAuthError('BUSINESS_READ_ONLY','Read client cannot discover or reconnect Wallet');};
+  const gateway=new ProductSessionGatewayFetchAdapter({endpoint:PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,fetch:globalThis.fetch.bind(globalThis),walletInstalled:inapplicable,schemeRegistered:inapplicable,timeoutMs:config.gatewayTimeoutMs});
+  const client=new RecoverableProductSessionClient({registry:config.registry,productId:config.productId,platform:config.platform,storage:config.storage,gateway,device:config.device,tokenFactory:secureToken,clock:authorityClockRequired});
+  return client.openExistingBusinessRead();
+}
+
 /**
  * Constructs the only supported product-facing Wallet connection surface.
  * Product code supplies capabilities, never a callback, origin, route or Session.

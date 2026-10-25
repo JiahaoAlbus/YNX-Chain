@@ -627,6 +627,58 @@ export class RecoverableProductSessionClient {
   // Generic business request proof: independent from one-shot introspection.
   // The server supplies route-required scopes and consumes the returned nonce
   // with its original actor/object transaction; proof alone is not permission.
+  /** A new native read lease over the SAME protected saved session. Does not
+   * restore, reconnect, mutate storage, introspect by POST or mark Connected.
+   * The platform signer independently enforces its fresh visible read consent,
+   * Source/anchor/current fences. A returned HTTP proof is not service approval. */
+  async openExistingBusinessRead() {
+    if(this.#binding.platform==='web'||typeof this.#device.sign!=='function'||'secret' in this.#device)fail('NATIVE_BUSINESS_READ_REQUIRED','Existing read requires the real native protected signer');
+    const state=this.current,epoch=this.#beginEpoch,networkEpoch=this.#networkEpoch,nonces=new Set();
+    let closed=false,originalRaw,session,timeFloor=-Infinity;
+    const active=()=>{
+      if(closed||this.current!==state||this.#beginEpoch!==epoch)fail('BUSINESS_READ_RETIRED','Original read lease was retired');
+      if(!this.#networkAvailable||this.#networkEpoch!==networkEpoch)fail('NETWORK_UNAVAILABLE','Original read network context changed');
+      if(this.#revocationRequested||this.#disconnectPromise!==null)fail('REVOCATION_PENDING','Sign-out blocks existing session reads');
+    };
+    const readback=async()=>{
+      active();if(await this.#loadRevocationIntent())fail('REVOCATION_PENDING','Sign-out blocks existing session reads');active();
+      const raw=await this.#storage.get(this.storageKey);active();
+      if(typeof raw!=='string'||raw.length>16384)fail('SESSION_INACTIVE','Original protected session is unavailable');
+      const parsed=parseProductSession(JSON.parse(raw));
+      for(const k of ['chainId','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback'])if(parsed[k]!==this.#binding[k])fail('SESSION_BINDING_MISMATCH','Saved read session belongs to another native product');
+      if(!['2','3'].includes(parsed.version)||parsed.deviceId!==this.#device.id||parsed.deviceKey!==this.#device.key)fail('SESSION_BINDING_MISMATCH','Saved read session belongs to another protected device');
+      if(originalRaw!==undefined&&raw!==originalRaw)fail('SESSION_INACTIVE','Original protected session changed during read');
+      originalRaw=raw;if(session===undefined)session=parsed;
+      if(await this.#loadRevocationIntent())fail('REVOCATION_PENDING','Sign-out started during existing session read');active();
+    };
+    const time=async()=>{
+      active();if(typeof this.#gateway.currentTime!=='function'&&typeof this.#gateway.currentTimeForOperation!=='function')fail('CLOCK_UNAVAILABLE','Existing read requires authority time');
+      const now=await this.#now('business-read');active();
+      if(now.getTime()<timeFloor)fail('CLOCK_UNAVAILABLE','Read authority time moved backwards');timeFloor=now.getTime();
+      if(now.toISOString()<session.issuedAt||now.toISOString()>=session.expiresAt)fail('SESSION_EXPIRED','Original read session expired');return now;
+    };
+    const claimNonce=nonce=>{if(nonces.has(nonce))fail('INVALID_RANDOM_SOURCE','Original read proof nonce repeated');nonces.add(nonce);};
+    await readback(); // Opening reads protected records only; no network or signing.
+    return Object.freeze({
+      capabilities:Object.freeze({kind:'existing-native-business-read',identityGrant:false,nativeAdmission:false,connected:false,newSession:false}),
+      close(){closed=true;},
+      createBusinessProof:async input=>{
+        exactFields(input,['method','path','body','requiredScopes'],'Existing business GET');
+        const method=input.method,path=input.path,body=input.body;
+        if(method!=='GET'||body!==''||typeof path!=='string'||!/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path)||path.includes('//')||path.endsWith('/')||path.split('/').some(x=>x==='.'||x==='..')||path.startsWith('/v2/product-sessions/')||path.startsWith('/v2/browser-sessions/'))fail('HTTP_BINDING_MISMATCH','Read lease signs only an exact business GET with empty body');
+        const count=Array.isArray(input.requiredScopes)?input.requiredScopes.length:0;
+        if(count<1||count>8)fail('SCOPE_WIDENING','Read scopes must be explicit');
+        const scopes=Array.from({length:count},(_,i)=>input.requiredScopes[i]);
+        if(scopes.some(s=>typeof s!=='string'||!session.scopes.includes(s)||!this.#binding.scopes.includes(s)||!this.#device.scopes.includes(s))||new Set(scopes).size!==count||[...scopes].sort().join('\n')!==scopes.join('\n'))fail('SCOPE_WIDENING','Read scopes exceed the original session');
+        await readback();const now=await time();await readback();
+        const proof=await this.#proof(session,path,null,now,{active,readback,claimNonce},'GET','');
+        const after=await time();await readback();
+        if(after.toISOString()>=proof.expiresAt)fail('SESSION_EXPIRED','Original GET proof expired before release');
+        return Object.freeze({proof,proofHeader:encodeProductSessionGatewayProofHeaderV2(proof),body:''});
+      },
+    });
+  }
+
   async createBusinessProof(input) {
     exactFields(input, ["method", "path", "body", "requiredScopes"], "Product business request");
     const method = input.method, path = input.path, raw = input.body instanceof Uint8Array ? Uint8Array.from(input.body) : input.body;
@@ -729,9 +781,10 @@ export class RecoverableProductSessionClient {
     if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network changed while reading proof authority time");
     const expiresAt = new Date(Math.min(now.getTime() + 30_000, Date.parse(session.expiresAt))).toISOString();
     if (expiresAt <= now.toISOString()) fail("SESSION_EXPIRED", "Product Session expired before sender-constrained authorization");
+    const nonce=this.#tokens();if(guard?.claimNonce)guard.claimNonce(nonce);
     const input = {
       method, path, bodyDigest: committedDigest ?? httpBodyDigest(rawBody ?? canonicalJSON(body)),
-      nonce: this.#tokens(), issuedAt: now.toISOString(), expiresAt,
+      nonce, issuedAt: now.toISOString(), expiresAt,
     };
     if (guard !== null) { await guard.readback(); guard.active(); }
     const proof = this.#device.sign
