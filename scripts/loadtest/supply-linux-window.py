@@ -990,7 +990,7 @@ def _verifier_controller():
     # importlib callers need no sys.modules registration; expose only this
     # same loaded controller's functions to the verifier protocol.
     from types import SimpleNamespace
-    return SimpleNamespace(__file__=__file__,stream_evidence=stream_evidence,recipe=recipe,STREAM_PROFILE=STREAM_PROFILE)
+    return SimpleNamespace(__file__=__file__,stream_evidence=stream_evidence,recipe=recipe,STREAM_PROFILE=STREAM_PROFILE,PREPARED_JSON_ENCODINGS=PREPARED_JSON_ENCODINGS)
 
 
 def native_stream_pair_case(row,case,mode,current_input_reuse=True,canonical_certificate=False,native_suffix_setup=False,block_tip_hint=False,submitters=8,prepared=False,exit_mm_proof=False,client_procs2=False,replay_timing=False,prepared_json_encoding=""):

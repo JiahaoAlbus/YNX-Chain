@@ -662,6 +662,27 @@ class NativeVerifierProtocolTests(unittest.TestCase):
         out=io.StringIO()
         with contextlib.redirect_stdout(out):value=supply.stream_verifier.produce(controller,case,selection)
         (case/'verifier.log').write_text(out.getvalue());return value
+    def test_snapshot_encoders_transfer_through_actual_parent_worker_namespace(self):
+        # Protocol fixture only; no mocked business result is network qualification.
+        # The receiving namespace is the actual one used after the child exits.
+        for encoding in supply.PREPARED_JSON_ENCODINGS:
+            with self.subTest(encoding=encoding),tempfile.TemporaryDirectory() as d:
+                case,_,producer,calls=self.fixture(d)
+                producer.PREPARED_JSON_ENCODINGS=supply.PREPARED_JSON_ENCODINGS
+                selection=supply.native_verifier_selection('grouped-cadence4',True,False,False,False,8,True,False,True,encoding)
+                v=self.produce(case,selection,producer)
+                self.assertEqual(calls,[selection,selection])
+                actual=supply._verifier_controller()
+                value,meta=supply.stream_verifier.load_result(actual,case,selection,v['pid'],v['parentPID'])
+                self.assertEqual(value,v);self.assertEqual(meta['checkerPasses'],2)
+                receipt=(case/supply.stream_verifier.NAME).read_bytes()
+                for wrong in ('unknown',True,None,'',*supply.PREPARED_JSON_ENCODINGS):
+                    if wrong==encoding:continue
+                    bad=dict(selection,expected_prepared_json_encoding=wrong)
+                    with self.assertRaises(RuntimeError):supply.stream_verifier.load_result(actual,case,bad,v['pid'],v['parentPID'])
+                    self.assertEqual((case/supply.stream_verifier.NAME).read_bytes(),receipt)
+                self.assertFalse(value['networkQualified'])
+
     def test_two_full_checker_calls_and_transfer_identity(self):
         with tempfile.TemporaryDirectory() as d:
             case,selection,c,calls=self.fixture(d);v=self.produce(case,selection,c)
@@ -699,6 +720,19 @@ class NativeVerifierProtocolTests(unittest.TestCase):
             with patch.object(supply.time,'monotonic',return_value=1),patch.object(supply,'post_fsync_owned_closure',return_value=dict(owned=[7],launcherStartTicks=1)),contextlib.redirect_stdout(out):
                 self.assertFalse(supply.oneshot_post_fsync(row,receipt,lambda:dict(privateBytes=1),0,native_stream8=True))
             self.assertIn('native verifier',row['firstCause'])
+
+    def test_snapshot_encoder_failed_worker_never_qualifies_after_cleanup(self):
+        for encoding in supply.PREPARED_JSON_ENCODINGS:
+            with self.subTest(encoding=encoding),tempfile.TemporaryDirectory() as d:
+                row=supply.recipe('grpc',supply.STREAM_PROFILE,'grouped-cadence4',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,prepared=True,replay_timing=True,prepared_json_encoding=encoding)
+                closure=dict(owned=[7],launcherStartTicks=1)
+                row.update(case=str(Path(d).resolve()),launcher=7,firstCause=None,nodesStarted=True,cleanupComplete=True,closureScans=[dict(closure),dict(closure)],measurement=dict(summary=dict(finalSubmitted=8192)))
+                receipt=Path(d)/'receipt.json';receipt.write_text(json.dumps(row));out=io.StringIO()
+                with patch.object(supply.time,'monotonic',return_value=1),patch.object(supply,'post_fsync_owned_closure',return_value=closure) as scans,contextlib.redirect_stdout(out):
+                    self.assertFalse(supply.oneshot_post_fsync(row,receipt,lambda:dict(privateBytes=1),0,native_stream8=True))
+                self.assertIn('native verifier',row['firstCause']);self.assertTrue(row['cleanupComplete'])
+                terminal=json.loads(out.getvalue().split('YNX_NATIVE_STREAM_TERMINAL ')[-1]);self.assertFalse(terminal['qualified'])
+                self.assertEqual(terminal['postFsyncClosureScans'],[closure,closure]);self.assertGreaterEqual(scans.call_count,2)
 
     def test_verifier_is_not_exempt_from_original_aggregate_caps(self):
         row=supply.recipe('grpc',supply.STREAM_PROFILE,'bounded-cadence',True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True)
