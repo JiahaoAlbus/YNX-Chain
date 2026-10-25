@@ -61,6 +61,7 @@ jobs:
             case "$file" in
               internal/cloud/ide_deployment*.go|internal/cloud/server.go) ;;
               internal/developerauthority/*.go|internal/developerauthority/schema.sql) ;;
+              internal/developerauthority/original_ide_source_schema.sql) ;;
               apps/cloud/cmd/ynx-cloudd/main.go|apps/cloud/cmd/ynx-cloudd/ide_runtime*.go) ;;
               apps/cloud/sdk/index.js|apps/cloud/sdk/index.d.ts|apps/cloud/sdk/package.json) ;;
               apps/cloud/sdk/observe-ide-deployment.mjs|apps/cloud/sdk/observe-ide-deployment.d.ts) ;;
@@ -92,7 +93,7 @@ jobs:
       - name: Original pool and normal-main ownership race regressions
         run: >-
           go test -race -count=1 -timeout=90s
-          -run '^(TestIDERuntime|TestPostgres)'
+          -run '^(TestIDERuntime|TestPostgres|TestOriginalIDE(Factory|Wire)|TestIDECommissioning)'
           ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd
       - name: Original SDK transport and observation integration
         run: node --test apps/cloud/tests/ide-deployment*.test.mjs

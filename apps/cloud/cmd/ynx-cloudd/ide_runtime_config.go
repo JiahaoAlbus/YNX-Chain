@@ -108,7 +108,15 @@ func parseIDEProtectedConfig(raw []byte) (ideProtectedConfig, error) {
 }
 
 func readIDEProtectedConfig(file string) (ideProtectedConfig, error) {
-	var empty ideProtectedConfig
+	raw, err := readIDEProtectedBytes(file, ideConfigLimit)
+	if err != nil {
+		return ideProtectedConfig{}, err
+	}
+	return parseIDEProtectedConfig(raw)
+}
+
+func readIDEProtectedBytes(file string, limit int64) ([]byte, error) {
+	var empty []byte
 	if !filepath.IsAbs(file) || filepath.Clean(file) != file {
 		return empty, errIDEConfig
 	}
@@ -130,10 +138,10 @@ func readIDEProtectedConfig(file string) (ideProtectedConfig, error) {
 	defer f.Close()
 	var stat unix.Stat_t
 	before, err := f.Stat()
-	if err != nil || unix.Fstat(fd, &stat) != nil || !before.Mode().IsRegular() || before.Mode().Perm() != 0600 || stat.Uid != uint32(os.Geteuid()) || stat.Nlink != 1 || before.Size() < 1 || before.Size() > ideConfigLimit {
+	if err != nil || unix.Fstat(fd, &stat) != nil || !before.Mode().IsRegular() || before.Mode().Perm() != 0600 || stat.Uid != uint32(os.Geteuid()) || stat.Nlink != 1 || before.Size() < 1 || before.Size() > limit {
 		return empty, errIDEConfig
 	}
-	raw, err := io.ReadAll(io.LimitReader(f, ideConfigLimit+1))
+	raw, err := io.ReadAll(io.LimitReader(f, limit+1))
 	if err != nil {
 		return empty, errIDEConfig
 	}
@@ -143,7 +151,7 @@ func readIDEProtectedConfig(file string) (ideProtectedConfig, error) {
 	if err != nil || namedErr != nil || parentErr != nil || !os.SameFile(before, after) || !os.SameFile(after, named) || !os.SameFile(dir, parent) || named.Mode()&os.ModeSymlink != 0 || parent.Mode().Perm() != 0700 || named.Mode().Perm() != 0600 || before.Size() != after.Size() || after.Size() != named.Size() || !before.ModTime().Equal(after.ModTime()) || !after.ModTime().Equal(named.ModTime()) || int64(len(raw)) != before.Size() {
 		return empty, errIDEConfig
 	}
-	return parseIDEProtectedConfig(raw)
+	return raw, nil
 }
 
 func resolveIDEDeploymentStartup(ctx context.Context, file string, original *ideDeploymentStartupInputs) (*ideDeploymentStartupInputs, error) {

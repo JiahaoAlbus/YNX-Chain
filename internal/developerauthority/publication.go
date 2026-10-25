@@ -25,8 +25,9 @@ type ArtifactBinding struct {
 	ByteSize          int64  `json:"byteSize"`
 }
 type publicationEnvelope struct {
+	Version            string `json:"version"`
 	RequestOriginal    string `json:"requestOriginal"`
-	ProofOriginal      string `json:"proofOriginal"`
+	ResultOriginal     string `json:"resultOriginal"`
 	InvocationOriginal string `json:"invocationOriginal"`
 	SignatureOriginal  string `json:"signatureOriginal"`
 	ActualApprovalRef  string `json:"actualApprovalRef"`
@@ -36,7 +37,7 @@ type publicationEnvelope struct {
 // protected approval/registry owner. Mathematical N1 DATA alone is NOT this.
 type VerifiedPublication struct {
 	Account, DeviceID, RequestID, PublisherID, PublisherPublicSHA256, ProjectCurrentReference string
-	PrincipalSHA256, ManifestSHA256, RequestSHA256, ProofSHA256, SignatureSHA256              string
+	PrincipalSHA256, ManifestSHA256, RequestSHA256, ResultSHA256, SignatureSHA256             string
 	ActualApprovalRef, ConfirmationRef, RevocationRef                                         string
 	PublisherRevision                                                                         uint64
 	ExpiresMS                                                                                 int64
@@ -126,14 +127,17 @@ func artifactManifest(raw []byte) (ArtifactBinding, error) {
 }
 func publicationInput(raw []byte) (publicationEnvelope, error) {
 	var p publicationEnvelope
-	e := decodeExactObject(raw, PublicationEnvelopeLimit, map[string]any{"requestOriginal": &p.RequestOriginal, "proofOriginal": &p.ProofOriginal, "invocationOriginal": &p.InvocationOriginal, "signatureOriginal": &p.SignatureOriginal, "actualApprovalRef": &p.ActualApprovalRef})
-	if e != nil || len(p.RequestOriginal) == 0 || len(p.RequestOriginal) > 16384 || len(p.ProofOriginal) == 0 || len(p.ProofOriginal) > 393216 || len(p.InvocationOriginal) == 0 || len(p.InvocationOriginal) > 16384 || len(p.SignatureOriginal) == 0 || len(p.SignatureOriginal) > 393216 || !text(p.ActualApprovalRef) {
+	e := decodeExactObject(raw, PublicationEnvelopeLimit, map[string]any{"version": &p.Version, "requestOriginal": &p.RequestOriginal, "resultOriginal": &p.ResultOriginal, "invocationOriginal": &p.InvocationOriginal, "signatureOriginal": &p.SignatureOriginal, "actualApprovalRef": &p.ActualApprovalRef})
+	if e != nil || p.Version != "YNX-IDE-PUBLICATION-INPUT/v1" || len(p.RequestOriginal) == 0 || len(p.RequestOriginal) > 16384 || len(p.ResultOriginal) == 0 || len(p.ResultOriginal) > 262144 || len(p.InvocationOriginal) == 0 || len(p.InvocationOriginal) > 16384 || len(p.SignatureOriginal) == 0 || len(p.SignatureOriginal) > 131072 || !text(p.ActualApprovalRef) {
 		return publicationEnvelope{}, ErrDenied
+	}
+	if _, e = originalIDEArtifactMember([]byte(p.SignatureOriginal)); e != nil {
+		return publicationEnvelope{}, e
 	}
 	return p, nil
 }
 func verifiedPublicationMatches(v VerifiedPublication, p Principal, a Access, key Publisher, manifest []byte, envelope publicationEnvelope, now int64) bool {
-	return v.Account == p.Account && v.DeviceID == p.DeviceID && text(v.RequestID) && v.PublisherID == key.PublisherID && v.PublisherPublicSHA256 == key.PublicSHA256 && v.PublisherRevision == key.Revision && v.ProjectCurrentReference == a.CurrentReference && v.PrincipalSHA256 == objectHash(p) && v.ManifestSHA256 == hash(manifest) && v.RequestSHA256 == hash([]byte(envelope.RequestOriginal)) && v.ProofSHA256 == hash([]byte(envelope.ProofOriginal)) && v.SignatureSHA256 == hash([]byte(envelope.SignatureOriginal)) && v.ActualApprovalRef == envelope.ActualApprovalRef && text(v.ConfirmationRef) && text(v.RevocationRef) && v.ExpiresMS > now && v.ExpiresMS <= p.ExpiresMS && v.ExpiresMS <= a.ExpiresMS && v.ExpiresMS <= key.ExpiresMS
+	return v.Account == p.Account && v.DeviceID == p.DeviceID && text(v.RequestID) && v.PublisherID == key.PublisherID && v.PublisherPublicSHA256 == key.PublicSHA256 && v.PublisherRevision == key.Revision && v.ProjectCurrentReference == a.CurrentReference && v.PrincipalSHA256 == objectHash(p) && v.ManifestSHA256 == hash(manifest) && v.RequestSHA256 == hash([]byte(envelope.RequestOriginal)) && v.ResultSHA256 == hash([]byte(envelope.ResultOriginal)) && v.SignatureSHA256 == hash([]byte(envelope.SignatureOriginal)) && v.ActualApprovalRef == envelope.ActualApprovalRef && text(v.ConfirmationRef) && text(v.RevocationRef) && v.ExpiresMS > now && v.ExpiresMS <= p.ExpiresMS && v.ExpiresMS <= a.ExpiresMS && v.ExpiresMS <= key.ExpiresMS
 }
 func resourceMatches(r ResourceApproval, p Principal, b ArtifactBinding, v VerifiedPublication, now int64) bool {
 	return r.Account == p.Account && r.ProjectID == b.ProjectID && r.RequestID == v.RequestID && r.ManifestSHA256 == v.ManifestSHA256 && text(r.ResourceID) && text(r.ResourceApprovalRef) && text(r.ConfirmationRef) && text(r.RevocationRef) && r.RuntimeSeconds > 0 && r.RuntimeSeconds <= 300 && r.ResourceValidUntilMS >= now && int64(r.RuntimeSeconds) <= (r.ResourceValidUntilMS-now)/1000 && !r.RequiresAdditionalCharge && r.ExpiresMS > now && r.ExpiresMS <= v.ExpiresMS
@@ -182,7 +186,7 @@ func (c *Catalog) AuthorizePublication(ctx context.Context, request *http.Reques
 	}
 	keyForVerifier := publisher
 	keyForVerifier.PublicOriginal = append([]byte(nil), publisher.PublicOriginal...)
-	v, e := source.VerifyOriginalArtifactApproval(ctx, principal, access, keyForVerifier, binding, append([]byte(nil), manifest...), []byte(envelope.RequestOriginal), []byte(envelope.ProofOriginal), []byte(envelope.SignatureOriginal), envelope.ActualApprovalRef)
+	v, e := source.VerifyOriginalArtifactApproval(ctx, principal, access, keyForVerifier, binding, append([]byte(nil), manifest...), []byte(envelope.RequestOriginal), []byte(envelope.ResultOriginal), []byte(envelope.SignatureOriginal), envelope.ActualApprovalRef)
 	if e != nil || !verifiedPublicationMatches(v, principal, access, publisher, manifest, envelope, c.now().UnixMilli()) {
 		return nil, ErrDenied
 	}

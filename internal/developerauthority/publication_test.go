@@ -3,6 +3,7 @@ package developerauthority
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -13,7 +14,7 @@ func publicManifest() []byte {
 	return b
 }
 func publicEnvelope() []byte {
-	b, _ := json.Marshal(publicationEnvelope{"PUBLIC-original-request", "PUBLIC-N1-proof", string(publicManifest()), "PUBLIC-artifact-signature", "PUBLIC-protected-approval-ref"})
+	b, _ := json.Marshal(publicationEnvelope{Version: "YNX-IDE-PUBLICATION-INPUT/v1", RequestOriginal: "PUBLIC-original-request", ResultOriginal: "PUBLIC-NATIVE-RESULT-NOT-IDENTITY-PROOF", InvocationOriginal: string(publicManifest()), SignatureOriginal: base64.RawURLEncoding.EncodeToString([]byte("PUBLIC-not-a-real-Member")), ActualApprovalRef: "PUBLIC-protected-approval-ref"})
 	return b
 }
 func TestPublicationTransportSeparateOriginalsAndLargePQBound(t *testing.T) {
@@ -55,7 +56,7 @@ func TestPublicationManifestUnknownDuplicateAndTamperRefusal(t *testing.T) {
 	}
 }
 func TestPublicationRequestIsNotProofOrArtifactSignature(t *testing.T) {
-	for _, field := range []string{"requestOriginal", "proofOriginal", "invocationOriginal", "signatureOriginal", "actualApprovalRef"} {
+	for _, field := range []string{"version", "requestOriginal", "resultOriginal", "invocationOriginal", "signatureOriginal", "actualApprovalRef"} {
 		var packet map[string]any
 		json.Unmarshal(publicEnvelope(), &packet)
 		delete(packet, field)
