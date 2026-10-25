@@ -27,6 +27,7 @@ export function createOriginalWalletProjectControl(){
   },
   decide(reviewId,decision,getGuard){if(!kernel||closed)throw Error('CONTROL_ORIGINAL_REVIEW_REQUIRED');return kernel.decide(reviewId,decision,getGuard);},
   observeOriginal(getGuard){if(!kernel||closed)throw Error('CONTROL_ORIGINAL_REVIEW_REQUIRED');return kernel.observeOriginal(getGuard);},
+  readOriginalApprovalProof(getGuard){if(!kernel||closed)throw Error('CONTROL_ORIGINAL_REVIEW_REQUIRED');return kernel.readOriginalApprovalProof(getGuard);},
   saveOriginalResult(getGuard){if(!owner||!kernel||closed)throw Error('CONTROL_ORIGINAL_REVIEW_REQUIRED');const guard=getGuard();guard.assert?.();owner.saveOriginalApprovalResult();return kernel.observeOriginal(getGuard);},
   status(){return kernel?.status()??{phase:owner?'capture-unknown':'idle',dataOnly:true,approved:false,committed:false,retryAuthorized:false};},
   retire(){kernel?.retire();if(!kernel)owner?.retire();},
