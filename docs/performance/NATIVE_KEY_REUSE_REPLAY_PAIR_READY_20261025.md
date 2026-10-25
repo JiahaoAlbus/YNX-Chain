@@ -1,5 +1,7 @@
 # 公钥复用源码：有限四节点对照 READY
 
+2026-10-25更新：唯一新grant已在deadline内派发run40186554841/attempt1，已完成完整独立验收并归还slot；有限吞吐增加但final尾延迟退化、联合收益false。见[原始结果与分层计时](NATIVE_KEY_REUSE_REPLAY_RUN40186554841_QUALIFIED_20261025.md)。以下保留历史READY，不是新运行授权。
+
 SOURCE `f2ffa01ba006a8a2aba3ca3a9f09b04311857731` / CODE `e7beff99ac8b4e19efa83e5d6a5f4198182cdf9e`；普通CI40185564279已SUCCESS，四节点步骤skipped。remote冻结ref `codex/chain-native-key-reuse-replay-pair-f2ffa01ba0` 已exact回读。
 
 这是条件READY，`executionAdmitted=false`、`rootGrantReceived=false`、`dispatched=false`。必须等Root新鲜窗口及新的once grant；不继承旧授权、不得自动重试。UNKNOWN先恢复原远端结果。原slot：普通CI job121145501300于2026-10-25T10:43:57Z结束SUCCESS，原watch68616 exit0；旧401832仅为Root既有接受上下文，未重读、下载或重跑。

@@ -1,0 +1,332 @@
+{
+  "schema": 1,
+  "runId": 40186554841,
+  "sourceCommit": "f2ffa01ba006a8a2aba3ca3a9f09b04311857731",
+  "codeCommit": "e7beff99ac8b4e19efa83e5d6a5f4198182cdf9e",
+  "nativePairQualified": true,
+  "slotReturned": true,
+  "sustainedTPSQualified": false,
+  "defaultPromotionQualified": false,
+  "finiteJointImprovementObserved": false,
+  "crossVMSourceCausalityQualified": false,
+  "keyReuseNetworkBenefitMeasured": false,
+  "originalArtifact": {
+    "id": 12596835427,
+    "bytes": 99376894,
+    "wholeZIPDigestRecomputed": false
+  },
+  "publicRecovery": {
+    "members": 549,
+    "bytes": 43983924,
+    "finalArchiveRangeNetworkBytes": 0,
+    "finalArchiveRangeRequests": 0,
+    "independentNoNetworkAuditPassed": true
+  },
+  "evidence": {
+    "actual-run-completed.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/actual-run-completed.json",
+      "bytes": 10523,
+      "sha256": "1c272b8182d45c3646f2ee36543b3e1f7604919b012aa34dd6be5ebfa9292d3f"
+    },
+    "original-complete-run-api.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/original-complete-run-api.json",
+      "bytes": 12378,
+      "sha256": "2b0c4e3fb1550bfe2204613a1f7fddeefe110a5724bff2cb62a200358d534846"
+    },
+    "paired-ci-full.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/paired-ci-full.raw",
+      "bytes": 842287,
+      "sha256": "872d43e6363ef8174f306d2791f96f6f035e04b31c285d758962361a374aa84b"
+    },
+    "original-artifact-api.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/original-artifact-api.json",
+      "bytes": 772,
+      "sha256": "cae674575dcdb3fa1b9850f15bda4077e55a90613d5f15a86db2a2c6e2959de5"
+    },
+    "original-case-terminals.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/original-case-terminals.json",
+      "bytes": 2769,
+      "sha256": "791cad377e69f1a69124d064f07652a92ab9b7aed1d406ac4eb8e945da470895"
+    },
+    "original-pair-terminals.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/original-pair-terminals.json",
+      "bytes": 795,
+      "sha256": "c8351747261b871ca1c8e85d0036d4b1981bc97e3fb50de78770c37468ea435c"
+    },
+    "priority-original-core-and-capacity-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/priority-original-core-and-capacity-01.json",
+      "bytes": 1967,
+      "sha256": "09e30c5a0aea07f78890a7b7c41f87d7917530e4c9f9db62b7a2d5144ad86ec0"
+    },
+    "supplement/prebuild-capacity-original.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/supplement/prebuild-capacity-original.json",
+      "bytes": 411,
+      "sha256": "c3df4c0d3d312107b7f651981a0f6cf1974f22b8ea846d44a6d320f5fd3d560b"
+    },
+    "priority-original-node-diagnostics-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/priority-original-node-diagnostics-01.json",
+      "bytes": 4661,
+      "sha256": "c58b998a768ce6773fcca17f75a8f47eeb800e17ba1f13d08b4d6ca38eb54b13"
+    },
+    "complete-original-public-recovery.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/complete-original-public-recovery.json",
+      "bytes": 60554,
+      "sha256": "1ca51448b304bd740dd7426157c4f1961366d2a32c737de197788b793a1c2b11"
+    },
+    "original-business-checkpoint-phases-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/original-business-checkpoint-phases-01.json",
+      "bytes": 99103,
+      "sha256": "ab430a599f4fde558e29de5549568d30fe164c559ccf9c8ef7d42b286a2f2f3b"
+    },
+    "before-native-replay-procs1-node-completion-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/before-native-replay-procs1-node-completion-01.json",
+      "bytes": 7326,
+      "sha256": "c8f633043c8db6070d2e0db4b7a1a06fe7a32462dcde281af0772cf71b494096"
+    },
+    "after-native-replay-procs2-node-completion-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/after-native-replay-procs2-node-completion-01.json",
+      "bytes": 7320,
+      "sha256": "32f42f016ae7b63700f7e4a6aeef087328cfd3f9952ff3c67aaff82a7418df4d"
+    },
+    "independent-native-verdict-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/independent-native-verdict-01.json",
+      "bytes": 576499,
+      "sha256": "5882f835d02b731991d9bac8d159c05e7062f68c64c2bf425eb35e89d9c0f3d9"
+    },
+    "qualified-metrics-and-node-completion-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/qualified-metrics-and-node-completion-01.json",
+      "bytes": 30992,
+      "sha256": "16e27d022c0397a5a60cca3d54d792d29fb7666ca8bb2df8abe5cb7c961269ad"
+    },
+    "serial-original-public-prefetch.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/serial-original-public-prefetch.raw",
+      "bytes": 1074,
+      "sha256": "d4be6fa9119daef4d5743299862a206f4bb476aa1a478a8f226d58c509742e4f"
+    },
+    "finalize-original-evidence-01.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/finalize-original-evidence-01.raw",
+      "bytes": 333,
+      "sha256": "f295f2e5e38c2ab6cf467c3f131837f20ca155ec46d7ef38af03e7a494f7b2ee"
+    },
+    "exact-new-run-header-check-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-run-40186554841/exact-new-run-header-check-01.json",
+      "bytes": 246,
+      "sha256": "74499baf77816f35f9ca27c3769ee6fc22b276e79a0125f73714e946f5b07673"
+    }
+  },
+  "onceDispatch": {
+    "root-once-grant-original.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/root-once-grant-original.json",
+      "bytes": 8501,
+      "sha256": "11adfb02f24119e61f5aaaabff159642e5c009af3caf995bdb7fb15314e0910e"
+    },
+    "dispatch-intent-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/dispatch-intent-01.json",
+      "bytes": 881,
+      "sha256": "3fc4c7e8d8db086eb824f4f9ab3dc7bf3a7b2d98ecdb1009c3a8760e9088809a"
+    },
+    "dispatch-result-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/dispatch-result-01.json",
+      "bytes": 1101,
+      "sha256": "1a86068305f46cd35d45f80d7dd4ab5daba58b88b65767ee08c1d19313404082"
+    },
+    "pre-dispatch-original-api.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/pre-dispatch-original-api.json",
+      "bytes": 36,
+      "sha256": "a2790a384d7d281e7395679000c35d27768d89dbd7052f725b8f4688beb59915"
+    },
+    "post-dispatch-original-api-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/post-dispatch-original-api-01.json",
+      "bytes": 12411,
+      "sha256": "a2594f97c2acc292d1a79b683180cf7ab7804f7e7c425a6485d1abf24737da1f"
+    }
+  },
+  "ready": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/native-key-reuse-replay-pair-source-f2ffa01ba0/root-scheduling-request-with-evidence.json",
+    "bytes": 20709,
+    "sha256": "bb09af5bb9ec7dbec1eeb85a01d5d7e68b777fafafa276a00fc242ad084e2cf3"
+  },
+  "sourceConsumers": {
+    "native-key-reuse-replay-qualified-pair-reader-20261025.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-key-reuse-replay-qualified-pair-reader-20261025.py",
+      "bytes": 21369,
+      "sha256": "39d68f2062597868124499146eb48023dabb2b7a72748ec2332657a0043fee3c"
+    },
+    "native-key-reuse-replay-node-phases-20261025.mjs": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-key-reuse-replay-node-phases-20261025.mjs",
+      "bytes": 7570,
+      "sha256": "132aafd20c57c68a7639522e8d6bc36416c058a0030d422831d6ca8fc03d642e"
+    },
+    "native-key-reuse-replay-node-completion-reader-20261025.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-key-reuse-replay-node-completion-reader-20261025.py",
+      "bytes": 5740,
+      "sha256": "3bdb8caa823bfa7041224bb9d29fa9573aa695350b443495f2ed0cd265bbaa27"
+    },
+    "native-key-reuse-replay-qualified-metrics-reader-20261025.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-key-reuse-replay-qualified-metrics-reader-20261025.py",
+      "bytes": 5588,
+      "sha256": "c46823b1a96f64eba663b3c2379c4361132fb3ff10566ff876e1a3e2b6dc6f0b"
+    },
+    "native-key-reuse-original-public-recovery-helper-20261025.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-key-reuse-original-public-recovery-helper-20261025.py",
+      "bytes": 5929,
+      "sha256": "b1afd8b1e7be9ea3137f578b057ff3ebedaeae68098a7aae5d8c782abe863076"
+    },
+    "native-key-reuse-original-core-capacity-recovery-helper-20261025.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-key-reuse-original-core-capacity-recovery-helper-20261025.py",
+      "bytes": 6087,
+      "sha256": "a37c8b49da43699caa7ab291d9131aaa880fbd368d0bc8841e718732fc703826"
+    },
+    "native-original-range-persistent-transport-20261025.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-original-range-persistent-transport-20261025.py",
+      "bytes": 4550,
+      "sha256": "7164d9a1c9944c300c90009317a76a46bc2a8b44aaeeb395d017ccf7c901bc3b"
+    }
+  },
+  "cases": [
+    {
+      "name": "before-native-replay-procs1",
+      "actualOfferRate": 300.6381222339763,
+      "finiteFinalRate": 281.27338061800174,
+      "measurementWindowSeconds": 29.124689944,
+      "businessErrors": {
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "executionFailed": 0,
+        "observationFailed": 0,
+        "checkTxRejected": 0
+      },
+      "latencyUpperBoundsMs": {
+        "offerToEffectiveBusinessInclusion": {
+          "p50": 1249,
+          "p95": 1753,
+          "p99": 1930
+        },
+        "offerToFinal": {
+          "p50": 1474,
+          "p95": 1978,
+          "p99": 2096
+        },
+        "offerToNodeFinalizeReturn": {
+          "p50": 1005,
+          "p95": 1529,
+          "p99": 1646
+        },
+        "offerToNodeDurableCommitReturn": {
+          "p50": 1052,
+          "p95": 1593,
+          "p99": 1702
+        },
+        "nodeCommitToClientFinalObservation": {
+          "p50": 393,
+          "p95": 699,
+          "p99": 709
+        },
+        "offerToFirstReplicaDurableCommit": {
+          "p50": 1010,
+          "p95": 1541,
+          "p99": 1656
+        },
+        "offerToThirdReplicaDurableCommit": {
+          "p50": 1061,
+          "p95": 1596,
+          "p99": 1706
+        },
+        "offerToAllReplicaDurableCommit": {
+          "p50": 1093,
+          "p95": 1623,
+          "p99": 1747
+        },
+        "replicaDurableCommitSpread": {
+          "p50": 77,
+          "p95": 141,
+          "p99": 197
+        }
+      },
+      "sampledPeaks": {
+        "rssBytes": 993984512,
+        "threads": 65,
+        "privateBytes": 126020967,
+        "buildBytes": 119804524
+      },
+      "businessBlocksPerReplica": 35,
+      "meanTransactionsPerBusinessBlock": 234.05714285714285
+    },
+    {
+      "name": "after-native-replay-procs2",
+      "actualOfferRate": 434.6677237549386,
+      "finiteFinalRate": 409.18098964416356,
+      "measurementWindowSeconds": 20.020480441,
+      "businessErrors": {
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "executionFailed": 0,
+        "observationFailed": 0,
+        "checkTxRejected": 0
+      },
+      "latencyUpperBoundsMs": {
+        "offerToEffectiveBusinessInclusion": {
+          "p50": 1208,
+          "p95": 1626,
+          "p99": 1770
+        },
+        "offerToFinal": {
+          "p50": 1530,
+          "p95": 2030,
+          "p99": 2183
+        },
+        "offerToNodeFinalizeReturn": {
+          "p50": 1019,
+          "p95": 1425,
+          "p99": 1560
+        },
+        "offerToNodeDurableCommitReturn": {
+          "p50": 1079,
+          "p95": 1487,
+          "p99": 1634
+        },
+        "nodeCommitToClientFinalObservation": {
+          "p50": 449,
+          "p95": 708,
+          "p99": 780
+        },
+        "offerToFirstReplicaDurableCommit": {
+          "p50": 1002,
+          "p95": 1421,
+          "p99": 1582
+        },
+        "offerToThirdReplicaDurableCommit": {
+          "p50": 1083,
+          "p95": 1495,
+          "p99": 1637
+        },
+        "offerToAllReplicaDurableCommit": {
+          "p50": 1111,
+          "p95": 1516,
+          "p99": 1655
+        },
+        "replicaDurableCommitSpread": {
+          "p50": 116,
+          "p95": 174,
+          "p99": 182
+        }
+      },
+      "sampledPeaks": {
+        "rssBytes": 996827136,
+        "threads": 66,
+        "privateBytes": 122077563,
+        "buildBytes": 119804524
+      },
+      "businessBlocksPerReplica": 23,
+      "meanTransactionsPerBusinessBlock": 356.17391304347825
+    }
+  ],
+  "limitations": [
+    "Only client1/2 comparison on the same new source/VM/four ELF set; no cross-VM causal gain for key reuse.",
+    "Each8192 finite inputs, not sustained1000x600s. Offer still below target, not a measured chain capacity ceiling.",
+    "Endpoint Finalize/durable Commit, client final observation and replica completion are distinct; earliest voting-power BFT quorum formation instant unmeasured.",
+    "Latency values are1ms-bin upper bounds with original node clock calibration bounds; quantiles cannot be added/subtracted.",
+    "Reader timing children overlap parents; memoryCommit is local replay only, not fsync.",
+    "Sampled RSS/logical retained bytes are not hard cgroup/allocated-block peaks."
+  ]
+}
