@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.45",
+  "version": "1.3.0-pq.3.32-auth.46",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -2182,5 +2182,16 @@
     "businessReadPermission": false,
     "SourceQualified": false,
     "installed": false
+  },
+  "migrationPossessionSuccessor": {
+    "API": "pq-wallet-authorization::verifyPQMigrationPossessionData(newKeyWholeProof,expectedIntent9)",
+    "domain": "ACCOUNT-MIGRATION",
+    "N": 1,
+    "fullE15": true,
+    "dualAND": true,
+    "dataOnly": true,
+    "SourceAdmission": false,
+    "NativeAdmission": false,
+    "approval": false
   }
 }
