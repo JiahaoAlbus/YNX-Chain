@@ -4,6 +4,7 @@
 // pack supplies the host/editor translations; this contribution never claims
 // to be a complete display language on its own.
 const entries = [
+  ['deployReferenceRequired','Enter a valid saved request reference before reading or querying its result.','读取或查询结果前，请填写有效的已保存请求编号。'],
   ["contractOperation","Contract operation","合约操作"],
   ["contractOperationdeploy","Deploy supported contract","部署受支持的合约"],
   ["contractOperationexecute","Call deployed contract","调用已部署合约"],

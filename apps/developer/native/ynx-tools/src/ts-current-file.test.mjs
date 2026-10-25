@@ -199,6 +199,83 @@ async function waitUntil(check) {
   assert.fail('bounded TEST_ONLY lifecycle observation did not settle');
 }
 async function outputGone(output) { try { await fs.access(output); return false; } catch (error) { if (error.code === 'ENOENT') return true; throw error; } }
+for (const stage of ['activation', 'save']) for (const reason of [false, undefined, null, 0, '']) {
+  test(`activation/save RPC preserves ${stage} rejection ${String(reason)} without compilation`, () => lifecycle(async f => {
+    if (stage === 'activation') f.api.extensions.getExtension = () => ({ activate: () => Promise.reject(reason) });
+    else f.document.save = () => Promise.reject(reason);
+    let outcome;
+    const running = f.runner.start().then(value => { outcome = { accepted: true, value }; }, error => { outcome = { accepted: false, error }; });
+    await waitUntil(() => outcome || f.calls.length);
+    // An old broken waiter can enter a task; finish that test-owned task so
+    // the RED case also preserves cleanup rather than hanging the test run.
+    if (f.calls.length) f.emit('process', { execution: f.calls[0], exitCode: 1 });
+    await running;
+    assert.equal(outcome.accepted, false);
+    assert.equal(outcome.error, reason, 'keep the exact first rejection instead of a later compile/TypeError');
+    assert.deepEqual(f.calls, [], 'a rejected editor RPC must never enter a compile task or debugger');
+    let saves = 0; f.document.save = async () => { saves++; return false; };
+    assert.equal(await f.runner.start(), false); assert.equal(saves, 1, 'rejection releases pending for retry');
+  }));
+}
+for (const reason of [false, undefined, null, 0, '', Object.freeze(Error('frozen original launch failure'))]) {
+  test(`cleanup retains activation/launch first rejection ${String(reason)} when artifact removal also fails`, () => lifecycle(async f => {
+    const cleanupError = Object.assign(Error('retained cleanup failure'), { code: 'EACCES' });
+    f.api.debug.startDebugging = () => Promise.reject(reason);
+    f.faults.rm = () => Promise.reject(cleanupError);
+    const running = f.runner.start().then(() => 'unexpected success', error => error);
+    const execution = await f.waitTask(), output = execution.task.execution.args.at(-1);
+    // Public fixture output only: reach the existing launch/cleanup owner; no
+    // compiler or debugger process is substituted or claimed successful here.
+    await fs.writeFile(path.join(output, 'hello.js'), '// public unexecuted fixture\n');
+    f.emit('process', { execution, exitCode: 0 });
+    const error = await running;
+    assert.equal(error.name, 'AggregateError');
+    assert.equal(error.cause, reason);
+    assert.equal(error.errors[0], reason);
+    assert.equal(error.errors[1], cleanupError);
+    await fs.access(output);
+  }));
+}
+for (const action of ['cancel', 'dispose']) for (const late of ['resolve', 'reject']) {
+  test(`${action} retires pending TypeScript debugger activation before its late ${late}`, () => lifecycle(async f => {
+    let reply, reject, outcome;
+    f.api.extensions.getExtension = () => ({ activate: () => new Promise((yes, no) => { reply = yes; reject = no; }) });
+    const running = f.runner.start().then(value => { outcome = value; }, error => { outcome = error.message; });
+    await waitUntil(() => reply);
+    try {
+      if (action === 'cancel') f.runner.cancel(); else f.dispose();
+      await new Promise(resolve => setImmediate(resolve));
+      await new Promise(resolve => setImmediate(resolve));
+      assert.match(outcome || 'still pending', /cancelled/);
+      assert.equal(f.calls.length, 0);
+      if (action === 'cancel') {
+        let saves = 0; f.document.save = async () => { saves++; return false; };
+        assert.equal(await f.runner.start(), false);
+        assert.equal(saves, 1, 'retry must enter rather than remain locked by activation');
+      } else assert.equal(Object.keys(f.handlers).length, 0, 'retired owner releases listeners before the activation reply');
+      if (late === 'resolve') reply(); else reject(Error('late activation failure'));
+      await running; await new Promise(resolve => setImmediate(resolve));
+      assert.equal(f.calls.length, 0, 'late activation cannot create a compile task or debug session');
+    } finally { reply(); await running; }
+  }));
+}
+test('late cancelled activation cannot terminate or release the next TypeScript compile', () => lifecycle(async f => {
+  let reply, outcome;
+  f.api.extensions.getExtension = () => ({ activate: () => new Promise(resolve => { reply = resolve; }) });
+  const first = f.runner.start().then(value => { outcome = value; }, error => { outcome = error.message; });
+  await waitUntil(() => reply);
+  try {
+    f.runner.cancel(); await new Promise(resolve => setImmediate(resolve)); await new Promise(resolve => setImmediate(resolve));
+    assert.match(outcome || 'still pending', /cancelled/);
+    f.api.extensions.getExtension = () => ({ activate: async () => {} });
+    const second = f.runner.start().then(() => 'unexpected', error => error.message);
+    const execution = await f.waitTask();
+    reply(); await first; await new Promise(resolve => setImmediate(resolve));
+    assert.equal(f.calls.length, 1); assert.equal(f.calls[0], execution);
+    f.emit('process', { execution, exitCode: 1 });
+    assert.match(await second, /compilation failed/);
+  } finally { reply(); await first; }
+}));
 test('FIFO dispose during compilation waits for actual termination before removing artifacts', () => lifecycle(async f => {
   const running = f.runner.start(); const observed = running.then(() => 'resolved', e => e.message);
   const task = await f.waitTask(); const output = task.task.execution.args.at(-1);

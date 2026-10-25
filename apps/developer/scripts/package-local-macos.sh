@@ -48,6 +48,10 @@ node --test runtime/theia/scripts/extension-display-identity.test.mjs
 node --test scripts/normal-local-workspace-aliases.test.mjs
 node --test scripts/verify-packaged-local-imports.test.mjs
 node --test scripts/solidity-current-file-route.test.mjs
+node --test native/ynx-tools/src/js-current-file.test.mjs
+node --test native/ynx-tools/src/solidity-build-completion.test.mjs
+node --test --test-name-pattern='activation' native/ynx-tools/src/ts-current-file.test.mjs
+node --test native/ynx-tools/src/command-error-boundary.test.mjs
 node --test scripts/ai-unconfigured-default.test.mjs desktop/admitted-local-project-uuid.test.mjs
 node --test desktop/wallet-contract-reference-journal.test.mjs desktop/wallet-contract-client.test.mjs
 node --test desktop/contract-relay-scope.test.mjs

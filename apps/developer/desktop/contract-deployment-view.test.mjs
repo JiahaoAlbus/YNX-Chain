@@ -92,3 +92,18 @@ test('disposing the contract window before its queued picker runs never opens a 
  await tick();const before=calls;widget.buttons.sourceURI.click();widget.dispose();await tick();
  assert.equal(picks,0,'retired window must not open the system file picker');assert.equal(calls,before,'retirement must not start project work');
 });
+
+for(const action of ['read','query'])test('invalid saved reference is a local '+action+' field error and never reaches project transport',async()=>{
+ const f=fixture();await tick();const before=f.calls.length;
+ for(const input of ['', ' not-a-reference ', '11111111-2222-3333-4444-55555555555']){
+  f.widget.fields.referenceId.value=input;f.widget.buttons[action].click();await tick();
+  assert.equal(f.calls.length,before,'invalid reference must stay local');assert.match(f.widget.status.textContent,/valid saved request reference/i);
+ }
+ f.widget.dispose();
+});
+test('missing deployment materials are explained before any project request',async()=>{
+ const f=fixture();await tick();const before=f.calls.length;f.widget.buttons.review.click();await tick();assert.equal(f.calls.length,before);assert.match(f.widget.status.textContent,/matching compiler files/i);assert.equal(f.widget.buttons.prepare.disabled,true);f.widget.dispose();
+});
+test('missing call data is explained before any project request',async()=>{
+ const f=fixture();await tick();fillCall(f.widget);f.widget.fields.calldata.value='';const before=f.calls.length;f.widget.buttons.review.click();await tick();assert.equal(f.calls.length,before);assert.match(f.widget.status.textContent,/encoded call/i);assert.equal(f.widget.buttons.prepare.disabled,true);f.widget.dispose();
+});

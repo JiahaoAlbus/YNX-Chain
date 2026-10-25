@@ -69,7 +69,18 @@ function activate(context) {
     ] },
   ];
   require('./project-views.cjs').registerProjectViews(vscode, context, entries);
-  const register = (name, action) => context.subscriptions.push(vscode.commands.registerCommand(name, async () => { try { await action(); } catch (error) { vscode.window.showErrorMessage(t(error.message)); } }));
+  const register = (name, action) => context.subscriptions.push(vscode.commands.registerCommand(name, async () => {
+    try { await action(); }
+    catch (error) {
+      let message = 'The command failed. Check the project configuration and retry.';
+      try { if (typeof error?.message === 'string' && error.message) message = error.message; }
+      catch { /* A failed error accessor must not hide the failed operation. */ }
+      // Failure presentation is not another approval or task lifetime. Keep
+      // pending/disposed notification UI from throwing a second rejection.
+      try { Promise.resolve(vscode.window.showErrorMessage(t(message))).catch(() => {}); }
+      catch { /* The original operation has already failed. */ }
+    }
+  }));
   register('ynx.chainProject', () => projectChain().open());
   register('ynx.chain.status', () => projectChain().status());
   register('ynx.chain.capabilities', () => projectChain().capabilities());
@@ -81,7 +92,7 @@ function activate(context) {
   register('ynx.configureChainProject', () => projectChain().configure());
   register('ynx.chainProjectHistory', () => projectChain().saved());
   register('ynx.trackChainTransaction', () => projectChain().track());
-  const jsCurrentFile = require('./js-current-file.cjs').createJsCurrentFile(vscode, process.env);
+  const jsCurrentFile = require('./js-current-file.cjs').createJsCurrentFile(vscode, process.env, context);
   register('ynx.js.runActive', () => jsCurrentFile(true));
   register('ynx.js.debugActive', () => jsCurrentFile(false));
   const tsCurrentFile = require('./ts-current-file.cjs').createTsCurrentFile(vscode, context, process.env);

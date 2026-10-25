@@ -223,5 +223,6 @@
   "Review the replacement provenance before applying.": "应用前请核对替换内容的来源。",
   "Apply this manually edited replacement to the reviewed local buffer? The original selection was sent to AI. Save separately; Undo remains available.": "将手动编辑后的替换内容应用到已审阅的本地缓冲区？原选区已发送给 AI。请单独保存，仍可撤销。",
   "Only this context is sent to the model after approval. Preview sends it to the admitted review service. No project files are collected automatically.": "批准后仅将此上下文发送给模型。预览会将其发送给获准的审阅服务，不会自动收集项目文件。",
-  "Apply this manually edited replacement to the reviewed local buffer? The original selection may have been sent to AI; the outcome is UNKNOWN. Save separately; Undo remains available.": "将手动编辑后的替换内容应用到已审阅的本地缓冲区？原选区可能已发送给 AI，结果未知。请单独保存，仍可撤销。"
+  "Apply this manually edited replacement to the reviewed local buffer? The original selection may have been sent to AI; the outcome is UNKNOWN. Save separately; Undo remains available.": "将手动编辑后的替换内容应用到已审阅的本地缓冲区？原选区可能已发送给 AI，结果未知。请单独保存，仍可撤销。",
+  "The command failed. Check the project configuration and retry.": "命令未能完成。请检查项目配置后重试。"
 }

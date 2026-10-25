@@ -17,6 +17,18 @@ function expectedData(input,projectId){
  if(!/^[a-f0-9]{64}$/.test(value.binding.contentDigest)||['publisherId','resourceId'].some(key=>typeof value[key]!=='string'||!value[key]||Buffer.byteLength(value[key])>256))throw failure('IDE_PUBLICATION_REFERENCE_INVALID');
  return value;
 }
+// Cancellation settles the UI owner even if a read-only SDK ignores its
+// signal. Both outcomes remain observed; no retry or replacement is started.
+function observeUntilCancelled(signal,observe){
+ return new Promise((resolve,reject)=>{
+  let settled=false;
+  const finish=(failed,value)=>{if(settled)return;settled=true;signal.removeEventListener('abort',abort);if(failed)reject(value);else resolve(value);};
+  const abort=()=>finish(true,signal.reason);
+  signal.addEventListener('abort',abort,{once:true});
+  if(signal.aborted){abort();return;}
+  Promise.resolve().then(()=>{signal.throwIfAborted();return observe();}).then(value=>finish(false,value),cause=>finish(true,cause));
+ });
+}
 // Owns only durable query coordinates. There is deliberately no submit,
 // re-sign, retry, deploy cancellation, or trusted-publisher grant here.
 export async function openPublicationObservation({context,admittedProject,endpoint,getDeploymentRequestHeaders,CloudClient,observeIDEDeployment,now=Date.now}){
@@ -38,7 +50,7 @@ export async function openPublicationObservation({context,admittedProject,endpoi
  return Object.freeze({
   async retain(requestId,expected){await localCurrent();const target=file(requestId),value=expectedData(expected,captured.localProjectId);if((await fs.readdir(directory)).length>=128)throw failure('IDE_PUBLICATION_REFERENCE_CAPACITY');let fd;try{fd=await fs.open(target,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW|constants.O_NONBLOCK,0o600);const stat=await fd.stat();const bytes=Buffer.from(JSON.stringify({bindingHash,requestId,expected:value})+'\n');if(bytes.length>16384)throw failure('IDE_PUBLICATION_REFERENCE_INVALID');await fd.writeFile(bytes);await fd.sync();await localCurrent();if(!same(stat,await fs.lstat(target)))throw failure('IDE_PUBLICATION_REFERENCE_UNKNOWN');const dir=await fs.open(directory,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW|constants.O_NONBLOCK);try{if(!same(await dir.stat(),directoryStat))throw failure('IDE_PUBLICATION_REFERENCE_UNKNOWN');await dir.sync();}finally{await dir.close();}return await read(requestId);}finally{await fd?.close();}},
   read,
-  async resume(requestId,{signal}={}){const reference=await read(requestId);if(!reference)throw failure('IDE_PUBLICATION_REFERENCE_MISSING');const controller=new AbortController(),abort=()=>controller.abort(signal.reason);signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();active.add(controller);try{await current();const result=await observeIDEDeployment(cloud,{requestId,expected:reference.expected,signal:controller.signal});await current();return result;}finally{active.delete(controller);signal?.removeEventListener('abort',abort);}},
+  async resume(requestId,{signal}={}){const reference=await read(requestId);if(!reference)throw failure('IDE_PUBLICATION_REFERENCE_MISSING');const controller=new AbortController(),abort=()=>controller.abort(signal.reason);signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();active.add(controller);try{controller.signal.throwIfAborted();await current();controller.signal.throwIfAborted();const result=await observeUntilCancelled(controller.signal,()=>observeIDEDeployment(cloud,{requestId,expected:reference.expected,signal:controller.signal}));controller.signal.throwIfAborted();await current();controller.signal.throwIfAborted();return result;}finally{active.delete(controller);signal?.removeEventListener('abort',abort);}},
   close(){closed=true;for(const controller of active)controller.abort(failure('IDE_PUBLICATION_RETIRED'));active.clear();},
  });
 }

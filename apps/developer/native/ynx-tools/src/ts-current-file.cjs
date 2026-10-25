@@ -33,25 +33,28 @@ function createTsCurrentFile(api, context, environment = process.env) {
   }
   function cancel() {
     generation++;
-    pending?.cancelSave?.();
+    pending?.cancelRPC?.();
     if (pending?.execution) pending.execution.terminate();
     if (pending?.session) void stop(pending);
   }
-  function saveDocument(document, request, validate) {
+  // Save and debugger activation are editor RPCs. Retire this request on
+  // cancellation without waiting for an extension's late reply; observe both
+  // reply outcomes so neither can resume or release a newer request.
+  function runEditorRPC(start, request, validate) {
     return new Promise((resolve, reject) => {
       let settled = false;
-      const finish = (error, value) => {
+      const finish = (rejected, value) => {
         if (settled) return;
         settled = true;
-        if (request.cancelSave === cancelled) request.cancelSave = undefined;
-        error ? reject(error) : resolve(value);
+        if (request.cancelRPC === cancelled) request.cancelRPC = undefined;
+        rejected ? reject(value) : resolve(value);
       };
-      const cancelled = () => finish(Error('TypeScript run was cancelled.'));
-      request.cancelSave = cancelled;
+      const cancelled = () => finish(true, Error('TypeScript run was cancelled.'));
+      request.cancelRPC = cancelled;
       Promise.resolve().then(() => {
         validate(); // A queued RPC must still belong to this original request.
-        return document.save();
-      }).then(value => finish(undefined, value), error => finish(error));
+        return start();
+      }).then(value => finish(false, value), error => finish(true, error));
     });
   }
   const ended = api.tasks.onDidEndTaskProcess(event => {
@@ -98,7 +101,7 @@ function createTsCurrentFile(api, context, environment = process.env) {
     const epoch = ++generation;
     const document = api.window.activeTextEditor?.document;
     const folder = document && api.workspace.getWorkspaceFolder(document.uri);
-    let version, job, failure;
+    let version, job, failure, failed = false;
     const request = { epoch }, savedDocuments = [];
     const originalFile = document?.uri?.fsPath, folderPath = folder?.uri?.fsPath, workspacePath = environment.YNX_LOCAL_WORKSPACE;
     const validate = () => {
@@ -137,7 +140,7 @@ function createTsCurrentFile(api, context, environment = process.env) {
         };
         await assertWorkspacePath(candidatePath, folderPath);
         validateCandidate();
-        const saved = await saveDocument(candidate, request, validateCandidate);
+        const saved = await runEditorRPC(() => candidate.save(), request, validateCandidate);
         if (candidate.isClosed) throw Error('The TypeScript file changed after saving. Run it again.');
         validate();
         if (!saved) return false;
@@ -151,7 +154,7 @@ function createTsCurrentFile(api, context, environment = process.env) {
       await fs.access(compiler);
       const extension = api.extensions.getExtension('ms-vscode.js-debug');
       if (!extension) throw Error('Enable the JavaScript Debugger to run TypeScript.');
-      await extension.activate(); validate();
+      await runEditorRPC(() => extension.activate(), request, validate); validate();
       const output = await fs.mkdtemp(path.join(location.realWorkspace, '.ynx-ts-run-'));
       let resolve; const completion = new Promise(done => { resolve = done; }); let settled = false;
       job = { output, epoch, token: path.basename(output), finish(code) { if (!settled) { settled = true; resolve(code); } } };
@@ -186,15 +189,24 @@ function createTsCurrentFile(api, context, environment = process.env) {
       }
       return true;
     } catch (error) {
-      failure = error.code === 'ENOENT'
+      failed = true;
+      failure = error?.code === 'ENOENT'
         ? Error('The packaged TypeScript compiler or selected source is unavailable. Repair the IDE installation and retry.') : error;
       throw failure;
     } finally {
       try {
         if (job && (!sessions.has(job.token) || job.ended) && !job.execution) await remove(job);
       } catch (cleanupError) {
-        if (failure) failure.cleanupError = cleanupError;
-        else throw cleanupError;
+        if (!failed) throw cleanupError;
+        // Failure is an outcome, not the truthiness or mutability of its
+        // thrown value. Retain both causes if the original cannot carry the
+        // historical cleanupError property (e.g. null or a frozen Error).
+        if (failure !== null && (typeof failure === 'object' || typeof failure === 'function')) {
+          try { failure.cleanupError = cleanupError; }
+          catch { throw new AggregateError([failure, cleanupError], 'TypeScript run failed and artifact cleanup is incomplete.', { cause: failure }); }
+        } else {
+          throw new AggregateError([failure, cleanupError], 'TypeScript run failed and artifact cleanup is incomplete.', { cause: failure });
+        }
       } finally { if (pending === request || pending === job) pending = undefined; }
     }
   }

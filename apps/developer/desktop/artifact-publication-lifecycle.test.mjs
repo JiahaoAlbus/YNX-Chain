@@ -15,3 +15,39 @@ test('another account or owner cannot adopt saved publication query coordinates'
 test('project close aborts its observation without cancelling, signing or resubmitting the deployment',async t=>{let entered;const started=new Promise(resolve=>entered=resolve),f=await fixture(t,{observeIDEDeployment:async(_client,input)=>{entered();return new Promise((resolve,reject)=>{input.signal.addEventListener('abort',()=>reject(input.signal.reason),{once:true});});}});await f.flow.retain(id,expected());const request=f.flow.resume(id);await started;f.flow.close();await assert.rejects(request,{code:'IDE_PUBLICATION_RETIRED'});const reopened=await openPublicationObservation(f.options);assert.equal((await reopened.read(id)).queryOnly,true);assert.equal(f.calls.length,0);});
 test('partial original reference remains preserved and cannot become a new deployment attempt',async t=>{const f=await fixture(t);await f.flow.retain(id,expected());const file=join(f.profile,'artifact-publication-queries',id+'.json');await fs.appendFile(file,'{');const before=await fs.readFile(file);await assert.rejects(f.flow.resume(id),{code:'IDE_PUBLICATION_REFERENCE_UNKNOWN'});assert.equal(f.calls.length,0);assert.deepEqual(await fs.readFile(file),before);await assert.rejects(f.flow.retain(id,expected()),{code:'EEXIST'});});
 test('a real FIFO query coordinate is rejected before any blocking read or Cloud request',async t=>{const f=await fixture(t);const file=join(f.profile,'artifact-publication-queries',id+'.json');execFileSync('/usr/bin/mkfifo',['-m','600',file]);const program=`import{openPublicationObservation}from ${JSON.stringify(new URL('./artifact-publication-lifecycle.mjs',import.meta.url).href)};const [context,state,id]=JSON.parse(process.argv[1]);const flow=await openPublicationObservation({context,admittedProject:{assertCurrent:async()=>state},getDeploymentRequestHeaders:async()=>{throw Error('must not call');},CloudClient:class{},observeIDEDeployment:async()=>{throw Error('must not call');}});try{await flow.read(id);process.exitCode=2;}catch(e){if(e.code!=='IDE_PUBLICATION_REFERENCE_INVALID')throw e;console.log('FIFO_REFUSED');}`;const result=spawnSync(process.execPath,['--input-type=module','-e',program,JSON.stringify([f.options.context,f.state,id])],{encoding:'utf8',timeout:1500});assert.equal(result.error,undefined);assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/FIFO_REFUSED/);assert.equal((await fs.lstat(file)).isFIFO(),true);});
+
+
+test('already cancelled observation never enters the original SDK and keeps its query coordinate',async t=>{
+ const f=await fixture(t);await f.flow.retain(id,expected());const controller=new AbortController(),reason=Error('PUBLIC-user-cancel');controller.abort(reason);
+ await assert.rejects(f.flow.resume(id,{signal:controller.signal}),error=>error===reason);
+ assert.equal(f.calls.length,0);assert.equal((await f.flow.read(id)).queryOnly,true);
+ await f.flow.resume(id);assert.equal(f.calls.filter(call=>call[0]==='observe').length,1);
+});
+test('cancellation during the last project-current wait does not enter the original SDK',async t=>{
+ const f=await fixture(t);await f.flow.retain(id,expected());let entered,release,count=0;
+ const started=new Promise(resolve=>entered=resolve),held=new Promise(resolve=>release=resolve);
+ f.options.admittedProject.assertCurrent=async()=>{if(++count===3){entered();await held;}return{...f.state};};
+ const controller=new AbortController(),reason=Error('PUBLIC-cancel-during-current');
+ const pending=f.flow.resume(id,{signal:controller.signal});const rejected=assert.rejects(pending,error=>error===reason);
+ await started;controller.abort(reason);release();await rejected;
+ assert.equal(f.calls.length,0);assert.equal((await f.flow.read(id)).queryOnly,true);
+});
+test('a late SDK success cannot replace cancellation or trigger a second deployment',async t=>{
+ let entered,release;const started=new Promise(resolve=>entered=resolve),held=new Promise(resolve=>release=resolve);
+ const f=await fixture(t,{observeIDEDeployment:async()=>{entered();await held;return{operation:{state:'completed'},logs:[]};}});await f.flow.retain(id,expected());
+ const controller=new AbortController(),reason=Error('PUBLIC-cancel-before-result');
+ const pending=f.flow.resume(id,{signal:controller.signal});const rejected=assert.rejects(pending,error=>error===reason);
+ await started;controller.abort(reason);release();await rejected;
+ assert.equal((await f.flow.read(id)).queryOnly,true);assert.equal(f.calls.length,0);
+});
+
+test('cancel settles the caller while an uncooperative read-only SDK is still pending',async t=>{
+ let entered,rejectSDK;const started=new Promise(resolve=>entered=resolve),sdk=new Promise((_resolve,reject)=>rejectSDK=reject);
+ const f=await fixture(t,{observeIDEDeployment:()=>{entered();return sdk;}});await f.flow.retain(id,expected());
+ const controller=new AbortController(),reason=Error('PUBLIC-query-cancel');let settled=false;
+ const pending=f.flow.resume(id,{signal:controller.signal});const rejected=assert.rejects(pending,error=>error===reason).then(()=>{settled=true;});
+ await started;controller.abort(reason);await new Promise(resolve=>setImmediate(resolve));
+ try{assert.equal(settled,true,'cancel must settle without waiting for the SDK response');}
+ finally{rejectSDK(Error('PUBLIC-late-sdk-failure'));await rejected;}
+ assert.equal((await f.flow.read(id)).queryOnly,true);
+});
