@@ -8,9 +8,9 @@
 
 客户端CODE70e7e4509/tree19b9fafcf固定：after默认复用已验证index；before仅加 `-pq-readback-index-baseline`，相同binary执行原额外GET解析，校验/消息/签名/RPC保持一致。新增当前提交到首个完整committed RPC观察，POST可先出现，GET仍作为原reconciliation；只读恢复不伪造原offer时钟，冲突H/index失败。三个focused race PASS2.523s。
 
-沿原 `scripts/loadtest/pq-paired-linux-window.py` 的Linux资源、kernel PID身份和清理守卫，提议保持105s active+15s cleanup/120s total、1GiB owned RSS、16进程/320线程、512MiB private、1MiB日志、200ms采样及原磁盘/内存保留。原retained-history opt-in workload包含legacy/contract迁移，不能冒fresh PQ profile。Protocol须在原normal四Node harness提供新fresh入口和冻结source pins；本线程own client/driver/测量拼接。每臂45s硬预算；超限/首因即停，不自动扩限、不开始第二臂。
+沿原 `scripts/loadtest/pq-paired-linux-window.py` 的Linux资源、kernel PID身份和清理守卫，提议保持105s active+15s cleanup/120s total、1GiB owned RSS、16进程/320线程、512MiB private、1MiB日志、200ms采样及原磁盘/内存保留。RSS/线程/磁盘沿原200ms采样守卫，并非硬cgroup限额。原retained-history opt-in workload包含legacy/contract迁移，不能冒fresh PQ profile。Protocol须在原normal四Node harness提供新fresh入口和冻结source pins；本线程own client/driver/测量拼接。每臂45s硬预算；超限/首因即停，不自动扩限、不开始第二臂。
 
-节点阶段必须原调用真实FinalizeBlock与Commit，并立即抓取原CommitTiming样本；晚些轮询Latest可能被空块覆盖，不能补造样本。提交→实际节点入块、节点durable Commit、首个committed RPC观察、独立H/H+1证明验证完成分别输出；后者是可验证完成上界，不能拿第三副本durable或Data字段冒最早BFT形成。P50/95/99同时给样本数、缺失/失败/积压与资源；小样本不作目标资格。
+节点阶段必须原调用真实FinalizeBlock与Commit，并立即抓取原CommitTiming样本；晚些轮询Latest可能被空块覆盖，不能补造样本。主控offer定义为原签名操作的单调时钟dispatch，客户端启动/准备排队单列；不得改称精确socket write。子client的HTTP提交→首RPC指标仅在本进程有效，不跨进程硬减时间戳。提交→实际节点入块、节点durable Commit、首个committed RPC观察、独立H/H+1证明验证完成分别输出；后者是可验证完成上界，不能拿第三副本durable或Data字段冒最早BFT形成。P50/95/99同时给样本数、缺失/失败/积压与资源；小样本不作目标资格。
 
 正常CI增加Go1.26.10 Linux client独立预编译与SOURCE/可执行SHA实物供货，全部原门通过才上传，不在active窗口编译。原source测试job仍Go1.25，metadata明确区分，不冒Go1.26全测试。Root须拿实际CI/manifest/pins后才可批准一次窗口。Node/gateway/verifier原同源安全后继仍由Protocol供给。
 

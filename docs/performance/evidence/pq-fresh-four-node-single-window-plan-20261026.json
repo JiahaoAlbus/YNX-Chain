@@ -109,7 +109,8 @@
     "compileReserveBytes": 1073741824,
     "availableMemoryFloorBytes": 1207959552,
     "sampleMs": 200,
-    "requestedGOMAXPROCS": 2
+    "requestedGOMAXPROCS": 2,
+    "enforcement": "original /proc and smaps sampling every200ms, not a hard cgroup ceiling; original controller duration/cleanup guards retained"
   },
   "measurements": {
     "transactionJoin": "original public native hash + ABCI hash + H/index + exact signed wire; Whole later uses original canonical member effect hash",
@@ -138,7 +139,9 @@
       "committed-pending-independent-proof"
     ],
     "reportActualOfferRateAndEffectiveFinalizedRateSeparately": true,
-    "includeCPU_RSS_threads_disk_queues_errors_and_commitDurability": true
+    "includeCPU_RSS_threads_disk_queues_errors_and_commitDurability": true,
+    "offeredDefinition": "coordinator monotonic dispatch of an original signed operation; include and expose client launch/preparation queue time; do not relabel as an exact HTTP socket-write timestamp",
+    "childSubmissionMetric": "submissionToFirstCommittedRPCObservationNs remains child-local from actual HTTP call start; readback-only has no origin; no cross-process subtraction without qualified clock/event binding"
   },
   "requiredFreshInputsFromOriginalOwner": [
     "exact fresh epoch configuration/source hashes for BOTH arms; only isolated test scope",
