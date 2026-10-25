@@ -47,10 +47,23 @@ test('explicit Debug keeps project configuration while current source Run uses i
   await f.dispatch('workbench.action.debug.start'); await f.dispatch('workbench.action.debug.run');
   assert.deepEqual(f.calls, ['workbench.action.debug.start', 'ynx.cpp.runActive']);
 });
-test('a non-source project Run retains the configured project target', async () => {
-  const f=fixture(); f.configurations.current={name:'user launch'}; f.editors.currentEditor.editor.uri.scheme='untitled';
-  await f.dispatch('workbench.action.debug.run');
-  assert.deepEqual(f.calls,['workbench.action.debug.run']);
+test('native non-source Run refuses stale project fallback while explicit Debug retains its selection', async () => {
+  for (const scheme of ['untitled', 'debug', 'https']) {
+    const f=fixture(), selected={name:'user launch'};
+    f.configurations.current=selected; f.editors.currentEditor.editor.uri.scheme=scheme;
+    await f.dispatch('workbench.action.debug.run');
+    assert.deepEqual(f.calls,[], 'no unrelated run command may enter');
+    assert.equal(f.messages.length,1);
+    assert.equal(f.messages[0].requestId,request);
+    assert.equal(f.messages[0].accepted,false);
+    assert.equal(f.configurations.current,selected);
+    await f.dispatch('workbench.action.debug.start');
+    assert.deepEqual(f.calls,['workbench.action.debug.start']);
+    assert.equal(f.messages.length,2);
+    assert.equal(f.messages[1].accepted,true);
+    assert.equal(f.configurations.current,selected);
+    f.bridge.onStop();
+  }
 });
 test('disabled language target refuses without falling back to an unrelated debugger', async () => {
   const f = fixture(); f.commands.unregisterCommand('ynx.cpp.runActive');

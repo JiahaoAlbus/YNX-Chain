@@ -24,7 +24,7 @@ test('Solidity primary action compiles through existing command; absent debugger
   f.commands.isEnabled = () => false;
   assert.equal(f.handlers.get('ynx.workbench.runCurrentFile').isEnabled(), false);
 });
-test('current Solidity Run compiles while explicit Debug retains the user launch; nonfile Run retains project fallback', () => {
+test('current Solidity Run compiles while explicit Debug retains the user launch; nonfile Run refuses stale project fallback', () => {
   const f = routing(), selected = { name: 'user-selected chain debugger' };
   f.configurations.current = selected;
   f.handlers.get('ynx.workbench.runCurrentFile').execute();
@@ -33,12 +33,26 @@ test('current Solidity Run compiles while explicit Debug retains the user launch
   assert.equal(f.configurations.current, selected);
   for (const scheme of ['untitled', 'debug', 'https']) {
     f.editors.currentEditor.editor.uri.scheme = scheme;
-    f.handlers.get('ynx.workbench.runCurrentFile').execute();
-    assert.equal(f.calls.at(-1), 'workbench.action.debug.run');
+    const before = f.calls.slice();
+    assert.equal(f.contribution.currentFileCommand(false), undefined);
+    assert.equal(f.handlers.get('ynx.workbench.runCurrentFile').isEnabled(), false);
+    assert.throws(() => f.handlers.get('ynx.workbench.runCurrentFile').execute(), new Error('No applicable current-file command is available.'));
+    assert.deepEqual(f.calls, before, 'nonfile Run must not dispatch a stale project target');
+    assert.equal(f.configurations.current, selected);
+    f.handlers.get('ynx.workbench.debugCurrentFile').execute();
+    assert.deepEqual(f.calls, [...before, 'workbench.action.debug.start'], 'explicit Debug retains the selected project target');
     assert.equal(f.configurations.current, selected);
   }
   f.configurations.current = undefined;
-  assert.equal(f.contribution.currentFileCommand(false), 'workbench.action.debug.run');
+  const before = f.calls.slice();
+  assert.equal(f.contribution.currentFileCommand(false), undefined);
+  assert.equal(f.handlers.get('ynx.workbench.runCurrentFile').isEnabled(), false);
+  assert.throws(() => f.handlers.get('ynx.workbench.runCurrentFile').execute(), new Error('No applicable current-file command is available.'));
+  assert.deepEqual(f.calls, before);
+  f.editors.currentEditor.editor.uri.scheme = 'file';
+  f.handlers.get('ynx.workbench.runCurrentFile').execute();
+  assert.deepEqual(f.calls, [...before, 'ynx.compileSolidity'], 'returning to the Solidity file restores Compile without changing configuration');
+  assert.equal(f.configurations.current, undefined);
 });
 test('primary Solidity label matches compile despite retained launch, and changes for another current target', () => {
   const source = readFileSync(new URL('../runtime/ynx-workbench/lib/workbench-controls.js', import.meta.url), 'utf8'), module = { exports: {} };
