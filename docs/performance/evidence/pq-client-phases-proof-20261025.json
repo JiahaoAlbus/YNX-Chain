@@ -1,0 +1,28 @@
+{
+  "status": "source_and_focused_tests_verified_not_deployed",
+  "baseCommit": "caf16fa62b9d5b199ae984c57fe86ab4445f03bd",
+  "canonicalBase": "fa55a5ef654b84b01a1dbb5322de412b4d69b149",
+  "raw": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-client-phases-proof-race-20261025.raw",
+  "rawBytes": 2542,
+  "rawSha256": "b8c6f40bf8d79ce64becd48aa666f27468304d18bced6653091edf1037e9e4e6",
+  "command": "GOMAXPROCS=1 GOMEMLIMIT=160MiB go test -p 1 -race ./cmd/ynx-consensus-perf-client -run '^TestPQ(Whole|Member|Registration)Case' -count=1 -timeout=30s -v",
+  "topLevelTests": 10,
+  "testElapsedSeconds": 7.842,
+  "measurementsAreUnitOnly": true,
+  "realMultiNodeRun": false,
+  "independentFinalityVerified": false,
+  "sustainedTPSQualified": false,
+  "previousSourceCI": {
+    "run": 40202828126,
+    "conclusion": "failure",
+    "firstCause": "canonical internal/consensus/pq_wallet_query.go:205/208 unkeyed literals of aliased external structs fail go vet",
+    "ownerNotified": "01a14abb-5066-7db0-8814-e08c0d4b35a8"
+  },
+  "boundaries": [
+    "client monotonic phases include HTTP server wait; never infer server encode/write/fsync from them",
+    "proof raw retained even pending/mismatched; collector does not authenticate consensus",
+    "new collect flag only N1 transfer on original existing collector route; Whole and registration unsupported by this collector invocation",
+    "no POST retry after UNKNOWN; proof recovery uses new output and readback-only",
+    "normal host pinned trust context and target needed by original consensus proof verifier"
+  ]
+}

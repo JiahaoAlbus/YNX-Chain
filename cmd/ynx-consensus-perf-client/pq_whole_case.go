@@ -36,7 +36,28 @@ type pqWholeCase struct {
 	transfer     *ynxauth.Transfer
 	registration *ynxauth.RegistrationIntent
 }
+
+// Disjoint local monotonic durations. HTTP includes server wait and cannot
+// identify validator execution, disk fsync or BFT formation time.
+type pqCasePhases struct {
+	InputPreparationNs            int64 `json:"inputPreparationNs,string"`
+	IntentDurabilityNs            int64 `json:"intentDurabilityNs,string"`
+	SubmissionHTTPNs              int64 `json:"submissionHTTPNs,string"`
+	SubmissionValidationNs        int64 `json:"submissionValidationNs,string"`
+	OriginalReadbackHTTPNs        int64 `json:"originalReadbackHTTPNs,string"`
+	OriginalReadbackValidationNs  int64 `json:"originalReadbackValidationNs,string"`
+	ProofCollectionHTTPNs         int64 `json:"proofCollectionHTTPNs,string"`
+	CollectorIdentityValidationNs int64 `json:"collectorIdentityValidationNs,string"`
+	ProofDurabilityNs             int64 `json:"proofDurabilityNs,string"`
+}
 type pqWholeCaseReport struct {
+	CometIndex                        *uint32           `json:"cometIndex,omitempty"`
+	Phases                            pqCasePhases      `json:"clientPhases"`
+	ProofCollectionStatus             string            `json:"proofCollectionStatus,omitempty"`
+	ProofCollectionError              string            `json:"proofCollectionError,omitempty"`
+	ProofEvidencePath                 string            `json:"proofEvidencePath,omitempty"`
+	ProofEvidenceSHA256               string            `json:"proofEvidenceSha256,omitempty"`
+	ProofEvidenceBytes                int               `json:"proofEvidenceBytes,omitempty"`
 	RegistrationObserved              bool              `json:"registrationObserved"`
 	AccountActivationHeight           uint64            `json:"accountActivationHeight,string,omitempty"`
 	TransactionType                   string            `json:"transactionType"`
@@ -62,7 +83,7 @@ type pqWholeCaseReport struct {
 }
 
 func pqWholeCaseSelected(o options) bool {
-	return o.pqRegistrationWire != "" || o.pqMemberWire != "" || o.pqWholeWire != "" || o.pqGateway != "" || o.pqReadbackOnly
+	return o.pqRegistrationWire != "" || o.pqMemberWire != "" || o.pqWholeWire != "" || o.pqGateway != "" || o.pqReadbackOnly || o.pqCollectProof
 }
 func validatePQWholeCaseOptions(o options) error {
 	u, e := url.Parse(o.pqGateway)
@@ -70,6 +91,9 @@ func validatePQWholeCaseOptions(o options) error {
 		return errors.New("PQ case requires an explicit normal gateway base URL")
 	}
 	profiles := 0
+	if o.pqCollectProof && (o.pqMemberWire == "" || o.pqWholeWire != "" || o.pqRegistrationWire != "") {
+		return errors.New("original proof collection currently requires the canonical N1 transfer Member route")
+	}
 	for _, path := range []string{o.pqWholeWire, o.pqMemberWire, o.pqRegistrationWire} {
 		if path != "" {
 			profiles++
@@ -145,6 +169,9 @@ func (p pqWholeCase) validateCommitted(v bftgateway.PQWholeView) (int, int, erro
 	return admitted, rejected, nil
 }
 func pqCaseHTTP(ctx context.Context, client *http.Client, method, target string, wire []byte) ([]byte, error) {
+	return pqCaseHTTPBound(ctx, client, method, target, wire, 1<<20)
+}
+func pqCaseHTTPBound(ctx context.Context, client *http.Client, method, target string, wire []byte, limit int64) ([]byte, error) {
 	var body io.ReadCloser
 	if method == http.MethodPost {
 		body = io.NopCloser(bytes.NewReader(wire))
@@ -163,11 +190,11 @@ func pqCaseHTTP(ctx context.Context, client *http.Client, method, target string,
 		return nil, err
 	}
 	defer response.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(response.Body, (1<<20)+1))
+	raw, err := io.ReadAll(io.LimitReader(response.Body, limit+1))
 	if err != nil {
 		return nil, err
 	}
-	if len(raw) > 1<<20 {
+	if int64(len(raw)) > limit {
 		return nil, errors.New("PQ gateway response exceeded bound")
 	}
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusAccepted && response.StatusCode != http.StatusUnprocessableEntity {
@@ -218,23 +245,37 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 	}
 	if !readOnly {
 		r.SubmissionAttempts = 1
+		phaseStart := time.Now()
 		v, e := pqCaseHTTP(ctx, client, http.MethodPost, strings.TrimRight(gateway, "/")+broadcast, p.wire)
+		r.Phases.SubmissionHTTPNs = time.Since(phaseStart).Nanoseconds()
+		phaseStart = time.Now()
 		_, _, _, identityError := p.committedResponse(v)
+		r.Phases.SubmissionValidationNs = time.Since(phaseStart).Nanoseconds()
 		r.InitialSubmissionUnknown = e != nil || identityError != nil
 	}
 	// Always reconcile the original identity. Never rebroadcast after UNKNOWN.
 	r.OriginalReadbackAttempts = 1
+	phaseStart := time.Now()
 	v, e := pqCaseHTTP(ctx, client, http.MethodGet, strings.TrimRight(gateway, "/")+readback, nil)
-	r.ObservationElapsedNs = time.Since(started).Nanoseconds()
+	r.Phases.OriginalReadbackHTTPNs = time.Since(phaseStart).Nanoseconds()
 	if e != nil {
 		r.Error = e.Error()
+		r.ObservationElapsedNs = time.Since(started).Nanoseconds()
 		return r
 	}
+	phaseStart = time.Now()
 	admitted, rejected, height, e := p.committedResponse(v)
+	r.Phases.OriginalReadbackValidationNs = time.Since(phaseStart).Nanoseconds()
 	if e != nil {
 		r.Error = e.Error()
+		r.ObservationElapsedNs = time.Since(started).Nanoseconds()
 		return r
 	}
+	var index struct {
+		CometIndex *uint32 `json:"cometIndex"`
+	}
+	_ = json.Unmarshal(v, &index) // already strictly decoded and identity-checked above
+	r.CometIndex = index.CometIndex
 	r.Status = "committed_observed"
 	if p.kind == consensus.PQInitialRegistrationType {
 		r.Status = "registration_observed"
@@ -244,12 +285,14 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 	r.EffectiveBusinessIncludedObserved = admitted
 	r.RejectedMembers = rejected
 	r.ExecutionHeight = height
+	r.ObservationElapsedNs = time.Since(started).Nanoseconds()
 	return r
 }
 func executePQWholeCase(o options) (returned error) {
 	if err := validatePQWholeCaseOptions(o); err != nil {
 		return err
 	}
+	preparationStart := time.Now()
 	path, limit := o.pqWholeWire, int64(bftgateway.MaxPQWholeIngressBytes)
 	if o.pqMemberWire != "" {
 		path = o.pqMemberWire
@@ -274,6 +317,8 @@ func executePQWholeCase(o options) (returned error) {
 	if err != nil {
 		return err
 	}
+	inputPreparationNs := time.Since(preparationStart).Nanoseconds()
+	durabilityStart := time.Now()
 	output, err := os.OpenFile(o.output, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return err
@@ -308,6 +353,7 @@ func executePQWholeCase(o options) (returned error) {
 	if err != nil {
 		return err
 	}
+	intentDurabilityNs := time.Since(durabilityStart).Nanoseconds()
 	signalContext, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	ctx, cancel := context.WithTimeout(signalContext, o.timeout)
@@ -316,11 +362,19 @@ func executePQWholeCase(o options) (returned error) {
 	defer transport.CloseIdleConnections()
 	client := &http.Client{Transport: transport, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
 	report := runPQWholeCase(ctx, client, p, o.pqGateway, o.pqReadbackOnly)
+	report.Phases.InputPreparationNs = inputPreparationNs
+	report.Phases.IntentDurabilityNs = intentDurabilityNs
+	if o.pqCollectProof && report.Status == "committed_observed" {
+		collectPQCaseProof(ctx, client, p, o.pqGateway, o.output+".pq-proof.json", &report)
+	}
 	if err = json.NewEncoder(output).Encode(report); err != nil {
 		return err
 	}
 	if err = output.Sync(); err != nil {
 		return err
+	}
+	if o.pqCollectProof && report.ProofCollectionStatus != "collected_unverified" {
+		return errors.New("original PQ proof unavailable; retain intent and use readback-only, never rebroadcast")
 	}
 	if report.Status != "committed_observed" && report.Status != "registration_observed" {
 		return errors.New("original PQ outcome remains unknown; use readback-only and retain signed intent")

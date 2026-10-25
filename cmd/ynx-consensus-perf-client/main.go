@@ -40,7 +40,7 @@ const maxTransactions = consensus.EphemeralWorkloadMaxTransactions
 type options struct {
 	manifest, transactions, output                           string
 	pqWholeWire, pqMemberWire, pqRegistrationWire, pqGateway string
-	pqReadbackOnly                                           bool
+	pqReadbackOnly, pqCollectProof                           bool
 	concurrency                                              int
 	rounds                                                   int
 	senderMode                                               string
@@ -201,6 +201,7 @@ func main() {
 	flag.StringVar(&o.pqWholeWire, "pq-whole", "", "canonical signed YNX-BATCH/v0.1 Whole input")
 	flag.StringVar(&o.pqGateway, "pq-gateway", "", "normal PQ gateway base URL for the bounded Whole case")
 	flag.BoolVar(&o.pqReadbackOnly, "pq-readback-only", false, "query the original Whole identity without broadcasting")
+	flag.BoolVar(&o.pqCollectProof, "pq-collect-proof", false, "collect original N1 transfer proof without claiming independent finality")
 	flag.StringVar(&o.manifest, "manifest", "", "local ephemeral four-node network manifest")
 	flag.StringVar(&o.transactions, "transactions", "", "JSON file containing transactions: [base64 raw signed transaction]")
 	flag.StringVar(&o.output, "output", "", "optional new JSON output file; existing files are never overwritten")

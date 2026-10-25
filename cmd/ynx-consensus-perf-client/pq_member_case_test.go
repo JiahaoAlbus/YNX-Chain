@@ -143,7 +143,7 @@ func TestPQMemberCaseCanonicalN1AndOriginalNativeHash(t *testing.T) {
 func TestPQMemberCaseRealCLI(t *testing.T) {
 	if wire := os.Getenv("YNX_PQ_MEMBER_CLI_INPUT"); wire != "" {
 		flag.CommandLine = flag.NewFlagSet("ynx-consensus-perf-client", flag.ContinueOnError)
-		os.Args = []string{"ynx-consensus-perf-client", "-pq-member", wire, "-pq-gateway", os.Getenv("YNX_PQ_MEMBER_CLI_GATEWAY"), "-output", os.Getenv("YNX_PQ_MEMBER_CLI_OUTPUT"), "-timeout", "5s"}
+		os.Args = []string{"ynx-consensus-perf-client", "-pq-member", wire, "-pq-collect-proof", "-pq-gateway", os.Getenv("YNX_PQ_MEMBER_CLI_GATEWAY"), "-output", os.Getenv("YNX_PQ_MEMBER_CLI_OUTPUT"), "-timeout", "5s"}
 		main()
 		return
 	}
@@ -152,7 +152,14 @@ func TestPQMemberCaseRealCLI(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { json.NewEncoder(w).Encode(pqMemberUnitView(p)) }))
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/txs/"+p.outer+"/pq-finality-proof" {
+			index := uint32(0)
+			json.NewEncoder(w).Encode(bftgateway.PQFinalityView{Version: "YNX-PQ-RPC-TRANSACTION-PROOF/v1", Source: "configured-comet-rpc", Status: "collected", ObservedExecutionStatus: "committed", NativeTransactionHash: p.native, ABCITransactionHash: p.outer, ExecutionHeight: 7, CometIndex: &index, ProofVerification: "not-performed", Proof: &consensus.PQTransactionProofRequest{Version: consensus.PQTransactionProofVersion}})
+			return
+		}
+		json.NewEncoder(w).Encode(pqMemberUnitView(p))
+	}))
 	defer server.Close()
 	dir := t.TempDir()
 	input := filepath.Join(dir, "member.bin")
@@ -169,7 +176,7 @@ func TestPQMemberCaseRealCLI(t *testing.T) {
 		t.Fatal(e)
 	}
 	json.Unmarshal(raw, &got)
-	if got.TransactionType != consensus.PQTransferType || got.EffectiveBusinessIncludedObserved != 1 || got.SubmissionAttempts != 1 || got.IndependentFinalityVerified {
+	if got.TransactionType != consensus.PQTransferType || got.EffectiveBusinessIncludedObserved != 1 || got.SubmissionAttempts != 1 || got.IndependentFinalityVerified || got.ProofCollectionStatus != "collected_unverified" || got.ProofEvidencePath == "" {
 		t.Fatal("normal CLI N1 did not use canonical Member route", got)
 	}
 }
