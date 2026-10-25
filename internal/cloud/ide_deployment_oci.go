@@ -214,7 +214,36 @@ func (e *OCIIDEDeploymentExecutor) ApplyExisting(ctx context.Context, p IDEDeplo
 		args = append(args, "--env=PORT="+strconv.Itoa(e.cfg.HTTPPort))
 	}
 	args = append(args, "--mount", "type=bind,src="+file+",dst=/app/artifact.mjs,readonly", "--entrypoint=/usr/bin/timeout", e.cfg.ImageDigest, "--signal=TERM", "--kill-after=5s", strconv.Itoa(seconds)+"s", "/usr/local/bin/node", "/app/artifact.mjs")
+	staged, err := openIDEStagedArtifact(file, p.Binding)
+	if err != nil {
+		return empty, err
+	}
+	defer staged.file.Close()
+	finalCurrent := func() error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if err := current(); err != nil {
+			return err
+		}
+		if err := staged.assertVerifiedIdentity(); err != nil {
+			return err
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if !p.ExpiresAt.After(e.now()) {
+			return ErrDenied
+		}
+		return nil
+	}
 	if err := current(); err != nil {
+		return empty, err
+	}
+	if err := staged.verify(); err != nil {
+		return empty, err
+	}
+	if err := finalCurrent(); err != nil {
 		return empty, err
 	}
 	created, createErr := e.run(ctx, args...)
@@ -249,6 +278,12 @@ func (e *OCIIDEDeploymentExecutor) ApplyExisting(ctx context.Context, p IDEDeplo
 	}
 	if !p.ExpiresAt.After(e.now()) {
 		return empty, ErrDenied
+	}
+	if err := staged.verify(); err != nil {
+		return empty, err
+	}
+	if err := finalCurrent(); err != nil {
+		return empty, err
 	}
 	if _, err := e.run(ctx, "start", op.DeploymentID); err != nil {
 		return empty, err
