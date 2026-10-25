@@ -49,11 +49,22 @@ mkdir -p "$tmp/repo/scripts/ops" "$tmp/repo/scripts/deploy" "$tmp/bin"
 cp "$repo/scripts/ops/init-consensus-candidate-keys.sh" "$tmp/repo/scripts/ops/"
 cp "$repo/scripts/ops/lib.sh" "$tmp/repo/scripts/ops/"
 cp "$repo/scripts/deploy/lib.sh" "$tmp/repo/scripts/deploy/"
+cp "$repo/scripts/deploy/deploy-consensus-candidate.sh" "$tmp/repo/scripts/deploy/"
 cat >"$tmp/bin/git" <<'SH'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ $# == 3 && $1 == rev-parse && $2 == --short=12 && $3 == HEAD ]]
-printf 'abcdef012345\n'
+if [[ $# == 3 && $1 == rev-parse && $2 == --short=12 && $3 == HEAD ]]; then
+  printf 'abcdef012345\n'
+elif [[ $# == 2 && $1 == rev-parse && $2 == HEAD ]]; then
+  printf 'abcdef0123456789abcdef0123456789abcdef01\n'
+else exit 90; fi
+SH
+cat >"$tmp/bin/uname" <<'SH'
+#!/usr/bin/env bash
+# The PQ caller only transports Linux bytes. The real portable DATA readers
+# must work from the original Mac operator, with no local ELF execution.
+[[ $# == 1 ]] || exit 90
+case "$1" in -s) printf 'Darwin\n' ;; -m) printf 'arm64\n' ;; *) exit 90 ;; esac
 SH
 cat >"$tmp/bin/go" <<'SH'
 #!/usr/bin/env bash
@@ -165,6 +176,8 @@ case "$command" in
   'umask 077; mkdir -m 0700 '*) stage=reserve ;;
   'umask 077; cat > '*) stage=copy ;;
   'chmod 0755 '*) stage=ceremony ;;
+  'sudo /bin/bash -s -- '*) stage=pq ;;
+  'sudo -u ynx /usr/bin/head -c 262145 -- '*) stage=pq-wire ;;
   *) printf 'unexpected fixture transport command\n' >&2; exit 95 ;;
 esac
 if [[ $stage == preflight ]]; then
@@ -174,8 +187,77 @@ fi
 # No command can touch a real /etc custody directory or /var/tmp stage.
 command=${command//\/etc\/ynx\/consensus-candidate/$FIXTURE_ROOT/remote/$role}
 command=${command//\/var\/tmp\/ynx-consensus-key-ceremony-/$FIXTURE_ROOT/remote/$role/stage/ynx-consensus-key-ceremony-}
+command=${command//\/var\/tmp\/ynx-consensus-pq-ceremony-/$FIXTURE_ROOT/remote/$role/stage/ynx-consensus-pq-ceremony-}
 [[ $command != *'/etc/ynx/'* && $command != *'/var/tmp/ynx-'* ]]
-bash -c "$command"
+if [[ $stage == pq ]]; then
+  # Only the remote host boundary is a model. The ORIGINAL caller, portable
+  # public pin reader, full original runtime parser and public receipt reader
+  # execute unchanged. Inert ELF DATA is never run on this operator.
+  cat >"$FIXTURE_ROOT/remote-body.sh"
+  grep -Fq "owner=ynx-pq-signer" "$FIXTURE_ROOT/remote-body.sh"
+  grep -Fq 'exec 3<"$1"' "$FIXTURE_ROOT/remote-body.sh"
+  grep -Fq 'exec 3<&0; exec 0</dev/null' "$FIXTURE_ROOT/remote-body.sh"
+  grep -Fq 'set -Eeuo pipefail' "$FIXTURE_ROOT/remote-body.sh"
+  grep -Fq 'decrypt --name=ynx-pq-recovery' "$FIXTURE_ROOT/remote-body.sh"
+  grep -Fq -- '--state-dir "$state"' "$FIXTURE_ROOT/remote-body.sh"
+  grep -Fq -- '--legacy-key-fd 3' "$FIXTURE_ROOT/remote-body.sh"
+  ! grep -Eq 'chown -R|priv_validator_state|rm -|systemctl (start|stop)|broadcast_tx' "$FIXTURE_ROOT/remote-body.sh"
+  # The command comes from this original controlled caller; eval only unquotes
+  # its printf-%q argv. Nothing here executes the remote root source or ELF.
+  eval "set -- $command"
+  [[ $1 == sudo && $2 == /bin/bash && $3 == -s && $4 == -- ]]
+  shift 4
+  phase=$1; selected=$2; remote_stage=$3; binary=$4; binary_pin=$5
+  out=$6; state_path=$7; approval=$8; input_pin=$9; genesis_pin=${10}; credential_pin=${11}
+  [[ $# == 11 && $selected == "$role" && $role == primary && $remote_stage == "$FIXTURE_ROOT/remote/$role/stage/"* ]]
+  [[ $(sha256sum "$remote_stage/$binary" | cut -d ' ' -f 1) == "$binary_pin" ]]
+  [[ $out == '' || $out == "$FIXTURE_ROOT/remote/$role/"* ]]
+  [[ $state_path == '' || $state_path == "$FIXTURE_ROOT/remote/$role/"* ]]
+  [[ $approval == '' || $approval == "$FIXTURE_ROOT/remote/$role/"* ]]
+  if [[ $phase != pq-inspect ]]; then
+    [[ $(sha256sum "$remote_stage/public-input.json" | cut -d ' ' -f 1) == "$input_pin" ]]
+    [[ $(sha256sum "$remote_stage/genesis.json" | cut -d ' ' -f 1) == "$genesis_pin" ]]
+  fi
+  case "$phase" in
+    pq-new-epoch)
+      [[ $binary == ynx-consensus-pq-key-init && -n $credential_pin && ! -e $out && ! -e $state_path ]]
+      mkdir -m 0700 "$out" "$state_path"
+      printf 'SYNTHETIC INERT VAULT; NOT KEY MATERIAL\n' >"$out/validator.encrypted"
+      printf 'SYNTHETIC INERT HRS; NO SIGNER\n' >"$state_path/original-sign-state.json"
+      printf 'PQ|new-epoch|%s|signer-uid|anonymous-fd3\n' "$role" >>"$FIXTURE_EVENTS"
+      python3 - "$out" "$state_path" <<'PY'
+import json, sys
+out, state = sys.argv[1:]
+print(json.dumps(dict(format='YNX-CONSENSUS-PQ-CEREMONY-PUBLIC/v1', status='new_epoch_files_durable_registration_not_authorized', paths=dict(directory=out, state=state+'/original-sign-state.json'), binding=dict(SignerStatePath=state+'/original-sign-state.json'))))
+PY
+      # Simulate the original pipefail result after a consumer wrote a public
+      # response: this MUST NOT publish a formal caller receipt or replay.
+      [[ ${FIXTURE_PQ_LATE_FAILURE:-} != yes ]] || exit 7 ;;
+    pq-inspect)
+      [[ $binary == ynx-consensus-pq-key-init && $input_pin == '' && $genesis_pin == '' && $credential_pin == '' && -d $out && -d $state_path ]]
+      printf 'PQ|inspect|%s|signer-uid|no-credential\n' "$role" >>"$FIXTURE_EVENTS"
+      printf '{"status":"incomplete_or_uncertain_original_result","readOnly":true,"privateMaterialOpened":false,"registrationAuthorized":false}\n' ;;
+    pq-approve-first-registration)
+      [[ $binary == ynx-comet && $out == '' && $state_path == '' && $credential_pin == '' && ! -e $approval ]]
+      [[ -f $FIXTURE_ROOT/remote/$role/$role/priv_validator_key.json ]]
+      mkdir -m 0700 "$approval"
+      printf 'SYNTHETIC PUBLIC COMPLETE REGISTRATION; NOT CRYPTO AUTHORITY\n' >"$approval/registration.wire"
+      printf 'PQ|approve-first|%s|original-ynx-uid|regular-fd3\n' "$role" >>"$FIXTURE_EVENTS"
+      python3 - "$approval" "$input_pin" "$genesis_pin" <<'PY'
+import hashlib, json, sys
+from pathlib import Path
+directory, source, genesis = sys.argv[1:]
+print(json.dumps(dict(version='YNX-FIRST-VALIDATOR-APPROVAL/v1', publicRecordSHA256=source, genesisSHA256=genesis, registrationSHA256=hashlib.sha256((Path(directory)/'registration.wire').read_bytes()).hexdigest(), authorizationSigned=True, broadcast=False, committed=False, pqActivated=False)))
+PY
+      ;;
+    *) exit 96 ;;
+  esac
+elif [[ $stage == pq-wire ]]; then
+  [[ $command == "sudo -u ynx /usr/bin/head -c 262145 -- '$FIXTURE_ROOT/remote/primary/approval/registration.wire'" ]]
+  cat "$FIXTURE_ROOT/remote/primary/approval/registration.wire"
+else
+  bash -c "$command"
+fi
 if [[ ${FIXTURE_REMOTE_FAIL:-} == "$stage:$role" ]]; then
   # A lost ACK is injected AFTER the real fixture command took effect.
   printf 'fixture lost SSH acknowledgement after %s\n' "$stage" >&2
@@ -314,4 +396,106 @@ run_caller no
 grep -Fq 'no keys were generated' "$case_root/stdout"
 [[ $(count_events 'KEY|') == 0 && $(count_events 'SSH|') == 0 ]] || fail 'dry run executed transport or keys'
 
-printf 'INIT_CONSENSUS_CANDIDATE_KEYS_CONTROLS_DATA_ONLY: original caller; stub build/JSON/transport, no real keys, SSH or deployment\n'
+# The existing full runtime validator reads these inert ELF/header fixtures.
+# They cannot run as a CLI; no ELF/compiler or genuine key is used by this test.
+python3 -B - "$tmp/pq-runtime" <<'PQ_RUNTIME_DATA'
+import hashlib, json, sys
+from pathlib import Path
+root = Path(sys.argv[1]); root.mkdir(mode=0o700); (root/'operator').mkdir(mode=0o700)
+names = ('ynx-abci', 'ynx-comet', 'ynx-bft-gatewayd', 'ynx-consensus-pq-remote-signer', 'ynx-consensus-pq-key-init', 'ynx-consensus-proof-verify', 'ynx-consensus-package', 'ynx-consensus-keycheck')
+operators = ('ynx-consensus-pq-remote-signer.service.in', 'ynx-consensus-pq-remote-signer-launch.sh', 'ynx-consensus-pq-remote-signer.conf.in')
+def pin(raw): return dict(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+header = bytearray(64); header[:7] = b'\x7fELF\x02\x01\x01'; header[16:18] = b'\x02\x00'; header[18:24] = b'\x3e\x00\x01\x00\x00\x00'
+raw = bytes(header) + b'INERT ELF DATA; NEVER EXECUTE\n' + b'\0' * (1 << 20)
+binaries, operator = {}, {}
+for name in names: (root/name).write_bytes(raw); binaries[name] = pin(raw)
+for name in operators:
+    body = ('INERT PUBLIC TEMPLATE DATA '+name+'\n').encode()
+    (root/'operator'/name).write_bytes(body); operator[name] = pin(body)
+record = dict(version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2', commit='abcdef0123456789abcdef0123456789abcdef01', runId='1', platform='linux/amd64', cometForkTree='b'*40, goMod=pin(b'data'), goSum=pin(b'data'), proofVerifierContract='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1', proofVerifierSources={name:pin(b'data') for name in ('internal/consensus/pq_light_proof.go', 'cmd/ynx-consensus-proof-verify/main.go', 'cmd/ynx-consensus-proof-verify/trust.go')}, binaries=binaries, operator=operator, runtimeStarted=False, publicDeployment=False, pqActivation=False, purpose='normal entrypoint binaries and operator configuration only; no keys, credentials, ledger or signing history')
+(root/'SOURCE.json').write_bytes(json.dumps(record, separators=(',', ':')).encode())
+PQ_RUNTIME_DATA
+runtime_pin="$(sha256sum "$tmp/pq-runtime/SOURCE.json" | cut -d ' ' -f 1)"
+new_pq_case() {
+  new_case "$1"
+  printf '{"purpose":"PUBLIC EPOCH REQUEST DATA; NO KEY OR AUTHORITY"}' >"$case_root/request.json"
+  printf '{"purpose":"ORIGINAL PUBLIC GENESIS INPUT DATA; NO AUTHORITY"}' >"$case_root/genesis.json"
+  pq_phase=pq-new-epoch; pq_role=primary; pq_resume=''; pq_late_failure=''
+  pq_input="$case_root/request.json"; pq_input_pin="$(sha256sum "$pq_input" | cut -d ' ' -f 1)"
+  pq_genesis="$case_root/genesis.json"; pq_genesis_pin="$(sha256sum "$pq_genesis" | cut -d ' ' -f 1)"
+  pq_out="$case_root/remote/primary/new-custody"; pq_state="$case_root/remote/primary/new-history"
+  pq_approval=''; pq_public=''; pq_public_pin=''; pq_credential_pin="$(printf 'c%.0s' {1..64})"; pq_runtime_pin=$runtime_pin
+}
+run_pq_caller() {
+  env -i PATH="$tmp/bin:/usr/bin:/bin" ENV_FILE="$case_root/deploy.env" \
+    FIXTURE_ROOT="$case_root" FIXTURE_EVENTS="$case_root/events" \
+    FIXTURE_REMOTE_FAIL="$remote_fail" FIXTURE_PQ_LATE_FAILURE="$pq_late_failure" \
+    CONSENSUS_CANDIDATE_KEY_CEREMONY_APPROVED=yes CONSENSUS_CANDIDATE_KEY_PHASE="$pq_phase" \
+    CONSENSUS_CANDIDATE_KEY_CEREMONY_RESUME="$pq_resume" CONSENSUS_CANDIDATE_KEY_ROLE="$pq_role" \
+    CONSENSUS_CANDIDATE_KEY_WORK_ROOT="$case_root/work" \
+    CONSENSUS_CANDIDATE_RUNTIME_BUNDLE="$tmp/pq-runtime" \
+    CONSENSUS_CANDIDATE_RUNTIME_COMMIT=abcdef0123456789abcdef0123456789abcdef01 \
+    CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256="$pq_runtime_pin" \
+    CONSENSUS_PQ_EPOCH_REQUEST="$pq_input" CONSENSUS_PQ_EPOCH_REQUEST_SHA256="$pq_input_pin" \
+    CONSENSUS_PQ_CONSENSUS_GENESIS="$pq_genesis" CONSENSUS_PQ_CONSENSUS_GENESIS_SHA256="$pq_genesis_pin" \
+    CONSENSUS_PQ_KEY_DIRECTORY="$pq_out" CONSENSUS_PQ_STATE_DIRECTORY="$pq_state" \
+    CONSENSUS_PQ_APPROVAL_DIRECTORY="$pq_approval" CONSENSUS_PQ_PUBLIC_RECORD="$pq_public" \
+    CONSENSUS_PQ_PUBLIC_RECORD_SHA256="$pq_public_pin" CONSENSUS_PQ_ENCRYPTED_CREDENTIAL_SHA256="$pq_credential_pin" \
+    YNX_SSH_CONTROL_DIR="$case_root/ssh-control" YNX_DEPLOY_CONNECTION_ATTEMPTS=5 \
+    YNX_DEPLOY_CONNECTION_RETRY_DELAY_SECONDS=0 \
+    bash "$tmp/repo/scripts/ops/init-consensus-candidate-keys.sh" >"$case_root/stdout" 2>"$case_root/stderr"
+}
+
+for invalid in phase role resume input-pin genesis-pin runtime-pin contained-path; do
+  new_pq_case "pq-refuse-$invalid"
+  case "$invalid" in
+    phase) pq_phase=pq-auto-activate ;;
+    role) pq_role=all ;;
+    resume) pq_resume=yes ;;
+    input-pin) pq_input_pin="$(printf 'e%.0s' {1..64})" ;;
+    genesis-pin) pq_genesis_pin="$(printf 'e%.0s' {1..64})" ;;
+    runtime-pin) pq_runtime_pin="$(printf 'e%.0s' {1..64})" ;;
+    contained-path) pq_state="$pq_out/history" ;;
+  esac
+  if run_pq_caller; then fail "PQ accepted $invalid"; fi
+  [[ ! -e $case_root/work && $(count_events 'SSH|') == 0 && $(count_events 'BUILD') == 0 ]] || fail 'bad PQ input reached transport/build or reserved a false attempt'
+done
+
+new_pq_case pq-new-selected-primary
+seed_custody
+before="$(custody_digest)"
+run_pq_caller
+[[ $(count_events 'PQ|new-epoch|primary|') == 1 && $(count_events 'PQ|approve-first|') == 0 && $(count_events 'BUILD') == 0 && $(count_events 'KEY|') == 0 ]] || fail 'PQ creation expanded to approval/legacy or local build'
+[[ -s $case_root/work/public/primary.json && -s $pq_out/validator.encrypted && -s $pq_state/original-sign-state.json && $before == "$(custody_digest)" ]] || fail 'PQ creation lost public evidence or changed original custody'
+[[ $(count_events 'SSH|primary|') == 5 && $(count_events 'SSH|singapore|') == 0 && $(count_events 'SSH|silicon-valley|') == 0 && $(count_events 'SSH|seoul|') == 0 ]] || fail 'PQ creation contacted an unselected original role'
+
+new_pq_case pq-inspect-original-paths
+mkdir -m 0700 "$pq_out" "$pq_state"
+printf 'UNKNOWN original immutable marker\n' >"$pq_out/new-epoch-intent.json"
+printf 'UNKNOWN original history\n' >"$pq_state/original-sign-state.json"
+before="$(sha256sum "$pq_out/new-epoch-intent.json" "$pq_state/original-sign-state.json")"
+pq_phase=pq-inspect; pq_credential_pin=''; pq_input=''; pq_input_pin=''; pq_genesis=''; pq_genesis_pin=''
+run_pq_caller
+[[ $(count_events 'PQ|inspect|primary|') == 1 && $(count_events 'PQ|new-epoch|') == 0 && $(count_events 'PQ|approve-first|') == 0 ]] || fail 'PQ inspect created a new epoch or approval'
+[[ $before == "$(sha256sum "$pq_out/new-epoch-intent.json" "$pq_state/original-sign-state.json")" && -s $case_root/work/public/primary.json ]] || fail 'PQ inspect changed original state or discarded incomplete readback'
+
+new_pq_case pq-explicit-original-approval
+seed_custody
+before="$(custody_digest)"
+pq_phase=pq-approve-first-registration; pq_out=''; pq_state=''; pq_credential_pin=''
+pq_approval="$case_root/remote/primary/approval"; pq_public="$pq_input"; pq_public_pin="$pq_input_pin"
+run_pq_caller
+[[ $(count_events 'PQ|approve-first|primary|original-ynx-uid|regular-fd3') == 1 && $(count_events 'PQ|new-epoch|') == 0 && $(count_events 'BUILD') == 0 ]] || fail 'original approval used new key lane or built locally'
+[[ $before == "$(custody_digest)" && -s $case_root/work/public/primary.registration.wire && -s $case_root/work/public/primary.json ]] || fail 'approval changed original keys/HRS or omitted public complete wire'
+
+for failure in transport late-decrypt; do
+  new_pq_case "pq-unknown-$failure"
+  if [[ $failure == transport ]]; then remote_fail=pq:primary; else pq_late_failure=yes; fi
+  if run_pq_caller; then fail 'PQ UNKNOWN was accepted'; fi
+  [[ $(count_events 'PQ|new-epoch|primary|') == 1 && -s $pq_out/validator.encrypted && -s $case_root/work/public/primary.json.partial && ! -e $case_root/work/public/primary.json ]] || fail 'PQ UNKNOWN was retried or falsely published'
+  before="$(sha256sum "$case_root/events" "$pq_out/validator.encrypted" "$pq_state/original-sign-state.json")"
+  if run_pq_caller; then fail 'PQ UNKNOWN work replayed'; fi
+  [[ $before == "$(sha256sum "$case_root/events" "$pq_out/validator.encrypted" "$pq_state/original-sign-state.json")" ]] || fail 'PQ UNKNOWN originals changed or transport replayed'
+done
+
+printf 'INIT_CONSENSUS_CANDIDATE_KEYS_CONTROLS_DATA_ONLY: original callers and portable full runtime parser; inert ELF/public DATA with explicit remote-boundary models; no real keys, SSH, approval or deployment\n'

@@ -9,9 +9,207 @@ ynx_ops_init
 # retry is never appropriate for this one-shot ceremony, including copy/inspect.
 export YNX_DEPLOY_CONNECTION_ATTEMPTS=1
 
+# Keep the original Ed25519 ceremony intact. PQ creation, original-key approval
+# and inspection are independent operator actions, never an automatic sequence.
+phase="${CONSENSUS_CANDIDATE_KEY_PHASE:-legacy}"
+case "$phase" in
+  legacy|pq-new-epoch|pq-inspect|pq-approve-first-registration) ;;
+  *) echo 'invalid CONSENSUS_CANDIDATE_KEY_PHASE' >&2; exit 64 ;;
+esac
+
 if [[ "${DEPLOY_DRY_RUN:-0}" != "1" && "${CONSENSUS_CANDIDATE_KEY_CEREMONY_APPROVED:-}" != "yes" ]]; then
   echo "CONSENSUS_CANDIDATE_KEY_CEREMONY_APPROVED=yes is required" >&2
   exit 1
+fi
+
+pq_key_ceremony() {
+  local role="${CONSENSUS_CANDIDATE_KEY_ROLE:-}" user host key
+  local bundle="${CONSENSUS_CANDIDATE_RUNTIME_BUNDLE:-}" full_commit="${CONSENSUS_CANDIDATE_RUNTIME_COMMIT:-}"
+  local manifest_pin="${CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256:-}" work="${CONSENSUS_CANDIDATE_KEY_WORK_ROOT:-}"
+  local out="${CONSENSUS_PQ_KEY_DIRECTORY:-}" state="${CONSENSUS_PQ_STATE_DIRECTORY:-}"
+  local approval="${CONSENSUS_PQ_APPROVAL_DIRECTORY:-}" credential_pin="${CONSENSUS_PQ_ENCRYPTED_CREDENTIAL_SHA256:-}"
+  local input='' input_pin='' genesis="${CONSENSUS_PQ_CONSENSUS_GENESIS:-}" genesis_pin="${CONSENSUS_PQ_CONSENSUS_GENESIS_SHA256:-}"
+  local binary=ynx-consensus-pq-key-init binary_pin stage command attempt
+  [[ -z "${CONSENSUS_CANDIDATE_KEY_CEREMONY_RESUME:-}" ]] || { echo 'PQ phases are explicit; legacy RESUME is not accepted' >&2; return 64; }
+  case "$role" in
+    primary) user=$PRIMARY_NODE_USER; host=$PRIMARY_NODE_HOST; key=$PRIMARY_NODE_SSH_KEY ;;
+    singapore) user=$SG_NODE_USER; host=$SG_NODE_HOST; key=$SG_NODE_SSH_KEY ;;
+    silicon-valley) user=$SILICON_VALLEY_NODE_USER; host=$SILICON_VALLEY_NODE_HOST; key=$SILICON_VALLEY_NODE_SSH_KEY ;;
+    seoul) user=$SEOUL_NODE_USER; host=$SEOUL_NODE_HOST; key=$SEOUL_NODE_SSH_KEY ;;
+    *) echo 'one original CONSENSUS_CANDIDATE_KEY_ROLE is required per PQ attempt' >&2; return 64 ;;
+  esac
+  # Paths enter the remote shell as quoted arguments. Reject ambiguous spellings
+  # here; canonical identity and ownership are checked again on the real host.
+  pq_absolute() { [[ $1 =~ ^/[A-Za-z0-9_./-]+$ && $1 != / && $1 != */ && $1 != *//* && $1 != */./* && $1 != */../* && $1 != */. && $1 != */.. ]]; }
+  pq_public_pin() {
+    # DATA validation is portable to the existing macOS operator. No Linux ELF
+    # is ever executed locally; the normal target process runs over transport.
+    python3 -B - "$1" "$2" "$3" <<'PUBLIC_PIN'
+import hashlib, os, re, stat, sys
+filename, pin, maximum = sys.argv[1:]
+def identity(s):
+    return s.st_dev, s.st_ino, s.st_mode, s.st_nlink, s.st_size, s.st_mtime_ns, s.st_ctime_ns
+try:
+    assert os.path.isabs(filename) and os.path.realpath(filename) == filename
+    assert re.fullmatch('[0-9a-f]{64}', pin)
+    before = os.lstat(filename)
+    assert stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and 0 < before.st_size <= int(maximum)
+    with os.fdopen(os.open(filename, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK), 'rb') as source:
+        assert identity(before) == identity(os.fstat(source.fileno()))
+        digest, size = hashlib.sha256(), 0
+        while True:
+            chunk = source.read(1 << 20)
+            if not chunk: break
+            digest.update(chunk); size += len(chunk)
+            assert size <= int(maximum)
+        assert size == before.st_size and digest.hexdigest() == pin
+        assert identity(before) == identity(os.fstat(source.fileno())) == identity(os.lstat(filename))
+except (OSError, ValueError, AssertionError):
+    sys.exit(1)
+PUBLIC_PIN
+  }
+  case "$phase" in
+    pq-new-epoch)
+      input="${CONSENSUS_PQ_EPOCH_REQUEST:-}"; input_pin="${CONSENSUS_PQ_EPOCH_REQUEST_SHA256:-}"
+      [[ $credential_pin =~ ^[0-9a-f]{64}$ ]] || { echo 'independent encrypted credential SHA256 is required' >&2; return 1; }
+      pq_public_pin "$input" "$input_pin" 262144 || { echo 'pinned original public epoch request required' >&2; return 1; } ;;
+    pq-approve-first-registration)
+      binary=ynx-comet
+      input="${CONSENSUS_PQ_PUBLIC_RECORD:-}"; input_pin="${CONSENSUS_PQ_PUBLIC_RECORD_SHA256:-}"
+      pq_absolute "$approval" || { echo 'explicit new original-owner approval directory required' >&2; return 1; }
+      pq_public_pin "$input" "$input_pin" 262144 || { echo 'pinned original key-init public record required' >&2; return 1; } ;;
+  esac
+  if [[ $phase != pq-inspect ]]; then
+    pq_public_pin "$genesis" "$genesis_pin" 67108864 || { echo 'independently pinned original Ed25519 Comet genesis required' >&2; return 1; }
+  fi
+  if [[ $phase != pq-approve-first-registration ]]; then
+    pq_absolute "$out" && pq_absolute "$state" && [[ $out != "$state" && $out != "$state/"* && $state != "$out/"* ]] || { echo 'explicit disjoint custody and HRS directories required' >&2; return 1; }
+  fi
+  [[ -n $work && ! -e $work && ! -L $work ]] || { echo 'new exclusive PQ work directory required; retain earlier UNKNOWN' >&2; return 1; }
+  # Reuse the original portable full artifact DATA parser, not a new manifest
+  # format, local ELF execution or per-host go build. Import returns functions.
+  source scripts/deploy/deploy-consensus-candidate.sh
+  [[ $(git rev-parse HEAD) == "$full_commit" ]] || { echo 'operator source must match the independently pinned runtime commit' >&2; return 1; }
+  validate_runtime_bundle "$bundle" "$full_commit" "$manifest_pin" || return
+  mkdir -p -- "$(dirname -- "$work")"
+  mkdir -m 0700 -- "$work"
+  work="$(cd "$work" && pwd -P)"
+  trap 'status=$?; printf "PQ ceremony UNKNOWN/failed attempt retained (exit=%s): %s; inspect the original, never regenerate or approve automatically\n" "$status" "$work" >&2; exit "$status"' ERR
+  mkdir -m 0700 -- "$work/public"
+  printf 'phase=%s\nrole=%s\ncommit=%s\nruntimeManifestSHA256=%s\npublicInputSHA256=%s\nconsensusGenesisSHA256=%s\noutDirectory=%s\nstateDirectory=%s\napprovalDirectory=%s\n' "$phase" "$role" "$full_commit" "$manifest_pin" "$input_pin" "$genesis_pin" "$out" "$state" "$approval" >"$work/intent.txt"
+  prepare_runtime_bundle "$bundle" "$full_commit" "$manifest_pin" "$work/runtime"
+  binary_pin="$(python3 -B -c 'import json,sys; from pathlib import Path; print(json.loads((Path(sys.argv[1])/"SOURCE.json").read_bytes())["binaries"][sys.argv[2]]["sha256"])' "$work/runtime" "$binary")"
+  pq_public_pin "$work/runtime/$binary" "$binary_pin" 134217728
+  attempt="$(basename "$(mktemp -d "$work/attempt.XXXXXXXXXXXX")")"
+  stage="/var/tmp/ynx-consensus-pq-ceremony-${full_commit:0:12}-${attempt}-${role}"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "umask 077; mkdir -m 0700 '$stage'" >"$work/reserve.stdout" 2>"$work/reserve.stderr"
+  ynx_ops_copy "$role" "$user" "$host" "$key" "$work/runtime/$binary" "$stage/$binary" >"$work/binary.copy.stdout" 2>"$work/binary.copy.stderr"
+  if [[ $phase != pq-inspect ]]; then
+    ynx_ops_copy "$role" "$user" "$host" "$key" "$input" "$stage/public-input.json" >"$work/input.copy.stdout" 2>"$work/input.copy.stderr"
+    ynx_ops_copy "$role" "$user" "$host" "$key" "$genesis" "$stage/genesis.json" >"$work/genesis.copy.stdout" 2>"$work/genesis.copy.stderr"
+  fi
+  printf -v command '%q ' sudo /bin/bash -s -- "$phase" "$role" "$stage" "$binary" "$binary_pin" "$out" "$state" "$approval" "$input_pin" "$genesis_pin" "$credential_pin"
+  ynx_ops_ssh "$role" "$user" "$host" "$key" "$command" >"$work/public/$role.json.partial" 2>"$work/ceremony.stderr" <<'REMOTE_PQ'
+set -Eeuo pipefail
+umask 077
+phase=$1 role=$2 stage=$3 binary=$4 binary_pin=$5 out=$6 state=$7 approval=$8 input_pin=$9 genesis_pin=${10} credential_pin=${11}
+fail() { printf 'PQ host ceremony refused: %s; preserve originals/UNKNOWN\n' "$1" >&2; exit 1; }
+[[ $EUID == 0 && $(uname -s):$(uname -m) == Linux:x86_64 ]] || fail 'normal privileged Linux host required'
+for tool in /usr/sbin/runuser /usr/bin/sha256sum /usr/bin/stat /usr/bin/realpath; do [[ -x $tool ]] || fail 'normal host tool missing'; done
+[[ -d $stage && ! -L $stage && $(realpath -e -- "$stage") == "$stage" ]] || fail 'original stage required'
+[[ -f $stage/$binary && ! -L $stage/$binary && $(stat -c %h -- "$stage/$binary") == 1 && $(sha256sum -- "$stage/$binary" | cut -d ' ' -f 1) == "$binary_pin" ]] || fail 'runtime binary pin changed'
+chown root:root -- "$stage" "$stage/$binary"
+chmod 0755 -- "$stage" "$stage/$binary"
+if [[ $phase != pq-inspect ]]; then
+  for name in public-input.json genesis.json; do
+    [[ -f $stage/$name && ! -L $stage/$name && $(stat -c %h -- "$stage/$name") == 1 ]] || fail 'public input is not original regular single-link file'
+  done
+  [[ $(sha256sum -- "$stage/public-input.json" | cut -d ' ' -f 1) == "$input_pin" && $(sha256sum -- "$stage/genesis.json" | cut -d ' ' -f 1) == "$genesis_pin" ]] || fail 'original public input pin changed'
+  chown root:root -- "$stage/public-input.json" "$stage/genesis.json"
+  chmod 0444 -- "$stage/public-input.json" "$stage/genesis.json"
+fi
+if [[ $phase == pq-approve-first-registration ]]; then
+  owner=ynx
+else
+  owner=ynx-pq-signer
+fi
+uid=$(id -u "$owner"); gid=$(id -g "$owner")
+[[ $uid != 0 ]] || fail 'dedicated original service identity required'
+trusted_parent() {
+  local directory=$1 mode observed
+  [[ -d $directory && ! -L $directory && $(realpath -e -- "$directory") == "$directory" ]] || fail 'canonical existing custody parent required'
+  while :; do
+    read -r observed mode < <(stat -c '%u %a' -- "$directory")
+    [[ $observed == 0 || $observed == "$uid" ]] && (( (8#$mode & 8#022) == 0 )) || fail 'custody ancestor is writable by another identity'
+    [[ $directory != / ]] || break
+    directory=${directory%/*}; [[ -n $directory ]] || directory=/
+  done
+}
+if [[ $phase == pq-approve-first-registration ]]; then
+  legacy="/etc/ynx/consensus-candidate/$role/priv_validator_key.json"
+  trusted_parent "${legacy%/*}"; trusted_parent "${approval%/*}"
+  [[ $(stat -c '%u:%a' -- "${approval%/*}") == "$uid:700" ]] || fail 'approval parent must already be original-owner private 0700'
+  [[ -f $legacy && ! -L $legacy && $(stat -c '%u:%a:%h' -- "$legacy") == "$uid:600:1" ]] || fail 'original legacy key owner/mode required'
+  [[ ! -e $approval && ! -L $approval ]] || fail 'original approval/UNKNOWN already exists'
+  # Open the ORIGINAL regular FilePVKey only after dropping to its original
+  # owner. No key body crosses SSH, sudo stdin, a pipe, argv or an env variable.
+  exec /usr/sbin/runuser -u ynx -- /usr/bin/env -i PATH=/usr/bin:/bin LANG=C TZ=UTC /bin/bash -c 'set -euo pipefail; exec 3<"$1"; exec "$2" approve-first-validator-registration --public-record "$3" --public-record-sha256 "$4" --consensus-genesis "$5" --consensus-genesis-sha256 "$6" --approval-directory "$7" --legacy-key-fd 3' bash "$legacy" "$stage/$binary" "$stage/public-input.json" "$input_pin" "$stage/genesis.json" "$genesis_pin" "$approval"
+fi
+for directory in "$out" "$state"; do trusted_parent "${directory%/*}"; done
+if [[ $phase == pq-inspect ]]; then
+  # The CLI does not follow an untrusted marker to a different state path.
+  exec /usr/sbin/runuser -u ynx-pq-signer -- /usr/bin/env -i PATH=/usr/bin:/bin LANG=C TZ=UTC "$stage/$binary" --inspect --out-dir "$out" --state-dir "$state"
+fi
+[[ $out != "$state" && $out != "$state/"* && $state != "$out/"* ]] || fail 'custody and writable HRS must be disjoint'
+for directory in "$out" "$state"; do [[ ! -e $directory && ! -L $directory ]] || fail 'new epoch directory or UNKNOWN already exists'; done
+credential=/etc/credstore.encrypted/ynx-pq-recovery
+trusted_parent "${credential%/*}"
+[[ -x /usr/bin/systemd-creds && -f $credential && ! -L $credential && $(stat -c '%u:%a:%h' -- "$credential") == 0:600:1 && $(sha256sum -- "$credential" | cut -d ' ' -f 1) == "$credential_pin" ]] || fail 'original encrypted credential pin/metadata required'
+# Each mkdir is exclusive. Partial provisioning, decrypt failure or lost ACK
+# remains visible; there is no cleanup, fallback, second create or key copy.
+for directory in "$out" "$state"; do mkdir -m 0700 -- "$directory"; chown "$uid:$gid" -- "$directory"; done
+# Only the raw32 anonymous pipe crosses runuser. Open FD3 after dropping UID,
+# detach stdin and require BOTH exits via pipefail; even late decrypt failure
+# is UNKNOWN if the consumer has already written its immutable epoch marker.
+/usr/bin/systemd-creds decrypt --name=ynx-pq-recovery "$credential" - | /usr/sbin/runuser -u ynx-pq-signer -- /usr/bin/env -i PATH=/usr/bin:/bin LANG=C TZ=UTC /bin/bash -c 'set -euo pipefail; exec 3<&0; exec 0</dev/null; exec "$1" --new-epoch --request "$2" --request-sha256 "$3" --genesis "$4" --genesis-sha256 "$5" --out-dir "$6" --state-dir "$7" --recovery-fd 3' bash "$stage/$binary" "$stage/public-input.json" "$input_pin" "$stage/genesis.json" "$genesis_pin" "$out" "$state"
+REMOTE_PQ
+  if [[ $phase == pq-approve-first-registration ]]; then
+    # Registration wire is PUBLIC authorization, never a private key or HRS.
+    ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo -u ynx /usr/bin/head -c 262145 -- '$approval/registration.wire'" >"$work/public/$role.registration.wire.partial" 2>"$work/registration.readback.stderr"
+  fi
+  if [[ ${DEPLOY_DRY_RUN:-0} != 1 ]]; then
+    python3 -B - "$phase" "$work/public/$role.json.partial" "$out" "$state" "$input_pin" "$genesis_pin" "$work/public/$role.registration.wire.partial" <<'PUBLIC_PQ'
+import hashlib, json, sys
+from pathlib import Path
+phase, filename, out, state, source_pin, genesis_pin, wire = sys.argv[1:]
+with Path(filename).open('rb') as source: raw = source.read(262145)
+assert 0 < len(raw) <= 262144, 'bounded original public receipt required'
+v = json.loads(raw)
+if phase == 'pq-new-epoch':
+    assert v['format'] == 'YNX-CONSENSUS-PQ-CEREMONY-PUBLIC/v1'
+    assert v['status'] == 'new_epoch_files_durable_registration_not_authorized'
+    assert v['paths']['directory'] == out and v['paths']['state'] == state + '/original-sign-state.json'
+    assert v['binding']['SignerStatePath'] == v['paths']['state']
+elif phase == 'pq-inspect':
+    assert v['readOnly'] is True and v['privateMaterialOpened'] is False and v['registrationAuthorized'] is False
+else:
+    assert v['version'] == 'YNX-FIRST-VALIDATOR-APPROVAL/v1'
+    assert v['publicRecordSHA256'] == source_pin and v['genesisSHA256'] == genesis_pin
+    assert v['authorizationSigned'] is True and all(v[k] is False for k in ('broadcast', 'committed', 'pqActivated'))
+    with Path(wire).open('rb') as source: body = source.read(262145)
+    assert 0 < len(body) <= 262144 and hashlib.sha256(body).hexdigest() == v['registrationSHA256']
+PUBLIC_PQ
+    (set -o noclobber; cat "$work/public/$role.json.partial" >"$work/public/$role.json")
+    if [[ $phase == pq-approve-first-registration ]]; then
+      (set -o noclobber; cat "$work/public/$role.registration.wire.partial" >"$work/public/$role.registration.wire")
+    fi
+  fi
+  printf 'PQ %s result retained at %s; no automatic registration, service start or activation\n' "$phase" "$work/public"
+}
+
+if [[ $phase != legacy ]]; then
+  pq_key_ceremony
+  exit 0
 fi
 
 case "${CONSENSUS_CANDIDATE_KEY_CEREMONY_RESUME:-}" in

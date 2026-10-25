@@ -687,6 +687,30 @@ NOTIFY_SOCKET=/run/systemd/notify
                 self.assertFalse(Path(f.args.output_dir).exists())
                 for target in installer.TARGETS.values(): self.assertFalse(f.host.destination(target).exists())
 
+    def test_bound_vault_and_binding_must_stay_outside_writable_pq_history(self):
+        # The normal installer already accepts independent custody/HRS dirs.
+        # A key-init caller must not "fix" the old same-directory output by
+        # weakening this guard, even with internally consistent public pins.
+        for field in ('binding', 'vault'):
+            with self.subTest(field=field):
+                f = self.fixture('pq-history-protect-' + field)
+                f.args.install = True
+                before = {Path(p): Path(p).read_bytes() for p in f.forbidden}
+                original = Path(f.config[field])
+                alias = Path(f.config['pqState']).parent / original.name
+                body = original.read_bytes()
+                write(alias, body)
+                f.config[field] = str(alias)
+                if field == 'vault': f.forbidden.add(str(alias))
+                f.provider(f.config['checkpointProviderUnit'])
+                with self.assertRaisesRegex(ValueError, 'SOURCE_INSIDE_WRITABLE_HISTORY_DIRECTORY'):
+                    f.run()
+                self.assertFalse(Path(f.args.output_dir).exists())
+                self.assertEqual(alias.read_bytes(), body)
+                self.assertEqual(original.read_bytes(), body)
+                for filename, raw in before.items(): self.assertEqual(filename.read_bytes(), raw)
+                for target in installer.TARGETS.values(): self.assertFalse(f.host.destination(target).exists())
+
     def test_live_checkpoint_replacement_preserves_directory_binding_without_freshness_claim(self):
         f = self.fixture('live-replace')
         f.args.install = True
