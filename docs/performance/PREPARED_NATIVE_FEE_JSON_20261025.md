@@ -1,6 +1,6 @@
 # Prepared native快照JSON编码优化
 
-CODE `fac954ca6f8b4e2cc58076dbccb6ffd68fb321bf`。本地已验证，准确SOURCE普通CI待完成；未部署、未启动新多节点运行。原40186554841报告与证据身份保持不变，不能把本次局部收益算成该已封存运行的网络收益。
+CODE `fac954ca6f8b4e2cc58076dbccb6ffd68fb321bf`。本地与准确SOURCE普通CI均已验证；未部署、未启动新多节点运行。原40186554841报告与证据身份保持不变，不能把本次局部收益算成该已封存运行的网络收益。
 
 ## 实测热点与最小改动
 
@@ -32,3 +32,5 @@ Apple M4/darwin arm64，GOMAXPROCS1，200ms×3；同进程ABBA子组，各模式
 新增对照逐一变更每个Fee字段，覆盖控制字节、HTML/Unicode/非法UTF8、特殊zone及非法时间的原MarshalerError/首因；坏/重复scaffold、nil/empty、并行输出所有权均拒绝或保持原字节。额外framing差量race1.898秒通过。原prepared snapshot ownership、全部非native域fallback、不得授予Validate、两checkpoint epochs、payload/state损坏、任意payload/producer mismatch、context取消、旧capture高水位、签名/nonce/余额重查与持久化失败回归均保留。
 
 新测试已加入原chain-core prepared group，没有放宽timeout；原source guard按CODE/tree/delta更新，25条通过。源码和raw/SHA见[本地证据索引](evidence/prepared-native-fee-json-local-20261025.json)，大raw仍在西数 `chain-performance-20261017/prepared-native-json-20261025/`。下一网络验证必须单独绑定新SOURCE、准确CI、同VM/实际二进制与原限额的新READY/Root窗口；不继承已consumed grant，不宣称达到持续1000×600秒或最早BFT形成时刻已测。
+
+准确SOURCE `eda90aba3727268a602001c63b1679f0db133f34` 普通CI [40190718097](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40190718097) 已SUCCESS，原watch84143 exit0。完整consensus/ABCI、新prepared编码与真实signed grouped/unit stream回归、cached hash原规则及原源码守卫全部通过；四节点heavy步骤明确skipped。原API/完整日志与6份按SOURCE存档的不可变源文件见[准确CI证据](evidence/prepared-native-fee-json-source-ci-20261025.json)，proof4314B/SHA `628c43bbeebf0a60420bd65af7449b8228c46971395d106a7368e041c0752b41`。原Source状态与性能反例不回写；局部收益仍不等于网络收益，持续1000TPS目标未完成。

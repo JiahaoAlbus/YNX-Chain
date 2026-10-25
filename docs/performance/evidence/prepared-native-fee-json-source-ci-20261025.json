@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "sourceCommit": "eda90aba3727268a602001c63b1679f0db133f34",
+  "codeCommit": "fac954ca6f8b4e2cc58076dbccb6ffd68fb321bf",
+  "sourceVerified": true,
+  "ordinaryCI": {
+    "runId": 40190718097,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40190718097",
+    "conclusion": "success",
+    "originalAPI": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/normal-ci-completed.json",
+      "bytes": 10510,
+      "sha256": "2fa3cd2e3a1e8e0750b2abe285e1bc11c569741bdaac5735c25a75127a001419"
+    },
+    "originalFullLog": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/normal-ci-full.raw",
+      "bytes": 780366,
+      "sha256": "d10cf2d1872f07634cb058d13c66219a9a9c23f675135730e9a36bd3aba08651"
+    },
+    "verifiedRequiredSteps": [
+      "Run make consensus-abci-check",
+      "Verify native parsed-key reuse and original signature refusal semantics",
+      "Verify prepared native snapshot ownership and signed stream candidate",
+      "Verify selected replay timing children from real signed public fixture",
+      "Verify cached fee JSON bytes and explicit node selection",
+      "Verify original native stream evidence identity and corruption negatives",
+      "Verify prefix candidate and original frozen source contracts"
+    ],
+    "fourNodeStepSkipped": true
+  },
+  "immutableSourceFiles": {
+    "internal/consensus/block_journal_prepared_native_json.go": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/source-at-eda90aba3/internal/consensus/block_journal_prepared_native_json.go",
+      "bytes": 2046,
+      "sha256": "14cf5c4db9aad2f4815a081309c9fa05d9b03e4bc80d1b7964d3d11785c94b0e"
+    },
+    "internal/consensus/block_journal_prepared_native_json_test.go": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/source-at-eda90aba3/internal/consensus/block_journal_prepared_native_json_test.go",
+      "bytes": 10149,
+      "sha256": "1e1ffe47104846ed29b0d5e3187bd8eacab9641b1c8d5712432f50a8d47d3a05"
+    },
+    "internal/consensus/block_journal_prepared_native_snapshot.go": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/source-at-eda90aba3/internal/consensus/block_journal_prepared_native_snapshot.go",
+      "bytes": 2334,
+      "sha256": "2b105218f1f75375fdf50236b82c7e5ff46652f1db7649ff2e8c4aba0a29824e"
+    },
+    "internal/consensus/state_hash_cached_fee_candidate.go": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/source-at-eda90aba3/internal/consensus/state_hash_cached_fee_candidate.go",
+      "bytes": 5927,
+      "sha256": "482231af04db4dffb45ae3161672479e6405aa9df7513e81c60d02087a9ff5cd"
+    },
+    ".github/workflows/chain-core.yml": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/source-at-eda90aba3/.github/workflows/chain-core.yml",
+      "bytes": 52307,
+      "sha256": "5f65cc0409bf61d975183ea85caeb1ca537d52568832f8d17b520c2641a63797"
+    },
+    "scripts/verify/perf-prefix-replay-candidate-check.mjs": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-native-json-20261025/source-at-eda90aba3/scripts/verify/perf-prefix-replay-candidate-check.mjs",
+      "bytes": 5848,
+      "sha256": "ea8706c4eb126c8d798f6bf97155e6ab16834beacf5253c1b37816677e970719"
+    }
+  },
+  "localEvidence": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/prepared-native-fee-json-local-20261025.json",
+    "bytes": 11901,
+    "sha256": "08afa6c0e35f5fc393a4c94b1091e5a0a5e13ce6e702ee9a0f11482dad711259"
+  },
+  "runtimeScope": "Existing explicit prepared reader snapshot only; original hash backend, full state/crypto checks, reader locks, cache limits, nonce, durability and default client procs preserved.",
+  "networkImprovementMeasured": false,
+  "newMultiNodeRun": false,
+  "deployed": false,
+  "sustainedTPSQualified": false
+}
