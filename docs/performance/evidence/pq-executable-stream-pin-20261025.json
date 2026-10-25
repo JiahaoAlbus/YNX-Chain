@@ -1,0 +1,96 @@
+{
+  "status": "source_and_focused_test_verified_not_deployed",
+  "baseCommit": "95f22bfde253abd39f52e869447f342c45098b30",
+  "scope": "complete original executable SHA256 checks before AND after original verifier; stream 32KiB buffer instead of whole-file ReadAll",
+  "unchangedChecks": [
+    "independent external SHA256",
+    "complete byte coverage both sides of verifier invocation",
+    "absolute canonical path/no symlink",
+    "regular executable/no group-other write",
+    "original inode/size/mtime checks",
+    "128MiB input limit",
+    "real original canonical signature/proof verification"
+  ],
+  "hardware": "Apple M4 darwin/arm64, 24GiB RAM",
+  "limits": {
+    "GOMAXPROCS": 1,
+    "GOMEMLIMIT": "160MiB",
+    "goTestParallelism": 1
+  },
+  "pairedMicrobenchmark": {
+    "command": "YNX_PERF_PQ_PROOF_VERIFIER=<same original verifier> GOMAXPROCS=1 GOMEMLIMIT=160MiB go test -p 1 ./cmd/ynx-consensus-perf-client -run '^TestPQMemberCaseStreamingExecutablePin' -bench '^BenchmarkPQMemberCaseExecutablePin$' -benchtime=3x -count=3 -benchmem -timeout=30s",
+    "samples": {
+      "before-readall": {
+        "nsPerOp": [
+          25009986,
+          23000194,
+          23938583
+        ],
+        "bytesPerOp": [
+          201107288,
+          201107288,
+          201107288
+        ],
+        "allocsPerOp": [
+          80,
+          80,
+          80
+        ],
+        "medianNsPerOp": 23938583,
+        "medianBytesPerOp": 201107288,
+        "medianAllocsPerOp": 80
+      },
+      "after-stream": {
+        "nsPerOp": [
+          13047875,
+          12973319,
+          12929417
+        ],
+        "bytesPerOp": [
+          36802,
+          36802,
+          36802
+        ],
+        "allocsPerOp": [
+          41,
+          41,
+          41
+        ],
+        "medianNsPerOp": 12973319,
+        "medianBytesPerOp": 36802,
+        "medianAllocsPerOp": 41
+      }
+    },
+    "medianChecksumTimeReductionPercent": 45.80581899939524,
+    "allocatedBytesReductionPercent": 99.98170031510742,
+    "scopeLimit": "warm local same-file microbenchmark, 9 measured iterations per implementation; excludes proof and business network latency"
+  },
+  "productionEntrySignedFixtureObservation": {
+    "beforeTotalNs": 624417167,
+    "afterTotalNs": 497044125,
+    "qualification": "individual observations only; causal comparison limited to paired checksum microbenchmark",
+    "actualNode": false,
+    "actualOfferToFinalityMeasured": false,
+    "sustainedTPSQualified": false
+  },
+  "focusedRaceTests": 3,
+  "focusedRaceElapsedSeconds": 4.209,
+  "rawEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-executable-pin-before-after-20261025.raw",
+      "bytes": 978,
+      "sha256": "40c31cebef8d2063260b4c952c542b255e0054c2af924cc827734512d2ef0699"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-stream-pin-original-verifier-race-20261025.raw",
+      "bytes": 1347,
+      "sha256": "214460b5cc6e049483e1abca5d1527f4b086b87eafbb4cc9003cc2a0a1e0e4c6"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-original-verifier-production-entry-20261025.raw",
+      "bytes": 463,
+      "sha256": "196245e3e45eff7290c1c9a5fa181d57eae6204d708162ffa654c902836d248e"
+    }
+  ],
+  "sourceCI40208347215": "live at last check, original fixture producer passed; client group running; no terminal conclusion claimed"
+}

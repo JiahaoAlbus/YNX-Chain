@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -64,6 +65,52 @@ func readPQCasePinned(path, pin string, limit int64, executable bool) ([]byte, e
 		return nil, errors.New("original file differs from independent SHA256")
 	}
 	return raw, nil
+}
+
+// The executable is only hashed, never decoded. Stream the same complete
+// bytes before AND after execution, without allocating an executable-sized
+// buffer or changing the independent pin and original-file checks.
+func verifyPQCaseExecutablePin(path, pin string, limit int64) error {
+	if !filepath.IsAbs(path) || filepath.Clean(path) != path || !pqCaseHashPin(pin) {
+		return errors.New("original executable path and independent SHA256 required")
+	}
+	actual, e := filepath.EvalSymlinks(path)
+	if e != nil || actual != path {
+		return errors.New("original executable must not traverse a symlink")
+	}
+	before, e := os.Lstat(path)
+	if e != nil {
+		return e
+	}
+	if !before.Mode().IsRegular() || before.Mode().Perm()&0022 != 0 || before.Mode().Perm()&0111 == 0 || before.Size() > limit {
+		return errors.New("original executable permissions/type/size differ")
+	}
+	f, e := os.Open(path)
+	if e != nil {
+		return e
+	}
+	defer f.Close()
+	opened, e := f.Stat()
+	if e != nil || !os.SameFile(before, opened) {
+		return errors.New("original executable changed while opening")
+	}
+	h := sha256.New()
+	n, e := io.CopyBuffer(h, io.LimitReader(f, limit+1), make([]byte, 32<<10))
+	if e != nil {
+		return e
+	}
+	after, e := f.Stat()
+	if e != nil {
+		return e
+	}
+	named, e := os.Lstat(path)
+	if e != nil || !os.SameFile(before, after) || !os.SameFile(after, named) || before.Size() != n || n > limit || before.Size() != after.Size() || before.ModTime() != after.ModTime() || before.Mode() != after.Mode() || after.ModTime() != named.ModTime() || after.Mode() != named.Mode() {
+		return errors.New("original executable changed while hashing")
+	}
+	if hex.EncodeToString(h.Sum(nil)) != pin {
+		return errors.New("original executable differs from independent SHA256")
+	}
+	return nil
 }
 
 // Extract only the original externally pinned expectation. The unchanged
@@ -164,7 +211,7 @@ func verifyPQCaseCollectedProof(ctx context.Context, o options, p pqWholeCase, r
 		fail(e)
 		return
 	}
-	if _, e = readPQCasePinned(o.pqProofVerifier, o.pqProofVerifierSHA256, 128<<20, true); e != nil {
+	if e = verifyPQCaseExecutablePin(o.pqProofVerifier, o.pqProofVerifierSHA256, 128<<20); e != nil {
 		fail(e)
 		return
 	}
@@ -192,7 +239,7 @@ func verifyPQCaseCollectedProof(ctx context.Context, o options, p pqWholeCase, r
 		fail(fmt.Errorf("original verifier rejected proof or execution was interrupted: %w", executionErr))
 		return
 	}
-	if _, e = readPQCasePinned(o.pqProofVerifier, o.pqProofVerifierSHA256, 128<<20, true); e != nil {
+	if e = verifyPQCaseExecutablePin(o.pqProofVerifier, o.pqProofVerifierSHA256, 128<<20); e != nil {
 		fail(e)
 		return
 	}
