@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Read-only normal-CI reuse DATA; never authorization to start a node/window.
 
-Only GitHub's fixed repository/workflow/run/attempt endpoints are consulted.
+Only GitHub's fixed repository/workflow/run/attempt/artifact metadata endpoints
+are consulted.
 No redirect, proxy, artifact execution, retry, process operation or token output.
 """
 import argparse
@@ -22,6 +23,9 @@ API = "https://api.github.com"
 WORKFLOW_FILE = "resource-market-ci.yml"
 WORKFLOW_PATH = ".github/workflows/" + WORKFLOW_FILE
 NORMAL_BRANCHES = frozenset(("codex/ynx-pq-public-upgrade", "codex/ynx-pq-perf-integration"))
+FRESH_PROFILE = "consensus-fresh-paired-business-v1"
+FRESH_CLIENT_COMMIT = "70e7e450997a0ae77dbad5a8be3682f482c6ddd8"
+FRESH_CLIENT_TREE = "4866cc3924c060eb6a29939915d39b1c5c625607"
 REQUIRED_JOBS = ("focused-go", "protocol-delivery", "proof-verifier-macos")
 MAX_RESPONSE_BYTES = 2 << 20
 PAGE_SIZE = 100
@@ -55,6 +59,14 @@ def positive_integer(value):
     return type(value) is int and value > 0
 
 
+def validate_context(context):
+    # The explicit caller selects one existing profile, never an arbitrary
+    # command, a resource override, a replacement source or an authority grant.
+    require(context is None or type(context) is dict and set(context) == {"profile"}
+            and context["profile"] == FRESH_PROFILE, "window_context_invalid")
+    return context is not None
+
+
 def repository_identity(run):
     source, head = run.get("repository"), run.get("head_repository")
     require(type(source) is dict and type(head) is dict
@@ -65,13 +77,14 @@ def repository_identity(run):
     return source["id"]
 
 
-def validate_run(run, candidate, normal_run_id):
+def validate_run(run, candidate, normal_run_id, context=None):
+    fresh = validate_context(context)
     require(type(run) is dict, "run_metadata_invalid")
     require(positive_integer(run.get("id")) and str(run["id"]) == normal_run_id,
             "run_identity_mismatch")
     require(run.get("head_sha") == candidate and run.get("event") == "push"
             and type(run.get("head_branch")) is str
-            and run["head_branch"] in NORMAL_BRANCHES, "normal_source_mismatch")
+            and run["head_branch"] in (NORMAL_BRANCHES | {"main"} if fresh else NORMAL_BRANCHES), "normal_source_mismatch")
     require(run.get("status") == "completed" and run.get("conclusion") == "success",
             "normal_run_not_successful")
     require(run.get("path") == WORKFLOW_PATH and positive_integer(run.get("workflow_id")),
@@ -82,7 +95,8 @@ def validate_run(run, candidate, normal_run_id):
             run["workflow_id"], source_id)
 
 
-def validate_current_run(run, candidate, current_run_id, workflow_id, repository_id):
+def validate_current_run(run, candidate, current_run_id, workflow_id, repository_id, context=None):
+    fresh = validate_context(context)
     require(type(run) is dict and positive_integer(run.get("id"))
             and str(run["id"]) == current_run_id and run.get("head_sha") == candidate,
             "current_run_identity_mismatch")
@@ -92,6 +106,11 @@ def validate_current_run(run, candidate, current_run_id, workflow_id, repository
     require(type(run.get("workflow_id")) is int and run["workflow_id"] == workflow_id
             and run.get("path") == WORKFLOW_PATH and positive_integer(run.get("run_attempt"))
             and repository_identity(run) == repository_id, "current_workflow_or_repo_mismatch")
+    if fresh:
+        branch = run.get("head_branch")
+        frozen = re.fullmatch(r"codex/ynx-pq-remote-([0-9a-f]{9,40})", branch) if type(branch) is str else None
+        require(type(branch) is str and (branch in NORMAL_BRANCHES or branch == "main"
+                or frozen is not None and candidate.startswith(frozen[1])), "fresh_dispatch_branch_mismatch")
     started = run.get("run_started_at")
     require(type(started) is str and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z", started) is not None,
             "current_run_start_invalid")
@@ -100,22 +119,66 @@ def validate_current_run(run, candidate, current_run_id, workflow_id, repository
     except ValueError:
         raise NormalCIError("current_run_start_invalid") from None
     require(parsed.strftime("%Y-%m-%dT%H:%M:%SZ") == started, "current_run_start_invalid")
-    return (run["id"], run["head_sha"], run["run_attempt"], run["workflow_id"], started)
+    identity = (run["id"], run["head_sha"], run["run_attempt"], run["workflow_id"], started)
+    return identity + (run["head_branch"],) if fresh else identity
 
 
-def validate_normal_ci(repo, candidate, normal_run_id, current_run_id, fetch_json):
+def validate_fresh_artifact(run, candidate, run_path, repository_id, fetch_json):
+    expected_name = ("ynx-pq-fresh-paired-business-build-" + candidate + "-"
+                     + str(run["id"]) + "-" + str(run["run_attempt"]))
+    seen, selected, total, count = set(), None, None, 0
+    for page in range(1, MAX_JOB_PAGES + 1):
+        response = fetch_json(run_path + "/artifacts?per_page=100&page=" + str(page))
+        require(type(response) is dict and type(response.get("total_count")) is int
+                and 0 < response["total_count"] <= PAGE_SIZE * MAX_JOB_PAGES
+                and type(response.get("artifacts")) is list, "fresh_artifacts_page_invalid")
+        if total is None:
+            total = response["total_count"]
+        require(response["total_count"] == total, "fresh_artifacts_total_changed")
+        expected = min(PAGE_SIZE, total - count)
+        require(expected > 0 and len(response["artifacts"]) == expected, "fresh_artifacts_page_incomplete")
+        count += len(response["artifacts"])
+        for artifact in response["artifacts"]:
+            require(type(artifact) is dict and positive_integer(artifact.get("id"))
+                    and artifact["id"] not in seen and type(artifact.get("name")) is str,
+                    "fresh_artifact_metadata_invalid")
+            seen.add(artifact["id"])
+            if artifact["name"] != expected_name:
+                continue
+            require(selected is None, "fresh_artifact_duplicated")
+            owner = artifact.get("workflow_run")
+            digest = artifact.get("digest")
+            require(artifact.get("expired") is False and type(artifact.get("size_in_bytes")) is int
+                    and 0 < artifact["size_in_bytes"] <= 256 << 20
+                    and type(digest) is str and re.fullmatch(r"sha256:[0-9a-f]{64}", digest) is not None
+                    and digest != "sha256:" + "0" * 64, "fresh_artifact_pin_invalid")
+            require(type(owner) is dict and type(owner.get("id")) is int and owner["id"] == run["id"]
+                    and owner.get("head_sha") == candidate and owner.get("head_branch") == run["head_branch"]
+                    and type(owner.get("repository_id")) is int and owner["repository_id"] == repository_id
+                    and type(owner.get("head_repository_id")) is int and owner["head_repository_id"] == repository_id,
+                    "fresh_artifact_run_source_mismatch")
+            selected = dict(artifactId=str(artifact["id"]), name=expected_name,
+                            archiveBytes=artifact["size_in_bytes"], archiveSHA256=digest[7:])
+        if count == total:
+            break
+    require(count == total and selected is not None, "fresh_artifact_missing_or_incomplete")
+    return selected
+
+
+def validate_normal_ci(repo, candidate, normal_run_id, current_run_id, fetch_json, context=None):
     """The same admission function serves production and synthetic API controls."""
+    fresh = validate_context(context)
     validate_request(repo, candidate, normal_run_id, current_run_id)
     run_path = "/repos/" + REPOSITORY + "/actions/runs/" + normal_run_id
     run = fetch_json(run_path)
-    identity = validate_run(run, candidate, normal_run_id)
+    identity = validate_run(run, candidate, normal_run_id, context)
     workflow = fetch_json("/repos/" + REPOSITORY + "/actions/workflows/" + WORKFLOW_FILE)
     require(type(workflow) is dict and workflow.get("id") == run["workflow_id"]
             and type(workflow.get("id")) is int and workflow.get("path") == WORKFLOW_PATH,
             "workflow_identity_mismatch")
     current_path = "/repos/" + REPOSITORY + "/actions/runs/" + current_run_id
     current = validate_current_run(fetch_json(current_path), candidate, current_run_id,
-                                   run["workflow_id"], identity[-1])
+                                   run["workflow_id"], identity[-1], context)
     attempt = run["run_attempt"]
     jobs, total = [], None
     for page in range(1, MAX_JOB_PAGES + 1):
@@ -153,19 +216,25 @@ def validate_normal_ci(repo, candidate, normal_run_id, current_run_id, fetch_jso
                 "required_job_not_successful")
         selected[name] = str(job["id"])
     require(set(selected) == set(REQUIRED_JOBS), "required_job_missing")
+    artifact = validate_fresh_artifact(run, candidate, run_path, identity[-1], fetch_json) if fresh else None
     # Do not race a rerun that changes the latest attempt during pagination.
-    require(validate_run(fetch_json(run_path), candidate, normal_run_id) == identity,
+    require(validate_run(fetch_json(run_path), candidate, normal_run_id, context) == identity,
             "normal_run_changed_during_read")
     require(validate_current_run(fetch_json(current_path), candidate, current_run_id,
-                                 run["workflow_id"], identity[-1]) == current,
+                                 run["workflow_id"], identity[-1], context) == current,
             "current_run_changed_during_read")
-    return dict(version="YNX-PQ-REMOTE-NORMAL-CI/v1", classification="data",
+    result = dict(version="YNX-PQ-REMOTE-NORMAL-CI/v1", classification="data",
                 source="github-actions-api", repo=repo, candidateSha=candidate,
                 normalRunId=normal_run_id, currentRunId=current_run_id,
-                currentRunStartedAt=current[-1],
+                currentRunStartedAt=current[4],
                 normalRunAttempt=str(attempt), workflowPath=WORKFLOW_PATH,
                 normalBranch=run["head_branch"], jobs=selected, normalCIReusable=True,
                 nodeStartAuthorized=False, publicDeployment=False)
+    if fresh:
+        result.update(version="YNX-PQ-FRESH-NORMAL-CI/v1", context=dict(profile=FRESH_PROFILE,
+                      performanceClientCommit=FRESH_CLIENT_COMMIT, performanceClientTree=FRESH_CLIENT_TREE),
+                      artifact=artifact)
+    return result
 
 
 def unique_object(pairs):
@@ -196,7 +265,7 @@ def github_fetcher(token):
         # Never consume a URL supplied by a run, page, Link header or caller.
         prefix = "/repos/" + REPOSITORY + "/actions/"
         require(type(path) is str and path.startswith(prefix) and "#" not in path
-                and re.fullmatch(re.escape(prefix) + r"(?:workflows/resource-market-ci\.yml|runs/[1-9][0-9]{0,19}(?:/attempts/[1-9][0-9]*/jobs\?per_page=100&page=[1-3])?)", path) is not None,
+                and re.fullmatch(re.escape(prefix) + r"(?:workflows/resource-market-ci\.yml|runs/[1-9][0-9]{0,19}(?:/attempts/[1-9][0-9]*/jobs\?per_page=100&page=[1-3]|/artifacts\?per_page=100&page=[1-3])?)", path) is not None,
                 "api_path_not_allowed")
         remaining = deadline - time.monotonic()
         require(remaining > 0, "api_deadline_exceeded")
@@ -231,11 +300,13 @@ def main(argv=None):
     parser.add_argument("--candidate", required=True)
     parser.add_argument("--normal-run-id", required=True)
     parser.add_argument("--current-run-id", required=True)
+    parser.add_argument("--profile", choices=(FRESH_PROFILE,))
     args = parser.parse_args(argv)
     try:
         validate_request(args.repo, args.candidate, args.normal_run_id, args.current_run_id)
+        options = {} if args.profile is None else {"context": dict(profile=args.profile)}
         result = validate_normal_ci(args.repo, args.candidate, args.normal_run_id,
-                                    args.current_run_id, github_fetcher(os.environ.get("GH_TOKEN")))
+                                    args.current_run_id, github_fetcher(os.environ.get("GH_TOKEN")), **options)
     except NormalCIError as error:
         print("YNX_REMOTE_NORMAL_CI_REJECTED: " + str(error), file=sys.stderr)
         return 1

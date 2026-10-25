@@ -124,7 +124,7 @@ on:
         required: false
         type: string
       normal_ci_run_id:
-        description: Completed successful normal push CI for this exact source; mandatory for a remote four-validator window
+        description: Completed successful normal push CI for this exact source; mandatory for a remote or fresh four-validator window
         required: false
         default: ''
         type: string
@@ -145,6 +145,11 @@ on:
         type: boolean
       consensus_remote_e2e_retained_history:
         description: Run one separately authorized bounded four-validator transition with one normal remote signer and unchanged retained-history limits
+        required: false
+        default: false
+        type: boolean
+      consensus_fresh_paired_business:
+        description: Run one separately authorized fresh paired four-validator signed-business window from exact successful normal-CI inputs
         required: false
         default: false
         type: boolean
@@ -188,7 +193,7 @@ jobs:
   verify:
     # Frozen protocol refs have their own fail-closed identity gate below;
     # they must never fall through into unrelated product build/test jobs.
-    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history)
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -596,19 +601,19 @@ jobs:
           retention-days: 7
 
   focused-go:
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))
     outputs:
       inputs-artifact-id: ${{ steps.stageupload.outputs.artifact-id }}
       inputs-manifest-sha256: ${{ steps.stagepack.outputs.manifest-sha256 }}
     concurrency:
       # Hosted source checks use isolated runners and one exact commit per group.
       # Every actual window keeps the original single heavy group.
-      group: ${{ github.event_name == 'workflow_dispatch' && (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 'ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade' || format('ynx-pq-source-{0}-{1}-{2}', github.workflow, github.ref, github.sha) }}
+      group: ${{ github.event_name == 'workflow_dispatch' && (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process || inputs.consensus_fresh_paired_business) && 'ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade' || format('ynx-pq-source-{0}-{1}-{2}', github.workflow, github.ref, github.sha) }}
       cancel-in-progress: false
     runs-on: ubuntu-24.04
     # Source regressions include actual historical counterexample recompiles.
     # Remote windows retain their independent 12-minute admission below.
-    timeout-minutes: 15
+    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || 15 }}
     env:
       GOMAXPROCS: '2'
       GOGC: '50'
@@ -644,6 +649,7 @@ jobs:
           YNX_ENTRY_LOCAL: ${{ inputs.consensus_e2e }}
           YNX_ENTRY_LOCAL_RETAINED: ${{ inputs.consensus_e2e_retained_history }}
           YNX_ENTRY_REMOTE_PROCESS: ${{ inputs.remote_signer_process }}
+          YNX_ENTRY_FRESH_BUSINESS: ${{ inputs.consensus_fresh_paired_business }}
         run: |
           git rev-parse HEAD
           test "$(git rev-parse HEAD)" = '${{ github.sha }}'
@@ -654,14 +660,20 @@ jobs:
           bash scripts/verify/pq-remote-window-entry-check.sh
           if [ "$YNX_ENTRY_EVENT" = 'workflow_dispatch' ]; then
             test "$YNX_ENTRY_CANDIDATE_SHA" = "$YNX_ENTRY_GITHUB_SHA"
-            if [[ "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-remote-* || "$YNX_ENTRY_REMOTE_RETAINED" == 'true' ]]; then
+            if [ "$YNX_ENTRY_FRESH_BUSINESS" = 'true' ]; then
+              if [[ "$YNX_ENTRY_REF" =~ ^refs/heads/codex/ynx-pq-remote-([0-9a-f]{9,40})$ ]]; then
+                [[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]]
+              else
+                [[ "$YNX_ENTRY_REF" == refs/heads/main || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-public-upgrade || "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-perf-integration ]]
+              fi
+            elif [[ "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-remote-* || "$YNX_ENTRY_REMOTE_RETAINED" == 'true' ]]; then
               bash scripts/ops/validate-pq-remote-window-entry.sh \
                 "$YNX_ENTRY_EVENT" "$YNX_ENTRY_REF" "$YNX_ENTRY_GITHUB_SHA" "$YNX_ENTRY_CANDIDATE_SHA" \
                 "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" \
                 "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS"
             fi
             YNX_WINDOW_SELECTIONS=0
-            for YNX_WINDOW_SELECTED in "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS"; do
+            for YNX_WINDOW_SELECTED in "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS" "$YNX_ENTRY_FRESH_BUSINESS"; do
               case "$YNX_WINDOW_SELECTED" in
                 true) YNX_WINDOW_SELECTIONS=$((YNX_WINDOW_SELECTIONS + 1)) ;;
                 false|'') ;;
@@ -671,7 +683,7 @@ jobs:
             test "$YNX_WINDOW_SELECTIONS" -le 1
           fi
       - name: Check reachable vulnerabilities in the eight production runtime commands
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success' && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && github.event_name == 'push') }}
         timeout-minutes: 3
         run: >-
           go run golang.org/x/vuln/cmd/govulncheck@v1.1.4
@@ -680,15 +692,20 @@ jobs:
           ./cmd/ynx-consensus-proof-verify ./cmd/ynx-consensus-package ./cmd/ynx-consensus-keycheck
       - name: Verify same-source completed normal CI before remote network execution
         id: normalci
-        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history }}
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' && github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}
         timeout-minutes: 1
         env:
           GH_TOKEN: ${{ github.token }}
           YNX_NORMAL_CI_RUN_ID: ${{ inputs.normal_ci_run_id }}
+          YNX_NORMAL_FRESH_BUSINESS: ${{ inputs.consensus_fresh_paired_business }}
         run: |
-          python3 -B scripts/ops/validate-pq-remote-normal-ci.py \
-            --repo "$GITHUB_REPOSITORY" --candidate "$GITHUB_SHA" \
-            --normal-run-id "$YNX_NORMAL_CI_RUN_ID" --current-run-id "$GITHUB_RUN_ID" \
+          set -euo pipefail
+          normal_args=(--repo "$GITHUB_REPOSITORY" --candidate "$GITHUB_SHA"
+            --normal-run-id "$YNX_NORMAL_CI_RUN_ID" --current-run-id "$GITHUB_RUN_ID")
+          if [ "$YNX_NORMAL_FRESH_BUSINESS" = 'true' ]; then
+            normal_args+=(--profile consensus-fresh-paired-business-v1)
+          fi
+          python3 -B scripts/ops/validate-pq-remote-normal-ci.py "${normal_args[@]}" \
             > "$RUNNER_TEMP/ynx-remote-normal-ci.json"
           cat "$RUNNER_TEMP/ynx-remote-normal-ci.json"
           python3 -B - <<'PY'
@@ -700,7 +717,7 @@ jobs:
               output.write('YNX_REMOTE_WORKFLOW_STARTED_AT=' + str(int(started.timestamp())) + '\n')
           PY
       - name: Verify original-copy observation controls without touching the original case
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
           set -euo pipefail
           python3 -B -m unittest discover -s scripts/verify -p 'test_original_native_copy_guard.py' -v
@@ -723,7 +740,7 @@ jobs:
           python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v
       - name: Verify pure dual-PQ protocol and account authorization
         id: pqprotocol
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
           YNX_ACTION_INTEROP_OUT: ${{ runner.temp }}/ynx-native-action-public-interop.json
           YNX_IDE_ARTIFACT_PUBLIC_FIXTURE_OUT: ${{ runner.temp }}/ynx-ide-artifact-public.json
@@ -731,7 +748,7 @@ jobs:
           go test -p 1 -count=1 -timeout=180s -v ./internal/ynxbatch
           go test -p 1 -count=1 -timeout=180s ./internal/ynxauth ./internal/ynxconsensusauth ./scripts/fixtures/verify-pq-wallet-restored
       - name: Upload only actual Go public artifact-purpose vectors
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqprotocol.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqprotocol.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-ide-artifact-public-interop-${{ github.sha }}
@@ -739,7 +756,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Upload public canonical action vectors from the actual Go codec
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqprotocol.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqprotocol.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-actions-public-interop-${{ github.sha }}
@@ -747,19 +764,19 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Verify forked engine keys and actual consensus objects
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 4
         run: go test -p 1 -count=1 -timeout=180s github.com/cometbft/cometbft/crypto/ynxpq github.com/cometbft/cometbft/crypto/encoding github.com/cometbft/cometbft/proto/tendermint/crypto github.com/cometbft/cometbft/proto/tendermint/types github.com/cometbft/cometbft/types
       - name: Compile forked state and consensus engine without starting nodes
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: go test -p 1 -count=1 -timeout=90s -run '^$' github.com/cometbft/cometbft/state github.com/cometbft/cometbft/consensus
       - name: Verify exact-height maintenance stop with real engine commit and cold stores
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXHeightHalt' github.com/cometbft/cometbft/state github.com/cometbft/cometbft/consensus github.com/cometbft/cometbft/blocksync github.com/cometbft/cometbft/node
       - name: Reproduce and repair same-directory database ownership without starting nodes
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           YNX_DB_CASE="$RUNNER_TEMP/ynx-pq-db-lifecycle-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
@@ -796,10 +813,10 @@ jobs:
           grep -F 'tx_index underlying Close calls = 0, want exactly one' "$YNX_DB_CASE/original-red.log"
           go test -p 1 -count=1 -timeout=60s -run '^(TestNodeOwnedDatabase|TestIndexerOwnedDatabase|TestProofSourceConsumer)' github.com/cometbft/cometbft/node github.com/cometbft/cometbft/state/txindex
       - name: Verify real profile state transition and historical store without starting nodes
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXProfileActualStateUpdateHeaderAndHistoricalStore$' github.com/cometbft/cometbft/state
       - name: Reproduce and repair real Commit and engine checkpoint read ordering
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
@@ -822,13 +839,13 @@ jobs:
           grep -F 'real P params lost during Commit gap: application authority differs' "$YNX_CHECKPOINT_CASE/original-red.log"
           go test -p 1 -count=1 -timeout=90s -run '^TestPQEngineCheckpointReadSurvivesApplicationCommitBeforeStoreSave$' ./internal/consensus
       - name: Verify bounded remote signer transport and unchanged legacy protobuf vectors
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: go test -p 1 -count=1 -timeout=90s -run '^(TestYNXRemote.*|TestPrivvalVectors)$' github.com/cometbft/cometbft/privval
       - name: Verify actual engine signing caller uses committed height key and round context
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: go test -p 1 -count=1 -timeout=90s -run '^(TestYNXActualSignVoteConsumesHeightKeyAndRoundContext|TestYNXActualRemoteCallerPassesCheckpointBeforeHeightKeyAndSign)$' github.com/cometbft/cometbft/consensus
       - name: Measure fresh single and bounded concurrent dual signature paths
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
         run: |
           if git diff --quiet 66d29db440c7e3864ec855734f77bf5a0ae65ee2 HEAD -- internal/ynxbatch; then
@@ -837,7 +854,7 @@ jobs:
             go test -p 1 ./internal/ynxbatch -run '^$' -bench '^BenchmarkParallelProvider(FreshN1Sign|FreshN1Verify|Concurrent)$' -benchtime=10x -count=1 -timeout=90s
           fi
       - name: Measure actual policy certificate cache consumer cold and warm paths
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
         run: |
           if git diff --quiet 8d5080e6caacdcd069ef205978e9b67e760c0a55 HEAD -- internal/chain internal/ynxauth internal/ynxbatch; then
@@ -846,21 +863,21 @@ jobs:
             go test -p 1 ./internal/chain -run '^$' -bench '^BenchmarkPQCertificateConsumer$' -benchtime=10x -count=1 -timeout=90s
           fi
       - name: Install pinned contract build runtime
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
           cache: npm
       - name: Verify failed candidate deployment preserves services and signing history
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: node --test scripts/deploy/consensus-candidate-failure-retention.test.mjs scripts/verify/consensus-production-package-check.test.mjs
       - name: Verify original-state operator transition preserves custody and uncertain attempts
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           bash scripts/verify/public-bft-operator-transition-check.sh
       - name: Verify original key ceremony retains partial custody and never creates during resume
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
         run: |
           set -euo pipefail
@@ -907,7 +924,7 @@ jobs:
           go test -v -p 1 -count=1 -timeout=60s ./cmd/ynx-consensus-key-init
           bash scripts/verify/init-consensus-candidate-keys-check.sh
       - name: Compile frozen measured production overlay without executing cases
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         env:
           GOMAXPROCS: '1'
@@ -919,7 +936,7 @@ jobs:
           go test -overlay "$YNX_OVERLAY_COMPILE_CASE/overlay.json" -p 1 ./internal/chain -run '^$' -count=1 -timeout=90s
           test -z "$(git status --porcelain --untracked-files=normal)"
       - name: Generate canonical IDE contract fixture
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         env:
           NODE_OPTIONS: --max-old-space-size=1536
@@ -933,7 +950,7 @@ jobs:
           sha256sum contracts/devtools/SampleEVMWriteCounter.sol artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json artifacts/ynx-selector-metadata.json
           sha256sum contracts/tokens/SampleYNXTCompatibleERC20.sol artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
       - name: Verify actual IDE compiler materials with original Go deployment callees
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
         run: |
           # Emit the actual callee commitments for the producer/Main handoff.
@@ -942,7 +959,7 @@ jobs:
           go test -v -p 1 -count=1 -timeout=90s -run '^TestIDECanonicalCompilerMaterial' ./internal/chain
       - name: Verify existing Wallet inbox materials with original Go deployment callees
         id: pqcontractregistry
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
         env:
           YNX_PQ_CONTRACT_DEPLOYMENT_REGISTRY_OUT: ${{ runner.temp }}/ynx-pq-contract-deployment-registry.json
@@ -952,7 +969,7 @@ jobs:
           # and the unchanged normal Wallet inbox limit.
           go test -v -p 1 -count=1 -timeout=90s -run '^(TestIDEWalletInboxMaterialActualGoCalleesAndExactParamsSizes$|TestPQContractDeploymentRegistry)' ./internal/chain
       - name: Upload only public contract deployment registry from the actual Go caller
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqcontractregistry.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqcontractregistry.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-contract-deployment-registry-${{ github.sha }}
@@ -960,10 +977,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Verify native ledger and HTTP PQ integration
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api
       - name: Compile production entry points
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
           YNX_CONSENSUS_OPERATOR_FIXTURE_OUT: ${{ runner.temp }}/ynx-consensus-operator-public-inputs
         run: |
@@ -973,7 +990,7 @@ jobs:
           go test -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
           go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package
       - name: Reproduce opaque classic staking refusal with original successful transactions
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
@@ -1019,7 +1036,7 @@ jobs:
           # transport and lifecycle regressions once after both originals
           # have been restored. Do not repeat those same fixed tests here.
       - name: Reproduce the original missing PQ validator staking entry
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
@@ -1064,7 +1081,7 @@ jobs:
           # Current lifecycle and old-hash compatibility tests remain in the
           # complete fixed-source consensus suite immediately below.
       - name: Reproduce source log response budget overrun before later records
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           set -euo pipefail
@@ -1085,7 +1102,7 @@ jobs:
           grep -F 'source logs reached a later record before enforcing response budget' "$YNX_SOURCE_LOG_CASE/original-red.log"
           go test -p 1 -count=1 -timeout=60s -run '^TestMigrationHistoryLogsStopsAtByteBudgetBeforeLaterRecords$' ./internal/consensus
       - name: Verify complete state bridge and sponsor continuity
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
           YNX_PQ_LIGHT_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-light-proof-public.json
           YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
@@ -1096,7 +1113,7 @@ jobs:
           # the same timeout; this group still covers every non-Host test.
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' ./internal/consensus
       - name: Reproduce signed-history overwrite and unsafe rollback callers
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
@@ -1147,7 +1164,7 @@ jobs:
           grep -Fq 'PRODUCTION_ROLLBACK_TRANSPORT_NOT_PRESERVED' "$YNX_HISTORY_SCRIPT_CASE/original-rollback-red.log"
           go test -p 1 -count=1 -timeout=60s -v -run '^TestProduction(RoleScriptsPreserveSignedStateAndUnknownResults|RollbackCallerRefusesBeforeTransport)$/^(existing-signed-install|without-archive)$' ./internal/consensus
       - name: Reproduce source-authority initialization coupling and verify independent execution
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 4
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
@@ -1184,7 +1201,7 @@ jobs:
           grep -F 'MIGRATION_PRESERVATION_FACTORY_BLOCKED' "$YNX_PRESERVE_CASE/original-red.log"
           go test -p 1 -count=1 -timeout=90s -v -run '^(TestMigrationPreservation|TestMigrationPaySourceDoesNotInventMerchantAuthority$)' ./internal/consensus
       - name: Reproduce JSON-only signing source and verify real journal recovery
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 4
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
@@ -1217,7 +1234,7 @@ jobs:
           grep -F -- '--- PASS: TestPQEngineStateReadActualLayoutsRegistryRotationRevocation/atomic-json' "$YNX_READ_CASE/original-red.log"
           go test -p 1 -count=1 -timeout=120s -v -run '^TestPQEngineStateRead' ./internal/consensus
       - name: Reproduce atomic-only Comet operator startup and verify normal journal selection
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
@@ -1262,7 +1279,7 @@ jobs:
           grep -F 'normalOperatorLayout=atomic-json actualCommitAndColdRecovery=true' "$YNX_COMET_LAYOUT_CASE/original-red.log"
           go test -p 1 -count=1 -timeout=90s -v -run '^TestCometJournal' ./cmd/ynx-comet
       - name: Reproduce Ethereum mutable-lot provenance counterexamples and verify cold recovery
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
             exit 0
@@ -1292,7 +1309,7 @@ jobs:
           test "$(grep -c 'Ethereum moved lot retained its stale LastInbound provenance' "$YNX_ETH_RED_LOG")" -eq 3
           go test -p 1 -count=1 -timeout=90s -v -run '^(TestEthereumClassicMovedLotProvenanceSurvivesColdRestart|TestABCIPQEthereumTraceLastInboundUsesOriginalLotAmounts)$' ./internal/consensus
       - name: Reproduce historical AA policy counterexamples against the original state validator
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
             exit 0
@@ -1354,7 +1371,7 @@ jobs:
           grep -F 'AA history accepted an execution beyond the actual committed checkpoint' "$YNX_AA_OLD_LOG"
           go test -p 1 -count=1 -timeout=90s -v -run '^TestAACommittedHistory' ./internal/consensus
       - name: Reproduce source evidence rehash counterexamples and verify original-label coverage
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
             exit 0
@@ -1375,7 +1392,7 @@ jobs:
           test "$(grep -c 'cold loader accepted a rehashed packet that changed immutable source label coverage or its deterministic risk summary' "$YNX_TRUST_RED_LOG")" -eq 4
           go test -p 1 -count=1 -timeout=90s -v -run '^TestLegacyTrustSourceEvidenceCannotDropOriginalLabelAfterRehash$' ./internal/consensus
       - name: Reproduce history pagination movement across real application commits
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           set -euo pipefail
@@ -1401,7 +1418,7 @@ jobs:
           trap - EXIT
           go test -p 1 -count=1 -timeout=90s -run '^TestGatewayTransactionHistoryContinuationAfterCommitAndColdRead$' ./internal/bftgateway
       - name: Reproduce the existing Wallet health refusal with the complete original Gateway
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           set -euo pipefail
@@ -1429,7 +1446,7 @@ jobs:
           # The following unchanged whole-suite step executes the fixed handler.
       - name: Verify Whole BFT gateway and native container readback
         id: pqgateway
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
           YNX_PQ_STAKING_ORIGINALS_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-staking-originals-public-interop.json
           YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-contract-deploy-public-interop.json
@@ -1438,7 +1455,7 @@ jobs:
           test -s "$YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT"
           sha256sum "$YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT"
       - name: Upload only public compiled contract deploy and finality interoperability fixture
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqgateway.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqgateway.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-contract-deploy-public-interop-${{ github.sha }}
@@ -1446,7 +1463,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Upload only public classic staking originals and actual HTTP interoperability fixture
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqgateway.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqgateway.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-staking-originals-public-interop-${{ github.sha }}
@@ -1454,14 +1471,14 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Verify existing Chain readback and recovery after protocol integration
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/mutationfreeze ./internal/indexer ./internal/explorer ./internal/faucet ./cmd/ynx-indexerd
       - name: Verify existing Chain SDK after protocol integration
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}
         run: node --test sdk/js/index.test.mjs
       - name: Emit application-backed public Wallet HTTP fixture
         id: walletfixture
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
           YNX_PQ_WALLET_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-wallet-public-http-fixture.json
         run: |
@@ -1469,7 +1486,7 @@ jobs:
           test -s "$YNX_PQ_WALLET_FIXTURE_OUT"
           sha256sum "$YNX_PQ_WALLET_FIXTURE_OUT"
       - name: Upload only public Wallet HTTP fixture
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.walletfixture.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.walletfixture.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-wallet-public-http-fixture-${{ github.sha }}
@@ -1477,10 +1494,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Verify shared Wallet policy and Chain payment authorization regressions
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: go test -p 1 -count=1 -timeout=90s -run '^(TestClassicSession.*|TestAccountPolicyConfigRequiresExplicitExactOriginAndNetwork|TestBFTPaySerializesNonceAndReturnsZeroFeeIdempotentReplay|TestBFTPayRejectsInconsistentCommittedResponse|TestMerchantBindingRejectsForeignIntentAndInvoiceWithoutEffects|TestMerchantBindingRejectsMissingUntrustedOrUnavailableOriginal)$' ./internal/appgateway ./internal/paygateway
       - name: Reproduce private verifier process-exit telemetry counterexample
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
           if bash scripts/verify/reuse-pq-history-counterexamples.sh; then
             exit 0
@@ -1514,7 +1531,7 @@ jobs:
           test "$YNX_DIAGNOSTIC_RED_STATUS" -ne 0
           grep -F 'PRIVATE_COPY_RSS_DIAGNOSTIC_MISSING' "$YNX_EXIT_CASE/original-diagnostic-red.log"
       - name: Verify operator checkpoint format and original read-lock admission
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         run: |
           set -euo pipefail
           umask 077
@@ -1608,7 +1625,7 @@ jobs:
           printf 'YNX_REMOTE_CHECKPOINT_OPERATOR_CONTROLS_PASS %s\n' "$ynx_cases"
       - name: Build and pin normal signer process binaries without running them
         id: pqremotebuild
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha) }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha) }}
         timeout-minutes: 3
         run: |
           YNX_REMOTE_CASE="$RUNNER_TEMP/ynx-pq-remote-process-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
@@ -1648,7 +1665,7 @@ jobs:
           PY
       - name: Run the separately authorized normal remote signer process
         id: pqremoteprocess
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history) }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history) }}
         timeout-minutes: 2
         env:
           YNX_REMOTE_AUTHORIZATION: ${{ inputs.remote_process_authorization }}
@@ -1670,7 +1687,7 @@ jobs:
             --checkpoint-layout "$YNX_REMOTE_CHECKPOINT_LAYOUT" \
             --authorization-id "$YNX_REMOTE_AUTHORIZATION"
       - name: Preserve only public remote process receipt
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (always() && (steps.pqremoteprocess.outcome == 'success' || steps.pqremoteprocess.outcome == 'failure')) }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (always() && (steps.pqremoteprocess.outcome == 'success' || steps.pqremoteprocess.outcome == 'failure')) }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-remote-process-public-receipt-${{ github.sha }}-${{ github.run_id }}
@@ -1704,6 +1721,166 @@ jobs:
           sha256sum contracts/tokens/SampleYNXTCompatibleERC20.sol artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
           git diff --exit-code HEAD -- package.json package-lock.json hardhat.config.ts scripts/contracts contracts
           printf '%s\n' 'YNX_REMOTE_CONTRACT_INPUTS_PREPARED_DATA_ONLY'
+      - name: Relocate exact normal-CI fresh business inputs without starting nodes
+        id: pqfreshprepare
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_fresh_paired_business && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history && !inputs.remote_signer_process }}
+        timeout-minutes: 3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          YNX_FRESH_INTAKE="$RUNNER_TEMP/ynx-pq-fresh-intake-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          YNX_E2E_CASE="$RUNNER_TEMP/ynx-pq-network-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          YNX_E2E_BUILD="$YNX_E2E_CASE.build"
+          export YNX_FRESH_INTAKE YNX_E2E_CASE YNX_E2E_BUILD
+          mkdir -m 0700 "$YNX_FRESH_INTAKE" "$YNX_E2E_CASE" "$YNX_E2E_BUILD"
+          artifact_parameters=$(python3 -B - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          gate = json.loads((Path(os.environ['RUNNER_TEMP']) / 'ynx-remote-normal-ci.json').read_bytes())
+          if (gate['version'] != 'YNX-PQ-FRESH-NORMAL-CI/v1' or gate['candidateSha'] != os.environ['GITHUB_SHA']
+                  or gate['currentRunId'] != os.environ['GITHUB_RUN_ID'] or gate['nodeStartAuthorized'] is not False
+                  or gate['context'] != dict(profile='consensus-fresh-paired-business-v1', performanceClientCommit='70e7e450997a0ae77dbad5a8be3682f482c6ddd8', performanceClientTree='4866cc3924c060eb6a29939915d39b1c5c625607')):
+              raise RuntimeError('explicit same-source fresh normal-CI DATA required')
+          artifact = gate['artifact']
+          if (set(artifact) != {'artifactId', 'name', 'archiveBytes', 'archiveSHA256'}
+                  or not re.fullmatch('[1-9][0-9]*', artifact['artifactId'])
+                  or type(artifact['archiveBytes']) is not int or not 0 < artifact['archiveBytes'] <= 256 << 20):
+              raise RuntimeError('bounded exact artifact pin required')
+          print(artifact['artifactId'], artifact['archiveBytes'] + 1)
+          PY
+          )
+          read -r YNX_FRESH_ARTIFACT_ID YNX_FRESH_ARCHIVE_BOUND <<< "$artifact_parameters"
+          [[ "$YNX_FRESH_ARTIFACT_ID" =~ ^[1-9][0-9]*$ && "$YNX_FRESH_ARCHIVE_BOUND" =~ ^[1-9][0-9]*$ ]]
+          set -o noclobber
+          timeout 120s gh api --method GET "repos/JiahaoAlbus/YNX-Chain/actions/artifacts/$YNX_FRESH_ARTIFACT_ID/zip" \
+            | head -c "$YNX_FRESH_ARCHIVE_BOUND" > "$YNX_FRESH_INTAKE/original.zip"
+          python3 -B - <<'PY'
+          import hashlib, importlib.util, json, os, re, stat, subprocess, zipfile
+          from pathlib import Path
+          source = Path(os.environ['GITHUB_WORKSPACE']).resolve(strict=True)
+          intake = Path(os.environ['YNX_FRESH_INTAKE']).resolve(strict=True)
+          case = Path(os.environ['YNX_E2E_CASE']).resolve(strict=True)
+          build = Path(os.environ['YNX_E2E_BUILD']).resolve(strict=True)
+          gate = json.loads((Path(os.environ['RUNNER_TEMP']) / 'ynx-remote-normal-ci.json').read_bytes())
+          spec = importlib.util.spec_from_file_location('fresh_window_recipe', source / 'scripts/loadtest/pq-paired-linux-window.py')
+          guard = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(guard)
+          def require(ok, message):
+              if not ok:
+                  raise RuntimeError(message)
+          def identity(s):
+              return (s.st_dev, s.st_ino, s.st_mode, s.st_nlink, s.st_uid, s.st_gid, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+          def file_pin(path, maximum):
+              before = path.lstat()
+              require(path.resolve(strict=True) == path and stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and before.st_uid == os.getuid() and not before.st_mode & 0o022 and 0 < before.st_size <= maximum, 'protected bounded original input required')
+              h, length = hashlib.sha256(), 0
+              with path.open('rb') as reader:
+                  require(identity(os.fstat(reader.fileno())) == identity(before), 'input changed during open')
+                  for chunk in iter(lambda: reader.read(65536), b''):
+                      h.update(chunk); length += len(chunk)
+                      require(length <= maximum, 'input exceeds original bound')
+                  require(identity(os.fstat(reader.fileno())) == identity(before), 'input changed during read')
+              require(identity(path.lstat()) == identity(before) and length == before.st_size, 'input changed after read')
+              return dict(bytes=length, sha256=h.hexdigest())
+          def write(path, raw, mode=0o600):
+              with path.open('xb') as target:
+                  os.fchmod(target.fileno(), mode)
+                  target.write(raw); target.flush(); os.fsync(target.fileno())
+              return file_pin(path, len(raw))
+          def encode(value):
+              return (json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n').encode()
+          archive_pin = file_pin(intake / 'original.zip', 256 << 20)
+          require(archive_pin == dict(bytes=gate['artifact']['archiveBytes'], sha256=gate['artifact']['archiveSHA256']), 'official complete artifact ZIP pin differs')
+          pins = guard.consensus_business_source_pins(True)
+          names = guard.BUSINESS_BINARIES
+          catalog = {'SOURCE.json', 'build/business-manifest.json', 'client/SOURCE.json', 'client/go-build-info.txt'} | {'build/' + n for n in names} | {'source/' + leaf for leaf in pins}
+          with zipfile.ZipFile(intake / 'original.zip') as archive:
+              entries = archive.infolist()
+              require(len(entries) == len(catalog) and {entry.filename for entry in entries} == catalog
+                  and all(not entry.is_dir() and not entry.flag_bits & 1 and stat.S_IFMT(entry.external_attr >> 16) in (0, stat.S_IFREG) for entry in entries), 'closed eleven-file public artifact required')
+              def small(name):
+                  require(0 < archive.getinfo(name).file_size <= 65536, 'small original metadata required')
+                  raw = archive.read(name)
+                  require(len(raw) == archive.getinfo(name).file_size, 'original metadata length changed')
+                  return raw
+              source_raw = small('SOURCE.json')
+              original = guard.unique_json(source_raw)
+              keys = 'version classification profile protocolCommit protocolTree performanceClientCommit performanceClientTree performanceClientCommandTree performanceClientProducerCommit performanceClientNormalRunId performanceClientArtifactId performanceClientArchiveSHA256 performanceClientSource performanceClientBuildInformation originalSignedBusinessSourceSHA256 runId runAttempt platform sourceLeaves sourceGitBlobs files locationBoundManifest relocationRequiresVerifiedOriginalSourceAndFreshNormalCallerManifest relocatedAbsoluteManifestRunnable preparedRecipeSupplied binariesExecuted nodesStarted workloadExecuted authorityGranted publicDeployment pqActivation'.split()
+              require(type(original) is dict and set(original) == set(keys)
+                  and original['version'] == 'YNX-PQ-NETWORK-FRESH-BUSINESS-SUPPLY/v1' and original['classification'] == 'data'
+                  and original['profile'] == guard.FRESH_BUSINESS_E2E_PROFILE and original['protocolCommit'] == os.environ['GITHUB_SHA']
+                  and original['runId'] == gate['normalRunId'] and original['runAttempt'] == gate['normalRunAttempt']
+                  and original['platform'] == 'linux/amd64' and original['performanceClientCommit'] == guard.FRESH_BUSINESS_CLIENT_COMMIT
+                  and original['performanceClientTree'] == guard.FRESH_BUSINESS_CLIENT_TREE
+                  and original['performanceClientCommandTree'] == '19b9fafcfbb3f434b9ff745fb785afb1d0741247'
+                  and original['performanceClientProducerCommit'] == 'da3060e150e2bd0f5695d67a76f3b30fafd1c696'
+                  and original['performanceClientNormalRunId'] == '40220335526' and original['performanceClientArtifactId'] == '12609705118'
+                  and original['performanceClientArchiveSHA256'] == '9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf'
+                  and original['relocationRequiresVerifiedOriginalSourceAndFreshNormalCallerManifest'] is True
+                  and all(original[key] is False for key in ('relocatedAbsoluteManifestRunnable', 'preparedRecipeSupplied', 'binariesExecuted', 'nodesStarted', 'workloadExecuted', 'authorityGranted', 'publicDeployment', 'pqActivation')), 'original supply source or DATA boundary differs')
+              require(original['protocolTree'] == subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip()
+                  and original['sourceLeaves'] == {key: pin['sha256'] for key, pin in pins.items()}
+                  and set(original['sourceGitBlobs']) == set(pins) and set(original['files']) == catalog - {'SOURCE.json'}, 'same actual protocol tree and three source leaves required')
+              write(intake / 'SOURCE.json', source_raw)
+              manifest_raw = small('build/business-manifest.json')
+              require(original['locationBoundManifest'] == dict(file='build/business-manifest.json', **original['files']['build/business-manifest.json']), 'original location-bound manifest pin differs')
+              manifest = guard.unique_json(manifest_raw)
+              require(set(manifest) == {'version', 'protocolCommit', 'performanceClientCommit', 'performanceClientTree', 'sourceRoot', 'sourceLeaves', 'binaries'}
+                  and manifest['version'] == 'YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1' and manifest['protocolCommit'] == original['protocolCommit']
+                  and manifest['performanceClientCommit'] == guard.FRESH_BUSINESS_CLIENT_COMMIT and manifest['performanceClientTree'] == guard.FRESH_BUSINESS_CLIENT_TREE
+                  and manifest['sourceLeaves'] == original['sourceLeaves'] and set(manifest['binaries']) == set(names), 'original closed seven-field business manifest differs')
+              require(type(manifest['sourceRoot']) is str and manifest['sourceRoot'].startswith('/') and os.path.normpath(manifest['sourceRoot']) == manifest['sourceRoot'], 'original source path must remain explicit DATA')
+              for name in sorted(catalog - {'SOURCE.json'}):
+                  expected = original['files'][name]
+                  maximum = 128 << 20 if name in {'build/' + n for n in names} else 256 << 10
+                  require(type(expected) is dict and set(expected) == {'bytes', 'sha256'} and type(expected['bytes']) is int
+                      and 0 < expected['bytes'] <= maximum and type(expected['sha256']) is str and re.fullmatch('[0-9a-f]{64}', expected['sha256']) is not None
+                      and archive.getinfo(name).file_size == expected['bytes'], 'bounded public original pin differs')
+                  if name.startswith('build/') and name[6:] in names:
+                      binary = name[6:]
+                      record = manifest['binaries'][binary]
+                      require(set(record) == {'path', 'sha256', 'commit', 'bytes'} and type(record['path']) is str and record['path'].startswith('/')
+                          and Path(record['path']).name == binary and {key:record[key] for key in ('bytes', 'sha256')} == expected
+                          and record['commit'] == (guard.FRESH_BUSINESS_CLIENT_COMMIT if binary == 'ynx-consensus-perf-client' else original['protocolCommit']), 'original binary record differs')
+                      destination = build / binary
+                  else:
+                      destination = intake / 'originals' / name
+                      destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                  h, length = hashlib.sha256(), 0
+                  with archive.open(name) as reader, destination.open('xb') as target:
+                      os.fchmod(target.fileno(), 0o700 if destination.parent == build else 0o600)
+                      for chunk in iter(lambda: reader.read(65536), b''):
+                          length += len(chunk); require(length <= maximum, 'uncompressed input exceeds its bound')
+                          h.update(chunk); target.write(chunk)
+                      target.flush(); os.fsync(target.fileno())
+                  require(dict(bytes=length, sha256=h.hexdigest()) == expected and file_pin(destination, maximum) == expected, 'copied original bytes differ')
+              require(original['performanceClientSource'] == dict(bytes=708, sha256='40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9')
+                  and original['performanceClientBuildInformation'] == dict(bytes=5526, sha256='25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603')
+                  and original['files']['client/SOURCE.json'] == original['performanceClientSource'] and original['files']['client/go-build-info.txt'] == original['performanceClientBuildInformation']
+                  and original['files']['build/ynx-consensus-perf-client'] == dict(bytes=38595797, sha256='a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec'), 'fixed original 70e7 client differs')
+              for leaf, pin in pins.items():
+                  require(file_pin(source / leaf, 256 << 10) == original['files']['source/' + leaf]
+                      and subprocess.check_output(['git', 'rev-parse', 'HEAD:' + leaf], text=True).strip() == original['sourceGitBlobs'][leaf], 'actual current source leaf/blob differs')
+          require(file_pin(intake / 'original.zip', 256 << 20) == archive_pin, 'original artifact changed during relocation')
+          binaries = {name: dict(path=str(build / name), **original['files']['build/' + name], commit=guard.FRESH_BUSINESS_CLIENT_COMMIT if name == 'ynx-consensus-perf-client' else original['protocolCommit']) for name in names}
+          relocated = dict(version='YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1', protocolCommit=original['protocolCommit'], performanceClientCommit=guard.FRESH_BUSINESS_CLIENT_COMMIT, performanceClientTree=guard.FRESH_BUSINESS_CLIENT_TREE, sourceRoot=str(source), sourceLeaves=original['sourceLeaves'], binaries=binaries)
+          manifest_pin = write(build / 'business-manifest.json', encode(relocated))
+          plan = dict(profile=guard.FRESH_BUSINESS_E2E_PROFILE, caps=guard.fixed_caps(guard.FRESH_BUSINESS_E2E_PROFILE), sourceRoot=str(source), commit=original['protocolCommit'], executionAuthorized=False,
+              workingDirectory=str(source / 'internal/consensus'), sourcePins=pins, binaryPin={key:binaries['consensus.test'][key] for key in ('path', 'sha256')}, businessManifestPin=dict(path=str(build / 'business-manifest.json'), sha256=manifest_pin['sha256']),
+              command=[str(build / 'consensus.test'), '-test.run=^TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming$', '-test.count=1', '-test.timeout=120s', '-test.v'])
+          plan['environment'] = guard.consensus_business_environment(plan, build, True)
+          prepared_pin = write(case / 'prepared.json', encode(plan))
+          guard.validate_consensus_fresh_business_recipe(plan, case / 'prepared.json', inherited={})
+          receipt = dict(version='YNX-PQ-FRESH-RELOCATED-INPUTS/v1', classification='data', protocolCommit=original['protocolCommit'], normalRunId=gate['normalRunId'], normalRunAttempt=gate['normalRunAttempt'], artifact=gate['artifact'], originalSourcePin=file_pin(intake / 'SOURCE.json', 65536), originalManifestPin=original['files']['build/business-manifest.json'], relocatedManifestPin=manifest_pin, preparedPin=prepared_pin, sourcePins=pins, binaries=binaries, originalSourceUnchanged=True, originalArtifactUnchanged=True, nodesStarted=False, executionAuthorized=False, authorityGranted=False)
+          write(intake / 'relocation.json', encode(receipt))
+          with open(os.environ['GITHUB_ENV'], 'a') as target:
+              target.write('YNX_E2E_CASE=' + str(case) + '\nYNX_E2E_BUILD=' + str(build) + '\nYNX_PQ_FRESH_BUSINESS=true\nYNX_PQ_RETAINED_HISTORY=false\nYNX_PQ_REMOTE_RETAINED_HISTORY=false\n')
+          print('YNX_PQ_FRESH_RELOCATED_INPUTS ' + json.dumps(receipt, sort_keys=True, separators=(',', ':')))
+          PY
       - name: Build exact bounded network binaries and recipe without starting nodes
         id: pqnetworkbuild
         if: ${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success')) }}
@@ -1781,10 +1958,11 @@ jobs:
           PY
       - name: Run the authorized bounded four-validator transition
         id: pqnetwork
-        if: ${{ success() && steps.pqnetworkbuild.outcome == 'success' && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success')) }}
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && ((steps.pqnetworkbuild.outcome == 'success' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && !inputs.consensus_fresh_paired_business && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'))) || (inputs.consensus_fresh_paired_business && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' && steps.pqfreshprepare.outcome == 'success' && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history)) }}
         timeout-minutes: 3
         run: |
-          if [ "$YNX_PQ_REMOTE_RETAINED_HISTORY" = 'true' ]; then
+          set -euo pipefail
+          if [ "$YNX_PQ_REMOTE_RETAINED_HISTORY" = 'true' ] || [ "${YNX_PQ_FRESH_BUSINESS:-false}" = 'true' ]; then
             # Admission occurs after compilation. Leave the full unchanged
             # 120s guard and 30s for control/receipt work inside the existing
             # 12-minute outer job; the server run start is conservative.
@@ -1798,7 +1976,9 @@ jobs:
           print('YNX_REMOTE_OUTER_BUDGET_ADMITTED remainingSeconds=' + str(int(remaining)))
           PY
           fi
-          if [ "$YNX_PQ_REMOTE_RETAINED_HISTORY" = 'true' ]; then
+          if [ "${YNX_PQ_FRESH_BUSINESS:-false}" = 'true' ]; then
+            python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-fresh-paired-business --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
+          elif [ "$YNX_PQ_REMOTE_RETAINED_HISTORY" = 'true' ]; then
             python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-remote-e2e-retained-history --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
           elif [ "$YNX_PQ_RETAINED_HISTORY" = 'true' ]; then
             python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-e2e-retained-history --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
@@ -1823,13 +2003,15 @@ jobs:
         if: ${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ynx-pq-network-e2e-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: ${{ inputs.consensus_fresh_paired_business && 'ynx-pq-fresh-paired-business' || 'ynx-pq-network-e2e' }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}.receipt.json
             ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}/prepared.json
             ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}/go.stdout.log
             ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}/go.stderr.log
             ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}.file-sizes.json
+            ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}.build/business-manifest.json
+            ${{ runner.temp }}/ynx-pq-fresh-intake-${{ github.run_id }}-${{ github.run_attempt }}/relocation.json
           if-no-files-found: warn
           retention-days: 7
       # The external client was independently fixed and all 13 functions passed
@@ -1920,7 +2102,7 @@ jobs:
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
             --manifest-sha256 "$YNX_STAGE_MANIFEST_SHA256"
       - name: Prepare same-source compiled contract inputs for delivery callers
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         env:
           NODE_OPTIONS: --max-old-space-size=1536
@@ -1936,7 +2118,7 @@ jobs:
       # Keep the original Host stores, locks, source plan and normal publisher
       # on this runner. None enters the inter-stage public artifact.
       - name: Verify original Host source, live lifecycle and delivery persistence
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
           YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
           YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json
@@ -1945,7 +2127,7 @@ jobs:
           test -s "$YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT"
           sha256sum "$YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT"
       - name: Verify initial registration and funded transfer through the original proof CLI
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
         env:
           YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json
@@ -1955,7 +2137,7 @@ jobs:
           grep -F -- '--- PASS: TestTransactionProofInitialPreparedFundingOriginalCLI (' "$RUNNER_TEMP/ynx-initial-funded-proof-cli.log"
           test "$(grep -F -c 'PQ_INITIAL_FUNDED_TRANSACTION_CLI_VERIFIED_DATA_ONLY' "$RUNNER_TEMP/ynx-initial-funded-proof-cli.log")" -eq 1
       - name: Verify complete large original migration through normal package and cold recovery
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         run: |
           set -euo pipefail
@@ -1964,7 +2146,7 @@ jobs:
           grep -F -- '--- PASS: TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery (' "$RUNNER_TEMP/ynx-large-migration-recovery.log"
           test "$(grep -F -c 'COMET_MIGRATION_REFERENCE_LARGE_CANONICAL_RECOVERY_PASS' "$RUNNER_TEMP/ynx-large-migration-recovery.log")" -eq 1
       - name: Verify normal registration of the retained original Host delivery
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && steps.identity.outcome == 'success') }}
         timeout-minutes: 3
         env:
           YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
@@ -1977,7 +2159,7 @@ jobs:
           grep -F -- '--- PASS: TestProofHostWalletHandoffNormalCommandRetainedFixture (' "$RUNNER_TEMP/ynx-proof-host-source-register.log"
           test "$(grep -F -c 'PROOF_HOST_WALLET_MAIN_SOURCE_HANDOFF_DATA_ONLY' "$RUNNER_TEMP/ynx-proof-host-source-register.log")" -eq 1
       - name: Verify exact transaction Host selection and original acquire-current
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
         env:
           YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
@@ -1988,7 +2170,7 @@ jobs:
           grep -F -- 'PROOF_HOST_SOURCE_SELECTED_DATA_ONLY exact4=true normalAcquireCurrent=true revocationUnchanged=true RootGrant=false' "$RUNNER_TEMP/ynx-proof-host-source-select.log"
       - name: Verify stopped proof target command with the retained original Host fixture
         id: pqprooftargetcmd
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
         env:
           YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public
@@ -1998,14 +2180,14 @@ jobs:
           go test -p 1 -count=1 -timeout=90s -v -run '^TestInspectProofHostTarget' ./cmd/ynx-comet | tee "$RUNNER_TEMP/ynx-proof-host-target-command.log"
           grep -F -- '--- PASS: TestInspectProofHostTargetNormalCommandRetainedFixture (' "$RUNNER_TEMP/ynx-proof-host-target-command.log"
       - name: Verify normal Host source producer with original signed transaction fixture
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         timeout-minutes: 2
         env:
           YNX_PQ_HOST_PUBLIC_FIXTURE: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
         run: go test -p 1 -count=1 -timeout=90s -run '^TestProofHostFromOriginalSignedPublicFixture$' ./cmd/ynx-consensus-proof-verify
       - name: Build and pin normal signer process binaries without running them
         id: pqremotebuild
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha))) }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha))) }}
         timeout-minutes: 3
         run: |
           YNX_REMOTE_CASE="$RUNNER_TEMP/ynx-pq-remote-process-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
@@ -2044,7 +2226,7 @@ jobs:
               sourceLeaves=source['sourceLeaves']), sort_keys=True, separators=(',', ':')))
           PY
       - name: Verify original checkpoint access with two real nonroot users
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         timeout-minutes: 4
         run: |
           # Reuse the exact normally built test binary and its prior SOURCE pin.
@@ -2055,14 +2237,14 @@ jobs:
             --test-binary-sha256 "$YNX_REMOTE_TEST_SHA" \
             --engine-uid "$(id -u)" --signer-uid "$(id -u nobody)"
       - name: Checkout fixed repaired performance client
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: aa25500bdb13c52e56133ec0876651257cf31a1a
           path: qa-owned-performance-client
           persist-credentials: false
       - name: Verify fixed segmented client integration with original assertions
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         working-directory: qa-owned-performance-client
         timeout-minutes: 3
         env:
@@ -2077,7 +2259,7 @@ jobs:
           go test -p 1 -count=1 -timeout=90s -v -run '^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$' ./cmd/ynx-consensus-perf-client
       - name: Emit public inverse interop fixture
         id: interop
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         env:
           YNX_BATCH_INTEROP_OUT: /tmp/ynx-go-public-interop.json
         run: |
@@ -2085,7 +2267,7 @@ jobs:
           test -s "$YNX_BATCH_INTEROP_OUT"
           sha256sum "$YNX_BATCH_INTEROP_OUT"
       - name: Upload public signature fixture
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.interop.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.interop.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-public-go-interop-${{ github.sha }}
@@ -2093,7 +2275,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Build fixed-source offline migration validation tools
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         run: |
           YNX_OFFLINE_TOOLS="$RUNNER_TEMP/ynx-pq-offline-migration-tools"
           export YNX_OFFLINE_TOOLS
@@ -2117,7 +2299,7 @@ jobs:
           (root / 'SOURCE.json').write_text(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n', encoding='utf8')
           PY
       - name: Upload public offline migration validation tools
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-offline-migration-tools-${{ github.sha }}
@@ -2125,7 +2307,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Build public Linux runtime candidate without starting services
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         timeout-minutes: 3
         run: |
           set -euo pipefail
@@ -2136,7 +2318,14 @@ jobs:
           umask 077
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test ! -e "$YNX_RUNTIME_SOURCE" && test ! -L "$YNX_RUNTIME_SOURCE"
-          git worktree add --detach "$YNX_RUNTIME_SOURCE" "$GITHUB_SHA"
+          # This pinned Go release recognizes a Git directory, but not a linked
+          # worktree's .git file. Fetch the exact local object into an independent
+          # repository so real VCS stamping remains enabled for all eight ELFs.
+          git init "$YNX_RUNTIME_SOURCE"
+          git -C "$YNX_RUNTIME_SOURCE" fetch --no-tags --depth=1 "$GITHUB_WORKSPACE" "$GITHUB_SHA"
+          git -C "$YNX_RUNTIME_SOURCE" checkout --detach "$GITHUB_SHA"
+          test -d "$YNX_RUNTIME_SOURCE/.git" && test ! -L "$YNX_RUNTIME_SOURCE/.git"
+          test ! -e "$YNX_RUNTIME_SOURCE/.git/objects/info/alternates"
           cd "$YNX_RUNTIME_SOURCE"
           YNX_RUNTIME_BEFORE_HEAD=$(git rev-parse HEAD)
           YNX_RUNTIME_BEFORE_TREE=$(git rev-parse HEAD^{tree})
@@ -2198,7 +2387,9 @@ jobs:
               if (settings.get('vcs') != 'git' or settings.get('vcs.revision') != os.environ['GITHUB_SHA']
                       or settings.get('vcs.modified') != 'false' or settings.get('GOOS') != 'linux'
                       or settings.get('GOARCH') != 'amd64' or settings.get('CGO_ENABLED') != '0'):
-                  raise RuntimeError('actual runtime ELF is not the exact clean same-source Linux build')
+                  raise RuntimeError('actual runtime ELF is not the exact clean same-source Linux build: ' +
+                      json.dumps(dict(binary=path.name, settings=settings, source=source_observation()),
+                          sort_keys=True, separators=(',', ':')))
               return dict(goVersion=lines[0].rsplit(': ', 1)[-1], settings=settings, raw=raw)
           observation = Path(os.environ['YNX_RUNTIME_BUILD_OBSERVATION'])
           if not 0 < observation.stat().st_size <= 1024:
@@ -2257,7 +2448,7 @@ jobs:
               servicesStarted=False, publicDeployment=False, pqActivation=False), sort_keys=True, separators=(',', ':')))
           PY
       - name: Verify original candidate delivery with pinned archive permissions
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         timeout-minutes: 3
         run: |
           set -euo pipefail
@@ -2291,7 +2482,7 @@ jobs:
           done
       - name: Verify normal single-App operator package and original deployment caller
         id: pqoperatorcli
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         timeout-minutes: 3
         run: |
           set -euo pipefail
@@ -2476,7 +2667,7 @@ jobs:
           print('YNX_MIGRATION_IMPORTED_STORAGE_REAL_CLI_PASS separateProcesses=true uninitialized=true consensusColdRestore=unchecked activation=false')
           PY
       - name: Upload only public operator inputs and normal CLI receipt
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqoperatorcli.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqoperatorcli.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-consensus-operator-public-interop-${{ github.sha }}
@@ -2488,7 +2679,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Verify original public cutover caller preserves independent operator and runtime pins
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         timeout-minutes: 3
         run: |
           # Execute the real frozen old helper against the retained-partial
@@ -2521,7 +2712,7 @@ jobs:
           bash scripts/verify/public-bft-validator-registration-check.sh "$RUNNER_TEMP/ynx-pq-linux-runtime-candidate/ynx-comet" "$RUNNER_TEMP/ynx-pq-consensus-light-proof-public.json"
       - name: Verify normal proof CLI with exact public interoperability fixture
         id: pqproofcli
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         timeout-minutes: 2
         run: |
           umask 077
@@ -2617,7 +2808,7 @@ jobs:
           PY
       - name: Verify normal transaction proof CLI with exact public two-header fixture
         id: pqtransactionproofcli
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         timeout-minutes: 2
         run: |
           umask 077
@@ -2721,7 +2912,7 @@ jobs:
           PY
       - name: Verify stopped-source publication and original Host ABI through normal binaries
         id: pqhostsourcecli
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && github.event_name == 'push' && steps.pqoperatorcli.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && github.event_name == 'push' && steps.pqoperatorcli.outcome == 'success') }}
         timeout-minutes: 2
         run: |
           set -euo pipefail
@@ -2949,7 +3140,7 @@ jobs:
               raise RuntimeError('single and typed sources did not inspect the same original final engine checkpoint')
           PY
       - name: Upload only public Host delivery and normal CLI receipt
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqhostsourcecli.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqhostsourcecli.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-proof-host-source-public-delivery-${{ github.sha }}
@@ -2964,7 +3155,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Upload only public transaction proof fixture and normal CLI receipt
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqtransactionproofcli.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqtransactionproofcli.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-transaction-proof-public-interop-${{ github.sha }}
@@ -2976,7 +3167,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Upload only public consensus proof fixture and normal CLI receipt
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqproofcli.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqproofcli.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-consensus-proof-public-interop-${{ github.sha }}
@@ -2986,7 +3177,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Upload only public Linux runtime candidate
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-linux-runtime-candidate-${{ github.sha }}
@@ -2994,7 +3185,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Checkout the exact signed-business performance client source
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: JiahaoAlbus/YNX-Chain
@@ -3003,7 +3194,7 @@ jobs:
           persist-credentials: false
       - name: Build and seal the exact signed-business inputs without starting nodes
         id: pqsignedbusinessbuild
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         timeout-minutes: 3
         env:
           GOTOOLCHAIN: local
@@ -3146,7 +3337,7 @@ jobs:
           PY
       - name: Upload only the exact public signed-business build inputs
         id: pqsignedbusinessupload
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push' && steps.pqsignedbusinessbuild.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push' && steps.pqsignedbusinessbuild.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-signed-business-build-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -3164,7 +3355,7 @@ jobs:
 
       - name: Receive the exact normal fresh performance client without executing it
         id: pqfreshclient
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push' && steps.pqsignedbusinessupload.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push' && steps.pqsignedbusinessupload.outcome == 'success') }}
         timeout-minutes: 2
         env:
           GH_TOKEN: ${{ github.token }}
@@ -3236,7 +3427,7 @@ jobs:
           PY
       - name: Seal the independent fresh paired-business public inputs without executing them
         id: pqfreshbusinessbuild
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push' && steps.pqfreshclient.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push' && steps.pqfreshclient.outcome == 'success') }}
         timeout-minutes: 2
         env:
           YNX_SIGNED_BUSINESS_SOURCE_SHA: ${{ steps.pqsignedbusinessbuild.outputs.source-sha256 }}
@@ -3381,7 +3572,7 @@ jobs:
           print('YNX_PQ_FRESH_BUSINESS_BUILD_SOURCE_PIN ' + json.dumps(source_pin, sort_keys=True, separators=(',', ':')))
           PY
       - name: Upload only the exact public fresh paired-business build inputs
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push' && steps.pqfreshbusinessbuild.outcome == 'success') }}
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push' && steps.pqfreshbusinessbuild.outcome == 'success') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-fresh-paired-business-build-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}

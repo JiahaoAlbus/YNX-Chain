@@ -25,6 +25,7 @@ RUN_PATH = "/repos/" + gate.REPOSITORY + "/actions/runs/" + PRIOR
 CURRENT_PATH = "/repos/" + gate.REPOSITORY + "/actions/runs/" + CURRENT
 WORKFLOW = "/repos/" + gate.REPOSITORY + "/actions/workflows/" + gate.WORKFLOW_FILE
 JOBS = RUN_PATH + "/attempts/2/jobs?per_page=100&page=1"
+ARTIFACTS = RUN_PATH + "/artifacts?per_page=100&page=1"
 
 
 def run_metadata():
@@ -53,6 +54,16 @@ def api_fixture():
                                          dict(id=102, name="verify", status="completed", conclusion="skipped")])}
 
 
+def fresh_api_fixture():
+    fixture = api_fixture()
+    fixture[ARTIFACTS] = dict(total_count=1, artifacts=[dict(id=700,
+        name="ynx-pq-fresh-paired-business-build-" + SHA + "-" + PRIOR + "-2",
+        expired=False, size_in_bytes=81040562, digest="sha256:" + "d" * 64,
+        workflow_run=dict(id=int(PRIOR), head_sha=SHA, head_branch=fixture[RUN_PATH]["head_branch"],
+                          repository_id=42, head_repository_id=42))])
+    return fixture
+
+
 class NormalCIMetadataControls(unittest.TestCase):
     def validate(self, fixture=None, **inputs):
         fixture = api_fixture() if fixture is None else fixture
@@ -64,10 +75,72 @@ class NormalCIMetadataControls(unittest.TestCase):
                 self.fail("validator requested an unexpected endpoint")
             return copy.deepcopy(fixture[path])
 
+        options = {} if "context" not in inputs else dict(context=inputs["context"])
         result = gate.validate_normal_ci(inputs.get("repo", gate.REPOSITORY),
                                          inputs.get("candidate", SHA),
-                                         inputs.get("normal", PRIOR), inputs.get("current", CURRENT), fetch)
+                                         inputs.get("normal", PRIOR), inputs.get("current", CURRENT), fetch, **options)
         return result, calls
+
+    def test_fresh_explicit_closed_context_reuses_exact_success_and_original_artifact_only(self):
+        fixture = fresh_api_fixture()
+        result, calls = self.validate(fixture, context=dict(profile=gate.FRESH_PROFILE))
+        self.assertEqual(calls, [RUN_PATH, WORKFLOW, CURRENT_PATH, JOBS, ARTIFACTS, RUN_PATH, CURRENT_PATH])
+        self.assertEqual(result["version"], "YNX-PQ-FRESH-NORMAL-CI/v1")
+        self.assertEqual(result["context"], dict(profile="consensus-fresh-paired-business-v1",
+            performanceClientCommit="70e7e450997a0ae77dbad5a8be3682f482c6ddd8", performanceClientTree="4866cc3924c060eb6a29939915d39b1c5c625607"))
+        self.assertEqual(result["artifact"], dict(artifactId="700", name=fixture[ARTIFACTS]["artifacts"][0]["name"], archiveBytes=81040562, archiveSHA256="d" * 64))
+        self.assertEqual(result["currentRunStartedAt"], "2026-10-19T02:03:04Z")
+        self.assertEqual(set(result["jobs"]), set(gate.REQUIRED_JOBS))
+        self.assertFalse(result["nodeStartAuthorized"])
+        self.assertFalse(result["publicDeployment"])
+        fixture[RUN_PATH]["head_branch"] = "main"
+        fixture[ARTIFACTS]["artifacts"][0]["workflow_run"]["head_branch"] = "main"
+        fixture[CURRENT_PATH]["head_branch"] = "codex/ynx-pq-remote-" + SHA[:9]
+        self.validate(fixture, context=dict(profile=gate.FRESH_PROFILE))
+        with self.assertRaises(gate.NormalCIError):
+            self.validate(fixture)  # The old remote branch contract is unchanged.
+
+    def test_fresh_bad_context_or_branch_is_never_a_command_or_resource_grant(self):
+        for context in ({}, True, [], "consensus-fresh-paired-business-v1",
+                        dict(profile="consensus-signed-business-v1"),
+                        dict(profile=gate.FRESH_PROFILE, activeMs=120000),
+                        dict(profile=gate.FRESH_PROFILE, command=["node"]),
+                        dict(profile=gate.FRESH_PROFILE, nodeStartAuthorized=True)):
+            with self.subTest(context=context), self.assertRaises(gate.NormalCIError):
+                gate.validate_normal_ci(gate.REPOSITORY, SHA, PRIOR, CURRENT,
+                    lambda _path: self.fail("bad context reached API"), context=context)
+        for branch in (None, [], "other", "codex/ynx-pq-remote-" + "b" * 9, "refs/heads/main"):
+            fixture = fresh_api_fixture(); fixture[CURRENT_PATH]["head_branch"] = branch
+            with self.subTest(branch=branch), self.assertRaises(gate.NormalCIError):
+                self.validate(fixture, context=dict(profile=gate.FRESH_PROFILE))
+
+    def test_fresh_artifact_rejects_other_attempt_source_expiry_duplicate_or_unbounded_zip(self):
+        changes = [("expired", True), ("size_in_bytes", 0), ("size_in_bytes", True),
+                   ("size_in_bytes", (256 << 20) + 1), ("digest", "sha256:" + "0" * 64),
+                   ("digest", "sha256:" + "D" * 64), ("digest", "not-a-digest"),
+                   ("name", "ynx-pq-fresh-paired-business-build-" + SHA + "-" + PRIOR + "-1")]
+        for key, value in changes:
+            fixture = fresh_api_fixture(); fixture[ARTIFACTS]["artifacts"][0][key] = value
+            with self.subTest(key=key, value=value), self.assertRaises(gate.NormalCIError):
+                self.validate(fixture, context=dict(profile=gate.FRESH_PROFILE))
+        for key, value in (("id", int(CURRENT)), ("id", PRIOR), ("id", True),
+                           ("head_sha", "b" * 40), ("head_branch", "other"),
+                           ("repository_id", 999), ("head_repository_id", 999)):
+            fixture = fresh_api_fixture(); fixture[ARTIFACTS]["artifacts"][0]["workflow_run"][key] = value
+            with self.subTest(owner_field=key), self.assertRaises(gate.NormalCIError):
+                self.validate(fixture, context=dict(profile=gate.FRESH_PROFILE))
+        for key in fresh_api_fixture()[ARTIFACTS]["artifacts"][0]:
+            fixture = fresh_api_fixture(); del fixture[ARTIFACTS]["artifacts"][0][key]
+            with self.subTest(missing=key), self.assertRaises(gate.NormalCIError):
+                self.validate(fixture, context=dict(profile=gate.FRESH_PROFILE))
+        fixture = fresh_api_fixture()
+        second = copy.deepcopy(fixture[ARTIFACTS]["artifacts"][0]); second["id"] = 701
+        fixture[ARTIFACTS] = dict(total_count=2, artifacts=[fixture[ARTIFACTS]["artifacts"][0], second])
+        with self.assertRaises(gate.NormalCIError):
+            self.validate(fixture, context=dict(profile=gate.FRESH_PROFILE))
+        fixture[ARTIFACTS] = dict(total_count=1, artifacts=[])
+        with self.assertRaises(gate.NormalCIError):
+            self.validate(fixture, context=dict(profile=gate.FRESH_PROFILE))
 
     def test_exact_completed_normal_push_and_latest_attempt_are_data_only(self):
         result, calls = self.validate()
@@ -342,6 +415,22 @@ class NormalCITransportControls(unittest.TestCase):
             self.assertEqual(gate.main(args), 1)
         self.assertEqual(output.getvalue(), "")
         self.assertEqual(errors.getvalue(), "YNX_REMOTE_NORMAL_CI_REJECTED: github_token_unavailable\n")
+
+    def test_fresh_cli_selects_only_the_explicit_context_and_fixed_artifact_endpoint(self):
+        fixture = fresh_api_fixture()
+        args = ["--repo", gate.REPOSITORY, "--candidate", SHA, "--normal-run-id", PRIOR,
+                "--current-run-id", CURRENT, "--profile", "consensus-fresh-paired-business-v1"]
+        with patch.object(gate, "github_fetcher", return_value=lambda path: copy.deepcopy(fixture[path])), \
+                contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(gate.main(args), 0)
+        self.assertEqual(json.loads(output.getvalue())["artifact"]["artifactId"], "700")
+        response = Response(raw=b"{}", url=gate.API + ARTIFACTS)
+        fetch, opener = self.fetch_with(response)
+        self.assertEqual(fetch(ARTIFACTS), {})
+        self.assertEqual(opener.open.call_args.args[0].full_url, gate.API + ARTIFACTS)
+        with patch.object(gate, "github_fetcher") as fetcher, contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            gate.main(args[:-1] + ["consensus-signed-business-v1"])
+        fetcher.assert_not_called()
 
     def test_cli_requires_exact_flags_and_does_not_accept_shell_style_or_abbreviations(self):
         args = ["--repo", gate.REPOSITORY, "--candidate", SHA,
@@ -663,7 +752,11 @@ def assert_runtime_gateway_identity_workflow_contract(raw):
         'YNX_RUNTIME_SOURCE="$RUNNER_TEMP/ynx-pq-runtime-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"',
         'YNX_RUNTIME_EXPECTED_TREE=$(git rev-parse "$GITHUB_SHA^{tree}")',
         'test ! -e "$YNX_RUNTIME_SOURCE" && test ! -L "$YNX_RUNTIME_SOURCE"',
-        'git worktree add --detach "$YNX_RUNTIME_SOURCE" "$GITHUB_SHA"',
+        'git init "$YNX_RUNTIME_SOURCE"',
+        'git -C "$YNX_RUNTIME_SOURCE" fetch --no-tags --depth=1 "$GITHUB_WORKSPACE" "$GITHUB_SHA"',
+        'git -C "$YNX_RUNTIME_SOURCE" checkout --detach "$GITHUB_SHA"',
+        'test -d "$YNX_RUNTIME_SOURCE/.git" && test ! -L "$YNX_RUNTIME_SOURCE/.git"',
+        'test ! -e "$YNX_RUNTIME_SOURCE/.git/objects/info/alternates"',
         'cd "$YNX_RUNTIME_SOURCE"',
         'YNX_RUNTIME_BEFORE_HEAD=$(git rev-parse HEAD)',
         'YNX_RUNTIME_BEFORE_TREE=$(git rev-parse HEAD^{tree})',
@@ -680,8 +773,10 @@ def assert_runtime_gateway_identity_workflow_contract(raw):
     )
     if any(lines.count(line) != 1 for line in clean_required):
         raise AssertionError("eight runtime ELFs must come from their exact independent clean source")
-    if not (lines.index(clean_required[3]) < lines.index(clean_required[4]) < lines.index(clean_required[7])
-            < lines.index(clean_required[11]) < lines.index(required[3]) < lines.index(clean_required[14]) < lines.index(clean_required[15])):
+    if not (lines.index(clean_required[3]) < lines.index(clean_required[4]) < lines.index(clean_required[5])
+            < lines.index(clean_required[6]) < lines.index(clean_required[7]) < lines.index(clean_required[8])
+            < lines.index(clean_required[11]) < lines.index(clean_required[15]) < lines.index(required[3])
+            < lines.index(clean_required[18]) < lines.index(clean_required[19])):
         raise AssertionError("runtime clean source and actual Go metadata checks must bracket all builds")
     for token in ("source_before != dict(head=os.environ['GITHUB_SHA'], tree=os.environ['YNX_RUNTIME_EXPECTED_TREE'], porcelain='')",
                   "settings.get('vcs.revision') != os.environ['GITHUB_SHA']", "settings.get('vcs.modified') != 'false'",
@@ -690,7 +785,7 @@ def assert_runtime_gateway_identity_workflow_contract(raw):
         if token not in step:
             raise AssertionError("actual eight-ELF clean VCS metadata/readback required")
     if any(token in step for token in ('-buildvcs=false', '-buildvcs=auto', 'git clean ', 'git reset ', 'worktree remove ',
-                                       'cp "$YNX_REMOTE_BUILD/ynx-consensus-pq-remote-signer"')):
+                                       'git worktree add ', 'cp "$YNX_REMOTE_BUILD/ynx-consensus-pq-remote-signer"')):
         raise AssertionError("runtime source and VCS metadata cannot be cleaned, bypassed or substituted")
 
 
@@ -708,7 +803,7 @@ def assert_macos_source_register_workflow_contract(raw):
     build, upload = builds[0], uploads[0]
     need(steps.index(build) < steps.index(upload) and not re.search(r"(?m)^        if:", build + upload))
     need("        timeout-minutes: 5\n" in build and "        timeout-minutes: 1\n" in upload)
-    need("set -euo pipefail" in build and "||" not in build and not re.search(r"\bsudo\b", build + upload))
+    need("set -euo pipefail" in build and "||" not in build.split("        run: |\n", 1)[1] and not re.search(r"\bsudo\b", build + upload))
     parts = build.split("          python3 -B - <<'PY'\n")
     need(len(parts) == 2 and "for YNX_MAC_REGISTER_ARCH in arm64 amd64; do" in parts[0])
     command = 'CGO_ENABLED=0 GOOS=darwin GOARCH="$YNX_MAC_REGISTER_ARCH" go build -p 1 -trimpath -o "$YNX_MAC_REGISTER/ynx-comet-darwin-$YNX_MAC_REGISTER_ARCH" ./cmd/ynx-comet'
@@ -756,7 +851,7 @@ def assert_signed_business_supply_workflow_contract(raw):
     normal_test = one("Build and pin normal signer process binaries without running them")
     candidate_delivery = one("Verify original candidate delivery with pinned archive permissions")
     runtime_upload = one("Upload only public Linux runtime candidate")
-    condition = "${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}"
+    condition = "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}"
     for step in (checkout, build):
         need(re.findall(r"(?m)^        if: (.+)$", step) == [condition])
     need(steps.index(normal_test) < steps.index(normal_runtime) < steps.index(candidate_delivery)
@@ -809,7 +904,7 @@ def assert_signed_business_supply_workflow_contract(raw):
                   "print('YNX_PQ_SIGNED_BUSINESS_BUILD_SOURCE_PIN '", "print('YNX_PQ_SIGNED_BUSINESS_BUILD_MANIFEST_PIN '"):
         need(token in body)
     need("target.write('YNX_RUNTIME_MANIFEST_SHA=' + pin(root / 'SOURCE.json')['sha256'] + '\\n')" in normal_runtime)
-    need(re.findall(r"(?m)^        if: (.+)$", upload) == ["${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push' && steps.pqsignedbusinessbuild.outcome == 'success') }}"])
+    need(re.findall(r"(?m)^        if: (.+)$", upload) == ["${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push' && steps.pqsignedbusinessbuild.outcome == 'success') }}"])
     need("        id: pqsignedbusinessupload\n" in upload and "uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in upload)
     need("          name: ynx-pq-signed-business-build-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}\n" in upload)
     files = ("SOURCE.json", "build/business-manifest.json", "build/consensus.test", "build/ynx-bft-gatewayd",
@@ -839,7 +934,7 @@ def assert_fresh_business_supply_workflow_contract(raw):
     need(steps.index(previous) < steps.index(receive) < steps.index(seal) < steps.index(upload))
     need("    timeout-minutes: 12\n" in job and "continue-on-error:" not in job)
     for step, dependency in ((receive, "pqsignedbusinessupload"), (seal, "pqfreshclient"), (upload, "pqfreshbusinessbuild")):
-        need(re.findall(r"(?m)^        if: (.+)$", step) == ["${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push' && steps." + dependency + ".outcome == 'success') }}"])
+        need(re.findall(r"(?m)^        if: (.+)$", step) == ["${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push' && steps." + dependency + ".outcome == 'success') }}"])
         need("|| true" not in step and "continue-on-error:" not in step)
     need("        timeout-minutes: 2\n" in receive and "        timeout-minutes: 2\n" in seal)
     need("          GH_TOKEN: ${{ github.token }}\n" in receive and "timeout 90s /bin/bash -euo pipefail" in receive)
@@ -881,12 +976,85 @@ def assert_fresh_business_supply_workflow_contract(raw):
     need(re.findall(r"(?m)^            (.+)$", upload) == ["${{ runner.temp }}/ynx-pq-fresh-paired-business-build/" + name for name in files])
 
 
+def assert_fresh_business_execution_workflow_contract(raw):
+    """Source admission controls; these assertions never dispatch or run a node."""
+    _, steps = workflow_steps(raw)
+
+    def need(value):
+        if not value:
+            raise AssertionError("fresh paired-business original caller contract changed")
+
+    def one(identifier):
+        found = [step for step in steps if "        id: " + identifier + "\n" in step]
+        need(len(found) == 1)
+        return found[0]
+
+    option = raw.split("      consensus_fresh_paired_business:\n", 1)
+    need(len(option) == 2 and option[1].split("      remote_signer_process:\n", 1)[0].endswith(
+        "        required: false\n        default: false\n        type: boolean\n"))
+    identity, normal, prepare, network = (one(name) for name in ("identity", "normalci", "pqfreshprepare", "pqnetwork"))
+    need('YNX_ENTRY_FRESH_BUSINESS: ${{ inputs.consensus_fresh_paired_business }}' in identity
+         and '"$YNX_ENTRY_REMOTE_PROCESS" "$YNX_ENTRY_FRESH_BUSINESS"; do' in identity
+         and 'test "$YNX_WINDOW_SELECTIONS" -le 1' in identity)
+    need('if [ "$YNX_ENTRY_FRESH_BUSINESS" = \'true\' ]; then' in identity
+         and '[[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]]' in identity)
+    need('YNX_NORMAL_FRESH_BUSINESS: ${{ inputs.consensus_fresh_paired_business }}' in normal
+         and 'if [ "$YNX_NORMAL_FRESH_BUSINESS" = \'true\' ]; then' in normal
+         and 'normal_args+=(--profile consensus-fresh-paired-business-v1)' in normal)
+    expected = "${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_fresh_paired_business && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history && !inputs.remote_signer_process }}"
+    need(re.findall(r"(?m)^        if: (.+)$", prepare) == [expected]
+         and "        timeout-minutes: 3\n" in prepare and 'GH_TOKEN: ${{ github.token }}' in prepare)
+    body = prepare.split("        run: |\n", 1)[1]
+    need("${{" not in body and "set -euo pipefail" in body and "set -o noclobber" in body)
+    need('timeout 120s gh api --method GET "repos/JiahaoAlbus/YNX-Chain/actions/artifacts/$YNX_FRESH_ARTIFACT_ID/zip"' in body
+         and 'head -c "$YNX_FRESH_ARCHIVE_BOUND"' in body)
+    for token in ("gate['version'] != 'YNX-PQ-FRESH-NORMAL-CI/v1'", "gate['candidateSha'] != os.environ['GITHUB_SHA']",
+                  "gate['currentRunId'] != os.environ['GITHUB_RUN_ID']", "gate['nodeStartAuthorized'] is not False",
+                  "archive_pin == dict(bytes=gate['artifact']['archiveBytes'], sha256=gate['artifact']['archiveSHA256'])",
+                  "len(entries) == len(catalog)", "{entry.filename for entry in entries} == catalog",
+                  "stat.S_IFMT(entry.external_attr >> 16) in (0, stat.S_IFREG)",
+                  "set(original) == set(keys)", "original['runId'] == gate['normalRunId']", "original['runAttempt'] == gate['normalRunAttempt']",
+                  "original['protocolCommit'] == os.environ['GITHUB_SHA']", "original['protocolTree'] == subprocess.check_output",
+                  "pins = guard.consensus_business_source_pins(True)", "set(original['files']) == catalog - {'SOURCE.json'}",
+                  "original['sourceLeaves'] == {key: pin['sha256'] for key, pin in pins.items()}",
+                  "write(intake / 'SOURCE.json', source_raw)", "original['locationBoundManifest'] == dict(file='build/business-manifest.json'",
+                  "dict(bytes=length, sha256=h.hexdigest()) == expected", "file_pin(destination, maximum) == expected",
+                  "file_pin(source / leaf, 256 << 10) == original['files']['source/' + leaf]",
+                  "original['sourceGitBlobs'][leaf]", "file_pin(intake / 'original.zip', 256 << 20) == archive_pin",
+                  "dict(bytes=38595797, sha256='a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec')",
+                  "manifest_pin = write(build / 'business-manifest.json', encode(relocated))",
+                  "businessManifestPin=dict(path=str(build / 'business-manifest.json'), sha256=manifest_pin['sha256'])",
+                  "caps=guard.fixed_caps(guard.FRESH_BUSINESS_E2E_PROFILE)", "executionAuthorized=False",
+                  "'-test.run=^TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming$'", "'-test.timeout=120s'",
+                  "plan['environment'] = guard.consensus_business_environment(plan, build, True)",
+                  "guard.validate_consensus_fresh_business_recipe(plan, case / 'prepared.json', inherited={})",
+                  "originalSourcePin=file_pin(intake / 'SOURCE.json', 65536)", "originalArtifactUnchanged=True",
+                  "nodesStarted=False, executionAuthorized=False, authorityGranted=False"):
+        need(token in body)
+    need("go build " not in body and "go test " not in body and "vcs.modified" not in body
+         and not re.search(r"(?m)^\s+python3[^\n]*pq-paired-linux-window\.py[^\n]*--execute", body))
+    need("build / 'SOURCE.json'" not in body and "case / 'SOURCE.json'" not in body)
+    fresh_guard = 'scripts/loadtest/pq-paired-linux-window.py --consensus-fresh-paired-business'
+    need(network.count(fresh_guard) == 1 and fresh_guard not in prepare
+         and 'if [ "${YNX_PQ_FRESH_BUSINESS:-false}" = \'true\' ]; then' in network
+         and 'if started > now or remaining < 150:' in network
+         and network.index('if started > now or remaining < 150:') < network.index(fresh_guard))
+    need(steps.index(identity) < steps.index(normal) < steps.index(prepare) < steps.index(network))
+    public = next(step for step in steps if step.startswith("      - name: Preserve only public network-test logs and guard receipt\n"))
+    need("inputs.consensus_fresh_paired_business && 'ynx-pq-fresh-paired-business'" in public)
+    paths = re.findall(r"(?m)^            (.+)$", public)
+    need(paths == ['${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}' + suffix for suffix in
+        ('.receipt.json', '/prepared.json', '/go.stdout.log', '/go.stderr.log', '.file-sizes.json', '.build/business-manifest.json')]
+        + ['${{ runner.temp }}/ynx-pq-fresh-intake-${{ github.run_id }}-${{ github.run_attempt }}/relocation.json'])
+
+
 def assert_workflow_contract(raw):
     assert_native_cabi_workflow_contract(raw)
     assert_runtime_gateway_identity_workflow_contract(raw)
     assert_macos_source_register_workflow_contract(raw)
     assert_signed_business_supply_workflow_contract(raw)
     assert_fresh_business_supply_workflow_contract(raw)
+    assert_fresh_business_execution_workflow_contract(raw)
     job, steps = workflow_steps(raw)
 
     def need(condition):
@@ -907,11 +1075,11 @@ def assert_workflow_contract(raw):
         "github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || "
         "(github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || "
         "(github.event_name == 'workflow_dispatch' && (startsWith(github.ref, "
-        "'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))")
+        "'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))")
     need("    if: " + expected_job_if + "\n" in job)
     heavy_group = "ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade"
     heavy_modes = ("paired_n1", "consensus_e2e", "consensus_e2e_retained_history",
-                   "consensus_remote_e2e_retained_history", "remote_signer_process")
+                   "consensus_remote_e2e_retained_history", "remote_signer_process", "consensus_fresh_paired_business")
     focused_group = ("${{ github.event_name == 'workflow_dispatch' && ("
                      + " || ".join("inputs." + name for name in heavy_modes)
                      + ") && '" + heavy_group
@@ -922,13 +1090,13 @@ def assert_workflow_contract(raw):
     need("    needs: focused-go\n" in paired_job)
     need("    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha && inputs.paired_n1\n" in paired_job)
     need("    timeout-minutes: 5\n" in paired_job)
-    need("    timeout-minutes: 15\n" in job)
+    need("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || 15 }}\n" in job)
     need("permissions:\n  contents: read\n  actions: read\n" in raw)
     need("      normal_ci_run_id:\n" in raw)
     for leaf in ("scripts/ops/validate-pq-remote-normal-ci.py", "scripts/ops/test_validate_pq_remote_normal_ci.py"):
         need("      - '" + leaf + "'\n" in raw)
     normal = by_id("normalci")
-    need(condition(normal) == "${{ !cancelled() && steps.identity.outcome == 'success' && github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history }}")
+    need(condition(normal) == "${{ !cancelled() && steps.identity.outcome == 'success' && github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}")
     need("          GH_TOKEN: ${{ github.token }}\n" in normal)
     need("          YNX_NORMAL_CI_RUN_ID: ${{ inputs.normal_ci_run_id }}\n" in normal)
     need(normal.count("${{ inputs.normal_ci_run_id }}") == 1)
@@ -972,7 +1140,7 @@ def assert_workflow_contract(raw):
          and max(i for i, line in enumerate(contract_lines) if line == source_check) > positions[-1])
     base_condition = "${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success')) }}"
     need(condition(build) == base_condition)
-    need(condition(network) == base_condition.replace("success() && ", "success() && steps.pqnetworkbuild.outcome == 'success' && ", 1))
+    need(condition(network) == "${{ success() && github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && ((steps.pqnetworkbuild.outcome == 'success' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && !inputs.consensus_fresh_paired_business && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'))) || (inputs.consensus_fresh_paired_business && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' && steps.pqfreshprepare.outcome == 'success' && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history)) }}")
     need("go test -p 1 -c -o \"$YNX_E2E_BUILD/consensus.test\" ./internal/consensus" in build)
     need("go build -p 1 -trimpath -o \"$YNX_E2E_BUILD/ynx-consensus-pq-remote-signer\" ./cmd/ynx-consensus-pq-remote-signer" in build)
     need("go test " not in network and "go build " not in network)
@@ -1076,8 +1244,8 @@ def assert_workflow_contract(raw):
     copy_controls = by_name("Verify original-copy observation controls without touching the original case")
     need(len(copy_controls) == 1 and copy_controls[0] in steps)
     copy_controls = copy_controls[0]
-    need(condition(copy_controls) == "${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}")
-    need("          set -euo pipefail\n" in copy_controls and "||" not in copy_controls)
+    need(condition(copy_controls) == "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}")
+    need("          set -euo pipefail\n" in copy_controls and "||" not in copy_controls.split("        run: |\n", 1)[1])
     need("timeout 45s python3 -B scripts/ops/test_verify_original_native_copy_once.py -v 2>&1 | tee" in copy_controls)
     need("grep -F -c 'YNX_NATIVE_ROFD_STABLE_FINAL_PATH_DATA_PASS'" in copy_controls and '\" -eq 1' in copy_controls)
     need("timeout 45s python3 -B scripts/ops/test_verify_retained_migration_preservation_once.py -v 2>&1 | tee" in copy_controls)
@@ -1090,7 +1258,7 @@ def assert_workflow_contract(raw):
         found = by_name(name)
         need(len(found) == (2 if name == signer_name else 1))
         for step in found:
-            need(condition(step).startswith("${{ !inputs.consensus_remote_e2e_retained_history && (")
+            need(condition(step).startswith("${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (")
                  and condition(step).endswith(") }}"))
     non_host = by_name("Verify complete state bridge and sponsor continuity")[0]
     host = by_name("Verify original Host source, live lifecycle and delivery persistence")[0]
@@ -1128,7 +1296,7 @@ def assert_workflow_contract(raw):
     deploy_upload = by_name("Upload only public compiled contract deploy and finality interoperability fixture")
     need(len(deploy_upload) == 1 and deploy_upload[0] in steps)
     deploy_upload = deploy_upload[0]
-    need(condition(deploy_upload) == "${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.pqgateway.outcome == 'success') }}")
+    need(condition(deploy_upload) == "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqgateway.outcome == 'success') }}")
     need("uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in deploy_upload)
     need("          name: ynx-pq-contract-deploy-public-interop-${{ github.sha }}\n" in deploy_upload)
     need("          path: ${{ runner.temp }}/ynx-pq-contract-deploy-public-interop.json\n" in deploy_upload
@@ -1143,7 +1311,7 @@ def assert_workflow_contract(raw):
         need(by_name(name)[0] in delivery_steps)
     initial_cli = by_name("Verify initial registration and funded transfer through the original proof CLI")
     need(len(initial_cli) == 1 and initial_cli[0] in delivery_steps)
-    need(condition(initial_cli[0]) == "${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}")
+    need(condition(initial_cli[0]) == "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && steps.identity.outcome == 'success') }}")
     for token in ("timeout-minutes: 2", "YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json",
                   "-run '^TestTransactionProofInitialPreparedFundingOriginalCLI$'", "--- PASS: TestTransactionProofInitialPreparedFundingOriginalCLI (",
                   "PQ_INITIAL_FUNDED_TRANSACTION_CLI_VERIFIED_DATA_ONLY"):
@@ -1152,10 +1320,10 @@ def assert_workflow_contract(raw):
     vulnerability = by_name("Check reachable vulnerabilities in the eight production runtime commands")
     need(len(vulnerability) == 1 and vulnerability[0] in steps
          and raw.count("      - name: Check reachable vulnerabilities in the eight production runtime commands\n") == 1)
-    need(condition(vulnerability[0]) == "${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success' && github.event_name == 'push') }}")
+    need(condition(vulnerability[0]) == "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && github.event_name == 'push') }}")
     need("        timeout-minutes: 3\n" in vulnerability[0] and "        run: >-\n" in vulnerability[0])
     need("go run golang.org/x/vuln/cmd/govulncheck@v1.1.4" in vulnerability[0]
-         and "||" not in vulnerability[0] and "continue-on-error:" not in vulnerability[0])
+         and "||" not in vulnerability[0].split("        run: >-\n", 1)[1] and "continue-on-error:" not in vulnerability[0])
     need(re.findall(r"\./cmd/([a-z-]+)", vulnerability[0]) == ["ynx-abci", "ynx-comet", "ynx-bft-gatewayd",
          "ynx-consensus-pq-remote-signer", "ynx-consensus-pq-key-init", "ynx-consensus-proof-verify", "ynx-consensus-package", "ynx-consensus-keycheck"])
     need(job.index("      - uses: actions/setup-go@") < job.index("      - name: Record exact candidate identity\n")
@@ -1163,8 +1331,8 @@ def assert_workflow_contract(raw):
          and steps.index(vulnerability[0]) < steps.index(protocol[0]))
     # A reachable vulnerability blocks this job and the delivery dependency,
     # while independent source/implementation checks still get their results.
-    need(condition(protocol[0]) == "${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}")
-    need(condition(non_host) == "${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success') }}")
+    need(condition(protocol[0]) == "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}")
+    need(condition(non_host) == "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}")
     focused_signer, delivery_signer = by_name(signer_name)
     need("success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process" in condition(focused_signer))
     need("github.event_name == 'push' ||" in condition(delivery_signer))
@@ -1203,7 +1371,7 @@ def assert_workflow_contract(raw):
     target_test = [step for step in delivery_steps if "        id: pqprooftargetcmd\n" in step]
     need(len(target_test) == 1)
     target_test = target_test[0]
-    need(condition(target_test) == "${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}")
+    need(condition(target_test) == "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && steps.identity.outcome == 'success') }}")
     need("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public" in target_test)
     need("go test -p 1 -count=1 -timeout=90s -v -run '^TestInspectProofHostTarget' ./cmd/ynx-comet" in target_test)
     need("grep -F -- '--- PASS: TestInspectProofHostTargetNormalCommandRetainedFixture ('" in target_test)
@@ -1266,6 +1434,42 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
+
+    def test_fresh_execution_rejects_missing_default_gate_pins_relocation_or_original_controller(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        _, steps = workflow_steps(raw)
+        prepare = next(step for step in steps if "        id: pqfreshprepare\n" in step)
+        network = next(step for step in steps if "        id: pqnetwork\n" in step)
+        normal = next(step for step in steps if "        id: normalci\n" in step)
+        identity = next(step for step in steps if "        id: identity\n" in step)
+        option = raw.split("      consensus_fresh_paired_business:\n", 1)[1].split("      remote_signer_process:\n", 1)[0]
+        mutations = [raw.replace(option, option.replace("default: false", "default: true", 1), 1),
+            raw.replace(identity, identity.replace('"$YNX_ENTRY_REMOTE_PROCESS" "$YNX_ENTRY_FRESH_BUSINESS"; do', '"$YNX_ENTRY_REMOTE_PROCESS"; do', 1), 1),
+            raw.replace(normal, normal.replace("normal_args+=(--profile consensus-fresh-paired-business-v1)", "normal_args+=()", 1), 1),
+            raw.replace(prepare, "", 1),
+            raw.replace(prepare, prepare.replace("steps.normalci.outcome == 'success'", "true", 1), 1),
+            raw.replace(prepare, prepare.replace("inputs.consensus_fresh_paired_business", "true", 1), 1),
+            raw.replace(prepare, prepare.replace('timeout 120s gh api', 'timeout 180s gh api', 1), 1),
+            raw.replace(prepare, prepare.replace("archive_pin == dict(bytes=gate['artifact']['archiveBytes'], sha256=gate['artifact']['archiveSHA256'])", "True", 1), 1),
+            raw.replace(prepare, prepare.replace("{entry.filename for entry in entries} == catalog", "True", 1), 1),
+            raw.replace(prepare, prepare.replace("set(original) == set(keys)", "True", 1), 1),
+            raw.replace(prepare, prepare.replace("original['runAttempt'] == gate['normalRunAttempt']", "True", 1), 1),
+            raw.replace(prepare, prepare.replace("original['sourceLeaves'] == {key: pin['sha256'] for key, pin in pins.items()}", "True", 1), 1),
+            raw.replace(prepare, prepare.replace("file_pin(destination, maximum) == expected", "True", 1), 1),
+            raw.replace(prepare, prepare.replace("file_pin(intake / 'original.zip', 256 << 20) == archive_pin", "True", 1), 1),
+            raw.replace(prepare, prepare.replace("write(intake / 'SOURCE.json', source_raw)", "write(build / 'SOURCE.json', source_raw)", 1), 1),
+            raw.replace(prepare, prepare.replace("a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec", "0" * 64, 1), 1),
+            raw.replace(prepare, prepare.replace("caps=guard.fixed_caps(guard.FRESH_BUSINESS_E2E_PROFILE)", "caps=dict(activeMs=120000)", 1), 1),
+            raw.replace(prepare, prepare.replace("guard.validate_consensus_fresh_business_recipe(plan, case / 'prepared.json', inherited={})", "pass", 1), 1),
+            raw.replace(network, network.replace("--consensus-fresh-paired-business", "--consensus-signed-business", 1), 1),
+            raw.replace(network, network.replace("if started > now or remaining < 150:", "if remaining < 120:", 1), 1),
+            raw.replace(prepare, "", 1).replace(network, network + prepare, 1),
+            raw.replace("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || 15 }}\n",
+                "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 15 || 15 }}\n", 1)]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(changed)
 
     def test_fresh_business_supply_requires_original_client_and_closed_data_only_inputs(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
@@ -1379,7 +1583,11 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("gateway_build = json.loads(observation.read_text(encoding='utf8'))", 'gateway_build = expected_build'),
             ('if gateway_build != expected_build:', 'if False:'),
             ("binary=binaries['ynx-bft-gatewayd'], build=gateway_build,", "binary=binaries['ynx-comet'], build=gateway_build,"),
-            ('git worktree add --detach "$YNX_RUNTIME_SOURCE" "$GITHUB_SHA"', 'git worktree add --detach "$YNX_RUNTIME_SOURCE" main'),
+            ('git init "$YNX_RUNTIME_SOURCE"', 'git worktree add --detach "$YNX_RUNTIME_SOURCE" "$GITHUB_SHA"'),
+            ('fetch --no-tags --depth=1 "$GITHUB_WORKSPACE" "$GITHUB_SHA"', 'fetch --no-tags --depth=1 "$GITHUB_WORKSPACE" main'),
+            ('git -C "$YNX_RUNTIME_SOURCE" checkout --detach "$GITHUB_SHA"', 'git -C "$YNX_RUNTIME_SOURCE" checkout --detach main'),
+            ('test -d "$YNX_RUNTIME_SOURCE/.git" && test ! -L "$YNX_RUNTIME_SOURCE/.git"', 'true # omitted actual Git directory check'),
+            ('test ! -e "$YNX_RUNTIME_SOURCE/.git/objects/info/alternates"', 'true # omitted independent object store check'),
             ('cd "$YNX_RUNTIME_SOURCE"', 'cd "$GITHUB_WORKSPACE"'),
             ('YNX_RUNTIME_BEFORE_STATUS=$(git status --porcelain --untracked-files=all)', "YNX_RUNTIME_BEFORE_STATUS=''"),
             ('test "$YNX_RUNTIME_BEFORE_TREE" = "$YNX_RUNTIME_EXPECTED_TREE"', 'true # omitted original tree check'),
@@ -1590,7 +1798,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         paired, _ = workflow_steps(raw, "pq-paired-n1")
         group_line = next(line for line in job.splitlines() if line.startswith("      group: "))
         modes = ("paired_n1", "consensus_e2e", "consensus_e2e_retained_history",
-                 "consensus_remote_e2e_retained_history", "remote_signer_process")
+                 "consensus_remote_e2e_retained_history", "remote_signer_process", "consensus_fresh_paired_business")
         mutations = []
         for mode in modes:
             token = "inputs." + mode
@@ -1650,7 +1858,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$'", "-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecoveryMissing$'"),
             ("steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'", "true"),
             ('--normal-run-id "$YNX_NORMAL_CI_RUN_ID"', "--normal-run-id '${{ inputs.normal_ci_run_id }}'"),
-            ("    timeout-minutes: 15\n", "    timeout-minutes: 18\n"),
+            ("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || 15 }}\n", "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || 18 }}\n"),
             ("activeMs=105000, cleanupMs=15000, totalMs=120000", "activeMs=120000, cleanupMs=15000, totalMs=135000"),
             ("if started > now or remaining < 150:", "if remaining < 120:"),
             ("remaining = started + 12*60 - now", "remaining = started + 15*60 - now"),
