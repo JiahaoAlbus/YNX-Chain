@@ -174,7 +174,10 @@ func TestGatewayPQInitialRegistrationActualCommitAndColdOriginal(t *testing.T) {
 		t.Fatal(err)
 	}
 	donor := queryPQGatewayAccount(t, f.f.a, f.f.recipient)
-	fees := initialApplicationBytes(t, f.f.a, "/economics/fees")
+	var fees []consensus.BFTFeeEvent
+	if err := json.Unmarshal(initialApplicationBytes(t, f.f.a, "/economics/fees"), &fees); err != nil || len(fees) != 0 {
+		t.Fatal("synthetic initial-account fixture already has fee events", fees, err)
+	}
 	missing, err := f.f.a.Query(context.Background(), &abci.RequestQuery{Path: "/accounts/" + f.f.owner})
 	if err != nil || missing.Code == 0 {
 		t.Fatal("allowlist alone created an account", missing, err)
@@ -190,8 +193,16 @@ func TestGatewayPQInitialRegistrationActualCommitAndColdOriginal(t *testing.T) {
 	}
 	assertInitialMember(t, f, view)
 	account := queryPQGatewayAccount(t, f.f.a, f.f.owner)
-	if account.Balance != 0 || account.Nonce != 1 || len(account.Lots) != 0 || account.ResourceUsage.BandwidthUsed != 1 || !reflect.DeepEqual(donor, queryPQGatewayAccount(t, f.f.a, f.f.recipient)) || !bytes.Equal(fees, initialApplicationBytes(t, f.f.a, "/economics/fees")) {
-		t.Fatal("birth minted balance/resources or charged another account")
+	if account.Balance != 0 || account.Staked != 0 || account.Nonce != 1 || len(account.Lots) != 0 || account.ResourceUsage != (chain.ResourceUsage{BandwidthUsed: 1}) {
+		t.Fatal("birth changed its exact zero-value/resource effects", account)
+	}
+	if after := queryPQGatewayAccount(t, f.f.a, f.f.recipient); !reflect.DeepEqual(donor, after) {
+		t.Fatal("birth changed another account", donor, after)
+	}
+	// The existing fee journal intentionally seals an empty initial [] as nil.
+	// Check the actual event ledger, not that pre/post JSON spelling difference.
+	if err := json.Unmarshal(initialApplicationBytes(t, f.f.a, "/economics/fees"), &fees); err != nil || len(fees) != 0 {
+		t.Fatal("birth created an actual fee event", fees, err)
 	}
 	policy = initialAuthorization(t, f.f.a, f.f.owner)
 	if policy.Policy == nil || len(policy.Policy.Records) != 1 || !policy.PQSigningEnabled || policy.CommittedPQSigningEnabled || policy.LedgerNonce != 1 || policy.ExecutionHeight != 3 || policy.CommittedHeight != 2 {
