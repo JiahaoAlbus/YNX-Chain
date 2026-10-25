@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"bytes"
+	"context"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
@@ -52,7 +53,17 @@ func newPQTransactionProofFixtureWithInitial(t *testing.T, initialAccount bool) 
 
 func newPQTransactionProofFixtureWithInitialFunding(t *testing.T, initialAccount, fundedInitial bool) *pqTransactionProofFixture {
 	t.Helper()
-	if fundedInitial && !initialAccount {
+	return newPQTransactionProofFixtureWithProfiles(t, initialAccount, fundedInitial, false)
+}
+
+func newPQMigrationTransactionProofFixture(t *testing.T) *pqTransactionProofFixture {
+	t.Helper()
+	return newPQTransactionProofFixtureWithProfiles(t, false, false, true)
+}
+
+func newPQTransactionProofFixtureWithProfiles(t *testing.T, initialAccount, fundedInitial, migrationOnly bool) *pqTransactionProofFixture {
+	t.Helper()
+	if fundedInitial && !initialAccount || migrationOnly && (initialAccount || fundedInitial) {
 		t.Fatal("funded initial fixture requires explicit initial-account mode")
 	}
 	const initialOwner = "0x4444444444444444444444444444444444444444"
@@ -174,8 +185,10 @@ func newPQTransactionProofFixtureWithInitialFunding(t *testing.T, initialAccount
 		}
 		registrations = append(registrations, tx)
 	}
-	registration := account.registration(t, false, uint64(f.doc.InitialHeight+1))
-	registrations = append(registrations, mustPQEnvelope(t, PQMigrationType, registration))
+	if !migrationOnly {
+		registration := account.registration(t, false, uint64(f.doc.InitialHeight+1))
+		registrations = append(registrations, mustPQEnvelope(t, PQMigrationType, registration))
+	}
 	h.apply(t, registrations)
 	registered, err := h.raw.LoadFinalizeBlockResponse(f.doc.InitialHeight)
 	if err != nil {
@@ -212,11 +225,30 @@ func newPQTransactionProofFixtureWithInitialFunding(t *testing.T, initialAccount
 	for app.committed.Height < schedule.ActivationHeight+2 {
 		h.apply(t, nil)
 	}
-	_, member := consensusPQProof(t, account.key, account.network, account.owner, ynxauth.TransactionPurpose, account.transferMessage(t, false, 2, 7))
-	transfer := mustPQEnvelope(t, PQTransferType, member)
-	whole := abciWhole(t, account, account.transferMessage(t, false, 3, 2), account.transferMessage(t, false, 4, 999), account.transferMessage(t, false, 4, 2), account.transferMessage(t, false, 5, 2))
-	envelopes := cmttypes.Txs{transfer, transfer, mustPQEnvelope(t, PQWholeType, whole)}
 	height := app.committed.Height + 1
+	var envelopes cmttypes.Txs
+	if migrationOnly {
+		// The same real nonempty source account remains classic until this
+		// post-activation block. Its original six-field Migration carries the
+		// lawful secp authorization and the full ACCOUNT-MIGRATION dual-PQ PoP;
+		// no transfer bytes are relabelled as registration.
+		index, exists := accountIndex(app.committed.Accounts, account.owner)
+		if !exists || app.committed.Accounts[index].Balance != 100 || app.committed.Accounts[index].Nonce != 0 || len(app.committed.AccountPolicy.Records) != 0 || height <= schedule.ActivationHeight {
+			t.Fatal("migration proof requires an unchanged nonempty legacy account after actual PQ engine activation")
+		}
+		wire := account.registration(t, false, uint64(height+1))
+		payload := mustPQEnvelope(t, PQMigrationType, wire)
+		check, err := app.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: payload})
+		if err != nil || check.Code != 0 {
+			t.Fatal("actual post-activation migration CheckTx rejected", err, check)
+		}
+		envelopes = cmttypes.Txs{payload}
+	} else {
+		_, member := consensusPQProof(t, account.key, account.network, account.owner, ynxauth.TransactionPurpose, account.transferMessage(t, false, 2, 7))
+		transfer := mustPQEnvelope(t, PQTransferType, member)
+		whole := abciWhole(t, account, account.transferMessage(t, false, 3, 2), account.transferMessage(t, false, 4, 999), account.transferMessage(t, false, 4, 2), account.transferMessage(t, false, 5, 2))
+		envelopes = cmttypes.Txs{transfer, transfer, mustPQEnvelope(t, PQWholeType, whole)}
+	}
 	if initialAccount {
 		intent := ynxauth.RegistrationIntent{ChainID: account.network, Owner: initialOwner, PKA: account.public.PKA, PKB: account.public.PKB, NewRevision: 1, LedgerNonce: 1, ActivateAt: uint64(height + 1)}
 		message, err := intent.SigningBytes()
@@ -252,8 +284,15 @@ func newPQTransactionProofFixtureWithInitialFunding(t *testing.T, initialAccount
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(results.TxResults) != len(envelopes) || results.TxResults[0].Code != 0 || results.TxResults[1].Code == 0 || results.TxResults[2].Code != 0 || initialAccount && results.TxResults[3].Code != 0 {
+	if len(results.TxResults) != len(envelopes) || results.TxResults[0].Code != 0 || !migrationOnly && (results.TxResults[1].Code == 0 || results.TxResults[2].Code != 0 || initialAccount && results.TxResults[3].Code != 0) {
 		t.Fatal("fixture did not execute actual success/rejected/partial outcomes", results)
+	}
+	if migrationOnly {
+		index, exists := accountIndex(app.committed.Accounts, account.owner)
+		records := app.committed.AccountPolicy.Records
+		if !exists || app.committed.Accounts[index].Balance != 99 || app.committed.Accounts[index].Nonce != 1 || len(records) != 1 || records[0].Owner != account.owner || records[0].Revision != 1 || records[0].RegisteredAt != uint64(height) || records[0].ActiveFrom != uint64(height+1) || !bytes.Equal(records[0].PKA, account.public.PKA) || !bytes.Equal(records[0].PKB, account.public.PKB) {
+			t.Fatal("actual migration did not retain the original account, fee1, nonce1 and proposed full pair")
+		}
 	}
 	source, err := NewPQEngineFileSource(f.migration, h.path, f.bootstrap, authorization)
 	if err != nil {

@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
@@ -98,6 +100,48 @@ func TestPQConsensusTransactionProofPublicFixture(t *testing.T) {
 	if len(f.expected) != 3 || len(f.proofs) != 3 {
 		t.Fatal("missing real outcome fixtures")
 	}
+	writePQTransactionProofPublicFixture(t, f, "TestPQConsensusTransactionProofPublicFixture", "YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT",
+		"PQ_TRANSACTION_PROOF_PUBLIC_FIXTURE", []string{"succeeded-transfer", "terminal-rejected-duplicate", "partial-whole"},
+		[]string{"VERIFIED_TRANSACTION_DATA", "VERIFIED_TRANSACTION_REJECTED_DATA", "VERIFIED_TRANSACTION_PARTIAL_DATA"}, []string{"succeeded", "rejected", "partial"})
+}
+
+func TestPQConsensusMigrationTransactionProofPublicFixture(t *testing.T) {
+	f := newPQMigrationTransactionProofFixture(t)
+	if len(f.expected) != 1 || len(f.proofs) != 1 {
+		t.Fatal("missing independent real post-activation migration fixture")
+	}
+	expected := f.expected[0]
+	registration, err := ynxauth.DecodeMigration(expected.NativeWire)
+	if err != nil {
+		t.Fatal("original six-field migration unavailable", err)
+	}
+	wire, err := registration.Encode()
+	if err != nil || !bytes.Equal(wire, expected.NativeWire) {
+		t.Fatal("original E6 migration bytes changed", err)
+	}
+	envelope, err := EncodePQTransaction(PQMigrationType, wire)
+	outerHash, nativeHash := sha256.Sum256(envelope), sha256.Sum256(wire)
+	if err != nil || !bytes.Equal(envelope, expected.Envelope) || !bytes.Equal(outerHash[:], expected.TransactionHash) || !bytes.Equal(nativeHash[:], expected.NativeWireHash) || bytes.Equal(outerHash[:], nativeHash[:]) || expected.TransactionType != PQMigrationType || expected.Index != 0 || expected.Block.HeaderHeight <= f.light.schedule.ActivationHeight || expected.Successor.HeaderHeight != expected.Block.HeaderHeight+1 {
+		t.Fatal("actual canonical migration envelope, two hashes or independent H/H+1 target changed", err)
+	}
+	intent := registration.Intent
+	message, err := intent.SigningBytes()
+	if err != nil || intent.PriorRevision != 0 || intent.NewRevision != 1 || intent.LedgerNonce != 1 || intent.ActivateAt != uint64(expected.Block.HeaderHeight+1) || !bytes.Equal(intent.ChainID, f.light.harness.app.committed.AccountPolicy.NetworkID) || len(registration.ClassicPublicKey) != 33 || len(registration.ClassicSignature) == 0 || len(registration.CurrentPQProof) != 0 {
+		t.Fatal("first real migration lost its original classic authorization or independent intent", err)
+	}
+	possession, err := ynxbatch.DecodeWhole(registration.NewKeyProof)
+	if err != nil || possession.Certificate.N != 1 || possession.Certificate.Purpose != ynxauth.MigrationPurpose || possession.Certificate.Owner != intent.Owner || !bytes.Equal(possession.Certificate.PKA, intent.PKA) || !bytes.Equal(possession.Certificate.PKB, intent.PKB) || len(possession.Messages) != 1 || !bytes.Equal(possession.Messages[0], message) {
+		t.Fatal("real migration lacks its original N=1 ACCOUNT-MIGRATION full-pair possession proof", err)
+	}
+	writePQTransactionProofPublicFixture(t, f, "TestPQConsensusMigrationTransactionProofPublicFixture", "YNX_PQ_MIGRATION_PROOF_FIXTURE_OUT",
+		"PQ_MIGRATION_TRANSACTION_PROOF_PUBLIC_FIXTURE", []string{"succeeded-account-migration"}, []string{"VERIFIED_TRANSACTION_DATA"}, []string{"succeeded"})
+}
+
+func writePQTransactionProofPublicFixture(t *testing.T, f *pqTransactionProofFixture, sourceTest, environment, marker string, names, codes, outcomes []string) {
+	t.Helper()
+	if len(f.expected) == 0 || len(f.expected) != len(f.proofs) || len(names) != len(f.expected) || len(codes) != len(f.expected) || len(outcomes) != len(f.expected) {
+		t.Fatal("complete independently selected public cases required")
+	}
 	l := f.light
 	migrationRaw, err := l.harness.f.migration.CanonicalJSON()
 	if err != nil {
@@ -170,7 +214,7 @@ func TestPQConsensusTransactionProofPublicFixture(t *testing.T) {
 	trust.Now = time.Now().UTC()
 	e := f.expected[0].Block
 	fixture := pqTransactionPublicFixture{
-		Version: "YNX-PQ-CONSENSUS-TRANSACTION-PROOF-PUBLIC-FIXTURE/v1", SourceTest: "TestPQConsensusTransactionProofPublicFixture",
+		Version: "YNX-PQ-CONSENSUS-TRANSACTION-PROOF-PUBLIC-FIXTURE/v1", SourceTest: sourceTest,
 		SourceKind: "synthetic-standard-comet-engine-objects", SyntheticOnly: true,
 		TransactionInclusionVerified: true, DeterministicResultVerified: true, NormalFileLoaderVerified: true, Materials: materials,
 		TrustContextParameters: map[string]string{
@@ -185,9 +229,6 @@ func TestPQConsensusTransactionProofPublicFixture(t *testing.T) {
 		TrustContextFiles:   map[string]string{"migrationFile": materials[0].Name, "genesisFile": materials[1].Name, "stateFile": materials[2].Name, "scheduleFile": materials[3].Name, "trustedLightBlockFile": materials[4].Name},
 		ContextPinProcedure: "materialize exact public bytes in new files; fill five absolute lightTrust paths; for each case set context={version:YNX-CONSENSUS-TRANSACTION-PROOF-TRUST/v1,lightTrust,expectedTransaction}; independently pin SHA256 of exact context bytes; synthetic QA roots only, no Native/Source/effect authorization",
 	}
-	names := []string{"succeeded-transfer", "terminal-rejected-duplicate", "partial-whole"}
-	codes := []string{"VERIFIED_TRANSACTION_DATA", "VERIFIED_TRANSACTION_REJECTED_DATA", "VERIFIED_TRANSACTION_PARTIAL_DATA"}
-	outcomes := []string{"succeeded", "rejected", "partial"}
 	for i := range f.expected {
 		if !reflect.DeepEqual(f.expected[i].Block, e) {
 			t.Fatal("shared context cannot retarget different headers")
@@ -197,7 +238,7 @@ func TestPQConsensusTransactionProofPublicFixture(t *testing.T) {
 			t.Fatal(err)
 		}
 		result, err := VerifyPQTransactionProof(trust, f.expected[i], proof)
-		if err != nil || !result.Included || !result.Finalized || result.Classification != "data" || result.NativeGrant || result.Outcome != outcomes[i] || result.ExecutionSuccessful != (i == 0) {
+		if err != nil || !result.Included || !result.Finalized || result.Classification != "data" || result.NativeGrant || result.Outcome != outcomes[i] || result.ExecutionSuccessful != (outcomes[i] == "succeeded") {
 			t.Fatal("actual public transaction proof did not verify its exact outcome", i, err)
 		}
 		reference, err := VerifyPQTransactionProof(l.trust, f.expected[i], f.proofs[i])
@@ -275,7 +316,7 @@ func TestPQConsensusTransactionProofPublicFixture(t *testing.T) {
 	if !roundTrip.SyntheticOnly || roundTrip.DataAuthorized || roundTrip.NativeRootAuthorized || roundTrip.DeployedSourceQualification || roundTrip.ActualCometNode || !roundTrip.NormalFileLoaderVerified || !roundTrip.TransactionInclusionVerified || !roundTrip.DeterministicResultVerified {
 		t.Fatal("public fixture changed authority boundary")
 	}
-	if len(roundTrip.TrustContextParameters) != 19 || len(roundTrip.TrustContextFiles) != 5 || len(roundTrip.Cases) != 3 || len(roundTrip.NegativeCases) != 3 {
+	if len(roundTrip.TrustContextParameters) != 19 || len(roundTrip.TrustContextFiles) != 5 || len(roundTrip.Cases) != len(f.expected) || len(roundTrip.NegativeCases) != 3 {
 		t.Fatal("incomplete public context or real cases")
 	}
 	for i, m := range roundTrip.Materials {
@@ -284,7 +325,7 @@ func TestPQConsensusTransactionProofPublicFixture(t *testing.T) {
 			t.Fatal("public material bytes changed")
 		}
 	}
-	path = os.Getenv("YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT")
+	path = os.Getenv(environment)
 	if path == "" {
 		return
 	}
@@ -296,5 +337,5 @@ func TestPQConsensusTransactionProofPublicFixture(t *testing.T) {
 		t.Fatal("public transaction fixture output changed", err)
 	}
 	sum := sha256.Sum256(data)
-	t.Logf("PQ_TRANSACTION_PROOF_PUBLIC_FIXTURE version=%s bytes=%d sha256=%x syntheticOnly=true dataAuthorized=false nativeRootAuthorized=false actualCometNode=false cases=3", fixture.Version, len(data), sum)
+	t.Logf("%s version=%s bytes=%d sha256=%x syntheticOnly=true dataAuthorized=false nativeRootAuthorized=false actualCometNode=false cases=%d", marker, fixture.Version, len(data), sum, len(fixture.Cases))
 }

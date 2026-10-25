@@ -21,6 +21,7 @@ OPERATOR_NAMES = ("manifest.json", "migration.json", "validator-manifest.json", 
                   "operator-atomic-json.json", "operator-snapshot-journal.json", "operator-block-journal.json")
 FILES = {"ynx-pq-consensus-light-proof-public.json": 32 << 20,
          "ynx-pq-consensus-transaction-proof-public.json": 128 << 20,
+         "ynx-pq-migration-transaction-proof-public.json": 128 << 20,
          **{OPERATOR + "/" + name: 16 << 20 for name in OPERATOR_NAMES}}
 
 
@@ -140,7 +141,8 @@ def restore_inputs(root, bundle, commit, tree, run_id, attempt, manifest_sha256)
             and manifest_sha256 != "0" * 64, "external_manifest_pin_invalid")
     root, bundle = canonical_directory(root), canonical_directory(bundle)
     require({path.name for path in bundle.iterdir()} == {"manifest.json", OPERATOR,
-                "ynx-pq-consensus-light-proof-public.json", "ynx-pq-consensus-transaction-proof-public.json"},
+                "ynx-pq-consensus-light-proof-public.json", "ynx-pq-consensus-transaction-proof-public.json",
+                "ynx-pq-migration-transaction-proof-public.json"},
             "bundle_public_allowlist_differs")
     raw = read_regular(bundle / "manifest.json", 16384)
     require(hashlib.sha256(raw).hexdigest() == manifest_sha256, "external_manifest_pin_mismatch")

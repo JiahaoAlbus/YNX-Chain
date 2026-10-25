@@ -37,8 +37,11 @@ class PublicStageInputsControls(unittest.TestCase):
         values.update(changes)
         return stage.restore_inputs(self.target, self.bundle, **values)
 
-    def test_exact_nine_public_files_round_trip_without_source_plan_database_or_binary(self):
-        self.assertEqual(len(stage.FILES), 9)
+    def test_exact_ten_public_files_round_trip_without_source_plan_database_or_binary(self):
+        self.assertEqual(len(stage.FILES), 10)
+        self.assertEqual(set(stage.FILES) - {"ynx-pq-migration-transaction-proof-public.json"},
+                         {"ynx-pq-consensus-light-proof-public.json", "ynx-pq-consensus-transaction-proof-public.json",
+                          *{stage.OPERATOR + "/" + name for name in stage.OPERATOR_NAMES}})
         self.assertFalse(any(token in name for name in stage.FILES for token in ("original/", ".db", "key", "source-plan", "metadata", "consensus.test")))
         receipt = self.export()
         manifest = (self.bundle / "manifest.json").read_bytes()
@@ -54,6 +57,46 @@ class PublicStageInputsControls(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.restore(receipt["manifestSHA256"])
         self.assertEqual(stage.material(self.target), self.original)
+
+    def test_migration_proof_actual_pin_and_extra_file_refusal_preserve_empty_consumer(self):
+        name = "ynx-pq-migration-transaction-proof-public.json"
+        self.assertEqual(stage.FILES[name], 128 << 20)
+        receipt = self.export()
+        manifest = json.loads((self.bundle / "manifest.json").read_bytes())
+        self.assertEqual(manifest["files"][name],
+                         dict(bytes=str(len(self.original[name])), sha256=hashlib.sha256(self.original[name]).hexdigest()))
+        original_manifest = (self.bundle / "manifest.json").read_bytes()
+        path = self.bundle / name
+        path.write_bytes(b"substituted migration proof public DATA")
+        with self.assertRaises(ValueError):
+            self.restore(receipt["manifestSHA256"])
+        self.assertEqual(list(self.target.iterdir()), [])
+        path.write_bytes(self.original[name])
+        manifest["files"][name]["sha256"] = "c" * 64
+        raw = json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+        (self.bundle / "manifest.json").write_bytes(raw)
+        with self.assertRaises(ValueError):
+            self.restore(hashlib.sha256(raw).hexdigest())
+        self.assertEqual(list(self.target.iterdir()), [])
+        (self.bundle / "manifest.json").write_bytes(original_manifest)
+        stage.write_new(self.bundle / "private-key.json", b"synthetic forbidden sibling DATA")
+        with self.assertRaises(ValueError):
+            self.restore(receipt["manifestSHA256"])
+        self.assertEqual(list(self.target.iterdir()), [])
+        self.assertEqual(stage.material(self.source), self.original)
+
+    def test_missing_or_oversize_migration_fixture_never_creates_partial_bundle(self):
+        name = "ynx-pq-migration-transaction-proof-public.json"
+        path = self.source / name
+        path.unlink()
+        with self.assertRaises(OSError):
+            self.export()
+        self.assertFalse(os.path.lexists(self.bundle))
+        stage.write_new(path, self.original[name])
+        with patch.dict(stage.FILES, {name: 1}), self.assertRaises(ValueError):
+            self.export()
+        self.assertFalse(os.path.lexists(self.bundle))
+        self.assertEqual(stage.material(self.source), self.original)
 
     def test_wrong_source_run_attempt_manifest_and_missing_pin_fail_before_restore(self):
         receipt = self.export()
