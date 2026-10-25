@@ -111,7 +111,7 @@ jobs:
             | tee "$RUNNER_TEMP/ide-source-normal.jsonl" || normal_status=$?
           race_status=0
           go test -race -count=1 -timeout=240s -json \
-            -run '^(TestIDERuntime|TestPostgres|TestOriginalIDE(Factory|Wire)|TestIDECommissioning)' \
+            -run '^(TestIDERuntime|TestPostgres|TestOriginalIDE(Factory|Wire)|TestIDECommissioning|TestOriginalSourceProcess)' \
             ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd \
             | tee "$RUNNER_TEMP/ide-source-race.jsonl" || race_status=$?
           printf 'normal_exit=%s race_exit=%s\n' "$normal_status" "$race_status"
