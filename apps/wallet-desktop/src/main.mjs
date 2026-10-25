@@ -63,6 +63,7 @@ import { FileTransactionIntentStore } from "./transaction-intent-store.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-service.mjs";
 import {captureOriginalWalletTransactionApprovalIPC,retireUnusedOriginalWalletTransactionApproval,acquireOriginalWalletTransactionPermission,isOriginalWalletTransactionPermission} from './original-policy-supplier/transaction-permission.mjs';
 import {captureOriginalWalletAccountInitialApprovalIPC,retireUnusedOriginalWalletAccountInitialApproval,acquireOriginalWalletAccountInitialPermission,isOriginalWalletAccountInitialPermission} from './original-policy-supplier/account-initial-permission.mjs';
+import {createPQAccountInitialBroadcast} from './wallet-pq-account-initial-broadcast.mjs';
 import {createPQTransactionSubmission} from './features/pq-transaction/submission.mjs';
 import {PQFinalityEvidence} from './wallet-pq-finality-evidence.mjs';
 import {createPQFinalityCollection} from './wallet-pq-finality-collection.mjs';
@@ -950,6 +951,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     pqTransactionPermissionRecognized:isOriginalWalletTransactionPermission,
     pqAccountInitialPermissionSource:acquireOriginalWalletAccountInitialPermission,
     pqAccountInitialPermissionRecognized:isOriginalWalletAccountInitialPermission,
+    pqAccountInitialBroadcastSource:createPQAccountInitialBroadcast({intentStore:originalTransactionIntentStore,transport:originalPQNodeTransport,isOriginalPermission:isOriginalWalletAccountInitialPermission}),
     // Independently admitted Genesis/pin and same-H unused-owner Source is
     // not yet supplied. A normal active transfer policy is not a substitute.
     pqBroadcastSource:executeOriginalPQBroadcast,
