@@ -182,9 +182,31 @@ export function pqWireHash(wire) { return '0x' + Buffer.from(sha256(copyWire(wir
 export function preparePQAuthorizationQuery(owner) {
   return Object.freeze({method: 'GET', path: '/accounts/' + pqCanonicalAddress(owner) + '/authorization'});
 }
-export function preparePQOriginalLookup(hash) {
-  if (typeof hash !== 'string' || !/^0x[0-9a-f]{64}$/.test(hash)) throw pqError('PQ_ORIGINAL_HASH_REQUIRED');
-  return Object.freeze({method: 'GET', path: '/txs/' + hash});
+function pqReadPlan(hash, prefix, suffix = '') {
+  if (typeof hash !== 'string' || hash.length !== 66 || !/^0x[0-9a-f]{64}$/.test(hash)) throw pqError('PQ_ORIGINAL_HASH_REQUIRED');
+  return Object.freeze({method: 'GET', path: prefix + hash + suffix});
+}
+// Protocol b777232d: Member/Whole bytes and their ABCI JSON envelope have
+// different hashes. These plans never query a substitute hash or perform I/O.
+export function preparePQOriginalLookup(nativeTransactionHash) {
+  return pqReadPlan(nativeTransactionHash, '/transactions/pq/originals/');
+}
+export function preparePQActionOriginalLookup(nativeTransactionHash) {
+  return pqReadPlan(nativeTransactionHash, '/transactions/pq/actions/originals/');
+}
+export function preparePQWholeOriginalLookup(abciTransactionHash) {
+  return pqReadPlan(abciTransactionHash, '/transactions/pq/wholes/');
+}
+export function preparePQTransactionLookup(abciTransactionHash) {
+  return pqReadPlan(abciTransactionHash, '/txs/');
+}
+// Collector response remains unverified DATA, not consensus finality. The
+// original trusted verifier, exact retained bytes and current bindings apply.
+export function preparePQTransferFinalityLookup(abciTransactionHash) {
+  return pqReadPlan(abciTransactionHash, '/txs/', '/pq-finality-proof');
+}
+export function preparePQActionFinalityLookup(abciTransactionHash) {
+  return pqReadPlan(abciTransactionHash, '/txs/', '/pq-action-finality-proof');
 }
 export function preparePQMigrationTransport(wire) {
   const snapshot = copyWire(wire, 262144), decoded = decodePQMigrationRequest(snapshot);

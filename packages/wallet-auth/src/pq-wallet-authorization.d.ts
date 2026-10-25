@@ -44,7 +44,18 @@ export function decodePQMigrationRequest(wire: Uint8Array): PQDecodedMigration;
 export function encodePQMigrationRequest(value: PQMigrationProofs): Uint8Array;
 export function pqWireHash(wire: Uint8Array): string;
 export function preparePQAuthorizationQuery(owner: string): Readonly<{method: 'GET'; path: string}>;
-export function preparePQOriginalLookup(hash: string): Readonly<{method: 'GET'; path: string}>;
+export interface PQTransactionReadPlan {readonly method:'GET';readonly path:string}
+/** Member/Whole native hash, NOT the canonical JSON-envelope ABCI hash.
+ * No network call, retry, original mutation or finality claim is performed. */
+export function preparePQOriginalLookup(nativeTransactionHash:string):Readonly<PQTransactionReadPlan>;
+export function preparePQActionOriginalLookup(nativeTransactionHash:string):Readonly<PQTransactionReadPlan>;
+/** These three routes require the original canonical-envelope ABCI hash. */
+export function preparePQWholeOriginalLookup(abciTransactionHash:string):Readonly<PQTransactionReadPlan>;
+export function preparePQTransactionLookup(abciTransactionHash:string):Readonly<PQTransactionReadPlan>;
+/** GET collectors only; responses still require independent trusted proof
+ * verification. 202/404/timeout never authorize POST retry or clear UNKNOWN. */
+export function preparePQTransferFinalityLookup(abciTransactionHash:string):Readonly<PQTransactionReadPlan>;
+export function preparePQActionFinalityLookup(abciTransactionHash:string):Readonly<PQTransactionReadPlan>;
 export function preparePQMigrationTransport(wire: Uint8Array): PQTransportRequest;
 /** Structural/context binding and exact N1 only; not account authority, signature
  * math validation, chain admission or finality. All returned data are detached/frozen. */
