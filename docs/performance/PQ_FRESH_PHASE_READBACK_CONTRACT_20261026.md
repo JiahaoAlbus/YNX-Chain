@@ -82,7 +82,7 @@ and is not the instant of BFT formation. The small 2/s pair cannot qualify the
 
 ## Verification status
 
-Fifteen Node tests pass, including actual CLI consumption of both receipt shapes,
+Sixteen Node tests pass, including actual CLI consumption of both receipt shapes,
 immutable output and unchanged inputs, missing/unsafe numeric clocks, wrong
 source and ELF pins, UNKNOWN, original hash binding, registration exclusion,
 per-height deduplication, missing node/fsync and incomplete cleanup rejection.
@@ -166,3 +166,24 @@ verifiers and overlapping stage rejection. Raw output:
 `pq-fresh-paired-phase-deltas-20261026.raw` in the existing external performance
 artifact directory. These added tests generate no measured node result or
 cryptographic finality claim.
+
+
+## Exact bounded original result gate
+
+The stdout consumer now matches the original caller's sole-test contract:
+one exact fresh RUN, one exact fresh PASS, terminal PASS, no other RUN/PASS,
+no FAIL/SKIP/panic/fatal record, and the source marker uses ordinary Go log
+space/tab indentation. One final newline is accepted; diagnostics or extra
+blank records after PASS are refused. The original projected public JSON is
+bounded at 256 KiB, as in the frozen Go producer. The legacy arithmetic schema
+keeps its separate existing bound. No caller, Node, grant or resource limit is
+changed by these read-only checks.
+
+The 16-test focused suite includes mixed-test logs, trailing diagnostics,
+no-final-newline compatibility and oversized public-summary rejection. This
+is a consumer contract gate, not independent cryptographic verification or a
+four-node measurement. Raw output:
+`pq-fresh-bounded-original-result-gate-20261026.raw` under the existing external
+chain-performance directory. Validate the matching new original caller once
+its complete supply/recipe/real outputs are handed over; do not launch another
+driver or repeat the already verified public binary downloads.

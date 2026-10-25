@@ -211,3 +211,19 @@ test('paired timing cannot compare different persistence profiles as the same co
  for(const r of f.data.arms[1].phaseRows.filter(r=>r.phase==='commit'))r.commitTiming.storage='snapshot-journal-v1';
  assert.throws(()=>read(f),/paired storage profile differs/);
 });
+
+test('bounded original result gate refuses mixed tests, trailing diagnostics and over-limit public summaries',()=>{
+ const f=originalFixture(),raw=originalLog(f);
+ for(const change of [
+  s=>'=== RUN   OtherTest\n--- PASS: OtherTest (0.01s)\n'+s,
+  s=>s.replace('\nPASS\n','\n--- PASS: OtherTest (0.01s)\nPASS\n'),
+  s=>s+'unqualified trailing diagnostic\n',s=>s+'\n',
+  s=>'panic: recovered outside original result\n'+s,
+  s=>'fatal error: outside original result\n'+s,
+ ]){const altered=Buffer.from(change(raw.toString()));assert.throws(()=>readGuardedFreshPhaseLog(altered,logGuard(f,altered),f.expected),/sole RUN\/PASS/);}
+ const noFinalNewline=raw.subarray(0,raw.length-1);
+ assert.equal(readGuardedFreshPhaseLog(noFinalNewline,logGuard(f,noFinalNewline),f.expected).arms[0].receiptQualifiedBusiness,16);
+ f.data.extraUnqualifiedPadding='x'.repeat(256<<10);
+ assert.throws(()=>read(f),/summary exceeds 256 KiB/);
+ const padded=originalLog(f);assert.throws(()=>readGuardedFreshPhaseLog(padded,logGuard(f,padded),f.expected),/summary exceeds 256 KiB/);
+});

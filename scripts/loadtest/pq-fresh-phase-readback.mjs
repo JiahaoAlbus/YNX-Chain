@@ -151,11 +151,12 @@ export function readGuardedFreshPhaseLog(stdout,guard,expected){
  const digest=createHash('sha256').update(stdout).digest('hex');
  requireValue(guard?.stdoutSHA256===digest,'original stdout digest differs');
  const name='TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming',lines=stdout.toString('utf8').split(/\r?\n/);
+ if(lines.at(-1)==='')lines.pop();
  const pass=new RegExp('^--- PASS: '+name+' \\([0-9]+(?:\\.[0-9]+)?s\\)$');
- requireValue(lines.filter(l=>l==='=== RUN   '+name).length===1&&lines.filter(l=>pass.test(l)).length===1&&lines.filter(l=>l==='PASS').length===1&&!lines.some(l=>/^\s*--- (FAIL|SKIP):|^FAIL(?:\s|$)/.test(l)),'original fresh test must actually run and pass without skip/failure');
+ requireValue(lines.filter(l=>/^=== RUN   /.test(l)).length===1&&lines.includes('=== RUN   '+name)&&lines.filter(l=>/^--- PASS: /.test(l)).length===1&&lines.some(l=>pass.test(l))&&lines.filter(l=>l==='PASS').length===1&&lines.at(-1)==='PASS'&&!lines.some(l=>/^\s*--- (FAIL|SKIP):|^FAIL(?:\s|$)|^panic:|^fatal error:/.test(l)),'original fresh test must be the sole RUN/PASS and end with PASS without skip/failure/panic');
  const markers=lines.filter(l=>l.includes('PQ_NETWORK_FRESH_BUSINESS_SUMMARY'));
  requireValue(markers.length===1,'exactly one original fresh summary marker required');
- const match=/^\s+pq_network_fresh_business_test\.go:[1-9][0-9]*: PQ_NETWORK_FRESH_BUSINESS_SUMMARY (\{.*\})$/.exec(markers[0]);
+ const match=/^[ \t]+pq_network_fresh_business_test\.go:[1-9][0-9]*: PQ_NETWORK_FRESH_BUSINESS_SUMMARY (\{.*\})$/.exec(markers[0]);
  requireValue(match,'original callee summary log shape differs');
  requireValue(lines.indexOf('=== RUN   '+name)<lines.indexOf(markers[0])&&lines.indexOf(markers[0])<lines.findIndex(l=>pass.test(l))&&lines.findIndex(l=>pass.test(l))<lines.indexOf('PASS'),'original RUN/summary/PASS order differs');
  const raw=Buffer.from(match[1],'utf8');
@@ -167,6 +168,7 @@ function readBoundFreshPhasePair(raw,guard,expected,stdoutSHA256){
  requireValue(Buffer.isBuffer(raw)&&raw.length>0&&raw.length<=1<<20,'bounded original pair DATA required');
  requireValue(object(expected)&&hex(expected.protocolCommit,40)&&hex(expected.performanceClientCommit,40)&&hex(expected.clientSourceTree,40)&&hex(expected.clientCodeTree,40)&&typeof expected.vmBootId==='string'&&expected.vmBootId.length>0&&typeof expected.clockDomain==='string'&&expected.clockDomain.length>0&&Number.isSafeInteger(expected.businessPerArm)&&expected.businessPerArm>0&&expected.businessPerArm<=16&&object(expected.epochs)&&hex(expected.epochs.before,64)&&hex(expected.epochs.after,64)&&expected.epochs.before!==expected.epochs.after&&sameBinaries(expected.binaries,expected.binaries)&&Object.hasOwn(expected.binaries,expected.verifierRole),'external original case/source/clock/binary bindings required');
  const input=json(raw,'original phase result'),projected=input.version===originalFreshVersion;
+ if(projected)requireValue(raw.length<=256<<10,'original callee public summary exceeds 256 KiB');
  requireValue(guard?.firstCause===null&&guard.child?.code===0&&guard.cleanupComplete===true&&completedScans(guard.emptyOwnedScans,projected)&&guard.sourceCommit===expected.protocolCommit&&(stdoutSHA256?guard.stdoutSHA256===stdoutSHA256:guard.resultSHA256===createHash('sha256').update(raw).digest('hex')),'original completed guard and raw result digest required');
  if(projected)requireValue(guard.child.pid===expected.sameProcessPID,'original guard child differs from the phase clock process');
  const data=projected?adaptOriginal(input,expected):input;
