@@ -85,6 +85,7 @@ jobs:
           scripts/loadtest/native-resource-probe.test.mjs
           scripts/loadtest/owned-process-race.test.mjs
           scripts/loadtest/same-control-readback.test.mjs
+          scripts/loadtest/pq-fresh-phase-readback.test.mjs
       - run: npm ci
       - run: npm run hardhat:build
       - name: Generate original contract selectors required by ABCI execution fixtures
@@ -102,12 +103,21 @@ jobs:
       - run: node scripts/verify/integration-contract-check.mjs
       - run: node scripts/verify/chain-core-release-check.mjs
       - run: make no-placeholder-check
+      - name: Verify exact public fixture scan and fail-closed inventory
+        run: bash scripts/validate/secret-scan-check.sh
       - run: make secret-scan
       - name: Select pinned normal helper toolchain
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v5
         with:
           go-version: "1.26.10"
+      - name: Checkout exact client source required by original fresh callee
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: 70e7e450997a0ae77dbad5a8be3682f482c6ddd8
+          path: pq-client-pinned-source
+          persist-credentials: false
       - name: Prebuild bounded Linux PQ performance client for Root-scheduled windows
+        working-directory: pq-client-pinned-source
         env:
           GOMAXPROCS: "1"
           GOMEMLIMIT: "160MiB"
@@ -122,7 +132,7 @@ jobs:
           version = subprocess.check_output(['go', 'version'], text=True).strip()
           assert version == 'go version go1.26.10 linux/amd64', version
           commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
-          assert commit == os.environ['GITHUB_SHA']
+          assert commit == '70e7e450997a0ae77dbad5a8be3682f482c6ddd8'
           info = (root / 'go-build-info.txt').read_text()
           assert 'vcs.revision=' + commit in info and 'vcs.modified=false' in info
           files = {}
@@ -134,7 +144,7 @@ jobs:
                   for chunk in iter(lambda: handle.read(65536), b''):
                       digest.update(chunk)
               files[name] = dict(bytes=path.stat().st_size, sha256=digest.hexdigest())
-          result = dict(kind='ynx-pq-performance-client-build', commit=commit,
+          result = dict(kind='ynx-pq-performance-client-build', commit=commit, producerCommit=os.environ['GITHUB_SHA'],
                         sourceTree=subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
                         clientCodeTree=subprocess.check_output(['git', 'rev-parse', 'HEAD:cmd/ynx-consensus-perf-client'], text=True).strip(),
                         target='linux-amd64', goVersion=version, files=files,
@@ -147,7 +157,7 @@ jobs:
       - name: Upload prebuilt public PQ performance client and exact source identity
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ynx-pq-performance-client-linux-amd64-${{ github.sha }}
+          name: ynx-pq-performance-client-linux-amd64-70e7e450997a0ae77dbad5a8be3682f482c6ddd8-${{ github.sha }}
           path: ${{ runner.temp }}/ynx-pq-performance-client/
           if-no-files-found: error
           retention-days: 7
