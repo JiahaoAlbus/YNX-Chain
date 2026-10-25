@@ -1,6 +1,6 @@
 module github.com/JiahaoAlbus/YNX-Chain
 
-go 1.25.13
+go 1.26.10
 
 replace github.com/cometbft/cometbft => ./third_party/cometbft
 

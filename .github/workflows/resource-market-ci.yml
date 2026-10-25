@@ -197,7 +197,7 @@ jobs:
       - name: Install patched Go toolchain
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.25.13'
+          go-version-file: go.mod
           check-latest: false
           cache: true
       - name: Record toolchains
@@ -2095,6 +2095,14 @@ jobs:
           path: ${{ runner.temp }}/ynx-pq-offline-migration-tools
           if-no-files-found: error
           retention-days: 7
+      - name: Check reachable vulnerabilities in the eight production runtime commands
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        timeout-minutes: 3
+        run: >-
+          go run golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          ./cmd/ynx-abci ./cmd/ynx-comet ./cmd/ynx-bft-gatewayd
+          ./cmd/ynx-consensus-pq-remote-signer ./cmd/ynx-consensus-pq-key-init
+          ./cmd/ynx-consensus-proof-verify ./cmd/ynx-consensus-package ./cmd/ynx-consensus-keycheck
       - name: Build public Linux runtime candidate without starting services
         if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
         timeout-minutes: 3
