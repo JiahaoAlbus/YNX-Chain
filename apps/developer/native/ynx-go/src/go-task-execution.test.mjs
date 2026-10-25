@@ -395,10 +395,20 @@ test('current Go Run owns its real task while explicit Debug preserves project l
   let debugCalls=0;f.handlers.set('workbench.action.debug.start',{execute:()=>{debugCalls++;return 'explicit-project-debug';}});
   assert.equal(await f.handlers.get('ynx.workbench.debugCurrentFile').execute(),'explicit-project-debug');
   assert.equal(debugCalls,1);assert.deepEqual(f.executions,['build','run']);assert.equal(f.configurations.current,selected);
-  // Non-source project Run still uses the selected launch through the mature
-  // framework. Only the supported current-file shortcut changed its policy.
+  // A debug-source tab is not a saved current file. The current-file triangle
+  // must not run a stale project launcher; explicit project commands remain
+  // available through their own framework command IDs and saved selection.
   f.editors.currentEditor.editor.uri.scheme='debug';
-  assert.equal(f.contribution.currentFileCommand(false),'workbench.action.debug.run');
+  assert.equal(f.contribution.currentFileCommand(false),undefined);
+  assert.equal(f.handlers.get('ynx.workbench.runCurrentFile').isEnabled(),false);
+  assert.throws(()=>f.handlers.get('ynx.workbench.runCurrentFile').execute(),/No applicable current-file command/);
+  let projectRuns=0;f.handlers.set('workbench.action.debug.run',{execute:()=>{projectRuns++;return 'explicit-project-run';}});
+  assert.equal(await f.api.commands.executeCommand('workbench.action.debug.run'),'explicit-project-run');
+  assert.equal(projectRuns,1);
+  assert.equal(f.contribution.currentFileCommand(true),'workbench.action.debug.start');
+  assert.equal(await f.handlers.get('ynx.workbench.debugCurrentFile').execute(),'explicit-project-debug');
+  assert.equal(debugCalls,2);assert.equal(f.configurations.current,selected);
+  assert.deepEqual(f.executions,['build','run']);
  }finally{await f.close();}
 });
 
