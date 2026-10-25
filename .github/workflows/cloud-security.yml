@@ -65,6 +65,7 @@ jobs:
               apps/cloud/sdk/index.js|apps/cloud/sdk/index.d.ts|apps/cloud/sdk/package.json) ;;
               apps/cloud/sdk/observe-ide-deployment.mjs|apps/cloud/sdk/observe-ide-deployment.d.ts) ;;
               apps/cloud/tests/ide-deployment*.test.mjs|apps/cloud/IDE_DEPLOYMENT_SOURCE_INPUTS.json) ;;
+              infra/docker/ynx-cloudd.Dockerfile|infra/docker/ynx-cloudd.Dockerfile.dockerignore) ;;
               .github/workflows/cloud-security.yml|.github/workflows/ci.yml|.github/workflows/cloud-docs-ios-simulator.yml) ;;
               *) printf 'Outside authorized IDE consumer scope: %s\n' "$file" >&2; exit 1 ;;
             esac
