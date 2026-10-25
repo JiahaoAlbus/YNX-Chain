@@ -19,6 +19,7 @@ import {inspectPQGoValidatedContractMaterial} from './features/pq-transaction/co
 import {pqTypedSignPermissionRequest,pqTypedBroadcastPermissionRequest} from './wallet-pq-typed-permission.mjs';
 import {PRIVATE_FILE_MAX_BYTES} from './bounded-private-file-read.mjs';
 import {createPQOriginalRecord} from './wallet-pq-intent-record.mjs';
+import {normalizePQAccountInitialInput,preparePQAccountInitialSignReview,preparePQAccountInitialBroadcastReview,projectPQAccountInitialReview} from './wallet-pq-account-initial-review.mjs';
 import {retainPQPolicyResource} from './wallet-pq-policy-owner.mjs';
 import {assertSessionReturnTransport} from './wallet-session-return-boundary.mjs';
 import {prepareSessionPublicationReturn,sessionPublicationOutcome} from './wallet-session-publication.mjs';
@@ -53,6 +54,7 @@ export class DesktopWalletAuthority {
   #pqInFlight=new Set(); #pqShuttingDown=false; #pqShutdownPass=null;
   #pqTxSource; #pqTxRecognized; #pqTxOwners=new Set();
   #pqBroadcastSource;
+  #pqInitialReviews=new WeakMap(); #pqInitialAcquiring=false;
   constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null, pqSessionSource = null, pqSessionRecognized = null, sessionReturnClient = null, pqTransactionPermissionSource=null, pqTransactionPermissionRecognized=null, pqBroadcastSource=null }) {
     this.vault = vault;
     this.permissions = permissions;
@@ -88,6 +90,43 @@ export class DesktopWalletAuthority {
   requestPQMigration(input){return this.#trackPQ(()=>this.#preparePQTransfer(input,'migration'));}
   requestPQRevocation(input){return this.#trackPQ(()=>this.#preparePQTransfer(input,'revocation'));}
   requestPQBroadcast(hash){return this.#trackPQ(()=>this.#preparePQBroadcast(hash));}
+  requestPQAccountInitial(input){return this.#trackPQ(()=>this.#preparePQAccountInitial(input));}
+  requestPQAccountInitialBroadcast(hash){return this.#trackPQ(()=>this.#preparePQAccountInitial(null,hash));}
+  async #preparePQAccountInitial(input,hash=null){
+    if(hash===null)input=normalizePQAccountInitialInput(input);
+    if(this.#pqInitialAcquiring||this.#pqAcquiring||this.#pqOwners.size||this.#pqTxOwners.size||[...this.pending.values(),...this.#activeReviews.values()].some(p=>this.#pqInitialReviews.has(p)))throw providerError(4100,'PQ_INITIAL_REVIEW_IN_PROGRESS','Finish the original registration preview first.');
+    const guard=this.vault.authorization.current(),permission=this.permissions.authorizationLease('ynx-wallet:local-pq');guard.assert();permission.assert();
+    if(!this.#pqNetworkId)throw providerError(4100,'PQ_INITIAL_NETWORK_REQUIRED','The selected original network is required.');
+    this.#pqInitialAcquiring=true;
+    try{
+      const status=await this.vault.status();guard.assert();permission.assert();
+      if(!status.initialized||status.account!==guard.account)throw providerError(4100,'ACCOUNT_CHANGED','Select the original account.');
+      const id=this.requestId(),createdAt=this.clock().toISOString(),expiresAt=new Date(Date.parse(createdAt)+30000).toISOString(),c={account:status.account,networkId:this.#pqNetworkId,operationId:id,createdAt,expiresAt};
+      let record;
+      if(hash===null){
+        if(typeof this.vault.readPQProposalBinding!=='function')throw providerError(4100,'PASSWORD_VAULT_PQ_ORIGINAL_REQUIRED','The protected original public pair is required.');
+        const binding=await this.vault.readPQProposalBinding(this.#pqNetworkId);guard.assert();permission.assert();
+        record=preparePQAccountInitialSignReview(binding,input,c);
+      }else{
+        if(typeof hash!=='string'||!/^0x[0-9a-f]{64}$/.test(hash))throw providerError(-32602,'PQ_INITIAL_ORIGINAL_REQUIRED','Select the exact retained registration.');
+        const store=this.transactionSender?.submissions?.intentStore;
+        if(typeof store?.readPQOriginals!=='function'||typeof store?.readPQProgress!=='function')throw providerError(4100,'PQ_INITIAL_ORIGINAL_REQUIRED','The original protected journal is required.');
+        const rows=await store.readPQOriginals(status.account,()=>guard.assert());guard.assert();permission.assert();
+        const original=rows.find(r=>r.account===status.account&&r.hash===hash&&r.kind==='pq-account-initial');
+        if(!original)throw providerError(4100,'PQ_INITIAL_ORIGINAL_REQUIRED','The exact initial account Member is required.');
+        const progress=await store.readPQProgress(status.account,hash,()=>guard.assert());guard.assert();permission.assert();
+        if(progress.account!==status.account||progress.hash!==hash||progress.kind!=='pq-account-initial'||progress.status!=='signed-unsubmitted')throw providerError(4100,'PQ_TRANSACTION_ALREADY_ENTERED','Preserve and query the original; do not submit again.');
+        record=preparePQAccountInitialBroadcastReview(original,c);
+      }
+      guard.assert();permission.assert();if(this.#pqShuttingDown)throw providerError(4100,'PQ_SHUTDOWN_ENTERED','Wallet is closing.');
+      this.#pruneExpired();if(this.pending.size>=MAX_PENDING_REQUESTS)throw providerError(4200,'PENDING_REQUEST_LIMIT','Finish existing reviews.');
+      const method=hash===null?'ynx_signPQAccountInitial':'ynx_broadcastPQAccountInitial',pending=deepFreeze({id,origin:'ynx-wallet:local-pq',method,params:[],createdAt,review:projectPQAccountInitialReview(record)});
+      const revision=this.vault.authorization.status().revision;let cancelled=false;
+      const lease=Object.freeze({assert:()=>{permission.assert();const now=this.vault.authorization.status();if(cancelled||now.locked||now.account!==status.account||now.revision!==revision||this.#pqShuttingDown||this.clock().getTime()>=Date.parse(expiresAt))throw providerError(4100,'REQUEST_EXPIRED','This registration preview expired.');}});
+      lease.assert();this.#pqInitialReviews.set(pending,record);this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;return true;}});this.pending.set(id,pending);
+      return Object.freeze({status:'approval-required',effectReady:false,signed:false,submitted:false,request:pending});
+    }finally{this.#pqInitialAcquiring=false;}
+  }
   #pqRequestPermission(connection){
     const data=connection?readWalletPQConnection(connection):null;
     const permission=this.permissions.authorizationLease(data?.origin??'ynx-wallet:local-pq');
@@ -443,9 +482,9 @@ export class DesktopWalletAuthority {
     return Object.freeze({ status: "approval-required", request: pending });
   }
 
-  isPendingPQTransactionReview(id){const p=this.pending.get(id);return ['ynx_signPQNativeTransfer','ynx_signPQNativeAction'].includes(p?.method)&&this.#pqReviews.has(p);}
-  isPendingPQBroadcastReview(id){const p=this.pending.get(id);return ['ynx_broadcastPQNativeTransfer','ynx_broadcastPQNativeAction'].includes(p?.method)&&this.#pqReviews.has(p);}
-  approve(id,capsule){return this.#pqReviews.has(this.pending.get(id))?this.#trackPQ(()=>this.#approve(id,capsule)):this.#approve(id,capsule);}
+  isPendingPQTransactionReview(id){const p=this.pending.get(id);return p?.method==='ynx_signPQAccountInitial'?this.#pqInitialReviews.has(p):['ynx_signPQNativeTransfer','ynx_signPQNativeAction'].includes(p?.method)&&this.#pqReviews.has(p);}
+  isPendingPQBroadcastReview(id){const p=this.pending.get(id);return p?.method==='ynx_broadcastPQAccountInitial'?this.#pqInitialReviews.has(p):['ynx_broadcastPQNativeTransfer','ynx_broadcastPQNativeAction'].includes(p?.method)&&this.#pqReviews.has(p);}
+  approve(id,capsule){const pending=this.pending.get(id);return this.#pqReviews.has(pending)||this.#pqInitialReviews.has(pending)?this.#trackPQ(()=>this.#approve(id,capsule)):this.#approve(id,capsule);}
   async #approve(id,capsule) {
     const pending = this.#take(id);
     this.#activeReviews.set(id,pending);
@@ -510,6 +549,16 @@ export class DesktopWalletAuthority {
     }
     guard.assert();
     switch (pending.method) {
+      case 'ynx_signPQAccountInitial':
+      case 'ynx_broadcastPQAccountInitial': {
+        const request=this.#pqInitialReviews.get(pending);
+        if(!request||!capsule)throw providerError(4100,'PQ_INITIAL_INDEPENDENT_APPROVAL_REQUIRED','A separate original registration approval is required.');
+        // The concrete request and normal local approval are retained, but
+        // neither is an authenticated Genesis, free-owner grant or Native
+        // permission. Never feed it to a transfer/migration signer or kernel.
+        // Actual Auth purpose custody must be supplied before effects exist.
+        throw providerError(4100,'PQ_INITIAL_NATIVE_PERMISSION_NOT_SUPPLIED','Original Genesis, independent pin, unused owner and Native account-initial permission must be supplied. Preview was not signed or submitted.');
+      }
       case 'ynx_signPQNativeAction': {
         const reviewed=this.#pqReviews.get(pending),store=this.transactionSender?.submissions?.intentStore;
         if(!reviewed?.typedReview||!store||typeof store.capturePQTypedMember!=='function'||typeof this.vault.withPQKeys!=='function'||!this.#pqTxSource||!this.#pqTxRecognized||!capsule)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','A separate original typed approval is required; no fallback signer is available.');

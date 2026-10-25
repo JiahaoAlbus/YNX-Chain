@@ -7,6 +7,7 @@ import {appendPQOriginalRecoveryActions} from "../src/wallet-pq-original-recover
 import {appendPQProgressActions} from "../src/wallet-pq-progress-ui.mjs";
 import {appendPQBroadcastActions} from "../src/wallet-pq-broadcast-ui.mjs";
 import {appendPQFinalityActions} from "../src/wallet-pq-finality-ui.mjs";
+import {appendPQAccountInitialReviewAction} from '../src/wallet-pq-account-initial-ui.mjs';
 const source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8");
 const html=await readFile(new URL("../src/index.html",import.meta.url),"utf8");
 const account="0x"+"1".repeat(40),hash="0x"+"2".repeat(64);
@@ -21,7 +22,7 @@ function harness(){
   const start=source.indexOf("function clearTransactionResolution()"),fallback=source.indexOf("async function refreshTransactions()"),end=source.indexOf("function clearAssetBalance()",fallback);
   // The fragment omits module imports; use the actual helpers and this fixture's
   // document rather than silently losing the whole PQ row to ReferenceError.
-  for(const helper of [appendPQOriginalRecoveryActions,appendPQProgressActions,appendPQBroadcastActions,appendPQFinalityActions])context[helper.name]=options=>helper({...options,document:context.document});
+  for(const helper of [appendPQOriginalRecoveryActions,appendPQProgressActions,appendPQBroadcastActions,appendPQFinalityActions,appendPQAccountInitialReviewAction])context[helper.name]=options=>helper({...options,document:context.document});
   const copyHelper=source.match(/function copyUI\([^\n]+/)[0];
   assert.ok(fallback>=0&&end>fallback);runInNewContext(copyHelper+"\n"+source.slice(start>=0?start:fallback,end),context);
   context.clearTransactionResolution??=()=>{context.transactionRevision++;context.transactionActionRevision++;get("#pending-transactions").replaceChildren();get("#transaction-resolution").hidden=true;get("#transaction-resolution-result").textContent=""};
@@ -37,10 +38,10 @@ test('mounted native custody check says no network or signature verification and
  h.actions[0].resolve({ok:true,value:{account,hash,kind:'pq-transfer',outcome:'original-retained-locally',networkQueryPerformed:false,signatureVerified:false,clearsOriginal:false,retryAuthorized:false,consensusFinality:false}});await pending;
  assert.match(h.get('#transaction-resolution-result').textContent,/Custody check only; no signature verification, chain query/);assert.equal(h.context.assetRefreshes,0);assert.equal(h.context.historyRefreshes,0);assert.equal(h.actions.length,1);
 });
-test('mounted initial registration exposes retained custody, not migration broadcast or finality actions',async()=>{
+test('mounted initial registration exposes custody and separate preview, not actual send or finality',async()=>{
  const h=harness(),buttons=await h.load({ok:true,value:[{account,hash,kind:'pq-account-initial',operationId:'PUBLIC-birth-once',status:'pq-signed-unsubmitted',canRetryExact:false}]});
- assert.equal(buttons.length,1);assert.match(buttons[0].textContent,/read only/);const text=h.get('#pending-transactions').children[0].children.map(n=>n.textContent).join(' ');assert.match(text,/initial registration original \(not admitted\)/);assert.doesNotMatch(text,/PQ account migration/);assert.equal(h.actions.length,0);
- const pending=buttons[0].click();h.actions[0].resolve({ok:true,value:{account,hash,kind:'pq-account-initial',outcome:'original-retained-locally',networkQueryPerformed:false,signatureVerified:false,retryAuthorized:false,clearsOriginal:false,consensusFinality:false}});await pending;assert.match(h.get('#transaction-resolution-result').textContent,/Custody check only/);assert.equal(h.context.assetRefreshes,0);
+ assert.equal(buttons.length,2);assert(buttons.some(b=>/separate approval/.test(b.textContent)));assert(buttons.some(b=>/read only/.test(b.textContent)));const text=h.get('#pending-transactions').children[0].children.map(n=>n.textContent).join(' ');assert.match(text,/initial registration original \(not admitted\)/);assert.doesNotMatch(text,/PQ account migration/);assert.equal(h.actions.length,0);
+ const pending=buttons.find(b=>/read only/.test(b.textContent)).click();h.actions[0].resolve({ok:true,value:{account,hash,kind:'pq-account-initial',outcome:'original-retained-locally',networkQueryPerformed:false,signatureVerified:false,retryAuthorized:false,clearsOriginal:false,consensusFinality:false}});await pending;assert.match(h.get('#transaction-resolution-result').textContent,/Custody check only/);assert.equal(h.context.assetRefreshes,0);
 });
 test('PQ read uses original hash once and not-found never clears custody, refreshes assets, or calls legacy receipt transport',async()=>{
  const h=harness(),buttons=await h.load({ok:true,value:[{account,hash,kind:'pq-transfer',operationId:'QA-original',status:'pq-signed-unsubmitted',canRetryExact:false}]}),check=buttons.find(button=>/read only/.test(button.textContent)),pending=check.click();await check.click();assert.equal(h.actions.length,1);assert.equal(h.actions[0].hash,hash);assert.equal(h.actions[0].pq,true);assert.equal(h.actions[0].retry,false);

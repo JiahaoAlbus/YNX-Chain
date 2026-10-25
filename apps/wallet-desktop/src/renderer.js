@@ -21,7 +21,9 @@ import {appendPQOriginalRecoveryActions} from './wallet-pq-original-recovery-ui.
 import {appendPQProgressActions} from './wallet-pq-progress-ui.mjs';
 const pqRevocationReviewUI=createPQRevocationReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQKeyPreparationUI} from './wallet-pq-key-ui.mjs';
+import {createPQAccountInitialUI,appendPQAccountInitialReviewAction} from './wallet-pq-account-initial-ui.mjs';
 const pqKeyPreparationUI=createPQKeyPreparationUI({api:window.ynxWallet,getKeyState:()=>keyState});
+const pqAccountInitialUI=createPQAccountInitialUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createPQBackupUI} from './pq-backup-ui.mjs';
 const pqBackupUI=createPQBackupUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import {createRegisteredPQRestoreUI} from './wallet-pq-restore-ui.mjs';
@@ -902,6 +904,7 @@ async function refreshTransactions() {
         row.append(notice);
         appendPQOriginalRecoveryActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
         appendPQProgressActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
+        if(typeof appendPQAccountInitialReviewAction!=='undefined')appendPQAccountInitialReviewAction({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;}});
         if(record.kind!=='pq-typed-action'&&typeof appendPQBroadcastActions!=='undefined')appendPQBroadcastActions({row,record,api:window.ynxWallet,getKeyState:()=>keyState,isCurrent:current,onResult:text=>{document.querySelector('#transaction-resolution-result').textContent=text;},onRefresh:()=>{void refreshTransactions();}});
         if(record.kind==='pq-revocation'&&record.status==='pq-signed-unsubmitted'){
           const unavailable=document.createElement('p');unavailable.textContent='当前可信节点的撤销原件查询格式尚未接通。保留本地原件；不表示已撤销，不重新签名或发送。 / Trusted revocation lookup is not yet supplied. Local original retained; no claim of revocation, no re-sign or send.';row.append(unavailable);
@@ -1237,6 +1240,7 @@ function renderKeyState(state) {
   if(typeof pqMigrationReviewUI!=='undefined')pqMigrationReviewUI.render();
   if(typeof pqRevocationReviewUI!=='undefined'){if(securityChanged)pqRevocationReviewUI.invalidate();else pqRevocationReviewUI.render();}
   if(typeof pqKeyPreparationUI!=='undefined'){if(securityChanged)pqKeyPreparationUI.invalidate();else pqKeyPreparationUI.render();}
+  if(typeof pqAccountInitialUI!=='undefined'){if(securityChanged)pqAccountInitialUI.invalidate();else pqAccountInitialUI.render();}
   if(typeof pqBackupUI!=='undefined'){if(securityChanged)pqBackupUI.invalidate();else pqBackupUI.render();}
   if(typeof pqRegisteredRestoreUI!=='undefined'){if(securityChanged)pqRegisteredRestoreUI.invalidate();else pqRegisteredRestoreUI.render();}
   if(typeof sessionRecoveryUI!=='undefined')sessionRecoveryUI.render();

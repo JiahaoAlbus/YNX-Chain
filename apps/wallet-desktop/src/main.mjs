@@ -548,6 +548,19 @@ async function prepareLocalPQTransferReview(input){
   }catch(error){if(typeof response?.request?.id==='string')walletAuthority.expire(response.request.id);throw error;}
 }
 handleWalletIPC('wallet:pq-transfer-review',(_event,input)=>sensitiveIPC(()=>prepareLocalPQTransferReview(input)));
+async function prepareLocalPQAccountInitialReview(action,input){
+  const guard=keyAccess.current();guard.assert();let response;
+  try{
+    response=await(action==='sign'?walletAuthority.requestPQAccountInitial(input):walletAuthority.requestPQAccountInitialBroadcast(input));guard.assert();
+    const method=action==='sign'?'ynx_signPQAccountInitial':'ynx_broadcastPQAccountInitial';
+    if(response?.status!=='approval-required'||response.effectReady!==false||response.signed!==false||response.submitted!==false||response.request?.method!==method||response.request.review?.account!==guard.account||typeof response.request.id!=='string')throw Object.assign(Error('The original registration preview is unavailable.'),{code:'PQ_INITIAL_REVIEW_REQUIRED'});
+    if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
+    mainWindow.webContents.send('wallet:provider-request',response.request);guard.assert();
+    return Object.freeze({account:guard.account,requestId:response.request.id,action,effectReady:false,signed:false,submitted:false});
+  }catch(error){if(typeof response?.request?.id==='string')walletAuthority.expire(response.request.id);throw error;}
+}
+handleWalletIPC('wallet:pq-account-initial-review',(_event,input)=>sensitiveIPC(()=>prepareLocalPQAccountInitialReview('sign',input)));
+handleWalletIPC('wallet:pq-account-initial-broadcast-review',(_event,hash)=>sensitiveIPC(()=>prepareLocalPQAccountInitialReview('broadcast',hash)));
 handleWalletIPC('wallet:pq-typed-action-review',(_event,input)=>sensitiveIPC(async()=>{
   const response=await walletAuthority.requestPQTypedAction(input);
   keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);

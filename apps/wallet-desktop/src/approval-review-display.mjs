@@ -15,6 +15,13 @@ const labels = Object.freeze({
   deployment: "部署源码及编译材料的字节数和 SHA-256（尚待 Go 认证） / Deployment material sizes and SHA-256 (Go authentication still required)",
   initiatorOrigin: "请求应用来源（不是预先签名授权） / Requesting app origin (not signing permission)",
   revokeAt: "撤销生效高度 / Revocation effective height",
+  purpose: "固定用途 / Fixed purpose", action: "独立请求阶段 / Separate action",
+  requestDigest: "原登记消息 SHA-256 / Registration message SHA-256",
+  activateAt: "拟生效高度（确认前须核对原执行高度） / Proposed activation height (original execution height must be checked)",
+  registrationFee: "新账户登记费 / Initial registration fee",
+  publicKeyASHA256: "完整公钥 A 指纹 / Full public key A fingerprint",
+  publicKeyBSHA256: "完整公钥 B 指纹 / Full public key B fingerprint",
+  effectReady: "真实签名／提交尚未启用 / Signing or submission enabled",
 });
 
 // Directional and invisible characters must not visually rewrite a signature request.

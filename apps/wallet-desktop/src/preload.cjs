@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   recoverRegisteredPQ:()=>ipcRenderer.invoke('wallet:pq-restore-recover'),
   resumeRegisteredPQ:()=>ipcRenderer.invoke('wallet:pq-restore-resume'),
   preparePQTransfer:input=>ipcRenderer.invoke('wallet:pq-transfer-review',input),
+  preparePQAccountInitial:input=>ipcRenderer.invoke('wallet:pq-account-initial-review',input),
+  preparePQAccountInitialBroadcast:hash=>ipcRenderer.invoke('wallet:pq-account-initial-broadcast-review',hash),
   preparePQTypedAction:input=>ipcRenderer.invoke('wallet:pq-typed-action-review',input),
   preparePQMigration:input=>ipcRenderer.invoke('wallet:pq-migration-review',input),
   preparePQRevocation:input=>ipcRenderer.invoke('wallet:pq-revocation-review',input),
