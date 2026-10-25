@@ -4,6 +4,15 @@ const failure = code => Object.assign(new Error("WalletConnect request cannot be
 const freeze = value => { if (value && typeof value === "object") { for (const child of Object.values(value)) freeze(child); Object.freeze(value); } return value; };
 const STORE_KEY="ynx-wallet:walletconnect-review-inbox:v1";
 const canonical=value=>JSON.stringify(value&&typeof value==="object"?Array.isArray(value)?value.map(item=>JSON.parse(canonical(item))):Object.fromEntries(Object.keys(value).sort().filter(key=>value[key]!==undefined).map(key=>[key,JSON.parse(canonical(value[key]))])):value);
+/** Existing original transport identity, factored for the normal IDE caller
+ * before awaiting a response. Keep the ACTUAL topic and JSON-RPC ID type:
+ * numeric37 and string"37" are different originals. This is correlation DATA
+ * only, never a session/connection capability, approval or replay permit. */
+export function walletConnectRequestIdentityData(topic,id){
+ if(typeof topic!=="string"||!/^[A-Za-z0-9_-]{3,256}$/u.test(topic)||!(Number.isSafeInteger(id)&&id>=0||typeof id==="string"&&/^[A-Za-z0-9_-]{1,64}$/u.test(id)))throw failure("INVALID_WALLETCONNECT_REQUEST");
+ const requestKey=JSON.stringify([topic,id]);
+ return Object.freeze({requestKey,originalRequestKeyHash:createHash('sha256').update(requestKey,'utf8').digest('hex'),dataOnly:true});
+}
 export class WalletConnectRequestInbox {
   constructor({ now = Date.now, schedule = setTimeout, unschedule = clearTimeout, onExpire = () => {}, limit = 64, perOrigin = 8, ttlMs = 120_000 } = {}) {
     this.now = now; this.schedule = schedule; this.unschedule = unschedule; this.onExpire = onExpire;
@@ -21,8 +30,7 @@ export class WalletConnectRequestInbox {
     const now = this.now();
     for(const [key,record] of this.records)if(record.expiresAt<=now&&!this.sdkPending?.has(key))this.records.delete(key);
     for (const [key, expiry] of this.completed) if (expiry <= now) this.completed.delete(key);
-    if (typeof event?.topic !== "string" || !/^[A-Za-z0-9_-]{3,256}$/u.test(event.topic) || !(Number.isSafeInteger(event.id) && event.id >= 0 || typeof event.id === "string" && /^[A-Za-z0-9_-]{1,64}$/u.test(event.id))) throw failure("INVALID_WALLETCONNECT_REQUEST");
-    const key = JSON.stringify([event.topic, event.id]);
+    const {requestKey:key}=walletConnectRequestIdentityData(event?.topic,event?.id);
     const wire = canonical({ topic: event.topic, id: event.id, params: event.params,verifyContext:event.verifyContext });
     if (Buffer.byteLength(wire) > 65536) throw failure("WALLETCONNECT_REQUEST_TOO_LARGE");
     const fingerprint = createHash("sha256").update(wire).digest("hex"), existing = this.items.get(key);

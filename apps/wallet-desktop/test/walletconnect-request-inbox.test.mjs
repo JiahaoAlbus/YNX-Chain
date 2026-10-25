@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { WalletConnectRequestInbox } from "../src/walletconnect-request-inbox.mjs";
+import * as inboxModule from '../src/walletconnect-request-inbox.mjs';
+import {createHash} from 'node:crypto';
+import {captureWalletPQConnection,readWalletPQConnection,parsePQConnectionRequest} from '../src/wallet-pq-connection-contract.mjs';
 import { DesktopKeyLifecycle } from "../src/key-lifecycle.mjs";
 import { ApprovalReviewQueue } from "../src/approval-review-queue.mjs";
 const account = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", origin = "https://qa.example";
@@ -49,6 +52,22 @@ test("expiration during an asynchronous signing lease prevents the outward effec
   assert.equal(sent, false);
 });
 function durableStorage(){const values=new Map();return{values,getItem:async key=>structuredClone(values.get(key)),setItem:async(key,value)=>{values.set(key,structuredClone(value));}};}
+test('normal request identity is available before response and matches the retained connection lookup',async()=>{
+ const e=event('topic-original',37),identity=inboxModule.walletConnectRequestIdentityData(e.topic,e.id),f=fixture(),storage=durableStorage();await f.inbox.start(storage);
+ const entry=f.inbox.accept(e,{origin,sessionBinding:'original-session'},account).entry;await f.inbox.persist();assert.equal(identity.requestKey,entry.key);
+ const token=captureWalletPQConnection({origin,account,sessionBinding:'original-session',requestKey:entry.key,assertCurrent(){}});assert.equal(readWalletPQConnection(token).requestKeyHash,identity.originalRequestKeyHash);
+ const cold=fixture();await cold.inbox.start(storage,[identity.requestKey]);assert.equal(cold.inbox.records.get(identity.requestKey).key,identity.requestKey);
+ const query=parsePQConnectionRequest('ynx_getPQContractOriginal',[{version:1,account,originalRequestKeyHash:identity.originalRequestKeyHash,refresh:false}]);assert.equal(query.originalRequestKeyHash,identity.originalRequestKeyHash);assert.throws(()=>readWalletPQConnection(identity));
+});
+test('cold recovery identity preserves original ID type and exact existing inbox key, never payload or string coercion',()=>{
+ const numeric=inboxModule.walletConnectRequestIdentityData('topic-original',37),text=inboxModule.walletConnectRequestIdentityData('topic-original','37');assert.equal(numeric.requestKey,'["topic-original",37]');assert.equal(text.requestKey,'["topic-original","37"]');assert.notEqual(numeric.originalRequestKeyHash,text.originalRequestKeyHash);assert.equal(numeric.originalRequestKeyHash,createHash('sha256').update('["topic-original",37]','utf8').digest('hex'));assert(Object.isFrozen(numeric));assert.equal(numeric.dataOnly,true);
+ for(const [topic,id]of [['ab',1],['topic '+ 'x',1],['t'.repeat(257),1],['topic-a',-1],['topic-a',Number.MAX_SAFE_INTEGER+1],['topic-a',NaN],['topic-a',null],['topic-a',{}],['topic-a',''],['topic-a','a'.repeat(65)]])assert.throws(()=>inboxModule.walletConnectRequestIdentityData(topic,id),e=>e.data.code==='INVALID_WALLETCONNECT_REQUEST');
+});
+test('new-session query retains old original identity without resending an old transport event',async()=>{
+ const original=inboxModule.walletConnectRequestIdentityData('topic-old',19),f=fixture(),store=durableStorage(),e=event('topic-old',19);await f.inbox.start(store);const entry=f.inbox.accept(e,{origin,sessionBinding:'old-session'},account).entry;await f.inbox.persist();await f.inbox.markDecided(entry);f.inbox.finish(entry.key);await f.inbox.persist();
+ const cold=fixture();await cold.inbox.start(store,[original.requestKey]);assert.equal(cold.inbox.accept({...e,restored:true},{origin,sessionBinding:'old-session'},account).entry,null);
+ const query={version:1,account,originalRequestKeyHash:original.originalRequestKeyHash,refresh:false},fresh=event('topic-new',20);fresh.params.request={method:'ynx_getPQContractOriginal',params:[query],expiryTimestamp:1100};const next=cold.inbox.accept(fresh,{origin,sessionBinding:'new-session'},account).entry;assert.equal(next.event.params.request.method,'ynx_getPQContractOriginal');assert.equal(parsePQConnectionRequest(next.event.params.request.method,next.event.params.request.params).originalRequestKeyHash,original.originalRequestKeyHash);assert.notEqual(next.key,entry.key);
+});
 test("cold inbox restores the original unlocked review deadline without re-signing and binds account/session/wire",async()=>{
  const store=durableStorage(),first=fixture(),e=event();delete e.params.request.expiryTimestamp;const authorized={origin,sessionBinding:"original-session"};await first.inbox.start(store);const original=first.inbox.accept(e,authorized,account).entry;await first.inbox.persist();
  const cold=fixture();cold.tick(1_030_000);await cold.inbox.start(store,[original.key]);const resumed=cold.inbox.accept({...e,restored:true},authorized,account).entry;assert.equal(resumed.expiresAt,original.expiresAt);assert.equal(resumed.stage,"received");
