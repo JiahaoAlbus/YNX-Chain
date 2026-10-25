@@ -10,17 +10,25 @@ const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json
 // selected or claimed by reusing this predecessor's output pin in a fixture.
 const root=process.env.YNX_DEVELOPER_CANONICAL_NATIVE_ROOT;
 const isSDK37=inputs.sdkVersion==='1.3.0-pq.3.32-auth.37';
+const isSDK39=inputs.sdkVersion==='1.3.0-pq.3.32-auth.39';
+const isExecutedRecord=isSDK37||isSDK39;
 // Test-only re-pin reaches recipe semantics after the immutable producer-record gate.
 // Never changes production selection, on-disk producer bytes, or actual compile evidence.
-function recipeControl(record,selection){const next=structuredClone(selection);if(isSDK37)next.nativeComponent.executedRecordCanonicalSha256=createHash('sha256').update(JSON.stringify(record)).digest('hex');return next;}
-const recipeError=isSDK37?new Error('SDK37 component Node command differs.'):new Error('Canonical Native compile command differs.');
+function recipeControl(record,selection){const next=structuredClone(selection);if(isExecutedRecord)next.nativeComponent.executedRecordCanonicalSha256=createHash('sha256').update(JSON.stringify(record)).digest('hex');return next;}
+const recipeError=isSDK39?new Error('SDK39 component Node command differs.'):isSDK37?new Error('SDK37 component Node command differs.'):new Error('Canonical Native compile command differs.');
+function assertRecipeFailure(record,selection,expected=recipeError){
+  // The immutable producer hash must reject first without test-only re-pinning.
+  // Then the independent recipe guard must still reject the exact mutation.
+  if(isSDK39)assert.throws(()=>validateCanonicalNativeBuildReceipt(record,selection),new Error('SDK39 component producer record differs.'));
+  assert.throws(()=>validateCanonicalNativeBuildReceipt(record,recipeControl(record,selection)),expected);
+}
 const extra=['packages/wallet-auth/native/original-ide-wallet-identity-source.mm','packages/wallet-auth/native/original-ide-wallet-peer-launch.mm'];
 async function fixture(){
   assert.ok(root,'Supply original selected Native root');
   const supplied=JSON.parse(await readFile(join(root,inputs.nativeComponent.receipt.path)));
   const record=validateCanonicalNativeBuildReceipt(supplied,inputs);
   const next=structuredClone(inputs);
-  if(isSDK37)return {record,next}; // Use actual eighteen-TU producer unchanged; no SDK14 augmentation.
+  if(isExecutedRecord)return {record,next}; // Actual SDK37/39 eighteen-TU producer; never apply SDK14 augmentation.
   for(const path of extra){
     if(!next.nativeBuildInputs.some(x=>x.path===path)){
       const row={path,bytes:1,sha256:'1'.repeat(64)};next.nativeBuildInputs.push(row);
@@ -44,18 +52,18 @@ test('selected sources cannot be recorded without compiling both transport units
   assert.equal(validateCanonicalNativeBuildReceipt(record,next),record);
   for(const path of extra){
     const changed=structuredClone(record);for(const command of changed.commands)command.argv=command.argv.filter(x=>x!==join(changed.sourceRoot,path));
-    assert.throws(()=>validateCanonicalNativeBuildReceipt(changed,recipeControl(changed,next)),recipeError);
+    assertRecipeFailure(changed,next);
   }
 });
 test('selected OS bundle resolution requires AppKit in the actual compiler recipe',async()=>{
   const {record,next}=await fixture();for(const command of record.commands)command.argv=command.argv.filter(x=>x!=='AppKit');
-  assert.throws(()=>validateCanonicalNativeBuildReceipt(record,recipeControl(record,next)),recipeError);
+  assertRecipeFailure(record,next);
 });
 test('one selected transport unit cannot silently fall back to the old six-unit recipe',async()=>{
   const {record,next}=await fixture();next.nativeBuildInputs=next.nativeBuildInputs.filter(x=>x.path!==extra[1]);record.inputFiles=record.inputFiles.filter(x=>x.relative!==extra[1]);
-  assert.throws(()=>validateCanonicalNativeBuildReceipt(record,recipeControl(record,next)),new Error('Canonical Native transport source closure differs.'));
+  assertRecipeFailure(record,next,new Error('Canonical Native transport source closure differs.'));
 });
-test('selected helper, publication and relay units retain their full link recipe across SDK14 and SDK37',async()=>{
+test('selected helper, publication and relay units retain their full link recipe across SDK14 and SDK37/39',async()=>{
   const {record,next}=await fixture();
   for(const path of ['original-ide-helper-client.mm','original-ide-helper-xpc-peer.mm','original-ide-helper-service-install.mm','original-ide-publication-artifact.mm','original-ide-contract-relay-owner.mm']){
     const changed=structuredClone(record);
