@@ -55,6 +55,13 @@ func NativeAddress(publicKey []byte) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("parse secp256k1 public key: %w", err)
 	}
+	return nativeAddressFromParsedPublicKey(parsed)
+}
+
+// The parsed key is local to the caller. Reusing it for owner derivation and
+// signature verification avoids parsing the same compressed point twice;
+// every signed envelope still undergoes the complete signature verification.
+func nativeAddressFromParsedPublicKey(parsed *secp256k1.PublicKey) (string, error) {
 	uncompressed := parsed.SerializeUncompressed()
 	hasher := sha3.NewLegacyKeccak256()
 	_, _ = hasher.Write(uncompressed[1:])
@@ -164,7 +171,11 @@ func (tx SignedTransaction) Verify(expectedChainID int64) error {
 		return fmt.Errorf("signed transaction chain ID %d does not match %d", tx.ChainID, expectedChainID)
 	}
 	publicKeyBytes, _ := hex.DecodeString(tx.PublicKey)
-	derived, err := NativeAddress(publicKeyBytes)
+	publicKey, err := secp256k1.ParsePubKey(publicKeyBytes)
+	if err != nil {
+		return fmt.Errorf("parse secp256k1 public key: %w", err)
+	}
+	derived, err := nativeAddressFromParsedPublicKey(publicKey)
 	if err != nil {
 		return err
 	}
@@ -173,10 +184,6 @@ func (tx SignedTransaction) Verify(expectedChainID int64) error {
 	}
 	if tx.Signature == "" {
 		return errors.New("signed transaction signature is required")
-	}
-	publicKey, err := secp256k1.ParsePubKey(publicKeyBytes)
-	if err != nil {
-		return fmt.Errorf("parse signed transaction public key: %w", err)
 	}
 	signatureBytes, _ := hex.DecodeString(tx.Signature)
 	signature, err := ecdsa.ParseDERSignature(signatureBytes)

@@ -230,6 +230,8 @@ jobs:
       - run: make static-check
       - run: make streambft-candidate-check
       - run: make consensus-abci-check
+      - name: Verify native parsed-key reuse and original signature refusal semantics
+        run: go test -p 1 -race ./internal/consensus -run '^Test(NativeVerifyParsedKeyReuse|NativeVerification|SignedTransaction|MobileNativeTransferVector|ApplicationExecutesSignedTransfer|ApplicationDoesNotAdvance)' -count=1 -timeout=30s -v
       - name: Verify bounded performance controller and evidence contracts
         run: >-
           node --test
