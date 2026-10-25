@@ -135,7 +135,15 @@ export async function openProjectContractClient({context, relayAuthority, create
     read(referenceId) { return exclusive(() => journal.read(referenceId)); },
     listReferences(){return exclusive(()=>journal.history());},
     query(referenceId, {refresh = false} = {}) { return exclusive(async () => {
-      const original = await journal.read(referenceId);
+      let original = await journal.read(referenceId);
+      if(original?.method==='ynx_preparePQContractBroadcast'){
+        // Wallet binds original-result lookup to the signing request's
+        // initiator, not the later broadcast RPC. Keep both original records;
+        // this association grants query coordinates only, never replay.
+        const parents=(await journal.list(true)).filter(row=>row.method==='ynx_preparePQContractAction'&&row.account===original.account&&contractBroadcastReferenceId(row.referenceId)===referenceId);
+        if(parents.length!==1)throw failure('IDE_CONTRACT_QUERY_UNAVAILABLE');
+        original=parents[0];
+      }
       if (!original?.originalRequestKeyHash || typeof refresh !== 'boolean') throw failure('IDE_CONTRACT_QUERY_UNAVAILABLE');
       const account = await walletAccount();
       if (original.account !== account) throw failure('IDE_CONTRACT_WALLET_CHANGED');

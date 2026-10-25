@@ -43,7 +43,9 @@ node --test scripts/ai-unconfigured-default.test.mjs desktop/admitted-local-proj
 node --test desktop/wallet-contract-reference-journal.test.mjs desktop/wallet-contract-client.test.mjs
 node --test desktop/contract-relay-scope.test.mjs
 node --test desktop/contract-relay-startup.test.mjs
-node --test desktop/project-contract-execution.test.mjs desktop/project-contract-execution-channel.test.mjs
+# The canonical SDK source has already passed the immutable source/closure gate
+# above. Bind this test to that exact normal root, never an absent repo shadow.
+YNX_IDE_PQ_ACTION_SOURCE="${YNX_DEVELOPER_CANONICAL_SDK_ROOT:?Reviewed canonical SDK root required}/src/pq-native-action.js" node --test desktop/project-contract-execution.test.mjs desktop/project-contract-execution-channel.test.mjs
 node --test desktop/project-contract-runtime.test.mjs
 node --test desktop/artifact-publication-client.test.mjs desktop/artifact-publication-key-call.test.mjs desktop/publication-result-originals.test.mjs desktop/publication-result-normal-prefix.test.mjs
 node --test desktop/artifact-publication-lifecycle.test.mjs
