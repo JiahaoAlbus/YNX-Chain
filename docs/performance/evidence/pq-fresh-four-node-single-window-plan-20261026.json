@@ -1,5 +1,5 @@
 {
-  "status": "PREPARING_NOT_EXECUTABLE_PENDING_ORIGINAL_PROTOCOL_INPUTS_AND_FRESH_RUNNER_CODE",
+  "status": "PREPARING_NOT_EXECUTABLE_PENDING_ORIGINAL_SUPPLY_READBACK_CALLER_BINDING_AND_ROOT_RUN_ADMISSION",
   "executionAuthorized": false,
   "rootGrant": null,
   "purpose": "first isolated new-PQ four-validator paired correctness/latency baseline; no claim of 1000 TPS qualification",
@@ -19,7 +19,7 @@
   },
   "originalRunner": {
     "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/scripts/loadtest/pq-paired-linux-window.py",
-    "sha256": "7a4abc7291caee244240f5a6e2b2ae4912c467750fae19c557a23e1ddc1c7af3",
+    "sha256": "433efda1d668204d160fc4b6cac1ad5b27cb87ae4d77c4af7121fde01147f9ef",
     "baseReviewedProfile": "consensus-signed-business-v1",
     "baseProfileMustNotExecuteThisPlan": true,
     "reason": "Existing signed-business profile is the preserved three-case initial/Member/partial workload with client3f5b; append and freeze a separate fresh successor, never hot-mix its old grant. Performance worktree controller copy is historical, not the authoritative current runner.",
@@ -28,14 +28,21 @@
       "test": "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming",
       "leafCommit": "5aebd8362414265f4894b818b6033a910d651cab",
       "leafSHA256": "5b5cc231800157a2d4ac0ce07af43010c61ac18f9398e54711a18d6d9deb530f",
-      "normalCI": "40221463286 in progress at handoff; four DATA tests and three sibling ELFs not yet qualified",
-      "controllerStatus": "Protocol actively editing original controller; successor not frozen or executable"
+      "normalCI": "40223021096 completed success; exact head2f36f5e7acd433c565f7ae366954a3fa0e763b14",
+      "controllerStatus": "committed clean original Protocol successor2f36; normal supply CI40223021096 SUCCESS; full artifact readback and new caller/resource admission pending",
+      "cli": "--consensus-fresh-paired-business"
     },
     "owningSourceWork": "Protocol owns original network controller, original tests, fresh epochs, build manifest and node/gateway/verifier supply. Chain performance owns fixed client and phase/delta consumer. Root coordinates admission only.",
-    "bytes": 74088,
     "ownerThread": "01a14abb-5066-7db0-8814-e08c0d4b35a8",
-    "committedControllerOrigin": "1eea5564122df29a13febd7ad266f31f21f8f03e",
-    "baseCLI": "--consensus-signed-business"
+    "committedControllerOrigin": "2f36f5e7acd433c565f7ae366954a3fa0e763b14",
+    "baseCLI": "--consensus-signed-business",
+    "preservedThreeCaseController": {
+      "sha256": "7a4abc7291caee244240f5a6e2b2ae4912c467750fae19c557a23e1ddc1c7af3",
+      "bytes": 74088,
+      "committedControllerOrigin": "1eea5564122df29a13febd7ad266f31f21f8f03e",
+      "baseCLI": "--consensus-signed-business",
+      "baseReviewedProfile": "consensus-signed-business-v1"
+    }
   },
   "sameConditions": {
     "oneLinuxVM": true,
@@ -169,7 +176,7 @@
   ],
   "knownGaps": {
     "clientBinaryNormalPrebuild": "resolved: exact70e7 Linux ELF built by original CI40220335526, independently read back and handed to Protocol",
-    "freshFourNodeProfile": "fresh leaf committed5aebd8362; Protocol actively implements successor profile in its original controller, normal tests/new freeze and sibling3ELF pending",
+    "freshFourNodeProfile": "resolved CODE: original2f36 profile committed and normal CI40223021096 passed; original owner must read back exact new supply and complete normal caller/prepared/run binding before Root admission",
     "freshInitialPositiveFixture": "real prepared funding/registration/business verification belongs to the original fresh callee; no actual paired run result yet",
     "wholeCollector": "canonical gateway owning work pending; first window uses N1 only, do not claim Whole or infer finality from Data",
     "heavyAdmission": "no new grant; do not start any node/window"
@@ -217,5 +224,27 @@
       "Wallet GUI approval"
     ],
     "nextAfterPassed": "Root schedules gradual valid offered load and longer runs; eventual >=10min 1000 effective finalized TPS plus P50/P95/P99/errors/backlog/resources"
+  },
+  "freshNormalSupplyMetadata": {
+    "normalCI": {
+      "databaseId": 40223021096,
+      "headSha": "2f36f5e7acd433c565f7ae366954a3fa0e763b14",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40223021096"
+    },
+    "artifact": {
+      "id": 12611050415,
+      "name": "ynx-pq-fresh-paired-business-build-2f36f5e7acd433c565f7ae366954a3fa0e763b14-40223021096-1",
+      "size_in_bytes": 81040562,
+      "digest": "sha256:cc7f620cccf885ef329ae0a0cbe7f9af290bccce7308e69c0198ff387df7c70e",
+      "expired": false
+    },
+    "evidenceScope": "original CI terminal and artifact API metadata only",
+    "archiveDownloadedHere": false,
+    "sourceManifestAndELFsReadBackHere": false,
+    "nodeWindowStarted": false,
+    "executionAuthorized": false,
+    "sustainedTPSQualified": false
   }
 }

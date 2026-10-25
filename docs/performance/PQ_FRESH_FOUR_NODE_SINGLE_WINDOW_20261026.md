@@ -41,3 +41,26 @@ Protocol fresh leaf已提交 `5aebd8362414265f4894b818b6033a910d651cab`，
 前后阶段差值、样本与缺项规则见
 [接入合同](PQ_FRESH_PHASE_READBACK_CONTRACT_20261026.md)。
 本更新只纠正实际归属和已存在实物，不构成资源grant、四节点PASS或TPS结果。
+
+
+## 2f36 原 fresh profile 正常供应已出现
+
+原owner已提交 `2f36f5e7acd433c565f7ae366954a3fa0e763b14`，controller和tests clean。
+新controller SHA256
+`433efda1d668204d160fc4b6cac1ad5b27cb87ae4d77c4af7121fde01147f9ef`，
+入口 `--consensus-fresh-paired-business`，profile
+`consensus-fresh-paired-business-v1`。上文74088B/7a4abc是保留的旧三case
+基线，不是本次fresh controller；旧once不复用。
+
+[原normal40223021096](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40223021096)
+已completed SUCCESS，head精确2f36。fresh artifact实际存在：ID12611050415，
+81,040,562B，ZIP SHA256
+`cc7f620cccf885ef329ae0a0cbe7f9af290bccce7308e69c0198ff387df7c70e`。
+[原终态/API元数据记录](evidence/pq-fresh-profile2f36-normal-supply-metadata-20261026.json)
+仅证明正常CI和供应记录；性能线程未重复下载，也未声称已核其SOURCE/manifest/四ELF。
+这些读取仍由Protocol原供应owner完成，防止多线程重复下载或混用旧包。
+
+下一完整段是原包一次核验、normal caller relocation与闭合prepared/run contract，
+然后Root实测压力等级1并排原新once，两arm共32有效业务与真实四节点phase输出。
+原调用没有执行之前，不把artifact、parser DATA、4DATA或完整CI当成Node结果。
+当前计划仍executionAuthorized:false/rootGrant:null，未提高任何资源上限。

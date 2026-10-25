@@ -1,0 +1,22 @@
+{
+  "archiveDownloadedHere": false,
+  "artifact": {
+    "digest": "sha256:cc7f620cccf885ef329ae0a0cbe7f9af290bccce7308e69c0198ff387df7c70e",
+    "expired": false,
+    "id": 12611050415,
+    "name": "ynx-pq-fresh-paired-business-build-2f36f5e7acd433c565f7ae366954a3fa0e763b14-40223021096-1",
+    "size_in_bytes": 81040562
+  },
+  "evidenceScope": "original CI terminal and artifact API metadata only",
+  "executionAuthorized": false,
+  "nodeWindowStarted": false,
+  "normalCI": {
+    "conclusion": "success",
+    "databaseId": 40223021096,
+    "headSha": "2f36f5e7acd433c565f7ae366954a3fa0e763b14",
+    "status": "completed",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40223021096"
+  },
+  "sourceManifestAndELFsReadBackHere": false,
+  "sustainedTPSQualified": false
+}
