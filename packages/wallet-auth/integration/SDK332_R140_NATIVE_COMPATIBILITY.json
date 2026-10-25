@@ -1,6 +1,6 @@
 {
   "schema": "ynx-sdk332-r140-native-compatibility/v1",
-  "version": "1.3.0-pq.3.32-auth.44",
+  "version": "1.3.0-pq.3.32-auth.45",
   "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
   "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
   "publicExports": {
@@ -351,8 +351,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
-      "bytes": 7550,
-      "sha256": "bd86b8a2717b21904a24bceeb1929aaa4fcd7d0e07f88d3ac289ffb43b00eac8"
+      "bytes": 7657,
+      "sha256": "e003321bb5818a306188d2654ac18876ca3a13b64cff21657007dfc144ac21de"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
@@ -626,13 +626,13 @@
     },
     {
       "path": "packages/wallet-auth/native/original-ide-project-authority-source.inc.mm",
-      "bytes": 10570,
-      "sha256": "f6ba57e086dd19875d63c7c81c75f4f48647f37e0d13cd9e932b2a44afe57b70"
+      "bytes": 13456,
+      "sha256": "973ccde70dc4d5b08b851260b92214b6d3baf5aca40e1fa16731c8ca25178efc"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-project-authority-binding.inc.mm",
-      "bytes": 9232,
-      "sha256": "b79c0875677ce4230ed8c95974757eb5983d7bc88cd19077014d53193d646d11"
+      "bytes": 9955,
+      "sha256": "472cd112217011b3c35574c729d8d8dc54db4ccca542afe27424a7b43b55f46d"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-workspace-project-selection.inc.mm",
@@ -753,12 +753,17 @@
       "path": "packages/wallet-auth/native/original-pq-host-catalog-task-exit.h",
       "bytes": 629,
       "sha256": "214c375c2bddb96dc057347dd8a3b3471a53ad4fbc56bc317afc8197c6220ff6"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-service-registration-data.h",
+      "bytes": 2353,
+      "sha256": "b541261cc90169ceb78cefce1d731f3978ac9098ff7c99faabe4e1151eb14f1b"
     }
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 15467,
-    "sha256": "d39bdb9f8507ce82c4e184007eaf804cfb94dbbd441e93290bf7253d26883480"
+    "bytes": 15553,
+    "sha256": "332bfa52666aa59b1d1d5c39eb5d11c0d539e57411a2371ccea65a4685357622"
   },
   "require": {
     "translationUnits": 15,
@@ -2161,5 +2166,21 @@
     "proofVerification": false,
     "finalityGranted": false,
     "retryOrOriginalMutation": false
+  },
+  "serviceRegistrationSuccessor": {
+    "AuthH": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-ide-service-registration-supply-20261026-r2/HANDOFF.json",
+      "bytes": 113141,
+      "sha256": "d1da3a842b93696b7284653cb883564f3c5d08fd34fd6689652f5816dc58b328"
+    },
+    "signedLocation": "selection.ideServiceRegistration",
+    "projectAuthorityExactFivePreserved": true,
+    "NativeInputs": 100,
+    "HelperInputs": 5,
+    "newGetter": "readOriginalIDECurrentServiceRegistration(originalAuthority,projectID)",
+    "sameOriginalSourceOnly": true,
+    "businessReadPermission": false,
+    "SourceQualified": false,
+    "installed": false
   }
 }

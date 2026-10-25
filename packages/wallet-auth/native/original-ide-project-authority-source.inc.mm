@@ -1,6 +1,7 @@
 // Same original Source owner/signature domain/registered ledger verifier.
 // No Root/table/ACL is created, no callback or caller-supplied authority.
 #include "original-ide-project-authority-data.h"
+#include "original-ide-service-registration-data.h"
 - (NSDictionary*)copyOriginalIDEProjectAuthorityLocal:(NSError**)error {
  @synchronized(self){
   if(_projectLocalEntered||_entered||_relayLocalEntered||_relayRuntimeEntered){[self fail:@"IDE_PROJECT_SOURCE_REENTRANT" error:error];return nil;}
@@ -58,4 +59,34 @@
 - (NSDictionary*)copyOriginalIDECurrentPublisher:(NSString*)publisherID forProject:(NSString*)projectID error:(NSError**)error {
  @synchronized(self){NSDictionary*first=[self copyOriginalIDEProjectAuthorityLocal:error];if(!first)return nil;if(![first[@"publisher"]isKindOfClass:NSDictionary.class]||!SourceProjectText(publisherID)||!SourceProjectText(projectID)||![first[@"project"][@"projectId"]isEqual:projectID]||![first[@"publisher"][@"publisherId"]isEqual:publisherID]||![first[@"project"][@"publish"]boolValue]){[self fail:@"IDE_PROJECT_PUBLISHER_REQUEST_DENIED" error:error];return nil;}
   NSDictionary*last=[self copyOriginalIDEProjectAuthorityLocal:error];if(!last||![first isEqual:last]){[self fail:@"IDE_PROJECT_PUBLISHER_POST_CURRENT_REFUSED" error:error];return nil;}return @{@"principal":first[@"principal"],@"project":first[@"project"],@"publisher":first[@"publisher"],@"publisherOriginal":first[@"publisherOriginal"],@"expiresMS":first[@"expiresMS"]};}
+}
+// Exact same dedicated original project Source. This is registered endpoint
+// DATA only, never Native business-read/sign approval or an operation receipt.
+- (NSDictionary*)copyOriginalIDECurrentServiceRegistration:(NSString*)projectID error:(NSError**)error {
+ @synchronized(self){
+ @try{
+  const auto began=std::chrono::steady_clock::now();
+  const uint64_t originalWall=(uint64_t)(NSDate.date.timeIntervalSince1970*1000);
+  NSDictionary*first=[self copyOriginalIDEProjectAuthorityLocal:error];
+  if(!first)return nil;
+  NSDictionary*project=first[@"project"],*principal=first[@"principal"];
+  if(!SourceProjectText(projectID)||![project[@"projectId"]isEqual:projectID]||!SourceProofBoolean(project[@"read"],true)){[self fail:@"IDE_SERVICE_PROJECT_READ_REQUIRED" error:error];return nil;}
+  id registered=_selection[@"ideServiceRegistration"];
+  NSData*raw=[NSJSONSerialization dataWithJSONObject:registered options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];
+  if(!raw||!raw.length||raw.length>16384){[self fail:@"IDE_SERVICE_REGISTRATION_NOT_SUPPLIED" error:error];return nil;}
+  NSDictionary*copy=[NSJSONSerialization JSONObjectWithData:raw options:0 error:nil];
+  const uint64_t before=(uint64_t)(NSDate.date.timeIntervalSince1970*1000);
+  uint64_t expires=0,parentExpires=0;
+  if(!SourceProjectMS(first[@"expiresMS"],parentExpires)||!SourceProjectServiceRegistration(copy,principal,projectID,before,expires)||before<_timeFloor||before>=parentExpires){[self fail:@"IDE_SERVICE_REGISTRATION_INVALID" error:error];return nil;}
+  expires=std::min(expires,parentExpires);
+  if(expires<=originalWall||std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-began).count()>=(int64_t)(expires-originalWall)){[self fail:@"IDE_SERVICE_REGISTRATION_WINDOW_EXPIRED" error:error];return nil;}
+  NSDictionary*last=[self copyOriginalIDEProjectAuthorityLocal:error];
+  NSData*post=[NSJSONSerialization dataWithJSONObject:_selection[@"ideServiceRegistration"] options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];
+  const uint64_t after=(uint64_t)(NSDate.date.timeIntervalSince1970*1000);
+  uint64_t checked=0;
+  if(!last||![first isEqual:last]||![raw isEqual:post]||after<before||after<_timeFloor||after>=expires||std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-began).count()>=(int64_t)(expires-originalWall)||!SourceProjectServiceRegistration(copy,principal,projectID,after,checked)){[self fail:@"IDE_SERVICE_REGISTRATION_POST_CURRENT_REFUSED" error:error];return nil;}
+  _timeFloor=after;
+  return @{@"principal":first[@"principal"],@"project":first[@"project"],@"serviceRegistration":copy,@"expiresMS":@(expires)};
+ }@catch(id){[self fail:@"IDE_SERVICE_REGISTRATION_CURRENT_UNKNOWN" error:error];return nil;}
+ }
 }
