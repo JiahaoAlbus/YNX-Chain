@@ -82,7 +82,7 @@ and is not the instant of BFT formation. The small 2/s pair cannot qualify the
 
 ## Verification status
 
-Twelve Node tests pass, including actual CLI consumption of both receipt shapes,
+Fifteen Node tests pass, including actual CLI consumption of both receipt shapes,
 immutable output and unchanged inputs, missing/unsafe numeric clocks, wrong
 source and ELF pins, UNKNOWN, original hash binding, registration exclusion,
 per-height deduplication, missing node/fsync and incomplete cleanup rejection.
@@ -139,3 +139,30 @@ The subsequent original-cleanup and stdout consumer changes in `f63131613` and
 in progress. They are not retroactively attributed to the completed producer.
 The normal CI passed source checks under Go 1.25; the Go 1.26.10 gate builds the
 frozen client. Neither gate is a fresh four-node run or sustained TPS evidence.
+
+## Paired distribution differences
+
+`pairedQuantileDeltas` reports observed after-minus-before differences for each
+latency, physical node/block stage and original client/verifier stage. It keeps
+both sample counts and whether they match. P50/P95/P99 retain before/after
+nanoseconds and signed differences; relative percentages are exact rational
+numerator/denominator values. Missing samples or missing stages produce null,
+not zero; a zero baseline has no percentage ratio. A pair with different
+persistence profiles is rejected, rather than presented as equal conditions.
+The result is a difference between two observed distributions, not matched
+per-transaction samples or proof that one change caused an improvement.
+
+Submission clients in this callee do not invoke the independent verifier.
+Their default zero fields now produce zero verifier execution samples and
+`notInvokedSamples:16`, not sixteen artificial zero-duration verifications.
+Readback verifier stage totals are checked against the original encompassing
+total before quantiles are calculated. Original client fields can still contain
+zero durations for unused client phases; these values are not extra RPC calls.
+The original input reports and raw logs are retained for interpretation.
+
+Fifteen contract/arithmetic/CLI tests pass, including changed/missing stages,
+zero baselines, physical block counts, different storage profiles, uninvoked
+verifiers and overlapping stage rejection. Raw output:
+`pq-fresh-paired-phase-deltas-20261026.raw` in the existing external performance
+artifact directory. These added tests generate no measured node result or
+cryptographic finality claim.

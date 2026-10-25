@@ -106,7 +106,8 @@ function originalFixture(){
   for(const r of [b.observation,b.confirmation])Object.assign(r,{nativeTransactionHash:native,abciTransactionHash:abci,cometIndex:i,members:1,rejectedMembers:0,actualOfferToFinalityMeasured:false,sustainedTPSQualified:false});
   for(const r of [b.observation,b.confirmation]){
    r.clientPhases=Object.fromEntries(['inputPreparationNs','intentDurabilityNs','submissionHTTPNs','submissionValidationNs','originalReadbackHTTPNs','originalReadbackValidationNs','proofCollectionHTTPNs','collectorIdentityValidationNs','proofDurabilityNs'].map(k=>[k,'1']));
-   for(const k of ['verifierPreparationNs','verifierProcessNs','verifierEvidenceDurabilityNs','verifierResultValidationNs','proofVerificationNs'])r[k]='2';
+   for(const k of ['verifierPreparationNs','verifierProcessNs','verifierEvidenceDurabilityNs','verifierResultValidationNs'])r[k]=r.readbackOnly?'2':'0';
+   r.proofVerificationNs=r.readbackOnly?'8':'0';
   }
   Object.assign(b.observation,{independentFinalityVerified:false,effectiveBusinessFinalized:0,firstCommittedRPCIndex:i});
   Object.assign(b.confirmation,{status:'committed_observed',effectiveBusinessIncludedObserved:1,originalReadbackAttempts:1,submissionToFirstCommittedRPCObservationNs:null,finalizedBusinessHashes:[native],proofVerifierSha256:f.expected.binaries[f.expected.verifierRole]});
@@ -122,7 +123,7 @@ test('actual original Go projection consumes numeric phase coordinates without i
  assert.equal(r.independentProofReverifiedHere,false);assert.equal(r.arms[0].receiptQualifiedBusiness,16);
  assert.equal(r.arms[0].nodeBlocks[0].stagesNs.json_encode.samples,1);
  assert.equal(r.arms[0].latencyNs.independentProofCompletion.p95Ns,'150');
- assert.deepEqual(r.arms[0].clientStagesNs.confirmation.verifierProcessNs,{samples:16,p50Ns:'2',p95Ns:'2',p99Ns:'2'});
+ assert.deepEqual(r.arms[0].clientStagesNs.confirmation.verifierProcessNs,{samples:16,p50Ns:'2',p95Ns:'2',p99Ns:'2',notInvokedSamples:0});
  const o=f.data.arms[0].rows[0].submission;
  Object.assign(o,{status:'submission_unknown',initialSubmissionUnknown:true,effectiveBusinessIncludedObserved:0,submissionToFirstCommittedRPCObservationNs:null,firstCommittedRPCObservationSource:'',firstCommittedRPCHeight:'0',firstCommittedRPCIndex:null});
  assert.equal(read(f).arms[0].latencyNs.clientSubmissionToFirstCommittedRPC.missingSamples,1);
@@ -183,4 +184,30 @@ test('actual stdout CLI emits one summary from original logs without synthesizin
   assert.deepEqual(fs.readFileSync(path.join(parent,'guard')),g);assert.deepEqual(fs.readFileSync(path.join(parent,'stdout')),raw);
   const mixed=[...args];mixed[3]='--result';const refused=spawnSync(process.execPath,mixed,{encoding:'utf8',timeout:5000});assert.equal(refused.status,1);
  }finally{fs.rmSync(parent,{recursive:true,force:true});}
+});
+
+test('paired phase quantile deltas preserve physical sample counts, missing stages and exact signed ratios',()=>{
+ const f=fixture();
+ for(const r of f.data.arms[1].phaseRows.filter(r=>r.phase==='commit')){r.commitTiming.stagesNs.json_encode=2;delete r.commitTiming.stagesNs.validate;}
+ const r=read(f),c=r.pairedQuantileDeltas;
+ assert.equal(c.causalImprovementProven,false);
+ assert.deepEqual(c.nodeBlocks[0].stagesNs.json_encode.p95,{beforeNs:'4',afterNs:'2',deltaNs:'-2',relativePercent:{numerator:'-200',denominator:'4'}});
+ assert.equal(c.nodeBlocks[0].stagesNs.json_encode.beforeSamples,1);
+ assert.equal(c.nodeBlocks[0].stagesNs.validate.afterSamples,0);
+ assert.equal(c.nodeBlocks[0].stagesNs.validate.p95.afterNs,null);
+ assert.equal(c.nodeBlocks[0].stagesNs.validate.p95.deltaNs,null);
+ assert.equal(c.nodeBlocks[0].stagesNs.validate.sampleCountsEqual,false);
+ const z=fixture();z.data.arms[0].phaseRows[1].commitTiming.stagesNs.validate=0;
+ assert.equal(read(z).pairedQuantileDeltas.nodeBlocks[0].stagesNs.validate.p50.relativePercent,null);
+});
+test('uninvoked submission verifiers are not zero-duration execution samples; overlapping timing is refused',()=>{
+ const f=originalFixture(),r=read(f),stages=r.arms[0].clientStagesNs;
+ assert.deepEqual(stages.observation.verifierProcessNs,{samples:0,p50Ns:null,p95Ns:null,p99Ns:null,notInvokedSamples:16});
+ assert.equal(r.pairedQuantileDeltas.clientStagesNs.observation.verifierProcessNs.p50.deltaNs,null);
+ f.data.arms[0].rows[0].readback.proofVerificationNs='7';assert.throws(()=>read(f),/verifier stages exceed/);
+});
+test('paired timing cannot compare different persistence profiles as the same condition',()=>{
+ const f=fixture();
+ for(const r of f.data.arms[1].phaseRows.filter(r=>r.phase==='commit'))r.commitTiming.storage='snapshot-journal-v1';
+ assert.throws(()=>read(f),/paired storage profile differs/);
 });

@@ -76,10 +76,29 @@ function projectedIdentity(b,mode,verifierSHA){
 function projectedClientStages(originals){
  const phases=['inputPreparationNs','intentDurabilityNs','submissionHTTPNs','submissionValidationNs','originalReadbackHTTPNs','originalReadbackValidationNs','proofCollectionHTTPNs','collectorIdentityValidationNs','proofDurabilityNs'];
  const verifier=['verifierPreparationNs','verifierProcessNs','verifierEvidenceDurabilityNs','verifierResultValidationNs','proofVerificationNs'];
- return Object.fromEntries(['observation','confirmation'].map(role=>[role,Object.fromEntries([
-  ...phases.map(k=>['clientPhases.'+k,freshTimingQuantiles([...originals.values()].map(b=>ns(b[role].clientPhases?.[k],role+' '+k)))]),
-  ...verifier.map(k=>[k,freshTimingQuantiles([...originals.values()].map(b=>ns(b[role][k],role+' '+k)))])
- ])]));
+ return Object.fromEntries(['observation','confirmation'].map(role=>{
+  const rows=[...originals.values()].map(b=>b[role]),verified=rows.filter(r=>r.independentFinalityVerified);
+  for(const r of rows){const parts=verifier.slice(0,4).map(k=>ns(r[k],role+' '+k)),total=ns(r.proofVerificationNs,role+' verifier total');requireValue(parts.reduce((a,b)=>a+b,0n)<=total&&(r.independentFinalityVerified||total===0n),'original verifier stages exceed total or report execution without verification');}
+  return [role,Object.fromEntries([
+   ...phases.map(k=>['clientPhases.'+k,freshTimingQuantiles(rows.map(r=>ns(r.clientPhases?.[k],role+' '+k)))]),
+   ...verifier.map(k=>[k,{...freshTimingQuantiles(verified.map(r=>ns(r[k],role+' '+k))),notInvokedSamples:rows.length-verified.length}])
+  ])];
+ }));
+}
+
+function quantileDelta(before,after){
+ const result={beforeSamples:before?.samples??0,afterSamples:after?.samples??0,sampleCountsEqual:(before?.samples??0)===(after?.samples??0)};
+ for(const p of [50,95,99]){
+  const key='p'+p+'Ns',a=before?.[key]??null,b=after?.[key]??null;
+  result['p'+p]={beforeNs:a,afterNs:b,deltaNs:a===null||b===null?null:String(BigInt(b)-BigInt(a)),relativePercent:a===null||b===null||BigInt(a)===0n?null:{numerator:String((BigInt(b)-BigInt(a))*100n),denominator:a}};
+ }
+ return result;
+}
+function compareQuantiles(before={},after={}){return Object.fromEntries([...new Set([...Object.keys(before),...Object.keys(after)])].sort().map(k=>[k,quantileDelta(before[k],after[k])]));}
+function compareArms(before,after){
+ return {interpretation:'Observed after-minus-before quantile differences, not per-transaction matched samples or a causal improvement claim. Missing data stays null; ratios use exact signed rational percentages.',causalImprovementProven:false,latencyNs:compareQuantiles(before.latencyNs,after.latencyNs),nodeBlocks:before.nodeBlocks.map((b,i)=>{
+  const a=after.nodeBlocks[i];requireValue(b.storage===a.storage,'paired storage profile differs');return {nodeIndex:b.nodeIndex,storage:b.storage,beforeBlockCount:b.businessBlockCount,afterBlockCount:a.businessBlockCount,...Object.fromEntries(['finalizeNs','outerCommitNs','persistenceSampleNs','unattributedOuterCommitNs'].map(k=>[k,quantileDelta(b[k],a[k])])),stagesNs:compareQuantiles(b.stagesNs,a.stagesNs)};
+ }),...(before.clientStagesNs&&after.clientStagesNs?{clientStagesNs:Object.fromEntries(['observation','confirmation'].map(role=>[role,compareQuantiles(before.clientStagesNs[role],after.clientStagesNs[role])]))}:{})};
 }
 
 function completedScans(scans,projected){
@@ -192,11 +211,12 @@ function readBoundFreshPhasePair(raw,guard,expected,stdoutSHA256){
   for(let node=0;node<4;node++){
    const commits=[...heights].map(h=>phases.get(node+'/'+h+'/commit')),finals=[...heights].map(h=>phases.get(node+'/'+h+'/finalize'));
    const stageNames=new Set(commits.flatMap(c=>Object.keys(c.commitTiming.stagesNs)));
-   nodeBlocks.push({nodeIndex:node,businessBlockCount:heights.size,finalizeNs:freshTimingQuantiles(finals.map(f=>f.end-f.start)),outerCommitNs:freshTimingQuantiles(commits.map(c=>c.end-c.start)),persistenceSampleNs:freshTimingQuantiles(commits.map(c=>c.sampleElapsed)),unattributedOuterCommitNs:freshTimingQuantiles(commits.map(c=>c.end-c.start-c.sampleElapsed)),stagesNs:Object.fromEntries([...stageNames].sort().map(k=>[k,freshTimingQuantiles(commits.filter(c=>Object.hasOwn(c.commitTiming.stagesNs,k)).map(c=>BigInt(c.commitTiming.stagesNs[k])))]))});
+   const storage=commits[0].commitTiming.storage;requireValue(commits.every(c=>c.commitTiming.storage===storage),'one arm changed storage profile');
+   nodeBlocks.push({nodeIndex:node,storage,businessBlockCount:heights.size,finalizeNs:freshTimingQuantiles(finals.map(f=>f.end-f.start)),outerCommitNs:freshTimingQuantiles(commits.map(c=>c.end-c.start)),persistenceSampleNs:freshTimingQuantiles(commits.map(c=>c.sampleElapsed)),unattributedOuterCommitNs:freshTimingQuantiles(commits.map(c=>c.end-c.start-c.sampleElapsed)),stagesNs:Object.fromEntries([...stageNames].sort().map(k=>[k,freshTimingQuantiles(commits.filter(c=>Object.hasOwn(c.commitTiming.stagesNs,k)).map(c=>BigInt(c.commitTiming.stagesNs[k])))]))});
   }
   summaries.push({name,epochId:arm.epochId,readbackIndexMode:mode,receiptQualifiedBusiness:originals.size,repeatedReadbacks,finalizedBusinessHashes:[...originals.keys()],latencyNs:Object.fromEntries(Object.entries(duration).map(([k,v])=>[k,{...freshTimingQuantiles(v),missingSamples:originals.size-v.length}])),...(projected?{clientStagesNs:projectedClientStages(originals)}:{}),observedWindowNs:String(lastProof-firstOffer),measurementWindowNs:String(measureEnd-measureStart),receiptWindowRate:{transactions:originals.size,perSecondNumerator:String(BigInt(originals.size)*1000000000n),denominatorNs:String(measureEnd-measureStart)},nodeBlocks});
  }
- return {schema:'ynx-pq-fresh-phase-readback-v1',classification:'measurement-data-not-authority',sourceCommit:expected.protocolCommit,resultSource:stdoutSHA256?'original-go-stdout':'original-json-file',rawResultSHA256:createHash('sha256').update(raw).digest('hex'),...(stdoutSHA256?{stdoutSHA256}:{}),inputEvidence:projected?'original-callee-projected-client-receipts':'embedded-canonical-verifier-output',vmIdentityEvidence:projected?'external-runner-binding-only':'receipt-and-external-binding',arms:summaries,independentProofReverifiedHere:false,earliestBFTFormationMeasured:false,executionAuthorized:false,sustainedTPSQualified:false,interpretation:'Original qualified callee/verifier receipts required. Exact per-H physical Commit samples are not multiplied by tx count. Four-node durable times and proof-completion upper bounds are separate; no third-replica/BFT inference or target qualification.'};
+ return {schema:'ynx-pq-fresh-phase-readback-v1',classification:'measurement-data-not-authority',sourceCommit:expected.protocolCommit,resultSource:stdoutSHA256?'original-go-stdout':'original-json-file',rawResultSHA256:createHash('sha256').update(raw).digest('hex'),...(stdoutSHA256?{stdoutSHA256}:{}),inputEvidence:projected?'original-callee-projected-client-receipts':'embedded-canonical-verifier-output',vmIdentityEvidence:projected?'external-runner-binding-only':'receipt-and-external-binding',arms:summaries,pairedQuantileDeltas:compareArms(summaries[0],summaries[1]),independentProofReverifiedHere:false,earliestBFTFormationMeasured:false,executionAuthorized:false,sustainedTPSQualified:false,interpretation:'Original qualified callee/verifier receipts required. Exact per-H physical Commit samples are not multiplied by tx count. Four-node durable times and proof-completion upper bounds are separate; no third-replica/BFT inference or target qualification.'};
 }
 
 // Thin normal-runner readback entry, not a process launcher or approval API.
