@@ -1,5 +1,7 @@
 # Finite replay child timing pair: conditional single-once READY
 
+2026-10-25更新：原条件once grant已派发原run40183256447并完成独立全量验收；slot已归还。有限窗口吞吐增加但尾延迟恶化，联合收益false，1000×600目标未达。见[原始结果与阶段耗时](NATIVE_REPLAY_TIMING_RUN40183256447_QUALIFIED_20261025.md)。以下保留历史READY，不作为新运行授权。
+
 Prepared at original SOURCE `af06b34b1c0c257d56cb579421351e8640c9f24a` / CODE `50aae532583951fe728c6d67681ce5b6095a6b52`; ordinary Linux CI40181330743 completed SUCCESS. Frozen remote tag: `codex/chain-native-replay-timing-pair-af06b34b1c`. No workflow dispatch has occurred for this pair.
 
 Root review request: `artifacts/chain-performance-20261017/native-replay-timing-pair-source-af06b34b1c/root-scheduling-request-with-evidence.json`,20376B /SHA256 `2f958cff3ebf7260527e7d75785ac7d610ca16ba873addafd1378dd3a5491921`. Local validation670B /`4a73e8d1fb82532db11c3d94d06cb91d610101b769d46dc95087024f7a059b0c` checks original source bytes for14 frozen inputs, exact reference bytes/SHA, six typed CI inputs and their normal string-JSON transport. Immutable source guard, owner note and CI proof are included; later source work need not mutate these references.

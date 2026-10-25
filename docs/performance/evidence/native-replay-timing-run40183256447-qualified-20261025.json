@@ -1,0 +1,271 @@
+{
+  "schema": 1,
+  "runId": 40183256447,
+  "sourceCommit": "af06b34b1c0c257d56cb579421351e8640c9f24a",
+  "codeCommit": "50aae532583951fe728c6d67681ce5b6095a6b52",
+  "nativePairQualified": true,
+  "slotReturned": true,
+  "sustainedTPSQualified": false,
+  "defaultPromotionQualified": false,
+  "finiteJointImprovementObserved": false,
+  "originalArtifact": {
+    "id": 12595630790,
+    "bytes": 99474296
+  },
+  "publicRecovery": {
+    "members": 549,
+    "bytes": 44128502,
+    "wholeZIPDigestRecomputed": false,
+    "finalRecoveryNetworkBytes": 0
+  },
+  "evidence": {
+    "actual-run-completed.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/actual-run-completed.json",
+      "bytes": 10287,
+      "sha256": "d7b56d62d1b1f2d5cd5144f2dcec78ec773b8ee8084b68af78e6d2eb8c561b6d"
+    },
+    "original-complete-run-api.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/original-complete-run-api.json",
+      "bytes": 12373,
+      "sha256": "53b794e9c07be09f518305a3635b21202bd5c9e4bb379f3e2a188056c9bbbb42"
+    },
+    "paired-ci-full.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/paired-ci-full.raw",
+      "bytes": 828717,
+      "sha256": "cc181b2e0f8317234872bc2b7f637975eab6be6bbcb53d868047087e26c25450"
+    },
+    "original-artifact-api.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/original-artifact-api.json",
+      "bytes": 852,
+      "sha256": "9c1ce1645f7c38f2b16dfef8884df06d50e95275e52a8a5892d81b3d5041153d"
+    },
+    "priority-original-core-and-capacity-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/priority-original-core-and-capacity-01.json",
+      "bytes": 1968,
+      "sha256": "83c57e1a00c02ad685736c552e29a5dddf7e1838e2711c06986b4d415cc85f3d"
+    },
+    "supplement/prebuild-capacity-original.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/supplement/prebuild-capacity-original.json",
+      "bytes": 411,
+      "sha256": "bb5bb77390d2a6c106cb760541504bd3c8a4dbe6a0decfaf507628da8d34930e"
+    },
+    "priority-original-node-diagnostics-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/priority-original-node-diagnostics-01.json",
+      "bytes": 4669,
+      "sha256": "a64819d8d7cff281c37686ddab84ce57511115a8ac55fc872afd5ace35cbfb37"
+    },
+    "complete-original-public-recovery.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/complete-original-public-recovery.json",
+      "bytes": 60554,
+      "sha256": "b83027a29403677f1f0bda58e6cc83256142038c72aa59c37caff3b058b3f630"
+    },
+    "original-business-checkpoint-phases-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/original-business-checkpoint-phases-01.json",
+      "bytes": 98834,
+      "sha256": "17a415ee96025c942067d05feab5eedffcd5645b28fbf9f07a95e07177290c79"
+    },
+    "before-native-replay-procs1-node-completion-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/before-native-replay-procs1-node-completion-01.json",
+      "bytes": 7301,
+      "sha256": "770b3e1e442d26e2634c46332ddf117242259a966783515bd7e6e012a740218b"
+    },
+    "after-native-replay-procs2-node-completion-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/after-native-replay-procs2-node-completion-01.json",
+      "bytes": 7307,
+      "sha256": "2cf7a483ccd6da1702b201152df8afa02126b082b91a209cf365975adec31949"
+    },
+    "independent-native-verdict-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/independent-native-verdict-01.json",
+      "bytes": 576473,
+      "sha256": "3b3e0a15125cda4f64606bdae6c5a884659c22e5fd8233d7f9e69a45175e6669"
+    },
+    "qualified-metrics-and-node-completion-01.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/qualified-metrics-and-node-completion-01.json",
+      "bytes": 30974,
+      "sha256": "931fbeb09fdf5830dcbcc841b1832f95730784f7df5b5f1a25c94f62b9574c47"
+    },
+    "serial-original-public-prefetch.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/serial-original-public-prefetch.raw",
+      "bytes": 912,
+      "sha256": "3b124619f5203a304850d9cc39b8fd5dcbb3f08afb974929630d220b6410321b"
+    },
+    "finalize-original-evidence-01.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/finalize-original-evidence-01.raw",
+      "bytes": 333,
+      "sha256": "f295f2e5e38c2ab6cf467c3f131837f20ca155ec46d7ef38af03e7a494f7b2ee"
+    },
+    "metrics-consumer-negative/test-result.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/native-replay-timing-pair-run-40183256447/metrics-consumer-negative/test-result.json",
+      "bytes": 78,
+      "sha256": "2ae00507569a92c38d65a00c50ad73350e2955929a18cbf67bd0e62b5555639d"
+    }
+  },
+  "sourceConsumers": {
+    "native-replay-timing-qualified-pair-reader-20261025.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-replay-timing-qualified-pair-reader-20261025.py",
+      "bytes": 21370,
+      "sha256": "6e121de8bfcb901a1c1cbd55754b5263f51b477ad6fa0dcb3b724d3b9a62c964"
+    },
+    "native-replay-timing-node-phases-20261025.mjs": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-replay-timing-node-phases-20261025.mjs",
+      "bytes": 7567,
+      "sha256": "e22236f57acdf490c04fcbc3dfbc85142d43395d0274d5f6eb2638476d275e95"
+    },
+    "native-replay-timing-node-completion-reader-20261025.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-replay-timing-node-completion-reader-20261025.py",
+      "bytes": 5740,
+      "sha256": "d6fc58d3c5a2dd664bc493d2823f1154b037b76569a90fbdc41a74b7ccefd34e"
+    },
+    "native-replay-timing-qualified-metrics-reader-20261025.py": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-replay-timing-qualified-metrics-reader-20261025.py",
+      "bytes": 5551,
+      "sha256": "1198c48ddb73ccccc0e7458bf3a14ebebaeef2056c8f4f798a2c9fd9fdfad558"
+    }
+  },
+  "cases": [
+    {
+      "name": "before-native-replay-procs1",
+      "actualOfferRate": 293.5833111588925,
+      "finiteFinalRate": 281.05317641514154,
+      "measurementWindowSeconds": 29.147509039,
+      "businessErrors": {
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "executionFailed": 0,
+        "observationFailed": 0,
+        "checkTxRejected": 0
+      },
+      "latencyUpperBoundsMs": {
+        "offerToEffectiveBusinessInclusion": {
+          "p50": 1223,
+          "p95": 1707,
+          "p99": 1980
+        },
+        "offerToFinal": {
+          "p50": 1466,
+          "p95": 1969,
+          "p99": 2145
+        },
+        "offerToNodeFinalizeReturn": {
+          "p50": 1013,
+          "p95": 1505,
+          "p99": 1671
+        },
+        "offerToNodeDurableCommitReturn": {
+          "p50": 1052,
+          "p95": 1565,
+          "p99": 1721
+        },
+        "nodeCommitToClientFinalObservation": {
+          "p50": 409,
+          "p95": 571,
+          "p99": 664
+        },
+        "offerToFirstReplicaDurableCommit": {
+          "p50": 1003,
+          "p95": 1516,
+          "p99": 1656
+        },
+        "offerToThirdReplicaDurableCommit": {
+          "p50": 1072,
+          "p95": 1569,
+          "p99": 1737
+        },
+        "offerToAllReplicaDurableCommit": {
+          "p50": 1097,
+          "p95": 1587,
+          "p99": 1770
+        },
+        "replicaDurableCommitSpread": {
+          "p50": 97,
+          "p95": 172,
+          "p99": 173
+        }
+      },
+      "sampledPeaks": {
+        "rssBytes": 976543744,
+        "threads": 66,
+        "privateBytes": 125097256,
+        "buildBytes": 119802437
+      },
+      "businessBlocksPerReplica": 35,
+      "meanTransactionsPerBusinessBlock": 234.05714285714285
+    },
+    {
+      "name": "after-native-replay-procs2",
+      "actualOfferRate": 428.3269714987003,
+      "finiteFinalRate": 409.325691411215,
+      "measurementWindowSeconds": 20.01340295,
+      "businessErrors": {
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "executionFailed": 0,
+        "observationFailed": 0,
+        "checkTxRejected": 0
+      },
+      "latencyUpperBoundsMs": {
+        "offerToEffectiveBusinessInclusion": {
+          "p50": 1236,
+          "p95": 1779,
+          "p99": 1947
+        },
+        "offerToFinal": {
+          "p50": 1606,
+          "p95": 2156,
+          "p99": 2670
+        },
+        "offerToNodeFinalizeReturn": {
+          "p50": 1020,
+          "p95": 1480,
+          "p99": 1678
+        },
+        "offerToNodeDurableCommitReturn": {
+          "p50": 1081,
+          "p95": 1527,
+          "p99": 1739
+        },
+        "nodeCommitToClientFinalObservation": {
+          "p50": 497,
+          "p95": 1109,
+          "p99": 1402
+        },
+        "offerToFirstReplicaDurableCommit": {
+          "p50": 1020,
+          "p95": 1448,
+          "p99": 1624
+        },
+        "offerToThirdReplicaDurableCommit": {
+          "p50": 1094,
+          "p95": 1533,
+          "p99": 1728
+        },
+        "offerToAllReplicaDurableCommit": {
+          "p50": 1132,
+          "p95": 1566,
+          "p99": 1764
+        },
+        "replicaDurableCommitSpread": {
+          "p50": 107,
+          "p95": 186,
+          "p99": 196
+        }
+      },
+      "sampledPeaks": {
+        "rssBytes": 1018781696,
+        "threads": 67,
+        "privateBytes": 123590979,
+        "buildBytes": 119802437
+      },
+      "businessBlocksPerReplica": 23,
+      "meanTransactionsPerBusinessBlock": 356.17391304347825
+    }
+  ],
+  "limitations": [
+    "finite8192x2 only; offered target1000 not attained; no600s sustained result",
+    "original client final observation is proof-backed completion; earliest BFT quorum formation instant unmeasured",
+    "third durable replica is not a voting-power quorum timestamp",
+    "phase children overlap parents and replica totals are not extra business TPS",
+    "1ms latency-bin upper bounds; original calibration bounds retained in full metrics",
+    "sampled RSS/logical private bytes are not hard cgroup/physical allocation peaks"
+  ]
+}
