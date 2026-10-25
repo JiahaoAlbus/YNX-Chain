@@ -1,0 +1,226 @@
+{
+  "sourceCommit": "af06b34b1c0c257d56cb579421351e8640c9f24a",
+  "codeCommit": "50aae532583951fe728c6d67681ce5b6095a6b52",
+  "normalCI": {
+    "run": 40181330743,
+    "head": "af06b34b1c0c257d56cb579421351e8640c9f24a",
+    "status": "completed",
+    "conclusion": "success",
+    "api": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/normal-ci-completed.json",
+      "bytes": 10189,
+      "sha256": "e813a1281ac57b061ea79c714b98e066e7054f297fd2c7fab014589f2de04436"
+    },
+    "fullLog": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/normal-ci-full.raw",
+      "bytes": 763363,
+      "sha256": "5e7c6a523bd2cbdf304893ee0ee538012038b9c39c418d460cfca8feb0df5a98"
+    },
+    "fourNodeStep": "skipped"
+  },
+  "runtimeClientTree": "9c76c53aaecc4c4b5e2ea2423bae771ba9e4d124",
+  "internalTree": "591e0c54b7ce19fbade55bb34ddc3e753178afe9",
+  "nodeTree": "3e9df17d01a24f43a54eb724323798a0b5b72958",
+  "sourceFiles": [
+    {
+      "path": ".github/workflows/chain-core.yml",
+      "bytes": 51971,
+      "sha256": "8239ed547e2ee714af7afdbb7c98432b16f7006ad0faede251ef36edce6d1de9"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/main.go",
+      "bytes": 75173,
+      "sha256": "93666dc29a34bf2da55f9b70902abe6fc62b6db8968fbd074c438c5d178ee42d"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/native_stream.go",
+      "bytes": 9717,
+      "sha256": "2fbff2b92c44ce05f5cdecb56dc52de016c733db2c7340b1503df687e8b8e3da"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/prefix_replay.go",
+      "bytes": 4108,
+      "sha256": "355a4189e165e0919a3201818004d16660429279c7970ba16722e71f0d36a63a"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/stream_workload_plan.go",
+      "bytes": 4076,
+      "sha256": "3db90f3d557528582bdfc7c82f6d5b26e4586aa718c0f10b64225e8c17ed55e7"
+    },
+    {
+      "path": "cmd/ynx-consensus-perf-client/native_replay_timing_test.go",
+      "bytes": 5111,
+      "sha256": "5fcb5dd629888a32dc91c74794d0ca1a7bdd5a810073f6ed4defacd3e49c5cdc"
+    },
+    {
+      "path": "scripts/loadtest/supply-linux-window.py",
+      "bytes": 202479,
+      "sha256": "aad345b07bc17d01bf3440981a563dde9345331baf53dd2efbfb6de021631763"
+    },
+    {
+      "path": "scripts/loadtest/native-stream-evidence.py",
+      "bytes": 41228,
+      "sha256": "463393483ef23718a2fe351c40207b80e542f710542f31d1c4a7741cded85e29"
+    },
+    {
+      "path": "scripts/loadtest/native-stream-verifier.py",
+      "bytes": 12952,
+      "sha256": "04b2c3c8d5e22144e31dba22f7f952cc6efde1b278fd2e7c7a4e54b46480c838"
+    },
+    {
+      "path": "scripts/loadtest/native-stream-artifact.py",
+      "bytes": 35153,
+      "sha256": "9bb43e1e36960ea65bc95c108afdd9936810be0921ddefa97d42615d9dd17987"
+    },
+    {
+      "path": "scripts/loadtest/test_native_replay_timing.py",
+      "bytes": 2884,
+      "sha256": "006708bf35bb3a5d7a8cb1f0f8d99529a195ba9048f0a4b364d1f2085d28a696"
+    },
+    {
+      "path": "scripts/verify/perf-prefix-replay-candidate-check.mjs",
+      "bytes": 5848,
+      "sha256": "dac223485d67fa1540dd9e0b5e9de03247a6b271fbe431e187b534db7d2856e3"
+    }
+  ],
+  "explicitFlag": "-native-replay-timing",
+  "newHeavyDispatched": false,
+  "oldRunRechecked": false,
+  "networkGainMeasured": false,
+  "sustained1000Qualified": false,
+  "localEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/archive-final.raw",
+      "bytes": 4156,
+      "sha256": "4391532bed8d28940addce22b0d0ebccbf362e247ed07b4724d79ad1af7510a4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/client-green-01.raw",
+      "bytes": 976,
+      "sha256": "9f6b591f63d70e4d6acfd6b7142efc0bbbc8d81c356d709c0826ed560811220c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/client-green-02.raw",
+      "bytes": 2635,
+      "sha256": "280647d25ac1ba48e9e041ba05c9249c56dd1e499dc07205a389ba7f51789a6b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/client-green-03.raw",
+      "bytes": 2556,
+      "sha256": "aa96d51754e96f322f792470baf56a38e2fb0ad2f86f4e43fcfa468f23a616b2"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/client-isolated-final.raw",
+      "bytes": 3318,
+      "sha256": "c2b1cbd3f14855e97dd7342a8ab324cb140bfcea2c7770b5a5512cf41d5b0db7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/client-red-01.raw",
+      "bytes": 376,
+      "sha256": "0bdbebe6bb43ebcc12ec6a0c2ad860452b9d1a5efc153d5672fe6d84a787c1db"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/legacy-fixture-generation.raw",
+      "bytes": 842,
+      "sha256": "97bbbc3cca0706879bfcaa19b4e3922d6ab877e6f0c87eca9fecf67669a7e81c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/normal-ci-full.raw",
+      "bytes": 763363,
+      "sha256": "5e7c6a523bd2cbdf304893ee0ee538012038b9c39c418d460cfca8feb0df5a98"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/normal-ci-watch.raw",
+      "bytes": 31550,
+      "sha256": "dc0eb886db69187ee10e9c10d68e11c030c419f89858e5b041adef051c6579a0"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/original-prepared-suite-final.raw",
+      "bytes": 6801,
+      "sha256": "df90acbee4651a47abc50e4935944152a7890770f6bee35ae2955047913e1c2b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/pair-02.raw",
+      "bytes": 7429,
+      "sha256": "80525d96e359ef1b5f5d25b511455110a4884d42ddf7f32d9428d0d30e1b4e28"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/pair-final.raw",
+      "bytes": 7429,
+      "sha256": "0385f2bbf1252be819a0548d8a928b2fe06430756057b3021871c5a84d79420a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/pair-initial.raw",
+      "bytes": 7255,
+      "sha256": "908935c254f250cae78dd0bfadfaa250aaef019586223298aef29fca5c6048bf"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/prepared-suite-race-final.raw",
+      "bytes": 10338,
+      "sha256": "78a30fbd5dd3f88a4b83d8e17a0e1aed0e1a3131d0ec5119607152e8eadaba0a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/real-cli-01.raw",
+      "bytes": 192,
+      "sha256": "34866d7b25c2746f3a8a20c2435a32594753c958b962f5f7086bc5aadb54f22c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/real-fixture-python-01.raw",
+      "bytes": 979,
+      "sha256": "58abf1d9f44d078f5c962d3ed1eaad5f003c49dc7384f0e269f93e80f6caba67"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/real-fixture-python-02.raw",
+      "bytes": 283,
+      "sha256": "d49674a3bcd8b172deb03573a2752c3d6864f9ce7d3558f643b13338e1d19a2e"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/real-fixture-python-final.raw",
+      "bytes": 283,
+      "sha256": "936384669d386159fb94390cb582e66bb555966820578615ae15e7370ab00ef8"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/real-fixture-python-isolated-final.raw",
+      "bytes": 283,
+      "sha256": "1ff8332cd7380cff77182545c37016cb4cfe1995ec7aa97f38e5c11ae73a21d4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/source-guard-01.raw",
+      "bytes": 4557,
+      "sha256": "91a36b5934a5a36813ed4ca554e28b2f6783833698de559b7ad5c1913606a3db"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/source-guard-02.raw",
+      "bytes": 4555,
+      "sha256": "290006bf0b2e3790114f6b3a2ed3ff1199c4ab62573566bf855cece40e082e12"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/supply-01.raw",
+      "bytes": 27547,
+      "sha256": "b5a2f8d6b6f60f5652ce892d41750a44c069320ec79f40df3731dcf6bcfc4f13"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/supply-02.raw",
+      "bytes": 27547,
+      "sha256": "487c333e7b55c9a513edcd438a35036f8a955740b5f97e2a7393d03c0b239132"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/supply-03.raw",
+      "bytes": 16867,
+      "sha256": "f3c65d79e9a2fc63fd26bbb35123768e8e0bb3f20c2463fb5b4d8657962b61dc"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-replay-timing-source-20261025/supply-final.raw",
+      "bytes": 16867,
+      "sha256": "50e85a87985e702e98d31757f1a9ec84fc9b66172e437ddbc47d8f7c65186dfa"
+    }
+  ],
+  "realSignedInputsPerRuntime": 102,
+  "clientRuntimeChoices": [
+    1,
+    2
+  ],
+  "independentUnitPublicStreamValidatedRecords": 102,
+  "sourceInputCount": 14,
+  "sourceGuardTestsPassed": 25
+}

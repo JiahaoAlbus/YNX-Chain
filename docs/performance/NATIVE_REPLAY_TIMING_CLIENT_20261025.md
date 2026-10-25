@@ -22,3 +22,5 @@ Prepare a recipe without activation:
 ```sh
 python3 -B scripts/loadtest/supply-linux-window.py --prepare-pair --pair-kind native-prepared-grouped-replay-timing --observer-phases --transport grpc --profile supply-native-stream-2048x4
 ```
+
+Ordinary Linux CI40181330743 completed SUCCESS at SOURCEaf06b34b1c0c257d56cb579421351e8640c9f24a / CODE50aae532583951fe728c6d67681ce5b6095a6b52. Actual client1/client2 signed recovery tests passed2.59s/1.91s, actual CLI passed0.04s and real cancellation passed0.02s; the independent public-fixture Python step passed. Full original log763363B / SHA2565e7c6a523bd2cbdf304893ee0ee538012038b9c39c418d460cfca8feb0df5a98. The four-node job step was explicitly skipped; no new heavy result is implied.
