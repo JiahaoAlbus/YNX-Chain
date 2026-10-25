@@ -1,11 +1,35 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,cpSync,writeFileSync,rmSync,realpathSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+import {originalPQ4afcVerifierReceipt} from '../src/wallet-pq-4afc-receipt.mjs';
 import {createHash} from 'node:crypto';
 import {ORIGINAL_4AFC_VERIFIER,verifyOriginal4afcCISupply,createOriginal4afcManifestBytes} from '../scripts/proof-verifier-4afc-contract.mjs';
 import {pathToFileURL} from 'node:url';
 import {assertSelectedProofVerifierForSDK} from '../scripts/proof-verifier-source-policy.mjs';
 const root=process.env.WALLET_4AFC_CI_SUPPLY;
+test('normal product consumer verifies actual original A signed4afc assets and refuses copied byte mutations without execution',{skip:!process.env.WALLET_4AFC_SIGNED_RESOURCES||!process.env.WALLET_4AFC_NORMAL_PRODUCT_SOURCE?'requires original A signed resources and physical SDK46 product':false},async()=>{
+ const base=process.env.WALLET_4AFC_NORMAL_PRODUCT_SOURCE+'/apps/wallet-desktop/src/';
+ for(const name of ['wallet-pq-verifier-assets.mjs','wallet-pq-4afc-receipt.mjs','wallet-pq-runtime-component.mjs'])assert.deepEqual(readFileSync(base+name),readFileSync(new URL('../src/'+name,import.meta.url)));
+ const consumer=await import(pathToFileURL(base+'wallet-pq-verifier-assets.mjs'));
+ const {originalPQVerifierReceipt:receipt}=await import(pathToFileURL(base+'wallet-pq-runtime-component.mjs'));
+ assert.deepEqual(receipt,originalPQ4afcVerifierReceipt);
+ assert.equal(consumer.supportsPackagedPQTypedFinality(receipt),true);
+ assert.equal(consumer.packagedPQVerifierAssetPaths(receipt).length,4);
+ const resources=process.env.WALLET_4AFC_SIGNED_RESOURCES;
+ assert.equal((await consumer.verifyPackagedPQVerifierAssets(resources,receipt)).executable,path.join(resources,'consensus-proof-verifier/darwin-arm64/ynx-consensus-proof-verify'));
+ for(const key of ['manifest','bundled','sourceFile'])assert.throws(()=>consumer.supportsPackagedPQTypedFinality({...receipt,[key]:{...receipt[key],sha256:'0'.repeat(64)}}));
+ const temporary=realpathSync(mkdtempSync(path.join(tmpdir(),'wallet-4afc-assets-')));
+ try{
+  cpSync(path.join(resources,'consensus-proof-verifier'),path.join(temporary,'consensus-proof-verifier'),{recursive:true});
+  for(const relative of consumer.packagedPQVerifierAssetPaths(receipt)){
+   const file=path.join(temporary,'consensus-proof-verifier',relative),original=readFileSync(file),changed=Buffer.from(original);changed[0]^=1;
+   writeFileSync(file,changed);await assert.rejects(()=>consumer.verifyPackagedPQVerifierAssets(temporary,receipt));writeFileSync(file,original);
+  }
+  await consumer.verifyPackagedPQVerifierAssets(temporary,receipt);
+ }finally{rmSync(temporary,{recursive:true,force:true});}
+});
 test('normal original A signing contract binds exact4afc CI binary/SOURCE/selector without executing any verifier',{skip:!root?'requires frozen original4afc public CI files':false},()=>{
  const input={binaryBytes:readFileSync(root+'/ynx-consensus-proof-verify-darwin-arm64'),sourceBytes:readFileSync(root+'/SOURCE.json'),selectionSourceBytes:readFileSync(root+'/HOST_SELECTION_SOURCE_GIT_PINS.json')};const checked=verifyOriginal4afcCISupply(input);assert.equal(checked.rawCIExact,true);assert.equal(checked.artifactExecuted,false);assert.equal(checked.Root,false);
  for(const key of Object.keys(input)){const bad={...input,[key]:Buffer.from(input[key])};bad[key][0]^=1;assert.throws(()=>verifyOriginal4afcCISupply(bad));}
