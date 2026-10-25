@@ -476,25 +476,38 @@ def assert_native_cabi_workflow_contract(raw):
              "Seal only executed CONTROL archive and fixed public inputs",
              "Upload only public fixed CONTROL native archive header and evidence")
     lines = lambda step: [line for line in step.splitlines() if line.strip()]
-    need(len(steps) == len(names) + 2)
+    data_names = ("Install the original pinned operator DATA test runtime",
+                  "Verify original operator runtime preparation on the actual platform")
+    wallet_names = ("Execute Wallet transaction ABI from the same native archive",
+                    "Execute initial-account ABI from the same native archive")
+    ordered_names = names[:1] + data_names + names[1:4] + wallet_names + names[4:]
+    need(len(steps) == len(ordered_names))
+    need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, ordered_names)))
+    named = {name: step for name, step in zip(ordered_names, steps)}
+    need(lines(named[data_names[0]]) == ["      - name: " + data_names[0],
+        "        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020", "        with:",
+        "          node-version: '24.19.0'"])
+    need(lines(named[data_names[1]]) == ["      - name: " + data_names[1],
+        "        run: node --test --test-name-pattern='^actual runtime preparation' scripts/deploy/consensus-candidate-failure-retention.test.mjs"])
     # The new fixed Wallet caller must execute after the original archive was
     # built, before arm64 inspection or sealing. Keep every original closed
     # step assertion below rather than accepting arbitrary additional steps.
-    need(lines(steps[4]) == ["      - name: Execute Wallet transaction ABI from the same native archive",
+    need(lines(named[wallet_names[0]]) == ["      - name: Execute Wallet transaction ABI from the same native archive",
         "        run: |", "          set -euo pipefail",
         '          bash scripts/verify/transaction-batch-cabi-check.sh \\',
         '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
         '            "$RUNNER_TEMP/ynx-transaction-batch-cabi"'])
-    need(lines(steps[5]) == ["      - name: Execute initial-account ABI from the same native archive",
+    need(lines(named[wallet_names[1]]) == ["      - name: Execute initial-account ABI from the same native archive",
         "        run: |", "          set -euo pipefail",
         '          bash scripts/verify/account-initial-cabi-check.sh \\',
         '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
         '            "$RUNNER_TEMP/ynx-account-initial-cabi"'])
-    steps = steps[:4] + steps[6:]
+    steps = [named[name] for name in names]
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, names)))
-    need(lines(steps[0]) == ["      - name: " + names[0],
+    need([line for line in lines(steps[0]) if not line.lstrip().startswith("#")] == ["      - name: " + names[0],
         "        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", "        with:",
-        "          ref: ${{ github.sha }}", "          persist-credentials: false"])
+        "          ref: ${{ github.sha }}", "          fetch-depth: 0", "          filter: blob:none",
+        "          persist-credentials: false"])
     need(lines(steps[1]) == ["      - name: " + names[1],
         "        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e", "        with:",
         "          go-version-file: go.mod", "          check-latest: false", "          cache: true"])
@@ -1253,10 +1266,26 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_native_cabi_workflow_contract(raw)
         native, steps = workflow_steps(raw, "artifact-release-cabi")
-        actual, transaction, initial, arm = steps[3:7]
-        runtime, contracts, darwin = steps[7:10]
-        seal, upload, arm_upload = steps[10:13]
-        control, control_seal, control_upload = steps[13:]
+        def named(name):
+            found = [step for step in steps if step.startswith("      - name: " + name + "\n")]
+            self.assertEqual(len(found), 1)
+            return found[0]
+
+        data_runtime = named("Install the original pinned operator DATA test runtime")
+        data_control = named("Verify original operator runtime preparation on the actual platform")
+        actual = named("Execute actual C ABI and independently verify both signatures")
+        transaction = named("Execute Wallet transaction ABI from the same native archive")
+        initial = named("Execute initial-account ABI from the same native archive")
+        arm = named("Verify the executed original Main arm64 target")
+        runtime = named("Install pinned contract runtime for Darwin migration callers")
+        contracts = named("Prepare same-source compiled contracts for Darwin migration callers")
+        darwin = named("Verify complete Darwin migration package CLI against original contract inputs")
+        seal = named("Seal only native library public outputs and exact compile inputs")
+        upload = named("Upload only public native host archive header and evidence")
+        arm_upload = named("Upload only public Main arm64 archive header and executed target evidence")
+        control = named("Verify fixed CONTROL key lifecycle and actual C ABI dual signatures")
+        control_seal = named("Seal only executed CONTROL archive and fixed public inputs")
+        control_upload = named("Upload only public fixed CONTROL native archive header and evidence")
 
         def change(before, after):
             self.assertIn(before, native)
@@ -1272,6 +1301,14 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change("runner: [ubuntu-24.04, macos-15]", "runner: [ubuntu-24.04, macos-14]"),
             change("          ref: ${{ github.sha }}", "          ref: refs/heads/main"),
             change("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", "actions/checkout@v4"),
+            change("          fetch-depth: 0", "          fetch-depth: 1"),
+            change("          filter: blob:none", "          filter: tree:0"),
+            change(data_runtime, ""), change(data_control, ""),
+            change(data_control, data_control + data_control),
+            change(data_runtime, data_runtime.replace("node-version: '24.19.0'", "node-version: latest", 1)),
+            change(data_control, data_control.replace("        run:", "        if: false\n        run:", 1)),
+            change(data_control, data_control.replace("node --test", "true # node --test", 1)),
+            raw.replace(native, native.replace(data_control, "", 1).replace(actual, actual + data_control, 1), 1),
             change("          go-version-file: go.mod", "          go-version: latest"),
             change("      CGO_ENABLED: '1'", "      CGO_ENABLED: '0'"),
             change("      MACOSX_DEPLOYMENT_TARGET: '13.0'", "      MACOSX_DEPLOYMENT_TARGET: '15.0'"),

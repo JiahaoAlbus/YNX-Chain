@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, linkSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -388,7 +388,9 @@ test('actual runtime parser refuses missing pins, stale v1, altered bytes, false
 });
 
 function runtimePreparation(mode, { source = current, bsdChmod = false } = {}) {
-  const directory = mkdtempSync(join(tmpdir(), 'ynx-runtime-copy-'));
+  // Darwin exposes its temporary root through /var -> /private/var. The
+  // production parser correctly requires original canonical paths on both OSes.
+  const directory = realpathSync(mkdtempSync(join(tmpdir(), 'ynx-runtime-copy-')));
   try {
     const fixture = runtimeFixture(directory);
     const destination = join(directory, 'retained-runtime');
