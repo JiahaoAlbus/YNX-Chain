@@ -64,6 +64,7 @@ import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-se
 import {captureOriginalWalletTransactionApprovalIPC,retireUnusedOriginalWalletTransactionApproval,acquireOriginalWalletTransactionPermission,isOriginalWalletTransactionPermission} from './original-policy-supplier/transaction-permission.mjs';
 import {captureOriginalWalletAccountInitialApprovalIPC,retireUnusedOriginalWalletAccountInitialApproval,acquireOriginalWalletAccountInitialPermission,isOriginalWalletAccountInitialPermission} from './original-policy-supplier/account-initial-permission.mjs';
 import {createPQAccountInitialBroadcast} from './wallet-pq-account-initial-broadcast.mjs';
+import {acquireOriginalWalletAccountInitialSource,isOriginalWalletAccountInitialSource} from './original-policy-supplier/account-initial-source.mjs';
 import {createPQTransactionSubmission} from './features/pq-transaction/submission.mjs';
 import {PQFinalityEvidence} from './wallet-pq-finality-evidence.mjs';
 import {createPQFinalityCollection} from './wallet-pq-finality-collection.mjs';
@@ -952,8 +953,10 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     pqAccountInitialPermissionSource:acquireOriginalWalletAccountInitialPermission,
     pqAccountInitialPermissionRecognized:isOriginalWalletAccountInitialPermission,
     pqAccountInitialBroadcastSource:createPQAccountInitialBroadcast({intentStore:originalTransactionIntentStore,transport:originalPQNodeTransport,isOriginalPermission:isOriginalWalletAccountInitialPermission}),
-    // Independently admitted Genesis/pin and same-H unused-owner Source is
-    // not yet supplied. A normal active transfer policy is not a substitute.
+    pqAccountInitialSource:acquireOriginalWalletAccountInitialSource,
+    pqAccountInitialSourceRecognized:isOriginalWalletAccountInitialSource,
+    // The real Source factory owns admission: its empty release table refuses
+    // until original Root/Protocol rows exist. Never an active-policy fallback.
     pqBroadcastSource:executeOriginalPQBroadcast,
     pqSessionSource:acquireOriginalAccountPolicy,
     pqSessionRecognized:isOriginalAccountPolicyResource,

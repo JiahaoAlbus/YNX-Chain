@@ -546,7 +546,7 @@ export class DesktopWalletAuthority {
     await owner.close();this.#pqTxOwners.delete(owner);
   }
   async #closePQInitialSource(owner){await owner.close();this.#pqInitialOwners.delete(owner);}
-  #borrowPQAccountInitialReview(pending,guard,source,request,memberBytes=null){
+  #borrowPQAccountInitialReview(pending,guard,source,request){
     let retired=false,entered=false,completed=null,produced=request.action==='broadcast'?{transportHash:request.transportHash,abciTransactionHash:request.abciTransactionHash}:null;
     const issuedAt=this.clock().toISOString(),expiresAt=new Date(Math.min(Date.parse(request.expiresAt),Date.parse(issuedAt)+30000)).toISOString();
     const current=()=>{
@@ -555,7 +555,7 @@ export class DesktopWalletAuthority {
     };
     const borrow=Object.freeze({
       readApprovalIdentity:()=>{current();return{kind:'pq-account-initial',reviewId:pending.id,operationId:request.operationId,action:request.action};},
-      readOriginal:()=>{current();const original=source.readOriginal();current();return{request,issuedAt,expiresAt,source:{...original,memberBytes:memberBytes===null?null:Uint8Array.from(memberBytes)}};},
+      readOriginal:()=>{current();const original=source.readOriginal();current();return{request,issuedAt,expiresAt,source:original};},
       assertCurrent:current,
       recheck:async()=>{current();if(await source.recheck()!==undefined)throw providerError(4100,'PQ_INITIAL_SOURCE_NOT_CURRENT','Original initial Source changed.');current();},
       enterOriginal:action=>{current();if(entered||action!==request.action)throw providerError(4100,'PQ_INITIAL_SIGN_ONCE','Original initial approval is single-use.');entered=true;},
@@ -588,15 +588,15 @@ export class DesktopWalletAuthority {
         if(!store||request.action==='sign'&&(typeof store.capturePQAccountInitialMember!=='function'||typeof this.vault.withPQNativeAccountInitial!=='function'||typeof this.vault.assertPQNativeInitialAvailable!=='function'))throw providerError(4100,'PQ_INITIAL_NATIVE_PERMISSION_NOT_SUPPLIED','Original Native initial custody and protected journal are required.');
         let source,auth,borrowed,hash,failed=false;
         try{
-          try{source=await this.#pqInitialSource(request);}catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value')&&d.value){source=d.value;this.#pqInitialOwners.add(source);}throw error;}
-          this.#pqInitialOwners.add(source);guard.assert();if(this.#pqInitialSourceRecognized(source)!==true)throw providerError(4100,'PQ_INITIAL_SOURCE_NOT_SUPPLIED','A genuine independently admitted initial Source is required.');
           let retained=null;
           if(request.action==='broadcast'){
             const rows=await store.readPQOriginals(status.account,()=>guard.assert());guard.assert();retained=rows.find(r=>r.kind==='pq-account-initial'&&r.hash===request.transportHash);
             const progress=await store.readPQProgress(status.account,request.transportHash,()=>guard.assert());guard.assert();
             if(!retained||progress.status!=='signed-unsubmitted')throw providerError(4100,'PQ_TRANSACTION_ALREADY_ENTERED','Keep and query the same original; never resubmit.');
           }
-          borrowed=this.#borrowPQAccountInitialReview(pending,guard,source,request,retained?Buffer.from(retained.wire,'base64url'):null);
+          try{source=await this.#pqInitialSource(request,retained?Buffer.from(retained.wire,'base64url'):null);}catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value')&&d.value){source=d.value;this.#pqInitialOwners.add(source);}throw error;}
+          this.#pqInitialOwners.add(source);guard.assert();if(this.#pqInitialSourceRecognized(source)!==true)throw providerError(4100,'PQ_INITIAL_SOURCE_NOT_SUPPLIED','A genuine independently admitted initial Source is required.');
+          borrowed=this.#borrowPQAccountInitialReview(pending,guard,source,request);
           try{auth=await this.#pqInitialPermission(request,capsule,borrowed.borrow);}catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value')&&d.value){auth=d.value;this.#pqTxOwners.add(auth);}throw error;}
           this.#pqTxOwners.add(auth);guard.assert();if(this.#pqInitialPermissionRecognized(auth)!==true||await auth.recheck()!==undefined||auth.assertCurrent()!==undefined)throw providerError(4100,'PQ_INITIAL_INDEPENDENT_APPROVAL_REQUIRED','Original initial permission is not current.');
           if(request.action==='broadcast')return success(await this.#pqInitialBroadcast({request,original:retained,permission:auth,guard}));
