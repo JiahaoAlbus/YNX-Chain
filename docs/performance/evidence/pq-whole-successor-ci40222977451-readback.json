@@ -1,0 +1,60 @@
+{
+  "archiveSHA256": "582a06a0a0ebca957b1f2f16b30d882f7a1f8647c8ea70b7dadd05b4b680a86d",
+  "artifactId": 12610575918,
+  "clientBuildToolchain": "Go 1.26.10",
+  "clientCodeTree": "fbda550b946cb74ff649b1d42ae98e0d83377f4f",
+  "compiledCommit": "86d9dcfe8d3295a99c574fdc18573ebdd5e90ca2",
+  "embeddedVCSReadIndependently": true,
+  "executionAuthorized": false,
+  "files": {
+    "go-build-info.txt": {
+      "bytes": 5536,
+      "sha256": "6bf3e96f7bbc7b76225ddfaac49ce2ad198387c23ece924a8de92ef0e07b082a"
+    },
+    "ynx-consensus-perf-client": {
+      "bytes": 38595685,
+      "sha256": "95da2015a1b476e4c3542875f915683f93827a86fa8253033f9108802a1f0217"
+    }
+  },
+  "frozenFresh70ClientReplaced": false,
+  "fullSourceTestsToolchain": "Go 1.25",
+  "linuxAMD64ELF": true,
+  "localBinaryExecuted": false,
+  "measurementClassification": "synthetic-signed-original-verifier-client-QA-not-four-node",
+  "normalCIConclusion": "success",
+  "normalLogSHA256": "796c050d7c27d5ab47b524a2459acc14e529831d674000c456ba8718dc4980ab",
+  "normalRunId": "40222977451",
+  "publicDeployment": false,
+  "signedFixtureTestsPassed": [
+    "TestPQMemberCaseOriginalVerifierSignedPublicFixture",
+    "TestPQWholeCaseOriginalVerifierSignedPublicFixture"
+  ],
+  "signedQAVerifierPhasesNs": {
+    "TestPQMemberCaseOriginalVerifierSignedPublicFixture": {
+      "evidenceDurabilityNs": "147504625",
+      "preparationNs": "205592782",
+      "processNs": "302132573",
+      "resultValidationNs": "25928685",
+      "totalNs": "681189443"
+    },
+    "TestPQWholeCaseOriginalVerifierSignedPublicFixture": {
+      "evidenceDurabilityNs": "88489873",
+      "preparationNs": "208577213",
+      "processNs": "302463968",
+      "resultValidationNs": "26103269",
+      "totalNs": "625645790"
+    }
+  },
+  "sourceAssertionsPassed": {
+    "cancellationDoesNotLaunchOrRetainSuccess": true,
+    "corruptedProofRejected": true,
+    "partialWholeFinalizedMembersEqualThree": true,
+    "readOnlyZeroPOST": true,
+    "wrongTargetRejected": true
+  },
+  "sourceBytes": 754,
+  "sourceSHA256": "db960fa0ee554d6c73479b94407b2e45584793751606f6cf564392d02060747a",
+  "sourceTree": "f9f45065a6ce5791a42e33d90032f9496151d126",
+  "sustainedTPSQualified": false,
+  "version": "YNX-PQ-WHOLE-SUCCESSOR-CLIENT-READBACK/v1"
+}

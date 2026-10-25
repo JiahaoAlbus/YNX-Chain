@@ -40,7 +40,7 @@ Raw files under the existing external chain-performance artifact directory:
 `pq-whole-original-proof-options-red-20261026.raw`,
 `pq-whole-original-proof-options-green-20261026.raw`,
 `pq-whole-original-proof-contract-green-20261026.raw`.
-The signed fixture and full race gates still require the normal CI result.
+The signed fixture and full race gates subsequently passed original normal CI40222977451; see the actual result below.
 
 The normal workflow builds this current-source successor separately before
 checking out the frozen client. Its artifact is
@@ -51,3 +51,54 @@ and artifact remain unchanged. No new successor binary is silently inserted
 into that frozen manifest or old once grant. Whole load/finality integration
 belongs to a later explicitly bound runtime window after the fresh N1 pair.
 This source change is not a sustained TPS or confirmation-latency result.
+
+
+## Actual full normal CI and binary handoff
+
+Original [CI40222977451](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40222977451)
+completed SUCCESS for `86d9dcfe8d3295a99c574fdc18573ebdd5e90ca2`.
+Raw original logs explicitly contain PASS for both
+`TestPQMemberCaseOriginalVerifierSignedPublicFixture` and
+`TestPQWholeCaseOriginalVerifierSignedPublicFixture` (2.05s and 2.16s whole test
+wall times respectively, not transaction finality). The latter's actual
+production readback entry/original verifier checks three admitted effects from
+a partial Whole, zero POST, wrong-target rejection, corrupted-proof rejection,
+and cancellation without process launch or retained success.
+The complete source/race/ABCI/release/no-placeholder/secret-scan gates also pass.
+
+The original signed Whole QA test records these one-sample verifier spans:
+
+| Original client span | Measured ms |
+| --- | ---: |
+| preparation | 208.577213 |
+| original verifier process | 302.463968 |
+| verification evidence durability | 88.489873 |
+| result validation | 26.103269 |
+| encompassing verification total | 625.645790 |
+
+These are monotonic spans of the signed synthetic fixture on the Linux CI
+runner, with the client under Go1.25 race instrumentation. They are not
+four-node inclusion/finality, a percentile population, a paired improvement
+claim, or sustained TPS. They include process/file handling; do not attribute
+all of process time to cryptography or all of preparation to hashing.
+
+Artifact ID `12610575918`, archive SHA256
+`582a06a0a0ebca957b1f2f16b30d882f7a1f8647c8ea70b7dadd05b4b680a86d`,
+was downloaded once and matched the original API digest. Its Linux/amd64 ELF
+is 38,595,685 bytes, SHA256
+`95da2015a1b476e4c3542875f915683f93827a86fa8253033f9108802a1f0217`.
+SOURCE.json is 754 bytes, SHA256
+`db960fa0ee554d6c73479b94407b2e45584793751606f6cf564392d02060747a`.
+Independent local `go version -m` readback confirmed Go1.26.10, Linux/amd64,
+compiled VCS86d9 and `vcs.modified=false`; both Git trees, file sizes and hashes
+matched. The Mac did not execute the Linux ELF.
+The frozen calibration client70e7 was built separately and remains unchanged.
+
+[Machine-readable readback](evidence/pq-whole-successor-ci40222977451-readback.json)
+binds the normal log hash, named tests and phase values to this artifact.
+Original logs, archive, files and READBACK.json remain under
+`/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-whole86d9-ci40222977451`.
+No new node window, grant, public deployment, native authorization or 1000 TPS
+qualification is implied. The next fresh N1 four-node pair remains the original
+Protocol/Root scheduled path; a Whole successor must have its own exact runtime
+and workload bindings afterward.
