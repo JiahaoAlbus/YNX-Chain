@@ -1,0 +1,39 @@
+{
+  "artifactReadback": {
+    "archiveSHA256": "9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf",
+    "artifactId": 12609705118,
+    "clientBuildToolchain": "Go 1.26.10",
+    "clientCodeTree": "19b9fafcfbb3f434b9ff745fb785afb1d0741247",
+    "compiledCommit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+    "embeddedVCSReadIndependently": true,
+    "executionAuthorized": false,
+    "files": {
+      "go-build-info.txt": {
+        "bytes": 5526,
+        "sha256": "25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603"
+      },
+      "ynx-consensus-perf-client": {
+        "bytes": 38595797,
+        "sha256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec"
+      }
+    },
+    "fullSourceTestsToolchain": "Go 1.25",
+    "linuxAMD64ELF": true,
+    "localBinaryExecuted": false,
+    "normalRunId": "40220335526",
+    "producerCommit": "da3060e150e2bd0f5695d67a76f3b30fafd1c696",
+    "publicDeployment": false,
+    "sourceBytes": 708,
+    "sourceSHA256": "40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9",
+    "sourceTree": "4866cc3924c060eb6a29939915d39b1c5c625607",
+    "version": "YNX-PQ-PERFORMANCE-CLIENT-READBACK/v1"
+  },
+  "normalCI": {
+    "conclusion": "success",
+    "databaseId": 40220335526,
+    "event": "push",
+    "headSha": "da3060e150e2bd0f5695d67a76f3b30fafd1c696",
+    "status": "completed",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40220335526"
+  }
+}

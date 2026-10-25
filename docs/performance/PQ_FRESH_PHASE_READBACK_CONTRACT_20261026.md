@@ -113,3 +113,29 @@ The original controller still needs its owner to add/freeze the fresh profile
 and run it under Root's resource schedule. A green legacy E2E window, old
 result, pending build or this parser's fixture tests cannot substitute for that
 actual fresh run. This consumer changes no controller or run authorization.
+
+## Actual normal build handoff
+
+Original push CI [40220335526](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40220335526)
+completed successfully at producer `da3060e150e2bd0f5695d67a76f3b30fafd1c696`.
+The exact client compiled from `70e7e450997a0ae77dbad5a8be3682f482c6ddd8`
+is now supplied, rather than merely planned. Artifact ID `12609705118`, archive
+SHA256 `9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf`;
+its one download matched the original artifact API digest. The 38,595,797-byte
+Linux/amd64 ELF SHA256 is
+`a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec`.
+Its 708-byte SOURCE.json SHA256 is
+`40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9`.
+Independent local `go version -m` readback of the ELF confirmed Go 1.26.10,
+Linux/amd64, exact compiled VCS revision and `vcs.modified=false`; no Linux ELF
+was executed on the Mac. File hashes/lengths and both source trees matched.
+
+Machine-readable normal CI and artifact readback:
+`evidence/pq-client70e7-ci40220335526-readback.json`.
+Original archive, three extracted public files and READBACK.json remain in
+`/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-client70e7-ci40220335526`.
+The subsequent original-cleanup and stdout consumer changes in `f63131613` and
+`433481ab3` have 12 local tests passing and their own normal CI `40221098752`
+in progress. They are not retroactively attributed to the completed producer.
+The normal CI passed source checks under Go 1.25; the Go 1.26.10 gate builds the
+frozen client. Neither gate is a fresh four-node run or sustained TPS evidence.
