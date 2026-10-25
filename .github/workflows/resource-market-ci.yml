@@ -3,6 +3,7 @@ name: Resource Market Candidate Gates
 on:
   push:
     branches:
+      - 'main'
       - 'codex/ynx-pq-public-upgrade'
       - 'codex/ynx-pq-perf-integration'
     paths:
@@ -187,7 +188,7 @@ jobs:
   verify:
     # Frozen protocol refs have their own fail-closed identity gate below;
     # they must never fall through into unrelated product build/test jobs.
-    if: github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history)
+    if: github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -242,7 +243,7 @@ jobs:
           compression-level: 6
 
   caddy-source:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
     runs-on: ubuntu-24.04
     timeout-minutes: 6
     steps:
@@ -339,7 +340,7 @@ jobs:
           retention-days: 30
 
   artifact-release-cabi:
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
     strategy:
       fail-fast: false
       matrix:
@@ -585,7 +586,7 @@ jobs:
           retention-days: 7
 
   focused-go:
-    if: ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))
     outputs:
       inputs-artifact-id: ${{ steps.stageupload.outputs.artifact-id }}
       inputs-manifest-sha256: ${{ steps.stagepack.outputs.manifest-sha256 }}
@@ -1434,10 +1435,10 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Verify existing Chain readback and recovery after protocol integration
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration') }}
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/mutationfreeze ./internal/indexer ./internal/explorer ./internal/faucet ./cmd/ynx-indexerd
       - name: Verify existing Chain SDK after protocol integration
-        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration') }}
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}
         run: node --test sdk/js/index.test.mjs
       - name: Emit application-backed public Wallet HTTP fixture
         id: walletfixture
@@ -1841,7 +1842,7 @@ jobs:
   # same run/source. Only the closed public fixture catalog crosses runners.
   protocol-delivery:
     needs: [focused-go, caddy-source]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:
@@ -2893,7 +2894,7 @@ jobs:
 
   proof-verifier-macos:
     needs: protocol-delivery
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     env:

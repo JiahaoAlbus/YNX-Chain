@@ -107,8 +107,8 @@ def job_if(name):
         raise RuntimeError('original job predicate missing: ' + name)
     return ' '.join(found[0].split())
 
-expected_verify = "github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history)"
-expected_focused = "((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))"
+expected_verify = "github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history)"
+expected_focused = "(github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))"
 sha = 'a123456789abcdef0123456789abcdef01234567'
 other_sha = 'b123456789abcdef0123456789abcdef01234567'
 frozen = 'refs/heads/codex/ynx-pq-remote-' + sha[:9]
@@ -189,6 +189,7 @@ invoke('public-original-retained-local', True, ref=public, remote='false', retai
 invoke('main-remote-ref-bypass', False, ref=main)
 invoke('other-ref-must-reach-rejection', False, ref='refs/heads/codex/other')
 invoke('public-remote-ref-bypass', False, ref=public)
+invoke('production-main-remote-ref-bypass', False, ref='refs/heads/main')
 invoke('frozen-without-remote-mode', False, remote='false')
 invoke('frozen-mixed-paired', False, paired='true')
 invoke('frozen-mixed-local', False, local='true')
@@ -203,6 +204,21 @@ invoke('main-original-local-mixed-modes', False, ref=main, remote='false', paire
 
 if job_if('verify') != expected_verify or job_if('focused-go') != expected_focused:
     raise RuntimeError('wrong-ref remote selection must enter identity and never the unrelated generic job')
+# The production driver requires a clean, real main checkout whose full commit
+# matches runtime SOURCE.json. A normal merge must therefore reach the same
+# existing producers; it must not require a manual remote window or relabel a
+# pre-merge artifact. These checks describe source wiring, not scheduler proof.
+push_branches = text.split('  push:\n', 1)[1].split('    paths:\n', 1)[0]
+if push_branches.splitlines().count("      - 'main'") != 1:
+    raise RuntimeError('normal production main push trigger missing')
+normal_push = "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')"
+for name in ('caddy-source', 'artifact-release-cabi'):
+    if job_if(name) != normal_push:
+        raise RuntimeError('same-source normal main producer route missing: ' + name)
+if job_if('protocol-delivery') != normal_push + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'":
+    raise RuntimeError('normal production runtime must retain both same-run source gates')
+if job_if('proof-verifier-macos') != "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')":
+    raise RuntimeError('normal production proof verifier route missing')
 if any(path.read_bytes() != raw for path, raw in originals.items()):
     raise RuntimeError('readonly actual-caller controls changed original source bytes')
 print('YNX_REMOTE_WINDOW_CALLER_CONTROLS_DATA_ONLY positive=' + str(counts['positive'])
