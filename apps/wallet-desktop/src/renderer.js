@@ -1105,16 +1105,15 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
     if (!current()) return;
     if (!result.ok) { if(!renderTransferPreparationError(output,result.error))output.textContent = errorText(result); return; }
     if (result.value.account !== activeAccount) { copyUI(output,"Account changed. Review again."); return; }
-    transferReview = result.value;
-    const summary = document.querySelector("#transfer-summary"); summary.replaceChildren();
-    for (const [label, value] of [["From", transferReview.ynxFrom], ["To", transferReview.ynxTo], ["Amount", `${transferReview.amount} YNXT`], ...(transferReview.actualFee ? [["Native transfer fee", `${transferReview.actualFee} YNXT`]] : []), ["Maximum fee budget", `${transferReview.maximumFee} YNXT`], ["Maximum total budget", `${transferReview.total} YNXT`], ...(transferReview.feeExplanation ? [["Fee and budget", transferReview.feeExplanation]] : []), ["Network", "YNX Testnet · 6423"]]) {
-      const term = document.createElement("dt"), description = document.createElement("dd"); copyUI(term,label); if(label==="Fee and budget")copyUI(description,value);else description.textContent=value; description.dir = "ltr"; summary.append(term, description);
+    if(result.value.protocol!=='YNX-BATCH/v0.1'||typeof result.value.requestId!=='string'||result.value.signed!==false||result.value.submitted!==false){
+      output.textContent='PQ review unavailable. Nothing signed or submitted. / PQ 审查不可用，未签名、未提交。';return;
     }
-    document.querySelector("#transfer-transaction").textContent = formatApprovalReview(transferReview.transaction ?? {});
-    document.querySelector("#transfer-review").hidden = false;
+    // Main queued the original provider review. Never fall back to the old
+    // ECC sign-and-send dialog or combine signing with broadcast approval.
+    transferReview=null;
+    output.textContent='Review the dual-PQ signing request. Broadcast needs a separate approval. / 请核对双 PQ 签名请求；广播需另行批准。';
     document.querySelector("#send-sheet").close();
-    document.querySelector("#transfer-review").showModal();
-    copyUI(output,"Review the details below. Nothing has been signed or sent.");
+    presentApproval();
   } catch { if (current()) copyUI(output,"Unable to prepare the transfer. Check the network and try again."); }
   finally { finishAccountOperation(operation); }
 });

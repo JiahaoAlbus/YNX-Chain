@@ -58,7 +58,7 @@ test('actual main projection annotates only opted-in definite local preparation 
   if(error.data.outcomeUnknown){assert.equal(projected.error.outcomeUnknown,true);assert.equal(projected.error.transactionHash,'0xExact');}
  }
 });
-test('preparation display option traverses original sensitive key access guard only on prepare route',async()=>{
+test('default PQ preparation traverses sensitive key access without classic fee provenance',async()=>{
  const main=fs.readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8');
  const declaration=main.match(/^const sensitiveIPC = .*;$/m)?.[0];assert.ok(declaration);
  const seen=[];const options={lease:'fixture'};
@@ -69,18 +69,18 @@ test('preparation display option traverses original sensitive key access guard o
  const value=await sensitive(async()=> 'public-fixture',options,{localTransferPreparation:true});
  assert.equal(value,'public-fixture');assert.equal(seen[0][1].localTransferPreparation,true);assert.equal(seen[1][1],options);
  const call=main.match(/^handleWalletIPC\("wallet:prepare-transfer".*$/m)?.[0];assert.ok(call);
- assert.match(call,/sensitiveIPC\(/);assert.match(call,/localTransferPreparation:\s*true/);
- assert.equal((main.match(/localTransferPreparation:\s*true/g)??[]).length,1);
+ assert.match(call,/sensitiveIPC\(/);assert.match(call,/prepareLocalPQTransferReview/);assert.doesNotMatch(call,/localTransferPreparation:\s*true/);
+ assert.equal((main.match(/localTransferPreparation:\s*true/g)??[]).length,0);
  const start=main.indexOf('async function safeIPC('),end=main.indexOf('function safeErrorClass(',start);
  const routeCalls=new Map(),guards=[];
  const preparedInput={to:'ynx1-public',amount:'1'};
- const context={handleWalletIPC:(name,handler)=>routeCalls.set(name,handler),nativeWallet:{async prepareTransfer(input){assert.equal(input,preparedInput);throw Object.assign(new Error(TRANSFER_ERROR_KEYS[0]),{code:-32000,data:{code:'INSUFFICIENT_FUNDS'}});}},keyAccess:{async run(action,keyOptions){guards.push(['before',keyOptions]);const result=await action();guards.push(['after',keyOptions]);return result;}}};
+ const context={handleWalletIPC:(name,handler)=>routeCalls.set(name,handler),async prepareLocalPQTransferReview(input){assert.equal(input,preparedInput);throw Object.assign(new Error(TRANSFER_ERROR_KEYS[0]),{code:-32000,data:{code:'INSUFFICIENT_FUNDS'}});},keyAccess:{async run(action,keyOptions){guards.push(['before',keyOptions]);const result=await action();guards.push(['after',keyOptions]);return result;}}};
  vm.runInNewContext(`${main.slice(start,end)};${declaration};${call}`,context);
  const projected=await routeCalls.get('wallet:prepare-transfer')(null,preparedInput);
  assert.equal(guards.length,1);assert.equal(guards[0][0],'before');assert.equal(guards[0][1],undefined);
- assert.equal(projected.error.displayOrigin,'LOCAL_TRANSFER_PREPARATION');
- const ui=mounted();assert.equal(renderTransferPreparationError(ui.node,projected.error),true);
- assert.equal(ui.node.textContent,TRANSFER_ERROR_COPY['zh-Hans'][TRANSFER_ERROR_KEYS[0]]);
+ assert.equal(projected.error.displayOrigin,undefined);
+ const ui=mounted();ui.node.textContent='original PQ refusal';assert.equal(renderTransferPreparationError(ui.node,projected.error),false);
+ assert.equal(ui.node.textContent,'original PQ refusal');
 });
 test('display switches locale but does not mutate the error or suppress unknown outcomes',()=>{
  const ui=mounted();const error=Object.freeze({code:'INSUFFICIENT_FUNDS',message:TRANSFER_ERROR_KEYS[0],displayOrigin:'LOCAL_TRANSFER_PREPARATION'});assert.equal(renderTransferPreparationError(ui.node,error),true);ui.locale.select('zh-Hant');assert.equal(ui.node.textContent,TRANSFER_ERROR_COPY['zh-Hant'][error.message]);assert.equal(error.message,TRANSFER_ERROR_KEYS[0]);
@@ -97,7 +97,7 @@ test('actual preparation chain retains lifecycle locked-before and blur-after gu
  const enteredPromise=new Promise(resolve=>{entered=resolve;});
  const suspended=new Promise(resolve=>{release=resolve;});
  let route;
- const context={keyAccess:lifecycle,handleWalletIPC:(_name,handler)=>{route=handler;},nativeWallet:{async prepareTransfer(){invoked++;entered();await suspended;return{publicPreview:true};}}};
+ const context={keyAccess:lifecycle,handleWalletIPC:(_name,handler)=>{route=handler;},async prepareLocalPQTransferReview(){invoked++;entered();await suspended;return{publicPreview:true};}};
  vm.runInNewContext(`${main.slice(start,end)};${declaration};${call}`,context);
  const locked=await route(null,{});assert.equal(locked.error.code,'WALLET_LOCKED');assert.equal(invoked,0);assert.equal(locked.error.displayOrigin,undefined);
  await lifecycle.unlock();const pending=route(null,{});await enteredPromise;

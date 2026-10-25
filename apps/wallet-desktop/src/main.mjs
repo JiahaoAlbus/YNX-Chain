@@ -532,11 +532,19 @@ handleWalletIPC('wallet:pq-transaction-status',(_event,hash)=>sensitiveIPC(async
   if(guard.account!==status.account)throw Object.assign(Error('Select the original account.'),{data:{code:'ACCOUNT_CHANGED'}});
   return walletAuthority.transactionSender.submissions.checkPQ(hash,status.account,guard);
 }));
-handleWalletIPC('wallet:pq-transfer-review',(_event,input)=>sensitiveIPC(async()=>{
-  const response=await walletAuthority.requestPQTransfer(input);
-  keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
-  return {requestId:response.request.id,submitted:false};
-}));
+// Both local Send entries use the existing dual-PQ review and its separate
+// original approval. This only prepares a review; it never signs or submits.
+async function prepareLocalPQTransferReview(input){
+  const guard=keyAccess.current();guard.assert();let response;
+  try{
+    response=await walletAuthority.requestPQTransfer(input);guard.assert();
+    if(response?.status!=='approval-required'||response.request?.method!=='ynx_signPQNativeTransfer'||typeof response.request.id!=='string'||response.request.review?.account!==guard.account)throw Object.assign(Error('The original PQ transfer review is unavailable.'),{code:'YNX_PQ_REVIEW_REQUIRED'});
+    if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
+    mainWindow.webContents.send('wallet:provider-request',response.request);guard.assert();
+    return Object.freeze({protocol:'YNX-BATCH/v0.1',account:response.request.review.account,requestId:response.request.id,signed:false,submitted:false});
+  }catch(error){if(typeof response?.request?.id==='string')walletAuthority.expire(response.request.id);throw error;}
+}
+handleWalletIPC('wallet:pq-transfer-review',(_event,input)=>sensitiveIPC(()=>prepareLocalPQTransferReview(input)));
 handleWalletIPC('wallet:pq-typed-action-review',(_event,input)=>sensitiveIPC(async()=>{
   const response=await walletAuthority.requestPQTypedAction(input);
   keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
@@ -598,12 +606,14 @@ handleWalletIPC("wallet:retry-transaction", (_event, hash) => sensitiveIPC(async
   lease.assert();
   return walletAuthority.transactionSender.submissions.retry(hash, status.account, lease);
 }));
-handleWalletIPC("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => nativeWallet.prepareTransfer(input), undefined, { localTransferPreparation: true }));
+handleWalletIPC("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => prepareLocalPQTransferReview(input)));
 handleWalletIPC("wallet:transfer-action", async (_event, id, action) => {
-  const attempt=nativeWallet.beginTransferAttempt(id,action);
-  const result=await sensitiveIPC(() => nativeWallet.transferAction(id, action));
-  nativeWallet.finishTransferAttempt(attempt,result);
-  return result;
+  // Old local preview IDs must never reactivate the former ECC sign-and-send
+  // route. Cancellation remains available; old signed/outbox records stay.
+  return sensitiveIPC(()=>{
+    if(action==='reject')return nativeWallet.transferAction(id,'reject');
+    throw Object.assign(Error('Use a fresh PQ transfer review and separate broadcast approval.'),{code:'YNX_PQ_REVIEW_REQUIRED'});
+  });
 });
 handleWalletIPC("wallet:transfer-attempts", (_event, account) => safeIPC(async () => {
   if(account!==(await walletAuthority.vault.status()).account)throw Object.assign(new Error("Selected account changed"),{code:4100,data:{code:"ACCOUNT_CHANGED"}});

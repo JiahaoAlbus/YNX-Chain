@@ -5,20 +5,20 @@ import {runInNewContext} from "node:vm";
 const source=readFileSync(process.env.YNX_TRANSFER_SOURCE??new URL("../src/renderer.js",import.meta.url),"utf8");
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return{promise,resolve,reject}};
 function harness(){
-  const nodes=new Map(),preparations=[],actions=[],parses=[],prepareInputs=[];let refreshes=0;
+  const nodes=new Map(),preparations=[],actions=[],parses=[],prepareInputs=[];let refreshes=0,approvalPresentations=0;
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{value:"",textContent:"",disabled:false,hidden:false,open:false,children:[],listeners:{},addEventListener(type,fn){this.listeners[type]=fn},append(...values){this.children.push(...values)},replaceChildren(){this.children=[]},close(){this.open=false},showModal(){this.open=true},focus(){}});return nodes.get(selector)};
   const document={querySelector:selector=>selector==="dialog[open]"?[...nodes.values()].find(node=>node.open)??null:get(selector),createElement:()=>({}),querySelectorAll:()=>[]};
   get("#send-sheet").open=true;get("#transfer-to").value="ynx1-public-recipient";get("#transfer-amount").value="1";
   const context={document,keyState:{locked:false,authenticating:false,revision:1},activeAccount:"account-a",accountViewRevision:0,accountState:{initialized:true},paymentDraftRevision:0,transferReview:null,transferInFlight:false,
     window:{ynxWallet:{paymentRecipient:input=>{const pending=deferred();parses.push({...pending,input});return pending.promise},prepareTransfer:input=>{prepareInputs.push(input);const pending=deferred();preparations.push(pending);return pending.promise},transferAction:()=>{const pending=deferred();actions.push(pending);return pending.promise},lock:async()=>{context.keyState.locked=true}}},
-    paymentRecipientUI:{invalidate(){}},recipientScanUI:{invalidate(){}},renderTransferPreparationError:()=>false,errorText:result=>result.error.message,formatApprovalReview:()=>"public transaction",refreshAssets(){refreshes++},refreshTransactions(){refreshes++}};
+    paymentRecipientUI:{invalidate(){}},recipientScanUI:{invalidate(){}},presentApproval(){approvalPresentations++;},renderTransferPreparationError:()=>false,errorText:result=>result.error.message,formatApprovalReview:()=>"public transaction",refreshAssets(){refreshes++},refreshTransactions(){refreshes++}};
   const start=source.indexOf('document.querySelector("#transfer-form").addEventListener'),end=source.indexOf("\nfunction setView(name)",start);
   const entryStart=source.indexOf('document.querySelector("#open-send").addEventListener'),entryEnd=source.indexOf('\ndocument.querySelector("#send-sheet").addEventListener',entryStart);
   const ownerStart=source.indexOf("let accountSecurityIntent="),ownerEnd=source.indexOf('createAccount.addEventListener("click"',ownerStart);
   runInNewContext(source.match(/^function copyUI\([^\n]+/m)[0]+"\n"+source.match(/^function invalidatePaymentInput\([^\n]+/m)[0]+"\n"+source.slice(ownerStart,ownerEnd)+"\n"+source.slice(start,end)+"\n"+source.slice(entryStart,entryEnd),context);
-  return{context,get,preparations,actions,parses,prepareInputs,refreshes:()=>refreshes,submit:()=>get("#transfer-form").listeners.submit({preventDefault(){}})};
+  return{context,get,preparations,actions,parses,prepareInputs,refreshes:()=>refreshes,approvalPresentations:()=>approvalPresentations,submit:()=>get("#transfer-form").listeners.submit({preventDefault(){}})};
 }
-const prepared=()=>({ok:true,value:{id:"review-a",account:"account-a",ynxFrom:"public-a",ynxTo:"public-b",amount:"1",maximumFee:"2",total:"3"}});
+const prepared=()=>({ok:true,value:{protocol:'YNX-BATCH/v0.1',requestId:'review-a',account:'account-a',signed:false,submitted:false}});
 for(const outcome of ["failure","throw"])test(`old prepare ${outcome} cannot publish after lock/unlock or release a newer prepare button`,async()=>{
   const h=harness(),old=h.submit();h.context.keyState={locked:false,authenticating:false,revision:3};h.context.invalidatePaymentInput();
   const fresh=h.submit(),notice=h.get("#transfer-result").textContent;
@@ -44,11 +44,10 @@ test("a submitted transfer receipt after account switch stays in the journal, no
   h.actions[0].resolve({ok:true,value:{hash:"original-hash"}});await job;
   assert.equal(h.get("#transfer-result").textContent,"account-b notice");assert.equal(h.refreshes(),1);
 });
-test("normal prepare/review/explicit approval shows original hash and refreshes balance and journal",async()=>{
+test("normal default prepare presents existing PQ approval without classic confirmation or automatic signing",async()=>{
   const h=harness(),preparing=h.submit();h.preparations[0].resolve(prepared());await preparing;
-  assert.equal(h.get("#transfer-review").open,true);assert.equal(h.actions.length,0);
-  const sending=h.context.actOnTransfer("approve");h.actions[0].resolve({ok:true,value:{hash:"original-hash"}});await sending;
-  assert.match(h.get("#transfer-result").textContent,/original-hash/);assert.equal(h.refreshes(),2);assert.equal(h.get("#send-sheet").open,true);
+  assert.equal(h.get("#transfer-review").open,false);assert.equal(h.actions.length,0);assert.equal(h.approvalPresentations(),1);
+  assert.equal(h.context.transferReview,null);assert.equal(h.get("#send-sheet").open,false);assert.match(h.get("#transfer-result").textContent,/separate approval/);assert.equal(h.refreshes(),0);
 });
 test("submission completion cannot open Send over a newer password or backup dialog",async()=>{
   const h=harness();h.get("#send-sheet").open=false;h.get("#transfer-review").open=true;h.context.transferReview={id:"old-review"};
@@ -73,14 +72,12 @@ test("closing and explicitly reopening the same Send draft cannot revive its pre
 const r15Address="ynx1sj7g39cewyrc63g2clxrrkdywawkuvr9fmrvvt";
 const r15URI=`ynx:${r15Address}?chainId=ynx_6423-1&asset=YNXT`;
 const r15Parsed=()=>({ok:true,value:{ynxAccount:r15Address,chainId:"ynx_6423-1",asset:"YNXT"}});
-test("R15 PUBLIC typed receiving link previews normalized recipient and cancels without changing entered draft",async()=>{
+test("R15 PUBLIC typed receiving link passes original draft unchanged to PQ preparation without automatic action",async()=>{
   const h=harness();h.get("#transfer-to").value=r15URI;h.get("#transfer-amount").value="1.25";
   const job=h.submit();assert.equal(h.parses.length,1);assert.equal(h.parses[0].input,r15URI);assert.equal(h.preparations.length,0);
   h.parses[0].resolve(r15Parsed());await new Promise(resolve=>setImmediate(resolve));assert.equal(h.preparations.length,1);
   assert.equal(h.prepareInputs[0].to,r15Address);assert.equal(h.prepareInputs[0].amount,"1.25");
-  h.preparations[0].resolve(prepared());await job;assert.equal(h.get("#transfer-review").open,true);assert.equal(h.actions.length,0);
-  const cancel=h.context.actOnTransfer("reject");assert.equal(h.actions.length,1);h.actions[0].resolve({ok:true,value:{rejected:true,transactionCreated:false}});await cancel;
-  assert.match(h.get("#transfer-result").textContent,/Nothing was signed or sent/);assert.equal(h.get("#send-sheet").open,true);
+  h.preparations[0].resolve(prepared());await job;assert.equal(h.get("#transfer-review").open,false);assert.equal(h.actions.length,0);assert.equal(h.approvalPresentations(),1);assert.equal(h.context.transferReview,null);
   assert.equal(h.get("#transfer-to").value,r15URI);assert.equal(h.get("#transfer-amount").value,"1.25");
 });
 for(const [name,reply] of [
@@ -107,5 +104,8 @@ for(const mutation of ["account","draft","lock","dialog","authenticating","key r
 });
 test("R15 PUBLIC ordinary address keeps its existing preparation path without recipient parser",async()=>{
   const h=harness(),job=h.submit();assert.equal(h.parses.length,0);assert.equal(h.preparations.length,1);assert.equal(h.prepareInputs[0].to,"ynx1-public-recipient");
-  h.preparations[0].resolve(prepared());await job;assert.equal(h.get("#transfer-review").open,true);assert.equal(h.actions.length,0);
+  h.preparations[0].resolve(prepared());await job;assert.equal(h.get("#transfer-review").open,false);assert.equal(h.actions.length,0);assert.equal(h.approvalPresentations(),1);
+});
+test('default Send refuses a legacy preparation response instead of opening classic confirmation',async()=>{
+ const h=harness(),job=h.submit();h.preparations[0].resolve({ok:true,value:{id:'legacy',account:'account-a'}});await job;assert.equal(h.actions.length,0);assert.equal(h.approvalPresentations(),0);assert.equal(h.get('#transfer-review').open,false);assert.equal(h.get('#send-sheet').open,true);assert.match(h.get('#transfer-result').textContent,/PQ review unavailable/);
 });
