@@ -111,7 +111,7 @@ func TestPreparedSnapshotJSONEncodingRealCLISetupFailure(t *testing.T) {
 		t.Run(mode, func(t *testing.T) {
 			output := filepath.Join(t.TempDir(), "real-cli-error.json")
 			child := exec.Command(os.Args[0], "-test.run=^TestPreparedSnapshotJSONEncodingRealCLISetupFailure$")
-			child.Env = append(os.Environ(), "YNX_PREPARED_JSON_CLI_OUTPUT="+output, "YNX_PREPARED_JSON_CLI_MODE="+mode)
+			child.Env = append(os.Environ(), "YNX_PREPARED_JSON_CLI_OUTPUT="+output, "YNX_PREPARED_JSON_CLI_MODE="+mode, "GOMAXPROCS=1")
 			diagnostic, err := child.CombinedOutput()
 			exit, ok := err.(*exec.ExitError)
 			if !ok || exit.ExitCode() != 1 {
