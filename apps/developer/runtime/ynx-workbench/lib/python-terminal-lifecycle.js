@@ -49,8 +49,9 @@ class PythonTerminalLifecycle {
     if (this.threadLifecycles.has(session) || typeof session.handleThread !== 'function' || typeof session.scheduleUpdateThreads !== 'function') return;
     const descriptor = Object.getOwnPropertyDescriptor(session, 'handleThread'), original = session.handleThread;
     const scheduleDescriptor = Object.getOwnPropertyDescriptor(session, 'scheduleUpdateThreads');
-    if (descriptor && !descriptor.configurable || scheduleDescriptor && !scheduleDescriptor.configurable) return;
-    const record = { descriptor, scheduleDescriptor, active: new Set(), ended: false, disposables: [], waiting: [] };
+    const updateDescriptor = Object.getOwnPropertyDescriptor(session, 'doUpdateThreads'), applyThreads = session.doUpdateThreads;
+    if (descriptor && !descriptor.configurable || scheduleDescriptor && !scheduleDescriptor.configurable || updateDescriptor && !updateDescriptor.configurable) return;
+    const record = { descriptor, scheduleDescriptor, updateDescriptor, active: new Set(), ended: false, disposables: [], waiting: [] };
     record.cancel = () => { clearTimeout(record.timer); for (const resolve of record.waiting.splice(0)) resolve(); };
     // Retained p-debounce has no cancellation API. Keep its 100 ms coalescing
     // behavior, while making this admitted session's queued refresh retireable.
@@ -73,6 +74,15 @@ class PythonTerminalLifecycle {
       if (record.ended || reason === 'exited' && record.active.size === 0) record.cancel();
       return result;
     };
+    if (typeof applyThreads === 'function') {
+      // The request may already be in flight when the process exits. Preserve
+      // real live/breakpoint updates, but never apply its late response to an
+      // ended session's thread tree.
+      record.applyThreads = function(...args) {
+        if (!record.ended) return applyThreads.apply(this, args);
+      };
+      Object.defineProperty(session, 'doUpdateThreads', { configurable: true, writable: true, value: record.applyThreads });
+    }
     Object.defineProperty(session, 'handleThread', { configurable: true, writable: true, value: record.wrapper });
     Object.defineProperty(session, 'scheduleUpdateThreads', { configurable: true, writable: true, value: record.schedule });
     for (const event of ['exited', 'terminated']) if (session.connection?.on) record.disposables.push(session.connection.on(event, cancel));
@@ -91,6 +101,16 @@ class PythonTerminalLifecycle {
       if (record.scheduleDescriptor) Object.defineProperty(session, 'scheduleUpdateThreads', record.scheduleDescriptor);
       else delete session.scheduleUpdateThreads;
     }
+    // Keep the retired result fence until the actual retained request chain
+    // settles. Restoring it immediately would let an already pending response
+    // revive threads after terminal shutdown. Never overwrite another owner.
+    const restoreThreads = () => {
+      if (record.applyThreads && session.doUpdateThreads === record.applyThreads) {
+        if (record.updateDescriptor) Object.defineProperty(session, 'doUpdateThreads', record.updateDescriptor);
+        else delete session.doUpdateThreads;
+      }
+    };
+    Promise.resolve(session.pendingThreads).then(restoreThreads, restoreThreads);
   }
   bind(capability, id) {
     const entry = this.entries.get(capability), widget = entry?.widget;

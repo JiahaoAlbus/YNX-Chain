@@ -41,3 +41,44 @@ test('hosted and unrelated debuggers are not adapted; shutdown preserves another
  for(const options of [{mode:'hosted'},{type:'node'}]){const f=fixture(options),original=f.session.handleThread;try{await assert.rejects(f.lifecycle.prepare('session'),/current local/);assert.equal(f.session.handleThread,original);}finally{f.close();}}
  const f=fixture();try{f.lifecycle.abandon(await f.lifecycle.prepare('session'));const replacement=()=>{};f.session.handleThread=replacement;f.lifecycle.onStop();assert.equal(f.session.handleThread,replacement);assert.equal(f.lifecycle.threadLifecycles.size,0);}finally{f.close();}
 });
+
+test('an in-flight real thread response cannot revive an ended admitted Python session',async()=>{
+ for(const end of ['exited','terminated','shutdown']){
+  const f=fixture(),originalApply=f.session.doUpdateThreads;let release,entered;const started=new Promise(resolve=>entered=resolve);
+  try{
+   f.lifecycle.abandon(await f.lifecycle.prepare('session'));
+   f.session.sendRequest=()=>{entered();return new Promise(resolve=>release=resolve);};
+   const pending=f.session.updateThreads(undefined);await started;
+   if(end==='shutdown')f.lifecycle.onStop();else f.events.get(end).fire({body:{}});
+   release({body:{threads:[{id:1,name:'late main'}]}});await pending;
+   assert.equal(f.session._threads.size,0,'late response revived '+end);
+   if(end==='shutdown')assert.equal(f.session.doUpdateThreads,originalApply);
+  }finally{f.close();}
+ }
+});
+test('Python terminal shutdown preserves a later thread-result contribution',async()=>{
+ const f=fixture();try{
+  f.lifecycle.abandon(await f.lifecycle.prepare('session'));
+  const replacement=()=>{};f.session.doUpdateThreads=replacement;
+  f.lifecycle.onStop();await Promise.resolve();assert.equal(f.session.doUpdateThreads,replacement);
+ }finally{f.close();}
+});
+
+test('retiring one Python session leaves another live session thread response intact',async()=>{
+ const ended=fixture(),live=fixture();try{
+  ended.lifecycle.abandon(await ended.lifecycle.prepare('session'));live.lifecycle.abandon(await live.lifecycle.prepare('session'));
+  ended.events.get('terminated').fire({body:{}});
+  await live.session.updateThreads({threadId:1});
+  assert.equal(live.session._threads.size,1);assert.equal(live.requests.length,1);assert.deepEqual(live.errors,[]);
+  assert.equal(ended.session._threads.size,0);
+ }finally{ended.close();live.close();}
+});
+test('failed in-flight Python thread request keeps its original error visible after termination',async()=>{
+ const f=fixture();let rejectRequest,entered;const started=new Promise(resolve=>entered=resolve),cause=Error('PUBLIC adapter disconnected');
+ try{
+  f.lifecycle.abandon(await f.lifecycle.prepare('session'));
+  f.session.sendRequest=()=>{entered();return new Promise((resolve,reject)=>rejectRequest=reject);};
+  const pending=f.session.updateThreads(undefined);await started;f.events.get('terminated').fire({body:{}});
+  rejectRequest(cause);await pending;assert.equal(f.errors.length,1);assert.equal(f.errors[0][1],cause);assert.equal(f.session._threads.size,0);
+ }finally{f.close();}
+});
