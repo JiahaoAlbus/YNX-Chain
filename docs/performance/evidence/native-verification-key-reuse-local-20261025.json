@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "codeCommit": "e7beff99ac8b4e19efa83e5d6a5f4198182cdf9e",
+  "sourceQualification": "local verified; exact-source normal CI pending; no new network run",
+  "cause": {
+    "runId": 40183256447,
+    "afterNativeDecodeVerifiedNs": 2126830308,
+    "verificationFacts": {
+      "capacity": 4096,
+      "stringByteLimit": 4194304,
+      "lookups": 8192,
+      "hits": 0,
+      "successfulVerifications": 8192,
+      "entries": 4096
+    },
+    "interpretation": "One verification per distinct new canonical signed envelope. Prefix certificate reuses prior executed prefix; decoder-owned facts survive suffix Applications but are not shared with other processes. Larger cache does not avoid first verification."
+  },
+  "change": "Reuse this call-local parsed secp256k1 public key for owner derivation and complete ECDSA verification. No cache-capacity/admission/nonce/hash/durability change.",
+  "benchmark": {
+    "platform": "darwin/arm64 Apple M4",
+    "gomaxprocs": 1,
+    "benchtime": "300ms",
+    "count": 3,
+    "originalNsPerOp": [
+      87506,
+      87722,
+      87482
+    ],
+    "currentNsPerOp": [
+      80577,
+      80705,
+      80591
+    ],
+    "originalMedianNs": 87506,
+    "currentMedianNs": 80591,
+    "medianDurationReductionPercent": 7.902315269810067,
+    "originalBytesPerOp": 1720,
+    "currentBytesPerOp": 1640,
+    "originalAllocsPerOp": 26,
+    "currentAllocsPerOp": 25,
+    "scope": "Complete SignedTransaction.Verify only; no throughput/node/finality claim"
+  },
+  "focusedRace": {
+    "topLevelPasses": 11,
+    "elapsedSeconds": 1.853
+  },
+  "sourceGuard": {
+    "passes": 25,
+    "failures": 0
+  },
+  "rawEvidence": {
+    "before-duplicate-parse.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verification-key-reuse-20261025/before-duplicate-parse.raw",
+      "bytes": 941,
+      "sha256": "290d76b0b1ee5669bb7ec32da5a44491f4c4173cad2e768fab40ab2e2833edf7"
+    },
+    "after-key-reuse.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verification-key-reuse-20261025/after-key-reuse.raw",
+      "bytes": 941,
+      "sha256": "1df0ad8c97d67982d2eb1dbce1b041efd6e4a7a9ed58a6cda705930356740de8"
+    },
+    "final-source-matched-benchmark-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verification-key-reuse-20261025/final-source-matched-benchmark-01.raw",
+      "bytes": 941,
+      "sha256": "062ac4a1d00c9ac9bf672cce60e19eca4fac4946519fc8d18b7f5c0afa987e60"
+    },
+    "focused-race-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verification-key-reuse-20261025/focused-race-01.raw",
+      "bytes": 3769,
+      "sha256": "3b1e48a806d0d8512c7a49bba556a0154dee092ad3d9ea575c231c49cfd3ccb6"
+    },
+    "source-guard-01.raw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verification-key-reuse-20261025/source-guard-01.raw",
+      "bytes": 4557,
+      "sha256": "ae75de3b0ad2551ebffbe420b8d4958f91b141b7af84b86375305780455936ab"
+    }
+  },
+  "changedRuntimeSource": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/transaction.go",
+    "bytes": 7595,
+    "sha256": "572ff291ba531ebf1185803a8156ceadc64ba294ddddee0d2b07a6cf24072718"
+  },
+  "newTests": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/native_verification_key_reuse_test.go",
+    "bytes": 6590,
+    "sha256": "6aa40df5704cb1bbd2ae1d87853917147a7318b1d8ecd0450fbdfbae69db50a5"
+  },
+  "normalWorkflow": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/.github/workflows/chain-core.yml",
+    "bytes": 52300,
+    "sha256": "b8ad82dd6884d96c4cf9107944b42d234c0b49e0fc1f81c4494fe1eab99f08d5"
+  },
+  "sustainedTPSQualified": false,
+  "defaultClientProcsChanged": false
+}
