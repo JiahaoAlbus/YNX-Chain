@@ -8,20 +8,34 @@
     "codeTree": "19b9fafcfbb3f434b9ff745fb785afb1d0741247",
     "artifactNameTemplate": "ynx-pq-performance-client-linux-amd64-<exact artifact source commit>",
     "normalBuild": "chain-core original checks then pinned Go1.26.10 bounded helper build; no node/window started",
-    "artifactSourceCommit": null,
-    "artifactId": null,
-    "binarySHA256": null,
+    "artifactSourceCommit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+    "artifactId": 12609705118,
+    "binarySHA256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec",
     "requireSameExecutableBothArms": true,
-    "sourceTestsToolchain": "existing chain-core Go1.25 job; do not claim those tests ran on Go1.26.10"
+    "sourceTestsToolchain": "existing chain-core Go1.25 job; do not claim those tests ran on Go1.26.10",
+    "producerCommit": "da3060e150e2bd0f5695d67a76f3b30fafd1c696",
+    "normalCI": "40220335526 completed success",
+    "readback": "pq-client70e7-ci40220335526-readback.json"
   },
   "originalRunner": {
-    "path": "scripts/loadtest/pq-paired-linux-window.py",
-    "sha256": "b87a895d7c625ae15834a73b19196310dfbba13335707b9fdb4a3e50d9ad69e2",
-    "baseReviewedProfile": "consensus-remote-e2e-retained-history-v1",
+    "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/scripts/loadtest/pq-paired-linux-window.py",
+    "sha256": "7a4abc7291caee244240f5a6e2b2ae4912c467750fae19c557a23e1ddc1c7af3",
+    "baseReviewedProfile": "consensus-signed-business-v1",
     "baseProfileMustNotExecuteThisPlan": true,
-    "reason": "existing opt-in test first runs legacy account/contract migration, not fresh new-account throughput; reuse its guards rather than invoke its workload",
-    "freshProfileAndTestEntry": null,
-    "owningSourceWork": "Protocol owns fresh isolated epoch setup in original four-node harness; exact frozen source pins/normal compiled entry required before READY"
+    "reason": "Existing signed-business profile is the preserved three-case initial/Member/partial workload with client3f5b; append and freeze a separate fresh successor, never hot-mix its old grant. Performance worktree controller copy is historical, not the authoritative current runner.",
+    "freshProfileAndTestEntry": {
+      "profile": "consensus-fresh-paired-business-v1",
+      "test": "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming",
+      "leafCommit": "5aebd8362414265f4894b818b6033a910d651cab",
+      "leafSHA256": "5b5cc231800157a2d4ac0ce07af43010c61ac18f9398e54711a18d6d9deb530f",
+      "normalCI": "40221463286 in progress at handoff; four DATA tests and three sibling ELFs not yet qualified",
+      "controllerStatus": "Protocol actively editing original controller; successor not frozen or executable"
+    },
+    "owningSourceWork": "Protocol owns original network controller, original tests, fresh epochs, build manifest and node/gateway/verifier supply. Chain performance owns fixed client and phase/delta consumer. Root coordinates admission only.",
+    "bytes": 74088,
+    "ownerThread": "01a14abb-5066-7db0-8814-e08c0d4b35a8",
+    "committedControllerOrigin": "1eea5564122df29a13febd7ad266f31f21f8f03e",
+    "baseCLI": "--consensus-signed-business"
   },
   "sameConditions": {
     "oneLinuxVM": true,
@@ -154,9 +168,9 @@
     "fresh Root resource admission/once grant bound to same VM/binaries/caps/case IDs and output root"
   ],
   "knownGaps": {
-    "clientBinaryNormalPrebuild": "workflow added, actual artifact/CI receipt pending",
-    "freshFourNodeProfile": "not supplied; do not substitute retained-history migration E2E or classic load fixture",
-    "freshInitialPositiveFixture": "requested exact original funded public fixture/same-source verifier, not yet qualified",
+    "clientBinaryNormalPrebuild": "resolved: exact70e7 Linux ELF built by original CI40220335526, independently read back and handed to Protocol",
+    "freshFourNodeProfile": "fresh leaf committed5aebd8362; Protocol actively implements successor profile in its original controller, normal tests/new freeze and sibling3ELF pending",
+    "freshInitialPositiveFixture": "real prepared funding/registration/business verification belongs to the original fresh callee; no actual paired run result yet",
     "wholeCollector": "canonical gateway owning work pending; first window uses N1 only, do not claim Whole or infer finality from Data",
     "heavyAdmission": "no new grant; do not start any node/window"
   },
