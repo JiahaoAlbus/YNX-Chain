@@ -61,7 +61,7 @@
     "originalParentDecoderReopened": true,
     "serverStarted": false
   },
-  "normalCIPending": true,
+  "normalCIPending": false,
   "frozenFourNodeSourceChanged": false,
   "networkImprovementMeasured": false,
   "sustainedTPSQualified": false,
@@ -73,5 +73,20 @@
     "sha256": "a66414c7763b54f29a9d0163421e736b08e24b11a71b0a330236589cce2e87e8",
     "tests": 24,
     "passed": true
+  },
+  "normalCI": {
+    "runId": 40113173666,
+    "head": "f95294babb9508ca9af10d9860fde0761a732952",
+    "status": "completed",
+    "conclusion": "success",
+    "fullRaw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/node-hash-source-f95294babb/normal-ci-full.raw",
+      "bytes": 745320,
+      "sha256": "74612ba050f0e09b1f862b97dbcf647a5135ca6b56220845786aa790e2dcb981"
+    },
+    "actualSelectedApplicationLines": [
+      "mode=original-json cachedBefore=0 cachedAfter=0 failures=0 signedTransfers=1 replayRejected=true serverStarted=false",
+      "mode=cached-fee-time-json cachedBefore=0 cachedAfter=2 failures=0 signedTransfers=1 replayRejected=true serverStarted=false"
+    ]
   }
 }

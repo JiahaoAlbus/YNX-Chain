@@ -1,0 +1,377 @@
+{
+  "schema": 1,
+  "runId": 40113221553,
+  "sourceCommit": "d24e97b8d3373e294a9d7992e07b4ef532bd6dcf",
+  "codeCommit": "a02fa84574e2e61c379c894f2389dc8d8ada6e73",
+  "frozenRef": "codex/chain-native-prepared-grouped-mm-pair-d24e97b8d3",
+  "originalWorkflowSuccess": true,
+  "originalCaseTerminalsQualified": true,
+  "originalPairTerminal": {
+    "schema": 1,
+    "qualified": true,
+    "firstCause": null,
+    "pairReceiptSHA256": "3dda6c5cc53500a75cfd86930b440c83be58560c7bd6290c7f44f33a68755d44",
+    "elapsedMs": 67557,
+    "postFsyncSample": {
+      "elapsedMs": 67448,
+      "retainedBytes": 248730698,
+      "logBytes": 1187791,
+      "rssBytes": 41545728,
+      "threads": 1,
+      "availableMemoryBytes": 15593054208,
+      "freeDiskBytes": 88160448512,
+      "buildBytes": 119791875
+    },
+    "postFsyncClosureScans": [
+      {
+        "elapsedMs": 67452,
+        "owned": [
+          39609
+        ],
+        "launcherStartTicks": 44830
+      },
+      {
+        "elapsedMs": 67506,
+        "owned": [
+          39609
+        ],
+        "launcherStartTicks": 44830
+      }
+    ],
+    "sustainedTPSQualified": false
+  },
+  "originalSlotReturned": true,
+  "independentNativePairQualified": null,
+  "independentReadbackPending": true,
+  "sustainedTPSQualified": false,
+  "originalAPI": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/native-complete-run-api.json",
+    "bytes": 12381,
+    "sha256": "428548a10408645fd7abb0f87fcedff215a33abb064222b2dfe5ec0454f3dc97"
+  },
+  "originalCIFullLog": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/native-ci-full.raw",
+    "bytes": 797820,
+    "sha256": "425f2fae268bcfd8e1b837d8bc2b1615bebb02f64a8603ede0e0148d92d9bf5e"
+  },
+  "originalMarkers": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/original-terminal-markers.json",
+    "bytes": 4045,
+    "sha256": "01a68f262b04e13195cc1b795097f809578d56ebcad1ab2489fc336bae96b3b0"
+  },
+  "originalCorrectedGrant": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/corrected-root-once-grant-original.json",
+    "bytes": 6657,
+    "sha256": "493a8dc2abc39f311db56e823cd42a6c1185a3834519db1a3fb388c6734d6362"
+  },
+  "originalCorrectedIntent": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/corrected-once-dispatch-intent.json",
+    "bytes": 1161,
+    "sha256": "2ba046ba1c0be2458712235317cf27b31b69823bf883db60f29ebfbbf91c40b2"
+  },
+  "originalCorrectedResult": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/corrected-once-dispatch-result.json",
+    "bytes": 126,
+    "sha256": "6d16aa49b248b5143a2f81ab45ca812f071b4e7cd81f2b647097dd3ad78f0105"
+  },
+  "originalPreDispatchPressure": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/corrected-pre-dispatch-local-pressure-01.json",
+    "bytes": 431,
+    "sha256": "39caf9eb8e43e2ee184dc8541afe68fa71df0d7a988fb9ead5f3cc2f668b71ab"
+  },
+  "preservedLocalParseRefusal": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-source-d24e97b8d3/local-preparse-zero-workflow-verdict-01.json",
+    "bytes": 908,
+    "sha256": "62d0ed48bf94f38e895091a2bd4234371e868e5f9d0ba6340a6fbb2622696f9c"
+  },
+  "preliminaryReceiptMetrics": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/original-receipt-preliminary-metrics-01.json",
+    "bytes": 372008,
+    "sha256": "9fc6ede9746254e33a795ed23bca8968b1586962086c6052ea21a4a6f7f45987"
+  },
+  "rows": [
+    {
+      "case": "before-native-mm-bounded",
+      "receipt": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/capture/before-native-mm-bounded/evidence/actual.json",
+        "bytes": 1302929,
+        "sha256": "9dbe01b8785cd0f1e02fc71dcdca236cedde35f1450cd9bcf3ba2355eb387bd1",
+        "originalCITerminalSHAEqual": true
+      },
+      "summary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 63589,
+        "measurementWindowSeconds": 25.438803174,
+        "rpcSubmissionsPerMeasurementSecond": 322.027728426026,
+        "checkTxAcceptedPerMeasurementSecond": 322.027728426026,
+        "codeZeroIncludedPerMeasurementSecond": 322.027728426026,
+        "effectiveBusinessIncludedPerMeasurementSecond": 322.027728426026,
+        "quorumConfirmedPerMeasurementSecond": 322.027728426026,
+        "finalSubmittedPerMeasurementSecond": 322.027728426026,
+        "offeredEventSpanSeconds": 23.808757114,
+        "offeredInterarrivalRate": 344.0330782820888,
+        "submissionEventSpanSeconds": 23.900860171,
+        "submissionInterarrivalRate": 342.70733109172835,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "offerLatencyIntervalsNs": {
+        "offerToEffectiveBusinessInclusion": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minNs": 453650365,
+          "maxNs": 2056786409,
+          "p50": {
+            "valid": true,
+            "lowerNs": 1197000000,
+            "upperNs": 1197999999,
+            "overflow": false
+          },
+          "p95": {
+            "valid": true,
+            "lowerNs": 1636000000,
+            "upperNs": 1636999999,
+            "overflow": false
+          },
+          "p99": {
+            "valid": true,
+            "lowerNs": 1839000000,
+            "upperNs": 1839999999,
+            "overflow": false
+          }
+        },
+        "offerToFinal": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minNs": 588481931,
+          "maxNs": 2234803433,
+          "p50": {
+            "valid": true,
+            "lowerNs": 1391000000,
+            "upperNs": 1391999999,
+            "overflow": false
+          },
+          "p95": {
+            "valid": true,
+            "lowerNs": 1800000000,
+            "upperNs": 1800999999,
+            "overflow": false
+          },
+          "p99": {
+            "valid": true,
+            "lowerNs": 2004000000,
+            "upperNs": 2004999999,
+            "overflow": false
+          }
+        }
+      },
+      "exitMMHits": 0,
+      "sampledPeaks": {
+        "rssBytes": 978395136,
+        "threads": 69,
+        "privateBytes": 126649238,
+        "buildBytes": 119791875
+      }
+    },
+    {
+      "case": "after-native-mm-grouped",
+      "receipt": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/capture/after-native-mm-grouped/evidence/actual.json",
+        "bytes": 1233344,
+        "sha256": "349fc1ee11b30f9f94bec934398c1e59cd2511a747c523acd8e5247f54ae40f0",
+        "originalCITerminalSHAEqual": true
+      },
+      "summary": {
+        "input": 8192,
+        "offered": 8192,
+        "submitted": 8192,
+        "checkTxResponses": 8192,
+        "checkTxAccepted": 8192,
+        "checkTxRejected": 0,
+        "checkTxUnverifiedResponses": 0,
+        "includedCodeZero": 8192,
+        "effectiveBusinessIncluded": 8192,
+        "executionFailed": 0,
+        "quorumConfirmed": 8192,
+        "finalSubmitted": 8192,
+        "submissionUnknown": 0,
+        "timedOut": 0,
+        "observationFailed": 0,
+        "notSubmitted": 0,
+        "errorOccurrences": 57795,
+        "measurementWindowSeconds": 23.4150355,
+        "rpcSubmissionsPerMeasurementSecond": 349.8606696539068,
+        "checkTxAcceptedPerMeasurementSecond": 349.8606696539068,
+        "codeZeroIncludedPerMeasurementSecond": 349.8606696539068,
+        "effectiveBusinessIncludedPerMeasurementSecond": 349.8606696539068,
+        "quorumConfirmedPerMeasurementSecond": 349.8606696539068,
+        "finalSubmittedPerMeasurementSecond": 349.8606696539068,
+        "offeredEventSpanSeconds": 21.98732869,
+        "offeredInterarrivalRate": 372.53274899762283,
+        "submissionEventSpanSeconds": 21.98870994,
+        "submissionInterarrivalRate": 372.5093478585402,
+        "steadyStateEffectiveTPS": null,
+        "validInclusionBlocks": {
+          "blocks": null,
+          "completeObservedBlockCoverage": false,
+          "activeOfferInteriorIntervals": 0,
+          "activeOfferInteriorTransactions": 0,
+          "activeOfferInteriorSeconds": 0,
+          "activeOfferInteriorEffectiveTPS": null,
+          "interpretation": "Slot retention does not retain a lifetime block list. Exact block coverage is in terminal evidence; no interior/steady TPS is inferred."
+        },
+        "submissionQueueDelayMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "checkTxLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "inclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "effectiveBusinessInclusionLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        },
+        "confirmationLatencyMs": {
+          "samples": 8192,
+          "p50": null,
+          "p95": null,
+          "p99": null
+        }
+      },
+      "offerLatencyIntervalsNs": {
+        "offerToEffectiveBusinessInclusion": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minNs": 391143233,
+          "maxNs": 1867912130,
+          "p50": {
+            "valid": true,
+            "lowerNs": 1165000000,
+            "upperNs": 1165999999,
+            "overflow": false
+          },
+          "p95": {
+            "valid": true,
+            "lowerNs": 1574000000,
+            "upperNs": 1574999999,
+            "overflow": false
+          },
+          "p99": {
+            "valid": true,
+            "lowerNs": 1765000000,
+            "upperNs": 1765999999,
+            "overflow": false
+          }
+        },
+        "offerToFinal": {
+          "samples": 8192,
+          "resolutionNs": 1000000,
+          "overflowSamples": 0,
+          "minNs": 507511364,
+          "maxNs": 2047878960,
+          "p50": {
+            "valid": true,
+            "lowerNs": 1362000000,
+            "upperNs": 1362999999,
+            "overflow": false
+          },
+          "p95": {
+            "valid": true,
+            "lowerNs": 1725000000,
+            "upperNs": 1725999999,
+            "overflow": false
+          },
+          "p99": {
+            "valid": true,
+            "lowerNs": 1972000000,
+            "upperNs": 1972999999,
+            "overflow": false
+          }
+        }
+      },
+      "exitMMHits": 0,
+      "sampledPeaks": {
+        "rssBytes": 1015623680,
+        "threads": 66,
+        "privateBytes": 122943208,
+        "buildBytes": 119791875
+      }
+    }
+  ],
+  "interpretation": "Matched actual original receipts and terminal SHA only. Full original selected ZIP/stream/resource independent verification is pending; no qualified benefit or sustained1000 claim. Client final observation is not earliest BFT formation. No target exited-MM hit in these successful cases.",
+  "priorityOriginalNineMembers": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/priority-original-diagnostics-02.json",
+    "bytes": 2866,
+    "sha256": "c99ea6886c1603c391a666b4efa80314afd616b728bf4f77c76a13c1f38ae467",
+    "completeArchiveQualified": false
+  }
+}

@@ -1,0 +1,323 @@
+{
+  "schema": 1,
+  "runId": 40113221553,
+  "sourceCommit": "d24e97b8d3373e294a9d7992e07b4ef532bd6dcf",
+  "performanceComparisonQualified": false,
+  "independentFullStreamPending": true,
+  "raw": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/original-business-checkpoint-phases-01.json",
+    "bytes": 99973,
+    "sha256": "faa8d86b61559b28e40377bb3a1df2dc3cbd80b5e932144af58834f082a41352"
+  },
+  "consumer": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-mm-node-phases-20261025.mjs",
+    "sha256": "a5a997fd43a84cf8d40e94bd039dc7297d0550aae6ca7c00ac0e5893f0f5b37a"
+  },
+  "cases": [
+    {
+      "name": "before-native-mm-bounded",
+      "effectiveTransactions": 8192,
+      "businessReplicaSamples": {
+        "commit": {
+          "samples": 116,
+          "totalMs": 4160.04649,
+          "meanMs": 35.862469741379314,
+          "p50Ms": 29.739213,
+          "p95Ms": 77.12218,
+          "p99Ms": 196.75026
+        },
+        "validate": {
+          "samples": 116,
+          "totalMs": 3340.058033,
+          "meanMs": 28.79360373275862,
+          "p50Ms": 27.674677,
+          "p95Ms": 52.193257,
+          "p99Ms": 67.18283
+        },
+        "delta_encode": {
+          "samples": 116,
+          "totalMs": 25.823945,
+          "meanMs": 0.2226202155172414,
+          "p50Ms": 0.163545,
+          "p95Ms": 0.482413,
+          "p99Ms": 1.701311
+        },
+        "write": {
+          "samples": 116,
+          "totalMs": 20.965697,
+          "meanMs": 0.1807387672413793,
+          "p50Ms": 0.160981,
+          "p95Ms": 0.36037,
+          "p99Ms": 0.475062
+        },
+        "file_sync": {
+          "samples": 116,
+          "totalMs": 594.350456,
+          "meanMs": 5.123710827586207,
+          "p50Ms": 0.542694,
+          "p95Ms": 6.442178,
+          "p99Ms": 159.315294
+        },
+        "close_file": {
+          "samples": 116,
+          "totalMs": 1.173923,
+          "meanMs": 0.010120025862068966,
+          "p50Ms": 0.007561,
+          "p95Ms": 0.017216,
+          "p99Ms": 0.042334
+        },
+        "prepare_file": {
+          "samples": 116,
+          "totalMs": 5.081742,
+          "meanMs": 0.04380812068965517,
+          "p50Ms": 0.034612,
+          "p95Ms": 0.136244,
+          "p99Ms": 0.264677
+        },
+        "journal_maintenance": {
+          "samples": 116,
+          "totalMs": 171.32464,
+          "meanMs": 1.476936551724138,
+          "p50Ms": 0.089604,
+          "p95Ms": 0.451066,
+          "p99Ms": 43.884858
+        },
+        "semantics": {
+          "samples": 116,
+          "totalMs": 1168.889472,
+          "meanMs": 10.076633379310346,
+          "p50Ms": 9.433263,
+          "p95Ms": 20.037715,
+          "p99Ms": 26.518183
+        },
+        "app_hash": {
+          "samples": 116,
+          "totalMs": 2157.424797,
+          "meanMs": 18.598489629310343,
+          "p50Ms": 17.988398,
+          "p95Ms": 31.983494,
+          "p99Ms": 47.154602
+        }
+      },
+      "checkpointPhasesIncludingEmptyBlocks": {
+        "close_file": {
+          "samples": 8,
+          "totalMs": 0.122559,
+          "meanMs": 0.015319875,
+          "p50Ms": 0.010296,
+          "p95Ms": 0.028252,
+          "p99Ms": 0.028252
+        },
+        "directory_sync": {
+          "samples": 8,
+          "totalMs": 2.556618,
+          "meanMs": 0.31957725,
+          "p50Ms": 0.166861,
+          "p95Ms": 0.86059,
+          "p99Ms": 0.86059
+        },
+        "encode": {
+          "samples": 8,
+          "totalMs": 138.273878,
+          "meanMs": 17.28423475,
+          "p50Ms": 16.136165,
+          "p95Ms": 22.412433,
+          "p99Ms": 22.412433
+        },
+        "file_sync": {
+          "samples": 8,
+          "totalMs": 440.411364,
+          "meanMs": 55.0514205,
+          "p50Ms": 25.706936,
+          "p95Ms": 104.101105,
+          "p99Ms": 104.101105
+        },
+        "identity": {
+          "samples": 8,
+          "totalMs": 0.040371,
+          "meanMs": 0.005046375,
+          "p50Ms": 0.005028,
+          "p95Ms": 0.00648,
+          "p99Ms": 0.00648
+        },
+        "prepare_file": {
+          "samples": 8,
+          "totalMs": 0.628474,
+          "meanMs": 0.07855925,
+          "p50Ms": 0.072669,
+          "p95Ms": 0.103836,
+          "p99Ms": 0.103836
+        },
+        "rename": {
+          "samples": 8,
+          "totalMs": 0.424057,
+          "meanMs": 0.053007125,
+          "p50Ms": 0.039189,
+          "p95Ms": 0.130847,
+          "p99Ms": 0.130847
+        },
+        "write": {
+          "samples": 8,
+          "totalMs": 28.724714,
+          "meanMs": 3.59058925,
+          "p50Ms": 2.976233,
+          "p95Ms": 4.38188,
+          "p99Ms": 4.38188
+        }
+      }
+    },
+    {
+      "name": "after-native-mm-grouped",
+      "effectiveTransactions": 8192,
+      "businessReplicaSamples": {
+        "commit": {
+          "samples": 112,
+          "totalMs": 3715.807567,
+          "meanMs": 33.176853276785714,
+          "p50Ms": 28.554444,
+          "p95Ms": 73.407191,
+          "p99Ms": 118.936121
+        },
+        "validate": {
+          "samples": 112,
+          "totalMs": 3224.620958,
+          "meanMs": 28.791258553571428,
+          "p50Ms": 27.030709,
+          "p95Ms": 51.206768,
+          "p99Ms": 70.855765
+        },
+        "delta_encode": {
+          "samples": 112,
+          "totalMs": 24.473986,
+          "meanMs": 0.21851773214285714,
+          "p50Ms": 0.174342,
+          "p95Ms": 0.387561,
+          "p99Ms": 0.837485
+        },
+        "write": {
+          "samples": 112,
+          "totalMs": 20.914703,
+          "meanMs": 0.18673841964285712,
+          "p50Ms": 0.164717,
+          "p95Ms": 0.332058,
+          "p99Ms": 0.540511
+        },
+        "file_sync": {
+          "samples": 112,
+          "totalMs": 176.564087,
+          "meanMs": 1.5764650625,
+          "p50Ms": 0.534502,
+          "p95Ms": 3.309212,
+          "p99Ms": 9.947796
+        },
+        "close_file": {
+          "samples": 112,
+          "totalMs": 1.192823,
+          "meanMs": 0.010650205357142856,
+          "p50Ms": 0.007441,
+          "p95Ms": 0.01324,
+          "p99Ms": 0.028834
+        },
+        "prepare_file": {
+          "samples": 112,
+          "totalMs": 4.311683,
+          "meanMs": 0.03849716964285715,
+          "p50Ms": 0.03346,
+          "p95Ms": 0.048993,
+          "p99Ms": 0.1938
+        },
+        "journal_maintenance": {
+          "samples": 112,
+          "totalMs": 262.563305,
+          "meanMs": 2.344315223214286,
+          "p50Ms": 0.084257,
+          "p95Ms": 0.207682,
+          "p99Ms": 66.68759
+        },
+        "semantics": {
+          "samples": 112,
+          "totalMs": 1111.875852,
+          "meanMs": 9.927462964285715,
+          "p50Ms": 9.116298,
+          "p95Ms": 20.313339,
+          "p99Ms": 25.595051
+        },
+        "app_hash": {
+          "samples": 112,
+          "totalMs": 2100.311264,
+          "meanMs": 18.752779142857143,
+          "p50Ms": 17.949883,
+          "p95Ms": 34.242132,
+          "p99Ms": 45.957542
+        }
+      },
+      "checkpointPhasesIncludingEmptyBlocks": {
+        "close_file": {
+          "samples": 8,
+          "totalMs": 0.24376,
+          "meanMs": 0.03047,
+          "p50Ms": 0.01333,
+          "p95Ms": 0.12702,
+          "p99Ms": 0.12702
+        },
+        "directory_sync": {
+          "samples": 8,
+          "totalMs": 18.017558,
+          "meanMs": 2.25219475,
+          "p50Ms": 0.157135,
+          "p95Ms": 16.980933,
+          "p99Ms": 16.980933
+        },
+        "encode": {
+          "samples": 8,
+          "totalMs": 146.329242,
+          "meanMs": 18.29115525,
+          "p50Ms": 15.364839,
+          "p95Ms": 30.411709,
+          "p99Ms": 30.411709
+        },
+        "file_sync": {
+          "samples": 8,
+          "totalMs": 388.202511,
+          "meanMs": 48.525313875,
+          "p50Ms": 43.568596,
+          "p95Ms": 83.114156,
+          "p99Ms": 83.114156
+        },
+        "identity": {
+          "samples": 8,
+          "totalMs": 0.043785,
+          "meanMs": 0.005473125,
+          "p50Ms": 0.003665,
+          "p95Ms": 0.015783,
+          "p99Ms": 0.015783
+        },
+        "prepare_file": {
+          "samples": 8,
+          "totalMs": 30.761154,
+          "meanMs": 3.84514425,
+          "p50Ms": 0.085218,
+          "p95Ms": 18.911937,
+          "p99Ms": 18.911937
+        },
+        "rename": {
+          "samples": 8,
+          "totalMs": 0.431746,
+          "meanMs": 0.05396825,
+          "p50Ms": 0.039379,
+          "p95Ms": 0.12026,
+          "p99Ms": 0.12026
+        },
+        "write": {
+          "samples": 8,
+          "totalMs": 35.780359,
+          "meanMs": 4.472544875,
+          "p50Ms": 4.3684,
+          "p95Ms": 6.747107,
+          "p99Ms": 6.747107
+        }
+      }
+    }
+  ],
+  "interpretation": "Actual17-member original CRC/SHA priority recovery and parser/receipt equality. Block/replica phase distributions are not per-transaction finality. Checkpoint includes empty blocks and has only8 observations per case. No causal gain attribution or sustained1000 claim."
+}
