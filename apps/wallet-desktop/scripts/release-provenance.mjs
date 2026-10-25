@@ -166,7 +166,7 @@ export function matchedCustodyPackagedNativeSources(inventoryBytes,component,ava
  if(component?.sourceBytesVerified!==true||!Array.isArray(component.walletInputs)||!Array.isArray(availableNames))throw Error('Auth26 matched component must precede source selection');
  const inventory=JSON.parse(inventoryBytes);if(![SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION,SDK37_VERSION,SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION].includes(inventory.version))throw Error('Matched custody inventory required');
  const names=[...inventory.NativeInputs.map(p=>p.path),...component.walletInputs.map(p=>p.path),...inventory.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),...CANONICAL_NATIVE_EVIDENCE_TESTS];
- const pins=[...inventory.NativeInputs,...component.walletInputs].map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256}));canonicalNativeInputSelection(inventory.version,names,inventoryBytes,pins);
+ const pins=[...(component.selectedNativeInputs??inventory.NativeInputs),...component.walletInputs].map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256}));canonicalNativeInputSelection(inventory.version,names,inventoryBytes,pins);
  if(names.some(name=>!availableNames.includes(name)))throw Error('Auth26 selected Native source is missing from frozen Git');return names;
 }
 // Fixed original Native build-evidence inputs may be carried by the normal

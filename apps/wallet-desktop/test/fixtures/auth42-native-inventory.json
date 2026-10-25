@@ -1,0 +1,2153 @@
+{
+  "schema": "ynx-sdk332-r140-native-compatibility/v1",
+  "version": "1.3.0-pq.3.32-auth.42",
+  "baseSDK332": "34b00c43a390d2df06c09fa050a14db4158d5d7c",
+  "R140": "cdab5aff100ce6832cc2321af1faa359f8183e70",
+  "publicExports": {
+    "./pq-wallet-contract": {
+      "types": "./src/pq-wallet-contract.d.ts",
+      "import": "./src/pq-wallet-contract.js",
+      "default": "./src/pq-wallet-contract.js"
+    },
+    "./pq-wallet-backup": {
+      "types": "./src/pq-wallet-backup.d.ts",
+      "import": "./src/pq-wallet-backup.js",
+      "default": "./src/pq-wallet-backup.js"
+    },
+    "./central-browser-session-contract": {
+      "types": "./src/central-browser-session-contract.d.ts",
+      "import": "./src/central-browser-session-contract.js",
+      "default": "./src/central-browser-session-contract.js"
+    },
+    "./central-browser-session-registry": {
+      "types": "./src/central-browser-session-registry.d.ts",
+      "import": "./src/central-browser-session-registry.js",
+      "default": "./src/central-browser-session-registry.js"
+    },
+    "./application-action-launcher": {
+      "types": "./src/application-action-launcher.d.ts",
+      "import": "./src/application-action-launcher.js",
+      "default": "./src/application-action-launcher.js"
+    },
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    },
+    "./gateway-node-host": {
+      "types": "./src/gateway-node-host.d.ts",
+      "import": "./src/gateway-node-host.js",
+      "default": "./src/gateway-node-host.js"
+    },
+    "./gateway-backup": {
+      "types": "./src/gateway-backup.d.ts",
+      "import": "./src/gateway-backup.js",
+      "default": "./src/gateway-backup.js"
+    },
+    "./standard-wallet-connection": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-connection.js",
+      "default": "./src/standard-wallet-connection.js"
+    },
+    "./wallet-provider-discovery": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-provider-discovery.js",
+      "default": "./src/wallet-provider-discovery.js"
+    },
+    "./evm-product-login": {
+      "types": "./src/index.d.ts",
+      "import": "./src/evm-product-login.js",
+      "default": "./src/evm-product-login.js"
+    },
+    "./evm-product-session": {
+      "types": "./src/index.d.ts",
+      "import": "./src/evm-product-session.js",
+      "default": "./src/evm-product-session.js"
+    },
+    "./finance-evm-subject": {
+      "types": "./src/index.d.ts",
+      "import": "./src/finance-evm-subject.js",
+      "default": "./src/finance-evm-subject.js"
+    },
+    "./finance-evm-order-approval": {
+      "types": "./src/index.d.ts",
+      "import": "./src/finance-evm-order-approval.js",
+      "default": "./src/finance-evm-order-approval.js"
+    },
+    "./finance-order-opaque-transport": {
+      "types": "./src/index.d.ts",
+      "import": "./src/finance-order-opaque-transport.js",
+      "default": "./src/finance-order-opaque-transport.js"
+    },
+    "./metamask-evm": {
+      "types": "./src/index.d.ts",
+      "import": "./src/metamask-evm-adapter.js",
+      "default": "./src/metamask-evm-adapter.js"
+    },
+    "./wallet-connection-coordinator": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-connection-coordinator.js",
+      "default": "./src/wallet-connection-coordinator.js"
+    },
+    "./product-session-browser": {
+      "types": "./src/index.d.ts",
+      "import": "./src/product-session-browser.js",
+      "default": "./src/product-session-browser.js"
+    },
+    "./product-session-gateway-node-host": {
+      "types": "./src/product-session-gateway-node-host.d.ts",
+      "import": "./src/product-session-gateway-node-host.js",
+      "default": "./src/product-session-gateway-node-host.js"
+    },
+    "./product-session-control-node-host": {
+      "types": "./src/product-session-control-node-host.d.ts",
+      "import": "./src/product-session-control-node-host.js",
+      "default": "./src/product-session-control-node-host.js"
+    },
+    "./hosted-adapter": {
+      "types": "./src/hosted-adapter.d.ts",
+      "import": "./src/hosted-adapter.js",
+      "default": "./src/hosted-adapter.js"
+    },
+    "./product-session-native": {
+      "types": "./src/product-session-native.d.ts",
+      "import": "./src/product-session-native.js",
+      "default": "./src/product-session-native.js"
+    },
+    "./product-wallet-connection": {
+      "types": "./src/product-wallet-connection.d.ts",
+      "import": "./src/product-wallet-connection.js",
+      "default": "./src/product-wallet-connection.js"
+    },
+    "./pq-wallet-key-backup": {
+      "types": "./src/pq-wallet-key-backup.d.ts",
+      "import": "./src/pq-wallet-key-backup.js",
+      "default": "./src/pq-wallet-key-backup.js"
+    },
+    "./pq-wallet-authorization": {
+      "types": "./src/pq-wallet-authorization.d.ts",
+      "import": "./src/pq-wallet-authorization.js",
+      "default": "./src/pq-wallet-authorization.js"
+    },
+    "./pq-wallet-policy": {
+      "types": "./src/pq-wallet-policy.d.ts",
+      "import": "./src/pq-wallet-policy.js",
+      "default": "./src/pq-wallet-policy.js"
+    },
+    "./product-session-account-policy": {
+      "types": "./src/product-session-account-policy.d.ts",
+      "import": "./src/product-session-account-policy.js",
+      "default": "./src/product-session-account-policy.js"
+    },
+    "./product-session-pq-approval": {
+      "types": "./src/product-session-pq-approval.d.ts",
+      "browser": null,
+      "node": "./src/product-session-pq-approval.js",
+      "default": null
+    },
+    "./product-session-completion": {
+      "types": "./src/product-session-completion-record.d.ts",
+      "import": "./src/product-session-completion-record.js",
+      "default": "./src/product-session-completion-record.js"
+    },
+    "./walletconnect-dapp-connection": {
+      "types": "./src/walletconnect-dapp-connection.d.ts",
+      "import": "./src/walletconnect-dapp-connection.js",
+      "default": "./src/walletconnect-dapp-connection.js"
+    },
+    "./original-ide-admission": {
+      "types": "./src/original-ide-admission-parent-delivery.d.ts",
+      "browser": null,
+      "node": "./src/original-ide-admission-parent-delivery.js",
+      "default": null
+    },
+    "./pq-registered-member": {
+      "types": "./src/pq-registered-member.d.ts",
+      "browser": null,
+      "node": "./src/pq-registered-member.js",
+      "default": null
+    },
+    "./auth-identity-contract": {
+      "types": "./native/original-auth-identity-v2-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-identity-v2-contract.mjs",
+      "default": null
+    },
+    "./auth-identity-verification": {
+      "types": "./src/auth-identity-verification.d.ts",
+      "browser": null,
+      "node": "./src/auth-identity-verification.js",
+      "default": null
+    },
+    "./auth-source-verification": {
+      "types": "./native/original-auth-identity-source-v2-verifier.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-identity-source-v2-verifier.mjs",
+      "default": null
+    },
+    "./auth-native-contract": {
+      "types": "./src/auth-native-contract.d.ts",
+      "browser": null,
+      "node": null,
+      "default": null
+    },
+    "./pq-native-action": {
+      "types": "./src/pq-native-action.d.ts",
+      "import": "./src/pq-native-action.js",
+      "default": "./src/pq-native-action.js"
+    },
+    "./pq-action-transport": {
+      "types": "./src/pq-action-transport.d.ts",
+      "import": "./src/pq-action-transport.js",
+      "default": "./src/pq-action-transport.js"
+    },
+    "./pq-action-transport-node": {
+      "types": "./src/pq-action-transport-node.d.ts",
+      "browser": null,
+      "node": "./src/pq-action-transport-node.js",
+      "default": null
+    },
+    "./pq-contract-deployment-transport": {
+      "types": "./src/pq-contract-deployment-transport.d.ts",
+      "import": "./src/pq-contract-deployment-transport.js",
+      "default": "./src/pq-contract-deployment-transport.js"
+    },
+    "./pq-contract-deployment-transport-node": {
+      "types": "./src/pq-contract-deployment-transport-node.d.ts",
+      "browser": null,
+      "node": "./src/pq-contract-deployment-transport-node.js",
+      "default": null
+    },
+    "./ide-artifact-manifest": {
+      "types": "./src/ide-artifact-manifest.d.ts",
+      "import": "./src/ide-artifact-manifest.js",
+      "default": "./src/ide-artifact-manifest.js"
+    },
+    "./ide-artifact-signature": {
+      "types": "./src/ide-artifact-signature.d.ts",
+      "browser": null,
+      "node": "./src/ide-artifact-signature.js",
+      "default": null
+    },
+    "./original-ide-contract-relay-guard": {
+      "types": "./src/original-ide-contract-relay-guard-node.d.ts",
+      "browser": null,
+      "node": "./src/original-ide-contract-relay-guard-node.js",
+      "default": null
+    },
+    "./pq-contract-deployment-material": {
+      "types": "./src/pq-contract-deployment-material.d.ts",
+      "import": "./src/pq-contract-deployment-material.js",
+      "default": "./src/pq-contract-deployment-material.js"
+    },
+    "./ide-artifact-release-result": {
+      "types": "./src/ide-artifact-release-result.d.ts",
+      "import": "./src/ide-artifact-release-result.js",
+      "default": "./src/ide-artifact-release-result.js"
+    }
+  },
+  "NativeInputs": [
+    {
+      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "bytes": 82887,
+      "sha256": "f0a6efce5ee63dd6c4b3d0d3d5457c02785ac68764e223bf00e5ec34b05cbf7e"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-auth-identity-binding.inc.mm",
+      "bytes": 4687,
+      "sha256": "07be343cffb2159c27791a5b57034a2611557de919b3361422e84b39e4be92d2"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-auth-identity-owners.inc.mm",
+      "bytes": 23367,
+      "sha256": "63af0b267cad6940c7497ee76bcf0a6a0b8435aac9777114d72eb4f478b3e43a"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-auth-request-source.h",
+      "bytes": 2299,
+      "sha256": "aca773d655a8c9e6bd388454f345f71cff00b716a13e2b624733177e4228273f"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-auth-request-source.inc.mm",
+      "bytes": 10662,
+      "sha256": "d2b41882c50c171bd0c9967ec6de6adca75e0e1bdb4c57462026b54ed884984a"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-identity-peer-owner.inc.mm",
+      "bytes": 24460,
+      "sha256": "95f53b88959df5aae7083b1263ea0afc6ac729b228df6bd07a9b650ccb04b7de"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-private-client.inc.mm",
+      "bytes": 5405,
+      "sha256": "590d22d8585ab9ed609ca47a1f6c4d6ecda0f2ef6fab5e5971c3ed7b38193075"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-wallet-identity-source-owner.inc.mm",
+      "bytes": 14449,
+      "sha256": "d2e845aa51cec1fa268efc9787b0d6e67783465d968cf26b3ac8f7345a8496f8"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-reference-carrier.h",
+      "bytes": 5074,
+      "sha256": "fc6d1b37f5e9882d0126c250aaffc693a10a3cc1831546dbbff08e7acd5a404c"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-service-channel.h",
+      "bytes": 940,
+      "sha256": "c00964dfb0b1f3e0229ed909989fdebb0249b8740cc4dcafcfc6b9c4cbe30cb7"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-service-channel.mm",
+      "bytes": 15272,
+      "sha256": "f0d3a1568987a3ee18e0e59de40e05f40a0d4b6fc60a2b3422871bb9818cf814"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-service-owner.inc.mm",
+      "bytes": 5967,
+      "sha256": "97a4f366d50d1fb803551190cbc2e843f38f11832dee79e875f5cdc9689bfaa5"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-session-carrier.h",
+      "bytes": 3258,
+      "sha256": "67431e27735a035b63141d95522678dc9fb5807730ae915a70df4f9985d89e00"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-private-terminal-recovery.h",
+      "bytes": 11712,
+      "sha256": "10a79bb608e2ddbfe99ac1ee48fd6fe3d966e9254a3caa169ddc1ee2b3a1fb84"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
+      "bytes": 1283,
+      "sha256": "a240699dea4bc87a71151e0f1f9b34099515088b71a85a207ea2628ef9f9a0f6"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+      "bytes": 13399,
+      "sha256": "de91b9b18cfab291c7bca0a3bdb88e16f911505be356ce3afc1da5a1d8d34ae5"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
+      "bytes": 2979,
+      "sha256": "507dbb1a65a70774bbd543db07871b71dd686b766db216049f0fbf61e48bd264"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-public-limits.h",
+      "bytes": 713,
+      "sha256": "4be7220b1f7e5601c6ddbeda54181a1375ff21dd13e1fa8028be8fbcc235b826"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+      "bytes": 7550,
+      "sha256": "bd86b8a2717b21904a24bceeb1929aaa4fcd7d0e07f88d3ac289ffb43b00eac8"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+      "bytes": 51354,
+      "sha256": "f92cc5a4961ef38b27ddb4a875dae3a82ceff26e2ce24bc45adf610251a70edf"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+      "bytes": 31985,
+      "sha256": "2bee15594c01ae2c6e62003e9b9e932d9f6663874587018e7b27a7ad8b2c3d77"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+      "bytes": 20978,
+      "sha256": "7670b7093f4ba6fe6f9a26c6b999ec7a4069fec7d46dd06105bc9661867c66cf"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-v2-contract.mjs",
+      "bytes": 4982,
+      "sha256": "b8c4a15f42ffc31bdf3913065df648abc537dcf0d1c5844e4a953ba6ac93d494"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-source-v2-dispatch.mjs",
+      "bytes": 7334,
+      "sha256": "01bed3893f9230060660c44690195a05586168636178a97db5115ee2a605ce30"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-source-v2-native-data.h",
+      "bytes": 1516,
+      "sha256": "c1961de8ce4ee0832cf39f2ba50ed1c383973a9aa920c2dca4fba419a1a9e243"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-first-enter-selection.h",
+      "bytes": 1114,
+      "sha256": "1928ec197cb9862fb62ff30d60782eef84858da5cbe86cc0368514ec175e75ce"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
+      "bytes": 12057,
+      "sha256": "c2484cbb941ad9d43423701c50226f05eecb6cab52e8fe568f7c8ea5225cc44e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-auth-proof-data.h",
+      "bytes": 1596,
+      "sha256": "23492e258580de896da07dcf1260a7f0abb30d1346fd477e10de508e58011dde"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-auth-proof-dispatch.mjs",
+      "bytes": 6242,
+      "sha256": "d7ee4ced232432c41010217d83c63bbf124c4b11178eade3f7c0118571f42177"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-auth-proof-source.inc.mm",
+      "bytes": 17824,
+      "sha256": "5c4a4ebd3251de6862763a40ea48e48123503b789f0438e06b96a50e5bb95826"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-identity-launch-holder.h",
+      "bytes": 1897,
+      "sha256": "a788b5290c58d8140eef80cf7176653b0019e0a9922cc90d017b30f845d38ce2"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-identity-launch-holder.mm",
+      "bytes": 14709,
+      "sha256": "6db6ea2f3cc63a2a95cd0557754f035f51549ac6fa5d8f1373a0072a98467fa1"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-identity-peer-endpoint.h",
+      "bytes": 6391,
+      "sha256": "bb42ee3d0388ec6696a64fc2e9f1213ab55ce2e0d090a403915ecc914b1fc0a2"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-identity-peer-wire.h",
+      "bytes": 3460,
+      "sha256": "4a051601abc341413cb09bd10aafbdf5f9cc3b6f90593a457faaf27ff95ab440"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-joint.inc.mm",
+      "bytes": 34236,
+      "sha256": "ff9ae699eb8e5b71bd511bf790a2673f82527930be628f9ed901d6d01cab45b8"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-kernel.h",
+      "bytes": 1484,
+      "sha256": "c7d5012cdb12d793a2fe0a5d16329c1b5875f84aa7504178c2c3c5ad0e6cdeec"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-kernel.mm",
+      "bytes": 8688,
+      "sha256": "01d0af23847cd2dccfb819abba7f7485e2359d0158aa9ff0f3f638aaec431f9b"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-lifetime.h",
+      "bytes": 3841,
+      "sha256": "893e9a1e55306589357f61d8a52f97e410464bb5b12b2cc30a18c99127ec7fa3"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-node.h",
+      "bytes": 832,
+      "sha256": "f5f8fd8e992cfe78b2403394037148035a468805d02af277c9406a01864f3e83"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-node.mm",
+      "bytes": 9982,
+      "sha256": "ab91b89a5d31b34116b7243c2b52002555ac7649d154a76e917307c2614f9dc7"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-observation.h",
+      "bytes": 1321,
+      "sha256": "9ec1cf58d69f5bdff5448619f2b6e663ce0f0717060c36b14195a76eb13fd264"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-observation.mm",
+      "bytes": 11812,
+      "sha256": "c6ec72a4e2f30f04750185c5d451ba9ec2ed23f555bbd351c37d2d6df062b109"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-prelude.h",
+      "bytes": 4851,
+      "sha256": "f8a3fd797c6ec21b80c4d44986ded1974396a193385e137af515b5998674f83f"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-source-binding.h",
+      "bytes": 1001,
+      "sha256": "61fc21b1e49f2f36647b4622b67aa84e2047335b2bdff81386c0a8cbe6cc2127"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+      "bytes": 6825,
+      "sha256": "f36716748efe6e84f65c20c740d6bd3a5e666ebc921c8b29bed27f6458c39e65"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-parent-transport.h",
+      "bytes": 2582,
+      "sha256": "61e09fa9532328e5d654dac18f335304103a87ac05abe98a1c9aea831057753c"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-private-client-custody.h",
+      "bytes": 558,
+      "sha256": "c9286eea1f650501576b3d40b1d7d695b9c09c95e2886f03c706c85d925bf63c"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-public-originals.h",
+      "bytes": 835,
+      "sha256": "6296a5ca5ee42251b8c712579baf658a06a8966dd9916da6deb45363f3d7a109"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-identity-source.h",
+      "bytes": 816,
+      "sha256": "c1951e807204797fb0a52e62f6ecdd962340d0c52f232881b50c9dea113e2a24"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-identity-source.mm",
+      "bytes": 11127,
+      "sha256": "bdc4b2a2c5b19da5c37b149ee99a4a9841b28e82f500412435da7da0e4e3d0a4"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-peer-launch.h",
+      "bytes": 1480,
+      "sha256": "be122f5934dd4fa23183b707c7f450839205348aa815817e38f4dd80530987f8"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-wallet-peer-launch.mm",
+      "bytes": 19513,
+      "sha256": "e32a3cb35e32d0cd25b40aad9f43e443cffb9abb46b48e834fc094223a499553"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-source-provisioning-fence.h",
+      "bytes": 2584,
+      "sha256": "9c09eca2d4dcda6373d6ce5fe43ea8b42e1ad922050146bed58978aabbda3a36"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-source-public-installation.h",
+      "bytes": 16366,
+      "sha256": "12ddc46612f948ad4f73e5f36a214b59ccb2786b55ea822f759dedbbe2c574b4"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-source-verifier-io.h",
+      "bytes": 3710,
+      "sha256": "ead5f0581201f2061becfb13141bd05adce937125334e7f31697b86e29854978"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-helper-client.h",
+      "bytes": 649,
+      "sha256": "9a72dd14e1a6cead77eb6f76140291ad9a27c3440da393fbed81ef76c79bf52e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-helper-client.mm",
+      "bytes": 15200,
+      "sha256": "64fd148d5690f1870ecb2dbafe4a003cd94979ae050dc36f80f208ccbc7457da"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-helper-xpc-peer.h",
+      "bytes": 677,
+      "sha256": "f56015e83c64cc0a44b90bd1a26b437959bb224888f3225fa67099bf412910de"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-helper-xpc-peer.mm",
+      "bytes": 7752,
+      "sha256": "4d19c4adaa467a52c237d986b7a7aa356728005d97e1642e132f4c62e9fe54b2"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-helper-build-release.h",
+      "bytes": 562,
+      "sha256": "7e1a2de6ddcde67746094771b3b1ca0a494a2c02ca9856960e85e9ab2ea5ce14"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-helper-service-contract.h",
+      "bytes": 1575,
+      "sha256": "fc78a2b2f0c0cc7495d10ec07429d178c7101349d68c495fafa3287feb9765b6"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-helper-service-install.mm",
+      "bytes": 7916,
+      "sha256": "9f159712f33553ee860d0902541a7412bb8e357578e76cec86b0ebb58faa9ce4"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-publication-artifact.h",
+      "bytes": 1038,
+      "sha256": "775a0e9236c411b7738d9e3f6431626029ed935a6ab25f8faec5daa55d33a56b"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-publication-artifact.mm",
+      "bytes": 5325,
+      "sha256": "6f6b3ebabe20d90b7a02b8e42220bee24d6e6840923c06ad1d8e0d4829dd8f5f"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-contract-relay-owner.h",
+      "bytes": 999,
+      "sha256": "1183251898b1934a9c39e380553ad4f71fedb12c859e9b82607b64a93bdcf4f8"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-contract-relay-owner.mm",
+      "bytes": 11263,
+      "sha256": "d4d8afaf85fae14201de2ee051b48f0ce1db8c246c192ebe9fee3916ffee1a29"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-contract-relay-peer.h",
+      "bytes": 1388,
+      "sha256": "2daeacd6f51cf7a40c3a2f8f726cdc1a01d7f5480440a70fc4a8e99d99a50a6e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-contract-relay-source.inc.mm",
+      "bytes": 9070,
+      "sha256": "8f8d4f7e0e3df9dfa04e4d5ee724f2de079760b3d993fe056a473f05dace78b3"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-contract-relay-binding.inc.mm",
+      "bytes": 14917,
+      "sha256": "7b32fd4eec1a7e73ebfbe2644ce1894b278e72cadaec8d70ceb2e9fa3174c9e7"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-contract-relay-launch.h",
+      "bytes": 3097,
+      "sha256": "a33a170977d1781f57d63c10c7b841d73e9962f158257e18396dca75bd923720"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-contract-relay-runtime.inc.mm",
+      "bytes": 9676,
+      "sha256": "b4a53966bdce69526980e78cf4996fcf0e945d10aaee57119df202b826eb6a16"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-publication-artifact-binding.inc.mm",
+      "bytes": 5592,
+      "sha256": "6e2722920afa7e25188b7d368476dc11986f0767a734664a7d8415816270cd49"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-authority-data.h",
+      "bytes": 3689,
+      "sha256": "870385db0eb9acaa370d1bb49addc5adb35bfc50fa37f4bdc27b43ec120232ff"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-authority-source.inc.mm",
+      "bytes": 10570,
+      "sha256": "f6ba57e086dd19875d63c7c81c75f4f48647f37e0d13cd9e932b2a44afe57b70"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-project-authority-binding.inc.mm",
+      "bytes": 9232,
+      "sha256": "b79c0875677ce4230ed8c95974757eb5983d7bc88cd19077014d53193d646d11"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-ide-workspace-project-selection.inc.mm",
+      "bytes": 12315,
+      "sha256": "0def43170e440c2e7d8ad252868eae0d5177cce9fa771950fa9b1a5b060167fb"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-artifact-result-data.h",
+      "bytes": 6399,
+      "sha256": "3ffdd61262dd71854e5d8f9f6df71a98185afd23d297f4b733e2f04ada805ad5"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-source.inc.mm",
+      "bytes": 7963,
+      "sha256": "d122f5ac46c6823d170fb1c544a9b39d6b34b4a8a193cc9ce8531d0f367b9c96"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-capture.mjs",
+      "bytes": 5031,
+      "sha256": "923987c3100910a1e479ddee5c239e36151c3a4e087614116f90428803c94507"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-contract.mjs",
+      "bytes": 10242,
+      "sha256": "41b5e5aff29769f6e1d0e02d0bde1b3dc1242ee291b79863c081e720b68b8d39"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-developer-principal-data.mjs",
+      "bytes": 2381,
+      "sha256": "7e0748cb9ab85839843469c6dca087ed0a0bc5d4ffcde34a2d0bf12d8ac9aab3"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-publication-approval-contract.mjs",
+      "bytes": 11587,
+      "sha256": "c37462cbf7bdb9ee7b327f0d33e8712d3bbc7b6aa0ae43a39f7ca426c69e33f6"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-dispatch.mjs",
+      "bytes": 5045,
+      "sha256": "b8a27e4ac4faf6216ebaacbfeb3255fb784fed684bf34adf249cb46c385e8402"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-publication-approval-dispatch.mjs",
+      "bytes": 8939,
+      "sha256": "5d5ce59ca4da1b23d4299fd2474a1500f2bab2fe26a399cbe376f06edce6fb4d"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-approval-state-head-data.mjs",
+      "bytes": 1599,
+      "sha256": "28aa4713d6e9792294976b5318abc87c9be89b11fdb4f5e2f22152a5eab81786"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-protected-publisher-contract.mjs",
+      "bytes": 8585,
+      "sha256": "e20cb3cde24c6e61db2b4c6dcb3fdb9ffe732ae92930b80e27166c180a5ddfc6"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-protected-publisher-dispatch.mjs",
+      "bytes": 7199,
+      "sha256": "9fa9078c9ce04da0e2253177a60b351031c94d67942f7fba06e224ab1b4e015b"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-custody.h",
+      "bytes": 1139,
+      "sha256": "475f5630f31585f4598607c6c02fde7881131a99631d2f8ce0e31fe68d6eaf7e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-custody.mm",
+      "bytes": 9553,
+      "sha256": "2e054bd16bc79daaaae835c1a084a3313bf2792383fe3fedd81cce27c9da71ab"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-key-record.h",
+      "bytes": 1142,
+      "sha256": "b4e9d2b2978031f85d324fb78ae780811d0cdc759241d57c7c9fac4540c075e4"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-custody-source.inc.mm",
+      "bytes": 4063,
+      "sha256": "671004149153f4ea5e00c0109dcabb20ee3eb7c05fd66a2c2d2a101f2fb74651"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-project-control-custody-data.mjs",
+      "bytes": 2481,
+      "sha256": "cc483ed9bcf0cd183b13710a31dafe34150e02cef00dd7d226c2e7285ee123cf"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-pq-host-catalog-source-owner.inc.mm",
+      "bytes": 10514,
+      "sha256": "0e04eef1db01cece3776dc2024fadf0664aac9bec4edff5ac7ad3beb188b9d0c"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-pq-host-catalog-source.h",
+      "bytes": 867,
+      "sha256": "3fee25e16e1354259d15a9dabec2bbe270d5bbf925f072aa7c1a92f49f84f518"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-pq-host-catalog-source.mm",
+      "bytes": 20273,
+      "sha256": "343a487e46e1744422d0309ec8c53e6c485f50fe14367676654fcfb82c5da921"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-pq-host-catalog-source-state.h",
+      "bytes": 1553,
+      "sha256": "ae0c9012c2198a916af3389390683c7c1c8000fad9421f54951c5139e5b5311a"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-pq-host-catalog-receipt.h",
+      "bytes": 1491,
+      "sha256": "e58f25d8a57802bf65ffcd99fe0a3cf70f0c930fbe2e7c95f43fb57f5f358c0c"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-pq-host-catalog-source-contract.mjs",
+      "bytes": 3411,
+      "sha256": "fff1be6e5bd9859b3dc35dc10fd1f17351ad4423f56b51e20405e00417155cd9"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-pq-host-catalog-task-exit.h",
+      "bytes": 629,
+      "sha256": "214c375c2bddb96dc057347dd8a3b3471a53ad4fbc56bc317afc8197c6220ff6"
+    }
+  ],
+  "normalBuildTool": {
+    "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
+    "bytes": 15467,
+    "sha256": "d39bdb9f8507ce82c4e184007eaf804cfb94dbbd441e93290bf7253d26883480"
+  },
+  "require": {
+    "translationUnits": 15,
+    "frameworks": [
+      "Foundation",
+      "Security",
+      "AppKit",
+      "ServiceManagement",
+      "LocalAuthentication"
+    ],
+    "NAPI": 8,
+    "minMacOS": "13.0",
+    "sameSourceBuild": true,
+    "prebuiltSDK330ModuleAllowed": false,
+    "helperTranslationUnits": 11,
+    "helperFrameworks": [
+      "Foundation",
+      "Security",
+      "ServiceManagement"
+    ],
+    "pairedHelperRequired": true,
+    "prebuiltR140ModuleAllowed": false
+  },
+  "existingEvidence": {
+    "R140": {
+      "CI": 39174199543,
+      "controls": 13,
+      "reexecuted": false
+    },
+    "SDK332": {
+      "CI": 39167431943,
+      "controls": 7,
+      "typeConfigs": 2,
+      "reexecuted": false
+    },
+    "parentAuth2": {
+      "source": "60756ad2f2bfe98abbd07bd77de3a8bc6206768f",
+      "CI": 39956050202,
+      "NativeInputsUnchanged": true
+    },
+    "parentAuth3": {
+      "source": "aa9681f0dddf923b16b4eef4543731cfe57e4ef6",
+      "CI": 39960395177,
+      "NativeInputsUnchanged": false,
+      "hierarchyCleanupUnchanged": true
+    },
+    "pureDeploymentParent": {
+      "source": "e4dc7eb6a4d7aa5ca1649581264fa6d44dfb869f",
+      "CI": 39958138351,
+      "controls": 4,
+      "reexecuted": false
+    },
+    "parentAuth4": {
+      "source": "5e0ec76962cbf030783c7f983224ca748dc4b8c8",
+      "CI": 39974694256,
+      "pureDeploymentInputsUnchanged": true,
+      "JSPrivateCallerUnchanged": true,
+      "NativeInputsUnchanged": false
+    }
+  },
+  "truth": {
+    "newCompatibleSource": true,
+    "NativeCompiled": false,
+    "installed": false,
+    "genuineSource": false,
+    "grant": false
+  },
+  "pureDeploymentInputs": [
+    {
+      "path": "packages/wallet-auth/src/pq-contract-deployment-transport.js",
+      "bytes": 6043,
+      "sha256": "63f13f64e553df2bda5fe511fe00a7e215e28ae0c10125dda451c8397d986c46"
+    },
+    {
+      "path": "packages/wallet-auth/src/pq-contract-deployment-transport.d.ts",
+      "bytes": 1548,
+      "sha256": "461d497f81d73fe574465f57a6727135c666135aa7b4c6d4a046f55af62809ff"
+    },
+    {
+      "path": "packages/wallet-auth/src/pq-contract-deployment-transport-node.js",
+      "bytes": 1361,
+      "sha256": "c03b859e88db84397c546540806b99832e223239a6a0512cb54b9181a131c622"
+    },
+    {
+      "path": "packages/wallet-auth/src/pq-contract-deployment-transport-node.d.ts",
+      "bytes": 740,
+      "sha256": "26ca559ff885f5270d31bbab0f32367d54dce471d122d770bc342903682b6c1e"
+    }
+  ],
+  "profile": "R222-dedicated-pq-host-catalog-source",
+  "HelperInputs": [
+    {
+      "path": "apps/developer/helper/com.ynxweb4.developer.testnetpreview.identity-receiver.plist",
+      "bytes": 473,
+      "sha256": "08c5483639227287de41e081c61e3d2e5238db72122d08f5f397d8f4e78af69b"
+    },
+    {
+      "path": "apps/developer/helper/main.mm",
+      "bytes": 593,
+      "sha256": "25b1b4048d9bc1a448c3e690854b312f37c2acc18d1ecb90f7ec37f66b938eec"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-helper-effect-contract.h",
+      "bytes": 876,
+      "sha256": "be9fddab91a02115f1003b80a8989b150ff8806082853f47fbd89411d7aed88c"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-helper-listener.h",
+      "bytes": 796,
+      "sha256": "a9ba6c30e7ba23eb52c320434a9b591c10179e74c715400c96200b454826a437"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-ide-helper-listener.mm",
+      "bytes": 12030,
+      "sha256": "ae461393c7003d0abf0002f89733c4abb37b1d0446c6504f1e5cb5ef66d050e1"
+    }
+  ],
+  "supplierR154": {
+    "path": "/Volumes/Data/Users/huangjiahao/ynx-auth-source-staging-20261018-r58/ide-helper-client-r154/HANDOFF.json",
+    "bytes": 8574,
+    "sha256": "202eb5a755ad85242b216cad834e02882aacc139187fe43177772c7b3f6b0f2e",
+    "differentialGroups": 13,
+    "OSSourceAndCleanupArePUBLICSeams": true,
+    "normalBuildConfirmationPending": true
+  },
+  "supplierR159": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r159/HANDOFF.json",
+      "bytes": 7016,
+      "sha256": "242e2f9d3b42c78cb6e035e4f46388a75b73ad75615408204633f123c8fcd3ec"
+    },
+    "normalBuildConfirmationPending": true,
+    "actualBusinessEffectAvailable": false
+  },
+  "R162Observation": {
+    "handoff": {
+      "bytes": 6843,
+      "sha256": "67c056ae826157281198cd158f37d52afdab789750cdccecef63b55143679bdf"
+    },
+    "callee": "-[YNXAuthIdentitySourceAuthority copyOriginalIDEVerifiedProofForRequest:(NSData*)request invocation:(NSData*)invocation error:(NSError**)error] -> NSDictionary* private DATA only",
+    "nativeN1WireBytesMax": 262144,
+    "requestAndInvocationBytesMax": 16384,
+    "noNewNodeExports": true,
+    "authSourceLinkAndPUBLICCustodyGroups": 10,
+    "actualN1": false,
+    "actualRoot": false,
+    "actualPublisherPermission": false,
+    "actualUserApproval": false,
+    "actualEffect": false,
+    "SDKNormalNativeBuild": false,
+    "AppBuild": false
+  },
+  "supplierR164": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r164/HANDOFF.json",
+      "bytes": 9576,
+      "sha256": "476902f30d86ebd5b9df9904983fd38879f1fcc4b1f7714a4a1ecb5e3880de24"
+    },
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+        "bytes": 6035,
+        "sha256": "ce8645d7bffd55bc74b9eabd16d3b49b01f5be763e3084055eb63ac47570fa16"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+        "bytes": 45318,
+        "sha256": "0a4384cd537a56ff0cfcf067a013deef6bcef671c9092e67e272c65547dd468f"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+        "bytes": 17635,
+        "sha256": "a79c8c36f2b876c989865969f216afc87a7ff0dac527ca6f3b1b2be156c66c03"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-owner.h",
+        "bytes": 877,
+        "sha256": "a76d20b0b3085c8046161351b24f4316fb0bcd7447757e449e3ad1dbe728a9bf"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-owner.mm",
+        "bytes": 8020,
+        "sha256": "bab0cc73cc6d75930b53258767fc06f84f4c963c12e8ff342286be474b8cb392"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-peer.h",
+        "bytes": 1388,
+        "sha256": "2daeacd6f51cf7a40c3a2f8f726cdc1a01d7f5480440a70fc4a8e99d99a50a6e"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-source.inc.mm",
+        "bytes": 7659,
+        "sha256": "9c73962a5c532c866dee7bc4e2c9d26b9361a360c3c3edf328f5500685e90678"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "bytes": 80613,
+        "sha256": "208f88b06818eb60b3d856c8a83d2da23ec1e6f557f2656d8f8ee3f129173b8d"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-contract-relay-binding.inc.mm",
+        "bytes": 14543,
+        "sha256": "aaaa51ef521e924ee931ed6057100093ebacdb6894f135beb200c6acf4a82a2d"
+      }
+    ],
+    "sourceTestEvidenceReused": true,
+    "sourceTestArtifactIsNormalPackage": false,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "actualSourceRoot": false,
+    "actualProject": false,
+    "platformVerifyEgressQualified": false,
+    "networkActivated": false,
+    "activationFence": "YNX_CONTRACT_RELAY_INITIATOR_ROLE_BOUNDARY_UNQUALIFIED"
+  },
+  "supplierR166": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r166/HANDOFF.json",
+      "bytes": 11222,
+      "sha256": "54609d7d3035c8445adf3460c021d121caa6b0be8fd51952c77d80de66974241"
+    },
+    "parent": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r164/HANDOFF.json",
+      "bytes": 9576,
+      "sha256": "476902f30d86ebd5b9df9904983fd38879f1fcc4b1f7714a4a1ecb5e3880de24"
+    },
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
+        "bytes": 1054,
+        "sha256": "dfcd81d7f9fb09c1b43f78e2b8f00fb935442aa5016aa7ff69ab672767cc8fda"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+        "bytes": 11357,
+        "sha256": "b0d83d3be525d2944925f308e69b941b2696f14a5f6ab9330084e0fbe5a6aa25"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
+        "bytes": 2333,
+        "sha256": "4c4a14c71173aa25faa7e80db7675dfe40a79b26d7081397b2944898a9df9eb6"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+        "bytes": 6319,
+        "sha256": "1139a49d836fc3d41b7d737c0bd3a9e6e4397917b4803921c2289fae49441544"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+        "bytes": 45981,
+        "sha256": "1793d8399fdd8e6f7cc941b459321c9be2e9b3a3be6a2383b8d8a11f48ece978"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+        "bytes": 18691,
+        "sha256": "c811ec9ed87aca54ff6d54c339adbd5f2cbf7b90704ea0db9fa596d052acd250"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-launch.h",
+        "bytes": 3097,
+        "sha256": "a33a170977d1781f57d63c10c7b841d73e9962f158257e18396dca75bd923720"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-owner.h",
+        "bytes": 999,
+        "sha256": "1183251898b1934a9c39e380553ad4f71fedb12c859e9b82607b64a93bdcf4f8"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-owner.mm",
+        "bytes": 11263,
+        "sha256": "d4d8afaf85fae14201de2ee051b48f0ce1db8c246c192ebe9fee3916ffee1a29"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-peer.h",
+        "bytes": 1388,
+        "sha256": "2daeacd6f51cf7a40c3a2f8f726cdc1a01d7f5480440a70fc4a8e99d99a50a6e"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-runtime.inc.mm",
+        "bytes": 9676,
+        "sha256": "b4a53966bdce69526980e78cf4996fcf0e945d10aaee57119df202b826eb6a16"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-contract-relay-source.inc.mm",
+        "bytes": 9070,
+        "sha256": "8f8d4f7e0e3df9dfa04e4d5ee724f2de079760b3d993fe056a473f05dace78b3"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "bytes": 80613,
+        "sha256": "208f88b06818eb60b3d856c8a83d2da23ec1e6f557f2656d8f8ee3f129173b8d"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-contract-relay-binding.inc.mm",
+        "bytes": 14917,
+        "sha256": "7b32fd4eec1a7e73ebfbe2644ce1894b278e72cadaec8d70ceb2e9fa3174c9e7"
+      }
+    ],
+    "originalReferencesVerified": 21,
+    "sourceLeavesCount": 14,
+    "sourceTestEvidenceReused": true,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "installedProtectedClosure": false,
+    "actualSourceRoot": false,
+    "platformQualified": false,
+    "networkActivated": false,
+    "activationFence": "YNX_CONTRACT_RELAY_INITIATOR_ROLE_BOUNDARY_UNQUALIFIED",
+    "runtimeManifestRequiresFinalSamePackage": true,
+    "privateReleaseRowsDefaultEmpty": true
+  },
+  "supplierR170": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r170/HANDOFF.json",
+      "bytes": 7871,
+      "sha256": "90f09d0e248c2e5be2b9285c53ae071399e7598ab6f9779a0e791ddb1ce9d616"
+    },
+    "parents": [
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r167/HANDOFF.json",
+        "bytes": 3840,
+        "sha256": "b8cce9b811b20e215d8b5a31256676d479c1cd5846461e27820669c42d37e098"
+      },
+      {
+        "path": "/Users/huangjiahao/.codex/worktrees/wallet-auth-wallet-source/YNX Chain/.wallet-source-evidence/auth14-f250f6af-ci-package/FINAL_HANDOFF.json",
+        "bytes": 2867,
+        "sha256": "523c9081c00d26f375fc7138ad0025afcbe0a2e1f7adb9db20d09b99332de2f2"
+      }
+    ],
+    "sourceLeaves": [
+      {
+        "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "bytes": 80978,
+        "sha256": "7fd76fdc2f99c26f4c8a1e9e82c8c70d8e936f2c62c921dee268bdaab2eeb30e"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-auth-identity-owners.inc.mm",
+        "bytes": 23367,
+        "sha256": "63af0b267cad6940c7497ee76bcf0a6a0b8435aac9777114d72eb4f478b3e43a"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-auth-request-source.h",
+        "bytes": 2299,
+        "sha256": "aca773d655a8c9e6bd388454f345f71cff00b716a13e2b624733177e4228273f"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-publication-artifact-binding.inc.mm",
+        "bytes": 5592,
+        "sha256": "6e2722920afa7e25188b7d368476dc11986f0767a734664a7d8415816270cd49"
+      }
+    ],
+    "R167SourceAppliedSeparately": false,
+    "sourceTestEvidenceReused": true,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "matchingApp": false,
+    "genuineSource": false,
+    "currentPublisher": false,
+    "MainApprovalEffect": false,
+    "actualApproval": false,
+    "signature": false,
+    "publication": false
+  },
+  "supplierR172": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/HANDOFF.json",
+      "bytes": 4614,
+      "sha256": "e14e57d57093298eb03f22e6db576dac058d1f8f22968707331b3f7ca6bd31c6"
+    },
+    "parent": {
+      "path": "/Users/huangjiahao/.codex/worktrees/wallet-auth-wallet-source/YNX Chain/.wallet-source-evidence/auth15-d4ad9d20-ci-package/FINAL_HANDOFF.json",
+      "bytes": 2869,
+      "sha256": "c850750757d98e09d68e9bdc341afaf2fcd26a0adfcb5e06a75440b9a61b538d"
+    },
+    "sourceLeaves": [
+      {
+        "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "bytes": 81282,
+        "sha256": "579e2756a755d3b759a39ead2811549bc13961dc8cd864354b6f4af02d2188d2"
+      }
+    ],
+    "originalWorkerSignal": "SIGSEGV",
+    "originalWorkerCount": 2,
+    "originalEvidenceReused": {
+      "metadata": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/result.json",
+        "bytes": 124,
+        "sha256": "eea01ce9fc9af091c06d570477366a9a4347bbac1ae703be4cfd4121a10fc670"
+      },
+      "stdout": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/stdout",
+        "bytes": 536,
+        "sha256": "42db4ac5e28a21d0d8c2cafc133765f8e51dc2e5b6f93da30279257adb46bf0b"
+      },
+      "stderr": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-DZ8vxm/stderr",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "oldAddon": "/Volumes/西部数据/YNX-large-work/auth-owned-r170/evidence/run-5c2bvD/normal.node",
+      "outerExit": 1,
+      "actualTestChildSignal": "SIGSEGV",
+      "realWorkers": 2,
+      "firstUnclassifiedProbePreserved": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/red-pTw2nz/result.json",
+        "bytes": 124,
+        "sha256": "eea01ce9fc9af091c06d570477366a9a4347bbac1ae703be4cfd4121a10fc670"
+      },
+      "causeBoundary": "Concurrent unsupported worker environments can access original addon shared state. This reproduces the failure; it does not attribute a crash stack to one exact std::set instruction."
+    },
+    "newNativeEvidenceReused": {
+      "result": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/evidence/run-JuA72P/result.json",
+        "bytes": 5256,
+        "sha256": "f641a9503ad675fa506a7302c73bb81de43987afac6eb0357f16bb5466244fb3"
+      },
+      "test": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/worker.test.mjs",
+        "bytes": 1961,
+        "sha256": "1ef6186c92c5d68d855a727efe7658b48bfdca9e8135a3493e30a6f07d84edff"
+      },
+      "runner": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/run.mjs",
+        "bytes": 3209,
+        "sha256": "6e7d5287e17af4f6d2b08fb6c1e7b5fefb35a68b3bbc8616a4930a2e730779f0"
+      },
+      "normalExactSDK15Base": true,
+      "translationUnits": 13,
+      "nmOwnUndefined": [],
+      "newGroups": 2,
+      "checks": [
+        "two real workers deterministically fail initialization with exact error",
+        "normal actual process main thread still captures immutable artifact DATA and closes"
+      ],
+      "oldGreenRerun": false
+    },
+    "normalNativeBuild": false,
+    "NativeTestsReexecuted": false,
+    "sourceTestArtifactCopied": false,
+    "matchingApp": false,
+    "SourceGrant": false,
+    "installedOrPublic": false,
+    "approval": false,
+    "sign": false,
+    "transaction": false
+  },
+  "supplierR171": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r171/HANDOFF.json",
+      "bytes": 10648,
+      "sha256": "0f36ef3ce8751bf70f87289b789430e4276512a2a9b1dfdf270e7b8efd339c85"
+    },
+    "parentSource16": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r172-main-thread-source-ea4de5b7-20261024/SOURCE_HANDOFF.json",
+      "bytes": 17026,
+      "sha256": "e3ffd5e441e9c19735b8ea3ad16c32293184c1659467a911f6b14400c8696e0c"
+    },
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
+        "bytes": 1131,
+        "sha256": "b79289a6cd61804b76e8fc02b4235878b0de5f868d72a39a6d5a64c3bade655b"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+        "bytes": 11917,
+        "sha256": "f8047587f8f3a92a125ed5642cec2eb002b00f006369b875c3fd78050456a911"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
+        "bytes": 2549,
+        "sha256": "aee53add28936505ae171d34b0f8c0552ebddf6afd9868c2430ee4e46c28045c"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+        "bytes": 6781,
+        "sha256": "b34ef92dc10e44b360190c27dd7b2775efd621b3bb977140a1ee36a60b2ebdc7"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+        "bytes": 46433,
+        "sha256": "d8c5ea1b8bc971642fdf192f4d6bfb57ea6ce0842acb9dcaa8170e25b3ed4b45"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+        "bytes": 23223,
+        "sha256": "a73f04a1bdcf6f4bc55b36d3af886a5ddc27de2cfea099ecc7c57405078403ec"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-authority-data.h",
+        "bytes": 3689,
+        "sha256": "870385db0eb9acaa370d1bb49addc5adb35bfc50fa37f4bdc27b43ec120232ff"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-authority-source.inc.mm",
+        "bytes": 9316,
+        "sha256": "b3a69cf9725d3d523b24c047ec840865d240804239524617cc215984b852eff5"
+      }
+    ],
+    "sourceEvidenceReused": true,
+    "NativeTestsReexecuted": false,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "matchingApp": false,
+    "actualSourceRootOrRelease": false,
+    "actualProtectedPublisherRegistry": false,
+    "actualBackendCatalogOrHTTPIssuer": false,
+    "getDeploymentRequestHeaders": false,
+    "MainExplicitApprovalOrEffect": false,
+    "realSignOrPublish": false,
+    "productionOrInstalled": false,
+    "privateObjCOnly": true,
+    "NodeCallbackShapeUnchanged": true
+  },
+  "supplierR174": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r174/HANDOFF.json",
+      "bytes": 7025,
+      "sha256": "60ede70c1213f8d0a11136f9b9e2a1f6cbba56de98fe6045d2a51804ddcfba63"
+    },
+    "parents": {
+      "native": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r171/HANDOFF.json",
+        "bytes": 10648,
+        "sha256": "0f36ef3ce8751bf70f87289b789430e4276512a2a9b1dfdf270e7b8efd339c85"
+      },
+      "node": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r172/HANDOFF.json",
+        "bytes": 4614,
+        "sha256": "e14e57d57093298eb03f22e6db576dac058d1f8f22968707331b3f7ca6bd31c6"
+      },
+      "source16": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r172-main-thread-source-ea4de5b7-20261024/SOURCE_HANDOFF.json",
+        "bytes": 17026,
+        "sha256": "e3ffd5e441e9c19735b8ea3ad16c32293184c1659467a911f6b14400c8696e0c"
+      }
+    },
+    "sourceLeaves": [
+      {
+        "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "bytes": 81397,
+        "sha256": "4e95b6e194be68140c172ecce961579395bb18c77c2e32548ec8e1a368de219b"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-project-authority-binding.inc.mm",
+        "bytes": 9156,
+        "sha256": "bcba19edf40a0f908fafa2bc91cf71d8800781f5f5313f46a3cef543d0786504"
+      }
+    ],
+    "originalReferencesVerified": 8,
+    "parentR171LeavesVerified": 8,
+    "sourceEvidenceReused": true,
+    "newActualBindingTestsReused": 11,
+    "newNormalAdmissionBoundaryTestsReused": 1,
+    "NativeTestsReexecuted": false,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "matchingApp": false,
+    "actualRootOrSourceRelease": false,
+    "realProjectPublisherRegistry": false,
+    "actualUserApproval": false,
+    "signature": false,
+    "serverOriginalSource": false,
+    "deploymentHeadersIssuer": false,
+    "production": false
+  },
+  "supplierR177": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r177/HANDOFF.json",
+      "bytes": 12287,
+      "sha256": "1521af764bc459400ef3f2a2b4e0973b6012739fd43ab36b17b6b7dce6c1110e"
+    },
+    "parents": {
+      "source18": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-r174-project-reader-source-61786642-20261024/SOURCE_HANDOFF.json",
+        "bytes": 17643,
+        "sha256": "1feb33423bfb4e10229004c57e77693f1d4188fbea0e4ed449eca3d48a947e85"
+      },
+      "r171": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r171/HANDOFF.json",
+        "bytes": 10648,
+        "sha256": "0f36ef3ce8751bf70f87289b789430e4276512a2a9b1dfdf270e7b8efd339c85"
+      },
+      "r174": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r174/HANDOFF.json",
+        "bytes": 7025,
+        "sha256": "60ede70c1213f8d0a11136f9b9e2a1f6cbba56de98fe6045d2a51804ddcfba63"
+      }
+    },
+    "sourceLeaves": [
+      {
+        "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "bytes": 81516,
+        "sha256": "0630bf72c5c09fd6155c3d0c293e56f80db5310c9b0c95daeda4cb2d656e4122"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-project-authority-binding.inc.mm",
+        "bytes": 9232,
+        "sha256": "b79c0875677ce4230ed8c95974757eb5983d7bc88cd19077014d53193d646d11"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-workspace-project-selection.inc.mm",
+        "bytes": 12315,
+        "sha256": "0def43170e440c2e7d8ad252868eae0d5177cce9fa771950fa9b1a5b060167fb"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+        "bytes": 6855,
+        "sha256": "ccf8162de16fcb552f138500c162a8dfb9462887301425f9ea7df5873c334478"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+        "bytes": 24944,
+        "sha256": "c5fc04c171de4f472fc3b20e752fd2e3388ae6809e56b675f3b4b76d133c1f8d"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-authority-source.inc.mm",
+        "bytes": 10570,
+        "sha256": "f6ba57e086dd19875d63c7c81c75f4f48647f37e0d13cd9e932b2a44afe57b70"
+      }
+    ],
+    "originalReferencesVerified": 16,
+    "sourceEvidenceReused": true,
+    "NativeTestsReexecuted": false,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "matchingApp": false,
+    "actualCanonicalSourceMapping": false,
+    "actualRootOrRegistryOrEnrollment": false,
+    "realAccountOrApproval": false,
+    "MainKEY7Effect": false,
+    "HTTPHeaderIssuer": false,
+    "backendOriginalSource13Methods": false,
+    "durableNonce": false,
+    "installedOrDeployed": false
+  },
+  "supplierR181": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r181/HANDOFF.json",
+      "bytes": 25894,
+      "sha256": "79a4ab2d465778a9d92b99b7d3d586977c6a3b01618b8af3182208435bd1ef9f"
+    },
+    "currentFactoryParent": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r180/HANDOFF.json",
+      "bytes": 9537,
+      "sha256": "e93ce172479a792d92d3f95faea77780124f9562f8b0678fbb2a02d471198e4a"
+    },
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-ide-artifact-result-data.h",
+        "bytes": 6399,
+        "sha256": "3ffdd61262dd71854e5d8f9f6df71a98185afd23d297f4b733e2f04ada805ad5"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-wallet-peer-launch.h",
+        "bytes": 1480,
+        "sha256": "be122f5934dd4fa23183b707c7f450839205348aa815817e38f4dd80530987f8"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-wallet-peer-launch.mm",
+        "bytes": 19513,
+        "sha256": "e32a3cb35e32d0cd25b40aad9f43e443cffb9abb46b48e834fc094223a499553"
+      },
+      {
+        "path": "apps/wallet-desktop/native/original-ide-identity-peer-owner.inc.mm",
+        "bytes": 24460,
+        "sha256": "95f53b88959df5aae7083b1263ea0afc6ac729b228df6bd07a9b650ccb04b7de"
+      }
+    ],
+    "retainedFrozenCLIAndMainInputs": [
+      {
+        "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "bytes": 82148,
+        "sha256": "0e68c3602df35da7884a52cf5e7f74d67eccab585028e74dbfe4453563287201"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+        "bytes": 17259,
+        "sha256": "d8543a7cbb95d27da78f36c17cf0e5a862f60d55dd699b85001e13c94b4c3044"
+      }
+    ],
+    "originalReferencesVerified": 31,
+    "sourceEvidenceReused": true,
+    "NativeTestsReexecuted": false,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "matchingApp": false,
+    "independentMemberVerificationInThisPatch": false,
+    "approval": false,
+    "Source13": false,
+    "MainUI": false,
+    "SDK20Whole": false,
+    "installed": false,
+    "service": false,
+    "signatureOrTransactionAction": false
+  },
+  "sourceCurrentIOInputs": [
+    {
+      "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+      "bytes": 5009,
+      "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+    }
+  ],
+  "supplierR185": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r185/HANDOFF.json",
+      "bytes": 10050,
+      "sha256": "e7f1a39e0f1ea09e6c70145cce69e09cadfcb771fd76d13451e5f8d28aefb30a"
+    },
+    "parentSDK": "b330fffdfe5ceda04ff665f396e46c6c85e8bb74",
+    "NativeSourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
+        "bytes": 12057,
+        "sha256": "c2484cbb941ad9d43423701c50226f05eecb6cab52e8fe568f7c8ea5225cc44e"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+        "bytes": 5009,
+        "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+      }
+    ],
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/src/original-auth-source-current-v2.js",
+        "bytes": 19561,
+        "sha256": "aff368bcc6d7ef3f6b0ebbabe2f3a47a4cd73dec931566dc949f2ed05c7b3d3f"
+      },
+      {
+        "path": "packages/wallet-auth/src/original-auth-identity-source-current.js",
+        "bytes": 15627,
+        "sha256": "ce74e79f1327b3fa50dac26fc88894e4b4a1668c6890b83dec20688b2954394e"
+      },
+      {
+        "path": "packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs",
+        "bytes": 21454,
+        "sha256": "078c970fb2725752e4ed5cbd6366344a5a114750db649c469e4be2b1a0894b05"
+      },
+      {
+        "path": "packages/wallet-auth/src/product-session-gateway-node-host.js",
+        "bytes": 49854,
+        "sha256": "5ef9df4bdbd1c877ecd279bc676e824ff7be94ec038498c8f815d29e48765b91"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
+        "bytes": 12057,
+        "sha256": "c2484cbb941ad9d43423701c50226f05eecb6cab52e8fe568f7c8ea5225cc44e"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+        "bytes": 5009,
+        "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+      }
+    ],
+    "originalReferencesVerified": 14,
+    "normalCanonicalInputs": 87,
+    "independentSourceCurrentIOInputs": 1,
+    "extendedSourceClosure": 88,
+    "sourceEvidenceReused": true,
+    "actualDarwinJournal3Reused": true,
+    "NativeTestsReexecuted": false,
+    "sourceTestArtifactCopied": false,
+    "normalNativeBuild": false,
+    "normalAddonCoversSeparateIO": false,
+    "nativeProductionSigningExecuted": false,
+    "normalAdmittedServiceActivated": false,
+    "HTTPSource13FactoryComplete": false,
+    "AppOrInstalled": false
+  },
+  "supplierR186": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r186/HANDOFF.json",
+      "bytes": 4132,
+      "sha256": "d06dde34e9e0986e626250014677059175696e83a0c97d42638a6b630f44d084"
+    },
+    "parent": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r185/HANDOFF.json",
+      "bytes": 10050,
+      "sha256": "e7f1a39e0f1ea09e6c70145cce69e09cadfcb771fd76d13451e5f8d28aefb30a",
+      "blob": "c50d177de6e074d64d80269c85614670ad0bd226"
+    },
+    "sourceLeaf": {
+      "path": "packages/wallet-auth/src/original-auth-source-current-v2.js",
+      "bytes": 19737,
+      "sha256": "c6844cab9d1a02209e39bf008d53147eb93682717ba830ee7b90d33afe0deb43"
+    },
+    "originalReferencesVerified": 9,
+    "sourceEvidenceReused": true,
+    "NativeInputsUnchangedFrom21": true,
+    "independentIOUnchangedFrom21": true,
+    "normalBuildToolUnchangedFrom21": true,
+    "NativeTestsReexecuted": false,
+    "normalNativeBuild": false,
+    "Source13Complete": false,
+    "serviceStarted": false,
+    "installed": false,
+    "production": false
+  },
+  "supplierR193": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r193/HANDOFF.json",
+      "bytes": 8987,
+      "sha256": "bbfbb6f1752028b88c743e7805b8d512f005d851a854d8c9ba5885340967e129"
+    },
+    "sourceParentCommit": "b743cc20c0320a46c885b76268de93deab4cfb9f",
+    "sourceEvidenceReused": true,
+    "pending": [
+      "actual normal Auth host deployment/source+TLS authority commissioning and full Main matching build",
+      "server root/profile/registered live Native issuer/actual user acceptance not run",
+      "full Source13 ProjectControl+publisher registry/capture/current glue remains owned CODE; no always-deny facade"
+    ],
+    "actualServiceDeployment": false,
+    "actualRootOrIssuer": false,
+    "fullSource13": false,
+    "production": false
+  },
+  "supplierR196": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r196/HANDOFF.json",
+      "bytes": 12606,
+      "sha256": "2c26d1d99328cf0ea355988d1b81d2e37d4e57995d946e78b7036384c4a8ea95"
+    },
+    "cumulativeSDKParent": "b743cc20c0320a46c885b76268de93deab4cfb9f",
+    "verifierIntermediateParent": {
+      "handoff": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r189/HANDOFF.json",
+        "bytes": 21720,
+        "sha256": "d838ab7ad734ad210f723a50b6f1052b37fbcaed4c68bac644945bf4448481ba"
+      },
+      "baseline": {
+        "bytes": 24944,
+        "sha256": "c5fc04c171de4f472fc3b20e752fd2e3388ae6809e56b675f3b4b76d133c1f8d"
+      },
+      "formalIntermediate": {
+        "bytes": 28016,
+        "sha256": "6ec478cdef317f6d959f60761f39581d469e005f80820e81137f884b3903653f"
+      }
+    },
+    "verifierFinal": {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+      "bytes": 29551,
+      "sha256": "3c1470e2ebf02b7acd3be545ab733b7951fd30d0fad5a487a82ae98d321129a8"
+    },
+    "newRelativeClosure": [
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-source.inc.mm",
+        "bytes": 7963,
+        "sha256": "d122f5ac46c6823d170fb1c544a9b39d6b34b4a8a193cc9ce8531d0f367b9c96"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-capture.mjs",
+        "bytes": 5031,
+        "sha256": "923987c3100910a1e479ddee5c239e36151c3a4e087614116f90428803c94507"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-contract.mjs",
+        "bytes": 10198,
+        "sha256": "86bad0df3624396d12b5c66f0affb3820ce9cd15cf7a92ad59161693da545677"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-developer-principal-data.mjs",
+        "bytes": 2381,
+        "sha256": "7e0748cb9ab85839843469c6dca087ed0a0bc5d4ffcde34a2d0bf12d8ac9aab3"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-publication-approval-contract.mjs",
+        "bytes": 11587,
+        "sha256": "c37462cbf7bdb9ee7b327f0d33e8712d3bbc7b6aa0ae43a39f7ca426c69e33f6"
+      }
+    ],
+    "sourceEvidenceReused": true,
+    "normalNativeInputs": 82,
+    "helperInputs": 5,
+    "normalCanonicalInputs": 92,
+    "extendedSourceClosure": 93,
+    "normalTranslationUnits": 13,
+    "helperTranslationUnits": 11,
+    "independentIOInputUnchanged": {
+      "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+      "bytes": 5009,
+      "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+    },
+    "independentIOQualifications": {
+      "openV2Existing": false,
+      "publicationReadOnly": false,
+      "old6336QualificationBorrowed": false
+    },
+    "pending": [
+      "Main real5 Native review/decision producer and purpose-specific protected signing CABI; decision-retained still not issued proof",
+      "server control/custodian registration capture+once/current/revoke writer and full Source13 integration",
+      "normal current protected capture delivery catalogue/issuer commissioning, no per-click new Root/release is asserted by this static reader; actual normal dynamic capture writer remains owned CODE"
+    ],
+    "NativeBuild": false,
+    "matchingApp": false,
+    "NativeTestsReexecuted": false,
+    "RootOrSourceAdmission": false,
+    "realApproval": false,
+    "protectedSigning": false,
+    "fullSource13": false,
+    "HTTPProofIssuerCommissioned": false,
+    "production": false
+  },
+  "supplierR197": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r197/HANDOFF.json",
+      "bytes": 4060,
+      "sha256": "3e16ce86fef8bd94142894a3e66e85dea83d20a78644e2ea05c8c8a3bb6ee165"
+    },
+    "parent": {
+      "SDK": "1b53e3d2b21bd9d69ee3b11418099424bba18354",
+      "AuthJS": "R196",
+      "AuthGo": "R193"
+    },
+    "cumulativeSDKParent": "802527eb083f086393ec498de1f3670626995524",
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+        "bytes": 19196,
+        "sha256": "e973e746b6968ccbc696aa6d7c372ad2c323f2372f45d7e7e914bfe839406e7c"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-contract.mjs",
+        "bytes": 10242,
+        "sha256": "41b5e5aff29769f6e1d0e02d0bde1b3dc1242ee291b79863c081e720b68b8d39"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-dispatch.mjs",
+        "bytes": 5045,
+        "sha256": "b8a27e4ac4faf6216ebaacbfeb3255fb784fed684bf34adf249cb46c385e8402"
+      }
+    ],
+    "inheritedPublicationDispatch": {
+      "handoff": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r189/HANDOFF.json",
+        "bytes": 21720,
+        "sha256": "d838ab7ad734ad210f723a50b6f1052b37fbcaed4c68bac644945bf4448481ba"
+      },
+      "source": {
+        "path": "packages/wallet-auth/native/original-ide-publication-approval-dispatch.mjs",
+        "bytes": 8939,
+        "sha256": "5d5ce59ca4da1b23d4299fd2474a1500f2bab2fe26a399cbe376f06edce6fb4d"
+      }
+    },
+    "normalNativeInputs": 84,
+    "helperInputs": 5,
+    "normalCanonicalInputs": 94,
+    "extendedSourceClosure": 95,
+    "normalTranslationUnits": 13,
+    "helperTranslationUnits": 11,
+    "sourceEvidenceReused": true,
+    "NativeTestsReexecuted": false,
+    "NativeBuild": false,
+    "matchingApp": false,
+    "Source13": false,
+    "durableControlCaptureCurrentRevokeWriter": false,
+    "independentPublisherDualProofWriter": false,
+    "ProtocolControlCABI": false,
+    "controlCABIArchiveQualified": false,
+    "sourceCurrentRoot": false,
+    "Root": false,
+    "production": false,
+    "accountAuthorization": false,
+    "pending": [
+      "Full Source13 composition",
+      "Durable control capture/current/revoke/once registry",
+      "Independent publisher dual-proof writer",
+      "Original Protocol CONTROL CABI",
+      "Source-bound matching runtime"
+    ],
+    "independentIOUnchanged": {
+      "source": {
+        "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+        "bytes": 5009,
+        "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+      },
+      "newPublicationReadOnlyQualified": false
+    }
+  },
+  "supplierR197ClosureCorrection": {
+    "formalSourceHandoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r189/HANDOFF.json",
+      "bytes": 21720,
+      "sha256": "d838ab7ad734ad210f723a50b6f1052b37fbcaed4c68bac644945bf4448481ba"
+    },
+    "inheritedHeadInput": {
+      "path": "packages/wallet-auth/native/original-ide-approval-state-head-data.mjs",
+      "bytes": 1599,
+      "sha256": "28aa4713d6e9792294976b5318abc87c9be89b11fdb4f5e2f22152a5eab81786"
+    },
+    "supersededSourceCommit": "498e79197eb9c012d5767ff1c168802efde15a98",
+    "qualification": "Only matching source input declaration supersedes frozen498e source recipe. Runtime bytes and Auth24 API/semantics unchanged; no package release or source admission.",
+    "reason": "R197 publication dispatch makes original R189 head DATA a fixed CLI transitive native .mjs dependency.",
+    "normalNativeInputs": 85,
+    "helperInputs": 5,
+    "normalCanonicalInputs": 95,
+    "extendedSourceClosure": 96,
+    "normalTranslationUnits": 13,
+    "helperTranslationUnits": 11,
+    "runtimeOrCLISemanticsChanged": false,
+    "NativeBuild": false,
+    "Source13": false,
+    "production": false,
+    "supersededSourceHandoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/sdk-auth24-r197-matching-source-498e7919-20261024/SOURCE_HANDOFF.json",
+      "bytes": 26871,
+      "sha256": "630b8ccc6d16150cd5bb08cc7168c8b219b5ca5438e508f2e6dbe8513c133708"
+    }
+  },
+  "supplierR200": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r200/HANDOFF.json",
+      "bytes": 6852,
+      "sha256": "f1861a8bf007ad23d30f553fee4f092dbac100a6df590060139cff8ea63e525a"
+    },
+    "parent": {
+      "specification": "R192 exact PoP9/custodian12/registration16",
+      "JS": "R197/R199 staged data closure; merge actual diff into latest SDK only",
+      "Go": "R193/R197 original pinned process"
+    },
+    "cumulativeSDKParent": "b92b1b724ebdfe477a93e57e8df43a7ad7bff3c0",
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-ide-protected-publisher-contract.mjs",
+        "bytes": 8585,
+        "sha256": "e20cb3cde24c6e61db2b4c6dcb3fdb9ffe732ae92930b80e27166c180a5ddfc6"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+        "bytes": 20284,
+        "sha256": "5cbecd3bb24a8c82f256ece5b0900d539219aac66324bad31348b40cfc6ec804"
+      }
+    ],
+    "normalNativeInputs": 86,
+    "helperInputs": 5,
+    "normalCanonicalInputs": 96,
+    "extendedSourceClosure": 97,
+    "compileInputsUnchanged": 77,
+    "normalTranslationUnits": 13,
+    "helperTranslationUnits": 11,
+    "runtimeRelativeDependencyTracking": {
+      "originalTool": "scripts/auth-runtime-closure.mjs",
+      "requiredStaticSrcRoots": [
+        "src/ide-artifact-signature.js",
+        "src/pq-registered-member.js",
+        "src/pq-wallet-policy.js"
+      ],
+      "mechanism": "Existing original Auth runtime AST/manifest plus package files src; Native recipe pins the fixed Native MJS graph. New normal runtime manifest still requires regeneration/readback.",
+      "normalRuntimeRegeneratedOrQualified": false
+    },
+    "sourceEvidenceReused": true,
+    "NativeTestsReexecuted": false,
+    "NativeBuild": false,
+    "newNativeTU": false,
+    "newNPMDependency": false,
+    "Node26Signing": false,
+    "independentIOUnchanged": true,
+    "publicationReadOnlyIOQualified": false,
+    "Root": false,
+    "protectedCustodyAdmitted": false,
+    "registered": false,
+    "authorized": false,
+    "Source13": false,
+    "production": false,
+    "pending": [
+      "Full Source13 composition",
+      "Independent custodian role/current/revoke enforcement and durable publisher/control registration writer",
+      "Real purpose-specific Native/Main custody",
+      "Cold Source/account/accepted-device/message bridge"
+    ],
+    "machineCodeCompatibility": {
+      "compileInput77BytesUnchanged": true,
+      "normal25RuntimeMustBeIndependentlyBound": true,
+      "officialSuccessorCompatibilityPending": true,
+      "adapter23Or24ReceiptAcceptedAs25": false,
+      "duplicateNativeCompileRequiredByThisSourceRecipe": false
+    }
+  },
+  "supplierR201": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r201-supply-20261024-r1/HANDOFF.json",
+      "bytes": 15522,
+      "sha256": "c5eb84616362303cba09d7b7067280961418d2533482281a492ab3e1dee532b9"
+    },
+    "cumulativeSDKParent": "cbd694e271818da3fa13a3ceb8ab1a61eb83fd69",
+    "parent": {
+      "SourceNative": "R196 unchanged captured Source base",
+      "contract": "R192/R194/R197 CONTROL; single Protocol Go archive a4333268e",
+      "tests": "R201 only new role2, changed Native2 syntax, actual bounded C++ record parser"
+    },
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-custody.h",
+        "bytes": 1139,
+        "sha256": "475f5630f31585f4598607c6c02fde7881131a99631d2f8ce0e31fe68d6eaf7e"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-custody.mm",
+        "bytes": 9553,
+        "sha256": "2e054bd16bc79daaaae835c1a084a3313bf2792383fe3fedd81cce27c9da71ab"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-key-record.h",
+        "bytes": 1142,
+        "sha256": "b4e9d2b2978031f85d324fb78ae780811d0cdc759241d57c7c9fac4540c075e4"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-custody-source.inc.mm",
+        "bytes": 4063,
+        "sha256": "671004149153f4ea5e00c0109dcabb20ee3eb7c05fd66a2c2d2a101f2fb74651"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-ide-project-control-custody-data.mjs",
+        "bytes": 2481,
+        "sha256": "cc483ed9bcf0cd183b13710a31dafe34150e02cef00dd7d226c2e7285ee123cf"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+        "bytes": 7243,
+        "sha256": "15686b1386b6d37fbab03fc2f24ba6705862f4df636e424a95feff5ef4ac2d90"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+        "bytes": 46746,
+        "sha256": "704da24f0f039ca08809748ac5a435bab79d585a3615fa2a46a65aa87091b9cb"
+      },
+      {
+        "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+        "bytes": 29922,
+        "sha256": "c18927ff9475cdc2e8acd5993cfb31d35e0cfda9e31d149748b4326d62a37694"
+      }
+    ],
+    "normalNativeInputs": 91,
+    "helperInputs": 5,
+    "normalCanonicalInputs": 101,
+    "extendedSourceClosure": 102,
+    "compileInputCount": 81,
+    "normalTranslationUnits": 14,
+    "helperTranslationUnits": 11,
+    "userOnlyCustodyTU": "packages/wallet-auth/native/original-ide-project-control-custody.mm",
+    "userOnlyAddedFramework": "LocalAuthentication",
+    "helperSourceClosure": [
+      "packages/wallet-auth/native/original-ide-project-control-custody-source.inc.mm",
+      "packages/wallet-auth/native/original-ide-project-control-custody-data.mjs"
+    ],
+    "helperCustodyTUSelected": false,
+    "helperLocalAuthenticationLinked": false,
+    "prior77MachineCodeReusable": false,
+    "adapter23Or24ReceiptAcceptedAs26": false,
+    "MainCONTROLSourceProfilePending": true,
+    "GoCABIArchiveLinked": false,
+    "normalPUBLICMacroEnabled": false,
+    "NativeBuild": false,
+    "Source13": false,
+    "Root": false,
+    "realUserConsent": false,
+    "privateKeyRead": false,
+    "MainCustody": false,
+    "installed": false,
+    "production": false,
+    "sourceEvidenceReused": true,
+    "supplierNativeTestsReexecuted": false,
+    "supplierRoleGroupsReexecuted": false,
+    "runtimeClosureRegeneratedOrQualified": false,
+    "independentIOUnchanged": true,
+    "publicationReadOnlyIOQualified": false,
+    "pending": [
+      "Source13 factory and durable capture/current/revoke/publisher writer",
+      "Real commissioned role/private item plus matching startup",
+      "Cold Source/account/accepted-device/message bridge"
+    ]
+  },
+  "supplierR222": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r222-supply-20261024-r1/HANDOFF.json",
+      "bytes": 92809,
+      "sha256": "daddd86fdabf3e384473782a76bdc991c461c654747c8b960fa7cbeddf6a0c93"
+    },
+    "normalNativeInputs": 98,
+    "normalCanonicalInputs": 108,
+    "extendedSourceClosure": 109,
+    "compileInputCount": 86,
+    "nodeTranslationUnits": 15,
+    "helperTranslationUnits": 11,
+    "prior31MachineRecordCompatible": false,
+    "productionChildBoundedJoinVerified": false,
+    "NativeBuild": false,
+    "Source": false,
+    "Root": false,
+    "release": false
+  },
+  "supplierR224": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r224-supply-20261024-r1/HANDOFF.json",
+      "bytes": 13242,
+      "sha256": "766ddd999f63ebe3396fe97fdde7a35c22c163365fcd79418e0a36aae2b7d70a"
+    },
+    "normalNativeInputs": 99,
+    "normalCanonicalInputs": 109,
+    "extendedSourceClosure": 110,
+    "compileInputCount": 87,
+    "nodeTranslationUnits": 15,
+    "helperTranslationUnits": 11,
+    "supplierBoundedExitFixturePassed": true,
+    "localFixtureRerun": false,
+    "productionChildBoundedJoinVerified": false,
+    "NativeBuild": false,
+    "Source": false,
+    "Root": false
+  },
+  "supplierR225": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r225-supply-20261024-r1/HANDOFF.json",
+      "bytes": 7092,
+      "sha256": "128770bb8b35281219b979821109665ebcf7dd9b23ba14b8db6a44cd8eec9eca"
+    },
+    "nativeTranslationUnitsUnchanged": true,
+    "normalNativeInputs": 99,
+    "normalCanonicalInputs": 109,
+    "extendedSourceClosure": 110,
+    "compileInputCount": 87,
+    "nodeTranslationUnits": 15,
+    "helperTranslationUnits": 11,
+    "actualDispatcherSourceChanged": true,
+    "supplierActualDispatcherFocusedPassed": true,
+    "NativeBuild": false,
+    "Source": false,
+    "Root": false,
+    "App": false
+  },
+  "supplierR226": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r226-supply-20261024-r1/HANDOFF.json",
+      "bytes": 7648,
+      "sha256": "dd3b8d2a0522b2ac1f02358f7d68047198938b2f1754bb1a6b5a75b8d41b4570"
+    },
+    "daemonSource": {
+      "path": "packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs",
+      "bytes": 21867,
+      "sha256": "ec7881590d37b1a9e71e2ed84fa7abbf700b8e510d5601c63691be0f3814e04f"
+    },
+    "normalNativeInputsUnchanged": true,
+    "normalNativeInputs": 99,
+    "normalCanonicalInputs": 109,
+    "extendedSourceClosure": 110,
+    "compileInputCount": 87,
+    "nodeTranslationUnits": 15,
+    "helperTranslationUnits": 11,
+    "supplierNormalHTTPFocusedPassed": true,
+    "NativeBuild": false,
+    "Source": false,
+    "Root": false,
+    "App": false
+  },
+  "publicationReleaseResultDATA": {
+    "wireVersion": "YNX-IDE-ARTIFACT-RELEASE-RESULT/v1",
+    "API": "decodeIDEArtifactReleaseResultData(resultOriginal:Uint8Array):Readonly<IDEArtifactReleaseResultData>",
+    "subpath": "./ide-artifact-release-result",
+    "sourceFiles": [
+      {
+        "path": "packages/wallet-auth/src/ide-artifact-release-result.js",
+        "bytes": 5952,
+        "sha256": "538e1433f3b2e24b2c0905bd15a445b2029483fad21dffe9d38577f70faf5f20"
+      },
+      {
+        "path": "packages/wallet-auth/src/ide-artifact-release-result.d.ts",
+        "bytes": 1934,
+        "sha256": "ef3f84d7e6028c43d44547c08a69c3a6e056a080349d178eeec779e9d7771c21"
+      }
+    ],
+    "elevenOriginalStringFields": true,
+    "retainsOriginalUTF8Bytes": true,
+    "everyByteGetterReturnsIndependentCopy": true,
+    "nestedOriginalsValidated": false,
+    "signatureVerified": false,
+    "authorization": false,
+    "proofOriginalProvided": false,
+    "resourceResultProducerSupplied": false,
+    "NativeBuildRequiredByNewDecoder": false
+  },
+  "supplierR237": {
+    "handoff": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r237-supply-20261024-r1/HANDOFF.json",
+      "bytes": 15547,
+      "sha256": "64e8e90ad47d06eb446e113524557eaa601896f40f8fdc54591318cc39350c80"
+    },
+    "sourceLeaves": [
+      {
+        "path": "packages/wallet-auth/src/original-auth-source-current-v2.js",
+        "bytes": 32541,
+        "sha256": "412d8173d4781748ca05563233d007502608ffd5cac9a65c6eb50ba1ba605959"
+      },
+      {
+        "path": "packages/wallet-auth/src/original-auth-identity-source-current.js",
+        "bytes": 19025,
+        "sha256": "e3d79ae1c461a2d28bb42d9557b3fbb06b2c3e6e415bf3e19f18069466f2bf95"
+      },
+      {
+        "path": "packages/wallet-auth/src/product-session-gateway-node-host.js",
+        "bytes": 58895,
+        "sha256": "86fc0ca5eb6c65dc80a0033d78f5d69766c7f71e8eed118e44d9cfd1e4c230b2"
+      }
+    ],
+    "principalCompletionBoundToSameResultAndCredential": true,
+    "physicalHTTPDeliveryFence": true,
+    "principalWireFieldsUnchanged": 12,
+    "nativeTranslationUnitsUnchanged": true,
+    "existingNativeComponentQualificationReused": false,
+    "normalNativeInputs": 99,
+    "normalCanonicalInputs": 109,
+    "extendedSourceClosure": 110,
+    "NativeBuild": false,
+    "Source": false,
+    "Root": false,
+    "App": false,
+    "realLogin": false,
+    "realRestoration": false,
+    "realRevocation": false
+  },
+  "supplierR241": {
+    "handoff": {
+      "bytes": 11797,
+      "sha256": "aac646c3e69cce606c66db05f3591ee91e75f45e7ddd96ce9eb1b7542597322a"
+    },
+    "sourceDelta": [
+      {
+        "relative": "source/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+        "bytes": 13399,
+        "sha256": "de91b9b18cfab291c7bca0a3bdb88e16f911505be356ce3afc1da5a1d8d34ae5"
+      }
+    ],
+    "namespaceOnly": true,
+    "actualFoundationControlsPassed": true,
+    "SourceQualified": false,
+    "NativeModuleBuilt": false,
+    "installed": false
+  },
+  "supplierR243": {
+    "handoff": {
+      "bytes": 8928,
+      "sha256": "06333d2472b7ae8f11fa93bf325624bec4a618a8e9b445bab10bf7e70c73e4af"
+    },
+    "fixedPurpose": "wallet-pq-host-catalog-source-v1",
+    "roles": [
+      "AUTH-SOURCE-ENROLLMENT",
+      "AUTH-SOURCE-PROFILE"
+    ],
+    "normalAdminBin": "ynx-auth-source-issue",
+    "publicGenericSigner": false,
+    "normalHTTPMutation": false,
+    "realRoleSupplied": false,
+    "independentApprovalSupplied": false,
+    "SourceQualified": false,
+    "installed": false
+  },
+  "supplierR244": {
+    "handoff": {
+      "bytes": 4579,
+      "sha256": "7abb92552eff1f361a34ee10f861b7f1efc4195056f9a9cb41798d35b77fe3e5"
+    },
+    "sameOriginalCompletionAfterAwait": true,
+    "SourceQualified": false,
+    "installed": false
+  },
+  "supplierR248": {
+    "handoff": {
+      "bytes": 11516,
+      "sha256": "65b7e69de1f439d82b2e9e7de1a015fa6f32b17a84467488d7ad701b55f1f4b7"
+    },
+    "productionAfter": {
+      "path": "src/original-auth-source-issuance-v2.js",
+      "bytes": 15729,
+      "sha256": "b4ce5ef5cc1d1afc8d27b6d6ac18fdb3418c53fcce3c63b3f2ac0f1b3c49b7fd"
+    },
+    "fixedSourcePurposes": [
+      "wallet-pq-host-catalog-source-v1",
+      "AUTH-IDENTITY-RECEIVE"
+    ],
+    "profileEnrollmentVerifiedBeforeIntentAndSignature": true,
+    "PUBLICControls": 6,
+    "realRoleSupplied": false,
+    "independentApprovalSupplied": false,
+    "NativeReleaseRowAdmitted": false,
+    "SourceQualified": false,
+    "installed": false
+  },
+  "transferAmountAPI": {
+    "function": "normalizePQNativeTransferAmounts",
+    "unitConversion": false,
+    "normalTransferUsesSameGuard": true,
+    "normalFeePolicyChanged": false,
+    "signatureOrPermissionGranted": false,
+    "NativeInputChanged": false
+  },
+  "transactionReadAPI": {
+    "protocolSource": "b777232db1701d1e7cb41bd6e0bbe55452664c8d",
+    "nativeOriginalLookup": "/transactions/pq/originals/{nativeHash}",
+    "explicitABCILookup": "/txs/{abciHash}",
+    "newReadPlans": 5,
+    "networkIO": false,
+    "proofVerification": false,
+    "finalityGranted": false,
+    "retryOrOriginalMutation": false
+  }
+}
