@@ -121,6 +121,22 @@ func (d *BlockJournalPrefixDecoder) DecodeWithSuffixReplayPhaseTiming(ctx contex
 	return out, err
 }
 
+// DecodeWithCertificateAndSuffixReplayPhaseTiming combines existing diagnostic
+// children in one decode. Suffix Finalize/MemoryCommit are local replay work,
+// never node execution or disk durability. All other APIs retain their shape.
+func (d *BlockJournalPrefixDecoder) DecodeWithCertificateAndSuffixReplayPhaseTiming(ctx context.Context, data []byte) (BlockJournalPrefixReadback, error) {
+	phases := &BlockJournalPrefixWorkPhases{
+		CertificatePublishDetails: new(BlockJournalPrefixCertificatePhases),
+		SuffixReplayDetails:       new(BlockJournalFrameReplayPhases),
+	}
+	if d != nil && d.preparedNative {
+		phases.PreparedEncodeDetails = new(BlockJournalPreparedEncodePhases)
+	}
+	out, err := d.decode(ctx, data, phases)
+	out.WorkPhases = phases
+	return out, err
+}
+
 func (d *BlockJournalPrefixDecoder) decode(ctx context.Context, data []byte, phases *BlockJournalPrefixWorkPhases) (BlockJournalPrefixReadback, error) {
 	var out BlockJournalPrefixReadback
 	if err := ctx.Err(); err != nil {
