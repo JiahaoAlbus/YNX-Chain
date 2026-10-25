@@ -512,13 +512,35 @@ const metadata = path => {
   return Object.fromEntries(['dev', 'ino', 'mode', 'uid', 'gid', 'nlink', 'size', 'mtimeNs', 'ctimeNs'].map(key => [key, info[key]]));
 };
 
+// This independent owned-output repair is applied equally to the reconstructed
+// late-snapshot caller and the current caller. Original source witnesses retain
+// their full nlink/ctime checks; only new directories have mutable entry counts.
+const ownedDirectoryPortability = [
+  ['        return info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_uid, info.st_gid\n',
+    '        # APFS changes directory nlink when these owned files are created.\n        # Bind its stable object/owner/mode and verify both catalogs instead.\n        return info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid\n'],
+  ["                'selected executable copy identity changed')\n",
+    "                'selected executable copy identity changed')\n        executable_identity = identity(os.fstat(target.fileno()))\n"],
+  ['            and str(work.resolve(strict=True)) == work_arg\n',
+    "            and str(work.resolve(strict=True)) == work_arg\n            and {path.name for path in work.iterdir()} == {'tool'}\n            and {path.name for path in tool.iterdir()} == {'SOURCE.json', binary}\n            and identity((tool / binary).lstat()) == executable_identity\n"],
+];
+
+function applyOwnedDirectoryPortability(source, reverse = false) {
+  for (const pair of ownedDirectoryPortability) {
+    const [before, after] = reverse ? [...pair].reverse() : pair;
+    assert.equal(source.split(before).length - 1, 1, 'owned-directory compatibility delta must be exact');
+    source = source.replace(before, after);
+  }
+  return source;
+}
+
 function originalLateSnapshotSource() {
   // Rebuild the complete previously frozen production source, not a mock of
   // the missing check. Only this fix's small metadata-witness diff is reversed.
-  const begin = current.indexOf('  local originals_snapshot\n', current.indexOf('prepare_runtime_tool() {\n'));
-  const end = current.indexOf('  validate_runtime_bundle "$1" "$2" "$3" || return', begin);
+  const unnormalized = applyOwnedDirectoryPortability(current, true);
+  const begin = unnormalized.indexOf('  local originals_snapshot\n', unnormalized.indexOf('prepare_runtime_tool() {\n'));
+  const end = unnormalized.indexOf('  validate_runtime_bundle "$1" "$2" "$3" || return', begin);
   assert.ok(begin >= 0 && end > begin);
-  let source = current.slice(0, begin) + current.slice(end);
+  let source = unnormalized.slice(0, begin) + unnormalized.slice(end);
   source = source.replace('  python3 -B - "$1" "$2" "$3" "$4" "$5" "$originals_snapshot"', '  python3 -B - "$1" "$2" "$3" "$4" "$5"');
   source = source.replace('    source_arg, commit, manifest_sha, work_arg, binary, snapshot_raw = sys.argv[1:]', '    source_arg, commit, manifest_sha, work_arg, binary = sys.argv[1:]');
   const bindBegin = source.indexOf('    # Bind the pre-validation witness; never adopt a later source identity.\n');
@@ -614,6 +636,7 @@ function runtimeToolPreparation(mode, binary = selectedRuntimeTools[0], phase = 
     const receiptPath = join(work, 'runtime-tool-prepared.json');
     return { status: result.status, stdout: result.stdout, stderr: result.stderr, oldWork, work: savedPath(work),
       prepared, before, sourceCopy: savedPath(join(work, 'tool', 'SOURCE.json')),
+      workEntries: existsSync(work) && lstatSync(work).isDirectory() ? readdirSync(work).sort() : [],
       toolEntries: existsSync(join(work, 'tool')) ? readdirSync(join(work, 'tool')).sort() : [],
       toolMode: existsSync(join(work, 'tool')) ? lstatSync(join(work, 'tool')).mode & 0o777 : null,
       receipt: existsSync(receiptPath) ? JSON.parse(readFileSync(receiptPath, 'utf8')) : null,
@@ -633,6 +656,7 @@ test('actual runtime preparation selects one fixed PUBLIC tool after exactly one
     assert.equal(result.validationCalls, 1);
     assert.deepEqual(result.sourceCopy, result.before['SOURCE.json'].value);
     assert.deepEqual(result.toolEntries, ['SOURCE.json', binary].sort());
+    assert.deepEqual(result.workEntries, ['runtime-tool-prepared.json', 'tool']);
     assert.equal(result.toolMode, 0o700);
     for (const name of runtimeNames) {
       if (name === binary) { assert.deepEqual(result.prepared[name].value, result.before[name].value); assert.equal(result.prepared[name].mode, 0o755); }
@@ -646,7 +670,11 @@ test('actual runtime preparation selects one fixed PUBLIC tool after exactly one
 });
 
 test('actual runtime preparation refuses unused ELF replacement between real complete validation and work reservation', () => {
-  const original = runtimeToolPreparation('late_unused', selectedRuntimeTools[0], null, originalLateSnapshotSource());
+  // First reconstruct and pin the complete actual old source above. Apply only
+  // the same owned-directory portability repair so APFS's unrelated nlink
+  // change cannot mask the old acceptance of post-validation source mutation.
+  const original = runtimeToolPreparation('late_unused', selectedRuntimeTools[0], null,
+    applyOwnedDirectoryPortability(originalLateSnapshotSource()));
   assert.equal(original.status, 0, original.stderr);
   assert.equal(original.validationCalls, 1);
   assert.equal(original.receipt.originalSourceUnchanged, true, 'old late snapshot absorbed the injected unused-file change');
@@ -695,6 +723,7 @@ test('actual runtime preparation original PQ caller prepares only its phase help
     assert.equal(result.receipt.copiedBinaryCount, 1);
     assert.equal(result.receipt.binaryExecuted, false);
     assert.deepEqual(result.toolEntries, ['SOURCE.json', binary].sort());
+    assert.deepEqual(result.workEntries, ['runtime-tool-prepared.json', 'tool']);
     for (const name of runtimeNames) assert.equal(result.prepared[name].value?.kind ?? null, name === binary ? 'file' : null);
   });
 });

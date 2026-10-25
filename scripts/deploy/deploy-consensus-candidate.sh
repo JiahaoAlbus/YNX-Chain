@@ -344,7 +344,9 @@ try:
         info = path.lstat()
         require(stat.S_ISDIR(info.st_mode) and info.st_uid == os.geteuid()
                 and stat.S_IMODE(info.st_mode) == 0o700, 'private selected directory changed')
-        return info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_uid, info.st_gid
+        # APFS changes directory nlink when these owned files are created.
+        # Bind its stable object/owner/mode and verify both catalogs instead.
+        return info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid
     work_identity, tool_identity = directory_identity(work), directory_identity(tool)
     copy_original(root / 'SOURCE.json', tool / 'SOURCE.json', source_pin, 128 << 10)
     actual, header = copy_original(root / binary, tool / binary, wanted, 128 << 20)
@@ -363,11 +365,15 @@ try:
         require(stat.S_IMODE(os.fstat(target.fileno()).st_mode) == 0o755
                 and identity(os.fstat(target.fileno())) == identity((tool / binary).lstat()),
                 'selected executable copy identity changed')
+        executable_identity = identity(os.fstat(target.fileno()))
     require(all(identity(path.lstat()) == original for path, original in originals.items()),
             'original runtime files changed before preparation completion')
     require(source_snapshot_matches(), 'pre-validation original source witness changed before completion')
     require(directory_identity(work) == work_identity and directory_identity(tool) == tool_identity
             and str(work.resolve(strict=True)) == work_arg
+            and {path.name for path in work.iterdir()} == {'tool'}
+            and {path.name for path in tool.iterdir()} == {'SOURCE.json', binary}
+            and identity((tool / binary).lstat()) == executable_identity
             and identity((tool / 'SOURCE.json').lstat()) == read_identities[tool / 'SOURCE.json'],
             'selected directory or original SOURCE copy identity changed')
     receipt = dict(version='YNX-PUBLIC-RUNTIME-TOOL-PREPARATION/v1', classification='data',
