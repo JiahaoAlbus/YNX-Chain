@@ -55,11 +55,12 @@ async function observedFixture(t,extra={}){
  const scope={principal:{account:'PUBLIC-account',deviceId:'PUBLIC-device',sessionRef:'PUBLIC-session',currentRef:'PUBLIC-current',accountGeneration:'1',sessionGeneration:'1'},project:{projectId:'PUBLIC-project',ownerAccount:'PUBLIC-owner',currentReference:'PUBLIC-project-current',projectRevision:'1',catalogRevision:'1',read:true,publish:true,runtime:false,runtimeOrigin:''},publisher:{account:'PUBLIC-account',projectId:'PUBLIC-project',publisherId:'PUBLIC-publisher',keyRole:'ide-artifact-publisher',publicOriginal:'PUBLIC-original',publicSHA256:'PUBLIC-public-hash',registrationRef:'PUBLIC-registration',revision:'1'},expiresMS:Date.now()+60000};
  const calls=[],headers=[];let response=()=>({...expected,requestId,state:'completed',exitCode:0,logs:[]});
  const previousFetch=globalThis.fetch;
- globalThis.fetch=async(url,options)=>{calls.push({url,options});assert.equal(options.method,'GET');assert.equal(options.body,undefined);assert.equal(options.redirect,'error');assert.equal(options.headers.get('x-public-proof'),'fixture');const logs=url.endsWith('/logs');return new Response(JSON.stringify(logs?{requestId,runtimeLogSource:'original-resource',runtimeLogs:'PUBLIC runtime output',operationLogs:[]}:response()),{status:200,headers:{'content-type':'application/json'}});};
+ globalThis.fetch=()=>{throw Error('ambient fetch must not be used');};
+ let transport=async(url,options)=>{calls.push({url,options});assert.equal(options.method,'GET');assert.equal(options.body,undefined);assert.equal(options.redirect,'error');assert.equal(options.headers.get('x-public-proof'),'fixture');const logs=url.endsWith('/logs');return new Response(JSON.stringify(logs?{requestId,runtimeLogSource:'original-resource',runtimeLogs:'PUBLIC runtime output',operationLogs:[]}:response()),{status:200,headers:{'content-type':'application/json'}});};
  t.after(()=>{globalThis.fetch=previousFetch;});
- const options={context:{profile,id:requestId,workspace:f.root},publicationProject:{readObservationScope:async()=>structuredClone(scope)},endpoint:'https://PUBLIC.invalid',getDeploymentRequestHeaders:async input=>{headers.push(input);assert.equal(input.method,'GET');assert.equal(input.operationRequestId,requestId);return{'x-public-proof':'fixture'};},...extra};
+ const options={context:{profile,id:requestId,workspace:f.root},publicationProject:{readObservationScope:async()=>structuredClone(scope)},endpoint:'https://PUBLIC.invalid',fetch:(...args)=>transport(...args),getDeploymentRequestHeaders:async input=>{headers.push(input);assert.equal(input.method,'GET');assert.equal(input.operationRequestId,requestId);return{'x-public-proof':'fixture'};},...extra};
  const flow=await openBundledArtifactPublicationObservation(options);t.after(()=>flow.close());await flow.retain(requestId,expected);
- return{...f,flow,options,requestId,expected,scope,calls,headers,open:openBundledArtifactPublicationObservation,setResponse:fn=>{response=fn;}};
+ return{...f,flow,options,requestId,expected,scope,calls,headers,open:openBundledArtifactPublicationObservation,setResponse:fn=>{response=fn;},setTransport:fn=>{const previous=transport;transport=fn;return previous;}};
 }
 test('actual packaged SDK reads status and original-resource logs with fresh proof per GET and query-only reopen',async t=>{
  const f=await observedFixture(t),result=await f.flow.resume(f.requestId);
@@ -79,8 +80,8 @@ test('actual packaged SDK rejects a changed deployment selection before reading 
  assert.equal(f.calls.length,1);assert.equal(f.headers.length,1);assert.equal((await f.flow.read(f.requestId)).replayAllowed,false);
 });
 test('actual packaged SDK does not automatically retry a failed GET and recovery queries only the retained ID',async t=>{
- const f=await observedFixture(t),normalFetch=globalThis.fetch;let failed=0;
- globalThis.fetch=async(url,options)=>{failed++;assert.equal(options.method,'GET');return new Response(JSON.stringify({error:'PUBLIC temporary unavailable'}),{status:503,headers:{'content-type':'application/json'}});};
+ const f=await observedFixture(t);let failed=0;
+ const normalFetch=f.setTransport(async(url,options)=>{failed++;assert.equal(options.method,'GET');return new Response(JSON.stringify({error:'PUBLIC temporary unavailable'}),{status:503,headers:{'content-type':'application/json'}});});
  await assert.rejects(f.flow.resume(f.requestId),error=>error.operationRequestId===f.requestId);assert.equal(failed,1);assert.equal(f.calls.length,0);
- globalThis.fetch=normalFetch;await f.flow.resume(f.requestId);assert.equal(f.calls.length,2);assert.ok(f.calls.every(call=>call.url.includes(f.requestId)));assert.equal((await f.flow.read(f.requestId)).queryOnly,true);
+ f.setTransport(normalFetch);await f.flow.resume(f.requestId);assert.equal(f.calls.length,2);assert.ok(f.calls.every(call=>call.url.includes(f.requestId)));assert.equal((await f.flow.read(f.requestId)).queryOnly,true);
 });

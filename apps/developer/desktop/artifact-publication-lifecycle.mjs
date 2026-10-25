@@ -34,8 +34,8 @@ function observeUntilCancelled(signal,observe){
 }
 // Owns only durable query coordinates. There is deliberately no submit,
 // re-sign, retry, deploy cancellation, or trusted-publisher grant here.
-export async function openPublicationObservation({context,publicationProject,endpoint,getDeploymentRequestHeaders,CloudClient,observeIDEDeployment,now=Date.now}){
- if(!context?.profile||!path.isAbsolute(context.profile)||!UUID.test(context.id||'')||typeof publicationProject?.readObservationScope!=='function'||typeof getDeploymentRequestHeaders!=='function'||typeof CloudClient!=='function'||typeof observeIDEDeployment!=='function')throw failure('IDE_PUBLICATION_NOT_SUPPLIED');
+export async function openPublicationObservation({context,publicationProject,endpoint,fetch:fetchImpl,getDeploymentRequestHeaders,CloudClient,observeIDEDeployment,now=Date.now}){
+ if(!context?.profile||!path.isAbsolute(context.profile)||!UUID.test(context.id||'')||typeof publicationProject?.readObservationScope!=='function'||typeof getDeploymentRequestHeaders!=='function'||typeof fetchImpl!=='function'||typeof CloudClient!=='function'||typeof observeIDEDeployment!=='function')throw failure('IDE_PUBLICATION_NOT_SUPPLIED');
  let captured,deadline,fingerprint,closed=false;const active=new Set();
  const local=Object.freeze({id:context.id,workspace:context.workspace,profile:context.profile});
  async function current(){
@@ -69,7 +69,9 @@ export async function openPublicationObservation({context,publicationProject,end
     await requestCurrent();
     // Bind each original SDK client to this query's cancellation. A late SDK
     // callback cannot obtain proof headers or start the following log GET.
-    const cloud=new CloudClient({endpoint,product:'cloud',maxRetries:0,getDeploymentRequestHeaders:async request=>{
+    const cloud=new CloudClient({endpoint,product:'cloud',maxRetries:0,fetch:async(url,request)=>{
+     await requestCurrent();const response=await fetchImpl(url,request);await requestCurrent();return response;
+    },getDeploymentRequestHeaders:async request=>{
      await requestCurrent();const headers=await getDeploymentRequestHeaders(request);await requestCurrent();return headers;
     }});
     const result=await observeUntilCancelled(controller.signal,()=>observeIDEDeployment(cloud,{requestId,expected:reference.expected,signal:controller.signal}));
