@@ -1949,7 +1949,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(prepared, prepared.replace(compile_command, "# " + compile_command, 1), 1),
             raw.replace(prepared, prepared.replace(compile_command, "test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json", 1), 1),
             raw.replace(prepared, prepared.replace("npm ci --ignore-scripts --no-audit --no-fund", "cp /tmp/old-artifact.json artifacts/old.json", 1), 1),
-            raw.replace(prepared + build, build + prepared, 1),
+            raw.replace(prepared, "", 1).replace(build, build + prepared, 1),
             raw.replace(" && steps.pqnetworkcontracts.outcome == 'success'", "", 1),
         ]
         for index, changed in enumerate(mutations):
