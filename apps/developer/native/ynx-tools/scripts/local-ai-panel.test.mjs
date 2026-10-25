@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import {randomUUID} from 'node:crypto';import {createRequire} from 'node:module';
-const require=createRequire(import.meta.url),{createLocalAIPanel,escape}=require('../src/local-ai-panel.cjs'),{createLocalReviewPanel}=require('../src/local-review-panel.cjs');
+const require=createRequire(import.meta.url),{createLocalAIConnection}=require('../src/local-ai-connection.cjs'),{createLocalAIPanel,escape}=require('../src/local-ai-panel.cjs'),{createLocalReviewPanel}=require('../src/local-review-panel.cjs');
 // Editor API/model doubles only: no native GUI or real model acceptance.
 async function fixture(){const root=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'ynx-ai-caller-qa-'))),file=path.join(root,'hello.txt');await fs.writeFile(file,'old public code');const doc={uri:{scheme:'file',fsPath:file,toString:()=>file},version:1,isClosed:false,isDirty:false,text:'old public code',getText(){return this.text;},offsetAt:p=>p.character,positionAt:n=>({line:0,character:n})};const listeners={},picks=[],messages=[],calls=[],sessionId=randomUUID(),context={subscriptions:[]},env={YNX_WORKSPACE_MODE:'local',YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:randomUUID()};let updates=0,diffs=0,approval=true,release,enteredResolve,failNext=false;const entered=new Promise(r=>enteredResolve=r);
  const api={commands:{async executeCommand(){}},ViewColumn:{Beside:2},Range:class{constructor(start,end){this.start=start;this.end=end;}},WorkspaceEdit:class{replace(uri,range,text){this.change={uri,range,text};}},workspace:{workspaceFolders:[{uri:{scheme:'file',fsPath:root,toString:()=>root}}],textDocuments:[doc],onDidChangeTextDocument(fn){listeners.text=fn;return{dispose(){}};},onDidChangeWorkspaceFolders(fn){listeners.workspace=fn;return{dispose(){}};},async openTextDocument({content}){const scratch={uri:{scheme:'untitled',toString:()=>`untitled:${this.textDocuments.length}`},version:1,isClosed:false,getText:()=>content};this.textDocuments.push(scratch);return scratch;},async applyEdit(edit){const {range,text}=edit.change;doc.text=doc.text.slice(0,range.start.character)+text+doc.text.slice(range.end.character);doc.version++;doc.isDirty=true;updates++;return true;}},window:{activeTextEditor:{document:doc,selection:{isEmpty:false,start:{character:0},end:{character:3}},viewColumn:1},onDidChangeActiveTextEditor(fn){listeners.editor=fn;return{dispose(){}};},async showTextDocument(document){this.activeTextEditor={document,viewColumn:2};},async showWarningMessage(message,_options,choice){messages.push(message);return approval?choice:undefined;},showInformationMessage(){},showErrorMessage(message){messages.push(message);},async showQuickPick(){return picks.shift();},createWebviewPanel(){return{webview:{html:'',onDidReceiveMessage(){return{dispose(){}};}},onDidDispose(){return{dispose(){}};},dispose(){},reveal(){}};}}};
@@ -23,3 +23,63 @@ test('F3 final provenance await cancelled then new preview cannot resurrect old 
 test('F3 final provenance await dispose cannot publish result',async()=>{const f=await fixture();try{await preview(f);const finish=f.review.finishTransmission;let release,entered;const reached=new Promise(r=>entered=r),gate=new Promise(r=>release=r);f.review.finishTransmission=async(...args)=>{if(args[2]==='confirmed'){entered();await gate;}return finish(...args);};const old=f.panel.message({action:'approve'});await reached;await f.cleanup();release();await old;assert.equal(f.panel.state().result,undefined);assert.equal(f.panel.state().busy,false);}finally{await f.cleanup();}});
 test('F2 accepted request cancelled UNKNOWN remains truthful in later manual apply',async()=>{const f=await fixture();try{await preview(f);const release=f.defer(),old=f.panel.message({action:'approve'});await f.entered;await f.panel.message({action:'cancel'});release();await old;const message=await manualApply(f);assert.match(message,/may have been sent.*UNKNOWN/);assert.doesNotMatch(message,/has not been sent/);}finally{await f.cleanup();}});
 test('F2 confirmed model result projects confirmed disclosure in manual apply',async()=>{const f=await fixture();try{await preview(f);await f.panel.message({action:'approve'});const message=await manualApply(f);assert.match(message,/original selection was sent/);assert.doesNotMatch(message,/has not been sent|UNKNOWN/);}finally{await f.cleanup();}});
+
+function connectionFixture(){
+ const commands=[],pending=[],context={subscriptions:[]},environment={YNX_WORKSPACE_MODE:'local',YNX_LOCAL_PROJECT_ID:randomUUID(),YNX_LOCAL_WORKSPACE:'/PUBLIC/project'};
+ const api={commands:{executeCommand(id,...args){commands.push({id,args});if(id==='ynx.internal.localAICancel')return Promise.resolve();return new Promise((resolve,reject)=>pending.push({resolve,reject}));}}};
+ const connection=createLocalAIConnection(api,context,environment);
+ const reply=()=>({...environment,projectId:environment.YNX_LOCAL_PROJECT_ID,workspace:environment.YNX_LOCAL_WORKSPACE,launch:randomUUID()});
+ return{commands,pending,context,api,connection,reply};
+}
+test('actual AI editor connection stops waiting without the original RPC acknowledgement',async()=>{
+ const f=connectionFixture(),controller=new AbortController();
+ const pending=f.connection('approve',{},controller.signal),outcome=pending.then(()=>({resolved:true}),error=>({code:error.code}));
+ controller.abort();controller.abort();
+ const result=await Promise.race([outcome,new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]);
+ assert.deepEqual(result,{code:'AI_UNKNOWN'});
+ assert.equal(f.commands.length,2);assert.equal(f.commands[1].id,'ynx.internal.localAICancel');assert.equal(f.commands[0].args[0],f.commands[1].args[0]);
+ f.pending[0].resolve(f.reply());await new Promise(resolve=>setImmediate(resolve));assert.equal(f.commands.length,2);
+});
+test('disposing actual AI editor connection retires pending preview and rejects future dispatch',async()=>{
+ const f=connectionFixture(),pending=f.connection('proposals',{}),outcome=pending.then(()=>({resolved:true}),error=>({code:error.code}));
+ f.context.subscriptions[0].dispose();
+ assert.deepEqual(await Promise.race([outcome,new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]),{code:'AI_RETIRED'});
+ await assert.rejects(f.connection('context',{}));assert.equal(f.commands.filter(x=>x.id==='ynx.internal.localAICall').length,1);
+ f.pending[0].reject(Error('PUBLIC late RPC failure'));await new Promise(resolve=>setImmediate(resolve));
+});
+test('AI cancellation transport failure does not replace the original UNKNOWN outcome',async()=>{
+ const f=connectionFixture(),controller=new AbortController(),normal=f.api.commands.executeCommand;
+ f.api.commands.executeCommand=(id,...args)=>{if(id==='ynx.internal.localAICancel')return Promise.reject(Error('PUBLIC cancel pipe closed'));return normal(id,...args);};
+ const pending=f.connection('approve',{},controller.signal),outcome=pending.then(()=>({resolved:true}),error=>({code:error.code}));
+ controller.abort();assert.deepEqual(await Promise.race([outcome,new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]),{code:'AI_UNKNOWN'});
+ f.pending[0].reject(undefined);await new Promise(resolve=>setImmediate(resolve));
+});
+test('cancelling one AI connection request preserves another live request and exact project checks',async()=>{
+ const f=connectionFixture(),controller=new AbortController(),first=f.connection('context',{},controller.signal),firstOutcome=first.catch(e=>e.code),second=f.connection('context',{});
+ controller.abort();f.pending[1].resolve(f.reply());
+ assert.equal((await second).workspace,'/PUBLIC/project');
+ await firstOutcome;
+});
+
+test('AI editor connection never dispatches an already cancelled request',async()=>{
+ const f=connectionFixture(),controller=new AbortController();controller.abort();
+ await assert.rejects(f.connection('approve',{},controller.signal));assert.deepEqual(f.commands,[]);
+});
+test('AI editor connection retains project and launch isolation after cancellation changes',async()=>{
+ const f=connectionFixture();let pending=f.connection('context',{});
+ f.pending[0].resolve({...f.reply(),projectId:randomUUID()});await assert.rejects(pending,/project connection changed/);
+ const reply=f.reply();pending=f.connection('context',{});f.pending[1].resolve(reply);assert.equal((await pending).launch,reply.launch);
+ pending=f.connection('context',{});f.pending[2].resolve(f.reply());await assert.rejects(pending,/project connection changed/);
+});
+test('disposing approved AI request preserves UNKNOWN and observes its late rejection',async()=>{
+ const f=connectionFixture(),pending=f.connection('approve',{}),outcome=pending.catch(e=>e.code);
+ f.context.subscriptions[0].dispose();assert.equal(await outcome,'AI_UNKNOWN');
+ f.pending[0].reject(Error('PUBLIC late model reply failure'));await new Promise(resolve=>setImmediate(resolve));assert.equal(f.commands.length,2);
+});
+test('synchronous AI cancellation command failure still settles once without replay',async()=>{
+ const f=connectionFixture(),controller=new AbortController(),normal=f.api.commands.executeCommand;
+ f.api.commands.executeCommand=(id,...args)=>{if(id==='ynx.internal.localAICancel')throw Error('PUBLIC disposed cancel command');return normal(id,...args);};
+ const pending=f.connection('approve',{},controller.signal),outcome=pending.catch(e=>e.code);controller.abort();
+ assert.equal(await outcome,'AI_UNKNOWN');f.pending[0].resolve(f.reply());await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(f.commands.filter(x=>x.id==='ynx.internal.localAICall').length,1);
+});
