@@ -58,15 +58,26 @@ requireValue(contract.sourceCommit === vectors.sourceCommit, "contract and vecto
 requireValue(/^[0-9a-f]{40}$/.test(contract.sourceCommit), "source commit must be a full 40-character Git identifier");
 execFileSync("git", ["merge-base", "--is-ancestor", contract.sourceCommit, "HEAD"], { stdio: "ignore" });
 
+// These three published documents describe the immutable source prerelease,
+// not the current checkout's runtime schema. Keep that evidence bound to its
+// original Git source while checking the current canonical runtime separately.
+const readPublishedSource = (path) => execFileSync("git", ["show", `${contract.sourceCommit}:${path}`], {
+  encoding: "utf8", maxBuffer: 16 << 20, stdio: ["ignore", "pipe", "pipe"]
+});
+const publishedStateSource = readPublishedSource("internal/consensus/state.go");
+const publishedApplicationSource = readPublishedSource("internal/consensus/application.go");
+const publishedSnapshotSource = readPublishedSource("internal/consensus/snapshot.go");
+
 requireValue(metadata.chainId === 6423, "metadata EVM chain ID drift");
 requireValue(metadata.nativeCurrency?.symbol === "YNXT", "metadata native asset drift");
 requireValue(contract.networkIdentity.cosmosChainId === "ynx_6423-1", "Cosmos chain ID drift");
 requireValue(contract.networkIdentity.evmChainIdDecimal === metadata.chainId, "contract and metadata EVM chain ID differ");
 requireValue(contract.networkIdentity.evmChainIdHex === "0x1917", "hex EVM chain ID drift");
 requireValue(contract.networkIdentity.nativeAsset === metadata.nativeCurrency.symbol, "contract and metadata native asset differ");
-requireValue(stateSource.includes("const CommittedStateVersion = 12"), "runtime committed-state version drift");
-requireValue(stateSource.includes('calculateHashFor("YNX_ABCI_STATE_V12", CommittedStateVersion)'), "runtime AppHash domain drift");
-requireValue(applicationSource.includes("ApplicationVersion   = 18"), "runtime ABCI application version drift");
+requireValue(stateSource.includes("const CommittedStateVersion = 18"), "runtime committed-state version drift");
+requireValue(stateSource.includes('return s.calculateHashFor(fmt.Sprintf("YNX_ABCI_STATE_V%d", s.Version), s.Version)'), "runtime AppHash must use the validated state's own version");
+requireValue(stateSource.includes("if !supportedCommittedStateVersion(s.Version) {") && stateSource.includes("func supportedCommittedStateVersion(version int) bool { return version >= 7 && version <= 20 }"), "runtime retained AppHash version boundary drift");
+requireValue(applicationSource.includes("ApplicationVersion   = 20"), "runtime ABCI application version drift");
 for (const method of ["ListSnapshots", "OfferSnapshot", "LoadSnapshotChunk", "ApplySnapshotChunk"]) {
   requireValue(snapshotSource.includes(`func (a *Application) ${method}`), `runtime state sync method missing: ${method}`);
 }
@@ -76,6 +87,10 @@ requireValue(contract.stateSchema.applicationVersion === 18, "contract ABCI appl
 requireValue(contract.stateSchema.appHashDomain === "YNX_ABCI_STATE_V12", "contract AppHash domain drift");
 requireValue(contract.stateSchema.stateSyncSnapshotFormat === 1, "contract state sync format drift");
 requireValue(contract.stateSchema.stateSyncSnapshotMaxBytes === 67108864, "contract state sync size bound drift");
+requireValue(release.source.committedStateVersion === contract.stateSchema.committedStateVersion, "published release and contract state versions differ");
+requireValue(publishedStateSource.includes("const CommittedStateVersion = 12") && publishedStateSource.includes('calculateHashFor("YNX_ABCI_STATE_V12", CommittedStateVersion)'), "published contract differs from its original state/hash source");
+requireValue(publishedApplicationSource.includes("ApplicationVersion   = 18"), "published contract differs from its original ABCI version");
+requireValue(publishedSnapshotSource.includes("stateSyncSnapshotFormat    uint32 = 1") && publishedSnapshotSource.includes("stateSyncSnapshotMaxBytes         = 64 << 20"), "published contract differs from its original state sync bounds");
 requireValue(contract.recovery.abciStateSync.implementedLocal === true && contract.recovery.abciStateSync.testedLocal === true, "state sync recovery status drift");
 requireValue(contract.recovery.abciStateSync.trustedAppHashRequired === true && contract.recovery.abciStateSync.atomicPersistence === true, "state sync safety boundary drift");
 requireValue(contract.recovery.validatorBackupRestoreRollback.remoteDrillComplete === false, "local recovery evidence cannot claim a remote drill");
@@ -279,4 +294,4 @@ rejectInternalStrings(release, "release");
 rejectInternalStrings(contract, "contract");
 rejectInternalStrings(vectors, "vectors");
 
-console.log(`integration contract check passed: ${ids.size} vectors, state v12, source ${contract.sourceCommit}`);
+console.log(`integration contract check passed: ${ids.size} vectors, runtime state v18/app v20 (retained hash domains v7-v20), published state v12/app v18 source ${contract.sourceCommit}`);

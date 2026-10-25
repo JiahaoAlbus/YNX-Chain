@@ -32,6 +32,18 @@ expect(metadata.sourceCommit === sourceCommit, "public metadata source SHA does 
 expect(contract.sourceCommit === sourceCommit, "integration contract source SHA does not match product release");
 execFileSync("git", ["cat-file", "-e", `${sourceCommit}^{commit}`], { stdio: "ignore" });
 
+// The hosted archive remains the published v12/app-v18 source prerelease.
+// Validate those claims against its fixed Git source, not today's runtime.
+const publishedStateSource = execFileSync("git", ["show", `${sourceCommit}:internal/consensus/state.go`], {
+  encoding: "utf8", maxBuffer: 16 << 20, stdio: ["ignore", "pipe", "pipe"]
+});
+const publishedApplicationSource = execFileSync("git", ["show", `${sourceCommit}:internal/consensus/application.go`], {
+  encoding: "utf8", maxBuffer: 16 << 20, stdio: ["ignore", "pipe", "pipe"]
+});
+expect(release.source.committedStateVersion === 12 && contract.stateSchema?.committedStateVersion === 12 && contract.stateSchema?.applicationVersion === 18 && contract.stateSchema?.appHashDomain === "YNX_ABCI_STATE_V12", "published source schema mismatch");
+expect(publishedStateSource.includes("const CommittedStateVersion = 12") && publishedStateSource.includes('calculateHashFor("YNX_ABCI_STATE_V12", CommittedStateVersion)'), "published state/hash claims differ from the fixed source");
+expect(publishedApplicationSource.includes("ApplicationVersion   = 18"), "published application version differs from the fixed source");
+
 for (const record of [release.network, metadata.network, contract.networkIdentity]) {
   expect(record?.cosmosChainId === "ynx_6423-1", "Cosmos chain ID mismatch");
   expect(record?.evmChainIdDecimal === 6423, "EVM chain ID mismatch");
@@ -82,4 +94,4 @@ for (const path of release.evidence ?? []) {
   expect(existsSync(path), `product release evidence path does not exist: ${path}`);
 }
 
-console.log(`chain-core release check passed: source=${sourceCommit}, routes=${Object.keys(requiredRoutes).length}, StreamBFT=shadow`);
+console.log(`chain-core release check passed: published-source=${sourceCommit}, published-state=v12/app-v18, routes=${Object.keys(requiredRoutes).length}, StreamBFT=shadow`);
