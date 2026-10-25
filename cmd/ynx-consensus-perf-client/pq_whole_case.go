@@ -32,11 +32,15 @@ type pqWholeCase struct {
 	wire         []byte
 	members      []string
 	batch, outer string
+	kind, native string
+	transfer     *ynxauth.Transfer
 }
 type pqWholeCaseReport struct {
+	TransactionType                   string            `json:"transactionType"`
+	NativeTransactionHash             string            `json:"nativeTransactionHash"`
 	Protocol                          string            `json:"protocol"`
 	Status                            string            `json:"status"`
-	BatchHash                         string            `json:"batchHash"`
+	BatchHash                         string            `json:"batchHash,omitempty"`
 	ABCITransactionHash               string            `json:"abciTransactionHash"`
 	Members                           int               `json:"members"`
 	SubmissionAttempts                int               `json:"submissionAttempts"`
@@ -55,15 +59,15 @@ type pqWholeCaseReport struct {
 }
 
 func pqWholeCaseSelected(o options) bool {
-	return o.pqWholeWire != "" || o.pqGateway != "" || o.pqReadbackOnly
+	return o.pqMemberWire != "" || o.pqWholeWire != "" || o.pqGateway != "" || o.pqReadbackOnly
 }
 func validatePQWholeCaseOptions(o options) error {
 	u, e := url.Parse(o.pqGateway)
 	if e != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 		return errors.New("PQ case requires an explicit normal gateway base URL")
 	}
-	if o.pqWholeWire == "" || o.output == "" || o.timeout <= 0 || o.timeout > 30*time.Second {
-		return errors.New("PQ case requires signed Whole, new output and timeout in (0,30s]")
+	if (o.pqWholeWire == "") == (o.pqMemberWire == "") || o.output == "" || o.timeout <= 0 || o.timeout > 30*time.Second {
+		return errors.New("PQ case requires exactly one signed Whole or N1 Member, new output and timeout in (0,30s]")
 	}
 	if o.manifest != "" || o.transactions != "" || o.rounds > 1 || o.offeredRate != 0 || o.terminalStream || o.segmentedIntents || o.reuseResultSlots || o.senderMode != "" && o.senderMode != "rounds" {
 		return errors.New("PQ Whole case cannot mix the classic transaction fixture or scheduling path")
@@ -89,7 +93,7 @@ func preparePQWholeCase(wire []byte) (pqWholeCase, error) {
 	if len(payload) > bftgateway.MaxPQWholeEnvelopeBytes {
 		return out, errors.New("Whole envelope outside gateway profile")
 	}
-	out = pqWholeCase{wire: bytes.Clone(wire), batch: consensus.SignedTransactionHash(wire), outer: consensus.SignedTransactionHash(payload), members: make([]string, len(whole.Messages))}
+	out = pqWholeCase{kind: consensus.PQWholeType, native: consensus.SignedTransactionHash(wire), wire: bytes.Clone(wire), batch: consensus.SignedTransactionHash(wire), outer: consensus.SignedTransactionHash(payload), members: make([]string, len(whole.Messages))}
 	for i, message := range whole.Messages {
 		t, e := ynxauth.DecodeTransfer(message)
 		if e != nil || t.From != whole.Certificate.Owner || !bytes.Equal(t.ChainID, whole.Certificate.ChainID) || t.NativeChainID != 6423 || t.Fee != 1 {
@@ -131,15 +135,14 @@ func (p pqWholeCase) validateCommitted(v bftgateway.PQWholeView) (int, int, erro
 	}
 	return admitted, rejected, nil
 }
-func pqWholeHTTP(ctx context.Context, client *http.Client, method, target string, wire []byte) (bftgateway.PQWholeView, error) {
-	var value bftgateway.PQWholeView
+func pqCaseHTTP(ctx context.Context, client *http.Client, method, target string, wire []byte) ([]byte, error) {
 	var body io.ReadCloser
 	if method == http.MethodPost {
 		body = io.NopCloser(bytes.NewReader(wire))
 	}
 	request, err := http.NewRequestWithContext(ctx, method, target, body)
 	if err != nil {
-		return value, err
+		return nil, err
 	}
 	if method == http.MethodPost {
 		request.Header.Set("Content-Type", "application/octet-stream")
@@ -148,27 +151,40 @@ func pqWholeHTTP(ctx context.Context, client *http.Client, method, target string
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return value, err
+		return nil, err
 	}
 	defer response.Body.Close()
 	raw, err := io.ReadAll(io.LimitReader(response.Body, (1<<20)+1))
 	if err != nil {
-		return value, err
+		return nil, err
 	}
 	if len(raw) > 1<<20 {
-		return value, errors.New("PQ gateway response exceeded bound")
-	}
-	if err = strictJSON(raw, &value); err != nil {
-		return value, err
+		return nil, errors.New("PQ gateway response exceeded bound")
 	}
 	if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusAccepted && response.StatusCode != http.StatusUnprocessableEntity {
-		return value, fmt.Errorf("PQ gateway HTTP %d", response.StatusCode)
+		return nil, fmt.Errorf("PQ gateway HTTP %d", response.StatusCode)
 	}
-	return value, nil
+	return raw, nil
+}
+func (p pqWholeCase) committedResponse(raw []byte) (int, int, uint64, error) {
+	if p.kind == consensus.PQTransferType {
+		var v bftgateway.PQMemberView
+		if err := strictJSON(raw, &v); err != nil {
+			return 0, 0, 0, err
+		}
+		n, e := p.validateMemberCommitted(v)
+		return n, 0, v.ExecutionHeight, e
+	}
+	var v bftgateway.PQWholeView
+	if err := strictJSON(raw, &v); err != nil {
+		return 0, 0, 0, err
+	}
+	n, rejected, e := p.validateCommitted(v)
+	return n, rejected, v.ExecutionHeight, e
 }
 func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gateway string, readOnly bool) pqWholeCaseReport {
 	started := time.Now()
-	r := pqWholeCaseReport{Protocol: ynxbatch.Version, Status: "submission_unknown", BatchHash: p.batch, ABCITransactionHash: p.outer, Members: len(p.members), ConfiguredRPCObservationOnly: true, GoVersion: runtime.Version(), BuildSettings: map[string]string{}}
+	r := pqWholeCaseReport{TransactionType: p.kind, NativeTransactionHash: p.native, Protocol: ynxbatch.Version, Status: "submission_unknown", BatchHash: p.batch, ABCITransactionHash: p.outer, Members: len(p.members), ConfiguredRPCObservationOnly: true, GoVersion: runtime.Version(), BuildSettings: map[string]string{}}
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, s := range info.Settings {
 			if strings.HasPrefix(s.Key, "vcs.") {
@@ -176,21 +192,26 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 			}
 		}
 	}
+	broadcast, readback := "/transactions/pq/batches/broadcast", "/transactions/pq/wholes/"+p.outer
+	if p.kind == consensus.PQTransferType {
+		broadcast = "/transactions/pq/broadcast"
+		readback = "/transactions/pq/originals/" + p.native
+	}
 	if !readOnly {
 		r.SubmissionAttempts = 1
-		v, e := pqWholeHTTP(ctx, client, http.MethodPost, strings.TrimRight(gateway, "/")+"/transactions/pq/batches/broadcast", p.wire)
-		_, _, identityError := p.validateCommitted(v)
+		v, e := pqCaseHTTP(ctx, client, http.MethodPost, strings.TrimRight(gateway, "/")+broadcast, p.wire)
+		_, _, _, identityError := p.committedResponse(v)
 		r.InitialSubmissionUnknown = e != nil || identityError != nil
 	}
 	// Always reconcile the original identity. Never rebroadcast after UNKNOWN.
 	r.OriginalReadbackAttempts = 1
-	v, e := pqWholeHTTP(ctx, client, http.MethodGet, strings.TrimRight(gateway, "/")+"/transactions/pq/wholes/"+p.outer, nil)
+	v, e := pqCaseHTTP(ctx, client, http.MethodGet, strings.TrimRight(gateway, "/")+readback, nil)
 	r.ObservationElapsedNs = time.Since(started).Nanoseconds()
 	if e != nil {
 		r.Error = e.Error()
 		return r
 	}
-	admitted, rejected, e := p.validateCommitted(v)
+	admitted, rejected, height, e := p.committedResponse(v)
 	if e != nil {
 		r.Error = e.Error()
 		return r
@@ -198,18 +219,28 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 	r.Status = "committed_observed"
 	r.EffectiveBusinessIncludedObserved = admitted
 	r.RejectedMembers = rejected
-	r.ExecutionHeight = v.ExecutionHeight
+	r.ExecutionHeight = height
 	return r
 }
 func executePQWholeCase(o options) (returned error) {
 	if err := validatePQWholeCaseOptions(o); err != nil {
 		return err
 	}
-	raw, err := readBounded(o.pqWholeWire, bftgateway.MaxPQWholeIngressBytes)
+	path, limit := o.pqWholeWire, int64(bftgateway.MaxPQWholeIngressBytes)
+	if o.pqMemberWire != "" {
+		path = o.pqMemberWire
+		limit = bftgateway.MaxPQMemberIngressBytes
+	}
+	raw, err := readBounded(path, limit)
 	if err != nil {
 		return err
 	}
-	p, err := preparePQWholeCase(raw)
+	var p pqWholeCase
+	if o.pqMemberWire != "" {
+		p, err = preparePQMemberCase(raw)
+	} else {
+		p, err = preparePQWholeCase(raw)
+	}
 	if err != nil {
 		return err
 	}
@@ -224,10 +255,10 @@ func executePQWholeCase(o options) (returned error) {
 		return err
 	}
 	err = json.NewEncoder(intent).Encode(struct {
-		Protocol, Gateway, BatchHash, ABCITransactionHash string
-		Whole                                             []byte
-		ReadbackOnly                                      bool
-	}{ynxbatch.Version, o.pqGateway, p.batch, p.outer, p.wire, o.pqReadbackOnly})
+		Protocol, TransactionType, Gateway, BatchHash, NativeTransactionHash, ABCITransactionHash string
+		Wire                                                                                      []byte
+		ReadbackOnly                                                                              bool
+	}{ynxbatch.Version, p.kind, o.pqGateway, p.batch, p.native, p.outer, p.wire, o.pqReadbackOnly})
 	if err == nil {
 		err = intent.Sync()
 	}

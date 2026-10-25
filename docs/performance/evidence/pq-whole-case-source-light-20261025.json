@@ -2,12 +2,14 @@
   "schema": 1,
   "canonicalProtocolSource": "b777232db1701d1e7cb41bd6e0bbe55452664c8d",
   "canonicalProtocolTree": "577970ebaf81d8139caad9f153f2b75bb7963f28",
-  "scope": "bounded canonical Whole normal-gateway client consumer",
+  "scope": "bounded canonical Whole and approved Native N1 Member normal-gateway client consumer",
   "changedOwnership": [
     "cmd/ynx-consensus-perf-client/main.go",
     "cmd/ynx-consensus-perf-client/pq_whole_case.go",
     "cmd/ynx-consensus-perf-client/pq_whole_case_test.go",
-    ".github/workflows/chain-core.yml"
+    ".github/workflows/chain-core.yml",
+    "cmd/ynx-consensus-perf-client/pq_member_case.go",
+    "cmd/ynx-consensus-perf-client/pq_member_case_test.go"
   ],
   "protocolLeafChanged": false,
   "signatureSignerReimplemented": false,
@@ -18,16 +20,21 @@
     "consensus.EncodePQTransaction(PQWholeType,wire)",
     "chain.PQBatchTransactionHash",
     "bftgateway POST /transactions/pq/batches/broadcast",
-    "bftgateway GET /transactions/pq/wholes/{ABCIhash}"
+    "bftgateway GET /transactions/pq/wholes/{ABCIhash}",
+    "ynxbatch.DecodeMember",
+    "consensus.EncodePQTransaction(PQTransferType,wire)",
+    "bftgateway POST /transactions/pq/broadcast",
+    "bftgateway GET /transactions/pq/originals/{nativeHash}"
   ],
   "newCaseClassicSigning": false,
   "normalCLISelectedBy": [
     "-pq-whole",
     "-pq-gateway",
-    "-pq-readback-only"
+    "-pq-readback-only",
+    "-pq-member"
   ],
   "lightTests": {
-    "tests": 4,
+    "tests": 6,
     "realBothSignaturesAndSingleBranchCorruptions": true,
     "actualMainCLIChild": true,
     "unknownOriginalQueryNoSecondPOST": true,
@@ -35,10 +42,12 @@
     "partialResultsCountOnlyAdmitted": true,
     "intentPreserved": true,
     "raw": {
-      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-whole-case-cli-race-20261025.raw",
-      "bytes": 566,
-      "sha256": "ae08a23c020fb33173831084a3cd378a7bf936fac743184a90e27a42e2f882f5"
-    }
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-native-member-and-whole-race-20261025.raw",
+      "bytes": 768,
+      "sha256": "32b9980ebfa6a1c92e1d60d9e6d442c30426bd381e3bb6a912cc75045aeb8046"
+    },
+    "normalN1MemberAndWholeRealCLI": true,
+    "nativeAndABCIHashesDistinct": true
   },
   "configuredRPCObservationOnly": true,
   "independentFinalityVerified": false,
@@ -50,5 +59,12 @@
     "Canonical new-account initial allowlist/birth path is being implemented by Protocol owner; no synthetic owner or policy supplied here",
     "Independent finality requires normal trusted host engine snapshot/light anchor and canonical VerifyPQTransactionProof; configured RPC committed alone is not finality",
     "Actual remote heavy window/once grant not received"
-  ]
+  ],
+  "firstOrdinaryCIFailure": {
+    "runId": 40200000952,
+    "sourceCommit": "112c5fc16e3768bb5e59a41a8232a6db1ea9f753",
+    "firstCause": "inherited workflow calls missing make target streambft-candidate-check",
+    "newConsumerStepReached": false,
+    "repair": "invoke the same existing script directly; restore the two analogous missing make wrappers by their original check scripts; keep all checks; move new PQ tests before unrelated checks"
+  }
 }
