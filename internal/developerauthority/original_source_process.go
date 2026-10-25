@@ -9,7 +9,9 @@ package developerauthority
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -70,7 +72,8 @@ type OriginalSourceVerifierOwner struct {
 	processCause, processContextCause error
 	processPID, processExitCode       int
 	processWaited                     bool
-	processStarted                    chan struct{} // private lifecycle observation, no injected launcher
+	processStarted                    chan struct{}  // private lifecycle observation, no injected launcher
+	pinScratch                        [64 << 10]byte // bounded streaming buffer; never cached authorization/file content
 }
 
 func (*OriginalSourceVerifierOwner) String() string {
@@ -148,6 +151,29 @@ func verifierOpen(pin OriginalVerifierFile) (verifierHeldFile, error) {
 	return h, nil
 }
 func (h *verifierHeldFile) check() error {
+	var scratch [64 << 10]byte
+	return h.checkWithBuffer(scratch[:])
+}
+
+// Rehash EVERY byte on EVERY pre/post check. Streaming replaces the previous
+// ReadAll/growing-copy of a potentially256MiB interpreter, not the integrity
+// check. Only bounded scratch storage is reused under the same owner mutex.
+func verifierDigestHeld(file *os.File, pin OriginalVerifierFile, scratch []byte) error {
+	if file == nil || pin.Bytes <= 0 || pin.Bytes > 256<<20 || len(scratch) != 64<<10 {
+		return ErrOriginalVerifierConfiguration
+	}
+	defer clear(scratch)
+	digest := sha256.New()
+	n, e := io.CopyBuffer(digest, io.NewSectionReader(file, 0, pin.Bytes+1), scratch)
+	if e != nil {
+		return e
+	}
+	if n != pin.Bytes || hex.EncodeToString(digest.Sum(nil)) != pin.SHA256 {
+		return ErrOriginalVerifierConfiguration
+	}
+	return nil
+}
+func (h *verifierHeldFile) checkWithBuffer(scratch []byte) error {
 	if h.file == nil || h.info == nil {
 		return ErrOriginalVerifierConfiguration
 	}
@@ -164,17 +190,28 @@ func (h *verifierHeldFile) check() error {
 	}
 	s, ok := verifierIdentity(held)
 	original, originalOK := h.info.Sys().(*syscall.Stat_t)
-	if !ok || !originalOK || s.Uid != original.Uid || s.Gid != original.Gid || s.Nlink != 1 || !held.Mode().IsRegular() || !os.SameFile(h.info, held) || !os.SameFile(named, held) || named.Mode()&os.ModeSymlink != 0 || held.Size() != h.pin.Bytes || held.Mode() != h.info.Mode() {
+	if !ok || !originalOK || !verifierStableStat(s, original) || s.Nlink != 1 || !held.Mode().IsRegular() || !os.SameFile(h.info, held) || !os.SameFile(named, held) || named.Mode()&os.ModeSymlink != 0 || held.Size() != h.pin.Bytes || held.Mode() != h.info.Mode() {
 		return ErrOriginalVerifierConfiguration
 	}
-	raw, e := io.ReadAll(io.LimitReader(io.NewSectionReader(h.file, 0, h.pin.Bytes+1), h.pin.Bytes+1))
+	if e = verifierDigestHeld(h.file, h.pin, scratch); e != nil {
+		return e
+	}
+	// Re-check the same actual descriptor AND name after all reads. Content
+	// restoration/mtime restoration must not conceal a changed ctime/inode.
+	after, e := h.file.Stat()
 	if e != nil {
 		return e
 	}
-	if int64(len(raw)) != h.pin.Bytes || hash(raw) != h.pin.SHA256 {
+	postNamed, e := os.Lstat(h.pin.Path)
+	if e != nil {
+		return e
+	}
+	post, postOK := verifierIdentity(after)
+	namedStat, namedOK := postNamed.Sys().(*syscall.Stat_t)
+	if !postOK || !namedOK || !verifierStableStat(s, post) || !verifierStableStat(original, post) || !verifierStableStat(post, namedStat) || !os.SameFile(h.info, after) || !os.SameFile(postNamed, after) || postNamed.Mode()&os.ModeSymlink != 0 {
 		return ErrOriginalVerifierConfiguration
 	}
-	return nil
+	return verifierDirectory(filepath.Dir(h.pin.Path))
 }
 func (o *OriginalSourceVerifierOwner) inventory() error {
 	if e := verifierDirectory(o.config.SDKRoot); e != nil {
@@ -347,7 +384,7 @@ func (o *OriginalSourceVerifierOwner) invokeDATA(ctx context.Context, input []by
 	// Preserve original input bytes: do not parse/rebuild signed bodies, URLs or
 	// policy into a second codec. Production CLI enforces canonical JSON itself.
 	for i := range o.files {
-		if e := o.files[i].check(); e != nil {
+		if e := o.files[i].checkWithBuffer(o.pinScratch[:]); e != nil {
 			o.firstCause = e
 			o.phase = "PRE_FILES"
 			return nil, ErrOriginalVerifierUnknown
@@ -400,7 +437,7 @@ func (o *OriginalSourceVerifierOwner) invokeDATA(ctx context.Context, input []by
 	var childExit *exec.ExitError
 	if artifact && errors.As(e, &childExit) && childExit.ExitCode() == 1 && bounded.Err() == nil && len(out.raw) == 0 && !out.rejected && string(errout.raw) == "IDE_ARTIFACT_SIGNATURE_DATA_INVALID\n" {
 		for i := range o.files {
-			if failure := o.files[i].check(); failure != nil {
+			if failure := o.files[i].checkWithBuffer(o.pinScratch[:]); failure != nil {
 				o.firstCause = failure
 				o.phase = "POST_FILES"
 				return nil, ErrOriginalVerifierUnknown
@@ -427,7 +464,7 @@ func (o *OriginalSourceVerifierOwner) invokeDATA(ctx context.Context, input []by
 		return nil, ErrOriginalVerifierUnknown
 	}
 	for i := range o.files {
-		if e = o.files[i].check(); e != nil {
+		if e = o.files[i].checkWithBuffer(o.pinScratch[:]); e != nil {
 			o.firstCause = e
 			o.phase = "POST_FILES"
 			return nil, ErrOriginalVerifierUnknown
