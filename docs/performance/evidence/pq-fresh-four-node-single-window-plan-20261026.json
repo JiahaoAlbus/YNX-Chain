@@ -1,0 +1,204 @@
+{
+  "status": "PREPARING_NOT_EXECUTABLE_PENDING_ORIGINAL_PROTOCOL_INPUTS_AND_FRESH_RUNNER_CODE",
+  "executionAuthorized": false,
+  "rootGrant": null,
+  "purpose": "first isolated new-PQ four-validator paired correctness/latency baseline; no claim of 1000 TPS qualification",
+  "client": {
+    "productionCodeCommit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+    "codeTree": "19b9fafcfbb3f434b9ff745fb785afb1d0741247",
+    "artifactNameTemplate": "ynx-pq-performance-client-linux-amd64-<exact artifact source commit>",
+    "normalBuild": "chain-core original checks then pinned Go1.26.10 bounded helper build; no node/window started",
+    "artifactSourceCommit": null,
+    "artifactId": null,
+    "binarySHA256": null,
+    "requireSameExecutableBothArms": true,
+    "sourceTestsToolchain": "existing chain-core Go1.25 job; do not claim those tests ran on Go1.26.10"
+  },
+  "originalRunner": {
+    "path": "scripts/loadtest/pq-paired-linux-window.py",
+    "sha256": "b87a895d7c625ae15834a73b19196310dfbba13335707b9fdb4a3e50d9ad69e2",
+    "baseReviewedProfile": "consensus-remote-e2e-retained-history-v1",
+    "baseProfileMustNotExecuteThisPlan": true,
+    "reason": "existing opt-in test first runs legacy account/contract migration, not fresh new-account throughput; reuse its guards rather than invoke its workload",
+    "freshProfileAndTestEntry": null,
+    "owningSourceWork": "Protocol owns fresh isolated epoch setup in original four-node harness; exact frozen source pins/normal compiled entry required before READY"
+  },
+  "sameConditions": {
+    "oneLinuxVM": true,
+    "sameBootIdAndCgroup": true,
+    "sameNodeRuntimeAndClientAndVerifierBinaries": true,
+    "buildsDuringActiveWindow": false,
+    "sameProtocol": "ML-DSA-87 AND SLH-DSA-SHA2-256f",
+    "sameLimitsAndTimingConfig": true,
+    "sameSenderCount": 16,
+    "sameMessageKind": "canonical Native N1 TX-BATCH transfer",
+    "sameAmountYNXT": 1,
+    "sameFeeYNXT": 1,
+    "sameNonce": 2,
+    "sameInitialSenderBalanceYNXT": 1000,
+    "fundsProvenance": "actual original normal Faucet receipts in the fresh isolated source, preserved through canonical prepared funding; never fabricated balances",
+    "sameRecipientCount": 1,
+    "sameRecipientStartingBalance": 0,
+    "byteIdenticalGenesisOrSignaturesExpected": false,
+    "normalizedBusinessStateEqual": true,
+    "separateFreshEpochAndKeysPerArm": true,
+    "noStateOrHRSRollbackToReplayAnArm": true
+  },
+  "arms": [
+    {
+      "name": "before",
+      "readbackIndexMode": "decode-index-again",
+      "extraClientArguments": [
+        "-pq-readback-index-baseline"
+      ],
+      "expectedEffectiveBusiness": 16
+    },
+    {
+      "name": "after",
+      "readbackIndexMode": "reuse-validated-index",
+      "extraClientArguments": [],
+      "expectedEffectiveBusiness": 16
+    }
+  ],
+  "perArm": {
+    "validators": 4,
+    "allFourActualNormalNodeConstructorsAndDurableStores": true,
+    "equalVotingPowerOnlyIfNormalManifestActuallyBindsIt": true,
+    "freshTestAccounts": 17,
+    "freshSignedInitialRegistrations": 17,
+    "preparedNormalFaucetReceipts": 16,
+    "businessTransfers": 16,
+    "nativeAmount": 1,
+    "nativeFee": 1,
+    "ledgerNonceAfterBirth": 1,
+    "businessNonce": 2,
+    "intendedOfferedPerSecond": 2,
+    "maximumSubmissionConcurrency": 4,
+    "maximumOfflineVerifierChildren": 1,
+    "maximumPendingProofs": 4,
+    "offerSpanMs": 7500,
+    "proofReadbackMaximumAttemptsPerOriginal": 4,
+    "proofReadbackWaitMs": [
+      250,
+      500,
+      1000
+    ],
+    "perClientTimeoutMs": 10000,
+    "hardArmBudgetMs": 45000,
+    "coldRecovery": "normal Stop/reopen one validator with SAME protected original HRS/store before arm release; no transaction replay; verify retained original records and nondecreasing HRS",
+    "expectedFinalBusinessState": {
+      "eachSenderBalance": 998,
+      "eachSenderNonce": 2,
+      "recipientIncomingTotal": 16,
+      "businessFeesCharged": 16
+    },
+    "setupAndNegativeControlsAreNotBusinessTPS": true
+  },
+  "proposedCapsNotAGrant": {
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "totalMs": 120000,
+    "ownedRSSBytes": 1073741824,
+    "threads": 320,
+    "ownedProcesses": 16,
+    "privateBytes": 536870912,
+    "buildBytes": 1073741824,
+    "logBytes": 1048576,
+    "diskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "compileReserveBytes": 1073741824,
+    "availableMemoryFloorBytes": 1207959552,
+    "sampleMs": 200,
+    "requestedGOMAXPROCS": 2
+  },
+  "measurements": {
+    "transactionJoin": "original public native hash + ABCI hash + H/index + exact signed wire; Whole later uses original canonical member effect hash",
+    "clientClock": "single VM coordinator monotonic offer clock, raw offsets, no invented recovery origin; record actual offered and backpressure",
+    "requiredStages": [
+      "offered",
+      "CheckTx/receive if original normal RPC exposes a distinct timestamp, else missing not inferred",
+      "first validated committed RPC observation",
+      "per-node actual FinalizeBlock duration and completion",
+      "per-node actual Commit stages: validation, encoding, write, file fsync, directory fsync and maintenance as original timing API emits",
+      "independent H/H+1 transaction execution proof verification complete"
+    ],
+    "nodeStageCodeNeeded": "Protocol original normal harness must delegate real ABCI calls and capture SetCommitTimingEnabled/LastCommitTiming immediately after each real Commit, before later empty blocks overwrite sample; bounded trace, not latest-only polling",
+    "latencyPercentiles": [
+      "P50",
+      "P95",
+      "P99"
+    ],
+    "percentilePopulation": "all original valid business identities, explicit sample count; missing/unconfirmed excluded from percentile and separately counted, never promoted",
+    "firstActualInclusion": "qualified original node event/H/index joined to original wire with monotonic source timestamp; if absent report missing, not POST time",
+    "finality": "original canonical independently anchored H/H+1 proof for same exact target; report verified-proof completion upper bound separately from any qualified signed-header first-availability event",
+    "earliestBFTFormation": "not measured unless original signed-quorum event is authenticated and clock-bound; never infer from third durable replica",
+    "queues": [
+      "scheduled-not-offered",
+      "submitted-pending-commit",
+      "committed-pending-independent-proof"
+    ],
+    "reportActualOfferRateAndEffectiveFinalizedRateSeparately": true,
+    "includeCPU_RSS_threads_disk_queues_errors_and_commitDurability": true
+  },
+  "requiredFreshInputsFromOriginalOwner": [
+    "exact fresh epoch configuration/source hashes for BOTH arms; only isolated test scope",
+    "four full dual-PQ validator bindings and protected signer references per epoch; no private bytes in messages/public artifacts",
+    "17 real normal initial registration wires and exact source of 16 Faucet/prepared funding receipts per arm",
+    "16 real already-signed N1 business Members per arm, owner/nonce/amount/fee/role map, no approval/signature stubs",
+    "normal node/gateway/verifier runtime binaries and successful original normal CI/source hashes, safe Go1.26.10 successor",
+    "normal independently qualified live/stopped Host target producer and exact invocation/source pins for every original transaction; targets cannot be copied from the untrusted collector",
+    "fresh opt-in original four-node profile and complete per-business ABCI/durability trace code; all source leaves frozen",
+    "fresh Root resource admission/once grant bound to same VM/binaries/caps/case IDs and output root"
+  ],
+  "knownGaps": {
+    "clientBinaryNormalPrebuild": "workflow added, actual artifact/CI receipt pending",
+    "freshFourNodeProfile": "not supplied; do not substitute retained-history migration E2E or classic load fixture",
+    "freshInitialPositiveFixture": "requested exact original funded public fixture/same-source verifier, not yet qualified",
+    "wholeCollector": "canonical gateway owning work pending; first window uses N1 only, do not claim Whole or infer finality from Data",
+    "heavyAdmission": "no new grant; do not start any node/window"
+  },
+  "output": {
+    "rootTemplate": "<original runner owned private RUNNER_TEMP case root>",
+    "publicFiles": [
+      "source-and-binary-identities.json",
+      "same-vm-resource-admission.json",
+      "case-input-public-pins.json",
+      "offers-and-first-observations.jsonl",
+      "per-node-finalize-commit-timings.jsonl",
+      "original-finality-collector-and-verifier-receipts/",
+      "queue-and-resource-samples.jsonl",
+      "before-after-summary.json",
+      "owned-cleanup-receipt.json"
+    ],
+    "privateRetained": [
+      "normal temporary accounts/keys",
+      "original HRS and stores",
+      "original signed intents and all UNKNOWN results"
+    ],
+    "normalMode": "0700 private roots, 0600 private files; only original qualified public proof/source materials exported"
+  },
+  "abortAndCleanup": {
+    "denyPublicOrNonLoopbackTargets": true,
+    "preflightBeforeNodeOrSignerStartup": true,
+    "stopOnSourcePin_Epoch_HostTarget_Signature_Durability_OrResourceMismatch": true,
+    "noSecondArmAfterFirstCause": true,
+    "noAutomaticPOSTRetry": true,
+    "normalNodeStopThenOwnedProcessGroupTerminationOnly": true,
+    "pidStartTicksAndParentGroupIdentityChecked": true,
+    "fsyncReceiptsAndProveOwnedPortsAndLocksReleased": true,
+    "neverDeleteKeys_AccountData_Originals_HRS_UNKNOWN": true,
+    "slotReturnedOnlyAfterActualClosureReceipt": true
+  },
+  "acceptance": {
+    "thisWindowOnly": "32 unique effective business transfers fully dual-verified, executed, persisted, independently finalized or explicit fail; all stage traces and bounded cleanup sealed",
+    "notQualification": [
+      "sustained1000TPS",
+      "10-minute stability",
+      "P95<=3s across representative load",
+      "Whole batch throughput",
+      "public deployment/activation",
+      "Wallet GUI approval"
+    ],
+    "nextAfterPassed": "Root schedules gradual valid offered load and longer runs; eventual >=10min 1000 effective finalized TPS plus P50/P95/P99/errors/backlog/resources"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "status": "source_and_three_focused_race_tests_verified_not_network",
+  "clientCodeCommit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+  "clientCodeTree": "19b9fafcfbb3f434b9ff745fb785afb1d0741247",
+  "firstObservation": "current invocation POST start to first complete canonical committed RPC response, POST or original GET; readback-only has no submission latency",
+  "preservedTotal": "original full reconciliation observationElapsedNs unchanged",
+  "sameBinaryModes": {
+    "before": [
+      "-pq-readback-index-baseline"
+    ],
+    "after": [],
+    "onlyDifference": "extra original GET index JSON parse; no wire/signature/authorization/admission or proof rule difference"
+  },
+  "raceSeconds": 2.523,
+  "covered": [
+    "valid POST first event excludes later GET wait",
+    "unknown POST then valid original GET",
+    "readback-only missing original submission clock and no POST",
+    "conflicting H/index never counted success",
+    "same complete Whole outcomes/index in both modes"
+  ],
+  "rawEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-first-committed-observation-race-20261026.raw",
+      "bytes": 591,
+      "sha256": "fc61f14d7e81228b5e24ae68d18964ab3cb5c69e77689b4ed5b0221785207195"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-first-observation-paired-mode-race-20261026.raw",
+      "bytes": 886,
+      "sha256": "c46f6bd4e2e465fccd907762037b5b67c1a5b1d2b7061ae4af22302ac643e34f"
+    }
+  ],
+  "realMultiNodeRun": false,
+  "actualOfferToFinalityMeasured": false,
+  "sustainedTPSQualified": false
+}
