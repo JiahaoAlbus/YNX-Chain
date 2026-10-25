@@ -1,5 +1,6 @@
 import {createPQTypedActionNodeReader} from './features/pq-transaction/typed-action-query-node.mjs';
 import {normalizeWalletPQTransferInput} from './wallet-pq-transfer-input.mjs';
+import {inspectRetainedPQOriginal} from './wallet-pq-local-original.mjs';
 import {PQ_CONNECTION_METHODS,captureWalletPQConnection} from './wallet-pq-connection-contract.mjs';
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
 import {createOriginalWalletProjectControl} from './wallet-project-control.mjs';
@@ -51,7 +52,7 @@ import * as pqBackupSDK from '@ynx-chain/wallet-auth/pq-wallet-backup';
 import * as pqContractSDK from '@ynx-chain/wallet-auth/pq-wallet-contract';
 import {acquireOriginalWalletTransactionPolicy,isOriginalWalletTransactionPolicy} from './original-policy-supplier/transaction-resource.mjs';
 import {acquireOriginalAccountPolicy,isOriginalAccountPolicyResource} from './original-policy-supplier/session-resource.mjs';
-import {CANONICAL_NETWORK_ID as PQ_CANONICAL_NETWORK_ID,readOriginalTransaction} from './original-policy-supplier/operator-query.mjs';
+import {CANONICAL_NETWORK_ID as PQ_CANONICAL_NETWORK_ID} from './original-policy-supplier/operator-query.mjs';
 import {initializeOriginalAuthIdentityStartup} from './original-auth-identity-startup.mjs';
 import {originalAuthIdentityStartupUnresolved} from '../../../packages/wallet-auth/src/original-auth-identity-private-joint-registration.js';
 import { assertWalletIPC } from "./wallet-ipc-policy.mjs";
@@ -531,7 +532,7 @@ handleWalletIPC('wallet:pq-restore-resume',()=>safeIPC(()=>pqRegisteredRestore.r
 handleWalletIPC('wallet:pq-transaction-status',(_event,hash)=>sensitiveIPC(async()=>{
   const guard=keyAccess.current(),status=await walletAuthority.accountStatus();guard.assert();
   if(guard.account!==status.account)throw Object.assign(Error('Select the original account.'),{data:{code:'ACCOUNT_CHANGED'}});
-  return walletAuthority.transactionSender.submissions.checkPQ(hash,status.account,guard);
+  return inspectRetainedPQOriginal(walletAuthority.transactionSender.submissions,hash,status.account,guard);
 }));
 // Both local Send entries use the existing dual-PQ review and its separate
 // original approval. This only prepares a review; it never signs or submits.
@@ -937,7 +938,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     pqNetworkId:PQ_CANONICAL_NETWORK_ID,
     vault: passwordVault,
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
-    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), pqReadOriginal:readOriginalTransaction, pqReadTypedOriginal:createPQTypedActionNodeReader().readOriginal, intentStore:originalTransactionIntentStore })
+    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), pqReadTypedOriginal:createPQTypedActionNodeReader().readOriginal, intentStore:originalTransactionIntentStore })
   });
   authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
   nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork, onTransferAttempt: record => { mainWindow?.webContents.send("wallet:transfer-attempt",record); } });

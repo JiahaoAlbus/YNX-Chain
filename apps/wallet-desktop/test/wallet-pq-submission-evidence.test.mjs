@@ -8,6 +8,7 @@ import {parsePQSubmissionResponse,parsePQReadResponse} from '../src/wallet-pq-su
 import {pqBFTOriginalIdentity,parsePQBFTOriginalResponse,parsePQBFTSubmissionResponse} from '../src/wallet-pq-bft-evidence.mjs';
 import {TransactionSubmissions} from '../src/transaction-submissions.mjs';
 import {CanonicalTransactionSender} from '../src/canonical-transaction-sender.mjs';
+import {inspectRetainedPQOriginal} from '../src/wallet-pq-local-original.mjs';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 // Actual fresh QA crypto with explicit synthetic policy/HTTP bodies. No node,
@@ -97,13 +98,13 @@ test('PQ original check fails closed before source wiring and discards a late re
  locked=true;release({status:200,text:JSON.stringify(read(transfer))});await assert.rejects(pending,{code:'WALLET_LOCKED'});
  locked=false;await assert.rejects(submissions.checkPQ(h('00'),owner,activeGuard),error=>error.data?.code==='TRANSACTION_INTENT_REQUIRED');
 });
-test('normal original main IPC and canonical sender constructor reach only the fixed PQ hash reader',async()=>{
- let reads=0;const guard={account:owner,assert(){}},sender=new CanonicalTransactionSender({intentStore:{async readPQOriginals(account,current){current();assert.equal(account,owner);return [transfer];}},pqReadOriginal:async hash=>{reads++;assert.equal(hash,transfer.hash);return {status:200,text:JSON.stringify(read(transfer))};}});
+test('normal original main IPC and canonical sender preserve native custody without using the legacy hash reader',async()=>{
+ let reads=0;const guard={account:owner,assert(){}},sender=new CanonicalTransactionSender({intentStore:{async readPQOriginals(account,current){current();assert.equal(account,owner);return [transfer];},async readPQProgress(account,hash,current){current();return{account,hash,kind:transfer.kind,status:'signed-unsubmitted'};}},pqReadOriginal:async hash=>{reads++;assert.equal(hash,transfer.hash);return {status:200,text:JSON.stringify(read(transfer))};}});
  try{
   sender.provider.send=()=>assert.fail('main PQ original lookup cannot fall through to EVM');
   const main=readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8'),start=main.indexOf("handleWalletIPC('wallet:pq-transaction-status'"),end=main.indexOf("handleWalletIPC('wallet:pq-transfer-review'",start),handlers=new Map();assert.ok(start>=0&&end>start);
-  runInNewContext(main.slice(start,end),{handleWalletIPC:(name,fn)=>handlers.set(name,fn),sensitiveIPC:action=>action(),keyAccess:{current:()=>guard},walletAuthority:{accountStatus:async()=>({account:owner}),transactionSender:sender}});
-  const result=await handlers.get('wallet:pq-transaction-status')({},transfer.hash);assert.equal(result.outcome,'pending-local-durable');assert.equal(result.clearsOriginal,false);assert.equal(result.retryAuthorized,false);assert.equal(reads,1);
+  runInNewContext(main.slice(start,end),{handleWalletIPC:(name,fn)=>handlers.set(name,fn),sensitiveIPC:action=>action(),keyAccess:{current:()=>guard},walletAuthority:{accountStatus:async()=>({account:owner}),transactionSender:sender},inspectRetainedPQOriginal});
+  const result=await handlers.get('wallet:pq-transaction-status')({},transfer.hash);assert.equal(result.outcome,'original-retained-locally');assert.equal(result.networkQueryPerformed,false);assert.equal(result.clearsOriginal,false);assert.equal(result.retryAuthorized,false);assert.equal(reads,0);
  }finally{sender.provider.destroy();}
 });
 function bft(original){return {...pqBFTOriginalIdentity(original),type:original.kind==='pq-transfer'?'pq_transfer':'account_migration',status:'committed',committed:true,wire:Buffer.from(original.wire,'base64url').toString('base64'),executionHeight:'30',cometIndex:0,from:owner,to:original.kind==='pq-transfer'?'0x'+'22'.repeat(20):owner,amount:original.kind==='pq-transfer'?amount:'0',fee:'1',nonce,transaction:{...tx(original),blockNumber:30}};}

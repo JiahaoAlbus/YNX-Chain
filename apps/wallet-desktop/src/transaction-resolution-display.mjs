@@ -52,6 +52,11 @@ export function projectPQOriginalObservation(response,{account,hash,kind}){
   const ok=Object.getOwnPropertyDescriptor(response??{},'ok');if(!ok||!Object.hasOwn(ok,'value'))throw Error('Invalid PQ observation');
   if(ok.value===false){values(response,['ok','error']);return null;}
   const envelope=values(response,['ok','value']),value=envelope.value;
+  if(kind!=='pq-typed-action'&&Object.getOwnPropertyDescriptor(value??{},'outcome')?.value==='original-retained-locally'){
+    const row=values(value,['account','hash','kind','outcome','networkQueryPerformed','signatureVerified','retryAuthorized','clearsOriginal','consensusFinality']);
+    if(envelope.ok!==true||row.account!==account||row.hash!==hash||row.kind!==kind||!ACCOUNT.test(account??'')||!HASH.test(hash??'')||!['pq-transfer','pq-migration','pq-revocation'].includes(kind)||['networkQueryPerformed','signatureVerified','retryAuthorized','clearsOriginal','consensusFinality'].some(k=>row[k]!==false))throw Error('Unbound retained original');
+    return Object.freeze({outcome:row.outcome});
+  }
   if(kind==='pq-typed-action'){
     const row=values(value,['account','kind','operationId','hash','memberHash','networkId','actionKind','nonce','reviewExecutionHeight','executionHeight','status','outcome','signatureVerified','classicWitnessValidationRequired','networkQueryPerformed','dataOnly','nativeAdmission','permissionGranted','submitted','canRetryExact','canRetry','clearsOriginal','consensusFinality']);
     const decimal=v=>typeof v==='string'&&/^[1-9][0-9]{0,19}$/.test(v)&&BigInt(v)<=18446744073709551615n;
