@@ -87,11 +87,12 @@ func newProofHostSourceFixtureFromTransaction(t *testing.T, f *pqTransactionProo
 	t.Helper()
 	h := f.light.harness
 	if root == "" {
-		root = t.TempDir()
-	} else {
-		if e := os.Mkdir(root, 0700); e != nil {
-			t.Fatal(e)
-		}
+		// TempDir inherits the runner umask. The real publisher requires its
+		// parent to be private, so provision a fresh child for every layout.
+		root = filepath.Join(t.TempDir(), "private-source")
+	}
+	if e := os.Mkdir(root, 0700); e != nil {
+		t.Fatal(e)
 	}
 	var err error
 	root, err = filepath.EvalSymlinks(root)
