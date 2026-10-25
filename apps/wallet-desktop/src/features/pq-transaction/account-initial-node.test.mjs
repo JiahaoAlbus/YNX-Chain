@@ -2,11 +2,16 @@ import test,{before} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {createHash} from 'node:crypto';
-import {keyGen,batchSign,extract,encodeMember,discardBatch,destroyKey} from '@ynx/batch-v01-candidate';
+import {createRequire} from 'node:module';
+import {pathToFileURL} from 'node:url';
 import {encodePQRegistrationIntent} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {NORMAL_OPERATOR,CANONICAL_NETWORK_ID} from '../../original-policy-supplier/operator-query.mjs';
 import {PQ_PROGRESS_RESPONSE_BYTES} from '../../wallet-pq-progress.mjs';
 import {PQTransactionNodeTransportKernel} from './node-transport.mjs';
+// Resolve the fixture primitive from the selected SDK's own dependency closure,
+// just as the SDK does. Main is not required to expose a second top-level copy.
+const fixtureRequire=createRequire(import.meta.resolve('@ynx-chain/wallet-auth/pq-wallet-authorization'));
+const {keyGen,batchSign,extract,encodeMember,discardBatch,destroyKey}=await import(pathToFileURL(fixtureRequire.resolve('@ynx/batch-v01-candidate')).href);
 const hash=b=>'0x'+createHash('sha256').update(b).digest('hex');
 const health={chainId:6423,catchingUp:false,persistence:true,persistenceError:'',build:{commit:NORMAL_OPERATOR.reportedCommit,release:NORMAL_OPERATOR.reportedRelease}};
 let member,expected,abciHash,foreignMember,foreignExpected;
