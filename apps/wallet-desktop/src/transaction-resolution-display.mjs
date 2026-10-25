@@ -26,7 +26,7 @@ export function projectPendingTransactions(response,account){
     if(Object.getOwnPropertyDescriptor(source??{},'kind')){
       const progress=Object.hasOwn(source,'resultStorageConfirmed')||Object.hasOwn(source,'resultHeldInMemory');
       const row=values(source,['hash','account','status','canRetryExact','kind','operationId',...(progress?['resultStorageConfirmed','resultHeldInMemory']:[])]);
-      if(row.account!==account||typeof row.hash!=='string'||!HASH.test(row.hash)||!['pq-transfer','pq-migration','pq-revocation','pq-typed-action'].includes(row.kind)||!['pq-signed-unsubmitted','pq-save-unconfirmed','pq-submission-unknown','pq-inclusion-observed','pq-rejection-observed'].includes(row.status)||row.canRetryExact!==false||typeof row.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(row.operationId))throw Error('Invalid PQ pending display');
+      if(row.account!==account||typeof row.hash!=='string'||!HASH.test(row.hash)||!['pq-transfer','pq-migration','pq-revocation','pq-typed-action','pq-account-initial'].includes(row.kind)||!['pq-signed-unsubmitted','pq-save-unconfirmed','pq-submission-unknown','pq-inclusion-observed','pq-rejection-observed'].includes(row.status)||row.canRetryExact!==false||typeof row.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(row.operationId))throw Error('Invalid PQ pending display');
       if(progress&&(typeof row.resultStorageConfirmed!=='boolean'||typeof row.resultHeldInMemory!=='boolean'))throw Error('Invalid PQ progress storage display');
       records.push(Object.freeze(row));continue;
     }
@@ -54,7 +54,7 @@ export function projectPQOriginalObservation(response,{account,hash,kind}){
   const envelope=values(response,['ok','value']),value=envelope.value;
   if(kind!=='pq-typed-action'&&Object.getOwnPropertyDescriptor(value??{},'outcome')?.value==='original-retained-locally'){
     const row=values(value,['account','hash','kind','outcome','networkQueryPerformed','signatureVerified','retryAuthorized','clearsOriginal','consensusFinality']);
-    if(envelope.ok!==true||row.account!==account||row.hash!==hash||row.kind!==kind||!ACCOUNT.test(account??'')||!HASH.test(hash??'')||!['pq-transfer','pq-migration','pq-revocation'].includes(kind)||['networkQueryPerformed','signatureVerified','retryAuthorized','clearsOriginal','consensusFinality'].some(k=>row[k]!==false))throw Error('Unbound retained original');
+    if(envelope.ok!==true||row.account!==account||row.hash!==hash||row.kind!==kind||!ACCOUNT.test(account??'')||!HASH.test(hash??'')||!['pq-transfer','pq-migration','pq-revocation','pq-account-initial'].includes(kind)||['networkQueryPerformed','signatureVerified','retryAuthorized','clearsOriginal','consensusFinality'].some(k=>row[k]!==false))throw Error('Unbound retained original');
     return Object.freeze({outcome:row.outcome});
   }
   if(kind==='pq-typed-action'){

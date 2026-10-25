@@ -9,7 +9,7 @@ export async function inspectRetainedPQOriginal(submissions,hash,account,guard){
   const original=originals.find(row=>row.account===account&&row.hash===hash);
   if(!original)fail('TRANSACTION_INTENT_REQUIRED');
   if(original.kind==='pq-typed-action')return submissions.checkPQ(hash,account,guard);
-  if(!['pq-transfer','pq-migration','pq-revocation'].includes(original.kind))fail('PQ_READ_BINDING_REQUIRED');
+  if(!['pq-transfer','pq-migration','pq-revocation','pq-account-initial'].includes(original.kind))fail('PQ_READ_BINDING_REQUIRED');
   const progress=await store.readPQProgress(account,hash,()=>guard.assert());guard.assert();
   if(progress.account!==account||progress.hash!==hash||progress.kind!==original.kind||progress.status!=='signed-unsubmitted')fail('PQ_ORIGINAL_PROGRESS_QUERY_REQUIRED');
   return Object.freeze({account,hash,kind:original.kind,outcome:'original-retained-locally',networkQueryPerformed:false,signatureVerified:false,retryAuthorized:false,clearsOriginal:false,consensusFinality:false});

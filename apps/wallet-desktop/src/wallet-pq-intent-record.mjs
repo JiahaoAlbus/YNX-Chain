@@ -1,10 +1,11 @@
 import {exactPQRecord} from '@ynx-chain/wallet-auth/pq-wallet-contract';
 import {decodePQMigrationRequest,preparePQMigrationTransport,decodePQTransferRequest,preparePQTransferTransport,decodePQRevocationRequest,preparePQRevocationTransport} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {parsePQTypedOriginalRecord} from './wallet-pq-typed-original.mjs';
+import {parsePQAccountInitialOriginal,createPQAccountInitialOriginalFromMember} from './wallet-pq-account-initial-original.mjs';
 import {types} from 'node:util';
 const fail=()=>{throw Object.assign(new Error('The original PQ journal record cannot be verified.'),{code:'PQ_ORIGINAL_RECORD_INVALID'});};
 export const PQ_ORIGINAL_RESERVE_BYTES=350_000;
-export const PQ_ORIGINAL_KINDS=Object.freeze(['pq-migration','pq-transfer','pq-revocation','pq-typed-action']);
+export const PQ_ORIGINAL_KINDS=Object.freeze(['pq-migration','pq-transfer','pq-revocation','pq-typed-action','pq-account-initial']);
 function originalCodec(kind){
  if(kind==='pq-migration')return {decode:decodePQMigrationRequest,transport:preparePQMigrationTransport,owner:value=>value.intent.owner};
  if(kind==='pq-transfer')return {decode:decodePQTransferRequest,transport:preparePQTransferTransport,owner:value=>value.transfer.from};
@@ -15,6 +16,7 @@ function originalCodec(kind){
  * owns wire parsing; a journal read does not verify chain policy or finality. */
 export function parsePQOriginalRecord(value){
  try{
+  if(value&&typeof value==='object'&&!types.isProxy(value)&&Object.getOwnPropertyDescriptor(value,'kind')?.value==='pq-account-initial')return parsePQAccountInitialOriginal(value);
   if(value&&typeof value==='object'&&!types.isProxy(value)&&Object.getOwnPropertyDescriptor(value,'kind')?.value==='pq-typed-action')return parsePQTypedOriginalRecord(value);
   exactPQRecord(value,['version','account','kind','operationId','hash','wire','status']);
   if(value.version!==1||!PQ_ORIGINAL_KINDS.includes(value.kind)||value.status!=='signed-unsubmitted'||typeof value.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(value.operationId)||typeof value.wire!=='string'||value.wire.length>349526||! /^[A-Za-z0-9_-]+$/.test(value.wire))fail();
@@ -24,9 +26,14 @@ export function parsePQOriginalRecord(value){
   return Object.freeze({...value});
  }catch{fail();}
 }
-export function createPQOriginalRecord({account,kind,operationId,request}){
+export function createPQOriginalRecord({account,kind,operationId,request,expected:initialExpected}){
  if(!request||request.method!=='POST'||request.contentType!=='application/octet-stream'||request.admissionIsFinality!==false)fail();
  const wire=request.body;if(!(wire instanceof Uint8Array)||wire.buffer instanceof SharedArrayBuffer)fail();
+ if(kind==='pq-account-initial'){
+  const original=createPQAccountInitialOriginalFromMember(wire,{expected:initialExpected,operationId});
+  if(original.account!==account||request.path!=='/accounts/'+account+'/authorization/register'||request.transportHash!==original.hash||request.abciTransactionHash!==original.abciTransactionHash)fail();
+  return original;
+ }
  if(!PQ_ORIGINAL_KINDS.includes(kind))fail();
  const expected=originalCodec(kind).transport(wire);
  if(request.path!==expected.path||request.transportHash!==expected.transportHash)fail();

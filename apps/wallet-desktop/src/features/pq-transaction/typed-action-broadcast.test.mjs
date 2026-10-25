@@ -79,9 +79,9 @@ test('SDK332 contract_deploy without complete Go source/material is fenced in re
  const input={...rows.find(r=>r.kind==='contract_deploy'),chainId:CANONICAL_NETWORK_ID};
  const r=preparePQTypedActionReview(snapshot,input,{...original.selectedBinding,operationId:'controlled-deploy-fence',createdAt:new Date(at).toISOString(),expiresAt:new Date(at+60000).toISOString()});
  const m=signPQReviewedTypedAction(r,snapshot,handle,original.selectedBinding,at),b=encodePQActionTransportData({member:m,originals:[]});
- // The original SDK already rejects absent compiler material before this
- // consumer's additional retained-plan fence. Preserve that first cause.
- assert.throws(()=>preparePQReviewedTypedActionBroadcast(r,b,{...original,memberHash:hash(m),transportHash:hash(b)}),{code:'PQ_ACTION_COMPILER_MATERIAL_REQUIRED'});
+ // The current SDK rejects this old incomplete deployment transport before
+ // the consumer's material fence. Preserve the original decoder first cause.
+ assert.throws(()=>preparePQReviewedTypedActionBroadcast(r,b,{...original,memberHash:hash(m),transportHash:hash(b)}),{code:'PQ_CONTRACT_DEPLOYMENT_TRANSPORT_INVALID'});
 });
 
 const health={chainId:6423,catchingUp:false,persistence:true,persistenceError:'',build:{commit:NORMAL_OPERATOR.reportedCommit,release:NORMAL_OPERATOR.reportedRelease}};
@@ -92,7 +92,7 @@ function networkFixture({status=200,headers={},payload=bytes(view()),events,onSt
 }
 const submit=(f,guard=()=>{},inputRaw=raw)=>f.kernel.submitTypedAction(review,inputRaw,original,guard);
 test('existing transport factory adds typed POST with exact JSON body, preflight pins and no followup request',async()=>{
- assert.deepEqual(Object.keys(createPQTransactionNodeTransport()),['submitTransfer','readOriginal','readFinalityProof','submitTypedAction']);
+ assert.deepEqual(Object.keys(createPQTransactionNodeTransport()),['submitTransfer','submitAccountInitial','readAccountInitialFinalityProof','readOriginal','readFinalityProof','submitTypedAction']);
  const f=networkFixture(),r=await submit(f);assert.deepEqual(f.calls.map(c=>[c.options.method,c.url.pathname]),[['GET','/status'],['GET','/blocks/0'],['POST',path]]);
  for(const c of f.calls){assert.equal(c.url.origin,NORMAL_OPERATOR.origin);assert.equal(c.options.rejectUnauthorized,true);assert.equal(typeof c.options.checkServerIdentity,'function')}
  const post=f.calls[2];assert.equal(post.options.headers['content-type'],'application/json');assert.equal(post.options.headers['content-length'],String(raw.length));assert.deepEqual(post.body,raw);assert.equal(r.method,'POST');assert.equal(r.requestPath,path);assert.equal(inspectPQReviewedTypedActionBroadcast(review,raw,original,r).outcome,'inclusion-observed');

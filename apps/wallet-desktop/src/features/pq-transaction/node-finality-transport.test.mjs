@@ -58,7 +58,7 @@ test('new factory entry binds the original ABCI GET, fixed TLS/node gates and cl
   const result=await read(f);
   // The same original factory now owns the explicitly added typed submitter;
   // old transfer/finality methods and closed raw proof result remain unchanged.
-  assert.deepEqual(Object.keys(createPQTransactionNodeTransport()),['submitTransfer','readOriginal','readFinalityProof','submitTypedAction']);
+  assert.deepEqual(Object.keys(createPQTransactionNodeTransport()),['submitTransfer','submitAccountInitial','readAccountInitialFinalityProof','readOriginal','readFinalityProof','submitTypedAction']);
   assert.deepEqual(f.calls.map(c=>[c.options.method,c.url.pathname]),[['GET','/status'],['GET','/blocks/0'],['GET',plan.path]]);
   assert.notEqual(plan.path,'/txs/'+original.hash+'/pq-finality-proof');
   for(const call of f.calls){assert.equal(call.url.origin,NORMAL_OPERATOR.origin);assert.equal(call.options.agent,false);assert.equal(call.options.rejectUnauthorized,true);assert.equal(typeof call.options.checkServerIdentity,'function');assert.equal(call.body,undefined);}

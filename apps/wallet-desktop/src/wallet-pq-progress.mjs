@@ -14,6 +14,10 @@ export function pqProgressCause(value){try{const result=sessionOriginalCause(val
 function cause(value){if(value===null)return;exact(value,['kind','value','code']);if(!['error','object','undefined','boolean','number','string'].includes(value.kind)||value.code!==null&&(typeof value.code!=='string'||! /^[A-Za-z0-9_:-]{1,128}$/.test(value.code))||['error','object','undefined'].includes(value.kind)&&value.value!==null||value.kind==='boolean'&&typeof value.value!=='boolean'||value.kind==='number'&&value.value!==null&&(typeof value.value!=='number'||!Number.isFinite(value.value))||value.kind==='string'&&!['','redacted'].includes(value.value))fail();}
 export function pqSubmissionIdentity(input){
  if(input?.kind==='pq-typed-action')return pqTypedSubmissionIdentity(input);
+ if(input?.kind==='pq-account-initial'){
+  const original=parsePQOriginalRecord(input);
+  return Object.freeze({account:original.account,hash:original.hash,kind:original.kind,operationId:original.operationId,nativeTransactionHash:original.hash,abciTransactionHash:original.abciTransactionHash});
+ }
  const original=parsePQOriginalRecord(input),identity=pqBFTOriginalIdentity(original);
  return Object.freeze({account:original.account,hash:original.hash,kind:original.kind,operationId:original.operationId,nativeTransactionHash:identity.nativeTransactionHash,abciTransactionHash:identity.abciTransactionHash});
 }
