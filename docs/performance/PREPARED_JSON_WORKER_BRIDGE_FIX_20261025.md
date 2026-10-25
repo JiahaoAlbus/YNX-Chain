@@ -6,6 +6,6 @@ CODE `f15f32153185ad8d8c8b2131b06186218dceb6fb`。实际四节点run40195409369/
 
 通过实际 `_verifier_controller()` → `stream_verifier.load_result()` 复现两encoder均报相同AttributeError的RED，再最小增加这一项不可变依赖；49项协议/清理拒绝轻测通过，包含两encoder实际接收、错误选择不篡改原receipt、缺worker时post-fsync清理后仍不可qualified，以及first失败/UNKNOWN禁止after；source guard26项通过。没有改验签、nonce、完整状态、锁序、fsync、限额、2checker或双closure。新测试直接接原CI已有pair协议组，不另造业务资格。
 
-本次原日志中before case38.329s、pair38.690s，qualified均false；post-fsync双launcher-only closure原帧已存在，完整slot/容量/四ELF/业务与耗时仍沿artifact12600061137恢复验证后再报告。原49,588,133字节归档与缺失区间缓存保留，60秒恢复期限不变；已完成区间不重复下载。普通修复CI继续，未来新SOURCE及exact READY另等Root新授权，不复用本次grant。
+本次原日志中before case38.329s、pair38.690s，qualified均false；post-fsync双launcher-only closure原帧已存在，完整slot/容量/四ELF/业务与耗时仍沿artifact12600061137恢复验证后再报告。原49,588,133字节归档与缺失区间缓存保留，60秒恢复期限不变；已完成区间不重复下载。修复普通CI40196736416已SUCCESS，四节点步骤skipped；不复用本次grant。按本人最新优先级，后续性能源码转新协议真实业务case，旧classic不再循环排队。
 
 证据：[失败与最小修复索引](evidence/prepared-json-worker-bridge-fix-20261025.json)。

@@ -1,0 +1,28 @@
+{
+  "sourceCommit": "ff71a33a0dea1f987aaed4b962aaa09a8bc66659",
+  "codeCommit": "f15f32153185ad8d8c8b2131b06186218dceb6fb",
+  "runId": 40196736416,
+  "status": "completed",
+  "conclusion": "success",
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40196736416",
+  "jobId": 121179078707,
+  "completedAt": "2026-10-25T13:20:51Z",
+  "originalAPI": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/worker-bridge-ci-completed.json",
+    "bytes": 10861,
+    "sha256": "62bb1df2184ba86d759f18baf86a0d13d6aca8b39f3fcc17cdee1e8bdb1fc5d7"
+  },
+  "originalFullLog": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/worker-bridge-ci-full.raw",
+    "bytes": 798715,
+    "sha256": "17b8a3a4711e06f1897530efb5efd27e162c87a2e1b9b6d8747cb6550f77c992"
+  },
+  "actualParentWorkerBridgeAndBothEncodersVerified": true,
+  "originalFailurePreserved": true,
+  "fourNodeStep": "skipped",
+  "watchSession": 71442,
+  "watchExitCode": 0,
+  "networkRerun": false,
+  "newClassicGrantRequested": false,
+  "newProtocolFirst": true
+}
