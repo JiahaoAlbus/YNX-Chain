@@ -7,9 +7,10 @@ import {createServer} from 'node:http';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import * as native from '../src/index.mjs';
+import * as nodeAPI from '../src/index.mjs';
+import {RUNTIME as requiredNativeRuntime} from '../src/native.mjs';
 import * as browser from '../src/browser.mjs';
-import {makePublicFixture, runVerificationVectors} from '../test/browser-vectors.mjs';
+import {makePublicFixture, publicSigVerRows, runOfficialSigVerVectors, runVerificationVectors} from '../test/browser-vectors.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const importMap = {imports: {'@noble/post-quantum/': '/vendor/post-quantum/',
@@ -49,7 +50,7 @@ function runChrome(binary, args) {
   });
 }
 
-export async function runHeadlessBrowser(fixture, {binary = process.env.BROWSER_BINARY} = {}) {
+export async function runHeadlessBrowser(fixture, {binary = process.env.BROWSER_BINARY, sigVer} = {}) {
   assert.ok(process.platform === 'linux' || process.platform === 'darwin', 'headless runner requires owned POSIX process-group cleanup');
   assert.equal(typeof binary, 'string', 'BROWSER_BINARY must explicitly name an absolute Chrome/Chromium executable');
   assert.ok(path.isAbsolute(binary), 'BROWSER_BINARY must be absolute');
@@ -59,6 +60,9 @@ export async function runHeadlessBrowser(fixture, {binary = process.env.BROWSER_
   const fixtureJSON = JSON.stringify(fixture);
   assert.ok(Buffer.byteLength(fixtureJSON) <= fixtureLimit, 'public fixture size bound');
   const fixtureSHA256 = createHash('sha256').update(fixtureJSON).digest('hex');
+  const sigVerJSON = JSON.stringify(publicSigVerRows({sigVer}));
+  assert.ok(Buffer.byteLength(sigVerJSON) <= fixtureLimit, 'separate official public sigVer request retains the original 2 MiB bound');
+  const sigVerSHA256 = createHash('sha256').update(sigVerJSON).digest('hex');
   const nonce = randomBytes(18).toString('hex'), requests = [], failures = [];
   const mounts = [['/src/', path.join(root, 'src')], ['/vendor/post-quantum/', path.join(root, 'node_modules/@noble/post-quantum')],
     ['/vendor/hashes/', path.join(root, 'node_modules/@noble/hashes')], ['/vendor/curves/', path.join(root, 'node_modules/@noble/curves')]];
@@ -70,15 +74,20 @@ try {
   for (const name of ['Buffer', 'process', 'require']) if (name in globalThis) throw Error('unexpected runtime shim: ' + name);
   if (!crossOriginIsolated || typeof SharedArrayBuffer !== 'function') throw Error('shared-memory rejection case unavailable');
   const api = await import('/src/browser.mjs');
-  const {runVerificationVectors} = await import('/test/browser-vectors.mjs');
+  const {publicSigVerRows, runOfficialSigVerVectors, runVerificationVectors} = await import('/test/browser-vectors.mjs');
   const response = await fetch('/public-fixture.json', {cache: 'no-store'});
   if (!response.ok) throw Error('public fixture HTTP ' + response.status);
   const fixture = await response.json();
   const fixtureDigest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(fixture))));
   const fixtureSHA256 = Array.from(fixtureDigest, b => b.toString(16).padStart(2, '0')).join('');
+  const officialResponse = await fetch('/public-sigver.json', {cache: 'no-store'});
+  if (!officialResponse.ok) throw Error('official public sigVer HTTP ' + officialResponse.status);
+  const sigVer = publicSigVerRows({sigVer: await officialResponse.json()});
+  const officialDigest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(sigVer))));
+  const officialSigVerSHA256 = Array.from(officialDigest, b => b.toString(16).padStart(2, '0')).join('');
   // Verification must not request randomness. This guard throws; it never
   // supplies replacement entropy or replaces either signature implementation.
-  let randomnessCalls = 0, vectors;
+  let randomnessCalls = 0, vectors, officialSigVer;
   const randomnessGuard = () => { randomnessCalls++; throw Error('verification requested randomness'); };
   const saved = ['getRandomValues', 'randomUUID'].map(name => [name, Object.getOwnPropertyDescriptor(crypto, name)]);
   const oldMathRandom = Math.random;
@@ -86,6 +95,7 @@ try {
     for (const [name] of saved) Object.defineProperty(crypto, name, {configurable: true, value: randomnessGuard});
     Math.random = randomnessGuard;
     vectors = runVerificationVectors(api, fixture, {publicBoundary: true});
+    officialSigVer = runOfficialSigVerVectors(sigVer);
   } finally {
     for (const [name, descriptor] of saved) { if (descriptor) Object.defineProperty(crypto, name, descriptor); else delete crypto[name]; }
     Math.random = oldMathRandom;
@@ -93,8 +103,8 @@ try {
   if (randomnessCalls !== 0) throw Error('verification attempted randomness');
   for (const name of ['Buffer', 'process', 'require']) if (name in globalThis) throw Error('runtime shim introduced: ' + name);
   output.textContent = JSON.stringify({nonce: '${nonce}', ok: true, userAgent: navigator.userAgent,
-    crossOriginIsolated, sharedArrayBufferTested: true, noRuntimeShims: true, randomnessCalls, fixtureSHA256,
-    vectors, provider: api.browserProviderInfo()});
+    crossOriginIsolated, sharedArrayBufferTested: true, noRuntimeShims: true, randomnessCalls, fixtureSHA256, officialSigVerSHA256,
+    vectors, officialSigVer, provider: api.browserProviderInfo()});
   output.dataset.status = 'pass';
 } catch (error) {
   output.textContent = JSON.stringify({nonce: '${nonce}', ok: false, error: String(error?.stack || error)});
@@ -116,6 +126,7 @@ try {
       let body, type;
       if (target === '/') { body = page; type = 'text/html; charset=utf-8'; }
       else if (target === '/public-fixture.json') { body = fixtureJSON; type = 'application/json'; }
+      else if (target === '/public-sigver.json') { body = sigVerJSON; type = 'application/json'; }
       else {
         let filename;
         if (target === '/test/browser-vectors.mjs') filename = path.join(root, 'test/browser-vectors.mjs');
@@ -161,8 +172,9 @@ try {
     assert.match(result.userAgent, /(?:HeadlessChrome|Chrome|Chromium)\//, 'real Chrome/Chromium user agent');
     assert.equal(result.crossOriginIsolated, true); assert.equal(result.sharedArrayBufferTested, true); assert.equal(result.noRuntimeShims, true);
     assert.equal(result.randomnessCalls, 0, 'real browser verification requested no randomness');
-    assert.equal(result.fixtureSHA256, fixtureSHA256, 'browser received the exact native public fixture');
-    for (const required of ['/', '/src/browser.mjs', '/test/browser-vectors.mjs', '/public-fixture.json']) assert.ok(requests.includes(required), 'browser loaded ' + required);
+    assert.equal(result.fixtureSHA256, fixtureSHA256, 'browser received the exact portable public fixture');
+    assert.equal(result.officialSigVerSHA256, sigVerSHA256, 'browser received the exact eight-field official sigVer rows');
+    for (const required of ['/', '/src/browser.mjs', '/test/browser-vectors.mjs', '/public-fixture.json', '/public-sigver.json']) assert.ok(requests.includes(required), 'browser loaded ' + required);
     for (const prefix of ['/vendor/post-quantum/', '/vendor/hashes/', '/vendor/curves/']) assert.ok(requests.some(p => p.startsWith(prefix)), 'browser loaded actual ' + prefix);
     assert.deepEqual(failures, [], 'no failed ESM requests or unlisted resources');
     return {browserBinary: binaryPath, sandboxDisabled: rootLinuxContainer,
@@ -177,15 +189,27 @@ try {
 async function main() {
   assert.ok(typeof process.env.BROWSER_BINARY === 'string' && path.isAbsolute(process.env.BROWSER_BINARY),
     'BROWSER_BINARY must explicitly name an absolute Chrome/Chromium executable');
-  const fixture = makePublicFixture(native, value => Buffer.from(value));
-  const nativeResult = runVerificationVectors(native, fixture, {fromBytes: value => Buffer.from(value),
+  const fixture = makePublicFixture(nodeAPI, value => Buffer.from(value));
+  const portableNodeAPI = Object.freeze({...nodeAPI, createVerifier: options => nodeAPI.createVerifier({...options, provider: 'portable'})});
+  const portableResult = runVerificationVectors(portableNodeAPI, fixture, {fromBytes: value => Buffer.from(value),
     sharedBytes: size => Buffer.from(new SharedArrayBuffer(size))});
   const uint8Result = runVerificationVectors(browser, fixture, {publicBoundary: true});
-  const headless = await runHeadlessBrowser(fixture);
+  const officialSourceBytes = await readFile(new URL('../test/vectors/nist-acvp.json', import.meta.url));
+  const officialSource = JSON.parse(officialSourceBytes.toString('utf8'));
+  const sigVer = publicSigVerRows(officialSource), officialSigVer = runOfficialSigVerVectors(sigVer);
+  const headless = await runHeadlessBrowser(fixture, {sigVer});
   assert.deepEqual(headless.result.vectors, uint8Result, 'actual browser runs exactly the same public Uint8Array vector suite');
-  assert.deepEqual(uint8Result.cases.slice(0, nativeResult.cases.length), nativeResult.cases, 'native and browser share all verification cases');
-  const receipt = {schema: 'ynx-batch-real-browser-verification/v1', runtime: {node: process.versions.node, openssl: process.versions.openssl},
-    native: nativeResult, uint8: uint8Result, browser: headless};
+  assert.deepEqual(headless.result.officialSigVer, officialSigVer, 'Node and real browser execute all 29 original official sigVer vectors identically');
+  assert.deepEqual(uint8Result.cases.slice(0, portableResult.cases.length), portableResult.cases, 'explicit portable Node and browser share all verification cases');
+  const actualRuntime = {node: process.versions.node, openssl: process.versions.openssl};
+  const receipt = {schema: 'ynx-batch-real-browser-verification/v1', qualification: 'public-portable-browser-only', runtime: actualRuntime,
+    nativeNodeQualified: false, nativeTestsExecuted: false,
+    nativeRuntimeRequirementUnavailable: actualRuntime.node !== requiredNativeRuntime.node || actualRuntime.openssl !== requiredNativeRuntime.openssl,
+    nativeRuntimeRequirement: {required: requiredNativeRuntime, actual: actualRuntime},
+    portableNode: portableResult, uint8: uint8Result, officialSigVer,
+    officialSigVerSource: {path: 'test/vectors/nist-acvp.json', sourceRevision: officialSource.sourceRevision,
+      sourceFileSHA256: createHash('sha256').update(officialSourceBytes).digest('hex'),
+      publicRowsBytes: Buffer.byteLength(JSON.stringify(sigVer)), publicRowsSHA256: headless.result.officialSigVerSHA256}, browser: headless};
   const receiptBytes = JSON.stringify(receipt, null, 2) + '\n';
   const receiptOut = process.env.YNX_BROWSER_VERIFICATION_RECEIPT_OUT;
   if (receiptOut !== undefined) {

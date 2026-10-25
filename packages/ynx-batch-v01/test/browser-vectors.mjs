@@ -1,5 +1,8 @@
 // Test-only public fixture and assertions shared by Node and a real browser.
 // No private material is serialized; this module needs no runtime polyfills.
+import {ml_dsa87} from '@noble/post-quantum/ml-dsa.js';
+import {slh_dsa_sha2_256f} from '@noble/post-quantum/slh-dsa.js';
+
 const fixtureSchema = 'ynx-batch-browser-public-test-vector/v1';
 const execution = Object.freeze({height: 7});
 const ordinaryBytes = value => Uint8Array.from(value);
@@ -7,19 +10,61 @@ const publicJSON = value => value instanceof Uint8Array ? Array.from(value)
   : Array.isArray(value) ? value.map(publicJSON)
     : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([k, v]) => [k, publicJSON(v)])) : value;
 
-// Invoked only by the Node test driver with its original native signer.
-export function makePublicFixture(native, fromBytes) {
-  const keys = native.keyGen(); let signed;
+// Invoked only by the Node driver with an explicitly selected portable signer.
+// Native runtime qualification belongs to its separate original test job.
+export function makePublicFixture(nodeAPI, fromBytes) {
+  const keys = nodeAPI.keyGen({provider: 'portable'}); let signed;
   try {
+    if (keys.provider?.provider !== 'portable') throw Error('explicit portable fixture signer required');
     const metadata = {chainId: fromBytes(Array(32).fill(0xa7)), owner: 'ynx-browser-test-only-owner', purpose: 'TX-BATCH'};
     const messages = [fromBytes([0, 255, 128, 1, 89, 78, 88]), fromBytes([])];
-    signed = native.batchSign(keys.privateKey, metadata, messages);
+    signed = nodeAPI.batchSign(keys.privateKey, metadata, messages);
     return publicJSON({schema: fixtureSchema, certificateWire: signed.certificateWire, wholeWire: signed.wholeWire,
-      memberWires: messages.map((_, i) => native.encodeMember(native.extract(signed.batch, i)))});
+      memberWires: messages.map((_, i) => nodeAPI.encodeMember(nodeAPI.extract(signed.batch, i)))});
   } finally {
-    if (signed) native.discardBatch(signed.batch);
-    native.destroyKey(keys.privateKey);
+    if (signed) nodeAPI.discardBatch(signed.batch);
+    nodeAPI.destroyKey(keys.privateKey);
   }
+}
+
+const sigVerFields = Object.freeze(['parameterSet', 'tgId', 'tcId', 'pk', 'message', 'context', 'signature', 'testPassed']);
+const sortedSigVerFields = [...sigVerFields].sort().join(',');
+export function publicSigVerRows(source) {
+  if (!Array.isArray(source?.sigVer) || source.sigVer.length !== 29) throw Error('29 original official sigVer rows required');
+  const rows = source.sigVer.map(row => {
+    if (!row || Object.keys(row).sort().join(',') !== sortedSigVerFields) throw Error('official public sigVer has exactly eight fields');
+    if (!['ML-DSA-87', 'SLH-DSA-SHA2-256f'].includes(row.parameterSet) || !Number.isSafeInteger(row.tgId) || row.tgId < 1 ||
+      !Number.isSafeInteger(row.tcId) || row.tcId < 1 || typeof row.testPassed !== 'boolean') throw Error('invalid official public sigVer metadata');
+    for (const name of ['pk', 'message', 'context', 'signature'])
+      if (typeof row[name] !== 'string' || row[name].length % 2 !== 0 || !/^[0-9a-f]*$/i.test(row[name]))
+        throw Error('invalid public sigVer hex ' + name);
+    return Object.freeze(Object.fromEntries(sigVerFields.map(name => [name, row[name]])));
+  });
+  if (rows.filter(row => row.parameterSet === 'ML-DSA-87').length !== 15 ||
+    rows.filter(row => row.parameterSet === 'SLH-DSA-SHA2-256f').length !== 14 ||
+    rows.filter(row => row.testPassed).length !== 5 || rows.filter(row => !row.testPassed).length !== 24)
+    throw Error('official public sigVer coverage must retain 15 ML, 14 SLH, 5 positive and 24 negative');
+  const identities = rows.map(row => row.parameterSet + ':' + row.tgId + ':' + row.tcId);
+  if (new Set(identities).size !== 29) throw Error('duplicate official sigVer identity');
+  return Object.freeze(rows);
+}
+
+export function runOfficialSigVerVectors(input) {
+  const rows = publicSigVerRows({sigVer: input});
+  const hex = text => Uint8Array.from(text.match(/../g) ?? [], pair => Number.parseInt(pair, 16));
+  const cases = rows.map(row => {
+    const algorithm = row.parameterSet === 'ML-DSA-87' ? ml_dsa87 : slh_dsa_sha2_256f;
+    let actual = false;
+    try { actual = algorithm.verify(hex(row.signature), hex(row.message), hex(row.pk), {context: hex(row.context)}); }
+    catch { /* Original malformed negative vectors must fail closed. */ }
+    if (actual !== row.testPassed) throw Error('official Noble public sigVer mismatch: ' + row.parameterSet + ' tgId=' + row.tgId + ' tcId=' + row.tcId);
+    return Object.freeze({parameterSet: row.parameterSet, tgId: row.tgId, tcId: row.tcId, expected: row.testPassed, actual});
+  });
+  return Object.freeze({schema: 'ynx-batch-official-public-sigver-results/v1', algorithmProvider: 'Noble .verify',
+    total: rows.length, mlDsa87: rows.filter(row => row.parameterSet === 'ML-DSA-87').length,
+    slhDsaSha2_256f: rows.filter(row => row.parameterSet === 'SLH-DSA-SHA2-256f').length,
+    positive: rows.filter(row => row.testPassed).length, negative: rows.filter(row => !row.testPassed).length,
+    passed: cases.length, cases: Object.freeze(cases)});
 }
 
 export function runVerificationVectors(api, fixture, {fromBytes = ordinaryBytes, publicBoundary = false,
@@ -55,7 +100,7 @@ export function runVerificationVectors(api, fixture, {fromBytes = ordinaryBytes,
   };
   const append = input => { const out = fromBytes(Array(input.length + 1).fill(0)); out.set(input); return out; };
 
-  run('exact native wire grammar and detached byte outputs', () => {
+  run('exact YNX wire grammar and detached byte outputs', () => {
     const c = certificate(), whole = api.decodeWhole(wholeWire);
     equal(c.N, 2, 'two messages'); equal(whole.messages.length, 2, 'whole count');
     equal(whole.messages[1].length, 0, 'empty second message');
@@ -83,10 +128,10 @@ export function runVerificationVectors(api, fixture, {fromBytes = ordinaryBytes,
     }
   });
 
-  run('both tree modes authenticate the native pair and both members', () => {
+  run('both tree modes authenticate the portable pair and both members', () => {
     for (const optimized of [false, true]) {
       const v = verifier({optimized});
-      equal(v.verifyWhole(wholeWire, execution), true, 'whole/native signature pair');
+      equal(v.verifyWhole(wholeWire, execution), true, 'whole/portable signature pair');
       equal(v.verifyOne(memberWires[0], execution), true, 'first member');
       equal(v.verifyOne(memberWires[1], execution), true, 'empty member');
       const handle = v.authenticateCertificate(certificateWire, execution);

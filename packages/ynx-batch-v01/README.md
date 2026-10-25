@@ -41,12 +41,25 @@ Root authorization. `createVerifier` still requires the independently trusted
 network, full key pair, purpose and current synchronous registry record at each
 explicit execution height; passing any `provider` option is rejected.
 
-The existing `npm test` command includes Node/native versus Uint8Array parity
-and negative vectors. The additional `BROWSER_BINARY=/absolute/path/to/chrome
-npm run test:browser` command loads the same public vectors through actual
-headless browser ESM, with no Buffer/process shim. A missing browser or failed
-module load is a failure, not a skipped browser qualification. It is intended
-for normal CI; adding this source does not claim that it has executed.
+`npm run test:public` checks the original codec and explicit portable Node
+Buffer versus Uint8Array verification, including the official public NIST
+signature-verification cases. `BROWSER_BINARY=/absolute/path/to/chrome npm run
+test:browser` loads the same public vectors through actual headless browser
+ESM, with no Buffer/process shim. The fixture generator and Node verifier both
+explicitly select the original portable provider; they do not attempt native
+signing and then fall back. A missing browser or failed module load is a
+failure, not a skipped browser qualification. Adding this source does not
+claim that either command has executed.
+
+The unchanged `npm test` command retains all original native/private tests and
+requires the exact native runtime above. The normal CI job classifies an
+unavailable native runtime as **BLOCKED**, with `nativeTestsExecuted=false` and
+`nativeQualified=false`; it runs that full command only when both actual
+versions match. Public `./browser` qualification is independent and cannot
+qualify the package root's native provider, private-key handling, an install or
+Source authority. In particular, the official Node 26.7.0 CI archive observed
+OpenSSL 3.5.7; that is not the original 3.6.4 runtime, and the native guard is
+unchanged.
 
 | API | Result and boundary |
 | --- | --- |

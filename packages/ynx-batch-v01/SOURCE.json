@@ -2,8 +2,8 @@
   "version": "YNX-BATCH-STANDALONE-SOURCE-SNAPSHOT/v1",
   "packageName": "@ynx/batch-v01-candidate",
   "packageVersion": "0.1.0-candidate.3",
-  "standaloneCommit": "5624d8e33de600cef0b6435e70a20cc9f1c3ee9f",
-  "standaloneTree": "b0f509681c00b41be71ed1a9339cdb7d51c1c06c",
+  "standaloneCommit": "2586af9ac40c824bbf4fc0ac7f8b98a07a5e86f2",
+  "standaloneTree": "8f404e68dcd470f206b92bb75bdfad4d70998f78",
   "files": [
     {
       "path": ".gitignore",
@@ -19,9 +19,9 @@
     },
     {
       "path": "README.md",
-      "bytes": 13555,
-      "sha256": "1e227d106e710b4630d0a55a59dd710806050648fa6bd94ee7e6cf6339945205",
-      "gitBlob": "148af20818382679f969d3d202744a4f11ff7dae"
+      "bytes": 14372,
+      "sha256": "b4a879b46c002e78c5076b67756cde64cd50430783ffba59a18eb869c8dce0f8",
+      "gitBlob": "1cfd44851700a6728e69b0b5e325b49422e77088"
     },
     {
       "path": "docs/KEY_MATERIAL_ABI.md",
@@ -43,9 +43,9 @@
     },
     {
       "path": "package.json",
-      "bytes": 882,
-      "sha256": "3a996228c9f38bfc35fe1bb968cac247486993f91b028a5ff1cf990a3cf62b4e",
-      "gitBlob": "984497702c1573db05779bc69c37445db138978a"
+      "bytes": 979,
+      "sha256": "31d57b663d038659c9c276cd4f25913b27bfb2304d6800a86e0f7cf90b38efdf",
+      "gitBlob": "b689471826bd0f5b453d697131c792431a4d1b11"
     },
     {
       "path": "reference/README.zh.md",
@@ -91,9 +91,9 @@
     },
     {
       "path": "scripts/verify-browser.mjs",
-      "bytes": 13907,
-      "sha256": "02896ba4eff63f97cbfc2cf7f159e87db888d6b85e5d1f46b87f5afa9fb68c79",
-      "gitBlob": "12e3233a8a8be07f8d54abdc2059402a07003517"
+      "bytes": 16554,
+      "sha256": "8f7bafede3c9ce39979aebc71a80f8c50dce43e8d53f4a819965654a1808d7ef",
+      "gitBlob": "b50510054eb2778975f27a8915ea33a03f1835dc"
     },
     {
       "path": "src/browser-codec.mjs",
@@ -169,15 +169,15 @@
     },
     {
       "path": "test/browser-vectors.mjs",
-      "bytes": 18380,
-      "sha256": "301349926932f9925157f1adbae676da1f4d5aa400250fb91243df16bfabc6d5",
-      "gitBlob": "ba8f79b4322be03b7840fe0e2a70d0a52dbbffe2"
+      "bytes": 21737,
+      "sha256": "091edda7139f60080daeb55f906423527d4ff2efaa54c687176c5004f1fdb695",
+      "gitBlob": "1e112ccab68e0d0f5c4330bc496e01981c8ff6cf"
     },
     {
       "path": "test/browser.test.mjs",
-      "bytes": 4287,
-      "sha256": "f2ba433a6a21ef644ef7953707cd94171cd901f15a80d23e21245aeca17fadf4",
-      "gitBlob": "026b3654cd8215658ec28908b6bceee00969b628"
+      "bytes": 5257,
+      "sha256": "759eb7f26b7dc2e53d5dcae7b82c862c9228d27474be87a09523a4ea469fdb62",
+      "gitBlob": "64d2de0c9c611b5216b564aec9a1cb770d7c7d5e"
     },
     {
       "path": "test/codec.test.mjs",

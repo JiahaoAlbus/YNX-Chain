@@ -3,20 +3,33 @@ import assert from 'node:assert/strict';
 import {lstatSync, readFileSync, realpathSync} from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import * as native from '../src/index.mjs';
+import * as nodeAPI from '../src/index.mjs';
 import * as browser from '../src/browser.mjs';
-import {makePublicFixture, runVerificationVectors} from './browser-vectors.mjs';
+import {makePublicFixture, publicSigVerRows, runOfficialSigVerVectors, runVerificationVectors} from './browser-vectors.mjs';
 
-test('one native signed public fixture verifies through native and ordinary Uint8Array APIs', () => {
-  const fixture = makePublicFixture(native, value => Buffer.from(value));
-  const node = runVerificationVectors(native, fixture, {fromBytes: value => Buffer.from(value),
+const portableNodeAPI = Object.freeze({...nodeAPI, createVerifier: options => nodeAPI.createVerifier({...options, provider: 'portable'})});
+
+test('one explicitly portable signed public fixture verifies through Node Buffer and ordinary Uint8Array APIs', () => {
+  const fixture = makePublicFixture(nodeAPI, value => Buffer.from(value));
+  const node = runVerificationVectors(portableNodeAPI, fixture, {fromBytes: value => Buffer.from(value),
     sharedBytes: size => Buffer.from(new SharedArrayBuffer(size))});
   const publicBytes = runVerificationVectors(browser, fixture, {publicBoundary: true});
   assert.ok(node.checks > 100 && publicBytes.checks > node.checks);
   assert.deepEqual(publicBytes.cases.slice(0, node.cases.length), node.cases);
   assert.equal(publicBytes.cases.at(-1), 'browser public surface exposes no signer or provider switch');
-  assert.throws(() => native.decodeCertificate(Uint8Array.from(fixture.certificateWire)), {code: 'ERR_YNX_BATCH'},
+  assert.throws(() => nodeAPI.decodeCertificate(Uint8Array.from(fixture.certificateWire)), {code: 'ERR_YNX_BATCH'},
     'original Node codec still requires its Buffer ABI');
+});
+
+test('all 29 original official public sigVer vectors retain their contexts and positive/negative coverage', () => {
+  const source = JSON.parse(readFileSync(new URL('vectors/nist-acvp.json', import.meta.url), 'utf8'));
+  const rows = publicSigVerRows(source);
+  assert.equal(Buffer.byteLength(JSON.stringify(rows)), 1830758, 'only original eight-field sigVer rows leave the Node loader');
+  assert.ok(rows.every(row => !('sk' in row) && !('seed' in row)));
+  const result = runOfficialSigVerVectors(rows);
+  assert.deepEqual({total: result.total, ml: result.mlDsa87, slh: result.slhDsaSha2_256f,
+    positive: result.positive, negative: result.negative, passed: result.passed},
+  {total: 29, ml: 15, slh: 14, positive: 5, negative: 24, passed: 29});
 });
 
 test('the transitive YNX browser source graph is public and contains no Node runtime or private provider calls', () => {
