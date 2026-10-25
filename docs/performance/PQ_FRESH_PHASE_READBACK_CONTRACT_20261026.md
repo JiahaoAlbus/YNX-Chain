@@ -82,7 +82,7 @@ and is not the instant of BFT formation. The small 2/s pair cannot qualify the
 
 ## Verification status
 
-Ten Node tests pass, including actual CLI consumption of both receipt shapes,
+Twelve Node tests pass, including actual CLI consumption of both receipt shapes,
 immutable output and unchanged inputs, missing/unsafe numeric clocks, wrong
 source and ELF pins, UNKNOWN, original hash binding, registration exclusion,
 per-height deduplication, missing node/fsync and incomplete cleanup rejection.
@@ -96,3 +96,20 @@ owned-process scans. A real-format RED case was preserved and repaired in the
 consumer. `cleanupComplete:true` is required: scan metadata alone cannot prove
 cleanup. The consumer does not rewrite the original guard. The generic legacy
 arithmetic fixture schema retains its distinct two-empty-array contract.
+
+## Original stdout entry
+
+The original compiled test emits its public result with the unique
+`PQ_NETWORK_FRESH_BUSINESS_SUMMARY` marker. Use `--stdout /absolute/go.stdout.log`
+in place of `--result` to consume that original log directly. This mode requires
+the original guard's `stdoutSHA256`, a single actual RUN and PASS for
+`TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming`, one marker from
+the original source file between those events, terminal PASS, no FAIL/SKIP,
+and all the same source/PID/cleanup/result checks. It does not synthesize
+`resultSHA256` or rewrite a guard. Output records both the original stdout
+SHA256 and SHA256 of the exact embedded JSON bytes, without reserialization.
+
+The original controller still needs its owner to add/freeze the fresh profile
+and run it under Root's resource schedule. A green legacy E2E window, old
+result, pending build or this parser's fixture tests cannot substitute for that
+actual fresh run. This consumer changes no controller or run authorization.

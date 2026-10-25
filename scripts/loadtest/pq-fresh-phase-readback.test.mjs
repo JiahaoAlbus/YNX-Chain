@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {freshPhaseSchema,readGuardedFreshPhasePair,freshTimingQuantiles} from './pq-fresh-phase-readback.mjs';
+import {freshPhaseSchema,readGuardedFreshPhasePair,readGuardedFreshPhaseLog,freshTimingQuantiles} from './pq-fresh-phase-readback.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const h=n=>'0x'+n.toString(16).padStart(64,'0');
 
@@ -148,4 +148,39 @@ test('original completed controller cleanup records are consumed without rewriti
  for(const scans of [[[],[]],[{elapsedMs:1000,hostIdentities:42}],[{elapsedMs:1000,hostIdentities:42},{elapsedMs:999,hostIdentities:43}],[{elapsedMs:1000,hostIdentities:42},{elapsedMs:120001,hostIdentities:43}]]){
   assert.throws(()=>readGuardedFreshPhasePair(raw,{...guard,emptyOwnedScans:scans},f.expected),/completed guard/);
  }
+});
+
+function originalLog(f){
+ const name='TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming';
+ return Buffer.from('=== RUN   '+name+'\n    pq_network_fresh_business_test.go:1089: PQ_NETWORK_FRESH_BUSINESS_SUMMARY '+JSON.stringify(f.data)+'\n--- PASS: '+name+' (12.34s)\nPASS\n');
+}
+function logGuard(f,raw){return {firstCause:null,child:{code:0,pid:f.expected.sameProcessPID},cleanupComplete:true,emptyOwnedScans:cleanupScans(f),sourceCommit:f.expected.protocolCommit,stdoutSHA256:hash(raw)};}
+test('original stdout readback binds exact original log bytes and requires actual fresh test PASS',()=>{
+ const f=originalFixture(),raw=originalLog(f),guard=logGuard(f,raw),saved=structuredClone(guard);
+ const result=readGuardedFreshPhaseLog(raw,guard,f.expected);
+ assert.equal(result.resultSource,'original-go-stdout');assert.equal(result.stdoutSHA256,hash(raw));
+ assert.equal(result.rawResultSHA256,hash(Buffer.from(JSON.stringify(f.data))));
+ assert.equal(result.arms[0].receiptQualifiedBusiness,16);assert.deepEqual(guard,saved);assert.equal(guard.resultSHA256,undefined);
+ assert.throws(()=>readGuardedFreshPhaseLog(Buffer.concat([raw,Buffer.from('changed')]),guard,f.expected),/stdout digest/);
+ for(const change of [
+  s=>s.replace('--- PASS:','--- SKIP:'),s=>s.replace('--- PASS:','--- FAIL:'),
+  s=>s.replace('=== RUN   TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming','=== RUN   OtherTest'),
+  s=>s.replace('\nPASS\n','\n'),s=>s+s.split('\n')[1]+'\n',
+  s=>s.replace('pq_network_fresh_business_test.go:1089:','other.go:1:'),
+  s=>{const lines=s.trimEnd().split('\n');return [lines[0],lines[2],lines[1],lines[3]].join('\n')+'\n';},
+  s=>s+'    --- SKIP: hidden-child (0.00s)\n',
+ ]){const altered=Buffer.from(change(raw.toString()));assert.throws(()=>readGuardedFreshPhaseLog(altered,logGuard(f,altered),f.expected));}
+ const incomplete={...guard,cleanupComplete:false};assert.throws(()=>readGuardedFreshPhaseLog(raw,incomplete,f.expected),/completed guard/);
+});
+test('actual stdout CLI emits one summary from original logs without synthesizing or changing a guard',()=>{
+ const parent=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'pq-phase-log-cli-')));
+ try{
+  const f=originalFixture(),raw=originalLog(f),g=Buffer.from(JSON.stringify(logGuard(f,raw))),expected=Buffer.from(JSON.stringify(f.expected));
+  for(const [name,bytes]of [['stdout',raw],['guard',g],['expected',expected]])fs.writeFileSync(path.join(parent,name),bytes,{flag:'wx',mode:0o600});
+  const args=[fileURLToPath(new URL('./pq-fresh-phase-readback.mjs',import.meta.url)),'--stdout',path.join(parent,'stdout'),'--guard',path.join(parent,'guard'),'--expected',path.join(parent,'expected'),'--output',path.join(parent,'summary')];
+  const result=spawnSync(process.execPath,args,{encoding:'utf8',timeout:5000});assert.equal(result.status,0,result.stderr);
+  assert.equal(JSON.parse(fs.readFileSync(path.join(parent,'summary'))).resultSource,'original-go-stdout');
+  assert.deepEqual(fs.readFileSync(path.join(parent,'guard')),g);assert.deepEqual(fs.readFileSync(path.join(parent,'stdout')),raw);
+  const mixed=[...args];mixed[3]='--result';const refused=spawnSync(process.execPath,mixed,{encoding:'utf8',timeout:5000});assert.equal(refused.status,1);
+ }finally{fs.rmSync(parent,{recursive:true,force:true});}
 });

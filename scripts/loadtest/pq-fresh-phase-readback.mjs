@@ -122,10 +122,33 @@ function adaptOriginal(data,expected){
 }
 
 export function readGuardedFreshPhasePair(raw,guard,expected){
+ return readBoundFreshPhasePair(raw,guard,expected,null);
+}
+
+// Original compiled Go test emits this exact bounded public JSON in stdout.
+// Bind those original log bytes directly; do not create or rewrite a guard.
+export function readGuardedFreshPhaseLog(stdout,guard,expected){
+ requireValue(Buffer.isBuffer(stdout)&&stdout.length>0&&stdout.length<=1<<20&&isUtf8(stdout),'bounded UTF-8 original stdout required');
+ const digest=createHash('sha256').update(stdout).digest('hex');
+ requireValue(guard?.stdoutSHA256===digest,'original stdout digest differs');
+ const name='TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming',lines=stdout.toString('utf8').split(/\r?\n/);
+ const pass=new RegExp('^--- PASS: '+name+' \\([0-9]+(?:\\.[0-9]+)?s\\)$');
+ requireValue(lines.filter(l=>l==='=== RUN   '+name).length===1&&lines.filter(l=>pass.test(l)).length===1&&lines.filter(l=>l==='PASS').length===1&&!lines.some(l=>/^\s*--- (FAIL|SKIP):|^FAIL(?:\s|$)/.test(l)),'original fresh test must actually run and pass without skip/failure');
+ const markers=lines.filter(l=>l.includes('PQ_NETWORK_FRESH_BUSINESS_SUMMARY'));
+ requireValue(markers.length===1,'exactly one original fresh summary marker required');
+ const match=/^\s+pq_network_fresh_business_test\.go:[1-9][0-9]*: PQ_NETWORK_FRESH_BUSINESS_SUMMARY (\{.*\})$/.exec(markers[0]);
+ requireValue(match,'original callee summary log shape differs');
+ requireValue(lines.indexOf('=== RUN   '+name)<lines.indexOf(markers[0])&&lines.indexOf(markers[0])<lines.findIndex(l=>pass.test(l))&&lines.findIndex(l=>pass.test(l))<lines.indexOf('PASS'),'original RUN/summary/PASS order differs');
+ const raw=Buffer.from(match[1],'utf8');
+ requireValue(json(raw,'original stdout summary').version===originalFreshVersion,'original stdout receipt version differs');
+ return readBoundFreshPhasePair(raw,guard,expected,digest);
+}
+
+function readBoundFreshPhasePair(raw,guard,expected,stdoutSHA256){
  requireValue(Buffer.isBuffer(raw)&&raw.length>0&&raw.length<=1<<20,'bounded original pair DATA required');
  requireValue(object(expected)&&hex(expected.protocolCommit,40)&&hex(expected.performanceClientCommit,40)&&hex(expected.clientSourceTree,40)&&hex(expected.clientCodeTree,40)&&typeof expected.vmBootId==='string'&&expected.vmBootId.length>0&&typeof expected.clockDomain==='string'&&expected.clockDomain.length>0&&Number.isSafeInteger(expected.businessPerArm)&&expected.businessPerArm>0&&expected.businessPerArm<=16&&object(expected.epochs)&&hex(expected.epochs.before,64)&&hex(expected.epochs.after,64)&&expected.epochs.before!==expected.epochs.after&&sameBinaries(expected.binaries,expected.binaries)&&Object.hasOwn(expected.binaries,expected.verifierRole),'external original case/source/clock/binary bindings required');
  const input=json(raw,'original phase result'),projected=input.version===originalFreshVersion;
- requireValue(guard?.firstCause===null&&guard.child?.code===0&&guard.cleanupComplete===true&&completedScans(guard.emptyOwnedScans,projected)&&guard.sourceCommit===expected.protocolCommit&&guard.resultSHA256===createHash('sha256').update(raw).digest('hex'),'original completed guard and raw result digest required');
+ requireValue(guard?.firstCause===null&&guard.child?.code===0&&guard.cleanupComplete===true&&completedScans(guard.emptyOwnedScans,projected)&&guard.sourceCommit===expected.protocolCommit&&(stdoutSHA256?guard.stdoutSHA256===stdoutSHA256:guard.resultSHA256===createHash('sha256').update(raw).digest('hex')),'original completed guard and raw result digest required');
  if(projected)requireValue(guard.child.pid===expected.sameProcessPID,'original guard child differs from the phase clock process');
  const data=projected?adaptOriginal(input,expected):input;
  requireValue(data.schema===freshPhaseSchema&&['protocolCommit','performanceClientCommit','clientSourceTree','clientCodeTree','vmBootId','clockDomain'].every(k=>data[k]===expected[k])&&sameBinaries(data.binaries,expected.binaries)&&Array.isArray(data.arms)&&data.arms.length===2,'fresh pair source/VM/binary identity differs');
@@ -173,7 +196,7 @@ export function readGuardedFreshPhasePair(raw,guard,expected){
   }
   summaries.push({name,epochId:arm.epochId,readbackIndexMode:mode,receiptQualifiedBusiness:originals.size,repeatedReadbacks,finalizedBusinessHashes:[...originals.keys()],latencyNs:Object.fromEntries(Object.entries(duration).map(([k,v])=>[k,{...freshTimingQuantiles(v),missingSamples:originals.size-v.length}])),...(projected?{clientStagesNs:projectedClientStages(originals)}:{}),observedWindowNs:String(lastProof-firstOffer),measurementWindowNs:String(measureEnd-measureStart),receiptWindowRate:{transactions:originals.size,perSecondNumerator:String(BigInt(originals.size)*1000000000n),denominatorNs:String(measureEnd-measureStart)},nodeBlocks});
  }
- return {schema:'ynx-pq-fresh-phase-readback-v1',classification:'measurement-data-not-authority',sourceCommit:expected.protocolCommit,inputEvidence:projected?'original-callee-projected-client-receipts':'embedded-canonical-verifier-output',vmIdentityEvidence:projected?'external-runner-binding-only':'receipt-and-external-binding',arms:summaries,independentProofReverifiedHere:false,earliestBFTFormationMeasured:false,executionAuthorized:false,sustainedTPSQualified:false,interpretation:'Original qualified callee/verifier receipts required. Exact per-H physical Commit samples are not multiplied by tx count. Four-node durable times and proof-completion upper bounds are separate; no third-replica/BFT inference or target qualification.'};
+ return {schema:'ynx-pq-fresh-phase-readback-v1',classification:'measurement-data-not-authority',sourceCommit:expected.protocolCommit,resultSource:stdoutSHA256?'original-go-stdout':'original-json-file',rawResultSHA256:createHash('sha256').update(raw).digest('hex'),...(stdoutSHA256?{stdoutSHA256}:{}),inputEvidence:projected?'original-callee-projected-client-receipts':'embedded-canonical-verifier-output',vmIdentityEvidence:projected?'external-runner-binding-only':'receipt-and-external-binding',arms:summaries,independentProofReverifiedHere:false,earliestBFTFormationMeasured:false,executionAuthorized:false,sustainedTPSQualified:false,interpretation:'Original qualified callee/verifier receipts required. Exact per-H physical Commit samples are not multiplied by tx count. Four-node durable times and proof-completion upper bounds are separate; no third-replica/BFT inference or target qualification.'};
 }
 
 // Thin normal-runner readback entry, not a process launcher or approval API.
@@ -194,9 +217,10 @@ export function readFreshPhaseFile(file){
 }
 export function runFreshPhaseReadback(args){
  requireValue(Array.isArray(args)&&args.length===8,'exact result/guard/expected/output flags required');
- const options={};for(let i=0;i<args.length;i+=2){const key=args[i];requireValue(['--result','--guard','--expected','--output'].includes(key)&&!Object.hasOwn(options,key),'duplicate or unknown readback flag');options[key]=args[i+1];}
- const raw=readFreshPhaseFile(options['--result']),guard=json(readFreshPhaseFile(options['--guard']),'guard'),expected=json(readFreshPhaseFile(options['--expected']),'expected');
- const summary=readGuardedFreshPhasePair(raw,guard,expected),out=options['--output'],parent=path.dirname(out);
+ const options={};for(let i=0;i<args.length;i+=2){const key=args[i];requireValue(['--result','--stdout','--guard','--expected','--output'].includes(key)&&!Object.hasOwn(options,key),'duplicate or unknown readback flag');options[key]=args[i+1];}
+ requireValue(Object.hasOwn(options,'--result')!==Object.hasOwn(options,'--stdout')&&['--guard','--expected','--output'].every(k=>Object.hasOwn(options,k)),'one original result or stdout and all readback flags required');
+ const raw=readFreshPhaseFile(options['--result']??options['--stdout']),guard=json(readFreshPhaseFile(options['--guard']),'guard'),expected=json(readFreshPhaseFile(options['--expected']),'expected');
+ const summary=(options['--stdout']?readGuardedFreshPhaseLog:readGuardedFreshPhasePair)(raw,guard,expected),out=options['--output'],parent=path.dirname(out);
  requireValue(path.isAbsolute(out)&&path.normalize(out)===out&&fs.realpathSync(parent)===parent,'canonical existing output parent required');
  const fd=fs.openSync(out,'wx',0o600);try{fs.writeFileSync(fd,JSON.stringify(summary)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
  const directory=fs.openSync(parent,'r');try{fs.fsyncSync(directory);}finally{fs.closeSync(directory);}
