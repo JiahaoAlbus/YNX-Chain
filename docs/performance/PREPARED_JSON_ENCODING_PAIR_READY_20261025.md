@@ -1,5 +1,7 @@
 # 私有快照 JSON 编码器：有限四节点对照 READY
 
+2026-10-25更新：grant125625已在期限内单次派发run40195409369/attempt1；该run因父进程接收worker结果时缺常量依赖失败，after未启动。原失败不改写，旧READY不再代表可复用授权；见[实际入口修复](PREPARED_JSON_WORKER_BRIDGE_FIX_20261025.md)。
+
 SOURCE `c14aee1e21894407cb09aff19ff26786e22eddf8` / CODE `4d016eb1e81f6093717dbb1c7732fdb132b8e30c`；普通 CI [40194100827](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40194100827) SUCCESS，四节点步骤 skipped。冻结 tag `codex/chain-snapshot-json-pair-c14aee1e21` 已 exact remote 回读。
 
 这是条件 READY，`executionAdmitted=false`、`rootGrantReceived=false`、`dispatched=false`。等 Root 新鲜资源窗口与新的 once grant；旧105129已消费，不复用，不自动重试。原普通 CI job121171862923于2026-10-25T12:49:16Z结束SUCCESS，原watch73894 exit0，原API/完整日志已封存。首版40193998392真实CLI检查失败及一行环境修复保留；没有删失败断言或冒用前版CI。

@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "failedRunId": 40195409369,
+  "failedSource": "c14aee1e21894407cb09aff19ff26786e22eddf8",
+  "grantConsumed": true,
+  "networkPairQualified": false,
+  "afterStarted": false,
+  "firstCause": "'types.SimpleNamespace' object has no attribute 'PREPARED_JSON_ENCODINGS'",
+  "failureBoundary": "parent-side stream_verifier.load_result(_verifier_controller(),...) after child exit",
+  "repairCode": "f15f32153185ad8d8c8b2131b06186218dceb6fb",
+  "repair": "expose existing immutable PREPARED_JSON_ENCODINGS in actual narrow verifier namespace; no checker/cap/default/durability changes",
+  "realREDSubtests": 2,
+  "focusedProtocolAndGuardTests": 49,
+  "sourceGuardTests": 26,
+  "networkRerun": false,
+  "references": {
+    "paired-ci-full.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/paired-ci-full.raw",
+      "bytes": 847168,
+      "sha256": "de5e42027e08d2000fa1e8a93dd3478e68fde33ff4a3678c090667588de99829"
+    },
+    "original-complete-run-api.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/original-complete-run-api.json",
+      "bytes": 12350,
+      "sha256": "94fbc39704f0c7246cf2a8435ce7e762da112a5f2b9463592a9f90c2c6b750bf"
+    },
+    "actual-run-completed.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/actual-run-completed.json",
+      "bytes": 10861,
+      "sha256": "45b9ffb4617f3d1fa9f90749cc1d4f01cdef9774224da3b6196aa30ea777bb12"
+    },
+    "original-artifact-api.json": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/original-artifact-api.json",
+      "bytes": 762,
+      "sha256": "04f4c35053bc562169b3d124dfb2247b98325f5dd7ae75d91bc6951c735407a4"
+    },
+    "actual-parent-worker-bridge-RED.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/actual-parent-worker-bridge-RED.raw",
+      "bytes": 4417,
+      "sha256": "1747b863d64bd3bc64a69436a915feadff1c781095fd88b296549871454f3e01"
+    },
+    "actual-parent-worker-bridge-GREEN-and-guards.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/actual-parent-worker-bridge-GREEN-and-guards.raw",
+      "bytes": 7985,
+      "sha256": "aacfa587c2b5977d2825e48e83c351c7604fb6485660b29464bd0fb9580769f9"
+    },
+    "actual-worker-bridge-source-guard.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/actual-worker-bridge-source-guard.raw",
+      "bytes": 4682,
+      "sha256": "cd50987d63330076ace4b68a0722abbd4e2951a7d9f21578c1359a81cab8a46f"
+    }
+  },
+  "originalArtifact": {
+    "id": 12600061137,
+    "bytes": 49588133,
+    "recoveryComplete": false,
+    "cacheRetained": true
+  },
+  "ordinaryRepairCI": null
+}
