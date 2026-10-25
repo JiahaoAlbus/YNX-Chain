@@ -37,6 +37,9 @@ func ethereumIntentRejected(t testing.TB, err error) {
 }
 
 func TestEthereumValueIntentWireAndUint64Roundtrip(t *testing.T) {
+	if MaxEthereumValueIntentBytes != 316 {
+		t.Fatal("fixed Ethereum value profile must remain 316 bytes")
+	}
 	for _, kind := range []uint32{0, 1, 2} {
 		for _, nonce := range []uint64{0, 1<<53 + 3, math.MaxUint64} {
 			t.Run(fmt.Sprintf("type%d/nonce%d", kind, nonce), func(t *testing.T) {
@@ -44,7 +47,7 @@ func TestEthereumValueIntentWireAndUint64Roundtrip(t *testing.T) {
 				original.Nonce = nonce
 				wire, err := original.SigningBytes()
 				authOK(t, err)
-				if len(wire) != 316 || len(wire) != MaxEthereumValueIntentBytes {
+				if len(wire) != MaxEthereumValueIntentBytes {
 					t.Fatalf("fixed profile wire size differs: %d", len(wire))
 				}
 				decoded, err := DecodeEthereumValueIntent(wire)

@@ -440,7 +440,7 @@ def assert_native_cabi_workflow_contract(raw):
         if not condition:
             raise AssertionError("native C-ABI normal-push source contract changed; no execution claim")
 
-    push = ("github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
+    push = ("github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
             "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
     header = ("    if: " + push + "\n    strategy:\n      fail-fast: false\n      matrix:\n"
               "        runner: [ubuntu-24.04, macos-15]\n    runs-on: ${{ matrix.runner }}\n"
@@ -710,7 +710,7 @@ def assert_workflow_contract(raw):
         need(len(matches) == 1)
         return matches[0]
 
-    expected_job_if = ("((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
+    expected_job_if = ("(github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
         "github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || "
         "(github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || "
         "(github.event_name == 'workflow_dispatch' && (startsWith(github.ref, "
@@ -817,7 +817,7 @@ def assert_workflow_contract(raw):
     need(".cleanupComplete == true" in receipts[0])
     delivery_job, delivery_steps = workflow_steps(raw, "protocol-delivery")
     mac_job, _ = workflow_steps(raw, "proof-verifier-macos")
-    push_condition = ("github.event_name == 'push' && (github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
+    push_condition = ("github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
                       "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
     need(re.findall(r"(?m)^    needs: (.+)$", delivery_job) == ["[focused-go, caddy-source]"]
          and "    timeout-minutes: 12\n" in delivery_job)
@@ -831,7 +831,7 @@ def assert_workflow_contract(raw):
          + "\n    runs-on: ubuntu-24.04\n    timeout-minutes: 6\n")
     need("continue-on-error:" not in caddy_job)
     branches = re.findall(r"(?m)^  push:\n    branches:\n((?:      - [^\n]+\n)+)", raw)
-    need(branches == ["      - 'codex/ynx-pq-public-upgrade'\n      - 'codex/ynx-pq-perf-integration'\n"])
+    need(branches == ["      - 'main'\n      - 'codex/ynx-pq-public-upgrade'\n      - 'codex/ynx-pq-perf-integration'\n"])
     lines = lambda step: [line for line in step.splitlines() if line.strip()]
     need(lines(caddy_steps[0]) == [
         "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
@@ -876,7 +876,7 @@ def assert_workflow_contract(raw):
     need(caddy_steps.index(control_seals[0]) < caddy_steps.index(control_uploads[0]))
     need(raw.count("bash scripts/verify/public-bft-gateway-ingress-check.sh") == 1)
     need("    needs: protocol-delivery\n" in mac_job and "    timeout-minutes: 12\n" in mac_job)
-    need("    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n" in mac_job)
+    need("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')\n" in mac_job)
     need("          ref: ${{ github.sha }}\n" in delivery_job and "          ref: ${{ github.sha }}\n" in mac_job)
     combined = steps + delivery_steps
     by_name = lambda name: [step for step in combined if step.startswith("      - name: " + name + "\n")]
@@ -948,6 +948,22 @@ def assert_workflow_contract(raw):
                  "Verify normal transaction proof CLI with exact public two-header fixture",
                  "Verify stopped-source publication and original Host ABI through normal binaries"):
         need(by_name(name)[0] in delivery_steps)
+    initial_cli = by_name("Verify initial registration and funded transfer through the original proof CLI")
+    need(len(initial_cli) == 1 and initial_cli[0] in delivery_steps)
+    need(condition(initial_cli[0]) == "${{ !inputs.consensus_remote_e2e_retained_history && (success() && steps.identity.outcome == 'success') }}")
+    for token in ("timeout-minutes: 2", "YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json",
+                  "-run '^TestTransactionProofInitialPreparedFundingOriginalCLI$'", "--- PASS: TestTransactionProofInitialPreparedFundingOriginalCLI (",
+                  "PQ_INITIAL_FUNDED_TRANSACTION_CLI_VERIFIED_DATA_ONLY"):
+        need(token in initial_cli[0])
+    need(delivery_steps.index(by_name("Verify original Host source, live lifecycle and delivery persistence")[0]) < delivery_steps.index(initial_cli[0]))
+    vulnerability = by_name("Check reachable vulnerabilities in the eight production runtime commands")
+    need(len(vulnerability) == 1 and vulnerability[0] in delivery_steps)
+    need(condition(vulnerability[0]) == "${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}")
+    need("        timeout-minutes: 3\n" in vulnerability[0] and "        run: >-\n" in vulnerability[0])
+    need("go run golang.org/x/vuln/cmd/govulncheck@v1.1.4" in vulnerability[0] and "||" not in vulnerability[0])
+    need(re.findall(r"\./cmd/([a-z-]+)", vulnerability[0]) == ["ynx-abci", "ynx-comet", "ynx-bft-gatewayd",
+         "ynx-consensus-pq-remote-signer", "ynx-consensus-pq-key-init", "ynx-consensus-proof-verify", "ynx-consensus-package", "ynx-consensus-keycheck"])
+    need(delivery_steps.index(vulnerability[0]) < delivery_steps.index(by_name("Build public Linux runtime candidate without starting services")[0]))
     focused_signer, delivery_signer = by_name(signer_name)
     need("success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process" in condition(focused_signer))
     need("github.event_name == 'push' ||" in condition(delivery_signer))
@@ -1321,6 +1337,8 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("      - name: Verify original public cutover caller preserves independent operator and runtime pins\n", "      - name: Silently skipped original caller\n"),
             ("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)'", "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestABCI)'"),
             ("-run '^TestProofHost'", "-run '^TestProofHostMissing'"),
+            ("-run '^TestTransactionProofInitialPreparedFundingOriginalCLI$'", "-run '^TestTransactionProofInitialPreparedFundingOriginalCLIMissing$'"),
+            ("go run golang.org/x/vuln/cmd/govulncheck@v1.1.4", "true # omitted production runtime vulnerability check"),
             ("YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json", "UNUSED_INITIAL_FUNDED_FIXTURE: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json"),
             ("      - name: Verify complete large original migration through normal package and cold recovery\n", "      - name: Silently omitted large migration recovery\n"),
             ("-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$'", "-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecoveryMissing$'"),
@@ -1341,7 +1359,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("test_verify_retained_migration_preservation_once.py -v 2>&1 | tee", "test_verify_retained_migration_preservation_once.py -v 2>&1 || true | tee"),
             ("grep -F -c 'YNX_RETAINED_PRESERVATION_ROFD_DATA_PASS'", "echo 'YNX_RETAINED_PRESERVATION_ROFD_DATA_PASS'"),
             (".cleanupComplete == true", ".cleanupComplete != false"),
-            ("    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'\n", "    if: false\n"),
+            ("    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')\n", "    if: false\n"),
         ]
         for before, after in changes:
             self.assertIn(before, raw)
