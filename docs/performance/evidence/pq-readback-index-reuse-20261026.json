@@ -1,0 +1,93 @@
+{
+  "status": "source_optimized_paired_microbenchmark_and_focused_race_pass_not_deployed",
+  "baseCommit": "bb637eb2ceb71a720669a0ba145b88c88aaa4f5d",
+  "canonicalGateCommit": "e64cbb78f2a6cde23bd34571c5848853266e19cb",
+  "localGateCommit": "d8133c026",
+  "canonicalImportScope": "two original verification scripts, both parent blobs matched; no release metadata or runtime change",
+  "localGates": [
+    "integration-contract-check PASS71 vectors runtime18/app20 retainedhash7-20 vs published12/app18 at fixed cb20",
+    "chain-core-release-check PASS fixed published-source, routes8, StreamBFT shadow"
+  ],
+  "readbackOptimization": "return exact validated CometIndex with original admitted/rejected/height; remove second full JSON Unmarshal; all decode identity work inside validation interval",
+  "pairedMicrobenchmark": {
+    "members": 1024,
+    "wireBytes": 297196,
+    "responseBytes": 521543,
+    "hardware": "Apple M4 darwin/arm64, 24GiB RAM",
+    "GOMAXPROCS": 1,
+    "GOMEMLIMIT": "160MiB",
+    "command": "go test -p 1 ./cmd/ynx-consensus-perf-client -run '^TestPQWholeCaseReadback' -bench '^BenchmarkPQWholeCaseCommittedReadbackDecode$' -benchtime=3x -count=3 -benchmem -timeout=30s -v",
+    "samples": {
+      "before-second-index-decode": {
+        "nsPerOp": [
+          3591500,
+          3769014,
+          3785944
+        ],
+        "bytesPerOp": [
+          1563938,
+          1563938,
+          1563938
+        ],
+        "allocsPerOp": [
+          2101,
+          2101,
+          2101
+        ],
+        "medianNsPerOp": 3769014
+      },
+      "after-reuse-validated-index": {
+        "nsPerOp": [
+          2266431,
+          2055917,
+          2153208
+        ],
+        "bytesPerOp": [
+          1563658,
+          1563658,
+          1563658
+        ],
+        "allocsPerOp": [
+          2093,
+          2093,
+          2093
+        ],
+        "medianNsPerOp": 2153208
+      }
+    },
+    "medianTimeReductionPercent": 42.870787956744124,
+    "scope": "local strict readback validation only; each pair uses same signed wire/view, no HTTP/node/execution/PQC verification/TPS in timed loop"
+  },
+  "focusedRace": {
+    "tests": 4,
+    "elapsedSeconds": 2.903,
+    "profiles": [
+      "whole maximum profile and missing-index negative",
+      "native N1 original hash",
+      "zero birth",
+      "UNKNOWN read-only recovery"
+    ]
+  },
+  "rawEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-readback-decode-before-after-20261026.raw",
+      "bytes": 2173,
+      "sha256": "bead5fb04410520faf8086271458bc133d0bb013f385c400674d9026d1ee1995"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-readback-index-profile-race-20261026.raw",
+      "bytes": 811,
+      "sha256": "93031203c65c29d4f090df232ab8eed264fa9a6aa7af142842d7cef8805782d8"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-current-published-source-gates-20261026.raw",
+      "bytes": 329,
+      "sha256": "ec3fb00d10b1c86de0f4c55d97d6ebc574793f1d3b45a33575005eac8d47bd4e"
+    }
+  ],
+  "actualNode": false,
+  "realMultiNodeRun": false,
+  "actualOfferToFinalityMeasured": false,
+  "sustainedTPSQualified": false,
+  "next": "consume fresh original initial proof fixture/verifier and canonical Whole collector on existing route; Root schedules actual isolated four-node window"
+}

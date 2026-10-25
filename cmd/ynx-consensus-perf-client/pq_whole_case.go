@@ -224,11 +224,11 @@ func pqCaseHTTPBound(ctx context.Context, client *http.Client, method, target st
 	}
 	return raw, nil
 }
-func (p pqWholeCase) committedResponse(raw []byte) (int, int, uint64, error) {
+func (p pqWholeCase) committedResponse(raw []byte) (int, int, uint64, *uint32, error) {
 	if p.kind == consensus.PQTransferType || p.kind == consensus.PQInitialRegistrationType {
 		var v bftgateway.PQMemberView
 		if err := strictJSON(raw, &v); err != nil {
-			return 0, 0, 0, err
+			return 0, 0, 0, nil, err
 		}
 		var n int
 		var e error
@@ -237,14 +237,14 @@ func (p pqWholeCase) committedResponse(raw []byte) (int, int, uint64, error) {
 		} else {
 			n, e = p.validateMemberCommitted(v)
 		}
-		return n, 0, v.ExecutionHeight, e
+		return n, 0, v.ExecutionHeight, v.CometIndex, e
 	}
 	var v bftgateway.PQWholeView
 	if err := strictJSON(raw, &v); err != nil {
-		return 0, 0, 0, err
+		return 0, 0, 0, nil, err
 	}
 	n, rejected, e := p.validateCommitted(v)
-	return n, rejected, v.ExecutionHeight, e
+	return n, rejected, v.ExecutionHeight, v.CometIndex, e
 }
 func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gateway string, readOnly bool) pqWholeCaseReport {
 	started := time.Now()
@@ -271,7 +271,7 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 		v, e := pqCaseHTTP(ctx, client, http.MethodPost, strings.TrimRight(gateway, "/")+broadcast, p.wire)
 		r.Phases.SubmissionHTTPNs = time.Since(phaseStart).Nanoseconds()
 		phaseStart = time.Now()
-		_, _, _, identityError := p.committedResponse(v)
+		_, _, _, _, identityError := p.committedResponse(v)
 		r.Phases.SubmissionValidationNs = time.Since(phaseStart).Nanoseconds()
 		r.InitialSubmissionUnknown = e != nil || identityError != nil
 	}
@@ -286,18 +286,14 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 		return r
 	}
 	phaseStart = time.Now()
-	admitted, rejected, height, e := p.committedResponse(v)
+	admitted, rejected, height, index, e := p.committedResponse(v)
 	r.Phases.OriginalReadbackValidationNs = time.Since(phaseStart).Nanoseconds()
 	if e != nil {
 		r.Error = e.Error()
 		r.ObservationElapsedNs = time.Since(started).Nanoseconds()
 		return r
 	}
-	var index struct {
-		CometIndex *uint32 `json:"cometIndex"`
-	}
-	_ = json.Unmarshal(v, &index) // already strictly decoded and identity-checked above
-	r.CometIndex = index.CometIndex
+	r.CometIndex = index
 	r.Status = "committed_observed"
 	if p.kind == consensus.PQInitialRegistrationType {
 		r.Status = "registration_observed"
