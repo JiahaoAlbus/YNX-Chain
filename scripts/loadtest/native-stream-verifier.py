@@ -49,12 +49,13 @@ def content_only(snapshot):
     return dict(files=[{k:v for k,v in row.items() if k!='stat'} for row in snapshot['files']],directories=[{k:v for k,v in row.items() if k!='stat'} for row in snapshot['directories']],bytes=snapshot['bytes'])
 
 def check_selection(controller,selection):
-    need(type(selection) is dict and set(selection) in (CONFIG,CONFIG|{'expected_submitters'},CONFIG|{'expected_prepared_certificate'},CONFIG|{'expected_prepared_certificate','expected_client_procs2'}),'verifier explicit selection missing')
+    need(type(selection) is dict and set(selection) in (CONFIG,CONFIG|{'expected_submitters'},CONFIG|{'expected_prepared_certificate'},CONFIG|{'expected_prepared_certificate','expected_client_procs2'},CONFIG|{'expected_prepared_certificate','expected_replay_timing'},CONFIG|{'expected_prepared_certificate','expected_replay_timing','expected_client_procs2'}),'verifier explicit selection missing')
     need(all(type(selection[k]) is bool for k in CONFIG-{'pacing'}),'verifier selected booleans differ')
     need('expected_submitters' not in selection or type(selection['expected_submitters']) is int and selection['expected_submitters']==16,'verifier submit16 selection differs')
     need('expected_prepared_certificate' not in selection or selection['expected_prepared_certificate'] is True,'verifier prepared selection differs')
     need('expected_client_procs2' not in selection or selection['expected_client_procs2'] is True,'verifier client scheduler selection differs')
-    controller.recipe('grpc',controller.STREAM_PROFILE,selection['pacing'],True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=selection['expected_input_reuse'],canonical_certificate=selection['expected_canonical_certificate'],native_suffix_setup=selection['expected_native_suffix'],block_tip_hint=selection['expected_block_tip_hint'],submitters=selection.get('expected_submitters',8),prepared=selection.get('expected_prepared_certificate',False),client_procs2=selection.get('expected_client_procs2',False))
+    need('expected_replay_timing' not in selection or selection['expected_replay_timing'] is True,'verifier replay timing selection differs')
+    controller.recipe('grpc',controller.STREAM_PROFILE,selection['pacing'],True,prefix_replay=True,prefix_native_clone=True,observer_native_facts=True,native_stream8=True,current_input_reuse=selection['expected_input_reuse'],canonical_certificate=selection['expected_canonical_certificate'],native_suffix_setup=selection['expected_native_suffix'],block_tip_hint=selection['expected_block_tip_hint'],submitters=selection.get('expected_submitters',8),prepared=selection.get('expected_prepared_certificate',False),client_procs2=selection.get('expected_client_procs2',False),replay_timing=selection.get('expected_replay_timing',False))
 
 def produce(controller,case,selection,runtime_network=None):
     check_selection(controller,selection);case=Path(case).absolute();need(case.resolve()==case,'verifier case symlink differs');network=case/'network'

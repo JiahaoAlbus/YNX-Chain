@@ -103,7 +103,8 @@ type durableReader struct {
 	cacheTick                uint64
 	cacheEvictions           uint64
 	signatureFacts           *durableSignatureFacts
-	measurePhases            bool               // Set only during construction, before any observer starts.
+	measurePhases            bool // Set only during construction, before any observer starts.
+	measureReplayPhases      bool
 	measureCertificatePhases bool               // Native stream diagnostic only; immutable after construction.
 	sharedReplay             *sharedReplayCache // Explicit candidate only; never enabled by timing.
 }

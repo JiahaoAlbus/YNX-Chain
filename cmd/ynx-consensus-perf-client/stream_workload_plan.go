@@ -55,6 +55,7 @@ func persistStreamingWorkloadPlan(o options, manifest []byte, m consensus.Epheme
 		plan.NativePrefix.CanonicalCertificate = o.nativeCanonicalCertificate
 		plan.NativePrefix.PreparedCertificate = o.nativePreparedCertificate
 		plan.NativePrefix.ClientProcs2 = o.clientProcs2
+		plan.NativePrefix.ReplayTiming = o.nativeReplayTiming
 		plan.NativePrefix.ClientCachedFeeJSON = o.nativeCachedFeeJSON
 		plan.NativePrefix.BlockTipHint = o.nativeBlockTipHint
 		plan.NativePrefix.OriginalSuffixSetup = !o.nativeSuffixSetup

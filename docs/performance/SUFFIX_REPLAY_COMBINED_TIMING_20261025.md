@@ -1,5 +1,7 @@
 # Combined prepared certificate and suffix replay timing API
 
+Client integration now exists as an explicit diagnostic selection; see [current integration](NATIVE_REPLAY_TIMING_CLIENT_20261025.md). The API-only checkpoint below is retained as historical evidence. No new network results are inferred.
+
 Run40176399057 originally measured 5.322s client decode including 2.492s incremental suffix replay, versus only0.075s private native clone. A second isolated diagnostic API now collects the already implemented certificate/prepared-encoding and suffix/frame/Finalize/transaction/fee-append children in one decode. It preserves the original decode, signature/nonce/state validation, byte ownership and error paths; existing timed and untimed API shapes stay unchanged.
 
 The API is callable as `DecodeWithCertificateAndSuffixReplayPhaseTiming`. It is not connected to the client CLI or used by run40176399057. No new network child-stage results, performance gain, default activation or heavy readiness is claimed. Reader replay MemoryCommit remains local application replay, not disk Commit or BFT finality.

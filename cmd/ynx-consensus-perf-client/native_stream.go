@@ -9,6 +9,9 @@ import (
 // Separate opt-in scope. The original nativeSubmit8 single-round contract and
 // the default four-worker ready sender are deliberately unchanged.
 func validateNativeStreamingOptions(o options) error {
+	if o.nativeReplayTiming && (!o.nativeStream8 || !o.nativePreparedCertificate || !o.nativeCurrentInputReuse || o.concurrency != 8 || o.nativeStreamSubmitters != 0 || o.pacingMode != "grouped-cadence4" || o.nativeCachedFeeJSON || o.nativeCanonicalCertificate || o.nativeSuffixSetup || o.nativeBlockTipHint) {
+		return errors.New("replay timing requires isolated prepared/current-reuse8 grouped stream and original hash")
+	}
 	if o.nativeStream8 && o.clientProcs2 && (!o.nativePreparedCertificate || !o.nativeCurrentInputReuse || o.concurrency != 8 || o.nativeStreamSubmitters != 0 || o.pacingMode != "grouped-cadence4" || o.nativeCachedFeeJSON || o.nativeCanonicalCertificate || o.nativeSuffixSetup || o.nativeBlockTipHint) {
 		return errors.New("stream client procs2 requires isolated prepared/current-reuse8 grouped pacing and original hash encoding")
 	}
@@ -123,6 +126,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 	r.observerNativeFacts = true
 	r.measurePhases = true
 	r.measureCertificatePhases = true
+	r.measureReplayPhases = o.nativeReplayTiming
 	r.prefixStats.WorkPhases.CertificatePublishDetails = new(consensus.BlockJournalPrefixCertificatePhases)
 	if r.profileMu != nil {
 		r.readerGate = &durableReaderGateStats{}
@@ -133,6 +137,7 @@ func (r *durableReader) configureNativeStreamingReplay(o options) error {
 // Persist public mode/resource identities before issuance. This is a scoped
 // client plan, not a network admission or proof that its target was achieved.
 type nativeStreamingPlan struct {
+	ReplayTiming           bool    `json:"replayTiming,omitempty"`
 	ClientProcs2           bool    `json:"clientProcs2,omitempty"`
 	ClientCachedFeeJSON    bool    `json:"clientCachedFeeJSON,omitempty"`
 	BlockTipHint           bool    `json:"blockTipHint,omitempty"`
@@ -153,6 +158,12 @@ type nativeStreamingPlan struct {
 
 func streamingProfileName(o options) string {
 	if o.nativeStream8 {
+		if o.nativeReplayTiming {
+			if o.clientProcs2 {
+				return "scoped_native_prefix_stream8_prepared_grouped_replay_timing_procs2_v1"
+			}
+			return "scoped_native_prefix_stream8_prepared_grouped_replay_timing_procs1_v1"
+		}
 		if o.nativeCachedFeeJSON {
 			return "scoped_native_prefix_stream8_prepared_cached_fee_v1"
 		}

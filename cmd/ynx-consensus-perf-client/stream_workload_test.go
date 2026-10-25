@@ -159,6 +159,7 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 		o.nativePreparedCertificate = len(candidates) >= 5 && candidates[4]
 		o.nativeCachedFeeJSON = len(candidates) >= 6 && candidates[5]
 		o.clientProcs2 = len(candidates) >= 8 && candidates[7]
+		o.nativeReplayTiming = len(candidates) >= 9 && candidates[8]
 		if o.clientProcs2 {
 			restore := configureClientProcs(true)
 			defer restore()
@@ -359,6 +360,15 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 			t.Fatal("persisted plan does not bind actual worker scope", plan.NativePrefix)
 		}
 		actual := nativeReader.stats()
+		if plan.NativePrefix.ReplayTiming != o.nativeReplayTiming || (actual.PrefixReplay.WorkPhases.SuffixReplayDetails != nil) != o.nativeReplayTiming {
+			t.Fatal("actual replay child selection differs")
+		}
+		if o.nativeReplayTiming {
+			parts := actual.PrefixReplay.WorkPhases.SuffixReplayDetails
+			if parts.Finalize.Calls == 0 || parts.FinalValidate.Calls != actual.PrefixReplay.WorkPhases.SuffixReplay.Calls || parts.FinalizeDetails == nil || parts.FinalizeDetails.TransactionDetails.NativeFeeEventAppend.Calls == 0 || actual.PrefixReplay.WorkPhases.CertificatePublishDetails == nil {
+				t.Fatal("actual combined signed replay coverage absent")
+			}
+		}
 		if actual.PrefixReplay.PreparedCertificate != o.nativePreparedCertificate || plan.NativePrefix.PreparedCertificate != o.nativePreparedCertificate {
 			t.Fatal("prepared actual backend/plan differs")
 		}
@@ -428,8 +438,8 @@ func testStreamingWorkloadRealExecution(t *testing.T, compressed, native bool, c
 	if err := claimSenderPool(path); err == nil {
 		t.Fatal("completed fixture claim was silently reusable")
 	}
-	if native && o.nativeStreamSubmitters == 0 && !o.clientProcs2 {
-		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, finalNativeStats, o.pacingMode)
+	if native && o.nativeStreamSubmitters == 0 && ((!o.clientProcs2 && !o.nativeReplayTiming) || (o.clientProcs2 && o.nativeReplayTiming)) {
+		exportNativeStreamPublicFixture(t, filepath.Dir(path), o.output, stats, &stream.report, results, finalNativeStats, o.pacingMode, o.nativeReplayTiming)
 	}
 	t.Logf("application_pipeline_only real_signed_executed_persisted=%d sender_slots=%d nonce_cycles=%d evidence_attempted_bytes=%d; quorum flags synthetic, no network TPS", signed, len(results), stats.RoundsCompleted, o.evidenceBudget.AttemptedBytes)
 }

@@ -1364,9 +1364,9 @@ class SupplySourceTests(unittest.TestCase):
             if str(path).endswith("streaming-plan.json"):return raw_plan
             if str(path).endswith("network-manifest.json"):return raw_manifest
             return json.dumps(dict(transactions=initial)).encode()
-        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False,cached=False,pacing="relative",procs2=False):
+        def check(row,canonical=False,suffix=False,tip=False,submitters=8,prepared=False,cached=False,pacing="relative",procs2=False,replay=False):
             with patch.object(supply.stream_evidence,"capture",side_effect=capture),patch.object(supply.stream_evidence,"verify_streams",return_value=proof) as readback:
-                out=supply.validate_native_stream_report(row,network,pacing=pacing,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_cached_fee_json=cached,expected_client_procs2=procs2,expected_input_reuse=True if procs2 else None)
+                out=supply.validate_native_stream_report(row,network,pacing=pacing,expected_canonical_certificate=canonical,expected_native_suffix=suffix,expected_block_tip_hint=tip,expected_submitters=submitters,expected_prepared_certificate=prepared,expected_client_cached_fee_json=cached,expected_client_procs2=procs2,expected_input_reuse=True if procs2 or replay else None,expected_replay_timing=replay)
                 self.assertEqual(readback.call_args.kwargs,dict(measure_latency=True))
                 self.assertEqual(readback.call_args.args[-2:],(4,64<<20))
                 self.assertFalse(out["sustainedTPSQualified"])
@@ -1459,6 +1459,27 @@ class SupplySourceTests(unittest.TestCase):
                 wrong=copy.deepcopy(procs_plan);wrong['nativePrefix'].pop('clientProcs2');raw_plan=json.dumps(wrong).encode();bad['streamingWorkload']['planSha256']=hashlib.sha256(raw_plan).hexdigest()
             with self.subTest(procs2Fault=fault),self.assertRaises(RuntimeError):check(bad,prepared=True,pacing='grouped-cadence4',procs2=True)
             raw_plan=saved_procs_raw
+        replay_plan=copy.deepcopy(procs_plan);replay_plan['profile']='scoped_native_prefix_stream8_prepared_grouped_replay_timing_procs2_v1';replay_plan['nativePrefix']['replayTiming']=True
+        raw_plan=json.dumps(replay_plan).encode();replay_client=copy.deepcopy(procs_client);replay_client['nativeReplayTiming']=True
+        replay_client['streamingWorkload'].update(name=replay_plan['profile'],planSha256=hashlib.sha256(raw_plan).hexdigest())
+        phase=lambda n=1:dict(calls=n,errors=0,durationNs=1 if n else 0)
+        details={n:phase() for n in ('readFrame','decodeRecord','decodeRequest','finalize','verifyResponse','memoryCommit','finalValidate')};details['readFrame']=phase(2);details['checkpointValidate']=phase(0);details['finalize']['durationNs']=10
+        final={n:phase() for n in ('cloneExecutionState','executeTransactions','sealState','buildResponse')};final['executeTransactions']['durationNs']=4
+        final['transactionDetails']={n:phase() for n in ('envelopeType','nativeDecodeVerified','nativeApplyState','nativeFeeEventAppend')};details['finalizeDetails']=final
+        pstats=replay_client['durableReadback']['prefixReplay'];pstats['workPhases']['suffixReplayDetails']=details;pstats['workPhases']['suffixReplay']['durationNs']=30;pstats['durationNs']+=100
+        check(replay_client,prepared=True,pacing='grouped-cadence4',procs2=True,replay=True)
+        with self.assertRaises(RuntimeError):check(replay_client,prepared=True,pacing='grouped-cadence4',procs2=True)
+        for fault in ('marker','plan','children','runtime','profile','mixed'):
+            bad=copy.deepcopy(replay_client);saved_replay_raw=raw_plan
+            if fault=='marker':bad['nativeReplayTiming']=False
+            if fault=='children':bad['durableReadback']['prefixReplay']['workPhases'].pop('suffixReplayDetails')
+            if fault=='runtime':bad['gomaxprocs']=1
+            if fault=='profile':bad['streamingWorkload']['name']=procs_plan['profile']
+            if fault=='mixed':bad['nativeCachedFeeJSON']=True
+            if fault=='plan':
+                wrong=copy.deepcopy(replay_plan);wrong['nativePrefix'].pop('replayTiming');raw_plan=json.dumps(wrong).encode();bad['streamingWorkload']['planSha256']=hashlib.sha256(raw_plan).hexdigest()
+            with self.subTest(replayTimingFault=fault),self.assertRaises(RuntimeError):check(bad,prepared=True,pacing='grouped-cadence4',procs2=True,replay=True)
+            raw_plan=saved_replay_raw
         raw_plan=saved_plan
         # One explicit choice must bind producer expectation, durable plan,
         # top-level report, actual backend and accepted/fallback child counters.

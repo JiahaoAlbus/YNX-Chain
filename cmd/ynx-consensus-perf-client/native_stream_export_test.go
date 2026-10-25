@@ -11,7 +11,7 @@ import (
 // Optional public cross-language fixture for the existing source CI. Copy only
 // original public envelopes/observations/manifests; never sender private keys.
 // Quorum remains a unit gate and is explicitly labelled, never network proof.
-func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats readySenderStats, terminal *terminalStreamReport, latest []transactionResult, reader durableReaderStats, pacing string) {
+func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats readySenderStats, terminal *terminalStreamReport, latest []transactionResult, reader durableReaderStats, pacing string, replayTiming ...bool) {
 	t.Helper()
 	destination := os.Getenv("YNX_NATIVE_STREAM_PUBLIC_FIXTURE_DIR")
 	if reader.PrefixReplay != nil && reader.PrefixReplay.NativeSuffixSetup {
@@ -35,6 +35,9 @@ func exportNativeStreamPublicFixture(t *testing.T, network, output string, stats
 			t.Fatal("cached fee fixture scope differs")
 		}
 		destination = os.Getenv("YNX_NATIVE_CACHED_FEE_PUBLIC_FIXTURE_DIR")
+	}
+	if len(replayTiming) > 0 && replayTiming[0] {
+		destination = os.Getenv("YNX_NATIVE_REPLAY_TIMING_PUBLIC_FIXTURE_DIR")
 	}
 	if destination == "" {
 		return

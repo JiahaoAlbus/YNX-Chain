@@ -434,3 +434,35 @@ def current_input_reuse_measurements(reader,selected=False):
     need(stats['attempts']==stats['hits']+stats['misses']+stats['errors'],'current input lookup attempts/outcomes differ')
     need(stats['lookupNs']>0 if stats['attempts'] else stats['lookupNs']==0,'actual current input lookup timer absent')
     return dict(stats)
+
+
+def suffix_replay_measurements(phases, required=False):
+    """Validate selected local replay children; none are node/disk completion."""
+    detail=phases.get('suffixReplayDetails')
+    need(type(required) is bool and (detail is not None)==required,'suffix replay timing selection differs')
+    if not required:return None
+    frame={'readFrame','decodeRecord','checkpointValidate','decodeRequest','finalize','verifyResponse','memoryCommit','finalValidate'}
+    need(type(detail) is dict and set(detail)==frame|{'finalizeDetails'},'suffix replay child inventory differs')
+    def phase(value):
+        need(type(value) is dict and set(value)=={'calls','errors','durationNs'} and all(type(v) is int and v>=0 for v in value.values()) and value['errors']<=value['calls'],'invalid replay child counter')
+        need(value['calls']>0 or value['errors']==value['durationNs']==0,'empty replay child has work')
+        need(value['calls']==0 or value['durationNs']>0,'active replay child timing absent')
+        return value
+    for name in frame:phase(detail[name])
+    parent=phase(phases['suffixReplay'])
+    need(parent['calls']>0 and detail['finalize']['calls']>0 and sum(detail[n]['durationNs'] for n in frame)<=parent['durationNs'],'suffix children exceed parent or real replay missing')
+    chain=('readFrame','decodeRecord','decodeRequest','finalize','verifyResponse','memoryCommit')
+    need(all(detail[a]['calls']>=detail[b]['calls'] for a,b in zip(chain,chain[1:])) and detail['finalValidate']['calls']<=parent['calls'] and detail['checkpointValidate']['calls']==0,'suffix child branch coverage differs')
+    final=detail['finalizeDetails'];names={'cloneExecutionState','executeTransactions','sealState','buildResponse'}
+    need(type(final) is dict and set(final)==names|{'transactionDetails'},'replay Finalize child inventory differs')
+    for name in names:phase(final[name])
+    need(final['cloneExecutionState']['calls']==detail['finalize']['calls'] and sum(final[n]['durationNs'] for n in names)<=detail['finalize']['durationNs'],'Finalize children exceed parent/call count')
+    chain=('cloneExecutionState','executeTransactions','sealState','buildResponse')
+    need(all(final[a]['calls']>=final[b]['calls'] for a,b in zip(chain,chain[1:])),'Finalize child branch coverage differs')
+    tx=final['transactionDetails'];names={'envelopeType','nativeDecodeVerified','nativeApplyState','nativeFeeEventAppend'}
+    need(type(tx) is dict and set(tx)==names,'replay transaction child inventory differs')
+    for name in names:phase(tx[name])
+    chain=('envelopeType','nativeDecodeVerified','nativeApplyState','nativeFeeEventAppend')
+    need(all(tx[a]['calls']>=tx[b]['calls'] for a,b in zip(chain,chain[1:])) and tx['nativeFeeEventAppend']['calls']>0,'native transaction/fee replay missing or inconsistent')
+    need(sum(tx[n]['durationNs'] for n in names-{'nativeFeeEventAppend'})<=final['executeTransactions']['durationNs'] and tx['nativeFeeEventAppend']['durationNs']<=tx['nativeApplyState']['durationNs'],'transaction children exceed parent; fee append is nested')
+    return dict(details=detail,localReplayOnly=True,nodeDurabilityMeasured=False,interpretation='Frame children are inside suffixReplay; Finalize children inside finalize; fee append inside nativeApplyState. Not additional CPU/wall, node execution, disk durability or earliest BFT formation.')
