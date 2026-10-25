@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import {withMacDmgSource} from './mac-dmg-source.mjs';
 import {verifyPackagedPQVerifierAssets} from '../src/wallet-pq-verifier-assets.mjs';
 import {originalPQVerifierReceipt} from '../src/wallet-pq-runtime-component.mjs';
+import {assertSelectedProofVerifierForSDK} from './proof-verifier-source-policy.mjs';
 
 if (process.platform !== "darwin") throw new Error("Build the macOS package on macOS");
 const arch = process.argv[2] || "universal";
@@ -25,6 +26,8 @@ for(const option of extra){
 }
 if((electronDist!==null)!==noRebuild)throw Error('LOCAL_ELECTRON_DIST_AND_NO_REBUILD_REQUIRED');
 if(arch==='arm64'&&proofVerifierStage===null)throw Error('PQ_VERIFIER_BUILD_STAGE_REQUIRED');
+const matchedSDK=JSON.parse(await readFile(new URL('../../../packages/wallet-auth/package.json',import.meta.url),'utf8'));
+assertSelectedProofVerifierForSDK(matchedSDK.version,originalPQVerifierReceipt);
 if(proofVerifierStage!==null)await verifyPackagedPQVerifierAssets(proofVerifierStage,originalPQVerifierReceipt);
 const metadata = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
 if(electronDist!==null){
