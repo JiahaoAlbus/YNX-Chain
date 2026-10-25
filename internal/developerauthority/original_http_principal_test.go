@@ -40,6 +40,12 @@ func principalHTTPFixtureWithLifetime(t *testing.T, lifetime time.Duration) (*Or
 		t.Fatal("PUBLIC session fixture lifetime invalid")
 	}
 	deadline := time.Now().Add(lifetime).UnixMilli()
+	// One original HTTP observation expires independently, never at the longer
+	// session deadline, and every recheck returns SAME fixed expiry (no renewal).
+	observationDeadline := time.Now().Add(30 * time.Second).UnixMilli()
+	if deadline < observationDeadline {
+		observationDeadline = deadline
+	}
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var in originalHTTPPrincipalInput
 		if json.NewDecoder(r.Body).Decode(&in) != nil {
@@ -59,7 +65,7 @@ func principalHTTPFixtureWithLifetime(t *testing.T, lifetime time.Duration) (*Or
 		}
 		original, _ := json.Marshal(p)
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{"version": "YNX-ORIGINAL-DEVELOPER-HTTP-PRINCIPAL/v1", "principalOriginal": string(original), "principalSHA256": hash(original), "profileDigest": strings.Repeat("b", 64), "currentRaw": "PUBLIC-no-real-Root-source", "method": in.Method, "path": in.Path, "bodyDigest": hash([]byte(in.Body)), "expiresAtMs": deadline, "dataOnly": true, "authorized": false, "nativeAdmission": false})
+		_ = json.NewEncoder(w).Encode(map[string]any{"version": "YNX-ORIGINAL-DEVELOPER-HTTP-PRINCIPAL/v1", "principalOriginal": string(original), "principalSHA256": hash(original), "profileDigest": strings.Repeat("b", 64), "currentRaw": "PUBLIC-no-real-Root-source", "method": in.Method, "path": in.Path, "bodyDigest": hash([]byte(in.Body)), "expiresAtMs": observationDeadline, "dataOnly": true, "authorized": false, "nativeAdmission": false})
 	}))
 	server.Config.ErrorLog = log.New(io.Discard, "", 0)
 	server.StartTLS()
@@ -86,6 +92,39 @@ func actualPrincipalRequest() *http.Request {
 	r.Header.Set("x-request-id", "req_PUBLIC_ORIGINAL_12345")
 	r.Header.Set(originalHTTPProofHeader, "PUBLIC-no-device-crypto-in-this-transport-fixture")
 	return r
+}
+
+func TestOriginalIDEFactoryPrincipalSessionAndObservationWindowsRemainIndependent(t *testing.T) {
+	started := time.Now().UnixMilli()
+	o, _ := principalHTTPFixtureWithLifetime(t, 3*time.Minute)
+	p, e := o.CurrentExistingPrincipal(context.Background(), actualPrincipalRequest())
+	if e != nil {
+		t.Fatal("longer PUBLIC session cannot widen HTTP observation", e)
+	}
+	if p.ExpiresMS <= started+60000 {
+		t.Fatal("session fixture was not independently longer")
+	}
+	o.mu.Lock()
+	var expires int64
+	for _, r := range o.records {
+		if r.phase == "verified" {
+			expires = r.expires
+		}
+	}
+	o.mu.Unlock()
+	if expires <= started || expires > time.Now().UnixMilli()+30000 {
+		t.Fatal("HTTP observation exceeds original30s bound")
+	}
+	if e = o.AssertPrincipalCurrent(context.Background(), p); e != nil {
+		t.Fatal(e)
+	}
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	for _, r := range o.records {
+		if r.phase == "verified" && r.expires != expires {
+			t.Fatal("HTTP recheck renewed original observation")
+		}
+	}
 }
 
 func TestOriginalHTTPPrincipalActualTLSNormalMethodsAndExactBigIntegers(t *testing.T) {
