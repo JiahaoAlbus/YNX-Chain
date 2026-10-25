@@ -23,3 +23,25 @@ test('changing call mode to deploy discards call approval state',async()=>{const
 test('new failed call review cannot reuse the earlier successful draft',async()=>{let previews=0;const f=callFixture(async action=>{if(action==='execution-preview'){if(++previews===2)throw Object.assign(Error('PUBLIC invalid'),{code:'PQ_NATIVE_ACTION_INVALID'});return{draftId:referenceId,referenceId,broadcastReferenceId,review:{},authorized:false};}return{};});await tick();fillCall(f.widget);f.widget.buttons.review.click();await tick();assert.equal(f.widget.buttons.prepare.disabled,false);f.widget.buttons.review.click();await tick();assert.equal(f.widget.buttons.prepare.disabled,true);assert.equal(f.widget.buttons.broadcast.disabled,true);assert.ok(f.widget.status.textContent.includes('storage commitment'));f.widget.dispose();});
 test('reopen restores only query reference, never a call payload or signing state',async()=>{const f=callFixture();f.widget.restoreState({referenceId:broadcastReferenceId,mode:'execute',calldata:'PUBLIC-untrusted',prepared:true});await tick();assert.equal(f.widget.fields.referenceId.value,broadcastReferenceId);assert.equal(f.widget.fields.mode.value,'deploy');assert.equal(f.widget.fields.calldata.value,'');assert.equal(f.widget.buttons.prepare.disabled,true);assert.deepEqual(Object.keys(f.widget.storeState()),['referenceId']);assert.equal(f.calls.filter(c=>c.action.startsWith('execution-')).length,0);f.widget.dispose();});
 test('selecting another saved reference cannot sign the earlier call draft',async()=>{const f=callFixture();await tick();fillCall(f.widget);f.widget.buttons.review.click();await tick();assert.equal(f.widget.buttons.prepare.disabled,false);f.widget.fields.referenceId.value=broadcastReferenceId;f.widget.fields.referenceId.listeners.get('input')();assert.equal(f.widget.buttons.prepare.disabled,true);assert.equal(f.widget.buttons.broadcast.disabled,true);f.widget.buttons.prepare.click();await tick();assert.equal(f.calls.filter(c=>c.action==='execution-prepare').length,0);f.widget.dispose();});
+
+for(const operation of ['deployment','execution'])test(operation+' pending signing can be cancelled without adopting a late success or replaying the request',async()=>{
+ let finish;const f=fixture(async(action,body)=>{
+  if(action==='inspect')return{onlineConfigured:true};
+  if(action.endsWith('-preview'))return{draftId:referenceId,referenceId,broadcastReferenceId,authorized:false};
+  if(action.endsWith('-prepare'))return new Promise(resolve=>{finish=resolve;});
+  if(action==='cancel')return{state:'cancelled',queryOnly:true};
+  return{queryOnly:true};
+ });await tick();
+ if(operation==='execution')fillCall(f.widget);else{for(const key of ['sourceURI','artifactURI','buildInfoURI'])f.widget.fields[key].value='file:///PUBLIC/'+key;f.widget.fields.name.value='SampleEVMWriteCounter';f.widget.fields.constructorArg.value='1';}
+ f.widget.buttons.review.click();await tick();f.widget.buttons.prepare.click();await tick();
+ assert.ok(f.widget.buttons.cancel,'pending Wallet requests need an explicit cancellation action');
+ assert.equal(f.widget.buttons.cancel.disabled,false);f.widget.buttons.cancel.click();await tick();
+ assert.equal(f.calls.filter(c=>c.action==='cancel').length,1);
+ assert.equal(f.widget.fields.referenceId.value,referenceId,'retain the original query reference');
+ assert.equal(f.widget.buttons.prepare.disabled,true);assert.equal(f.widget.buttons.broadcast.disabled,true);
+ finish({reference:{state:'saved',operationId:'PUBLIC-late'},result:{savedLocally:true,submitted:false}});await tick();
+ assert.equal(f.widget.buttons.prepare.disabled,true);assert.equal(f.widget.buttons.broadcast.disabled,true);
+ assert.ok(!f.widget.output.textContent.includes('PUBLIC-late'));
+ assert.equal(f.calls.filter(c=>c.action===operation+'-prepare').length,1);
+ f.widget.buttons.query.click();await tick();assert.equal(f.calls.at(-1).action,'query');assert.equal(f.calls.at(-1).body.referenceId,referenceId);f.widget.dispose();
+});

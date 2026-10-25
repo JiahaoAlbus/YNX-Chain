@@ -7,7 +7,7 @@ function element(document,tag,text){const node=document.createElement(tag);if(te
 class ContractDeploymentWidget extends BaseWidget{
  constructor(project,target,commands,translate){
   super();this.id=ID;this.title.label=translate('deployTitle','Review testnet deployment');this.title.caption=this.title.label;this.title.closable=true;this.title.iconClass='codicon codicon-rocket';
-  const document=this.node.ownerDocument,t=(key,text)=>translate(key,text);let live=true,epoch=0,busy=false,configured=false,draft,entered=false,prepared=false,broadcastEntered=false;
+  const document=this.node.ownerDocument,t=(key,text)=>translate(key,text);let live=true,epoch=0,busy=false,configured=false,draft,entered=false,prepared=false,broadcastEntered=false,cancelling=false;
   const status=element(document,'p',t('deployNote','Supports the two admitted YNX Testnet contracts. Review real compiler files, then approve signing and broadcast separately in Wallet.'));status.setAttribute('role','status');
   const legacyNotice=element(document,'p');legacyNotice.hidden=true;legacyNotice.setAttribute('role','status');
   const output=element(document,'pre');output.setAttribute('aria-live','polite');this.fields={};this.buttons={};
@@ -21,7 +21,7 @@ class ContractDeploymentWidget extends BaseWidget{
   }
   const callFields=['target','sourceHash','deployedBytecodeHash','compilerConfigHash','expectedStorageCommitment','calldata'];
   for(const key of callFields){const label=t('executeField'+key,{target:'Deployed contract address',sourceHash:'Registered source hash',deployedBytecodeHash:'Deployed bytecode hash',compilerConfigHash:'Compiler configuration hash',expectedStorageCommitment:'Expected storage commitment',calldata:'Encoded function call'}[key]),input=element(document,'input'),caption=element(document,'label',label);input.type='text';input.className='theia-input';input.maxLength=4096;input.value='';input.setAttribute('aria-label',label);caption.append(input);this.node.append(caption);this.fields[key]=input;labels[key]=caption;}
-  const refresh=()=>{const executing=mode.value==='execute';for(const[key,button]of Object.entries(this.buttons)){button.disabled=busy||(key==='prepare'&&(!configured||!draft||entered))||(key==='broadcast'&&(!configured||!prepared||broadcastEntered))||(key==='query'&&!configured);if(['sourceURI','artifactURI','buildInfoURI'].includes(key))button.hidden=executing;}for(const input of Object.values(this.fields))input.disabled=busy;for(const key of ['sourceURI','artifactURI','buildInfoURI','constructorArg'])labels[key].hidden=executing;for(const key of callFields)labels[key].hidden=!executing;if(this.buttons.review)this.buttons.review.textContent=executing?t('executeReview','Review contract call'):t('deployButtonreview','Review compiler materials');recent.disabled=busy;};
+  const refresh=()=>{const executing=mode.value==='execute';for(const[key,button]of Object.entries(this.buttons)){button.disabled=key==='cancel'?(!busy||cancelling):busy||(key==='prepare'&&(!configured||!draft||entered))||(key==='broadcast'&&(!configured||!prepared||broadcastEntered))||(key==='query'&&!configured);if(['sourceURI','artifactURI','buildInfoURI'].includes(key))button.hidden=executing;}for(const input of Object.values(this.fields))input.disabled=busy;for(const key of ['sourceURI','artifactURI','buildInfoURI','constructorArg'])labels[key].hidden=executing;for(const key of callFields)labels[key].hidden=!executing;if(this.buttons.review)this.buttons.review.textContent=executing?t('executeReview','Review contract call'):t('deployButtonreview','Review compiler materials');recent.disabled=busy;};
   const invalidate=()=>{epoch++;draft=undefined;entered=false;prepared=false;broadcastEntered=false;output.textContent='';status.textContent=t('contractReviewRequired','Review the current materials or contract call before requesting Wallet approval.');refresh();};
   name.addEventListener('change',invalidate);this.fields.constructorArg.addEventListener('input',invalidate);
   mode.addEventListener('change',invalidate);for(const key of callFields)this.fields[key].addEventListener('input',invalidate);
@@ -31,7 +31,7 @@ class ContractDeploymentWidget extends BaseWidget{
     const request=++epoch;busy=true;refresh();void Promise.resolve().then(()=>{if(typeof target.ynxDesktopFiles?.open!=='function')throw Error('Native picker unavailable');return target.ynxDesktopFiles.open({kind:'file'});}).then(result=>{if(!live||epoch!==request||result.cancelled||result.openedInNewWindow||!result.uris?.length)return;this.fields[key].value=result.uris[0];draft=undefined;entered=false;prepared=false;broadcastEntered=false;output.textContent='';},()=>{if(live&&epoch===request)status.textContent=t('deployUnavailable','Deployment service or materials are unavailable. Existing requests were preserved.');}).finally(()=>{if(live&&epoch===request){busy=false;refresh();}});
   });
   const call=async action=>{
-    if(action.endsWith('-preview')||action==='references'){draft=undefined;entered=false;prepared=false;broadcastEntered=false;}
+    if(action.endsWith('-preview')||action==='references'||action==='cancel'){draft=undefined;entered=false;prepared=false;broadcastEntered=false;}
     const request=++epoch;busy=true;refresh();
     try{
       let body;
@@ -52,6 +52,13 @@ class ContractDeploymentWidget extends BaseWidget{
   button('connect','Open project Wallet',()=>void commands.executeCommand('ynx.workbench.wallet'));
   button('prepare','Request signing review',()=>void call(action('prepare')));
   button('broadcast','Request separate broadcast review',()=>void call(action('broadcast')));
+  // Retire this project's pending attempt through the existing host. Advancing
+  // the epoch prevents a late Wallet reply from restoring signing authority.
+  // Cancellation does not undo a signature or submission: retain the reference.
+  button('cancel','Cancel pending request',()=>{
+    if(cancelling)return;cancelling=true;
+    void call('cancel').finally(()=>{if(live){cancelling=false;refresh();}});
+  });
   button('read','Read saved reference',()=>void call('read'));
   button('references','Find saved project requests',()=>void call('references'));
   button('query','Query original Wallet result',()=>void call('query'));
