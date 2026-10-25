@@ -202,6 +202,18 @@ export function decodePQMigrationRequest(wire) {
   }
   return {intent, intentBytes: Buffer.from(f[1]), currentAuthorization, classicPublicKey: Buffer.from(f[2]), classicSignature: Buffer.from(f[3]), currentPQMember: Buffer.from(f[4]), newKeyWholeProof: Buffer.from(f[5])};
 }
+/** Exact proposed-pair possession math only. Original Auth still verifies the
+ * old signer, genuine current Source and independent migration permission. */
+export function verifyPQMigrationPossessionData(newKeyWholeProof,expectedIntent){
+  const intent=normalizePQRegistrationIntent(expectedIntent),message=encodePQRegistrationIntent(intent),wire=copyWire(newKeyWholeProof,131072),w=decodeWhole(wire),c=w.certificate;
+  certificateMatches(c,intent,'ACCOUNT-MIGRATION');
+  if(c.N!==1||w.messages.length!==1||!w.messages[0].equals(message)||!c.pkA.equals(pqHex(intent.pkA,2592))||!c.pkB.equals(pqHex(intent.pkB,64)))throw pqError('PQ_NEW_KEY_PROOF_MISMATCH');
+  // Local math coordinate only, never actual height or an active policy. This
+  // transient pair resolver cannot become a branded registered snapshot.
+  const verifier=createVerifier({provider:'portable',chainId:pqHex(intent.chainId,32),purpose:'ACCOUNT-MIGRATION',cacheEntries:0,resolveTrustedOwner:()=>({algorithmVersion:VERSION,enabled:true,chainId:pqHex(intent.chainId,32),owner:intent.owner,pkA:pqHex(intent.pkA,2592),pkB:pqHex(intent.pkB,64),purpose:'ACCOUNT-MIGRATION',policyRevision:'new-pair-possession-math-only',activeFrom:0,revokedAt:null})});
+  try{if(!verifier.verifyWhole(wire,{height:0}))throw pqError('PQ_MIGRATION_POSSESSION_SIGNATURE_INVALID');}finally{verifier.clear();}
+  return Object.freeze({intent,purpose:'ACCOUNT-MIGRATION',N:1,signatureVerified:true,dataOnly:true,registered:false,current:false,SourceAdmission:false,NativeAdmission:false,approval:false});
+}
 export function encodePQMigrationRequest(value) {
   exactPQRecord(value, ['intent', 'classicPublicKey', 'classicSignature', 'currentPQMember', 'newKeyWholeProof']);
   const proof = (bytes, max) => {

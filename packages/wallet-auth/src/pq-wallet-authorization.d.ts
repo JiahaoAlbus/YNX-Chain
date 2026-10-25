@@ -41,6 +41,9 @@ export function decodePQRegistrationIntent(wire: Uint8Array): Readonly<PQRegistr
 /** Binds full intent/context and N1 new-key Whole, validates the classic branch;
  * PQ signature math and actual current registration are not granted by decoding. */
 export function decodePQMigrationRequest(wire: Uint8Array): PQDecodedMigration;
+/** Proposed new pair possession only; does not verify current old-account
+ * authority, register keys, approve migration or perform network operations. */
+export function verifyPQMigrationPossessionData(newKeyWholeProof:Uint8Array,expectedIntent:PQRegistrationIntentInput):Readonly<{intent:Readonly<PQRegistrationIntent>;purpose:'ACCOUNT-MIGRATION';N:1;signatureVerified:true;dataOnly:true;registered:false;current:false;SourceAdmission:false;NativeAdmission:false;approval:false}>;
 export function encodePQMigrationRequest(value: PQMigrationProofs): Uint8Array;
 export function pqWireHash(wire: Uint8Array): string;
 export function preparePQAuthorizationQuery(owner: string): Readonly<{method: 'GET'; path: string}>;
