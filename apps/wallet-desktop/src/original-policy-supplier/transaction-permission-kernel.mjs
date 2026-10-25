@@ -132,6 +132,10 @@ export class TransactionPermissionKernel {
  }
  close(){
   if(this.#closing)return this.#closing;
+  // Close selection revokes effects synchronously, before the cleanup task's
+  // first microtask/await. Keep the original result/first cause and still run
+  // the actual retire/join/close exactly once below; never pretend it drained.
+  if(!this.#hasFirst)this.#phase='retired';
   this.#closing=Promise.resolve().then(async()=>{
    let first,failed=false,joined=false;const attempt=async fn=>{try{if(await fn()!==undefined)fail('AUTH_TX_PERMISSION_CLOSE_UNKNOWN');}catch(e){if(!failed){first=e;failed=true;}}};
    await attempt(()=>this.retire());await attempt(async()=>{await this.join();joined=true;});if(joined)await attempt(()=>this.#peer.close());
