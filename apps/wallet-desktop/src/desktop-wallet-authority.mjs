@@ -603,28 +603,26 @@ export class DesktopWalletAuthority {
       case 'ynx_signPQNativeTransfer': {
         const reviewed=this.#pqReviews.get(pending),store=this.transactionSender?.submissions?.intentStore;
         if(!reviewed||!store||typeof this.vault.withPQKeys!=='function')throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original policy, Vault and journal are required.');
+        if(!this.#pqTxSource||!this.#pqTxRecognized||!capsule)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','A separate original transaction approval is required; no fallback signer is available.');
         const {snapshot:refreshed}=await reviewed.owner.recheck();guard.assert();assertPQAuthorizationCurrent(reviewed.snapshot,refreshed);
         const plan=planPQNativeTransfer(refreshed,reviewed.plan.transfer);guard.assert();
         const request=deepFreeze({action:'sign',networkId:this.#pqNetworkId,nativeChainId:'6423',account:status.account,operationId:pending.id,origin:'ynx-wallet:local-pq',transfer:{...plan.transfer},requestDigest:createHash('sha256').update(encodePQNativeTransfer(plan.transfer)).digest('hex'),policyRevision:pending.review.policyRevision,expiresAt:pending.review.expiresAt});
         let auth,borrowed,hash,failed=false;
         try{
-          if(this.#pqTxSource!==null||capsule!==undefined){
-            if(!this.#pqTxSource||!this.#pqTxRecognized||!capsule)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','A real transaction approval is required.');
-            borrowed=this.#borrowPQTransactionReview(pending,reviewed,guard,request);
-            try{auth=await this.#pqTxSource(request,capsule,borrowed.borrow);}
-            catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value')&&d.value){auth=d.value;this.#pqTxOwners.add(auth);}throw error;}
-            this.#pqTxOwners.add(auth);guard.assert();
-            if(this.#pqTxRecognized(auth)!==true)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original transaction permission is not recognized.');
-            await auth.recheck();auth.assertCurrent();guard.assert();
-          }
+          borrowed=this.#borrowPQTransactionReview(pending,reviewed,guard,request);
+          try{auth=await this.#pqTxSource(request,capsule,borrowed.borrow);}
+          catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value')&&d.value){auth=d.value;this.#pqTxOwners.add(auth);}throw error;}
+          this.#pqTxOwners.add(auth);guard.assert();
+          if(this.#pqTxRecognized(auth)!==true)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original transaction permission is not recognized.');
+          await auth.recheck();auth.assertCurrent();guard.assert();
           await store.reserveOriginal(status.account,'pq-transfer');
           guard.assert();await this.vault.withPQKeys(pqRegisteredPublicBinding(refreshed),handle=>{
-            guard.assert();if(auth)auth.enterSign();const signed=signPQWalletNativeTransfer(handle,plan.transfer,refreshed);
+            guard.assert();auth.enterSign();const signed=signPQWalletNativeTransfer(handle,plan.transfer,refreshed);
             const original=createPQOriginalRecord({account:status.account,kind:'pq-transfer',operationId:pending.id,request:signed});
             store.captureOriginal(status.account,original,'pq-transfer');hash=original.hash;
-            if(auth){borrowed.captureProduced(hash);auth.complete({outcome:'returned',transportHash:hash});}guard.assert();
-          },auth?Object.freeze({assert:()=>{permission.assert();auth.assertCurrent();}}):permission);
-          const current=()=>{guard.assert();auth?.assertCurrent();};
+            borrowed.captureProduced(hash);auth.complete({outcome:'returned',transportHash:hash});guard.assert();
+          },Object.freeze({assert:()=>{permission.assert();auth.assertCurrent();}}));
+          const current=()=>{guard.assert();auth.assertCurrent();};
           current();const saved=await store.saveOriginal(status.account,hash,current);current();return success(saved);
         }catch(error){failed=true;store.originalFailed(status.account,error);throw error;}
         finally{if(auth)try{await this.#closePQTransactionPermission(auth);}catch(error){if(!failed)throw error;}else borrowed?.borrow.retire();}
