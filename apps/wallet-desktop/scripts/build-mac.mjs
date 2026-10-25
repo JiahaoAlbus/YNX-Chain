@@ -6,6 +6,7 @@ import {withMacDmgSource} from './mac-dmg-source.mjs';
 import {verifyPackagedPQVerifierAssets} from '../src/wallet-pq-verifier-assets.mjs';
 import {originalPQVerifierReceipt} from '../src/wallet-pq-runtime-component.mjs';
 import {assertSelectedProofVerifierForSDK} from './proof-verifier-source-policy.mjs';
+import {verifySDK13HelperBundle,SDK13_HELPER_ASSET,SDK13_HELPER_PLIST} from './sdk13-native-component.mjs';
 
 if (process.platform !== "darwin") throw new Error("Build the macOS package on macOS");
 const arch = process.argv[2] || "universal";
@@ -46,6 +47,13 @@ const result = spawnSync(process.execPath, [fileURLToPath(new URL("../node_modul
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
 const appDir = path.join(root, "dist", arch === "x64" ? "mac" : `mac-${arch}`, `${metadata.build.productName}.app`);
+// Fail before DMG production if outer packaging/signing omitted, moved or
+// rewrote either member of the frozen SDK46 original helper pair.
+if(matchedSDK.version==='1.3.0-pq.3.32-auth.46')verifySDK13HelperBundle(
+  path.join(appDir,'Contents'),
+  await readFile(path.resolve(root,'../..',SDK13_HELPER_ASSET)),
+  await readFile(path.resolve(root,'../..',SDK13_HELPER_PLIST))
+);
 // Verify again AFTER builder signing. The exact nested binary is signIgnored;
 // any unexpected re-sign/rewrite is a failed build, not a replacement receipt.
 if(proofVerifierStage!==null)await verifyPackagedPQVerifierAssets(path.join(appDir,'Contents','Resources'),originalPQVerifierReceipt);

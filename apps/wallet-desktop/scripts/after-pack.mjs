@@ -51,6 +51,12 @@ export default async function afterPack(context) {
   await writeFile(path.join(resources, WALLETCONNECT_PUBLIC_CONFIG_FILE), JSON.stringify(buildPublicWalletConnectConfig(), null, 2) + "\n");
   if (context.electronPlatformName !== "darwin") return;
   const sdk=JSON.parse(await readFile(path.resolve(context.packager.projectDir,'../../packages/wallet-auth/package.json'),'utf8'));
+  // SDK46's frozen Native100/helper105 arm64 pair uses the same original
+  // normal stager and exact Library destinations, never extraFiles/manual copy.
+  if(sdk.version==='1.3.0-pq.3.32-auth.46'){
+    if(context.arch!==3)throw Error('SDK46 paired component is arm64 only');
+    stageSDK13HelperBundle({contents:path.join(context.appOutDir,`${context.packager.appInfo.productFilename}.app`,'Contents'),projectDir:context.packager.projectDir});
+  }
   if(['1.3.0-pq.3.32-auth.5','1.3.0-pq.3.32-auth.6'].includes(sdk.version)){
     if(context.arch!==3)throw Error('Original R155 paired component is arm64 only');
     stageOriginalR155HelperBundle({contents:path.join(context.appOutDir,`${context.packager.appInfo.productFilename}.app`,'Contents'),projectDir:context.packager.projectDir});
