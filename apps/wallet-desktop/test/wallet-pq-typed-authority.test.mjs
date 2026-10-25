@@ -148,6 +148,13 @@ test('connected contract pending requires explicit Wallet approval; cold origina
  assert.equal(result.result.status,'submission-unknown');assert.equal(result.result.queryOnly,true);assert.equal(result.result.canRetry,false);assert.equal(result.result.transportHash,saved.hash);assert.equal(result.result.memberHash,saved.typed.memberHash);assert.equal(Object.hasOwn(result.result,'wire'),false);
  const recovery=await f.lifecycle.run(()=>f.authority.request({...query,params:[{version:1,account:f.account,originalRequestKeyHash:saved.typed.initiator.requestKeyHash,refresh:false}]},connect('reopen-after-lost-response')));
  assert.equal(recovery.result.operationId,saved.operationId);assert.equal(recovery.result.status,'submission-unknown');
+ // A fresh Authority has neither the old inbox nor its old signing/broadcast
+ // suppliers. A newly authenticated same-origin session can still query the
+ // exact protected original by its OLD request hash, never re-enter effects.
+ const coldStore=new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')}),coldAuthority=new DesktopWalletAuthority({vault:f.vault,permissions:f.authority.permissions,transactionSender:{submissions:{intentStore:coldStore}},pqNetworkId:saved.typed.review.action.chainId});
+ const freshConnection=captureWalletPQConnection({origin,account:f.account,sessionBinding:'PUBLIC fresh authenticated namespace after close',requestKey:JSON.stringify(['new-topic-after-reopen',93]),assertCurrent(){}});
+ const cold=await f.lifecycle.run(()=>coldAuthority.request({...query,params:[{version:1,account:f.account,originalRequestKeyHash:saved.typed.initiator.requestKeyHash,refresh:false}]},freshConnection));
+ assert.equal(cold.result.operationId,saved.operationId);assert.equal(cold.result.transportHash,saved.hash);assert.equal(cold.result.memberHash,saved.typed.memberHash);assert.equal(cold.result.status,'submission-unknown');assert.equal(cold.result.queryOnly,true);assert.equal(cold.result.canRetry,false);assert.equal(f.counts.sign,1);assert.equal(f.counts.posts,0);await coldAuthority.shutdownPQReviews();
  f.authority.transactionSender.submissions.checkPQ=async()=>{throw Error('PUBLIC_OFFLINE')};
  await assert.rejects(f.lifecycle.run(()=>f.authority.request({...query,params:[{...query.params[0],refresh:true}]},connect('offline-read-request'))),/PUBLIC_OFFLINE/);
  assert.equal((await f.store.readPQProgress(f.account,saved.hash,()=>{})).status,'submission-unknown');
