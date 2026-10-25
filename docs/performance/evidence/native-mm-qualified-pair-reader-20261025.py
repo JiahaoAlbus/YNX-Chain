@@ -115,7 +115,9 @@ try:
   assert sample['availableMemoryBytes']>=floors['nativeMemAvailableFloorBytes'] and sample['freeDiskBytes']>=floors['diskFloorBytes']+floors['rootReserveBytes']
  assert pair['samples'][0]['freeDiskBytes']>=sum(floors[k] for k in ('diskFloorBytes','rootReserveBytes','compileReserveBytes','initialPrivateReserveBytes'))
  spec=importlib.util.spec_from_file_location('original_pair_zip',reader_dir/'native-stream-artifact.py');reader=importlib.util.module_from_spec(spec);spec.loader.exec_module(reader)
- controller=reader.load('supply-linux-window');controller.validate_exit_mm_samples(dict(nativeExitMMProof=True,samples=pair['samples']+[term['postFsyncSample']]),True)
+ controller_spec=importlib.util.spec_from_file_location('original_mm_controller',reader_dir/'supply-linux-window.py')
+ controller=importlib.util.module_from_spec(controller_spec);controller_spec.loader.exec_module(controller)
+ controller.validate_exit_mm_samples(dict(nativeExitMMProof=True,samples=pair['samples']+[term['postFsyncSample']]),True)
  archive_proof_path=capture.parent/'complete-original-public-recovery.json';archive_proof=read(archive_proof_path);artifact=read(logpath.parent/'original-artifact-api.json')
  assert type(artifact['id']) is int and artifact['id']>0 and artifact['workflow_run']['id']==api['id'] and artifact['workflow_run']['head_sha']==contract['sourceCommit']
  assert archive_proof['artifact']['artifactId']==artifact['id'] and archive_proof['artifact']['bytes']==artifact['size_in_bytes'] and archive_proof['artifact']['head']==contract['sourceCommit']
@@ -168,9 +170,25 @@ try:
    assert not {worker['pid'],client_exit['pid']}<={p['pid'] for p in sample['tasks']}
    assert len(sample['tasks'])<=caps['ownedProcesses'] and sample.get('processLogBytes',0)<=caps['perCaseProcessLogBytes']
    assert sample['availableMemoryBytes']>=floors['nativeMemAvailableFloorBytes'] and sample['freeDiskBytes']>=floors['diskFloorBytes']+floors['rootReserveBytes']
-  code="import fs from 'node:fs';import{pathToFileURL}from'node:url';const{readNodePhaseTiming:r}=await import(pathToFileURL(process.argv[1]).href);console.log(JSON.stringify(process.argv.slice(2).map(p=>r(fs.readFileSync(p,'utf8')))));"
-  parsed=json.loads(subprocess.check_output(['/opt/homebrew/bin/node','--input-type=module','-e',code,str(reader_dir/'node-phase-timing.mjs')]+[str(root/('abci-'+str(i)+'.log')) for i in range(4)],timeout=10))
-  assert parsed==row['nodePhases'],'original node logs/phase receipt differ'
+  # Reuse the already completed original node-parser audit; do not rerun it.
+  phase_audit_path=capture.parent/'original-business-checkpoint-phases-01.json'
+  assert pin(phase_audit_path)['bytes']==99973 and pin(phase_audit_path)['sha256']=='faa8d86b61559b28e40377bb3a1df2dc3cbd80b5e932144af58834f082a41352'
+  phase_audit=read(phase_audit_path);audit_case=phase_audit['cases'][index]
+  assert phase_audit['runId']==40113221553 and phase_audit['sourceCommit']==contract['sourceCommit']
+  assert audit_case['name']==case and audit_case['effectiveTransactions']==8192 and audit_case['replicas']==4 and len(audit_case['nodes'])==4
+  parsed=row['nodePhases'];assert len(parsed)==4
+  for node_index,audited in enumerate(audit_case['nodes']):
+   original_log=root/('abci-'+str(node_index)+'.log')
+   assert audited['node']==node_index and audited['completeLogValidated'] is True and audited['source']==pin(original_log)
+   assert audited['cumulativeHandlerTimings']==parsed[node_index]['stages']
+   business=[b for b in parsed[node_index]['blockExecutionClock']['blocks'] if b['transactions']>0]
+   assert len(business)==audited['businessBlocks'] and sum(b['transactions'] for b in business)==audited['businessTransactions']==8192
+   checkpoints=audited['actualCheckpointSamples'];assert len(checkpoints)==parsed[node_index].get('checkpointSamples',0)
+   totals={}
+   for checkpoint in checkpoints:
+    for stage,ns in checkpoint['stagesNs'].items():totals[stage]=totals.get(stage,0)+ns
+   assert totals==parsed[node_index].get('checkpointTotalsNs',{})
+  result['originalNodeParserAuditReused']=pin(phase_audit_path)
   client_raw=(root/'network/transactions-result.json').read_bytes();assert len(client_raw)<=16<<20 and hashlib.sha256(client_raw).hexdigest()==row['resultSHA256']
   client=json.loads(client_raw)
   assert client['streamingWorkload']['evidenceVerified'] is True and not client.get('setupErrors')

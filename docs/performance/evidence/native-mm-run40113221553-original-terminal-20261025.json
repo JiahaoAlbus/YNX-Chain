@@ -41,8 +41,8 @@
     "sustainedTPSQualified": false
   },
   "originalSlotReturned": true,
-  "independentNativePairQualified": null,
-  "independentReadbackPending": true,
+  "independentNativePairQualified": true,
+  "independentReadbackPending": false,
   "sustainedTPSQualified": false,
   "originalAPI": {
     "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/native-complete-run-api.json",
@@ -373,5 +373,31 @@
     "bytes": 2866,
     "sha256": "c99ea6886c1603c391a666b4efa80314afd616b728bf4f77c76a13c1f38ae467",
     "completeArchiveQualified": false
+  },
+  "recoveryProgress265": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/original-member-progress-07-before.json",
+    "bytes": 117654,
+    "sha256": "eb74000262126c0848f08d2b4ae509f19989977bd984e84c797653ff20a89d2a",
+    "total": 549,
+    "complete": 265,
+    "missing": 284,
+    "missingBytes": 14352872,
+    "cacheBlocks": 138,
+    "orphanBodies": 0
+  },
+  "independentVerdict": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/independent-native-verdict-01.json",
+    "bytes": 543369,
+    "sha256": "9f280f584b43af1676ab22238403f6d2cf8996c41dc6a414a2d1db64b8717e67"
+  },
+  "fullOriginalRecovery": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/complete-original-public-recovery.json",
+    "bytes": 57520,
+    "sha256": "918df875ac82d8fb4720b0c79b2c7e8774616714f5d9917605874c61fc352f2f"
+  },
+  "completedMetrics": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-prepared-grouped-mm-pair-run-40113221553/qualified-metrics-and-node-completion-01.json",
+    "bytes": 22235,
+    "sha256": "254a6a5c0dc6718a773e83e0fafd620619dfe23ba4ecf90f0653c7e0747bc097"
   }
 }

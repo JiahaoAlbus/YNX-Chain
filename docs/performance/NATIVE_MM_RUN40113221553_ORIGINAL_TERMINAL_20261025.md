@@ -1,5 +1,7 @@
 # Original MM proof cadence run40113221553
 
+Completion update: full549-member original recovery and independent native/business/resource qualification now PASS. See `NATIVE_MM_RUN40113221553_QUALIFIED_20261025.md` and `evidence/native-mm-run40113221553-qualified-20261025.json`. The earlier pending descriptions below are historical capture-stage status; sustained1000TPS remains unproven.
+
 The original normal workflow completed SUCCESS on frozen SOURCEd24e97b8d3373e294a9d7992e07b4ef532bd6dcf / CODEa02fa84574e2e61c379c894f2389dc8d8ada6e73. Each case ran8192 business transactions and its original two complete checker passes. Before/after case terminal times were34.553/32.256s; pair67.557s. Both original post-fsync case scans and pair scans contain only launcher39609/startTicks44830, so the original runtime slot returned. Independent full selected-archive/stream/resource readback is still pending. Original terminal success is not yet an independent performance qualification.
 
 Original receipt SHA matches the original complete CI log. Nine priority originals (pair/case receipts, client reports, worker reports and logs) passed original ZIP CRC/SHA; an extended17-member priority read also recovered all eight original node logs with zero new network bytes. Client and worker report hashes match the original case receipt. Original whole-window observations:
