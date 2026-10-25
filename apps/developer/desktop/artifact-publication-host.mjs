@@ -6,7 +6,7 @@ const unavailable=()=>Object.assign(Error('The original publication service has 
 // Per-project owner used by the normal local-workbench pipe, not a global
 // publisher or a source of identity. Preview reads only the chosen local file.
 export function createArtifactPublicationHost({context,localProjectSnapshot,openObservation,openNativeArtifact,openOriginalProject}){
- let closed=false,busy=false,draft,observation,opening,cleanup;
+ let closed=false,busy=false,draft,observation,opening,cleanup,observing;
  const localLaunch=randomUUID();
  const active=new Set();
  const live=()=>{if(closed)throw unavailable();};
@@ -42,7 +42,23 @@ export function createArtifactPublicationHost({context,localProjectSnapshot,open
     if(hasOriginalProject){selected=await bindOriginalPublicationProject({selection:selected,project:next.project});live();}next.selected=selected;
     if(typeof openNativeArtifact==='function'){next.opening=Promise.resolve().then(()=>{live();return openNativeArtifact(selected);});next.native=await next.opening;live();await next.native.assertCurrent();live();}return {draftId:next.id,binding:selected.binding,signingApproved:false,deploymentApproved:false};}finally{active.delete(controller);}}finally{busy=false;}
   },
-  async observe(requestId){live();if(busy)throw unavailable();busy=true;const controller=new AbortController();active.add(controller);try{const owner=await observer(),result=await owner.resume(requestId,{signal:controller.signal});live();return result;}finally{active.delete(controller);busy=false;}},
+  async observe(requestId,{observationId=randomUUID()}={}){
+   live();if(busy||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(observationId))throw unavailable();
+   busy=true;const controller=new AbortController();active.add(controller);
+   let finish,abort;const selected={id:observationId,controller,done:new Promise(resolve=>finish=resolve)};observing=selected;
+   const cancelled=new Promise((_resolve,reject)=>{abort=()=>reject(controller.signal.reason);controller.signal.addEventListener('abort',abort,{once:true});});
+   // Keep both outcomes observed. A late factory remains held for cleanup,
+   // but cannot resume the SDK after this particular UI read is cancelled.
+   const work=Promise.resolve().then(()=>{controller.signal.throwIfAborted();return observer();}).then(owner=>{controller.signal.throwIfAborted();return owner.resume(requestId,{signal:controller.signal});});
+   try{const result=await Promise.race([work,cancelled]);controller.signal.throwIfAborted();live();return result;}
+   finally{controller.signal.removeEventListener('abort',abort);active.delete(controller);if(observing===selected)observing=undefined;busy=false;finish();}
+  },
+  async cancelObservation(observationId){
+   live();const selected=observing;
+   if(!selected||selected.id!==observationId)return{cancelled:false,queryOnly:true,replayAllowed:false};
+   selected.controller.abort(Object.assign(Error('The status and log query was stopped.'),{code:'IDE_PUBLICATION_OBSERVATION_CANCELLED'}));
+   await selected.done;live();return{cancelled:true,queryOnly:true,replayAllowed:false};
+  },
   close,
  });
 }

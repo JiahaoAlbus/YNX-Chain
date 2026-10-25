@@ -6,6 +6,7 @@ const REQUEST_ID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$
 function node(document,tag,text){const value=document.createElement(tag);if(text!==undefined)value.textContent=text;return value;}
 function publicationError(error,t){
  switch(error?.code){
+  case 'IDE_PUBLICATION_OBSERVATION_CANCELLED':return t('publicationObservationStopped','Status and log query stopped.');
   case 'IDE_PUBLICATION_REQUEST_ID_REQUIRED':return t('publicationRequestRequired','Enter a valid saved deployment request ID before reading its status.');
   case 'IDE_PUBLICATION_REVIEW_FIELDS_REQUIRED':return t('publicationReviewFieldsRequired','Choose a build artifact and fill in its version, publication purpose and target environment.');
   case 'IDE_PROJECT_ORIGINAL_SOURCE_NOT_SUPPLIED':case 'IDE_PUBLICATION_PROJECT_UNAVAILABLE':return t('publicationProjectSourceMissing','The original project identity is not available yet. Local editing, running and debugging remain available.');
@@ -20,34 +21,41 @@ function publicationError(error,t){
 class ArtifactPublicationWidget extends BaseWidget{
  constructor(project,target,translate){
   super();this.id=ID;this.title.label=translate('publicationTitle','Publish project');this.title.caption=this.title.label;this.title.closable=true;this.title.iconClass='codicon codicon-cloud-upload';
-  const document=this.node.ownerDocument,t=(key,text)=>translate(key,text);let live=true,epoch=0,selectedURI;
+  const document=this.node.ownerDocument,t=(key,text)=>translate(key,text);let live=true,epoch=0,selectedURI,observing;
   const status=node(document,'p',t('publicationNote','Review a built project file before requesting publication. Nothing is uploaded by this view.'));status.setAttribute('role','status');const output=node(document,'pre');output.setAttribute('aria-live','polite');
   this.fields={};
   for(const [key,label]of[['artifact','Build artifact'],['version','Version'],['publishPurpose','Publication purpose'],['targetEnvironment','Target environment'],['requestId','Saved deployment request']]){const input=node(document,'input');input.type='text';input.value='';input.maxLength=key==='artifact'?4096:256;input.setAttribute('aria-label',t('publicationField'+key,label));if(key==='artifact')input.readOnly=true;const caption=node(document,'label',t('publicationField'+key,label));caption.append(input);this.fields[key]=input;this.node.append(caption);}
-  const choose=node(document,'button',t('publicationChoose','Choose build artifact…')),review=node(document,'button',t('publicationReview','Review selected artifact')),observe=node(document,'button',t('publicationObserve','Read deployment status and logs'));
-  for(const button of[choose,review,observe]){button.type='button';button.className='theia-button secondary';}
-  this.buttons={choose,review,observe};review.disabled=true;
-  const busy=value=>{choose.disabled=value;review.disabled=value||!selectedURI;observe.disabled=value;};
+  const choose=node(document,'button',t('publicationChoose','Choose build artifact…')),review=node(document,'button',t('publicationReview','Review selected artifact')),observe=node(document,'button',t('publicationObserve','Read deployment status and logs')),cancel=node(document,'button',t('publicationStopObservation','Stop status query'));
+  for(const button of[choose,review,observe,cancel]){button.type='button';button.className='theia-button secondary';}
+  this.buttons={choose,review,observe,cancel};review.disabled=true;cancel.disabled=true;
+  const busy=value=>{choose.disabled=value;review.disabled=value||!selectedURI;observe.disabled=value;cancel.disabled=!observing||observing.cancelled;};
   choose.addEventListener('click',()=>{if(!live)return;const request=++epoch;busy(true);void Promise.resolve().then(()=>{if(!live||request!==epoch)return;if(typeof target.ynxDesktopFiles?.open!=='function')throw Error('Native file picker unavailable');return target.ynxDesktopFiles.open({kind:'file'});}).then(result=>{if(!live||request!==epoch)return;if(result.cancelled||result.openedInNewWindow||!result.uris?.length)return;selectedURI=result.uris[0];this.fields.artifact.value=selectedURI;output.textContent='';},()=>{if(live&&request===epoch)status.textContent=t('publicationUnavailable','Publication is not ready. Your project files are preserved.');}).finally(()=>{if(live&&request===epoch)busy(false);});});
   const call=async action=>{
-   const request=++epoch;busy(true);
+   const request=++epoch;let ownObservation;busy(true);
    try{
     let body;
     if(action==='publication-preview'){
       const values={version:this.fields.version.value.trim(),publishPurpose:this.fields.publishPurpose.value.trim(),targetEnvironment:this.fields.targetEnvironment.value.trim()};
       if(!selectedURI||Object.values(values).some(value=>!value||value.length>256))throw Object.assign(Error('Complete the review fields'),{code:'IDE_PUBLICATION_REVIEW_FIELDS_REQUIRED'});
       body={artifactURI:selectedURI,...values};
-    }else{const requestId=this.fields.requestId.value.trim();if(!REQUEST_ID.test(requestId))throw Object.assign(Error('A valid saved request ID is required'),{code:'IDE_PUBLICATION_REQUEST_ID_REQUIRED'});body={requestId};}
+    }else{const requestId=this.fields.requestId.value.trim();if(!REQUEST_ID.test(requestId))throw Object.assign(Error('A valid saved request ID is required'),{code:'IDE_PUBLICATION_REQUEST_ID_REQUIRED'});const observationId=target.crypto?.randomUUID();if(!REQUEST_ID.test(observationId||''))throw Error('Observation correlation unavailable');ownObservation={id:observationId,cancelled:false};observing=ownObservation;busy(true);body={requestId,observationId};}
     const result=await project.call(action,body);
     if(!live||request!==epoch)return;
     output.textContent=JSON.stringify(result,null,2);
     status.textContent=t(action==='publication-preview'?'publicationReviewOnly':'publicationObserved',action==='publication-preview'?'Local artifact reviewed. Signing and deployment still require their own approval.':'Original deployment status and logs read. No deployment was resubmitted.');
    }catch(error){if(live&&request===epoch)status.textContent=publicationError(error,t);}
-   finally{if(live&&request===epoch)busy(false);}
+   finally{if(observing===ownObservation)observing=undefined;if(live&&request===epoch)busy(false);}
   };
+  const stopObservation=async()=>{
+   const selected=observing;if(!selected||selected.cancelled)return;selected.cancelled=true;const request=++epoch;busy(true);
+   try{await project.call('publication-observe-cancel',{observationId:selected.id});if(live&&request===epoch)status.textContent=t('publicationObservationStopped','Status and log query stopped.');}
+   catch(error){if(live&&request===epoch)status.textContent=publicationError(error,t);}
+   finally{if(observing===selected)observing=undefined;if(live&&request===epoch)busy(false);}
+  };
+  cancel.addEventListener('click',()=>{if(live)void stopObservation();});
   review.addEventListener('click',()=>{if(live)void call('publication-preview');});observe.addEventListener('click',()=>{if(live)void call('publication-observe');});
-  this.node.append(choose,review,observe,status,output);this.status=status;this.output=output;
-  this.toDispose.push({dispose(){live=false;epoch++;selectedURI=undefined;}});
+  this.node.append(choose,review,observe,cancel,status,output);this.status=status;this.output=output;
+  this.toDispose.push({dispose(){if(observing)void stopObservation();live=false;epoch++;selectedURI=undefined;}});
  }
 }
 class ArtifactPublicationContribution{

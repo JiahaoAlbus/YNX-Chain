@@ -17,7 +17,7 @@ export function createProjectContractsHost(options){
   }
   return Object.freeze({async call(action,body={}){
     if(retired)throw unavailable();
-    if(action==='publication-preview'||action==='publication-observe')return publication.call(action,body);
+    if(action==='publication-preview'||action==='publication-observe'||action==='publication-observe-cancel')return publication.call(action,body);
     if(action==='cancel'){
       if(cancelling)return cancelling;
       const selected=attempt;
@@ -38,7 +38,7 @@ export function createProjectContractsHost(options){
   },close});
 }
 function createProjectContractsAttempt({context, openClient, openPublication, openDeployment, assertPathCurrent, assertNetworkApproved}) {
-  let retired = false, client, acquiring, publication, acquiringPublication, deployment, acquiringDeployment, busy = false, uri = null, cleanup;
+  let retired = false, client, acquiring, publication, acquiringPublication, deployment, acquiringDeployment, busy = false, uri = null, cleanup, observing;
   async function current() { if(retired)throw unavailable(); await assertPathCurrent(); if(retired)throw unavailable(); }
   async function acquire() {
     await current();
@@ -64,14 +64,30 @@ function createProjectContractsAttempt({context, openClient, openPublication, op
       if(action==='cancel'){await close();return {state:'retired',queryOnly:true};}
       await current();
       if(action==='inspect')return {state:busy?'pending':'idle',projectId:context.id,onlineConfigured:typeof assertNetworkApproved==='function',pairingURI:uri};
+      if(action==='publication-observe-cancel'){
+        const selected=observing;
+        if(!selected||selected.id!==body.observationId)return{cancelled:false,queryOnly:true,replayAllowed:false};
+        selected.controller.abort(Object.assign(Error('The status and log query was stopped.'),{code:'IDE_PUBLICATION_OBSERVATION_CANCELLED'}));
+        if(publication)await publication.cancelObservation(body.observationId);
+        await current();return{cancelled:true,queryOnly:true,replayAllowed:false};
+      }
       if(busy)throw Object.assign(unavailable(),{code:'IDE_CONTRACT_BUSY'});
       busy=true;
       try {
         if(action==='deployment-preview'){const result=await(await deploymentOwner()).preview(body);await current();return result;}
         if(action==='execution-preview'){const result=await(await deploymentOwner()).previewExecution(body);await current();return result;}
         if(action==='publication-preview'||action==='publication-observe'){
-          if(!publication){if(typeof openPublication!=='function')throw unavailable();acquiringPublication ||= Promise.resolve().then(()=>openPublication(context));publication=await acquiringPublication;if(retired){await close();throw unavailable();}}
-          await current();const result=action==='publication-preview'?await publication.preview(body):await publication.observe(body.requestId);await current();return result;
+          const selected=action==='publication-observe'&&body.observationId?{id:body.observationId,controller:new AbortController()}:null;
+          if(selected)observing=selected;
+          let abort;const cancelled=selected?new Promise((_resolve,reject)=>{abort=()=>reject(selected.controller.signal.reason);selected.controller.signal.addEventListener('abort',abort,{once:true});}):null;
+          const operation=Promise.resolve().then(async()=>{
+            selected?.controller.signal.throwIfAborted();
+            if(!publication){if(typeof openPublication!=='function')throw unavailable();acquiringPublication ||= Promise.resolve().then(()=>openPublication(context));publication=await acquiringPublication;if(retired){await close();throw unavailable();}}
+            selected?.controller.signal.throwIfAborted();await current();selected?.controller.signal.throwIfAborted();
+            const result=action==='publication-preview'?await publication.preview(body):await publication.observe(body.requestId,{observationId:body.observationId});await current();selected?.controller.signal.throwIfAborted();return result;
+          });
+          try{return await(cancelled?Promise.race([operation,cancelled]):operation);}
+          finally{if(selected){selected.controller.signal.removeEventListener('abort',abort);if(observing===selected)observing=undefined;}}
         }
         if(action==='read'){const result=await (await acquire()).read(body.referenceId);await current();return result;}
         if(action==='references'){const result=await(await acquire()).listReferences();await current();return result;}

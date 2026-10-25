@@ -58,6 +58,8 @@ const entries = [
   ['publicationChoose','Choose build artifact…','选择构建产物…'],
   ['publicationReview','Review selected artifact','审阅所选产物'],
   ['publicationObserve','Read deployment status and logs','读取部署状态和日志'],
+  ['publicationStopObservation','Stop status query','停止状态查询'],
+  ['publicationObservationStopped','Status and log query stopped.','已停止本次状态和日志查询。'],
   ['publicationUnavailable','Publication is not ready. Your project files are preserved.','发布服务尚未就绪，项目文件均保留。'],
   ['publicationProjectSourceMissing','The original project identity is not available yet. Local editing, running and debugging remain available.','正式项目身份来源尚未就绪，本地编辑、运行和调试仍可使用。'],
   ['publicationProjectChanged','Project identity or permissions changed. Select the current project and review the artifact again.','项目身份或权限已变化，请选择当前项目并重新审阅产物。'],
