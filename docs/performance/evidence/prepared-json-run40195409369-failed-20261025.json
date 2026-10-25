@@ -2362,12 +2362,173 @@
       "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/worker-bridge-source-ci-qualified.json",
       "bytes": 1207,
       "sha256": "6a01972d1f0c22fe773df934193695bf6cca31c1e74e14b9f5457e8806a25d50"
+    },
+    "failed-original-public-extraction-06.json": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/failed-original-public-extraction-06.json",
+      "bytes": 1598,
+      "sha256": "e4d45350269cd98d882131d5f71564ada409320fc4be90dda6efeac0301dc077"
+    },
+    "failed-original-zero-network-archive-audit.json": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/failed-original-zero-network-archive-audit.json",
+      "bytes": 820,
+      "sha256": "00218d2fec9c25dba26175e0a24dd292f2f02310f51ede86356b99a7685ad223"
+    },
+    "failed-before-node-completion-03.json": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-network-20261025T125625Z/failed-before-node-completion-03.json",
+      "bytes": 7558,
+      "sha256": "c749a7a09cbb9823d72baeabdefe1fef343cb838f4d6467b1dc8ae3cc0888938"
     }
   },
-  "completeIndependentSignedStreamJoin": false,
-  "completeIndependentNodeCompletionJoin": false,
+  "completeIndependentSignedStreamJoin": true,
+  "completeIndependentNodeCompletionJoin": true,
   "originalArchiveCachePreserved": true,
-  "readbackInFlightOnly": true,
+  "readbackInFlightOnly": false,
   "sustainedTPSQualified": false,
-  "newProtocolFirst": true
+  "newProtocolFirst": true,
+  "originalPublicMembers": 275,
+  "originalPublicBytes": 21672163,
+  "actualNodeCompletionJoin": {
+    "records": 8192,
+    "publishedInfoAheadRows": 0,
+    "durableStateAheadRows": 49,
+    "maximumCalibrationErrorBoundNs": 16583,
+    "nodeCompletionLatencyIntervalsNs": {
+      "offerToNodeFinalizeReturn": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minimumLowerBoundNs": 210656145,
+        "maximumUpperBoundNs": 1985772755,
+        "p50": {
+          "lowerNs": 984966834,
+          "upperNs": 985999999
+        },
+        "p95": {
+          "lowerNs": 1449966834,
+          "upperNs": 1450999999
+        },
+        "p99": {
+          "lowerNs": 1684966834,
+          "upperNs": 1685999999
+        }
+      },
+      "offerToNodeDurableCommitReturn": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minimumLowerBoundNs": 235499472,
+        "maximumUpperBoundNs": 2013514514,
+        "p50": {
+          "lowerNs": 1033966834,
+          "upperNs": 1034999999
+        },
+        "p95": {
+          "lowerNs": 1509966834,
+          "upperNs": 1510999999
+        },
+        "p99": {
+          "lowerNs": 1739966834,
+          "upperNs": 1740999999
+        }
+      },
+      "nodeCommitToClientFinalObservation": {
+        "samples": 8192,
+        "resolutionNs": 1000000,
+        "overflowSamples": 0,
+        "minimumLowerBoundNs": 134217937,
+        "maximumUpperBoundNs": 1001333211,
+        "p50": {
+          "lowerNs": 384966834,
+          "upperNs": 385999999
+        },
+        "p95": {
+          "lowerNs": 550966834,
+          "upperNs": 551999999
+        },
+        "p99": {
+          "lowerNs": 763966834,
+          "upperNs": 764999999
+        }
+      }
+    },
+    "independentSameVMAdmission": false,
+    "independentBFTVerification": false,
+    "bftQuorumFormationInstantMeasured": false,
+    "networkQualified": false,
+    "interpretation": "Original endpoint node transaction-height Finalize and durable Commit returns joined by block hash; durable readback and published Info each match their own post-state height/hash. Calibrated wall-clock envelopes include client/node drift. These are completion observations after reported verified BFT proof, not the earliest quorum formation instant. Original native admission and cryptographic verifier remain mandatory."
+  },
+  "actualReplicaCompletion": {
+    "offerToFirstReplicaDurableCommit": {
+      "samples": 8192,
+      "resolutionNs": 1000000,
+      "overflowSamples": 0,
+      "maximumIntervalWidthNs": 33166,
+      "p50": {
+        "lowerNs": 968966834,
+        "upperNs": 969999999
+      },
+      "p95": {
+        "lowerNs": 1448966834,
+        "upperNs": 1449999999
+      },
+      "p99": {
+        "lowerNs": 1693966834,
+        "upperNs": 1694999999
+      }
+    },
+    "offerToThirdReplicaDurableCommit": {
+      "samples": 8192,
+      "resolutionNs": 1000000,
+      "overflowSamples": 0,
+      "maximumIntervalWidthNs": 33166,
+      "p50": {
+        "lowerNs": 1040966834,
+        "upperNs": 1041999999
+      },
+      "p95": {
+        "lowerNs": 1524966834,
+        "upperNs": 1525999999
+      },
+      "p99": {
+        "lowerNs": 1727966834,
+        "upperNs": 1728999999
+      }
+    },
+    "offerToAllReplicaDurableCommit": {
+      "samples": 8192,
+      "resolutionNs": 1000000,
+      "overflowSamples": 0,
+      "maximumIntervalWidthNs": 33166,
+      "p50": {
+        "lowerNs": 1080966834,
+        "upperNs": 1081999999
+      },
+      "p95": {
+        "lowerNs": 1543966834,
+        "upperNs": 1544999999
+      },
+      "p99": {
+        "lowerNs": 1764966834,
+        "upperNs": 1765999999
+      }
+    },
+    "replicaDurableCommitSpread": {
+      "samples": 8192,
+      "resolutionNs": 1000000,
+      "overflowSamples": 0,
+      "maximumIntervalWidthNs": 1110,
+      "p50": {
+        "lowerNs": 101998890,
+        "upperNs": 102999999
+      },
+      "p95": {
+        "lowerNs": 183998890,
+        "upperNs": 184999999
+      },
+      "p99": {
+        "lowerNs": 247998890,
+        "upperNs": 248900641
+      }
+    }
+  }
 }
