@@ -690,10 +690,94 @@ def assert_macos_source_register_workflow_contract(raw):
     need("          path: ${{ runner.temp }}/ynx-pq-macos-proof-verifier\n" in old_upload[0])
 
 
+def assert_signed_business_supply_workflow_contract(raw):
+    """Normal build supply only; never qualifies or executes a network window."""
+    job, steps = workflow_steps(raw, "protocol-delivery")
+
+    def need(value):
+        if not value:
+            raise AssertionError("signed-business normal build/source supply changed")
+
+    def one(name):
+        found = [step for step in steps if step.startswith("      - name: " + name + "\n")]
+        need(len(found) == 1)
+        return found[0]
+
+    checkout = one("Checkout the exact signed-business performance client source")
+    build = one("Build and seal the exact signed-business inputs without starting nodes")
+    upload = one("Upload only the exact public signed-business build inputs")
+    normal_runtime = one("Build public Linux runtime candidate without starting services")
+    normal_test = one("Build and pin normal signer process binaries without running them")
+    candidate_delivery = one("Verify original candidate delivery with pinned archive permissions")
+    runtime_upload = one("Upload only public Linux runtime candidate")
+    condition = "${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}"
+    for step in (checkout, build):
+        need(re.findall(r"(?m)^        if: (.+)$", step) == [condition])
+    need(steps.index(normal_test) < steps.index(normal_runtime) < steps.index(candidate_delivery)
+         < steps.index(runtime_upload) < steps.index(checkout) < steps.index(build) < steps.index(upload))
+    need("    timeout-minutes: 12\n" in job and "continue-on-error:" not in job)
+    need("uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in checkout)
+    need("          repository: JiahaoAlbus/YNX-Chain\n" in checkout
+         and "          ref: 3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0\n" in checkout
+         and "          path: qa-signed-business-performance-client\n" in checkout
+         and "          persist-credentials: false\n" in checkout)
+    need("        id: pqsignedbusinessbuild\n" in build and "        timeout-minutes: 3\n" in build
+         and "          GOTOOLCHAIN: local\n" in build)
+    parts = build.split("          python3 -B - <<'PY'\n")
+    need(len(parts) == 2)
+    shell, body = parts
+    command = 'go -C qa-signed-business-performance-client build -p 1 -trimpath -mod=readonly -o "$YNX_SIGNED_BUSINESS/build/ynx-consensus-perf-client" ./cmd/ynx-consensus-perf-client'
+    need(shell.count(command) == 1 and "go test " not in shell and "go run " not in shell)
+    for token in ('set -euo pipefail', 'umask 077', 'test "$(git rev-parse HEAD)" = "$GITHUB_SHA"',
+                  "rev-parse HEAD)\" = '3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0'",
+                  "rev-parse HEAD^{tree})\" = '2fb228ab5646fad232e0e06f2dd26a5ba30bb372'",
+                  "rev-parse HEAD:cmd/ynx-consensus-perf-client)\" = '4762ac0be18454c3504939cb2d9e232cdbfc1114'",
+                  "rev-parse HEAD:go.mod)\" = '622faa4b1c6f388d855a8a7f031bb78a5f20dfb4'",
+                  "rev-parse HEAD:go.sum)\" = '994c2b5795bc8d495199930d841c0e66f13e7a40'",
+                  'mkdir -m 0700 "$YNX_SIGNED_BUSINESS" "$YNX_SIGNED_BUSINESS/build" "$YNX_SIGNED_BUSINESS/source"',
+                  'git -C qa-signed-business-performance-client diff --exit-code'):
+        need(token in shell)
+    need(not re.search(r"\b(?:subprocess\.(?:Popen|run|call|check_call)|os\.(?:system|popen|exec\w*)|exec|eval)\s*\(", body))
+    for forbidden in ("-test.run", "YNX_PQ_NETWORK_BUSINESS_E2E=", "YNX_PQ_NETWORK_BUSINESS_E2E:", "--consensus-signed-business", "|| true"):
+        need(forbidden not in build)
+    for token in ("leaves = ('internal/consensus/pq_network_e2e_test.go', 'internal/consensus/pq_network_business_test.go')",
+                  "names = ('consensus.test', 'ynx-bft-gatewayd', 'ynx-consensus-perf-client', 'ynx-consensus-proof-verify')",
+                  "header[:6] != b'\\x7fELF\\x02\\x01'", "header[18:20] != b'\\x3e\\x00'",
+                  "s.st_mtime_ns, s.st_ctime_ns", "identity(before) != identity(os.fstat(source.fileno()))",
+                  "identity(before) != identity(path.lstat())", "destination.open('xb')", "os.fsync(target.fileno())",
+                  "read_record(remote / 'SOURCE.json', os.environ['YNX_REMOTE_MANIFEST_SHA'])",
+                  "read_record(runtime / 'SOURCE.json', os.environ['YNX_RUNTIME_MANIFEST_SHA'])",
+                  "remote_source['commit'] != commit or runtime_source['commit'] != commit",
+                  "remote_source['binaries']['consensus.test']['sha256'] != os.environ['YNX_REMOTE_TEST_SHA']",
+                  "copy(remote / 'consensus.test', root / 'build/consensus.test', remote_source['binaries']['consensus.test'], 128 << 20, True)",
+                  "copy(runtime / name, root / 'build' / name, runtime_source['binaries'][name], 128 << 20, True)",
+                  "len({item['sha256'] for item in binaries.values()}) != 4", "sum(item['bytes'] for item in binaries.values()) > 512 << 20",
+                  "['git', 'hash-object', leaf]", "copy(source_root / leaf, root / 'source' / leaf, expected, 256 << 10)",
+                  "manifest = dict(version='YNX-PQ-NETWORK-BUSINESS-BUILD/v1', protocolCommit=commit,",
+                  "performanceClientCommit=client_commit, sourceRoot=str(source_root), sourceLeaves=source_leaves, binaries=binaries)",
+                  "write(root / 'build/business-manifest.json', manifest)", "version='YNX-PQ-NETWORK-BUSINESS-SUPPLY/v1', classification='data'",
+                  "relocationRequiresVerifiedOriginalSourceAndFreshNormalCallerManifest=True",
+                  "relocatedAbsoluteManifestRunnable=False, preparedRecipeSupplied=False",
+                  "binariesExecuted=False, nodesStarted=False, workloadExecuted=False, authorityGranted=False, publicDeployment=False, pqActivation=False",
+                  "actual != set(files) | {'SOURCE.json'}", "set(names) | {'business-manifest.json'}",
+                  "print('YNX_PQ_SIGNED_BUSINESS_BUILD_SOURCE_PIN '", "print('YNX_PQ_SIGNED_BUSINESS_BUILD_MANIFEST_PIN '"):
+        need(token in body)
+    need("target.write('YNX_RUNTIME_MANIFEST_SHA=' + pin(root / 'SOURCE.json')['sha256'] + '\\n')" in normal_runtime)
+    need(re.findall(r"(?m)^        if: (.+)$", upload) == ["${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push' && steps.pqsignedbusinessbuild.outcome == 'success') }}"])
+    need("        id: pqsignedbusinessupload\n" in upload and "uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in upload)
+    need("          name: ynx-pq-signed-business-build-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}\n" in upload)
+    files = ("SOURCE.json", "build/business-manifest.json", "build/consensus.test", "build/ynx-bft-gatewayd",
+             "build/ynx-consensus-perf-client", "build/ynx-consensus-proof-verify",
+             "source/internal/consensus/pq_network_e2e_test.go", "source/internal/consensus/pq_network_business_test.go")
+    need(re.findall(r"(?m)^            (.+)$", upload) == ["${{ runner.temp }}/ynx-pq-signed-business-build/" + name for name in files])
+    need("          path: |\n" in upload and "          if-no-files-found: error\n" in upload)
+
+
 def assert_workflow_contract(raw):
     assert_native_cabi_workflow_contract(raw)
     assert_runtime_gateway_identity_workflow_contract(raw)
     assert_macos_source_register_workflow_contract(raw)
+    assert_signed_business_supply_workflow_contract(raw)
     job, steps = workflow_steps(raw)
 
     def need(condition):
@@ -1065,6 +1149,46 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
+
+    def test_signed_business_supply_reuses_exact_binaries_and_never_executes_the_window(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_signed_business_supply_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "protocol-delivery")
+        checkout = next(step for step in steps if step.startswith(
+            "      - name: Checkout the exact signed-business performance client source\n"))
+        build = next(step for step in steps if step.startswith(
+            "      - name: Build and seal the exact signed-business inputs without starting nodes\n"))
+        upload = next(step for step in steps if step.startswith(
+            "      - name: Upload only the exact public signed-business build inputs\n"))
+        candidate_delivery = next(step for step in steps if step.startswith(
+            "      - name: Verify original candidate delivery with pinned archive permissions\n"))
+        business_supply = checkout + build + upload
+        self.assertIn(business_supply, raw)
+        mutations = [
+            raw.replace(checkout, checkout.replace("ref: 3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0", "ref: main", 1), 1),
+            raw.replace(checkout, checkout.replace("persist-credentials: false", "persist-credentials: true", 1), 1),
+            raw.replace(build, build.replace("github.event_name == 'push'", "github.event_name == 'workflow_dispatch'", 1), 1),
+            raw.replace(build, build.replace("timeout-minutes: 3", "timeout-minutes: 6", 1), 1),
+            raw.replace(build, build.replace("build -p 1 -trimpath -mod=readonly", "test -p 1 -trimpath", 1), 1),
+            raw.replace(build, build.replace("'4762ac0be18454c3504939cb2d9e232cdbfc1114'", "'0000000000000000000000000000000000000000'", 1), 1),
+            raw.replace(build, build.replace("read_record(runtime / 'SOURCE.json', os.environ['YNX_RUNTIME_MANIFEST_SHA'])", "json.loads((runtime / 'SOURCE.json').read_text())", 1), 1),
+            raw.replace(build, build.replace("copy(remote / 'consensus.test'", "copy(runtime / 'ynx-comet'", 1), 1),
+            raw.replace(build, build.replace("'ynx-bft-gatewayd', 'ynx-consensus-perf-client'", "'ynx-comet', 'ynx-consensus-perf-client'", 1), 1),
+            raw.replace(build, build.replace("sourceRoot=str(source_root)", "sourceRoot='/old-runner/source'", 1), 1),
+            raw.replace(build, build.replace("relocatedAbsoluteManifestRunnable=False", "relocatedAbsoluteManifestRunnable=True", 1), 1),
+            raw.replace(build, build.replace("nodesStarted=False", "nodesStarted=True", 1), 1),
+            raw.replace(build, build.replace("          python3 -B - <<'PY'\n", "          YNX_PQ_NETWORK_BUSINESS_E2E=authorized-four-node-business-window\n          python3 -B - <<'PY'\n", 1), 1),
+            raw.replace(upload, upload.replace("steps.pqsignedbusinessbuild.outcome == 'success'", "true", 1), 1),
+            raw.replace(upload, upload.replace("          if-no-files-found: error", "          if-no-files-found: warn", 1), 1),
+            raw.replace(upload, upload.replace("/source/internal/consensus/pq_network_business_test.go", "/private/validator-key.json", 1), 1),
+            raw.replace(upload, upload.replace("          path: |\n", "          path: ${{ runner.temp }}/ynx-pq-signed-business-build\n          unused-path: |\n", 1), 1),
+            raw.replace(build, "", 1).replace(checkout, build + checkout, 1),
+            raw.replace(business_supply, "", 1).replace(candidate_delivery, business_supply + candidate_delivery, 1),
+        ]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_signed_business_supply_workflow_contract(changed)
 
     def test_macos_source_registration_supply_requires_real_build_closed_artifact_and_data_only(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()

@@ -1710,7 +1710,7 @@ jobs:
           case = Path(os.environ['YNX_E2E_CASE']).resolve()
           binary = Path(os.environ['YNX_E2E_BUILD']).resolve() / 'consensus.test'
           leaves = {
-              'internal/consensus/pq_network_e2e_test.go': '852a239453108fb2307e80a64c9c578c4124a46756e3f961176a8edcd6afe214',
+              'internal/consensus/pq_network_e2e_test.go': 'b8c15de1e2b4b1927e8276301e5c04ef7108677d5d16043426b9bc62825598e1',
               'internal/consensus/pq_network_progress_test.go': '66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044'}
           def digest(path):
               h = hashlib.sha256()
@@ -2182,6 +2182,8 @@ jobs:
               publicDeployment=False, pqActivation=False,
               purpose='normal entrypoint binaries and operator configuration only; no keys, credentials, ledger or signing history')
           (root / 'SOURCE.json').write_text(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n', encoding='utf8')
+          with open(os.environ['GITHUB_ENV'], 'a') as target:
+              target.write('YNX_RUNTIME_MANIFEST_SHA=' + pin(root / 'SOURCE.json')['sha256'] + '\n')
           print('YNX_GATEWAY_BUILD_IDENTITY ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'],
               binary=binaries['ynx-bft-gatewayd'], build=gateway_build,
               runtimeStarted=False, publicDeployment=False, pqActivation=False), sort_keys=True, separators=(',', ':')))
@@ -2907,6 +2909,174 @@ jobs:
         with:
           name: ynx-pq-linux-runtime-candidate-${{ github.sha }}
           path: ${{ runner.temp }}/ynx-pq-linux-runtime-candidate
+          if-no-files-found: error
+          retention-days: 7
+      - name: Checkout the exact signed-business performance client source
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: JiahaoAlbus/YNX-Chain
+          ref: 3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0
+          path: qa-signed-business-performance-client
+          persist-credentials: false
+      - name: Build and seal the exact signed-business inputs without starting nodes
+        id: pqsignedbusinessbuild
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push') }}
+        timeout-minutes: 3
+        env:
+          GOTOOLCHAIN: local
+        run: |
+          set -euo pipefail
+          umask 077
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git -C qa-signed-business-performance-client rev-parse HEAD)" = '3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0'
+          test "$(git -C qa-signed-business-performance-client rev-parse HEAD^{tree})" = '2fb228ab5646fad232e0e06f2dd26a5ba30bb372'
+          test "$(git -C qa-signed-business-performance-client rev-parse HEAD:cmd/ynx-consensus-perf-client)" = '4762ac0be18454c3504939cb2d9e232cdbfc1114'
+          test "$(git -C qa-signed-business-performance-client rev-parse HEAD:go.mod)" = '622faa4b1c6f388d855a8a7f031bb78a5f20dfb4'
+          test "$(git -C qa-signed-business-performance-client rev-parse HEAD:go.sum)" = '994c2b5795bc8d495199930d841c0e66f13e7a40'
+          YNX_SIGNED_BUSINESS="$RUNNER_TEMP/ynx-pq-signed-business-build"
+          YNX_RUNTIME_CANDIDATE="$RUNNER_TEMP/ynx-pq-linux-runtime-candidate"
+          export YNX_SIGNED_BUSINESS YNX_RUNTIME_CANDIDATE
+          mkdir -m 0700 "$YNX_SIGNED_BUSINESS" "$YNX_SIGNED_BUSINESS/build" "$YNX_SIGNED_BUSINESS/source"
+          mkdir -m 0700 "$YNX_SIGNED_BUSINESS/source/internal" "$YNX_SIGNED_BUSINESS/source/internal/consensus"
+          go -C qa-signed-business-performance-client build -p 1 -trimpath -mod=readonly -o "$YNX_SIGNED_BUSINESS/build/ynx-consensus-perf-client" ./cmd/ynx-consensus-perf-client
+          git -C qa-signed-business-performance-client diff --exit-code
+          python3 -B - <<'PY'
+          import hashlib, json, os, stat, subprocess
+          from pathlib import Path
+          root = Path(os.environ['YNX_SIGNED_BUSINESS']).resolve(strict=True)
+          source_root = Path.cwd().resolve(strict=True)
+          commit = os.environ['GITHUB_SHA']
+          client_commit = '3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0'
+          leaves = ('internal/consensus/pq_network_e2e_test.go', 'internal/consensus/pq_network_business_test.go')
+          names = ('consensus.test', 'ynx-bft-gatewayd', 'ynx-consensus-perf-client', 'ynx-consensus-proof-verify')
+          def identity(s):
+              return (s.st_dev, s.st_ino, s.st_mode, s.st_nlink, s.st_uid, s.st_gid, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+          def pin(path, limit, elf=False):
+              if not path.is_absolute() or path.resolve(strict=True) != path:
+                  raise RuntimeError('canonical original build input required')
+              before = path.lstat()
+              if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or before.st_mode & 0o022 or not 0 < before.st_size <= limit:
+                  raise RuntimeError('bounded protected build input required')
+              digest, length = hashlib.sha256(), 0
+              with path.open('rb') as source:
+                  if identity(before) != identity(os.fstat(source.fileno())):
+                      raise RuntimeError('build input changed during open')
+                  header = source.read(20) if elf else b''
+                  if elf and (len(header) != 20 or header[:6] != b'\x7fELF\x02\x01' or header[16:18] not in (b'\x02\x00', b'\x03\x00') or header[18:20] != b'\x3e\x00' or not before.st_mode & 0o111):
+                      raise RuntimeError('actual Linux amd64 executable required')
+                  digest.update(header)
+                  length += len(header)
+                  for chunk in iter(lambda: source.read(65536), b''):
+                      length += len(chunk)
+                      if length > limit:
+                          raise RuntimeError('build input exceeds its original bound')
+                      digest.update(chunk)
+                  if identity(before) != identity(os.fstat(source.fileno())):
+                      raise RuntimeError('build input changed during streaming pin')
+              if length != before.st_size or identity(before) != identity(path.lstat()):
+                  raise RuntimeError('build input changed after streaming pin')
+              return dict(bytes=length, sha256=digest.hexdigest())
+          def original(path, expected, limit, elf=False):
+              if pin(path, limit, elf) != expected:
+                  raise RuntimeError('original build differs from its prior producer pin')
+          def copy(path, destination, expected, limit, elf=False):
+              original(path, expected, limit, elf)
+              with path.open('rb') as source, destination.open('xb') as target:
+                  total = 0
+                  for chunk in iter(lambda: source.read(65536), b''):
+                      total += len(chunk)
+                      if total > limit:
+                          raise RuntimeError('copied build input exceeds its bound')
+                      target.write(chunk)
+                  os.fchmod(target.fileno(), 0o700 if elf else 0o600)
+                  target.flush()
+                  os.fsync(target.fileno())
+              original(path, expected, limit, elf)
+              original(destination, expected, limit, elf)
+          def read_record(path, expected_sha):
+              sealed = pin(path, 65536)
+              if sealed['sha256'] != expected_sha:
+                  raise RuntimeError('prior normal producer SOURCE pin differs')
+              raw = path.read_bytes()
+              original(path, sealed, 65536)
+              if hashlib.sha256(raw).hexdigest() != expected_sha:
+                  raise RuntimeError('producer SOURCE changed during read')
+              return json.loads(raw)
+          remote = Path(os.environ['YNX_REMOTE_BUILD']).resolve(strict=True)
+          runtime = Path(os.environ['YNX_RUNTIME_CANDIDATE']).resolve(strict=True)
+          remote_source = read_record(remote / 'SOURCE.json', os.environ['YNX_REMOTE_MANIFEST_SHA'])
+          runtime_source = read_record(runtime / 'SOURCE.json', os.environ['YNX_RUNTIME_MANIFEST_SHA'])
+          if remote_source['version'] != 'YNX-PQ-REMOTE-SIGNER-PROCESS-BUILD/v1' or runtime_source['version'] != 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2' or remote_source['commit'] != commit or runtime_source['commit'] != commit:
+              raise RuntimeError('same-run original protocol build required')
+          if remote_source['binaries']['consensus.test']['sha256'] != os.environ['YNX_REMOTE_TEST_SHA']:
+              raise RuntimeError('normal test executable independent pin differs')
+          copy(remote / 'consensus.test', root / 'build/consensus.test', remote_source['binaries']['consensus.test'], 128 << 20, True)
+          for name in ('ynx-bft-gatewayd', 'ynx-consensus-proof-verify'):
+              copy(runtime / name, root / 'build' / name, runtime_source['binaries'][name], 128 << 20, True)
+          binaries = {name: dict(path=str(root / 'build' / name), **pin(root / 'build' / name, 128 << 20, True), commit=client_commit if name == 'ynx-consensus-perf-client' else commit) for name in names}
+          if len({item['sha256'] for item in binaries.values()}) != 4 or sum(item['bytes'] for item in binaries.values()) > 512 << 20:
+              raise RuntimeError('distinct four-binary original build budget exceeded')
+          source_leaves, source_blobs = {}, {}
+          for leaf in leaves:
+              expected = pin(source_root / leaf, 256 << 10)
+              blob = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + leaf], text=True).strip()
+              if subprocess.check_output(['git', 'hash-object', leaf], text=True).strip() != blob:
+                  raise RuntimeError('actual test source differs from the committed compile input')
+              copy(source_root / leaf, root / 'source' / leaf, expected, 256 << 10)
+              source_leaves[leaf], source_blobs[leaf] = expected['sha256'], blob
+          manifest = dict(version='YNX-PQ-NETWORK-BUSINESS-BUILD/v1', protocolCommit=commit,
+              performanceClientCommit=client_commit, sourceRoot=str(source_root), sourceLeaves=source_leaves, binaries=binaries)
+          def write(path, value):
+              raw = (json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n').encode()
+              if not 0 < len(raw) <= 65536:
+                  raise RuntimeError('small public build receipt required')
+              with path.open('xb') as target:
+                  target.write(raw)
+                  target.flush()
+                  os.fsync(target.fileno())
+              return pin(path, 65536)
+          manifest_pin = write(root / 'build/business-manifest.json', manifest)
+          files = {'build/' + name: pin(root / 'build' / name, 128 << 20, True) for name in names}
+          files['build/business-manifest.json'] = manifest_pin
+          files.update({'source/' + leaf: pin(root / 'source' / leaf, 256 << 10) for leaf in leaves})
+          record = dict(version='YNX-PQ-NETWORK-BUSINESS-SUPPLY/v1', classification='data',
+              protocolCommit=commit, protocolTree=subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(),
+              performanceClientCommit=client_commit, performanceClientTree='2fb228ab5646fad232e0e06f2dd26a5ba30bb372',
+              performanceClientCommandTree='4762ac0be18454c3504939cb2d9e232cdbfc1114',
+              performanceClientGoModBlob='622faa4b1c6f388d855a8a7f031bb78a5f20dfb4', performanceClientGoSumBlob='994c2b5795bc8d495199930d841c0e66f13e7a40',
+              runId=os.environ['GITHUB_RUN_ID'], runAttempt=os.environ['GITHUB_RUN_ATTEMPT'], platform='linux/amd64',
+              originalRemoteSourceSHA256=os.environ['YNX_REMOTE_MANIFEST_SHA'], originalRuntimeSourceSHA256=os.environ['YNX_RUNTIME_MANIFEST_SHA'],
+              sourceLeaves=source_leaves, sourceGitBlobs=source_blobs, files=files,
+              locationBoundManifest=dict(file='build/business-manifest.json', **manifest_pin),
+              relocationRequiresVerifiedOriginalSourceAndFreshNormalCallerManifest=True,
+              relocatedAbsoluteManifestRunnable=False, preparedRecipeSupplied=False,
+              binariesExecuted=False, nodesStarted=False, workloadExecuted=False, authorityGranted=False, publicDeployment=False, pqActivation=False)
+          source_pin = write(root / 'SOURCE.json', record)
+          actual = {str(path.relative_to(root)) for path in root.rglob('*') if path.is_file()}
+          if actual != set(files) | {'SOURCE.json'} or {path.name for path in (root / 'build').iterdir()} != set(names) | {'business-manifest.json'}:
+              raise RuntimeError('closed public signed-business supply catalog differs')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as target:
+              target.write('source-sha256=' + source_pin['sha256'] + '\nmanifest-sha256=' + manifest_pin['sha256'] + '\n')
+          print('YNX_PQ_SIGNED_BUSINESS_BUILD_MANIFEST_PIN ' + json.dumps(manifest_pin, sort_keys=True, separators=(',', ':')))
+          print('YNX_PQ_SIGNED_BUSINESS_BUILD_SOURCE ' + json.dumps(record, sort_keys=True, separators=(',', ':')))
+          print('YNX_PQ_SIGNED_BUSINESS_BUILD_SOURCE_PIN ' + json.dumps(source_pin, sort_keys=True, separators=(',', ':')))
+          PY
+      - name: Upload only the exact public signed-business build inputs
+        id: pqsignedbusinessupload
+        if: ${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push' && steps.pqsignedbusinessbuild.outcome == 'success') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-signed-business-build-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-pq-signed-business-build/SOURCE.json
+            ${{ runner.temp }}/ynx-pq-signed-business-build/build/business-manifest.json
+            ${{ runner.temp }}/ynx-pq-signed-business-build/build/consensus.test
+            ${{ runner.temp }}/ynx-pq-signed-business-build/build/ynx-bft-gatewayd
+            ${{ runner.temp }}/ynx-pq-signed-business-build/build/ynx-consensus-perf-client
+            ${{ runner.temp }}/ynx-pq-signed-business-build/build/ynx-consensus-proof-verify
+            ${{ runner.temp }}/ynx-pq-signed-business-build/source/internal/consensus/pq_network_e2e_test.go
+            ${{ runner.temp }}/ynx-pq-signed-business-build/source/internal/consensus/pq_network_business_test.go
           if-no-files-found: error
           retention-days: 7
 
