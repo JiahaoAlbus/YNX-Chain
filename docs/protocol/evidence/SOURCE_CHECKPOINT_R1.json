@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "at": "2026-10-17T17:30:20.681Z",
+  "productionBaseline": "65efa82e06158f9616172144c3c9efdd8088f227",
+  "branch": "codex/ynx-pq-public-upgrade",
+  "status": "SOURCE_ONLY_UNCOMPILED",
+  "scope": [
+    "real dual-PQ Go protocol source and public fixtures",
+    "classic-to-PQ account migration and old-PQ rotation",
+    "activation gate across native/Ethereum/resources/DEX entry points",
+    "v3 snapshot policy/history proof validation and replication durability",
+    "binary migration/transfer API and decimal public authorization query"
+  ],
+  "currentLimitations": [
+    "standalone native transfer accepts N=1 only; full batch admission is next",
+    "activated account non-transfer operations are fail-closed pending PQ action wire integration",
+    "Go compile and tests have not passed; first run pressure rejection, second run observer EAGAIN caused owned cleanup",
+    "production consensus and complete business state migration are ongoing excluded writes",
+    "no deployment or activation"
+  ],
+  "checks": {
+    "gofmt": true,
+    "diffCheck": true,
+    "ynxbatchManifestEntries": 13
+  },
+  "preservation": "Historical snapshots v1/v2 remain valid; no public network writes or schedule selected."
+}

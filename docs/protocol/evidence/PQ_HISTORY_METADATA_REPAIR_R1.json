@@ -1,0 +1,14 @@
+{
+  "base": "fe834639a01572212fb5903cc988d3e15c85a628",
+  "redRun": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39059177066",
+  "pins": {
+    "internal/chain/pq_history_metadata.go": "72ac9523bf77bd7f74f923947b6906ab511c5457b919b2a4ef307c579ffa5b81",
+    "internal/chain/pq_history_metadata_validation_test.go": "1d96e8ccf5dded83e0b151d05692b69cd62935097e6dd9a3deba190397e0be53",
+    "internal/chain/pq_authorization.go": "703f11fa4d4881beecfee959b35796d755c853e0b3860b80fbc0818dfdec3a48",
+    "internal/chain/pq_snapshot.go": "5b4c3881354da996cf1ad99a17fc4a06cfb226a9cc6e4a1e053b0e8e1b91b925",
+    "internal/chain/pq_history_metadata_test.go": "a28ff3131ed0189217cd4dfaf1627cb1becde2cff84cbfe29577e6098a4464f8"
+  },
+  "originalRegressionUnchanged": true,
+  "localValidation": "gofmt and diff-check only; no Go execution",
+  "scope": "Source receipt shape, unsigned resource fields, actual log positions, positive flow and issued lineage. Not full balance history replay or evidence of original fee recipient."
+}

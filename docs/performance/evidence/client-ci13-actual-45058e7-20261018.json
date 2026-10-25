@@ -1,0 +1,45 @@
+{
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39087492005",
+  "runHead": "6a3b8f813bcc5a2ee8ab0280783b6ebddf3d9c71",
+  "overallConclusion": "failure",
+  "overallFailure": "existing TestConsensusGenesisBoundaryReplayRejected in production ynxconsensusauth; independently checked client succeeded",
+  "clientSourceCommit": "45058e7f764529421870a5fc41264da86b9ab2a0",
+  "clientTree": "a454a180b9bf1b58be7b493c3cf578d6a8800532",
+  "clientStepConclusion": "success",
+  "executedTopLevelPasses": [
+    "TestJournalFinalCountsAndSenderGateRequirePublishedView",
+    "TestFinalSubmissionRequiresDurableEvidenceAndHonestCounts",
+    "TestFullHistoryFinalCountsAndLatencyRejectIncompleteBusinessEvidence",
+    "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities",
+    "TestReadySenderStreamingReadbackBoundsAndConsumerErrors",
+    "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+    "TestReadySupplyRejectsUnknownBeforeSigning",
+    "TestReadySenderCumulativeCountsMatchCompleteHistoryAfterOutOfOrderHandoffs"
+  ],
+  "clientFailures": 0,
+  "clientSkips": 0,
+  "terminalPackageLines": [
+    "focused-go\tVerify eight frozen client correctness functions\t2026-10-18T01:45:27.4023119Z ok  \tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\t0.134s"
+  ],
+  "goVersion": [
+    "focused-go\tRecord exact candidate identity\t2026-10-18T01:43:28.5323203Z go version go1.25.13 linux/amd64"
+  ],
+  "rawLog": {
+    "path": "artifacts/chain-performance-20261017/ci13-39087492005.log",
+    "bytes": 112794,
+    "sha256": "9d431ef3c42bf3320b559df47f0c99f149313fdcbd43332f16a361d079a8d0ed"
+  },
+  "productionPackagePassLines": [
+    "focused-go\tVerify native ledger and HTTP PQ integration\t2026-10-18T01:44:19.9838954Z ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/chain\t18.531s",
+    "focused-go\tVerify native ledger and HTTP PQ integration\t2026-10-18T01:44:27.6013699Z ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/api\t4.298s"
+  ],
+  "hardware": {
+    "platform": "Linux/amd64 GitHub Actions runner",
+    "cpuModel": null,
+    "memoryBytes": null,
+    "interpretation": "No exact CPU/memory sampling in this correctness step; not a performance comparison."
+  },
+  "newerSegmentedSourceCovered": false,
+  "networkNodesStartedForClient": false,
+  "performanceResult": false
+}

@@ -1,0 +1,167 @@
+{
+  "run": 39101846968,
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39101846968",
+  "head": "5f025741e862371c2e274ad83861b2fe31820137",
+  "conclusion": "failure",
+  "rawLogBytes": 181306,
+  "rawLogSHA256": "291f6d5572ea9216c67d20e07e7c6496b459e2f1a512975d5cd7079e84b6bf8b",
+  "failures": [
+    "pq_native_dex.go feeEventJournal adaptation missing after integrating new DEX executor",
+    "fee_state_test.go missing context and abcitypes imports",
+    "mutationfreeze readonly map duplicate keys",
+    "indexer duplicate handleVersion and omitted reflect import"
+  ],
+  "fixes": [
+    "Append one real DEX fee to immutable feeEventJournal, preserving original event/order",
+    "Restore missing test imports, retain all assertions",
+    "Preserve exact union of both original readonly allowlists",
+    "Preserve version handler common fields and original limits; restore strict WAL comparison import"
+  ],
+  "jobs": [
+    {
+      "name": "focused-go",
+      "conclusion": "failure",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "conclusion": "success"
+        },
+        {
+          "name": "Record exact candidate identity",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify pure dual-PQ protocol and account authorization",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify forked engine keys and actual consensus objects",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compile forked state and consensus engine without starting nodes",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify real profile state transition and historical store without starting nodes",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify bounded remote signer transport and unchanged legacy protobuf vectors",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify actual engine signing caller uses committed height key and round context",
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure fresh single and bounded concurrent dual signature paths",
+          "conclusion": "success"
+        },
+        {
+          "name": "Measure actual policy certificate cache consumer cold and warm paths",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pinned contract build runtime",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify failed candidate deployment preserves services and signing history",
+          "conclusion": "success"
+        },
+        {
+          "name": "Compile frozen measured production overlay without executing cases",
+          "conclusion": "success"
+        },
+        {
+          "name": "Generate canonical IDE contract fixture",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify native ledger and HTTP PQ integration",
+          "conclusion": "failure"
+        },
+        {
+          "name": "Compile production entry points",
+          "conclusion": "failure"
+        },
+        {
+          "name": "Verify complete state bridge and sponsor continuity",
+          "conclusion": "failure"
+        },
+        {
+          "name": "Verify Whole BFT gateway and native container readback",
+          "conclusion": "failure"
+        },
+        {
+          "name": "Verify existing Chain readback and recovery after protocol integration",
+          "conclusion": "failure"
+        },
+        {
+          "name": "Verify existing Chain SDK after protocol integration",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify shared Wallet policy and Chain payment authorization regressions",
+          "conclusion": "failure"
+        },
+        {
+          "name": "Checkout fixed repaired performance client",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify fixed segmented client integration with original assertions",
+          "conclusion": "success"
+        },
+        {
+          "name": "Emit public inverse interop fixture",
+          "conclusion": "success"
+        },
+        {
+          "name": "Upload public signature fixture",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Checkout fixed repaired performance client",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Install pinned contract build runtime",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Post Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "verify",
+      "conclusion": "skipped",
+      "steps": []
+    },
+    {
+      "name": "pq-paired-n1",
+      "conclusion": "skipped",
+      "steps": []
+    }
+  ],
+  "scope": "Existing bounded normal CI only. No Node.Start, new paired benchmark, public migration/deployment/activation or finality evidence."
+}

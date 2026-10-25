@@ -18,16 +18,22 @@ type BoundedContractTransition struct {
 type boundedPinnedContractIdentity struct {
 	SourceHash           string
 	DeployedBytecodeHash string
+	CreationBytecodeHash string
+	RawABIHash           string
 }
 
 var boundedPinnedContracts = map[string]boundedPinnedContractIdentity{
 	"SampleEVMWriteCounter": {
 		SourceHash:           "961d42cf02384dad28e18137d58f2b46c93dbd3a80ca078a3d96726d6d86191b",
 		DeployedBytecodeHash: "bad6eaa7c1f17ed1e3073830127815b90b03ce1e0d15e113411f9ecdbb7d47a0",
+		CreationBytecodeHash: "2be6502d8d00d4ee3741b63489b091e99118dec3b211641f1e95dd15d91512ed",
+		RawABIHash:           "97c6a1aa39019cfdd36d1d7af58a5495dcdfc035989d23ce86fb6e75212864a4",
 	},
 	"SampleYNXTCompatibleERC20": {
 		SourceHash:           "344b1d80d8b2fec3d22a38aa98b28e2c6ab20429f26b6cef726da1e634cbb5c4",
 		DeployedBytecodeHash: "b8604e8a14d38cff0b32d2bca4e768e7a7ea95eac231673e4ec9838c58aa7118",
+		CreationBytecodeHash: "febbf4a7554d7fcddaf1c434e11e5c44f5c5e34ef79f4a972c3d58e2a0c12893",
+		RawABIHash:           "c8e6dcc86de074f5653e7503ecb3c71e3fd393514205c9e4d7d49030382a1659",
 	},
 }
 

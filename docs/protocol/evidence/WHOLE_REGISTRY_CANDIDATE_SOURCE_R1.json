@@ -1,0 +1,109 @@
+{
+  "base": "d47945513fd63a78400f0ee25241767e63528c06",
+  "pins": [
+    {
+      "path": "docs/protocol/consensus-state-whole-manifest-r1.md",
+      "bytes": 2538,
+      "sha256": "dbd88593ab7a642d4521657ed37f4517b59dd404801d86d6d555dec2678f1e91"
+    },
+    {
+      "path": "internal/consensus/account_batch.go",
+      "bytes": 16527,
+      "sha256": "b74ff73bc7af0d7fc4f933d6607ba7f054514a0981108d793b3f5d7a9d526315"
+    },
+    {
+      "path": "internal/consensus/account_batch_test.go",
+      "bytes": 15622,
+      "sha256": "8fe0ba96348a572cfc2704692c515a0e9c13f2d40f07de4ccf0ead94775e2b39"
+    },
+    {
+      "path": "internal/consensus/account_batch_state_test.go",
+      "bytes": 7360,
+      "sha256": "621812291aa230454cc541235c4ef6efc70ecbb9f8c441efaf6f22be49353685"
+    },
+    {
+      "path": "internal/consensus/account_policy.go",
+      "bytes": 12320,
+      "sha256": "10c636368d599ce747e206ca75a7293c2a9229f77ae87f4f0625afec5a960295"
+    },
+    {
+      "path": "internal/consensus/account_revocation.go",
+      "bytes": 7046,
+      "sha256": "77ffa5b4b0bcb86f1eeb6b2e6708a06a1df3bc6f43c86a22d7a79eba819b775a"
+    },
+    {
+      "path": "internal/consensus/action_transaction.go",
+      "bytes": 21404,
+      "sha256": "051b9ad28d153484aa9c1498a7b1aa5a6d985656a532b73a459fba1387f9f1a4"
+    },
+    {
+      "path": "internal/consensus/application.go",
+      "bytes": 48794,
+      "sha256": "1dab202b752dc6ee7eb9e05626c9ba30945e8c8802e9a84ac27e82a7e74b1858"
+    },
+    {
+      "path": "internal/consensus/state.go",
+      "bytes": 46493,
+      "sha256": "babf634752cdbcd811523e6fe90c6a133f54a7986e521926c22ef7735d9b3a70"
+    },
+    {
+      "path": "docs/protocol/CONSENSUS_PQ_ACTION_INTEGRATION_PLAN_R1.md",
+      "bytes": 21273,
+      "sha256": "6e1378e850bbafb6c289d1847ba1fb5af84e0b9d79a41ff7bc66e97dca232ce8"
+    },
+    {
+      "path": "docs/protocol/consensus-state-whole-r1.md",
+      "bytes": 10678,
+      "sha256": "d9e5ae906362d9d67675a1744e54174797b4ef1b712c4f0b4fc1897153e340c5"
+    },
+    {
+      "path": "docs/protocol/CONSENSUS_PQ_KEY_REGISTRY_SOURCE_R1.sha256",
+      "bytes": 772,
+      "sha256": "4a3933350409d989813ac5ac2057bddaf51cc09e011ab782961e91d3e87c6979"
+    },
+    {
+      "path": "internal/ynxconsensusauth/registration.go",
+      "bytes": 12506,
+      "sha256": "32a6c3300c0f70b2791a3b99e7a1da9f347a5cd23a1139def86fccc1ffcd3721"
+    },
+    {
+      "path": "internal/ynxconsensusauth/registration_test.go",
+      "bytes": 16813,
+      "sha256": "6a30ace32b1fb477b0a1f26552fdd295bf71d2eaee8bf0fac1ebf57727375bd7"
+    },
+    {
+      "path": "internal/ynxconsensusauth/registry.go",
+      "bytes": 11865,
+      "sha256": "0bd92a7216d737fc8500646f784904d07325a651eeac8f7b835ef206c1074934"
+    },
+    {
+      "path": "internal/ynxconsensusauth/registry_identity.go",
+      "bytes": 3460,
+      "sha256": "79b66f0a3e63be98be2f55b7e6e64aefaaf11958132bdb8f8c4795d8edf5dd6d"
+    },
+    {
+      "path": "internal/ynxconsensusauth/registry_snapshot.go",
+      "bytes": 3694,
+      "sha256": "22e972891d555bf3efe25c898d2d723ba37a41d4874dc5fc0a9c9dbda62d8cb0"
+    },
+    {
+      "path": "internal/ynxconsensusauth/registry_test.go",
+      "bytes": 11794,
+      "sha256": "d59bb39cd4b723418500cd286ae505e180639579e5bfb8ad524aece41fa194e3"
+    },
+    {
+      "path": "docs/protocol/CONSENSUS_PQ_KEY_REGISTRY_R1.md",
+      "bytes": 13753,
+      "sha256": "50ae304ffd0099666cbc8804d39adfe97fa978f959ef6e3705a52d186ebe3817"
+    }
+  ],
+  "excluded": [
+    "independent genesis-boundary RED test and its manifest",
+    "new contract Action codec WIP",
+    "new Whole ingress implementation"
+  ],
+  "scope": "New ABCI Whole transfer and candidate immutable validator-key registry; separate package tests required. No committed registry activation or Comet integration claimed.",
+  "localGoExecuted": false,
+  "remoteTestResult": "pending next fixed-candidate correctness workflow",
+  "firstPairCandidateUnchanged": "d47945513fd63a78400f0ee25241767e63528c06"
+}

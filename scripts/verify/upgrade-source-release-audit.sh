@@ -22,7 +22,15 @@ compact() { tr -d '[:space:]'; }
 json_string() { printf '%s' "$2" | sed -n "s/.*\"$1\":\"\([^\"]*\)\".*/\1/p" | head -1; }
 read_privileged() { if [[ -r "$1" ]]; then cat "$1"; else sudo -n cat "$1"; fi; }
 sha_privileged() { if [[ -r "$1" ]]; then sha256sum "$1"; else sudo -n sha256sum "$1"; fi; }
-status="$(curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6420/status)"
+status=""
+for attempt in 1 2 3; do
+  if status="$(curl --fail --silent --show-error --connect-timeout 5 --max-time 20 http://127.0.0.1:6420/status)"; then
+    break
+  fi
+  status=""
+  [[ "$attempt" == "3" ]] || sleep 2
+done
+[[ -n "$status" ]]
 status_compact="$(printf '%s' "$status" | compact)"
 commit="$(json_string commit "$status_compact")"
 release="$(json_string release "$status_compact")"

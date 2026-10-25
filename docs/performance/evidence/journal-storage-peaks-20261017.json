@@ -1,0 +1,1296 @@
+{
+  "schema": 1,
+  "measuredAt": "2026-10-17T11:05:16.660Z",
+  "measurement": "instrumented_owned_store_peak_only_not_timing_comparison_or_network",
+  "entryFreeBytes": 69778690048,
+  "binary": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/journal-readback.test",
+  "binarySHA256": "007f27fd9ed98cfd97c3dab3b67f04911d7b713ffde15b7f201728c890c06281",
+  "rows": [
+    {
+      "layout": "atomic-json",
+      "reportPath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-2708843384/result.json",
+      "result": {
+        "accepted": 1024,
+        "accounts_seeded": 256,
+        "allocated_bytes": 101171152,
+        "application_pipeline_seconds": 1.5481177499999998,
+        "application_pipeline_tx_per_second": 661.4483943485566,
+        "block_app_hashes": [
+          "61e993b57b1ae8c8571d21c70e01bf2d9aa8223a58d06ddb9de2414af241d679",
+          "9d656e941f94575057fbc3ec7f6de654804c7cbab6081bdf79dad431146177bc",
+          "37e930983b889a97a2dc73e609f588491437209331a6d49df8025452976759e9",
+          "d0647c2e86cc7ca2b285309c8e37d809acfc719219a82c3272aeb69df86c8e7a",
+          "4b0b418b60f9613735fbf6751a0b71b5826a77d18345047192b825b86813899f",
+          "1cc89c7113b15e9aacfca583666ecf141dcbfe569300aedef23a5a79b666cc07",
+          "14bbd539888f6e25e079a67ae9e07f1cbaa9c20a5a43a69934c3c430df46fe0a",
+          "d66f8e8250cff633180d3fcebe8c9ace95138d937f2fda4a275036b4fa1bef86",
+          "a86b187aa941b36041d1e9dd9d91af9e5e8bfbe302d752eb06f13633b31d8dbe",
+          "1b52bced818de0b4fe1933c40729720fe1189b7cbce7f1adf00b5fd456cc1bd2",
+          "913c3492df2f6f316ca3130e9a5e132f812ca31378448ba04dccf83afe0dcaa9",
+          "a1da75eb4472379feac5ee22a99ff191fe6636a7b4777b9e418f1e4139d990ff",
+          "3cb92b274a42e2c4954b416fecdedb6c61bcfabfca3790f5601857bffbd987b9",
+          "4a4d80903396a8785ce3647d7980af5f72de232d956a2adae26497186c069ce4",
+          "094997e31be54160addb6a45221fe1e1e8cb40d4888933257223b3625d4b75cd",
+          "03fb56dee72953207a6a3b2ad7ca5b15fe8e45ba2d4aa448696fc0961074ca02",
+          "e53ed057fe65f8ea1844d0686fe51ffcd7fbfbec3a006f53d076d82096de8eee",
+          "c325d0f74adb535d1299f9e77ea9735fc5a49f1c093cd6560874da1b5ffd2c1b",
+          "e1a55725fae812b4c9e9c389a4686e779b9da692263d8e172928c853446c1563",
+          "33f599155cab46915356b090b831eda9d569b9aa2804d931ea99b334e8ba0fb5",
+          "6e46fadb6a00467f3342883f99e79271780c82f4d5cd92490f85f574dbf477ad",
+          "f68b4a59b11898b16e4dfe8d5c67fcaf063aa7ae9980f0a42e4f2395f6587f0f",
+          "cf3fdc263597392ad4ce857231d04ab0c7a22aca504590eaac842edb9dc35ea7",
+          "e1a43e3db17c12c0e55ad3dbce9f4b315fb786eac37f3df711db5ee6cec3ba96",
+          "60c239b5047690be56648625dc3c58040167cfb60e50ee10aeb910467ceee78f",
+          "b991920bb8fd5d3c46f7b8e26915d09efc3e10465e90f73383dbe3e731ad66f0",
+          "eccc7b716cb65fdb6fbbd57ca3687bda459b9343baf51c4d9582fe6a3ce7222c",
+          "98625f41c154cea6723bcecba9eefba8c4cfaa70f325d356c830e0d678ba9578",
+          "72468d14e72486bc9c2696ef5b42694e0de5c16c7477ab9197c7009c8f4e9417",
+          "b36e7860b8da591536707b6f10a62f81e8153541b4d7df4220aaceda6f1ccaf1",
+          "1490dee0e925fc092ca82966c552498acf87551592d350c8e4b40358f0e71b2a",
+          "2ba59f79928a9ea99678e444318d319ed58f8183c20755b43f7b9d8e78d9d306"
+        ],
+        "blocks": 32,
+        "commit_stages": {
+          "close_file": {
+            "p50_ms": 0.123416,
+            "p95_ms": 0.381584,
+            "p99_ms": 0.383875,
+            "samples": 32,
+            "total_ms": 4.996503
+          },
+          "directory_sync": {
+            "p50_ms": 7.598667,
+            "p95_ms": 119.13325,
+            "p99_ms": 297.321125,
+            "samples": 32,
+            "total_ms": 708.482168
+          },
+          "file_sync": {
+            "p50_ms": 7.584833,
+            "p95_ms": 21.495666,
+            "p99_ms": 188.550166,
+            "samples": 32,
+            "total_ms": 455.148747
+          },
+          "json_encode": {
+            "p50_ms": 2.195709,
+            "p95_ms": 3.321667,
+            "p99_ms": 3.633375,
+            "samples": 32,
+            "total_ms": 67.609583
+          },
+          "prepare_file": {
+            "p50_ms": 0.158291,
+            "p95_ms": 0.258083,
+            "p99_ms": 0.65625,
+            "samples": 32,
+            "total_ms": 5.854042
+          },
+          "rename": {
+            "p50_ms": 0.215166,
+            "p95_ms": 1.608708,
+            "p99_ms": 4.400458,
+            "samples": 32,
+            "total_ms": 15.256582
+          },
+          "validate": {
+            "p50_ms": 1.294375,
+            "p95_ms": 1.926959,
+            "p99_ms": 2.010917,
+            "samples": 32,
+            "total_ms": 41.062458
+          },
+          "write": {
+            "p50_ms": 0.060583,
+            "p95_ms": 0.130625,
+            "p99_ms": 1.364875,
+            "samples": 32,
+            "total_ms": 3.365625
+          }
+        },
+        "consensus_inclusion_tps": null,
+        "executed_code_zero": 1024,
+        "failed": 0,
+        "finality_latency": null,
+        "gc_cycles": 16,
+        "go_version": "go1.25.7",
+        "goarch": "arm64",
+        "gomaxprocs": 1,
+        "goos": "darwin",
+        "inclusion_latency": null,
+        "journal_compactions": 0,
+        "label": "storage-peak-atomic-json",
+        "mallocs": 758808,
+        "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+        "mempool_accept_tps": null,
+        "migration_hash": "4fbc70d7d9d917c4b1c7311728371befb5c20660dde3137ba38a3781e7bf0d13",
+        "native_signature_cache": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 1024,
+          "retained_string_bytes": 730892,
+          "lookups": 4096,
+          "hits": 3072,
+          "successful_verifications": 1024
+        },
+        "offered": 1024,
+        "offline_signing_seconds_excluded": 0.197326625,
+        "peak_owned_store_accounted_bytes": 1597440,
+        "persisted_fee_events": 1024,
+        "rejected": 0,
+        "replay_rejected_after_restart": true,
+        "restart_full_state_equal": true,
+        "rpc_submit_tps": null,
+        "schema": 2,
+        "senders": 32,
+        "snapshot_bytes": 807792,
+        "snapshot_bytes_written": 15071992,
+        "stages": {
+          "check_tx": {
+            "p50_ms": 0.1155,
+            "p95_ms": 0.316916,
+            "p99_ms": 0.414416,
+            "samples": 1024,
+            "total_ms": 151.464514
+          },
+          "durable_commit": {
+            "p50_ms": 20.238167,
+            "p95_ms": 313.032375,
+            "p99_ms": 315.026708,
+            "samples": 32,
+            "total_ms": 1302.64521
+          },
+          "finalize_block": {
+            "p50_ms": 2.218208,
+            "p95_ms": 3.792458,
+            "p99_ms": 4.425875,
+            "samples": 32,
+            "total_ms": 76.251793
+          },
+          "prepare_proposal": {
+            "p50_ms": 0.206625,
+            "p95_ms": 0.467375,
+            "p99_ms": 0.568542,
+            "samples": 32,
+            "total_ms": 7.785246
+          },
+          "process_proposal": {
+            "p50_ms": 0.177917,
+            "p95_ms": 0.337542,
+            "p99_ms": 0.386958,
+            "samples": 32,
+            "total_ms": 6.608668
+          }
+        },
+        "storage_bytes": 807792,
+        "storage_layout": "atomic-json",
+        "storage_probe_enabled": true,
+        "storage_samples": [
+          {
+            "accounted_bytes": 0,
+            "files": 0,
+            "logical_bytes": 0,
+            "physical_blocks_available": true,
+            "stage": "setup"
+          },
+          {
+            "accounted_bytes": 135168,
+            "files": 1,
+            "logical_bytes": 134319,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 135168,
+            "files": 1,
+            "logical_bytes": 134319,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 294912,
+            "files": 2,
+            "logical_bytes": 290334,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 159744,
+            "files": 1,
+            "logical_bytes": 156015,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 339968,
+            "files": 2,
+            "logical_bytes": 333726,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 180224,
+            "files": 1,
+            "logical_bytes": 177711,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 380928,
+            "files": 2,
+            "logical_bytes": 377118,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 200704,
+            "files": 1,
+            "logical_bytes": 199407,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 421888,
+            "files": 2,
+            "logical_bytes": 420510,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 221184,
+            "files": 1,
+            "logical_bytes": 221103,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 466944,
+            "files": 2,
+            "logical_bytes": 463902,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 245760,
+            "files": 1,
+            "logical_bytes": 242799,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 512000,
+            "files": 2,
+            "logical_bytes": 507294,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 266240,
+            "files": 1,
+            "logical_bytes": 264495,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 552960,
+            "files": 2,
+            "logical_bytes": 550686,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 286720,
+            "files": 1,
+            "logical_bytes": 286191,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 598016,
+            "files": 2,
+            "logical_bytes": 594111,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 311296,
+            "files": 1,
+            "logical_bytes": 307920,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 643072,
+            "files": 2,
+            "logical_bytes": 637696,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 331776,
+            "files": 1,
+            "logical_bytes": 329776,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 684032,
+            "files": 2,
+            "logical_bytes": 681280,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 352256,
+            "files": 1,
+            "logical_bytes": 351504,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 729088,
+            "files": 2,
+            "logical_bytes": 724736,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 376832,
+            "files": 1,
+            "logical_bytes": 373232,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 774144,
+            "files": 2,
+            "logical_bytes": 768192,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 397312,
+            "files": 1,
+            "logical_bytes": 394960,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 815104,
+            "files": 2,
+            "logical_bytes": 811648,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 417792,
+            "files": 1,
+            "logical_bytes": 416688,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 860160,
+            "files": 2,
+            "logical_bytes": 855104,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 442368,
+            "files": 1,
+            "logical_bytes": 438416,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 905216,
+            "files": 2,
+            "logical_bytes": 898560,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 462848,
+            "files": 1,
+            "logical_bytes": 460144,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 946176,
+            "files": 2,
+            "logical_bytes": 942016,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 483328,
+            "files": 1,
+            "logical_bytes": 481872,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 987136,
+            "files": 2,
+            "logical_bytes": 985472,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 503808,
+            "files": 1,
+            "logical_bytes": 503600,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1032192,
+            "files": 2,
+            "logical_bytes": 1028928,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 528384,
+            "files": 1,
+            "logical_bytes": 525328,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1077248,
+            "files": 2,
+            "logical_bytes": 1072384,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 548864,
+            "files": 1,
+            "logical_bytes": 547056,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1118208,
+            "files": 2,
+            "logical_bytes": 1115840,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 569344,
+            "files": 1,
+            "logical_bytes": 568784,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1163264,
+            "files": 2,
+            "logical_bytes": 1159296,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 593920,
+            "files": 1,
+            "logical_bytes": 590512,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1208320,
+            "files": 2,
+            "logical_bytes": 1202752,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 614400,
+            "files": 1,
+            "logical_bytes": 612240,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1249280,
+            "files": 2,
+            "logical_bytes": 1246208,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 634880,
+            "files": 1,
+            "logical_bytes": 633968,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1294336,
+            "files": 2,
+            "logical_bytes": 1289664,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 659456,
+            "files": 1,
+            "logical_bytes": 655696,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1339392,
+            "files": 2,
+            "logical_bytes": 1333120,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 679936,
+            "files": 1,
+            "logical_bytes": 677424,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1380352,
+            "files": 2,
+            "logical_bytes": 1376576,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 700416,
+            "files": 1,
+            "logical_bytes": 699152,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1421312,
+            "files": 2,
+            "logical_bytes": 1420032,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 720896,
+            "files": 1,
+            "logical_bytes": 720880,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1466368,
+            "files": 2,
+            "logical_bytes": 1463488,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 745472,
+            "files": 1,
+            "logical_bytes": 742608,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1511424,
+            "files": 2,
+            "logical_bytes": 1506944,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 765952,
+            "files": 1,
+            "logical_bytes": 764336,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1552384,
+            "files": 2,
+            "logical_bytes": 1550400,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 786432,
+            "files": 1,
+            "logical_bytes": 786064,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1597440,
+            "files": 2,
+            "logical_bytes": 1593856,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 811008,
+            "files": 1,
+            "logical_bytes": 807792,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          }
+        ],
+        "txs_per_block": 32
+      }
+    },
+    {
+      "layout": "snapshot-journal",
+      "reportPath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-1617396904/result.json",
+      "result": {
+        "accepted": 1024,
+        "accounts_seeded": 256,
+        "allocated_bytes": 101265848,
+        "application_pipeline_seconds": 0.621586208,
+        "application_pipeline_tx_per_second": 1647.3981996717662,
+        "block_app_hashes": [
+          "61e993b57b1ae8c8571d21c70e01bf2d9aa8223a58d06ddb9de2414af241d679",
+          "9d656e941f94575057fbc3ec7f6de654804c7cbab6081bdf79dad431146177bc",
+          "37e930983b889a97a2dc73e609f588491437209331a6d49df8025452976759e9",
+          "d0647c2e86cc7ca2b285309c8e37d809acfc719219a82c3272aeb69df86c8e7a",
+          "4b0b418b60f9613735fbf6751a0b71b5826a77d18345047192b825b86813899f",
+          "1cc89c7113b15e9aacfca583666ecf141dcbfe569300aedef23a5a79b666cc07",
+          "14bbd539888f6e25e079a67ae9e07f1cbaa9c20a5a43a69934c3c430df46fe0a",
+          "d66f8e8250cff633180d3fcebe8c9ace95138d937f2fda4a275036b4fa1bef86",
+          "a86b187aa941b36041d1e9dd9d91af9e5e8bfbe302d752eb06f13633b31d8dbe",
+          "1b52bced818de0b4fe1933c40729720fe1189b7cbce7f1adf00b5fd456cc1bd2",
+          "913c3492df2f6f316ca3130e9a5e132f812ca31378448ba04dccf83afe0dcaa9",
+          "a1da75eb4472379feac5ee22a99ff191fe6636a7b4777b9e418f1e4139d990ff",
+          "3cb92b274a42e2c4954b416fecdedb6c61bcfabfca3790f5601857bffbd987b9",
+          "4a4d80903396a8785ce3647d7980af5f72de232d956a2adae26497186c069ce4",
+          "094997e31be54160addb6a45221fe1e1e8cb40d4888933257223b3625d4b75cd",
+          "03fb56dee72953207a6a3b2ad7ca5b15fe8e45ba2d4aa448696fc0961074ca02",
+          "e53ed057fe65f8ea1844d0686fe51ffcd7fbfbec3a006f53d076d82096de8eee",
+          "c325d0f74adb535d1299f9e77ea9735fc5a49f1c093cd6560874da1b5ffd2c1b",
+          "e1a55725fae812b4c9e9c389a4686e779b9da692263d8e172928c853446c1563",
+          "33f599155cab46915356b090b831eda9d569b9aa2804d931ea99b334e8ba0fb5",
+          "6e46fadb6a00467f3342883f99e79271780c82f4d5cd92490f85f574dbf477ad",
+          "f68b4a59b11898b16e4dfe8d5c67fcaf063aa7ae9980f0a42e4f2395f6587f0f",
+          "cf3fdc263597392ad4ce857231d04ab0c7a22aca504590eaac842edb9dc35ea7",
+          "e1a43e3db17c12c0e55ad3dbce9f4b315fb786eac37f3df711db5ee6cec3ba96",
+          "60c239b5047690be56648625dc3c58040167cfb60e50ee10aeb910467ceee78f",
+          "b991920bb8fd5d3c46f7b8e26915d09efc3e10465e90f73383dbe3e731ad66f0",
+          "eccc7b716cb65fdb6fbbd57ca3687bda459b9343baf51c4d9582fe6a3ce7222c",
+          "98625f41c154cea6723bcecba9eefba8c4cfaa70f325d356c830e0d678ba9578",
+          "72468d14e72486bc9c2696ef5b42694e0de5c16c7477ab9197c7009c8f4e9417",
+          "b36e7860b8da591536707b6f10a62f81e8153541b4d7df4220aaceda6f1ccaf1",
+          "1490dee0e925fc092ca82966c552498acf87551592d350c8e4b40358f0e71b2a",
+          "2ba59f79928a9ea99678e444318d319ed58f8183c20755b43f7b9d8e78d9d306"
+        ],
+        "blocks": 32,
+        "commit_stages": {
+          "close_file": {
+            "p50_ms": 0.110041,
+            "p95_ms": 0.187083,
+            "p99_ms": 0.244,
+            "samples": 32,
+            "total_ms": 3.695707
+          },
+          "file_sync": {
+            "p50_ms": 8.223541,
+            "p95_ms": 10.678792,
+            "p99_ms": 12.893167,
+            "samples": 32,
+            "total_ms": 272.898545
+          },
+          "journal_maintenance": {
+            "p50_ms": 0.106958,
+            "p95_ms": 15.716416,
+            "p99_ms": 16.439458,
+            "samples": 32,
+            "total_ms": 36.661581
+          },
+          "json_encode": {
+            "p50_ms": 1.773583,
+            "p95_ms": 3.41025,
+            "p99_ms": 3.729667,
+            "samples": 32,
+            "total_ms": 61.390665
+          },
+          "prepare_file": {
+            "p50_ms": 0.019166,
+            "p95_ms": 0.055542,
+            "p99_ms": 0.056041,
+            "samples": 32,
+            "total_ms": 0.697625
+          },
+          "validate": {
+            "p50_ms": 1.080125,
+            "p95_ms": 1.724333,
+            "p99_ms": 2.436041,
+            "samples": 32,
+            "total_ms": 36.721667
+          },
+          "write": {
+            "p50_ms": 0.244083,
+            "p95_ms": 0.403167,
+            "p99_ms": 1.18875,
+            "samples": 32,
+            "total_ms": 8.779
+          }
+        },
+        "consensus_inclusion_tps": null,
+        "executed_code_zero": 1024,
+        "failed": 0,
+        "finality_latency": null,
+        "gc_cycles": 15,
+        "go_version": "go1.25.7",
+        "goarch": "arm64",
+        "gomaxprocs": 1,
+        "goos": "darwin",
+        "inclusion_latency": null,
+        "journal_compactions": 2,
+        "label": "storage-peak-snapshot-journal",
+        "mallocs": 759075,
+        "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+        "mempool_accept_tps": null,
+        "migration_hash": "4fbc70d7d9d917c4b1c7311728371befb5c20660dde3137ba38a3781e7bf0d13",
+        "native_signature_cache": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 1024,
+          "retained_string_bytes": 730892,
+          "lookups": 4096,
+          "hits": 3072,
+          "successful_verifications": 1024
+        },
+        "offered": 1024,
+        "offline_signing_seconds_excluded": 0.150308875,
+        "peak_owned_store_accounted_bytes": 10760192,
+        "persisted_fee_events": 1024,
+        "rejected": 0,
+        "replay_rejected_after_restart": true,
+        "restart_full_state_equal": true,
+        "rpc_submit_tps": null,
+        "schema": 2,
+        "senders": 32,
+        "snapshot_bytes": 807792,
+        "snapshot_bytes_written": 15071992,
+        "stages": {
+          "check_tx": {
+            "p50_ms": 0.104375,
+            "p95_ms": 0.175875,
+            "p99_ms": 0.260541,
+            "samples": 1024,
+            "total_ms": 115.198553
+          },
+          "durable_commit": {
+            "p50_ms": 11.949167,
+            "p95_ms": 29.66425,
+            "p99_ms": 30.306417,
+            "samples": 32,
+            "total_ms": 421.011834
+          },
+          "finalize_block": {
+            "p50_ms": 2.263,
+            "p95_ms": 3.327666,
+            "p99_ms": 4.59575,
+            "samples": 32,
+            "total_ms": 70.785874
+          },
+          "prepare_proposal": {
+            "p50_ms": 0.180333,
+            "p95_ms": 0.376291,
+            "p99_ms": 0.619291,
+            "samples": 32,
+            "total_ms": 6.910748
+          },
+          "process_proposal": {
+            "p50_ms": 0.158209,
+            "p95_ms": 0.361667,
+            "p99_ms": 0.57325,
+            "samples": 32,
+            "total_ms": 6.329626
+          }
+        },
+        "storage_bytes": 1594094,
+        "storage_layout": "snapshot-journal",
+        "storage_probe_enabled": true,
+        "storage_samples": [
+          {
+            "accounted_bytes": 4096,
+            "files": 2,
+            "logical_bytes": 94,
+            "physical_blocks_available": true,
+            "stage": "setup"
+          },
+          {
+            "accounted_bytes": 135168,
+            "files": 2,
+            "logical_bytes": 134485,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 135168,
+            "files": 2,
+            "logical_bytes": 134485,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 290816,
+            "files": 2,
+            "logical_bytes": 290572,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 290816,
+            "files": 2,
+            "logical_bytes": 290572,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 471040,
+            "files": 2,
+            "logical_bytes": 468355,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 471040,
+            "files": 2,
+            "logical_bytes": 468355,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 671744,
+            "files": 2,
+            "logical_bytes": 667834,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 671744,
+            "files": 2,
+            "logical_bytes": 667834,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 892928,
+            "files": 2,
+            "logical_bytes": 889009,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 892928,
+            "files": 2,
+            "logical_bytes": 889009,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1134592,
+            "files": 2,
+            "logical_bytes": 1131880,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 1134592,
+            "files": 2,
+            "logical_bytes": 1131880,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1396736,
+            "files": 2,
+            "logical_bytes": 1396447,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 1396736,
+            "files": 2,
+            "logical_bytes": 1396447,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1683456,
+            "files": 2,
+            "logical_bytes": 1682710,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 1683456,
+            "files": 2,
+            "logical_bytes": 1682710,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1994752,
+            "files": 2,
+            "logical_bytes": 1990702,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 1994752,
+            "files": 2,
+            "logical_bytes": 1990702,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 2322432,
+            "files": 2,
+            "logical_bytes": 2320550,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 2322432,
+            "files": 2,
+            "logical_bytes": 2320550,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 2674688,
+            "files": 2,
+            "logical_bytes": 2672126,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 2674688,
+            "files": 2,
+            "logical_bytes": 2672126,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 3047424,
+            "files": 2,
+            "logical_bytes": 3045430,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 3047424,
+            "files": 2,
+            "logical_bytes": 3045430,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 3440640,
+            "files": 2,
+            "logical_bytes": 3440462,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 3440640,
+            "files": 2,
+            "logical_bytes": 3440462,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 3858432,
+            "files": 2,
+            "logical_bytes": 3857222,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 3858432,
+            "files": 2,
+            "logical_bytes": 3857222,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 4296704,
+            "files": 2,
+            "logical_bytes": 4295710,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 4296704,
+            "files": 2,
+            "logical_bytes": 4295710,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 4759552,
+            "files": 2,
+            "logical_bytes": 4755926,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 4759552,
+            "files": 2,
+            "logical_bytes": 4755926,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 5222400,
+            "files": 3,
+            "logical_bytes": 5216236,
+            "physical_blocks_available": true,
+            "stage": "compaction_synced"
+          },
+          {
+            "accounted_bytes": 946176,
+            "files": 2,
+            "logical_bytes": 942254,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 946176,
+            "files": 2,
+            "logical_bytes": 942254,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1449984,
+            "files": 2,
+            "logical_bytes": 1445926,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 1449984,
+            "files": 2,
+            "logical_bytes": 1445926,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 1974272,
+            "files": 2,
+            "logical_bytes": 1971326,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 1974272,
+            "files": 2,
+            "logical_bytes": 1971326,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 2519040,
+            "files": 2,
+            "logical_bytes": 2518454,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 2519040,
+            "files": 2,
+            "logical_bytes": 2518454,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 3088384,
+            "files": 2,
+            "logical_bytes": 3087310,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 3088384,
+            "files": 2,
+            "logical_bytes": 3087310,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 3678208,
+            "files": 2,
+            "logical_bytes": 3677894,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 3678208,
+            "files": 2,
+            "logical_bytes": 3677894,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 4292608,
+            "files": 2,
+            "logical_bytes": 4290206,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 4292608,
+            "files": 2,
+            "logical_bytes": 4290206,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 4927488,
+            "files": 2,
+            "logical_bytes": 4924246,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 4927488,
+            "files": 2,
+            "logical_bytes": 4924246,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 5582848,
+            "files": 2,
+            "logical_bytes": 5580014,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 5582848,
+            "files": 2,
+            "logical_bytes": 5580014,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 6258688,
+            "files": 2,
+            "logical_bytes": 6257510,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 6258688,
+            "files": 2,
+            "logical_bytes": 6257510,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 6959104,
+            "files": 2,
+            "logical_bytes": 6956734,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 6959104,
+            "files": 2,
+            "logical_bytes": 6956734,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 7680000,
+            "files": 2,
+            "logical_bytes": 7677686,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 7680000,
+            "files": 2,
+            "logical_bytes": 7677686,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 8421376,
+            "files": 2,
+            "logical_bytes": 8420366,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 8421376,
+            "files": 2,
+            "logical_bytes": 8420366,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 9187328,
+            "files": 2,
+            "logical_bytes": 9184774,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 9187328,
+            "files": 2,
+            "logical_bytes": 9184774,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 9973760,
+            "files": 2,
+            "logical_bytes": 9970910,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 9973760,
+            "files": 2,
+            "logical_bytes": 9970910,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          },
+          {
+            "accounted_bytes": 10760192,
+            "files": 3,
+            "logical_bytes": 10757140,
+            "physical_blocks_available": true,
+            "stage": "compaction_synced"
+          },
+          {
+            "accounted_bytes": 1597440,
+            "files": 2,
+            "logical_bytes": 1594094,
+            "physical_blocks_available": true,
+            "stage": "file_sync"
+          },
+          {
+            "accounted_bytes": 1597440,
+            "files": 2,
+            "logical_bytes": 1594094,
+            "physical_blocks_available": true,
+            "stage": "after_commit"
+          }
+        ],
+        "txs_per_block": 32
+      }
+    }
+  ],
+  "scope": "application run directory regular files, including atomic temp and journal compact temp before rename; max(size,st_blocks*512); excludes migration/node config/CometDB and is not four-node resource fit"
+}

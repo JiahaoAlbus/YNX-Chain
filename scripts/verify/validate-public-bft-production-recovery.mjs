@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { authoritativeIdentity, roleAuthoritativeIdentity, validateAuthoritativeObservation } from "./lib/public-bft-native-source.mjs";
 
 const roles = ["primary", "singapore", "silicon-valley", "seoul"];
 const validators = {
@@ -23,13 +24,18 @@ function readJSON(file) {
   }
 }
 
-function validate(root, commit, release) {
-  if (!/^[0-9a-f]{12}$/.test(commit) || release !== `ynx-chain-${commit}`) fail("invalid expected release identity");
+function validate(root, commit, release, approvalPath = "", transactionId = "") {
+  const approval = approvalPath ? readJSON(approvalPath) : null;
+  const native = approval ? authoritativeIdentity(approval) : {};
+  if (!/^[0-9a-f]{12}$/.test(commit) || (native.authoritativeCommit ? native.authoritativeCommit.slice(0,12) !== commit || native.authoritativeRelease !== release : release !== `ynx-chain-${commit}`)) fail("invalid expected release identity");
+  if (approvalPath && !native.authoritativeCommit) fail("independent native approval is missing");
   const hashes = new Set();
   const blockHeights = new Set();
   const beforeHeights = {};
   const afterHeights = {};
   for (const role of roles) {
+    const original = native.authoritativeCommit ? roleAuthoritativeIdentity(approval, role) : {};
+    const roleCommit = original.authoritativeCommit?.slice(0, 12) || commit, roleRelease = original.authoritativeRelease || release;
     const before = readJSON(path.join(root, "roles", `${role}-before-status.json`));
     const after = readJSON(path.join(root, "roles", `${role}-after-status.json`));
     const block = readJSON(path.join(root, "roles", `${role}-block.json`));
@@ -37,8 +43,9 @@ function validate(root, commit, release) {
     const expectedMode = role === "primary" ? "authoritative_producer" : "authoritative_follower";
     const expectedProduction = role === "primary";
     for (const [stage, status] of [["before", before], ["after", after]]) {
+      if (native.authoritativeCommit) validateAuthoritativeObservation(readJSON(path.join(root, "roles", `${role}-${stage}-native-identity.json`)), approval, role, transactionId);
       if (Number(status.chainId) !== 6423 || status.nativeCurrencySymbol !== "YNXT") fail(`${role} ${stage} chain identity mismatch`);
-      if (status.build?.commit !== commit || status.build?.release !== release) fail(`${role} ${stage} release mismatch`);
+      if (status.build?.commit !== roleCommit || status.build?.release !== roleRelease) fail(`${role} ${stage} release mismatch`);
       if (status.nodeIdentity?.validatorAddress !== validators[role]) fail(`${role} ${stage} validator mismatch`);
       if (status.nodeIdentity?.replicationMode !== expectedMode || status.nodeIdentity?.blockProductionEnabled !== expectedProduction) fail(`${role} ${stage} authoritative mode mismatch`);
       if (!Number.isSafeInteger(Number(status.height))) fail(`${role} ${stage} height invalid`);
@@ -94,7 +101,7 @@ function selfTest() {
 if (process.argv[2] === "--self-test") {
   selfTest();
 } else {
-  const [root, commit, release] = process.argv.slice(2);
+  const [root, commit, release, approvalPath, transactionId] = process.argv.slice(2);
   if (!root || !commit || !release) fail("usage: validate-public-bft-production-recovery.mjs <evidence-dir> <commit> <release>");
-  console.log(JSON.stringify(validate(root, commit, release), null, 2));
+  console.log(JSON.stringify(validate(root, commit, release, approvalPath, transactionId), null, 2));
 }

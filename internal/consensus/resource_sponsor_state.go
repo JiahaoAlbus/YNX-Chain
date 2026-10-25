@@ -15,11 +15,12 @@ import (
 
 type BFTResourcePool struct {
 	chain.ResourcePool
-	LastAction  string `json:"lastAction"`
-	LastSigner  string `json:"lastSigner"`
-	BlockHeight int64  `json:"blockHeight"`
-	TxHash      string `json:"txHash"`
-	AuditHash   string `json:"auditHash"`
+	SourceAnchor string `json:"sourceAnchor,omitempty"`
+	LastAction   string `json:"lastAction"`
+	LastSigner   string `json:"lastSigner"`
+	BlockHeight  int64  `json:"blockHeight"`
+	TxHash       string `json:"txHash"`
+	AuditHash    string `json:"auditHash"`
 }
 
 type BFTResourceSponsorship struct {
@@ -104,8 +105,15 @@ func validateResourceSponsorCommittedState(s CommittedState) error {
 	poolByID := make(map[string]BFTResourcePool, len(s.ResourcePools))
 	previous := ""
 	for _, pool := range s.ResourcePools {
-		if !validBFTResourcePoolID(pool.ID) || previous != "" && pool.ID <= previous || !IsNativeAddress(pool.Owner) || pool.PoolType != "merchant" && pool.PoolType != "dapp" || pool.Name == "" || pool.Status != "active" && pool.Status != "paused" && pool.Status != "revoked" || pool.CreatedAt.IsZero() || pool.UpdatedAt.Before(pool.CreatedAt) || !pool.ExpiresAt.After(pool.CreatedAt) || pool.PolicyHash != chain.ResourcePoolPolicyHash(pool.ResourcePool) || !isResourceSponsorAction(pool.LastAction) || !IsNativeAddress(pool.LastSigner) || pool.LastAction != ActionResourceSponsor && pool.LastSigner != pool.Owner || pool.BlockHeight <= 0 || !validResourceTxHash(pool.TxHash) || pool.AuditHash != resourcePoolAuditHash(pool) {
+		if !validBFTResourcePoolID(pool.ID) || previous != "" && pool.ID <= previous || !IsNativeAddress(pool.Owner) || pool.PoolType != "merchant" && pool.PoolType != "dapp" || pool.Name == "" || pool.Status != "active" && pool.Status != "paused" && pool.Status != "revoked" || pool.CreatedAt.IsZero() || pool.UpdatedAt.Before(pool.CreatedAt) || !pool.ExpiresAt.After(pool.CreatedAt) || pool.PolicyHash != chain.ResourcePoolPolicyHash(pool.ResourcePool) {
 			return errors.New("committed Resource sponsor pools must be canonical, policy-bound, and sorted")
+		}
+		// The separately checked immutable source segment is the authority for
+		// an untouched import. Native updates require their actual BFT metadata.
+		if pool.SourceAnchor == "" || pool.LastAction != "" {
+			if !isResourceSponsorAction(pool.LastAction) || !IsNativeAddress(pool.LastSigner) || pool.LastAction != ActionResourceSponsor && pool.LastSigner != pool.Owner || pool.BlockHeight <= 0 || !validResourceTxHash(pool.TxHash) || pool.AuditHash != resourcePoolAuditHash(pool) {
+				return errors.New("committed Resource sponsor pool update lacks native authority metadata")
+			}
 		}
 		if pool.Public == (len(pool.AllowedBeneficiaries) != 0) || !strictSortedStrings(pool.AllowedBeneficiaries) || !strictSortedStrings(pool.AllowedScopes) || !strictSortedStrings(pool.AllowedResourceTypes) || !validBFTResourceUnits(pool.PerActionLimit, true) || !validBFTResourceUnits(pool.CumulativeAllowance, true) || !validBFTResourceUnits(pool.Consumed, false) || !resourceUnitsWithin(pool.PerActionLimit, pool.CumulativeAllowance) || !resourceUnitsWithin(pool.Consumed, pool.CumulativeAllowance) || !resourceUnitsMatchTypes(pool.PerActionLimit, pool.AllowedResourceTypes, true) {
 			return errors.New("committed Resource sponsor pool policy or accounting is invalid")
@@ -187,9 +195,9 @@ func validateResourceSponsorCommittedState(s CommittedState) error {
 	if len(seenRefs) != len(s.ResourceSponsorships) || len(s.ResourceSponsorIdempotency) != len(s.ResourceSponsorAudit) {
 		return errors.New("committed Resource sponsor idempotency, audit, or action-reference counts do not reconcile")
 	}
-	previousHash := ""
+	previousHash, sequenceOffset := sourceSponsorAuditTail(s.LegacyResourceSponsor)
 	for i, value := range s.ResourceSponsorAudit {
-		if value.Sequence != uint64(i+1) || !payIDPattern.MatchString(value.ID) || !isResourceSponsorAction(value.Action) || !IsNativeAddress(value.Signer) || value.ObjectID == "" || !payHashPattern.MatchString(value.RequestHash) || value.PreviousHash != previousHash || value.BlockHeight <= 0 || value.CreatedAt.IsZero() || !validResourceTxHash(value.TxHash) || value.AuditHash != resourceSponsorAuditHash(value) {
+		if value.Sequence != sequenceOffset+uint64(i+1) || !payIDPattern.MatchString(value.ID) || !isResourceSponsorAction(value.Action) || !IsNativeAddress(value.Signer) || value.ObjectID == "" || !payHashPattern.MatchString(value.RequestHash) || value.PreviousHash != previousHash || value.BlockHeight <= 0 || value.CreatedAt.IsZero() || !validResourceTxHash(value.TxHash) || value.AuditHash != resourceSponsorAuditHash(value) {
 			return errors.New("committed Resource sponsor audit chain is invalid")
 		}
 		previousHash = value.AuditHash

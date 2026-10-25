@@ -1,0 +1,109 @@
+{
+  "schema": 1,
+  "kind": "tested-native-PQ-Wallet-HTTP-source-contract",
+  "sourceCommit": "69e788b4bd726689ea5d1709fd5ba0162c6ec0da",
+  "ci": {
+    "runId": "39059614316",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39059614316",
+    "status": "completed",
+    "conclusion": "success",
+    "scope": "focused-go source tests; unrelated verify job intentionally skipped"
+  },
+  "sourcePins": [
+    {
+      "path": "docs/protocol/PQ_HTTP_SUBMISSION_CONTRACT_R2.md",
+      "bytes": 8631,
+      "sha256": "65fa71df2d28666b6a02b88d2309199f83e01a00fcec17e9fa35c26e08ae099c"
+    },
+    {
+      "path": "docs/protocol/PQ_HTTP_REVOCATION_CONTRACT_R1.md",
+      "bytes": 5858,
+      "sha256": "626075ada13d4f90448ac41f60a15893c131627a392f3aa81f50a11a575c9f1b"
+    },
+    {
+      "path": "internal/api/server.go",
+      "bytes": 93389,
+      "sha256": "05d0b8cbc54c4e8345c38bfb8cd622e9917acf5c6a39af21365db13eda019855"
+    },
+    {
+      "path": "internal/api/pq_authorization.go",
+      "bytes": 8768,
+      "sha256": "5eca3120ad7b3f7d550b720432d9a0ebddd68727a87cca35748355e002bbcf60"
+    },
+    {
+      "path": "internal/api/pq_reconciliation.go",
+      "bytes": 2544,
+      "sha256": "040f65734eafb8db3c8b081dfcf29716e96437429027a6dc5a31a31f8cffb4c1"
+    },
+    {
+      "path": "internal/api/pq_revocation.go",
+      "bytes": 3684,
+      "sha256": "2db0750f949af73b2559ba335d3c23ca81004cf81093402267bbf2c0357dfca4"
+    },
+    {
+      "path": "internal/api/transaction_durability.go",
+      "bytes": 3774,
+      "sha256": "7be3312e87f54d9493010e0483376e41ebca95b699d9b5729f2aa5985bdc00bf"
+    },
+    {
+      "path": "internal/chain/pq_authorization.go",
+      "bytes": 13131,
+      "sha256": "703f11fa4d4881beecfee959b35796d755c853e0b3860b80fbc0818dfdec3a48"
+    },
+    {
+      "path": "internal/chain/pq_revocation.go",
+      "bytes": 6394,
+      "sha256": "709eab7f4441e958fa10e1a27117bc19bd352434d8fef3409ad779930ce67d23"
+    },
+    {
+      "path": "internal/chain/transaction_durability.go",
+      "bytes": 5668,
+      "sha256": "0326c4e90c913a5d19b534ffd0f8de39121c6fdfdf9f0eae7b1ed0b4adf07865"
+    },
+    {
+      "path": "internal/chain/types.go",
+      "bytes": 52897,
+      "sha256": "aa52c02b29ea6e705d3baed8a3f50a33c5437b23d7ff631cca6332d8f2ec8b85"
+    },
+    {
+      "path": "internal/api/pq_authorization_test.go",
+      "bytes": 18467,
+      "sha256": "682adcae9747835e5ddeecf8692519c6f6a4411cde230dc53aed33718fd5e34f"
+    },
+    {
+      "path": "internal/api/pq_reconciliation_test.go",
+      "bytes": 5170,
+      "sha256": "c1c60e941d8a8864d60ea72fa8b5d2c9f47944339db4f90f3a9d28dfe6e51561"
+    },
+    {
+      "path": "internal/api/pq_revocation_test.go",
+      "bytes": 7431,
+      "sha256": "ea4dd4a68578535cbeed1e4c1a05146c71547f21dcc84c21827cd49b57bf4726"
+    },
+    {
+      "path": "internal/api/pq_checkpoint_test.go",
+      "bytes": 1772,
+      "sha256": "e05107729fa3735e3cc23e0ac121a3f49e84f41f19b62ccc99f5095af8c9b875"
+    }
+  ],
+  "contract": {
+    "transferPOST": "/transactions/pq/broadcast",
+    "migrationPOST": "/accounts/{owner}/authorization/migrate",
+    "revocationPOST": "/accounts/{owner}/authorization/revoke",
+    "readGET": "/txs/{originalHash}",
+    "policyGET": "/accounts/{owner}/authorization",
+    "originalIdentity": "0x + lowercase SHA-256 of entire original binary request; Whole identities are outside this Wallet contract",
+    "integers": "decimalFields uses exact strings; never convert through Number; transfer Amount bounded MaxInt64; U64 nonce/revisions/heights",
+    "unknown": "503, lost response, malformed/unrecognized or wrong identity must preserve original wire/hash/binding and UNKNOWN; GET never writes; 404 never clears UNKNOWN or permits new nonce/replacement signing",
+    "durability": "ynx-local-durability-v1 local-snapshot; memory_only/uncertain/pending_durable/durable; observed block fields may exist while uncertain; only completed matching checkpoint covers inclusion",
+    "finality": "source authoritative_producer; consensusFinality false; no BFT/non-omission/ancestry/activation proof",
+    "revocation": "v2 terminal tombstone keeps algorithmVersion PQ; next-execution status separate from committed; unaffected owner projection v1 must never replace global v2",
+    "clientScope": "saved-original-wire candidate parser and read-only reconciliation; no public broadcast or real-account signing implied"
+  },
+  "deployment": {
+    "performed": false,
+    "publicDeploymentVerified": false,
+    "lastKnownPublicBuild": "65efa82e0615",
+    "acceptance": "Old public response without R2 exact fields fails closed; this source pass is not public activation or actual Wallet acceptance."
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "state": "FRESH_PROCESS_WALLET_ENCRYPTED_RECOVERY_PUBLIC_GO_INPUTS_NOT_GO_ACCEPTANCE",
+  "createPID": 77090,
+  "restorePID": 77105,
+  "fullPublicKeyBytes": [
+    2592,
+    64
+  ],
+  "height": "30",
+  "owner": "0x9806d232e350aa8b93fc14c13f95dd0fbb96253e",
+  "purpose": "TX-BATCH",
+  "files": [
+    {
+      "path": "state.json",
+      "bytes": 3836,
+      "sha256": "1676d4db31c308c708d093cdd94cf024b943ae7746805a2db9905b69fd8d97c3"
+    },
+    {
+      "path": "message.bin",
+      "bytes": 230,
+      "sha256": "ec0e34acf10e102337d441c507abeced867ef928e2d0a9e345c73a4d580225a4"
+    },
+    {
+      "path": "member.bin",
+      "bytes": 57839,
+      "sha256": "6f09d79a1fa6e04cd986ec9425f1fdf71a2df445379f07d5b0d1ddd1fea2753f"
+    }
+  ],
+  "originalMessageFrozenBeforeRestore": true,
+  "privateVaultAndPasswordNotCopied": true,
+  "JSVerified": true,
+  "GoVerified": false,
+  "GUIApproval": false,
+  "broadcast": false
+}

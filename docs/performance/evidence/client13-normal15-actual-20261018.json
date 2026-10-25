@@ -1,0 +1,108 @@
+{
+  "case": "client13-normal-15",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-15.json",
+  "rawSHA256": "0748142db6c07be800054522741ae6570cb6697df4d5918ed5ba0843575314d3",
+  "rawBytes": 16160,
+  "controllerSession": 31917,
+  "launcher": 4836,
+  "elapsedMs": 12220,
+  "peakRSS": 58376192,
+  "firstCause": "current cache occupancy unavailable: Command failed: /usr/bin/du -sk /Users/huangjiahao/go/pkg/mod\n",
+  "go": null,
+  "sourceChecks": [
+    {
+      "head": "1971b2f04d61386e039b4a500d4e0c9212060feb",
+      "sourceCommit": "dc1783b2aa9c4e7b5e6ff14186eaffcf4c41062c",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "0b03f3ea50294ffc0d24c2252de08ed5e97e80ed"
+      }
+    }
+  ],
+  "driverPins": {
+    "consensus-light-window.mjs": "040390f2f94e2240ef5fe240488fc732e5cc77a2ce0c1922ded28089d3680402",
+    "consensus-light-plan.mjs": "6ba690a4e77bdb3ff148063659d03d1966efb8b769e99e817210b9e5eaf4437c",
+    "native-resource-sample.mjs": "3c3ca8edd2a1df1fa3b2d0bb63ce17094c7103a87d67786eabdf56af4e39d7ff",
+    "owned-process-race.mjs": "9cd25ffdcf0f1fa522a757e681998e682cae069a4eee3289c98a8536ddce23a7",
+    "native-resource-probe.mjs": "079c966717bdbf96604fff2287c3672513ea3e8389772e08d239f389f4c25cc3"
+  },
+  "cachePhases": [
+    {
+      "startedAt": "2026-10-18T04:18:57.329Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 29784,
+      "measurements": [
+        {
+          "path": "/Users/huangjiahao/Library/Caches/go-build",
+          "startedAt": "2026-10-18T04:18:57.329Z",
+          "pid": 4985,
+          "code": 0,
+          "signal": null,
+          "killed": false,
+          "timeoutMs": 12000,
+          "stdout": "3309004\t/Users/huangjiahao/Library/Caches/go-build\n",
+          "stderr": "",
+          "bytes": 3388420096,
+          "endedAt": "2026-10-18T04:18:59.966Z"
+        },
+        {
+          "path": "/Users/huangjiahao/go/pkg/mod",
+          "startedAt": "2026-10-18T04:18:57.330Z",
+          "pid": 4989,
+          "code": null,
+          "signal": "SIGKILL",
+          "killed": true,
+          "timeoutMs": 11999,
+          "error": "Command failed: /usr/bin/du -sk /Users/huangjiahao/go/pkg/mod\n",
+          "stdout": "",
+          "stderr": "",
+          "endedAt": "2026-10-18T04:19:09.333Z"
+        }
+      ],
+      "failed": true,
+      "endedAt": "2026-10-18T04:19:09.333Z"
+    }
+  ],
+  "cacheOccupancyError": {
+    "command": "/usr/bin/du",
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "timeoutMs": 12000,
+    "measurements": [
+      {
+        "path": "/Users/huangjiahao/Library/Caches/go-build",
+        "startedAt": "2026-10-18T04:18:57.329Z",
+        "pid": 4985,
+        "code": 0,
+        "signal": null,
+        "killed": false,
+        "timeoutMs": 12000,
+        "stdout": "3309004\t/Users/huangjiahao/Library/Caches/go-build\n",
+        "stderr": "",
+        "bytes": 3388420096,
+        "endedAt": "2026-10-18T04:18:59.966Z"
+      },
+      {
+        "path": "/Users/huangjiahao/go/pkg/mod",
+        "startedAt": "2026-10-18T04:18:57.330Z",
+        "pid": 4989,
+        "code": null,
+        "signal": "SIGKILL",
+        "killed": true,
+        "timeoutMs": 11999,
+        "error": "Command failed: /usr/bin/du -sk /Users/huangjiahao/go/pkg/mod\n",
+        "stdout": "",
+        "stderr": "",
+        "endedAt": "2026-10-18T04:19:09.333Z"
+      }
+    ],
+    "message": "current cache occupancy unavailable: Command failed: /usr/bin/du -sk /Users/huangjiahao/go/pkg/mod\n"
+  },
+  "groupGone": true,
+  "actualSupplyPhases": [],
+  "interpretation": "No Go started, no business phase values. Parallel build-cache scan completed in 2.637s; actual module-cache scan exceeded unchanged 12s cap and was killed. Both current scans and terminal evidence retained."
+}

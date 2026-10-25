@@ -1,0 +1,74 @@
+{
+  "kind": "client-supply-focused-go-admission",
+  "at": "2026-10-18T01:23:43.523Z",
+  "goStarted": false,
+  "requestedTests": "^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySupplyRejectsUnknownBeforeSigning)$",
+  "caps": {
+    "goTimeoutSeconds": 30,
+    "ownedRSSBytes": 536870912,
+    "scratchBytes": 33554432
+  },
+  "firstCause": "native memory pressure is not normal: {\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":2,\"errno\":0}",
+  "sample": {
+    "schema": 1,
+    "scope": "proc_pidtaskinfo watched processes",
+    "processes": [
+      {
+        "pid": 78667,
+        "readable": true,
+        "rssBytes": 50118656,
+        "virtualBytes": 501399666688,
+        "threads": 11
+      }
+    ],
+    "watchedRssBytes": 50118656,
+    "watchedThreads": 11,
+    "samplerRssBytes": 1769472,
+    "samplerThreads": 1,
+    "rssWithControlReserveBytes": 53657600,
+    "threadsWithControlReserve": 13,
+    "memoryPressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 2,
+      "errno": 0
+    },
+    "host": {
+      "processCount": 770,
+      "uid": 501,
+      "uidProcessCount": 602,
+      "unreadableBsdInfo": 168,
+      "scanComplete": true,
+      "maxproc": 6000,
+      "maxprocperuid": 4000,
+      "rlimitNprocSoft": 4000
+    },
+    "hostEnumeration": {
+      "requiredBytes": 3160,
+      "capacityBytes": 7256,
+      "returnedBytes": 3084,
+      "queryErrno": 0,
+      "readErrno": 0,
+      "slots": 771,
+      "nonPositiveEntries": 1,
+      "positiveEntries": 770,
+      "duplicateEntries": 0,
+      "readableBsdInfo": 602,
+      "esrch": 0,
+      "eperm": 168,
+      "eacces": 0,
+      "noErrno": 0,
+      "otherErrno": 0
+    },
+    "forkProbe": {
+      "available": true,
+      "forkSucceeded": true,
+      "forkErrno": 0,
+      "waitErrno": 0,
+      "childExitCode": 0,
+      "childSignal": 0
+    },
+    "elapsedMicroseconds": 1146
+  },
+  "admission": "refused_before_go"
+}

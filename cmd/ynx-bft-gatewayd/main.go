@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -33,7 +34,15 @@ func main() {
 	migrationHeight := flag.Uint64("migration-height", envUint64OrDefault("YNX_BFT_GATEWAY_MIGRATION_HEIGHT", 0), "approved authoritative migration height")
 	migrationBlockHash := flag.String("migration-block-hash", envOrDefault("YNX_BFT_GATEWAY_MIGRATION_BLOCK_HASH", ""), "approved authoritative migration block hash")
 	publicCutoverAuthorized := flag.Bool("public-cutover-authorized", cutoverAuthorizedDefault, "explicitly authorize public-cutover readiness after all other gates pass")
+	showBuildInfo := flag.Bool("build-info", false, "print embedded build identity and exit without constructing or starting the gateway")
 	flag.Parse()
+
+	if *showBuildInfo {
+		if err := json.NewEncoder(os.Stdout).Encode(currentBuildInfo()); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	gateway, err := bftgateway.New(bftgateway.Config{CometRPCURL: *cometRPCURL, Build: currentBuildInfo(), PublicCutoverAuthorized: *publicCutoverAuthorized, MigrationHeight: *migrationHeight, MigrationBlockHash: *migrationBlockHash})
 	if err != nil {

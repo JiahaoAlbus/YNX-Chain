@@ -1,0 +1,82 @@
+{
+  "base": "a0201636d985ee0292734b89813dd801bb7d65ab",
+  "correctnessBase": "69e788b4bd726689ea5d1709fd5ba0162c6ec0da",
+  "sourcePins": [
+    {
+      "path": ".github/workflows/resource-market-ci.yml",
+      "bytes": 10309,
+      "sha256": "5d35daf2956f73ad2151316db342f73e7498c7c1db05e431d5c0ac6c75d32772"
+    },
+    {
+      "path": "internal/chain/devnet.go",
+      "bytes": 204267,
+      "sha256": "b31eea77bb71e085ad401af0137397602e67683d1ef9cf1c99ffd341ba010b9f"
+    },
+    {
+      "path": "docs/protocol/PQ_AUTHORIZATION_COVERAGE_R1.md",
+      "bytes": 19302,
+      "sha256": "146d78d4336c6b904ba6839116e3073942711f355faa3d78d72ab9d7976601be"
+    },
+    {
+      "path": "docs/protocol/CONSENSUS_PQ_ENGINE_INTEGRATION_MAP_R1.md",
+      "bytes": 21403,
+      "sha256": "396b9720c7af44e594ac239c1241edf206f5309fc23fd7fd74e7e6f1812b8c7a"
+    },
+    {
+      "path": "scripts/loadtest/overlays/pq_paired_performance_test.go.in",
+      "bytes": 18973,
+      "sha256": "ddc6efe9afbb48b1a6f6ea40d2f4ce729bd2b818eeea57bd087dc75fbe5f58d9"
+    },
+    {
+      "path": "scripts/loadtest/pq-paired-linux-window.py",
+      "bytes": 22315,
+      "sha256": "1d60209495572a4079a13c06b46b7d03fc6c2c50cfd53938e4f2d34db58652f1"
+    },
+    {
+      "path": "scripts/loadtest/test_pq_paired_linux_window.py",
+      "bytes": 6903,
+      "sha256": "fd23f33dc3c0c484393414641175a5b5c80faf8e7e5f809a10292f9d96f57934"
+    },
+    {
+      "path": "docs/protocol/evidence/CI_RUN9_39085111463.json",
+      "bytes": 5619,
+      "sha256": "b170b9641ea6644faf30ff81e6329a949cf3c3b4a3e268e890b204ee62b452f9"
+    },
+    {
+      "path": "docs/protocol/evidence/CI_RUN9_39085111463_LOG.json",
+      "bytes": 106997,
+      "sha256": "b3056c2a3a4e9550b750268b27a12e742c3ca5c5b7fadc0485517e04a8bce8b6"
+    },
+    {
+      "path": "docs/protocol/evidence/CONTRACT_VERIFY_REPAIR_SOURCE_R1.json",
+      "bytes": 1035,
+      "sha256": "6aa03eaaba17237ddc429ba399519c7ca889f552d2230ca1355a9e7c00a37f53"
+    },
+    {
+      "path": "docs/protocol/evidence/PQ_PAIRED_LINUX_GUARD_IMPORT_R1.json",
+      "bytes": 5559,
+      "sha256": "5cf266e74d8f8620fb81923cc4630025707b3dd6f14b2465d57e243acb548dcf"
+    },
+    {
+      "path": "docs/protocol/evidence/PQ_PAIRED_PROJECTION_R2_IMPORT.json",
+      "bytes": 5157,
+      "sha256": "e1c9f0df629c3a8eed6e76c7b7c26e332387dbfe216e9c3bd2ae3afa70bbf009"
+    }
+  ],
+  "originalRegressionPin": "6ac8dc6f9c0a74e8320374a4e2e7dd2f57587bcc3ab6407574d70f8ee4757251",
+  "scope": "Only contract source-verification repair, exact owner performance guard/overlay, optional existing-workflow N1/trial1 gate, documentation and observed evidence. Whole/Registry WIP excluded.",
+  "pair": {
+    "n": 1,
+    "trial": 1,
+    "requires": "focused-go job success",
+    "goMaxProcs": 1,
+    "goMemLimit": "512MiB",
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "privateBytes": 33554432,
+    "ownedRSSBytes": 1073741824,
+    "uploadPrivateSnapshots": false
+  },
+  "localGoExecuted": false,
+  "publicDeploymentPerformed": false
+}

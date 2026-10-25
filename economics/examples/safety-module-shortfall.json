@@ -1,0 +1,17 @@
+{
+  "asOf": "2026-07-22T00:00:00Z",
+  "insuranceReserveYnxt": 100000,
+  "shortfallYnxt": 500000,
+  "slashReason": "protocol_shortfall",
+  "evidenceHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "governanceApproved": false,
+  "formalModelComplete": false,
+  "economicReviewComplete": false,
+  "securityAuditComplete": false,
+  "publicDisclosureLive": false,
+  "stakes": [
+    { "participant": "participant-a", "amountYnxt": 400000, "provenance": "native_wallet_ynxt", "status": "active" },
+    { "participant": "participant-b", "amountYnxt": 600000, "provenance": "native_wallet_ynxt", "status": "cooling", "cooldownRequestedAt": "2026-07-21T00:00:00Z" },
+    { "participant": "participant-c", "amountYnxt": 1000000, "provenance": "native_wallet_ynxt", "status": "exited", "cooldownRequestedAt": "2026-07-14T00:00:00Z" }
+  ]
+}

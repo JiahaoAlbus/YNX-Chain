@@ -1,0 +1,251 @@
+{
+  "schema": 1,
+  "preparedAt": "2026-10-17T16:30:40.210Z",
+  "preparation": {
+    "schema": 1,
+    "status": "frozen_known_images_only_no_build_or_network",
+    "preparedAt": "2026-10-17T16:29:26.805Z",
+    "directory": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH",
+    "freeBytes": 44275658752,
+    "runner": [
+      {
+        "name": "consensus-local-window.mjs",
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/runtime/consensus-local-window.mjs",
+        "sha256": "457b18d5f0d1e38bebb6f69ed384f09d2f260fe7956ed120ef0841f735bd8d90"
+      },
+      {
+        "name": "native-resource-probe.mjs",
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/runtime/native-resource-probe.mjs",
+        "sha256": "57e6cc9764ccbeab062fe859f725bbe34753280c2ab25272379570dbf17c0a84"
+      },
+      {
+        "name": "native-resource-sample.mjs",
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/runtime/native-resource-sample.mjs",
+        "sha256": "108c37cffb691ad9fdddfbd9603512c94ef8190393875a8148cc79ce2f315ea9"
+      }
+    ],
+    "comet": {
+      "path": "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+      "sha256": "60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840",
+      "sourceCommit": "CometBFT v0.38.23"
+    },
+    "variants": [
+      {
+        "name": "before",
+        "binaries": {
+          "fixture": {
+            "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/before/ynx-consensus-perf-fixture",
+            "sha256": "ee04f25ea40f0bd0f075a3a801cf9b0e216a841578e3da2fa28b244f241d35e1",
+            "sourceCommit": "038cebd98d6f287fee608b1925c80f763cc9d79f"
+          },
+          "app": {
+            "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/before/ynx-abci",
+            "sha256": "ed2e8403ff1be729330534207cb0af75236fc80cac4ef368b36fe91d2474b79d",
+            "sourceCommit": "e3b7b4b72762b8c61ac1d54d2414224b788428c9"
+          },
+          "client": {
+            "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/before/ynx-consensus-perf-client",
+            "sha256": "72a3904601321263cb8f7a1b932944e4bffda40f74e81fdd759bfba26b8f09b8",
+            "sourceCommit": "fff2ff67ec72df1e4935bc2ebda74ad02ec2a03e"
+          },
+          "host": {
+            "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/before/ynx-consensus-perf-host",
+            "sha256": "3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6",
+            "sourceCommit": null
+          }
+        },
+        "argvPrepareOnly": [
+          "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/runtime/consensus-local-window.mjs",
+          "--bin-dir",
+          "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/before",
+          "--comet-bin",
+          "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+          "--count",
+          "256",
+          "--rounds",
+          "4",
+          "--offered-rate",
+          "512",
+          "--state-layout",
+          "block-journal",
+          "--sender-mode",
+          "ready-pool",
+          "--inclusion-mode",
+          "block-scan"
+        ],
+        "terminalStream": false,
+        "reuseResultSlots": false
+      },
+      {
+        "name": "cached",
+        "binaries": {
+          "fixture": {
+            "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-fixture",
+            "sha256": "ee04f25ea40f0bd0f075a3a801cf9b0e216a841578e3da2fa28b244f241d35e1",
+            "sourceCommit": "038cebd98d6f287fee608b1925c80f763cc9d79f"
+          },
+          "app": {
+            "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-abci",
+            "sha256": "ed2e8403ff1be729330534207cb0af75236fc80cac4ef368b36fe91d2474b79d",
+            "sourceCommit": "e3b7b4b72762b8c61ac1d54d2414224b788428c9"
+          },
+          "client": {
+            "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-client",
+            "sha256": "c6f5b051ce53a97afd89f2abacc8e5c211c50b941b37603174dfee3db4c4a212",
+            "sourceCommit": "a8bf5177646056dc7ab392429e3d2cc94a51c01a"
+          },
+          "host": {
+            "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-host",
+            "sha256": "3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6",
+            "sourceCommit": null
+          }
+        },
+        "argvPrepareOnly": [
+          "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/runtime/consensus-local-window.mjs",
+          "--bin-dir",
+          "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached",
+          "--comet-bin",
+          "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+          "--count",
+          "256",
+          "--rounds",
+          "4",
+          "--offered-rate",
+          "512",
+          "--state-layout",
+          "block-journal",
+          "--sender-mode",
+          "ready-pool",
+          "--inclusion-mode",
+          "block-scan"
+        ],
+        "terminalStream": false,
+        "reuseResultSlots": false
+      }
+    ],
+    "conditions": {
+      "accounts": 256,
+      "cycles": 4,
+      "uniqueSignedBusinessInputs": 1024,
+      "configuredMaxOfferRate": 512,
+      "stateLayout": "block-journal",
+      "senderMode": "ready-pool",
+      "inclusionMode": "block-scan",
+      "terminalStream": false,
+      "reuseResultSlots": false,
+      "activeMs": 45000,
+      "cleanupMs": 15000,
+      "clientTimeout": "10s",
+      "ownedRSSBytes": 1073741824,
+      "dataBytes": 33554432,
+      "threads": 320,
+      "longLivedChildren": 9,
+      "GOMAXPROCS": 1,
+      "GOGC": 100,
+      "GOMEMLIMIT": "off"
+    },
+    "interpretation": "Both variants use identical new controller/helpers/native monitor/node app/Comet and the same configured workload policy. Fresh random isolated fixtures differ per execution, so byte-identical inputs or stable sustained capacity are not claimed. This compares known fff2ff67 client with a8bf5177 shared-native-facts client only; later c686 slot feature CLI requires a separately scheduled build/run. Historical RWY2KW/failed1ZsLDk windows are not a new matched pair. Each variant --execute needs its own fresh Root grant; no auto retry or second execution."
+  },
+  "preparationFile": {
+    "path": "artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/preparation.json",
+    "sha256": "d60939a22471cacf7e7c70cf203ed93dda7202447e006f4449828fefda9d3ff3"
+  },
+  "actualPrepareOnly": [
+    {
+      "variant": "before",
+      "plan": {
+        "status": "prepared_only_no_processes_started",
+        "commands": {
+          "fixture": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/before/ynx-consensus-perf-fixture",
+          "app": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/before/ynx-abci",
+          "client": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/before/ynx-consensus-perf-client",
+          "comet": "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+          "host": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/before/ynx-consensus-perf-host"
+        },
+        "count": 256,
+        "rounds": 4,
+        "senderMode": "ready-pool",
+        "inclusionMode": "block-scan",
+        "terminalStream": false,
+        "reuseResultSlots": false,
+        "stateLayout": "block-journal",
+        "totalTransactions": 1024,
+        "offeredRate": 512,
+        "caps": {
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "dataBytes": 33554432,
+          "rssBytes": 1073741824,
+          "freeDiskFloorBytes": 1073741824,
+          "rootDiskReserveBytes": 445644800,
+          "longLivedChildren": 9,
+          "threadsWithControlReserve": 320,
+          "fullHostSampleMs": 1000,
+          "logBytesPerProcess": 1048576,
+          "clientTimeout": "10s",
+          "clientConcurrency": 4,
+          "clientObservers": 4,
+          "gomaxprocs": 1,
+          "gogc": "100",
+          "gomemlimit": "off"
+        },
+        "ports": {
+          "p2p": 31656,
+          "rpc": 31757,
+          "abci": 31858
+        }
+      }
+    },
+    {
+      "variant": "cached",
+      "plan": {
+        "status": "prepared_only_no_processes_started",
+        "commands": {
+          "fixture": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-fixture",
+          "app": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-abci",
+          "client": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-client",
+          "comet": "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+          "host": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-host"
+        },
+        "count": 256,
+        "rounds": 4,
+        "senderMode": "ready-pool",
+        "inclusionMode": "block-scan",
+        "terminalStream": false,
+        "reuseResultSlots": false,
+        "stateLayout": "block-journal",
+        "totalTransactions": 1024,
+        "offeredRate": 512,
+        "caps": {
+          "activeMs": 45000,
+          "cleanupMs": 15000,
+          "dataBytes": 33554432,
+          "rssBytes": 1073741824,
+          "freeDiskFloorBytes": 1073741824,
+          "rootDiskReserveBytes": 445644800,
+          "longLivedChildren": 9,
+          "threadsWithControlReserve": 320,
+          "fullHostSampleMs": 1000,
+          "logBytesPerProcess": 1048576,
+          "clientTimeout": "10s",
+          "clientConcurrency": 4,
+          "clientObservers": 4,
+          "gomaxprocs": 1,
+          "gogc": "100",
+          "gomemlimit": "off"
+        },
+        "ports": {
+          "p2p": 31656,
+          "rpc": 31757,
+          "abci": 31858
+        }
+      }
+    }
+  ],
+  "nodeControls": {
+    "testsPassed": 18,
+    "elapsedMs": 1506.331917
+  },
+  "networkStarted": false,
+  "goBuildStarted": false
+}

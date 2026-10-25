@@ -158,9 +158,9 @@ func summarizeDatabase(store *Store) (databaseSummary, error) {
 	return summary, err
 }
 
-func trySummarizeDatabase(store *Store) (databaseSummary, bool, error) {
+func trySummarizeDatabase(store *Store) (databaseSummary, bool, bool, error) {
 	var summary databaseSummary
-	ready, err := store.TryView(func(db Database) error {
+	ready, busy, err := store.tryViewStatus(func(db Database) error {
 		summary = databaseSummary{
 			Network:              db.Network,
 			ChainID:              db.ChainID,
@@ -175,7 +175,7 @@ func trySummarizeDatabase(store *Store) (databaseSummary, bool, error) {
 		}
 		return nil
 	})
-	return summary, ready, err
+	return summary, ready, busy, err
 }
 
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
@@ -223,13 +223,13 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	store := s.indexer.Store()
 	var db databaseSummary
-	var storeReady bool
+	var storeReady, storeBusy bool
 	var err error
 	if store.Ready() {
 		db, err = summarizeDatabase(store)
 		storeReady = err == nil
 	} else {
-		db, storeReady, err = trySummarizeDatabase(store)
+		db, storeReady, storeBusy, err = trySummarizeDatabase(store)
 	}
 	if err != nil {
 		writePublicError(w, http.StatusServiceUnavailable, "store_unavailable", "The canonical index is temporarily unavailable.")
@@ -240,12 +240,14 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	s.mu.RUnlock()
 	ready := storeReady && lastError == "" && !lastSyncedAt.IsZero()
 	dependencyStatus := "healthy"
-	if !storeReady {
-		dependencyStatus = "warming"
-	} else if lastError != "" {
+	if lastError != "" {
 		dependencyStatus = "unavailable"
+	} else if storeBusy {
+		dependencyStatus = "warming"
 	} else if lastSyncedAt.IsZero() {
 		dependencyStatus = "not-yet-synced"
+	} else if !storeReady {
+		dependencyStatus = "warming"
 	}
 	status := http.StatusOK
 	if !ready {

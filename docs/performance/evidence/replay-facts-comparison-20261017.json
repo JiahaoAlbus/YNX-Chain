@@ -1,0 +1,160 @@
+{
+  "schema": 1,
+  "at": "2026-10-17T14:33:02.101Z",
+  "hardware": "Apple M4/10logicalCPU/24GiB,Go1.25.7 darwin-arm64,GOMAXPROCS1,nice10",
+  "binary": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/replay-facts-client.test",
+    "sha256": "b8e68c8d12196a3b1eb48023a9339bc07881228634ef8893f1664ff904d4fea7"
+  },
+  "sourceHashes": {
+    "internal/consensus/application.go": "387bd5becf3db2277f15b6bed2a6079a05bfdfb02f0ae22c34049238d5c9b200",
+    "internal/consensus/native_verification.go": "bf6818f35da302d203b44341a4683f120383a7792b94aaf10862d2cc2983fedf",
+    "internal/consensus/block_journal.go": "6bfb16c28652ede5e7ab77b62fb2b92d362283a5b40f1fe0eef1c06a5443a5f8",
+    "internal/consensus/block_journal_readback.go": "56c0ccd57f549ae0e58007ac45e6a21b0fad31eb61484535854baf25e6ceb6f0",
+    "cmd/ynx-consensus-perf-client/durable_reader.go": "371c4ad014b95e53b1b7fe4e0a67b7c150b527a2daec9bf22b37565d05c8cdd1",
+    "cmd/ynx-consensus-perf-client/journal_pressure_benchmark_test.go": "119381f3c835377da2f7a0ba928d32c8889156927ca0c48b3b895e16e9485d6c"
+  },
+  "input": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-RWY2KW/network/validator-1/data/ynx-abci-state.json",
+    "bytes": 650204,
+    "sha256": "48eb16ce9d3ba4b9cb3a712f500cc3293abe9f36b947c9216bd6a55d2747dea7",
+    "originalBusinessTransactions": 1024,
+    "tailBlocks": 11,
+    "replayedTransactionInputsPerOperation": 1024
+  },
+  "order": [
+    "reconstruct",
+    "reconstruct_with_shared_facts",
+    "reconstruct_with_shared_facts",
+    "reconstruct",
+    "reconstruct",
+    "reconstruct_with_shared_facts"
+  ],
+  "runs": [
+    {
+      "mode": "reconstruct",
+      "startedAt": "2026-10-17T14:32:51.428Z",
+      "iterations": 3,
+      "metrics": {
+        "ns/op": 156725403,
+        "history-fees/op": 1024,
+        "input-store-B": 650204,
+        "replayed-blocks/op": 11,
+        "replayed-inputs/op": 1024,
+        "B/op": 31332264,
+        "allocs/op": 259360
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkJournalReadbackPressure/network1024/reconstruct         \t       3\t 156725403 ns/op\t      1024 history-fees/op\t    650204 input-store-B\t        11.00 replayed-blocks/op\t      1024 replayed-inputs/op\t31332264 B/op\t  259360 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "mode": "reconstruct_with_shared_facts",
+      "startedAt": "2026-10-17T14:32:53.139Z",
+      "iterations": 6,
+      "metrics": {
+        "ns/op": 58410903,
+        "history-fees/op": 1024,
+        "input-store-B": 650204,
+        "new-replay-crypto-verifications/op": 0,
+        "replay-crypto-cache-hits/op": 1024,
+        "replayed-blocks/op": 11,
+        "replayed-inputs/op": 1024,
+        "B/op": 26174033,
+        "allocs/op": 214274
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkJournalReadbackPressure/network1024/reconstruct_with_shared_facts         \t       6\t  58410903 ns/op\t      1024 history-fees/op\t    650204 input-store-B\t         0 new-replay-crypto-verifications/op\t      1024 replay-crypto-cache-hits/op\t        11.00 replayed-blocks/op\t      1024 replayed-inputs/op\t26174033 B/op\t  214274 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "mode": "reconstruct_with_shared_facts",
+      "startedAt": "2026-10-17T14:32:58.523Z",
+      "iterations": 8,
+      "metrics": {
+        "ns/op": 39304245,
+        "history-fees/op": 1024,
+        "input-store-B": 650204,
+        "new-replay-crypto-verifications/op": 0,
+        "replay-crypto-cache-hits/op": 1024,
+        "replayed-blocks/op": 11,
+        "replayed-inputs/op": 1024,
+        "B/op": 26174029,
+        "allocs/op": 214274
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkJournalReadbackPressure/network1024/reconstruct_with_shared_facts         \t       8\t  39304245 ns/op\t      1024 history-fees/op\t    650204 input-store-B\t         0 new-replay-crypto-verifications/op\t      1024 replay-crypto-cache-hits/op\t        11.00 replayed-blocks/op\t      1024 replayed-inputs/op\t26174029 B/op\t  214274 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "mode": "reconstruct",
+      "startedAt": "2026-10-17T14:32:59.344Z",
+      "iterations": 3,
+      "metrics": {
+        "ns/op": 138819764,
+        "history-fees/op": 1024,
+        "input-store-B": 650204,
+        "replayed-blocks/op": 11,
+        "replayed-inputs/op": 1024,
+        "B/op": 31332312,
+        "allocs/op": 259361
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkJournalReadbackPressure/network1024/reconstruct         \t       3\t 138819764 ns/op\t      1024 history-fees/op\t    650204 input-store-B\t        11.00 replayed-blocks/op\t      1024 replayed-inputs/op\t31332312 B/op\t  259361 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "mode": "reconstruct",
+      "startedAt": "2026-10-17T14:33:00.340Z",
+      "iterations": 3,
+      "metrics": {
+        "ns/op": 135821153,
+        "history-fees/op": 1024,
+        "input-store-B": 650204,
+        "replayed-blocks/op": 11,
+        "replayed-inputs/op": 1024,
+        "B/op": 31332253,
+        "allocs/op": 259360
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkJournalReadbackPressure/network1024/reconstruct         \t       3\t 135821153 ns/op\t      1024 history-fees/op\t    650204 input-store-B\t        11.00 replayed-blocks/op\t      1024 replayed-inputs/op\t31332253 B/op\t  259360 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "mode": "reconstruct_with_shared_facts",
+      "startedAt": "2026-10-17T14:33:01.317Z",
+      "iterations": 8,
+      "metrics": {
+        "ns/op": 39331354,
+        "history-fees/op": 1024,
+        "input-store-B": 650204,
+        "new-replay-crypto-verifications/op": 0,
+        "replay-crypto-cache-hits/op": 1024,
+        "replayed-blocks/op": 11,
+        "replayed-inputs/op": 1024,
+        "B/op": 26174048,
+        "allocs/op": 214274
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkJournalReadbackPressure/network1024/reconstruct_with_shared_facts         \t       8\t  39331354 ns/op\t      1024 history-fees/op\t    650204 input-store-B\t         0 new-replay-crypto-verifications/op\t      1024 replay-crypto-cache-hits/op\t        11.00 replayed-blocks/op\t      1024 replayed-inputs/op\t26174048 B/op\t  214274 allocs/op\nPASS\n",
+      "stderr": ""
+    }
+  ],
+  "medians": {
+    "reconstruct": {
+      "ns/op": 138819764,
+      "history-fees/op": 1024,
+      "input-store-B": 650204,
+      "replayed-blocks/op": 11,
+      "replayed-inputs/op": 1024,
+      "B/op": 31332264,
+      "allocs/op": 259360
+    },
+    "reconstruct_with_shared_facts": {
+      "ns/op": 39331354,
+      "history-fees/op": 1024,
+      "input-store-B": 650204,
+      "new-replay-crypto-verifications/op": 0,
+      "replay-crypto-cache-hits/op": 1024,
+      "replayed-blocks/op": 11,
+      "replayed-inputs/op": 1024,
+      "B/op": 26174033,
+      "allocs/op": 214274
+    }
+  },
+  "qualification": "Same real1024tx four-node terminal journal, samebinary,3+3 interleaved300ms samples. Shared crypto-facts cache is warmed before timing,initial1024 successful full crypto verifications excluded from timed repeated replay. Full1024 inputs still execute and full state/response/frame hashes/canonical bytes checked every operation. Does not measure fresh disk SHA/RPC/network/business TPS; actual live observation signature verification remains independent and mandatory."
+}

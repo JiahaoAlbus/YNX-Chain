@@ -1,0 +1,2948 @@
+{
+  "schema": 1,
+  "date": "2026-10-17",
+  "timezone": "Asia/Shanghai",
+  "runtime_source_commit": "2ee001fe6e48342109adf993dfbf51f7810f410c",
+  "core_optimization_commit": "50385dc72b2c58154d6d35c766f994ebd6f20c00",
+  "hardware": {
+    "cpu": "Apple M4",
+    "logical_cpus": 10,
+    "memory_bytes": 25769803776,
+    "platform": "darwin/arm64",
+    "go": "go1.25.7",
+    "gomaxprocs_per_child": 1,
+    "nice_per_child": 10
+  },
+  "prepared_identity": {
+    "schema": 1,
+    "preparedAt": "2026-10-17T07:25:50.064Z",
+    "commit": "2ee001fe6e48342109adf993dfbf51f7810f410c",
+    "workingTreeStatus": "",
+    "plan": {
+      "status": "prepared_only_no_processes_started",
+      "commands": {
+        "fixture": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/network-bin/ynx-consensus-perf-fixture",
+        "app": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/network-bin/ynx-abci",
+        "client": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/network-bin/ynx-consensus-perf-client",
+        "comet": "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft"
+      },
+      "count": 32,
+      "caps": {
+        "activeMs": 45000,
+        "cleanupMs": 15000,
+        "dataBytes": 134217728,
+        "rssBytes": 2147483648,
+        "logBytesPerProcess": 1048576,
+        "clientTimeout": "10s",
+        "clientConcurrency": 4,
+        "gomaxprocs": 1
+      },
+      "ports": {
+        "p2p": 31656,
+        "rpc": 31757,
+        "abci": 31858
+      }
+    },
+    "binaries": {
+      "fixture": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/network-bin/ynx-consensus-perf-fixture",
+        "sha256": "affea57e4c4df45efe237dd31f1439cc59f03b0d677cbc270ea5b575c8131a7b"
+      },
+      "app": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/network-bin/ynx-abci",
+        "sha256": "d04c3a51c813f9a60e503c3b4f056f5186c09d6e32c37f25ac5373dd2d9be64c"
+      },
+      "client": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/network-bin/ynx-consensus-perf-client",
+        "sha256": "00a0c93ea0561d521912c215952fab2740b50184b951e1583eb73ba3fa4d67fa"
+      },
+      "comet": {
+        "path": "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+        "sha256": "60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840"
+      }
+    },
+    "staticChecks": "PASS",
+    "offlineGoTests": "PASS",
+    "noProcessesStarted": true
+  },
+  "raw_observation": {
+    "schemaVersion": 2,
+    "kind": "bounded-local-four-validator-transaction-observation",
+    "chainId": "ynx_6423-1",
+    "genesisSha256": "19fe462d3aaae22e2cffb16f0ee7d6f91e8860d94e8dae16a4f3f6381d7c7ece",
+    "endpoints": [
+      "http://127.0.0.1:31757",
+      "http://127.0.0.1:31758",
+      "http://127.0.0.1:31759",
+      "http://127.0.0.1:31760"
+    ],
+    "concurrency": 4,
+    "timeoutMs": 10000,
+    "pollMs": 100,
+    "startedAt": "2026-10-17T07:31:00.156982Z",
+    "measurementStartedAt": "2026-10-17T07:31:00.196715Z",
+    "finishedAt": "2026-10-17T07:31:09.498084Z",
+    "goVersion": "go1.25.7",
+    "platform": "darwin/arm64",
+    "gomaxprocs": 1,
+    "summary": {
+      "input": 32,
+      "submitted": 32,
+      "checkTxResponses": 32,
+      "checkTxAccepted": 32,
+      "checkTxRejected": 0,
+      "includedCodeZero": 32,
+      "executionFailed": 0,
+      "quorumConfirmed": 32,
+      "finalSubmitted": 32,
+      "submissionUnknown": 0,
+      "timedOut": 0,
+      "observationFailed": 0,
+      "notSubmitted": 0,
+      "errorOccurrences": 332,
+      "measurementWindowSeconds": 9.301293875,
+      "rpcSubmissionsPerMeasurementSecond": 3.440381567344038,
+      "checkTxAcceptedPerMeasurementSecond": 3.440381567344038,
+      "codeZeroIncludedPerMeasurementSecond": 3.440381567344038,
+      "quorumConfirmedPerMeasurementSecond": 3.440381567344038,
+      "finalSubmittedPerMeasurementSecond": 3.440381567344038,
+      "checkTxLatencyMs": {
+        "samples": 32,
+        "p50": 4.327583000000001,
+        "p95": 72.27275,
+        "p99": 80.57587500000001
+      },
+      "inclusionLatencyMs": {
+        "samples": 32,
+        "p50": 1001.9826249999999,
+        "p95": 1522.900875,
+        "p99": 1904.633
+      },
+      "confirmationLatencyMs": {
+        "samples": 32,
+        "p50": 1003.8158340000001,
+        "p95": 1526.535209,
+        "p99": 1905.905959
+      }
+    },
+    "transactions": [
+      {
+        "index": 0,
+        "hash": "186C3C093353A99DB4152C842AF0B535B81B80116B02D960106CCEF8130032C0",
+        "endpoint": "http://127.0.0.1:31757",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:00.196733Z",
+        "checkTxObservedAt": "2026-10-17T07:31:00.204119Z",
+        "includedObservedAt": "2026-10-17T07:31:01.705834Z",
+        "confirmedObservedAt": "2026-10-17T07:31:01.715045Z",
+        "checkTxMs": 7.3862499999999995,
+        "inclusionMs": 1509.0956250000002,
+        "confirmationMs": 1518.306,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 4,
+        "blockHash": "8FEAACA1A75A126361056F3A96EC2954659A80F4929955688B91EF444B1F5081",
+        "headerAppHash": "9586D9737A2C3362A0889F0C5AE944F85AFB532D78D975554D5F390FEA6CB731",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 4,
+        "durableStateAppHash": "4abbf4bd96209fdbf3ef1b160e97bc21e99bc6f6e57882e311bb5e7c7160dc90",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (186C3C093353A99DB4152C842AF0B535B81B80116B02D960106CCEF8130032C0) not found",
+            "count": 15,
+            "firstAt": "2026-10-17T07:31:00.204668Z",
+            "lastAt": "2026-10-17T07:31:01.630655Z"
+          }
+        ]
+      },
+      {
+        "index": 1,
+        "hash": "54395C5D6B42B8DB543E3B3542842932DADB7E90F00AEBACA3BFD2406D41BC76",
+        "endpoint": "http://127.0.0.1:31758",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:00.196851Z",
+        "checkTxObservedAt": "2026-10-17T07:31:00.209216Z",
+        "includedObservedAt": "2026-10-17T07:31:01.715655Z",
+        "confirmedObservedAt": "2026-10-17T07:31:01.723392Z",
+        "checkTxMs": 12.364875000000001,
+        "inclusionMs": 1518.798167,
+        "confirmationMs": 1526.535209,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 4,
+        "blockHash": "8FEAACA1A75A126361056F3A96EC2954659A80F4929955688B91EF444B1F5081",
+        "headerAppHash": "9586D9737A2C3362A0889F0C5AE944F85AFB532D78D975554D5F390FEA6CB731",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 4,
+        "durableStateAppHash": "4abbf4bd96209fdbf3ef1b160e97bc21e99bc6f6e57882e311bb5e7c7160dc90",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (54395C5D6B42B8DB543E3B3542842932DADB7E90F00AEBACA3BFD2406D41BC76) not found",
+            "count": 15,
+            "firstAt": "2026-10-17T07:31:00.209358Z",
+            "lastAt": "2026-10-17T07:31:01.61297Z"
+          }
+        ]
+      },
+      {
+        "index": 2,
+        "hash": "D1A6D753FE95B5CB5BDDC233CA7FC3B74986D1B44623442C7D0A373E2FA5C7CE",
+        "endpoint": "http://127.0.0.1:31759",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:00.196878Z",
+        "checkTxObservedAt": "2026-10-17T07:31:00.204298Z",
+        "includedObservedAt": "2026-10-17T07:31:01.705933Z",
+        "confirmedObservedAt": "2026-10-17T07:31:01.713918Z",
+        "checkTxMs": 7.420125,
+        "inclusionMs": 1509.0493330000002,
+        "confirmationMs": 1517.034125,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 4,
+        "blockHash": "8FEAACA1A75A126361056F3A96EC2954659A80F4929955688B91EF444B1F5081",
+        "headerAppHash": "9586D9737A2C3362A0889F0C5AE944F85AFB532D78D975554D5F390FEA6CB731",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 4,
+        "durableStateAppHash": "4abbf4bd96209fdbf3ef1b160e97bc21e99bc6f6e57882e311bb5e7c7160dc90",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (D1A6D753FE95B5CB5BDDC233CA7FC3B74986D1B44623442C7D0A373E2FA5C7CE) not found",
+            "count": 15,
+            "firstAt": "2026-10-17T07:31:00.204698Z",
+            "lastAt": "2026-10-17T07:31:01.604661Z"
+          }
+        ]
+      },
+      {
+        "index": 3,
+        "hash": "B862F406186A1B1A48209286B0091169529C3A06C99A4267B2A1579BD96108E6",
+        "endpoint": "http://127.0.0.1:31760",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:00.196904Z",
+        "checkTxObservedAt": "2026-10-17T07:31:00.204868Z",
+        "includedObservedAt": "2026-10-17T07:31:01.719811Z",
+        "confirmedObservedAt": "2026-10-17T07:31:01.720717Z",
+        "checkTxMs": 7.9643749999999995,
+        "inclusionMs": 1522.900875,
+        "confirmationMs": 1523.8074579999998,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 4,
+        "blockHash": "8FEAACA1A75A126361056F3A96EC2954659A80F4929955688B91EF444B1F5081",
+        "headerAppHash": "9586D9737A2C3362A0889F0C5AE944F85AFB532D78D975554D5F390FEA6CB731",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 4,
+        "durableStateAppHash": "4abbf4bd96209fdbf3ef1b160e97bc21e99bc6f6e57882e311bb5e7c7160dc90",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (B862F406186A1B1A48209286B0091169529C3A06C99A4267B2A1579BD96108E6) not found",
+            "count": 15,
+            "firstAt": "2026-10-17T07:31:00.205013Z",
+            "lastAt": "2026-10-17T07:31:01.622119Z"
+          }
+        ]
+      },
+      {
+        "index": 4,
+        "hash": "22C2AC735A3AE4C50512A38ABC4BC8963BA3C2536F7F0EFAA7E550AC52DDEA96",
+        "endpoint": "http://127.0.0.1:31757",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:01.713923Z",
+        "checkTxObservedAt": "2026-10-17T07:31:01.716182Z",
+        "includedObservedAt": "2026-10-17T07:31:02.617628Z",
+        "confirmedObservedAt": "2026-10-17T07:31:02.618858Z",
+        "checkTxMs": 2.259375,
+        "inclusionMs": 903.70125,
+        "confirmationMs": 904.931209,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 5,
+        "blockHash": "6A8DF852E2979CE85019A6F7F23421A7AFCCFF9EE9438BB34EC8EECDBC452FD4",
+        "headerAppHash": "4ABBF4BD96209FDBF3EF1B160E97BC21E99BC6F6E57882E311BB5E7C7160DC90",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 5,
+        "durableStateAppHash": "8e46eea5d19030d605ff7a9cc9c708510b76365fe12e94e7911cb9645ebe713a",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (22C2AC735A3AE4C50512A38ABC4BC8963BA3C2536F7F0EFAA7E550AC52DDEA96) not found",
+            "count": 9,
+            "firstAt": "2026-10-17T07:31:01.716311Z",
+            "lastAt": "2026-10-17T07:31:02.542002Z"
+          }
+        ]
+      },
+      {
+        "index": 5,
+        "hash": "02A57FF77157975D3C7C05C0F7FFE9EF9B632CC2F9BD8243CF3509421A09F4A9",
+        "endpoint": "http://127.0.0.1:31758",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:01.715047Z",
+        "checkTxObservedAt": "2026-10-17T07:31:01.722712Z",
+        "includedObservedAt": "2026-10-17T07:31:02.624291Z",
+        "confirmedObservedAt": "2026-10-17T07:31:02.625248Z",
+        "checkTxMs": 7.664917,
+        "inclusionMs": 909.2406669999999,
+        "confirmationMs": 910.1974590000001,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 5,
+        "blockHash": "6A8DF852E2979CE85019A6F7F23421A7AFCCFF9EE9438BB34EC8EECDBC452FD4",
+        "headerAppHash": "4ABBF4BD96209FDBF3EF1B160E97BC21E99BC6F6E57882E311BB5E7C7160DC90",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 5,
+        "durableStateAppHash": "8e46eea5d19030d605ff7a9cc9c708510b76365fe12e94e7911cb9645ebe713a",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (02A57FF77157975D3C7C05C0F7FFE9EF9B632CC2F9BD8243CF3509421A09F4A9) not found",
+            "count": 9,
+            "firstAt": "2026-10-17T07:31:01.722997Z",
+            "lastAt": "2026-10-17T07:31:02.523695Z"
+          }
+        ]
+      },
+      {
+        "index": 6,
+        "hash": "2C7B344982CB57CCF3CD447ED833733D763317F4E8D2A27B51655765A3181041",
+        "endpoint": "http://127.0.0.1:31759",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:01.720719Z",
+        "checkTxObservedAt": "2026-10-17T07:31:01.722676Z",
+        "includedObservedAt": "2026-10-17T07:31:02.523889Z",
+        "confirmedObservedAt": "2026-10-17T07:31:02.524945Z",
+        "checkTxMs": 1.957334,
+        "inclusionMs": 803.1671249999999,
+        "confirmationMs": 804.223417,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 5,
+        "blockHash": "6A8DF852E2979CE85019A6F7F23421A7AFCCFF9EE9438BB34EC8EECDBC452FD4",
+        "headerAppHash": "4ABBF4BD96209FDBF3EF1B160E97BC21E99BC6F6E57882E311BB5E7C7160DC90",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 5,
+        "durableStateAppHash": "8e46eea5d19030d605ff7a9cc9c708510b76365fe12e94e7911cb9645ebe713a",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (2C7B344982CB57CCF3CD447ED833733D763317F4E8D2A27B51655765A3181041) not found",
+            "count": 8,
+            "firstAt": "2026-10-17T07:31:01.723015Z",
+            "lastAt": "2026-10-17T07:31:02.423765Z"
+          }
+        ]
+      },
+      {
+        "index": 7,
+        "hash": "2AED6B7E3A01C83B136CD103910E28F58D11A3143AB728123DE9D29E9C413926",
+        "endpoint": "http://127.0.0.1:31760",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:01.723394Z",
+        "checkTxObservedAt": "2026-10-17T07:31:01.724055Z",
+        "includedObservedAt": "2026-10-17T07:31:02.624434Z",
+        "confirmedObservedAt": "2026-10-17T07:31:02.626174Z",
+        "checkTxMs": 0.661208,
+        "inclusionMs": 901.036875,
+        "confirmationMs": 902.7761250000001,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 5,
+        "blockHash": "6A8DF852E2979CE85019A6F7F23421A7AFCCFF9EE9438BB34EC8EECDBC452FD4",
+        "headerAppHash": "4ABBF4BD96209FDBF3EF1B160E97BC21E99BC6F6E57882E311BB5E7C7160DC90",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 5,
+        "durableStateAppHash": "8e46eea5d19030d605ff7a9cc9c708510b76365fe12e94e7911cb9645ebe713a",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (2AED6B7E3A01C83B136CD103910E28F58D11A3143AB728123DE9D29E9C413926) not found",
+            "count": 9,
+            "firstAt": "2026-10-17T07:31:01.724175Z",
+            "lastAt": "2026-10-17T07:31:02.525068Z"
+          }
+        ]
+      },
+      {
+        "index": 8,
+        "hash": "26807B07BDA9C048A829A2B6D9CED4F2B35AEDA8931F04B7326735902173BA5D",
+        "endpoint": "http://127.0.0.1:31757",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:02.524947Z",
+        "checkTxObservedAt": "2026-10-17T07:31:02.568612Z",
+        "includedObservedAt": "2026-10-17T07:31:03.570012Z",
+        "confirmedObservedAt": "2026-10-17T07:31:03.571073Z",
+        "checkTxMs": 43.664708000000005,
+        "inclusionMs": 1045.060792,
+        "confirmationMs": 1046.122,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 6,
+        "blockHash": "D6924CA0230F9487B0F813F133FC24A44C6F0CF4BB1050AFCFCDFD75E6B434C8",
+        "headerAppHash": "8E46EEA5D19030D605FF7A9CC9C708510B76365FE12E94E7911CB9645EBE713A",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 6,
+        "durableStateAppHash": "1277ead0410d31b4b9d526f2e553678df49be198113e3d41d49cecafb09ecb71",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (26807B07BDA9C048A829A2B6D9CED4F2B35AEDA8931F04B7326735902173BA5D) not found",
+            "count": 10,
+            "firstAt": "2026-10-17T07:31:02.568805Z",
+            "lastAt": "2026-10-17T07:31:03.476222Z"
+          }
+        ]
+      },
+      {
+        "index": 9,
+        "hash": "B13CE1D46BC023A058EBFE9A556D55815D7966DEE025BCBF258B2B18EDD094B4",
+        "endpoint": "http://127.0.0.1:31758",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:02.61886Z",
+        "checkTxObservedAt": "2026-10-17T07:31:02.624469Z",
+        "includedObservedAt": "2026-10-17T07:31:03.525935Z",
+        "confirmedObservedAt": "2026-10-17T07:31:03.526959Z",
+        "checkTxMs": 5.609333,
+        "inclusionMs": 907.071625,
+        "confirmationMs": 908.095458,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 6,
+        "blockHash": "D6924CA0230F9487B0F813F133FC24A44C6F0CF4BB1050AFCFCDFD75E6B434C8",
+        "headerAppHash": "8E46EEA5D19030D605FF7A9CC9C708510B76365FE12E94E7911CB9645EBE713A",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 6,
+        "durableStateAppHash": "1277ead0410d31b4b9d526f2e553678df49be198113e3d41d49cecafb09ecb71",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (B13CE1D46BC023A058EBFE9A556D55815D7966DEE025BCBF258B2B18EDD094B4) not found",
+            "count": 9,
+            "firstAt": "2026-10-17T07:31:02.624603Z",
+            "lastAt": "2026-10-17T07:31:03.430627Z"
+          }
+        ]
+      },
+      {
+        "index": 10,
+        "hash": "A3D3A14D38F7E4ED17A480E280F2934AD6CC94D84E138CFAA1D6829E0B1490E3",
+        "endpoint": "http://127.0.0.1:31759",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:02.625249Z",
+        "checkTxObservedAt": "2026-10-17T07:31:02.627087Z",
+        "includedObservedAt": "2026-10-17T07:31:03.527414Z",
+        "confirmedObservedAt": "2026-10-17T07:31:03.528342Z",
+        "checkTxMs": 1.837583,
+        "inclusionMs": 902.1610410000001,
+        "confirmationMs": 903.0894579999999,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 6,
+        "blockHash": "D6924CA0230F9487B0F813F133FC24A44C6F0CF4BB1050AFCFCDFD75E6B434C8",
+        "headerAppHash": "8E46EEA5D19030D605FF7A9CC9C708510B76365FE12E94E7911CB9645EBE713A",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 6,
+        "durableStateAppHash": "1277ead0410d31b4b9d526f2e553678df49be198113e3d41d49cecafb09ecb71",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (A3D3A14D38F7E4ED17A480E280F2934AD6CC94D84E138CFAA1D6829E0B1490E3) not found",
+            "count": 9,
+            "firstAt": "2026-10-17T07:31:02.627187Z",
+            "lastAt": "2026-10-17T07:31:03.43061Z"
+          }
+        ]
+      },
+      {
+        "index": 11,
+        "hash": "55D59C39E0A26D517C2790988FE393CB6FF79433246F9E38635491881C114A42",
+        "endpoint": "http://127.0.0.1:31760",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:02.626175Z",
+        "checkTxObservedAt": "2026-10-17T07:31:02.629367Z",
+        "includedObservedAt": "2026-10-17T07:31:03.430194Z",
+        "confirmedObservedAt": "2026-10-17T07:31:03.4316Z",
+        "checkTxMs": 3.192834,
+        "inclusionMs": 804.016792,
+        "confirmationMs": 805.421959,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 6,
+        "blockHash": "D6924CA0230F9487B0F813F133FC24A44C6F0CF4BB1050AFCFCDFD75E6B434C8",
+        "headerAppHash": "8E46EEA5D19030D605FF7A9CC9C708510B76365FE12E94E7911CB9645EBE713A",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 6,
+        "durableStateAppHash": "1277ead0410d31b4b9d526f2e553678df49be198113e3d41d49cecafb09ecb71",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (55D59C39E0A26D517C2790988FE393CB6FF79433246F9E38635491881C114A42) not found",
+            "count": 8,
+            "firstAt": "2026-10-17T07:31:02.629489Z",
+            "lastAt": "2026-10-17T07:31:03.329929Z"
+          }
+        ]
+      },
+      {
+        "index": 12,
+        "hash": "F6EAF3D1FDD879C4396FE5F8B012B951267828448A075F3C024ED3377DF90667",
+        "endpoint": "http://127.0.0.1:31757",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:03.431603Z",
+        "checkTxObservedAt": "2026-10-17T07:31:03.445901Z",
+        "includedObservedAt": "2026-10-17T07:31:04.546476Z",
+        "confirmedObservedAt": "2026-10-17T07:31:04.547847Z",
+        "checkTxMs": 14.2975,
+        "inclusionMs": 1114.8681250000002,
+        "confirmationMs": 1116.239167,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 7,
+        "blockHash": "7F0E521648DF72A3A196C7DAEFB28835A35C5FF2D2C6426DCEBDC58A6C422D54",
+        "headerAppHash": "1277EAD0410D31B4B9D526F2E553678DF49BE198113E3D41D49CECAFB09ECB71",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 7,
+        "durableStateAppHash": "33a677db814d2fbdd233cdf6d81fc1d45be82089b2b0bbbfc1e7214a5f204bfa",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (F6EAF3D1FDD879C4396FE5F8B012B951267828448A075F3C024ED3377DF90667) not found",
+            "count": 11,
+            "firstAt": "2026-10-17T07:31:03.446041Z",
+            "lastAt": "2026-10-17T07:31:04.480865Z"
+          }
+        ]
+      },
+      {
+        "index": 13,
+        "hash": "62783ABF26A65634E23D7F5342622486ABE3692BBAE0EEAD2F8FA33391E7182D",
+        "endpoint": "http://127.0.0.1:31758",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:03.526961Z",
+        "checkTxObservedAt": "2026-10-17T07:31:03.528387Z",
+        "includedObservedAt": "2026-10-17T07:31:04.530091Z",
+        "confirmedObservedAt": "2026-10-17T07:31:04.531782Z",
+        "checkTxMs": 1.42675,
+        "inclusionMs": 1003.127208,
+        "confirmationMs": 1004.817375,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 7,
+        "blockHash": "7F0E521648DF72A3A196C7DAEFB28835A35C5FF2D2C6426DCEBDC58A6C422D54",
+        "headerAppHash": "1277EAD0410D31B4B9D526F2E553678DF49BE198113E3D41D49CECAFB09ECB71",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 7,
+        "durableStateAppHash": "33a677db814d2fbdd233cdf6d81fc1d45be82089b2b0bbbfc1e7214a5f204bfa",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (62783ABF26A65634E23D7F5342622486ABE3692BBAE0EEAD2F8FA33391E7182D) not found",
+            "count": 10,
+            "firstAt": "2026-10-17T07:31:03.528494Z",
+            "lastAt": "2026-10-17T07:31:04.461018Z"
+          }
+        ]
+      },
+      {
+        "index": 14,
+        "hash": "BF8B4A3DF484A291F14B62D313CB7D29C0C1668A8961365A9C4E571957A22115",
+        "endpoint": "http://127.0.0.1:31759",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:03.528343Z",
+        "checkTxObservedAt": "2026-10-17T07:31:03.530693Z",
+        "includedObservedAt": "2026-10-17T07:31:04.532402Z",
+        "confirmedObservedAt": "2026-10-17T07:31:04.533626Z",
+        "checkTxMs": 2.349666,
+        "inclusionMs": 1004.054875,
+        "confirmationMs": 1005.278208,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 7,
+        "blockHash": "7F0E521648DF72A3A196C7DAEFB28835A35C5FF2D2C6426DCEBDC58A6C422D54",
+        "headerAppHash": "1277EAD0410D31B4B9D526F2E553678DF49BE198113E3D41D49CECAFB09ECB71",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 7,
+        "durableStateAppHash": "33a677db814d2fbdd233cdf6d81fc1d45be82089b2b0bbbfc1e7214a5f204bfa",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (BF8B4A3DF484A291F14B62D313CB7D29C0C1668A8961365A9C4E571957A22115) not found",
+            "count": 10,
+            "firstAt": "2026-10-17T07:31:03.530804Z",
+            "lastAt": "2026-10-17T07:31:04.443689Z"
+          }
+        ]
+      },
+      {
+        "index": 15,
+        "hash": "99B940BCE0989DF049D21CC3FB3D0F1AD307C17B5F6C684799C24917AEA9EFBD",
+        "endpoint": "http://127.0.0.1:31760",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:03.571075Z",
+        "checkTxObservedAt": "2026-10-17T07:31:03.574258Z",
+        "includedObservedAt": "2026-10-17T07:31:04.575877Z",
+        "confirmedObservedAt": "2026-10-17T07:31:04.576907Z",
+        "checkTxMs": 3.183333,
+        "inclusionMs": 1004.7977500000001,
+        "confirmationMs": 1005.8277499999999,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 7,
+        "blockHash": "7F0E521648DF72A3A196C7DAEFB28835A35C5FF2D2C6426DCEBDC58A6C422D54",
+        "headerAppHash": "1277EAD0410D31B4B9D526F2E553678DF49BE198113E3D41D49CECAFB09ECB71",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 7,
+        "durableStateAppHash": "33a677db814d2fbdd233cdf6d81fc1d45be82089b2b0bbbfc1e7214a5f204bfa",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (99B940BCE0989DF049D21CC3FB3D0F1AD307C17B5F6C684799C24917AEA9EFBD) not found",
+            "count": 10,
+            "firstAt": "2026-10-17T07:31:03.574402Z",
+            "lastAt": "2026-10-17T07:31:04.490928Z"
+          }
+        ]
+      },
+      {
+        "index": 16,
+        "hash": "679D99CE60B3FDBDEFA8462B67DE500412DAE23A74A5BC41C34606AFBBDBF15B",
+        "endpoint": "http://127.0.0.1:31757",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:04.531786Z",
+        "checkTxObservedAt": "2026-10-17T07:31:04.53367Z",
+        "includedObservedAt": "2026-10-17T07:31:05.535097Z",
+        "confirmedObservedAt": "2026-10-17T07:31:05.536159Z",
+        "checkTxMs": 1.884667,
+        "inclusionMs": 1003.3069999999999,
+        "confirmationMs": 1004.369167,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 8,
+        "blockHash": "301E91949E81B03613208468806EA09BA84E471AC9C6427E82C952829EC24534",
+        "headerAppHash": "33A677DB814D2FBDD233CDF6D81FC1D45BE82089B2B0BBBFC1E7214A5F204BFA",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 8,
+        "durableStateAppHash": "70ea1480c58d845346cc88f1be0e6e45707f82f359eaa3af059126fc62b76022",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (679D99CE60B3FDBDEFA8462B67DE500412DAE23A74A5BC41C34606AFBBDBF15B) not found",
+            "count": 10,
+            "firstAt": "2026-10-17T07:31:04.533783Z",
+            "lastAt": "2026-10-17T07:31:05.465217Z"
+          }
+        ]
+      },
+      {
+        "index": 17,
+        "hash": "F2DB476F9E0FF015C0FB17CBCBD2E4A7719C8CD0624C85B5CEE611B199AE0CAD",
+        "endpoint": "http://127.0.0.1:31758",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:04.533627Z",
+        "checkTxObservedAt": "2026-10-17T07:31:04.53815Z",
+        "includedObservedAt": "2026-10-17T07:31:05.538494Z",
+        "confirmedObservedAt": "2026-10-17T07:31:05.539667Z",
+        "checkTxMs": 4.522583999999999,
+        "inclusionMs": 1004.862917,
+        "confirmationMs": 1006.0361250000001,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 8,
+        "blockHash": "301E91949E81B03613208468806EA09BA84E471AC9C6427E82C952829EC24534",
+        "headerAppHash": "33A677DB814D2FBDD233CDF6D81FC1D45BE82089B2B0BBBFC1E7214A5F204BFA",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 8,
+        "durableStateAppHash": "70ea1480c58d845346cc88f1be0e6e45707f82f359eaa3af059126fc62b76022",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (F2DB476F9E0FF015C0FB17CBCBD2E4A7719C8CD0624C85B5CEE611B199AE0CAD) not found",
+            "count": 10,
+            "firstAt": "2026-10-17T07:31:04.53831Z",
+            "lastAt": "2026-10-17T07:31:05.47404Z"
+          }
+        ]
+      },
+      {
+        "index": 18,
+        "hash": "6AF802C68F1FDF0E85FBBB6B7AA1A13EEB05549C93A4E5C4C6C41641AFC2BA00",
+        "endpoint": "http://127.0.0.1:31759",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:04.54785Z",
+        "checkTxObservedAt": "2026-10-17T07:31:04.549359Z",
+        "includedObservedAt": "2026-10-17T07:31:05.449818Z",
+        "confirmedObservedAt": "2026-10-17T07:31:05.451102Z",
+        "checkTxMs": 1.509042,
+        "inclusionMs": 901.9644999999999,
+        "confirmationMs": 903.2484589999999,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 8,
+        "blockHash": "301E91949E81B03613208468806EA09BA84E471AC9C6427E82C952829EC24534",
+        "headerAppHash": "33A677DB814D2FBDD233CDF6D81FC1D45BE82089B2B0BBBFC1E7214A5F204BFA",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 8,
+        "durableStateAppHash": "70ea1480c58d845346cc88f1be0e6e45707f82f359eaa3af059126fc62b76022",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (6AF802C68F1FDF0E85FBBB6B7AA1A13EEB05549C93A4E5C4C6C41641AFC2BA00) not found",
+            "count": 9,
+            "firstAt": "2026-10-17T07:31:04.549506Z",
+            "lastAt": "2026-10-17T07:31:05.367229Z"
+          }
+        ]
+      },
+      {
+        "index": 19,
+        "hash": "803990364A97B7363F17EEA42025879F773DC7FED2869A4A474EA7C666C01979",
+        "endpoint": "http://127.0.0.1:31760",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:04.576908Z",
+        "checkTxObservedAt": "2026-10-17T07:31:04.58312Z",
+        "includedObservedAt": "2026-10-17T07:31:05.383517Z",
+        "confirmedObservedAt": "2026-10-17T07:31:05.384567Z",
+        "checkTxMs": 6.211542,
+        "inclusionMs": 806.605375,
+        "confirmationMs": 807.655958,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 8,
+        "blockHash": "301E91949E81B03613208468806EA09BA84E471AC9C6427E82C952829EC24534",
+        "headerAppHash": "33A677DB814D2FBDD233CDF6D81FC1D45BE82089B2B0BBBFC1E7214A5F204BFA",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 8,
+        "durableStateAppHash": "70ea1480c58d845346cc88f1be0e6e45707f82f359eaa3af059126fc62b76022",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (803990364A97B7363F17EEA42025879F773DC7FED2869A4A474EA7C666C01979) not found",
+            "count": 8,
+            "firstAt": "2026-10-17T07:31:04.583256Z",
+            "lastAt": "2026-10-17T07:31:05.313092Z"
+          }
+        ]
+      },
+      {
+        "index": 20,
+        "hash": "9B6EB07627155057C3C4287A8DF423B926E77E085F8169C39FBC9B32926F63B9",
+        "endpoint": "http://127.0.0.1:31757",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:05.384569Z",
+        "checkTxObservedAt": "2026-10-17T07:31:05.465145Z",
+        "includedObservedAt": "2026-10-17T07:31:06.565929Z",
+        "confirmedObservedAt": "2026-10-17T07:31:06.56722Z",
+        "checkTxMs": 80.57587500000001,
+        "inclusionMs": 1181.354792,
+        "confirmationMs": 1182.6458340000001,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 9,
+        "blockHash": "C254B927E9FB1AA524156BAEF8C6D21FC6449C199B12BB84BDBE28C162453CEF",
+        "headerAppHash": "70EA1480C58D845346CC88F1BE0E6E45707F82F359EAA3AF059126FC62B76022",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 9,
+        "durableStateAppHash": "061d36389ff08c303f8c9605ad41715842584f5febae2adb70d941247f908d20",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (9B6EB07627155057C3C4287A8DF423B926E77E085F8169C39FBC9B32926F63B9) not found",
+            "count": 11,
+            "firstAt": "2026-10-17T07:31:05.483621Z",
+            "lastAt": "2026-10-17T07:31:06.485643Z"
+          }
+        ]
+      },
+      {
+        "index": 21,
+        "hash": "3B06DD32C64A35E78DD491C106AC11D6995AE9A8D086BA7649023A9A709F9F12",
+        "endpoint": "http://127.0.0.1:31758",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:05.451104Z",
+        "checkTxObservedAt": "2026-10-17T07:31:05.479282Z",
+        "includedObservedAt": "2026-10-17T07:31:06.480428Z",
+        "confirmedObservedAt": "2026-10-17T07:31:06.481753Z",
+        "checkTxMs": 28.177625000000003,
+        "inclusionMs": 1029.319458,
+        "confirmationMs": 1030.645,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 9,
+        "blockHash": "C254B927E9FB1AA524156BAEF8C6D21FC6449C199B12BB84BDBE28C162453CEF",
+        "headerAppHash": "70EA1480C58D845346CC88F1BE0E6E45707F82F359EAA3AF059126FC62B76022",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 9,
+        "durableStateAppHash": "061d36389ff08c303f8c9605ad41715842584f5febae2adb70d941247f908d20",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (3B06DD32C64A35E78DD491C106AC11D6995AE9A8D086BA7649023A9A709F9F12) not found",
+            "count": 10,
+            "firstAt": "2026-10-17T07:31:05.4794Z",
+            "lastAt": "2026-10-17T07:31:06.387597Z"
+          }
+        ]
+      },
+      {
+        "index": 22,
+        "hash": "4FC23B361C304FE12030395B9B1324AFF1327EE7309E774B2D1B04A3C9CB6484",
+        "endpoint": "http://127.0.0.1:31759",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:05.536161Z",
+        "checkTxObservedAt": "2026-10-17T07:31:05.537557Z",
+        "includedObservedAt": "2026-10-17T07:31:06.538147Z",
+        "confirmedObservedAt": "2026-10-17T07:31:06.539981Z",
+        "checkTxMs": 1.395625,
+        "inclusionMs": 1001.9826249999999,
+        "confirmationMs": 1003.8158340000001,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 9,
+        "blockHash": "C254B927E9FB1AA524156BAEF8C6D21FC6449C199B12BB84BDBE28C162453CEF",
+        "headerAppHash": "70EA1480C58D845346CC88F1BE0E6E45707F82F359EAA3AF059126FC62B76022",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 9,
+        "durableStateAppHash": "061d36389ff08c303f8c9605ad41715842584f5febae2adb70d941247f908d20",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (4FC23B361C304FE12030395B9B1324AFF1327EE7309E774B2D1B04A3C9CB6484) not found",
+            "count": 10,
+            "firstAt": "2026-10-17T07:31:05.537667Z",
+            "lastAt": "2026-10-17T07:31:06.47306Z"
+          }
+        ]
+      },
+      {
+        "index": 23,
+        "hash": "0D03DC640F4DDB764D9DDC052062504ECE8C48C5BA2064683065827363B47CFC",
+        "endpoint": "http://127.0.0.1:31760",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:05.539668Z",
+        "checkTxObservedAt": "2026-10-17T07:31:05.540477Z",
+        "includedObservedAt": "2026-10-17T07:31:06.541113Z",
+        "confirmedObservedAt": "2026-10-17T07:31:06.542111Z",
+        "checkTxMs": 0.80875,
+        "inclusionMs": 1001.4411670000001,
+        "confirmationMs": 1002.4396250000001,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 9,
+        "blockHash": "C254B927E9FB1AA524156BAEF8C6D21FC6449C199B12BB84BDBE28C162453CEF",
+        "headerAppHash": "70EA1480C58D845346CC88F1BE0E6E45707F82F359EAA3AF059126FC62B76022",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 9,
+        "durableStateAppHash": "061d36389ff08c303f8c9605ad41715842584f5febae2adb70d941247f908d20",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (0D03DC640F4DDB764D9DDC052062504ECE8C48C5BA2064683065827363B47CFC) not found",
+            "count": 10,
+            "firstAt": "2026-10-17T07:31:05.540597Z",
+            "lastAt": "2026-10-17T07:31:06.440908Z"
+          }
+        ]
+      },
+      {
+        "index": 24,
+        "hash": "888BB6A4F2F7BBA4B574707691424FC7DAE53F24DBD17A26CC6BD7F6AB42FEB6",
+        "endpoint": "http://127.0.0.1:31757",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:06.481756Z",
+        "checkTxObservedAt": "2026-10-17T07:31:06.489521Z",
+        "includedObservedAt": "2026-10-17T07:31:07.590964Z",
+        "confirmedObservedAt": "2026-10-17T07:31:07.592127Z",
+        "checkTxMs": 7.76525,
+        "inclusionMs": 1109.203292,
+        "confirmationMs": 1110.3662080000001,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 10,
+        "blockHash": "E67877074A8F480D7AE3355DB23C0E8A04B090FA1BF768635B5D90040B90DEAD",
+        "headerAppHash": "061D36389FF08C303F8C9605AD41715842584F5FEBAE2ADB70D941247F908D20",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 10,
+        "durableStateAppHash": "5a5fb1ffbeb24d024f0e2306207f39071466576db652706d0d95920d61239c17",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (888BB6A4F2F7BBA4B574707691424FC7DAE53F24DBD17A26CC6BD7F6AB42FEB6) not found",
+            "count": 11,
+            "firstAt": "2026-10-17T07:31:06.489634Z",
+            "lastAt": "2026-10-17T07:31:07.517714Z"
+          }
+        ]
+      },
+      {
+        "index": 25,
+        "hash": "31F3E5825270365F5CC8150611AE8BD2FC08AA460DB2659FE48E421D2EE70C86",
+        "endpoint": "http://127.0.0.1:31758",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:06.539985Z",
+        "checkTxObservedAt": "2026-10-17T07:31:06.547546Z",
+        "includedObservedAt": "2026-10-17T07:31:07.448089Z",
+        "confirmedObservedAt": "2026-10-17T07:31:07.449277Z",
+        "checkTxMs": 7.5606670000000005,
+        "inclusionMs": 908.1007500000001,
+        "confirmationMs": 909.2882920000001,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 10,
+        "blockHash": "E67877074A8F480D7AE3355DB23C0E8A04B090FA1BF768635B5D90040B90DEAD",
+        "headerAppHash": "061D36389FF08C303F8C9605AD41715842584F5FEBAE2ADB70D941247F908D20",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 10,
+        "durableStateAppHash": "5a5fb1ffbeb24d024f0e2306207f39071466576db652706d0d95920d61239c17",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (31F3E5825270365F5CC8150611AE8BD2FC08AA460DB2659FE48E421D2EE70C86) not found",
+            "count": 9,
+            "firstAt": "2026-10-17T07:31:06.547677Z",
+            "lastAt": "2026-10-17T07:31:07.421247Z"
+          }
+        ]
+      },
+      {
+        "index": 26,
+        "hash": "60670C64D78AAFF39CB78C23904C5009082481A3FACE3B238A3FAB3BCDB9D26F",
+        "endpoint": "http://127.0.0.1:31759",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:06.542113Z",
+        "checkTxObservedAt": "2026-10-17T07:31:06.543058Z",
+        "includedObservedAt": "2026-10-17T07:31:07.444455Z",
+        "confirmedObservedAt": "2026-10-17T07:31:07.445498Z",
+        "checkTxMs": 0.94475,
+        "inclusionMs": 902.338959,
+        "confirmationMs": 903.381459,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 10,
+        "blockHash": "E67877074A8F480D7AE3355DB23C0E8A04B090FA1BF768635B5D90040B90DEAD",
+        "headerAppHash": "061D36389FF08C303F8C9605AD41715842584F5FEBAE2ADB70D941247F908D20",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 10,
+        "durableStateAppHash": "5a5fb1ffbeb24d024f0e2306207f39071466576db652706d0d95920d61239c17",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (60670C64D78AAFF39CB78C23904C5009082481A3FACE3B238A3FAB3BCDB9D26F) not found",
+            "count": 9,
+            "firstAt": "2026-10-17T07:31:06.54316Z",
+            "lastAt": "2026-10-17T07:31:07.343371Z"
+          }
+        ]
+      },
+      {
+        "index": 27,
+        "hash": "190DD37E655F579BC55C1370431ECFAEE5E153C00E5E67514F3EB005FB2A7434",
+        "endpoint": "http://127.0.0.1:31760",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:06.567222Z",
+        "checkTxObservedAt": "2026-10-17T07:31:06.57155Z",
+        "includedObservedAt": "2026-10-17T07:31:07.572385Z",
+        "confirmedObservedAt": "2026-10-17T07:31:07.573669Z",
+        "checkTxMs": 4.327583000000001,
+        "inclusionMs": 1005.1591660000001,
+        "confirmationMs": 1006.4434579999999,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 10,
+        "blockHash": "E67877074A8F480D7AE3355DB23C0E8A04B090FA1BF768635B5D90040B90DEAD",
+        "headerAppHash": "061D36389FF08C303F8C9605AD41715842584F5FEBAE2ADB70D941247F908D20",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 10,
+        "durableStateAppHash": "5a5fb1ffbeb24d024f0e2306207f39071466576db652706d0d95920d61239c17",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (190DD37E655F579BC55C1370431ECFAEE5E153C00E5E67514F3EB005FB2A7434) not found",
+            "count": 10,
+            "firstAt": "2026-10-17T07:31:06.571689Z",
+            "lastAt": "2026-10-17T07:31:07.491389Z"
+          }
+        ]
+      },
+      {
+        "index": 28,
+        "hash": "A33A0E7CB5800A1EA067962D47913D83A96FF0916D3A60AE6386F9C2F6105254",
+        "endpoint": "http://127.0.0.1:31757",
+        "bytes": 413,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:07.445499Z",
+        "checkTxObservedAt": "2026-10-17T07:31:07.517772Z",
+        "includedObservedAt": "2026-10-17T07:31:08.319157Z",
+        "confirmedObservedAt": "2026-10-17T07:31:08.321116Z",
+        "checkTxMs": 72.27275,
+        "inclusionMs": 873.654542,
+        "confirmationMs": 875.612959,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 11,
+        "blockHash": "ACB81054203EE973BF60A6FAA55550C6C7AC5EB97376FC6E9D084D31AF0BC582",
+        "headerAppHash": "5A5FB1FFBEB24D024F0E2306207F39071466576DB652706D0D95920D61239C17",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 11,
+        "durableStateAppHash": "d3fd60791af4f39b0b52d11135e2ffb8fbf0b9604198969d521fbf49f1c418eb",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (A33A0E7CB5800A1EA067962D47913D83A96FF0916D3A60AE6386F9C2F6105254) not found",
+            "count": 8,
+            "firstAt": "2026-10-17T07:31:07.527672Z",
+            "lastAt": "2026-10-17T07:31:08.241948Z"
+          }
+        ]
+      },
+      {
+        "index": 29,
+        "hash": "3708F773CC66765B674613437EFF302B74412E1945AC34E4CF06D5509132EBBC",
+        "endpoint": "http://127.0.0.1:31758",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:07.449281Z",
+        "checkTxObservedAt": "2026-10-17T07:31:07.451387Z",
+        "includedObservedAt": "2026-10-17T07:31:08.352691Z",
+        "confirmedObservedAt": "2026-10-17T07:31:08.353807Z",
+        "checkTxMs": 2.1059170000000003,
+        "inclusionMs": 903.40725,
+        "confirmationMs": 904.523208,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 11,
+        "blockHash": "ACB81054203EE973BF60A6FAA55550C6C7AC5EB97376FC6E9D084D31AF0BC582",
+        "headerAppHash": "5A5FB1FFBEB24D024F0E2306207F39071466576DB652706D0D95920D61239C17",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 11,
+        "durableStateAppHash": "d3fd60791af4f39b0b52d11135e2ffb8fbf0b9604198969d521fbf49f1c418eb",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (3708F773CC66765B674613437EFF302B74412E1945AC34E4CF06D5509132EBBC) not found",
+            "count": 9,
+            "firstAt": "2026-10-17T07:31:07.451481Z",
+            "lastAt": "2026-10-17T07:31:08.251704Z"
+          }
+        ]
+      },
+      {
+        "index": 30,
+        "hash": "E12CF29F7673B6089A0A4350AF289E8D183D3D79E8D480644ACF43CA8DC742DE",
+        "endpoint": "http://127.0.0.1:31759",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:07.573672Z",
+        "checkTxObservedAt": "2026-10-17T07:31:07.579571Z",
+        "includedObservedAt": "2026-10-17T07:31:08.28094Z",
+        "confirmedObservedAt": "2026-10-17T07:31:08.282Z",
+        "checkTxMs": 5.899166,
+        "inclusionMs": 707.2652499999999,
+        "confirmationMs": 708.3256660000001,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 11,
+        "blockHash": "ACB81054203EE973BF60A6FAA55550C6C7AC5EB97376FC6E9D084D31AF0BC582",
+        "headerAppHash": "5A5FB1FFBEB24D024F0E2306207F39071466576DB652706D0D95920D61239C17",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 11,
+        "durableStateAppHash": "d3fd60791af4f39b0b52d11135e2ffb8fbf0b9604198969d521fbf49f1c418eb",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (E12CF29F7673B6089A0A4350AF289E8D183D3D79E8D480644ACF43CA8DC742DE) not found",
+            "count": 7,
+            "firstAt": "2026-10-17T07:31:07.579725Z",
+            "lastAt": "2026-10-17T07:31:08.180697Z"
+          }
+        ]
+      },
+      {
+        "index": 31,
+        "hash": "88F8E44A63289050352952260ED79E9C064B52A504F884D0B6FEF3F9B6E92C15",
+        "endpoint": "http://127.0.0.1:31760",
+        "bytes": 415,
+        "status": "confirmed",
+        "submittedAt": "2026-10-17T07:31:07.592128Z",
+        "checkTxObservedAt": "2026-10-17T07:31:07.59345Z",
+        "includedObservedAt": "2026-10-17T07:31:09.496769Z",
+        "confirmedObservedAt": "2026-10-17T07:31:09.498042Z",
+        "checkTxMs": 1.321334,
+        "inclusionMs": 1904.633,
+        "confirmationMs": 1905.905959,
+        "checkTxCode": 0,
+        "executionCode": 0,
+        "executionLog": "transfer",
+        "height": 12,
+        "blockHash": "F55707CD915F8232832B404A8B94F2954C8D177E5CDB25E5083F6C40D9B34D90",
+        "headerAppHash": "D3FD60791AF4F39B0B52D11135E2FFB8FBF0B9604198969D521FBF49F1C418EB",
+        "quorumVerified": true,
+        "transactionProofVerified": true,
+        "durableStateVerified": true,
+        "durableStateHeight": 12,
+        "durableStateAppHash": "fac616921305b172cf366ead4646878f07f6102a029613e23f883e81a4bb3152",
+        "errors": [
+          {
+            "stage": "tx_query",
+            "message": "error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (88F8E44A63289050352952260ED79E9C064B52A504F884D0B6FEF3F9B6E92C15) not found",
+            "count": 19,
+            "firstAt": "2026-10-17T07:31:07.59355Z",
+            "lastAt": "2026-10-17T07:31:09.393944Z"
+          }
+        ]
+      }
+    ],
+    "setupErrors": [],
+    "interpretation": [
+      "A bounded smoke measurement, not sustained TPS capacity or public-network evidence. Concurrency limits entire submit-and-observe lifetimes.",
+      "Latencies use the client monotonic clock from each submission start to first observed response; polling and RPC overhead are included. Percentiles exclude unobserved stages; all non-success counts remain explicit.",
+      "Rates share the complete workload window (submission plus observation/drain), excluding setup. Empty blocks, votes, rejected and failed executions are not effective transaction inclusions.",
+      "Code-zero execution is reported by local tx RPC. Confirmation independently verifies weighted CometBFT commit signatures and transaction Merkle inclusion against the signed header; this is not a cryptographic proof of the RPC execution result.",
+      "Final submission additionally reads and validates that node's persisted application state and matching native transaction fee/nonce. Header AppHash at transaction height authenticates prior application state; the local disk readback is separate evidence, not authenticated by that same-height header. Restart and all-node convergence are separate checks.",
+      "Submission transport errors retain unknown outcome and are never automatically retried. Repeated identical observation errors retain counts and first/last timestamps."
+    ]
+  },
+  "lifecycle": {
+    "schema": 1,
+    "startedAt": "2026-10-17T07:30:53.560Z",
+    "work": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-E5Y0G2",
+    "caps": {
+      "activeMs": 45000,
+      "cleanupMs": 15000,
+      "dataBytes": 134217728,
+      "rssBytes": 2147483648,
+      "logBytesPerProcess": 1048576,
+      "clientTimeout": "10s",
+      "clientConcurrency": 4,
+      "gomaxprocs": 1
+    },
+    "count": 32,
+    "elapsedMs": 16101,
+    "cleanupMs": 107,
+    "firstCause": null,
+    "peakRSSBytes": 345718784,
+    "peakDataBytes": 1880064,
+    "processes": [
+      {
+        "name": "fixture",
+        "pid": 61225,
+        "exitCode": 0,
+        "signal": null,
+        "exited": true,
+        "groupGone": true
+      },
+      {
+        "name": "abci-0",
+        "pid": 61248,
+        "exitCode": 0,
+        "signal": null,
+        "exited": true,
+        "groupGone": true
+      },
+      {
+        "name": "abci-1",
+        "pid": 61255,
+        "exitCode": 0,
+        "signal": null,
+        "exited": true,
+        "groupGone": true
+      },
+      {
+        "name": "abci-2",
+        "pid": 61262,
+        "exitCode": 0,
+        "signal": null,
+        "exited": true,
+        "groupGone": true
+      },
+      {
+        "name": "abci-3",
+        "pid": 61269,
+        "exitCode": 0,
+        "signal": null,
+        "exited": true,
+        "groupGone": true
+      },
+      {
+        "name": "comet-0",
+        "pid": 61284,
+        "exitCode": 0,
+        "signal": null,
+        "exited": true,
+        "groupGone": true
+      },
+      {
+        "name": "comet-1",
+        "pid": 61291,
+        "exitCode": 0,
+        "signal": null,
+        "exited": true,
+        "groupGone": true
+      },
+      {
+        "name": "comet-2",
+        "pid": 61298,
+        "exitCode": 0,
+        "signal": null,
+        "exited": true,
+        "groupGone": true
+      },
+      {
+        "name": "comet-3",
+        "pid": 61305,
+        "exitCode": 0,
+        "signal": null,
+        "exited": true,
+        "groupGone": true
+      },
+      {
+        "name": "client",
+        "pid": 61445,
+        "exitCode": 0,
+        "signal": null,
+        "exited": true,
+        "groupGone": true
+      }
+    ],
+    "allGroupsGone": true,
+    "resultPath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-E5Y0G2/transactions-result.json"
+  },
+  "stopped_replay": {
+    "schema": 1,
+    "verifiedAt": "2026-10-17T07:35:37.144388Z",
+    "observationSha256": "12d5fe9238b2a14de1232be2a3eb1b72b06a8199d6cdd6c0fffea623f6e2aa15",
+    "nodes": [
+      {
+        "name": "local-perf-0",
+        "height": 12,
+        "appHash": "fac616921305b172cf366ead4646878f07f6102a029613e23f883e81a4bb3152",
+        "snapshotSha256": "c85f4b95e513035e7d78cfff47aad0dfe6628f8fa14b16de689a6e5e373bccdb",
+        "replayedTransactions": 32,
+        "readOnlyBlockstore": true,
+        "exactStateEqual": true
+      },
+      {
+        "name": "local-perf-1",
+        "height": 12,
+        "appHash": "fac616921305b172cf366ead4646878f07f6102a029613e23f883e81a4bb3152",
+        "snapshotSha256": "c85f4b95e513035e7d78cfff47aad0dfe6628f8fa14b16de689a6e5e373bccdb",
+        "replayedTransactions": 32,
+        "readOnlyBlockstore": true,
+        "exactStateEqual": true
+      },
+      {
+        "name": "local-perf-2",
+        "height": 12,
+        "appHash": "fac616921305b172cf366ead4646878f07f6102a029613e23f883e81a4bb3152",
+        "snapshotSha256": "c85f4b95e513035e7d78cfff47aad0dfe6628f8fa14b16de689a6e5e373bccdb",
+        "replayedTransactions": 32,
+        "readOnlyBlockstore": true,
+        "exactStateEqual": true
+      },
+      {
+        "name": "local-perf-3",
+        "height": 12,
+        "appHash": "fac616921305b172cf366ead4646878f07f6102a029613e23f883e81a4bb3152",
+        "snapshotSha256": "c85f4b95e513035e7d78cfff47aad0dfe6628f8fa14b16de689a6e5e373bccdb",
+        "replayedTransactions": 32,
+        "readOnlyBlockstore": true,
+        "exactStateEqual": true
+      }
+    ],
+    "publicSignedBlocks": [
+      {
+        "height": 2,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 2,
+          "time": "2026-10-17T07:30:54Z",
+          "last_block_id": {
+            "hash": "",
+            "parts": {
+              "total": 0,
+              "hash": ""
+            }
+          },
+          "last_commit_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "data_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "9586D9737A2C3362A0889F0C5AE944F85AFB532D78D975554D5F390FEA6CB731",
+          "last_results_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455"
+        },
+        "commit": {
+          "height": 2,
+          "round": 0,
+          "block_id": {
+            "hash": "4A3D53E094E2A584C5F9563E330C5C19BF1B81EA4DF4654E80E5198B8BB78E8B",
+            "parts": {
+              "total": 1,
+              "hash": "8397B9028A632975C3E26207635B91EF118219236360D0FBEA0446B181B3BFDF"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:30:59.376788Z",
+              "signature": "X3rDALJ41udaDCeV/Uhng5VjLgWQLKyby+nwN1+R6UFWAWNmoqloaLcre25yX8SuJDPzwgXu4Tgg9TYls4yiDw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:30:59.386372Z",
+              "signature": "P2kLnyxMjCoXRof9jRfadFr7WX/wXGggqaXcln7Mv3pzSw90Lxi/l7Tmx6Bye38VNUlmqth63HNkNFVLG3IXDg=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F01672BA47094507D577E0161A44A195C7879116",
+              "timestamp": "2026-10-17T07:30:59.368449Z",
+              "signature": "l7PARyUW2JAIjCHZbVRg0I6tO0f1hp48c/fQESFDDM1vmcvzQaNKY84OstOjQOaTLEp8Q4EV6YlyftzxWG27DQ=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:30:59.376823Z",
+              "signature": "y7Nuw7/doQMDCM0FumkZHlzXnn6/I7nbYdqpNL6/5yWkc7CyDEz2kbMDR+3lc6fLN29gM+JIUx7yT87isvcMAg=="
+            }
+          ]
+        },
+        "transactions": []
+      },
+      {
+        "height": 3,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 3,
+          "time": "2026-10-17T07:30:59.376788Z",
+          "last_block_id": {
+            "hash": "4A3D53E094E2A584C5F9563E330C5C19BF1B81EA4DF4654E80E5198B8BB78E8B",
+            "parts": {
+              "total": 1,
+              "hash": "8397B9028A632975C3E26207635B91EF118219236360D0FBEA0446B181B3BFDF"
+            }
+          },
+          "last_commit_hash": "02047BCB58AB3CFF9986797BBB8D13A265366793B36D8956E62D84BBBFCE803A",
+          "data_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "9586D9737A2C3362A0889F0C5AE944F85AFB532D78D975554D5F390FEA6CB731",
+          "last_results_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "8B460C5B2088B7377C327124A36E5EC46495D28D"
+        },
+        "commit": {
+          "height": 3,
+          "round": 0,
+          "block_id": {
+            "hash": "B76DE77246C2CF11551055C093731E926E3C60E9E24B6D0288DF78A6FF370433",
+            "parts": {
+              "total": 1,
+              "hash": "2C20BC6F08677C31D284F438B0E88771D4093DA6981629B7E0D607ADA02EC7AB"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:31:00.415138Z",
+              "signature": "UxAkfHEIjQgn5Fco3QIQ6xg1QGZkr5F1rN5Pg9AuLwkcl9t+x2HXSjiKWw+ZkDzcPdojKi4ar1rhDcPdnGcmAw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:31:00.405593Z",
+              "signature": "xvRI74PYiuT5yVct7zcSg9HoLLN5Me4waknNo/yDKF/n+qgwCIWCsb0vta8kN8LDoohOmQl5pfv3jjDNMYByAw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F01672BA47094507D577E0161A44A195C7879116",
+              "timestamp": "2026-10-17T07:31:00.294793Z",
+              "signature": "HBNuK85Y3iBbktWQs7c86wBLMokg8Jtp0wbZrv9JhTRwsDjcuPhjzzm+1/Rnr0Ic8ToISEzNJJSDXx8gT6VsCQ=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:31:00.284931Z",
+              "signature": "RJtS0ZhLa+uHLkV16Mg3xYrYNiJEegh9k/Vzh4idfDNUfccdNGp98DsfdYJq+MNq2gMLKEI4h1cfQevUJ8PwCQ=="
+            }
+          ]
+        },
+        "transactions": []
+      },
+      {
+        "height": 4,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 4,
+          "time": "2026-10-17T07:31:00.294793Z",
+          "last_block_id": {
+            "hash": "B76DE77246C2CF11551055C093731E926E3C60E9E24B6D0288DF78A6FF370433",
+            "parts": {
+              "total": 1,
+              "hash": "2C20BC6F08677C31D284F438B0E88771D4093DA6981629B7E0D607ADA02EC7AB"
+            }
+          },
+          "last_commit_hash": "4B96C2766AA39A656A2F676C1E4B4193E5B225C9E8B1D86B96081A59A67041E6",
+          "data_hash": "C3ED6B74A559E9DE95EFC759464E4C7502C029616528E2E2AE6A26BAF654FA37",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "9586D9737A2C3362A0889F0C5AE944F85AFB532D78D975554D5F390FEA6CB731",
+          "last_results_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "F01672BA47094507D577E0161A44A195C7879116"
+        },
+        "commit": {
+          "height": 4,
+          "round": 0,
+          "block_id": {
+            "hash": "8FEAACA1A75A126361056F3A96EC2954659A80F4929955688B91EF444B1F5081",
+            "parts": {
+              "total": 1,
+              "hash": "7ACDA0CDB9DF693AA48079D77DB7931BB5B8AA432940D30B44B1759047DEECE9"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:31:01.351779Z",
+              "signature": "0J5hstTpSALotj2NEOizpZ+4AI83u89bT1J0EPU0M88zNHRDISNH9cBSnigkAPS4N5r0H+tJD+FtRkw0npPCDg=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:31:01.377678Z",
+              "signature": "q3HfKh4xKZvpzD0ekidjB+JP7q5RifMM4cAynyG306Vuwg/1CxtcSdZTt0PhztqWt4w5CT+qan6wTpEXEfc6DA=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F01672BA47094507D577E0161A44A195C7879116",
+              "timestamp": "2026-10-17T07:31:01.342337Z",
+              "signature": "5i/GkFDj1OCcbztKc4ihG/KqZJl52OytN5auMumByPTvvYnKSZJxkm79YnnSASD9AJdHE4kGkr7OjjLv1tzQCw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:31:01.334002Z",
+              "signature": "/IkQcJmwHuSKwR0/9TLicdpKlJQ7a8hT8fZd2AFleo7p4KTuEILKDPPhlJ6Nr0yheA8dz3kzgak6hn0vbEzUDA=="
+            }
+          ]
+        },
+        "transactions": [
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg1YzhjOGU2YjFjMWNlZTk2YmQzNDcyYjQ0MzE4ZTU5NWViYmQ2ODJmIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyNmVkOTAyMjA2YWMwMTZkNGM0MTQwZWM3NTFmNTc4Y2MyYTM2YWJiM2IwMmY4NDQ2MmMwOTkyNzM1ZmJkZmMxNSIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBkZTkzMTk5MmMxMzZmODkzNWQyZWViMjRiN2RmNWU2YzA2NWVhYzJkOTk3NGE1MGUwN2RhMTY2MWQ5NDQzZTQ1MDIyMDIyNTdiMDM0OTkyMWRkZjVkZDczMGU4M2JmZTRkYjU4Nzk4NTNiNWM1YjZhMWY2YTgxZmJhYzUyY2IwZjU5ZWEifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg5NWNjNWQwNTE2ZjczNjY5MDI4NDkxZjhkM2UzNjgxODJhZWFjZTI4IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyZDE3MTRiOTVlZmJmOTI2MTE1NWE4NjIyMTM1NjQzMzZlM2M4OTg1YmYxNWRiOTQ2YzM0YWQzODk5YjFmNmVmNSIsInNpZ25hdHVyZSI6IjMwNDQwMjIwNzQ3YTg0ZGYzZDQwNTlkMGU1NDY4YmU2Y2VkMWY4YzY0ODZlMzIxY2QwNzE4NjkxOTMxZmNkNmNjN2ZjOGNjOTAyMjAzM2YxODNjODVkZGM0YzA0Mzk2ZTNiN2M4ZWVhNzJmMjE5N2M1M2Q2ZTQ2MTg5NWVlMzUxZmEwY2ViMmM1OWVlIn0=",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhlNmJmNDFjMjM5NTQxNGM3N2IwMzhlYTExZDg0NzNlOWYzNjRhNjZiIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyYWJmYTQ2ZjgwMzZlNzA2Mzc3MTQ3NWM3YzBmNTA4OTA3MGNmNGM1OWZhNTFhZDJkMGE5N2NiZGM1ZWUwMGI1MCIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBhNzM4Y2Y0NGQ1NmMzYTRkZTkyYjdjZjdkNzA3NjBkZTk0ZDM4Y2M5NmU5NTljMzE0ZGM5N2EyMzQxNWRmOTVkMDIyMDFjZGRlY2VjOTczOGNlYTU0YWNlYTA1MTlmYWFiYjAxZDViNWRlMGM0Y2U3OTNmZjQ2YThiZTcyYzIwN2VlYmUifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhkMzc2NTYwMTc0NDkxM2NlYjJmN2Y2OGVhNjI5ZGFiMjBmYTU4NzY2IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzMmVmNGI0MmU0YzExYTViMDIwODQ5ZTY0NmM2OThhZDRmOGM4M2ZlYmFlNTcxYThmY2U5YmY0NTgzMDFmY2NmZCIsInNpZ25hdHVyZSI6IjMwNDQwMjIwMTZmYjFmZGM0OGVhZjQxMjI2ZTlhMDM4ZDQwZWM2Mjg1N2NkMjI3ZGQ3ZGFlNzAzZWVmMzNjYzAyMjY4NWM5MzAyMjAyN2VhMmUzM2NkOWQ1NTVlOGM1ODljMmZmMjgzY2M2NWYwOWU4MWIwYjdlNTMzMjI0MDljZTJjM2ZlZTE0MWI5In0="
+        ]
+      },
+      {
+        "height": 5,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 5,
+          "time": "2026-10-17T07:31:01.342337Z",
+          "last_block_id": {
+            "hash": "8FEAACA1A75A126361056F3A96EC2954659A80F4929955688B91EF444B1F5081",
+            "parts": {
+              "total": 1,
+              "hash": "7ACDA0CDB9DF693AA48079D77DB7931BB5B8AA432940D30B44B1759047DEECE9"
+            }
+          },
+          "last_commit_hash": "D19BAF855946BB9A0FEEF11E88B4A9EE6FB585725570FE173BE2F4953977952C",
+          "data_hash": "68015286791DBB94DAD275DF92A6D4525CAFCED89E293444911349B3A9D6DDFA",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "4ABBF4BD96209FDBF3EF1B160E97BC21E99BC6F6E57882E311BB5E7C7160DC90",
+          "last_results_hash": "6DB54D807CCC169086B5F0CA3F74AF781333F546E6854AB522AD7F43742E7EF1",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "F4B2C78323A81BEEBABF860F550382CB0028C083"
+        },
+        "commit": {
+          "height": 5,
+          "round": 0,
+          "block_id": {
+            "hash": "6A8DF852E2979CE85019A6F7F23421A7AFCCFF9EE9438BB34EC8EECDBC452FD4",
+            "parts": {
+              "total": 1,
+              "hash": "6A0D81D14809F436799FA9C8F65EB91EA832E1073CAE0C40DD697FD0F5347B45"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:31:02.140885Z",
+              "signature": "7ZakS2Z1GPHpQtamPfKofXjbQSPcGxhzKdH6baX2nV2Ru/MU+HNaVDVQFx2ZONwlJbrFJ7Z7gB/31Hf8leZXAg=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:31:02.148618Z",
+              "signature": "i6ocnh2xAsVNBJYzRv+d6IEMxZkAf4+u9tngfskqI3PhoEZkk0TuldSOvXwILd1z4OE6qLpqBOaZp+JJn4nvBg=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F01672BA47094507D577E0161A44A195C7879116",
+              "timestamp": "2026-10-17T07:31:02.202215Z",
+              "signature": "mgFjWge4Ivf/CeG9UMTQl+E6Ld6tOoD9JkCk3TM8ykHoomNdCxJ+6OwX/cEsjJtkVHsU8s9SlRrT6d7eEPnxCw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:31:02.193938Z",
+              "signature": "LnfHRI+JWnbPbEDMwZlz32bsaqOH5vCYcxqvIOONldTQK68AxzQqaJW1ajpN34GFdma9dSFc+6EpfTcg6RhWBA=="
+            }
+          ]
+        },
+        "transactions": [
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHgyNTYyZmEwOGRiMjMyNjU3NDc5Mjk2MWU1NGFhYmU2OTFhZDc1YTgyIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyNTI2ZDYyZjc4NjU1NGViNjExNmY4YmI4MTQzYmRjODk5NjkxMzhkMzZhMTA1N2QzN2E4YTIyNTE5ZGU4Y2VmNSIsInNpZ25hdHVyZSI6IjMwNDQwMjIwNTAxN2M0MWUwYTE1YTFjY2UzZDAzNTgwNjAxNjNlN2ExZWRjMDdkZGI0ZDE0OWI2MDk4ZDZiMTZkNDczMDhhOTAyMjA3ZDU2M2JlNGYxYmMwY2M0NWVlMTMwZGI4YTU5NzE2MjgwM2E3NDQyMGM2MDdlNGIwNjZhNTM3ODdiZDk0YmM1In0=",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg0ZjI1ZWFmMmY3ZTE5MGQ2OTlkOGM5N2ZhMWQ1Y2M3YjlhMDY4NDlhIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyYzhmZWFjYTRkMjFhMjYwY2M1MDM3MzAxMTNkM2Y3ZTYyZjY5YmYyZjIyOTAwYTc3NDRkNWNlMzg3NGM3YTVjZiIsInNpZ25hdHVyZSI6IjMwNDQwMjIwNGQ1ZDM2ZTQ3YWQ1N2E4ZjU0ZDA5ZmU5ZTAxZDQzMTBhNGQwMGVjNTU0NGRlOTE3NDZhOTY5YmFlMTM0ODNlYTAyMjA1NGUxOGMyN2JlYzkyMjZjZTk5ZTFjY2I4OWM5YWM5ZjQ2ZWY3NDc3ZTgxMjMzZTMzNTU3MjJkNWQyNTQ0OTFmIn0=",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhhODMwODI3MTA0Y2U4NWY5OWFlOGNiZTliY2RiMmM3OWRmYTZiNmE3IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyZDkyNGVkNDgwODVhYjlkYWZhNGU5ZDVlMmM5MDlhZmRiNDM3ZDJkNTFhODA4M2ZjN2FhZDdiNzA5YjkzZjY4NyIsInNpZ25hdHVyZSI6IjMwNDQwMjIwMGFkNTBlYzkwZGRmYzE1NTJjOWQ3M2ZiM2MwNDc3MGJlZjhkN2QwYjI0MzM3NTZmYzhkZThmMjcxYTJjN2Q1NjAyMjA1OTFhM2QzMTQzNjNlYjAwYjM0MDFjNmE2N2ExN2JlZjJhZmExOTg4ZGY1MmM3ODM3MzA0ZGMxNjczMDdhODJiIn0=",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhjNjgzYjZjNTUyOTEyOTIwMmRjYTk5MzQzYWQyZmM3MzdjMzg2ZGI2IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzNjkwZWI0Y2RjZWM5NzQwMDViNzY5NTNkZWY1MzY4ZDkwZjU0ZDJiMWRkYzA3MTY4ZDczM2JiNzIwNWFkODdjMiIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBlZDNjNDJmNjQyNTNhNDFiMzU5NjhiNjUxNzIzNzk4MDBmYjU2OGVlNmQ3MmJkY2EwNDc1MDE3YjUwNjg3MmJlMDIyMDVjZDIzYzZhNjIxOGQ2YmNjMmE4NjgyMjk1YzkzM2Q1MGJkODYxYWQyNzg5ZThjYzIyMmVhZDdmN2FlNTgwN2EifQ=="
+        ]
+      },
+      {
+        "height": 6,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 6,
+          "time": "2026-10-17T07:31:02.148618Z",
+          "last_block_id": {
+            "hash": "6A8DF852E2979CE85019A6F7F23421A7AFCCFF9EE9438BB34EC8EECDBC452FD4",
+            "parts": {
+              "total": 1,
+              "hash": "6A0D81D14809F436799FA9C8F65EB91EA832E1073CAE0C40DD697FD0F5347B45"
+            }
+          },
+          "last_commit_hash": "030BDEF49E89ED0798CC83369C2A341763627D668C1D0957F23E76BEC0D7CDDB",
+          "data_hash": "C2E551A9C4EBFDB37832395D455C74F4B1DE23F0327B4E3992CF7AD5553EC24E",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "8E46EEA5D19030D605FF7A9CC9C708510B76365FE12E94E7911CB9645EBE713A",
+          "last_results_hash": "D7D9C18325CD75CF2AA3073967B5756D31172539B4F24923B20C4C9104B9D89C",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455"
+        },
+        "commit": {
+          "height": 6,
+          "round": 0,
+          "block_id": {
+            "hash": "D6924CA0230F9487B0F813F133FC24A44C6F0CF4BB1050AFCFCDFD75E6B434C8",
+            "parts": {
+              "total": 1,
+              "hash": "EE0BB8447F2DCC0CBBB1445FC0B73C300EF38BE8CE04F17BDCBFAA614589A481"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:31:03.162205Z",
+              "signature": "Vvxsudrs+qd7WcoefyuA7meEzoaGETpSQFQGkhU5GcH1tCEO1UxTbGGfNOmOtbxiDp06Y1YTSaf3jLNmmCCJCA=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:31:03.116114Z",
+              "signature": "orhCaDzmNjkZSDwPulhPUTGEN2XpG5EHZSTGTEqGi19ex848YTlnSdkggyrQKBIv21jwLcolNdoYDsaSZaD7Dg=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F01672BA47094507D577E0161A44A195C7879116",
+              "timestamp": "2026-10-17T07:31:03.151181Z",
+              "signature": "iesFWeEz/p5XHnS77zwZtSqIhhwMdDJK5b+gRTIhu+1Ml2GQI/fXyxPwWoMNMsrzJx06FXrpYaDlbvDwIPzmCQ=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:31:03.125307Z",
+              "signature": "yjpiB58v3KDMrB0GB5qqYGZJhNP5izw9z/CnOiaxFvcqGsOsSjGaTiBM7jVZnQya1JRqcdmpvEaPgeNMnqCyAQ=="
+            }
+          ]
+        },
+        "transactions": [
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHgyZTAxYjM3MzMxYWRiNWEwMGRlZjgyYmY3YTYzYzc1YTIyMGFjODYzIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyYTdmZTIwNTQxMDM3YWJlY2U1ODQ4NGY2NTdiNmJkMDkyMThiMTJiODEwYjk4Yjg5ZjRjZTkwY2UyM2JmZWFjNSIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBhOTMzZWIxZDZiMTY1OGQ3NzhjODZhYWY5ODQ3NDViMDI4OTg1NDViOWI1ZGRkNGI1Njc3MWIxMmExYmI2MTZlMDIyMDBiZjEzZDM2ODM2NDE5NDlhNzE0YzBkOWMzYzkyNmM1NWZjM2E4ZDNlMGVhYmViOWE5ODEwNjlkNmU3NWJhMWIifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg4NDdmYjQ5MzE1MjAyYmYzMWJmZTcyNGJhNzQzNWZiNzRiNzg4YTQwIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyZWE4M2UxNGU3MTIyY2Q2Zjg5NjI5NzhiNWQ4YTI2NmExOGIyNWJiZGI5ZDM1MjU5OWIyODQyODkxOTA1NjY0YyIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBhZjA1YmFkNjM0NDVjOTk0NzIyODk3NTljNTA4NDgzYTlkZTViOTAwNzNlZjEyNWRhNWU4YjMzZTE0MDA4YWE4MDIyMDYwMThlNjMzMGNkMzZhY2NhYzczNGFlMTRmZjNlMmUwMDNhZGJlOTE2NTY4ZTZmM2FkMjQyZWUxNzcxNGM0YjIifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhmNjMxZTE0N2NkZjI3NmMwMGViYjRlNjhhYWIxODZkNTE0NzM0OTM1IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyOWUyODAwOGVkNGM3ZDkyYTgyYjk5MTNkMDIyOWEyNDkxY2M4ZDk0MmU2ZTc4OTE2NDBjNGJkYzBlZmQzZmM4ZSIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBhZjc5OGI5NmVkNDE1YjE4YThjMTJjOWUzYzM1NTYxYzYyNzNhZWI3NjVmMjhlMzlhMzBjMmEzYTg4MThiZWE2MDIyMDEyNjJkYjFmMDIzNjIxMWE1ZjExMzk3ZmJmMjU0MGRiZjEyOTgwYjAyZTE0YjY0N2NkYTUyMmY3YjlhODYzZWMifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhiZmI2Njg2YzEyZTczNGQzMjcwYmI3NTFjNzQ1YTI5YTQ4OGEyNjk3IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyMzFkYTFiYWJkYTk2ZDJiZTAxMmYxZGE5MTc1YWExZTRjZDRkZWJjZDQ5NzFkYWRiYTE1NzFjMDNjOGE2ZTRjNiIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBhZWFiZDZlMmUyZDg2MzVlZDg0YTc4ZDNiOTQ2YTU0ZWU5YTQ5OWYzYzBiN2M0MDY2NDE2MDkxMTg5YTRmNTk1MDIyMDRiOGZjYzY0N2QwNjVmNDExMWM4ODUzYjc3Y2E0ZmY0YmVhZWM3ZmMxYjU4ZWI4ZTE5Mjk1YmE3OTllNmFlZGIifQ=="
+        ]
+      },
+      {
+        "height": 7,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 7,
+          "time": "2026-10-17T07:31:03.125307Z",
+          "last_block_id": {
+            "hash": "D6924CA0230F9487B0F813F133FC24A44C6F0CF4BB1050AFCFCDFD75E6B434C8",
+            "parts": {
+              "total": 1,
+              "hash": "EE0BB8447F2DCC0CBBB1445FC0B73C300EF38BE8CE04F17BDCBFAA614589A481"
+            }
+          },
+          "last_commit_hash": "0D6405018098337E56ABDB3F67C931EBB1751338C2567B80CF93A248E596286D",
+          "data_hash": "4D8C0A716CC32F11C241D5D5BCD4374D4E53336B09439A62B0A3833E29DE6302",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "1277EAD0410D31B4B9D526F2E553678DF49BE198113E3D41D49CECAFB09ECB71",
+          "last_results_hash": "307EE7859E605632DABD04533530BF3C85A4576FD3A1C7E563A291E6A03C79C0",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "8B460C5B2088B7377C327124A36E5EC46495D28D"
+        },
+        "commit": {
+          "height": 7,
+          "round": 0,
+          "block_id": {
+            "hash": "7F0E521648DF72A3A196C7DAEFB28835A35C5FF2D2C6426DCEBDC58A6C422D54",
+            "parts": {
+              "total": 1,
+              "hash": "F50E9700DB91469610CE1FB82A9DB126766A1F010081A087CC24F4651FCCFF6F"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:31:04.122433Z",
+              "signature": "iXqG01GK7R3IbDSghqkfWoBsT/WPrKknQcUy2vqHHUgIwRMHt/Czo7pZndMEHnIM8et/3S6PzsgYEoSkJ+KCBg=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:31:04.132142Z",
+              "signature": "gGpnd+MBhw7X7QuPjiBHeN5ptlCvk8/6jSwRMl4qvHpK0EB8H2vvGDKZ2Tat86RZ3qTYmKyYw+3DAuAn5gbnAg=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F01672BA47094507D577E0161A44A195C7879116",
+              "timestamp": "2026-10-17T07:31:04.032539Z",
+              "signature": "ifOfcPvq/cTrxR5t+86/BiUlUyPsVPFjIk6cYy981vn6tCU9v5X+aF6t0rtIWYkg/+8XQuVPWPvnj7xRwWliDw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:31:04.142295Z",
+              "signature": "Nb6Gg9pQ7BBeJSo+Y69v9rcMTM5PLSHqi1n2DFgmbvyzzpv5K38ng1KEidZ0dk7oQ3nmHxeeKGrfMR4wlidVDg=="
+            }
+          ]
+        },
+        "transactions": [
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhkOTNkZWRiOTQ3NDNiMTg2MzRlYmUyY2Y2YjM2OTQ5N2FkM2IwNWUwIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzNzI5YTEyMjgxOTA3MGM0ZmJlMjNlMGM2OGY2NzAzNWUyN2UwM2I3NmJkNjk1N2VjMTM0OTRkMGY1NGQ0NDVlNCIsInNpZ25hdHVyZSI6IjMwNDQwMjIwNmQ5MjIzNGYxNWRmODhkM2U1ZWJmNDM1MmZhNWVjZWYzZjFlZGE3MjJjY2Y3MGEzYTFiZWJmMDMyNzBmZjM2MTAyMjAyNDA5NDZlNzkyNGEzNTExNmE5NjM0YjdjZDQzNjhjMWU0ZWMyOTJmZTZmNjU3NGU0MGU5OGMyYTJjZDFmNTUyIn0=",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg4NTRjYzJjMGE0N2Y1ZmI5MzQ2MDFkZjVmOTg0NmJjZGJmZTE0Zjc5IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzZGNlNmIyOGFkNjRhNTYyZTZkYzkzNjIzMDBmZGE3NjRlNGMzZDIxMTA2MzFhYjk0MjYzMmI4MjQ4MjYyMzFkYSIsInNpZ25hdHVyZSI6IjMwNDQwMjIwMjA0NmY5NjZlYWIzM2JlZTlmMTlhMThkZjNmNThiOWFjNWM4ZTlkZDgyZGVlZmIwZDk3NjAxMTRkNzZhMzBjZDAyMjA1N2FkMzUzMDFkYzc5NGYxMTlmYjZjZTI2MjkwOTgyMzc4YmQ1MjNlMTU0NjYxYjdlMDJiZTBmMjk5N2IwMjM4In0=",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg3ZWY5YWFjZmJmMTlkNGI5ODlhOWQyNWNhN2YyZjMxMGMxNGQ5MGQ4IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyOTA2OTZkZTNmMzg4Y2Y2ZGQxOGM1ZWNjYWVmYWE4OTg2ZWNhYmM5ZDYyNjA0ZjE1ZmQzZmY4OTI0OTUxMmZjMyIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDA5M2JiYjlhYjA5OTMwZGM2YWJiZjU0YWZkMzhlODdjMWI0YzFiYjdkOTJkMzIyNzAwMDFhZGMzZDJiZmRmMjMwMDIyMDZkNGJjYTdkMjBiMTE1NDQxODhhYTJmZWRmY2FiYmVkNzQzZGU3ODAxOGFlNzE5NWEyMWY1Mzk2MjcwNDJmZjUifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHgzMDVjYmVkMTE4ZTU0YTYyMmYxNDg4NGQyYzdmZmE2MGNmYmYyNDk0IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyZjZkMTQwZGNlM2E4ODA5YTRiMWQ2MmNiNTU0ZTc1ZTAwNjlkOTQ5ODk2ZGFmN2ZlYjAzMGNiM2VlMTQ4Yjg0ZiIsInNpZ25hdHVyZSI6IjMwNDQwMjIwMmI5ZDg1YzkyMzU1MjM4ZGZhYjY4OWMwOGZkMjQ2ZjU4NTFmZGJkMmQ4NDVmMjEzODBmMzY5NmExMWVmZmRiNTAyMjAxYjA2NGZkYjAyNTZjODAwZmY0NDI1MjcyNzlkMmE4YzU0OTdhYTFjODAzMzI0MDQ2YTlhY2ViNDBlMjFhYjMxIn0="
+        ]
+      },
+      {
+        "height": 8,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 8,
+          "time": "2026-10-17T07:31:04.122433Z",
+          "last_block_id": {
+            "hash": "7F0E521648DF72A3A196C7DAEFB28835A35C5FF2D2C6426DCEBDC58A6C422D54",
+            "parts": {
+              "total": 1,
+              "hash": "F50E9700DB91469610CE1FB82A9DB126766A1F010081A087CC24F4651FCCFF6F"
+            }
+          },
+          "last_commit_hash": "8C665224843B3AFE22DE4CB7A75D8D479236081383ABAF791461E07F0D1549C8",
+          "data_hash": "E9396003824E43D99A4AC1685C50EB0A4C139B3FF7E4D0BEF96F9CE3BE56AD4E",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "33A677DB814D2FBDD233CDF6D81FC1D45BE82089B2B0BBBFC1E7214A5F204BFA",
+          "last_results_hash": "48AF120D474B959CA625B5B2DE5B301BD3290BB2F1A248ABD1959CD6A9C7163F",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "F01672BA47094507D577E0161A44A195C7879116"
+        },
+        "commit": {
+          "height": 8,
+          "round": 0,
+          "block_id": {
+            "hash": "301E91949E81B03613208468806EA09BA84E471AC9C6427E82C952829EC24534",
+            "parts": {
+              "total": 1,
+              "hash": "ECDE84CF7D7887862DED6F50EC50505E03618E3D0ABECFE3083707F64CB22A1A"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:31:05.072687Z",
+              "signature": "vwGRKtMDLBghU0Ha1iR9H1rBt/NfdoWGtEBQoILPGeHrVB5HFkdai5DWLEoODcD0y3oMXLvX9TuGepdeHs+0Cw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:31:05.108208Z",
+              "signature": "tLJrGiS88dINXDbYzxjBmuw/81Vot6WSOQ7MC+5seGGCPjx1tat2r+9f3V5NbnPjMSEXD0QqnWA8rUBHocT/AA=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F01672BA47094507D577E0161A44A195C7879116",
+              "timestamp": "2026-10-17T07:31:05.119299Z",
+              "signature": "eGirKFDaCIO64ydzyOrswe+L/yG0jj9lGPoSqn/pMxPseeWO+yIxXXiTJ1yer+z9YkyDkhlYk0okoIIymhK0Ag=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:31:05.064689Z",
+              "signature": "azHnAg7nihyokT8LXG2EJkmSTrwxKFT+Zg554A7bnaMKWcuVB5KPYuZA0U6boeL9xZzDSga3zYlltafqzD3GBw=="
+            }
+          ]
+        },
+        "transactions": [
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg4ZmFmOGVmZjUxNzYxM2FlZTBmNjA5YzZlOThlZGU2N2YxYWM0MWIxIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyOGViNTdjMjE0Y2FiZDM3ZjY0YjhhOTU3ZjA4YjVmMzJlMmZmYTkwOThiY2I5M2E1ZDZlYjJmNjgwZjk3NjI5MCIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBlYTNlYjBlYzcxYTJlODE5YjVlYjJkOGVhMTNlZmNhNDBjY2IwMjA4OTZmMzliMmJjYjA3ZDhmZTAxOGNmOTg3MDIyMDdlMjkxMzQ5OTBkNjY3ODY1OTczZDMwMzI2NDlkZmIyYjhkMzQ0OGMwNGM3NDViNmViYzA4ZTgxZTg5N2E3MGEifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhjNzAyZGE5NWYwMjJiMTJlYTg0NjkyMzEyYzE5YzRlMjY5OTA0ZDBmIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzNzNjNTBjNjliOTFiYjUyZDkzMjRlMTBiNTJlMjBiNzAwZDFhZmEwNzk5MWJkNmZjZmYyMGVhZDAwOWM2MjZmNyIsInNpZ25hdHVyZSI6IjMwNDQwMjIwMWZhMDQ2OTIzOTc3ODNlOWJhNmM4MTVmNGYxMjIxNjZkMDMyYTI4MWU4ZDM5Y2UzNTNjN2ZlOTg5ZTc3OGRlMDAyMjAwMjIyNWM0OWQ2YjU1OGFmOTUwMDkxOTI3MGViNmRhODY0NzkxZDZiM2EyOGU5ZmUwZmYwZDgwNjQ2NzI0NDlkIn0=",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhlZTVlNDFmNjQyZGRmMzM3OTU2MGY1MTRkMGIwZjg3MTRlMTEwNGNlIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzYTI3NTU5ZjM3YjdlNTk4ZDg1NDU5OGY5MzcxY2NmNjhhMWU2YTU1MzliNTZmY2Q4NWFlMzBkOGJmMTI2NGM1YiIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBlYjZlYmI0OTA3MGZmYTNkYTU1NmQ4YjM2ZTMzYWU0NGM4ZTlkOGVlNTcwM2M3MDVlZjU0NmUzOTVlMzhkZGYzMDIyMDc5MmQ5ZjUzNjFmMTAzMmQ4ZDBjZDY0NTUwMTlhNTdhMzI2NGVlYmQ2NGZkZDg4MzA0OTA5OGIyMDkyMDE4OWUifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg2YzQ2OGMwMjMxOGU4MjRhY2Y2ZjdmYzk2YTliMjhiNzU5MzY0ZGM2IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzOTE3NDNjMGRjZWEwZGNkYjE4MDM2MGVhOWFmMzc3ZDYyOTkwNzU0OTQ3ZjAwOGE2OWE0NWY3YWMxYzJkOWU0MiIsInNpZ25hdHVyZSI6IjMwNDQwMjIwMTU5OWVkNzljYmYwNDRhNzBmN2FjMWI5MGM2ZGI2MmY1OGY3YjcwYWNkNGFiZTA1NTU1ZjEzMTY3NTBjNGZkYTAyMjA1YzYzMzVlNWQ2ZDhkMjlkZjVkMTFhYjJjY2Q2MzViY2Y1MmQyNDIyZmFkOTBmZGNlNGRlMDQ1MjMzMGEyYWNiIn0="
+        ]
+      },
+      {
+        "height": 9,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 9,
+          "time": "2026-10-17T07:31:05.072687Z",
+          "last_block_id": {
+            "hash": "301E91949E81B03613208468806EA09BA84E471AC9C6427E82C952829EC24534",
+            "parts": {
+              "total": 1,
+              "hash": "ECDE84CF7D7887862DED6F50EC50505E03618E3D0ABECFE3083707F64CB22A1A"
+            }
+          },
+          "last_commit_hash": "E3A4ED4AAC7B0EE62E448A77A1DA961AD3702E0AE33680858C05DEBD5ED78279",
+          "data_hash": "DFEF60CF8501137CA170827D53CDD4B5EAEC438A2F14E2DEECC210A838DC186D",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "70EA1480C58D845346CC88F1BE0E6E45707F82F359EAA3AF059126FC62B76022",
+          "last_results_hash": "EA67D657FBEA5A0CCA23FF5696747D4614815BAC4617E867A3176ED1038C2ECA",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "F4B2C78323A81BEEBABF860F550382CB0028C083"
+        },
+        "commit": {
+          "height": 9,
+          "round": 0,
+          "block_id": {
+            "hash": "C254B927E9FB1AA524156BAEF8C6D21FC6449C199B12BB84BDBE28C162453CEF",
+            "parts": {
+              "total": 1,
+              "hash": "6F90F6F208AB60FDC26072F7F1539993A8D7B29B095BA380A10B637C6538181C"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:31:06.123124Z",
+              "signature": "J8DAHjcuZxxgVpgS02qxP3lFQq9W7s7GuJMMN9sNZc5TpB1OkEcQr5lmvhNrUYAEOCFob2r1OEj2OI5rUyTpBA=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:31:06.144771Z",
+              "signature": "3Xphhrk0837LYw9VZ5aprDg0Gc6DjXpl6mIGpJSADVwCgmZM30fWFwYlEULjF9Onbwcirtj7wqf25aaOUUG1Bw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F01672BA47094507D577E0161A44A195C7879116",
+              "timestamp": "2026-10-17T07:31:06.154402Z",
+              "signature": "pWDcQJ2AelhlRq0em/3aA5MTq0TfFDtJ724fGmTEeTREGCoLOx1BCi90WSWvuzpyFV/+v63Liq5dPMjeylCRDw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:31:06.136414Z",
+              "signature": "kOK3ct1ie2H6B9eV2ekTztQo01C+av6BCRejPywIJNbCABE8N/WcTs55b2EWnFmSAJsZUuTJg3KM6ol3/+isBg=="
+            }
+          ]
+        },
+        "transactions": [
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHgwOTM4ZThhMjE3OTc5YmQ0ZjUyYjkwOTIxNDk1ODJhYzg5ODhmM2YyIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzMzcxYzBmMjIyNjQ4NjdiMDI1NjE1Y2FkZWQwY2YxMmRhN2I0MzMyOGE0ZTU0NDNiOTcxMDY5NzlhOGM0OTE3YSIsInNpZ25hdHVyZSI6IjMwNDQwMjIwN2ZhOGM2OGRlODk3Yzg0OGQ4NGYwODNlZGQwYjgxM2Q2ZmEyY2ZhMGJmMjViYWZkNmQ1NTBmNzc2YTQ0MjU3ZTAyMjAzYjk0Nzc1OTU1ZTM0NTI0NTQzMjhkNDk4MWM0MzhlYzFhNTJjODc3NDc1MDgwMjNhOTg5ZmM0YWU0ZTJlMzRjIn0=",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhjMTFmYWI2OWEyNzhiZmNlNTBhNzIyMmY0YjE2OTM0ZTY3OGMwZDQ1IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyMTY2ZmFjNTUxNmNiNzYzOWY2MDIzMzM1N2VjZTE1ZWQ5NjU3NTVkMDUwZjcwZjNhYTBhYzU4OGUzZGY5NDZhYyIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBjMDM1ZTJjNzI0YzM1NzYwNzI5NGRiMWRlMmM1MjgyYTJkNzczMGNmZGMwNjE1MDZlNTlkYmYyYmU0MzMzYjg3MDIyMDdiOTU0NzBhMTg3ODE5MWMwZTgyMDg4Yzc5M2VkODhhN2Y4NWJhMzc5MjdjODRlMDgyOTg2YTAzNTRlODVjM2YifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg0ZDg5NTk1MzBhOTFiODVhOTdmNTA0YTgzZmVlZjNjZDIyMTFmM2IzIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyOWNhNjk0NjMyZjk3Y2MwYzlkZjBjOTA0YTRlZGRiY2I0NjAxNzIwNGU4MjRjNGNlM2FmMGFiZmQ2ZjU4NGY0OCIsInNpZ25hdHVyZSI6IjMwNDQwMjIwNjI4YTkwMmZkNGU3ODYyZjE0NGI0YjU2MjIwMTBkZjI1OTNjNjZkNDk4YTE3N2VkNDFjZGRhY2VkMzgyOTVjNzAyMjAyOTYwY2U1NzBlM2ZhMGUzNTc1MmEwN2VhNGMyN2IyNzJiYzkxZmZmOTNkZTRjZGQ4ZjYxYzZmMDEyZGJlMGU3In0=",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhiMTM5NjlkZjc0NzQxMTFmMmUzY2RkMTc3ZDE1YzYwZTBhODFmMTc4IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyYzljNjEyYTY2Zjc1ZmE5MTRhZjQ3ODlmYmJlMjQ3NTUyYjJhYTc5NWM2NGU4OGM0YWJlYWUxMDEzNGJiYTFhMiIsInNpZ25hdHVyZSI6IjMwNDQwMjIwMTk1Yzc2NGNlN2Y3NjU2OTIzODZlNDU3NTQ0ZjcxMWNiYmFkZjIxNTgzMmE3YWFkNGJhNDYyYjU5NGMzYTg4ZTAyMjAxYWJiNTIyZmQ1YTRhNDNmZTVlNWU0NTFkNzE1NGU3ZmYyODMzMDBhMGFlZjk3ZTA3YTljZDQ0MDM1NjhlZDc4In0="
+        ]
+      },
+      {
+        "height": 10,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 10,
+          "time": "2026-10-17T07:31:06.136414Z",
+          "last_block_id": {
+            "hash": "C254B927E9FB1AA524156BAEF8C6D21FC6449C199B12BB84BDBE28C162453CEF",
+            "parts": {
+              "total": 1,
+              "hash": "6F90F6F208AB60FDC26072F7F1539993A8D7B29B095BA380A10B637C6538181C"
+            }
+          },
+          "last_commit_hash": "F47755D2D01B674764413A9CA4C26A00274600C1E4B3B91B032E6DE16118B6DE",
+          "data_hash": "371B9239006CC2D8123E5FC8D931FC52583EB44EBE1C67C4304BBCDBFAB53E41",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "061D36389FF08C303F8C9605AD41715842584F5FEBAE2ADB70D941247F908D20",
+          "last_results_hash": "056B9428E3DDA3F284988F5BE03878C62895B46B2A1DA5DEC8288C4331EA79B9",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455"
+        },
+        "commit": {
+          "height": 10,
+          "round": 0,
+          "block_id": {
+            "hash": "E67877074A8F480D7AE3355DB23C0E8A04B090FA1BF768635B5D90040B90DEAD",
+            "parts": {
+              "total": 1,
+              "hash": "14676D6F0EE1314F664C64BFF149004A25ABB19358F10646A78A1F6D1064093C"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:31:07.110259Z",
+              "signature": "6yabdGrlxXc1Myx9qw4DF4xf1j29xK2iG7EhcJaPOlaSjzIPtklo19LabebI971luCpIZRRFFn+DLBj+BQbaCg=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:31:07.074172Z",
+              "signature": "Wu9LSVgOjiU29LkkQzQHbpAIU4OLIlxxIZUBkVqOKrTIVCbA89IsUaKRaFXZQ1/rhOAgwDPNg3lzqEDP4/4ADA=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F01672BA47094507D577E0161A44A195C7879116",
+              "timestamp": "2026-10-17T07:31:07.056481Z",
+              "signature": "IBVbLYH3x9vcm1vf6TFd7YfZNC3F0FfwK//E6vBfi0Q1Zo5KicFMZQ3nLR5yFv46O2PgBmjF0/4ITmWUwgnEBQ=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:31:07.04842Z",
+              "signature": "OO4h6aI5YRkA9YePIBNrUq3niR9UBVsUvKVpGO9eeFRZFcXfyqpYaKTeslD8gZ3bKk4bBiPh04zlURh+kkQBCg=="
+            }
+          ]
+        },
+        "transactions": [
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhmMjY3ZDE4ZjYwNzMzMjQ0ZjcyZmI5ODJmZjhhNDIxZWZiZmEzNTE4IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzOTEwMmFhZGNmZWE0ODBiNmYwMzEwNjdjZWNiNGRjNDZkNjI5YmM0MzJjODlkMDkwZWE1ZGYyYjc3NmY1NTYyNiIsInNpZ25hdHVyZSI6IjMwNDQwMjIwNmZjNzU5ZWYwNDg4MmVkOGY1YWNiMDJmM2FmMmRmNjI3OTc3NzhlMTg1OWY2MzY2NTBkZjY0ZDhmZmM2OWRmNjAyMjA1NmJiMzM3NmNhYWE2ZTQ2ZDdkODYxZTY3NjVmOTk1M2QwZThhM2UwOWYwNTY2MTQ5OWI0Y2RhYTQ5MTQ4OTQwIn0=",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg5ZmFlZDIwMzQyNzYyY2Y0MzMyMTc5OWIyMjhjNTMzNzAyNzk4NDJjIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzMTdkMDUzMjBlNWIyNTM2YWYzMjRkNjJjYWY0MWRhZjFjYjFlYmJiMzQxM2U1YjEwMjZhNmUyNDZhMDQxNDBmNyIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBmYTg4NTMxMzJjNTBhODA0NGRiM2EzZTc5MGRmYTUwYjJlMTYwM2NjNDE2ZjYwMzAyOGYyYmE2YTk0ODIwYWQ3MDIyMDZmYzZmYjc5OWFkYTAxZWFiOGY5YjI1YjM1ZDY0ZjJiOTE5MzRlMDMyOWEyNjM3MjY1YTc0NTI4ZWU5Yjk3YTUifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhjYmFkMDFkZGJkNDRmNDIxMDg0MDQ3YjFlYzQ4M2E1YTI3MmY5YzY5IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyODMzY2QxYTU0YTYyNDlhYzAwY2E2YWYxMGZjMjY1OGY2ZWRkY2I5NWJmNzIxY2JmMzVhNjlhODQ4NjFhYjJjYSIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBjNTc5NjdkMDViMDQ5NWFlNGM2OWY1N2Y0OTJkZmNjN2E3MDQwMmRiODEzMmZkMmVjODMzNzIxMDg5OTYwYzg2MDIyMDdiNTVhOGMzZmFjM2U5NWVjMDY3YjZhZmQxZGQ0ZWVlMjhjOTc3YzIzY2I3Y2Y3YmY3N2ZiZjI1ZWZlZGVhZmEifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhiZGIyZTBlYTJhZmRkMWViM2FkNjFkZTYzNzk0MzRjN2EzYTNiZmYxIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyYzY0YTU0NzhkZjkzNmEzYTFiYzQxMjk0NTZmMjYyYzQ0ODkzZGUxYTcxMjgyN2VkNzMyMzU4NTZkNGFhYWQwMyIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBkZWQ0N2MxNWZmMDNjNzlmODE1ZGViNzJiMGE5OTU1MWFlZWYwMmM0NDdlMTc1ZGU4MGVlOTA2OTczOWZjZGU2MDIyMDBjMWMzOTFkNGRlNjhhMTllZmNkYTIyNjVkYzNhM2U2ZTc4NjRiNDAzNDYwNzdiZGRhZmIzYTc3MTgxMGM2MjgifQ=="
+        ]
+      },
+      {
+        "height": 11,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 11,
+          "time": "2026-10-17T07:31:07.056481Z",
+          "last_block_id": {
+            "hash": "E67877074A8F480D7AE3355DB23C0E8A04B090FA1BF768635B5D90040B90DEAD",
+            "parts": {
+              "total": 1,
+              "hash": "14676D6F0EE1314F664C64BFF149004A25ABB19358F10646A78A1F6D1064093C"
+            }
+          },
+          "last_commit_hash": "363E4294CE7D81E012563CEF466E438876135FED90DCA482ECEDF14FC8F96796",
+          "data_hash": "9822C48A5BE9357A4A493BEAE739547BCECD068830B0F6A6119DDDE684E638AA",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "5A5FB1FFBEB24D024F0E2306207F39071466576DB652706D0D95920D61239C17",
+          "last_results_hash": "B597A64A9FA794D70A5E93E8933AB60F98B8B86E0152D06E91E87B7BD6CD73E6",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "8B460C5B2088B7377C327124A36E5EC46495D28D"
+        },
+        "commit": {
+          "height": 11,
+          "round": 0,
+          "block_id": {
+            "hash": "ACB81054203EE973BF60A6FAA55550C6C7AC5EB97376FC6E9D084D31AF0BC582",
+            "parts": {
+              "total": 1,
+              "hash": "374F8FF1CAFA1EC7D5A7B282FD944626F35633EF09FB37D49C96FD10BBDEF1CF"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:31:07.980568Z",
+              "signature": "7/QYjGRT3R8DfODPMfFdsSzRucqqHidAmjvazJL4kTpTtFU9ZHlPczxljDcXOgwtaoX24gO0zDMMDGCprHizBA=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:31:08.043219Z",
+              "signature": "xKK9fZptO80mvH1CgULj3CARzdQtOMlwcLpIzAFKHUSm20MqYgnP+GISZI3XXJNAv/jc2mD/XcJC7KtftI46BA=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F01672BA47094507D577E0161A44A195C7879116",
+              "timestamp": "2026-10-17T07:31:07.955431Z",
+              "signature": "4XgtqngGbrNaSgHbRirpiT3PzlV1Dwwf3+8h7QYAQ1rdVK6bbEw7UT7rBCl6D1/Va14okHQV4zFO9XAONEodDw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:31:07.94631Z",
+              "signature": "vZX6rfglX1xy69f/ghRxB+IZRGtRuft20F4RNi3MqeIgsXXY2yA5OAyAZObx1PWMZGuszF/QqhA6Xivxo8mZAQ=="
+            }
+          ]
+        },
+        "transactions": [
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg0OTI2NzI2ZWQ1NDcxNjg4YzIzMjA3Yjc5ZmM4MDgwNzU3ZDczZjIyIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAyZGIzZTJmMzM5NWQ5ZjE0YTY0ZjEzMmI2YzlmMzQ4NzU3M2YzY2RlMTE0ZTZiNmM5ZGM1YzlkNmMyODlmNjhjMCIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDBjYWU1OGI5NDYzMmQ4MjVjYmU3NDI5YTA5N2YwMTJlYWRiODc2Yjg5ZGIyNzM3OTg1ODkzMWE0ZjcwZTE4MTE4MDIyMDE1MWQyODlhY2E5NmU3ZmI4YTVlNzkyOGNiM2U4NzQ1ZjYxZjRmMWNlOGRlZjYyNDA3MzgzY2U1YjYwNGY5ZmQifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHhjYjY5YjQ0NTJkMGY0Yjc1NGZhYWI3MTdlMzZkZjBlOWFjNGU4ZTM4IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzYzc2YTRlNGQ4MDg5YmU0ZWMxYjc1ZTBlZjkyODFjODUwZDhiODRkNTc1YzVjODc0ZjRmMGE3ZTkwMGVhMWUxNiIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDA5MzMxMjhjMTc5YmUzMWU5OGQ2ZjY4MjJmODg1YmFhY2M3NmVkYTEyOTFjODM3OGI1MjllOTJmOGM5YjE4YzJhMDIyMDAyYTZmMWE3MTlkNDA3OTlhMmFiZjgxN2UzZmIwZGEyMDc5YzYzNzM1MzY5YmYwMGQwMWFjODVjZGY1ZDRkMzkifQ==",
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg0OWNhYmYwM2I1ZTFlYTUxMjA2NzRkODhmYjkzNTVmNTIyZGM0NTgwIiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzYzYzNTFiNDQ4ZjQ4YzM2MGI0ZDE0N2YxOTc4NmU1NDM1MjExMzJhYWM1MTkyNTg5NTk1NWQxNmNmYWVjNmM0NyIsInNpZ25hdHVyZSI6IjMwNDQwMjIwNGU1OGIyOWVkM2FkNmQ1OWFjYmIzZTU5MmQzNjlmMzg5YmNmZGQyOTNiNmFhOTRjNmMyMGM5MjA1ODlkZTNmMTAyMjAyNjk2MTVmMjU4OTJlZmNkYWM4YmMzMjc4YjI2MjFiODAxOWJkMDZlYjRhMTAzOWYwY2E5NGJkZTc5ZDdmNjhhIn0="
+        ]
+      },
+      {
+        "height": 12,
+        "header": {
+          "version": {
+            "block": 11,
+            "app": 19
+          },
+          "chain_id": "ynx_6423-1",
+          "height": 12,
+          "time": "2026-10-17T07:31:07.955431Z",
+          "last_block_id": {
+            "hash": "ACB81054203EE973BF60A6FAA55550C6C7AC5EB97376FC6E9D084D31AF0BC582",
+            "parts": {
+              "total": 1,
+              "hash": "374F8FF1CAFA1EC7D5A7B282FD944626F35633EF09FB37D49C96FD10BBDEF1CF"
+            }
+          },
+          "last_commit_hash": "1C5EDACEE807711DEF7B8131272AF53FC81DD52D29F4B7C15B998F0072F68D84",
+          "data_hash": "1AC1A26E759C859BFF3BDC52774082DA5549BA88CF79CCF62F398921E57AB73E",
+          "validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "next_validators_hash": "8DE801C4A4E7B420CBD1B444030F4853C11CCDC4574089B5C46577FB9C808E90",
+          "consensus_hash": "048091BC7DDC283F77BFBF91D73C44DA58C3DF8A9CBC867405D8B7F3DAADA22F",
+          "app_hash": "D3FD60791AF4F39B0B52D11135E2FFB8FBF0B9604198969D521FBF49F1C418EB",
+          "last_results_hash": "CCAAF61BE3F0F39AF64FE473A294EA615302346FF764B42734A40E67DF40FB4E",
+          "evidence_hash": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+          "proposer_address": "F01672BA47094507D577E0161A44A195C7879116"
+        },
+        "commit": {
+          "height": 12,
+          "round": 0,
+          "block_id": {
+            "hash": "F55707CD915F8232832B404A8B94F2954C8D177E5CDB25E5083F6C40D9B34D90",
+            "parts": {
+              "total": 1,
+              "hash": "1CBAFC76F189DABD4E294EC48E53C1E483DCCDC05E6C99C9E9796D1F635859C7"
+            }
+          },
+          "signatures": [
+            {
+              "block_id_flag": 2,
+              "validator_address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+              "timestamp": "2026-10-17T07:31:09.160084Z",
+              "signature": "Bux1grgmCBTfeo0eDp96Lz5pZuwZB7zq2u7tjVsCFku0t6ano0PtCpsCly4f93ODTIfxx72vWzTaBxbdscMEBw=="
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+              "timestamp": "2026-10-17T07:31:09.177526Z",
+              "signature": "Cf2eGqyb5NbmTk0xI1zXL7xynx6OhoqsLMiS9Nr/qKrgWpspD3ksEbU3oHOL16Aqjs0VPDe4n6w2E8yHK6uhAg=="
+            },
+            {
+              "block_id_flag": 1,
+              "validator_address": "",
+              "timestamp": "0001-01-01T00:00:00Z",
+              "signature": null
+            },
+            {
+              "block_id_flag": 2,
+              "validator_address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+              "timestamp": "2026-10-17T07:31:09.150035Z",
+              "signature": "3marPMkOje8B3O2ioWBHk60Y2/fTSwpU+sLnCZ1LApkJJeVikN8eswnAtVnzf2UvDjrwEV+Ndl2IiEpxMtSgBA=="
+            }
+          ]
+        },
+        "transactions": [
+          "eyJ2ZXJzaW9uIjoxLCJjaGFpbklkIjo2NDIzLCJ0eXBlIjoidHJhbnNmZXIiLCJmcm9tIjoiMHg4MTJmMjc2OWMzYzdkMTRkOGFiOTMwZDg5YTBmYmU5ZTg0Mjc1YTY2IiwidG8iOiIweDA5ZGNiNTJhNzk3YjQ3MzYyMjNiZDIxOWY4ZDJkYzFkMDM2ZGU0YTciLCJhbW91bnQiOjEsImZlZSI6MSwibm9uY2UiOjEsInB1YmxpY0tleSI6IjAzYWVhOTg3YTdiNGI0MzU3ZjhiZDZmODg0OGYxYWNiY2Y2YzQ3Mzk1YjM2ZDkwNzcxMmE5MmNkOGVlYTcyYTg4MiIsInNpZ25hdHVyZSI6IjMwNDUwMjIxMDA4YzA5NWM1ODVlZWM2M2I4NzI5YzY1ZmE1NWY0YWVmZTExMWY4MDg1NjVmYWQzNTJlMjIxMjdhNDhmMGIzMWEzMDIyMDNhMjE1ZDk4NzY0NjdkOTIxN2E2MjYzMjg2NjEyYzZjMjIzM2VjM2E0ZDQ1ZTQxYTM2NzFkYmM2OGEyMDg2NGUifQ=="
+        ]
+      }
+    ],
+    "interpretation": "Offline read-only blockstore signature verification and exact application replay. No additional network TPS or restart result is inferred; final same-height state also has local durability evidence."
+  },
+  "public_genesis": {
+    "genesis_time": "2026-10-17T07:30:54Z",
+    "chain_id": "ynx_6423-1",
+    "initial_height": "2",
+    "consensus_params": {
+      "block": {
+        "max_bytes": "22020096",
+        "max_gas": "-1"
+      },
+      "evidence": {
+        "max_age_num_blocks": "100000",
+        "max_age_duration": "172800000000000",
+        "max_bytes": "1048576"
+      },
+      "validator": {
+        "pub_key_types": [
+          "ed25519"
+        ]
+      },
+      "version": {
+        "app": "19"
+      },
+      "abci": {
+        "vote_extensions_enable_height": "0"
+      }
+    },
+    "validators": [
+      {
+        "address": "F4B2C78323A81BEEBABF860F550382CB0028C083",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "T25xprOCVPuX95+LYCLd86PL/wLBGNPT/AJOxGDD5LE="
+        },
+        "power": "1",
+        "name": "ynx_local_performance_validator_0"
+      },
+      {
+        "address": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "BYT7sS3PN+XvG9OxGRLXfhH60fyxjeO17KcQgP+WJBY="
+        },
+        "power": "1",
+        "name": "ynx_local_performance_validator_1"
+      },
+      {
+        "address": "8B460C5B2088B7377C327124A36E5EC46495D28D",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "OFOtmW8jDDslk4eoHoC44Id1r5sY9jkN4JHhfdVssdc="
+        },
+        "power": "1",
+        "name": "ynx_local_performance_validator_2"
+      },
+      {
+        "address": "F01672BA47094507D577E0161A44A195C7879116",
+        "pub_key": {
+          "type": "tendermint/PubKeyEd25519",
+          "value": "Q56xbzUKBFjZhqhNhvXZmc6YVw8MAUH5PHoYM83A2M8="
+        },
+        "power": "1",
+        "name": "ynx_local_performance_validator_3"
+      }
+    ],
+    "app_hash": "9586D9737A2C3362A0889F0C5AE944F85AFB532D78D975554D5F390FEA6CB731",
+    "app_state": {
+      "version": 1,
+      "sourceFormat": "ynx-devnet-state-v1",
+      "network": {
+        "name": "YNX Testnet",
+        "slug": "testnet",
+        "chainId": 6423,
+        "nativeCoinName": "YNXT",
+        "nativeCurrencySymbol": "YNXT",
+        "decimals": 18,
+        "isPublicNet": true,
+        "chainIdConflictCheck": "chainid.network snapshot checked on 2026-07-01: 6420, 6423, 6425 not listed; repeat before mainnet launch"
+      },
+      "height": 1,
+      "lastBlockHash": "e998ca5157c2d574378795bf63c7b0f54aa5a3d28f36fc90dc23696c583180a4",
+      "accounts": [
+        {
+          "address": "0x0938e8a217979bd4f52b9092149582ac8988f3f2",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "6267167584bd393c772f89d4641c00f654a7e5c1c594b3e61f6ad726f3bb6fac": 10000
+          }
+        },
+        {
+          "address": "0x2562fa08db2326574792961e54aabe691ad75a82",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "4ed9fea9d21881a9cc4a13a89d13d69bd67ab24923806ae62a7f596c534e999d": 10000
+          }
+        },
+        {
+          "address": "0x2e01b37331adb5a00def82bf7a63c75a220ac863",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "d122423061e52c8fededcf26c64c26dde2cb6a598376a76485a3b6ac3b2490be": 10000
+          }
+        },
+        {
+          "address": "0x305cbed118e54a622f14884d2c7ffa60cfbf2494",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "750eb91e5864591ee9c222d8551d2f769dccead6041f772fb101c476d6db3e5d": 10000
+          }
+        },
+        {
+          "address": "0x4926726ed5471688c23207b79fc8080757d73f22",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "ed5795c1ba2aebee428d0c344b0dfb63465b4e4c60a84284485c242baeccad4c": 10000
+          }
+        },
+        {
+          "address": "0x49cabf03b5e1ea5120674d88fb9355f522dc4580",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "f98cb46f09ec051daccabf720ef51c1692b9b4ed82567e25bafe397d450da88c": 10000
+          }
+        },
+        {
+          "address": "0x4d8959530a91b85a97f504a83feef3cd2211f3b3",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "8fc4a1b054f6768e31a3e4eb467b3808fe2590eb201fac564ae053a87bcb0c4d": 10000
+          }
+        },
+        {
+          "address": "0x4f25eaf2f7e190d699d8c97fa1d5cc7b9a06849a",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "f9e998bc9e68c0cc653d42af9c8cb68c2f63a89952ecfadc371af70557000ac3": 10000
+          }
+        },
+        {
+          "address": "0x5c8c8e6b1c1cee96bd3472b44318e595ebbd682f",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "eb76df7478d5e785713e15570f17e0bb43192421dd6cd55f075aea7bf8c54a7d": 10000
+          }
+        },
+        {
+          "address": "0x6c468c02318e824acf6f7fc96a9b28b759364dc6",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "233e74c36886573ecd004afe41d50d88df71e484ae7a48b72377f66a08704a0f": 10000
+          }
+        },
+        {
+          "address": "0x7ef9aacfbf19d4b989a9d25ca7f2f310c14d90d8",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "fba05c151f4619474984e6d1be2b671ece13142c7125eea860d17ccb2f9ffa53": 10000
+          }
+        },
+        {
+          "address": "0x812f2769c3c7d14d8ab930d89a0fbe9e84275a66",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "2452b84f9dc811b817f08c23a196f2e8f513f9df42b24c24d8859c3dceaaaa99": 10000
+          }
+        },
+        {
+          "address": "0x847fb49315202bf31bfe724ba7435fb74b788a40",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "be012e3e2752256234936ef901d0afe69af190418585d6c9578d482289af63f7": 10000
+          }
+        },
+        {
+          "address": "0x854cc2c0a47f5fb934601df5f9846bcdbfe14f79",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "19e64f7a3aa5be3d65874ef7227a890d84b7ec8e7c09781dcb527e3d4c832c35": 10000
+          }
+        },
+        {
+          "address": "0x8faf8eff517613aee0f609c6e98ede67f1ac41b1",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "00490d207c12bbc6d9e94aa791ddd8c52d430d8bb14be696b7aae1fbea6cd4c8": 10000
+          }
+        },
+        {
+          "address": "0x95cc5d0516f73669028491f8d3e368182aeace28",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "2e99c9a0e4f98136cd991e2f3491f96763674c96806247319ec2c9b6b4106ea5": 10000
+          }
+        },
+        {
+          "address": "0x9faed20342762cf43321799b228c53370279842c",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "30b40f3322a7e021e525725d555e499a4024bac1d7c5b1eb7cc138a952df340b": 10000
+          }
+        },
+        {
+          "address": "0xa830827104ce85f99ae8cbe9bcdb2c79dfa6b6a7",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "492bbae78c654b28a65b4894168117097ba205a3698c11dc589f7fb508d19814": 10000
+          }
+        },
+        {
+          "address": "0xb13969df7474111f2e3cdd177d15c60e0a81f178",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "4dd1d36e75490f0c8784f0ab788e2181c687c4df97687832b5bacdd2e58f7f08": 10000
+          }
+        },
+        {
+          "address": "0xbdb2e0ea2afdd1eb3ad61de6379434c7a3a3bff1",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "73ea6869af903d2961ccae344a6f4ac705529db01978b939b70a6b4ad5679e4f": 10000
+          }
+        },
+        {
+          "address": "0xbfb6686c12e734d3270bb751c745a29a488a2697",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "8389b2848b54be33c633a460d19e43310c7a235bbe39490f08c9a0f3dd7369df": 10000
+          }
+        },
+        {
+          "address": "0xc11fab69a278bfce50a7222f4b16934e678c0d45",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "7c2264160bcba8327e9ae8f37a83dfb696744d97387f0158115c7c8835fe7f9c": 10000
+          }
+        },
+        {
+          "address": "0xc683b6c5529129202dca99343ad2fc737c386db6",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "6b209b3d93a451b68d91251aed2db0deeb0f893618ca3b4be9a107a0e09a5486": 10000
+          }
+        },
+        {
+          "address": "0xc702da95f022b12ea84692312c19c4e269904d0f",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "14dcd5a973001b4553ac6bdb5c3ce0769801f862727e56a6e687a6e69e0e3ce0": 10000
+          }
+        },
+        {
+          "address": "0xcb69b4452d0f4b754faab717e36df0e9ac4e8e38",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "eb85cf4032d34f5cfc1769bf578ea8559c03dc50370d15fa2f6656f8ad484f30": 10000
+          }
+        },
+        {
+          "address": "0xcbad01ddbd44f421084047b1ec483a5a272f9c69",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "015aa6cbd17e9de373cac63471e16b1d4a14fb1fb744bed08c215bb2cbae938c": 10000
+          }
+        },
+        {
+          "address": "0xd3765601744913ceb2f7f68ea629dab20fa58766",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "556e98e2014024e5bc67a6d3df69b6132b570ad2058cc0e6e1d1c024314c18e6": 10000
+          }
+        },
+        {
+          "address": "0xd93dedb94743b18634ebe2cf6b369497ad3b05e0",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "0df1119c6f45884deedc92ef8a3f4a4ba5660dd068fc45cc84cf138f5f68d46b": 10000
+          }
+        },
+        {
+          "address": "0xe6bf41c2395414c77b038ea11d8473e9f364a66b",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "2df18ac02b8b28c6184e8965385852b697e8d92134a89c6c4d709ec18a4fcb21": 10000
+          }
+        },
+        {
+          "address": "0xee5e41f642ddf3379560f514d0b0f8714e1104ce",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "659837f496d9fc1aca2d35c71e8c42e43df94a28c072c27a4c84d0fc293af2c7": 10000
+          }
+        },
+        {
+          "address": "0xf267d18f60733244f72fb982ff8a421efbfa3518",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "97a6c122019aefe41eb674695c421f00d3f80b5e354eca12794b1f4fd9b41171": 10000
+          }
+        },
+        {
+          "address": "0xf631e147cdf276c00ebb4e68aab186d514734935",
+          "balance": 10000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {
+            "a1f9740f004731c7f1c42e49a259d56e13bddf093c47bedd93373e479eb4edb1": 10000
+          }
+        },
+        {
+          "address": "ynx_faucet",
+          "balance": 999680000,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {}
+        },
+        {
+          "address": "ynx_local_performance_validator_0",
+          "balance": 10000000,
+          "staked": 10000000,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {}
+        },
+        {
+          "address": "ynx_local_performance_validator_1",
+          "balance": 10000000,
+          "staked": 10000000,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {}
+        },
+        {
+          "address": "ynx_local_performance_validator_2",
+          "balance": 10000000,
+          "staked": 10000000,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {}
+        },
+        {
+          "address": "ynx_local_performance_validator_3",
+          "balance": 10000000,
+          "staked": 10000000,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {}
+        },
+        {
+          "address": "ynx_protocol_resource_pool",
+          "balance": 0,
+          "staked": 10000000,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {}
+        },
+        {
+          "address": "ynx_protocol_resource_treasury",
+          "balance": 0,
+          "staked": 0,
+          "nonce": 0,
+          "resourceUsage": {
+            "bandwidthUsed": 0,
+            "computeUsed": 0,
+            "aiCreditsUsed": 0,
+            "trustUsed": 0,
+            "payCreditsUsed": 0
+          },
+          "lots": {}
+        }
+      ],
+      "validators": [
+        {
+          "address": "ynx_local_performance_validator_0",
+          "moniker": "local-perf-0",
+          "votingPower": 1,
+          "active": true,
+          "consensusKeyType": "tendermint/PubKeyEd25519",
+          "consensusPubKey": "T25xprOCVPuX95+LYCLd86PL/wLBGNPT/AJOxGDD5LE=",
+          "consensusAddress": "F4B2C78323A81BEEBABF860F550382CB0028C083"
+        },
+        {
+          "address": "ynx_local_performance_validator_1",
+          "moniker": "local-perf-1",
+          "votingPower": 1,
+          "active": true,
+          "consensusKeyType": "tendermint/PubKeyEd25519",
+          "consensusPubKey": "BYT7sS3PN+XvG9OxGRLXfhH60fyxjeO17KcQgP+WJBY=",
+          "consensusAddress": "02BF08B9F7268FBEF9A03B4AF44191B8950FB455"
+        },
+        {
+          "address": "ynx_local_performance_validator_2",
+          "moniker": "local-perf-2",
+          "votingPower": 1,
+          "active": true,
+          "consensusKeyType": "tendermint/PubKeyEd25519",
+          "consensusPubKey": "OFOtmW8jDDslk4eoHoC44Id1r5sY9jkN4JHhfdVssdc=",
+          "consensusAddress": "8B460C5B2088B7377C327124A36E5EC46495D28D"
+        },
+        {
+          "address": "ynx_local_performance_validator_3",
+          "moniker": "local-perf-3",
+          "votingPower": 1,
+          "active": true,
+          "consensusKeyType": "tendermint/PubKeyEd25519",
+          "consensusPubKey": "Q56xbzUKBFjZhqhNhvXZmc6YVw8MAUH5PHoYM83A2M8=",
+          "consensusAddress": "F01672BA47094507D577E0161A44A195C7879116"
+        }
+      ],
+      "resourcePolicy": {
+        "id": "ynx-resource-market-default",
+        "version": "2026-07-10.1",
+        "governanceStatus": "local-config-governed-awaiting-remote-proof",
+        "currency": "YNXT",
+        "bandwidthUnit": 100,
+        "bandwidthUnitPrice": 1,
+        "computeUnit": 10,
+        "computeUnitPrice": 1,
+        "aiCreditUnitPrice": 2,
+        "trustCreditUnitPrice": 2,
+        "minimumQuoteYnxt": 1,
+        "quoteTtlSeconds": 900,
+        "providerShareBps": 8000,
+        "protocolFeeBps": 2000,
+        "baseBandwidth": 1000,
+        "baseCompute": 100,
+        "baseAiCredits": 25,
+        "baseTrustCredits": 25,
+        "bandwidthStakeDivisor": 10,
+        "computeStakeDivisor": 100,
+        "aiCreditStakeDivisor": 1000,
+        "trustStakeDivisor": 1000,
+        "policyHash": "3144db181fb5550105f0149078f3d90fdf0d08e2823d0d9b703c88d2e808e9b6",
+        "notes": [
+          "Resource pricing is configured by local policy and exposed for review.",
+          "Remote production governance must publish the same policy through public endpoints before public proof can pass."
+        ]
+      },
+      "liquidSupplyYnxt": 1040000000,
+      "stakedSupplyYnxt": 50000000,
+      "stateHash": "9586d9737a2c3362a0889f0c5ae944f85afb532d78d975554d5f390fea6cb731"
+    }
+  },
+  "errors_normalized": {
+    "tx_query: error in json rpc client, with http response metadata: (Status: 200 OK, Protocol HTTP/1.1). RPC error -32603 - Internal error: tx (<tx-hash>) not found": 332
+  },
+  "post_stop_checks": {
+    "runner_and_all_child_pids_gone": true,
+    "all_12_ports_bindable": true,
+    "snapshot_files_byte_identical": true,
+    "verification": "fresh kill(pid,0) and loopback bind checks performed after observed launcher exit; read-only blockstore verification and exact replay of all four stopped states"
+  },
+  "host_resource_event": {
+    "source": "Root coordination report during this window",
+    "event": "CreateProcess Resource temporarily unavailable (os error35) at approximately 07:31Z; Root reports no process was created",
+    "causality": "not established",
+    "acceptance": "whole-host resource usability not established by child RSS/data cap success",
+    "post_stop_process_snapshot": {
+      "system_processes": 1011,
+      "current_uid_processes": 759,
+      "kern_maxproc": 6000,
+      "kern_maxprocperuid": 4000,
+      "ulimit_u": 4000
+    },
+    "next_guard": "new launcher source includes control RSS, owned child count and sampled thread rows; not exercised by this completed schema-1 window"
+  },
+  "original_artifact_sha256": {
+    "transactions-result.json": "12d5fe9238b2a14de1232be2a3eb1b72b06a8199d6cdd6c0fffea623f6e2aa15",
+    "window-receipt.json": "543af6d2c2e3b8d3adf1ca08d79f053ad40411e9499f2d9d96cfce2f36abc0e1",
+    "stopped-replay.json": "15d7e6e380069c3075cbc6f29c18bf58ec0e4cc06b826a9a5ca6c565e9cd6726"
+  },
+  "limits": [
+    "One 32-transaction closed-loop run; at most 4 entire submit-and-observe lifetimes active.",
+    "All reported stage rates use the same 9.301293875-second workload observation/drain window; this does not measure saturation throughput.",
+    "P50/P95/P99 are client observations including polling, RPC, signature verification and local durable-state validation overhead.",
+    "The final same-height Header.AppHash commits prior state; current durable state is additionally validated and offline-replayed.",
+    "No 1,000 TPS sustained result, 10-minute stability result, 3,000-5,000 TPS result or 10,000+ TPS result is established.",
+    "332 retained observation errors are all tx_query not-found while waiting for inclusion; zero rejected or failed business transactions.",
+    "The first launcher RSS peak sampled children, not the controller; controller RSS was separately observed at 87,120 KiB once. Future launcher monitoring includes controls.",
+    "This completed scheduled run does not authorize another network run."
+  ]
+}

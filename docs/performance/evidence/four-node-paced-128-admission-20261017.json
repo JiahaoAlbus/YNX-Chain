@@ -1,0 +1,196 @@
+{
+  "schema": 1,
+  "measurement": "scheduled_128_paced_admission_refusal_zero_business_transactions",
+  "frozenRuntime": "440539fdf748cea567c76dc5edcb235678d6e5e4",
+  "admission": {
+    "preparedAt": "2026-10-17T08:20:18.408Z",
+    "frozenSource": "440539fdf748cea567c76dc5edcb235678d6e5e4",
+    "binaries": {
+      "fixture": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/network-bin-paced/ynx-consensus-perf-fixture",
+        "sha256": "d9d36377f70ef1fe015542958cc8f327a9baa53d4e5ed6347e73eadc700edecf"
+      },
+      "app": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/network-bin-paced/ynx-abci",
+        "sha256": "d04c3a51c813f9a60e503c3b4f056f5186c09d6e32c37f25ac5373dd2d9be64c"
+      },
+      "client": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/network-bin-paced/ynx-consensus-perf-client",
+        "sha256": "319fabea402c89e45b11788b2e928555e4a89bb677808a469b26509936fe5477"
+      },
+      "comet": {
+        "path": "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+        "sha256": "60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840"
+      },
+      "host": {
+        "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/network-bin-paced/ynx-consensus-perf-host",
+        "sha256": "dfd3dea1398061a4817194582e713df6929443433d9506e119fbaa597eda9248"
+      }
+    },
+    "freshFreeBytes": 1568165888,
+    "rootReserveMiB": 425,
+    "originalRunnerSHA256": "b445918f8f47ba4bcbddf1d8d9d2f4b4313c1a2bff65faa2d46392d04d9d4d31",
+    "strictRunnerSHA256": "6fb867e3bd7a759185d5c9cdd039b7458b16d0d60f949ad8e60afb09cd831d65",
+    "strictCaps": {
+      "rssBytes": 1073741824,
+      "dataBytes": 33554432,
+      "freeFloor": 1073741824,
+      "count": 128,
+      "offeredRate": 64,
+      "activeMs": 45000,
+      "cleanupMs": 15000
+    },
+    "changes": "Only tighten caps and add fresh/live free-disk floor; frozen runtime binaries unchanged."
+  },
+  "failedWindowReceipt": {
+    "schema": 3,
+    "startedAt": "2026-10-17T08:20:18.445Z",
+    "work": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-hQvHdA",
+    "caps": {
+      "activeMs": 45000,
+      "cleanupMs": 15000,
+      "dataBytes": 33554432,
+      "rssBytes": 1073741824,
+      "longLivedChildren": 9,
+      "threadsWithControlReserve": 320,
+      "fullHostSampleMs": 1000,
+      "logBytesPerProcess": 1048576,
+      "clientTimeout": "10s",
+      "clientConcurrency": 4,
+      "clientObservers": 4,
+      "gomaxprocs": 1
+    },
+    "count": 128,
+    "offeredRate": 64,
+    "elapsedMs": 747,
+    "cleanupMs": 0,
+    "firstCause": "owned/control RSS with sampler reserve exceeded 2 GiB",
+    "peakRSSBytes": 1526857728,
+    "rssScope": "kernel task info: launcher, parent, live children plus sampler and conservative fork-child reserve",
+    "peakDataBytes": 0,
+    "peakThreadsWithControlReserve": 89,
+    "peakLongLivedChildren": 0,
+    "hostSamples": [
+      {
+        "sampledAt": "2026-10-17T08:20:19.191Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 25735,
+            "readable": true,
+            "rssBytes": 52953088,
+            "virtualBytes": 501445246976,
+            "threads": 8
+          },
+          {
+            "pid": 1405,
+            "readable": true,
+            "rssBytes": 1470332928,
+            "virtualBytes": 502172712960,
+            "threads": 79
+          }
+        ],
+        "watchedRssBytes": 1523286016,
+        "watchedThreads": 87,
+        "samplerRssBytes": 1785856,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 1526857728,
+        "threadsWithControlReserve": 89,
+        "host": {
+          "processCount": 977,
+          "uid": 501,
+          "uidProcessCount": 767,
+          "unreadableBsdInfo": 210,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 1745
+      }
+    ],
+    "probeFailures": [],
+    "lastResourceSample": {
+      "schema": 1,
+      "scope": "proc_pidtaskinfo watched processes",
+      "processes": [
+        {
+          "pid": 25735,
+          "readable": true,
+          "rssBytes": 52953088,
+          "virtualBytes": 501445246976,
+          "threads": 8
+        },
+        {
+          "pid": 1405,
+          "readable": true,
+          "rssBytes": 1470332928,
+          "virtualBytes": 502172712960,
+          "threads": 79
+        }
+      ],
+      "watchedRssBytes": 1523286016,
+      "watchedThreads": 87,
+      "samplerRssBytes": 1785856,
+      "samplerThreads": 1,
+      "rssWithControlReserveBytes": 1526857728,
+      "threadsWithControlReserve": 89,
+      "host": {
+        "processCount": 977,
+        "uid": 501,
+        "uidProcessCount": 767,
+        "unreadableBsdInfo": 210,
+        "scanComplete": true,
+        "maxproc": 6000,
+        "maxprocperuid": 4000,
+        "rlimitNprocSoft": 4000
+      },
+      "forkProbe": {
+        "available": true,
+        "forkSucceeded": true,
+        "forkErrno": 0,
+        "waitErrno": 0,
+        "childExitCode": 0,
+        "childSignal": 0
+      },
+      "elapsedMicroseconds": 1745
+    },
+    "processes": [],
+    "allGroupsGone": true,
+    "resultPath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-hQvHdA/transactions-result.json"
+  },
+  "postStop": {
+    "runnerPid": 25735,
+    "runnerAbsent": true,
+    "childRecords": 0,
+    "all12PortsRebindable": true
+  },
+  "rootAuthorizedRecovery": {
+    "attempts": 1,
+    "status": "CreateProcess rejected before any shell or runner existed",
+    "error": "Failed to create unified exec process: Resource temporarily unavailable (os error 35)",
+    "newExecHandle": null,
+    "nodeProcesses": 0,
+    "transactions": 0,
+    "scriptExecuted": false,
+    "noFurtherRetry": true
+  },
+  "hostBeforeRecovery": {
+    "sharedToolserverPid": 1405,
+    "rssKiB": 1354288,
+    "systemMemoryFreePercent": 44,
+    "freeDiskHuman": "1.6GiB",
+    "scope": "preceding read-only sample; not a fresh recovery admission"
+  },
+  "interpretation": "Existing shared toolserver remained resident. Owned shell entry changes ownership scope, not host memory use. First refusal is RSS, recovery rejection is os35; cause of os35 unknown.",
+  "steadyStateEffectiveTPS": null
+}

@@ -20,6 +20,29 @@ function fileEntry(relativePath, kind) {
   };
 }
 
+function filesUnder(relativeDirectory) {
+  const result = [];
+  const visit = (relativePath) => {
+    const fullPath = path.join(workDir, relativePath);
+    const stat = fs.lstatSync(fullPath);
+    if (stat.isSymbolicLink()) {
+      throw new Error(`release runtime must not contain symlinks: ${relativePath}`);
+    }
+    if (stat.isDirectory()) {
+      for (const entry of fs.readdirSync(fullPath).sort()) {
+        visit(path.posix.join(relativePath, entry));
+      }
+      return;
+    }
+    if (!stat.isFile()) {
+      throw new Error(`release runtime contains unsupported entry: ${relativePath}`);
+    }
+    result.push(fileEntry(relativePath, "runtime"));
+  };
+  visit(relativeDirectory);
+  return result;
+}
+
 const binaries = [
   "bin/ynx-chaind",
   "bin/ynx-indexerd",
@@ -53,6 +76,7 @@ const serviceFiles = [
   "config/ynx-chatd.env",
   "config/ynx-squared.env",
   "config/ynx-app-gatewayd.env",
+  "config/ynx-wallet-gatewayd.env",
   "systemd/ynx-chaind.service",
   "systemd/ynx-indexerd.service",
   "systemd/ynx-explorerd.service",
@@ -66,8 +90,11 @@ const serviceFiles = [
   "systemd/ynx-chatd.service",
   "systemd/ynx-squared.service",
   "systemd/ynx-app-gatewayd.service",
+  "systemd/ynx-wallet-gatewayd.service",
   "nginx/ynx-chain.conf",
 ].map((file) => fileEntry(file, "service-config"));
+
+const walletGatewayRuntime = filesUnder("wallet-gateway");
 
 const manifest = {
   schema: "ynx-chain-release-manifest/v1",
@@ -79,10 +106,10 @@ const manifest = {
   chainName: chainName || "",
   provenance: {
     source: "local-deploy-build",
-    binaryIdentityEndpoint: ["/status.build", "/node/identity.build"],
+    binaryIdentityEndpoint: ["/status.build", "/node/identity.build", "/wallet-gateway/version"],
     remotePublicProof: false,
   },
-  artifacts: [...binaries, ...roleEnvs, ...serviceFiles],
+  artifacts: [...binaries, ...roleEnvs, ...serviceFiles, ...walletGatewayRuntime],
 };
 
 fs.writeFileSync(path.join(workDir, "config/release-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);

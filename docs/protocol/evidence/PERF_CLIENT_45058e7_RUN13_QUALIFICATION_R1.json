@@ -1,0 +1,38 @@
+{
+  "runId": "39087492005",
+  "candidate": "6a3b8f813bcc5a2ee8ab0280783b6ebddf3d9c71",
+  "sourceCommit": "45058e7f764529421870a5fc41264da86b9ab2a0",
+  "sourceTree": "040000 tree a454a180b9bf1b58be7b493c3cf578d6a8800532\tcmd/ynx-consensus-perf-client",
+  "expectedTests": [
+    "TestFinalSubmissionRequiresDurableEvidenceAndHonestCounts",
+    "TestFullHistoryFinalCountsAndLatencyRejectIncompleteBusinessEvidence",
+    "TestJournalFinalCountsAndSenderGateRequirePublishedView",
+    "TestReadySenderCumulativeCountsMatchCompleteHistoryAfterOutOfOrderHandoffs",
+    "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+    "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities",
+    "TestReadySenderStreamingReadbackBoundsAndConsumerErrors",
+    "TestReadySupplyRejectsUnknownBeforeSigning"
+  ],
+  "actualTopLevelPassed": [
+    "TestJournalFinalCountsAndSenderGateRequirePublishedView",
+    "TestFinalSubmissionRequiresDurableEvidenceAndHonestCounts",
+    "TestFullHistoryFinalCountsAndLatencyRejectIncompleteBusinessEvidence",
+    "TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities",
+    "TestReadySenderStreamingReadbackBoundsAndConsumerErrors",
+    "TestReadySenderFastAccountAdvancesBeforeSlowPeer",
+    "TestReadySupplyRejectsUnknownBeforeSigning",
+    "TestReadySenderCumulativeCountsMatchCompleteHistoryAfterOutOfOrderHandoffs"
+  ],
+  "actualGoPackagePassSeconds": "0.134",
+  "overallConclusion": "failure",
+  "independentClientStepConclusion": "success",
+  "nodeOrBenchmarkStarted": false,
+  "pairedN1": false,
+  "rawLogSha256": "9d431ef3c42bf3320b559df47f0c99f149313fdcbd43332f16a361d079a8d0ed",
+  "notEvidenceOf": [
+    "chain capacity",
+    "PQ signing client",
+    "real network BFT finality",
+    "public deployment"
+  ]
+}

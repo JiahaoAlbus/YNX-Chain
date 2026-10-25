@@ -142,6 +142,7 @@ func (s *Server) dashboardSnapshot(ctx context.Context) (dashboardSnapshot, erro
 		resources = map[string]any{}
 	}
 	summary.Build = s.build
+	summary.StartedAt = s.startedAt
 	return dashboardSnapshot{Summary: summary, Blocks: blocks, Transactions: transactions, Validators: validators, Resources: resources, Warnings: warnings}, nil
 }
 
@@ -292,6 +293,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	summary.Build = s.build
+	summary.StartedAt = s.startedAt
 	status := http.StatusOK
 	if !summary.OK {
 		status = http.StatusServiceUnavailable
@@ -306,6 +308,7 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	summary.Build = s.build
+	summary.StartedAt = s.startedAt
 	writeJSON(w, http.StatusOK, summary)
 }
 

@@ -1,0 +1,134 @@
+{
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39085927725",
+  "artifactId": 12120249340,
+  "githubReportedArchiveDigest": "sha256:b89889d7fa9e2fcb4d1d4b7f482a7cf1e1189dddccf3b5979ff96a96ac3ad0ac",
+  "archiveDigestIndependentlyVerified": false,
+  "files": {
+    "artifacts/pq-run10-n1-39085927725/ynx-pq-pair-39085927725-1/pq-paired-result.json": "d246ff7a6ff8810c6605fd6482aeb32ee13e9957e752ee81af630c4dec9dc2b1",
+    "artifacts/pq-run10-n1-39085927725/ynx-pq-pair-guard-39085927725-1.json": "1c622f4daca39b8bd3362649782cdb972565d2ceda851670108c1e36191e945f"
+  },
+  "result": {
+    "bftFinalCommits": null,
+    "businessProjectionEqual": true,
+    "consensusFinalityLatency": null,
+    "goVersion": "go1.25.13",
+    "gomaxprocs": 1,
+    "interpretation": "Finite component measurement, not sustained capacity or BFT. Distinct real PQ members use one signed Whole and identical activated-state clones. Whole/member history identities differ. SubmitNs excludes common signing/setup, assertions, replay and cold recovery; signing time is separate. Whole per-member observations share one request and are correlated. Manually produced local blocks and local durable checkpoints are separate from consensus finality.",
+    "kind": "isolated-single-producer-PQ-paired-component",
+    "n": 1,
+    "order": [
+      "members",
+      "whole"
+    ],
+    "platform": "linux/amd64",
+    "results": [
+      {
+        "mode": "members",
+        "members": 1,
+        "submitNs": 7223546,
+        "submitWallNs": 7227874,
+        "sharedSigningPreparationNs": 60884006,
+        "requestCheckpointNs": [
+          7223546
+        ],
+        "memberOfferToCheckpointNs": [
+          7223847
+        ],
+        "memberHashes": [
+          "0xac04aad692056d182c6a3a28217a855b665e7a4224920a279ac2af83cc77d04c"
+        ],
+        "pendingSnapshotBytes": 256504,
+        "pendingSnapshotSha256": "ca00b28d1a8d714710ea433ef673060617f01cd78f26393b5a43c1b29a1f4a4c",
+        "blockSnapshotBytes": 258051,
+        "blockSnapshotSha256": "821051b6bd264efeb7a8a4734e5cfef43741c953e9cc9f665f3470aeee8dc10d",
+        "manualProduceBlockNs": 4482235,
+        "coldRestoreNs": 11435897,
+        "checkpointPointerTransitions": 1,
+        "localBlockCheckpointMembers": 1,
+        "coldRestoredMembers": 1,
+        "cloneLocalPeersPreserved": true
+      },
+      {
+        "mode": "whole",
+        "members": 1,
+        "submitNs": 6075211,
+        "submitWallNs": 6075402,
+        "sharedSigningPreparationNs": 60884006,
+        "requestCheckpointNs": [
+          6075211
+        ],
+        "memberOfferToCheckpointNs": [
+          6075402
+        ],
+        "memberHashes": [
+          "0xd33bc37c3cd54e4ae6504d886f0f3a07bc4f6f362bdec6b8a67270003d2255b2"
+        ],
+        "pendingSnapshotBytes": 218327,
+        "pendingSnapshotSha256": "43b2609e4c8c077fe4dffe00a1a67b593d3e2c095fd512a242da65762dd6b375",
+        "blockSnapshotBytes": 219875,
+        "blockSnapshotSha256": "9195c08fd33144739867032d946d838572a65136c59506f7e53e22a4a96bb918",
+        "manualProduceBlockNs": 3927488,
+        "coldRestoreNs": 10951612,
+        "checkpointPointerTransitions": 1,
+        "localBlockCheckpointMembers": 1,
+        "coldRestoredMembers": 1,
+        "cloneLocalPeersPreserved": true
+      }
+    ],
+    "schema": 1,
+    "sharedWholeSha256": "82b2e439328ea0887083858eb0e97c4ce869427436f8da821bd69ed288424500",
+    "sourceCommit": "d47945513fd63a78400f0ee25241767e63528c06",
+    "standaloneWireBytes": 57839,
+    "summary": {
+      "members": {
+        "offerToLocalCheckpointNs": {
+          "p50": 7223847,
+          "p95": 7223847,
+          "p99": 7223847
+        },
+        "samples": 1,
+        "serverCallLocalCheckpointMembersPerSecond": 138.4361641775383,
+        "submissionLoopMembersPerSecond": 138.353269578302
+      },
+      "whole": {
+        "offerToLocalCheckpointNs": {
+          "p50": 6075402,
+          "p95": 6075402,
+          "p99": 6075402
+        },
+        "samples": 1,
+        "serverCallLocalCheckpointMembersPerSecond": 164.60333641086706,
+        "submissionLoopMembersPerSecond": 164.5981615702138
+      }
+    },
+    "trial": 1,
+    "wholeWireBytes": 57814
+  },
+  "guardQualification": {
+    "firstCause": null,
+    "child": {
+      "pid": 2556,
+      "code": 0,
+      "startTicks": 11734
+    },
+    "cleanupComplete": true,
+    "emptyOwnedScans": [
+      {
+        "elapsedMs": 5144,
+        "hostIdentities": 159
+      },
+      {
+        "elapsedMs": 5200,
+        "hostIdentities": 159
+      }
+    ],
+    "elapsedMs": 5200
+  },
+  "sampleMaxima": {
+    "rssBytes": 225656832,
+    "threads": 11,
+    "privateBytes": 503346,
+    "buildBytes": 16815662
+  },
+  "boundary": "Private snapshots omitted from downloaded artifact. Hash checks occurred in runner guard; no independent local replay. Single N1 sample per mode, not sustained TPS, batch scaling or BFT finality."
+}

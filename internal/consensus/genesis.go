@@ -59,5 +59,8 @@ func BuildCometGenesis(state chain.ConsensusMigrationState, genesisTime time.Tim
 	if err := genesis.ValidateAndComplete(); err != nil {
 		return nil, fmt.Errorf("validate CometBFT genesis: %w", err)
 	}
+	if err := boundCometGenesisAppState(genesis, state, appState); err != nil {
+		return nil, err
+	}
 	return genesis, nil
 }

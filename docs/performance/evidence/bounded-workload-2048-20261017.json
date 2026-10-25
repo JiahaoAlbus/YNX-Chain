@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "measurement": "expanded_local_bounds_and_fixture_admission_not_network_capacity",
+  "before": {
+    "countCap": 256,
+    "offeredRateCap": 256
+  },
+  "after": {
+    "countCap": 2048,
+    "offeredRateCap": 2048
+  },
+  "actualFixtureProbe": {
+    "checkAndSignatureValidationSeconds": 0.195055125,
+    "committedTransactions": 0,
+    "effectiveBusinessTPS": null,
+    "finalizeBlockTransactions": 0,
+    "fixtureLogicalBytes": 2936451,
+    "measurement": "1024_independent_local_fixture_preparation_and_CheckTx_not_business_commit_TPS",
+    "migrationHash": "4a6c91f0fe094d8c546f4616a0efdc4529d16ecadd34b3a1bfa06cbef7e4412e",
+    "network": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/large-fixture-1626749627/network",
+    "nodeProcessesStarted": 0,
+    "preparationSeconds": 0.222641375,
+    "schema": 1,
+    "transactions": 1024,
+    "transactionsFileSHA256": "0046bc172097fd821bc5b91009379db158e7f68c56c545692ba045e5cda81809",
+    "uniqueSenders": 1024
+  },
+  "earlierFixtureProbe": {
+    "report": {
+      "checkAndSignatureValidationSeconds": 0.205396084,
+      "committedTransactions": 0,
+      "effectiveBusinessTPS": null,
+      "executedTransactions": 0,
+      "fixtureLogicalBytes": 2936391,
+      "measurement": "1024_independent_local_fixture_preparation_and_CheckTx_not_business_commit_TPS",
+      "migrationHash": "7eb677e2e435b3954d36ff6bc1a77ffcf28090f2d5aeb6552e45aabe52120d8c",
+      "network": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/large-fixture-3896179273/network",
+      "nodeProcessesStarted": 0,
+      "preparationSeconds": 0.235696,
+      "schema": 1,
+      "transactions": 1024,
+      "transactionsFileSHA256": "4fb1ac457ed5827ed4dea01dc2bd557706687f0f6eaf0362b17bdd9100cd3bcf",
+      "uniqueSenders": 1024
+    },
+    "interpretation": "earlier output key executedTransactions refers to finalized executions; CheckTx does simulate discarded execution. Final test uses finalizeBlockTransactions instead."
+  },
+  "validation": {
+    "fixtureSuite": "PASS0.935s including final1024 fixture preparation",
+    "clientSuite": "PASS0.740s including2048 decoder boundary, rate1000/2048 acceptance and hard-bound rejection, existing signature/quorum/UNKNOWN/durability tests",
+    "launcherPrepareOnlyTest": "PASS0.368s;512/1024/2048 plans, invalid inputs rejected and no work directory/child program execution"
+  },
+  "networkProcessesStarted": 0,
+  "finalizeBlockTransactions": 0,
+  "committedTransactions": 0,
+  "effectiveBusinessTPS": null,
+  "unchangedFrozenRuntime": true,
+  "sourceHashes": {
+    "internal/consensus/ephemeral_workload_limits.go": "237a5b175e084d5a4cdd24d3e8905a6b63f55c2c7dad3f72e18b5116276d3d81",
+    "cmd/ynx-consensus-perf-fixture/main.go": "e86c15d7f661d129c23b131197f525d6a46fff29209aecebc8dbd474b34f0ae3",
+    "cmd/ynx-consensus-perf-client/main.go": "11cb8e02c848cecf2020ce5fa15eb4cd178cc76a8147c65eb7f47dca15f6104a",
+    "scripts/loadtest/consensus-local-window.mjs": "7e9103ec85fd337f72d1ff56701d67cb109bd8466fcc9990d5538c75032c33e5",
+    "scripts/loadtest/consensus-local-window.test.mjs": "3b0e25ec460e13b973591618b67f9eaa34bbf9e378fc6310a12f4b8dc07eb389"
+  }
+}

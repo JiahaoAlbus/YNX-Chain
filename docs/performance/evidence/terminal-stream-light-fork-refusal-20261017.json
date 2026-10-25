@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "receipt": {
+    "startedAt": "2026-10-17T15:33:00.544Z",
+    "launcher": 76461,
+    "sharedParentExcluded": 76329,
+    "ownedScope": "launcher plus complete Go process group/descendants; native sampler and conservative fork-child reserve",
+    "goEnvironment": {
+      "GOMAXPROCS": "1",
+      "GOGC": "50",
+      "GOMEMLIMIT": "160MiB"
+    },
+    "firstCause": "native monitor unavailable",
+    "peakRSS": 0,
+    "peakThreads": 0,
+    "samples": [],
+    "probes": [
+      {
+        "startedAt": "2026-10-17T15:33:00.548Z",
+        "pid": 76755,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":76461,\"readable\":true,\"rssBytes\":51183616,\"virtualBytes\":501369143296,\"threads\":7}],\"watchedRssBytes\":51183616,\"watchedThreads\":7,\"samplerRssBytes\":1785856,\"samplerThreads\":1,\"rssWithControlReserveBytes\":54755328,\"threadsWithControlReserve\":9,\"host\":{\"processCount\":4165,\"uid\":501,\"uidProcessCount\":1359,\"unreadableBsdInfo\":2806,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"forkProbe\":{\"available\":false,\"forkSucceeded\":false,\"forkErrno\":35,\"waitErrno\":0,\"childExitCode\":-1,\"childSignal\":0},\"elapsedMicroseconds\":20388}\n",
+        "stderr": "",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 49.37816699999996
+      }
+    ],
+    "go": null,
+    "groupGone": true,
+    "elapsedMs": 54
+  },
+  "cleanup": {
+    "at": "2026-10-17T15:33:08.086Z",
+    "checks": [
+      {
+        "id": 76461,
+        "absent": true
+      },
+      {
+        "id": -76461,
+        "absent": true
+      },
+      {
+        "id": 76755,
+        "absent": true
+      },
+      {
+        "id": -76755,
+        "absent": true
+      }
+    ]
+  },
+  "files": [
+    {
+      "path": "artifacts/chain-performance-20261017/terminal-stream-light-gc50-result.json",
+      "bytes": 1452,
+      "sha256": "f5e555d1d59be14292d62eda5d00ddfd151a2cd8bb3c4d5d902029667b742347"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/terminal-stream-light-gc50-cleanup.json",
+      "bytes": 271,
+      "sha256": "908a1984ba78a1bf65a1ba1a710ef31620127e1e35b78d63b87b8068c53f3302"
+    }
+  ],
+  "interpretation": "Go did not start. Native program exited0 but ordinary fork failed errno35; do not call this Go assertion failure or GOGC memory failure. Host counts from a different time and method cannot identify a unique root cause. No automatic retry or limit change."
+}

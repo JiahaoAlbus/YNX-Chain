@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "at": "2026-10-17T13:21:21.808Z",
+  "hardware": "Apple M4 /10CPU /24GiB,Go1.25.7 darwin-arm64,GOMAXPROCS1,nice10",
+  "binary": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/block-scan-client.test",
+    "sha256": "fc8f776b0206b0fdfa92e294f46c26d7544963990ebc803e76c30510b092338e"
+  },
+  "sourceHashes": {
+    "cmd/ynx-consensus-perf-client/block_scanner.go": "0be7d4fefb35d98cf1b9c670c3ebb17f74a83986c5d6e16bc3ee2fcde50c1e36",
+    "cmd/ynx-consensus-perf-client/block_scanner_test.go": "a98479fab30f9bae43458bb8ff0e326c143319ce1c466cccdf5c82d42d1202a8",
+    "cmd/ynx-consensus-perf-client/block_scanner_benchmark_test.go": "247672596d90986975f161d9e6935b21cf86b33373b31c2966e759804de889f3",
+    "cmd/ynx-consensus-perf-client/grouped_observer.go": "598041d4ca5e3cfcb66d2e9ac848a5f18c4b2208cab8842b67a66ad901b7251c",
+    "cmd/ynx-consensus-perf-client/main.go": "927f0e3988d0404bccfb3dac40c7abe43ed34cd6274c7e5727fd6e06d06d5bf7",
+    "cmd/ynx-consensus-perf-client/inclusion.go": "008ff20245a93fd2894c58675548be2b5c6a6e31b6e538237d64adafa70ca0ce",
+    "cmd/ynx-consensus-perf-client/rpc_response_bound.go": "620a96ff37b65eee14b05888e4b6c5d1c4a46432e25946455790b8fe7f52b5db",
+    "scripts/loadtest/consensus-local-window.mjs": "1641062230fd8534da1ed4159837c28da73e6c60ea15649813c1f8125f4390b0"
+  },
+  "fixture": {
+    "window": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-oJZYQJ",
+    "blockHeight": 4,
+    "actualNetworkTransactions": 32,
+    "originalNetworkObservationSHA256": "ae649c087ab716bbac9e67ee8e9d7104dcdbe406319296b8ac10ebfc31dbb87e",
+    "statePath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-oJZYQJ/network/validator-1/data/ynx-abci-state.json",
+    "stateBytes": 50154,
+    "stateSHA256": "f58e36bd9536ee6475b635fb8d26517387a3e186fe3d8a93ba03d1d9fd92bedd"
+  },
+  "order": [
+    "tx-query",
+    "block-scan",
+    "block-scan",
+    "tx-query",
+    "tx-query",
+    "block-scan"
+  ],
+  "runs": [
+    {
+      "mode": "tx-query",
+      "startedAt": "2026-10-17T13:21:19.904Z",
+      "iterations": 49,
+      "metrics": {
+        "ns/op": 3197160,
+        "rpc-calls/op": 35,
+        "signatures/op": 32,
+        "store-bytes/op": 50154,
+        "tx-rpc/op": 32,
+        "B/op": 243729,
+        "allocs/op": 2336
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkBlockDiscoveryConfirmation/tx-query         \t      49\t   3197160 ns/op\t        35.00 rpc-calls/op\t        32.00 signatures/op\t     50154 store-bytes/op\t        32.00 tx-rpc/op\t  243729 B/op\t    2336 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "mode": "block-scan",
+      "startedAt": "2026-10-17T13:21:20.694Z",
+      "iterations": 52,
+      "metrics": {
+        "ns/op": 3244522,
+        "rpc-calls/op": 5,
+        "signatures/op": 32,
+        "store-bytes/op": 50154,
+        "tx-rpc/op": 0,
+        "B/op": 308224,
+        "allocs/op": 3069
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkBlockDiscoveryConfirmation/block-scan         \t      52\t   3244522 ns/op\t         5.000 rpc-calls/op\t        32.00 signatures/op\t     50154 store-bytes/op\t         0 tx-rpc/op\t  308224 B/op\t    3069 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "mode": "block-scan",
+      "startedAt": "2026-10-17T13:21:20.911Z",
+      "iterations": 52,
+      "metrics": {
+        "ns/op": 3284283,
+        "rpc-calls/op": 5,
+        "signatures/op": 32,
+        "store-bytes/op": 50154,
+        "tx-rpc/op": 0,
+        "B/op": 308223,
+        "allocs/op": 3069
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkBlockDiscoveryConfirmation/block-scan         \t      52\t   3284283 ns/op\t         5.000 rpc-calls/op\t        32.00 signatures/op\t     50154 store-bytes/op\t         0 tx-rpc/op\t  308223 B/op\t    3069 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "mode": "tx-query",
+      "startedAt": "2026-10-17T13:21:21.132Z",
+      "iterations": 55,
+      "metrics": {
+        "ns/op": 3137674,
+        "rpc-calls/op": 35,
+        "signatures/op": 32,
+        "store-bytes/op": 50154,
+        "tx-rpc/op": 32,
+        "B/op": 243735,
+        "allocs/op": 2336
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkBlockDiscoveryConfirmation/tx-query         \t      55\t   3137674 ns/op\t        35.00 rpc-calls/op\t        32.00 signatures/op\t     50154 store-bytes/op\t        32.00 tx-rpc/op\t  243735 B/op\t    2336 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "mode": "tx-query",
+      "startedAt": "2026-10-17T13:21:21.355Z",
+      "iterations": 56,
+      "metrics": {
+        "ns/op": 3224795,
+        "rpc-calls/op": 35,
+        "signatures/op": 32,
+        "store-bytes/op": 50154,
+        "tx-rpc/op": 32,
+        "B/op": 243724,
+        "allocs/op": 2336
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkBlockDiscoveryConfirmation/tx-query         \t      56\t   3224795 ns/op\t        35.00 rpc-calls/op\t        32.00 signatures/op\t     50154 store-bytes/op\t        32.00 tx-rpc/op\t  243724 B/op\t    2336 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "mode": "block-scan",
+      "startedAt": "2026-10-17T13:21:21.585Z",
+      "iterations": 54,
+      "metrics": {
+        "ns/op": 3219188,
+        "rpc-calls/op": 5,
+        "signatures/op": 32,
+        "store-bytes/op": 50154,
+        "tx-rpc/op": 0,
+        "B/op": 308221,
+        "allocs/op": 3069
+      },
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-perf-client\ncpu: Apple M4\nBenchmarkBlockDiscoveryConfirmation/block-scan         \t      54\t   3219188 ns/op\t         5.000 rpc-calls/op\t        32.00 signatures/op\t     50154 store-bytes/op\t         0 tx-rpc/op\t  308221 B/op\t    3069 allocs/op\nPASS\n",
+      "stderr": ""
+    }
+  ],
+  "medians": {
+    "tx-query": {
+      "ns/op": 3197160,
+      "rpc-calls/op": 35,
+      "signatures/op": 32,
+      "store-bytes/op": 50154,
+      "tx-rpc/op": 32,
+      "B/op": 243729,
+      "allocs/op": 2336
+    },
+    "block-scan": {
+      "ns/op": 3244522,
+      "rpc-calls/op": 5,
+      "signatures/op": 32,
+      "store-bytes/op": 50154,
+      "tx-rpc/op": 0,
+      "B/op": 308223,
+      "allocs/op": 3069
+    }
+  },
+  "interpretation": "Same actual signed32tx network block and current durable store,exact same test binary,interleaved three repeats each. RPC method answers are in memory, so no network latency/server proof-building work is simulated. Current bytes freshly hashed and all32 native signatures remain checked per operation. These are repeated verification operations,not newly executed business transactions,not network TPS or sustained capacity."
+}

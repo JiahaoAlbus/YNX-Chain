@@ -1,0 +1,226 @@
+{
+  "case": "client13-normal-07",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-07.json",
+  "rawSha256": "e87c26a0a5821f3d85e71ae2e34f9725e90d0afed01b936c38c4c93798f68858",
+  "startedAt": "2026-10-18T03:08:50.874Z",
+  "launcher": 10676,
+  "controllerSession": 21141,
+  "terminalCode": 1,
+  "elapsedMs": 18335,
+  "sourceChecks": [
+    {
+      "head": "7d6a93c3e12eb52e201d0aa1c6f3600d37be395d",
+      "sourceCommit": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "1614f4ad2bc419612f3aba5bde492ad24a9920b6"
+      }
+    },
+    {
+      "head": "7d6a93c3e12eb52e201d0aa1c6f3600d37be395d",
+      "sourceCommit": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "1614f4ad2bc419612f3aba5bde492ad24a9920b6"
+      }
+    }
+  ],
+  "hostBinary": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages",
+    "sha256": "bf8e0bbd982a64b922720218f0e3c581b27c62641f4cdc581d4e0fece31db91d"
+  },
+  "actualGoArgs": [
+    "-n",
+    "10",
+    "/opt/homebrew/bin/go",
+    "test",
+    "-p",
+    "1",
+    "./cmd/ynx-consensus-perf-client",
+    "-run",
+    "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$",
+    "-count=1",
+    "-timeout=22161ms",
+    "-v"
+  ],
+  "ownedRSSCapBytes": 536870912,
+  "cacheBefore": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3370659840,
+      11753926656
+    ],
+    "totalBytes": 15124586496,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cacheAfter": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3370659840,
+      11753926656
+    ],
+    "totalBytes": 15124586496,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cachePhases": [
+    {
+      "startedAt": "2026-10-18T03:08:50.935Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 29939,
+      "endedAt": "2026-10-18T03:08:58.712Z"
+    },
+    {
+      "startedAt": "2026-10-18T03:09:01.268Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 19606,
+      "endedAt": "2026-10-18T03:09:09.091Z"
+    }
+  ],
+  "cacheNetGrowthBytes": 0,
+  "go": {
+    "pid": 10720,
+    "code": null,
+    "signal": "SIGKILL",
+    "stdout": "",
+    "stderr": "",
+    "exited": true
+  },
+  "actualPassedFunctions": [],
+  "firstCause": "unaccounted missing owned identity",
+  "peakRSS": 374767616,
+  "peakThreads": 16,
+  "peakScratchBytes": 71131136,
+  "lastAttemptedResourceSample": {
+    "schema": 1,
+    "scope": "proc_pidtaskinfo watched processes",
+    "processes": [
+      {
+        "pid": 10676,
+        "readable": true,
+        "rssBytes": 64389120,
+        "virtualBytes": 501371863040,
+        "threads": 7
+      },
+      {
+        "pid": 10720,
+        "readable": true,
+        "rssBytes": 40681472,
+        "virtualBytes": 475979497472,
+        "threads": 4
+      },
+      {
+        "pid": 10734,
+        "readable": true,
+        "rssBytes": 321896448,
+        "virtualBytes": 476277063680,
+        "threads": 3
+      },
+      {
+        "pid": 10747,
+        "readable": true,
+        "rssBytes": 15581184,
+        "virtualBytes": 500638400512,
+        "threads": 1
+      },
+      {
+        "pid": 10748,
+        "readable": false,
+        "errno": 3
+      }
+    ],
+    "watchedRssBytes": 442548224,
+    "watchedThreads": 15,
+    "samplerRssBytes": 1785856,
+    "samplerThreads": 1,
+    "rssWithControlReserveBytes": 446119936,
+    "threadsWithControlReserve": 17,
+    "memoryPressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 1,
+      "errno": 0
+    },
+    "host": {
+      "processCount": 741,
+      "uid": 501,
+      "uidProcessCount": 557,
+      "unreadableBsdInfo": 184,
+      "scanComplete": true,
+      "maxproc": 6000,
+      "maxprocperuid": 4000,
+      "rlimitNprocSoft": 4000
+    },
+    "hostEnumeration": {
+      "requiredBytes": 3044,
+      "capacityBytes": 7140,
+      "returnedBytes": 2968,
+      "queryErrno": 0,
+      "readErrno": 0,
+      "slots": 742,
+      "nonPositiveEntries": 1,
+      "positiveEntries": 741,
+      "duplicateEntries": 0,
+      "readableBsdInfo": 557,
+      "esrch": 1,
+      "eperm": 183,
+      "eacces": 0,
+      "noErrno": 0,
+      "otherErrno": 0
+    },
+    "forkProbe": {
+      "available": true,
+      "forkSucceeded": true,
+      "forkErrno": 0,
+      "waitErrno": 0,
+      "childExitCode": 0,
+      "childSignal": 0
+    },
+    "elapsedMicroseconds": 1100
+  },
+  "lastProbe": {
+    "command": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/probe-stages-20261018-01/host-pressure-stages",
+    "args": [
+      "--full",
+      "10676",
+      "10720",
+      "10734",
+      "10747",
+      "10748"
+    ],
+    "launcherPID": 10676,
+    "launcherParentPID": 1093,
+    "runtime": {
+      "platform": "darwin",
+      "arch": "arm64",
+      "node": "v26.7.0"
+    },
+    "spawnRequestedAt": "2026-10-18T03:09:01.242Z",
+    "spawnedAt": "2026-10-18T03:09:01.242Z",
+    "spawnElapsedMs": 0.42491700000027777,
+    "startedAt": "2026-10-18T03:09:01.242Z",
+    "pid": 10750,
+    "status": 0,
+    "signal": null,
+    "error": null,
+    "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":10676,\"readable\":true,\"rssBytes\":64389120,\"virtualBytes\":501371863040,\"threads\":7},{\"pid\":10720,\"readable\":true,\"rssBytes\":40681472,\"virtualBytes\":475979497472,\"threads\":4},{\"pid\":10734,\"readable\":true,\"rssBytes\":321896448,\"virtualBytes\":476277063680,\"threads\":3},{\"pid\":10747,\"readable\":true,\"rssBytes\":15581184,\"virtualBytes\":500638400512,\"threads\":1},{\"pid\":10748,\"readable\":false,\"errno\":3}],\"watchedRssBytes\":442548224,\"watchedThreads\":15,\"samplerRssBytes\":1785856,\"samplerThreads\":1,\"rssWithControlReserveBytes\":446119936,\"threadsWithControlReserve\":17,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":1,\"errno\":0},\"host\":{\"processCount\":741,\"uid\":501,\"uidProcessCount\":557,\"unreadableBsdInfo\":184,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3044,\"capacityBytes\":7140,\"returnedBytes\":2968,\"queryErrno\":0,\"readErrno\":0,\"slots\":742,\"nonPositiveEntries\":1,\"positiveEntries\":741,\"duplicateEntries\":0,\"readableBsdInfo\":557,\"esrch\":1,\"eperm\":183,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":1100}\n",
+    "stderr": "{\"stage\":\"main_entry\",\"pid\":10750,\"elapsedMicroseconds\":0}\n{\"stage\":\"arguments_validated\",\"pid\":10750,\"elapsedMicroseconds\":5}\n{\"stage\":\"watched_query_begin\",\"pid\":10750,\"watchedPID\":10676,\"index\":0}\n{\"stage\":\"watched_query_end\",\"pid\":10750,\"watchedPID\":10676,\"index\":0,\"returnedBytes\":96,\"errno\":0}\n{\"stage\":\"watched_query_begin\",\"pid\":10750,\"watchedPID\":10720,\"index\":1}\n{\"stage\":\"watched_query_end\",\"pid\":10750,\"watchedPID\":10720,\"index\":1,\"returnedBytes\":96,\"errno\":0}\n{\"stage\":\"watched_query_begin\",\"pid\":10750,\"watchedPID\":10734,\"index\":2}\n{\"stage\":\"watched_query_end\",\"pid\":10750,\"watchedPID\":10734,\"index\":2,\"returnedBytes\":96,\"errno\":0}\n{\"stage\":\"watched_query_begin\",\"pid\":10750,\"watchedPID\":10747,\"index\":3}\n{\"stage\":\"watched_query_end\",\"pid\":10750,\"watchedPID\":10747,\"index\":3,\"returnedBytes\":96,\"errno\":0}\n{\"stage\":\"watched_query_begin\",\"pid\":10750,\"watchedPID\":10748,\"index\":4}\n{\"stage\":\"watched_query_end\",\"pid\":10750,\"watchedPID\":10748,\"index\":4,\"returnedBytes\":0,\"errno\":3}\n{\"stage\":\"self_query_begin\",\"pid\":10750,\"elapsedMicroseconds\":28}\n{\"stage\":\"self_query_end\",\"pid\":10750,\"elapsedMicroseconds\":29}\n{\"stage\":\"pressure_query_begin\",\"pid\":10750,\"elapsedMicroseconds\":30}\n{\"stage\":\"pressure_query_end\",\"pid\":10750,\"elapsedMicroseconds\":35}\n{\"stage\":\"list_query\",\"pid\":10750,\"elapsedMicroseconds\":36}\n{\"stage\":\"list_returned\",\"pid\":10750,\"elapsedMicroseconds\":107}\n{\"stage\":\"bsd_scan_complete\",\"pid\":10750,\"elapsedMicroseconds\":482}\n{\"stage\":\"fork_begin\",\"pid\":10750,\"elapsedMicroseconds\":491}\n{\"stage\":\"wait_begin\",\"pid\":10750,\"elapsedMicroseconds\":836}\n{\"stage\":\"fork_complete\",\"pid\":10750,\"elapsedMicroseconds\":1093}\n",
+    "exited": true,
+    "groupGone": true,
+    "elapsedMs": 3.038749999999709
+  },
+  "exitedDuringSample": [],
+  "groupGone": true,
+  "retryExecuted": false,
+  "interpretation": "Instrumented native probe returned actual telemetry; ownership race reconciliation rejected another previously readable owned identity absent from later inventory. Guard killed Go, no test output/PASS. Original code did not retain the after-inventory, so exact second PID cannot be reconstructed from this receipt. No Go timeout relaxation or retry.",
+  "peakRSSInterpretation": "peakRSS is only previously accepted complete samples. Last rejected incomplete sample contains 446119936 bytes of readable/control lower bound, higher than that field; unreadable child prevents a complete peak claim."
+}

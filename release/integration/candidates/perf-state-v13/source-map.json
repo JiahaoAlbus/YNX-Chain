@@ -1,0 +1,113 @@
+{
+  "schema": "ynx-fixed-source-integration-map/v1",
+  "sourceCommit": "d47b0fb8bf817093d1da0cd0dc8b08725bfae0f7",
+  "internalTree": "fc5ccab4e9aa6923bc61a2dc7ac518343ac56703",
+  "files": {
+    "chain-metadata/ynx-testnet.json": {
+      "sha256": "89974444dc6e8eae51b4c9455cfb9522fc1ebbf1d3ff9bcf2dde1592d628ae23",
+      "bytes": 495
+    },
+    "cmd/ynx-consensus-lab/main.go": {
+      "sha256": "b7344e1e4b7a4b55d872d2b9d6b55bc65b68424fb581b4ae118866a21dfd7722",
+      "bytes": 5143
+    },
+    "cmd/ynx-consensus-tx/main.go": {
+      "sha256": "ec1f1d4aef4060031bf1f46b0e2389109fcf51a807ac5867e7eccee0e12a4dba",
+      "bytes": 8094
+    },
+    "docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json": {
+      "sha256": "5b0afae37b4f575c9f7239b98fb70293e9e2fd73306ab519784ed6df162b512f",
+      "bytes": 27853
+    },
+    "internal/bftgateway/evm.go": {
+      "sha256": "da457381f7c69649e17197340c01a21f778af0b0048a73c2841af08e62cfc296",
+      "bytes": 49922
+    },
+    "internal/bftgateway/gateway.go": {
+      "sha256": "89e82291c37e61e0a98be7fee51d4fe4147be581bffdb7e386316c44fb9ba3e0",
+      "bytes": 62535
+    },
+    "internal/bftgateway/quant.go": {
+      "sha256": "b7140c39a7bda2727a384642c6fa4514ec8c8cd9b2d0263dd0b2b443d841c427",
+      "bytes": 12064
+    },
+    "internal/bundler/server.go": {
+      "sha256": "4e4374c42c6d302d23cf4756e96f8c4c75e78dad19117f57035fa147d735972e",
+      "bytes": 11267
+    },
+    "internal/consensus/application.go": {
+      "sha256": "38b813c45e43027749e90e2d70c418c4df5088336527ec11290443cad79fb4a9",
+      "bytes": 59578
+    },
+    "internal/consensus/asset_authorization_action.go": {
+      "sha256": "9e56435a89acf84ac1ee01786729d445d5b64a2ccc51406d2a4e7f98afcb91da",
+      "bytes": 20071
+    },
+    "internal/consensus/dex_action_test.go": {
+      "sha256": "94e732b37079937d11227491539a3cf1242ba71899932614401bdd1136fa40c2",
+      "bytes": 6153
+    },
+    "internal/consensus/ethereum_transaction.go": {
+      "sha256": "805d1fb81108fa11712da030d5c5d4927945684e46789c1568c67afd30e9b372",
+      "bytes": 38590
+    },
+    "internal/consensus/snapshot.go": {
+      "sha256": "ab66012def82732e627ce06e0f64e251680cdf08d818fac6d7563ccd02de644f",
+      "bytes": 12082
+    },
+    "internal/consensus/snapshot_test.go": {
+      "sha256": "6b20ce2185da1080697a056e632b7938717342fd7301a5393200e7732227e613",
+      "bytes": 15443
+    },
+    "internal/consensus/state.go": {
+      "sha256": "6b27334fb8020b3ed0f23de88f2047f80caf251242b2c45359978c085409f82b",
+      "bytes": 45656
+    },
+    "internal/consensus/state_hash_json_test.go": {
+      "sha256": "a47c5d45b51455be5d161c700b3dbaf0ae5bad24f5b82b58a96d5fc1cbc0d7cb",
+      "bytes": 4030
+    },
+    "release/chain-core/product-release.json": {
+      "sha256": "9cc7f13945b325db8e0ae403166de4fdadbf32ce65ee97b38fbc971932db7fcd",
+      "bytes": 5167
+    },
+    "release/integration/chain-core-contract.json": {
+      "sha256": "df00c4cf5d32e82fa120048c4ee83d6b6ea077e6d311f53c0dbe396e50edf676",
+      "bytes": 12496
+    },
+    "scripts/verify/bft-evm-fee-history-check.sh": {
+      "sha256": "af97aab1563748614630b682eb59e37bfff91100efcb38476de8c20df57d33ca",
+      "bytes": 1189
+    },
+    "scripts/verify/consensus-eip1559-commit-check.sh": {
+      "sha256": "7fb907de7cb92cbf155a8825a956986b70b66d78c98a8782adb540aa7a4252d7",
+      "bytes": 24352
+    },
+    "scripts/verify/consensus-fee-history-check.sh": {
+      "sha256": "b5a3e4be0246077d4d84afc7fac71247ab6a0aecd0cdfa5843b27e01022af75a",
+      "bytes": 2127
+    },
+    "scripts/verify/consensus-quorum-check.sh": {
+      "sha256": "1c3fb95cb52df6d653eaee95223b3a6fde51b9f04d12609747e81fef92ed8e28",
+      "bytes": 26755
+    },
+    "scripts/verify/integration-contract-check.mjs": {
+      "sha256": "299486844e0d17929cd7cc9c043c28fb192172d6f8cab91f260f49e48e627ac3",
+      "bytes": 26588
+    }
+  },
+  "publishedPredecessorFiles": {
+    "release/chain-core/product-release.json": {
+      "sha256": "9cc7f13945b325db8e0ae403166de4fdadbf32ce65ee97b38fbc971932db7fcd",
+      "bytes": 5167
+    },
+    "release/integration/chain-core-contract.json": {
+      "sha256": "df00c4cf5d32e82fa120048c4ee83d6b6ea077e6d311f53c0dbe396e50edf676",
+      "bytes": 12496
+    },
+    "docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json": {
+      "sha256": "5b0afae37b4f575c9f7239b98fb70293e9e2fd73306ab519784ed6df162b512f",
+      "bytes": 27853
+    }
+  }
+}

@@ -9,7 +9,9 @@
     "hardhat:build": "hardhat build",
     "hardhat:test:wallet": "hardhat run ./scripts/contracts/test-smart-account-hardhat.js",
     "hardhat:deploy:wallet-smart-account": "hardhat run ./scripts/contracts/deploy-wallet-smart-account.js --network ynxTestnet",
-    "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet"
+    "hardhat:deploy:ynx-testnet": "hardhat run ./scripts/contracts/deploy-samples-hardhat.js --network ynxTestnet",
+    "prehardhat:build": "node ./scripts/contracts/hardhat-output.mjs prepare",
+    "posthardhat:build": "node ./scripts/contracts/hardhat-output.mjs finish"
   },
   "devDependencies": {
     "@account-abstraction/contracts": "0.8.0",

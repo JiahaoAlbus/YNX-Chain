@@ -1,0 +1,83 @@
+{
+  "schema": 1,
+  "kind": "native-owned-inventory-source-candidate",
+  "originalReceipt": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ynx-batch-v01/YNX Chain/docs/protocol/crypto-go-first-run-20261018-02.json",
+    "bytes": 8750,
+    "sha256": "4d34ed26e4518d8971ecbd8867ab2ec2b47843f1e84f6be2cecadc08bc845b7d"
+  },
+  "oldBinary": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure",
+    "bytes": 34688,
+    "sha256": "3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6",
+    "changed": false,
+    "inventoryAvailable": false
+  },
+  "candidate": {
+    "flag": "--owned-full LAUNCHER_PID JOB_PID",
+    "schema": 2,
+    "plannedBinary": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ynx-consensus-perf-host-owned-v2",
+    "compiled": false,
+    "hostProbeRun": false
+  },
+  "sources": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/darwin-process-snapshot.c",
+      "bytes": 8436,
+      "sha256": "4a27babd4bf68ec8ed9009ba0acc77c73c5025890c721dcc160319dd1bd0f704"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/owned-process-snapshot.h",
+      "bytes": 9811,
+      "sha256": "764b45afde4f32c4dab4d3fa30f493390d5e892b5d2a0c720f6c1d22f95543e3"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/process-snapshot-counts.h",
+      "bytes": 2410,
+      "sha256": "aff5c2518e34e7eecd4c20c1706b224f6ac339cffce33cb4b5f01d8416ff89c1"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/owned-process-set.mjs",
+      "bytes": 3622,
+      "sha256": "b853f91fd2cfeb1fb71a73cc220c98b700ded5e5a7b772639ba782d454d686a1"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/native-resource-sample.mjs",
+      "bytes": 2106,
+      "sha256": "ad5ce1316cc9ac55d56375e777cd3fb07c6a4ab8cf69195c1910f8ca7e7132a7"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/native-resource-probe.mjs",
+      "bytes": 3217,
+      "sha256": "57e6cc9764ccbeab062fe859f725bbe34753280c2ab25272379570dbf17c0a84"
+    }
+  ],
+  "tests": {
+    "red": {
+      "toolChunk": "8c60b0",
+      "total": 14,
+      "pass": 11,
+      "fail": 3,
+      "actualExit": 1
+    },
+    "pass": {
+      "toolChunk": "a70d71",
+      "total": 22,
+      "pass": 22,
+      "fail": 0,
+      "actualExit": 0,
+      "durationMs": 14.359542,
+      "command": "node --test --test-isolation=none scripts/loadtest/owned-process-set.test.mjs scripts/loadtest/native-resource-sample.test.mjs scripts/loadtest/native-owned-process-set.test.mjs scripts/loadtest/consensus-light-plan.test.mjs"
+    }
+  },
+  "pendingProof": [
+    "Fresh Root tiny-native slot after Main Rust actual terminal; no Go compiler/network",
+    "Compile new exclusive output with clang -std=c11 -Wall -Wextra -Werror -O2; preserve old binary and original pins",
+    "Run new --full and --owned-full on an isolated controlled launcher/job/descendant family, bounded to original probe timeout/log/watch/resource caps",
+    "Compare native PID/PPID/PGID owned closure with contemporaneous ps for the controlled family; account explicitly for vanished processes. Do not claim an atomic snapshot across OS calls.",
+    "Require every active selected task readable, both roots present, exact JS/native watched identity match and all kernel/host/fork/pressure gates unchanged",
+    "Exercise missing-root, unknown identity, duplicate/truncated inventory, unreadable task, >16 owned set, failed fork/pressure2 rejection without test workload",
+    "Record actual source/binary hashes, raw native outputs, compiler terminal and complete owned cleanup before candidate adoption"
+  ],
+  "interpretation": "Old schema1 cannot eliminate ps. New schema2 is uncompiled source plus tested JS controls, not a live fix or an authorization to retry Go run03."
+}

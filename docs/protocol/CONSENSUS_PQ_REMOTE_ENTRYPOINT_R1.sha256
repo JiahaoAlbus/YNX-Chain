@@ -1,0 +1,13 @@
+# Normal remote node/signer entrypoints: source-only freeze; no local Go, node, listener, stage or commit.
+# Root fixed remote CI must compile and execute these tests before PASS claims.
+8342b5030736624cc18750569dbaa1cc5bc383ed93a82d032388cab8aca0fe48  cmd/ynx-comet/main.go
+1872ae74e1688560bec47bda7f4775c6cb4ba4d59c21227cdb685a846f3a6290  cmd/ynx-comet/main_test.go
+aa79cbb7f36502d948aa1381dc365c50c52e4cea2fac3538ca4ab372a7c7d801  cmd/ynx-consensus-pq-remote-signer/main.go
+3e1b800131fdccc228fe165d0270a6ed2c560aa28b0017387acbab7abf270121  cmd/ynx-consensus-pq-remote-signer/main_test.go
+645ec8644bb622fa017af88cc56b009fe2a4b87705e0108f3d468a657e122352  internal/consensus/pq_node.go
+ebd7d75123b55b16b608b6eda94017e294a3608cb13a3f52421ea366b562575e  internal/consensus/pq_remote_node.go
+0ece19213ddfc8d86522a4af572ba93174a8301e3c98d3fd92d58868237d8972  internal/consensus/pq_remote_node_test.go
+a8200b3bb89dd1de8cf389f6a4cd60fb4a83d2f9ead0eee2ede91138dbb9f44d  internal/consensus/pq_remote_operator.go
+7e16fe79ae67b8c5732c46f49b4c15bfdbce7f269fdba4d3dede0996cef33c37  internal/consensus/pq_remote_operator_test.go
+b913d4e390d55b40372a21c9a43831432079f098ccfa0c27fc57fede2623fb6d  internal/consensus/pq_remote_runtime.go
+f0aa1c5f9fecf6dfa1aafb0637882ec1feee4be54b3a8e821f559d77bcc87a02  internal/consensus/pq_remote_runtime_test.go

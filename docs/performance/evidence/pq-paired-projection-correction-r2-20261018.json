@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "kind": "PQ-paired-projection-local-peer-correction-r2",
+  "supersedes": {
+    "performanceCommit": "d4b943653f6e650302d200552f9309073c06c464",
+    "overlayBytes": 15470,
+    "overlaySHA256": "972d93bc929ee4c8746b80c45092f47c4b9d1e34afb2b709202873e98381148e",
+    "oldRecord": "docs/performance/evidence/pq-paired-source-handoff-20261018.json",
+    "oldInputsPreserved": true
+  },
+  "productionEvidence": {
+    "commit": "69e788b4bd726689ea5d1709fd5ba0162c6ec0da",
+    "implementation": "internal/chain/pq_snapshot.go:225-250 deliberately copies target-local Peers/PeerSyncs into persisted replica before applying authoritative state",
+    "existingRegression": "internal/chain/pq_revocation_test.go:457-494 explicitly requires source-produced peer facts to differ and verifies target memory/restart preserve its own peers",
+    "reason": "Original overlay compared node-local facts across two distinct ledgers; that contradicts the real replication contract and can reject a valid clone before any timed operation."
+  },
+  "sources": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/overlays/pq_paired_performance_test.go.in",
+      "bytes": 18973,
+      "sha256": "ddc6efe9afbb48b1a6f6ea40d2f4ce729bd2b818eeea57bd087dc75fbe5f58d9"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/prepare-pq-paired-benchmark.mjs",
+      "bytes": 3227,
+      "sha256": "3c37029cd121e1755a1a12ce4f40c13fedd27c2f51ee00a7c033491fab48628b"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/pq-paired-recipe.mjs",
+      "bytes": 2082,
+      "sha256": "13b6a7f90b7d9a41458620eaa30eb5398d3ca04d428fa63a59d0d19384e8ed55"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/pq-paired-recipe.test.mjs",
+      "bytes": 1559,
+      "sha256": "66a172bffe1fa64edde1ee68c62254c743a69607e714359b4b17525a220836a5"
+    }
+  ],
+  "delta": {
+    "changedFiles": [
+      "scripts/loadtest/overlays/pq_paired_performance_test.go.in"
+    ],
+    "crossNodeExclusionsAdded": [
+      "Peers",
+      "PeerSyncs"
+    ],
+    "unchangedExclusions": [
+      "SavedAt wall clock",
+      "StateIntegrity serialization identity",
+      "Blocks and Pending transaction history/IDs",
+      "PQBatches proof layout/history"
+    ],
+    "retained": "Every other snapshot business field, including all accounts/resources/lots/contracts/PQ policy/validators, remains compared.",
+    "localPeerChecks": [
+      "Target initial peer facts copied separately; source/target difference is mandatory in fixture",
+      "After replication exact target memory peer/peer-sync equality",
+      "After replication exact target disk peer/peer-sync equality",
+      "Independent target cold restore exact peer/peer-sync equality",
+      "Target cold restore authoritative projection equality",
+      "Final per-mode cold restart still compares complete same-node moduleBusinessState including peers"
+    ],
+    "newControls": [
+      "balance",
+      "nonce",
+      "resource usage",
+      "owner lot quantity",
+      "global lot provenance",
+      "contract",
+      "account policy",
+      "validator voting power"
+    ],
+    "resultField": "cloneLocalPeersPreserved=true only after independent clone checks"
+  },
+  "validation": {
+    "gofmtSyntaxPass": true,
+    "diffCheckPass": true,
+    "localGoCompiled": false,
+    "localGoRun": false,
+    "newGoProjectionControlsExecuted": false,
+    "linuxGuardChanged": false,
+    "oldGuardTestsNotRepeated": true,
+    "benchmarkStarted": false,
+    "tpsMeasured": false
+  },
+  "handoff": "Only replace the one overlay leaf using this new exact pin; retain all old frozen inputs/records. Original Protocol owns the post-state-preservation-gate CI N1/trial1 checkout/dispatch. No production source, keys, balances, provider or resource cap changed."
+}

@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "kind": "real-pq-paired-benchmark-source-handoff",
+  "productionBase": "aa97f102fc72ee89ef3c61b6125256b288694b39",
+  "futureFreezeRequired": true,
+  "ownerFixture": {
+    "path": "internal/chain/pq_batch_success_test.go",
+    "workingTreeObservedAtHead": "1646f01578e2d27409f24b081d93519df5dc24ce",
+    "committedAtThatHead": false,
+    "source": "Read only, owned by original crypto_go. No file was written or modified there."
+  },
+  "sources": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/overlays/pq_paired_performance_test.go.in",
+      "bytes": 15470,
+      "sha256": "972d93bc929ee4c8746b80c45092f47c4b9d1e34afb2b709202873e98381148e"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/prepare-pq-paired-benchmark.mjs",
+      "bytes": 3227,
+      "sha256": "3c37029cd121e1755a1a12ce4f40c13fedd27c2f51ee00a7c033491fab48628b"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/pq-paired-recipe.mjs",
+      "bytes": 2082,
+      "sha256": "13b6a7f90b7d9a41458620eaa30eb5398d3ca04d428fa63a59d0d19384e8ed55"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/loadtest/pq-paired-recipe.test.mjs",
+      "bytes": 1559,
+      "sha256": "66a172bffe1fa64edde1ee68c62254c743a69607e714359b4b17525a220836a5"
+    }
+  ],
+  "runState": {
+    "goCompiled": false,
+    "goTestsExecuted": false,
+    "signedWorkloadExecuted": false,
+    "heavyStarted": false,
+    "pqTPSMeasured": false
+  },
+  "validation": {
+    "gofmtSyntaxPass": true,
+    "recipeTests": {
+      "tool": "4c2091",
+      "tests": 3,
+      "pass": 3,
+      "fail": 0,
+      "actualExit": 0,
+      "durationMs": 5.824083
+    },
+    "actualCLI": {
+      "tool": "67fce1",
+      "actualExit": 1,
+      "reason": "Reject exact aa97 request against changed/dirty1646 checkout; required original success file not in aa97. Working-tree WIP is not silently substituted.",
+      "outputDirCreated": false
+    }
+  },
+  "sourceBehavior": [
+    "One N1/16/64, one trial1..3 per invocation, no parallel tests",
+    "Original newPQLedger/activate/batchTransfer fixture and pqBatchSuccessDiskSnapshot helper; no new signing/ledger engine or repeated success test owner",
+    "One real BatchSign AND-signed Whole; derive exact standalone members via original Extract and EncodeMember",
+    "Two fresh temporary persistent clones of the same complete activated snapshot with enough amount+fee balance",
+    "Independent exact per-member application identities, all admitted once, nonce/balance/validator fees/resource fields/lot-flow provenance assertions",
+    "Pair complete business projection equality excluding only intentional block/transaction/shared-proof history and wall-clock integrity identity",
+    "Pending disk checkpoint reconstructed from original-owner snapshot reader, exact replay no mutation/no new checkpoint",
+    "Manual local block and cold restart exact transactions, block checkpoint/cumulative fees, cold replay no mutation",
+    "Separate sum of API call durations, actual submission-loop wall time, per-member offer-to-local-checkpoint distribution, signing preparation, manual block time and cold restore time",
+    "Explicit null BFT final commits/finality latency; finite isolated single-producer component only",
+    "32MiB cumulative private fixture/retained artifact budget and exclusive output/snapshot files"
+  ],
+  "recipe": {
+    "prepareCLI": "node scripts/loadtest/prepare-pq-paired-benchmark.mjs --source-root ABS_CLEAN_FIXED_CANDIDATE --commit FULL_COMMIT_WITH_SUCCESS_FIXTURE --output-dir NEW_PRIVATE_CASE_DIR --n 1 --trial 1 --write",
+    "goCommand": "Prepared command/env in prepared.json; requires separate fresh Root CI/local resource grant. Preparation never starts Go.",
+    "overlay": "Copies frozen Go overlay into new case directory; maps virtual internal/chain/pq_paired_performance_test.go without writing owner source checkout.",
+    "next": "Root forwards to original Protocol/crypto_go owner to freeze success fixture and run first N1/trial1 in controlled CI; only after pass schedule16/64 and paired repetitions."
+  }
+}

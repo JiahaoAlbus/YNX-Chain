@@ -1,0 +1,31 @@
+{
+  "runId": "39058095964",
+  "commit": "1646f01578e2d27409f24b081d93519df5dc24ce",
+  "sourceLayer": "remote CI actual failure, before repair",
+  "originalFiles": [
+    {
+      "path": "internal/chain/pq_action.go",
+      "sha256": "b6b06dcc834271d27468d8e77f13dff39b5f7904b557d943374058a34a519a21"
+    },
+    {
+      "path": "internal/chain/native_dex.go",
+      "sha256": "1438e2df2445122962a105cf5cb95f370ef151195637c2e1c0a6d5370c959391"
+    },
+    {
+      "path": "internal/chain/pq_action_test.go",
+      "sha256": "7a2d075dd1eb9f5e9ccee2dd43bd20fd48429e41d9e9072fdb2fca9a6983e1f0"
+    }
+  ],
+  "fullLog": {
+    "localPath": "/tmp/ynx-pq-ci5-full.log",
+    "sha256": "ac8a9bb19ecb2a8b1e5d92fb7d0d484e192101357af39b1250cf3356c06ad588"
+  },
+  "exactFailureLines": [
+    "focused-go\tVerify native ledger and HTTP PQ integration\t2026-10-17T18:27:12.0573685Z --- FAIL: TestPQActionAllNativeBusinessPathsAndHistoricalRestart (0.69s)",
+    "focused-go\tVerify native ledger and HTTP PQ integration\t2026-10-17T18:27:12.0575892Z     pq_action_test.go:139: validate PQ history at height 2: PQ action history contains unsigned execution metadata",
+    "focused-go\tVerify native ledger and HTTP PQ integration\t2026-10-17T18:27:12.0576509Z --- FAIL: TestPQActionDexCheckedArithmetic (0.22s)",
+    "focused-go\tVerify native ledger and HTTP PQ integration\t2026-10-17T18:27:12.0577091Z     --- FAIL: TestPQActionDexCheckedArithmetic/swap_input_reserve (0.04s)",
+    "focused-go\tVerify native ledger and HTTP PQ integration\t2026-10-17T18:27:12.0577963Z         pq_action_test.go:472: signed PQ numeric boundary did not reject overflow: DEX exact-input output is below minimum"
+  ],
+  "validationBoundary": "No local Go/C compilation or test execution. Repair requires next remote CI."
+}

@@ -317,6 +317,11 @@ func (s *Service) PrepareBody(path string, body []byte) ([]byte, error) {
 }
 
 func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body []byte, requestID string) (*http.Response, error) {
+	if s.cfg.UpstreamMode == UpstreamAuthoritative && method == http.MethodPost {
+		if err := s.requireMerchantObject(ctx, path, body, requestID); err != nil {
+			return nil, err
+		}
+	}
 	if s.cfg.UpstreamMode == UpstreamBFT && method == http.MethodPost {
 		if strings.HasPrefix(path, "/pay/invoices/") && strings.HasSuffix(path, "/settle") {
 			return nil, errors.New("invoice settlement is not implemented for candidate BFT Pay mode")

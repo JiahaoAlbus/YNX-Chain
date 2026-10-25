@@ -1,0 +1,342 @@
+{
+  "schema": 1,
+  "runId": "39096249974",
+  "sourceCommit": "4d5143d6b6d43ce69c4b83c9b0842e059b7adb4b",
+  "status": "completed",
+  "conclusion": "failure",
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39096249974",
+  "rawLog": {
+    "sha256": "75f8bc10ed48bf705054c2758aff616e53d12986701ee37e53dda440b4f15456",
+    "bytes": 137049
+  },
+  "jobs": [
+    {
+      "completedAt": "2026-10-18T04:14:37Z",
+      "conclusion": "failure",
+      "databaseId": 117583205347,
+      "name": "focused-go",
+      "startedAt": "2026-10-18T04:11:51Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-10-18T04:11:53Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-10-18T04:11:52Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:11:59Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 2,
+          "startedAt": "2026-10-18T04:11:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:12:13Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "number": 3,
+          "startedAt": "2026-10-18T04:11:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:12:13Z",
+          "conclusion": "success",
+          "name": "Record exact candidate identity",
+          "number": 4,
+          "startedAt": "2026-10-18T04:12:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:12:29Z",
+          "conclusion": "success",
+          "name": "Verify pure dual-PQ protocol and account authorization",
+          "number": 5,
+          "startedAt": "2026-10-18T04:12:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:12:30Z",
+          "conclusion": "success",
+          "name": "Measure bounded certificate cache cold and warm paths",
+          "number": 6,
+          "startedAt": "2026-10-18T04:12:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:12:37Z",
+          "conclusion": "success",
+          "name": "Install pinned contract build runtime",
+          "number": 7,
+          "startedAt": "2026-10-18T04:12:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:12:42Z",
+          "conclusion": "success",
+          "name": "Compile frozen measured production overlay without executing cases",
+          "number": 8,
+          "startedAt": "2026-10-18T04:12:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:12:49Z",
+          "conclusion": "success",
+          "name": "Generate canonical IDE contract fixture",
+          "number": 9,
+          "startedAt": "2026-10-18T04:12:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:13:26Z",
+          "conclusion": "success",
+          "name": "Verify native ledger and HTTP PQ integration",
+          "number": 10,
+          "startedAt": "2026-10-18T04:12:49Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:13:33Z",
+          "conclusion": "success",
+          "name": "Compile production entry points",
+          "number": 11,
+          "startedAt": "2026-10-18T04:13:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:13:45Z",
+          "conclusion": "success",
+          "name": "Verify complete state bridge and sponsor continuity",
+          "number": 12,
+          "startedAt": "2026-10-18T04:13:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:13:48Z",
+          "conclusion": "success",
+          "name": "Verify account session policy and merchant ownership",
+          "number": 13,
+          "startedAt": "2026-10-18T04:13:45Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:13:57Z",
+          "conclusion": "success",
+          "name": "Verify Whole BFT gateway and native container readback",
+          "number": 14,
+          "startedAt": "2026-10-18T04:13:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:14:01Z",
+          "conclusion": "success",
+          "name": "Checkout frozen segmented performance client separately",
+          "number": 15,
+          "startedAt": "2026-10-18T04:13:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:14:31Z",
+          "conclusion": "failure",
+          "name": "Verify nine frozen segmented client correctness functions",
+          "number": 16,
+          "startedAt": "2026-10-18T04:14:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:14:32Z",
+          "conclusion": "success",
+          "name": "Emit public inverse interop fixture",
+          "number": 17,
+          "startedAt": "2026-10-18T04:14:31Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:14:33Z",
+          "conclusion": "success",
+          "name": "Upload public signature fixture",
+          "number": 18,
+          "startedAt": "2026-10-18T04:14:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:14:33Z",
+          "conclusion": "success",
+          "name": "Post Checkout frozen segmented performance client separately",
+          "number": 33,
+          "startedAt": "2026-10-18T04:14:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:14:33Z",
+          "conclusion": "skipped",
+          "name": "Post Install pinned contract build runtime",
+          "number": 34,
+          "startedAt": "2026-10-18T04:14:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:14:33Z",
+          "conclusion": "skipped",
+          "name": "Post Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+          "number": 35,
+          "startedAt": "2026-10-18T04:14:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:14:34Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "number": 36,
+          "startedAt": "2026-10-18T04:14:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-10-18T04:14:34Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 37,
+          "startedAt": "2026-10-18T04:14:34Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39096249974/job/117583205347"
+    },
+    {
+      "completedAt": "2026-10-18T04:11:48Z",
+      "conclusion": "skipped",
+      "databaseId": 117583205864,
+      "name": "verify",
+      "startedAt": "2026-10-18T04:11:49Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39096249974/job/117583205864"
+    },
+    {
+      "completedAt": "2026-10-18T04:14:37Z",
+      "conclusion": "skipped",
+      "databaseId": 117583693520,
+      "name": "pq-paired-n1",
+      "startedAt": "2026-10-18T04:14:37Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/39096249974/job/117583693520"
+    }
+  ],
+  "actualBackendResult": "All production chain/API, full consensus registry, original drift and contract regressions, pure crypto, Wallet Go public proof and gateways passed. Overall failed only at unchanged external 27f client; independent aa255 successor already passed all 13.",
+  "certificateMicrobenchmarks": [
+    {
+      "certificateMembers": 1,
+      "path": "uncached",
+      "iterations": 10,
+      "nsPerOp": 1817827,
+      "signatureChecksPerOp": 2,
+      "bytesPerOp": 525473,
+      "allocationsPerOp": 134
+    },
+    {
+      "certificateMembers": 1,
+      "path": "miss",
+      "iterations": 10,
+      "nsPerOp": 1917087,
+      "signatureChecksPerOp": 2,
+      "bytesPerOp": 526321,
+      "allocationsPerOp": 138
+    },
+    {
+      "certificateMembers": 1,
+      "path": "hit",
+      "iterations": 10,
+      "nsPerOp": 163914,
+      "signatureChecksPerOp": 0,
+      "bytesPerOp": 429428,
+      "allocationsPerOp": 76
+    },
+    {
+      "certificateMembers": 16,
+      "path": "uncached",
+      "iterations": 10,
+      "nsPerOp": 2048703,
+      "signatureChecksPerOp": 2,
+      "bytesPerOp": 530849,
+      "allocationsPerOp": 244
+    },
+    {
+      "certificateMembers": 16,
+      "path": "miss",
+      "iterations": 10,
+      "nsPerOp": 2082337,
+      "signatureChecksPerOp": 2,
+      "bytesPerOp": 531153,
+      "allocationsPerOp": 248
+    },
+    {
+      "certificateMembers": 16,
+      "path": "hit",
+      "iterations": 10,
+      "nsPerOp": 302760,
+      "signatureChecksPerOp": 0,
+      "bytesPerOp": 434804,
+      "allocationsPerOp": 186
+    },
+    {
+      "certificateMembers": 64,
+      "path": "uncached",
+      "iterations": 10,
+      "nsPerOp": 2126160,
+      "signatureChecksPerOp": 2,
+      "bytesPerOp": 533537,
+      "allocationsPerOp": 296
+    },
+    {
+      "certificateMembers": 64,
+      "path": "miss",
+      "iterations": 10,
+      "nsPerOp": 2165454,
+      "signatureChecksPerOp": 2,
+      "bytesPerOp": 533841,
+      "allocationsPerOp": 300
+    },
+    {
+      "certificateMembers": 64,
+      "path": "hit",
+      "iterations": 10,
+      "nsPerOp": 331112,
+      "signatureChecksPerOp": 0,
+      "bytesPerOp": 437492,
+      "allocationsPerOp": 238
+    },
+    {
+      "certificateMembers": 1024,
+      "path": "uncached",
+      "iterations": 10,
+      "nsPerOp": 2207154,
+      "signatureChecksPerOp": 2,
+      "bytesPerOp": 538924,
+      "allocationsPerOp": 400
+    },
+    {
+      "certificateMembers": 1024,
+      "path": "miss",
+      "iterations": 10,
+      "nsPerOp": 2211686,
+      "signatureChecksPerOp": 2,
+      "bytesPerOp": 539219,
+      "allocationsPerOp": 404
+    },
+    {
+      "certificateMembers": 1024,
+      "path": "hit",
+      "iterations": 10,
+      "nsPerOp": 446870,
+      "signatureChecksPerOp": 0,
+      "bytesPerOp": 442876,
+      "allocationsPerOp": 342
+    }
+  ],
+  "benchmarkLimits": "Ten iterations of one Member verification per operation at each certificate size; hit requires previously verified identical certificate and current trusted binding. Cold N1 miss adds overhead. Not sustained transaction throughput, finality, node/network performance or deployed acceptance.",
+  "publicDeployment": false
+}

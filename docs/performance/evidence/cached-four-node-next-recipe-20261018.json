@@ -1,0 +1,371 @@
+{
+  "kind": "proposed next original four-node cached comparison, no execution grant",
+  "preparedAt": "2026-10-18T03:19:12.871Z",
+  "preparationParent": {
+    "path": "docs/performance/evidence/same-control-comparison-prepared-20261018.json",
+    "sha256": "74e6be6e52957ce4463e6008d72eed221941cd5a8bf2a2e11b7b8b73e5272e47"
+  },
+  "baselineDirectParent": {
+    "summary": "docs/performance/evidence/same-control-before-20261018.json",
+    "summarySha256": "27d48e7c5cee28f85e675a07dd7337d657eaccc9b8168aefba706ed529ef14a2",
+    "window": "artifacts/chain-network-performance/window-eEfGE7",
+    "files": {
+      "window-receipt.json": {
+        "bytes": 125060,
+        "sha256": "bfe265a2bdbcd96185672bf72c9fa8384220a79c60511bc3642cc2ba26067ae2"
+      },
+      "transactions-result.json": {
+        "bytes": 2950379,
+        "sha256": "5afd182240f0376b4db717afa0f73f41cedfad10202ee7588a8978b695cae4db"
+      },
+      "independent-cleanup.json": {
+        "bytes": 10963,
+        "sha256": "9c190e5b39eed034ea3f1b494394ec61ab1de5080980570ede28d17576a8f3cf"
+      }
+    },
+    "manifestSha256": "ce975885f97a7af8b8e993fdde3e006d3e97dba9998614591d66ee0324698b8a",
+    "journalSha256": "aa26b4cbe158df5530ef218b48ecc483c0cc89d13b39873b312ec85bafa00921",
+    "baselineGenesisSha256": "52a5757b36959e911c138c43dcece3c5127653917e3eb8df3f9951bea883e618"
+  },
+  "baselineRequalified": {
+    "inputIdentities": 1024,
+    "uniqueSignedByteHashes": 1024,
+    "effectiveBusinessIncluded": 1024,
+    "qualifiedClientFinal": 1024,
+    "fullWindowClientFinalTPS": 135.5765762138212,
+    "inclusionMs": {
+      "samples": 1024,
+      "p50": 950.890708,
+      "p95": 1365.555417,
+      "p99": 1454.530417
+    },
+    "clientFinalMs": {
+      "samples": 1024,
+      "p50": 1176.174834,
+      "p95": 1767.879958,
+      "p99": 1851.966167
+    },
+    "offerToClientFinalMs": {
+      "samples": 1024,
+      "p50": 1321.3000000000002,
+      "p95": 1809.345292,
+      "p99": 1868.018625
+    },
+    "identityReadback": "complete journal-to-report exact signed bytes/hash/index/sender/nonce binding",
+    "signatureAndConsensusVerification": "reported by pinned Go client; not independently repeated by this JavaScript consumer",
+    "independentStoppedNodeReplay": null,
+    "independentBFTReverification": null,
+    "steadyStateTPS": null
+  },
+  "source": {
+    "client": "a8bf5177646056dc7ab392429e3d2cc94a51c01a",
+    "node": "e3b7b4b72762b8c61ac1d54d2414224b788428c9",
+    "fixture": "038cebd98d6f287fee608b1925c80f763cc9d79f",
+    "comet": "CometBFT v0.38.23",
+    "protocolDependency": false
+  },
+  "frozenArtifacts": [
+    {
+      "name": "consensus-local-window.mjs",
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/runtime/consensus-local-window.mjs",
+      "sha256": "457b18d5f0d1e38bebb6f69ed384f09d2f260fe7956ed120ef0841f735bd8d90",
+      "bytes": 15812
+    },
+    {
+      "name": "native-resource-probe.mjs",
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/runtime/native-resource-probe.mjs",
+      "sha256": "57e6cc9764ccbeab062fe859f725bbe34753280c2ab25272379570dbf17c0a84",
+      "bytes": 3217
+    },
+    {
+      "name": "native-resource-sample.mjs",
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/runtime/native-resource-sample.mjs",
+      "sha256": "108c37cffb691ad9fdddfbd9603512c94ef8190393875a8148cc79ce2f315ea9",
+      "bytes": 1111
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-fixture",
+      "sha256": "ee04f25ea40f0bd0f075a3a801cf9b0e216a841578e3da2fa28b244f241d35e1",
+      "sourceCommit": "038cebd98d6f287fee608b1925c80f763cc9d79f",
+      "bytes": 24478722
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-abci",
+      "sha256": "ed2e8403ff1be729330534207cb0af75236fc80cac4ef368b36fe91d2474b79d",
+      "sourceCommit": "e3b7b4b72762b8c61ac1d54d2414224b788428c9",
+      "bytes": 26018994
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-client",
+      "sha256": "c6f5b051ce53a97afd89f2abacc8e5c211c50b941b37603174dfee3db4c4a212",
+      "sourceCommit": "a8bf5177646056dc7ab392429e3d2cc94a51c01a",
+      "bytes": 28512386
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-host",
+      "sha256": "3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6",
+      "sourceCommit": null,
+      "bytes": 34688
+    },
+    {
+      "path": "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+      "sha256": "60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840",
+      "sourceCommit": "CometBFT v0.38.23",
+      "bytes": 25245538
+    }
+  ],
+  "argvPrepareOnly": [
+    "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/runtime/consensus-local-window.mjs",
+    "--bin-dir",
+    "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached",
+    "--comet-bin",
+    "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+    "--count",
+    "256",
+    "--rounds",
+    "4",
+    "--offered-rate",
+    "512",
+    "--state-layout",
+    "block-journal",
+    "--sender-mode",
+    "ready-pool",
+    "--inclusion-mode",
+    "block-scan"
+  ],
+  "argvExecuteOnlyAfterRootGrant": [
+    "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/runtime/consensus-local-window.mjs",
+    "--bin-dir",
+    "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached",
+    "--comet-bin",
+    "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+    "--count",
+    "256",
+    "--rounds",
+    "4",
+    "--offered-rate",
+    "512",
+    "--state-layout",
+    "block-journal",
+    "--sender-mode",
+    "ready-pool",
+    "--inclusion-mode",
+    "block-scan",
+    "--execute"
+  ],
+  "actualPrepareOnly": {
+    "status": "prepared_only_no_processes_started",
+    "commands": {
+      "fixture": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-fixture",
+      "app": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-abci",
+      "client": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-client",
+      "comet": "/Users/huangjiahao/Library/Caches/go-build/60/60d991c4fe429e6fe942ebbcb7447a059328c6bcafbe9b09acd263db658bd840-d/cometbft",
+      "host": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/same-control-comparison-pyU7WH/cached/ynx-consensus-perf-host"
+    },
+    "count": 256,
+    "rounds": 4,
+    "senderMode": "ready-pool",
+    "inclusionMode": "block-scan",
+    "terminalStream": false,
+    "reuseResultSlots": false,
+    "stateLayout": "block-journal",
+    "totalTransactions": 1024,
+    "offeredRate": 512,
+    "caps": {
+      "activeMs": 45000,
+      "cleanupMs": 15000,
+      "dataBytes": 33554432,
+      "rssBytes": 1073741824,
+      "freeDiskFloorBytes": 1073741824,
+      "rootDiskReserveBytes": 445644800,
+      "longLivedChildren": 9,
+      "threadsWithControlReserve": 320,
+      "fullHostSampleMs": 1000,
+      "logBytesPerProcess": 1048576,
+      "clientTimeout": "10s",
+      "clientConcurrency": 4,
+      "clientObservers": 4,
+      "gomaxprocs": 1,
+      "gogc": "100",
+      "gomemlimit": "off"
+    },
+    "ports": {
+      "p2p": 31656,
+      "rpc": 31757,
+      "abci": 31858
+    }
+  },
+  "genesisPolicy": {
+    "chainId": "ynx_6423-1",
+    "initialHeight": "2",
+    "validatorCount": 4,
+    "equalVotingPower": [
+      "1",
+      "1",
+      "1",
+      "1"
+    ],
+    "consensusParams": {
+      "block": {
+        "max_bytes": "22020096",
+        "max_gas": "-1"
+      },
+      "evidence": {
+        "max_age_num_blocks": "100000",
+        "max_age_duration": "172800000000000",
+        "max_bytes": "1048576"
+      },
+      "validator": {
+        "pub_key_types": [
+          "ed25519"
+        ]
+      },
+      "version": {
+        "app": "19"
+      },
+      "abci": {
+        "vote_extensions_enable_height": "0"
+      }
+    },
+    "freshRandomKeysAndGenesisEachRun": true,
+    "reuseBaselineData": false
+  },
+  "topology": {
+    "loopbackOnly": true,
+    "fullyConnectedValidators": 4,
+    "p2p": [
+      31656,
+      31657,
+      31658,
+      31659
+    ],
+    "rpc": [
+      31757,
+      31758,
+      31759,
+      31760
+    ],
+    "abci": [
+      31858,
+      31859,
+      31860,
+      31861
+    ]
+  },
+  "resourceProposal": {
+    "heavySlots": 1,
+    "build": false,
+    "activeMs": 45000,
+    "cleanupMs": 15000,
+    "clientTimeoutMs": 10000,
+    "ownedRSSCapBytes": 1073741824,
+    "baselineObservedPeakRSSBytes": 551845888,
+    "maxDataBytes": 33554432,
+    "baselineObservedPeakDataBytes": 22335488,
+    "maxThreads": 320,
+    "maxLongLivedChildren": 9,
+    "logicalCPUs": 10,
+    "gomaxprocsPerProcess": 1,
+    "cpuPeakMeasured": null,
+    "peakCPUInterpretation": "GOMAXPROCS is per process; no hard whole-job CPU quota. Reserve one heavy host slot.",
+    "newDiskAllocationBudgetBytes": 33554432,
+    "minimumFreeAdmissionBytes": 1552941056
+  },
+  "freshHost": {
+    "at": "2026-10-18T03:19:12.872Z",
+    "pressure": "kern.memorystatus_vm_pressure_level: 2",
+    "freeDiskBytes": 15883808768,
+    "loadAverage": [
+      11.671875,
+      13.5087890625,
+      13.7412109375
+    ],
+    "vmStatRaw": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                    11397.\nPages active:                                 276557.\nPages inactive:                               384412.\nPages speculative:                              3781.\nPages throttled:                                   0.\nPages wired down:                             254315.\nPages purgeable:                                5342.\n\"Translation faults\":                     1908688093.\nPages copy-on-write:                       117948384.\nPages zero filled:                        1104951710.\nPages reactivated:                         107030004.\nPages purged:                                7503837.\nFile-backed pages:                            287123.\nAnonymous pages:                              377627.\nPages stored in compressor:                  1136388.\nPages occupied by compressor:                 608943.\nDecompressions:                             85327215.\nCompressions:                              146838182.\nPageins:                                    40676944.\nPageouts:                                      46410.\nSwapins:                                      292940.\nSwapouts:                                     736024.\n",
+    "actualCompilers": [],
+    "portListenerCheck": {
+      "code": 1,
+      "stdout": "",
+      "stderr": ""
+    }
+  },
+  "admission": {
+    "currentPressureAccepted": false,
+    "reason": "Actual pressure2; original frozen network validator requires1. No exception applied.",
+    "rootSchedulingRequired": true,
+    "eachRunFreshPortsAndNativeFullProbe": true
+  },
+  "acceptance": {
+    "counts": [
+      "input signed unique identities",
+      "offered",
+      "RPC submitted",
+      "CheckTx identity accepted/rejected/unknown",
+      "code0 inclusion",
+      "effective business inclusion",
+      "weighted-commit quorum verified",
+      "qualified client final with durable published fee/nonce readback"
+    ],
+    "latencies": [
+      "submission-to-effective-inclusion P50/P95/P99",
+      "submission-to-qualified-client-final P50/P95/P99",
+      "offer-to-qualified-client-final via per-row monotonic queue+final spans P50/P95/P99"
+    ],
+    "postStop": "Retain all databases; separately scheduled existing stopped replay/account readback for all four nodes. Unknown outcomes never retried.",
+    "cleanup": "Original SIGINT then owned-group SIGKILL within15s; require every original child/probe exited/groupGone; independent original PID/group/birth and all12 ports checked twice."
+  },
+  "limits": [
+    "Configured offer512/s cannot qualify1000TPS; this pair isolates observer verification-cache effect only.",
+    "Random fixtures and shared-host conditions differ; report sample variation, no unearned causal or sustained claim.",
+    "JS readback matches full signed bytes/hash/nonce identities and report gates; does not independently authenticate signatures or BFT.",
+    "No newProtocol execution, public chain, real accounts/funds, data reset, automatic second window, ten-minute or10000TPS claim."
+  ],
+  "consumerSourcePins": {
+    "scripts/loadtest/same-control-readback.mjs": "eb98d77b0b8241f3b771a2ba6e4c7bd6c2e79ae1986f4b11760158da53a60970",
+    "scripts/loadtest/same-control-readback.test.mjs": "2b09009b95670fe38cde3dc6b9a338c4b62f2260283c13bd799d62e7dcca2123"
+  },
+  "consumerLightControls": {
+    "groupsPassed": 3,
+    "rejectionMutations": 12,
+    "command": "node --test --test-reporter=dot scripts/loadtest/same-control-readback.test.mjs",
+    "unsignedFormatFixturesNotCryptographicProof": true
+  },
+  "postStopProofRecipe": {
+    "status": "not_executed_separate_Root_window_required",
+    "entry": "scripts/loadtest/consensus-light-window.mjs",
+    "arguments": [
+      "--stopped-window",
+      "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-network-performance/window-eEfGE7",
+      "--execute",
+      "--output",
+      "NEW_EXCLUSIVE_ROOT_APPROVED_RECEIPT.json"
+    ],
+    "retainedBinary": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/partial-reconciliation-client.test",
+      "sha256": "a77ce29169a4277df163a4cb4b156e32f7a7d3cf2b99bb75d1a6ae66853a19cc"
+    },
+    "selector": "^(TestStoppedNetworkReplay|TestStoppedReadySenderAccountReadback)$",
+    "scope": "Original stopped temporary data only; no Go compilation, RPC, node restart or resubmission.",
+    "nativePressureGate": 1,
+    "ownedRSSBytes": 419430400,
+    "activeMs": 45000,
+    "cleanupMs": 15000,
+    "beforeAfterIdentity": {
+      "before": "Immediately before actual offline admission, verify original PID/group retirement and all12 ports, then capture actual relative path/dev/inode/size/mtime/SHA256 of manifest, migration, signed inputs, all4 genesis/config/ABCI state files and every regular blockstore.db file. Reject symlinks, new live owner, changing inventory or mismatch with parent identities.",
+      "after": "Re-inventory the same original files after proof and require exact identities/bytes; retain new proof outputs separately. Do not interpret a copied database, recreated path or changed same-name file as the original.",
+      "unmeasured": true
+    },
+    "outputs": [
+      "stopped-replay.json",
+      "ready-account-readback.json"
+    ],
+    "acceptance": [
+      "4 actual node blockstores read-only",
+      "genesis-weighted VerifyCommitLight signatures for every retained committed block",
+      "no unexpected or duplicated signed workload identity",
+      "actual application replay of every business input",
+      "full canonical state byte equality and exact balances/nonces/fee history",
+      "same original store identities/bytes before and after"
+    ],
+    "unknownIfNotRun": true
+  }
+}

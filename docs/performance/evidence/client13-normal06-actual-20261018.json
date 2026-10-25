@@ -1,0 +1,117 @@
+{
+  "case": "client13-normal-06",
+  "rawPath": "artifacts/chain-performance-20261017/client13-normal-20261018-06.json",
+  "rawSha256": "c434a2e1ba3dac5dcfced405f06bc1d1f0393c29d1150006bf580b9c4b4bc459",
+  "startedAt": "2026-10-18T03:02:37.863Z",
+  "launcher": 80364,
+  "controllerSession": 84109,
+  "terminalCode": 1,
+  "elapsedMs": 25677,
+  "sourceChecks": [
+    {
+      "head": "0455638b01fec857e9a12920633daf8240f8e099",
+      "sourceCommit": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "1614f4ad2bc419612f3aba5bde492ad24a9920b6"
+      }
+    },
+    {
+      "head": "0455638b01fec857e9a12920633daf8240f8e099",
+      "sourceCommit": "aa25500bdb13c52e56133ec0876651257cf31a1a",
+      "pins": {
+        "go.mod": "b9d7b1000986dad89c87ca0a1e1758636b5f6cdc",
+        "go.sum": "4d4aa4b7ef8b33d85552eb5dc2f862efd268d4b2",
+        "internal": "d39b4a8aeff715292e54cd82a49241f80ac55e89",
+        "cmd/ynx-consensus-perf-client": "1614f4ad2bc419612f3aba5bde492ad24a9920b6"
+      }
+    }
+  ],
+  "actualGoArgs": [
+    "-n",
+    "10",
+    "/opt/homebrew/bin/go",
+    "test",
+    "-p",
+    "1",
+    "./cmd/ynx-consensus-perf-client",
+    "-run",
+    "^(TestReadyIntentSegmentsPersistAndStreamExactSignedInputs|TestReadyIntentSegmentsNeverRetryFailedOrUncertainPersistence|TestReadyIntentSegmentsRejectMissingCorruptAndWrongBinding|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadySenderSegmentedIntentFailureNeverSubmits|TestReadyIntentFormatSelectionRejectsMixedMissingAndEscapedReceipts|TestSegmentedIntentOptionsRequireBoundedEvidenceMode|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderReadbackBindsFixtureAndRecoversOnlyCompleteIdentities|TestReadyIntentPrefixRetainsOnlyWholeValidatedWaves|TestReadyIntentPrefixWithoutReportNeverPromotesUnknownToAcknowledged|TestReadyIntentSharedSegmentDecoderRejectsWrongPrefix|TestReadyIntentPartialSelectionRequiresPlanAndNeverDowngradesAcknowledgedCorruption)$",
+    "-count=1",
+    "-timeout=21137ms",
+    "-v"
+  ],
+  "ownedRSSCapBytes": 536870912,
+  "cacheBefore": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3361669120,
+      11753926656
+    ],
+    "totalBytes": 15115595776,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cacheAfter": {
+    "paths": [
+      "/Users/huangjiahao/Library/Caches/go-build",
+      "/Users/huangjiahao/go/pkg/mod"
+    ],
+    "bytes": [
+      3367419904,
+      11753926656
+    ],
+    "totalBytes": 15121346560,
+    "method": "du -sk actual original cache occupancy; paths from read-only go env after normal admission; no cache copied/deleted/redirected"
+  },
+  "cachePhases": [
+    {
+      "startedAt": "2026-10-18T03:02:37.965Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 29897,
+      "endedAt": "2026-10-18T03:02:46.724Z"
+    },
+    {
+      "startedAt": "2026-10-18T03:02:55.189Z",
+      "timeoutMs": 12000,
+      "remainingActiveMs": 12673,
+      "endedAt": "2026-10-18T03:03:03.444Z"
+    }
+  ],
+  "cacheNetGrowthBytes": 5750784,
+  "go": {
+    "pid": 81655,
+    "code": null,
+    "signal": "SIGKILL",
+    "stdout": "",
+    "stderr": "",
+    "exited": true
+  },
+  "actualPassedFunctions": [],
+  "firstCause": "native resource probe failed: native resource probe ETIMEDOUT",
+  "peakRSS": 404684800,
+  "peakThreads": 16,
+  "peakScratchBytes": 34013184,
+  "exitedDuringSample": [],
+  "failedProbes": [
+    {
+      "startedAt": "2026-10-18T03:02:53.442Z",
+      "pid": 84418,
+      "status": null,
+      "signal": "SIGKILL",
+      "error": "native resource probe ETIMEDOUT",
+      "stdout": "",
+      "stderr": "",
+      "exited": true,
+      "groupGone": true,
+      "elapsedMs": 1634.5496250000015
+    }
+  ],
+  "groupGone": true,
+  "retryExecuted": false,
+  "interpretation": "Repaired candidate Go started; native resource probe timed out and original guard killed Go. No test output, no new PASS; prior 05 passes do not establish repaired candidate success."
+}

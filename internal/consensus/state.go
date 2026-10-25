@@ -1,22 +1,23 @@
 package consensus
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/assetauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 )
 
-const CommittedStateVersion = 14
+const CommittedStateVersion = 18
 
 type BFTNativeTransfer struct {
 	TransactionHash string    `json:"transactionHash"`
@@ -28,10 +29,31 @@ type BFTNativeTransfer struct {
 	CommittedAt     time.Time `json:"committedAt"`
 }
 
+// Native transfer execution borrows committed records. Inserting into a slice
+// with spare capacity must not shift that committed backing array during
+// CheckTx, proposal execution, or an unacknowledged Commit.
+func insertNativeTransferReceipt(records []BFTNativeTransfer, receipt BFTNativeTransfer) []BFTNativeTransfer {
+	owned := append([]BFTNativeTransfer(nil), records...)
+	return insertPayRecord(owned, receipt, func(v BFTNativeTransfer) string { return v.TransactionHash })
+}
+
 // CommittedState is the durable ABCI application state. Height is persisted
 // for restart recovery but excluded from AppHash because empty blocks do not
 // change application state.
 type CommittedState struct {
+	bootstrap                  *ConsensusBootstrap
+	ValidatorRegistry          *ValidatorRegistryState         `json:"validatorRegistry,omitempty"`
+	PQEngineSchedule           *PQEngineSchedule               `json:"pqEngineSchedule,omitempty"`
+	LegacyContracts            *LegacyContracts                `json:"legacyContracts,omitempty"`
+	LegacyResourceMarket       *LegacyResourceMarket           `json:"legacyResourceMarket,omitempty"`
+	LegacyResourceSponsor      *LegacyResourceSponsor          `json:"legacyResourceSponsor,omitempty"`
+	LegacyPaySource            *LegacyPaySource                `json:"legacyPaySource,omitempty"`
+	LegacyAISource             *LegacyAISource                 `json:"legacyAISource,omitempty"`
+	LegacyTrustSource          *LegacyTrustSource              `json:"legacyTrustSource,omitempty"`
+	TraceLots                  map[string]chain.TrustTraceLot  `json:"traceLots,omitempty"`
+	AccountPolicy              *ynxauth.State                  `json:"accountPolicy,omitempty"`
+	PQHistory                  []PQCommittedAuthorization      `json:"pqHistory,omitempty"`
+	PQBatches                  map[string]PQCommittedBatch     `json:"pqBatches,omitempty"`
 	Version                    int                             `json:"version"`
 	ChainID                    int64                           `json:"chainId"`
 	MigrationStateHash         string                          `json:"migrationStateHash"`
@@ -40,6 +62,14 @@ type CommittedState struct {
 	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
 	FeeEvents                  []BFTFeeEvent                   `json:"feeEvents"`
 	NativeTransfers            []BFTNativeTransfer             `json:"nativeTransfers,omitempty"`
+	StrategyMandates           []assetauth.StrategyMandate     `json:"strategyMandates"`
+	StrategyVaults             []assetauth.StrategyVault       `json:"strategyVaults"`
+	AssetAuditEvents           []BFTAssetAuditEvent            `json:"assetAuditEvents"`
+	SmartAccounts              []assetauth.SmartAccount        `json:"smartAccounts"`
+	Paymasters                 []BFTPaymaster                  `json:"paymasters"`
+	UserOperationEvents        []BFTUserOperationEvent         `json:"userOperationEvents"`
+	StakeDelegations           []BFTStakeDelegation            `json:"stakeDelegations"`
+	Unbondings                 []BFTUnbondingEntry             `json:"unbondings"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
 	AIActions                  []BFTAIAction                   `json:"aiActions"`
 	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
@@ -82,6 +112,18 @@ type CommittedState struct {
 }
 
 type committedStateHashDocument struct {
+	ValidatorRegistry          *ValidatorRegistryState         `json:"validatorRegistry,omitempty"`
+	PQEngineSchedule           *PQEngineSchedule               `json:"pqEngineSchedule,omitempty"`
+	LegacyContracts            *LegacyContracts                `json:"legacyContracts,omitempty"`
+	LegacyResourceMarket       *LegacyResourceMarket           `json:"legacyResourceMarket,omitempty"`
+	LegacyResourceSponsor      *LegacyResourceSponsor          `json:"legacyResourceSponsor,omitempty"`
+	LegacyPaySource            *LegacyPaySource                `json:"legacyPaySource,omitempty"`
+	LegacyAISource             *LegacyAISource                 `json:"legacyAISource,omitempty"`
+	LegacyTrustSource          *LegacyTrustSource              `json:"legacyTrustSource,omitempty"`
+	TraceLots                  map[string]chain.TrustTraceLot  `json:"traceLots,omitempty"`
+	AccountPolicy              *ynxauth.State                  `json:"accountPolicy,omitempty"`
+	PQHistory                  []PQCommittedAuthorization      `json:"pqHistory,omitempty"`
+	PQBatches                  map[string]PQCommittedBatch     `json:"pqBatches,omitempty"`
 	Domain                     string                          `json:"domain"`
 	Version                    int                             `json:"version"`
 	ChainID                    int64                           `json:"chainId"`
@@ -89,6 +131,14 @@ type committedStateHashDocument struct {
 	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
 	FeeEvents                  []BFTFeeEvent                   `json:"feeEvents,omitempty"`
 	NativeTransfers            []BFTNativeTransfer             `json:"nativeTransfers,omitempty"`
+	StrategyMandates           []assetauth.StrategyMandate     `json:"strategyMandates,omitempty"`
+	StrategyVaults             []assetauth.StrategyVault       `json:"strategyVaults,omitempty"`
+	AssetAuditEvents           []BFTAssetAuditEvent            `json:"assetAuditEvents,omitempty"`
+	SmartAccounts              []assetauth.SmartAccount        `json:"smartAccounts,omitempty"`
+	Paymasters                 []BFTPaymaster                  `json:"paymasters,omitempty"`
+	UserOperationEvents        []BFTUserOperationEvent         `json:"userOperationEvents,omitempty"`
+	StakeDelegations           []BFTStakeDelegation            `json:"stakeDelegations,omitempty"`
+	Unbondings                 []BFTUnbondingEntry             `json:"unbondings,omitempty"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
 	AIActions                  []BFTAIAction                   `json:"aiActions"`
 	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
@@ -131,7 +181,20 @@ type committedStateHashDocument struct {
 
 func initialCommittedState(migration chain.ConsensusMigrationState) CommittedState {
 	dexAssets, dexBalances, dexPools, dexEvents := dexStateFromMigration(migration)
+	contracts, _ := migrationContracts(migration)     // Constructor validates closure before this projection.
+	trustSource, _ := migrationTrustSource(migration) // Validate propagates source errors; this is not execution admission.
+	if contracts == nil {
+		contracts = []BFTContract{}
+	}
 	return CommittedState{
+		LegacyContracts:            migrationLegacyContracts(migration),
+		LegacyResourceMarket:       migrationResourceMarket(migration),
+		LegacyResourceSponsor:      migrationResourceSponsor(migration),
+		LegacyPaySource:            migrationPaySource(migration),
+		LegacyAISource:             migrationAISource(migration),
+		LegacyTrustSource:          trustSource,
+		TraceLots:                  migrationTraceLots(migration),
+		AccountPolicy:              cloneConsensusAccountPolicy(migration.AccountPolicy),
 		Version:                    CommittedStateVersion,
 		ChainID:                    migration.Network.ChainID,
 		MigrationStateHash:         migration.StateHash,
@@ -140,6 +203,14 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		Accounts:                   cloneAccounts(migration.Accounts),
 		FeeEvents:                  []BFTFeeEvent{},
 		NativeTransfers:            []BFTNativeTransfer{},
+		StrategyMandates:           []assetauth.StrategyMandate{},
+		StrategyVaults:             []assetauth.StrategyVault{},
+		AssetAuditEvents:           []BFTAssetAuditEvent{},
+		SmartAccounts:              []assetauth.SmartAccount{},
+		Paymasters:                 []BFTPaymaster{},
+		UserOperationEvents:        []BFTUserOperationEvent{},
+		StakeDelegations:           []BFTStakeDelegation{},
+		Unbondings:                 []BFTUnbondingEntry{},
 		AIPermissions:              []BFTAIPermission{},
 		AIActions:                  []BFTAIAction{},
 		AIAuditEvents:              []BFTAIAuditEvent{},
@@ -156,7 +227,7 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		ResourceIncome:             []BFTResourceIncome{},
 		ResourceEvents:             []BFTResourceEvent{},
 		ResourceIdempotency:        []BFTResourceIdempotency{},
-		ResourcePools:              []BFTResourcePool{},
+		ResourcePools:              migrationResourcePools(migration),
 		ResourceSponsorships:       []BFTResourceSponsorship{},
 		ResourceSponsorIdempotency: []BFTResourceSponsorIdempotency{},
 		ResourceSponsorActionRefs:  []BFTResourceSponsorActionRef{},
@@ -168,7 +239,7 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		TrustEvidence:              []BFTTrustEvidence{},
 		TrackingReviews:            []BFTTrackingReview{},
 		Transparency:               []BFTTransparencyEntry{},
-		Contracts:                  []BFTContract{},
+		Contracts:                  contracts,
 		EVMReceipts:                []BFTEVMReceipt{},
 		EVMLogs:                    []BFTEVMLog{},
 		IDEIdempotency:             []BFTIDEIdempotency{},
@@ -183,15 +254,49 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 }
 
 func sealCommittedState(migration chain.ConsensusMigrationState, height int64, execution executionState) (CommittedState, error) {
+	witness, err := newValidatedMigration(migration, execution.bootstrap)
+	if err != nil {
+		return CommittedState{}, err
+	}
+	execution.bootstrap = witness.bootstrap
+	return sealCommittedStateOwned(witness, height, execution)
+}
+
+func sealCommittedStateOwned(witness *validatedMigration, height int64, execution executionState) (CommittedState, error) {
+	if err := witness.binds(execution.bootstrap); err != nil {
+		return CommittedState{}, err
+	}
+	migration := witness.migration
 	state := CommittedState{
+		bootstrap:                  execution.bootstrap,
+		ValidatorRegistry:          cloneValidatorRegistry(execution.validatorRegistry),
+		PQEngineSchedule:           clonePQEngineSchedule(execution.pqEngineSchedule),
+		LegacyContracts:            cloneLegacyContracts(execution.legacyContracts),
+		LegacyResourceMarket:       cloneLegacyResourceMarket(execution.legacyResourceMarket),
+		LegacyResourceSponsor:      cloneLegacyResourceSponsor(execution.legacyResourceSponsor),
+		LegacyPaySource:            cloneLegacyPaySource(execution.legacyPaySource),
+		LegacyAISource:             cloneLegacyAISource(execution.legacyAISource),
+		LegacyTrustSource:          cloneLegacyTrustSource(execution.legacyTrustSource),
+		TraceLots:                  cloneTraceLots(execution.traceLots),
+		AccountPolicy:              cloneConsensusAccountPolicy(execution.accountPolicy),
+		PQHistory:                  clonePQHistory(execution.pqHistory),
+		PQBatches:                  cloneConsensusPQBatches(execution.pqBatches),
 		Version:                    CommittedStateVersion,
 		ChainID:                    migration.Network.ChainID,
 		MigrationStateHash:         migration.StateHash,
 		Initialized:                true,
 		Height:                     height,
-		Accounts:                   cloneAccounts(execution.accounts),
-		FeeEvents:                  append([]BFTFeeEvent(nil), execution.feeEvents...),
+		Accounts:                   cloneExecutionAccounts(execution),
 		NativeTransfers:            append([]BFTNativeTransfer(nil), execution.nativeTransfers...),
+		FeeEvents:                  execution.feeEvents.events(),
+		StrategyMandates:           cloneStrategyMandates(execution.strategyMandates),
+		StrategyVaults:             cloneStrategyVaults(execution.strategyVaults),
+		AssetAuditEvents:           append([]BFTAssetAuditEvent(nil), execution.assetAuditEvents...),
+		SmartAccounts:              cloneSmartAccounts(execution.smartAccounts),
+		Paymasters:                 clonePaymasters(execution.paymasters),
+		UserOperationEvents:        append([]BFTUserOperationEvent(nil), execution.userOperationEvents...),
+		StakeDelegations:           append([]BFTStakeDelegation(nil), execution.stakeDelegations...),
+		Unbondings:                 cloneUnbondings(execution.unbondings),
 		AIPermissions:              cloneAIPermissions(execution.permissions),
 		AIActions:                  cloneAIActions(execution.actions),
 		AIAuditEvents:              append([]BFTAIAuditEvent(nil), execution.auditEvents...),
@@ -229,9 +334,21 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		DexAssets:                  append([]BFTDexAsset(nil), execution.dexAssets...),
 		DexBalances:                append([]BFTDexBalance(nil), execution.dexBalances...),
 		DexPools:                   cloneDexPools(execution.dexPools),
-		DexEvents:                  append([]BFTDexEvent(nil), execution.dexEvents...),
+		DexEvents:                  cloneBFTDexEvents(execution.dexEvents),
 	}
-	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() {
+	if execution.hashVersion != 0 {
+		if execution.hashVersion < 7 || execution.hashVersion > 13 || state.ValidatorRegistry != nil || state.PQEngineSchedule != nil || state.TraceLots != nil || state.AccountPolicy != nil || state.LegacyPaySource != nil || state.LegacyAISource != nil || state.LegacyTrustSource != nil || len(state.PQHistory)+len(state.PQBatches)+len(state.NativeTransfers) != 0 {
+			return CommittedState{}, errors.New("historical replay cannot activate or erase protocol state")
+		}
+		state.Version = execution.hashVersion
+	}
+	if state.ValidatorRegistry != nil {
+		state.Version = ValidatorRegistryStateVersion
+	}
+	if state.PQEngineSchedule != nil {
+		state.Version = PQEngineScheduleStateVersion
+	}
+	if accountsEqual(state.Accounts, migration.Accounts) && !state.hasApplicationRecords() && sameConsensusPolicy(state.AccountPolicy, migration.AccountPolicy) {
 		state.AppHash = migration.StateHash
 	} else {
 		hash, err := state.calculateHash()
@@ -240,18 +357,70 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		}
 		state.AppHash = hash
 	}
-	if err := state.Validate(migration); err != nil {
+	if err := state.validateOwned(witness); err != nil {
 		return CommittedState{}, err
 	}
 	return state, nil
 }
 
 func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error {
-	if err := migration.Validate(); err != nil {
+	witness, err := newValidatedMigration(migration, s.bootstrap)
+	if err != nil {
 		return fmt.Errorf("invalid migration anchor: %w", err)
 	}
-	if s.Version != CommittedStateVersion {
+	s.bootstrap = witness.bootstrap
+	return s.validateOwned(witness)
+}
+
+// This entry accepts only the owned anchor, never an external migration plus a flag.
+func (s CommittedState) validateOwned(witness *validatedMigration) error {
+	if err := witness.binds(s.bootstrap); err != nil {
+		return err
+	}
+	migration := witness.migration
+	if err := validateHistoricalStateFields(s, migration); err != nil {
+		return err
+	}
+	if !supportedCommittedStateVersion(s.Version) {
 		return fmt.Errorf("unsupported committed state version %d", s.Version)
+	}
+	if (s.PQEngineSchedule != nil) != (s.Version == 17 || s.Version == PQEngineScheduleStateVersion) {
+		return errors.New("committed engine schedule requires its explicit state version")
+	}
+	if err := validateValidatorRegistryStateOwned(s, witness); err != nil {
+		return err
+	}
+	if err := validatePQEngineSchedule(s.PQEngineSchedule, s.bootstrap, s.ValidatorRegistry, s.Height); err != nil {
+		return err
+	}
+	if s.PQEngineSchedule != nil {
+		if _, err := newPQEngineSnapshot(s.bootstrap, s.ValidatorRegistry, s.PQEngineSchedule, s.Height); err != nil {
+			return err
+		}
+	}
+	if err := validateConsensusPQState(s, migration); err != nil {
+		return err
+	}
+	if err := validateMigrationTraceLots(s, migration); err != nil {
+		return err
+	}
+	if err := validateLegacyResourceSponsor(s, migration); err != nil {
+		return err
+	}
+	if err := validateLegacyResourceMarket(s.LegacyResourceMarket, s, migration); err != nil {
+		return err
+	}
+	if err := validateLegacyContracts(s, migration); err != nil {
+		return err
+	}
+	if err := validateLegacyPaySource(s.LegacyPaySource, s, migration); err != nil {
+		return err
+	}
+	if err := validateLegacyAISource(s.LegacyAISource, s, migration); err != nil {
+		return err
+	}
+	if err := validateLegacyTrustSource(s.LegacyTrustSource, s, migration); err != nil {
+		return err
 	}
 	if s.ChainID != migration.Network.ChainID || s.MigrationStateHash != migration.StateHash {
 		return errors.New("committed state does not match its YNX migration anchor")
@@ -259,7 +428,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if s.Height < int64(migration.Height) {
 		return fmt.Errorf("committed height %d precedes migrated height %d", s.Height, migration.Height)
 	}
-	if !s.Initialized && (s.Height != int64(migration.Height) || !accountsEqual(s.Accounts, migration.Accounts) || s.hasNonMigrationApplicationRecords() || !committedDexMatchesMigration(s, migration) || !strings.EqualFold(s.AppHash, migration.StateHash)) {
+	if !s.Initialized && (s.Height != int64(migration.Height) || !accountsEqual(s.Accounts, migration.Accounts) || (s.Version >= 15 && !sameInitialTraceLots(s.TraceLots, migrationTraceLots(migration))) || s.hasNonMigrationApplicationRecords() || !committedDexMatchesMigration(s, migration) || !strings.EqualFold(s.AppHash, migration.StateHash)) {
 		return errors.New("uninitialized committed state must exactly match the migration anchor")
 	}
 	if len(s.Accounts) == 0 {
@@ -335,6 +504,24 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err := validateIDECommittedState(s); err != nil {
 		return err
 	}
+	if err := validateConsensusPQResources(s, migration); err != nil {
+		return err
+	}
+	if err := validateConsensusPQDex(s, migration); err != nil {
+		return err
+	}
+	if err := validateConsensusPQContracts(s, migration); err != nil {
+		return err
+	}
+	if err := validateConsensusPQNativeActions(s, migration); err != nil {
+		return err
+	}
+	if err := validateConsensusPQEthereumValues(s, migration); err != nil {
+		return err
+	}
+	if err := validatePQOrderedResourceUsage(s, migration); err != nil {
+		return err
+	}
 	if err := validateFeeEvents(s.FeeEvents); err != nil {
 		return err
 	}
@@ -345,14 +532,48 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err != nil {
 		return err
 	}
-	if liquid > math.MaxInt64-staked || liquid+staked > math.MaxInt64-dexNativeEscrow || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
+	if err := validateAssetAuthorizationState(s.StrategyMandates, s.StrategyVaults, s.AssetAuditEvents); err != nil {
+		return err
+	}
+	paymasterLocked, err := validateAccountAbstractionState(s.SmartAccounts, s.Paymasters, s.UserOperationEvents, s.FeeEvents)
+	if err != nil {
+		return err
+	}
+	if err := validateAccountAbstractionPolicyState(s); err != nil {
+		return err
+	}
+	for _, account := range s.SmartAccounts {
+		if _, exists := accountIndex(s.Accounts, account.Address); !exists {
+			return errors.New("smart account does not have a chain account")
+		}
+	}
+	for _, paymaster := range s.Paymasters {
+		if _, exists := accountIndex(s.Accounts, paymaster.Policy.Sponsor); !exists {
+			return errors.New("paymaster sponsor does not have a chain account")
+		}
+	}
+	var vaultLiquid int64
+	for _, vault := range s.StrategyVaults {
+		if vault.BalanceYNXT > math.MaxInt64 || vaultLiquid > math.MaxInt64-int64(vault.BalanceYNXT) {
+			return errors.New("strategy vault YNXT total overflows int64")
+		}
+		vaultLiquid += int64(vault.BalanceYNXT)
+	}
+	if err := validateStakingState(s, migration); err != nil {
+		return err
+	}
+	unbonding, err := pendingUnbondingSupply(s.Unbondings)
+	if err != nil {
+		return err
+	}
+	if paymasterLocked > math.MaxInt64 || liquid > math.MaxInt64-staked || liquid+staked > math.MaxInt64-vaultLiquid || liquid+staked+vaultLiquid > math.MaxInt64-unbonding || liquid+staked+vaultLiquid+unbonding > math.MaxInt64-int64(paymasterLocked) || liquid+staked+vaultLiquid+unbonding+int64(paymasterLocked) > math.MaxInt64-dexNativeEscrow || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
 		return errors.New("committed or migration total YNXT supply overflows int64")
 	}
-	if liquid+staked+dexNativeEscrow != migration.LiquidSupplyYNXT+migration.StakedSupplyYNXT {
+	if liquid+staked+vaultLiquid+unbonding+int64(paymasterLocked)+dexNativeEscrow != migration.LiquidSupplyYNXT+migration.StakedSupplyYNXT {
 		return errors.New("committed state changed total liquid plus staked YNXT supply")
 	}
 	expected := migration.StateHash
-	if s.Initialized && (!accountsEqual(s.Accounts, migration.Accounts) || s.hasApplicationRecords()) {
+	if s.Initialized && (!accountsEqual(s.Accounts, migration.Accounts) || s.hasApplicationRecords() || !sameConsensusPolicy(s.AccountPolicy, migration.AccountPolicy)) {
 		var err error
 		expected, err = s.calculateHash()
 		if err != nil {
@@ -365,12 +586,40 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	return nil
 }
 
-func (s CommittedState) calculateHash() (string, error) {
-	return s.calculateHashFor("YNX_ABCI_STATE_V14", CommittedStateVersion)
+// TraceLots is omitempty: an empty source inventory serializes identically to
+// nil and decodes as nil. This equivalence is limited to zero entries; a
+// nonempty initial inventory must preserve every source field exactly.
+func sameInitialTraceLots(left, right map[string]chain.TrustTraceLot) bool {
+	if len(left) == 0 && len(right) == 0 {
+		return true
+	}
+	return reflect.DeepEqual(left, right)
 }
 
+func (s CommittedState) calculateHash() (string, error) {
+	if !supportedCommittedStateVersion(s.Version) {
+		return "", fmt.Errorf("unsupported committed state version %d", s.Version)
+	}
+	return s.calculateHashFor(fmt.Sprintf("YNX_ABCI_STATE_V%d", s.Version), s.Version)
+}
+
+func supportedCommittedStateVersion(version int) bool { return version >= 7 && version <= 20 }
+
 func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
-	doc := committedStateHashDocument{
+	value, err := hashCommittedStateDocument(s.hashDocument(domain, version))
+	if err != nil {
+		return "", fmt.Errorf("encode committed state hash document: %w", err)
+	}
+	return value, nil
+}
+
+func (s CommittedState) hashDocument(domain string, version int) committedStateHashDocument {
+	return committedStateHashDocument{
+		ValidatorRegistry: s.ValidatorRegistry, PQEngineSchedule: s.PQEngineSchedule,
+		LegacyContracts: s.LegacyContracts, LegacyResourceMarket: s.LegacyResourceMarket, LegacyResourceSponsor: s.LegacyResourceSponsor,
+		LegacyPaySource: s.LegacyPaySource, LegacyAISource: s.LegacyAISource, LegacyTrustSource: s.LegacyTrustSource,
+		TraceLots: s.TraceLots, AccountPolicy: s.AccountPolicy, PQHistory: s.PQHistory, PQBatches: s.PQBatches,
+
 		Domain:                     domain,
 		Version:                    version,
 		ChainID:                    s.ChainID,
@@ -378,6 +627,14 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 		Accounts:                   s.Accounts,
 		FeeEvents:                  s.FeeEvents,
 		NativeTransfers:            s.NativeTransfers,
+		StrategyMandates:           s.StrategyMandates,
+		StrategyVaults:             s.StrategyVaults,
+		AssetAuditEvents:           s.AssetAuditEvents,
+		SmartAccounts:              s.SmartAccounts,
+		Paymasters:                 s.Paymasters,
+		UserOperationEvents:        s.UserOperationEvents,
+		StakeDelegations:           s.StakeDelegations,
+		Unbondings:                 s.Unbondings,
 		AIPermissions:              s.AIPermissions,
 		AIActions:                  s.AIActions,
 		AIAuditEvents:              s.AIAuditEvents,
@@ -417,28 +674,49 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 		DexPools:                   s.DexPools,
 		DexEvents:                  s.DexEvents,
 	}
-	payload, err := json.Marshal(doc)
-	if err != nil {
-		return "", fmt.Errorf("encode committed state hash document: %w", err)
-	}
-	sum := sha256.Sum256(payload)
-	return hex.EncodeToString(sum[:]), nil
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.FeeEvents)+len(s.NativeTransfers)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PaySettlements)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit)+len(s.DexAssets)+len(s.DexBalances)+len(s.DexPools)+len(s.DexEvents) != 0
+	resourcePools := 0
+	for _, pool := range s.ResourcePools {
+		if pool.SourceAnchor == "" || pool.LastAction != "" {
+			resourcePools++
+		}
+	}
+	if s.ValidatorRegistry != nil || s.PQEngineSchedule != nil || len(s.PQHistory) != 0 || len(s.PQBatches) != 0 || s.LegacyTrustSource != nil && len(s.LegacyTrustSource.Updates) != 0 {
+		return true
+	}
+	return len(s.StrategyMandates)+len(s.StrategyVaults)+len(s.AssetAuditEvents)+len(s.SmartAccounts)+len(s.Paymasters)+len(s.UserOperationEvents)+len(s.StakeDelegations)+len(s.Unbondings)+len(s.FeeEvents)+len(s.NativeTransfers)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PaySettlements)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+resourcePools+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit)+len(s.DexAssets)+len(s.DexBalances)+len(s.DexPools)+len(s.DexEvents) != 0
 }
 
 func (s CommittedState) hasNonMigrationApplicationRecords() bool {
 	copy := s
 	copy.DexAssets, copy.DexBalances, copy.DexPools, copy.DexEvents = nil, nil, nil, nil
+	copy.ResourcePools = nil
+	for _, pool := range s.ResourcePools {
+		if pool.SourceAnchor == "" || pool.LastAction != "" {
+			return true
+		}
+	}
+	copy.Contracts = nil
+	for _, contract := range s.Contracts {
+		if contract.SourceAnchor == "" || contract.LastCallTxHash != "" {
+			return true
+		}
+	}
 	return copy.hasApplicationRecords()
 }
 
 func validateFeeEvents(events []BFTFeeEvent) error {
 	seen := make(map[string]struct{}, len(events))
 	for _, event := range events {
-		if event.ID == "" || event.PolicyVersion != FeePolicyVersion || event.TxHash == "" || event.TransactionType == "" || !IsNativeAddress(event.Payer) || strings.TrimSpace(event.Recipient) == "" || event.GrossFeeYNXT <= 0 || event.BurnYNXT < 0 || event.ValidatorYNXT < 0 || event.ProviderYNXT < 0 || event.ProtocolYNXT < 0 || event.TreasuryYNXT < 0 || event.Source != FixedFeeSource || event.BlockHeight <= 0 || event.RecordedAt.IsZero() || event.AuditHash != feeEventAuditHash(event) {
+		isEthereumType := event.TransactionType == EthereumLegacyTransferType || event.TransactionType == EthereumAccessListTransferType || event.TransactionType == EthereumDynamicFeeTransferType || event.TransactionType == PQEthereumValueType
+		sourceValid := (event.TransactionType == EthereumLegacyTransferType && event.Source == EthereumLegacyGasFeeSource) ||
+			(event.TransactionType == EthereumAccessListTransferType && event.Source == EthereumAccessListGasFeeSource) ||
+			(event.TransactionType == EthereumDynamicFeeTransferType && event.Source == EthereumDynamicFeeGasFeeSource) ||
+			(event.TransactionType == PQEthereumValueType && event.Source == PQEthereumGasFeeSource) ||
+			(!isEthereumType && event.Source == FixedFeeSource)
+		if event.ID == "" || event.PolicyVersion != FeePolicyVersion || event.TxHash == "" || event.TransactionType == "" || !IsNativeAddress(event.Payer) || strings.TrimSpace(event.Recipient) == "" || event.GrossFeeYNXT <= 0 || event.BurnYNXT < 0 || event.ValidatorYNXT < 0 || event.ProviderYNXT < 0 || event.ProtocolYNXT < 0 || event.TreasuryYNXT < 0 || !sourceValid || event.BlockHeight <= 0 || event.RecordedAt.IsZero() || event.AuditHash != feeEventAuditHash(event) {
 			return errors.New("committed fee events must be complete and audit-bound")
 		}
 		if event.BurnYNXT+event.ValidatorYNXT+event.ProviderYNXT+event.ProtocolYNXT+event.TreasuryYNXT != event.GrossFeeYNXT {
@@ -577,12 +855,32 @@ func settlementStatus(value string) bool {
 }
 
 func loadCommittedState(path string, migration chain.ConsensusMigrationState) (CommittedState, error) {
+	return loadCommittedStateWithBootstrap(path, migration, nil)
+}
+
+func loadCommittedStateWithBootstrap(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap) (CommittedState, error) {
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return CommittedState{}, err
+	}
+	return loadCommittedStateOwned(path, witness)
+}
+
+func loadCommittedStateOwned(path string, witness *validatedMigration) (CommittedState, error) {
+	if err := witness.valid(); err != nil {
+		return CommittedState{}, err
+	}
+	migration, bootstrap := witness.migration, witness.bootstrap
 	if strings.TrimSpace(path) == "" {
-		return initialCommittedState(migration), nil
+		state := initialCommittedState(migration)
+		state.bootstrap = bootstrap
+		return state, nil
 	}
 	info, err := os.Stat(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return initialCommittedState(migration), nil
+		state := initialCommittedState(migration)
+		state.bootstrap = bootstrap
+		return state, nil
 	}
 	if err != nil {
 		return CommittedState{}, fmt.Errorf("stat committed state: %w", err)
@@ -598,68 +896,87 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 	if err := json.Unmarshal(payload, &state); err != nil {
 		return CommittedState{}, fmt.Errorf("decode committed state: %w", err)
 	}
-	if state.Version == 13 {
-		expected := migration.StateHash
-		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
-			expected, err = state.calculateHashFor("YNX_ABCI_STATE_V13", 13)
-			if err != nil {
-				return CommittedState{}, fmt.Errorf("calculate v13 committed state hash: %w", err)
-			}
-		}
-		if !strings.EqualFold(state.AppHash, expected) {
-			return CommittedState{}, errors.New("v13 committed state app hash is invalid")
-		}
-		state.Version = CommittedStateVersion
-		state.FeeEvents = []BFTFeeEvent{}
-		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
-			state.AppHash, err = state.calculateHash()
-			if err != nil {
-				return CommittedState{}, fmt.Errorf("migrate v13 committed state hash: %w", err)
-			}
-		}
+	state.bootstrap = bootstrap
+	if err := validateHistoricalStateFields(state, migration); err != nil {
+		return CommittedState{}, err
 	}
-	if state.Version == 8 {
-		expected := migration.StateHash
-		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
-			expected, err = state.calculateHashFor("YNX_ABCI_STATE_V8", 8)
-			if err != nil {
-				return CommittedState{}, fmt.Errorf("calculate v8 committed state hash: %w", err)
-			}
-		}
-		if !strings.EqualFold(state.AppHash, expected) {
-			return CommittedState{}, errors.New("v8 committed state app hash is invalid")
-		}
-		state.Version = CommittedStateVersion
-		state.FeeEvents = []BFTFeeEvent{}
-		state.DexAssets = []BFTDexAsset{}
-		state.DexBalances = []BFTDexBalance{}
-		state.DexPools = []BFTDexPool{}
-		state.DexEvents = []BFTDexEvent{}
-		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
-			state.AppHash, err = state.calculateHash()
-			if err != nil {
-				return CommittedState{}, fmt.Errorf("migrate v8 committed state hash: %w", err)
-			}
-		}
-	}
-	if err := state.Validate(migration); err != nil {
+	if err := state.validateOwned(witness); err != nil {
 		return CommittedState{}, fmt.Errorf("validate committed state: %w", err)
 	}
 	return state, nil
 }
 
 func saveCommittedState(path string, state CommittedState, migration chain.ConsensusMigrationState) error {
+	return saveCommittedStateWithHooksAndTimings(path, state, migration, nil, nil)
+}
+
+func saveCommittedStateWithHooks(path string, state CommittedState, migration chain.ConsensusMigrationState, hooks *committedPersistenceHooks) error {
+	return saveCommittedStateWithHooksAndTimings(path, state, migration, hooks, nil)
+}
+
+func saveCommittedStateWithTimings(path string, state CommittedState, migration chain.ConsensusMigrationState, timings *commitTimings) error {
+	return saveCommittedStateWithHooksAndTimings(path, state, migration, nil, timings)
+}
+
+// commitTimings is opt-in, local instrumentation of the actual durable write.
+// A nil recorder avoids clock reads and allocation in normal operation.
+type commitTimings struct {
+	stages  map[string]time.Duration
+	bytes   int
+	onStage func(string) // nil except explicit owned resource probes
+}
+
+func (t *commitTimings) start() time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	return time.Now()
+}
+
+func (t *commitTimings) mark(stage string, started time.Time) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	now := time.Now()
+	if t.stages == nil {
+		t.stages = make(map[string]time.Duration)
+	}
+	t.stages[stage] = now.Sub(started)
+	if t.onStage != nil {
+		t.onStage(stage)
+	}
+	return now
+}
+
+func saveCommittedStateWithHooksAndTimings(path string, state CommittedState, migration chain.ConsensusMigrationState, hooks *committedPersistenceHooks, timings *commitTimings) error {
 	if strings.TrimSpace(path) == "" {
 		return nil
 	}
-	if err := state.Validate(migration); err != nil {
+	witness, err := newValidatedMigration(migration, state.bootstrap)
+	if err != nil {
 		return err
 	}
-	payload, err := json.MarshalIndent(state, "", "  ")
+	state.bootstrap = witness.bootstrap
+	return saveCommittedStateOwned(path, state, witness, hooks, timings)
+}
+
+func saveCommittedStateOwned(path string, state CommittedState, witness *validatedMigration, hooks *committedPersistenceHooks, timings *commitTimings) error {
+	if strings.TrimSpace(path) == "" {
+		return nil
+	}
+	started := timings.start()
+	if err := state.validateOwned(witness); err != nil {
+		return err
+	}
+	started = timings.mark("validate", started)
+	payload, err := encodeCommittedStateJSON(state)
 	if err != nil {
 		return fmt.Errorf("encode committed state: %w", err)
 	}
-	payload = append(payload, '\n')
+	if timings != nil {
+		timings.bytes = len(payload)
+	}
+	started = timings.mark("json_encode", started)
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create committed state directory: %w", err)
@@ -674,28 +991,34 @@ func saveCommittedState(path string, state CommittedState, migration chain.Conse
 		_ = temp.Close()
 		return fmt.Errorf("secure committed state temp file: %w", err)
 	}
+	started = timings.mark("prepare_file", started)
 	if _, err := temp.Write(payload); err != nil {
 		_ = temp.Close()
 		return fmt.Errorf("write committed state temp file: %w", err)
 	}
+	started = timings.mark("write", started)
 	if err := temp.Sync(); err != nil {
 		_ = temp.Close()
 		return fmt.Errorf("sync committed state temp file: %w", err)
 	}
+	started = timings.mark("file_sync", started)
 	if err := temp.Close(); err != nil {
 		return fmt.Errorf("close committed state temp file: %w", err)
+	}
+	started = timings.mark("close_file", started)
+	if hooks != nil && hooks.beforeRename != nil {
+		if err := hooks.beforeRename(); err != nil {
+			return fmt.Errorf("before committed state rename: %w", err)
+		}
 	}
 	if err := os.Rename(tempPath, path); err != nil {
 		return fmt.Errorf("replace committed state: %w", err)
 	}
-	directory, err := os.Open(dir)
-	if err == nil {
-		err = directory.Sync()
-		_ = directory.Close()
+	started = timings.mark("rename", started)
+	if err := syncCommittedDirectory(dir, hooks); err != nil {
+		return fmt.Errorf("%w: sync committed state directory: %w", ErrCommittedStateDurabilityUncertain, err)
 	}
-	if err != nil {
-		return fmt.Errorf("sync committed state directory: %w", err)
-	}
+	timings.mark("directory_sync", started)
 	return nil
 }
 
@@ -713,6 +1036,17 @@ func cloneAccounts(accounts []chain.ConsensusAccount) []chain.ConsensusAccount {
 
 func cloneAIPermissions(permissions []BFTAIPermission) []BFTAIPermission {
 	return append([]BFTAIPermission(nil), permissions...)
+}
+
+func cloneUnbondings(values []BFTUnbondingEntry) []BFTUnbondingEntry {
+	out := append([]BFTUnbondingEntry(nil), values...)
+	for i := range out {
+		if out[i].WithdrawnAt != nil {
+			value := *out[i].WithdrawnAt
+			out[i].WithdrawnAt = &value
+		}
+	}
+	return out
 }
 
 func cloneAIActions(actions []BFTAIAction) []BFTAIAction {

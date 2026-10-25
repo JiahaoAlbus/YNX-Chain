@@ -4,6 +4,31 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 
 bash -n scripts/verify/verify-testnet.sh
+bash -n scripts/verify/replication-proof.sh
+
+# shellcheck source=replication-proof.sh
+source scripts/verify/replication-proof.sh
+
+if ynx_replication_proof_matches "" "" "" ""; then
+  echo "replication proof must reject an all-empty observation"
+  exit 1
+fi
+if ynx_replication_proof_matches "0" "hash-a" "hash-a" "hash-a"; then
+  echo "replication proof must reject height zero"
+  exit 1
+fi
+if ynx_replication_proof_matches "42" "hash-a" "hash-b" "hash-a"; then
+  echo "replication proof must reject a replica hash mismatch"
+  exit 1
+fi
+if ynx_replication_proof_matches "42" "hash-a" "hash-a" "hash-b"; then
+  echo "replication proof must reject a primary hash mismatch"
+  exit 1
+fi
+ynx_replication_proof_matches "42" "hash-a" "hash-a" "hash-a" || {
+  echo "replication proof rejected a valid canonical hash observation"
+  exit 1
+}
 
 required_patterns=(
   "StrictHostKeyChecking=yes"
@@ -55,6 +80,7 @@ required_patterns=(
   "r.localBlockHash===r.sourceBlockHash"
   "replica_hash"
   "primary_hash"
+  "ynx_replication_proof_matches"
   "replicationReadOnly"
 )
 

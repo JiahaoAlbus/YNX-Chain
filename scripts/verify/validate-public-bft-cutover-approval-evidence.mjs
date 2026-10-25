@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 
 import fs from "node:fs";
+import { isSingleAppCustody, singleAppCustodyProfile } from "./lib/owner-handover.mjs";
+import { caddySourceIdentity, authoritativeIdentity, authoritativeRoleIdentities, operatorPreparationPin } from "./lib/public-bft-native-source.mjs";
 
 function fail(message) {
   throw new Error(`public BFT cutover approval evidence rejected: ${message}`);
 }
 
 const [approvalPath, expectedCommit, expectedRelease] = process.argv.slice(2);
+const preparation = process.argv[5] === "--prepare-native";
+if (process.argv.length !== (preparation ? 6 : 5)) fail("unexpected approval evidence mode/arguments");
 if (!approvalPath || !expectedCommit || !expectedRelease) fail("approval evidence path, commit, and release are required");
 if (!/^[0-9a-f]{12}$/.test(expectedCommit) || expectedRelease !== `ynx-bft-gateway-${expectedCommit}`) fail("expected identity is invalid");
 const stat = fs.statSync(approvalPath);
@@ -18,6 +22,16 @@ try {
   fail(`approval evidence is not valid JSON: ${error.message}`);
 }
 if (approval.schemaVersion !== 1 || approval.action !== "ynx-public-bft-cutover" || approval.approved !== true || approval.commit !== expectedCommit || approval.release !== expectedRelease) fail("approval evidence identity mismatch");
+const nativeIdentity = authoritativeIdentity(approval);
+const nativeRoles = authoritativeRoleIdentities(approval);
+const caddySource = caddySourceIdentity(approval);
+const preparationPlanPin = operatorPreparationPin(approval, preparation);
+if (preparation) {
+  if (Object.hasOwn(approval, "caddySource")) fail("preparation cannot authorize a future final-plan Caddy source manifest");
+  if (!nativeIdentity.authoritativeCommit || approval.preparationOnly !== true || Object.hasOwn(approval, "snapshotSourceSha256")) fail("native preparation requires explicit preparationOnly and no future snapshot source pin");
+} else if (Object.hasOwn(approval, "preparationOnly")) fail("preparation approval cannot authorize export, initialization or cutover");
+const singleApp = isSingleAppCustody(approval);
+if (singleApp && ["serviceSignerRecoveryVerified", "serviceSignerManifestSha256"].some(key => Object.hasOwn(approval, key))) fail("single-App approval evidence cannot assert service signer recovery or identity");
 if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(approval.approvalId || "") || typeof approval.approver !== "string" || approval.approver.trim().length < 3) fail("approval evidence attribution is invalid");
 if (typeof approval.custodyReviewer !== "string" || approval.custodyReviewer.trim().length < 3 || approval.custodyReviewer.trim().toLowerCase() === approval.approver.trim().toLowerCase()) fail("approval evidence independent custody attribution is invalid");
 if (typeof approval.custodyEvidence !== "string" || !/^sha256:[0-9a-f]{64}$/.test(approval.custodyEvidence.trim())) fail("approval evidence custody review hash is invalid");
@@ -25,12 +39,19 @@ const participants = [approval.approver, approval.custodyReviewer, approval.owne
 if (participants.some((value) => value.length < 3) || new Set(participants).size !== participants.length) fail("approval evidence role separation is invalid");
 if (!/^sha256:[0-9a-f]{64}$/.test(approval.ownerHandoverInventoryDigest || "") || !/^sha256:[0-9a-f]{64}$/.test(approval.ownerHandoverInventoryEvidence || "") || !/^sha256:[0-9a-f]{64}$/.test(approval.ownerHandoverReceiptEvidence || "")) fail("approval owner handover evidence is invalid");
 if (approval.publicCutoverAuthorized !== true || approval.automaticRollbackRequired !== true) fail("automatic rollback is not authorized");
-if (approval.validatorKeyRecoveryVerified !== true || approval.serviceSignerRecoveryVerified !== true || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("approval evidence custody recovery is incomplete");
-if (!/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("approval evidence service signer manifest checksum is invalid");
+if (approval.validatorKeyRecoveryVerified !== true || (!singleApp && approval.serviceSignerRecoveryVerified !== true) || approval.ownerHandoverVerified !== true || approval.rotationProcedureVerified !== true) fail("approval evidence custody recovery is incomplete");
+if (!singleApp && !/^[0-9a-f]{64}$/.test(approval.serviceSignerManifestSha256 || "")) fail("approval evidence service signer manifest checksum is invalid");
 if (!/^[0-9a-f]{64}$/.test(approval.validatorManifestSha256 || "")) fail("validator manifest checksum is invalid");
-if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(approval.candidateGenesisTime || "")) fail("candidate genesis time is invalid");
+for (const field of ["runtimeManifestSha256", "exporterManifestSha256", ...(!preparation ? ["operatorPlanSha256", "snapshotSourceSha256"] : [])]) {
+  const value = approval[field];
+  if (typeof value !== "string" || !/^[0-9a-f]{64}$/.test(value) || /^0{64}$/.test(value)) {
+    fail(`${field} must preserve an independent nonzero lowercase SHA256 from the original approval`);
+  }
+}
+if (!preparation && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(approval.candidateGenesisTime || "")) fail("candidate genesis time is invalid");
 if (!Number.isFinite(Date.parse(approval.expiresAt || ""))) fail("approval expiry is invalid");
 process.stdout.write(`${JSON.stringify({
+  ...(singleApp ? { custodyProfile: singleAppCustodyProfile } : {}),
   schemaVersion: 1,
   action: "ynx-public-bft-cutover",
   approved: true,
@@ -45,15 +66,24 @@ process.stdout.write(`${JSON.stringify({
   ownerHandoverReceiptEvidence: approval.ownerHandoverReceiptEvidence,
   commit: expectedCommit,
   release: expectedRelease,
+  ...nativeIdentity,
+  ...nativeRoles,
+  ...caddySource,
+  ...(preparation ? {preparationOnly: true} : {}),
   publicCutoverAuthorized: true,
   automaticRollbackRequired: true,
   validatorKeyRecoveryVerified: true,
-  serviceSignerRecoveryVerified: true,
+  ...(!singleApp ? { serviceSignerRecoveryVerified: true } : {}),
   ownerHandoverVerified: true,
   rotationProcedureVerified: true,
-  serviceSignerManifestSha256: approval.serviceSignerManifestSha256,
+  ...(!singleApp ? { serviceSignerManifestSha256: approval.serviceSignerManifestSha256 } : {}),
   validatorManifestSha256: approval.validatorManifestSha256,
-  candidateGenesisTime: approval.candidateGenesisTime,
+  ...(preparationPlanPin ? {operatorPreparationPlanSha256: preparationPlanPin} : {}),
+  ...(!preparation ? {operatorPlanSha256: approval.operatorPlanSha256} : {}),
+  runtimeManifestSha256: approval.runtimeManifestSha256,
+  ...(!preparation ? {snapshotSourceSha256: approval.snapshotSourceSha256} : {}),
+  exporterManifestSha256: approval.exporterManifestSha256,
+  ...(!preparation ? {candidateGenesisTime: approval.candidateGenesisTime} : {}),
   expiresAt: approval.expiresAt,
   validated: true,
 })}\n`);

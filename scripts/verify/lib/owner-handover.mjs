@@ -3,6 +3,12 @@ import fs from "node:fs";
 
 export const validatorRoles = Object.freeze(["primary", "singapore", "silicon-valley", "seoul"]);
 export const serviceRoles = Object.freeze(["faucet", "ai", "pay", "trust", "resource"]);
+export const singleAppCustodyProfile = "single-app-gateway/v1";
+export function isSingleAppCustody(value) {
+  if (!Object.hasOwn(value, "custodyProfile")) return false;
+  if (value.custodyProfile !== singleAppCustodyProfile) throw new Error("unsupported explicit custody profile");
+  return true;
+}
 export const recordKeys = Object.freeze([
   "id", "category", "identityType", "publicIdentity", "publicAlias", "secondaryPublicIdentity", "role", "environment",
   "custodyLocationClass", "fundingState", "recoveryStatus", "rotationStatus", "remoteInstallStatus", "handoverStatus", "handoverRequired",
@@ -57,6 +63,7 @@ export function normalizeRecord(record) {
 
 export function inventoryCore(inventory) {
   return {
+    ...(isSingleAppCustody(inventory) ? { custodyProfile: singleAppCustodyProfile } : {}),
     schemaVersion: inventory.schemaVersion,
     purpose: inventory.purpose,
     commit: inventory.commit,
@@ -68,14 +75,18 @@ export function inventoryCore(inventory) {
 }
 
 export function validateInventory(inventory, expectedCommit) {
+  const singleApp = isSingleAppCustody(inventory);
   const allowed = ["schemaVersion", "purpose", "commit", "generatedAt", "sources", "records", "readiness", "inventoryDigest"];
+  if (singleApp) allowed.push("custodyProfile");
   if (Object.keys(inventory).sort().join(",") !== allowed.sort().join(",")) throw new Error("owner handover inventory has unexpected fields");
   assertNoSecretFields(inventory, "owner handover inventory");
   if (inventory.schemaVersion !== 1 || inventory.purpose !== "ynx-owner-handover-public-inventory" || inventory.commit !== expectedCommit || !Number.isFinite(Date.parse(inventory.generatedAt || ""))) throw new Error("owner handover inventory identity is invalid");
-  const sourceKeys = ["validatorManifestSha256", "serviceSignerManifestSha256", "serviceSignerStatusSha256", "operationalCatalogSha256"];
+  const sourceKeys = singleApp
+    ? ["validatorManifestSha256", "operatorPlanSha256", "runtimeManifestSha256"]
+    : ["validatorManifestSha256", "serviceSignerManifestSha256", "serviceSignerStatusSha256", "operationalCatalogSha256"];
   if (!inventory.sources || Object.keys(inventory.sources).sort().join(",") !== sourceKeys.sort().join(",")) throw new Error("owner handover inventory source binding is invalid");
-  for (const key of sourceKeys) if (!/^[0-9a-f]{64}$/.test(inventory.sources[key] || "")) throw new Error(`owner handover inventory source ${key} is invalid`);
-  if (!Array.isArray(inventory.records) || inventory.records.length < 9) throw new Error("owner handover inventory records are incomplete");
+  for (const key of sourceKeys) if (typeof inventory.sources[key] !== "string" || !/^[0-9a-f]{64}$/.test(inventory.sources[key]) || (singleApp && /^0{64}$/.test(inventory.sources[key]))) throw new Error(`owner handover inventory source ${key} is invalid`);
+  if (!Array.isArray(inventory.records) || (singleApp ? inventory.records.length !== 4 : inventory.records.length < 9)) throw new Error("owner handover inventory records are incomplete");
   inventory.records = inventory.records.map(normalizeRecord);
   if (new Set(inventory.records.map((record) => record.id)).size !== inventory.records.length) throw new Error("owner handover inventory record IDs are not distinct");
   if (new Set(inventory.records.map((record) => `${record.identityType}:${record.publicIdentity}`)).size !== inventory.records.length) throw new Error("owner handover public identities are not distinct");
@@ -83,6 +94,8 @@ export function validateInventory(inventory, expectedCommit) {
   const serviceSignerCount = inventory.records.filter((record) => record.category === "service-signer").length;
   const handoverRequiredCount = inventory.records.filter((record) => record.handoverRequired).length;
   const unknownOwnershipCount = inventory.records.filter((record) => record.category === "external-or-unknown").length;
+  if (singleApp && inventory.records.some((record, index) => record.category !== "production-validator" || record.role !== validatorRoles[index] || record.publicAlias !== `ynx_validator_${record.role.replaceAll("-", "_")}` || record.handoverRequired !== true)) throw new Error("single-App custody requires every original validator role exactly once");
+  if (singleApp && new Set(inventory.records.map(record => record.secondaryPublicIdentity)).size !== 4) throw new Error("single-App P2P identities must be distinct");
   const expectedReadiness = {
     recordCount: inventory.records.length,
     validatorCount,
@@ -92,11 +105,11 @@ export function validateInventory(inventory, expectedCommit) {
     offlineRecoveryVerified: false,
     ownerHandoverVerified: false,
     rotationProcedureVerified: false,
-    remoteServiceSignerInstallCompleted: false,
+    ...(!singleApp ? { remoteServiceSignerInstallCompleted: false } : {}),
     independentCustodyReviewVerified: false,
     publicBFTReady: false,
   };
-  if (JSON.stringify(inventory.readiness) !== JSON.stringify(expectedReadiness) || validatorCount !== 4 || serviceSignerCount !== 5 || handoverRequiredCount !== 9) throw new Error("owner handover inventory readiness boundary is invalid");
+  if (JSON.stringify(inventory.readiness) !== JSON.stringify(expectedReadiness) || validatorCount !== 4 || serviceSignerCount !== (singleApp ? 0 : 5) || handoverRequiredCount !== (singleApp ? 4 : 9)) throw new Error("owner handover inventory readiness boundary is invalid");
   const digest = sha256(`${JSON.stringify(inventoryCore(inventory))}\n`);
   if (inventory.inventoryDigest !== `sha256:${digest}`) throw new Error("owner handover inventory digest mismatch");
   return inventory;
