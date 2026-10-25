@@ -188,31 +188,9 @@ func walletRevocationEffects(s CommittedState, migration chain.ConsensusMigratio
 // JSON is a Wallet projection, not State's persistence encoding. All policy
 // integers are decimal strings so JSON.parse cannot round a uint64. Full public
 // keys and the original genesis identity use canonical lowercase hexadecimal.
-type pqWalletPolicyJSON struct {
-	Version     string                   `json:"version"`
-	NetworkID   string                   `json:"networkId"`
-	EnableAt    uint64                   `json:"enableAt,string"`
-	Records     []pqWalletRecordJSON     `json:"records"`
-	Revocations []pqWalletRevocationJSON `json:"revocations,omitempty"`
-}
-type pqWalletRecordJSON struct {
-	AlgorithmVersion string `json:"algorithmVersion"`
-	Owner            string `json:"owner"`
-	PKA              string `json:"pkA"`
-	PKB              string `json:"pkB"`
-	Revision         uint64 `json:"revision,string"`
-	RegisteredAt     uint64 `json:"registeredAt,string"`
-	ActiveFrom       uint64 `json:"activeFrom,string"`
-	LedgerNonce      uint64 `json:"ledgerNonce,string"`
-}
-type pqWalletRevocationJSON struct {
-	Owner               string `json:"owner"`
-	AuthorizingRevision uint64 `json:"authorizingRevision,string"`
-	ThroughRevision     uint64 `json:"throughRevision,string"`
-	RegisteredAt        uint64 `json:"registeredAt,string"`
-	RevokedFrom         uint64 `json:"revokedFrom,string"`
-	LedgerNonce         uint64 `json:"ledgerNonce,string"`
-}
+type pqWalletPolicyJSON = ynxauth.WalletPolicyProjection
+type pqWalletRecordJSON = ynxauth.WalletPolicyRecordProjection
+type pqWalletRevocationJSON = ynxauth.WalletPolicyRevocationProjection
 type pqWalletAccountAlias PQWalletAccountView
 type pqWalletAccountJSON struct {
 	*pqWalletAccountAlias

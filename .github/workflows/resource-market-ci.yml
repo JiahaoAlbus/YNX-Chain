@@ -94,6 +94,8 @@ on:
       - 'scripts/fixtures/verify-pq-wallet-restored/**'
       - 'scripts/fixtures/verify-artifact-release-cabi/**'
       - 'scripts/verify/artifact-release-cabi-check.sh'
+      - 'scripts/fixtures/verify-transaction-batch-cabi/**'
+      - 'scripts/verify/transaction-batch-cabi-check.sh'
       - 'scripts/fixtures/verify-project-control-cabi/**'
       - 'scripts/verify/project-control-cabi-check.sh'
       - 'scripts/verify/seal-project-control-cabi.py'
@@ -372,6 +374,12 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/verify/artifact-release-cabi-check.sh "$RUNNER_TEMP/ynx-artifact-release-cabi"
+      - name: Execute Wallet transaction ABI from the same native archive
+        run: |
+          set -euo pipefail
+          bash scripts/verify/transaction-batch-cabi-check.sh \
+            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \
+            "$RUNNER_TEMP/ynx-transaction-batch-cabi"
       - name: Verify the executed original Main arm64 target
         if: runner.os == 'macOS'
         run: |
@@ -383,6 +391,7 @@ jobs:
           test "$(go env GOARCH)" = arm64
           lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" -verify_arch arm64
           lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64
+          lipo "$RUNNER_TEMP/ynx-transaction-batch-cabi/tx-c-driver" -verify_arch arm64
           # The immediately preceding real C call executed this exact archive
           # on the original Main target. No cross-compiled runtime claim.
       - name: Install pinned contract runtime for Darwin migration callers
@@ -421,6 +430,7 @@ jobs:
           import hashlib, json, os, shutil, stat, subprocess
           from pathlib import Path
           case = Path(os.environ['RUNNER_TEMP']) / 'ynx-artifact-release-cabi'
+          transaction_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-transaction-batch-cabi'
           delivery = case / 'delivery'
           delivery.mkdir(mode=0o700)
           def command(*args):
@@ -437,9 +447,10 @@ jobs:
           module = json.loads(command('go', 'list', '-m', '-json', 'github.com/cloudflare/circl'))
           if module.get('Version') != 'v1.6.5' or module.get('Replace'):
               raise RuntimeError('original fixed provider dependency required')
-          source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch', 'internal/accountaddress',
+          source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch', 'internal/ynxauth', 'internal/accountaddress',
               'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-artifact-release-cabi',
-              'scripts/verify/artifact-release-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()
+              'scripts/fixtures/verify-transaction-batch-cabi', 'scripts/verify/artifact-release-cabi-check.sh',
+              'scripts/verify/transaction-batch-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()
           sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}
           native_os, native_arch = command('go','env','GOOS'), command('go','env','GOARCH')
           targets = [('native-host', case / 'libynx_artifact_release.a', native_os, native_arch, True)]
@@ -449,13 +460,16 @@ jobs:
               targets.append(('darwin-arm64', case / 'libynx_artifact_release.a', 'darwin', 'arm64', True))
           public_names = ('PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json')
           public_pins = {name:pin(case / 'output' / name) for name in public_names}
+          transaction_public_pins = {'TX-'+name:pin(transaction_case / 'input' / name) for name in public_names}
           for label, archive, target_os, target_arch, executed in targets:
               out = delivery / label
               out.mkdir(mode=0o700)
               shutil.copyfile(archive, out / 'libynx_artifact_release.a')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/ynx_artifact_release.h', out / 'ynx_artifact_release.h')
+              shutil.copyfile('cmd/ynx-artifact-release-cabi/tx_batch.h', out / 'tx_batch.h')
               for name in public_names:
                   shutil.copyfile(case / 'output' / name, out / name)
+                  shutil.copyfile(transaction_case / 'input' / name, out / ('TX-'+name))
               record = dict(version='YNX-ARTIFACT-RELEASE-CABI-CANDIDATE/v1', commit=os.environ['GITHUB_SHA'],
                   sourceTree=command('git','rev-parse','HEAD^{tree}'), runId=os.environ['GITHUB_RUN_ID'],
                   runAttempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'],
@@ -470,6 +484,10 @@ jobs:
                   suite='ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512',
                   archive=pin(out / 'libynx_artifact_release.a'), header=pin(out / 'ynx_artifact_release.h'),
                   publicEvidence=public_pins, publicEvidenceTarget=dict(os=native_os, arch=native_arch),
+                  transactionABI='YNXTransactionBatchSignV1', transactionABIVersion=1,
+                  transactionHeader=pin(out / 'tx_batch.h'), transactionPublicEvidence=transaction_public_pins,
+                  actualTransactionCABIExecuted=executed, transactionIndependentGoDualANDVerified=executed,
+                  transactionCallerRecipe='scripts/verify/transaction-batch-cabi-check.sh', transactionAccountAuthorized=False,
                   nativeHostCoreTestsPassed=True, actualCABIExecuted=executed,
                   independentGoDualANDVerified=executed, typedN1Inspected=executed,
                   crossCompiled=(not executed and (target_os,target_arch)!=(native_os,native_arch)),
@@ -492,9 +510,12 @@ jobs:
           path: |
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/libynx_artifact_release.a
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/ynx_artifact_release.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/tx_batch.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/SOURCE.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PUBLIC-RECEIPT.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PUBLIC-INTEROP.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/TX-PUBLIC-RECEIPT.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/TX-PUBLIC-INTEROP.json
           if-no-files-found: error
           retention-days: 7
       - name: Upload only public Main arm64 archive header and executed target evidence
@@ -505,7 +526,10 @@ jobs:
           path: |
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/libynx_artifact_release.a
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/ynx_artifact_release.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/tx_batch.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/SOURCE.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/TX-PUBLIC-RECEIPT.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/TX-PUBLIC-INTEROP.json
           if-no-files-found: error
           retention-days: 7
 
