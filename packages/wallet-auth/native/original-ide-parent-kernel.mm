@@ -43,17 +43,23 @@ NSString *actualNodeParentResources(){
  NSBundle *bundle=[NSBundle bundleWithPath:app];NSString *resources=bundle.resourceURL.path;
  if(!bundle.resourceURL.isFileURL||![bundle.bundleIdentifier isEqual:@"com.ynxweb4.developer.testnetpreview"]||![bundle.executableURL.path isEqual:parent.image]||![self.image isEqual:[resources stringByAppendingPathComponent:@"runtime/node"]])throw std::runtime_error("IDE_NODE_ACTUAL_PARENT_BUNDLE_MISMATCH");return resources;
 }
-bool actualNodeEntry(NSString *resources,NSString *entryFileURL){
+static bool originalProcessEntry(pid_t pid,NSString *resources,NSString *entryFileURL,bool strictNodeImage=false){
  NSURL *url=[NSURL URLWithString:entryFileURL];NSString *entry=[resources stringByAppendingPathComponent:@"server.mjs"];
  if(!url.isFileURL||url.host.length||url.query.length||url.fragment.length||![url.path isEqual:entry])return false;
- int mib[]={CTL_KERN,KERN_PROCARGS2,getpid()};size_t length=0;
+ int mib[]={CTL_KERN,KERN_PROCARGS2,pid};size_t length=0;
  if(sysctl(mib,3,nullptr,&length,nullptr,0)||length<8||length>262144)return false;
  std::vector<char>raw(length);if(sysctl(mib,3,raw.data(),&length,nullptr,0))return false;
  int argc=0;std::memcpy(&argc,raw.data(),sizeof(argc));if(argc!=2)return false;
  size_t at=sizeof(argc);while(at<length&&raw[at])at++;while(at<length&&!raw[at])at++;
  for(int index=0;index<2;index++){size_t start=at;while(at<length&&raw[at])at++;if(at>=length)return false;
-  if(index==1){NSString *observed=[[NSString alloc]initWithBytes:raw.data()+start length:at-start encoding:NSUTF8StringEncoding];if(![observed isEqual:entry])return false;}at++;
+  if(index==1||strictNodeImage){NSString *observed=[[NSString alloc]initWithBytes:raw.data()+start length:at-start encoding:NSUTF8StringEncoding];if(![observed isEqual:index==1?entry:[resources stringByAppendingPathComponent:@"runtime/node"]])return false;}at++;
  }return true;
+}
+bool actualNodeEntry(NSString *resources,NSString *entryFileURL){return originalProcessEntry(getpid(),resources,entryFileURL);}
+bool originalObservedNodeEntry(const KernelProcess&node,NSString *resources){
+ if(node.original.pid<=1||node.original.pid>INT_MAX||node.original.parent!=(uint64_t)getpid()||![node.image isEqual:[resources stringByAppendingPathComponent:@"runtime/node"]])return false;
+ auto first=observeKernel((pid_t)node.original.pid);
+ return sameKernel(node,first)&&originalProcessEntry((pid_t)node.original.pid,resources,[[NSURL fileURLWithPath:[resources stringByAppendingPathComponent:@"server.mjs"]]absoluteString],true)&&sameKernel(first,observeKernel((pid_t)node.original.pid));
 }
 static bool identity(struct stat a,struct stat b){return a.st_dev==b.st_dev&&a.st_ino==b.st_ino&&a.st_mode==b.st_mode&&a.st_uid==b.st_uid&&a.st_gid==b.st_gid&&a.st_nlink==b.st_nlink&&a.st_size==b.st_size&&a.st_mtimespec.tv_sec==b.st_mtimespec.tv_sec&&a.st_mtimespec.tv_nsec==b.st_mtimespec.tv_nsec&&a.st_ctimespec.tv_sec==b.st_ctimespec.tv_sec&&a.st_ctimespec.tv_nsec==b.st_ctimespec.tv_nsec;}
 static bool fileDigest(NSString *path,NSString *expected,ResourceCloseDebt&debt){

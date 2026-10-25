@@ -21,6 +21,8 @@
 #include <vector>
 #include "original-ide-auth-proof-data.h"
 #include "original-auth-source-v2-native-data.h"
+#include "original-ide-project-app-observer.h"
+#include "original-ide-project-app-observer-data.h"
 
 static NSString *SourceSHA(NSData *raw){unsigned char bytes[CC_SHA256_DIGEST_LENGTH];CC_SHA256(raw.bytes,(CC_LONG)raw.length,bytes);NSMutableString *out=[NSMutableString string];for(auto c:bytes)[out appendFormat:@"%02x",c];return out;}
 static bool SourceSame(struct stat a,struct stat b){return a.st_dev==b.st_dev&&a.st_ino==b.st_ino&&a.st_uid==b.st_uid&&a.st_gid==b.st_gid&&a.st_mode==b.st_mode&&a.st_nlink==b.st_nlink&&a.st_size==b.st_size&&a.st_mtimespec.tv_sec==b.st_mtimespec.tv_sec&&a.st_mtimespec.tv_nsec==b.st_mtimespec.tv_nsec&&a.st_ctimespec.tv_sec==b.st_ctimespec.tv_sec&&a.st_ctimespec.tv_nsec==b.st_ctimespec.tv_nsec;}
@@ -42,6 +44,9 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  uint64_t _sequence,_floor,_timeFloor,_cachedCurrentExpiresMS;NSString *_headDigest,*_observationHeight;
  BOOL _relayLocalEntered;
  BOOL _projectLocalEntered,_ideProjectConsumer,_ideControlConsumer,_controlLocalEntered;
+ BOOL _ideAppObserver,_observerFilesPinned;
+ SourceObserverWindow _observerWindow;
+ NSData *_observerMetadata;
  id _controlKeyBorrowToken;BOOL _controlKeyBorrowSelected;
  BOOL _relayRuntimePinned,_relayRuntimeEntered;
  NSData *_relayRuntimeManifestOriginal;
@@ -126,13 +131,13 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 }
 + (instancetype)acquireIDEConsumerWithPurpose:(unsigned)purpose error:(NSError **)error {
  YNXAuthIdentitySourceAuthority *s=[self new];s->_ideRegistry=YES;s->_headDigest=@"";s->_pipeHandles=[NSMutableArray array];s->_pipeStates=[NSMutableArray array];
- s->_ideProjectConsumer=purpose==2;
- s->_custody=purpose==2?[YNXAuthIdentityCurrentOwner acquireOriginalIDEProjectAuthorityProfile:error]:purpose==1?[YNXAuthIdentityCurrentOwner acquireOriginalIDEContractRelayProfile:error]:[YNXAuthIdentityCurrentOwner acquireOriginalIDEConsumerProfile:error];if(!s->_custody)return nil;
+ s->_ideProjectConsumer=purpose==2||purpose==3;s->_ideAppObserver=purpose==3;
+ s->_custody=purpose==3?[YNXAuthIdentityCurrentOwner acquireOriginalIDEProjectObserverProfile:error]:purpose==2?[YNXAuthIdentityCurrentOwner acquireOriginalIDEProjectAuthorityProfile:error]:purpose==1?[YNXAuthIdentityCurrentOwner acquireOriginalIDEContractRelayProfile:error]:[YNXAuthIdentityCurrentOwner acquireOriginalIDEConsumerProfile:error];if(!s->_custody)return nil;
  s->_profileOriginal=[s->_custody copyOriginalProfile:error];s->_headOriginal=[s->_custody copyOriginalHead:error];
  if(s->_profileOriginal&&s->_headOriginal){
   NSDictionary *body=SourceOriginalBodyHint(s->_profileOriginal);id source=body[@"sourceId"];
   if([source isKindOfClass:NSString.class])for(const auto &policy:ynx_auth_private::originalNativeSourceReleases())if(policy.sourceId==[source UTF8String]){s->_policy=&policy;break;}
-  if(s->_policy&&((purpose==1&&s->_policy->purpose!="ide-contract-relay-v1")||(purpose==2&&s->_policy->purpose!="ide-project-authority-v1")))s->_policy=nullptr;
+  if(s->_policy&&((purpose==1&&s->_policy->purpose!="ide-contract-relay-v1")||((purpose==2||purpose==3)&&s->_policy->purpose!="ide-project-authority-v1")))s->_policy=nullptr;
   if(!s->_policy)[s fail:@"AUTH_IDENTITY_NATIVE_ENROLLMENT_NOT_SUPPLIED" error:error];
   else{
    NSString *root=[[s->_custody copyOriginalResourceDirectory:error] stringByAppendingPathComponent:@"original-auth-identity"];
@@ -212,6 +217,49 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "original-ide-project-control-custody-source.inc.mm"
 - (BOOL)assertCurrent:(NSError **)error {return [self assertAuthenticatedNativePurpose:error];}
 - (BOOL)assertAuthenticatedNativePurpose:(NSError **)error {
+ @synchronized(self){if(![self assertAuthenticatedNativePurposeCore:error])return NO;return !_ideAppObserver||[self assertOriginalAppObserver:error];}
+}
+- (BOOL)assertOriginalAppObserver:(NSError**)error {
+ try{@try{
+  using namespace ynx_auth_ide_private;
+  if(!_ideAppObserver||!_policy||_policy->purpose!="ide-project-authority-v1"||![self heldCurrent:error])return NO;
+  const uint64_t now=wallMS(),mono=monotonicMS();
+  id metadata=_selection[@"ideProjectAppObserver"];
+  if(![metadata isKindOfClass:NSDictionary.class])return [self fail:@"IDE_APP_OBSERVER_SIGNED_METADATA_REQUIRED" error:error];
+  uint64_t nodePID=0;if(!SourceProofU64(metadata[@"node"][@"pid"],nodePID,true)||nodePID>INT_MAX)return [self fail:@"IDE_APP_OBSERVER_NODE_IDENTITY_REQUIRED" error:error];
+  auto app=observeKernel(getpid()),node=observeKernel((pid_t)nodePID);
+  NSString*resources=NSBundle.mainBundle.resourceURL.path;
+  uint64_t expires=0;
+  if(![NSBundle.mainBundle.executableURL.path isEqual:app.image]||![NSBundle.mainBundle.bundleIdentifier isEqual:@"com.ynxweb4.developer.testnetpreview"]||!SourceObserverBinding(_selection,app,node,now,_cachedCurrentExpiresMS,expires)||!originalObservedNodeEntry(node,resources))return [self fail:@"IDE_APP_OBSERVER_ACTUAL_BINDING_REQUIRED" error:error];
+  NSData*raw=[NSJSONSerialization dataWithJSONObject:metadata options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];
+  if(!raw||raw.length>16384)return [self fail:@"IDE_APP_OBSERVER_METADATA_CAPACITY" error:error];
+  if(!_observerMetadata)_observerMetadata=[raw copy];
+  if(![_observerMetadata isEqual:raw]||!_observerWindow.observe(now,mono,expires))return [self fail:@"IDE_APP_OBSERVER_FIXED_LIFETIME_EXPIRED" error:error];
+  if(!_observerFilesPinned){
+   for(NSArray*pair in @[@[@"runtime/node",@"nodeSHA256"],@[@"server.mjs",@"entrySHA256"],@[@"build-provenance.json",@"provenanceSHA256"]]){
+    NSString*digest=metadata[pair[1]];
+    if(![self holdPublic:[resources stringByAppendingPathComponent:pair[0]] maximum:134217728 image:NO digest:std::string(digest.UTF8String) error:error])return NO;
+   }_observerFilesPinned=YES;
+  }
+  const uint64_t after=wallMS(),afterMono=monotonicMS();
+  if(!sameKernel(app,observeKernel(getpid()))||!sameKernel(node,observeKernel((pid_t)nodePID))||!_observerWindow.current(after,afterMono)||![self heldCurrent:error])return [self fail:@"IDE_APP_OBSERVER_POST_CURRENT_REFUSED" error:error];
+  if(!_observerWindow.current(wallMS(),monotonicMS()))return [self fail:@"IDE_APP_OBSERVER_POST_CUSTODY_EXPIRED" error:error];
+  return YES;
+ }@catch(id){return [self fail:@"IDE_APP_OBSERVER_CURRENT_UNKNOWN" error:error];}}catch(const std::exception&){return [self fail:@"IDE_APP_OBSERVER_KERNEL_UNKNOWN" error:error];}
+}
+- (NSDictionary*)copyOriginalAppObservedService:(NSError**)error {
+ @synchronized(self){
+  if(!_ideAppObserver||![self assertAuthenticatedNativePurpose:error])return nil;
+  NSDictionary*data=[self copyOriginalIDECurrentServiceRegistration:_selection[@"ideProjectAppObserver"][@"projectId"] error:error];
+  if(!data||![self assertAuthenticatedNativePurpose:error])return nil;
+  NSDictionary*last=[self copyOriginalIDECurrentServiceRegistration:_selection[@"ideProjectAppObserver"][@"projectId"] error:error];
+  if(!last||![last isEqual:data]||![self assertOriginalAppObserver:error])return [self fail:@"IDE_APP_OBSERVER_SERVICE_CHANGED" error:error],nil;
+  uint64_t expiry=0;const uint64_t now=ynx_auth_ide_private::wallMS();
+  if(!SourceProjectMS(data[@"expiresMS"],expiry)||now>=expiry||!_observerWindow.current(now,ynx_auth_ide_private::monotonicMS()))return [self fail:@"IDE_APP_OBSERVER_DATA_RETURN_EXPIRED" error:error],nil;
+  NSMutableDictionary*bounded=[data mutableCopy];bounded[@"expiresMS"]=@(std::min(expiry,_observerWindow.expires));return [bounded copy];
+ }
+}
+- (BOOL)assertAuthenticatedNativePurposeCore:(NSError **)error {
  @synchronized(self){
   if(_entered||_relayLocalEntered||_relayRuntimeEntered||_projectLocalEntered||_controlLocalEntered)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_REENTRANT" error:error];
   if(![self heldCurrent:error])return NO;_entered=YES;
@@ -470,4 +518,23 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   for(auto &file:_files){if(file.selected){if(!file.complete)filesClosed=NO;continue;}file.selected=true;file.complete=::close(file.fd)==0;if(!file.complete)filesClosed=NO;}if(![self closeHeldPipes])filesClosed=NO;
   NSError *cause=nil;BOOL custodyClosed=[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return _cleanupComplete;}
 }
+@end
+
+@implementation YNXIDEProjectServiceObserver {
+ YNXAuthIdentitySourceAuthority *_source;
+ BOOL _retired,_closeSelected,_closed;
+ NSError *_closeCause;
+}
++ (instancetype)acquireOriginalObserver:(NSError**)error {
+ YNXIDEProjectServiceObserver*owner=[self new];NSError*e=nil;
+ owner->_source=[YNXAuthIdentitySourceAuthority acquireIDEConsumerWithPurpose:3 error:&e];
+ // Keep a real cleanup partial; nil/closed is never mistaken for readiness.
+ if(e||!owner->_source){if(error)*error=e?:[NSError errorWithDomain:@"YNXIDEProjectObserver" code:1 userInfo:@{NSLocalizedDescriptionKey:@"IDE_APP_OBSERVER_SOURCE_UNAVAILABLE"}];[owner retire];return owner;}
+ return owner;
+}
+- (BOOL)assertCurrent:(NSError**)error {@synchronized(self){if(_retired||!_source){if(error)*error=[NSError errorWithDomain:@"YNXIDEProjectObserver" code:1 userInfo:@{NSLocalizedDescriptionKey:@"IDE_APP_OBSERVER_RETIRED"}];return NO;}NSError*e=nil;BOOL ok=[_source assertCurrent:&e];if(!ok||e)[self retire];if(error)*error=e;return ok&&!e;}}
+- (NSDictionary*)copyCurrentServiceRegistration:(NSError**)error {@synchronized(self){if(![self assertCurrent:error])return nil;return [_source copyOriginalAppObservedService:error];}}
+- (void)retire {@synchronized(self){_retired=YES;[_source retire];}}
+- (BOOL)join:(NSError**)error {@synchronized(self){if(!_retired)return NO;NSError*e=nil;BOOL ok=!_source||[_source join:&e];if(error)*error=e;return ok&&!e;}}
+- (BOOL)close:(NSError**)error {@synchronized(self){[self retire];if(_closeSelected){if(error)*error=_closeCause;return _closed;}if(![self join:error])return NO;_closeSelected=YES;NSError*e=nil;BOOL ok=!_source||[_source close:&e];_closed=ok&&!e;_closeCause=e;if(!_closed&&!_closeCause)_closeCause=[NSError errorWithDomain:@"YNXIDEProjectObserver" code:1 userInfo:@{NSLocalizedDescriptionKey:@"IDE_APP_OBSERVER_CLOSE_UNKNOWN"}];if(error)*error=_closeCause;return _closed;}}
 @end

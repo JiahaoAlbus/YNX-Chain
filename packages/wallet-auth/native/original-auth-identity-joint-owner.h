@@ -8,6 +8,8 @@
 + (instancetype)acquireOriginalIDEConsumerProfile:(NSError **)error;
 + (instancetype)acquireOriginalIDEContractRelayProfile:(NSError **)error;
 + (instancetype)acquireOriginalIDEProjectAuthorityProfile:(NSError **)error;
+// Read-only App observer custody, never a Node/GET/sign grant.
++ (instancetype)acquireOriginalIDEProjectObserverProfile:(NSError **)error;
 + (instancetype)acquireOriginalIDEProjectControlProfile:(NSError **)error;
 + (instancetype)acquireOriginalIDERegistryProfile:(NSError **)error;
 + (instancetype)acquireOriginalWalletPQHostCatalogProfile:(NSError **)error;
