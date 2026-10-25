@@ -104,11 +104,37 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	output := stringFlag("output", "new output directory for the production candidate package")
 	operatorPlan := stringFlag("operator-plan", "existing public operator plan for the single-Application package; requires -operator-plan-hash")
 	operatorPlanHash := stringFlag("operator-plan-hash", "independent lowercase SHA256 pin of the exact operator plan bytes")
+	initialGenesis := stringFlag("prepare-pq-initial-genesis", "existing original Comet Genesis for a public initial-account candidate; requires exact input pins")
+	initialGenesisHash := stringFlag("genesis-sha256", "independent SHA256 pin of the original Comet Genesis")
+	initialMigrationHash := stringFlag("migration-file-sha256", "independent SHA256 pin of the exact migration file bytes")
+	initialAccounts := stringFlag("initial-accounts", "public finite Genesis owner/full-PQ-key assignments; never private keys")
+	initialAccountsHash := stringFlag("initial-accounts-sha256", "independent SHA256 pin of the exact initial-account configuration")
+	initialOutput := stringFlag("initial-genesis-output", "new exclusive public candidate Genesis file; does not install or activate authority")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
 	if flags.NArg() != 0 {
 		return errors.New("unexpected positional arguments")
+	}
+	initialFlags := []string{"prepare-pq-initial-genesis", "genesis-sha256", "migration-file-sha256", "initial-accounts", "initial-accounts-sha256", "initial-genesis-output"}
+	initialMode := false
+	for _, name := range initialFlags {
+		initialMode = initialMode || supplied[name]
+	}
+	if initialMode {
+		allowed := map[string]bool{"migration-state": true}
+		for _, name := range initialFlags {
+			allowed[name] = true
+			if !supplied[name] {
+				return fmt.Errorf("initial-account Genesis preparation requires -%s", name)
+			}
+		}
+		for name := range supplied {
+			if !allowed[name] {
+				return fmt.Errorf("-%s cannot be combined with initial-account Genesis preparation", name)
+			}
+		}
+		return preparePQInitialGenesis(*initialGenesis, *initialGenesisHash, *migrationPath, *initialMigrationHash, *initialAccounts, *initialAccountsHash, *initialOutput, stdout)
 	}
 	mode := ""
 	for _, name := range []string{"verify-package", "verify-migration-state", "verify-migration-execution", "verify-migration-preservation", "verify-migration-import-storage"} {

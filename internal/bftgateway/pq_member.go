@@ -99,6 +99,12 @@ func decodeIngressPQMember(kind string, wire []byte) (owner string, payload []by
 		if err != nil {
 			return "", nil, err
 		}
+	case consensus.PQInitialRegistrationType:
+		intent, _, decodeErr := ynxauth.DecodePQInitialRegistrationMember(wire)
+		if decodeErr != nil {
+			return "", nil, decodeErr
+		}
+		owner = intent.Owner
 	default:
 		return "", nil, errors.New("unsupported single PQ ingress kind")
 	}
@@ -116,6 +122,8 @@ func pqMemberHistoryWire(history consensus.PQWalletHistoryView) (kind string, wi
 		kind, prefix = consensus.PQMigrationType, "ynx-pq-migration-v1:"
 	case consensus.PQRevocationType:
 		kind, prefix = consensus.PQRevocationType, "ynx-pq-revocation-v1:"
+	case consensus.PQInitialRegistrationType:
+		kind, prefix = consensus.PQInitialRegistrationType, "ynx-pq-account-initial-v1:"
 	default:
 		return "", nil, nil, errors.New("history is not a supported standalone PQ original")
 	}
@@ -161,6 +169,12 @@ func validatePQMemberHistory(history consensus.PQWalletHistoryView, queryHeight 
 	// This shared pure validator checks the exact execution fields and performs
 	// real dual signature verification at ORIGINAL H. Later rotations/revocations
 	// do not reclassify an old lawful transaction under today's authorization.
+	if kind == consensus.PQInitialRegistrationType {
+		// The Application query checked the independent Genesis binding. This
+		// rechecks the returned original and committed full-key record only;
+		// configured RPC observations never become bootstrap authority here.
+		return consensus.ValidatePQInitialRegistrationObservation(tx, auth.Policy, height)
+	}
 	return chain.ValidateConsensusHistoricalPQTransaction(tx, auth.Policy, height, auth.NativeChainID)
 }
 
@@ -335,9 +349,13 @@ func (g *Gateway) handlePQMigrationBroadcast(w http.ResponseWriter, r *http.Requ
 	g.handlePQSingleBroadcast(w, r, consensus.PQMigrationType)
 }
 
+func (g *Gateway) handlePQInitialRegistrationBroadcast(w http.ResponseWriter, r *http.Request) {
+	g.handlePQSingleBroadcast(w, r, consensus.PQInitialRegistrationType)
+}
+
 func (g *Gateway) handlePQSingleBroadcast(w http.ResponseWriter, r *http.Request, kind string) {
 	w.Header().Set("Cache-Control", "no-store")
-	accountRoute := kind == consensus.PQMigrationType || kind == consensus.PQRevocationType
+	accountRoute := kind == consensus.PQMigrationType || kind == consensus.PQRevocationType || kind == consensus.PQInitialRegistrationType
 	if r.URL.RawQuery != "" || accountRoute && !accountaddress.IsCanonical(r.PathValue("address")) {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "canonical authorization owner and no query parameters are required"})
 		return
@@ -351,6 +369,8 @@ func (g *Gateway) handlePQSingleBroadcast(w http.ResponseWriter, r *http.Request
 		limit = ynxauth.MaxMigrationBytes
 	} else if kind == consensus.PQRevocationType {
 		limit = ynxauth.MaxRevocationBytes
+	} else if kind == consensus.PQInitialRegistrationType {
+		limit = ynxauth.MaxPQInitialRegistrationBytes
 	}
 	r.Body = http.MaxBytesReader(w, r.Body, limit)
 	wire, err := io.ReadAll(r.Body)

@@ -453,6 +453,10 @@ def assert_native_cabi_workflow_contract(raw):
     push_source = raw.split("  pull_request:\n", 1)[0]
     for leaf in ("cmd/**", "scripts/fixtures/verify-artifact-release-cabi/**",
                  "scripts/verify/artifact-release-cabi-check.sh",
+                 "scripts/fixtures/verify-transaction-batch-cabi/**",
+                 "scripts/verify/transaction-batch-cabi-check.sh",
+                 "scripts/fixtures/verify-account-initial-cabi/**",
+                 "scripts/verify/account-initial-cabi-check.sh",
                  "scripts/fixtures/verify-project-control-cabi/**",
                  "scripts/verify/project-control-cabi-check.sh",
                  "scripts/verify/seal-project-control-cabi.py"):
@@ -471,9 +475,23 @@ def assert_native_cabi_workflow_contract(raw):
              "Verify fixed CONTROL key lifecycle and actual C ABI dual signatures",
              "Seal only executed CONTROL archive and fixed public inputs",
              "Upload only public fixed CONTROL native archive header and evidence")
-    need(len(steps) == len(names))
-    need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, names)))
     lines = lambda step: [line for line in step.splitlines() if line.strip()]
+    need(len(steps) == len(names) + 2)
+    # The new fixed Wallet caller must execute after the original archive was
+    # built, before arm64 inspection or sealing. Keep every original closed
+    # step assertion below rather than accepting arbitrary additional steps.
+    need(lines(steps[4]) == ["      - name: Execute Wallet transaction ABI from the same native archive",
+        "        run: |", "          set -euo pipefail",
+        '          bash scripts/verify/transaction-batch-cabi-check.sh \\',
+        '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
+        '            "$RUNNER_TEMP/ynx-transaction-batch-cabi"'])
+    need(lines(steps[5]) == ["      - name: Execute initial-account ABI from the same native archive",
+        "        run: |", "          set -euo pipefail",
+        '          bash scripts/verify/account-initial-cabi-check.sh \\',
+        '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
+        '            "$RUNNER_TEMP/ynx-account-initial-cabi"'])
+    steps = steps[:4] + steps[6:]
+    need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, names)))
     need(lines(steps[0]) == ["      - name: " + names[0],
         "        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1", "        with:",
         "          ref: ${{ github.sha }}", "          persist-credentials: false"])
@@ -491,7 +509,9 @@ def assert_native_cabi_workflow_contract(raw):
         '          test "$(go env GOHOSTOS)" = darwin', '          test "$(go env GOHOSTARCH)" = arm64',
         '          test "$(go env GOOS)" = darwin', '          test "$(go env GOARCH)" = arm64',
         '          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" -verify_arch arm64',
-        '          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64'])
+        '          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64',
+        '          lipo "$RUNNER_TEMP/ynx-transaction-batch-cabi/tx-c-driver" -verify_arch arm64',
+        '          lipo "$RUNNER_TEMP/ynx-account-initial-cabi/initial-c-driver" -verify_arch arm64'])
     need(lines(steps[5]) == ["      - name: " + names[5], "        if: runner.os == 'macOS'",
         "        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020", "        with:",
         "          node-version: '24.19.0'", "          cache: npm"])
@@ -518,9 +538,13 @@ def assert_native_cabi_workflow_contract(raw):
     for required in (
         "if command('git', 'rev-parse', 'HEAD') != os.environ['GITHUB_SHA']:",
         "if module.get('Version') != 'v1.6.5' or module.get('Replace'):",
-        "source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch', 'internal/accountaddress',",
+        "transaction_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-transaction-batch-cabi'",
+        "initial_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-account-initial-cabi'",
+        "source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch', 'internal/ynxauth', 'internal/accountaddress',",
         "'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-artifact-release-cabi',",
-        "'scripts/verify/artifact-release-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()",
+        "'scripts/fixtures/verify-transaction-batch-cabi', 'scripts/verify/artifact-release-cabi-check.sh',",
+        "'scripts/verify/transaction-batch-cabi-check.sh', 'scripts/fixtures/verify-account-initial-cabi',",
+        "'scripts/verify/account-initial-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()",
         "sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}",
         "native_os, native_arch = command('go','env','GOOS'), command('go','env','GOARCH')",
         "targets = [('native-host', case / 'libynx_artifact_release.a', native_os, native_arch, True)]",
@@ -528,9 +552,15 @@ def assert_native_cabi_workflow_contract(raw):
         "targets.append(('darwin-arm64', case / 'libynx_artifact_release.a', 'darwin', 'arm64', True))",
         "public_names = ('PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json')",
         "public_pins = {name:pin(case / 'output' / name) for name in public_names}",
+        "transaction_public_pins = {'TX-'+name:pin(transaction_case / 'input' / name) for name in public_names}",
+        "initial_public_pins = {'INITIAL-'+name:pin(initial_case / 'input' / name) for name in public_names}",
         "for label, archive, target_os, target_arch, executed in targets:",
         "shutil.copyfile(archive, out / 'libynx_artifact_release.a')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/ynx_artifact_release.h', out / 'ynx_artifact_release.h')",
+        "shutil.copyfile('cmd/ynx-artifact-release-cabi/tx_batch.h', out / 'tx_batch.h')",
+        "shutil.copyfile('cmd/ynx-artifact-release-cabi/account_initial.h', out / 'account_initial.h')",
+        "shutil.copyfile(transaction_case / 'input' / name, out / ('TX-'+name))",
+        "shutil.copyfile(initial_case / 'input' / name, out / ('INITIAL-'+name))",
         "sourceTree=command('git','rev-parse','HEAD^{tree}'), runId=os.environ['GITHUB_RUN_ID'],",
         "matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], runnerOS=os.environ['RUNNER_OS'],",
         "host=dict(os=native_os, arch=native_arch), target=dict(os=target_os, arch=target_arch),",
@@ -539,6 +569,14 @@ def assert_native_cabi_workflow_contract(raw):
         "sources=sources, abi='YNXArtifactPublicationSignV1', abiVersion=1,",
         "suite='ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512',",
         "publicEvidence=public_pins, publicEvidenceTarget=dict(os=native_os, arch=native_arch),",
+        "transactionABI='YNXTransactionBatchSignV1', transactionABIVersion=1,",
+        "transactionHeader=pin(out / 'tx_batch.h'), transactionPublicEvidence=transaction_public_pins,",
+        "actualTransactionCABIExecuted=executed, transactionIndependentGoDualANDVerified=executed,",
+        "transactionCallerRecipe='scripts/verify/transaction-batch-cabi-check.sh', transactionAccountAuthorized=False,",
+        "initialAccountABI='YNXAccountInitialSignV1', initialAccountABIVersion=1,",
+        "initialAccountHeader=pin(out / 'account_initial.h'), initialAccountPublicEvidence=initial_public_pins,",
+        "actualInitialAccountCABIExecuted=executed, initialAccountIndependentGoDualANDVerified=executed,",
+        "initialAccountCallerRecipe='scripts/verify/account-initial-cabi-check.sh', initialAccountAuthorized=False,",
         "nativeHostCoreTestsPassed=True, actualCABIExecuted=executed,",
         "independentGoDualANDVerified=executed, typedN1Inspected=executed,",
         "crossCompiled=(not executed and (target_os,target_arch)!=(native_os,native_arch)),",
@@ -551,9 +589,9 @@ def assert_native_cabi_workflow_contract(raw):
     # directory, caller binary or a recursive wildcard. Missing output fails.
     for step, name, label, artifact, leaves, mac_only in (
         (steps[9], names[9], "native-host", "native-${{ matrix.runner }}",
-         ("libynx_artifact_release.a", "ynx_artifact_release.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json"), False),
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json"), False),
         (steps[10], names[10], "darwin-arm64", "darwin-arm64",
-         ("libynx_artifact_release.a", "ynx_artifact_release.h", "SOURCE.json"), True)):
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "SOURCE.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json"), True)):
         expected = ["      - name: " + name]
         if mac_only:
             expected.append("        if: runner.os == 'macOS'")
@@ -1062,10 +1100,10 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_native_cabi_workflow_contract(raw)
         native, steps = workflow_steps(raw, "artifact-release-cabi")
-        actual, arm = steps[3:5]
-        runtime, contracts, darwin = steps[5:8]
-        seal, upload, arm_upload = steps[8:11]
-        control, control_seal, control_upload = steps[11:]
+        actual, transaction, initial, arm = steps[3:7]
+        runtime, contracts, darwin = steps[7:10]
+        seal, upload, arm_upload = steps[10:13]
+        control, control_seal, control_upload = steps[13:]
 
         def change(before, after):
             self.assertIn(before, native)
@@ -1104,6 +1142,18 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change(actual, ""), change(command, "# " + command), change(command, command + " || true"),
             change(actual, actual.replace("        run: |\n", "        if: false\n        run: |\n", 1)),
             change(actual, actual.replace("        run: |\n", "        continue-on-error: true\n        run: |\n", 1)),
+            change(transaction, ""),
+            change(transaction, transaction.replace("        run: |\n", "        if: false\n        run: |\n", 1)),
+            change(transaction, transaction.replace("        run: |\n", "        continue-on-error: true\n        run: |\n", 1)),
+            change(transaction, transaction.replace("transaction-batch-cabi-check.sh", "artifact-release-cabi-check.sh", 1)),
+            change(transaction, transaction.replace("ynx-artifact-release-cabi/libynx_artifact_release.a", "other/libynx_artifact_release.a", 1)),
+            raw.replace(native, native.replace(transaction, "", 1).replace(seal, seal + transaction, 1), 1),
+            change(initial, ""),
+            change(initial, initial.replace("        run: |\n", "        if: false\n        run: |\n", 1)),
+            change(initial, initial.replace("        run: |\n", "        continue-on-error: true\n        run: |\n", 1)),
+            change(initial, initial.replace("account-initial-cabi-check.sh", "transaction-batch-cabi-check.sh", 1)),
+            change(initial, initial.replace("ynx-artifact-release-cabi/libynx_artifact_release.a", "other/libynx_artifact_release.a", 1)),
+            raw.replace(native, native.replace(initial, "", 1).replace(seal, seal + initial, 1), 1),
             raw.replace(native, native.replace(actual, "", 1).replace(seal, seal + actual, 1), 1),
             change('test "$(go env GOHOSTARCH)" = arm64', 'test "$(go env GOHOSTARCH)" = amd64'),
             change('lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64', "true # skipped caller architecture"),
@@ -1117,6 +1167,12 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                    "targets.append(('darwin-arm64', case / 'darwin-arm64/libynx_artifact_release.a', 'darwin', 'arm64', True))"),
             change("actualCABIExecuted=executed", "actualCABIExecuted=True"),
             change("independentGoDualANDVerified=executed", "independentGoDualANDVerified=True"),
+            change("actualTransactionCABIExecuted=executed", "actualTransactionCABIExecuted=True"),
+            change("transactionIndependentGoDualANDVerified=executed", "transactionIndependentGoDualANDVerified=True"),
+            change("transactionAccountAuthorized=False", "transactionAccountAuthorized=True"),
+            change("actualInitialAccountCABIExecuted=executed", "actualInitialAccountCABIExecuted=True"),
+            change("initialAccountIndependentGoDualANDVerified=executed", "initialAccountIndependentGoDualANDVerified=True"),
+            change("initialAccountAuthorized=False", "initialAccountAuthorized=True"),
             change("publicEvidenceTarget=dict(os=native_os, arch=native_arch)", "publicEvidenceTarget=dict(os=target_os, arch=target_arch)"),
             change("minimumSystemVersion='13.0' if target_os == 'darwin' else None,", "minimumSystemVersion='15.0' if target_os == 'darwin' else None,"),
             change("ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512", "ML-DSA-87/OR/SLH-DSA-SHA2-256f"),

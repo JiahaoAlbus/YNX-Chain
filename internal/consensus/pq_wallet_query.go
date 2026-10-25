@@ -363,6 +363,8 @@ func pqWalletOriginalEnvelope(tx chain.Transaction) ([]byte, []byte, error) {
 	case "transfer":
 	case PQMigrationType:
 		kind, prefix = PQMigrationType, pqMigrationMemo
+	case PQInitialRegistrationType:
+		kind, prefix = PQInitialRegistrationType, pqInitialRegistrationMemo
 	case PQRevocationType:
 		kind, prefix = PQRevocationType, pqRevocationMemo
 	default:
@@ -412,7 +414,12 @@ func pqWalletHistoryView(s CommittedState, migration chain.ConsensusMigrationSta
 	if tx.BlockNum == 0 || s.Height < 0 || tx.BlockNum > uint64(s.Height) || v.Source == "source_import" && tx.BlockNum > migration.Height || v.Source == "comet-rpc" && (tx.BlockNum <= migration.Height || v.ABCITransactionHash != SignedTransactionHash(payload)) {
 		return v, errors.New("PQ original execution provenance mismatch")
 	}
-	if err := chain.ValidateConsensusHistoricalPQTransaction(tx, s.AccountPolicy, tx.BlockNum, s.ChainID); err != nil {
+	if tx.Type == PQInitialRegistrationType {
+		err = validatePQInitialRegistrationHistory(s, migration, PQCommittedAuthorization{ABCITransactionHash: v.ABCITransactionHash, Transaction: tx})
+	} else {
+		err = chain.ValidateConsensusHistoricalPQTransaction(tx, s.AccountPolicy, tx.BlockNum, s.ChainID)
+	}
+	if err != nil {
 		return v, err
 	}
 	if v.Source == "comet-rpc" && tx.Type == PQRevocationType {

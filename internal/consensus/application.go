@@ -1066,7 +1066,7 @@ func (a *Application) applyTransactionAt(state executionState, payload []byte, h
 	if err := validateHistoricalRuntimeEnvelope(state, kind); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
-	if kind == ValidatorRegistryTransactionType || kind == PQActionType || kind == PQTransferType || kind == PQMigrationType || kind == PQRevocationType || kind == PQWholeType || kind == SignedActionType {
+	if kind == ValidatorRegistryTransactionType || kind == PQActionType || kind == PQTransferType || kind == PQMigrationType || kind == PQInitialRegistrationType || kind == PQRevocationType || kind == PQWholeType || kind == SignedActionType {
 		state = a.cloneTransactionState(state)
 	}
 	if kind == ValidatorRegistryTransactionType {
@@ -1078,7 +1078,7 @@ func (a *Application) applyTransactionAt(state executionState, payload []byte, h
 	if kind == PQEthereumValueType {
 		return a.applyPQEthereumValueTransaction(state, payload, height, blockTime)
 	}
-	if kind == PQTransferType || kind == PQMigrationType || kind == PQRevocationType || kind == PQWholeType {
+	if kind == PQTransferType || kind == PQMigrationType || kind == PQInitialRegistrationType || kind == PQRevocationType || kind == PQWholeType {
 		return a.applyPQTransaction(state, payload, height, blockTime)
 	}
 	if kind == SignedActionType {
@@ -1099,6 +1099,9 @@ func (a *Application) applyTransactionAt(state executionState, payload []byte, h
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
+	if a.bootstrap.refusesInitialLegacyOwner(tx.From) {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, ynxauth.ErrPolicy)
+	}
 	if err := requireConsensusLegacy(state.accountPolicy, tx.From, height); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
@@ -1110,6 +1113,9 @@ func (a *Application) applyAuthorizedTransfer(state executionState, tx SignedTra
 }
 
 func (a *Application) applyNativeTransfer(state executionState, tx SignedTransaction, transactionHash string, height int64, blockTime time.Time, moveFeeLots bool) (executionState, transactionExecution, error) {
+	if a.bootstrap.refusesUnregisteredInitialRecipient(state.accountPolicy, tx.To) {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("reserved PQ recipient must complete its Genesis-bound initial registration before funding"))
+	}
 	sender, ok := nativeAccountAt(state, tx.From)
 	if !ok {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("signed transaction sender account does not exist"))
@@ -1205,6 +1211,9 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 	if err := tx.Verify(a.migration.Network.ChainID); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
+	if a.bootstrap.refusesInitialLegacyOwner(tx.From) {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, ynxauth.ErrPolicy)
+	}
 	if err := requireConsensusLegacy(state.accountPolicy, tx.From, height); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
@@ -1229,6 +1238,9 @@ type authorizedEthereumValueTransfer struct {
 }
 
 func (a *Application) applyAuthorizedEthereumValueTransfer(state executionState, tx authorizedEthereumValueTransfer, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
+	if a.bootstrap.refusesUnregisteredInitialRecipient(state.accountPolicy, tx.To) {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("reserved PQ recipient must complete its Genesis-bound initial registration before funding"))
+	}
 	if tx.EnvelopeType != EthereumLegacyTransferType && tx.EnvelopeType != EthereumAccessListTransferType && tx.EnvelopeType != EthereumDynamicFeeTransferType && tx.EnvelopeType != PQEthereumValueType {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("unsupported authorized Ethereum business profile"))
 	}
@@ -1359,6 +1371,9 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 	}
 	if err := tx.Verify(a.migration.Network.ChainID); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	if a.bootstrap.refusesInitialLegacyOwner(tx.Signer) {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, ynxauth.ErrPolicy)
 	}
 	if err := requireConsensusLegacy(state.accountPolicy, tx.Signer, height); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)

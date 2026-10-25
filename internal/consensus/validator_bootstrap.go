@@ -55,15 +55,16 @@ type ValidatorBootstrapMember struct {
 // ValidatorBootstrapRecord is persisted evidence, never a substitute for
 // independent operator pins. Restoring it requires an explicit Bootstrap.
 type ValidatorBootstrapRecord struct {
-	CometGenesisSHA256  string                     `json:"cometGenesisSHA256"`
-	OriginalGenesisHash string                     `json:"originalGenesisHash"`
-	MigrationStateHash  string                     `json:"migrationStateHash"`
-	ValidatorSetHash    string                     `json:"validatorSetHash"`
-	ChainID             string                     `json:"chainId"`
-	InitialHeight       int64                      `json:"initialHeight"`
-	GenesisTime         time.Time                  `json:"genesisTime"`
-	Params              cmtproto.ConsensusParams   `json:"params"`
-	Members             []ValidatorBootstrapMember `json:"members"`
+	CometGenesisSHA256  string                         `json:"cometGenesisSHA256"`
+	OriginalGenesisHash string                         `json:"originalGenesisHash"`
+	MigrationStateHash  string                         `json:"migrationStateHash"`
+	ValidatorSetHash    string                         `json:"validatorSetHash"`
+	ChainID             string                         `json:"chainId"`
+	InitialHeight       int64                          `json:"initialHeight"`
+	GenesisTime         time.Time                      `json:"genesisTime"`
+	Params              cmtproto.ConsensusParams       `json:"params"`
+	Members             []ValidatorBootstrapMember     `json:"members"`
+	PQInitialAccounts   *PQInitialAccountConfiguration `json:"pqInitialAccounts,omitempty"`
 }
 
 func canonicalBootstrapHash(value string) ([]byte, error) {
@@ -173,6 +174,13 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 	})
 	b.validatorSetHash = bytes.Clone(doc.ValidatorHash())
 	b.record.ValidatorSetHash = hex.EncodeToString(b.validatorSetHash)
+	b.record.PQInitialAccounts, err = decodePQInitialAccountConfiguration(rawGenesis, migration)
+	if err != nil {
+		return nil, err
+	}
+	if b.record.PQInitialAccounts != nil && doc.ConsensusParams.Version.App != ApplicationVersion {
+		return nil, errors.New("initial accounts require the current normal application runtime")
+	}
 	return b, nil
 }
 

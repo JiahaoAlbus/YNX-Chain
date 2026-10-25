@@ -42,6 +42,12 @@ func proofHostOriginalAccount(p ProofHostSourcePlan, e PQTransactionProofExpecta
 		return nil
 	}
 	switch e.TransactionType {
+	case PQInitialRegistrationType:
+		x, _, err := ynxauth.DecodePQInitialRegistrationMember(e.NativeWire)
+		if err != nil {
+			return err
+		}
+		return match(x.Owner, x.ChainID)
 	case PQMigrationType:
 		x, err := ynxauth.DecodeMigration(e.NativeWire)
 		if err != nil {

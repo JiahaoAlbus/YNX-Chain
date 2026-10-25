@@ -227,6 +227,8 @@ func pqTransactionWire(envelope []byte) (string, []byte, error) {
 		}
 	case PQMigrationType:
 		_, err = ynxauth.DecodeMigration(wire)
+	case PQInitialRegistrationType:
+		_, _, err = ynxauth.DecodePQInitialRegistrationMember(wire)
 	case PQRevocationType:
 		_, err = ynxauth.DecodeRevocation(wire)
 	case PQWholeType:
