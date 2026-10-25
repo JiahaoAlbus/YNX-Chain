@@ -10,6 +10,7 @@ const flows = ['principal_source_catalog', 'control_and_same_approval_current',
   'publisher_registration_and_current', 'selector_artifact_and_same_approval_current',
   'same_artifact_resource_and_current'];
 const lease = 'TestOriginalIDEFactoryPrincipalSessionAndObservationWindowsRemainIndependent';
+const startup = 'TestOriginalIDEFactoryHTTPWindowStartsAfterStartupAndNeverRenews';
 
 export function requireOriginalRaceEvidence(records) {
   const runs = new Set(), passes = new Set(), packages = new Set();
@@ -24,9 +25,9 @@ export function requireOriginalRaceEvidence(records) {
   for (const pkg of [authority, main]) assert.ok(packages.has(pkg), 'missing executed package: ' + pkg);
   assert.ok(runs.size > 0, 'zero race tests executed');
   for (const k of runs) assert.ok(passes.has(k), 'test did not complete: ' + k);
-  const required = [all13, lease, ...flows.map(f => all13 + '/' + f)];
+  const required = [all13, lease, startup, ...flows.map(f => all13 + '/' + f)];
   for (const name of required) assert.ok(runs.has(authority + '\0' + name) && passes.has(authority + '\0' + name), 'missing original flow: ' + name);
-  for (const [prefix, minimum] of [['TestOriginalIDEFactory', 6], ['TestOriginalIDEWire', 3], ['TestIDECommissioning', 9], ['TestPostgres', 1]]) {
+  for (const [prefix, minimum] of [['TestOriginalIDEFactory', 7], ['TestOriginalIDEWire', 3], ['TestIDECommissioning', 9], ['TestPostgres', 1]]) {
     const count = [...runs].filter(k => k.startsWith(authority + '\0' + prefix) && !k.split('\0')[1].includes('/')).length;
     assert.ok(count >= minimum, 'missing original race group: ' + prefix);
   }
@@ -47,7 +48,7 @@ if (process.argv[2] === '--verify') {
   process.stdout.write(JSON.stringify(requireOriginalRaceEvidence(records)) + '\n');
 } else {
   function fixture() {
-    const names = [all13, lease, ...flows.map(f => all13 + '/' + f),
+    const names = [all13, lease, startup, ...flows.map(f => all13 + '/' + f),
       ...Array.from({length: 4}, (_, i) => 'TestOriginalIDEFactoryNegative' + i),
       ...Array.from({length: 3}, (_, i) => 'TestOriginalIDEWireBoundary' + i),
       ...Array.from({length: 9}, (_, i) => 'TestIDECommissioningBoundary' + i), 'TestPostgresBoundary'];

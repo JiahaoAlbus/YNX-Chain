@@ -148,17 +148,62 @@ type ideSourceFixture struct {
 func ideSourceFactoryFixture(t *testing.T) *ideSourceFixture {
 	t.Helper()
 	ctx := context.Background()
-	principal, http := principalHTTPFixtureWithLifetime(t, 3*time.Minute)
-	request := actualPrincipalRequest()
-	p, e := principal.CurrentExistingPrincipal(ctx, request)
-	if e != nil {
-		t.Fatal(e)
-	}
 	cfg, entry := fixtureSourceProcess(t, ideSourceChildFixture)
+	principal, http := principalHTTPFixtureWithLifetime(t, 3*time.Minute)
+	// PUBLIC session DATA prepares the fixture database only. Actual HTTP
+	// authentication and narrow approval begin AFTER the real Source startup.
+	p := http.principal
 	state := &ideSourceFixtureDB{records: map[string][]byte{}, heads: map[string][]byte{}, approvals: map[string][]byte{}}
 	db := sql.OpenDB(ideSourceConnector{state})
 	t.Cleanup(func() { db.Close() })
 	f := &ideSourceFixture{db: db, state: state, p: p, ref: "12345678-1234-4234-8234-123456789abc", http: http}
+	previous := []byte(`{"sequence":1,"floor":0,"head":"` + strings.Repeat("1", 64) + `","timeFloor":0,"executionHeight":"0"}`)
+	put := func(kind, subject, key string, selection any, attachment any, extra any) {
+		profile, _ := originalIDEJSON(map[string]any{"selection": selection, "expires": p.ExpiresMS, "extra": extra})
+		input, _ := originalIDEJSON(originalIDESourceInput{Root: "PUBLIC-ROOT", Enrollment: "PUBLIC-ENROLLMENT", Profile: string(profile), Head: "PUBLIC-HEAD", Attachment: mustIDEJSON(t, attachment)})
+		state.records[kind+"/"+subject+"/"+key] = input
+		state.heads[hash(profile)] = bytes.Clone(previous)
+	}
+	catalogBinding := strings.Repeat("c", 64)
+	put("catalog", "", catalogBinding, map[string]bool{"PUBLIC": true}, map[string]any{}, nil)
+	templates := map[string]originalIDETemplate{}
+	for kind, purpose := range map[string]string{"catalog": "ide-project-authority-v1", "project": "ide-project-authority-v1", "control": "ide-project-control-authority-v1", "artifact": "ide-publication-approval-authority-v1", "resource": "ide-publication-approval-authority-v1"} {
+		templates[kind] = originalIDETemplate{"PUBLIC_SOURCE", "PUBLIC_INSTANCE", mustIDEJSON(t, map[string]any{"signatureContract": map[string]string{"purpose": purpose}}), json.RawMessage(`{}`)}
+	}
+	release := originalIDERelease{"YNX-IDE-PUBLICATION-SOURCE/v1", "PUBLIC_SOURCE", "PUBLIC_INSTANCE", "PUBLIC-CALLER", strings.Repeat("a", 64), catalogBinding, templates}
+	path := filepath.Join(filepath.Dir(filepath.Dir(entry)), "release.json")
+	if e := os.WriteFile(path, mustIDEJSON(t, release), 0600); e != nil {
+		t.Fatal(e)
+	}
+	cfg.SDKFiles = append(cfg.SDKFiles, OriginalVerifierFile{Path: "release.json", Bytes: fixturePin(t, path).Bytes, SHA256: fixturePin(t, path).SHA256})
+	http.mu.Lock()
+	preAuth := http.calls != 0 || http.observationIssued != 0 || http.observationDeadline != 0
+	http.mu.Unlock()
+	if preAuth || len(state.approvals) != 0 {
+		t.Fatal("fixture selected HTTP/approval before original Source startup")
+	}
+	o, e := OpenOriginalIDEPublicationSource(ctx, db, OriginalIDEPublicationSourceConfig{fixturePin(t, path), cfg})
+	if e != nil {
+		if o != nil {
+			_ = o.Close()
+		}
+		t.Fatal("constructor", e)
+	}
+	_ = o.principal.Close()
+	o.principal = principal
+	f.o = o
+	t.Cleanup(func() { _ = o.Close() })
+	startupCompleted := time.Now().UnixMilli()
+	actual, e := principal.CurrentExistingPrincipal(ctx, actualPrincipalRequest())
+	if e != nil || actual != p {
+		t.Fatal("post-startup same real HTTP principal", e)
+	}
+	http.mu.Lock()
+	issued := http.observationIssued
+	http.mu.Unlock()
+	if issued < startupCompleted {
+		t.Fatal("HTTP proof window was spent on Source startup")
+	}
 	// New independently captured flow, NOT a renewed prior approval. Keep
 	// request/approval <=30s even though the PUBLIC session lasts longer.
 	expires := time.Now().Add(30 * time.Second).UnixMilli()
@@ -173,15 +218,6 @@ func ideSourceFactoryFixture(t *testing.T) *ideSourceFixture {
 	f.result = result
 	rawCmd, _ := json.Marshal(f.cmd)
 	f.control, _ = originalIDEJSON(map[string]string{"p": objectHash(p), "c": objectHash(f.cmd), "commandOriginal": string(rawCmd)})
-	previous := []byte(`{"sequence":1,"floor":0,"head":"` + strings.Repeat("1", 64) + `","timeFloor":0,"executionHeight":"0"}`)
-	put := func(kind, subject, key string, selection any, attachment any, extra any) {
-		profile, _ := originalIDEJSON(map[string]any{"selection": selection, "expires": p.ExpiresMS, "extra": extra})
-		input, _ := originalIDEJSON(originalIDESourceInput{Root: "PUBLIC-ROOT", Enrollment: "PUBLIC-ENROLLMENT", Profile: string(profile), Head: "PUBLIC-HEAD", Attachment: mustIDEJSON(t, attachment)})
-		state.records[kind+"/"+subject+"/"+key] = input
-		state.heads[hash(profile)] = bytes.Clone(previous)
-	}
-	catalogBinding := strings.Repeat("c", 64)
-	put("catalog", "", catalogBinding, map[string]bool{"PUBLIC": true}, map[string]any{}, nil)
 	project := map[string]any{"projectId": "project", "ownerAccount": p.Account, "runtimeOrigin": "https://runtime.example", "currentReference": "project-current", "projectRevision": "3", "catalogRevision": "4", "read": true, "publish": true, "runtime": true, "expiresMS": expires}
 	publisher := map[string]any{"account": p.Account, "projectId": "project", "publisherId": "publisher", "keyRole": "ide-artifact-publisher", "publicOriginal": base64.RawURLEncoding.EncodeToString(f.key.PublicOriginal), "publicSHA256": f.key.PublicSHA256, "registrationRef": f.key.RegistrationRef, "revision": "9", "expiresMS": expires, "revoked": false}
 	sourcePrincipal := map[string]any{}
@@ -202,28 +238,6 @@ func ideSourceFactoryFixture(t *testing.T) *ideSourceFixture {
 		put(kind, p.Account, key, map[string]bool{"PUBLIC": true}, map[string]string{"scopeOriginal": string(s)}, map[string]string{"resultHash": hash(f.result)})
 		state.approvals[kind+"/"+f.ref] = []byte(`{"sequence":"1","floor":"0","decision":"approved","requestState":"returned","resultOriginalSHA256":"` + hash(f.result) + `","scopeSHA256":"` + hash(s) + `","timeFloor":0}`)
 	}
-	templates := map[string]originalIDETemplate{}
-	for kind, purpose := range map[string]string{"catalog": "ide-project-authority-v1", "project": "ide-project-authority-v1", "control": "ide-project-control-authority-v1", "artifact": "ide-publication-approval-authority-v1", "resource": "ide-publication-approval-authority-v1"} {
-		templates[kind] = originalIDETemplate{"PUBLIC_SOURCE", "PUBLIC_INSTANCE", mustIDEJSON(t, map[string]any{"signatureContract": map[string]string{"purpose": purpose}}), json.RawMessage(`{}`)}
-	}
-	release := originalIDERelease{"YNX-IDE-PUBLICATION-SOURCE/v1", "PUBLIC_SOURCE", "PUBLIC_INSTANCE", "PUBLIC-CALLER", strings.Repeat("a", 64), catalogBinding, templates}
-	path := filepath.Join(filepath.Dir(filepath.Dir(entry)), "release.json")
-	if e = os.WriteFile(path, mustIDEJSON(t, release), 0600); e != nil {
-		t.Fatal(e)
-	}
-	// Original complete-tree pinner must include every file beneath SDKRoot.
-	cfg.SDKFiles = append(cfg.SDKFiles, OriginalVerifierFile{Path: "release.json", Bytes: fixturePin(t, path).Bytes, SHA256: fixturePin(t, path).SHA256})
-	o, e := OpenOriginalIDEPublicationSource(ctx, db, OriginalIDEPublicationSourceConfig{fixturePin(t, path), cfg})
-	if e != nil {
-		if o != nil {
-			_ = o.Close()
-		}
-		t.Fatal("constructor", e)
-	}
-	_ = o.principal.Close()
-	o.principal = principal
-	f.o = o
-	t.Cleanup(func() { _ = o.Close() })
 	return f
 }
 func mustIDEJSON(t *testing.T, v any) []byte {

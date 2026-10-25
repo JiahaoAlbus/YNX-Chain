@@ -19,11 +19,13 @@ import (
 )
 
 type httpPrincipalFixture struct {
-	mu         sync.Mutex
-	calls      int
-	operations []string
-	change     bool
-	last       originalHTTPPrincipalInput
+	mu                                     sync.Mutex
+	calls                                  int
+	operations                             []string
+	change                                 bool
+	last                                   originalHTTPPrincipalInput
+	principal                              Principal // PUBLIC setup DATA, not an authenticated observation.
+	observationIssued, observationDeadline int64
 }
 
 func principalHTTPFixture(t *testing.T) (*OriginalDeveloperHTTPAuthority, *httpPrincipalFixture) {
@@ -40,12 +42,7 @@ func principalHTTPFixtureWithLifetime(t *testing.T, lifetime time.Duration) (*Or
 		t.Fatal("PUBLIC session fixture lifetime invalid")
 	}
 	deadline := time.Now().Add(lifetime).UnixMilli()
-	// One original HTTP observation expires independently, never at the longer
-	// session deadline, and every recheck returns SAME fixed expiry (no renewal).
-	observationDeadline := time.Now().Add(30 * time.Second).UnixMilli()
-	if deadline < observationDeadline {
-		observationDeadline = deadline
-	}
+	state.principal = Principal{"PUBLIC-account", "PUBLIC-device", "PUBLIC-session", "PUBLIC-current", 9007199254740993, 18446744073709551615, deadline}
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var in originalHTTPPrincipalInput
 		if json.NewDecoder(r.Body).Decode(&in) != nil {
@@ -58,8 +55,22 @@ func principalHTTPFixtureWithLifetime(t *testing.T, lifetime time.Duration) (*Or
 		state.operations = append(state.operations, in.Operation)
 		state.last = in
 		change := state.change
+		if state.observationDeadline == 0 {
+			// Startup/preflight is not an HTTP authorization. Capture once at
+			// the first actual authenticate; NEVER move a recheck's deadline.
+			if in.Operation != "authenticate" {
+				state.mu.Unlock()
+				w.WriteHeader(400)
+				return
+			}
+			state.observationIssued = time.Now().UnixMilli()
+			state.observationDeadline = state.observationIssued + 30000
+			if deadline < state.observationDeadline {
+				state.observationDeadline = deadline
+			}
+		}
+		p, observationDeadline := state.principal, state.observationDeadline
 		state.mu.Unlock()
-		p := Principal{"PUBLIC-account", "PUBLIC-device", "PUBLIC-session", "PUBLIC-current", 9007199254740993, 18446744073709551615, deadline}
 		if change {
 			p.SessionGeneration = 1
 		}
@@ -92,6 +103,38 @@ func actualPrincipalRequest() *http.Request {
 	r.Header.Set("x-request-id", "req_PUBLIC_ORIGINAL_12345")
 	r.Header.Set(originalHTTPProofHeader, "PUBLIC-no-device-crypto-in-this-transport-fixture")
 	return r
+}
+
+func TestOriginalIDEFactoryHTTPWindowStartsAfterStartupAndNeverRenews(t *testing.T) {
+	o, state := principalHTTPFixtureWithLifetime(t, 3*time.Minute)
+	state.mu.Lock()
+	issuedBefore, expiresBefore := state.observationIssued, state.observationDeadline
+	state.mu.Unlock()
+	if issuedBefore != 0 || expiresBefore != 0 {
+		t.Fatal("HTTP observation exists before an actual request")
+	}
+	// Real elapsed preparation is not part of a not-yet-issued HTTP proof.
+	// No mock/frozen clock or renewal of a selected original is permitted.
+	time.Sleep(2 * time.Millisecond)
+	ready := time.Now().UnixMilli()
+	p, e := o.CurrentExistingPrincipal(context.Background(), actualPrincipalRequest())
+	if e != nil {
+		t.Fatal("actual post-startup HTTP", e)
+	}
+	state.mu.Lock()
+	issued, expires := state.observationIssued, state.observationDeadline
+	state.mu.Unlock()
+	if issued < ready || expires-issued != 30000 || p.ExpiresMS <= expires {
+		t.Fatal("startup/session/HTTP windows conflated")
+	}
+	if e := o.AssertPrincipalCurrent(context.Background(), p); e != nil {
+		t.Fatal("same actual HTTP observation recheck", e)
+	}
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	if state.observationIssued != issued || state.observationDeadline != expires || strings.Join(state.operations, ",") != "authenticate,recheck" {
+		t.Fatal("recheck renewed or replaced original proof")
+	}
 }
 
 func TestOriginalIDEFactoryPrincipalSessionAndObservationWindowsRemainIndependent(t *testing.T) {
