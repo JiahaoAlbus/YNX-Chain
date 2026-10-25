@@ -39,6 +39,8 @@ const maxTransactions = consensus.EphemeralWorkloadMaxTransactions
 
 type options struct {
 	manifest, transactions, output string
+	pqWholeWire, pqGateway         string
+	pqReadbackOnly                 bool
 	concurrency                    int
 	rounds                         int
 	senderMode                     string
@@ -194,6 +196,9 @@ type report struct {
 
 func main() {
 	var o options
+	flag.StringVar(&o.pqWholeWire, "pq-whole", "", "canonical signed YNX-BATCH/v0.1 Whole input")
+	flag.StringVar(&o.pqGateway, "pq-gateway", "", "normal PQ gateway base URL for the bounded Whole case")
+	flag.BoolVar(&o.pqReadbackOnly, "pq-readback-only", false, "query the original Whole identity without broadcasting")
 	flag.StringVar(&o.manifest, "manifest", "", "local ephemeral four-node network manifest")
 	flag.StringVar(&o.transactions, "transactions", "", "JSON file containing transactions: [base64 raw signed transaction]")
 	flag.StringVar(&o.output, "output", "", "optional new JSON output file; existing files are never overwritten")
@@ -220,6 +225,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if pqWholeCaseSelected(o) {
+		return validatePQWholeCaseOptions(o)
+	}
 	if o.inclusionMode != "" && o.inclusionMode != "tx-query" && o.inclusionMode != "block-scan" {
 		return errors.New("unsupported inclusion mode")
 	}
@@ -801,6 +809,9 @@ func qualifiedBusinessFinal(r transactionResult) bool {
 }
 
 func execute(o options) error {
+	if pqWholeCaseSelected(o) {
+		return executePQWholeCase(o)
+	}
 	if o.inclusionMode == "" {
 		o.inclusionMode = "tx-query"
 	}

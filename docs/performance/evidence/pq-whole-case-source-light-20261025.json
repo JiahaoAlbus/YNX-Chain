@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "canonicalProtocolSource": "b777232db1701d1e7cb41bd6e0bbe55452664c8d",
+  "canonicalProtocolTree": "577970ebaf81d8139caad9f153f2b75bb7963f28",
+  "scope": "bounded canonical Whole normal-gateway client consumer",
+  "changedOwnership": [
+    "cmd/ynx-consensus-perf-client/main.go",
+    "cmd/ynx-consensus-perf-client/pq_whole_case.go",
+    "cmd/ynx-consensus-perf-client/pq_whole_case_test.go",
+    ".github/workflows/chain-core.yml"
+  ],
+  "protocolLeafChanged": false,
+  "signatureSignerReimplemented": false,
+  "protocolDTOReimplemented": false,
+  "normalProductionCallees": [
+    "ynxbatch.DecodeWhole",
+    "ynxauth.DecodeTransfer",
+    "consensus.EncodePQTransaction(PQWholeType,wire)",
+    "chain.PQBatchTransactionHash",
+    "bftgateway POST /transactions/pq/batches/broadcast",
+    "bftgateway GET /transactions/pq/wholes/{ABCIhash}"
+  ],
+  "newCaseClassicSigning": false,
+  "normalCLISelectedBy": [
+    "-pq-whole",
+    "-pq-gateway",
+    "-pq-readback-only"
+  ],
+  "lightTests": {
+    "tests": 4,
+    "realBothSignaturesAndSingleBranchCorruptions": true,
+    "actualMainCLIChild": true,
+    "unknownOriginalQueryNoSecondPOST": true,
+    "redirectNeverReposts": true,
+    "partialResultsCountOnlyAdmitted": true,
+    "intentPreserved": true,
+    "raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-whole-case-cli-race-20261025.raw",
+      "bytes": 566,
+      "sha256": "ae08a23c020fb33173831084a3cd378a7bf936fac743184a90e27a42e2f882f5"
+    }
+  },
+  "configuredRPCObservationOnly": true,
+  "independentFinalityVerified": false,
+  "testnetExecuted": false,
+  "newAccountBirthAccepted": false,
+  "sustainedTPSQualified": false,
+  "executionAdmitted": false,
+  "remainingDependencies": [
+    "Canonical new-account initial allowlist/birth path is being implemented by Protocol owner; no synthetic owner or policy supplied here",
+    "Independent finality requires normal trusted host engine snapshot/light anchor and canonical VerifyPQTransactionProof; configured RPC committed alone is not finality",
+    "Actual remote heavy window/once grant not received"
+  ]
+}
