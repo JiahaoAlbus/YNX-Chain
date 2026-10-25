@@ -1,4 +1,4 @@
-import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner,OriginalIDEProtectedKeyCallOwner,OriginalIDEPublicationArtifactRef,OriginalIDEProjectAuthorityRef,OriginalIDECurrentProjectData,OriginalIDECurrentPublisherData,OriginalIDEWorkspaceProjectSelectionRef,OriginalIDEWorkspaceProjectSelectionData} from './auth-native-contract.js';
+import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner,OriginalIDEProtectedKeyCallOwner,OriginalIDEPublicationArtifactRef,OriginalIDEProjectAuthorityRef,OriginalIDECurrentProjectData,OriginalIDECurrentPublisherData,OriginalIDECurrentServiceRegistrationData,OriginalIDEWorkspaceProjectSelectionRef,OriginalIDEWorkspaceProjectSelectionData} from './auth-native-contract.js';
 /** Private original backend only. Native returns the exact recognized owner.
  * A partial acquisition has descriptor -1 and is cleanup custody, not a guard.
  * The consumer retains it and selects its original close once. */
@@ -102,6 +102,9 @@ export declare function acquireOriginalIDEProtectedPublicationKeyCall(actualEntr
 export declare function acquireOriginalIDEProjectAuthority():OriginalIDEProjectAuthorityRef|null;
 /** Exact original frozen Native record, without new authorization flags. */
 export declare function readOriginalIDECurrentProject(originalAuthority:OriginalIDEProjectAuthorityRef,projectID:string):OriginalIDECurrentProjectData;
+/** Fixed original same-owner Native read; exactly two arguments. Returns
+ * unchanged service DATA, never a business GET/signing or Source grant. */
+export declare function readOriginalIDECurrentServiceRegistration(originalAuthority:OriginalIDEProjectAuthorityRef,projectID:string):OriginalIDECurrentServiceRegistrationData;
 /** Native argument order is owner, projectID, publisherID. Public-original
  * bytes are an independent ordinary copy, not a publisher/key authority. */
 export declare function readOriginalIDECurrentPublisher(originalAuthority:OriginalIDEProjectAuthorityRef,projectID:string,publisherID:string):OriginalIDECurrentPublisherData;

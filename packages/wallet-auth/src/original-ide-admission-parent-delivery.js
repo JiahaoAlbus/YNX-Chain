@@ -324,6 +324,14 @@ export function readOriginalIDECurrentProject(originalAuthority,projectID){
  if(typeof native?.readOriginalIDECurrentProject!=='function')fail('IDE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
  return native.readOriginalIDECurrentProject(originalAuthority,projectID);
 }
+/** Same original project Source DATA only; this does not authorize a GET,
+ * construct a peer, sign a header, change endpoints or consume approval. */
+export function readOriginalIDECurrentServiceRegistration(originalAuthority,projectID){
+ if(arguments.length!==2)fail('IDE_PROJECT_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.readOriginalIDECurrentServiceRegistration!=='function')fail('IDE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.readOriginalIDECurrentServiceRegistration(originalAuthority,projectID);
+}
 export function readOriginalIDECurrentPublisher(originalAuthority,projectID,publisherID){
  if(arguments.length!==3)fail('IDE_PROJECT_ARGUMENTS_INVALID');
  const native=originalIdentityNativeModule();

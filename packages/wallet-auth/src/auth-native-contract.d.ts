@@ -89,6 +89,19 @@ declare const originalWorkspaceProjectSelection:unique symbol;
 export interface OriginalIDEWorkspaceProjectSelectionRef {
  readonly [originalWorkspaceProjectSelection]:true;
 }
+/** Original independently current service endpoint DATA. The Native Source
+ * validates exactly16 fields and its principal/project/read/current/expiry.
+ * Neither this record nor a successful getter is business-read permission. */
+export interface OriginalIDEServiceRegistrationData {
+ readonly version:'YNX-IDE-SERVICE-REGISTRATION/v1';readonly registrationId:string;readonly revision:string;readonly currentReference:string;
+ readonly serviceInstanceId:string;readonly projectId:string;readonly account:string;readonly apiEndpoint:string;readonly tlsSPKISHA256:string;
+ readonly audience:string;readonly productId:string;readonly clientId:string;readonly scopes:readonly string[];
+ readonly issuedAtMs:number;readonly expiresAtMs:number;readonly revoked:false;
+}
+export interface OriginalIDECurrentServiceRegistrationData {
+ readonly principal:OriginalIDEProjectPrincipalData;readonly project:OriginalIDEProjectCurrentData;
+ readonly serviceRegistration:OriginalIDEServiceRegistrationData;readonly expiresMS:number;
+}
 /** Exact frozen Native selection DATA; revisions retain U64 decimal strings.
  * A missing original publisher stays null; no key or grant is created. */
 export interface OriginalIDEWorkspaceProjectSelectionData {

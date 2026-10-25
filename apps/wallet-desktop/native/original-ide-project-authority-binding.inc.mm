@@ -58,6 +58,10 @@ static napi_value ProjectData(napi_env env,id value,unsigned depth=0){
   memcpy(p,[value bytes],[value length]);return napi_create_typedarray(env,napi_uint8_array,[value length],array,0,&out)==napi_ok?out:nullptr;}
  if([value isKindOfClass:NSString.class]){NSData*b=[value dataUsingEncoding:NSUTF8StringEncoding];if(!b||b.length>32768)return nullptr;return napi_create_string_utf8(env,(const char*)b.bytes,b.length,&out)==napi_ok?out:nullptr;}
  if([value isKindOfClass:NSNumber.class]){napi_status rc=CFGetTypeID((__bridge CFTypeRef)value)==CFBooleanGetTypeID()?napi_get_boolean(env,[value boolValue],&out):napi_create_double(env,[value doubleValue],&out);return rc==napi_ok?out:nullptr;}
+ if([value isKindOfClass:NSArray.class]){
+  if([value count]>8||napi_create_array_with_length(env,[value count],&out)!=napi_ok)return nullptr;
+  for(NSUInteger i=0;i<[value count];i++){napi_value child=ProjectData(env,value[i],depth+1);if(!child||napi_set_element(env,out,(uint32_t)i,child)!=napi_ok)return nullptr;}
+  return napi_object_freeze(env,out)==napi_ok?out:nullptr;}
  if([value isKindOfClass:NSDictionary.class]){
   if([value count]>32||napi_create_object(env,&out)!=napi_ok)return nullptr;
   for(NSString*k in value){if(![k isKindOfClass:NSString.class])return nullptr;napi_value child=ProjectData(env,value[k],depth+1);if(!child)return nullptr;
@@ -81,7 +85,8 @@ static napi_value ProjectAcquire(napi_env env,napi_callback_info info){
 }
 static napi_value ProjectRead(napi_env env,napi_callback_info info){
  napi_value a[4];void*data=nullptr;size_t count=4;if(napi_get_cb_info(env,info,&count,a,nullptr,&data)!=napi_ok)return ProjectFailure(env,"IDE_PROJECT_ARGUMENTS_INVALID");
- const bool publisher=data!=nullptr;if(count!=(publisher?3:2))return ProjectFailure(env,"IDE_PROJECT_ARGUMENTS_INVALID");
+ const uintptr_t mode=(uintptr_t)data;if(mode>2)return ProjectFailure(env,"IDE_PROJECT_ARGUMENTS_INVALID");
+ const bool publisher=mode==1,service=mode==2;if(count!=(publisher?3:2))return ProjectFailure(env,"IDE_PROJECT_ARGUMENTS_INVALID");
  auto*r=ProjectOriginal(env,a[0]);if(!r)return ProjectFailure(env,"IDE_PROJECT_ORIGINAL_OWNER_REQUIRED");
  NSString*project=ProjectText(env,a[1]),*key=publisher?ProjectText(env,a[2]):nil;
  if(!project||(publisher&&!key))return ProjectFailure(env,"IDE_PROJECT_ARGUMENTS_INVALID");
@@ -89,11 +94,11 @@ static napi_value ProjectRead(napi_env env,napi_callback_info info){
  r->busy=true;
  @try{
   if(!ProjectCurrent(r))return ProjectFailure(env,r->failure);NSError*e=nil;
-  NSDictionary*first=publisher?[r->source copyOriginalIDECurrentPublisher:key forProject:project error:&e]:[r->source copyOriginalIDECurrentProject:project error:&e];
+  NSDictionary*first=publisher?[r->source copyOriginalIDECurrentPublisher:key forProject:project error:&e]:service?[r->source copyOriginalIDECurrentServiceRegistration:project error:&e]:[r->source copyOriginalIDECurrentProject:project error:&e];
   if(e||!first){ProjectFail(r,"IDE_PROJECT_READ_CURRENT_FAILED",e);return ProjectFailure(env,r->failure);}
   napi_value result=ProjectData(env,first);if(!result){ProjectFail(r,"IDE_PROJECT_OUTPUT_INVALID");return ProjectFailure(env,r->failure);}
   if(!ProjectCurrent(r))return ProjectFailure(env,r->failure);e=nil;
-  NSDictionary*last=publisher?[r->source copyOriginalIDECurrentPublisher:key forProject:project error:&e]:[r->source copyOriginalIDECurrentProject:project error:&e];
+  NSDictionary*last=publisher?[r->source copyOriginalIDECurrentPublisher:key forProject:project error:&e]:service?[r->source copyOriginalIDECurrentServiceRegistration:project error:&e]:[r->source copyOriginalIDECurrentProject:project error:&e];
   if(e||!last||![first isEqual:last]){ProjectFail(r,"IDE_PROJECT_POST_COMPLETION_CURRENT_FAILED",e);return ProjectFailure(env,r->failure);}
   // The last native getter itself has the post-completion clock/current fence.
   // Do not refresh Source AFTER that snapshot comparison and return stale DATA.
@@ -111,6 +116,7 @@ static napi_value RegisterOriginalIDEProjectAuthorityBinding(napi_env env,napi_v
   {"acquireOriginalIDEProjectAuthority",ProjectAcquire,nullptr},
   {"readOriginalIDECurrentProject",ProjectRead,nullptr},
   {"readOriginalIDECurrentPublisher",ProjectRead,(void*)1},
+  {"readOriginalIDECurrentServiceRegistration",ProjectRead,(void*)2},
   {"closeOriginalIDEProjectAuthority",ProjectDispose,nullptr}};
  for(auto&m:methods){napi_property_descriptor d={m.name,nullptr,m.cb,nullptr,nullptr,nullptr,napi_default,m.data};if(napi_define_properties(env,exports,1,&d)!=napi_ok)return nullptr;}return exports;
 }
