@@ -13,7 +13,7 @@ function fixture(extra={}){
  const calls=[];const requestImpl=(url,options,receive)=>{const req=new EventEmitter();req.destroy=()=>{};req.end=body=>{calls.push({url,options,body});queueMicrotask(()=>{const res=new EventEmitter();res.statusCode=200;res.headers={'content-type':'application/json','cache-control':'no-store'};res.destroy=()=>{res.emit('error',Error('CONTROLLED_DESTROY'));};
  let bytes=Buffer.from(JSON.stringify(url.pathname==='/status'?(extra.health??health):url.pathname==='/blocks/0'?{height:0,hash:CANONICAL_NETWORK_ID}:{status:'unknown'}));
  if(url.pathname!=='/status'&&url.pathname!=='/blocks/0'){if(extra.status)res.statusCode=extra.status;if(extra.bytes)bytes=extra.bytes;if(extra.headers)res.headers=extra.headers;}
- receive(res);if(res.listenerCount('data')){res.emit('data',bytes);res.emit('end');}});};return req;};
+ receive(res);if(Object.hasOwn(extra,'streamFailure')&&calls.length-1===(extra.failurePhase??2)){res.emit('error',extra.streamFailure);return;}if(res.listenerCount('data')){res.emit('data',bytes);res.emit('end');}});};return req;};
  return {calls,transport:new PQTransactionNodeTransportKernel(requestImpl)};
 }
 test('fixed existing node pins and exact SDK POST are preserved; reconciliation only GETs the BFT original',async()=>{
@@ -27,4 +27,12 @@ test('wrong URL/hash/native policy and unhealthy release fail before any POST',a
 });
 test('redirect, cacheable, oversized and invalid UTF8 results are bounded failures, never followed/retried',async()=>{
  for(const [extra,code] of [[{status:302},'PQ_TRANSACTION_NODE_RESPONSE'],[{headers:{'content-type':'application/json'}},'PQ_TRANSACTION_NODE_CACHE_POLICY'],[{bytes:Buffer.alloc(524289)},'PQ_TRANSACTION_NODE_RESPONSE_SIZE'],[{bytes:Buffer.from([255])},'PQ_TRANSACTION_NODE_UTF8']]){const f=fixture(extra);await assert.rejects(f.transport.submitTransfer(request,()=>{}),{code});assert.equal(f.calls.filter(x=>x.options.method==='POST').length,1);}
+});
+
+test('falsy stream errors retain the exact first cause during original reads and single submissions',async()=>{
+ for(const cause of [false,0,'',null,undefined])for(const phase of [0,1,2])for(const submit of [false,true]){
+  const f=fixture({streamFailure:cause,failurePhase:phase});
+  await assert.rejects(submit?f.transport.submitTransfer(request,()=>{}):f.transport.readOriginal(request.transportHash),error=>Object.is(error,cause));
+  assert.equal(f.calls.length,phase+1);assert.equal(f.calls.filter(c=>c.options.method==='POST').length,submit&&phase===2?1:0);
+ }
 });
