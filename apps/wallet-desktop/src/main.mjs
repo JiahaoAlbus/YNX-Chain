@@ -1,4 +1,5 @@
 import {createPQTypedActionNodeReader} from './features/pq-transaction/typed-action-query-node.mjs';
+import {normalizeWalletPQTransferInput} from './wallet-pq-transfer-input.mjs';
 import {PQ_CONNECTION_METHODS,captureWalletPQConnection} from './wallet-pq-connection-contract.mjs';
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
 import {createOriginalWalletProjectControl} from './wallet-project-control.mjs';
@@ -537,7 +538,8 @@ handleWalletIPC('wallet:pq-transaction-status',(_event,hash)=>sensitiveIPC(async
 async function prepareLocalPQTransferReview(input){
   const guard=keyAccess.current();guard.assert();let response;
   try{
-    response=await walletAuthority.requestPQTransfer(input);guard.assert();
+    const selected=normalizeWalletPQTransferInput(input);
+    response=await walletAuthority.requestPQTransfer(selected);guard.assert();
     if(response?.status!=='approval-required'||response.request?.method!=='ynx_signPQNativeTransfer'||typeof response.request.id!=='string'||response.request.review?.account!==guard.account)throw Object.assign(Error('The original PQ transfer review is unavailable.'),{code:'YNX_PQ_REVIEW_REQUIRED'});
     if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
     mainWindow.webContents.send('wallet:provider-request',response.request);guard.assert();
