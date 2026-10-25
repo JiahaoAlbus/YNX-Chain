@@ -51,6 +51,19 @@ type pqCasePhases struct {
 	ProofDurabilityNs             int64 `json:"proofDurabilityNs,string"`
 }
 type pqWholeCaseReport struct {
+	ProofVerifierSHA256               string            `json:"proofVerifierSha256,omitempty"`
+	TrustContextSHA256                string            `json:"trustContextSha256,omitempty"`
+	EffectiveBusinessFinalized        int               `json:"effectiveBusinessFinalized"`
+	ActualOfferToFinalityMeasured     bool              `json:"actualOfferToFinalityMeasured"`
+	VerifierPreparationNs             int64             `json:"verifierPreparationNs,string"`
+	VerifierProcessNs                 int64             `json:"verifierProcessNs,string"`
+	VerifierEvidenceDurabilityNs      int64             `json:"verifierEvidenceDurabilityNs,string"`
+	VerifierResultValidationNs        int64             `json:"verifierResultValidationNs,string"`
+	ProofVerificationNs               int64             `json:"proofVerificationNs,string"`
+	ProofVerificationStatus           string            `json:"proofVerificationStatus,omitempty"`
+	ProofVerificationError            string            `json:"proofVerificationError,omitempty"`
+	VerifierEvidencePath              string            `json:"verifierEvidencePath,omitempty"`
+	VerifierEvidenceSHA256            string            `json:"verifierEvidenceSha256,omitempty"`
 	CometIndex                        *uint32           `json:"cometIndex,omitempty"`
 	Phases                            pqCasePhases      `json:"clientPhases"`
 	ProofCollectionStatus             string            `json:"proofCollectionStatus,omitempty"`
@@ -83,9 +96,12 @@ type pqWholeCaseReport struct {
 }
 
 func pqWholeCaseSelected(o options) bool {
-	return o.pqRegistrationWire != "" || o.pqMemberWire != "" || o.pqWholeWire != "" || o.pqGateway != "" || o.pqReadbackOnly || o.pqCollectProof
+	return o.pqRegistrationWire != "" || o.pqMemberWire != "" || o.pqWholeWire != "" || o.pqGateway != "" || o.pqReadbackOnly || o.pqCollectProof || pqCaseVerifierSelected(o)
 }
 func validatePQWholeCaseOptions(o options) error {
+	if err := validatePQCaseVerifierOptions(o); err != nil {
+		return err
+	}
 	u, e := url.Parse(o.pqGateway)
 	if e != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 		return errors.New("PQ case requires an explicit normal gateway base URL")
@@ -367,11 +383,17 @@ func executePQWholeCase(o options) (returned error) {
 	if o.pqCollectProof && report.Status == "committed_observed" {
 		collectPQCaseProof(ctx, client, p, o.pqGateway, o.output+".pq-proof.json", &report)
 	}
+	if pqCaseVerifierSelected(o) && report.ProofCollectionStatus == "collected_unverified" {
+		verifyPQCaseCollectedProof(ctx, o, p, &report)
+	}
 	if err = json.NewEncoder(output).Encode(report); err != nil {
 		return err
 	}
 	if err = output.Sync(); err != nil {
 		return err
+	}
+	if pqCaseVerifierSelected(o) && !report.IndependentFinalityVerified {
+		return errors.New("original PQ proof did not verify; retain evidence and do not rebroadcast")
 	}
 	if o.pqCollectProof && report.ProofCollectionStatus != "collected_unverified" {
 		return errors.New("original PQ proof unavailable; retain intent and use readback-only, never rebroadcast")

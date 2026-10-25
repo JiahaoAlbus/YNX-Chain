@@ -1,0 +1,66 @@
+{
+  "status": "source_and_focused_tests_verified_not_deployed",
+  "baseCommit": "001865ff98c1ab74b34f72f6e5b9ba3f6ba9be33",
+  "consumedCanonicalFix": "f1bb10bb1e27875ea347a0471d82cb678f4af406",
+  "localFixCommit": "f069b0898",
+  "importScope": "only two named struct literal changes in internal/consensus/pq_wallet_query.go; no main merge",
+  "rawEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-original-verifier-production-entry-20261025.raw",
+      "bytes": 463,
+      "sha256": "196245e3e45eff7290c1c9a5fa181d57eae6204d708162ffa654c902836d248e"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-original-verifier-full-client-race-20261025.raw",
+      "bytes": 3072,
+      "sha256": "d5b2b0804e20b02727c518b3f3a905ab5ed0bfcc0a771db60c892000789c747a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-offline-verifier-fixture-20261025.raw",
+      "bytes": 513,
+      "sha256": "28c687108bd262e3baa2c7a12d03080f42326679917b80892d0396867ba4a144"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-canonical-vet-fix-20261025.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-client-phases-proof-source-ci-failed-20261025.raw",
+      "bytes": 2103,
+      "sha256": "3d9ddbabbc5e7d374a7c3079fb31cccb9676428904b8c500b026175c5ece18b3"
+    }
+  ],
+  "verifier": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-offline-verifier-20261025/ynx-consensus-proof-verify",
+    "bytes": 35051330,
+    "sha256": "cc3f6ceeecad02e1fae5e20cec4d867cbac17d36e57b1197ba64b358d74de12c"
+  },
+  "signedPublicFixture": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-offline-verifier-20261025/public-fixture.json",
+    "bytes": 9611637,
+    "sha256": "4081d13ab8460591833904438b9f27af46631c78dc0add74158a6041d44654da"
+  },
+  "hardware": {
+    "architecture": "arm64",
+    "ramBytes": 25769803776
+  },
+  "constraints": {
+    "GOMAXPROCS": 1,
+    "GOMEMLIMIT": "160MiB",
+    "goTestParallelism": 1
+  },
+  "testScope": "12 top-level race tests; last production-entry delta separately PASS4.419s; fixture real signatures and single-process Comet engine, synthetic QA trust only, no actual nodes",
+  "measuredUnitVerifierNanoseconds": {
+    "total": 624417167,
+    "preparation": 265128583,
+    "process": 256817375,
+    "evidenceDurability": 4693125,
+    "resultValidation": 97740500
+  },
+  "actualOfferToFinalityMeasured": false,
+  "realMultiNodeRun": false,
+  "sustainedTPSQualified": false,
+  "sourceCI40207382388": "new 10 PQ tests and bounded controller tests passed; overall failed inherited go vet; canonical fix now consumed and local go vet PASS",
+  "next": "normal CI exercises original fixture producer -> actual canonical verifier -> production read-only consumer; then use independently supplied real isolated node host context/target for latency and scheduled load"
+}

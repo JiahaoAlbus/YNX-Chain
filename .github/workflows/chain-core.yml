@@ -61,10 +61,21 @@ jobs:
         with:
           node-version: "24"
           cache: npm
+      - name: Produce original signed public proof fixture and offline verifier
+        env:
+          GOMAXPROCS: "1"
+          GOMEMLIMIT: "160MiB"
+          YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/pq-perf-original-public-proof.json
+        run: |
+          go build -p 1 -o "${{ runner.temp }}/pq-perf-original-verifier" ./cmd/ynx-consensus-proof-verify
+          go test -p 1 ./internal/consensus -run '^TestPQConsensusTransactionProofPublicFixture$' -count=1 -timeout=60s -v
+          test -s "$YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT"
       - name: Verify canonical PQ Whole and Native N1 clients with UNKNOWN original readback
         env:
           GOMAXPROCS: "1"
           GOMEMLIMIT: "160MiB"
+          YNX_PERF_PQ_PROOF_FIXTURE: ${{ runner.temp }}/pq-perf-original-public-proof.json
+          YNX_PERF_PQ_PROOF_VERIFIER: ${{ runner.temp }}/pq-perf-original-verifier
         run: go test -p 1 -race ./cmd/ynx-consensus-perf-client -run '^TestPQ(Whole|Member|Registration)Case' -count=1 -timeout=30s -v
       - name: Verify bounded performance controller and evidence contracts
         run: >-
