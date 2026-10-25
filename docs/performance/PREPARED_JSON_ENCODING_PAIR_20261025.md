@@ -1,6 +1,6 @@
 # 私有 prepared snapshot 编码器单轴对照
 
-CODE `c6521f78d583209277c97894cd2ef0a1858c312d`；源码及轻测通过，尚未执行四节点网络对照。此前 fee/time JSON 优化的本地收益仍只具有本地函数范围，不能据此声明网络吞吐提高。
+CODE `4d016eb1e81f6093717dbb1c7732fdb132b8e30c`；源码及轻测通过，尚未执行四节点网络对照。此前 fee/time JSON 优化的本地收益仍只具有本地函数范围，不能据此声明网络吞吐提高。
 
 沿用原 controller、reader 和 CI，增加显式 `native-prepared-grouped-json-encoding` pair：before 为 `original-json`，after 为 `fee-time-json-indent`。同一 SOURCE、四个 ELF、Linux VM；两组固定 client GOMAXPROCS1、8 submitters、4 observers、grouped-cadence4、prepared/currentreuse/replayTiming，state hash 保持 original。只在私有 snapshot 构造时选择 encoder；完整字节、独立副本、锁序、持久化、签名、nonce、手续费历史与原限额保持。
 

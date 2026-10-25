@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "codeCommit": "c6521f78d583209277c97894cd2ef0a1858c312d",
+  "codeCommit": "4d016eb1e81f6093717dbb1c7732fdb132b8e30c",
   "status": "source_and_light_tests_verified_not_network",
   "networkExecuted": false,
   "sustained1000Qualified": false,
@@ -61,6 +61,16 @@
       "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/recipe-02.json",
       "bytes": 6092,
       "sha256": "c556c1f38a0e7425aca114eee443557d9db4e679130e381e77743cf92b591d89"
+    },
+    "actual-encoder-cli-no-parent-env-01.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/actual-encoder-cli-no-parent-env-01.raw",
+      "bytes": 706,
+      "sha256": "5615097778c81cb02f8f0c981e121a61c7348ab483a60ca0e1082f646da3e7d8"
+    },
+    "source-guard-02.raw": {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/prepared-json-encoding-pair-source-20261025/source-guard-02.raw",
+      "bytes": 4678,
+      "sha256": "bb21e66b7ff9e2b66cf2077013d8a1dcd5754cf0d3599f5f374343fcba3b789b"
     }
   },
   "retainedFirstFailures": [
@@ -80,5 +90,7 @@
     "artifactTests": 23,
     "sourceGuardTests": 26,
     "oldRecipesCompared": 11
-  }
+  },
+  "priorCodeCommit": "c6521f78d583209277c97894cd2ef0a1858c312d",
+  "cliChildExplicitEnvironment": "GOMAXPROCS=1; verified with parent env unset"
 }
