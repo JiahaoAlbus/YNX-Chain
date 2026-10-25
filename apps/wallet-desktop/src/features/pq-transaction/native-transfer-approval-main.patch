@@ -1,0 +1,18 @@
+diff --git a/apps/wallet-desktop/src/desktop-wallet-authority.mjs b/apps/wallet-desktop/src/desktop-wallet-authority.mjs
+--- a/apps/wallet-desktop/src/desktop-wallet-authority.mjs
++++ b/apps/wallet-desktop/src/desktop-wallet-authority.mjs
+@@ -610,7 +610,7 @@
+         const request=deepFreeze({action:'sign',networkId:this.#pqNetworkId,nativeChainId:'6423',account:status.account,operationId:pending.id,origin:'ynx-wallet:local-pq',transfer:{...plan.transfer},requestDigest:createHash('sha256').update(encodePQNativeTransfer(plan.transfer)).digest('hex'),policyRevision:pending.review.policyRevision,expiresAt:pending.review.expiresAt});
+         let auth,borrowed,hash,failed=false;
+         try{
+-          if(this.#pqTxSource!==null||capsule!==undefined){
++          {
+             if(!this.#pqTxSource||!this.#pqTxRecognized||!capsule)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','A real transaction approval is required.');
+             borrowed=this.#borrowPQTransactionReview(pending,reviewed,guard,request);
+             try{auth=await this.#pqTxSource(request,capsule,borrowed.borrow);}
+diff --git a/apps/wallet-desktop/test/pq-native-transfer-approval-required.test.mjs b/apps/wallet-desktop/test/pq-native-transfer-approval-required.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/apps/wallet-desktop/test/pq-native-transfer-approval-required.test.mjs
+@@ -0,0 +1 @@
++import '../src/features/pq-transaction/native-transfer-approval-required.test.mjs';
