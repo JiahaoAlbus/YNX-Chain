@@ -1338,7 +1338,6 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)'", "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestABCI)'"),
             ("-run '^TestProofHost'", "-run '^TestProofHostMissing'"),
             ("-run '^TestTransactionProofInitialPreparedFundingOriginalCLI$'", "-run '^TestTransactionProofInitialPreparedFundingOriginalCLIMissing$'"),
-            ("go run golang.org/x/vuln/cmd/govulncheck@v1.1.4", "true # omitted production runtime vulnerability check"),
             ("YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json", "UNUSED_INITIAL_FUNDED_FIXTURE: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json"),
             ("      - name: Verify complete large original migration through normal package and cold recovery\n", "      - name: Silently omitted large migration recovery\n"),
             ("-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$'", "-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecoveryMissing$'"),
@@ -1365,6 +1364,21 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             self.assertIn(before, raw)
             with self.subTest(before=before), self.assertRaises(AssertionError):
                 assert_workflow_contract(raw.replace(before, after, 1))
+        # The generic verify job has the same govuln command before delivery.
+        # Mutate the actual named runtime gate, not the first global occurrence.
+        _, delivery_steps = workflow_steps(raw, "protocol-delivery")
+        vulnerability = [step for step in delivery_steps if step.startswith(
+            "      - name: Check reachable vulnerabilities in the eight production runtime commands\n")]
+        self.assertEqual(len(vulnerability), 1)
+        command = "go run golang.org/x/vuln/cmd/govulncheck@v1.1.4"
+        self.assertEqual(vulnerability[0].count(command), 1)
+        self.assertEqual(raw.count(vulnerability[0]), 1)
+        omitted_vulnerability = raw.replace(vulnerability[0], vulnerability[0].replace(
+            command, "true # omitted production runtime vulnerability check", 1), 1)
+        self.assertNotEqual(omitted_vulnerability, raw)
+        self.assertEqual(workflow_steps(omitted_vulnerability, "verify"), workflow_steps(raw, "verify"))
+        with self.subTest(before=command, job="protocol-delivery"), self.assertRaises(AssertionError):
+            assert_workflow_contract(omitted_vulnerability)
         # Keep the complete original controls block, its condition and every
         # command; changing only its position after pure PQ must be refused.
         assert_workflow_contract(raw)
