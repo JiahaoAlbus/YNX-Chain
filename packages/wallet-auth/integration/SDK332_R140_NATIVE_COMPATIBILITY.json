@@ -244,6 +244,12 @@
       "types": "./src/ide-artifact-release-result.d.ts",
       "import": "./src/ide-artifact-release-result.js",
       "default": "./src/ide-artifact-release-result.js"
+    },
+    "./product-session-proof-v4": {
+      "types": "./src/product-session-proof-v4.d.ts",
+      "browser": null,
+      "node": "./src/product-session-proof-v4.js",
+      "default": null
     }
   },
   "NativeInputs": [

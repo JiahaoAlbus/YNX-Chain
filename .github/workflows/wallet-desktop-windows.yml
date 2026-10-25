@@ -3272,12 +3272,12 @@ jobs:
       - name: Original locked SDK dependencies
         working-directory: packages/wallet-auth
         run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: Eleven new version4 HTTP proof and original CLI controls only
+      - name: Twelve new version4 proof CLI and source-selection controls only
         run: |
           mkdir -p .ci-evidence/auth43
-          node --test --test-reporter=tap packages/wallet-auth/test/product-session-proof-v4.test.mjs packages/wallet-auth/test/product-session-proof-v4-cli.test.mjs > .ci-evidence/auth43/stdout.log 2>&1 || { status=$?; cat .ci-evidence/auth43/stdout.log; exit "$status"; }
+          node --test --test-reporter=tap packages/wallet-auth/test/product-session-proof-v4.test.mjs packages/wallet-auth/test/product-session-proof-v4-cli.test.mjs packages/wallet-auth/test/product-session-proof-v4-source-selection.test.mjs > .ci-evidence/auth43/stdout.log 2>&1 || { status=$?; cat .ci-evidence/auth43/stdout.log; exit "$status"; }
           cat .ci-evidence/auth43/stdout.log
-          node --input-type=module -e "import fs from 'node:fs'; import assert from 'node:assert/strict'; const s=fs.readFileSync('.ci-evidence/auth43/stdout.log','utf8'); for(const n of ['tests 11','pass 11','fail 0','skipped 0','cancelled 0'])assert(s.split(/\r?\n/).includes('# '+n),n);"
+          node --input-type=module -e "import fs from 'node:fs'; import assert from 'node:assert/strict'; const s=fs.readFileSync('.ci-evidence/auth43/stdout.log','utf8'); for(const n of ['tests 12','pass 12','fail 0','skipped 0','cancelled 0'])assert(s.split(/\r?\n/).includes('# '+n),n);"
       - name: New version4 DATA type consumer only
         working-directory: packages/wallet-auth
         run: node node_modules/typescript/bin/tsc -p test/tsconfig.product-session-proof-v4.json
