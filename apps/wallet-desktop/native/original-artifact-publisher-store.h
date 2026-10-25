@@ -91,6 +91,20 @@ inline bool borrowPublisherRecord(const void *record,size_t length,const void *e
 // publisher registry and independent approval must gate the owning effect.
 // This class does not create keys or establish historical key-purpose trust.
 @interface YNXOriginalArtifactPublisherStore : NSObject
+// Native provisioning checkpoints, NOT Source/approval or key-generation
+// authority. Reserve the exact original request before the one crypto entry.
+// A duplicate/uncertain intent must only be queried, never generated again.
+- (BOOL)beginOriginalGenerationForRequest:(NSData *)request error:(NSError **)error;
+- (NSData *)copyOriginalGenerationIntentForRequest:(NSData *)request error:(NSError **)error;
+// Retain the FIRST generated private record under its original request before
+// registration/any late current callback. Identical result storage may be
+// confirmed; another key/R for that request is always refused. Native only:
+// these methods must never be exported to JS/NAPI/IPC/helper or a file.
+- (BOOL)saveOriginalGeneratedRecord:(NSData *)record forPublicOriginal:(NSData *)publicOriginal
+                   requestOriginal:(NSData *)request error:(NSError **)error;
+- (NSData *)copyOriginalGeneratedPublicOriginalForRequest:(NSData *)request error:(NSError **)error;
+- (NSMutableData *)copyOriginalGeneratedRecordForRequest:(NSData *)request
+                                     forPublicOriginal:(NSData *)publicOriginal error:(NSError **)error;
 // One Data Protection Keychain item encrypts the full R + KEY7 custody record
 // together. Create-only; duplicate/uncertain results never cause replacement.
 - (BOOL)createOriginalRecord:(NSData *)record

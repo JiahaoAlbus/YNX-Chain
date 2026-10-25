@@ -384,7 +384,76 @@ static BOOL ReleaseJournalCreate(NSDictionary*record,BOOL isResult,NSError**erro
 - (NSDictionary*)copyOriginalResultForRequest:(NSData*)request error:(NSError**)error {@synchronized(self){if(error)*error=nil;return ReleaseJournalRead(request,YES,error);}}
 @end
 
-@implementation YNXOriginalArtifactPublisherStore
+static NSString*const ProvisionIntentService=@"com.ynxweb4.wallet.artifact-publisher-generation-intent.v1";
+static NSString*const ProvisionResultService=@"com.ynxweb4.wallet.artifact-publisher-generation-result.v1";
+static const char ProvisionMagic[]="YNX-PUBLISHER-PROVISION/v1\n";
+static NSMutableDictionary*ProvisionQuery(NSData*request,BOOL result){NSMutableDictionary*q=Query(request);q[(__bridge id)kSecAttrService]=result?ProvisionResultService:ProvisionIntentService;return q;}
+// Only storage framing is parsed here. Actual R13/pair/proof mathematics and
+// independent authenticated Source checks remain with their original owners.
+static BOOL ProvisionBorrow(NSData*bytes,NSData*request,NSData**r,const uint8_t**record,size_t*recordLength){
+ if(r)*r=nil;if(record)*record=nullptr;if(recordLength)*recordLength=0;
+ if(!bytes||bytes.length>43008||bytes.length<sizeof(ProvisionMagic)-1+8||!request||std::memcmp(bytes.bytes,ProvisionMagic,sizeof(ProvisionMagic)-1))return NO;
+ const auto*p=(const uint8_t*)bytes.bytes;size_t at=sizeof(ProvisionMagic)-1;
+ auto part=[&](size_t maximum,const uint8_t*&start,size_t&length){if(bytes.length-at<4)return false;uint32_t n=0;for(unsigned i=0;i<4;i++)n=(n<<8)|p[at++];if(!n||n>maximum||n>bytes.length-at)return false;start=p+at;length=n;at+=n;return true;};
+ const uint8_t*q=nullptr,*publicBytes=nullptr;size_t qLength=0,publicLength=0;
+ if(!part(16384,q,qLength)||qLength!=request.length||std::memcmp(q,request.bytes,qLength)||!part(8192,publicBytes,publicLength)||at>=bytes.length)return NO;
+ NSData*original=[NSData dataWithBytes:publicBytes length:publicLength];ynx_wallet_private::PublisherMaterialBorrow borrowed;
+ if(!ynx_wallet_private::borrowPublisherRecord(p+at,bytes.length-at,original.bytes,original.length,borrowed))return NO;
+ if(r)*r=original;if(record)*record=p+at;if(recordLength)*recordLength=bytes.length-at;return YES;
+}
+static NSMutableData*ProvisionRead(NSData*request,BOOL result,NSError**error){
+ if(!Actor(error))return nil;request=Snapshot(request,16384);if(!request){Reject(error,@"provision-request",errSecParam,NO);return nil;}
+ NSMutableDictionary*q=ProvisionQuery(request,result);q[(__bridge id)kSecReturnData]=@YES;q[(__bridge id)kSecReturnAttributes]=@YES;q[(__bridge id)kSecMatchLimit]=(__bridge id)kSecMatchLimitOne;
+ CFTypeRef raw=nullptr;OSStatus status=PublisherCopy((__bridge CFDictionaryRef)q,&raw);
+ if(status!=errSecSuccess){if(raw)CFRelease(raw);Reject(error,@"provision-read",status,NO);return nil;}
+ if(!raw||CFGetTypeID(raw)!=CFDictionaryGetTypeID()){if(raw)CFRelease(raw);Reject(error,@"provision-read-type",errSecDecode,NO);return nil;}
+ NSDictionary*a=CFBridgingRelease(raw);NSData*body=a[(__bridge id)kSecValueData];
+ if(![a[(__bridge id)kSecAttrService]isEqual:q[(__bridge id)kSecAttrService]]||![a[(__bridge id)kSecAttrAccount]isEqual:q[(__bridge id)kSecAttrAccount]]||![a[(__bridge id)kSecAttrSynchronizable]isEqual:@NO]||![a[(__bridge id)kSecAttrAccessible]isEqual:(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly]||![body isKindOfClass:NSData.class]||!body.length||body.length>(result?43008:16384)){Reject(error,@"provision-read-protection",errSecDecode,NO);return nil;}
+ NSMutableData*copy=[NSMutableData dataWithBytes:body.bytes length:body.length];
+ if(result?!ProvisionBorrow(copy,request,nullptr,nullptr,nullptr):![copy isEqual:request]){[copy resetBytesInRange:NSMakeRange(0,copy.length)];Reject(error,@"provision-read-binding",errSecDecode,NO);return nil;}return copy;
+}
+static BOOL ProvisionCreate(NSData*request,NSMutableData*bytes,BOOL result,NSError**error){
+ NSMutableDictionary*q=ProvisionQuery(request,result);q[(__bridge id)kSecAttrAccessible]=(__bridge id)kSecAttrAccessibleWhenUnlockedThisDeviceOnly;q[(__bridge id)kSecValueData]=bytes;
+ OSStatus status=PublisherAdd((__bridge CFDictionaryRef)q,nullptr);
+ // An intent is NEVER re-opened. An identical first result can only confirm
+ // storage; it cannot lend another crypto, registration or broadcast entry.
+ if(status!=errSecSuccess&&!(result&&status==errSecDuplicateItem))return Reject(error,@"provision-create",status,status!=errSecDuplicateItem);
+ NSError*cause=nil;NSMutableData*read=ProvisionRead(request,result,&cause);BOOL same=read&&[read isEqual:bytes];[read resetBytesInRange:NSMakeRange(0,read.length)];
+ if(!same){if(error){NSError*failure=StoreError(@"provision-create-readback",cause?(OSStatus)cause.code:errSecDecode,YES);NSMutableDictionary*info=[failure.userInfo mutableCopy];if(cause)info[NSUnderlyingErrorKey]=cause;*error=[NSError errorWithDomain:failure.domain code:failure.code userInfo:info];}return NO;}return YES;
+}
+@implementation YNXOriginalArtifactPublisherStore {
+ NSMutableSet<NSData*>*_generationSelected;
+ NSMutableDictionary<NSData*,NSError*>*_generationFirstCause;
+}
+- (BOOL)beginOriginalGenerationForRequest:(NSData*)input error:(NSError**)error {@synchronized(self){
+ if(error)*error=nil;if(!Actor(error))return NO;NSData*request=Snapshot(input,16384);if(!request)return Reject(error,@"provision-request",errSecParam,NO);
+ if([_generationSelected containsObject:request]){if(_generationFirstCause[request]){if(error)*error=_generationFirstCause[request];return NO;}return Reject(error,@"provision-intent-already-selected",errSecDuplicateItem,NO);}
+ if(_generationSelected.count>=32)return Reject(error,@"provision-intent-capacity",errSecAllocate,NO);
+ if(!_generationSelected)_generationSelected=[NSMutableSet new];if(!_generationFirstCause)_generationFirstCause=[NSMutableDictionary new];[_generationSelected addObject:request];
+ NSMutableData*owned=[NSMutableData dataWithBytes:request.bytes length:request.length];@try{NSError*cause=nil;BOOL ok=ProvisionCreate(request,owned,NO,&cause);if(!ok){cause=cause?:StoreError(@"provision-intent-unknown",errSecInternalComponent,YES);_generationFirstCause[request]=cause;if(error)*error=cause;}return ok;}@finally{[owned resetBytesInRange:NSMakeRange(0,owned.length)];}
+}}
+- (NSData*)copyOriginalGenerationIntentForRequest:(NSData*)request error:(NSError**)error {@synchronized(self){if(error)*error=nil;return ProvisionRead(request,NO,error);}}
+- (BOOL)saveOriginalGeneratedRecord:(NSData*)input forPublicOriginal:(NSData*)publicOriginal requestOriginal:(NSData*)inputRequest error:(NSError**)error {@synchronized(self){
+ if(error)*error=nil;if(!Actor(error))return NO;NSData*request=Snapshot(inputRequest,16384),*r=Snapshot(publicOriginal,8192);
+ if(!request||!MatchesRecord(input,r))return Reject(error,@"provision-result-input",errSecParam,NO);
+ NSMutableData*owned=[NSMutableData dataWithBytes:ProvisionMagic length:sizeof(ProvisionMagic)-1];
+ @try{for(NSData*part in @[request,r]){uint32_t n=CFSwapInt32HostToBig((uint32_t)part.length);[owned appendBytes:&n length:4];[owned appendData:part];}[owned appendData:input];
+  if(!ProvisionBorrow(owned,request,nullptr,nullptr,nullptr))return Reject(error,@"provision-result-input",errSecParam,NO);
+  // Capture the actual private output BEFORE any protected-store callback can
+  // mutate its caller-owned buffer. The intent read must still precede add.
+  if(!ProvisionRead(request,NO,error))return NO;
+  return ProvisionCreate(request,owned,YES,error);
+ }@finally{[owned resetBytesInRange:NSMakeRange(0,owned.length)];}
+}}
+- (NSData*)copyOriginalGeneratedPublicOriginalForRequest:(NSData*)request error:(NSError**)error {@synchronized(self){
+ if(error)*error=nil;request=Snapshot(request,16384);NSMutableData*owned=ProvisionRead(request,YES,error);if(!owned)return nil;
+ @try{NSData*r=nil;if(!ProvisionBorrow(owned,request,&r,nullptr,nullptr)){Reject(error,@"provision-result-binding",errSecDecode,NO);return nil;}return r;}@finally{[owned resetBytesInRange:NSMakeRange(0,owned.length)];}
+}}
+- (NSMutableData*)copyOriginalGeneratedRecordForRequest:(NSData*)request forPublicOriginal:(NSData*)publicOriginal error:(NSError**)error {@synchronized(self){
+ if(error)*error=nil;request=Snapshot(request,16384);NSData*expected=Snapshot(publicOriginal,8192);if(!expected){Reject(error,@"provision-original-R",errSecParam,NO);return nil;}
+ NSMutableData*owned=ProvisionRead(request,YES,error);if(!owned)return nil;
+ @try{NSData*r=nil;const uint8_t*record=nullptr;size_t length=0;if(!ProvisionBorrow(owned,request,&r,&record,&length)||![r isEqual:expected]){Reject(error,@"provision-result-binding",errSecDecode,NO);return nil;}return [NSMutableData dataWithBytes:record length:length];}@finally{[owned resetBytesInRange:NSMakeRange(0,owned.length)];}
+}}
 - (NSMutableData *)copyOriginalRecordForCurrentPublisher:(YNXOriginalArtifactPublisherCurrent *)current error:(NSError **)error {
  if(error)*error=nil;
  if(!current||[current class]!=YNXOriginalArtifactPublisherCurrent.class){Reject(error,@"current-owner",errSecAuthFailed,NO);return nil;}

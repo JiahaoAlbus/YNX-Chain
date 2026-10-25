@@ -17,7 +17,7 @@ static NSDictionary *sourceView;
 static NSError *sourceAcquireError,*sourcePublishError,*sourceCloseError;
 static NSUInteger sourceAcquires,sourceViews,sourcePublishes,sourceRetires,sourceJoins,sourceCloses;
 static BOOL sourceJoinPending,sourceSnapshotMismatch;
-static void (^selectionHook)(void),(^joinHook)(void),(^recordHook)(void);
+static void (^selectionHook)(void),(^joinHook)(void),(^recordHook)(void),(^provisionReadHook)(void);
 static NSDictionary *walletPacket;static NSData *walletRequest;static BOOL walletLive=YES;
 #if defined(YNX_ORIGINAL_WALLET_ARTIFACT_CABI)
 #include "../../native/original-artifact-publisher-cabi.h"
@@ -81,7 +81,7 @@ static NSString*lastJournalKey;
 static void(^journalAfterAddHook)(void);
 static NSString *address(NSDictionary *query){
  assert([query[(__bridge id)kSecClass]isEqual:(__bridge id)kSecClassGenericPassword]);
- NSString*service=query[(__bridge id)kSecAttrService];assert(([@[@"com.ynxweb4.wallet.artifact-publisher.v1",@"com.ynxweb4.wallet.artifact-release-intent.v1",@"com.ynxweb4.wallet.artifact-release-result.v1"]containsObject:service]));
+ NSString*service=query[(__bridge id)kSecAttrService];assert(([@[@"com.ynxweb4.wallet.artifact-publisher.v1",@"com.ynxweb4.wallet.artifact-release-intent.v1",@"com.ynxweb4.wallet.artifact-release-result.v1",@"com.ynxweb4.wallet.artifact-publisher-generation-intent.v1",@"com.ynxweb4.wallet.artifact-publisher-generation-result.v1"]containsObject:service]));
  assert([query[(__bridge id)kSecAttrSynchronizable]isEqual:@NO]);
  assert([query[(__bridge id)kSecUseDataProtectionKeychain]isEqual:@YES]);
  LAContext *context=query[(__bridge id)kSecUseAuthenticationContext];assert([context isKindOfClass:LAContext.class]&&context.interactionNotAllowed);
@@ -108,6 +108,7 @@ extern "C" OSStatus YNXPublisherStoreTestCopy(CFDictionaryRef raw,CFTypeRef *res
  assert([q[(__bridge id)kSecReturnData]isEqual:@YES]);assert([q[(__bridge id)kSecMatchLimit]isEqual:(__bridge id)kSecMatchLimitOne]);
  assert([q[(__bridge id)kSecReturnAttributes]isEqual:@YES]);
  if(readStatus!=errSecSuccess)return readStatus;
+ if(provisionReadHook&&[q[(__bridge id)kSecAttrService]isEqual:@"com.ynxweb4.wallet.artifact-publisher-generation-intent.v1"]){void(^hook)(void)=provisionReadHook;provisionReadHook=nil;hook();}
  NSData *item=items[a];if(!item)return errSecItemNotFound;
  NSMutableData *returned=[item mutableCopy];
  if(corruptReadback)((uint8_t *)returned.mutableBytes)[returned.length-1]^=1;
@@ -123,6 +124,21 @@ static NSMutableData *record(NSData *r){
  auto append=[&](NSData *part){uint32_t n=CFSwapInt32HostToBig((uint32_t)part.length);[out appendBytes:&n length:4];[out appendData:part];};
  append(r);const size_t sizes[]={54,150,2592,64};for(size_t n:sizes)append([NSMutableData dataWithLength:n]);return out;
 }
+#if defined(YNX_PUBLISHER_PROVISION_PUBLIC_TEST)
+static void provisionCases(){
+ auto store=[YNXOriginalArtifactPublisherStore new];NSError*e=nil;NSData*request=R(@"PUBLIC original native provisioning request"),*r=R(@"PUBLIC independent publisher R");NSMutableData*wire=record(r);
+ NSUInteger before=journalAdds;assert(![store saveOriginalGeneratedRecord:wire forPublicOriginal:r requestOriginal:request error:&e]&&e.code==errSecItemNotFound&&journalAdds==before);std::puts("PASS_PROVISION result cannot be retained without exact protected intent");
+ assert([store beginOriginalGenerationForRequest:request error:&e]&&!e);assert([[store copyOriginalGenerationIntentForRequest:request error:&e]isEqual:request]);before=journalAdds;assert(![store beginOriginalGenerationForRequest:request error:&e]&&e.code==errSecDuplicateItem&&journalAdds==before);std::puts("PASS_PROVISION first intent is durable and duplicate refuses another generation");
+ assert([store saveOriginalGeneratedRecord:wire forPublicOriginal:r requestOriginal:request error:&e]);auto cold=[YNXOriginalArtifactPublisherStore new];assert([[cold copyOriginalGeneratedPublicOriginalForRequest:request error:&e]isEqual:r]);NSMutableData*restored=[cold copyOriginalGeneratedRecordForRequest:request forPublicOriginal:r error:&e];assert([restored isEqual:wire]);[restored resetBytesInRange:NSMakeRange(0,restored.length)];assert([[cold copyOriginalGeneratedRecordForRequest:request forPublicOriginal:r error:&e]isEqual:wire]);std::puts("PASS_PROVISION cold owner reads first generated public R and independent mutable private copy");
+ assert([cold saveOriginalGeneratedRecord:wire forPublicOriginal:r requestOriginal:request error:&e]);NSMutableData*changed=[wire mutableCopy];((uint8_t*)changed.mutableBytes)[changed.length-1]=9;assert(![cold saveOriginalGeneratedRecord:changed forPublicOriginal:r requestOriginal:request error:&e]&&[e.userInfo[@"operationMayHaveCommitted"]boolValue]);assert([[cold copyOriginalGeneratedRecordForRequest:request forPublicOriginal:r error:&e]isEqual:wire]);std::puts("PASS_PROVISION identical result only confirms storage and replacement private material cannot overwrite");
+ assert(![cold copyOriginalGeneratedRecordForRequest:request forPublicOriginal:R(@"PUBLIC foreign R")error:&e]);assert(![cold copyOriginalGeneratedPublicOriginalForRequest:R(@"PUBLIC different request")error:&e]);std::puts("PASS_PROVISION changed request or public R cannot recover private result");
+ NSData*unknown=R(@"PUBLIC unknown generation intent");addStatus=errSecNotAvailable;commitDespiteError=YES;assert(![store beginOriginalGenerationForRequest:unknown error:&e]&&[e.userInfo[@"operationMayHaveCommitted"]boolValue]);NSError*first=e;addStatus=errSecSuccess;commitDespiteError=NO;before=journalAdds;assert(![store beginOriginalGenerationForRequest:unknown error:&e]&&e==first&&journalAdds==before);assert([[cold copyOriginalGenerationIntentForRequest:unknown error:&e]isEqual:unknown]&&journalAdds==before);assert(![cold beginOriginalGenerationForRequest:unknown error:&e]&&e.code==errSecDuplicateItem);std::puts("PASS_PROVISION uncertain committed intent recovers by read and never grants regeneration");
+ NSData*unknownResult=R(@"PUBLIC unknown generated result");assert([store beginOriginalGenerationForRequest:unknownResult error:&e]);addStatus=errSecNotAvailable;commitDespiteError=YES;assert(![store saveOriginalGeneratedRecord:wire forPublicOriginal:r requestOriginal:unknownResult error:&e]&&[e.userInfo[@"operationMayHaveCommitted"]boolValue]);addStatus=errSecSuccess;commitDespiteError=NO;before=journalAdds;assert([[cold copyOriginalGeneratedRecordForRequest:unknownResult forPublicOriginal:r error:&e]isEqual:wire]&&journalAdds==before);std::puts("PASS_PROVISION uncertain result is retained and recovered read-only without another crypto/add");
+ readStatus=errSecInteractionNotAllowed;before=journalAdds;assert(![cold copyOriginalGeneratedPublicOriginalForRequest:request error:&e]&&e.code==errSecInteractionNotAllowed&&journalAdds==before);readStatus=errSecSuccess;weakerProtection=YES;assert(![cold copyOriginalGeneratedPublicOriginalForRequest:request error:&e]&&e.code==errSecDecode);weakerProtection=NO;std::puts("PASS_PROVISION locked or weaker protection refuses without fallback or mutation");
+ NSData*mutation=R(@"PUBLIC caller mutation during protected read");assert([store beginOriginalGenerationForRequest:mutation error:&e]);NSMutableData*input=[wire mutableCopy];provisionReadHook=^{[input resetBytesInRange:NSMakeRange(0,input.length)];};assert([store saveOriginalGeneratedRecord:input forPublicOriginal:r requestOriginal:mutation error:&e]);assert([[cold copyOriginalGeneratedRecordForRequest:mutation forPublicOriginal:r error:&e]isEqual:wire]);std::puts("PASS_PROVISION captured generated output survives foreign callback mutation");
+ [wire resetBytesInRange:NSMakeRange(0,wire.length)];[changed resetBytesInRange:NSMakeRange(0,changed.length)];std::puts("PUBLIC_PROVISION_STORAGE_ONLY generation=0 signature=0 Source=0 registered=0 systemKeychainOperations=0");
+}
+#endif
 static NSDictionary *publisherView(NSData*r,NSString*project= @"PUBLIC-project",id publisher= @"PUBLIC-publisher",BOOL publish=YES,NSString*revision= @"7"){
  NSString*account=@"PUBLIC-original-account";
 #if defined(YNX_PUBLISHER_ACTUAL_CABI_FIXTURE)
@@ -277,6 +293,9 @@ static int actualEffect(NSString*input,NSString*output){
 #endif
 int main(int argc,char **argv){@autoreleasepool{
  items=[NSMutableDictionary new];auto store=[YNXOriginalArtifactPublisherStore new];NSError *e=nil;
+#if defined(YNX_PUBLISHER_PROVISION_PUBLIC_TEST)
+ if(argc==1){provisionCases();return 0;}
+#endif
 #if defined(YNX_PUBLISHER_ACTUAL_CABI_FIXTURE)
  assert(argc==3);return actualEffect([NSString stringWithUTF8String:argv[1]],[NSString stringWithUTF8String:argv[2]]);
 #endif
