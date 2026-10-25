@@ -312,7 +312,8 @@
     "scripts/normal-runtime-materialization.mjs",
     "integration/WALLET_APP_RUNTIME_DEPENDENCIES_316.json",
     "scripts/NORMAL_RUNTIME_MATERIALIZATION.md",
-    "native/original-pq-host-catalog-task-exit.h"
+    "native/original-pq-host-catalog-task-exit.h",
+    "native/original-ide-service-registration-data.h"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
