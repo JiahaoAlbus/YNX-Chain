@@ -291,6 +291,13 @@ type pqNetworkE2ECustody interface {
 }
 
 func runPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T, custody pqNetworkE2ECustody) {
+	runPQNetworkFourValidatorWithBusiness(t, custody, nil)
+}
+
+func runPQNetworkFourValidatorWithBusiness(t *testing.T, custody pqNetworkE2ECustody, business *pqNetworkBusiness) {
+	if business == nil && os.Getenv("YNX_PQ_NETWORK_BUSINESS_E2E") != "" || business != nil && custody != nil {
+		t.Fatal("business consumer window cannot alias a different network selector or custody mode")
+	}
 	// Compiling consensus.test does not embed Hardhat's ignored output. Qualify
 	// and retain the exact inputs before creating identities, stores or nodes;
 	// a missing/invalid artifact must never start network/signing activity.
@@ -306,8 +313,11 @@ func runPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T, cu
 	// final 15 seconds for normal Node.Stop and durable signer-lock cleanup.
 	ctx, cancel := context.WithTimeout(context.Background(), 105*time.Second)
 	defer cancel()
-	network := pqNetworkE2ENew(t, ctx, custody)
+	network := pqNetworkE2ENewWithBusiness(t, ctx, custody, business)
 	defer network.stopAll()
+	if business != nil {
+		defer business.close(t)
+	}
 	network.phase = pqNetworkPhaseLegacy
 	network.startLegacy()
 	network.quiet(4)
@@ -448,6 +458,9 @@ func runPQNetworkFourValidatorOriginalStateTransitionAndRestart(t *testing.T, cu
 	network.query(0, "/ide/contracts/"+contractAddress, &contract)
 	if contract.RuntimeStorage["0x"+strings.Repeat("0", 64)] != "0x"+strings.Repeat("0", 63)+"c" {
 		t.Fatal("P/U/A transition reset pre-existing contract storage")
+	}
+	if business != nil {
+		business.run(network, walletKey)
 	}
 
 	// Three original validators must actually finalize the Wallet-format
@@ -622,6 +635,10 @@ type pqNetworkE2E struct {
 }
 
 func pqNetworkE2ENew(t *testing.T, ctx context.Context, custody pqNetworkE2ECustody) *pqNetworkE2E {
+	return pqNetworkE2ENewWithBusiness(t, ctx, custody, nil)
+}
+
+func pqNetworkE2ENewWithBusiness(t *testing.T, ctx context.Context, custody pqNetworkE2ECustody, business *pqNetworkBusiness) *pqNetworkE2E {
 	t.Helper()
 	n := &pqNetworkE2E{t: t, ctx: ctx, seen: map[int64][]byte{}, custody: custody}
 	var err error
@@ -643,6 +660,9 @@ func pqNetworkE2ENew(t *testing.T, ctx context.Context, custody pqNetworkE2ECust
 		if _, err := d.Faucet(address, 100_000); err != nil {
 			t.Fatal(err)
 		}
+	}
+	if business != nil {
+		business.seed(t, d)
 	}
 	d.ProduceBlock()
 	if err := d.EnableAccountPQ(2); err != nil {
@@ -666,7 +686,9 @@ func pqNetworkE2ENew(t *testing.T, ctx context.Context, custody pqNetworkE2ECust
 		}
 		address := sha256.Sum256(public)
 		var parent string
-		if custody == nil {
+		if business != nil {
+			parent = business.root
+		} else if custody == nil {
 			parent = t.TempDir()
 		} else {
 			// The remote case's original vault/HRS/UNKNOWN files are retained
@@ -693,6 +715,14 @@ func pqNetworkE2ENew(t *testing.T, ctx context.Context, custody pqNetworkE2ECust
 		config.P2P.MaxNumOutboundPeers = 8
 		config.P2P.PersistentPeersMaxDialPeriod = time.Second
 		config.RPC.ListenAddress = ""
+		if business != nil {
+			listener, err := net.Listen("tcp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			listeners = append(listeners, listener)
+			config.RPC.ListenAddress = "tcp://" + listener.Addr().String()
+		}
 		config.RPC.PprofListenAddress = ""
 		config.Instrumentation.Prometheus = false
 		config.TxIndex.Indexer = "kv"
@@ -736,6 +766,12 @@ func pqNetworkE2ENew(t *testing.T, ctx context.Context, custody pqNetworkE2ECust
 	n.rawGenesis, err = cmtjson.Marshal(n.doc)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if business != nil {
+		n.rawGenesis = business.genesis(t, n.migration, n.rawGenesis)
+		if err := cmtjson.Unmarshal(n.rawGenesis, n.doc); err != nil {
+			t.Fatal(err)
+		}
 	}
 	sum := sha256.Sum256(n.rawGenesis)
 	n.bootstrap, err = NewConsensusBootstrap(n.rawGenesis, ConsensusBootstrapPins{CometGenesisSHA256: hex.EncodeToString(sum[:]), OriginalGenesisHash: n.migration.OriginalGenesisHash, MigrationStateHash: n.migration.StateHash}, n.migration)

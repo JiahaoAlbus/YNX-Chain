@@ -20,6 +20,150 @@ def stat_line(pid, parent=1, group=1, start=100, threads=2):
 
 
 class LinuxGuardControls(unittest.TestCase):
+    def business_recipe(self, temporary):
+        # Parsing controls only. These ELF-shaped bytes are NEVER executed and
+        # are not a compiler result, a signature, or a four-node qualification.
+        parent = Path(temporary).resolve()
+        source, case, build = parent / "source", parent / "case", parent / "case.build"
+        (source / "internal/consensus").mkdir(parents=True)
+        for relative in guard.consensus_business_source_pins():
+            (source / relative).write_bytes((Path(__file__).resolve().parents[2] / relative).read_bytes())
+        case.mkdir(mode=0o700); build.mkdir(mode=0o700)
+        manifest = dict(version="YNX-PQ-NETWORK-BUSINESS-BUILD/v1", protocolCommit="a" * 40,
+                        performanceClientCommit=guard.BUSINESS_CLIENT_COMMIT, sourceRoot=str(source),
+                        sourceLeaves={key: value["sha256"] for key, value in guard.consensus_business_source_pins().items()}, binaries={})
+        for name in guard.BUSINESS_BINARIES:
+            binary = build / name
+            binary.write_bytes(b"\x7fELF\x02\x01" + bytes(10) + b"\x02\x00\x3e\x00" + name.encode())
+            binary.chmod(0o700)
+            manifest["binaries"][name] = dict(path=str(binary), sha256=guard.digest(binary), bytes=binary.stat().st_size,
+                commit=guard.BUSINESS_CLIENT_COMMIT if name == "ynx-consensus-perf-client" else "a" * 40)
+        path = build / "business-manifest.json"
+        path.write_text(json.dumps(manifest)); path.chmod(0o600)
+        plan = dict(profile=guard.BUSINESS_E2E_PROFILE, caps=guard.fixed_caps(guard.BUSINESS_E2E_PROFILE),
+            sourceRoot=str(source), commit="a" * 40, executionAuthorized=False,
+            workingDirectory=str(source / "internal/consensus"), sourcePins=guard.consensus_business_source_pins(),
+            binaryPin={key: manifest["binaries"]["consensus.test"][key] for key in ("path", "sha256")},
+            businessManifestPin=dict(path=str(path), sha256=guard.digest(path)),
+            command=[str(build / "consensus.test"), "-test.run=^" + guard.BUSINESS_E2E_TEST + "$", "-test.count=1", "-test.timeout=120s", "-test.v"])
+        plan["environment"] = guard.consensus_business_environment(plan, build)
+        prepared = case / "prepared.json"
+        prepared.write_text(json.dumps(plan)); prepared.chmod(0o600)
+        return plan, prepared, source, case, build, manifest
+
+    def business_output(self):
+        # Log parser controls only, never represented as an actual test PASS.
+        lines, network = self.e2e_output()
+        network.update(finalHeight=20, blockCount=19)
+        for node in network["nodes"]:
+            node["height"], node["pqHRS"]["height"] = 20, 20
+        lines[0] = "=== RUN   " + guard.BUSINESS_E2E_TEST
+        lines[4] = "    pq_network_e2e_test.go:340: PQ_NETWORK_E2E_SUMMARY " + json.dumps(network)
+        lines[-2] = "--- PASS: " + guard.BUSINESS_E2E_TEST + " (20.00s)"
+        rows = [dict(kind=kind, outcome=outcome, transactionHash=str(i + 5) * 64, height=15 + i,
+                     finalizedBusinesses=admitted, rejectedMembers=rejected, registrationFinalized=registered,
+                     initialSubmissionUnknown=i == 1, independentFinalityVerified=True, offerToIndependentFinalityNs=1000000)
+                for i, (kind, outcome, admitted, rejected, registered) in enumerate((
+                    ("account_initial", "succeeded", 0, 0, True), ("pq_transfer", "succeeded", 1, 0, False), ("pq_whole", "partial", 1, 1, False)))]
+        summary = dict(version="YNX-PQ-NETWORK-SIGNED-BUSINESS/v1", syntheticOnly=True,
+                       clientCommit=guard.BUSINESS_CLIENT_COMMIT, protocolCommit="a" * 40, rows=rows,
+                       sustainedTPSQualified=False, publicDeployment=False, nativeGrant=False)
+        lines.insert(-2, "    pq_network_business_test.go:249: PQ_NETWORK_BUSINESS_SUMMARY " + json.dumps(summary))
+        return lines, summary
+
+    def test_signed_business_closed_recipe_four_original_elfs_and_unchanged_limits(self):
+        profile = guard.BUSINESS_E2E_PROFILE
+        self.assertEqual(guard.fixed_caps(profile), guard.fixed_caps(guard.E2E_RETAINED_HISTORY_PROFILE))
+        with tempfile.TemporaryDirectory() as tmp:
+            plan, prepared, source, case, build, _ = self.business_recipe(tmp)
+            self.assertEqual(guard.validate_consensus_business_recipe(plan, prepared, inherited={}),
+                             (source, case, plan["command"], plan["environment"]))
+            captured = guard.validate_consensus_business_files(plan, source, build)
+            self.assertEqual(len(captured), 7)
+            self.assertEqual(guard.consensus_runtime_environment(plan["environment"], case, build, profile,
+                {"ARBITRARY_UNTRUSTED": "ignored"}), dict(plan["environment"], PATH="/usr/bin:/bin", TMPDIR=str(case / "tmp")))
+            for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_NETWORK_REMOTE_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT"):
+                with self.subTest(key=key), self.assertRaises(RuntimeError):
+                    guard.validate_consensus_business_recipe(plan, prepared, inherited={key: ""})
+            for pin in (source / guard.BUSINESS_E2E_SOURCE, build / "business-manifest.json", build / "ynx-bft-gatewayd"):
+                original = pin.read_bytes(); mode = pin.stat().st_mode & 0o777
+                replacement = pin.with_name(pin.name + ".replacement")
+                replacement.write_bytes(original); replacement.chmod(mode); replacement.replace(pin)
+                with self.subTest(pin=pin), self.assertRaises(RuntimeError):
+                    guard.validate_consensus_business_files(plan, source, build, captured)
+                captured = guard.validate_consensus_business_files(plan, source, build)
+
+    def test_signed_business_refuses_expanded_recipe_manifest_or_old_unknown(self):
+        mutations = (lambda p: p.update(executionAuthorized=True), lambda p: p.update(profile="consensus-e2e"),
+                     lambda p: p.update(remoteSignerPin=p["binaryPin"]), lambda p: p["caps"].update(threads=321),
+                     lambda p: p["command"].__setitem__(1, "-test.run=" + guard.BUSINESS_E2E_TEST),
+                     lambda p: p["environment"].update(YNX_PQ_NETWORK_E2E="authorized-four-node-window"),
+                     lambda p: p["businessManifestPin"].update(sha256="0" * 64))
+        with tempfile.TemporaryDirectory() as tmp:
+            plan, prepared, *_ = self.business_recipe(tmp)
+            for change in mutations:
+                changed = json.loads(json.dumps(plan)); change(changed)
+                with self.subTest(change=change), self.assertRaises(RuntimeError):
+                    guard.validate_consensus_business_recipe(changed, prepared, inherited={})
+        for mode in ("wrong-client", "wrong-source", "extra-binary", "wrong-size", "duplicate", "symlink", "UNKNOWN"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
+                plan, prepared, source, case, build, manifest = self.business_recipe(tmp)
+                path = build / "business-manifest.json"
+                if mode == "wrong-client": manifest["binaries"]["ynx-consensus-perf-client"]["commit"] = "a" * 40
+                elif mode == "wrong-source": manifest["sourceLeaves"][guard.BUSINESS_E2E_SOURCE] = "1" * 64
+                elif mode == "extra-binary": manifest["binaries"]["foreign"] = manifest["binaries"]["ynx-bft-gatewayd"]
+                elif mode == "wrong-size": manifest["binaries"]["ynx-bft-gatewayd"]["bytes"] += 1
+                elif mode == "symlink":
+                    binary = build / "ynx-bft-gatewayd"; target = source / "original-elf"
+                    binary.rename(target); binary.symlink_to(target)
+                elif mode == "UNKNOWN": (case / "UNKNOWN").write_bytes(b"original uncertain case")
+                raw = json.dumps(manifest).encode()
+                if mode == "duplicate": raw = raw.replace(b'"version":', b'"version":"YNX-PQ-NETWORK-BUSINESS-BUILD/v1","version":', 1)
+                path.write_bytes(raw)
+                plan["businessManifestPin"]["sha256"] = guard.digest(path)
+                plan["environment"] = guard.consensus_business_environment(plan, build)
+                retained = {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()}
+                with self.assertRaises(RuntimeError): guard.validate_consensus_business_recipe(plan, prepared, inherited={})
+                self.assertEqual(retained, {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()})
+
+    def test_signed_business_requires_actual_rows_and_independent_finality_without_tps_claim(self):
+        lines, summary = self.business_output()
+        raw = ("\n".join(lines) + "\n").encode()
+        result = guard.validate_consensus_business_result(raw, b"", 0, "a" * 40)
+        self.assertEqual(result["signedBusiness"], summary)
+        changes = (lambda s: s.update(rows=[]), lambda s: s.update(publicDeployment=True),
+                   lambda s: s.update(sustainedTPSQualified=True), lambda s: s.update(protocolCommit="b" * 40),
+                   lambda s: s["rows"][0].update(finalizedBusinesses=1),
+                   lambda s: s["rows"][1].update(independentFinalityVerified=False),
+                   lambda s: s["rows"][1].update(height=s["rows"][0]["height"]),
+                   lambda s: s["rows"][2].update(outcome="succeeded", rejectedMembers=0),
+                   lambda s: s["rows"][2].update(transactionHash=s["rows"][1]["transactionHash"]),
+                   lambda s: s["rows"][2].update(offerToIndependentFinalityNs=0))
+        for change in changes:
+            modified = json.loads(json.dumps(summary)); change(modified)
+            output = list(lines)
+            output[-3] = "    pq_network_business_test.go:249: PQ_NETWORK_BUSINESS_SUMMARY " + json.dumps(modified)
+            with self.subTest(change=change), self.assertRaises(RuntimeError):
+                guard.validate_consensus_business_result(("\n".join(output) + "\n").encode(), b"", 0, "a" * 40)
+        for output, stderr, code in ((raw, b"", 1), (raw.replace(b"--- PASS:", b"--- SKIP:"), b"", 0),
+                                      (raw + b"PASS\n", b"", 0), (raw, b"panic: failed\n", 0),
+                                      (raw.replace(b'"rows":', b'"rows":[],"rows":'), b"", 0)):
+            with self.assertRaises(RuntimeError): guard.validate_consensus_business_result(output, stderr, code, "a" * 40)
+
+    def test_signed_business_explicit_cli_never_grants_execution_or_combines_profiles(self):
+        for flag in ("--consensus-e2e", "--consensus-e2e-retained-history", "--consensus-remote-e2e-retained-history"):
+            with self.subTest(flag=flag), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                guard.argument_parser().parse_args([flag, "--consensus-signed-business"])
+        for selected in ((True, False, False, True), (False, True, False, True), (False, False, True, True), (False, False, False, "true")):
+            with self.assertRaises(RuntimeError): guard.selected_profile(*selected)
+        with mock.patch.object(guard, "run", return_value=7) as run:
+            output = io.StringIO()
+            with redirect_stdout(output): self.assertEqual(guard.main(["--consensus-signed-business"]), 0)
+            run.assert_not_called()
+            self.assertEqual(json.loads(output.getvalue())["caps"], guard.fixed_caps(guard.BUSINESS_E2E_PROFILE))
+            self.assertEqual(guard.main(["--consensus-signed-business", "--execute", "--prepared", "/unused/prepared.json", "--receipt", "/unused/receipt.json"]), 7)
+            self.assertEqual(run.call_args.kwargs, dict(case_n=1, consensus_e2e=False, consensus_e2e_retained_history=False, consensus_signed_business=True))
+
     def e2e_recipe(self, temporary, profile="consensus-e2e"):
         # Parser/control fixtures only. This fake ELF is NEVER executed and is
         # not a compiled test, cryptographic result or real network evidence.
@@ -450,7 +594,7 @@ class LinuxGuardControls(unittest.TestCase):
 
     def test_retained_history_keeps_exact_environment_command_and_two_pins(self):
         profile = guard.E2E_RETAINED_HISTORY_PROFILE
-        self.assertEqual(guard.E2E_SOURCE_SHA256, "852a239453108fb2307e80a64c9c578c4124a46756e3f961176a8edcd6afe214")
+        self.assertEqual(guard.E2E_SOURCE_SHA256, "b8c15de1e2b4b1927e8276301e5c04ef7108677d5d16043426b9bc62825598e1")
         self.assertEqual(guard.E2E_PROGRESS_SOURCE_SHA256, "66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044")
         mutations = [lambda p:p.update(executionAuthorized=True),
                      lambda p:p["command"].__setitem__(3, "-test.timeout=150s"),

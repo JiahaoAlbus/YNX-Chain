@@ -31,26 +31,30 @@ CAPS = dict(activeMs=105000, cleanupMs=15000, totalMs=120000,
 
 E2E_RETAINED_HISTORY_PROFILE = "consensus-e2e-retained-history-v1"
 REMOTE_E2E_RETAINED_HISTORY_PROFILE = "consensus-remote-e2e-retained-history-v1"
+BUSINESS_E2E_PROFILE = "consensus-signed-business-v1"
 
 
 def fixed_caps(profile=None):
     # Profiles select reviewed constants; neither prepared JSON nor a caller
     # supplied dictionary can increase any limit. Keep the original CAPS intact.
-    if profile not in (None, "consensus-e2e", E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE):
+    if profile not in (None, "consensus-e2e", E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE, BUSINESS_E2E_PROFILE):
         raise RuntimeError("unknown fixed resource profile")
     caps = dict(CAPS)
-    if profile in (E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE):
+    if profile in (E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE, BUSINESS_E2E_PROFILE):
         caps["privateBytes"] = 536870912
     return caps
 
 
 def selected_profile(consensus_e2e=False, consensus_e2e_retained_history=False,
-                     consensus_remote_e2e_retained_history=False):
-    flags = (consensus_e2e, consensus_e2e_retained_history, consensus_remote_e2e_retained_history)
+                     consensus_remote_e2e_retained_history=False, consensus_signed_business=False):
+    flags = (consensus_e2e, consensus_e2e_retained_history, consensus_remote_e2e_retained_history,
+             consensus_signed_business)
     if any(type(flag) is not bool for flag in flags) or sum(flags) > 1:
         raise RuntimeError("consensus E2E profile flags are mutually exclusive")
     if consensus_remote_e2e_retained_history:
         return REMOTE_E2E_RETAINED_HISTORY_PROFILE
+    if consensus_signed_business:
+        return BUSINESS_E2E_PROFILE
     if consensus_e2e_retained_history:
         return E2E_RETAINED_HISTORY_PROFILE
     return "consensus-e2e" if consensus_e2e else None
@@ -59,7 +63,7 @@ def selected_profile(consensus_e2e=False, consensus_e2e_retained_history=False,
 E2E_TEST = "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart"
 E2E_SOURCE = "internal/consensus/pq_network_e2e_test.go"
 # Updated only with the separately frozen test leaves and normal CI compilation.
-E2E_SOURCE_SHA256 = "852a239453108fb2307e80a64c9c578c4124a46756e3f961176a8edcd6afe214"
+E2E_SOURCE_SHA256 = "b8c15de1e2b4b1927e8276301e5c04ef7108677d5d16043426b9bc62825598e1"
 E2E_PROGRESS_SOURCE = "internal/consensus/pq_network_progress_test.go"
 E2E_PROGRESS_SOURCE_SHA256 = "66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044"
 E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
@@ -72,6 +76,28 @@ REMOTE_PROCESS_SOURCE = "internal/consensus/pq_remote_process_test.go"
 REMOTE_PROCESS_SOURCE_SHA256 = "01663b399daf0c7c70faab41e629a85d2538ea4bb9bb395fe724ec2ccf06948d"
 REMOTE_E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
                       YNX_PQ_NETWORK_REMOTE_E2E="authorized-four-node-remote-signer-window")
+BUSINESS_E2E_TEST = "TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality"
+BUSINESS_E2E_SOURCE = "internal/consensus/pq_network_business_test.go"
+# The owning test freezes this leaf together with the shared network source.
+BUSINESS_E2E_SOURCE_SHA256 = "7be691837779d42c9e86fcda32b2c1ee8fa701754336062be39f77bb30ba4d21"
+BUSINESS_CLIENT_COMMIT = "3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0"
+BUSINESS_BINARIES = ("consensus.test", "ynx-bft-gatewayd", "ynx-consensus-perf-client",
+                     "ynx-consensus-proof-verify")
+
+
+def unique_json(raw):
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf8", errors="strict")
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise RuntimeError("duplicate original JSON field")
+            value[key] = item
+        return value
+    def invalid_constant(_):
+        raise RuntimeError("nonfinite original JSON value")
+    return json.loads(raw, object_pairs_hook=unique, parse_constant=invalid_constant)
 
 
 def bounded(path, limit=65536):
@@ -199,8 +225,8 @@ def digest(path):
 
 
 def validate_recipe(plan, prepared, case_n=1):
-    if "remoteSignerPin" in plan:
-        raise RuntimeError("paired benchmark cannot select a remote signer")
+    if "remoteSignerPin" in plan or "businessManifestPin" in plan:
+        raise RuntimeError("paired benchmark cannot select another network profile")
     source = Path(plan["sourceRoot"]).resolve()
     case = prepared.parent.resolve()
     if source == case or source in case.parents or case in source.parents:
@@ -279,19 +305,124 @@ def consensus_remote_environment(plan, build):
                 YNX_PQ_REMOTE_SIGNER_SHA256=pin["sha256"])
 
 
+def consensus_business_source_pins():
+    return {E2E_SOURCE: {"sha256": E2E_SOURCE_SHA256},
+            BUSINESS_E2E_SOURCE: {"sha256": BUSINESS_E2E_SOURCE_SHA256}}
+
+
+def consensus_business_environment(plan, build):
+    pin = plan.get("businessManifestPin")
+    if (not isinstance(pin, dict) or set(pin) != {"path", "sha256"}
+            or pin.get("path") != str(build / "business-manifest.json")
+            or not re.fullmatch(r"[0-9a-f]{64}", pin.get("sha256", ""))
+            or pin["sha256"] == "0" * 64):
+        raise RuntimeError("independent original business manifest pin required")
+    return dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
+                YNX_PQ_NETWORK_BUSINESS_E2E="authorized-four-node-business-window",
+                YNX_PQ_NETWORK_BUSINESS_MANIFEST=pin["path"],
+                YNX_PQ_NETWORK_BUSINESS_MANIFEST_SHA256=pin["sha256"],
+                YNX_PQ_NETWORK_BUSINESS_SOURCE_COMMIT=plan["commit"])
+
+
+def validate_consensus_business_files(plan, source, build, captured=None):
+    # The independent manifest commits the four real compiled executables. No
+    # path or hash is selected from an RPC response or the test's own output.
+    pin = plan["businessManifestPin"]
+    consensus_business_environment(plan, build)
+    manifest_path = build / "business-manifest.json"
+    names = {*BUSINESS_BINARIES, manifest_path.name}
+    temporary = build / "tmp"
+    if temporary.exists() or temporary.is_symlink():
+        info = temporary.lstat()
+        if not stat.S_ISDIR(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o700 or info.st_uid != os.getuid():
+            raise RuntimeError("business build temp must remain an owned private directory")
+        names.add("tmp")
+    if {path.name for path in build.iterdir()} != names:
+        raise RuntimeError("business build requires exactly four original ELFs and manifest")
+    identity = lambda info: (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns,
+                             info.st_ctime_ns, info.st_mode, info.st_uid, info.st_gid, info.st_nlink)
+    before = manifest_path.lstat()
+    if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.getuid() or before.st_nlink != 1
+            or stat.S_IMODE(before.st_mode) != 0o600 or manifest_path.resolve(strict=True) != manifest_path):
+        raise RuntimeError("original private business manifest required")
+    raw = bounded(manifest_path, 64 << 10)
+    if hashlib.sha256(raw).hexdigest() != pin["sha256"]:
+        raise RuntimeError("business manifest SHA256 differs from independent pin")
+    manifest = unique_json(raw)
+    if (not isinstance(manifest, dict) or set(manifest) != {"version", "protocolCommit", "performanceClientCommit", "sourceRoot", "sourceLeaves", "binaries"}
+            or manifest.get("version") != "YNX-PQ-NETWORK-BUSINESS-BUILD/v1"
+            or manifest.get("protocolCommit") != plan["commit"]
+            or manifest.get("performanceClientCommit") != BUSINESS_CLIENT_COMMIT
+            or manifest.get("sourceRoot") != str(source)
+            or manifest.get("sourceLeaves") != {name: value["sha256"] for name, value in consensus_business_source_pins().items()}
+            or not isinstance(manifest.get("binaries"), dict) or set(manifest["binaries"]) != set(BUSINESS_BINARIES)):
+        raise RuntimeError("closed original business source/client manifest differs")
+    if identity(before) != identity(manifest_path.lstat()):
+        raise RuntimeError("business manifest changed while reading")
+    identities = {str(manifest_path): identity(before)}
+    files = {source / relative: value["sha256"] for relative, value in consensus_business_source_pins().items()}
+    total, hashes = 0, set()
+    for name in BUSINESS_BINARIES:
+        record = manifest["binaries"][name]
+        wanted_commit = BUSINESS_CLIENT_COMMIT if name == "ynx-consensus-perf-client" else plan["commit"]
+        binary = build / name
+        if (not isinstance(record, dict) or set(record) != {"path", "sha256", "commit", "bytes"}
+                or record.get("path") != str(binary) or record.get("commit") != wanted_commit
+                or type(record.get("bytes")) is not int or not 20 <= record["bytes"] <= 128 << 20
+                or record.get("sha256") in hashes or record.get("sha256") == "0" * 64):
+            raise RuntimeError("distinct bounded original business executable identity required")
+        binary_before = identity(binary.lstat())
+        validate_pinned_consensus_binary({key: record[key] for key in ("path", "sha256")}, binary)
+        with binary.open("rb") as handle:
+            header = handle.read(20)
+        if (header[:6] != b"\x7fELF\x02\x01" or header[18:20] != b"\x3e\x00"
+                or header[16:18] not in (b"\x02\x00", b"\x03\x00") or binary.stat().st_size != record["bytes"]):
+            raise RuntimeError("original normal Linux amd64 ELF and exact bytes required")
+        if binary_before != identity(binary.lstat()):
+            raise RuntimeError("business original executable changed during admission")
+        if name == "consensus.test" and plan["binaryPin"] != {key: record[key] for key in ("path", "sha256")}:
+            raise RuntimeError("running consensus binary differs from independent business manifest")
+        hashes.add(record["sha256"])
+        total += record["bytes"]
+        identities[str(binary)] = binary_before
+        files[binary] = record["sha256"]
+    if total > 512 << 20:
+        raise RuntimeError("business executable total exceeds unchanged build budget")
+    for path, expected in files.items():
+        before = path.lstat()
+        if str(path) in identities and identities[str(path)] != identity(before):
+            raise RuntimeError("business executable changed between original pin reads")
+        if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.getuid() or before.st_nlink != 1
+                or before.st_mode & 0o022 or path.resolve(strict=True) != path or digest(path) != expected
+                or path not in {build / name for name in BUSINESS_BINARIES} and not 0 < before.st_size <= 256 << 10):
+            raise RuntimeError("business original source/executable identity differs")
+        after = path.lstat()
+        if identity(before) != identity(after):
+            raise RuntimeError("business source/executable changed during pin verification")
+        identities[str(path)] = identity(after)
+    if identities[str(manifest_path)] != identity(manifest_path.lstat()):
+        raise RuntimeError("business manifest changed during executable/source verification")
+    if captured is not None and identities != captured:
+        raise RuntimeError("business manifest/source/executable changed since admission")
+    return identities
+
+
 def reject_inherited_remote_window_optins(inherited):
-    if any(key in inherited for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT")):
+    if any(key in inherited for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT", "YNX_PQ_NETWORK_BUSINESS_E2E")):
         raise RuntimeError("remote network window cannot inherit the local network or separate process opt-in")
 
 
 def consensus_runtime_environment(pinned_env, case, build, profile, inherited):
+    if profile == BUSINESS_E2E_PROFILE:
+        reject_inherited_business_optins(inherited)
+        return dict(pinned_env, PATH="/usr/bin:/bin", TMPDIR=str(case / "tmp"))
     if profile == REMOTE_E2E_RETAINED_HISTORY_PROFILE:
         reject_inherited_remote_window_optins(inherited)
         # No caller key/Host mode, Go option or old opt-in is inherited. The
         # compiled test and normal daemon need only their fixed public runtime
         # environment, absolute executable paths and monitored private TMPDIR.
         return dict(pinned_env, PATH="/usr/bin:/bin", TMPDIR=str(case / "tmp"))
-    if any(key in inherited for key in ("YNX_PQ_NETWORK_REMOTE_E2E",)):
+    if any(key in inherited for key in ("YNX_PQ_NETWORK_REMOTE_E2E", "YNX_PQ_NETWORK_BUSINESS_E2E")):
         raise RuntimeError("local profile cannot inherit a remote network opt-in")
     environment = dict(inherited)
     environment.pop("YNX_CHAIN_STOPPED_WINDOW", None)
@@ -338,8 +469,8 @@ def validate_consensus_remote_e2e_files(plan, source, build, captured=None):
 def validate_consensus_e2e_recipe(plan, prepared, profile="consensus-e2e"):
     if profile not in ("consensus-e2e", E2E_RETAINED_HISTORY_PROFILE) or plan.get("profile") != profile:
         raise RuntimeError("explicit consensus E2E flag and prepared profile must match")
-    if "remoteSignerPin" in plan:
-        raise RuntimeError("local consensus recipe cannot select a remote signer")
+    if "remoteSignerPin" in plan or "businessManifestPin" in plan:
+        raise RuntimeError("local consensus recipe cannot select another network profile")
     return validate_consensus_window_recipe(plan, prepared, profile)
 
 
@@ -356,12 +487,30 @@ def validate_consensus_remote_e2e_recipe(plan, prepared, inherited=None):
     return validate_consensus_window_recipe(plan, prepared, REMOTE_E2E_RETAINED_HISTORY_PROFILE)
 
 
+def reject_inherited_business_optins(inherited):
+    if any(key in inherited for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_NETWORK_REMOTE_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT")):
+        raise RuntimeError("business window cannot inherit another network/process opt-in")
+
+
+def validate_consensus_business_recipe(plan, prepared, inherited=None):
+    reject_inherited_business_optins(os.environ if inherited is None else inherited)
+    if (set(plan) != {"profile", "caps", "sourceRoot", "commit", "executionAuthorized", "workingDirectory",
+                      "sourcePins", "binaryPin", "businessManifestPin", "command", "environment"}
+            or plan.get("profile") != BUSINESS_E2E_PROFILE):
+        raise RuntimeError("explicit closed signed-business recipe required")
+    if (not isinstance(plan.get("sourceRoot"), str) or not Path(plan["sourceRoot"]).is_absolute()
+            or str(Path(plan["sourceRoot"]).resolve(strict=True)) != plan["sourceRoot"]):
+        raise RuntimeError("business source checkout must be canonical and absolute")
+    return validate_consensus_window_recipe(plan, prepared, BUSINESS_E2E_PROFILE)
+
+
 def validate_consensus_window_recipe(plan, prepared, profile):
     remote = profile == REMOTE_E2E_RETAINED_HISTORY_PROFILE
+    business = profile == BUSINESS_E2E_PROFILE
     caps = fixed_caps(profile)
     # Old prepared recipes need no new field. A claimed cap is never ignored;
     # the new profile must explicitly commit all of its unchanged limits too.
-    if profile in (E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE) or "caps" in plan:
+    if profile in (E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE, BUSINESS_E2E_PROFILE) or "caps" in plan:
         claimed = plan.get("caps")
         if (not isinstance(claimed, dict) or claimed != caps
                 or any(type(value) is not int for value in claimed.values())):
@@ -377,8 +526,9 @@ def validate_consensus_window_recipe(plan, prepared, profile):
             or not re.fullmatch(r"[0-9a-f]{40}", plan.get("commit", ""))
             or any(key in plan for key in ("n", "trial", "overlayPin", "productionMeasurementVersion"))):
         raise RuntimeError("explicit frozen consensus-e2e recipe required")
-    test_name = REMOTE_E2E_TEST if remote else E2E_TEST
-    expected_env = consensus_remote_environment(plan, build) if remote else E2E_ENV
+    test_name = BUSINESS_E2E_TEST if business else REMOTE_E2E_TEST if remote else E2E_TEST
+    expected_env = (consensus_business_environment(plan, build) if business else
+                    consensus_remote_environment(plan, build) if remote else E2E_ENV)
     expected = [str(build / "consensus.test"), "-test.run=^" + test_name + "$",
                 "-test.count=1", "-test.timeout=120s", "-test.v"]
     if (plan.get("command") != expected or plan.get("environment") != expected_env
@@ -389,6 +539,8 @@ def validate_consensus_window_recipe(plan, prepared, profile):
                      E2E_PROGRESS_SOURCE: {"sha256": E2E_PROGRESS_SOURCE_SHA256}}
     if remote:
         required_pins = consensus_remote_source_pins()
+    if business:
+        required_pins = consensus_business_source_pins()
     if not isinstance(pins, dict) or pins != required_pins:
         raise RuntimeError("exact frozen consensus E2E source pins required")
     for relative, pin in required_pins.items():
@@ -409,17 +561,56 @@ def validate_consensus_window_recipe(plan, prepared, profile):
     if (prepared.name != "prepared.json" or not stat.S_ISREG(info.st_mode)
             or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_nlink != 1):
         raise RuntimeError("owned private prepared.json required")
-    binary_names = {"consensus.test", "ynx-consensus-pq-remote-signer"} if remote else {"consensus.test"}
+    binary_names = ({*BUSINESS_BINARIES, "business-manifest.json"} if business else
+                    {"consensus.test", "ynx-consensus-pq-remote-signer"} if remote else {"consensus.test"})
     if {p.name for p in case.iterdir()} != {"prepared.json"} or {p.name for p in build.iterdir()} != binary_names:
         raise RuntimeError("preserve prior E2E logs/tmp/UNKNOWN; only fresh prepared case and sole precompiled binary allowed")
     validate_consensus_e2e_binary(plan, build)
     if remote:
         validate_consensus_remote_e2e_files(plan, source, build)
+    if business:
+        validate_consensus_business_files(plan, source, build)
     return source, case, expected, dict(expected_env)
 
 
 def validate_consensus_e2e_result(stdout, stderr, terminal_code):
     return validate_consensus_network_result(stdout, stderr, terminal_code, E2E_TEST)
+
+
+def validate_consensus_business_result(stdout, stderr, terminal_code, commit):
+    evidence = validate_consensus_network_result(stdout, stderr, terminal_code, BUSINESS_E2E_TEST)
+    text = stdout.decode("utf8", errors="strict")
+    markers = list(re.finditer(r"^[ \t]+pq_network_business_test\.go:[0-9]+: PQ_NETWORK_BUSINESS_SUMMARY (\{[^\r\n]+\})$", text, re.M))
+    if len(markers) != 1 or not text.index("PQ_NETWORK_E2E_SUMMARY ") < markers[0].start() < text.index("--- PASS: " + BUSINESS_E2E_TEST + " ("):
+        raise RuntimeError("one signed-business summary required after original cleanup evidence")
+    summary = unique_json(markers[0][1])
+    if (not isinstance(summary, dict) or set(summary) != {"version", "syntheticOnly", "clientCommit", "protocolCommit", "rows", "sustainedTPSQualified", "publicDeployment", "nativeGrant"}
+            or summary.get("version") != "YNX-PQ-NETWORK-SIGNED-BUSINESS/v1" or summary.get("syntheticOnly") is not True
+            or not re.fullmatch(r"[0-9a-f]{40}", commit) or commit == "0" * 40
+            or summary.get("protocolCommit") != commit or summary.get("clientCommit") != BUSINESS_CLIENT_COMMIT
+            or any(summary.get(key) is not False for key in ("sustainedTPSQualified", "publicDeployment", "nativeGrant"))
+            or not isinstance(summary.get("rows"), list) or len(summary["rows"]) != 3):
+        raise RuntimeError("signed-business source/result DATA boundary differs")
+    fields = {"kind", "outcome", "transactionHash", "height", "finalizedBusinesses", "rejectedMembers", "registrationFinalized", "initialSubmissionUnknown", "independentFinalityVerified", "offerToIndependentFinalityNs"}
+    expected = (("account_initial", "succeeded", 0, 0, True),
+                ("pq_transfer", "succeeded", 1, 0, False),
+                ("pq_whole", "partial", 1, 1, False))
+    prior, hashes = evidence["activationHeight"] - 1, set()
+    for row, (kind, outcome, admitted, rejected, registered) in zip(summary["rows"], expected):
+        if (not isinstance(row, dict) or set(row) != fields or row.get("kind") != kind or row.get("outcome") != outcome
+                or type(row.get("height")) is not int or not prior < row["height"] <= evidence["coldRestart"]["finalHeight"]
+                or type(row.get("finalizedBusinesses")) is not int or row["finalizedBusinesses"] != admitted
+                or type(row.get("rejectedMembers")) is not int or row["rejectedMembers"] != rejected
+                or row.get("registrationFinalized") is not registered or type(row.get("initialSubmissionUnknown")) is not bool
+                or row.get("independentFinalityVerified") is not True
+                or type(row.get("offerToIndependentFinalityNs")) is not int or not 0 < row["offerToIndependentFinalityNs"] <= CAPS["activeMs"] * 1000000
+                or not isinstance(row.get("transactionHash"), str) or not re.fullmatch(r"[0-9a-f]{64}", row["transactionHash"])
+                or row["transactionHash"] == "0" * 64 or row["transactionHash"] in hashes):
+            raise RuntimeError("actual initial/Member/partial business or independent finality row differs")
+        prior = row["height"]
+        hashes.add(row["transactionHash"])
+    evidence["signedBusiness"] = summary
+    return evidence
 
 
 def validate_consensus_network_result(stdout, stderr, terminal_code, test_name):
@@ -653,11 +844,12 @@ def validate_result(report, plan, case):
 
 
 def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained_history=False,
-        consensus_remote_e2e_retained_history=False):
+        consensus_remote_e2e_retained_history=False, consensus_signed_business=False):
     profile = selected_profile(consensus_e2e, consensus_e2e_retained_history,
-                               consensus_remote_e2e_retained_history)
+                               consensus_remote_e2e_retained_history, consensus_signed_business)
     caps = fixed_caps(profile)
     remote_e2e = profile == REMOTE_E2E_RETAINED_HISTORY_PROFILE
+    business_e2e = profile == BUSINESS_E2E_PROFILE
     consensus_e2e = profile is not None
     if sys.platform != "linux":
         raise RuntimeError("Linux /proc/smaps_rollup/subreaper required; no macOS substitution")
@@ -669,12 +861,15 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
         result["kind"] = "four-validator-PQ-consensus-E2E-Linux-CI-window"
     if remote_e2e:
         result["kind"] = "four-validator-PQ-consensus-remote-E2E-Linux-CI-window"
+    if business_e2e:
+        result["kind"] = "four-validator-PQ-signed-business-E2E-Linux-CI-window"
     child = None
     selector = selectors.DefaultSelector()
     logs = {}
     known = {}
     case = build = None
     remote_immutable = None
+    business_immutable = None
     def interrupted(signum, _frame):
         raise RuntimeError("wrapper signal " + str(signum))
     signal.signal(signal.SIGTERM, interrupted)
@@ -725,12 +920,16 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
         return rows, ids
 
     try:
-        plan = json.loads(bounded(prepared, 1 << 20))
+        prepared_raw = bounded(prepared, 1 << 20)
+        plan = unique_json(prepared_raw) if business_e2e else json.loads(prepared_raw)
         inherited_environment = dict(os.environ)
         if consensus_e2e:
             if case_n != 1:
                 raise RuntimeError("consensus E2E cannot select a paired benchmark case")
-            if remote_e2e:
+            if business_e2e:
+                source, case, command, pinned_env = validate_consensus_business_recipe(plan, prepared, inherited_environment)
+                business_immutable = validate_consensus_business_files(plan, source, case.with_name(case.name + ".build"))
+            elif remote_e2e:
                 source, case, command, pinned_env = validate_consensus_remote_e2e_recipe(
                     plan, prepared, inherited_environment)
                 remote_immutable = validate_consensus_remote_e2e_files(
@@ -753,6 +952,9 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
                           workingDirectory=plan["workingDirectory"], environment=pinned_env)
             if remote_e2e:
                 result.update(remoteSignerPin=plan["remoteSignerPin"], sourcePins=plan["sourcePins"])
+            if business_e2e:
+                result.update(businessManifestPin=plan["businessManifestPin"], sourcePins=plan["sourcePins"],
+                              performanceClientCommit=BUSINESS_CLIENT_COMMIT)
         else:
             result["explicitCaseN"] = case_n
         result["kernel"] = dict(release=os.uname().release, machine=os.uname().machine, logicalCPUs=os.cpu_count())
@@ -767,6 +969,8 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
                     raise RuntimeError("source pin mismatch")
             if remote_e2e:
                 validate_consensus_remote_e2e_files(plan, source, case.with_name(case.name + ".build"), remote_immutable)
+            if business_e2e:
+                validate_consensus_business_files(plan, source, case.with_name(case.name + ".build"), business_immutable)
         source_check()
         for name in ("pq-paired-result.json", "pq-paired-result.json.members.snapshot.json", "pq-paired-result.json.whole.snapshot.json", "tmp", "go.stdout.log", "go.stderr.log"):
             if (case / name).exists() or (case / name).is_symlink():
@@ -780,7 +984,7 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
             validate_consensus_e2e_binary(plan, build)
         else:
             build.mkdir(mode=0o700)
-        if remote_e2e:
+        if remote_e2e or business_e2e:
             (build / "tmp").mkdir(mode=0o700); (case / "tmp").mkdir(mode=0o700)
         else:
             (build / "tmp").mkdir(); (case / "tmp").mkdir()
@@ -822,6 +1026,8 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
         if consensus_e2e:
             if remote_e2e:
                 validate_consensus_remote_e2e_files(plan, source, build, remote_immutable)
+            if business_e2e:
+                validate_consensus_business_files(plan, source, build, business_immutable)
             executable = str(validate_consensus_e2e_binary(plan, build))
             working_directory = source / "internal/consensus"
             result["testExecutable"] = dict(path=executable, sha256=plan["binaryPin"]["sha256"])
@@ -871,7 +1077,9 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
             validate_consensus_e2e_binary(plan, build)
             stdout, stderr = (bounded(case / "go.stdout.log", CAPS["logBytes"]),
                               bounded(case / "go.stderr.log", CAPS["logBytes"]))
-            if remote_e2e:
+            if business_e2e:
+                result["networkEvidence"] = validate_consensus_business_result(stdout, stderr, child.returncode, plan["commit"])
+            elif remote_e2e:
                 result["networkEvidence"] = validate_consensus_remote_e2e_result(
                     stdout, stderr, child.returncode, plan["remoteSignerPin"]["sha256"])
             else:
@@ -957,6 +1165,7 @@ def argument_parser():
     profiles.add_argument("--consensus-e2e", action="store_true", help="original 32 MiB separately authorized four-node E2E using only a pinned precompiled consensus.test")
     profiles.add_argument("--consensus-e2e-retained-history", action="store_true", help="separately authorized retained-history-v1 E2E: fixed 512 MiB private files; every other original limit unchanged")
     profiles.add_argument("--consensus-remote-e2e-retained-history", action="store_true", help="separate explicit remote signer retained-history-v1 profile; fixed two binaries, four source pins and unchanged resource limits")
+    profiles.add_argument("--consensus-signed-business", action="store_true", help="separately authorized signed-business-v1 four-node profile; four pinned ELFs, original independent proofs, unchanged retained-history resources")
     return parser
 
 
@@ -964,7 +1173,7 @@ def main(argv=None):
     parser = argument_parser()
     args = parser.parse_args(argv)
     profile = selected_profile(args.consensus_e2e, args.consensus_e2e_retained_history,
-                               args.consensus_remote_e2e_retained_history)
+                               args.consensus_remote_e2e_retained_history, args.consensus_signed_business)
     if not args.execute:
         print(json.dumps(dict(status="prepared_only_no_Go_or_probe_started", supported=sys.platform == "linux", caps=fixed_caps(profile),
                               requires="Linux readable /proc + smaps_rollup, subreaper, exact prepared source, fresh Root isolated CI grant; not a macOS native-guard replacement")))
@@ -976,6 +1185,8 @@ def main(argv=None):
                        consensus_e2e_retained_history=args.consensus_e2e_retained_history)
         if args.consensus_remote_e2e_retained_history:
             options["consensus_remote_e2e_retained_history"] = True
+        if args.consensus_signed_business:
+            options["consensus_signed_business"] = True
         return run(args.prepared.resolve(), args.receipt.resolve(), **options)
 
 
