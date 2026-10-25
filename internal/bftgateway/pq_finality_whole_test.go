@@ -106,6 +106,10 @@ func newWholeFinalityMixedExecution(t *testing.T) (*pqActionFinalityEngine, int6
 	t.Helper()
 	f := newPQGatewayFixture(t)
 	e := newPQActionFinalityEngine(t, f)
+	// The actual imported account has already paid its source migration fee.
+	// Measure this committed baseline, rather than assuming the Faucet's 100.
+	ownerBefore := queryPQGatewayAccount(t, f.a, f.owner)
+	recipientBefore := queryPQGatewayAccount(t, f.a, f.recipient)
 	rejected := signGatewayWhole(t, f.key, f.network, f.owner, ynxauth.TransactionPurpose, [][]byte{f.message(t, 99, 1), f.message(t, 100, 1)})
 	rejectedPayload, err := consensus.EncodePQTransaction(consensus.PQWholeType, rejected)
 	if err != nil {
@@ -132,16 +136,35 @@ func newWholeFinalityMixedExecution(t *testing.T) (*pqActionFinalityEngine, int6
 	if json.Unmarshal(results.TxResults[1].Data, &partial) != nil || len(partial.Results) != 4 || partial.Results[0].Outcome != "admitted" || partial.Results[1].Outcome != "rejected" || partial.Results[2].Outcome != "admitted" || partial.Results[3].Outcome != "rejected" {
 		t.Fatal("actual fixture did not preserve legal partial Whole")
 	}
+	ownerAfter := queryPQGatewayAccount(t, f.a, f.owner)
+	recipientAfter := queryPQGatewayAccount(t, f.a, f.recipient)
+	expectedUsage := ownerBefore.ResourceUsage
+	expectedUsage.BandwidthUsed += 2
+	if ownerAfter.Balance != ownerBefore.Balance-13 || ownerAfter.Nonce != ownerBefore.Nonce+2 || ownerAfter.ResourceUsage != expectedUsage || ownerAfter.Staked != ownerBefore.Staked || recipientAfter.Balance != recipientBefore.Balance+11 || recipientAfter.Nonce != recipientBefore.Nonce || recipientAfter.ResourceUsage != recipientBefore.ResourceUsage {
+		t.Fatal("actual partial transfer/fees/nonce differ or rejected Whole charged effects", ownerBefore, ownerAfter, recipientBefore, recipientAfter)
+	}
+	var moved int64
+	for id, before := range ownerBefore.Lots {
+		delta := before - ownerAfter.Lots[id]
+		moved += delta
+		if recipientAfter.Lots[id]-recipientBefore.Lots[id] != delta {
+			t.Fatal("actual partial Whole lot movement differs from original transfer")
+		}
+	}
+	if moved != 11 {
+		t.Fatal("rejected Whole or transfer fees consumed original trace lots")
+	}
 	e.apply(t)
+	if !reflect.DeepEqual(ownerAfter, queryPQGatewayAccount(t, f.a, f.owner)) || !reflect.DeepEqual(recipientAfter, queryPQGatewayAccount(t, f.a, f.recipient)) {
+		t.Fatal("empty successor changed original Whole business effects")
+	}
 	return e, height
 }
 
 func TestGatewayPQWholeFinalityActualPartialRejectedAndColdRead(t *testing.T) {
 	e, height := newWholeFinalityMixedExecution(t)
 	account := queryPQGatewayAccount(t, e.f.a, e.f.owner)
-	if account.Balance != 87 || account.Nonce != 3 {
-		t.Fatal("actual partial fees/nonce or rejected Whole rollback differ", account)
-	}
+	recipient := queryPQGatewayAccount(t, e.f.a, e.f.recipient)
 	disk, err := os.ReadFile(e.path)
 	if err != nil {
 		t.Fatal(err)
@@ -177,7 +200,7 @@ func TestGatewayPQWholeFinalityActualPartialRejectedAndColdRead(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if code, cold := finalityRouteGET(t, g, wholeFinalityRoute(f)); code != http.StatusOK || !reflect.DeepEqual(cold, original) || !reflect.DeepEqual(account, queryPQGatewayAccount(t, f.f.a, e.f.owner)) {
+		if code, cold := finalityRouteGET(t, g, wholeFinalityRoute(f)); code != http.StatusOK || !reflect.DeepEqual(cold, original) || !reflect.DeepEqual(account, queryPQGatewayAccount(t, f.f.a, e.f.owner)) || !reflect.DeepEqual(recipient, queryPQGatewayAccount(t, f.f.a, e.f.recipient)) {
 			t.Fatal("cold Whole read changed original proof/account", code, cold.Error)
 		}
 	}
@@ -187,7 +210,7 @@ func TestGatewayPQWholeFinalityActualPartialRejectedAndColdRead(t *testing.T) {
 	}
 	// The all-admitted profile uses the same route and retains one Comet index,
 	// even though the native batch contains two independently executed members.
-	wire := signGatewayWhole(t, e.f.key, e.f.network, e.f.owner, ynxauth.TransactionPurpose, [][]byte{e.f.message(t, 4, 1), e.f.message(t, 5, 2)})
+	wire := signGatewayWhole(t, e.f.key, e.f.network, e.f.owner, ynxauth.TransactionPurpose, [][]byte{e.f.message(t, account.Nonce+1, 1), e.f.message(t, account.Nonce+2, 2)})
 	payload, err := consensus.EncodePQTransaction(consensus.PQWholeType, wire)
 	if err != nil {
 		t.Fatal(err)
