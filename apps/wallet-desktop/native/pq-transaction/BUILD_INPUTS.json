@@ -1,0 +1,141 @@
+{
+  "kind": "YNX-WALLET-PRIVATE-PQ-NATIVE-R2/v1",
+  "sourceOnly": true,
+  "platform": "darwin",
+  "arch": "arm64",
+  "minimumSystemVersion": "13.0",
+  "baseSDK": {
+    "version": "1.3.0-pq.3.32-auth.42",
+    "supplierNativeInputs": 99,
+    "supplierHelperInputs": 5,
+    "canonicalInventorySHA256": "7a19292ee90a48e17cf3a3fcf5d849dedb3a421ca065b87f419b0481bc7a8d12",
+    "relabelOrOverwriteOriginalRecord": false
+  },
+  "MainTranslationUnitOverlay": {
+    "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+    "expectedBase": {
+      "bytes": 61905,
+      "sha256": "1100f9fedacebaa54173176973d09d8d52c74e51a1f1d31dd25cea3e92b37114"
+    },
+    "supplierBase": {
+      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "bytes": 82887,
+      "sha256": "f0a6efce5ee63dd6c4b3d0d3d5457c02785ac68764e223bf00e5ec34b05cbf7e"
+    },
+    "after": {
+      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "bytes": 62125,
+      "sha256": "23ade32624774f870e703b5ffd1f6abe8b8c50203e82a3c6749a5810b9516694"
+    }
+  },
+  "inputs": [
+    {
+      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "bytes": 62125,
+      "sha256": "23ade32624774f870e703b5ffd1f6abe8b8c50203e82a3c6749a5810b9516694"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-pq-transaction-binding.inc.mm",
+      "bytes": 7078,
+      "sha256": "b83287cf500203dcff8bb3d094797a36c4feb7b3738e0e04a58625c70139a485"
+    },
+    {
+      "path": "apps/wallet-desktop/native/pq-transaction/NativePQCustody.h",
+      "bytes": 2775,
+      "sha256": "bdbf8fba2a6b84e39eed6c395025cd66cc1bee650d826a5aa4c7dc3aa03a6544"
+    },
+    {
+      "path": "apps/wallet-desktop/native/pq-transaction/NativePQCustodyExports.swift",
+      "bytes": 9142,
+      "sha256": "c5934d184bcc34884e1ee2f10f41870671ad83bde94402e55abb2c55155200b1"
+    },
+    {
+      "path": "apps/wallet-desktop/native/pq-transaction/NativeTransactionCABI.h",
+      "bytes": 367,
+      "sha256": "202c355a2a926e4657149e4146a7558ef7fb6ac69164a352ccc8e3115e2cd581"
+    },
+    {
+      "path": "apps/wallet-desktop/native/pq-transaction/PQBackupNativeDecoder.swift",
+      "bytes": 20048,
+      "sha256": "468bdfe7fae5eb4a5d877ea67ba0d6154051aa8c022d1232a00f5d8ade78ff95"
+    },
+    {
+      "path": "apps/wallet-desktop/native/pq-transaction/account_initial.h",
+      "bytes": 4317,
+      "sha256": "c8a8a7402fe1d411451512bdb281d30d2f6baa8ef93ec791e066b2a8f71772ee"
+    },
+    {
+      "path": "apps/wallet-desktop/native/pq-transaction/native-wipe.c",
+      "bytes": 213,
+      "sha256": "a68f29f9b360e265cdac43f2f6d56eba88c0a3275a6c4ba229e19888140e9042"
+    },
+    {
+      "path": "apps/wallet-desktop/native/pq-transaction/tx_batch.h",
+      "bytes": 4569,
+      "sha256": "8c963d7fd62b6ed64b7e08d1bbf8ffb99b8b747cb95e868b192afbdfe9d66a62"
+    }
+  ],
+  "flags": {
+    "nodeTranslationUnit": [
+      "-DYNX_ORIGINAL_WALLET_NATIVE_PQ_CUSTODY=1"
+    ],
+    "swift": [
+      "-DYNX_ACCOUNT_INITIAL_NATIVE_V1"
+    ],
+    "swiftCImporter": [
+      "-Xcc",
+      "-DYNX_ACCOUNT_INITIAL_NATIVE_V1"
+    ]
+  },
+  "build": {
+    "compileC": "native/pq-transaction/native-wipe.c -> private target object; original allocation overwrite implementation",
+    "compileSwift": [
+      "native/pq-transaction/PQBackupNativeDecoder.swift",
+      "native/pq-transaction/NativePQCustodyExports.swift"
+    ],
+    "swiftBridge": "native/pq-transaction/NativeTransactionCABI.h",
+    "includeHeaders": [
+      "native/pq-transaction/tx_batch.h",
+      "native/pq-transaction/account_initial.h"
+    ],
+    "sameAddon": "native/original-auth-identity.node",
+    "sameNativeThread": true,
+    "linkGoArchiveExactlyOnce": {
+      "sourceCommit": "8c1a372ff",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/native-tx-8c1a372ff/darwin-arm64/libynx_artifact_release.a",
+      "bytes": 10106960,
+      "sha256": "a459fb3fbd7d4a45ea8287f9c5b2283a166716db2db6673f0a9380126eafd3cf",
+      "includes": [
+        "ARTIFACT",
+        "CONTROL",
+        "TX",
+        "INITIAL"
+      ],
+      "doNotAlsoLink": [
+        "historical libynx_project_control.a",
+        "898/537 Go runtime archive"
+      ]
+    },
+    "dependencies": [
+      "original Apple Swift runtime",
+      "Foundation",
+      "CryptoKit",
+      "CommonCrypto",
+      "CoreFoundation",
+      "Security",
+      "resolv"
+    ]
+  },
+  "qualification": {
+    "newCompleteMatchingAddonRequired": true,
+    "existingSDK99AndHelper5NotSubstituted": true,
+    "MainOverlayMustBeExplicitInMaterializationAndCanonicalInputSelection": true,
+    "oldNativeRecordReusable": false,
+    "componentFacadeTestsAreNotNativeExecution": true,
+    "Source": false,
+    "Root": false,
+    "approval": false,
+    "broadcast": false,
+    "installed": false
+  }
+}

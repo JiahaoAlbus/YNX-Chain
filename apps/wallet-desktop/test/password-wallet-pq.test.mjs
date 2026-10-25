@@ -18,6 +18,9 @@ import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-poli
 import {DesktopWalletAuthority,MemoryPermissionStore} from '../src/desktop-wallet-authority.mjs';
 import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
 import {createPQOriginalRecord} from '../src/wallet-pq-intent-record.mjs';
+import {createOriginalNativePQCustody} from '../src/wallet-pq-native-custody.mjs';
+import {encodeObservedPolicyOriginal} from '../src/original-policy-supplier/operator-policy-original.mjs';
+import {captureCometPolicyObservation} from '../src/original-policy-supplier/comet-projection.mjs';
 import {sessionOriginalCause} from '../src/wallet-session-original.mjs';
 import {createPQTransferReviewUI} from '../src/wallet-pq-transfer-ui.mjs';
 import {createPQMigrationReviewUI} from '../src/wallet-pq-migration-ui.mjs';
@@ -160,10 +163,10 @@ test('App normal registered restore uses original R54 factory and real SDK into 
  await assert.rejects(corrected.restore({credential:SDK.createPQRecoveryCredential()}));assert.equal(await fs.readFile(wrong.filePath,'utf8'),wrongBefore);assert.equal((await corrected.restore({credential})).persisted,true);
  wire.fill(0);
 });
-async function fixture(t,pqSDK=SDK){
+async function fixture(t,pqSDK=SDK,nativePQCustody){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-app-pq-vault-')),filePath=path.join(directory,'wallet-vault-v3.json');
  const lifecycle=new DesktopKeyLifecycle();lifecycle.setFocused(true);
- const vault=new PasswordWalletVault({filePath,authorization:lifecycle,pqSDK,randomSecret:()=>SECRET});lifecycle.authorizer=vault.authorizer();
+ const vault=new PasswordWalletVault({filePath,authorization:lifecycle,pqSDK,nativePQCustody,randomSecret:()=>SECRET});lifecycle.authorizer=vault.authorizer();
  t.after(async()=>{lifecycle.lock();await fs.rm(directory,{recursive:true,force:true});});
  await lifecycle.custody(g=>vault.setup({password:PASSWORD,confirmation:PASSWORD},g));await lifecycle.unlock({password:PASSWORD});
  const status=await lifecycle.run(()=>vault.createAccount());lifecycle.setAccount(status.account);await lifecycle.unlock({password:PASSWORD});
@@ -261,6 +264,26 @@ test('App authenticated malformed private payload never exposes parser plaintext
   finally{closePasswordVaultSession(session);bytes.fill(0);}
  }
 });
+// These new controls execute the actual encrypted PasswordWalletVault and
+// lifecycle with a CONTROLLED private addon, not real Native crypto/signatures.
+function controlledNativeTransaction(){
+ let selected=false,closed=false,member=Buffer.from('PUBLIC-NATIVE-CONTROL-NOT-A-SIGNATURE');const counts={open:0,once:0,retire:0,close:0,release:0};const raw=()=>({callStatus:0,copyStatus:0,primitiveStatus:selected?0:-1,cleanupStatus:selected?2:0,selected,member:selected?Buffer.from(member):Buffer.alloc(0)});
+ const api={originalPQCapabilities:()=>1,originalPQOpen(wire,credential,binding){counts.open++;assert.equal(JSON.parse(wire).format,'YNX-PQ-WALLET-BACKUP/v1');assert.equal(credential.length,43);assert.equal(JSON.parse(binding).protocolVersion,'YNX-BATCH/v0.1');return{status:0,ownerId:1n};},originalPQCurrent:()=>0,originalPQRetire(){counts.retire++;return 0;},originalPQTransactionOnce(){counts.once++;selected=true;return raw();},originalPQCopyOutcome:raw,originalPQClose(){counts.close++;closed=true;return 0;},originalPQReleaseClosed(){counts.release++;assert(closed);return 0;}};
+ return{api,counts,custody:createOriginalNativePQCustody({load:()=>api}),setPublicMember:value=>{member=Buffer.from(value);}};
+}
+test('actual password Vault Native TX path never restores portable keys and captures public output before late lock',async t=>{
+ for(const lateLock of [false,true]){
+  let restores=0;const native=controlledNativeTransaction(),sdk={...SDK,restorePQWalletKeyHandle(...args){restores++;return SDK.restorePQWalletKeyHandle(...args);}},f=await fixture(t,sdk,native.custody);
+  await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'PUBLIC-native-source'}));const before=await fs.readFile(f.filePath,'utf8'),baseline=restores,held=[];
+  const run=()=>f.lifecycle.run(()=>f.vault.withPQNativeTransaction(f.binding,{messageOriginal:Buffer.from('PUBLIC CONTROL MESSAGE'),policyOriginal:Buffer.from('PUBLIC CONTROL POLICY'),nativeChainId:'6423',keyVersion:'1',executionHeight:'30'},out=>{held.push(Buffer.from(out.member));if(lateLock)f.lifecycle.lock('focus-lost');},{assert(){}}));
+  if(lateLock)await assert.rejects(run());else assert.equal((await run()).selected,true);
+  assert.equal(held.length,1);assert.match(held[0].toString(),/PUBLIC-NATIVE-CONTROL/);assert.equal(restores,baseline);assert.equal(native.counts.open,1);assert.equal(native.counts.once,1);assert.equal(native.counts.close,1);assert.equal(native.counts.release,1);assert.equal(f.vault.pqCleanupUnresolved(),false);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+ }
+});
+test('actual password Vault refuses missing Native role or approval without portable key entry',async t=>{
+ const native=controlledNativeTransaction(),f=await fixture(t,SDK,native.custody);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'PUBLIC-native-source'}));native.api.originalPQCapabilities=()=>0;
+ await assert.rejects(f.lifecycle.run(()=>f.vault.withPQNativeTransaction(f.binding,{},()=>{},{assert(){}})),{code:'PQ_NATIVE_MATCHED_BINDING_REQUIRED'});await assert.rejects(f.lifecycle.run(()=>f.vault.withPQNativeTransaction(f.binding,{},()=>{})),e=>e.data?.code==='PQ_NATIVE_ORIGINAL_APPROVAL_REQUIRED');assert.equal(native.counts.open,0);assert.equal(native.counts.once,0);
+});
 function syntheticTransfer(f){
  const keys=pqPublicBindingToRegistrationKeys(f.binding),snapshot=parsePQAccountAuthorization({owner:f.account,executionHeight:'30',ledgerNonce:'9007199254740993',algorithmVersion:'YNX-BATCH/v0.1',enabled:true,policyVersion:'YNX-ACCOUNT-POLICY/v1',networkId:CHAIN,enableAt:'10',activeRevision:'1',records:[{algorithmVersion:keys.algorithmVersion,owner:f.account,pkA:keys.pkA,pkB:keys.pkB,revision:'1',registeredAt:'10',activeFrom:'20',ledgerNonce:'1'}]},{chainId:CHAIN,nativeChainId:'6423',owner:f.account});
  return {snapshot,transfer:{chainId:CHAIN,nativeChainId:'6423',from:f.account,to:'0x'+'2'.repeat(40),amount:'3',fee:'1',nonce:'9007199254740994'}};
@@ -288,14 +311,36 @@ test('original Vault captures and retires a restored handle returned after a loc
  const f=await fixture(t,sdk);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-sign-source'}));lock=()=>f.lifecycle.lock();armed=true;
  await assert.rejects(f.lifecycle.run(()=>f.vault.withPQKeys(f.binding,()=>{actions++;})));assert.equal(actions,0);assert.equal(SDK.readPQWalletKeyCleanupOutcome(late).cleanupComplete,true);
 });
-async function approvalFixture(t,{onRecheck,acquire,migration=false,activeMigration=false,transactionPermission=false}={}){
- const f=await fixture(t),snapshot=migration&&!activeMigration?parsePQAccountAuthorization({owner:f.account,executionHeight:'30',ledgerNonce:'9007199254740993',algorithmVersion:'legacy',enabled:true,policyVersion:'YNX-ACCOUNT-POLICY/v1',networkId:CHAIN,enableAt:'10',records:[]},{chainId:CHAIN,nativeChainId:'6423',owner:f.account}):syntheticTransfer(f).snapshot;await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-sign-source'}));
- const counts={acquire:0,recheck:0,retire:0,join:0,close:0},at=Date.now(),view=Object.freeze({version:'YNX-WALLET-TRANSACTION-POLICY/v1',networkId:CHAIN,nativeChainId:'6423',canonicalOwner:f.account,authorization:snapshot,observedAt:new Date(at-1000).toISOString(),expiresAt:new Date(at+60000).toISOString()});let retired=false;
+async function approvalFixture(t,{onRecheck,acquire,migration=false,activeMigration=false,transactionPermission=false,nativeTransaction=false}={}){
+ const native=nativeTransaction?controlledNativeTransaction():null;
+ const f=await fixture(t,SDK,native?.custody),snapshot=migration&&!activeMigration?parsePQAccountAuthorization({owner:f.account,executionHeight:'30',ledgerNonce:'9007199254740993',algorithmVersion:'legacy',enabled:true,policyVersion:'YNX-ACCOUNT-POLICY/v1',networkId:CHAIN,enableAt:'10',records:[]},{chainId:CHAIN,nativeChainId:'6423',owner:f.account}):syntheticTransfer(f).snapshot;await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-sign-source'}));
+ // Synthetic PUBLIC policy producer only. Production never rebuilds this
+ // operand from a snapshot; it must come from the same HTTP response span.
+ const policy=native?JSON.stringify({version:snapshot.policyVersion,networkId:snapshot.networkId,enableAt:snapshot.enableAt,records:snapshot.records}):null;
+ if(native)native.setPublicMember(SDK.signPQWalletNativeTransfer(f.handle,syntheticTransfer(f).transfer,snapshot).body);
+ const counts={acquire:0,recheck:0,retire:0,join:0,close:0},at=Date.now(),view=Object.freeze({version:native?'YNX-WALLET-TRANSACTION-POLICY/v3':'YNX-WALLET-TRANSACTION-POLICY/v1',networkId:CHAIN,nativeChainId:'6423',canonicalOwner:f.account,authorization:snapshot,...(native?{observation:captureCometPolicyObservation({kind:'comet-node-observed-app-state/v1',source:'comet-rpc',recordsView:'committed',committedHeight:(BigInt(snapshot.executionHeight)-1n).toString(),committedAppHash:'b'.repeat(64),independentFinality:false},snapshot),originalPolicy:encodeObservedPolicyOriginal(policy,snapshot)}:{}),observedAt:new Date(at-1000).toISOString(),expiresAt:new Date(at+60000).toISOString()});let retired=false;
  const resource={assertCurrent(){if(retired)throw Error('QA_RETIRED');},readOriginal(){return view;},async recheck(){counts.recheck++;await onRecheck?.();},retire(){counts.retire++;retired=true;},async join(){counts.join++;},async close(){counts.close++;}};
+ if(native)resource.copyOriginalPolicyBytes=()=>new Uint8Array(Buffer.from(policy));
  const source=async input=>{counts.acquire++;assert.equal(input.owner,f.account);assert.equal(input.networkId,CHAIN);assert.equal(input.nativeChainId,'6423');assert.equal(input.operation,migration?'migration':'transfer');if(acquire)await acquire();return resource;};
  const store=new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')}),authority=new DesktopWalletAuthority({vault:f.vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:store}},pqPolicySource:source,pqPolicyRecognized:value=>value===resource,pqNetworkId:CHAIN,...(transactionPermission?{pqTransactionPermissionSource:transactionAuth.acquireOriginalWalletTransactionPermission,pqTransactionPermissionRecognized:transactionAuth.isOriginalWalletTransactionPermission}:{})});
- return {...f,authority,store,counts,resource};
+ return {...f,authority,store,counts,resource,native};
 }
+test('normal independent approval calls Native TX custody once and saves the same public Member without portable fallback',async t=>{
+ const f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true}),out=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));f.vault.withPQKeys=()=>assert.fail('Native TX may not fall back to portable JS');
+ const capsule=transactionAuth.captureOriginalWalletTransactionApprovalIPC(createPublicWalletEvent(),out.request.id,'sign');t.after(()=>transactionAuth.retireUnusedOriginalWalletTransactionApproval(capsule));const response=await f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule));
+ assert.equal(response.status,'success');assert.equal(response.result.submitted,false);const [record]=await f.store.readPQOriginals(f.account,()=>{});assert.equal(record.hash,response.result.hash);assert.equal(record.kind,'pq-transfer');assert.equal(f.native.counts.once,1);assert.equal(f.native.counts.close,1);assert.equal(f.native.counts.release,1);await assert.rejects(f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule)));assert.equal(f.native.counts.once,1);
+});
+test('normal Native TX late lock retains its public Member and explicit later local save never signs again',async t=>{
+ const f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true}),out=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'})),capture=f.store.capturePQTransferMember.bind(f.store);f.store.capturePQTransferMember=(...args)=>{const value=capture(...args);f.lifecycle.lock('focus-lost');return value;};
+ const capsule=transactionAuth.captureOriginalWalletTransactionApprovalIPC(createPublicWalletEvent(),out.request.id,'sign');t.after(()=>transactionAuth.retireUnusedOriginalWalletTransactionApproval(capsule));await assert.rejects(f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule)));const retained=f.store.localOriginal(f.account).pq;assert(retained.wire.length>1000);assert.equal(f.native.counts.once,1);assert.equal(f.native.counts.release,1);await f.lifecycle.unlock({password:PASSWORD});assert.equal((await f.lifecycle.run(()=>f.store.saveOriginal(f.account,retained.hash,()=>f.lifecycle.current().assert()))).savedLocally,true);assert.equal(f.native.counts.once,1);
+});
+test('normal Native TX missing role or raw operand refuses before reservation, key entry or submit',async t=>{
+ for(const missing of ['role','raw']){
+  const f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true}),out=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));
+  if(missing==='role')f.native.api.originalPQCapabilities=()=>0;else f.resource.copyOriginalPolicyBytes=()=>{throw Object.assign(Error('PUBLIC original policy unavailable'),{code:'AUTH_TX_POLICY_ORIGINAL_POLICY_REQUIRED'});};
+  const capsule=transactionAuth.captureOriginalWalletTransactionApprovalIPC(createPublicWalletEvent(),out.request.id,'sign');t.after(()=>transactionAuth.retireUnusedOriginalWalletTransactionApproval(capsule));await assert.rejects(f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule)));assert.equal(await f.store.unresolvedPreparation(f.account),null);assert.equal(f.native.counts.open,0);assert.equal(f.native.counts.once,0);
+ }
+});
 test('normal original pending approval performs actual protected typed signing and local save only',async t=>{
  const f=await approvalFixture(t),response=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));
  assert.equal(response.request.method,'ynx_signPQNativeTransfer');assert.equal('snapshot' in response.request,false);assert.equal('resource' in response.request,false);assert.equal((await f.store.readPQOriginals(f.account,()=>{})).length,0);

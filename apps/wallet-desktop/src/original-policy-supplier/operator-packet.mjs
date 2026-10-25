@@ -1,5 +1,6 @@
 import {isCometPolicyObservation} from './comet-projection.mjs';
 import {assertSessionProjectionSupported} from './operator-projection.mjs';
+import {encodeObservedPolicyOriginal} from './operator-policy-original.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 /** Explicit checkpoint kinds: AppHash is NOT a block hash or native durable
  * checkpoint. Old session/registered-binding contracts cannot consume it. */
@@ -14,10 +15,13 @@ export function operatorProjectionCheckpoint(view,mode){
 export const operatorCheckpointIdentity=value=>value.kind==='comet-node-observed-app-state/v1'?value.appHash:value.blockHash;
 /** Main-private transport DATA, not an authenticated source constructor. Only
  * openNormalOperatorSource supplies the normal pinned HTTP/health lifecycle. */
-export function encodeOperatorPolicyPacket(mode,request,view,now,deadline){
+export function encodeOperatorPolicyPacket(mode,request,view,now,deadline,originalPolicyText=null){
  const checkpoint=operatorProjectionCheckpoint(view,mode),common={networkId:request.networkId,nativeChainId:'6423',canonicalOwner:request.owner,authorization:view.authorization};
  const times={observedAt:new Date(now).toISOString(),expiresAt:new Date(deadline).toISOString()};
- if(mode==='transaction')return JSON.stringify({version:view.observation?'YNX-WALLET-TRANSACTION-POLICY/v2':'YNX-WALLET-TRANSACTION-POLICY/v1',...common,...(view.observation?{observation:view.observation}:{}),...times});
+ if(mode==='transaction'){
+  const originalPolicy=view.observation?encodeObservedPolicyOriginal(originalPolicyText,view.authorization):null;
+  return JSON.stringify({version:originalPolicy?'YNX-WALLET-TRANSACTION-POLICY/v3':view.observation?'YNX-WALLET-TRANSACTION-POLICY/v2':'YNX-WALLET-TRANSACTION-POLICY/v1',...common,...(view.observation?{observation:view.observation}:{}),...(originalPolicy?{originalPolicy}:{}),...times});
+ }
  if(mode==='registered-binding')return JSON.stringify({version:'YNX-WALLET-REGISTERED-BINDING/v1',...common,committedHeight:view.committedHeight,committedBlockHash:view.committedBlockHash,checkpointIntegrity:view.checkpointIntegrity,...times});
  if(mode!=='session')fail('AUTH_POLICY_SOURCE_KIND');
  assertSessionProjectionSupported(view);const r=view.committedRecord;

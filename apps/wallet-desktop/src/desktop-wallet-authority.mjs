@@ -6,7 +6,7 @@ import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-a
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn, signCentralSignIn } from "./central-browser-sign-in.mjs";
 import {PermissionEpoch,bindPermissionGuard} from "./permission-lease.mjs";
 import {inspectPQWalletActionPolicy,planPQNativeTransfer,assertPQAuthorizationCurrent,pqRegisteredPublicBinding,planPQAccountMigration,preparePQClassicMigrationAuthorization,preparePQClassicMigrationProof,preparePQReviewedMigrationTransport,planPQAccountRevocation} from '@ynx-chain/wallet-auth/pq-wallet-policy';
-import {signPQWalletNativeTransfer,createPQWalletMigrationPossession,signPQWalletProductSessionApproval,signPQWalletAccountRevocation} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
+import {createPQWalletMigrationPossession,signPQWalletProductSessionApproval,signPQWalletAccountRevocation} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
 import {captureProductSessionAccountPolicy,readProductSessionAccountPolicy,pqProductSessionRegisteredPublicBinding} from '@ynx-chain/wallet-auth/product-session-account-policy';
 import {preparePQProductSessionApproval,verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
 import {pqPublicBindingToRegistrationKeys,encodePQNativeTransfer,decodePQTransferRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
@@ -631,10 +631,13 @@ export class DesktopWalletAuthority {
       }
       case 'ynx_signPQNativeTransfer': {
         const reviewed=this.#pqReviews.get(pending),store=this.transactionSender?.submissions?.intentStore;
-        if(!reviewed||!store||typeof this.vault.withPQKeys!=='function')throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original policy, Vault and journal are required.');
+        if(!reviewed||!store)throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original policy and journal are required.');
         if(!this.#pqTxSource||!this.#pqTxRecognized||!capsule)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','A separate original transaction approval is required; no fallback signer is available.');
+        if(typeof store.capturePQTransferMember!=='function'||typeof this.vault.withPQNativeTransaction!=='function'||typeof this.vault.assertPQNativeTransactionAvailable!=='function')throw providerError(4100,'PQ_NATIVE_MATCHED_BINDING_REQUIRED','Original Native transaction custody and journal are required; no portable signer fallback is available.');
+        this.vault.assertPQNativeTransactionAvailable();
         const {snapshot:refreshed}=await reviewed.owner.recheck();guard.assert();assertPQAuthorizationCurrent(reviewed.snapshot,refreshed);
         const plan=planPQNativeTransfer(refreshed,reviewed.plan.transfer);guard.assert();
+        const nativePolicy=reviewed.owner.copyOriginalPolicyBytes();guard.assert();
         const request=deepFreeze({action:'sign',networkId:this.#pqNetworkId,nativeChainId:'6423',account:status.account,operationId:pending.id,origin:'ynx-wallet:local-pq',transfer:{...plan.transfer},requestDigest:createHash('sha256').update(encodePQNativeTransfer(plan.transfer)).digest('hex'),policyRevision:pending.review.policyRevision,expiresAt:pending.review.expiresAt});
         let auth,borrowed,hash,failed=false;
         try{
@@ -643,14 +646,15 @@ export class DesktopWalletAuthority {
           catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value')&&d.value){auth=d.value;this.#pqTxOwners.add(auth);}throw error;}
           this.#pqTxOwners.add(auth);guard.assert();
           if(this.#pqTxRecognized(auth)!==true)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original transaction permission is not recognized.');
-          await auth.recheck();auth.assertCurrent();guard.assert();
+          if(await auth.recheck()!==undefined||auth.assertCurrent()!==undefined)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original Native transaction permission must remain current.');guard.assert();
           await store.reserveOriginal(status.account,'pq-transfer');
-          guard.assert();await this.vault.withPQKeys(pqRegisteredPublicBinding(refreshed),handle=>{
-            guard.assert();auth.enterSign();const signed=signPQWalletNativeTransfer(handle,plan.transfer,refreshed);
-            const original=createPQOriginalRecord({account:status.account,kind:'pq-transfer',operationId:pending.id,request:signed});
-            store.captureOriginal(status.account,original,'pq-transfer');hash=original.hash;
-            borrowed.captureProduced(hash);auth.complete({outcome:'returned',transportHash:hash});guard.assert();
-          },Object.freeze({assert:()=>{permission.assert();auth.assertCurrent();}}));
+          guard.assert();if(auth.assertCurrent()!==undefined||auth.enterSign()!==undefined)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original Native sign entry must be exact.');
+          await this.vault.withPQNativeTransaction(pqRegisteredPublicBinding(refreshed),{messageOriginal:Buffer.from(encodePQNativeTransfer(plan.transfer)),policyOriginal:nativePolicy,nativeChainId:plan.transfer.nativeChainId,keyVersion:refreshed.activeRevision,executionHeight:refreshed.executionHeight},outcome=>{
+            const captured=store.capturePQTransferMember(status.account,outcome.member,{operationId:pending.id});hash=captured.transportHash;
+            const decoded=decodePQTransferRequest(outcome.member),pair=pqPublicBindingToRegistrationKeys(pqRegisteredPublicBinding(refreshed));
+            if(JSON.stringify(decoded.transfer)!==JSON.stringify(plan.transfer)||decoded.pkA!==pair.pkA||decoded.pkB!==pair.pkB)throw providerError(4100,'PQ_NATIVE_ORIGINAL_BINDING','Keep the returned original; its exact reviewed transfer did not match.');
+            borrowed.captureProduced(hash);if(auth.complete({outcome:'returned',transportHash:hash})!==undefined)throw providerError(4100,'PQ_TRANSACTION_RESULT_BINDING','Keep the original Native result.');
+          },Object.freeze({assert:()=>{permission.assert();guard.assert();if(auth.assertCurrent()!==undefined)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original Native permission is not current.');}}));
           const current=()=>{guard.assert();auth.assertCurrent();};
           current();const saved=await store.saveOriginal(status.account,hash,current);current();return success(saved);
         }catch(error){failed=true;store.originalFailed(status.account,error);throw error;}

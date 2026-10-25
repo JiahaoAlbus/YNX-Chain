@@ -1,19 +1,22 @@
 import {parsePQAccountAuthorization,assertPQAuthorizationCurrent} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {CANONICAL_NETWORK_ID,openNormalOperatorSource} from './operator-query.mjs';
 import {captureCometPolicyObservation} from './comet-projection.mjs';
+import {decodeObservedPolicyOriginal} from './operator-policy-original.mjs';
+const MAX_PACKET=24*1024*1024;
 const supplied=new WeakSet(),fail=code=>{throw Object.assign(new Error(code),{code});};
 const exact=(v,keys)=>{if(!v||typeof v!=='object'||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).some(k=>typeof k!=='string'||!Object.hasOwn(Object.getOwnPropertyDescriptor(v,k),'value')||!Object.getOwnPropertyDescriptor(v,k).enumerable)||Reflect.ownKeys(v).sort().join('|')!==[...keys].sort().join('|'))fail('AUTH_TX_POLICY_SCHEMA');};
 const time=v=>{if(typeof v!=='string'||!Number.isFinite(Date.parse(v))||new Date(Date.parse(v)).toISOString()!==v)fail('AUTH_TX_POLICY_TIME');return Date.parse(v);};
 const req=v=>{exact(v,['networkId','nativeChainId','owner','operation','at']);if(v.networkId!==CANONICAL_NETWORK_ID||v.nativeChainId!=='6423'||typeof v.owner!=='string'||!/^0x[0-9a-f]{40}$/.test(v.owner)||!['transfer','migration','revocation','typed-action'].includes(v.operation))fail('AUTH_TX_POLICY_BINDING');time(v.at);return Object.freeze({...v});};
 function packet(raw,expected,now){
- if(typeof raw!=='string'||Buffer.byteLength(raw)>8*1024*1024)fail('AUTH_TX_POLICY_BYTES');let v;try{v=JSON.parse(raw);}catch{fail('AUTH_TX_POLICY_BYTES');}
- const comet=v?.version==='YNX-WALLET-TRANSACTION-POLICY/v2';
- exact(v,['version','networkId','nativeChainId','canonicalOwner','authorization','observedAt','expiresAt',...(comet?['observation']:[])]);
- if(!['YNX-WALLET-TRANSACTION-POLICY/v1','YNX-WALLET-TRANSACTION-POLICY/v2'].includes(v.version)||v.networkId!==expected.networkId||v.nativeChainId!==expected.nativeChainId||v.canonicalOwner!==expected.owner)fail('AUTH_TX_POLICY_BINDING');
+ if(typeof raw!=='string'||Buffer.byteLength(raw)>MAX_PACKET)fail('AUTH_TX_POLICY_BYTES');let v;try{v=JSON.parse(raw);}catch{fail('AUTH_TX_POLICY_BYTES');}
+ const original=v?.version==='YNX-WALLET-TRANSACTION-POLICY/v3',comet=original||v?.version==='YNX-WALLET-TRANSACTION-POLICY/v2';
+ exact(v,['version','networkId','nativeChainId','canonicalOwner','authorization','observedAt','expiresAt',...(comet?['observation']:[]),...(original?['originalPolicy']:[])]);
+ if(!['YNX-WALLET-TRANSACTION-POLICY/v1','YNX-WALLET-TRANSACTION-POLICY/v2','YNX-WALLET-TRANSACTION-POLICY/v3'].includes(v.version)||v.networkId!==expected.networkId||v.nativeChainId!==expected.nativeChainId||v.canonicalOwner!==expected.owner)fail('AUTH_TX_POLICY_BINDING');
  if(time(v.observedAt)<time(expected.at)||time(v.observedAt)>now||time(v.expiresAt)<=time(v.observedAt)||now>=time(v.expiresAt))fail('AUTH_TX_POLICY_EXPIRED');
  const authorization=parsePQAccountAuthorization(v.authorization,{chainId:v.networkId,nativeChainId:v.nativeChainId,owner:v.canonicalOwner});
  const observation=comet?captureCometPolicyObservation(v.observation,authorization):null;
- return Object.freeze({version:v.version,networkId:v.networkId,nativeChainId:v.nativeChainId,canonicalOwner:v.canonicalOwner,authorization,...(observation?{observation}:{}),observedAt:v.observedAt,expiresAt:v.expiresAt});
+ const originalPolicy=original?decodeObservedPolicyOriginal(v.originalPolicy,authorization):null;
+ return Object.freeze({version:v.version,networkId:v.networkId,nativeChainId:v.nativeChainId,canonicalOwner:v.canonicalOwner,authorization,...(observation?{observation}:{}),...(originalPolicy?{originalPolicy}:{}),observedAt:v.observedAt,expiresAt:v.expiresAt});
 }
 // PUBLIC test kernel isn't a normal original. Only the fixed factory below
 // brands successfully captured resources. No signer or planner is implemented.
@@ -25,16 +28,24 @@ export class TransactionPolicyResourceKernel{
  #track(p){this.#pending.add(p);void p.then(()=>this.#pending.delete(p),()=>this.#pending.delete(p));return p;}
  async initialize(){
   if(this.#entered)fail('AUTH_TX_POLICY_ALREADY_ENTERED');this.#entered=true;const p=Promise.resolve().then(async()=>{
-   if(this.#retired)fail('AUTH_TX_POLICY_RETIRED');this.#now();const raw=await this.#source.readOriginal(this.#request);if(typeof raw==='string'&&Buffer.byteLength(raw)<=8*1024*1024)this.#raw=raw;
+   if(this.#retired)fail('AUTH_TX_POLICY_RETIRED');this.#now();const raw=await this.#source.readOriginal(this.#request);if(typeof raw==='string'&&Buffer.byteLength(raw)<=MAX_PACKET)this.#raw=raw;
    this.#original=packet(raw,this.#request,this.#now());this.#deadline=time(this.#original.expiresAt);this.assertCurrent();return undefined;
   });try{return await this.#track(p);}catch(e){this.#remember(e);throw e;}
  }
  assertCurrent(){try{if(this.#retired)throw this.#hasFirst?this.#first:Error('AUTH_TX_POLICY_RETIRED');if(!this.#original||this.#now()>=this.#deadline)fail('AUTH_TX_POLICY_EXPIRED');return undefined;}catch(e){this.#remember(e);throw e;}}
  readOriginal(){this.assertCurrent();return this.#original;}
+ copyOriginalPolicyBytes(){
+  this.assertCurrent();const original=this.#original.originalPolicy;if(!original)fail('AUTH_TX_POLICY_ORIGINAL_POLICY_REQUIRED');
+  const bytes=new Uint8Array(Buffer.from(original.utf8,'base64url'));this.assertCurrent();return bytes;
+ }
  async recheck(){
   this.assertCurrent();if(this.#checking)fail('AUTH_TX_POLICY_RECHECK_PENDING');this.#checking=true;const p=Promise.resolve().then(async()=>{
-   this.assertCurrent();const raw=await this.#source.recheck(this.#request,this.#original);if(typeof raw==='string'&&Buffer.byteLength(raw)<=8*1024*1024)this.#refreshRaw=raw;this.assertCurrent();
+   this.assertCurrent();const raw=await this.#source.recheck(this.#request,this.#original);if(typeof raw==='string'&&Buffer.byteLength(raw)<=MAX_PACKET)this.#refreshRaw=raw;this.assertCurrent();
    const fresh=packet(raw,this.#request,this.#now());assertPQAuthorizationCurrent(this.#original.authorization,fresh.authorization);
+   // Immutable Native signing operand: never substitute a newer policy/H/nonce
+   // for the reviewed original, even when a flat current view could advance.
+   const oldPolicy=this.#original.originalPolicy,newPolicy=fresh.originalPolicy;
+   if(!!oldPolicy!==!!newPolicy||oldPolicy&&(oldPolicy.utf8!==newPolicy.utf8||oldPolicy.sha256!==newPolicy.sha256||oldPolicy.executionHeight!==newPolicy.executionHeight||oldPolicy.ledgerNonce!==newPolicy.ledgerNonce||oldPolicy.activeRevision!==newPolicy.activeRevision))fail('AUTH_TX_POLICY_ORIGINAL_CHANGED');
    const prior=this.#original.observation,next=fresh.observation;
    if(!!prior!==!!next||prior&&(BigInt(next.committedHeight)<BigInt(prior.committedHeight)||next.committedHeight===prior.committedHeight&&next.committedAppHash!==prior.committedAppHash))fail('AUTH_TX_POLICY_COMET_STATE_CHANGED');
    if(time(fresh.observedAt)<time(this.#original.observedAt)||time(fresh.expiresAt)>this.#deadline)fail('AUTH_TX_POLICY_CHANGED');this.#deadline=Math.min(this.#deadline,time(fresh.expiresAt));this.assertCurrent();return undefined;

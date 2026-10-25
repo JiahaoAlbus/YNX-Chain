@@ -13,6 +13,7 @@ import {createMnemonicAccount as generateMnemonicAccount,importMnemonicAccount} 
 import { evmAddressFromYNX, walletIdentity, walletIdentityFromPublicKey } from "@ynx-chain/wallet-auth";
 import { keyAccessError } from "./key-lifecycle.mjs";
 import {bindPermissionGuard} from "./permission-lease.mjs";
+import {createOriginalNativePQCustody} from './wallet-pq-native-custody.mjs';
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PasswordVaultFile, vaultStorageError } from "./password-vault-file.mjs";
 import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession,decryptPasswordVaultOriginalAdmissionCatalog,preparePasswordVaultPQRecord,decryptPasswordVaultPQRecord,preparePasswordVaultPQReservation,reopenPreparedPasswordVaultPQRecord } from "./password-vault-crypto.mjs";
@@ -68,12 +69,14 @@ export class PasswordWalletVault {
   #mnemonicDraft = null; #mnemonicEpoch = 0;
   #pqSDK = null;
   #pqRecoveryDebt = new Set();
+  #pqNativeCustody; #pqNativeDebt=new Set();
   #pqRestoreResults = new WeakMap();
-  constructor({ filePath, legacyFilePaths = [], safeStorage, authorization, fileStore = new PasswordVaultFile(filePath), randomSecret = () => randomBytes(32).toString("hex"), now = Date.now, pqSDK = null } = {}) {
+  constructor({ filePath, legacyFilePaths = [], safeStorage, authorization, fileStore = new PasswordVaultFile(filePath), randomSecret = () => randomBytes(32).toString("hex"), now = Date.now, pqSDK = null, nativePQCustody=createOriginalNativePQCustody() } = {}) {
     if (!filePath || !authorization) throw new Error("Password Wallet requires storage and authorization");
     this.filePath = filePath; this.files = fileStore; this.legacyFilePaths = [...new Set(legacyFilePaths)]; this.safeStorage = safeStorage; this.authorization = authorization; this.randomSecret = randomSecret; this.now = now;
     originalVaults.add(this);
     this.#pqSDK=pqSDK;
+    this.#pqNativeCustody=nativePQCustody;
   }
   #pqRequired(){
     for(const name of ['createPQRecoveryCredential','exportPQWalletBackup','restorePQWalletKeyHandle','readPQWalletKeyPublic','destroyPQWalletKeyHandle','assertPQPublicBindingMatches','pqWalletKeyCleanupUnresolved'])if(typeof this.#pqSDK?.[name]!=='function')fail('PASSWORD_VAULT_PQ_SDK_REQUIRED','The reviewed dual-key SDK is not supplied. Existing Wallet data was kept.');
@@ -86,7 +89,7 @@ export class PasswordWalletVault {
     finally{if(restored)try{if(sdk.destroyPQWalletKeyHandle(restored)!==true)fail('PQ_KEY_CLEANUP_UNRESOLVED','Dual-key cleanup is unconfirmed.');}catch(error){cleanupFailed=true;cleanupCause=error;this.#pqRecoveryDebt.add({handle:restored,firstCause:cause,firstCausePresent:failed,cleanupCause:error});}}
     if(failed)throw cause;if(cleanupFailed)throw cleanupCause;
   }
-  pqCleanupUnresolved(){return this.#pqRecoveryDebt.size!==0||this.#pqSDK?.pqWalletKeyCleanupUnresolved?.()===true;}
+  pqCleanupUnresolved(){return this.#pqRecoveryDebt.size!==0||this.#pqNativeDebt.size!==0||this.#pqNativeCustody.cleanupUnresolved()||this.#pqSDK?.pqWalletKeyCleanupUnresolved?.()===true;}
   async reservePQPreparation({operationId,network,kind}={}){
     const guard=this.authorization.current();
     if(this.pqCleanupUnresolved())fail('PQ_KEY_CLEANUP_UNRESOLVED','Resolve the original cleanup before preparing another key pair.');
@@ -285,6 +288,38 @@ export class PasswordWalletVault {
     }catch(error){failed=true;cause=error;}
     finally{retire();unsubscribe();payload?.wire.fill(0);if(payload)payload.credential=null;}
     if(debt&&failed){debt.firstCause=cause;debt.firstCausePresent=true;}
+    if(failed)throw cause;if(cleanupFailed)throw cleanupCause;return result;
+  }
+  /** Original reviewed TX-BATCH only. Encrypted backup+credential enter the
+   * same-process private Native module; no portable handle/DER is produced.
+   * Main's capture callback must adopt PUBLIC output before late checks. */
+  assertPQNativeTransactionAvailable(){
+    if(this.pqCleanupUnresolved())fail('PQ_KEY_CLEANUP_UNRESOLVED','Preserve original cleanup before another key acquisition.');
+    this.#pqNativeCustody.assertAvailable();
+  }
+  async withPQNativeTransaction(expectedBinding,request,capture,permission){
+    if(typeof capture!=='function'||typeof permission?.assert!=='function')fail('PQ_NATIVE_ORIGINAL_APPROVAL_REQUIRED','Original transaction approval and public result capture are required.');
+    permission.assert();if(this.pqCleanupUnresolved())fail('PQ_KEY_CLEANUP_UNRESOLVED','Preserve original cleanup before another key acquisition.');
+    this.assertPQNativeTransactionAvailable();
+    const sdk=this.#pqRequired(),guard=bindPermissionGuard(this.authorization.current(),permission),security=this.authorization.status();
+    const current=await this.#readUnlocked(guard),account=current.vault.activeAccount;
+    if(guard.account!==account||expectedBinding?.owner!==account)throw cancelled();
+    const record=current.vault.pqKeyRecords?.find(r=>r.account===account);if(!record)fail('PASSWORD_VAULT_PQ_ORIGINAL_REQUIRED','Original protected PQ keys are required.');
+    sdk.assertPQPublicBindingMatches(record.binding,expectedBinding);
+    let payload,owner,result,failed=false,cause,cleanupFailed=false,cleanupCause;
+    const unsubscribe=this.authorization.subscribe(state=>{if(owner&&(state.locked||state.account!==account||state.revision!==security.revision))try{owner.retire();}catch(error){cleanupFailed=true;cleanupCause??=error;this.#pqNativeDebt.add(owner);}});
+    try{
+      guard.assert();payload=await decryptPasswordVaultPQRecord(current.vault,account,current.session,options(guard));guard.assert();
+      try{owner=this.#pqNativeCustody.open(payload.wire,payload.credential,expectedBinding);}catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value'))owner=d.value;throw error;}
+      // Capture original owner BEFORE post-open current/file checks.
+      guard.assert();owner.assertCurrent();await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();
+      result=owner.transactionOnce(request,capture);guard.assert();owner.assertCurrent();
+    }catch(error){failed=true;cause=error;}
+    finally{
+      if(owner)try{owner.close(capture);}catch(error){if(!cleanupFailed){cleanupFailed=true;cleanupCause=error;}}
+      if(owner?.cleanupUnresolved())this.#pqNativeDebt.add(owner);
+      unsubscribe();payload?.wire.fill(0);if(payload)payload.credential=null;
+    }
     if(failed)throw cause;if(cleanupFailed)throw cleanupCause;return result;
   }
   authorizer() { return Object.freeze({ available: () => true, method: "local-password-encrypted-vault", inProcess: true, authenticate: (input, guard) => this.authenticate(input, guard), invalidate: () => this.lock() }); }

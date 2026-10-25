@@ -12,7 +12,8 @@ import { CANONICAL_RPC_URL, LEGACY_RPC_URL } from "./rpc.mjs";
 import {canonicalJSON,evmAddressFromYNX} from "@ynx-chain/wallet-auth";
 import {assertDesktopSignedPayStorage,parseDesktopSignedPayRecord} from "./wallet-pay-record.mjs";
 import {assertDesktopPayProgress,assertDesktopPayEvidence,parseDesktopPaySettlement} from "./wallet-pay-settlement.mjs";
-import {parsePQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
+import {parsePQOriginalRecord,createPQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
+import {preparePQTransferTransport} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {pqTypedOriginalSummary,createPQTypedOriginalFromMember} from './wallet-pq-typed-original.mjs';
 import {createPQAccountInitialOriginalFromMember} from './wallet-pq-account-initial-original.mjs';
 import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause} from './wallet-session-original.mjs';
@@ -307,6 +308,17 @@ export class FileTransactionIntentStore {
       this.captureOriginal(account,original,'pq-typed-action');
       return Object.freeze({transportHash:original.hash,memberHash:original.typed.memberHash});
     }catch(cause){this.originalFailed(account,cause);throw cause}
+  }
+  capturePQTransferMember(account,member,{operationId}){
+    const slot=owner(this).get(account);
+    if(slot?.kind!=='pq-transfer'||Object.hasOwn(slot,'pqMemberUnverified'))throw invalid();
+    slot.pqMemberUnverified=member;
+    try{
+      if(!nativeTypes.isUint8Array(member)||nativeTypes.isProxy(member)||member.buffer instanceof SharedArrayBuffer||member.byteLength>98304)throw invalid();
+      slot.pqMemberData=Buffer.from(member);
+      const original=createPQOriginalRecord({account,kind:'pq-transfer',operationId,request:preparePQTransferTransport(slot.pqMemberData)});
+      this.captureOriginal(account,original,'pq-transfer');return Object.freeze({transportHash:original.hash});
+    }catch(cause){this.originalFailed(account,cause);throw cause;}
   }
   capturePQAccountInitialMember(account,member,archive){
     const slot=owner(this).get(account);
@@ -644,7 +656,7 @@ export class FileTransactionIntentStore {
     this.#pqClosing=true;
     return this.#mutate(async()=>{
       const state=await this.#read();
-      for(const slot of owner(this).values())if(slot.kind==='pq-account-initial'&&Object.hasOwn(slot,'pqMemberUnverified'))throw capabilityError('PQ_ACCOUNT_INITIAL_CLOSE_UNCONFIRMED','Keep Wallet open; the original registration Member has not been confirmed saved. No replacement signing is permitted.');
+      for(const slot of owner(this).values())if(PQ_ORIGINAL_KINDS.includes(slot.kind)&&Object.hasOwn(slot,'pqMemberUnverified'))throw capabilityError(slot.kind==='pq-account-initial'?'PQ_ACCOUNT_INITIAL_CLOSE_UNCONFIRMED':'PQ_NATIVE_MEMBER_CLOSE_UNCONFIRMED','Keep Wallet open; the original public Member has not been confirmed saved. No replacement signing is permitted.');
       for(const slot of this.#pqTerminalResults.values())if(!slot.stored||!state.pqHistory?.some(r=>canonicalJSON(r)===canonicalJSON(slot.history)))throw capabilityError('PQ_FINALITY_CLOSE_UNCONFIRMED','Keep Wallet open; a verified terminal result has unconfirmed local storage.');
       for(const slot of this.#pqFinalityResults.values())if(!slot.stored||!state.pqFinalityObservations?.some(r=>canonicalJSON(r)===canonicalJSON(slot.row)))throw capabilityError('PQ_FINALITY_CLOSE_UNCONFIRMED','Keep Wallet open; a finality observation has unconfirmed local storage. Never resubmit or regenerate it.');
       for(const [key,slot] of this.#pqProgressResults){

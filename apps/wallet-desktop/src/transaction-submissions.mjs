@@ -55,7 +55,7 @@ export class TransactionSubmissions {
   }
   async list(account) {
     const local=this.intentStore?.localOriginal(account);
-    if(local?.kind==='pq-account-initial'&&!local.pq)return [{hash:null,account,status:'signing_unknown',canRetryExact:false,to:null,amount:null,signingUnknown:true}];
+    if(PQ_ORIGINAL_KINDS.includes(local?.kind)&&!local.pq)return [{hash:null,account,status:'signing_unknown',canRetryExact:false,to:null,amount:null,signingUnknown:true}];
     if(PQ_ORIGINAL_KINDS.includes(local?.kind)&&local.pq)return [{hash:local.pq.hash,account,kind:local.kind,operationId:local.pq.operationId,status:'pq-save-unconfirmed',canRetryExact:false}];
     if(local?.kind==="native"&&local.native){const record=local.native;return [{hash:record.hash,account,status:"signed_unpersisted",canRetryExact:false,to:record.transaction.to,amount:formatEther(record.transaction.value),localRetention:originalRetention(local)}]}
     if(local?.kind==="native"||await this.intentStore?.unresolvedPreparation?.(account))return [{hash:null,account,status:"signing_unknown",canRetryExact:false,to:null,amount:null,signingUnknown:true}];
