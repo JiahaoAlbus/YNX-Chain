@@ -1147,6 +1147,7 @@ def assert_browser_verification_workflow_contract(raw):
     need("      - 'packages/ynx-batch-v01/**'\n" in raw.split("  pull_request:", 1)[0])
     need("        working-directory: packages/ynx-batch-v01\n        shell: bash\n" in job)
     need("      NODE_OPTIONS: --max-old-space-size=256\n" in job)
+    need("${{ runner." not in job.split("    steps:\n", 1)[0])
     need(len(steps) == 9)
     need("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in steps[0]
          and "          ref: ${{ github.sha }}\n          persist-credentials: false\n" in steps[0])
@@ -1161,7 +1162,9 @@ def assert_browser_verification_workflow_contract(raw):
              "Upload only the tested browser verification candidate and exact DATA"]
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps[2:], names)))
     source, dependencies, runtime, node, browser, seal, upload = steps[2:]
-    for text in ("test \"$(git rev-parse HEAD)\" = \"$GITHUB_SHA\"", "git diff --exit-code -- .",
+    for text in ('export YNX_BROWSER_DELIVERY="$RUNNER_TEMP/ynx-batch-browser-delivery"',
+                 'printf \'YNX_BROWSER_DELIVERY=%s\\n\' "$YNX_BROWSER_DELIVERY" >> "$GITHUB_ENV"',
+                 "test \"$(git rev-parse HEAD)\" = \"$GITHUB_SHA\"", "git diff --exit-code -- .",
                  "'5624d8e33de600cef0b6435e70a20cc9f1c3ee9f'", "'b0f509681c00b41be71ed1a9339cdb7d51c1c06c'",
                  "'d04873b3424dc8bc71c6668e890b1e69547468d6f3a14ef282b31526af5a6c60'",
                  "{node: '26.7.0', openssl: '3.6.4'}", "assert.deepEqual(actual, [...source.files.map(record => record.path), 'SOURCE.json'].sort())",
@@ -1602,6 +1605,12 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace("  browser-verification:\n" + job, "", 1),
             raw.replace(job, job.replace("github.event_name == 'push'", "github.event_name == 'workflow_dispatch'", 1), 1),
             change("timeout-minutes: 8", "timeout-minutes: 18", job),
+            change("      NODE_OPTIONS: --max-old-space-size=256\n",
+                   "      NODE_OPTIONS: --max-old-space-size=256\n      YNX_BROWSER_DELIVERY: ${{ runner.temp }}/ynx-batch-browser-delivery\n", job),
+            change('export YNX_BROWSER_DELIVERY="$RUNNER_TEMP/ynx-batch-browser-delivery"',
+                   ': # output directory not initialized', source),
+            change('printf \'YNX_BROWSER_DELIVERY=%s\\n\' "$YNX_BROWSER_DELIVERY" >> "$GITHUB_ENV"',
+                   ': # output directory not propagated', source),
             change("node-version: '26.7.0'", "node-version: '24.19.0'", steps[1]),
             change("persist-credentials: false", "persist-credentials: true", steps[0]),
             change("5624d8e33de600cef0b6435e70a20cc9f1c3ee9f", "0" * 40, source),

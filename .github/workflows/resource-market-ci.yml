@@ -260,7 +260,6 @@ jobs:
         shell: bash
     env:
       NODE_OPTIONS: --max-old-space-size=256
-      YNX_BROWSER_DELIVERY: ${{ runner.temp }}/ynx-batch-browser-delivery
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -274,6 +273,8 @@ jobs:
         id: source
         run: |
           set -euo pipefail
+          export YNX_BROWSER_DELIVERY="$RUNNER_TEMP/ynx-batch-browser-delivery"
+          printf 'YNX_BROWSER_DELIVERY=%s\n' "$YNX_BROWSER_DELIVERY" >> "$GITHUB_ENV"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git diff --exit-code -- .
           node --input-type=module <<'JS'
