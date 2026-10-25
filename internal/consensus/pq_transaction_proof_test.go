@@ -42,6 +42,11 @@ type pqTransactionProofFixture struct {
 // a committed nonzero ABCI result; this is not a claim of proposal acceptance.
 func newPQTransactionProofFixture(t *testing.T) *pqTransactionProofFixture {
 	t.Helper()
+	return newPQTransactionProofFixtureWithInitial(t, false)
+}
+
+func newPQTransactionProofFixtureWithInitial(t *testing.T, initialAccount bool) *pqTransactionProofFixture {
+	t.Helper()
 	account := &abciRevocationFixture{classic: deterministicPrivateKey(211), otherClassic: deterministicPrivateKey(212)}
 	account.owner, account.other = mustNativeAddress(t, account.classic), mustNativeAddress(t, account.otherClassic)
 	t.Cleanup(account.classic.Zero)
@@ -98,6 +103,14 @@ func newPQTransactionProofFixture(t *testing.T) *pqTransactionProofFixture {
 	f.raw, err = cmtjson.Marshal(f.doc)
 	if err != nil {
 		t.Fatal(err)
+	}
+	const initialOwner = "0x4444444444444444444444444444444444444444"
+	if initialAccount {
+		configuration := PQInitialAccountConfiguration{Version: PQInitialAccountsVersion, NetworkID: f.migration.OriginalGenesisHash, EnableAt: "2", BirthFee: "0", Accounts: []PQInitialAccountBinding{{Owner: initialOwner, PKA: hex.EncodeToString(account.public.PKA), PKB: hex.EncodeToString(account.public.PKB)}}}
+		f.raw, err = EncodePQInitialAccountGenesis(f.raw, f.migration, configuration)
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 	genesis := sha256.Sum256(f.raw)
 	f.pins = ConsensusBootstrapPins{hex.EncodeToString(genesis[:]), f.migration.OriginalGenesisHash, f.migration.StateHash}
@@ -182,13 +195,26 @@ func newPQTransactionProofFixture(t *testing.T) *pqTransactionProofFixture {
 	whole := abciWhole(t, account, account.transferMessage(t, false, 3, 2), account.transferMessage(t, false, 4, 999), account.transferMessage(t, false, 4, 2), account.transferMessage(t, false, 5, 2))
 	envelopes := cmttypes.Txs{transfer, transfer, mustPQEnvelope(t, PQWholeType, whole)}
 	height := app.committed.Height + 1
+	if initialAccount {
+		intent := ynxauth.RegistrationIntent{ChainID: account.network, Owner: initialOwner, PKA: account.public.PKA, PKB: account.public.PKB, NewRevision: 1, LedgerNonce: 1, ActivateAt: uint64(height + 1)}
+		message, err := intent.SigningBytes()
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, member := consensusPQProof(t, account.key, account.network, initialOwner, ynxauth.TransactionPurpose, message)
+		payload, err := EncodePQInitialRegistrationTransaction(member)
+		if err != nil {
+			t.Fatal(err)
+		}
+		envelopes = append(envelopes, payload)
+	}
 	h.apply(t, envelopes)
 	h.apply(t, nil)
 	results, err := h.raw.LoadFinalizeBlockResponse(height)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(results.TxResults) != 3 || results.TxResults[0].Code != 0 || results.TxResults[1].Code == 0 || results.TxResults[2].Code != 0 {
+	if len(results.TxResults) != len(envelopes) || results.TxResults[0].Code != 0 || results.TxResults[1].Code == 0 || results.TxResults[2].Code != 0 || initialAccount && results.TxResults[3].Code != 0 {
 		t.Fatal("fixture did not execute actual success/rejected/partial outcomes", results)
 	}
 	source, err := NewPQEngineFileSource(f.migration, h.path, f.bootstrap, authorization)

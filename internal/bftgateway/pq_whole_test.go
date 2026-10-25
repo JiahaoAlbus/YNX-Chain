@@ -135,17 +135,18 @@ func newPQGatewayFixture(t *testing.T) *pqGatewayFixture {
 // Only transport is mocked. CheckTx, FinalizeBlock, Commit, Query and account
 // authorization are the actual application over an actual source migration.
 type pqMockComet struct {
-	t              *testing.T
-	f              *pqGatewayFixture
-	mu             sync.Mutex
-	posts          int
-	mode           string
-	lookupMutation func(*cometTx)
-	queryMutation  func(string, []byte) []byte
-	indexed        map[string]cometTx
-	block          [][]byte
-	blockResults   []cometTxResult
-	height         uint64
+	t                  *testing.T
+	f                  *pqGatewayFixture
+	mu                 sync.Mutex
+	posts              int
+	mode               string
+	lookupMutation     func(*cometTx)
+	queryMutation      func(string, []byte) []byte
+	indexed            map[string]cometTx
+	block              [][]byte
+	blockResults       []cometTxResult
+	height             uint64
+	nextValidatorsHash []byte
 	// Optional test clock. Nil timedBlocks retains the original fixture exactly;
 	// enabled clocks retain committed timestamps and bytes by actual height.
 	blockTime   time.Time
@@ -216,7 +217,7 @@ func (m *pqMockComet) serve(w http.ResponseWriter, r *http.Request) {
 		response.Result.CheckTx = cometTxResult{Code: check.Code, Log: check.Log, Data: check.Data, GasUsed: strconv.FormatInt(check.GasUsed, 10)}
 		if check.Code == 0 {
 			at := m.blockTimeLocked()
-			out, err := m.f.a.FinalizeBlock(r.Context(), &abcitypes.RequestFinalizeBlock{Height: int64(m.height), Time: at, Txs: [][]byte{request.Params.Tx}})
+			out, err := m.f.a.FinalizeBlock(r.Context(), &abcitypes.RequestFinalizeBlock{Height: int64(m.height), Time: at, Txs: [][]byte{request.Params.Tx}, NextValidatorsHash: bytes.Clone(m.nextValidatorsHash)})
 			if err != nil || len(out.TxResults) != 1 {
 				m.t.Errorf("Finalize: %v", err)
 				return

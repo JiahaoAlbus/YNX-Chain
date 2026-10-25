@@ -11,7 +11,7 @@ import (
 )
 
 func isPQSingleIngressKind(kind string) bool {
-	return kind == consensus.PQTransferType || kind == consensus.PQMigrationType || kind == consensus.PQRevocationType
+	return kind == consensus.PQTransferType || kind == consensus.PQMigrationType || kind == consensus.PQRevocationType || kind == consensus.PQInitialRegistrationType
 }
 
 func decodeIngressPQRevocation(wire []byte) (string, error) {

@@ -49,7 +49,10 @@ func EncodePQTransaction(kind string, wire []byte) ([]byte, error) {
 	if kind == PQEthereumValueType {
 		limit = MaxPQEthereumMemberBytes
 	}
-	if kind != PQTransferType && kind != PQMigrationType && kind != PQRevocationType && kind != PQWholeType && kind != PQEthereumValueType || len(wire) == 0 || len(wire) > limit || kind == PQRevocationType && len(wire) > ynxauth.MaxRevocationBytes {
+	if kind == PQInitialRegistrationType {
+		limit = ynxauth.MaxPQInitialRegistrationBytes
+	}
+	if kind != PQTransferType && kind != PQMigrationType && kind != PQRevocationType && kind != PQWholeType && kind != PQEthereumValueType && kind != PQInitialRegistrationType || len(wire) == 0 || len(wire) > limit || kind == PQRevocationType && len(wire) > ynxauth.MaxRevocationBytes {
 		return nil, errors.New("unsupported or oversized ABCI PQ authorization")
 	}
 	return json.Marshal(PQTransaction{Version: 1, Type: kind, WireHex: hex.EncodeToString(wire)})
@@ -113,6 +116,9 @@ func (a *Application) applyPQTransaction(state executionState, payload []byte, h
 	}
 	if envelope.Type == PQWholeType {
 		return a.applyPQWhole(state, payload, wire, height, blockTime)
+	}
+	if envelope.Type == PQInitialRegistrationType {
+		return a.applyPQInitialRegistration(state, payload, height, blockTime)
 	}
 	nativeHash, abciHash := SignedTransactionHash(wire), SignedTransactionHash(payload)
 	for _, prior := range state.pqHistory {
@@ -234,6 +240,17 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 			return errors.New("invalid ABCI PQ history height or replay")
 		}
 		previousHeight, seen[tx.Hash] = tx.BlockNum, true
+		if tx.Type == PQInitialRegistrationType {
+			if err := validatePQInitialRegistrationHistory(state, migration, entry); err != nil {
+				return err
+			}
+			id := key{tx.From, 1}
+			proofs[id]++
+			if known[id] || proofs[id] != 1 {
+				return errors.New("duplicate ABCI initial registration evidence")
+			}
+			continue
+		}
 		// Typed actions have their own original-proof and exact execution
 		// validators in CommittedState.Validate (including contract code/trace
 		// lots and Resource request/settlement records). Every kind retains
