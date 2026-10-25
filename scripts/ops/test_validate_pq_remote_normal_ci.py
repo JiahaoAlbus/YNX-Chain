@@ -1131,7 +1131,78 @@ def assert_fresh_business_execution_workflow_contract(raw):
         + ['${{ runner.temp }}/ynx-pq-fresh-intake-${{ github.run_id }}-${{ github.run_attempt }}/relocation.json'])
 
 
+def assert_browser_verification_workflow_contract(raw):
+    """Public source/CI wiring only; real browser evidence is emitted by its job."""
+    job, steps = workflow_steps(raw, "browser-verification")
+
+    def need(condition):
+        if not condition:
+            raise AssertionError("browser verification source contract changed; no browser execution claim")
+
+    condition = ("github.event_name == 'push' && (github.ref == 'refs/heads/main' || "
+                 "github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
+                 "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
+    need("    if: " + condition + "\n" in job)
+    need("    runs-on: ubuntu-24.04\n    timeout-minutes: 8\n" in job)
+    need("      - 'packages/ynx-batch-v01/**'\n" in raw.split("  pull_request:", 1)[0])
+    need("        working-directory: packages/ynx-batch-v01\n        shell: bash\n" in job)
+    need("      NODE_OPTIONS: --max-old-space-size=256\n" in job)
+    need(len(steps) == 9)
+    need("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in steps[0]
+         and "          ref: ${{ github.sha }}\n          persist-credentials: false\n" in steps[0])
+    need("actions/setup-node@820762786026740c76f36085b0efc47a31fe5020" in steps[1]
+         and "          node-version: '26.7.0'\n          check-latest: false\n" in steps[1])
+    names = ["Bind the exact standalone public verification source snapshot",
+             "Install only the original locked dual-PQ dependencies",
+             "Record actual native and portable library versions without fallback",
+             "Run all original Node and shared public verification regressions",
+             "Verify the same public vectors through real headless browser modules",
+             "Pack only the tested candidate and bind the actual browser readback",
+             "Upload only the tested browser verification candidate and exact DATA"]
+    need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps[2:], names)))
+    source, dependencies, runtime, node, browser, seal, upload = steps[2:]
+    for text in ("test \"$(git rev-parse HEAD)\" = \"$GITHUB_SHA\"", "git diff --exit-code -- .",
+                 "'5624d8e33de600cef0b6435e70a20cc9f1c3ee9f'", "'b0f509681c00b41be71ed1a9339cdb7d51c1c06c'",
+                 "'d04873b3424dc8bc71c6668e890b1e69547468d6f3a14ef282b31526af5a6c60'",
+                 "{node: '26.7.0', openssl: '3.6.4'}", "assert.deepEqual(actual, [...source.files.map(record => record.path), 'SOURCE.json'].sort())",
+                 "!entry.isSymbolicLink()", "stat.nlink === 1", "assert.equal(sha(raw), record.sha256)",
+                 "record.gitBlob", "pkg.exports['./browser'], './src/browser.mjs'", "pkg.exports['.'], './src/index.mjs'"):
+        need(text in source)
+    need("run: timeout 90s npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org\n" in dependencies)
+    need("providerInfo(), portable = providerInfo({provider: 'portable'})" in runtime
+         and "node_modules/@noble/" in runtime and "assert.equal(portable.version, '0.6.1')" in runtime
+         and "assert.equal(portable.hashesVersion, '2.2.0')" in runtime
+         and "browserDependencyVersionVerified: false" in runtime)
+    need("        id: nodetests\n        timeout-minutes: 3\n        run: timeout 120s npm test\n" in node)
+    need("        id: browser\n        timeout-minutes: 3\n" in browser
+         and "          BROWSER_BINARY: /usr/bin/google-chrome\n" in browser
+         and "          YNX_BROWSER_VERIFICATION_RECEIPT_OUT: ${{ runner.temp }}/ynx-batch-browser-delivery/BROWSER-VERIFICATION.json\n" in browser
+         and 'test -x "$BROWSER_BINARY"' in browser
+         and "          timeout 150s npm run test:browser\n" in browser)
+    for text in ('npm pack --ignore-scripts --json --pack-destination "$YNX_BROWSER_DELIVERY"',
+                 "assert.equal(receipt.browser.result.ok, true)", "assert.equal(receipt.browser.result.noRuntimeShims, true)",
+                 "assert.equal(receipt.browser.result.randomnessCalls, 0)", "assert.equal(receipt.browser.result.provider.dependencyVersionVerified, false)",
+                 "assert.deepEqual(receipt.browser.result.vectors, receipt.uint8)",
+                 "'ynx-batch-v01-candidate-0.1.0-candidate.3.tgz'", "assert.deepEqual(entries.sort(), expected.map(record => 'package/' + record.path).sort())",
+                 "tar(['-xOzf', archive, 'package/' + record.path]", "assert.equal(sha(raw), record.sha256)",
+                 "fs.constants.COPYFILE_EXCL", "standaloneSourceSHA256: sha(snapshotRaw)",
+                 "nodeVerificationExecuted: true", "browserVerificationExecuted: true", "privateKeyMaterialPublished: false",
+                 "installed: false, authorityGranted: false", "assert.deepEqual(fs.readdirSync(out).sort(), [...names, 'SOURCE.json'].sort())"):
+        need(text in seal)
+    need("        if: ${{ success() && steps.nodetests.outcome == 'success' && steps.browser.outcome == 'success' && steps.seal.outcome == 'success' }}\n" in upload)
+    need("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in upload
+         and "          name: ynx-batch-browser-candidate-${{ github.sha }}\n" in upload
+         and "          if-no-files-found: error\n" in upload)
+    paths = re.findall(r"(?m)^            (.+)$", upload)
+    need(paths == ['${{ runner.temp }}/ynx-batch-browser-delivery/' + name for name in
+        ('ynx-batch-v01-candidate-0.1.0-candidate.3.tgz', 'SOURCE.json', 'STANDALONE-SOURCE.json',
+         'PACKAGE-FILES.json', 'BROWSER-VERIFICATION.json')])
+    need("continue-on-error:" not in job and "if: false" not in job
+         and "workflow_dispatch" not in job and "npm publish" not in job)
+
+
 def assert_workflow_contract(raw):
+    assert_browser_verification_workflow_contract(raw)
     assert_native_cabi_workflow_contract(raw)
     assert_runtime_gateway_identity_workflow_contract(raw)
     assert_macos_source_register_workflow_contract(raw)
@@ -1514,6 +1585,51 @@ def assert_workflow_contract(raw):
 
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
+    def test_browser_public_snapshot_and_actual_headless_job_are_closed_and_required_for_its_artifact(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_browser_verification_workflow_contract(raw)
+        job, steps = workflow_steps(raw, "browser-verification")
+        source, dependencies, runtime, node, browser, seal, upload = steps[2:]
+
+        def change(before, after, step=None):
+            target = raw if step is None else step
+            self.assertIn(before, target)
+            altered = target.replace(before, after, 1)
+            return altered if step is None else raw.replace(step, altered, 1)
+
+        changes = [
+            change("      - 'packages/ynx-batch-v01/**'\n", ""),
+            raw.replace("  browser-verification:\n" + job, "", 1),
+            raw.replace(job, job.replace("github.event_name == 'push'", "github.event_name == 'workflow_dispatch'", 1), 1),
+            change("timeout-minutes: 8", "timeout-minutes: 18", job),
+            change("node-version: '26.7.0'", "node-version: '24.19.0'", steps[1]),
+            change("persist-credentials: false", "persist-credentials: true", steps[0]),
+            change("5624d8e33de600cef0b6435e70a20cc9f1c3ee9f", "0" * 40, source),
+            change("d04873b3424dc8bc71c6668e890b1e69547468d6f3a14ef282b31526af5a6c60", "0" * 64, source),
+            change("assert.equal(sha(raw), record.sha256)", "void record.sha256", source),
+            change("!entry.isSymbolicLink()", "true", source),
+            change("--ignore-scripts", "--include=dev", dependencies),
+            change("providerInfo()", "providerInfo({provider: 'portable'})", runtime),
+            change("timeout 120s npm test", "true # original Node tests skipped", node),
+            change("/usr/bin/google-chrome", "/bin/echo", browser),
+            change("timeout 150s npm run test:browser", "node --input-type=module -e 'console.log(true)'", browser),
+            change("assert.equal(receipt.browser.result.ok, true)", "void receipt.browser.result", seal),
+            change("assert.equal(receipt.browser.result.provider.dependencyVersionVerified, false)", "void receipt.browser.result.provider", seal),
+            change("assert.deepEqual(entries.sort(), expected.map(record => 'package/' + record.path).sort())", "void entries", seal),
+            change("privateKeyMaterialPublished: false", "privateKeyMaterialPublished: true", seal),
+            change("installed: false, authorityGranted: false", "installed: true, authorityGranted: true", seal),
+            change("steps.browser.outcome == 'success'", "true", upload),
+            change("if-no-files-found: error", "if-no-files-found: warn", upload),
+            change("            ${{ runner.temp }}/ynx-batch-browser-delivery/BROWSER-VERIFICATION.json\n",
+                   "            ${{ runner.temp }}/ynx-batch-browser-delivery\n", upload),
+            change("          if-no-files-found: error\n", "            ${{ runner.temp }}/synthetic/private-key.der\n          if-no-files-found: error\n", upload),
+            raw.replace(source, "", 1).replace(browser, browser + source, 1),
+        ]
+        for index, changed in enumerate(changes):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_browser_verification_workflow_contract(changed)
+
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)

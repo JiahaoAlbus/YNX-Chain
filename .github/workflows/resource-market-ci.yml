@@ -7,6 +7,7 @@ on:
       - 'codex/ynx-pq-public-upgrade'
       - 'codex/ynx-pq-perf-integration'
     paths:
+      - 'packages/ynx-batch-v01/**'
       - 'internal/ynxbatch/**'
       - 'internal/ynxauth/**'
       - 'internal/ynxconsensusauth/**'
@@ -248,6 +249,163 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 6
+
+  browser-verification:
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: packages/ynx-batch-v01
+        shell: bash
+    env:
+      NODE_OPTIONS: --max-old-space-size=256
+      YNX_BROWSER_DELIVERY: ${{ runner.temp }}/ynx-batch-browser-delivery
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '26.7.0'
+          check-latest: false
+      - name: Bind the exact standalone public verification source snapshot
+        id: source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code -- .
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import {createHash} from 'node:crypto';
+          const source = JSON.parse(fs.readFileSync('SOURCE.json', 'utf8'));
+          assert.equal(source.version, 'YNX-BATCH-STANDALONE-SOURCE-SNAPSHOT/v1');
+          assert.equal(source.standaloneCommit, '5624d8e33de600cef0b6435e70a20cc9f1c3ee9f');
+          assert.equal(source.standaloneTree, 'b0f509681c00b41be71ed1a9339cdb7d51c1c06c');
+          assert.equal(source.packageVersion, '0.1.0-candidate.3');
+          assert.deepEqual({node: process.versions.node, openssl: process.versions.openssl}, {node: '26.7.0', openssl: '3.6.4'});
+          const sha = raw => createHash('sha256').update(raw).digest('hex');
+          assert.equal(sha(fs.readFileSync('SOURCE.json')), 'd04873b3424dc8bc71c6668e890b1e69547468d6f3a14ef282b31526af5a6c60');
+          const catalog = fs.readdirSync('.', {recursive: true, withFileTypes: true});
+          assert.ok(catalog.every(entry => !entry.isSymbolicLink() && (entry.isFile() || entry.isDirectory())));
+          const actual = catalog.filter(entry => entry.isFile())
+            .map(entry => path.relative('.', path.join(entry.parentPath, entry.name))).sort();
+          assert.deepEqual(actual, [...source.files.map(record => record.path), 'SOURCE.json'].sort());
+          for (const record of source.files) {
+            assert.match(record.path, /^(?:[a-zA-Z0-9_.-]+\/)*[a-zA-Z0-9_.-]+$/);
+            assert.ok(!record.path.split('/').includes('..'));
+            const stat = fs.lstatSync(record.path); assert.ok(stat.isFile() && !stat.isSymbolicLink() && stat.nlink === 1);
+            const raw = fs.readFileSync(record.path);
+            assert.equal(raw.length, record.bytes); assert.equal(sha(raw), record.sha256);
+            assert.equal(createHash('sha1').update(Buffer.from('blob ' + raw.length + '\0')).update(raw).digest('hex'), record.gitBlob);
+          }
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          assert.equal(pkg.exports['./browser'], './src/browser.mjs');
+          assert.equal(pkg.exports['.'], './src/index.mjs');
+          fs.mkdirSync(process.env.YNX_BROWSER_DELIVERY, {mode: 0o700});
+          console.log(JSON.stringify({standaloneCommit: source.standaloneCommit, standaloneTree: source.standaloneTree,
+            snapshotSHA256: sha(fs.readFileSync('SOURCE.json')), runtime: process.versions, sourceSnapshotOnly: true}));
+          JS
+      - name: Install only the original locked dual-PQ dependencies
+        timeout-minutes: 2
+        run: timeout 90s npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org
+      - name: Record actual native and portable library versions without fallback
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {providerInfo} from './src/index.mjs';
+          const native = providerInfo(), portable = providerInfo({provider: 'portable'});
+          for (const [name, version] of Object.entries({'post-quantum': '0.6.1', hashes: '2.2.0', curves: '2.2.0', ciphers: '2.2.0'}))
+            assert.equal(JSON.parse(fs.readFileSync('node_modules/@noble/' + name + '/package.json', 'utf8')).version, version);
+          assert.equal(native.node, '26.7.0'); assert.equal(native.openssl, '3.6.4');
+          assert.equal(portable.version, '0.6.1'); assert.equal(portable.hashesVersion, '2.2.0');
+          console.log(JSON.stringify({native, portable, browserDependencyVersionVerified: false}));
+          JS
+      - name: Run all original Node and shared public verification regressions
+        id: nodetests
+        timeout-minutes: 3
+        run: timeout 120s npm test
+      - name: Verify the same public vectors through real headless browser modules
+        id: browser
+        timeout-minutes: 3
+        env:
+          BROWSER_BINARY: /usr/bin/google-chrome
+          YNX_BROWSER_VERIFICATION_RECEIPT_OUT: ${{ runner.temp }}/ynx-batch-browser-delivery/BROWSER-VERIFICATION.json
+        run: |
+          test -x "$BROWSER_BINARY"
+          timeout 150s npm run test:browser
+      - name: Pack only the tested candidate and bind the actual browser readback
+        id: seal
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          npm pack --ignore-scripts --json --pack-destination "$YNX_BROWSER_DELIVERY" > "$YNX_BROWSER_DELIVERY/PACKAGE-FILES.json"
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import {createHash} from 'node:crypto';
+          import {spawnSync} from 'node:child_process';
+          import {providerInfo} from './src/index.mjs';
+          const out = process.env.YNX_BROWSER_DELIVERY, snapshotRaw = fs.readFileSync('SOURCE.json');
+          const snapshot = JSON.parse(snapshotRaw), receipt = JSON.parse(fs.readFileSync(path.join(out, 'BROWSER-VERIFICATION.json'), 'utf8'));
+          const sha = raw => createHash('sha256').update(raw).digest('hex');
+          assert.equal(receipt.schema, 'ynx-batch-real-browser-verification/v1');
+          assert.equal(receipt.browser.result.ok, true); assert.equal(receipt.browser.result.noRuntimeShims, true);
+          assert.equal(receipt.browser.result.randomnessCalls, 0); assert.equal(receipt.browser.result.provider.dependencyVersionVerified, false);
+          assert.deepEqual(receipt.browser.result.vectors, receipt.uint8);
+          const packed = JSON.parse(fs.readFileSync(path.join(out, 'PACKAGE-FILES.json'), 'utf8'));
+          assert.equal(packed.length, 1); assert.equal(packed[0].version, '0.1.0-candidate.3');
+          const name = 'ynx-batch-v01-candidate-0.1.0-candidate.3.tgz'; assert.equal(packed[0].filename, name);
+          const expected = snapshot.files.filter(record => record.path.startsWith('src/') || ['README.md', 'PROVENANCE.json', 'package.json', 'docs/KEY_MATERIAL_ABI.md'].includes(record.path));
+          assert.deepEqual(packed[0].files.map(record => record.path).sort(), expected.map(record => record.path).sort());
+          const tar = (args, limit) => { const result = spawnSync('/usr/bin/tar', args, {timeout: 10000, maxBuffer: limit});
+            assert.equal(result.status, 0); assert.equal(result.signal, null); return result.stdout; };
+          const archive = path.join(out, name), rawArchive = fs.readFileSync(archive);
+          assert.ok(rawArchive.length > 0 && rawArchive.length <= 1048576);
+          assert.equal(createHash('sha1').update(rawArchive).digest('hex'), packed[0].shasum);
+          assert.equal('sha512-' + createHash('sha512').update(rawArchive).digest('base64'), packed[0].integrity);
+          const entries = tar(['-tzf', archive], 1048576).toString('utf8').trim().split('\n');
+          assert.deepEqual(entries.sort(), expected.map(record => 'package/' + record.path).sort());
+          for (const record of snapshot.files) {
+            const raw = fs.readFileSync(record.path); assert.equal(raw.length, record.bytes); assert.equal(sha(raw), record.sha256);
+          }
+          for (const record of expected) {
+            const raw = tar(['-xOzf', archive, 'package/' + record.path], 4194304);
+            assert.equal(raw.length, record.bytes); assert.equal(sha(raw), record.sha256);
+          }
+          fs.copyFileSync('SOURCE.json', path.join(out, 'STANDALONE-SOURCE.json'), fs.constants.COPYFILE_EXCL);
+          const names = [name, 'PACKAGE-FILES.json', 'BROWSER-VERIFICATION.json', 'STANDALONE-SOURCE.json'];
+          const files = names.map(name => { const raw = fs.readFileSync(path.join(out, name)); return {path: name, bytes: raw.length, sha256: sha(raw)}; });
+          const result = {version: 'YNX-BATCH-BROWSER-CANDIDATE-RELEASE/v1', commit: process.env.GITHUB_SHA,
+            runId: process.env.GITHUB_RUN_ID, runAttempt: process.env.GITHUB_RUN_ATTEMPT, producerJob: 'browser-verification',
+            standaloneCommit: snapshot.standaloneCommit, standaloneTree: snapshot.standaloneTree,
+            standaloneSourceSHA256: sha(snapshotRaw), candidateVersion: '0.1.0-candidate.3', files,
+            nativeRuntime: providerInfo(), portableRuntime: providerInfo({provider: 'portable'}),
+            browserDependencyVersionVerified: false, syntheticOnly: true, nodeVerificationExecuted: true,
+            browserVerificationExecuted: true, privateKeyMaterialPublished: false, installed: false, authorityGranted: false};
+          fs.writeFileSync(path.join(out, 'SOURCE.json'), JSON.stringify(result, null, 2) + '\n', {flag: 'wx', mode: 0o600});
+          assert.deepEqual(fs.readdirSync(out).sort(), [...names, 'SOURCE.json'].sort());
+          console.log('YNX_BATCH_BROWSER_SOURCE ' + JSON.stringify(result));
+          JS
+          git diff --exit-code -- .
+      - name: Upload only the tested browser verification candidate and exact DATA
+        if: ${{ success() && steps.nodetests.outcome == 'success' && steps.browser.outcome == 'success' && steps.seal.outcome == 'success' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-batch-browser-candidate-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/ynx-batch-browser-delivery/ynx-batch-v01-candidate-0.1.0-candidate.3.tgz
+            ${{ runner.temp }}/ynx-batch-browser-delivery/SOURCE.json
+            ${{ runner.temp }}/ynx-batch-browser-delivery/STANDALONE-SOURCE.json
+            ${{ runner.temp }}/ynx-batch-browser-delivery/PACKAGE-FILES.json
+            ${{ runner.temp }}/ynx-batch-browser-delivery/BROWSER-VERIFICATION.json
+          if-no-files-found: error
+          retention-days: 30
 
   caddy-source:
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')
