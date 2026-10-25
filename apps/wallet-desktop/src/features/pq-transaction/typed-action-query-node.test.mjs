@@ -11,7 +11,8 @@ import {preparePQTypedActionReview,signPQReviewedTypedAction} from './typed-acti
 import {NORMAL_OPERATOR,CANONICAL_NETWORK_ID} from '../../original-policy-supplier/operator-query.mjs';
 import {PQTransactionNodeTransportKernel} from './node-transport.mjs';
 import {createPQTypedActionNodeReader} from './typed-action-query-node.mjs';
-import {PQ_TYPED_QUERY_MAX_BYTES} from './typed-action-query.mjs';
+import {PQ_TYPED_QUERY_MAX_BYTES,inspectPQReviewedTypedActionQuery} from './typed-action-query.mjs';
+import {inspectPQReviewedTypedTransportOriginal} from './typed-action-reviewed-transport.mjs';
 const hash=b=>'0x'+createHash('sha256').update(b).digest('hex');
 const health={chainId:6423,catchingUp:false,persistence:true,persistenceError:'',build:{commit:NORMAL_OPERATOR.reportedCommit,release:NORMAL_OPERATOR.reportedRelease}};
 let handle,review,raw,original;
@@ -50,7 +51,7 @@ test('original Main capture receives complete typed GET before late lock or fail
   const bytes=Buffer.from(' {"retained":"original"}\n'),f=fixture({bytes,...(mode==='health'?{postHealth:{...health,persistence:false}}:{})});let held;
   const guard=()=>{if(mode==='lock'&&f.calls.length===3)throw Object.assign(Error('locked'),{code:'CONTROLLED_LATE_LOCK'});};
   await assert.rejects(f.kernel.readTypedActionOriginal(review,raw,original,guard,async response=>{held={...response,body:Buffer.from(response.body)};}),{code:mode==='lock'?'CONTROLLED_LATE_LOCK':'PQ_TRANSACTION_NODE_VERSION_OR_HEALTH'});
-  assert.ok(held,'Main must receive the complete response before later refusal');assert.deepEqual(held.body,bytes);assert.equal(held.method,'GET');assert.equal(held.requestPath,'/transactions/pq/actions/'+original.transportHash);assert.equal(f.calls.length,mode==='lock'?3:4);
+  assert.ok(held,'Main must receive the complete response before later refusal');assert.deepEqual(held.body,bytes);assert.equal(held.method,'GET');assert.equal(held.requestPath,'/transactions/pq/actions/originals/'+original.memberHash);assert.equal(f.calls.length,mode==='lock'?3:4);
  }
 });
 test('capture failure retains original cause without post-health or retry; capture cannot mutate returned bytes',async()=>{
@@ -65,8 +66,9 @@ test('capture failure retains original cause without post-health or retry; captu
 
 test('typed readonly factory exposes only original GET; kernel reuses fixed pins and pre/post source gates',async()=>{
  assert.deepEqual(Object.keys(createPQTypedActionNodeReader()),['readOriginal']);
+ assert.notEqual(original.memberHash,original.transportHash,'Member and canonical transport hashes must remain distinct');
  const bytes=Buffer.from(' {"notYetDecoded":true}\n'),f=fixture({status:202,bytes}),out=await read(f);
- assert.deepEqual(f.calls.map(c=>[c.options.method,c.url.pathname]),[['GET','/status'],['GET','/blocks/0'],['GET','/transactions/pq/actions/'+original.transportHash],['GET','/status']]);
+ assert.deepEqual(f.calls.map(c=>[c.options.method,c.url.pathname]),[['GET','/status'],['GET','/blocks/0'],['GET','/transactions/pq/actions/originals/'+original.memberHash],['GET','/status']]);
  for(const c of f.calls){assert.equal(c.url.origin,NORMAL_OPERATOR.origin);assert.equal(c.options.agent,false);assert.equal(c.options.rejectUnauthorized,true);assert.equal(typeof c.options.checkServerIdentity,'function');assert.equal(c.body,undefined);}
  assert.deepEqual(Object.keys(out),['method','requestPath','status','contentType','cacheControl','body']);assert.equal(out.status,202);assert.deepEqual(Buffer.from(out.body),bytes);bytes.fill(0);assert.equal(Buffer.from(out.body).toString(),' {"notYetDecoded":true}\n');assert.ok(Object.isFrozen(out));
  assert.equal(f.calls[2].options.headers['accept-encoding'],'identity');
@@ -89,4 +91,18 @@ test('redirect/error/cache/encoding/8 MiB gates refuse without another request o
 test('post-response version change and original lifetime timeout discard observation',async()=>{
  const f=fixture({postHealth:{...health,build:{...health.build,commit:'changed'}}});await assert.rejects(read(f),{code:'PQ_TRANSACTION_NODE_VERSION_OR_HEALTH'});assert.equal(f.calls.length,4);
  let reads=0;const expiring=fixture({clock:()=>++reads>3?NORMAL_OPERATOR.lifetimeMs:0});await assert.rejects(read(expiring),{code:'PQ_TRANSACTION_NODE_TIMEOUT'});assert.equal(expiring.calls.length,2);
+});
+
+test('original native GET response reaches the production observer without retry or finality authority',async()=>{
+ const local=inspectPQReviewedTypedTransportOriginal(review,raw,original),nativePath='/transactions/pq/actions/originals/'+original.memberHash;
+ for(const pending of [true,false]){
+  // Controlled HTTP bytes from this retained public Member, not live node evidence.
+  const view=pending?{type:'',status:'unknown',committed:false,source:'comet-rpc',nativeTransactionHash:original.memberHash,executionHeight:'0',amount:'0',fee:'0',nonce:'0',readbackUrl:nativePath,error:'original not found'}:
+   {type:local.action.kind,status:'committed',committed:true,source:'comet-rpc',nativeTransactionHash:original.memberHash,abciTransactionHash:original.transportHash,wire:Buffer.from(local.member).toString('base64'),transport:Buffer.from(raw).toString('base64'),executionHeight:'9007199254740995',cometIndex:0,from:local.account,amount:'0',fee:local.action.fee,nonce:local.action.nonce,effects:{controlled:true},readbackUrl:nativePath,abciReadbackUrl:'/transactions/pq/actions/'+original.transportHash};
+  const before=Buffer.from(raw),f=fixture({status:pending?202:200,bytes:Buffer.from(JSON.stringify(view))});
+  const response=await read(f),observed=inspectPQReviewedTypedActionQuery(review,raw,original,response);
+  assert.equal(observed.requestPath,nativePath);assert.equal(observed.memberHash,original.memberHash);assert.equal(observed.transportHash,original.transportHash);assert.equal(observed.observedStatus,pending?'unknown':'committed');assert.equal(observed.originalBytesObserved,!pending);
+  for(const k of ['canRetry','clearsOriginal','submitted','permissionGranted','consensusFinality','independentFinality'])assert.equal(observed[k],false);
+  assert.deepEqual(Buffer.from(raw),before);assert.equal(f.calls.length,4);assert(f.calls.every(c=>c.options.method==='GET'&&c.body===undefined));
+ }
 });

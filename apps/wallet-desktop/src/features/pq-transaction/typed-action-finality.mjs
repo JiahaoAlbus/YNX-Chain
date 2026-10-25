@@ -1,3 +1,4 @@
+import {preparePQActionFinalityLookup} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {types} from 'node:util';
 import {inspectPQReviewedTypedTransportOriginal} from './typed-action-reviewed-transport.mjs';
 import {decodePQFinalityCollectorData} from './finality-collector.mjs';
@@ -11,7 +12,7 @@ const resizable=Object.getOwnPropertyDescriptor(ArrayBuffer.prototype,'resizable
 const detached=Object.getOwnPropertyDescriptor(ArrayBuffer.prototype,'detached').get;
 // Original Protocol fixes the conflicting ServeMux pattern using this exact
 // ABCI-only route. No fallback to the colliding actions/{hash} pattern.
-const path=hash=>'/txs/'+hash+'/pq-action-finality-proof';
+const path=hash=>preparePQActionFinalityLookup(hash).path;
 function responseData(input){
  if(!input||typeof input!=='object'||types.isProxy(input)||Object.getPrototypeOf(input)!==Object.prototype)invalid();
  const ds=Object.getOwnPropertyDescriptors(input),keys=Reflect.ownKeys(ds);
@@ -27,7 +28,7 @@ function responseData(input){
 /** Fixed ABCI route observes committed and rejected DATA. No authority or I/O. */
 export function planPQReviewedTypedActionFinalityCollector(review,raw,original){
  const local=inspectPQReviewedTypedTransportOriginal(review,raw,original);
- return Object.freeze({method:'GET',path:path(local.transportHash)});
+ return preparePQActionFinalityLookup(local.transportHash);
 }
 
 /** Original Main owns raw evidence and proof; only observation may reach UI.
