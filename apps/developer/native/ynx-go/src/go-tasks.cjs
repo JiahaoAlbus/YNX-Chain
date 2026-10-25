@@ -61,7 +61,8 @@ function createGoTasks(api,context,environment,t=text=>text) {
    await verify();
    // A notification without actions may remain unresolved until dismissed.
    // It must not hold configuration ownership or delay the first Run.
-   void Promise.resolve(api.window.showInformationMessage(t('Go project configured. Run Go Project builds and runs this package with local dependencies only. Cgo, language services and debugging are not configured by this command.'))).catch(()=>undefined);
+   try { Promise.resolve(api.window.showInformationMessage(t('Go project configured. Run Go Project builds and runs this package with local dependencies only. Cgo, language services and debugging are not configured by this command.'))).catch(()=>undefined); }
+   catch { /* A disposed notification cannot undo the saved configuration. */ }
    return config;
   } catch(error) {if(!abort.signal.aborted)throw error;}
   finally {abort.signal.removeEventListener('abort',stopPicker);pickerCancellation.dispose();if(configurationAbort===abort)configurationAbort=undefined;configuring=false;}

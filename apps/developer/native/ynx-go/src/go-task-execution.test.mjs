@@ -503,3 +503,57 @@ test('a started task missing its reply handle retains first failure when owned t
  assert.match(operation.failure.message,/did not return/);assert.equal(operation.cleanupFailure.message,'cleanup refused');assert.equal(operation.cleanupPending,true);assert.equal(terminated,1);
  operation.execution.terminate();assert.equal(terminated,1);for(const fn of ends)fn({execution:{task},exitCode:143});assert.equal(operation.cleanupPending,false);assert.equal(ends.size,0);
 });
+
+async function commandFixture(workflow,window,l10n) {
+ const module={exports:{}},commands=new Map(),require=createRequire(import.meta.url);
+ vm.runInNewContext(await readFile(new URL('./extension.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,require:name=>name==='vscode'?{l10n,window,commands:{registerCommand:(id,fn)=>{commands.set(id,fn);return{dispose(){}};}}}:name==='./go-tasks.cjs'?{createGoTasks:()=>workflow}:require(name)});
+ module.exports.activate({subscriptions:[]});return commands;
+}
+test('Go command failure notices do not hold completion or prevent another run',async()=>{
+ const warnings=[],result={exitCode:1};let runs=0;
+ const commands=await commandFixture({run:async()=>{runs++;return result;}},{showWarningMessage:message=>{warnings.push(message);return new Promise(()=>{});},showErrorMessage:()=>{throw Error('unexpected error notice');}});
+ for(let i=0;i<2;i++){
+  const pending=commands.get('ynx.go.run')();
+  const outcome=await Promise.race([pending,new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]);
+  assert.equal(outcome,result);
+ }
+ assert.equal(runs,2);assert.equal(warnings.length,2);
+});
+test('unknown Go task result is returned while warning remains open',async()=>{
+ const result={unknown:true};let notices=0;
+ const commands=await commandFixture({test:async()=>result},{showWarningMessage:()=>{notices++;return new Promise(()=>{});}});
+ const outcome=await Promise.race([commands.get('ynx.go.test')(),new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]);
+ assert.equal(outcome,result);assert.equal(notices,1);
+});
+test('Go command preserves failure presentation for falsy and unreadable causes without secondary rejection',async()=>{
+ const fallback='The Go command failed. Check the task terminal and project configuration, then retry.';
+ for(const cause of [undefined,null,false,0,'PUBLIC failure',Object.defineProperty({},'message',{get(){throw Error('unreadable');}})]){
+  const errors=[];const commands=await commandFixture({run:async()=>{throw cause;}},{showErrorMessage:message=>{errors.push(message);return new Promise(()=>{});}});
+  const outcome=await Promise.race([commands.get('ynx.go.run')(),new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]);
+  assert.equal(outcome,undefined);assert.deepEqual(errors,[fallback]);
+ }
+});
+test('Go notification transport throws or rejects without changing the original command result',async()=>{
+ for(const kind of ['throw','reject']){
+  const notice=()=>{if(kind==='throw')throw Error('disposed notification');return Promise.reject(Error('disposed notification'));};
+  const result={exitCode:2};const commands=await commandFixture({run:async()=>result,cancel:()=>{throw Error('PUBLIC original stop failure');}},{showWarningMessage:notice,showErrorMessage:notice});
+  assert.equal(await commands.get('ynx.go.run')(),result);assert.equal(await commands.get('ynx.go.cancel')(),undefined);
+ }
+});
+test('Go fallback command failure is localized by the shipped Chinese bundle',async()=>{
+ const bundle=JSON.parse(await readFile(new URL('../l10n/bundle.l10n.zh-cn.json',import.meta.url),'utf8')),errors=[];
+ const commands=await commandFixture({run:async()=>{throw undefined;}},{showErrorMessage:message=>errors.push(message)},{t:message=>bundle[message]||message});
+ await commands.get('ynx.go.run')();assert.deepEqual(errors,['Go 命令失败。请检查任务终端和项目配置，然后重试。']);
+});
+
+test('saved first Go configuration continues when its completion notification is disposed',async()=>{
+ for(const cause of [undefined,Error('notification disposed')]){
+  const f=await requestFixture();try{
+   f.hooks.notice=()=>{throw cause;};
+   assert.equal((await f.workflow.run()).exitCode,0);
+   assert.deepEqual(f.executions,['build','run']);assert.deepEqual(f.counts(),{picks:1,notices:1});
+   assert.equal(f.workflow.status().running,false);assert.equal(f.workflow.status().configuring,false);
+   delete f.hooks.notice;await f.workflow.run();assert.equal(f.counts().picks,1);assert.deepEqual(f.executions,['build','run','build','run']);
+  }finally{await f.close();}
+ }
+});

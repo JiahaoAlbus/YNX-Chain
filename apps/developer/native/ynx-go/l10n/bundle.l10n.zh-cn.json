@@ -35,5 +35,6 @@
   "Go output and cache must remain inside this project.": "Go 输出与缓存必须保存在此项目内。",
   "Go requires private project output and cache directories. Existing paths were preserved.": "Go 需要仅当前用户可访问的项目输出与缓存目录。已有路径已保留。",
   "Test Go package": "测试 Go 包",
-  "Go tests failed with code {0}. See its task terminal output.": "Go 测试失败，退出码为 {0}。请查看任务终端输出。"
+  "Go tests failed with code {0}. See its task terminal output.": "Go 测试失败，退出码为 {0}。请查看任务终端输出。",
+  "The Go command failed. Check the task terminal and project configuration, then retry.": "Go 命令失败。请检查任务终端和项目配置，然后重试。"
 }
