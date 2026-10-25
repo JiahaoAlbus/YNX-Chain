@@ -3261,7 +3261,7 @@ jobs:
 
   auth43-pq-http-proof:
     name: Auth43 version4 PQ HTTP proof and fixed CLI
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth43-pq-http-proof-20261025'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth43-pq-http-proof-20261026'
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
