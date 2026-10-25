@@ -78,3 +78,13 @@ export interface PQClassicMigrationProof {readonly classicPublicKey:Uint8Array;r
 /** Canonical DER/compressed public-key conversion + exact intent/owner math;
  * normal main should use preparePQClassicMigrationProof for the policy gate. */
 export function encodePQClassicMigrationProof(intent:PQRegistrationIntentInput,signature:PQClassicSignerPublicResult):PQClassicMigrationProof;
+
+/** Caller-selected public context only. Authentication of the complete original
+ * Genesis/independent pin, occupancy, custody/current/once and user approval
+ * remains Main/Auth/Chain work; no active-policy snapshot is synthesized. */
+export interface PQAccountInitialExpected {readonly chainId:string;readonly owner:string;readonly pkA:string;readonly pkB:string;readonly executionHeight:string}
+export interface PQDecodedAccountInitial {readonly intent:Readonly<PQRegistrationIntent>;readonly intentBytes:Uint8Array;readonly rawMember:Uint8Array;readonly purpose:'TX-BATCH';readonly N:1;readonly index:0;readonly transportHash:string;readonly abciTransactionHash:string;readonly signatureVerified:true;readonly dataOnly:true;readonly bootstrapAdmission:false}
+/** Fixed E15/prior0/new1/nonce1/future ActivateAt, full-pair TX-BATCH N1 AND
+ * math. Parsing and signature math never grant bootstrap admission or finality. */
+export function decodePQAccountInitialRequest(wire:Uint8Array,expected:PQAccountInitialExpected):Readonly<PQDecodedAccountInitial>;
+export function preparePQAccountInitialTransport(wire:Uint8Array,expected:PQAccountInitialExpected):Readonly<PQTransportRequest & {readonly abciTransactionHash:string}>;
