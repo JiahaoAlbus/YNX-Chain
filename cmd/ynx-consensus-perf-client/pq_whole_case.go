@@ -34,8 +34,11 @@ type pqWholeCase struct {
 	batch, outer string
 	kind, native string
 	transfer     *ynxauth.Transfer
+	registration *ynxauth.RegistrationIntent
 }
 type pqWholeCaseReport struct {
+	RegistrationObserved              bool              `json:"registrationObserved"`
+	AccountActivationHeight           uint64            `json:"accountActivationHeight,string,omitempty"`
 	TransactionType                   string            `json:"transactionType"`
 	NativeTransactionHash             string            `json:"nativeTransactionHash"`
 	Protocol                          string            `json:"protocol"`
@@ -59,15 +62,21 @@ type pqWholeCaseReport struct {
 }
 
 func pqWholeCaseSelected(o options) bool {
-	return o.pqMemberWire != "" || o.pqWholeWire != "" || o.pqGateway != "" || o.pqReadbackOnly
+	return o.pqRegistrationWire != "" || o.pqMemberWire != "" || o.pqWholeWire != "" || o.pqGateway != "" || o.pqReadbackOnly
 }
 func validatePQWholeCaseOptions(o options) error {
 	u, e := url.Parse(o.pqGateway)
 	if e != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
 		return errors.New("PQ case requires an explicit normal gateway base URL")
 	}
-	if (o.pqWholeWire == "") == (o.pqMemberWire == "") || o.output == "" || o.timeout <= 0 || o.timeout > 30*time.Second {
-		return errors.New("PQ case requires exactly one signed Whole or N1 Member, new output and timeout in (0,30s]")
+	profiles := 0
+	for _, path := range []string{o.pqWholeWire, o.pqMemberWire, o.pqRegistrationWire} {
+		if path != "" {
+			profiles++
+		}
+	}
+	if profiles != 1 || o.output == "" || o.timeout <= 0 || o.timeout > 30*time.Second {
+		return errors.New("PQ case requires exactly one signed Whole, N1 Member or registration Member, new output and timeout in (0,30s]")
 	}
 	if o.manifest != "" || o.transactions != "" || o.rounds > 1 || o.offeredRate != 0 || o.terminalStream || o.segmentedIntents || o.reuseResultSlots || o.senderMode != "" && o.senderMode != "rounds" {
 		return errors.New("PQ Whole case cannot mix the classic transaction fixture or scheduling path")
@@ -167,12 +176,18 @@ func pqCaseHTTP(ctx context.Context, client *http.Client, method, target string,
 	return raw, nil
 }
 func (p pqWholeCase) committedResponse(raw []byte) (int, int, uint64, error) {
-	if p.kind == consensus.PQTransferType {
+	if p.kind == consensus.PQTransferType || p.kind == consensus.PQInitialRegistrationType {
 		var v bftgateway.PQMemberView
 		if err := strictJSON(raw, &v); err != nil {
 			return 0, 0, 0, err
 		}
-		n, e := p.validateMemberCommitted(v)
+		var n int
+		var e error
+		if p.kind == consensus.PQInitialRegistrationType {
+			e = p.validateInitialCommitted(v)
+		} else {
+			n, e = p.validateMemberCommitted(v)
+		}
 		return n, 0, v.ExecutionHeight, e
 	}
 	var v bftgateway.PQWholeView
@@ -197,6 +212,10 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 		broadcast = "/transactions/pq/broadcast"
 		readback = "/transactions/pq/originals/" + p.native
 	}
+	if p.kind == consensus.PQInitialRegistrationType {
+		broadcast = "/accounts/" + url.PathEscape(p.registration.Owner) + "/authorization/register"
+		readback = "/transactions/pq/originals/" + p.native
+	}
 	if !readOnly {
 		r.SubmissionAttempts = 1
 		v, e := pqCaseHTTP(ctx, client, http.MethodPost, strings.TrimRight(gateway, "/")+broadcast, p.wire)
@@ -217,6 +236,11 @@ func runPQWholeCase(ctx context.Context, client *http.Client, p pqWholeCase, gat
 		return r
 	}
 	r.Status = "committed_observed"
+	if p.kind == consensus.PQInitialRegistrationType {
+		r.Status = "registration_observed"
+		r.RegistrationObserved = true
+		r.AccountActivationHeight = p.registration.ActivateAt
+	}
 	r.EffectiveBusinessIncludedObserved = admitted
 	r.RejectedMembers = rejected
 	r.ExecutionHeight = height
@@ -231,12 +255,18 @@ func executePQWholeCase(o options) (returned error) {
 		path = o.pqMemberWire
 		limit = bftgateway.MaxPQMemberIngressBytes
 	}
+	if o.pqRegistrationWire != "" {
+		path = o.pqRegistrationWire
+		limit = ynxauth.MaxPQInitialRegistrationBytes
+	}
 	raw, err := readBounded(path, limit)
 	if err != nil {
 		return err
 	}
 	var p pqWholeCase
-	if o.pqMemberWire != "" {
+	if o.pqRegistrationWire != "" {
+		p, err = preparePQInitialCase(raw)
+	} else if o.pqMemberWire != "" {
 		p, err = preparePQMemberCase(raw)
 	} else {
 		p, err = preparePQWholeCase(raw)
@@ -292,7 +322,7 @@ func executePQWholeCase(o options) (returned error) {
 	if err = output.Sync(); err != nil {
 		return err
 	}
-	if report.Status != "committed_observed" {
+	if report.Status != "committed_observed" && report.Status != "registration_observed" {
 		return errors.New("original PQ outcome remains unknown; use readback-only and retain signed intent")
 	}
 	return nil

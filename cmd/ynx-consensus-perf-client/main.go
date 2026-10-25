@@ -38,21 +38,21 @@ import (
 const maxTransactions = consensus.EphemeralWorkloadMaxTransactions
 
 type options struct {
-	manifest, transactions, output       string
-	pqWholeWire, pqMemberWire, pqGateway string
-	pqReadbackOnly                       bool
-	concurrency                          int
-	rounds                               int
-	senderMode                           string
-	inclusionMode                        string
-	observers                            int
-	offeredRate                          float64
-	timeout, poll                        time.Duration
-	terminalStream                       bool
-	terminalSink                         func(transactionResult) error
-	reuseResultSlots                     bool
-	segmentedIntents                     bool
-	intentPersistence                    func(string, []byte) error
+	manifest, transactions, output                           string
+	pqWholeWire, pqMemberWire, pqRegistrationWire, pqGateway string
+	pqReadbackOnly                                           bool
+	concurrency                                              int
+	rounds                                                   int
+	senderMode                                               string
+	inclusionMode                                            string
+	observers                                                int
+	offeredRate                                              float64
+	timeout, poll                                            time.Duration
+	terminalStream                                           bool
+	terminalSink                                             func(transactionResult) error
+	reuseResultSlots                                         bool
+	segmentedIntents                                         bool
+	intentPersistence                                        func(string, []byte) error
 }
 
 type transactionInput struct {
@@ -196,6 +196,7 @@ type report struct {
 
 func main() {
 	var o options
+	flag.StringVar(&o.pqRegistrationWire, "pq-register", "", "canonical approved initial account registration Member input")
 	flag.StringVar(&o.pqMemberWire, "pq-member", "", "canonical approved N1 TX-BATCH Member input")
 	flag.StringVar(&o.pqWholeWire, "pq-whole", "", "canonical signed YNX-BATCH/v0.1 Whole input")
 	flag.StringVar(&o.pqGateway, "pq-gateway", "", "normal PQ gateway base URL for the bounded Whole case")

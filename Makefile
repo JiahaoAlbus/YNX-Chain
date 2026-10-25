@@ -459,6 +459,10 @@ validator-peer-readiness-check:
 consensus-migration-check:
 	bash ./scripts/verify/consensus-migration-check.sh
 
+.PHONY: streambft-candidate-check
+streambft-candidate-check:
+	bash ./scripts/verify/streambft-candidate-check.sh
+
 consensus-abci-check:
 	go test ./internal/consensus ./cmd/ynx-abci
 

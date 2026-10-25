@@ -1,15 +1,18 @@
 {
   "schema": 1,
-  "canonicalProtocolSource": "b777232db1701d1e7cb41bd6e0bbe55452664c8d",
-  "canonicalProtocolTree": "577970ebaf81d8139caad9f153f2b75bb7963f28",
-  "scope": "bounded canonical Whole and approved Native N1 Member normal-gateway client consumer",
+  "canonicalProtocolSource": "fa55a5ef654b84b01a1dbb5322de412b4d69b149",
+  "canonicalProtocolTree": "40370eaa6df6bdd4b5710fe88e23c01dee74f4a9",
+  "scope": "canonical Whole, Native N1 transfer and initial registration normal-client consumers",
   "changedOwnership": [
     "cmd/ynx-consensus-perf-client/main.go",
     "cmd/ynx-consensus-perf-client/pq_whole_case.go",
     "cmd/ynx-consensus-perf-client/pq_whole_case_test.go",
     ".github/workflows/chain-core.yml",
     "cmd/ynx-consensus-perf-client/pq_member_case.go",
-    "cmd/ynx-consensus-perf-client/pq_member_case_test.go"
+    "cmd/ynx-consensus-perf-client/pq_member_case_test.go",
+    "cmd/ynx-consensus-perf-client/pq_initial_case.go",
+    "cmd/ynx-consensus-perf-client/pq_initial_case_test.go",
+    "Makefile: streambft-candidate-check target"
   ],
   "protocolLeafChanged": false,
   "signatureSignerReimplemented": false,
@@ -24,17 +27,21 @@
     "ynxbatch.DecodeMember",
     "consensus.EncodePQTransaction(PQTransferType,wire)",
     "bftgateway POST /transactions/pq/broadcast",
-    "bftgateway GET /transactions/pq/originals/{nativeHash}"
+    "bftgateway GET /transactions/pq/originals/{nativeHash}",
+    "ynxauth.DecodePQInitialRegistrationMember",
+    "consensus.EncodePQInitialRegistrationTransaction",
+    "bftgateway POST /accounts/{signedOwner}/authorization/register"
   ],
   "newCaseClassicSigning": false,
   "normalCLISelectedBy": [
     "-pq-whole",
     "-pq-gateway",
     "-pq-readback-only",
-    "-pq-member"
+    "-pq-member",
+    "-pq-register"
   ],
   "lightTests": {
-    "tests": 6,
+    "tests": 8,
     "realBothSignaturesAndSingleBranchCorruptions": true,
     "actualMainCLIChild": true,
     "unknownOriginalQueryNoSecondPOST": true,
@@ -42,12 +49,15 @@
     "partialResultsCountOnlyAdmitted": true,
     "intentPreserved": true,
     "raw": {
-      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-native-member-and-whole-race-20261025.raw",
-      "bytes": 768,
-      "sha256": "32b9980ebfa6a1c92e1d60d9e6d442c30426bd381e3bb6a912cc75045aeb8046"
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-registration-member-whole-race-20261025.raw",
+      "bytes": 1016,
+      "sha256": "f767f8e328bf110512387d0cefc881f592e39ca43758d6733ba62d27d9459697"
     },
     "normalN1MemberAndWholeRealCLI": true,
-    "nativeAndABCIHashesDistinct": true
+    "nativeAndABCIHashesDistinct": true,
+    "threeRealCLIProfiles": true,
+    "registrationZeroValueZeroFeeNonce1": true,
+    "registrationNeverCountsAsTransferTPS": true
   },
   "configuredRPCObservationOnly": true,
   "independentFinalityVerified": false,
@@ -56,7 +66,7 @@
   "sustainedTPSQualified": false,
   "executionAdmitted": false,
   "remainingDependencies": [
-    "Canonical new-account initial allowlist/birth path is being implemented by Protocol owner; no synthetic owner or policy supplied here",
+    "Canonical/operator new-account fullpair allowlist and normally funded PQ sender fixture for isolated real business case; no created Root or classic migration fallback",
     "Independent finality requires normal trusted host engine snapshot/light anchor and canonical VerifyPQTransactionProof; configured RPC committed alone is not finality",
     "Actual remote heavy window/once grant not received"
   ],
@@ -65,6 +75,8 @@
     "sourceCommit": "112c5fc16e3768bb5e59a41a8232a6db1ea9f753",
     "firstCause": "inherited workflow calls missing make target streambft-candidate-check",
     "newConsumerStepReached": false,
-    "repair": "invoke the same existing script directly; restore the two analogous missing make wrappers by their original check scripts; keep all checks; move new PQ tests before unrelated checks"
-  }
+    "repair": "restore exact .PHONY and make target to original streambft shell check, preserve other original check scripts, new PQ group executes first"
+  },
+  "canonicalBirthCoreImportedWithoutLeafChanges": true,
+  "newAccountBirthConsumerImplemented": true
 }
