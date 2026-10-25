@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 type ideSourceFixtureDB struct {
@@ -123,7 +124,7 @@ func (c *ideSourceConn) QueryContext(ctx context.Context, q string, a []driver.N
 }
 
 const ideSourceChildFixture = `import{createHash}from'node:crypto';let text='';for await(const b of process.stdin)text+=b;const x=JSON.parse(text),H=v=>createHash('sha256').update(v).digest('hex'),now=Date.now();
-function source(i){const p=JSON.parse(i.profileRaw);return{projection:{selection:p.selection,principalId:'PUBLIC_ACCOUNT',subjectOwner:'0x'+'1'.repeat(40),subjectKeyVersion:'1',generation:1,sequence:1,floor:0,head:'1'.repeat(64),status:'active',timeFloor:now,expiresAtMs:p.expires,profileDigest:H(i.profileRaw),sourceId:'PUBLIC_SOURCE',instanceId:'PUBLIC_INSTANCE',executionHeight:'0',dataOnly:true,nativeAdmission:false},currentRaw:'PUBLIC_NOT_A_ROOT_PROOF'}}
+function source(i){const p=JSON.parse(i.profileRaw);return{projection:{selection:p.selection,principalId:'PUBLIC_ACCOUNT',subjectOwner:'0x'+'1'.repeat(40),subjectKeyVersion:'1',generation:1,sequence:1,floor:0,head:'1'.repeat(64),status:'active',timeFloor:now,expiresAtMs:Math.min(p.expires,now+30000),profileDigest:H(i.profileRaw),sourceId:'PUBLIC_SOURCE',instanceId:'PUBLIC_INSTANCE',executionHeight:'0',dataOnly:true,nativeAdmission:false},currentRaw:'PUBLIC_NOT_A_ROOT_PROOF'}}
 let result;if(x.operation==='auth-source-v2-native-node/v1')result=source(x);
 else if(x.operation==='ide-project-control-current-native-node/v1'){const c=x.command,p=x.principal,wire=JSON.parse(x.approvalOriginal);result={version:'YNX-IDE-CONTROL-VERIFICATION-DATA/v1',completed:true,sourceBefore:source(x.source),sourceAfter:source(x.source),approvalOriginal:x.approvalOriginal,projection:{principalSHA256:wire.p,bindingSHA256:wire.c,proofSHA256:H(x.approvalOriginal),confirmationRef:'confirm',revocationRef:'revoke',requestId:c.RequestID,nonce:x.expected.nonce,decision:'approve',expiresMS:Number(c.ExpiresMS)-100,readyForSourceVerification:true,signatureVerified:true,dataOnly:true,authorized:false,committed:false,nativeAdmission:false},failureCode:'',dataOnly:true,authorized:false,nativeAdmission:false}}
 else if(x.operation==='ide-protected-publisher-current-native-node/v1'){result={version:'YNX-IDE-PUBLISHER-CURRENT-VERIFICATION-DATA/v1',completed:true,sourceBefore:source(x.source),sourceAfter:source(x.source),registrationOriginal:x.registrationOriginal,projection:{account:x.command.SubjectAccount,projectId:x.command.ProjectID,publisherId:x.command.PublisherID,keyRole:'ide-artifact-publisher',publicSHA256:x.command.PublicOriginalSHA256,registrationRef:'registered',expiresAtMs:Number(x.command.GrantExpiresMS)+100,signatureVerified:true,independentCustodianPairVerified:true,dataOnly:true,authorized:false,registered:false,protectedCustodyAdmitted:false,nativeAdmission:false},failureCode:'',dataOnly:true,authorized:false,registered:false,protectedCustodyAdmitted:false,nativeAdmission:false}}
@@ -147,7 +148,7 @@ type ideSourceFixture struct {
 func ideSourceFactoryFixture(t *testing.T) *ideSourceFixture {
 	t.Helper()
 	ctx := context.Background()
-	principal, http := principalHTTPFixture(t)
+	principal, http := principalHTTPFixtureWithLifetime(t, 3*time.Minute)
 	request := actualPrincipalRequest()
 	p, e := principal.CurrentExistingPrincipal(ctx, request)
 	if e != nil {
@@ -158,7 +159,9 @@ func ideSourceFactoryFixture(t *testing.T) *ideSourceFixture {
 	db := sql.OpenDB(ideSourceConnector{state})
 	t.Cleanup(func() { db.Close() })
 	f := &ideSourceFixture{db: db, state: state, p: p, ref: "12345678-1234-4234-8234-123456789abc", http: http}
-	expires := p.ExpiresMS - 2000
+	// New independently captured flow, NOT a renewed prior approval. Keep
+	// request/approval <=30s even though the PUBLIC session lasts longer.
+	expires := time.Now().Add(30 * time.Second).UnixMilli()
 	f.cmd = Command{RequestID: "control_original", Action: "project.publisher", ProjectID: "project", SubjectAccount: p.Account, PublisherID: "publisher", GrantExpiresMS: expires - 100, ExpiresMS: expires, PublicOriginalSHA256: hash([]byte("PUBLIC-R13"))}
 	f.key = Publisher{Account: p.Account, ProjectID: "project", PublisherID: "publisher", KeyRole: "ide-artifact-publisher", PublicSHA256: hash([]byte("PUBLIC-R13")), RegistrationRef: "registered", PublicOriginal: []byte("PUBLIC-R13"), Revision: 9, ExpiresMS: expires}
 	f.binding = ArtifactBinding{ProjectID: "project", Version: "v1", ContentDigest: strings.Repeat("a", 64), PublishPurpose: "artifact", TargetEnvironment: "testnet", ByteSize: 10}
@@ -172,7 +175,7 @@ func ideSourceFactoryFixture(t *testing.T) *ideSourceFixture {
 	f.control, _ = originalIDEJSON(map[string]string{"p": objectHash(p), "c": objectHash(f.cmd), "commandOriginal": string(rawCmd)})
 	previous := []byte(`{"sequence":1,"floor":0,"head":"` + strings.Repeat("1", 64) + `","timeFloor":0,"executionHeight":"0"}`)
 	put := func(kind, subject, key string, selection any, attachment any, extra any) {
-		profile, _ := originalIDEJSON(map[string]any{"selection": selection, "expires": expires, "extra": extra})
+		profile, _ := originalIDEJSON(map[string]any{"selection": selection, "expires": p.ExpiresMS, "extra": extra})
 		input, _ := originalIDEJSON(originalIDESourceInput{Root: "PUBLIC-ROOT", Enrollment: "PUBLIC-ENROLLMENT", Profile: string(profile), Head: "PUBLIC-HEAD", Attachment: mustIDEJSON(t, attachment)})
 		state.records[kind+"/"+subject+"/"+key] = input
 		state.heads[hash(profile)] = bytes.Clone(previous)
@@ -232,84 +235,119 @@ func mustIDEJSON(t *testing.T, v any) []byte {
 	return b
 }
 func TestOriginalIDEFactoryActualConstructorAndAllThirteenMethods(t *testing.T) {
-	f := ideSourceFactoryFixture(t)
 	ctx := context.Background()
-	if e := f.o.AssertSourceCurrent(ctx); e != nil {
-		t.Fatal(e)
+	observedTotal := 0
+	flows := []struct {
+		name string
+		run  func(*testing.T, *ideSourceFixture)
+	}{
+		{"principal_source_catalog", func(t *testing.T, f *ideSourceFixture) {
+			if e := f.o.AssertSourceCurrent(ctx); e != nil {
+				t.Fatal(e)
+			}
+			for i := 0; i < 2; i++ {
+				p, e := f.o.CurrentExistingPrincipal(ctx, actualPrincipalRequest())
+				if e != nil || p != f.p {
+					t.Fatal("same HTTP reborrow", e)
+				}
+			}
+			f.http.mu.Lock()
+			auth := 0
+			for _, op := range f.http.operations {
+				if op == "authenticate" {
+					auth++
+				}
+			}
+			f.http.mu.Unlock()
+			if auth != 1 {
+				t.Fatal("PSv2 proof authenticated twice", auth)
+			}
+			if e := f.o.AssertPrincipalCurrent(ctx, f.p); e != nil {
+				t.Fatal(e)
+			}
+			if e := f.o.AssertCatalogAuthorityCurrent(ctx, f.p); e != nil {
+				t.Fatal(e)
+			}
+		}},
+		{"control_and_same_approval_current", func(t *testing.T, f *ideSourceFixture) {
+			a, e := f.o.AuthorizeProjectControl(ctx, f.p, f.cmd, f.control)
+			if e != nil {
+				t.Fatal("control", e)
+			}
+			if e = f.o.AssertControlCurrent(ctx, f.p, a); e != nil {
+				t.Fatal("control current", e)
+			}
+		}},
+		{"publisher_registration_and_current", func(t *testing.T, f *ideSourceFixture) {
+			if _, e := f.o.VerifyProtectedPublisherOriginal(ctx, f.p, f.cmd, f.key.PublicOriginal); e != nil {
+				t.Fatal("registration", e)
+			}
+			if e := f.o.AssertPublisherCurrent(ctx, f.p, f.key); e != nil {
+				t.Fatal("publisher current", e)
+			}
+		}},
+		{"selector_artifact_and_same_approval_current", func(t *testing.T, f *ideSourceFixture) {
+			id, e := f.o.OriginalPublicationPublisherID(ctx, f.p, f.signature)
+			if e != nil || id != "publisher" {
+				t.Fatal("selector", id, e)
+			}
+			access := Access{Principal: f.p, ProjectID: "project", CurrentReference: "project-current", ProjectRevision: 3, CatalogRevision: 4, Publish: true, ExpiresMS: f.key.ExpiresMS}
+			v, e := f.o.VerifyOriginalArtifactApproval(ctx, f.p, access, f.key, f.binding, f.manifest, f.request, f.result, f.signature, f.ref)
+			if e != nil {
+				t.Fatal("artifact", e)
+			}
+			if v.ResultSHA256 != hash(f.result) || v.SignatureSHA256 != hash(f.signature) {
+				t.Fatal("original digest alias")
+			}
+			if e = f.o.AssertOriginalArtifactApprovalCurrent(ctx, f.p, v); e != nil {
+				t.Fatal("artifact current", e)
+			}
+		}},
+		{"same_artifact_resource_and_current", func(t *testing.T, f *ideSourceFixture) {
+			access := Access{Principal: f.p, ProjectID: "project", CurrentReference: "project-current", ProjectRevision: 3, CatalogRevision: 4, Publish: true, ExpiresMS: f.key.ExpiresMS}
+			v, e := f.o.VerifyOriginalArtifactApproval(ctx, f.p, access, f.key, f.binding, f.manifest, f.request, f.result, f.signature, f.ref)
+			if e != nil {
+				t.Fatal("resource original artifact prerequisite", e)
+			}
+			resource, e := f.o.VerifyOriginalResourceApproval(ctx, f.p, v)
+			if e != nil {
+				t.Fatal("resource", e)
+			}
+			if e = f.o.AssertOriginalResourceApprovalCurrent(ctx, f.p, resource); e != nil {
+				t.Fatal("resource current", e)
+			}
+		}},
 	}
-	for i := 0; i < 2; i++ {
-		p, e := f.o.CurrentExistingPrincipal(ctx, actualPrincipalRequest())
-		if e != nil || p != f.p {
-			t.Fatal("same HTTP reborrow", e)
-		}
+	// Separate original workflows, not per-method permission refresh. Coupled
+	// approvals/current/resource keep the SAME f, Principal and original result.
+	for _, flow := range flows {
+		t.Run(flow.name, func(t *testing.T) {
+			f := ideSourceFactoryFixture(t)
+			if f.cmd.ExpiresMS-time.Now().UnixMilli() > 30000 || f.cmd.ExpiresMS >= f.p.ExpiresMS {
+				t.Fatal("fixture widened approval/session contract")
+			}
+			flow.run(t, f)
+			f.state.mu.Lock()
+			observed := len(f.state.observations)
+			f.state.mu.Unlock()
+			if observed < 1 {
+				t.Fatal("raw current/source observations not persisted")
+			}
+			observedTotal += observed
+			if e := f.o.Close(); e != nil {
+				t.Fatal(e)
+			}
+			if e := f.o.Close(); e != nil {
+				t.Fatal(e)
+			}
+			var revision int
+			if e := f.db.QueryRowContext(ctx, "SELECT revision FROM public.auth_ide_original_source_schema WHERE singleton=1").Scan(&revision); e != nil {
+				t.Fatal("borrowed DB closed")
+			}
+		})
 	}
-	f.http.mu.Lock()
-	auth := 0
-	for _, op := range f.http.operations {
-		if op == "authenticate" {
-			auth++
-		}
-	}
-	f.http.mu.Unlock()
-	if auth != 1 {
-		t.Fatal("PSv2 proof authenticated twice", auth)
-	}
-	if e := f.o.AssertPrincipalCurrent(ctx, f.p); e != nil {
-		t.Fatal(e)
-	}
-	if e := f.o.AssertCatalogAuthorityCurrent(ctx, f.p); e != nil {
-		t.Fatal(e)
-	}
-	a, e := f.o.AuthorizeProjectControl(ctx, f.p, f.cmd, f.control)
-	if e != nil {
-		t.Fatal("control", e)
-	}
-	if e = f.o.AssertControlCurrent(ctx, f.p, a); e != nil {
-		t.Fatal("control current", e)
-	}
-	if _, e = f.o.VerifyProtectedPublisherOriginal(ctx, f.p, f.cmd, f.key.PublicOriginal); e != nil {
-		t.Fatal("registration", e)
-	}
-	if e = f.o.AssertPublisherCurrent(ctx, f.p, f.key); e != nil {
-		t.Fatal("publisher current", e)
-	}
-	id, e := f.o.OriginalPublicationPublisherID(ctx, f.p, f.signature)
-	if e != nil || id != "publisher" {
-		t.Fatal("selector", id, e)
-	}
-	access := Access{Principal: f.p, ProjectID: "project", CurrentReference: "project-current", ProjectRevision: 3, CatalogRevision: 4, Publish: true, ExpiresMS: f.key.ExpiresMS}
-	v, e := f.o.VerifyOriginalArtifactApproval(ctx, f.p, access, f.key, f.binding, f.manifest, f.request, f.result, f.signature, f.ref)
-	if e != nil {
-		t.Fatal("artifact", e)
-	}
-	if v.ResultSHA256 != hash(f.result) || v.SignatureSHA256 != hash(f.signature) {
-		t.Fatal("original digest alias")
-	}
-	if e = f.o.AssertOriginalArtifactApprovalCurrent(ctx, f.p, v); e != nil {
-		t.Fatal("artifact current", e)
-	}
-	resource, e := f.o.VerifyOriginalResourceApproval(ctx, f.p, v)
-	if e != nil {
-		t.Fatal("resource", e)
-	}
-	if e = f.o.AssertOriginalResourceApprovalCurrent(ctx, f.p, resource); e != nil {
-		t.Fatal("resource current", e)
-	}
-	f.state.mu.Lock()
-	observed := len(f.state.observations)
-	f.state.mu.Unlock()
-	if observed < 4 {
-		t.Fatal("raw current/source observations not persisted")
-	}
-	if e = f.o.Close(); e != nil {
-		t.Fatal(e)
-	}
-	if e = f.o.Close(); e != nil {
-		t.Fatal(e)
-	}
-	var revision int
-	if e = f.db.QueryRowContext(ctx, "SELECT revision FROM public.auth_ide_original_source_schema WHERE singleton=1").Scan(&revision); e != nil {
-		t.Fatal("borrowed DB closed")
+	if observedTotal < 4 {
+		t.Fatal("full13 raw current/source observations lost")
 	}
 }
 func TestOriginalIDEFactoryRawResultDriftRejectsAgainstActualApprovalCurrent(t *testing.T) {

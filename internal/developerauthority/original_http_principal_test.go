@@ -27,9 +27,19 @@ type httpPrincipalFixture struct {
 }
 
 func principalHTTPFixture(t *testing.T) (*OriginalDeveloperHTTPAuthority, *httpPrincipalFixture) {
+	return principalHTTPFixtureWithLifetime(t, 20*time.Second)
+}
+
+// PUBLIC transport session lifetime is not a per-approval/current permission.
+// Longer normal session fixture lets independent bounded flows run on CI;
+// every Source/control/publication approval keeps its own <=30s window.
+func principalHTTPFixtureWithLifetime(t *testing.T, lifetime time.Duration) (*OriginalDeveloperHTTPAuthority, *httpPrincipalFixture) {
 	t.Helper()
 	state := &httpPrincipalFixture{}
-	deadline := time.Now().Add(20 * time.Second).UnixMilli()
+	if lifetime <= 0 || lifetime > 3*time.Minute {
+		t.Fatal("PUBLIC session fixture lifetime invalid")
+	}
+	deadline := time.Now().Add(lifetime).UnixMilli()
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var in originalHTTPPrincipalInput
 		if json.NewDecoder(r.Body).Decode(&in) != nil {
