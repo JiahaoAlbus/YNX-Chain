@@ -257,6 +257,58 @@ try{
     assert.equal(fs.readFileSync(a.log,'utf8'),original,'UNKNOWN was restarted after observation');
   }
   console.log('PUBLIC_BFT_TESTNET_ASSET_CALLER_PASS: explicit phase, independent inputs, one transport attempt, no implicit service action and UNKNOWN preserved');
+  // The original capture producer has independent Python controls. Here only
+  // its real normal caller is exercised with explicit PUBLIC transport data;
+  // no process/state observation or protected authority is simulated as real.
+  const captureBody=driverSource.match(/^capture_snapshot_source_phase\(\) \{\n[\s\S]*?^\}/m)?.[0];
+  assert.ok(captureBody,'normal snapshot-source capture caller missing');
+  const rootCapture=captureBody.match(/<<'CAPTURE_ROOT'\n([\s\S]*?)\nCAPTURE_ROOT/)?.[1];
+  assert.ok(rootCapture,'bounded original root staging body missing');
+  assert.ok(rootCapture.indexOf('chown root:root -- "$stage"')<rootCapture.indexOf('cp -P -- "$stage/$name" "$verified/$name"'),'transport namespace must be locked before independent root copies');
+  assert.ok(rootCapture.indexOf('cp -P -- "$stage/$name" "$verified/$name"')<rootCapture.indexOf('sha256sum "$verified/public-bft-capture-snapshot-source.py"'),'root-owned copies must be pinned after copy');
+  assert.match(rootCapture,/mkdir -m 0700 -- "\$verified"/);assert.match(rootCapture,/chmod 0600 -- "\$verified\/\$name"/);
+  assert.ok(rootCapture.includes('exec /usr/bin/python3 -B "$verified/public-bft-capture-snapshot-source.py"'));
+  assert.equal(captureBody.includes('/usr/bin/python3 -B "$remote_stage/public-bft-capture-snapshot-source.py"'),false,'mutable transport source must never execute as root');
+  assert.match(driverSource,/case "\$action" in preflight\|backup\|freeze_mutations\|pause_authoritative\|capture_snapshot_source\|prepare_testnet_assets/);
+  assert.match(driverSource,/if \[\[ "\$action" == capture_snapshot_source \]\]; then\n  capture_snapshot_source_phase\n  exit 0/);
+  assert.equal(automatic.includes('capture_snapshot_source'),false,'capture was inserted into automatic cutover');
+  async function captureCaller(name){
+    const root=path.join(tmp,'capture-caller-'+name),tx='capture-control-'+name,dir=path.join(root,tx),log=path.join(root,'transport.log'),script=path.join(root,'caller.sh');
+    fs.mkdirSync(dir,{recursive:true,mode:0o700});
+    const preparation=path.join(dir,'preparation-approval.json');write(preparation,{purpose:'PUBLIC CALLER CONTROL DATA; NOT AUTHORITY'});
+    const remote='/var/backups/ynx-chain/public-bft-cutover/'+tx,source={version:'YNX-PUBLIC-BFT-SNAPSHOT-SOURCE/v1',transactionId:tx,commit,bftRelease:release,purpose:'SYNTHETIC PUBLIC FINGERPRINT ONLY'};
+    const raw=JSON.stringify(source)+'\n',sourceFile=path.join(root,'source.json'),receiptFile=path.join(root,'receipt.json');write(sourceFile,raw);
+    write(receiptFile,{version:'YNX-PUBLIC-BFT-SNAPSHOT-SOURCE-CAPTURE/v1',transactionId:tx,commit,snapshotSourcePath:remote+'/snapshot-source-capture/snapshot-source.json',snapshotSourceSHA256:hash(raw),snapshotSourceBytes:Buffer.byteLength(raw),preparationApprovalSHA256:hash(fs.readFileSync(preparation)),primaryFreezeEvidenceSHA256:'2'.repeat(64),primaryPauseEvidenceSHA256:'3'.repeat(64),nativeIdentityToolSHA256:hash(fs.readFileSync(path.join(repo,'scripts/ops/remote/public-bft-native-identity.py'))),readOnly:true,exported:false,finalApproval:false,nativeRootAuthorized:false});
+    write(script,`#!/bin/bash\nset -Eeuo pipefail\ncd ${q(repo)}\nynx_ops_ssh(){ printf 'ATTEMPTS=%s SSH %s\\n' "$YNX_DEPLOY_CONNECTION_ATTEMPTS" "$*" >> ${q(log)}; [[ "\${CAPTURE_CONTROL_FAIL:-}" != ssh ]] || return 255; case "$*" in *'head -c 16385'*) cat ${q(sourceFile)}; [[ "\${CAPTURE_CONTROL_FAIL:-}" != readback ]] || return 255 ;; *'--preparation-approval-sha256'*) cat ${q(receiptFile)}; [[ "\${CAPTURE_CONTROL_FAIL:-}" != callee ]] || return 255 ;; *) printf 'reserve-public-data-only\\n' ;; esac; }\nynx_ops_copy(){ printf 'ATTEMPTS=%s COPY %s\\n' "$YNX_DEPLOY_CONNECTION_ATTEMPTS" "$*" >> ${q(log)}; [[ "\${CAPTURE_CONTROL_FAIL:-}" != copy ]] || return 255; }\ncommit=${q(commit)}\nnative_approval_path="\${CAPTURE_CONTROL_PREPARATION_PATH:-${preparation}}"\nnative_full_commit=${q(full)}\n${captureBody}\ncapture_snapshot_source_phase\n`,0o700);
+    const env={...process.env,DEPLOY_DRY_RUN:'0',YNX_DEPLOY_CONNECTION_ATTEMPTS:'5',PRIMARY_NODE_HOST:'43.153.202.237',PRIMARY_NODE_USER:'ubuntu',PRIMARY_NODE_SSH_KEY:'/unused/control-only-key',PUBLIC_BFT_PRODUCTION_SOURCE_CAPTURE_APPROVED:'yes',PUBLIC_BFT_CUTOVER_COMMIT:commit,PUBLIC_BFT_CUTOVER_RELEASE:release,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:dir,BACKUP_STORAGE_PATH:'/var/backups/ynx-chain',PUBLIC_BFT_PRODUCTION_PRIMARY_FREEZE_SHA256:'2'.repeat(64),PUBLIC_BFT_PRODUCTION_PRIMARY_PAUSE_SHA256:'3'.repeat(64),PUBLIC_BFT_PRODUCTION_SOURCE_CAPTURE_OBSERVATION_SECONDS:'4'};
+    delete env.CAPTURE_CONTROL_FAIL;delete env.CAPTURE_CONTROL_PREPARATION_PATH;
+    return {dir,log,script,env,remote,root,sourceFile,receiptFile};
+  }
+  const captured=await captureCaller('allowed');await execute('bash',[captured.script],{env:captured.env});
+  const captureLog=fs.readFileSync(captured.log,'utf8'),captureLines=captureLog.trimEnd().split('\n');
+  assert.equal(captureLines.length,6);assert.ok(captureLines.every(row=>row.startsWith('ATTEMPTS=1 ')));
+  for(const text of ['public-bft-capture-snapshot-source.py','public-bft-native-identity.py','--preparation-approval-sha256 ','--primary-evidence-dir '+captured.remote,'--primary-freeze-sha256 '+'2'.repeat(64),'--primary-pause-sha256 '+'3'.repeat(64),'--output-dir '+captured.remote+'/snapshot-source-capture','timeout --signal=TERM --kill-after=1 25','head -c 16385 --'])assert.ok(captureLog.includes(text),'normal capture argv missing '+text);
+  for(const text of ['rm -','systemctl ','export-consensus-state','initialize-application','priv_validator_key','priv_validator_state'])assert.equal(captureLog.includes(text),false,'capture expanded to '+text);
+  assert.deepEqual(fs.readFileSync(path.join(captured.dir,'snapshot-source-capture/snapshot-source.json')),fs.readFileSync(captured.sourceFile));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(captured.dir,'snapshot-source-capture/receipt.json'))).finalApproval,false);
+  for(const name of fs.readdirSync(path.join(captured.dir,'snapshot-source-capture')))assert.equal(/UNKNOWN|\.partial|\.tmp(?:$|[-.])/.test(name),false,'completed capture would block original continue-native scan');
+  await assert.rejects(execute('bash',[captured.script],{env:captured.env}));assert.equal(fs.readFileSync(captured.log,'utf8'),captureLog,'capture replayed original attempt');
+  for(const [field,bad]of [['PUBLIC_BFT_PRODUCTION_SOURCE_CAPTURE_APPROVED','no'],['PRIMARY_NODE_HOST','other-host'],['PRIMARY_NODE_USER','root'],['PUBLIC_BFT_CUTOVER_COMMIT','0'.repeat(12)],['PUBLIC_BFT_CUTOVER_RELEASE','other-release'],['CAPTURE_CONTROL_PREPARATION_PATH','/outside/preparation-approval.json'],['PUBLIC_BFT_PRODUCTION_SOURCE_CAPTURE_OBSERVATION_SECONDS','0'],['PUBLIC_BFT_PRODUCTION_SOURCE_CAPTURE_OBSERVATION_SECONDS','16']]){
+    const c=await captureCaller('refuse-'+field+'-'+hash(bad).slice(0,6));await assert.rejects(execute('bash',[c.script],{env:{...c.env,[field]:bad}}));assert.equal(fs.existsSync(c.log),false,'invalid capture input reached transport: '+field);
+  }
+  for(const field of ['PUBLIC_BFT_PRODUCTION_PRIMARY_FREEZE_SHA256','PUBLIC_BFT_PRODUCTION_PRIMARY_PAUSE_SHA256'])for(const bad of ['', '0'.repeat(64),'A'.repeat(64)]){
+    const c=await captureCaller('refuse-'+field+'-'+hash(bad).slice(0,6));await assert.rejects(execute('bash',[c.script],{env:{...c.env,[field]:bad}}));assert.equal(fs.existsSync(c.log),false,'capture accepted missing/noncanonical evidence pin');
+  }
+  for(const failure of ['ssh','copy','callee','readback']){
+    const c=await captureCaller('unknown-'+failure);await assert.rejects(execute('bash',[c.script],{env:{...c.env,CAPTURE_CONTROL_FAIL:failure}}));
+    const original=fs.readFileSync(c.log,'utf8');assert.equal(original.trimEnd().split('\n').length,{ssh:1,copy:2,callee:5,readback:6}[failure],'capture retried uncertain transport');
+    const attempt=path.join(c.dir,'snapshot-source-capture');assert.ok(fs.existsSync(path.join(attempt,'intent.txt')));assert.equal(fs.existsSync(path.join(attempt,'receipt.json')),false);assert.equal(fs.existsSync(path.join(attempt,'snapshot-source.json')),false);
+    if(failure==='callee'||failure==='readback')assert.ok(fs.statSync(path.join(attempt,'receipt.json.partial')).size>0,'lost-ACK public partial removed');
+    await assert.rejects(execute('bash',[c.script],{env:c.env}));assert.equal(fs.readFileSync(c.log,'utf8'),original,'capture UNKNOWN was redispatched');
+  }
+  const mismatch=await captureCaller('readback-drift');fs.appendFileSync(mismatch.sourceFile,' ');
+  await assert.rejects(execute('bash',[mismatch.script],{env:mismatch.env}));assert.equal(fs.existsSync(path.join(mismatch.dir,'snapshot-source-capture/receipt.json')),false,'mismatched public fingerprint was published');
+  console.log('PUBLIC_BFT_SOURCE_CAPTURE_CALLER_PASS: original producer/sibling and protected evidence pins; portable operator, bounded public readback, explicit phase and UNKNOWN retained');
 }finally{await new Promise(resolve=>server.close(resolve));fs.rmSync(tmp,{recursive:true,force:true});}
 NODE
 [[ "${1:-}" != --snapshot-only ]] || exit 0

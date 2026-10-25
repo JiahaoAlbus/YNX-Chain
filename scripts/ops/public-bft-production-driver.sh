@@ -17,7 +17,7 @@ if [[ "$action" == prepare_testnet_assets ]]; then
 else
   testnet_assets_action=false
 fi
-[[ "$testnet_assets_action" == true || "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
+[[ "$testnet_assets_action" == true || "$action" == "capture_snapshot_source" || "$action" == "rehearse" || "$action" == "preflight" || "$action" == "backup" || "$action" == "freeze_mutations" || "$action" == "unfreeze_mutations" || "$action" == "pause_authoritative" || "$action" == "resume_authoritative" || "$action" == "export_final_snapshot" || "$action" == "initialize_candidate" || "$action" == "deploy_candidate" || "$action" == "start_candidate" || "$action" == "verify_candidate" || "$action" == "rollback_candidate" || "$action" == "start_dependencies" || "$action" == "verify_continuity" || "$action" == "rollback_dependencies" || "$action" == "switch_ingress" || "$action" == "verify_public" || "$action" == "rollback_ingress" || "$action" == "verify_recovery" ]] || {
   echo "production driver phase $action is not implemented; public cutover remains blocked" >&2
   exit 64
 }
@@ -42,7 +42,7 @@ public_bft_native_context() {
   if [[ ! -e "$approved_path" && ! -L "$approved_path" ]]; then
     approved_path="$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/preparation-approval.json"
     if [[ ! -e "$approved_path" && ! -L "$approved_path" ]]; then return 0; fi
-    case "$action" in preflight|backup|freeze_mutations|pause_authoritative|prepare_testnet_assets) ;; *) echo "native preparation cannot authorize this phase; retain paused original state" >&2; return 1 ;; esac
+    case "$action" in preflight|backup|freeze_mutations|pause_authoritative|capture_snapshot_source|prepare_testnet_assets) ;; *) echo "native preparation cannot authorize this phase; retain paused original state" >&2; return 1 ;; esac
     approval_mode=(--prepare-native)
   fi
   [[ -f "$approved_path" && ! -L "$approved_path" ]] || { echo "original protected approval projection must be a regular non-symlink file" >&2; return 1; }
@@ -311,6 +311,99 @@ final_snapshot_phase() {
   [[ -n "$expected_sha" && "$actual_sha" == "$expected_sha" ]] || { echo "downloaded final snapshot checksum mismatch" >&2; exit 1; }
   (set -C; env -i PATH=/usr/bin:/bin "$local_root/tools/ynx-consensus-package" -verify-migration-state "$local_root/migration.json" >"$local_root/local-validation.txt")
   echo "production BFT final snapshot passed: transaction=$transaction_id evidence=$transaction_dir/final-snapshot"
+}
+
+capture_snapshot_source_phase() {
+  [[ "${PUBLIC_BFT_PRODUCTION_SOURCE_CAPTURE_APPROVED:-}" == yes ]] || { echo 'explicit normal snapshot-source capture approval is required' >&2; return 1; }
+  [[ "$PRIMARY_NODE_HOST" == 43.153.202.237 && "$PRIMARY_NODE_USER" == ubuntu ]] || { echo 'source capture is scoped to the original primary' >&2; return 1; }
+  [[ "${PUBLIC_BFT_CUTOVER_COMMIT:-}" == "$commit" && "${PUBLIC_BFT_CUTOVER_RELEASE:-}" == "ynx-bft-gateway-$commit" ]] || { echo 'source capture version differs from normal preparation' >&2; return 1; }
+  local transaction_dir="${PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:-}" tx remote_root preparation_pin
+  [[ -n "$transaction_dir" && -d "$transaction_dir" && ! -L "$transaction_dir" ]] || { echo 'original protected transaction is required' >&2; return 1; }
+  [[ "${native_approval_path:-}" == "$transaction_dir/preparation-approval.json" && -n "${native_full_commit:-}" && -f "$native_approval_path" && ! -L "$native_approval_path" ]] || { echo 'original normalized native preparation is required; capture cannot manufacture custody or approval' >&2; return 1; }
+  tx="$(basename "$transaction_dir")"
+  [[ "$tx" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$ ]] || return 1
+  remote_root="${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}/public-bft-cutover/$tx"
+  [[ "$remote_root" =~ ^/[A-Za-z0-9._/-]+$ && "$remote_root" != *..* ]] || return 1
+  local freeze_pin="${PUBLIC_BFT_PRODUCTION_PRIMARY_FREEZE_SHA256:-}" pause_pin="${PUBLIC_BFT_PRODUCTION_PRIMARY_PAUSE_SHA256:-}" pin
+  for pin in "$freeze_pin" "$pause_pin"; do
+    [[ "$pin" =~ ^[0-9a-f]{64}$ && "$pin" != "$(printf '0%.0s' {1..64})" ]] || { echo 'independent original freeze/pause evidence pins are required' >&2; return 1; }
+  done
+  local observation="${PUBLIC_BFT_PRODUCTION_SOURCE_CAPTURE_OBSERVATION_SECONDS:-4}"
+  [[ "$observation" =~ ^[0-9]+$ ]] && (( observation >= 1 && observation <= 15 )) || return 1
+  local helper=scripts/ops/remote/public-bft-capture-snapshot-source.py native=scripts/ops/remote/public-bft-native-identity.py
+  local helper_pin native_pin local_root="$transaction_dir/snapshot-source-capture" remote_stage="/tmp/ynx-public-bft-snapshot-source-$tx"
+  helper_pin="$(shasum -a 256 "$helper" | awk '{print $1}')"
+  native_pin="$(shasum -a 256 "$native" | awk '{print $1}')"
+  preparation_pin="$(shasum -a 256 "$native_approval_path" | awk '{print $1}')"
+  local YNX_DEPLOY_CONNECTION_ATTEMPTS=1
+  export YNX_DEPLOY_CONNECTION_ATTEMPTS
+  (umask 077; mkdir -m 0700 "$local_root") || { echo 'original capture/UNKNOWN attempt exists; retain and reconcile it' >&2; return 1; }
+  (set -C; printf 'transactionId=%s\npreparationSHA256=%s\nfreezeSHA256=%s\npauseSHA256=%s\nhelperSHA256=%s\nnativeToolSHA256=%s\nretry=false\n' "$tx" "$preparation_pin" "$freeze_pin" "$pause_pin" "$helper_pin" "$native_pin" >"$local_root/intent.txt")
+  ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "umask 077; mkdir -m 0700 '$remote_stage'"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$helper" "$remote_stage/public-bft-capture-snapshot-source.py"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$native" "$remote_stage/public-bft-native-identity.py"
+  ynx_ops_copy primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$native_approval_path" "$remote_stage/preparation-approval.json"
+  local remote_command root_body
+  root_body="$(cat <<'CAPTURE_ROOT'
+set -Eeuo pipefail
+umask 077
+stage=$1 helper_pin=$2 native_pin=$3 preparation_pin=$4
+shift 4
+[[ $EUID == 0 && -d $stage && ! -L $stage && $(realpath -e -- "$stage") == "$stage" && $(stat -c %a -- "$stage") == 700 ]]
+# First freeze the transport namespace. A copy into a NEW private root dir is
+# also needed: chown alone cannot revoke a former owner's already-open writeFD.
+chown root:root -- "$stage"
+chmod 0700 -- "$stage"
+verified="$stage/verified"
+mkdir -m 0700 -- "$verified"
+for name in public-bft-capture-snapshot-source.py public-bft-native-identity.py preparation-approval.json; do
+  [[ -f $stage/$name && ! -L $stage/$name && $(stat -c %h -- "$stage/$name") == 1 ]]
+  # Never follow a swapped final symlink. The original caller's public pins
+  # qualify only the new root-owned copy, not the mutable transport inode.
+  cp -P -- "$stage/$name" "$verified/$name"
+  [[ -f $verified/$name && ! -L $verified/$name && $(stat -c '%u:%h' -- "$verified/$name") == 0:1 ]]
+  chmod 0600 -- "$verified/$name"
+done
+[[ $(sha256sum "$verified/public-bft-capture-snapshot-source.py" | cut -d' ' -f1) == "$helper_pin" ]]
+[[ $(sha256sum "$verified/public-bft-native-identity.py" | cut -d' ' -f1) == "$native_pin" ]]
+[[ $(sha256sum "$verified/preparation-approval.json" | cut -d' ' -f1) == "$preparation_pin" ]]
+exec /usr/bin/python3 -B "$verified/public-bft-capture-snapshot-source.py" --preparation-approval "$verified/preparation-approval.json" --preparation-approval-sha256 "$preparation_pin" "$@"
+CAPTURE_ROOT
+)"
+  printf -v remote_command '%q ' sudo -n /usr/bin/timeout --signal=TERM --kill-after=1 25 env -i PATH=/usr/bin:/bin /bin/bash -c "$root_body" bash "$remote_stage" "$helper_pin" "$native_pin" "$preparation_pin" \
+    --transaction-id "$tx" \
+    --primary-evidence-dir "$remote_root" --primary-pause-sha256 "$pause_pin" --primary-freeze-sha256 "$freeze_pin" \
+    --native-identity-sha256 "$native_pin" --output-dir "$remote_root/snapshot-source-capture" --observation-seconds "$observation"
+  # Copy only the existing normal producers and already validated projection.
+  # No source state, private key/HRS, env, service or marker is modified here.
+  (set -C; ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "$remote_command" >"$local_root/receipt.json.partial")
+  # Only the bounded PUBLIC source fingerprint returns over transport. Neither
+  # a capture nor its receipt approves the final export or starts any candidate.
+  (set -C; ynx_ops_ssh primary "$PRIMARY_NODE_USER" "$PRIMARY_NODE_HOST" "$PRIMARY_NODE_SSH_KEY" "sudo -n head -c 16385 -- '$remote_root/snapshot-source-capture/snapshot-source.json'" >"$local_root/snapshot-source.json.partial")
+  if [[ "${DEPLOY_DRY_RUN:-0}" == 1 ]]; then
+    echo "source capture dry-run retained: $local_root; no capture or checkpoint authority"
+    return 0
+  fi
+  node --input-type=module - "$local_root" "$tx" "$commit" "$remote_root" "$preparation_pin" "$freeze_pin" "$pause_pin" "$native_pin" <<'NODE'
+import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+const [root,tx,commit,remote,preparation,freeze,pause,native]=process.argv.slice(2);
+const bounded=file=>{const p=path.join(root,file),s=fs.lstatSync(p);assert.ok(s.isFile()&&!s.isSymbolicLink()&&s.size>0&&s.size<=16384);return fs.readFileSync(p);};
+const receipt=JSON.parse(bounded('receipt.json.partial')),raw=bounded('snapshot-source.json.partial'),source=JSON.parse(raw);
+assert.equal(receipt.version,'YNX-PUBLIC-BFT-SNAPSHOT-SOURCE-CAPTURE/v1');assert.equal(receipt.transactionId,tx);assert.equal(receipt.commit,commit);
+assert.equal(receipt.preparationApprovalSHA256,preparation);assert.equal(receipt.primaryFreezeEvidenceSHA256,freeze);assert.equal(receipt.primaryPauseEvidenceSHA256,pause);assert.equal(receipt.nativeIdentityToolSHA256,native);
+assert.equal(receipt.snapshotSourcePath,remote+'/snapshot-source-capture/snapshot-source.json');assert.equal(receipt.snapshotSourceBytes,raw.length);assert.equal(receipt.snapshotSourceSHA256,crypto.createHash('sha256').update(raw).digest('hex'));
+assert.equal(receipt.readOnly,true);for(const name of ['exported','finalApproval','nativeRootAuthorized'])assert.equal(receipt[name],false);
+assert.equal(source.version,'YNX-PUBLIC-BFT-SNAPSHOT-SOURCE/v1');assert.equal(source.transactionId,tx);assert.equal(source.commit,commit);assert.equal(source.bftRelease,'ynx-bft-gateway-'+commit);
+// Successful publication cannot retain a .partial alias: the original
+// continue-native guard correctly rejects every partial/UNKNOWN in this tree.
+// Rename only these verified local public results; failures keep all originals.
+for(const name of ['snapshot-source.json','receipt.json']){
+  const destination=path.join(root,name);let absent=false;try{fs.lstatSync(destination);}catch(error){if(error.code==='ENOENT')absent=true;else throw error;}assert.equal(absent,true,'original publication/UNKNOWN exists');
+  fs.renameSync(destination+'.partial',destination);const fd=fs.openSync(destination,'r');try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+  }
+const fd=fs.openSync(root,'r');try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+NODE
+  echo "source capture completed: $local_root; final snapshot authorization, export and activation remain separate"
 }
 
 prepare_testnet_assets_phase() {
@@ -929,6 +1022,10 @@ NODE
 commit="$(git rev-parse --short=12 HEAD)"
 release="ynx-chain-${commit}"
 public_bft_native_context
+if [[ "$action" == capture_snapshot_source ]]; then
+  capture_snapshot_source_phase
+  exit 0
+fi
 if [[ "$testnet_assets_action" == true ]]; then
   prepare_testnet_assets_phase
   exit 0
