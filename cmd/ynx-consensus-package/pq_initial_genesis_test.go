@@ -20,7 +20,11 @@ import (
 
 func initialGenesisCLIInputs(t *testing.T) ([]string, map[string][]byte, chain.ConsensusMigrationState) {
 	t.Helper()
-	d := chain.NewDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), []chain.Validator{{Address: "ynx_validator_initial_cli", VotingPower: 1, Active: true}})
+	validators, err := chain.NormalizeValidators([]chain.Validator{{Address: "ynx_validator_initial_cli", Moniker: "synthetic-initial-cli", VotingPower: 1, Active: true}})
+	if err != nil {
+		t.Fatal("invalid synthetic original validator fixture", err)
+	}
+	d := chain.NewDevnetWithValidators(chain.DefaultNetworkConfig("testnet"), validators)
 	d.ProduceBlock()
 	if err := d.EnableAccountPQ(2); err != nil {
 		t.Fatal(err)
@@ -28,6 +32,9 @@ func initialGenesisCLIInputs(t *testing.T) ([]string, map[string][]byte, chain.C
 	m, err := d.ExportConsensusMigrationState()
 	if err != nil {
 		t.Fatal(err)
+	}
+	if len(m.Validators) != 1 || m.Validators[0].Address != validators[0].Address {
+		t.Fatal("synthetic original validator was replaced by constructor defaults")
 	}
 	key := ed25519.GenPrivKeyFromSecret([]byte("synthetic initial CLI validator only"))
 	m, err = m.BindConsensusValidatorKeys([]chain.ConsensusValidatorKeyBinding{{ValidatorAddress: "ynx_validator_initial_cli", KeyType: chain.ConsensusPubKeyTypeEd25519, PublicKey: base64.StdEncoding.EncodeToString(key.PubKey().Bytes()), ConsensusAddress: strings.ToUpper(hex.EncodeToString(key.PubKey().Address()))}})
