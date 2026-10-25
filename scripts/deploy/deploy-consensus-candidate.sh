@@ -147,7 +147,7 @@ prepare_runtime_bundle() {
   done
   validate_runtime_bundle "$destination" "$expected_commit" "$expected_manifest" || return
   for binary in ynx-abci ynx-comet ynx-bft-gatewayd ynx-consensus-pq-remote-signer ynx-consensus-pq-key-init ynx-consensus-proof-verify ynx-consensus-package ynx-consensus-keycheck; do
-    chmod 0755 -- "$destination/$binary" || return
+    chmod 0755 "$destination/$binary" || return
   done
 }
 

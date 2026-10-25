@@ -15,6 +15,11 @@ const original = execFileSync('git', ['show', `5294cb2d91ced414ee16edde39318de01
 // Pin the reachable blob, not the unpublished main-side commit whose identical
 // change was cherry-picked into integration (and need not exist in CI history).
 const originalStage = execFileSync('git', ['show', '6a2b54bd653b841cb21bc605c48e1c378dbb1775'], { cwd: root, encoding: 'utf8' });
+// Exact normal caller used by the failed macOS preparation. Retain the real
+// historical function rather than implementing a second preparer in this test.
+const originalRuntimePreparation = execFileSync('git', ['show', `c979d1c42e775dcac69555f6cd7b76f304c5917e:${relative}`], { cwd: root, encoding: 'utf8' });
+assert.equal(Buffer.byteLength(originalRuntimePreparation), 18927);
+assert.equal(createHash('sha256').update(originalRuntimePreparation).digest('hex'), 'f10700ed58cc9accb45c488b795a49e65520497918288dcfb356bed23ec4f176');
 const operations = readFileSync(join(root, 'scripts/ops/lib.sh'), 'utf8');
 
 function actualFunction(source, name) {
@@ -382,7 +387,7 @@ test('actual runtime parser refuses missing pins, stale v1, altered bytes, false
   });
 });
 
-function runtimePreparation(mode) {
+function runtimePreparation(mode, { source = current, bsdChmod = false } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'ynx-runtime-copy-'));
   try {
     const fixture = runtimeFixture(directory);
@@ -395,9 +400,25 @@ function runtimePreparation(mode) {
     const oldDestination = savedPath(destination);
     if (mode === 'bad_pin') fixture.pin = 'e'.repeat(64);
     const trace = join(directory, 'copies');
+    const chmodTrace = join(directory, 'chmod-calls');
     const script = [
       'set -Eeuo pipefail',
       'source "$YNX_RUNTIME_SCRIPT"',
+      actualFunction(source, 'prepare_runtime_bundle'),
+      ...(bsdChmod ? [
+        // BSD chmod treats -- after a numeric mode as a file operand. As on
+        // the actual Mac failure, it still changes the following file before
+        // returning 1. GNU chmod would silently accept the same old argv.
+        'chmod() {',
+        '  printf "chmod\\n" >> "$YNX_RUNTIME_CHMOD_TRACE"',
+        '  if [[ "$#" -ge 3 && "$1" == 0755 && "$2" == -- ]]; then',
+        '    printf "chmod: --: No such file or directory\\n" >&2',
+        '    shift 2; command chmod 0755 "$@" || return',
+        '    return 1',
+        '  fi',
+        '  command chmod "$@"',
+        '}',
+      ] : []),
       'cp() {',
       '  command cp "$@" || return',
       '  printf "copy\\n" >> "$YNX_RUNTIME_TRACE"',
@@ -408,18 +429,19 @@ function runtimePreparation(mode) {
       '}',
       'prepare_runtime_bundle "$YNX_RUNTIME_BUNDLE" "$YNX_RUNTIME_COMMIT" "$YNX_RUNTIME_MANIFEST" "$YNX_RUNTIME_DESTINATION"',
     ].join('\n');
-    const result = spawnSync('bash', ['-c', script], { cwd: directory, encoding: 'utf8', env: { ...process.env, YNX_RUNTIME_SCRIPT: join(root, relative), YNX_RUNTIME_BUNDLE: fixture.bundle, YNX_RUNTIME_COMMIT: fixture.commit, YNX_RUNTIME_MANIFEST: fixture.pin, YNX_RUNTIME_DESTINATION: destination, YNX_RUNTIME_TRACE: trace, YNX_RUNTIME_MODE: mode } });
+    const result = spawnSync('bash', ['-c', script], { cwd: directory, encoding: 'utf8', env: { ...process.env, YNX_RUNTIME_SCRIPT: join(root, relative), YNX_RUNTIME_BUNDLE: fixture.bundle, YNX_RUNTIME_COMMIT: fixture.commit, YNX_RUNTIME_MANIFEST: fixture.pin, YNX_RUNTIME_DESTINATION: destination, YNX_RUNTIME_TRACE: trace, YNX_RUNTIME_CHMOD_TRACE: chmodTrace, YNX_RUNTIME_MODE: mode } });
     assert.equal(result.error, undefined);
     for (const name of entries) {
       const path = join(fixture.bundle, name);
       assert.deepEqual({ value: savedPath(path), mode: lstatSync(path).mode }, before[name], `preparation changed original ${name} bytes/mode`);
     }
     const copies = existsSync(trace) ? readFileSync(trace, 'utf8').trim().split('\n').length : 0;
+    const chmodCalls = existsSync(chmodTrace) ? readFileSync(chmodTrace, 'utf8').trim().split('\n').length : 0;
     const prepared = Object.fromEntries(runtimeNames.map(name => {
       const path = join(destination, name);
       return [name, { value: savedPath(path), mode: existsSync(path) ? lstatSync(path).mode & 0o777 : null }];
     }));
-    return { status: result.status, stderr: result.stderr, copies, oldDestination, destination: savedPath(destination), prepared, before, marker: existsSync(join(destination, 'UNKNOWN')) ? readFileSync(join(destination, 'UNKNOWN'), 'utf8') : null };
+    return { status: result.status, stderr: result.stderr, copies, chmodCalls, oldDestination, destination: savedPath(destination), prepared, before, marker: existsSync(join(destination, 'UNKNOWN')) ? readFileSync(join(destination, 'UNKNOWN'), 'utf8') : null };
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -429,6 +451,33 @@ test('actual runtime preparation makes only a verified private executable copy a
   const result = runtimePreparation('fresh');
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.copies, 12);
+  for (const name of runtimeNames) {
+    assert.equal(result.before[name].mode & 0o777, 0o644);
+    assert.equal(result.prepared[name].mode, 0o755);
+    assert.deepEqual(result.prepared[name].value, result.before[name].value);
+  }
+});
+
+test('actual runtime preparation reproduces original BSD chmod failure and retains the partially executable UNKNOWN copy', () => {
+  const result = runtimePreparation('fresh', { source: originalRuntimePreparation, bsdChmod: true });
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stderr, /chmod: --: No such file or directory/);
+  assert.equal(result.copies, 12, 'the original caller must validate and copy before the real failing chmod');
+  assert.equal(result.chmodCalls, 1, 'the failed original call must stop without retry');
+  assert.equal(result.destination.kind, 'directory', 'UNKNOWN preparation must remain visible');
+  for (const [index, name] of runtimeNames.entries()) {
+    assert.equal(result.before[name].mode & 0o777, 0o644);
+    assert.deepEqual(result.prepared[name].value, result.before[name].value);
+    assert.equal(result.prepared[name].mode, index === 0 ? 0o755 : 0o644, 'retain the actual partial mode change; do not reset or delete it');
+  }
+});
+
+test('actual runtime preparation uses portable chmod and completes all eight copies under BSD semantics', () => {
+  const result = runtimePreparation('fresh', { bsdChmod: true });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.copies, 12);
+  assert.equal(result.chmodCalls, 8);
+  assert.equal(result.destination.kind, 'directory');
   for (const name of runtimeNames) {
     assert.equal(result.before[name].mode & 0o777, 0o644);
     assert.equal(result.prepared[name].mode, 0o755);
