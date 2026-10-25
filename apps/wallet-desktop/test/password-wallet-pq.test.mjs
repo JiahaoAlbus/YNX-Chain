@@ -569,9 +569,10 @@ test('normal session source failure captures its partial and never enters classi
  const f=await fixture(t),s=sessionQA(f),failure=Object.assign(new Error('QA_SOURCE_REFUSED'),{code:'QA_SOURCE_REFUSED'});Object.defineProperty(failure,'partial',{value:s.resource});let signs=0;f.vault.withSecret=()=>{signs++;};
  const authority=new DesktopWalletAuthority({...s.options,pqSessionSource:async()=>{throw failure;}});await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),e=>e===failure);assert.equal(signs,0);assert.equal(s.counts.retire,1);assert.equal(s.counts.join,1);assert.equal(s.counts.close,1);
 });
-test('normal lawful legacy session requires the same fresh committed source instead of treating the PQ backup as activation',async t=>{
+test('normal legacy policy cannot create a new classic session and never reserves or enters keys',async t=>{
  const f=await fixture(t),s=sessionQA(f,{legacy:true}),authority=new DesktopWalletAuthority(s.options);
- const result=await f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));assert.equal(result.approval.version,'2');assert.ok(result.callbackUrl.length<=4096);assert.equal(s.counts.recheck,2);assert.equal(s.counts.close,1);
+ let classic=0,pq=0,reservations=0;f.vault.withSecret=()=>{classic++;assert.fail('no classic fallback');};f.vault.withPQKeys=()=>{pq++;assert.fail('legacy policy is not a PQ grant');};s.options.transactionSender.submissions.intentStore.reserveSessionOriginal=()=>{reservations++;assert.fail('no signing reservation');};
+ await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),e=>e.data?.code==='ACCOUNT_PQ_POLICY_REQUIRED');assert.equal(classic,0);assert.equal(pq,0);assert.equal(reservations,0);assert.equal(s.counts.recheck,1);assert.equal(s.counts.close,1);
 });
 test('original source acquisition reservation prevents overlapping session and transaction resources before either returns',async t=>{
  const f=await fixture(t),s=sessionQA(f);let release,entered;const acquired=new Promise(resolve=>{entered=resolve;});
@@ -633,8 +634,9 @@ test('session first source error and separate falsy cleanup error both survive w
  const [original]=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals;assert.equal(original.firstCause.code,'QA_FIRST_SOURCE');assert.deepEqual(original.cleanupCause,{kind:'boolean',value:false,code:null});assert.equal(original.cleanupComplete,false);assert.ok(original.approval.walletProof);
 });
 test('unknown callback delivery never becomes an automatic second launch or replacement signature',async t=>{
- const f=await fixture(t),s=sessionQA(f,{legacy:true});let signs=0,launches=0;const keys=f.vault.withSecret.bind(f.vault);f.vault.withSecret=(...args)=>{signs++;return keys(...args);};
- const controller=new DesktopAuthorizationController({authority:new DesktopWalletAuthority(s.options),clock:()=>s.at,openExternal:async()=>{launches++;throw Error('QA_EXTERNAL_UNKNOWN');}});await controller.receive(encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,s.request,s.at));await assert.rejects(f.lifecycle.run(()=>controller.act('approve')));
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f);let signs=0,launches=0;const keys=f.vault.withPQKeys.bind(f.vault);f.vault.withPQKeys=(...args)=>{signs++;return keys(...args);};f.vault.withSecret=()=>assert.fail('no classic fallback');
+ const client={async publishReturn(input){return {reference:'ynxpsr1_'+'r'.repeat(43),nonce:input.request.nonce,state:input.request.state,expiresAt:input.request.expiresAt};},async publicationOutcome(){assert.fail('not queried');}};
+ const controller=new DesktopAuthorizationController({authority:new DesktopWalletAuthority({...s.options,sessionReturnClient:client}),clock:()=>s.at,openExternal:async()=>{launches++;throw Error('QA_EXTERNAL_UNKNOWN');}});await controller.receive(encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY,s.request,s.at));await assert.rejects(f.lifecycle.run(()=>controller.act('approve')));
  const [original]=JSON.parse(await fs.readFile(s.options.transactionSender.submissions.intentStore.filePath,'utf8')).sessionOriginals;assert.equal(original.deliveryAttempted,true);
  await assert.rejects(f.lifecycle.run(()=>controller.act('approve')),error=>error.data?.code==='SESSION_CALLBACK_DELIVERY_UNKNOWN');assert.equal(signs,1);assert.equal(launches,1);
 });

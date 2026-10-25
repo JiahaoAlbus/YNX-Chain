@@ -19,14 +19,13 @@ const SECRET = "0000000000000000000000000000000000000000000000000000000000000001
 const SECOND_SECRET = "0000000000000000000000000000000000000000000000000000000000000002";
 const ORIGIN = "https://example-dapp.invalid";
 
-test("finite Finance authorization signs the displayed deadline and exact permissions, without extending request expiry",async()=>{
+test("finite isolated product request cannot create a classic grant when current PQ policy is absent",async()=>{
   const {authority,status}=await fixture(),device=createECDH("prime256v1");device.setPrivateKey(Buffer.alloc(32,7));
   const at=new Date("2026-10-02T00:00:00.000Z");
   const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:"finance",platform:"web",deviceId:"desktop-finite-fixture",deviceKey:device.getPublicKey(null,"compressed").toString("base64url"),nonce:"n".repeat(32),state:"s".repeat(32),scopes:["finance.profile.write"],purpose:"Review fixed service access",finiteServiceSeconds:3600},at);
-  const result=await authority.approveCanonicalAuthorization(request,at.toISOString(),status.account);
-  const verified=parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,result.callbackUrl,at);
-  assert.equal(verified.status,"ready");assert.deepEqual(verified.approval.serviceConsent,request.serviceConsent);
-  assert.equal(verified.approval.expiresAt,request.expiresAt);assert.deepEqual(verified.approval.scopes,request.scopes);
+  const snapshot=JSON.stringify(request);
+  await assert.rejects(authority.approveCanonicalAuthorization(request,at.toISOString(),status.account),e=>e.data?.code==="ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED");
+  assert.equal(JSON.stringify(request),snapshot);assert.deepEqual(request.scopes,["finance.profile.write"]);
   await assert.rejects(authority.approveCanonicalAuthorization(request,request.expiresAt,status.account));
 });
 
@@ -79,31 +78,12 @@ test("approved personal_sign and EIP-712 signatures recover only the approved ac
   assert.equal(verifyTypedData(typed.domain, { Action: typed.types.Action }, typed.message, signature).toLowerCase(), status.account);
 });
 
-test("canonical v2 approval signs only the reviewed account and exact registered callback", async () => {
-  const { authority, status } = await fixture();
-  const productDeviceKey = createECDH("prime256v1");
-  productDeviceKey.setPrivateKey(Buffer.alloc(32, 0x42));
-  const now = new Date("2026-08-22T00:00:00.000Z");
-  const authorization = createProductSessionRequest(PRODUCT_SESSION_REGISTRY, {
-    productId: "creator-studio", platform: "web", deviceId: "desktop-authority-test",
-    deviceKey: productDeviceKey.getPublicKey(null, "compressed").toString("base64url"),
-    nonce: "nonce_abcdefghijklmnopqrstuvwxyz12", state: "state_abcdefghijklmnopqrstuvwxyz12",
-    scopes: ["creator:account", "creator:publish"], purpose: "Sign in to Creator Studio.",
-  }, now);
-  const issuedAt = "2026-08-22T00:01:00.000Z";
-  await assert.rejects(authority.approveCanonicalAuthorization(authorization, issuedAt), error => error.data.code === "ACCOUNT_REVIEW_REQUIRED");
-  await assert.rejects(authority.approveCanonicalAuthorization(authorization, issuedAt, "0x" + "22".repeat(20)), error => error.data.code === "ACCOUNT_CHANGED");
-  const approved = await authority.approveCanonicalAuthorization(authorization, issuedAt, status.account);
-  const verified = parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, authorization, approved.callbackUrl, new Date(issuedAt));
-  assert.equal(verified.status, "ready");
-  assert.equal(verified.approval.account, status.ynxAccount);
-  assert.equal(verified.approval.origin, "https://creator.ynxweb4.com");
-  assert.deepEqual(verified.approval.scopes, authorization.scopes);
-  assert.match(approved.callbackUrl, /^https:\/\/creator\.ynxweb4\.com\/wallet-auth\/callback\?result=approved&approval=/);
-  assert.equal(new URL(approved.callbackUrl).searchParams.get("nonce"), authorization.nonce);
-  assert.equal(new URL(approved.callbackUrl).searchParams.get("state"), authorization.state);
-  await assert.rejects(authority.approveCanonicalAuthorization(authorization, authorization.expiresAt, status.account), { code: "SESSION_EXPIRED" });
-  await assert.rejects(authority.approveCanonicalAuthorization({ ...authorization, origin: "https://attacker.example" }, issuedAt, status.account), { code: "SESSION_BINDING_MISMATCH" });
+test("canonical first-party approval requires reviewed account and current PQ source, never legacy callback signing", async () => {
+  const {authority,status}=await fixture(),device=createECDH("prime256v1");device.setPrivateKey(Buffer.alloc(32,0x42));
+  const now=new Date("2026-08-22T00:00:00.000Z"),request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:"creator-studio",platform:"web",deviceId:"desktop-authority-test",deviceKey:device.getPublicKey(null,"compressed").toString("base64url"),nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",state:"state_abcdefghijklmnopqrstuvwxyz12",scopes:["creator:account","creator:publish"],purpose:"Sign in to Creator Studio."},now),snapshot=JSON.stringify(request);
+  await assert.rejects(authority.approveCanonicalAuthorization(request,now.toISOString()),e=>e.data?.code==="ACCOUNT_REVIEW_REQUIRED");
+  for(const [input,at,account] of [[request,now.toISOString(),status.account],[request,now.toISOString(),"0x"+"22".repeat(20)],[request,request.expiresAt,status.account],[{...request,origin:"https://attacker.example"},now.toISOString(),status.account]])await assert.rejects(authority.approveCanonicalAuthorization(input,at,account),e=>e.data?.code==="ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED");
+  assert.equal(JSON.stringify(request),snapshot);
 });
 
 test("transaction review binds account, chain and exact values before transport", async () => {

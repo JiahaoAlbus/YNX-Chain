@@ -42,7 +42,7 @@ test("central identity consent requires explicit review, stays native, and expir
   await assert.rejects(authority.approve(expired.request.id));
 });
 
-test("Pair native Product Session returns the exact official approval only after review, with origin, expiry and permission enforced", async () => {
+test("Pair native Product Session review never substitutes a classic grant for missing current PQ source", async () => {
   const { authority, status } = await fixture();
   const now = new Date("2026-08-22T00:00:00Z"), device = createECDH("prime256v1");
   device.setPrivateKey(Buffer.alloc(32,0x42));
@@ -55,12 +55,7 @@ test("Pair native Product Session returns the exact official approval only after
   const pending = await authority.request({origin:request.origin,method:"ynx_requestProductSessionV2",params});
   assert.equal(pending.status,"approval-required");
   assert.deepEqual(pending.request.review.request,request);
-  const returned = (await authority.approve(pending.request.id)).result;
-  assert.equal(returned.version,2);
-  const verified = parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,returned.returnUrl,now);
-  assert.equal(verified.status,"ready");
-  assert.equal(verified.approval.account,status.ynxAccount);
-  assert.equal(verified.approval.origin,request.origin);
+  await assert.rejects(authority.approve(pending.request.id),e=>e.data?.code==="ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED");
   await assert.rejects(authority.approve(pending.request.id));
   const expired = await authority.request({origin:request.origin,method:"ynx_requestProductSessionV2",params});
   authority.clock=()=>new Date(Date.parse(request.expiresAt)+1000);
@@ -116,31 +111,12 @@ test("approved personal_sign and EIP-712 signatures recover only the approved ac
   assert.equal(verifyTypedData(typed.domain, { Action: typed.types.Action }, typed.message, signature).toLowerCase(), status.account);
 });
 
-test("canonical v2 approval signs only the reviewed account and exact registered callback", async () => {
-  const { authority, status } = await fixture();
-  const productDeviceKey = createECDH("prime256v1");
-  productDeviceKey.setPrivateKey(Buffer.alloc(32, 0x42));
-  const now = new Date("2026-08-22T00:00:00.000Z");
-  const authorization = createProductSessionRequest(PRODUCT_SESSION_REGISTRY, {
-    productId: "creator-studio", platform: "web", deviceId: "desktop-authority-test",
-    deviceKey: productDeviceKey.getPublicKey(null, "compressed").toString("base64url"),
-    nonce: "nonce_abcdefghijklmnopqrstuvwxyz12", state: "state_abcdefghijklmnopqrstuvwxyz12",
-    scopes: ["creator:account", "creator:publish"], purpose: "Sign in to Creator Studio.",
-  }, now);
-  const issuedAt = "2026-08-22T00:01:00.000Z";
-  await assert.rejects(authority.approveCanonicalAuthorization(authorization, issuedAt), error => error.data.code === "ACCOUNT_REVIEW_REQUIRED");
-  await assert.rejects(authority.approveCanonicalAuthorization(authorization, issuedAt, "0x" + "22".repeat(20)), error => error.data.code === "ACCOUNT_CHANGED");
-  const approved = await authority.approveCanonicalAuthorization(authorization, issuedAt, status.account);
-  const verified = parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, authorization, approved.callbackUrl, new Date(issuedAt));
-  assert.equal(verified.status, "ready");
-  assert.equal(verified.approval.account, status.ynxAccount);
-  assert.equal(verified.approval.origin, "https://creator.ynxweb4.com");
-  assert.deepEqual(verified.approval.scopes, authorization.scopes);
-  assert.match(approved.callbackUrl, /^https:\/\/creator\.ynxweb4\.com\/wallet-auth\/callback\?result=approved&approval=/);
-  assert.equal(new URL(approved.callbackUrl).searchParams.get("nonce"), authorization.nonce);
-  assert.equal(new URL(approved.callbackUrl).searchParams.get("state"), authorization.state);
-  await assert.rejects(authority.approveCanonicalAuthorization(authorization, authorization.expiresAt, status.account), { code: "SESSION_EXPIRED" });
-  await assert.rejects(authority.approveCanonicalAuthorization({ ...authorization, origin: "https://attacker.example" }, issuedAt, status.account), { code: "SESSION_BINDING_MISMATCH" });
+test("canonical first-party approval requires reviewed account and current PQ source, never legacy callback signing", async () => {
+  const {authority,status}=await fixture(),device=createECDH("prime256v1");device.setPrivateKey(Buffer.alloc(32,0x42));
+  const now=new Date("2026-08-22T00:00:00.000Z"),request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:"creator-studio",platform:"web",deviceId:"desktop-authority-test",deviceKey:device.getPublicKey(null,"compressed").toString("base64url"),nonce:"nonce_abcdefghijklmnopqrstuvwxyz12",state:"state_abcdefghijklmnopqrstuvwxyz12",scopes:["creator:account","creator:publish"],purpose:"Sign in to Creator Studio."},now),snapshot=JSON.stringify(request);
+  await assert.rejects(authority.approveCanonicalAuthorization(request,now.toISOString()),e=>e.data?.code==="ACCOUNT_REVIEW_REQUIRED");
+  for(const [input,at,account] of [[request,now.toISOString(),status.account],[request,now.toISOString(),"0x"+"22".repeat(20)],[request,request.expiresAt,status.account],[{...request,origin:"https://attacker.example"},now.toISOString(),status.account]])await assert.rejects(authority.approveCanonicalAuthorization(input,at,account),e=>e.data?.code==="ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED");
+  assert.equal(JSON.stringify(request),snapshot);
 });
 
 test("transaction review binds account, chain and exact values before transport", async () => {
@@ -508,13 +484,13 @@ test("a key switch after provider permission checks cannot sign the previously r
   }
 });
 
-test('Paper workspace desktop approval shows simulated-only limits and returns only the exact new grant',async()=>{
+test('Paper workspace review preserves simulated-only limits but cannot bypass mandatory PQ account policy',async()=>{
   const {authority,status}=await fixture(),now=new Date('2026-08-22T00:00:00Z'),device=createECDH('prime256v1');device.setPrivateKey(Buffer.alloc(32,0x42));
   const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:'quant',platform:'web',deviceId:'paper-authority-test',deviceKey:device.getPublicKey(null,'compressed').toString('base64url'),nonce:'nonce_abcdefghijklmnopqrstuvwxyz12',state:'state_abcdefghijklmnopqrstuvwxyz12',scopes:['quant:paper:workspace'],purpose:'Paper simulation only'},now);
   await authority.approveOrigin(request.origin,status.account);
   const pending=await authority.request({origin:request.origin,method:'ynx_requestProductSessionV2',params:[encodeRequestDeepLink(request)]});
   assert.match(pending.request.review.warning,/Simulated Paper.*No real money, live trading, schedules or Testnet transactions/);
   assert.deepEqual(pending.request.review.request.scopes,['quant:paper:workspace']);
-  const returned=(await authority.approve(pending.request.id)).result;
-  assert.deepEqual(parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,returned.returnUrl,now).approval.scopes,['quant:paper:workspace']);
+  await assert.rejects(authority.approve(pending.request.id),e=>e.data?.code==='ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED');
+  assert.deepEqual(request.scopes,['quant:paper:workspace']);
 });

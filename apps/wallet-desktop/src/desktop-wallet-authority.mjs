@@ -1,6 +1,6 @@
 import { randomUUID,createHash } from "node:crypto";
 import { Wallet, TypedDataEncoder, formatEther, getBytes, isAddress, isHexString } from "ethers";
-import { createProductSessionReturnURL, parseProductSessionWalletURL, signProductSessionApproval,evmAddressFromYNX,ynxAddressFromEVM,productSessionRequestDigest,parseProductSessionApproval } from "@ynx-chain/wallet-auth";
+import { createProductSessionReturnURL, parseProductSessionWalletURL,evmAddressFromYNX,ynxAddressFromEVM,productSessionRequestDigest } from "@ynx-chain/wallet-auth";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn, signCentralSignIn } from "./central-browser-sign-in.mjs";
@@ -232,16 +232,10 @@ export class DesktopWalletAuthority {
   async selectAccount(account) { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.selectAccount(account); }
   async approveCanonicalAuthorization(request, issuedAt, expectedAccount, permission, requestId=null) {
     if (!/^0x[0-9a-f]{40}$/.test(expectedAccount ?? "")) throw providerError(4100, "ACCOUNT_REVIEW_REQUIRED", "Review the selected account before approving");
-    // Normal main always supplies this port. Its refusal never falls through
-    // to historical classic authorization, even on cached/cold requests.
-    if(this.#pqSessionSource)return this.#trackPQ(()=>this.#approveCurrentSession(request,expectedAccount,permission,{requestId}));
-    return this.vault.withSecret((secret, identity) => {
-      permission?.assert();
-      if (identity.account !== expectedAccount) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the request again.");
-      const at = new Date(issuedAt);
-      const approval = signProductSessionApproval(PRODUCT_SESSION_REGISTRY, request, { accountSecret: secret, scopes: request.scopes, expiresAt: request.expiresAt, ...(request.serviceConsent ? { approvedServiceConsent: request.serviceConsent } : {}) }, at);
-      return Object.freeze({ approval, callbackUrl: createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, request, { result: "approved", approval }, at) });
-    },permission);
+    // YNX first-party account authentication uses the current dual-PQ policy
+    // and original V3 producer only. Missing supply is not a classic grant.
+    if(!this.#pqSessionSource)throw providerError(4100,'ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Current PQ account policy is required; no classic fallback is available.');
+    return this.#trackPQ(()=>this.#approveCurrentSession(request,expectedAccount,permission,{requestId}));
   }
   reconcileCanonicalAuthorization(request,account,permission){
     if(!this.#pqSessionSource)throw providerError(4100,'ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Fresh committed policy is required for recovery.');
@@ -306,25 +300,12 @@ export class DesktopWalletAuthority {
       const originalAccount=ynxAddressFromEVM(account),observation=captureProductSessionAccountPolicy(resource,{networkId:this.#pqNetworkId,account:originalAccount},this.clock());
       if(await resource.recheck()!==undefined)throw providerError(4100,'ACCOUNT_POLICY_CURRENT_REFUSED','Current source recheck failed.');guard.assert();owner.assert();
       const at=this.clock(),policy=readProductSessionAccountPolicy(observation,originalAccount,at);
+      if(policy.algorithmVersion!=='YNX-BATCH/v0.1')throw providerError(4100,'ACCOUNT_PQ_POLICY_REQUIRED','Register the original dual-PQ account before approving a YNX product session.');
       if(saved){
-        if(policy.algorithmVersion==='legacy'){
-          if(saved.approval.version!=='2')throw providerError(4100,'ACCOUNT_POLICY_CHANGED','The retained approval does not match current account policy.');
-          const approval=parseProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,saved.approval,this.clock());
-          result=Object.freeze({approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval},this.clock()),originalRequestId:saved.requestId,recovered:true});
-        }else{
-          const verified=verifyPQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,saved.approval,observation,this.clock());
-          result=Object.freeze({approval:verified.approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval:verified.approval},this.clock(),verified.verifiedApproval),originalRequestId:saved.requestId,recovered:true});
-        }
+        const verified=verifyPQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,saved.approval,observation,this.clock());
+        result=Object.freeze({approval:verified.approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval:verified.approval},this.clock(),verified.verifiedApproval),originalRequestId:saved.requestId,recovered:true});
       }else{
       token=await store.reserveSessionOriginal({version:1,account,requestId:originalRequestId,requestDigest:digest,request,createdAt:at.toISOString(),approval:null,deliveryAttempted:false,cleanupComplete:false,firstCause:null,storageCause:null,cleanupCause:null},()=>guard.assert());guard.assert();
-      if(policy.algorithmVersion==='legacy'){
-        result=await this.vault.withSecret((secret,identity)=>{
-          guard.assert();assertReviewedAccount(identity.account,account);readProductSessionAccountPolicy(observation,originalAccount,this.clock());
-          const approval=signProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,{accountSecret:secret,scopes:request.scopes,expiresAt:request.expiresAt,...(request.serviceConsent?{approvedServiceConsent:request.serviceConsent}:{})},this.clock());
-          capture(approval);
-          return Object.freeze({approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval},this.clock())});
-        },permission);
-      }else{
         const binding=pqProductSessionRegisteredPublicBinding(observation,originalAccount,at),plan=preparePQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,{account:originalAccount,expiresAt:request.expiresAt,...(request.serviceConsent?{approvedServiceConsent:request.serviceConsent}:{})},observation,at);
         result=await this.vault.withPQKeys(binding,handle=>{
           guard.assert();readProductSessionAccountPolicy(observation,originalAccount,this.clock());
@@ -332,7 +313,6 @@ export class DesktopWalletAuthority {
           const verified=verifyPQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,approval,observation,this.clock());
           return Object.freeze({approval:verified.approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval:verified.approval},this.clock(),verified.verifiedApproval)});
         },permission);
-      }
       if(savePass)await savePass;
       }
       guard.assert();if(await resource.recheck()!==undefined)throw providerError(4100,'ACCOUNT_POLICY_CURRENT_REFUSED','Current source recheck failed.');guard.assert();readProductSessionAccountPolicy(observation,originalAccount,this.clock());
