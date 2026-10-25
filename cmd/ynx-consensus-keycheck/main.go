@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"golang.org/x/sys/unix"
 )
 
 // Each option may occur once. In particular, an explicitly empty validator
@@ -39,9 +40,10 @@ func (o *keycheckOption) Set(value string) error {
 func runKeyCheck(args []string, output, diagnostics io.Writer) int {
 	options := flag.NewFlagSet("ynx-consensus-keycheck", flag.ContinueOnError)
 	options.SetOutput(io.Discard)
-	var roleManifest, privateValidatorKey, nodeKey, role, keyDir keycheckOption
+	var roleManifest, privateValidatorKey, nodeKey, role, keyDir, recoveryDir, manifestHash keycheckOption
 	nodeOnly := keycheckOption{boolean: true}
 	inspect := keycheckOption{boolean: true}
+	recovery := keycheckOption{boolean: true}
 	options.Var(&roleManifest, "role-manifest", "approved public production role manifest")
 	options.Var(&privateValidatorKey, "private-validator-key", "host-local CometBFT private validator key file")
 	options.Var(&nodeKey, "node-key", "host-local CometBFT node key file")
@@ -49,8 +51,41 @@ func runKeyCheck(args []string, output, diagnostics io.Writer) int {
 	options.Var(&inspect, "inspect-public-identity", "read existing host-local public identities only; no manifest match or signing authority")
 	options.Var(&role, "role", "existing custody role for public identity inspection only")
 	options.Var(&keyDir, "key-dir", "existing private custody directory for public identity inspection only")
+	options.Var(&recovery, "verify-isolated-recovery", "explicitly back up and restore only three original files to a new private same-host case; never live restore or signing")
+	options.Var(&recoveryDir, "recovery-dir", "new exclusive private case under an existing canonical owner-controlled parent")
+	options.Var(&manifestHash, "role-manifest-sha256", "independent exact public role manifest SHA256 for isolated recovery only")
 	if err := options.Parse(args); err != nil || options.NArg() != 0 {
 		fmt.Fprintln(diagnostics, "invalid, repeated or positional keycheck option")
+		return 1
+	}
+	if recovery.seen {
+		if inspect.seen || nodeOnly.seen || privateValidatorKey.seen || nodeKey.seen || !role.seen || !keyDir.seen || !recoveryDir.seen || !roleManifest.seen || !manifestHash.seen || !validKeycheckInspectionRole(role.value) || !validKeycheckCustodyPath(keyDir.value) || !validKeycheckCustodyPath(recoveryDir.value) {
+			fmt.Fprintln(diagnostics, "isolated recovery requires only explicit original role/key-dir, new recovery-dir and pinned role manifest")
+			return 1
+		}
+		receipt, err := verifyIsolatedKeyRecovery(role.value, keyDir.value, recoveryDir.value, roleManifest.value, manifestHash.value, realKeyRecoveryIO())
+		if err != nil {
+			var stage keyRecoveryStageError
+			if errors.As(err, &stage) {
+				fmt.Fprintln(diagnostics, stage.Error())
+			} else {
+				fmt.Fprintln(diagnostics, "ISOLATED_KEY_RECOVERY_REFUSED:UNKNOWN")
+			}
+			return 1
+		}
+		raw, err := json.Marshal(receipt)
+		if err != nil || len(raw) > 8191 {
+			fmt.Fprintln(diagnostics, "ISOLATED_KEY_RECOVERY_PUBLIC_RECEIPT_UNAVAILABLE")
+			return 1
+		}
+		if n, err := output.Write(append(raw, '\n')); err != nil || n != len(raw)+1 {
+			fmt.Fprintln(diagnostics, isolatedKeyRecoveryDeliveryUnknown)
+			return 1
+		}
+		return 0
+	}
+	if recoveryDir.seen || manifestHash.seen {
+		fmt.Fprintln(diagnostics, "recovery options require explicit -verify-isolated-recovery")
 		return 1
 	}
 	if inspect.seen {
@@ -245,10 +280,11 @@ func openKeycheckCustody(path string, directory bool) (_ *keycheckCustodyInput, 
 	if err != nil {
 		return nil, err
 	}
-	f, err := os.Open(path)
+	fd, err := unix.Open(path, unix.O_RDONLY|unix.O_NOFOLLOW|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
 	if err != nil {
 		return nil, err
 	}
+	f := os.NewFile(uintptr(fd), "original-custody-readonly")
 	input := &keycheckCustodyInput{path: path, file: f, info: before, identity: identity, directory: directory}
 	defer func() {
 		if resultErr != nil {

@@ -176,7 +176,7 @@ case "$command" in
   'umask 077; mkdir -m 0700 '*) stage=reserve ;;
   'umask 077; cat > '*) stage=copy ;;
   'chmod 0755 '*) stage=ceremony ;;
-  'sudo /bin/bash -s -- '*) stage=pq ;;
+  'sudo -n /usr/bin/timeout --signal=TERM --kill-after=1 25 '*) stage=pq ;;
   'sudo -u ynx /usr/bin/head -c 262145 -- '*) stage=pq-wire ;;
   *) printf 'unexpected fixture transport command\n' >&2; exit 95 ;;
 esac
@@ -201,24 +201,47 @@ if [[ $stage == pq ]]; then
   grep -Fq 'decrypt --name=ynx-pq-recovery' "$FIXTURE_ROOT/remote-body.sh"
   grep -Fq -- '--state-dir "$state"' "$FIXTURE_ROOT/remote-body.sh"
   grep -Fq -- '--legacy-key-fd 3' "$FIXTURE_ROOT/remote-body.sh"
-  ! grep -Eq 'chown -R|priv_validator_state|rm -|systemctl (start|stop)|broadcast_tx' "$FIXTURE_ROOT/remote-body.sh"
+  grep -Fq 'cp -P -- "$stage/$binary" "$stage/verified/$binary"' "$FIXTURE_ROOT/remote-body.sh"
+  ! grep -Eq 'chown -R|cat .*priv_validator_state|rm -|systemctl (start|stop)|broadcast_tx' "$FIXTURE_ROOT/remote-body.sh"
   # The command comes from this original controlled caller; eval only unquotes
   # its printf-%q argv. Nothing here executes the remote root source or ELF.
   eval "set -- $command"
-  [[ $1 == sudo && $2 == /bin/bash && $3 == -s && $4 == -- ]]
-  shift 4
+  [[ $1 == sudo && $2 == -n && $3 == /usr/bin/timeout ]]
+  while [[ $# -gt 0 && $1 != -- ]]; do shift; done
+  [[ $# -gt 0 ]]; shift
   phase=$1; selected=$2; remote_stage=$3; binary=$4; binary_pin=$5
   out=$6; state_path=$7; approval=$8; input_pin=$9; genesis_pin=${10}; credential_pin=${11}
-  [[ $# == 11 && $selected == "$role" && $role == primary && $remote_stage == "$FIXTURE_ROOT/remote/$role/stage/"* ]]
+  recovery_parent=${12}; recovery_manifest=${13}
+  [[ $# == 13 && $selected == "$role" && $role == primary && $remote_stage == "$FIXTURE_ROOT/remote/$role/stage/"* ]]
   [[ $(sha256sum "$remote_stage/$binary" | cut -d ' ' -f 1) == "$binary_pin" ]]
   [[ $out == '' || $out == "$FIXTURE_ROOT/remote/$role/"* ]]
   [[ $state_path == '' || $state_path == "$FIXTURE_ROOT/remote/$role/"* ]]
   [[ $approval == '' || $approval == "$FIXTURE_ROOT/remote/$role/"* ]]
-  if [[ $phase != pq-inspect ]]; then
+  if [[ $phase != pq-inspect && $phase != legacy-verify-recovery ]]; then
     [[ $(sha256sum "$remote_stage/public-input.json" | cut -d ' ' -f 1) == "$input_pin" ]]
     [[ $(sha256sum "$remote_stage/genesis.json" | cut -d ' ' -f 1) == "$genesis_pin" ]]
   fi
   case "$phase" in
+    legacy-verify-recovery)
+      [[ $binary == ynx-consensus-keycheck && $out == '' && $state_path == '' && $credential_pin == '' && $genesis_pin == '' && $recovery_parent == "$FIXTURE_ROOT/remote/primary/isolated-recovery" && ! -e $recovery_parent ]]
+      [[ $recovery_manifest == /opt/ynx-chain/consensus-candidates/ynx-consensus-candidate-abcdef012345/primary/role/role-manifest.json ]]
+      grep -Fq -- '--verify-isolated-recovery --role "$role" --key-dir "$original"' "$FIXTURE_ROOT/remote-body.sh"
+      grep -Fq 'GOMAXPROCS=1 GOMEMLIMIT=96MiB' "$FIXTURE_ROOT/remote-body.sh"
+      mkdir -m 0700 "$recovery_parent" "$recovery_parent/attempt" "$recovery_parent/attempt/backup" "$recovery_parent/attempt/restored"
+      for name in priv_validator_key.json priv_validator_state.json node_key.json; do
+        cp "$FIXTURE_ROOT/remote/$role/$role/$name" "$recovery_parent/attempt/backup/$name"
+        cp "$recovery_parent/attempt/backup/$name" "$recovery_parent/attempt/restored/$name"
+      done
+      printf 'PQ|isolated-recovery|%s|original-ynx-uid|no-live-write\n' "$role" >>"$FIXTURE_EVENTS"
+      python3 - "$role" "$recovery_parent" "$input_pin" <<'PY'
+import json, sys
+role, parent, pin = sys.argv[1:]
+v = dict(version='YNX-CONSENSUS-KEYCHECK-ISOLATED-RECOVERY/v1', role=role, roleManifestSHA256=pin, sourceDirectory='/etc/ynx/consensus-candidate/'+role, privateRecoveryDirectory=parent+'/attempt')
+for key in ('sourceReadOnly','sourceFilesUnchanged','backupBytesMatched','restoreBytesMatched','restoredIdentityMatched','restoredHRSConsistency','manifestMatched','isolatedRecoveryVerified','sameHost'): v[key] = True
+for key in ('offHostRecoveryVerified','hrsHistoryVerified','independentReview','authorityGranted','signingPerformed','liveRestorePerformed','serviceChanged','rotationVerified'): v[key] = False
+print(json.dumps(v))
+PY
+      ;;
     pq-new-epoch)
       [[ $binary == ynx-consensus-pq-key-init && -n $credential_pin && ! -e $out && ! -e $state_path ]]
       mkdir -m 0700 "$out" "$state_path"
@@ -312,7 +335,14 @@ seed_custody() {
     done
   done
 }
-custody_digest() { find "$case_root/remote" -type f \( -name '*key.json' -o -name priv_validator_state.json \) | sort | xargs sha256sum; }
+custody_digest() {
+  local role name
+  for role in primary singapore silicon-valley seoul; do
+    for name in priv_validator_key.json priv_validator_state.json node_key.json; do
+      sha256sum "$case_root/remote/$role/$role/$name"
+    done
+  done
+}
 
 new_case existing-work
 mkdir -p "$case_root/work/public"
@@ -425,6 +455,7 @@ new_pq_case() {
   pq_genesis="$case_root/genesis.json"; pq_genesis_pin="$(sha256sum "$pq_genesis" | cut -d ' ' -f 1)"
   pq_out="$case_root/remote/primary/new-custody"; pq_state="$case_root/remote/primary/new-history"
   pq_approval=''; pq_public=''; pq_public_pin=''; pq_credential_pin="$(printf 'c%.0s' {1..64})"; pq_runtime_pin=$runtime_pin
+  pq_recovery_parent=''; pq_recovery_manifest=''; pq_recovery_manifest_pin=''
 }
 run_pq_caller() {
   env -i PATH="$tmp/bin:/usr/bin:/bin" ENV_FILE="$case_root/deploy.env" \
@@ -441,6 +472,9 @@ run_pq_caller() {
     CONSENSUS_PQ_KEY_DIRECTORY="$pq_out" CONSENSUS_PQ_STATE_DIRECTORY="$pq_state" \
     CONSENSUS_PQ_APPROVAL_DIRECTORY="$pq_approval" CONSENSUS_PQ_PUBLIC_RECORD="$pq_public" \
     CONSENSUS_PQ_PUBLIC_RECORD_SHA256="$pq_public_pin" CONSENSUS_PQ_ENCRYPTED_CREDENTIAL_SHA256="$pq_credential_pin" \
+    CONSENSUS_LEGACY_RECOVERY_PARENT="$pq_recovery_parent" \
+    CONSENSUS_LEGACY_RECOVERY_ROLE_MANIFEST_REMOTE="$pq_recovery_manifest" \
+    CONSENSUS_LEGACY_RECOVERY_ROLE_MANIFEST_SHA256="$pq_recovery_manifest_pin" \
     YNX_SSH_CONTROL_DIR="$case_root/ssh-control" YNX_DEPLOY_CONNECTION_ATTEMPTS=5 \
     YNX_DEPLOY_CONNECTION_RETRY_DELAY_SECONDS=0 \
     bash "$tmp/repo/scripts/ops/init-consensus-candidate-keys.sh" >"$case_root/stdout" 2>"$case_root/stderr"
@@ -497,5 +531,45 @@ for failure in transport late-decrypt; do
   if run_pq_caller; then fail 'PQ UNKNOWN work replayed'; fi
   [[ $before == "$(sha256sum "$case_root/events" "$pq_out/validator.encrypted" "$pq_state/original-sign-state.json")" ]] || fail 'PQ UNKNOWN originals changed or transport replayed'
 done
+
+prepare_recovery_case() {
+  pq_phase=legacy-verify-recovery; pq_out=''; pq_state=''; pq_credential_pin=''; pq_genesis=''; pq_genesis_pin=''
+  pq_input=''; pq_input_pin=''
+  pq_recovery_parent="$case_root/remote/primary/isolated-recovery"
+  pq_recovery_manifest=/opt/ynx-chain/consensus-candidates/ynx-consensus-candidate-abcdef012345/primary/role/role-manifest.json
+  pq_recovery_manifest_pin="$(printf 'd%.0s' {1..64})"
+  seed_custody
+}
+new_pq_case original-isolated-recovery
+prepare_recovery_case
+before="$(custody_digest)"
+run_pq_caller
+[[ $(count_events 'PQ|isolated-recovery|primary|original-ynx-uid|no-live-write') == 1 && $(count_events 'PQ|new-epoch|') == 0 && $(count_events 'PQ|approve-first|') == 0 && $(count_events 'BUILD') == 0 ]] || fail 'isolated recovery expanded to key creation/approval/local build'
+[[ $before == "$(custody_digest)" && -s $case_root/work/public/primary.json ]] || fail 'isolated recovery changed originals or lost public receipt'
+[[ $(count_events 'SSH|primary|') == 3 && $(count_events 'SSH|singapore|') == 0 ]] || fail 'isolated recovery escaped selected original role'
+for name in priv_validator_key.json priv_validator_state.json node_key.json; do
+  cmp "$case_root/remote/primary/primary/$name" "$pq_recovery_parent/attempt/backup/$name" >/dev/null
+  cmp "$pq_recovery_parent/attempt/backup/$name" "$pq_recovery_parent/attempt/restored/$name" >/dev/null
+done
+for bad in missing-pin foreign-role-manifest live-parent credential; do
+  new_pq_case "recovery-refuse-$bad"
+  prepare_recovery_case
+  case "$bad" in
+    missing-pin) pq_recovery_manifest_pin='' ;;
+    foreign-role-manifest) pq_recovery_manifest=${pq_recovery_manifest/\/primary\/role/\/seoul\/role} ;;
+    live-parent) pq_recovery_parent=/etc/ynx/consensus-candidate/primary/recovery ;;
+    credential) pq_credential_pin="$(printf 'c%.0s' {1..64})" ;;
+  esac
+  if run_pq_caller; then fail "isolated recovery accepted $bad"; fi
+  [[ $(count_events 'SSH|') == 0 && ! -e $case_root/work ]] || fail 'invalid recovery input reached transport'
+done
+new_pq_case recovery-lost-ack
+prepare_recovery_case
+remote_fail=pq:primary
+if run_pq_caller; then fail 'recovery lost ACK was accepted'; fi
+[[ -s $case_root/work/public/primary.json.partial && ! -e $case_root/work/public/primary.json && -s $pq_recovery_parent/attempt/restored/priv_validator_state.json ]] || fail 'recovery UNKNOWN result was erased or falsely published'
+before="$(sha256sum "$case_root/events")"
+if run_pq_caller; then fail 'recovery UNKNOWN replayed'; fi
+[[ $before == "$(sha256sum "$case_root/events")" ]] || fail 'recovery lost ACK retried'
 
 printf 'INIT_CONSENSUS_CANDIDATE_KEYS_CONTROLS_DATA_ONLY: original callers and portable full runtime parser; inert ELF/public DATA with explicit remote-boundary models; no real keys, SSH, approval or deployment\n'

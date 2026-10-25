@@ -13,7 +13,7 @@ export YNX_DEPLOY_CONNECTION_ATTEMPTS=1
 # and inspection are independent operator actions, never an automatic sequence.
 phase="${CONSENSUS_CANDIDATE_KEY_PHASE:-legacy}"
 case "$phase" in
-  legacy|pq-new-epoch|pq-inspect|pq-approve-first-registration) ;;
+  legacy|legacy-verify-recovery|pq-new-epoch|pq-inspect|pq-approve-first-registration) ;;
   *) echo 'invalid CONSENSUS_CANDIDATE_KEY_PHASE' >&2; exit 64 ;;
 esac
 
@@ -30,6 +30,7 @@ pq_key_ceremony() {
   local approval="${CONSENSUS_PQ_APPROVAL_DIRECTORY:-}" credential_pin="${CONSENSUS_PQ_ENCRYPTED_CREDENTIAL_SHA256:-}"
   local input='' input_pin='' genesis="${CONSENSUS_PQ_CONSENSUS_GENESIS:-}" genesis_pin="${CONSENSUS_PQ_CONSENSUS_GENESIS_SHA256:-}"
   local binary=ynx-consensus-pq-key-init binary_pin stage command attempt
+  local recovery_parent="${CONSENSUS_LEGACY_RECOVERY_PARENT:-}" recovery_manifest="${CONSENSUS_LEGACY_RECOVERY_ROLE_MANIFEST_REMOTE:-}"
   [[ -z "${CONSENSUS_CANDIDATE_KEY_CEREMONY_RESUME:-}" ]] || { echo 'PQ phases are explicit; legacy RESUME is not accepted' >&2; return 64; }
   case "$role" in
     primary) user=$PRIMARY_NODE_USER; host=$PRIMARY_NODE_HOST; key=$PRIMARY_NODE_SSH_KEY ;;
@@ -69,6 +70,13 @@ except (OSError, ValueError, AssertionError):
 PUBLIC_PIN
   }
   case "$phase" in
+    legacy-verify-recovery)
+      binary=ynx-consensus-keycheck
+      input_pin="${CONSENSUS_LEGACY_RECOVERY_ROLE_MANIFEST_SHA256:-}"
+      pq_absolute "$recovery_parent" && pq_absolute "$recovery_manifest" && [[ $input_pin =~ ^[0-9a-f]{64}$ && $input_pin != "$(printf '0%.0s' {1..64})" ]] || { echo 'explicit new private recovery parent and independently pinned original remote public role manifest required' >&2; return 1; }
+      [[ $recovery_manifest =~ ^/opt/ynx-chain/consensus-candidates/ynx-consensus-candidate-[0-9a-f]{12}/$role/role/role-manifest\.json$ ]] || { echo 'recovery requires the exact original role public manifest path' >&2; return 1; }
+      [[ -z $out && -z $state && -z $approval && -z $credential_pin && -z $genesis && -z $genesis_pin && -z "${CONSENSUS_PQ_EPOCH_REQUEST:-}" && -z "${CONSENSUS_PQ_EPOCH_REQUEST_SHA256:-}" && -z "${CONSENSUS_PQ_PUBLIC_RECORD:-}" && -z "${CONSENSUS_PQ_PUBLIC_RECORD_SHA256:-}" ]] || { echo 'legacy recovery cannot consume PQ creation, credential, approval or Genesis options' >&2; return 1; }
+      [[ $recovery_parent != /etc/ynx/consensus-candidate && $recovery_parent != /etc/ynx/consensus-candidate/* ]] || { echo 'recovery cannot write into original custody' >&2; return 1; } ;;
     pq-new-epoch)
       input="${CONSENSUS_PQ_EPOCH_REQUEST:-}"; input_pin="${CONSENSUS_PQ_EPOCH_REQUEST_SHA256:-}"
       [[ $credential_pin =~ ^[0-9a-f]{64}$ ]] || { echo 'independent encrypted credential SHA256 is required' >&2; return 1; }
@@ -79,10 +87,10 @@ PUBLIC_PIN
       pq_absolute "$approval" || { echo 'explicit new original-owner approval directory required' >&2; return 1; }
       pq_public_pin "$input" "$input_pin" 262144 || { echo 'pinned original key-init public record required' >&2; return 1; } ;;
   esac
-  if [[ $phase != pq-inspect ]]; then
+  if [[ $phase != pq-inspect && $phase != legacy-verify-recovery ]]; then
     pq_public_pin "$genesis" "$genesis_pin" 67108864 || { echo 'independently pinned original Ed25519 Comet genesis required' >&2; return 1; }
   fi
-  if [[ $phase != pq-approve-first-registration ]]; then
+  if [[ $phase != pq-approve-first-registration && $phase != legacy-verify-recovery ]]; then
     pq_absolute "$out" && pq_absolute "$state" && [[ $out != "$state" && $out != "$state/"* && $state != "$out/"* ]] || { echo 'explicit disjoint custody and HRS directories required' >&2; return 1; }
   fi
   [[ -n $work && ! -e $work && ! -L $work ]] || { echo 'new exclusive PQ work directory required; retain earlier UNKNOWN' >&2; return 1; }
@@ -96,7 +104,7 @@ PUBLIC_PIN
   work="$(cd "$work" && pwd -P)"
   trap 'status=$?; printf "PQ ceremony UNKNOWN/failed attempt retained (exit=%s): %s; inspect the original, never regenerate or approve automatically\n" "$status" "$work" >&2; exit "$status"' ERR
   mkdir -m 0700 -- "$work/public"
-  printf 'phase=%s\nrole=%s\ncommit=%s\nruntimeManifestSHA256=%s\npublicInputSHA256=%s\nconsensusGenesisSHA256=%s\noutDirectory=%s\nstateDirectory=%s\napprovalDirectory=%s\n' "$phase" "$role" "$full_commit" "$manifest_pin" "$input_pin" "$genesis_pin" "$out" "$state" "$approval" >"$work/intent.txt"
+  printf 'phase=%s\nrole=%s\ncommit=%s\nruntimeManifestSHA256=%s\npublicInputSHA256=%s\nconsensusGenesisSHA256=%s\noutDirectory=%s\nstateDirectory=%s\napprovalDirectory=%s\nrecoveryParent=%s\nrecoveryPublicManifest=%s\n' "$phase" "$role" "$full_commit" "$manifest_pin" "$input_pin" "$genesis_pin" "$out" "$state" "$approval" "$recovery_parent" "$recovery_manifest" >"$work/intent.txt"
   prepare_runtime_bundle "$bundle" "$full_commit" "$manifest_pin" "$work/runtime"
   binary_pin="$(python3 -B -c 'import json,sys; from pathlib import Path; print(json.loads((Path(sys.argv[1])/"SOURCE.json").read_bytes())["binaries"][sys.argv[2]]["sha256"])' "$work/runtime" "$binary")"
   pq_public_pin "$work/runtime/$binary" "$binary_pin" 134217728
@@ -104,31 +112,39 @@ PUBLIC_PIN
   stage="/var/tmp/ynx-consensus-pq-ceremony-${full_commit:0:12}-${attempt}-${role}"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "umask 077; mkdir -m 0700 '$stage'" >"$work/reserve.stdout" 2>"$work/reserve.stderr"
   ynx_ops_copy "$role" "$user" "$host" "$key" "$work/runtime/$binary" "$stage/$binary" >"$work/binary.copy.stdout" 2>"$work/binary.copy.stderr"
-  if [[ $phase != pq-inspect ]]; then
+  if [[ $phase != pq-inspect && $phase != legacy-verify-recovery ]]; then
     ynx_ops_copy "$role" "$user" "$host" "$key" "$input" "$stage/public-input.json" >"$work/input.copy.stdout" 2>"$work/input.copy.stderr"
     ynx_ops_copy "$role" "$user" "$host" "$key" "$genesis" "$stage/genesis.json" >"$work/genesis.copy.stdout" 2>"$work/genesis.copy.stderr"
   fi
-  printf -v command '%q ' sudo /bin/bash -s -- "$phase" "$role" "$stage" "$binary" "$binary_pin" "$out" "$state" "$approval" "$input_pin" "$genesis_pin" "$credential_pin"
+  printf -v command '%q ' sudo -n /usr/bin/timeout --signal=TERM --kill-after=1 25 /usr/bin/env -i PATH=/usr/bin:/bin /bin/bash -s -- "$phase" "$role" "$stage" "$binary" "$binary_pin" "$out" "$state" "$approval" "$input_pin" "$genesis_pin" "$credential_pin" "$recovery_parent" "$recovery_manifest"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "$command" >"$work/public/$role.json.partial" 2>"$work/ceremony.stderr" <<'REMOTE_PQ'
 set -Eeuo pipefail
 umask 077
 phase=$1 role=$2 stage=$3 binary=$4 binary_pin=$5 out=$6 state=$7 approval=$8 input_pin=$9 genesis_pin=${10} credential_pin=${11}
+recovery_parent=${12} recovery_manifest=${13}
 fail() { printf 'PQ host ceremony refused: %s; preserve originals/UNKNOWN\n' "$1" >&2; exit 1; }
 [[ $EUID == 0 && $(uname -s):$(uname -m) == Linux:x86_64 ]] || fail 'normal privileged Linux host required'
 for tool in /usr/sbin/runuser /usr/bin/sha256sum /usr/bin/stat /usr/bin/realpath; do [[ -x $tool ]] || fail 'normal host tool missing'; done
 [[ -d $stage && ! -L $stage && $(realpath -e -- "$stage") == "$stage" ]] || fail 'original stage required'
-[[ -f $stage/$binary && ! -L $stage/$binary && $(stat -c %h -- "$stage/$binary") == 1 && $(sha256sum -- "$stage/$binary" | cut -d ' ' -f 1) == "$binary_pin" ]] || fail 'runtime binary pin changed'
-chown root:root -- "$stage" "$stage/$binary"
-chmod 0755 -- "$stage" "$stage/$binary"
-if [[ $phase != pq-inspect ]]; then
+chown root:root -- "$stage"
+chmod 0700 -- "$stage"
+mkdir -m 0700 -- "$stage/verified"
+[[ -f $stage/$binary && ! -L $stage/$binary && $(stat -c %h -- "$stage/$binary") == 1 ]] || fail 'original runtime transport file required'
+cp -P -- "$stage/$binary" "$stage/verified/$binary"
+[[ -f $stage/verified/$binary && ! -L $stage/verified/$binary && $(stat -c '%u:%h' -- "$stage/verified/$binary") == 0:1 && $(sha256sum -- "$stage/verified/$binary" | cut -d ' ' -f 1) == "$binary_pin" ]] || fail 'runtime binary pin changed'
+chmod 0755 -- "$stage/verified/$binary"
+if [[ $phase != pq-inspect && $phase != legacy-verify-recovery ]]; then
   for name in public-input.json genesis.json; do
     [[ -f $stage/$name && ! -L $stage/$name && $(stat -c %h -- "$stage/$name") == 1 ]] || fail 'public input is not original regular single-link file'
+    cp -P -- "$stage/$name" "$stage/verified/$name"
+    [[ -f $stage/verified/$name && ! -L $stage/verified/$name && $(stat -c '%u:%h' -- "$stage/verified/$name") == 0:1 ]] || fail 'public verified copy is not original root-owned regular file'
   done
-  [[ $(sha256sum -- "$stage/public-input.json" | cut -d ' ' -f 1) == "$input_pin" && $(sha256sum -- "$stage/genesis.json" | cut -d ' ' -f 1) == "$genesis_pin" ]] || fail 'original public input pin changed'
-  chown root:root -- "$stage/public-input.json" "$stage/genesis.json"
-  chmod 0444 -- "$stage/public-input.json" "$stage/genesis.json"
+  [[ $(sha256sum -- "$stage/verified/public-input.json" | cut -d ' ' -f 1) == "$input_pin" && $(sha256sum -- "$stage/verified/genesis.json" | cut -d ' ' -f 1) == "$genesis_pin" ]] || fail 'original public input pin changed'
+  chmod 0444 -- "$stage/verified/public-input.json" "$stage/verified/genesis.json"
 fi
-if [[ $phase == pq-approve-first-registration ]]; then
+chmod 0755 -- "$stage" "$stage/verified"
+stage="$stage/verified"
+if [[ $phase == pq-approve-first-registration || $phase == legacy-verify-recovery ]]; then
   owner=ynx
 else
   owner=ynx-pq-signer
@@ -145,6 +161,27 @@ trusted_parent() {
     directory=${directory%/*}; [[ -n $directory ]] || directory=/
   done
 }
+if [[ $phase == legacy-verify-recovery ]]; then
+  original="/etc/ynx/consensus-candidate/$role"
+  trusted_parent "$original"; trusted_parent "${recovery_parent%/*}"
+  [[ $(stat -c '%u:%a' -- "$original") == "$uid:700" ]] || fail 'original custody must remain owned by its original service UID'
+  for name in priv_validator_key.json priv_validator_state.json node_key.json; do
+    [[ -f $original/$name && ! -L $original/$name ]] || fail "missing-original-$name"
+    [[ $(stat -c '%u:%a:%h' -- "$original/$name") == "$uid:600:1" ]] || fail "unprotected-original-$name"
+  done
+  [[ ! -e $recovery_parent && ! -L $recovery_parent && $recovery_parent != "$original" && $recovery_parent != "$original/"* && $original != "$recovery_parent/"* ]] || fail 'new disjoint recovery parent required; retain original UNKNOWN'
+  [[ -f $recovery_manifest && ! -L $recovery_manifest && $(realpath -e -- "$recovery_manifest") == "$recovery_manifest" && $(stat -c %h -- "$recovery_manifest") == 1 ]] || fail 'original public role manifest unavailable'
+  cp -P -- "$recovery_manifest" "$stage/recovery-role-manifest.json"
+  [[ -f $stage/recovery-role-manifest.json && ! -L $stage/recovery-role-manifest.json && $(stat -c '%u:%h' -- "$stage/recovery-role-manifest.json") == 0:1 && $(sha256sum -- "$stage/recovery-role-manifest.json" | cut -d ' ' -f 1) == "$input_pin" ]] || fail 'independent original public role pin differs'
+  chown "$uid:$gid" -- "$stage/recovery-role-manifest.json"
+  chmod 0600 -- "$stage/recovery-role-manifest.json"
+  mkdir -m 0700 -- "$recovery_parent"
+  chown "$uid:$gid" -- "$recovery_parent"
+  # This exact normal keycheck copies only three fixed original files, then
+  # restores from its actual backup and verifies with the SAME original UID.
+  # It cannot sign, Save HRS, restore live paths, create keys or change services.
+  exec /usr/sbin/runuser -u ynx -- /usr/bin/env -i PATH=/usr/bin:/bin LANG=C TZ=UTC GOMAXPROCS=1 GOMEMLIMIT=96MiB GOGC=50 "$stage/$binary" --verify-isolated-recovery --role "$role" --key-dir "$original" --recovery-dir "$recovery_parent/attempt" --role-manifest "$stage/recovery-role-manifest.json" --role-manifest-sha256 "$input_pin"
+fi
 if [[ $phase == pq-approve-first-registration ]]; then
   legacy="/etc/ynx/consensus-candidate/$role/priv_validator_key.json"
   trusted_parent "${legacy%/*}"; trusted_parent "${approval%/*}"
@@ -178,14 +215,20 @@ REMOTE_PQ
     ynx_ops_ssh "$role" "$user" "$host" "$key" "sudo -u ynx /usr/bin/head -c 262145 -- '$approval/registration.wire'" >"$work/public/$role.registration.wire.partial" 2>"$work/registration.readback.stderr"
   fi
   if [[ ${DEPLOY_DRY_RUN:-0} != 1 ]]; then
-    python3 -B - "$phase" "$work/public/$role.json.partial" "$out" "$state" "$input_pin" "$genesis_pin" "$work/public/$role.registration.wire.partial" <<'PUBLIC_PQ'
+    python3 -B - "$phase" "$work/public/$role.json.partial" "$out" "$state" "$input_pin" "$genesis_pin" "$work/public/$role.registration.wire.partial" "$recovery_parent" "$role" <<'PUBLIC_PQ'
 import hashlib, json, sys
 from pathlib import Path
-phase, filename, out, state, source_pin, genesis_pin, wire = sys.argv[1:]
+phase, filename, out, state, source_pin, genesis_pin, wire, recovery, role = sys.argv[1:]
 with Path(filename).open('rb') as source: raw = source.read(262145)
 assert 0 < len(raw) <= 262144, 'bounded original public receipt required'
 v = json.loads(raw)
-if phase == 'pq-new-epoch':
+if phase == 'legacy-verify-recovery':
+    assert len(raw) <= 8192 and v['version'] == 'YNX-CONSENSUS-KEYCHECK-ISOLATED-RECOVERY/v1'
+    assert v['role'] == role and v['roleManifestSHA256'] == source_pin
+    assert v['sourceDirectory'] == '/etc/ynx/consensus-candidate/'+role and v['privateRecoveryDirectory'] == recovery+'/attempt'
+    assert all(v[k] is True for k in ('sourceReadOnly', 'sourceFilesUnchanged', 'backupBytesMatched', 'restoreBytesMatched', 'restoredIdentityMatched', 'restoredHRSConsistency', 'manifestMatched', 'isolatedRecoveryVerified', 'sameHost'))
+    assert all(v[k] is False for k in ('offHostRecoveryVerified', 'hrsHistoryVerified', 'independentReview', 'authorityGranted', 'signingPerformed', 'liveRestorePerformed', 'serviceChanged', 'rotationVerified'))
+elif phase == 'pq-new-epoch':
     assert v['format'] == 'YNX-CONSENSUS-PQ-CEREMONY-PUBLIC/v1'
     assert v['status'] == 'new_epoch_files_durable_registration_not_authorized'
     assert v['paths']['directory'] == out and v['paths']['state'] == state + '/original-sign-state.json'
