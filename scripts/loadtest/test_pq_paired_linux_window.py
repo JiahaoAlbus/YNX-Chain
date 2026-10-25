@@ -7,6 +7,7 @@ from contextlib import redirect_stdout, redirect_stderr
 import io
 import json
 import os
+import hashlib
 
 spec = importlib.util.spec_from_file_location("pq_linux_guard", Path(__file__).with_name("pq-paired-linux-window.py"))
 guard = importlib.util.module_from_spec(spec)
@@ -20,36 +21,193 @@ def stat_line(pid, parent=1, group=1, start=100, threads=2):
 
 
 class LinuxGuardControls(unittest.TestCase):
-    def business_recipe(self, temporary):
+    def business_recipe(self, temporary, fresh=False):
         # Parsing controls only. These ELF-shaped bytes are NEVER executed and
         # are not a compiler result, a signature, or a four-node qualification.
         parent = Path(temporary).resolve()
         source, case, build = parent / "source", parent / "case", parent / "case.build"
         (source / "internal/consensus").mkdir(parents=True)
-        for relative in guard.consensus_business_source_pins():
+        for relative in guard.consensus_business_source_pins(fresh):
             (source / relative).write_bytes((Path(__file__).resolve().parents[2] / relative).read_bytes())
         case.mkdir(mode=0o700); build.mkdir(mode=0o700)
-        manifest = dict(version="YNX-PQ-NETWORK-BUSINESS-BUILD/v1", protocolCommit="a" * 40,
-                        performanceClientCommit=guard.BUSINESS_CLIENT_COMMIT, sourceRoot=str(source),
-                        sourceLeaves={key: value["sha256"] for key, value in guard.consensus_business_source_pins().items()}, binaries={})
+        client = guard.FRESH_BUSINESS_CLIENT_COMMIT if fresh else guard.BUSINESS_CLIENT_COMMIT
+        profile = guard.FRESH_BUSINESS_E2E_PROFILE if fresh else guard.BUSINESS_E2E_PROFILE
+        manifest = dict(version="YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1" if fresh else "YNX-PQ-NETWORK-BUSINESS-BUILD/v1", protocolCommit="a" * 40,
+                        performanceClientCommit=client, sourceRoot=str(source),
+                        sourceLeaves={key: value["sha256"] for key, value in guard.consensus_business_source_pins(fresh).items()}, binaries={})
+        if fresh:
+            manifest["performanceClientTree"] = guard.FRESH_BUSINESS_CLIENT_TREE
         for name in guard.BUSINESS_BINARIES:
             binary = build / name
             binary.write_bytes(b"\x7fELF\x02\x01" + bytes(10) + b"\x02\x00\x3e\x00" + name.encode())
             binary.chmod(0o700)
             manifest["binaries"][name] = dict(path=str(binary), sha256=guard.digest(binary), bytes=binary.stat().st_size,
-                commit=guard.BUSINESS_CLIENT_COMMIT if name == "ynx-consensus-perf-client" else "a" * 40)
+                commit=client if name == "ynx-consensus-perf-client" else "a" * 40)
         path = build / "business-manifest.json"
         path.write_text(json.dumps(manifest)); path.chmod(0o600)
-        plan = dict(profile=guard.BUSINESS_E2E_PROFILE, caps=guard.fixed_caps(guard.BUSINESS_E2E_PROFILE),
+        plan = dict(profile=profile, caps=guard.fixed_caps(profile),
             sourceRoot=str(source), commit="a" * 40, executionAuthorized=False,
-            workingDirectory=str(source / "internal/consensus"), sourcePins=guard.consensus_business_source_pins(),
+            workingDirectory=str(source / "internal/consensus"), sourcePins=guard.consensus_business_source_pins(fresh),
             binaryPin={key: manifest["binaries"]["consensus.test"][key] for key in ("path", "sha256")},
             businessManifestPin=dict(path=str(path), sha256=guard.digest(path)),
-            command=[str(build / "consensus.test"), "-test.run=^" + guard.BUSINESS_E2E_TEST + "$", "-test.count=1", "-test.timeout=120s", "-test.v"])
-        plan["environment"] = guard.consensus_business_environment(plan, build)
+            command=[str(build / "consensus.test"), "-test.run=^" + (guard.FRESH_BUSINESS_E2E_TEST if fresh else guard.BUSINESS_E2E_TEST) + "$", "-test.count=1", "-test.timeout=120s", "-test.v"])
+        plan["environment"] = guard.consensus_business_environment(plan, build, fresh)
         prepared = case / "prepared.json"
         prepared.write_text(json.dumps(plan)); prepared.chmod(0o600)
         return plan, prepared, source, case, build, manifest
+
+    def fresh_output(self, manifest, pid=1234):
+        # Synthetic parser DATA only. No process, keys, node or client is run.
+        summary = dict(version="YNX-PQ-NETWORK-FRESH-PAIRED-BUSINESS/v1", syntheticOnly=True,
+            protocolCommit=manifest["protocolCommit"], clientCommit=guard.FRESH_BUSINESS_CLIENT_COMMIT,
+            clientTree=guard.FRESH_BUSINESS_CLIENT_TREE, binaries=manifest["binaries"], sourceLeaves=manifest["sourceLeaves"],
+            arms=[], phaseRows=[], clockDomain="pq-fresh:" + str(pid), sameVM=True, sameProcessPID=pid,
+            businessFinalized=32, birthsExcluded=34, sustainedTPSQualified=False, publicDeployment=False, nativeGrant=False)
+        for a, (name, mode) in enumerate((("before", "decode-index-again"), ("after", "reuse-validated-index"))):
+            start = 1000000000 + a * 20000000000
+            births = [dict(owner="0x" + format(100 + a * 100 + i, "040x"), fundingHash="0x" + format(1000 + a * 100 + i, "064x"),
+                abciTransactionHash="0x" + format(2000 + a * 100 + i, "064x"), nativeTransactionHash="0x" + format(3000 + a * 100 + i, "064x"),
+                height=11, index=i, activationHeight=12, registrationFinalized=True, finalizedBusinessMembers=0) for i in range(17)]
+            rows = []
+            for i in range(16):
+                native, abci = "0x" + format(4000 + a * 100 + i, "064x"), "0x" + format(5000 + a * 100 + i, "064x")
+                submission = dict(readbackIndexMode=mode, readbackOnly=False, submissionToFirstCommittedRPCObservationNs="1000",
+                    firstCommittedRPCObservationSource="post_response", firstCommittedRPCHeight="20", firstCommittedRPCIndex=i,
+                    abciTransactionHash=abci, nativeTransactionHash=native, transactionType="pq_transfer", executionHeight="20", cometIndex=i,
+                    submissionAttempts=1, originalReadbackAttempts=0, initialSubmissionUnknown=False, members=1,
+                    effectiveBusinessIncludedObserved=1, rejectedMembers=0, effectiveBusinessFinalized=0, independentFinalityVerified=False,
+                    registrationFinalized=False, consensusExecutionOutcome="", finalizedBusinessHashes=None, actualOfferToFinalityMeasured=False,
+                    sustainedTPSQualified=False, status="committed_observed", proofVerificationStatus="", proofVerifierSha256="", trustContextSha256="",
+                    verifierPreparationNs="0", verifierProcessNs="0", verifierEvidenceDurabilityNs="0", verifierResultValidationNs="0", proofVerificationNs="0",
+                    clientPhases={key: "100" for key in ("inputPreparationNs", "intentDurabilityNs", "submissionHTTPNs", "submissionValidationNs", "originalReadbackHTTPNs", "originalReadbackValidationNs", "proofCollectionHTTPNs", "collectorIdentityValidationNs", "proofDurabilityNs")})
+                readback = dict(submission, readbackOnly=True, submissionToFirstCommittedRPCObservationNs=None,
+                    firstCommittedRPCObservationSource="", firstCommittedRPCHeight="0", firstCommittedRPCIndex=None,
+                    submissionAttempts=0, originalReadbackAttempts=1, independentFinalityVerified=True, effectiveBusinessFinalized=1,
+                    consensusExecutionOutcome="succeeded", finalizedBusinessHashes=[native], proofVerificationStatus="verified_original_transaction",
+                    proofVerifierSha256=manifest["binaries"]["ynx-consensus-proof-verify"]["sha256"], trustContextSha256="c" * 64)
+                offered, completed = start + i * 500000000, start + 9000000000 + i * 1000000
+                rows.append(dict(sender=births[i + 1]["owner"], nativeHash=native, abciHash=abci, height=20, index=i,
+                    offerOffsetNs=offered, offerLatenessNs=0, observedCompletionNs=offered + 1000000,
+                    independentCompletionNs=completed, offerToIndependentNs=completed - offered,
+                    independentTimingMeaning="upper-bound observation including queued proof verification; not consensus formation time",
+                    submission=submission, readback=readback))
+            summary["arms"].append(dict(name=name, readbackIndexMode=mode, genesisSHA256=str(a + 1) * 64,
+                activationHeight=10, initialHeight=1, finalHeight=25, births=births, rows=rows,
+                offeredBusiness=16, finalizedBusiness=16, maximumInFlight=4, offeredRatePerSecond=2,
+                businessWindowNs=10000000000, businessStartNs=start,
+                clockOrigin="paired selector origin shared by both arms and all Host/ABCI offsets; child client durations use their own clock",
+                clock=guard.FRESH_BUSINESS_CLOCK, sustainedTPSQualified=False))
+            for h in range(10, 26):
+                for node in range(4):
+                    at = start + h * 1000000
+                    summary["phaseRows"].append(dict(arm=name, nodeIndex=node, height=str(h), clockDomain=summary["clockDomain"], startNs=at, endNs=at + 10, phase="finalize"))
+                    summary["phaseRows"].append(dict(arm=name, nodeIndex=node, height=str(h), clockDomain=summary["clockDomain"], startNs=at + 11, endNs=at + 20, phase="commit",
+                        commitTiming=dict(height=h, storage="atomic-json", durable=True, elapsedNs=8, payloadBytes=100, stagesNs={"sync": 2})))
+        return summary
+
+    def fresh_stdout(self, summary):
+        return ("=== RUN   " + guard.FRESH_BUSINESS_E2E_TEST + "\n    pq_network_fresh_business_test.go:1089: PQ_NETWORK_FRESH_BUSINESS_SUMMARY "
+                + json.dumps(summary, separators=(",", ":")) + "\n--- PASS: " + guard.FRESH_BUSINESS_E2E_TEST + " (30.00s)\nPASS\n").encode()
+
+    def test_fresh_business_closed_source3_client70e7_whole_tree_and_original_caps(self):
+        self.assertEqual(guard.FRESH_BUSINESS_CLIENT_COMMIT, "70e7e450997a0ae77dbad5a8be3682f482c6ddd8")
+        self.assertEqual(guard.FRESH_BUSINESS_CLIENT_TREE, "4866cc3924c060eb6a29939915d39b1c5c625607")
+        self.assertEqual(guard.FRESH_BUSINESS_E2E_SOURCE_SHA256, "5b5cc231800157a2d4ac0ce07af43010c61ac18f9398e54711a18d6d9deb530f")
+        caps = guard.fixed_caps(guard.FRESH_BUSINESS_E2E_PROFILE)
+        self.assertEqual(caps, dict(guard.CAPS, privateBytes=536870912))
+        self.assertEqual([caps[k] for k in ("activeMs", "cleanupMs", "totalMs", "ownedRSSBytes", "ownedProcesses", "threads", "buildBytes")], [105000, 15000, 120000, 1073741824, 16, 320, 1073741824])
+        with tempfile.TemporaryDirectory() as tmp:
+            plan, prepared, source, case, build, _ = self.business_recipe(tmp, True)
+            self.assertEqual(guard.validate_consensus_fresh_business_recipe(plan, prepared, inherited={}), (source, case, plan["command"], plan["environment"]))
+            captured = guard.validate_consensus_business_files(plan, source, build, fresh=True)
+            self.assertEqual(len(captured), 8)
+            self.assertEqual(guard.consensus_runtime_environment(plan["environment"], case, build, plan["profile"], {"UNTRUSTED": "ignored"}), dict(plan["environment"], PATH="/usr/bin:/bin", TMPDIR=str(case / "tmp")))
+            for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_NETWORK_BUSINESS_E2E", "YNX_PQ_NETWORK_REMOTE_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT"):
+                with self.subTest(key=key), self.assertRaises(RuntimeError):
+                    guard.validate_consensus_fresh_business_recipe(plan, prepared, inherited={key: ""})
+            original = (source / guard.FRESH_BUSINESS_E2E_SOURCE).read_bytes()
+            target = source / guard.FRESH_BUSINESS_E2E_SOURCE
+            replacement = target.with_name(target.name + ".replacement")
+            replacement.write_bytes(original); replacement.replace(target)
+            with self.assertRaises(RuntimeError): guard.validate_consensus_business_files(plan, source, build, captured, True)
+
+    def test_fresh_business_rejects_old_case_manifest_client_tree_source_or_expanded_limits(self):
+        for mutate in (lambda p:p.update(profile=guard.BUSINESS_E2E_PROFILE), lambda p:p.update(executionAuthorized=True),
+                       lambda p:p["caps"].update(activeMs=106000), lambda p:p["caps"].update(privateBytes=536870913),
+                       lambda p:p["sourcePins"].pop(guard.FRESH_BUSINESS_E2E_SOURCE),
+                       lambda p:p["command"].__setitem__(1, "-test.run=^" + guard.BUSINESS_E2E_TEST + "$"),
+                       lambda p:p["environment"].update(YNX_PQ_NETWORK_BUSINESS_E2E="authorized-four-node-business-window")):
+            with tempfile.TemporaryDirectory() as tmp:
+                plan, prepared, *_ = self.business_recipe(tmp, True); mutate(plan)
+                with self.assertRaises(RuntimeError): guard.validate_consensus_fresh_business_recipe(plan, prepared, inherited={})
+        for mode in ("old-version", "old-client", "package-tree", "missing-source", "extra-field", "duplicate", "old-UNKNOWN"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as tmp:
+                plan, prepared, source, case, build, manifest = self.business_recipe(tmp, True)
+                if mode == "old-version": manifest["version"] = "YNX-PQ-NETWORK-BUSINESS-BUILD/v1"
+                elif mode == "old-client": manifest["performanceClientCommit"] = guard.BUSINESS_CLIENT_COMMIT
+                elif mode == "package-tree": manifest["performanceClientTree"] = "1" * 40
+                elif mode == "missing-source": manifest["sourceLeaves"].pop(guard.FRESH_BUSINESS_E2E_SOURCE)
+                elif mode == "extra-field": manifest["fallback"] = True
+                elif mode == "old-UNKNOWN": (case / "UNKNOWN").write_bytes(b"retain exact old attempt")
+                path = build / "business-manifest.json"; raw = json.dumps(manifest).encode()
+                if mode == "duplicate": raw = raw.replace(b'"version":', b'"version":"ignored","version":', 1)
+                path.write_bytes(raw); plan["businessManifestPin"]["sha256"] = guard.digest(path)
+                plan["environment"] = guard.consensus_business_environment(plan, build, True)
+                before = {str(p): p.read_bytes() for folder in (case, build) for p in folder.rglob("*") if p.is_file()}
+                with self.assertRaises(RuntimeError): guard.validate_consensus_fresh_business_recipe(plan, prepared, inherited={})
+                self.assertEqual(before, {str(p): p.read_bytes() for folder in (case, build) for p in folder.rglob("*") if p.is_file()})
+
+    def test_fresh_business_real_summary_binding_numeric_phases_and_unknown_are_not_invented(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            *_, manifest = self.business_recipe(tmp, True)
+            summary = self.fresh_output(manifest)
+            evidence = guard.validate_consensus_fresh_business_result(self.fresh_stdout(summary), b"", 0, manifest, 1234)
+            self.assertEqual(evidence["freshBusiness"], summary)
+            self.assertEqual(evidence["resultSHA256"], hashlib.sha256(json.dumps(summary, separators=(",", ":")).encode()).hexdigest())
+            row = summary["arms"][0]["rows"][0]["submission"]
+            row.update(status="submission_unknown", initialSubmissionUnknown=True, effectiveBusinessIncludedObserved=0,
+                submissionToFirstCommittedRPCObservationNs=None, firstCommittedRPCObservationSource="", firstCommittedRPCHeight="0", firstCommittedRPCIndex=None)
+            evidence = guard.validate_consensus_fresh_business_result(self.fresh_stdout(summary), b"", 0, manifest, 1234)
+            self.assertEqual((evidence["firstRPCMissing"], evidence["initialUNKNOWN"]), (1, 1))
+            self.assertIsNone(evidence["freshBusiness"]["arms"][0]["rows"][0]["submission"]["submissionToFirstCommittedRPCObservationNs"])
+
+    def test_fresh_business_refuses_missing_proof_first_rpc_false_credit_or_numeric_phase_corruption(self):
+        mutations = [lambda s:s.update(businessFinalized=34), lambda s:s.update(birthsExcluded=32), lambda s:s.update(sameProcessPID=1235),
+            lambda s:s.update(clockDomain="pq-fresh:other"), lambda s:s.update(nativeGrant=True), lambda s:s["sourceLeaves"].clear(),
+            lambda s:s["arms"][0]["births"][0].update(finalizedBusinessMembers=1),
+            lambda s:s["arms"][1]["births"][0].update(owner=s["arms"][0]["births"][0]["owner"]),
+            lambda s:s["arms"][0]["rows"].pop(), lambda s:s["arms"][0]["rows"][0]["readback"].update(independentFinalityVerified=False),
+            lambda s:s["arms"][0]["rows"][0]["readback"].update(proofVerifierSha256="0" * 64),
+            lambda s:s["arms"][0]["rows"][0]["submission"].update(submissionToFirstCommittedRPCObservationNs=None),
+            lambda s:s["arms"][0]["rows"][0].update(offerToIndependentNs=1),
+            lambda s:s["phaseRows"][0].update(startNs="100"), lambda s:s["phaseRows"][1]["commitTiming"].update(elapsedNs="8"),
+            lambda s:s["phaseRows"][1]["commitTiming"].update(durable=False), lambda s:s["phaseRows"].pop(),
+            lambda s:s["phaseRows"].append(dict(s["phaseRows"][0])), lambda s:s["phaseRows"][0].update(height="020")]
+        with tempfile.TemporaryDirectory() as tmp:
+            *_, manifest = self.business_recipe(tmp, True)
+            for index, mutate in enumerate(mutations):
+                summary = self.fresh_output(manifest); mutate(summary)
+                with self.subTest(index=index), self.assertRaises(RuntimeError):
+                    guard.validate_consensus_fresh_business_result(self.fresh_stdout(summary), b"", 0, manifest, 1234)
+            raw = self.fresh_stdout(self.fresh_output(manifest))
+            for stdout, stderr, code in ((raw, b"", 1), (raw, b"warning", 0), (raw.replace(b"--- PASS:", b"--- SKIP:"), b"", 0),
+                                        (raw + b"PASS\n", b"", 0), (raw.replace(b'"phaseRows":', b'"phaseRows":[],"phaseRows":', 1), b"", 0),
+                                        (raw.replace(b'"syntheticOnly":true', b'"syntheticOnly":true' + b" " * (256 << 10), 1), b"", 0)):
+                with self.assertRaises(RuntimeError): guard.validate_consensus_fresh_business_result(stdout, stderr, code, manifest, 1234)
+
+    def test_fresh_business_explicit_cli_default_no_execution_and_all_modes_exclusive(self):
+        flag = "--consensus-fresh-paired-business"
+        for other in ("--consensus-e2e", "--consensus-e2e-retained-history", "--consensus-remote-e2e-retained-history", "--consensus-signed-business"):
+            with self.subTest(other=other), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit): guard.argument_parser().parse_args([other, flag])
+        with self.assertRaises(RuntimeError): guard.selected_profile(False, False, False, True, True)
+        with self.assertRaises(RuntimeError): guard.selected_profile(False, False, False, False, "true")
+        with mock.patch.object(guard, "run", return_value=7) as run:
+            output = io.StringIO()
+            with redirect_stdout(output): self.assertEqual(guard.main([flag]), 0)
+            run.assert_not_called()
+            self.assertEqual(json.loads(output.getvalue())["caps"], guard.fixed_caps(guard.FRESH_BUSINESS_E2E_PROFILE))
+            self.assertEqual(guard.main([flag, "--execute", "--prepared", "/unused/prepared.json", "--receipt", "/unused/receipt.json"]), 7)
+            self.assertEqual(run.call_args.kwargs, dict(case_n=1, consensus_e2e=False, consensus_e2e_retained_history=False, consensus_fresh_paired_business=True))
 
     def business_output(self):
         # Log parser controls only, never represented as an actual test PASS.

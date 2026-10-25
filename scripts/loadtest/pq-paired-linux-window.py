@@ -32,29 +32,33 @@ CAPS = dict(activeMs=105000, cleanupMs=15000, totalMs=120000,
 E2E_RETAINED_HISTORY_PROFILE = "consensus-e2e-retained-history-v1"
 REMOTE_E2E_RETAINED_HISTORY_PROFILE = "consensus-remote-e2e-retained-history-v1"
 BUSINESS_E2E_PROFILE = "consensus-signed-business-v1"
+FRESH_BUSINESS_E2E_PROFILE = "consensus-fresh-paired-business-v1"
 
 
 def fixed_caps(profile=None):
     # Profiles select reviewed constants; neither prepared JSON nor a caller
     # supplied dictionary can increase any limit. Keep the original CAPS intact.
-    if profile not in (None, "consensus-e2e", E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE, BUSINESS_E2E_PROFILE):
+    if profile not in (None, "consensus-e2e", E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE, BUSINESS_E2E_PROFILE, FRESH_BUSINESS_E2E_PROFILE):
         raise RuntimeError("unknown fixed resource profile")
     caps = dict(CAPS)
-    if profile in (E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE, BUSINESS_E2E_PROFILE):
+    if profile in (E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE, BUSINESS_E2E_PROFILE, FRESH_BUSINESS_E2E_PROFILE):
         caps["privateBytes"] = 536870912
     return caps
 
 
 def selected_profile(consensus_e2e=False, consensus_e2e_retained_history=False,
-                     consensus_remote_e2e_retained_history=False, consensus_signed_business=False):
+                     consensus_remote_e2e_retained_history=False, consensus_signed_business=False,
+                     consensus_fresh_paired_business=False):
     flags = (consensus_e2e, consensus_e2e_retained_history, consensus_remote_e2e_retained_history,
-             consensus_signed_business)
+             consensus_signed_business, consensus_fresh_paired_business)
     if any(type(flag) is not bool for flag in flags) or sum(flags) > 1:
         raise RuntimeError("consensus E2E profile flags are mutually exclusive")
     if consensus_remote_e2e_retained_history:
         return REMOTE_E2E_RETAINED_HISTORY_PROFILE
     if consensus_signed_business:
         return BUSINESS_E2E_PROFILE
+    if consensus_fresh_paired_business:
+        return FRESH_BUSINESS_E2E_PROFILE
     if consensus_e2e_retained_history:
         return E2E_RETAINED_HISTORY_PROFILE
     return "consensus-e2e" if consensus_e2e else None
@@ -81,6 +85,12 @@ BUSINESS_E2E_SOURCE = "internal/consensus/pq_network_business_test.go"
 # The owning test freezes this leaf together with the shared network source.
 BUSINESS_E2E_SOURCE_SHA256 = "7be691837779d42c9e86fcda32b2c1ee8fa701754336062be39f77bb30ba4d21"
 BUSINESS_CLIENT_COMMIT = "3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0"
+FRESH_BUSINESS_E2E_TEST = "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming"
+FRESH_BUSINESS_E2E_SOURCE = "internal/consensus/pq_network_fresh_business_test.go"
+FRESH_BUSINESS_E2E_SOURCE_SHA256 = "5b5cc231800157a2d4ac0ce07af43010c61ac18f9398e54711a18d6d9deb530f"
+FRESH_BUSINESS_CLIENT_COMMIT = "70e7e450997a0ae77dbad5a8be3682f482c6ddd8"
+FRESH_BUSINESS_CLIENT_TREE = "4866cc3924c060eb6a29939915d39b1c5c625607"
+FRESH_BUSINESS_CLOCK = "test-process time.Now monotonic elapsed; not a cross-process or wall-clock subtraction"
 BUSINESS_BINARIES = ("consensus.test", "ynx-bft-gatewayd", "ynx-consensus-perf-client",
                      "ynx-consensus-proof-verify")
 
@@ -305,18 +315,27 @@ def consensus_remote_environment(plan, build):
                 YNX_PQ_REMOTE_SIGNER_SHA256=pin["sha256"])
 
 
-def consensus_business_source_pins():
-    return {E2E_SOURCE: {"sha256": E2E_SOURCE_SHA256},
+def consensus_business_source_pins(fresh=False):
+    pins = {E2E_SOURCE: {"sha256": E2E_SOURCE_SHA256},
             BUSINESS_E2E_SOURCE: {"sha256": BUSINESS_E2E_SOURCE_SHA256}}
+    if fresh:
+        pins[FRESH_BUSINESS_E2E_SOURCE] = {"sha256": FRESH_BUSINESS_E2E_SOURCE_SHA256}
+    return pins
 
 
-def consensus_business_environment(plan, build):
+def consensus_business_environment(plan, build, fresh=False):
     pin = plan.get("businessManifestPin")
     if (not isinstance(pin, dict) or set(pin) != {"path", "sha256"}
             or pin.get("path") != str(build / "business-manifest.json")
             or not re.fullmatch(r"[0-9a-f]{64}", pin.get("sha256", ""))
             or pin["sha256"] == "0" * 64):
         raise RuntimeError("independent original business manifest pin required")
+    if fresh:
+        return dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
+                    YNX_PQ_NETWORK_FRESH_BUSINESS_E2E="authorized-fresh-four-node-business-window",
+                    YNX_PQ_NETWORK_FRESH_BUSINESS_MANIFEST=pin["path"],
+                    YNX_PQ_NETWORK_FRESH_BUSINESS_MANIFEST_SHA256=pin["sha256"],
+                    YNX_PQ_NETWORK_FRESH_BUSINESS_SOURCE_COMMIT=plan["commit"])
     return dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
                 YNX_PQ_NETWORK_BUSINESS_E2E="authorized-four-node-business-window",
                 YNX_PQ_NETWORK_BUSINESS_MANIFEST=pin["path"],
@@ -324,11 +343,11 @@ def consensus_business_environment(plan, build):
                 YNX_PQ_NETWORK_BUSINESS_SOURCE_COMMIT=plan["commit"])
 
 
-def validate_consensus_business_files(plan, source, build, captured=None):
+def validate_consensus_business_files(plan, source, build, captured=None, fresh=False):
     # The independent manifest commits the four real compiled executables. No
     # path or hash is selected from an RPC response or the test's own output.
     pin = plan["businessManifestPin"]
-    consensus_business_environment(plan, build)
+    consensus_business_environment(plan, build, fresh)
     manifest_path = build / "business-manifest.json"
     names = {*BUSINESS_BINARIES, manifest_path.name}
     temporary = build / "tmp"
@@ -349,22 +368,27 @@ def validate_consensus_business_files(plan, source, build, captured=None):
     if hashlib.sha256(raw).hexdigest() != pin["sha256"]:
         raise RuntimeError("business manifest SHA256 differs from independent pin")
     manifest = unique_json(raw)
-    if (not isinstance(manifest, dict) or set(manifest) != {"version", "protocolCommit", "performanceClientCommit", "sourceRoot", "sourceLeaves", "binaries"}
-            or manifest.get("version") != "YNX-PQ-NETWORK-BUSINESS-BUILD/v1"
+    fields = {"version", "protocolCommit", "performanceClientCommit", "sourceRoot", "sourceLeaves", "binaries"}
+    if fresh:
+        fields.add("performanceClientTree")
+    client_commit = FRESH_BUSINESS_CLIENT_COMMIT if fresh else BUSINESS_CLIENT_COMMIT
+    if (not isinstance(manifest, dict) or set(manifest) != fields
+            or manifest.get("version") != ("YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1" if fresh else "YNX-PQ-NETWORK-BUSINESS-BUILD/v1")
             or manifest.get("protocolCommit") != plan["commit"]
-            or manifest.get("performanceClientCommit") != BUSINESS_CLIENT_COMMIT
+            or manifest.get("performanceClientCommit") != client_commit
+            or fresh and manifest.get("performanceClientTree") != FRESH_BUSINESS_CLIENT_TREE
             or manifest.get("sourceRoot") != str(source)
-            or manifest.get("sourceLeaves") != {name: value["sha256"] for name, value in consensus_business_source_pins().items()}
+            or manifest.get("sourceLeaves") != {name: value["sha256"] for name, value in consensus_business_source_pins(fresh).items()}
             or not isinstance(manifest.get("binaries"), dict) or set(manifest["binaries"]) != set(BUSINESS_BINARIES)):
         raise RuntimeError("closed original business source/client manifest differs")
     if identity(before) != identity(manifest_path.lstat()):
         raise RuntimeError("business manifest changed while reading")
     identities = {str(manifest_path): identity(before)}
-    files = {source / relative: value["sha256"] for relative, value in consensus_business_source_pins().items()}
+    files = {source / relative: value["sha256"] for relative, value in consensus_business_source_pins(fresh).items()}
     total, hashes = 0, set()
     for name in BUSINESS_BINARIES:
         record = manifest["binaries"][name]
-        wanted_commit = BUSINESS_CLIENT_COMMIT if name == "ynx-consensus-perf-client" else plan["commit"]
+        wanted_commit = client_commit if name == "ynx-consensus-perf-client" else plan["commit"]
         binary = build / name
         if (not isinstance(record, dict) or set(record) != {"path", "sha256", "commit", "bytes"}
                 or record.get("path") != str(binary) or record.get("commit") != wanted_commit
@@ -408,13 +432,13 @@ def validate_consensus_business_files(plan, source, build, captured=None):
 
 
 def reject_inherited_remote_window_optins(inherited):
-    if any(key in inherited for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT", "YNX_PQ_NETWORK_BUSINESS_E2E")):
+    if any(key in inherited for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT", "YNX_PQ_NETWORK_BUSINESS_E2E", "YNX_PQ_NETWORK_FRESH_BUSINESS_E2E")):
         raise RuntimeError("remote network window cannot inherit the local network or separate process opt-in")
 
 
 def consensus_runtime_environment(pinned_env, case, build, profile, inherited):
-    if profile == BUSINESS_E2E_PROFILE:
-        reject_inherited_business_optins(inherited)
+    if profile in (BUSINESS_E2E_PROFILE, FRESH_BUSINESS_E2E_PROFILE):
+        reject_inherited_business_optins(inherited, profile == FRESH_BUSINESS_E2E_PROFILE)
         return dict(pinned_env, PATH="/usr/bin:/bin", TMPDIR=str(case / "tmp"))
     if profile == REMOTE_E2E_RETAINED_HISTORY_PROFILE:
         reject_inherited_remote_window_optins(inherited)
@@ -422,7 +446,7 @@ def consensus_runtime_environment(pinned_env, case, build, profile, inherited):
         # compiled test and normal daemon need only their fixed public runtime
         # environment, absolute executable paths and monitored private TMPDIR.
         return dict(pinned_env, PATH="/usr/bin:/bin", TMPDIR=str(case / "tmp"))
-    if any(key in inherited for key in ("YNX_PQ_NETWORK_REMOTE_E2E", "YNX_PQ_NETWORK_BUSINESS_E2E")):
+    if any(key in inherited for key in ("YNX_PQ_NETWORK_REMOTE_E2E", "YNX_PQ_NETWORK_BUSINESS_E2E", "YNX_PQ_NETWORK_FRESH_BUSINESS_E2E")):
         raise RuntimeError("local profile cannot inherit a remote network opt-in")
     environment = dict(inherited)
     environment.pop("YNX_CHAIN_STOPPED_WINDOW", None)
@@ -487,30 +511,37 @@ def validate_consensus_remote_e2e_recipe(plan, prepared, inherited=None):
     return validate_consensus_window_recipe(plan, prepared, REMOTE_E2E_RETAINED_HISTORY_PROFILE)
 
 
-def reject_inherited_business_optins(inherited):
-    if any(key in inherited for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_NETWORK_REMOTE_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT")):
+def reject_inherited_business_optins(inherited, fresh=False):
+    other = "YNX_PQ_NETWORK_BUSINESS_E2E" if fresh else "YNX_PQ_NETWORK_FRESH_BUSINESS_E2E"
+    if any(key in inherited for key in ("YNX_PQ_NETWORK_E2E", "YNX_PQ_NETWORK_REMOTE_E2E", "YNX_PQ_REMOTE_PROCESS", "YNX_PQ_REMOTE_PROCESS_LAYOUT", other)):
         raise RuntimeError("business window cannot inherit another network/process opt-in")
 
 
-def validate_consensus_business_recipe(plan, prepared, inherited=None):
-    reject_inherited_business_optins(os.environ if inherited is None else inherited)
+def validate_consensus_business_recipe(plan, prepared, inherited=None, fresh=False):
+    reject_inherited_business_optins(os.environ if inherited is None else inherited, fresh)
+    profile = FRESH_BUSINESS_E2E_PROFILE if fresh else BUSINESS_E2E_PROFILE
     if (set(plan) != {"profile", "caps", "sourceRoot", "commit", "executionAuthorized", "workingDirectory",
                       "sourcePins", "binaryPin", "businessManifestPin", "command", "environment"}
-            or plan.get("profile") != BUSINESS_E2E_PROFILE):
+            or plan.get("profile") != profile):
         raise RuntimeError("explicit closed signed-business recipe required")
     if (not isinstance(plan.get("sourceRoot"), str) or not Path(plan["sourceRoot"]).is_absolute()
             or str(Path(plan["sourceRoot"]).resolve(strict=True)) != plan["sourceRoot"]):
         raise RuntimeError("business source checkout must be canonical and absolute")
-    return validate_consensus_window_recipe(plan, prepared, BUSINESS_E2E_PROFILE)
+    return validate_consensus_window_recipe(plan, prepared, profile)
+
+
+def validate_consensus_fresh_business_recipe(plan, prepared, inherited=None):
+    return validate_consensus_business_recipe(plan, prepared, inherited, fresh=True)
 
 
 def validate_consensus_window_recipe(plan, prepared, profile):
     remote = profile == REMOTE_E2E_RETAINED_HISTORY_PROFILE
-    business = profile == BUSINESS_E2E_PROFILE
+    fresh = profile == FRESH_BUSINESS_E2E_PROFILE
+    business = profile in (BUSINESS_E2E_PROFILE, FRESH_BUSINESS_E2E_PROFILE)
     caps = fixed_caps(profile)
     # Old prepared recipes need no new field. A claimed cap is never ignored;
     # the new profile must explicitly commit all of its unchanged limits too.
-    if profile in (E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE, BUSINESS_E2E_PROFILE) or "caps" in plan:
+    if profile in (E2E_RETAINED_HISTORY_PROFILE, REMOTE_E2E_RETAINED_HISTORY_PROFILE, BUSINESS_E2E_PROFILE, FRESH_BUSINESS_E2E_PROFILE) or "caps" in plan:
         claimed = plan.get("caps")
         if (not isinstance(claimed, dict) or claimed != caps
                 or any(type(value) is not int for value in claimed.values())):
@@ -526,8 +557,8 @@ def validate_consensus_window_recipe(plan, prepared, profile):
             or not re.fullmatch(r"[0-9a-f]{40}", plan.get("commit", ""))
             or any(key in plan for key in ("n", "trial", "overlayPin", "productionMeasurementVersion"))):
         raise RuntimeError("explicit frozen consensus-e2e recipe required")
-    test_name = BUSINESS_E2E_TEST if business else REMOTE_E2E_TEST if remote else E2E_TEST
-    expected_env = (consensus_business_environment(plan, build) if business else
+    test_name = FRESH_BUSINESS_E2E_TEST if fresh else BUSINESS_E2E_TEST if business else REMOTE_E2E_TEST if remote else E2E_TEST
+    expected_env = (consensus_business_environment(plan, build, fresh) if business else
                     consensus_remote_environment(plan, build) if remote else E2E_ENV)
     expected = [str(build / "consensus.test"), "-test.run=^" + test_name + "$",
                 "-test.count=1", "-test.timeout=120s", "-test.v"]
@@ -540,7 +571,7 @@ def validate_consensus_window_recipe(plan, prepared, profile):
     if remote:
         required_pins = consensus_remote_source_pins()
     if business:
-        required_pins = consensus_business_source_pins()
+        required_pins = consensus_business_source_pins(fresh)
     if not isinstance(pins, dict) or pins != required_pins:
         raise RuntimeError("exact frozen consensus E2E source pins required")
     for relative, pin in required_pins.items():
@@ -569,7 +600,7 @@ def validate_consensus_window_recipe(plan, prepared, profile):
     if remote:
         validate_consensus_remote_e2e_files(plan, source, build)
     if business:
-        validate_consensus_business_files(plan, source, build)
+        validate_consensus_business_files(plan, source, build, fresh=fresh)
     return source, case, expected, dict(expected_env)
 
 
@@ -611,6 +642,170 @@ def validate_consensus_business_result(stdout, stderr, terminal_code, commit):
         hashes.add(row["transactionHash"])
     evidence["signedBusiness"] = summary
     return evidence
+
+
+def validate_consensus_fresh_business_result(stdout, stderr, terminal_code, manifest, child_pid):
+    # Only the pinned Go selector performs cryptography/real four-node effects.
+    # This gate binds its complete DATA receipt to admission, actual Popen PID
+    # and original numeric observations; it never invents missing RPC latency.
+    def require(ok, message):
+        if not ok:
+            raise RuntimeError("fresh business result: " + message)
+    def fields(value, names):
+        return isinstance(value, dict) and set(value) == set(names.split())
+    def integer(value, maximum=120000000000, minimum=0):
+        return type(value) is int and minimum <= value <= maximum
+    def decimal(value, maximum=(1 << 63) - 1, minimum=0):
+        return isinstance(value, str) and re.fullmatch(r"0|[1-9][0-9]*", value) is not None and minimum <= int(value) <= maximum
+    def hex_hash(value, prefix=False):
+        return isinstance(value, str) and re.fullmatch(("0x" if prefix else "") + r"[0-9a-f]{64}", value) is not None and value != ("0x" if prefix else "") + "0" * 64
+    require(type(terminal_code) is int and terminal_code == 0 and stderr == b"", "actual successful terminal code and empty stderr required")
+    text = stdout.decode("utf8", errors="strict")
+    require(not re.search(r"(?:--- (?:SKIP|FAIL):|^FAIL(?:\s|$)|^panic:|^fatal error:)", text, re.M), "skip/failure cannot qualify")
+    require(re.findall(r"^=== RUN   (.+)$", text, re.M) == [FRESH_BUSINESS_E2E_TEST]
+            and re.findall(r"^--- PASS: (\S+) \([0-9]+(?:\.[0-9]+)?s\)$", text, re.M) == [FRESH_BUSINESS_E2E_TEST]
+            and len(re.findall(r"^PASS$", text, re.M)) == 1 and text.splitlines()[-1:] == ["PASS"], "exact sole fresh RUN/PASS markers required")
+    markers = list(re.finditer(r"^[ \t]+pq_network_fresh_business_test\.go:[1-9][0-9]*: PQ_NETWORK_FRESH_BUSINESS_SUMMARY (\{[^\r\n]+\})$", text, re.M))
+    require(len(markers) == 1 and text.index("=== RUN   ") < markers[0].start() < text.index("--- PASS: "), "one original fresh summary before PASS required")
+    require(len(markers[0][1].encode("utf8")) <= 256 << 10, "original Go public summary bound exceeded")
+    summary = unique_json(markers[0][1])
+    require(fields(summary, "version syntheticOnly protocolCommit clientCommit clientTree binaries sourceLeaves arms phaseRows clockDomain sameVM sameProcessPID businessFinalized birthsExcluded sustainedTPSQualified publicDeployment nativeGrant"), "closed fresh summary required")
+    require(fields(manifest, "version protocolCommit performanceClientCommit performanceClientTree sourceRoot sourceLeaves binaries")
+            and manifest["version"] == "YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1"
+            and manifest["performanceClientCommit"] == FRESH_BUSINESS_CLIENT_COMMIT and manifest["performanceClientTree"] == FRESH_BUSINESS_CLIENT_TREE
+            and isinstance(manifest["protocolCommit"], str) and re.fullmatch(r"[0-9a-f]{40}", manifest["protocolCommit"]) is not None and manifest["protocolCommit"] != "0" * 40
+            and isinstance(manifest["binaries"], dict) and set(manifest["binaries"]) == set(BUSINESS_BINARIES)
+            and summary["version"] == "YNX-PQ-NETWORK-FRESH-PAIRED-BUSINESS/v1"
+            and summary["syntheticOnly"] is True and summary["sameVM"] is True
+            and summary["protocolCommit"] == manifest.get("protocolCommit")
+            and summary["clientCommit"] == FRESH_BUSINESS_CLIENT_COMMIT and summary["clientTree"] == FRESH_BUSINESS_CLIENT_TREE
+            and summary["binaries"] == manifest.get("binaries") and summary["sourceLeaves"] == manifest.get("sourceLeaves")
+            and summary["sourceLeaves"] == {key: pin["sha256"] for key, pin in consensus_business_source_pins(True).items()}
+            and integer(child_pid, (1 << 31) - 1, 1) and type(summary["sameProcessPID"]) is int and summary["sameProcessPID"] == child_pid
+            and summary["clockDomain"] == "pq-fresh:" + str(child_pid)
+            and type(summary["businessFinalized"]) is int and summary["businessFinalized"] == 32
+            and type(summary["birthsExcluded"]) is int and summary["birthsExcluded"] == 34
+            and all(summary[key] is False for key in ("sustainedTPSQualified", "publicDeployment", "nativeGrant")), "source, binary, PID/clock or DATA boundary differs")
+    arms = summary["arms"]
+    require(isinstance(arms, list) and len(arms) == 2, "both complete paired arms required")
+    seen_owners, seen_hashes, arm_by_name, missing_rpc = set(), set(), {}, 0
+    report_fields = "readbackIndexMode readbackOnly submissionToFirstCommittedRPCObservationNs firstCommittedRPCObservationSource firstCommittedRPCHeight firstCommittedRPCIndex abciTransactionHash nativeTransactionHash transactionType executionHeight cometIndex submissionAttempts originalReadbackAttempts initialSubmissionUnknown members effectiveBusinessIncludedObserved rejectedMembers effectiveBusinessFinalized independentFinalityVerified registrationFinalized consensusExecutionOutcome finalizedBusinessHashes actualOfferToFinalityMeasured sustainedTPSQualified status proofVerificationStatus proofVerifierSha256 trustContextSha256 verifierPreparationNs verifierProcessNs verifierEvidenceDurabilityNs verifierResultValidationNs proofVerificationNs clientPhases"
+    phase_fields = "inputPreparationNs intentDurabilityNs submissionHTTPNs submissionValidationNs originalReadbackHTTPNs originalReadbackValidationNs proofCollectionHTTPNs collectorIdentityValidationNs proofDurabilityNs"
+    bool_fields = "readbackOnly initialSubmissionUnknown independentFinalityVerified registrationFinalized actualOfferToFinalityMeasured sustainedTPSQualified".split()
+    count_fields = "submissionAttempts originalReadbackAttempts members effectiveBusinessIncludedObserved rejectedMembers effectiveBusinessFinalized".split()
+    proof_times = "verifierPreparationNs verifierProcessNs verifierEvidenceDurabilityNs verifierResultValidationNs proofVerificationNs".split()
+    for arm, name, mode in zip(arms, ("before", "after"), ("decode-index-again", "reuse-validated-index")):
+        require(fields(arm, "name readbackIndexMode genesisSHA256 activationHeight initialHeight finalHeight births rows offeredBusiness finalizedBusiness maximumInFlight offeredRatePerSecond businessWindowNs businessStartNs clockOrigin clock sustainedTPSQualified"), "closed arm required")
+        require(arm["name"] == name and arm["readbackIndexMode"] == mode and hex_hash(arm["genesisSHA256"])
+                and all(integer(arm[key], (1 << 63) - 1, 1) for key in ("initialHeight", "activationHeight", "finalHeight"))
+                and arm["initialHeight"] <= arm["activationHeight"] < arm["finalHeight"]
+                and arm["finalHeight"] - arm["initialHeight"] < 48
+                and type(arm["offeredBusiness"]) is int and arm["offeredBusiness"] == 16
+                and type(arm["finalizedBusiness"]) is int and arm["finalizedBusiness"] == 16
+                and integer(arm["maximumInFlight"], 4, 1) and type(arm["offeredRatePerSecond"]) is int and arm["offeredRatePerSecond"] == 2
+                and integer(arm["businessWindowNs"], minimum=1) and integer(arm["businessStartNs"])
+                and arm["clock"] == FRESH_BUSINESS_CLOCK and arm["clockOrigin"] == "paired selector origin shared by both arms and all Host/ABCI offsets; child client durations use their own clock"
+                and arm["sustainedTPSQualified"] is False, "arm count, rate, height or original clock differs")
+        if name == "after":
+            require(arm["businessStartNs"] >= arms[0]["businessStartNs"] + arms[0]["businessWindowNs"]
+                    and arm["genesisSHA256"] != arms[0]["genesisSHA256"], "arms must be ordered fresh independent sources")
+        births, rows = arm["births"], arm["rows"]
+        require(isinstance(births, list) and len(births) == 17 and isinstance(rows, list) and len(rows) == 16, "exact seventeen births and sixteen business rows per arm required")
+        arm_by_name[name] = arm
+        senders = set()
+        for birth in births:
+            require(fields(birth, "owner fundingHash abciTransactionHash nativeTransactionHash height index activationHeight registrationFinalized finalizedBusinessMembers")
+                    and isinstance(birth["owner"], str) and re.fullmatch(r"0x[0-9a-f]{40}", birth["owner"]) is not None
+                    and birth["owner"] not in seen_owners
+                    and all(hex_hash(birth[key], True) for key in ("fundingHash", "abciTransactionHash", "nativeTransactionHash"))
+                    and integer(birth["height"], arm["finalHeight"] - 1, arm["activationHeight"])
+                    and integer(birth["activationHeight"], arm["finalHeight"], birth["height"] + 1)
+                    and integer(birth["index"], (1 << 31) - 1) and birth["registrationFinalized"] is True
+                    and type(birth["finalizedBusinessMembers"]) is int and birth["finalizedBusinessMembers"] == 0, "birth cannot be reused or counted as business")
+            seen_owners.add(birth["owner"])
+        previous_offer = None
+        for ordinal, row in enumerate(rows):
+            require(fields(row, "sender nativeHash abciHash height index offerOffsetNs offerLatenessNs observedCompletionNs independentCompletionNs offerToIndependentNs independentTimingMeaning submission readback"), "closed original transfer row required")
+            require(row["sender"] in {birth["owner"] for birth in births[1:]} and row["sender"] not in senders
+                    and hex_hash(row["nativeHash"], True) and hex_hash(row["abciHash"], True)
+                    and row["nativeHash"] not in seen_hashes and row["abciHash"] not in seen_hashes
+                    and row["nativeHash"] != row["abciHash"] and integer(row["height"], arm["finalHeight"] - 1, arm["activationHeight"])
+                    and integer(row["index"], (1 << 31) - 1)
+                    and all(integer(row[key]) for key in ("offerOffsetNs", "offerLatenessNs", "observedCompletionNs", "independentCompletionNs", "offerToIndependentNs"))
+                    and arm["businessStartNs"] <= row["offerOffsetNs"] <= row["observedCompletionNs"] <= row["independentCompletionNs"]
+                    and row["independentCompletionNs"] <= arm["businessStartNs"] + arm["businessWindowNs"] <= 120000000000
+                    and row["offerLatenessNs"] == row["offerOffsetNs"] - (arm["businessStartNs"] + ordinal * 500000000)
+                    and (previous_offer is None or row["offerOffsetNs"] - previous_offer >= 500000000)
+                    and row["offerToIndependentNs"] == row["independentCompletionNs"] - row["offerOffsetNs"] > 0
+                    and row["independentTimingMeaning"] == "upper-bound observation including queued proof verification; not consensus formation time", "original business identity or monotonic times differ")
+            senders.add(row["sender"]); seen_hashes.update((row["nativeHash"], row["abciHash"]))
+            previous_offer = row["offerOffsetNs"]
+            for report, readback in ((row["submission"], False), (row["readback"], True)):
+                require(fields(report, report_fields) and report["readbackIndexMode"] == mode
+                        and all(type(report[key]) is bool for key in bool_fields)
+                        and all(integer(report[key], (1 << 31) - 1) for key in count_fields)
+                        and all(decimal(report[key], 120000000000) for key in proof_times)
+                        and fields(report["clientPhases"], phase_fields) and all(decimal(value, 120000000000) for value in report["clientPhases"].values())
+                        and report["readbackOnly"] is readback and report["abciTransactionHash"] == row["abciHash"] and report["nativeTransactionHash"] == row["nativeHash"]
+                        and report["transactionType"] == "pq_transfer" and report["members"] == 1
+                        and report["actualOfferToFinalityMeasured"] is False and report["sustainedTPSQualified"] is False, "original client record or decimal duration differs")
+                if readback:
+                    require(report["submissionAttempts"] == 0 and report["originalReadbackAttempts"] == 1 and report["status"] == "committed_observed"
+                            and report["effectiveBusinessIncludedObserved"] == 1 and report["rejectedMembers"] == 0
+                            and report["effectiveBusinessFinalized"] == 1 and report["independentFinalityVerified"] is True and report["registrationFinalized"] is False
+                            and report["consensusExecutionOutcome"] == "succeeded" and report["finalizedBusinessHashes"] == [row["nativeHash"]]
+                            and report["proofVerificationStatus"] == "verified_original_transaction"
+                            and report["proofVerifierSha256"] == manifest["binaries"]["ynx-consensus-proof-verify"]["sha256"] and hex_hash(report["trustContextSha256"])
+                            and report["executionHeight"] == str(row["height"]) and type(report["cometIndex"]) is int and report["cometIndex"] == row["index"]
+                            and report["submissionToFirstCommittedRPCObservationNs"] is None, "independent H/H+1 readback proof/effect required")
+                else:
+                    duration = report["submissionToFirstCommittedRPCObservationNs"]
+                    require(report["submissionAttempts"] == 1 and report["independentFinalityVerified"] is False and report["effectiveBusinessFinalized"] == 0
+                            and report["status"] in ("committed_observed", "submission_unknown"), "one original offer only; no synthetic finality")
+                    if duration is None:
+                        require(report["firstCommittedRPCObservationSource"] == "" and report["firstCommittedRPCHeight"] == "0" and report["firstCommittedRPCIndex"] is None
+                                and report["status"] == "submission_unknown" and report["initialSubmissionUnknown"] is True, "missing first RPC stays missing/UNKNOWN")
+                        missing_rpc += 1
+                    else:
+                        require(decimal(duration, 120000000000) and report["firstCommittedRPCObservationSource"] in ("post_response", "original_get")
+                                and report["firstCommittedRPCHeight"] == str(row["height"]) and type(report["firstCommittedRPCIndex"]) is int and report["firstCommittedRPCIndex"] == row["index"], "first RPC needs its actual duration and exact coordinate")
+                    if report["status"] == "committed_observed":
+                        require(report["effectiveBusinessIncludedObserved"] == 1 and report["rejectedMembers"] == 0 and duration is not None, "committed RPC requires original observation")
+    phases = summary["phaseRows"]
+    require(isinstance(phases, list) and 0 < len(phases) <= 2 * 4 * 48 * 2, "bounded phaseRows required")
+    pairs, masks, heights = {}, {}, {"before": set(), "after": set()}
+    for phase in phases:
+        is_commit = isinstance(phase, dict) and phase.get("phase") == "commit"
+        require(fields(phase, "arm nodeIndex height clockDomain startNs endNs phase" + (" commitTiming" if is_commit else ""))
+                and phase["arm"] in arm_by_name and integer(phase["nodeIndex"], 3)
+                and decimal(phase["height"], minimum=1) and phase["clockDomain"] == summary["clockDomain"]
+                and integer(phase["startNs"]) and integer(phase["endNs"]) and phase["startNs"] <= phase["endNs"]
+                and phase["phase"] in ("finalize", "commit"), "exact numeric phase coordinate/domain required")
+        arm, height = phase["arm"], int(phase["height"])
+        require(arm_by_name[arm]["initialHeight"] <= height <= arm_by_name[arm]["finalHeight"], "phase height outside its original arm")
+        key = (arm, phase["nodeIndex"], height)
+        pair = pairs.setdefault(key, {})
+        require(phase["phase"] not in pair, "duplicate actual node/height phase")
+        pair[phase["phase"]] = phase
+        masks[(arm, height)] = masks.get((arm, height), 0) | (1 << phase["nodeIndex"])
+        heights[arm].add(height)
+        if is_commit:
+            timing = phase["commitTiming"]
+            require(fields(timing, "height storage durable elapsedNs payloadBytes stagesNs")
+                    and type(timing["height"]) is int and timing["height"] == height and timing["durable"] is True
+                    and isinstance(timing["storage"], str) and 0 < len(timing["storage"]) <= 64
+                    and integer(timing["elapsedNs"], phase["endNs"] - phase["startNs"])
+                    and integer(timing["payloadBytes"], fixed_caps(FRESH_BUSINESS_E2E_PROFILE)["privateBytes"])
+                    and isinstance(timing["stagesNs"], dict) and all(isinstance(k, str) and integer(v) for k, v in timing["stagesNs"].items()), "original durable numeric commitTiming required")
+    require(all(set(pair) == {"finalize", "commit"} and pair["finalize"]["endNs"] <= pair["commit"]["startNs"] for pair in pairs.values())
+            and all(mask == 15 for mask in masks.values()), "every height requires four ordered Finalize/Commit pairs")
+    for name, arm in arm_by_name.items():
+        observed = heights[name]
+        require(observed and max(observed) == arm["finalHeight"] and max(observed) - min(observed) + 1 == len(observed)
+                and all((name, row["height"]) in masks and (name, row["height"] + 1) in masks for row in arm["rows"])
+                and all((name, birth["height"]) in masks for birth in arm["births"]), "phase coverage must retain original birth heights, empty successors and every business H/H+1")
+    return dict(freshBusiness=summary, resultSHA256=hashlib.sha256(markers[0][1].encode("utf8")).hexdigest(),
+                firstRPCMissing=missing_rpc, initialUNKNOWN=sum(row["submission"]["initialSubmissionUnknown"] for arm in arms for row in arm["rows"]))
 
 
 def validate_consensus_network_result(stdout, stderr, terminal_code, test_name):
@@ -844,12 +1039,15 @@ def validate_result(report, plan, case):
 
 
 def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained_history=False,
-        consensus_remote_e2e_retained_history=False, consensus_signed_business=False):
+        consensus_remote_e2e_retained_history=False, consensus_signed_business=False,
+        consensus_fresh_paired_business=False):
     profile = selected_profile(consensus_e2e, consensus_e2e_retained_history,
-                               consensus_remote_e2e_retained_history, consensus_signed_business)
+                               consensus_remote_e2e_retained_history, consensus_signed_business,
+                               consensus_fresh_paired_business)
     caps = fixed_caps(profile)
     remote_e2e = profile == REMOTE_E2E_RETAINED_HISTORY_PROFILE
-    business_e2e = profile == BUSINESS_E2E_PROFILE
+    fresh_business = profile == FRESH_BUSINESS_E2E_PROFILE
+    business_e2e = profile in (BUSINESS_E2E_PROFILE, FRESH_BUSINESS_E2E_PROFILE)
     consensus_e2e = profile is not None
     if sys.platform != "linux":
         raise RuntimeError("Linux /proc/smaps_rollup/subreaper required; no macOS substitution")
@@ -863,6 +1061,8 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
         result["kind"] = "four-validator-PQ-consensus-remote-E2E-Linux-CI-window"
     if business_e2e:
         result["kind"] = "four-validator-PQ-signed-business-E2E-Linux-CI-window"
+    if fresh_business:
+        result["kind"] = "four-validator-PQ-fresh-paired-business-E2E-Linux-CI-window"
     child = None
     selector = selectors.DefaultSelector()
     logs = {}
@@ -927,8 +1127,8 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
             if case_n != 1:
                 raise RuntimeError("consensus E2E cannot select a paired benchmark case")
             if business_e2e:
-                source, case, command, pinned_env = validate_consensus_business_recipe(plan, prepared, inherited_environment)
-                business_immutable = validate_consensus_business_files(plan, source, case.with_name(case.name + ".build"))
+                source, case, command, pinned_env = validate_consensus_business_recipe(plan, prepared, inherited_environment, fresh_business)
+                business_immutable = validate_consensus_business_files(plan, source, case.with_name(case.name + ".build"), fresh=fresh_business)
             elif remote_e2e:
                 source, case, command, pinned_env = validate_consensus_remote_e2e_recipe(
                     plan, prepared, inherited_environment)
@@ -954,7 +1154,9 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
                 result.update(remoteSignerPin=plan["remoteSignerPin"], sourcePins=plan["sourcePins"])
             if business_e2e:
                 result.update(businessManifestPin=plan["businessManifestPin"], sourcePins=plan["sourcePins"],
-                              performanceClientCommit=BUSINESS_CLIENT_COMMIT)
+                              performanceClientCommit=FRESH_BUSINESS_CLIENT_COMMIT if fresh_business else BUSINESS_CLIENT_COMMIT)
+                if fresh_business:
+                    result["performanceClientTree"] = FRESH_BUSINESS_CLIENT_TREE
         else:
             result["explicitCaseN"] = case_n
         result["kernel"] = dict(release=os.uname().release, machine=os.uname().machine, logicalCPUs=os.cpu_count())
@@ -970,7 +1172,7 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
             if remote_e2e:
                 validate_consensus_remote_e2e_files(plan, source, case.with_name(case.name + ".build"), remote_immutable)
             if business_e2e:
-                validate_consensus_business_files(plan, source, case.with_name(case.name + ".build"), business_immutable)
+                validate_consensus_business_files(plan, source, case.with_name(case.name + ".build"), business_immutable, fresh_business)
         source_check()
         for name in ("pq-paired-result.json", "pq-paired-result.json.members.snapshot.json", "pq-paired-result.json.whole.snapshot.json", "tmp", "go.stdout.log", "go.stderr.log"):
             if (case / name).exists() or (case / name).is_symlink():
@@ -1027,7 +1229,7 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
             if remote_e2e:
                 validate_consensus_remote_e2e_files(plan, source, build, remote_immutable)
             if business_e2e:
-                validate_consensus_business_files(plan, source, build, business_immutable)
+                validate_consensus_business_files(plan, source, build, business_immutable, fresh_business)
             executable = str(validate_consensus_e2e_binary(plan, build))
             working_directory = source / "internal/consensus"
             result["testExecutable"] = dict(path=executable, sha256=plan["binaryPin"]["sha256"])
@@ -1077,7 +1279,14 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
             validate_consensus_e2e_binary(plan, build)
             stdout, stderr = (bounded(case / "go.stdout.log", CAPS["logBytes"]),
                               bounded(case / "go.stderr.log", CAPS["logBytes"]))
-            if business_e2e:
+            if fresh_business:
+                manifest_raw = bounded(build / "business-manifest.json", 64 << 10)
+                if hashlib.sha256(manifest_raw).hexdigest() != plan["businessManifestPin"]["sha256"]:
+                    raise RuntimeError("fresh result manifest differs from independent admission pin")
+                manifest = unique_json(manifest_raw)
+                result["networkEvidence"] = validate_consensus_fresh_business_result(stdout, stderr, child.returncode, manifest, child.pid)
+                result["resultSHA256"] = result["networkEvidence"]["resultSHA256"]
+            elif business_e2e:
                 result["networkEvidence"] = validate_consensus_business_result(stdout, stderr, child.returncode, plan["commit"])
             elif remote_e2e:
                 result["networkEvidence"] = validate_consensus_remote_e2e_result(
@@ -1166,6 +1375,7 @@ def argument_parser():
     profiles.add_argument("--consensus-e2e-retained-history", action="store_true", help="separately authorized retained-history-v1 E2E: fixed 512 MiB private files; every other original limit unchanged")
     profiles.add_argument("--consensus-remote-e2e-retained-history", action="store_true", help="separate explicit remote signer retained-history-v1 profile; fixed two binaries, four source pins and unchanged resource limits")
     profiles.add_argument("--consensus-signed-business", action="store_true", help="separately authorized signed-business-v1 four-node profile; four pinned ELFs, original independent proofs, unchanged retained-history resources")
+    profiles.add_argument("--consensus-fresh-paired-business", action="store_true", help="separately authorized fresh paired before/after four-node business; exact 70e7 client/whole tree, three source leaves, unchanged resources")
     return parser
 
 
@@ -1173,7 +1383,8 @@ def main(argv=None):
     parser = argument_parser()
     args = parser.parse_args(argv)
     profile = selected_profile(args.consensus_e2e, args.consensus_e2e_retained_history,
-                               args.consensus_remote_e2e_retained_history, args.consensus_signed_business)
+                               args.consensus_remote_e2e_retained_history, args.consensus_signed_business,
+                               args.consensus_fresh_paired_business)
     if not args.execute:
         print(json.dumps(dict(status="prepared_only_no_Go_or_probe_started", supported=sys.platform == "linux", caps=fixed_caps(profile),
                               requires="Linux readable /proc + smaps_rollup, subreaper, exact prepared source, fresh Root isolated CI grant; not a macOS native-guard replacement")))
@@ -1187,6 +1398,8 @@ def main(argv=None):
             options["consensus_remote_e2e_retained_history"] = True
         if args.consensus_signed_business:
             options["consensus_signed_business"] = True
+        if args.consensus_fresh_paired_business:
+            options["consensus_fresh_paired_business"] = True
         return run(args.prepared.resolve(), args.receipt.resolve(), **options)
 
 

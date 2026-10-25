@@ -786,11 +786,74 @@ def assert_signed_business_supply_workflow_contract(raw):
     need("          path: |\n" in upload and "          if-no-files-found: error\n" in upload)
 
 
+def assert_fresh_business_supply_workflow_contract(raw):
+    """Fresh supply preserves the old profile and never executes a window."""
+    job, steps = workflow_steps(raw, "protocol-delivery")
+
+    def need(value):
+        if not value:
+            raise AssertionError("fresh paired-business normal supply contract changed")
+
+    def one(name):
+        found = [s for s in steps if s.startswith("      - name: " + name + "\n")]
+        need(len(found) == 1)
+        return found[0]
+
+    previous = one("Upload only the exact public signed-business build inputs")
+    receive = one("Receive the exact normal fresh performance client without executing it")
+    seal = one("Seal the independent fresh paired-business public inputs without executing them")
+    upload = one("Upload only the exact public fresh paired-business build inputs")
+    need(steps.index(previous) < steps.index(receive) < steps.index(seal) < steps.index(upload))
+    need("    timeout-minutes: 12\n" in job and "continue-on-error:" not in job)
+    for step, dependency in ((receive, "pqsignedbusinessupload"), (seal, "pqfreshclient"), (upload, "pqfreshbusinessbuild")):
+        need(re.findall(r"(?m)^        if: (.+)$", step) == ["${{ !inputs.consensus_remote_e2e_retained_history && (success() && github.event_name == 'push' && steps." + dependency + ".outcome == 'success') }}"])
+        need("|| true" not in step and "continue-on-error:" not in step)
+    need("        timeout-minutes: 2\n" in receive and "        timeout-minutes: 2\n" in seal)
+    need("          GH_TOKEN: ${{ github.token }}\n" in receive and "timeout 90s /bin/bash -euo pipefail" in receive)
+    for endpoint, limit in (("runs/40220335526", 131073), ("artifacts/12609705118", 65537), ("artifacts/12609705118/zip", 33554433)):
+        need(receive.count("gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/" + endpoint + " | head -c " + str(limit) + " >") == 1)
+    for pin in ("9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf",
+                "40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9",
+                "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec",
+                "25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603"):
+        need(pin in receive and pin in seal)
+    for token in ("run.get('conclusion') != 'success'", "artifact.get('digest') != 'sha256:' + digest",
+                  "hashlib.sha256(archive).hexdigest() != digest", "len(entries) != 3",
+                  "{entry.filename for entry in entries} != set(expected)", "stat.S_ISLNK(mode)",
+                  "(len(raw), hashlib.sha256(raw).hexdigest()) != expected[entry.filename]"):
+        need(token in receive)
+    for token in ("70e7e450997a0ae77dbad5a8be3682f482c6ddd8", "4866cc3924c060eb6a29939915d39b1c5c625607",
+                  "19b9fafcfbb3f434b9ff745fb785afb1d0741247", "da3060e150e2bd0f5695d67a76f3b30fafd1c696",
+                  "5b5cc231800157a2d4ac0ce07af43010c61ac18f9398e54711a18d6d9deb530f",
+                  "YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1", "performanceClientTree=client_tree",
+                  "'internal/consensus/pq_network_fresh_business_test.go'", "sourceRoot=str(source_root)",
+                  "os.environ['YNX_SIGNED_BUSINESS_SOURCE_SHA']", "previous_source['protocolCommit'] != commit",
+                  "copy(previous / 'build' / name", "copy(client / 'ynx-consensus-perf-client'",
+                  "['git', 'hash-object', leaf]", "header[:6] != b'\\x7fELF\\x02\\x01'",
+                  "identity(before) != identity(path.lstat())", "destination.open('xb')", "os.fsync(target.fileno())",
+                  "actual != set(files) | {'SOURCE.json'}", "relocatedAbsoluteManifestRunnable=False",
+                  "binariesExecuted=False, nodesStarted=False, workloadExecuted=False, authorityGranted=False",
+                  "print('YNX_PQ_FRESH_BUSINESS_BUILD_SOURCE_PIN '"):
+        need(token in seal)
+    for forbidden in ("go build ", "go test ", "go run ", "-test.run", "YNX_PQ_NETWORK_FRESH_BUSINESS_E2E=", "YNX_PQ_NETWORK_FRESH_BUSINESS_E2E:", "--consensus-fresh-paired-business"):
+        need(forbidden not in receive + seal)
+    need(not re.search(r"\b(?:subprocess\.(?:Popen|run|call|check_call)|os\.(?:system|popen|exec\w*))\s*\(", seal))
+    files = ("SOURCE.json", "build/business-manifest.json", "build/consensus.test", "build/ynx-bft-gatewayd",
+             "build/ynx-consensus-perf-client", "build/ynx-consensus-proof-verify",
+             "source/internal/consensus/pq_network_e2e_test.go", "source/internal/consensus/pq_network_business_test.go",
+             "source/internal/consensus/pq_network_fresh_business_test.go", "client/SOURCE.json", "client/go-build-info.txt")
+    need("uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in upload)
+    need("          name: ynx-pq-fresh-paired-business-build-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}\n" in upload)
+    need("          path: |\n" in upload and "          if-no-files-found: error\n" in upload)
+    need(re.findall(r"(?m)^            (.+)$", upload) == ["${{ runner.temp }}/ynx-pq-fresh-paired-business-build/" + name for name in files])
+
+
 def assert_workflow_contract(raw):
     assert_native_cabi_workflow_contract(raw)
     assert_runtime_gateway_identity_workflow_contract(raw)
     assert_macos_source_register_workflow_contract(raw)
     assert_signed_business_supply_workflow_contract(raw)
+    assert_fresh_business_supply_workflow_contract(raw)
     job, steps = workflow_steps(raw)
 
     def need(condition):
@@ -1170,6 +1233,36 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
+
+    def test_fresh_business_supply_requires_original_client_and_closed_data_only_inputs(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_fresh_business_supply_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "protocol-delivery")
+        receive = next(s for s in steps if s.startswith("      - name: Receive the exact normal fresh performance client without executing it\n"))
+        seal = next(s for s in steps if s.startswith("      - name: Seal the independent fresh paired-business public inputs without executing them\n"))
+        upload = next(s for s in steps if s.startswith("      - name: Upload only the exact public fresh paired-business build inputs\n"))
+        previous = next(s for s in steps if s.startswith("      - name: Upload only the exact public signed-business build inputs\n"))
+        mutations = [
+            raw.replace(receive, receive.replace("timeout 90s", "timeout 180s", 1), 1),
+            raw.replace(receive, receive.replace("artifacts/12609705118/zip", "artifacts/12609705119/zip", 1), 1),
+            raw.replace(receive, receive.replace("9746d58ff81522bf58fe92825f9202883e5db44e27c0ed8b523ec76054788eaf", "0" * 64), 1),
+            raw.replace(receive, receive.replace("len(entries) != 3", "len(entries) != 4", 1), 1),
+            raw.replace(receive, receive.replace("hashlib.sha256(archive).hexdigest() != digest", "False", 1), 1),
+            raw.replace(seal, seal.replace("previous_source['protocolCommit'] != commit", "False", 1), 1),
+            raw.replace(seal, seal.replace("4866cc3924c060eb6a29939915d39b1c5c625607", "19b9fafcfbb3f434b9ff745fb785afb1d0741247"), 1),
+            raw.replace(seal, seal.replace("5b5cc231800157a2d4ac0ce07af43010c61ac18f9398e54711a18d6d9deb530f", "0" * 64), 1),
+            raw.replace(seal, seal.replace("binariesExecuted=False", "binariesExecuted=True", 1), 1),
+            raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          go build ./cmd/ynx-consensus-perf-client\n          python3 -B - <<'PY'\n", 1), 1),
+            raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          YNX_PQ_NETWORK_FRESH_BUSINESS_E2E=authorized-fresh-four-node-business-window\n          python3 -B - <<'PY'\n", 1), 1),
+            raw.replace(upload, upload.replace("steps.pqfreshbusinessbuild.outcome == 'success'", "true", 1), 1),
+            raw.replace(upload, upload.replace("/client/go-build-info.txt", "/private/validator-key.json", 1), 1),
+            raw.replace(receive, receive.replace("gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12609705118/zip", "gh api --method GET repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12609705118/zip || true", 1), 1),
+            raw.replace(receive + seal + upload, "", 1).replace(previous, receive + seal + upload + previous, 1),
+        ]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_fresh_business_supply_workflow_contract(changed)
 
     def test_signed_business_supply_reuses_exact_binaries_and_never_executes_the_window(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
