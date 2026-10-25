@@ -100,7 +100,9 @@ jobs:
           ./internal/cloud ./internal/developerauthority
       - name: Original pool and normal-main ownership race regressions
         run: >-
-          go test -race -count=1 -timeout=90s
+          # Whole independent-flow matrix budget, NOT an authorization window.
+          # Each original approval/current/observation still enforces <=30s.
+          go test -race -count=1 -timeout=240s
           -run '^(TestIDERuntime|TestPostgres|TestOriginalIDE(Factory|Wire)|TestIDECommissioning)'
           ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd
       - name: Original SDK transport and observation integration

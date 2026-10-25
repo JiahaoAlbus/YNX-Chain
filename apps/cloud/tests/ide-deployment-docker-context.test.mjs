@@ -91,3 +91,10 @@ test('strict Source fixtures pin the selected Node bytes in a private CI directo
   assert.ok(workflow.includes('cmp -- "$node_path" "$private_node/node"'));
   assert.ok(workflow.includes('printf \'YNX_IDE_TEST_NODE=%s\\n\' "$private_node/node"'));
 });
+
+test('independent race flows have a bounded matrix budget rather than a wider grant', () => {
+  const workflow = read('.github/workflows/cloud-security.yml');
+  assert.ok(workflow.includes('go test -race -count=1 -timeout=240s'));
+  assert.ok(workflow.includes("-run '^(TestIDERuntime|TestPostgres|TestOriginalIDE(Factory|Wire)|TestIDECommissioning)'"));
+  assert.ok(workflow.includes('timeout-minutes: 15'));
+});
