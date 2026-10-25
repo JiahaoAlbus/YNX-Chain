@@ -1,3 +1,4 @@
+import {preparePQTransferFinalityLookup} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {exactData, preparePQTransferOriginal} from './transfer-binding.mjs';
@@ -175,7 +176,7 @@ function originalBinding(original, binding) {
 /** No HTTP, authority, retry, persistence or side effect is performed. */
 export function planPQTransferFinalityCollector(original, binding) {
   const prepared = originalBinding(original, binding);
-  return Object.freeze({method: 'GET', path: '/txs/' + prepared.abciTransactionHash + '/pq-finality-proof'});
+  return preparePQTransferFinalityLookup(prepared.abciTransactionHash);
 }
 
 /** Shared collector DATA grammar; expected hashes are caller-bound identity,

@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {encodePQNativeTransfer, decodePQTransferRequest, preparePQTransferTransport} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {encodePQNativeTransfer, decodePQTransferRequest, preparePQTransferTransport, preparePQOriginalLookup} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {parsePQOriginalRecord} from '../../wallet-pq-intent-record.mjs';
 import {pqSubmissionIdentity} from '../../wallet-pq-progress.mjs';
 
@@ -43,7 +43,7 @@ export function preparePQTransferOriginal(value, {account, networkId}) {
   const wire = Buffer.from(original.wire, 'base64url'), decoded = decodePQTransferRequest(wire);
   const transfer = bindTransfer(decoded.transfer, account, networkId);
   const request = preparePQTransferTransport(wire), identity = pqSubmissionIdentity(original);
-  return Object.freeze({original, request, binding: Object.freeze({account, operationId:original.operationId, kind:original.kind, hash:original.hash, ...transfer, abciTransactionHash:identity.abciTransactionHash}), lookup: Object.freeze({method:'GET', path:'/transactions/pq/originals/' + original.hash})});
+  return Object.freeze({original, request, binding: Object.freeze({account, operationId:original.operationId, kind:original.kind, hash:original.hash, ...transfer, abciTransactionHash:identity.abciTransactionHash}), lookup: preparePQOriginalLookup(original.hash)});
 }
 
 export async function readPQTransferOriginal(intentStore, hash, {account, networkId, guard}) {

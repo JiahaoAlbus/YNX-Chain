@@ -2,7 +2,7 @@ import {request as httpsRequest} from 'node:https';
 import {checkServerIdentity} from 'node:tls';
 import {X509Certificate,createHash} from 'node:crypto';
 import {NORMAL_OPERATOR,CANONICAL_NETWORK_ID} from '../../original-policy-supplier/operator-query.mjs';
-import {preparePQTransferTransport} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {preparePQTransferTransport,preparePQOriginalLookup,preparePQActionOriginalLookup,preparePQActionFinalityLookup} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {PQ_PROGRESS_RESPONSE_BYTES} from '../../wallet-pq-progress.mjs';
 import {planPQTransferFinalityCollector,PQ_FINALITY_COLLECTOR_LIMITS} from './finality-collector.mjs';
 import {inspectPQReviewedTypedTransportOriginal} from './typed-action-reviewed-transport.mjs';
@@ -107,7 +107,7 @@ export class PQTransactionNodeTransportKernel {
   async readOriginal(hash) {
     if(typeof hash!=='string'||!/^0x[0-9a-f]{64}$/.test(hash))fail('PQ_TRANSACTION_NODE_HASH');
     const deadline=this.clock()+NORMAL_OPERATOR.lifetimeMs;await this.#preflight(deadline);
-    return this.#exchange('/transactions/pq/originals/'+hash,{deadline});
+    return this.#exchange(preparePQOriginalLookup(hash).path,{deadline});
   }
   async submitTypedAction(review,raw,original,assertCurrent){
     if(typeof assertCurrent!=='function')fail('PQ_TRANSACTION_NODE_CURRENT_REQUIRED');
@@ -136,9 +136,9 @@ export class PQTransactionNodeTransportKernel {
     if(local.networkId!==CANONICAL_NETWORK_ID)fail('PQ_TRANSACTION_NODE_NETWORK');
     const start=this.clock(),deadline=start+NORMAL_OPERATOR.lifetimeMs;
     await this.#preflight(deadline,assertCurrent);assertCurrent();
-    // Only original transportHash chooses the ABCI route, which can observe
-    // indexed rejection. No body/URL/credentials or signing surface leaves here.
-    const requestPath=proof?'/txs/'+local.transportHash+'/pq-action-finality-proof':'/transactions/pq/actions/'+local.transportHash;
+    // Reopen the retained Member by native hash; the proof collector requires
+    // the distinct canonical-envelope ABCI hash. Never probe both domains.
+    const requestPath=proof?preparePQActionFinalityLookup(local.transportHash).path:preparePQActionOriginalLookup(local.memberHash).path;
     const response=await this.#exchange(requestPath,{deadline,typedQuery:!proof,typedProof:proof,assertCurrent});
     // Original Main captures complete proof HTTP bytes/status before any
     // post-await current/health check or parsing, just like readFinalityProof.
