@@ -11,6 +11,9 @@ const reviewedProtocolSources = Object.freeze({
   "8d1c4f1d0b64c8d61bdee964ebf062e2c7067920745fbce6a620a2b8c3849ded": "0ec5ce5d9a65649dd8f8f4b591c2beaf2d003bfc",
   // Exact frozen R3b reference-return successor; not Source admission.
   "460b4e514ae748de5d73defa932c3aa840cb4cd50b5525a6eda1e8461e423544": "b164a68376ad784bfd5f83513611f6a4ee008070",
+  // Exact SDK46 normal-package source, checked against its frozen full-prefix
+  // inventory AND original Git source. Receipt only, not v4/Source admission.
+  "6f67298154ebf44b9fd1c5b01c75dbb16cee425ab8164e53dc9c8e504892741c": "59a3797ea3421129171565e37870568e424ec085",
 });
 const sourceSha256 = createHash("sha256").update(readFileSync(new URL("./product-session-v2.js", import.meta.resolve("@ynx-chain/wallet-auth")))).digest("hex");
 const sourceCommit = reviewedProtocolSources[sourceSha256];
