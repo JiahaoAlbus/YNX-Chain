@@ -1,0 +1,340 @@
+{
+  "scope": "Root-authorized minimal IDE signed-artifact consumer integration; not a wholesale Cloud/Docs replacement",
+  "normalParentCommit": "f048f5ee028b9ab018c3a304ba3235a365b2174f",
+  "normalParentTree": "49b70e51013f769a837de180af40afaf27476480",
+  "selectedSourceBaseline": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/BASELINE.json",
+  "frozenInputs": [
+    "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/RUNTIME_HANDOFF_R1.json",
+    "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/RESOURCE_HANDOFF_R2.json",
+    "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/CATALOG_HANDOFF_R3.json",
+    "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/OBSERVER_HANDOFF_R4.json",
+    "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/RESOURCE_SPECIAL_HANDOFF_R5.json",
+    "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/PUBLICATION_HANDOFF_R6.json",
+    "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/POSTGRES_RUNTIME_HANDOFF_R7.json",
+    "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/AUTH_POSTGRES_SUCCESSOR_R169.json",
+    "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/ORIGINAL_QUERY_HANDOFF_R8.json"
+  ],
+  "records": [
+    {
+      "relative": "internal/cloud/ide_deployment.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-publication-r6/internal/cloud/ide_deployment.go",
+      "bytes": 11692,
+      "sha256": "3d1a75f3c1c648d385f286293141d96e5e10124098a796b4666f251642aa53ad",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_approval_bound_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-publication-r6/internal/cloud/ide_deployment_approval_bound_test.go",
+      "bytes": 2286,
+      "sha256": "9445527d05f126e7e7f244b14b5cf9b6c9914a09d5cbebe60d4f8c1214c7d95c",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_artifact.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-r1/internal/cloud/ide_deployment_artifact.go",
+      "bytes": 5109,
+      "sha256": "2ec0ba47c7020b68e60a2cca3167d4af392fae9d18772c1e6e72eef93a52a069",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_artifact_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-r1/internal/cloud/ide_deployment_artifact_test.go",
+      "bytes": 4672,
+      "sha256": "0deea3c4826091ebdaa6b29dd0ace3b316ef77e3749b1482f1469d47b975228f",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_catalog.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-catalog-r3/internal/cloud/ide_deployment_catalog.go",
+      "bytes": 3810,
+      "sha256": "6b39481e9079c4cb892508de54c90caa8a5c92525a9e1072004e436177cd078a",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_catalog_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-catalog-r3/internal/cloud/ide_deployment_catalog_test.go",
+      "bytes": 5533,
+      "sha256": "f6f1e38f919ff1dbd918d11016b1176eb9c41bb2852b2f976ef1c5414b76956b",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_oci.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-resource-r2/internal/cloud/ide_deployment_oci.go",
+      "bytes": 15526,
+      "sha256": "7ac25dcd5ac1701b98b1da263a6a8adf55ab96a90313e78ca49a5127e6c02738",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_oci_http.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-r1/internal/cloud/ide_deployment_oci_http.go",
+      "bytes": 3033,
+      "sha256": "05e9751e58a8acc94b2a5fac99c1bb9e5cec5c912c42a541c9fb55b0dd6e2e4c",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_oci_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-resource-r2/internal/cloud/ide_deployment_oci_test.go",
+      "bytes": 10148,
+      "sha256": "777a78301eb66fb3dee1b5305ceed3f0dfc6be1046d9e64846b0c876aac8adeb",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_operations.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-original-query-r8/internal/cloud/ide_deployment_operations.go",
+      "bytes": 9358,
+      "sha256": "72c81e6d9eda483ade5ed1c48941764970e63ecfbedfc7e70975cf171b474f45",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_operations_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-r1/internal/cloud/ide_deployment_operations_test.go",
+      "bytes": 5330,
+      "sha256": "5ffba87a98d674a3ac764d35e54639b315644b29c773380daf0badfd39cab91e",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_publication.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-publication-r6/internal/cloud/ide_deployment_publication.go",
+      "bytes": 3826,
+      "sha256": "a43aa54a623b2d586b4f27383a4712dbd47c84477c41ebe5dcca2392751952d1",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_publication_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-publication-r6/internal/cloud/ide_deployment_publication_test.go",
+      "bytes": 2472,
+      "sha256": "16a16880f39718749c8faf24161e282956ed961abf74c2d2a626bae29a2af5e1",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_query_special_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-original-query-r8/internal/cloud/ide_deployment_query_special_test.go",
+      "bytes": 3278,
+      "sha256": "06b790dcb1a326ff7ca6d1efff8d467b92712f10d5f7b5ef07a61e9d621e0b8e",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_resource.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-resource-special-r5/internal/cloud/ide_deployment_resource.go",
+      "bytes": 4135,
+      "sha256": "f6bfb3f97932847a8afd9e84ca82fc81aa10ab7c728103c03bf66c205eedd75f",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_resource_special_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-resource-special-r5/internal/cloud/ide_deployment_resource_special_test.go",
+      "bytes": 2147,
+      "sha256": "59ec51f10de82fb1201cfb9dba6ba494b4b7e00080b7e701baa243030a935eac",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_resource_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-resource-r2/internal/cloud/ide_deployment_resource_test.go",
+      "bytes": 3005,
+      "sha256": "6d32e8ba4914fab27c0434a599a0588c25d771c6241aa355b6df84ad549fc5e8",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_runtime.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-r1/internal/cloud/ide_deployment_runtime.go",
+      "bytes": 6155,
+      "sha256": "9867f2076eaa6ddbf034144f7122cf24a68afcbbf5eb10c357b9a1202afa06b1",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_runtime_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-r1/internal/cloud/ide_deployment_runtime_test.go",
+      "bytes": 7668,
+      "sha256": "76c0e45ba9995c1d4636a5ad655ba12a1df2f871faa7d967973b3677bc7302de",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-r1/internal/cloud/ide_deployment_test.go",
+      "bytes": 9840,
+      "sha256": "0024b84120f6b5d949082ffaf2ec8271fbbbef4a7bc415e50e7daccaf7d288cb",
+      "previousSHA256": null
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-postgres-runtime-r7/apps/cloud/cmd/ynx-cloudd/ide_runtime.go",
+      "bytes": 4138,
+      "sha256": "33b2d0b80b342e80ced3c7ff96781ad630fbbe0f32fe4628c030d5f5960ea406",
+      "previousSHA256": null
+    },
+    {
+      "relative": "apps/cloud/cmd/ynx-cloudd/ide_runtime_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-postgres-runtime-r7/apps/cloud/cmd/ynx-cloudd/ide_runtime_test.go",
+      "bytes": 4564,
+      "sha256": "45aeaee87dc1076b50ed303f6539ce9645f541db50031518d8a6b11c8e62972c",
+      "previousSHA256": null
+    },
+    {
+      "relative": "apps/cloud/sdk/index.js",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-publication-r6/apps/cloud/sdk/index.js",
+      "bytes": 32635,
+      "sha256": "9786fbbfea3e7d789911ce09167a0dca19144d75182f35c2e7b934e287dc7552",
+      "previousSHA256": "4c0b0d2e007fe1274f44d2f4846da576c0313d3f7caf589954c3c47d83b2f822"
+    },
+    {
+      "relative": "apps/cloud/sdk/index.d.ts",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-r1/apps/cloud/sdk/index.d.ts",
+      "bytes": 8752,
+      "sha256": "ea3351ae5876e234f19e7f66a4addba83807ef94edf47b9eea4e1b0b26413b7a",
+      "previousSHA256": "62a6d1c03e6a181a1854771ddc81f239b8b8ac4aa99b5ecb1988b52c0b4b9f88"
+    },
+    {
+      "relative": "apps/cloud/sdk/package.json",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-publication-r6/apps/cloud/sdk/package.json",
+      "bytes": 464,
+      "sha256": "a65b7ee63d94d40f5368b5a420b34229c3e6d763ae4a8ec67d24208923683867",
+      "previousSHA256": "3f1b5d9185001f57c581782da60fdc33e5c6f04514a8c8885c55c11b50ac0308"
+    },
+    {
+      "relative": "apps/cloud/sdk/observe-ide-deployment.mjs",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-observer-r4/apps/cloud/sdk/observe-ide-deployment.mjs",
+      "bytes": 5631,
+      "sha256": "6cb8cac88a17d39dd212a82f210746104936da2251f5968af02524a332770a31",
+      "previousSHA256": null
+    },
+    {
+      "relative": "apps/cloud/sdk/observe-ide-deployment.d.ts",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-observer-r4/apps/cloud/sdk/observe-ide-deployment.d.ts",
+      "bytes": 1035,
+      "sha256": "1894df8279293fde450b2701a8eccbd7a5c5b72d8d2fde47636cb9ae5e78bb7c",
+      "previousSHA256": null
+    },
+    {
+      "relative": "apps/cloud/tests/ide-deployment-client.test.mjs",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-r1/apps/cloud/tests/ide-deployment-client.test.mjs",
+      "bytes": 7455,
+      "sha256": "70e0e062e5f77f422a178651aed139111e2e93b5386fec081b738dca6d79da59",
+      "previousSHA256": null
+    },
+    {
+      "relative": "apps/cloud/tests/ide-deployment-observer.test.mjs",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-observer-r4/apps/cloud/tests/ide-deployment-observer.test.mjs",
+      "bytes": 4746,
+      "sha256": "f350ee117da428c0177117436173cddd80ba2baa364e2bcc18811c09e3f0dad3",
+      "previousSHA256": null
+    },
+    {
+      "relative": "apps/cloud/tests/ide-deployment-approval-bound.test.mjs",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-publication-r6/apps/cloud/tests/ide-deployment-approval-bound.test.mjs",
+      "bytes": 3245,
+      "sha256": "416faf5e117ad643cd8da00e2e9c5b86832c9a5166649c636e4e0a8c2301795d",
+      "previousSHA256": null
+    },
+    {
+      "relative": "apps/cloud/tests/ide-deployment-package-export.test.mjs",
+      "from": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source-delta-publication-r6/apps/cloud/tests/ide-deployment-package-export.test.mjs",
+      "bytes": 919,
+      "sha256": "d4b22d48ecd6d579434958c944ad65c9b48f09ab1c307bc18e8989375a120d81",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/developerauthority/catalog.go",
+      "from": "/Volumes/西部数据/YNX-large-work/auth-owned-r161/frozen-r1/internal/developerauthority/catalog.go",
+      "bytes": 26107,
+      "sha256": "aa6f86713416824ddca723bfe0c1240c7d8a06afed4addf36403a6ebd22fd3e8",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/developerauthority/recovery.go",
+      "from": "/Volumes/西部数据/YNX-large-work/auth-owned-r161/frozen-r1/internal/developerauthority/recovery.go",
+      "bytes": 8242,
+      "sha256": "2a18f2cf863a78beb55a683254aa96e139dd652bd6803810bcdfdcd193a46ec6",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/developerauthority/schema.sql",
+      "from": "/Volumes/西部数据/YNX-large-work/auth-owned-r161/frozen-r1/internal/developerauthority/schema.sql",
+      "bytes": 3152,
+      "sha256": "434c2b146f2d4f77febf1567276ea308eafd93b89ec97ee532f7030dcd122d25",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/developerauthority/catalog_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/auth-owned-r161/frozen-r1/internal/developerauthority/catalog_test.go",
+      "bytes": 13979,
+      "sha256": "b028f2bf6be92c8232edb6aa4921f6e046d3cc107e3c74cfce5423cb378f2e85",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/developerauthority/recovery_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/auth-owned-r161/frozen-r1/internal/developerauthority/recovery_test.go",
+      "bytes": 4346,
+      "sha256": "df14758c8f36238f59b32ae046fd73c49f8562a99417393794467868d41e941d",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/developerauthority/publication.go",
+      "from": "/Volumes/西部数据/YNX-large-work/auth-owned-r161/frozen-publication-r1/internal/developerauthority/publication.go",
+      "bytes": 14016,
+      "sha256": "db5a8807e728a36c6b1db9b86785642796ce739c28e3becb3f33f37366b97efe",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/developerauthority/publication_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/auth-owned-r161/frozen-publication-r1/internal/developerauthority/publication_test.go",
+      "bytes": 4121,
+      "sha256": "1a43f21d302eb73dbc4d8d2a642c2eabd5ae2783107bc6a7c4b6698334a0ebe0",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/developerauthority/postgres.go",
+      "from": "/Volumes/西部数据/YNX-large-work/auth-owned-r169/source/internal/developerauthority/postgres.go",
+      "bytes": 8738,
+      "sha256": "98e8092c177bd2e9a7b2c24dcdb45d0f5891c91a616fe52dd0fa653ad5864753",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/developerauthority/postgres_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/auth-owned-r168/source/internal/developerauthority/postgres_test.go",
+      "bytes": 6754,
+      "sha256": "a024cd47ed2e620f16cf94b544db31ee151d36fd0f59008d499ec8d1eccc833a",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/developerauthority/postgres_first_cause_test.go",
+      "from": "/Volumes/西部数据/YNX-large-work/auth-owned-r169/source/internal/developerauthority/postgres_first_cause_test.go",
+      "bytes": 2405,
+      "sha256": "bf0d77c0a3de9abc5ce6c3b67cf66230d6273d5048310495dc63d3e4304837ed",
+      "previousSHA256": null
+    },
+    {
+      "relative": "internal/cloud/ide_deployment_storage.go",
+      "extractedFunctions": [
+        "newProductWriteJournal",
+        "productHash",
+        "socialAtomicGuarded",
+        "socialSync",
+        "productReadFailure"
+      ],
+      "parents": [
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source/internal/cloud/product_write_journal.go",
+          "bytes": 6308,
+          "sha256": "14d31ce985ca88782f909730f358f29a76ea434274c2132be7071c9a975322f5"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source/internal/cloud/social_attachments.go",
+          "bytes": 23711,
+          "sha256": "17f04df098149424678d440c14048975828e561ba67dce719c313dcab1bdc560"
+        },
+        {
+          "path": "/Volumes/西部数据/YNX-large-work/cloud-ide-deployment-20261023/source/internal/cloud/product_session_read.go",
+          "bytes": 6355,
+          "sha256": "c5da78d4ca65d9acdc7ea902fd7befb12e3789b70a0d5c1e4a433899a4e47450"
+        }
+      ]
+    }
+  ],
+  "truth": {
+    "normalRepositoryIntegrated": true,
+    "normalBuildOrInstallClaimed": false,
+    "realSource": false,
+    "realSignature": false,
+    "deployment": false
+  }
+}

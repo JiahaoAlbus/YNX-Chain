@@ -1,0 +1,21 @@
+[Unit]
+Description=YNX Cloud single-host Testnet preview
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+EnvironmentFile=/etc/ynx/ynx-cloudd.env
+ExecStart=/opt/ynx-cloud/current/ynx-cloudd -addr 127.0.0.1:6496 -data /var/lib/ynx-cloud -cloud-ui /opt/ynx-cloud/current/apps/cloud/web -docs-ui /opt/ynx-cloud/current/apps/docs/web -max-concurrent 128 -requests-per-minute 600
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-cloud
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

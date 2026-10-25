@@ -73,6 +73,10 @@ func (devWalletVerifier) Verify(_ context.Context, envelope cloud.WalletSessionE
 func main() {
 	addr := flag.String("addr", ":8092", "listen address")
 	data := flag.String("data", "tmp/cloud", "bounded local data directory")
+	ideConfig := flag.String("ide-deployment-config", "", "original-owner private IDE catalog/runtime configuration; requires genuine Auth Source")
+	ideAuthConfig := flag.String("ide-auth-source-config", "", "private commissioned Auth pool and independently admitted Source13 release/SDK pins; no migration or registration")
+	ideCommissionConfig := flag.String("ide-source-commissioning-config", "", "independently admitted private Auth management configuration; separate privileged existing pool")
+	ideCommissionAction := flag.String("ide-source-commissioning-action", "", "explicit install or resolve only; never starts HTTP or performs a migration")
 	cloudUI := flag.String("cloud-ui", "apps/cloud/web", "Cloud static files")
 	docsUI := flag.String("docs-ui", "apps/docs/web", "Docs static files")
 	devWallet := flag.Bool("dev-wallet", false, "enable explicit local-only Wallet test verifier")
@@ -85,6 +89,21 @@ func main() {
 	lifecycleWorkerBatch := flag.Int("lifecycle-worker-batch", 8, "maximum pending storage lifecycle transitions claimed per worker cycle")
 	exitMode := flag.Bool("user-exit-mode", false, "disable new writes while preserving authentication, read, export, revoke, cancel, trash and delete paths")
 	flag.Parse()
+	if *ideCommissionConfig != "" || *ideCommissionAction != "" {
+		if *ideConfig != "" || *ideAuthConfig != "" || *backupDir != "" || *restoreDir != "" || *rollbackV1 != "" || *devWallet || originalIDEDeploymentStartup != nil {
+			log.Fatal(errIDECommissioning)
+		}
+		receipt, err := runIDECommissioning(context.Background(), *ideCommissionConfig, *ideCommissionAction)
+		if receipt.CaptureSHA256 != "" {
+			if json.NewEncoder(os.Stdout).Encode(map[string]any{"captureSHA256": receipt.CaptureSHA256, "committed": receipt.Committed, "dataOnly": true, "sourceInstalled": false}) != nil {
+				log.Fatal(errIDECommissioning)
+			}
+		}
+		if err != nil {
+			log.Fatal(errIDECommissioning)
+		}
+		return
+	}
 	if *lifecycleWorkerInterval < 100*time.Millisecond || *lifecycleWorkerInterval > time.Minute {
 		log.Fatal("-lifecycle-worker-interval must be between 100ms and 1m")
 	}
@@ -145,8 +164,20 @@ func main() {
 	if u := os.Getenv("YNX_OBJECT_STORE_URL"); u != "" {
 		objects = cloud.RemoteObjectStore{BaseURL: u, Token: os.Getenv("YNX_OBJECT_STORE_TOKEN"), DirectUploadOrigin: os.Getenv("YNX_DIRECT_UPLOAD_ORIGIN")}
 	}
+	ideStartup, ideSource, err := prepareOriginalIDEDeploymentStartup(context.Background(), *ideAuthConfig, *ideConfig, originalIDEDeploymentStartup)
+	closeIDESource := func() {
+		if ideSource != nil && ideSource.Close() != nil {
+			log.Print(errIDESourceClose)
+		}
+	}
+	defer closeIDESource()
+	if err != nil {
+		closeIDESource()
+		log.Fatal(errIDEStartup)
+	}
 	service, err := cloud.New(cloud.Config{StatePath: filepath.Join(*data, "state.json"), ObjectDir: filepath.Join(*data, "objects"), WalletVerifier: verifier, AIProvider: ai, TrustSink: trust, ObjectStore: objects, ReleaseCommit: os.Getenv("YNX_RELEASE_COMMIT"), ReleaseVersion: os.Getenv("YNX_RELEASE_VERSION"), ExitMode: *exitMode})
 	if err != nil {
+		closeIDESource()
 		log.Fatal(err)
 	}
 	workerCtx, stopWorker := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -176,7 +207,25 @@ func main() {
 			}
 		}
 	}()
-	api := cloud.NewServerWithLimits(service, cloud.ServerLimits{MaxConcurrent: *maxConcurrent, RequestsPerMinute: *requestsPerMinute}).Handler()
+	apiServer := cloud.NewServerWithLimits(service, cloud.ServerLimits{MaxConcurrent: *maxConcurrent, RequestsPerMinute: *requestsPerMinute})
+	ideRuntime, err := attachOriginalIDEDeploymentRuntime(workerCtx, apiServer, ideStartup)
+	closeIDE := func() {
+		if ideRuntime != nil {
+			if err := ideRuntime.Close(); err != nil {
+				log.Print(errIDEClose)
+			}
+		}
+		closeIDESource()
+	}
+	defer closeIDE()
+	if err != nil {
+		closeIDE()
+		log.Fatal(errIDEStartup)
+	}
+	if ideRuntime == nil {
+		log.Print("IDE deployment runtime unavailable: original Auth/config producer not supplied")
+	}
+	api := apiServer.Handler()
 	mux := http.NewServeMux()
 	mux.Handle("/api/", api)
 	mux.Handle("/health", api)
@@ -186,7 +235,7 @@ func main() {
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/cloud/", http.StatusTemporaryRedirect)
 	})
-	server := &http.Server{Addr: *addr, Handler: cloud.SecureHandlerWithDirectUploadOrigin(mux, os.Getenv("YNX_DIRECT_UPLOAD_ORIGIN")), ReadHeaderTimeout: 5e9, ReadTimeout: 15e9, WriteTimeout: 30e9, IdleTimeout: 60e9}
+	server := &http.Server{Addr: *addr, Handler: apiServer.WrapIDEProjectRuntime(cloud.SecureHandlerWithDirectUploadOrigin(mux, os.Getenv("YNX_DIRECT_UPLOAD_ORIGIN"))), ReadHeaderTimeout: 5e9, ReadTimeout: 15e9, WriteTimeout: 30e9, IdleTimeout: 60e9}
 	serverErrors := make(chan error, 1)
 	go func() {
 		serverErrors <- server.ListenAndServe()
@@ -195,6 +244,7 @@ func main() {
 	select {
 	case err := <-serverErrors:
 		if err != nil && err != http.ErrServerClosed {
+			closeIDE()
 			log.Fatal(err)
 		}
 	case <-workerCtx.Done():
