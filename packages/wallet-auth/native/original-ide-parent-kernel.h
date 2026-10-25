@@ -15,6 +15,8 @@ bool verifyKernelAudit(const std::array<unsigned char,32>&,const ProcessOriginal
 bool sameKernel(const KernelProcess&,const KernelProcess&);
 NSString *actualNodeParentResources();
 bool actualNodeEntry(NSString *resources,NSString *entryFileURL);
+// Observed child entry is a kernel/file fact, never a Source grant.
+bool originalObservedNodeEntry(const KernelProcess&,NSString *resources);
 bool registeredResources(NSString *resources,const SourceBinding&,ResourceCloseDebt&);
 // File-byte matching only, not Source/process admission. Qualified identity
 // holder supplies its authenticated registration; old four-op SourceBinding

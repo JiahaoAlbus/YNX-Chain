@@ -19,6 +19,13 @@ static NSURL *YNXActualIDEConsumerResources(void) {
  char canonical[PATH_MAX];if(!realpath(expected.fileSystemRepresentation,canonical)||strcmp(self,canonical)!=0||![expected isEqual:[NSString stringWithUTF8String:canonical]])return nil;
  return resources;
 }
+static NSURL *YNXActualIDEObserverResources(void) {
+ char self[PROC_PIDPATHINFO_MAXSIZE]={0},canonical[PATH_MAX]={0};
+ if(proc_pidpath(getpid(),self,sizeof(self))<=0)return nil;
+ NSBundle*b=NSBundle.mainBundle;
+ if(![b.bundleIdentifier isEqual:@"com.ynxweb4.developer.testnetpreview"]||![b.bundleURL.path.pathExtension isEqual:@"app"]||!b.resourceURL.isFileURL||!realpath(b.executableURL.path.fileSystemRepresentation,canonical)||strcmp(self,canonical)||![b.executableURL.path isEqual:[NSString stringWithUTF8String:canonical]])return nil;
+ return b.resourceURL;
+}
 // Public canonical original files live OUTSIDE signed App resources. Otherwise
 // the profile's final code identities and ephemeral request would sign-cycle.
 // Proposed fixed custody layout, not an enrollment/provisioning operation.
@@ -69,7 +76,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  NSString *_rootPath;
  NSData *_profileRaw,*_headRaw;
  BOOL _retired,_closeSelected,_cleanupComplete;
- NSUInteger _entered;BOOL _ideConsumer,_ideRegistry,_contractRelay,_projectAuthority,_projectControl,_walletPQCatalog;
+ NSUInteger _entered;BOOL _ideConsumer,_ideRegistry,_contractRelay,_projectAuthority,_projectControl,_walletPQCatalog,_ideProjectObserver;
  NSString *_actualIDEResources;
  NSError *_firstCause,*_cleanupCause;
 }
@@ -98,6 +105,10 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideConsumer=YES;owner->_ideRegistry=YES;owner->_projectAuthority=YES;
  if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
 }
++ (instancetype)acquireOriginalIDEProjectObserverProfile:(NSError **)error {
+ YNXAuthIdentityCurrentOwner*owner=[self new];owner->_ideRegistry=YES;owner->_projectAuthority=YES;owner->_ideProjectObserver=YES;
+ if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
+}
 + (instancetype)acquireOriginalIDEProjectControlProfile:(NSError **)error {
  // Wallet-side original capture, not an IDE child path/ENV/provider. Same
  // protected external registry, separate purpose-specific leaf and custody.
@@ -114,6 +125,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
 - (BOOL)capture:(NSError **)error {
  @synchronized(self){
   if(_ideConsumer){_actualIDEResources=YNXActualIDEConsumerResources().path;if(!_actualIDEResources)return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_UNAVAILABLE" error:error];}
+  if(_ideProjectObserver){_actualIDEResources=YNXActualIDEObserverResources().path;if(!_actualIDEResources)return [self fail:@"IDE_OBSERVER_ACTUAL_APP_UNAVAILABLE" error:error];}
   NSURL *resources=_walletPQCatalog?YNXOriginalWalletPQRegistryResources():_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
   if(_contractRelay)resources=[resources URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
   if(_projectAuthority)resources=[resources URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
@@ -137,6 +149,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  @synchronized(self){
   if(_retired)return [self fail:@"AUTH_IDENTITY_ORIGINAL_RETIRED" error:error];
   if(_ideConsumer&&![YNXActualIDEConsumerResources().path isEqual:_actualIDEResources])return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_CHANGED" error:error];
+  if(_ideProjectObserver&&![YNXActualIDEObserverResources().path isEqual:_actualIDEResources])return [self fail:@"IDE_OBSERVER_ACTUAL_APP_CHANGED" error:error];
   NSURL *expectedRegistry=_walletPQCatalog?YNXOriginalWalletPQRegistryResources():YNXOriginalIDERegistryResources();
   if(_contractRelay)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
   if(_projectAuthority)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
