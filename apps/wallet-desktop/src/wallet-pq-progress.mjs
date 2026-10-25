@@ -4,7 +4,7 @@ import {parsePQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {pqBFTOriginalIdentity,parsePQBFTOriginalResponse,parsePQBFTSubmissionResponse} from './wallet-pq-bft-evidence.mjs';
 import {sessionOriginalCause} from './wallet-session-original.mjs';
 import {pqTypedSubmissionIdentity,parsePQTypedProgressResult,capturePQTypedProgressResult} from './wallet-pq-typed-progress.mjs';
-import {preparePQAccountInitialTransport} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {preparePQAccountInitialTransport,preparePQMigrationTransport} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 const fail=()=>{throw Object.assign(Error('Preserve the original PQ submission and its unknown result.'),{code:'PQ_PROGRESS_INVALID'});};
 const exact=(v,keys)=>{if(!v||Object.getPrototypeOf(v)!==Object.prototype)fail();const d=Object.getOwnPropertyDescriptors(v),names=Reflect.ownKeys(d);if(names.length!==keys.length||names.some(k=>!keys.includes(k)||!Object.hasOwn(d[k],'value')||!d[k].enumerable))fail();};
 const digest=text=>createHash('sha256').update(text).digest('hex');
@@ -26,9 +26,9 @@ export function pqSubmissionIdentity(input){
  * qualified Source. No method here signs, POSTs, grants or clears an original. */
 export function parsePQProgressResult(input,original){
  if(original?.kind==='pq-typed-action')return parsePQTypedProgressResult(input,original,PQ_PROGRESS_RESPONSE_BYTES);
- if(original?.kind==='pq-account-initial'&&Object.hasOwn(input??{},'method')){
+ if(['pq-account-initial','pq-migration'].includes(original?.kind)&&Object.hasOwn(input??{},'method')){
   exact(input,['phase','method','requestPath','statusCode','contentType','cacheControl','text','bodySha256']);
-  const plan=preparePQAccountInitialTransport(Buffer.from(original.wire,'base64url'),original.initialBinding);
+  const plan=original.kind==='pq-migration'?preparePQMigrationTransport(Buffer.from(original.wire,'base64url')):preparePQAccountInitialTransport(Buffer.from(original.wire,'base64url'),original.initialBinding);
   if(input.phase!=='submission'||input.method!==plan.method||input.requestPath!==plan.path||String(input.contentType).split(';')[0].trim().toLowerCase()!=='application/json'||!String(input.cacheControl).toLowerCase().split(',').some(v=>v.trim()==='no-store'))fail();
   const parsed=parsePQProgressResult({phase:input.phase,statusCode:input.statusCode,text:input.text,bodySha256:input.bodySha256},original);
   return Object.freeze({...parsed,result:Object.freeze({...input})});

@@ -4,7 +4,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {types} from 'node:util';
 import path from 'node:path';
 import {PrivateFilePolicy} from './platform-private-file.mjs';
-import {exactData,preparePQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
+import {exactData,preparePQStandaloneOriginal as preparePQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
 import {PQ_FINALITY_COLLECTOR_LIMITS} from './features/pq-transaction/finality-collector.mjs';
 import {pqTypedOriginalSummary} from './wallet-pq-typed-original.mjs';
 

@@ -11,7 +11,7 @@ function installHandler(name, end, context) {
   // These cases model legacy personal/provider requests, never PQ approval.
   // Supply the actual authority's false classification explicitly so its
   // newly imported PQ capsule path cannot be accidentally exercised here.
-  if(context.walletAuthority)context.walletAuthority={isPendingPQAccountInitialReview:()=>null,isPendingPQTransactionReview:()=>false,isPendingPQBroadcastReview:()=>false,...context.walletAuthority};
+  if(context.walletAuthority)context.walletAuthority={isPendingPQAccountInitialReview:()=>null,isPendingPQMigrationBroadcastReview:()=>false,isPendingPQTransactionReview:()=>false,isPendingPQBroadcastReview:()=>false,...context.walletAuthority};
   runInNewContext(source.slice(start, source.indexOf(end, start)), {
     handleWalletIPC: (_name, value) => { handler = value; }, ...context
   });

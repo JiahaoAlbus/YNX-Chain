@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
-import {exactData, preparePQTransferOriginal} from './transfer-binding.mjs';
+import {exactData, preparePQStandaloneOriginal} from './transfer-binding.mjs';
 import {validatePQTransactionProofDTO} from './finality-collector.mjs';
 import {inspectPQReviewedTypedTransportOriginal} from './typed-action-reviewed-transport.mjs';
 
@@ -54,16 +54,17 @@ function statement(value) {
 export function preparePQTransferFinalityTarget(original, binding, hostExpectedTransaction) {
   const {account, networkId} = dataCopy(binding, ['account','networkId']);
   const originalCopy = dataCopy(original, ['version','account','kind','operationId','hash','wire','status']);
-  const plan = preparePQTransferOriginal(originalCopy, {account, networkId});
+  const plan = preparePQStandaloneOriginal(originalCopy, {account, networkId});
   const wire = Buffer.from(plan.request.body);
   if (!wire.length || wire.length > maxNativeWireBytes) fail('PQ_FINALITY_INVOCATION_BYTES_EXCEEDED');
   // Preserve Go's normal EncodePQTransaction struct field order and lowerhex.
-  const envelope = Buffer.from(JSON.stringify({version:1, type:'pq_transfer', wireHex:wire.toString('hex')}), 'utf8');
+  const transactionType=plan.original.kind==='pq-migration'?'account_migration':'pq_transfer';
+  const envelope = Buffer.from(JSON.stringify({version:1, type:transactionType, wireHex:wire.toString('hex')}), 'utf8');
   if (envelope.length > maxEnvelopeBytes) fail('PQ_FINALITY_INVOCATION_BYTES_EXCEEDED');
   const nativeHash = digest(wire), transactionHash = digest(envelope);
   if (plan.binding.hash !== '0x' + nativeHash || plan.binding.abciTransactionHash !== '0x' + transactionHash) fail('PQ_FINALITY_INVOCATION_ORIGINAL_MISMATCH');
 
-  return bindTarget('pq_transfer', wire, envelope, hostExpectedTransaction);
+  return bindTarget(transactionType, wire, envelope, hostExpectedTransaction);
 }
 
 /** Current typed original DATA: full canonical transport is the envelope;

@@ -495,14 +495,14 @@ export class FileTransactionIntentStore {
       const first=!slot.firstTypedResponsePresent,submission=input.phase==='submission',firstSubmission=submission&&!slot.firstTypedSubmissionResponsePresent;
       if(first){slot.firstTypedResponsePresent=true;slot.firstTypedResponse=input.response;}
       if(firstSubmission){slot.firstTypedSubmissionResponsePresent=true;slot.firstTypedSubmissionResponse=input.response;}
-      try{const retained=retainPQTypedHTTPResponse(input.response);slot.latestTypedResponse=retained;if(first){slot.firstTypedResponse=retained;slot.firstTypedResponseCopied=true;}if(firstSubmission){slot.firstTypedSubmissionResponse=retained;slot.firstTypedSubmissionResponseCopied=true;}raw=capturePQProgressResult({phase:input.phase,response:retained});slot.initialResponseUncaptured=false;}
+      try{const retained=retainPQTypedHTTPResponse(input.response);slot.latestTypedResponse=retained;if(first){slot.firstTypedResponse=retained;slot.firstTypedResponseCopied=true;}if(firstSubmission){slot.firstTypedSubmissionResponse=retained;slot.firstTypedSubmissionResponseCopied=true;}raw=capturePQProgressResult({phase:input.phase,response:retained});slot.initialResponseUncaptured=false;slot.migrationResponseUncaptured=false;}
       catch(cause){if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}
     }else raw=capturePQProgressResult(input);
     slot.awaitingResult=false;if(!slot.firstResult)slot.firstResult=raw;slot.latestResult=raw;slot.unparsedResult=raw;
     return this.#mutate(async()=>{
       let state;try{state=await this.#read();}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior)throw invalid();
       let next;
-      try{let baseline=slot.best??prior;if(prior.result)baseline=mergePQProgressResult(baseline,prior.result,original);next=mergePQProgressResult(baseline,raw,original);}catch(cause){if(!['pq-typed-action','pq-account-initial'].includes(original.kind)&&slot.unparsedResult===raw)slot.unparsedResult=null;if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}if(slot.unparsedResult===raw)slot.unparsedResult=null;
+      try{let baseline=slot.best??prior;if(prior.result)baseline=mergePQProgressResult(baseline,prior.result,original);next=mergePQProgressResult(baseline,raw,original);}catch(cause){if(!['pq-typed-action','pq-account-initial','pq-migration'].includes(original.kind)&&slot.unparsedResult===raw)slot.unparsedResult=null;if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}if(slot.unparsedResult===raw)slot.unparsedResult=null;
       slot.best=parsePQProgress({...next,firstCause:prior.firstCause??next.firstCause??(slot.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:prior.storageCause??next.storageCause??(slot.storageRawPresent?pqProgressCause(slot.storageRaw):null)},original);
       if(pqProgressCoreEqual(prior,slot.best))return Object.freeze({stored:true,status:prior.status,changed:false});
       try{await this.#write({...state,pqProgress:state.pqProgress.map(r=>r===prior?slot.best:r)});return Object.freeze({stored:true,status:slot.best.status,changed:true});}
@@ -513,6 +513,10 @@ export class FileTransactionIntentStore {
     const slot=this.#pqProgressSlot(account,hash);if(slot.initialResponseSelected)throw capabilityError('PQ_INITIAL_RESPONSE_ALREADY_CAPTURED','Keep the first original response; duplicate callback cannot replace it.');slot.initialResponseSelected=true;slot.initialResponseUncaptured=true;
     // Raw PUBLIC response custody precedes UTF8/metadata parsing and late lock.
     // An unparseable response keeps the close barrier; never discard or retry.
+    return this.savePQSubmissionResult(account,hash,{phase:'submission',response});
+  }
+  savePQMigrationSubmissionResult(account,hash,response){
+    const slot=this.#pqProgressSlot(account,hash);if(slot.migrationResponseSelected)throw capabilityError('PQ_MIGRATION_RESPONSE_ALREADY_CAPTURED','Keep the first migration response; never replace or resend it.');slot.migrationResponseSelected=true;slot.migrationResponseUncaptured=true;
     return this.savePQSubmissionResult(account,hash,{phase:'submission',response});
   }
   async savePQSubmissionFailure(account,hash,cause){
@@ -557,10 +561,11 @@ export class FileTransactionIntentStore {
     const pendingTerminal=this.#pqTerminalResults.get(account+':'+hash);if(pendingTerminal&&!pendingTerminal.stored)return pqHistoryProgress({original:pendingTerminal.original,finality:pendingTerminal.finality,progress:state.pqProgress?.find(r=>r.account===account&&r.hash===hash)??null},false);
     const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash);if(!original)throw invalid();
     const actual=state.pqProgress?.find(r=>r.account===account&&r.hash===hash),slot=this.#pqProgressResults.get(account+':'+hash),best=this.#pqEffectiveProgress(actual,slot,original);
-    return Object.freeze({account,hash,kind:original.kind,status:best?.status??(slot?.beginAttempted?'submission-unknown':'signed-unsubmitted'),storageConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.unparsedResult&&(!best||pqProgressCoreEqual(actual,best)),metadataConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.unparsedResult&&(!best||canonicalJSON(actual)===canonicalJSON(best)),localResultHeld:!!slot?.latestResult||!!slot?.initialResponseUncaptured,firstCause:best?.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:best?.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null),retryAuthorized:false,clearsOriginal:false,consensusFinality:false});
+    return Object.freeze({account,hash,kind:original.kind,status:best?.status??(slot?.beginAttempted?'submission-unknown':'signed-unsubmitted'),storageConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.migrationResponseUncaptured&&!slot?.unparsedResult&&(!best||pqProgressCoreEqual(actual,best)),metadataConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.migrationResponseUncaptured&&!slot?.unparsedResult&&(!best||canonicalJSON(actual)===canonicalJSON(best)),localResultHeld:!!slot?.latestResult||!!slot?.initialResponseUncaptured||!!slot?.migrationResponseUncaptured,firstCause:best?.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:best?.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null),retryAuthorized:false,clearsOriginal:false,consensusFinality:false});
   }
   async flushPQProgressResult(account,hash,guard){
     if(typeof guard!=='function')throw invalid();const slot=this.#pqProgressSlot(account,hash);
+    if(slot.migrationResponseUncaptured)throw capabilityError('PQ_MIGRATION_RESPONSE_CAPTURE_UNCONFIRMED','Keep the original raw migration response; it cannot be reported stored, replaced or resent.');
     return this.#mutate(async()=>{
       guard();const state=await this.#read();guard();const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior&&!(original.kind==='pq-typed-action'&&slot.best&&slot.best.status!=='submission-unknown'))throw invalid();
       let best=slot.best??prior;if(slot.unparsedResult){best=mergePQProgressResult(best,slot.unparsedResult,original);slot.unparsedResult=null;}if(prior?.result)best=mergePQProgressResult(best,prior.result,original);
@@ -640,7 +645,7 @@ export class FileTransactionIntentStore {
           const progress=this.#pqEffectiveProgress(actualProgress,local,slot.original)??(local?.firstRawPresent||local?.storageRawPresent?{...initialPQProgress(slot.original),firstCause:local.firstRawPresent?pqProgressCause(local.firstRaw):null,storageCause:local.storageRawPresent?pqProgressCause(local.storageRaw):null}:null);
           if(!active||canonicalJSON(active)!==canonicalJSON(slot.original)||owner(this).has(original.account)||state.preparations?.some(r=>r.account===original.account))throw invalid();
           if(state.pqFinalityObservations.some(r=>r.account===original.account&&r.hash===original.hash&&r.observation.status==='verifier-result-data'&&r.observation.reportedOutcome!==finality.record.observation.reportedOutcome))throw capabilityError('PQ_FINALITY_TARGET_CONFLICT','Different execution occurrences disagree. Preserve every target and original; do not choose a terminal outcome automatically.');
-          if(local&&(local.awaitingResult||local.unparsedResult||local.readsInFlight>0))throw capabilityError('PQ_FINALITY_SUBMISSION_RESULT_UNCONFIRMED','First settle the original submission or readonly response capture; finality must not discard its pending metadata.');
+          if(local&&(local.migrationResponseUncaptured||local.awaitingResult||local.unparsedResult||local.readsInFlight>0))throw capabilityError('PQ_FINALITY_SUBMISSION_RESULT_UNCONFIRMED','First settle the original submission or readonly response capture; finality must not discard its pending metadata.');
           if((state.pqHistory?.length??0)>=64)throw capabilityError('PQ_FINALITY_STORAGE_CAPACITY','Preserve original history; the terminal archive is full.');
           if(!slot.history||slot.firstPresent&&slot.history.storageCause===null){const core={version:1,original:slot.original,progress,finality:effectiveFinality,storageCause:slot.firstPresent?pqTerminalStorageCause(slot.first):null,previousSeal:null};if(typeof this.finalityProtection?.seal!=='function'||typeof this.finalityProtection?.verify!=='function')throw capabilityError('PQ_FINALITY_HISTORY_PROTECTION_UNAVAILABLE','Original OS-protected terminal storage is unavailable.');slot.history=parsePQFinalityHistoryEntry({...core,seal:this.finalityProtection.seal(core)});}
           else if(canonicalJSON(slot.history.progress)!==canonicalJSON(progress))throw capabilityError('PQ_FINALITY_TARGET_CONFLICT','Pending progress changed; preserve the same terminal archive without replacement.');
@@ -670,7 +675,7 @@ export class FileTransactionIntentStore {
         const split=key.indexOf(':'),account=key.slice(0,split),hash=key.slice(split+1),original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),actual=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);
         if(!slot.beginAttempted&&!slot.latestResult&&!slot.firstRawPresent)continue;
         const best=original?this.#pqEffectiveProgress(actual,slot,original):null;
-        if(slot.initialResponseUncaptured||slot.awaitingResult||slot.unparsedResult||!original||!actual||!best||canonicalJSON(actual)!==canonicalJSON(best))throw capabilityError('PQ_PROGRESS_CLOSE_UNCONFIRMED','Keep Wallet open. An original result or its storage record is not yet confirmed; save locally without resubmitting.');
+        if(slot.initialResponseUncaptured||slot.migrationResponseUncaptured||slot.awaitingResult||slot.unparsedResult||!original||!actual||!best||canonicalJSON(actual)!==canonicalJSON(best))throw capabilityError('PQ_PROGRESS_CLOSE_UNCONFIRMED','Keep Wallet open. An original result or its storage record is not yet confirmed; save locally without resubmitting.');
       }
       return Object.freeze({safe:true,retryAuthorized:false,clearsOriginal:false});
     });

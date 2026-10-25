@@ -63,6 +63,7 @@ import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
 import { FileTransactionIntentStore } from "./transaction-intent-store.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-service.mjs";
 import {captureOriginalWalletTransactionApprovalIPC,retireUnusedOriginalWalletTransactionApproval,acquireOriginalWalletTransactionPermission,isOriginalWalletTransactionPermission} from './original-policy-supplier/transaction-permission.mjs';
+import {captureOriginalWalletMigrationBroadcastApprovalIPC,retireUnusedOriginalWalletMigrationBroadcastApproval,acquireOriginalWalletMigrationBroadcastPermission,isOriginalWalletMigrationBroadcastPermission} from './original-policy-supplier/migration-broadcast-permission.mjs';
 import {captureOriginalWalletAccountInitialApprovalIPC,retireUnusedOriginalWalletAccountInitialApproval,acquireOriginalWalletAccountInitialPermission,isOriginalWalletAccountInitialPermission} from './original-policy-supplier/account-initial-permission.mjs';
 import {createPQAccountInitialBroadcast} from './wallet-pq-account-initial-broadcast.mjs';
 import {acquireOriginalWalletAccountInitialSource,isOriginalWalletAccountInitialSource} from './original-policy-supplier/account-initial-source.mjs';
@@ -148,7 +149,7 @@ let originalPQHostCatalogReceiver;
 const pqBroadcastApprovalContext=new AsyncLocalStorage();
 async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard}){
   const context={request,capsule,borrow,guard,selected:false,closed:false};let failed=false,cause,result;
-  try{result=await pqBroadcastApprovalContext.run(context,()=>Object.hasOwn(request,'typedAction')?pqTransactionSubmission.broadcast(hash,guard,request):pqTransactionSubmission.broadcast(hash,guard));}
+  try{result=await pqBroadcastApprovalContext.run(context,()=>Object.hasOwn(request,'typedAction')||request.purpose==='ACCOUNT-MIGRATION'?pqTransactionSubmission.broadcast(hash,guard,request):pqTransactionSubmission.broadcast(hash,guard));}
   catch(error){failed=true;cause=error;}
   finally{
     context.closed=true;
@@ -156,7 +157,7 @@ async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard}){
     // recognition. Our local borrow owns no foreign resources and its cleanup
     // is idempotent; always retire it after the controller settles. Foreign
     // owner cleanup debt remains retained by the singleton controller.
-    for(const action of [()=>retireUnusedOriginalWalletTransactionApproval(capsule),()=>borrow.retire(),()=>borrow.join(),()=>borrow.close()])try{await action();}catch(error){if(!failed){failed=true;cause=error;}}
+    for(const action of [()=>request.purpose==='ACCOUNT-MIGRATION'?retireUnusedOriginalWalletMigrationBroadcastApproval(capsule):retireUnusedOriginalWalletTransactionApproval(capsule),()=>borrow.retire(),()=>borrow.join(),()=>borrow.close()])try{await action();}catch(error){if(!failed){failed=true;cause=error;}}
   }
   if(failed)throw cause;return result;
 }
@@ -757,18 +758,19 @@ handleWalletIPC("wallet:provider-action", (event, id, action) => sensitiveIPC(as
   const lease = keyAccess.current();
   const transport = walletConnectRequests.get(id);
   if(transport){const entry=walletConnectInbox.get(transport.entryKey);await walletConnectInbox.markDecided(entry,lease.assert);}
-  let response,capsule,initialCapsule=false;
+  let response,capsule,initialCapsule=false,migrationCapsule=false;
   try {
     if (accountChangeInProgress) throw Object.assign(new Error("The selected account changed"), { code: 4100 });
     const initial=action==='approve'?walletAuthority.isPendingPQAccountInitialReview(id):null;
     if(initial){capsule=captureOriginalWalletAccountInitialApprovalIPC(event,id,initial);initialCapsule=true;}
     else if(action==='approve'&&walletAuthority.isPendingPQTransactionReview(id))capsule=captureOriginalWalletTransactionApprovalIPC(event,id,'sign');
+    else if(action==='approve'&&walletAuthority.isPendingPQMigrationBroadcastReview(id)){capsule=captureOriginalWalletMigrationBroadcastApprovalIPC(event,id);migrationCapsule=true;}
     else if(action==='approve'&&walletAuthority.isPendingPQBroadcastReview(id))capsule=captureOriginalWalletTransactionApprovalIPC(event,id,'broadcast');
     response = action === "approve" ? await walletAuthority.approve(id,capsule) : rejectProviderRequest(id);
   } catch (error) {
     response = { status: "error", code: Number.isInteger(error?.code) ? error.code : 4001, message: error?.message ?? "Provider request failed", ...(error?.data ? { data: error.data } : {}) };
   }
-  finally{if(capsule)(initialCapsule?retireUnusedOriginalWalletAccountInitialApproval:retireUnusedOriginalWalletTransactionApproval)(capsule);}
+  finally{if(capsule)(initialCapsule?retireUnusedOriginalWalletAccountInitialApproval:migrationCapsule?retireUnusedOriginalWalletMigrationBroadcastApproval:retireUnusedOriginalWalletTransactionApproval)(capsule);}
   if (transport) {
     try {
       const send = () => { walletConnectInbox.finish(transport.entryKey); return walletConnect.respond(transport.topic, transport.jsonRpcId, response); };
@@ -938,13 +940,19 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   originalPQHostCatalogReceiver=createOriginalPQHostCatalogReceiver({directory:path.join(userData,'pq-host-registrations-v1')});
   const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,verifierReceipt:originalPQVerifierReceipt,createSource:(original,binding)=>createOriginalPQHostSource({original,binding,receiver:originalPQHostCatalogReceiver}),createSelection:(original,binding,sourceCatalog)=>createPQHostSelectionCapture({original,binding,evidence:originalPQFinalityEvidence,sourceCatalog,selector:createOriginalPQHostSelector()}),createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier,persistObservation:(original,record)=>originalTransactionIntentStore.savePQFinalityObservation(original,record),flushObservation:(original,record,guard)=>originalTransactionIntentStore.flushPQFinalityObservation(original.account,original.hash,pqFinalityRecordGeneration(record),()=>guard.assert()),adoptTerminal:(original,token,guard)=>originalTransactionIntentStore.adoptPQFinalityTerminal(original,token,()=>guard.assert())});
   pqFinalityCollection=createPQFinalityCollection({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,evidence:originalPQFinalityEvidence,transport:originalPQNodeTransport,typedTransport:createPQTypedActionFinalityNodeReader(),verification:originalPQFinalityVerification});
-  pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,
+  pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,isOriginalWalletMigrationBroadcastPermission,
     readTypedOriginal:createPQTypedActionNodeReader().readOriginal,
     acquireOriginalWalletTransactionPermission:request=>{
       const context=pqBroadcastApprovalContext.getStore();
       if(!context||context.closed||context.selected||JSON.stringify(request)!==JSON.stringify(context.request))throw Object.assign(Error('Original broadcast approval is required.'),{code:'PQ_BROADCAST_APPROVAL_REQUIRED'});
       context.guard.assert();context.borrow.assertCurrent();context.selected=true;
       return acquireOriginalWalletTransactionPermission(request,context.capsule,context.borrow);
+    },
+    acquireOriginalWalletMigrationBroadcastPermission:request=>{
+      const context=pqBroadcastApprovalContext.getStore();
+      if(request.purpose!=='ACCOUNT-MIGRATION'||!context||context.closed||context.selected||JSON.stringify(request)!==JSON.stringify(context.request))throw Object.assign(Error('Original independent migration broadcast approval is required.'),{code:'PQ_MIGRATION_BROADCAST_APPROVAL_REQUIRED'});
+      context.guard.assert();context.borrow.assertCurrent();context.selected=true;
+      return acquireOriginalWalletMigrationBroadcastPermission(request,context.capsule,context.borrow);
     }});
   walletAuthority = new DesktopWalletAuthority({
     // The existing SDK owns the fixed normal HTTPS caller. No renderer URL,

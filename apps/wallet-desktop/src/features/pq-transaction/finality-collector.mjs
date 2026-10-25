@@ -1,7 +1,7 @@
 import {preparePQTransferFinalityLookup} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
-import {exactData, preparePQTransferOriginal} from './transfer-binding.mjs';
+import {exactData, preparePQStandaloneOriginal} from './transfer-binding.mjs';
 
 // DATA consumer of this fixed Protocol source, not an independent verifier.
 export const PQ_FINALITY_COLLECTOR_SOURCE = 'c3c219d5a3c560a2e0a5627850e1fa1f45ecd2e6';
@@ -170,7 +170,7 @@ function snapshotBytes(value) {
 function originalBinding(original, binding) {
   closedData(binding, ['account', 'networkId'], 'PQ_TRANSACTION_INPUT_INVALID');
   closedData(original, ['version', 'account', 'kind', 'operationId', 'hash', 'wire', 'status'], 'PQ_TRANSACTION_INPUT_INVALID');
-  return preparePQTransferOriginal(original, binding).binding;
+  return preparePQStandaloneOriginal(original, binding).binding;
 }
 
 /** No HTTP, authority, retry, persistence or side effect is performed. */
@@ -220,7 +220,7 @@ export function parsePQTransferFinalityCollector(original, binding, httpStatus, 
   const {view: value, proof, rawSha256, byteLength} = decodePQFinalityCollectorData({
     nativeTransactionHash: prepared.hash, abciTransactionHash: prepared.abciTransactionHash}, httpStatus, rawBytes);
   const observation = Object.freeze({account: prepared.account, operationId: prepared.operationId,
-    kind: 'pq-transfer', transactionType: 'pq_transfer', source: 'configured-comet-rpc', status: value.status,
+    kind: prepared.kind, transactionType: prepared.kind==='pq-migration'?'account_migration':'pq_transfer', source: 'configured-comet-rpc', status: value.status,
     observedExecutionStatus: value.observedExecutionStatus ?? null,
     nativeTransactionHash: value.nativeTransactionHash, abciTransactionHash: prepared.abciTransactionHash,
     executionHeight: value.executionHeight, cometIndex: value.cometIndex ?? null,

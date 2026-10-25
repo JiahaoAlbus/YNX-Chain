@@ -2,7 +2,7 @@ import {types} from 'node:util';
 import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {parsePQAccountInitialOriginal} from '../../wallet-pq-account-initial-original.mjs';
 import {parsePQTypedOriginalRecord} from '../../wallet-pq-typed-original.mjs';
-import {preparePQTransferOriginal} from './transfer-binding.mjs';
+import {preparePQTransferOriginal,preparePQMigrationOriginal} from './transfer-binding.mjs';
 import {inspectPQReviewedTypedTransportOriginal} from './typed-action-reviewed-transport.mjs';
 import {preparePQReviewedTypedActionBroadcast} from './typed-action-broadcast.mjs';
 
@@ -35,6 +35,7 @@ export async function readPQSubmissionOriginal(store,hash,{account,networkId,gua
   if(saved.account!==account||saved.initialBinding.chainId!==networkId)fail('PQ_TRANSACTION_ORIGINAL_BINDING');
   return Object.freeze({original:saved,binding:Object.freeze({account,hash:saved.hash,kind:saved.kind,operationId:saved.operationId}),initial:true});
  }
+ if(value.kind==='pq-migration')return preparePQMigrationOriginal(value,{account,networkId});
  if(value.kind!=='pq-typed-action')return preparePQTransferOriginal(value,{account,networkId});
  const saved=parsePQTypedOriginalRecord(value),t=saved.typed;
  if(saved.account!==account||t.networkId!==networkId)fail('PQ_TRANSACTION_ORIGINAL_BINDING');

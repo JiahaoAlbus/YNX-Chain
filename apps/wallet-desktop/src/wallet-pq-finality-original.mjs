@@ -1,5 +1,5 @@
 import {types} from 'node:util';
-import {exactData,preparePQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
+import {exactData,preparePQStandaloneOriginal as preparePQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
 import {parsePQTypedOriginalRecord,pqTypedFinalityArguments} from './wallet-pq-typed-original.mjs';
 import {decodePQActionTransportData} from '@ynx-chain/wallet-auth/pq-action-transport';
 import {preparePQTransferFinalityTarget,preparePQTransferFinalityInvocation,preparePQReviewedTypedActionFinalityTarget,preparePQReviewedTypedActionFinalityInvocation} from './features/pq-transaction/finality-invocation.mjs';

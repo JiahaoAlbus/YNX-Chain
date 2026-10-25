@@ -1,3 +1,4 @@
+import {bindPQMigrationBroadcastRequest,assertPQMigrationBroadcastPermission} from './migration-permission-binding.mjs';
 import {exactData} from './transfer-binding.mjs';
 import {readPQSubmissionOriginal,bindPQTypedBroadcastRequest,assertPQTypedBroadcastPermission} from './typed-action-submission-binding.mjs';
 import {projectPQTransactionProgress} from './progress-view.mjs';
@@ -34,14 +35,21 @@ function assertPermissionBinding(resource, expected, originalBinding = null) {
  * Typed broadcast follows Main's 18-field builder and Auth R142's 19-field
  * resource/dual-hash completion. Actual private approval remains mandatory;
  * absent dependencies fail before journal/POST.
+ * Migration has its own original Auth factory and recognizer. An ordinary
+ * transfer/typed approval can never authorize an ACCOUNT-MIGRATION broadcast.
  */
 export function createPQTransactionSubmission({intentStore, networkId,
   acquireOriginalWalletTransactionPermission = null,
-  isOriginalWalletTransactionPermission = null, transport = null, readTypedOriginal = null}) {
+  isOriginalWalletTransactionPermission = null,
+  acquireOriginalWalletMigrationBroadcastPermission = null,
+  isOriginalWalletMigrationBroadcastPermission = null, transport = null, readTypedOriginal = null}) {
   const active = new Set(), resources = new Set();
   let closing = false;
   const requirePermission = () => {
     if (typeof acquireOriginalWalletTransactionPermission !== 'function' || typeof isOriginalWalletTransactionPermission !== 'function') throw failure('PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED');
+  };
+  const requireMigrationPermission = () => {
+    if(typeof acquireOriginalWalletMigrationBroadcastPermission!=='function'||typeof isOriginalWalletMigrationBroadcastPermission!=='function')throw failure('PQ_MIGRATION_PERMISSION_NOT_SUPPLIED');
   };
   async function exclusive(guard, action) {
     if (closing) throw failure('PQ_TRANSACTION_CLOSING');
@@ -67,7 +75,7 @@ export function createPQTransactionSubmission({intentStore, networkId,
   };
   return Object.freeze({
     async broadcast(hash, guard, typedBroadcastRequest = null) {
-      requirePermission();
+      if(typeof acquireOriginalWalletMigrationBroadcastPermission!=='function'||typeof isOriginalWalletMigrationBroadcastPermission!=='function')requirePermission();
       if (resources.size) throw failure('PQ_TRANSACTION_CLEANUP_PENDING');
       if (typeof guard?.submit !== 'function' || typeof guard?.assertEffectCurrent !== 'function') throw failure('PQ_TRANSACTION_EFFECT_GUARD_REQUIRED');
       return exclusive(guard, async () => {
@@ -75,23 +83,27 @@ export function createPQTransactionSubmission({intentStore, networkId,
         // Initial birth has a distinct Main/Auth permission contract. A transfer
         // capsule or typed request can never authorize its broadcast.
         if(plan.initial)throw failure('PQ_ACCOUNT_INITIAL_BROADCAST_PERMISSION_REQUIRED');
-        if (typeof transport?.[plan.typed?'submitTypedAction':'submitTransfer'] !== 'function') throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
-        if (!plan.typed && typedBroadcastRequest !== null) throw failure('PQ_TRANSACTION_PERMISSION_BINDING');
+        if(plan.migration)requireMigrationPermission();else requirePermission();
+        const acquire=plan.migration?acquireOriginalWalletMigrationBroadcastPermission:acquireOriginalWalletTransactionPermission;
+        const recognized=plan.migration?isOriginalWalletMigrationBroadcastPermission:isOriginalWalletTransactionPermission;
+        if (typeof transport?.[plan.typed?'submitTypedAction':plan.migration?'submitMigration':'submitTransfer'] !== 'function') throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
+        if (!plan.typed && !plan.migration && typedBroadcastRequest !== null) throw failure('PQ_TRANSACTION_PERMISSION_BINDING');
         const before = await intentStore.readPQProgress(guard.account, hash, () => guard.assert());
         if (before.status !== 'signed-unsubmitted') throw failure('PQ_TRANSACTION_ALREADY_ENTERED');
-        const request = plan.typed?bindPQTypedBroadcastRequest(plan,typedBroadcastRequest):pqBroadcastPermissionRequest(plan.binding);
-        const assertBinding = plan.typed?assertPQTypedBroadcastPermission:assertPermissionBinding;
-        const completion = outcome => ({outcome,transportHash:hash,...(plan.typed?{memberHash:plan.typed.local.memberHash}:{})});
+        if(plan.migration&&typeof intentStore.savePQMigrationSubmissionResult!=='function')throw failure('PQ_MIGRATION_RESPONSE_CUSTODY_REQUIRED');
+        const request = plan.typed?bindPQTypedBroadcastRequest(plan,typedBroadcastRequest):plan.migration?bindPQMigrationBroadcastRequest(plan,typedBroadcastRequest):pqBroadcastPermissionRequest(plan.binding);
+        const assertBinding = plan.typed?assertPQTypedBroadcastPermission:plan.migration?assertPQMigrationBroadcastPermission:assertPermissionBinding;
+        const completion = outcome => ({outcome,transportHash:hash,...(plan.typed?{memberHash:plan.typed.local.memberHash}:plan.migration?{abciTransactionHash:plan.binding.abciTransactionHash}:{})});
         let resource, permissionBinding, entered = false, submitted = false, returned = false, completed = false, failed = false, cause, result, transportCause, transportFailed = false;
         try {
-          try {resource = await acquireOriginalWalletTransactionPermission(request);} catch (error) {
+          try {resource = await acquire(request);} catch (error) {
             const partial = error && typeof error === 'object' ? Object.getOwnPropertyDescriptor(error, 'partial') : null;
             if (partial && Object.hasOwn(partial,'value') && partial.value) {resource = partial.value; resources.add(resource);}
             throw error;
           }
           // Retain foreign ownership before post-await lock/brand checks.
           resources.add(resource); guard.assert();
-          if (isOriginalWalletTransactionPermission(resource) !== true) throw failure('PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED');
+          if (recognized(resource) !== true) throw failure(plan.migration?'PQ_MIGRATION_PERMISSION_NOT_SUPPLIED':'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED');
           for (const name of ['readOriginal','assertCurrent','recheck','enterBroadcast','complete','retire','join','close']) if (typeof resource?.[name] !== 'function') throw failure('PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED');
           if (resource.assertCurrent() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
           permissionBinding = assertBinding(resource, request);
@@ -115,13 +127,15 @@ export function createPQTransactionSubmission({intentStore, networkId,
                 if (resource.assertCurrent() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
                 assertBinding(resource, request, permissionBinding);
               };
-              return await (plan.typed?transport.submitTypedAction(plan.typed.review,plan.typed.raw,plan.typed.original,assertCurrent):transport.submitTransfer(plan.request,assertCurrent));
+              const received=await (plan.typed?transport.submitTypedAction(plan.typed.review,plan.typed.raw,plan.typed.original,assertCurrent):plan.migration?transport.submitMigration(plan.request,assertCurrent):transport.submitTransfer(plan.request,assertCurrent));
+              if(plan.migration){returned=true;await intentStore.savePQMigrationSubmissionResult(guard.account,hash,received);}
+              return received;
             } catch (error) {transportFailed = true; transportCause = error; throw error;}
           });
           returned = true;
           // The journal captures the complete result before any late-lock,
           // current, completion, cleanup, or public-DTO check can reject it.
-          await intentStore.savePQSubmissionResult(guard.account, hash, plan.typed?{phase:'submission',response}:{phase:'submission',statusCode:response?.status,text:response?.text});
+          if(!plan.migration)await intentStore.savePQSubmissionResult(guard.account, hash, plan.typed?{phase:'submission',response}:{phase:'submission',statusCode:response?.status,text:response?.text});
           completed = true;
           if (await resource.complete(completion('returned')) !== undefined) throw failure('PQ_TRANSACTION_COMPLETION_UNKNOWN');
           guard.assertEffectCurrent();

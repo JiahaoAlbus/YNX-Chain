@@ -1,7 +1,7 @@
 /** Main returns bounded public DATA only. No proof body, context, local path,
  * wire, key, provider or independent trust selection crosses this interface. */
 export function appendPQFinalityActions({row,record,api,getKeyState,isCurrent,onResult,document:doc=document}){
- if(!['pq-transfer','pq-typed-action'].includes(record.kind)||!/^0x[0-9a-f]{64}$/.test(record.hash??''))return;
+ if(!['pq-transfer','pq-migration','pq-typed-action'].includes(record.kind)||!/^0x[0-9a-f]{64}$/.test(record.hash??''))return;
  const terminalText=status=>status==='finalized-succeeded'?'共识最终确认：交易执行成功。原交易与核验证据已保留；不授予 Native/Root 权限，不重签或重发。 / Consensus-finalized: execution succeeded. Original and proof retained; no Native/Root grant, re-sign or resend.':'共识最终确认：交易在链上执行失败。原交易与核验证据已保留；不是证明校验失败，不授予重试权限。 / Consensus-finalized: execution rejected on-chain. Original and proof retained; not a proof-verifier error or retry permission.';
  if(['pq-finalized-succeeded','pq-finalized-rejected'].includes(record.status)&&record.consensusFinality===true){const p=doc.createElement('p');p.textContent=terminalText(record.status.slice(3));row.append(p);return;}
  let busy=false,uncertain=false,held=record.status==='pq-finality-save-unknown'&&record.resultHeldInMemory===true,finished=false;const buttons=[];
@@ -10,7 +10,7 @@ export function appendPQFinalityActions({row,record,api,getKeyState,isCurrent,on
  const notice='仅收集或读取资料，尚未独立验证；原交易保留，没有重签或发送。 / Evidence only, not independently verified. Original retained; no replacement signature or send.';
  function render(){const s=getKeyState();for(const {button,action}of buttons){button.hidden=action==='save'&&!held;button.disabled=busy||s.locked||s.authenticating||s.account!==record.account||['collect','verify'].includes(action)&&(uncertain||finished);}}
  const actions=[['collect','只读收集证明资料（未验证） / Collect proof evidence (unverified)'],['restore','读取本地核验资料 / Read saved proof evidence'],['save','仅保存保留的核验资料 / Save held evidence locally']];
- if(record.kind==='pq-transfer'&&typeof api.verifyPQFinalityEvidence==='function')actions.push(['verify','使用原 Host 校验证明（不发送） / Check proof with original Host (no send)']);
+ if(['pq-transfer','pq-migration'].includes(record.kind)&&typeof api.verifyPQFinalityEvidence==='function')actions.push(['verify','使用原 Host 校验证明（不发送） / Check proof with original Host (no send)']);
  for(const [action,label]of actions){
   const button=doc.createElement('button');button.type='button';button.textContent=label;buttons.push({button,action});
   button.addEventListener('click',async()=>{

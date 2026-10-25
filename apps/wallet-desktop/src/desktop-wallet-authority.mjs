@@ -10,7 +10,9 @@ import {createPQWalletMigrationPossession,signPQWalletProductSessionApproval,sig
 import {captureProductSessionAccountPolicy,readProductSessionAccountPolicy,pqProductSessionRegisteredPublicBinding} from '@ynx-chain/wallet-auth/product-session-account-policy';
 import {preparePQProductSessionApproval,verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
 import {pqPublicBindingToRegistrationKeys,encodePQNativeTransfer,decodePQTransferRequest,encodePQRegistrationIntent,decodePQAccountInitialRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
-import {readPQTransferOriginal} from './features/pq-transaction/transfer-binding.mjs';
+import {readPQTransferOriginal,preparePQMigrationOriginal} from './features/pq-transaction/transfer-binding.mjs';
+import {assertPQMigrationRequestPolicy} from '@ynx-chain/wallet-auth/pq-wallet-policy';
+import {pqMigrationBroadcastPermissionRequest} from './features/pq-transaction/migration-permission-binding.mjs';
 import {pqBroadcastPermissionRequest} from './features/pq-transaction/submission.mjs';
 import {encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
 import {preparePQTypedActionReview,signPQReviewedTypedAction} from './features/pq-transaction/typed-action-caller.mjs';
@@ -32,6 +34,8 @@ const MAX_PENDING_REQUESTS = 64;
 const MAX_PENDING_REQUESTS_PER_ORIGIN = 8;
 const originalPQTransactionReviewBorrows=new WeakSet();
 export const isOriginalPQTransactionReviewBorrow=value=>originalPQTransactionReviewBorrows.has(value);
+const originalPQMigrationBroadcastReviewBorrows=new WeakSet();
+export const isOriginalPQMigrationBroadcastReviewBorrow=value=>originalPQMigrationBroadcastReviewBorrows.has(value);
 const originalPQAccountInitialReviewBorrows=new WeakSet();
 export const isOriginalPQAccountInitialReviewBorrow=value=>originalPQAccountInitialReviewBorrows.has(value);
 export const APPROVAL_METHODS = Object.freeze([
@@ -144,9 +148,11 @@ export class DesktopWalletAuthority {
     const guard=this.vault.authorization.current(),{data:connected,permission}=this.#pqRequestPermission(connection),store=this.transactionSender?.submissions?.intentStore;
     const status=await this.vault.status();guard.assert();permission.assert();
     if(connected&&connected.account!==status.account)throw providerError(4100,'PQ_CONNECTION_BINDING','The selected account changed.');
-    const typed=(await store.readPQOriginals(status.account,()=>guard.assert())).find(row=>row.hash===hash&&row.kind==='pq-typed-action');guard.assert();permission.assert();
+    const stored=await store.readPQOriginals(status.account,()=>guard.assert()),typed=stored.find(row=>row.hash===hash&&row.kind==='pq-typed-action');guard.assert();permission.assert();
     if(connected&&(!typed||typed.typed.initiator?.origin!==connected.origin))throw providerError(4100,'PQ_CONNECTION_ORIGINAL_REQUIRED','Only this origin’s retained contract original may be reviewed.');
     if(typed)return this.#preparePQTypedBroadcast(typed,{guard,permission,status,store,connected});
+    const migration=stored.find(row=>row.hash===hash&&row.kind==='pq-migration');
+    if(migration)return this.#preparePQMigrationBroadcast(migration,{guard,permission,status,store});
     const original=await readPQTransferOriginal(store,hash,{account:status.account,networkId:this.#pqNetworkId,guard});
     if((await store.readPQProgress(status.account,hash,()=>guard.assert())).status!=='signed-unsubmitted')throw providerError(4100,'PQ_TRANSACTION_ALREADY_ENTERED','Only query this original; do not send again.');
     let resource;this.#pqAcquiring=true;
@@ -164,6 +170,28 @@ export class DesktopWalletAuthority {
       let cancelled=false;const revision=this.vault.authorization.status().revision;
       const lease=Object.freeze({assert:()=>{permission.assert();owner.assert();if(cancelled||this.vault.authorization.status().revision!==revision||this.clock().getTime()>=Date.parse(deadline))throw providerError(4100,'REQUEST_EXPIRED','Review this original broadcast again.');}});
       lease.assert();this.#pqReviews.set(pending,{snapshot,plan,owner,broadcast:request});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Broadcast cancelled.')).catch(()=>{});return true;}});this.pending.set(id,pending);
+      return Object.freeze({status:'approval-required',request:pending});
+    }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
+  }
+  async #preparePQMigrationBroadcast(saved,{guard,permission,status,store}){
+    if(!this.#pqTxSource||!this.#pqTxRecognized||this.#pqShuttingDown)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original independent migration broadcast permission is required.');
+    if(store.localOriginal(status.account)||await store.unresolvedPreparation(status.account))throw providerError(4100,'PQ_ORIGINAL_RECONCILE_REQUIRED','Reconcile the same signed original before another review.');
+    guard.assert();permission.assert();
+    const original=preparePQMigrationOriginal(saved,{account:status.account,networkId:this.#pqNetworkId});
+    if((await store.readPQProgress(status.account,saved.hash,()=>guard.assert())).status!=='signed-unsubmitted')throw providerError(4100,'PQ_TRANSACTION_ALREADY_ENTERED','Only query the original migration; do not send again.');
+    let resource;this.#pqAcquiring=true;
+    try{resource=await this.#pqPolicySource({networkId:this.#pqNetworkId,nativeChainId:'6423',owner:status.account,operation:'migration',at:this.clock().toISOString()});}
+    catch(error){const d=error&&Object.getOwnPropertyDescriptor(error,'partial');if(d&&Object.hasOwn(d,'value')&&d.value){const owner=retainPQPolicyResource(d.value,{networkId:this.#pqNetworkId,account:status.account,now:this.clock});this.#pqOwners.add(owner);try{await this.#closePQ(owner,error);}catch{}}throw error;}
+    finally{this.#pqAcquiring=false;}
+    const owner=retainPQPolicyResource(resource,{networkId:this.#pqNetworkId,account:status.account,now:this.clock});this.#pqOwners.add(owner);
+    try{
+      guard.assert();permission.assert();if(this.#pqPolicyRecognized(resource)!==true)throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original current migration policy is required.');
+      const {snapshot,expiresAt}=owner.read(),plan=assertPQMigrationRequestPolicy(snapshot,Buffer.from(saved.wire,'base64url')),at=this.clock().getTime(),deadline=new Date(Math.min(Date.parse(expiresAt),at+30000)).toISOString(),id=this.requestId();
+      const request=pqMigrationBroadcastPermissionRequest(original,{operationId:id,policyRevision:plan.policy.policyRevision,reviewExecutionHeight:plan.policy.executionHeight,executionHeight:plan.policy.executionHeight,expiresAt:deadline});
+      this.#pruneExpired();if(this.pending.size>=MAX_PENDING_REQUESTS)throw providerError(4200,'PENDING_REQUEST_LIMIT','Finish current reviews first.');
+      const pending=deepFreeze({id,origin:'ynx-wallet:local-pq',method:'ynx_broadcastPQMigration',params:[],createdAt:new Date(at).toISOString(),review:{title:'Broadcast saved account migration / 提交已保存的账户迁移',account:status.account,operationId:id,originalOperationId:saved.operationId,hash:saved.hash,abciTransactionHash:request.abciTransactionHash,migrationIntent:request.migrationIntent,currentAuthorization:request.currentAuthorization,policyRevision:request.policyRevision,reviewExecutionHeight:request.reviewExecutionHeight,executionHeight:request.executionHeight,fee:'1',expiresAt:deadline,warning:'Independent one-time broadcast approval. Keep the existing signed E6 unchanged. UNKNOWN is queried without a replacement signature or resend. 独立提交批准；原件不变，UNKNOWN只查询、不重签或重发。'}});
+      let cancelled=false;const revision=this.vault.authorization.status().revision,lease=Object.freeze({assert:()=>{permission.assert();owner.assert();if(cancelled||this.#pqShuttingDown||this.vault.authorization.status().revision!==revision||this.clock().getTime()>=Date.parse(deadline))throw providerError(4100,'REQUEST_EXPIRED','Review the same original migration broadcast again.');}});
+      lease.assert();this.#pqReviews.set(pending,{snapshot,plan,owner,broadcast:request,migrationOriginal:original.original});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Migration broadcast cancelled.')).catch(()=>{});return true;}});this.pending.set(id,pending);
       return Object.freeze({status:'approval-required',request:pending});
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
@@ -490,7 +518,8 @@ export class DesktopWalletAuthority {
   }
 
   isPendingPQTransactionReview(id){const p=this.pending.get(id);return p?.method==='ynx_signPQAccountInitial'?this.#pqInitialReviews.has(p):['ynx_signPQNativeTransfer','ynx_signPQNativeAction'].includes(p?.method)&&this.#pqReviews.has(p);}
-  isPendingPQBroadcastReview(id){const p=this.pending.get(id);return p?.method==='ynx_broadcastPQAccountInitial'?this.#pqInitialReviews.has(p):['ynx_broadcastPQNativeTransfer','ynx_broadcastPQNativeAction'].includes(p?.method)&&this.#pqReviews.has(p);}
+  isPendingPQBroadcastReview(id){const p=this.pending.get(id);return p?.method==='ynx_broadcastPQAccountInitial'?this.#pqInitialReviews.has(p):['ynx_broadcastPQNativeTransfer','ynx_broadcastPQNativeAction','ynx_broadcastPQMigration'].includes(p?.method)&&this.#pqReviews.has(p);}
+  isPendingPQMigrationBroadcastReview(id){const p=this.pending.get(id);return p?.method==='ynx_broadcastPQMigration'&&this.#pqReviews.has(p);}
   isPendingPQAccountInitialReview(id){const p=this.pending.get(id);return this.#pqInitialReviews.has(p)?(p.method==='ynx_signPQAccountInitial'?'sign':'broadcast'):null;}
   approve(id,capsule){const pending=this.pending.get(id);return this.#pqReviews.has(pending)||this.#pqInitialReviews.has(pending)?this.#trackPQ(()=>this.#approve(id,capsule)):this.#approve(id,capsule);}
   async #approve(id,capsule) {
@@ -522,24 +551,24 @@ export class DesktopWalletAuthority {
   }
   #borrowPQTransactionReview(pending,reviewed,guard,request){
     let retired=false,entered=false,completed=null,producedHash=request.action==='broadcast'?request.transportHash:null;
-    const typed=Object.hasOwn(request,'typedAction');let producedMemberHash=typed&&request.action==='broadcast'?request.memberHash:null;
+    const typed=Object.hasOwn(request,'typedAction'),migration=request.purpose==='ACCOUNT-MIGRATION';let producedMemberHash=typed&&request.action==='broadcast'?request.memberHash:null;
     const issuedAt=this.clock().toISOString(),expiresAt=new Date(Math.min(Date.parse(pending.review.expiresAt),Date.parse(issuedAt)+30000)).toISOString();
-    const packet=Object.freeze({request,issuedAt,expiresAt});
+    const packet=Object.freeze({request,issuedAt,expiresAt,...(migration?{source:Object.freeze({original:reviewed.migrationOriginal,snapshot:reviewed.snapshot})}:{})});
     const current=()=>{
       if(retired||this.#activeReviews.get(pending.id)!==pending||this.#pqReviews.get(pending)!==reviewed||this.clock().getTime()>=Date.parse(expiresAt))throw providerError(4100,'PQ_TRANSACTION_REVIEW_RETIRED','The original transaction review is no longer current.');
       if(request.action==='broadcast'&&entered)guard.assertEffectCurrent();else guard.assert();this.#reviewLeases.get(pending).lease.assert();reviewed.owner.assert();
     };
     const borrow=Object.freeze({
-      readApprovalIdentity:()=>{current();return Object.freeze({reviewId:pending.id,operationId:request.operationId,action:request.action});},
+      readApprovalIdentity:()=>{current();return Object.freeze(migration?{kind:'pq-migration',action:'broadcast',operationId:request.operationId,originalOperationId:reviewed.migrationOriginal.operationId,reviewId:pending.id}:{reviewId:pending.id,operationId:request.operationId,action:request.action});},
       readOriginal:()=>{current();return packet;},
       assertCurrent:()=>{current();},
-      recheck:async()=>{current();const {snapshot}=await reviewed.owner.recheck();current();assertPQAuthorizationCurrent(reviewed.snapshot,snapshot);},
+      recheck:async()=>{current();const {snapshot}=await reviewed.owner.recheck();current();assertPQAuthorizationCurrent(reviewed.snapshot,snapshot);if(migration)assertPQMigrationRequestPolicy(snapshot,Buffer.from(reviewed.migrationOriginal.wire,'base64url'));current();},
       enterOriginal:action=>{current();if(action!==request.action||entered)throw providerError(4100,'PQ_TRANSACTION_SIGN_ONCE','Original permission is single-use.');entered=true;},
-      completeOriginal:result=>{if(!entered||completed||!producedHash||result?.transportHash!==producedHash||typed&&(!producedMemberHash||result?.memberHash!==producedMemberHash)||!['returned',...(request.action==='broadcast'?['unknown']:[])].includes(result?.outcome))throw providerError(4100,'PQ_TRANSACTION_RESULT_BINDING','Keep the original result.');completed=result;current();},
-      assertCompletedCurrent:result=>{if(result!==completed||result?.transportHash!==producedHash||typed&&result?.memberHash!==producedMemberHash)throw providerError(4100,'PQ_TRANSACTION_RESULT_BINDING','Keep the original signing result.');current();},
+      completeOriginal:result=>{if(!entered||completed||!producedHash||result?.transportHash!==producedHash||typed&&(!producedMemberHash||result?.memberHash!==producedMemberHash)||migration&&result?.abciTransactionHash!==request.abciTransactionHash||!['returned',...(request.action==='broadcast'?['unknown']:[])].includes(result?.outcome))throw providerError(4100,'PQ_TRANSACTION_RESULT_BINDING','Keep the original result.');completed=result;current();},
+      assertCompletedCurrent:result=>{if(result!==completed||result?.transportHash!==producedHash||typed&&result?.memberHash!==producedMemberHash||migration&&result?.abciTransactionHash!==request.abciTransactionHash)throw providerError(4100,'PQ_TRANSACTION_RESULT_BINDING','Keep the original signing result.');current();},
       retire:()=>{retired=true;},join:async()=>{},close:async()=>{retired=true;}
     });
-    originalPQTransactionReviewBorrows.add(borrow);
+    (migration?originalPQMigrationBroadcastReviewBorrows:originalPQTransactionReviewBorrows).add(borrow);
     return {borrow,captureProduced:(hash,memberHash)=>{if(!entered||producedHash||typed&&(!/^0x[0-9a-f]{64}$/.test(hash??'')||!/^0x[0-9a-f]{64}$/.test(memberHash??'')))throw providerError(4100,'PQ_TRANSACTION_SIGN_ONCE','Keep the original signing result.');producedHash=hash;if(typed)producedMemberHash=memberHash;}};
   }
   async #closePQTransactionPermission(owner){
@@ -647,6 +676,7 @@ export class DesktopWalletAuthority {
         finally{if(auth)try{await this.#closePQTransactionPermission(auth);}catch(error){if(!failed)throw error;}else borrowed?.borrow.retire();}
       }
       case 'ynx_broadcastPQNativeTransfer':
+      case 'ynx_broadcastPQMigration':
       case 'ynx_broadcastPQNativeAction': {
         const reviewed=this.#pqReviews.get(pending);
         if(!capsule||!reviewed?.broadcast||!this.#pqBroadcastSource)throw providerError(4100,'PQ_BROADCAST_NOT_READY','A separate current broadcast approval is required.');

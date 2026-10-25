@@ -2,7 +2,7 @@ import {request as httpsRequest} from 'node:https';
 import {checkServerIdentity} from 'node:tls';
 import {X509Certificate,createHash} from 'node:crypto';
 import {NORMAL_OPERATOR,CANONICAL_NETWORK_ID} from '../../original-policy-supplier/operator-query.mjs';
-import {preparePQTransferTransport,preparePQOriginalLookup,preparePQActionOriginalLookup,preparePQActionFinalityLookup,preparePQAccountInitialTransport,preparePQTransferFinalityLookup} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {preparePQTransferTransport,preparePQOriginalLookup,preparePQActionOriginalLookup,preparePQActionFinalityLookup,preparePQAccountInitialTransport,preparePQTransferFinalityLookup,preparePQMigrationTransport,decodePQMigrationRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {PQ_PROGRESS_RESPONSE_BYTES} from '../../wallet-pq-progress.mjs';
 import {planPQTransferFinalityCollector,PQ_FINALITY_COLLECTOR_LIMITS} from './finality-collector.mjs';
 import {inspectPQReviewedTypedTransportOriginal} from './typed-action-reviewed-transport.mjs';
@@ -26,7 +26,7 @@ function tlsIdentity(host,cert) {
  */
 export class PQTransactionNodeTransportKernel {
   constructor(requestImpl,clock=Date.now) {this.requestImpl=requestImpl;this.clock=clock;}
-  async #exchange(path,{method='GET',body=null,deadline,metadata=false,assertCurrent=null,finalityBytes=false,typedQuery=false,typedProof=false,typedBroadcast=false,initialBroadcast=false}) {
+  async #exchange(path,{method='GET',body=null,deadline,metadata=false,assertCurrent=null,finalityBytes=false,typedQuery=false,typedProof=false,typedBroadcast=false,standaloneBroadcast=false}) {
     const remaining=Math.min(NORMAL_OPERATOR.readTimeoutMs,deadline-this.clock());
     if(remaining<=0)fail('PQ_TRANSACTION_NODE_TIMEOUT');
     return new Promise((resolve,reject)=>{
@@ -41,7 +41,7 @@ export class PQTransactionNodeTransportKernel {
       const maximum=typedQuery||typedBroadcast?PQ_TYPED_QUERY_MAX_BYTES:finalityBytes||typedProof?PQ_FINALITY_COLLECTOR_LIMITS.proofBytes+PQ_FINALITY_COLLECTOR_LIMITS.envelopeBytes:PQ_PROGRESS_RESPONSE_BYTES;
       try {
         assertCurrent?.();
-        req=this.requestImpl(new URL(path,NORMAL_OPERATOR.origin),{method,agent:false,rejectUnauthorized:true,checkServerIdentity:tlsIdentity,headers:{accept:'application/json','cache-control':'no-cache',...(finalityBytes||typedQuery||typedProof||typedBroadcast||initialBroadcast?{'accept-encoding':'identity'}:{}),...(body?{'content-type':typedBroadcast?'application/json':'application/octet-stream','content-length':String(body.length)}:{})}},res=>{
+        req=this.requestImpl(new URL(path,NORMAL_OPERATOR.origin),{method,agent:false,rejectUnauthorized:true,checkServerIdentity:tlsIdentity,headers:{accept:'application/json','cache-control':'no-cache',...(finalityBytes||typedQuery||typedProof||typedBroadcast||standaloneBroadcast?{'accept-encoding':'identity'}:{}),...(body?{'content-type':typedBroadcast?'application/json':'application/octet-stream','content-length':String(body.length)}:{})}},res=>{
           // Install error handling before any destroy, including header errors.
           res.on('error',error=>finish(error));
           if(settled){destroy(res);return;}
@@ -49,9 +49,9 @@ export class PQTransactionNodeTransportKernel {
           res.on('aborted',()=>stop('PQ_TRANSACTION_NODE_RESPONSE_ABORTED'));
           res.on('close',()=>{if(!ended)stop('PQ_TRANSACTION_NODE_RESPONSE_ABORTED');});
           const status=res.statusCode,contentType=String(res.headers['content-type']??'').split(';')[0].trim().toLowerCase();
-          if(!Number.isInteger(status)||status<200||status>=300&&status<400||contentType!=='application/json'||metadata&&status!==200||(finalityBytes||typedProof)&&![200,202,502].includes(status)||typedQuery&&![200,202].includes(status)||(typedBroadcast||initialBroadcast)&&![200,202,400,413,415,422].includes(status)){stop('PQ_TRANSACTION_NODE_RESPONSE');return;}
+          if(!Number.isInteger(status)||status<200||status>=300&&status<400||contentType!=='application/json'||metadata&&status!==200||(finalityBytes||typedProof)&&![200,202,502].includes(status)||typedQuery&&![200,202].includes(status)||(typedBroadcast||standaloneBroadcast)&&![200,202,400,413,415,422].includes(status)){stop('PQ_TRANSACTION_NODE_RESPONSE');return;}
           if(!metadata&&!String(res.headers['cache-control']??'').toLowerCase().split(',').some(v=>v.trim()==='no-store')){stop('PQ_TRANSACTION_NODE_CACHE_POLICY');return;}
-          if((typedQuery||typedProof||typedBroadcast||initialBroadcast)&&res.headers['content-encoding']!==undefined&&res.headers['content-encoding']!=='identity'){stop('PQ_TRANSACTION_NODE_RESPONSE');return;}
+          if((typedQuery||typedProof||typedBroadcast||standaloneBroadcast)&&res.headers['content-encoding']!==undefined&&res.headers['content-encoding']!=='identity'){stop('PQ_TRANSACTION_NODE_RESPONSE');return;}
           res.on('data',chunk=>{
             if(settled)return;
             if(!Buffer.isBuffer(chunk)){stop('PQ_TRANSACTION_NODE_RESPONSE');return;}
@@ -71,8 +71,8 @@ export class PQTransactionNodeTransportKernel {
             try {
               if(used)chunks.push(slab.subarray(0,used));
               const bytes=Buffer.concat(chunks,size);
-              finish(null,Object.freeze(typedQuery||typedProof||typedBroadcast||initialBroadcast?{method,requestPath:path,status,contentType:String(res.headers['content-type']),cacheControl:String(res.headers['cache-control']),body:new Uint8Array(bytes)}:finalityBytes?{status,rawBytes:bytes}:{status,text:new TextDecoder('utf-8',{fatal:true}).decode(bytes)}));
-            }catch {stop(finalityBytes||typedProof||typedBroadcast||initialBroadcast?'PQ_TRANSACTION_NODE_RESPONSE':'PQ_TRANSACTION_NODE_UTF8');}
+              finish(null,Object.freeze(typedQuery||typedProof||typedBroadcast||standaloneBroadcast?{method,requestPath:path,status,contentType:String(res.headers['content-type']),cacheControl:String(res.headers['cache-control']),body:new Uint8Array(bytes)}:finalityBytes?{status,rawBytes:bytes}:{status,text:new TextDecoder('utf-8',{fatal:true}).decode(bytes)}));
+            }catch {stop(finalityBytes||typedProof||typedBroadcast||standaloneBroadcast?'PQ_TRANSACTION_NODE_RESPONSE':'PQ_TRANSACTION_NODE_UTF8');}
           });
         });
         req.on('error',error=>finish(error));
@@ -116,7 +116,7 @@ export class PQTransactionNodeTransportKernel {
     await this.#preflight(deadline,assertCurrent);assertCurrent();
     // Complete raw DATA reaches original custody before late lock or parsing.
     // Exactly one POST; errors/UNKNOWN cannot select another route or signature.
-    return this.#exchange(plan.path,{method:plan.method,body,deadline,assertCurrent,initialBroadcast:true});
+    return this.#exchange(plan.path,{method:plan.method,body,deadline,assertCurrent,standaloneBroadcast:true});
   }
   async readAccountInitialFinalityProof(wire,expected,assertCurrent) {
     if(typeof assertCurrent!=='function')fail('PQ_TRANSACTION_NODE_CURRENT_REQUIRED');
@@ -126,6 +126,17 @@ export class PQTransactionNodeTransportKernel {
     const plan=preparePQTransferFinalityLookup(original.abciTransactionHash),deadline=this.clock()+NORMAL_OPERATOR.lifetimeMs;
     await this.#preflight(deadline,assertCurrent);assertCurrent();
     return this.#exchange(plan.path,{deadline,assertCurrent,finalityBytes:true});
+  }
+  async submitMigration(input,assertCurrent) {
+    if(typeof assertCurrent!=='function')fail('PQ_TRANSACTION_NODE_CURRENT_REQUIRED');
+    assertCurrent();const expected=preparePQMigrationTransport(input?.body),body=expected.body;
+    if(input.method!==expected.method||input.path!==expected.path||input.contentType!==expected.contentType||input.transportHash!==expected.transportHash||input.admissionIsFinality!==false)fail('PQ_TRANSACTION_NODE_REQUEST');
+    if(decodePQMigrationRequest(body).intent.chainId!==CANONICAL_NETWORK_ID)fail('PQ_TRANSACTION_NODE_NETWORK');
+    const deadline=this.clock()+NORMAL_OPERATOR.lifetimeMs;
+    await this.#preflight(deadline,assertCurrent);assertCurrent();
+    // The original E6 is sent once, never re-signed, reconstructed or replaced.
+    // Return complete bytes before post-effect checks so Main retains UNKNOWN.
+    return this.#exchange(expected.path,{method:expected.method,body,deadline,assertCurrent,standaloneBroadcast:true});
   }
   async readOriginal(hash) {
     if(typeof hash!=='string'||!/^0x[0-9a-f]{64}$/.test(hash))fail('PQ_TRANSACTION_NODE_HASH');
@@ -189,5 +200,5 @@ export class PQTransactionNodeTransportKernel {
 }
 export function createPQTransactionNodeTransport() {
   const kernel=new PQTransactionNodeTransportKernel(httpsRequest);
-  return Object.freeze({submitTransfer:(request,assertCurrent)=>kernel.submitTransfer(request,assertCurrent),submitAccountInitial:(wire,expected,assertCurrent)=>kernel.submitAccountInitial(wire,expected,assertCurrent),readAccountInitialFinalityProof:(wire,expected,assertCurrent)=>kernel.readAccountInitialFinalityProof(wire,expected,assertCurrent),readOriginal:hash=>kernel.readOriginal(hash),readFinalityProof:(original,binding)=>kernel.readFinalityProof(original,binding),submitTypedAction:(review,raw,original,assertCurrent)=>kernel.submitTypedAction(review,raw,original,assertCurrent)});
+  return Object.freeze({submitTransfer:(request,assertCurrent)=>kernel.submitTransfer(request,assertCurrent),submitMigration:(request,assertCurrent)=>kernel.submitMigration(request,assertCurrent),submitAccountInitial:(wire,expected,assertCurrent)=>kernel.submitAccountInitial(wire,expected,assertCurrent),readAccountInitialFinalityProof:(wire,expected,assertCurrent)=>kernel.readAccountInitialFinalityProof(wire,expected,assertCurrent),readOriginal:hash=>kernel.readOriginal(hash),readFinalityProof:(original,binding)=>kernel.readFinalityProof(original,binding),submitTypedAction:(review,raw,original,assertCurrent)=>kernel.submitTypedAction(review,raw,original,assertCurrent)});
 }

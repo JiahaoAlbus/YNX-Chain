@@ -5,7 +5,7 @@
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
 import {normalizePQNativeAction,encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
-import {encodePQNativeTransfer} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {encodePQNativeTransfer,encodePQRegistrationIntent,normalizePQRegistrationIntent} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const exact=(v,keys)=>{
  if(!v||types.isProxy(v)||Object.getPrototypeOf(v)!==Object.prototype)fail('AUTH_TX_PERMISSION_SCHEMA');
@@ -17,6 +17,7 @@ const hash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const transportHash=v=>typeof v==='string'&&/^0x[a-f0-9]{64}$/.test(v);
 export function bindTransactionPermissionRequest(value){
  if(types.isProxy(value))fail('AUTH_TX_PERMISSION_SCHEMA');
+ if(value&&Object.hasOwn(value,'migrationIntent'))return bindMigrationRequest(value);
  if(value&&Object.hasOwn(value,'typedAction'))return bindTypedRequest(value);
  const sign=value&&Object.getOwnPropertyDescriptor(value,'action')?.value==='sign';
  exact(value,['action','networkId','nativeChainId','account','operationId','origin','transfer','requestDigest',...(sign?['policyRevision','expiresAt']:['transportHash'])]);
@@ -35,6 +36,19 @@ export function bindTransactionPermissionRequest(value){
 // Typed sign and independently reviewed broadcast are additive to Transfer.
 // Broadcast carries already-saved dual hashes; sign has no future hashes.
 const u64=v=>typeof v==='string'&&/^[1-9][0-9]*$/.test(v)&&BigInt(v)<=18446744073709551615n;
+const u64zero=v=>v==='0'||u64(v);
+function bindMigrationRequest(v){
+ exact(v,['action','purpose','networkId','nativeChainId','account','operationId','originalOperationId','origin','migrationIntent','requestDigest','transportHash','abciTransactionHash','currentAuthorization','currentPQMemberHash','newKeyWholeProofHash','policyRevision','reviewExecutionHeight','executionHeight','expiresAt']);
+ const token=x=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(x);
+ if(v.action!=='broadcast'||v.purpose!=='ACCOUNT-MIGRATION'||!hash(v.networkId)||v.nativeChainId!=='6423'||typeof v.account!=='string'||!/^0x[a-f0-9]{40}$/.test(v.account)||!token(v.operationId)||!token(v.originalOperationId)||v.operationId===v.originalOperationId||v.origin!=='ynx-wallet:local-pq')fail('AUTH_MIGRATION_PERMISSION_BINDING');
+ exact(v.migrationIntent,['chainId','owner','algorithmVersion','pkA','pkB','priorRevision','newRevision','ledgerNonce','activateAt']);
+ const intent=normalizePQRegistrationIntent(v.migrationIntent);
+ if(!sameCanonicalData(v.migrationIntent,intent)||intent.chainId!==v.networkId||intent.owner!==v.account||!u64zero(v.policyRevision)||v.policyRevision!==intent.priorRevision||!u64(v.reviewExecutionHeight)||!u64(v.executionHeight)||BigInt(v.reviewExecutionHeight)>BigInt(v.executionHeight)||BigInt(v.executionHeight)>=BigInt(intent.activateAt))fail('AUTH_MIGRATION_PERMISSION_POLICY');
+ const digest=createHash('sha256').update(encodePQRegistrationIntent(intent)).digest('hex');
+ if(v.requestDigest!==digest||!transportHash(v.transportHash)||!transportHash(v.abciTransactionHash)||!transportHash(v.newKeyWholeProofHash)||!['pq','legacy'].includes(v.currentAuthorization)||(v.currentAuthorization==='pq'?!transportHash(v.currentPQMemberHash):v.currentPQMemberHash!==null))fail('AUTH_MIGRATION_PERMISSION_ORIGINAL');
+ time(v.expiresAt);
+ return Object.freeze({action:v.action,purpose:v.purpose,networkId:v.networkId,nativeChainId:v.nativeChainId,account:v.account,operationId:v.operationId,originalOperationId:v.originalOperationId,origin:v.origin,migrationIntent:intent,requestDigest:digest,transportHash:v.transportHash,abciTransactionHash:v.abciTransactionHash,currentAuthorization:v.currentAuthorization,currentPQMemberHash:v.currentPQMemberHash,newKeyWholeProofHash:v.newKeyWholeProofHash,policyRevision:v.policyRevision,reviewExecutionHeight:v.reviewExecutionHeight,executionHeight:v.executionHeight,expiresAt:v.expiresAt});
+}
 function sameCanonicalData(actual,expected){
  if(expected===null||typeof expected!=='object')return actual===expected;
  if(!actual||typeof actual!=='object'||types.isProxy(actual)||Object.getPrototypeOf(actual)!==Object.getPrototypeOf(expected))return false;
@@ -80,7 +94,7 @@ export class TransactionPermissionKernel {
    exact(original,['request','issuedAt','expiresAt']);const request=bindTransactionPermissionRequest(original.request);
    if(JSON.stringify(request)!==JSON.stringify(this.#request))fail('AUTH_TX_PERMISSION_ORIGINAL_CHANGED');
    const issued=time(original.issuedAt),expires=time(original.expiresAt);
-   if(issued>before||expires<=issued||expires-issued>30000||before>=expires||((request.action==='sign'||request.typedAction)&&expires>time(request.expiresAt)))fail('AUTH_TX_PERMISSION_EXPIRED');
+   if(issued>before||expires<=issued||expires-issued>30000||before>=expires||((request.action==='sign'||request.typedAction||request.migrationIntent)&&expires>time(request.expiresAt)))fail('AUTH_TX_PERMISSION_EXPIRED');
    this.#binding=Object.freeze({...request,issuedAt:original.issuedAt,expiresAt:original.expiresAt});this.#expires=expires;
    if(this.#phase!=='captured')fail('AUTH_TX_PERMISSION_RETIRED');this.#phase='ready';this.assertCurrent();return undefined;
   }));}catch(e){this.#remember(e);throw e;}
@@ -114,7 +128,7 @@ export class TransactionPermissionKernel {
  complete(value){
   try{
    if(this.#busy||this.#phase!=='entered')fail('AUTH_TX_PERMISSION_COMPLETE_ONCE');
-   exact(value,this.#request.typedAction?['outcome','transportHash','memberHash']:['outcome','transportHash']);if(!['returned','unknown'].includes(value.outcome)||!transportHash(value.transportHash)||(this.#request.typedAction&&!transportHash(value.memberHash))||(this.#request.action==='broadcast'&&(value.transportHash!==this.#request.transportHash||(this.#request.typedAction&&value.memberHash!==this.#request.memberHash))))fail('AUTH_TX_PERMISSION_RESULT_BINDING');
+   exact(value,this.#request.migrationIntent?['outcome','transportHash','abciTransactionHash']:this.#request.typedAction?['outcome','transportHash','memberHash']:['outcome','transportHash']);if(!['returned','unknown'].includes(value.outcome)||!transportHash(value.transportHash)||(this.#request.typedAction&&!transportHash(value.memberHash))||(this.#request.migrationIntent&&(!transportHash(value.abciTransactionHash)||value.abciTransactionHash!==this.#request.abciTransactionHash))||(this.#request.action==='broadcast'&&(value.transportHash!==this.#request.transportHash||(this.#request.typedAction&&value.memberHash!==this.#request.memberHash))))fail('AUTH_TX_PERMISSION_RESULT_BINDING');
    this.#result=Object.freeze({...value}); // Retain BEFORE any foreign call.
    this.#phase='completed';this.#window();this.#busy=true;
    try{this.#peerVoid(()=>this.#peer.completeOriginal(this.#result));}finally{this.#busy=false;}
