@@ -60,7 +60,9 @@ var (
 	blockHashPattern       = regexp.MustCompile(`^[0-9A-Fa-f]{64}$`)
 	aiRecordIDPattern      = regexp.MustCompile(`^[0-9a-f]{24}$`)
 	quantRecordIDPattern   = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
-	buildCommitPattern     = regexp.MustCompile(`^[0-9a-f]{12}$`)
+	// A public build identifies its complete Git source object. An abbreviated
+	// display label cannot bind the node to independently pinned source bytes.
+	buildCommitPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
 )
 
 type Config struct {
@@ -594,10 +596,12 @@ func (g *Gateway) handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (g *Gateway) publicCutoverReady() bool {
-	if !g.publicCutoverAuthorized || len(missingCutoverCapabilities) != 0 || !buildCommitPattern.MatchString(g.build.Commit) {
+	if !g.publicCutoverAuthorized || len(missingCutoverCapabilities) != 0 || !buildCommitPattern.MatchString(g.build.Commit) || g.build.Commit == strings.Repeat("0", 40) {
 		return false
 	}
-	if g.build.Release != "ynx-bft-gateway-"+g.build.Commit {
+	// The v1 operation/release label remains a display alias. The complete
+	// commit above is retained in every observation for independent pin checks.
+	if g.build.Release != "ynx-bft-gateway-"+g.build.Commit[:12] {
 		return false
 	}
 	parsed, err := time.Parse(time.RFC3339, g.build.BuildTime)

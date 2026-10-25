@@ -2413,10 +2413,10 @@ jobs:
             go build -p 1 -trimpath -buildvcs=true -o "$YNX_RUNTIME_CANDIDATE/$YNX_RUNTIME_COMMAND" "./cmd/$YNX_RUNTIME_COMMAND"
           done
           YNX_RUNTIME_BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          YNX_RUNTIME_GATEWAY_COMMIT=${GITHUB_SHA:0:12}
+          YNX_RUNTIME_GATEWAY_COMMIT=$GITHUB_SHA
           YNX_RUNTIME_BUILD_OBSERVATION="$RUNNER_TEMP/ynx-pq-runtime-gateway-build-info.json"
           export YNX_RUNTIME_BUILD_TIME YNX_RUNTIME_BUILD_OBSERVATION
-          go build -p 1 -trimpath -buildvcs=true -ldflags "-X main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildRelease=ynx-bft-gateway-$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildTime=$YNX_RUNTIME_BUILD_TIME" -o "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd
+          go build -p 1 -trimpath -buildvcs=true -ldflags "-X main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildRelease=ynx-bft-gateway-${YNX_RUNTIME_GATEWAY_COMMIT:0:12} -X main.buildTime=$YNX_RUNTIME_BUILD_TIME" -o "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd
           # Exercise this exact ELF's informational exit. Invalid service inputs
           # make any accidental gateway construction fail before a listener.
           (set -C; timeout 5s "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" --build-info --comet-rpc not-a-url --http invalid-address --migration-height 1 >"$YNX_RUNTIME_BUILD_OBSERVATION")
@@ -2469,7 +2469,7 @@ jobs:
           if not 0 < observation.stat().st_size <= 1024:
               raise RuntimeError('actual gateway build identity exceeds its bound')
           gateway_build = json.loads(observation.read_text(encoding='utf8'))
-          expected_build = dict(commit=os.environ['GITHUB_SHA'][:12],
+          expected_build = dict(commit=os.environ['GITHUB_SHA'],
               release='ynx-bft-gateway-' + os.environ['GITHUB_SHA'][:12],
               buildTime=os.environ['YNX_RUNTIME_BUILD_TIME'])
           if gateway_build != expected_build:
