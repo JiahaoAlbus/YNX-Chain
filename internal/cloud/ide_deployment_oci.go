@@ -232,7 +232,11 @@ func (e *OCIIDEDeploymentExecutor) ApplyExisting(ctx context.Context, p IDEDeplo
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		if !p.ExpiresAt.After(e.now()) {
+		// Image inspection, staging, receipt sync and current checks may have
+		// consumed the window used to construct the fixed timeout command.
+		// Never start that command unless its run AND forced-stop grace still
+		// fit; changing/recreating the approved attempt is not a recovery.
+		if p.ExpiresAt.Sub(e.now()) < time.Duration(seconds+5)*time.Second {
 			return ErrDenied
 		}
 		return nil
