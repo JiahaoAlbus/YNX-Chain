@@ -180,3 +180,44 @@ stdout/stderr, file-size metadata, prepared, business manifest and relocation
 receipt are uploaded for seven days by the original always-on-terminal path.
 Retain failure/UNKNOWN and cleanup evidence before considering any new window.
 The calibration cannot qualify sustained 1000 TPS or earliest BFT formation.
+
+## Actual once-window outcome
+
+Root subsequently supplied a real compatible frozen ref and signed the complete
+once window. The sole actual remote dispatch was run `40244217629`, e765,
+`codex/ynx-pq-remote-e76573c139f0265c10b93f2eb493be082daec2eb`.
+The original normal admission and relocation passed. A real 2043-byte prepared
+(`f9aea9b1dee9304f05f19c9a33717ed3cb76778c89e885f1c6f9af7f4e27dfad`)
+and 1719-byte business manifest
+(`cd4b59df46e84a5c9368ddec81016723e6e39ddacf710f1510defa7f7fa88a79`)
+were produced on that Linux runner. Prepared has exactly eleven fields and
+retains `executionAuthorized=false`; the external once grant authorized the
+original execution, not a rewritten JSON boolean.
+
+Execution failed before activation, at fresh test line 358:
+`actual fresh initial-account genesis rejected`. Test duration was 0.47 seconds;
+the guard ended after 1659 ms with child exit 1, cleanupComplete=true and two
+empty owned scans. This is a functional fixture failure, not measured throughput
+or a resource-limit failure. The resource sampler recorded four logical CPUs,
+peak owned RSS 63,361,024 bytes and six threads. Runtime resource sampling is not
+a performance benchmark or a hard cgroup enforcement claim.
+
+Source inspection identified an unsorted configuration candidate: pqFreshNew
+appends seventeen generated owner bindings in generation order, whereas the
+production initial-account validator requires strictly sorted owners. The
+generic fatal hides the actual Encode/Unmarshal error, so this remains a
+source-supported cause candidate until the original owner reproduces it with
+the concrete error. Protocol received the exact failure and request to sort
+fixture bindings, preserve sender order, expose the actual error and add a
+bounded negative/positive fixture test. No production validation change or old
+run retry was requested.
+
+Artifact `12618311158` contains all seven expected public files. Its ZIP SHA256
+is `e9bca556c09047dc55ab209b7b693d75a17cc1199128c3d882efd26d11b80d90`.
+The complete terminal handoff is retained at
+`/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/TERMINAL_HANDOFF.json`,
+with tracked readback `evidence/pq-fresh-e765-run40244217629-terminal.json`.
+The original grant is consumed; no second dispatch or rerun was made. A local
+gh JSON bool parsing error occurred before dispatch; its original error and
+empty-run readback were preserved, then identical input meanings were serialized
+as strings as required by gh. This did not create another remote run.

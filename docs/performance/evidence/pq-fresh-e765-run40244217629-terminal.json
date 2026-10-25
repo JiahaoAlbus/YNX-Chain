@@ -1,0 +1,127 @@
+{
+  "version": "YNX-PQ-FRESH32-WHOLE-ONCE-TERMINAL/v1",
+  "runId": 40244217629,
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40244217629",
+  "candidate": "e76573c139f0265c10b93f2eb493be082daec2eb",
+  "event": "workflow_dispatch",
+  "conclusion": "failure",
+  "onceRemoteDispatch": true,
+  "grantConsumed": true,
+  "normalAdmissionPassed": true,
+  "actualRelocationPassed": true,
+  "prepared": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/result/ynx-pq-network-40244217629-1/prepared.json",
+    "bytes": 2043,
+    "sha256": "f9aea9b1dee9304f05f19c9a33717ed3cb76778c89e885f1c6f9af7f4e27dfad"
+  },
+  "businessManifest": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/result/ynx-pq-network-40244217629-1.build/business-manifest.json",
+    "bytes": 1719,
+    "sha256": "cd4b59df46e84a5c9368ddec81016723e6e39ddacf710f1510defa7f7fa88a79"
+  },
+  "preparedFieldCount": 11,
+  "originalPreparedExecutionAuthorized": false,
+  "resultArtifact": {
+    "id": 12618311158,
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/result.zip",
+    "bytes": 7398,
+    "sha256": "e9bca556c09047dc55ab209b7b693d75a17cc1199128c3d882efd26d11b80d90"
+  },
+  "rawFiles": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/result/ynx-pq-fresh-intake-40244217629-1/relocation.json",
+      "bytes": 2457,
+      "sha256": "59e4696a19aa5bf2e9856d98dcd7bcc043a3c564f662f1eceecaaa00fa847e24"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/result/ynx-pq-network-40244217629-1/go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/result/ynx-pq-network-40244217629-1/go.stdout.log",
+      "bytes": 242,
+      "sha256": "d9d2fae722d3686fd5973d914b751c1ae0c39dfee7cfe8c9c9117f80e6950b2c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/result/ynx-pq-network-40244217629-1/prepared.json",
+      "bytes": 2043,
+      "sha256": "f9aea9b1dee9304f05f19c9a33717ed3cb76778c89e885f1c6f9af7f4e27dfad"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/result/ynx-pq-network-40244217629-1.build/business-manifest.json",
+      "bytes": 1719,
+      "sha256": "cd4b59df46e84a5c9368ddec81016723e6e39ddacf710f1510defa7f7fa88a79"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/result/ynx-pq-network-40244217629-1.file-sizes.json",
+      "bytes": 3271,
+      "sha256": "a07e78f732f129a40e3aebd14f82423ba68eff50cee0354ec90def9840e5849d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/result/ynx-pq-network-40244217629-1.receipt.json",
+      "bytes": 6641,
+      "sha256": "8fb365d5920ee9f36dea90c4bf0dc0a6fe2e972374bc903941f0a918c22e88c2"
+    }
+  ],
+  "runLog": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/run.log",
+    "bytes": 375847,
+    "sha256": "4d809649a4dc8bcfb75c0a1884db55fdfc6d8ef4ca4fb3236abd409d4d1fd269"
+  },
+  "terminal": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-e765-whole-once/TERMINAL.json",
+    "bytes": 16534,
+    "sha256": "284fb066416832892514b3cf505efa915b4f62841b2f88e6f190a7eb5df0b5cf"
+  },
+  "actualFailure": {
+    "guardFirstCause": "actual Go terminal code 1",
+    "child": {
+      "pid": 3255,
+      "code": 1,
+      "startTicks": 15885
+    },
+    "stdout": "=== RUN   TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming\n    pq_network_fresh_business_test.go:358: actual fresh initial-account genesis rejected\n--- FAIL: TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming (0.47s)\nFAIL\n",
+    "stderrBytes": 0,
+    "guardElapsedMs": 1659
+  },
+  "cleanup": {
+    "complete": true,
+    "emptyOwnedScans": [
+      {
+        "elapsedMs": 1604,
+        "hostIdentities": 158
+      },
+      {
+        "elapsedMs": 1659,
+        "hostIdentities": 158
+      }
+    ]
+  },
+  "sampledResources": {
+    "kernel": {
+      "release": "6.17.0-1022-azure",
+      "machine": "x86_64",
+      "logicalCPUs": 4
+    },
+    "peakOwnedRSSBytes": 63361024,
+    "peakThreads": 6,
+    "peakPrivateBytes": 89353,
+    "minimumFreeDiskBytes": 89705054208,
+    "minimumAvailableMemoryBytes": 15432785920
+  },
+  "causeCandidate": {
+    "classification": "source-supported hypothesis; generic fatal suppresses original error",
+    "fixture": "pqFreshNew appends initial+16 generated owner bindings without sorting",
+    "strictProductionRequirement": "PQInitialAccountConfiguration.validate requires binding.Owner strictly increasing",
+    "repairOwner": "original Protocol",
+    "requestedRepair": "Sort configuration.Accounts only, preserve sender order, print actual Encode/Unmarshal errors, retain failure and add bounded negative/positive fixture test; new normal same-source supply before any next Root window"
+  },
+  "noNewWindowAuthorized": true,
+  "businessWorkloadCompleted": false,
+  "nodeActivationReached": false,
+  "businessTPSMeasured": false,
+  "finalityLatencyMeasured": false,
+  "sustainedTPSQualified": false,
+  "goalComplete": false
+}
