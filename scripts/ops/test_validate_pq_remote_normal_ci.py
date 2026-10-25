@@ -994,9 +994,9 @@ def assert_fresh_business_execution_workflow_contract(raw):
         "        required: false\n        default: false\n        type: boolean\n"))
     identity, normal, prepare, network = (one(name) for name in ("identity", "normalci", "pqfreshprepare", "pqnetwork"))
     need('YNX_ENTRY_FRESH_BUSINESS: ${{ inputs.consensus_fresh_paired_business }}' in identity
-         and '"$YNX_ENTRY_REMOTE_PROCESS" "$YNX_ENTRY_FRESH_BUSINESS"; do' in identity
+         and '"$YNX_ENTRY_REMOTE_PROCESS" "${YNX_ENTRY_FRESH_BUSINESS:-false}"; do' in identity
          and 'test "$YNX_WINDOW_SELECTIONS" -le 1' in identity)
-    need('if [ "$YNX_ENTRY_FRESH_BUSINESS" = \'true\' ]; then' in identity
+    need('if [ "${YNX_ENTRY_FRESH_BUSINESS:-false}" = \'true\' ]; then' in identity
          and '[[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]]' in identity)
     need('YNX_NORMAL_FRESH_BUSINESS: ${{ inputs.consensus_fresh_paired_business }}' in normal
          and 'if [ "$YNX_NORMAL_FRESH_BUSINESS" = \'true\' ]; then' in normal
@@ -1444,7 +1444,9 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         identity = next(step for step in steps if "        id: identity\n" in step)
         option = raw.split("      consensus_fresh_paired_business:\n", 1)[1].split("      remote_signer_process:\n", 1)[0]
         mutations = [raw.replace(option, option.replace("default: false", "default: true", 1), 1),
-            raw.replace(identity, identity.replace('"$YNX_ENTRY_REMOTE_PROCESS" "$YNX_ENTRY_FRESH_BUSINESS"; do', '"$YNX_ENTRY_REMOTE_PROCESS"; do', 1), 1),
+            raw.replace(identity, identity.replace('"$YNX_ENTRY_REMOTE_PROCESS" "${YNX_ENTRY_FRESH_BUSINESS:-false}"; do', '"$YNX_ENTRY_REMOTE_PROCESS"; do', 1), 1),
+            raw.replace(identity, identity.replace('if [ "${YNX_ENTRY_FRESH_BUSINESS:-false}"', 'if [ "$YNX_ENTRY_FRESH_BUSINESS"', 1), 1),
+            raw.replace(identity, identity.replace('"${YNX_ENTRY_FRESH_BUSINESS:-false}"; do', '"$YNX_ENTRY_FRESH_BUSINESS"; do', 1), 1),
             raw.replace(normal, normal.replace("normal_args+=(--profile consensus-fresh-paired-business-v1)", "normal_args+=()", 1), 1),
             raw.replace(prepare, "", 1),
             raw.replace(prepare, prepare.replace("steps.normalci.outcome == 'success'", "true", 1), 1),

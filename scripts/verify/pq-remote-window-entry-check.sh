@@ -107,8 +107,8 @@ def job_if(name):
         raise RuntimeError('original job predicate missing: ' + name)
     return ' '.join(found[0].split())
 
-expected_verify = "github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history)"
-expected_focused = "(github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))"
+expected_verify = "github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))"
+expected_focused = "(github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))"
 sha = 'a123456789abcdef0123456789abcdef01234567'
 other_sha = 'b123456789abcdef0123456789abcdef01234567'
 frozen = 'refs/heads/codex/ynx-pq-remote-' + sha[:9]
@@ -116,13 +116,17 @@ main = 'refs/heads/codex/ynx-pq-perf-integration'
 public = 'refs/heads/codex/ynx-pq-public-upgrade'
 fields = ('YNX_ENTRY_EVENT', 'YNX_ENTRY_REF', 'YNX_ENTRY_GITHUB_SHA', 'YNX_ENTRY_CANDIDATE_SHA',
           'YNX_ENTRY_REMOTE_RETAINED', 'YNX_ENTRY_PAIRED', 'YNX_ENTRY_LOCAL',
-          'YNX_ENTRY_LOCAL_RETAINED', 'YNX_ENTRY_REMOTE_PROCESS')
+          'YNX_ENTRY_LOCAL_RETAINED', 'YNX_ENTRY_REMOTE_PROCESS', 'YNX_ENTRY_FRESH_BUSINESS')
 counts = dict(positive=0, negative=0)
 
 def invoke(label, accepted, ref=frozen, source=sha, candidate=sha, remote='true',
-           paired='false', local='false', retained='false', process='false', marker=True):
-    values = ('workflow_dispatch', ref, source, candidate, remote, paired, local, retained, process)
+           paired='false', local='false', retained='false', process='false', marker=True, fresh=None):
+    values = ('workflow_dispatch', ref, source, candidate, remote, paired, local, retained, process, fresh)
     inputs = dict(zip(fields, values))
+    if fresh is None:
+        # Reuse the original nine-env caller unchanged. Missing the new option
+        # must mean false, rather than set -u refusing before the real callee.
+        del inputs['YNX_ENTRY_FRESH_BUSINESS']
     before = dict(inputs)
     # No inherited credentials, BASH_ENV, key/Host modes, or production input.
     environment = dict(PATH='/usr/bin:/bin', **inputs)
@@ -152,7 +156,7 @@ historical_read = subprocess.run(['git', '-C', str(repo), 'show',
 if historical_read.returncode != 0 or historical_read.stderr or not 0 < len(historical_read.stdout) <= 1 << 20:
     raise RuntimeError('fixed original historical workflow object unavailable')
 historical_body = extract_caller(historical_read.stdout.decode('utf8'), historical=True)
-historical_inputs = dict(zip(fields, ('workflow_dispatch', main, sha, sha,
+historical_inputs = dict(zip(fields[:9], ('workflow_dispatch', main, sha, sha,
     'true', 'false', 'false', 'false', 'false')))
 historical_before = dict(historical_inputs)
 render_inputs = {'paired_n1': 'YNX_ENTRY_PAIRED', 'consensus_e2e': 'YNX_ENTRY_LOCAL',
@@ -201,6 +205,26 @@ invoke('frozen-empty-candidate', False, candidate='')
 invoke('frozen-short-ref', False, ref='refs/heads/codex/ynx-pq-remote-' + sha[:8])
 invoke('main-wrong-candidate-must-reach-rejection', False, ref=main, candidate=other_sha)
 invoke('main-original-local-mixed-modes', False, ref=main, remote='false', paired='true', local='true')
+
+# Explicit fresh selection uses the same source identity and six-way exclusive
+# selection. It does not call the remote-only nine-argument callee or authorize
+# a node: the same-source normal-CI and original guard still run later.
+invoke('frozen-remote-explicit-fresh-false', True, fresh='false')
+for ref in (frozen, 'refs/heads/codex/ynx-pq-remote-' + sha, main, public, 'refs/heads/main'):
+    invoke('fresh-allowed-source-ref', True, ref=ref, remote='false', fresh='true', marker=False)
+for ref in ('refs/heads/codex/other', 'refs/tags/codex/ynx-pq-remote-' + sha[:9],
+            'refs/heads/codex/ynx-pq-remote-' + sha[:8],
+            'refs/heads/codex/ynx-pq-remote-' + other_sha[:9],
+            'refs/heads/codex/ynx-pq-remote-' + sha.upper()[:9],
+            'refs/heads/codex/ynx-pq-remote-' + sha[:9] + '-extra'):
+    invoke('fresh-wrong-source-ref', False, ref=ref, remote='false', fresh='true', marker=False)
+invoke('fresh-candidate-mismatch', False, ref=main, remote='false', fresh='true', candidate=other_sha, marker=False)
+for mode in ('remote', 'paired', 'local', 'retained', 'process'):
+    inputs = dict(remote='false', fresh='true', marker=False)
+    inputs[mode] = 'true'
+    invoke('fresh-conflicting-' + mode, False, **inputs)
+for value in ('True', 'TRUE', '1', 'true_extra', 'unknown'):
+    invoke('fresh-malformed-selection', False, ref=main, remote='false', fresh=value, marker=False)
 
 if job_if('verify') != expected_verify or job_if('focused-go') != expected_focused:
     raise RuntimeError('wrong-ref remote selection must enter identity and never the unrelated generic job')

@@ -660,7 +660,7 @@ jobs:
           bash scripts/verify/pq-remote-window-entry-check.sh
           if [ "$YNX_ENTRY_EVENT" = 'workflow_dispatch' ]; then
             test "$YNX_ENTRY_CANDIDATE_SHA" = "$YNX_ENTRY_GITHUB_SHA"
-            if [ "$YNX_ENTRY_FRESH_BUSINESS" = 'true' ]; then
+            if [ "${YNX_ENTRY_FRESH_BUSINESS:-false}" = 'true' ]; then
               if [[ "$YNX_ENTRY_REF" =~ ^refs/heads/codex/ynx-pq-remote-([0-9a-f]{9,40})$ ]]; then
                 [[ "$YNX_ENTRY_CANDIDATE_SHA" == "${BASH_REMATCH[1]}"* ]]
               else
@@ -673,7 +673,7 @@ jobs:
                 "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS"
             fi
             YNX_WINDOW_SELECTIONS=0
-            for YNX_WINDOW_SELECTED in "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS" "$YNX_ENTRY_FRESH_BUSINESS"; do
+            for YNX_WINDOW_SELECTED in "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS" "${YNX_ENTRY_FRESH_BUSINESS:-false}"; do
               case "$YNX_WINDOW_SELECTED" in
                 true) YNX_WINDOW_SELECTIONS=$((YNX_WINDOW_SELECTIONS + 1)) ;;
                 false|'') ;;
