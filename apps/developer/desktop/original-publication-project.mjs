@@ -74,6 +74,14 @@ export function captureOriginalPublicationProject({projectID,publisherID,assertL
  }
  return Object.freeze({
   assertCurrent,
+  // Backend-only public DATA from the same independently checked Native
+  // owner. This is not an HTTP proof, admission or signing approval.
+  async readObservationScope(){
+   await assertCurrent();live();
+   const scope=JSON.parse(baseline);
+   if(scope.project.read!==true)throw Object.assign(Error('Original project read permission is unavailable.'),{code:'IDE_PUBLICATION_NOT_SUPPLIED'});
+   return Object.freeze({principal:Object.freeze(scope.principal),project:Object.freeze(scope.project),publisher:Object.freeze(scope.publisher),expiresMS:deadline});
+  },
   close(){
    closed=true;
    if(cleanupSelected){if(cleanupFailed)throw cleanupCause;return;}
@@ -123,6 +131,14 @@ export function captureOriginalWorkspacePublicationProject({context,assertLocalC
   }catch(cause){throw remember(cause);}
  }
  return Object.freeze({assertCurrent,
+  async readObservationScope(){
+   await assertCurrent();live();
+   const scope=await project.readObservationScope();live();
+   await selectionCurrent();live();
+   const expiresMS=Math.min(selected.expiresMS,scope.expiresMS);
+   if(now()>=expiresMS)throw retired();
+   return Object.freeze({...scope,expiresMS});
+  },
   close(){
    closed=true;if(cleanupSelected){if(cleanupFailed)throw cleanupCause;return;}
    cleanupSelected=true;let caught=false,cause;

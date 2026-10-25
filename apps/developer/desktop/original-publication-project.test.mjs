@@ -140,3 +140,27 @@ test('closing during local await prevents selector reads and keeps original dire
  const f=workspaceFixture();let release;f.workspaceOptions.assertLocalCurrent=()=>new Promise(resolve=>{release=resolve;});const owner=projectConsumer.captureOriginalWorkspacePublicationProject(f.workspaceOptions),pending=owner.assertCurrent();owner.close();release();
  await assert.rejects(pending,{code:'IDE_PUBLICATION_PROJECT_RETIRED'});assert.equal(f.calls.includes('read-selector'),false);assert.equal(f.calls.filter(x=>x==='close-selector').length,1);
 });
+
+
+test('observation reads independently current original principal/project/publisher DATA, not a local UUID grant',async()=>{
+ const f=workspaceFixture(),owner=projectConsumer.captureOriginalWorkspacePublicationProject(f.workspaceOptions);
+ const scope=await owner.readObservationScope();
+ assert.equal(scope.principal.account,f.principal.account);assert.equal(scope.principal.sessionGeneration,f.principal.sessionGeneration);
+ assert.equal(scope.project.projectId,f.project.projectId);assert.notEqual(scope.project.projectId,f.context.id);
+ assert.equal(scope.project.ownerAccount,f.project.ownerAccount);assert.equal(scope.publisher.registrationRef,f.publisher.registrationRef);assert.equal(scope.expiresMS,2000);
+ assert.equal(Object.hasOwn(scope,'authorized'),false);assert.equal(Object.hasOwn(scope,'generation'),false);
+ assert.ok(Object.isFrozen(scope)&&Object.isFrozen(scope.principal)&&Object.isFrozen(scope.project)&&Object.isFrozen(scope.publisher));
+ f.principal.sessionGeneration='9';await assert.rejects(owner.readObservationScope(),{code:'IDE_PUBLICATION_PROJECT_RETIRED'});
+ owner.close();assert.equal(f.calls.filter(x=>x==='acquire').length,1);assert.equal(f.calls.filter(x=>x==='acquire-selector').length,1);
+});
+test('publish-only permission remains usable for review but cannot authorize observation',async()=>{
+ const f=fixture();f.project.read=false;const owner=captureOriginalPublicationProject(f.options);
+ assert.equal((await owner.assertCurrent()).projectId,f.project.projectId);
+ await assert.rejects(owner.readObservationScope(),{code:'IDE_PUBLICATION_NOT_SUPPLIED'});
+ assert.equal((await owner.assertCurrent()).projectId,f.project.projectId);owner.close();
+});
+test('observation refuses a retired original workspace selection and never reacquires it',async()=>{
+ const f=workspaceFixture(),owner=projectConsumer.captureOriginalWorkspacePublicationProject(f.workspaceOptions);
+ await owner.readObservationScope();f.selection.catalogRevision='9';await assert.rejects(owner.readObservationScope(),{code:'IDE_PUBLICATION_PROJECT_RETIRED'});
+ owner.close();assert.equal(f.calls.filter(x=>x==='acquire-selector').length,1);
+});
