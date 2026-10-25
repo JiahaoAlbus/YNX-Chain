@@ -152,6 +152,16 @@ async function run(){
   if(result.dataOnly!==true||result.signatureVerified!==true||['trusted','authorized','nativeAdmission','registered','current','publicationAuthorized'].some(key=>result[key]!==false)||Buffer.byteLength(raw)>(selectedManifest?28672:4096))bad('IDE_ARTIFACT_SIGNATURE_DISPATCH_RESULT');
   process.stdout.write(raw+'\n');return;
  }
+ // Version4 HTTP-device mathematics only, selected by original trusted callers.
+ // This does not resolve a registration, sign a header or consume a nonce.
+ if(input?.operation==='product-session-http-proof-data/v4'){
+  if(size>262144)bad('PRODUCT_SESSION_PROOF_V4_DISPATCH_CAPACITY');
+  exact(input,['operation','proofHeader','expected']);
+  const {inspectProductSessionHTTPProofHeaderV4Data}=await import('../src/product-session-proof-v4.js');
+  const result=inspectProductSessionHTTPProofHeaderV4Data(input.proofHeader,input.expected);
+  if(result.signatureVerified!==true||result.dataOnly!==true||['trusted','authorized','registered','current','nativeAdmission'].some(k=>result[k]!==false))bad('PRODUCT_SESSION_PROOF_V4_DISPATCH_RESULT');
+  process.stdout.write(canonical(result)+'\n');return;
+ }
  if(input?.operation==='ide-publication-approval-current-native-node/v1'){
   const {dispatchOriginalIDEApprovalCurrent}=await import('./original-ide-publication-approval-dispatch.mjs');const result=await dispatchOriginalIDEApprovalCurrent(input);
   process.stdout.write(canonical(result)+'\n');if(!result.completed)process.exitCode=1;return;
