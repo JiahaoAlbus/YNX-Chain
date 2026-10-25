@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "sourceCommit": "f2ffa01ba006a8a2aba3ca3a9f09b04311857731",
+  "codeCommit": "e7beff99ac8b4e19efa83e5d6a5f4198182cdf9e",
+  "ordinaryCI": {
+    "runId": 40185564279,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40185564279",
+    "conclusion": "success",
+    "originalAPI": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verification-key-reuse-20261025/normal-ci-completed.json",
+      "bytes": 10510,
+      "sha256": "36c53475e0e5f88a3cee95c5ef9edcba80aa54a4139a806394b8a0da8bc7a996"
+    },
+    "originalFullLog": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/native-verification-key-reuse-20261025/normal-ci-full.raw",
+      "bytes": 775733,
+      "sha256": "2034e308c40c2bc739f7e2d5b944e17f4974ff00ccae773d7b90a66e1f50c64e"
+    },
+    "verifiedRequiredSteps": [
+      "Run make consensus-abci-check",
+      "Verify native parsed-key reuse and original signature refusal semantics",
+      "Verify bounded performance controller and evidence contracts",
+      "Verify Linux Supply isolation and refusal counterexamples (no nodes)",
+      "Verify prefix candidate and original frozen source contracts"
+    ],
+    "fourNodeStepSkipped": true
+  },
+  "localEvidence": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/docs/performance/evidence/native-verification-key-reuse-local-20261025.json",
+    "bytes": 4011,
+    "sha256": "f34ef75ed9bff7a624abaaa6bfb7b6feb9534d6d1d60bd6f1c438592bce9f2fe"
+  },
+  "exactSourceFiles": {
+    "internal/consensus/transaction.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/transaction.go",
+      "bytes": 7595,
+      "sha256": "572ff291ba531ebf1185803a8156ceadc64ba294ddddee0d2b07a6cf24072718"
+    },
+    "internal/consensus/native_verification_key_reuse_test.go": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/native_verification_key_reuse_test.go",
+      "bytes": 6590,
+      "sha256": "6aa40df5704cb1bbd2ae1d87853917147a7318b1d8ecd0450fbdfbae69db50a5"
+    },
+    ".github/workflows/chain-core.yml": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/.github/workflows/chain-core.yml",
+      "bytes": 52300,
+      "sha256": "b8ad82dd6884d96c4cf9107944b42d234c0b49e0fc1f81c4494fe1eab99f08d5"
+    },
+    "scripts/verify/perf-prefix-replay-candidate-check.mjs": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/scripts/verify/perf-prefix-replay-candidate-check.mjs",
+      "bytes": 5848,
+      "sha256": "81a3694593f6bfb0e6e1e6ac307780746e9be2867e2258f2506787eed9eb8031"
+    }
+  },
+  "sourceVerified": true,
+  "networkImprovementMeasured": false,
+  "sustainedTPSQualified": false,
+  "deployed": false,
+  "clientDefaultProcsChanged": false
+}

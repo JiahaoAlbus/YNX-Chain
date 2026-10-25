@@ -1,6 +1,6 @@
 # Native验签：复用本次调用的公钥解析
 
-基于已严格验收的[40183256447原始分层结果](NATIVE_REPLAY_TIMING_RUN40183256447_QUALIFIED_20261025.md)，原owner继续源码优化。CODE `e7beff99ac8b4e19efa83e5d6a5f4198182cdf9e`。本地已验证，准确SOURCE普通CI待完成；没有新四节点运行、双核默认晋升、放宽限额或持续1000TPS结论。
+基于已严格验收的[40183256447原始分层结果](NATIVE_REPLAY_TIMING_RUN40183256447_QUALIFIED_20261025.md)，原owner继续源码优化。CODE `e7beff99ac8b4e19efa83e5d6a5f4198182cdf9e`。本地与准确SOURCE普通CI均已验证；没有新四节点运行、双核默认晋升、放宽限额或持续1000TPS结论。
 
 ## 8192次查找、0命中的真实含义
 
@@ -28,3 +28,5 @@
 带race的11个顶层针对性测试通过（1.853秒）：完整原版/新版拒绝结果对照覆盖字段篡改、错链、坏公钥/owner、坏DER、高S及空签名；保留原本接受的签名hex大小写行为和公共地址bytes；原canonical/mobile vector、缓存边界/并发、可变nonce/余额重查、真实CheckTx→Finalize→durable Commit→重启、replay拒绝和durable失败不推进均通过。新的拒绝测试已接原`chain-core.yml`，原源码guard按新CODE/tree/delta更新且25条通过；原runtime/网络历史证明仍只属于各自固定SOURCE。
 
 证据索引：[本地原始输出与SHA](evidence/native-verification-key-reuse-local-20261025.json)。大raw保留在西数`chain-performance-20261017/native-verification-key-reuse-20261025/`。客户端观察尾延迟、状态哈希/完整校验仍是后续瓶颈；本次小修复不宣称解决它们。下一网络比较仍需要新准确SOURCE CI、冻结READY与Root新鲜排程。
+
+准确SOURCE `f2ffa01ba006a8a2aba3ca3a9f09b04311857731` 的普通CI [40185564279](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40185564279) 已SUCCESS，完整consensus/ABCI、新增签名拒绝race组、public signed fixtures、原source contracts全部通过；四节点heavy步骤明确skipped。原API/完整日志及源码exact pins见[CI验收证据](evidence/native-verification-key-reuse-source-ci-20261025.json)。source-ci-qualified-01.json为2957B / SHA `58432f959d7b02fc7ab71dae885197a121e314240de8a24c27a8cef9e57156d9`。源码已验证，未部署；客户端默认核数未改变，网络收益未测量。
