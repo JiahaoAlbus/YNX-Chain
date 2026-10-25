@@ -1,0 +1,174 @@
+{
+  "version": "YNX-PQ-FRESH-PREPARATION-READBACK/v1",
+  "handoffSHA256": "a7b1fb23b8180650a2b349439d3112e41e5cc1c0802c36765627575887bc3d64",
+  "protocolCommit": "e76573c139f0265c10b93f2eb493be082daec2eb",
+  "normalRunId": "40239167157",
+  "normalEvent": "push",
+  "normalConclusion": "success",
+  "checkedFiles": {
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/SOURCE.json": {
+      "bytes": 3539,
+      "sha256": "c6d426545666977db10955d0d379a84d12ec9a922afbfcecf31c60405257d16d"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/manifest.json": {
+      "bytes": 1782,
+      "sha256": "964ac5d4b5a186043325cfeae3777446aaf6917eb11a0af96a516e5f51f1a98b"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/protocol-delivery.logs.raw": {
+      "bytes": 522659,
+      "sha256": "40025878c66bbbd3f6d107e46cdbe8be6121316990b3fbebb745e407a5003c48"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/job-121307065528.logs.raw": {
+      "bytes": 526169,
+      "sha256": "a4f0672b2c962abd622edfcc94cc70885f31cf68aa346ad94e3c5495e0f6037e"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/artifacts-final.json": {
+      "bytes": 20926,
+      "sha256": "915aaddb05be65c31a4aebe49e0c4a44bff9e4314f31d20973ffa515385f64cf"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/completed.raw.json": {
+      "bytes": 42457,
+      "sha256": "4c12f124002668e6379918e2948d04ce85712c184d24b43f34207fe99dbff629"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/build/business-manifest.json": {
+      "bytes": 1743,
+      "sha256": "c50fe5a899579221e9b976bd50cd8db4636cd443bec854123c6b9cb20d04edf9"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/build/consensus.test": {
+      "bytes": 53727150,
+      "sha256": "131c2254d7d70d9f9126ee6818ce19cbdd25edc7046e1845142c4c416c4145a6"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/build/ynx-bft-gatewayd": {
+      "bytes": 35391522,
+      "sha256": "a118601dadc1e70d2af39de0467294996b5efc616f337dd8e2f82d1453f21f77"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/build/ynx-consensus-perf-client": {
+      "bytes": 38595797,
+      "sha256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/build/ynx-consensus-proof-verify": {
+      "bytes": 36642176,
+      "sha256": "9cfc43a0fdacec7fdeaf6f4113a823cfc1f51e47ef54c4c0edc9b4450568cd1a"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/client/SOURCE.json": {
+      "bytes": 708,
+      "sha256": "40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/client/go-build-info.txt": {
+      "bytes": 5526,
+      "sha256": "25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/source/internal/consensus/pq_network_business_test.go": {
+      "bytes": 38637,
+      "sha256": "7be691837779d42c9e86fcda32b2c1ee8fa701754336062be39f77bb30ba4d21"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/source/internal/consensus/pq_network_e2e_test.go": {
+      "bytes": 70181,
+      "sha256": "b8c15de1e2b4b1927e8276301e5c04ef7108677d5d16043426b9bc62825598e1"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build/source/internal/consensus/pq_network_fresh_business_test.go": {
+      "bytes": 64544,
+      "sha256": "5b5cc231800157a2d4ac0ce07af43010c61ac18f9398e54711a18d6d9deb530f"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/ynx-consensus-operator-public-inputs/genesis.json": {
+      "bytes": 13953,
+      "sha256": "f7f64c4bb2060036ac21ba9e74823f1ae2a4c4cc15026a67c0d876668de08396"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/ynx-consensus-operator-public-inputs/manifest.json": {
+      "bytes": 3124,
+      "sha256": "ae66c4a7d6792a859a4617bc40f9c6bd1dc0c819507591af5e8d248fb35d5e48"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/ynx-consensus-operator-public-inputs/migration.json": {
+      "bytes": 10645,
+      "sha256": "6870d2dcb3ef0781a8283e66661ed09a5b8093fea76d15da91b663bba184067e"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/ynx-consensus-operator-public-inputs/operator-atomic-json.json": {
+      "bytes": 21109,
+      "sha256": "d9f4c2e7aea38f6b1aee70ee10428234c219fac24341d492c97ed5fca6ea7552"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/ynx-consensus-operator-public-inputs/operator-block-journal.json": {
+      "bytes": 21111,
+      "sha256": "d92a568d13a6fbdda9275121a90dba6e038e251e27e5c054a40b8f2b93695491"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/ynx-consensus-operator-public-inputs/operator-snapshot-journal.json": {
+      "bytes": 21114,
+      "sha256": "eb4a7c196fc4d292c630091a606eeb82d936f4fa55eae473143fa27884d01795"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/ynx-consensus-operator-public-inputs/validator-manifest.json": {
+      "bytes": 1451,
+      "sha256": "1c7471ffa926d7ed438eaa08beaf1d45a535816e1de820c807dc58b19e3b0340"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/ynx-pq-consensus-light-proof-public.json": {
+      "bytes": 2516219,
+      "sha256": "8862d675108c8ad306e419261c1e441e28d9d84719b746b321c6e2c156725739"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/ynx-pq-consensus-transaction-proof-public.json": {
+      "bytes": 9611977,
+      "sha256": "356c69cfda66fc83e5ca0a37e2b3e6ffb87350fa16bc2017506edebf382d48c5"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs/ynx-pq-migration-transaction-proof-public.json": {
+      "bytes": 6529800,
+      "sha256": "69547f655f00246e44bcefb34e0b79732641024507269fb5fd608a80cd839450"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/.github/workflows/resource-market-ci.yml": {
+      "bytes": 288069,
+      "sha256": "01ce5806a71004e3eddadae4e18bf2c11ec5d9946f4d40046efc29ab17537ed4"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/scripts/loadtest/pq-paired-linux-window.py": {
+      "bytes": 95951,
+      "sha256": "433efda1d668204d160fc4b6cac1ad5b27cb87ae4d77c4af7121fde01147f9ef"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/scripts/loadtest/pq-paired-recipe.mjs": {
+      "bytes": 2359,
+      "sha256": "673eb8965329025e7a516a67e8e04f6a54c3a102b00aafa72f78e86c8748c3eb"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/scripts/loadtest/prepare-pq-paired-benchmark.mjs": {
+      "bytes": 3558,
+      "sha256": "6d4b36d283cfb3371a6cb6a0019ec885bf082d858c0e0046a5ef637d17ae33bb"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/scripts/ops/validate-pq-remote-normal-ci.py": {
+      "bytes": 16856,
+      "sha256": "6d617c4ba97f82d59db512962873df1202fabfc6f5422c1b56452f020fbb8475"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/scripts/ops/pq-ci-stage-inputs.py": {
+      "bytes": 8415,
+      "sha256": "1e98fa2567a0ee78fb11e1561065b39416d4d6d275cf6b0a46bdfb4d390b7457"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/internal/ynxconsensusauth/signer.go": {
+      "bytes": 16974,
+      "sha256": "ff4320b518f92359aa23d29fa641c1f2db58add88bc1b93892fab6e300b97355"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/internal/ynxconsensusauth/host_key_vault.go": {
+      "bytes": 14664,
+      "sha256": "da6f1dda6f497ca426de25784964df27e33f1301c52e9c4e2750ea73f5bf5d1b"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/internal/ynxconsensusauth/object_signer.go": {
+      "bytes": 8631,
+      "sha256": "3a677292bbd889682db53858b53c4f046bde44686c31505df5f4a4e93f00e960"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/internal/ynxbatch/provider.go": {
+      "bytes": 5818,
+      "sha256": "18b57e0165ef1f403f2278429c03786bcdec69d8604be1a7b00cd902fc9b2872"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/source-contracts/internal/ynxbatch/sign.go": {
+      "bytes": 3768,
+      "sha256": "ba3537bacac9813098fb02dad51e289b3cb8d6ce5586f5c01536df8b429c02b7"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/fresh-paired-business-build.zip": {
+      "bytes": 81046042,
+      "sha256": "9266d7cd1f2cc90e52871993b6e26525d27ebc6bfa9348a2573d2313f5e9c6f9"
+    },
+    "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-e76573c139/four-node-inputs/stage-inputs.zip": {
+      "bytes": 12188782,
+      "sha256": "3907a66ec1954af62b3d58c13ea8a513186e5e13602fbcb8610800a5eb565062"
+    }
+  },
+  "sourceContractsMatchActualGit": true,
+  "freshArchiveClosedElevenFiles": true,
+  "preparedProduced": false,
+  "manifestRelocated": false,
+  "remoteCommandsExecuted": false,
+  "nodesStarted": false,
+  "executionAuthorized": false,
+  "readerFirstCause": "Initial metadata assertion used GitHub REST head_sha on gh CLI camelCase JSON; KeyError preserved. Corrected to actual headSha; no supplied artifact or original run changed."
+}
