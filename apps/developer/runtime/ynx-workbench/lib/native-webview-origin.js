@@ -6,7 +6,11 @@ const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{1
 // isolated vhost/resource/WS machinery, using a resolvable loopback subdomain.
 // A fresh document namespace also separates views across project windows.
 function install(prototype, target = globalThis.window) {
-  if (!target?.__ynxNativeFilesystemBridgeEnabled || !target.webkit?.messageHandlers?.ynxLocalWorkbench) return false;
+  // Match the real document-start Cocoa preload, not a marker it never sets.
+  // These checks select an origin adapter only; native calls still retain
+  // their original frame, document and project authorization checks.
+  if (typeof target?.ynxDesktopFiles?.open !== 'function'
+    || typeof target.webkit?.messageHandlers?.ynxLocalWorkbench?.postMessage !== 'function') return false;
   const location = target.location;
   if (location?.protocol !== 'http:' || location.hostname !== '127.0.0.1' || !/^[1-9][0-9]{0,4}$/.test(location.port || '') || Number(location.port) > 65535) return false;
   if (!prototype) prototype = require('@theia/plugin-ext/lib/main/browser/webview/webview-environment').WebviewEnvironment.prototype;

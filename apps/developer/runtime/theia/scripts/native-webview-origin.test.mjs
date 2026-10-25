@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {randomUUID} from 'node:crypto';
 import {lookup} from 'node:dns/promises';
-import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import vm from 'node:vm';
 const require=createRequire(import.meta.url);
 const {WebviewEnvironment}=require('@theia/plugin-ext/lib/main/browser/webview/webview-environment');
 const {PluginApiContribution}=require('@theia/plugin-ext/lib/main/node/plugin-service');
@@ -13,11 +14,25 @@ const {PLUGIN_HOST_FRONTEND}=require('@theia/plugin-ext/lib/common/plugin-protoc
 const express=require('express');
 const {install}=require('../../ynx-workbench/lib/native-webview-origin');
 const original=WebviewEnvironment.prototype.externalEndpointUrl;
+const nativeSource=await readFile(new URL('../../../desktop/macos/main.m',import.meta.url),'utf8');
+const seedMatch=nativeSource.match(/NSString \*fileScript=\[NSString stringWithFormat:@"((?:\\.|[^"\\])*)",YNXJSON/);
+assert.ok(seedMatch,'Use the actual original Cocoa filesystem preload');
+const nativeFileSeed=JSON.parse('"'+seedMatch[1]+'"').replace('%@','null');
+function nativeTarget(location){
+ const target={location,crypto:{randomUUID},webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage(){throw Error('No native operation is allowed in this test');}}}}};
+ vm.runInNewContext(nativeFileSeed,{window:target,location,crypto:target.crypto,TextEncoder,addEventListener(){}});
+ assert.equal(target.__ynxNativeFilesystemBridgeEnabled,undefined,'Cocoa has no such marker');
+ assert.equal(typeof target.ynxDesktopFiles.open,'function');
+ return target;
+}
+
 const view='11111111-2222-3333-4444-555555555555';
 function setup(port=59712,options={}){
  const location=new URL('http://127.0.0.1:'+port+'/');globalThis.self={location};
  class ActualEnvironment extends WebviewEnvironment{};ActualEnvironment.prototype.externalEndpointUrl=original;
- const target={location,crypto:{randomUUID},__ynxNativeFilesystemBridgeEnabled:true,webkit:{messageHandlers:{ynxLocalWorkbench:{}}},...options};
+ const descriptors=Object.getOwnPropertyDescriptors(nativeTarget(location));
+ for(const [key,value]of Object.entries(options))descriptors[key]={value,enumerable:true,writable:true,configurable:true};
+ const target=Object.defineProperties({},descriptors);
  const installed=install(ActualEnvironment.prototype,target),env=new ActualEnvironment();env.environments={getValue:async()=>options.pattern?{value:options.pattern}:undefined};env.init();return {env,target,installed};
 }
 test('real native WebviewEnvironment creates a valid isolated loopback URL rather than numeric-host suffix',async()=>{
@@ -35,6 +50,6 @@ test('original upstream vhost serves the isolated view route and still rejects i
  const parent=await fetch('http://127.0.0.1:'+port+'/webview/index.html');assert.equal(parent.status,404);
 });
 test('other windows retain separate document namespaces even on the same loopback port',async()=>{const a=setup(),aa=(await a.env.externalEndpoint()).replace('{{uuid}}',view);const b=setup(),bb=(await b.env.externalEndpoint()).replace('{{uuid}}',view);assert.notEqual(new URL(aa).origin,new URL(bb).origin);});
-test('browser mode and remote or invalid native roots remain untouched',async()=>{for(const options of [{webkit:undefined},{__ynxNativeFilesystemBridgeEnabled:false},{location:new URL('https://example.invalid/')},{location:new URL('http://127.0.0.1/')},{location:new URL('http://localhost:59712/')}]){const {installed}=setup(59712,options);assert.equal(installed,false);}});
+test('browser mode and remote or invalid native roots remain untouched',async()=>{for(const options of [{webkit:undefined},{ynxDesktopFiles:undefined},{webkit:{messageHandlers:{ynxLocalWorkbench:{}}}},{location:new URL('https://example.invalid/')},{location:new URL('http://127.0.0.1/')},{location:new URL('http://localhost:59712/')}]){const {installed}=setup(59712,options);assert.equal(installed,false);}});
 test('explicit upstream operator endpoint is preserved without contacting it',async()=>{const {env}=setup(59712,{pattern:'{{uuid}}.views.example.invalid:59712'});assert.equal(await env.externalEndpoint(),'http://{{uuid}}.views.example.invalid:59712/webview');});
 test('navigation to another origin does not retain the native endpoint adapter',async()=>{const {env,target}=setup();target.location=new URL('https://example.invalid/');assert.equal(await env.externalEndpoint(),'http://{{uuid}}.webview.127.0.0.1:59712/webview');});
