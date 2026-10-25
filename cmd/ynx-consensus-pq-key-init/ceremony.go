@@ -32,6 +32,14 @@ func (p ceremonyPaths) all() []string {
 	return []string{p.Marker, p.Vault, p.Binding, p.State, p.State + ".lock", p.PublicRecord}
 }
 func (p ceremonyPaths) requireAbsent() error {
+	if filepath.Dir(p.State) != p.Directory {
+		// A new independent epoch must never consume a former history, its
+		// partial checkpoint or an UNKNOWN under a different filename.
+		entries, err := os.ReadDir(filepath.Dir(p.State))
+		if err != nil || len(entries) != 0 {
+			return fmt.Errorf("%w: separate HRS directory must be empty", errRetained)
+		}
+	}
 	for _, path := range p.all() {
 		if _, err := os.Lstat(path); !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("%w: target already exists or cannot be checked: %s", errRetained, path)
@@ -213,8 +221,12 @@ type inspection struct {
 }
 
 func inspectCeremony(directory string) (inspection, error) {
+	return inspectCeremonyWithStateDirectory(directory, "")
+}
+
+func inspectCeremonyWithStateDirectory(directory, stateDirectory string) (inspection, error) {
 	report := inspection{Status: "incomplete_or_uncertain_original_result", ReadOnly: true}
-	p, err := newPaths(directory)
+	p, err := newPathsWithStateDirectory(directory, stateDirectory)
 	if err != nil {
 		return report, err
 	}

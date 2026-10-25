@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxconsensusauth"
 	"github.com/cometbft/cometbft/crypto/ed25519"
@@ -42,6 +43,7 @@ type epochRequest struct {
 type options struct {
 	newEpoch, inspect                                     bool
 	request, requestHash, genesis, genesisHash, directory string
+	stateDirectory                                        string
 	credentialFD                                          int
 }
 
@@ -66,6 +68,7 @@ func run(args []string, output, diagnostics io.Writer, disk ceremonyIO) error {
 	fs.StringVar(&o.genesis, "genesis", "", "exact original Comet genesis JSON")
 	fs.StringVar(&o.genesisHash, "genesis-sha256", "", "independent lowercase SHA256 pin of exact original genesis")
 	fs.StringVar(&o.directory, "out-dir", "", "existing canonical absolute private 0700 directory for this new epoch")
+	fs.StringVar(&o.stateDirectory, "state-dir", "", "optional separate existing signer-owned empty 0700 HRS directory; use the same path for read-only inspection")
 	fs.IntVar(&o.credentialFD, "recovery-fd", -1, "inherited descriptor >=3 containing exactly 32 raw credential bytes and EOF")
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -82,9 +85,9 @@ func run(args []string, output, diagnostics io.Writer, disk ceremonyIO) error {
 	}
 	if o.inspect {
 		if o.newEpoch || o.request != "" || o.requestHash != "" || o.genesis != "" || o.genesisHash != "" || o.credentialFD != -1 {
-			return errors.New("inspect accepts only out-dir and never consumes a credential")
+			return errors.New("inspect accepts only out-dir and optional state-dir and never consumes a credential")
 		}
-		report, err := inspectCeremony(o.directory)
+		report, err := inspectCeremonyWithStateDirectory(o.directory, o.stateDirectory)
 		if err != nil {
 			return err
 		}
@@ -97,7 +100,7 @@ func run(args []string, output, diagnostics io.Writer, disk ceremonyIO) error {
 	if err != nil {
 		return err
 	}
-	paths, err := newPaths(o.directory)
+	paths, err := newPathsWithStateDirectory(o.directory, o.stateDirectory)
 	if err != nil {
 		return err
 	}
@@ -124,7 +127,7 @@ func rejectDuplicateOptions(args []string) error {
 	// an inherited credential. Single/double hyphens name the same option.
 	boolean := map[string]bool{"new-epoch": true, "inspect": true, "request": false,
 		"request-sha256": false, "genesis": false, "genesis-sha256": false,
-		"out-dir": false, "recovery-fd": false}
+		"out-dir": false, "state-dir": false, "recovery-fd": false}
 	seen := make(map[string]bool, len(boolean))
 	for index := 0; index < len(args); index++ {
 		arg := args[index]
@@ -264,4 +267,33 @@ func newPaths(directory string) (ceremonyPaths, error) {
 		return p, errors.New("out-dir must already exist with exact mode 0700")
 	}
 	return ceremonyPaths{Directory: directory, Marker: filepath.Join(directory, "new-epoch-intent.json"), Vault: filepath.Join(directory, "validator.encrypted"), Binding: filepath.Join(directory, "validator-binding.json"), State: filepath.Join(directory, "original-sign-state.json"), PublicRecord: filepath.Join(directory, "new-epoch-public.json")}, nil
+}
+
+func newPathsWithStateDirectory(directory, stateDirectory string) (ceremonyPaths, error) {
+	p, err := newPaths(directory)
+	if err != nil || stateDirectory == "" {
+		return p, err
+	}
+	state, err := newPaths(stateDirectory)
+	if err != nil {
+		return ceremonyPaths{}, fmt.Errorf("state-dir: %w", err)
+	}
+	contains := func(parent, child string) bool {
+		return parent == child || strings.HasPrefix(child, parent+string(filepath.Separator))
+	}
+	if contains(directory, stateDirectory) || contains(stateDirectory, directory) {
+		return ceremonyPaths{}, errors.New("state-dir and out-dir must be separate directories without containment")
+	}
+	for _, path := range []string{directory, stateDirectory} {
+		info, err := os.Lstat(path)
+		if err != nil {
+			return ceremonyPaths{}, err
+		}
+		owner, ok := info.Sys().(*syscall.Stat_t)
+		if !ok || owner.Uid != uint32(os.Geteuid()) {
+			return ceremonyPaths{}, errors.New("separate custody and HRS directories must belong to the executing signer UID")
+		}
+	}
+	p.State = state.State
+	return p, nil
 }

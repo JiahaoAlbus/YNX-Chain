@@ -113,7 +113,11 @@ func credentialDescriptor(t *testing.T, raw []byte) int {
 }
 
 func (f *initFixture) args(fd int) []string {
-	return []string{"--new-epoch", "--request", f.options.request, "--request-sha256", f.options.requestHash, "--genesis", f.options.genesis, "--genesis-sha256", f.options.genesisHash, "--out-dir", f.paths.Directory, "--recovery-fd", strconv.Itoa(fd)}
+	args := []string{"--new-epoch", "--request", f.options.request, "--request-sha256", f.options.requestHash, "--genesis", f.options.genesis, "--genesis-sha256", f.options.genesisHash, "--out-dir", f.paths.Directory, "--recovery-fd", strconv.Itoa(fd)}
+	if f.options.stateDirectory != "" {
+		args = append(args, "--state-dir", f.options.stateDirectory)
+	}
+	return args
 }
 
 func runFixture(t *testing.T, f *initFixture, disk ceremonyIO) ([]byte, error) {
@@ -128,7 +132,31 @@ func runFixture(t *testing.T, f *initFixture, disk ceremonyIO) ([]byte, error) {
 }
 
 func TestPQKeyInitRealNewEpochPublicPoPAndResumeOnly(t *testing.T) {
+	testPQKeyInitRealNewEpochPublicPoPAndResumeOnly(t, false)
+}
+
+func TestPQKeyInitSeparateHRSRealNewEpochPublicPoPAndResumeOnly(t *testing.T) {
+	testPQKeyInitRealNewEpochPublicPoPAndResumeOnly(t, true)
+}
+
+func testPQKeyInitRealNewEpochPublicPoPAndResumeOnly(t *testing.T, separate bool) {
+	t.Helper()
 	f := fixture(t)
+	if separate {
+		stateDir := t.TempDir()
+		if err := os.Chmod(stateDir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		var err error
+		f.options.stateDirectory, err = filepath.EvalSymlinks(stateDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.paths, err = newPathsWithStateDirectory(f.options.directory, f.options.stateDirectory)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 	out, err := runFixture(t, f, realCeremonyIO())
 	if err != nil {
 		t.Fatal(err)
@@ -146,11 +174,36 @@ func TestPQKeyInitRealNewEpochPublicPoPAndResumeOnly(t *testing.T) {
 			t.Fatal("missing private-mode original file", path, err)
 		}
 	}
-	report, err := inspectCeremony(f.paths.Directory)
+	report, err := inspectCeremonyWithStateDirectory(f.paths.Directory, f.options.stateDirectory)
 	if err != nil || report.Status != "complete_original_public_hashes_and_possession_observed" || !report.ReadOnly || report.PrivateMaterialOpened || report.RegistrationAuthorized {
 		t.Fatal("inspection invented authority or missed original files", err)
 	}
 	before := snapshotFiles(t, f.paths)
+	if separate {
+		for _, protected := range []string{f.paths.Marker, f.paths.Vault, f.paths.Binding, f.paths.PublicRecord} {
+			if filepath.Dir(protected) == filepath.Dir(f.paths.State) {
+				t.Fatal("production layout still places protected custody in the writable HRS directory")
+			}
+		}
+		if record.Binding.SignerStatePath != f.paths.State {
+			t.Fatal("sealed AAD is not bound to the original separate HRS path")
+		}
+		var inspected, diagnostics bytes.Buffer
+		if err := run([]string{"--inspect", "--out-dir", f.paths.Directory, "--state-dir", f.options.stateDirectory}, &inspected, &diagnostics, realCeremonyIO()); err != nil {
+			t.Fatal("normal inspect CLI could not reconcile the original separate epoch", err)
+		}
+		var view inspection
+		if err := json.Unmarshal(inspected.Bytes(), &view); err != nil || view.Status != report.Status || !view.ReadOnly || view.RegistrationAuthorized || view.PrivateMaterialOpened {
+			t.Fatal("separate epoch inspect changed its authority or result", err)
+		}
+		assertFilesEqual(t, before, snapshotFiles(t, f.paths))
+		// Inspection without a selected state-dir remains the original layout;
+		// a marker cannot redirect a read into another private directory.
+		legacyView, err := inspectCeremony(f.paths.Directory)
+		if err != nil || legacyView.Status == report.Status {
+			t.Fatal("default inspect followed an unselected external state directory", err)
+		}
+	}
 	if _, err = runFixture(t, f, realCeremonyIO()); !errors.Is(err, errRetained) {
 		t.Fatal("second new-epoch invocation did not refuse originals", err)
 	}
@@ -564,24 +617,15 @@ func sourceFunction(t *testing.T, raw []byte, name string) []byte {
 
 func requireOriginal395Run(t *testing.T) {
 	t.Helper()
-	raw, err := os.ReadFile("main.go")
+	raw, err := os.ReadFile("testdata/main-395.go.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
-	check := []byte("\tif err := rejectDuplicateOptions(args); err != nil {\n\t\treturn err\n\t}\n")
-	helper := append(sourceFunction(t, raw, "rejectDuplicateOptions"), '\n', '\n')
-	for _, change := range []struct{ current, old []byte }{
-		{check, nil}, {helper, nil}, {[]byte("\t\"strings\"\n"), nil},
-	} {
-		if bytes.Count(raw, change.current) != 1 {
-			t.Fatal("historical reverse patch must match exactly one current source block")
-		}
-		raw = bytes.Replace(raw, change.current, change.old, 1)
-	}
 	// Full original source from 395bb8d991bc0659b922baa09bb7b13b3c2baa5e,
-	// not a hand-recreated FlagSet or a copied old parser approximation.
+	// not a hand-recreated FlagSet or a copied old parser approximation. Retain
+	// these exact bytes as the current CLI adds independent production options.
 	if len(raw) != 9459 || hash(raw) != "56cdd8523af70bd46ca6c89757c34bb3efbfe0531f277b1699533684b6faf4b6" {
-		t.Fatal("reconstructed historical main.go differs from complete original 395 source")
+		t.Fatal("historical main.go fixture differs from complete original 395 source")
 	}
 	tests, err := os.ReadFile("main_test.go")
 	if err != nil {
