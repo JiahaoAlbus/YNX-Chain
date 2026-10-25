@@ -188,3 +188,26 @@ test('R34 current original open and current first error remain functional', asyn
   const failed = currentOpenFixture(); failed.instance.fileService.resolve = async () => { throw Error('TEST_ONLY_exact_original_error'); };
   await failed.instance.doOpenFile(); assert.deepEqual(failed.events, ['file', ['error', 'TEST_ONLY_exact_original_error']]);
 });
+
+for(const method of ['doOpen','doOpenFile','doOpenFolder','doOpenWorkspace'])test('native '+method+' notification dismissal never owns a failed open or retry',async()=>{
+ const f=currentOpenFixture(),notice=held(),cause=Error('PUBLIC selected file unavailable');let notifications=0;
+ f.instance.fileService.resolve=async()=>{throw cause;};f.instance.messageService.error=()=>{notifications++;return notice.promise;};
+ let settled=false;const work=f.instance[method]().then(value=>{settled=true;return value;});
+ try{
+  await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,true,'open command must settle while ordinary error notice is visible');await work;assert.equal(notifications,1);
+  f.instance.fileService.resolve=async()=>({isFile:true,size:20});f.instance.fileService.readFile=async()=>({value:Buffer.from('{"folders":[{"path":"."}]}')});
+  f.target.ynxDesktopFiles.open=async()=>({uris:[method==='doOpenWorkspace'?'file:///qa/project.code-workspace':'file:///qa/retry.cpp'],rootUri:'file:///qa'});
+  await f.instance[method]();assert.equal(notifications,1);assert.ok(f.events.some(event=>Array.isArray(event)&&['editor','workspace'].includes(event[0])));
+ }finally{notice.resolve();await work;}
+});
+for(const mode of ['throw','reject'])test('native open notification '+mode+' cannot replace the file failure or block retry',async()=>{
+ const f=currentOpenFixture();let notifications=0;
+ f.instance.fileService.resolve=async()=>{throw Error('PUBLIC file missing');};
+ f.instance.messageService.error=()=>{notifications++;if(mode==='throw')throw Error('PUBLIC notification disposed');return Promise.reject(Error('PUBLIC notification disposed'));};
+ assert.equal(await f.instance.doOpenFile(),undefined);await new Promise(resolve=>setImmediate(resolve));assert.equal(notifications,1);
+ f.instance.fileService.resolve=async()=>({isFile:true});await f.instance.doOpenFile();assert.ok(f.events.some(event=>Array.isArray(event)&&event[0]==='editor'));
+});
+for(const cause of [null,undefined,false,Object.defineProperty({},'message',{get(){throw Error('PUBLIC unreadable cause');}})])test('native open notification safely reports '+String(cause),async()=>{
+ const f=currentOpenFixture();f.instance.fileService.resolve=()=>Promise.reject(cause);
+ assert.equal(await f.instance.doOpenFile(),undefined);assert.deepEqual(f.events,['file',['error','The selected file could not be opened.']]);
+});

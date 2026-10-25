@@ -69,6 +69,7 @@ node --test desktop/local-workbench-stop-causes.test.mjs
 node --test desktop/contract-deployment-view.test.mjs
 node --test desktop/project-contracts-host.test.mjs desktop/project-contracts-view.test.mjs desktop/code-server.test.mjs
 node --test desktop/native-debug-menu-state.test.mjs desktop/native-current-file-routing.test.mjs
+node --test --test-name-pattern='notification' desktop/native-file-picker.test.mjs
 node --test scripts/bundle-composed-core.test.mjs scripts/bundled-assistant-policy.test.mjs services/model-router/test/owned-default.test.mjs services/agent-orchestrator/test/owned-model-default.test.mjs
 node --test scripts/package-original-cloud-sdk.test.mjs scripts/generate-code-sbom.test.mjs
 runtime_checkpoint="$source_commit"

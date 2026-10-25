@@ -65,8 +65,16 @@ function install({ Contribution, URI, open, parse, target, localize, fileOpenMen
         return [uri];
       } catch (error) {
         if (!current()) return undefined;
-        await this.messageService.error(error.message || localize('nativeOpenFailed', 'The selected file could not be opened.'));
+        // An ordinary error notification waits for dismissal. It must not
+        // retain the open command or reject it again when the surface closes.
+        try {
+          let detail;try { detail = error?.message; } catch {}
+          const message = typeof detail === 'string' && detail ? detail : localize('nativeOpenFailed', 'The selected file could not be opened.');
+          Promise.resolve(this.messageService.error(message)).catch(() => {});
+        } catch {}
         return undefined;
+      } finally {
+        if (requests.get(this) === request) requests.delete(this);
       }
     };
   }
