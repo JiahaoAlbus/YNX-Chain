@@ -231,7 +231,7 @@ test('bounded original result gate refuses mixed tests, trailing diagnostics and
 test('business flow integrates original backlog exactly and never invents a distinct acceptance rate',()=>{
  const f=originalFixture(),flow=read(f).arms[0].flow;
  assert.equal(flow.acceptedThroughput,null);assert.equal(flow.distinctAcceptanceTimeMeasured,false);
- assert.deepEqual(flow.buckets[0].counts,{offered:16,firstNodeExecutionCompleted:16,firstNodeDurable:16,independentProofCompleted:16});
+ assert.deepEqual(flow.buckets[0].counts,{offered:16,firstNodeExecutionCompleted:16,firstNodeDurable:16,allNodesDurable:16,independentProofCompleted:16});
  assert.deepEqual(flow.backlog.offeredAwaitingFirstDurable,{peak:16,atEnd:0,timeWeightedMean:{numeratorCountNs:'1320',denominatorNs:'200'}});
  assert.deepEqual(flow.backlog.firstDurableAwaitingIndependentProof,{peak:16,atEnd:0,timeWeightedMean:{numeratorCountNs:'960',denominatorNs:'200'}});
  assert.equal(flow.offerLatenessNs.missingSamples,16);
@@ -253,4 +253,19 @@ test('flow uses left-inclusive second buckets, includes final proof endpoint and
  assert.equal(flow.buckets[1].counts.firstNodeDurable,16);assert.equal(flow.buckets[1].counts.independentProofCompleted,16);
  assert.equal(flow.buckets[1].backlogAtEnd.offeredAwaitingFirstDurable,0);assert.equal(flow.buckets[1].backlogAtEnd.firstDurableAwaitingIndependentProof,0);
  assert.equal(flow.initialSubmissionUnknown,1);assert.deepEqual(flow.submissionUnknownFraction,{numerator:1,denominator:16});assert.equal(flow.independentlyReconciledUnknownSubmissions,1);assert.equal(flow.offerLatenessNs.samples,16);
+});
+
+test('all-node durability keeps a late replica distinct from proof completion and window throughput',()=>{
+ for(const end of [200,205]){
+  const f=originalFixture();
+  for(const phase of f.data.phaseRows)if(phase.nodeIndex===3&&phase.phase==='commit')phase.endNs=end;
+  const result=read(f),flow=result.arms[0].flow;
+  assert.equal(flow.buckets[0].counts.independentProofCompleted,16);
+  assert.equal(flow.buckets[0].counts.allNodesDurable,end===200?16:0);
+  assert.deepEqual(flow.afterWindowEvents,{allNodesDurable:end===200?0:16});
+  assert.deepEqual(flow.backlog.offeredAwaitingAllNodesDurable,{peak:16,atEnd:end===200?0:16,timeWeightedMean:{numeratorCountNs:'2920',denominatorNs:'200'}});
+  assert.equal(flow.buckets[0].backlogAtEnd.offeredAwaitingAllNodesDurable,end===200?0:16);
+  assert.equal(result.arms[0].latencyNs.allNodesDurable.samples,16);
+  assert.equal(result.earliestBFTFormationMeasured,false);
+ }
 });

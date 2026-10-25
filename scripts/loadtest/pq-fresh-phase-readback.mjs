@@ -102,15 +102,17 @@ function compareArms(before,after){
 }
 
 function businessFlow(originals,start,end){
- const width=1000000000n,count=Number((end-start+width-1n)/width),kinds=['offered','firstNodeExecutionCompleted','firstNodeDurable','independentProofCompleted'];
+ const width=1000000000n,count=Number((end-start+width-1n)/width),kinds=['offered','firstNodeExecutionCompleted','firstNodeDurable','allNodesDurable','independentProofCompleted'];
  const buckets=Array.from({length:count},(_,i)=>{
   const a=start+BigInt(i)*width,b=a+width<end?a+width:end;
   return {startNs:String(a),endNs:String(b),durationNs:String(b-a),counts:Object.fromEntries(kinds.map(k=>[k,0]))};
  });
- const events=[];let initiallyUnknown=0,submissionUnknown=0;const lateness=[];
+ const events=[];let initiallyUnknown=0,submissionUnknown=0;const lateness=[],afterWindowEvents={allNodesDurable:0};
  for(const b of originals.values()){
-  for(const [kind,t]of [['offered',b.offer],['firstNodeExecutionCompleted',b.firstExecution],['firstNodeDurable',b.firstDurable],['independentProofCompleted',b.proof]]){
-   requireValue(t>=start&&t<=end,'business flow event outside original measurement');
+  for(const [kind,t]of [['offered',b.offer],['firstNodeExecutionCompleted',b.firstExecution],['firstNodeDurable',b.firstDurable],['allNodesDurable',b.allDurable],['independentProofCompleted',b.proof]]){
+   requireValue(t>=start,'business flow event precedes original measurement');
+   if(kind==='allNodesDurable'&&t>end){afterWindowEvents.allNodesDurable++;continue;}
+   requireValue(t<=end,'business flow event outside original measurement');
    const index=Math.min(count-1,Number((t-start)/width));buckets[index].counts[kind]++;events.push({kind,t});
   }
   if(b.observation.initialSubmissionUnknown===true)initiallyUnknown++;
@@ -118,21 +120,21 @@ function businessFlow(originals,start,end){
   if(b.offerLatenessNs!==undefined)lateness.push(numericDuration(b.offerLatenessNs,'reported offer lateness'));
  }
  events.sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:0);
- let offered=0,durable=0,proof=0,previous=start,q1=0,q2=0,peak1=0,peak2=0,area1=0n,area2=0n;
+ let offered=0,durable=0,allDurable=0,proof=0,previous=start,q1=0,q2=0,q3=0,peak1=0,peak2=0,peak3=0,area1=0n,area2=0n,area3=0n;
  for(let i=0;i<events.length;){
-  const t=events[i].t;area1+=BigInt(q1)*(t-previous);area2+=BigInt(q2)*(t-previous);
-  while(i<events.length&&events[i].t===t){const k=events[i++].kind;if(k==='offered')offered++;else if(k==='firstNodeDurable')durable++;else if(k==='independentProofCompleted')proof++;}
-  q1=offered-durable;q2=durable-proof;requireValue(q1>=0&&q2>=0,'business flow has negative backlog');
-  peak1=Math.max(peak1,q1);peak2=Math.max(peak2,q2);previous=t;
+  const t=events[i].t;area1+=BigInt(q1)*(t-previous);area2+=BigInt(q2)*(t-previous);area3+=BigInt(q3)*(t-previous);
+  while(i<events.length&&events[i].t===t){const k=events[i++].kind;if(k==='offered')offered++;else if(k==='firstNodeDurable')durable++;else if(k==='allNodesDurable')allDurable++;else if(k==='independentProofCompleted')proof++;}
+  q1=offered-durable;q2=durable-proof;q3=offered-allDurable;requireValue(q1>=0&&q2>=0&&q3>=0,'business flow has negative backlog');
+  peak1=Math.max(peak1,q1);peak2=Math.max(peak2,q2);peak3=Math.max(peak3,q3);previous=t;
  }
- area1+=BigInt(q1)*(end-previous);area2+=BigInt(q2)*(end-previous);
- let pending1=0,pending2=0;
+ area1+=BigInt(q1)*(end-previous);area2+=BigInt(q2)*(end-previous);area3+=BigInt(q3)*(end-previous);
+ let pending1=0,pending2=0,pending3=0;
  for(const b of buckets){
-  pending1+=b.counts.offered-b.counts.firstNodeDurable;pending2+=b.counts.firstNodeDurable-b.counts.independentProofCompleted;
-  b.backlogAtEnd={offeredAwaitingFirstDurable:pending1,firstDurableAwaitingIndependentProof:pending2};
+  pending1+=b.counts.offered-b.counts.firstNodeDurable;pending2+=b.counts.firstNodeDurable-b.counts.independentProofCompleted;pending3+=b.counts.offered-b.counts.allNodesDurable;
+  b.backlogAtEnd={offeredAwaitingFirstDurable:pending1,firstDurableAwaitingIndependentProof:pending2,offeredAwaitingAllNodesDurable:pending3};
   b.observedRates=Object.fromEntries(kinds.map(k=>[k,{numerator:String(BigInt(b.counts[k])*width),denominatorNs:b.durationNs}]));
  }
- return {bucketWidthNs:String(width),buckets,distinctAcceptanceTimeMeasured:false,acceptedThroughput:null,interpretation:'Parent-clock events from the original callee. Execution/durability completion and queued proof observation are distinct; none is a measurement of earliest BFT formation. Internal boundaries are left-inclusive; the final endpoint is included in the last bucket.',backlog:{offeredAwaitingFirstDurable:{peak:peak1,atEnd:q1,timeWeightedMean:{numeratorCountNs:String(area1),denominatorNs:String(end-start)}},firstDurableAwaitingIndependentProof:{peak:peak2,atEnd:q2,timeWeightedMean:{numeratorCountNs:String(area2),denominatorNs:String(end-start)}}},offerLatenessNs:{...freshTimingQuantiles(lateness),missingSamples:originals.size-lateness.length},initialSubmissionUnknown:initiallyUnknown,initialSubmissionUnknownFraction:{numerator:initiallyUnknown,denominator:originals.size},submissionUnknownBeforeIndependentReadback:submissionUnknown,submissionUnknownFraction:{numerator:submissionUnknown,denominator:originals.size},independentlyReconciledUnknownSubmissions:submissionUnknown,coverage:'All planned business identities in this completed qualified arm. Failed/aborted windows remain original guard failures and are not represented as zero-error success here.'};
+ return {bucketWidthNs:String(width),buckets,afterWindowEvents,distinctAcceptanceTimeMeasured:false,acceptedThroughput:null,interpretation:'Parent-clock events from the original callee. Execution/durability completion and queued proof observation are distinct; none is a measurement of earliest BFT formation. All-node durable events after the original window stay outside throughput buckets and leave observable window-end backlog. Internal boundaries are left-inclusive; the final endpoint is included in the last bucket.',backlog:{offeredAwaitingAllNodesDurable:{peak:peak3,atEnd:q3,timeWeightedMean:{numeratorCountNs:String(area3),denominatorNs:String(end-start)}},offeredAwaitingFirstDurable:{peak:peak1,atEnd:q1,timeWeightedMean:{numeratorCountNs:String(area1),denominatorNs:String(end-start)}},firstDurableAwaitingIndependentProof:{peak:peak2,atEnd:q2,timeWeightedMean:{numeratorCountNs:String(area2),denominatorNs:String(end-start)}}},offerLatenessNs:{...freshTimingQuantiles(lateness),missingSamples:originals.size-lateness.length},initialSubmissionUnknown:initiallyUnknown,initialSubmissionUnknownFraction:{numerator:initiallyUnknown,denominator:originals.size},submissionUnknownBeforeIndependentReadback:submissionUnknown,submissionUnknownFraction:{numerator:submissionUnknown,denominator:originals.size},independentlyReconciledUnknownSubmissions:submissionUnknown,coverage:'All planned business identities in this completed qualified arm. Failed/aborted windows remain original guard failures and are not represented as zero-error success here.'};
 }
 
 function completedScans(scans,projected){
@@ -240,7 +242,7 @@ function readBoundFreshPhasePair(raw,guard,expected,stdoutSHA256){
    }
    const min=v=>v.reduce((a,b)=>a<b?a:b),max=v=>v.reduce((a,b)=>a>b?a:b);
    requireValue(b.proof>=min(commit),'proof completion precedes every captured durable execution');
-   b.firstExecution=min(finalize);b.firstDurable=min(commit);
+   b.firstExecution=min(finalize);b.firstDurable=min(commit);b.allDurable=max(commit);
    duration.firstNodeFinalize.push(min(finalize)-b.offer);duration.firstNodeDurable.push(min(commit)-b.offer);duration.allNodesDurable.push(max(commit)-b.offer);duration.independentProofCompletion.push(b.proof-b.offer);if(b.client!==null)duration.clientSubmissionToFirstCommittedRPC.push(b.client);
    firstOffer=firstOffer===null?b.offer:firstOffer<b.offer?firstOffer:b.offer;lastProof=lastProof>b.proof?lastProof:b.proof;
   }

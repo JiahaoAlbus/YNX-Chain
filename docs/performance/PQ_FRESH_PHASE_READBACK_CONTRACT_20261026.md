@@ -216,10 +216,33 @@ This report requires the complete qualified arm: aborted/failed windows remain
 original guard failures, not a success report with zero errors. A small finite
 pair still cannot qualify sustained 1000 TPS or ten-minute stability.
 
-Eighteen focused contract/arithmetic/CLI tests pass. New cases verify exact
+Nineteen focused contract/arithmetic/CLI tests pass. New cases verify exact
 queue areas by hand-derived expectations, cross-second boundaries, final
 endpoints, missing acceptance, duplicate-readback deduplication and reconciled
 UNKNOWN. Raw output is `pq-fresh-parent-clock-flow-and-backlog-20261026.raw` in
 the existing external performance directory. No new producer fields, driver,
 Node, resource grant or private key is introduced; this adds only analysis of
 the original rows already emitted by the frozen callee.
+
+### All-node durable completion within the original window
+
+Each per-second bucket additionally counts `allNodesDurable`, the latest actual
+Commit end among the four original node traces for that unique business hash.
+`offeredAwaitingAllNodesDurable` reports its exact peak, window-end count and
+time-weighted backlog. Proof completion is kept separate: a valid proof may be
+observed before the slowest node finishes local persistence. No ordering between
+proof observation and all-node completion is invented.
+
+An all-node completion beyond the original measurement end remains outside
+window throughput and is counted in `afterWindowEvents.allNodesDurable`; the
+transaction stays in window-end all-node backlog. Its captured full latency
+still contributes to the existing allNodesDurable quantiles. Completion exactly
+at the final endpoint belongs to the last bucket. This is full-replica durability
+observation, not earliest BFT formation or an independent acceptance timestamp.
+
+The retained RED case found the missing all-node bucket field. The focused PASS
+covers both exact endpoint and after-window slow-replica completion, including
+proof completed earlier and exact backlog area. Raw evidence:
+`/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-all-node-flow-red.raw`
+and `pq-fresh-all-node-flow-pass.raw`. All 19 tests pass in 388.459333 ms. No new
+RPC, process, node invocation or workload is introduced by the consumer.
