@@ -51,6 +51,8 @@ type pqCasePhases struct {
 	ProofDurabilityNs             int64 `json:"proofDurabilityNs,string"`
 }
 type pqWholeCaseReport struct {
+	ConsensusExecutionOutcome         string            `json:"consensusExecutionOutcome,omitempty"`
+	FinalizedBusinessHashes           []string          `json:"finalizedBusinessHashes,omitempty"`
 	RegistrationFinalized             bool              `json:"registrationFinalized"`
 	VerifierProcessStarted            bool              `json:"verifierProcessStarted"`
 	VerifierInterrupted               bool              `json:"verifierInterrupted"`
@@ -398,6 +400,9 @@ func executePQWholeCase(o options) (returned error) {
 	}
 	if pqCaseVerifierSelected(o) && !report.IndependentFinalityVerified {
 		return errors.New("original PQ proof did not verify; retain evidence and do not rebroadcast")
+	}
+	if report.IndependentFinalityVerified && report.ConsensusExecutionOutcome == "rejected" {
+		return errors.New("original transaction finalized with rejected execution; zero effective business, never rebroadcast")
 	}
 	if o.pqCollectProof && report.ProofCollectionStatus != "collected_unverified" {
 		return errors.New("original PQ proof unavailable; retain intent and use readback-only, never rebroadcast")

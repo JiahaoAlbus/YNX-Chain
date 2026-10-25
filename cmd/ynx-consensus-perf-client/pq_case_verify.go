@@ -206,6 +206,8 @@ func verifyPQCaseCollectedProof(ctx context.Context, o options, p pqWholeCase, r
 	r.ConfiguredRPCObservationOnly = true
 	r.EffectiveBusinessFinalized = 0
 	r.RegistrationFinalized = false
+	r.ConsensusExecutionOutcome = ""
+	r.FinalizedBusinessHashes = nil
 	r.VerifierProcessStarted, r.VerifierInterrupted, r.VerifierExitCode = false, false, nil
 	fail := func(e error) { r.ProofVerificationError = e.Error() }
 	if e := ctx.Err(); e != nil {
@@ -265,19 +267,89 @@ func verifyPQCaseCollectedProof(ctx context.Context, o options, p pqWholeCase, r
 		fail(e)
 		return
 	}
-	result := v.Result
-	if v.Version != "YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1" || v.Code != "VERIFIED_TRANSACTION_DATA" || v.Error != "" || result == nil || result.Version != consensus.PQTransactionProofVersion || !result.Included || !result.Finalized || !result.ExecutionSuccessful || result.ExecutionCode != 0 || result.NativeGrant || result.Outcome != "succeeded" || result.TransactionType != p.kind || result.TransactionHash != strings.TrimPrefix(p.outer, "0x") || result.NativeWireHash != strings.TrimPrefix(p.native, "0x") || result.Height != int64(r.ExecutionHeight) || r.CometIndex == nil || result.Index != int64(*r.CometIndex) || !result.Block.CommitVerified || !result.Successor.CommitVerified || !result.Block.LightTransitionVerified || !result.Successor.LightTransitionVerified {
-		fail(errors.New("canonical verifier result does not establish successful finality of the original transaction"))
+	identities, e := p.verifiedBusinessIdentities(v, r)
+	if e != nil {
+		fail(e)
 		return
 	}
-	if p.kind == consensus.PQInitialRegistrationType {
-		r.RegistrationFinalized = true
-	} else {
-		r.EffectiveBusinessFinalized = 1
-	}
+	r.ConsensusExecutionOutcome = v.Result.Outcome
+	r.FinalizedBusinessHashes = identities
+	r.EffectiveBusinessFinalized = len(identities)
+	r.RegistrationFinalized = p.kind == consensus.PQInitialRegistrationType && v.Result.ExecutionSuccessful
 	r.IndependentFinalityVerified = true
 	r.ConfiguredRPCObservationOnly = false
 	r.ProofVerificationStatus = "verified_original_transaction"
 	// Observation starts at this explicit readback invocation. It cannot recover
 	// original offer-to-finality latency or establish sustained throughput.
+}
+
+// Only the original verifier's fully bound consensus result reaches this
+// classifier. A partial Whole is never N successful businesses; birth and a
+// proven terminal rejection contribute zero. Expose original effect hashes so
+// repeat readbacks can be deduplicated by the existing evidence consumer.
+func (p pqWholeCase) verifiedBusinessIdentities(v pqCaseVerifierOutput, r *pqWholeCaseReport) ([]string, error) {
+	result := v.Result
+	if v.Version != "YNX-CONSENSUS-TRANSACTION-PROOF-VERIFY-RESULT/v1" || v.Error != "" || result == nil || result.Version != consensus.PQTransactionProofVersion || result.Classification != "data" || !result.Included || !result.Finalized || result.NativeGrant || result.TransactionType != p.kind || result.TransactionHash != strings.TrimPrefix(p.outer, "0x") || result.NativeWireHash != strings.TrimPrefix(p.native, "0x") || result.Height != int64(r.ExecutionHeight) || r.CometIndex == nil || result.Index != int64(*r.CometIndex) || !result.Block.CommitVerified || !result.Successor.CommitVerified || !result.Block.LightTransitionVerified || !result.Successor.LightTransitionVerified {
+		return nil, errors.New("canonical verifier result differs from original transaction finality")
+	}
+	switch result.Outcome {
+	case "rejected":
+		if v.Code != "VERIFIED_TRANSACTION_REJECTED_DATA" || result.ExecutionSuccessful || result.ExecutionCode == 0 {
+			return nil, errors.New("terminal rejection code differs")
+		}
+		for _, row := range result.BatchResults {
+			if row.Outcome != "rejected" || row.TransactionHash != "" {
+				return nil, errors.New("rejected transaction carries business effects")
+			}
+		}
+		return nil, nil
+	case "succeeded":
+		if v.Code != "VERIFIED_TRANSACTION_DATA" || !result.ExecutionSuccessful || result.ExecutionCode != 0 {
+			return nil, errors.New("successful execution code differs")
+		}
+	case "partial":
+		if p.kind != consensus.PQWholeType || v.Code != "VERIFIED_TRANSACTION_PARTIAL_DATA" || result.ExecutionSuccessful || result.ExecutionCode != 0 {
+			return nil, errors.New("partial execution code differs")
+		}
+	default:
+		return nil, errors.New("unknown canonical execution outcome")
+	}
+	if p.kind == consensus.PQInitialRegistrationType {
+		if len(result.BatchResults) != 0 {
+			return nil, errors.New("birth carries batch effects")
+		}
+		return nil, nil
+	}
+	if p.kind == consensus.PQTransferType {
+		if len(result.BatchResults) != 0 {
+			return nil, errors.New("single transfer carries batch effects")
+		}
+		return []string{p.native}, nil
+	}
+	if p.kind != consensus.PQWholeType || len(result.BatchResults) != len(p.members) {
+		return nil, errors.New("Whole proof lacks complete original ordered results")
+	}
+	var effects []string
+	for i, row := range result.BatchResults {
+		if row.Index != uint32(i) {
+			return nil, errors.New("Whole proof result order differs")
+		}
+		switch row.Outcome {
+		case "admitted":
+			if row.TransactionHash != p.members[i] || row.Error != "" {
+				return nil, errors.New("admitted Whole effect differs")
+			}
+			effects = append(effects, row.TransactionHash)
+		case "rejected":
+			if row.TransactionHash != "" || strings.TrimSpace(row.Error) == "" {
+				return nil, errors.New("rejected Whole member carries effect or lacks reason")
+			}
+		default:
+			return nil, errors.New("unknown Whole member outcome")
+		}
+	}
+	if len(effects) == 0 || result.Outcome == "partial" && len(effects) == len(p.members) || result.Outcome == "succeeded" && len(effects) != len(p.members) {
+		return nil, errors.New("Whole outcome differs from admitted effect coverage")
+	}
+	return effects, nil
 }

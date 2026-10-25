@@ -1,0 +1,52 @@
+{
+  "status": "verified_result_accounting_and_transfer_proof_path_focused_pass_not_deployed",
+  "baseCommit": "ec2d42d8a11a617cbbb02e91e7ad0b0fdce31964",
+  "canonicalInitialCLIFix": "74457f76d395da289cca6b3a6b353fa1349366df",
+  "localInitialCLIFix": "349e9d805",
+  "canonicalImportScope": "one supported-type enum in original CLI transaction.go; parent blob equal; no funded core/main merge",
+  "focusedTests": {
+    "command": "YNX_PERF_PQ_PROOF_FIXTURE=<original public fixture> YNX_PERF_PQ_PROOF_VERIFIER=<original executable> GOMAXPROCS=1 GOMEMLIMIT=160MiB go test -p 1 -race ./cmd/ynx-consensus-perf-client -run '^TestPQ(WholeCaseVerifiedBusiness|MemberCaseOriginalVerifier)' -count=1 -timeout=30s -v",
+    "elapsedSeconds": 4.704,
+    "outcomes": {
+      "successfulTransfer": 1,
+      "finalizedRejectedDuplicate": 0,
+      "partialWholeOf4": 3
+    },
+    "partialWholeScope": "count classifier against original core verified public result; no Whole gateway/CLI end-to-end qualification",
+    "transferScope": "actual original offline verifier through production read-only execute, no POST",
+    "repeatReadbackIdentity": "same canonical effect hashes; deduplication algorithm not a sustained TPS aggregator"
+  },
+  "newReportFields": [
+    "consensusExecutionOutcome",
+    "finalizedBusinessHashes"
+  ],
+  "failClosedCases": [
+    "member row order",
+    "rejected member effect hash present",
+    "admitted hash differs",
+    "missing row",
+    "partial result relabeled complete"
+  ],
+  "currentDependencies": {
+    "initialPositive": "fresh original funded producer public fixture + same-source initial-capable verifier; old/expired QA trust cannot be relabeled",
+    "wholeGateway": "existing /txs/{ABCIhash}/pq-finality-proof currently looks up only Member and assumes single ABCI data; canonical gateway owner asked to supply actual Whole collection on existing route",
+    "integrationRelease": "CI40209829604 and40210385574 passed ABCI but failed integration-contract-check old state12/app18 literal vs actual state18/app20; Root notified original owner, no checks removed or runtime downgrade"
+  },
+  "rawEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-verified-business-accounting-race-20261026.raw",
+      "bytes": 2726,
+      "sha256": "e267e00194b2afabd1183b51621ce3780dc0f262c1954f90d2b54eb6e71e6ebd"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-selector-parent-run40209829604-failed-20261026.raw",
+      "bytes": 3412,
+      "sha256": "021e034d2cb31419041599ffac7c34ef8d12d3d0d2d7dbe4804aca725f3bfb40"
+    }
+  ],
+  "initialIndependentCLIPositiveExecuted": false,
+  "wholeGatewayProofEndToEndExecuted": false,
+  "realMultiNodeRun": false,
+  "actualOfferToFinalityMeasured": false,
+  "sustainedTPSQualified": false
+}
