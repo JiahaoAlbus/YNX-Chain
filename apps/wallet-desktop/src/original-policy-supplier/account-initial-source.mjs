@@ -40,50 +40,76 @@ function selectedRelease(request){
  const rows=admittedAccountInitialReleases.filter(r=>r.networkId===request.networkId);
  if(rows.length!==1)fail('AUTH_INITIAL_SOURCE_ADMITTED_EPOCH_REQUIRED');
  const r=rows[0],g=r.genesis;
- if(r.kind!=='YNX-WALLET-ACCOUNT-INITIAL-SOURCE/v1'||typeof r.sourceId!=='string'||!r.sourceId||r.nativeChainId!=='6423'||!r.rootAdmissionSHA256?.match(/^[a-f0-9]{64}$/)||r.origin!=='https://rpc.ynxweb4.com'||!r.spkiSHA256?.match(/^[a-f0-9]{64}$/)||!g||!Number.isSafeInteger(g.bytes)||g.bytes<1||g.bytes>8<<20||!g.sha256?.match(/^[a-f0-9]{64}$/)||!Number.isInteger(g.uid)||!Number.isInteger(g.gid)||!Number.isInteger(g.mode)||g.mode&0o022)fail('AUTH_INITIAL_SOURCE_RELEASE_INVALID');
+ if(r.kind!=='YNX-WALLET-ACCOUNT-INITIAL-SOURCE/v1'||typeof r.sourceId!=='string'||!r.sourceId||r.nativeChainId!=='6423'||!r.rootAdmissionSHA256?.match(/^[a-f0-9]{64}$/)||r.origin!=='https://rpc.ynxweb4.com'||!r.spkiSHA256?.match(/^[a-f0-9]{64}$/)||!g||!Number.isSafeInteger(g.bytes)||g.bytes<1||g.bytes>(64<<20)||!g.sha256?.match(/^[a-f0-9]{64}$/)||!Number.isInteger(g.uid)||!Number.isInteger(g.gid)||!Number.isInteger(g.mode)||g.mode&0o022)fail('AUTH_INITIAL_SOURCE_RELEASE_INVALID');
  return r;
 }
-function getAccount(s){
+function getPublic(s,path,maxBytes){
  window(s);const deadline=Math.max(1,Math.min(5000,s.expires-Date.now()));
  return new Promise((resolve,reject)=>{
   let done=false,size=0,timer;const chunks=[];const finish=(e,v)=>{if(done)return;done=true;clearTimeout(timer);e?reject(e):resolve(v);};
-  const q=httpsRequest(new URL('/accounts/'+s.request.account+'/authorization',s.release.origin),{method:'GET',agent:false,signal:s.controller.signal,rejectUnauthorized:true,headers:{accept:'application/json','cache-control':'no-cache'},checkServerIdentity(host,cert){
+  const q=httpsRequest(new URL(path,s.release.origin),{method:'GET',agent:false,signal:s.controller.signal,rejectUnauthorized:true,headers:{accept:'application/json','cache-control':'no-cache'},checkServerIdentity(host,cert){
    const error=checkServerIdentity(host,cert);if(error)return error;
    try{if(sha(new X509Certificate(cert.raw).publicKey.export({format:'der',type:'spki'}))!==s.release.spkiSHA256)return Error('AUTH_INITIAL_SOURCE_TLS_PIN');}catch{return Error('AUTH_INITIAL_SOURCE_TLS_PIN');}
   }},response=>{
    const type=String(response.headers['content-type']??'').split(';')[0].trim().toLowerCase(),noStore=String(response.headers['cache-control']??'').toLowerCase().split(',').some(v=>v.trim()==='no-store');
-   if(response.statusCode!==200||type!=='application/json'||!noStore){response.destroy();finish(Error('AUTH_INITIAL_SOURCE_HTTP'));return;}
-   response.on('data',b=>{size+=b.length;if(size>8<<20){response.destroy();finish(Error('AUTH_INITIAL_SOURCE_SIZE'));}else chunks.push(b);});response.on('error',e=>finish(e));response.on('aborted',()=>finish(Error('AUTH_INITIAL_SOURCE_ABORTED')));
-   response.on('end',()=>{try{window(s);finish(null,new TextDecoder('utf8',{fatal:true}).decode(Buffer.concat(chunks)));}catch(e){finish(e);}});
+   if(response.statusCode!==200||type!=='application/json'||!noStore||response.headers['content-encoding']!==undefined){response.destroy();finish(Error('AUTH_INITIAL_SOURCE_HTTP'));return;}
+   response.on('data',b=>{if(done)return;if(!Buffer.isBuffer(b)){response.destroy();finish(Error('AUTH_INITIAL_SOURCE_BYTES'));return;}size+=b.length;if(size>maxBytes){response.destroy();finish(Error('AUTH_INITIAL_SOURCE_SIZE'));}else chunks.push(b);});response.on('error',e=>finish(e));response.on('aborted',()=>finish(Error('AUTH_INITIAL_SOURCE_ABORTED')));
+   response.on('close',()=>{if(!response.complete)finish(Error('AUTH_INITIAL_SOURCE_TRUNCATED'));});
+   response.on('end',()=>{
+    // Preserve original PUBLIC response BEFORE expiry/header/hash/current can
+    // fail. No response, even correctly hashed, supplies its own admission pin.
+    const body=Buffer.concat(chunks),record={status:response.statusCode,body,digest:response.headers['x-ynx-comet-genesis-sha256'],height:response.headers['x-ynx-observation-height']};s.lastReads.set(path,record);
+    try{
+     const length=response.headers['content-length'];if(length!==undefined&&(typeof length!=='string'||!/^(0|[1-9][0-9]*)$/.test(length)||length!==String(body.length)))fail('AUTH_INITIAL_SOURCE_TRUNCATED');
+     if(!response.complete)fail('AUTH_INITIAL_SOURCE_TRUNCATED');window(s);finish(null,record);
+    }catch(e){finish(e);}
+   });
   });
   timer=setTimeout(()=>{finish(Error('AUTH_INITIAL_SOURCE_TIMEOUT'));q.destroy();},deadline);q.on('error',e=>finish(e));q.end();
  });
+}
+async function getGenesis(s){
+ const r=await getPublic(s,'/node/consensus-genesis',64<<20);
+ if(typeof r.digest!=='string'||!/^[a-f0-9]{64}$/.test(r.digest)||typeof r.height!=='string'||!/^[1-9][0-9]{0,18}$/.test(r.height)||BigInt(r.height)>9223372036854775807n)fail('AUTH_INITIAL_SOURCE_GENESIS_HEADERS');
+ if(r.body.length!==s.release.genesis.bytes||sha(r.body)!==r.digest||r.digest!==s.release.genesis.sha256||!r.body.equals(s.genesis))fail('AUTH_INITIAL_SOURCE_REMOTE_GENESIS_CHANGED');
+ window(s);checkGenesis(s);
+ return Object.freeze({kind:'comet-genesis-http-observation/v1',route:'/node/consensus-genesis',committedHeight:r.height,sha256:r.digest,bytes:r.body.length,independentFinality:false,sourceGranted:false});
 }
 function bindOccupancy(s,text){
  const raw=captureAuthorizationHTTPOriginal(text),view=inspectCometOperatorProjection(raw.body,s.request.account,s.request.networkId),a=view.authorization;
  // Empty ORIGINAL committed record set + same response nonce/H. Not an active
  // policy stub and not a404/zero-filled owner synthesized from an error body.
+ // This proves ONLY absent PQ registration/zero PQ ledger nonce at observed H,
+ // NOT that every account balance/contract/storage/resource is empty. Actual
+ // consensus initial execution keeps its independent complete-state checks.
  if(!a.enabled||a.records.length!==0||a.ledgerNonce!=='0'||view.nextView.authorizationStatus!=='legacy'||view.nextView.pqSigningEnabled||view.committedView.pqSigningEnabled||a.revocations?.length||BigInt(a.executionHeight)<=0n||BigInt(s.request.intent.activateAt)<=BigInt(a.executionHeight))fail('AUTH_INITIAL_SOURCE_OWNER_NOT_UNUSED');
  if(s.request.action==='broadcast'&&s.request.executionHeight!==a.executionHeight)fail('AUTH_INITIAL_SOURCE_ORIGINAL_HEIGHT_CHANGED');
- return {text,occupancy:Object.freeze({chainId:s.request.networkId,owner:s.request.account,executionHeight:a.executionHeight,registered:false,ledgerNonce:'0'}),observation:view.observation};
+ return {text,committedHeight:view.committedHeight,occupancy:Object.freeze({chainId:s.request.networkId,owner:s.request.account,executionHeight:a.executionHeight,registered:false,ledgerNonce:'0'}),observation:view.observation};
 }
 export async function acquireOriginalWalletAccountInitialSource(value,originalMember=null){
- const s={request:null,release:null,fd:null,genesisStat:null,genesis:null,occupancy:null,observation:null,raw:null,member:null,wallFloor:Date.now(),monoFloor:performance.now(),expires:0,monoDeadline:0,controller:new AbortController(),pending:new Set(),retired:false,closed:false,firstPresent:false,first:undefined,joining:null,closing:null};
+ const s={request:null,release:null,fd:null,genesisStat:null,genesis:null,genesisObservation:null,lastReads:new Map(),occupancy:null,observation:null,raw:null,member:null,wallFloor:Date.now(),monoFloor:performance.now(),expires:0,monoDeadline:0,controller:new AbortController(),pending:new Set(),retired:false,closed:false,firstPresent:false,first:undefined,joining:null,closing:null};
  const assert=()=>{try{window(s);if(s.fd===null||!s.occupancy)fail('AUTH_INITIAL_SOURCE_NOT_READY');checkGenesis(s);}catch(e){throw remember(s,e);}};
  const read=()=>{assert();const result={genesisBytes:Uint8Array.from(s.genesis),genesisSHA256:s.release.genesis.sha256,executionHeight:s.occupancy.executionHeight,occupancy:s.occupancy,memberBytes:s.member?Uint8Array.from(s.member):null};assert();return result;};
- const refresh=async()=>{window(s);checkGenesis(s);const fresh=bindOccupancy(s,await getAccount(s));window(s);checkGenesis(s);if(s.raw!==null&&fresh.text!==s.raw)fail('AUTH_INITIAL_SOURCE_REVIEW_CHANGED');s.raw=fresh.text;s.occupancy=fresh.occupancy;s.observation=fresh.observation;};
+ const refresh=async()=>{
+  window(s);checkGenesis(s);const genesis=await getGenesis(s);
+  const account=await getPublic(s,'/accounts/'+s.request.account+'/authorization',8<<20),fresh=bindOccupancy(s,new TextDecoder('utf8',{fatal:true}).decode(account.body));
+  window(s);checkGenesis(s);if(genesis.committedHeight!==fresh.committedHeight)fail('AUTH_INITIAL_SOURCE_GENESIS_ACCOUNT_HEIGHT_MISMATCH');
+  if(s.raw!==null&&(fresh.text!==s.raw||genesis.committedHeight!==s.genesisObservation.committedHeight))fail('AUTH_INITIAL_SOURCE_REVIEW_CHANGED');
+  s.raw=fresh.text;s.occupancy=fresh.occupancy;s.observation=fresh.observation;s.genesisObservation=genesis;
+ };
  const track=fn=>{const p=Promise.resolve().then(fn).catch(e=>{throw remember(s,e);});s.pending.add(p);void p.then(()=>s.pending.delete(p),()=>s.pending.delete(p));return p;};
  const owner=Object.freeze({
   assertCurrent:assert,readOriginal:read,recheck:()=>track(refresh),
   copyOriginalGenesisBytes(){assert();const v=Uint8Array.from(s.genesis);assert();return v;},
   observation(){assert();return s.observation;},
+  genesisObservation(){assert();return s.genesisObservation;},
   retire(){s.retired=true;s.controller.abort();},
   join(){if(!s.joining)s.joining=Promise.resolve().then(async()=>{await Promise.allSettled([...s.pending]);});return s.joining;},
   close(){
    if(s.closing)return s.closing;s.retired=true;s.controller.abort();
    s.closing=Promise.resolve().then(async()=>{await owner.join();if(s.fd!==null){const fd=s.fd;closeSync(fd);s.fd=null;}s.closed=true;});void s.closing.catch(()=>{});return s.closing;
   },
-  outcome:()=>Object.freeze({firstCausePresent:s.firstPresent,firstCause:s.first,closed:s.closed,sourceId:s.release?.sourceId??null,independentFinality:false,effectRetryAuthorized:false}),
+  outcome:()=>Object.freeze({firstCausePresent:s.firstPresent,firstCause:s.first,closed:s.closed,sourceId:s.release?.sourceId??null,retainedGenesisResponseBytes:s.lastReads.get('/node/consensus-genesis')?.body.length??0,independentFinality:false,effectRetryAuthorized:false}),
  });
  try{
   s.request=bindAccountInitialPermissionRequest(value);s.release=selectedRelease(s.request);const now=Date.now();s.expires=Math.min(Date.parse(s.request.expiresAt),now+30000);s.monoDeadline=s.monoFloor+Math.max(0,s.expires-now);

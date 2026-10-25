@@ -37,7 +37,7 @@ export function bindAccountInitialPermissionRequest(v){
 }
 function bindSource(v,request){
  exact(v,['genesisBytes','genesisSHA256','executionHeight','occupancy','memberBytes']);
- const genesis=bytes(v.genesisBytes,8<<20);
+ const genesis=bytes(v.genesisBytes,64<<20);
  if(!hex(v.genesisSHA256)||sha(genesis)!==v.genesisSHA256||!u64(v.executionHeight)||BigInt(request.intent.activateAt)<=BigInt(v.executionHeight))fail('AUTH_INITIAL_GENESIS_OR_HEIGHT');
  exact(v.occupancy,['chainId','owner','executionHeight','registered','ledgerNonce']);
  const o=v.occupancy;
