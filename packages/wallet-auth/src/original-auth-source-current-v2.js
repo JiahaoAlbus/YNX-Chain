@@ -224,17 +224,20 @@ export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic,readO
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_SOURCE_V2_NATIVE_RUNTIME_NOT_SUPPLIED');
  const rootRaw=readPublic(entry.rootPath,entry.policy.rootDigest),enrollmentRaw=readPublic(entry.enrollmentPath,entry.policy.enrollmentDigest),profiles=entry.profiles.map(p=>readPublic(p.path,p.sha256)),root=parsed(rootRaw,16384),enrollment=hint(enrollmentRaw);
  const get=fetchOriginalNativeAuthorization;
+ const devicePurpose=entry.policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE;let acquisitionFloor=-1;
+ const acquisitionTime=()=>{const n=Date.now();if(devicePurpose&&(!Number.isSafeInteger(n)||n<0||n<acquisitionFloor))fail('AUTH_SOURCE_V2_CLOCK_ROLLBACK');acquisitionFloor=n;return n;};
+ if(devicePurpose)acquisitionTime();
  let selected;const selectedViews=[];
- for(const raw of profiles){const p=hint(raw),owners=[root.rootOwner,enrollment.profileOwner,enrollment.currentOwner,p.subjectOwner],s=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await get(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner}))),views=Object.fromEntries(['root','profile','current','subject'].map((k,i)=>[k,s[i]]));verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,raw,entry.policy,views,Date.now());selected=views.current;selectedViews.push(views);}
+ for(const raw of profiles){const p=hint(raw),owners=[root.rootOwner,enrollment.profileOwner,enrollment.currentOwner,p.subjectOwner],s=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await get(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner}))),views=Object.fromEntries(['root','profile','current','subject'].map((k,i)=>[k,s[i]]));verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,raw,entry.policy,views,acquisitionTime());selected=views.current;selectedViews.push(views);}
  if(!selected)fail('AUTH_SOURCE_V2_PROFILES');const record=inspectPQAuthorizationView(selected).activeRecord;if(!record)fail('AUTH_SOURCE_V2_CURRENT_ROLE_UNAVAILABLE');
- if(entry.policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE){
+ if(devicePurpose){
   // Every asynchronous registration observation must finish BEFORE the final
   // device-profile/key-open fence. A first profile may expire while a later
   // profile is observed; no current role key may be read on that stale set.
-  for(let i=0;i<profiles.length;i++)verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profiles[i],entry.policy,selectedViews[i],Date.now());
+  for(let i=0;i<profiles.length;i++)verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profiles[i],entry.policy,selectedViews[i],acquisitionTime());
   // The verifier itself calls retained math/view suppliers. Recheck all local
   // original windows after those callbacks, immediately before key custody.
-  const now=Date.now();if(!Number.isSafeInteger(now)||now<0)fail('AUTH_SOURCE_V2_EXPIRED');
+  const now=acquisitionTime();
   for(const body of[enrollment,...profiles.map(hint)])if(now<body.issuedAtMs||now>=body.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
  }
  let a,b,keys,service,closed=false,closeSelected=false,closeCause,closeFailed=false;

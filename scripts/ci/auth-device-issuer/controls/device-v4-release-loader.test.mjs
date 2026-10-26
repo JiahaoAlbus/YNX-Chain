@@ -27,3 +27,10 @@ test('actual device current release loader rechecks expiry before role-key open'
  const readPublic=(path,digest)=>{const value=path==='/PUBLIC/root'?f.rootRaw:path==='/PUBLIC/enrollment'?f.enrollmentRaw:raw;assert.equal(sha(value),digest);return value;};
  await assert.rejects(acquireCurrent(entry,readPublic),{code:'AUTH_SOURCE_V2_EXPIRED'});assert.ok(calls>=2);assert.deepEqual(opened,[]);assert.deepEqual(closed,[]);test.mock.restoreAll();
 });
+test('actual device current release loader refuses clock rollback while observations are pending before key open',async()=>{
+ const f=full();for(const v of Object.values(f.registrations))v.activeRevision='1';views=f.registrations;opened=[];closed=[];let calls=0;
+ test.mock.method(Date,'now',()=>++calls===1?2000:1900);
+ const raw=f.profile(),entry={rootPath:'/PUBLIC/root',enrollmentPath:'/PUBLIC/enrollment',profiles:[{path:'/PUBLIC/profile',sha256:sha(raw)}],policy:f.policy,node:{nativeChainId:'6423'},currentKeys:{A:{path:'/PRIVATE/A'},B:{path:'/PRIVATE/B'}}};
+ const readPublic=(path,digest)=>{const value=path==='/PUBLIC/root'?f.rootRaw:path==='/PUBLIC/enrollment'?f.enrollmentRaw:raw;assert.equal(sha(value),digest);return value;};
+ await assert.rejects(acquireCurrent(entry,readPublic),{code:'AUTH_SOURCE_V2_CLOCK_ROLLBACK'});assert.ok(calls>=2);assert.deepEqual(opened,[]);test.mock.restoreAll();
+});
