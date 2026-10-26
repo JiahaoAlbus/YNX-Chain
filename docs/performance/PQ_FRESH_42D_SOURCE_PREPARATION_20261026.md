@@ -1,4 +1,6 @@
-# 42d candidate: exact source and supply closed; new runtime pending
+# 42d candidate: exact source and supply preparation
+
+Historical pre-grant snapshot. The authorized actual42 run40348378826 has now failed on the original105s active deadline before after business begins. See [actual terminal costs](PQ_FRESH_42D_TERMINAL_COST_READBACK_20261026.md); all pre-runtime pending/grant statements below describe that earlier snapshot.
 
 Candidate `42d12277b61b92e82ca96e9e112e437274c6444f`, tree `a64e56bda03e986130c360c530fd9eb4e021c899`, includes the bounded initial-certificate math cache, independent offer/readback pipeline, immutable full-byte Host-input retention and incremental original-block search. Perf changed only its assigned fresh-harness leaf in2ae7b3e75; Protocol bound original controller/caller/tests/workflow in42d. No public activation, deployment or throughput qualification follows.
 
