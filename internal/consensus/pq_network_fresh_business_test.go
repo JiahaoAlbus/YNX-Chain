@@ -53,9 +53,10 @@ const (
 	pqFreshCommitLogRowsMax       = 2 * 4 * int(pqNetworkE2EMaxBlocks)
 	pqFreshValidationLogPrefix    = "PQ_VALIDATE "
 	pqFreshTransferLogPrefix      = "PQ_FRESH_TX "
+	pqFreshInclusionLogPrefix     = "PQ_FRESH_INCLUSION "
 	pqFreshDetailLogLineMax       = 512
 	pqFreshTransferLogRowsMax     = 2 * pqFreshSenders
-	pqFreshObservationLogBytesMax = pqFreshCommitLogRowsMax*(pqFreshCommitLogLineMax+pqFreshDetailLogLineMax) + pqFreshTransferLogRowsMax*pqFreshDetailLogLineMax
+	pqFreshObservationLogBytesMax = pqFreshCommitLogRowsMax*(pqFreshCommitLogLineMax+pqFreshDetailLogLineMax) + 2*pqFreshTransferLogRowsMax*pqFreshDetailLogLineMax
 )
 
 // This is a new, explicit profile. The retained-history/contract E2E and the
@@ -165,6 +166,32 @@ type pqFreshTraceRow struct {
 	ExecutionCodes  []uint32           `json:"executionCodes"`
 	TimingAvailable bool               `json:"timingAvailable"`
 	Persistence     CommitTimingSample `json:"persistence"`
+	blockHash       string
+	proposal        *pqFreshProposalTrace
+}
+
+// This is a node's accepted proposal call, not a wall-clock header time or a
+// claim about earliest network arrival. Only the same block/payload subsequently
+// finalized and committed can be joined to a verified business callback.
+type pqFreshProposalTrace struct {
+	blockHash string
+	startNs   int64
+	endNs     int64
+	txHashes  []string
+}
+
+func pqFreshCopyProposal(p *pqFreshProposalTrace) *pqFreshProposalTrace {
+	if p == nil {
+		return nil
+	}
+	copy := *p
+	copy.txHashes = append([]string(nil), p.txHashes...)
+	return &copy
+}
+
+type pqFreshProposalKey struct {
+	height int64
+	hash   string
 }
 
 // Failure-retained DATA, not the successful paired-business summary. No
@@ -343,10 +370,12 @@ type pqFreshCommitLog struct {
 	rows           int
 	validationRows int
 	transferRows   int
+	inclusionRows  int
 	bytes          int
 	last           [2][4]int64
 	validationLast [2][4]int64
 	transferSeen   [2][pqFreshSenders]bool
+	inclusionSeen  [2][pqFreshSenders]bool
 	failure        error
 }
 
@@ -450,18 +479,115 @@ func (p *pqFreshCommitLog) emitTransfer(arm, domain string, index int, row pqFre
 	return nil
 }
 
+type pqFreshInclusionObservation struct {
+	Arm       string       `json:"a"`
+	Clock     string       `json:"c"`
+	ABCIHash  string       `json:"t"`
+	Height    string       `json:"h"`
+	Index     int          `json:"i"`
+	BlockHash string       `json:"b"`
+	Proposals [4]*[2]int64 `json:"p"`
+}
+
+func (p *pqFreshTrace) inclusionTime(row pqFreshTransfer, blockHash string) *[2]int64 {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, committed := range p.rows {
+		proposal := committed.proposal
+		if committed.Height == row.Height && committed.blockHash == blockHash && committed.FinalizeOK && committed.CommitOK && committed.TimingAvailable && committed.Persistence.Durable && proposal != nil && proposal.blockHash == blockHash && row.Index >= 0 && row.Index < len(proposal.txHashes) && row.Index < len(committed.ExecutionCodes) && committed.ExecutionCodes[row.Index] == 0 && proposal.txHashes[row.Index] == row.ABCIHash && proposal.startNs >= row.OfferOffsetNs && proposal.endNs >= proposal.startNs && proposal.endNs <= committed.FinalizeStartNs && proposal.endNs <= row.IndependentCompletionNs {
+			return &[2]int64{proposal.startNs, proposal.endNs}
+		}
+	}
+	return nil
+}
+
+func pqFreshInclusionObservationLine(arm, domain string, row pqFreshTransfer, blockHash string, traces []*pqFreshTrace) ([]byte, error) {
+	if _, err := pqFreshTransferObservationLine(arm, domain, row); err != nil {
+		return nil, err
+	}
+	if !pqBusinessPin(blockHash, 32) || blockHash != strings.ToLower(blockHash) || blockHash == strings.Repeat("0", 64) || len(traces) != 4 {
+		return nil, errors.New("original finalized block hash and four traces required")
+	}
+	observation := pqFreshInclusionObservation{Arm: arm, Clock: domain, ABCIHash: strings.TrimPrefix(row.ABCIHash, "0x"), Height: strconv.FormatInt(row.Height, 10), Index: row.Index, BlockHash: blockHash}
+	for i, trace := range traces {
+		if trace == nil || trace.index != i || trace.arm != arm || trace.domain != domain {
+			return nil, errors.New("proposal observation trace identity differs")
+		}
+		observation.Proposals[i] = trace.inclusionTime(row, blockHash)
+	}
+	raw, err := json.Marshal(observation)
+	if err != nil || len(pqFreshInclusionLogPrefix)+len(raw)+1 > pqFreshDetailLogLineMax {
+		return nil, errors.New("bounded proposal observation serialization failed")
+	}
+	return append(append([]byte(pqFreshInclusionLogPrefix), raw...), '\n'), nil
+}
+
+func (p *pqFreshCommitLog) emitInclusion(arm, domain string, index int, row pqFreshTransfer, blockHash string, traces []*pqFreshTrace) error {
+	line, err := pqFreshInclusionObservationLine(arm, domain, row, blockHash, traces)
+	if err != nil {
+		return err
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.failure != nil {
+		return p.failure
+	}
+	ai := 0
+	if arm == "after" {
+		ai = 1
+	}
+	if index < 0 || index >= pqFreshSenders || !p.transferSeen[ai][index] || p.inclusionSeen[ai][index] || p.inclusionRows >= pqFreshTransferLogRowsMax {
+		p.failure = errors.New("bounded proposal observation requires its unique verified callback")
+		return p.failure
+	}
+	if err := p.writeLocked(line); err != nil {
+		return err
+	}
+	p.inclusionRows++
+	p.inclusionSeen[ai][index] = true
+	return nil
+}
+
 type pqFreshTrace struct {
 	*Application
-	mu      sync.Mutex
-	index   int
-	initial int64
-	origin  time.Time
-	domain  string
-	arm     string
-	public  *pqFreshCommitLog
-	pending *pqFreshTraceRow
-	rows    []pqFreshTraceRow
-	failure string
+	mu        sync.Mutex
+	index     int
+	initial   int64
+	origin    time.Time
+	domain    string
+	arm       string
+	public    *pqFreshCommitLog
+	pending   *pqFreshTraceRow
+	rows      []pqFreshTraceRow
+	proposals map[pqFreshProposalKey]*pqFreshProposalTrace
+	failure   string
+}
+
+func (p *pqFreshTrace) ProcessProposal(ctx context.Context, request *abci.RequestProcessProposal) (*abci.ResponseProcessProposal, error) {
+	started := time.Now()
+	response, err := p.Application.ProcessProposal(ctx, request)
+	ended := time.Now()
+	// Preserve the exact original response/error, including every reject. Only
+	// bounded successful accepts are observed; overflow is missing DATA, never
+	// an altered consensus response or a fabricated zero-duration observation.
+	if err == nil && response != nil && response.Status == abci.ResponseProcessProposal_ACCEPT && request != nil && len(request.Hash) == 32 && len(request.Txs) <= pqFreshAccounts+pqFreshSenders && pqNetworkE2EBlockBudget(p.initial, request.Height, 0) == nil {
+		row := &pqFreshProposalTrace{blockHash: hex.EncodeToString(request.Hash), startNs: started.Sub(p.origin).Nanoseconds(), endNs: ended.Sub(p.origin).Nanoseconds()}
+		if row.startNs >= 0 && row.endNs >= row.startNs && row.endNs <= pqFreshPhaseMaxNs && row.blockHash != strings.Repeat("0", 64) {
+			for _, tx := range request.Txs {
+				row.txHashes = append(row.txHashes, SignedTransactionHash(tx))
+			}
+			key := pqFreshProposalKey{height: request.Height, hash: row.blockHash}
+			p.mu.Lock()
+			if p.proposals == nil {
+				p.proposals = make(map[pqFreshProposalKey]*pqFreshProposalTrace)
+			}
+			if p.proposals[key] == nil && len(p.proposals) < 4*int(pqNetworkE2EMaxBlocks) {
+				p.proposals[key] = row
+			}
+			p.mu.Unlock()
+		}
+	}
+	return response, err
 }
 
 func (p *pqFreshTrace) FinalizeBlock(ctx context.Context, request *abci.RequestFinalizeBlock) (*abci.ResponseFinalizeBlock, error) {
@@ -482,6 +608,17 @@ func (p *pqFreshTrace) FinalizeBlock(ctx context.Context, request *abci.RequestF
 		}
 	}
 	p.mu.Lock()
+	row.blockHash = hex.EncodeToString(request.Hash)
+	proposal := p.proposals[pqFreshProposalKey{height: request.Height, hash: row.blockHash}]
+	if proposal != nil && proposal.endNs <= row.FinalizeStartNs && len(proposal.txHashes) == len(request.Txs) {
+		matches := true
+		for i, tx := range request.Txs {
+			matches = matches && proposal.txHashes[i] == SignedTransactionHash(tx)
+		}
+		if matches {
+			row.proposal = pqFreshCopyProposal(proposal)
+		}
+	}
 	if p.pending != nil {
 		p.failure = "FinalizeBlock replaced an uncommitted trace height"
 	}
@@ -537,6 +674,7 @@ func (p *pqFreshTrace) snapshot() ([]pqFreshTraceRow, string) {
 	defer p.mu.Unlock()
 	rows := append([]pqFreshTraceRow(nil), p.rows...)
 	for i := range rows {
+		rows[i].proposal = pqFreshCopyProposal(rows[i].proposal)
 		rows[i].ExecutionCodes = append([]uint32(nil), rows[i].ExecutionCodes...)
 		stages := make(map[string]int64, len(rows[i].Persistence.StagesNs))
 		for k, v := range rows[i].Persistence.StagesNs {
@@ -1210,7 +1348,7 @@ func pqFreshReadbackQueue(parent context.Context, count int, start func(context.
 	return nil
 }
 
-func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAccount, baseline bool, origin time.Time, arm, domain string, public *pqFreshCommitLog) ([]pqFreshTransfer, int, int64, int64) {
+func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAccount, baseline bool, origin time.Time, arm, domain string, public *pqFreshCommitLog, traces []*pqFreshTrace) ([]pqFreshTransfer, int, int64, int64) {
 	finish := pqFreshStage(n.t, origin, arm, "business-intent-preparation", -1, -1)
 	rows := make([]pqFreshTransfer, pqFreshSenders)
 	for i, account := range accounts[1:] {
@@ -1345,6 +1483,13 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 			if err := public.emitTransfer(arm, domain, result.index, *row); err != nil {
 				return fmt.Errorf("bounded original verified callback log failed: %w", err)
 			}
+			block := n.nodes[0].node.BlockStore().LoadBlock(row.Height)
+			if block == nil {
+				return errors.New("original verified callback block is unavailable; do not invent proposal timing")
+			}
+			if err := public.emitInclusion(arm, domain, result.index, *row, hex.EncodeToString(block.Hash()), traces); err != nil {
+				return fmt.Errorf("bounded original proposal observation failed: %w", err)
+			}
 		}
 		return nil
 	})
@@ -1407,7 +1552,7 @@ func pqFreshArmRun(t *testing.T, ctx context.Context, build pqFreshBuild, root, 
 	finish = pqFreshStage(t, origin, name, "gateway-start", -1, -1)
 	b.startGateway(n)
 	finish()
-	rows, maxInFlight, elapsed, businessStart := pqFreshTransfers(n, b, accounts, baseline, origin, name, domain, commitLog)
+	rows, maxInFlight, elapsed, businessStart := pqFreshTransfers(n, b, accounts, baseline, origin, name, domain, commitLog, traces)
 	finish = pqFreshStage(t, origin, name, "actual-result-validation", -1, -1)
 	tip := n.quiet(4)
 	arm := pqFreshArm{Name: name, ReadbackIndexMode: pqFreshMode(baseline), GenesisSHA256: pqBusinessHash(n.rawGenesis), ActivationHeight: n.schedule.ActivationHeight, InitialHeight: n.doc.InitialHeight, FinalHeight: tip, Births: births, Rows: rows, OfferedBusiness: len(rows), MaximumInFlight: maxInFlight, OfferedRatePerSecond: 2, BusinessWindowNs: elapsed, BusinessStartNs: businessStart, ClockOrigin: "paired selector origin shared by both arms and all Host/ABCI offsets; child client durations use their own clock", Clock: pqFreshClock}
@@ -2115,7 +2260,7 @@ func TestPQNetworkFreshCommitObservationBoundsAndWriteFailure(t *testing.T) {
 	}
 	row := pqFreshTraceRow{PID: 1<<31 - 1, Clock: pqFreshClock, ClockDomain: "pq-fresh:2147483647", Height: 1<<63 - 1, Transactions: int(^uint(0) >> 1), FinalizeStartNs: 100000000000, FinalizeEndNs: 100000000000, CommitStartNs: 100000000000, CommitEndNs: pqFreshPhaseMaxNs, CommitCallNs: 20000000000, TimingAvailable: true, Persistence: CommitTimingSample{Height: 1<<63 - 1, Storage: "snapshot-journal-v1", ElapsedNs: 20000000000, PayloadBytes: 1<<53 - 1, StagesNs: stages}}
 	line, err := pqFreshCommitObservationLine("before", row)
-	if err != nil || len(line) > pqFreshCommitLogLineMax || pqFreshCommitLogRowsMax != 384 || pqFreshCommitLogRowsMax*pqFreshCommitLogLineMax != 384<<10 || pqFreshObservationLogBytesMax+(256<<10)+312*512+(16<<10) != 1044480 || pqFreshObservationLogBytesMax+(256<<10)+312*512+(16<<10) >= 1<<20 {
+	if err != nil || len(line) > pqFreshCommitLogLineMax || pqFreshCommitLogRowsMax != 384 || pqFreshCommitLogRowsMax*pqFreshCommitLogLineMax != 384<<10 || pqFreshObservationLogBytesMax+(256<<10)+312*512 != 1044480 || pqFreshObservationLogBytesMax+(256<<10)+312*512+4096 != 1<<20 {
 		t.Fatal("maximum public Commit lines no longer fit the original stdout budget", len(line), err)
 	}
 	missing := row
@@ -2566,5 +2711,126 @@ func TestPQNetworkFreshPreflightPinsNewClientTreeWithoutExecutingELFData(t *test
 				}
 			}
 		})
+	}
+}
+
+func TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming(t *testing.T) {
+	migration, path := journalFixture(t)
+	app, err := NewPersistentApplication(migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	plain, err := NewPersistentApplication(migration, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.SetCommitTimingEnabled(true)
+	height := int64(migration.Height) + 1
+	domain := fmt.Sprintf("pq-fresh:%d", os.Getpid())
+	trace := &pqFreshTrace{Application: app, initial: height, origin: time.Now().Add(-time.Millisecond), domain: domain, arm: "before"}
+	payload := journalTransfer(t, 1)
+	blockHash := sha256.Sum256([]byte("unit-only-original-final-block"))
+	otherHash := sha256.Sum256([]byte("unit-only-other-round"))
+	request := &abci.RequestProcessProposal{Height: height, Hash: bytes.Clone(blockHash[:]), Time: time.Unix(1802736000+height, 0), Txs: [][]byte{bytes.Clone(payload)}}
+	before, _ := json.Marshal(app.committed)
+	want, wantErr := plain.ProcessProposal(context.Background(), request)
+	got, gotErr := trace.ProcessProposal(context.Background(), request)
+	if wantErr != gotErr || want.Status != got.Status || got.Status != abci.ResponseProcessProposal_ACCEPT {
+		t.Fatal("observer changed original real ProcessProposal acceptance", wantErr, gotErr)
+	}
+	after, _ := json.Marshal(app.committed)
+	if !bytes.Equal(before, after) || len(trace.proposals) != 1 {
+		t.Fatal("proposal observation changed committed state or lost accepted record")
+	}
+	first := pqFreshCopyProposal(trace.proposals[pqFreshProposalKey{height: height, hash: hex.EncodeToString(blockHash[:])}])
+	if first == nil || first.startNs < 0 || first.endNs < first.startNs {
+		t.Fatal("actual delegated call has no ordered parent-clock timing")
+	}
+	// The same block's first accepted observation survives another round/call.
+	trace.ProcessProposal(context.Background(), request)
+	request.Hash = bytes.Clone(otherHash[:])
+	trace.ProcessProposal(context.Background(), request)
+	request.Height += 2
+	want, wantErr = plain.ProcessProposal(context.Background(), request)
+	got, gotErr = trace.ProcessProposal(context.Background(), request)
+	if wantErr != gotErr || want.Status != got.Status || got.Status != abci.ResponseProcessProposal_REJECT || len(trace.proposals) != 2 {
+		t.Fatal("rejected proposal acquired timing or changed original response")
+	}
+	// Caller mutation cannot change either the original hash or retained tx IDs.
+	request.Hash[0] ^= 1
+	request.Txs[0][0] ^= 1
+	response, err := trace.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: height, Hash: bytes.Clone(blockHash[:]), Time: time.Unix(1802736000+height, 0), Txs: [][]byte{payload}})
+	if err != nil || response == nil || len(response.TxResults) != 1 || response.TxResults[0].Code != 0 {
+		t.Fatal("actual original FinalizeBlock failed", err)
+	}
+	if _, err := trace.Commit(context.Background(), &abci.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+	rows, failure := trace.snapshot()
+	if failure != "" || len(rows) != 1 || rows[0].proposal == nil || rows[0].proposal.blockHash != hex.EncodeToString(blockHash[:]) || rows[0].proposal.startNs != first.startNs || rows[0].proposal.endNs != first.endNs || rows[0].proposal.txHashes[0] != SignedTransactionHash(payload) {
+		t.Fatal("final block was joined to another round/tx or lost its first accepted call", failure)
+	}
+	rows[0].proposal.txHashes[0] = "changed public copy"
+	again, _ := trace.snapshot()
+	if again[0].proposal.txHashes[0] != SignedTransactionHash(payload) {
+		t.Fatal("snapshot aliases owned proposal transaction IDs")
+	}
+	// Observation overflow must not turn a real accepted proposal into rejection.
+	for i := 0; i < 4*int(pqNetworkE2EMaxBlocks)+2; i++ {
+		hash := sha256.Sum256([]byte(fmt.Sprintf("unit-only-bounded-proposal-%d", i)))
+		r, err := trace.ProcessProposal(context.Background(), &abci.RequestProcessProposal{Height: height + 1, Hash: hash[:]})
+		if err != nil || r.Status != abci.ResponseProcessProposal_ACCEPT {
+			t.Fatal("diagnostic capacity altered actual consensus response", err)
+		}
+	}
+	if len(trace.proposals) != 4*int(pqNetworkE2EMaxBlocks) {
+		t.Fatal("proposal observations exceeded their fixed bound")
+	}
+}
+
+func TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas(t *testing.T) {
+	domain := fmt.Sprintf("pq-fresh:%d", os.Getpid())
+	block := strings.Repeat("12", 32)
+	row := pqFreshTransfer{NativeHash: "0x" + strings.Repeat("34", 32), ABCIHash: "0x" + strings.Repeat("56", 32), Height: 20, Index: 0, OfferOffsetNs: 10, IndependentCompletionNs: 100, OfferToIndependentNs: 90}
+	traces := make([]*pqFreshTrace, 4)
+	for i := range traces {
+		traces[i] = &pqFreshTrace{index: i, arm: "before", domain: domain, rows: []pqFreshTraceRow{{Height: row.Height, FinalizeOK: true, CommitOK: true, TimingAvailable: true, FinalizeStartNs: 50, ExecutionCodes: []uint32{0}, Persistence: CommitTimingSample{Durable: true}, blockHash: block, proposal: &pqFreshProposalTrace{blockHash: block, startNs: 20, endNs: 30, txHashes: []string{row.ABCIHash}}}}}
+	}
+	// A competing hash, failed execution and unobserved replica remain null.
+	traces[1].rows[0].blockHash = strings.Repeat("78", 32)
+	traces[2].rows[0].ExecutionCodes[0] = 1
+	traces[3].rows = nil
+	line, err := pqFreshInclusionObservationLine("before", domain, row, block, traces)
+	var got pqFreshInclusionObservation
+	var shape map[string]json.RawMessage
+	if err != nil || len(line) > 512 || json.Unmarshal(bytes.TrimPrefix(line, []byte(pqFreshInclusionLogPrefix)), &got) != nil || json.Unmarshal(bytes.TrimPrefix(line, []byte(pqFreshInclusionLogPrefix)), &shape) != nil || len(shape) != 7 || got.ABCIHash != strings.TrimPrefix(row.ABCIHash, "0x") || got.Height != "20" || got.Index != 0 || got.BlockHash != block || got.Clock != domain || got.Proposals[0] == nil || *got.Proposals[0] != [2]int64{20, 30} || got.Proposals[1] != nil || got.Proposals[2] != nil || got.Proposals[3] != nil {
+		t.Fatal("original inclusion coordinates or missing replica semantics changed", err)
+	}
+	var output bytes.Buffer
+	log := &pqFreshCommitLog{writer: &output}
+	if err := log.emitInclusion("before", domain, 0, row, block, traces); err == nil {
+		t.Fatal("proposal timing emitted without its validated callback")
+	}
+	log = &pqFreshCommitLog{writer: &output}
+	if err := log.emitTransfer("before", domain, 0, row); err != nil {
+		t.Fatal(err)
+	}
+	if err := log.emitInclusion("before", domain, 0, row, block, traces); err != nil {
+		t.Fatal(err)
+	}
+	written := output.Len()
+	if err := log.emitInclusion("before", domain, 0, row, block, traces); err == nil || output.Len() != written {
+		t.Fatal("duplicate callback created another physical inclusion observation")
+	}
+	traces[0].rows[0].proposal.txHashes[0] = "0x" + strings.Repeat("90", 32)
+	if traces[0].inclusionTime(row, block) != nil {
+		t.Fatal("same height/index substituted a foreign transaction")
+	}
+	traces[0].domain = "pq-fresh:1"
+	if _, err := pqFreshInclusionObservationLine("before", domain, row, block, traces); err == nil {
+		t.Fatal("another process clock was accepted")
+	}
+	if pqFreshTransferLogRowsMax*pqFreshDetailLogLineMax != 16<<10 || pqFreshObservationLogBytesMax+(256<<10)+312*512 != 1044480 {
+		t.Fatal("proposal observations consumed more than the original16KiB reserve")
 	}
 }
