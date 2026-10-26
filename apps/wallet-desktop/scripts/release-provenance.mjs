@@ -160,7 +160,16 @@ function selectedRelocationRules(sdkVersion){
   const selected=PACKAGED_RELOCATION_RULES.map(rule=>rule.sourcePath==='packages/wallet-auth/src/original-ide-admission-parent-delivery.js'
     ?{...rule,operands:rule.operands.map(operand=>({...operand,count:3}))}:rule);
   const current=[SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION,SDK37_VERSION,SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION,SDK46_VERSION,SDK49_VERSION].includes(sdkVersion)?[...selected,SDK28_SOURCE_CURRENT_RULE]:selected;
-  return [SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION,SDK46_VERSION,SDK49_VERSION].includes(sdkVersion)?[...current,SDK38_SOURCE_ISSUANCE_RULE]:current;
+  const qualified=[SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION,SDK46_VERSION,SDK49_VERSION].includes(sdkVersion)?[...current,SDK38_SOURCE_ISSUANCE_RULE]:current;
+  if(sdkVersion!==SDK49_VERSION)return qualified;
+  // The exact SDK49 device successor moves the sole fixed Native URL out of
+  // the joint consumer into its shared loader. Keep its Vault import once;
+  // the source/Git/runtime pins still bind both files byte-for-byte. Old SDK
+  // rules, unknown paths and duplicate/missing operands remain refusals.
+  return [...qualified.map(rule=>rule.sourcePath===`packages/wallet-auth/src/${joint}`
+    ?{...rule,operands:rule.operands.filter(operand=>operand.kind==='from'&&operand.from==='../../../apps/wallet-desktop/src/password-wallet-vault.mjs')}:rule),
+    {sourcePath:'packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',packedPath:'code/packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',operands:[
+      {kind:'url',from:'../../../apps/wallet-desktop/native/original-auth-identity.node',to:'../../../apps/wallet-desktop/native/original-auth-identity.node',count:1}]}];
 }
 // Build/readback DATA only. The normal package caller MUST first obtain this
 // component from verifySDK13NativeComponent; it is never Source admission.
