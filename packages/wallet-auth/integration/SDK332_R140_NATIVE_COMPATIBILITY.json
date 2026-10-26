@@ -379,8 +379,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 34000,
-      "sha256": "3baf5a1559541ec3072ddcf5c2ed99df58d9c999bd46dac19d6bb7b8e029f4e4"
+      "bytes": 38588,
+      "sha256": "18013ac4d8c7e4ffe0358736d6bf81158ac30b45efbf871ae90ca03e73e266bd"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -865,8 +865,8 @@
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 15715,
-    "sha256": "9fe292089ad4d065bb82248a6285783bec644433d567caa01e65fc25d3cf1326"
+    "bytes": 19929,
+    "sha256": "071d390c68d0e0a722b32440c2c0daeccd21f15eff7dfeed1b59b2a6ccbe7075"
   },
   "require": {
     "translationUnits": 15,
@@ -2339,7 +2339,7 @@
     "revokeVerified": false
   },
   "deviceSourceNativeStage": {
-    "sourceVariant": "SDK49-NATIVE-READ-LEASE-STAGE/v1",
+    "sourceVariant": "SDK49-NATIVE-READ-LEASE-ISSUER/v1",
     "originalAuthHandoffSHA256": "1630e5800996995b2f1338b7a6071a5c2c6357a8ffd4fdbbe2030db014b0c8a9",
     "nativeSourceInputs": 117,
     "addedFixedSourceLeaves": 3,
@@ -2375,6 +2375,51 @@
     "publicSubpath": "@ynx-chain/wallet-auth/original-product-device-v4-source-stage",
     "sameRawOwnerClosedProjections": true,
     "NativeProducerFlag": "YNX_ORIGINAL_PRODUCT_DEVICE_V4_HTTP_PRODUCER_STAGE",
-    "nativeProducerHandoffSHA256": "383a13d85d1bc12a5b866be4370ac53ef700bb25b7230f65a4c4db2b3b447721"
+    "nativeProducerHandoffSHA256": "383a13d85d1bc12a5b866be4370ac53ef700bb25b7230f65a4c4db2b3b447721",
+    "moduleImportsWithoutWalletVault": true,
+    "sourceIssuanceDeviceBodyCode": true,
+    "sourceCurrentPrekeyTimeFenceCode": true,
+    "perProfileSourceRevocationCode": true,
+    "deviceSourceIssuerQualified": false,
+    "explicitDeviceBuildProfileAvailable": true,
+    "defaultFeatureFlagsEnabled": false
+  },
+  "deviceReadLeaseBuildProfile": {
+    "entry": "originalAuthDeviceV4BuildPlan",
+    "CLI": "device-v4 arm64 headersRoot protocolRoot",
+    "arch": "arm64",
+    "translationUnits": 18,
+    "cppTranslationUnits": 17,
+    "cTranslationUnits": 1,
+    "helperTranslationUnits": 11,
+    "NAPI": 8,
+    "minMacOS": "13.0",
+    "requiredFlags": [
+      "YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE",
+      "YNX_ORIGINAL_PRODUCT_DEVICE_V4_HTTP_PRODUCER_STAGE"
+    ],
+    "protocolSource": "b0f66e739f2ddd14104acb0391f196cf2cea769c",
+    "protocolInputs": [
+      {
+        "path": "libynx_artifact_release.a",
+        "bytes": 10989712,
+        "sha256": "614d01481d4ed22ccb0ecede7a1afaaf78196ab6232c093b07ba470f8ecabb67"
+      },
+      {
+        "path": "product_session_http.h",
+        "bytes": 5009,
+        "sha256": "4123d8eb6f0814c24c5f94761e8dfaf607561c13e243e327635e4e3785beee25"
+      },
+      {
+        "path": "SOURCE.json",
+        "bytes": 23550,
+        "sha256": "925ece95d316a90bfcd4f6e3a4d080a5fd293a0c9bf106588236d0fd900ba850"
+      }
+    ],
+    "oldDefaultTranslationUnits": 15,
+    "defaultSelected": false,
+    "compiled": false,
+    "nativeAdmission": false,
+    "sourceAdmission": false
   }
 }

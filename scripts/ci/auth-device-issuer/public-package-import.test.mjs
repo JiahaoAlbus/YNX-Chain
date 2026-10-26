@@ -1,0 +1,7 @@
+import test from'node:test';import assert from'node:assert/strict';import{mkdtempSync,mkdirSync,copyFileSync,writeFileSync}from'node:fs';import{tmpdir}from'node:os';import path from'node:path';import{spawnSync}from'node:child_process';
+test('normal Node package subpath imports without Wallet vault and keeps fixed Native missing refusal',()=>{
+ const root=process.cwd(),out=mkdtempSync(path.join(tmpdir(),'sdk-device-standalone-')),pkg=path.join(out,'node_modules/@ynx-chain/wallet-auth');mkdirSync(path.join(pkg,'src'),{recursive:true});
+ for(const n of['package.json','src/pq-wallet-contract.js','src/original-product-device-v4-source-stage.js','src/original-auth-identity-fixed-native-image.js'])copyFileSync(path.join(root,'packages/wallet-auth',n),path.join(pkg,n));
+ const entry=path.join(pkg,'consumer.mjs');writeFileSync(entry,`import assert from 'node:assert/strict';import{acquireOriginalProductSessionDeviceV4ReadLeaseStage as acquire}from'@ynx-chain/wallet-auth/original-product-device-v4-source-stage';assert.equal(typeof acquire,'function');assert.throws(()=>acquire({}),e=>e.code==='PRODUCT_DEVICE_V4_SOURCE_ARGUMENTS_INVALID');assert.throws(()=>acquire(),e=>e.code==='PRODUCT_DEVICE_V4_NATIVE_SOURCE_STAGE_NOT_SUPPLIED'&&e.cause?.code==='MODULE_NOT_FOUND');console.log('NORMAL_PACKAGE_IMPORT_OK; actual Native absent refused; no account/slot read');`);
+ const r=spawnSync(process.execPath,[entry],{cwd:out,encoding:'utf8',timeout:10000});assert.equal(r.status,0,r.stdout+r.stderr);assert.match(r.stdout,/NORMAL_PACKAGE_IMPORT_OK/);
+});

@@ -7,6 +7,7 @@ import {dirname,basename} from 'node:path';
 import {openSync,readFileSync,fstatSync,lstatSync,realpathSync,closeSync,constants} from 'node:fs';
 import {batchSign,extract,encodeMember,discardBatch,importKeyMaterial,destroyKey,KEY_MATERIAL_FORMAT,SUITE} from '@ynx/batch-v01-candidate';
 import {canonical,sha} from '../native/original-auth-identity-source-verifier.mjs';
+import {PRODUCT_DEVICE_V4_SOURCE_PURPOSE} from '../native/original-product-device-v4-source-contract.mjs';
 import {verifyOriginalAuthSourceProfileV2,verifyOriginalAuthSourceTransitionV2,verifyOriginalAuthSourceCurrentV2,encodeOriginalAuthSourceStatementV2,canonicalOriginalAuthSourceEnvelopeV2} from '../native/original-auth-identity-source-v2-verifier.mjs';
 import {fetchOriginalNativeAuthorization} from '../native/original-ide-auth-proof-dispatch.mjs';
 import {parsePQAccountAuthorization,inspectPQAuthorizationView,assertPQAuthorizationCurrent} from './pq-wallet-policy.js';
@@ -89,6 +90,7 @@ export class OriginalAuthSourceCurrentV2Kernel {
   this.#alive();if(!this.#initialized||this.#entered)fail('AUTH_SOURCE_V2_NOT_READY');this.#entered=true;
   try{const p=this.#profiles.get(profileDigest);if(!p)fail('AUTH_SOURCE_V2_PROFILE_NOT_REGISTERED');exact(state,['status','floor','head']);const before=await this.#views(p),v=this.#verify(p,before),old=this.#rows.get(profileDigest),sequence=old?old.sequence+1:p.body.minimumSequence;
    if(!Number.isSafeInteger(sequence)||!['active','revoked','retired'].includes(state.status)||!Number.isSafeInteger(state.floor)||state.floor<Math.max(p.body.minimumFloor,old?.floor??0)||state.floor>sequence||typeof state.head!=='string'||!/^[a-f0-9]{64}$/.test(state.head)||old&&old.status!=='active'&&state.status!==old.status)fail('AUTH_SOURCE_V2_TRANSITION_INVALID');
+   if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4)))fail('AUTH_SOURCE_V2_DEVICE_HEAD');
    const body=this.#body(p,profileDigest,{...state,sequence},randomBytes(32).toString('base64url'),v),currentRaw=this.#signed(body,v,before),projection=verifyOriginalAuthSourceTransitionV2(this.#root,this.#enrollment,p.raw,currentRaw,this.#policy,before,body.nonce,ZERO,this.#time()),raw=canonical({version:2,profileDigest,previousDigest:old?.recordDigest??'',currentRaw});if(Buffer.byteLength(raw)>CAP)fail('AUTH_SOURCE_V2_CAPACITY');
    // Signing and persistence are within one selected operation. Any later
    // exception preserves the exact signed partial and poisons this owner.
@@ -222,9 +224,19 @@ export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic,readO
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_SOURCE_V2_NATIVE_RUNTIME_NOT_SUPPLIED');
  const rootRaw=readPublic(entry.rootPath,entry.policy.rootDigest),enrollmentRaw=readPublic(entry.enrollmentPath,entry.policy.enrollmentDigest),profiles=entry.profiles.map(p=>readPublic(p.path,p.sha256)),root=parsed(rootRaw,16384),enrollment=hint(enrollmentRaw);
  const get=fetchOriginalNativeAuthorization;
- let selected;
- for(const raw of profiles){const p=hint(raw),owners=[root.rootOwner,enrollment.profileOwner,enrollment.currentOwner,p.subjectOwner],s=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await get(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner}))),views=Object.fromEntries(['root','profile','current','subject'].map((k,i)=>[k,s[i]]));verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,raw,entry.policy,views,Date.now());selected=views.current;}
+ let selected;const selectedViews=[];
+ for(const raw of profiles){const p=hint(raw),owners=[root.rootOwner,enrollment.profileOwner,enrollment.currentOwner,p.subjectOwner],s=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await get(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner}))),views=Object.fromEntries(['root','profile','current','subject'].map((k,i)=>[k,s[i]]));verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,raw,entry.policy,views,Date.now());selected=views.current;selectedViews.push(views);}
  if(!selected)fail('AUTH_SOURCE_V2_PROFILES');const record=inspectPQAuthorizationView(selected).activeRecord;if(!record)fail('AUTH_SOURCE_V2_CURRENT_ROLE_UNAVAILABLE');
+ if(entry.policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE){
+  // Every asynchronous registration observation must finish BEFORE the final
+  // device-profile/key-open fence. A first profile may expire while a later
+  // profile is observed; no current role key may be read on that stale set.
+  for(let i=0;i<profiles.length;i++)verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profiles[i],entry.policy,selectedViews[i],Date.now());
+  // The verifier itself calls retained math/view suppliers. Recheck all local
+  // original windows after those callbacks, immediately before key custody.
+  const now=Date.now();if(!Number.isSafeInteger(now)||now<0)fail('AUTH_SOURCE_V2_EXPIRED');
+  for(const body of[enrollment,...profiles.map(hint)])if(now<body.issuedAtMs||now>=body.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
+ }
  let a,b,keys,service,closed=false,closeSelected=false,closeCause,closeFailed=false;
  const signer=Object.freeze({retire(){closed=true;},join(){},assertCurrent(snapshot){if(closed)fail('AUTH_SOURCE_V2_KEY_CLOSED');a.assertCurrent();b.assertCurrent();const view=inspectPQAuthorizationView(snapshot);if(!view.pqSigningEnabled||!view.activeRecord||view.activeRecord.pkA!==record.pkA||view.activeRecord.pkB!==record.pkB||view.activeRecord.revision!==record.revision||snapshot.owner!==selected.owner)fail('AUTH_SOURCE_V2_CURRENT_ROLE_CHANGED');},signCurrent(message,binding,snapshot){this.assertCurrent(snapshot);let batch;try{batch=batchSign(keys.privateKey,{chainId:Buffer.from(binding.networkId,'hex'),owner:binding.owner,purpose:'AUTH-SOURCE-CURRENT'},[Buffer.from(message)]).batch;return encodeMember(extract(batch,0));}finally{if(batch)discardBatch(batch);}},close(){if(closeSelected){if(closeFailed)throw closeCause;return;}closed=true;closeSelected=true;for(const work of [()=>{if(keys&&!destroyKey(keys.privateKey))fail('AUTH_SOURCE_V2_KEY_CLOSE_UNKNOWN');},()=>b?.close(),()=>a?.close()])try{work();}catch(e){if(!closeFailed){closeCause=e;closeFailed=true;}}if(closeFailed)throw closeCause;}});
  try{

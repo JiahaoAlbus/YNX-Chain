@@ -1,13 +1,10 @@
-import {createRequire} from 'node:module';
-import {fileURLToPath} from 'node:url';
+import {loadOriginalAuthIdentityNativeImage as loadOriginalNative} from './original-auth-identity-fixed-native-image.js';
 import {types} from 'node:util';
 import {assertOriginalAdmissionVault,captureOriginalServiceRoleLocalCurrentSource} from '../../../apps/wallet-desktop/src/password-wallet-vault.mjs';
 
 // Fixed packaged implementing module. No path/provider/callback option and no
 // public setter. These exports are an implementation dependency, NOT existing
 // Native qualification proved by JavaScript or by a .node type tag.
-const requireOriginal=createRequire(import.meta.url);
-const loadOriginalNative=()=>requireOriginal(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)));
 const startups=new WeakMap(),ideStartups=new WeakMap(),owned=new WeakMap(),debt=new Set();
 const genericLane=Symbol('original-generic-source'),ideLane=Symbol('original-ide-source');
 const failure=code=>Object.assign(new Error(code),{code});
@@ -278,11 +275,4 @@ export function reserveOriginalAuthIdentityIDEParentHost(ref){
 
 // Closed consumer of the actual separately named Native SOURCE stage only.
 // Not source4/readCurrent, a device slot, signing permission or public setter.
-export function acquireOriginalProductSessionDeviceV4SourceStage(...args){
- if(args.length)throw failure('PRODUCT_DEVICE_V4_SOURCE_ARGUMENTS_INVALID');
- let native;try{native=loadOriginalNative();}catch(cause){throw Object.assign(failure('PRODUCT_DEVICE_V4_NATIVE_SOURCE_STAGE_NOT_SUPPLIED'),{cause});}
- const descriptor=Object.getOwnPropertyDescriptor(native,'acquireOriginalProductSessionDeviceV4Source');
- if(!descriptor||!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')throw failure('PRODUCT_DEVICE_V4_NATIVE_SOURCE_STAGE_NOT_SUPPLIED');
- // Do not translate Native failure: preserve SAME error and its actual partial.
- return descriptor.value.call(native);
-}
+export {acquireOriginalProductSessionDeviceV4SourceStage} from './original-auth-identity-fixed-native-image.js';

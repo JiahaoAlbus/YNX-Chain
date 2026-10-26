@@ -1,0 +1,64 @@
+{
+  "schema": "ynx-main-device-v4-explicit-native-builder/v1",
+  "parent": "873e205c8ff00f529360f709d11eb22c52d87171",
+  "commit": "55c86e86c05f96a626381d5049bfdbea1afb5518",
+  "tree": "757528e8d28b463f3bf7f4d97dc0bc35be345f3f",
+  "changes": [
+    {
+      "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
+      "before": {
+        "bytes": 15715,
+        "sha256": "9fe292089ad4d065bb82248a6285783bec644433d567caa01e65fc25d3cf1326",
+        "blob": "faec3d12c7c13cf1d618eb6622e6f3b7ed406248"
+      },
+      "after": {
+        "bytes": 19929,
+        "sha256": "071d390c68d0e0a722b32440c2c0daeccd21f15eff7dfeed1b59b2a6ccbe7075",
+        "blob": "3fc9d80da39d2ca6fe2aa74e044d529a5c3dbde8"
+      }
+    },
+    {
+      "path": "apps/wallet-desktop/test/device-v4-native-build-plan.test.mjs",
+      "before": null,
+      "after": {
+        "bytes": 6620,
+        "sha256": "a72ff1ab3f6e64e1f5c79d20fd6e51f775889ac46813751e5dc6e84701afa571",
+        "blob": "7ecad740539f2461f8e84eb3117e150dd4c401c6"
+      }
+    }
+  ],
+  "sourceRoot": "/Volumes/西部数据/YNX-large-work/wallet-sdk49-product-successor-20261026",
+  "owner": "Main scripts source only; original A owns compiler/build/package; original SDK owns full runtime roles and exact tool pins",
+  "entry": "originalAuthDeviceV4BuildPlan(arch, headers, protocolRoot); explicit CLI node build-original-auth-identity-native.mjs device-v4 arm64 <absolute-headers> <absolute-official-protocol-root>",
+  "features": [
+    "both original SourceStage and HTTPProducer flags, no PUBLIC_TEST",
+    "same addon factory.mm and slot.mm, separate C11 E5 .o before link",
+    "fixed actual b0 archive/header/SOURCE SHA+bytes pins, same caller header required, no symlink protocol ancestry",
+    "Darwin arm64 only; x64/universal refused; no downloads/fallback",
+    "-lresolv and existing nm owned undefined guard; addon/E5 existing outputs refused",
+    "default addon15/helper11 recipes unchanged"
+  ],
+  "validation": {
+    "sourceOnlyPublicBoundaryRecipeTests": 6,
+    "failed": 0,
+    "actualOfficialProtocolFiles": "3 bytes/SHA exact from supplied b0 extracted root",
+    "syntax": "PASS",
+    "diffCheck": "PASS",
+    "ciEntry": "Existing npm test test/*.test.mjs; remote CI not run"
+  },
+  "notDone": [
+    "SDK117/5 full runtime role/tool-pin materialization",
+    "normal build-wallet-native-component device stage composition/profile and source selection not supplied by this patch; its existing tool guard intentionally rejects the changed tool until exact successor handoff is integrated",
+    "actual whole Native compilation and paired component",
+    "installed/matching App/GUI, Source/current/registered slot or issuer admission, signing/HTTP permission"
+  ],
+  "preserved": [
+    "original untracked .sdk49-original-preserved backup",
+    "frozen SDK49/3b0/7e315 other lane",
+    "accounts keys sessions UNKNOWN"
+  ],
+  "built": false,
+  "installed": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}

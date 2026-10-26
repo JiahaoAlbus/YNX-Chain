@@ -1,0 +1,175 @@
+{
+  "schema": "ynx-auth-device-v4-production-loader-evidence/v1",
+  "parent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-issuer-current-20261026-r1/HANDOFF.json",
+    "bytes": 21757,
+    "sha256": "9c43f2506a288cb87c80f701fd6b7cf422dabd58562db65431e6d1f1af68040c",
+    "blob": "76d8b91e79b7a3a8d91a467c6ef307b8ab47c7aa"
+  },
+  "productionSourceDelta": false,
+  "refs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/controls/device-v4-release-loader.test.mjs",
+      "bytes": 3990,
+      "sha256": "f39606b4f4f4fb93d1aef1dae9bb665b01ca05e619610f888f945d63a480260b",
+      "blob": "4048d84e2a6e6fa8bb5b09ba8d82daa9052ddd38",
+      "relative": "controls/device-v4-release-loader.test.mjs",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/controls/device-v4-release-loader.test.mjs"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/run-device-v4-issuer-current.mjs",
+      "bytes": 3796,
+      "sha256": "8e7365269d15183e16bf42c72f072261ab0176dd8b5e07158945b838303fc3c2",
+      "blob": "2681525fd440bd26378015ca711a1a8014d1cd13",
+      "relative": "run-device-v4-issuer-current.mjs",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/run-device-v4-issuer-current.mjs"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/freeze-device-v4-loader-evidence.mjs",
+      "bytes": 2902,
+      "sha256": "0c1bceb03f11192e4583e871ae7f8747156c4357bf866fc284c0a292544581fe",
+      "blob": "b0452b0846b20df7cc8edae75ddfbae2ce319249",
+      "relative": "freeze-device-v4-loader-evidence.mjs",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/freeze-device-v4-loader-evidence.mjs"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/RESULT.json",
+      "bytes": 3399,
+      "sha256": "4cacc87c0ad5d1735e3fae316d6812adb8f63cb8d920644232169981199b8682",
+      "blob": "3f467b763f72dbb7947884dc830e3120667eb456",
+      "relative": "evidence/pass/RESULT.json",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/RESULT.json"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/controls.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/controls.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/controls.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/controls.stdout",
+      "bytes": 2155,
+      "sha256": "dd8082eb4b520c0c4cdf486da8f448bcacf2c667e98b2fa8fcbe8f6e0fc0faaf",
+      "blob": "156f1e2df3bbdff0e8a52f36717b63fd54fa3d57",
+      "relative": "evidence/pass/controls.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/controls.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/public-fixture.mjs",
+      "bytes": 7540,
+      "sha256": "76483f73cc92c1f71f491ac8fc5c7d0f4c85350d35950f6f94bbf08151088661",
+      "blob": "ada5278618143a20f1d1cd5556286439922fa795",
+      "relative": "evidence/pass/public-fixture.mjs",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/public-fixture.mjs"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/syntax-original-auth-identity-source-v2-verifier.mjs.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/syntax-original-auth-identity-source-v2-verifier.mjs.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/syntax-original-auth-identity-source-v2-verifier.mjs.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/syntax-original-auth-identity-source-v2-verifier.mjs.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/syntax-original-auth-identity-source-v2-verifier.mjs.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/syntax-original-auth-identity-source-v2-verifier.mjs.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/syntax-original-auth-source-current-v2.js.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/syntax-original-auth-source-current-v2.js.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/syntax-original-auth-source-current-v2.js.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/syntax-original-auth-source-current-v2.js.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/syntax-original-auth-source-current-v2.js.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/syntax-original-auth-source-current-v2.js.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/syntax-original-auth-source-issuance-v2.js.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/syntax-original-auth-source-issuance-v2.js.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/syntax-original-auth-source-issuance-v2.js.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/syntax-original-auth-source-issuance-v2.js.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/syntax-original-auth-source-issuance-v2.js.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/syntax-original-auth-source-issuance-v2.js.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/syntax-original-product-device-v4-source-contract.mjs.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/syntax-original-product-device-v4-source-contract.mjs.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/syntax-original-product-device-v4-source-contract.mjs.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/pass/syntax-original-product-device-v4-source-contract.mjs.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/syntax-original-product-device-v4-source-contract.mjs.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-ZwnuXh/syntax-original-product-device-v4-source-contract.mjs.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/firstcause/RESULT.json",
+      "bytes": 3331,
+      "sha256": "df5cd2f7202d6f4bd5f33433a2d72eaa727613f08d8459b0455ea7eb4d29bedd",
+      "blob": "d0a9d42c6b8f0b3124b1f903d4331a85a5393ece",
+      "relative": "evidence/firstcause/RESULT.json",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-uNWabw/RESULT.json"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/firstcause/controls.stdout",
+      "bytes": 2667,
+      "sha256": "30334cb88fd269fe8138d4b0361e07b896254d763ac08870f95c43f7d3e785e2",
+      "blob": "22428192e59db1e0ec597fff41a77f70ac35d011",
+      "relative": "evidence/firstcause/controls.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-uNWabw/controls.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-release-loader-20261026-r1/evidence/firstcause/controls.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/firstcause/controls.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-uNWabw/controls.stderr"
+    }
+  ],
+  "tests": {
+    "actualReleaseLoaderRefusal": 2,
+    "existingRelatedKernelControls": 11,
+    "syntax": 4,
+    "explicitMergedPackage": true,
+    "result": "13 passed/0 failed",
+    "firstCause": "Node fs mock default namespace constants redefine; PUBLIC harness fixed, production unchanged",
+    "boundaries": "PUBLIC approval file/registration/math/transport. Actual loadReleaseSelectedOriginalSourceIssuanceV2 invoked. Malformed closed device body error matches original validator; no private role file opened; returned partial closes approval exactly once."
+  },
+  "truth": {
+    "productionLoaderTested": true,
+    "actualRoleKeyRead": false,
+    "actualSigning": false,
+    "sourceAdmission": false,
+    "matchingBuild": false,
+    "runtime": false,
+    "globalRevoke": false,
+    "FinanceResumed": false
+  }
+}

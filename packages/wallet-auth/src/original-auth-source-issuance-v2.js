@@ -8,15 +8,17 @@ import {batchSign,extract,encodeMember,discardBatch,importKeyMaterial,destroyKey
 import {OriginalSourceCurrentV2KeyFile} from './original-auth-source-current-v2.js';
 import {canonical,sha} from '../native/original-auth-identity-source-verifier.mjs';
 import {encodeOriginalAuthSourceStatementV2,canonicalOriginalAuthSourceEnvelopeV2,verifyOriginalAuthSourceEnrollmentV2,verifyOriginalAuthSourceProfileV2} from '../native/original-auth-identity-source-v2-verifier.mjs';
+import {inspectOriginalProductDeviceV4IssuanceBodyDATA} from '../native/original-auth-identity-source-v2-verifier.mjs';
+import {PRODUCT_DEVICE_V4_SOURCE_PURPOSE} from '../native/original-product-device-v4-source-contract.mjs';
 import {fetchOriginalNativeAuthorization} from '../native/original-ide-auth-proof-dispatch.mjs';
 import {parsePQAccountAuthorization,inspectPQAuthorizationView,assertPQAuthorizationCurrent} from './pq-wallet-policy.js';
 import {verifyPQRegisteredMemberData} from './pq-registered-member.js';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const roles=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOURCE-PROFILE'});
-// Two EXISTING, separately admitted Source contracts, not interchangeable
-// originals or a caller-selectable generic signing domain. RECEIVE is the
+// Existing separately admitted families plus the dedicated device-v4 CODE
+// contract. This creates no admitted row/approval/key/Root. RECEIVE remains the
 // normal AdministrationProfile/private-daemon + IDE-parent Source family.
-const PURPOSES=Object.freeze(['wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE']);
+const PURPOSES=Object.freeze(['wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE]);
 function document(raw){let v;try{v=JSON.parse(raw);}catch{fail('AUTH_ISSUANCE_CANONICAL');}if(typeof raw!=='string'||Buffer.byteLength(raw)>393216||canonical(v)!==raw)fail('AUTH_ISSUANCE_CANONICAL');return v;}
 function exact(v,names){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).sort().join('|')!==names.slice().sort().join('|')||Object.values(Object.getOwnPropertyDescriptors(v)).some(d=>!Object.hasOwn(d,'value')))fail('AUTH_ISSUANCE_SCHEMA');}
 function window(v,now){if(!Number.isSafeInteger(v.issuedAtMs)||!Number.isSafeInteger(v.expiresAtMs)||v.issuedAtMs<0||v.expiresAtMs<=v.issuedAtMs||v.expiresAtMs-v.issuedAtMs>86400000||now<v.issuedAtMs||now>=v.expiresAtMs)fail('AUTH_ISSUANCE_EXPIRED');}
@@ -39,6 +41,7 @@ export class OriginalSourceIssuanceV2Kernel {
   exact(p,['role','rootRaw','enrollmentRaw','bodyRaw','policy','binding','approvalDigest','journalPath']);
   if(!Object.hasOwn(roles,p.role)||!PURPOSES.includes(p.policy.signatureContract.purpose))fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
   const root=document(p.rootRaw),body=document(p.bodyRaw),binding=p.binding;
+  if(p.policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE)inspectOriginalProductDeviceV4IssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now());
   if(sha(p.rootRaw)!==p.policy.rootDigest||root.purpose!==p.policy.signatureContract.purpose||body.purpose!==root.purpose||root.networkId!==binding.networkId||binding.owner!==(p.role==='enrollment'?root.rootOwner:document(Buffer.from(document(p.enrollmentRaw).body,'base64url').toString('utf8')).profileOwner))fail('AUTH_ISSUANCE_ROLE_BINDING');
   // A normal profile may not borrow even an independently signed catalog
   // enrollment. Reject this BEFORE intent persistence or any signing effect,
@@ -118,7 +121,9 @@ export async function loadReleaseSelectedOriginalSourceIssuanceV2(entry){
   const observe=async()=>{const values=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await fetchOriginalNativeAuthorization(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner})));if(values.some(v=>v.executionHeight!==values[0].executionHeight))fail('AUTH_ISSUANCE_OBSERVATION_CHANGED');return Object.fromEntries(['root','profile','current','subject'].map((r,i)=>[r,values[i]]));};
   const firstViews=await observe(),selected=firstViews[entry.plan.role==='enrollment'?'root':'profile'],record=inspectPQAuthorizationView(selected).activeRecord;if(!record)fail('AUTH_ISSUANCE_ROLE_NOT_CURRENT');
   if(entry.plan.binding.owner!==selected.owner||entry.plan.binding.networkId!==selected.networkId||entry.plan.binding.keyVersion!==record.revision||entry.plan.binding.executionHeight!==selected.executionHeight)fail('AUTH_ISSUANCE_ROLE_BINDING');
+  if(entry.plan.policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE)inspectOriginalProductDeviceV4IssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now());
   independentApproval(entry.plan,approval.readOriginal(),Date.now());
+  window(document(entry.plan.bodyRaw),Date.now());
   // Separate roleKeys, never entry.currentKeys. Their original protected
   // custodian must independently authorize this release's fixed role.
   a=new OriginalSourceCurrentV2KeyFile(entry.roleKeys.A);a.initialize();b=new OriginalSourceCurrentV2KeyFile(entry.roleKeys.B);b.initialize();keys=importKeyMaterial({format:KEY_MATERIAL_FORMAT,algorithmVersion:'YNX-BATCH/v0.1',suite:SUITE,pkcs8A:a.raw,pkcs8B:b.raw,pkA:Buffer.from(record.pkA,'hex'),pkB:Buffer.from(record.pkB,'hex')},{provider:'native'});
