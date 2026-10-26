@@ -22,7 +22,8 @@ test('complete original normal48 producer yields18/11 min13 plans115/107 with fu
  const requirements=JSON.parse(fs.readFileSync(required)),request=JSON.parse(fs.readFileSync(requirements.sourceRequest.path)),supplier=JSON.parse(fs.readFileSync(requirements.supplier.path));
  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'wallet-sdk48-normal-plan-')));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
  const put=(name,bytes)=>{const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,bytes);};
- for(const row of request.nativeSources){const bytes=fs.readFileSync(path.join(request.sourceRoot,row.path));assert.equal(bytes.length,row.bytes);assert.equal(hash(bytes),row.sha256);put(row.path,bytes);}
+ const nativeRoot=process.env.WALLET_SDK48_NATIVE_SOURCE_ROOT??request.sourceRoot;
+ for(const row of request.nativeSources){const bytes=fs.readFileSync(path.join(nativeRoot,row.path));assert.equal(bytes.length,row.bytes);assert.equal(hash(bytes),row.sha256);put(row.path,bytes);}
  fs.cpSync(path.join(source,'apps'),path.join(root,'apps'),{recursive:true});
  put('packages/wallet-auth/package.json',fs.readFileSync(path.join(supplier.prefix,'package.json')));
  put('packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',fs.readFileSync(requirements.compatibilityInventory.path));
@@ -36,7 +37,7 @@ test('complete original normal48 producer yields18/11 min13 plans115/107 with fu
  const selection=canonical.canonicalNativeInputSelection(requirements.sdkVersion,names,inventoryBytes,rows);assert.equal(selection.supplierNodeInputCount,102);assert.equal(selection.walletInputs.length,13);
  const bad=structuredClone(rows);bad.find(p=>p.relative.endsWith('/original-artifact-publisher-store.h')).bytes=7531;assert.throws(()=>canonical.canonicalNativeInputSelection(requirements.sdkVersion,names,inventoryBytes,bad));
  assert.throws(()=>canonical.canonicalNativeInputSelection('1.3.0-pq.3.32-auth.46',names,inventoryBytes,rows));
- const full=fs.readFileSync(requirements.fullRuntime.union.path);assert.equal(verifySDKRuntimeUnion(requirements.sdkVersion,supplier.prefix,full).filesVerified,9434);
+ const full=fs.readFileSync(requirements.fullRuntime.union.path),runtimeRoot=process.env.WALLET_SDK48_NATIVE_SOURCE_ROOT?path.join(nativeRoot,'packages/wallet-auth'):supplier.prefix;assert.equal(verifySDKRuntimeUnion(requirements.sdkVersion,runtimeRoot,full).filesVerified,9434);
  assert.throws(()=>verifySDKRuntimeUnion(requirements.sdkVersion,supplier.prefix,Buffer.concat([full,Buffer.from('\n')])));
  for(const name of ['native/original-auth-identity.node','native/original-auth-identity-build.json'])assert.equal(fs.existsSync(path.join(app,name)),false);
 });
