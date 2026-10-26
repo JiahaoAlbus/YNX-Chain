@@ -1,0 +1,430 @@
+{
+  "schema": "ynx-pq-fresh-source-preparation/v1",
+  "candidate": "42d12277b61b92e82ca96e9e112e437274c6444f",
+  "tree": "a64e56bda03e986130c360c530fd9eb4e021c899",
+  "parent": "2ae7b3e75afc41b7d0e2d322c329251af64bb31e",
+  "sourceContracts": [
+    {
+      "sourcePath": ".github/workflows/resource-market-ci.yml",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/.github/workflows/resource-market-ci.yml",
+      "bytes": 332029,
+      "sha256": "eaf87300435486335ccba20633ad1c2a386a063f486c2f079c14857fae090431",
+      "gitBlob": "38cc2640b2d31a827b10435e9ab840429567ab61",
+      "changedFrom282": true
+    },
+    {
+      "sourcePath": "scripts/loadtest/pq-paired-linux-window.py",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/scripts/loadtest/pq-paired-linux-window.py",
+      "bytes": 99244,
+      "sha256": "add1c678c7ccfcd5c994744d2c985bd972164bb82c4482a5af2967e6fba18b23",
+      "gitBlob": "b4a8e4b113751bd4ec4bf3ada40a2c4cf41eb1df",
+      "changedFrom282": true
+    },
+    {
+      "sourcePath": "scripts/loadtest/pq-paired-recipe.mjs",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/scripts/loadtest/pq-paired-recipe.mjs",
+      "bytes": 2359,
+      "sha256": "673eb8965329025e7a516a67e8e04f6a54c3a102b00aafa72f78e86c8748c3eb",
+      "gitBlob": "fa63e7a514645afdc88b05e8482bdc6bac1d3b7e",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "scripts/loadtest/prepare-pq-paired-benchmark.mjs",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/scripts/loadtest/prepare-pq-paired-benchmark.mjs",
+      "bytes": 3558,
+      "sha256": "6d4b36d283cfb3371a6cb6a0019ec885bf082d858c0e0046a5ef637d17ae33bb",
+      "gitBlob": "f44c175479c46508c5368d2560da5505803e56b1",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "scripts/ops/validate-pq-remote-normal-ci.py",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/scripts/ops/validate-pq-remote-normal-ci.py",
+      "bytes": 16856,
+      "sha256": "6d617c4ba97f82d59db512962873df1202fabfc6f5422c1b56452f020fbb8475",
+      "gitBlob": "a6f33296f0c5bd2f6167186179c17ad2e14bbb26",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "scripts/ops/pq-ci-stage-inputs.py",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/scripts/ops/pq-ci-stage-inputs.py",
+      "bytes": 8415,
+      "sha256": "1e98fa2567a0ee78fb11e1561065b39416d4d6d275cf6b0a46bdfb4d390b7457",
+      "gitBlob": "b02b4aa7cfa0871df3538eed279ef46ad819ec8f",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/ynxconsensusauth/signer.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/ynxconsensusauth/signer.go",
+      "bytes": 16974,
+      "sha256": "ff4320b518f92359aa23d29fa641c1f2db58add88bc1b93892fab6e300b97355",
+      "gitBlob": "f165b6186e29815bdc0824b8acb0c21a3c3680ff",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/ynxconsensusauth/host_key_vault.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/ynxconsensusauth/host_key_vault.go",
+      "bytes": 14664,
+      "sha256": "da6f1dda6f497ca426de25784964df27e33f1301c52e9c4e2750ea73f5bf5d1b",
+      "gitBlob": "b74f92e09ed358a1be0a9b1d7a64b138ad8ad590",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/ynxconsensusauth/object_signer.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/ynxconsensusauth/object_signer.go",
+      "bytes": 8631,
+      "sha256": "3a677292bbd889682db53858b53c4f046bde44686c31505df5f4a4e93f00e960",
+      "gitBlob": "c285dea8fb219b9e29e50a5dd7c8ef24a29404c8",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/ynxbatch/provider.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/ynxbatch/provider.go",
+      "bytes": 5818,
+      "sha256": "18b57e0165ef1f403f2278429c03786bcdec69d8604be1a7b00cd902fc9b2872",
+      "gitBlob": "2b9672dfc5584b6f6ae091aaac4eb06ccd113df5",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/ynxbatch/sign.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/ynxbatch/sign.go",
+      "bytes": 3768,
+      "sha256": "ba3537bacac9813098fb02dad51e289b3cb8d6ce5586f5c01536df8b429c02b7",
+      "gitBlob": "de99191c1b962a88db89acac1814ee2d1f9f228a",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "scripts/ops/validate-pq-remote-signer-process.py",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/scripts/ops/validate-pq-remote-signer-process.py",
+      "bytes": 33913,
+      "sha256": "e3793ee1cea7774cb6276dc329e1970f22a088e6d9608deccf9aaf87e2da8fa9",
+      "gitBlob": "69a9688cdfd8f6291662934a3d384e409d8b689a",
+      "changedFrom282": true
+    },
+    {
+      "sourcePath": "scripts/ops/test_validate_pq_remote_signer_process.py",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/scripts/ops/test_validate_pq_remote_signer_process.py",
+      "bytes": 35827,
+      "sha256": "c3b9f74fe5155129077e0d7ee2b383198eeccbc2d41ca7d49bf89318a87b2b77",
+      "gitBlob": "3795253b7bf5b62ac9fa12a44f360ebae4c6df57",
+      "changedFrom282": true
+    },
+    {
+      "sourcePath": "scripts/ops/test_validate_pq_remote_normal_ci.py",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/scripts/ops/test_validate_pq_remote_normal_ci.py",
+      "bytes": 199737,
+      "sha256": "59b39bdb4143ced4f5823c0d2fe5282751af0c57f2e27ac70e3e8bc82280cfcd",
+      "gitBlob": "b23dfd4d17c7f92fd051665ea6221fea82c48d18",
+      "changedFrom282": true
+    },
+    {
+      "sourcePath": "internal/consensus/pq_network_e2e_test.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/pq_network_e2e_test.go",
+      "bytes": 80325,
+      "sha256": "a6029a4e54a7cbe86e31fdc0a0e88ffac2d17940a709feb13d6f274de44829d2",
+      "gitBlob": "18f7fb83493e4d3e8a8cfe4be69fc8e13dd5455a",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/pq_network_fresh_business_test.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/pq_network_fresh_business_test.go",
+      "bytes": 152477,
+      "sha256": "ad938ae9d31a3e157f823381a2b918a9a30ef479035f3e23e4663c3100d8c29e",
+      "gitBlob": "3a16eeb57d353fed295c1026f52b0c3091965586",
+      "changedFrom282": true
+    },
+    {
+      "sourcePath": "internal/consensus/pq_network_business_test.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/pq_network_business_test.go",
+      "bytes": 62158,
+      "sha256": "dcb8f38a96664c95fa3ac5e519716cad71b638501578a541942d85bab59991bf",
+      "gitBlob": "1eac588575b1c52af994b629935d5d56272001f4",
+      "changedFrom282": true
+    },
+    {
+      "sourcePath": "internal/consensus/proof_host_checkpoint.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/proof_host_checkpoint.go",
+      "bytes": 1931,
+      "sha256": "adffe20c13ed5e6e909aa4445e4073ae7ebf6352700261086701bcddcac0dabf",
+      "gitBlob": "eb47065f369a970d6dd737dd2bd3bf17109987a7",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/proof_host_source_store.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/proof_host_source_store.go",
+      "bytes": 19806,
+      "sha256": "45e97e17955fff9d3e7f58d74fad999ce738c9f1eef44a082461177f5fd95756",
+      "gitBlob": "d5b053e0ff573624eb81be441027756b3a52ccb4",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "scripts/loadtest/test_pq_paired_linux_window.py",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/scripts/loadtest/test_pq_paired_linux_window.py",
+      "bytes": 102650,
+      "sha256": "020be6f6e400078f582432a0832680a9a4cb253c0b5db6071f25bf5d7ebab423",
+      "gitBlob": "10ec0b7c9078bcfb3ca915b5b7efe0e206d6e431",
+      "changedFrom282": true
+    },
+    {
+      "sourcePath": "third_party/cometbft/node/ynx_proof_source.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/third_party/cometbft/node/ynx_proof_source.go",
+      "bytes": 2432,
+      "sha256": "eced9ca7a2de6a30df40942cd04a39987b1f8261434834ca08eecc5dac41e5d9",
+      "gitBlob": "b825418015e9c221259334350fc2492e78c262e2",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "third_party/cometbft/node/ynx_proof_source_test.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/third_party/cometbft/node/ynx_proof_source_test.go",
+      "bytes": 3886,
+      "sha256": "8a4c6e15ef9dbd9207c95218f915d7ac539167408f8c259ead98dafedfef3968",
+      "gitBlob": "25a1786ee4b6976acb438158d20c576a103bcc58",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/state.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/state.go",
+      "bytes": 61932,
+      "sha256": "2fdaa6bdb8f1391def6c891d99c857faf9537c6843753d5976e37422df20050b",
+      "gitBlob": "49d59f4483d504776cdfe8429c4e9d25c47e1e23",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/commit_timing.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/commit_timing.go",
+      "bytes": 5573,
+      "sha256": "310924b75c972efcf2e8e3fbd63f617983c2ec795436a0a2a817e26525bb8595",
+      "gitBlob": "0bd41fee1449c7be487aa852a80444abbae600e0",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/application.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/application.go",
+      "bytes": 81904,
+      "sha256": "0de61a3b87df7e59787d8881b7c89e9306911bfd020f493f26c767376075e601",
+      "gitBlob": "6d8864a47203326c651a7729ceff40ba37fce5c6",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/state_journal.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/state_journal.go",
+      "bytes": 14570,
+      "sha256": "8273a1d17a30258ca5cffedda74dd037246e9309bb071d06846d290364f4f6fd",
+      "gitBlob": "782732fadab058c3993d501f4e4ce0a1a3667c2b",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/block_journal.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/block_journal.go",
+      "bytes": 21449,
+      "sha256": "1875dfc28be99eece260e1012dda045b83f426540f4b5f2f4ae948e7d2544697",
+      "gitBlob": "ca206396b88b0e70a0579b9541b9b39e7b1551f4",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/commit_timing_test.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/commit_timing_test.go",
+      "bytes": 14069,
+      "sha256": "310d9d190cd2501f4745afc4a4320ff25700172ecae49a82e1413eb6f33f6f2c",
+      "gitBlob": "9fb3023df49fac66e3ecbf7e6c8a0b4449bb5acf",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/state_validation_facts_test.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/state_validation_facts_test.go",
+      "bytes": 13318,
+      "sha256": "b604655e142e4a4eb315136525788e39df7d0834b140f92bf57423ba952f749f",
+      "gitBlob": "be58dda6df9638648798421c5cff0b8bd8ec2175",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/validator_registry_state.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/validator_registry_state.go",
+      "bytes": 8901,
+      "sha256": "900d6f923ca206102236e3a22a4e010ef55ab012d1a8538439c2ac138b6cb112",
+      "gitBlob": "6d10389e5dd7eec1c1c4103f7e910076365e1770",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/pq_engine_schedule.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/pq_engine_schedule.go",
+      "bytes": 18435,
+      "sha256": "8119a43208d2a7a337eaa710d8b0c913474737dd9ed498e46e9d81fdd7a32619",
+      "gitBlob": "88e1d465b760de0e5457e39f6d7b1c1dce34e888",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/pq_engine_state_read.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/pq_engine_state_read.go",
+      "bytes": 8578,
+      "sha256": "b3a6ffaefeb1f8be7714fcf6b70e0931f87e226c15bb2ca632223f9acdd986d2",
+      "gitBlob": "13aeda6b20209592f24973a1c04c64917bc038d2",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/account_policy.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/account_policy.go",
+      "bytes": 13988,
+      "sha256": "1c58047b28b3d5ff19accf72033aef3ac59a5b9ee6af90bfaccfcd790ad40e54",
+      "gitBlob": "7fbc39ae7e0fa4fc08101679b6d6485f15c2dca7",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/pq_initial_history.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/pq_initial_history.go",
+      "bytes": 5753,
+      "sha256": "6347e1f3ff9ee218944a47ef86c6b76cfc60cf9e9582abcd0b7458e46270fbc4",
+      "gitBlob": "bff584b134c49a1ab54bdb61fbd188e5030f6855",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/pq_initial_history_cache_test.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/pq_initial_history_cache_test.go",
+      "bytes": 10434,
+      "sha256": "d802be1ee03a13047467e2463a357766bd2d606bf114d63bc6b494a80ef9da37",
+      "gitBlob": "5d680b737c75722b2e2040cdd87ba52123cc3946",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/consensus/validated_migration.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/consensus/validated_migration.go",
+      "bytes": 6089,
+      "sha256": "10cfa005716440f7b2a0ba7b431fc951f3aacfe6fc3652b296d8dd57df5d543c",
+      "gitBlob": "ab05434ae2de7361709821e88594865485b97d24",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/ynxauth/pq_initial_possession.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/ynxauth/pq_initial_possession.go",
+      "bytes": 4775,
+      "sha256": "803a743eafa041f9325917deb749bf3f2175e540881e3d73dbe73c35f393c7f7",
+      "gitBlob": "92d2c327a61a1af617b82b52cf3c7acabebe9ebc",
+      "changedFrom282": false
+    },
+    {
+      "sourcePath": "internal/ynxauth/pq_initial_possession_cache_test.go",
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/source-contracts/internal/ynxauth/pq_initial_possession_cache_test.go",
+      "bytes": 8314,
+      "sha256": "178e2e54ec1b8e0f84a5749dd4f7ce97dcdcac31e187ab6816ca950b061ab052",
+      "gitBlob": "a88d54bd2a7eda20c2751fd042bde2b0e3df7f21",
+      "changedFrom282": false
+    }
+  ],
+  "sourceLeaves": {
+    "internal/consensus/pq_network_e2e_test.go": "a6029a4e54a7cbe86e31fdc0a0e88ffac2d17940a709feb13d6f274de44829d2",
+    "internal/consensus/pq_network_fresh_business_test.go": "ad938ae9d31a3e157f823381a2b918a9a30ef479035f3e23e4663c3100d8c29e",
+    "internal/consensus/pq_network_business_test.go": "dcb8f38a96664c95fa3ac5e519716cad71b638501578a541942d85bab59991bf"
+  },
+  "controllerConstantDeltaFrom282": [
+    "FRESH_BUSINESS_E2E_SOURCE_SHA256",
+    "BUSINESS_E2E_SOURCE_SHA256"
+  ],
+  "fixedCapsASTUnchangedFrom282": true,
+  "runtimeCaps": {
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "totalMs": 120000,
+    "ownedRSSBytes": 1073741824,
+    "threads": 320,
+    "ownedProcesses": 16,
+    "privateBytes": 536870912,
+    "buildBytes": 1073741824,
+    "logBytes": 1048576,
+    "diskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "compileReserveBytes": 1073741824,
+    "availableMemoryFloorBytes": 1207959552,
+    "sampleMs": 200
+  },
+  "businessPerArm": 16,
+  "offeredPerSecond": 2,
+  "proofReadbackConcurrency": 4,
+  "clientIdentity": {
+    "commit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+    "wholeTree": "4866cc3924c060eb6a29939915d39b1c5c625607",
+    "commandTree": "19b9fafcfbb3f434b9ff745fb785afb1d0741247",
+    "producerCommit": "da3060e150e2bd0f5695d67a76f3b30fafd1c696"
+  },
+  "validationPhaseMapping": [
+    "anchor",
+    "validator_registry",
+    "engine_schedule",
+    "engine_snapshot",
+    "pq_state",
+    "migration_trace_lots",
+    "legacy_sponsor",
+    "legacy_resource_market",
+    "legacy_contracts",
+    "legacy_pay",
+    "legacy_ai",
+    "legacy_trust",
+    "ledger_records",
+    "pay",
+    "resource",
+    "resource_sponsor",
+    "trust",
+    "ide",
+    "pq_resources",
+    "pq_dex",
+    "pq_contracts",
+    "pq_native_actions",
+    "pq_ethereum",
+    "pq_ordered_resources",
+    "fee_events",
+    "governance",
+    "dex",
+    "asset_auth",
+    "account_abstraction",
+    "account_abstraction_policy",
+    "ownership_and_vault_supply",
+    "staking",
+    "supply",
+    "app_hash"
+  ],
+  "requiredNewActualGoCases": [
+    "TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory",
+    "TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads",
+    "TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip"
+  ],
+  "normalCI": {
+    "runId": "40342338863",
+    "headSha": "42d12277b61b92e82ca96e9e112e437274c6444f",
+    "event": "push",
+    "discoveryStatus": "in_progress",
+    "wholeSuccessVerified": false,
+    "actualNewGoCasesVerified": false
+  },
+  "chainCoreDiscovery": {
+    "runId": "40342338471",
+    "status": "completed",
+    "conclusion": "success",
+    "scope": "not the required protocol focused/delivery/proof job"
+  },
+  "normalCIFreshArtifact": null,
+  "normalCIStageArtifact": null,
+  "originalFreshSOURCE": null,
+  "actualFourELFs": null,
+  "frozenRemoteRefReadback": null,
+  "missing": [
+    "actual same-source whole CI success and14 state/2 crypto marker cases",
+    "fresh artifact official bytes/digest and original SOURCE3540-class pins",
+    "actual4 ELFs/originalclient SOURCE+buildinfo/runtimeclean-build chain",
+    "exact frozen remote source ref",
+    "fresh Root once grant and level1 runtime scheduling"
+  ],
+  "freshStageZIPGETCount": 0,
+  "localGoTestsExecuted": false,
+  "executionAuthorized": false,
+  "runtimeStarted": false,
+  "fullPairQualified": false,
+  "sustainedTPSQualified": false,
+  "performanceImprovementMeasured": false,
+  "workflowSourceControls": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/WORKFLOW_SOURCE_CONTROLS.json",
+    "bytes": 4999,
+    "sha256": "9260d20193eb624ef7baa8afbe89240aba54761ccc9bda6067ae1ee4af178df4"
+  },
+  "predecessor74Verification": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/PREDECESSOR_74F_VERIFIED.json",
+    "scope": "74 only actual Host3/state8/crypto2, not new42 Scan3 or performance"
+  }
+}

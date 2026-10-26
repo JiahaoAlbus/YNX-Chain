@@ -1,0 +1,54 @@
+{
+  "source": "74f69c33139ebf7cc819aa4d1127f3831ef76386",
+  "run": {
+    "id": 40338551180,
+    "html_url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40338551180",
+    "head_sha": "74f69c33139ebf7cc819aa4d1127f3831ef76386",
+    "event": "push",
+    "run_attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-10-26T14:19:17Z",
+    "updated_at": "2026-10-26T14:41:28Z"
+  },
+  "wholeHandoff": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-74f69c331/HANDOFF_WHOLE_CI.json",
+    "bytes": 22229,
+    "sha256": "3206325024a2e9e22c47d23341ef36376952a31b235a9f1980fbe7ba5033beb0"
+  },
+  "suppliedRefsVerified": 20,
+  "actualFocusedRawMarkers": {
+    "YNX_INITIAL_CACHE_STATE_TESTS": {
+      "performanceMeasured": false,
+      "requiredPassed": [
+        "TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash",
+        "TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold",
+        "TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis",
+        "TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming",
+        "TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas",
+        "TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer",
+        "TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets",
+        "TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds",
+        "TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting",
+        "TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation",
+        "TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles"
+      ],
+      "sourceCommit": "74f69c33139ebf7cc819aa4d1127f3831ef76386",
+      "suitePassed": true
+    },
+    "YNX_INITIAL_CACHE_CRYPTO_TESTS": {
+      "performanceMeasured": false,
+      "requiredPassed": [
+        "TestPQInitialPossessionCacheRetainsBothProofsAndLiveBinding",
+        "TestPQInitialPossessionCacheSeventeenCertificatesRemainBoundedAndSeparated"
+      ],
+      "sourceCommit": "74f69c33139ebf7cc819aa4d1127f3831ef76386",
+      "suitePassed": true
+    }
+  },
+  "new42CasesCovered": false,
+  "networkRuntimeExecuted": false,
+  "additionalMetadataGET": false,
+  "artifactZIPGET": false,
+  "performanceImprovementMeasured": false
+}
