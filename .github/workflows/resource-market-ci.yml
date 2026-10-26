@@ -2406,7 +2406,11 @@ jobs:
               'cmd/ynx-chaind/main.go', 'cmd/ynx-chaind/consensus_export_test.go',
               'cmd/ynx-consensus-package/main.go', 'cmd/ynx-consensus-package/migration_public_summary.go',
               'cmd/ynx-consensus-package/migration_public_summary_test.go',
-              'cmd/ynx-consensus-package/migration_import_storage.go', 'cmd/ynx-consensus-package/migration_import_storage_test.go')
+              'cmd/ynx-consensus-package/migration_import_storage.go', 'cmd/ynx-consensus-package/migration_import_storage_test.go',
+              'package.json', 'package-lock.json', 'hardhat.config.ts',
+              'scripts/contracts/generate-selector-metadata.mjs', 'scripts/contracts/hardhat-output.mjs',
+              'scripts/contracts/apply-hardhat-zod4-compat.mjs',
+              'contracts/devtools/SampleEVMWriteCounter.sol', 'contracts/tokens/SampleYNXTCompatibleERC20.sol')
           changed = any(previous(p) != (Path(p).read_bytes() if Path(p).exists() else b'') for p in paths)
           def section(raw):
               start = re.search(rb'(?m)^  offline-migration-streaming:\n', raw)
@@ -2428,6 +2432,26 @@ jobs:
         with:
           go-version: '1.26.10'
           cache: true
+      - name: Install the pinned compiler runtime for retained-state fixtures
+        if: steps.scope.outputs.changed == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          cache: npm
+      - name: Prepare the same real compiled contracts used by migration recovery fixtures
+        if: steps.scope.outputs.changed == 'true'
+        timeout-minutes: 3
+        env:
+          NODE_OPTIONS: --max-old-space-size=1536
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run hardhat:build -- contracts/devtools/SampleEVMWriteCounter.sol contracts/tokens/SampleYNXTCompatibleERC20.sol
+          npm run contracts:selectors
+          git diff --exit-code -- artifacts
+          test -s artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json
+          test -s artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
+          sha256sum contracts/devtools/SampleEVMWriteCounter.sol artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json artifacts/ynx-selector-metadata.json
+          sha256sum contracts/tokens/SampleYNXTCompatibleERC20.sol artifacts/contracts/tokens/SampleYNXTCompatibleERC20.sol/SampleYNXTCompatibleERC20.json
       - name: Verify unchanged canonical bytes and source and output failure protections
         if: steps.scope.outputs.changed == 'true'
         run: |
