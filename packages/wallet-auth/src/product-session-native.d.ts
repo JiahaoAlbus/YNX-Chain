@@ -40,4 +40,9 @@ export type NativeProductSessionAdapter=Readonly<{
  createSocialAudienceProof(input:SocialAudienceProofInput):Promise<import("./index.js").SocialAudienceProof>;
  setNetworkAvailable(available:boolean):NativeProductState;enterGuest():NativeProductState;close():void;
 }>;
-export declare function createNativeProductSessionClient(config:Readonly<{registry:unknown;productId:string;platform:NativeProductPlatform;scopes:readonly string[];purpose:string;gateway:ProductSessionGatewayFetchAdapter;runtime:NativeProductRuntime;clock:()=>Date;finiteServiceSeconds?:number;accountPolicy?:PQClientAccountPolicyPorts}>):Promise<NativeProductSessionAdapter>;
+export type NativeProductSessionRuntimeV4=import('./product-session-device-v4.js').ProductSessionDevicePortsV4 & {
+ readonly deviceCurrent:import('./product-session-device-v4.js').OriginalProductSessionDeviceCurrentSourceV4;
+ readonly storage:import('./product-wallet-connection.js').ProductWalletProtectedStorage;
+ randomBytes(length:32):Uint8Array;
+}
+export declare function createNativeProductSessionClient(config:Readonly<{registry:unknown;productId:string;platform:NativeProductPlatform;gateway:ProductSessionGatewayFetchAdapter;runtime:NativeProductSessionRuntimeV4;abortContext:import('./product-session-device-v4.js').ProductSessionDeviceAbortContextV4;clock:()=>Date}>):Promise<import('./product-session-device-v4.js').ProductSessionBusinessReadClientV4>;

@@ -21,7 +21,8 @@ export interface ProductWalletProtectedStorage {
  getRevocationCompletion?(key:string,intentId:string):Promise<string|null>;
  acknowledgeRevocationCompletion?(key:string,receipt:string):Promise<void>;
 }
-export interface ProductWalletConnectionConfiguration {
+/** Explicit old fixture/history contract. Never a normal49 device producer. */
+export interface LegacyProductWalletConnectionConfiguration {
  readonly registry:unknown;
  readonly productId:string;
  readonly platform:ProductSessionPlatform;
@@ -35,11 +36,15 @@ export interface ProductWalletConnectionConfiguration {
  readonly openWallet:(input:Readonly<{url:string;request:Readonly<Record<string,unknown>>;requestId:string;automatic:boolean;productId:string;platform:ProductSessionPlatform}>)=>Readonly<{opened:true}|{opened:false;code:string}>|Promise<Readonly<{opened:true}|{opened:false;code:string}>>;
  readonly openTimeoutMs:number;
 }
-/** Composition only; constructor does not approve egress, project access or a Product Session. */
+export type ProductWalletConnectionConfiguration=Omit<LegacyProductWalletConnectionConfiguration,'device'>&Readonly<{device:import('./product-session-device-v4.js').ProductSessionDevicePortsV4;deviceCurrent:import('./product-session-device-v4.js').OriginalProductSessionDeviceCurrentSourceV4;abortContext:import('./product-session-device-v4.js').ProductSessionDeviceAbortContextV4}>;
+/** Currently throws PQ_DEVICE_ISSUER_NOT_SUPPLIED until the original v4 pairing
+ * and issuer are supplied. Does not approve egress, access or a Product Session. */
 export declare function createProductWalletConnection(config:ProductWalletConnectionConfiguration):WalletConnectionCoordinator;
 
 /** New explicit native read lease; actual protected storage/device ports are
  * supplied by the platform owner after its visible narrow read permission.
  * No endpoint/session/provider/credential or login/restore input is accepted. */
-export type ProductWalletBusinessReadConfiguration=Readonly<Pick<ProductWalletConnectionConfiguration,'registry'|'productId'|'storage'|'device'|'gatewayTimeoutMs'>&{platform:Exclude<ProductSessionPlatform,'web'>}>;
-export declare function createProductWalletBusinessReadClient(config:ProductWalletBusinessReadConfiguration):Promise<ProductBusinessReadClient>;
+export type ProductWalletBusinessReadConfiguration=Readonly<Pick<ProductWalletConnectionConfiguration,'registry'|'productId'|'storage'|'gatewayTimeoutMs'>&{platform:Exclude<ProductSessionPlatform,'web'>;device:import('./product-session-device-v4.js').ProductSessionDevicePortsV4;deviceCurrent:import('./product-session-device-v4.js').OriginalProductSessionDeviceCurrentSourceV4;abortContext:import('./product-session-device-v4.js').ProductSessionDeviceAbortContextV4}>;
+/** The normal Node package condition selects the original device-v4 AND entry; an
+ * unsupported browser runtime fails closed without Node crypto or P256 fallback. */
+export declare function createProductWalletBusinessReadClient(config:ProductWalletBusinessReadConfiguration):Promise<import('./product-session-device-v4.js').ProductSessionBusinessReadClientV4>;

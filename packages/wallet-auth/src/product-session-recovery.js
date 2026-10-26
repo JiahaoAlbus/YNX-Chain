@@ -1,3 +1,4 @@
+import {openOriginalProductSessionV4Read} from './product-session-device-v4-private.js';
 import {productSessionRecordWithinBudget} from './product-session-record-budget.js';
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { httpBodyDigest } from "./session-proof.js";
@@ -18,19 +19,21 @@ export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
 const REVOCATION_PENDING = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Product Session revocation is pending; API authorization is suspended", { actions: ["retry"], revocationPending: true });
 
 export class RecoverableProductSessionClient {
-  #accountPolicy=null; #policyOperations=0; #policyDebt=[]; #policyFirstFailure=null;
+  #deviceAbortContext=null; #v4Read=null; #deviceCurrent=null; #accountPolicy=null; #policyOperations=0; #policyDebt=[]; #policyFirstFailure=null;
   #finiteServiceSeconds; #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #networkEpoch; #disconnectPromise; #returnOperation; #recoveryPromise;
   #revocationRequested = false; #revocationIntent = null;
   #beginEpoch = 0; #beginMutation = Promise.resolve();
   #returnCompletions = new Map();
   constructor(config) {
-    exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock", ...(Object.hasOwn(config??{},"finiteServiceSeconds")?["finiteServiceSeconds"]:[]),...(Object.hasOwn(config??{},"accountPolicy")?["accountPolicy"]:[])], "Recoverable Product Session client configuration");
+    exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock", ...(Object.hasOwn(config??{},"finiteServiceSeconds")?["finiteServiceSeconds"]:[]),...(Object.hasOwn(config??{},"accountPolicy")?["accountPolicy"]:[]),...(Object.hasOwn(config??{},"deviceCurrent")?["deviceCurrent"]:[]),...(Object.hasOwn(config??{},"abortContext")?["abortContext"]:[])], "Recoverable Product Session client configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
     this.#binding = productPlatformBinding(this.#registry, config.productId, config.platform);
     this.#storage = secureStorage(config.storage, config.platform, config.device);
     this.#revocationRequested = this.#storage.revocationRequested?.() === true;
     this.#gateway = gateway(config.gateway);
     this.#device = device(config.device);
+    if(Object.hasOwn(config,'deviceCurrent'))this.#deviceCurrent=config.deviceCurrent;
+    if(Object.hasOwn(config,'abortContext'))this.#deviceAbortContext=config.abortContext;
     this.#tokens = tokenFactory(config.tokenFactory);
     this.#clock = clock(config.clock);
     if(Object.hasOwn(config,'accountPolicy')){
@@ -216,6 +219,7 @@ export class RecoverableProductSessionClient {
   }
 
   async restore(networkAvailable = true) {
+    if(this.#device.version==='4')fail('PQ_DEVICE_PAIRING_SOURCE_NOT_SUPPLIED','Original v4 pairing/issuer operation is required; legacy operation cannot substitute');
     if (Boolean(networkAvailable) !== this.#networkAvailable) { this.#networkEpoch += 1; this.#networkAvailable = Boolean(networkAvailable); }
     const epoch = this.#beginEpoch;
     await this.#recover(() => this.#restore(networkAvailable, epoch));
@@ -249,6 +253,7 @@ export class RecoverableProductSessionClient {
   }
 
   async begin(environment, automatic = false) {
+    if(this.#device.version==='4')fail('PQ_DEVICE_PAIRING_SOURCE_NOT_SUPPLIED','Original v4 pairing/issuer operation is required; legacy operation cannot substitute');
     exactFields(environment, ["walletInstalled", "schemeRegistered"], "Product Session connection environment");
     return this.#begin(environment, automatic, false, ++this.#beginEpoch);
   }
@@ -305,6 +310,7 @@ export class RecoverableProductSessionClient {
     return this.#state;
   }
   async #begin(environment, automatic, explicit, epoch) {
+    if(this.#device.version==='4')fail('PQ_DEVICE_PAIRING_SOURCE_NOT_SUPPLIED','Original v4 pairing/issuer operation required');
     try { return await this.#beginRequest(environment, automatic, explicit, epoch); }
     catch (error) { if (epoch !== this.#beginEpoch) return this.current; throw error; }
   }
@@ -632,6 +638,12 @@ export class RecoverableProductSessionClient {
    * The platform signer independently enforces its fresh visible read consent,
    * Source/anchor/current fences. A returned HTTP proof is not service approval. */
   async openExistingBusinessRead() {
+    if(this.#device.version==='4'){
+      const state=this.current,epoch=this.#beginEpoch,networkEpoch=this.#networkEpoch;
+      const assertLocalCurrent=()=>{if(this.current!==state||this.#beginEpoch!==epoch)fail('BUSINESS_READ_RETIRED','Original read context retired');if(!this.#networkAvailable||networkEpoch!==this.#networkEpoch)fail('NETWORK_UNAVAILABLE','Original network context changed');if(this.#revocationRequested||this.#disconnectPromise!==null)fail('REVOCATION_PENDING','Original revocation pending');};
+      assertLocalCurrent();
+      return openOriginalProductSessionV4Read({binding:this.#binding,storageKey:this.storageKey,storage:this.#storage,device:this.#device,deviceCurrent:this.#deviceCurrent,abortContext:this.#deviceAbortContext,token:this.#tokens,now:()=>this.#now('business-read-v4'),assertLocalCurrent});
+    }
     if(this.#binding.platform==='web'||typeof this.#device.sign!=='function'||'secret' in this.#device)fail('NATIVE_BUSINESS_READ_REQUIRED','Existing read requires the real native protected signer');
     const state=this.current,epoch=this.#beginEpoch,networkEpoch=this.#networkEpoch,nonces=new Set();
     let closed=false,originalRaw,session,timeFloor=-Infinity;
@@ -680,6 +692,7 @@ export class RecoverableProductSessionClient {
   }
 
   async createBusinessProof(input) {
+    if(this.#device.version==='4'){this.#v4Read??=this.openExistingBusinessRead();const read=await this.#v4Read;return read.createBusinessProof(input);}
     exactFields(input, ["method", "path", "body", "requiredScopes"], "Product business request");
     const method = input.method, path = input.path, raw = input.body instanceof Uint8Array ? Uint8Array.from(input.body) : input.body;
     if (typeof method !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(method) || typeof path !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path) || path.includes("//") || path.endsWith("/") || path.split("/").some(part => part === "." || part === "..") || path.startsWith("/v2/product-sessions/") || path.startsWith("/v2/browser-sessions/")) fail("HTTP_BINDING_MISMATCH", "Business proof requires an exact product route");
@@ -694,6 +707,7 @@ export class RecoverableProductSessionClient {
   // hashes its bounded actual incoming stream before accepting the proof.
   // A caller-supplied hash is never evidence that actual bytes were delivered.
   async createBusinessProofCommitment(input) {
+    if(this.#device.version==='4')fail('PQ_DEVICE_READ_ONLY','Original v4 read permits only an exact empty-body GET');
     exactFields(input, ["method", "path", "bodyDigest", "bodyBytes", "requiredScopes"], "Product business commitment");
     const {method, path, bodyDigest, bodyBytes} = input;
     if (typeof method !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(method) || typeof path !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path) || path.includes("//") || path.endsWith("/") || path.split("/").some(part => part === "." || part === "..") || path.startsWith("/v2/product-sessions/") || path.startsWith("/v2/browser-sessions/")) fail("HTTP_BINDING_MISMATCH", "Business proof requires an exact product route");
@@ -955,6 +969,13 @@ function secureStorage(value, platform, device) {
 }
 function gateway(value) { if (!value || ["challenge", "complete", "introspect", "revoke", "walletInstalled", "schemeRegistered"].some((name) => typeof value[name] !== "function")) fail("INVALID_GATEWAY", "Product Session client requires a real Gateway adapter"); return value; }
 function device(value) {
+  if(value?.version==='4'){
+    exactFields(value,['version','algorithm','readContext','produceHTTPProof'],'Version4 protected device ports');
+    if(value.algorithm!=='ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512'||typeof value.readContext!=='function'||typeof value.produceHTTPProof!=='function')fail('PQ_NATIVE_DEVICE_PRODUCER_NOT_SUPPLIED','Fixed dual-PQ device ports required');
+    return Object.freeze({...value});
+  }
+  // Explicit old device shape retained for legacy fixtures/readers. Normal
+  // current product factories below never select this branch as a fallback.
   const fields = Object.keys(value ?? {}).sort().join("\n");
   const secretFields = ["id", "key", "secret", "scopes", "purpose"].sort().join("\n");
   const signerFields = ["id", "key", "sign", "scopes", "purpose"].sort().join("\n");

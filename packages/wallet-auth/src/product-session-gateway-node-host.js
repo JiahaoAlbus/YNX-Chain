@@ -1,3 +1,6 @@
+import {verifyOriginalProductSessionHTTPProofV4,productSessionHTTPProofV4ReplayKey} from './product-session-device-v4.js';
+import {decodeProductSessionProofHeaderV4} from './product-session-proof-v4.js';
+import {readAccountPolicyObservation,assertSessionAccountPolicy} from './product-session-account-private.js';
 import {assertOriginalPrivatePQCarrier} from './original-wallet-service-private-pq-budget.js';
 import {originalPrivateReferenceRoute,sameOriginalReferenceCompletion} from './original-wallet-service-private-reference.js';
 import { createHash, randomUUID } from "node:crypto";
@@ -103,6 +106,7 @@ export class ProductSessionGatewayNodeHost {
   #privateTransactions=new Map(); #privateActive=null; #privateFailurePresent=false; #privateFirstCause;
   #privateTerminalJournal; #privateTerminalOriginal; #privateRetainedOwners=new WeakMap();
   #authSourceCurrent=null;
+  #deviceCurrent=null;
   #accountPolicy=null;
 
   #requiredAccountContext(context){
@@ -237,8 +241,9 @@ export class ProductSessionGatewayNodeHost {
   closeOriginalWalletServicePrivateTerminal(){return this.#privateTerminalJournal?.close();}
 
   constructor(registryInput, options) {
-    exactFields(options,["now","statePath","tokenFactory",...(Object.hasOwn(options,'centralBrowser')?["centralBrowser"]:[]),...(Object.hasOwn(options,'centralBackend')?["centralBackend"]:[]),...(Object.hasOwn(options,'centralOIDC')?["centralOIDC"]:[]),...(Object.hasOwn(options,'businessRevalidation')?["businessRevalidation"]:[]),...(Object.hasOwn(options,'centralBrowserEcosystem')?["centralBrowserEcosystem"]:[]),...(Object.hasOwn(options,'privateBusinessRevalidation')?["privateBusinessRevalidation"]:[]),...(Object.hasOwn(options,'privateBackendRegistrations')?["privateBackendRegistrations"]:[]),...(Object.hasOwn(options,'authIdentitySourceCurrent')?['authIdentitySourceCurrent']:[]),...(Object.hasOwn(options,'accountPolicy')?['accountPolicy']:[])],"Product Session Gateway Node host options");
+    exactFields(options,["now","statePath","tokenFactory",...(Object.hasOwn(options,'centralBrowser')?["centralBrowser"]:[]),...(Object.hasOwn(options,'centralBackend')?["centralBackend"]:[]),...(Object.hasOwn(options,'centralOIDC')?["centralOIDC"]:[]),...(Object.hasOwn(options,'businessRevalidation')?["businessRevalidation"]:[]),...(Object.hasOwn(options,'centralBrowserEcosystem')?["centralBrowserEcosystem"]:[]),...(Object.hasOwn(options,'privateBusinessRevalidation')?["privateBusinessRevalidation"]:[]),...(Object.hasOwn(options,'privateBackendRegistrations')?["privateBackendRegistrations"]:[]),...(Object.hasOwn(options,'authIdentitySourceCurrent')?['authIdentitySourceCurrent']:[]),...(Object.hasOwn(options,'accountPolicy')?['accountPolicy']:[]),...(Object.hasOwn(options,'deviceCurrent')?['deviceCurrent']:[])],"Product Session Gateway Node host options");
     this.#authSourceCurrent=options.authIdentitySourceCurrent??null;
+    if(Object.hasOwn(options,'deviceCurrent')){if(!options.deviceCurrent||['readCurrent','assertCurrent','readRegistrationOriginal','readSessionOriginal'].some(n=>typeof options.deviceCurrent[n]!=='function'))fail('PRODUCT_SESSION_DEVICE_CURRENT_NOT_SUPPLIED','Original device current source required');this.#deviceCurrent=options.deviceCurrent;}
     if(Object.hasOwn(options,'accountPolicy')){
       const config=privateData(options.accountPolicy,['mode','run']);
       if(config.mode!=='required'||typeof config.run!=='function')fail('ACCOUNT_POLICY_CONFIG_INVALID','Normal account policy configuration is invalid');
@@ -266,6 +271,47 @@ export class ProductSessionGatewayNodeHost {
   // Same original Host transaction/persist/current machinery, not a second
   // Auth store or a session DTO -> Principal conversion. Read-only business
   // identity still consumes the original device HTTP proof exactly once.
+  // Version4 uses the SAME original host/snapshot/replay ledger/credential map.
+  // The Native issuer supplies its original expected17 tuple; no header/DTO can
+  // choose an ordinary account pair or manufacture device-current authority.
+  async authenticateOriginalDeveloperHTTPRequestV4(input){
+    return this.#originalDeveloperV4(input,false);
+  }
+  async revalidateOriginalDeveloperHTTPRequestV4(input){
+    return this.#originalDeveloperV4(input,true);
+  }
+  async #originalDeveloperV4(input,alreadyConsumed){
+    const v=privateData(input,['requestId','method','path','body','proofHeader','expected']);
+    if(!validRequestId(v.requestId)||typeof v.body!=='string'||Buffer.byteLength(v.body)>1048576||typeof v.proofHeader!=='string')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original v4 request invalid');
+    if(this.#deviceCurrent===null)fail('PRODUCT_SESSION_DEVICE_CURRENT_NOT_SUPPLIED','Original v4 device current source required');
+    if(this.#accountPolicy===null)fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Original registered account current is independently required');
+    this.#assertStateIdentity();const p=decodeProductSessionProofHeaderV4(v.proofHeader),session=this.#handler.snapshot().authority.sessions.find(s=>s.sessionBinding===p.sessionBinding);
+    if(!session||session.version!=='4'||session.productId!=='developer')fail('CROSS_PRODUCT_SESSION','Original v4 developer session required');
+    const controller=new AbortController(),abortContext=Object.freeze({signal:controller.signal}),key=productSessionHTTPProofV4ReplayKey(v.proofHeader);
+    const verify=async(existing,requiredScopes)=>{
+      const before=snapshotDigest(this.#handler.snapshot());let selectedContext=null;
+      const operation={requestId:v.requestId,method:v.method,path:v.path,body:v.body,proofHeader:v.proofHeader,walletControlProofHeader:null,session,at:this.#now().toISOString()};
+      // Borrow the original committed account observation separately from the
+      // device pair. The original runner remains responsible for pre/post owner.
+      await this.#withAccountPolicy(operation,ctx=>{assertSessionAccountPolicy(session,readAccountPolicyObservation(ctx.observation,session.account,this.#now()));selectedContext=ctx;return true;});
+      const result=await verifyOriginalProductSessionHTTPProofV4({headerName:'x-ynx-product-session-proof-v4',header:v.proofHeader,request:{method:v.method,path:v.path,body:v.body,requiredScopes},expected:v.expected,source:this.#deviceCurrent,abortContext,at:this.#now(),consumeNonce:async row=>{
+        this.#assertStateIdentity();if(snapshotDigest(this.#handler.snapshot())!==before)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original replay state changed');
+        const found=this.#handler.snapshot().consumedProofs.includes(row.key);if(existing){if(!found)fail('ORIGINAL_HTTP_NOT_AUTHENTICATED','Original v4 nonce was not consumed');return;}
+        if(found)fail('REPLAY','Original v4 nonce already consumed');
+        const next=JSON.parse(canonicalJSON(this.#handler.snapshot()));if(next.consumedProofs.length>=20000)fail('CAPACITY','Original proof ledger at capacity');next.consumedProofs.push(row.key);next.consumedProofs.sort();
+        const candidate=this.#newHandler(next,selectedContext);this.#persist(candidate.snapshot());this.#retainHandlerSnapshot(candidate);this.#assertStateIdentity();
+      }});
+      await this.#withAccountPolicy({...operation,at:this.#now().toISOString()},ctx=>{assertSessionAccountPolicy(session,readAccountPolicyObservation(ctx.observation,session.account,this.#now()));return true;});
+      this.#assertStateIdentity();if(!this.#handler.snapshot().consumedProofs.includes(key)||canonicalJSON(result.session)!==canonicalJSON(session))fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original v4 source/session changed');return result;
+    };
+    try{await verify(alreadyConsumed,session.scopes);}
+    catch(error){controller.abort();throw error;}
+    const expires=Math.min(Date.parse(p.expiresAt),Date.parse(session.expiresAt)),credential=Object.freeze({}),view=Object.freeze({session,method:v.method,path:v.path,bodyDigest:p.bodyDigest,proofExpiresMS:expires});let completed=null,last=Date.parse(p.issuedAt);
+    const complete=()=>{this.#assertStateIdentity();const at=+this.#now();if(completed===null||snapshotDigest(this.#handler.snapshot())!==completed||at<last||at>=expires)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original v4 credential no longer current');last=at;};
+    const recheck=async()=>{completed=null;await verify(true,session.scopes);completed=snapshotDigest(this.#handler.snapshot());complete();};
+    originalDeveloperHTTPCredentials.set(credential,{view,recheck,complete});await recheck();return credential;
+  }
+
   async authenticateOriginalDeveloperHTTPRequest(input){
     const v=privateData(input,['requestId','method','path','body','proofHeader']);
     if(!validRequestId(v.requestId)||typeof v.body!=='string'||Buffer.byteLength(v.body)>1048576||typeof v.proofHeader!=='string')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original HTTP identity request is invalid');

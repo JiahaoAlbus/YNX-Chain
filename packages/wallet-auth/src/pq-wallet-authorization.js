@@ -12,7 +12,8 @@ export const PQ_MIGRATION_DOMAIN = 'YNX-ACCOUNT-MIGRATION/v1';
 export const PQ_REVOCATION_INTENT_DOMAIN = 'YNX-ACCOUNT-REVOCATION/v1';
 export const PQ_REVOCATION_DOMAIN = 'YNX-ACCOUNT-REVOCATION-ENVELOPE/v1';
 export const PQ_POLICY_VERSION = 'YNX-ACCOUNT-POLICY/v1';
-export const PQ_U64_MAX = (1n << 64n) - 1n;
+export {pqU64,PQ_U64_MAX} from './pq-public-bytes.js';
+import {pqU64,PQ_U64_MAX,pqHexBytes} from './pq-public-bytes.js';
 const I64_MAX = (1n << 63n) - 1n;
 /** Existing native transfer ledger total bound. Integer wire units only;
  * no EVM decimals, current-account policy or spending permission is implied. */
@@ -23,19 +24,12 @@ export function normalizePQNativeTransferAmounts(value) {
   if (!amount || amount > I64_MAX || amount + fee > I64_MAX) throw pqError('PQ_TRANSFER_VALUES_INVALID');
   return Object.freeze({amount: amount.toString(), fee: fee.toString()});
 }
-export function pqU64(value) {
-  if (typeof value !== 'bigint' && !(typeof value === 'string' && /^(0|[1-9][0-9]{0,19})$/.test(value))) throw pqError('PQ_U64_REQUIRED');
-  const n = BigInt(value);
-  if (n < 0n || n > PQ_U64_MAX) throw pqError('PQ_U64_OUT_OF_RANGE');
-  return n;
-}
 export function pqCanonicalAddress(value) {
   if (typeof value !== 'string' || !/^0x[0-9a-f]{40}$/.test(value)) throw pqError('PQ_CANONICAL_ADDRESS_REQUIRED');
   return value;
 }
 export function pqHex(value, size) {
-  if (typeof value !== 'string' || value.length !== size * 2 || !/^[0-9a-f]+$/.test(value)) throw pqError('PQ_CANONICAL_HEX_REQUIRED');
-  return Buffer.from(value, 'hex');
+  return Buffer.from(pqHexBytes(value,size));
 }
 const pair = n => [u32(Number(n >> 32n)), u32(Number(n & 0xffffffffn))];
 function readPair(a, b) {
