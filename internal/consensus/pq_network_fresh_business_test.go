@@ -487,6 +487,9 @@ type pqFreshInclusionObservation struct {
 	Index     int          `json:"i"`
 	BlockHash string       `json:"b"`
 	Proposals [4]*[2]int64 `json:"p"`
+	// Probe count/ns, full Commit-check count/ns, Host-context call ns.
+	// Zero Commit-check count means the same immutable H was already verified.
+	Work [5]int64 `json:"w"`
 }
 
 func (p *pqFreshTrace) inclusionTime(row pqFreshTransfer, blockHash string) *[2]int64 {
@@ -508,7 +511,15 @@ func pqFreshInclusionObservationLine(arm, domain string, row pqFreshTransfer, bl
 	if !pqBusinessPin(blockHash, 32) || blockHash != strings.ToLower(blockHash) || blockHash == strings.Repeat("0", 64) || len(traces) != 4 {
 		return nil, errors.New("original finalized block hash and four traces required")
 	}
-	observation := pqFreshInclusionObservation{Arm: arm, Clock: domain, ABCIHash: strings.TrimPrefix(row.ABCIHash, "0x"), Height: strconv.FormatInt(row.Height, 10), Index: row.Index, BlockHash: blockHash}
+	observation := pqFreshInclusionObservation{Arm: arm, Clock: domain, ABCIHash: strings.TrimPrefix(row.ABCIHash, "0x"), Height: strconv.FormatInt(row.Height, 10), Index: row.Index, BlockHash: blockHash, Work: row.coordinatorWork}
+	for _, value := range observation.Work {
+		if value < 0 || value > pqFreshPhaseMaxNs {
+			return nil, errors.New("original coordinator call work exceeds bounded window")
+		}
+	}
+	if observation.Work[0] == 0 && observation.Work[1] != 0 || observation.Work[2] == 0 && observation.Work[3] != 0 || observation.Work[1]+observation.Work[3]+observation.Work[4] > row.OfferToIndependentNs {
+		return nil, errors.New("coordinator calls overlap or uninvoked work was invented")
+	}
 	for i, trace := range traces {
 		if trace == nil || trace.index != i || trace.arm != arm || trace.domain != domain {
 			return nil, errors.New("proposal observation trace identity differs")
@@ -1062,34 +1073,42 @@ func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain, arm string, comm
 
 // Reads real BlockStores and stored FinalizeBlock results; it never repeats an
 // offer, derives a target from RPC, or treats mempool acceptance as execution.
-func pqFreshIncluded(n *pqNetworkE2E, payload []byte) (int64, int) {
-	var height int64
-	var index int
-	n.wait("fresh exact original bytes committed on all four nodes", func() bool {
-		for h := n.doc.InitialHeight; h <= n.nodes[0].node.BlockStore().Height(); h++ {
-			block := n.nodes[0].node.BlockStore().LoadBlock(h)
-			if block == nil {
+func pqFreshInclusionReady(n *pqNetworkE2E, payload []byte, minimum int64) (int64, int, bool) {
+	for h := minimum; h <= n.nodes[0].node.BlockStore().Height(); h++ {
+		block := n.nodes[0].node.BlockStore().LoadBlock(h)
+		if block == nil {
+			continue
+		}
+		for ix, tx := range block.Data.Txs {
+			if !bytes.Equal(tx, payload) {
 				continue
 			}
-			for ix, tx := range block.Data.Txs {
-				if !bytes.Equal(tx, payload) {
-					continue
+			for _, item := range n.nodes {
+				other := item.node.BlockStore().LoadBlock(h)
+				result, err := item.store.LoadFinalizeBlockResponse(h)
+				if other == nil || !bytes.Equal(other.Hash(), block.Hash()) || err != nil || result == nil || ix >= len(result.TxResults) {
+					return h, ix, false
 				}
-				for _, item := range n.nodes {
-					other := item.node.BlockStore().LoadBlock(h)
-					result, err := item.store.LoadFinalizeBlockResponse(h)
-					if other == nil || !bytes.Equal(other.Hash(), block.Hash()) || err != nil || result == nil || ix >= len(result.TxResults) {
-						return false
-					}
-					if result.TxResults[ix] == nil || result.TxResults[ix].Code != 0 {
-						n.t.Fatal("fresh original transaction was included but execution rejected")
-					}
+				if result.TxResults[ix] == nil || result.TxResults[ix].Code != 0 {
+					n.t.Fatal("fresh original transaction was included but execution rejected")
 				}
-				height, index = h, ix
-				return true
 			}
+			return h, ix, true
 		}
-		return false
+	}
+	return 0, 0, false
+}
+
+func pqFreshIncluded(n *pqNetworkE2E, payload []byte) (int64, int) {
+	height, index := int64(0), 0
+	n.wait("fresh exact original bytes committed on all four nodes", func() bool {
+		minimum := n.doc.InitialHeight
+		if height != 0 {
+			minimum = height
+		}
+		var ready bool
+		height, index, ready = pqFreshInclusionReady(n, payload, minimum)
+		return ready
 	})
 	return height, index
 }
@@ -1218,6 +1237,7 @@ type pqFreshTransfer struct {
 	wire, payload            []byte
 	path                     string
 	offered                  time.Time
+	coordinatorWork          [5]int64
 }
 
 func pqFreshMode(baseline bool) string {
@@ -1348,6 +1368,92 @@ func pqFreshReadbackQueue(parent context.Context, count int, start func(context.
 	return nil
 }
 
+// The same coordinator owns preparation/validation and both bounded Wait sets.
+// Proof work can start for a completed original offer while later offers remain
+// paced. It never reoffers UNKNOWN, moves work outside the guard, or increases
+// either original four-slot queue. At most4 offer clients +4 readback clients
+// +4 verifier children + test/gateway/controller =15 owned processes, below16.
+func pqFreshPipeline(parent context.Context, count int, started time.Time, offer func(context.Context, int, chan<- pqFreshCompletion) (time.Time, error), offered func(pqFreshCompletion) error, readback func(context.Context, int, chan<- pqFreshCompletion) (bool, error), verified func(pqFreshCompletion) error) (int, error) {
+	if parent == nil || count < 1 || count > pqFreshSenders || started.IsZero() || offer == nil || offered == nil || readback == nil || verified == nil {
+		return 0, errors.New("bounded original offer/readback pipeline required")
+	}
+	ctx, cancel := context.WithCancel(parent)
+	offerDone, proofDone := make(chan pqFreshCompletion, pqFreshInFlight), make(chan pqFreshCompletion, pqFreshInFlight)
+	next, offerActive, proofActive, completed, maximum := 0, 0, 0, 0, 0
+	offerSeen, proofStarted, proofSeen := make([]bool, count), make([]bool, count), make([]bool, count)
+	defer pqFreshCancelJoin(cancel, offerDone, &offerActive)
+	defer pqFreshCancelJoin(cancel, proofDone, &proofActive)
+	var last time.Time
+	for completed < count {
+		if err := ctx.Err(); err != nil {
+			return maximum, err
+		}
+		if next < count && offerActive < pqFreshInFlight {
+			due := started.Add(time.Duration(next) * pqFreshInterval)
+			if !last.IsZero() && due.Before(last.Add(pqFreshInterval)) {
+				due = last.Add(pqFreshInterval)
+			}
+			if !time.Now().Before(due) {
+				at, err := offer(ctx, next, offerDone)
+				if err != nil {
+					return maximum, fmt.Errorf("original offer %d failed to start: %w", next, err)
+				}
+				last = at
+				next++
+				offerActive++
+				if offerActive > maximum {
+					maximum = offerActive
+				}
+				continue
+			}
+		}
+		launched := false
+		for i := 0; i < count && proofActive < pqFreshInFlight; i++ {
+			if !offerSeen[i] || proofStarted[i] {
+				continue
+			}
+			ok, err := readback(ctx, i, proofDone)
+			if err != nil {
+				return maximum, fmt.Errorf("original readback %d failed before readiness/start: %w", i, err)
+			}
+			if ok {
+				proofStarted[i] = true
+				proofActive++
+				launched = true
+				break // Check paced offers again before another Host preparation.
+			}
+		}
+		if launched {
+			continue
+		}
+		select {
+		case result := <-offerDone:
+			offerActive-- // A successfully started child's actual Wait completed.
+			if result.index < 0 || result.index >= next || offerSeen[result.index] {
+				return maximum, errors.New("offer completion has no unique original Start")
+			}
+			if err := offered(result); err != nil {
+				return maximum, err
+			}
+			offerSeen[result.index] = true
+		case result := <-proofDone:
+			proofActive--
+			if result.index < 0 || result.index >= count || !proofStarted[result.index] || proofSeen[result.index] {
+				return maximum, errors.New("proof completion has no unique original readback Start")
+			}
+			if err := verified(result); err != nil {
+				return maximum, err
+			}
+			proofSeen[result.index] = true
+			completed++
+		case <-ctx.Done():
+			return maximum, ctx.Err()
+		case <-time.After(5 * time.Millisecond):
+		}
+	}
+	return maximum, nil
+}
+
 func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAccount, baseline bool, origin time.Time, arm, domain string, public *pqFreshCommitLog, traces []*pqFreshTrace) ([]pqFreshTransfer, int, int64, int64) {
 	finish := pqFreshStage(n.t, origin, arm, "business-intent-preparation", -1, -1)
 	rows := make([]pqFreshTransfer, pqFreshSenders)
@@ -1366,99 +1472,121 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 		rows[i] = pqFreshTransfer{Sender: account.owner, NativeHash: SignedTransactionHash(wire), ABCIHash: SignedTransactionHash(payload), wire: wire, payload: payload, path: path}
 	}
 	finish()
-	offerCtx, cancelOffers := context.WithCancel(n.ctx)
-	done := make(chan pqFreshCompletion, pqFreshInFlight)
-	finishOffers := make([]func(), len(rows))
-	started := time.Now()
-	var lastOffer time.Time
-	next, active, maximum := 0, 0, 0
-	defer pqFreshCancelJoin(cancelOffers, done, &active)
-	completed := 0
-	for completed < len(rows) {
-		if next < len(rows) && active < pqFreshInFlight {
-			due := started.Add(time.Duration(next) * pqFreshInterval)
-			if !lastOffer.IsZero() && due.Before(lastOffer.Add(pqFreshInterval)) {
-				due = lastOffer.Add(pqFreshInterval)
-			}
-			if !time.Now().Before(due) {
-				tip := n.nodes[0].node.BlockStore().Height()
-				if pqNetworkE2EBlockBudget(n.doc.InitialHeight, tip, pqNetworkE2ESubmissionBlocks) != nil {
-					n.t.Fatal("original block cap refuses another signed business offer")
-				}
-				label := fmt.Sprintf("member-%02d-submit", next)
-				out := filepath.Join(b.root, label+".json")
-				args := pqFreshArgs([]string{"-pq-member", rows[next].path, "-pq-gateway", b.url, "-output", out, "-timeout", "10s"}, baseline)
-				finishOffers[next] = pqFreshStage(n.t, origin, arm, "business-offer", -1, next)
-				offered, err := pqFreshStartContext(n, b, offerCtx, done, next, label, args)
-				if err != nil {
-					n.t.Fatal("pinned normal fresh offer failed to start; retain original intent:", err)
-				}
-				rows[next].offered = offered
-				active++ // Only successful Start owns a future Wait/finish completion.
-				rows[next].OfferOffsetNs = rows[next].offered.Sub(origin).Nanoseconds()
-				rows[next].OfferLatenessNs = rows[next].offered.Sub(started.Add(time.Duration(next) * pqFreshInterval)).Nanoseconds()
-				lastOffer = rows[next].offered
-				next++
-				if active > maximum {
-					maximum = active
-				}
-				continue
-			}
-		}
-		select {
-		case result := <-done:
-			active--
-			completed++
-			row := &rows[result.index]
-			row.ObservedCompletionNs = result.ended.Sub(origin).Nanoseconds()
-			var err error
-			row.Submission, err = pqFreshReport(filepath.Join(b.root, fmt.Sprintf("member-%02d-submit.json", result.index)))
-			var exit *exec.ExitError
-			if err != nil || result.err != nil && (!errors.As(result.err, &exit) || exit.ExitCode() != 1 || row.Submission.Status != "submission_unknown") || pqFreshSubmissionValid(row.Submission, *row, baseline) != nil {
-				n.t.Fatal("original offer result rejected; do not repeat an UNKNOWN transaction")
-			}
-			finishOffers[result.index]()
-		case <-time.After(5 * time.Millisecond):
-		case <-offerCtx.Done():
-			n.t.Fatal("original fresh offer deadline; preserve all signed wires and UNKNOWN")
-		}
-	}
-	pqFreshCancelJoin(cancelOffers, done, &active)
-	finish = pqFreshStage(n.t, origin, arm, "business-original-inclusion", -1, -1)
-	for i := range rows {
-		rows[i].Height, rows[i].Index = pqFreshIncluded(n, rows[i].payload)
-		observed := rows[i].Submission
-		if observed.SubmissionToFirstCommittedRPCObservationNs != nil && (observed.FirstCommittedRPCHeight != uint64(rows[i].Height) || observed.FirstCommittedRPCIndex == nil || int(*observed.FirstCommittedRPCIndex) != rows[i].Index) {
-			n.t.Fatal("first original RPC coordinates differ from independent Host stores")
-		}
-	}
-	n.quiet(4)
-	finish()
-	finish = pqFreshStage(n.t, origin, arm, "business-commit-evidence", -1, -1)
-	heights := make([]int64, len(rows))
-	for i, row := range rows {
-		heights[i] = row.Height
-	}
-	pqFreshVerifyCommits(n, heights)
-	finish()
-	// These independent proof observations use at most four clients/verifiers.
-	// Their elapsed time includes the bounded verification queue, separately from
-	// first committed RPC latency; it is not consensus formation time or a TPS SLA.
+	finishOffers, finishReadbacks := make([]func(), len(rows)), make([]func(), len(rows))
 	contextPins, readbackFiles := make([]string, len(rows)), make([]string, len(rows))
-	finishReadbacks := make([]func(), len(rows))
+	included, evidenced := make([]bool, len(rows)), make([]bool, len(rows))
+	includedCount, evidenceCount := 0, 0
+	verifiedHeights := make(map[int64]bool)
+	var finishInclusion, finishEvidence func()
 	verifier := b.manifest.Binaries["ynx-consensus-proof-verify"]
-	err := pqFreshReadbackQueue(n.ctx, len(rows), func(ctx context.Context, i int, done chan<- pqFreshCompletion) error {
+	started := time.Now()
+	maximum, err := pqFreshPipeline(n.ctx, len(rows), started, func(ctx context.Context, i int, done chan<- pqFreshCompletion) (time.Time, error) {
+		tip := n.nodes[0].node.BlockStore().Height()
+		if pqNetworkE2EBlockBudget(n.doc.InitialHeight, tip, pqNetworkE2ESubmissionBlocks) != nil {
+			return time.Time{}, errors.New("original block cap refuses another signed business offer")
+		}
+		label := fmt.Sprintf("member-%02d-submit", i)
+		out := filepath.Join(b.root, label+".json")
+		args := pqFreshArgs([]string{"-pq-member", rows[i].path, "-pq-gateway", b.url, "-output", out, "-timeout", "10s"}, baseline)
+		finishOffers[i] = pqFreshStage(n.t, origin, arm, "business-offer", -1, i)
+		offered, err := pqFreshStartContext(n, b, ctx, done, i, label, args)
+		if err == nil {
+			rows[i].offered, rows[i].OfferOffsetNs = offered, offered.Sub(origin).Nanoseconds()
+			rows[i].OfferLatenessNs = offered.Sub(started.Add(time.Duration(i) * pqFreshInterval)).Nanoseconds()
+		}
+		return offered, err
+	}, func(result pqFreshCompletion) error {
+		row := &rows[result.index]
+		row.ObservedCompletionNs = result.ended.Sub(origin).Nanoseconds()
+		var err error
+		row.Submission, err = pqFreshReport(filepath.Join(b.root, fmt.Sprintf("member-%02d-submit.json", result.index)))
+		var exit *exec.ExitError
+		if err != nil || result.err != nil && (!errors.As(result.err, &exit) || exit.ExitCode() != 1 || row.Submission.Status != "submission_unknown") || pqFreshSubmissionValid(row.Submission, *row, baseline) != nil {
+			return errors.New("original offer result rejected; do not repeat an UNKNOWN transaction")
+		}
+		finishOffers[result.index]()
+		return nil
+	}, func(ctx context.Context, i int, done chan<- pqFreshCompletion) (bool, error) {
 		row := &rows[i]
-		finish = pqFreshStage(n.t, origin, arm, "business-host-context", -1, i)
+		if finishInclusion == nil {
+			finishInclusion = pqFreshStage(n.t, origin, arm, "business-original-inclusion", -1, -1)
+		}
+		probeStarted := time.Now()
+		finishProbe := func() {
+			row.coordinatorWork[0]++
+			row.coordinatorWork[1] += time.Since(probeStarted).Nanoseconds()
+		}
+		minimum := n.doc.InitialHeight
+		if row.Height != 0 {
+			minimum = row.Height
+		}
+		h, ix, ready := pqFreshInclusionReady(n, row.payload, minimum)
+		if h != 0 {
+			row.Height, row.Index = h, ix
+		}
+		if !ready {
+			finishProbe()
+			return false, nil // Only original Host stores are queried, never reoffer.
+		}
+		observed := row.Submission
+		if observed.SubmissionToFirstCommittedRPCObservationNs != nil && (observed.FirstCommittedRPCHeight != uint64(row.Height) || observed.FirstCommittedRPCIndex == nil || int(*observed.FirstCommittedRPCIndex) != row.Index) {
+			finishProbe()
+			return false, errors.New("first original RPC coordinates differ from independent Host stores")
+		}
+		if !included[i] {
+			included[i], includedCount = true, includedCount+1
+			if includedCount == len(rows) {
+				finishInclusion()
+			}
+		}
+		plan, err := pqFreshCommitHeightPlan(n.doc.InitialHeight, []int64{row.Height})
+		if err != nil {
+			finishProbe()
+			return false, err
+		}
+		// Wait for immutable block/successor evidence without globally draining
+		// other offers. The original full four-node AND/quorum checks below
+		// still run once per actual historical height before any Host target.
+		for _, height := range plan {
+			for _, item := range n.nodes {
+				set, err := item.store.LoadValidators(height)
+				if item.node.BlockStore().LoadBlock(height) == nil || item.node.BlockStore().LoadSeenCommit(height) == nil || err != nil || set == nil {
+					finishProbe()
+					return false, nil
+				}
+			}
+		}
+		finishProbe()
+		if finishEvidence == nil {
+			finishEvidence = pqFreshStage(n.t, origin, arm, "business-commit-evidence", -1, -1)
+		}
+		for _, height := range plan {
+			if !verifiedHeights[height] {
+				verifyStarted := time.Now()
+				n.verifyCommit(height, true, 4, false)
+				row.coordinatorWork[2]++
+				row.coordinatorWork[3] += time.Since(verifyStarted).Nanoseconds()
+				verifiedHeights[height] = true
+			}
+		}
+		if !evidenced[i] {
+			evidenced[i], evidenceCount = true, evidenceCount+1
+			if evidenceCount == len(rows) {
+				finishEvidence()
+			}
+		}
+		finishContext := pqFreshStage(n.t, origin, arm, "business-host-context", -1, i)
 		label := fmt.Sprintf("member-%02d", i)
+		contextStarted := time.Now()
 		contextPath, contextPin, _ := b.hostContext(n, label, PQTransferType, row.wire, row.payload, row.Height, row.Index)
-		finish()
+		row.coordinatorWork[4] = time.Since(contextStarted).Nanoseconds()
+		finishContext()
 		out := filepath.Join(b.root, label+"-readback.json")
 		contextPins[i], readbackFiles[i] = contextPin, out
 		args := pqFreshArgs([]string{"-pq-member", row.path, "-pq-gateway", b.url, "-pq-readback-only", "-pq-collect-proof", "-pq-proof-verifier", verifier.Path, "-pq-proof-verifier-sha256", verifier.SHA256, "-pq-trust-context", contextPath, "-pq-trust-context-sha256", contextPin, "-output", out, "-timeout", "10s"}, baseline)
 		finishReadbacks[i] = pqFreshStage(n.t, origin, arm, "business-independent-readback", -1, i)
-		_, err := pqFreshStartContext(n, b, ctx, done, i, label+"-readback", args)
-		return err
+		_, err = pqFreshStartContext(n, b, ctx, done, i, label+"-readback", args)
+		return err == nil, err
 	}, func(result pqFreshCompletion) error {
 		if result.err != nil {
 			return fmt.Errorf("normal independent readback/verifier %d failed; no rebroadcast or finalized credit: %w", result.index, result.err)
@@ -1472,20 +1600,17 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 			return fmt.Errorf("actual independent proof %d disagrees with the Host's original target: %w", result.index, err)
 		}
 		row.Readback = report
-		ended := result.ended // Actual cmd.Wait completion, not coordinator queue drain.
-		row.IndependentCompletionNs = ended.Sub(origin).Nanoseconds()
-		row.OfferToIndependentNs = ended.Sub(row.offered).Nanoseconds()
+		row.IndependentCompletionNs = result.ended.Sub(origin).Nanoseconds()
+		row.OfferToIndependentNs = result.ended.Sub(row.offered).Nanoseconds()
 		row.IndependentTimingMeaning = "upper-bound observation including queued proof verification; not consensus formation time"
 		finishReadbacks[result.index]()
-		// Retain each already-validated original callback before a later target,
-		// arm or outer guard can fail. No new timestamp, RPC or proof is created.
 		if public != nil {
 			if err := public.emitTransfer(arm, domain, result.index, *row); err != nil {
 				return fmt.Errorf("bounded original verified callback log failed: %w", err)
 			}
 			block := n.nodes[0].node.BlockStore().LoadBlock(row.Height)
 			if block == nil {
-				return errors.New("original verified callback block is unavailable; do not invent proposal timing")
+				return errors.New("original verified callback block unavailable; do not invent proposal timing")
 			}
 			if err := public.emitInclusion(arm, domain, result.index, *row, hex.EncodeToString(block.Hash()), traces); err != nil {
 				return fmt.Errorf("bounded original proposal observation failed: %w", err)
@@ -1494,7 +1619,7 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 		return nil
 	})
 	if err != nil {
-		n.t.Fatal("original independent readback queue failed after joining owned work; preserve UNKNOWN:", err)
+		n.t.Fatal("original offer/readback pipeline failed after joining owned work; preserve UNKNOWN:", err)
 	}
 	for node := range n.nodes {
 		for _, sender := range accounts[1:] {
@@ -2792,6 +2917,7 @@ func TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas(t *tes
 	domain := fmt.Sprintf("pq-fresh:%d", os.Getpid())
 	block := strings.Repeat("12", 32)
 	row := pqFreshTransfer{NativeHash: "0x" + strings.Repeat("34", 32), ABCIHash: "0x" + strings.Repeat("56", 32), Height: 20, Index: 0, OfferOffsetNs: 10, IndependentCompletionNs: 100, OfferToIndependentNs: 90}
+	row.coordinatorWork = [5]int64{2, 4, 1, 6, 8}
 	traces := make([]*pqFreshTrace, 4)
 	for i := range traces {
 		traces[i] = &pqFreshTrace{index: i, arm: "before", domain: domain, rows: []pqFreshTraceRow{{Height: row.Height, FinalizeOK: true, CommitOK: true, TimingAvailable: true, FinalizeStartNs: 50, ExecutionCodes: []uint32{0}, Persistence: CommitTimingSample{Durable: true}, blockHash: block, proposal: &pqFreshProposalTrace{blockHash: block, startNs: 20, endNs: 30, txHashes: []string{row.ABCIHash}}}}}
@@ -2803,8 +2929,18 @@ func TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas(t *tes
 	line, err := pqFreshInclusionObservationLine("before", domain, row, block, traces)
 	var got pqFreshInclusionObservation
 	var shape map[string]json.RawMessage
-	if err != nil || len(line) > 512 || json.Unmarshal(bytes.TrimPrefix(line, []byte(pqFreshInclusionLogPrefix)), &got) != nil || json.Unmarshal(bytes.TrimPrefix(line, []byte(pqFreshInclusionLogPrefix)), &shape) != nil || len(shape) != 7 || got.ABCIHash != strings.TrimPrefix(row.ABCIHash, "0x") || got.Height != "20" || got.Index != 0 || got.BlockHash != block || got.Clock != domain || got.Proposals[0] == nil || *got.Proposals[0] != [2]int64{20, 30} || got.Proposals[1] != nil || got.Proposals[2] != nil || got.Proposals[3] != nil {
+	if err != nil || len(line) > 512 || json.Unmarshal(bytes.TrimPrefix(line, []byte(pqFreshInclusionLogPrefix)), &got) != nil || json.Unmarshal(bytes.TrimPrefix(line, []byte(pqFreshInclusionLogPrefix)), &shape) != nil || len(shape) != 8 || got.ABCIHash != strings.TrimPrefix(row.ABCIHash, "0x") || got.Height != "20" || got.Index != 0 || got.BlockHash != block || got.Clock != domain || got.Proposals[0] == nil || *got.Proposals[0] != [2]int64{20, 30} || got.Proposals[1] != nil || got.Proposals[2] != nil || got.Proposals[3] != nil {
 		t.Fatal("original inclusion coordinates or missing replica semantics changed", err)
+	}
+	if got.Work != row.coordinatorWork {
+		t.Fatal("actual coordinator work was replaced by an inclusive stage span")
+	}
+	for _, work := range [][5]int64{{0, 4, 1, 6, 8}, {2, 4, 0, 6, 8}, {2, 50, 1, 50, 8}, {2, -1, 1, 6, 8}} {
+		bad := row
+		bad.coordinatorWork = work
+		if _, err := pqFreshInclusionObservationLine("before", domain, bad, block, traces); err == nil {
+			t.Fatal("uninvoked, overlapping or negative coordinator work was accepted")
+		}
 	}
 	var output bytes.Buffer
 	log := &pqFreshCommitLog{writer: &output}
@@ -2832,5 +2968,163 @@ func TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas(t *tes
 	}
 	if pqFreshTransferLogRowsMax*pqFreshDetailLogLineMax != 16<<10 || pqFreshObservationLogBytesMax+(256<<10)+312*512 != 1044480 {
 		t.Fatal("proposal observations consumed more than the original16KiB reserve")
+	}
+}
+
+func TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	var starts []time.Time
+	offers, proofs, overlapped := 0, 0, false
+	maximum, err := pqFreshPipeline(ctx, 2, time.Now(), func(ctx context.Context, i int, done chan<- pqFreshCompletion) (time.Time, error) {
+		at := time.Now()
+		starts = append(starts, at)
+		done <- pqFreshCompletion{index: i, ended: at}
+		return at, nil
+	}, func(result pqFreshCompletion) error {
+		offers++
+		return nil
+	}, func(ctx context.Context, i int, done chan<- pqFreshCompletion) (bool, error) {
+		if offers == 0 {
+			t.Fatal("readback started before its original offer completion")
+		}
+		if i == 0 && len(starts) == 1 {
+			overlapped = true
+		}
+		done <- pqFreshCompletion{index: i, ended: time.Now()}
+		return true, nil
+	}, func(result pqFreshCompletion) error {
+		proofs++
+		return nil
+	})
+	if err != nil || !overlapped || offers != 2 || proofs != 2 || maximum > pqFreshInFlight || len(starts) != 2 || starts[1].Sub(starts[0]) < pqFreshInterval {
+		t.Fatal("original readback remained globally serialized, repeated an offer or changed pacing", err)
+	}
+}
+
+func TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets(t *testing.T) {
+	attempts, starts := 0, 0
+	_, err := pqFreshPipeline(context.Background(), 1, time.Now(), func(ctx context.Context, i int, done chan<- pqFreshCompletion) (time.Time, error) {
+		starts++
+		done <- pqFreshCompletion{index: i, ended: time.Now()}
+		return time.Now(), nil
+	}, func(pqFreshCompletion) error { return nil }, func(ctx context.Context, i int, done chan<- pqFreshCompletion) (bool, error) {
+		attempts++
+		if attempts < 3 {
+			return false, nil
+		}
+		done <- pqFreshCompletion{index: i, ended: time.Now()}
+		return true, nil
+	}, func(pqFreshCompletion) error { return nil })
+	if err != nil || starts != 1 || attempts != 3 {
+		t.Fatal("read-only readiness retried a signed offer or fabricated completion", err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	var waits sync.WaitGroup
+	completed := make(chan string, 2)
+	_, err = pqFreshPipeline(ctx, 2, time.Now(), func(ctx context.Context, i int, done chan<- pqFreshCompletion) (time.Time, error) {
+		if i == 0 {
+			done <- pqFreshCompletion{index: i, ended: time.Now()}
+		} else {
+			waits.Add(1)
+			go func() {
+				defer waits.Done()
+				<-ctx.Done()
+				completed <- "offer"
+				done <- pqFreshCompletion{index: i, err: ctx.Err(), ended: time.Now()}
+			}()
+			cancel()
+		}
+		return time.Now(), nil
+	}, func(pqFreshCompletion) error { return nil }, func(ctx context.Context, i int, done chan<- pqFreshCompletion) (bool, error) {
+		waits.Add(1)
+		go func() {
+			defer waits.Done()
+			<-ctx.Done()
+			completed <- "proof"
+			done <- pqFreshCompletion{index: i, err: ctx.Err(), ended: time.Now()}
+		}()
+		return true, nil
+	}, func(pqFreshCompletion) error { return nil })
+	waits.Wait()
+	if !errors.Is(err, context.Canceled) || len(completed) != 2 {
+		t.Fatal("pipeline cancellation did not join both actually started Wait sets", err)
+	}
+}
+
+func TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	offerGate, proofGate := make(chan struct{}), make(chan struct{})
+	var mu sync.Mutex
+	var waits sync.WaitGroup
+	runningOffers, runningProofs, peakOffers, peakProofs := 0, 0, 0, 0
+	startedOffers, startedProofs := make([]bool, 5), make([]bool, 5)
+	maximum, err := pqFreshPipeline(ctx, 5, time.Now(), func(ctx context.Context, i int, done chan<- pqFreshCompletion) (time.Time, error) {
+		if startedOffers[i] {
+			t.Fatal("original offer Start repeated")
+		}
+		startedOffers[i] = true
+		mu.Lock()
+		runningOffers++
+		if runningOffers > peakOffers {
+			peakOffers = runningOffers
+		}
+		mu.Unlock()
+		waits.Add(1)
+		go func() {
+			defer waits.Done()
+			if i < 4 {
+				select {
+				case <-offerGate:
+				case <-ctx.Done():
+				}
+			}
+			mu.Lock()
+			runningOffers--
+			mu.Unlock()
+			done <- pqFreshCompletion{index: i, ended: time.Now()}
+		}()
+		if i == 3 {
+			close(offerGate)
+		}
+		if i == 4 {
+			close(proofGate)
+		}
+		return time.Now(), nil
+	}, func(pqFreshCompletion) error { return nil }, func(ctx context.Context, i int, done chan<- pqFreshCompletion) (bool, error) {
+		if startedProofs[i] {
+			t.Fatal("original readback Start repeated")
+		}
+		startedProofs[i] = true
+		mu.Lock()
+		runningProofs++
+		if runningProofs > peakProofs {
+			peakProofs = runningProofs
+		}
+		mu.Unlock()
+		waits.Add(1)
+		go func() {
+			defer waits.Done()
+			select {
+			case <-proofGate:
+			case <-ctx.Done():
+			}
+			mu.Lock()
+			runningProofs--
+			mu.Unlock()
+			done <- pqFreshCompletion{index: i, ended: time.Now()}
+		}()
+		return true, nil
+	}, func(pqFreshCompletion) error { return nil })
+	waits.Wait()
+	if err != nil || maximum != pqFreshInFlight || peakOffers > pqFreshInFlight || peakProofs > pqFreshInFlight || peakProofs < 1 || runningOffers != 0 || runningProofs != 0 {
+		t.Fatal("pipeline increased original queue capacity or failed to join children", maximum, peakOffers, peakProofs, err)
+	}
+	for i := range startedOffers {
+		if !startedOffers[i] || !startedProofs[i] {
+			t.Fatal("planned original identity was not consumed exactly once")
+		}
 	}
 }
