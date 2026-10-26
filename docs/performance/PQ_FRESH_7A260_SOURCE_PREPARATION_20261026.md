@@ -19,8 +19,9 @@ contracts, including the new normal-CI contract test, and the original three
 fresh leaf pins. The runtime 105+15/120-second caps, process/thread/memory/disk/log
 guards, normal/relocation/execution step limits, one-VM four-node profile and
 32-business-at-2/s scope remain exact. The prospective dispatch input candidate
-is updated, but `normal_ci_run_id` is deliberately empty until the original
-owner supplies the actual whole-green normal run. There are no inherited c57
+is updated, and `normal_ci_run_id` is bound to the actual run `40256470606`. The original
+Protocol owner retains the sole watch; the result and whole qualification are
+still unknown until its complete handoff. There are no inherited c57
 normal IDs, artifact pins, ELF pins or executable paths.
 
 This source preparation is not an executable tuple: normal result and binary
@@ -31,3 +32,8 @@ supply and new Root exact once grant are required before the original normal
 same-VM relocation/test/proof/cleanup job can execute. Previous source records,
 cancelled CI and consumed e765/7c9 windows remain intact. No new watcher, old
 artifact download, stress run or guard extension is introduced here.
+
+The exact create-only ref receipt is 2490 bytes, SHA256
+`9042fffc77b43ce979ee6c20f421509e7414f3503dea19d77cb45a3fef234f4d`.
+Binding the actual run ID is metadata preparation, not whole-CI qualification or
+window approval. No API/CI watcher or artifact download was added.

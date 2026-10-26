@@ -6,12 +6,12 @@
   "tree": "e2fb22e4c66477262e55924f0be5fe78eb0d3a99",
   "ref": "codex/ynx-pq-remote-7a2604548fd442b4a8dad451fde5704235f239ac",
   "actualRefReadback": "7a2604548fd442b4a8dad451fde5704235f239ac\trefs/heads/codex/ynx-pq-remote-7a2604548fd442b4a8dad451fde5704235f239ac\n",
-  "normalRunExpected": null,
+  "normalRunExpected": 40256470606,
   "normalCIResult": null,
   "normalCIPolledHere": false,
   "dispatchInputs": {
     "candidate_sha": "7a2604548fd442b4a8dad451fde5704235f239ac",
-    "normal_ci_run_id": "",
+    "normal_ci_run_id": "40256470606",
     "paired_n1": false,
     "consensus_e2e": false,
     "consensus_e2e_retained_history": false,
@@ -26,7 +26,7 @@
   },
   "ghStringInputs": {
     "candidate_sha": "7a2604548fd442b4a8dad451fde5704235f239ac",
-    "normal_ci_run_id": "",
+    "normal_ci_run_id": "40256470606",
     "paired_n1": "false",
     "consensus_e2e": "false",
     "consensus_e2e_retained_history": "false",
@@ -484,5 +484,12 @@
     "freshRuntimeChanged": false,
     "controllerAndFreshLeafUnchangedFromC57": true,
     "newNormalContractTestPinned": true
-  }
+  },
+  "wholeQualified": null,
+  "sourceRefReceipt": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7a2604548/SOURCE_REF_ROOT_RECEIPT.json",
+    "bytes": 2490,
+    "sha256": "9042fffc77b43ce979ee6c20f421509e7414f3503dea19d77cb45a3fef234f4d"
+  },
+  "normalRunIdentitySource": "Root handoff of original Protocol normal push run; in progress, original watch8248 remains owner-held"
 }
