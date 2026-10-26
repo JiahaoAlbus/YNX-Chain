@@ -40,7 +40,8 @@ assert(packageJson.type === "module", "root package must use ESM for Hardhat 3")
 assert(packageJson.scripts["contracts:check"] === "bash ./scripts/verify/contract-tooling-check.sh", "contracts:check script mismatch");
 assert(packageJson.scripts["contracts:selectors"] === "node ./scripts/contracts/generate-selector-metadata.mjs", "contracts:selectors script mismatch");
 assert(packageJson.scripts["hardhat:build"] === "hardhat build", "Hardhat 3 build script mismatch");
-assert(packageJson.devDependencies.hardhat.startsWith("^3."), "Hardhat dependency must track v3");
+assert(packageJson.devDependencies.hardhat === "3.11.1", "Hardhat compatibility dependency must remain pinned at 3.11.1");
+assert(packageJson.devDependencies["@nomicfoundation/hardhat-ethers"] === "4.0.15", "Hardhat ethers compatibility dependency must remain pinned at 4.0.15");
 assert(packageJson.devDependencies.ethers.startsWith("^6."), "ethers dependency must remain available for selector metadata");
 
 const hardhatConfig = read("hardhat.config.ts");

@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - codex/final-chain-core
+      - codex/ynx-pq-perf-integration
     paths:
       - ".github/workflows/chain-core.yml"
       - "Makefile"
+      - "package.json"
+      - "package-lock.json"
+      - "hardhat.config.ts"
       - "cmd/**"
       - "internal/**"
       - "docs/architecture/STREAMBFT_CANDIDATE.md"
@@ -15,6 +19,8 @@ on:
       - "release/**"
       - "scripts/validate/**"
       - "scripts/loadtest/**"
+      - "scripts/contracts/**"
+      - "scripts/verify/contract-tooling-check.*"
       - "scripts/verify/integration-contract-check.mjs"
       - "scripts/verify/chain-core-release-check.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
@@ -24,6 +30,9 @@ on:
     paths:
       - ".github/workflows/chain-core.yml"
       - "Makefile"
+      - "package.json"
+      - "package-lock.json"
+      - "hardhat.config.ts"
       - "cmd/**"
       - "internal/**"
       - "docs/architecture/STREAMBFT_CANDIDATE.md"
@@ -32,6 +41,8 @@ on:
       - "release/**"
       - "scripts/validate/**"
       - "scripts/loadtest/**"
+      - "scripts/contracts/**"
+      - "scripts/verify/contract-tooling-check.*"
       - "scripts/verify/integration-contract-check.mjs"
       - "scripts/verify/chain-core-release-check.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
@@ -45,8 +56,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  contract-tooling:
+    name: Contract tooling dependency and compatibility
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Verify immutable workflow actions
+        run: node scripts/verify/github-actions-pins-check.mjs
+      - name: Install the locked contract toolchain with its checked compatibility adaptation
+        run: npm ci
+      - name: Run the unchanged dependency audit
+        run: make dependency-audit
+      - name: Build contracts and run the real configuration, network and type regressions
+        run: make contract-tooling-check
+
   verify:
     name: Chain Core source and release gate
+    if: github.event_name != 'push' || github.ref != 'refs/heads/codex/ynx-pq-perf-integration'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

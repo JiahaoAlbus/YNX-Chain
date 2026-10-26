@@ -1,0 +1,166 @@
+{
+  "version": "ynx-hardhat-zod4-compat/v1",
+  "packages": [
+    {
+      "name": "hardhat",
+      "version": "3.11.1",
+      "packageJSONSHA256": "09d81ba43255395f85c63587269da2ed0faa1d0d2c20c63c9ac9dd663a781ae6",
+      "integrity": "sha512-oI+WFydV2HlHq3qZHFypQ4nJCRaX/7D3Z1TYcWju/JYhfihgVfKvy16NDO0ltVjy2GN0KWC7xgEWnQPJEnLQPA==",
+      "tarball": "https://registry.npmjs.org/hardhat/-/hardhat-3.11.1.tgz"
+    },
+    {
+      "name": "@nomicfoundation/hardhat-ethers",
+      "version": "4.0.15",
+      "packageJSONSHA256": "e7cf6127754346072dad0ecfed313fac289444ffa72ad05c02bd67e68ddeb375",
+      "integrity": "sha512-qLBvq2RcKuffObX08LVZr9LixDSnsJwwxeRKYCfr5p1VTkMT0XP5JU2Y8AOIady39O5v7ZuzIEY+xH+DdqrBKA==",
+      "tarball": "https://registry.npmjs.org/@nomicfoundation/hardhat-ethers/-/hardhat-ethers-4.0.15.tgz"
+    },
+    {
+      "name": "@nomicfoundation/hardhat-zod-utils",
+      "version": "3.0.5",
+      "packageJSONSHA256": "9c83102539b7d7eb84aed79c6ff44814f30709a1b5337c1ef4cac981bd6aac4f",
+      "integrity": "sha512-A1G9Jcizf/vYcGMtqkf+st94zBPTDB+bXXlojOMu77gmBZYbywY0k7hdRM2B4uJY+8nM0oe0sNVGVkARITXdcw==",
+      "tarball": "https://registry.npmjs.org/@nomicfoundation/hardhat-zod-utils/-/hardhat-zod-utils-3.0.5.tgz"
+    },
+    {
+      "name": "zod",
+      "version": "4.6.7",
+      "packageJSONSHA256": "c2d190d9ee4e0bdb60332aaa2130a6a98d65ddb903fe1d29248b15de57832c45",
+      "integrity": "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg==",
+      "tarball": "https://registry.npmjs.org/zod/-/zod-4.6.7.tgz"
+    }
+  ],
+  "originals": [
+    {
+      "package": "hardhat",
+      "path": "dist/src/internal/builtin-plugins/network-manager/type-validation.js",
+      "sha256": "b9f703d19e04a8caaf1cf6dd0c94a591ef059ce270e6f59f0bd25ced60f790cd"
+    },
+    {
+      "package": "hardhat",
+      "path": "dist/src/internal/builtin-plugins/solidity-test/config.js",
+      "sha256": "f6d8dd43ba8b0fc42901a6a3fd4c841d857e771b2fa452f4d464971e55403398"
+    },
+    {
+      "package": "@nomicfoundation/hardhat-ethers",
+      "path": "dist/src/internal/hook-handlers/config.js",
+      "sha256": "506201715c94fdeac64d60e918e0ed3332cf4019ba1bf75059eb02bc499d2651"
+    },
+    {
+      "package": "@nomicfoundation/hardhat-ethers",
+      "path": "dist/src/internal/hook-handlers/network.js",
+      "sha256": "86d4f9198d601d5fb2870152d7bea05d646fe6efe88c6c5d285987547b54e70f"
+    },
+    {
+      "package": "zod",
+      "path": "index.js",
+      "sha256": "32e7efd49a94a765f6d10a1a0a3c02c50c246def17c80c6f0225f85525d98505"
+    },
+    {
+      "package": "zod",
+      "path": "v4/core/schemas.js",
+      "sha256": "0ee56e8afbae28eeb1060a162ad7e56f0675ee6fb83f0ae56bea2e088f6cdbc0"
+    },
+    {
+      "package": "zod",
+      "path": "v4/classic/schemas.js",
+      "sha256": "2bf4a631a18f734a9a7ab7fc11bcf919214774d2235a312dcec0dd53d0324c32"
+    },
+    {
+      "package": "zod",
+      "path": "v4/classic/errors.js",
+      "sha256": "d32f7c1ef8e2c70072f6f0ec8ba7081bbc331353cc3a7cb4429e5ece91409543"
+    },
+    {
+      "package": "zod",
+      "path": "v4/core/util.js",
+      "sha256": "bb08133b11b478c8e715038fff26ebea204d7fd5443fba31fe138b142d202efb"
+    }
+  ],
+  "patches": [
+    {
+      "package": "@nomicfoundation/hardhat-zod-utils",
+      "path": "src/index.ts",
+      "beforeSHA256": "9fabed9cf70b56865f777395e96a1662306e29d079668dad79febacf472a6d4a",
+      "afterSHA256": "ba3f3a78c2f57556a3d7802be7c29a822974fb61274272c4e879de1373c74a16",
+      "replacements": [
+        {
+          "before": "errorMap: () => ({",
+          "after": "error: () => ({",
+          "count": 1
+        },
+        {
+          "before": "result.error.errors.map",
+          "after": "result.error.issues.map",
+          "count": 1
+        },
+        {
+          "before": "import type { ZodTypeDef, ZodType } from \"zod\";",
+          "after": "import type { ZodType } from \"zod\";",
+          "count": 1
+        },
+        {
+          "before": "  Def extends ZodTypeDef = ZodTypeDef,\n  Input = Output,",
+          "after": "  Input = unknown,",
+          "count": 1
+        },
+        {
+          "before": "configType: ZodType<Output, Def, Input>",
+          "after": "configType: ZodType<Output, Input>",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "package": "@nomicfoundation/hardhat-zod-utils",
+      "path": "dist/src/index.js",
+      "beforeSHA256": "8e10e6327da319ea5491bad7fe686fa0653cfc6db270457743eaca800a84c04e",
+      "afterSHA256": "ebcabfe2b189bd5202fac2cb4cda472756f5a1408083c6b37eaf25a1d6e23dc0",
+      "replacements": [
+        {
+          "before": "errorMap: () => ({",
+          "after": "error: () => ({",
+          "count": 1
+        },
+        {
+          "before": "result.error.errors.map",
+          "after": "result.error.issues.map",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "package": "@nomicfoundation/hardhat-zod-utils",
+      "path": "dist/src/index.d.ts",
+      "beforeSHA256": "009136505fca5ad76bac8f7ebbd1d3a6fc5f2ade7476216bbedcb3909e4f369b",
+      "afterSHA256": "e0c19ffaec474ce59271ac86a0ca83c1a10da699cc5903458e9d1cb9c2d5fc57",
+      "replacements": [
+        {
+          "before": "import type { ZodTypeDef, ZodType } from \"zod\";",
+          "after": "import type { ZodType } from \"zod\";",
+          "count": 1
+        },
+        {
+          "before": "z.ZodEffects<z.ZodAny, any, any>",
+          "after": "z.ZodAny",
+          "count": 2
+        },
+        {
+          "before": "export declare const configurationVariableSchema: z.ZodObject<{\n    _type: z.ZodLiteral<\"ConfigurationVariable\">;\n    name: z.ZodString;\n}, \"strip\", z.ZodTypeAny, {\n    _type: \"ConfigurationVariable\";\n    name: string;\n}, {\n    _type: \"ConfigurationVariable\";\n    name: string;\n}>;",
+          "after": "export declare const configurationVariableSchema: z.ZodObject<{\n    _type: z.ZodLiteral<\"ConfigurationVariable\">;\n    name: z.ZodString;\n}>;",
+          "count": 1
+        },
+        {
+          "before": "export declare const resolvedConfigurationVariableSchema: z.ZodObject<{\n    _type: z.ZodLiteral<\"ResolvedConfigurationVariable\">;\n    get: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>;\n    getUrl: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>;\n    getBigInt: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>;\n    getHexString: z.ZodFunction<z.ZodTuple<[], z.ZodUnknown>, z.ZodUnknown>;\n}, \"strip\", z.ZodTypeAny, {\n    _type: \"ResolvedConfigurationVariable\";\n    get: (...args: unknown[]) => unknown;\n    getUrl: (...args: unknown[]) => unknown;\n    getBigInt: (...args: unknown[]) => unknown;\n    getHexString: (...args: unknown[]) => unknown;\n}, {\n    _type: \"ResolvedConfigurationVariable\";\n    get: (...args: unknown[]) => unknown;\n    getUrl: (...args: unknown[]) => unknown;\n    getBigInt: (...args: unknown[]) => unknown;\n    getHexString: (...args: unknown[]) => unknown;\n}>;",
+          "after": "export declare const resolvedConfigurationVariableSchema: z.ZodObject<{\n    _type: z.ZodLiteral<\"ResolvedConfigurationVariable\">;\n    get: z.ZodFunction<z.ZodArray<z.ZodUnknown>, z.ZodUnknown>;\n    getUrl: z.ZodFunction<z.ZodArray<z.ZodUnknown>, z.ZodUnknown>;\n    getBigInt: z.ZodFunction<z.ZodArray<z.ZodUnknown>, z.ZodUnknown>;\n    getHexString: z.ZodFunction<z.ZodArray<z.ZodUnknown>, z.ZodUnknown>;\n}>;",
+          "count": 1
+        },
+        {
+          "before": "validateUserConfigZodType<Output, Def extends ZodTypeDef = ZodTypeDef, Input = Output>(hardhatUserConfig: HardhatUserConfigToValidate, configType: ZodType<Output, Def, Input>)",
+          "after": "validateUserConfigZodType<Output, Input = unknown>(hardhatUserConfig: HardhatUserConfigToValidate, configType: ZodType<Output, Input>)",
+          "count": 1
+        }
+      ]
+    }
+  ]
+}
