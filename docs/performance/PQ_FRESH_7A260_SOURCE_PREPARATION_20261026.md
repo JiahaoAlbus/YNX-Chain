@@ -86,3 +86,61 @@ spans and proof-queue observations without summing overlaps into wall time or
 confusing proof observation with earliest BFT formation. The planned test is
 still only 32 business transactions at 2/s, with sixteen independent proofs per
 arm and exact four-replica state assertions. Sustained 1000 TPS remains unproven.
+
+## Actual once-window outcome: 40261635920
+
+Root subsequently signed this exact complete tuple. The sole original dispatch
+ran candidate 7a260 on its actual frozen ref. Normal admission and relocation
+passed, generating the strict new prepared and absolute manifest on that runner.
+The Go test failed at the first before-arm business Host context:
+`pq_network_business_test.go:711: Host did not read its actual stable original checkpoint`.
+The original predicate rejects read/decode failures, App-file versus live
+BlockStore height disagreement, insufficient successor height or empty AppHash;
+the generic error does not say which predicate failed. An acquisition race is
+an investigation candidate, not a proven cause or permission to loosen trust.
+
+This run produced actual explicit call timings:
+
+| Before-arm original call | Observed inclusive duration |
+| --- | ---: |
+| Observed PQ node construction, each of four | 0.391–0.478 s |
+| PQ start and activation | 16.443 s |
+| Initial-account execution and activation | 17.911 s |
+| Gateway start | 0.052 s |
+| Business intent preparation | 0.993 s |
+| Original business inclusion check | 1.059 s |
+| Business Commit evidence check | 0.352 s |
+| Normal cleanup | 0.601 s |
+
+Nested construction/custody/recovery spans overlap and must not be added. The
+Gateway started at parent offset 56.928 seconds: non-business setup is a material
+part of this bounded window. Subsequent work must leave enough measured budget
+for both arms and all independent proofs; no 105-second cap increase is implied.
+
+All sixteen before-arm offer calls began and returned. The original inclusion
+and Commit-evidence checks completed, then Host-context index zero began and
+failed without a complete span. Independent readback did not begin and the after
+arm never started. No final business summary or per-transaction finality receipt
+exists. Offer-call duration quantiles are not finalized transaction latency;
+there is no qualified throughput or paired before/after result.
+
+The test reports FAIL at 76.64 seconds. Guard elapsed time is 77707 ms, firstCause
+actual Go terminal code 1, with cleanupComplete=true and two empty owned scans
+at 77653 and 77707 ms. Peak sampled owned RSS is 621731840 bytes and peak threads
+42; neither their caps nor the active deadline caused termination. Actual boot
+ID remains absent from the original guard and is explicitly missing in readback.
+
+All seven original output files were recovered from artifact `12624726530`, ZIP
+SHA256 `ab99a671fa1237fdcddce43cb0010902c9708396f714b4b370e34248339d553a`.
+The terminal H and 45 completed/one unfinished original call spans are retained
+under `/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/`
+as `TERMINAL_HANDOFF.json` and `PARTIAL_STAGE_TIMINGS.json`, with tracked copies
+in performance evidence. Failed-run timing diagnostics remain explicitly partial
+and do not bypass the successful guard/stdout qualification gate.
+
+The original Protocol owner received the concrete Host predicate failure and
+actual timings for immediate reproduction and repair. All independent Host
+target, full AND proof, data/HRS/account assertions and guards stay intact. The
+once grant is consumed; there was no retry, extended deadline or additional
+workload. A repaired matching supply and new Root grant are needed for a further
+window. Stable 1000 valid finalized business TPS and finality P95<=3s are unproven.

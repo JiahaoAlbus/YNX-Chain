@@ -1,0 +1,126 @@
+{
+  "classification": "original once-window terminal failure, partial measured call stages",
+  "runId": 40261635920,
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40261635920",
+  "candidate": "7a2604548fd442b4a8dad451fde5704235f239ac",
+  "event": "workflow_dispatch",
+  "conclusion": "failure",
+  "onceRemoteDispatch": true,
+  "grantConsumed": true,
+  "normalAdmissionPassed": true,
+  "actualRelocationPassed": true,
+  "prepared": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/result/ynx-pq-network-40261635920-1/prepared.json",
+    "bytes": 2043,
+    "sha256": "6be8a4f6abceb378446459d7f293869dfb5ebd5321ee93cb7172a6e5f9b37861"
+  },
+  "businessManifest": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/result/ynx-pq-network-40261635920-1.build/business-manifest.json",
+    "bytes": 1719,
+    "sha256": "262ffd4ef0a6cca8810a11874bbe6626fb635de99db8d2a85452964cfeece011"
+  },
+  "preparedFieldCount": 11,
+  "originalPreparedExecutionAuthorized": false,
+  "resultArtifact": {
+    "id": 12624726530,
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/result.zip",
+    "bytes": 23941,
+    "sha256": "ab99a671fa1237fdcddce43cb0010902c9708396f714b4b370e34248339d553a"
+  },
+  "rawFiles": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/result/ynx-pq-fresh-intake-40261635920-1/relocation.json",
+      "bytes": 2457,
+      "sha256": "15d0c3e6078fdb42d2302b14bf6779591d5c8d45d8ac350bc83de6b3e07557d2"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/result/ynx-pq-network-40261635920-1/go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/result/ynx-pq-network-40261635920-1/go.stdout.log",
+      "bytes": 16563,
+      "sha256": "b03b74e6384e55b6a6a277a831f3debb39591794433339bb3a23ecdc9748fa60"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/result/ynx-pq-network-40261635920-1/prepared.json",
+      "bytes": 2043,
+      "sha256": "6be8a4f6abceb378446459d7f293869dfb5ebd5321ee93cb7172a6e5f9b37861"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/result/ynx-pq-network-40261635920-1.build/business-manifest.json",
+      "bytes": 1719,
+      "sha256": "262ffd4ef0a6cca8810a11874bbe6626fb635de99db8d2a85452964cfeece011"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/result/ynx-pq-network-40261635920-1.file-sizes.json",
+      "bytes": 3666,
+      "sha256": "30c9deee0cbaf6b2bc8386e8d5ae79d43d00efbadf9a1063d607b85135e579a9"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/result/ynx-pq-network-40261635920-1.receipt.json",
+      "bytes": 332605,
+      "sha256": "a3125a47011dd812fe67d4be7db44edf13dd90546c46753964e6fc888ef99cbd"
+    }
+  ],
+  "partialStageTimings": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/PARTIAL_STAGE_TIMINGS.json",
+    "bytes": 33487,
+    "sha256": "710bdac84d7615889736a690863d90f4348f31c89a5d51b8aeded96feb0d8bb5"
+  },
+  "grant": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/GRANT.json",
+    "bytes": 14197,
+    "sha256": "bbf202d186d551c840237e7100bc8bff5b639db937cae40e157f20cf29cfff4b"
+  },
+  "runLog": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/run.log",
+    "bytes": 377854,
+    "sha256": "20fa6592595b0d0d17e81d20ca88ca197151c44257c0cf48e39f0a6a5aa006e1"
+  },
+  "firstCause": "actual Go terminal code 1",
+  "specificGoFailure": "pq_network_business_test.go:711 Host did not read its actual stable original checkpoint",
+  "child": {
+    "pid": 3026,
+    "code": 1,
+    "startTicks": 15145
+  },
+  "guardElapsedMs": 77707,
+  "cleanupComplete": true,
+  "emptyOwnedScans": [
+    {
+      "elapsedMs": 77653,
+      "hostIdentities": 162
+    },
+    {
+      "elapsedMs": 77707,
+      "hostIdentities": 162
+    }
+  ],
+  "sampledResources": {
+    "kernel": {
+      "release": "6.17.0-1022-azure",
+      "machine": "x86_64",
+      "logicalCPUs": 4
+    },
+    "peakOwnedRSSBytes": 621731840,
+    "peakThreads": 42,
+    "actualBootId": null,
+    "bootIdEvidenceMissing": true
+  },
+  "businessObservations": {
+    "beforeOfferCallCount": 16,
+    "beforeOfferCallCompletionCount": 16,
+    "beforeInclusionCheckCompleted": true,
+    "beforeCommitEvidenceCheckCompleted": true,
+    "independentReadbackCallStartedCount": 0,
+    "businessFinalizedCount": null,
+    "afterStarted": false
+  },
+  "transactionFinalityMeasured": false,
+  "pairedComparisonCompleted": false,
+  "sustainedTPSQualified": false,
+  "goalComplete": false,
+  "nextAction": "Original Protocol reproduce stable Host checkpoint refusal, expose actual read/decode/App-state and BlockStore heights before changing the consistent source acquisition. Keep full AND verification, all guards, original data, HRS and account assertions. No retry until matching source supply and a new Root grant."
+}
