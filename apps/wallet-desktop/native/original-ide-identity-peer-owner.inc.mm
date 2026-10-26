@@ -61,7 +61,14 @@ static void PeerFinalize(napi_env,void*raw,void*){
  if(!PeerClose(p)){identityPeerDebts.insert(p);return;}identityPeers.erase(p);delete p;
 }
 struct PeerWork{IDEIdentityPeerOwner*p;bool sending;std::vector<unsigned char>payload;bool publication=false;Frame result{Message::failure,0,{}};std::string failure;napi_async_work work=nullptr;napi_deferred deferred=nullptr;napi_ref self=nullptr;};
-static void PeerExecute(napi_env,void*raw){auto*w=static_cast<PeerWork*>(raw);try{if(w->sending)w->p->endpoint->send(Message::request,w->payload);else w->result=w->p->endpoint->receive();}catch(const std::exception&e){w->failure=e.what();}catch(...){w->failure="AUTH_IDENTITY_PEER_IO_UNKNOWN";}}
+static void PeerExecute(napi_env,void*raw){
+ auto*w=static_cast<PeerWork*>(raw);
+ try{if(w->sending)w->p->endpoint->send(Message::request,w->payload);else w->result=w->p->endpoint->receive();}
+ catch(const std::exception&e){w->failure=e.what();}catch(...){w->failure="AUTH_IDENTITY_PEER_IO_UNKNOWN";}
+ // Keep first failure and the SAME endpoint's complete public observation.
+ // PeerComplete captures this before current and still rejects on failure.
+ if(!w->sending&&!w->failure.empty())try{w->p->endpoint->copyOriginalReceivedDATA(w->result);}catch(...){}
+}
 static napi_value PeerErrorValue(napi_env env,const char*code){napi_value text,error;napi_create_string_utf8(env,code,NAPI_AUTO_LENGTH,&text);napi_create_error(env,nullptr,text,&error);napi_set_named_property(env,error,"code",text);return error;}
 static napi_value PeerResponseValue(napi_env env,IDEIdentityPeerOwner*p,bool approved){
  auto&frame=p->selectedReturn;NSDictionary*expected=IDERequestDictionary(p->parent->expected,16384);if(!expected)return nullptr;

@@ -13,6 +13,10 @@
 + (instancetype)acquireOriginalIDEProjectControlProfile:(NSError **)error;
 + (instancetype)acquireOriginalIDERegistryProfile:(NSError **)error;
 + (instancetype)acquireOriginalWalletPQHostCatalogProfile:(NSError **)error;
+// Independent device-v4 PUBLIC profile custody only. No ordinary Auth/IDE/
+// account/BIRTH profile fallback or private-key access. Actual Source verifier
+// and independently admitted device purpose remain separate requirements.
++ (instancetype)acquireOriginalProductSessionDeviceV4Profile:(NSError **)error;
 - (NSString *)copyOriginalResourceDirectory:(NSError **)error;
 - (NSData *)copyOriginalProfile:(NSError **)error;
 - (NSData *)copyOriginalHead:(NSError **)error;

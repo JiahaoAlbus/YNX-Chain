@@ -3,6 +3,9 @@ export const AUTH_SOURCE_V2:'YNX-AUTH-SOURCE/v2';
 export const AUTH_SOURCE_DOMAIN_V2:'YNX/AUTH/SOURCE-ORIGINAL/V2';
 export const AUTH_SOURCE_STATEMENT_CAP:393216;
 export type OriginalAuthSourceV2Role='enrollment'|'profile'|'current';
+/** Shared pre-role-key/private-sign body validation DATA. Never issuance,
+ * approval, a registered Source service or a global device revocation grant. */
+export function inspectOriginalProductDeviceV4IssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;dataOnly:true;authorized:false;nativeAdmission:false}>;
 export type OriginalAuthSourceJSON=null|boolean|number|string|readonly OriginalAuthSourceJSON[]|{readonly [key:string]:OriginalAuthSourceJSON};
 export interface OriginalAuthSourceV2Context {
  readonly networkId:string;readonly owner:string;
@@ -14,9 +17,11 @@ export interface OriginalAuthSourceV2Policy {
  readonly rootDigest:string;readonly enrollmentDigest:string;
  readonly endpoint:'https://wallet-auth.ynxweb4.com/v1/auth-identity/source-current';readonly spki:string;
  readonly signatureContract:Readonly<{purpose:string;enrollmentFrame:string;profileFrame:string;currentFrame:string}>;
- /** Mandatory only for the dedicated PQ catalog purpose. Native validates
+ /** Mandatory for dedicated PQ catalog or device-v4 purpose. Native validates
   * the exact role-specific field set and actual application identity. */
  readonly applicationId?:string;
+ /** Mandatory only for device-v4, pinned by the same compiled Source row. */
+ readonly productId?:string;
 }
 /** Four separately branded snapshots. Parsing alone does not authenticate their
  * origin. Native must supply/recheck genuine current registrations around use. */
@@ -26,7 +31,7 @@ export interface OriginalAuthSourceV2Registrations {
 }
 export interface OriginalAuthSourceV2Selection {
  readonly [key:string]:OriginalAuthSourceJSON;
- readonly association:Readonly<{account:string;clientId:string;platform:'macos';deviceId:string}&({productId:'developer';applicationId:'com.ynxweb4.developer.testnetpreview'}|{productId:'wallet';applicationId:string})>;
+ readonly association:Readonly<{account:string;clientId:string;platform:'macos';deviceId:string;productId:string;applicationId:string}>;
  readonly expectedRequest:Readonly<Record<string,OriginalAuthSourceJSON>>;
  readonly originalHostStatePath:string;readonly originalHostTerminalDirectory:string;
 }
@@ -36,17 +41,18 @@ export interface OriginalAuthSourceV2Root {
 }
 /** Signed enrollment DATA only. The original verifier binds the service and
  * exact operation tuple to the independently admitted purpose; types do not. */
-export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1';
+export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4';
 export type OriginalAuthSourceV2Operations=
  readonly ['beginYNX','handleReturn','restore','disconnect']|
  readonly ['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']|
  readonly ['CurrentProject','CurrentPublisher','RecheckProject']|
  readonly ['CaptureProjectControl','RecheckProjectControl']|
  readonly ['approval.capture','approval.current','approval.revoke']|
- readonly ['catalog.receive','catalog.current','catalog.retire'];
+ readonly ['catalog.receive','catalog.current','catalog.retire']|
+ readonly ['device.current','device.http-proof'];
 export interface OriginalAuthSourceV2Enrollment {
  readonly version:2;readonly purpose:string;readonly rootId:string;readonly rootOwner:string;
- readonly sourceId:string;readonly service:OriginalAuthSourceV2Service;readonly productId:'developer'|'wallet';readonly platform:'macos';
+ readonly sourceId:string;readonly service:OriginalAuthSourceV2Service;readonly productId:string;readonly platform:'macos';
  readonly applicationId:string;readonly gatewayOrigin:'https://wallet-auth.ynxweb4.com';
  readonly registryDigest:string;readonly profileOwner:string;readonly currentOwner:string;
  readonly endpoint:string;readonly spki:string;readonly currentStatePath:string;

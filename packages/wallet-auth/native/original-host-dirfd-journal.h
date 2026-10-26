@@ -128,6 +128,10 @@ public:
  // distinct bounded writer. No NAPI max-size/path/provider argument exists.
  void writeExclusive(const std::string&name,const std::string&raw){writeBounded(name,raw,8192);}
  void writeSourceCurrentV2Exclusive(const std::string&name,const std::string&raw){writeBounded(name,raw,393216);}
+ // Private dedicated device-v4 once/outcome records. This is bounded durable
+ // storage only; an original device Source must independently select a
+ // separate device journal and qualify custody/current before any key use.
+ void writeProductDeviceV4OnceExclusive(const std::string&name,const std::string&raw){writeBounded(name,raw,131072);}
  void retire(){retired=true;}
  bool close(){if(closeSelected)return closeResult;closeSelected=true;retired=true;bool ok=true;for(auto it=fds.rbegin();it!=fds.rend();++it)if(!it->complete&&!closeOnce(it->number))ok=false;closeResult=ok;return ok;}
  bool unresolved()const{return unknown;}
