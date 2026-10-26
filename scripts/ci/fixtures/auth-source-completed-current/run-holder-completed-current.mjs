@@ -1,0 +1,11 @@
+import{readFileSync,writeFileSync,mkdtempSync}from'node:fs';
+import{spawnSync}from'node:child_process';import{createHash}from'node:crypto';
+const root=import.meta.dirname,out=mkdtempSync(root+'/evidence/holder-completed-current-');
+const holder=root+'/source/native/rust/ynx-native-operation/src/source_first_prepared_holder.rs',ffi=process.argv[2]??root+'/source/native/rust/ynx-native-operation/src/source_first_prepared_holder_ffi.rs';
+const original=readFileSync(holder,'utf8'),start=original.indexOf(' pub(super)fn checked_current('),end=original.indexOf(' pub(crate)fn open(',start);
+if(start<0||end<=start||end-start>1000)throw Error('actual checked_current extraction boundary');
+writeFileSync(out+'/actual-ffi.rs',readFileSync(ffi,'utf8')+'\n'+readFileSync(root+'/controls/holder-current-tests.rs.in','utf8'));
+writeFileSync(out+'/wrapper.rs',readFileSync(root+'/controls/holder-current-wrapper.rs','utf8').replace('@@ACTUAL_CHECKED_CURRENT@@',original.slice(start,end)).replace('@@ACTUAL_FFI_PATH@@',out+'/actual-ffi.rs'));
+const results=[];for(const[name,tool,args]of[['compile','/Volumes/Data/Users/huangjiahao/ynx-social-android-toolchain-AcOW49/toolchain/bin/rustc',['--edition=2024','--cfg','feature="predevice-initial-prekeys-v1"','--test',out+'/wrapper.rs','-o',out+'/test']],['run',out+'/test',['completed_custody_current','--nocapture']]]){const r=spawnSync(tool,args,{timeout:30000,maxBuffer:2<<20});for(const k of['stdout','stderr'])writeFileSync(out+'/'+name+'.'+k,r[k]??'');results.push({name,status:r.status,signal:r.signal});if(r.status!==0)break;}
+const pass=results.length===2&&results.every(r=>r.status===0),refs=[holder,ffi,root+'/controls/holder-current-wrapper.rs',root+'/controls/holder-current-tests.rs.in',import.meta.filename].map(path=>{const b=readFileSync(path);return{path,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')}});
+writeFileSync(out+'/RESULT.json',JSON.stringify({pass,results,refs,scope:'Actual production checked_current method + whole holder FFI compiled/executed. Physical custody and credential clock explicitly mocked; not full Native link, Root admission, signatures, deployment or runtime grant.'},null,2)+'\n');console.log(JSON.stringify({out,pass,results}));if(!pass)process.exitCode=1;

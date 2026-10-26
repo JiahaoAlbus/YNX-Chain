@@ -1,0 +1,26 @@
+#[cfg(test)]mod completed_custody_current_delta {
+ use super::*;
+ use super::super::{MOCK,PhysicalMock};
+ fn installed()->HolderToken{
+  MOCK.with(|m|*m.borrow_mut()=PhysicalMock::default());
+  HELD.with(|h|{assert!(h.borrow().is_empty());let t=HolderToken{kind:KIND,serial:900};h.borrow_mut().push(Slot{token:t,role:SourceRole::Issuer,owner:Some(FirstPreparedProtectedHolder),first:0});t})
+ }
+ #[test]fn completed_custody_current_real_status_runs_pre_physical_post(){let t=installed();assert_eq!(ynx_source_first_prepared_holder_status_v1(t),0);MOCK.with(|m|assert_eq!(m.borrow().events,vec!["credential","physical","credential"]));assert_eq!(ynx_source_first_prepared_holder_close_v1(t),0);}
+ #[test]fn completed_custody_current_expiry_inside_callback_latches(){let t=installed();MOCK.with(|m|m.borrow_mut().expire_during_physical=true);assert_eq!(ynx_source_first_prepared_holder_status_v1(t),76);MOCK.with(|m|{let mut m=m.borrow_mut();m.expired=false;m.expire_during_physical=false;m.events.clear()});assert_eq!(ynx_source_first_prepared_holder_status_v1(t),76);MOCK.with(|m|assert!(m.borrow().events.is_empty()));assert_eq!(ynx_source_first_prepared_holder_close_v1(t),0);}
+ #[test]fn completed_custody_current_revoke_latches_without_reentering(){let t=installed();MOCK.with(|m|m.borrow_mut().revoke=true);assert_eq!(ynx_source_first_prepared_holder_status_v1(t),16);MOCK.with(|m|{let mut m=m.borrow_mut();m.revoke=false;m.events.clear()});assert_eq!(ynx_source_first_prepared_holder_status_v1(t),16);MOCK.with(|m|assert!(m.borrow().events.is_empty()));assert_eq!(ynx_source_first_prepared_holder_close_v1(t),0);}
+ #[test]fn completed_custody_current_panic_preserves_unknown_partial(){let t=installed();MOCK.with(|m|m.borrow_mut().panic=true);assert_eq!(ynx_source_first_prepared_holder_status_v1(t),16);MOCK.with(|m|{let mut m=m.borrow_mut();m.panic=false;m.events.clear()});assert_eq!(ynx_source_first_prepared_holder_status_v1(t),16);MOCK.with(|m|assert!(m.borrow().events.is_empty()));assert_eq!(ynx_source_first_prepared_holder_close_v1(t),0);}
+ #[test]fn completed_custody_current_preexpired_does_not_enter_physical(){let t=installed();MOCK.with(|m|m.borrow_mut().expired=true);assert_eq!(ynx_source_first_prepared_holder_status_v1(t),76);MOCK.with(|m|assert_eq!(m.borrow().events,vec!["credential"]));assert_eq!(ynx_source_first_prepared_holder_close_v1(t),0);}
+ #[test]fn completed_custody_current_foreign_token_does_not_call_owner(){let t=installed();assert_eq!(ynx_source_first_prepared_holder_status_v1(HolderToken{serial:901,..t}),21);MOCK.with(|m|assert!(m.borrow().events.is_empty()));assert_eq!(ynx_source_first_prepared_holder_close_v1(t),0);}
+ fn v4_open(raw:&[u8],out:&mut HolderToken)->i32{let q=[0u8;12100];let c=[0u8;7464];unsafe{ynx_source_sealed_role_holder_open_initial_prekeys_v2(1,2,raw.as_ptr(),raw.len(),q.as_ptr(),q.len(),c.as_ptr(),c.len(),out)}}
+ #[test]fn completed_custody_current_v4_real_factory_retains_partial_before_error_and_denies_reopen(){
+  MOCK.with(|m|*m.borrow_mut()=PhysicalMock::default());let mut t=HolderToken::default();assert_eq!(v4_open(b"PUBLIC_PARTIAL",&mut t),16);assert!(t!=HolderToken::default());assert_eq!(ynx_source_first_prepared_holder_status_v1(t),16);
+  let mut duplicate=HolderToken::default();assert_eq!(v4_open(b"PUBLIC_V4",&mut duplicate),16);assert!(duplicate==HolderToken::default());assert_eq!(ynx_source_first_prepared_holder_close_v1(t),0);
+  MOCK.with(|m|assert_eq!(m.borrow().events,vec!["V4-open-PUBLIC-boundary","close"]));
+ }
+ #[test]fn completed_custody_current_v4_real_factory_nonpartial_refusal_clears_reserved_token(){
+  MOCK.with(|m|*m.borrow_mut()=PhysicalMock::default());let mut t=HolderToken::default();assert_eq!(v4_open(b"PUBLIC_INVALID",&mut t),75);assert!(t==HolderToken::default());HELD.with(|h|assert!(h.borrow().is_empty()));
+ }
+ #[test]fn completed_custody_current_v4_real_factory_late_expiry_keeps_same_closeable_token(){
+  MOCK.with(|m|{*m.borrow_mut()=PhysicalMock::default();m.borrow_mut().expire_during_physical=true});let mut t=HolderToken::default();assert_eq!(v4_open(b"PUBLIC_V4",&mut t),76);assert!(t!=HolderToken::default());MOCK.with(|m|{m.borrow_mut().expired=false;m.borrow_mut().expire_during_physical=false});assert_eq!(ynx_source_first_prepared_holder_status_v1(t),76);assert_eq!(ynx_source_first_prepared_holder_close_v1(t),0);
+ }
+}
