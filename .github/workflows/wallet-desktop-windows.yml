@@ -3555,7 +3555,9 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: 24.19.0
+          node-version: 26.7.0
+      - name: Record and require original administrative runtime
+        run: node -e "console.log(JSON.stringify(process.versions));if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')throw Error('ORIGINAL_ADMINISTRATIVE_RUNTIME_NOT_SUPPLIED');"
       - name: Actual device issuer current release loader and package import delta
         run: node scripts/ci/auth-device-issuer/run-sdk-issuer-stage.mjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
