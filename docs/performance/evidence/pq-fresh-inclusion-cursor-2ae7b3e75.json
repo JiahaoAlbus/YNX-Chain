@@ -1,0 +1,36 @@
+{
+  "sourceCommit": "2ae7b3e75afc41b7d0e2d322c329251af64bb31e",
+  "parent": "74f69c33139ebf7cc819aa4d1127f3831ef76386",
+  "tree": "d423f0ae1ce34570ae29abb325e5db53de57ce38",
+  "leaf": {
+    "path": "internal/consensus/pq_network_fresh_business_test.go",
+    "bytes": 152477,
+    "sha256": "ad938ae9d31a3e157f823381a2b918a9a30ef479035f3e23e4663c3100d8c29e",
+    "blob": "3a16eeb57d353fed295c1026f52b0c3091965586"
+  },
+  "ownedChange": "per-transaction incremental immutable BlockStore search; nil holes remain unsearched; matched H always reloaded and original replica execution checks retained",
+  "measuredMotivation": {
+    "run": "40330458629",
+    "arm": "before",
+    "inclusionProbeCalls": 483,
+    "perCallbackP95AccumulatedNs": 451103137
+  },
+  "newFocusedCases": [
+    "TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory",
+    "TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads",
+    "TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip"
+  ],
+  "checks": {
+    "gofmtParsed": true,
+    "gitDiffCheck": true,
+    "localGoTestsExecuted": false,
+    "localGoReason": "required Go1.26.10 Darwin toolchain is not installed; prior bounded download stopped, not restarted",
+    "normalCIPending": true
+  },
+  "capsChanged": false,
+  "securityValidationReduced": false,
+  "performanceImprovementMeasured": false,
+  "sustainedTPSQualified": false,
+  "executionAuthorized": false,
+  "publication": "local owned-leaf commit; Protocol binds exact caller/controller/workflow/test pins before its normal push"
+}
