@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,realpathSync,mkdirSync,copyFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
 import {walletNativeComponentBuildPlan} from '../scripts/build-wallet-native-component.mjs';
 import {deviceV4PQSupplierInputs} from '../scripts/wallet-device-v4-pq-role.mjs';
@@ -11,7 +12,7 @@ import {originalAuthNativeBuildPlan} from '../scripts/build-original-auth-identi
 import {composeWalletPublisherNativeBuildPlan} from '../scripts/wallet-publisher-native-build.mjs';
 import {PQ_NATIVE_ARCHIVE,PQ_NATIVE_SOURCE} from '../scripts/wallet-pq-native-build.mjs';
 import {composeDeviceV4PQCommands,deviceV4PQReceiptCommands,deviceV4PQWalletInputs,DEVICE_V4_PQ_ROLE,DEVICE_V4_PQ_PROTOCOL_INPUTS} from '../scripts/wallet-device-v4-pq-role.mjs';
-const repo=fileURLToPath(new URL('../../..',import.meta.url)),headers='/PUBLIC-plan-only-headers';
+const repo=path.resolve(fileURLToPath(new URL('../../..',import.meta.url))),headers='/PUBLIC-plan-only-headers';
 // Frozen ordinary R2 command DATA supplies the unchanged TX/initial callers.
 // This test constructs recipes only: no compiler, Native, key or account use.
 const legacy=()=>composeWalletPublisherNativeBuildPlan(originalAuthNativeBuildPlan('arm64',headers),repo,100,true,true,true,true);
@@ -57,4 +58,15 @@ test('actual normal entry selects117 supplier/24 Wallet inputs and a plan-only c
  const checked=verifyCanonicalNativeReceipt(receipt,moduleBytes,selected.inputs,name=>readFileSync(path.join(repo,name)));assert.equal(checked.readbackOnly,true);assert.equal(checked.nativeQualified,false);
  const wrong=structuredClone(receipt);wrong.commands.at(-1).argv.splice(-2,0,path.join(repo,PQ_NATIVE_ARCHIVE.path));assert.throws(()=>verifyCanonicalNativeReceipt(wrong,moduleBytes,selected.inputs,name=>readFileSync(path.join(repo,name))));
  assert.throws(()=>walletNativeComponentBuildPlan('arm64',headers,true,true,true,true),/EXPLICIT_FULL_ROLE_REQUIRED/);
+});
+test('relocated original source keeps every E5, factory and slot command bound to that source, not verifier import root',t=>{
+ const target=realpathSync(mkdtempSync(path.join(tmpdir(),'ynx-device-pq-relocated-')));t.after(()=>rmSync(target,{recursive:true,force:true}));
+ const files=[...DEVICE_V4_PQ_PROTOCOL_INPUTS.map(p=>p.path),...['product-device-v4-e5.c','original-product-device-v4-factory.mm','original-product-device-v4-slot.mm'].map(n=>'apps/wallet-desktop/native/'+n)];
+ for(const name of files){mkdirSync(path.dirname(path.join(target,name)),{recursive:true});copyFileSync(path.join(repo,name),path.join(target,name));}
+ const base=legacy().pqNativeBaseCommands.map(c=>({...c,argv:c.argv.map(a=>a.replaceAll(repo,target))})),p=composeDeviceV4PQCommands(base,target,headers);
+ assert(!p.commands.some(c=>c.argv.some(a=>a.includes(repo))), 'foreign record verification must never borrow verifier-root source paths');
+ assert(p.commands[0].argv.includes(path.join(target,'apps/wallet-desktop/native/product-device-v4-e5.c')));
+ const receipt={deviceV4PQRole:p.deviceV4PQRole,architectures:['arm64'],sourceRoot:target,headerRoot:headers,pqNativeBaseCommands:base,commands:p.commands};
+ assert.deepEqual(deviceV4PQReceiptCommands(receipt),base);
+ const wrong=structuredClone(receipt);wrong.commands[0].argv[wrong.commands[0].argv.indexOf('-c')+1]=path.join(repo,'apps/wallet-desktop/native/product-device-v4-e5.c');assert.throws(()=>deviceV4PQReceiptCommands(wrong));
 });
