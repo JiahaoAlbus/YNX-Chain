@@ -1071,43 +1071,68 @@ func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain, arm string, comm
 	return traces
 }
 
-// Reads real BlockStores and stored FinalizeBlock results; it never repeats an
-// offer, derives a target from RPC, or treats mempool acceptance as execution.
-func pqFreshInclusionReady(n *pqNetworkE2E, payload []byte, minimum int64) (int64, int, bool) {
-	for h := minimum; h <= n.nodes[0].node.BlockStore().Height(); h++ {
-		block := n.nodes[0].node.BlockStore().LoadBlock(h)
+// The hint belongs to one exact payload and one original, immutable BlockStore.
+// It records search progress only, never validated execution or consensus facts.
+// A nil historical block remains unsearched and cannot be skipped. A matched H
+// stays at the hint, so every readiness call reloads the original block and all
+// four stored execution results before the unchanged independent proof path.
+func pqFreshScanPayload(payload []byte, minimum, tip int64, load func(int64) *cmttypes.Block) (int64, int, int64, error) {
+	if len(payload) == 0 || minimum < 1 || tip < 0 || tip == int64(1<<63-1) || load == nil {
+		return 0, 0, minimum, errors.New("bounded original payload search inputs required")
+	}
+	next := minimum
+	for h := minimum; h <= tip; h++ {
+		block := load(h)
 		if block == nil {
-			continue
+			return 0, 0, h, nil
 		}
 		for ix, tx := range block.Data.Txs {
-			if !bytes.Equal(tx, payload) {
-				continue
+			if bytes.Equal(tx, payload) {
+				return h, ix, h, nil
 			}
-			for _, item := range n.nodes {
-				other := item.node.BlockStore().LoadBlock(h)
-				result, err := item.store.LoadFinalizeBlockResponse(h)
-				if other == nil || !bytes.Equal(other.Hash(), block.Hash()) || err != nil || result == nil || ix >= len(result.TxResults) {
-					return h, ix, false
-				}
-				if result.TxResults[ix] == nil || result.TxResults[ix].Code != 0 {
-					n.t.Fatal("fresh original transaction was included but execution rejected")
-				}
-			}
-			return h, ix, true
+		}
+		next = h + 1
+	}
+	return 0, 0, next, nil
+}
+
+// Reads real BlockStores and stored FinalizeBlock results; it never repeats an
+// offer, derives a target from RPC, or treats mempool acceptance as execution.
+func pqFreshInclusionReady(n *pqNetworkE2E, payload []byte, minimum *int64) (int64, int, bool) {
+	store := n.nodes[0].node.BlockStore()
+	h, ix, next, err := pqFreshScanPayload(payload, *minimum, store.Height(), store.LoadBlock)
+	if err != nil {
+		n.t.Fatal(err)
+	}
+	*minimum = next
+	if h == 0 {
+		return 0, 0, false
+	}
+	// Reload the matched original block. Search progress is not an authority
+	// cache, and no cached successful validation bypasses any replica check.
+	block := store.LoadBlock(h)
+	if block == nil || ix >= len(block.Data.Txs) || !bytes.Equal(block.Data.Txs[ix], payload) {
+		return h, ix, false
+	}
+	for _, item := range n.nodes {
+		other := item.node.BlockStore().LoadBlock(h)
+		result, err := item.store.LoadFinalizeBlockResponse(h)
+		if other == nil || !bytes.Equal(other.Hash(), block.Hash()) || err != nil || result == nil || ix >= len(result.TxResults) {
+			return h, ix, false
+		}
+		if result.TxResults[ix] == nil || result.TxResults[ix].Code != 0 {
+			n.t.Fatal("fresh original transaction was included but execution rejected")
 		}
 	}
-	return 0, 0, false
+	return h, ix, true
 }
 
 func pqFreshIncluded(n *pqNetworkE2E, payload []byte) (int64, int) {
 	height, index := int64(0), 0
+	minimum := n.doc.InitialHeight
 	n.wait("fresh exact original bytes committed on all four nodes", func() bool {
-		minimum := n.doc.InitialHeight
-		if height != 0 {
-			minimum = height
-		}
 		var ready bool
-		height, index, ready = pqFreshInclusionReady(n, payload, minimum)
+		height, index, ready = pqFreshInclusionReady(n, payload, &minimum)
 		return ready
 	})
 	return height, index
@@ -1475,6 +1500,10 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 	finishOffers, finishReadbacks := make([]func(), len(rows)), make([]func(), len(rows))
 	contextPins, readbackFiles := make([]string, len(rows)), make([]string, len(rows))
 	included, evidenced := make([]bool, len(rows)), make([]bool, len(rows))
+	searchHeights := make([]int64, len(rows))
+	for i := range searchHeights {
+		searchHeights[i] = n.doc.InitialHeight
+	}
 	includedCount, evidenceCount := 0, 0
 	verifiedHeights := make(map[int64]bool)
 	var finishInclusion, finishEvidence func()
@@ -1516,11 +1545,7 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 			row.coordinatorWork[0]++
 			row.coordinatorWork[1] += time.Since(probeStarted).Nanoseconds()
 		}
-		minimum := n.doc.InitialHeight
-		if row.Height != 0 {
-			minimum = row.Height
-		}
-		h, ix, ready := pqFreshInclusionReady(n, row.payload, minimum)
+		h, ix, ready := pqFreshInclusionReady(n, row.payload, &searchHeights[i])
 		if h != 0 {
 			row.Height, row.Index = h, ix
 		}
@@ -3126,5 +3151,81 @@ func TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds(t *testing.T) {
 		if !startedOffers[i] || !startedProofs[i] {
 			t.Fatal("planned original identity was not consumed exactly once")
 		}
+	}
+}
+
+// Ordinary CI exercises only immutable DATA reads; no node, signing process or
+// transaction offer is started by these search regressions.
+func TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory(t *testing.T) {
+	payload := []byte("exact original transaction")
+	blocks := map[int64]*cmttypes.Block{}
+	for h := int64(1); h <= 3; h++ {
+		blocks[h] = &cmttypes.Block{Data: cmttypes.Data{Txs: cmttypes.Txs{cmttypes.Tx("other transaction")}}}
+	}
+	reads := map[int64]int{}
+	load := func(h int64) *cmttypes.Block { reads[h]++; return blocks[h] }
+	h, _, hint, err := pqFreshScanPayload(payload, 1, 2, load)
+	if err != nil || h != 0 || hint != 3 {
+		t.Fatal("original historical miss did not advance search progress", h, hint, err)
+	}
+	h, _, hint, err = pqFreshScanPayload(payload, hint, 3, load)
+	if err != nil || h != 0 || hint != 4 || reads[1] != 1 || reads[2] != 1 || reads[3] != 1 {
+		t.Fatal("already-searched immutable history was loaded again", h, hint, reads, err)
+	}
+	// A block arriving after the earlier tip must still be searched. Similar
+	// bytes and another transaction at index0 cannot substitute for the target.
+	blocks[4] = &cmttypes.Block{Data: cmttypes.Data{Txs: cmttypes.Txs{cmttypes.Tx("exact original transactioN"), cmttypes.Tx(payload)}}}
+	h, ix, hint, err := pqFreshScanPayload(payload, hint, 4, load)
+	if err != nil || h != 4 || ix != 1 || hint != 4 || reads[4] != 1 {
+		t.Fatal("new original block/exact payload index was missed", h, ix, hint, reads, err)
+	}
+	// A match never advances the hint past H. All readiness attempts must
+	// reload it; the normal caller then repeats all four execution checks.
+	h, ix, hint, err = pqFreshScanPayload(payload, hint, 4, load)
+	if err != nil || h != 4 || ix != 1 || hint != 4 || reads[4] != 2 {
+		t.Fatal("matched block was replaced by cached validation", h, ix, hint, reads, err)
+	}
+}
+
+func TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads(t *testing.T) {
+	first, second := []byte("first original"), []byte("second original")
+	blocks := map[int64]*cmttypes.Block{5: {Data: cmttypes.Data{Txs: cmttypes.Txs{cmttypes.Tx(second)}}}}
+	var reads []int64
+	load := func(h int64) *cmttypes.Block { reads = append(reads, h); return blocks[h] }
+	h, _, firstHint, err := pqFreshScanPayload(first, 4, 5, load)
+	if err != nil || h != 0 || firstHint != 4 || (len(reads) != 1 || reads[0] != 4) {
+		t.Fatal("nil historical hole was silently skipped", h, firstHint, reads, err)
+	}
+	blocks[4] = &cmttypes.Block{Data: cmttypes.Data{Txs: cmttypes.Txs{cmttypes.Tx(first)}}}
+	h, _, firstHint, err = pqFreshScanPayload(first, firstHint, 5, load)
+	if err != nil || h != 4 || firstHint != 4 {
+		t.Fatal("late available original height was not retried", h, firstHint, err)
+	}
+	h, _, secondHint, err := pqFreshScanPayload(second, 4, 5, load)
+	if err != nil || h != 5 || secondHint != 5 || firstHint != 4 {
+		t.Fatal("payload search hints were shared between transactions", h, firstHint, secondHint, err)
+	}
+}
+
+func TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip(t *testing.T) {
+	calls := 0
+	load := func(int64) *cmttypes.Block { calls++; return nil }
+	for _, test := range []struct {
+		payload      []byte
+		minimum, tip int64
+		load         func(int64) *cmttypes.Block
+	}{
+		{nil, 1, 1, load}, {[]byte("target"), 0, 1, load}, {[]byte("target"), 1, -1, load}, {[]byte("target"), 1, 1<<63 - 1, load}, {[]byte("target"), 1, 1, nil},
+	} {
+		if _, _, _, err := pqFreshScanPayload(test.payload, test.minimum, test.tip, test.load); err == nil {
+			t.Fatal("invalid search input entered the original store")
+		}
+	}
+	if calls != 0 {
+		t.Fatal("invalid search read a store")
+	}
+	h, _, hint, err := pqFreshScanPayload([]byte("target"), 2, 1, load)
+	if err != nil || h != 0 || hint != 2 || calls != 0 {
+		t.Fatal("search beyond the current original tip invented an observation", h, hint, calls, err)
 	}
 }
