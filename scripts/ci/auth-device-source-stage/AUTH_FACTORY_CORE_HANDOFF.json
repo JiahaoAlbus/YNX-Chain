@@ -1,0 +1,359 @@
+{
+  "schema": "ynx-auth-device-v4-private-factory-core/v1",
+  "owner": "original Auth",
+  "source": [
+    {
+      "relative": "apps/wallet-desktop/native/original-product-device-v4-factory.h",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r1/source/apps/wallet-desktop/native/original-product-device-v4-factory.h",
+        "bytes": 1410,
+        "sha256": "9b810febc59751279e2f968343d50281213e58544d284b61613bfe54353bfe69",
+        "blob": "36469814fb1ed4a2cab351406aa220733c953ed1"
+      },
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/original-product-device-v4-factory.h",
+        "bytes": 1410,
+        "sha256": "9b810febc59751279e2f968343d50281213e58544d284b61613bfe54353bfe69",
+        "blob": "36469814fb1ed4a2cab351406aa220733c953ed1",
+        "relative": "source/apps/wallet-desktop/native/original-product-device-v4-factory.h",
+        "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/apps/wallet-desktop/native/original-product-device-v4-factory.h"
+      }
+    },
+    {
+      "relative": "apps/wallet-desktop/native/original-product-device-v4-factory.mm",
+      "before": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r1/source/apps/wallet-desktop/native/original-product-device-v4-factory.mm",
+        "bytes": 13702,
+        "sha256": "10210fcce2c361f656373c158de58a72747170d94d57d611b10fe9f228748dab",
+        "blob": "1d20063d71f7793893b125da8b5d614d8c167a53"
+      },
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/original-product-device-v4-factory.mm",
+        "bytes": 13702,
+        "sha256": "10210fcce2c361f656373c158de58a72747170d94d57d611b10fe9f228748dab",
+        "blob": "1d20063d71f7793893b125da8b5d614d8c167a53",
+        "relative": "source/apps/wallet-desktop/native/original-product-device-v4-factory.mm",
+        "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/apps/wallet-desktop/native/original-product-device-v4-factory.mm"
+      }
+    }
+  ],
+  "refs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/original-product-device-v4-factory.h",
+      "bytes": 1410,
+      "sha256": "9b810febc59751279e2f968343d50281213e58544d284b61613bfe54353bfe69",
+      "blob": "36469814fb1ed4a2cab351406aa220733c953ed1",
+      "relative": "source/apps/wallet-desktop/native/original-product-device-v4-factory.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/apps/wallet-desktop/native/original-product-device-v4-factory.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/original-product-device-v4-factory.mm",
+      "bytes": 13702,
+      "sha256": "10210fcce2c361f656373c158de58a72747170d94d57d611b10fe9f228748dab",
+      "blob": "1d20063d71f7793893b125da8b5d614d8c167a53",
+      "relative": "source/apps/wallet-desktop/native/original-product-device-v4-factory.mm",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/apps/wallet-desktop/native/original-product-device-v4-factory.mm"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/original-product-device-v4-slot.h",
+      "bytes": 1115,
+      "sha256": "152056c712acab3b1b7cda4640793a0cfc1f5db689083fc1ec491c56b70d104a",
+      "blob": "a874004544f432fd071b95742ffe17b82d1d2739",
+      "relative": "source/apps/wallet-desktop/native/original-product-device-v4-slot.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/apps/wallet-desktop/native/original-product-device-v4-slot.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/original-product-device-v4-slot.mm",
+      "bytes": 9583,
+      "sha256": "12e5b7e192efbc92b7c6b71bb387fa08862102ff5e8ac8d92f4e0f498a479b9f",
+      "blob": "a108f20021d36ff26e43cebd0110ebdc8c8a859f",
+      "relative": "source/apps/wallet-desktop/native/original-product-device-v4-slot.mm",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/apps/wallet-desktop/native/original-product-device-v4-slot.mm"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/original-product-device-v4-slot-record.h",
+      "bytes": 1582,
+      "sha256": "926d06da38c9f43414ef600de0a9abc6d5a06640d7a2b46143555dfd8cf3a9fa",
+      "blob": "d140f68279b984ed6c1eee637c082a05fef11a87",
+      "relative": "source/apps/wallet-desktop/native/original-product-device-v4-slot-record.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/apps/wallet-desktop/native/original-product-device-v4-slot-record.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/original-product-device-v4-http-call.h",
+      "bytes": 3093,
+      "sha256": "31dd923e66980b31cfbad770b9edbf5072a733585e273d6dff322d6ca3becca4",
+      "blob": "1db212176a9087ce8b4a6ee800ea70856de7a16a",
+      "relative": "source/apps/wallet-desktop/native/original-product-device-v4-http-call.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/apps/wallet-desktop/native/original-product-device-v4-http-call.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/product_session_http.h",
+      "bytes": 5009,
+      "sha256": "4123d8eb6f0814c24c5f94761e8dfaf607561c13e243e327635e4e3785beee25",
+      "blob": "7bcf80c7a617ffd347239ce541da1d61ceac7010",
+      "relative": "source/apps/wallet-desktop/native/product_session_http.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/apps/wallet-desktop/native/product_session_http.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/packages/wallet-auth/native/product-session-device-v4-once.h",
+      "bytes": 5234,
+      "sha256": "c6cfba08cd4fdc39afae6fdac7000321f90806c8b4bfe283f2efaacf5e1bfa03",
+      "blob": "3d19d388d48fe14f729709a306a847cb588eb4d3",
+      "relative": "source/packages/wallet-auth/native/product-session-device-v4-once.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/packages/wallet-auth/native/product-session-device-v4-once.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/packages/wallet-auth/native/product-session-device-v4-once-binding.h",
+      "bytes": 2352,
+      "sha256": "74b36135f635d15a28279e52a3826b9ac515f392f4fef797c5ee74b385e1de8f",
+      "blob": "808d673d566a1cebc3fd283b8df0f6d6f58a29db",
+      "relative": "source/packages/wallet-auth/native/product-session-device-v4-once-binding.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/packages/wallet-auth/native/product-session-device-v4-once-binding.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/packages/wallet-auth/native/original-host-dirfd-journal.h",
+      "bytes": 12401,
+      "sha256": "2fbbab48ea0e16be29acd62fee564b55f057f8a79f08e145540e5bd76cf7b277",
+      "blob": "e3e1889475f60be4868cd85bc288f9796313b416",
+      "relative": "source/packages/wallet-auth/native/original-host-dirfd-journal.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/packages/wallet-auth/native/original-host-dirfd-journal.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/packages/wallet-auth/native/original-auth-identity-source-authority.h",
+      "bytes": 8269,
+      "sha256": "041ceb961ba07c08d2aa1d8d6c83ecbf460c2617ac20b82ba26468288ee1f13b",
+      "blob": "c3849d9cd9389b8f4c2dfc71da302c61530beebd",
+      "relative": "source/packages/wallet-auth/native/original-auth-identity-source-authority.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/packages/wallet-auth/native/original-auth-identity-source-authority.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/ProductSessionDeviceV4.h",
+      "bytes": 1907,
+      "sha256": "b149d3c9e66329a4bb425aaa8c325147d157670602f40f3868614ff9c4438115",
+      "blob": "f50242836d107b8dfc37bab3243c53b4137e31fd",
+      "relative": "source/apps/wallet-desktop/native/ProductSessionDeviceV4.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-native/ProductSessionDeviceV4.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/source/apps/wallet-desktop/native/product-device-v4-e5.c",
+      "bytes": 1709,
+      "sha256": "05055016ebd5bd06acf818f4f4d56487a803b62cee316b62feb4f5ef0be468a5",
+      "blob": "a6651f384ec849410cbc1e410558f42c9e9180c8",
+      "relative": "source/apps/wallet-desktop/native/product-device-v4-e5.c",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/wallet-native/product-device-v4-e5.c"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/controls/device-v4-factory.mm.in",
+      "bytes": 7190,
+      "sha256": "440188e4fe366a1997e2163d1a571291c57063a682ef4a3cbabfda0af3d87104",
+      "blob": "e5b9310e8dbddc660e95460f869e26a5d2cd0a25",
+      "relative": "controls/device-v4-factory.mm.in",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/controls/device-v4-factory.mm.in"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/controls/device-v4-slot.mm",
+      "bytes": 8452,
+      "sha256": "4842c678b51b6d7142c9eca0b02b4ecd1e682bc71a968ea5687165ff81198c6b",
+      "blob": "34a69bfecd8d9998b9adf842af61ba24b69bb891",
+      "relative": "controls/device-v4-slot.mm",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/controls/device-v4-slot.mm"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/run-device-v4-factory.mjs",
+      "bytes": 4032,
+      "sha256": "966263f5f708c27893ce8ed4ac25a3e566eedb29ddcb2285ccefd826c7c30795",
+      "blob": "88eccf67570b417b04d4e757408527e1c541a350",
+      "relative": "run-device-v4-factory.mjs",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/run-device-v4-factory.mjs"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/DEVICE_V4_FACTORY_CORE.md",
+      "bytes": 5174,
+      "sha256": "afc54135d6dbe0ccf238b7221c4ac55111ae8bb891f54cde08ff5b6d0e81e6c5",
+      "blob": "ae55e7bf2333e42c8acccaa6a20a78ef477e9986",
+      "relative": "DEVICE_V4_FACTORY_CORE.md",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/DEVICE_V4_FACTORY_CORE.md"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/freeze-device-v4-factory-portable.mjs",
+      "bytes": 4864,
+      "sha256": "fbb06b32fa095dc395e59388a268dfedcbec9cc94ce9c578448048d868e611b7",
+      "blob": "18203e23afc167c8bd012f95377a0360440d9603",
+      "relative": "freeze-device-v4-factory-portable.mjs",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/freeze-device-v4-factory-portable.mjs"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/RESULT.json",
+      "bytes": 5212,
+      "sha256": "b284d0678a6cb6c4fc60436bed4fe4a9140e30c2d9f53bbfb550161bbf9ca871",
+      "blob": "55cb0694bdca3b5274e8652e493bdf6a7e294f33",
+      "relative": "evidence/RESULT.json",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/RESULT.json"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/compile.stderr",
+      "bytes": 46246,
+      "sha256": "2aed7b7c9d5c6853999443678415130bf5cee9792736a75d1805ed30cceb34fe",
+      "blob": "bd759fa0a0a0a077601aa27d145bf4545932ee83",
+      "relative": "evidence/compile.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/compile.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/compile.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/compile.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/data-e5.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/data-e5.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/data-e5.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/data-e5.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/data-e5.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/data-e5.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/e5.o",
+      "bytes": 18704,
+      "sha256": "44c4df3faa79929d6b1a3591ef8c7d93db0644c449e0b1ac3be3aabfda1292bc",
+      "blob": "156feff0371771e91840b931e7a3ffdfc3b4e448",
+      "relative": "evidence/e5.o",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/e5.o"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/fixture.mm",
+      "bytes": 12038,
+      "sha256": "26fd31aff249d0ac5f20537bc14e5d88a8b75d5b5687abacf3f99c4f881bef10",
+      "blob": "7cdc46cdf1081a2c5f1ea8a85f62bc818069d620",
+      "relative": "evidence/fixture.mm",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/fixture.mm"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/production-syntax.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/production-syntax.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/production-syntax.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/production-syntax.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/production-syntax.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/production-syntax.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/run.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/run.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/run.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/run.stdout",
+      "bytes": 132,
+      "sha256": "dfbc6d42255f4bac5adc0d2e11de0f49404fd5c9b8a9459dd5130d286578c792",
+      "blob": "0780d907b02fdf409da9e58257f9f4771320f367",
+      "relative": "evidence/run.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/run.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/evidence/test",
+      "bytes": 1152072,
+      "sha256": "e9faa58781d3b7c310a64f3daa4f43fb82df69b0af9a0a184f1367664dede4d3",
+      "blob": "4428f557aded64875e195d0ab22e5853ff7a9615",
+      "relative": "evidence/test",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-factory-eur5oC/test"
+    }
+  ],
+  "parentSlot": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-registered-slot-20261026-r1/HANDOFF.json",
+    "bytes": 21770,
+    "sha256": "546bad5bb5f1a28baf70ec4b825877ed0c84af01a67ed633991dc9bb5df1ad65",
+    "blob": "ee6dcdb1aa1cecbbfdafeac5c7a307b133a1ed54"
+  },
+  "parentSource4": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-source4-native-read-20261026-r1/HANDOFF.json",
+    "bytes": 15020,
+    "sha256": "65c60c1b555d057ee5b52d2674227085612ca3091b916f872b63d9b4d0949486",
+    "blob": "5b67a90e81ef9e24e27d5bea7df28a217c8119c2"
+  },
+  "parentTypedHTTP": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-http-typed-call-20261026-r1/HANDOFF.json",
+    "bytes": 9178,
+    "sha256": "de696c7ab35bb2a5e2607052c9f9f6a822e516204f6245d2f14ffe258e931476",
+    "blob": "13f08a3d86ef1a8b97fca9fe820f561a0a397d22"
+  },
+  "protocolWholeCI": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/ci-b0f66e739/HANDOFF_WHOLE_CI.json",
+    "bytes": 31012,
+    "sha256": "4da6c96be5d1b77a49488d1ffe5017da166862cd439dbb6d19d18a483486db8f",
+    "blob": "c4820bab270ca82aa924ec36ccebfc52b99b71a7"
+  },
+  "implemented": [
+    "Actual fixed Native produce body from original Source through closed21/clock/E5/real-once/original slot/fixed CABI to post-completion current",
+    "Actual partial-owning proof operation current/public member/retire/join/first-close/debt",
+    "Independent registered public keys vs private-record key pointers; durable before private entry; fixed TTL/monotonic budget"
+  ],
+  "tests": {
+    "actualPipelineControls": 15,
+    "realProtectedFilesystem": true,
+    "asan": true,
+    "ubsan": true,
+    "productionTUSyntax": true,
+    "boundaries": "EXPLICIT PUBLIC Source/Keychain/clock/foreign CABI only; mock outcome is not real wire",
+    "unchangedGreensRerun": false
+  },
+  "remainingOwningCode": [
+    "Original Native source4 same-held/AbortContext producer+opaque operation NAPI integration",
+    "Normal SDK private producer and exact new archive matching selection",
+    "Original issuer/current/global authorized-device revoke"
+  ],
+  "truth": {
+    "fixedFactoryCoreCODE": true,
+    "proofOperationCoreCODE": true,
+    "asyncWorker": false,
+    "normalNativeProducer": false,
+    "completeCallableFactory": false,
+    "realSource": false,
+    "realKeychain": false,
+    "actualCrypto": false,
+    "RootAdmitted": false,
+    "SourceQualified": false,
+    "ProtocolNewCISuccessByOwnerEvidence": true,
+    "newArchiveDownloaded": false,
+    "newLibraryAssembled": false,
+    "issuer": false,
+    "globalRevoke": false,
+    "HTTPExecuted": false,
+    "matchingApp": false,
+    "installed": false,
+    "deployed": false,
+    "SSH": false,
+    "FinanceResumed": false
+  },
+  "portableRunner": {
+    "explicitSourceRootActuallyExecuted": true,
+    "sourceFallback": false,
+    "hardcodedUserHome": false,
+    "productionSourceUnchangedFrom": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r1/HANDOFF.json",
+      "bytes": 19636,
+      "sha256": "ddc8bef6cd2ea29b2d7abcbb8cd06b25bb2538e3b3bfc05974480c2d4ddc649c",
+      "blob": "e43077d64c13d9385f30e9837bd8867cd5c3ea85"
+    }
+  }
+}
