@@ -126,7 +126,7 @@ class LinuxGuardControls(unittest.TestCase):
     def test_fresh_business_closed_source3_client70e7_whole_tree_and_original_caps(self):
         self.assertEqual(guard.FRESH_BUSINESS_CLIENT_COMMIT, "70e7e450997a0ae77dbad5a8be3682f482c6ddd8")
         self.assertEqual(guard.FRESH_BUSINESS_CLIENT_TREE, "4866cc3924c060eb6a29939915d39b1c5c625607")
-        self.assertEqual(guard.FRESH_BUSINESS_E2E_SOURCE_SHA256, "4890d0a642faac311de38f157fb9551915377849e60a6e83877a05b430f7872e")
+        self.assertEqual(guard.FRESH_BUSINESS_E2E_SOURCE_SHA256, "5c1542b2ba540792016cf3a67da9ff09aa6effb6261e5b9ca6e355981a2301cf")
         caps = guard.fixed_caps(guard.FRESH_BUSINESS_E2E_PROFILE)
         self.assertEqual(caps, dict(guard.CAPS, privateBytes=536870912))
         self.assertEqual([caps[k] for k in ("activeMs", "cleanupMs", "totalMs", "ownedRSSBytes", "ownedProcesses", "threads", "buildBytes")], [105000, 15000, 120000, 1073741824, 16, 320, 1073741824])
