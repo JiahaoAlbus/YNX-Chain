@@ -548,6 +548,8 @@ def assert_native_cabi_workflow_contract(raw):
                  "scripts/verify/account-initial-cabi-check.sh",
                  "scripts/fixtures/verify-publisher-registration-cabi/**",
                  "scripts/verify/publisher-registration-cabi-check.sh",
+                 "scripts/fixtures/verify-product-session-http-cabi/**",
+                 "scripts/verify/product-session-http-cabi-check.sh",
                  "scripts/fixtures/verify-project-control-cabi/**",
                  "scripts/verify/project-control-cabi-check.sh",
                  "scripts/verify/seal-project-control-cabi.py"):
@@ -574,7 +576,9 @@ def assert_native_cabi_workflow_contract(raw):
     publisher_names = ("Execute fixed publisher generation and both registration proofs from the same archive",
                        "Seal the same executed archive with dedicated publisher public evidence",
                        "Upload only public publisher archive headers and real native evidence")
+    device_http_name = "Execute fixed device HTTP proof ABI from the same native archive"
     ordered_names = (names[:1] + data_names + names[1:4] + wallet_names + publisher_names[:1]
+                     + (device_http_name,)
                      + names[4:9] + publisher_names[1:] + names[9:])
     need(len(steps) == len(ordered_names))
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, ordered_names)))
@@ -605,6 +609,11 @@ def assert_native_cabi_workflow_contract(raw):
         '          bash scripts/verify/publisher-registration-cabi-check.sh \\',
         '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
         '            "$RUNNER_TEMP/ynx-publisher-registration-cabi"'])
+    need(lines(named[device_http_name]) == ["      - name: " + device_http_name,
+        "        run: |", "          set -euo pipefail",
+        '          bash scripts/verify/product-session-http-cabi-check.sh \\',
+        '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
+        '            "$RUNNER_TEMP/ynx-product-session-http-cabi"'])
     steps = [named[name] for name in names]
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, names)))
     need([line for line in lines(steps[0]) if not line.lstrip().startswith("#")] == ["      - name: " + names[0],
@@ -628,7 +637,8 @@ def assert_native_cabi_workflow_contract(raw):
         '          lipo "$RUNNER_TEMP/ynx-artifact-release-cabi/c-driver" -verify_arch arm64',
         '          lipo "$RUNNER_TEMP/ynx-transaction-batch-cabi/tx-c-driver" -verify_arch arm64',
         '          lipo "$RUNNER_TEMP/ynx-account-initial-cabi/initial-c-driver" -verify_arch arm64',
-        '          lipo "$RUNNER_TEMP/ynx-publisher-registration-cabi/publisher-c-driver" -verify_arch arm64'])
+        '          lipo "$RUNNER_TEMP/ynx-publisher-registration-cabi/publisher-c-driver" -verify_arch arm64',
+        '          lipo "$RUNNER_TEMP/ynx-product-session-http-cabi/device-http-c-driver" -verify_arch arm64'])
     need(lines(steps[5]) == ["      - name: " + names[5], "        if: runner.os == 'macOS'",
         "        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020", "        with:",
         "          node-version: '24.19.0'", "          cache: npm"])
@@ -657,12 +667,14 @@ def assert_native_cabi_workflow_contract(raw):
         "if module.get('Version') != 'v1.6.5' or module.get('Replace'):",
         "transaction_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-transaction-batch-cabi'",
         "initial_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-account-initial-cabi'",
+        "device_http_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-product-session-http-cabi'",
         "source_names = command('git', 'ls-files', 'go.mod', 'go.sum', 'internal/ynxbatch', 'internal/ynxauth', 'internal/accountaddress',",
         "'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-artifact-release-cabi',",
         "'scripts/fixtures/verify-transaction-batch-cabi', 'scripts/verify/artifact-release-cabi-check.sh',",
         "'scripts/verify/transaction-batch-cabi-check.sh', 'scripts/fixtures/verify-account-initial-cabi',",
         "'scripts/verify/account-initial-cabi-check.sh', 'scripts/fixtures/verify-publisher-registration-cabi',",
-        "'scripts/verify/publisher-registration-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()",
+        "'scripts/verify/publisher-registration-cabi-check.sh', 'scripts/fixtures/verify-product-session-http-cabi',",
+        "'scripts/verify/product-session-http-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()",
         "sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}",
         "native_os, native_arch = command('go','env','GOOS'), command('go','env','GOARCH')",
         "targets = [('native-host', case / 'libynx_artifact_release.a', native_os, native_arch, True)]",
@@ -672,13 +684,16 @@ def assert_native_cabi_workflow_contract(raw):
         "public_pins = {name:pin(case / 'output' / name) for name in public_names}",
         "transaction_public_pins = {'TX-'+name:pin(transaction_case / 'input' / name) for name in public_names}",
         "initial_public_pins = {'INITIAL-'+name:pin(initial_case / 'input' / name) for name in public_names}",
+        "device_http_public_pins = {'DEVICE-HTTP-'+name:pin(device_http_case / 'input' / name) for name in public_names}",
         "for label, archive, target_os, target_arch, executed in targets:",
         "shutil.copyfile(archive, out / 'libynx_artifact_release.a')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/ynx_artifact_release.h', out / 'ynx_artifact_release.h')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/tx_batch.h', out / 'tx_batch.h')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/account_initial.h', out / 'account_initial.h')",
+        "shutil.copyfile('cmd/ynx-artifact-release-cabi/product_session_http.h', out / 'product_session_http.h')",
         "shutil.copyfile(transaction_case / 'input' / name, out / ('TX-'+name))",
         "shutil.copyfile(initial_case / 'input' / name, out / ('INITIAL-'+name))",
+        "shutil.copyfile(device_http_case / 'input' / name, out / ('DEVICE-HTTP-'+name))",
         "sourceTree=command('git','rev-parse','HEAD^{tree}'), runId=os.environ['GITHUB_RUN_ID'],",
         "matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], runnerOS=os.environ['RUNNER_OS'],",
         "host=dict(os=native_os, arch=native_arch), target=dict(os=target_os, arch=target_arch),",
@@ -695,6 +710,11 @@ def assert_native_cabi_workflow_contract(raw):
         "initialAccountHeader=pin(out / 'account_initial.h'), initialAccountPublicEvidence=initial_public_pins,",
         "actualInitialAccountCABIExecuted=executed, initialAccountIndependentGoDualANDVerified=executed,",
         "initialAccountCallerRecipe='scripts/verify/account-initial-cabi-check.sh', initialAccountAuthorized=False,",
+        "deviceHTTPABI='YNXProductSessionHTTPProofSignV4', deviceHTTPABIVersion=4,",
+        "deviceHTTPHeader=pin(out / 'product_session_http.h'), deviceHTTPPublicEvidence=device_http_public_pins,",
+        "actualDeviceHTTPCABIExecuted=executed, deviceHTTPIndependentGoDualANDVerified=executed,",
+        "deviceHTTPCallerRecipe='scripts/verify/product-session-http-cabi-check.sh',",
+        "deviceHTTPSourceQualified=False, deviceHTTPSessionAuthorized=False,",
         "nativeHostCoreTestsPassed=True, actualCABIExecuted=executed,",
         "independentGoDualANDVerified=executed, typedN1Inspected=executed,",
         "crossCompiled=(not executed and (target_os,target_arch)!=(native_os,native_arch)),",
@@ -707,9 +727,9 @@ def assert_native_cabi_workflow_contract(raw):
     # directory, caller binary or a recursive wildcard. Missing output fails.
     for step, name, label, artifact, leaves, mac_only in (
         (steps[9], names[9], "native-host", "native-${{ matrix.runner }}",
-         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json"), False),
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "product_session_http.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json"), False),
         (steps[10], names[10], "darwin-arm64", "darwin-arm64",
-         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "SOURCE.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json"), True)):
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "product_session_http.h", "SOURCE.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json"), True)):
         expected = ["      - name: " + name]
         if mac_only:
             expected.append("        if: runner.os == 'macOS'")
@@ -2031,6 +2051,58 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change(control_upload, control_upload.replace("/delivery/SOURCE.json", "/input/SYNTHETIC-ONLY-a.der", 1)),
             raw.replace(native, native.replace(control, "", 1).replace(control_upload, control_upload + control, 1), 1),
             raw.replace("      - 'scripts/fixtures/verify-project-control-cabi/**'\n", "", 1)]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_native_cabi_workflow_contract(changed)
+
+    def test_device_http_native_cabi_requires_same_executed_archive_and_public_data_only(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "artifact-release-cabi")
+
+        def named(name):
+            found = [step for step in steps if step.startswith("      - name: " + name + "\n")]
+            self.assertEqual(len(found), 1)
+            return found[0]
+
+        actual = named("Execute actual C ABI and independently verify both signatures")
+        execute = named("Execute fixed device HTTP proof ABI from the same native archive")
+        arm = named("Verify the executed original Main arm64 target")
+        seal = named("Seal only native library public outputs and exact compile inputs")
+        upload = named("Upload only public native host archive header and evidence")
+        arm_upload = named("Upload only public Main arm64 archive header and executed target evidence")
+
+        def change(step, before, after):
+            self.assertIn(before, step)
+            self.assertEqual(raw.count(step), 1)
+            return raw.replace(step, step.replace(before, after, 1), 1)
+
+        command = "bash scripts/verify/product-session-http-cabi-check.sh"
+        mutations = [
+            raw.replace(execute, "", 1), raw.replace(execute, execute + execute, 1),
+            change(execute, command, "true # " + command),
+            change(execute, "        run: |\n", "        if: false\n        run: |\n"),
+            change(execute, "        run: |\n", "        continue-on-error: true\n        run: |\n"),
+            change(execute, '"$RUNNER_TEMP/ynx-product-session-http-cabi"',
+                   '"$RUNNER_TEMP/ynx-product-session-http-cabi" || true'),
+            change(execute, '"$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"',
+                   '"$RUNNER_TEMP/old/libynx_artifact_release.a"'),
+            raw.replace(execute, "", 1).replace(actual, execute + actual, 1),
+            raw.replace(execute, "", 1).replace(seal, seal + execute, 1),
+            change(arm, '          lipo "$RUNNER_TEMP/ynx-product-session-http-cabi/device-http-c-driver" -verify_arch arm64\n', ""),
+            raw.replace("      - 'scripts/fixtures/verify-product-session-http-cabi/**'\n", "", 1),
+            raw.replace("      - 'scripts/verify/product-session-http-cabi-check.sh'\n", "", 1),
+            change(seal, "deviceHTTPABIVersion=4", "deviceHTTPABIVersion=1"),
+            change(seal, "actualDeviceHTTPCABIExecuted=executed", "actualDeviceHTTPCABIExecuted=True"),
+            change(seal, "deviceHTTPIndependentGoDualANDVerified=executed", "deviceHTTPIndependentGoDualANDVerified=True"),
+            change(seal, "deviceHTTPSourceQualified=False", "deviceHTTPSourceQualified=True"),
+            change(seal, "deviceHTTPSessionAuthorized=False", "deviceHTTPSessionAuthorized=True"),
+            change(seal, "device_http_case / 'input' / name", "device_http_case / 'input' / 'SYNTHETIC-ONLY-a.der'"),
+            change(upload, "/native-host/product_session_http.h", "/native-host/tx_batch.h"),
+            change(upload, "/native-host/DEVICE-HTTP-PUBLIC-RECEIPT.json", "/input/SYNTHETIC-ONLY-a.der"),
+            change(arm_upload, "/darwin-arm64/DEVICE-HTTP-PUBLIC-INTEROP.json", "/input/SYNTHETIC-ONLY-b.der"),
+        ]
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):

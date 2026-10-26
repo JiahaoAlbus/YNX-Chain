@@ -108,6 +108,8 @@ on:
       - 'scripts/verify/account-initial-cabi-check.sh'
       - 'scripts/fixtures/verify-publisher-registration-cabi/**'
       - 'scripts/verify/publisher-registration-cabi-check.sh'
+      - 'scripts/fixtures/verify-product-session-http-cabi/**'
+      - 'scripts/verify/product-session-http-cabi-check.sh'
       - 'scripts/fixtures/verify-project-control-cabi/**'
       - 'scripts/verify/project-control-cabi-check.sh'
       - 'scripts/verify/seal-project-control-cabi.py'
@@ -650,6 +652,12 @@ jobs:
           bash scripts/verify/publisher-registration-cabi-check.sh \
             "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \
             "$RUNNER_TEMP/ynx-publisher-registration-cabi"
+      - name: Execute fixed device HTTP proof ABI from the same native archive
+        run: |
+          set -euo pipefail
+          bash scripts/verify/product-session-http-cabi-check.sh \
+            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \
+            "$RUNNER_TEMP/ynx-product-session-http-cabi"
       - name: Verify the executed original Main arm64 target
         if: runner.os == 'macOS'
         run: |
@@ -664,6 +672,7 @@ jobs:
           lipo "$RUNNER_TEMP/ynx-transaction-batch-cabi/tx-c-driver" -verify_arch arm64
           lipo "$RUNNER_TEMP/ynx-account-initial-cabi/initial-c-driver" -verify_arch arm64
           lipo "$RUNNER_TEMP/ynx-publisher-registration-cabi/publisher-c-driver" -verify_arch arm64
+          lipo "$RUNNER_TEMP/ynx-product-session-http-cabi/device-http-c-driver" -verify_arch arm64
           # The immediately preceding real C call executed this exact archive
           # on the original Main target. No cross-compiled runtime claim.
       - name: Install pinned contract runtime for Darwin migration callers
@@ -704,6 +713,7 @@ jobs:
           case = Path(os.environ['RUNNER_TEMP']) / 'ynx-artifact-release-cabi'
           transaction_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-transaction-batch-cabi'
           initial_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-account-initial-cabi'
+          device_http_case = Path(os.environ['RUNNER_TEMP']) / 'ynx-product-session-http-cabi'
           delivery = case / 'delivery'
           delivery.mkdir(mode=0o700)
           def command(*args):
@@ -725,7 +735,8 @@ jobs:
               'scripts/fixtures/verify-transaction-batch-cabi', 'scripts/verify/artifact-release-cabi-check.sh',
               'scripts/verify/transaction-batch-cabi-check.sh', 'scripts/fixtures/verify-account-initial-cabi',
               'scripts/verify/account-initial-cabi-check.sh', 'scripts/fixtures/verify-publisher-registration-cabi',
-              'scripts/verify/publisher-registration-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()
+              'scripts/verify/publisher-registration-cabi-check.sh', 'scripts/fixtures/verify-product-session-http-cabi',
+              'scripts/verify/product-session-http-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()
           sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}
           native_os, native_arch = command('go','env','GOOS'), command('go','env','GOARCH')
           targets = [('native-host', case / 'libynx_artifact_release.a', native_os, native_arch, True)]
@@ -737,6 +748,7 @@ jobs:
           public_pins = {name:pin(case / 'output' / name) for name in public_names}
           transaction_public_pins = {'TX-'+name:pin(transaction_case / 'input' / name) for name in public_names}
           initial_public_pins = {'INITIAL-'+name:pin(initial_case / 'input' / name) for name in public_names}
+          device_http_public_pins = {'DEVICE-HTTP-'+name:pin(device_http_case / 'input' / name) for name in public_names}
           for label, archive, target_os, target_arch, executed in targets:
               out = delivery / label
               out.mkdir(mode=0o700)
@@ -744,10 +756,12 @@ jobs:
               shutil.copyfile('cmd/ynx-artifact-release-cabi/ynx_artifact_release.h', out / 'ynx_artifact_release.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/tx_batch.h', out / 'tx_batch.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/account_initial.h', out / 'account_initial.h')
+              shutil.copyfile('cmd/ynx-artifact-release-cabi/product_session_http.h', out / 'product_session_http.h')
               for name in public_names:
                   shutil.copyfile(case / 'output' / name, out / name)
                   shutil.copyfile(transaction_case / 'input' / name, out / ('TX-'+name))
                   shutil.copyfile(initial_case / 'input' / name, out / ('INITIAL-'+name))
+                  shutil.copyfile(device_http_case / 'input' / name, out / ('DEVICE-HTTP-'+name))
               record = dict(version='YNX-ARTIFACT-RELEASE-CABI-CANDIDATE/v1', commit=os.environ['GITHUB_SHA'],
                   sourceTree=command('git','rev-parse','HEAD^{tree}'), runId=os.environ['GITHUB_RUN_ID'],
                   runAttempt=os.environ['GITHUB_RUN_ATTEMPT'], job=os.environ['GITHUB_JOB'],
@@ -770,6 +784,11 @@ jobs:
                   initialAccountHeader=pin(out / 'account_initial.h'), initialAccountPublicEvidence=initial_public_pins,
                   actualInitialAccountCABIExecuted=executed, initialAccountIndependentGoDualANDVerified=executed,
                   initialAccountCallerRecipe='scripts/verify/account-initial-cabi-check.sh', initialAccountAuthorized=False,
+                  deviceHTTPABI='YNXProductSessionHTTPProofSignV4', deviceHTTPABIVersion=4,
+                  deviceHTTPHeader=pin(out / 'product_session_http.h'), deviceHTTPPublicEvidence=device_http_public_pins,
+                  actualDeviceHTTPCABIExecuted=executed, deviceHTTPIndependentGoDualANDVerified=executed,
+                  deviceHTTPCallerRecipe='scripts/verify/product-session-http-cabi-check.sh',
+                  deviceHTTPSourceQualified=False, deviceHTTPSessionAuthorized=False,
                   nativeHostCoreTestsPassed=True, actualCABIExecuted=executed,
                   independentGoDualANDVerified=executed, typedN1Inspected=executed,
                   crossCompiled=(not executed and (target_os,target_arch)!=(native_os,native_arch)),
@@ -858,6 +877,7 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/ynx_artifact_release.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/tx_batch.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/account_initial.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/product_session_http.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/SOURCE.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PUBLIC-RECEIPT.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PUBLIC-INTEROP.json
@@ -865,6 +885,8 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/TX-PUBLIC-INTEROP.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/INITIAL-PUBLIC-RECEIPT.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/INITIAL-PUBLIC-INTEROP.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/DEVICE-HTTP-PUBLIC-RECEIPT.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/DEVICE-HTTP-PUBLIC-INTEROP.json
           if-no-files-found: error
           retention-days: 7
       - name: Upload only public Main arm64 archive header and executed target evidence
@@ -877,11 +899,14 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/ynx_artifact_release.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/tx_batch.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/account_initial.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/product_session_http.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/SOURCE.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/TX-PUBLIC-RECEIPT.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/TX-PUBLIC-INTEROP.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/INITIAL-PUBLIC-RECEIPT.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/INITIAL-PUBLIC-INTEROP.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/DEVICE-HTTP-PUBLIC-RECEIPT.json
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/DEVICE-HTTP-PUBLIC-INTEROP.json
           if-no-files-found: error
           retention-days: 7
 
