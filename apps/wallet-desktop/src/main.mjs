@@ -577,9 +577,14 @@ handleWalletIPC('wallet:pq-typed-action-review',(_event,input)=>sensitiveIPC(asy
   return {requestId:response.request.id,submitted:false};
 }));
 handleWalletIPC('wallet:pq-broadcast-review',(_event,hash)=>sensitiveIPC(async()=>{
-  const response=await walletAuthority.requestPQBroadcast(hash);
-  keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
-  return {requestId:response.request.id,submitted:false};
+  const guard=keyAccess.current();guard.assert();let response;
+  try{
+    response=await walletAuthority.requestPQBroadcast(hash);guard.assert();
+    if(response?.status!=='approval-required'||!['ynx_broadcastPQNativeTransfer','ynx_broadcastPQMigration','ynx_broadcastPQNativeAction'].includes(response.request?.method)||typeof response.request.id!=='string'||response.request.review?.account!==guard.account)throw Error('The original broadcast review is unavailable.');
+    if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
+    mainWindow.webContents.send('wallet:provider-request',response.request);guard.assert();
+    return {requestId:response.request.id,submitted:false};
+  }catch(error){if(typeof response?.request?.id==='string')walletAuthority.expire(response.request.id);throw error;}
 }));
 handleWalletIPC('wallet:pq-submission-query',(_event,hash)=>sensitiveIPC(()=>pqTransactionSubmission.reconcile(hash,keyAccess.current())));
 handleWalletIPC('wallet:pq-finality-collect',(_event,hash)=>sensitiveIPC(()=>pqFinalityCollection.collect(hash,keyAccess.current())));
@@ -588,9 +593,14 @@ handleWalletIPC('wallet:pq-finality-restore',(_event,hash)=>sensitiveIPC(()=>pqF
 handleWalletIPC('wallet:pq-finality-save',(_event,hash)=>sensitiveIPC(()=>pqFinalityCollection.save(hash,keyAccess.current())));
 handleWalletIPC('wallet:pq-finality-verifier-status',()=>safeIPC(()=>createOriginalPQFinalityVerifier().verifyAssets()));
 handleWalletIPC('wallet:pq-migration-review',(_event,input)=>sensitiveIPC(async()=>{
-  const response=await walletAuthority.requestPQMigration(input);
-  keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
-  return {requestId:response.request.id,submitted:false};
+  const guard=keyAccess.current();guard.assert();let response;
+  try{
+    response=await walletAuthority.requestPQMigration(input);guard.assert();
+    if(response?.status!=='approval-required'||response.request?.method!=='ynx_signPQMigration'||typeof response.request.id!=='string'||response.request.review?.account!==guard.account)throw Error('The original migration review is unavailable.');
+    if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
+    mainWindow.webContents.send('wallet:provider-request',response.request);guard.assert();
+    return {requestId:response.request.id,submitted:false};
+  }catch(error){if(typeof response?.request?.id==='string')walletAuthority.expire(response.request.id);throw error;}
 }));
 handleWalletIPC('wallet:pq-revocation-review',(_event,input)=>sensitiveIPC(async()=>{
   const response=await walletAuthority.requestPQRevocation(input);
