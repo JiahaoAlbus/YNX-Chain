@@ -746,8 +746,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-pq-host-catalog-source-contract.mjs",
-      "bytes": 3411,
-      "sha256": "fff1be6e5bd9859b3dc35dc10fd1f17351ad4423f56b51e20405e00417155cd9"
+      "bytes": 3436,
+      "sha256": "19123c0a8d3af15d910c12ff17f30cd0a1f223f1dac1d23e313c108fce1ec5b6"
     },
     {
       "path": "packages/wallet-auth/native/original-pq-host-catalog-task-exit.h",
@@ -2193,5 +2193,15 @@
     "SourceAdmission": false,
     "NativeAdmission": false,
     "approval": false
+  },
+  "catalogSourceHashSuccessor": {
+    "sourceVariant": "SDK46-CATALOG-HASH/v1",
+    "scope": "originalHash equals 0x+nativeWireHash; distinct bare transactionHash retained",
+    "originalSDK46IdentityReusable": false,
+    "oldNative100RecordReusable": false,
+    "ABIChanged": false,
+    "RootPurposeChanged": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false
   }
 }
