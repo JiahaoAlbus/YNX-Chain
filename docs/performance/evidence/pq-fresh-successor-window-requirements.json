@@ -1,0 +1,80 @@
+{
+  "classification": "next complete-window preparation requirements, not an executable tuple",
+  "finalCandidate": null,
+  "finalNormalRun": null,
+  "checkpointFixReference": {
+    "commit": "34ed1c6bfe865660f19ad9f171d15cd5ebe94af5",
+    "tree": "c8afefd9371ee79727674a8e0a5d084b39fa8c43",
+    "reportedCI": 40263810956,
+    "ciConclusion": null,
+    "isFinalPerformanceCandidate": false
+  },
+  "fixedInputTemplate": {
+    "candidate_sha": "",
+    "normal_ci_run_id": "",
+    "paired_n1": false,
+    "consensus_e2e": false,
+    "consensus_e2e_retained_history": false,
+    "consensus_remote_e2e_retained_history": false,
+    "consensus_fresh_paired_business": true,
+    "remote_signer_process": false,
+    "remote_checkpoint_layout": "atomic-json",
+    "remote_process_authorization": "",
+    "remote_manifest_sha256": "",
+    "remote_test_sha256": "",
+    "remote_daemon_sha256": ""
+  },
+  "runtimeCaps": {
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "totalMs": 120000,
+    "ownedRSSBytes": 1073741824,
+    "threads": 320,
+    "ownedProcesses": 16,
+    "privateBytes": 536870912,
+    "buildBytes": 1073741824,
+    "logBytes": 1048576,
+    "diskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "compileReserveBytes": 1073741824,
+    "availableMemoryFloorBytes": 1207959552,
+    "sampleMs": 200
+  },
+  "runnerProfile": {
+    "job": "focused-go",
+    "label": "ubuntu-24.04",
+    "vmCount": 1,
+    "architecture": "linux/amd64",
+    "actualBootId": null,
+    "actualRunnerIdentity": null,
+    "outerTimeoutMinutes": 12,
+    "concurrencyGroup": "ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade",
+    "cancelInProgress": false
+  },
+  "normalAdmissionTimeoutMinutes": 1,
+  "relocationTimeoutMinutes": 3,
+  "executionStepTimeoutMinutes": 3,
+  "remainingOuterSecondsRequired": 150,
+  "requirements": [
+    "Wait original owner final combined checkpoint/setup source; standalone34ed is not a runnable performance candidate.",
+    "Whole-success normal source and exact same-producer fresh/stage H, closed members, fixed70 identity and all4ELF byte pins.",
+    "Freeze actual same-candidate branch/ref/workflow/controller/3fresh leaves/13inputs and all job/step boundaries.",
+    "Keep original normal relocation on actual oneLinuxVM, new exclusive case/build, strict11 prepared and7 manifest, original7public outputs.",
+    "Keep all strictAND/4replica account, coldhalt/HRS/nonce/balance assertions; no cap extension or oldapproval/binary reuse.",
+    "Expose stable Host checkpoint predicate values; preserve consistent independent source acquisition.",
+    "Measure actual per-arm setup/initial execution, block/persistence phases and16 independent readback outcomes with queue concurrency clearly identified.",
+    "Budget uses actual nonoverlapping observations; never count nested/parallel spans twice or treat doubled setup scenario as measured after.",
+    "Only after final complete tuple is pinned request a new Root exact once-window grant."
+  ],
+  "oldRunsConsumed": [
+    40244217629,
+    40250636388,
+    40261635920
+  ],
+  "protocolCIWatchedHere": false,
+  "binariesDownloadedHere": false,
+  "compiledHere": false,
+  "dispatchExecuted": false,
+  "executionReady": false,
+  "newRootWindowAuthorized": false
+}

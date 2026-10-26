@@ -1,0 +1,59 @@
+{
+  "classification": "static budget accounting from one failed before arm; not runtime qualification",
+  "sourceStageReport": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7a260-whole-once/PARTIAL_STAGE_TIMINGS.json",
+    "bytes": 33487,
+    "sha256": "710bdac84d7615889736a690863d90f4348f31c89a5d51b8aeded96feb0d8bb5"
+  },
+  "observedOnly": {
+    "completedSpans": 45,
+    "unfinishedSpans": 1,
+    "afterArmMeasured": false,
+    "parentClockLastCompletedOffsetNs": "76532253185",
+    "beforeSetupUntilBusinessIntentNs": "56979981514",
+    "pqStartAndActivationNs": "16442773895",
+    "initialExecutionAndActivationNs": "17910717782",
+    "validatorRegistrationNs": "14209995826",
+    "observedConstructionNs": "1662968017",
+    "nestedCustodyAndRecoveryNs": "1220560927",
+    "businessOfferCalls": 16,
+    "sumOfferInclusiveNs": "55976071496",
+    "unionOfferObservedNs": "16470334571",
+    "unionOfferIntervalsNs": [
+      [
+        "57972786429",
+        "74443121000"
+      ]
+    ],
+    "sumAllCompletedInclusiveNs": "117179224429",
+    "unionAllCompletedObservedNs": "76452926577",
+    "overlapDoubleCountIfSummedNs": "40726297852",
+    "businessInclusionCheckNs": "1058709237",
+    "businessCommitEvidenceCheckNs": "352071399",
+    "hostContextCompleted": false,
+    "independentReadbackCallsStarted": 0,
+    "normalCleanupNs": "601044123"
+  },
+  "guardClockSeparate": {
+    "activeCapMs": 105000,
+    "actualTerminalElapsedMs": 77707,
+    "nominalUnusedActiveBudgetAtFailureMs": 27293,
+    "sameClockAsGoStageOffsetsProven": false,
+    "subtractingGuardElapsedFromGoOffsetsAllowed": false,
+    "grantConsumed": true
+  },
+  "nonMeasuredPlanningScenario": {
+    "label": "If a second setup cost exactly equaled the measured first setup; not a measured after arm or prediction",
+    "twiceObservedSetupNs": "113959963028",
+    "afterSetupMeasured": false,
+    "causalImprovementProven": false
+  },
+  "constraints": [
+    "Keep active105+cleanup15/total120, all original floors/reserves and strict AND checks.",
+    "Repair stable Host checkpoint acquisition before interpreting this run as independent business finality.",
+    "Measure final successor setup/initial execution/proof queue separately; do not reduce validation based on span totals.",
+    "Nested spans and concurrent offer calls overlap. Union is observed interval coverage, not CPU time or pure network/crypto time.",
+    "No per-block persistence rows were exported in this failed result; encoding/fsync quantiles cannot be reconstructed.",
+    "No second arm or independent proof outcomes exist; no paired speedup, sustained business TPS or P95 finality claim."
+  ]
+}
