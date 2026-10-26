@@ -67,7 +67,7 @@ def selected_profile(consensus_e2e=False, consensus_e2e_retained_history=False,
 E2E_TEST = "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart"
 E2E_SOURCE = "internal/consensus/pq_network_e2e_test.go"
 # Updated only with the separately frozen test leaves and normal CI compilation.
-E2E_SOURCE_SHA256 = "b8c15de1e2b4b1927e8276301e5c04ef7108677d5d16043426b9bc62825598e1"
+E2E_SOURCE_SHA256 = "a6029a4e54a7cbe86e31fdc0a0e88ffac2d17940a709feb13d6f274de44829d2"
 E2E_PROGRESS_SOURCE = "internal/consensus/pq_network_progress_test.go"
 E2E_PROGRESS_SOURCE_SHA256 = "66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044"
 E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
@@ -83,7 +83,7 @@ REMOTE_E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
 BUSINESS_E2E_TEST = "TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality"
 BUSINESS_E2E_SOURCE = "internal/consensus/pq_network_business_test.go"
 # The owning test freezes this leaf together with the shared network source.
-BUSINESS_E2E_SOURCE_SHA256 = "7be691837779d42c9e86fcda32b2c1ee8fa701754336062be39f77bb30ba4d21"
+BUSINESS_E2E_SOURCE_SHA256 = "0b4739b3ac7a3c8a21573074d74734da964c256e76d0f10fb5b42a8e7db63d73"
 BUSINESS_CLIENT_COMMIT = "3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0"
 FRESH_BUSINESS_E2E_TEST = "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming"
 FRESH_BUSINESS_E2E_SOURCE = "internal/consensus/pq_network_fresh_business_test.go"

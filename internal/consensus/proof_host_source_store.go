@@ -571,17 +571,3 @@ func exportNodeProofHostSourceContext(ctx context.Context, n *node.Node, app *Ap
 	committed := func(actual sm.State) ([]byte, error) { return app.captureProofHostCommittedJSON(actual) }
 	return in.capture(proofHostLedger{load: load, validators: view.LoadValidators, results: view.LoadFinalizeBlockResponse, blocks: view, committed: committed}, output, now)
 }
-
-func (app *Application) captureProofHostCommittedJSON(actual sm.State) ([]byte, error) {
-	app.mu.RLock()
-	defer app.mu.RUnlock()
-	if app.bootstrap == nil || app.bootstrap.record.ChainID != actual.ChainID || app.committed.Height != actual.LastBlockHeight || app.committed.AppHash != hex.EncodeToString(actual.AppHash) {
-		return nil, errors.New("live engine/application checkpoint changed before capture")
-	}
-	// Do not assume every nested business map/slice is immutable after a shallow
-	// copy. Encode the complete current committed value while its normal lock is
-	// held, then release before decoding, validation, hashing and cryptography.
-	// Large-checkpoint lock latency requires operator measurement; no claim of
-	// production live latency or permission to invoke this on a public node.
-	return encodeCommittedStateJSON(app.committed)
-}

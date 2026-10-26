@@ -752,7 +752,7 @@ class LinuxGuardControls(unittest.TestCase):
 
     def test_retained_history_keeps_exact_environment_command_and_two_pins(self):
         profile = guard.E2E_RETAINED_HISTORY_PROFILE
-        self.assertEqual(guard.E2E_SOURCE_SHA256, "b8c15de1e2b4b1927e8276301e5c04ef7108677d5d16043426b9bc62825598e1")
+        self.assertEqual(guard.E2E_SOURCE_SHA256, "a6029a4e54a7cbe86e31fdc0a0e88ffac2d17940a709feb13d6f274de44829d2")
         self.assertEqual(guard.E2E_PROGRESS_SOURCE_SHA256, "66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044")
         mutations = [lambda p:p.update(executionAuthorized=True),
                      lambda p:p["command"].__setitem__(3, "-test.timeout=150s"),
