@@ -401,6 +401,7 @@ test('all ten actual Host helper wall stages survive failed-window diagnostics w
  assert.equal(h.observations.length,1);assert.equal(h.childrenAreIncludedInTotal,true);assert.equal(h.arms[0].phases.totalWallNs.p50Ns,'10');
  assert.equal(h.arms[0].phases.checkpointValidateWallNs.p50Ns,'1');assert.equal(h.arms[0].phases.checkpointRetryWaitNs.p50Ns,'1');assert.equal(h.arms[1].phases.totalWallNs.p50Ns,null);
  assert.equal(r.fullPairQualified,false);assert.equal(r.sustainedTPSQualified,false);assert.equal(h.independentProofReverifiedHere,false);
+ const noRetry=hostDiagnosticFixture();noRetry.progress=noRetry.progress.replace('hostNs=[10,1,1,1,1,1,1,1,1,1]','hostNs=[10,1,1,1,1,1,1,0,1,1]');const retry=diagnosticRead(noRetry).hostPreparationStages.arms[0].phases.checkpointRetryWaitNs;assert.equal(retry.samples,0);assert.equal(retry.p50Ns,null);assert.equal(retry.notInvokedSamples,1);
  const partial=hostDiagnosticFixture();partial.progress+=hostProgress('after',0,'business-host-context','begin',195,0);const p=diagnosticRead(partial);
  assert.equal(p.progressStages.unfinished.length,1);assert.equal(p.hostPreparationStages.unfinished.length,1);assert.equal(p.hostPreparationStages.arms[1].completedPreparations,0);
 });
