@@ -403,12 +403,68 @@ func pqFreshNew(n *pqNetworkE2E, b *pqNetworkBusiness) []pqFreshAccount {
 	return accounts
 }
 
-func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain string) []*pqFreshTrace {
+// This bounded progress stream is retained even when the enclosing process
+// deadline interrupts a later phase. It contains coordinator-clock DATA only,
+// never keys, transaction bytes, inferred completion or a new timeout budget.
+func pqFreshStage(t *testing.T, origin time.Time, arm, phase string, node, index int) func() {
+	t.Helper()
+	started := time.Now()
+	t.Logf("PQ_NETWORK_FRESH_PROGRESS arm=%s phase=%s node=%d index=%d event=begin offsetNs=%d durationNs=0", arm, phase, node, index, started.Sub(origin).Nanoseconds())
+	return func() {
+		t.Helper()
+		ended := time.Now()
+		t.Logf("PQ_NETWORK_FRESH_PROGRESS arm=%s phase=%s node=%d index=%d event=complete offsetNs=%d durationNs=%d", arm, phase, node, index, ended.Sub(origin).Nanoseconds(), ended.Sub(started).Nanoseconds())
+	}
+}
+
+// Many distinct transactions can share a committed block. Verify each actual
+// block and its successor once per immutable evidence set, without changing
+// transaction order, per-account checks or any independent transaction proof.
+// This is a bounded local plan, not a cross-commit authentication cache.
+func pqFreshCommitHeightPlan(initial int64, heights []int64) ([]int64, error) {
+	if len(heights) == 0 || len(heights) > pqFreshAccounts {
+		return nil, errors.New("bounded nonempty fresh transaction heights required")
+	}
+	seen := make(map[int64]bool, 2*len(heights))
+	for _, height := range heights {
+		if height == 1<<63-1 {
+			return nil, errors.New("fresh successor height would overflow")
+		}
+		if err := pqNetworkE2EBlockBudget(initial, height, 1); err != nil {
+			return nil, err
+		}
+		seen[height], seen[height+1] = true, true
+	}
+	plan := make([]int64, 0, len(seen))
+	for height := range seen {
+		plan = append(plan, height)
+	}
+	sort.Slice(plan, func(i, j int) bool { return plan[i] < plan[j] })
+	return plan, nil
+}
+
+func pqFreshVerifyCommits(n *pqNetworkE2E, heights []int64) {
+	n.t.Helper()
+	plan, err := pqFreshCommitHeightPlan(n.doc.InitialHeight, heights)
+	if err != nil {
+		n.t.Fatal("original block/successor evidence plan refused:", err)
+	}
+	for _, height := range plan {
+		// Keep all four replicas, real validator sets, complete AND signatures,
+		// strict >2/3 and the two-signature rejection in the original helper.
+		n.verifyCommit(height, true, 4, false)
+	}
+}
+
+func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain, arm string) []*pqFreshTrace {
 	t := n.t
 	n.phase = pqNetworkPhaseLegacy
+	finish := pqFreshStage(t, origin, arm, "legacy-start", -1, -1)
 	n.startLegacy()
+	finish()
 	n.phase = pqNetworkPhaseValidatorRegistration
 	for i, member := range n.bootstrap.record.Members {
+		finish = pqFreshStage(t, origin, arm, "validator-registration", i, -1)
 		h := n.quiet(4)
 		item := n.nodeForAddress(member.Address)
 		intent := ynxconsensusauth.RegistrationIntent{Kind: ynxconsensusauth.RegisterValidator, GenesisID: bytes.Clone(n.bootstrap.genesisID), ChainID: n.doc.ChainID, ValidatorAddress: bytes.Clone(member.Address), Sequence: 1, Epoch: 1, ApprovedAt: h + 1, EffectiveAt: h + 3, PreviousEventHash: make([]byte, 32), LegacyEd25519PublicKey: bytes.Clone(member.Ed25519), MLDSA87PublicKey: bytes.Clone(item.material.PublicA), SLHDSASHA2256fPublicKey: bytes.Clone(item.material.PublicB)}
@@ -431,7 +487,9 @@ func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain string) []*pqFres
 		if got := n.submit(payload, 4); got != h+1 {
 			t.Fatalf("fresh validator %d approval executed at %d, signed for %d", i, got, h+1)
 		}
+		finish()
 	}
+	finish = pqFreshStage(t, origin, arm, "original-height-halt", -1, -1)
 	h := n.quiet(4)
 	var registry *ValidatorRegistryState
 	n.query(0, "/validator-registry", &registry)
@@ -439,6 +497,8 @@ func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain string) []*pqFres
 		t.Fatal("fresh four-validator original Ed approvals/dual possession did not commit")
 	}
 	h, registry = n.haltOriginalAtCommonHeight(h, registry)
+	finish()
+	finish = pqFreshStage(t, origin, arm, "activation-schedule", -1, -1)
 	preserved := n.business()
 	schedule, err := NewPQEngineSchedule(n.bootstrap, registry, h, h+4)
 	if err != nil {
@@ -457,14 +517,19 @@ func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain string) []*pqFres
 		t.Fatal(err)
 	}
 	n.schedule, n.phase = schedule, pqNetworkPhaseActivation
-	// Reuse the original vault/HRS creation, without starting these nodes. Then
-	// close normally and resume the same identities with an observed ABCI client.
-	for _, item := range n.nodes {
-		n.constructPQ(item, true)
-	}
-	n.stopAll()
+	finish()
+	// Attach the observer to the first normal PQ construction. Constructing four
+	// unstarted nodes merely to close and construct them again repeats the same
+	// cold application, vault recovery and handshake without adding a restart.
+	// The original legacy nodes have already stopped and passed their independent
+	// cold checkpoint/history checks above; all custody and node checks below are
+	// the unchanged normal operations on those same original files and identities.
 	traces := make([]*pqFreshTrace, 4)
 	for i, item := range n.nodes {
+		finish = pqFreshStage(t, origin, arm, "observed-pq-construction", i, -1)
+		if item.node != nil {
+			t.Fatal("observed PQ construction would replace a live original node")
+		}
 		n.acquireWriterLeases(item, true)
 		app, err := NewPersistentApplicationWithEngineAuthorization(n.migration, item.appPath, n.bootstrap, n.authorization)
 		if err != nil {
@@ -475,12 +540,41 @@ func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain string) []*pqFres
 		if err != nil {
 			t.Fatal(err)
 		}
+		finishCustody := pqFreshStage(t, origin, arm, "initial-validator-custody", i, -1)
+		item.binding = ynxconsensusauth.HostKeyBinding{Policy: ynxconsensusauth.Policy{Version: ynxconsensusauth.ConsensusGenesisVersion, GenesisID: bytes.Clone(n.bootstrap.genesisID), ChainID: n.doc.ChainID, ActivationHeight: n.schedule.ActivationHeight}, ValidatorAddress: bytes.Clone(item.address), Epoch: 1, MLDSA87PublicKey: bytes.Clone(item.material.PublicA), SLHDSASHA2256fPublicKey: bytes.Clone(item.material.PublicB), SignerStatePath: filepath.Join(item.config.RootDir, "data", "pq-sign-state.json")}
+		created, err := ynxconsensusauth.CreateSigner(item.binding.SignerStatePath, item.pqKey, item.binding.Policy, committed, item.address, 1)
+		if err != nil {
+			t.Fatal("new epoch durable signer:", err)
+		}
+		if err := created.Close(); err != nil {
+			t.Fatal(err)
+		}
+		item.credential, err = ynxconsensusauth.GenerateHostRecoveryCredential()
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { clear(item.credential) })
+		vault, err := ynxconsensusauth.SealHostKeyEnvelope(item.material, item.binding, item.credential)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(item.vaultPath, vault, 0600); err != nil {
+			t.Fatal(err)
+		}
+		item.material.Clear()
+		item.pqKey.Destroy()
+		if err := n.verifyStoppedSigningHistory(item); err != nil {
+			t.Fatal("original stopped signing history:", err)
+		}
+		finishCustody()
 		beforePQ := pqNetworkE2ERead(t, item.binding.SignerStatePath)
 		beforeEd := pqNetworkE2ERead(t, item.config.PrivValidatorStateFile())
+		finishRecovery := pqFreshStage(t, origin, arm, "original-custody-recovery", i, -1)
 		item.host, err = ynxconsensusauth.ResumeHostSigner(item.vaultPath, item.credential, item.binding, committed)
 		if err != nil {
 			t.Fatal(err)
 		}
+		finishRecovery()
 		signer, err := item.host.Signer()
 		if err != nil {
 			t.Fatal(err)
@@ -503,14 +597,17 @@ func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain string) []*pqFres
 			t.Fatal("observed normal constructor changed original store/identity/HRS")
 		}
 		n.configureStore(item)
+		finish()
 	}
 	if !bytes.Equal(preserved, n.business()) {
 		t.Fatal("trace attachment changed actual committed state")
 	}
+	finish = pqFreshStage(t, origin, arm, "pq-start-and-activation", -1, -1)
 	n.startConstructed(4)
 	n.driveThrough(schedule.ActivationHeight+1, 4)
 	n.verifyTransition()
 	n.verifyCommit(schedule.ActivationHeight, true, 4, false)
+	finish()
 	return traces
 }
 
@@ -548,7 +645,8 @@ func pqFreshIncluded(n *pqNetworkE2E, payload []byte) (int64, int) {
 	return height, index
 }
 
-func pqFreshBirths(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAccount) []pqFreshBirth {
+func pqFreshBirths(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAccount, origin time.Time, arm string) []pqFreshBirth {
+	finish := pqFreshStage(n.t, origin, arm, "initial-intent-preparation", -1, -1)
 	checkpoint := n.quiet(4)
 	activate := checkpoint + 6
 	wires, payloads := make([][]byte, len(accounts)), make([][]byte, len(accounts))
@@ -565,6 +663,8 @@ func pqFreshBirths(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAcco
 		}
 		pqBusinessWrite(n.t, filepath.Join(b.root, fmt.Sprintf("birth-%02d.wire", i)), wires[i])
 	}
+	finish()
+	finish = pqFreshStage(n.t, origin, arm, "initial-admission", -1, -1)
 	// All births use the normal signed mempool ingress. They are setup, not
 	// paced transfer offers, and are never added to the business denominator.
 	for _, payload := range payloads {
@@ -576,6 +676,8 @@ func pqFreshBirths(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAcco
 			n.t.Fatal("normal initial registration rejected; no legacy-signature fallback")
 		}
 	}
+	finish()
+	finish = pqFreshStage(n.t, origin, arm, "initial-execution-and-activation", -1, -1)
 	rows := make([]pqFreshBirth, len(accounts))
 	for i, payload := range payloads {
 		h, ix := pqFreshIncluded(n, payload)
@@ -583,9 +685,12 @@ func pqFreshBirths(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAcco
 	}
 	n.driveThrough(activate, 4)
 	n.quiet(4)
+	heights := make([]int64, len(rows))
+	for i, row := range rows {
+		heights[i] = row.Height
+	}
+	pqFreshVerifyCommits(n, heights)
 	for i, account := range accounts {
-		n.verifyCommit(rows[i].Height, true, 4, false)
-		n.verifyCommit(rows[i].Height+1, true, 4, false)
 		for node := range n.nodes {
 			state := n.account(node, account.owner)
 			if state.Balance != 1000 || state.Nonce != 1 {
@@ -594,6 +699,7 @@ func pqFreshBirths(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAcco
 		}
 		rows[i].RegistrationFinalized = true
 	}
+	finish()
 	return rows
 }
 
@@ -723,11 +829,19 @@ type pqFreshCompletion struct {
 }
 
 func pqFreshStart(n *pqNetworkE2E, b *pqNetworkBusiness, done chan<- pqFreshCompletion, index int, label string, args []string) time.Time {
-	cmd, finish := b.command(n.t, n.ctx, label, "ynx-consensus-perf-client", nil, args...)
+	started, err := pqFreshStartContext(n, b, n.ctx, done, index, label, args)
+	if err != nil {
+		n.t.Fatal("pinned normal fresh client failed to start; retain original intent")
+	}
+	return started
+}
+
+func pqFreshStartContext(n *pqNetworkE2E, b *pqNetworkBusiness, ctx context.Context, done chan<- pqFreshCompletion, index int, label string, args []string) (time.Time, error) {
+	cmd, finish := b.command(n.t, ctx, label, "ynx-consensus-perf-client", nil, args...)
 	started := time.Now()
 	if err := cmd.Start(); err != nil {
 		finish()
-		n.t.Fatal("pinned normal fresh client failed to start; retain original intent")
+		return time.Time{}, err
 	}
 	go func() {
 		err := cmd.Wait()
@@ -735,10 +849,63 @@ func pqFreshStart(n *pqNetworkE2E, b *pqNetworkBusiness, done chan<- pqFreshComp
 		finish()
 		done <- pqFreshCompletion{index: index, err: err, ended: ended}
 	}()
-	return started
+	return started, nil
 }
 
-func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAccount, baseline bool, origin time.Time) ([]pqFreshTransfer, int, int64, int64) {
+// Only read-only, per-transaction proof consumers enter this fixed four-slot
+// queue. Launch/preparation and result validation stay on the coordinator:
+// they call helpers which may Fatal, and must never run on a worker goroutine.
+func pqFreshReadbackQueue(parent context.Context, count int, start func(context.Context, int, chan<- pqFreshCompletion) error, accept func(pqFreshCompletion) error) error {
+	if parent == nil || count < 1 || count > pqFreshSenders || start == nil || accept == nil {
+		return errors.New("bounded nonempty fresh readback queue required")
+	}
+	ctx, cancel := context.WithCancel(parent)
+	done := make(chan pqFreshCompletion, pqFreshInFlight)
+	next, active, completed := 0, 0, 0
+	issued, seen := make([]bool, count), make([]bool, count)
+	defer func() {
+		cancel()
+		// Each successfully started child sends exactly once, only after Wait
+		// and finish (log close + post-binary pin check). The buffer holds all
+		// four completions even if preparation/validation calls Fatal/Goexit.
+		// Join them before any enclosing test/node cleanup can finish.
+		for active > 0 {
+			<-done
+			active--
+		}
+	}()
+	for completed < count {
+		for next < count && active < pqFreshInFlight {
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if err := start(ctx, next, done); err != nil {
+				return fmt.Errorf("fresh original readback %d failed to start: %w", next, err)
+			}
+			issued[next] = true
+			next++
+			active++
+		}
+		select {
+		case result := <-done:
+			active--
+			if result.index < 0 || result.index >= count || !issued[result.index] || seen[result.index] {
+				return errors.New("fresh readback completion does not identify one original started target")
+			}
+			seen[result.index] = true
+			if err := accept(result); err != nil {
+				return err
+			}
+			completed++
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
+}
+
+func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshAccount, baseline bool, origin time.Time, arm string) ([]pqFreshTransfer, int, int64, int64) {
+	finish := pqFreshStage(n.t, origin, arm, "business-intent-preparation", -1, -1)
 	rows := make([]pqFreshTransfer, pqFreshSenders)
 	for i, account := range accounts[1:] {
 		message, err := (ynxauth.Transfer{ChainID: n.nativeGenesis, NativeChainID: 6423, From: account.owner, To: accounts[0].owner, Amount: 1, Fee: 1, Nonce: 2}).SigningBytes()
@@ -754,7 +921,9 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 		pqBusinessWrite(n.t, path, wire)
 		rows[i] = pqFreshTransfer{Sender: account.owner, NativeHash: SignedTransactionHash(wire), ABCIHash: SignedTransactionHash(payload), wire: wire, payload: payload, path: path}
 	}
+	finish()
 	done := make(chan pqFreshCompletion, pqFreshInFlight)
+	finishOffers := make([]func(), len(rows))
 	started := time.Now()
 	var lastOffer time.Time
 	next, active, maximum := 0, 0, 0
@@ -773,6 +942,7 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 				label := fmt.Sprintf("member-%02d-submit", next)
 				out := filepath.Join(b.root, label+".json")
 				args := pqFreshArgs([]string{"-pq-member", rows[next].path, "-pq-gateway", b.url, "-output", out, "-timeout", "10s"}, baseline)
+				finishOffers[next] = pqFreshStage(n.t, origin, arm, "business-offer", -1, next)
 				rows[next].offered = pqFreshStart(n, b, done, next, label, args)
 				rows[next].OfferOffsetNs = rows[next].offered.Sub(origin).Nanoseconds()
 				rows[next].OfferLatenessNs = rows[next].offered.Sub(started.Add(time.Duration(next) * pqFreshInterval)).Nanoseconds()
@@ -797,11 +967,13 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 			if err != nil || result.err != nil && (!errors.As(result.err, &exit) || exit.ExitCode() != 1 || row.Submission.Status != "submission_unknown") || pqFreshSubmissionValid(row.Submission, *row, baseline) != nil {
 				n.t.Fatal("original offer result rejected; do not repeat an UNKNOWN transaction")
 			}
+			finishOffers[result.index]()
 		case <-time.After(5 * time.Millisecond):
 		case <-n.ctx.Done():
 			n.t.Fatal("original fresh offer deadline; preserve all signed wires and UNKNOWN")
 		}
 	}
+	finish = pqFreshStage(n.t, origin, arm, "business-original-inclusion", -1, -1)
 	for i := range rows {
 		rows[i].Height, rows[i].Index = pqFreshIncluded(n, rows[i].payload)
 		observed := rows[i].Submission
@@ -810,30 +982,54 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 		}
 	}
 	n.quiet(4)
-	// The queued proof observation is deliberately separate from the client's
-	// first committed RPC latency. Its elapsed time includes this verification
-	// queue; it must not be described as consensus formation time or a TPS SLA.
-	for i := range rows {
+	finish()
+	finish = pqFreshStage(n.t, origin, arm, "business-commit-evidence", -1, -1)
+	heights := make([]int64, len(rows))
+	for i, row := range rows {
+		heights[i] = row.Height
+	}
+	pqFreshVerifyCommits(n, heights)
+	finish()
+	// These independent proof observations use at most four clients/verifiers.
+	// Their elapsed time includes the bounded verification queue, separately from
+	// first committed RPC latency; it is not consensus formation time or a TPS SLA.
+	contextPins, readbackFiles := make([]string, len(rows)), make([]string, len(rows))
+	finishReadbacks := make([]func(), len(rows))
+	verifier := b.manifest.Binaries["ynx-consensus-proof-verify"]
+	err := pqFreshReadbackQueue(n.ctx, len(rows), func(ctx context.Context, i int, done chan<- pqFreshCompletion) error {
 		row := &rows[i]
-		n.verifyCommit(row.Height, true, 4, false)
-		n.verifyCommit(row.Height+1, true, 4, false)
+		finish = pqFreshStage(n.t, origin, arm, "business-host-context", -1, i)
 		label := fmt.Sprintf("member-%02d", i)
 		contextPath, contextPin, _ := b.hostContext(n, label, PQTransferType, row.wire, row.payload, row.Height, row.Index)
+		finish()
 		out := filepath.Join(b.root, label+"-readback.json")
-		verifier := b.manifest.Binaries["ynx-consensus-proof-verify"]
+		contextPins[i], readbackFiles[i] = contextPin, out
 		args := pqFreshArgs([]string{"-pq-member", row.path, "-pq-gateway", b.url, "-pq-readback-only", "-pq-collect-proof", "-pq-proof-verifier", verifier.Path, "-pq-proof-verifier-sha256", verifier.SHA256, "-pq-trust-context", contextPath, "-pq-trust-context-sha256", contextPin, "-output", out, "-timeout", "10s"}, baseline)
-		if b.runCommand(n.t, n.ctx, label+"-readback", "ynx-consensus-perf-client", nil, args...) != 0 {
-			n.t.Fatal("normal independent readback/verifier failed; no rebroadcast and no finalized credit")
+		finishReadbacks[i] = pqFreshStage(n.t, origin, arm, "business-independent-readback", -1, i)
+		_, err := pqFreshStartContext(n, b, ctx, done, i, label+"-readback", args)
+		return err
+	}, func(result pqFreshCompletion) error {
+		if result.err != nil {
+			return fmt.Errorf("normal independent readback/verifier %d failed; no rebroadcast or finalized credit: %w", result.index, result.err)
 		}
-		ended := time.Now()
-		var err error
-		row.Readback, err = pqFreshReport(out)
-		if err != nil || pqFreshReadbackValid(row.Readback, *row, baseline, verifier.SHA256, contextPin) != nil {
-			n.t.Fatal("actual independent proof disagrees with the Host's original target")
+		row := &rows[result.index]
+		report, err := pqFreshReport(readbackFiles[result.index])
+		if err != nil {
+			return err
 		}
+		if err := pqFreshReadbackValid(report, *row, baseline, verifier.SHA256, contextPins[result.index]); err != nil {
+			return fmt.Errorf("actual independent proof %d disagrees with the Host's original target: %w", result.index, err)
+		}
+		row.Readback = report
+		ended := result.ended // Actual cmd.Wait completion, not coordinator queue drain.
 		row.IndependentCompletionNs = ended.Sub(origin).Nanoseconds()
 		row.OfferToIndependentNs = ended.Sub(row.offered).Nanoseconds()
 		row.IndependentTimingMeaning = "upper-bound observation including queued proof verification; not consensus formation time"
+		finishReadbacks[result.index]()
+		return nil
+	})
+	if err != nil {
+		n.t.Fatal("original independent readback queue failed after joining owned work; preserve UNKNOWN:", err)
 	}
 	for node := range n.nodes {
 		for _, sender := range accounts[1:] {
@@ -875,15 +1071,24 @@ func pqFreshArmRun(t *testing.T, ctx context.Context, build pqFreshBuild, root, 
 	if err := os.Mkdir(root, 0700); err != nil {
 		t.Fatal("new exclusive fresh arm directory required")
 	}
+	finish := pqFreshStage(t, origin, name, "original-fixture", -1, -1)
 	b := &pqNetworkBusiness{manifest: pqNetworkBusinessManifest{ProtocolCommit: build.ProtocolCommit, PerformanceClientCommit: build.PerformanceClientCommit, SourceRoot: build.SourceRoot, SourceLeaves: build.SourceLeaves, Binaries: build.Binaries}, root: root}
 	n := pqNetworkE2ENewWithBusiness(t, ctx, nil, b)
-	defer n.stopAll()
-	defer b.close(t)
+	defer func() {
+		finishCleanup := pqFreshStage(t, origin, name, "normal-cleanup", -1, -1)
+		b.close(t)
+		n.stopAll()
+		finishCleanup()
+	}()
 	accounts := pqFreshNew(n, b)
-	traces := pqFreshActivate(n, origin, domain)
-	births := pqFreshBirths(n, b, accounts)
+	finish()
+	traces := pqFreshActivate(n, origin, domain, name)
+	births := pqFreshBirths(n, b, accounts, origin, name)
+	finish = pqFreshStage(t, origin, name, "gateway-start", -1, -1)
 	b.startGateway(n)
-	rows, maxInFlight, elapsed, businessStart := pqFreshTransfers(n, b, accounts, baseline, origin)
+	finish()
+	rows, maxInFlight, elapsed, businessStart := pqFreshTransfers(n, b, accounts, baseline, origin, name)
+	finish = pqFreshStage(t, origin, name, "actual-result-validation", -1, -1)
 	tip := n.quiet(4)
 	arm := pqFreshArm{Name: name, ReadbackIndexMode: pqFreshMode(baseline), GenesisSHA256: pqBusinessHash(n.rawGenesis), ActivationHeight: n.schedule.ActivationHeight, InitialHeight: n.doc.InitialHeight, FinalHeight: tip, Births: births, Rows: rows, OfferedBusiness: len(rows), MaximumInFlight: maxInFlight, OfferedRatePerSecond: 2, BusinessWindowNs: elapsed, BusinessStartNs: businessStart, ClockOrigin: "paired selector origin shared by both arms and all Host/ABCI offsets; child client durations use their own clock", Clock: pqFreshClock}
 	for i, trace := range traces {
@@ -927,6 +1132,7 @@ func pqFreshArmRun(t *testing.T, ctx context.Context, build pqFreshBuild, root, 
 	// Persist the completed first arm even if the second later fails. Its real
 	// evidence is retained; it cannot be promoted into a completed paired run.
 	pqBusinessWrite(t, filepath.Join(root, "arm.public.json"), public)
+	finish()
 	return arm
 }
 
@@ -1157,6 +1363,185 @@ func TestPQNetworkFreshInitialGenesisCanonicalOwnerOrder(t *testing.T) {
 	invalidPair.Accounts[0].PKB = "01"
 	if _, err := pqFreshEncodeInitialGenesis(plain, migration, invalidPair); err == nil {
 		t.Fatal("sorting bypassed full key-pair validation")
+	}
+}
+
+func TestPQNetworkFreshCommitHeightPlanPreservesTargetsAndSuccessors(t *testing.T) {
+	// Distinct public account/transaction coordinates share three actual blocks.
+	// De-duplicating their commit evidence must not re-order or alias those rows.
+	rows := make([]pqFreshBirth, pqFreshAccounts)
+	heights := make([]int64, len(rows))
+	for i := range rows {
+		rows[i] = pqFreshBirth{Owner: fmt.Sprintf("0x%040x", i+1), Height: 22 - int64(i%3), Index: i}
+		heights[i] = rows[i].Height
+	}
+	original := append([]pqFreshBirth(nil), rows...)
+	originalHeights := append([]int64(nil), heights...)
+	plan, err := pqFreshCommitHeightPlan(7, heights)
+	if err != nil || len(plan) != 4 {
+		t.Fatal("shared block evidence did not retain the exact four block/successor heights", plan, err)
+	}
+	for i, height := range []int64{20, 21, 22, 23} {
+		if plan[i] != height {
+			t.Fatal("actual block/successor evidence was lost or duplicated", plan)
+		}
+	}
+	for i := range rows {
+		if rows[i] != original[i] || heights[i] != originalHeights[i] {
+			t.Fatal("commit planning changed a sender, transaction order or original coordinate")
+		}
+	}
+	plan[0] = 50
+	again, err := pqFreshCommitHeightPlan(7, heights)
+	if err != nil || again[0] != 20 || heights[0] != originalHeights[0] {
+		t.Fatal("local evidence plan retained caller/result aliases")
+	}
+	// Sixteen different blocks still require every independent block/successor;
+	// no cap on proof count or transaction evidence is introduced by the plan.
+	for i := 0; i < pqFreshSenders; i++ {
+		heights[i] = 7 + 2*int64(i)
+	}
+	plan, err = pqFreshCommitHeightPlan(7, heights[:pqFreshSenders])
+	if err != nil || len(plan) != 2*pqFreshSenders {
+		t.Fatal("distinct transfer block/successor evidence was collapsed", plan, err)
+	}
+}
+
+func TestPQNetworkFreshCommitHeightPlanRejectsMissingAndOutOfBudgetEvidence(t *testing.T) {
+	const maximum = int64(1<<63 - 1)
+	for _, test := range []struct {
+		name    string
+		initial int64
+		heights []int64
+	}{
+		{"missing", 7, nil},
+		{"too-many", 7, make([]int64, pqFreshAccounts+1)},
+		{"unknown-initial", 0, []int64{7}},
+		{"before-initial", 7, []int64{6}},
+		{"successor-outside-original-48-block-cap", 7, []int64{54}},
+		{"successor-overflow", maximum, []int64{maximum}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if plan, err := pqFreshCommitHeightPlan(test.initial, test.heights); err == nil || plan != nil {
+				t.Fatal("invalid evidence produced a partial authentication plan", plan, err)
+			}
+		})
+	}
+	for _, test := range []struct {
+		initial int64
+		height  int64
+	}{{7, 53}, {maximum - 1, maximum - 1}} {
+		plan, err := pqFreshCommitHeightPlan(test.initial, []int64{test.height})
+		if err != nil || len(plan) != 2 || plan[0] != test.height || plan[1] != test.height+1 {
+			t.Fatal("valid last block/successor pair was rejected", plan, err)
+		}
+	}
+}
+
+func TestPQNetworkFreshReadbackQueueBoundedOutOfOrderTargets(t *testing.T) {
+	live, maximum, launched := 0, 0, 0
+	var order []int
+	origin := time.Date(2026, time.October, 26, 0, 0, 0, 0, time.UTC)
+	err := pqFreshReadbackQueue(context.Background(), pqFreshSenders, func(_ context.Context, index int, done chan<- pqFreshCompletion) error {
+		launched++
+		live++
+		if live > maximum {
+			maximum = live
+		}
+		if live > pqFreshInFlight || cap(done) < pqFreshInFlight {
+			return errors.New("readback queue exceeded its fixed completion/resource slots")
+		}
+		// All four independently indexed completions arrive in reverse order.
+		// The real coordinator must retain each original target and Wait clock.
+		if index%pqFreshInFlight == pqFreshInFlight-1 {
+			for i := index; i > index-pqFreshInFlight; i-- {
+				done <- pqFreshCompletion{index: i, ended: origin.Add(time.Duration(i) * time.Millisecond)}
+			}
+		}
+		return nil
+	}, func(result pqFreshCompletion) error {
+		live--
+		position := len(order)
+		want := position/pqFreshInFlight*pqFreshInFlight + pqFreshInFlight - 1 - position%pqFreshInFlight
+		if result.index != want || result.ended != origin.Add(time.Duration(want)*time.Millisecond) {
+			return errors.New("completion changed its transaction index or original Wait clock")
+		}
+		order = append(order, result.index)
+		return nil
+	})
+	if err != nil || launched != pqFreshSenders || len(order) != pqFreshSenders || maximum != pqFreshInFlight || live != 0 {
+		t.Fatal("bounded read-only queue lost a target or failed to use its four original slots", launched, order, maximum, live, err)
+	}
+	for _, count := range []int{0, pqFreshSenders + 1} {
+		calls := 0
+		err := pqFreshReadbackQueue(context.Background(), count, func(context.Context, int, chan<- pqFreshCompletion) error {
+			calls++
+			return nil
+		}, func(pqFreshCompletion) error { calls++; return nil })
+		if err == nil || calls != 0 {
+			t.Fatal("unbounded readback plan invoked a launch/result callback", count, calls, err)
+		}
+	}
+}
+
+func TestPQNetworkFreshReadbackQueueFailureCancelsAndJoinsStartedWork(t *testing.T) {
+	for _, mode := range []string{"start-failure", "report-failure", "parent-cancel"} {
+		t.Run(mode, func(t *testing.T) {
+			parent, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			failure := errors.New("original read-only operation failed")
+			finished := make(chan int, pqFreshInFlight)
+			var workers sync.WaitGroup
+			started, accepted := 0, 0
+			err := pqFreshReadbackQueue(parent, pqFreshSenders, func(ctx context.Context, index int, done chan<- pqFreshCompletion) error {
+				if mode == "start-failure" && index == 2 {
+					return failure // No child/completion exists for failed Start.
+				}
+				started++
+				workers.Add(1)
+				go func() {
+					defer workers.Done()
+					var err error
+					if mode != "report-failure" || index != 0 {
+						<-ctx.Done()
+						err = ctx.Err()
+					}
+					// Model the actual Wait -> finish -> completion ordering.
+					finished <- index
+					done <- pqFreshCompletion{index: index, err: err, ended: time.Now()}
+				}()
+				if mode == "parent-cancel" && index == pqFreshInFlight-1 {
+					cancel()
+				}
+				return nil
+			}, func(result pqFreshCompletion) error {
+				accepted++
+				if mode == "report-failure" {
+					return failure
+				}
+				return result.err
+			})
+			wanted := pqFreshInFlight
+			if mode == "start-failure" {
+				wanted = 2
+			}
+			if err == nil || mode != "parent-cancel" && !errors.Is(err, failure) || mode == "parent-cancel" && !errors.Is(err, context.Canceled) || started != wanted || mode == "start-failure" && accepted != 0 || mode == "report-failure" && accepted != 1 {
+				t.Fatal("readback failure lost its first cause or launched extra work", mode, started, accepted, err)
+			}
+			seen := map[int]bool{}
+			for i := 0; i < started; i++ {
+				select {
+				case index := <-finished:
+					if index < 0 || index >= started || seen[index] {
+						t.Fatal("joined completion does not belong to one original started child", index)
+					}
+					seen[index] = true
+				default:
+					t.Fatal("queue returned before an owned child's finish completed")
+				}
+			}
+			workers.Wait()
+		})
 	}
 }
 

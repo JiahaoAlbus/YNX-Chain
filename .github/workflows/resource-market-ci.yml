@@ -3829,7 +3829,7 @@ jobs:
               blob = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + leaf], text=True).strip()
               if subprocess.check_output(['git', 'hash-object', leaf], text=True).strip() != blob:
                   raise RuntimeError('actual test source differs from the committed compile input')
-              if leaf.endswith('pq_network_fresh_business_test.go') and expected['sha256'] != 'c4aceb55f38a8a3f93bc355d0293d9123a4fce2559a6cc87b8e7b2f6dd3667d4':
+              if leaf.endswith('pq_network_fresh_business_test.go') and expected['sha256'] != '49a3da463a26217fb19aa1b0f8e186f3826085cc47af2654ea527810f4cd7975':
                   raise RuntimeError('independent frozen fresh test source differs')
               copy(source_root / leaf, root / 'source' / leaf, expected, 256 << 10)
               source_leaves[leaf], source_blobs[leaf] = expected['sha256'], blob
