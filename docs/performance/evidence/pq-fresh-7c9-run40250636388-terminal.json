@@ -1,0 +1,139 @@
+{
+  "version": "YNX-PQ-FRESH32-WHOLE-ONCE-TERMINAL/v1",
+  "runId": 40250636388,
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40250636388",
+  "candidate": "7c9eac63da4b874853b9fd6f746eb88c5f3730bb",
+  "event": "workflow_dispatch",
+  "conclusion": "failure",
+  "onceRemoteDispatch": true,
+  "grantConsumed": true,
+  "grant": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/GRANT.json",
+    "bytes": 13505,
+    "sha256": "7d621b3971eed304b614171d14f3f8ae18544a7dd15de12ee5e4c069c5359e47"
+  },
+  "tuple": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/TUPLE.json",
+    "bytes": 36447,
+    "sha256": "feb82a116cd2ddda866f6404b429fa2249417c8ee7a70b919d2a84e311fcaa22"
+  },
+  "normalAdmissionPassed": true,
+  "actualRelocationPassed": true,
+  "prepared": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/result/ynx-pq-network-40250636388-1/prepared.json",
+    "bytes": 2043,
+    "sha256": "305301c77a417210c7520a457830241e8d0c703140c0ccbc8142456c4bceda36"
+  },
+  "businessManifest": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/result/ynx-pq-network-40250636388-1.build/business-manifest.json",
+    "bytes": 1719,
+    "sha256": "78759a7eeaf30f274965d847db0285fb07b7af8c5da9544ca7d9934f8852ccf6"
+  },
+  "preparedFieldCount": 11,
+  "originalPreparedExecutionAuthorized": false,
+  "resultArtifact": {
+    "id": 12620526128,
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/result.zip",
+    "bytes": 28852,
+    "sha256": "888b12306badd02b6f5cd513e75933d555053073925c8838b7c9c1017325c815"
+  },
+  "rawFiles": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/result/ynx-pq-fresh-intake-40250636388-1/relocation.json",
+      "bytes": 2457,
+      "sha256": "f6fd91e234a9dece27a851ca422069bd2d9e31b7dd07c6ce7b4f55a2b144e712"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/result/ynx-pq-network-40250636388-1/go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/result/ynx-pq-network-40250636388-1/go.stdout.log",
+      "bytes": 500,
+      "sha256": "6a8b83de9e21a3ec6eb48583b18b20ed0118fcbdb364f79b5dbd240cf205f74a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/result/ynx-pq-network-40250636388-1/prepared.json",
+      "bytes": 2043,
+      "sha256": "305301c77a417210c7520a457830241e8d0c703140c0ccbc8142456c4bceda36"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/result/ynx-pq-network-40250636388-1.build/business-manifest.json",
+      "bytes": 1719,
+      "sha256": "78759a7eeaf30f274965d847db0285fb07b7af8c5da9544ca7d9934f8852ccf6"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/result/ynx-pq-network-40250636388-1.file-sizes.json",
+      "bytes": 3622,
+      "sha256": "fd5db140c78f364fdcb01df04b9e2de83d9208b6326b4c6daefd0460594850d6"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/result/ynx-pq-network-40250636388-1.receipt.json",
+      "bytes": 493107,
+      "sha256": "0791da1c7aae99f29aadd52f74a1d0c203cdee747fb9a042cc6443ad9a41a9c8"
+    }
+  ],
+  "runLog": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/run.log",
+    "bytes": 377158,
+    "sha256": "c78cbab0df14665d96d080456a43923f7f7473f7ef92354049b846b8557b5bb6"
+  },
+  "terminal": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/TERMINAL.json",
+    "bytes": 17086,
+    "sha256": "1060b11a831a9247ed03a7cbadee3e76bbadcbedcf4af0da63537c5bab5d1628"
+  },
+  "actualFailure": {
+    "guardFirstCause": "105s active deadline",
+    "child": {
+      "pid": 3253,
+      "code": -15,
+      "startTicks": 20058
+    },
+    "stdout": "=== RUN   TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming\n    pq_network_fresh_business_test.go:441: actual common height halt: target=12 requestSHA256=3aca4fbdd980a4e51118548d5ff59cde82ece22e4f2197cc607fbb409b1cf01b blockHash=2b2072a5e237f3e35b7374439afb660f9c0600bcaacd3464f95433deec258808 appHash=404a3fe3f9b005305303f77d2a0d57b20a6e03fd56f37a4d9aa57e6c69fb57a6 registryRoot=a9e6f49bd7ed1d3aab9cb570edf1b842337e90cf6e82346752aa89f72de3e32b stoppedNodes=4 originalHistoryPreserved=true\n",
+    "stderrBytes": 0,
+    "guardElapsedMs": 105198,
+    "lastObservedStage": "actual common height halt H12; stoppedNodes4; originalHistoryPreserved true",
+    "exactStalledCallKnown": false,
+    "noGoStackCaptured": true
+  },
+  "cleanup": {
+    "complete": true,
+    "emptyOwnedScans": [
+      {
+        "elapsedMs": 105145,
+        "hostIdentities": 153
+      },
+      {
+        "elapsedMs": 105198,
+        "hostIdentities": 153
+      }
+    ]
+  },
+  "sampledResources": {
+    "kernel": {
+      "release": "6.17.0-1022-azure",
+      "machine": "x86_64",
+      "logicalCPUs": 4
+    },
+    "peakOwnedRSSBytes": 614211584,
+    "peakThreads": 40,
+    "peakPrivateBytes": 304547342,
+    "minimumFreeDiskBytes": 89395642368,
+    "minimumAvailableMemoryBytes": 14991974400,
+    "sampleCount": 497,
+    "actualBootId": null,
+    "bootIdEvidenceMissing": true
+  },
+  "sourceBoundaryForOriginalOwner": "pqFreshActivate after halt: business preservation -> schedule/authorization -> constructPQ four -> stopAll unstarted constructed nodes -> Host resume / observed nodes -> start. Finer stage timings are absent; do not assign a definitive stalled call.",
+  "nextAction": "Original Protocol reproduce and repair this bounded real path with explicit per-call/per-node stage timings; preserve joins, locks, signature checks and fixed guard. Same-source normal supply and a new Root grant required before another window.",
+  "oldE765FailurePreserved": true,
+  "newWindowAuthorized": false,
+  "businessWorkloadCompleted": false,
+  "businessCompletedCount": null,
+  "businessTPSMeasured": false,
+  "finalityLatencyMeasured": false,
+  "sustainedTPSQualified": false,
+  "goalComplete": false
+}

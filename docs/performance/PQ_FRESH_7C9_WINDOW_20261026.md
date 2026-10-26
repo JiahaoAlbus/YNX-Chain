@@ -62,3 +62,44 @@ no alternative framework, signer, benchmark or old recipe is introduced.
 The independent performance observation source `f247c4896` passed normal CI
 `40244916273` in full. Its all-node durability/window-end backlog extension is
 read-only and does not change this fixed client or original network profile.
+
+## Actual once run 40250636388
+
+Root signed a new complete window. The performance owner executed one original
+dispatch, exact candidate/ref, with the frozen thirteen string inputs. Original
+normal admission and relocation passed. The actual 2043-byte eleven-field
+prepared SHA256 is
+`305301c77a417210c7520a457830241e8d0c703140c0ccbc8142456c4bceda36`;
+the actual 1719-byte manifest SHA256 is
+`78759a7eeaf30f274965d847db0285fb07b7af8c5da9544ca7d9934f8852ccf6`.
+
+The guard terminated the child at the unchanged 105-second active deadline.
+Receipt elapsed time is 105198 ms, child exit -15, cleanupComplete=true, with
+two empty owned scans at 105145 and 105198 ms. The retained stdout contains
+only RUN and the real common-height halt at H12, stoppedNodes=4 and original
+history preserved. Thus the previous genesis refusal was passed and actual
+four-node setup/halts occurred. There is no business result summary, PASS,
+completed-business count or transaction latency sample. Report these as missing,
+not zero TPS or a failed-transaction rate.
+
+Observed peak owned RSS was 614211584 bytes and peak thread count was 40;
+neither resource cap triggered. The actual kernel/CPU identity is in the guard
+receipt; boot ID was not captured and remains explicitly missing. Resource
+sampling cannot identify which Go call stalled. The last source-visible interval
+is common halt through business-state preservation, schedule creation,
+constructPQ, closing the unstarted constructed nodes, Host resume/observed-node
+construction and start. No stack or finer stage timing was captured. These
+calls are investigation boundaries, not a proven root cause. The original
+Protocol owner received the failure and request for an actual bounded repair
+and per-call/per-node timing; safe shutdown joins, locks and strict verification
+must remain intact.
+
+All seven original public result files were recovered from artifact
+`12620526128`, ZIP SHA256
+`888b12306badd02b6f5cd513e75933d555053073925c8838b7c9c1017325c815`.
+The complete terminal handoff is
+`/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/TERMINAL_HANDOFF.json`,
+also tracked as `evidence/pq-fresh-7c9-run40250636388-terminal.json`.
+The once grant is consumed; no rerun, deadline extension or new workload was
+started. Further actual testing requires the original repair, matching normal
+supply and a new Root window. Sustained 1000 TPS and P95<=3s remain unproven.
