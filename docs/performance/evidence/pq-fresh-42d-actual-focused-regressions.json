@@ -1,0 +1,58 @@
+{
+  "sourceCommit": "42d12277b61b92e82ca96e9e112e437274c6444f",
+  "sourceTree": "a64e56bda03e986130c360c530fd9eb4e021c899",
+  "runId": 40342338863,
+  "jobId": 121640090653,
+  "jobConclusion": "success",
+  "focusedReceipt": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-42d12277b/FOCUSED_REGRESSIONS.json",
+    "bytes": 2674,
+    "sha256": "762ce961bb7cc25d0080e38def202684defd83828f89e18bae7dc08252a27ce0"
+  },
+  "originalRaw": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-42d12277b/FOCUSED_JOB.log.raw",
+    "bytes": 550304,
+    "sha256": "aef7ec080f0de579706a34a5e823531618fe6918416ddfc96f13f63fe3194005"
+  },
+  "actualScriptValidatedMarkers": {
+    "YNX_INITIAL_CACHE_STATE_TESTS": {
+      "performanceMeasured": false,
+      "requiredPassed": [
+        "TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash",
+        "TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold",
+        "TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis",
+        "TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming",
+        "TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas",
+        "TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer",
+        "TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets",
+        "TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds",
+        "TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting",
+        "TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation",
+        "TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles",
+        "TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory",
+        "TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads",
+        "TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip"
+      ],
+      "sourceCommit": "42d12277b61b92e82ca96e9e112e437274c6444f",
+      "suitePassed": true
+    },
+    "YNX_INITIAL_CACHE_CRYPTO_TESTS": {
+      "performanceMeasured": false,
+      "requiredPassed": [
+        "TestPQInitialPossessionCacheRetainsBothProofsAndLiveBinding",
+        "TestPQInitialPossessionCacheSeventeenCertificatesRemainBoundedAndSeparated"
+      ],
+      "sourceCommit": "42d12277b61b92e82ca96e9e112e437274c6444f",
+      "suitePassed": true
+    }
+  },
+  "newGoCasesPassed": 3,
+  "stateCasesPassed": 14,
+  "cryptoCasesPassed": 2,
+  "wholeNormalCIQualified": false,
+  "normalStageOrFreshSupplyQualified": false,
+  "localGoTestsRerun": false,
+  "networkRuntimeExecuted": false,
+  "performanceImprovementMeasured": false,
+  "sustainedTPSQualified": false
+}

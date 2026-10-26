@@ -1,0 +1,799 @@
+{
+  "classification": "actual parent-clock observation interval partition; not CPU or independent proof of consensus formation",
+  "runId": "40330458629",
+  "sourceCommit": "28251767dd8098275e59a96f86935e413e5f1355",
+  "originalHandoffPin": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/TERMINAL_HANDOFF.json",
+    "bytes": 101673,
+    "sha256": "84e9be5fee7434f17629c13d7c7fc049be515a131aaaba59562045933445e5f7"
+  },
+  "rows": [
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 0,
+      "nativeHash": "bbeb8df5c800c9ff190b75ff39eeb3cf0e3f3891d18748c08f46a3256c09f64c",
+      "abciHash": "c826b698f48b64f3ec41959cc295be3c74c3dc2fb4555c4d0dda91e6aa5a503f",
+      "height": "26",
+      "pointsNs": {
+        "offer": 34263428523,
+        "allNodesDurable": 35797188836,
+        "hostStart": 36969461091,
+        "hostEnd": 37094968055,
+        "readbackBeginLog": 37094992802,
+        "independentProcessWaitEnd": 37867144569,
+        "coordinatorCallbackEndLog": 37915102169
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 1533760313,
+        "durableToHostStartNs": 1172272255,
+        "hostContextSpanNs": 125506964,
+        "hostEndToReadbackBeginLogNs": 24747,
+        "readbackBeginLogToIndependentWaitEndNs": 772151767
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 47957600,
+      "actualHostContextCallNs": 125484471,
+      "node0SuccessorObservation": {
+        "height": "27",
+        "commitStartNs": 36901891280,
+        "commitEndNs": 36962628209,
+        "relationToHostContextSpan": "before-host-context",
+        "hostStartMinusSuccessorCommitEndNs": 6832882,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 1,
+      "nativeHash": "9e1751ab2f7e9b592b3a321ec6db638ecccf05ac6b07ad5b3bd43e5b78fb6fd4",
+      "abciHash": "25d586ae96b10d57914583fd7d1319165f9e94c333ca2c21f339aa0e28f42306",
+      "height": "27",
+      "pointsNs": {
+        "offer": 34784938763,
+        "allNodesDurable": 36962628209,
+        "hostStart": 38259367192,
+        "hostEnd": 38601001469,
+        "readbackBeginLog": 38601023532,
+        "independentProcessWaitEnd": 39515115048,
+        "coordinatorCallbackEndLog": 39573297356
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2177689446,
+        "durableToHostStartNs": 1296738983,
+        "hostContextSpanNs": 341634277,
+        "hostEndToReadbackBeginLogNs": 22063,
+        "readbackBeginLogToIndependentWaitEndNs": 914091516
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 58182308,
+      "actualHostContextCallNs": 341602338,
+      "node0SuccessorObservation": {
+        "height": "28",
+        "commitStartNs": 38232741598,
+        "commitEndNs": 38366836946,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -107469754,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 2,
+      "nativeHash": "ae6c8b702f5bdf657b9b776403cc6a3adddf5bd38386c61995d23469ddd0ef76",
+      "abciHash": "42a96146f22da05044d68ccc82349d45a35206cd49bc9c040220e396bf243fdc",
+      "height": "27",
+      "pointsNs": {
+        "offer": 35335309946,
+        "allNodesDurable": 36962628209,
+        "hostStart": 38632758945,
+        "hostEnd": 38799836273,
+        "readbackBeginLog": 38799865407,
+        "independentProcessWaitEnd": 39731585659,
+        "coordinatorCallbackEndLog": 40231603066
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 1627318263,
+        "durableToHostStartNs": 1670130736,
+        "hostContextSpanNs": 167077328,
+        "hostEndToReadbackBeginLogNs": 29134,
+        "readbackBeginLogToIndependentWaitEndNs": 931720252
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 500017407,
+      "actualHostContextCallNs": 167049937,
+      "node0SuccessorObservation": {
+        "height": "28",
+        "commitStartNs": 38232741598,
+        "commitEndNs": 38366836946,
+        "relationToHostContextSpan": "before-host-context",
+        "hostStartMinusSuccessorCommitEndNs": 265921999,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 3,
+      "nativeHash": "1630596d053b62f7bfc41ce892d58c9b27688ca21edac2831259fbfe57a5d2ca",
+      "abciHash": "4241c09299d7f4ceda819af3aa578387baef915243bcd99d6e21aef8d436e665",
+      "height": "28",
+      "pointsNs": {
+        "offer": 35857278150,
+        "allNodesDurable": 38389462979,
+        "hostStart": 39694966701,
+        "hostEnd": 40057389446,
+        "readbackBeginLog": 40057417778,
+        "independentProcessWaitEnd": 41000604853,
+        "coordinatorCallbackEndLog": 41968108251
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2532184829,
+        "durableToHostStartNs": 1305503722,
+        "hostContextSpanNs": 362422745,
+        "hostEndToReadbackBeginLogNs": 28332,
+        "readbackBeginLogToIndependentWaitEndNs": 943187075
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 967503398,
+      "actualHostContextCallNs": 362392529,
+      "node0SuccessorObservation": {
+        "height": "29",
+        "commitStartNs": 39782563793,
+        "commitEndNs": 39883843911,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -188877210,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 4,
+      "nativeHash": "510ef2370ea2e9055e983e1d9114ea38db638e71c4576abc95d886cc3a5aff4b",
+      "abciHash": "c25a2407ce0d8209fbdfbcd542298e5f23fe90c5aed312a35a56c24fd345d5e8",
+      "height": "28",
+      "pointsNs": {
+        "offer": 36419004583,
+        "allNodesDurable": 38389462979,
+        "hostStart": 40086192862,
+        "hostEnd": 40207376626,
+        "readbackBeginLog": 40207403837,
+        "independentProcessWaitEnd": 41171451122,
+        "coordinatorCallbackEndLog": 41992394902
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 1970458396,
+        "durableToHostStartNs": 1696729883,
+        "hostContextSpanNs": 121183764,
+        "hostEndToReadbackBeginLogNs": 27211,
+        "readbackBeginLogToIndependentWaitEndNs": 964047285
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 820943780,
+      "actualHostContextCallNs": 121148051,
+      "node0SuccessorObservation": {
+        "height": "29",
+        "commitStartNs": 39782563793,
+        "commitEndNs": 39883843911,
+        "relationToHostContextSpan": "before-host-context",
+        "hostStartMinusSuccessorCommitEndNs": 202348951,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 5,
+      "nativeHash": "018b7657a480d5520c07032a573f0f199dfaef70b3dbbbf3c8d5c55a696763fd",
+      "abciHash": "efb0f473f6d4ef3219446eee5da3282db64a459a0b060670b42d2a6a24ae6a50",
+      "height": "29",
+      "pointsNs": {
+        "offer": 37164839811,
+        "allNodesDurable": 39883843911,
+        "hostStart": 41190272236,
+        "hostEnd": 41452066985,
+        "readbackBeginLog": 41452095137,
+        "independentProcessWaitEnd": 42508757095,
+        "coordinatorCallbackEndLog": 42530071967
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2719004100,
+        "durableToHostStartNs": 1306428325,
+        "hostContextSpanNs": 261794749,
+        "hostEndToReadbackBeginLogNs": 28152,
+        "readbackBeginLogToIndependentWaitEndNs": 1056661958
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 21314872,
+      "actualHostContextCallNs": 261766106,
+      "node0SuccessorObservation": {
+        "height": "30",
+        "commitStartNs": 41168021873,
+        "commitEndNs": 41292322717,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -102050481,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 6,
+      "nativeHash": "1e7d001109f582183a00ad652d53f589440ee6d04f43d19acde0b86efcbd63e6",
+      "abciHash": "989087ac0d47f7a57d4314432b1a08b132b9d5cbae7ebd6905fe596c08f730c9",
+      "height": "29",
+      "pointsNs": {
+        "offer": 37717046738,
+        "allNodesDurable": 39883843911,
+        "hostStart": 41493857088,
+        "hostEnd": 41637720434,
+        "readbackBeginLog": 41637748496,
+        "independentProcessWaitEnd": 42952561891,
+        "coordinatorCallbackEndLog": 43349333432
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2166797173,
+        "durableToHostStartNs": 1610013177,
+        "hostContextSpanNs": 143863346,
+        "hostEndToReadbackBeginLogNs": 28062,
+        "readbackBeginLogToIndependentWaitEndNs": 1314813395
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 396771541,
+      "actualHostContextCallNs": 143832579,
+      "node0SuccessorObservation": {
+        "height": "30",
+        "commitStartNs": 41168021873,
+        "commitEndNs": 41292322717,
+        "relationToHostContextSpan": "before-host-context",
+        "hostStartMinusSuccessorCommitEndNs": 201534371,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 7,
+      "nativeHash": "dda155551ad6e82ce6c6d3d4a1ea45927b292b52fac91fd3843ace66ebda1c3a",
+      "abciHash": "e8f230a37d62442f26708abe3d9ff20a0e49709a014ed2cf678f17d3afeec12c",
+      "height": "30",
+      "pointsNs": {
+        "offer": 38877551438,
+        "allNodesDurable": 41292322717,
+        "hostStart": 42657901777,
+        "hostEnd": 43255491713,
+        "readbackBeginLog": 43255524352,
+        "independentProcessWaitEnd": 44048395028,
+        "coordinatorCallbackEndLog": 44085845903
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2414771279,
+        "durableToHostStartNs": 1365579060,
+        "hostContextSpanNs": 597589936,
+        "hostEndToReadbackBeginLogNs": 32639,
+        "readbackBeginLogToIndependentWaitEndNs": 792870676
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 37450875,
+      "actualHostContextCallNs": 597542144,
+      "node0SuccessorObservation": {
+        "height": "31",
+        "commitStartNs": 42752661717,
+        "commitEndNs": 42915925352,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -258023575,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 9,
+      "nativeHash": "52d534156dd2bb6022d75451fff03fd94cd3e7ffd5212fd5bb68dab731ced03d",
+      "abciHash": "cb6c771e1daaea48be82dda8695e1f731d28e0ca083b90b0bd65a231ee3d9f52",
+      "height": "31",
+      "pointsNs": {
+        "offer": 40267931207,
+        "allNodesDurable": 42933342178,
+        "hostStart": 44394657945,
+        "hostEnd": 44662161313,
+        "readbackBeginLog": 44662195214,
+        "independentProcessWaitEnd": 45540396952,
+        "coordinatorCallbackEndLog": 45585082749
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2665410971,
+        "durableToHostStartNs": 1461315767,
+        "hostContextSpanNs": 267503368,
+        "hostEndToReadbackBeginLogNs": 33901,
+        "readbackBeginLogToIndependentWaitEndNs": 878201738
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 44685797,
+      "actualHostContextCallNs": 267466462,
+      "node0SuccessorObservation": {
+        "height": "32",
+        "commitStartNs": 44186957445,
+        "commitEndNs": 44425342801,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -30684856,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 8,
+      "nativeHash": "bc04d00a9bfcf01aa30832878957bc71894887ab82e8e77c4a8ad53cad435454",
+      "abciHash": "163184d019116d0245134f8294588d0b0f797a748e40eb10ca103274cc18e48b",
+      "height": "31",
+      "pointsNs": {
+        "offer": 39441997240,
+        "allNodesDurable": 42933342178,
+        "hostStart": 44739889392,
+        "hostEnd": 44924343710,
+        "readbackBeginLog": 44924375628,
+        "independentProcessWaitEnd": 46039181672,
+        "coordinatorCallbackEndLog": 46600913509
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 3491344938,
+        "durableToHostStartNs": 1806547214,
+        "hostContextSpanNs": 184454318,
+        "hostEndToReadbackBeginLogNs": 31918,
+        "readbackBeginLogToIndependentWaitEndNs": 1114806044
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 561731837,
+      "actualHostContextCallNs": 184421429,
+      "node0SuccessorObservation": {
+        "height": "32",
+        "commitStartNs": 44186957445,
+        "commitEndNs": 44425342801,
+        "relationToHostContextSpan": "before-host-context",
+        "hostStartMinusSuccessorCommitEndNs": 314546591,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 10,
+      "nativeHash": "61602e23ca29a615a3273b249fc32e536f75f16ea61d928527027ce649d20735",
+      "abciHash": "fc0731d7fabd1169a320fd280eb845a5b0b18b41cdc1343371cf1f27932791b9",
+      "height": "31",
+      "pointsNs": {
+        "offer": 40814124044,
+        "allNodesDurable": 42933342178,
+        "hostStart": 44974899804,
+        "hostEnd": 45242636849,
+        "readbackBeginLog": 45242672192,
+        "independentProcessWaitEnd": 46261061823,
+        "coordinatorCallbackEndLog": 46612336477
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2119218134,
+        "durableToHostStartNs": 2041557626,
+        "hostContextSpanNs": 267737045,
+        "hostEndToReadbackBeginLogNs": 35343,
+        "readbackBeginLogToIndependentWaitEndNs": 1018389631
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 351274654,
+      "actualHostContextCallNs": 267707711,
+      "node0SuccessorObservation": {
+        "height": "32",
+        "commitStartNs": 44186957445,
+        "commitEndNs": 44425342801,
+        "relationToHostContextSpan": "before-host-context",
+        "hostStartMinusSuccessorCommitEndNs": 549557003,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 11,
+      "nativeHash": "0f2b1624512fd88138b1ad1f29fc55b16b47298137a2964545ee2e9804f8b6fc",
+      "abciHash": "092cf9ea084bd3cfd6da00d29167d485ecdaa1bef17c9cef9728608f97477185",
+      "height": "32",
+      "pointsNs": {
+        "offer": 41967506963,
+        "allNodesDurable": 44512100335,
+        "hostStart": 46133878247,
+        "hostEnd": 46533731670,
+        "readbackBeginLog": 46533757719,
+        "independentProcessWaitEnd": 47429930496,
+        "coordinatorCallbackEndLog": 47998784887
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2544593372,
+        "durableToHostStartNs": 1621777912,
+        "hostContextSpanNs": 399853423,
+        "hostEndToReadbackBeginLogNs": 26049,
+        "readbackBeginLogToIndependentWaitEndNs": 896172777
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 568854391,
+      "actualHostContextCallNs": 399823037,
+      "node0SuccessorObservation": {
+        "height": "33",
+        "commitStartNs": 46196672771,
+        "commitEndNs": 46307378654,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -173500407,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 12,
+      "nativeHash": "3b74c4f600392b0e6db6615eac55facb8f81f147da15df625300e9cb7647e77e",
+      "abciHash": "ec837d8b7cc25e6811172540a9c0913598dfffbf3ee91a538d58cda78652404f",
+      "height": "33",
+      "pointsNs": {
+        "offer": 43322726724,
+        "allNodesDurable": 46307378654,
+        "hostStart": 47373825023,
+        "hostEnd": 47772655878,
+        "readbackBeginLog": 47772686293,
+        "independentProcessWaitEnd": 48795975637,
+        "coordinatorCallbackEndLog": 48817424149
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2984651930,
+        "durableToHostStartNs": 1066446369,
+        "hostContextSpanNs": 398830855,
+        "hostEndToReadbackBeginLogNs": 30415,
+        "readbackBeginLogToIndependentWaitEndNs": 1023289344
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 21448512,
+      "actualHostContextCallNs": 398803333,
+      "node0SuccessorObservation": {
+        "height": "34",
+        "commitStartNs": 47401175731,
+        "commitEndNs": 47552942792,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -179117769,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 13,
+      "nativeHash": "b2a6bb5adfea1728b9fa361fa2a04ce32d503b207884834775f66b413088e7e2",
+      "abciHash": "70b719e2af17eca0c99f0ec1ef61ec79c01949af7af6ce6cdb3bc3b38804ea4d",
+      "height": "33",
+      "pointsNs": {
+        "offer": 43902581600,
+        "allNodesDurable": 46307378654,
+        "hostStart": 47801949234,
+        "hostEnd": 47959663543,
+        "readbackBeginLog": 47959692797,
+        "independentProcessWaitEnd": 49007966432,
+        "coordinatorCallbackEndLog": 49056375135
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2404797054,
+        "durableToHostStartNs": 1494570580,
+        "hostContextSpanNs": 157714309,
+        "hostEndToReadbackBeginLogNs": 29254,
+        "readbackBeginLogToIndependentWaitEndNs": 1048273635
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 48408703,
+      "actualHostContextCallNs": 157681450,
+      "node0SuccessorObservation": {
+        "height": "34",
+        "commitStartNs": 47401175731,
+        "commitEndNs": 47552942792,
+        "relationToHostContextSpan": "before-host-context",
+        "hostStartMinusSuccessorCommitEndNs": 249006442,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 15,
+      "nativeHash": "6b1f80377848f3d407919374a46e3a0665e9f87e68c74f7ba6cff6d50cf88557",
+      "abciHash": "16d8bcd752ad1334a486e860a02bbcf90dbbab3735f0a8f8d724cb0d6f751ac3",
+      "height": "34",
+      "pointsNs": {
+        "offer": 45304103299,
+        "allNodesDurable": 47643338720,
+        "hostStart": 49336068075,
+        "hostEnd": 49577258856,
+        "readbackBeginLog": 49577283543,
+        "independentProcessWaitEnd": 50204671118,
+        "coordinatorCallbackEndLog": 50225447963
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2339235421,
+        "durableToHostStartNs": 1692729355,
+        "hostContextSpanNs": 241190781,
+        "hostEndToReadbackBeginLogNs": 24687,
+        "readbackBeginLogToIndependentWaitEndNs": 627387575
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 20776845,
+      "actualHostContextCallNs": 241160776,
+      "node0SuccessorObservation": {
+        "height": "35",
+        "commitStartNs": 49295005440,
+        "commitEndNs": 49426832037,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -90763962,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "before",
+      "sourceOfferOrdinal": 14,
+      "nativeHash": "345d36566b2a67f377786e903ff7a2e49b34b31a0692e3a15470099a6f1d5555",
+      "abciHash": "960fdb5de0ab3afc0ac3d953c7e1d3b9f1dffbf59c5104b96996a7df55102d25",
+      "height": "34",
+      "pointsNs": {
+        "offer": 44724191668,
+        "allNodesDurable": 47643338720,
+        "hostStart": 49605981989,
+        "hostEnd": 49748072104,
+        "readbackBeginLog": 49748106656,
+        "independentProcessWaitEnd": 50335515075,
+        "coordinatorCallbackEndLog": 50356134192
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2919147052,
+        "durableToHostStartNs": 1962643269,
+        "hostContextSpanNs": 142090115,
+        "hostEndToReadbackBeginLogNs": 34552,
+        "readbackBeginLogToIndependentWaitEndNs": 587408419
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 20619117,
+      "actualHostContextCallNs": 142073841,
+      "node0SuccessorObservation": {
+        "height": "35",
+        "commitStartNs": 49295005440,
+        "commitEndNs": 49426832037,
+        "relationToHostContextSpan": "before-host-context",
+        "hostStartMinusSuccessorCommitEndNs": 179149952,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "after",
+      "sourceOfferOrdinal": 0,
+      "nativeHash": "9f993d9b01049622a4d49062f237b8140e6def3fc9c71739892989f965a8621d",
+      "abciHash": "0df5bdb0e21e4e4d93a9cfd646299d917866225fc8cd0f1ba466f472931a9979",
+      "height": "26",
+      "pointsNs": {
+        "offer": 84613573434,
+        "allNodesDurable": 85554903848,
+        "hostStart": 86557166341,
+        "hostEnd": 86905022254,
+        "readbackBeginLog": 86905046370,
+        "independentProcessWaitEnd": 87770641430,
+        "coordinatorCallbackEndLog": 88092270425
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 941330414,
+        "durableToHostStartNs": 1002262493,
+        "hostContextSpanNs": 347855913,
+        "hostEndToReadbackBeginLogNs": 24116,
+        "readbackBeginLogToIndependentWaitEndNs": 865595060
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 321628995,
+      "actualHostContextCallNs": 347831305,
+      "node0SuccessorObservation": {
+        "height": "27",
+        "commitStartNs": 86603412822,
+        "commitEndNs": 86665794438,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -108628097,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "after",
+      "sourceOfferOrdinal": 1,
+      "nativeHash": "398a2acb6c0fe1aa446443d76652b4893b623b48944fbd26042db3461950b2c9",
+      "abciHash": "9187cec43438b5b75cc0f40c34fd990c8e710b34fbb72abff8742678af6558d0",
+      "height": "27",
+      "pointsNs": {
+        "offer": 85138596170,
+        "allNodesDurable": 86665794438,
+        "hostStart": 87790968081,
+        "hostEnd": 88071946599,
+        "readbackBeginLog": 88071974611,
+        "independentProcessWaitEnd": 88974032308,
+        "coordinatorCallbackEndLog": 89612981063
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 1527198268,
+        "durableToHostStartNs": 1125173643,
+        "hostContextSpanNs": 280978518,
+        "hostEndToReadbackBeginLogNs": 28012,
+        "readbackBeginLogToIndependentWaitEndNs": 902057697
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 638948755,
+      "actualHostContextCallNs": 280952249,
+      "node0SuccessorObservation": {
+        "height": "28",
+        "commitStartNs": 87695961084,
+        "commitEndNs": 87831152199,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -40184118,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "after",
+      "sourceOfferOrdinal": 3,
+      "nativeHash": "d7ea7388d8a0a347359631259d81aad323d555dfe95400a68aaeb53b3d05920d",
+      "abciHash": "1e7b2e832c02b711af69c9528dd07c6cc3e198571e4c9fd0c9c59ca6bfc00a2f",
+      "height": "28",
+      "pointsNs": {
+        "offer": 86243325825,
+        "allNodesDurable": 87873979098,
+        "hostStart": 89053549121,
+        "hostEnd": 89435739352,
+        "readbackBeginLog": 89435769367,
+        "independentProcessWaitEnd": 90299509371,
+        "coordinatorCallbackEndLog": 90965301368
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 1630653273,
+        "durableToHostStartNs": 1179570023,
+        "hostContextSpanNs": 382190231,
+        "hostEndToReadbackBeginLogNs": 30015,
+        "readbackBeginLogToIndependentWaitEndNs": 863740004
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 665791997,
+      "actualHostContextCallNs": 382151773,
+      "node0SuccessorObservation": {
+        "height": "29",
+        "commitStartNs": 89134268939,
+        "commitEndNs": 89207008894,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -153459773,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "after",
+      "sourceOfferOrdinal": 2,
+      "nativeHash": "91a1cc00574e66e60ddbebbb14bc2f1cc700affc89189d2013c62ec4b5cb48b5",
+      "abciHash": "0f957d42d914d374756fba4064a1e5c9df39f5a92d57aa1f50b3629951fda229",
+      "height": "28",
+      "pointsNs": {
+        "offer": 85662252029,
+        "allNodesDurable": 87873979098,
+        "hostStart": 89470418449,
+        "hostEnd": 89575315008,
+        "readbackBeginLog": 89575344463,
+        "independentProcessWaitEnd": 90581249775,
+        "coordinatorCallbackEndLog": 91094001232
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2211727069,
+        "durableToHostStartNs": 1596439351,
+        "hostContextSpanNs": 104896559,
+        "hostEndToReadbackBeginLogNs": 29455,
+        "readbackBeginLogToIndependentWaitEndNs": 1005905312
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 512751457,
+      "actualHostContextCallNs": 104862968,
+      "node0SuccessorObservation": {
+        "height": "29",
+        "commitStartNs": 89134268939,
+        "commitEndNs": 89207008894,
+        "relationToHostContextSpan": "before-host-context",
+        "hostStartMinusSuccessorCommitEndNs": 263409555,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    },
+    {
+      "arm": "after",
+      "sourceOfferOrdinal": 4,
+      "nativeHash": "019bed2fe35678f5f879d4c8e17ba752bffa5a941157ed0b0f88075f4b954bd6",
+      "abciHash": "36c4e57a79a3ff786037e5dbe8399e7eebf7e607b941a1fab44a8b767aba71e4",
+      "height": "29",
+      "pointsNs": {
+        "offer": 86958623533,
+        "allNodesDurable": 89223725265,
+        "hostStart": 90372234384,
+        "hostEnd": 90754225927,
+        "readbackBeginLog": 90754252888,
+        "independentProcessWaitEnd": 91715141262,
+        "coordinatorCallbackEndLog": 92500564375
+      },
+      "partitionNs": {
+        "offerToAllNodesDurableNs": 2265101732,
+        "durableToHostStartNs": 1148509119,
+        "hostContextSpanNs": 381991543,
+        "hostEndToReadbackBeginLogNs": 26961,
+        "readbackBeginLogToIndependentWaitEndNs": 960888374
+      },
+      "afterProcessWaitToCoordinatorCallbackEndLogNs": 785423113,
+      "actualHostContextCallNs": 381963922,
+      "node0SuccessorObservation": {
+        "height": "30",
+        "commitStartNs": 90304434776,
+        "commitEndNs": 90473780171,
+        "relationToHostContextSpan": "during-host-context",
+        "hostStartMinusSuccessorCommitEndNs": -101545787,
+        "timingMeaning": "actual outer Commit completion observation, not earliest consensus formation or exact internal checkpoint capture instant"
+      }
+    }
+  ],
+  "arms": {
+    "before": {
+      "offerToAllNodesDurableNs": {
+        "samples": 16,
+        "p50Ns": 2404797054,
+        "p95Ns": 3491344938,
+        "p99Ns": 3491344938
+      },
+      "durableToHostStartNs": {
+        "samples": 16,
+        "p50Ns": 1494570580,
+        "p95Ns": 2041557626,
+        "p99Ns": 2041557626
+      },
+      "hostContextSpanNs": {
+        "samples": 16,
+        "p50Ns": 241190781,
+        "p95Ns": 597589936,
+        "p99Ns": 597589936
+      },
+      "hostEndToReadbackBeginLogNs": {
+        "samples": 16,
+        "p50Ns": 28332,
+        "p95Ns": 35343,
+        "p99Ns": 35343
+      },
+      "readbackBeginLogToIndependentWaitEndNs": {
+        "samples": 16,
+        "p50Ns": 931720252,
+        "p95Ns": 1314813395,
+        "p99Ns": 1314813395
+      }
+    },
+    "after": {
+      "offerToAllNodesDurableNs": {
+        "samples": 5,
+        "p50Ns": 1630653273,
+        "p95Ns": 2265101732,
+        "p99Ns": 2265101732
+      },
+      "durableToHostStartNs": {
+        "samples": 5,
+        "p50Ns": 1148509119,
+        "p95Ns": 1596439351,
+        "p99Ns": 1596439351
+      },
+      "hostContextSpanNs": {
+        "samples": 5,
+        "p50Ns": 347855913,
+        "p95Ns": 382190231,
+        "p99Ns": 382190231
+      },
+      "hostEndToReadbackBeginLogNs": {
+        "samples": 5,
+        "p50Ns": 28012,
+        "p95Ns": 30015,
+        "p99Ns": 30015
+      },
+      "readbackBeginLogToIndependentWaitEndNs": {
+        "samples": 5,
+        "p50Ns": 902057697,
+        "p95Ns": 1005905312,
+        "p99Ns": 1005905312
+      }
+    }
+  },
+  "exactPerTransactionPartition": true,
+  "includesQueueAndProcessPreparation": true,
+  "callbackCount": 21,
+  "afterCensoredByOriginalPrivateBytesGuard": true,
+  "earliestBFTFormationMeasured": false,
+  "verifierInternalStageCostMeasuredByThisPartition": false,
+  "fullPairQualified": false,
+  "sustainedTPSQualified": false,
+  "interpretation": [
+    "Each row sums exactly to that transaction original offer-to-independent Wait completion. Quantiles of parts must not be added.",
+    "allNodesDurable is the latest of four original physical Commit ends, not third-node BFT formation.",
+    "durableToHostStart includes waiting for successor evidence, coordinator scheduling and original full commit checks; it is not all idle queue or pure CPU.",
+    "Host span includes actual context call plus source logging overhead; actual call work w4 is separately retained.",
+    "Readback begin is the original pre-b.command log boundary, so its interval includes process preparation, HTTP/readback, proof collection, independent verifier and completion waits. It cannot isolate individual verifier phases.",
+    "After only5 verified callbacks, before16; this is not a complete same-condition paired performance comparison.",
+    "Node0 successor coordinates are joined by exact arm/node0/H+1 from original physical Commit observations. They remain raw overlapping observations; no subtraction creates an earliest BFT formation or pure successor queue metric. Original five-interval partition is unchanged."
+  ],
+  "node0SuccessorRelations": {
+    "before": {
+      "before-host-context": 8,
+      "during-host-context": 8
+    },
+    "after": {
+      "during-host-context": 4,
+      "before-host-context": 1
+    }
+  },
+  "hypothesisRejected": "Node0 H+1 outer Commit completion does not always precede Host-context begin. Do not attribute all durable-to-Host-start gap to work after a fully completed successor or subtract it as pure idle queue. The actual context interval can overlap waiting for the next original checkpoint."
+}

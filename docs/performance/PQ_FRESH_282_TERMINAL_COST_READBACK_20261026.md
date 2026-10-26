@@ -86,3 +86,21 @@ Original seven files are preserved unchanged. Prepared11 fields/manifest7, Sourc
 External full handoff: `/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/TERMINAL_HANDOFF.json`,101673 bytes, SHA256 `84e9be5fee7434f17629c13d7c7fc049be515a131aaaba59562045933445e5f7`. Tracked copies: [handoff](evidence/pq-fresh-282-terminal-handoff.json), [source-bound diagnostic](evidence/pq-fresh-282-terminal-diagnostic.json). Manual raw report352644 bytes/SHA256 `1ffc28621a53714c4dc4fea71b071d86357d4e7c822fa565c5eb3205701ff443`.
 
 No automatic next run, longer window, higher storage cap, dropped history, reduced business count or lowered validation. Root and Protocol receive this actual failure and the precise helper ownership handoff. Source work continues within original boundaries; a fresh runtime needs new explicit scheduling authorization.
+
+## Further actual callback interval partition
+
+The21 original callbacks were joined by exact source offer ordinal to the original parent-clock Host-context/readback spans. Each row's five intervals sum exactly to that original offer-to-independent-process-Wait duration. P50/P95/P99 below are milliseconds; quantiles of parts must not be summed. This is an observation-interval partition, not CPU profiling or isolated consensus formation timing.
+
+| Actual interval | Before n=16 | Partial after n=5 |
+| --- | ---: | ---: |
+| Offer to all-four durable | 2404.797 / 3491.345 / 3491.345 | 1630.653 / 2265.102 / 2265.102 |
+| All-four durable to Host-context begin | 1494.571 / 2041.558 / 2041.558 | 1148.509 / 1596.439 / 1596.439 |
+| Host-context inclusive span | 241.191 / 597.590 / 597.590 | 347.856 / 382.190 / 382.190 |
+| Host end to readback begin log | 0.028 / 0.035 / 0.035 | 0.028 / 0.030 / 0.030 |
+| Readback begin log to actual child Wait completion | 931.720 / 1314.813 / 1314.813 | 902.058 / 1005.905 / 1005.905 |
+
+The durable-to-Host gap includes waiting for original H+1 evidence, full commit checks and coordinator scheduling; it is not all idle queue. The readback log is before original process preparation, so its interval includes setup, HTTP readback, proof collection and the independent verifier. It does not isolate the verifier's internal phases. Actual Host call work w4 remains separately measured from inclusive logging spans.
+
+Joining the original node0 H+1 Commit observations refutes a stronger shortcut: before8/16 and after4/5 H+1 completion observations fall *during* the Host-context span, rather than before it begins. Therefore neither the preceding gap nor the entire Host call can be attributed to a queue after a completed successor or to copy/validation CPU alone. This overlaps the original complete checkpoint capture path and is retained as observed timing, not a reason to bypass H+1 or weaken verification. Raw offsets are retained even when they cross stage boundaries. No earliest BFT-formation timestamp or pure successor-wait measurement is invented.
+
+[Per-transaction raw points and exact partition](evidence/pq-fresh-282-callback-intervals.json),32600 bytes/SHA256 `19e6f2773b0d110f4ce961118bae00df84da8473f63bdecd0802ab555ab3e35a`. Original failed guard/full32 and censored-after limitations remain unchanged. Next real32 callback metrics must be remeasured on the new source under Root's separately authorized window.
