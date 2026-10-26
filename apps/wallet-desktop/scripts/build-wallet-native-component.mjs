@@ -1,4 +1,5 @@
 import {execFileSync} from 'node:child_process';
+import {verifySDK48FullAuthRuntime,SDK48_FULL_AUTH_RUNTIME_SOURCE} from './sdk14-runtime-union.mjs';
 import {readFileSync,lstatSync,openSync,writeFileSync,fsyncSync,closeSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
@@ -48,6 +49,7 @@ export function buildWalletNativeComponent(arch,headers,artifactRelease=false,pr
  const inventory=JSON.parse(inventoryBytes),selectedNative=pqNativeSupplierInputs(inventory.NativeInputs,pqNative),supplier=[...selectedNative,...inventory.HelperInputs];
  if(profile.requiresRuntimeUnion&&!Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version))throw Error('WALLET_MATCHED_RUNTIME_UNION_NOT_SUPPLIED');
  const runtimeUnion=Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version)?verifySDKRuntimeUnion(profile.version,path.join(repo,'packages/wallet-auth'),regular(path.join(repo,SDK14_RUNTIME_UNION_SOURCE))):null;
+ if(profile.version==='1.3.0-pq.3.32-auth.48')verifySDK48FullAuthRuntime(regular(path.join(repo,SDK48_FULL_AUTH_RUNTIME_SOURCE)),regular(path.join(repo,SDK14_RUNTIME_UNION_SOURCE)));
  for(const p of supplier){const bytes=regular(path.join(repo,p.path));if(bytes.length!==p.bytes||hash(bytes)!==p.sha256)throw Error('WALLET_NATIVE_SUPPLIER_SOURCE_DIFFERS');}
  if(cc7)verifyCC7NativeRoleInputClosure({plan:node,inventoryBytes},name=>regular(path.join(repo,name)));
  const headerPins=PINNED_NODE_HEADER_PINS.map(p=>{const bytes=regular(path.join(headers,p.relative));if(bytes.length!==p.bytes||hash(bytes)!==p.sha256)throw Error('WALLET_NATIVE_PINNED_HEADERS_DIFFER');return {...p};});

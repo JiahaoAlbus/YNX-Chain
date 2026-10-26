@@ -22,10 +22,20 @@ export const SDK41_RUNTIME_UNION=Object.freeze({"bytes":1466422,"sha256":"1128e3
 export const SDK42_RUNTIME_UNION=Object.freeze({"bytes":1466422,"sha256":"649f2abb340b9d7b7a023dd952f3836231d64169e4504a3278ce00ffe57406dc","files":9427,"totalBytes":77868797});
 export const SDK46_RUNTIME_UNION=Object.freeze({bytes:1467130,sha256:'71a388f8459ac084ebdd3c94743536fe333c02fcb95d37a683eec0f31e71c075',files:9432,totalBytes:77901936});
 export const SDK48_RUNTIME_UNION=Object.freeze({bytes:1467420,sha256:'c0b60e6ffd8e0635767451ad699f31550d60cc2e2dd74feaf809fab63348ff58',files:9434,totalBytes:77922706});
+export const SDK48_FULL_AUTH_RUNTIME=Object.freeze({bytes:81691,sha256:'9f2d4fb0f8a8295653c31dcd76df845b5e5ee814752112af75cc782270c74ac9',files:574,totalBytes:7712494});
+export const SDK48_FULL_AUTH_RUNTIME_SOURCE='packages/wallet-auth/native/original-ide-auth-runtime-manifest.json';
 export const SDK_RUNTIME_UNIONS=Object.freeze({'1.3.0-pq.3.32-auth.14':SDK14_RUNTIME_UNION,'1.3.0-pq.3.32-auth.18':SDK18_RUNTIME_UNION,'1.3.0-pq.3.32-auth.19':SDK19_RUNTIME_UNION,'1.3.0-pq.3.32-auth.20':SDK20_RUNTIME_UNION,'1.3.0-pq.3.32-auth.23':SDK23_RUNTIME_UNION,'1.3.0-pq.3.32-auth.26':SDK26_RUNTIME_UNION,'1.3.0-pq.3.32-auth.28':SDK28_RUNTIME_UNION,'1.3.0-pq.3.32-auth.31':SDK31_RUNTIME_UNION,'1.3.0-pq.3.32-auth.32':SDK32_RUNTIME_UNION,'1.3.0-pq.3.32-auth.33':SDK33_RUNTIME_UNION,'1.3.0-pq.3.32-auth.34':SDK34_RUNTIME_UNION,'1.3.0-pq.3.32-auth.35':SDK35_RUNTIME_UNION,'1.3.0-pq.3.32-auth.36':SDK36_RUNTIME_UNION,'1.3.0-pq.3.32-auth.37':SDK37_RUNTIME_UNION,'1.3.0-pq.3.32-auth.38':SDK38_RUNTIME_UNION,'1.3.0-pq.3.32-auth.39':SDK39_RUNTIME_UNION,'1.3.0-pq.3.32-auth.40':SDK40_RUNTIME_UNION,'1.3.0-pq.3.32-auth.41':SDK41_RUNTIME_UNION,'1.3.0-pq.3.32-auth.42':SDK42_RUNTIME_UNION,'1.3.0-pq.3.32-auth.46':SDK46_RUNTIME_UNION,'1.3.0-pq.3.32-auth.48':SDK48_RUNTIME_UNION});
 export function sdkRuntimeUnionProfile(version){if(typeof version!=='string'||!Object.hasOwn(SDK_RUNTIME_UNIONS,version))throw Error('WALLET_RUNTIME_UNION_VERSION_UNSUPPORTED');return SDK_RUNTIME_UNIONS[version];}
 export const SDK14_RUNTIME_UNION_SOURCE='packages/wallet-auth/native/original-ide-contract-relay-runtime-manifest.json';
 const sha=b=>createHash('sha256').update(b).digest('hex');
+export function verifySDK48FullAuthRuntime(authBytes,unionBytes){
+ const fail=()=>{throw Error('WALLET_SDK48_FULL_AUTH_RUNTIME_DIFFERS');};
+ if(!Buffer.isBuffer(authBytes)||authBytes.length!==SDK48_FULL_AUTH_RUNTIME.bytes||sha(authBytes)!==SDK48_FULL_AUTH_RUNTIME.sha256||!Buffer.isBuffer(unionBytes)||unionBytes.length!==SDK48_RUNTIME_UNION.bytes||sha(unionBytes)!==SDK48_RUNTIME_UNION.sha256)fail();
+ const auth=JSON.parse(authBytes),union=JSON.parse(unionBytes),rows=new Map(union.files.map(row=>[row.path,row]));
+ if(auth.version!=='YNX-ORIGINAL-AUTH-RUNTIME-CLOSURE/v1'||!Buffer.from(JSON.stringify(auth)).equals(authBytes)||auth.files.length!==574||auth.files.reduce((n,row)=>n+row.bytes,0)!==7712494)fail();
+ for(const row of auth.files){const found=rows.get(row.path);if(!found||found.bytes!==row.bytes||found.sha256!==row.sha256)fail();}
+ return Object.freeze({...SDK48_FULL_AUTH_RUNTIME,fullAuthSubsetOfFullUnion:true,NativeAdmission:false});
+}
 /** Build-only exact source image readback. Never executes/imports SDK code,
  * admits a Native Source, raises FD limits or qualifies an installed image.
  * A retains the original same-package union, not parent13 or a self manifest.

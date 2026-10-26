@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {verifySDK48FullAuthRuntime,SDK48_FULL_AUTH_RUNTIME_SOURCE} from './sdk14-runtime-union.mjs';
 import path from 'node:path';
 import {pqNativeSupplierInputs,isPQNativeSelection} from './wallet-pq-native-build.mjs';
 import {CC7_NATIVE_SOURCE,CC7_NATIVE_ROLE,cc7WalletNativeInputs} from './wallet-cc7-native-role.mjs';
@@ -43,6 +44,7 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
   const union=sdkRuntimeUnionProfile(profile.version);
   same(record.runtimeUnion,{...union,filesVerified:union.files,sourceRoot:path.join(record.sourceRoot,'packages/wallet-auth'),NativeAdmission:false,installedImageQualified:false,platformQualified:false,networkActivated:false});
   pinned(readSource(SDK14_RUNTIME_UNION_SOURCE),union);
+  if(profile.version==='1.3.0-pq.3.32-auth.48')verifySDK48FullAuthRuntime(readSource(SDK48_FULL_AUTH_RUNTIME_SOURCE),readSource(SDK14_RUNTIME_UNION_SOURCE));
  }
  const helper=record.helperBuild;
  if(!helper||helper.kind!=='YNX_WALLET_ORIGINAL_HELPER_BUILD/v1'||helper.sourceRoot!==record.sourceRoot||helper.readbackOnly!==false||helper.commandsKind!=='executed-normal-build'||helper.executed!==true||helper.serviceRegistered!==false||helper.installed!==false||helper.nativeQualified!==false||helper.appSigned!==false)fail();
