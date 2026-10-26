@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
@@ -24,6 +25,22 @@ func IsBlockJournal(data []byte) bool { return bytes.HasPrefix(data, []byte(bloc
 // Live callers must separately lock stable input and corroborate published Info.
 func DecodeBlockJournal(ctx context.Context, data []byte, migration chain.ConsensusMigrationState) (BlockJournalReadback, error) {
 	return decodeBlockJournalWithFacts(ctx, data, migration, nil)
+}
+
+// DecodeBlockJournalReader reuses the identical checkpoint/delta decoder with
+// an exact-size, read-only section. It avoids a second complete journal buffer
+// and retains the known remaining size used to reject absent oversized tails.
+// The caller must hold and verify the original file identity and whole SHA256;
+// this function neither acquires a writer lease nor changes the source offset.
+func DecodeBlockJournalReader(ctx context.Context, source io.ReaderAt, size int64, migration chain.ConsensusMigrationState) (BlockJournalReadback, error) {
+	if source == nil || size < 0 {
+		return BlockJournalReadback{}, errors.New("block journal reader requires an exact nonnegative source size")
+	}
+	witness, err := newValidatedMigration(migration, nil)
+	if err != nil {
+		return BlockJournalReadback{}, err
+	}
+	return decodeBlockJournalReaderOwned(ctx, io.NewSectionReader(source, 0, size), size, witness, nil, nil)
 }
 
 // BlockJournalDecoder retains bounded successful native cryptographic facts
@@ -79,6 +96,10 @@ func decodeBlockJournalWithAuthority(ctx context.Context, data []byte, migration
 }
 
 func decodeBlockJournalOwned(ctx context.Context, data []byte, witness *validatedMigration, facts *nativeVerificationCache, authority *blockJournalReplayAuthority) (BlockJournalReadback, error) {
+	return decodeBlockJournalReaderOwned(ctx, bytes.NewReader(data), int64(len(data)), witness, facts, authority)
+}
+
+func decodeBlockJournalReaderOwned(ctx context.Context, source io.Reader, size int64, witness *validatedMigration, facts *nativeVerificationCache, authority *blockJournalReplayAuthority) (BlockJournalReadback, error) {
 	if err := witness.valid(); err != nil {
 		return BlockJournalReadback{}, err
 	}
@@ -88,11 +109,11 @@ func decodeBlockJournalOwned(ctx context.Context, data []byte, witness *validate
 		return result, err
 	}
 	header := []byte(blockJournalMagic + migration.StateHash + "\n")
-	if len(data) > blockJournalMaxFrame+blockJournalCheckpointBlocks*(2*blockJournalMaxRequest+snapshotJournalHeader)+len(header) {
+	if size < 0 || size > int64(blockJournalMaxFrame+blockJournalCheckpointBlocks*(2*blockJournalMaxRequest+snapshotJournalHeader)+len(header)) {
 		return result, errors.New("block journal readback exceeds bounded capacity")
 	}
 	j := &blockJournal{io: &snapshotJournal{header: header}}
-	state, err := replayBlockJournalOwned(ctx, bytes.NewReader(data), witness, j, facts, authority)
+	state, err := replayBlockJournalOwned(ctx, source, witness, j, facts, authority)
 	if err != nil {
 		return result, err
 	}
@@ -103,5 +124,5 @@ func decodeBlockJournalOwned(ctx context.Context, data []byte, witness *validate
 	if err := ctx.Err(); err != nil {
 		return result, err
 	}
-	return BlockJournalReadback{State: state, SnapshotJSON: payload, CompleteBytes: int(j.io.end), IncompleteTail: j.io.end < int64(len(data)), ReplayedBlocks: j.blocks, ReplayedTransactionInputs: j.replayedTxInputs}, nil
+	return BlockJournalReadback{State: state, SnapshotJSON: payload, CompleteBytes: int(j.io.end), IncompleteTail: j.io.end < size, ReplayedBlocks: j.blocks, ReplayedTransactionInputs: j.replayedTxInputs}, nil
 }

@@ -2397,11 +2397,16 @@ jobs:
               'internal/chain/offline_consensus_decode.go', 'internal/chain/offline_consensus_decode_test.go',
               'internal/chain/canonical_state_json.go', 'internal/chain/canonical_state_json_test.go',
               'internal/chain/consensus_migration_decode.go', 'internal/chain/consensus_migration_decode_test.go',
+              'internal/chain/consensus_migration_detach.go', 'internal/chain/consensus_migration_detach_test.go',
               'internal/chain/consensus_migration.go', 'internal/chain/consensus_migration_runtime.go',
               'internal/chain/consensus_migration_owned_snapshot_test.go', 'internal/chain/replication.go',
+              'internal/consensus/validated_migration.go', 'internal/consensus/validator_bootstrap.go',
+              'internal/consensus/validated_migration_stream_test.go',
+              'internal/consensus/block_journal_readback.go', 'internal/consensus/block_journal_reader_test.go',
               'cmd/ynx-chaind/main.go', 'cmd/ynx-chaind/consensus_export_test.go',
               'cmd/ynx-consensus-package/main.go', 'cmd/ynx-consensus-package/migration_public_summary.go',
-              'cmd/ynx-consensus-package/migration_public_summary_test.go')
+              'cmd/ynx-consensus-package/migration_public_summary_test.go',
+              'cmd/ynx-consensus-package/migration_import_storage.go', 'cmd/ynx-consensus-package/migration_import_storage_test.go')
           changed = any(previous(p) != (Path(p).read_bytes() if Path(p).exists() else b'') for p in paths)
           def section(raw):
               start = re.search(rb'(?m)^  offline-migration-streaming:\n', raw)
@@ -2426,9 +2431,10 @@ jobs:
       - name: Verify unchanged canonical bytes and source and output failure protections
         if: steps.scope.outputs.changed == 'true'
         run: |
-          go test -v -p 1 -count=1 -timeout=180s -run '^(TestCanonicalStateJSON|TestConsensusMigrationOwned|TestConsensusMigrationDecode|TestOfflineConsensusDecode|TestOfflineConsensusFile|TestOfflineConsensusExportRequires|TestOfflineConsensusExportRejects|TestOfflineConsensusExportLegacy)' ./internal/chain
+          go test -v -p 1 -count=1 -timeout=180s -run '^(TestCanonicalStateJSON|TestConsensusMigrationOwned|TestConsensusMigrationDecode|TestConsensusMigrationDetached|TestOfflineConsensusDecode|TestOfflineConsensusFile|TestOfflineConsensusExportRequires|TestOfflineConsensusExportRejects|TestOfflineConsensusExportLegacy)' ./internal/chain
           go test -v -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
-          go test -v -p 1 -count=1 -timeout=90s -run '^(TestVerifyMigrationState|TestVerifyMigrationExecutionRetainsStrictLoader|TestMigrationPublicSummary|TestMigrationGenerationUsesStrictStreamedOriginalInput)' ./cmd/ynx-consensus-package
+          go test -v -p 1 -count=1 -timeout=180s -run '^(TestValidatedMigration|TestBlockJournalReader)' ./internal/consensus
+          go test -v -p 1 -count=1 -timeout=90s -run '^(TestVerifyMigrationState|TestVerifyMigrationExecutionRetainsStrictLoader|TestMigrationPublicSummary|TestMigrationGenerationUsesStrictStreamedOriginalInput|TestMigrationImportStorage)' ./cmd/ynx-consensus-package
       - name: Build actual clean current-source offline tools without starting services
         if: steps.scope.outputs.changed == 'true'
         run: |

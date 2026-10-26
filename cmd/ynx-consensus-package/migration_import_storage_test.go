@@ -239,6 +239,68 @@ func TestMigrationImportStorageNormalCommandSeparateCreateAndReopenProcesses(t *
 	t.Log("MIGRATION_IMPORTED_STORAGE_CREATE_REOPEN_DATA_ONLY synthetic=true separateProcesses=true initChain=false consensusColdRestore=unchecked")
 }
 
+func TestMigrationImportStorageReaderKeepsWholePinAndHeldOriginal(t *testing.T) {
+	source, original, migration := migrationPreservationFixture(t)
+	sourceBefore, err := os.Stat(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	directory := filepath.Join(importStoragePrivateParent(t), "reader-import")
+	var output, diagnostic bytes.Buffer
+	if err := runCommand(importStorageArgs(source, directory, "create", ""), &output, &diagnostic); err != nil {
+		t.Fatal(err)
+	}
+	retained := importStorageOriginals(t, directory)
+	checkpointPath := filepath.Join(directory, importStorageStateName)
+	checkpoint := retained[checkpointPath].raw
+	expectedPin := importStorageDigest(checkpoint)
+	d, err := openImportStorageDirectory(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer d.file.Close()
+	files, err := openImportStorageFiles(d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		for _, f := range files {
+			_ = f.file.Close()
+		}
+	}()
+	f := files[0]
+	if _, err := f.file.Seek(7, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	actualPin, err := readImportStorageCheckpoint(f, migration, expectedPin)
+	if err != nil || actualPin != expectedPin {
+		t.Fatalf("original complete checkpoint did not retain its independent whole pin: %v", err)
+	}
+	position, err := f.file.Seek(0, io.SeekCurrent)
+	if err != nil || position != int64(len(checkpoint)) {
+		t.Fatalf("ReaderAt replay changed the whole-hash reader offset: %d, %v", position, err)
+	}
+	if actualPin, err := readImportStorageCheckpoint(f, migration, strings.Repeat("0", 64)); err == nil || !strings.Contains(err.Error(), "independent SHA256") || actualPin != "" {
+		t.Fatalf("independent pin failure lost its first cause or returned a checkpoint pin: %v", err)
+	}
+	assertImportStorageOriginals(t, directory, retained)
+	// Equal bytes at a replacement path cannot substitute for the original FD,
+	// even when they also have the independently accepted complete digest.
+	replacement := filepath.Join(filepath.Dir(directory), "replacement-checkpoint")
+	if err := os.WriteFile(replacement, checkpoint, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Rename(replacement, checkpointPath); err != nil {
+		t.Fatal(err)
+	}
+	replaced := importStorageOriginals(t, directory)
+	if actualPin, err := readImportStorageCheckpoint(f, migration, expectedPin); err == nil || !strings.Contains(err.Error(), "identity changed") || actualPin != "" {
+		t.Fatalf("same-byte replacement bypassed the held original identity: %v", err)
+	}
+	assertImportStorageOriginals(t, directory, replaced)
+	assertMigrationFileUnchanged(t, source, original, sourceBefore)
+}
+
 func TestMigrationImportStorageStdoutFailurePreservesUnknown(t *testing.T) {
 	source, original, migration := migrationPreservationFixture(t)
 	before, err := os.Stat(source)

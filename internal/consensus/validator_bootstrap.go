@@ -11,6 +11,7 @@ import (
 	"math"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -206,18 +207,66 @@ func (b *ConsensusBootstrap) matchesMigration(m chain.ConsensusMigrationState) e
 	return b.matchesCanonicalMigration(m, canonical)
 }
 
-// Only complete CanonicalJSON output is accepted by the private witness creator.
+// Only complete CanonicalJSON output is accepted. The normal private witness
+// constructor uses the same checks while comparing the actual canonical stream.
 func (b *ConsensusBootstrap) matchesCanonicalMigration(m chain.ConsensusMigrationState, canonical []byte) error {
 	if b == nil || b.record.MigrationStateHash != m.StateHash || b.record.OriginalGenesisHash != m.OriginalGenesisHash {
 		return errors.New("missing or mismatched independent consensus bootstrap")
 	}
+	binding := newCanonicalMigrationStreamBinding(b)
+	if err := binding.compare(canonical); err != nil {
+		return err
+	}
+	return binding.matches(m, sha256.Sum256(canonical), len(canonical))
+}
+
+// A stream binding is private, ephemeral comparison state. It confers no
+// authority from a caller-supplied digest: only newValidatedMigration feeds it
+// the fully validated, detached canonical stream. The byte-slice compatibility
+// method above uses exactly the same complete binding conditions.
+type canonicalMigrationStreamBinding struct {
+	bootstrap *ConsensusBootstrap
+	compared  int
+}
+
+func newCanonicalMigrationStreamBinding(b *ConsensusBootstrap) *canonicalMigrationStreamBinding {
+	return &canonicalMigrationStreamBinding{bootstrap: b}
+}
+
+func (s *canonicalMigrationStreamBinding) compare(p []byte) error {
+	if s.bootstrap == nil || s.bootstrap.migrationReference != nil {
+		return nil
+	}
+	// Compare every original embedded byte, including byte zero and the last
+	// byte. Neither an equal length nor an equal digest replaces this check.
+	expected := s.bootstrap.appState
+	if s.compared > len(expected) || len(p) > len(expected)-s.compared || !bytes.Equal(p, expected[s.compared:s.compared+len(p)]) {
+		return errors.New("bootstrap migration changed")
+	}
+	s.compared += len(p)
+	return nil
+}
+
+func (s *canonicalMigrationStreamBinding) matches(m chain.ConsensusMigrationState, digest [sha256.Size]byte, count int) error {
+	b := s.bootstrap
+	if b == nil {
+		return nil // Hashing without a bootstrap creates no validator authority.
+	}
+	if b.record.MigrationStateHash != m.StateHash || b.record.OriginalGenesisHash != m.OriginalGenesisHash {
+		return errors.New("missing or mismatched independent consensus bootstrap")
+	}
 	if b.migrationReference != nil {
-		if len(canonical) > maxCometMigrationBytes || newCometMigrationReference(m, canonical) != *b.migrationReference {
+		reference := cometMigrationReference{
+			Version: cometMigrationReferenceVersion, MigrationCanonicalSHA256: hex.EncodeToString(digest[:]), MigrationCanonicalBytes: strconv.Itoa(count),
+			MigrationVersion: strconv.Itoa(m.Version), MigrationSourceFormat: m.SourceFormat, NativeChainID: strconv.FormatInt(m.Network.ChainID, 10),
+			OriginalGenesisHash: m.OriginalGenesisHash, MigrationStateHash: m.StateHash, MigrationHeight: strconv.FormatUint(m.Height, 10), MigrationLastBlockHash: m.LastBlockHash,
+		}
+		if count > maxCometMigrationBytes || reference != *b.migrationReference {
 			return errors.New("bootstrap complete migration changed")
 		}
 		return nil
 	}
-	if !bytes.Equal(canonical, b.appState) {
+	if s.compared != count || count != len(b.appState) {
 		return errors.New("bootstrap migration changed")
 	}
 	return nil

@@ -160,23 +160,31 @@ func readImportStorageCheckpoint(f *importStorageFile, migration chain.Consensus
 	if _, err := f.file.Seek(0, io.SeekStart); err != nil {
 		return "", err
 	}
-	raw, err := io.ReadAll(io.LimitReader(f.file, importStorageCheckpointMaximum+1))
-	if err != nil || int64(len(raw)) != f.before.Size || int64(len(raw)) > importStorageCheckpointMaximum {
+	// Keep the complete independent byte pin, but do not retain a second
+	// full journal buffer alongside the decoded Application checkpoint.
+	digest := sha256.New()
+	n, err := io.CopyBuffer(digest, io.LimitReader(f.file, importStorageCheckpointMaximum+1), make([]byte, 64<<10))
+	if err != nil || n != f.before.Size || n > importStorageCheckpointMaximum {
 		return "", errors.New("import checkpoint changed or exceeded its existing complete-frame bound")
 	}
 	if err := f.check(); err != nil {
 		return "", err
 	}
-	digest := sha256.Sum256(raw)
-	pin := hex.EncodeToString(digest[:])
+	pin := hex.EncodeToString(digest.Sum(nil))
 	if independentPin != "" && pin != independentPin {
 		return "", errors.New("import checkpoint differs from the independent SHA256")
 	}
-	decoded, err := consensus.DecodeBlockJournal(context.Background(), raw, migration)
+	// ReaderAt leaves the hash reader's offset unchanged. The exact original
+	// FD remains held, with its path and nanosecond identity checked again
+	// after the decoder's final read; no repair or tail truncation is allowed.
+	decoded, err := consensus.DecodeBlockJournalReader(context.Background(), f.file, f.before.Size, migration)
+	if identityErr := f.check(); identityErr != nil {
+		return "", identityErr
+	}
 	if err != nil {
 		return "", fmt.Errorf("decode complete original import checkpoint: %w", err)
 	}
-	if decoded.IncompleteTail || decoded.CompleteBytes != len(raw) || decoded.ReplayedBlocks != 0 || decoded.ReplayedTransactionInputs != 0 || decoded.State.Initialized || decoded.State.Height != int64(migration.Height) || decoded.State.AppHash != migration.StateHash || decoded.State.ValidatorRegistry != nil || decoded.State.PQEngineSchedule != nil {
+	if decoded.IncompleteTail || int64(decoded.CompleteBytes) != f.before.Size || decoded.ReplayedBlocks != 0 || decoded.ReplayedTransactionInputs != 0 || decoded.State.Initialized || decoded.State.Height != int64(migration.Height) || decoded.State.AppHash != migration.StateHash || decoded.State.ValidatorRegistry != nil || decoded.State.PQEngineSchedule != nil {
 		return "", errors.New("import checkpoint must be complete, uninitialized, without deltas or validator authority, at the exact original migration height and hash")
 	}
 	return pin, nil

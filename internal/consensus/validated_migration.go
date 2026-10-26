@@ -3,8 +3,9 @@ package consensus
 import (
 	"bytes"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
+	"hash"
+	"io"
 	"sync/atomic"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -28,22 +29,44 @@ var validatedMigrationFullChecks atomic.Uint64
 
 func newValidatedMigration(migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap) (*validatedMigration, error) {
 	validatedMigrationFullChecks.Add(1)
-	// CanonicalJSON performs the complete migration validation, including its
-	// complete original history and StateHash, before encoding any witness.
-	raw, err := migration.CanonicalJSON()
+	// This normal chain boundary fully validates once, detaches all references,
+	// and writes the exact original canonical bytes without a history-sized raw
+	// slice. The witness hashes/counts only the bytes actually written.
+	binding := newCanonicalMigrationStreamBinding(bootstrap)
+	stream := validatedMigrationCanonicalWriter{digest: sha256.New(), binding: binding}
+	detached, err := migration.WriteDetachedCanonicalJSON(&stream)
 	if err != nil {
 		return nil, err
 	}
-	var detached chain.ConsensusMigrationState
-	if err := json.Unmarshal(raw, &detached); err != nil {
+	var canonicalHash [sha256.Size]byte
+	copy(canonicalHash[:], stream.digest.Sum(nil))
+	if err := binding.matches(detached, canonicalHash, stream.count); err != nil {
 		return nil, err
 	}
-	if bootstrap != nil {
-		if err := bootstrap.matchesCanonicalMigration(detached, raw); err != nil {
-			return nil, err
-		}
+	return &validatedMigration{migration: detached, bootstrap: detachValidatedBootstrap(bootstrap), canonicalHash: canonicalHash, canonicalBytes: stream.count}, nil
+}
+
+// Only the normal complete validation/detachment above can create a witness.
+// This writer retains a digest and count, never the complete encoded history.
+type validatedMigrationCanonicalWriter struct {
+	digest  hash.Hash
+	binding *canonicalMigrationStreamBinding
+	count   int
+}
+
+func (w *validatedMigrationCanonicalWriter) Write(p []byte) (int, error) {
+	if len(p) > int(^uint(0)>>1)-w.count {
+		return 0, errors.New("canonical migration byte count overflow")
 	}
-	return &validatedMigration{migration: detached, bootstrap: detachValidatedBootstrap(bootstrap), canonicalHash: sha256.Sum256(raw), canonicalBytes: len(raw)}, nil
+	if err := w.binding.compare(p); err != nil {
+		return 0, err
+	}
+	n, err := w.digest.Write(p)
+	w.count += n
+	if err == nil && n != len(p) {
+		err = io.ErrShortWrite
+	}
+	return n, err
 }
 
 // Copy the complete already independently validated object, then detach every
