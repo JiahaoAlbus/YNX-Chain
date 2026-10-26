@@ -20,6 +20,7 @@ class Endpoint final {
  std::atomic<bool> retired_{false};std::atomic<unsigned> entered_{0};
  std::mutex writeMutex_,readMutex_,stateMutex_;Sequence sequence_;Reader reader_;
  std::string first_,closeFirst_;bool closeSelected_=false;
+ Frame receivedOriginal_{Message::failure,0,{}};bool hasReceivedOriginal_=false;
  bool sameDescriptor()const noexcept{struct stat st{};return identified_&&fd_>=0&&fstat(fd_,&st)==0&&S_ISSOCK(st.st_mode)&&st.st_dev==device_&&st.st_ino==inode_;}
  struct Entered{Endpoint&e;explicit Entered(Endpoint&v):e(v){
   std::lock_guard<std::mutex> lock(e.stateMutex_);
@@ -88,8 +89,23 @@ public:
     if(n<0&&(errno==EINTR||errno==EAGAIN||errno==EWOULDBLOCK))continue;
     if(n<=0)fail("AUTH_IDENTITY_PEER_TRUNCATED");reader_.append(bytes,(std::size_t)n);
    }
-   Frame result=reader_.finish();{std::lock_guard<std::mutex> lock(stateMutex_);sequence_.accept(result.sequence);}current();reader_=Reader{};return result;
+   // Adopt a complete observed frame BEFORE sequence/current can refuse. It
+   // remains DATA after UNKNOWN; retaining it never permits a second receive
+   // or turns a failed response into approval.
+   receivedOriginal_=reader_.finish();hasReceivedOriginal_=true;
+   {std::lock_guard<std::mutex> lock(stateMutex_);sequence_.accept(receivedOriginal_.sequence);}current();reader_=Reader{};
+   // Only a successfully copied/delivered frame stops being a recovery
+   // result. Failure/UNKNOWN exits above keep their SAME complete original.
+   // A later truncated call must never adopt a prior successful response.
+   Frame delivered=receivedOriginal_;current();hasReceivedOriginal_=false;return delivered;
   }catch(...){std::lock_guard<std::mutex> lock(stateMutex_);sequence_.fail();if(first_.empty())first_="AUTH_IDENTITY_PEER_READ_UNKNOWN";throw;}
+ }
+ // Read-only recovery from the SAME endpoint after the entered call drains.
+ // No descriptor read, current check, sequence advancement, retry or grant.
+ bool copyOriginalReceivedDATA(Frame&out){
+  std::unique_lock<std::mutex> direction(readMutex_,std::try_to_lock);
+  if(!direction.owns_lock()||!hasReceivedOriginal_)return false;
+  out=receivedOriginal_;return true;
  }
  void retire()noexcept{std::lock_guard<std::mutex> lock(stateMutex_);if(!retired_.exchange(true)&&sameDescriptor())::shutdown(fd_,SHUT_RDWR);}
  unsigned activeCalls()const noexcept{return entered_.load();}
