@@ -93,7 +93,7 @@ export async function copyIdentityAdmissionSource(destination) {
 }
 // Canonical source custody is independent of runtime service admission. Keep the
 // original SDK loader relative to its unique apps/wallet-desktop Native module.
-export const CANONICAL_IDENTITY_INPUTS_SHA256 = '1c19825373f08c3ce89de5274433fc1e01deb92734c35324df898648d6bd3982';
+export const CANONICAL_IDENTITY_INPUTS_SHA256 = 'd33a4a3acdb6304c37c09fd49de1d738caa5f6768b117bea62d7036a252402ad';
 // These select source custody, never runtime authority. Every selected byte is
 // still checked against the immutable manifest; there is no fallback on error.
 const canonicalOwned = resolve(process.env.YNX_DEVELOPER_CANONICAL_SDK_ROOT || resolve(developer, '../../packages/wallet-auth'));

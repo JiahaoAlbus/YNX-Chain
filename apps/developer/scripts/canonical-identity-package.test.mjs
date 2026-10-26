@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,readFile,writeFile,rm,stat} from 'node:fs/promises';
+import {mkdtemp,mkdir,readFile,writeFile,rm,stat,chmod} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
@@ -25,6 +25,8 @@ test('canonical package retains original SDK relative topology and detects chang
     await assert.rejects(packager.verifyCanonicalIdentityAdmissionSource(sdk),/inventory differs/);
     await rm(join(sdk,'unexpected-empty'),{recursive:true});
     const leaf=join(sdk,'src/original-ide-admission-parent-delivery.js');
+    // Exercise byte tampering on the owned package fixture, not its supplier.
+    await chmod(leaf,0o600);
     await writeFile(leaf,(await readFile(leaf,'utf8'))+'\n// changed\n');
     await assert.rejects(packager.verifyCanonicalIdentityAdmissionSource(sdk),/differs/);
     await assert.rejects(packager.copyCanonicalIdentityAdmissionSource(code),/EEXIST/);

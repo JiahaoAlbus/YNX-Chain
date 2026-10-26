@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,readFile,writeFile,mkdir,copyFile,rm,symlink} from 'node:fs/promises';
+import {mkdtemp,readFile,writeFile,mkdir,copyFile,rm,symlink,chmod} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -49,6 +49,8 @@ test('wrong SDK bytes, missing source and a symlink are refused on the selected 
   for(const row of product.files){const p=join(root,row.path);await mkdir(join(p,'..'),{recursive:true});const generated=inputs.productProjection.generated.find(g=>g.destination===row.path);const origin=generated?fileURLToPath(new URL('../../../'+generated.source,import.meta.url)):join(source,row.path);await copyFile(origin,p);}
   await verifyCanonicalIdentityAdmissionSource(root,deps);
   const path=join(root,'package.json'),original=await readFile(path);
+  // Mutate only this test's copy; immutable supplier modes stay unchanged.
+  await chmod(path,0o600);
   const old=JSON.parse(original);old.version='1.2.0';await writeFile(path,JSON.stringify(old));
   await assert.rejects(verifyCanonicalIdentityAdmissionSource(root,deps),/source leaf differs/);
   await writeFile(path,original);await rm(join(root,'src/original-ide-admission-parent-delivery.js'));

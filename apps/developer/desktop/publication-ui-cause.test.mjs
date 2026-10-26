@@ -6,7 +6,9 @@ class Node{constructor(document,tag){this.ownerDocument=document;this.tag=tag;th
 const document={createElement:tag=>new Node(document,tag)};class Widget{constructor(){this.node=new Node(document,'root');this.title={};this.toDispose=[];}dispose(){for(const d of this.toDispose)d.dispose();}}
 const loaded={exports:{}};vm.runInNewContext(source,{module:loaded,require:name=>name==='@theia/core/lib/browser/widgets'?{BaseWidget:Widget}:{CommonMenus:{VIEW_VIEWS:[]}}});
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-const browser=()=>({crypto:{randomUUID:()=> '33333333-3333-4333-8333-333333333333'}});
+// PUBLIC UI review controls only. These exercise the post-review diagnostic
+// route, not actual Cocoa approval, Native custody or Source admission.
+const browser=()=>({crypto:{randomUUID:()=> '33333333-3333-4333-8333-333333333333'},ynxDesktopWallet:{approveDeploymentObservation:async requestId=>({approved:true,requestId}),endDeploymentObservation:async()=>undefined}});
 for(const code of ['IDE_PROJECT_ORIGINAL_SOURCE_NOT_SUPPLIED','IDE_PUBLICATION_NOT_SUPPLIED','IDE_PUBLICATION_PROJECT_RETIRED','IDE_PUBLICATION_PUBLISHER_UNAVAILABLE','IDE_ARTIFACT_FRESH_APPROVAL_REQUIRED'])test(`actual private pipe retains only public cause ${code}`,async()=>{
  const[a,b]=duplexPair(),server=channel.serve(a,{call:async()=>{throw Object.assign(Error('SECRET backend path and private details'),{code,secret:'SECRET'});},close:async()=>{}}),client=channel.client(b);
  try{await assert.rejects(client.call('publication-observe',{requestId:'11111111-2222-3333-4444-555555555555'}),error=>{assert.equal(error.code,code);assert.doesNotMatch(error.message,/SECRET/);assert.equal(error.secret,undefined);return true;});}finally{client.close();server.close();}

@@ -10,7 +10,7 @@ const raw=await readFile(held.path);
 assert.equal(raw.length,held.bytes);
 assert.equal(createHash('sha256').update(raw).digest('hex'),held.sha256);
 const actualOld=JSON.parse(raw);
-const current=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
+const current=JSON.parse(await readFile(new URL('./fixtures/sdk48-source-only-selection.json',import.meta.url)));
 test('original executed SDK39 receipt remains a valid SDK39 record only',()=>{
  assert.equal(validateSDK39NativeComponent(actualOld,old),actualOld);
  assert.throws(()=>validateSDK48NativeComponent(actualOld,current),/actual matching record qualification differs/);
