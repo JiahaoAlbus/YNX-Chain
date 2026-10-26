@@ -6,6 +6,7 @@
 @class YNXAuthIdentitySourceAuthority;
 namespace ynx_auth_private {
 class ProductDeviceV4Factory;
+struct ProductDeviceV4ProofStatusDATA{int32_t result;uint32_t cleanup;size_t reportedLength;bool helperSelected,mathCompleted;};
 // Actual synchronous original-thread effect owner. No generic signer/provider
 // or Root constructor is exported. The outer original NAPI bridge must retain
 // and fence SAME held/AbortContext before/after this call; it is not optional.
@@ -14,6 +15,7 @@ class ProductDeviceV4ProofOperation final{
  friend class ProductDeviceV4Factory;
 public:
  std::vector<unsigned char>copyOriginalMemberDATA()const;
+ ProductDeviceV4ProofStatusDATA copyOriginalStatusDATA()const;
  bool assertCurrent(std::string&error);
  void retire();bool join(std::string&error);bool close(std::string&error);
  ~ProductDeviceV4ProofOperation();

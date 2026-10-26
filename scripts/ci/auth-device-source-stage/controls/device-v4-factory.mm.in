@@ -5,10 +5,12 @@ extern "C" void YNXProductDeviceV4FactoryPublicPrivateReadHook();
 #include "product_session_http.h"
 #include <sys/stat.h>
 static NSString*journalRoot=nil;static uint64_t wall=1000000,mono=1000;static unsigned signs=0;
+static unsigned closeFaultSelections=0;
 @implementation YNXAuthIdentitySourceAuthority(FactoryPublicBinding)
 -(NSDictionary*)copyOriginalSelection:(NSError**)error{if(![self assertOriginalProductSessionDeviceV4SourceCurrent:error])return nil;return @{@"productSessionDeviceV4":publicScope,@"originalHostTerminalDirectory":journalRoot};}
 @end
 extern "C" uint64_t YNXProductDeviceV4FactoryPublicClock(unsigned which){return which?mono:wall;}
+extern "C" bool YNXProductDeviceV4FactoryPublicCloseFailure(){if(mode=="close-fail"){closeFaultSelections++;return true;}return false;}
 extern "C" void YNXProductDeviceV4FactoryPublicPrivateReadHook(){if(mode=="pre-expiry"){wall+=30000;mono+=30000;}}
 extern "C" int32_t YNXProductSessionHTTPProofSignV4(YNXProductSessionHTTPRequestV4*r,uint8_t*wire,size_t capacity,size_t*n,uint32_t*cleanup){
  signs++;check(r->version==4&&r->struct_size==sizeof(*r)&&capacity==98304&&r->expected.network_id.length==32&&r->expected.owner.length==42&&r->expected.pk_a.length==2592&&r->expected.pk_b.length==64&&r->pkcs8_a.length==54&&r->pkcs8_b.length==150,"actual typed layout");check(r->pk_a.bytes!=r->expected.pk_a.bytes&&r->pk_b.bytes!=r->expected.pk_b.bytes&&!std::memcmp(r->pk_a.bytes,r->expected.pk_a.bytes,2592)&&!std::memcmp(r->pk_b.bytes,r->expected.pk_b.bytes,64),"independent public pair not passed");
