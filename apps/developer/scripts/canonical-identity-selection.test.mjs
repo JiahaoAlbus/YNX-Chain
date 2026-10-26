@@ -66,7 +66,10 @@ test('missing or changed complete Native source and receipt mutation cannot subs
  try{
   const rows=[...inputs.nativeSources,inputs.nativeComponent.receipt,inputs.nativeComponent.module,...(inputs.nativeComponent.producerEvidence?.files||[])];
   const ideSource=fileURLToPath(new URL('../../../',import.meta.url));
-  for(const row of rows){const p=join(root,row.path);await mkdir(join(p,'..'),{recursive:true});await copyFile(join(canonicalNativeSourcesForOwner({nativeSources:[row]},'ide').length?ideSource:source,row.path),p);}
+  // Every mutation below targets this private copy. copyFile can inherit the
+  // immutable supplier's0444 mode, so make owned fixture leaves writable;
+  // never change the supplier itself or the production source verifier.
+  for(const row of rows){const p=join(root,row.path);await mkdir(join(p,'..'),{recursive:true});await copyFile(join(canonicalNativeSourcesForOwner({nativeSources:[row]},'ide').length?ideSource:source,row.path),p);await chmod(p,0o600);}
   await verifyCanonicalNativeSourceSelection(root,root);
   const firstEnterHeader=join(root,'packages/wallet-auth/native/original-first-enter-selection.h'),firstEnterBytes=await readFile(firstEnterHeader);
   await rm(firstEnterHeader);await assert.rejects(verifyCanonicalNativeSourceSelection(root,root),/ENOENT/);
