@@ -1635,6 +1635,7 @@ jobs:
           old, fixed = original.read_text(), current.read_text()
           public = 'func (s CommittedState) Validate('
           owned = 'func (s CommittedState) validateOwned('
+          timed = 'func (s CommittedState) validateOwnedWithTimings('
           def bounds(text, start):
               assert text.count(start) == 1
               a = text.index(start)
@@ -1642,16 +1643,27 @@ jobs:
               return a, b
           oa, ob = bounds(old, public)
           pa, pb = bounds(fixed, public)
-          fa, fb = bounds(fixed, owned)
+          wa, wb = bounds(fixed, owned)
+          fa, fb = bounds(fixed, timed)
           original_prefix = 'func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error {\n'
-          owned_prefix = (
+          owned_wrapper = (
               'func (s CommittedState) validateOwned(witness *validatedMigration) error {\n'
+              '\treturn s.validateOwnedWithTimings(witness, nil)\n'
+              '}\n'
+          )
+          owned_prefix = (
+              'func (s CommittedState) validateOwnedWithTimings(witness *validatedMigration, timings *commitValidationTimings) (result error) {\n'
+              '\ttimings.begin("anchor")\n'
+              '\tif timings != nil {\n'
+              '\t\tdefer func() { timings.finish(result == nil) }()\n'
+              '\t}\n'
               '\tif err := witness.binds(s.bootstrap); err != nil {\n'
               '\t\treturn err\n'
               '\t}\n'
               '\tmigration := witness.migration\n'
           )
           assert old[oa:ob].startswith(original_prefix)
+          assert fixed[wa:wb] == owned_wrapper
           assert fixed[fa:fb].startswith(owned_prefix)
           original_body = old[oa + len(original_prefix):ob]
           assert 'validateAccountAbstractionPolicyState(s)' not in original_body
@@ -1659,7 +1671,11 @@ jobs:
           updated = fixed[:fa] + owned_prefix + original_body + fixed[fb:]
           ua, ub = bounds(updated, public)
           assert updated[ua:ub] == fixed[pa:pb]
+          ua, ub = bounds(updated, owned)
+          assert updated[ua:ub] == fixed[wa:wb]
           assert updated.count(owned) == 1
+          ua, ub = bounds(updated, timed)
+          assert updated[ua:ub] == owned_prefix + original_body
           current.write_text(updated)
           PY
           set +e
