@@ -91,9 +91,9 @@ func TestPQIdentityPublicHistoricalContractFixture(t *testing.T) {
 		t.Fatal("actual committed Application did not advance to Comet latest", err)
 	}
 	currentHash := hex.EncodeToString(final.AppHash)
-	if currentHash == anchorHash {
-		t.Fatal("fixture must distinguish current state from historical anchor")
-	}
+	// An empty committed block may keep the same AppHash. Distinguish the
+	// current state from its historical anchor by their actual heights below;
+	// never invent a state mutation or require a hash change for this contract.
 	g, server := identityGateway(t, f)
 	// SYNTHETIC full-40 identity, never an actual source/release attestation.
 	g.build = buildinfo.Info{Commit: strings.Repeat("12", 20), Release: "ynx-bft-gateway-121212121212", BuildTime: "2026-10-18T00:00:00Z"}
