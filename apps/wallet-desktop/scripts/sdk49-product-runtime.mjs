@@ -41,9 +41,9 @@ export const SDK49_PRODUCT_PINS=Object.freeze({
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const relative=p=>typeof p==='string'&&p&&!p.startsWith('/')&&!p.includes('\\')&&!p.includes('\0')&&path.posix.normalize(p)===p&&!p.split('/').some(s=>s==='.'||s==='..');
-function rows(value,count,ordered=true){
+function rows(value,count,ordered=true,fields='bytes,path,sha256'){
  if(!Array.isArray(value)||value.length!==count)fail('SDK49_PRODUCT_ROWS_INVALID');let previous='';const map=new Map();
- for(const row of value){if(Object.keys(row).join(',')!=='bytes,path,sha256'||!relative(row.path)||ordered&&row.path<=previous||map.has(row.path)||!Number.isSafeInteger(row.bytes)||row.bytes<0||row.bytes>16777216||!/^[a-f0-9]{64}$/.test(row.sha256))fail('SDK49_PRODUCT_ROWS_INVALID');previous=row.path;map.set(row.path,row);}
+ for(const row of value){if(Object.keys(row).join(',')!==fields||!relative(row.path)||ordered&&row.path<=previous||map.has(row.path)||!Number.isSafeInteger(row.bytes)||row.bytes<0||row.bytes>16777216||!/^[a-f0-9]{64}$/.test(row.sha256))fail('SDK49_PRODUCT_ROWS_INVALID');previous=row.path;map.set(row.path,row);}
  return map;
 }
 const equalRow=(a,b)=>a&&b&&a.bytes===b.bytes&&a.sha256===b.sha256;
@@ -73,7 +73,7 @@ export function readSDK49ProductRuntime(root,sourceCommit){
  const policy=documents.get('SDK49_FINITE_EXCLUSION_POLICY.json');if(policy.kind!=='YNX_SDK49_FINITE_PRODUCT_EXCLUSION_POLICY/v1'||policy.versionSDK!==sdk.version||policy.count!==15||receipt.excludedFiles!==15||receipt.full?.Auth!==597||receipt.full?.union!==9457||receipt.product?.Auth!==587||receipt.product?.union!==9448||receipt.product?.selection!==9598)fail('SDK49_PRODUCT_FINITE_POLICY_DIFFERS');
  // The exact SHA-pinned selection uses supplier locale ordering (e.g. compat/
  // before compat.d.ts), unlike the codepoint-ordered full runtime tables.
- const selected=rows(selection.files,9598,false),authRows=rows(auth.files,587),unionRows=rows(union.files,9448),excluded=rows(policy.excluded,15);
+ const selected=rows(selection.files,9598,false,'path,bytes,sha256'),authRows=rows(auth.files,587),unionRows=rows(union.files,9448),excluded=rows(policy.excluded,15,true,'path,bytes,sha256');
  for(const row of [...authRows.values(),...unionRows.values()])if(!equalRow(row,selected.get(row.path)))fail('SDK49_PRODUCT_CLOSURE_INCOMPLETE');
  for(const row of excluded.values())if(selected.has(row.path))fail('SDK49_PRODUCT_EXCLUSION_CONFLICT');
  const lock=unionRows.get('node_modules/.package-lock.json');if(lock?.bytes!==54707||lock.sha256!=='a6156ecfdededf82c182684e86f00d803b04fc76c6a4b59b27e62ea81983e775')fail('SDK49_PRODUCT_INSTALLED_LOCK_REQUIRED');
