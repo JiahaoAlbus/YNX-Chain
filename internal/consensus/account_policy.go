@@ -183,6 +183,10 @@ func (a *Application) applyPQTransaction(state executionState, payload []byte, h
 }
 
 func validateConsensusPQState(state CommittedState, migration chain.ConsensusMigrationState) error {
+	return validateConsensusPQStateWithInitialCache(state, migration, nil, nil)
+}
+
+func validateConsensusPQStateWithInitialCache(state CommittedState, migration chain.ConsensusMigrationState, initialCertificates *ynxbatch.CertificateCache, initialScope []byte) error {
 	cache := chain.NewPQCertificateCache()
 	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || len(state.PQBatches) != 0 || migration.AccountPolicy != nil) {
 		return errors.New("legacy ABCI state cannot carry or erase account policy")
@@ -241,7 +245,7 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 		}
 		previousHeight, seen[tx.Hash] = tx.BlockNum, true
 		if tx.Type == PQInitialRegistrationType {
-			if err := validatePQInitialRegistrationHistory(state, migration, entry); err != nil {
+			if err := validatePQInitialRegistrationHistoryWithCache(state, migration, entry, initialCertificates, initialScope); err != nil {
 				return err
 			}
 			id := key{tx.From, 1}

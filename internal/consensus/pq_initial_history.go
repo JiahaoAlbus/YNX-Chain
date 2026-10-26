@@ -59,6 +59,10 @@ func ValidatePQInitialRegistrationObservation(tx chain.Transaction, policy *ynxa
 // Revalidate original first-registration proof against the independent Genesis,
 // not against the keys copied into the checkpoint record being checked.
 func validatePQInitialRegistrationHistory(state CommittedState, migration chain.ConsensusMigrationState, entry PQCommittedAuthorization) error {
+	return validatePQInitialRegistrationHistoryWithCache(state, migration, entry, nil, nil)
+}
+
+func validatePQInitialRegistrationHistoryWithCache(state CommittedState, migration chain.ConsensusMigrationState, entry PQCommittedAuthorization, cache *ynxbatch.CertificateCache, scope []byte) error {
 	tx := entry.Transaction
 	if state.bootstrap == nil || state.AccountPolicy == nil || tx.Type != PQInitialRegistrationType || tx.From != tx.To || tx.Amount != 0 || tx.Fee != 0 || tx.Nonce != 1 || len(tx.LotFlows) != 0 || tx.BlockNum <= migration.Height || tx.BlockNum > uint64(state.Height) || tx.Timestamp.IsZero() || !strings.HasPrefix(tx.Memo, pqInitialRegistrationMemo) {
 		return errors.New("invalid committed zero-value initial registration effects")
@@ -75,7 +79,7 @@ func validatePQInitialRegistrationHistory(state CommittedState, migration chain.
 	if err != nil {
 		return err
 	}
-	if _, err := ynxauth.VerifyPQInitialRegistrationPossession(wire, trusted, tx.BlockNum); err != nil {
+	if _, err := ynxauth.VerifyPQInitialRegistrationPossessionWithCache(wire, trusted, tx.BlockNum, cache, scope); err != nil {
 		return err
 	}
 	if _, exists := accountIndex(migration.Accounts, tx.From); exists {

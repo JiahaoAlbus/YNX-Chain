@@ -42,6 +42,16 @@ func DecodePQInitialRegistrationMember(wire []byte) (RegistrationIntent, ynxbatc
 // A ledger caller must separately reject an existing owner and commit the first
 // registration/nonce atomically under its state lock.
 func VerifyPQInitialRegistrationPossession(wire []byte, trusted ynxbatch.Registration, height uint64) (RegistrationIntent, error) {
+	return VerifyPQInitialRegistrationPossessionWithCache(wire, trusted, height, nil, nil)
+}
+
+// VerifyPQInitialRegistrationPossessionWithCache reuses only the existing
+// bounded certificate cache's successful dual-signature mathematics. The caller
+// supplies an independently authenticated bootstrap and its private scope;
+// submitted keys or a policy record are never a bootstrap source. Complete
+// initial intent, live trusted registration and both membership paths are still
+// checked on every call. A nil cache preserves the standalone cold path.
+func VerifyPQInitialRegistrationPossessionWithCache(wire []byte, trusted ynxbatch.Registration, height uint64, cache *ynxbatch.CertificateCache, scope []byte) (RegistrationIntent, error) {
 	var zero RegistrationIntent
 	if height == 0 || height >= math.MaxInt64 {
 		return zero, errors.New("initial registration execution height")
@@ -64,7 +74,7 @@ func VerifyPQInitialRegistrationPossession(wire []byte, trusted ynxbatch.Registr
 		height := *trusted.RevokedAt
 		trusted.RevokedAt = &height
 	}
-	v, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: intent.ChainID, Purpose: TransactionPurpose, ResolveTrustedOwner: func(request ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
+	v, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: intent.ChainID, Purpose: TransactionPurpose, CertificateCache: cache, CacheScope: scope, ResolveTrustedOwner: func(request ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
 		if request.Height != height || request.Owner != intent.Owner || request.Purpose != TransactionPurpose || !bytes.Equal(request.ChainID, intent.ChainID) {
 			return ynxbatch.Registration{}, ynxbatch.ErrUntrusted
 		}

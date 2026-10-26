@@ -9,17 +9,29 @@ import (
 	"sync/atomic"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 )
+
+// This separate use of the existing bounded certificate API does not alter the
+// normal account batch cache's 16-entry budget. In particular, 17 independent
+// initial certificates must not cyclically evict the entire previous scan.
+// At most 32*(MaxCertificateBytes+4096) key bytes are retained per witness.
+const initialRegistrationCertificateEntries = 32
+const initialRegistrationCertificateScope = "YNX-INITIAL-REGISTRATION-CERTIFICATE-CACHE/v1"
 
 // validatedMigration owns a detached, fully validated original migration.
 // It is never persisted, exported, reconstructed from a hash, or paired with
 // caller-supplied migration data. Its users must treat migration as immutable.
-// Dynamic committed state, signatures and filesystem observations are NOT cached.
+// Dynamic committed state, authorization and filesystem observations are NOT
+// cached. The disposable initial-certificate cache below remembers only exact
+// successful dual-signature mathematics, with all live history checks retained.
 type validatedMigration struct {
-	migration      chain.ConsensusMigrationState
-	bootstrap      *ConsensusBootstrap
-	canonicalHash  [32]byte
-	canonicalBytes int
+	migration           chain.ConsensusMigrationState
+	bootstrap           *ConsensusBootstrap
+	canonicalHash       [32]byte
+	canonicalBytes      int
+	initialCertificates *ynxbatch.CertificateCache
+	initialScope        []byte
 }
 
 // Counts actual complete validations at this ownership boundary, not dynamic
@@ -43,7 +55,19 @@ func newValidatedMigration(migration chain.ConsensusMigrationState, bootstrap *C
 	if err := binding.matches(detached, canonicalHash, stream.count); err != nil {
 		return nil, err
 	}
-	return &validatedMigration{migration: detached, bootstrap: detachValidatedBootstrap(bootstrap), canonicalHash: canonicalHash, canonicalBytes: stream.count}, nil
+	witness := &validatedMigration{migration: detached, bootstrap: detachValidatedBootstrap(bootstrap), canonicalHash: canonicalHash, canonicalBytes: stream.count}
+	if witness.bootstrap != nil && witness.bootstrap.record.PQInitialAccounts != nil {
+		cache, err := ynxbatch.NewCertificateCache(initialRegistrationCertificateEntries)
+		if err != nil {
+			return nil, err
+		}
+		// This is a private mathematical cache namespace, not new authority or
+		// a protocol/hash input. The normal constructor has already bound the
+		// complete original Genesis and migration before creating this witness.
+		scope := sha256.Sum256([]byte(initialRegistrationCertificateScope + "\x00" + witness.bootstrap.record.CometGenesisSHA256))
+		witness.initialCertificates, witness.initialScope = cache, append([]byte(nil), scope[:]...)
+	}
+	return witness, nil
 }
 
 // Only the normal complete validation/detachment above can create a witness.

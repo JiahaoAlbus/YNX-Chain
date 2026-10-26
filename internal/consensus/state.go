@@ -425,7 +425,7 @@ func (s CommittedState) validateOwnedWithTimings(witness *validatedMigration, ti
 		}
 	}
 	timings.enter("pq_state")
-	if err := validateConsensusPQState(s, migration); err != nil {
+	if err := validateConsensusPQStateWithInitialCache(s, migration, witness.initialCertificates, witness.initialScope); err != nil {
 		return err
 	}
 	timings.enter("migration_trace_lots")
