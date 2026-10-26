@@ -220,3 +220,31 @@ isolated causal gain for pipeline or core cache, and cannot be relabeled as a
 successful controlled source-version A/B. Source ownleaf H is tracked in
 `evidence/pq-fresh-pipeline-ownleaf-f1d855b3b.json`; original d9/UNKNOWN records
 remain unchanged. No additional pressure run is authorized or started.
+
+
+## Actual coordinator cost behind the old barrier
+
+The original before16 callbacks, ranked by actual monotonically increasing
+Start offsets, were individually matched to all16 explicit per-index offer
+spans and original Host-context/readback spans. This derived offer ordinal is
+kept distinct from the actual Comet transaction index. No child RPC clock was
+subtracted from parent time.
+
+Actual first offer was parent38.321564868s, last offer coordinator completion
+53.341289348s, and first Host-context preparation56.033176149s. The old global
+inclusion stage took2.388504280s and original full Commit-evidence stage
+0.303260662s. Sixteen nonoverlapping Host-context call spans sum4.794557713s,
+with P50/P95=304.745/345.781ms. Independent-readback inclusive spans have
+P50/P95=1.722/1.838s and overlap, so their durations are not added as wall time.
+Actual last independent completion remained64.674925749s.
+
+From the observed all-four-node durable boundary to each original Host-context
+start, P50/P95=12.184/16.170s. This delay includes the all-submissions barrier,
+coordinator staging and other verification/preparation; it is not all idle CPU.
+It identifies a concrete delay path that the new pipeline no longer globally
+requires. It does not prove an equal amount of saved arm time or that282 fits
+105s. Next-source w records separate actual probe/check/context work from its
+now-overlapping stage spans. Raw report10268 bytes/SHA256
+`c35746ad474ab23c444d2c25037e0d4986cc8546ec46d7353e21df5b4dc7dc79`
+is COORDINATOR_COST_READBACK.json beside the original d9 evidence; tracked copy
+is `evidence/pq-fresh-d9-coordinator-cost-readback.json`.
