@@ -45,6 +45,7 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  fixed['1.3.0-pq.3.32-auth.41']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.41'].inventory;
  fixed['1.3.0-pq.3.32-auth.42']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.42'].inventory;
  fixed['1.3.0-pq.3.32-auth.46']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.46'].inventory;
+ fixed['1.3.0-pq.3.32-auth.48']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.48'].inventory;
  if(!Object.hasOwn(fixed,sdkVersion))return {inputs:names,evidenceAssets};
  const pin=fixed[sdkVersion];
  const bad=()=>{throw Error('Canonical Native source inventory differs');};
@@ -57,7 +58,7 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  const pairedInputCount=relay?WALLET_NATIVE_SOURCE_PROFILES[sdkVersion].supplierNodeInputs+5:67;
  if(paired&&(helperNative.length!==3||new Set([...pins,...helper].map(p=>p.path)).size!==pairedInputCount))bad();
  const artifactRelease=WALLET_ARTIFACT_CABI_INPUTS.slice(0,2).some(p=>names.includes(p.path));
- if(artifactRelease&&!['1.3.0-pq.3.32-auth.20','1.3.0-pq.3.32-auth.26','1.3.0-pq.3.32-auth.28','1.3.0-pq.3.32-auth.31','1.3.0-pq.3.32-auth.32','1.3.0-pq.3.32-auth.33','1.3.0-pq.3.32-auth.34','1.3.0-pq.3.32-auth.35','1.3.0-pq.3.32-auth.36','1.3.0-pq.3.32-auth.37','1.3.0-pq.3.32-auth.38','1.3.0-pq.3.32-auth.39','1.3.0-pq.3.32-auth.40','1.3.0-pq.3.32-auth.41','1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46'].includes(sdkVersion))bad();
+ if(artifactRelease&&!['1.3.0-pq.3.32-auth.20','1.3.0-pq.3.32-auth.26','1.3.0-pq.3.32-auth.28','1.3.0-pq.3.32-auth.31','1.3.0-pq.3.32-auth.32','1.3.0-pq.3.32-auth.33','1.3.0-pq.3.32-auth.34','1.3.0-pq.3.32-auth.35','1.3.0-pq.3.32-auth.36','1.3.0-pq.3.32-auth.37','1.3.0-pq.3.32-auth.38','1.3.0-pq.3.32-auth.39','1.3.0-pq.3.32-auth.40','1.3.0-pq.3.32-auth.41','1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.48'].includes(sdkVersion))bad();
  const projectControl=WALLET_PROJECT_CONTROL_INPUTS.some(p=>names.includes(p.path));
  const controlCABI=WALLET_PROJECT_CONTROL_CABI_INPUTS.slice(0,2).some(p=>names.includes(p.path));
  const cc7=names.includes(CC7_NATIVE_SOURCE.path),pqNative=isPQNativeSelection(names)||cc7;if(pqNative&&!['1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46'].includes(sdkVersion))bad();

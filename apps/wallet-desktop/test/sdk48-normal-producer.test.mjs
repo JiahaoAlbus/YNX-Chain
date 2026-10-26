@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {createHash} from 'node:crypto';
+import {pathToFileURL} from 'node:url';
+import {walletNativeSourceProfile,walletPublisherNativeInputs,SDK48_H6_MAIN_INPUTS} from '../scripts/wallet-publisher-native-build.mjs';
+import {sdkRuntimeUnionProfile,verifySDKRuntimeUnion} from '../scripts/sdk14-runtime-union.mjs';
+const source=process.env.WALLET_SDK48_NORMAL_PRODUCER_SLICE;
+const required='/Volumes/西部数据/YNX-large-work/ide-wallet-contract-consumer-20261024/IDE_SDK48_NORMAL_PRODUCER_CONSUMER_REQUIREMENTS.json';
+const hash=b=>createHash('sha256').update(b).digest('hex');
+test('strict48 profile binds formal102/tool15715/full9434 and frozen old Main13, never current46 or PQ/foreign roles',()=>{
+ const profile=walletNativeSourceProfile('1.3.0-pq.3.32-auth.48');assert.equal(profile.supplierNodeInputs,102);assert.equal(profile.inventory.bytes,86169);assert.equal(profile.tool.bytes,15715);assert.equal(profile.requiresRuntimeUnion,true);
+ assert.equal(sdkRuntimeUnionProfile(profile.version).files,9434);assert.equal(sdkRuntimeUnionProfile(profile.version).totalBytes,77922706);
+ assert.equal(walletPublisherNativeInputs(102,true,true,true,false),SDK48_H6_MAIN_INPUTS);assert.equal(SDK48_H6_MAIN_INPUTS.length,13);assert.equal(SDK48_H6_MAIN_INPUTS[0].bytes,6364);assert.equal(SDK48_H6_MAIN_INPUTS[1].bytes,41258);
+ assert.equal(walletPublisherNativeInputs(100,true,true,true,false)[0].bytes,7531);
+ for(const version of ['1.3.0-pq.3.32-auth.47','1.3.0-pq.3.32-auth.49','48'])assert.throws(()=>walletNativeSourceProfile(version),/WALLET_NATIVE_MATCHED_SDK_REQUIRED/);
+ for(const flags of [[true,true,true,true],[false,true,true,false],[true,false,true,false],[true,true,false,false]])assert.throws(()=>walletPublisherNativeInputs(102,...flags),/WALLET_SDK48_H6_FROZEN_ROLE_REQUIRED/);
+});
+test('complete original normal48 producer yields18/11 min13 plans115/107 with full actual supplier union and no compiler or invented record',{skip:!source?'requires explicit coherent no-cc7 normal producer source slice':false},async t=>{
+ const requirements=JSON.parse(fs.readFileSync(required)),request=JSON.parse(fs.readFileSync(requirements.sourceRequest.path)),supplier=JSON.parse(fs.readFileSync(requirements.supplier.path));
+ const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'wallet-sdk48-normal-plan-')));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const put=(name,bytes)=>{const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,bytes);};
+ for(const row of request.nativeSources){const bytes=fs.readFileSync(path.join(request.sourceRoot,row.path));assert.equal(bytes.length,row.bytes);assert.equal(hash(bytes),row.sha256);put(row.path,bytes);}
+ fs.cpSync(path.join(source,'apps'),path.join(root,'apps'),{recursive:true});
+ put('packages/wallet-auth/package.json',fs.readFileSync(path.join(supplier.prefix,'package.json')));
+ put('packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',fs.readFileSync(requirements.compatibilityInventory.path));
+ const app=path.join(root,'apps/wallet-desktop'),normal=await import(pathToFileURL(path.join(app,'scripts/build-wallet-native-component.mjs'))),original=await import(pathToFileURL(path.join(app,'scripts/build-original-auth-identity-native.mjs'))),canonical=await import(pathToFileURL(path.join(app,'scripts/canonical-package.mjs')));
+ const node=normal.walletNativeComponentBuildPlan('arm64','/PUBLIC/pinned-headers',true,true,true,false),helper=original.originalIDEHelperBuildPlan('arm64');
+ assert.equal(node.sources.length,18);assert.equal(helper.sources.length,11);assert.equal(node.minimumSystemVersion,'13.0');assert.equal(helper.minimumSystemVersion,'13.0');assert.equal(node.commands.length,1);assert.equal(helper.commands.length,1);
+ assert.deepEqual(node.sources,requirements.joinedNodeUnits.map(name=>path.join(root,name)));assert.deepEqual(node.walletInputFiles,requirements.MainInputs);assert.equal(node.pqNativeRole,undefined);
+ assert.equal(node.commands[0].argv.filter(a=>a.endsWith('.a')).length,1);assert(node.commands[0].argv.includes(path.join(root,'apps/wallet-desktop/native/libynx_project_control.a')));
+ const inventoryBytes=fs.readFileSync(requirements.compatibilityInventory.path),inventory=JSON.parse(inventoryBytes),names=[...inventory.NativeInputs.map(p=>p.path),...requirements.MainInputs.map(p=>p.path),...inventory.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),...canonical.CANONICAL_NATIVE_EVIDENCE_TESTS];
+ const rows=[...inventory.NativeInputs,...requirements.MainInputs].map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256}));assert.equal(rows.length,115);assert.equal(new Set([...inventory.NativeInputs,...inventory.HelperInputs].map(p=>p.path)).size,107);
+ const selection=canonical.canonicalNativeInputSelection(requirements.sdkVersion,names,inventoryBytes,rows);assert.equal(selection.supplierNodeInputCount,102);assert.equal(selection.walletInputs.length,13);
+ const bad=structuredClone(rows);bad.find(p=>p.relative.endsWith('/original-artifact-publisher-store.h')).bytes=7531;assert.throws(()=>canonical.canonicalNativeInputSelection(requirements.sdkVersion,names,inventoryBytes,bad));
+ assert.throws(()=>canonical.canonicalNativeInputSelection('1.3.0-pq.3.32-auth.46',names,inventoryBytes,rows));
+ const full=fs.readFileSync(requirements.fullRuntime.union.path);assert.equal(verifySDKRuntimeUnion(requirements.sdkVersion,supplier.prefix,full).filesVerified,9434);
+ assert.throws(()=>verifySDKRuntimeUnion(requirements.sdkVersion,supplier.prefix,Buffer.concat([full,Buffer.from('\n')])));
+ for(const name of ['native/original-auth-identity.node','native/original-auth-identity-build.json'])assert.equal(fs.existsSync(path.join(app,name)),false);
+});
