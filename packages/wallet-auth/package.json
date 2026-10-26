@@ -270,6 +270,12 @@
       "browser": null,
       "node": "./src/product-session-pq-v4-codec.js",
       "default": null
+    },
+    "./original-product-device-v4-source-stage": {
+      "types": "./src/original-product-device-v4-source-stage.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-source-stage.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -327,7 +333,8 @@
     "native/original-pq-host-catalog-task-exit.h",
     "native/original-ide-service-registration-data.h",
     "native/original-ide-project-app-observer.h",
-    "native/original-ide-project-app-observer-data.h"
+    "native/original-ide-project-app-observer-data.h",
+    "native/original-product-device-v4-source-contract.mjs"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

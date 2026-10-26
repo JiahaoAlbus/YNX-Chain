@@ -43,6 +43,14 @@ struct JointLifecycle {
 // Separate original protected Wallet PQ catalog Source. No Auth/IDE purpose,
 // input path/provider, ordinary signing permit or Go DATA may qualify this.
 + (instancetype)acquireOriginalWalletPQHostCatalogSource:(NSError **)error;
+// Distinct Source acquisition stage, not a device-slot/HTTP signer factory.
+// No arguments can inject a Source/Root/profile/key/path. Error+nonnil is the
+// SAME cleanup partial; caller must retain it before inspecting error.
++ (instancetype)acquireOriginalProductSessionDeviceV4Source:(NSError **)error;
+- (BOOL)assertOriginalProductSessionDeviceV4SourceCurrent:(NSError **)error;
+// Exact authenticated public scope for THIS dedicated Source, bounded by
+// pre/post physical current. Not a key slot or account/Root signing permit.
+- (NSDictionary *)copyOriginalProductSessionDeviceV4Scope:(NSError **)error;
 - (NSDictionary *)copyOriginalWalletPQHostCatalogContext:(NSError **)error;
 // Helper's own independently admitted Source, bound to ONE actual incoming
 // OS message. Peer identity supplies target only, never Source permission.

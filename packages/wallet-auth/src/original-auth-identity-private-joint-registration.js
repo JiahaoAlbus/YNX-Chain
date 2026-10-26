@@ -275,3 +275,14 @@ export function reserveOriginalAuthIdentityIDEParentHost(ref){
  catch(cause){remember(cause);} // Return exact partial SDK custody for cleanup.
  return api;
 }
+
+// Closed consumer of the actual separately named Native SOURCE stage only.
+// Not source4/readCurrent, a device slot, signing permission or public setter.
+export function acquireOriginalProductSessionDeviceV4SourceStage(...args){
+ if(args.length)throw failure('PRODUCT_DEVICE_V4_SOURCE_ARGUMENTS_INVALID');
+ let native;try{native=loadOriginalNative();}catch(cause){throw Object.assign(failure('PRODUCT_DEVICE_V4_NATIVE_SOURCE_STAGE_NOT_SUPPLIED'),{cause});}
+ const descriptor=Object.getOwnPropertyDescriptor(native,'acquireOriginalProductSessionDeviceV4Source');
+ if(!descriptor||!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')throw failure('PRODUCT_DEVICE_V4_NATIVE_SOURCE_STAGE_NOT_SUPPLIED');
+ // Do not translate Native failure: preserve SAME error and its actual partial.
+ return descriptor.value.call(native);
+}

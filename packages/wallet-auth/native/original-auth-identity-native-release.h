@@ -30,6 +30,10 @@ struct NativeSourceRelease {
  // with the journal-six contract; a filename/old proof receipt is insufficient.
  std::string walletPQApplicationId,walletPQProtocolImagePath,walletPQProtocolImageDigest,walletPQProtocolSourceRevision,walletPQProtocolContract;
  std::string walletPQProtocolReconcileContract;
+ // Separate device Source identity, not a PQ transaction/catalog/BIRTH row.
+ // Empty old rows cannot acquire device Source. Original release process must
+ // independently bind both values; never renderer/ENV/current-response input.
+ std::string productDeviceV4ApplicationId,productDeviceV4ProductId;
 };
 inline const std::vector<NativeSourceRelease>& originalNativeSourceReleases(){
  // An independently approved App build may supply typed ROWS via its frozen
