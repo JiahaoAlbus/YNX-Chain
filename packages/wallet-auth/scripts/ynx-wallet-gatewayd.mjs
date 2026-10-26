@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import {loadCentralOIDCConfiguration} from '../src/central-oidc-provider.js';
-import {loadOriginalAuthSourceCurrentService,handleOriginalAuthSourceCurrent} from '../src/original-auth-identity-source-current.js';
+import {loadOriginalAuthSourceCurrentService} from '../src/original-auth-identity-source-current.js';
+import {openOriginalAuthSourceCurrentRequest} from '../src/original-auth-source-current-request.js';
 import {loadCentralBackendConfiguration} from '../src/central-browser-backend-auth.js';
 import { readFileSync, lstatSync, openSync, closeSync, fstatSync, constants } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -60,7 +61,7 @@ const deployment=build?{build,remoteDeployed}:{remoteDeployed};
 const host=new CanonicalWalletGatewayNodeHost(registry,{emitEvent,statePath,now:()=>new Date()},deployment);
 const productRegistry=JSON.parse(readFileSync(productSessionRegistryPath,'utf8'));
 const ProductHost=productSessionStateVersion==='3'?ProductSessionControlNodeHost:ProductSessionGatewayNodeHost;
-const originalAuthSourceStartup=loadOriginalAuthSourceCurrentService();
+const originalAuthSourceStartup=await loadOriginalAuthSourceCurrentService();
 if(originalAuthSourceStartup?.partial){
  let cleanupCause,cleanupCausePresent=false;
  try{originalAuthSourceStartup.partial.retire();originalAuthSourceStartup.partial.join();originalAuthSourceStartup.partial.close();}catch(cause){cleanupCause=cause;cleanupCausePresent=true;}
@@ -86,7 +87,12 @@ const gatewayHandler=async(request,response)=>{
   const path=new URL(request.url,'http://127.0.0.1').pathname;
   if(path==='/v1/auth-identity/source-current'){
     if(!originalAuthSourceCurrent){response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});response.end('{"error":"AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED"}');return;}
-    const result=handleOriginalAuthSourceCurrent(originalAuthSourceCurrent,request.method,request.url);response.writeHead(result.status,result.headers);response.end(result.body);return;
+    // The non-v2 normal daemon must use the SAME original request owner as
+    // ProductSessionGatewayNodeHost. Awaiting current alone omits its final
+    // Source/custody/time fence and can hand off a late expired statement.
+    const original=openOriginalAuthSourceCurrentRequest(originalAuthSourceCurrent,request.method,request.url);
+    try{original.bindOriginalHTTP(request,response);await original.run();original.writeOriginalResponse(request,response);return;}
+    finally{original.retire();original.join();original.close();}
   }
   if(central?.handles(path)){
     let body='';if(request.method==='POST'){let size=0;const chunks=[];for await(const chunk of request){size+=chunk.length;if(size>16384)throw new Error('Central browser body exceeds policy');chunks.push(chunk)}body=Buffer.concat(chunks).toString('utf8');}

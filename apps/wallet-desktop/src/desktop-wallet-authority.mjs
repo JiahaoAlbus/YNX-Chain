@@ -1,6 +1,6 @@
 import { randomUUID,createHash } from "node:crypto";
 import { Wallet, TypedDataEncoder, formatEther, getBytes, isAddress, isHexString } from "ethers";
-import { createProductSessionReturnURL, parseProductSessionWalletURL,evmAddressFromYNX,ynxAddressFromEVM,productSessionRequestDigest } from "@ynx-chain/wallet-auth";
+import { createProductSessionReturnURL, parseProductSessionRequest,parseProductSessionWalletURL,evmAddressFromYNX,ynxAddressFromEVM,productSessionRequestDigest } from "@ynx-chain/wallet-auth";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn, signCentralSignIn } from "./central-browser-sign-in.mjs";
@@ -304,14 +304,24 @@ export class DesktopWalletAuthority {
   async importAccount(input) { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.importAccount(input); }
   async addAccountAndSelect() { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.addAccountAndSelect(); }
   async selectAccount(account) { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.selectAccount(account); }
+  #assertCanonicalIssuerSupplied(request){
+    if(request?.version!=='4')return;
+    // SDK49 can decode/preview the device-v4 request, but no real Native device
+    // issuer/consent-v4 port has been supplied to this consumer. Do not borrow
+    // the old account-v3 Source, reserve a journal slot or enter a signer first.
+    parseProductSessionRequest(PRODUCT_SESSION_REGISTRY,request,this.clock());
+    throw providerError(4100,'PQ_DEVICE_ISSUER_NOT_SUPPLIED','The original dual-PQ device issuer is not available. Preview or cancel this request; no signing or journal reservation occurred.');
+  }
   async approveCanonicalAuthorization(request, issuedAt, expectedAccount, permission, requestId=null) {
     if (!/^0x[0-9a-f]{40}$/.test(expectedAccount ?? "")) throw providerError(4100, "ACCOUNT_REVIEW_REQUIRED", "Review the selected account before approving");
+    this.#assertCanonicalIssuerSupplied(request);
     // YNX first-party account authentication uses the current dual-PQ policy
     // and original V3 producer only. Missing supply is not a classic grant.
     if(!this.#pqSessionSource)throw providerError(4100,'ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Current PQ account policy is required; no classic fallback is available.');
     return this.#trackPQ(()=>this.#approveCurrentSession(request,expectedAccount,permission,{requestId}));
   }
   reconcileCanonicalAuthorization(request,account,permission){
+    this.#assertCanonicalIssuerSupplied(request);
     if(!this.#pqSessionSource)throw providerError(4100,'ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Fresh committed policy is required for recovery.');
     return this.#trackPQ(()=>this.#approveCurrentSession(request,account,permission,{readOnly:true}));
   }

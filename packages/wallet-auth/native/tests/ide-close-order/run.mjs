@@ -1,0 +1,11 @@
+import fs from 'node:fs/promises';import path from 'node:path';import {spawnSync} from 'node:child_process';
+const root=path.resolve(import.meta.dirname,'../../../../..');
+if(process.platform!=='darwin')throw Error('IDE_CLOSE_ORDER_REQUIRES_DARWIN');
+const owner=await fs.readFile(path.join(root,'apps/wallet-desktop/native/original-ide-auth-identity-owners.inc.mm'),'utf8');
+const node=await fs.readFile(path.join(root,'packages/wallet-auth/native/original-ide-parent-node.mm'),'utf8');
+function section(raw,start,end){const a=raw.indexOf(start),b=raw.indexOf(end,a);if(a<0||b<a)throw Error(start);return raw.slice(a,b);}
+const connection=await fs.readFile(path.join(import.meta.dirname,'connection.inc'),'utf8');
+const inputs={request:(await fs.readFile(import.meta.dirname+'/request-close.mm','utf8')).replace('/* ACTUAL_JOIN_CLOSE */',section(owner,'static bool IDEIdentityJoin(','static void IDEIdentityFinalize(')),node:(await fs.readFile(import.meta.dirname+'/node-close.mm','utf8')).replace('/* CONNECTION_HELPERS */',connection).replace('/* ACTUAL_NODE_SAMEFILE */',section(node,'static bool NodeSameFile(','@implementation YNXOriginalIDENodeDelivery')).replace('/* ACTUAL_NODE_CLOSE */',section(node,'- (BOOL)closeOriginal:','@end'))};
+const tmp=await fs.mkdtemp('/tmp/ynx-auth-r140-'),e=await fs.mkdtemp(path.join(process.env.RUNNER_TEMP||'/tmp','ynx-ide-close-evidence-'));let failed=false;
+for(const[name,source]of Object.entries(inputs)){await fs.writeFile(tmp+'/'+name+'.mm',source);const c=spawnSync('/usr/bin/clang++',['-std=c++17','-fobjc-arc','-Wall','-Wextra','-Werror',tmp+'/'+name+'.mm','-framework','Foundation','-o',tmp+'/'+name],{encoding:'utf8',timeout:10000}),r=c.status===0?spawnSync(tmp+'/'+name,[],{encoding:'utf8',timeout:10000}):null;for(const[n,o]of[['compile',c],['run',r]])if(o)for(const s of['stdout','stderr'])await fs.writeFile(e+'/'+name+'-'+n+'.'+s,o[s]??'');await fs.writeFile(e+'/'+name+'-result.json',JSON.stringify({compileExit:c.status,runExit:r?.status,signal:r?.signal,actualProductionBodies:true,dependencies:'PUBLIC effect/Source; Node real socket',grant:false},null,2)+'\n');process.stdout.write(r?.stdout??'');process.stderr.write(c.stderr||r?.stderr||'');if(c.status||r?.status||r?.signal)failed=true;}
+console.log(e);process.exitCode=failed?1:0;if(!failed)await fs.rm(tmp,{recursive:true,force:true});

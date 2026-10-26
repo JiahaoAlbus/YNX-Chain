@@ -1,0 +1,9 @@
+# Auth10 matching source for R162 observation
+
+This successor copies exactly the three original Auth R162 Source leaves after checking each old parent against Auth9 commit 085cf7d9 and the original R159 full-source archive. The frozen Auth9 archive, public module bytes, normal installed QA runtimes, Main6304 and existing App/IDE candidates remain unchanged.
+
+The private Objective-C getter `copyOriginalIDEVerifiedProofForRequest:invocation:error:` returns only the same Source's retained exact request, invocation, proof wire and original verification result. It rechecks original current state, immutable hashes and fixed expiry after callbacks. The returned observation is DATA; it neither grants project/publisher permission nor supplies a signing approval or retry token. There is no new Node export or translation unit: the normal Node/helper recipes remain 12/11 units over the matching 64+5 source inputs.
+
+The actual Native N1 wire limit is 262144 bytes; request/invocation limits are 16384. R161's 393216 transport ceiling is a bound on untrusted input, not Native cryptographic acceptance. The source supplier's actual class/link and ten PUBLIC custody groups are reused without rerunning them; they do not prove real N1, Root, live Source, user approval or effect invocation. The new SDK differential verifies normal matching selection and rejects a mixed old header before any build.
+
+Original A must still build/read back the complete matching Native/App tuple. Main must connect its purpose-isolated sealed R+KEY7 record and independent visible approval to the same Source and typed once-only effect, rechecking actual project ACL, publisher registration and revocation. The original Auth producer for `getDeploymentRequestHeaders` is not present in R162; this package supplies no stub, legacy-grant fallback or generic network capability. Contract Relay/Verify platform qualification and real login/recovery/revocation remain open.

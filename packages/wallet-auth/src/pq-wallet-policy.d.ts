@@ -1,3 +1,4 @@
+import type {PQNativeActionInput,PQNativeAction,PQNativeActionKind} from './pq-native-action.js';
 import type {PQPublicBinding} from './pq-wallet-contract.js';
 import type {PQNativeTransferInput, PQNativeTransfer, PQRegistrationIntentInput, PQRegistrationIntent, PQMigrationProofs, PQTransportRequest,PQClassicSignerPublicResult,PQClassicMigrationProof,PQRevocationIntentInput,PQRevocationIntent,PQRevocationProofs} from './pq-wallet-authorization.js';
 export interface PQPolicyRecord { readonly algorithmVersion: 'YNX-BATCH/v0.1'; readonly owner: string; readonly pkA: string; readonly pkB: string; readonly revision: string; readonly registeredAt: string; readonly activeFrom: string; readonly ledgerNonce: string }
@@ -7,7 +8,7 @@ declare const snapshot: unique symbol;
 /** Immutable parsed DTO, retained by protected main. Parsing does not authenticate a node.
  * Renderer copies cannot recreate this local snapshot identity or an approval lease. */
 export interface PQAuthorizationSnapshot extends PQAuthorizationDTO { readonly [snapshot]: never }
-export type PQWalletAction = 'pq-native-transfer' | 'pq-account-migration' | 'pq-account-revocation' | 'legacy-native-transfer' | 'ethereum' | 'dex' | 'resource' | 'delegation' | 'recovery-authorization';
+export type PQWalletAction = 'pq-native-action' | 'pq-native-transfer' | 'pq-account-migration' | 'pq-account-revocation' | 'legacy-native-transfer' | 'ethereum' | 'dex' | 'resource' | 'delegation' | 'recovery-authorization';
 export interface PQPolicyDispatch { readonly mode: 'legacy' | 'pq'; readonly chainId: string; readonly nativeChainId: string; readonly owner: string; readonly executionHeight: string; readonly ledgerNonce: string; readonly nextNonce: string; readonly policyRevision: string; readonly activeRecord: PQPolicyRecord | null }
 export interface PQTransferReviewPlan { readonly kind: 'pq-native-transfer'; readonly transfer: Readonly<PQNativeTransfer>; readonly policy: PQPolicyDispatch }
 export interface PQMigrationReviewPlan { readonly kind: 'pq-account-migration'; readonly intent: Readonly<PQRegistrationIntent>; readonly policy: PQPolicyDispatch }
@@ -44,3 +45,7 @@ export interface PQRevocationReviewPlan { readonly kind: 'pq-account-revocation'
 export function planPQAccountRevocation(snapshot: PQAuthorizationSnapshot, intent: PQRevocationIntentInput): PQRevocationReviewPlan;
 export function assertPQRevocationRequestPolicy(snapshot: PQAuthorizationSnapshot, wire: Uint8Array): PQRevocationReviewPlan;
 export function preparePQReviewedRevocationTransport(snapshot: PQAuthorizationSnapshot, proofs: PQRevocationProofs): Readonly<{plan: PQRevocationReviewPlan; request: PQTransportRequest}>;
+
+/** Typed transaction DATA; original review/current/keyAccess guards are external. */
+export interface PQNativeActionReviewPlan<K extends PQNativeActionKind=PQNativeActionKind>{readonly kind:'pq-native-action';readonly action:PQNativeAction<K>;readonly policy:PQPolicyDispatch}
+export function planPQNativeAction<K extends PQNativeActionKind>(snapshot:PQAuthorizationSnapshot,input:PQNativeActionInput<K>):PQNativeActionReviewPlan<K>;

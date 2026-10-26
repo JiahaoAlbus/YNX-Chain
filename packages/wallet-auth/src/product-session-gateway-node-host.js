@@ -1,3 +1,6 @@
+import {verifyOriginalProductSessionHTTPProofV4,productSessionHTTPProofV4ReplayKey} from './product-session-device-v4.js';
+import {decodeProductSessionProofHeaderV4} from './product-session-proof-v4.js';
+import {readAccountPolicyObservation,assertSessionAccountPolicy} from './product-session-account-private.js';
 import {assertOriginalPrivatePQCarrier} from './original-wallet-service-private-pq-budget.js';
 import {originalPrivateReferenceRoute,sameOriginalReferenceCompletion} from './original-wallet-service-private-reference.js';
 import { createHash, randomUUID } from "node:crypto";
@@ -20,12 +23,29 @@ import {createCentralBrowserSessionRegistry} from './central-browser-session-reg
 import {CentralBrowserSessionStore} from './central-browser-session-store.js';
 import {CentralBrowserSessionAuthority,CentralBrowserSessionNodeRoutes} from './central-browser-session.js';
 import {OriginalHostTerminalJournal} from './original-host-terminal-journal.js';
-import {handleOriginalAuthSourceCurrent} from './original-auth-identity-source-current.js';
+import {handleOriginalAuthSourceCurrent,handleOriginalDeveloperPrincipalCurrent,assertOriginalDeveloperPrincipalSource} from './original-auth-identity-source-current.js';
+import {openOriginalAuthSourceCurrentRequest} from './original-auth-source-current-request.js';
+import {verifyProductSessionProofV2,productSessionProofV2Digest} from './product-session-proof-v2.js';
+import {httpBodyDigest} from './session-proof.js';
 
 export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 // Actual same-process Host inventory, not registration or readiness authority.
 // No structural callback/DTO can enter this inventory.
 const originalRuntimeHostSources = new WeakMap();
+const originalDeveloperHTTPCredentials = new WeakMap();
+const originalDeveloperPrincipalResults = new WeakMap();
+// Only the actual original Host below creates this opaque reference. There is
+// no public registration callback, JSON restore or caller-supplied capability.
+export async function readOriginalDeveloperHTTPCredential(credential){
+  const c=originalDeveloperHTTPCredentials.get(credential);if(!c)fail('ORIGINAL_HTTP_CREDENTIAL_REQUIRED','Original HTTP credential is unavailable');
+  await c.recheck();return c.view;
+}
+// Synchronous delivery fence on the SAME opaque Host credential. It borrows
+// no new policy context and never re-arms or consumes an original proof.
+export function assertOriginalDeveloperHTTPCredentialCompletion(credential){
+  const c=originalDeveloperHTTPCredentials.get(credential);if(!c)fail('ORIGINAL_HTTP_CREDENTIAL_REQUIRED','Original HTTP credential is unavailable');
+  c.complete();return c.view;
+}
 // Local transaction custody only. Not a Native-purpose/terminal authority.
 const originalPrivateTransactions = new WeakMap();
 function privateData(value,fields,strict=true){
@@ -86,6 +106,7 @@ export class ProductSessionGatewayNodeHost {
   #privateTransactions=new Map(); #privateActive=null; #privateFailurePresent=false; #privateFirstCause;
   #privateTerminalJournal; #privateTerminalOriginal; #privateRetainedOwners=new WeakMap();
   #authSourceCurrent=null;
+  #deviceCurrent=null;
   #accountPolicy=null;
 
   #requiredAccountContext(context){
@@ -220,8 +241,9 @@ export class ProductSessionGatewayNodeHost {
   closeOriginalWalletServicePrivateTerminal(){return this.#privateTerminalJournal?.close();}
 
   constructor(registryInput, options) {
-    exactFields(options,["now","statePath","tokenFactory",...(Object.hasOwn(options,'centralBrowser')?["centralBrowser"]:[]),...(Object.hasOwn(options,'centralBackend')?["centralBackend"]:[]),...(Object.hasOwn(options,'centralOIDC')?["centralOIDC"]:[]),...(Object.hasOwn(options,'businessRevalidation')?["businessRevalidation"]:[]),...(Object.hasOwn(options,'centralBrowserEcosystem')?["centralBrowserEcosystem"]:[]),...(Object.hasOwn(options,'privateBusinessRevalidation')?["privateBusinessRevalidation"]:[]),...(Object.hasOwn(options,'privateBackendRegistrations')?["privateBackendRegistrations"]:[]),...(Object.hasOwn(options,'authIdentitySourceCurrent')?['authIdentitySourceCurrent']:[]),...(Object.hasOwn(options,'accountPolicy')?['accountPolicy']:[])],"Product Session Gateway Node host options");
+    exactFields(options,["now","statePath","tokenFactory",...(Object.hasOwn(options,'centralBrowser')?["centralBrowser"]:[]),...(Object.hasOwn(options,'centralBackend')?["centralBackend"]:[]),...(Object.hasOwn(options,'centralOIDC')?["centralOIDC"]:[]),...(Object.hasOwn(options,'businessRevalidation')?["businessRevalidation"]:[]),...(Object.hasOwn(options,'centralBrowserEcosystem')?["centralBrowserEcosystem"]:[]),...(Object.hasOwn(options,'privateBusinessRevalidation')?["privateBusinessRevalidation"]:[]),...(Object.hasOwn(options,'privateBackendRegistrations')?["privateBackendRegistrations"]:[]),...(Object.hasOwn(options,'authIdentitySourceCurrent')?['authIdentitySourceCurrent']:[]),...(Object.hasOwn(options,'accountPolicy')?['accountPolicy']:[]),...(Object.hasOwn(options,'deviceCurrent')?['deviceCurrent']:[])],"Product Session Gateway Node host options");
     this.#authSourceCurrent=options.authIdentitySourceCurrent??null;
+    if(Object.hasOwn(options,'deviceCurrent')){if(!options.deviceCurrent||['readCurrent','assertCurrent','readRegistrationOriginal','readSessionOriginal'].some(n=>typeof options.deviceCurrent[n]!=='function'))fail('PRODUCT_SESSION_DEVICE_CURRENT_NOT_SUPPLIED','Original device current source required');this.#deviceCurrent=options.deviceCurrent;}
     if(Object.hasOwn(options,'accountPolicy')){
       const config=privateData(options.accountPolicy,['mode','run']);
       if(config.mode!=='required'||typeof config.run!=='function')fail('ACCOUNT_POLICY_CONFIG_INVALID','Normal account policy configuration is invalid');
@@ -245,6 +267,125 @@ export class ProductSessionGatewayNodeHost {
   }
 
   revalidate(session,scopes,productId,at,businessRevalidation=false,accountContext=null){this.#assertStateIdentity();const handler=this.#accountPolicy?this.#newHandler(this.#handler.snapshot(),this.#requiredAccountContext(accountContext)):this.#handler;const result=handler.revalidate(session,scopes,productId,this.#accountPolicy?this.#now():at,businessRevalidation);this.#assertStateIdentity();return result;}
+
+  // Same original Host transaction/persist/current machinery, not a second
+  // Auth store or a session DTO -> Principal conversion. Read-only business
+  // identity still consumes the original device HTTP proof exactly once.
+  // Version4 uses the SAME original host/snapshot/replay ledger/credential map.
+  // The Native issuer supplies its original expected17 tuple; no header/DTO can
+  // choose an ordinary account pair or manufacture device-current authority.
+  async authenticateOriginalDeveloperHTTPRequestV4(input){
+    return this.#originalDeveloperV4(input,false);
+  }
+  async revalidateOriginalDeveloperHTTPRequestV4(input){
+    return this.#originalDeveloperV4(input,true);
+  }
+  async #originalDeveloperV4(input,alreadyConsumed){
+    const v=privateData(input,['requestId','method','path','body','proofHeader','expected']);
+    if(!validRequestId(v.requestId)||typeof v.body!=='string'||Buffer.byteLength(v.body)>1048576||typeof v.proofHeader!=='string')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original v4 request invalid');
+    if(this.#deviceCurrent===null)fail('PRODUCT_SESSION_DEVICE_CURRENT_NOT_SUPPLIED','Original v4 device current source required');
+    if(this.#accountPolicy===null)fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Original registered account current is independently required');
+    this.#assertStateIdentity();const p=decodeProductSessionProofHeaderV4(v.proofHeader),session=this.#handler.snapshot().authority.sessions.find(s=>s.sessionBinding===p.sessionBinding);
+    if(!session||session.version!=='4'||session.productId!=='developer')fail('CROSS_PRODUCT_SESSION','Original v4 developer session required');
+    const controller=new AbortController(),abortContext=Object.freeze({signal:controller.signal}),key=productSessionHTTPProofV4ReplayKey(v.proofHeader);
+    const verify=async(existing,requiredScopes)=>{
+      const before=snapshotDigest(this.#handler.snapshot());let selectedContext=null;
+      const operation={requestId:v.requestId,method:v.method,path:v.path,body:v.body,proofHeader:v.proofHeader,walletControlProofHeader:null,session,at:this.#now().toISOString()};
+      // Borrow the original committed account observation separately from the
+      // device pair. The original runner remains responsible for pre/post owner.
+      await this.#withAccountPolicy(operation,ctx=>{assertSessionAccountPolicy(session,readAccountPolicyObservation(ctx.observation,session.account,this.#now()));selectedContext=ctx;return true;});
+      const result=await verifyOriginalProductSessionHTTPProofV4({headerName:'x-ynx-product-session-proof-v4',header:v.proofHeader,request:{method:v.method,path:v.path,body:v.body,requiredScopes},expected:v.expected,source:this.#deviceCurrent,abortContext,at:this.#now(),consumeNonce:async row=>{
+        this.#assertStateIdentity();if(snapshotDigest(this.#handler.snapshot())!==before)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original replay state changed');
+        const found=this.#handler.snapshot().consumedProofs.includes(row.key);if(existing){if(!found)fail('ORIGINAL_HTTP_NOT_AUTHENTICATED','Original v4 nonce was not consumed');return;}
+        if(found)fail('REPLAY','Original v4 nonce already consumed');
+        const next=JSON.parse(canonicalJSON(this.#handler.snapshot()));if(next.consumedProofs.length>=20000)fail('CAPACITY','Original proof ledger at capacity');next.consumedProofs.push(row.key);next.consumedProofs.sort();
+        const candidate=this.#newHandler(next,selectedContext);this.#persist(candidate.snapshot());this.#retainHandlerSnapshot(candidate);this.#assertStateIdentity();
+      }});
+      await this.#withAccountPolicy({...operation,at:this.#now().toISOString()},ctx=>{assertSessionAccountPolicy(session,readAccountPolicyObservation(ctx.observation,session.account,this.#now()));return true;});
+      this.#assertStateIdentity();if(!this.#handler.snapshot().consumedProofs.includes(key)||canonicalJSON(result.session)!==canonicalJSON(session))fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original v4 source/session changed');return result;
+    };
+    try{await verify(alreadyConsumed,session.scopes);}
+    catch(error){controller.abort();throw error;}
+    const expires=Math.min(Date.parse(p.expiresAt),Date.parse(session.expiresAt)),credential=Object.freeze({}),view=Object.freeze({session,method:v.method,path:v.path,bodyDigest:p.bodyDigest,proofExpiresMS:expires});let completed=null,last=Date.parse(p.issuedAt);
+    const complete=()=>{this.#assertStateIdentity();const at=+this.#now();if(completed===null||snapshotDigest(this.#handler.snapshot())!==completed||at<last||at>=expires)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original v4 credential no longer current');last=at;};
+    const recheck=async()=>{completed=null;await verify(true,session.scopes);completed=snapshotDigest(this.#handler.snapshot());complete();};
+    originalDeveloperHTTPCredentials.set(credential,{view,recheck,complete});await recheck();return credential;
+  }
+
+  async authenticateOriginalDeveloperHTTPRequest(input){
+    const v=privateData(input,['requestId','method','path','body','proofHeader']);
+    if(!validRequestId(v.requestId)||typeof v.body!=='string'||Buffer.byteLength(v.body)>1048576||typeof v.proofHeader!=='string')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original HTTP identity request is invalid');
+    const proof=decodeProductSessionGatewayProofHeaderV2(v.proofHeader);this.#assertStateIdentity();
+    const session=this.#handler.snapshot().authority.sessions.find(s=>s.sessionBinding===proof.sessionBinding);
+    if(!session||session.productId!=='developer')fail('CROSS_PRODUCT_SESSION','Original developer session is required');
+    const operation={requestId:v.requestId,method:v.method,path:v.path,body:v.body,proofHeader:v.proofHeader,walletControlProofHeader:null,session,at:this.#now().toISOString()};
+    const before=snapshotDigest(this.#handler.snapshot());
+    const verified=await this.#withAccountPolicy(operation,context=>{
+      this.#assertStateIdentity();if(snapshotDigest(this.#handler.snapshot())!==before)fail('ACCOUNT_POLICY_OPERATION_CHANGED','Original HTTP identity state changed while borrowing current');
+      const candidate=this.#newHandler(this.#handler.snapshot(),context);
+      const result=candidate.authenticateOriginalDeveloperHTTPRequest({method:v.method,path:v.path,body:v.body,proof},this.#now());
+      this.#persist(candidate.snapshot());this.#retainHandlerSnapshot(candidate);this.#assertStateIdentity();return result;
+    });
+    return await this.#retainOriginalDeveloperCredential(verified.session,v,proof);
+  }
+
+  async revalidateOriginalDeveloperHTTPRequest(input){
+    const v=privateData(input,['requestId','method','path','body','proofHeader']);
+    if(!validRequestId(v.requestId)||typeof v.body!=='string'||Buffer.byteLength(v.body)>1048576||typeof v.proofHeader!=='string')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original HTTP current request is invalid');
+    const proof=decodeProductSessionGatewayProofHeaderV2(v.proofHeader);this.#assertStateIdentity();
+    const session=this.#handler.snapshot().authority.sessions.find(s=>s.sessionBinding===proof.sessionBinding);
+    if(!session||session.productId!=='developer')fail('CROSS_PRODUCT_SESSION','Original developer session is required');
+    verifyProductSessionProofV2(proof,session,{method:v.method,path:v.path,bodyDigest:httpBodyDigest(v.body)},this.#now());
+    if(!this.#handler.snapshot().consumedProofs.includes(productSessionProofV2Digest(proof)))fail('ORIGINAL_HTTP_NOT_AUTHENTICATED','Original HTTP proof has not entered the original replay ledger');
+    // Explicit current-only recheck of an original consumed proof. It never
+    // consumes/re-arms a nonce, extends expiry or executes a business effect.
+    return await this.#retainOriginalDeveloperCredential(session,v,proof);
+  }
+
+  async #retainOriginalDeveloperCredential(original,v,proof){
+    const expires=Math.min(Date.parse(proof.expiresAt),Date.parse(original.expiresAt));
+    const operation={requestId:v.requestId,method:v.method,path:v.path,body:v.body,proofHeader:v.proofHeader,walletControlProofHeader:null,session:original,at:this.#now().toISOString()};
+    const credential=Object.freeze({}),view=Object.freeze({session:original,method:v.method,path:v.path,bodyDigest:proof.bodyDigest,proofExpiresMS:expires});
+    let completedSnapshot=null,lastTime=Date.parse(proof.issuedAt);
+    const complete=()=>{
+      this.#assertStateIdentity();
+      if(completedSnapshot===null||snapshotDigest(this.#handler.snapshot())!==completedSnapshot)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original HTTP identity changed after current check');
+      const end=this.#now().getTime();if(end<lastTime||end>=expires)fail('SESSION_EXPIRED','Original HTTP identity expired at delivery');lastTime=end;
+    };
+    const recheck=async()=>{
+      completedSnapshot=null;let selectedSnapshot=null;
+      this.#assertStateIdentity();const now=this.#now();if(now.getTime()<Date.parse(proof.issuedAt)||now.getTime()>=expires)fail('SESSION_EXPIRED','Original HTTP identity expired');
+      await this.#withAccountPolicy({...operation,at:now.toISOString()},context=>{
+        this.#assertStateIdentity();const h=this.#accountPolicy?this.#newHandler(this.#handler.snapshot(),context):this.#handler;
+        h.revalidate(original,[],'developer',this.#now(),true);this.#assertStateIdentity();selectedSnapshot=snapshotDigest(this.#handler.snapshot());return true;
+      });
+      const end=this.#now();if(end.getTime()<now.getTime()||end.getTime()>=expires)fail('SESSION_EXPIRED','Original HTTP identity expired after current check');
+      completedSnapshot=selectedSnapshot;lastTime=end.getTime();complete();
+    };
+    originalDeveloperHTTPCredentials.set(credential,{view,recheck,complete});
+    await recheck();return credential;
+  }
+
+  async currentExistingDeveloperPrincipal(input){
+    assertOriginalDeveloperPrincipalSource(this.#authSourceCurrent);
+    const credential=await this.authenticateOriginalDeveloperHTTPRequest(input);
+    return await this.#originalPrincipalResult(credential);
+  }
+  async recheckExistingDeveloperPrincipal(input){
+    assertOriginalDeveloperPrincipalSource(this.#authSourceCurrent);
+    const credential=await this.revalidateOriginalDeveloperHTTPRequest(input);
+    return await this.#originalPrincipalResult(credential);
+  }
+  async #originalPrincipalResult(credential){
+    const result=await handleOriginalDeveloperPrincipalCurrent(this.#authSourceCurrent,credential);
+    this.#assertStateIdentity();this.#authSourceCurrent.assertOriginalDeveloperPrincipalCompletion(credential,result);
+    originalDeveloperPrincipalResults.set(result,{host:this,credential});return result;
+  }
+  #assertPrincipalDelivery(result){
+    const retained=originalDeveloperPrincipalResults.get(result);
+    if(!retained||retained.host!==this)fail('AUTH_ORIGINAL_PRINCIPAL_COMPLETION_NOT_ORIGINAL','Original principal result is unavailable');
+    this.#assertStateIdentity();this.#authSourceCurrent.assertOriginalDeveloperPrincipalCompletion(retained.credential,result);
+  }
 
   // Fixed private caller uses the SAME kernel/state transaction as HTTP.
   // Caller must already hold an independently recognized Native association;
@@ -305,8 +446,9 @@ export class ProductSessionGatewayNodeHost {
     const dispatch=async(request,response)=>{
       const path=new URL(request.url,'http://127.0.0.1').pathname;
       // The real v2 daemon uses THIS listener, not gatewayd's v3 pre-router.
-      // Forward only the fixed Source-current route into the owning handler.
-      if(path==='/v1/auth-identity/source-current')return productHandler(request,response);
+      // The existing original Source/principal handlers own strict method,
+      // request and release-brand checks before any proof can be consumed.
+      if(path==='/v1/auth-identity/source-current'||path==='/v1/developer/original-http-principal')return productHandler(request,response);
       if(central&&CentralBrowserSessionNodeRoutes.prototype.handles.call(central,path)){
         if(this.#accountPolicy)fail('ACCOUNT_POLICY_CENTRAL_CONTEXT_NOT_SUPPLIED','Central authority has no original request-local policy transaction');
         let body='';if(request.method==='POST'){let size=0;const chunks=[];for await(const chunk of request){size+=chunk.length;if(size>16384)throw new Error('Central browser body exceeds policy');chunks.push(chunk);}body=Buffer.concat(chunks).toString('utf8');}
@@ -345,12 +487,22 @@ export class ProductSessionGatewayNodeHost {
       let corsHeaders = {};
       try {
         this.#assertStateIdentity();
+        if(new URL(request.url,'http://127.0.0.1').pathname==='/v1/developer/original-http-principal'){
+          const u=new URL(request.url,'http://127.0.0.1');if(request.method!=='POST'||u.search||u.hash||singleHeader(request.headers['content-type'])!=='application/json')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original identity relay is invalid');
+          let input;try{input=JSON.parse(await boundedBody(request,3145728));}catch{fail('ORIGINAL_HTTP_REQUEST_INVALID','Original identity relay body is invalid');}
+          const v=privateData(input,['operation','requestId','method','path','body','proofHeader']);if(!['authenticate','recheck'].includes(v.operation))fail('ORIGINAL_HTTP_REQUEST_INVALID','Original identity relay operation is invalid');
+          const {operation,...original}=v,result=operation==='authenticate'?await this.currentExistingDeveloperPrincipal(original):await this.recheckExistingDeveloperPrincipal(original);
+          this.#assertPrincipalDelivery(result);response.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});response.end(canonicalJSON(result));return;
+        }
         if(new URL(request.url,'http://127.0.0.1').pathname==='/v1/auth-identity/source-current'){
           if(!this.#authSourceCurrent){response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});response.end('{"error":"AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED"}');return;}
           // This existing original producer handler owns the private branding
           // check; neither a marker nor a public arithmetic kernel can mount.
-          const result=handleOriginalAuthSourceCurrent(this.#authSourceCurrent,request.method,request.url,this.#now().getTime());
-          response.writeHead(result.status,result.headers);response.end(result.body);return;
+          const original=openOriginalAuthSourceCurrentRequest(this.#authSourceCurrent,request.method,request.url);
+          try{
+            original.bindOriginalHTTP(request,response);await original.run();
+            this.#assertStateIdentity();original.writeOriginalResponse(request,response);return;
+          }finally{original.retire();original.join();original.close();}
         }
         const browserPath=this.#central?new URL(request.url,'http://127.0.0.1').pathname:null;
         const route=this.#central?.handles(browserPath)?browserPath:pathname(request.url);
@@ -543,6 +695,6 @@ function allowedHeaders(route) { return WALLET_SESSION_CONTROL_PATHS.includes(ro
 function nullableHeader(value) { return value === undefined ? null : Array.isArray(value) ? "" : value; }
 function noFollow() { return constants.O_NOFOLLOW ?? 0; }
 function ownedByProcess(stat) { return typeof process.getuid !== "function" || stat.uid === process.getuid(); }
-async function boundedBody(request) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > 1_048_576) fail("BODY_TOO_LARGE", "Product Session Gateway body exceeds policy"); chunks.push(chunk); } return Buffer.concat(chunks).toString("utf8"); }
+async function boundedBody(request,limit=1_048_576) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > limit) fail("BODY_TOO_LARGE", "Product Session Gateway body exceeds policy"); chunks.push(chunk); } return new TextDecoder('utf8',{fatal:true}).decode(Buffer.concat(chunks)); }
 function hostError(error) { if (!(error instanceof WalletAuthError)) return { status: 500, code: "INTERNAL", message: "Product Session Gateway host failed closed" }; const status = error.code === "CLOCK_UNAVAILABLE" ? 503 : error.code === "ORIGIN_NOT_ALLOWED" ? 403 : error.code === "ROUTE_NOT_FOUND" ? 404 : error.code === "METHOD_NOT_ALLOWED" ? 405 : error.code === "BODY_TOO_LARGE" ? 413 : error.code.startsWith("STATE_") ? 500 : 400; return { status, code: error.code, message: error.message }; }
 function fail(code, message) { throw new WalletAuthError(code, message); }

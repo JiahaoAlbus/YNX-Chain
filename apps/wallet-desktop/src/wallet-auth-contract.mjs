@@ -14,6 +14,9 @@ const reviewedProtocolSources = Object.freeze({
   // Exact SDK46 normal-package source, checked against its frozen full-prefix
   // inventory AND original Git source. Receipt only, not v4/Source admission.
   "6f67298154ebf44b9fd1c5b01c75dbb16cee425ab8164e53dc9c8e504892741c": "59a3797ea3421129171565e37870568e424ec085",
+  // Coherent SDK49 normal prefix9606 and original afa53 source: receipt only.
+  // This neither admits v4 Native custody nor supplies its pairing/issuer.
+  "e3cab9c1139cbcd0100eac430b0267614c7b12b43432e06448b5bdf01c6f7db4": "afa53c4dddba6bb9e06b6619dea45af189978fb6",
 });
 const sourceSha256 = createHash("sha256").update(readFileSync(new URL("./product-session-v2.js", import.meta.resolve("@ynx-chain/wallet-auth")))).digest("hex");
 const sourceCommit = reviewedProtocolSources[sourceSha256];

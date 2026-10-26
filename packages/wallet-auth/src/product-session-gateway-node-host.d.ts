@@ -8,6 +8,17 @@ export type OriginalReturnPublicationOutcome=Readonly<{state:'not_found';retryAu
  * After execute entered, later refusal does not undo the persisted original. */
 export type OriginalAccountPolicyRunner=(operation:OriginalAccountPolicyOperation,execute:(context:ProductSessionAccountContext&Readonly<{required:true}>)=>undefined)=>Promise<void>;
 export declare const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION: 1;
+/** Exact original HTTP bytes; the Host consumes the device proof once. */
+export type OriginalDeveloperHTTPRequest=Readonly<{requestId:string;method:string;path:string;body:string;proofHeader:string}>;
+declare const originalDeveloperHTTPCredential:unique symbol;
+/** Same-process reference only; cannot be restored from JSON or supplied as a DTO. */
+export type OriginalDeveloperHTTPCredential=Readonly<{[originalDeveloperHTTPCredential]:true}>;
+/** DATA from independently provisioned Source; not a project grant or Native admission. */
+export type OriginalDeveloperHTTPPrincipalDATA=Readonly<{
+  version:'YNX-ORIGINAL-DEVELOPER-HTTP-PRINCIPAL/v1';principalOriginal:string;principalSHA256:string;
+  profileDigest:string;currentRaw:string;method:string;path:string;bodyDigest:string;expiresAtMs:number;
+  dataOnly:true;authorized:false;nativeAdmission:false;
+}>;
 export type ProductSessionGatewayNodeHostOptions=Readonly<{
   now:()=>Date;statePath:string;tokenFactory:()=>string;
   centralBrowser?:boolean;centralBrowserEcosystem?:boolean;businessRevalidation?:boolean;
@@ -15,12 +26,20 @@ export type ProductSessionGatewayNodeHostOptions=Readonly<{
   centralBackend?:Readonly<{backendClients:readonly Readonly<{clientId:string;keyId:string;publicKey:string}>[];familySealKey:unknown}>;
   centralOIDC?:unknown;
   accountPolicy?:Readonly<{mode:'required';run:OriginalAccountPolicyRunner}>;
+  deviceCurrent?:import('./product-session-device-v4.js').OriginalProductSessionDeviceCurrentSourceV4;
 }>;
 /** familySealKey must be a Node Buffer of 32 bytes; explicit central adoption and exact provisioned public keys are required. */
 export declare class ProductSessionGatewayNodeHost {
   constructor(registry:unknown,options:ProductSessionGatewayNodeHostOptions);
   handler():(request:unknown,response:unknown)=>Promise<void>;
   snapshot():Readonly<Record<string,unknown>>;
+  authenticateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;
+  authenticateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
+  revalidateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
+  currentExistingDeveloperPrincipal(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPPrincipalDATA>;
+  /** Observation of an already-consumed original proof; never a new nonce or business execution. */
+  revalidateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;
+  recheckExistingDeveloperPrincipal(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPPrincipalDATA>;
   publishOriginalProductSessionReturn(input:Readonly<{requestId:string;request:unknown;approval:unknown}>):Promise<OriginalReturnHostResponse>;
   readOriginalProductSessionReturnChallenge(input:Readonly<{requestId:string;reference:string;request:unknown}>):Promise<OriginalReturnHostResponse>;
   completeOriginalProductSessionReturn(input:Readonly<{requestId:string;reference:string;request:unknown;completion:unknown}>):Promise<OriginalReturnHostResponse>;

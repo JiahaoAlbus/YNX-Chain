@@ -7,7 +7,7 @@
 #import <fcntl.h>
 #include <memory>
 using namespace ynx_auth_ide_private;
-static bool NodeSameFile(struct stat a,struct stat b){return a.st_dev==b.st_dev&&a.st_ino==b.st_ino&&a.st_mode==b.st_mode&&a.st_uid==b.st_uid&&a.st_gid==b.st_gid&&a.st_nlink==b.st_nlink;}
+static bool NodeSameFile(struct stat a,struct stat b){return a.st_dev==b.st_dev&&a.st_ino==b.st_ino&&(S_ISSOCK(a.st_mode)&&S_ISSOCK(b.st_mode)?(a.st_mode&S_IFMT)==(b.st_mode&S_IFMT):a.st_mode==b.st_mode)&&a.st_uid==b.st_uid&&a.st_gid==b.st_gid&&a.st_nlink==b.st_nlink;}
 @implementation YNXOriginalIDENodeDelivery {
  YNXAuthIdentitySourceAuthority *_source;SourceBinding _binding;Lifetime _life;
  ResourceCloseDebt _resourceDebt;
@@ -77,8 +77,8 @@ static bool NodeSameFile(struct stat a,struct stat b){return a.st_dev==b.st_dev&
   }
   NSError *retireFailure=nil,*joinFailure=nil,*closeFailure=nil;BOOL sourceJoined=YES,sourceClosed=YES;
   @try{[_source retire];}@catch(id exception){if(!_first&&!_originalCause)_originalCause=exception;retireFailure=[NSError errorWithDomain:@"YNXOriginalIDENode" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_SOURCE_RETIRE_EXCEPTION"}];}
-  @try{if(_source)sourceJoined=[_source join:&joinFailure];}@catch(id exception){sourceJoined=NO;if(!_first&&!_originalCause)_originalCause=exception;joinFailure=[NSError errorWithDomain:@"YNXOriginalIDENode" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_SOURCE_JOIN_EXCEPTION"}];}
-  @try{if(_source)sourceClosed=[_source close:&closeFailure];}@catch(id exception){sourceClosed=NO;if(!_first&&!_originalCause)_originalCause=exception;closeFailure=[NSError errorWithDomain:@"YNXOriginalIDENode" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_SOURCE_CLOSE_EXCEPTION"}];}
+  @try{if(_source)sourceJoined=[_source join:&joinFailure]&&!joinFailure;}@catch(id exception){sourceJoined=NO;if(!_first&&!_originalCause)_originalCause=exception;joinFailure=[NSError errorWithDomain:@"YNXOriginalIDENode" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_SOURCE_JOIN_EXCEPTION"}];}
+  @try{if(_source){if(sourceJoined)sourceClosed=[_source close:&closeFailure]&&!closeFailure;else sourceClosed=NO;}}@catch(id exception){sourceClosed=NO;if(!_first&&!_originalCause)_originalCause=exception;closeFailure=[NSError errorWithDomain:@"YNXOriginalIDENode" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_SOURCE_CLOSE_EXCEPTION"}];}
   _complete=endpointDone&&sourceJoined&&sourceClosed&&!retireFailure&&_resourceDebt.clean();
   if(!_complete)_cleanup=retireFailure?:joinFailure?:closeFailure?:[NSError errorWithDomain:@"YNXOriginalIDENode" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_NODE_CLOSE_UNKNOWN"}];else _source=nil;
   if(!_complete&&error)*error=_cleanup;return _complete;

@@ -1,0 +1,14 @@
+{
+  "kind": "YNX_WALLET_SDK49_SUCCESSOR_SOURCE_ASSEMBLY/v1",
+  "root": "/Volumes/西部数据/YNX-large-work/wallet-sdk49-product-successor-20261026",
+  "parent": "8d232f59c0e95f62bd91330dd2fbd872b02b6000",
+  "SDKCommit": "afa53c4dddba6bb9e06b6619dea45af189978fb6",
+  "normalPrefixFiles": 9606,
+  "normalPrefixVerifiedBeforeAndAfter": true,
+  "originalSDKPreserved": "/Volumes/西部数据/YNX-large-work/wallet-sdk49-product-successor-20261026-sdk46-pristine-preserved",
+  "formalRoleRows": 10,
+  "NativeBuilt": false,
+  "AppBuilt": false,
+  "installed": false,
+  "keysOrAccountsTouched": false
+}

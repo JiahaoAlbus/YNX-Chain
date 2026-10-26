@@ -27,7 +27,7 @@ export function assertSessionAccountPolicy(subject,view){
     if(subject.version!=='2')fail('ACCOUNT_POLICY_CHANGED');
     return undefined;
   }
-  if(subject.version!=='3')fail('ACTIVE_PQ_CLASSIC_SESSION_REFUSED');
+  if(!['3','4'].includes(subject.version))fail('ACTIVE_PQ_CLASSIC_SESSION_REFUSED');
   const expected=accountAuthorizationFromView(view);
   if(canonicalJSON(subject.accountAuthorization)!==canonicalJSON(expected))fail('ACCOUNT_POLICY_CHANGED');
   return undefined;

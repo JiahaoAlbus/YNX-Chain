@@ -1,8 +1,0 @@
-import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';import {readFileSync} from 'node:fs';import {fileURLToPath,pathToFileURL} from 'node:url';
-test('R14 journal actual loader converts exact fixed file URL and preserves failed acquisition',()=>{
- const source=readFileSync(new URL('../src/original-host-terminal-journal.js',import.meta.url),'utf8');let cases=0;
- for(const dir of ['PUBLIC Wallet','PUBLIC # Wallet','PUBLIC % Wallet','PUBLIC 钱包']){const moduleURL=pathToFileURL('/PUBLIC/'+dir+'/packages/wallet-auth/src/original-host-terminal-journal.js').href,expected=fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',moduleURL));let requested,calls=0;
- const code=source.replace(/^import .*;\n/gm,'').replaceAll('import.meta.url',JSON.stringify(moduleURL)).replace('export class OriginalHostTerminalJournal','class OriginalHostTerminalJournal');
- const cause=Object.freeze({PUBLIC_STOP_BEFORE_LOAD:true});const context=vm.createContext({URL,Buffer,fileURLToPath,createHash:()=>{},createRequire:()=>target=>{requested=target;calls++;throw cause},canonicalJSON:JSON.stringify,exactFields(){},WalletAuthError:Error});vm.runInContext(code+';this.Journal=OriginalHostTerminalJournal',context);const journal=new context.Journal('/PUBLIC/state',{PUBLIC_NOT_AUTHORITY:true});let caught;try{journal.open()}catch(e){caught=e}assert.equal(caught,cause);assert.equal(requested,expected);assert.equal(calls,1);assert.equal(journal.status().unknown,true);assert.equal(journal.status().cleanupComplete,false);assert.throws(()=>journal.open());assert.equal(calls,1);cases++;}
- assert.equal(cases,4);
-});

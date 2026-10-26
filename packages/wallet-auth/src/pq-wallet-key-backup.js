@@ -1,3 +1,4 @@
+import {encodePQNativeAction} from './pq-native-action.js';
 import {keyGen, exportKeyMaterial, importKeyMaterial, destroyKey, batchSign, extract, encodeMember, discardBatch} from '@ynx/batch-v01-candidate';
 import {Buffer} from 'node:buffer';
 import {PQ_PROTOCOL_VERSION, PQ_SUITE, validatePQPublicBinding, assertPQPublicBindingMatches,
@@ -5,9 +6,12 @@ import {PQ_PROTOCOL_VERSION, PQ_SUITE, validatePQPublicBinding, assertPQPublicBi
 import {sealPQWalletBackup, openPQWalletBackup} from './pq-wallet-backup.js';
 import {encodePQNativeTransfer, encodePQRegistrationIntent, normalizePQRegistrationIntent,
   preparePQTransferTransport, encodePQRevocationIntent, preparePQRevocationTransport, encodePQRevocationRequest} from './pq-wallet-authorization.js';
-import {planPQNativeTransfer, planPQAccountMigration} from './pq-wallet-policy.js';
+import {planPQNativeAction, planPQNativeTransfer, planPQAccountMigration} from './pq-wallet-policy.js';
 import {planPQAccountRevocation} from './pq-wallet-policy.js';
 import {capturePQSessionSigningPlan} from './product-session-account-private.js';
+import {AUTH_IDENTITY_PURPOSES,parseOriginalAuthIdentityRequest,inspectOriginalAuthIdentityRequest,encodeOriginalAuthIdentityRequest} from '../native/original-auth-identity-v2-contract.mjs';
+import {assertPQRegisteredRecoveryBindingData,verifyPQRegisteredMemberData} from './pq-registered-member.js';
+import {verifyOriginalAuthIdentityMemberData} from './auth-identity-verification.js';
 
 // Protected main only. A key-custody handle never asserts migration, active
 // registration, signing approval, a product session, or transaction authority.
@@ -126,6 +130,20 @@ function signOne(handle, state, message, purpose, whole) {
 // branch only. No RPC, permission creation, generic raw signer or classic key.
 // App must use its original pending review/WeakMap guard and lease, revalidate
 // the current node snapshot, and assert the guard before and after these calls.
+/** Typed 16-kind Action only. Original protected-main review/keyAccess guards
+ * and fresh snapshot fences remain required before AND after this synchronous
+ * crypto operation. No raw signing, transport, grant or uncertain-write retry. */
+export function signPQWalletNativeAction(handle,value,snapshot){
+ const state=live(handle),plan=planPQNativeAction(snapshot,value),active=plan.policy.activeRecord;
+ const bind=()=>signingBinding(state,{chainId:plan.policy.chainId,owner:plan.policy.owner},active.pkA,active.pkB);
+ bind();
+ const message=Buffer.from(encodePQNativeAction(plan.action));
+ const wire=signOne(handle,state,message,'TX-BATCH',false);
+ live(handle);planPQNativeAction(snapshot,plan.action);bind();
+ const verified=verifyPQRegisteredMemberData(snapshot,wire,{chainId:plan.policy.chainId,owner:plan.policy.owner,keyVersion:plan.policy.policyRevision,executionHeight:plan.policy.executionHeight,purpose:'TX-BATCH',message});
+ if(verified.memberCount!==1||verified.memberIndex!==0)throw pqError('PQ_ACTION_MEMBER_COORDINATES_INVALID');
+ live(handle);bind();return wire;
+}
 export function signPQWalletNativeTransfer(handle, transfer, snapshot) {
   const state = live(handle), plan = planPQNativeTransfer(snapshot, transfer), active = plan.policy.activeRecord;
   signingBinding(state, {chainId: plan.policy.chainId, owner: plan.policy.owner}, active.pkA, active.pkB);
@@ -162,4 +180,23 @@ export function signPQWalletAccountRevocation(handle, value, snapshot) {
   const currentPQMember = signOne(handle, state, encodePQRevocationIntent(plan.intent), 'ACCOUNT-REVOCATION', false);
   live(handle);
   return preparePQRevocationTransport(encodePQRevocationRequest({intent: plan.intent, currentPQMember}));
+}
+
+/** Typed R82 proof DATA only. The original Wallet review/keyAccess guards and
+ * Native-held expected request/current/provenance remain mandatory before and
+ * after this call. No generic raw signer, new approval, replay gate or Source. */
+export function signPQWalletAuthIdentityRequest(handle,requestRaw,snapshot,atMs){
+  const body=parseOriginalAuthIdentityRequest(requestRaw);
+  if(![AUTH_IDENTITY_PURPOSES.receive,AUTH_IDENTITY_PURPOSES.recover,AUTH_IDENTITY_PURPOSES.keyCall].includes(body.purpose))throw pqError('PQ_AUTH_IDENTITY_PURPOSE_UNSUPPORTED');
+  inspectOriginalAuthIdentityRequest(requestRaw,requestRaw,body.purpose,atMs);
+  const state=live(handle),context={chainId:body.networkId,owner:body.owner,keyVersion:body.keyVersion,executionHeight:body.executionHeight};
+  // Existing branded policy gate checks actual H, activation, revocation and
+  // Record.Revision; the complete active pair must match this opaque key.
+  assertPQRegisteredRecoveryBindingData(snapshot,state.binding,context);
+  const wire=signOne(handle,state,Buffer.from(encodeOriginalAuthIdentityRequest(body)),body.purpose,false);
+  live(handle);
+  assertPQRegisteredRecoveryBindingData(snapshot,state.binding,context);
+  verifyOriginalAuthIdentityMemberData(snapshot,wire,requestRaw,requestRaw,body.purpose,atMs);
+  live(handle);
+  return wire;
 }

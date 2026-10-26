@@ -229,6 +229,142 @@ function assertColdEntry(actualEntryURL){
  let entry;try{const url=new URL(actualEntryURL);if(url.protocol!=='file:'||url.host||url.search||url.hash)fail('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');entry=fileURLToPath(url);}catch{fail('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');}
  if(resolve(entry)!==entry||entry!==join(dirname(entry),'server.mjs')||typeof process.argv[1]!=='string'||resolve(process.argv[1])!==entry)fail('IDE_ADMISSION_RUNNING_ENTRY_MISMATCH');
 }
+/** Discover only the original Native callback table. This is not Source
+ * admission and never constructs/asserts/closes an operation owner. Native
+ * independently checks the real Node entry and owns all qualification. */
+function originalIdentityNativeModule(){
+ const target=fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url));
+ let resolved;
+ try{resolved=requireNative.resolve(target);}
+ catch(cause){if(cause?.code==='MODULE_NOT_FOUND')return null;throw cause;}
+ // Node may resolve a missing target through extension fallback or symlinks.
+ // Only the exact fixed Native operand may be loaded.
+ if(resolved!==target)return null;
+ // Load outside the missing-target catch: addon or transitive dependency
+ // failures, including MODULE_NOT_FOUND, preserve the original first cause.
+ return requireNative(resolved);
+}
+export function acquireOriginalIDENativeAuthBinding(actualEntryURL){
+ assertColdEntry(actualEntryURL);
+ const native=originalIdentityNativeModule();
+ if(typeof native?.getOriginalIDENativeAuthBinding!=='function')return null;
+ const binding=native.getOriginalIDENativeAuthBinding(actualEntryURL);
+ if(!binding||typeof binding!=='object'||['receiveOriginalIDEIdentity','recoverOriginalIDEIdentity','acquireOriginalIDEProtectedKeyCall'].some(name=>typeof binding[name]!=='function'))return null;
+ return binding;
+}
+/** Backend-only recognition of the SAME original fixed Native peer table.
+ * No peer owner is constructed here. The original IDE private closure supplies
+ * its retained R91 owner to this table only after call.begin has captured it. */
+export function acquireOriginalIDEIdentityPeerBinding(actualEntryURL){
+ assertColdEntry(actualEntryURL);
+ const native=originalIdentityNativeModule();
+ if(typeof native?.getOriginalIDEIdentityPeerBinding!=='function')return null;
+ const binding=native.getOriginalIDEIdentityPeerBinding(actualEntryURL);
+ if(!binding||typeof binding!=='object'||typeof binding.acquireOriginalIDEIdentityPeerChannel!=='function')return null;
+ return binding;
+}
+/** Wallet main only. Native alone owns Wallet kernel/Source qualification.
+ * Return the SAME cleanup partial without inspecting readiness or disposing it;
+ * the original caller must retain it before assertReady/bind/current. */
+export function acquireOriginalIDEWalletIdentitySource(){
+ if(arguments.length!==0)fail('IDE_IDENTITY_WALLET_SOURCE_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.acquireOriginalIDEWalletIdentitySource!=='function')return null;
+ return native.acquireOriginalIDEWalletIdentitySource();
+}
+/** Identity only, never user approval or readiness. No structural fallback. */
+export function isOriginalIDEWalletIdentitySource(value){
+ if(arguments.length!==1)fail('IDE_IDENTITY_WALLET_SOURCE_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.isOriginalIDEWalletIdentitySource!=='function')return false;
+ const recognized=native.isOriginalIDEWalletIdentitySource(value);
+ if(typeof recognized!=='boolean')fail('IDE_IDENTITY_WALLET_SOURCE_RECOGNITION_INVALID');
+ return recognized;
+}
+/** Original tagged immutable DATA, never Source, publisher or approval. Native
+ * alone validates/captures the original manifest and ordinary artifact bytes. */
+export function captureOriginalIDEPublicationArtifact(canonicalManifest,artifact){
+ if(arguments.length!==2)fail('IDE_PUBLICATION_ARTIFACT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.captureOriginalIDEPublicationArtifact!=='function')return null;
+ return native.captureOriginalIDEPublicationArtifact(canonicalManifest,artifact);
+}
+export function readOriginalIDEPublicationArtifactManifest(originalArtifact){
+ if(arguments.length!==1)fail('IDE_PUBLICATION_ARTIFACT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.readOriginalIDEPublicationArtifactManifest!=='function')fail('IDE_PUBLICATION_ARTIFACT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.readOriginalIDEPublicationArtifactManifest(originalArtifact);
+}
+export function closeOriginalIDEPublicationArtifact(originalArtifact){
+ if(arguments.length!==1)fail('IDE_PUBLICATION_ARTIFACT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.closeOriginalIDEPublicationArtifact!=='function')fail('IDE_PUBLICATION_ARTIFACT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.closeOriginalIDEPublicationArtifact(originalArtifact);
+}
+/** Return the SAME original request owner, including a partial. Do not inspect
+ * readiness, reconstruct manifest DATA, invoke, close, or retry it here. */
+export function acquireOriginalIDEProtectedPublicationKeyCall(actualEntryURL,canonicalManifest,originalArtifact){
+ if(arguments.length!==3)fail('IDE_PUBLICATION_ARTIFACT_ARGUMENTS');
+ assertColdEntry(actualEntryURL);
+ const native=originalIdentityNativeModule();
+ if(typeof native?.acquireOriginalIDEProtectedPublicationKeyCall!=='function')return null;
+ return native.acquireOriginalIDEProtectedPublicationKeyCall(actualEntryURL,canonicalManifest,originalArtifact);
+}
+/** Same original Native Source owner, including a cleanup partial. No supplied
+ * Source/server/provider or implicit current/read/close belongs in this bridge. */
+export function acquireOriginalIDEProjectAuthority(){
+ if(arguments.length!==0)fail('IDE_PROJECT_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.acquireOriginalIDEProjectAuthority!=='function')return null;
+ return native.acquireOriginalIDEProjectAuthority();
+}
+export function readOriginalIDECurrentProject(originalAuthority,projectID){
+ if(arguments.length!==2)fail('IDE_PROJECT_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.readOriginalIDECurrentProject!=='function')fail('IDE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.readOriginalIDECurrentProject(originalAuthority,projectID);
+}
+/** Same original project Source DATA only; this does not authorize a GET,
+ * construct a peer, sign a header, change endpoints or consume approval. */
+export function readOriginalIDECurrentServiceRegistration(originalAuthority,projectID){
+ if(arguments.length!==2)fail('IDE_PROJECT_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.readOriginalIDECurrentServiceRegistration!=='function')fail('IDE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.readOriginalIDECurrentServiceRegistration(originalAuthority,projectID);
+}
+export function readOriginalIDECurrentPublisher(originalAuthority,projectID,publisherID){
+ if(arguments.length!==3)fail('IDE_PROJECT_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.readOriginalIDECurrentPublisher!=='function')fail('IDE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.readOriginalIDECurrentPublisher(originalAuthority,projectID,publisherID);
+}
+/** Undefined is the original cleanup result, not a fabricated true receipt. */
+export function closeOriginalIDEProjectAuthority(originalAuthority){
+ if(arguments.length!==1)fail('IDE_PROJECT_ARGUMENTS_INVALID');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.closeOriginalIDEProjectAuthority!=='function')fail('IDE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.closeOriginalIDEProjectAuthority(originalAuthority);
+}
+/** Original same-env selector custody, including partials, is returned before
+ * any caller read. Paths/local ID are DATA validated by the actual Native. */
+export function acquireOriginalIDEWorkspaceProjectSelection(workspaceCanonicalAbsolutePath,profileCanonicalAbsolutePath,localProjectID){
+ if(arguments.length!==3)fail('IDE_WORKSPACE_PROJECT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.acquireOriginalIDEWorkspaceProjectSelection!=='function')return null;
+ return native.acquireOriginalIDEWorkspaceProjectSelection(workspaceCanonicalAbsolutePath,profileCanonicalAbsolutePath,localProjectID);
+}
+export function readOriginalIDEWorkspaceProjectSelection(originalSelection){
+ if(arguments.length!==1)fail('IDE_WORKSPACE_PROJECT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.readOriginalIDEWorkspaceProjectSelection!=='function')fail('IDE_WORKSPACE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.readOriginalIDEWorkspaceProjectSelection(originalSelection);
+}
+export function closeOriginalIDEWorkspaceProjectSelection(originalSelection){
+ if(arguments.length!==1)fail('IDE_WORKSPACE_PROJECT_ARGUMENTS');
+ const native=originalIdentityNativeModule();
+ if(typeof native?.closeOriginalIDEWorkspaceProjectSelection!=='function')fail('IDE_WORKSPACE_PROJECT_IMPLEMENTATION_NOT_SUPPLIED');
+ return native.closeOriginalIDEWorkspaceProjectSelection(originalSelection);
+}
 /** Fixed Native cold reader only. Null startup selection is never a grant and
  * does not disable Native's independently qualified original Source acquisition. */
 export async function acquireOriginalIDEColdTerminalCustody(actualEntryURL){

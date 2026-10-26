@@ -8,7 +8,27 @@ import {RecoverableProductSessionClient} from "./product-session-recovery.js";
 
 // Platform ports must be implemented by the app's real protected native runtime.
 // No key creation, key export, browser persistence or signing fallback occurs here.
-export async function createNativeProductSessionClient(config) {
+/** Version4 normal native entry. The original Native owner supplies a separate
+ * device slot/current/producer; the SDK never generates or exports key material.
+ * This currently returns only the existing-session read lease. Pairing/issuer
+ * operations remain Auth-owned and cannot fall back to old four-purpose ports. */
+export async function createNativeProductSessionClient(config){
+ if(config?.runtime?.version!=='4')fail('PQ_NATIVE_DEVICE_RUNTIME_REQUIRED','New native clients require the original version4 dual-PQ runtime');
+ exactFields(config,['registry','productId','platform','gateway','runtime','abortContext','clock'],'Version4 native existing-session configuration');
+ if(config.platform==='web')fail('INVALID_PLATFORM','Native custody cannot replace browser-origin protection');
+ const b=productPlatformBinding(config.registry,config.productId,config.platform),authority=productSessionGatewayAuthority(config.gateway),r=config.runtime;
+ if(authority!=='https://wallet-auth.ynxweb4.com')fail('PQ_PUBLIC_GATEWAY_REQUIRED','Version4 reads do not borrow the old private four-operation facade');
+ exactFields(r,['version','algorithm','readContext','produceHTTPProof','deviceCurrent','storage','randomBytes'],'Version4 original native runtime');
+ if(r.algorithm!=='ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512'||['readContext','produceHTTPProof','randomBytes'].some(k=>typeof r[k]!=='function')||typeof config.clock!=='function')fail('PQ_NATIVE_DEVICE_RUNTIME_REQUIRED','Fixed native device runtime required');
+ const used=new Set(),tokens=()=>{const bytes=r.randomBytes(32);if(!(bytes instanceof Uint8Array)||bytes.buffer instanceof SharedArrayBuffer||bytes.length!==32)fail('INVALID_RANDOM_SOURCE','Original native CSPRNG must return32 bytes');const token=encodeBase64url(bytes);if(used.has(token))fail('INVALID_RANDOM_SOURCE','Native random token repeated');used.add(token);return token;};
+ const device=Object.freeze({version:'4',algorithm:r.algorithm,readContext:()=>r.readContext(),produceHTTPProof:(...args)=>r.produceHTTPProof(...args)});
+ const client=new RecoverableProductSessionClient({registry:config.registry,productId:b.productId,platform:b.platform,storage:r.storage,gateway:config.gateway,device,deviceCurrent:r.deviceCurrent,abortContext:config.abortContext,tokenFactory:tokens,clock:config.clock});
+ return client.openExistingBusinessRead();
+}
+
+// Retained source reference for explicit legacy fixtures/history only. The
+// normal export above never selects this P256 producer or silently downgrades.
+async function createLegacyNativeProductSessionFixture(config) {
   exactFields(config,["registry","productId","platform","scopes","purpose","gateway","runtime","clock",...(Object.hasOwn(config??{},"finiteServiceSeconds")?["finiteServiceSeconds"]:[]),...(Object.hasOwn(config??{},"accountPolicy")?["accountPolicy"]:[])],"Native Product Session configuration");
   if(config.platform==="web")fail("INVALID_PLATFORM","Native adapter cannot replace Web-origin protection");
   const binding=productPlatformBinding(config.registry,config.productId,config.platform);

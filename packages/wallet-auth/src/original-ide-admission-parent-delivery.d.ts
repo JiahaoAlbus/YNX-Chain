@@ -1,3 +1,4 @@
+import type {OriginalAuthIDENativeBinding,OriginalAuthIDEIdentityPeerBinding,OriginalIDEWalletIdentitySourceOwner,OriginalIDEProtectedKeyCallOwner,OriginalIDEPublicationArtifactRef,OriginalIDEProjectAuthorityRef,OriginalIDECurrentProjectData,OriginalIDECurrentPublisherData,OriginalIDECurrentServiceRegistrationData,OriginalIDEWorkspaceProjectSelectionRef,OriginalIDEWorkspaceProjectSelectionData} from './auth-native-contract.js';
 /** Private original backend only. Native returns the exact recognized owner.
  * A partial acquisition has descriptor -1 and is cleanup custody, not a guard.
  * The consumer retains it and selects its original close once. */
@@ -63,3 +64,60 @@ export interface OriginalIDEColdTerminalCustody extends OriginalIDEColdTerminalC
  * module, parent, association or grant. Failed acquisition is never retried. */
 export declare function acquireOriginalIDEColdTerminalCustody(actualRunningEntryURL:string):Promise<OriginalIDEColdTerminalCustody>;
 export declare function getOriginalIDEColdTerminalCustodyCleanup(actualRunningEntryURL:string):OriginalIDEColdTerminalCustodyCleanup|null;
+
+/** Same original Native callback table, synchronously discovered through the
+ * fixed loader. Null means unavailable; neither shape nor discovery grants
+ * qualification. Native/getter failures retain the original thrown cause. */
+export declare function acquireOriginalIDENativeAuthBinding(actualEntryURL:string):OriginalAuthIDENativeBinding|null;
+
+/** Discover the original fixed Native table without constructing a peer or
+ * qualifying Source. Original IDE private closure calls its factory only after
+ * begin() retained the exact Native request owner; retain partial before checks. */
+export declare function acquireOriginalIDEIdentityPeerBinding(actualEntryURL:string):OriginalAuthIDEIdentityPeerBinding|null;
+
+/** Wallet main only, fixed original Native module. Retain the returned cleanup
+ * partial before calling readiness/current; no descriptor/provider arguments. */
+export declare function acquireOriginalIDEWalletIdentitySource():OriginalIDEWalletIdentitySourceOwner|null;
+/** Native tag/inventory/env/thread recognition only, not Source or UI approval. */
+export declare function isOriginalIDEWalletIdentitySource(value:unknown):value is OriginalIDEWalletIdentitySourceOwner;
+
+/** Captures only original immutable DATA through the fixed Native module.
+ * Native validates canonical bytes, ordinary/nonshared/nondetached Uint8Array,
+ * size/hash and same-env tag. Null means the original callee is unavailable. */
+export declare function captureOriginalIDEPublicationArtifact(canonicalManifest:string,artifact:Uint8Array):OriginalIDEPublicationArtifactRef|null;
+/** Returns the exact captured canonical manifest; never raw artifact bytes.
+ * Missing callee, closed/forged/cross-env references and Native failures throw. */
+export declare function readOriginalIDEPublicationArtifactManifest(originalArtifact:OriginalIDEPublicationArtifactRef):string;
+/** Original close only. No implicit cleanup/retry or Native status promotion. */
+export declare function closeOriginalIDEPublicationArtifact(originalArtifact:OriginalIDEPublicationArtifactRef):true;
+/** Same original protected-key-call owner, including cleanup partials, before
+ * any readiness/current/proof/invoke. The constructor captures its own Native
+ * artifact custody; caller still closes its original DATA reference.
+ * Null means unavailable, never successful completion or approval. */
+export declare function acquireOriginalIDEProtectedPublicationKeyCall(actualEntryURL:string,canonicalManifest:string,originalArtifact:OriginalIDEPublicationArtifactRef):OriginalIDEProtectedKeyCallOwner|null;
+
+/** Fixed original Native factory; no caller Source/provider/serverURL options.
+ * Retain the same returned partial for cleanup before attempting any read.
+ * Null means the original implementation is unavailable, never an admission. */
+export declare function acquireOriginalIDEProjectAuthority():OriginalIDEProjectAuthorityRef|null;
+/** Exact original frozen Native record, without new authorization flags. */
+export declare function readOriginalIDECurrentProject(originalAuthority:OriginalIDEProjectAuthorityRef,projectID:string):OriginalIDECurrentProjectData;
+/** Fixed original same-owner Native read; exactly two arguments. Returns
+ * unchanged service DATA, never a business GET/signing or Source grant. */
+export declare function readOriginalIDECurrentServiceRegistration(originalAuthority:OriginalIDEProjectAuthorityRef,projectID:string):OriginalIDECurrentServiceRegistrationData;
+/** Native argument order is owner, projectID, publisherID. Public-original
+ * bytes are an independent ordinary copy, not a publisher/key authority. */
+export declare function readOriginalIDECurrentPublisher(originalAuthority:OriginalIDEProjectAuthorityRef,projectID:string,publisherID:string):OriginalIDECurrentPublisherData;
+/** Undefined only after the actual original cleanup; original failures,
+ * including UNKNOWN and falsy throws, are propagated without retry. */
+export declare function closeOriginalIDEProjectAuthority(originalAuthority:OriginalIDEProjectAuthorityRef):undefined;
+
+/** Three exact original launch-context strings; no Source/provider or canonical
+ * project-ID override. Return the same partial before reads, never auto-close.
+ * Null means the fixed original callee is unavailable. */
+export declare function acquireOriginalIDEWorkspaceProjectSelection(workspaceCanonicalAbsolutePath:string,profileCanonicalAbsolutePath:string,localProjectID:string):OriginalIDEWorkspaceProjectSelectionRef|null;
+/** Exact frozen original DATA, without projection or authority promotion. */
+export declare function readOriginalIDEWorkspaceProjectSelection(originalSelection:OriginalIDEWorkspaceProjectSelectionRef):OriginalIDEWorkspaceProjectSelectionData;
+/** Actual original independent cleanup returns undefined. First failures and
+ * UNKNOWN propagate unchanged; no automatic retry or replacement selector. */
+export declare function closeOriginalIDEWorkspaceProjectSelection(originalSelection:OriginalIDEWorkspaceProjectSelectionRef):undefined;

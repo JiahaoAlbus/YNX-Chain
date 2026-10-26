@@ -1,3 +1,4 @@
+import {normalizePQNativeAction} from './pq-native-action.js';
 // Interprets an independently obtained, trusted-node snapshot. These objects
 // are immutable data/dispatch plans, NOT user approval or chain authority.
 import {VERSION, decodeMember} from '@ynx/batch-v01-candidate';
@@ -14,7 +15,7 @@ const decimal = value => {
   if (typeof value !== 'string') throw pqError('PQ_POLICY_DECIMAL_REQUIRED');
   return pqU64(value);
 };
-const allowed = new Set(['pq-native-transfer', 'pq-account-migration', 'pq-account-revocation', 'legacy-native-transfer', 'ethereum', 'dex', 'resource', 'delegation', 'recovery-authorization']);
+const allowed = new Set(['pq-native-action', 'pq-native-transfer', 'pq-account-migration', 'pq-account-revocation', 'legacy-native-transfer', 'ethereum', 'dex', 'resource', 'delegation', 'recovery-authorization']);
 function state(snapshot) {
   const s = snapshots.get(snapshot);
   if (!s) throw pqError('PQ_POLICY_SNAPSHOT_REQUIRED');
@@ -92,8 +93,8 @@ export function inspectPQWalletActionPolicy(snapshot, action) {
   if (!allowed.has(action)) throw pqError('PQ_ACTION_UNSUPPORTED');
   if(s.revoked)throw pqError('PQ_ACCOUNT_REVOKED');
   if(s.revocation&&['pq-account-migration','pq-account-revocation'].includes(action))throw pqError('PQ_TERMINAL_REVOCATION_PENDING');
-  if (s.active && !['pq-native-transfer', 'pq-account-migration', 'pq-account-revocation'].includes(action)) throw pqError('PQ_ACTIVE_ACCOUNT_LEGACY_ENTRY_REFUSED');
-  if (['pq-native-transfer','pq-account-revocation'].includes(action) && !s.active) throw pqError('PQ_ACCOUNT_MIGRATION_REQUIRED');
+  if (s.active && !['pq-native-action', 'pq-native-transfer', 'pq-account-migration', 'pq-account-revocation'].includes(action)) throw pqError('PQ_ACTIVE_ACCOUNT_LEGACY_ENTRY_REFUSED');
+  if (['pq-native-action','pq-native-transfer','pq-account-revocation'].includes(action) && !s.active) throw pqError('PQ_ACCOUNT_MIGRATION_REQUIRED');
   if (action.startsWith('pq-') && (!snapshot.enabled || s.height < s.enableAt)) throw pqError('PQ_ADMISSION_DISABLED');
   if (s.nonce === PQ_U64_MAX) throw pqError('PQ_LEDGER_NONCE_EXHAUSTED');
   return Object.freeze({mode: s.active ? 'pq' : 'legacy', chainId: s.network.chainId, nativeChainId: s.network.nativeChainId, owner: s.network.owner,
@@ -104,6 +105,16 @@ export function assertPQAuthorizationCurrent(original, refreshed) {
   const comparable = snapshot => { const {executionHeight, ...rest} = snapshot; return JSON.stringify(rest); };
   if (JSON.stringify(a.network) !== JSON.stringify(b.network) || b.height < a.height || a.revoked!==b.revoked || comparable(original) !== comparable(refreshed)) throw pqError('PQ_POLICY_CHANGED_REVIEW_REQUIRED');
   return undefined;
+}
+/** Exact current-account transaction DATA only. The original Wallet review and
+ * keyAccess lease must fence the same plan before/after signing and sending.
+ * Fees follow original executor rules; codec-only vectors may use other fees. */
+export function planPQNativeAction(snapshot,value){
+ const policy=inspectPQWalletActionPolicy(snapshot,'pq-native-action'),action=normalizePQNativeAction(value);
+ const fee=action.kind==='contract_deploy'?'10':action.kind==='contract_execute'?'2':
+  ['stake','resource_delegation_create','resource_rental_create'].includes(action.kind)?'0':'1';
+ if(action.chainId!==policy.chainId||action.nativeChainId!==policy.nativeChainId||action.owner!==policy.owner||action.nonce!==policy.nextNonce||action.fee!==fee)throw pqError('PQ_ACTION_REVIEW_MISMATCH');
+ return Object.freeze({kind:'pq-native-action',action,policy});
 }
 export function planPQNativeTransfer(snapshot, value) {
   const policy = inspectPQWalletActionPolicy(snapshot, 'pq-native-transfer'), transfer = normalizePQNativeTransfer(value);

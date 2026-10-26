@@ -8,7 +8,7 @@ const PROOF_FIELDS = ["version", "sessionBinding", "productId", "clientId", "app
 const INPUT_FIELDS = ["method", "path", "bodyDigest", "nonce", "issuedAt", "expiresAt"];
 
 export function createProductSessionProofV2(sessionInput, input, deviceSecretInput) {
-  const session = parseProductSession(sessionInput); exactFields(input, INPUT_FIELDS, "Product Session v2 proof input");
+  const session = parseProductSession(sessionInput);if(session.version==='4')throw new WalletAuthError('PQ_DEVICE_REQUIRED','Version4 cannot use a P256 proof callback'); exactFields(input, INPUT_FIELDS, "Product Session v2 proof input");
   const secret = decodeBase64url(deviceSecretInput, "deviceSecret");
   if (secret.length !== 32 || encodeBase64url(p256.getPublicKey(secret, true)) !== session.deviceKey) fail("DEVICE_CHANGED", "Product Session proof device changed");
   const unsigned = parseUnsigned({ version: "2", sessionBinding: session.sessionBinding, productId: session.productId, clientId: session.clientId, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, ...input });
@@ -17,7 +17,7 @@ export function createProductSessionProofV2(sessionInput, input, deviceSecretInp
 }
 
 export async function createProductSessionProofV2With(sessionInput, input, signer) {
-  const session = parseProductSession(sessionInput); exactFields(input, INPUT_FIELDS, "Product Session v2 proof input");
+  const session = parseProductSession(sessionInput);if(session.version==='4')throw new WalletAuthError('PQ_DEVICE_REQUIRED','Version4 cannot use a P256 proof callback'); exactFields(input, INPUT_FIELDS, "Product Session v2 proof input");
   if (typeof signer !== "function") fail("INVALID_DEVICE", "Product Session proof requires a platform device signer");
   const unsigned = parseUnsigned({ version: "2", sessionBinding: session.sessionBinding, productId: session.productId, clientId: session.clientId, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, ...input });
   const payload = encodeBase64url(utf8ToBytes(productSessionProofV2SignBytes(unsigned)));

@@ -76,23 +76,122 @@ function verifyCurrentStatement(rootRaw,enrollmentRaw,profileRaw,currentRaw,poli
 export function verifySourceCurrent(...args){return verifyCurrentStatement(...args,false);}
 // Original signed journal transition mathematics only; NEVER current admission.
 export function verifySourceTransitionOriginal(...args){return verifyCurrentStatement(...args,true);}
-export function fetchSourceCurrent(endpoint,spki,profileDigest,nonce){
+function fetchSourceCurrentBounded(endpoint,spki,profileDigest,nonce,capacity,timeoutMs){
  if(endpoint!=='https://wallet-auth.ynxweb4.com/v1/auth-identity/source-current'||!hex(spki)||!hex(profileDigest)||!/^[A-Za-z0-9_-]{43}$/.test(nonce))bad();
  const url=new URL(endpoint);url.searchParams.set('profile',profileDigest);url.searchParams.set('nonce',nonce);
  return new Promise((resolve,reject)=>{
+  const coded=code=>Object.assign(new Error(code),{code});
   let bytes=0;const chunks=[];let settled=false;
   const finish=(error,raw)=>{if(settled)return;settled=true;error?reject(error):resolve(raw);};
-  const req=httpsRequest(url,{method:'GET',timeout:5000,agent:false,headers:{accept:'application/json','cache-control':'no-store'},checkServerIdentity(host,cert){const error=checkServerIdentity(host,cert);if(error)return error;try{if(sha(new X509Certificate(cert.raw).publicKey.export({type:'spki',format:'der'}))!==spki)return new Error('AUTH_IDENTITY_SOURCE_TLS_PIN_MISMATCH');}catch{return new Error('AUTH_IDENTITY_SOURCE_TLS_PIN_MISMATCH');}}},res=>{
-   if(res.statusCode!==200||!String(res.headers['content-type']??'').toLowerCase().startsWith('application/json')){res.destroy();finish(new Error('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE'));return;}
-   res.on('data',chunk=>{bytes+=chunk.length;if(bytes>8192){res.destroy();finish(new Error('AUTH_IDENTITY_SOURCE_CURRENT_CAPACITY'));}else chunks.push(chunk);});
-   res.on('end',()=>{try{const raw=new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks));parse(raw,8192);finish(null,raw);}catch{finish(new Error('AUTH_IDENTITY_SOURCE_CURRENT_INVALID'));}});
-   res.on('error',()=>finish(new Error('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE')));
-  });const timer=setTimeout(()=>req.destroy(new Error('AUTH_IDENTITY_SOURCE_CURRENT_TIMEOUT')),5000);req.on('close',()=>clearTimeout(timer));req.on('timeout',()=>req.destroy(new Error('AUTH_IDENTITY_SOURCE_CURRENT_TIMEOUT')));req.on('error',()=>finish(new Error('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE')));req.end();
+  const req=httpsRequest(url,{method:'GET',timeout:timeoutMs,agent:false,headers:{accept:'application/json','cache-control':'no-store'},checkServerIdentity(host,cert){const error=checkServerIdentity(host,cert);if(error)return error;try{if(sha(new X509Certificate(cert.raw).publicKey.export({type:'spki',format:'der'}))!==spki)return new Error('AUTH_IDENTITY_SOURCE_TLS_PIN_MISMATCH');}catch{return new Error('AUTH_IDENTITY_SOURCE_TLS_PIN_MISMATCH');}}},res=>{
+   res.on('error',()=>finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE')));
+   if(res.statusCode!==200||!/^application\/json(?:\s*;|$)/i.test(String(res.headers['content-type']??''))){finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE'));res.destroy();return;}
+   res.on('data',chunk=>{bytes+=chunk.length;if(bytes>capacity){finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_CAPACITY'));res.destroy();}else chunks.push(chunk);});
+   res.on('end',()=>{try{const raw=new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks));parse(raw,capacity);finish(null,raw);}catch{finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_INVALID'));}});
+   res.on('aborted',()=>finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE')));
+   res.on('close',()=>{if(!res.complete)finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE'));});
+  });const timeout=()=>{finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_TIMEOUT'));req.destroy();};const timer=setTimeout(timeout,timeoutMs);req.on('close',()=>clearTimeout(timer));req.on('timeout',timeout);req.on('error',()=>finish(coded('AUTH_IDENTITY_SOURCE_CURRENT_UNAVAILABLE')));req.end();
  });
 }
+export function fetchSourceCurrent(endpoint,spki,profileDigest,nonce){return fetchSourceCurrentBounded(endpoint,spki,profileDigest,nonce,8192,5000);}
+// Same transport/endpoint/TLS identity, different fixed envelope cap for N1 PQ.
+// Neither capacity nor timeout is accepted from stdin/renderer/caller policy.
+export function fetchSourceCurrentV2(endpoint,spki,profileDigest,nonce){return fetchSourceCurrentBounded(endpoint,spki,profileDigest,nonce,393216,2000);}
 async function run(){
- let size=0;const chunks=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>131072)bad();chunks.push(chunk);}
- const input=parse(Buffer.concat(chunks).toString('utf8'),131072);exact(input,['rootRaw','enrollmentRaw','profileRaw','headRaw','policy','previous']);
+ let size=0;const chunks=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>2097152)bad();chunks.push(chunk);}
+ const input=parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)),2097152);
+ if(input?.operation==='ide-protected-publisher-current-native-node/v1'){
+  const {dispatchOriginalProtectedPublisherCurrent}=await import('./original-ide-protected-publisher-dispatch.mjs');
+  const result=await dispatchOriginalProtectedPublisherCurrent(input);process.stdout.write(canonical(result)+'\n');if(!result.completed)process.exitCode=1;return;
+ }
+ if(input?.operation==='ide-protected-publisher-registration-data/v1'){
+  exact(input,['operation','registrationOriginal','registeredCustodian','registeredContext','principal','command','expected']);exact(input.registeredContext,['chainId','nativeChainId','owner']);
+  const {parsePQAccountAuthorization}=await import('../src/pq-wallet-policy.js');
+  const {verifyOriginalProtectedPublisherRegistrationDATA}=await import('./original-ide-protected-publisher-contract.mjs');
+  const before=Date.now(),sender=parsePQAccountAuthorization(input.registeredCustodian,input.registeredContext);
+  const result=verifyOriginalProtectedPublisherRegistrationDATA(input.registrationOriginal,sender,input.principal,input.command,input.expected,before),after=Date.now();
+  if(after<before||after>=result.expiresAtMs||result.dataOnly!==true||result.signatureVerified!==true||result.authorized!==false||result.registered!==false||result.protectedCustodyAdmitted!==false||result.nativeAdmission!==false)bad('IDE_PUBLISHER_POST_COMPLETION_EXPIRED');
+  process.stdout.write(canonical(result)+'\n');return;
+ }
+ if(input?.operation==='ide-project-control-current-native-node/v1'){
+  const {dispatchOriginalProjectControlCurrent}=await import('./original-ide-project-control-dispatch.mjs');
+  const result=await dispatchOriginalProjectControlCurrent(input);process.stdout.write(canonical(result)+'\n');if(!result.completed)process.exitCode=1;return;
+ }
+ // Fixed CONTROL mathematics for the normal server process. This is not
+ // Source admission: the owning factory supplies the independently observed
+ // registered sender and current/caller/nonce binding, never HTTP JSON roles.
+ if(input?.operation==='ide-project-control-signature-data/v1'){
+  exact(input,['operation','approvalOriginal','registeredSender','registeredContext','principal','command','expected']);
+  exact(input.registeredContext,['chainId','nativeChainId','owner']);
+  const {parsePQAccountAuthorization}=await import('../src/pq-wallet-policy.js');
+  const sender=parsePQAccountAuthorization(input.registeredSender,input.registeredContext);
+  const {verifyOriginalProjectControlApprovalDATA}=await import('./original-ide-project-control-contract.mjs');
+  const before=Date.now();
+  const result=verifyOriginalProjectControlApprovalDATA(input.approvalOriginal,sender,input.principal,input.command,input.expected,before);
+  const after=Date.now();
+  if(after<before||after>=result.expiresMS||result.signatureVerified!==true||result.dataOnly!==true||result.authorized!==false||result.committed!==false||result.nativeAdmission!==false)bad('IDE_CONTROL_POST_COMPLETION_EXPIRED');
+  process.stdout.write(canonical(result)+'\n');return;
+ }
+ // Fixed read-only artifact mathematics for the original server subprocess.
+ // Expected originals must already belong to its independently admitted
+ // request/publisher. This branch never issues Source, approval or a grant.
+ if(input?.operation==='ide-artifact-signature-data/v1'||input?.operation==='ide-artifact-signed-manifest-data/v1'){
+  if(size>262144)bad('IDE_ARTIFACT_SIGNATURE_DISPATCH_CAPACITY');
+  const selectedManifest=input.operation==='ide-artifact-signed-manifest-data/v1';
+  exact(input,selectedManifest?['operation','signatureOriginal','expectedPublicOriginal']:['operation','signatureOriginal','manifestOriginal','expectedPublicOriginal']);
+  const decode=(value,maximum)=>{
+   if(typeof value!=='string'||!value.length||value.length>Math.ceil(maximum*4/3)||!/^[A-Za-z0-9_-]+$/.test(value))bad('IDE_ARTIFACT_SIGNATURE_DISPATCH_ENCODING');
+   const bytes=Buffer.from(value,'base64url');
+   if(!bytes.length||bytes.length>maximum||bytes.toString('base64url')!==value)bad('IDE_ARTIFACT_SIGNATURE_DISPATCH_ENCODING');
+   return new Uint8Array(bytes);
+  };
+  const signature=decode(input.signatureOriginal,100000),publisher=decode(input.expectedPublicOriginal,8192);
+  const {inspectIDEArtifactSignatureData,inspectIDEArtifactSignedManifestData}=await import('../src/ide-artifact-signature.js');
+  const result=selectedManifest?inspectIDEArtifactSignedManifestData(signature,publisher):inspectIDEArtifactSignatureData(signature,decode(input.manifestOriginal,16384),publisher);
+  const raw=canonical(result);
+  if(result.dataOnly!==true||result.signatureVerified!==true||['trusted','authorized','nativeAdmission','registered','current','publicationAuthorized'].some(key=>result[key]!==false)||Buffer.byteLength(raw)>(selectedManifest?28672:4096))bad('IDE_ARTIFACT_SIGNATURE_DISPATCH_RESULT');
+  process.stdout.write(raw+'\n');return;
+ }
+ // Version4 HTTP-device mathematics only, selected by original trusted callers.
+ // This does not resolve a registration, sign a header or consume a nonce.
+ // Fixed v4 encoder operations only. They neither choose a purpose nor sign.
+ if(['product-session-http-message-data/v4','product-session-device-challenge-message-data/v4','product-session-device-registration-message-data/v4'].includes(input?.operation)){
+  if(size>262144)bad('PRODUCT_SESSION_PROOF_V4_DISPATCH_CAPACITY');let message,purpose;
+  if(input.operation==='product-session-http-message-data/v4'){
+   exact(input,['operation','networkId','unsigned']);const {encodeProductSessionHTTPProofV4Message}=await import('../src/product-session-proof-v4.js');message=encodeProductSessionHTTPProofV4Message(input.unsigned,input.networkId);purpose='PRODUCT-SESSION-HTTP-PROOF';
+  }else{
+   const challenge=input.operation==='product-session-device-challenge-message-data/v4';exact(input,challenge?['operation','challenge','registrationOriginal']:['operation','registrationOriginal']);
+   const original=Buffer.from(input.registrationOriginal,'base64url');if(typeof input.registrationOriginal!=='string'||original.toString('base64url')!==input.registrationOriginal||original.length>16384)bad('PRODUCT_SESSION_DEVICE_ORIGINAL_INVALID');
+   const codec=await import('../src/product-session-pq-v4-codec.js');message=challenge?codec.encodeProductSessionDeviceChallengeV4Message(input.challenge,original):codec.encodeProductSessionDeviceRegistrationV4Message(original);purpose=challenge?'PRODUCT-SESSION-DEVICE-CHALLENGE':'PRODUCT-SESSION-DEVICE-REGISTRATION';
+  }
+  if(message.length>16384)bad('PRODUCT_SESSION_PROOF_V4_MESSAGE_CAPACITY');process.stdout.write(canonical({version:'4',purpose,message:Buffer.from(message).toString('base64url'),dataOnly:true,SourceAdmission:false,NativeAdmission:false,approval:false})+'\n');return;
+ }
+ if(input?.operation==='product-session-http-proof-data/v4'){
+  if(size>262144)bad('PRODUCT_SESSION_PROOF_V4_DISPATCH_CAPACITY');
+  exact(input,['operation','proofHeader','expected']);
+  const {inspectProductSessionHTTPProofHeaderV4Data}=await import('../src/product-session-proof-v4.js');
+  const result=inspectProductSessionHTTPProofHeaderV4Data(input.proofHeader,input.expected);
+  if(result.signatureVerified!==true||result.dataOnly!==true||['trusted','authorized','registered','current','nativeAdmission'].some(k=>result[k]!==false))bad('PRODUCT_SESSION_PROOF_V4_DISPATCH_RESULT');
+  process.stdout.write(canonical(result)+'\n');return;
+ }
+ if(input?.operation==='ide-publication-approval-current-native-node/v1'){
+  const {dispatchOriginalIDEApprovalCurrent}=await import('./original-ide-publication-approval-dispatch.mjs');const result=await dispatchOriginalIDEApprovalCurrent(input);
+  process.stdout.write(canonical(result)+'\n');if(!result.completed)process.exitCode=1;return;
+ }
+ // SAME original bounded driver/process. No second CLI, Source owner or
+ // renderer-selected module. Native retains expected + trusted node binding;
+ // this branch returns cryptographic DATA only, never an admission/grant.
+ if(input?.operation==='auth-identity-proof-native-node/v1'){
+  const {dispatchOriginalIDEAuthProof}=await import('./original-ide-auth-proof-dispatch.mjs');
+  process.stdout.write(canonical(await dispatchOriginalIDEAuthProof(input))+'\n');return;
+ }
+ if(input?.operation==='auth-source-v2-native-node/v1'){
+  const {dispatchOriginalSourceV2}=await import('./original-auth-source-v2-dispatch.mjs');
+  process.stdout.write(canonical(await dispatchOriginalSourceV2(input))+'\n');return;
+ }
+ // Keep the original legacy operation's input bound and exact fields.
+ if(size>131072)bad();
+ exact(input,['rootRaw','enrollmentRaw','profileRaw','headRaw','policy','previous']);
  const before=Date.now(),profile=verifySourceProfile(input.rootRaw,input.enrollmentRaw,input.profileRaw,input.policy,before);
  // The original signed acquisition head is an authenticated floor only, never
  // treated as latest/current. A NEW nonce-bound network head is mandatory.
@@ -107,3 +206,4 @@ async function run(){
  process.stdout.write(canonical({projection,currentRaw})+'\n');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){run().catch(error=>{process.stderr.write(String(error?.code??'AUTH_IDENTITY_SOURCE_VERIFICATION_FAILED')+'\n');process.exitCode=1;});}
+

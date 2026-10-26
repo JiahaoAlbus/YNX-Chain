@@ -22,6 +22,12 @@ export const PQ_REVOCATION_INTENT_DOMAIN:'YNX-ACCOUNT-REVOCATION/v1';
 export const PQ_REVOCATION_DOMAIN:'YNX-ACCOUNT-REVOCATION-ENVELOPE/v1';
 export const PQ_POLICY_VERSION: 'YNX-ACCOUNT-POLICY/v1';
 export const PQ_U64_MAX: bigint;
+/** Original signed-64 ledger total limit, amount plus fee. */
+export const PQ_NATIVE_TRANSFER_TOTAL_MAX: bigint;
+/** Exact integer wire units only; no decimal conversion, account/nonce lookup,
+ * fee approval, current policy, signature or transaction authority is created.
+ * The normal reviewed plan still independently requires fee='1'. */
+export function normalizePQNativeTransferAmounts(value:Readonly<{amount:PQU64;fee:PQU64}>):Readonly<{amount:string;fee:string}>;
 export function pqU64(value: PQU64): bigint;
 export function pqCanonicalAddress(value: string): string;
 export function pqHex(value: string, size: number): Uint8Array;
@@ -35,10 +41,24 @@ export function decodePQRegistrationIntent(wire: Uint8Array): Readonly<PQRegistr
 /** Binds full intent/context and N1 new-key Whole, validates the classic branch;
  * PQ signature math and actual current registration are not granted by decoding. */
 export function decodePQMigrationRequest(wire: Uint8Array): PQDecodedMigration;
+/** Proposed new pair possession only; does not verify current old-account
+ * authority, register keys, approve migration or perform network operations. */
+export function verifyPQMigrationPossessionData(newKeyWholeProof:Uint8Array,expectedIntent:PQRegistrationIntentInput):Readonly<{intent:Readonly<PQRegistrationIntent>;purpose:'ACCOUNT-MIGRATION';N:1;signatureVerified:true;dataOnly:true;registered:false;current:false;SourceAdmission:false;NativeAdmission:false;approval:false}>;
 export function encodePQMigrationRequest(value: PQMigrationProofs): Uint8Array;
 export function pqWireHash(wire: Uint8Array): string;
 export function preparePQAuthorizationQuery(owner: string): Readonly<{method: 'GET'; path: string}>;
-export function preparePQOriginalLookup(hash: string): Readonly<{method: 'GET'; path: string}>;
+export interface PQTransactionReadPlan {readonly method:'GET';readonly path:string}
+/** Member/Whole native hash, NOT the canonical JSON-envelope ABCI hash.
+ * No network call, retry, original mutation or finality claim is performed. */
+export function preparePQOriginalLookup(nativeTransactionHash:string):Readonly<PQTransactionReadPlan>;
+export function preparePQActionOriginalLookup(nativeTransactionHash:string):Readonly<PQTransactionReadPlan>;
+/** These three routes require the original canonical-envelope ABCI hash. */
+export function preparePQWholeOriginalLookup(abciTransactionHash:string):Readonly<PQTransactionReadPlan>;
+export function preparePQTransactionLookup(abciTransactionHash:string):Readonly<PQTransactionReadPlan>;
+/** GET collectors only; responses still require independent trusted proof
+ * verification. 202/404/timeout never authorize POST retry or clear UNKNOWN. */
+export function preparePQTransferFinalityLookup(abciTransactionHash:string):Readonly<PQTransactionReadPlan>;
+export function preparePQActionFinalityLookup(abciTransactionHash:string):Readonly<PQTransactionReadPlan>;
 export function preparePQMigrationTransport(wire: Uint8Array): PQTransportRequest;
 /** Structural/context binding and exact N1 only; not account authority, signature
  * math validation, chain admission or finality. All returned data are detached/frozen. */
@@ -61,3 +81,13 @@ export interface PQClassicMigrationProof {readonly classicPublicKey:Uint8Array;r
 /** Canonical DER/compressed public-key conversion + exact intent/owner math;
  * normal main should use preparePQClassicMigrationProof for the policy gate. */
 export function encodePQClassicMigrationProof(intent:PQRegistrationIntentInput,signature:PQClassicSignerPublicResult):PQClassicMigrationProof;
+
+/** Caller-selected public context only. Authentication of the complete original
+ * Genesis/independent pin, occupancy, custody/current/once and user approval
+ * remains Main/Auth/Chain work; no active-policy snapshot is synthesized. */
+export interface PQAccountInitialExpected {readonly chainId:string;readonly owner:string;readonly pkA:string;readonly pkB:string;readonly executionHeight:string}
+export interface PQDecodedAccountInitial {readonly intent:Readonly<PQRegistrationIntent>;readonly intentBytes:Uint8Array;readonly rawMember:Uint8Array;readonly purpose:'TX-BATCH';readonly N:1;readonly index:0;readonly transportHash:string;readonly abciTransactionHash:string;readonly signatureVerified:true;readonly dataOnly:true;readonly bootstrapAdmission:false}
+/** Fixed E15/prior0/new1/nonce1/future ActivateAt, full-pair TX-BATCH N1 AND
+ * math. Parsing and signature math never grant bootstrap admission or finality. */
+export function decodePQAccountInitialRequest(wire:Uint8Array,expected:PQAccountInitialExpected):Readonly<PQDecodedAccountInitial>;
+export function preparePQAccountInitialTransport(wire:Uint8Array,expected:PQAccountInitialExpected):Readonly<PQTransportRequest & {readonly abciTransactionHash:string}>;

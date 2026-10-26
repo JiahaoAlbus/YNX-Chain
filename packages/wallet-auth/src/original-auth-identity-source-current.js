@@ -4,6 +4,8 @@ import {fileURLToPath} from 'node:url';
 import {dirname,basename} from 'node:path';
 import {readFileSync,lstatSync,openSync,constants,closeSync,fstatSync,realpathSync} from 'node:fs';
 import {canonical,sha,originalSignatureContract,verifySourceEnrollment,verifySourceProfile,verifySourceTransitionOriginal} from '../native/original-auth-identity-source-verifier.mjs';
+import {loadReleaseSelectedOriginalSourceV2} from './original-auth-source-current-v2.js';
+import {loadReleaseSelectedOriginalSourceIssuanceV2} from './original-auth-source-issuance-v2.js';
 
 // PRIVATE Auth-current producer; a signature from this domain is NOT a Social
 // floor/NativeCore domain, ordinary QA, SSO or a four-op account permission.
@@ -12,11 +14,20 @@ const fail=code=>{throw Object.assign(new Error(code),{code});};
 // Actual independently admitted service registrations are release-owned.
 // No default root, key, caller provider, ENV override or enrollment is created.
 const admittedSourceServices=Object.freeze([]);
+// Independent protected ADMIN release selection; not currentKeys, request
+// JSON, ENV, a new signing route or permission inherited from a login.
+// Actual lawful role custody and independent approvals are NOT supplied yet.
+const admittedSourceIssuance=Object.freeze([]);
+export async function loadOriginalAuthSourceIssuanceService(){
+ if(admittedSourceIssuance.length===0)return null;
+ if(admittedSourceIssuance.length!==1)fail('AUTH_ISSUANCE_RELEASE_AMBIGUOUS');
+ return await loadReleaseSelectedOriginalSourceIssuanceV2(admittedSourceIssuance[0]);
+}
 const nonce=()=>randomBytes(32).toString('base64url');
 function sameKey(privateKey,expected){return privateKey instanceof KeyObject&&privateKey.type==='private'&&privateKey.asymmetricKeyType==='ed25519'&&createPublicKey(privateKey).equals(expected);}
-function publicFile(path,digest){
+function publicFile(path,digest,maximum=32768){
  const fd=openSync(path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);try{
-  const before=fstatSync(fd),named=lstatSync(path);if(!before.isFile()||before.nlink!==1||(before.mode&0o022)||before.dev!==named.dev||before.ino!==named.ino||before.size<1||before.size>32768)fail('AUTH_SOURCE_PUBLIC_ORIGINAL_INVALID');
+  const before=fstatSync(fd),named=lstatSync(path);if(!before.isFile()||before.nlink!==1||(before.mode&0o022)||before.dev!==named.dev||before.ino!==named.ino||before.size<1||before.size>maximum)fail('AUTH_SOURCE_PUBLIC_ORIGINAL_INVALID');
   const raw=readFileSync(fd,'utf8'),after=fstatSync(fd),end=lstatSync(path);if(sha(raw)!==digest||before.dev!==end.dev||before.ino!==end.ino||before.size!==after.size||before.mtimeMs!==after.mtimeMs||before.ctimeMs!==after.ctimeMs)fail('AUTH_SOURCE_PUBLIC_ORIGINAL_CHANGED');return raw;
  }finally{closeSync(fd);}
 }
@@ -25,7 +36,7 @@ const signed=(body,key,policy)=>canonical({body,signature:sign(null,Buffer.from(
 // Kernel is testable CODE, not an enrollment factory. Production mounting
 // accepts only instances branded by the fixed release-selection factory below.
 export class OriginalAuthSourceCurrentKernel {
- #root;#enrollment;#policy;#key;#profiles=new Map();#io;#loan;#rows=new Map();#retired=false;#entered=false;#unknown=false;#first;#firstPresent=false;#closing=false;#closed=false;#cleanupCause;#cleanupCausePresent=false;#clockFloor=0;#clock;#nonces=new Map();
+ #root;#enrollment;#policy;#key;#profiles=new Map();#io;#loan;#rows=new Map();#retired=false;#entered=false;#unknown=false;#first;#firstPresent=false;#closing=false;#closed=false;#cleanupCause;#cleanupCausePresent=false;#clockFloor=0;#clock;#nonces=new Map();#lastCurrent;
  constructor(rootRaw,enrollmentRaw,profiles,privateKey,policy,nativeIO,now,clock=Date.now){
   if(typeof clock!=='function')fail('AUTH_SOURCE_CURRENT_CLOCK_UNAVAILABLE');this.#clock=clock;
   this.#root=rootRaw;this.#enrollment=enrollmentRaw;this.#policy=Object.freeze({...policy,signatureContract:Object.freeze({...policy.signatureContract})});this.#key=privateKey;this.#io=nativeIO;
@@ -77,7 +88,7 @@ export class OriginalAuthSourceCurrentKernel {
   }catch(cause){this.#remember(cause);throw cause;}finally{this.#entered=false;}
  }
  #body(profileDigest,profile,state,challenge,now){const role=verifySourceEnrollment(this.#root,this.#enrollment,this.#policy,now).body;return {version:1,purpose:originalSignatureContract(this.#policy).purpose,sourceId:profile.sourceId,enrollmentDigest:this.#policy.enrollmentDigest,profileDigest,instanceId:profile.instanceId,generation:profile.generation,sequence:state.sequence,floor:state.floor,head:state.head,status:state.status,nonce:challenge,issuedAtMs:now,expiresAtMs:Math.min(now+30000,profile.expiresAtMs,role.expiresAtMs)};}
- current(profileDigest,challenge,now){
+ current(profileDigest,challenge,now=this.#clock()){
   if(typeof challenge!=='string'||!/^[A-Za-z0-9_-]{43}$/.test(challenge)||Buffer.from(challenge,'base64url').toString('base64url')!==challenge)fail('AUTH_SOURCE_CURRENT_NONCE_INVALID');
   const profile=this.#profiles.get(profileDigest),state=this.#rows.get(profileDigest);if(!profile||!state)fail('AUTH_SOURCE_PROFILE_NOT_REGISTERED');
   for(const [key,time] of this.#nonces)if(now-time>=30000)this.#nonces.delete(key);
@@ -87,8 +98,16 @@ export class OriginalAuthSourceCurrentKernel {
    this.#check(now);this.#nonces.set(nonceKey,now);verifySourceProfile(this.#root,this.#enrollment,profile.raw,this.#policy,now);
    const key=sha(canonical({profileDigest,sequence:state.sequence})),raw=this.#io.read(this.#loan,key+'.entered'),terminal=this.#io.read(this.#loan,key+'.terminal');
    if(sha(raw)!==state.recordDigest||terminal!==canonical({version:1,eventDigest:state.recordDigest}))fail('AUTH_SOURCE_CURRENT_HISTORY_CHANGED');
-   const body=this.#body(profileDigest,profile.body,state,challenge,now),signedRaw=signed(body,this.#key,this.#policy);const post=this.#clock();this.#check(post);if(post>=body.expiresAtMs)fail('AUTH_SOURCE_CURRENT_EXPIRED');return signedRaw;
+   const body=this.#body(profileDigest,profile.body,state,challenge,now),signedRaw=signed(body,this.#key,this.#policy);this.#lastCurrent={profileDigest,challenge,raw:signedRaw,expires:body.expiresAtMs,state};const post=this.#clock();this.#check(post);if(post>=body.expiresAtMs)fail('AUTH_SOURCE_CURRENT_EXPIRED');return signedRaw;
   }catch(cause){this.#remember(cause);throw cause;}finally{this.#entered=false;}
+ }
+ assertOriginalCurrentCompletion(profileDigest,challenge,raw){
+  const last=this.#lastCurrent,profile=this.#profiles.get(profileDigest),state=this.#rows.get(profileDigest);
+  if(this.#entered||!last||!profile||last.profileDigest!==profileDigest||last.challenge!==challenge||last.raw!==raw||last.state!==state||state.status!=='active')fail('AUTH_SOURCE_CURRENT_COMPLETION_NOT_ORIGINAL');
+  this.#check(this.#clock());verifySourceProfile(this.#root,this.#enrollment,profile.raw,this.#policy,this.#time(this.#clock()));
+  const key=sha(canonical({profileDigest,sequence:state.sequence}));
+  if(sha(this.#io.read(this.#loan,key+'.entered'))!==state.recordDigest||this.#io.read(this.#loan,key+'.terminal')!==canonical({version:1,eventDigest:state.recordDigest}))fail('AUTH_SOURCE_CURRENT_HISTORY_CHANGED');
+  const end=this.#time(this.#clock());if(this.#retired||this.#unknown||end>=last.expires)fail('AUTH_SOURCE_CURRENT_COMPLETION_EXPIRED');
  }
  retire(){this.#retired=true;}
  join(){if(!this.#retired||this.#entered)fail('AUTH_SOURCE_CURRENT_JOIN_PENDING');}
@@ -111,9 +130,13 @@ export function acquireOriginalAuthSourceCurrentService(sourceId,protectedSignin
 }
 // Normal daemon startup only. No ENV/key generator/default identity. With no
 // independently admitted release row it returns null BEFORE any key read.
-export function loadOriginalAuthSourceCurrentService(){
+export async function loadOriginalAuthSourceCurrentService(){
  if(admittedSourceServices.length===0)return null;if(admittedSourceServices.length!==1)fail('AUTH_SOURCE_CURRENT_RELEASE_AMBIGUOUS');
  const entry=admittedSourceServices[0],now=Date.now();
+ if(entry.version===2){
+  const result=await loadReleaseSelectedOriginalSourceV2(entry,(path,digest)=>publicFile(path,digest,393216));
+  const service=result?.partial??result;services.add(service);sourceServiceDebt.add(service);return result;
+ }
  const rootRaw=publicFile(entry.rootPath,entry.policy.rootDigest),enrollmentRaw=publicFile(entry.enrollmentPath,entry.policy.enrollmentDigest),role=verifySourceEnrollment(rootRaw,enrollmentRaw,entry.policy,now);
  if(typeof entry.keyPath!=='string'||realpathSync(entry.keyPath)!==entry.keyPath)fail('AUTH_SOURCE_CURRENT_KEY_NOT_SUPPLIED');
  const parent=lstatSync(dirname(entry.keyPath));if(!parent.isDirectory()||parent.isSymbolicLink()||parent.uid!==process.getuid()||(parent.mode&0o077))fail('AUTH_SOURCE_CURRENT_KEY_NOT_SUPPLIED');
@@ -126,8 +149,36 @@ export function loadOriginalAuthSourceCurrentService(){
   return Object.freeze({partial:service,error:cause});
  }
 }
-export function handleOriginalAuthSourceCurrent(service,method,url,now=Date.now()){
+export async function handleOriginalAuthSourceCurrent(service,method,url,now=Date.now()){
  if(!services.has(service))fail('AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED');
  const parsed=new URL(url,'https://wallet-auth.ynxweb4.com');if(method!=='GET'||parsed.origin!=='https://wallet-auth.ynxweb4.com'||parsed.pathname!=='/v1/auth-identity/source-current'||parsed.hash||[...parsed.searchParams.keys()].sort().join('|')!=='nonce|profile')fail('AUTH_SOURCE_CURRENT_REQUEST_INVALID');
- return {status:200,headers:{'content-type':'application/json','cache-control':'no-store'},body:service.current(parsed.searchParams.get('profile'),parsed.searchParams.get('nonce'),now)};
+ return {status:200,headers:{'content-type':'application/json','cache-control':'no-store'},body:await service.current(parsed.searchParams.get('profile'),parsed.searchParams.get('nonce'),now)};
+}
+// Private module boundary for the normal original HTTP request owner. Not an
+// enrollment API and never a renderer/JSON brand or a public arithmetic kernel.
+export function assertOriginalAuthSourceCurrentService(service){
+ if(!services.has(service)||typeof service.current!=='function'||typeof service.assertOriginalCurrentCompletion!=='function')fail('AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED');
+}
+// Private normal issuer call, not a public mount or caller-provided provider.
+// Only the SAME release-selected original factory brand may select this path.
+export async function handleOriginalPublicationApprovalCurrent(service,profileDigest,scopeOriginal,currentOriginal){
+ if(!services.has(service)||typeof service.publicationApprovalCurrent!=='function'||typeof service.assertOriginalPublicationApprovalCompletion!=='function')fail('AUTH_PUBLICATION_ORIGINAL_ISSUER_REQUIRED');
+ const raw=await service.publicationApprovalCurrent(profileDigest,scopeOriginal,currentOriginal);
+ service.assertOriginalPublicationApprovalCompletion(profileDigest,scopeOriginal,currentOriginal,raw);return raw;
+}
+export async function handleOriginalDeveloperPrincipalCurrent(service,credential){
+ assertOriginalDeveloperPrincipalSource(service);
+ const result=await service.existingDeveloperPrincipal(credential);
+ service.assertOriginalDeveloperPrincipalCompletion(credential,result);return result;
+}
+export function assertOriginalDeveloperPrincipalSource(service){
+ if(!services.has(service)||typeof service.existingDeveloperPrincipal!=='function'||typeof service.assertDeveloperPrincipalPurpose!=='function'||typeof service.assertOriginalDeveloperPrincipalCompletion!=='function')fail('AUTH_ORIGINAL_PRINCIPAL_SOURCE_REQUIRED');
+ service.assertDeveloperPrincipalPurpose();
+}
+export async function loadOriginalPublicationApprovalIssuer(){
+ if(admittedSourceServices.length===0)return null;if(admittedSourceServices.length!==1)fail('AUTH_PUBLICATION_ISSUER_RELEASE_AMBIGUOUS');
+ const entry=admittedSourceServices[0];if(entry.version!==2||entry.policy.signatureContract.purpose!=='ide-publication-approval-authority-v1')fail('AUTH_PUBLICATION_DEDICATED_ISSUER_REQUIRED');
+ // Query never creates or updates the original Native journal, even when the
+ // approved namespace is missing. A separate protected capture owns writes.
+ const result=await loadReleaseSelectedOriginalSourceV2(entry,(path,digest)=>publicFile(path,digest,393216),true),service=result?.partial??result;services.add(service);sourceServiceDebt.add(service);return result;
 }
