@@ -22,7 +22,7 @@ import sys
 import time
 
 PROFILE = "remote-signer-process-v1"
-GUARD_SHA256 = "a0e85228bf57194b7f93d8c8e6802343b2471da9ef73ced5407c9d4639d7e642"
+GUARD_SHA256 = "c03e7eca96cdd5f4d08b214c81ada88e2432ec6c5e53e991939348ac378148d5"
 TEST = "TestPQRemoteSignerNormalProcessColdRecoveryAndUnknown"
 SOURCE_LEAF = "internal/consensus/pq_remote_process_test.go"
 SOURCE_SHA256 = "01663b399daf0c7c70faab41e629a85d2538ea4bb9bb395fe724ec2ccf06948d"

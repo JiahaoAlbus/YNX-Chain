@@ -828,14 +828,6 @@ type pqFreshCompletion struct {
 	ended time.Time
 }
 
-func pqFreshStart(n *pqNetworkE2E, b *pqNetworkBusiness, done chan<- pqFreshCompletion, index int, label string, args []string) time.Time {
-	started, err := pqFreshStartContext(n, b, n.ctx, done, index, label, args)
-	if err != nil {
-		n.t.Fatal("pinned normal fresh client failed to start; retain original intent")
-	}
-	return started
-}
-
 func pqFreshStartContext(n *pqNetworkE2E, b *pqNetworkBusiness, ctx context.Context, done chan<- pqFreshCompletion, index int, label string, args []string) (time.Time, error) {
 	cmd, finish := b.command(n.t, ctx, label, "ynx-consensus-perf-client", nil, args...)
 	started := time.Now()
@@ -852,6 +844,19 @@ func pqFreshStartContext(n *pqNetworkE2E, b *pqNetworkBusiness, ctx context.Cont
 	return started, nil
 }
 
+// Both queues own only their successfully started CLI Wait/finish work. Their
+// child context is canceled before joining; the global network context and
+// outer process-tree cleanup/UNKNOWN evidence remain independently owned.
+func pqFreshCancelJoin(cancel context.CancelFunc, done <-chan pqFreshCompletion, active *int) {
+	cancel()
+	// Each child sends exactly once after Wait and finish. Both callers retain
+	// a four-entry buffer, so Fatal/Goexit cannot strand a completion sender.
+	for *active > 0 {
+		<-done
+		*active = *active - 1
+	}
+}
+
 // Only read-only, per-transaction proof consumers enter this fixed four-slot
 // queue. Launch/preparation and result validation stay on the coordinator:
 // they call helpers which may Fatal, and must never run on a worker goroutine.
@@ -863,17 +868,7 @@ func pqFreshReadbackQueue(parent context.Context, count int, start func(context.
 	done := make(chan pqFreshCompletion, pqFreshInFlight)
 	next, active, completed := 0, 0, 0
 	issued, seen := make([]bool, count), make([]bool, count)
-	defer func() {
-		cancel()
-		// Each successfully started child sends exactly once, only after Wait
-		// and finish (log close + post-binary pin check). The buffer holds all
-		// four completions even if preparation/validation calls Fatal/Goexit.
-		// Join them before any enclosing test/node cleanup can finish.
-		for active > 0 {
-			<-done
-			active--
-		}
-	}()
+	defer pqFreshCancelJoin(cancel, done, &active)
 	for completed < count {
 		for next < count && active < pqFreshInFlight {
 			if err := ctx.Err(); err != nil {
@@ -922,11 +917,13 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 		rows[i] = pqFreshTransfer{Sender: account.owner, NativeHash: SignedTransactionHash(wire), ABCIHash: SignedTransactionHash(payload), wire: wire, payload: payload, path: path}
 	}
 	finish()
+	offerCtx, cancelOffers := context.WithCancel(n.ctx)
 	done := make(chan pqFreshCompletion, pqFreshInFlight)
 	finishOffers := make([]func(), len(rows))
 	started := time.Now()
 	var lastOffer time.Time
 	next, active, maximum := 0, 0, 0
+	defer pqFreshCancelJoin(cancelOffers, done, &active)
 	completed := 0
 	for completed < len(rows) {
 		if next < len(rows) && active < pqFreshInFlight {
@@ -943,12 +940,16 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 				out := filepath.Join(b.root, label+".json")
 				args := pqFreshArgs([]string{"-pq-member", rows[next].path, "-pq-gateway", b.url, "-output", out, "-timeout", "10s"}, baseline)
 				finishOffers[next] = pqFreshStage(n.t, origin, arm, "business-offer", -1, next)
-				rows[next].offered = pqFreshStart(n, b, done, next, label, args)
+				offered, err := pqFreshStartContext(n, b, offerCtx, done, next, label, args)
+				if err != nil {
+					n.t.Fatal("pinned normal fresh offer failed to start; retain original intent:", err)
+				}
+				rows[next].offered = offered
+				active++ // Only successful Start owns a future Wait/finish completion.
 				rows[next].OfferOffsetNs = rows[next].offered.Sub(origin).Nanoseconds()
 				rows[next].OfferLatenessNs = rows[next].offered.Sub(started.Add(time.Duration(next) * pqFreshInterval)).Nanoseconds()
 				lastOffer = rows[next].offered
 				next++
-				active++
 				if active > maximum {
 					maximum = active
 				}
@@ -969,10 +970,11 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 			}
 			finishOffers[result.index]()
 		case <-time.After(5 * time.Millisecond):
-		case <-n.ctx.Done():
+		case <-offerCtx.Done():
 			n.t.Fatal("original fresh offer deadline; preserve all signed wires and UNKNOWN")
 		}
 	}
+	pqFreshCancelJoin(cancelOffers, done, &active)
 	finish = pqFreshStage(n.t, origin, arm, "business-original-inclusion", -1, -1)
 	for i := range rows {
 		rows[i].Height, rows[i].Index = pqFreshIncluded(n, rows[i].payload)
@@ -1543,6 +1545,65 @@ func TestPQNetworkFreshReadbackQueueFailureCancelsAndJoinsStartedWork(t *testing
 			workers.Wait()
 		})
 	}
+}
+
+func TestPQNetworkFreshOfferCleanupJoinsBeforeFatalUnwindCompletes(t *testing.T) {
+	parent, cancelParent := context.WithCancel(context.Background())
+	defer cancelParent()
+	ctx, cancel := context.WithCancel(parent)
+	defer cancel()
+	done := make(chan pqFreshCompletion, pqFreshInFlight)
+	canceled, finished := make(chan int, pqFreshInFlight), make(chan int, pqFreshInFlight)
+	releaseFinish := make(chan struct{})
+	var release sync.Once
+	defer release.Do(func() { close(releaseFinish) })
+	var workers sync.WaitGroup
+	// Two offers have successfully started before a later Start/report Fatal.
+	// This tests the real shared unwind helper, without a node, ELF or replay.
+	active := 2
+	for index := 0; index < active; index++ {
+		workers.Add(1)
+		go func(index int) {
+			defer workers.Done()
+			<-ctx.Done()
+			canceled <- index
+			<-releaseFinish
+			finished <- index
+			done <- pqFreshCompletion{index: index, err: ctx.Err(), ended: time.Now()}
+		}(index)
+	}
+	joined := make(chan struct{})
+	go func() {
+		defer close(joined)
+		defer pqFreshCancelJoin(cancel, done, &active)
+		runtime.Goexit() // The same defer-unwind semantics as testing.Fatal.
+	}()
+	deadline := time.After(time.Second)
+	for i := 0; i < 2; i++ {
+		select {
+		case <-canceled:
+		case <-deadline:
+			t.Fatal("owned offer context was not canceled during Fatal unwind")
+		}
+	}
+	select {
+	case <-joined:
+		t.Fatal("offer cleanup returned before outstanding Wait/finish work joined")
+	default:
+	}
+	if parent.Err() != nil {
+		t.Fatal("offer cleanup canceled the independently owned network context")
+	}
+	release.Do(func() { close(releaseFinish) })
+	select {
+	case <-joined:
+	case <-deadline:
+		t.Fatal("offer cleanup did not join its released original completions")
+	}
+	if active != 0 || len(finished) != 2 || len(done) != 0 {
+		t.Fatal("offer unwind lost a finished original child", active, len(finished), len(done))
+	}
+	workers.Wait()
 }
 
 // These DATA regressions run in normal CI without starting a node, generating a
