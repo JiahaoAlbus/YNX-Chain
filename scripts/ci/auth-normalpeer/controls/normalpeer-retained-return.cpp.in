@@ -1,0 +1,42 @@
+#include <sys/socket.h>
+#include <unistd.h>
+#include <chrono>
+#include <thread>
+#include <memory>
+#include <iostream>
+static size_t observed=0,expectedBytes=0;static bool delayLast=false;static unsigned reads=0;
+static ssize_t PUBLIC_recv(int fd,void*out,size_t n,int flags){auto r=::recv(fd,out,n,flags);reads++;if(r>0){observed+=(size_t)r;if(delayLast&&observed==expectedBytes){delayLast=false;std::this_thread::sleep_for(std::chrono::milliseconds(700));}}return r;}
+#define recv PUBLIC_recv
+#include "@@ACTUAL_ENDPOINT@@"
+#undef recv
+using namespace ynx_auth_ide_identity_private;
+using napi_env=void*;
+struct PeerOwner{std::unique_ptr<Endpoint>endpoint;};
+struct PeerWork{PeerOwner*p;bool sending;std::vector<unsigned char>payload;Frame result{Message::failure,0,{}};std::string failure;};
+@@ACTUAL_PEER_EXECUTE@@
+static void require(bool b,const char*s){if(!b)throw std::runtime_error(s);}
+struct Pair{int fd[2];Pair(){require(!socketpair(AF_UNIX,SOCK_STREAM,0,fd),"socketpair");}~Pair(){if(fd[0]>=0)::close(fd[0]);if(fd[1]>=0)::close(fd[1]);}};
+static void run(unsigned mode){
+ Pair pair;Frame original{Message::proof,mode==2?2u:1u,{7,8,9,10,11,12,13,14}};auto wire=encode(original);
+ auto n=mode==3?wire.size()-3:wire.size();require(::send(pair.fd[1],wire.data(),n,0)==(ssize_t)n,"send fixture frame");if(mode==3)require(!shutdown(pair.fd[1],SHUT_WR),"fixture truncated half-close");
+ observed=0;expectedBytes=wire.size();reads=0;delayLast=mode==0;
+ PeerOwner owner{std::make_unique<Endpoint>(pair.fd[0],std::chrono::steady_clock::now()+std::chrono::milliseconds(500))};pair.fd[0]=-1;
+ PeerWork work{&owner,false,{}};PeerExecute(nullptr,&work);
+ if(mode==0||mode==2){
+  require(!work.failure.empty(),"late/replay must remain failed");require(work.result.kind==original.kind&&work.result.sequence==original.sequence&&work.result.payload==original.payload,"complete original lost after late-current/replay failure");
+  auto before=reads;bool refused=false;try{owner.endpoint->receive();}catch(const std::exception&){refused=true;}require(refused,"UNKNOWN retried as success");require(reads==before,"UNKNOWN reentered recv");
+ }else if(mode==1)require(work.failure.empty()&&work.result.payload==original.payload,"normal return changed");
+ else require(!work.failure.empty()&&work.result.payload.empty(),"truncation fabricated complete return");
+ owner.endpoint->retire();require(owner.endpoint->joined(),"entered call did not drain");owner.endpoint->close();
+}
+static void delivered_then_truncated(){
+ Pair pair;Frame original{Message::proof,1,{1,2,3}},next{Message::proof,2,{4,5,6}};auto bytes=encode(original);
+ require(::send(pair.fd[1],bytes.data(),bytes.size(),0)==(ssize_t)bytes.size(),"first success send");
+ delayLast=false;observed=0;expectedBytes=bytes.size();
+ PeerOwner owner{std::make_unique<Endpoint>(pair.fd[0],std::chrono::steady_clock::now()+std::chrono::seconds(5))};pair.fd[0]=-1;
+ PeerWork first{&owner,false,{}};PeerExecute(nullptr,&first);require(first.failure.empty()&&first.result.payload==original.payload,"first read success");
+ bytes=encode(next);require(::send(pair.fd[1],bytes.data(),bytes.size()-1,0)==(ssize_t)bytes.size()-1,"second partial send");require(!shutdown(pair.fd[1],SHUT_WR),"second partial shutdown");
+ PeerWork second{&owner,false,{}};PeerExecute(nullptr,&second);require(!second.failure.empty(),"second truncation must fail");require(second.result.payload.empty(),"STALE_FIRST_COMPLETE_FRAME_ADOPTED_AS_SECOND_TRUNCATED_RESULT");
+ owner.endpoint->retire();require(owner.endpoint->joined(),"drain second failure");owner.endpoint->close();
+}
+int main(){try{for(unsigned i=0;i<4;i++){run(i);std::cout<<"PASS actual endpoint+PeerExecute mode="<<i<<"\n";}delivered_then_truncated();std::cout<<"PASS mode=4 prior success cannot become next truncated DATA\n";return 0;}catch(const std::exception&e){std::cerr<<"FAIL "<<e.what()<<"\n";return 1;}}
