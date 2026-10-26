@@ -56,9 +56,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  contract-tooling-scope:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      changed: ${{ steps.paths.outputs.changed }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 2
+      - id: paths
+        name: Select only changed contract toolchain inputs
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$BEFORE" =~ ^[0-9a-f]{40}$ && "$AFTER" =~ ^[0-9a-f]{40}$ ]]
+          if [[ "$BEFORE" == 0000000000000000000000000000000000000000 ]]; then
+            printf 'changed=true\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! git cat-file -e "$BEFORE^{commit}"; then
+            git fetch --no-tags --depth=1 origin "$BEFORE"
+          fi
+          git diff --name-only "$BEFORE" "$AFTER" -- \
+            package.json package-lock.json hardhat.config.ts \
+            scripts/contracts scripts/verify/contract-tooling-check.sh \
+            scripts/verify/contract-tooling-check.mjs > "$RUNNER_TEMP/contract-tooling-changes.txt"
+          if [[ -s "$RUNNER_TEMP/contract-tooling-changes.txt" ]]; then
+            printf 'changed=true\n' >> "$GITHUB_OUTPUT"
+          else
+            printf 'changed=false\n' >> "$GITHUB_OUTPUT"
+          fi
+
   contract-tooling:
     name: Contract tooling dependency and compatibility
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+    needs: contract-tooling-scope
+    if: needs.contract-tooling-scope.outputs.changed == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

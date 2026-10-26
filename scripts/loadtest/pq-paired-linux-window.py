@@ -87,7 +87,7 @@ BUSINESS_E2E_SOURCE_SHA256 = "0b4739b3ac7a3c8a21573074d74734da964c256e76d0f10fb5
 BUSINESS_CLIENT_COMMIT = "3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0"
 FRESH_BUSINESS_E2E_TEST = "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming"
 FRESH_BUSINESS_E2E_SOURCE = "internal/consensus/pq_network_fresh_business_test.go"
-FRESH_BUSINESS_E2E_SOURCE_SHA256 = "8f2d4f58808dee77ab00dc69a9a285f770b7aeafa49b4e8865455f581ad1d438"
+FRESH_BUSINESS_E2E_SOURCE_SHA256 = "6298d05c08c6f459eb0c0bf3ba3227359ab0668b9fe86725dd54f91a773a36f4"
 FRESH_BUSINESS_CLIENT_COMMIT = "70e7e450997a0ae77dbad5a8be3682f482c6ddd8"
 FRESH_BUSINESS_CLIENT_TREE = "4866cc3924c060eb6a29939915d39b1c5c625607"
 FRESH_BUSINESS_CLOCK = "test-process time.Now monotonic elapsed; not a cross-process or wall-clock subtraction"
@@ -178,6 +178,83 @@ def smaps_rss(raw):
     if len(found) != 1:
         raise RuntimeError("smaps_rollup RSS missing or duplicate")
     return int(found[0]) * 1024
+
+
+class TaskRSSObservationError(RuntimeError):
+    def __init__(self, message, observation):
+        super().__init__(message)
+        self.observation = observation
+
+
+def sample_owned_task(before, deadline, root=Path("/proc")):
+    """Capture one already-owned identity; only missing proc reads may settle.
+
+    The deadline is shared by the entire sample, not renewed for each PID or
+    retry. A missing mm can precede observable process exit. It is never zero
+    RSS for a live task: require a real rollup, the SAME identity in Z, or a
+    second kernel identity read proving the original task is gone.
+    """
+    expected = {key: before[key] for key in ("startTicks", "state", "parent", "group")}
+    observation = dict(pid=before["pid"], expected=expected, current=None,
+                       phase="stat-before", errno=None, firstReadError=None,
+                       attempts=0, resolution="refused")
+    directory = root / str(before["pid"])
+
+    def identity():
+        observation["current"] = None
+        current = parse_stat(bounded(directory / "stat"), before["pid"])
+        observation["current"] = {key: current[key] for key in expected}
+        if current["startTicks"] != before["startTicks"]:
+            raise RuntimeError("owned PID reused during capture")
+        return current
+
+    def settled(current, resolution):
+        observation["resolution"] = resolution
+        return (dict(current, rssBytes=0) if current is not None else None,
+                dict(observation))
+
+    while True:
+        observation["attempts"] += 1
+        try:
+            observation["phase"] = "stat-before"
+            current = identity()
+            if current["state"] == "Z":
+                return settled(current, "same-identity-zombie")
+            observation["phase"] = "smaps-rollup"
+            raw = bounded(directory / "smaps_rollup")
+            observation["phase"] = "stat-after"
+            after = identity()
+            observation["phase"] = "rss-parse"
+            rss = smaps_rss(raw)
+            observation["resolution"] = "rss-read"
+            return dict(after, rssBytes=rss), (dict(observation) if observation["firstReadError"] else None)
+        except OSError as error:
+            observation["errno"] = error.errno
+            if observation["firstReadError"] is None:
+                observation["firstReadError"] = dict(phase=observation["phase"], errno=error.errno)
+            if error.errno not in (errno.ENOENT, errno.ESRCH):
+                raise TaskRSSObservationError(str(error), dict(observation)) from error
+            # Do not reseed ownership from a new inventory, PID, parent or PGID.
+            # A recycled PID is an error even if its numeric ID was once owned.
+            observation["phase"] = "stat-after-missing-read"
+            try:
+                current = identity()
+            except OSError as absent:
+                observation["errno"] = absent.errno
+                if absent.errno in (errno.ENOENT, errno.ESRCH):
+                    observation["current"] = None
+                    return settled(None, "identity-gone")
+                raise TaskRSSObservationError(str(absent), dict(observation)) from absent
+            except (RuntimeError, ValueError) as invalid:
+                raise TaskRSSObservationError(str(invalid), dict(observation)) from invalid
+            if current["state"] == "Z":
+                return settled(current, "same-identity-zombie")
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TaskRSSObservationError("active owned task RSS unreadable", dict(observation)) from error
+            time.sleep(min(0.001, remaining))
+        except (RuntimeError, ValueError) as invalid:
+            raise TaskRSSObservationError(str(invalid), dict(observation)) from invalid
 
 
 def memory_available(root=Path("/proc")):
@@ -1080,33 +1157,25 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
             result["firstCause"] = str(error)
 
     def sample(initial=False):
+        rss_deadline = min(time.monotonic() + CAPS["sampleMs"] / 1000,
+                           started + CAPS["activeMs"] / 1000)
         rows, vanished = proc_inventory()
         running = child is not None and child.poll() is None
         ids = owned_set(rows, os.getpid(), child.pid if child else None, known, running,
                         result["child"].get("startTicks") if child else None)
-        tasks = []
+        tasks, observations = [], []
         for pid in ids:
             before = rows[pid]
             try:
-                raw = bounded(Path("/proc") / str(pid) / "smaps_rollup") if before["state"] != "Z" else None
-                after = parse_stat(bounded(Path("/proc") / str(pid) / "stat"), pid)
-            except OSError as error:
-                if error.errno not in (errno.ENOENT, errno.ESRCH):
-                    raise
-                try:
-                    current = parse_stat(bounded(Path("/proc") / str(pid) / "stat"), pid)
-                except OSError as absent:
-                    if absent.errno in (errno.ENOENT, errno.ESRCH):
-                        continue  # Proved gone, not a missing live RSS row.
-                    raise
-                if current["startTicks"] != before["startTicks"] or current["state"] != "Z":
-                    raise RuntimeError("active owned task RSS unreadable")
-                after, raw = current, None
-            if after["startTicks"] != before["startTicks"]:
-                raise RuntimeError("owned PID reused during capture")
-            if raw is None and after["state"] != "Z":
-                raise RuntimeError("live owned task missing RSS")
-            tasks.append(dict(after, rssBytes=smaps_rss(raw) if raw is not None else 0))
+                task, observation = sample_owned_task(before, rss_deadline)
+            except TaskRSSObservationError as error:
+                result["taskSampleRefused"] = dict(error.observation,
+                    elapsedMs=int((time.monotonic() - started) * 1000))
+                raise
+            if task is not None:
+                tasks.append(task)
+            if observation is not None:
+                observations.append(observation)
         known.clear()
         known.update({p["pid"]: p["startTicks"] for p in tasks if p["pid"] != os.getpid()})
         free = os.statvfs(case)
@@ -1114,7 +1183,8 @@ def run(prepared, receipt, case_n=1, consensus_e2e=False, consensus_e2e_retained
                     rssBytes=sum(p["rssBytes"] for p in tasks), threads=sum(p["threads"] for p in tasks),
                     privateBytes=directory_bytes(case), buildBytes=directory_bytes(build),
                     freeDiskBytes=free.f_bavail * free.f_frsize, availableMemoryBytes=memory_available(),
-                    hostIdentities=len(rows), vanishedHostPIDs=vanished, tasks=tasks)
+                    hostIdentities=len(rows), vanishedHostPIDs=vanished, tasks=tasks,
+                    taskReadbackObservations=observations)
         result["samples"].append(item)
         enforce(item, initial, profile=profile)
         return rows, ids

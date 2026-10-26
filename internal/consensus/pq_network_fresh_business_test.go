@@ -41,13 +41,16 @@ const (
 	pqFreshOptIn        = "authorized-fresh-four-node-business-window"
 	pqFreshClientCommit = "70e7e450997a0ae77dbad5a8be3682f482c6ddd8"
 	// The whole repository tree, not cmd/ynx-consensus-perf-client's subtree.
-	pqFreshClientTree = "4866cc3924c060eb6a29939915d39b1c5c625607"
-	pqFreshSenders    = 16
-	pqFreshAccounts   = pqFreshSenders + 1
-	pqFreshInFlight   = 4
-	pqFreshInterval   = 500 * time.Millisecond
-	pqFreshClock      = "test-process time.Now monotonic elapsed; not a cross-process or wall-clock subtraction"
-	pqFreshPhaseMaxNs = int64(120 * time.Second)
+	pqFreshClientTree       = "4866cc3924c060eb6a29939915d39b1c5c625607"
+	pqFreshSenders          = 16
+	pqFreshAccounts         = pqFreshSenders + 1
+	pqFreshInFlight         = 4
+	pqFreshInterval         = 500 * time.Millisecond
+	pqFreshClock            = "test-process time.Now monotonic elapsed; not a cross-process or wall-clock subtraction"
+	pqFreshPhaseMaxNs       = int64(120 * time.Second)
+	pqFreshCommitLogPrefix  = "PQ_NETWORK_FRESH_COMMIT_OBSERVATION "
+	pqFreshCommitLogLineMax = 1024
+	pqFreshCommitLogRowsMax = 2 * 4 * int(pqNetworkE2EMaxBlocks)
 )
 
 // This is a new, explicit profile. The retained-history/contract E2E and the
@@ -159,6 +162,105 @@ type pqFreshTraceRow struct {
 	Persistence     CommitTimingSample `json:"persistence"`
 }
 
+// Failure-retained DATA, not the successful paired-business summary. No
+// transaction bytes, owners, paths, execution credit or finality are projected.
+type pqFreshCommitObservation struct {
+	Classification  string              `json:"classification"`
+	Arm             string              `json:"arm"`
+	NodeIndex       int                 `json:"nodeIndex"`
+	PID             int                 `json:"pid"`
+	Clock           string              `json:"clock"`
+	ClockDomain     string              `json:"clockDomain"`
+	Height          string              `json:"height"`
+	Transactions    int                 `json:"transactions"`
+	FinalizeStartNs int64               `json:"finalizeStartNs"`
+	FinalizeEndNs   int64               `json:"finalizeEndNs"`
+	FinalizeOK      bool                `json:"finalizeOK"`
+	CommitStartNs   int64               `json:"commitStartNs"`
+	CommitEndNs     int64               `json:"commitEndNs"`
+	CommitCallNs    int64               `json:"commitCallNs"`
+	CommitOK        bool                `json:"commitOK"`
+	TimingAvailable bool                `json:"timingAvailable"`
+	CommitTiming    *CommitTimingSample `json:"commitTiming"`
+}
+
+func pqFreshCommitObservationLine(arm string, row pqFreshTraceRow) ([]byte, error) {
+	if arm != "before" && arm != "after" || row.Node < 0 || row.Node >= 4 || row.PID < 1 || int64(row.PID) > 1<<31-1 || row.Clock != pqFreshClock || row.ClockDomain != fmt.Sprintf("pq-fresh:%d", row.PID) || row.Height < 1 || row.Transactions < 0 {
+		return nil, errors.New("original bounded Commit observation coordinates required")
+	}
+	if row.FinalizeStartNs < 0 || row.FinalizeEndNs < row.FinalizeStartNs || row.FinalizeEndNs > row.CommitStartNs || row.CommitEndNs < row.CommitStartNs || row.CommitEndNs > pqFreshPhaseMaxNs || row.CommitCallNs != row.CommitEndNs-row.CommitStartNs {
+		return nil, errors.New("actual coordinator Commit intervals outside original window")
+	}
+	observation := pqFreshCommitObservation{Classification: "local-persistence-observation", Arm: arm, NodeIndex: row.Node, PID: row.PID, Clock: row.Clock, ClockDomain: row.ClockDomain, Height: strconv.FormatInt(row.Height, 10), Transactions: row.Transactions, FinalizeStartNs: row.FinalizeStartNs, FinalizeEndNs: row.FinalizeEndNs, FinalizeOK: row.FinalizeOK, CommitStartNs: row.CommitStartNs, CommitEndNs: row.CommitEndNs, CommitCallNs: row.CommitCallNs, CommitOK: row.CommitOK, TimingAvailable: row.TimingAvailable}
+	if row.TimingAvailable {
+		sample := row.Persistence
+		if sample.Height < 1 || sample.ElapsedNs < 0 || sample.ElapsedNs > row.CommitCallNs || sample.PayloadBytes < 0 || uint64(sample.PayloadBytes) > 1<<53-1 || sample.Storage != "atomic-json" && sample.Storage != "snapshot-journal-v1" && sample.Storage != "block-journal-v2" {
+			return nil, errors.New("original numeric persistence observation outside bounds")
+		}
+		var sum int64
+		for stage, ns := range sample.StagesNs {
+			switch stage {
+			case "validate", "json_encode", "delta_encode", "journal_maintenance", "prepare_file", "write", "file_sync", "close_file", "rename", "directory_sync", "version_checkpoint":
+			default:
+				return nil, errors.New("unknown persistence stage cannot enter public Commit log")
+			}
+			if ns < 0 || ns > sample.ElapsedNs || sum > sample.ElapsedNs-ns {
+				return nil, errors.New("numeric persistence stages exceed actual elapsed time")
+			}
+			sum += ns
+		}
+		observation.CommitTiming = &sample
+	}
+	raw, err := json.Marshal(observation)
+	if err != nil || len(pqFreshCommitLogPrefix)+len(raw)+1 > pqFreshCommitLogLineMax {
+		return nil, errors.New("bounded public Commit observation serialization failed")
+	}
+	return append(append([]byte(pqFreshCommitLogPrefix), raw...), '\n'), nil
+}
+
+type pqFreshCommitLog struct {
+	mu      sync.Mutex
+	writer  io.Writer
+	rows    int
+	bytes   int
+	last    [2][4]int64
+	failure error
+}
+
+func (p *pqFreshCommitLog) emit(arm string, row pqFreshTraceRow) error {
+	line, err := pqFreshCommitObservationLine(arm, row)
+	if err != nil {
+		return err
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.failure != nil {
+		return p.failure
+	}
+	armIndex := 0
+	if arm == "after" {
+		armIndex = 1
+	}
+	if p.writer == nil || p.rows >= pqFreshCommitLogRowsMax || p.bytes > pqFreshCommitLogRowsMax*pqFreshCommitLogLineMax-len(line) || row.Height <= p.last[armIndex][row.Node] {
+		p.failure = errors.New("bounded original Commit log count or height exhausted")
+		return p.failure
+	}
+	// One <=1024-byte write after Commit's end/sample and outside both the app
+	// and trace locks. No fsync, retry, queue, new worker or timeout is introduced.
+	written, err := p.writer.Write(line)
+	if err == nil && written != len(line) {
+		err = io.ErrShortWrite
+	}
+	if err != nil {
+		p.failure = err
+		return err
+	}
+	p.rows++
+	p.bytes += len(line)
+	p.last[armIndex][row.Node] = row.Height
+	return nil
+}
+
 type pqFreshTrace struct {
 	*Application
 	mu      sync.Mutex
@@ -166,6 +268,8 @@ type pqFreshTrace struct {
 	initial int64
 	origin  time.Time
 	domain  string
+	arm     string
+	public  *pqFreshCommitLog
 	pending *pqFreshTraceRow
 	rows    []pqFreshTraceRow
 	failure string
@@ -206,9 +310,9 @@ func (p *pqFreshTrace) Commit(ctx context.Context, request *abci.RequestCommit) 
 	ended := time.Now()
 	sample, available := p.Application.LastCommitTiming()
 	p.mu.Lock()
-	defer p.mu.Unlock()
 	if p.pending == nil || len(p.rows) >= int(pqNetworkE2EMaxBlocks) {
 		p.failure = "Commit without its bounded original FinalizeBlock trace"
+		p.mu.Unlock()
 		return response, err
 	}
 	row := *p.pending
@@ -221,6 +325,16 @@ func (p *pqFreshTrace) Commit(ctx context.Context, request *abci.RequestCommit) 
 		p.failure = "actual Commit/Finalize/persistence height or durability differs"
 	}
 	p.rows = append(p.rows, row)
+	p.mu.Unlock()
+	if p.public != nil {
+		if logErr := p.public.emit(p.arm, row); logErr != nil {
+			p.mu.Lock()
+			if p.failure == "" {
+				p.failure = "bounded original Commit observation log failed"
+			}
+			p.mu.Unlock()
+		}
+	}
 	return response, err
 }
 
@@ -456,7 +570,7 @@ func pqFreshVerifyCommits(n *pqNetworkE2E, heights []int64) {
 	}
 }
 
-func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain, arm string) []*pqFreshTrace {
+func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain, arm string, commitLog *pqFreshCommitLog) []*pqFreshTrace {
 	t := n.t
 	n.phase = pqNetworkPhaseLegacy
 	finish := pqFreshStage(t, origin, arm, "legacy-start", -1, -1)
@@ -585,7 +699,7 @@ func pqFreshActivate(n *pqNetworkE2E, origin time.Time, domain, arm string) []*p
 			t.Fatal(err)
 		}
 		app.SetCommitTimingEnabled(true)
-		traces[i] = &pqFreshTrace{Application: app, index: i, initial: n.doc.InitialHeight, origin: origin, domain: domain}
+		traces[i] = &pqFreshTrace{Application: app, index: i, initial: n.doc.InitialHeight, origin: origin, domain: domain, arm: arm, public: commitLog}
 		item.node, err = pqFreshObservedNode(item.config, app, pv, signer, nodeKey, log.NewNopLogger(), traces[i])
 		if err != nil {
 			t.Fatal(err)
@@ -1069,7 +1183,7 @@ type pqFreshArm struct {
 	SustainedTPSQualified bool                `json:"sustainedTPSQualified"`
 }
 
-func pqFreshArmRun(t *testing.T, ctx context.Context, build pqFreshBuild, root, name string, baseline bool, origin time.Time, domain string) pqFreshArm {
+func pqFreshArmRun(t *testing.T, ctx context.Context, build pqFreshBuild, root, name string, baseline bool, origin time.Time, domain string, commitLog *pqFreshCommitLog) pqFreshArm {
 	if err := os.Mkdir(root, 0700); err != nil {
 		t.Fatal("new exclusive fresh arm directory required")
 	}
@@ -1084,7 +1198,7 @@ func pqFreshArmRun(t *testing.T, ctx context.Context, build pqFreshBuild, root, 
 	}()
 	accounts := pqFreshNew(n, b)
 	finish()
-	traces := pqFreshActivate(n, origin, domain, name)
+	traces := pqFreshActivate(n, origin, domain, name, commitLog)
 	births := pqFreshBirths(n, b, accounts, origin, name)
 	finish = pqFreshStage(t, origin, name, "gateway-start", -1, -1)
 	b.startGateway(n)
@@ -1276,8 +1390,9 @@ func TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming(t *testing.T) {
 	// timebase from this origin or publish Unix nanoseconds as JSON numbers.
 	origin := time.Now()
 	domain := fmt.Sprintf("pq-fresh:%d", os.Getpid())
-	arms := []pqFreshArm{pqFreshArmRun(t, ctx, build, filepath.Join(root, "before"), "before", true, origin, domain)}
-	arms = append(arms, pqFreshArmRun(t, ctx, build, filepath.Join(root, "after"), "after", false, origin, domain))
+	publicLog := &pqFreshCommitLog{writer: os.Stdout}
+	arms := []pqFreshArm{pqFreshArmRun(t, ctx, build, filepath.Join(root, "before"), "before", true, origin, domain, publicLog)}
+	arms = append(arms, pqFreshArmRun(t, ctx, build, filepath.Join(root, "after"), "after", false, origin, domain, publicLog))
 	seen := map[string]bool{}
 	for _, arm := range arms {
 		for _, birth := range arm.Births {
@@ -1659,6 +1774,191 @@ func TestPQNetworkFreshPhaseCopiesAndBoundedProfile(t *testing.T) {
 		if _, err := pqFreshBuildManifest(raw, pqBusinessHash(raw), strings.Repeat("11", 20), "/unused", "/unused/test"); err == nil {
 			t.Fatal("incomplete/aliased/old-client source became permission to create nodes")
 		}
+	}
+}
+
+type pqFreshCommitWriterFunc func([]byte) (int, error)
+
+func (f pqFreshCommitWriterFunc) Write(raw []byte) (int, error) { return f(raw) }
+
+func TestPQNetworkFreshCommitObservationFailureRetainsActualTiming(t *testing.T) {
+	migration, path := journalFixture(t)
+	app, err := NewPersistentApplication(migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.SetCommitTimingEnabled(true)
+	var output bytes.Buffer
+	trace := &pqFreshTrace{Application: app, initial: int64(migration.Height) + 1, origin: time.Now(), domain: fmt.Sprintf("pq-fresh:%d", os.Getpid()), arm: "before"}
+	checks := 0
+	trace.public = &pqFreshCommitLog{writer: pqFreshCommitWriterFunc(func(raw []byte) (int, error) {
+		if !app.mu.TryLock() {
+			return 0, errors.New("stdout writer entered under application lock")
+		}
+		app.mu.Unlock()
+		if !trace.mu.TryLock() {
+			return 0, errors.New("stdout writer entered under trace lock")
+		}
+		trace.mu.Unlock()
+		checks++
+		return output.Write(raw)
+	})}
+	ctx := context.Background()
+	for nonce := uint64(1); nonce <= 2; nonce++ {
+		height := int64(migration.Height) + int64(nonce)
+		response, err := trace.FinalizeBlock(ctx, &abci.RequestFinalizeBlock{Height: height, Time: time.Unix(1802736000+height, 0), Txs: [][]byte{journalTransfer(t, nonce)}})
+		if err != nil || response == nil || len(response.TxResults) != 1 || response.TxResults[0].Code != 0 {
+			t.Fatal("actual FinalizeBlock fixture failed", err)
+		}
+		var original []byte
+		if nonce == 2 {
+			original, err = os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			app.pending.AppHash = "invalid-hash" // Actual persistence validation failure, not a manufactured timing sample.
+		}
+		committed, err := trace.Commit(ctx, &abci.RequestCommit{})
+		if nonce == 1 && (err != nil || committed == nil) {
+			t.Fatal("actual first Commit failed", err)
+		}
+		if nonce == 2 {
+			if err == nil || committed != nil || !strings.Contains(err.Error(), "persist finalized YNX state") {
+				t.Fatal("observation changed the original failed Commit return", err)
+			}
+			after, readErr := os.ReadFile(path)
+			if readErr != nil || !bytes.Equal(original, after) || app.committed.Height != height-1 {
+				t.Fatal("failed Commit changed original durable state", readErr)
+			}
+		}
+	}
+	if checks != 2 || trace.public.rows != 2 {
+		t.Fatal("completed callbacks were not immediately retained outside original locks")
+	}
+	lines := bytes.Split(bytes.TrimSuffix(output.Bytes(), []byte{'\n'}), []byte{'\n'})
+	if len(lines) != 2 {
+		t.Fatal("later failure erased or duplicated prior Commit lines")
+	}
+	for i, line := range lines {
+		if len(line)+1 > pqFreshCommitLogLineMax || !bytes.HasPrefix(line, []byte(pqFreshCommitLogPrefix)) {
+			t.Fatal("failure-retained line escaped its bounded public format")
+		}
+		raw := bytes.TrimPrefix(line, []byte(pqFreshCommitLogPrefix))
+		var observation pqFreshCommitObservation
+		if pqLightUniqueJSON(raw) != nil || json.Unmarshal(raw, &observation) != nil || observation.Classification != "local-persistence-observation" || observation.Arm != "before" || observation.NodeIndex != 0 || observation.PID != os.Getpid() || observation.Clock != pqFreshClock || observation.ClockDomain != trace.domain || observation.Height != strconv.FormatInt(int64(migration.Height)+int64(i)+1, 10) || !observation.TimingAvailable || observation.CommitTiming == nil {
+			t.Fatal("original callback coordinates or numeric timing were lost")
+		}
+		var shape map[string]json.RawMessage
+		if json.Unmarshal(raw, &shape) != nil || len(shape) != 17 {
+			t.Fatal("Commit observation acquired extra fields")
+		}
+		for _, key := range []string{"qualified", "finalized", "independentFinalityVerified", "businessFinalized", "transaction", "owner", "path"} {
+			if _, ok := shape[key]; ok {
+				t.Fatal("local Commit logging exposed private data or invented finality")
+			}
+		}
+		if observation.CommitOK != (i == 0) || observation.CommitTiming.Durable != (i == 0) || observation.CommitTiming.Height != int64(migration.Height)+int64(i)+1 {
+			t.Fatal("failed persistence was promoted or a prior durable sample was reused")
+		}
+		for _, key := range []string{"finalizeStartNs", "finalizeEndNs", "commitStartNs", "commitEndNs", "commitCallNs"} {
+			var value int64
+			if json.Unmarshal(shape[key], &value) != nil || value < 0 || value > pqFreshPhaseMaxNs {
+				t.Fatal("original coordinator times are not bounded JSON integers")
+			}
+		}
+	}
+	rows, failure := trace.snapshot()
+	if failure == "" || len(rows) != 2 || rows[1].CommitOK || rows[1].Persistence.Durable {
+		t.Fatal("original failed callback no longer fails the success-summary path")
+	}
+	failed := rows[1]
+	phase := []pqFreshPhaseRow{{Arm: "before", NodeIndex: 0, Height: strconv.FormatInt(failed.Height, 10), ClockDomain: trace.domain, StartNs: failed.CommitStartNs, EndNs: failed.CommitEndNs, Phase: "commit", CommitTiming: &failed.Persistence}}
+	if err := pqFreshPhaseRowsValidate(phase, trace.domain); err == nil || !strings.Contains(err.Error(), "durable Commit") {
+		t.Fatal("failure-retained numeric observation became qualified phase evidence", err)
+	}
+	if bytes.Contains(output.Bytes(), []byte("PQ_NETWORK_FRESH_BUSINESS_SUMMARY")) {
+		t.Fatal("failure log emitted the complete paired-business summary")
+	}
+}
+
+func TestPQNetworkFreshCommitObservationBoundsAndWriteFailure(t *testing.T) {
+	stages := map[string]int64{}
+	for _, stage := range []string{"validate", "json_encode", "delta_encode", "journal_maintenance", "prepare_file", "write", "file_sync", "close_file", "rename", "directory_sync", "version_checkpoint"} {
+		stages[stage] = int64(time.Second)
+	}
+	row := pqFreshTraceRow{PID: 1<<31 - 1, Clock: pqFreshClock, ClockDomain: "pq-fresh:2147483647", Height: 1<<63 - 1, Transactions: int(^uint(0) >> 1), FinalizeStartNs: 100000000000, FinalizeEndNs: 100000000000, CommitStartNs: 100000000000, CommitEndNs: pqFreshPhaseMaxNs, CommitCallNs: 20000000000, TimingAvailable: true, Persistence: CommitTimingSample{Height: 1<<63 - 1, Storage: "snapshot-journal-v1", ElapsedNs: 20000000000, PayloadBytes: 1<<53 - 1, StagesNs: stages}}
+	line, err := pqFreshCommitObservationLine("before", row)
+	if err != nil || len(line) > pqFreshCommitLogLineMax || pqFreshCommitLogRowsMax != 384 || pqFreshCommitLogRowsMax*pqFreshCommitLogLineMax != 384<<10 || (384<<10)+(256<<10)+312*512 >= 1<<20 {
+		t.Fatal("maximum public Commit lines no longer fit the original stdout budget", len(line), err)
+	}
+	missing := row
+	missing.TimingAvailable = false
+	missing.Persistence.Durable = true // An unavailable sample cannot leak an older successful attempt.
+	missingLine, err := pqFreshCommitObservationLine("before", missing)
+	if err != nil || !bytes.Contains(missingLine, []byte(`"timingAvailable":false,"commitTiming":null`)) {
+		t.Fatal("missing original timing acquired a prior durable sample", err)
+	}
+	for _, scenario := range []string{"unknown-arm", "clock", "domain", "node", "time", "duration", "stage", "stage-time", "storage", "payload"} {
+		bad := row
+		bad.Persistence.StagesNs = make(map[string]int64, len(stages))
+		for key, value := range stages {
+			bad.Persistence.StagesNs[key] = value
+		}
+		arm := "before"
+		switch scenario {
+		case "unknown-arm":
+			arm = "private-canary"
+		case "clock":
+			bad.Clock = "private-canary"
+		case "domain":
+			bad.ClockDomain = "private-canary"
+		case "node":
+			bad.Node = 4
+		case "time":
+			bad.CommitEndNs = pqFreshPhaseMaxNs + 1
+		case "duration":
+			bad.CommitCallNs++
+		case "stage":
+			bad.Persistence.StagesNs["private-canary"] = 1
+		case "stage-time":
+			bad.Persistence.StagesNs["write"] = -1
+		case "storage":
+			bad.Persistence.Storage = "private-canary"
+		case "payload":
+			bad.Persistence.PayloadBytes = -1
+		}
+		var output bytes.Buffer
+		log := &pqFreshCommitLog{writer: &output}
+		if err := log.emit(arm, bad); err == nil || output.Len() != 0 || log.rows != 0 {
+			t.Fatal("invalid coordinate/stage reached stdout", scenario, err)
+		}
+	}
+	var output bytes.Buffer
+	log := &pqFreshCommitLog{writer: &output}
+	for _, arm := range []string{"before", "after"} {
+		for node := 0; node < 4; node++ {
+			for height := int64(1); height <= pqNetworkE2EMaxBlocks; height++ {
+				row.Node, row.Height, row.Persistence.Height = node, height, height
+				if err := log.emit(arm, row); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+	}
+	before := output.Len()
+	row.Height, row.Persistence.Height = pqNetworkE2EMaxBlocks+1, pqNetworkE2EMaxBlocks+1
+	if log.rows != pqFreshCommitLogRowsMax || log.bytes != output.Len() || output.Len() > pqFreshCommitLogRowsMax*pqFreshCommitLogLineMax || log.emit("after", row) == nil || output.Len() != before {
+		t.Fatal("Commit stdout count/byte budget grew after its original cap")
+	}
+	firstCause := errors.New("owned stdout unavailable")
+	writes := 0
+	broken := &pqFreshCommitLog{writer: pqFreshCommitWriterFunc(func([]byte) (int, error) { writes++; return 0, firstCause })}
+	if !errors.Is(broken.emit("before", row), firstCause) || !errors.Is(broken.emit("before", row), firstCause) || writes != 1 || broken.rows != 0 {
+		t.Fatal("failed stdout was retried or its first cause replaced")
+	}
+	short := &pqFreshCommitLog{writer: pqFreshCommitWriterFunc(func(raw []byte) (int, error) { return len(raw) - 1, nil })}
+	if !errors.Is(short.emit("before", row), io.ErrShortWrite) || short.rows != 0 {
+		t.Fatal("partial stdout write was called a complete observation")
 	}
 }
 

@@ -8,16 +8,30 @@ import io
 import json
 import os
 import hashlib
+import ast
+import errno
+import inspect
+import select
+import subprocess
+import sys
+import textwrap
+import time
+import types
 
 spec = importlib.util.spec_from_file_location("pq_linux_guard", Path(__file__).with_name("pq-paired-linux-window.py"))
 guard = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(guard)
 
 
-def stat_line(pid, parent=1, group=1, start=100, threads=2):
-    fields = ["S"] + ["0"] * 45
+def stat_line(pid, parent=1, group=1, start=100, threads=2, state="S"):
+    fields = [state] + ["0"] * 45
     fields[1], fields[2], fields[17], fields[19] = str(parent), str(group), str(threads), str(start)
     return (str(pid) + " (name with ) and spaces) " + " ".join(fields)).encode()
+
+
+# Exact nested sampler from f03e11f2ce04f1aaf2519902fe0fc4c89fd89b04;
+# original full guard 95951B/98d2f2e18e721b1f712a37574ea63c718c00867802b737b297f9453163aef1b0.
+LEGACY_RSS_SAMPLE = b"    def sample(initial=False):\n        rows, vanished = proc_inventory()\n        running = child is not None and child.poll() is None\n        ids = owned_set(rows, os.getpid(), child.pid if child else None, known, running,\n                        result[\"child\"].get(\"startTicks\") if child else None)\n        tasks = []\n        for pid in ids:\n            before = rows[pid]\n            try:\n                raw = bounded(Path(\"/proc\") / str(pid) / \"smaps_rollup\") if before[\"state\"] != \"Z\" else None\n                after = parse_stat(bounded(Path(\"/proc\") / str(pid) / \"stat\"), pid)\n            except OSError as error:\n                if error.errno not in (errno.ENOENT, errno.ESRCH):\n                    raise\n                try:\n                    current = parse_stat(bounded(Path(\"/proc\") / str(pid) / \"stat\"), pid)\n                except OSError as absent:\n                    if absent.errno in (errno.ENOENT, errno.ESRCH):\n                        continue  # Proved gone, not a missing live RSS row.\n                    raise\n                if current[\"startTicks\"] != before[\"startTicks\"] or current[\"state\"] != \"Z\":\n                    raise RuntimeError(\"active owned task RSS unreadable\")\n                after, raw = current, None\n            if after[\"startTicks\"] != before[\"startTicks\"]:\n                raise RuntimeError(\"owned PID reused during capture\")\n            if raw is None and after[\"state\"] != \"Z\":\n                raise RuntimeError(\"live owned task missing RSS\")\n            tasks.append(dict(after, rssBytes=smaps_rss(raw) if raw is not None else 0))\n        known.clear()\n        known.update({p[\"pid\"]: p[\"startTicks\"] for p in tasks if p[\"pid\"] != os.getpid()})\n        free = os.statvfs(case)\n        item = dict(elapsedMs=int((time.monotonic() - started) * 1000),\n                    rssBytes=sum(p[\"rssBytes\"] for p in tasks), threads=sum(p[\"threads\"] for p in tasks),\n                    privateBytes=directory_bytes(case), buildBytes=directory_bytes(build),\n                    freeDiskBytes=free.f_bavail * free.f_frsize, availableMemoryBytes=memory_available(),\n                    hostIdentities=len(rows), vanishedHostPIDs=vanished, tasks=tasks)\n        result[\"samples\"].append(item)\n        enforce(item, initial, profile=profile)\n        return rows, ids\n"
 
 
 class LinuxGuardControls(unittest.TestCase):
@@ -112,7 +126,7 @@ class LinuxGuardControls(unittest.TestCase):
     def test_fresh_business_closed_source3_client70e7_whole_tree_and_original_caps(self):
         self.assertEqual(guard.FRESH_BUSINESS_CLIENT_COMMIT, "70e7e450997a0ae77dbad5a8be3682f482c6ddd8")
         self.assertEqual(guard.FRESH_BUSINESS_CLIENT_TREE, "4866cc3924c060eb6a29939915d39b1c5c625607")
-        self.assertEqual(guard.FRESH_BUSINESS_E2E_SOURCE_SHA256, "8f2d4f58808dee77ab00dc69a9a285f770b7aeafa49b4e8865455f581ad1d438")
+        self.assertEqual(guard.FRESH_BUSINESS_E2E_SOURCE_SHA256, "6298d05c08c6f459eb0c0bf3ba3227359ab0668b9fe86725dd54f91a773a36f4")
         caps = guard.fixed_caps(guard.FRESH_BUSINESS_E2E_PROFILE)
         self.assertEqual(caps, dict(guard.CAPS, privateBytes=536870912))
         self.assertEqual([caps[k] for k in ("activeMs", "cleanupMs", "totalMs", "ownedRSSBytes", "ownedProcesses", "threads", "buildBytes")], [105000, 15000, 120000, 1073741824, 16, 320, 1073741824])
@@ -1081,6 +1095,211 @@ class LinuxGuardControls(unittest.TestCase):
             (root / "alias").symlink_to(root / "item")
             with self.assertRaises(RuntimeError):
                 guard.directory_bytes(root)
+
+
+class OwnedRSSReadbackControls(unittest.TestCase):
+    def before(self, pid=20, state="S"):
+        return guard.parse_stat(stat_line(pid, 10, 20, 123, 2, state), pid)
+
+    def scripted_capture(self, steps, deadline=1.0, now=0.0, before=None):
+        pending = list(steps)
+        def read(path, limit=65536):
+            self.assertTrue(pending, "unexpected extra proc read")
+            name, value = pending.pop(0)
+            self.assertEqual(Path(path).name, name)
+            if isinstance(value, BaseException):
+                raise value
+            return value
+        with mock.patch.object(guard, "bounded", side_effect=read), mock.patch.object(guard.time, "monotonic", return_value=now), mock.patch.object(guard.time, "sleep") as sleep:
+            try:
+                return guard.sample_owned_task(before or self.before(), deadline), sleep.call_count
+            finally:
+                self.assertEqual(pending, [], "not all required proc observations consumed")
+
+    def test_stable_task_requires_actual_rollup_between_identity_reads(self):
+        (task, observation), sleeps = self.scripted_capture([
+            ("stat", stat_line(20, 10, 20, 123)), ("smaps_rollup", b"Rss: 123 kB\n"),
+            ("stat", stat_line(20, 10, 20, 123, state="R"))])
+        self.assertEqual((task["pid"], task["startTicks"], task["state"], task["rssBytes"]), (20, 123, "R", 123 * 1024))
+        self.assertIsNone(observation); self.assertEqual(sleeps, 0)
+
+    def test_original_sampler_red_then_same_identity_exit_interleaving(self):
+        # Exact original f03e/7f sampling callee, not a rewritten model of it.
+        self.assertEqual(len(LEGACY_RSS_SAMPLE), 2308)
+        self.assertEqual(hashlib.sha256(LEGACY_RSS_SAMPLE).hexdigest(), "f8ac40d2c800bbd69e2e6e7113934010dd861a8663f93ad4bdb365bb4f365e17")
+        pid = os.getpid() + 1000000
+        own = guard.parse_stat(stat_line(os.getpid(), 1, 1, 1), os.getpid())
+        target = dict(self.before(pid), parent=os.getpid())
+        rows = {own["pid"]: own, pid: target}
+        def old_read(path, limit=65536):
+            selected = int(Path(path).parent.name)
+            if Path(path).name == "smaps_rollup" and selected == pid:
+                raise FileNotFoundError(errno.ENOENT, "controlled missing mm")
+            if Path(path).name == "stat":
+                row = rows[selected]
+                return stat_line(selected, row["parent"], row["group"], row["startTicks"])
+            return b"Rss: 1 kB\n"
+        namespace = dict(vars(guard), proc_inventory=lambda: (rows, []), known={},
+                         result={"child": {"startTicks": 123}, "samples": []},
+                         child=types.SimpleNamespace(pid=pid, poll=lambda: None), bounded=old_read)
+        exec(compile(textwrap.dedent(LEGACY_RSS_SAMPLE.decode("ascii")), "original-f03e-sample", "exec"), namespace)
+        with self.assertRaisesRegex(RuntimeError, "^active owned task RSS unreadable$"):
+            namespace["sample"]()
+        # Deterministic exit schedule: the same identity is briefly live after
+        # ENOENT, then observably Z. This is not evidence of the old once's PID.
+        (task, observation), sleeps = self.scripted_capture([
+            ("stat", stat_line(20, 10, 20, 123)),
+            ("smaps_rollup", FileNotFoundError(errno.ENOENT, "controlled missing mm")),
+            ("stat", stat_line(20, 10, 20, 123)),
+            ("stat", stat_line(20, 10, 20, 123, state="Z"))])
+        self.assertEqual((task["state"], task["startTicks"], task["rssBytes"]), ("Z", 123, 0))
+        self.assertEqual(observation["resolution"], "same-identity-zombie")
+        self.assertEqual(observation["attempts"], 2); self.assertEqual(sleeps, 1)
+        self.assertEqual(observation["firstReadError"], {"phase": "smaps-rollup", "errno": errno.ENOENT})
+
+    def test_missing_rollup_can_only_settle_to_same_identity_rss_or_proved_gone(self):
+        (task, observation), _ = self.scripted_capture([
+            ("stat", stat_line(20, 10, 20, 123)),
+            ("smaps_rollup", ProcessLookupError(errno.ESRCH, "controlled mm exit")),
+            ("stat", stat_line(20, 10, 20, 123)),
+            ("stat", stat_line(20, 10, 20, 123)), ("smaps_rollup", b"Rss: 321 kB\n"),
+            ("stat", stat_line(20, 10, 20, 123))])
+        self.assertEqual(task["rssBytes"], 321 * 1024)
+        self.assertEqual(observation["resolution"], "rss-read")
+        for missing in (errno.ENOENT, errno.ESRCH):
+            with self.subTest(errno=missing):
+                (task, observation), sleeps = self.scripted_capture([
+                    ("stat", stat_line(20, 10, 20, 123)),
+                    ("smaps_rollup", OSError(missing, "controlled mm exit")),
+                    ("stat", OSError(missing, "controlled original identity gone"))])
+                self.assertIsNone(task); self.assertIsNone(observation["current"])
+                self.assertEqual(observation["resolution"], "identity-gone"); self.assertEqual(sleeps, 0)
+
+    def test_active_missing_rss_deadline_preserves_complete_refusal(self):
+        for state in ("R", "S", "X"):
+            with self.subTest(state=state), self.assertRaises(guard.TaskRSSObservationError) as refused:
+                self.scripted_capture([
+                    ("stat", stat_line(20, 10, 20, 123)),
+                    ("smaps_rollup", FileNotFoundError(errno.ENOENT, "controlled missing mm")),
+                    ("stat", stat_line(20, 10, 20, 123, state=state))], deadline=0.0)
+            self.assertEqual(str(refused.exception), "active owned task RSS unreadable")
+            observed = refused.exception.observation
+            self.assertEqual(observed["pid"], 20)
+            self.assertEqual(observed["expected"], {"startTicks": 123, "state": "S", "parent": 10, "group": 20})
+            self.assertEqual((observed["current"]["startTicks"], observed["current"]["state"]), (123, state))
+            self.assertEqual((observed["phase"], observed["errno"], observed["attempts"], observed["resolution"]),
+                             ("stat-after-missing-read", errno.ENOENT, 1, "refused"))
+
+    def test_recycled_pid_and_malformed_stat_or_rollup_never_settle(self):
+        cases = [
+            [("stat", stat_line(20, 10, 20, 124))],
+            [("stat", stat_line(20, 10, 20, 123)), ("smaps_rollup", b"Rss: 5 kB\n"), ("stat", stat_line(20, 10, 20, 124))],
+            [("stat", stat_line(20, 10, 20, 123)), ("smaps_rollup", FileNotFoundError(errno.ENOENT, "missing mm")), ("stat", stat_line(20, 10, 20, 124, state="Z"))],
+            [("stat", b"20 (truncated) S 1")],
+        ]
+        for raw in (b"", b"VmRSS: 1 kB\n", b"Rss: 1 kB\nRss: 2 kB\n"):
+            cases.append([("stat", stat_line(20, 10, 20, 123)), ("smaps_rollup", raw), ("stat", stat_line(20, 10, 20, 123))])
+        for steps in cases:
+            with self.subTest(steps=steps), self.assertRaises(guard.TaskRSSObservationError):
+                self.scripted_capture(steps)
+
+    def test_permissions_and_other_io_failures_are_not_retried(self):
+        for code in (errno.EACCES, errno.EPERM, errno.EIO):
+            for phase in ("stat-before", "smaps-rollup", "stat-after", "stat-after-missing-read"):
+                steps = [] if phase == "stat-before" else [("stat", stat_line(20, 10, 20, 123))]
+                if phase == "stat-after":
+                    steps.append(("smaps_rollup", b"Rss: 1 kB\n"))
+                if phase == "stat-after-missing-read":
+                    steps.append(("smaps_rollup", FileNotFoundError(errno.ENOENT, "controlled missing mm")))
+                steps.append(("smaps_rollup" if phase == "smaps-rollup" else "stat", OSError(code, "controlled IO refusal")))
+                with self.subTest(errno=code, phase=phase), self.assertRaises(guard.TaskRSSObservationError) as refused:
+                    self.scripted_capture(steps)
+                self.assertEqual((refused.exception.observation["phase"], refused.exception.observation["errno"]), (phase, code))
+                self.assertEqual(refused.exception.observation["attempts"], 1)
+
+    def sample_namespace(self, sampler):
+        # Execute the actual nested production sampler with controlled proc I/O;
+        # no recipe/Popen/Go/node window is selected by this DATA regression.
+        run = ast.parse(inspect.getsource(guard.run)).body[0]
+        sample = next(node for node in run.body if isinstance(node, ast.FunctionDef) and node.name == "sample")
+        namespace = dict(vars(guard), result={"samples": [], "child": {"startTicks": 123}}, known={},
+            child=types.SimpleNamespace(pid=20, poll=lambda: None), started=0.0, profile=None,
+            case=Path("/controlled-case"), build=Path("/controlled-build"),
+            os=types.SimpleNamespace(getpid=lambda: 10, statvfs=lambda _: types.SimpleNamespace(f_bavail=10 << 30, f_frsize=1)),
+            proc_inventory=lambda: ({10: self.before(10), 20: dict(self.before(), parent=10)}, []),
+            sample_owned_task=sampler, directory_bytes=lambda _: 0, memory_available=lambda: 4 << 30)
+        exec(compile(ast.fix_missing_locations(ast.Module(body=[sample], type_ignores=[])), "actual-owned-rss-sample", "exec"), namespace)
+        return namespace
+
+    def test_sample_uses_one_shared_deadline_and_records_refusal_before_cleanup(self):
+        deadlines = []
+        def captured(row, deadline):
+            deadlines.append(deadline)
+            return dict(row, rssBytes=1024), None
+        namespace = self.sample_namespace(captured)
+        with mock.patch.object(guard.time, "monotonic", return_value=10.0):
+            namespace["sample"]()
+        self.assertEqual(deadlines, [10.2, 10.2])
+        detail = {"pid": 20, "expected": {"startTicks": 123, "state": "S", "parent": 10, "group": 20},
+                  "current": {"startTicks": 123, "state": "R", "parent": 10, "group": 20},
+                  "phase": "stat-after-missing-read", "errno": errno.ESRCH,
+                  "firstReadError": {"phase": "smaps-rollup", "errno": errno.ESRCH}, "attempts": 2, "resolution": "refused"}
+        def refuse(row, deadline):
+            if row["pid"] == 10:
+                return dict(row, rssBytes=1024), None
+            raise guard.TaskRSSObservationError("active owned task RSS unreadable", detail)
+        namespace = self.sample_namespace(refuse)
+        with mock.patch.object(guard.time, "monotonic", return_value=10.0), self.assertRaises(guard.TaskRSSObservationError):
+            namespace["sample"]()
+        self.assertEqual(namespace["result"]["taskSampleRefused"], dict(detail, elapsedMs=10000))
+        self.assertEqual(namespace["result"]["samples"], [])
+        self.assertEqual(guard.CAPS["activeMs"], 105000); self.assertEqual(guard.CAPS["cleanupMs"], 15000)
+        self.assertEqual(guard.CAPS["totalMs"], 120000); self.assertEqual(guard.CAPS["sampleMs"], 200)
+
+    @unittest.skipUnless(sys.platform == "linux", "actual Linux procfs guard regression")
+    def test_actual_linux_owned_child_exit_is_verified_and_active_fault_is_refused(self):
+        # Only a tiny synthetic Python child on normal CI; no protocol binary,
+        # account, key, signer, network request or authorized business window.
+        child = subprocess.Popen([sys.executable, "-I", "-c", "import os,sys; os.write(1,b'ready\\n'); sys.stdin.buffer.read(1)"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        real_read = guard.bounded
+        try:
+            self.assertTrue(select.select([child.stdout], [], [], 3)[0], "synthetic child did not start")
+            self.assertEqual(child.stdout.readline(), b"ready\n")
+            directory = Path("/proc") / str(child.pid)
+            before = guard.parse_stat(real_read(directory / "stat"), child.pid)
+            self.assertEqual(before["parent"], os.getpid())
+            self.assertGreater(guard.smaps_rss(real_read(directory / "smaps_rollup")), 0)
+            def active_fault(path, limit=65536):
+                if Path(path) == directory / "smaps_rollup":
+                    raise FileNotFoundError(errno.ENOENT, "controlled live-child proc fault")
+                return real_read(path, limit)
+            with mock.patch.object(guard, "bounded", side_effect=active_fault), self.assertRaises(guard.TaskRSSObservationError) as refused:
+                guard.sample_owned_task(before, time.monotonic())
+            self.assertIsNone(child.poll())
+            self.assertEqual(refused.exception.observation["current"]["startTicks"], before["startTicks"])
+            self.assertNotEqual(refused.exception.observation["current"]["state"], "Z")
+            released = False
+            def exit_at_rollup(path, limit=65536):
+                nonlocal released
+                if Path(path) == directory / "smaps_rollup" and not released:
+                    released = True
+                    child.stdin.close()
+                    self.assertEqual(child.wait(timeout=3), 0)
+                    # The kernel, not a synthetic exception, now proves ENOENT.
+                return real_read(path, limit)
+            with mock.patch.object(guard, "bounded", side_effect=exit_at_rollup):
+                task, observation = guard.sample_owned_task(before, time.monotonic() + 0.2)
+            self.assertTrue(released); self.assertIsNone(task)
+            self.assertEqual(observation["resolution"], "identity-gone")
+            self.assertEqual(observation["firstReadError"]["phase"], "smaps-rollup")
+            self.assertIn(observation["errno"], (errno.ENOENT, errno.ESRCH))
+        finally:
+            if child.poll() is None:
+                child.kill()
+            child.wait(timeout=3)
+            for stream in (child.stdin, child.stdout, child.stderr):
+                stream.close()
 
 
 if __name__ == "__main__":
