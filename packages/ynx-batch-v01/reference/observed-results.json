@@ -1,0 +1,30 @@
+{
+  "source": "Transcribed from actual root-agent exec outputs; not generated performance targets",
+  "environment": {"node":"v24.19.0","openssl":"3.5.7","platform":"linux","arch":"x64","cpu":"INTEL(R) XEON(R) PLATINUM 8573C"},
+  "workload": {"N":128,"bytesPerMessage":1024,"owner":"ynx-test-owner-001","purpose":"TX-BATCH"},
+  "basePrototypeRun": {
+    "exitCode":0,
+    "all128MembersValid":true,
+    "all12NamedTamperTestsRejected":true,
+    "wholeBatchValidAndChangedMessageReorderedOrMissingRejected":true,
+    "warmups":1,"samples":3,
+    "createBatchMs":[135.1502,132.1431,153.452],
+    "authenticateCertificateMs":[4.6151,6.5849,3.2328],
+    "wholeBatchMs":[23.6597,29.4444,30.1036],
+    "cached128MembersMs":[76.5496,62.8105,77.2147]
+  },
+  "pairedPrefixOptimizationRun": {
+    "exitCode":0,"warmupsPerCase":1,"samplesPerCase":3,"rotatingOrder":true,
+    "allTreeNodesRootsAnd256PathsIdentical":true,
+    "exactLeafEncodedInputsCompared":256,"exactNodeEncodedInputsCompared":254,
+    "prefixSetupMs":0.959,
+    "originalWholeMs":[37.1226,15.6467,11.3701],
+    "prefixWholeMs":[19.394,12.3393,8.546],
+    "originalCachedMembersMs":[36.6739,72.3522,44.3683],
+    "prefixCachedMembersMs":[16.0925,14.6569,20.5857],
+    "wholeIncludes":"Dual certificate verification, public key imports, tree reconstruction; optimized includes fresh prefix preparation",
+    "cachedMembersExclude":"Certificate authentication, proof extraction and prefix initialization"
+  },
+  "notMeasured":["Chain TPS","network propagation","consensus finality","batch queue delay","multi-owner cold-key workload","production tail latency"],
+  "notes":["Different base and paired runs are not a controlled comparison; compare only the paired original/prefix measurements.","No slow samples were removed. These are three-sample local experiments."]
+}

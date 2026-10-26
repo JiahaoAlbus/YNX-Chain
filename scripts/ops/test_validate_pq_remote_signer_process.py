@@ -160,6 +160,7 @@ class RemoteProcessControls(unittest.TestCase):
         self.assertEqual(list(self.case.iterdir()), [])
 
     def test_exact_source_and_dual_binary_pins_with_no_guard_cap_mutation(self):
+        self.assertEqual(caller.GUARD_SHA256, "24cac2991cab483c062486c8027e5a1f8a52b6e0e00f66e4ca9cb0a8064fdb41")
         pins = caller.validate_inputs(self.args)
         self.assertEqual(set(pins), caller.BUILD_FILES)
         self.assertEqual(pins["pq_remote_process_test.go"]["sha256"], caller.SOURCE_SHA256)
@@ -172,6 +173,11 @@ class RemoteProcessControls(unittest.TestCase):
         self.assertEqual(sha(self.args.guard.read_bytes()), caller.GUARD_SHA256)
         with patch.object(caller, "GUARD_SHA256", "0"*64), self.assertRaisesRegex(RuntimeError, "SHA mismatch"):
             caller.load_guard(self.args.guard)
+        changed = self.root/"changed-guard.py"
+        self.write(changed, self.args.guard.read_bytes()+b"\n# changed public source DATA\n")
+        with patch.object(builtins, "compile", side_effect=AssertionError("changed source reached compilation")), \
+                self.assertRaisesRegex(RuntimeError, "SHA mismatch"):
+            caller.load_guard(changed)
 
     def test_selected_checkpoint_layout_is_explicit_and_never_inherited(self):
         pins = caller.validate_inputs(self.args)

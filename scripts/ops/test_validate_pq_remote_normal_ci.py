@@ -810,15 +810,15 @@ def assert_runtime_gateway_identity_workflow_contract(raw):
         raise AssertionError("one original runtime build required")
     step = found[0]
     required = (
-        'YNX_RUNTIME_GATEWAY_COMMIT=${GITHUB_SHA:0:12}',
+        'YNX_RUNTIME_GATEWAY_COMMIT=$GITHUB_SHA',
         'YNX_RUNTIME_BUILD_OBSERVATION="$RUNNER_TEMP/ynx-pq-runtime-gateway-build-info.json"',
         'export YNX_RUNTIME_BUILD_TIME YNX_RUNTIME_BUILD_OBSERVATION',
-        'go build -p 1 -trimpath -buildvcs=true -ldflags "-X main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildRelease=ynx-bft-gateway-$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildTime=$YNX_RUNTIME_BUILD_TIME" -o "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd',
+        'go build -p 1 -trimpath -buildvcs=true -ldflags "-X main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT -X main.buildRelease=ynx-bft-gateway-${YNX_RUNTIME_GATEWAY_COMMIT:0:12} -X main.buildTime=$YNX_RUNTIME_BUILD_TIME" -o "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" ./cmd/ynx-bft-gatewayd',
         '(set -C; timeout 5s "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" --build-info --comet-rpc not-a-url --http invalid-address --migration-height 1 >"$YNX_RUNTIME_BUILD_OBSERVATION")',
         "observation = Path(os.environ['YNX_RUNTIME_BUILD_OBSERVATION'])",
         'if not 0 < observation.stat().st_size <= 1024:',
         "gateway_build = json.loads(observation.read_text(encoding='utf8'))",
-        "expected_build = dict(commit=os.environ['GITHUB_SHA'][:12],",
+        "expected_build = dict(commit=os.environ['GITHUB_SHA'],",
         "release='ynx-bft-gateway-' + os.environ['GITHUB_SHA'][:12],",
         "buildTime=os.environ['YNX_RUNTIME_BUILD_TIME'])",
         'if gateway_build != expected_build:',
@@ -1035,7 +1035,7 @@ def assert_fresh_business_supply_workflow_contract(raw):
         need(token in receive)
     for token in ("70e7e450997a0ae77dbad5a8be3682f482c6ddd8", "4866cc3924c060eb6a29939915d39b1c5c625607",
                   "19b9fafcfbb3f434b9ff745fb785afb1d0741247", "da3060e150e2bd0f5695d67a76f3b30fafd1c696",
-                  "5b5cc231800157a2d4ac0ce07af43010c61ac18f9398e54711a18d6d9deb530f",
+                  "c4aceb55f38a8a3f93bc355d0293d9123a4fce2559a6cc87b8e7b2f6dd3667d4",
                   "YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1", "performanceClientTree=client_tree",
                   "'internal/consensus/pq_network_fresh_business_test.go'", "sourceRoot=str(source_root)",
                   "os.environ['YNX_SIGNED_BUSINESS_SOURCE_SHA']", "previous_source['protocolCommit'] != commit",
@@ -1131,7 +1131,118 @@ def assert_fresh_business_execution_workflow_contract(raw):
         + ['${{ runner.temp }}/ynx-pq-fresh-intake-${{ github.run_id }}-${{ github.run_attempt }}/relocation.json'])
 
 
+def assert_browser_verification_workflow_contract(raw):
+    """Public source/CI wiring only; real browser evidence is emitted by its job."""
+    job, steps = workflow_steps(raw, "browser-verification")
+
+    def need(condition):
+        if not condition:
+            raise AssertionError("browser verification source contract changed; no browser execution claim")
+
+    condition = ("github.event_name == 'push' && (github.ref == 'refs/heads/main' || "
+                 "github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || "
+                 "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
+    need("    if: " + condition + "\n" in job)
+    need("    runs-on: ubuntu-24.04\n    timeout-minutes: 8\n" in job)
+    need("      - 'packages/ynx-batch-v01/**'\n" in raw.split("  pull_request:", 1)[0])
+    need("        working-directory: packages/ynx-batch-v01\n        shell: bash\n" in job)
+    need("      NODE_OPTIONS: --max-old-space-size=256\n" in job)
+    need("${{ runner." not in job.split("    steps:\n", 1)[0])
+    need(len(steps) == 9)
+    need("actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1" in steps[0]
+         and "          ref: ${{ github.sha }}\n          persist-credentials: false\n" in steps[0])
+    need("actions/setup-node@820762786026740c76f36085b0efc47a31fe5020" in steps[1]
+         and "          node-version: '26.7.0'\n          check-latest: false\n" in steps[1])
+    names = ["Bind the exact standalone public verification source snapshot",
+             "Install only the original locked dual-PQ dependencies",
+             "Record actual explicit portable library versions without native fallback",
+             "Run the original codec and explicit portable Node public verification",
+             "Verify the same public vectors through real headless browser modules",
+             "Pack only the tested candidate and bind the actual browser readback",
+             "Upload only the tested browser verification candidate and exact DATA"]
+    need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps[2:], names)))
+    source, dependencies, runtime, node, browser, seal, upload = steps[2:]
+    for text in ('export YNX_BROWSER_DELIVERY="$RUNNER_TEMP/ynx-batch-browser-delivery"',
+                 'printf \'YNX_BROWSER_DELIVERY=%s\\n\' "$YNX_BROWSER_DELIVERY" >> "$GITHUB_ENV"',
+                 "test \"$(git rev-parse HEAD)\" = \"$GITHUB_SHA\"", "git diff --exit-code -- .",
+                 "'2586af9ac40c824bbf4fc0ac7f8b98a07a5e86f2'", "'8f404e68dcd470f206b92bb75bdfad4d70998f78'",
+                 "'2875034ca5afe3ef30b5e331ac37304991bbab87c4e4091dee97f73456a3325d'",
+                 "assert.equal(process.versions.node, '26.7.0')", "assert.deepEqual(actual, [...source.files.map(record => record.path), 'SOURCE.json'].sort())",
+                 "!entry.isSymbolicLink()", "stat.nlink === 1", "assert.equal(sha(raw), record.sha256)",
+                 "record.gitBlob", "pkg.exports['./browser'], './src/browser.mjs'", "pkg.exports['.'], './src/index.mjs'"):
+        need(text in source)
+    need("run: timeout 90s npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org\n" in dependencies)
+    need("const portable = providerInfo({provider: 'portable'})" in runtime and "providerInfo()" not in runtime
+         and "node_modules/@noble/" in runtime and "assert.equal(portable.version, '0.6.1')" in runtime
+         and "assert.equal(portable.hashesVersion, '2.2.0')" in runtime
+         and "browserDependencyVersionVerified: false" in runtime)
+    need("        id: nodetests\n        timeout-minutes: 3\n        run: timeout 120s npm run test:public\n" in node)
+    need("        id: browser\n        timeout-minutes: 3\n" in browser
+         and "          BROWSER_BINARY: /usr/bin/google-chrome\n" in browser
+         and "          YNX_BROWSER_VERIFICATION_RECEIPT_OUT: ${{ runner.temp }}/ynx-batch-browser-delivery/BROWSER-VERIFICATION.json\n" in browser
+         and 'test -x "$BROWSER_BINARY"' in browser
+         and "          timeout 150s npm run test:browser\n" in browser)
+    for text in ('npm pack --ignore-scripts --json --pack-destination "$YNX_BROWSER_DELIVERY"',
+                 "assert.equal(receipt.browser.result.ok, true)", "assert.equal(receipt.browser.result.noRuntimeShims, true)",
+                 "assert.equal(receipt.browser.result.randomnessCalls, 0)", "assert.equal(receipt.browser.result.provider.dependencyVersionVerified, false)",
+                 "assert.deepEqual(receipt.browser.result.vectors, receipt.uint8)",
+                 "assert.deepEqual(receipt.browser.result.officialSigVer, receipt.officialSigVer)",
+                 "assert.equal(receipt.officialSigVer.total, 29)", "assert.equal(receipt.officialSigVer.positive, 5)",
+                 "assert.equal(receipt.officialSigVer.negative, 24)", "assert.equal(receipt.nativeTestsExecuted, false)",
+                 "'ynx-batch-v01-candidate-0.1.0-candidate.3.tgz'", "assert.deepEqual(entries.sort(), expected.map(record => 'package/' + record.path).sort())",
+                 "tar(['-xOzf', archive, 'package/' + record.path]", "assert.equal(sha(raw), record.sha256)",
+                 "fs.constants.COPYFILE_EXCL", "standaloneSourceSHA256: sha(snapshotRaw)",
+                 "portableNodeVerificationExecuted: true", "nativeNodeQualified: false", "nativeTestsExecuted: false",
+                 "qualifiedExport: './browser'", "packageRootNativeQualification: 'not-qualified-by-this-artifact'",
+                 "nativeRuntimeRequirementUnavailable: receipt.nativeRuntimeRequirementUnavailable",
+                 "browserVerificationExecuted: true", "privateKeyMaterialPublished: false",
+                 "installed: false, authorityGranted: false", "assert.deepEqual(fs.readdirSync(out).sort(), [...names, 'SOURCE.json'].sort())"):
+        need(text in seal)
+    need("        if: ${{ success() && steps.nodetests.outcome == 'success' && steps.browser.outcome == 'success' && steps.seal.outcome == 'success' }}\n" in upload)
+    need("actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02" in upload
+         and "          name: ynx-batch-browser-candidate-${{ github.sha }}\n" in upload
+         and "          if-no-files-found: error\n" in upload)
+    paths = re.findall(r"(?m)^            (.+)$", upload)
+    need(paths == ['${{ runner.temp }}/ynx-batch-browser-delivery/' + name for name in
+        ('ynx-batch-v01-candidate-0.1.0-candidate.3.tgz', 'SOURCE.json', 'STANDALONE-SOURCE.json',
+         'PACKAGE-FILES.json', 'BROWSER-VERIFICATION.json')])
+    need("continue-on-error:" not in job and "if: false" not in job
+         and "workflow_dispatch" not in job and "npm publish" not in job and "    needs:" not in job)
+
+
+def assert_native_compatibility_classification_contract(raw):
+    """Unsupported native runtime is BLOCKED; it is never a portable test PASS."""
+    job, steps = workflow_steps(raw, "native-compatibility")
+
+    def need(condition):
+        if not condition:
+            raise AssertionError("native runtime classification changed; no native qualification claim")
+
+    need("github.event_name == 'push'" in job and "workflow_dispatch" not in job)
+    need("    runs-on: ubuntu-24.04\n    timeout-minutes: 5\n" in job)
+    need("        working-directory: packages/ynx-batch-v01\n" in job)
+    need(len(steps) == 6)
+    need("          ref: ${{ github.sha }}\n          persist-credentials: false\n" in steps[0])
+    need("          node-version: '26.7.0'\n          check-latest: false\n" in steps[1])
+    preflight, dependencies, native, result = steps[2:]
+    for text in ("import {RUNTIME} from './src/native.mjs'", "actual.node === RUNTIME.node && actual.openssl === RUNTIME.openssl",
+                 "fs.appendFileSync(process.env.GITHUB_OUTPUT, 'matched=' + matched + '\\n')",
+                 "status: matched ? 'SUPPORTED_UNVERIFIED' : 'BLOCKED'", "nativeTestsExecuted: false, nativeQualified: false"):
+        need(text in preflight)
+    need("        if: steps.runtime.outputs.matched == 'true'\n" in dependencies
+         and "run: timeout 90s npm ci --ignore-scripts --no-audit --no-fund --registry=https://registry.npmjs.org\n" in dependencies)
+    need("        id: native\n        if: steps.runtime.outputs.matched == 'true'\n        timeout-minutes: 3\n        run: timeout 120s npm test\n" in native)
+    for text in ("        if: ${{ !cancelled() }}\n", "YNX_NATIVE_TEST_OUTCOME: ${{ steps.native.outcome }}",
+                 "const executed = outcome === 'success' || outcome === 'failure'",
+                 "const qualified = matched && outcome === 'success'", "status: qualified ? 'QUALIFIED' : matched ? 'FAILED' : 'BLOCKED'",
+                 "nativeTestsExecuted: executed, nativeQualified: qualified", "publicBrowserQualified: false, authorityGranted: false"):
+        need(text in result)
+    need("continue-on-error:" not in job and "provider: 'portable'" not in job and "if: false" not in job)
+
+
 def assert_workflow_contract(raw):
+    assert_native_compatibility_classification_contract(raw)
+    assert_browser_verification_workflow_contract(raw)
     assert_native_cabi_workflow_contract(raw)
     assert_runtime_gateway_identity_workflow_contract(raw)
     assert_macos_source_register_workflow_contract(raw)
@@ -1514,6 +1625,81 @@ def assert_workflow_contract(raw):
 
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
+    def test_browser_public_snapshot_and_actual_headless_job_are_closed_and_required_for_its_artifact(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_browser_verification_workflow_contract(raw)
+        job, steps = workflow_steps(raw, "browser-verification")
+        source, dependencies, runtime, node, browser, seal, upload = steps[2:]
+
+        def change(before, after, step=None):
+            target = raw if step is None else step
+            self.assertIn(before, target)
+            altered = target.replace(before, after, 1)
+            return altered if step is None else raw.replace(step, altered, 1)
+
+        changes = [
+            change("      - 'packages/ynx-batch-v01/**'\n", ""),
+            raw.replace("  browser-verification:\n" + job, "", 1),
+            raw.replace(job, job.replace("github.event_name == 'push'", "github.event_name == 'workflow_dispatch'", 1), 1),
+            change("timeout-minutes: 8", "timeout-minutes: 18", job),
+            change("      NODE_OPTIONS: --max-old-space-size=256\n",
+                   "      NODE_OPTIONS: --max-old-space-size=256\n      YNX_BROWSER_DELIVERY: ${{ runner.temp }}/ynx-batch-browser-delivery\n", job),
+            change('export YNX_BROWSER_DELIVERY="$RUNNER_TEMP/ynx-batch-browser-delivery"',
+                   ': # output directory not initialized', source),
+            change('printf \'YNX_BROWSER_DELIVERY=%s\\n\' "$YNX_BROWSER_DELIVERY" >> "$GITHUB_ENV"',
+                   ': # output directory not propagated', source),
+            change("node-version: '26.7.0'", "node-version: '24.19.0'", steps[1]),
+            change("persist-credentials: false", "persist-credentials: true", steps[0]),
+            change("2586af9ac40c824bbf4fc0ac7f8b98a07a5e86f2", "0" * 40, source),
+            change("2875034ca5afe3ef30b5e331ac37304991bbab87c4e4091dee97f73456a3325d", "0" * 64, source),
+            change("assert.equal(sha(raw), record.sha256)", "void record.sha256", source),
+            change("!entry.isSymbolicLink()", "true", source),
+            change("--ignore-scripts", "--include=dev", dependencies),
+            change("const portable = providerInfo({provider: 'portable'})", "const portable = providerInfo()", runtime),
+            change("timeout 120s npm run test:public", "true # original codec/public tests skipped", node),
+            change("/usr/bin/google-chrome", "/bin/echo", browser),
+            change("timeout 150s npm run test:browser", "node --input-type=module -e 'console.log(true)'", browser),
+            change("assert.equal(receipt.browser.result.ok, true)", "void receipt.browser.result", seal),
+            change("assert.equal(receipt.browser.result.provider.dependencyVersionVerified, false)", "void receipt.browser.result.provider", seal),
+            change("assert.deepEqual(entries.sort(), expected.map(record => 'package/' + record.path).sort())", "void entries", seal),
+            change("privateKeyMaterialPublished: false", "privateKeyMaterialPublished: true", seal),
+            change("nativeNodeQualified: false", "nativeNodeQualified: true", seal),
+            change("qualifiedExport: './browser'", "qualifiedExport: '.'", seal),
+            change("assert.equal(receipt.officialSigVer.total, 29)", "void receipt.officialSigVer", seal),
+            change("installed: false, authorityGranted: false", "installed: true, authorityGranted: true", seal),
+            change("steps.browser.outcome == 'success'", "true", upload),
+            change("if-no-files-found: error", "if-no-files-found: warn", upload),
+            change("            ${{ runner.temp }}/ynx-batch-browser-delivery/BROWSER-VERIFICATION.json\n",
+                   "            ${{ runner.temp }}/ynx-batch-browser-delivery\n", upload),
+            change("          if-no-files-found: error\n", "            ${{ runner.temp }}/synthetic/private-key.der\n          if-no-files-found: error\n", upload),
+            raw.replace(source, "", 1).replace(browser, browser + source, 1),
+        ]
+        for index, changed in enumerate(changes):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_browser_verification_workflow_contract(changed)
+
+    def test_unavailable_native_runtime_is_explicitly_blocked_without_a_fake_pass_or_fallback(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_compatibility_classification_contract(raw)
+        job, steps = workflow_steps(raw, "native-compatibility")
+        preflight, dependencies, native, result = steps[2:]
+        mutations = [
+            raw.replace("  native-compatibility:\n" + job, "", 1),
+            raw.replace(preflight, preflight.replace("actual.node === RUNTIME.node && actual.openssl === RUNTIME.openssl", "actual.node === RUNTIME.node", 1), 1),
+            raw.replace(preflight, preflight.replace("'BLOCKED'", "'QUALIFIED'", 1), 1),
+            raw.replace(dependencies, dependencies.replace("steps.runtime.outputs.matched == 'true'", "true", 1), 1),
+            raw.replace(native, native.replace("steps.runtime.outputs.matched == 'true'", "true", 1), 1),
+            raw.replace(native, native.replace("timeout 120s npm test", "npm run test:public", 1), 1),
+            raw.replace(native, native.replace("        run:", "        continue-on-error: true\n        run:", 1), 1),
+            raw.replace(result, result.replace("const qualified = matched && outcome === 'success'", "const qualified = true", 1), 1),
+            raw.replace(result, result.replace("nativeTestsExecuted: executed", "nativeTestsExecuted: true", 1), 1),
+        ]
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_native_compatibility_classification_contract(changed)
+
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
@@ -1572,7 +1758,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(receive, receive.replace("hashlib.sha256(archive).hexdigest() != digest", "False", 1), 1),
             raw.replace(seal, seal.replace("previous_source['protocolCommit'] != commit", "False", 1), 1),
             raw.replace(seal, seal.replace("4866cc3924c060eb6a29939915d39b1c5c625607", "19b9fafcfbb3f434b9ff745fb785afb1d0741247"), 1),
-            raw.replace(seal, seal.replace("5b5cc231800157a2d4ac0ce07af43010c61ac18f9398e54711a18d6d9deb530f", "0" * 64), 1),
+            raw.replace(seal, seal.replace("c4aceb55f38a8a3f93bc355d0293d9123a4fce2559a6cc87b8e7b2f6dd3667d4", "0" * 64), 1),
             raw.replace(seal, seal.replace("binariesExecuted=False", "binariesExecuted=True", 1), 1),
             raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          go build ./cmd/ynx-consensus-perf-client\n          python3 -B - <<'PY'\n", 1), 1),
             raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          YNX_PQ_NETWORK_FRESH_BUSINESS_E2E=authorized-fresh-four-node-business-window\n          python3 -B - <<'PY'\n", 1), 1),
@@ -1660,9 +1846,12 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         build = next(step for step in steps if step.startswith(
             "      - name: Build public Linux runtime candidate without starting services\n"))
         mutations = (
-            ('YNX_RUNTIME_GATEWAY_COMMIT=${GITHUB_SHA:0:12}', 'YNX_RUNTIME_GATEWAY_COMMIT=$GITHUB_SHA'),
-            ('main.buildRelease=ynx-bft-gateway-$YNX_RUNTIME_GATEWAY_COMMIT', 'main.buildRelease=pq-source-candidate-$GITHUB_SHA'),
-            ('main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT', 'main.buildCommit=$GITHUB_SHA'),
+            ('YNX_RUNTIME_GATEWAY_COMMIT=$GITHUB_SHA', 'YNX_RUNTIME_GATEWAY_COMMIT=${GITHUB_SHA:0:12}'),
+            ('main.buildRelease=ynx-bft-gateway-${YNX_RUNTIME_GATEWAY_COMMIT:0:12}', 'main.buildRelease=pq-source-candidate-$GITHUB_SHA'),
+            ('main.buildRelease=ynx-bft-gateway-${YNX_RUNTIME_GATEWAY_COMMIT:0:12}', 'main.buildRelease=ynx-bft-gateway-$YNX_RUNTIME_GATEWAY_COMMIT'),
+            ('main.buildCommit=$YNX_RUNTIME_GATEWAY_COMMIT', 'main.buildCommit=${GITHUB_SHA:0:12}'),
+            ("expected_build = dict(commit=os.environ['GITHUB_SHA'],", "expected_build = dict(commit=os.environ['GITHUB_SHA'][:12],"),
+            ("release='ynx-bft-gateway-' + os.environ['GITHUB_SHA'][:12],", "release='ynx-bft-gateway-' + os.environ['GITHUB_SHA'],"),
             ('timeout 5s "$YNX_RUNTIME_CANDIDATE/ynx-bft-gatewayd" --build-info', 'echo synthetic-build-info'),
             ('--comet-rpc not-a-url --http invalid-address --migration-height 1', '--comet-rpc http://127.0.0.1:27757'),
             ("gateway_build = json.loads(observation.read_text(encoding='utf8'))", 'gateway_build = expected_build'),

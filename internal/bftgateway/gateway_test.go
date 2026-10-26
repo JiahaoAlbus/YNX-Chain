@@ -530,9 +530,12 @@ func TestGatewayBroadcastsAndResolvesEthereumLegacyTransferByEthereumHash(t *tes
 
 func TestPublicCutoverReadyRequiresAuthorizationAndReleaseIdentity(t *testing.T) {
 	validBuild := buildinfo.Info{
-		Commit:    "abcdef123456",
-		Release:   "ynx-bft-gateway-abcdef123456",
+		Commit:    "0123456789abcdef0123456789abcdef01234567",
+		Release:   "ynx-bft-gateway-0123456789ab",
 		BuildTime: "2026-07-12T04:00:00Z",
+	}
+	if len(validBuild.Commit) != 40 || validBuild.Commit == strings.Repeat("0", 40) {
+		t.Fatalf("valid source fixture must be a nonzero 40-byte commit, got %q (%d bytes)", validBuild.Commit, len(validBuild.Commit))
 	}
 	tests := []struct {
 		name       string
@@ -543,10 +546,12 @@ func TestPublicCutoverReadyRequiresAuthorizationAndReleaseIdentity(t *testing.T)
 		{name: "authorized release", authorized: true, build: validBuild, want: true},
 		{name: "authorization defaults closed", build: validBuild},
 		{name: "unknown build", authorized: true, build: buildinfo.Info{}},
+		{name: "zero source object", authorized: true, build: buildinfo.Info{Commit: strings.Repeat("0", 40), Release: "ynx-bft-gateway-" + strings.Repeat("0", 12), BuildTime: validBuild.BuildTime}},
 		{name: "short commit", authorized: true, build: buildinfo.Info{Commit: "abcdef", Release: "ynx-bft-gateway-abcdef", BuildTime: validBuild.BuildTime}},
-		{name: "uppercase commit", authorized: true, build: buildinfo.Info{Commit: "ABCDEF123456", Release: "ynx-bft-gateway-ABCDEF123456", BuildTime: validBuild.BuildTime}},
-		{name: "original runtime candidate label", authorized: true, build: buildinfo.Info{Commit: "abcdef1234567890abcdef1234567890abcdef1234", Release: "pq-source-candidate-abcdef1234567890abcdef1234567890abcdef1234", BuildTime: validBuild.BuildTime}},
-		{name: "full source commit is not release identity", authorized: true, build: buildinfo.Info{Commit: "abcdef1234567890abcdef1234567890abcdef1234", Release: "ynx-bft-gateway-abcdef1234567890abcdef1234567890abcdef1234", BuildTime: validBuild.BuildTime}},
+		{name: "legacy abbreviated source", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit[:12], Release: validBuild.Release, BuildTime: validBuild.BuildTime}},
+		{name: "uppercase commit", authorized: true, build: buildinfo.Info{Commit: strings.ToUpper(validBuild.Commit), Release: "ynx-bft-gateway-" + strings.ToUpper(validBuild.Commit[:12]), BuildTime: validBuild.BuildTime}},
+		{name: "original runtime candidate label", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: "pq-source-candidate-" + validBuild.Commit, BuildTime: validBuild.BuildTime}},
+		{name: "full source release is not the stable v1 alias", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: "ynx-bft-gateway-" + validBuild.Commit, BuildTime: validBuild.BuildTime}},
 		{name: "release mismatch", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: "ynx-bft-gateway-other", BuildTime: validBuild.BuildTime}},
 		{name: "invalid build time", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: validBuild.Release, BuildTime: "unknown"}},
 		{name: "non UTC build time", authorized: true, build: buildinfo.Info{Commit: validBuild.Commit, Release: validBuild.Release, BuildTime: "2026-07-12T12:00:00+08:00"}},

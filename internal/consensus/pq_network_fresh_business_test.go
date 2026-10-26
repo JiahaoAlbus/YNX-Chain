@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -283,6 +284,16 @@ func pqFreshObservedNode(config *cfg.Config, app *Application, legacy cmttypes.P
 	return node.NewNodeWithConsensusAuthority(config, transition, nodeKey, proxy.NewLocalClientCreator(trace), genesis, cfg.DefaultDBProvider, node.DefaultMetricsProvider(config.Instrumentation), logger, app)
 }
 
+// Canonicalize only the public Genesis bindings. The caller's sender/account
+// order and its owner-to-key/funding assignments remain unchanged.
+func pqFreshEncodeInitialGenesis(raw []byte, migration chain.ConsensusMigrationState, configuration PQInitialAccountConfiguration) ([]byte, error) {
+	configuration.Accounts = append([]PQInitialAccountBinding(nil), configuration.Accounts...)
+	sort.Slice(configuration.Accounts, func(i, j int) bool {
+		return configuration.Accounts[i].Owner < configuration.Accounts[j].Owner
+	})
+	return EncodePQInitialAccountGenesis(raw, migration, configuration)
+}
+
 func pqFreshNew(n *pqNetworkE2E, b *pqNetworkBusiness) []pqFreshAccount {
 	t := n.t
 	accounts := []pqFreshAccount{{owner: b.initial, key: b.initialKey, pair: b.initialPair}}
@@ -353,9 +364,12 @@ func pqFreshNew(n *pqNetworkE2E, b *pqNetworkBusiness) []pqFreshAccount {
 		}
 		configuration.Accounts = append(configuration.Accounts, binding)
 	}
-	n.rawGenesis, err = EncodePQInitialAccountGenesis(raw, n.migration, configuration)
-	if err != nil || cmtjson.Unmarshal(n.rawGenesis, n.doc) != nil {
-		t.Fatal("actual fresh initial-account genesis rejected")
+	n.rawGenesis, err = pqFreshEncodeInitialGenesis(raw, n.migration, configuration)
+	if err != nil {
+		t.Fatal("actual fresh initial-account genesis encoding rejected:", err)
+	}
+	if err := cmtjson.Unmarshal(n.rawGenesis, n.doc); err != nil {
+		t.Fatal("actual fresh initial-account genesis decoding rejected:", err)
 	}
 	pin := pqBusinessHash(n.rawGenesis)
 	n.bootstrap, err = NewConsensusBootstrap(n.rawGenesis, ConsensusBootstrapPins{CometGenesisSHA256: pin, OriginalGenesisHash: n.migration.OriginalGenesisHash, MigrationStateHash: n.migration.StateHash}, n.migration)
@@ -1087,6 +1101,63 @@ func TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming(t *testing.T) {
 	}
 	pqBusinessWrite(t, filepath.Join(root, "fresh-business.public.json"), public)
 	t.Logf("PQ_NETWORK_FRESH_BUSINESS_SUMMARY %s", public)
+}
+
+func TestPQNetworkFreshInitialGenesisCanonicalOwnerOrder(t *testing.T) {
+	// Shape-valid public DATA only: this tests the existing Genesis grammar,
+	// not key generation, signature validity, funding or account authority.
+	migration := chain.ConsensusMigrationState{
+		OriginalGenesisHash: strings.Repeat("a", 64),
+		AccountPolicy: &ynxauth.State{Version: ynxauth.PolicyVersion,
+			NetworkID: bytes.Repeat([]byte{0xaa}, 32), EnableAt: 2},
+	}
+	configuration := PQInitialAccountConfiguration{Version: PQInitialAccountsVersion,
+		NetworkID: migration.OriginalGenesisHash, EnableAt: "2", BirthFee: "0"}
+	assignments := make(map[string]PQInitialAccountBinding, pqFreshAccounts)
+	for i := pqFreshAccounts; i > 0; i-- {
+		binding := PQInitialAccountBinding{Owner: fmt.Sprintf("0x%040x", i),
+			PKA: strings.Repeat(fmt.Sprintf("%02x", i), ynxbatch.PublicKeyASize),
+			PKB: strings.Repeat(fmt.Sprintf("%02x", i), ynxbatch.PublicKeyBSize)}
+		configuration.Accounts = append(configuration.Accounts, binding)
+		assignments[binding.Owner] = binding
+	}
+	const orderError = "initial account bindings must have unique sorted canonical owners"
+	plain := []byte(`{}`)
+	if _, err := EncodePQInitialAccountGenesis(plain, migration, configuration); err == nil || !strings.Contains(err.Error(), orderError) {
+		t.Fatal("original unsorted seventeen-account input did not reproduce the strict production rejection", err)
+	}
+	original, err := json.Marshal(configuration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := pqFreshEncodeInitialGenesis(plain, migration, configuration)
+	if err != nil {
+		t.Fatal("actual fresh fixture encoder rejected canonicalized bindings:", err)
+	}
+	decoded, err := decodePQInitialAccountConfiguration(raw, migration)
+	if err != nil || decoded == nil || len(decoded.Accounts) != pqFreshAccounts {
+		t.Fatal("strict production reader lost canonicalized public bindings", err)
+	}
+	for i, binding := range decoded.Accounts {
+		if binding.Owner != fmt.Sprintf("0x%040x", i+1) || binding != assignments[binding.Owner] {
+			t.Fatal("canonicalization changed an owner-to-pair/funding assignment", i)
+		}
+	}
+	after, err := json.Marshal(configuration)
+	if err != nil || !bytes.Equal(after, original) || !bytes.Equal(plain, []byte(`{}`)) {
+		t.Fatal("fixture encoder reordered the caller's account input or changed original Genesis", err)
+	}
+	duplicate := configuration
+	duplicate.Accounts = append(append([]PQInitialAccountBinding(nil), configuration.Accounts...), configuration.Accounts[0])
+	if _, err := pqFreshEncodeInitialGenesis(plain, migration, duplicate); err == nil || !strings.Contains(err.Error(), orderError) {
+		t.Fatal("sorting silently removed or admitted a duplicate owner", err)
+	}
+	invalidPair := configuration
+	invalidPair.Accounts = append([]PQInitialAccountBinding(nil), configuration.Accounts...)
+	invalidPair.Accounts[0].PKB = "01"
+	if _, err := pqFreshEncodeInitialGenesis(plain, migration, invalidPair); err == nil {
+		t.Fatal("sorting bypassed full key-pair validation")
+	}
 }
 
 // These DATA regressions run in normal CI without starting a node, generating a

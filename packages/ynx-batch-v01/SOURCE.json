@@ -1,0 +1,236 @@
+{
+  "version": "YNX-BATCH-STANDALONE-SOURCE-SNAPSHOT/v1",
+  "packageName": "@ynx/batch-v01-candidate",
+  "packageVersion": "0.1.0-candidate.3",
+  "standaloneCommit": "2586af9ac40c824bbf4fc0ac7f8b98a07a5e86f2",
+  "standaloneTree": "8f404e68dcd470f206b92bb75bdfad4d70998f78",
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 54,
+      "sha256": "f0bc74b9cc814bfc5db8d306218d4d292cce58a9e400e62b541c39bbf02672bf",
+      "gitBlob": "d2babd9961bfc2aec4ffa98d0ac10bce3ba489c3"
+    },
+    {
+      "path": "PROVENANCE.json",
+      "bytes": 1718,
+      "sha256": "85de95fe6b5019624cc8155f687361795d69906ddd0f61a74ddb41df15be2a7f",
+      "gitBlob": "faf65167a781f95be7ecb37c455d3bab2430fe63"
+    },
+    {
+      "path": "README.md",
+      "bytes": 14372,
+      "sha256": "b4a879b46c002e78c5076b67756cde64cd50430783ffba59a18eb869c8dce0f8",
+      "gitBlob": "1cfd44851700a6728e69b0b5e325b49422e77088"
+    },
+    {
+      "path": "docs/KEY_MATERIAL_ABI.md",
+      "bytes": 8611,
+      "sha256": "15a48046aef36045a62384404dfdd76eb07e3979ff26f48720f750406a39510c",
+      "gitBlob": "50a8534bb590c4b4829ddb6ff8d6bb54e3c7b1c4"
+    },
+    {
+      "path": "evidence/dependency-integrity.json",
+      "bytes": 1188,
+      "sha256": "1fb5c68951d7836e62c457a37a995d17a80381e5c7033f452f3edc08883f6a60",
+      "gitBlob": "ffb1234c88a354a8195667e580d8ad84d58b3729"
+    },
+    {
+      "path": "package-lock.json",
+      "bytes": 2318,
+      "sha256": "d1af2161676823ad69bab868ee0e0e710e6dc385a78956cee7277f3df6ac5563",
+      "gitBlob": "70b7d1db89c6ff07c39c2ee243807734366ed2ea"
+    },
+    {
+      "path": "package.json",
+      "bytes": 979,
+      "sha256": "31d57b663d038659c9c276cd4f25913b27bfb2304d6800a86e0f7cf90b38efdf",
+      "gitBlob": "b689471826bd0f5b453d697131c792431a4d1b11"
+    },
+    {
+      "path": "reference/README.zh.md",
+      "bytes": 15527,
+      "sha256": "63bbf21b823c0d8ff2afd99270f6df6a386329ef2a13b980ee6886c90365aa05",
+      "gitBlob": "d8acf669792e2aaca3a945210009fa8a4ba1592c"
+    },
+    {
+      "path": "reference/SHA256SUMS.json",
+      "bytes": 582,
+      "sha256": "02733e87fcec4ff51419151a1cf882adee077bb2340a267fde2988d2d9c40423",
+      "gitBlob": "c5283f655e1c8d97265929043bf3e640f41cf8a6"
+    },
+    {
+      "path": "reference/codec-results.json",
+      "bytes": 4857,
+      "sha256": "5e2bcc6f8888e952dcb6944feaec827fe16dac662ed4c9f68dfb4eecff16879f",
+      "gitBlob": "490be4c5421bbb140ce2c967436854d9d9113e82"
+    },
+    {
+      "path": "reference/observed-results.json",
+      "bytes": 1825,
+      "sha256": "20856ed3057d28d43c48d9a557fbea685d057e25f7f4c7e2598b651a5d34a637",
+      "gitBlob": "097316139426e9068d430d00c29504b5ab2737d5"
+    },
+    {
+      "path": "reference/ynx-batch-v01-codec.cjs",
+      "bytes": 23115,
+      "sha256": "6edf2757287bd451ac48c6f68e106672fd75ac38e9df1dab4f80a776d2465d44",
+      "gitBlob": "f6570f72175199775ac7d5c1dc074df68c1c7e3d"
+    },
+    {
+      "path": "reference/ynx-batch-v01-prefix-prototype.cjs",
+      "bytes": 18124,
+      "sha256": "d51f5450a69a8b67049655a996bf1a008e70c5fd1f393011d42f5f99d90b8290",
+      "gitBlob": "4183522d949004863dfa172fb455f52bddea5c9a"
+    },
+    {
+      "path": "reference/ynx-batch-v01-prototype.cjs",
+      "bytes": 15955,
+      "sha256": "32af64e78e8c3da8f18d9a68b6cca888d1d57267f172a4da470050733e6d124a",
+      "gitBlob": "7e5957a679493df879bdb4bedfa11084f8a964cd"
+    },
+    {
+      "path": "scripts/verify-browser.mjs",
+      "bytes": 16554,
+      "sha256": "8f7bafede3c9ce39979aebc71a80f8c50dce43e8d53f4a819965654a1808d7ef",
+      "gitBlob": "b50510054eb2778975f27a8915ea33a03f1835dc"
+    },
+    {
+      "path": "src/browser-codec.mjs",
+      "bytes": 585,
+      "sha256": "0f328abb052c5b3a264feda8fa6ade40d4c4ef6fdf5c1a085c34072702c81283",
+      "gitBlob": "55231bf30894e6bfa3071f8881792d95362b1a88"
+    },
+    {
+      "path": "src/browser.mjs",
+      "bytes": 2071,
+      "sha256": "bae08c18f10834c50abe66a55c5c253161717b1280b7a1107c65faf636ea988a",
+      "gitBlob": "7339adc7928dc5c32b113a1410e672d17a3b4f63"
+    },
+    {
+      "path": "src/codec-core.mjs",
+      "bytes": 8195,
+      "sha256": "1ee1fec623821452f41fd3b60a13c0f3698b5d42865f3f0cbe0fabd5bc293cc5",
+      "gitBlob": "ad77157934c3656989b4a73edd61cb82935921c7"
+    },
+    {
+      "path": "src/codec.mjs",
+      "bytes": 720,
+      "sha256": "950cf17cee0de419722d115c7429074300c5691297d7d2478a547a8c65ee6c71",
+      "gitBlob": "156a041df17fd6bbf27312d4cfccab90be03cc22"
+    },
+    {
+      "path": "src/index.mjs",
+      "bytes": 4258,
+      "sha256": "2306b53dbce24c1fd9485c9d35ebf63e48442cb8061a43af49393b5b39aedd36",
+      "gitBlob": "ae8fa2a46fd799933bb9aebb5058f3c6bb162c6a"
+    },
+    {
+      "path": "src/native.mjs",
+      "bytes": 6214,
+      "sha256": "8c2d22a1d25bad1d090a12a3779074b881f8b549cede8a58beb384af6252c4af",
+      "gitBlob": "99e1599cf22518411c3c18caf23cb406f1d68028"
+    },
+    {
+      "path": "src/portable.mjs",
+      "bytes": 3902,
+      "sha256": "143ffe9898995a1ab934747f0c46d9d1b5bf5ac49764129c4d3dab5d64850c65",
+      "gitBlob": "8b0f3387f729abbe02053ac83560cdf05ddc8bc4"
+    },
+    {
+      "path": "src/public-bytes.mjs",
+      "bytes": 1515,
+      "sha256": "abd9d7d50f9da35d2450ebadd6c754cd639fe6dd49d45309714d0d64bb3c0b2e",
+      "gitBlob": "93e7949c1596963b4deaaefdfdbd68b654896956"
+    },
+    {
+      "path": "src/public-noble.mjs",
+      "bytes": 1234,
+      "sha256": "8763269243ac3f1024bb2648241ca1b5a663438e319be6231e349e254a28c651",
+      "gitBlob": "8527e7714c2358650593791e3239b2b58a9aaeeb"
+    },
+    {
+      "path": "src/tree-core.mjs",
+      "bytes": 2450,
+      "sha256": "01da6e09193ca5688adad5ea18425866ae0e01a8cc82f99aeda7600c36de1a1d",
+      "gitBlob": "021215ca632b6de2a2eea162652725d57735428b"
+    },
+    {
+      "path": "src/tree.mjs",
+      "bytes": 630,
+      "sha256": "7a49bcb3f51c2ed511985833a82e3c10b9cbecd81629544d7b6bf2f8f06e7272",
+      "gitBlob": "66c0f52223b1870dfa9fe3a85c685fb05e0fbea1"
+    },
+    {
+      "path": "src/verify-core.mjs",
+      "bytes": 7201,
+      "sha256": "46c81533662b2f68e14b44c87d94ae7bfe569d8bf4d054faacb6e93701a8d9b5",
+      "gitBlob": "5e9eba876771c493a318c4ebb7e0716f2dab9464"
+    },
+    {
+      "path": "test/browser-vectors.mjs",
+      "bytes": 21737,
+      "sha256": "091edda7139f60080daeb55f906423527d4ff2efaa54c687176c5004f1fdb695",
+      "gitBlob": "1e112ccab68e0d0f5c4330bc496e01981c8ff6cf"
+    },
+    {
+      "path": "test/browser.test.mjs",
+      "bytes": 5257,
+      "sha256": "759eb7f26b7dc2e53d5dcae7b82c862c9228d27474be87a09523a4ea469fdb62",
+      "gitBlob": "64d2de0c9c611b5216b564aec9a1cb770d7c7d5e"
+    },
+    {
+      "path": "test/codec.test.mjs",
+      "bytes": 6254,
+      "sha256": "aa1f4a4d1ce1bc89b1e00ea99c8a78425b64d322ae36bddabdfc0a848f9da56b",
+      "gitBlob": "ba37230cdd35b812643d9f884f6e1f9dc5acffb1"
+    },
+    {
+      "path": "test/crypto.test.mjs",
+      "bytes": 9925,
+      "sha256": "d01f1c23473d9091e312d57a616d976295387f29097dc0e12ca1b1e5468d6ba5",
+      "gitBlob": "271261aa48871a8de75ff6fb787cc2215e76b74c"
+    },
+    {
+      "path": "test/helpers.mjs",
+      "bytes": 2710,
+      "sha256": "3c87f17e47ec03911031d348c38f312812d21ce788b2fe25790f1c01f8da4e3e",
+      "gitBlob": "4fa2c97e91f936737ec0347b35c89f1c4ee396c8"
+    },
+    {
+      "path": "test/interop.test.mjs",
+      "bytes": 2403,
+      "sha256": "8235c3bf329dea32c1f27a535cf55daf9ba213ceba69091c62ca0b4bd0ef4d72",
+      "gitBlob": "c54e7016cda2a7b7fdb116f1df662087430996b1"
+    },
+    {
+      "path": "test/key-material.test.mjs",
+      "bytes": 6836,
+      "sha256": "35706ce9434968e50a64f7ab8d73384e736d2bf6a737a644f8008ea52bfd55dc",
+      "gitBlob": "4d35cac4171ffb3ef8dab1c9b2731e8df82e9c63"
+    },
+    {
+      "path": "test/nist.test.mjs",
+      "bytes": 2395,
+      "sha256": "f351be4bc4476b21a340ade2e48b24ffe45c4db97ef5ef994ee5eb792d23abb5",
+      "gitBlob": "5062ea1689e557358c5df3f477d41c9f2b163bd3"
+    },
+    {
+      "path": "test/vectors/nist-acvp.json",
+      "bytes": 2220032,
+      "sha256": "d500f411a1f273eada6bf4d5cca746665c4f6f45b3a7f08ad096d850085bb9fb",
+      "gitBlob": "369f249ecc809d2acc74debf4e3ac780965ce51d"
+    }
+  ],
+  "publicVerificationEntry": "./browser",
+  "algorithmVersion": "YNX-BATCH/v0.1",
+  "releaseDependencies": {
+    "@noble/post-quantum": "0.6.1",
+    "@noble/hashes": "2.2.0"
+  },
+  "sourceSnapshotOnly": true,
+  "nodeTestsExecuted": false,
+  "browserTestsExecuted": false,
+  "authorityGranted": false,
+  "deployed": false
+}

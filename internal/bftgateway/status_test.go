@@ -56,7 +56,7 @@ type walletStatusFixture struct {
 
 func newWalletStatusFixture(t *testing.T) *walletStatusFixture {
 	t.Helper()
-	f := &walletStatusFixture{t: t, f: newPQIdentityFixture(t), build: buildinfo.Info{Commit: "0123456789ab", Release: "ynx-bft-gateway-0123456789ab", BuildTime: "2026-10-18T00:00:00Z"}}
+	f := &walletStatusFixture{t: t, f: newPQIdentityFixture(t), build: buildinfo.Info{Commit: "0123456789abcdef0123456789abcdef01234567", Release: "ynx-bft-gateway-0123456789ab", BuildTime: "2026-10-18T00:00:00Z"}}
 	rpc := httptest.NewServer(http.HandlerFunc(f.serve))
 	t.Cleanup(rpc.Close)
 	g, err := New(Config{CometRPCURL: rpc.URL, Build: f.build})
@@ -229,6 +229,41 @@ func (f *walletStatusFixture) read(t *testing.T, path string) (int, []byte) {
 	f.lastCacheControl = response.Header.Get("Cache-Control")
 	f.mu.Unlock()
 	return response.StatusCode, raw
+}
+
+func TestGatewayBuildReadbackUsesFullSourceIdentity(t *testing.T) {
+	f := newWalletStatusFixture(t)
+	for _, path := range []string{"/status", "/health"} {
+		t.Run(path, func(t *testing.T) {
+			code, raw := f.read(t, path)
+			if code != http.StatusOK {
+				t.Fatalf("actual application-backed build readback failed: %d %s", code, raw)
+			}
+			var view struct {
+				Build              buildinfo.Info `json:"build"`
+				PublicCutoverReady bool           `json:"publicCutoverReady"`
+			}
+			if err := json.Unmarshal(raw, &view); err != nil {
+				t.Fatal(err)
+			}
+			if view.Build != f.build || len(view.Build.Commit) != 40 || view.Build.Release != "ynx-bft-gateway-"+view.Build.Commit[:12] {
+				t.Fatal("readback truncated or changed the complete embedded source identity", view.Build)
+			}
+			if path == "/status" {
+				if !originalWalletStatusHealthy(raw, f.build) {
+					t.Fatal("actual status did not satisfy the original complete Wallet build pin")
+				}
+				otherSource := f.build
+				otherSource.Commit = f.build.Commit[:12] + strings.Repeat("f", 28)
+				if originalWalletStatusHealthy(raw, otherSource) {
+					t.Fatal("a shared v1 release alias replaced the independently pinned complete source")
+				}
+			}
+			if view.PublicCutoverReady {
+				t.Fatal("complete source provenance manufactured missing public authorization")
+			}
+		})
+	}
 }
 
 func TestGatewayStatusMatchesWalletHealthAndColdCommittedStorage(t *testing.T) {
