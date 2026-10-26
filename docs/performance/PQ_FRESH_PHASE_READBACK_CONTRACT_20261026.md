@@ -388,3 +388,8 @@ its physical record exists. A present contradictory node record still fails.
 The reader never invents a missing Commit or qualifies such a partial pair.
 Focused local reader tests28 passed; these checks are arithmetic/source-contract
 and lifecycle tests, not a new node performance run or cryptographic verifier.
+
+
+## 2026-10-27 Host preparation worker extension
+
+[The bounded-worker contract](PQ_FRESH_HOST_PREPARATION_WORKER_20261027.md) adds all10 original helper wall timers to existing Host complete progress lines via hostNs, without extra lines or higher budgets. New source expectations must set hostPreparationTimingsRequired=true. Failed diagnostic readback now also retains original incomplete progress; full-pair readback still requires complete original progress and the successful original guard/PASS/proof gate. Total includes children; capture includes lock/encoding waits; zero successful retry means uninvoked, not a duration sample. Host worker and coordinator work can overlap across transactions, so no global additive occupancy inference is valid. Reader31 local tests actually passed, while new Go5 and combined normal CI remain pending. Legacy sources/guard records remain readable without fabricated Host measurements.

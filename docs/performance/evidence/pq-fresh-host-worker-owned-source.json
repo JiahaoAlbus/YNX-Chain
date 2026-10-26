@@ -1,0 +1,74 @@
+{
+  "ownedLeafCommit": "45e9397d7d7c28ddd4830347a45aa08473e0cd4d",
+  "parent": "42d12277b61b92e82ca96e9e112e437274c6444f",
+  "leafPath": "internal/consensus/pq_network_fresh_business_test.go",
+  "bytes": 173668,
+  "sha256": "40b2947fe1c9a39c19940c1acb4257b5b4cbb700ec891c6b129f73633102e24f",
+  "gitBlob": "5a6670689a10ce2e52ea612868aa9d468eb351b8",
+  "newRequiredGoCases": [
+    "TestPQNetworkFreshHostPreparationDoesNotBlockOriginalPacedOffers",
+    "TestPQNetworkFreshHostPreparationRetainsFourSlotsAndDetachedInputs",
+    "TestPQNetworkFreshHostPreparationPreservesErrorsAndPipelineCancellation",
+    "TestPQNetworkFreshHostPreparationRejectsInvalidTargetsAndJoinsGoexit",
+    "TestPQNetworkFreshHostPreparationProgressKeepsAllMeasuredStagesAndOriginalBudget"
+  ],
+  "localGoTestsExecuted": false,
+  "GoRegressionStatus": "pending original normal CI of the combined candidate; not borrowed from42",
+  "gofmtParsed": true,
+  "diffCheckPassed": true,
+  "requiredOriginalHelper": {
+    "owner": "Protocol",
+    "path": "internal/consensus/pq_network_business_test.go",
+    "sha256": "70f9d69db2631b362553812f58c2962c3caa43d78e06f1a63792463402ee4c4f",
+    "method": "prepareHostContextMeasured(ctx,n,label,kind,wire,payload,height,index)",
+    "returns": "path,pin,expected,timing,error"
+  },
+  "workerCount": 1,
+  "proofReservationLimit": 4,
+  "proofReservationIncludes": [
+    "queued",
+    "preparing",
+    "running readback/verifier"
+  ],
+  "offerLimit": 4,
+  "maximumOwnedProcessesStatic": 15,
+  "actualResourceGuardStillAuthoritative": true,
+  "inputBytesDetached": true,
+  "workerUsesFatalOrLog": false,
+  "coordinatorOwns": [
+    "Fatal helpers",
+    "CLI Start",
+    "readback acceptance",
+    "all public logging"
+  ],
+  "cancellationOrder": "original pipeline childctx cancellation reaches prep; joins before enclosing Gateway/node stop",
+  "hostProgress": {
+    "sameOriginalEvents": true,
+    "sameOriginalLineLimit": 512,
+    "sameOriginalEventAllowance": 312,
+    "sameWholeLogAllowance": 1044480,
+    "field": "hostNs",
+    "arrayOrder": [
+      "TotalWallNs",
+      "LightBlocksWallNs",
+      "InputEncodingWallNs",
+      "CheckpointLoadWallNs",
+      "CheckpointCaptureWallNs",
+      "CheckpointDecodeWallNs",
+      "CheckpointValidateWallNs",
+      "CheckpointRetryWaitNs",
+      "RetainInputsWallNs",
+      "ContextWriteWallNs"
+    ],
+    "childrenIncludedInTotal": true,
+    "captureIncludesAppLockAndEncoding": true,
+    "failedPreparationOmitsStageArray": true,
+    "noNewInclusionOrTXFields": true
+  },
+  "newRuntimeAuthorized": false,
+  "newPressureExecuted": false,
+  "performanceImprovementMeasured": false,
+  "fullPairQualified": false,
+  "sustainedTPSQualified": false,
+  "status": "owned source leaf locked for combined CI; not standalone combined-candidate validation"
+}

@@ -1,0 +1,66 @@
+{
+  "readerSourceCommit": "e2ecf3dcd34e12aaa13453856ca6683920209fea",
+  "sourcePins": {
+    "scripts/loadtest/pq-fresh-phase-readback.mjs": {
+      "bytes": 56935,
+      "sha256": "8fc5782bc97a0ceeb86d202d22d8737b3bd95d6f4ee0ee3e2d35efd16a9c998d",
+      "gitBlob": "3451658a1995948d6922472aa2ae2dbf35c90650"
+    },
+    "scripts/loadtest/pq-fresh-phase-readback.test.mjs": {
+      "bytes": 45754,
+      "sha256": "4905d7076b948b22bc819f0c70dd57310a08bdf285c23f9de2122f18c6436cf5",
+      "gitBlob": "1dcad751bbc692604b6c68fb1f5ab356c7016196"
+    }
+  },
+  "actualLocalNodeTest": {
+    "argv": [
+      "/opt/homebrew/bin/node",
+      "--test",
+      "scripts/loadtest/pq-fresh-phase-readback.test.mjs"
+    ],
+    "exitCode": 0,
+    "passed": 31,
+    "failed": 0,
+    "skipped": 0,
+    "durationMs": 511.994458,
+    "evidenceOrigin": "actual exec tool output in this thread; no separate raw test logfile retained",
+    "normalCISuccessClaimed": false
+  },
+  "sourceContract": {
+    "expectedHostPreparationTimingsRequired": true,
+    "field": "hostNs",
+    "location": "existing business-host-context complete progress line, coordinator only",
+    "elements": 10,
+    "phaseOrder": [
+      "totalWallNs",
+      "lightBlocksWallNs",
+      "inputEncodingWallNs",
+      "checkpointLoadWallNs",
+      "checkpointCaptureWallNs",
+      "checkpointDecodeWallNs",
+      "checkpointValidateWallNs",
+      "checkpointRetryWaitNs",
+      "retainInputsWallNs",
+      "contextWriteWallNs"
+    ],
+    "bounds": "9 child durations sum <= total <= queued progress span; callback matches original offer ordinal/interval; diagnostic total <= actual Host-call work",
+    "missingOrFailedPreparation": "no invented stage zeros; incomplete spans retained",
+    "zeroRetryWait": "source successful helper did not enter its5ms retry; raw0 retained, excluded from duration quantiles and counted notInvoked",
+    "classification": "successful preparation DATA is not independent proof credit, finality formation or CPU",
+    "crossTransactionOverlap": "Host worker and coordinator calls may overlap; no global occupancy sum claim",
+    "oldLogCompatibility": {
+      "runId": "40348378826",
+      "physicalCommits": 140,
+      "callbacks": 16,
+      "latencyValuesEqualToOldReader": true,
+      "unmeasuredOldHostStageRecords": 16,
+      "originalUnfinishedProgress": 1,
+      "guardRewritten": false
+    }
+  },
+  "originalSuccessfulPairGateRetained": true,
+  "diagnosticFullPairQualified": false,
+  "sustainedTPSQualified": false,
+  "networkRuntimeExecuted": false,
+  "GoTestsExecutedHere": false
+}
