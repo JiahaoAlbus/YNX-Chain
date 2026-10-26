@@ -1,0 +1,305 @@
+{
+  "version": "YNX-PQ-FAILED-WINDOW-BUSINESS-PROGRESS-READER/v1",
+  "readerSourceCommit": "3bc5a6cd02bd04e4aec64f740e96bf29f6adc7d4",
+  "sourcePins": {
+    "scripts/loadtest/pq-fresh-phase-readback.mjs": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-batch-v01-performance/YNX Chain/scripts/loadtest/pq-fresh-phase-readback.mjs",
+      "bytes": 61128,
+      "sha256": "24ab589b23f425f0463dcaa1bb0999e33ed4f160d070fccc1dcabe83aa4d77e7"
+    },
+    "scripts/loadtest/pq-fresh-phase-readback.test.mjs": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-batch-v01-performance/YNX Chain/scripts/loadtest/pq-fresh-phase-readback.test.mjs",
+      "bytes": 50617,
+      "sha256": "bc112431817f4cf4df8eb117cbf052ee1360223ab50b2f5a872297485dfd1e9d"
+    }
+  },
+  "actualLocalNodeTests": {
+    "passed": 36,
+    "failed": 0,
+    "skipped": 0,
+    "durationMs": 526.565833,
+    "evidence": "actual execution-tool output; no separate raw local logfile"
+  },
+  "originalRunId": 40363182425,
+  "originalGuard": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-81c-whole-once/original/ynx-pq-network-40363182425-1.receipt.json",
+    "bytes": 502562,
+    "sha256": "0d6b5d9bc9d52df893f4176c154e3beef4bc7cb8c46fe5e55ea13aefa2871a6e"
+  },
+  "originalStdout": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-81c-whole-once/original/ynx-pq-network-40363182425-1/go.stdout.log",
+    "bytes": 251893,
+    "sha256": "e4ee2dea4c9351a807177b20a2eeabce241ce33add4d2b1975c6dd1b6ea8e6c9"
+  },
+  "originalExpected": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-81c-whole-once/DIAGNOSTIC_EXPECTED.json",
+    "bytes": 1544,
+    "sha256": "7088ab44b1c424fa4b785780ba7d44a4ce0ddccf4979eb111a0b2dc8bd79a055"
+  },
+  "supplement": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-81c-whole-once/CONSUMER_PROGRESS_SUPPLEMENT.json",
+    "bytes": 97033,
+    "sha256": "aa1cd2c7d63c42db06a682f4cd760aa486e0e08abcedae4486e57a0f0eefb405"
+  },
+  "previousReadback": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-81c-whole-once/CONSUMER_WALL_COVERAGE_SUPPLEMENT.json",
+    "bytes": 94853,
+    "sha256": "1b1a0e3bc38668380120922415a584ce22edb50a63088f26b170a465052e3017"
+  },
+  "allPreviousFieldsDeepEqual": true,
+  "actualBusinessProgress": {
+    "available": true,
+    "clock": "original parent-process monotonic offsets",
+    "arms": [
+      {
+        "arm": "before",
+        "offerBeginOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "offerReturnOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "offerStartNotObservedOrdinals": [],
+        "offerReturnNotObservedOrdinals": [],
+        "completedPreparationOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "readbackBeginOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "readbackCompleteOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "verifiedCallbackObservations": 16,
+        "verifiedCallbackOfferOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "callbackOfferOrdinalUnbound": 0,
+        "begunOffersAwaitingVerifiedCallback": [],
+        "returnedOffersAwaitingVerifiedCallback": [],
+        "completedPreparationsAwaitingVerifiedCallback": [],
+        "readbackCompletionNotObservedOrdinals": []
+      },
+      {
+        "arm": "after",
+        "offerBeginOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "offerReturnOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "offerStartNotObservedOrdinals": [],
+        "offerReturnNotObservedOrdinals": [
+          14,
+          15
+        ],
+        "completedPreparationOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "readbackBeginOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "readbackCompleteOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "verifiedCallbackObservations": 10,
+        "verifiedCallbackOfferOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "callbackOfferOrdinalUnbound": 0,
+        "begunOffersAwaitingVerifiedCallback": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "returnedOffersAwaitingVerifiedCallback": [
+          10,
+          11,
+          12,
+          13
+        ],
+        "completedPreparationsAwaitingVerifiedCallback": [
+          10,
+          11
+        ],
+        "readbackCompletionNotObservedOrdinals": [
+          10,
+          11
+        ]
+      }
+    ],
+    "acceptedThroughput": null,
+    "errorRate": null,
+    "sustainedTPSQualified": false,
+    "interpretation": "Observed original progress states, not a guard-deadline snapshot or a throughput/error-rate measurement. Offer begin is not server acceptance; offer return is not independent proof. No-return outcomes remain unobserved and must be reconciled, never rejected or replayed. Completed preparation creates no business credit. Missing callback-to-offer binding makes derived pending callback sets null. Missing start events are not proof that a transaction never started. Callback offer ordinals derive from original offer intervals, never Comet block index."
+  },
+  "sourceBinding": "original offer interval and ordinal; never Comet transaction index",
+  "normalCISuccessClaimed": false,
+  "frozen81TupleReaderUnchanged": true,
+  "originalGuardOrRawLogRewritten": false,
+  "newRuntimeExecuted": false,
+  "errorRateMeasured": false,
+  "acceptedTPSMeasured": false,
+  "sustainedTPSQualified": false
+}
