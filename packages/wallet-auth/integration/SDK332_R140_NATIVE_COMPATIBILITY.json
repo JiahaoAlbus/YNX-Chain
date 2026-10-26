@@ -1566,8 +1566,8 @@
   "sourceCurrentIOInputs": [
     {
       "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
-      "bytes": 5009,
-      "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+      "bytes": 5380,
+      "sha256": "c6e12b306fb49139f1166569be7ec08403304d0ecd90dd968d6dd7de910ae962"
     }
   ],
   "supplierR185": {
@@ -2382,7 +2382,8 @@
     "perProfileSourceRevocationCode": true,
     "deviceSourceIssuerQualified": false,
     "explicitDeviceBuildProfileAvailable": true,
-    "defaultFeatureFlagsEnabled": false
+    "defaultFeatureFlagsEnabled": false,
+    "sourceCurrentRetainedReadOnlyCode": true
   },
   "deviceReadLeaseBuildProfile": {
     "entry": "originalAuthDeviceV4BuildPlan",
