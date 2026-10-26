@@ -1575,16 +1575,19 @@ func pqFreshPipeline(parent context.Context, count int, started time.Time, offer
 	defer pqFreshCancelJoin(cancel, offerDone, &offerActive)
 	defer pqFreshCancelJoin(cancel, proofDone, &proofActive)
 	var last time.Time
+	nextOfferAt := func() time.Time {
+		due := started.Add(time.Duration(next) * pqFreshInterval)
+		if !last.IsZero() && due.Before(last.Add(pqFreshInterval)) {
+			due = last.Add(pqFreshInterval)
+		}
+		return due
+	}
 	for completed < count {
 		if err := ctx.Err(); err != nil {
 			return maximum, err
 		}
 		if next < count && offerActive < pqFreshInFlight {
-			due := started.Add(time.Duration(next) * pqFreshInterval)
-			if !last.IsZero() && due.Before(last.Add(pqFreshInterval)) {
-				due = last.Add(pqFreshInterval)
-			}
-			if !time.Now().Before(due) {
+			if !time.Now().Before(nextOfferAt()) {
 				at, err := offer(ctx, next, offerDone)
 				if err != nil {
 					return maximum, fmt.Errorf("original offer %d failed to start: %w", next, err)
@@ -1598,10 +1601,17 @@ func pqFreshPipeline(parent context.Context, count int, started time.Time, offer
 				continue
 			}
 		}
-		launched := false
+		recheckOffer := false
 		for i := 0; i < count && proofActive < pqFreshInFlight; i++ {
 			if !offerSeen[i] || proofStarted[i] {
 				continue
+			}
+			// A false readiness result can still include slow historical reads
+			// or complete validation. Do not scan another target past a paced
+			// offer's due time; preserve every target for the next iteration.
+			if next < count && offerActive < pqFreshInFlight && !time.Now().Before(nextOfferAt()) {
+				recheckOffer = true
+				break
 			}
 			ok, err := readback(ctx, i, proofDone)
 			if err != nil {
@@ -1610,11 +1620,11 @@ func pqFreshPipeline(parent context.Context, count int, started time.Time, offer
 			if ok {
 				proofStarted[i] = true
 				proofActive++
-				launched = true
+				recheckOffer = true
 				break // Check paced offers again before another Host preparation.
 			}
 		}
-		if launched {
+		if recheckOffer {
 			continue
 		}
 		select {
@@ -3229,6 +3239,60 @@ func TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer(t *testing.
 	})
 	if err != nil || !overlapped || offers != 2 || proofs != 2 || maximum > pqFreshInFlight || len(starts) != 2 || starts[1].Sub(starts[0]) < pqFreshInterval {
 		t.Fatal("original readback remained globally serialized, repeated an offer or changed pacing", err)
+	}
+}
+
+func TestPQNetworkFreshHostPreparationYieldsBetweenReadinessProbes(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var starts []time.Time
+	offeredCount, verifiedCount := 0, 0
+	crossedDue, probedBeforeDueOffer := false, false
+	maximum, err := pqFreshPipeline(ctx, 3, time.Now(), func(_ context.Context, i int, done chan<- pqFreshCompletion) (time.Time, error) {
+		at := time.Now()
+		starts = append(starts, at)
+		done <- pqFreshCompletion{index: i, ended: at}
+		return at, nil
+	}, func(pqFreshCompletion) error {
+		offeredCount++
+		return nil
+	}, func(ctx context.Context, i int, done chan<- pqFreshCompletion) (bool, error) {
+		if offeredCount < 2 {
+			return false, nil
+		}
+		if !crossedDue {
+			// The first eligible readiness call finishes after the next original
+			// offer is due. Another readiness call must not overtake that offer.
+			wait := time.Until(starts[1].Add(pqFreshInterval)) + time.Millisecond
+			if wait > 0 {
+				timer := time.NewTimer(wait)
+				defer timer.Stop()
+				select {
+				case <-timer.C:
+				case <-ctx.Done():
+					return false, ctx.Err()
+				}
+			}
+			crossedDue = true
+			return false, nil
+		}
+		if len(starts) < 3 {
+			probedBeforeDueOffer = true
+			return false, errors.New("another readiness probe overtook an already due original offer")
+		}
+		done <- pqFreshCompletion{index: i, ended: time.Now()}
+		return true, nil
+	}, func(pqFreshCompletion) error {
+		verifiedCount++
+		return nil
+	})
+	if err != nil || !crossedDue || probedBeforeDueOffer || len(starts) != 3 || offeredCount != 3 || verifiedCount != 3 || maximum > pqFreshInFlight {
+		t.Fatal("readiness scan delayed an already due original offer or lost original proof work", err)
+	}
+	for i := 1; i < len(starts); i++ {
+		if starts[i].Sub(starts[i-1]) < pqFreshInterval {
+			t.Fatal("readiness yield introduced catch-up offers")
+		}
 	}
 }
 
