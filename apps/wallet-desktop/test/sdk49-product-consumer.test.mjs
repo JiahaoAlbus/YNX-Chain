@@ -15,6 +15,12 @@ import {createPQOriginalRecord} from '../src/wallet-pq-intent-record.mjs';
 import {DesktopKeyLifecycle} from '../src/key-lifecycle.mjs';
 
 const at=new Date('2026-10-26T00:00:00.000Z'),account='0x'+'11'.repeat(20);
+test('normal desktop file dependency lock selects exact SDK49 metadata rather than inherited SDK20 candidate2',()=>{
+ const sdk=JSON.parse(readFileSync(new URL('../../../packages/wallet-auth/package.json',import.meta.url))),lock=JSON.parse(readFileSync(new URL('../package-lock.json',import.meta.url)));
+ const slot=lock.packages['../../packages/wallet-auth'];assert.equal(slot.version,'1.3.0-pq.3.32-auth.49');
+ for(const key of ['name','version','dependencies','devDependencies','peerDependencies','peerDependenciesMeta','engines','bin'])assert.deepEqual(slot[key],sdk[key],key);
+ assert.deepEqual(lock.packages['node_modules/@ynx-chain/wallet-auth'],{resolved:'../../packages/wallet-auth',link:true});
+});
 function requestV4(){return createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:'social',platform:'macos',deviceId:'a'.repeat(43),deviceAlgorithm:'ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512',deviceRegistrationId:'11111111-1111-4111-8111-111111111111',deviceRegistrationRevision:'1',deviceRegistrationDigest:'12'.repeat(32),scopes:['account:read'],purpose:'PUBLIC SDK49 consumer boundary test',nonce:'b'.repeat(43),state:'c'.repeat(43)},at);}
 function fixture(){
  const calls={source:0,store:0,key:0,external:0},guard={account,assert(){}};
