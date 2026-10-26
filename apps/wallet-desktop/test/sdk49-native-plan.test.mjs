@@ -9,7 +9,14 @@ import {originalIDEHelperBuildPlan} from '../scripts/build-original-auth-identit
 import {walletPublisherNativeInputs,walletNativeSourceProfile,SDK48_H6_MAIN_INPUTS} from '../scripts/wallet-publisher-native-build.mjs';
 import {pqNativeSupplierInputs,PQ_NATIVE_ARCHIVE} from '../scripts/wallet-pq-native-build.mjs';
 import {canonicalNativeInputSelection,CANONICAL_NATIVE_EVIDENCE_TESTS} from '../scripts/canonical-package.mjs';
+import {assertSelectedProofVerifierForSDK} from '../scripts/proof-verifier-source-policy.mjs';
 const root=fileURLToPath(new URL('../../..',import.meta.url)),version='1.3.0-pq.3.32-auth.49';
+test('SDK49 Mac preflight retains the independent signed4afc verifier source fence without changing old46',()=>{
+ for(const v of ['1.3.0-pq.3.32-auth.46',version]){
+  assertSelectedProofVerifierForSDK(v,{sourceCommit:'4afc29656ee0f60c6eda9ae62387e6797552aa3e'});
+  for(const receipt of [null,{}, {sourceCommit:'0'.repeat(40)}])assert.throws(()=>assertSelectedProofVerifierForSDK(v,receipt),/4AFC_SIGNED_VERIFIER_REQUIRED/);
+ }
+});
 test('actual SDK49 normal producer plans full PQ role with exact source125/helper107 closure and no compiler execution',()=>{
  const inventoryBytes=fs.readFileSync(root+'/packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json'),inventory=JSON.parse(inventoryBytes),profile=walletNativeSourceProfile(version);
  assert.equal(inventory.version,version);assert.equal(profile.inventory.bytes,inventoryBytes.length);
