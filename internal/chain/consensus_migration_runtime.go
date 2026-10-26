@@ -43,6 +43,17 @@ func (d *Devnet) exportConsensusRuntimeLocked() (ConsensusRuntimeState, error) {
 			return ConsensusRuntimeState{}, errors.New("cutover checkpoint does not cover current application state and tip")
 		}
 	}
+	snapshot = normalizedConsensusRuntimeSnapshot(snapshot)
+	// Detach every nested map/slice before the caller releases the state lock,
+	// but copy history by block instead of materializing its complete JSON twice.
+	detached, err := detachDevnetSnapshot(snapshot)
+	if err != nil {
+		return ConsensusRuntimeState{}, err
+	}
+	return ConsensusRuntimeState(detached), nil
+}
+
+func normalizedConsensusRuntimeSnapshot(snapshot devnetSnapshot) devnetSnapshot {
 	snapshot.SavedAt = time.Time{}
 	snapshot.StateIntegrity = ""
 	snapshot.Peers, snapshot.PeerSyncs = nil, nil
@@ -55,16 +66,7 @@ func (d *Devnet) exportConsensusRuntimeLocked() (ConsensusRuntimeState, error) {
 		snapshot.Validators[i].UpdatedAt = nil
 		snapshot.Validators[i].PeerEvidence = ""
 	}
-	// Detach every nested map/slice before the caller releases the state lock.
-	wire, err := json.Marshal(snapshot)
-	if err != nil {
-		return ConsensusRuntimeState{}, err
-	}
-	var runtime ConsensusRuntimeState
-	if err := json.Unmarshal(wire, &runtime); err != nil {
-		return ConsensusRuntimeState{}, err
-	}
-	return runtime, nil
+	return snapshot
 }
 
 func (s ConsensusMigrationState) validateRuntimeBoundary() error {
@@ -182,12 +184,8 @@ func (s ConsensusMigrationState) RestoreSourceRuntime() (*Devnet, error) {
 	if s.Runtime == nil {
 		return nil, errors.New("legacy account-only migration has no full runtime")
 	}
-	wire, err := json.Marshal(s.Runtime)
+	snapshot, err := detachDevnetSnapshot(devnetSnapshot(*s.Runtime))
 	if err != nil {
-		return nil, err
-	}
-	var snapshot devnetSnapshot
-	if err := json.Unmarshal(wire, &snapshot); err != nil {
 		return nil, err
 	}
 	d := NewDevnet(s.Network)

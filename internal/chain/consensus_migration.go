@@ -86,10 +86,51 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 		return ConsensusMigrationState{}, err
 	}
 
-	accounts := make([]ConsensusAccount, 0, len(d.accounts))
+	return assembleConsensusMigrationState(runtime)
+}
+
+// exportOwnedConsensusMigrationSnapshot consumes an exclusively owned, fully
+// validated offline snapshot. Its caller must not reuse it after this transfer.
+// Source-file validation and reconciliation remain the reader owner's job; all
+// existing migration validation still runs below. No producer is constructed.
+func exportOwnedConsensusMigrationSnapshot(snapshot devnetSnapshot) (ConsensusMigrationState, error) {
+	if len(snapshot.Blocks) == 0 {
+		return ConsensusMigrationState{}, errors.New("cannot export consensus state without a committed block")
+	}
+	if len(snapshot.Pending) != 0 {
+		return ConsensusMigrationState{}, errors.New("consensus cutover requires pending transactions to be committed; admission has already applied their effects")
+	}
+	// Match snapshotLocked's existing runtime version, proof normalization and
+	// sponsor commitment, without reopening a live Devnet or cloning history.
+	snapshot.Version = devnetSnapshotVersion
+	if snapshot.AccountPolicy != nil {
+		snapshot.Version = pqDevnetSnapshotVersion
+	}
+	snapshot.AccountPolicy = cloneAccountPolicy(snapshot.AccountPolicy)
+	snapshot.PQBatches = clonePQBatches(snapshot.PQBatches)
+	snapshot.SponsorIntegrity = resourceSponsorSnapshotIntegrity(snapshot)
+	snapshot = normalizedConsensusRuntimeSnapshot(snapshot)
+	// The small non-history part retains the original typed JSON empty-value
+	// normalization (notably optional DEX lot maps). Blocks and transactions
+	// already belong solely to this call and need no encode/copy/decode cycle.
+	runtime, err := detachDevnetSnapshotMetadata(snapshot)
+	if err != nil {
+		return ConsensusMigrationState{}, err
+	}
+	runtime.Blocks = snapshot.Blocks
+	return assembleConsensusMigrationState(ConsensusRuntimeState(runtime))
+}
+
+func assembleConsensusMigrationState(runtime ConsensusRuntimeState) (ConsensusMigrationState, error) {
+	resourcePolicy := runtime.Policy
+	if runtime.Policy.Notes != nil {
+		resourcePolicy.Notes = make([]string, len(runtime.Policy.Notes))
+		copy(resourcePolicy.Notes, runtime.Policy.Notes)
+	}
+	accounts := make([]ConsensusAccount, 0, len(runtime.Accounts))
 	var liquidSupply int64
 	var stakedSupply int64
-	for _, account := range d.accounts {
+	for _, account := range runtime.Accounts {
 		if account == nil {
 			return ConsensusMigrationState{}, errors.New("cannot export nil account")
 		}
@@ -110,8 +151,8 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 	}
 	sort.Slice(accounts, func(i, j int) bool { return accounts[i].Address < accounts[j].Address })
 
-	validators := make([]ConsensusValidator, 0, len(d.validators))
-	for _, validator := range d.validators {
+	validators := make([]ConsensusValidator, 0, len(runtime.Validators))
+	for _, validator := range runtime.Validators {
 		validators = append(validators, ConsensusValidator{
 			Address:     validator.Address,
 			Moniker:     validator.Moniker,
@@ -121,13 +162,13 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 	}
 	sort.Slice(validators, func(i, j int) bool { return validators[i].Address < validators[j].Address })
 
-	dexAssets := make([]NativeDexAsset, 0, len(d.dexAssets))
-	for _, asset := range d.dexAssets {
+	dexAssets := make([]NativeDexAsset, 0, len(runtime.DexAssets))
+	for _, asset := range runtime.DexAssets {
 		dexAssets = append(dexAssets, asset)
 	}
 	sort.Slice(dexAssets, func(i, j int) bool { return dexAssets[i].ID < dexAssets[j].ID })
 	dexBalances := make([]NativeDexBalance, 0)
-	for assetID, balances := range d.dexBalances {
+	for assetID, balances := range runtime.DexBalances {
 		for account, amount := range balances {
 			dexBalances = append(dexBalances, NativeDexBalance{AssetID: assetID, Account: account, Amount: amount})
 		}
@@ -138,8 +179,8 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 		}
 		return dexBalances[i].AssetID < dexBalances[j].AssetID
 	})
-	dexPools := make([]NativeDexPool, 0, len(d.dexPools))
-	for _, pool := range d.dexPools {
+	dexPools := make([]NativeDexPool, 0, len(runtime.DexPools))
+	for _, pool := range runtime.DexPools {
 		copy := cloneNativeDexPool(pool)
 		// Match the full runtime's durable JSON representation: these two
 		// optional maps decode as nil when empty. Keep every populated lot and
@@ -159,18 +200,18 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 		}
 	}
 	sort.Slice(dexPools, func(i, j int) bool { return dexPools[i].ID < dexPools[j].ID })
-	dexEvents := append([]NativeDexEvent(nil), d.dexEvents...)
+	dexEvents := append([]NativeDexEvent(nil), runtime.DexEvents...)
 
-	latest := d.blocks[len(d.blocks)-1]
+	latest := runtime.Blocks[len(runtime.Blocks)-1]
 	contractMaterials, _ := LoadConsensusContractMaterials(&runtime)
 	state := ConsensusMigrationState{
 		ContractMaterials:   contractMaterials,
 		Version:             ConsensusMigrationVersion,
 		SourceFormat:        "ynx-authoritative-producer-v2",
-		OriginalGenesisHash: d.blocks[0].Hash,
-		AccountPolicy:       cloneAccountPolicy(d.accountPolicy),
+		OriginalGenesisHash: runtime.Blocks[0].Hash,
+		AccountPolicy:       cloneAccountPolicy(runtime.AccountPolicy),
 		Runtime:             &runtime,
-		Network:             d.cfg,
+		Network:             runtime.Config,
 		Height:              latest.Height,
 		LastBlockHash:       latest.Hash,
 		Accounts:            accounts,
@@ -179,7 +220,7 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 		DexBalances:         dexBalances,
 		DexPools:            dexPools,
 		DexEvents:           dexEvents,
-		ResourcePolicy:      d.resourcePolicy,
+		ResourcePolicy:      resourcePolicy,
 		LiquidSupplyYNXT:    liquidSupply,
 		StakedSupplyYNXT:    stakedSupply,
 	}
@@ -394,10 +435,9 @@ func (s ConsensusMigrationState) CanonicalJSON() ([]byte, error) {
 
 func (s ConsensusMigrationState) calculateHash() (string, error) {
 	s.StateHash = ""
-	payload, err := json.Marshal(s)
-	if err != nil {
+	digest := sha256.New()
+	if err := writeCanonicalStateJSON(digest, s, false); err != nil {
 		return "", fmt.Errorf("encode consensus migration state: %w", err)
 	}
-	sum := sha256.Sum256(payload)
-	return hex.EncodeToString(sum[:]), nil
+	return hex.EncodeToString(digest.Sum(nil)), nil
 }

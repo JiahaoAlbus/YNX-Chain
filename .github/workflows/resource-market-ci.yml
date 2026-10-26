@@ -2362,6 +2362,91 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # A new-source export repair must not reuse the qualified historical 7f tool
+  # identity. Its regressions and clean ELF supply are independent of Wallet UI.
+  offline-migration-streaming:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GOMAXPROCS: '2'
+      GOGC: '50'
+      GOMEMLIMIT: '1536MiB'
+      CGO_ENABLED: '0'
+      GOFLAGS: '-p=1 -trimpath'
+      GOTOOLCHAIN: local
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+    steps:
+      - name: Checkout the exact streaming exporter source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Select only changed streaming exporter inputs
+        id: scope
+        run: |
+          python3 -B - <<'PY'
+          import os, re, subprocess
+          from pathlib import Path
+          def previous(path):
+              p = subprocess.run(['git', 'show', 'HEAD^:' + path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+              return p.stdout if p.returncode == 0 else b''
+          paths = ('internal/chain/offline_consensus_export.go', 'internal/chain/offline_consensus_export_test.go',
+              'internal/chain/offline_consensus_decode.go', 'internal/chain/offline_consensus_decode_test.go',
+              'internal/chain/canonical_state_json.go', 'internal/chain/canonical_state_json_test.go',
+              'internal/chain/consensus_migration_decode.go', 'internal/chain/consensus_migration_decode_test.go',
+              'internal/chain/consensus_migration.go', 'internal/chain/consensus_migration_runtime.go',
+              'internal/chain/consensus_migration_owned_snapshot_test.go', 'internal/chain/replication.go',
+              'cmd/ynx-chaind/main.go', 'cmd/ynx-chaind/consensus_export_test.go',
+              'cmd/ynx-consensus-package/main.go', 'cmd/ynx-consensus-package/migration_public_summary.go',
+              'cmd/ynx-consensus-package/migration_public_summary_test.go')
+          changed = any(previous(p) != (Path(p).read_bytes() if Path(p).exists() else b'') for p in paths)
+          def section(raw):
+              start = re.search(rb'(?m)^  offline-migration-streaming:\n', raw)
+              if start is None:
+                  return b''
+              end = re.search(rb'(?m)^  # Export one public contract', raw[start.end():])
+              if end is None:
+                  raise RuntimeError('streaming exporter section boundary absent')
+              return raw[start.start():start.end() + end.start()]
+          path = '.github/workflows/resource-market-ci.yml'
+          changed = changed or section(previous(path)) != section(Path(path).read_bytes())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('changed=' + str(changed).lower() + '\n')
+          print('Streaming exporter inputs changed:', changed)
+          PY
+      - name: Use the qualified exporter Go toolchain
+        if: steps.scope.outputs.changed == 'true'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Verify unchanged canonical bytes and source and output failure protections
+        if: steps.scope.outputs.changed == 'true'
+        run: |
+          go test -v -p 1 -count=1 -timeout=180s -run '^(TestCanonicalStateJSON|TestConsensusMigrationOwned|TestConsensusMigrationDecode|TestOfflineConsensusDecode|TestOfflineConsensusFile|TestOfflineConsensusExportRequires|TestOfflineConsensusExportRejects|TestOfflineConsensusExportLegacy)' ./internal/chain
+          go test -v -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
+          go test -v -p 1 -count=1 -timeout=90s -run '^(TestVerifyMigrationState|TestVerifyMigrationExecutionRetainsStrictLoader|TestMigrationPublicSummary|TestMigrationGenerationUsesStrictStreamedOriginalInput)' ./cmd/ynx-consensus-package
+      - name: Build actual clean current-source offline tools without starting services
+        if: steps.scope.outputs.changed == 'true'
+        run: |
+          bash scripts/ops/build-pq-offline-migration-tools.sh \
+            --repository "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" \
+            --source-tree "$(git rev-parse "$GITHUB_SHA^{tree}")" \
+            --work-directory "$RUNNER_TEMP/ynx-pq-offline-streaming-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            --output-directory "$RUNNER_TEMP/ynx-pq-offline-streaming-tools"
+      - name: Upload the exact new-source clean exporter supply
+        if: steps.scope.outputs.changed == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-offline-migration-streaming-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-pq-offline-streaming-tools
+          if-no-files-found: error
+          retention-days: 7
+
   # Export one public contract from real Application/Comet test helpers. No
   # node, signing authority, live release selection or pressure window starts.
   pq-identity-public-contract:

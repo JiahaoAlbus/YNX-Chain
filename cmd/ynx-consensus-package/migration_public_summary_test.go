@@ -215,6 +215,142 @@ func TestMigrationPublicSummaryOriginalFileBoundsAndIdentity(t *testing.T) {
 	}
 }
 
+// EOF belongs to the original input identity: decoder read-ahead, long trailing
+// whitespace and a later second document must not become a partial source pin.
+func TestMigrationPublicSummaryStreamedSourceWholeDigestAndEOF(t *testing.T) {
+	path, raw, _ := migrationSummaryFixture(t)
+	original := append(bytes.Clone(raw), bytes.Repeat([]byte(" \t\r\n"), 24*1024)...)
+	if err := os.WriteFile(path, original, 0600); err != nil {
+		t.Fatal(err)
+	}
+	var before unix.Stat_t
+	if err := unix.Lstat(path, &before); err != nil {
+		t.Fatal(err)
+	}
+	var expected chain.ConsensusMigrationState
+	if err := json.Unmarshal(raw, &expected); err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(original)
+	called := 0
+	result, err := withVerifiedMigrationInput(path, func(actual chain.ConsensusMigrationState, sourceSHA256, sourceBytes string) ([]byte, error) {
+		called++
+		if !reflect.DeepEqual(actual, expected) || sourceSHA256 != hex.EncodeToString(digest[:]) || sourceBytes != strconv.Itoa(len(original)) {
+			t.Fatal("streamed inspection did not receive the complete original state and whole-byte pin")
+		}
+		return []byte("complete-original"), nil
+	})
+	if err != nil || called != 1 || string(result) != "complete-original" {
+		t.Fatalf("complete streamed input did not reach the inspection once: %v", err)
+	}
+	var after unix.Stat_t
+	if err := unix.Lstat(path, &after); err != nil || !sameMigrationSummaryInput(before, after) {
+		t.Fatalf("streamed inspection changed original identity: %v", err)
+	}
+	for name, suffix := range map[string][]byte{"second-document": []byte("{}"), "trailing-junk": []byte("x")} {
+		t.Run(name, func(t *testing.T) {
+			payload := append(bytes.Clone(original), suffix...)
+			if err := os.WriteFile(path, payload, 0600); err != nil {
+				t.Fatal(err)
+			}
+			before, err := os.Stat(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			called := false
+			if _, err := withVerifiedMigrationInput(path, func(chain.ConsensusMigrationState, string, string) ([]byte, error) {
+				called = true
+				return nil, nil
+			}); err == nil || !strings.Contains(err.Error(), "trailing JSON data") || called {
+				t.Fatalf("inspection preceded strict complete-input EOF: %v, called=%t", err, called)
+			}
+			assertMigrationFileUnchanged(t, path, payload, before)
+		})
+	}
+}
+
+func TestMigrationGenerationUsesStrictStreamedOriginalInput(t *testing.T) {
+	path, raw, migration := migrationSummaryFixture(t)
+	object := func(value []byte) map[string]json.RawMessage {
+		t.Helper()
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(value, &fields); err != nil || fields == nil {
+			t.Fatalf("fixture object unavailable: %v", err)
+		}
+		return fields
+	}
+	encode := func(value any) []byte {
+		t.Helper()
+		encoded, err := json.Marshal(value)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return encoded
+	}
+	withUnknown := func(value []byte) []byte {
+		fields := object(value)
+		fields["streamingUnexpected"] = json.RawMessage(`true`)
+		return encode(fields)
+	}
+	root := object(raw)
+	runtimeFields := object(root["runtime"])
+	var accounts, blocks []json.RawMessage
+	if err := json.Unmarshal(root["accounts"], &accounts); err != nil || len(accounts) == 0 {
+		t.Fatalf("fixture accounts unavailable: %v", err)
+	}
+	if err := json.Unmarshal(runtimeFields["blocks"], &blocks); err != nil || len(blocks) == 0 {
+		t.Fatalf("fixture blocks unavailable: %v", err)
+	}
+	payloads := map[string][]byte{"root": withUnknown(raw)}
+	root["runtime"] = withUnknown(root["runtime"])
+	payloads["runtime"] = encode(root)
+	root = object(raw)
+	accounts[0] = withUnknown(accounts[0])
+	root["accounts"] = encode(accounts)
+	payloads["account"] = encode(root)
+	root, runtimeFields = object(raw), object(object(raw)["runtime"])
+	blocks[0] = withUnknown(blocks[0])
+	runtimeFields["blocks"] = encode(blocks)
+	root["runtime"] = encode(runtimeFields)
+	payloads["block"] = encode(root)
+	payloads["state-hash"] = bytes.Replace(raw, []byte(migration.StateHash), []byte(strings.Repeat("0", len(migration.StateHash))), 1)
+	for name, payload := range payloads {
+		t.Run(name, func(t *testing.T) {
+			if bytes.Equal(payload, raw) {
+				t.Fatal("invalid-input regression did not change the real fixture")
+			}
+			if err := os.WriteFile(path, payload, 0600); err != nil {
+				t.Fatal(err)
+			}
+			before, err := os.Stat(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expectedError := "unknown field"
+			if name == "state-hash" {
+				expectedError = "validate migration state:"
+			}
+			if _, err := verifyMigrationStatePayload(payload); err == nil || !strings.Contains(err.Error(), expectedError) {
+				t.Fatalf("payload verifier lost the strict typed/full-validation failure: %v", err)
+			}
+			if _, err := verifyMigrationState(path); err == nil || !strings.Contains(err.Error(), expectedError) {
+				t.Fatalf("file verifier lost the strict typed/full-validation failure: %v", err)
+			}
+			generationRoot := canonicalPackageTempDir(t)
+			outputPath := filepath.Join(generationRoot, "must-not-create")
+			var output bytes.Buffer
+			err = runGeneration(path, filepath.Join(generationRoot, "missing-manifest.json"), "2026-10-26T00:00:00Z", outputPath, nil, "", &output)
+			if err == nil || !strings.Contains(err.Error(), expectedError) || output.Len() != 0 {
+				t.Fatalf("package generation reached manifest/output before strict source validation: %v", err)
+			}
+			if _, err := os.Lstat(outputPath); !os.IsNotExist(err) {
+				t.Fatalf("invalid migration created generation output: %v", err)
+			}
+			assertMigrationFileUnchanged(t, path, payload, before)
+		})
+	}
+}
+
 func TestMigrationPublicSummaryTimeLayoutsFailClosed(t *testing.T) {
 	type stamp struct{ Sec, Nsec int64 }
 	linux := struct{ Mtim, Ctim stamp }{stamp{71, 123456789}, stamp{72, 987654321}}

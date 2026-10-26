@@ -409,14 +409,12 @@ func replicationBatchIntegrity(batch replicationBatch) (string, error) {
 func replicationStateIntegrity(state devnetSnapshot) (string, error) {
 	state.Blocks = nil
 	state.StateIntegrity = ""
-	payload, err := json.Marshal(state)
-	if err != nil {
-		return "", fmt.Errorf("encode replication state integrity document: %w", err)
-	}
 	digest := sha256.New()
 	_, _ = digest.Write([]byte(replicationStateHashDomain))
 	_, _ = digest.Write([]byte{0})
-	_, _ = digest.Write(payload)
+	if err := writeCanonicalStateJSON(digest, state, false); err != nil {
+		return "", fmt.Errorf("encode replication state integrity document: %w", err)
+	}
 	return hex.EncodeToString(digest.Sum(nil)), nil
 }
 
@@ -435,15 +433,13 @@ func replicationApplicationStateIntegrity(state devnetSnapshot) (string, error) 
 		state.Validators[i].PeerEvidence = ""
 	}
 	state.StateIntegrity = ""
-	payload, err := json.Marshal(state)
-	if err != nil {
-		return "", fmt.Errorf("encode replication application state: %w", err)
-	}
 	digest := sha256.New()
 	_, _ = digest.Write([]byte(replicationStateHashDomain))
 	_, _ = digest.Write([]byte("/application"))
 	_, _ = digest.Write([]byte{0})
-	_, _ = digest.Write(payload)
+	if err := writeCanonicalStateJSON(digest, state, false); err != nil {
+		return "", fmt.Errorf("encode replication application state: %w", err)
+	}
 	return hex.EncodeToString(digest.Sum(nil)), nil
 }
 
@@ -716,12 +712,8 @@ func devnetSnapshotIntegrity(snapshot devnetSnapshot) (string, error) {
 	}
 	_, _ = digest.Write([]byte(domain))
 	_, _ = digest.Write([]byte{0})
-	stream := jsonBodyWriter{target: digest}
-	if err := json.NewEncoder(&stream).Encode(snapshot); err != nil {
+	if err := writeCanonicalStateJSON(digest, snapshot, false); err != nil {
 		return "", fmt.Errorf("encode devnet snapshot integrity document: %w", err)
-	}
-	if err := stream.Finish(); err != nil {
-		return "", fmt.Errorf("finish devnet snapshot integrity document: %w", err)
 	}
 	return hex.EncodeToString(digest.Sum(nil)), nil
 }
@@ -780,8 +772,12 @@ func (d *Devnet) snapshotLocked() devnetSnapshot {
 // The JSON round trip uses the typed snapshot schema, so amounts remain int64,
 // never float64. It also automatically covers newly added application fields.
 func (d *Devnet) detachedSnapshotLocked() (devnetSnapshot, error) {
-	source := d.snapshotLocked()
-	history := source.Blocks
+	return detachDevnetSnapshot(d.snapshotLocked())
+}
+
+// detachDevnetSnapshotMetadata retains the typed schema's nil/empty and custom
+// marshaler behavior without serializing any retained block history.
+func detachDevnetSnapshotMetadata(source devnetSnapshot) (devnetSnapshot, error) {
 	source.Blocks = nil
 	encoded, err := json.Marshal(source)
 	if err != nil {
@@ -790,6 +786,15 @@ func (d *Devnet) detachedSnapshotLocked() (devnetSnapshot, error) {
 	var detached devnetSnapshot
 	if err := json.Unmarshal(encoded, &detached); err != nil {
 		return devnetSnapshot{}, fmt.Errorf("decode detached checkpoint state: %w", err)
+	}
+	return detached, nil
+}
+
+func detachDevnetSnapshot(source devnetSnapshot) (devnetSnapshot, error) {
+	history := source.Blocks
+	detached, err := detachDevnetSnapshotMetadata(source)
+	if err != nil {
+		return devnetSnapshot{}, err
 	}
 	if history != nil {
 		detached.Blocks = make([]Block, len(history))

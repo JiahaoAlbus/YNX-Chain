@@ -234,28 +234,19 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 }
 
 func verifyMigrationState(path string) (chain.ConsensusMigrationState, error) {
-	payload, err := os.ReadFile(path)
+	var migration chain.ConsensusMigrationState
+	_, err := withVerifiedMigrationInput(path, func(verified chain.ConsensusMigrationState, _, _ string) ([]byte, error) {
+		migration = verified
+		return nil, nil
+	})
 	if err != nil {
-		return chain.ConsensusMigrationState{}, fmt.Errorf("read migration state: %w", err)
+		return chain.ConsensusMigrationState{}, err
 	}
-	return verifyMigrationStatePayload(payload)
+	return migration, nil
 }
 
 func verifyMigrationStatePayload(payload []byte) (chain.ConsensusMigrationState, error) {
-	decoder := json.NewDecoder(bytes.NewReader(payload))
-	decoder.DisallowUnknownFields()
-	var migration chain.ConsensusMigrationState
-	if err := decoder.Decode(&migration); err != nil {
-		return chain.ConsensusMigrationState{}, fmt.Errorf("decode migration state: %w", err)
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
-		return chain.ConsensusMigrationState{}, errors.New("migration state contains trailing JSON data")
-	}
-	if err := migration.Validate(); err != nil {
-		return chain.ConsensusMigrationState{}, fmt.Errorf("validate migration state: %w", err)
-	}
-	return migration, nil
+	return chain.ReadConsensusMigrationState(bytes.NewReader(payload))
 }
 
 // This checks the preserved source's actual executor compatibility manifest.
@@ -286,13 +277,9 @@ func runGeneration(migrationPath, validatorManifestPath, genesisTimeValue, outpu
 			return fmt.Errorf("%s is required", label)
 		}
 	}
-	migrationPayload, err := os.ReadFile(migrationPath)
+	migration, err := verifyMigrationState(migrationPath)
 	if err != nil {
-		return fmt.Errorf("read migration state: %w", err)
-	}
-	var migration chain.ConsensusMigrationState
-	if err := json.Unmarshal(migrationPayload, &migration); err != nil {
-		return fmt.Errorf("decode migration state: %w", err)
+		return err
 	}
 	manifestPayload, err := os.ReadFile(validatorManifestPath)
 	if err != nil {

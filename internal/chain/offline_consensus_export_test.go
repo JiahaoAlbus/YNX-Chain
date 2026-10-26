@@ -219,7 +219,8 @@ func TestOfflineConsensusFileDetectsReplacementAndNewMarker(t *testing.T) {
 	pqMust(t, os.WriteFile(path, []byte("original"), 0o600))
 	source, err := readOfflineConsensusFile(path, false)
 	pqMust(t, err)
-	pqMust(t, os.WriteFile(path+".new", source.data, 0o600))
+	defer source.close()
+	pqMust(t, os.WriteFile(path+".new", []byte("original"), 0o600))
 	pqMust(t, os.Chtimes(path+".new", source.info.ModTime(), source.info.ModTime()))
 	pqMust(t, os.Rename(path+".new", path))
 	if err := source.unchanged(); err == nil {
@@ -240,10 +241,11 @@ func TestOfflineConsensusFileDetectsSameInodeContentChange(t *testing.T) {
 			pqMust(t, os.WriteFile(path, bytes.Repeat([]byte{0x5a}, (64<<10)+17), 0o600))
 			source, err := readOfflineConsensusFile(path, false)
 			pqMust(t, err)
+			defer source.close()
 			pqMust(t, source.unchanged())
 			file, err := os.OpenFile(path, os.O_WRONLY, 0)
 			pqMust(t, err)
-			_, writeErr := file.WriteAt([]byte{source.data[offset] ^ 1}, int64(offset))
+			_, writeErr := file.WriteAt([]byte{0x5a ^ 1}, int64(offset))
 			closeErr := file.Close()
 			pqMust(t, writeErr)
 			pqMust(t, closeErr)
@@ -251,8 +253,11 @@ func TestOfflineConsensusFileDetectsSameInodeContentChange(t *testing.T) {
 			current, err := os.Stat(path)
 			pqMust(t, err)
 			if !sameOfflineConsensusFile(source.info, current) {
-				t.Fatal("fixture must retain inode, size, mtime and mode so only the byte comparison detects corruption")
+				t.Fatal("fixture must retain inode, size, mtime and mode")
 			}
+			// Model an unobservable/restored metadata change. Even when the full
+			// identity witness agrees, the held-FD whole digest must still refuse.
+			source.info = current
 			before := captureOfflineConsensusSource(t, filepath.Dir(path))
 			if err := source.unchanged(); err == nil {
 				t.Fatal("same-inode byte mutation with restored metadata was not detected")
@@ -276,14 +281,21 @@ func writeOfflineConsensusFixture(t *testing.T, path string, snapshot devnetSnap
 
 type offlineConsensusSourceCapture struct {
 	dir   string
-	files map[string]offlineConsensusFile
+	files map[string]offlineConsensusCapturedFile
+}
+
+// Only tests retain original small fixture bytes. The production descriptor
+// retains a held read-only FD and SHA256, never a checkpoint-sized byte slice.
+type offlineConsensusCapturedFile struct {
+	info os.FileInfo
+	data []byte
 }
 
 func captureOfflineConsensusSource(t *testing.T, dir string) offlineConsensusSourceCapture {
 	t.Helper()
 	entries, err := os.ReadDir(dir)
 	pqMust(t, err)
-	before := offlineConsensusSourceCapture{dir: dir, files: make(map[string]offlineConsensusFile)}
+	before := offlineConsensusSourceCapture{dir: dir, files: make(map[string]offlineConsensusCapturedFile)}
 	for _, entry := range entries {
 		path := filepath.Join(dir, entry.Name())
 		info, err := os.Lstat(path)
@@ -297,7 +309,7 @@ func captureOfflineConsensusSource(t *testing.T, dir string) offlineConsensusSou
 			wire, err = os.ReadFile(path)
 			pqMust(t, err)
 		}
-		before.files[entry.Name()] = offlineConsensusFile{path: path, info: info, data: wire}
+		before.files[entry.Name()] = offlineConsensusCapturedFile{info: info, data: wire}
 	}
 	return before
 }
@@ -310,8 +322,8 @@ func (before offlineConsensusSourceCapture) assertUnchanged(t *testing.T) {
 	}
 	for name, original := range before.files {
 		current, ok := after.files[name]
-		if !ok || !sameOfflineConsensusFile(original.info, current.info) || !bytes.Equal(original.data, current.data) {
-			t.Fatalf("offline export changed source bytes/inode/mtime/mode: %s", name)
+		if !ok || !sameOfflineConsensusIdentity(original.info, current.info) || !bytes.Equal(original.data, current.data) {
+			t.Fatalf("offline export changed source bytes/inode/mtime/ctime/mode/owner/link count: %s", name)
 		}
 	}
 }

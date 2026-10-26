@@ -279,75 +279,126 @@ func validateConsensusExportDestination(dataDir, destination string) error {
 }
 
 func writeConsensusStateExport(state chain.ConsensusMigrationState, destination string, out io.Writer, syncDirectory func(string) error) error {
-	payload, err := state.CanonicalJSON()
-	if err != nil {
-		return fmt.Errorf("encode consensus migration state: %w", err)
+	return writeConsensusStateExportWithEncoder(state, destination, out, syncDirectory, state.WriteCanonicalJSON)
+}
+
+type consensusExportWriteFunc func([]byte) (int, error)
+
+func (write consensusExportWriteFunc) Write(p []byte) (int, error) { return write(p) }
+
+// The normal caller supplies only WriteCanonicalJSON. This private seam lets
+// failure tests distinguish an encoding refusal before the first Write from
+// an uncertain export after output has begun, without another full Validate.
+func writeConsensusStateExportWithEncoder(state chain.ConsensusMigrationState, destination string, out io.Writer, syncDirectory func(string) error, encode func(io.Writer) error) error {
+	stdout := destination == "-"
+	var file *os.File
+	var directory string
+	var createdParents []string
+	var writeErr error
+	defer func() {
+		if file != nil {
+			_ = file.Close()
+		}
+	}()
+	open := func() error {
+		if strings.TrimSpace(destination) == "" {
+			return errors.New("consensus export destination is required")
+		}
+		destination = filepath.Clean(destination)
+		// A leftover from the previous temp/rename exporter is also an unresolved
+		// result, not permission to overwrite or discard it.
+		if _, err := os.Lstat(destination + ".tmp"); !errors.Is(err, os.ErrNotExist) {
+			if err != nil {
+				return err
+			}
+			return fmt.Errorf("consensus export has an unresolved target: %s.tmp", destination)
+		}
+		directory = filepath.Dir(destination)
+		for candidate := directory; ; candidate = filepath.Dir(candidate) {
+			if _, err := os.Stat(candidate); err == nil {
+				break
+			} else if !errors.Is(err, os.ErrNotExist) {
+				return err
+			}
+			parent := filepath.Dir(candidate)
+			if parent == candidate {
+				return errors.New("consensus export has no existing parent directory")
+			}
+			createdParents = append(createdParents, parent)
+		}
+		if err := os.MkdirAll(directory, 0o700); err != nil {
+			return fmt.Errorf("create consensus export directory: %w", err)
+		}
+		var err error
+		file, err = os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+		if err != nil {
+			return fmt.Errorf("create exclusive consensus export: %w", err)
+		}
+		return nil
 	}
-	payload = append(payload, '\n')
-	if destination == "-" {
-		n, err := out.Write(payload)
-		if err == nil && n != len(payload) {
+	writer := consensusExportWriteFunc(func(p []byte) (int, error) {
+		if writeErr != nil {
+			return 0, writeErr
+		}
+		if len(p) == 0 {
+			return 0, nil
+		}
+		var target io.Writer = out
+		if !stdout {
+			// Validate and pre-write encoding checks run inside the original
+			// encoder before this creates any output file or parent directory.
+			if file == nil {
+				if writeErr = open(); writeErr != nil {
+					return 0, writeErr
+				}
+			}
+			target = file
+		}
+		n, err := target.Write(p)
+		if err == nil && n != len(p) {
 			err = io.ErrShortWrite
 		}
-		return err
-	}
-	if strings.TrimSpace(destination) == "" {
-		return errors.New("consensus export destination is required")
-	}
-	destination = filepath.Clean(destination)
-	// A leftover from the previous temp/rename exporter is also an unresolved
-	// result, not permission to overwrite or discard it.
-	if _, err := os.Lstat(destination + ".tmp"); !errors.Is(err, os.ErrNotExist) {
-		if err != nil {
+		writeErr = err
+		return n, err
+	})
+	failed := func(err error) error {
+		if writeErr != nil {
+			err = writeErr // Preserve the first original sink failure.
+		}
+		if file != nil {
+			return fmt.Errorf("%w: path=%s: %w", errConsensusExportUncertain, destination, err)
+		}
+		if writeErr != nil {
 			return err
 		}
-		return fmt.Errorf("consensus export has an unresolved target: %s.tmp", destination)
+		return fmt.Errorf("encode consensus migration state: %w", err)
 	}
-	directory := filepath.Dir(destination)
-	var createdParents []string
-	for candidate := directory; ; candidate = filepath.Dir(candidate) {
-		if _, err := os.Stat(candidate); err == nil {
-			break
-		} else if !errors.Is(err, os.ErrNotExist) {
-			return err
-		}
-		parent := filepath.Dir(candidate)
-		if parent == candidate {
-			return errors.New("consensus export has no existing parent directory")
-		}
-		createdParents = append(createdParents, parent)
+	if err := encode(writer); err != nil {
+		return failed(err)
 	}
-	if err := os.MkdirAll(directory, 0o700); err != nil {
-		return fmt.Errorf("create consensus export directory: %w", err)
+	if _, err := writer.Write([]byte{'\n'}); err != nil {
+		return failed(err)
 	}
-	file, err := os.OpenFile(destination, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
-	if err != nil {
-		return fmt.Errorf("create exclusive consensus export: %w", err)
-	}
-	defer file.Close()
-	uncertain := func(err error) error {
-		return fmt.Errorf("%w: path=%s: %w", errConsensusExportUncertain, destination, err)
-	}
-	n, err := file.Write(payload)
-	if err == nil && n != len(payload) {
-		err = io.ErrShortWrite
-	}
-	if err != nil {
-		return uncertain(err)
+	if stdout {
+		return nil
 	}
 	if err := file.Sync(); err != nil {
-		return uncertain(err)
+		return failed(err)
 	}
 	if err := file.Close(); err != nil {
-		return uncertain(err)
+		return failed(err)
 	}
 	// Include newly-created ancestor entries, not just the final file's parent.
 	for _, path := range append([]string{directory}, createdParents...) {
 		if err := syncDirectory(path); err != nil {
-			return uncertain(err)
+			return failed(err)
 		}
 	}
-	_, err = fmt.Fprintf(out, "consensus migration state exported: path=%s height=%d accounts=%d validators=%d stateHash=%s\n", destination, state.Height, len(state.Accounts), len(state.Validators), state.StateHash)
+	message := fmt.Sprintf("consensus migration state exported: path=%s height=%d accounts=%d validators=%d stateHash=%s\n", destination, state.Height, len(state.Accounts), len(state.Validators), state.StateHash)
+	n, err := io.WriteString(out, message)
+	if err == nil && n != len(message) {
+		err = io.ErrShortWrite
+	}
 	if err != nil {
 		return fmt.Errorf("consensus export is durable at %s but reporting failed: %w", destination, err)
 	}

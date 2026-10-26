@@ -223,6 +223,160 @@ type shortConsensusExportWriter struct{}
 
 func (shortConsensusExportWriter) Write(p []byte) (int, error) { return len(p) - 1, nil }
 
+func TestConsensusExportStreamingMatchesOriginalIndentedJSONAndFinalNewline(t *testing.T) {
+	dir, _ := persistedConsensusExportFixture(t)
+	state, err := chain.ExportConsensusMigrationCheckpoint(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Independent old-format oracle: do not compare two calls to the new encoder.
+	expected, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected = append(expected, '\n')
+	var stdout bytes.Buffer
+	if err = writeConsensusStateExport(state, "-", &stdout, syncConsensusExportDirectory); err != nil || !bytes.Equal(stdout.Bytes(), expected) {
+		t.Fatal("streamed stdout changed original JSON bytes or terminal newline", err)
+	}
+	target := filepath.Join(t.TempDir(), "new-parent", "migration.json")
+	var receipt bytes.Buffer
+	if err = writeConsensusStateExport(state, target, &receipt, syncConsensusExportDirectory); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(target)
+	if err != nil || !bytes.Equal(raw, expected) {
+		t.Fatal("streamed file differs from original indented JSON", err)
+	}
+	for path, mode := range map[string]os.FileMode{target: 0o600, filepath.Dir(target): 0o700} {
+		info, err := os.Stat(path)
+		if err != nil || info.Mode().Perm() != mode {
+			t.Fatal("streamed export changed original private permissions", path, err)
+		}
+	}
+	if !strings.Contains(receipt.String(), "consensus migration state exported: path="+target) {
+		t.Fatal("streaming lost the original success receipt")
+	}
+}
+
+func TestConsensusExportValidationAndEncodingRefusalDoNotCreateOutput(t *testing.T) {
+	dir, _ := persistedConsensusExportFixture(t)
+	state, err := chain.ExportConsensusMigrationCheckpoint(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := t.TempDir()
+	target := filepath.Join(base, "absent-parent", "migration.json")
+	var receipt bytes.Buffer
+	bad := state
+	bad.StateHash = strings.Repeat("0", 64)
+	if err = writeConsensusStateExport(bad, target, &receipt, syncConsensusExportDirectory); err == nil || errors.Is(err, errConsensusExportUncertain) {
+		t.Fatal("invalid migration became an entered export", err)
+	}
+	if _, err = os.Lstat(filepath.Dir(target)); !errors.Is(err, os.ErrNotExist) || receipt.Len() != 0 {
+		t.Fatal("validation failure created output or a parent", err)
+	}
+	injected := errors.New("pre-write encoding refusal")
+	calls := 0
+	err = writeConsensusStateExportWithEncoder(state, target, &receipt, syncConsensusExportDirectory, func(io.Writer) error {
+		calls++
+		return injected
+	})
+	if !errors.Is(err, injected) || errors.Is(err, errConsensusExportUncertain) || calls != 1 {
+		t.Fatal("pre-write encoding failure changed first cause or repeated encoding", err, calls)
+	}
+	if _, err = os.Lstat(filepath.Dir(target)); !errors.Is(err, os.ErrNotExist) || receipt.Len() != 0 {
+		t.Fatal("pre-write encoding failure created output or a parent", err)
+	}
+	var output bytes.Buffer
+	if err = writeConsensusStateExport(bad, "-", &output, syncConsensusExportDirectory); err == nil || output.Len() != 0 {
+		t.Fatal("validation failure wrote a partial stdout document", err)
+	}
+}
+
+// A real writer which preserves the accepted prefix and then fails. Its limit
+// can end inside canonical JSON or exactly before the export's final newline.
+type partialConsensusExportWriter struct {
+	target    io.Writer
+	remaining int
+	failure   error
+}
+
+func (w *partialConsensusExportWriter) Write(p []byte) (int, error) {
+	if len(p) <= w.remaining {
+		n, err := w.target.Write(p)
+		w.remaining -= n
+		return n, err
+	}
+	n, err := w.target.Write(p[:w.remaining])
+	w.remaining -= n
+	if err != nil {
+		return n, err
+	}
+	return n, w.failure
+}
+
+func TestConsensusExportStreamingStdoutPreservesPartialAndRejectsShortWrite(t *testing.T) {
+	dir, expected := persistedConsensusExportFixture(t)
+	state, err := chain.ExportConsensusMigrationCheckpoint(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, limit := range []int{0, 17, len(expected) - 1} {
+		var prefix bytes.Buffer
+		writer := &partialConsensusExportWriter{target: &prefix, remaining: limit}
+		err = writeConsensusStateExport(state, "-", writer, syncConsensusExportDirectory)
+		if !errors.Is(err, io.ErrShortWrite) || !bytes.Equal(prefix.Bytes(), expected[:limit]) {
+			t.Fatal("short stdout write was accepted or lost its original prefix", limit, err)
+		}
+	}
+}
+
+func TestConsensusExportStreamingFileFailureRetainsUnknownAndRejectsRetry(t *testing.T) {
+	dir, expected := persistedConsensusExportFixture(t)
+	state, err := chain.ExportConsensusMigrationCheckpoint(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(t.TempDir(), "new", "migration.json")
+	injected := errors.New("injected streaming sink failure")
+	var receipt bytes.Buffer
+	calls := 0
+	err = writeConsensusStateExportWithEncoder(state, target, &receipt, syncConsensusExportDirectory, func(out io.Writer) error {
+		calls++
+		return state.WriteCanonicalJSON(&partialConsensusExportWriter{target: out, remaining: 17, failure: injected})
+	})
+	if !errors.Is(err, errConsensusExportUncertain) || !errors.Is(err, injected) || calls != 1 || receipt.Len() != 0 {
+		t.Fatal("partial file lost UNKNOWN/original first cause or emitted success", err, calls)
+	}
+	prefix, err := os.ReadFile(target)
+	if err != nil || !bytes.Equal(prefix, expected[:17]) {
+		t.Fatal("streaming failure discarded or changed original partial file", err)
+	}
+	before := captureConsensusExportFiles(t, filepath.Dir(target))
+	if err = writeConsensusStateExport(state, target, io.Discard, syncConsensusExportDirectory); !errors.Is(err, os.ErrExist) {
+		t.Fatal("partial streaming export was overwritten on retry", err)
+	}
+	assertConsensusExportFilesUnchanged(t, filepath.Dir(target), before)
+}
+
+func TestConsensusExportStreamingDurableFileSurvivesShortReceiptWrite(t *testing.T) {
+	dir, expected := persistedConsensusExportFixture(t)
+	state, err := chain.ExportConsensusMigrationCheckpoint(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(t.TempDir(), "migration.json")
+	err = writeConsensusStateExport(state, target, shortConsensusExportWriter{}, syncConsensusExportDirectory)
+	if !errors.Is(err, io.ErrShortWrite) || errors.Is(err, errConsensusExportUncertain) || !strings.Contains(err.Error(), "but reporting failed") {
+		t.Fatal("short receipt write changed the durable-file outcome", err)
+	}
+	raw, err := os.ReadFile(target)
+	if err != nil || !bytes.Equal(raw, expected) {
+		t.Fatal("short receipt write lost durable canonical file", err)
+	}
+}
+
 func persistedConsensusExportFixture(t *testing.T) (string, []byte) {
 	t.Helper()
 	dir := t.TempDir()

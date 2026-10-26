@@ -1,13 +1,13 @@
 package chain
 
 import (
-	"bytes"
-	"encoding/json"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 )
 
 // ExportConsensusMigrationCheckpoint reads an existing, quiescent native
@@ -20,57 +20,81 @@ import (
 // but cannot turn a self-sealed file into an independent trusted checkpoint or
 // recover an earlier process's unrecorded fsync outcome. Incomplete marker/temp
 // artifacts are retained and refused, not repaired by this read-only operation.
-func ExportConsensusMigrationCheckpoint(dataDir string) (ConsensusMigrationState, error) {
+func ExportConsensusMigrationCheckpoint(dataDir string) (state ConsensusMigrationState, resultErr error) {
 	if dataDir == "" {
-		return ConsensusMigrationState{}, errors.New("offline consensus export requires an existing data directory")
+		return state, errors.New("offline consensus export requires an existing data directory")
 	}
 	snapshotPath := filepath.Join(dataDir, "devnet-state.json")
 	markerPath := filepath.Join(dataDir, "devnet-state.integrity-version")
 	if err := rejectOfflineConsensusTemps(snapshotPath, markerPath); err != nil {
-		return ConsensusMigrationState{}, err
+		return state, err
 	}
-	original, err := readOfflineConsensusFile(snapshotPath, false)
+	original, err := openOfflineConsensusFile(snapshotPath, false)
 	if err != nil {
-		return ConsensusMigrationState{}, err
+		return state, err
 	}
+	defer func() {
+		if err := original.close(); err != nil {
+			state = ConsensusMigrationState{}
+			resultErr = errors.Join(resultErr, err)
+		}
+	}()
 	marker, err := readOfflineConsensusFile(markerPath, true)
 	if err != nil {
-		return ConsensusMigrationState{}, err
+		return state, err
 	}
-	var snapshot devnetSnapshot
-	decoder := json.NewDecoder(bytes.NewReader(original.data))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&snapshot); err != nil {
-		return ConsensusMigrationState{}, fmt.Errorf("decode offline checkpoint: %w", err)
+	defer func() {
+		if err := marker.close(); err != nil {
+			state = ConsensusMigrationState{}
+			resultErr = errors.Join(resultErr, err)
+		}
+	}()
+
+	// Hash the bytes consumed by the typed streaming decoder on the original
+	// held descriptor. There is no checkpoint-sized raw buffer or root Decode.
+	digest := sha256.New()
+	snapshot, err := decodeOfflineConsensusSnapshot(io.TeeReader(original.file, digest))
+	if err != nil {
+		return state, fmt.Errorf("decode offline checkpoint: %w", err)
 	}
-	var trailing any
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		return ConsensusMigrationState{}, errors.New("offline checkpoint must contain exactly one JSON document")
+	position, err := original.file.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return state, err
 	}
+	if position != original.info.Size() {
+		return state, errors.New("offline checkpoint changed while decoding")
+	}
+	if err := original.checkIdentity(); err != nil {
+		return state, err
+	}
+	copy(original.fingerprint[:], digest.Sum(nil))
+	original.fingerprinted = true
+
 	switch snapshot.Version {
 	case legacyDevnetSnapshotVersion:
 		if marker.info != nil {
-			return ConsensusMigrationState{}, errors.New("legacy checkpoint cannot follow an integrity-version marker")
+			return state, errors.New("legacy checkpoint cannot follow an integrity-version marker")
 		}
 	case devnetSnapshotVersion, pqDevnetSnapshotVersion:
-		if marker.info == nil || string(marker.data) != fmt.Sprintf("%d\n", snapshot.Version) {
-			return ConsensusMigrationState{}, errors.New("offline checkpoint requires its exact committed integrity-version marker")
+		if marker.info == nil {
+			return state, errors.New("offline checkpoint requires its exact committed integrity-version marker")
+		}
+		if err := marker.matchMarker(fmt.Sprintf("%d\n", snapshot.Version)); err != nil {
+			return state, err
 		}
 	default:
-		return ConsensusMigrationState{}, fmt.Errorf("unsupported offline checkpoint version %d", snapshot.Version)
+		return state, fmt.Errorf("unsupported offline checkpoint version %d", snapshot.Version)
 	}
 	if err := validateReplicationSnapshot(snapshot, snapshot.Config); err != nil {
-		return ConsensusMigrationState{}, fmt.Errorf("validate offline checkpoint: %w", err)
+		return state, fmt.Errorf("validate offline checkpoint: %w", err)
 	}
-	// Do not use NewDevnet/applySnapshotLocked/ensureStateDefaults: they can
-	// generate genesis, inject accounts or normalize validator authority. This
-	// private view carries only decoded source fields and has no persistence path.
-	view := offlineConsensusView(snapshot)
-	state, err := view.ExportConsensusMigrationState()
+	// The decoder owns all fields and validation is complete. Transfer that
+	// ownership to the existing V2 exporter instead of cloning a live Devnet.
+	state, err = exportOwnedConsensusMigrationSnapshot(snapshot)
 	if err != nil {
 		return ConsensusMigrationState{}, err
 	}
-	for _, source := range []offlineConsensusFile{original, marker} {
+	for _, source := range []*offlineConsensusFile{&original, &marker} {
 		if err := source.unchanged(); err != nil {
 			return ConsensusMigrationState{}, err
 		}
@@ -78,16 +102,23 @@ func ExportConsensusMigrationCheckpoint(dataDir string) (ConsensusMigrationState
 	if err := rejectOfflineConsensusTemps(snapshotPath, markerPath); err != nil {
 		return ConsensusMigrationState{}, err
 	}
+	for _, source := range []*offlineConsensusFile{&original, &marker} {
+		if err := source.checkIdentity(); err != nil {
+			return ConsensusMigrationState{}, err
+		}
+	}
 	return state, nil
 }
 
 type offlineConsensusFile struct {
-	path string
-	info os.FileInfo
-	data []byte
+	path          string
+	info          os.FileInfo
+	file          *os.File
+	fingerprint   [sha256.Size]byte
+	fingerprinted bool
 }
 
-func readOfflineConsensusFile(path string, optional bool) (offlineConsensusFile, error) {
+func openOfflineConsensusFile(path string, optional bool) (offlineConsensusFile, error) {
 	source := offlineConsensusFile{path: path}
 	info, err := os.Lstat(path)
 	if optional && errors.Is(err, os.ErrNotExist) {
@@ -103,26 +134,25 @@ func readOfflineConsensusFile(path string, optional bool) (offlineConsensusFile,
 	if err != nil {
 		return source, err
 	}
-	defer file.Close()
-	opened, err := file.Stat()
-	if err != nil {
+	source.info, source.file = info, file
+	if err := source.checkIdentity(); err != nil {
+		return offlineConsensusFile{path: path}, errors.Join(err, file.Close())
+	}
+	return source, nil
+}
+
+// The small marker and file-identity tests use the same fixed-buffer digest
+// path. The large snapshot instead fingerprints during its streaming decode.
+func readOfflineConsensusFile(path string, optional bool) (offlineConsensusFile, error) {
+	source, err := openOfflineConsensusFile(path, optional)
+	if err != nil || source.file == nil {
 		return source, err
 	}
-	if !os.SameFile(info, opened) || !opened.Mode().IsRegular() {
-		return source, errors.New("offline checkpoint changed while opening")
-	}
-	source.data, err = io.ReadAll(file)
+	fingerprint, err := source.hashHeldFile()
 	if err != nil {
-		return source, err
+		return offlineConsensusFile{path: path}, errors.Join(err, source.close())
 	}
-	after, err := file.Stat()
-	if err != nil {
-		return source, err
-	}
-	if !sameOfflineConsensusFile(opened, after) || int64(len(source.data)) != after.Size() {
-		return source, errors.New("offline checkpoint changed while reading")
-	}
-	source.info = after
+	source.fingerprint, source.fingerprinted = fingerprint, true
 	return source, nil
 }
 
@@ -130,64 +160,128 @@ func sameOfflineConsensusFile(a, b os.FileInfo) bool {
 	return os.SameFile(a, b) && a.Size() == b.Size() && a.ModTime().Equal(b.ModTime()) && a.Mode() == b.Mode()
 }
 
-func (source offlineConsensusFile) unchanged() error {
+func sameOfflineConsensusIdentity(a, b os.FileInfo) bool {
+	if !sameOfflineConsensusFile(a, b) {
+		return false
+	}
+	// Sys differs across supported GOOSes. Compare the available Unix owner,
+	// link and change-time fields without coupling this reader to syscall.Stat_t.
+	// Access time is deliberately excluded: our own read may update it.
+	x, y := reflect.Indirect(reflect.ValueOf(a.Sys())), reflect.Indirect(reflect.ValueOf(b.Sys()))
+	if !x.IsValid() || !y.IsValid() || x.Type() != y.Type() {
+		return !x.IsValid() && !y.IsValid()
+	}
+	if x.Kind() != reflect.Struct {
+		return reflect.DeepEqual(a.Sys(), b.Sys())
+	}
+	for _, name := range []string{"Uid", "Gid", "Nlink", "Ctim", "Ctimespec"} {
+		left, right := x.FieldByName(name), y.FieldByName(name)
+		if left.IsValid() != right.IsValid() || left.IsValid() && !reflect.DeepEqual(left.Interface(), right.Interface()) {
+			return false
+		}
+	}
+	return true
+}
+
+func (source offlineConsensusFile) checkIdentity() error {
 	changed := fmt.Errorf("offline checkpoint changed during export: %s", source.path)
-	info, err := os.Lstat(source.path)
-	if source.info == nil && errors.Is(err, os.ErrNotExist) {
+	pathInfo, err := os.Lstat(source.path)
+	if source.info == nil && source.file == nil && errors.Is(err, os.ErrNotExist) {
 		return nil
 	}
 	if err != nil {
 		return err
 	}
-	if source.info == nil || !info.Mode().IsRegular() || !sameOfflineConsensusFile(source.info, info) {
+	if source.info == nil || source.file == nil || !pathInfo.Mode().IsRegular() || !sameOfflineConsensusIdentity(source.info, pathInfo) {
 		return changed
 	}
-	file, err := os.Open(source.path)
+	fdInfo, err := source.file.Stat()
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-	opened, err := file.Stat()
-	if err != nil {
-		return err
-	}
-	if !opened.Mode().IsRegular() || !sameOfflineConsensusFile(info, opened) {
+	if !fdInfo.Mode().IsRegular() || !sameOfflineConsensusIdentity(source.info, fdInfo) {
 		return changed
 	}
-	// The original bytes are already retained for decoding. Compare this second
-	// read through a fixed buffer instead of allocating another checkpoint-sized
-	// byte slice. Initial loading/JSON parsing and V2 export still allocate.
+	return nil
+}
+
+func (source offlineConsensusFile) hashHeldFile() ([sha256.Size]byte, error) {
+	var result [sha256.Size]byte
+	if err := source.checkIdentity(); err != nil {
+		return result, err
+	}
+	if _, err := source.file.Seek(0, io.SeekStart); err != nil {
+		return result, err
+	}
+	digest := sha256.New()
 	var buffer [64 << 10]byte
-	offset := 0
+	var count int64
 	for {
-		n, readErr := file.Read(buffer[:])
-		if n > len(source.data)-offset || !bytes.Equal(buffer[:n], source.data[offset:offset+n]) {
-			return changed
+		n, err := source.file.Read(buffer[:])
+		if n > 0 {
+			_, _ = digest.Write(buffer[:n])
+			count += int64(n)
 		}
-		offset += n
-		if readErr == io.EOF {
-			if offset != len(source.data) {
-				return changed
-			}
+		if err == io.EOF {
 			break
 		}
-		if readErr != nil {
-			return readErr
+		if err != nil {
+			return result, err
 		}
 		if n == 0 {
-			return io.ErrNoProgress
+			return result, io.ErrNoProgress
 		}
 	}
-	after, err := file.Stat()
+	if count != source.info.Size() {
+		return result, errors.New("offline checkpoint size changed while hashing")
+	}
+	if err := source.checkIdentity(); err != nil {
+		return result, err
+	}
+	copy(result[:], digest.Sum(nil))
+	return result, nil
+}
+
+func (source offlineConsensusFile) unchanged() error {
+	if source.info == nil {
+		return source.checkIdentity()
+	}
+	if !source.fingerprinted {
+		return errors.New("offline checkpoint has no original fingerprint")
+	}
+	actual, err := source.hashHeldFile()
 	if err != nil {
 		return err
 	}
-	finalPath, err := os.Lstat(source.path)
-	if err != nil {
+	if actual != source.fingerprint {
+		return fmt.Errorf("offline checkpoint bytes changed during export: %s", source.path)
+	}
+	return nil
+}
+
+func (source offlineConsensusFile) matchMarker(expected string) error {
+	if err := source.checkIdentity(); err != nil {
 		return err
 	}
-	if !sameOfflineConsensusFile(opened, after) || !finalPath.Mode().IsRegular() || !sameOfflineConsensusFile(after, finalPath) {
-		return changed
+	if source.info.Size() != int64(len(expected)) {
+		return errors.New("offline checkpoint requires its exact committed integrity-version marker")
+	}
+	if _, err := source.file.Seek(0, io.SeekStart); err != nil {
+		return err
+	}
+	actual := make([]byte, len(expected))
+	if _, err := io.ReadFull(source.file, actual); err != nil {
+		return err
+	}
+	if string(actual) != expected {
+		return errors.New("offline checkpoint requires its exact committed integrity-version marker")
+	}
+	return source.checkIdentity()
+}
+
+func (source offlineConsensusFile) close() error {
+	if source.file != nil {
+		return source.file.Close()
 	}
 	return nil
 }
@@ -202,21 +296,4 @@ func rejectOfflineConsensusTemps(paths ...string) error {
 		}
 	}
 	return nil
-}
-
-func offlineConsensusView(s devnetSnapshot) *Devnet {
-	return &Devnet{
-		pqBatches: s.PQBatches, accountPolicy: s.AccountPolicy,
-		cfg: s.Config, blocks: s.Blocks, pending: s.Pending, accounts: s.Accounts,
-		validators: s.Validators, validatorPeers: s.Peers, validatorPeerSyncs: s.PeerSyncs,
-		lots: s.Lots, payIntents: s.PayIntents, invoices: s.Invoices, refunds: s.Refunds,
-		paySettlements: s.PaySettlements, webhookSignatures: s.Webhooks, payEvents: s.PayEvents,
-		riskLabels: s.RiskLabels, evidencePackets: s.Evidence, governanceRequests: s.Governance,
-		trustAppeals: s.Appeals, trackingReviews: s.Tracking, aiPermissions: s.AIPerms,
-		aiActions: s.AIActions, transparencyEntries: s.Transp,
-		resourceDelegations: s.Delegation, resourceRentals: s.Rentals, resourceIncome: s.Income,
-		resourcePolicy: s.Policy, resourcePools: s.Pools, resourceSponsorships: s.Sponsors,
-		resourceSponsorIdem: s.SponsorIDs, resourceActionRefs: s.ActionRefs, resourceSponsorAudit: s.SponsorLog,
-		contracts: s.Contracts, dexAssets: s.DexAssets, dexBalances: s.DexBalances, dexPools: s.DexPools, dexEvents: s.DexEvents,
-	}
 }

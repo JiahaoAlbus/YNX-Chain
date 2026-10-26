@@ -105,25 +105,25 @@ func withVerifiedMigrationInput(path string, inspect func(chain.ConsensusMigrati
 	if err = check(); err != nil {
 		return nil, err
 	}
-	raw, err := io.ReadAll(io.LimitReader(f, migrationPublicSummaryMaximum+1))
-	if err != nil || int64(len(raw)) != before.Size || len(raw) > migrationPublicSummaryMaximum {
-		return nil, errors.New("original migration changed or exceeded its existing read bound")
-	}
+	// The chain reader decodes the closed root/runtime fields and individual
+	// blocks without retaining a second complete raw JSON document. Its strict
+	// single-document EOF check also hashes every original whitespace byte.
+	limited := &io.LimitedReader{R: f, N: migrationPublicSummaryMaximum + 1}
+	digest := sha256.New()
+	migration, decodeErr := chain.ReadConsensusMigrationState(io.TeeReader(limited, digest))
 	if err = check(); err != nil {
 		return nil, err
 	}
-	// This is the identical decoder -> ConsensusMigrationState.Validate path
-	// used by ordinary -verify-migration-state, not validation of a summary.
-	migration, err := verifyMigrationStatePayload(raw)
-	if err != nil {
-		return nil, err
+	if decodeErr != nil {
+		return nil, decodeErr
 	}
-	digest := sha256.Sum256(raw)
-	// The callback may construct an entire Application. Release the additional
-	// raw input before that work, while retaining the same original FD guard.
-	sourceBytes := strconv.Itoa(len(raw))
-	raw = nil
-	encoded, err := inspect(migration, hex.EncodeToString(digest[:]), sourceBytes)
+	sourceSize := migrationPublicSummaryMaximum + 1 - limited.N
+	if sourceSize != before.Size || sourceSize > migrationPublicSummaryMaximum {
+		return nil, errors.New("original migration changed or exceeded its existing read bound")
+	}
+	// The callback may construct an entire Application. Only decoded state and
+	// the whole-input digest remain; the exact original FD guard stays held.
+	encoded, err := inspect(migration, hex.EncodeToString(digest.Sum(nil)), strconv.FormatInt(sourceSize, 10))
 	if err != nil {
 		return nil, err
 	}
