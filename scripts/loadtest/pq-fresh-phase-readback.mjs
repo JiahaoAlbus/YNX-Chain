@@ -269,36 +269,67 @@ export function readFreshPhaseDiagnostics(stdout,guard,expected){
   const work=tx.filter(x=>x.coordinatorWork!==null).map(x=>x.coordinatorWork),coordinatorCalls=Object.fromEntries([['inclusionProbe',0,1],['fullCommitCheck',2,3],['hostContext',null,4]].map(([name,count,duration])=>[name,{perCallbackAccumulatedNs:freshTimingQuantiles(work.filter(w=>count===null||w[count]>0).map(w=>w[duration])),observedCalls:String(work.reduce((sum,w)=>sum+BigInt(count===null?1:w[count]),0n)),notInvokedCallbacks:count===null?0:work.filter(w=>w[count]===0).length,missingCallbacks:tx.length-work.length}]));
   return {arm,physicalCommitObservations:rows.length,successfulDurableCommitObservations:rows.filter(x=>x.finalizeOK&&x.commitOK&&x.timingAvailable&&x.commitTiming.durable).length,validatedCallbackObservations:tx.length,coordinatorCalls,outerCommitNs:freshTimingQuantiles(rows.map(x=>x.commitCallNs)),persistenceStagesNs:Object.fromEntries(stages.map(k=>[k,freshTimingQuantiles(sampled.filter(x=>Object.hasOwn(x.commitTiming.stagesNs,k)).map(x=>x.commitTiming.stagesNs[k]))])),hashChildNs:{document:freshTimingQuantiles(values.filter(x=>x.f===-1||x.f===33).map(x=>x.d)),encodeDigest:freshTimingQuantiles(values.filter(x=>x.f===-1||x.f===33).map(x=>x.x))},phases:freshValidationPhases.map((name,i)=>{const samples=values.filter(x=>x.f===-1||i<=x.f).map(x=>x.p[i]),sum=samples.reduce((s,n)=>s+BigInt(n),0n);return {name,durationNs:freshTimingQuantiles(samples),summedTimerShare:{numeratorNs:String(sum),denominatorNs:String(total)}};}),latencyNs:Object.fromEntries(['firstNodeProposalReceiptNs','firstNodeProposalAcceptedNs','firstNodeFinalizeNs','firstNodeDurableNs','allNodesDurableNs','offerToIndependentNs'].map(k=>[k,{...freshTimingQuantiles(tx.filter(x=>x[k]!==null).map(x=>x[k])),missingSamples:tx.filter(x=>x[k]===null).length}]))};
  });
- return {classification:'original-log-diagnostic-observations',executionAuthorized:false,sustainedTPSQualified:false,fullPairQualified:false,independentProofReverifiedHere:false,firstCause:guard.firstCause,childCode:guard.child.code,sourceCommit:expected.protocolCommit,clockDomain:expected.clockDomain,stdoutSHA256:expected.stdoutSHA256,arms,transactions:observed,interpretation:'Observed callbacks from the pinned original callee, not independent verification by this reader. Missing nodes remain null; failed phase suffix is unexecuted. Hash child intervals are not added twice. Summed node timers are not wall time/CPU. Execution/durability and queued verification completion are distinct; earliest block arrival/BFT formation and sustained TPS are unmeasured.'};
+ const progressStages=originalProgressStages(lines,start,terminal===-1?lines.length:terminal,true),hostPreparationStages=hostPreparationReadback(progressStages,observed,expected.hostPreparationTimingsRequired===true);
+ return {progressStages,hostPreparationStages,classification:'original-log-diagnostic-observations',executionAuthorized:false,sustainedTPSQualified:false,fullPairQualified:false,independentProofReverifiedHere:false,firstCause:guard.firstCause,childCode:guard.child.code,sourceCommit:expected.protocolCommit,clockDomain:expected.clockDomain,stdoutSHA256:expected.stdoutSHA256,arms,transactions:observed,interpretation:'Observed callbacks from the pinned original callee, not independent verification by this reader. Missing nodes remain null; failed phase suffix is unexecuted. Hash child intervals are not added twice. Summed node timers are not wall time/CPU. Execution/durability and queued verification completion are distinct; earliest block arrival/BFT formation and sustained TPS are unmeasured.'};
 }
 
-function originalProgressStages(lines,runIndex,summaryIndex){
+const hostPreparationPhaseNames=['totalWallNs','lightBlocksWallNs','inputEncodingWallNs','checkpointLoadWallNs','checkpointCaptureWallNs','checkpointDecodeWallNs','checkpointValidateWallNs','checkpointRetryWaitNs','retainInputsWallNs','contextWriteWallNs'];
+function originalProgressStages(lines,runIndex,summaryIndex,allowIncomplete=false){
  const selected=lines.map((line,index)=>({line,index})).filter(r=>r.line.includes('PQ_NETWORK_FRESH_PROGRESS'));
  if(selected.length===0)return null;
  requireValue(selected.length<=1024,'bounded original progress events required');
  const pending=new Map(),seen=new Set(),spans=[];
  for(const {line,index}of selected){
-  const m=/^[ \t]+pq_network_fresh_business_test\.go:[1-9][0-9]*: PQ_NETWORK_FRESH_PROGRESS arm=(before|after) phase=([a-z][a-z0-9-]{0,63}) node=(-1|[0-3]) index=(-1|[0-9]|1[0-6]) event=(begin|complete) offsetNs=([0-9]+) durationNs=([0-9]+)$/.exec(line);
-  requireValue(m&&index>runIndex&&index<summaryIndex,'original progress shape or log order differs');
-  const [,arm,phase,node,business,event,offset,duration]=m,key=[arm,phase,node,business].join('/'),at=BigInt(offset),elapsed=BigInt(duration);
+  const m=/^[ \t]+pq_network_fresh_business_test\.go:[1-9][0-9]*: PQ_NETWORK_FRESH_PROGRESS arm=(before|after) phase=([a-z][a-z0-9-]{0,63}) node=(-1|[0-3]) index=(-1|[0-9]|1[0-6]) event=(begin|complete) offsetNs=([0-9]+) durationNs=([0-9]+)(?: hostNs=(\[.*\]))?$/.exec(line);
+  requireValue(m&&index>runIndex&&index<summaryIndex&&Buffer.byteLength(line)+1<=512,'original progress shape, line bound or log order differs');
+  const [,arm,phase,node,business,event,offset,duration,hostJSON]=m,key=[arm,phase,node,business].join('/'),at=BigInt(offset),elapsed=BigInt(duration);
   requireValue(at<=120000000000n&&elapsed<=120000000000n,'original progress outside bounded clock');
+  let hostTimingsNs;
+  if(hostJSON!==undefined){
+   requireValue(phase==='business-host-context'&&node==='-1'&&Number(business)>=0&&Number(business)<16&&event==='complete','Host timing attached to a foreign progress phase');
+   const values=json(Buffer.from(hostJSON),'Host progress timings');
+   requireValue(Array.isArray(values)&&values.length===10,'ten original Host timings required');
+   const times=values.map(v=>numericDuration(v,'Host phase'));
+   requireValue(times.slice(1).reduce((a,b)=>a+b,0n)<=times[0]&&times[0]<=elapsed,'Host child timing overlaps or exceeds original parent span');
+   hostTimingsNs=times.map(String);
+  }
   if(event==='begin'){
    requireValue(elapsed===0n&&!seen.has(key),'duplicate or nonzero original progress begin');
-   seen.add(key);pending.set(key,at);
+   seen.add(key);pending.set(key,{arm,phase,nodeIndex:Number(node),businessIndex:Number(business),startNs:String(at)});
   }else{
-   const start=pending.get(key);
+   const begin=pending.get(key),start=begin===undefined?undefined:BigInt(begin.startNs);
    requireValue(start!==undefined&&at>=start&&at-start===elapsed,'original progress completion arithmetic differs');
-   pending.delete(key);spans.push({arm,phase,nodeIndex:Number(node),businessIndex:Number(business),startNs:String(start),endNs:String(at),durationNs:String(elapsed)});
+   pending.delete(key);spans.push({...begin,endNs:String(at),durationNs:String(elapsed),...(hostTimingsNs?{hostTimingsNs}:{})});
   }
  }
- requireValue(pending.size===0,'original progress incomplete despite successful test');
+ requireValue(allowIncomplete||pending.size===0,'original progress incomplete despite successful test');
  const groups=new Map();
- for(const s of spans){
-  const key=[s.arm,s.phase,s.nodeIndex].join('/');
-  if(!groups.has(key))groups.set(key,{arm:s.arm,phase:s.phase,nodeIndex:s.nodeIndex,values:[]});
-  groups.get(key).values.push(BigInt(s.durationNs));
+ for(const span of spans){
+  const key=[span.arm,span.phase,span.nodeIndex].join('/');
+  if(!groups.has(key))groups.set(key,{arm:span.arm,phase:span.phase,nodeIndex:span.nodeIndex,values:[]});
+  groups.get(key).values.push(BigInt(span.durationNs));
  }
- return {clock:'original parent-process monotonic offsets',spans,groups:[...groups.values()].map(({values,...g})=>({...g,durationNs:freshTimingQuantiles(values)})),additiveWallTimeMeasured:false,interpretation:'Original explicit call spans, inclusive of nested stages, coordinator work or bounded queue handling. Overlaps are retained; durations must not be summed into wall time or interpreted as earliest BFT formation.'};
+ return {clock:'original parent-process monotonic offsets',spans,unfinished:[...pending.values()],groups:[...groups.values()].map(({values,...g})=>({...g,durationNs:freshTimingQuantiles(values)})),additiveWallTimeMeasured:false,interpretation:'Original explicit call spans include nested work, scheduling and bounded preparation queue wait. Host worker calls may overlap coordinator calls and other phases. Do not sum spans or cross-transaction Host/coordinator work into wall time or CPU, or interpret them as earliest BFT formation.'};
+}
+function hostPreparationReadback(progress,callbacks,required,summary=false){
+ const host=(progress?.spans??[]).filter(s=>s.phase==='business-host-context'&&s.nodeIndex===-1),measured=host.filter(s=>s.hostTimingsNs!==undefined),used=new Set();
+ for(const callback of callbacks){
+  const arm=callback.arm,offer=BigInt(callback.offerOffsetNs),end=BigInt(callback.independentCompletionNs);
+  let ordinal=callback.sourceOfferOrdinal;
+  if(ordinal===undefined&&progress){
+   const offers=[...progress.spans,...progress.unfinished].filter(s=>s.arm===arm&&s.phase==='business-offer'&&s.nodeIndex===-1&&s.businessIndex>=0&&BigInt(s.startNs)<=offer).sort((a,b)=>BigInt(a.startNs)<BigInt(b.startNs)?-1:BigInt(a.startNs)>BigInt(b.startNs)?1:0),candidate=offers.at(-1);
+   if(candidate&&candidate.endNs!==undefined&&offer<=BigInt(candidate.endNs)&&offers.filter(s=>s.startNs===candidate.startNs).length===1)ordinal=candidate.businessIndex;
+  }
+  const found=ordinal===undefined?undefined:measured.find(s=>s.arm===arm&&s.businessIndex===ordinal),key=arm+'/'+ordinal;
+  requireValue(!required||found&&!used.has(key),'source-required Host timing lacks its original offer/preparation ordinal');
+  if(found){
+   requireValue(BigInt(found.startNs)>=offer&&BigInt(found.endNs)<=end,'Host preparation outside original offer/callback interval');
+   if(callback.coordinatorWork)requireValue(BigInt(found.hostTimingsNs[0])<=BigInt(callback.coordinatorWork[4]),'Host measured total exceeds original Host call');
+   used.add(key);
+  }
+ }
+ if(summary&&required)requireValue(measured.length===callbacks.length,'successful source-required Host preparation count differs');
+ return {classification:'actual original successful preparation DATA, not proof credit or CPU utilization',phaseOrder:hostPreparationPhaseNames,observations:measured,unfinished:(progress?.unfinished??[]).filter(s=>s.phase==='business-host-context'),arms:['before','after'].map(arm=>{const rows=measured.filter(s=>s.arm===arm);return {arm,completedPreparations:rows.length,completedWithoutStageTimings:host.filter(s=>s.arm===arm&&s.hostTimingsNs===undefined).length,phases:Object.fromEntries(hostPreparationPhaseNames.map((name,i)=>[name,freshTimingQuantiles(rows.map(s=>s.hostTimingsNs[i]))]))};}),childrenAreIncludedInTotal:true,sourceRequired:required,independentProofReverifiedHere:false,interpretation:'All10 values are actual Host helper wall timers. Capture includes App-lock wait and encoding; queued progress span includes waiting before the single worker starts. Completed preparation is not a finalized business transaction. Missing or unfinished preparation is not measured zero; total and children are not added twice.'};
 }
 
 // Original compiled Go test emits this exact bounded public JSON in stdout.
@@ -319,7 +350,9 @@ export function readGuardedFreshPhaseLog(stdout,guard,expected){
  const raw=Buffer.from(match[1],'utf8');
  requireValue(json(raw,'original stdout summary').version===originalFreshVersion,'original stdout receipt version differs');
  const result=readBoundFreshPhasePair(raw,guard,expected,digest);
- return {...result,progressStages:originalProgressStages(lines,lines.indexOf('=== RUN   '+name),lines.indexOf(markers[0]))};
+ const progressStages=originalProgressStages(lines,lines.indexOf('=== RUN   '+name),lines.indexOf(markers[0])),input=json(raw,'original Host summary');
+ const callbacks=input.arms.flatMap(arm=>arm.rows.map((row,i)=>({arm:arm.name,sourceOfferOrdinal:i,offerOffsetNs:row.offerOffsetNs,independentCompletionNs:row.independentCompletionNs})));
+ return {...result,progressStages,hostPreparationStages:hostPreparationReadback(progressStages,callbacks,expected.hostPreparationTimingsRequired===true,true)};
 }
 
 function readBoundFreshPhasePair(raw,guard,expected,stdoutSHA256){

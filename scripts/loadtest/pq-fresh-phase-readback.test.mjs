@@ -26,7 +26,7 @@ function diagnosticRead(f){
  const stdout=diagnosticStdout(f);
  return readFreshPhaseDiagnostics(stdout,f.guard,{...f.expected,stdoutSHA256:hash(stdout)});
 }
-function diagnosticStdout(f){return Buffer.from('=== RUN   TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming\n'+f.records.map(([tag,x])=>tag+' '+JSON.stringify(x)).join('\n')+'\n');}
+function diagnosticStdout(f){return Buffer.from('=== RUN   TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming\n'+(f.progress??'')+f.records.map(([tag,x])=>tag+' '+JSON.stringify(x)).join('\n')+'\n');}
 test('failed original window diagnostics retain observed phases/transactions without qualifying the pair',()=>{
  const r=diagnosticRead(diagnosticFixture());
  assert.equal(r.fullPairQualified,false);assert.equal(r.sustainedTPSQualified,false);assert.equal(r.independentProofReverifiedHere,false);
@@ -389,4 +389,40 @@ test('original progress spans retain nested inclusive timing without inventing a
  for(const change of [s=>s.replace('durationNs=70','durationNs=71'),s=>s.replace('event=begin offsetNs=10','event=complete offsetNs=10'),s=>s.replace('offsetNs=180','offsetNs=120000000001'),s=>s.replace('phase=initial-validator-custody','phase=observed-pq-construction'),s=>s.replace(line('after','observed-pq-construction','complete',180,80),'')]){
   const bad=withEvents(change(events));assert.throws(()=>readGuardedFreshPhaseLog(bad,logGuard(f,bad),f.expected),/progress/);
  }
+});
+
+function hostProgress(arm,index,phase,event,offset,duration,values){return `    pq_network_fresh_business_test.go:1550: PQ_NETWORK_FRESH_PROGRESS arm=${arm} phase=${phase} node=-1 index=${index} event=${event} offsetNs=${offset} durationNs=${duration}${values===undefined?'':' hostNs='+JSON.stringify(values)}\n`;}
+function hostDiagnosticFixture(){
+ const f=proposalFixture();f.expected.inclusionWorkTimingsRequired=true;f.expected.hostPreparationTimingsRequired=true;f.records.at(-1)[1].w=[2,4,0,0,12];
+ f.progress=hostProgress('before',0,'business-offer','begin',89,0)+hostProgress('before',0,'business-offer','complete',95,6)+hostProgress('before',0,'business-host-context','begin',171,0)+hostProgress('before',0,'business-host-context','complete',190,19,[10,1,1,1,1,1,1,1,1,1]);return f;
+}
+test('all ten actual Host helper wall stages survive failed-window diagnostics without proof credit',()=>{
+ const r=diagnosticRead(hostDiagnosticFixture()),h=r.hostPreparationStages;
+ assert.equal(h.observations.length,1);assert.equal(h.childrenAreIncludedInTotal,true);assert.equal(h.arms[0].phases.totalWallNs.p50Ns,'10');
+ assert.equal(h.arms[0].phases.checkpointValidateWallNs.p50Ns,'1');assert.equal(h.arms[0].phases.checkpointRetryWaitNs.p50Ns,'1');assert.equal(h.arms[1].phases.totalWallNs.p50Ns,null);
+ assert.equal(r.fullPairQualified,false);assert.equal(r.sustainedTPSQualified,false);assert.equal(h.independentProofReverifiedHere,false);
+ const partial=hostDiagnosticFixture();partial.progress+=hostProgress('after',0,'business-host-context','begin',195,0);const p=diagnosticRead(partial);
+ assert.equal(p.progressStages.unfinished.length,1);assert.equal(p.hostPreparationStages.unfinished.length,1);assert.equal(p.hostPreparationStages.arms[1].completedPreparations,0);
+});
+test('Host stage source requirement rejects missing, foreign, reordered, excessive and mixed-clock data',()=>{
+ for(const mutate of [
+  f=>f.progress='',f=>f.progress=f.progress.replace(/ hostNs=\[[^\n]+/,' '),f=>f.progress=f.progress.replace('event=complete offsetNs=190','event=begin offsetNs=190'),
+  f=>f.progress=f.progress.replace('phase=business-host-context','phase=business-offer'),
+  f=>f.progress=f.progress.replace('hostNs=[10,1,1,1,1,1,1,1,1,1]','hostNs=[10,2,2,2,2,2,2,2,2,2]'),
+  f=>f.progress=f.progress.replace('hostNs=[10,1,1,1,1,1,1,1,1,1]','hostNs=[20,1,1,1,1,1,1,1,1,1]'),
+  f=>f.progress=f.progress.replace('hostNs=[10,1,1,1,1,1,1,1,1,1]','hostNs=[10,1,1,1,1,1,1,1,1]'),
+  f=>f.progress=f.progress.replace('hostNs=[10,1,1,1,1,1,1,1,1,1]','hostNs=[10,1,1,1,1,1,1,1,1,"1"]'),
+  f=>f.progress=f.progress.replace('hostNs=[10,1,1,1,1,1,1,1,1,1]','hostNs=[10,-1,1,1,1,1,1,1,1,1]'),
+  f=>f.progress=f.progress.replace('offsetNs=190 durationNs=19','offsetNs=201 durationNs=30'),
+  f=>f.records.at(-1)[1].w=[2,4,0,0,9],
+  f=>f.progress=f.progress.replaceAll('index=0','index=1').replace('index=1 event=begin offsetNs=89','index=0 event=begin offsetNs=89').replace('index=1 event=complete offsetNs=95','index=0 event=complete offsetNs=95'),
+ ]){const f=hostDiagnosticFixture();mutate(f);assert.throws(()=>diagnosticRead(f));}
+});
+test('successful source-bound stdout requires one complete Host timing per original row when requested',()=>{
+ const f=originalFixture();f.expected.hostPreparationTimingsRequired=true;
+ const events=f.data.arms.flatMap(arm=>arm.rows.map((row,i)=>hostProgress(arm.name,i,'business-host-context','begin',40,0)+hostProgress(arm.name,i,'business-host-context','complete',60,20,[10,1,1,1,1,1,1,1,1,1]))).join('');
+ const raw=Buffer.from(originalLog(f).toString().replace(/(=== RUN[^\n]*\n)/,'$1'+events)),r=readGuardedFreshPhaseLog(raw,logGuard(f,raw),f.expected);
+ assert.equal(r.hostPreparationStages.observations.length,32);assert.equal(r.hostPreparationStages.arms[1].completedPreparations,16);assert.equal(r.sustainedTPSQualified,false);
+ const missing=Buffer.from(raw.toString().replace(' hostNs=[10,1,1,1,1,1,1,1,1,1]',''));assert.throws(()=>readGuardedFreshPhaseLog(missing,logGuard(f,missing),f.expected),/Host/);
+ const overflow=Buffer.from(raw.toString().replace('hostNs=[10,1,1,1,1,1,1,1,1,1]','hostNs=['+'0,'.repeat(240)+'0]'));assert.throws(()=>readGuardedFreshPhaseLog(overflow,logGuard(f,overflow),f.expected),/progress|Host/);
 });
