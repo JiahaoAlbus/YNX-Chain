@@ -3582,7 +3582,7 @@ jobs:
 
   auth49-current-disk-and-package:
     name: Auth49 independent real disk readonly and package import
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth49-coherent-device-20261026'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth49-coherent-device-20261026' && !contains(github.event.head_commit.message, '[source-projection-only]')
     runs-on: macos-15
     timeout-minutes: 8
     steps:
@@ -3598,3 +3598,16 @@ jobs:
           name: auth49-independent-source-disk-package-evidence
           path: ${{ runner.temp }}/auth49-independent-source-io
           if-no-files-found: error
+
+  auth49-runtime-source-projection:
+    name: Auth49 actual runtime source projection regression
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth49-coherent-device-20261026'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Matched source roles and six actual inherited-prefix counterexamples
+        run: node --test scripts/ci/sdk49-runtime-source-projection.test.mjs
