@@ -1,0 +1,153 @@
+{
+  "version": "YNX-PQ-FRESH-INPUT-READBACK/v1",
+  "candidate": "7c9eac63da4b874853b9fd6f746eb88c5f3730bb",
+  "checkedFiles": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/.github/workflows/resource-market-ci.yml",
+      "bytes": 303548,
+      "sha256": "ff14921044662c4386ea646436248a4a0be0846072201a0a1be43aa856818cb8"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/scripts/loadtest/pq-paired-linux-window.py",
+      "bytes": 95951,
+      "sha256": "24cac2991cab483c062486c8027e5a1f8a52b6e0e00f66e4ca9cb0a8064fdb41"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/scripts/loadtest/pq-paired-recipe.mjs",
+      "bytes": 2359,
+      "sha256": "673eb8965329025e7a516a67e8e04f6a54c3a102b00aafa72f78e86c8748c3eb"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/scripts/loadtest/prepare-pq-paired-benchmark.mjs",
+      "bytes": 3558,
+      "sha256": "6d4b36d283cfb3371a6cb6a0019ec885bf082d858c0e0046a5ef637d17ae33bb"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/scripts/ops/validate-pq-remote-normal-ci.py",
+      "bytes": 16856,
+      "sha256": "6d617c4ba97f82d59db512962873df1202fabfc6f5422c1b56452f020fbb8475"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/scripts/ops/pq-ci-stage-inputs.py",
+      "bytes": 8415,
+      "sha256": "1e98fa2567a0ee78fb11e1561065b39416d4d6d275cf6b0a46bdfb4d390b7457"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/internal/ynxconsensusauth/signer.go",
+      "bytes": 16974,
+      "sha256": "ff4320b518f92359aa23d29fa641c1f2db58add88bc1b93892fab6e300b97355"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/internal/ynxconsensusauth/host_key_vault.go",
+      "bytes": 14664,
+      "sha256": "da6f1dda6f497ca426de25784964df27e33f1301c52e9c4e2750ea73f5bf5d1b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/internal/ynxconsensusauth/object_signer.go",
+      "bytes": 8631,
+      "sha256": "3a677292bbd889682db53858b53c4f046bde44686c31505df5f4a4e93f00e960"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/internal/ynxbatch/provider.go",
+      "bytes": 5818,
+      "sha256": "18b57e0165ef1f403f2278429c03786bcdec69d8604be1a7b00cd902fc9b2872"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/internal/ynxbatch/sign.go",
+      "bytes": 3768,
+      "sha256": "ba3537bacac9813098fb02dad51e289b3cb8d6ce5586f5c01536df8b429c02b7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/scripts/ops/validate-pq-remote-signer-process.py",
+      "bytes": 33913,
+      "sha256": "c6e9f6535cba0d6298d50b660cd11c0d3e66b82a947c59e4bc861751fb57d4cf"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/source-contracts/scripts/ops/test_validate_pq_remote_signer_process.py",
+      "bytes": 35827,
+      "sha256": "192551182aef5157ecf4bd6028c697eddaf0c8a6e1c916b672a854be682087fe"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/SOURCE.json",
+      "bytes": 3539,
+      "sha256": "7f7c1d61938790fab08bd0d41ef0544bc61d314df2772975bf498a35dc05a31e"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/build/consensus.test",
+      "bytes": 53741564,
+      "sha256": "14e3e79f121058092924718281a1c3b219b1776a04e5578ade9ac9c98d6900cf"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/build/business-manifest.json",
+      "bytes": 1743,
+      "sha256": "0bdba995c6544cc103e0c2b66652bd364df3974dea965488e3b505e8b024d83d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/build/ynx-bft-gatewayd",
+      "bytes": 35391458,
+      "sha256": "d86460fdb62e80decb2f34ef74b1ebbffe01e84066fcc02ddab233b2e59921b2"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/build/ynx-consensus-perf-client",
+      "bytes": 38595797,
+      "sha256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/build/ynx-consensus-proof-verify",
+      "bytes": 36642176,
+      "sha256": "ecba87f89bacc31cf397d586cb8a093139fcba791b2add4207093b0cf5d197ec"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/source/internal/consensus/pq_network_e2e_test.go",
+      "bytes": 70181,
+      "sha256": "b8c15de1e2b4b1927e8276301e5c04ef7108677d5d16043426b9bc62825598e1"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/source/internal/consensus/pq_network_business_test.go",
+      "bytes": 38637,
+      "sha256": "7be691837779d42c9e86fcda32b2c1ee8fa701754336062be39f77bb30ba4d21"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/source/internal/consensus/pq_network_fresh_business_test.go",
+      "bytes": 68253,
+      "sha256": "c4aceb55f38a8a3f93bc355d0293d9123a4fce2559a6cc87b8e7b2f6dd3667d4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/client/SOURCE.json",
+      "bytes": 708,
+      "sha256": "40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/fresh-paired-business-build/client/go-build-info.txt",
+      "bytes": 5526,
+      "sha256": "25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/EXTRACTION.json",
+      "bytes": 7166,
+      "sha256": "fd7ad4cde22f0294f8ba78dd4db0ef051e0f8a0fa24552c28ec76147005b3380"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/four-node-inputs/PRODUCER_SOURCE_DATA.json",
+      "bytes": 13259,
+      "sha256": "bfbd93dd56dbff33951fbada371476d6b92df87e99479b41bd1a8b127672f54c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/run-final.stdout.raw",
+      "bytes": 12884,
+      "sha256": "8f1f3127d6b3512fd326042073855ed97fd49f4edf277ed4ed7b018209f6372e"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-7c9eac63d/jobs-final.stdout.raw",
+      "bytes": 54299,
+      "sha256": "898088c0c2990de3b7984f33eadb5139943065ff1e667fd00252ee21f0fdaaba"
+    }
+  ],
+  "sourceContractsMatchActualGit": true,
+  "fourELFsVerifiedAtLocalDataPath": true,
+  "oldHostPathsNotTreatedAsLocalFiles": true,
+  "fixedFreshLeafMatchesControllerPin": true,
+  "dispatchExecuted": false,
+  "preparedProduced": false,
+  "sourceNormalRun": 40247361558
+}
