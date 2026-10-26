@@ -12,7 +12,7 @@ export function inspectOriginalPQHostCatalogSourceScopeDATA(scope,association,ne
  exact(scope,['version','journalBinding','deliveryManifestPath','deliveryManifestSHA256','bindingPath','bindingSHA256','outputPath','attemptPath','resultPath','protocolImagePath','protocolImageSHA256','protocolSourceRevision','protocolWalletRequestContract','protocolReconcileContract','walletCodeIdentity','issuedAtMs','expiresAtMs']);
  exact(scope.journalBinding,['operationId','account','networkId','originalHash','nativeWireHash','transactionHash']);
  const b=scope.journalBinding;
- if(scope.version!=='YNX-PQ-HOST-CATALOG-SOURCE/v1'||!text(b.operationId)||!text(b.account)||b.account!==association.account||b.networkId!==networkId||!hex(networkId,64)||!['originalHash','nativeWireHash','transactionHash'].every(k=>hex(b[k],64)))fail();
+ if(scope.version!=='YNX-PQ-HOST-CATALOG-SOURCE/v1'||!text(b.operationId)||!text(b.account)||b.account!==association.account||b.networkId!==networkId||!hex(networkId,64)||!['nativeWireHash','transactionHash'].every(k=>hex(b[k],64))||b.originalHash!=='0x'+b.nativeWireHash)fail();
  for(const k of ['deliveryManifestPath','bindingPath','outputPath','attemptPath','resultPath','protocolImagePath'])if(!absolute(scope[k]))fail();
  if(new Set(['deliveryManifestPath','bindingPath','outputPath','attemptPath','resultPath','protocolImagePath'].map(k=>scope[k])).size!==6||scope.attemptPath!==scope.outputPath+'.source-attempt'||scope.resultPath!==scope.outputPath+'.source-result')fail();
  if(!['deliveryManifestSHA256','bindingSHA256','protocolImageSHA256'].every(k=>hex(scope[k],64))||!hex(scope.protocolSourceRevision,40)||scope.protocolWalletRequestContract!=='YNX-PQ-HOST-CATALOG-WALLET-JOURNAL6/v1')fail();
