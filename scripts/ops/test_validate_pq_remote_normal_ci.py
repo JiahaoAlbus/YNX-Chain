@@ -1035,7 +1035,7 @@ def assert_fresh_business_supply_workflow_contract(raw):
         need(token in receive)
     for token in ("70e7e450997a0ae77dbad5a8be3682f482c6ddd8", "4866cc3924c060eb6a29939915d39b1c5c625607",
                   "19b9fafcfbb3f434b9ff745fb785afb1d0741247", "da3060e150e2bd0f5695d67a76f3b30fafd1c696",
-                  "c4aceb55f38a8a3f93bc355d0293d9123a4fce2559a6cc87b8e7b2f6dd3667d4",
+                  "8f2d4f58808dee77ab00dc69a9a285f770b7aeafa49b4e8865455f581ad1d438",
                   "YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1", "performanceClientTree=client_tree",
                   "'internal/consensus/pq_network_fresh_business_test.go'", "sourceRoot=str(source_root)",
                   "os.environ['YNX_SIGNED_BUSINESS_SOURCE_SHA']", "previous_source['protocolCommit'] != commit",
@@ -1376,6 +1376,10 @@ def assert_workflow_contract(raw):
                       "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
     need(re.findall(r"(?m)^    needs: (.+)$", delivery_job) == ["[focused-go, caddy-source]"]
          and "    timeout-minutes: 12\n" in delivery_job)
+    # One build-cache shape covers the original tests and later pinned ELFs.
+    # Neither a step nor a command may silently restore the duplicate shape.
+    need(re.findall(r"(?m)^      GOFLAGS: (.+)$", delivery_job) == ["'-p=1 -trimpath'"])
+    need("GOFLAGS=" not in delivery_job and "          GOFLAGS:" not in delivery_job)
     need("continue-on-error:" not in delivery_job)
     need(re.findall(r"(?m)^    if: (.+)$", delivery_job) == [push_condition
          + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'"])
@@ -1704,6 +1708,27 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
 
+    def test_delivery_tests_and_pinned_binaries_keep_one_compilation_shape(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_workflow_contract(raw)
+        job, _ = workflow_steps(raw, "protocol-delivery")
+        flag = "      GOFLAGS: '-p=1 -trimpath'\n"
+        self.assertEqual(job.count(flag), 1)
+        mutations = [job.replace(flag, replacement, 1) for replacement in (
+            "", "      GOFLAGS: '-p=1'\n", "      GOFLAGS: '-p=2 -trimpath'\n")]
+        host = "YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -run '^TestProofHost'"
+        self.assertIn(host, job)
+        mutations.append(job.replace(host, host.replace(" go test", " GOFLAGS= go test", 1), 1))
+        mutations.append(job.replace("          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT:",
+            "          GOFLAGS: ''\n          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT:", 1))
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, job)
+            whole = raw.replace("  protocol-delivery:\n" + job,
+                "  protocol-delivery:\n" + changed, 1)
+            self.assertNotEqual(whole, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(whole)
+
     def test_fresh_execution_rejects_missing_default_gate_pins_relocation_or_original_controller(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         _, steps = workflow_steps(raw)
@@ -1758,7 +1783,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(receive, receive.replace("hashlib.sha256(archive).hexdigest() != digest", "False", 1), 1),
             raw.replace(seal, seal.replace("previous_source['protocolCommit'] != commit", "False", 1), 1),
             raw.replace(seal, seal.replace("4866cc3924c060eb6a29939915d39b1c5c625607", "19b9fafcfbb3f434b9ff745fb785afb1d0741247"), 1),
-            raw.replace(seal, seal.replace("c4aceb55f38a8a3f93bc355d0293d9123a4fce2559a6cc87b8e7b2f6dd3667d4", "0" * 64), 1),
+            raw.replace(seal, seal.replace("8f2d4f58808dee77ab00dc69a9a285f770b7aeafa49b4e8865455f581ad1d438", "0" * 64), 1),
             raw.replace(seal, seal.replace("binariesExecuted=False", "binariesExecuted=True", 1), 1),
             raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          go build ./cmd/ynx-consensus-perf-client\n          python3 -B - <<'PY'\n", 1), 1),
             raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          YNX_PQ_NETWORK_FRESH_BUSINESS_E2E=authorized-fresh-four-node-business-window\n          python3 -B - <<'PY'\n", 1), 1),
