@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -23,6 +24,8 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
+	"github.com/cometbft/cometbft/node"
+	sm "github.com/cometbft/cometbft/state"
 	cmttypes "github.com/cometbft/cometbft/types"
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
@@ -678,7 +681,121 @@ func (b *pqNetworkBusiness) lightBlock(n *pqNetworkE2E, height int64) *cmttypes.
 	return &cmttypes.LightBlock{SignedHeader: &cmttypes.SignedHeader{Header: &block.Header, Commit: commit}, ValidatorSet: set}
 }
 
+// Diagnostics contain only public coordinates and fixed phase labels. Keep the
+// original cause for errors.Is without printing an input, database error body,
+// checkpoint JSON, key, account, or private path.
+type pqBusinessCheckpointFailure struct {
+	phase, read, decode                string
+	stateHeight, engineHeight, minimum int64
+	attempt                            int
+	cause                              error
+}
+
+func (e *pqBusinessCheckpointFailure) Error() string {
+	return fmt.Sprintf("checkpoint=%s read=%s decode=%s stateHeight=%d engineHeight=%d minimumHeight=%d attempt=%d causeType=%T", e.phase, e.read, e.decode, e.stateHeight, e.engineHeight, e.minimum, e.attempt, e.cause)
+}
+
+func (e *pqBusinessCheckpointFailure) Unwrap() error { return e.cause }
+
+func pqBusinessCheckpointState(app *Application, actual sm.State, raw []byte, minimumHeight int64, attempt int) error {
+	failure := &pqBusinessCheckpointFailure{read: "captured", decode: "not-attempted", engineHeight: actual.LastBlockHeight, minimum: minimumHeight, attempt: attempt}
+	if app == nil || minimumHeight < 1 || actual.LastBlockHeight < 0 || len(raw) < 1 || len(raw) > 32<<20 {
+		failure.phase, failure.read = "bounded-state-required", "invalid-capture"
+		return failure
+	}
+	var state CommittedState
+	// These bytes come from the original Application's canonical full-state
+	// encoder. The light-proof parser's validator/token limits do not apply to
+	// complete application history; strict decode and full Validate do.
+	if err := decodeStrictJSON(raw, &state); err != nil {
+		failure.phase, failure.decode = "state-decode-failed", "failed"
+		failure.cause = err
+		return failure
+	}
+	failure.decode, failure.stateHeight = "ok", state.Height
+	if !state.Initialized || state.Height != actual.LastBlockHeight || len(actual.AppHash) != 32 || !pqBusinessPin(state.AppHash, 32) || state.AppHash != hex.EncodeToString(actual.AppHash) {
+		failure.phase = "application-engine-checkpoint-mismatch"
+		return failure
+	}
+	if state.Height < minimumHeight {
+		failure.phase = "target-successor-not-captured"
+		return failure
+	}
+	// The migration/bootstrap are the original Application's immutable owned
+	// inputs, not the current mutable committed maps or a supplied fixture/RPC.
+	app.mu.RLock()
+	migration, bootstrap := app.migration, app.bootstrap
+	app.mu.RUnlock()
+	if bootstrap == nil || actual.ChainID != bootstrap.record.ChainID {
+		failure.phase = "original-chain-mismatch"
+		return failure
+	}
+	state.bootstrap = bootstrap
+	if err := state.Validate(migration); err != nil {
+		failure.phase, failure.cause = "complete-state-validation-failed", err
+		return failure
+	}
+	return nil
+}
+
+// This bounded retry belongs only to the opt-in test caller. The production
+// exporter remains one-shot. A successful full encoding is an immutable SAME
+// historical engine/App checkpoint: never retry its validation or move target.
+func pqBusinessCaptureCheckpoint(ctx context.Context, app *Application, loadActual func() (sm.State, error), minimumHeight int64) (sm.State, []byte, error) {
+	const attempts = 8
+	if ctx == nil || app == nil || loadActual == nil || minimumHeight < 1 {
+		return sm.State{}, nil, &pqBusinessCheckpointFailure{phase: "original-capture-input-required", read: "not-attempted", decode: "not-attempted", minimum: minimumHeight}
+	}
+	for attempt := 1; attempt <= attempts; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return sm.State{}, nil, &pqBusinessCheckpointFailure{phase: "capture-context-ended", read: "not-attempted", decode: "not-attempted", minimum: minimumHeight, attempt: attempt, cause: err}
+		}
+		actual, err := loadActual()
+		read := "engine-read-failed"
+		var raw []byte
+		if err == nil {
+			read = "application-capture-failed"
+			// Do not hold Application.mu while calling the engine reader. The
+			// existing capture method takes its own normal read lock for encoding.
+			raw, err = app.captureProofHostCommittedJSON(actual)
+		}
+		if err == nil {
+			if err = pqBusinessCheckpointState(app, actual, raw, minimumHeight, attempt); err != nil {
+				return sm.State{}, nil, err
+			}
+			if err = ctx.Err(); err != nil {
+				return sm.State{}, nil, &pqBusinessCheckpointFailure{phase: "capture-context-ended", read: "captured", decode: "ok", stateHeight: actual.LastBlockHeight, engineHeight: actual.LastBlockHeight, minimum: minimumHeight, attempt: attempt, cause: err}
+			}
+			return actual, raw, nil
+		}
+		failure := &pqBusinessCheckpointFailure{phase: "capture-failed", read: read, decode: "not-attempted", engineHeight: actual.LastBlockHeight, minimum: minimumHeight, attempt: attempt, cause: err}
+		if !errors.Is(err, node.ErrProofSourceCheckpointCrossing) && !errors.Is(err, errProofHostCheckpointCrossing) {
+			return sm.State{}, nil, failure
+		}
+		failure.phase = "commit-crossing-budget"
+		if attempt == attempts {
+			return sm.State{}, nil, failure
+		}
+		timer := time.NewTimer(5 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			failure.phase, failure.cause = "capture-context-ended", ctx.Err()
+			return sm.State{}, nil, failure
+		case <-timer.C:
+		}
+	}
+	return sm.State{}, nil, &pqBusinessCheckpointFailure{phase: "commit-crossing-budget", read: "not-captured", decode: "not-attempted", minimum: minimumHeight, attempt: attempts}
+}
+
+func pqBusinessCheckpointErrorAt(err error, storeHeight, targetHeight int64) error {
+	return fmt.Errorf("Host did not capture its actual original checkpoint: storeHeight=%d targetHeight=%d: %w", storeHeight, targetHeight, err)
+}
+
 func (b *pqNetworkBusiness) hostContext(n *pqNetworkE2E, label, kind string, wire, payload []byte, height int64, index int) (string, string, json.RawMessage) {
+	if height < 1 || height == int64(1<<63-1) {
+		n.t.Fatal("Host original target height cannot have a committed successor")
+	}
 	block, successor := b.lightBlock(n, height), b.lightBlock(n, height+1)
 	trusted := b.lightBlock(n, n.schedule.ActivationHeight)
 	statement := func(block *cmttypes.LightBlock) map[string]string {
@@ -705,11 +822,18 @@ func (b *pqNetworkBusiness) hostContext(n *pqNetworkE2E, label, kind string, wir
 	if err != nil {
 		n.t.Fatal(err)
 	}
-	stateRaw, err := pqBusinessRead(n.nodes[0].appPath, 32<<20)
-	var state CommittedState
-	if err != nil || decodeStrictJSON(stateRaw, &state) != nil || state.Height != n.nodes[0].node.BlockStore().Height() || state.Height < height+1 || state.AppHash == "" {
-		n.t.Fatal("Host did not read its actual stable original checkpoint")
+	item := n.nodes[0]
+	view, err := item.node.ProofSourceView()
+	if err != nil {
+		n.t.Fatalf("Host original checkpoint unavailable: read=node-view-failed decode=not-attempted stateHeight=unknown engineHeight=unknown storeHeight=%d targetHeight=%d", item.node.BlockStore().Height(), height)
 	}
+	actual, stateRaw, err := pqBusinessCaptureCheckpoint(n.ctx, item.app, view.LoadState, height+1)
+	if err != nil {
+		n.t.Fatal(pqBusinessCheckpointErrorAt(err, item.node.BlockStore().Height(), height))
+	}
+	// The node may advance after capture. The detached bytes already bind the
+	// exact authenticated engine height/AppHash and contain the required target
+	// successor. A later moving BlockStore tip is diagnostic, not that snapshot.
 	files := map[string][]byte{"migration": migration, "genesis": n.rawGenesis, "state": stateRaw, "schedule": schedule, "trusted": trustedRaw}
 	paths := map[string]string{}
 	for name, raw := range files {
@@ -720,7 +844,7 @@ func (b *pqNetworkBusiness) hostContext(n *pqNetworkE2E, label, kind string, wir
 		"version": "YNX-CONSENSUS-PROOF-TRUST/v1", "chainId": n.doc.ChainID,
 		"migrationFile": paths["migration"], "genesisFile": paths["genesis"], "stateFile": paths["state"], "scheduleFile": paths["schedule"],
 		"scheduleHash": scheduleHash, "consensusGenesisSHA256": pqBusinessHash(n.rawGenesis), "originalGenesisHash": n.migration.OriginalGenesisHash, "migrationStateHash": n.migration.StateHash,
-		"runtimePlanFile": "", "runtimePlanHash": "", "engineHeight": strconv.FormatInt(state.Height, 10), "engineAppHash": state.AppHash,
+		"runtimePlanFile": "", "runtimePlanHash": "", "engineHeight": strconv.FormatInt(actual.LastBlockHeight, 10), "engineAppHash": hex.EncodeToString(actual.AppHash),
 		"expectedHeaderHeight": strconv.FormatInt(block.Height, 10), "expectedBlockHash": hex.EncodeToString(block.Hash()), "expectedStateHeight": strconv.FormatInt(block.Height-1, 10), "expectedStateAppHash": hex.EncodeToString(block.AppHash),
 		"trustedLightBlockFile": paths["trusted"], "trustedLightBlockSHA256": pqBusinessHash(trustedRaw), "trustingPeriodNanoseconds": strconv.FormatInt(int64(time.Hour), 10), "maxClockDriftNanoseconds": strconv.FormatInt(int64(time.Second), 10), "trustLevelNumerator": "1", "trustLevelDenominator": "3",
 	}
@@ -735,6 +859,200 @@ func (b *pqNetworkBusiness) hostContext(n *pqNetworkE2E, label, kind string, wir
 
 // Ordinary CI runs only these bounded DATA regressions. It does not create a
 // network, generate production keys, invoke a CLI, or accept fake ELF execution.
+func TestPQNetworkBusinessHostCheckpointSurvivesMovingStoreAndLaterCommit(t *testing.T) {
+	f := newPQTransactionProofFixture(t)
+	h := f.light.harness
+	path, err := filepath.EvalSymlinks(h.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldDisk, err := pqBusinessRead(path, 32<<20)
+	var oldState CommittedState
+	if err != nil || decodeStrictJSON(oldDisk, &oldState) != nil {
+		t.Fatal("actual old checkpoint was not readable before the counterexample", err)
+	}
+	before, err := h.raw.Load()
+	if err != nil || oldState.Height != before.LastBlockHeight {
+		t.Fatal("counterexample did not begin at an exact actual checkpoint", err)
+	}
+	// Deterministically recreate the old split sampling: the real original file
+	// is read, then the real BlockExecutor commits H+1 before BlockStore.Height.
+	advanced := h.apply(t, nil)
+	if h.blocks.Height() != advanced.LastBlockHeight || oldState.Height == h.blocks.Height() {
+		t.Fatal("counterexample did not make the legacy disk/tip equality reject")
+	}
+	actual, captured, err := pqBusinessCaptureCheckpoint(context.Background(), h.app, h.raw.Load, advanced.LastBlockHeight)
+	if err != nil || actual.LastBlockHeight != advanced.LastBlockHeight {
+		t.Fatal("same original engine/application checkpoint was not captured", err)
+	}
+	original := bytes.Clone(captured)
+	var historical CommittedState
+	if decodeStrictJSON(captured, &historical) != nil || historical.Height != actual.LastBlockHeight || historical.AppHash != hex.EncodeToString(actual.AppHash) {
+		t.Fatal("capture did not bind exact original height and full AppHash")
+	}
+	later := h.apply(t, nil)
+	if later.LastBlockHeight != actual.LastBlockHeight+1 || h.blocks.Height() == historical.Height || !bytes.Equal(captured, original) {
+		t.Fatal("later actual Commit changed the immutable historical checkpoint")
+	}
+	if err := pqBusinessCheckpointState(h.app, actual, captured, advanced.LastBlockHeight, 1); err != nil {
+		t.Fatal("later moving tip invalidated the exact captured original checkpoint", err)
+	}
+	if _, err := VerifyPQTransactionProof(f.light.trust, f.expected[0], f.proofs[0]); err != nil {
+		t.Fatal("original complete PQ proof no longer verifies after later Commit", err)
+	}
+	t.Logf("legacy split sample refused old stateHeight=%d against later storeHeight=%d; immutable engineHeight=%d remains exact after storeHeight=%d", oldState.Height, advanced.LastBlockHeight, actual.LastBlockHeight, later.LastBlockHeight)
+}
+
+func TestPQNetworkBusinessHostCheckpointRetriesOnlyCommitCrossings(t *testing.T) {
+	h := newEngineWiringHarness(t)
+	h.apply(t, nil)
+	for _, scenario := range []string{"engine-crossing", "application-commit-crossing", "engine-read-error", "chain-mismatch", "same-height-apphash", "height-gap", "application-behind", "target-not-ready", "exhausted-crossing", "cancel-during-crossing", "already-canceled"} {
+		t.Run(scenario, func(t *testing.T) {
+			baseline, err := h.raw.Load()
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			if scenario == "already-canceled" {
+				cancel()
+			}
+			minimum := baseline.LastBlockHeight
+			if scenario == "target-not-ready" {
+				minimum++
+			}
+			readFailure := errors.New("PRIVATE_DATABASE_BODY_MUST_NOT_APPEAR")
+			calls := 0
+			load := func() (sm.State, error) {
+				calls++
+				actual, err := h.raw.Load()
+				if err != nil {
+					return actual, err
+				}
+				switch scenario {
+				case "engine-crossing":
+					if calls == 1 {
+						return sm.State{}, fmt.Errorf("observed Commit boundary: %w", node.ErrProofSourceCheckpointCrossing)
+					}
+				case "application-commit-crossing":
+					if calls == 1 {
+						h.apply(t, nil)
+					}
+				case "engine-read-error":
+					return sm.State{}, readFailure
+				case "chain-mismatch":
+					actual.ChainID += "-wrong"
+				case "same-height-apphash":
+					actual.AppHash = bytes.Clone(actual.AppHash)
+					actual.AppHash[0] ^= 1
+				case "height-gap":
+					actual.LastBlockHeight -= 2
+				case "application-behind":
+					actual.LastBlockHeight++
+				case "exhausted-crossing":
+					return sm.State{}, node.ErrProofSourceCheckpointCrossing
+				case "cancel-during-crossing":
+					cancel()
+					return sm.State{}, node.ErrProofSourceCheckpointCrossing
+				}
+				return actual, nil
+			}
+			actual, raw, err := pqBusinessCaptureCheckpoint(ctx, h.app, load, minimum)
+			if scenario == "engine-crossing" || scenario == "application-commit-crossing" {
+				if err != nil || calls != 2 || actual.LastBlockHeight < minimum || len(raw) == 0 {
+					t.Fatal("bounded crossing did not recapture the same original source", calls, err)
+				}
+				return
+			}
+			wantedCalls := 1
+			if scenario == "exhausted-crossing" {
+				wantedCalls = 8
+			} else if scenario == "already-canceled" {
+				wantedCalls = 0
+			}
+			if err == nil || calls != wantedCalls || len(raw) != 0 || actual.LastBlockHeight != 0 {
+				t.Fatal("permanent failure, cancellation or exhausted budget was retried or exposed partial state", calls, err)
+			}
+			if scenario == "engine-read-error" && (!errors.Is(err, readFailure) || strings.Contains(err.Error(), readFailure.Error())) {
+				t.Fatal("read error identity was lost or its private body leaked")
+			}
+			if scenario == "exhausted-crossing" && !errors.Is(err, node.ErrProofSourceCheckpointCrossing) {
+				t.Fatal("original exhausted crossing cause was lost")
+			}
+			if (scenario == "already-canceled" || scenario == "cancel-during-crossing") && !errors.Is(err, context.Canceled) {
+				t.Fatal("caller cancellation was hidden", err)
+			}
+			if !strings.Contains(err.Error(), "read=") || !strings.Contains(err.Error(), "decode=") || !strings.Contains(err.Error(), "engineHeight=") || !strings.Contains(err.Error(), "minimumHeight=") {
+				t.Fatal("bounded capture lost safe phase/height diagnostics", err)
+			}
+		})
+	}
+}
+
+func TestPQNetworkBusinessHostCheckpointDiagnosticsRejectInvalidCapturedState(t *testing.T) {
+	h := newEngineWiringHarness(t)
+	h.apply(t, nil)
+	actual, raw, err := pqBusinessCaptureCheckpoint(context.Background(), h.app, h.raw.Load, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, scenario := range []string{"truncated-json", "trailing-value", "unknown-field", "wrong-height", "wrong-hash", "missing-hash", "not-initialized", "invalid-complete-state", "wrong-chain", "missing-target-successor"} {
+		t.Run(scenario, func(t *testing.T) {
+			var state CommittedState
+			if err := decodeStrictJSON(raw, &state); err != nil {
+				t.Fatal(err)
+			}
+			engine := actual.Copy()
+			minimum := actual.LastBlockHeight
+			bad := bytes.Clone(raw)
+			switch scenario {
+			case "truncated-json":
+				bad = []byte(`{"PRIVATE_CHECKPOINT_BODY_MUST_NOT_APPEAR":`)
+			case "trailing-value":
+				bad = append(bad, []byte(` {}`)...)
+			case "unknown-field":
+				trimmed := bytes.TrimSpace(raw)
+				bad = append(bytes.Clone(trimmed[:len(trimmed)-1]), []byte(`,"PRIVATE_CHECKPOINT_BODY_MUST_NOT_APPEAR":true}`)...)
+			case "wrong-height":
+				state.Height--
+			case "wrong-hash":
+				wrong := bytes.Clone(actual.AppHash)
+				wrong[0] ^= 1
+				state.AppHash = hex.EncodeToString(wrong)
+			case "missing-hash":
+				state.AppHash = ""
+			case "not-initialized":
+				state.Initialized = false
+			case "invalid-complete-state":
+				state.Version = -1
+			case "wrong-chain":
+				engine.ChainID += "-wrong"
+			case "missing-target-successor":
+				minimum++
+			}
+			if scenario == "wrong-height" || scenario == "wrong-hash" || scenario == "missing-hash" || scenario == "not-initialized" || scenario == "invalid-complete-state" {
+				bad, err = json.Marshal(state)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			failure := pqBusinessCheckpointState(h.app, engine, bad, minimum, 1)
+			if failure == nil {
+				t.Fatal("invalid checkpoint acquired Host context authority")
+			}
+			message := pqBusinessCheckpointErrorAt(failure, actual.LastBlockHeight+1, minimum-1).Error()
+			for _, field := range []string{"read=captured", "decode=", "stateHeight=", "engineHeight=", "storeHeight=", "targetHeight=", "minimumHeight="} {
+				if !strings.Contains(message, field) {
+					t.Fatal("safe checkpoint diagnostic missing", field)
+				}
+			}
+			if strings.Contains(message, "PRIVATE_CHECKPOINT_BODY_MUST_NOT_APPEAR") || strings.Contains(message, string(bad)) {
+				t.Fatal("checkpoint diagnostic exposed original input bytes")
+			}
+		})
+	}
+}
+
 func TestPQNetworkBusinessOutcomeAccountingDoesNotPromotePartialRejectedOrInitial(t *testing.T) {
 	base := PQTransactionProofResult{Version: PQTransactionProofVersion, Classification: "data", TransactionType: PQTransferType, Height: 9, TransactionHash: strings.Repeat("1", 64), Included: true, Finalized: true, ExecutionSuccessful: true, Outcome: "succeeded"}
 	if r, err := pqBusinessClassify(PQTransferType, base); err != nil || r.FinalizedBusinesses != 1 {

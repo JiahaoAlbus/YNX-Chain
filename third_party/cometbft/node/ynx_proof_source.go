@@ -14,6 +14,11 @@ import (
 // reopen databases, or give callers Save/Bootstrap/signing methods.
 type ProofSourceView struct{ node *Node }
 
+// ErrProofSourceCheckpointCrossing identifies only adjacent-height sampling
+// across the node's normal Commit boundary. Same-height conflicts, another
+// chain and arbitrary height gaps remain non-transient failures.
+var ErrProofSourceCheckpointCrossing = errors.New("node checkpoint is crossing commit; no proof-source snapshot available")
+
 func (n *Node) ProofSourceView() (*ProofSourceView, error) {
 	if n == nil || n.stateStore == nil || n.blockStore == nil || n.consensusState == nil {
 		return nil, errors.New("original initialized node stores are required")
@@ -28,6 +33,10 @@ func (v *ProofSourceView) LoadState() (sm.State, error) {
 	}
 	c := v.node.consensusState.GetState()
 	if s.ChainID != c.ChainID || s.LastBlockHeight != c.LastBlockHeight || !bytes.Equal(s.AppHash, c.AppHash) || !s.LastBlockID.Equals(c.LastBlockID) {
+		if s.ChainID == c.ChainID && s.LastBlockHeight >= 0 && c.LastBlockHeight >= 0 &&
+			(s.LastBlockHeight > c.LastBlockHeight && s.LastBlockHeight-1 == c.LastBlockHeight || c.LastBlockHeight > s.LastBlockHeight && c.LastBlockHeight-1 == s.LastBlockHeight) {
+			return sm.State{}, ErrProofSourceCheckpointCrossing
+		}
 		return sm.State{}, errors.New("node checkpoint is crossing commit; no proof-source snapshot available")
 	}
 	return s, nil
