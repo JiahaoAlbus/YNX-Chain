@@ -403,7 +403,8 @@
     "test:r222-pq-source": "node --test --test-concurrency=1 native/test-pq-catalog-source-contract.mjs test-pq-catalog-source-n1.mjs test/r222-pq-native-recipe.test.mjs test/r222-pq-source-intake.test.mjs",
     "test:r225-pq-dispatcher": "node --test --test-concurrency=1 test-pq-catalog-source-dispatch.mjs test/r225-pq-dispatcher-intake.test.mjs",
     "test:r226-normal-source-route": "node --test test-r226-normal-source-route.mjs",
-    "test:publication-result-decoder": "node --test test/ide-artifact-release-result.test.mjs"
+    "test:publication-result-decoder": "node --test test/ide-artifact-release-result.test.mjs",
+    "test:product-session-v4-codec-types": "tsc -p test/tsconfig.product-session-v4-codec-types.json"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
