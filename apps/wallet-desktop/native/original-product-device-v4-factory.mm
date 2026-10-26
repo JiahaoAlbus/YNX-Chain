@@ -11,6 +11,7 @@
 #include <cmath>
 #ifdef YNX_PRODUCT_DEVICE_V4_FACTORY_PUBLIC_TEST
 extern "C" uint64_t YNXProductDeviceV4FactoryPublicClock(unsigned);
+extern "C" bool YNXProductDeviceV4FactoryPublicCloseFailure();
 #endif
 namespace ynx_auth_private {
 static uint64_t factoryClock(unsigned which){
@@ -32,7 +33,7 @@ struct ProductDeviceV4ProofOperation::Impl{
  NSData*__strong unsignedOriginal=nil;NSDictionary*__strong unsignedValue=nil;
  HostDirfdJournal journal;std::unique_ptr<ProductDeviceV4Once>once;
  std::unique_ptr<ProductDeviceV4Slot>slot;ProductDeviceV4HTTPOutcomeDATA outcome;
- std::thread::id actor=std::this_thread::get_id();bool done=false,retired=false,closeSelected=false,closed=false;
+ std::thread::id actor=std::this_thread::get_id();bool helperSelected=false,done=false,retired=false,closeSelected=false,closed=false;
  uint64_t issued=0,expires=0,wallFloor=0,monoStart=0,budget=0;std::string first,closeCause;
  bool fail(const char*code,std::string&error){if(first.empty())first=code;error=first;return false;}
  bool originalActor(std::string&error){if(actor!=std::this_thread::get_id()||!pthread_main_np()){error="DEVICE_V4_FACTORY_ORIGINAL_ACTOR_REQUIRED";return false;}return true;}
@@ -73,7 +74,7 @@ std::unique_ptr<ProductDeviceV4ProofOperation>ProductDeviceV4Factory::produce(YN
   if(!p.current(error)||!p.time(error)||!p.slot->assertCurrent(error)){p.fail("DEVICE_V4_FACTORY_PRE_ENTRY_CURRENT_REFUSED",error);return op;}
   NSDictionary*registered=[NSJSONSerialization JSONObjectWithData:registration options:0 error:nil];auto expectedA=factoryPublicHex(registered[@"pkA"],2592),expectedB=factoryPublicHex(registered[@"pkB"],64);
   YNXProductSessionHTTPRequestV4 request{};request.version=4;request.struct_size=sizeof(request);request.unsigned_original={(const uint8_t*)p.unsignedOriginal.bytes,p.unsignedOriginal.length};request.expected={{network.data(),network.size()},{(const uint8_t*)owner.bytes,owner.length},{expectedA.data(),expectedA.size()},{expectedB.data(),expectedB.size()}};request.pkcs8_a={borrow.derA.bytes,borrow.derA.length};request.pkcs8_b={borrow.derB.bytes,borrow.derB.length};request.pk_a={borrow.pkA.bytes,borrow.pkA.length};request.pk_b={borrow.pkB.bytes,borrow.pkB.length};
-  p.outcome=invokeOriginalProductDeviceV4HTTPBorrow(*p.once,request); // Adopt DATA before rc/current/cleanup.
+  p.helperSelected=true;p.outcome=invokeOriginalProductDeviceV4HTTPBorrow(*p.once,request); // Adopt DATA before rc/current/cleanup.
   if(!p.outcome.mathCompleted){p.fail(p.outcome.firstCause.empty()?"DEVICE_V4_FACTORY_HTTP_OUTCOME_UNKNOWN":p.outcome.firstCause.c_str(),error);return op;}
   if(!p.current(error)||!p.time(error)||!p.slot->assertCurrent(error)){p.fail("DEVICE_V4_FACTORY_POST_ENTRY_CURRENT_REFUSED",error);return op;}
   std::string cleanup;if(!p.slot->close(cleanup)){p.fail("DEVICE_V4_FACTORY_SLOT_CLEANUP_UNKNOWN",error);return op;}
@@ -83,9 +84,14 @@ std::unique_ptr<ProductDeviceV4ProofOperation>ProductDeviceV4Factory::produce(YN
  catch(...){if(op)op->impl_->fail("DEVICE_V4_FACTORY_CPP_EXCEPTION_UNKNOWN",error);else error="DEVICE_V4_FACTORY_CPP_EXCEPTION_UNKNOWN";return op;}
 }
 std::vector<unsigned char>ProductDeviceV4ProofOperation::copyOriginalMemberDATA()const{if(impl_->actor!=std::this_thread::get_id())throw std::runtime_error("DEVICE_V4_FACTORY_ORIGINAL_ACTOR_REQUIRED");return impl_->outcome.member;}
+ProductDeviceV4ProofStatusDATA ProductDeviceV4ProofOperation::copyOriginalStatusDATA()const{if(impl_->actor!=std::this_thread::get_id())throw std::runtime_error("DEVICE_V4_FACTORY_ORIGINAL_ACTOR_REQUIRED");const auto&p=*impl_;return{p.outcome.result,p.outcome.cleanup,p.outcome.reportedLength,p.helperSelected,p.outcome.mathCompleted};}
 bool ProductDeviceV4ProofOperation::assertCurrent(std::string&error){try{@try{auto&p=*impl_;if(!p.done)return p.fail("DEVICE_V4_FACTORY_OUTCOME_UNKNOWN",error);return p.current(error)&&p.time(error);}@catch(id){return impl_->fail("DEVICE_V4_FACTORY_CURRENT_EXCEPTION",error);}}catch(...){return impl_->fail("DEVICE_V4_FACTORY_CURRENT_CPP_EXCEPTION",error);}}
 void ProductDeviceV4ProofOperation::retire(){if(impl_->actor==std::this_thread::get_id())impl_->retired=true;}
 bool ProductDeviceV4ProofOperation::join(std::string&error){auto&p=*impl_;if(!p.originalActor(error))return false;if(!p.retired){error="DEVICE_V4_FACTORY_RETIRE_BEFORE_JOIN";return false;}return true;}
-bool ProductDeviceV4ProofOperation::close(std::string&error){auto&p=*impl_;if(!p.originalActor(error))return false;if(p.closeSelected){error=p.closeCause;return p.closed;}p.retired=true;p.closeSelected=true;bool ok=true;std::string slotError;try{if(p.slot&&!p.slot->close(slotError))ok=false;if(!p.journal.close())ok=false;}catch(...){ok=false;}if(!ok){p.closeCause="DEVICE_V4_FACTORY_CLOSE_UNKNOWN";error=p.closeCause;return false;}p.source=nil;p.scope=nil;p.unsignedOriginal=nil;p.unsignedValue=nil;p.closed=true;error.clear();return true;}
+bool ProductDeviceV4ProofOperation::close(std::string&error){auto&p=*impl_;if(!p.originalActor(error))return false;if(p.closeSelected){error=p.closeCause;return p.closed;}p.retired=true;p.closeSelected=true;
+#ifdef YNX_PRODUCT_DEVICE_V4_FACTORY_PUBLIC_TEST
+ if(YNXProductDeviceV4FactoryPublicCloseFailure()){p.closeCause="DEVICE_V4_FACTORY_CLOSE_UNKNOWN";error=p.closeCause;return false;}
+#endif
+ bool ok=true;std::string slotError;try{if(p.slot&&!p.slot->close(slotError))ok=false;if(!p.journal.close())ok=false;}catch(...){ok=false;}if(!ok){p.closeCause="DEVICE_V4_FACTORY_CLOSE_UNKNOWN";error=p.closeCause;return false;}p.source=nil;p.scope=nil;p.unsignedOriginal=nil;p.unsignedValue=nil;p.closed=true;error.clear();return true;}
 ProductDeviceV4ProofOperation::~ProductDeviceV4ProofOperation(){std::string e;if(!close(e)){static thread_local std::vector<Impl*>debt;debt.push_back(impl_.release());}}
 }

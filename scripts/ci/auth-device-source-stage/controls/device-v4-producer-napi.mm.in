@@ -1,0 +1,25 @@
+#include <node_api.h>
+static void PUBLIC_ProducerCalleeHook();
+@@PUBLIC_FACTORY_SUPPORT@@
+#import <objc/runtime.h>
+@implementation YNXAuthIdentitySourceAuthority(ProducerPublicSource)
++(instancetype)acquireOriginalProductSessionDeviceV4Source:(NSError**)error{(void)error;return[self new];}
+-(void)retire{mode="source-refused";}
+-(BOOL)join:(NSError**)error{(void)error;return YES;}
+@end
+#define YNX_ORIGINAL_PRODUCT_DEVICE_V4_HTTP_PRODUCER_STAGE 1
+#include "@@ACTUAL_SOURCE_STAGE@@"
+static napi_env PUBLIC_env=nullptr;static napi_ref PUBLIC_hook=nullptr;
+static void PUBLIC_ProducerCalleeHook(){if(!PUBLIC_hook)return;napi_value hook=nullptr,result=nullptr;napi_get_reference_value(PUBLIC_env,PUBLIC_hook,&hook);napi_call_function(PUBLIC_env,DeviceV4Undefined(PUBLIC_env),hook,0,nullptr,&result);}
+static napi_value BeginCase(napi_env env,napi_callback_info info){napi_value args[2]{};size_t n=2;if(napi_get_cb_info(env,info,&n,args,nullptr,nullptr)!=napi_ok||n<1)return nullptr;size_t size=0;napi_get_value_string_utf8(env,args[0],nullptr,0,&size);std::vector<char>b(size+1);napi_get_value_string_utf8(env,args[0],b.data(),b.size(),&size);check(!mkdir(b.data(),0700),"protected fixture mkdir");auto u=[configure([NSString stringWithUTF8String:b.data()])mutableCopy];
+ if(n==2){bool useValid=false;napi_get_value_bool(env,args[1],&useValid);if(useValid){NSMutableDictionary*scope=[publicScope mutableCopy],*expected=[scope[@"expected"]mutableCopy];expected[@"account"]=@"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80";expected[@"canonicalOwner"]=@"0x7e5f4552091a69125d5dfcb7b8c2659029395bdf";scope[@"expected"]=expected;publicScope=scope;u[@"account"]=expected[@"account"];u[@"canonicalOwner"]=expected[@"canonicalOwner"];}}
+ if(PUBLIC_hook){napi_delete_reference(env,PUBLIC_hook);PUBLIC_hook=nullptr;}
+ NSDictionary*e=publicScope[@"expected"];NSMutableDictionary*s=[publicScope mutableCopy];s[@"context"]=@{@"version":@"4",@"algorithm":@"ML-DSA-87+SHA3-512/AND/SLH-DSA-SHA2-256f+SHA-512",@"securityLevel":@"os-protected",@"networkId":e[@"networkId"],@"account":e[@"account"],@"deviceId":e[@"deviceId"],@"generation":e[@"generation"],@"registrationId":e[@"registrationId"],@"revision":e[@"revision"],@"registrationDigest":e[@"registrationDigest"],@"scopes":@[@"read"],@"purpose":@"PRODUCT-SESSION-HTTP-PROOF"};publicScope=s;
+ NSData*raw=canonical(@{@"scope":publicScope,@"unsigned":u});napi_value result=nullptr;napi_create_string_utf8(env,(const char*)raw.bytes,raw.length,&result);return result;
+}
+static napi_value SetMode(napi_env env,napi_callback_info info){napi_value arg=nullptr;size_t n=1;napi_get_cb_info(env,info,&n,&arg,nullptr,nullptr);char raw[64]{};size_t size=0;napi_get_value_string_utf8(env,arg,raw,sizeof(raw),&size);mode.assign(raw,size);return DeviceV4Undefined(env);}
+static napi_value SetHook(napi_env env,napi_callback_info info){napi_value arg=nullptr;size_t n=1;napi_get_cb_info(env,info,&n,&arg,nullptr,nullptr);napi_valuetype type;if(napi_typeof(env,arg,&type)!=napi_ok||type!=napi_function)return DeviceV4Throw(env,"PUBLIC_HOOK_FUNCTION");if(PUBLIC_hook)napi_delete_reference(env,PUBLIC_hook);napi_create_reference(env,arg,1,&PUBLIC_hook);return DeviceV4Undefined(env);}
+static napi_value Counts(napi_env env,napi_callback_info){napi_value result=nullptr,v=nullptr;napi_create_object(env,&result);for(const auto&item:{std::pair<const char*,unsigned>{"signs",signs},{"privateReads",privateReads},{"metadataReads",metadataReads},{"closeFaultSelections",closeFaultSelections}}){napi_create_uint32(env,item.second,&v);napi_set_named_property(env,result,item.first,v);}return result;}
+static void PUBLIC_HookCleanup(void*raw){if(PUBLIC_hook){napi_delete_reference((napi_env)raw,PUBLIC_hook);PUBLIC_hook=nullptr;}}
+static napi_value Init(napi_env env,napi_value exports){PUBLIC_env=env;if(!RegisterOriginalProductDeviceV4SourceStage(env,exports))return nullptr;napi_property_descriptor d[]={{"beginCase",nullptr,BeginCase,nullptr,nullptr,nullptr,napi_default,nullptr},{"setMode",nullptr,SetMode,nullptr,nullptr,nullptr,napi_default,nullptr},{"setDuringCall",nullptr,SetHook,nullptr,nullptr,nullptr,napi_default,nullptr},{"counts",nullptr,Counts,nullptr,nullptr,nullptr,napi_default,nullptr}};if(napi_define_properties(env,exports,4,d)!=napi_ok||napi_add_env_cleanup_hook(env,PUBLIC_HookCleanup,env)!=napi_ok)return nullptr;return exports;}
+NAPI_MODULE(NODE_GYP_MODULE_NAME,Init)

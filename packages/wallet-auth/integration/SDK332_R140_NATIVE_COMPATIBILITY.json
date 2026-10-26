@@ -794,8 +794,8 @@
     },
     {
       "path": "apps/wallet-desktop/native/original-product-device-v4-source.inc.mm",
-      "bytes": 9496,
-      "sha256": "79f6f43b9976b6e99f7258c54cc0497ee940624b706cc280b5bc4d0f2354426a"
+      "bytes": 10185,
+      "sha256": "89db84110e3a2e9e5e6528acadf648fff1e6c9937776f0dd659a836faa83a871"
     },
     {
       "path": "apps/wallet-desktop/native/original-product-device-v4-source-read.inc.mm",
@@ -819,13 +819,13 @@
     },
     {
       "path": "apps/wallet-desktop/native/original-product-device-v4-factory.h",
-      "bytes": 1410,
-      "sha256": "9b810febc59751279e2f968343d50281213e58544d284b61613bfe54353bfe69"
+      "bytes": 1602,
+      "sha256": "5d9105007e6481dc30b00a1a3a5a98cb271e6e4d5beec9e995e5a47f3dfafaeb"
     },
     {
       "path": "apps/wallet-desktop/native/original-product-device-v4-factory.mm",
-      "bytes": 13702,
-      "sha256": "10210fcce2c361f656373c158de58a72747170d94d57d611b10fe9f228748dab"
+      "bytes": 14335,
+      "sha256": "1d85de36b0b22afa5914bbe6ca4800dfbed2fef6eb73cd693867140297124848"
     },
     {
       "path": "apps/wallet-desktop/native/original-product-device-v4-http-call.h",
@@ -856,6 +856,11 @@
       "path": "apps/wallet-desktop/native/product-device-v4-e5.c",
       "bytes": 1709,
       "sha256": "05055016ebd5bd06acf818f4f4d56487a803b62cee316b62feb4f5ef0be468a5"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-http-producer.inc.mm",
+      "bytes": 14015,
+      "sha256": "0e1583d17bd5f4c5ea15566320a6cb83f4e9b2143ce0d1e37471983ed63c6258"
     }
   ],
   "normalBuildTool": {
@@ -2334,9 +2339,9 @@
     "revokeVerified": false
   },
   "deviceSourceNativeStage": {
-    "sourceVariant": "SDK49-DEVICE-FACTORY-CORE-STAGE/v1",
+    "sourceVariant": "SDK49-NATIVE-READ-LEASE-STAGE/v1",
     "originalAuthHandoffSHA256": "1630e5800996995b2f1338b7a6071a5c2c6357a8ffd4fdbbe2030db014b0c8a9",
-    "nativeSourceInputs": 116,
+    "nativeSourceInputs": 117,
     "addedFixedSourceLeaves": 3,
     "namedSDKNodeHunksOnly": true,
     "featureMacro": "YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE",
@@ -2363,6 +2368,13 @@
     "asyncWorker": false,
     "actualCrypto": false,
     "newArchiveDownloaded": false,
-    "globalRevoke": false
+    "globalRevoke": false,
+    "rawNativeProducerCode": true,
+    "publicSDKReadLeaseSource": true,
+    "publicGetter": "acquireOriginalProductSessionDeviceV4ReadLeaseStage",
+    "publicSubpath": "@ynx-chain/wallet-auth/original-product-device-v4-source-stage",
+    "sameRawOwnerClosedProjections": true,
+    "NativeProducerFlag": "YNX_ORIGINAL_PRODUCT_DEVICE_V4_HTTP_PRODUCER_STAGE",
+    "nativeProducerHandoffSHA256": "383a13d85d1bc12a5b866be4370ac53ef700bb25b7230f65a4c4db2b3b447721"
   }
 }
