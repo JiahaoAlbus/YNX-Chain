@@ -130,7 +130,10 @@ for name in ('ynx-chaind', 'ynx-consensus-package'):
     for key, expected in {'-buildmode': 'exe', '-trimpath': 'true', 'CGO_ENABLED': '0', 'GOOS': 'linux', 'GOARCH': 'amd64',
                           'vcs': 'git', 'vcs.revision': commit, 'vcs.modified': 'false'}.items():
         require(settings.get(key) == expected, 'actual ELF build setting mismatch: ' + name + ':' + key)
-    require(settings.get('-ldflags') == (native_flags if name == 'ynx-chaind' else '-s -w'), 'actual ldflags identity differs')
+    # Go1.26.10 load/pkg.go deliberately omits -ldflags under -trimpath
+    # (issue 52372), even though those flags still reach the linker. Preserve
+    # that actual absence, not the requested flags in an observed metadata slot.
+    require('-ldflags' not in settings, 'unexpected ldflags metadata under fixed trimpath toolchain')
     with path.open('rb') as source:
         magic = source.read(20)
         source.seek(0)

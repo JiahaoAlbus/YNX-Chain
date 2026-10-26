@@ -4,8 +4,10 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -40,8 +42,8 @@ class OfflineMigrationToolsProducer(unittest.TestCase):
         self.commit = self.git('rev-parse', 'HEAD').strip()
         self.tree = self.git('rev-parse', 'HEAD^{tree}').strip()
 
-    def run_command(self, arguments, cwd=None, timeout=90):
-        return subprocess.run(arguments, cwd=cwd or self.repository, env=self.environment, stdin=subprocess.DEVNULL,
+    def run_command(self, arguments, cwd=None, timeout=90, environment=None):
+        return subprocess.run(arguments, cwd=cwd or self.repository, env=environment or self.environment, stdin=subprocess.DEVNULL,
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout, check=False)
 
     def git(self, *arguments, cwd=None):
@@ -49,12 +51,12 @@ class OfflineMigrationToolsProducer(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr.decode('utf8', errors='replace'))
         return result.stdout.decode('utf8')
 
-    def invoke(self, replacements=None, work=None, output=None):
+    def invoke(self, replacements=None, work=None, output=None, environment=None):
         values = {'--repository': str(self.repository), '--source-commit': self.commit, '--source-tree': self.tree,
                   '--work-directory': str(work or self.root / 'independent source'),
                   '--output-directory': str(output or self.root / 'public output')}
         values.update(replacements or {})
-        return self.run_command(['bash', str(HELPER), *[part for item in values.items() for part in item]], timeout=150)
+        return self.run_command(['bash', str(HELPER), *[part for item in values.items() for part in item]], timeout=150, environment=environment)
 
     def snapshot(self, directory):
         result = {}
@@ -134,6 +136,7 @@ class OfflineMigrationToolsProducer(unittest.TestCase):
             self.assertEqual(settings.get('vcs.revision'), self.commit)
             self.assertEqual(settings.get('vcs.modified'), 'false')
             self.assertEqual((settings.get('CGO_ENABLED'), settings.get('GOOS'), settings.get('GOARCH'), settings.get('-trimpath')), ('0', 'linux', 'amd64', 'true'))
+            self.assertNotIn('-ldflags', settings)  # The fixed compiler's actual trimpath contract.
             # Only these tiny synthetic public fixture programs run in CI; no
             # YNX program, key, daemon, service, ledger or listener is executed.
             executed = self.run_command([str(path)])
@@ -162,6 +165,7 @@ class OfflineMigrationToolsProducer(unittest.TestCase):
         original = self.snapshot(output)
         result = self.invoke()
         self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b'refusing reuse', result.stderr)
         self.assertFalse((self.root / 'independent source').exists())
         self.assertEqual(self.snapshot(output), original)
 
@@ -174,6 +178,8 @@ class OfflineMigrationToolsProducer(unittest.TestCase):
         self.tree = self.git('rev-parse', 'HEAD^{tree}').strip()
         result = self.invoke()
         self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b'syntax error', result.stderr)
+        self.assertIn(b'producer command failed: go', result.stderr)
         output = self.root / 'public output'
         self.assertTrue((output / 'ynx-chaind').is_file())
         self.assertFalse((output / 'SOURCE.json').exists())
@@ -182,6 +188,48 @@ class OfflineMigrationToolsProducer(unittest.TestCase):
         self.assertNotEqual(second.returncode, 0)
         self.assertEqual(self.snapshot(output), retained)
         self.assertIn(b'refusing reuse', second.stderr)
+
+    def test_metadata_injection_negative_only_rejects_real_compiler_readback_changes(self):
+        # This is rejection-only fault injection. The wrapper runs the actual
+        # compiler and obtains its real -m output, then changes one public field.
+        # No injected output supplies the successful clean-source evidence above.
+        real_go = str(Path(shutil.which('go')).resolve(strict=True))
+        for name, old, new, first_cause in (
+            ('modified', b'\tbuild\tvcs.modified=false\n', b'\tbuild\tvcs.modified=true\n', b'actual ELF build setting mismatch: ynx-chaind:vcs.modified'),
+            ('revision', ('\tbuild\tvcs.revision=' + self.commit + '\n').encode('ascii'), b'', b'actual ELF build setting mismatch: ynx-chaind:vcs.revision'),
+            ('ldflags', b'\tbuild\t-trimpath=true\n', b'\tbuild\t-trimpath=true\n\tbuild\t-ldflags=forged\n', b'unexpected ldflags metadata under fixed trimpath toolchain'),
+        ):
+            with self.subTest(injected_field=name):
+                wrapper = self.root / ('metadata-injection-only-' + name)
+                wrapper.mkdir(mode=0o700)
+                program = wrapper / 'go'
+                program.write_text('#!' + sys.executable + '\n'
+                    'import subprocess, sys\n'
+                    'result = subprocess.run([' + repr(real_go) + ', *sys.argv[1:]], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)\n'
+                    'raw = result.stdout\n'
+                    'if result.returncode == 0 and sys.argv[1:3] == ["version", "-m"]:\n'
+                    '    old, new = ' + repr(old) + ', ' + repr(new) + '\n'
+                    '    if raw.count(old) != 1: sys.exit(93)\n'
+                    '    raw = raw.replace(old, new, 1)\n'
+                    'sys.stdout.buffer.write(raw)\n'
+                    'sys.stderr.buffer.write(result.stderr)\n'
+                    'sys.exit(result.returncode)\n', encoding='utf8')
+                program.chmod(0o700)
+                environment = dict(self.environment, PATH=str(wrapper) + os.pathsep + self.environment['PATH'])
+                output, work = self.root / ('rejected-output-' + name), self.root / ('rejected-source-' + name)
+                original = self.snapshot(self.repository)
+                result = self.invoke(work=work, output=output, environment=environment)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(first_cause, result.stderr)
+                self.assertFalse((output / 'SOURCE.json').exists())
+                self.assertEqual(self.snapshot(self.repository), original)
+                # Independently inspect the produced ELF via the unwrapped
+                # real tool. Only the injected observation was inconsistent.
+                _, actual = self.read_go_info(output / 'ynx-chaind')
+                self.assertEqual(actual.get('vcs.modified'), 'false')
+                self.assertEqual(actual.get('vcs.revision'), self.commit)
+                self.assertNotIn('-ldflags', actual)
+                print('PQ_OFFLINE_MIGRATION_METADATA_INJECTION_REJECTED field=' + name)
 
 
 if __name__ == '__main__':
