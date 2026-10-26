@@ -24,6 +24,8 @@ on:
       - 'scripts/ops/verify-original-native-copy.py'
       - 'scripts/ops/remote/verify-original-native-copy-once.sh'
       - 'scripts/ops/test_verify_original_native_copy_once.py'
+      - 'scripts/ops/build-pq-offline-migration-tools.sh'
+      - 'scripts/ops/test_build_pq_offline_migration_tools.py'
       - 'scripts/ops/remote/verify-retained-migration-preservation-once.sh'
       - 'scripts/ops/test_verify_retained_migration_preservation_once.py'
       - 'scripts/verify/test_original_native_copy_guard.py'
@@ -2360,6 +2362,90 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Supply the missing clean exporter for the already qualified public-upgrade
+  # source. The controller revision and the binary source revision are distinct.
+  offline-migration-tools-clean-7f:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GOMAXPROCS: '2'
+      GOGC: '50'
+      GOMEMLIMIT: '1536MiB'
+      CGO_ENABLED: '0'
+      GOFLAGS: '-p=1 -trimpath'
+      GOTOOLCHAIN: local
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+    steps:
+      - name: Checkout the offline producer controller
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Select only changed offline producer inputs
+        id: scope
+        run: |
+          python3 -B - <<'PY'
+          import os, re, subprocess
+          from pathlib import Path
+          def previous(path):
+              result = subprocess.run(['git', 'show', 'HEAD^:' + path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+              return result.stdout if result.returncode == 0 else b''
+          paths = ('scripts/ops/build-pq-offline-migration-tools.sh', 'scripts/ops/test_build_pq_offline_migration_tools.py')
+          changed = any(previous(path) != Path(path).read_bytes() for path in paths)
+          workflow = '.github/workflows/resource-market-ci.yml'
+          def block(raw, start, end):
+              begin = re.search(rb'(?m)^' + re.escape(start), raw)
+              if begin is None:
+                  return b''
+              finish = re.search(rb'(?m)^' + re.escape(end), raw[begin.end():])
+              if finish is None:
+                  raise RuntimeError('offline producer section boundary absent')
+              return raw[begin.start():begin.end() + finish.start()]
+          for start, end in ((b'  offline-migration-tools-clean-7f:\n', b'  # Current tests and delivery checks'),
+                             (b'      - name: Build fixed-source offline migration validation tools\n', b'      - name: Upload public offline migration validation tools\n')):
+              changed = changed or block(previous(workflow), start, end) != block(Path(workflow).read_bytes(), start, end)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('changed=' + str(changed).lower() + '\n')
+          print('Offline producer inputs changed:', changed)
+          PY
+      - name: Use the qualified Go toolchain
+        if: steps.scope.outputs.changed == 'true'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Reproduce dirty original checkout and verify real clean ELF builds
+        if: steps.scope.outputs.changed == 'true'
+        run: python3 -B scripts/ops/test_build_pq_offline_migration_tools.py -v
+      - name: Checkout the exact qualified native exporter source
+        if: steps.scope.outputs.changed == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 7f88113ea5848291db4f2da046aa447e876b8b8a
+          path: qa-offline-native-fixed-7f
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Build clean fixed-source offline tools without starting services
+        if: steps.scope.outputs.changed == 'true'
+        run: |
+          bash scripts/ops/build-pq-offline-migration-tools.sh \
+            --repository "$GITHUB_WORKSPACE/qa-offline-native-fixed-7f" \
+            --source-commit 7f88113ea5848291db4f2da046aa447e876b8b8a \
+            --source-tree 8e163c7eda002241b7ddd67fdeeb62e3a797296e \
+            --work-directory "$RUNNER_TEMP/ynx-pq-offline-7f-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            --output-directory "$RUNNER_TEMP/ynx-pq-offline-7f-clean-tools"
+      - name: Upload the exact clean 7f offline tool supply
+        if: steps.scope.outputs.changed == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-offline-migration-tools-clean-7f88113ea5848291db4f2da046aa447e876b8b8a-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-pq-offline-7f-clean-tools
+          if-no-files-found: error
+          retention-days: 7
+
   # Current tests and delivery checks remain separate bounded stages of the
   # same run/source. Only the closed public fixture catalog crosses runners.
   protocol-delivery:
@@ -2602,26 +2688,12 @@ jobs:
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         run: |
           YNX_OFFLINE_TOOLS="$RUNNER_TEMP/ynx-pq-offline-migration-tools"
-          export YNX_OFFLINE_TOOLS
-          umask 077
-          mkdir "$YNX_OFFLINE_TOOLS"
-          go build -p 1 -trimpath -ldflags "-s -w -X main.buildCommit=$GITHUB_SHA -X main.buildRelease=pq-offline-validation" -o "$YNX_OFFLINE_TOOLS/ynx-chaind" ./cmd/ynx-chaind
-          go build -p 1 -trimpath -ldflags '-s -w' -o "$YNX_OFFLINE_TOOLS/ynx-consensus-package" ./cmd/ynx-consensus-package
-          python3 -B - <<'PY'
-          import hashlib, json, os
-          from pathlib import Path
-          root = Path(os.environ['YNX_OFFLINE_TOOLS'])
-          binaries = {}
-          for name in ('ynx-chaind', 'ynx-consensus-package'):
-              path = root / name
-              with path.open('rb') as source:
-                  digest = hashlib.file_digest(source, 'sha256').hexdigest()
-              binaries[name] = dict(bytes=path.stat().st_size, sha256=digest)
-          record = dict(version='YNX-PQ-OFFLINE-MIGRATION-TOOLS/v1', commit=os.environ['GITHUB_SHA'],
-              runId=os.environ['GITHUB_RUN_ID'], platform='linux/amd64', binaries=binaries,
-              purpose='offline copied-state validation; not installed or activated')
-          (root / 'SOURCE.json').write_text(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n', encoding='utf8')
-          PY
+          bash scripts/ops/build-pq-offline-migration-tools.sh \
+            --repository "$GITHUB_WORKSPACE" \
+            --source-commit "$GITHUB_SHA" \
+            --source-tree "$(git rev-parse "$GITHUB_SHA^{tree}")" \
+            --work-directory "$RUNNER_TEMP/ynx-pq-offline-native-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            --output-directory "$YNX_OFFLINE_TOOLS"
       - name: Upload public offline migration validation tools
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'push') }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
