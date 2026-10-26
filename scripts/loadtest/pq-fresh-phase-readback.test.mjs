@@ -396,6 +396,23 @@ function hostDiagnosticFixture(){
  const f=proposalFixture();f.expected.inclusionWorkTimingsRequired=true;f.expected.hostPreparationTimingsRequired=true;f.records.at(-1)[1].w=[2,4,0,0,12];
  f.progress=hostProgress('before',0,'business-offer','begin',89,0)+hostProgress('before',0,'business-offer','complete',95,6)+hostProgress('before',0,'business-host-context','begin',171,0)+hostProgress('before',0,'business-host-context','complete',190,19,[10,1,1,1,1,1,1,1,1,1]);return f;
 }
+test('Host wall coverage preserves exact residuals without attributing them to queue or CPU',()=>{
+ const f=hostDiagnosticFixture();
+ // A completed preparation without a verified callback is diagnostic DATA too.
+ f.progress+=hostProgress('after',0,'business-host-context','begin',195,0)+hostProgress('after',0,'business-host-context','complete',199,4,[3,0,0,0,0,0,0,0,0,0]);
+ f.progress+=hostProgress('after',1,'business-host-context','begin',200,0);
+ const r=diagnosticRead(f),w=r.hostPreparationStages.wallCoverage;
+ assert.deepEqual(w.observations.map(s=>[s.arm,s.progressSpanNs,s.helperTotalNs,s.helperChildrenNs,s.outsideHelperWallNs,s.insideHelperUnattributedWallNs]),[['before','19','10','9','9','1'],['after','4','3','0','1','3']]);
+ assert.equal(w.arms[0].outsideHelperWallNs.p95Ns,'9');assert.equal(w.arms[1].insideHelperUnattributedWallNs.p50Ns,'3');
+ assert.equal(w.arms[1].completedPreparations,1);assert.equal(r.transactions.length,1);assert.equal(r.fullPairQualified,false);assert.equal(r.sustainedTPSQualified,false);
+ assert.match(w.interpretation,/not a direct queue-wait measurement/);assert.match(w.interpretation,/quantiles must not be subtracted/);
+});
+test('missing legacy Host timers never invent residual samples and measured zero stays zero',()=>{
+ const legacy=hostDiagnosticFixture();legacy.expected.hostPreparationTimingsRequired=false;legacy.progress=legacy.progress.replace(' hostNs=[10,1,1,1,1,1,1,1,1,1]','');
+ const missing=diagnosticRead(legacy).hostPreparationStages.wallCoverage;assert.deepEqual(missing.observations,[]);assert.equal(missing.arms[0].outsideHelperWallNs.samples,0);assert.equal(missing.arms[0].outsideHelperWallNs.p50Ns,null);
+ const zero=hostDiagnosticFixture();zero.progress=zero.progress.replace('hostNs=[10,1,1,1,1,1,1,1,1,1]','hostNs=[19,19,0,0,0,0,0,0,0,0]');zero.records.at(-1)[1].w=[2,4,0,0,19];
+ const measured=diagnosticRead(zero).hostPreparationStages.wallCoverage.arms[0];assert.equal(measured.outsideHelperWallNs.samples,1);assert.equal(measured.outsideHelperWallNs.p50Ns,'0');assert.equal(measured.insideHelperUnattributedWallNs.p99Ns,'0');
+});
 test('all ten actual Host helper wall stages survive failed-window diagnostics without proof credit',()=>{
  const r=diagnosticRead(hostDiagnosticFixture()),h=r.hostPreparationStages;
  assert.equal(h.observations.length,1);assert.equal(h.childrenAreIncludedInTotal,true);assert.equal(h.arms[0].phases.totalWallNs.p50Ns,'10');
