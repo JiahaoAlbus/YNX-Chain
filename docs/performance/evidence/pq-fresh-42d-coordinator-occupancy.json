@@ -1,0 +1,33 @@
+{
+  "classification": "actual nonoverlapping single-coordinator call wall intervals, includes waits, not CPU utilization",
+  "runId": "40348378826",
+  "sourceCommit": "42d12277b61b92e82ca96e9e112e437274c6444f",
+  "callbackCount": 16,
+  "coordinatorWorkSumsNs": {
+    "probeNs": 6116326791,
+    "fullCommitCheckNs": 847010002,
+    "hostContextNs": 10806176486
+  },
+  "totalRecordedCoordinatorCallWallNs": 17769513279,
+  "commonOfferToLastProofWindowNs": 23795609422,
+  "recordedCoordinatorCallFractionOfWindow": 0.7467559650971313,
+  "hostContextFractionOfWindow": 0.45412480488981527,
+  "actualOfferCadencePerSecond": 0.9304335772608532,
+  "configuredMaximumOfferRate": 2,
+  "sourceBinding": {
+    "loop": "internal/consensus/pq_network_fresh_business_test.go:pqFreshPipeline",
+    "call": "synchronous readback readiness callback invokes full original hostContext before next coordinator loop turn",
+    "noConcurrentHostPreparation": true,
+    "FatalHelpersRemainCoordinatorOwned": true
+  },
+  "interpretation": [
+    "w1/w3/w4 are disjoint actual call timers in the same original coordinator; unlike inclusive global progress spans, these sums do not overlap one another.",
+    "The coordinator cannot start another offer while a synchronous Host/capture/checkpoint call runs; node consensus and child proof processes can continue concurrently.",
+    "These fractions measure coordinator call occupation including checkpoint/disk waits, not CPU or causal saved-time potential.",
+    "Reducing original Host captured-state redundant math or carefully moving error-return preparation behind original fixed slot bounds may remove actual coordinator blocking, but needs owning-source repair/tests and a separately authorized runtime.",
+    "Do not run Fatal helpers on workers, invent earlier finality, weaken original full state/proof checks, increase process/proof slots or claim the whole overlap as saved time."
+  ],
+  "performanceImprovementMeasured": false,
+  "fullPairQualified": false,
+  "sustainedTPSQualified": false
+}
