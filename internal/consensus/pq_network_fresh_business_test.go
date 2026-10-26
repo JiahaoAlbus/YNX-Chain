@@ -487,7 +487,9 @@ type pqFreshInclusionObservation struct {
 	Index     int          `json:"i"`
 	BlockHash string       `json:"b"`
 	Proposals [4]*[2]int64 `json:"p"`
-	// Probe count/ns, full Commit-check count/ns, Host-context call ns.
+	// Probe count/ns, full Commit-check count/ns, actual Host-helper call ns.
+	// Host-helper wall time now runs on one worker and may overlap other
+	// transactions/coordinator calls; only this row's call intervals are disjoint.
 	// Zero Commit-check count means the same immutable H was already verified.
 	Work [5]int64 `json:"w"`
 }
@@ -514,11 +516,11 @@ func pqFreshInclusionObservationLine(arm, domain string, row pqFreshTransfer, bl
 	observation := pqFreshInclusionObservation{Arm: arm, Clock: domain, ABCIHash: strings.TrimPrefix(row.ABCIHash, "0x"), Height: strconv.FormatInt(row.Height, 10), Index: row.Index, BlockHash: blockHash, Work: row.coordinatorWork}
 	for _, value := range observation.Work {
 		if value < 0 || value > pqFreshPhaseMaxNs {
-			return nil, errors.New("original coordinator call work exceeds bounded window")
+			return nil, errors.New("original callback call work exceeds bounded window")
 		}
 	}
 	if observation.Work[0] == 0 && observation.Work[1] != 0 || observation.Work[2] == 0 && observation.Work[3] != 0 || observation.Work[1]+observation.Work[3]+observation.Work[4] > row.OfferToIndependentNs {
-		return nil, errors.New("coordinator calls overlap or uninvoked work was invented")
+		return nil, errors.New("callback call intervals overlap or uninvoked work was invented")
 	}
 	for i, trace := range traces {
 		if trace == nil || trace.index != i || trace.arm != arm || trace.domain != domain {
@@ -1393,7 +1395,171 @@ func pqFreshReadbackQueue(parent context.Context, count int, start func(context.
 	return nil
 }
 
-// The same coordinator owns preparation/validation and both bounded Wait sets.
+// Existing Host progress events carry the complete measured array without
+// adding a log record or changing the original512-byte progress-line budget.
+// Total includes its children; Capture includes App-lock wait and encoding.
+func pqFreshHostProgressLine(arm string, index int, start, end int64, timing *pqBusinessHostPreparationTimings) (string, error) {
+	if arm != "before" && arm != "after" || index < 0 || index >= pqFreshSenders || start < 0 || end < start || end > pqFreshPhaseMaxNs {
+		return "", errors.New("bounded original Host progress coordinates required")
+	}
+	line := fmt.Sprintf("PQ_NETWORK_FRESH_PROGRESS arm=%s phase=business-host-context node=-1 index=%d event=complete offsetNs=%d durationNs=%d", arm, index, end, end-start)
+	if timing != nil {
+		a := [10]int64{timing.TotalWallNs, timing.LightBlocksWallNs, timing.InputEncodingWallNs, timing.CheckpointLoadWallNs, timing.CheckpointCaptureWallNs, timing.CheckpointDecodeWallNs, timing.CheckpointValidateWallNs, timing.CheckpointRetryWaitNs, timing.RetainInputsWallNs, timing.ContextWriteWallNs}
+		if a[0] < 0 || a[0] > end-start {
+			return "", errors.New("Host timing exceeds its original queued progress span")
+		}
+		var sum int64
+		for _, value := range a[1:] {
+			if value < 0 || value > a[0]-sum {
+				return "", errors.New("Host timing children overlap or exceed total wall time")
+			}
+			sum += value
+		}
+		raw, err := json.Marshal(a)
+		if err != nil {
+			return "", err
+		}
+		line += " hostNs=" + string(raw)
+	}
+	// Reserve96 bytes for the normal Go test filename/line prefix and newline.
+	if len(line)+96 > pqFreshDetailLogLineMax {
+		return "", errors.New("Host progress exceeds original line allowance")
+	}
+	return line, nil
+}
+
+func pqFreshHostStage(t *testing.T, origin time.Time, arm string, index int) func(*pqBusinessHostPreparationTimings) {
+	t.Helper()
+	start := time.Since(origin).Nanoseconds()
+	t.Logf("PQ_NETWORK_FRESH_PROGRESS arm=%s phase=business-host-context node=-1 index=%d event=begin offsetNs=%d durationNs=0", arm, index, start)
+	return func(timing *pqBusinessHostPreparationTimings) {
+		t.Helper()
+		line, err := pqFreshHostProgressLine(arm, index, start, time.Since(origin).Nanoseconds(), timing)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("%s", line)
+	}
+}
+
+// Only the error-return Host preparation runs on this single worker. The
+// coordinator still owns all Fatal helpers, original CLI Starts and proof result
+// validation. A reservation covers queued + preparing + running proof work, so
+// those stages together never exceed the original four proof slots.
+type pqFreshHostRequest struct {
+	ordinal, index int
+	height         int64
+	wire, payload  []byte
+}
+
+type pqFreshHostPrepared struct {
+	ordinal    int
+	path, pin  string
+	durationNs int64
+	err        error
+	timing     pqBusinessHostPreparationTimings
+}
+
+type pqFreshHostQueue struct {
+	ctx     context.Context
+	cancel  context.CancelFunc
+	jobs    chan pqFreshHostRequest
+	results chan pqFreshHostPrepared
+	stopped chan struct{}
+	// Only the original coordinator accesses the following lifecycle state.
+	issued, delivered, reserved []bool
+	ready                       map[int]pqFreshHostPrepared
+	outstanding                 int
+}
+
+func pqFreshNewHostQueue(parent context.Context, count int, prepare func(context.Context, pqFreshHostRequest) (string, string, pqBusinessHostPreparationTimings, error)) (*pqFreshHostQueue, error) {
+	if parent == nil || count < 1 || count > pqFreshSenders || prepare == nil {
+		return nil, errors.New("bounded error-return Host preparation required")
+	}
+	ctx, cancel := context.WithCancel(parent)
+	q := &pqFreshHostQueue{ctx: ctx, cancel: cancel, jobs: make(chan pqFreshHostRequest, pqFreshInFlight), results: make(chan pqFreshHostPrepared, pqFreshInFlight), stopped: make(chan struct{}), issued: make([]bool, count), delivered: make([]bool, count), reserved: make([]bool, count), ready: make(map[int]pqFreshHostPrepared)}
+	go func() {
+		defer close(q.stopped)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case job := <-q.jobs:
+				if ctx.Err() != nil {
+					return // Never prepare another queued target after cancellation.
+				}
+				started := time.Now()
+				path, pin, timing, err := prepare(ctx, job)
+				// At most four reservations exist, and each publishes once.
+				// The original coordinator can therefore cancel/join without
+				// draining results or stranding this worker on an abandoned send.
+				q.results <- pqFreshHostPrepared{ordinal: job.ordinal, path: path, pin: pin, durationNs: time.Since(started).Nanoseconds(), err: err, timing: timing}
+				if err != nil {
+					return // Retain the original error; do not start later targets.
+				}
+			}
+		}
+	}()
+	return q, nil
+}
+
+func (q *pqFreshHostQueue) close() {
+	q.cancel()
+	<-q.stopped
+}
+
+func (q *pqFreshHostQueue) enqueue(request pqFreshHostRequest) (bool, error) {
+	i := request.ordinal
+	if i < 0 || i >= len(q.issued) || request.height < 1 || request.index < 0 || len(request.wire) == 0 || len(request.payload) == 0 || q.issued[i] {
+		return false, errors.New("one exact original Host target per reservation required")
+	}
+	if err := q.ctx.Err(); err != nil {
+		return false, err
+	}
+	if q.outstanding >= pqFreshInFlight {
+		return false, nil
+	}
+	// Detached inputs keep a worker from observing later row/result mutation.
+	request.wire, request.payload = bytes.Clone(request.wire), bytes.Clone(request.payload)
+	q.issued[i], q.reserved[i] = true, true
+	q.outstanding++
+	q.jobs <- request
+	return true, nil
+}
+
+func (q *pqFreshHostQueue) take(i int) (pqFreshHostPrepared, bool, error) {
+	if i < 0 || i >= len(q.issued) || !q.reserved[i] || q.delivered[i] {
+		return pqFreshHostPrepared{}, false, errors.New("Host completion has no undelivered original reservation")
+	}
+	for {
+		select {
+		case result := <-q.results:
+			_, duplicate := q.ready[result.ordinal]
+			if result.ordinal < 0 || result.ordinal >= len(q.issued) || !q.reserved[result.ordinal] || q.delivered[result.ordinal] || duplicate {
+				return pqFreshHostPrepared{}, false, errors.New("duplicate or foreign Host preparation completion")
+			}
+			q.ready[result.ordinal] = result
+		default:
+			result, ok := q.ready[i]
+			if ok {
+				delete(q.ready, i)
+				q.delivered[i] = true
+			}
+			return result, ok, nil
+		}
+	}
+}
+
+func (q *pqFreshHostQueue) release(i int) error {
+	if i < 0 || i >= len(q.issued) || !q.reserved[i] || !q.delivered[i] || q.outstanding < 1 {
+		return errors.New("proof completion has no prepared original Host reservation")
+	}
+	q.reserved[i] = false
+	q.outstanding--
+	return nil
+}
+
+// The coordinator owns all Fatal validation and both bounded child Wait sets.
 // Proof work can start for a completed original offer while later offers remain
 // paced. It never reoffers UNKNOWN, moves work outside the guard, or increases
 // either original four-slot queue. At most4 offer clients +4 readback clients
@@ -1498,6 +1664,15 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 	}
 	finish()
 	finishOffers, finishReadbacks := make([]func(), len(rows)), make([]func(), len(rows))
+	finishContexts := make([]func(*pqBusinessHostPreparationTimings), len(rows))
+	var hostQueue *pqFreshHostQueue
+	// This join runs before the enclosing arm closes the Gateway or nodes,
+	// including when any original coordinator Fatal helper calls Goexit.
+	defer func() {
+		if hostQueue != nil {
+			hostQueue.close()
+		}
+	}()
 	contextPins, readbackFiles := make([]string, len(rows)), make([]string, len(rows))
 	included, evidenced := make([]bool, len(rows)), make([]bool, len(rows))
 	searchHeights := make([]int64, len(rows))
@@ -1537,6 +1712,39 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 		return nil
 	}, func(ctx context.Context, i int, done chan<- pqFreshCompletion) (bool, error) {
 		row := &rows[i]
+		if hostQueue == nil {
+			// Use the original pipeline child context: cancellation reaches
+			// Host preparation before the pipeline joins its two CLI Wait sets.
+			var err error
+			hostQueue, err = pqFreshNewHostQueue(ctx, len(rows), func(ctx context.Context, request pqFreshHostRequest) (string, string, pqBusinessHostPreparationTimings, error) {
+				path, pin, _, timing, err := b.prepareHostContextMeasured(ctx, n, fmt.Sprintf("member-%02d", request.ordinal), PQTransferType, request.wire, request.payload, request.height, request.index)
+				return path, pin, timing, err
+			})
+			if err != nil {
+				return false, err
+			}
+		}
+		if hostQueue.issued[i] {
+			prepared, available, err := hostQueue.take(i)
+			if err != nil || !available {
+				return false, err
+			}
+			row.coordinatorWork[4] = prepared.durationNs
+			if prepared.err != nil {
+				finishContexts[i](nil) // Partial phases are not invented as zero timings.
+				return false, prepared.err
+			}
+			finishContexts[i](&prepared.timing)
+			out := filepath.Join(b.root, fmt.Sprintf("member-%02d-readback.json", i))
+			contextPins[i], readbackFiles[i] = prepared.pin, out
+			args := pqFreshArgs([]string{"-pq-member", row.path, "-pq-gateway", b.url, "-pq-readback-only", "-pq-collect-proof", "-pq-proof-verifier", verifier.Path, "-pq-proof-verifier-sha256", verifier.SHA256, "-pq-trust-context", prepared.path, "-pq-trust-context-sha256", prepared.pin, "-output", out, "-timeout", "10s"}, baseline)
+			finishReadbacks[i] = pqFreshStage(n.t, origin, arm, "business-independent-readback", -1, i)
+			_, err = pqFreshStartContext(n, b, ctx, done, i, fmt.Sprintf("member-%02d-readback", i), args)
+			return err == nil, err
+		}
+		if hostQueue.outstanding == pqFreshInFlight {
+			return false, nil // Preparing and queued targets retain their proof slots.
+		}
 		if finishInclusion == nil {
 			finishInclusion = pqFreshStage(n.t, origin, arm, "business-original-inclusion", -1, -1)
 		}
@@ -1600,18 +1808,15 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 				finishEvidence()
 			}
 		}
-		finishContext := pqFreshStage(n.t, origin, arm, "business-host-context", -1, i)
-		label := fmt.Sprintf("member-%02d", i)
-		contextStarted := time.Now()
-		contextPath, contextPin, _ := b.hostContext(n, label, PQTransferType, row.wire, row.payload, row.Height, row.Index)
-		row.coordinatorWork[4] = time.Since(contextStarted).Nanoseconds()
-		finishContext()
-		out := filepath.Join(b.root, label+"-readback.json")
-		contextPins[i], readbackFiles[i] = contextPin, out
-		args := pqFreshArgs([]string{"-pq-member", row.path, "-pq-gateway", b.url, "-pq-readback-only", "-pq-collect-proof", "-pq-proof-verifier", verifier.Path, "-pq-proof-verifier-sha256", verifier.SHA256, "-pq-trust-context", contextPath, "-pq-trust-context-sha256", contextPin, "-output", out, "-timeout", "10s"}, baseline)
-		finishReadbacks[i] = pqFreshStage(n.t, origin, arm, "business-independent-readback", -1, i)
-		_, err = pqFreshStartContext(n, b, ctx, done, i, label+"-readback", args)
-		return err == nil, err
+		finishContexts[i] = pqFreshHostStage(n.t, origin, arm, i)
+		queued, err := hostQueue.enqueue(pqFreshHostRequest{ordinal: i, index: row.Index, height: row.Height, wire: row.wire, payload: row.payload})
+		if err != nil {
+			return false, fmt.Errorf("original Host preparation reservation failed after readiness: %w", err)
+		}
+		if !queued {
+			return false, errors.New("original Host preparation reservation lost its bounded slot")
+		}
+		return false, nil
 	}, func(result pqFreshCompletion) error {
 		if result.err != nil {
 			return fmt.Errorf("normal independent readback/verifier %d failed; no rebroadcast or finalized credit: %w", result.index, result.err)
@@ -1641,7 +1846,7 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 				return fmt.Errorf("bounded original proposal observation failed: %w", err)
 			}
 		}
-		return nil
+		return hostQueue.release(result.index)
 	})
 	if err != nil {
 		n.t.Fatal("original offer/readback pipeline failed after joining owned work; preserve UNKNOWN:", err)
@@ -3227,5 +3432,340 @@ func TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip(t *tes
 	h, _, hint, err := pqFreshScanPayload([]byte("target"), 2, 1, load)
 	if err != nil || h != 0 || hint != 2 || calls != 0 {
 		t.Fatal("search beyond the current original tip invented an observation", h, hint, calls, err)
+	}
+}
+
+func TestPQNetworkFreshHostPreparationDoesNotBlockOriginalPacedOffers(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	var queue *pqFreshHostQueue
+	defer func() {
+		if queue != nil {
+			queue.close()
+		}
+	}()
+	startedHost, secondOffer := make(chan struct{}), make(chan struct{})
+	var starts []time.Time
+	verified := 0
+	_, err := pqFreshPipeline(ctx, 2, time.Now(), func(ctx context.Context, i int, done chan<- pqFreshCompletion) (time.Time, error) {
+		at := time.Now()
+		starts = append(starts, at)
+		if i == 1 {
+			select {
+			case <-startedHost:
+			default:
+				return time.Time{}, errors.New("Host preparation never entered the original pipeline")
+			}
+			close(secondOffer) // The first Host call cannot complete before this.
+		}
+		done <- pqFreshCompletion{index: i, ended: at}
+		return at, nil
+	}, func(pqFreshCompletion) error { return nil }, func(ctx context.Context, i int, done chan<- pqFreshCompletion) (bool, error) {
+		if queue == nil {
+			var err error
+			queue, err = pqFreshNewHostQueue(ctx, 2, func(ctx context.Context, request pqFreshHostRequest) (string, string, pqBusinessHostPreparationTimings, error) {
+				if request.ordinal == 0 {
+					close(startedHost)
+					select {
+					case <-secondOffer:
+					case <-ctx.Done():
+						return "", "", pqBusinessHostPreparationTimings{}, ctx.Err()
+					}
+				}
+				return "original detached Host context", strings.Repeat("31", 32), pqBusinessHostPreparationTimings{}, nil
+			})
+			if err != nil {
+				return false, err
+			}
+		}
+		if !queue.issued[i] {
+			_, err := queue.enqueue(pqFreshHostRequest{ordinal: i, height: 1, wire: []byte("wire"), payload: []byte("envelope")})
+			return false, err
+		}
+		result, ready, err := queue.take(i)
+		if err != nil || !ready {
+			return false, err
+		}
+		if result.err != nil {
+			return false, result.err
+		}
+		if result.path == "" || result.pin != strings.Repeat("31", 32) {
+			return false, errors.New("original context identity changed")
+		}
+		done <- pqFreshCompletion{index: i, ended: time.Now()}
+		return true, nil
+	}, func(result pqFreshCompletion) error {
+		verified++
+		return queue.release(result.index)
+	})
+	if err != nil || verified != 2 || len(starts) != 2 || starts[1].Sub(starts[0]) < pqFreshInterval || queue.outstanding != 0 {
+		t.Fatal("Host wait serialized original offers, changed cadence or fabricated completion", err)
+	}
+}
+
+func TestPQNetworkFreshHostPreparationRetainsFourSlotsAndDetachedInputs(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	gate, entered := make(chan struct{}), make(chan struct{})
+	var seen []int // Only the single worker writes; read after close/join.
+	active, peak := 0, 0
+	queue, err := pqFreshNewHostQueue(ctx, 5, func(ctx context.Context, request pqFreshHostRequest) (string, string, pqBusinessHostPreparationTimings, error) {
+		active++
+		if active > peak {
+			peak = active
+		}
+		defer func() { active-- }()
+		if request.ordinal == 0 {
+			close(entered)
+			select {
+			case <-gate:
+			case <-ctx.Done():
+				return "", "", pqBusinessHostPreparationTimings{}, ctx.Err()
+			}
+		}
+		if string(request.wire) != "original-wire" || string(request.payload) != "original-envelope" {
+			return "", "", pqBusinessHostPreparationTimings{}, errors.New("mutable row bytes reached Host worker")
+		}
+		seen = append(seen, request.ordinal)
+		return "original-context", strings.Repeat("32", 32), pqBusinessHostPreparationTimings{}, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer queue.close()
+	wire, payload := []byte("original-wire"), []byte("original-envelope")
+	request := func(i int) pqFreshHostRequest {
+		return pqFreshHostRequest{ordinal: i, height: 1, wire: wire, payload: payload}
+	}
+	for i := 0; i < 4; i++ {
+		if ok, err := queue.enqueue(request(i)); err != nil || !ok {
+			t.Fatal("original four slots were not admitted", i, err)
+		}
+	}
+	select {
+	case <-entered:
+	case <-ctx.Done():
+		t.Fatal("Host worker did not start")
+	}
+	if ok, err := queue.enqueue(request(4)); err != nil || ok || queue.outstanding != 4 {
+		t.Fatal("a fifth queued/preparing/proof target exceeded original slots", err)
+	}
+	wire[0], payload[0] = 'X', 'Y'
+	close(gate)
+	await := func(i int) pqFreshHostPrepared {
+		for {
+			r, ready, err := queue.take(i)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if ready {
+				if r.err != nil {
+					t.Fatal(r.err)
+				}
+				return r
+			}
+			select {
+			case <-ctx.Done():
+				t.Fatal("original Host completion missing")
+			case <-time.After(time.Millisecond):
+			}
+		}
+	}
+	for i := 0; i < 4; i++ {
+		await(i)
+	}
+	if ok, err := queue.enqueue(request(4)); err != nil || ok || queue.outstanding != 4 {
+		t.Fatal("preparation completion released a slot before its proof was accepted", err)
+	}
+	if err := queue.release(0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := queue.enqueue(request(0)); err == nil {
+		t.Fatal("released original target was prepared twice")
+	}
+	if err := queue.release(0); err == nil {
+		t.Fatal("one proof released the original slot twice")
+	}
+	wire, payload = []byte("original-wire"), []byte("original-envelope")
+	if ok, err := queue.enqueue(request(4)); err != nil || !ok {
+		t.Fatal("verified original proof did not release exactly one slot", err)
+	}
+	for i := 1; i < 4; i++ {
+		if err := queue.release(i); err != nil {
+			t.Fatal(err)
+		}
+	}
+	await(4)
+	if err := queue.release(4); err != nil {
+		t.Fatal(err)
+	}
+	queue.close()
+	if len(seen) != 5 || active != 0 || peak != 1 || queue.outstanding != 0 || cap(queue.jobs) != 4 || cap(queue.results) != 4 {
+		t.Fatal("Host preparation was not a joined single worker with the original four reservations", seen, active, peak)
+	}
+}
+
+func TestPQNetworkFreshHostPreparationPreservesErrorsAndPipelineCancellation(t *testing.T) {
+	firstCause := errors.New("original Host capture refused")
+	calls := 0
+	queue, err := pqFreshNewHostQueue(context.Background(), 2, func(context.Context, pqFreshHostRequest) (string, string, pqBusinessHostPreparationTimings, error) {
+		calls++
+		return "", "", pqBusinessHostPreparationTimings{}, firstCause
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer queue.close()
+	for i := 0; i < 2; i++ {
+		if ok, err := queue.enqueue(pqFreshHostRequest{ordinal: i, height: 1, wire: []byte("w"), payload: []byte("p")}); err != nil || !ok {
+			t.Fatal(err)
+		}
+	}
+	<-queue.stopped
+	r, ready, err := queue.take(0)
+	if err != nil || !ready || !errors.Is(r.err, firstCause) || calls != 1 {
+		t.Fatal("Host failure lost the original cause or started later queued work", err, r.err, calls)
+	}
+	queue.close()
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+	defer cancel()
+	var pending *pqFreshHostQueue
+	defer func() {
+		if pending != nil {
+			pending.close()
+		}
+	}()
+	entered, canceled := make(chan struct{}), make(chan struct{})
+	startFailure := errors.New("original next offer could not start")
+	_, err = pqFreshPipeline(ctx, 2, time.Now(), func(ctx context.Context, i int, done chan<- pqFreshCompletion) (time.Time, error) {
+		if i == 1 {
+			return time.Time{}, startFailure
+		}
+		at := time.Now()
+		done <- pqFreshCompletion{index: i, ended: at}
+		return at, nil
+	}, func(pqFreshCompletion) error { return nil }, func(ctx context.Context, i int, done chan<- pqFreshCompletion) (bool, error) {
+		if pending == nil {
+			var err error
+			pending, err = pqFreshNewHostQueue(ctx, 2, func(ctx context.Context, _ pqFreshHostRequest) (string, string, pqBusinessHostPreparationTimings, error) {
+				close(entered)
+				<-ctx.Done()
+				close(canceled)
+				return "", "", pqBusinessHostPreparationTimings{}, ctx.Err()
+			})
+			if err != nil {
+				return false, err
+			}
+			_, err = pending.enqueue(pqFreshHostRequest{ordinal: i, height: 1, wire: []byte("w"), payload: []byte("p")})
+			return false, err
+		}
+		return false, nil
+	}, func(pqFreshCompletion) error { return errors.New("no unprepared proof may be credited") })
+	if !errors.Is(err, startFailure) {
+		t.Fatal("pipeline lost its actual first failure", err)
+	}
+	if pending == nil {
+		t.Fatal("pipeline failed before the original Host preparation was exercised")
+	}
+	pending.close()
+	select {
+	case <-entered:
+	default:
+		t.Fatal("original Host preparation never began")
+	}
+	select {
+	case <-canceled:
+	default:
+		t.Fatal("original pipeline child cancellation did not reach/join Host preparation")
+	}
+}
+
+func TestPQNetworkFreshHostPreparationRejectsInvalidTargetsAndJoinsGoexit(t *testing.T) {
+	if _, err := pqFreshNewHostQueue(nil, 1, func(context.Context, pqFreshHostRequest) (string, string, pqBusinessHostPreparationTimings, error) {
+		return "", "", pqBusinessHostPreparationTimings{}, nil
+	}); err == nil {
+		t.Fatal("nil Host parent context accepted")
+	}
+	if _, err := pqFreshNewHostQueue(context.Background(), 17, nil); err == nil {
+		t.Fatal("unbounded or missing Host preparer accepted")
+	}
+	entered, canceled, coordinatorEnded := make(chan struct{}), make(chan struct{}), make(chan struct{})
+	queue, err := pqFreshNewHostQueue(context.Background(), 1, func(ctx context.Context, _ pqFreshHostRequest) (string, string, pqBusinessHostPreparationTimings, error) {
+		close(entered)
+		<-ctx.Done()
+		close(canceled)
+		return "", "", pqBusinessHostPreparationTimings{}, ctx.Err()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer queue.close()
+	for _, request := range []pqFreshHostRequest{{ordinal: -1, height: 1, wire: []byte("w"), payload: []byte("p")}, {ordinal: 1, height: 1, wire: []byte("w"), payload: []byte("p")}, {ordinal: 0, height: 0, wire: []byte("w"), payload: []byte("p")}, {ordinal: 0, height: 1, payload: []byte("p")}} {
+		if _, err := queue.enqueue(request); err == nil {
+			t.Fatal("invalid target entered the original Host queue")
+		}
+	}
+	if queue.outstanding != 0 {
+		t.Fatal("invalid target consumed a proof slot")
+	}
+	go func() {
+		defer close(coordinatorEnded)
+		defer queue.close()
+		_, _ = queue.enqueue(pqFreshHostRequest{ordinal: 0, height: 1, wire: []byte("w"), payload: []byte("p")})
+		<-entered
+		runtime.Goexit() // Same defer semantics as a coordinator-only Fatal.
+	}()
+	select {
+	case <-coordinatorEnded:
+	case <-time.After(2 * time.Second):
+		t.Fatal("coordinator Goexit stranded the Host worker")
+	}
+	select {
+	case <-canceled:
+	default:
+		t.Fatal("Goexit returned before Host cancellation/join")
+	}
+}
+
+func TestPQNetworkFreshHostPreparationProgressKeepsAllMeasuredStagesAndOriginalBudget(t *testing.T) {
+	timing := pqBusinessHostPreparationTimings{TotalWallNs: 120000000000, LightBlocksWallNs: 10000000000, InputEncodingWallNs: 10000000000, CheckpointLoadWallNs: 10000000000, CheckpointCaptureWallNs: 10000000000, CheckpointDecodeWallNs: 10000000000, CheckpointValidateWallNs: 10000000000, CheckpointRetryWaitNs: 10000000000, RetainInputsWallNs: 10000000000, ContextWriteWallNs: 10000000000}
+	line, err := pqFreshHostProgressLine("before", 15, 0, pqFreshPhaseMaxNs, &timing)
+	if err != nil || len(line)+96 > 512 {
+		t.Fatal("complete measured Host stages exceeded original progress allowance", len(line), err)
+	}
+	var values []int64
+	pieces := strings.Split(line, " hostNs=")
+	if len(pieces) != 2 || json.Unmarshal([]byte(pieces[1]), &values) != nil || len(values) != 10 || values[0] != timing.TotalWallNs || values[9] != timing.ContextWriteWallNs {
+		t.Fatal("actual ten-stage timing projection changed")
+	}
+	mapped := pqBusinessHostPreparationTimings{TotalWallNs: 99, LightBlocksWallNs: 1, InputEncodingWallNs: 2, CheckpointLoadWallNs: 3, CheckpointCaptureWallNs: 4, CheckpointDecodeWallNs: 5, CheckpointValidateWallNs: 6, CheckpointRetryWaitNs: 7, RetainInputsWallNs: 8, ContextWriteWallNs: 9}
+	ordered, err := pqFreshHostProgressLine("after", 0, 0, 100, &mapped)
+	if err != nil || json.Unmarshal([]byte(strings.Split(ordered, " hostNs=")[1]), &values) != nil {
+		t.Fatal("ordered original Host timings unavailable", err)
+	}
+	for i, want := range []int64{99, 1, 2, 3, 4, 5, 6, 7, 8, 9} {
+		if values[i] != want {
+			t.Fatal("Host phase order was changed or a child was counted twice", i, values)
+		}
+	}
+	without, err := pqFreshHostProgressLine("after", 0, 1, 2, nil)
+	if err != nil || strings.Contains(without, "hostNs=") {
+		t.Fatal("failed/missing Host timing invented zero stage observations", err)
+	}
+	bad := timing
+	bad.CheckpointValidateWallNs = timing.TotalWallNs
+	if _, err := pqFreshHostProgressLine("before", 0, 0, pqFreshPhaseMaxNs, &bad); err == nil {
+		t.Fatal("overlapping Host children accepted")
+	}
+	bad = timing
+	bad.CheckpointCaptureWallNs = -1
+	if _, err := pqFreshHostProgressLine("before", 0, 0, pqFreshPhaseMaxNs, &bad); err == nil {
+		t.Fatal("negative Host stage accepted")
+	}
+	if _, err := pqFreshHostProgressLine("before", 0, 0, 1, &timing); err == nil {
+		t.Fatal("Host total outside actual parent span accepted")
+	}
+	if pqFreshObservationLogBytesMax+(256<<10)+312*512 != 1044480 {
+		t.Fatal("Host instrumentation raised original whole-log allowance")
 	}
 }
