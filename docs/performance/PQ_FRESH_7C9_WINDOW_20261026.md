@@ -85,8 +85,8 @@ not zero TPS or a failed-transaction rate.
 Observed peak owned RSS was 614211584 bytes and peak thread count was 40;
 neither resource cap triggered. The actual kernel/CPU identity is in the guard
 receipt; boot ID was not captured and remains explicitly missing. Resource
-sampling cannot identify which Go call stalled. The last source-visible interval
-is common halt through business-state preservation, schedule creation,
+sampling cannot identify which Go call stalled. Calls following the last stdout
+line include business-state preservation, schedule creation,
 constructPQ, closing the unstarted constructed nodes, Host resume/observed-node
 construction and start. No stack or finer stage timing was captured. These
 calls are investigation boundaries, not a proven root cause. The original
@@ -103,3 +103,28 @@ also tracked as `evidence/pq-fresh-7c9-run40250636388-terminal.json`.
 The once grant is consumed; no rerun, deadline extension or new workload was
 started. Further actual testing requires the original repair, matching normal
 supply and a new Root window. Sustained 1000 TPS and P95<=3s remain unproven.
+
+## Same-receipt process timeline clarification
+
+Root relayed the original Protocol owner's further diagnosis that execution
+reached transaction proof work. The H12 line is only the last emitted stdout
+message; it must not be presented as proof of a constructor deadlock or of the
+last operation reached. The original terminal handoff remains immutable.
+
+Read-only extraction of its existing 497 samples identifies 51 distinct
+PID/startTicks pairs. An additional child of the Go test is first sampled at
+63086 ms; a grandchild is first sampled at 86627 ms. These later process births
+are consistent with continued work after the last stdout line. All identity
+spans, adjacent sample times, peak sampled RSS/threads and observation counts
+are retained in `evidence/pq-fresh-7c9-process-sample-timeline.json`, also at
+`/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-7c9-whole-once/PROCESS_SAMPLE_TIMELINE.json`.
+
+The original samples contain no executable name, argv or executable digest.
+Therefore this extraction leaves roles null; Gateway/verifier role attribution
+requires the original owner's additional source/call evidence. Maximum observed
+sample gap is 414 ms despite a nominal 200 ms period. A first or last observation
+is not an exact spawn/exit timestamp, proof CPU time or continuous process
+lifetime. Neither process presence nor an apparent proof-phase visit establishes
+sixteen independent successful proofs, finalized business count or finality
+latency. Those remain missing until a complete original qualified result exists.
+No terminal run was queried again or workload launched for this extraction.
