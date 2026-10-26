@@ -930,11 +930,22 @@ func (b *pqNetworkBusiness) hostContext(n *pqNetworkE2E, label, kind string, wir
 	return path, pqBusinessHash(raw), expected
 }
 
-func TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting(t *testing.T) {
+func pqBusinessPrivateHostInputRoot(t *testing.T) string {
+	t.Helper()
 	root, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
+	// testing.TempDir creates its returned child with mode 0777 before umask.
+	// Match the normal business caller's explicit private-root initialization.
+	if err := os.Chmod(root, 0700); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+func TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting(t *testing.T) {
+	root := pqBusinessPrivateHostInputRoot(t)
 	b := &pqNetworkBusiness{root: root}
 	raw := bytes.Repeat([]byte("original retained input\n"), 1024)
 	for _, kind := range []string{"migration", "genesis", "state", "schedule", "trusted"} {
@@ -985,10 +996,7 @@ func TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation(t 
 	if err != nil {
 		t.Fatal(err)
 	}
-	root, err := filepath.EvalSymlinks(t.TempDir())
-	if err != nil {
-		t.Fatal(err)
-	}
+	root := pqBusinessPrivateHostInputRoot(t)
 	b := &pqNetworkBusiness{root: root}
 	oldPath, err := b.retainHostInput("state", original)
 	if err != nil {
@@ -1030,12 +1038,9 @@ func TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation(t 
 }
 
 func TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles(t *testing.T) {
-	for _, scenario := range []string{"unknown-complete", "unknown-partial", "changed-bytes", "same-bytes-replacement", "symlink", "hardlink", "permissions", "root-symlink", "kind", "empty", "bounds"} {
+	for _, scenario := range []string{"unknown-complete", "unknown-partial", "changed-bytes", "same-bytes-replacement", "symlink", "hardlink", "permissions", "root-permissions", "root-symlink", "kind", "empty", "bounds"} {
 		t.Run(scenario, func(t *testing.T) {
-			root, err := filepath.EvalSymlinks(t.TempDir())
-			if err != nil {
-				t.Fatal(err)
-			}
+			root := pqBusinessPrivateHostInputRoot(t)
 			b := &pqNetworkBusiness{root: root}
 			raw := []byte("complete original snapshot")
 			path := filepath.Join(root, "host-input-state-"+pqBusinessHash(raw)+".json")
@@ -1053,6 +1058,10 @@ func TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles(t *testi
 					t.Fatal(err)
 				}
 				b.root = link
+			case "root-permissions":
+				if err := os.Chmod(root, 0755); err != nil {
+					t.Fatal(err)
+				}
 			case "kind":
 				kind = "../state"
 			case "empty":
