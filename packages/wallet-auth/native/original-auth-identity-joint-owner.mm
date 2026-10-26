@@ -41,6 +41,13 @@ static NSURL *YNXOriginalWalletPQRegistryResources(void){
  NSString *base=[NSString stringWithFormat:@"/Library/Application Support/YNX/OriginalAuthIdentity/UID-%u/Wallet/PQHostCatalog",getuid()];
  return [NSURL fileURLWithPath:base isDirectory:YES];
 }
+static NSURL *YNXOriginalProductDeviceV4RegistryResources(void){
+ if(getuid()==0||getuid()!=geteuid()||getgid()!=getegid())return nil;
+ // Read-only code-defined separate namespace. No mkdir/provisioning, ENV or
+ // caller path. Presence of files never supplies admission by itself.
+ NSString*base=[NSString stringWithFormat:@"/Library/Application Support/YNX/OriginalAuthIdentity/UID-%u/Wallet/ProductSessionDeviceV4",getuid()];
+ return [NSURL fileURLWithPath:base isDirectory:YES];
+}
 static BOOL YNXOriginalIDEProtectedAncestors(NSString *path){
  NSString *part=@"/";for(NSString *name in path.pathComponents){if([name isEqual:@"/"])continue;part=[part stringByAppendingPathComponent:name];struct stat s;
   if(lstat(part.fileSystemRepresentation,&s)||!ynx_auth_ide_private::originalIDERegistryDirectory(s))return NO;
@@ -76,7 +83,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  NSString *_rootPath;
  NSData *_profileRaw,*_headRaw;
  BOOL _retired,_closeSelected,_cleanupComplete;
- NSUInteger _entered;BOOL _ideConsumer,_ideRegistry,_contractRelay,_projectAuthority,_projectControl,_walletPQCatalog,_ideProjectObserver;
+ NSUInteger _entered;BOOL _ideConsumer,_ideRegistry,_contractRelay,_projectAuthority,_projectControl,_walletPQCatalog,_ideProjectObserver,_productDeviceV4;
  NSString *_actualIDEResources;
  NSError *_firstCause,*_cleanupCause;
 }
@@ -119,6 +126,12 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  YNXAuthIdentityCurrentOwner *owner=[self new];owner->_ideRegistry=YES;owner->_walletPQCatalog=YES;
  if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;
 }
++ (instancetype)acquireOriginalProductSessionDeviceV4Profile:(NSError **)error {
+ YNXAuthIdentityCurrentOwner*owner=[self new];owner->_ideRegistry=YES;owner->_productDeviceV4=YES;
+ try{@try{if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;}
+ @catch(id){[owner fail:@"PRODUCT_DEVICE_V4_PROFILE_CAPTURE_EXCEPTION" error:error];return owner;}}
+ catch(...){[owner fail:@"PRODUCT_DEVICE_V4_PROFILE_CAPTURE_CPP_EXCEPTION" error:error];return owner;}
+}
 - (NSString *)copyOriginalResourceDirectory:(NSError **)error {
  @synchronized(self){if(![self assertOriginalCurrent:error])return nil;return [_rootPath.stringByDeletingLastPathComponent copy];}
 }
@@ -126,7 +139,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  @synchronized(self){
   if(_ideConsumer){_actualIDEResources=YNXActualIDEConsumerResources().path;if(!_actualIDEResources)return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_UNAVAILABLE" error:error];}
   if(_ideProjectObserver){_actualIDEResources=YNXActualIDEObserverResources().path;if(!_actualIDEResources)return [self fail:@"IDE_OBSERVER_ACTUAL_APP_UNAVAILABLE" error:error];}
-  NSURL *resources=_walletPQCatalog?YNXOriginalWalletPQRegistryResources():_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
+  NSURL *resources=_productDeviceV4?YNXOriginalProductDeviceV4RegistryResources():_walletPQCatalog?YNXOriginalWalletPQRegistryResources():_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
   if(_contractRelay)resources=[resources URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
   if(_projectAuthority)resources=[resources URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
   if(_projectControl)resources=[resources URLByAppendingPathComponent:@"project-control" isDirectory:YES];
@@ -150,7 +163,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
   if(_retired)return [self fail:@"AUTH_IDENTITY_ORIGINAL_RETIRED" error:error];
   if(_ideConsumer&&![YNXActualIDEConsumerResources().path isEqual:_actualIDEResources])return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_CHANGED" error:error];
   if(_ideProjectObserver&&![YNXActualIDEObserverResources().path isEqual:_actualIDEResources])return [self fail:@"IDE_OBSERVER_ACTUAL_APP_CHANGED" error:error];
-  NSURL *expectedRegistry=_walletPQCatalog?YNXOriginalWalletPQRegistryResources():YNXOriginalIDERegistryResources();
+  NSURL *expectedRegistry=_productDeviceV4?YNXOriginalProductDeviceV4RegistryResources():_walletPQCatalog?YNXOriginalWalletPQRegistryResources():YNXOriginalIDERegistryResources();
   if(_contractRelay)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
   if(_projectAuthority)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
   if(_projectControl)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-control" isDirectory:YES];

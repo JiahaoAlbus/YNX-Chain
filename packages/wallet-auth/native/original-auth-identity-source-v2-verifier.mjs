@@ -12,6 +12,7 @@ import {inspectIDEArtifactPublisherPublicOriginalData} from '../src/ide-artifact
 import {inspectOriginalIDEApprovalScopeDATA,ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE} from './original-ide-publication-approval-contract.mjs';
 import {encodeOriginalDeveloperPrincipalDATA} from './original-developer-principal-data.mjs';
 import {PQ_HOST_CATALOG_SOURCE_PURPOSE,PQ_HOST_CATALOG_SOURCE_OPERATIONS,inspectOriginalPQHostCatalogSourceScopeDATA} from './original-pq-host-catalog-source-contract.mjs';
+import {PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_SOURCE_OPERATIONS,inspectOriginalProductDeviceV4SourceScopeDATA} from './original-product-device-v4-source-contract.mjs';
 
 export const AUTH_SOURCE_V2='YNX-AUTH-SOURCE/v2';
 export const AUTH_SOURCE_DOMAIN_V2='YNX/AUTH/SOURCE-ORIGINAL/V2';
@@ -81,7 +82,9 @@ function envelope(raw,role,frame,snapshot,networkId,expectedOwner,historicalCurr
 }
 function sourcePolicy(policy){
  const pqCatalog=policy?.signatureContract?.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
- exact(policy,pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
+ const device=policy?.signatureContract?.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE;
+ exact(policy,device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
+ if(device&&(typeof policy.applicationId!=='string'||!/^[A-Za-z][A-Za-z0-9.-]{2,131}$/.test(policy.applicationId)||typeof policy.productId!=='string'||!/^[a-z][a-z0-9-]{1,31}$/.test(policy.productId)))fail('AUTH_SOURCE_V2_DEVICE_APPLICATION');
  if(pqCatalog&&(typeof policy.applicationId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9.-]{0,255}$/.test(policy.applicationId)))fail('AUTH_SOURCE_V2_PQ_CATALOG_APPLICATION');
  exact(policy.signatureContract,['purpose','enrollmentFrame','profileFrame','currentFrame']);
  if(!hex(policy.rootDigest)||!hex(policy.enrollmentDigest)||!hex(policy.spki)||policy.endpoint!=='https://wallet-auth.ynxweb4.com/v1/auth-identity/source-current')fail('AUTH_SOURCE_V2_POLICY');
@@ -103,8 +106,8 @@ export function selectOriginalAuthSourceAlgorithm(subjectSnapshot,credentialVers
 }
 export function verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs){
  const contract=sourcePolicy(policy);
- const pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
- const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,expectedOps=pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
+ const pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE,device=contract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE;
+ const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,expectedOps=device?PRODUCT_DEVICE_V4_SOURCE_OPERATIONS:pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
  exact(registrations,['root','profile','current','subject']);
  if(sha(rootRaw)!==policy.rootDigest||sha(enrollmentRaw)!==policy.enrollmentDigest)fail('AUTH_SOURCE_V2_NOT_PINNED');
  const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);
@@ -113,7 +116,7 @@ export function verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,polic
  const enrollment=envelope(enrollmentRaw,'enrollment',contract.enrollmentFrame,registrations.root,root.networkId,root.rootOwner);
  const e=enrollment.body;
  exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
- if(e.version!==2||e.purpose!==contract.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==(pqCatalog?PQ_HOST_CATALOG_SOURCE_PURPOSE:relay?relayPurpose:projectAuthority?projectPurpose:control?controlPurpose:publication?ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE:'wallet-product-session-v2')||e.productId!==(pqCatalog?'wallet':'developer')||e.platform!=='macos'||e.applicationId!==(pqCatalog?policy.applicationId:'com.ynxweb4.developer.testnetpreview')||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||canonical(e.operations)!==canonical(expectedOps)||!absolute(e.currentStatePath))fail('AUTH_SOURCE_V2_ENROLLMENT');
+ if(e.version!==2||e.purpose!==contract.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==(device?PRODUCT_DEVICE_V4_SOURCE_PURPOSE:pqCatalog?PQ_HOST_CATALOG_SOURCE_PURPOSE:relay?relayPurpose:projectAuthority?projectPurpose:control?controlPurpose:publication?ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE:'wallet-product-session-v2')||e.productId!==(device?policy.productId:pqCatalog?'wallet':'developer')||e.platform!=='macos'||e.applicationId!==((device||pqCatalog)?policy.applicationId:'com.ynxweb4.developer.testnetpreview')||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||canonical(e.operations)!==canonical(expectedOps)||!absolute(e.currentStatePath))fail('AUTH_SOURCE_V2_ENROLLMENT');
  window(e,atMs,86400000);
  const height=registrations.root.executionHeight;
  const roleKeys=[active(registrations.root,root.networkId,root.rootOwner,height),active(registrations.profile,root.networkId,e.profileOwner,height),active(registrations.current,root.networkId,e.currentOwner,height)];
@@ -121,8 +124,8 @@ export function verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,polic
  return seal({root,enrollment:e,enrollmentBinding:enrollment.binding,executionHeight:registrations.root.executionHeight,dataOnly:true,nativeAdmission:false});
 }
 export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileRaw,policy,registrations,atMs){
- const contract=sourcePolicy(policy),pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
- const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,expectedOps=pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
+ const contract=sourcePolicy(policy),pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE,device=contract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE;
+ const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,expectedOps=device?PRODUCT_DEVICE_V4_SOURCE_OPERATIONS:pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
  const {root,enrollment:e,enrollmentBinding}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);
  const profile=envelope(profileRaw,'profile',contract.profileFrame,registrations.profile,root.networkId,e.profileOwner),p=profile.body;
  exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
@@ -136,6 +139,8 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  if(Object.values(a).some(x=>typeof x!=='string'||!x||x.length>512)||a.productId!==e.productId||a.platform!==e.platform||a.applicationId!==e.applicationId)fail('AUTH_SOURCE_V2_ASSOCIATION');
  if(pqCatalog)inspectOriginalPQHostCatalogSourceScopeDATA(s.pqHostCatalogSource,a,root.networkId,p.expiresAtMs,atMs);
  else if(Object.hasOwn(s,'pqHostCatalogSource'))fail('AUTH_SOURCE_V2_PQ_CATALOG_DEDICATED_PURPOSE_REQUIRED');
+ if(device)inspectOriginalProductDeviceV4SourceScopeDATA(s.productSessionDeviceV4,a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs);
+ else if(Object.hasOwn(s,'productSessionDeviceV4'))fail('AUTH_SOURCE_V2_DEVICE_DEDICATED_PURPOSE_REQUIRED');
  const r=s.expectedRequest;
  if(!r||r.service!==e.service||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(expectedOps)||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('AUTH_SOURCE_V2_REQUEST');
  if(relay){
@@ -229,6 +234,7 @@ function verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,polic
  window(c,historical?c.issuedAtMs:atMs,30000);if(c.expiresAtMs>Math.min(p.expiresAtMs,verified.enrollment.expiresAtMs))fail('AUTH_SOURCE_V2_EXPIRED');
  if(contract.purpose===controlPurpose&&(c.head!==sha(canonical(p.selection.projectControlCapture))||BigInt(c.expiresAtMs)>BigInt(p.selection.projectControlCapture.expiresAtMs)))fail('AUTH_SOURCE_V2_CONTROL_CAPTURE_HEAD');
  if(contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE&&(c.head!==sha(canonical(p.selection.pqHostCatalogSource))||c.expiresAtMs>p.selection.pqHostCatalogSource.expiresAtMs))fail('AUTH_SOURCE_V2_PQ_CATALOG_HEAD');
+ if(contract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE&&c.head!==sha(canonical(p.selection.productSessionDeviceV4)))fail('AUTH_SOURCE_V2_DEVICE_HEAD');
  if(!historical&&c.status!=='active')fail('AUTH_SOURCE_V2_REVOKED');
  return seal({selection:p.selection,principalId:p.selection.association.account,subjectOwner:p.subjectOwner,subjectKeyVersion:c.subjectKeyVersion,generation:p.generation,sequence:c.sequence,floor:c.floor,head:c.head,status:c.status,timeFloor:atMs,expiresAtMs:Math.min(p.expiresAtMs,c.expiresAtMs,verified.enrollment.expiresAtMs),profileDigest:sha(profileRaw),sourceId:p.sourceId,instanceId:p.instanceId,executionHeight:verified.executionHeight,...(historical?{statementExecutionHeight:current.binding.executionHeight,historical:true}:{}),dataOnly:true,nativeAdmission:false});
 }

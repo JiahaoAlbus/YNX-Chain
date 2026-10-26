@@ -1,0 +1,16 @@
+#import <Foundation/Foundation.h>
+#include <stdexcept>
+@interface YNXAuthIdentitySourceAuthority:NSObject{@public NSDictionary*_selection;unsigned calls;int behavior;}
+-(BOOL)fail:(NSString*)message error:(NSError**)error;
+-(BOOL)assertOriginalProductSessionDeviceV4SourceCurrent:(NSError**)error;
+-(NSDictionary*)copyOriginalProductSessionDeviceV4Scope:(NSError**)error;
+@end
+@implementation YNXAuthIdentitySourceAuthority
+-(BOOL)fail:(NSString*)s error:(NSError**)e{if(e)*e=[NSError errorWithDomain:@"PUBLIC" code:1 userInfo:@{NSLocalizedDescriptionKey:s}];return NO;}
+-(BOOL)assertOriginalProductSessionDeviceV4SourceCurrent:(NSError**)e{calls++;if(behavior==1&&calls==2)return[self fail:@"PUBLIC_LATE_CURRENT_REFUSED" error:e];if(behavior==2&&calls==2)_selection=@{};return YES;}
+@@ACTUAL_SCOPE_COPY@@
+@end
+static NSDictionary*scope(){NSMutableDictionary*expected=[NSMutableDictionary new],*context=[NSMutableDictionary new];for(int i=0;i<17;i++)expected[[NSString stringWithFormat:@"%d",i]]=@"PUBLIC";for(int i=0;i<12;i++)context[[NSString stringWithFormat:@"%d",i]]=@"PUBLIC";return @{@"version":@"4",@"expected":expected,@"context":context,@"registrationOriginal":@"PUBLIC-registration-original",@"sessionOriginal":@"PUBLIC-session-original"};}
+static YNXAuthIdentitySourceAuthority*source(){auto*s=[YNXAuthIdentitySourceAuthority new];s->_selection=@{@"productSessionDeviceV4":scope()};return s;}
+static void require(bool b){if(!b)throw std::runtime_error("scope readback invariant");}
+int main(){@autoreleasepool{try{NSError*e=nil;auto*s=source();auto*r=[s copyOriginalProductSessionDeviceV4Scope:&e];require(r&&r!=s->_selection[@"productSessionDeviceV4"]&&s->calls==2);s=source();s->behavior=1;require(![s copyOriginalProductSessionDeviceV4Scope:&e]&&[e.localizedDescription isEqual:@"PUBLIC_LATE_CURRENT_REFUSED"]);s=source();s->behavior=2;require(![s copyOriginalProductSessionDeviceV4Scope:&e]&&[e.localizedDescription isEqual:@"PRODUCT_DEVICE_V4_SCOPE_CHANGED"]);s=source();s->_selection=@{};require(![s copyOriginalProductSessionDeviceV4Scope:&e]&&s->calls==1);s=source();auto*m=[scope()mutableCopy];m[@"unapproved"]=@YES;s->_selection=@{@"productSessionDeviceV4":m};require(![s copyOriginalProductSessionDeviceV4Scope:&e]);puts("PASS5 actual Scope-copy method; PUBLIC authenticated-current boundary only");return 0;}catch(const std::exception&e){fprintf(stderr,"%s\n",e.what());return 1;}}}

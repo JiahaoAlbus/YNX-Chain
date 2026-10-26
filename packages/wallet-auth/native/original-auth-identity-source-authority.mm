@@ -51,7 +51,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  BOOL _relayRuntimePinned,_relayRuntimeEntered;
  NSData *_relayRuntimeManifestOriginal;
  BOOL _proofClosurePinned,_ideProofSelected,_ideProofVerified;
- BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry,_walletPQCatalog;
+ BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry,_walletPQCatalog,_productDeviceV4;
  NSError *_firstCause,*_cleanupCause;
  std::unique_ptr<ynx_auth_private::SourcePublicInstallation> _publicInstallation;
 }
@@ -106,6 +106,53 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  if(s->_rootOriginal)s->_enrollmentOriginal=[s holdPublic:[root stringByAppendingPathComponent:@"enrollment.original"] maximum:ynx_auth_private::OriginalAuthPublicOriginalMax image:NO digest:s->_policy->enrollmentDigest error:&e];
  if(e||!s->_enrollmentOriginal||![s holdPublic:[NSString stringWithUTF8String:s->_policy->verifierImagePath.c_str()] maximum:131072 image:YES digest:s->_policy->verifierImageDigest error:&e]||![s holdPublic:[NSString stringWithUTF8String:s->_policy->nodeImagePath.c_str()] maximum:134217728 image:YES digest:s->_policy->nodeImageDigest error:&e]||![s assertAuthenticatedNativePurpose:&e]){[s fail:e.localizedDescription?:@"PQ_HOST_ORIGINAL_SOURCE_NOT_CURRENT" error:error];return s;}
  return s;
+}
++ (instancetype)acquireOriginalProductSessionDeviceV4Source:(NSError **)error {
+ YNXAuthIdentitySourceAuthority*s=[self new];s->_productDeviceV4=YES;s->_ideRegistry=YES;s->_headDigest=@"";s->_pipeHandles=[NSMutableArray array];s->_pipeStates=[NSMutableArray array];
+ try{@try{
+ NSError*e=nil;s->_custody=[YNXAuthIdentityCurrentOwner acquireOriginalProductSessionDeviceV4Profile:&e];
+ // Publish the same actual partial on every late refusal; never promote raw
+ // public-file custody or retry via ordinary administration/catalog/IDE.
+ if(e||!s->_custody){[s fail:e.localizedDescription?:@"PRODUCT_DEVICE_V4_ORIGINAL_PROFILE_NOT_SUPPLIED" error:error];return s;}
+ s->_profileOriginal=[s->_custody copyOriginalProfile:&e];s->_headOriginal=[s->_custody copyOriginalHead:&e];
+ NSDictionary*body=SourceOriginalBodyHint(s->_profileOriginal);id source=body[@"sourceId"];
+ if([source isKindOfClass:NSString.class])for(const auto&policy:ynx_auth_private::originalNativeSourceReleases())if(policy.sourceId==[source UTF8String]){if(s->_policy){[s fail:@"PRODUCT_DEVICE_V4_DUPLICATE_SOURCE_RELEASE" error:error];return s;}s->_policy=&policy;}
+ if(e||!s->_policy||s->_policy->purpose!="product-session-device-source-v4"||s->_policy->productDeviceV4ApplicationId.empty()||s->_policy->productDeviceV4ProductId.empty()){[s fail:@"PRODUCT_DEVICE_V4_INDEPENDENT_SOURCE_RELEASE_NOT_SUPPLIED" error:error];return s;}
+ NSString*root=[[s->_custody copyOriginalResourceDirectory:&e]stringByAppendingPathComponent:@"original-auth-identity"];
+ if(root)s->_rootOriginal=[s holdPublic:[root stringByAppendingPathComponent:@"root.original"] maximum:ynx_auth_private::OriginalAuthPublicRootMax image:NO digest:s->_policy->rootDigest error:&e];
+ if(s->_rootOriginal)s->_enrollmentOriginal=[s holdPublic:[root stringByAppendingPathComponent:@"enrollment.original"] maximum:ynx_auth_private::OriginalAuthPublicOriginalMax image:NO digest:s->_policy->enrollmentDigest error:&e];
+ if(e||!s->_enrollmentOriginal||![SourceProofDictionary(s->_rootOriginal,16384)[@"version"]isEqual:@2]){[s fail:e.localizedDescription?:@"PRODUCT_DEVICE_V4_ORIGINAL_V2_ROOT_REQUIRED" error:error];return s;}
+ if(![s holdPublic:[NSString stringWithUTF8String:s->_policy->verifierImagePath.c_str()] maximum:131072 image:YES digest:s->_policy->verifierImageDigest error:&e]||![s holdPublic:[NSString stringWithUTF8String:s->_policy->nodeImagePath.c_str()] maximum:134217728 image:YES digest:s->_policy->nodeImageDigest error:&e]||![s assertOriginalProductSessionDeviceV4SourceCurrent:&e]){[s fail:e.localizedDescription?:@"PRODUCT_DEVICE_V4_SOURCE_NOT_CURRENT" error:error];return s;}
+ return s;
+ }@catch(id){[s fail:@"PRODUCT_DEVICE_V4_SOURCE_ACQUIRE_EXCEPTION" error:error];return s;}}
+ catch(...){[s fail:@"PRODUCT_DEVICE_V4_SOURCE_ACQUIRE_CPP_EXCEPTION" error:error];return s;}
+}
+- (BOOL)assertOriginalProductSessionDeviceV4SourceCurrent:(NSError **)error {
+ if([self class]!=YNXAuthIdentitySourceAuthority.class||!_productDeviceV4||!_policy||_policy->purpose!="product-session-device-source-v4")return [self fail:@"PRODUCT_DEVICE_V4_ORIGINAL_SOURCE_REQUIRED" error:error];
+ if(![SourceProofDictionary(_rootOriginal,16384)[@"version"]isEqual:@2])return [self fail:@"PRODUCT_DEVICE_V4_ORIGINAL_V2_ROOT_REQUIRED" error:error];
+ if(![self assertAuthenticatedNativePurpose:error])return NO;
+ // Unknown purposes in an older common verifier must not inherit its legacy
+ // beginYNX/restore operations and become a device-key-use grant. The owning
+ // verifier/issuer must explicitly support this closed device-only contract.
+ NSArray*operations=_selection[@"expectedRequest"][@"operations"];
+ if(![operations isKindOfClass:NSArray.class]||![operations isEqual:@[@"device.current",@"device.http-proof"]])return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_OPERATIONS_REQUIRED" error:error];
+ return [self heldCurrent:error];
+}
+- (NSDictionary *)copyOriginalProductSessionDeviceV4Scope:(NSError **)error {
+ @synchronized(self){
+  if(![self assertOriginalProductSessionDeviceV4SourceCurrent:error])return nil;
+  NSDictionary*scope=_selection[@"productSessionDeviceV4"];
+  if(![scope isKindOfClass:NSDictionary.class]||scope.count!=5||![scope[@"version"]isEqual:@"4"]||![scope[@"expected"]isKindOfClass:NSDictionary.class]||[scope[@"expected"]count]!=17||![scope[@"context"]isKindOfClass:NSDictionary.class]||[scope[@"context"]count]!=12||![scope[@"registrationOriginal"]isKindOfClass:NSString.class]||![scope[@"sessionOriginal"]isKindOfClass:NSString.class])return [self fail:@"PRODUCT_DEVICE_V4_AUTHENTICATED_SCOPE_REQUIRED" error:error],nil;
+  // Detach only PUBLIC verified JSON. No protected signer/slot, Source handle,
+  // path or renderer-supplied override can enter this projection.
+  NSData*raw=[NSJSONSerialization dataWithJSONObject:scope options:0 error:error];
+  if(!raw||raw.length>65536)return [self fail:@"PRODUCT_DEVICE_V4_SCOPE_CAPACITY" error:error],nil;
+  NSDictionary*copy=[NSJSONSerialization JSONObjectWithData:raw options:0 error:error];
+  if(!copy)return [self fail:@"PRODUCT_DEVICE_V4_SCOPE_DECODE" error:error],nil;
+  if(![self assertOriginalProductSessionDeviceV4SourceCurrent:error])return nil;
+  if(![_selection[@"productSessionDeviceV4"]isEqual:copy])return [self fail:@"PRODUCT_DEVICE_V4_SCOPE_CHANGED" error:error],nil;
+  return copy;
+ }
 }
 + (instancetype)acquireOriginalHelperSourceForMessagePeer:(YNXIDEHelperMessagePeer*)peer error:(NSError**)error {
  if(!peer||![peer assertCurrentMessage:error]){if(error&&!*error)*error=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_HELPER_MESSAGE_REQUIRED"}];return nil;}
@@ -267,6 +314,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
    uint64_t before=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);if(before<_timeFloor)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CLOCK_ROLLBACK" error:error];
    NSDictionary *contract=@{@"purpose":[NSString stringWithUTF8String:_policy->purpose.c_str()],@"enrollmentFrame":[NSString stringWithUTF8String:_policy->enrollmentFrame.c_str()],@"profileFrame":[NSString stringWithUTF8String:_policy->profileFrame.c_str()],@"currentFrame":[NSString stringWithUTF8String:_policy->currentFrame.c_str()]};
    NSMutableDictionary *policy=[@{@"rootDigest":[NSString stringWithUTF8String:_policy->rootDigest.c_str()],@"enrollmentDigest":[NSString stringWithUTF8String:_policy->enrollmentDigest.c_str()],@"endpoint":[NSString stringWithUTF8String:_policy->endpoint.c_str()],@"spki":[NSString stringWithUTF8String:_policy->spki.c_str()],@"signatureContract":contract}mutableCopy];
+   if(_policy->purpose=="product-session-device-source-v4"){
+    if(!_productDeviceV4||_policy->productDeviceV4ApplicationId.empty()||_policy->productDeviceV4ProductId.empty())return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
+    policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ApplicationId.c_str()];
+    policy[@"productId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ProductId.c_str()];
+   }else if(_productDeviceV4)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="wallet-pq-host-catalog-source-v1"){
     if(!_walletPQCatalog||_policy->walletPQApplicationId.empty())return [self fail:@"PQ_HOST_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->walletPQApplicationId.c_str()];

@@ -1,0 +1,35 @@
+#import <Foundation/Foundation.h>
+#include <node_api.h>
+#include <pthread.h>
+#include <string>
+#include <utility>
+#include <stdexcept>
+// Explicit PUBLIC Source boundary mock. Actual new NAPI owner code below is
+// unmodified; no real Root/profile/slot/key/signature is acquired in this test.
+static std::string mode="live";static unsigned opens=0,currents=0,closes=0;
+static NSDictionary*PUBLIC_scope=nil;
+@interface YNXAuthIdentitySourceAuthority:NSObject {BOOL retired;}
++(instancetype)acquireOriginalProductSessionDeviceV4Source:(NSError**)error;
+-(BOOL)assertOriginalProductSessionDeviceV4SourceCurrent:(NSError**)error;
+-(NSDictionary*)copyOriginalProductSessionDeviceV4Scope:(NSError**)error;
+-(void)retire;-(BOOL)join:(NSError**)error;-(BOOL)close:(NSError**)error;
+@end
+static NSError*mockError(NSString*code){return [NSError errorWithDomain:@"PUBLIC-MOCK-SOURCE" code:1 userInfo:@{NSLocalizedDescriptionKey:code}];}
+@implementation YNXAuthIdentitySourceAuthority
++(instancetype)acquireOriginalProductSessionDeviceV4Source:(NSError**)error{opens++;auto*s=[self new];if(mode=="partial"&&error)*error=mockError(@"PUBLIC_SOURCE_ACQUIRE_PARTIAL");return s;}
+-(BOOL)assertOriginalProductSessionDeviceV4SourceCurrent:(NSError**)error{currents++;if(mode=="cpp-current")throw std::runtime_error("PUBLIC Source C++ exception");if(mode=="throw-current")@throw [NSException exceptionWithName:@"PUBLIC_SOURCE" reason:@"not real Root" userInfo:nil];if(retired||mode=="current-fail"||mode=="ref-fail"){if(error)*error=mockError(@"PUBLIC_SOURCE_CURRENT_REFUSED");return NO;}return YES;}
+-(NSDictionary*)copyOriginalProductSessionDeviceV4Scope:(NSError**)error{if(![self assertOriginalProductSessionDeviceV4SourceCurrent:error])return nil;return PUBLIC_scope;}
+-(void)retire{retired=YES;}
+-(BOOL)join:(NSError**)error{if(!retired||mode=="join-pending"){if(error)*error=mockError(@"PUBLIC_SOURCE_JOIN_PENDING");return NO;}return YES;}
+-(BOOL)close:(NSError**)error{closes++;if(mode=="close-fail"){if(error)*error=mockError(@"PUBLIC_SOURCE_CLOSE_REFUSED");return NO;}return YES;}
+@end
+// Explicit NAPI allocation-failure fault, not an authority/mock factory.
+static napi_status PUBLIC_create_reference(napi_env e,napi_value v,uint32_t n,napi_ref*out){if(mode=="ref-fail")return napi_generic_failure;return napi_create_reference(e,v,n,out);}
+#define napi_create_reference PUBLIC_create_reference
+#include "@@ACTUAL_SOURCE_NAPI@@"
+#undef napi_create_reference
+static napi_value SetMode(napi_env env,napi_callback_info info){napi_value v=nullptr;size_t n=1;if(napi_get_cb_info(env,info,&n,&v,nullptr,nullptr)!=napi_ok||n!=1)return nullptr;char text[64];size_t size=0;if(napi_get_value_string_utf8(env,v,text,sizeof(text),&size)!=napi_ok)return nullptr;mode.assign(text,size);return DeviceV4Undefined(env);}
+static napi_value Counts(napi_env env,napi_callback_info){napi_value o=nullptr,v=nullptr;napi_create_object(env,&o);for(auto item:{std::pair<const char*,unsigned>{"opens",opens},{"currents",currents},{"closes",closes}}){napi_create_uint32(env,item.second,&v);napi_set_named_property(env,o,item.first,v);}return o;}
+static napi_value SetScope(napi_env env,napi_callback_info info){size_t n=1;napi_value v=nullptr;if(napi_get_cb_info(env,info,&n,&v,nullptr,nullptr)!=napi_ok||n!=1)return nullptr;size_t size=0;napi_get_value_string_utf8(env,v,nullptr,0,&size);if(size>65536)return nullptr;std::vector<char>b(size+1);napi_get_value_string_utf8(env,v,b.data(),b.size(),&size);PUBLIC_scope=[NSJSONSerialization JSONObjectWithData:[NSData dataWithBytes:b.data() length:size] options:0 error:nil];return DeviceV4Undefined(env);}
+static napi_value Init(napi_env env,napi_value exports){if(!RegisterOriginalProductDeviceV4SourceStage(env,exports))return nullptr;napi_property_descriptor methods[]={{"setMode",nullptr,SetMode,nullptr,nullptr,nullptr,napi_default,nullptr},{"counts",nullptr,Counts,nullptr,nullptr,nullptr,napi_default,nullptr},{"setScope",nullptr,SetScope,nullptr,nullptr,nullptr,napi_default,nullptr}};if(napi_define_properties(env,exports,3,methods)!=napi_ok)return nullptr;return exports;}
+NAPI_MODULE(NODE_GYP_MODULE_NAME,Init)

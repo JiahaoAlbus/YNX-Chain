@@ -606,6 +606,9 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #include "original-project-control-binding.inc.mm"
 #endif
 #endif
+#ifdef YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE
+#include "original-product-device-v4-source.inc.mm"
+#endif
 static napi_value Register(napi_env env,napi_value exports){
  // This original addon owns main-thread-only platform Source/UI/native
  // inventories. Worker environments cannot borrow them via DATA exports.
@@ -627,6 +630,9 @@ static napi_value Register(napi_env env,napi_value exports){
 #endif
 #if defined(YNX_ORIGINAL_WALLET_PROJECT_CONTROL) && !defined(YNX_ORIGINAL_WALLET_ARTIFACT_PUBLISHER_BINDING)
  if(!RegisterOriginalProjectControlBinding(env,exports))return nullptr;
+#endif
+#ifdef YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE
+ if(!RegisterOriginalProductDeviceV4SourceStage(env,exports))return nullptr;
 #endif
  return RegisterOriginalIDEAuthIdentityBinding(env,exports,methods);
 }
