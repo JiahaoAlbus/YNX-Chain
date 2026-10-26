@@ -44,6 +44,36 @@ test('diagnostic missing replica and failed validation suffix remain unmeasured'
  assert.equal(r.arms[0].latencyNs.allNodesDurableNs.samples,0);assert.equal(r.arms[0].latencyNs.allNodesDurableNs.missingSamples,1);
  assert.equal(r.arms[0].phases[4].durationNs.samples,3);assert.equal(r.arms[0].phases[5].durationNs.samples,2);
 });
+function proposalFixture(){
+ const f=diagnosticFixture();f.expected.inclusionObservationRequired=true;
+ f.records.push(['PQ_FRESH_INCLUSION',{a:'before',c:f.expected.clockDomain,t:'d'.repeat(64),h:'1',i:0,b:'e'.repeat(64),p:[[92,94],[93,95],null,null]}]);return f;
+}
+test('accepted final-block proposal receipt stays distinct from execution and missing replicas',()=>{
+ const r=diagnosticRead(proposalFixture());assert.equal(r.transactions[0].finalBlockHash,'e'.repeat(64));
+ assert.equal(r.transactions[0].firstNodeProposalReceiptNs,'2');assert.equal(r.transactions[0].firstNodeProposalAcceptedNs,'4');assert.equal(r.transactions[0].firstNodeFinalizeNs,'20');
+ assert.deepEqual(r.transactions[0].acceptedProposalNodeObservations,[[92,94],[93,95],null,null]);assert.equal(r.sustainedTPSQualified,false);
+ const old=diagnosticRead(diagnosticFixture());assert.equal(old.transactions[0].firstNodeProposalReceiptNs,null);assert.equal(old.arms[0].latencyNs.firstNodeProposalReceiptNs.samples,0);assert.equal(old.arms[0].latencyNs.firstNodeProposalReceiptNs.missingSamples,1);
+});
+test('proposal callbacks reject changed coordinates, clocks, missing required lines and non-durable joins',()=>{
+ for(const mutate of [
+  f=>f.records.pop(),f=>f.records.unshift(f.records.pop()),f=>f.records.push(structuredClone(f.records.at(-1))),
+  f=>f.records.at(-1)[1].a='after',f=>f.records.at(-1)[1].h='2',f=>f.records.at(-1)[1].i=1,f=>f.records.at(-1)[1].t='f'.repeat(64),
+  f=>f.records.at(-1)[1].c='pq-fresh:124',f=>f.records.at(-1)[1].b='0'.repeat(64),
+  f=>f.records.at(-1)[1].p[0]=[89,94],f=>f.records.at(-1)[1].p[0]=[92,101],f=>f.records.at(-1)[1].p[0]=[94,92],
+  f=>f.records.at(-1)[1].p[0]=['92',94],f=>f.records.at(-1)[1].p[0]=[92,94,95],f=>f.records.at(-1)[1].p.push(null),
+  f=>f.records[0][1].commitOK=false,
+ ]){const f=proposalFixture();mutate(f);assert.throws(()=>diagnosticRead(f));}
+ const f=proposalFixture();f.records.at(-1)[1].p=[null,null,null,null];const r=diagnosticRead(f);assert.equal(r.transactions[0].firstNodeProposalReceiptNs,null);
+});
+test('coordinator call work separates actual accumulated calls, reuse and unpublished physical samples',()=>{
+ const f=proposalFixture();f.expected.inclusionWorkTimingsRequired=true;f.records.at(-1)[1].w=[2,4,0,0,8];
+ const r=diagnosticRead(f);assert.equal(r.arms[0].coordinatorCalls.inclusionProbe.observedCalls,'2');assert.equal(r.arms[0].coordinatorCalls.inclusionProbe.perCallbackAccumulatedNs.p50Ns,'4');
+ assert.equal(r.arms[0].coordinatorCalls.fullCommitCheck.perCallbackAccumulatedNs.samples,0);assert.equal(r.arms[0].coordinatorCalls.fullCommitCheck.notInvokedCallbacks,1);assert.equal(r.arms[0].coordinatorCalls.hostContext.perCallbackAccumulatedNs.p50Ns,'8');
+ for(const work of [undefined,[0,4,0,0,8],[1,4,0,1,8],[1,100,1,100,8],[1,-1,0,0,8],[1,2]]){const bad=proposalFixture();bad.expected.inclusionWorkTimingsRequired=true;bad.records.at(-1)[1].w=work;assert.throws(()=>diagnosticRead(bad));}
+ const partial=proposalFixture();partial.records=partial.records.filter(([tag,x])=>!(tag==='PQ_NETWORK_FRESH_COMMIT_OBSERVATION'&&x.nodeIndex===0||tag==='PQ_VALIDATE'&&x.n===0));
+ const p=diagnosticRead(partial);assert.equal(p.transactions[0].unboundProposalNodes,1);assert.equal(p.transactions[0].firstNodeProposalReceiptNs,'3');assert.equal(p.transactions[0].allNodesDurableNs,null);assert.equal(p.fullPairQualified,false);
+ const old=diagnosticRead(diagnosticFixture());assert.equal(old.arms[0].coordinatorCalls.hostContext.perCallbackAccumulatedNs.samples,0);assert.equal(old.arms[0].coordinatorCalls.hostContext.missingCallbacks,1);
+});
 test('diagnostic source, partitions, clocks, duplicate physical samples and callbacks fail closed',()=>{
  for(const mutate of [
   f=>f.guard.child.pid++,f=>f.guard.cleanupComplete=false,f=>f.guard.emptyOwnedScans=[],

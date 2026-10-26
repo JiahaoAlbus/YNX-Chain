@@ -1,0 +1,429 @@
+{
+  "classification": "original-before-verified-business-height-only-observations",
+  "sourceRun": "40283157360",
+  "sourceCommit": "2cf4225020405108373f7f4d7870f0c0c9331434",
+  "qualifiedWholePair": false,
+  "verifiedTransactions": 16,
+  "uniqueBusinessHeights": [
+    "26",
+    "27",
+    "28",
+    "29",
+    "30",
+    "31",
+    "32",
+    "33",
+    "34"
+  ],
+  "uniquePhysicalSamples": 36,
+  "missingPerNodeHeights": [],
+  "outerCommit": {
+    "count": 36,
+    "p50Ns": 207970979,
+    "p95Ns": 299814749,
+    "p99Ns": 304850140
+  },
+  "persistStages": {
+    "close_file": {
+      "count": 36,
+      "p50Ns": 17757,
+      "p95Ns": 539044,
+      "p99Ns": 13450849
+    },
+    "directory_sync": {
+      "count": 36,
+      "p50Ns": 215515,
+      "p95Ns": 15599788,
+      "p99Ns": 20347605
+    },
+    "file_sync": {
+      "count": 36,
+      "p50Ns": 18402253,
+      "p95Ns": 52616804,
+      "p99Ns": 67392368
+    },
+    "json_encode": {
+      "count": 36,
+      "p50Ns": 18508814,
+      "p95Ns": 62785964,
+      "p99Ns": 80430193
+    },
+    "prepare_file": {
+      "count": 36,
+      "p50Ns": 116426,
+      "p95Ns": 175565,
+      "p99Ns": 219982
+    },
+    "rename": {
+      "count": 36,
+      "p50Ns": 505002,
+      "p95Ns": 15013184,
+      "p99Ns": 21598521
+    },
+    "validate": {
+      "count": 36,
+      "p50Ns": 148048543,
+      "p95Ns": 215922336,
+      "p99Ns": 232279577
+    },
+    "write": {
+      "count": 36,
+      "p50Ns": 860448,
+      "p95Ns": 1646672,
+      "p99Ns": 1708716
+    }
+  },
+  "validationPhases": [
+    {
+      "name": "pq_state",
+      "timing": {
+        "count": 36,
+        "p50Ns": 80681312,
+        "p95Ns": 134324252,
+        "p99Ns": 138955243
+      },
+      "timerSharePercent": 55.015156932240885
+    },
+    {
+      "name": "engine_snapshot",
+      "timing": {
+        "count": 36,
+        "p50Ns": 30389286,
+        "p95Ns": 65228119,
+        "p99Ns": 80473458
+      },
+      "timerSharePercent": 19.790604966484405
+    },
+    {
+      "name": "validator_registry",
+      "timing": {
+        "count": 36,
+        "p50Ns": 6972792,
+        "p95Ns": 66778993,
+        "p99Ns": 69184371
+      },
+      "timerSharePercent": 10.323802114891915
+    },
+    {
+      "name": "engine_schedule",
+      "timing": {
+        "count": 36,
+        "p50Ns": 8259973,
+        "p95Ns": 37751896,
+        "p99Ns": 41957786
+      },
+      "timerSharePercent": 9.489207715662557
+    },
+    {
+      "name": "app_hash",
+      "timing": {
+        "count": 36,
+        "p50Ns": 4635809,
+        "p95Ns": 27221057,
+        "p99Ns": 48251005
+      },
+      "timerSharePercent": 5.2996197278640444
+    },
+    {
+      "name": "ledger_records",
+      "timing": {
+        "count": 36,
+        "p50Ns": 30817,
+        "p95Ns": 45929,
+        "p99Ns": 49505
+      },
+      "timerSharePercent": 0.020158515033841477
+    },
+    {
+      "name": "resource",
+      "timing": {
+        "count": 36,
+        "p50Ns": 19309,
+        "p95Ns": 28933,
+        "p99Ns": 44558
+      },
+      "timerSharePercent": 0.013158050294063459
+    },
+    {
+      "name": "fee_events",
+      "timing": {
+        "count": 36,
+        "p50Ns": 16124,
+        "p95Ns": 28233,
+        "p99Ns": 28963
+      },
+      "timerSharePercent": 0.01066078994020705
+    },
+    {
+      "name": "migration_trace_lots",
+      "timing": {
+        "count": 36,
+        "p50Ns": 8422,
+        "p95Ns": 12558,
+        "p99Ns": 14792
+      },
+      "timerSharePercent": 0.005613259300115334
+    },
+    {
+      "name": "pq_dex",
+      "timing": {
+        "count": 36,
+        "p50Ns": 6570,
+        "p95Ns": 10526,
+        "p99Ns": 15674
+      },
+      "timerSharePercent": 0.004614663438259734
+    },
+    {
+      "name": "legacy_pay",
+      "timing": {
+        "count": 36,
+        "p50Ns": 3766,
+        "p95Ns": 5799,
+        "p99Ns": 5839
+      },
+      "timerSharePercent": 0.002423928766250703
+    },
+    {
+      "name": "staking",
+      "timing": {
+        "count": 36,
+        "p50Ns": 3436,
+        "p95Ns": 4216,
+        "p99Ns": 4296
+      },
+      "timerSharePercent": 0.002182336708122801
+    },
+    {
+      "name": "pq_resources",
+      "timing": {
+        "count": 36,
+        "p50Ns": 3365,
+        "p95Ns": 4497,
+        "p99Ns": 4606
+      },
+      "timerSharePercent": 0.0021665152276367184
+    },
+    {
+      "name": "pq_ethereum",
+      "timing": {
+        "count": 36,
+        "p50Ns": 3115,
+        "p95Ns": 4206,
+        "p99Ns": 4367
+      },
+      "timerSharePercent": 0.00201997607298903
+    },
+    {
+      "name": "resource_sponsor",
+      "timing": {
+        "count": 36,
+        "p50Ns": 2764,
+        "p95Ns": 4807,
+        "p99Ns": 10105
+      },
+      "timerSharePercent": 0.0019152672827619911
+    },
+    {
+      "name": "legacy_sponsor",
+      "timing": {
+        "count": 36,
+        "p50Ns": 2524,
+        "p95Ns": 3595,
+        "p99Ns": 3746
+      },
+      "timerSharePercent": 0.0016269549065581661
+    },
+    {
+      "name": "pq_ordered_resources",
+      "timing": {
+        "count": 36,
+        "p50Ns": 2384,
+        "p95Ns": 3515,
+        "p99Ns": 3656
+      },
+      "timerSharePercent": 0.0015905814469412268
+    },
+    {
+      "name": "pay",
+      "timing": {
+        "count": 36,
+        "p50Ns": 2103,
+        "p95Ns": 3355,
+        "p99Ns": 4116
+      },
+      "timerSharePercent": 0.0013643147870445239
+    },
+    {
+      "name": "pq_contracts",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1693,
+        "p95Ns": 2604,
+        "p99Ns": 15343
+      },
+      "timerSharePercent": 0.001322448988177097
+    },
+    {
+      "name": "pq_native_actions",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1732,
+        "p95Ns": 2414,
+        "p99Ns": 3876
+      },
+      "timerSharePercent": 0.0011482178133729174
+    },
+    {
+      "name": "account_abstraction_policy",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1672,
+        "p95Ns": 3826,
+        "p99Ns": 3896
+      },
+      "timerSharePercent": 0.0011423711296546563
+    },
+    {
+      "name": "trust",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1553,
+        "p95Ns": 2063,
+        "p99Ns": 9694
+      },
+      "timerSharePercent": 0.0011241223895643263
+    },
+    {
+      "name": "legacy_contracts",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1492,
+        "p95Ns": 1973,
+        "p99Ns": 2674
+      },
+      "timerSharePercent": 0.0009459048394976961
+    },
+    {
+      "name": "ide",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1362,
+        "p95Ns": 1823,
+        "p99Ns": 2094
+      },
+      "timerSharePercent": 0.0008648662597179201
+    },
+    {
+      "name": "legacy_ai",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1242,
+        "p95Ns": 1802,
+        "p99Ns": 2134
+      },
+      "timerSharePercent": 0.0008271108566766645
+    },
+    {
+      "name": "account_abstraction",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1231,
+        "p95Ns": 1783,
+        "p99Ns": 1983
+      },
+      "timerSharePercent": 0.0007766699216891214
+    },
+    {
+      "name": "dex",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1212,
+        "p95Ns": 1702,
+        "p99Ns": 1703
+      },
+      "timerSharePercent": 0.0007719925747145125
+    },
+    {
+      "name": "anchor",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1002,
+        "p95Ns": 1562,
+        "p99Ns": 1933
+      },
+      "timerSharePercent": 0.0006983775115345892
+    },
+    {
+      "name": "legacy_resource_market",
+      "timing": {
+        "count": 36,
+        "p50Ns": 1072,
+        "p95Ns": 1573,
+        "p99Ns": 1713
+      },
+      "timerSharePercent": 0.0006870916402360065
+    },
+    {
+      "name": "legacy_trust",
+      "timing": {
+        "count": 36,
+        "p50Ns": 811,
+        "p95Ns": 1182,
+        "p99Ns": 1192
+      },
+      "timerSharePercent": 0.0005311269227455456
+    },
+    {
+      "name": "asset_auth",
+      "timing": {
+        "count": 36,
+        "p50Ns": 791,
+        "p95Ns": 1101,
+        "p99Ns": 1121
+      },
+      "timerSharePercent": 0.0005029919720043379
+    },
+    {
+      "name": "governance",
+      "timing": {
+        "count": 36,
+        "p50Ns": 570,
+        "p95Ns": 822,
+        "p99Ns": 991
+      },
+      "timerSharePercent": 0.00035792334689790884
+    },
+    {
+      "name": "ownership_and_vault_supply",
+      "timing": {
+        "count": 36,
+        "p50Ns": 381,
+        "p95Ns": 551,
+        "p99Ns": 581
+      },
+      "timerSharePercent": 0.00025128337932150486
+    },
+    {
+      "name": "supply",
+      "timing": {
+        "count": 36,
+        "p50Ns": 230,
+        "p95Ns": 371,
+        "p99Ns": 390
+      },
+      "timerSharePercent": 0.00016089010559251115
+    }
+  ],
+  "interpretation": "Deduplicated node/height observations only for heights of16 actual verified before business identities. A block can contain other transactions; samples never multiplied by tx count. No matched d9/2cf causal A/B, sustained TPS, earliest arrival or BFT formation claim.",
+  "originalBusinessHeightReportPin": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/BUSINESS_HEIGHT_BASELINE.json",
+    "bytes": 8938,
+    "sha256": "e81f116b3a50f3312054645bb7957c39efb4b0d75ce6eb4675bf6b09258553c1"
+  },
+  "originalDiagnosticReportPin": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/ORIGINAL_DIAGNOSTIC_REPORT.json",
+    "bytes": 334230,
+    "sha256": "5f1d6bac821d863f9ae8acfbdeaba7f5186cb9217e67b7b41d40ed545c97876b"
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "kind": "source-ownleaf-handoff-awaiting-normal-ci",
+  "sourceCommit": "f1d855b3bb811f5fe286badad73162f91107bfe6",
+  "sourceTree": "3d5a8376adc548cfda6094ff8da09d9e45e78df5",
+  "parent": "4caa0d4693eaa259808396ed8591e4dc9ce57065",
+  "leaf": {
+    "path": "internal/consensus/pq_network_fresh_business_test.go",
+    "bytes": 147390,
+    "sha256": "5c1542b2ba540792016cf3a67da9ff09aa6effb6261e5b9ca6e355981a2301cf",
+    "gitBlob": "e9640af440c0a74ec4c3f121ac989863998a9078"
+  },
+  "patch": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/PIPELINE_OWNLEAF_f1d855b3b.patch",
+    "bytes": 29906,
+    "sha256": "29716eb2b0097419f7fc59b88b36e6d63b774dfc4ff6fbf423ad56064da22d89"
+  },
+  "publishedByPerformance": false,
+  "normalCIRun": null,
+  "normalCISuccess": false,
+  "goTestsExecutedLocally": false,
+  "localToolchainStop": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/NEXT_PROPOSAL_LOCAL_TOOLCHAIN_STOP.json",
+    "bytes": 489,
+    "sha256": "52e04bcc7433e717b61096a8a6008b1912431d977c21ae29ba4ce105d1e42172"
+  },
+  "goCases": [
+    "TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming",
+    "TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas",
+    "TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer",
+    "TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets",
+    "TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds"
+  ],
+  "requiredOriginalOwnerPinCoordination": [
+    ".github/workflows/resource-market-ci.yml",
+    "scripts/loadtest/pq-paired-linux-window.py",
+    "scripts/loadtest/test_pq_paired_linux_window.py",
+    "scripts/ops/test_validate_pq_remote_normal_ci.py"
+  ],
+  "oldPinsNotCurrent": [
+    "623a28292712f1621e57c3489e2fb70c489cabfc30fd761527d4f2ebb50de7c8",
+    "4890d0a642faac311de38f157fb9551915377849e60a6e83877a05b430f7872e"
+  ],
+  "workLogContract": {
+    "prefix": "PQ_FRESH_INCLUSION ",
+    "keys": [
+      "a",
+      "c",
+      "t",
+      "h",
+      "i",
+      "b",
+      "p",
+      "w"
+    ],
+    "w": [
+      "inclusionProbeCalls",
+      "inclusionProbeNs",
+      "fullCommitCheckCalls",
+      "fullCommitCheckNs",
+      "hostContextNs"
+    ],
+    "rows": 32,
+    "lineBytes": 512,
+    "originalReserveUsedBytes": 16384,
+    "totalLogAllowanceBytes": 1044480,
+    "processesUpperBound": 15,
+    "ownedProcessCapUnchanged": 16
+  },
+  "unchanged": {
+    "businessPerArm": 16,
+    "maximumOffersPerSecond": 2,
+    "offerSlots": 4,
+    "readbackSlots": 4,
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "sameOriginalSignedWires": true,
+    "unknownReoffered": false,
+    "allOriginalHostChecks": true,
+    "preparationMovedOutsideGuard": false
+  },
+  "qualification": {
+    "runtimeBenefitMeasured": false,
+    "paired32Passed": false,
+    "sustained1000TPSQualified": false,
+    "rootNewPressureGrant": false
+  },
+  "priorD9Failure": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/TERMINAL_HANDOFF.json",
+    "bytes": 16297,
+    "sha256": "e7f8b7f67328fc222e7598129b89143f0c6dbbc4e4c15dea2f0138289cd5682b"
+  },
+  "pacingBudgetBound": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/SCHEDULING_BUDGET_READBACK.json",
+    "bytes": 1159,
+    "sha256": "992bdbea103893fa98bc62570c60a9aff511a6630250d1875e41ee12605f5ecf"
+  }
+}

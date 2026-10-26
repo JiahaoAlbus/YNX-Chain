@@ -198,13 +198,13 @@ export function readFreshPhaseDiagnostics(stdout,guard,expected){
  requireValue(guard.cleanupComplete===true&&completedScans(guard.emptyOwnedScans,true)&&Number.isInteger(guard.child.code)&&(guard.firstCause===null||typeof guard.firstCause==='string'&&guard.firstCause.length>0),'terminal original diagnostic guard required');
  const lines=stdout.toString('utf8').split(/\r?\n/),run='=== RUN   TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming';
  requireValue(lines.filter(l=>/^=== RUN   /.test(l)).length===1&&lines.includes(run),'sole original diagnostic RUN required');
- const start=lines.indexOf(run),terminal=lines.findIndex(l=>/PQ_NETWORK_FRESH_BUSINESS_SUMMARY|^--- (PASS|FAIL|SKIP):|^(PASS|FAIL)(\s|$)|^panic:|^fatal error:/.test(l)),commits=new Map(),validations=new Map(),transactions=[],identities=new Set(),abciIdentities=new Set();
+ const start=lines.indexOf(run),terminal=lines.findIndex(l=>/PQ_NETWORK_FRESH_BUSINESS_SUMMARY|^--- (PASS|FAIL|SKIP):|^(PASS|FAIL)(\s|$)|^panic:|^fatal error:/.test(l)),commits=new Map(),validations=new Map(),inclusions=new Map(),transactions=[],identities=new Set(),abciIdentities=new Set();
  const bounded=(v,n)=>numericDuration(v,n),key=(a,n,h)=>a+'/'+n+'/'+h;
  const coordinate=(a,n,h)=>requireValue(['before','after'].includes(a)&&Number.isInteger(n)&&n>=0&&n<4&&typeof h==='string'&&/^[1-9][0-9]*$/.test(h),'diagnostic coordinate differs');
- const selected=lines.map((line,index)=>({line,index})).filter(x=>/PQ_NETWORK_FRESH_COMMIT_OBSERVATION|PQ_VALIDATE|PQ_FRESH_TX/.test(x.line));
- requireValue(selected.length>0&&selected.length<=800,'bounded original diagnostic records required');
+ const selected=lines.map((line,index)=>({line,index})).filter(x=>/PQ_NETWORK_FRESH_COMMIT_OBSERVATION|PQ_VALIDATE|PQ_FRESH_TX|PQ_FRESH_INCLUSION/.test(x.line));
+ requireValue(selected.length>0&&selected.length<=832,'bounded original diagnostic records required');
  for(const {line,index}of selected){
-  const m=/^(PQ_NETWORK_FRESH_COMMIT_OBSERVATION|PQ_VALIDATE|PQ_FRESH_TX) (\{.*\})$/.exec(line);
+  const m=/^(PQ_NETWORK_FRESH_COMMIT_OBSERVATION|PQ_VALIDATE|PQ_FRESH_TX|PQ_FRESH_INCLUSION) (\{.*\})$/.exec(line);
   requireValue(m&&index>start&&(terminal===-1||index<terminal),'diagnostic source log shape or terminal order differs');
   const [,tag,text]=m;requireValue(Buffer.byteLength(line)+1<=(tag==='PQ_NETWORK_FRESH_COMMIT_OBSERVATION'?1024:512),'diagnostic line exceeds original bound');
   const x=json(Buffer.from(text),'diagnostic record');
@@ -227,6 +227,15 @@ export function readFreshPhaseDiagnostics(stdout,guard,expected){
    requireValue(x.p.slice(count).every(n=>n===0),'unexecuted validation suffix must be zero');
    requireValue(bounded(x.d,'hash document')+bounded(x.x,'hash encode')<=BigInt(x.p[33]),'hash child exceeds parent phase');
    validations.set(k,x);
+  }else if(tag==='PQ_FRESH_INCLUSION'){
+   coordinate(x.a,0,x.h);
+   const hasWork=Object.hasOwn(x,'w');
+   requireValue(inclusions.size<32&&Object.keys(x).length===(hasWork?8:7)&&x.c===expected.clockDomain&&hex(x.t,64)&&hex(x.b,64)&&!inclusions.has(x.t)&&Number.isSafeInteger(x.i)&&x.i>=0&&x.i<=0x7fffffff&&Array.isArray(x.p)&&x.p.length===4,'duplicate or foreign proposal observation');
+   requireValue(expected.inclusionWorkTimingsRequired!==true||hasWork,'missing source-required coordinator call timings');
+   if(hasWork){requireValue(Array.isArray(x.w)&&x.w.length===5,'coordinator work shape differs');x.w.forEach(v=>bounded(v,'coordinator work'));requireValue((x.w[0]>0||x.w[1]===0)&&(x.w[2]>0||x.w[3]===0),'uninvoked coordinator work was invented');}
+   requireValue(transactions.some(t=>t.arm===x.a&&t.abciHash===x.t&&t.height===x.h&&t.index===x.i),'proposal observation precedes or differs from verified callback');
+   for(const span of x.p)if(span!==null){requireValue(Array.isArray(span)&&span.length===2,'proposal span shape differs');requireValue(bounded(span[0],'proposal receipt')<=bounded(span[1],'proposal acceptance'),'proposal clock order differs');}
+   inclusions.set(x.t,x);
   }else{
    coordinate(x.arm,0,x.height);
    requireValue(transactions.length<32&&x.kind==='validated-readback'&&hex(x.nativeHash,64)&&hex(x.abciHash,64)&&x.nativeHash!==x.abciHash&&!identities.has(x.nativeHash)&&!abciIdentities.has(x.abciHash)&&Number.isSafeInteger(x.index)&&x.index>=0&&x.index<=0xffffffff&&x.clockDomain===expected.clockDomain,'duplicate or foreign diagnostic transaction');
@@ -248,12 +257,17 @@ export function readFreshPhaseDiagnostics(stdout,guard,expected){
   requireValue(successful.every(r=>BigInt(r.finalizeStartNs)>=offer&&BigInt(r.commitEndNs)<=maxNs),'transaction observation precedes original offer');
   const first=delta(successful.map(r=>BigInt(r.commitEndNs)));
   requireValue(first===null||BigInt(first)<=BigInt(x.offerToIndependentNs),'callback precedes every captured durable observation');
-  return {...x,observedDurableNodes:successful.length,firstNodeFinalizeNs:delta(successful.map(r=>BigInt(r.finalizeEndNs))),firstNodeDurableNs:first,allNodesDurableNs:delta(successful.map(r=>BigInt(r.commitEndNs)),true)};
+  const inclusion=inclusions.get(x.abciHash);requireValue(expected.inclusionObservationRequired!==true&&expected.inclusionWorkTimingsRequired!==true||inclusion,'missing source-required final-block proposal observation');
+  if(inclusion?.w)requireValue(BigInt(inclusion.w[1])+BigInt(inclusion.w[3])+BigInt(inclusion.w[4])<=BigInt(x.offerToIndependentNs),'coordinator work exceeds original callback interval');
+  const spans=inclusion?.p??[null,null,null,null];
+  const boundSpans=spans.map((span,n)=>{if(span===null)return null;requireValue(BigInt(span[0])>=offer&&span[1]<=x.independentCompletionNs,'proposal observation outside original offer/callback interval');const c=rows[n];if(!c)return null;requireValue(c.finalizeOK&&c.commitOK&&c.timingAvailable&&c.commitTiming.durable&&span[1]<=c.finalizeStartNs,'proposal observation has no matching durable node or bounded parent clock');return span;});
+  return {...x,finalBlockHash:inclusion?.b??null,acceptedProposalNodeObservations:spans,unboundProposalNodes:spans.filter(s=>s!==null).length-boundSpans.filter(s=>s!==null).length,coordinatorWork:inclusion?.w??null,firstNodeProposalReceiptNs:delta(boundSpans.filter(s=>s!==null).map(s=>BigInt(s[0]))),firstNodeProposalAcceptedNs:delta(boundSpans.filter(s=>s!==null).map(s=>BigInt(s[1]))),observedDurableNodes:successful.length,firstNodeFinalizeNs:delta(successful.map(r=>BigInt(r.finalizeEndNs))),firstNodeDurableNs:first,allNodesDurableNs:delta(successful.map(r=>BigInt(r.commitEndNs)),true)};
  });
  const arms=['before','after'].map(arm=>{
   const values=[...validations.values()].filter(x=>x.a===arm),total=values.reduce((sum,x)=>sum+x.p.reduce((s,n)=>s+BigInt(n),0n),0n),tx=observed.filter(x=>x.arm===arm);
   const rows=[...commits.values()].filter(x=>x.arm===arm),sampled=rows.filter(x=>x.timingAvailable),stages=[...new Set(sampled.flatMap(x=>Object.keys(x.commitTiming.stagesNs)))].sort();
-  return {arm,physicalCommitObservations:rows.length,successfulDurableCommitObservations:rows.filter(x=>x.finalizeOK&&x.commitOK&&x.timingAvailable&&x.commitTiming.durable).length,validatedCallbackObservations:tx.length,outerCommitNs:freshTimingQuantiles(rows.map(x=>x.commitCallNs)),persistenceStagesNs:Object.fromEntries(stages.map(k=>[k,freshTimingQuantiles(sampled.filter(x=>Object.hasOwn(x.commitTiming.stagesNs,k)).map(x=>x.commitTiming.stagesNs[k]))])),hashChildNs:{document:freshTimingQuantiles(values.filter(x=>x.f===-1||x.f===33).map(x=>x.d)),encodeDigest:freshTimingQuantiles(values.filter(x=>x.f===-1||x.f===33).map(x=>x.x))},phases:freshValidationPhases.map((name,i)=>{const samples=values.filter(x=>x.f===-1||i<=x.f).map(x=>x.p[i]),sum=samples.reduce((s,n)=>s+BigInt(n),0n);return {name,durationNs:freshTimingQuantiles(samples),summedTimerShare:{numeratorNs:String(sum),denominatorNs:String(total)}};}),latencyNs:Object.fromEntries(['firstNodeFinalizeNs','firstNodeDurableNs','allNodesDurableNs','offerToIndependentNs'].map(k=>[k,{...freshTimingQuantiles(tx.filter(x=>x[k]!==null).map(x=>x[k])),missingSamples:tx.filter(x=>x[k]===null).length}]))};
+  const work=tx.filter(x=>x.coordinatorWork!==null).map(x=>x.coordinatorWork),coordinatorCalls=Object.fromEntries([['inclusionProbe',0,1],['fullCommitCheck',2,3],['hostContext',null,4]].map(([name,count,duration])=>[name,{perCallbackAccumulatedNs:freshTimingQuantiles(work.filter(w=>count===null||w[count]>0).map(w=>w[duration])),observedCalls:String(work.reduce((sum,w)=>sum+BigInt(count===null?1:w[count]),0n)),notInvokedCallbacks:count===null?0:work.filter(w=>w[count]===0).length,missingCallbacks:tx.length-work.length}]));
+  return {arm,physicalCommitObservations:rows.length,successfulDurableCommitObservations:rows.filter(x=>x.finalizeOK&&x.commitOK&&x.timingAvailable&&x.commitTiming.durable).length,validatedCallbackObservations:tx.length,coordinatorCalls,outerCommitNs:freshTimingQuantiles(rows.map(x=>x.commitCallNs)),persistenceStagesNs:Object.fromEntries(stages.map(k=>[k,freshTimingQuantiles(sampled.filter(x=>Object.hasOwn(x.commitTiming.stagesNs,k)).map(x=>x.commitTiming.stagesNs[k]))])),hashChildNs:{document:freshTimingQuantiles(values.filter(x=>x.f===-1||x.f===33).map(x=>x.d)),encodeDigest:freshTimingQuantiles(values.filter(x=>x.f===-1||x.f===33).map(x=>x.x))},phases:freshValidationPhases.map((name,i)=>{const samples=values.filter(x=>x.f===-1||i<=x.f).map(x=>x.p[i]),sum=samples.reduce((s,n)=>s+BigInt(n),0n);return {name,durationNs:freshTimingQuantiles(samples),summedTimerShare:{numeratorNs:String(sum),denominatorNs:String(total)}};}),latencyNs:Object.fromEntries(['firstNodeProposalReceiptNs','firstNodeProposalAcceptedNs','firstNodeFinalizeNs','firstNodeDurableNs','allNodesDurableNs','offerToIndependentNs'].map(k=>[k,{...freshTimingQuantiles(tx.filter(x=>x[k]!==null).map(x=>x[k])),missingSamples:tx.filter(x=>x[k]===null).length}]))};
  });
  return {classification:'original-log-diagnostic-observations',executionAuthorized:false,sustainedTPSQualified:false,fullPairQualified:false,independentProofReverifiedHere:false,firstCause:guard.firstCause,childCode:guard.child.code,sourceCommit:expected.protocolCommit,clockDomain:expected.clockDomain,stdoutSHA256:expected.stdoutSHA256,arms,transactions:observed,interpretation:'Observed callbacks from the pinned original callee, not independent verification by this reader. Missing nodes remain null; failed phase suffix is unexecuted. Hash child intervals are not added twice. Summed node timers are not wall time/CPU. Execution/durability and queued verification completion are distinct; earliest block arrival/BFT formation and sustained TPS are unmeasured.'};
 }

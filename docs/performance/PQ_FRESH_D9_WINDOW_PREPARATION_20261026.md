@@ -1,5 +1,80 @@
 # d9 exact-source four-node window preparation
 
+## Actual consumed window — run40311847501
+
+Root granted one exact original window with grant3966 bytes/SHA256
+`ae5fcf6a48e3011039705c3ec92e64c3f9bebd60c5efd228e93508294224fb73`.
+One dispatch exited0 at2026-10-26T11:00:54Z. Actual run40311847501 used exactd9
+and the frozen ref. Runtime stopped at the105s active deadline: child3262/-15,
+guard105224ms, cleanup complete and empty scans105167/105224. The grant is
+consumed. No redispatch, limit extension or increased offered load occurred.
+
+Before completed16 independently validated business callbacks; after completed
+zero and retained4 started/unreturned offers as UNKNOWN. The complete32 pair
+failed. All148 unique Commit records and148 validation partitions (before92,
+after56) bind to the same child/arm/node/H and original source. Seven original
+outputs, prepared11/manifest7, actualSOURCE and fourELF pins were checked. The
+result ZIP65426 bytes/SHA256
+`b8c8a0a464d9de8dd541ed8997e70817066895c8a466ba0518eb9b555f3df76f`
+was downloaded once. No local fresh/stage ZIP was downloaded. Original same-VM
+fresh intake fetched once; its fresh-only recipe did not fetch stage DATA.
+
+| Before16: offer to observed boundary | P50 s | P95/P99 s |
+| --- | ---: | ---: |
+| First-node Finalize completion | 2.706 | 3.306 |
+| First-node durable Commit completion | 2.832 | 3.551 |
+| All-four durable Commit completion | 3.055 | 3.726 |
+| Independent verification completion including queue | 17.259 | 19.428 |
+
+Actual proposal receipt and earliest BFT formation were not captured and remain
+null. Boot ID and CPU utilization were not measured. PeakRSS735551488 bytes,
+threads56, private502602545 and build166448880 were below caps. Deadline is the
+actual first cause, not a resource or consensus failure inference.
+
+Restricting physical timers to the same before business heights26–34 yields36
+unique node/H records. Outer Commit P50/P95/P99=230.502/318.134/375.300ms;
+validate167.887/235.870/265.532ms, JSON39.407/108.194/111.543ms, and
+file-sync1.612/4.773/13.002ms. In these36 validation partitions, pq_state accounts
+for75.539% of summed timers. Across all92 before records it is72%, while engine
+snapshot P50 is0.589ms and its share1.42%. These are node-timer aggregates, not
+CPU/wall-time percentages. Different runners still prevent a causal facts A/B;
+the completed pair and total latency did not improve to the target.
+
+The after arm's first offer-stage begin is parent101.940228553s. Original source
+enforces at least500ms between successful Start offsets, so the last of16 offers
+cannot start before parent109.440228553s. Even optimistically granting the
+parent clock the entire105s, the offers alone exceed it by4.440228553s, before
+completion/proof work. This is a bound from observed parent time plus the source
+pacing invariant, not an extrapolated measured after duration or a subtraction
+from the differently based guard clock. An unchanged rerun cannot resolve this
+window's time budget. Runtime PQ-history revalidation and coordinator/proof
+waiting must be reduced in source before another exact grant.
+
+Original artifacts are under
+`/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/`.
+The complete terminalH is16297 bytes/SHA256
+`e7f8b7f67328fc222e7598129b89143f0c6dbbc4e4c15dea2f0138289cd5682b`;
+raw report311568 bytes/SHA256
+`00071971cb413b867c3c6995c304a4fa9bad031508e23c8a376be39dbda0ce25`.
+The exact seven pins, transaction coordinates and business-height subset are
+tracked in `evidence/pq-fresh-d9-terminal-diagnostic.json`.
+
+Following this failure, Root assigned only the next fresh harness file to Perf.
+Its separate source87a064754 observes accepted ProcessProposal calls and binds
+final block hash/H/ABCI/index, preserves original responses/rejects, and emits
+at most32 compact512-byte lines from the existing16KiB reserve. Other Protocol
+runtime/cache/native/controller/workflow dirty remains with its owners. NewGo
+regressions are awaiting the original Linux normal CI; the local attempt never
+entered tests because its missing1.26.10 toolchain download was stopped after
+recording the owned PID/cwd and actual progress. Do not claim a Go PASS from it.
+The paired consumer's previous02cc source normalCI40311452687 whole succeeded;
+new proposal-readback JS tests27 passed locally. No new candidate is activated
+or qualified for sustained1000TPS by these source/reader checks.
+
+The preparation record below predates the consumed grant; its false runtime
+flags and old missing-ref evidence are intentionally preserved as snapshots.
+
+
 Root handed off producer `d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a`,
 tree `00e381d7bd49238d270aa61a392f4754b89647c6`, normal push
 `40301495281/1` whole success. The original whole H is 8393 bytes, SHA256
@@ -100,3 +175,48 @@ Exact tuple and source readback are tracked under
 readback remain in
 `/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-d9-preparation/`.
 Sustained1000 effective business TPS/10minutes and P95<=3s remain unproved.
+
+
+## Successor queue source (not part of consumed d9)
+
+Perf's single-leaf successor isf1d855b3bb811f5fe286badad73162f91107bfe6,
+parent4caa0d4693eaa259808396ed8591e4dc9ce57065, leaf147390 bytes/SHA256
+`5c1542b2ba540792016cf3a67da9ff09aa6effb6261e5b9ca6e355981a2301cf`,
+blob `e9640af440c0a74ec4c3f121ac989863998a9078`. The original Protocol owner
+then committed the corresponding controller/caller/test/workflow pins as
+28251767dd8098275e59a96f86935e413e5f1355/tree
+`d12159665a09cd5206f0ab9ea89c55af120a7f84` and pushed normally. Original Linux
+controller SHA is
+`51c75b4d81095836c5403524cfc6d6307c9452b71711b3ec69cb827507f1a4a5`.
+Old623a/4890 fresh-source pins must not qualify this successor. Previous4c whole
+CI success is not successor282 whole success or a new runtime measurement.
+
+The original offer and readback queues now overlap on the same coordinator.
+Only a completed original offer and original Host stores identifying exact
+bytes, all four successful executions, block/successor evidence and unchanged
+full AND/quorum verification can start its readback. Later signed offers remain
+paced at no more than2/s, never catch up, and UNKNOWN is never reoffered. Each
+queue keeps four slots. Including four verifier children plus test/gateway/
+controller gives an upper bound15 owned processes under the unchanged16 cap;
+actual RSS/thread/private/guard admission remains required. Preparation stays
+inside the guard. All children are canceled and joined on either stage failure.
+The same immutable historical height is fully checked once, with no historical
+or ledger deletion. All final account/balance/nonce and cold-stop checks remain.
+
+The three new pipeline tests cover early readback versus last offer,500ms pacing,
+read-only readiness without another offer, cancellation/join of both started
+Wait sets and both four-slot bounds. Proposal tests additionally cover actual
+Application delegation, competing rounds, caller mutation, capacity and null
+replicas. Actual new-source Go results must come from the original normal Linux
+suite/observer. Perf did not rerun a package or resume the stopped Darwin fetch.
+The reader has28 local passing tests and consumes both seven/eight-field logs.
+
+The new source removes the old global submission barrier; it does not prove
+that full32 now fits105s. New setup/queue/verification costs, complete source
+and artifact/ref pins, normal CI and a new exact Root resource grant remain
+required. Both arms enable the new pipeline/core cache, while the original
+paired variable remains client index decoding/reuse. This cannot establish an
+isolated causal gain for pipeline or core cache, and cannot be relabeled as a
+successful controlled source-version A/B. Source ownleaf H is tracked in
+`evidence/pq-fresh-pipeline-ownleaf-f1d855b3b.json`; original d9/UNKNOWN records
+remain unchanged. No additional pressure run is authorized or started.

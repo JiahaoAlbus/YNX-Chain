@@ -1,0 +1,577 @@
+{
+  "kind": "failed-window-terminal-handoff",
+  "runId": "40311847501",
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40311847501",
+  "sourceCommit": "d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
+  "firstCause": "105s active deadline",
+  "cleanupComplete": true,
+  "businessBeforeVerified": 16,
+  "businessAfterVerified": 0,
+  "afterOffersStartedUnfinished": 4,
+  "fullPaired32Qualified": false,
+  "stable1000TPSQualified": false,
+  "grantConsumed": true,
+  "redispatchAllowed": false,
+  "resultArtifactId": "12645381235",
+  "resultZIP": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/result.zip",
+    "bytes": 65426,
+    "sha256": "b8c8a0a464d9de8dd541ed8997e70817066895c8a466ba0518eb9b555f3df76f"
+  },
+  "originalReport": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/ORIGINAL_DIAGNOSTIC_REPORT.json",
+    "bytes": 311568,
+    "sha256": "00071971cb413b867c3c6995c304a4fa9bad031508e23c8a376be39dbda0ce25"
+  },
+  "analysisSource": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/analyze-original.py",
+    "bytes": 8147,
+    "sha256": "c324f4da2e44f4bd6304787259b684b66b17f03e52ae498984d8d2c74b5db6ad"
+  },
+  "diagnosticReader": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/DIAGNOSTIC_CONSUMER_READBACK.json",
+    "bytes": 24299,
+    "sha256": "510794a4931832fa15cdd4af769f32587e70c70516848c5fee5fc3b36b6f7522"
+  },
+  "expected": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/DIAGNOSTIC_CONSUMER_EXPECTED.json",
+    "bytes": 1422,
+    "sha256": "6ba0ecd5bdee5387a3e9900a7a155c9949f33563f222d8e9636923999f2a41dd"
+  },
+  "outputs": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/result/ynx-pq-fresh-intake-40311847501-1/relocation.json",
+      "bytes": 2457,
+      "sha256": "4e9d81e3ac9c7b83e511d8af727ba5961f4c8abc3544bc4d74e9429574e82c3d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/result/ynx-pq-network-40311847501-1/go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/result/ynx-pq-network-40311847501-1/go.stdout.log",
+      "bytes": 195379,
+      "sha256": "de4614cb0b4de7d1fafc14b5e62b392f3f4072107c8a9cd3a88a03d0604ce6bc"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/result/ynx-pq-network-40311847501-1/prepared.json",
+      "bytes": 2043,
+      "sha256": "5f313e0ec3daad5719befdf2b9e3c38529099e955ecdf33b25509f753de9520b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/result/ynx-pq-network-40311847501-1.build/business-manifest.json",
+      "bytes": 1719,
+      "sha256": "d2ee133ecb09c7ba61f2a68df821dce3fecd7464925df209cd3f8486090931de"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/result/ynx-pq-network-40311847501-1.file-sizes.json",
+      "bytes": 3658,
+      "sha256": "5b4cdc5ee167d0164e91b22f0270f30719592588d244e968a6c5941309d7221b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-whole-once/result/ynx-pq-network-40311847501-1.receipt.json",
+      "bytes": 463623,
+      "sha256": "3e463064772d71291cda487eda6d0cfa07e67330279cd4f67d43aba9fa5de572"
+    }
+  ],
+  "guard": {
+    "firstCause": "105s active deadline",
+    "elapsedMs": 105224,
+    "child": {
+      "pid": 3262,
+      "code": -15,
+      "startTicks": 7624
+    },
+    "cleanupComplete": true,
+    "emptyOwnedScans": [
+      {
+        "elapsedMs": 105167,
+        "hostIdentities": 162
+      },
+      {
+        "elapsedMs": 105224,
+        "hostIdentities": 162
+      }
+    ],
+    "caps": {
+      "activeMs": 105000,
+      "cleanupMs": 15000,
+      "totalMs": 120000,
+      "ownedRSSBytes": 1073741824,
+      "threads": 320,
+      "ownedProcesses": 16,
+      "privateBytes": 536870912,
+      "buildBytes": 1073741824,
+      "logBytes": 1048576,
+      "diskFloorBytes": 1073741824,
+      "rootReserveBytes": 445644800,
+      "compileReserveBytes": 1073741824,
+      "availableMemoryFloorBytes": 1207959552,
+      "sampleMs": 200
+    }
+  },
+  "transactionLatencies": {
+    "firstNodeFinalizeObservedNs": {
+      "count": 16,
+      "p50Ns": 2706267148,
+      "p95Ns": 3305633615,
+      "p99Ns": 3305633615
+    },
+    "firstNodeDurableObservedNs": {
+      "count": 16,
+      "p50Ns": 2831578984,
+      "p95Ns": 3551287781,
+      "p99Ns": 3551287781
+    },
+    "allNodeDurableObservedNs": {
+      "count": 16,
+      "p50Ns": 3055166491,
+      "p95Ns": 3726017668,
+      "p99Ns": 3726017668
+    },
+    "offerToIndependentNs": {
+      "count": 16,
+      "p50Ns": 17258570892,
+      "p95Ns": 19428365423,
+      "p99Ns": 19428365423
+    }
+  },
+  "beforeBusinessHeightSubset": {
+    "heights": [
+      "26",
+      "27",
+      "28",
+      "29",
+      "30",
+      "31",
+      "32",
+      "33",
+      "34"
+    ],
+    "physicalSamples": 36,
+    "commitOuter": {
+      "samples": 36,
+      "p50Ns": 230502443,
+      "p95Ns": 318134392,
+      "p99Ns": 375299934
+    },
+    "stages": {
+      "close_file": {
+        "samples": 36,
+        "p50Ns": 11341,
+        "p95Ns": 18214,
+        "p99Ns": 25468
+      },
+      "directory_sync": {
+        "samples": 36,
+        "p50Ns": 201420,
+        "p95Ns": 1873051,
+        "p99Ns": 14660164
+      },
+      "file_sync": {
+        "samples": 36,
+        "p50Ns": 1611899,
+        "p95Ns": 4773331,
+        "p99Ns": 13002156
+      },
+      "json_encode": {
+        "samples": 36,
+        "p50Ns": 39406932,
+        "p95Ns": 108193929,
+        "p99Ns": 111543280
+      },
+      "prepare_file": {
+        "samples": 36,
+        "p50Ns": 97274,
+        "p95Ns": 152247,
+        "p99Ns": 178857
+      },
+      "rename": {
+        "samples": 36,
+        "p50Ns": 368365,
+        "p95Ns": 1150319,
+        "p99Ns": 11775290
+      },
+      "validate": {
+        "samples": 36,
+        "p50Ns": 167886511,
+        "p95Ns": 235869612,
+        "p99Ns": 265531750
+      },
+      "write": {
+        "samples": 36,
+        "p50Ns": 970650,
+        "p95Ns": 11186432,
+        "p99Ns": 12156059
+      }
+    },
+    "validationPhases": [
+      {
+        "name": "pq_state",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 125448014,
+          "p95Ns": 190474615,
+          "p99Ns": 194343071
+        },
+        "summedTimerSharePercent": 75.53870527233981
+      },
+      {
+        "name": "validator_registry",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 23370197,
+          "p95Ns": 57698905,
+          "p99Ns": 63489976
+        },
+        "summedTimerSharePercent": 14.749280096987464
+      },
+      {
+        "name": "app_hash",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 7339102,
+          "p95Ns": 44388475,
+          "p99Ns": 47341922
+        },
+        "summedTimerSharePercent": 8.317984625516042
+      },
+      {
+        "name": "engine_snapshot",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 585174,
+          "p95Ns": 13792145,
+          "p99Ns": 16889065
+        },
+        "summedTimerSharePercent": 0.8821207075551667
+      },
+      {
+        "name": "engine_schedule",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 227790,
+          "p95Ns": 580655,
+          "p99Ns": 17877872
+        },
+        "summedTimerSharePercent": 0.4383178402852015
+      },
+      {
+        "name": "ledger_records",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 29827,
+          "p95Ns": 59642,
+          "p99Ns": 59923
+        },
+        "summedTimerSharePercent": 0.019183478935856913
+      },
+      {
+        "name": "fee_events",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 18565,
+          "p95Ns": 46247,
+          "p99Ns": 78148
+        },
+        "summedTimerSharePercent": 0.011995513470333827
+      },
+      {
+        "name": "resource",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 18134,
+          "p95Ns": 26139,
+          "p99Ns": 33814
+        },
+        "summedTimerSharePercent": 0.011131296850482277
+      },
+      {
+        "name": "migration_trace_lots",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 8236,
+          "p95Ns": 12354,
+          "p99Ns": 12443
+        },
+        "summedTimerSharePercent": 0.0050337402588073385
+      },
+      {
+        "name": "pq_dex",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 6803,
+          "p95Ns": 10359,
+          "p99Ns": 10800
+        },
+        "summedTimerSharePercent": 0.004184171655983892
+      },
+      {
+        "name": "legacy_pay",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 3206,
+          "p95Ns": 6482,
+          "p99Ns": 6682
+        },
+        "summedTimerSharePercent": 0.0021457378769388397
+      },
+      {
+        "name": "pq_resources",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 3046,
+          "p95Ns": 4138,
+          "p99Ns": 4820
+        },
+        "summedTimerSharePercent": 0.0018269059268830748
+      },
+      {
+        "name": "pq_ethereum",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 2915,
+          "p95Ns": 4117,
+          "p99Ns": 5260
+        },
+        "summedTimerSharePercent": 0.0018017552488762093
+      },
+      {
+        "name": "pq_ordered_resources",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 2765,
+          "p95Ns": 3647,
+          "p99Ns": 4178
+        },
+        "summedTimerSharePercent": 0.001633532440344294
+      },
+      {
+        "name": "resource_sponsor",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 2314,
+          "p95Ns": 6011,
+          "p99Ns": 10019
+        },
+        "summedTimerSharePercent": 0.0016309436409142715
+      },
+      {
+        "name": "staking",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 2495,
+          "p95Ns": 3858,
+          "p99Ns": 5791
+        },
+        "summedTimerSharePercent": 0.001573842590195101
+      },
+      {
+        "name": "account_abstraction_policy",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 1914,
+          "p95Ns": 3868,
+          "p99Ns": 5009
+        },
+        "summedTimerSharePercent": 0.0012820947253154595
+      },
+      {
+        "name": "legacy_sponsor",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 2144,
+          "p95Ns": 3116,
+          "p99Ns": 3166
+        },
+        "summedTimerSharePercent": 0.0012470148545580006
+      },
+      {
+        "name": "pq_native_actions",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 1834,
+          "p95Ns": 2365,
+          "p99Ns": 2565
+        },
+        "summedTimerSharePercent": 0.0010795785167390037
+      },
+      {
+        "name": "pay",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 1634,
+          "p95Ns": 2034,
+          "p99Ns": 2164
+        },
+        "summedTimerSharePercent": 0.0009338192779448169
+      },
+      {
+        "name": "pq_contracts",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 1493,
+          "p95Ns": 1893,
+          "p99Ns": 2786
+        },
+        "summedTimerSharePercent": 0.0008783567078775595
+      },
+      {
+        "name": "trust",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 1223,
+          "p95Ns": 1483,
+          "p99Ns": 1553
+        },
+        "summedTimerSharePercent": 0.0006955678063501372
+      },
+      {
+        "name": "legacy_ai",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 1142,
+          "p95Ns": 1513,
+          "p99Ns": 1543
+        },
+        "summedTimerSharePercent": 0.0006703679739237141
+      },
+      {
+        "name": "ide",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 982,
+          "p95Ns": 1583,
+          "p99Ns": 3847
+        },
+        "summedTimerSharePercent": 0.0006576042096453113
+      },
+      {
+        "name": "legacy_contracts",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 1072,
+          "p95Ns": 1512,
+          "p99Ns": 2264
+        },
+        "summedTimerSharePercent": 0.000643414967199744
+      },
+      {
+        "name": "legacy_resource_market",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 1012,
+          "p95Ns": 1372,
+          "p99Ns": 1443
+        },
+        "summedTimerSharePercent": 0.0005941622388032371
+      },
+      {
+        "name": "dex",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 921,
+          "p95Ns": 1243,
+          "p99Ns": 1353
+        },
+        "summedTimerSharePercent": 0.0005576732746851331
+      },
+      {
+        "name": "anchor",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 771,
+          "p95Ns": 1272,
+          "p99Ns": 1763
+        },
+        "summedTimerSharePercent": 0.00048789038372015536
+      },
+      {
+        "name": "account_abstraction",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 832,
+          "p95Ns": 1172,
+          "p99Ns": 1402
+        },
+        "summedTimerSharePercent": 0.00048672706245729704
+      },
+      {
+        "name": "asset_auth",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 591,
+          "p95Ns": 851,
+          "p99Ns": 871
+        },
+        "summedTimerSharePercent": 0.00034897999405096515
+      },
+      {
+        "name": "legacy_trust",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 510,
+          "p95Ns": 832,
+          "p99Ns": 892
+        },
+        "summedTimerSharePercent": 0.0003098366912767618
+      },
+      {
+        "name": "governance",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 521,
+          "p95Ns": 612,
+          "p99Ns": 661
+        },
+        "summedTimerSharePercent": 0.00029432027950314506
+      },
+      {
+        "name": "ownership_and_vault_supply",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 240,
+          "p95Ns": 561,
+          "p99Ns": 561
+        },
+        "summedTimerSharePercent": 0.00016034171659621318
+      },
+      {
+        "name": "supply",
+        "duration": {
+          "samples": 36,
+          "p50Ns": 210,
+          "p95Ns": 351,
+          "p99Ns": 381
+        },
+        "summedTimerSharePercent": 0.0001227877400543656
+      }
+    ]
+  },
+  "resourceMax": {
+    "rssBytes": 735551488,
+    "threads": 56,
+    "privateBytes": 502602545,
+    "buildBytes": 166448880
+  },
+  "cpuUtilization": null,
+  "actualInclusionArrivalLatency": null,
+  "earliestBFTFormationLatency": null,
+  "localOriginalFreshZIPGETCount": 0,
+  "localStageZIPGETCount": 0,
+  "normalSameVMFreshIntakeZIPGETCount": 1,
+  "normalSameVMStageZIPGETCount": 0,
+  "limitations": [
+    "before complete16 verified; after0 verified; full32 pair failed",
+    "phase shares use sum of timers across nodes, not walltime or CPU",
+    "nearest rank quantiles; partial after not causal speedup",
+    "first-node Finalize completion is observed execution, not earliest proposal arrival",
+    "durable node completion and independent proof readback are separate observations; no earliest BFT formation timestamp",
+    "firstRPCNs is child duration; never subtract from parent clock",
+    "mixed setup/empty/business Commit rows deduplicated by arm,node,height; no multiplication by transaction count",
+    "not sustained 1000 business TPS evidence",
+    "Different runner from2cf; before/after d9 arms both enable facts, so no causal facts A/B."
+  ],
+  "nextOwningCode": "Perf owns only original fresh harness file for proposal-to-final-block timing and bounded queue wait diagnosis; Protocol owns runtime PQ history validation and workflow/controller/producer; no grant replay or cap extension."
+}

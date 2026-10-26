@@ -170,3 +170,36 @@ whole job only; unknown dispatch must be reconciled, never replayed. Runtime
 outcome, all seven outputs and cleanup must be retained. This is a necessary
 diagnostic window toward stable 1000 valid business TPS, not a replacement goal
 or a performance/activation success claim.
+
+
+## Before verified-business-height subset
+
+The sixteen actual verified before transactions occupy nine unique heights26–34.
+Deduplicating each node/height yields36 physical samples with all four replicas
+present. Empty/setup-only heights outside this set are excluded; a selected
+block may still contain other transactions. No physical timer is multiplied by
+the number of business transactions in its block.
+
+| Observed persistence boundary | P50 ms | P95 ms | P99 ms |
+| --- | ---: | ---: | ---: |
+| Outer Commit | 207.971 | 299.815 | 304.850 |
+| Validate | 148.049 | 215.922 | 232.280 |
+| JSON encoding | 18.509 | 62.786 | 80.430 |
+| File sync | 18.402 | 52.617 | 67.392 |
+| Write | 0.860 | 1.647 | 1.709 |
+
+Within these36 validation partitions, pq_state accounts for55.015% of summed
+phase timers, engine_snapshot19.791%, validator_registry10.324%, and
+engine_schedule9.489%. These are node-timer sums, not wall time/CPU percentages.
+The earlier44.61% pq_state number includes setup/registration heights, so it
+must not be presented as the business-only share. Initial-registration proof
+revalidation remains a concrete source path awaiting finer timing, not a
+measured subcall attribution or an approved cross-attempt cache bypass.
+
+The original immutable report8938 bytes/SHA256
+`e81f116b3a50f3312054645bb7957c39efb4b0d75ce6eb4675bf6b09258553c1`
+is retained as BUSINESS_HEIGHT_BASELINE.json beside the original diagnostic
+report. Tracked copy: `evidence/pq-fresh-2cf-business-height-baseline.json`.
+This readback starts no nodes and downloads no artifact. The interrupted after
+arm has no verified callbacks, so no equivalent business subset or causal
+before/after performance delta is fabricated.

@@ -340,3 +340,51 @@ A failed guard is still rejected regardless of external pins. Focused tests25
 passed including this actual-contract compatibility and its negative cases.
 This change enables truthful future successful readback; it does not fabricate
 a successful four-node run or supply missing cryptographic/runner provenance.
+
+
+## Accepted final-block proposal observations (next source)
+
+The Root-assigned next harness adds `PQ_FRESH_INCLUSION`, at most32 lines of512
+bytes including prefix/newline, using the original16KiB reserve. Total diagnostic
+plus original summary/progress allowance is1044480 bytes, below the unchanged
+1MiB cap. The initial87 source has seven compact fields: `a` arm, `c` parent clock domain, `t` bare
+ABCI hash, `h` decimal height, `i` transaction index, `b` actual final block hash,
+and `p` four node slots. Each slot is null or `[ProcessProposalStartNs,EndNs]`.
+The original Application must ACCEPT that exact proposal; the node must later
+Finalize the same hash/H and complete tx-ID list and durably Commit successful
+execution. Rejected or competing block hashes, failed executions and missing
+replicas do not produce a measured span. A callback is emitted only after the
+original independent readback validation, not from RPC receipt or block count.
+
+The diagnostic consumer joins this line to its preceding original transaction
+callback and physical node/H record, enforces exact clocks/coordinates and
+interval containment, and reports proposal receipt, proposal acceptance,
+Finalize, durable Commit and queued proof completion separately. Set
+`expected.inclusionObservationRequired:true` for the new source to reject
+missing lines. Earlier source without these logs retains null proposal timing;
+Finalize is never substituted. Missing replicas remain null. These are observed
+accepted proposal call boundaries at actual nodes; earliest network arrival and
+BFT formation remain unmeasured, with no third-replica inference. Tests27 cover
+source-required absence, ordering, duplicate hash, coordinates, clocks, malformed
+spans, pre-offer/future intervals, non-durable joins and old-log null behavior.
+
+
+The pipeline sourcef1d855b3b adds eighth field `w`: inclusion-probe call count,
+accumulated probe ns, full historical Commit-check call count, accumulated check
+ns, and Host-context call ns. These are actual coordinator call intervals and
+counts, not the inclusive overlapping progress spans. A zero call count cannot
+carry nonzero work. Their flat per-callback work must fit the original offer to
+independent-completion interval. Reused already-verified immutable block heights
+have zero additional check calls and are excluded from check-duration samples.
+Set `expected.inclusionWorkTimingsRequired:true` for that source; missing work
+or a missing inclusion line is then rejected. Earlier source remains explicitly
+missing, never measured zero. Summaries label the distribution per-callback
+accumulated work and report call counts/not-invoked/missing callbacks separately.
+
+An interrupted publisher can retain a callback/proposal record before a node's
+physical Commit line reaches stdout. Raw proposal spans remain retained, but
+that node is marked unbound and excluded from measured proposal quantiles until
+its physical record exists. A present contradictory node record still fails.
+The reader never invents a missing Commit or qualifies such a partial pair.
+Focused local reader tests28 passed; these checks are arithmetic/source-contract
+and lifecycle tests, not a new node performance run or cryptographic verifier.
