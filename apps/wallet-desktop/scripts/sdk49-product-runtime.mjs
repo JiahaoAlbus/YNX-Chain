@@ -3,38 +3,39 @@ import {createHash} from 'node:crypto';
 import {readFileSync,lstatSync,realpathSync} from 'node:fs';
 import path from 'node:path';
 import {SDK_CANONICAL} from './canonical-package.mjs';
+import {SDK49_SOURCE_COMMIT,SDK49_SOURCE_VARIANT} from './sdk49-runtime-source.mjs';
 const base='runtime-projections/sdk49-product/';
 // SDK49 normal prefix has no separate legacy build-input tables to exclude.
 // Preserve full Native custody separately; product slots use only formal6 pins.
 const SDK49_BUILD_INPUT_MANIFESTS=Object.freeze([]);
 export const SDK49_PRODUCT_PINS=Object.freeze({
-  "PROJECTION_RECEIPT.json": {
-    "bytes": 1027,
-    "sha256": "7fc1c88899e235526d9439e4f8b8ea1f4c3bb26cd4535899fcca3657c0b63bb2"
-  },
-  "SDK49_FINITE_EXCLUSION_POLICY.json": {
-    "bytes": 2606,
-    "sha256": "ac66666ce30de57174293fc2ee79df62e79dac12b067f106288d4e418407d1b6"
-  },
-  "SDK49_PRODUCT_PACK_SELECTION.json": {
-    "bytes": 1489844,
-    "sha256": "aec3e06cc03c6b49033a2e9a71d162e23647eb6ae0d59648833e559a5e87cb9b"
-  },
-  "STATIC_SOURCE_ANALYSIS.json": {
-    "bytes": 149137,
-    "sha256": "bc16f6ede942a4c1d3cacf06d4249436a5bb1cf8228fd4e21bfdf61875e5ec66"
-  },
   "original-ide-auth-runtime-manifest.json": {
-    "bytes": 82583,
-    "sha256": "0f9ae727304e651aa620e3bb0aaf7a81ad8926dd3d41080b88de0014d5a6bd89",
-    "fullBytes": 84020,
-    "fullSHA256": "4bdfd990f3cafa14fc98c871306cddaf77e71e9bafda5f1bbc7ca469aa8496ac"
+    "bytes": 83612,
+    "sha256": "d5b351adf97a69efd234216d30c04b43c40baa79edea7e65b49696d46e2e866d",
+    "fullBytes": 85049,
+    "fullSHA256": "b5c5a2f53babe1354733c9958f30962ea5af3ab0fdbf862c86a4541d1f472d1d"
   },
   "original-ide-contract-relay-runtime-manifest.json": {
-    "bytes": 1468445,
-    "sha256": "959592cbffd854aa04717c3eadb8081baed89ec6e84cd38f13abc34339c63ab9",
-    "fullBytes": 1469749,
-    "fullSHA256": "70d62d2e1c5ad71661a1647434796aea448dbbb16dd22d4b1addefaf3b01abfc"
+    "bytes": 1469474,
+    "sha256": "726833172aad2ce6b980b0de20a46aaeecf50d99fc8f5efb3e5217d9b075ecc2",
+    "fullBytes": 1470778,
+    "fullSHA256": "de0cfa0bbccb7338c2f35e8326c4a739b1273293e55c162e2b211fd6172104e7"
+  },
+  "SDK49_PRODUCT_PACK_SELECTION.json": {
+    "bytes": 1817313,
+    "sha256": "088e1cd79ad1312f3810775b2bdf42989f9bf37211e7f8a099c6f13a128c35fb"
+  },
+  "STATIC_SOURCE_ANALYSIS.json": {
+    "bytes": 152197,
+    "sha256": "cd21935775ce72bfdf480890a5ae801ac037858aaf787eef8106efe473a95c35"
+  },
+  "PROJECTION_RECEIPT.json": {
+    "bytes": 1394,
+    "sha256": "e604263da94f036d3abdf0a750b8b3831304fa56a4e3418614049394b2608a73"
+  },
+  "SDK49_FINITE_EXCLUSION_POLICY.json": {
+    "bytes": 3216,
+    "sha256": "34c0e85c9930447bd36a6aeba1e4b40309d230304bc88b6fe19ee6725a9c2acd"
   }
 });
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -65,12 +66,14 @@ export function readSDK49ProductRuntime(root,sourceCommit){
  const blobs=new Map(),documents=new Map();
  for(const[name,pin]of Object.entries(SDK49_PRODUCT_PINS)){const raw=git('show',sourceCommit+':'+base+name);if(raw.length!==pin.bytes||hash(raw)!==pin.sha256)fail('SDK49_PRODUCT_SOURCE_PIN_DIFFERS');blobs.set(name,raw);documents.set(name,JSON.parse(raw));}
  const selection=documents.get('SDK49_PRODUCT_PACK_SELECTION.json'),auth=documents.get('original-ide-auth-runtime-manifest.json'),union=documents.get('original-ide-contract-relay-runtime-manifest.json'),receipt=documents.get('PROJECTION_RECEIPT.json');
+ const analysis=documents.get('STATIC_SOURCE_ANALYSIS.json');
+ if(receipt.commit!==SDK49_SOURCE_COMMIT||receipt.sourceVariant!==SDK49_SOURCE_VARIANT||receipt.fullPrefixFiles!==9613||receipt.NativeInputs!==117||receipt.HelperInputs!==5||receipt.NativeChanged!==26||receipt.HelperChanged!==0||receipt.ASTSources!==213||receipt.literalEdges!==726||analysis.kind!=='YNX_SDK49_BUILD_STATIC_SOURCE_ANALYSIS/v1'||analysis.sources?.length!==213||analysis.edges?.length!==726||analysis.noStaticEdgeToExcludedFiles!==true||analysis.computedEdgesProven!==false||analysis.NativeAdmission!==false||analysis.SourceAdmission!==false||analysis.activation!==false)fail('SDK49_PRODUCT_SUCCESSOR_ROLE_REQUIRED');
  assertSDK49CanonicalRuntimeManifest(blobs.get('original-ide-auth-runtime-manifest.json'));assertSDK49CanonicalRuntimeManifest(blobs.get('original-ide-contract-relay-runtime-manifest.json'));
  if(selection.kind!=='YNX_SDK49_PRODUCT_PACK_SELECTION/v1'||selection.versionSDK!==sdk.version||auth.version!=='YNX-ORIGINAL-AUTH-RUNTIME-CLOSURE/v1'||union.version!==auth.version||receipt.kind!=='YNX_SDK49_COMPLETE_PRODUCT_RUNTIME_PROJECTION/v1'||receipt.versionSDK!==sdk.version)fail('SDK49_PRODUCT_SCHEMA_DIFFERS');
- const policy=documents.get('SDK49_FINITE_EXCLUSION_POLICY.json');if(policy.kind!=='YNX_SDK49_FINITE_PRODUCT_EXCLUSION_POLICY/v1'||policy.versionSDK!==sdk.version||policy.count!==15||receipt.excludedFiles!==15||receipt.full?.Auth!==590||receipt.full?.union!==9450||receipt.product?.Auth!==580||receipt.product?.union!==9441||receipt.product?.selection!==9591)fail('SDK49_PRODUCT_FINITE_POLICY_DIFFERS');
+ const policy=documents.get('SDK49_FINITE_EXCLUSION_POLICY.json');if(policy.kind!=='YNX_SDK49_FINITE_PRODUCT_EXCLUSION_POLICY/v1'||policy.versionSDK!==sdk.version||policy.count!==15||receipt.excludedFiles!==15||receipt.full?.Auth!==597||receipt.full?.union!==9457||receipt.product?.Auth!==587||receipt.product?.union!==9448||receipt.product?.selection!==9598)fail('SDK49_PRODUCT_FINITE_POLICY_DIFFERS');
  // The exact SHA-pinned selection uses supplier locale ordering (e.g. compat/
  // before compat.d.ts), unlike the codepoint-ordered full runtime tables.
- const selected=rows(selection.files,9591,false),authRows=rows(auth.files,580),unionRows=rows(union.files,9441),excluded=rows(policy.excluded,15);
+ const selected=rows(selection.files,9598,false),authRows=rows(auth.files,587),unionRows=rows(union.files,9448),excluded=rows(policy.excluded,15);
  for(const row of [...authRows.values(),...unionRows.values()])if(!equalRow(row,selected.get(row.path)))fail('SDK49_PRODUCT_CLOSURE_INCOMPLETE');
  for(const row of excluded.values())if(selected.has(row.path))fail('SDK49_PRODUCT_EXCLUSION_CONFLICT');
  const lock=unionRows.get('node_modules/.package-lock.json');if(lock?.bytes!==54707||lock.sha256!=='a6156ecfdededf82c182684e86f00d803b04fc76c6a4b59b27e62ea81983e775')fail('SDK49_PRODUCT_INSTALLED_LOCK_REQUIRED');
@@ -79,7 +82,7 @@ export function readSDK49ProductRuntime(root,sourceCommit){
   const original=git('show',sourceCommit+':packages/wallet-auth/native/'+name);if(original.length!==pin.fullBytes||hash(original)!==pin.fullSHA256)fail('SDK49_PRODUCT_FULL_CUSTODY_DIFFERS');assertSDK49CanonicalRuntimeManifest(original);
   const packed=SDK_CANONICAL+'/native/'+name;manifestRows.push({path:packed,sourcePath:base+name,bytes:pin.bytes,sha256:pin.sha256,originalBytes:pin.fullBytes,originalSHA256:pin.fullSHA256});contents.set(packed,blobs.get(name));
  }
- const publicData=Object.freeze({kind:'YNX-WALLET-SDK49-PRODUCT-PACK/v1',inputs:Object.entries(SDK49_PRODUCT_PINS).map(([name,pin])=>({sourcePath:base+name,bytes:pin.bytes,sha256:pin.sha256})),manifestRows,packRows:9591,authRows:580,unionRows:9441,excluded:[...excluded.values()],fullBuildCustodyUnchanged:true,computedEdgesProven:false,SourceQualified:false,Root:false});
+ const publicData=Object.freeze({kind:'YNX-WALLET-SDK49-PRODUCT-PACK/v1',inputs:Object.entries(SDK49_PRODUCT_PINS).map(([name,pin])=>({sourcePath:base+name,bytes:pin.bytes,sha256:pin.sha256})),manifestRows,packRows:9598,authRows:587,unionRows:9448,excluded:[...excluded.values()],fullBuildCustodyUnchanged:true,computedEdgesProven:false,SourceQualified:false,Root:false});
  function inputFile(name){if(!relative(name))fail('SDK49_PRODUCT_SOURCE_PATH_INVALID');const file=path.join(root,'packages/wallet-auth',name),stat=lstatSync(file);if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1||realpathSync(file)!==file)fail('SDK49_PRODUCT_SOURCE_NOT_REGULAR');return{file,stat};}
  return Object.freeze({public:publicData,manifestRows,contents,selected,authRows,unionRows,excluded,
   prepare(before){

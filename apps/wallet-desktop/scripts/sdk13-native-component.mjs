@@ -4,6 +4,7 @@ import {verifySDK49FullRuntimeTables} from './sdk49-runtime-source.mjs';
 import path from 'node:path';
 import {pqNativeSupplierInputs,isPQNativeSelection} from './wallet-pq-native-build.mjs';
 import {CC7_NATIVE_SOURCE,CC7_NATIVE_ROLE,cc7WalletNativeInputs} from './wallet-cc7-native-role.mjs';
+import {DEVICE_V4_PQ_PROTOCOL_INPUTS,deviceV4PQSupplierInputs} from './wallet-device-v4-pq-role.mjs';
 import {isDeepStrictEqual} from 'node:util';
 import {readFileSync,lstatSync,mkdirSync,writeFileSync} from 'node:fs';
 import {canonicalNativeInputSelection,verifyCanonicalNativeReceipt,CANONICAL_NATIVE_EVIDENCE_TESTS} from './canonical-package.mjs';
@@ -55,7 +56,9 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
  const cc7=record.inputFiles?.some(p=>p.relative===CC7_NATIVE_SOURCE.path),pqNative=isPQNativeSelection(record.inputFiles?.map(p=>p.relative)??[])||cc7;
  if(cc7&&profile.version!==CC7_NATIVE_ROLE.sdk.version)fail();
  if(pqNative&&!['1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(profile.version))fail();
- const selectedNative=pqNativeSupplierInputs(inventory.NativeInputs,pqNative),supplier=[...selectedNative,...inventory.HelperInputs];
+ const deviceV4=record.inputFiles?.some(p=>p.relative===DEVICE_V4_PQ_PROTOCOL_INPUTS[2].path);
+ if(deviceV4&&(profile.version!=='1.3.0-pq.3.32-auth.49'||profile.supplierNodeInputs!==117))fail();
+ const selectedNative=deviceV4?deviceV4PQSupplierInputs(inventory.NativeInputs):pqNativeSupplierInputs(inventory.NativeInputs,pqNative),supplier=[...selectedNative,...inventory.HelperInputs];
  const rows=supplier.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.relative.localeCompare(b.relative,'en'));
  same(helper.inputFiles,rows);
  for(const p of supplier)pinned(readSource(p.path),p);
