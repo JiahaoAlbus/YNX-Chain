@@ -1,0 +1,3360 @@
+{
+  "classification": "partial call-stage evidence from deadline-truncated pair",
+  "events": [
+    {
+      "arm": "before",
+      "phase": "original-fixture",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "37186",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "original-fixture",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "277421496",
+      "durationNs": "277384310"
+    },
+    {
+      "arm": "before",
+      "phase": "legacy-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "277464050",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "legacy-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "2255952228",
+      "durationNs": "1978488178"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "2255993921",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "4736716885",
+      "durationNs": "2480722964"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "4736765889",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "6524740085",
+      "durationNs": "1787974196"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "6524771583",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "8303413244",
+      "durationNs": "1778641661"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "8303443149",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "10108920326",
+      "durationNs": "1805477177"
+    },
+    {
+      "arm": "before",
+      "phase": "original-height-halt",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "10108950392",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "original-height-halt",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "11301619458",
+      "durationNs": "1192669066"
+    },
+    {
+      "arm": "before",
+      "phase": "activation-schedule",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "11301626719",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "activation-schedule",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "11309987696",
+      "durationNs": "8360977"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "11310017661",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "11342133131",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "11474263179",
+      "durationNs": "132130048"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "11474317320",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "11606099694",
+      "durationNs": "131782374"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "11646544271",
+      "durationNs": "336526610"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "11646575077",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "11678538963",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "11807047650",
+      "durationNs": "128508687"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "11807105277",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "11935853521",
+      "durationNs": "128748244"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "11974286851",
+      "durationNs": "327711774"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "11974310337",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "12003412137",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "12132059153",
+      "durationNs": "128647016"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "12132110540",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "12267281172",
+      "durationNs": "135170632"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "12305446603",
+      "durationNs": "331136266"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "12305468216",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "12336638545",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "12464387577",
+      "durationNs": "127749032"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "12464421558",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "12592477662",
+      "durationNs": "128056104"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "12629086081",
+      "durationNs": "323617865"
+    },
+    {
+      "arm": "before",
+      "phase": "pq-start-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "12630079198",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "pq-start-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "21131597048",
+      "durationNs": "8501517850"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "21131639893",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "22270837749",
+      "durationNs": "1139197856"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-admission",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "22270913113",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-admission",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "22421952529",
+      "durationNs": "151039416"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-execution-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "22421977026",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-execution-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "33686413878",
+      "durationNs": "11264436852"
+    },
+    {
+      "arm": "before",
+      "phase": "gateway-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "33686469392",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "gateway-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "33780938960",
+      "durationNs": "94469568"
+    },
+    {
+      "arm": "before",
+      "phase": "business-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "33780993452",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "34819291176",
+      "durationNs": "1038297724"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "event": "begin",
+      "offsetNs": "34819328642",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "event": "begin",
+      "offsetNs": "35341808977",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "event": "begin",
+      "offsetNs": "35875609276",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "event": "complete",
+      "offsetNs": "36358750717",
+      "durationNs": "1539422075"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "event": "begin",
+      "offsetNs": "36430971474",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "event": "begin",
+      "offsetNs": "36956026867",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "event": "complete",
+      "offsetNs": "38043499964",
+      "durationNs": "2701690987"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "event": "begin",
+      "offsetNs": "38043536770",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "event": "complete",
+      "offsetNs": "38074748151",
+      "durationNs": "2199138875"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "event": "begin",
+      "offsetNs": "38581341995",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "event": "complete",
+      "offsetNs": "39582601917",
+      "durationNs": "2626575050"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "event": "begin",
+      "offsetNs": "39582632854",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "event": "complete",
+      "offsetNs": "39636098326",
+      "durationNs": "3205126852"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "event": "begin",
+      "offsetNs": "40106959970",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "event": "complete",
+      "offsetNs": "41108580645",
+      "durationNs": "2527238650"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "event": "begin",
+      "offsetNs": "41108612343",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "event": "complete",
+      "offsetNs": "41193815786",
+      "durationNs": "3150279016"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "event": "begin",
+      "offsetNs": "41657476906",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "event": "complete",
+      "offsetNs": "42537919666",
+      "durationNs": "2430959696"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "event": "begin",
+      "offsetNs": "42537950643",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "event": "complete",
+      "offsetNs": "42620780223",
+      "durationNs": "3038147369"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "event": "begin",
+      "offsetNs": "43062756392",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "event": "complete",
+      "offsetNs": "44331926310",
+      "durationNs": "3223313967"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 13,
+      "event": "begin",
+      "offsetNs": "44331964778",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "event": "complete",
+      "offsetNs": "44384424062",
+      "durationNs": "2726947156"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 14,
+      "event": "begin",
+      "offsetNs": "44856747691",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "event": "complete",
+      "offsetNs": "45946079884",
+      "durationNs": "2883323492"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 15,
+      "event": "begin",
+      "offsetNs": "45946112463",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "event": "complete",
+      "offsetNs": "45967743099",
+      "durationNs": "3429792456"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 13,
+      "event": "complete",
+      "offsetNs": "47520944959",
+      "durationNs": "3188980181"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 14,
+      "event": "complete",
+      "offsetNs": "47576451458",
+      "durationNs": "2719703767"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 15,
+      "event": "complete",
+      "offsetNs": "49091496678",
+      "durationNs": "3145384215"
+    },
+    {
+      "arm": "before",
+      "phase": "business-original-inclusion",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "49091534145",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-original-inclusion",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "51400443685",
+      "durationNs": "2308909540"
+    },
+    {
+      "arm": "before",
+      "phase": "business-commit-evidence",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "51400477526",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-commit-evidence",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "51606423784",
+      "durationNs": "205946258"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "event": "begin",
+      "offsetNs": "51606458185",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "event": "complete",
+      "offsetNs": "51760726125",
+      "durationNs": "154267940"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "event": "begin",
+      "offsetNs": "51760756962",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "event": "begin",
+      "offsetNs": "51782310479",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "event": "complete",
+      "offsetNs": "51959719472",
+      "durationNs": "177408993"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "event": "begin",
+      "offsetNs": "51959758281",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "event": "begin",
+      "offsetNs": "51984355438",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "event": "complete",
+      "offsetNs": "52203535308",
+      "durationNs": "219179870"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "event": "begin",
+      "offsetNs": "52203573807",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "event": "begin",
+      "offsetNs": "52228266538",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "event": "complete",
+      "offsetNs": "52460991983",
+      "durationNs": "232725445"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "event": "begin",
+      "offsetNs": "52461047777",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "event": "complete",
+      "offsetNs": "52625233668",
+      "durationNs": "864476706"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "event": "begin",
+      "offsetNs": "52625366608",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "event": "complete",
+      "offsetNs": "52879699862",
+      "durationNs": "254333254"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "event": "begin",
+      "offsetNs": "52879745261",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "event": "complete",
+      "offsetNs": "52928440036",
+      "durationNs": "968681755"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "event": "begin",
+      "offsetNs": "52928479756",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "event": "complete",
+      "offsetNs": "53158350632",
+      "durationNs": "229870876"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "event": "begin",
+      "offsetNs": "53158532496",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "event": "complete",
+      "offsetNs": "53266695117",
+      "durationNs": "1063121310"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "event": "begin",
+      "offsetNs": "53266736179",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "event": "complete",
+      "offsetNs": "53509059039",
+      "durationNs": "242322860"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "event": "begin",
+      "offsetNs": "53509100762",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "event": "complete",
+      "offsetNs": "53535425164",
+      "durationNs": "1074377387"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "event": "begin",
+      "offsetNs": "53535565566",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "event": "complete",
+      "offsetNs": "53749070316",
+      "durationNs": "213504750"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "event": "begin",
+      "offsetNs": "53749109496",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "event": "complete",
+      "offsetNs": "53945262068",
+      "durationNs": "1065516807"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "event": "begin",
+      "offsetNs": "53945405484",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "event": "complete",
+      "offsetNs": "54182489708",
+      "durationNs": "237084224"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "event": "begin",
+      "offsetNs": "54182630766",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "event": "complete",
+      "offsetNs": "54206791315",
+      "durationNs": "1048258819"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "event": "begin",
+      "offsetNs": "54206915092",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "event": "complete",
+      "offsetNs": "54452803384",
+      "durationNs": "245888292"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "event": "begin",
+      "offsetNs": "54452847821",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "event": "complete",
+      "offsetNs": "54502468264",
+      "durationNs": "993367502"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "event": "begin",
+      "offsetNs": "54504671877",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "event": "complete",
+      "offsetNs": "54742458225",
+      "durationNs": "237786348"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "event": "begin",
+      "offsetNs": "54744675399",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "event": "complete",
+      "offsetNs": "54835703738",
+      "durationNs": "1086594242"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "event": "begin",
+      "offsetNs": "54835870419",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "event": "complete",
+      "offsetNs": "55099744157",
+      "durationNs": "263873738"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "event": "begin",
+      "offsetNs": "55099793852",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "event": "complete",
+      "offsetNs": "55285962546",
+      "durationNs": "1103331780"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "event": "begin",
+      "offsetNs": "55286010799",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "event": "complete",
+      "offsetNs": "55521083599",
+      "durationNs": "235072800"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "event": "begin",
+      "offsetNs": "55521134035",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "event": "complete",
+      "offsetNs": "55643482756",
+      "durationNs": "1190634935"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 13,
+      "event": "begin",
+      "offsetNs": "55643525120",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 13,
+      "event": "complete",
+      "offsetNs": "55889450093",
+      "durationNs": "245924973"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 13,
+      "event": "begin",
+      "offsetNs": "55889614271",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "event": "complete",
+      "offsetNs": "55956640920",
+      "durationNs": "1211965521"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 14,
+      "event": "begin",
+      "offsetNs": "55956795814",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 14,
+      "event": "complete",
+      "offsetNs": "56186977797",
+      "durationNs": "230181983"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 14,
+      "event": "begin",
+      "offsetNs": "56187074873",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "event": "complete",
+      "offsetNs": "56238308474",
+      "durationNs": "1138514622"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 15,
+      "event": "begin",
+      "offsetNs": "56238334934",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 15,
+      "event": "complete",
+      "offsetNs": "56481035403",
+      "durationNs": "242700469"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 15,
+      "event": "begin",
+      "offsetNs": "56481081383",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "event": "complete",
+      "offsetNs": "56596454774",
+      "durationNs": "1075320739"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 13,
+      "event": "complete",
+      "offsetNs": "56918586205",
+      "durationNs": "1028971934"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 14,
+      "event": "complete",
+      "offsetNs": "57147863600",
+      "durationNs": "960788727"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 15,
+      "event": "complete",
+      "offsetNs": "57343562558",
+      "durationNs": "862481175"
+    },
+    {
+      "arm": "before",
+      "phase": "actual-result-validation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "57344006488",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "actual-result-validation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "57410468640",
+      "durationNs": "66462152"
+    },
+    {
+      "arm": "before",
+      "phase": "normal-cleanup",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "57410499677",
+      "durationNs": "0"
+    },
+    {
+      "arm": "before",
+      "phase": "normal-cleanup",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "57515912370",
+      "durationNs": "105412693"
+    },
+    {
+      "arm": "after",
+      "phase": "original-fixture",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "57515985480",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "original-fixture",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "57766270758",
+      "durationNs": "250285278"
+    },
+    {
+      "arm": "after",
+      "phase": "legacy-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "57766297709",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "legacy-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "60322388248",
+      "durationNs": "2556090539"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "60322415879",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "62771238114",
+      "durationNs": "2448822235"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "62771265996",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "64522419721",
+      "durationNs": "1751153725"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "64522449226",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "66302193928",
+      "durationNs": "1779744702"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "66302222341",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "68037599055",
+      "durationNs": "1735376714"
+    },
+    {
+      "arm": "after",
+      "phase": "original-height-halt",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "68037622691",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "original-height-halt",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "69222119112",
+      "durationNs": "1184496421"
+    },
+    {
+      "arm": "after",
+      "phase": "activation-schedule",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "69222126984",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "activation-schedule",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "69230601816",
+      "durationNs": "8474832"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "69230619713",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "69291356072",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "69418514936",
+      "durationNs": "127158864"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "69418565432",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "69545953592",
+      "durationNs": "127388160"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "69583677405",
+      "durationNs": "353057692"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "69583704647",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "69615060496",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "69741673121",
+      "durationNs": "126612625"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "69741718679",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "69870528874",
+      "durationNs": "128810195"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "69909215569",
+      "durationNs": "325510922"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "69909237472",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "69939446942",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "70067695947",
+      "durationNs": "128249005"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "70067747104",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "70197160763",
+      "durationNs": "129413659"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "70261425610",
+      "durationNs": "352188138"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "70261448004",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "70292619695",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "70424399809",
+      "durationNs": "131780114"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "70424450886",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "70556019491",
+      "durationNs": "131568605"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "70598042718",
+      "durationNs": "336594714"
+    },
+    {
+      "arm": "after",
+      "phase": "pq-start-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "70599019751",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "pq-start-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "81167529850",
+      "durationNs": "10568510099"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "81167557292",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "82144574822",
+      "durationNs": "977017530"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-admission",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "82144603635",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-admission",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "82243197537",
+      "durationNs": "98593902"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-execution-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "82243237667",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-execution-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "93600511720",
+      "durationNs": "11357274053"
+    },
+    {
+      "arm": "after",
+      "phase": "gateway-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "93600534765",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "gateway-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "93707930589",
+      "durationNs": "107395824"
+    },
+    {
+      "arm": "after",
+      "phase": "business-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "begin",
+      "offsetNs": "93707955977",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "event": "complete",
+      "offsetNs": "94782583779",
+      "durationNs": "1074627802"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "event": "begin",
+      "offsetNs": "94782617199",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "event": "begin",
+      "offsetNs": "95307104004",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "event": "begin",
+      "offsetNs": "95840747941",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "event": "complete",
+      "offsetNs": "96292395229",
+      "durationNs": "1509778030"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "event": "begin",
+      "offsetNs": "96467064380",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "event": "begin",
+      "offsetNs": "96991532162",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "event": "complete",
+      "offsetNs": "97886189536",
+      "durationNs": "2045441595"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "event": "begin",
+      "offsetNs": "97886217858",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "event": "complete",
+      "offsetNs": "97960986491",
+      "durationNs": "2653882487"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "event": "begin",
+      "offsetNs": "98468227808",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "event": "complete",
+      "offsetNs": "99458625950",
+      "durationNs": "2991561570"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "event": "begin",
+      "offsetNs": "99458668234",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "event": "complete",
+      "offsetNs": "99489525710",
+      "durationNs": "2497993548"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "event": "begin",
+      "offsetNs": "100005931521",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "event": "complete",
+      "offsetNs": "101003902270",
+      "durationNs": "3117684412"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "event": "begin",
+      "offsetNs": "101003937303",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "event": "complete",
+      "offsetNs": "101033699823",
+      "durationNs": "2565472015"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "event": "begin",
+      "offsetNs": "101554668462",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "event": "complete",
+      "offsetNs": "102530448558",
+      "durationNs": "3071780324"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "event": "begin",
+      "offsetNs": "102530478123",
+      "durationNs": "0"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "event": "complete",
+      "offsetNs": "102552123603",
+      "durationNs": "2546192082"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "event": "begin",
+      "offsetNs": "103056164879",
+      "durationNs": "0"
+    }
+  ],
+  "completedSpans": [
+    {
+      "arm": "before",
+      "phase": "original-fixture",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "37186",
+      "endNs": "277421496",
+      "durationNs": "277384310"
+    },
+    {
+      "arm": "before",
+      "phase": "legacy-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "277464050",
+      "endNs": "2255952228",
+      "durationNs": "1978488178"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "startNs": "2255993921",
+      "endNs": "4736716885",
+      "durationNs": "2480722964"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "startNs": "4736765889",
+      "endNs": "6524740085",
+      "durationNs": "1787974196"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "startNs": "6524771583",
+      "endNs": "8303413244",
+      "durationNs": "1778641661"
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "startNs": "8303443149",
+      "endNs": "10108920326",
+      "durationNs": "1805477177"
+    },
+    {
+      "arm": "before",
+      "phase": "original-height-halt",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "10108950392",
+      "endNs": "11301619458",
+      "durationNs": "1192669066"
+    },
+    {
+      "arm": "before",
+      "phase": "activation-schedule",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "11301626719",
+      "endNs": "11309987696",
+      "durationNs": "8360977"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "startNs": "11342133131",
+      "endNs": "11474263179",
+      "durationNs": "132130048"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "startNs": "11474317320",
+      "endNs": "11606099694",
+      "durationNs": "131782374"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "startNs": "11310017661",
+      "endNs": "11646544271",
+      "durationNs": "336526610"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "startNs": "11678538963",
+      "endNs": "11807047650",
+      "durationNs": "128508687"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "startNs": "11807105277",
+      "endNs": "11935853521",
+      "durationNs": "128748244"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "startNs": "11646575077",
+      "endNs": "11974286851",
+      "durationNs": "327711774"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "startNs": "12003412137",
+      "endNs": "12132059153",
+      "durationNs": "128647016"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "startNs": "12132110540",
+      "endNs": "12267281172",
+      "durationNs": "135170632"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "startNs": "11974310337",
+      "endNs": "12305446603",
+      "durationNs": "331136266"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "startNs": "12336638545",
+      "endNs": "12464387577",
+      "durationNs": "127749032"
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "startNs": "12464421558",
+      "endNs": "12592477662",
+      "durationNs": "128056104"
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "startNs": "12305468216",
+      "endNs": "12629086081",
+      "durationNs": "323617865"
+    },
+    {
+      "arm": "before",
+      "phase": "pq-start-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "12630079198",
+      "endNs": "21131597048",
+      "durationNs": "8501517850"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "21131639893",
+      "endNs": "22270837749",
+      "durationNs": "1139197856"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-admission",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "22270913113",
+      "endNs": "22421952529",
+      "durationNs": "151039416"
+    },
+    {
+      "arm": "before",
+      "phase": "initial-execution-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "22421977026",
+      "endNs": "33686413878",
+      "durationNs": "11264436852"
+    },
+    {
+      "arm": "before",
+      "phase": "gateway-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "33686469392",
+      "endNs": "33780938960",
+      "durationNs": "94469568"
+    },
+    {
+      "arm": "before",
+      "phase": "business-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "33780993452",
+      "endNs": "34819291176",
+      "durationNs": "1038297724"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "startNs": "34819328642",
+      "endNs": "36358750717",
+      "durationNs": "1539422075"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "startNs": "35341808977",
+      "endNs": "38043499964",
+      "durationNs": "2701690987"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "startNs": "35875609276",
+      "endNs": "38074748151",
+      "durationNs": "2199138875"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "startNs": "36956026867",
+      "endNs": "39582601917",
+      "durationNs": "2626575050"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "startNs": "36430971474",
+      "endNs": "39636098326",
+      "durationNs": "3205126852"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "startNs": "38581341995",
+      "endNs": "41108580645",
+      "durationNs": "2527238650"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "startNs": "38043536770",
+      "endNs": "41193815786",
+      "durationNs": "3150279016"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "startNs": "40106959970",
+      "endNs": "42537919666",
+      "durationNs": "2430959696"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "startNs": "39582632854",
+      "endNs": "42620780223",
+      "durationNs": "3038147369"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "startNs": "41108612343",
+      "endNs": "44331926310",
+      "durationNs": "3223313967"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "startNs": "41657476906",
+      "endNs": "44384424062",
+      "durationNs": "2726947156"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "startNs": "43062756392",
+      "endNs": "45946079884",
+      "durationNs": "2883323492"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "startNs": "42537950643",
+      "endNs": "45967743099",
+      "durationNs": "3429792456"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 13,
+      "startNs": "44331964778",
+      "endNs": "47520944959",
+      "durationNs": "3188980181"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 14,
+      "startNs": "44856747691",
+      "endNs": "47576451458",
+      "durationNs": "2719703767"
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 15,
+      "startNs": "45946112463",
+      "endNs": "49091496678",
+      "durationNs": "3145384215"
+    },
+    {
+      "arm": "before",
+      "phase": "business-original-inclusion",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "49091534145",
+      "endNs": "51400443685",
+      "durationNs": "2308909540"
+    },
+    {
+      "arm": "before",
+      "phase": "business-commit-evidence",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "51400477526",
+      "endNs": "51606423784",
+      "durationNs": "205946258"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "startNs": "51606458185",
+      "endNs": "51760726125",
+      "durationNs": "154267940"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "startNs": "51782310479",
+      "endNs": "51959719472",
+      "durationNs": "177408993"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "startNs": "51984355438",
+      "endNs": "52203535308",
+      "durationNs": "219179870"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "startNs": "52228266538",
+      "endNs": "52460991983",
+      "durationNs": "232725445"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "startNs": "51760756962",
+      "endNs": "52625233668",
+      "durationNs": "864476706"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "startNs": "52625366608",
+      "endNs": "52879699862",
+      "durationNs": "254333254"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "startNs": "51959758281",
+      "endNs": "52928440036",
+      "durationNs": "968681755"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "startNs": "52928479756",
+      "endNs": "53158350632",
+      "durationNs": "229870876"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "startNs": "52203573807",
+      "endNs": "53266695117",
+      "durationNs": "1063121310"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "startNs": "53266736179",
+      "endNs": "53509059039",
+      "durationNs": "242322860"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "startNs": "52461047777",
+      "endNs": "53535425164",
+      "durationNs": "1074377387"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "startNs": "53535565566",
+      "endNs": "53749070316",
+      "durationNs": "213504750"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "startNs": "52879745261",
+      "endNs": "53945262068",
+      "durationNs": "1065516807"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "startNs": "53945405484",
+      "endNs": "54182489708",
+      "durationNs": "237084224"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "startNs": "53158532496",
+      "endNs": "54206791315",
+      "durationNs": "1048258819"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "startNs": "54206915092",
+      "endNs": "54452803384",
+      "durationNs": "245888292"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "startNs": "53509100762",
+      "endNs": "54502468264",
+      "durationNs": "993367502"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "startNs": "54504671877",
+      "endNs": "54742458225",
+      "durationNs": "237786348"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "startNs": "53749109496",
+      "endNs": "54835703738",
+      "durationNs": "1086594242"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "startNs": "54835870419",
+      "endNs": "55099744157",
+      "durationNs": "263873738"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "startNs": "54182630766",
+      "endNs": "55285962546",
+      "durationNs": "1103331780"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "startNs": "55286010799",
+      "endNs": "55521083599",
+      "durationNs": "235072800"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "startNs": "54452847821",
+      "endNs": "55643482756",
+      "durationNs": "1190634935"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 13,
+      "startNs": "55643525120",
+      "endNs": "55889450093",
+      "durationNs": "245924973"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "startNs": "54744675399",
+      "endNs": "55956640920",
+      "durationNs": "1211965521"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 14,
+      "startNs": "55956795814",
+      "endNs": "56186977797",
+      "durationNs": "230181983"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "startNs": "55099793852",
+      "endNs": "56238308474",
+      "durationNs": "1138514622"
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "nodeIndex": -1,
+      "businessIndex": 15,
+      "startNs": "56238334934",
+      "endNs": "56481035403",
+      "durationNs": "242700469"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "startNs": "55521134035",
+      "endNs": "56596454774",
+      "durationNs": "1075320739"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 13,
+      "startNs": "55889614271",
+      "endNs": "56918586205",
+      "durationNs": "1028971934"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 14,
+      "startNs": "56187074873",
+      "endNs": "57147863600",
+      "durationNs": "960788727"
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "nodeIndex": -1,
+      "businessIndex": 15,
+      "startNs": "56481081383",
+      "endNs": "57343562558",
+      "durationNs": "862481175"
+    },
+    {
+      "arm": "before",
+      "phase": "actual-result-validation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "57344006488",
+      "endNs": "57410468640",
+      "durationNs": "66462152"
+    },
+    {
+      "arm": "before",
+      "phase": "normal-cleanup",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "57410499677",
+      "endNs": "57515912370",
+      "durationNs": "105412693"
+    },
+    {
+      "arm": "after",
+      "phase": "original-fixture",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "57515985480",
+      "endNs": "57766270758",
+      "durationNs": "250285278"
+    },
+    {
+      "arm": "after",
+      "phase": "legacy-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "57766297709",
+      "endNs": "60322388248",
+      "durationNs": "2556090539"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "startNs": "60322415879",
+      "endNs": "62771238114",
+      "durationNs": "2448822235"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "startNs": "62771265996",
+      "endNs": "64522419721",
+      "durationNs": "1751153725"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "startNs": "64522449226",
+      "endNs": "66302193928",
+      "durationNs": "1779744702"
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "startNs": "66302222341",
+      "endNs": "68037599055",
+      "durationNs": "1735376714"
+    },
+    {
+      "arm": "after",
+      "phase": "original-height-halt",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "68037622691",
+      "endNs": "69222119112",
+      "durationNs": "1184496421"
+    },
+    {
+      "arm": "after",
+      "phase": "activation-schedule",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "69222126984",
+      "endNs": "69230601816",
+      "durationNs": "8474832"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "startNs": "69291356072",
+      "endNs": "69418514936",
+      "durationNs": "127158864"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "startNs": "69418565432",
+      "endNs": "69545953592",
+      "durationNs": "127388160"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 0,
+      "businessIndex": -1,
+      "startNs": "69230619713",
+      "endNs": "69583677405",
+      "durationNs": "353057692"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "startNs": "69615060496",
+      "endNs": "69741673121",
+      "durationNs": "126612625"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "startNs": "69741718679",
+      "endNs": "69870528874",
+      "durationNs": "128810195"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 1,
+      "businessIndex": -1,
+      "startNs": "69583704647",
+      "endNs": "69909215569",
+      "durationNs": "325510922"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "startNs": "69939446942",
+      "endNs": "70067695947",
+      "durationNs": "128249005"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "startNs": "70067747104",
+      "endNs": "70197160763",
+      "durationNs": "129413659"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 2,
+      "businessIndex": -1,
+      "startNs": "69909237472",
+      "endNs": "70261425610",
+      "durationNs": "352188138"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "startNs": "70292619695",
+      "endNs": "70424399809",
+      "durationNs": "131780114"
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "startNs": "70424450886",
+      "endNs": "70556019491",
+      "durationNs": "131568605"
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "nodeIndex": 3,
+      "businessIndex": -1,
+      "startNs": "70261448004",
+      "endNs": "70598042718",
+      "durationNs": "336594714"
+    },
+    {
+      "arm": "after",
+      "phase": "pq-start-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "70599019751",
+      "endNs": "81167529850",
+      "durationNs": "10568510099"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "81167557292",
+      "endNs": "82144574822",
+      "durationNs": "977017530"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-admission",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "82144603635",
+      "endNs": "82243197537",
+      "durationNs": "98593902"
+    },
+    {
+      "arm": "after",
+      "phase": "initial-execution-and-activation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "82243237667",
+      "endNs": "93600511720",
+      "durationNs": "11357274053"
+    },
+    {
+      "arm": "after",
+      "phase": "gateway-start",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "93600534765",
+      "endNs": "93707930589",
+      "durationNs": "107395824"
+    },
+    {
+      "arm": "after",
+      "phase": "business-intent-preparation",
+      "nodeIndex": -1,
+      "businessIndex": -1,
+      "startNs": "93707955977",
+      "endNs": "94782583779",
+      "durationNs": "1074627802"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 0,
+      "startNs": "94782617199",
+      "endNs": "96292395229",
+      "durationNs": "1509778030"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 2,
+      "startNs": "95840747941",
+      "endNs": "97886189536",
+      "durationNs": "2045441595"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 1,
+      "startNs": "95307104004",
+      "endNs": "97960986491",
+      "durationNs": "2653882487"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 3,
+      "startNs": "96467064380",
+      "endNs": "99458625950",
+      "durationNs": "2991561570"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 4,
+      "startNs": "96991532162",
+      "endNs": "99489525710",
+      "durationNs": "2497993548"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 5,
+      "startNs": "97886217858",
+      "endNs": "101003902270",
+      "durationNs": "3117684412"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 6,
+      "startNs": "98468227808",
+      "endNs": "101033699823",
+      "durationNs": "2565472015"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 7,
+      "startNs": "99458668234",
+      "endNs": "102530448558",
+      "durationNs": "3071780324"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 8,
+      "startNs": "100005931521",
+      "endNs": "102552123603",
+      "durationNs": "2546192082"
+    }
+  ],
+  "unfinishedSpans": [
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 9,
+      "startNs": "101003937303"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 10,
+      "startNs": "101554668462"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 11,
+      "startNs": "102530478123"
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "nodeIndex": -1,
+      "businessIndex": 12,
+      "startNs": "103056164879"
+    }
+  ],
+  "beforeBusinessBoundaries": [
+    {
+      "businessIndex": 0,
+      "transactionHash": null,
+      "offerCallBeginNs": "34819328642",
+      "offerCallReturnedNs": "36358750717",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "51760756962",
+      "validatedReadbackCompletionLogNs": "52625233668",
+      "offerCallBeginToValidatedReadbackLogNs": "17805905026",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 1,
+      "transactionHash": null,
+      "offerCallBeginNs": "35341808977",
+      "offerCallReturnedNs": "38043499964",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "51959758281",
+      "validatedReadbackCompletionLogNs": "52928440036",
+      "offerCallBeginToValidatedReadbackLogNs": "17586631059",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 2,
+      "transactionHash": null,
+      "offerCallBeginNs": "35875609276",
+      "offerCallReturnedNs": "38074748151",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "52203573807",
+      "validatedReadbackCompletionLogNs": "53266695117",
+      "offerCallBeginToValidatedReadbackLogNs": "17391085841",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 3,
+      "transactionHash": null,
+      "offerCallBeginNs": "36430971474",
+      "offerCallReturnedNs": "39636098326",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "52461047777",
+      "validatedReadbackCompletionLogNs": "53535425164",
+      "offerCallBeginToValidatedReadbackLogNs": "17104453690",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 4,
+      "transactionHash": null,
+      "offerCallBeginNs": "36956026867",
+      "offerCallReturnedNs": "39582601917",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "52879745261",
+      "validatedReadbackCompletionLogNs": "53945262068",
+      "offerCallBeginToValidatedReadbackLogNs": "16989235201",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 5,
+      "transactionHash": null,
+      "offerCallBeginNs": "38043536770",
+      "offerCallReturnedNs": "41193815786",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "53158532496",
+      "validatedReadbackCompletionLogNs": "54206791315",
+      "offerCallBeginToValidatedReadbackLogNs": "16163254545",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 6,
+      "transactionHash": null,
+      "offerCallBeginNs": "38581341995",
+      "offerCallReturnedNs": "41108580645",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "53509100762",
+      "validatedReadbackCompletionLogNs": "54502468264",
+      "offerCallBeginToValidatedReadbackLogNs": "15921126269",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 7,
+      "transactionHash": null,
+      "offerCallBeginNs": "39582632854",
+      "offerCallReturnedNs": "42620780223",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "53749109496",
+      "validatedReadbackCompletionLogNs": "54835703738",
+      "offerCallBeginToValidatedReadbackLogNs": "15253070884",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 8,
+      "transactionHash": null,
+      "offerCallBeginNs": "40106959970",
+      "offerCallReturnedNs": "42537919666",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "54182630766",
+      "validatedReadbackCompletionLogNs": "55285962546",
+      "offerCallBeginToValidatedReadbackLogNs": "15179002576",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 9,
+      "transactionHash": null,
+      "offerCallBeginNs": "41108612343",
+      "offerCallReturnedNs": "44331926310",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "54452847821",
+      "validatedReadbackCompletionLogNs": "55643482756",
+      "offerCallBeginToValidatedReadbackLogNs": "14534870413",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 10,
+      "transactionHash": null,
+      "offerCallBeginNs": "41657476906",
+      "offerCallReturnedNs": "44384424062",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "54744675399",
+      "validatedReadbackCompletionLogNs": "55956640920",
+      "offerCallBeginToValidatedReadbackLogNs": "14299164014",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 11,
+      "transactionHash": null,
+      "offerCallBeginNs": "42537950643",
+      "offerCallReturnedNs": "45967743099",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "55099793852",
+      "validatedReadbackCompletionLogNs": "56238308474",
+      "offerCallBeginToValidatedReadbackLogNs": "13700357831",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 12,
+      "transactionHash": null,
+      "offerCallBeginNs": "43062756392",
+      "offerCallReturnedNs": "45946079884",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "55521134035",
+      "validatedReadbackCompletionLogNs": "56596454774",
+      "offerCallBeginToValidatedReadbackLogNs": "13533698382",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 13,
+      "transactionHash": null,
+      "offerCallBeginNs": "44331964778",
+      "offerCallReturnedNs": "47520944959",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "55889614271",
+      "validatedReadbackCompletionLogNs": "56918586205",
+      "offerCallBeginToValidatedReadbackLogNs": "12586621427",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 14,
+      "transactionHash": null,
+      "offerCallBeginNs": "44856747691",
+      "offerCallReturnedNs": "47576451458",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "56187074873",
+      "validatedReadbackCompletionLogNs": "57147863600",
+      "offerCallBeginToValidatedReadbackLogNs": "12291115909",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    },
+    {
+      "businessIndex": 15,
+      "transactionHash": null,
+      "offerCallBeginNs": "45946112463",
+      "offerCallReturnedNs": "49091496678",
+      "allOriginalInclusionChecksCompleteNoLaterThanNs": "51400443685",
+      "actualPerTxInclusionTimestamp": null,
+      "independentReadbackCallBeginNs": "56481081383",
+      "validatedReadbackCompletionLogNs": "57343562558",
+      "offerCallBeginToValidatedReadbackLogNs": "11397450095",
+      "meaning": "upper-bound coordinator observation incl pre-Start work, queued verification and completion-log scheduling; not exact client actual-offer or BFT-formation latency"
+    }
+  ],
+  "availableBeforeCallObservationQuantiles": {
+    "offerCallNs": {
+      "samples": 16,
+      "p50Ns": "2726947156",
+      "p95Ns": "3429792456",
+      "p99Ns": "3429792456"
+    },
+    "independentReadbackCallNs": {
+      "samples": 16,
+      "p50Ns": "1063121310",
+      "p95Ns": "1211965521",
+      "p99Ns": "1211965521"
+    },
+    "offerCallBeginToValidatedReadbackLogUpperBoundNs": {
+      "samples": 16,
+      "p50Ns": "15179002576",
+      "p95Ns": "17805905026",
+      "p99Ns": "17805905026"
+    }
+  },
+  "actualOfferToInclusionQuantiles": null,
+  "actualOfferToIndependentCompletionQuantiles": null,
+  "beforeArmResultValidationComplete": true,
+  "beforeArmNormalCleanupComplete": true,
+  "armCounts": {
+    "before": {
+      "offerStarted": 16,
+      "offerReturned": 16,
+      "readbackStarted": 16,
+      "validatedReadbackCallbacks": 16
+    },
+    "after": {
+      "offerStarted": 13,
+      "offerReturned": 9,
+      "readbackStarted": 0,
+      "validatedReadbackCallbacks": 0
+    }
+  },
+  "originalFinalBusinessSummaryEmitted": false,
+  "wholePairQualified": false,
+  "additiveWallTimeMeasured": false,
+  "noActualHashOrPerTxClockSynthesized": true
+}

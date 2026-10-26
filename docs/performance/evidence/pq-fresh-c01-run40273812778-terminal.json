@@ -1,0 +1,275 @@
+{
+  "classification": "deadline-truncated original fresh pair with actual persistence and completed-before-arm evidence",
+  "runId": 40273812778,
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40273812778",
+  "candidate": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+  "event": "workflow_dispatch",
+  "conclusion": "failure",
+  "onceRemoteDispatch": true,
+  "grantConsumed": true,
+  "normalAdmissionPassed": true,
+  "actualOfficialFreshIntakePassed": true,
+  "actualOriginalSOURCEAndFourELFPinsMatchTuple": true,
+  "actualRelocationPassed": true,
+  "localFreshOrStageZIPGETCount": 0,
+  "localResultZIPGETCount": 1,
+  "prepared": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result/ynx-pq-network-40273812778-1/prepared.json",
+    "bytes": 2043,
+    "sha256": "6f16d42cd24c550d066c1972db117244c8b5352fcc9d62497cc93ff66325497e"
+  },
+  "businessManifest": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result/ynx-pq-network-40273812778-1.build/business-manifest.json",
+    "bytes": 1719,
+    "sha256": "c5e6a3d509de0b0a04e5d97ec7b03adfec84819f0f3fa656428cf1f49c7548d8"
+  },
+  "preparedFieldCount": 11,
+  "originalPreparedExecutionAuthorized": false,
+  "resultArtifact": {
+    "id": 12628874317,
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result.zip",
+    "bytes": 50630,
+    "sha256": "a0a7218f66d4c50ba8b159b772c2e2ad0bed76cc35e361a6a02e02dcf7d2695d"
+  },
+  "rawFiles": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result/ynx-pq-fresh-intake-40273812778-1/relocation.json",
+      "bytes": 2457,
+      "sha256": "be80df9f05d5db94bd83e3689cb47714dd792d76fb366d8ed8d2c01cc33921d9"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result/ynx-pq-network-40273812778-1/go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result/ynx-pq-network-40273812778-1/go.stdout.log",
+      "bytes": 169621,
+      "sha256": "559162c8d084b141f76dc39f25d709606ccf76a18ce711e63f7df258bbec88e1"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result/ynx-pq-network-40273812778-1/prepared.json",
+      "bytes": 2043,
+      "sha256": "6f16d42cd24c550d066c1972db117244c8b5352fcc9d62497cc93ff66325497e"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result/ynx-pq-network-40273812778-1.build/business-manifest.json",
+      "bytes": 1719,
+      "sha256": "c5e6a3d509de0b0a04e5d97ec7b03adfec84819f0f3fa656428cf1f49c7548d8"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result/ynx-pq-network-40273812778-1.file-sizes.json",
+      "bytes": 3659,
+      "sha256": "685ba70ca10d973a81cb614f9777998d03d570ebaf29ca44f5b04fca67991071"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result/ynx-pq-network-40273812778-1.receipt.json",
+      "bytes": 484921,
+      "sha256": "63ad7b5fa83ec7b966ee93d55b8796d917ccbc52fa276d45e98c0082aebd311b"
+    }
+  ],
+  "physicalCommitTimings": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/PHYSICAL_COMMIT_TIMINGS.json",
+    "bytes": 80729,
+    "sha256": "b47c1e882b1a69e9148849c138ea4d851a9b30d231013e93fc9852da79abc5a2"
+  },
+  "partialStageAndBusinessBoundaries": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/PARTIAL_STAGE_AND_BUSINESS_BOUNDARIES.json",
+    "bytes": 85598,
+    "sha256": "d48a99f049e2e4e0386ced61cfc0242608fc4ad74bc72d5efeb0c36dad537b17"
+  },
+  "grant": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/GRANT.json",
+    "bytes": 6031,
+    "sha256": "f3ff8a776021a41a8ae2baa21188b00adde2ef679f401dbd704fcf1fe7233ea4"
+  },
+  "runLog": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/run.log",
+    "bytes": 378512,
+    "sha256": "95647d15a7a4067cffa51552d2ac9cb28794870375c05aef556220930d1bee51"
+  },
+  "firstCause": "105s active deadline",
+  "child": {
+    "pid": 3028,
+    "code": -15,
+    "startTicks": 12770
+  },
+  "guardElapsedMs": 105164,
+  "cleanupComplete": true,
+  "cleanupMeaning": "Owned processes gone; before-arm normal cleanup explicitly completed, after-arm graceful Node.Stop not observed after guard TERM.",
+  "emptyOwnedScans": [
+    {
+      "elapsedMs": 105111,
+      "hostIdentities": 151
+    },
+    {
+      "elapsedMs": 105164,
+      "hostIdentities": 151
+    }
+  ],
+  "sampledResources": {
+    "kernel": {
+      "release": "6.17.0-1022-azure",
+      "machine": "x86_64",
+      "logicalCPUs": 4
+    },
+    "peakOwnedRSSBytes": 710094848,
+    "peakThreads": 54,
+    "peakPrivateBytes": 524418870,
+    "actualBootId": null
+  },
+  "businessBoundaries": {
+    "before": {
+      "offerStarted": 16,
+      "offerReturned": 16,
+      "originalInclusionAndEvidenceChecksComplete": true,
+      "independentReadbackCallbacksValidated": 16,
+      "armResultValidationComplete": true,
+      "armNormalCleanupComplete": true,
+      "originalPerTransactionHashesAndExactTimingReportExported": false
+    },
+    "after": {
+      "offerStarted": 13,
+      "offerReturned": 9,
+      "readbackStarted": 0,
+      "validatedReadbackCallbacks": 0
+    },
+    "wholeFinalBusinessSummaryEmitted": false,
+    "whole32Qualified": false,
+    "submissionUNKNOWNCount": null,
+    "transactionErrorRate": null,
+    "afterUnfinishedOfferCalls": 4,
+    "afterIncompleteEffectsKnownFromPublicOutputs": false
+  },
+  "availableLatencyEvidence": {
+    "beforeCoordinatedCallObservationUpperBounds": {
+      "offerCallNs": {
+        "samples": 16,
+        "p50Ns": "2726947156",
+        "p95Ns": "3429792456",
+        "p99Ns": "3429792456"
+      },
+      "independentReadbackCallNs": {
+        "samples": 16,
+        "p50Ns": "1063121310",
+        "p95Ns": "1211965521",
+        "p99Ns": "1211965521"
+      },
+      "offerCallBeginToValidatedReadbackLogUpperBoundNs": {
+        "samples": 16,
+        "p50Ns": "15179002576",
+        "p95Ns": "17805905026",
+        "p99Ns": "17805905026"
+      }
+    },
+    "meaning": "Call begin to validated-readback log upper bound includes controller framing and queued proof observation, not exact client offer or BFT formation.",
+    "actualOfferToInclusionQuantiles": null,
+    "actualOfferToIndependentCompletionQuantiles": null
+  },
+  "persistenceEvidence": {
+    "uniquePhysicalNodeHeightRows": 168,
+    "physicalIdentity": [
+      "arm",
+      "nodeIndex",
+      "height"
+    ],
+    "beforeSamples": 92,
+    "afterSamples": 76,
+    "beforeObservedHeights": [
+      13,
+      35
+    ],
+    "afterObservedHeights": [
+      13,
+      31
+    ],
+    "transactionsNotUsedAsMultiplier": true,
+    "mixedBlockContents": true,
+    "afterRightCensoredByDeadline": true,
+    "quantileMethod": "nearest-rank exact ns",
+    "beforePhysicalPooled": {
+      "physicalCommitCount": 92,
+      "outerCommitNs": {
+        "samples": 92,
+        "p50Ns": "160814555",
+        "p95Ns": "254728030",
+        "p99Ns": "332628880"
+      },
+      "persistenceSampleNs": {
+        "samples": 92,
+        "p50Ns": "160713301",
+        "p95Ns": "254630903",
+        "p99Ns": "332535038"
+      },
+      "fileOperationsNs": {
+        "samples": 92,
+        "p50Ns": "8109851",
+        "p95Ns": "62084339",
+        "p99Ns": "92183067"
+      },
+      "stagesNs": {
+        "close_file": {
+          "samples": 92,
+          "p50Ns": "12088",
+          "p95Ns": "38157",
+          "p99Ns": "14994801"
+        },
+        "directory_sync": {
+          "samples": 92,
+          "p50Ns": "183016",
+          "p95Ns": "10195371",
+          "p99Ns": "18634115"
+        },
+        "file_sync": {
+          "samples": 92,
+          "p50Ns": "5926372",
+          "p95Ns": "48463398",
+          "p99Ns": "79523791"
+        },
+        "json_encode": {
+          "samples": 92,
+          "p50Ns": "11003555",
+          "p95Ns": "50854958",
+          "p99Ns": "62936901"
+        },
+        "prepare_file": {
+          "samples": 92,
+          "p50Ns": "105128",
+          "p95Ns": "156335",
+          "p99Ns": "35009750"
+        },
+        "rename": {
+          "samples": 92,
+          "p50Ns": "374355",
+          "p95Ns": "15090954",
+          "p99Ns": "25718264"
+        },
+        "validate": {
+          "samples": 92,
+          "p50Ns": "120199876",
+          "p95Ns": "217052518",
+          "p99Ns": "239911120"
+        },
+        "write": {
+          "samples": 92,
+          "p50Ns": "588457",
+          "p95Ns": "1052127",
+          "p99Ns": "15250325"
+        }
+      },
+      "payloadBytesRange": [
+        426230,
+        4439921
+      ],
+      "validationShareOfSummedSampleTimers": {
+        "numeratorNs": "11343105196",
+        "denominatorNs": "14408914638",
+        "isWallTimeOrCPUPortion": false
+      }
+    }
+  },
+  "pairedComparisonCompleted": false,
+  "sustainedTPSQualified": false,
+  "goalComplete": false,
+  "nextAction": "Profile state.validateOwned internal validation/historical/hash/policy costs from matching source without reducing AND checks; optimize measured bottlenecks and budget, preserve105+15/caps. Export bounded original per-transaction timestamps/identities on verified callbacks to retain exact before-arm latency even if the pair aborts. New same-source normal supply and Root exact once before any run."
+}

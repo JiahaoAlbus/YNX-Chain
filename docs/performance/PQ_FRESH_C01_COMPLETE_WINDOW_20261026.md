@@ -94,3 +94,97 @@ or an extrapolated after arm into sustained TPS or finality quantiles.
 and `dispatchExecuted=false`. Old grants are consumed. This complete tuple is
 submitted to Root for one exact original whole window; no execution begins
 without that new grant. Unknown dispatch must be reconciled, never replayed.
+
+## Actual complete once attempt: 40273812778
+
+Root granted this exact whole window. The sole original dispatch passed normal
+admission and official fresh intake/relocation; actual original SOURCE and all
+four copied ELF pins match the tuple. New absolute manifest and eleven-field
+prepared were generated on the runner. No local fresh/stage ZIP or ELF was used.
+
+The runtime ended at the unchanged 105-second active deadline, elapsed 105164 ms,
+child exit -15. Owned cleanup completed with empty scans at 105111/105164 ms.
+Before-arm normal cleanup also completed explicitly; graceful after-arm Node.Stop
+was not observed after guard TERM. Peak sampled RSS was 710094848 bytes and
+threads 54, below their caps. No RSS unreadable refusal occurred in this attempt.
+The old 7f offending PID/errno remains unknown; this does not retrospectively
+reclassify that original failure.
+
+Before had 16 offers started/returned, all original inclusion/evidence checks,
+16 validated independent readback callbacks and completed arm result validation
+at process offset 57.410468640 seconds; normal cleanup ended at 57.515912370.
+After began but only 13 offers started and nine returned, with no independent
+readback before the deadline. Four offer calls were unfinished; their exact
+effects and UNKNOWN count cannot be inferred from these public outputs. There
+is no final pair summary and no qualified 32-business result or zero-error claim.
+
+## Actual persistence measurements
+
+The new bounded stdout retained 168 numeric local-persistence observations.
+Each unique `(arm,nodeIndex,height)` is counted once. Before has 92 physical
+samples: four nodes each at heights 13–35; after has 76: four nodes each at
+heights 13–31. All emitted samples have successful Finalize/Commit and durable
+atomic-json timing; in-flight unprinted calls are not zero samples. Block contents
+mix activation, registration, empty proof blocks and transfers. Transaction count
+is not used to multiply physical Commit samples or calculate business TPS.
+
+| Before physical Commit, 92 samples | P50 ms | P95 ms | P99 ms |
+| --- | ---: | ---: | ---: |
+| Outer Commit | 160.815 | 254.728 | 332.629 |
+| Validation | 120.200 | 217.053 | 239.911 |
+| JSON encoding | 11.004 | 50.855 | 62.937 |
+| File operations combined per call | 8.110 | 62.084 | 92.183 |
+| File sync | 5.926 | 48.463 | 79.524 |
+| Directory sync | 0.183 | 10.195 | 18.634 |
+| Write | 0.588 | 1.052 | 15.250 |
+
+File operations sum that same call's prepare/write/file-sync/close/rename/
+directory-sync spans. Quantiles use nearest rank; medians of separate stages
+need not sum to median total. Before payloads grow from 426230 to 4439921 bytes.
+Validation is 78.72% of the summed persistence sample timers; these concurrent
+four-node sums are not elapsed wall time or CPU percentages. The actual atomic
+writer's validate span wraps `state.validateOwned`; internal history/hash/policy/
+validator costs are not separately measured. They are the next profile target,
+not permission to skip checks or assume a particular internal function dominates.
+
+After is right-censored with a different height/workload prefix. Its completed
+samples are retained per node and pooled, but cannot establish paired speedup
+or a tail SLA. Physical Commit distributions are not transaction latency.
+
+## Available business timing and exact missing boundaries
+
+For before, all 16 original business indices retain offer-call begin/return,
+the common inclusion-check completion upper bound and validated-readback log
+completion. Per-transaction hashes, actual offeredNs/independent cmd.Wait clocks
+and original first committed RPC durations were not exported before pair abort.
+No exact transaction inclusion timestamp is manufactured from block indices or
+sampled process presence.
+
+The available call begin -> validated-readback log observation has P50
+15.179002576 s and P95/P99 17.805905026 s. It is an upper-bound coordinator
+observation including pre-Start work, batch/verification queue and completion-log
+scheduling, not exact actual-offer -> BFT formation or client finality latency.
+Independent-readback call P50/P95 is 1.063121310/1.211965521 s, with the same call
+scope. Neither metric proves or disproves actual finality P95<=3s. Exact required
+transaction latency quantiles remain missing, and no sustained TPS is claimed.
+
+## Complete evidence and next action
+
+Original seven output files were recovered once from artifact `12628874317`, ZIP
+SHA256 `a0a7218f66d4c50ba8b159b772c2e2ad0bed76cc35e361a6a02e02dcf7d2695d`.
+Complete H, 168-entry physical identity table, per-node/stage distributions and
+16 business call boundaries are under
+`/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/`
+as `TERMINAL_HANDOFF.json`, `PHYSICAL_COMMIT_TIMINGS.json` and
+`PARTIAL_STAGE_AND_BUSINESS_BOUNDARIES.json`, with tracked evidence copies.
+There are 113 complete progress spans and four unfinished spans, preserved as
+partial observations rather than passed-pair metrics. Original clocks stay
+separate; overlapping intervals are not added as total runtime.
+
+Root has routed actual validation-cost evidence to the original Protocol owner
+for internal profiling and necessary source repair while preserving AND checks,
+all original state/history/HRS/account assertions and caps. Bounded original
+per-transaction timestamps/identities on verified callbacks would retain exact
+before-arm latency even if another pair aborts. The old grant is consumed: no
+retry, deadline extension or further workload occurred. New matching normal
+supply, complete tuple and a new Root exact once grant are required next.

@@ -1,0 +1,2748 @@
+{
+  "classification": "actual local-persistence samples from incomplete fresh32 run, not transaction finality",
+  "sourceStdout": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-c01-whole-once/result/ynx-pq-network-40273812778-1/go.stdout.log",
+    "bytes": 169621,
+    "sha256": "559162c8d084b141f76dc39f25d709606ccf76a18ce711e63f7df258bbec88e1"
+  },
+  "quantileMethod": "nearest rank ceil(p*n), nanoseconds exact strings",
+  "physicalIdentityKey": [
+    "arm",
+    "nodeIndex",
+    "height"
+  ],
+  "physicalUniqueRows": 168,
+  "noTxMultiplication": true,
+  "identityTable": [
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "13",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 44,
+      "rawLineSHA256": "4b13fcd3e2f8bf08e3f3997ece4b03b9c65bc7c63e0183ea90edda1c0bff89a0",
+      "commitCallNs": "82854960",
+      "payloadBytes": 426230,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "13",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 45,
+      "rawLineSHA256": "cf304ca9d348875dcaae3d2d19db1640785696aa9c55a5bcf5d078f325193f37",
+      "commitCallNs": "53943567",
+      "payloadBytes": 426230,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "13",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 46,
+      "rawLineSHA256": "5fe7a820e593a3e0a5cb909f321ccda8b8f11aac1f220be678255e2cd255d455",
+      "commitCallNs": "80848424",
+      "payloadBytes": 426230,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "13",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 47,
+      "rawLineSHA256": "dbbf1ebfc695317f468621a16eb17569d32587c7589df24aeb65a12888e44dd2",
+      "commitCallNs": "55412538",
+      "payloadBytes": 426230,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "14",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 48,
+      "rawLineSHA256": "83249f110330b36a9a063a3b1120425c15f6a58304cd8e555b3653f0a78ae2c5",
+      "commitCallNs": "56107049",
+      "payloadBytes": 426230,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "14",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 49,
+      "rawLineSHA256": "017ef8abb6e7fec630551faaa3265559559a9362e8a8ab7ca825258ede542543",
+      "commitCallNs": "32147667",
+      "payloadBytes": 426230,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "14",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 50,
+      "rawLineSHA256": "5e64ee60a878a2ca05ebf078570b89f9510be51a37703c9f5f9b994d934e7935",
+      "commitCallNs": "59308326",
+      "payloadBytes": 426230,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "14",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 51,
+      "rawLineSHA256": "4e7c24a35c08a2cf999a43b49586889376e174fc3456934cf38826df44b70b44",
+      "commitCallNs": "34842532",
+      "payloadBytes": 426230,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "15",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 52,
+      "rawLineSHA256": "e72e023678926c354a4fc20bdc9f994973c92152f1c693f398abb3548fa3a7c0",
+      "commitCallNs": "120642707",
+      "payloadBytes": 427267,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "15",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 53,
+      "rawLineSHA256": "bb11f2d6866f0a5d38400e5097b1dea9f8bcffb673a58d48221c8a4d8b9c6514",
+      "commitCallNs": "79767324",
+      "payloadBytes": 427267,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "15",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 54,
+      "rawLineSHA256": "e3b6987beec6c61b6b3f0a8fee50e675aa7f1310da5d04a8f8c9042f6efbe8a7",
+      "commitCallNs": "74085701",
+      "payloadBytes": 427267,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "15",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 55,
+      "rawLineSHA256": "09840f298591610e9de1da33ab0dd3d4cb8b133b41a7d24af9edbe4fba682f1f",
+      "commitCallNs": "73911324",
+      "payloadBytes": 427267,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "16",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 56,
+      "rawLineSHA256": "c1641b51a7e2b41755b9c94ae90e7e9d383df406e30da6063c977afd770246ee",
+      "commitCallNs": "71128534",
+      "payloadBytes": 427267,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "16",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 57,
+      "rawLineSHA256": "586ede279dc928031c72ae3a47af1e130ccaf54ebd17da008ceea8413e9c6fae",
+      "commitCallNs": "62792580",
+      "payloadBytes": 427267,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "16",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 58,
+      "rawLineSHA256": "e194a0c84cd14df09e70fd389dc8614c2d2ef47e348e4e6556d0003ffe232927",
+      "commitCallNs": "45391678",
+      "payloadBytes": 427267,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "16",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 59,
+      "rawLineSHA256": "13488412325e5aabe919e0dfcd85f9de1d54371be126ba9670c0bf9f81dbafe6",
+      "commitCallNs": "78153108",
+      "payloadBytes": 427267,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "17",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 60,
+      "rawLineSHA256": "aff1bc17c449f0ba9d5990ac39510254b6b07d4b1526832883a30a2c59204860",
+      "commitCallNs": "66102445",
+      "payloadBytes": 428304,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "17",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 61,
+      "rawLineSHA256": "664bd44332491d706a30ce85a5dee8bb99ddffea8936706ec86386ed1074e4b7",
+      "commitCallNs": "74306915",
+      "payloadBytes": 428304,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "17",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 62,
+      "rawLineSHA256": "b2c76e592bd2168e1594db4bfe6ab5a6eeeeb6abbdf38d50b948ecc89c934553",
+      "commitCallNs": "47435487",
+      "payloadBytes": 428304,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "17",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 63,
+      "rawLineSHA256": "d2c9e1a01ad5602b18430c74dc6da937df870a629bfd8453b9e27527961e8f69",
+      "commitCallNs": "74827606",
+      "payloadBytes": 428304,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "18",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 66,
+      "rawLineSHA256": "94357f23cc4bce48f90bbd71278706d0248271156a047f999d4f31c5b08709cc",
+      "commitCallNs": "75085390",
+      "payloadBytes": 428304,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "18",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 67,
+      "rawLineSHA256": "3f65d0839fd40bc530b62a26a6732fe9d971595f3c8a0c27d767e0ea16b51faa",
+      "commitCallNs": "87416032",
+      "payloadBytes": 428304,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "18",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 68,
+      "rawLineSHA256": "791ed8c5ec5e3ad20bb675c14909b6541b20b0674eaaf0f44efa2c18b1884502",
+      "commitCallNs": "81139685",
+      "payloadBytes": 428304,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "18",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 69,
+      "rawLineSHA256": "c89942f5a9fe7272c3923fa837324d674f9cf72f1506f9cd523ffbb50a282609",
+      "commitCallNs": "61679060",
+      "payloadBytes": 428304,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "19",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 74,
+      "rawLineSHA256": "2b1cbe8295920e5e04e785e059613e90dff17c98a860231f8c2498f1978d2453",
+      "commitCallNs": "63355720",
+      "payloadBytes": 553646,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "19",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 75,
+      "rawLineSHA256": "d93f0aff85c804e43b14bd590a66fb5a9cecd47feac8653526268c62cc315ce1",
+      "commitCallNs": "78282554",
+      "payloadBytes": 553646,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "19",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 76,
+      "rawLineSHA256": "29a0103bb5eee45cdebc415c51f4ce297a6eb94f4651513c48c6ca0154d83f08",
+      "commitCallNs": "39574576",
+      "payloadBytes": 553646,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "19",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 77,
+      "rawLineSHA256": "c1bf0fd7e56d9f65f5b94c31da9fa58b71ea393e5de17d289a4311e3ef7473ce",
+      "commitCallNs": "115042222",
+      "payloadBytes": 553646,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "20",
+      "transactionsInBlockNotBusinessCount": 16,
+      "stdoutLine": 78,
+      "rawLineSHA256": "630798b63ebf44ae7fe28780751b4927d4b122f7571f2427873fee5bd24c6b05",
+      "commitCallNs": "207161256",
+      "payloadBytes": 2558782,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "20",
+      "transactionsInBlockNotBusinessCount": 16,
+      "stdoutLine": 79,
+      "rawLineSHA256": "1173bd52ce2d62501ec686733c76181195cd1e978bd21dbfe78964b3cb69ea60",
+      "commitCallNs": "140729547",
+      "payloadBytes": 2558782,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "20",
+      "transactionsInBlockNotBusinessCount": 16,
+      "stdoutLine": 80,
+      "rawLineSHA256": "00375f1b4efbef53d14b87bc6907289bbf50a11e47815dc31a9f1887feb87dbf",
+      "commitCallNs": "184475410",
+      "payloadBytes": 2558782,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "20",
+      "transactionsInBlockNotBusinessCount": 16,
+      "stdoutLine": 81,
+      "rawLineSHA256": "7b81b05fb6e2fde120c40e3cc75b97cde6139c67deb44ae6219c8b9ab7b0d6c6",
+      "commitCallNs": "265472514",
+      "payloadBytes": 2558782,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "21",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 82,
+      "rawLineSHA256": "59a4d445605a4a3527cbaa3e34ac1a6d867cc9ec526e039ce51a1dc4c27c9e44",
+      "commitCallNs": "114420039",
+      "payloadBytes": 2558782,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "21",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 83,
+      "rawLineSHA256": "d742bbdf70dd3b94ec52bc4d447fd34b83af29264a2c79ab04e03fc170466d20",
+      "commitCallNs": "132007909",
+      "payloadBytes": 2558782,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "21",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 84,
+      "rawLineSHA256": "72961988d10952bb1c8892e42d7d994737e8a7d6f2f7d30dbd9679e0b6367d2c",
+      "commitCallNs": "180388207",
+      "payloadBytes": 2558782,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "21",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 85,
+      "rawLineSHA256": "f5c16e6acf4f1e16d365c5ab3d2f48fb52c43cf210450d4b80d79b75712b4020",
+      "commitCallNs": "112868229",
+      "payloadBytes": 2558782,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "22",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 86,
+      "rawLineSHA256": "0e332b5a6405021c34a731da1fe35ccdc8bac884334e105dffbb3cc2ee8e168b",
+      "commitCallNs": "197406352",
+      "payloadBytes": 2559819,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "22",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 87,
+      "rawLineSHA256": "64dfec66fa9487790bd2ca3ef3577d31889846e89efea6ceaa84d185baa67e44",
+      "commitCallNs": "172391767",
+      "payloadBytes": 2559819,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "22",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 88,
+      "rawLineSHA256": "6cbf333971e3fe0622feae266182b06c23787eff7de0bd4c47503f8e217ecf7d",
+      "commitCallNs": "238988447",
+      "payloadBytes": 2559819,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "22",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 89,
+      "rawLineSHA256": "935c3e99f60b3aa4905cfc22f3e543b321fe2b15b1b07353147da7746a589818",
+      "commitCallNs": "117150416",
+      "payloadBytes": 2559819,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "23",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 90,
+      "rawLineSHA256": "750328aca81398aa700efb74112690b2fb3b1a376ae83fa17099be0cacd78cf7",
+      "commitCallNs": "145428443",
+      "payloadBytes": 2559819,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "23",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 91,
+      "rawLineSHA256": "f2449961d235fcf24046297991338cedcb674cbc333367f5621d23dab9e56244",
+      "commitCallNs": "237993192",
+      "payloadBytes": 2559819,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "23",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 92,
+      "rawLineSHA256": "53326244e0b6ce9c85a1bcd427b0a8486a10e0d0f791c51ecb10dd888c4e09af",
+      "commitCallNs": "198307417",
+      "payloadBytes": 2559819,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "23",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 93,
+      "rawLineSHA256": "4f450d1a5214309a9e861e46a731bd18dce58c29f26c4699125f794f65c71067",
+      "commitCallNs": "179327537",
+      "payloadBytes": 2559819,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "24",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 94,
+      "rawLineSHA256": "29bb70285e140c6f957ca536bcedf27f4678e520b910bc9ed123bcb12fff06c5",
+      "commitCallNs": "175808961",
+      "payloadBytes": 2560854,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "24",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 95,
+      "rawLineSHA256": "971ac4fadd1fefc1c83fe043f011ab440e262319bb06980d05cbc9b179e294a3",
+      "commitCallNs": "139124796",
+      "payloadBytes": 2560854,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "24",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 96,
+      "rawLineSHA256": "846e50c6daa38e3508ef27126f171a7d862625f882d91c717166eab4486d4c95",
+      "commitCallNs": "152301999",
+      "payloadBytes": 2560854,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "24",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 97,
+      "rawLineSHA256": "8f29be51d79f439e52ae77549e8a921aacf94af33d386dcbb00be28e9d7b9e14",
+      "commitCallNs": "126221878",
+      "payloadBytes": 2560854,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "25",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 102,
+      "rawLineSHA256": "37b4134de685e315ebfe88a45c4312e636e08716fea73c40b2ba5837c767cb5d",
+      "commitCallNs": "152911437",
+      "payloadBytes": 2560854,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "25",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 103,
+      "rawLineSHA256": "9c8f96aaa44b12d05970cb35b5e11778f3fa3cbd2b0401cc046609a4390b7fa8",
+      "commitCallNs": "143775998",
+      "payloadBytes": 2560854,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "25",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 104,
+      "rawLineSHA256": "5a6b611440f8504ea1481ae4cf4375aac7191f74b8273703e1a4eebd88668cc8",
+      "commitCallNs": "197555360",
+      "payloadBytes": 2560854,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "25",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 105,
+      "rawLineSHA256": "3c3eb8949bb642dd15c5c8efcd0dd3d8d8265d7c5f8f174521dbdfe2b7ee5ed1",
+      "commitCallNs": "236386591",
+      "payloadBytes": 2560854,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "26",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 110,
+      "rawLineSHA256": "2713cc3f56c1aa5cbdf431908ad11e108808db1ecfddfde19f75e7359e9caa87",
+      "commitCallNs": "160839496",
+      "payloadBytes": 2678297,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "26",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 111,
+      "rawLineSHA256": "35f49e15a69d09519750534fe020a217a9bd914ba301c2c6286758b466077de6",
+      "commitCallNs": "160814555",
+      "payloadBytes": 2678297,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "26",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 112,
+      "rawLineSHA256": "9b80c0777dc93dd1708e581a5e5db5c6f6f1ea439fbb71e0c6cf26fb0ffffe00",
+      "commitCallNs": "211306175",
+      "payloadBytes": 2678297,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "26",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 113,
+      "rawLineSHA256": "f41f623c47cf24032304f77ae5d4aa162554098aafd0cd9bcbd610e1e0473511",
+      "commitCallNs": "148238044",
+      "payloadBytes": 2678297,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "27",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 117,
+      "rawLineSHA256": "848853b3fee19cc22555e276940a649a74baa4a59461df825624dd7a16a87ac8",
+      "commitCallNs": "190245637",
+      "payloadBytes": 2913183,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "27",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 118,
+      "rawLineSHA256": "f77397e0445d7c09c8d01743d40fe7211b3e67fe204e128d98aa37fb49db9657",
+      "commitCallNs": "150927070",
+      "payloadBytes": 2913183,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "27",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 119,
+      "rawLineSHA256": "0f91580cc24bd67c846c40c7a1f2ab2f3c7c8687af4bb2480210e3e26bfa7cd9",
+      "commitCallNs": "203454876",
+      "payloadBytes": 2913183,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "27",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 120,
+      "rawLineSHA256": "cc22e17b78bfc73ec5bebd61c257b5e903f3ff4bf533d96d9f186be5f38dc23a",
+      "commitCallNs": "139069010",
+      "payloadBytes": 2913183,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "28",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 125,
+      "rawLineSHA256": "9d377dcbb3b8714ceddf225817ca7bf62d6f23f3f94bd4e0f9cebd7589363782",
+      "commitCallNs": "133443344",
+      "payloadBytes": 3148057,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "28",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 126,
+      "rawLineSHA256": "30fd2148e74a20040dda5564dc9d96e1325bf98d2123325d5458ddd014d62742",
+      "commitCallNs": "170279254",
+      "payloadBytes": 3148057,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "28",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 127,
+      "rawLineSHA256": "15306d0d8df77aa7942a0a590009878a4889d1e4157a0a712129e31d185ed6b2",
+      "commitCallNs": "207199830",
+      "payloadBytes": 3148057,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "28",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 128,
+      "rawLineSHA256": "fe83460d0c83c7138c9ce5960b7916b3889b6346fb38f20a7f26b45f030e9fb6",
+      "commitCallNs": "116915754",
+      "payloadBytes": 3148057,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "29",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 133,
+      "rawLineSHA256": "30adccadbff1f26cef1ed9ea64850b63d23e6733ad01d9d971b74a58b20573b4",
+      "commitCallNs": "199909596",
+      "payloadBytes": 3382943,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "29",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 134,
+      "rawLineSHA256": "245e43dcc120354fc41d3e1c7f7cdbf8178bfacdea778dcaf211d321332a6e61",
+      "commitCallNs": "197845672",
+      "payloadBytes": 3382943,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "29",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 135,
+      "rawLineSHA256": "de74c42e21b7fbd7a97590b813de795c11667f92e3d55c6abb388f5746aaf262",
+      "commitCallNs": "160658978",
+      "payloadBytes": 3382943,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "29",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 136,
+      "rawLineSHA256": "8047e9ac67c85d0bfcbdc2c8c47a3782fde444e3b000866570bb9c17eee9295e",
+      "commitCallNs": "246170600",
+      "payloadBytes": 3382943,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "30",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 141,
+      "rawLineSHA256": "9c77fbc435e3c4481a3f70be02bbe9aa8aa7ea262a9ce4683f05e520d114b1db",
+      "commitCallNs": "184398382",
+      "payloadBytes": 3617829,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "30",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 142,
+      "rawLineSHA256": "98419e8d16b8f9bc76c231475a4713da5aef79405e5a3a033e03ee2e931505df",
+      "commitCallNs": "181366088",
+      "payloadBytes": 3617829,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "30",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 145,
+      "rawLineSHA256": "229fa23769dd1a0c229a7530bd8bd0daef61db2783110d12ce22b1e760c0e430",
+      "commitCallNs": "200177055",
+      "payloadBytes": 3617829,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "30",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 146,
+      "rawLineSHA256": "22e7ff4f6185e3f075137f4b6e96e454490ee3f455d06b7b95a1a04c7e85c91f",
+      "commitCallNs": "227259837",
+      "payloadBytes": 3617829,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "31",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 149,
+      "rawLineSHA256": "68a740686f338f7acb6d862acd13c819cdab9ff80897a0d37fc8c2c1c9f405aa",
+      "commitCallNs": "218822030",
+      "payloadBytes": 3852709,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "31",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 150,
+      "rawLineSHA256": "946bb4833c79ea589ad126502af0f2945b8da76669a7811921a9dd8ef96975e0",
+      "commitCallNs": "268408202",
+      "payloadBytes": 3852709,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "31",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 151,
+      "rawLineSHA256": "5f2e6a2946125b6408cd2275da827cdbd0503aeca171fed498a7ae48ed369d30",
+      "commitCallNs": "193424562",
+      "payloadBytes": 3852709,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "31",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 152,
+      "rawLineSHA256": "ac6268d4beb44b037cbc43ea4548efda38f25c84f9ed6a39e5eb4e66bb50f88e",
+      "commitCallNs": "243866239",
+      "payloadBytes": 3852709,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "32",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 157,
+      "rawLineSHA256": "91fffa5163e36c9dc0e57d89e1b21ec28d4751329a502a276fda43de7ebc5bc8",
+      "commitCallNs": "222200831",
+      "payloadBytes": 4087595,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "32",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 158,
+      "rawLineSHA256": "cc572db21e699c0a54b80ea53c40287cd019d9697e6aa11bb24449c94ba3fe97",
+      "commitCallNs": "244980610",
+      "payloadBytes": 4087595,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "32",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 159,
+      "rawLineSHA256": "f2691d4dc0d779281cc6590d1fe8ddbab3e0410795258e5fddb721121107a162",
+      "commitCallNs": "211132797",
+      "payloadBytes": 4087595,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "32",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 160,
+      "rawLineSHA256": "fabed451edce18089dda2a30fa45c3d355731caff84eced1f30d642048414b53",
+      "commitCallNs": "250661767",
+      "payloadBytes": 4087595,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "33",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 164,
+      "rawLineSHA256": "e7c0fd5d1d9ee044f7cffdfc4de9e7fe153046e0a4099c85707a56da1a052781",
+      "commitCallNs": "244261296",
+      "payloadBytes": 4322481,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "33",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 165,
+      "rawLineSHA256": "00e44cd2a9d55f351a2fa5bd04efa1b2e992803ca44209b411e52bf19cda8ac1",
+      "commitCallNs": "255033963",
+      "payloadBytes": 4322481,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "33",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 166,
+      "rawLineSHA256": "273b593a8950dea155d122106eaa80e764d10c2ac4afdf991fac70b078c20536",
+      "commitCallNs": "250147536",
+      "payloadBytes": 4322481,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "33",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 167,
+      "rawLineSHA256": "1429061ed62ff7f1ddb79242a3a194ec998219b229362d57cebb450bd05eab6e",
+      "commitCallNs": "248850889",
+      "payloadBytes": 4322481,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "34",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 170,
+      "rawLineSHA256": "a4fb4ea0d7a5aea5e9077aa097f29d5a2c6289d1a80e6373d14f66ff343f9a09",
+      "commitCallNs": "199950404",
+      "payloadBytes": 4439921,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "34",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 171,
+      "rawLineSHA256": "650938bbd22cc1fc765a6042e613411d21ce05d33cf8fffee9e238b863ccf917",
+      "commitCallNs": "245975543",
+      "payloadBytes": 4439921,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "34",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 172,
+      "rawLineSHA256": "798549c3be5b5582e135b78f85499ce50848eaf82f5dfc56571556acddd9066d",
+      "commitCallNs": "208022974",
+      "payloadBytes": 4439921,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "34",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 173,
+      "rawLineSHA256": "64994056fb55c9a8e8aa97dfa86e172bd823efb9ab457adf9c01ef23275e8ee0",
+      "commitCallNs": "227896702",
+      "payloadBytes": 4439921,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 1,
+      "height": "35",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 176,
+      "rawLineSHA256": "703405db15ec07ab3b02d101c52f3921b2f8c12517aebd4e8528a49178628387",
+      "commitCallNs": "332628880",
+      "payloadBytes": 4439921,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 0,
+      "height": "35",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 177,
+      "rawLineSHA256": "6550f83055471cd6f6bb1d3c01341f30974880f2f9e3d4eb232e48ec5fa49161",
+      "commitCallNs": "254728030",
+      "payloadBytes": 4439921,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 3,
+      "height": "35",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 178,
+      "rawLineSHA256": "847794b17b768f1c00105bdbd7b0ae32c42ef99f34bf21ebd0fa958677067a30",
+      "commitCallNs": "194521946",
+      "payloadBytes": 4439921,
+      "durable": true
+    },
+    {
+      "arm": "before",
+      "nodeIndex": 2,
+      "height": "35",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 179,
+      "rawLineSHA256": "085d2dd8557156cca9b6b340d78752e51ff246e4ce156e7b146b37741cb1da26",
+      "commitCallNs": "239093580",
+      "payloadBytes": 4439921,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "13",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 293,
+      "rawLineSHA256": "e120153dd6466e8d1de7f97344442aef3fef3b6087cf1135e15e71eb23958806",
+      "commitCallNs": "64302675",
+      "payloadBytes": 426229,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "13",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 294,
+      "rawLineSHA256": "4194754b5a633e891e4cee1956c8fff46b44be2d6827fb0550e895e41a5e2984",
+      "commitCallNs": "70253408",
+      "payloadBytes": 426229,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "13",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 295,
+      "rawLineSHA256": "80fa9e69ac96a0c6ab642d55f073d6317960d5c7c3b46e0b6f91e3e31d76c3ba",
+      "commitCallNs": "52082085",
+      "payloadBytes": 426229,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "13",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 296,
+      "rawLineSHA256": "b50d59fef4b8f0dc6b24b8ca13f207f9f598283ee14a83d1de85dbb9439dfd8f",
+      "commitCallNs": "95726480",
+      "payloadBytes": 426229,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "14",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 297,
+      "rawLineSHA256": "b4ca466cd809d546001877d26ec9f1eb75c8e374e3970f3a06ad5777a0b36a36",
+      "commitCallNs": "33854932",
+      "payloadBytes": 426229,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "14",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 298,
+      "rawLineSHA256": "ecf8d66fada2fb27db4cd5ae711a43bab2db04bb3845aa51257ac6dd3cf4127d",
+      "commitCallNs": "35756834",
+      "payloadBytes": 426229,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "14",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 299,
+      "rawLineSHA256": "d164fbc5a05bbc244bfecd0823bce8092bdec9b4dbd6393bbbe4197d1c2deeec",
+      "commitCallNs": "35243337",
+      "payloadBytes": 426229,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "14",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 300,
+      "rawLineSHA256": "a38a123533bfe3b1205e5311720f93d152cc00cc549da7dfe9465312efb130c5",
+      "commitCallNs": "32098263",
+      "payloadBytes": 426229,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "15",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 301,
+      "rawLineSHA256": "d0c89313ec409545185fac05ffa664a92c654dd413c9f0bf02c57616fac0b7e7",
+      "commitCallNs": "58767396",
+      "payloadBytes": 427266,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "15",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 302,
+      "rawLineSHA256": "dacefc3e766ef2c95bd76d6353ede00a6ec02f7264d21d078dad16259fd288cf",
+      "commitCallNs": "45656392",
+      "payloadBytes": 427266,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "15",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 303,
+      "rawLineSHA256": "091da41fe0012842ce7e564135b3d5935689a679b1ec1ab98dc8d7b45fcd62f9",
+      "commitCallNs": "44111559",
+      "payloadBytes": 427266,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "15",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 304,
+      "rawLineSHA256": "f77b25c16da6886121e38439df9b7ae682478011971866d66fb9a0ab6d752a57",
+      "commitCallNs": "31198086",
+      "payloadBytes": 427266,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "16",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 305,
+      "rawLineSHA256": "f9bac9aea37d0f187669c8ab16c1391b729a0420a7803cdb79cd450c684a0f59",
+      "commitCallNs": "61874837",
+      "payloadBytes": 427266,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "16",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 306,
+      "rawLineSHA256": "10996ede92cb8b2478d5b0f8739c2a313814277a782f316a5a45b122a62b112f",
+      "commitCallNs": "44157052",
+      "payloadBytes": 427266,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "16",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 307,
+      "rawLineSHA256": "069b285dc78f2a8b991c54bee8ab9e1b26d83ff83df6dafaab2968f2e9325c9a",
+      "commitCallNs": "34883534",
+      "payloadBytes": 427266,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "16",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 308,
+      "rawLineSHA256": "b79ef9457bb8ff7f39c6a66c2c87e5ca779302d7e8ee259e8774585d04e99198",
+      "commitCallNs": "46751295",
+      "payloadBytes": 427266,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "17",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 309,
+      "rawLineSHA256": "1c56a7467a0af38828329d46faf6c92e061806eef00d83a6faa687ef9a76c801",
+      "commitCallNs": "41721482",
+      "payloadBytes": 428303,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "17",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 310,
+      "rawLineSHA256": "d8f3a741ac8f2ce2999f9d7d2b67f7c1c6c366a2466d373554fd072dd84bcf34",
+      "commitCallNs": "63575120",
+      "payloadBytes": 428303,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "17",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 311,
+      "rawLineSHA256": "1c9bf72be76337ae95f19b3e9d515503779b6b6c60efbb2471b8a0ad0569b29c",
+      "commitCallNs": "35646556",
+      "payloadBytes": 428303,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "17",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 312,
+      "rawLineSHA256": "a5900b102c3fd63294a50699d9695b525fa58b8442b7de6596737c00ae4ebd89",
+      "commitCallNs": "41984338",
+      "payloadBytes": 428303,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "18",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 315,
+      "rawLineSHA256": "1c50e3a10c76cd4ef3f6e9b64a12ab4e1e1db71ac193a16089919da2da8fc1fb",
+      "commitCallNs": "78835200",
+      "payloadBytes": 428303,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "18",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 316,
+      "rawLineSHA256": "7ce6a61a775b0919adeb753b3a2587a0b1a6923a518b938b1e19366dc07017b3",
+      "commitCallNs": "151669678",
+      "payloadBytes": 428303,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "18",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 317,
+      "rawLineSHA256": "4a27ee882107d98803865e1d76f184218c1fe670ca063aacb5d09a5c7a25e47e",
+      "commitCallNs": "97376024",
+      "payloadBytes": 428303,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "18",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 318,
+      "rawLineSHA256": "8a6ecd2d7755d5e5dabec4a199b66be248848f33ae2d566e2088bca30766d994",
+      "commitCallNs": "54437302",
+      "payloadBytes": 428303,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "19",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 323,
+      "rawLineSHA256": "0dfce701f4c45d6049e0d92bb527da32e289540a06f2e44c50b22ab19b92cddb",
+      "commitCallNs": "61135627",
+      "payloadBytes": 678968,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "19",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 324,
+      "rawLineSHA256": "182d9243fe442133a50a915f8b111b8b216bd486c5ca07815c0a36e190b505b9",
+      "commitCallNs": "93912166",
+      "payloadBytes": 678968,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "19",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 325,
+      "rawLineSHA256": "321300c4c5bfeb7e2be969ec7fbd4deeb16b8bad1edca053171b7cc13bc1fb7b",
+      "commitCallNs": "36711904",
+      "payloadBytes": 678968,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "19",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 326,
+      "rawLineSHA256": "a94e3098581119f115307a32840e38dd19242e7f639643058a533d97ffa3c1d2",
+      "commitCallNs": "51539115",
+      "payloadBytes": 678968,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "20",
+      "transactionsInBlockNotBusinessCount": 15,
+      "stdoutLine": 327,
+      "rawLineSHA256": "ba34284ca80e8acf91d3d6167b04acf2fcf6b2a1358319737c86dd4799eb35eb",
+      "commitCallNs": "188451679",
+      "payloadBytes": 2558783,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "20",
+      "transactionsInBlockNotBusinessCount": 15,
+      "stdoutLine": 328,
+      "rawLineSHA256": "8c5ae875586aa4b8855df093313640de2250018d78b90d62cfc4613ac97116d4",
+      "commitCallNs": "135307514",
+      "payloadBytes": 2558783,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "20",
+      "transactionsInBlockNotBusinessCount": 15,
+      "stdoutLine": 329,
+      "rawLineSHA256": "29e17fa59cc3a980b8ca70976369a06ec4df77cd05a5f09fc1bdb015186e1e24",
+      "commitCallNs": "159334738",
+      "payloadBytes": 2558783,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "20",
+      "transactionsInBlockNotBusinessCount": 15,
+      "stdoutLine": 330,
+      "rawLineSHA256": "adc9f36c3a0d1f1b8c8c6c0fbc8434586a571e5efeb0dc9473f5cfbd248b6ec8",
+      "commitCallNs": "209173229",
+      "payloadBytes": 2558783,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "21",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 331,
+      "rawLineSHA256": "b136cb8c5235ad28573119431669163a62b49df3540576160b1dcdc80bd56da1",
+      "commitCallNs": "122274889",
+      "payloadBytes": 2558783,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "21",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 332,
+      "rawLineSHA256": "d610ee6bac3b14a6e5de61a31be1e8882424339118814ba3bb54776a1819993f",
+      "commitCallNs": "115655948",
+      "payloadBytes": 2558783,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "21",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 333,
+      "rawLineSHA256": "d78e7a6d77f4bb9228cfb415395046ac4fb4991842ba14eddda33933b08dac12",
+      "commitCallNs": "197836653",
+      "payloadBytes": 2558783,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "21",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 334,
+      "rawLineSHA256": "46667a99b581b38885c60be3f00289106857dbaee0888e93af1ac8786575a46b",
+      "commitCallNs": "121412599",
+      "payloadBytes": 2558783,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "22",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 335,
+      "rawLineSHA256": "f65bbd84699ca0a46ae4dce78a2f16860a093217acabcad1e18a765fb070ca54",
+      "commitCallNs": "130020130",
+      "payloadBytes": 2559820,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "22",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 336,
+      "rawLineSHA256": "9d3d8348983f355ab6a4557fa1442c204bdacdb64b0a8ec214f6cd5f3c5f569c",
+      "commitCallNs": "199376058",
+      "payloadBytes": 2559820,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "22",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 337,
+      "rawLineSHA256": "e55dd678e8896dd6a68bc50b1b6c755a4d0fa2cd0406f084cdcdac93ad180048",
+      "commitCallNs": "206810712",
+      "payloadBytes": 2559820,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "22",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 338,
+      "rawLineSHA256": "fd35220d2fe77ef3faefafdf1663d0c02a4fcc9f104782e817998a47025ba762",
+      "commitCallNs": "166796464",
+      "payloadBytes": 2559820,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "23",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 339,
+      "rawLineSHA256": "82173322545b9ca525492958194ff76ac664687970ff37aca50018bb279f80cc",
+      "commitCallNs": "296911869",
+      "payloadBytes": 2559820,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "23",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 340,
+      "rawLineSHA256": "c97af4fd1e6b7dd424f7cbd6959c82c6b47dd022b35c685fcbe90ebd2d4fd724",
+      "commitCallNs": "101903378",
+      "payloadBytes": 2559820,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "23",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 341,
+      "rawLineSHA256": "84156e6edad57ed41f898e5d7be4c5cb3de17acc333ca82b6d35879b4b2c5c64",
+      "commitCallNs": "208368363",
+      "payloadBytes": 2559820,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "23",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 342,
+      "rawLineSHA256": "7c3b2a685e537ddeb7d4b07c1949398313c8d9b224e0865b6c633b069330d22e",
+      "commitCallNs": "140952340",
+      "payloadBytes": 2559820,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "24",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 343,
+      "rawLineSHA256": "b369285bb209569fca0e6b95cd2892c69fe71e64c14acf2df6049c24148e17b3",
+      "commitCallNs": "191997285",
+      "payloadBytes": 2560857,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "24",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 344,
+      "rawLineSHA256": "b0cda387affad97b48a86fc98aa875a45bfb87898aecc9d83fea13f8e6d53643",
+      "commitCallNs": "172626094",
+      "payloadBytes": 2560857,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "24",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 345,
+      "rawLineSHA256": "64969e9dcfad6ee3d6412cdae6628ff15f80deb019bffa3c9239717f700b13bf",
+      "commitCallNs": "213506177",
+      "payloadBytes": 2560857,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "24",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 346,
+      "rawLineSHA256": "e5aaa246dc7a398601f66ce8e92246c84fa7a7b9e49882e47842124ce08b27fb",
+      "commitCallNs": "148401745",
+      "payloadBytes": 2560857,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "25",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 351,
+      "rawLineSHA256": "eb403cdf07fb1aea02623e016044cd17eb46b5c07a07a4f20d20e59db8cb9c23",
+      "commitCallNs": "195442025",
+      "payloadBytes": 2560857,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "25",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 352,
+      "rawLineSHA256": "fa22e7a7d67090d2561f18d813d04af3abda6baa04d55f6d15e5a0fdfac6dd93",
+      "commitCallNs": "193392477",
+      "payloadBytes": 2560857,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "25",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 353,
+      "rawLineSHA256": "c06705fc3da980185c5b79fabbb24b3d431430fc551ef16134f044244272dc61",
+      "commitCallNs": "140615138",
+      "payloadBytes": 2560857,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "25",
+      "transactionsInBlockNotBusinessCount": 0,
+      "stdoutLine": 354,
+      "rawLineSHA256": "e58b61116b64fad79215fc17ee35c3f9aef0f7c8c960a0d0a00b32ea025cc401",
+      "commitCallNs": "225982740",
+      "payloadBytes": 2560857,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "26",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 359,
+      "rawLineSHA256": "1387d61f5e11a1d825af7d02f4bebef701bbc45b210533be253ed2bbecbb4122",
+      "commitCallNs": "145334210",
+      "payloadBytes": 2678297,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "26",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 360,
+      "rawLineSHA256": "56584ea261df016e9edc57e2ee085a47be1e161233578b0e2e6b693d8fd502a6",
+      "commitCallNs": "136765112",
+      "payloadBytes": 2678297,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "26",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 361,
+      "rawLineSHA256": "34e09e74d70cef31e5c09a0770b050a359994d26dd1b176bd6e2fd60005e196d",
+      "commitCallNs": "221485007",
+      "payloadBytes": 2678297,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "26",
+      "transactionsInBlockNotBusinessCount": 1,
+      "stdoutLine": 362,
+      "rawLineSHA256": "97bd0e184bd92cf50c5de36acdbde2214a13c1d7af3c23187346349e5aa89471",
+      "commitCallNs": "210720841",
+      "payloadBytes": 2678297,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "27",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 366,
+      "rawLineSHA256": "d5940534b5c3b39ed27770c8cdff272764fd42c00ab6bfb87a3b5a529794e7da",
+      "commitCallNs": "159286186",
+      "payloadBytes": 2913183,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "27",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 367,
+      "rawLineSHA256": "aa2c9856ba3c224c078b3d624dc80f00c6037401c0ad513d0dbcd58618803488",
+      "commitCallNs": "160713619",
+      "payloadBytes": 2913183,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "27",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 368,
+      "rawLineSHA256": "a254d3d9d4cc6cf0afb9cbf61cf9b5e0e5850abe99c347afb95c65de60a9bd61",
+      "commitCallNs": "145726324",
+      "payloadBytes": 2913183,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "27",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 369,
+      "rawLineSHA256": "7f71bd662337456a3c46c7333a30fa5a8c44fe2e3c90ee53a001ac8927357f0d",
+      "commitCallNs": "192791545",
+      "payloadBytes": 2913183,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "28",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 374,
+      "rawLineSHA256": "247fc3171b3132ae4074c9b261c3610ca3f4a0ccdfbd9828374f542c38af6b28",
+      "commitCallNs": "213887829",
+      "payloadBytes": 3148069,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "28",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 375,
+      "rawLineSHA256": "a421bf8aef59b663d5b5cab24fd4ab3ef64d86e2238d22d775c07a0801af27b3",
+      "commitCallNs": "189105626",
+      "payloadBytes": 3148069,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "28",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 376,
+      "rawLineSHA256": "eada92f0350b13e5d2a5a4029e13e0155bff188b49c5ca63e9daab4aed2af805",
+      "commitCallNs": "178859355",
+      "payloadBytes": 3148069,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "28",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 377,
+      "rawLineSHA256": "c6265030eb6e5bcf1b5dbc08278a0188856e7537d54dda20a03333e6c26c1569",
+      "commitCallNs": "183955692",
+      "payloadBytes": 3148069,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "29",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 382,
+      "rawLineSHA256": "1fd6be02d392adb2c770d00c0bf23787ecbe1a8349b81158e11c330bb41e7163",
+      "commitCallNs": "189569266",
+      "payloadBytes": 3382955,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "29",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 383,
+      "rawLineSHA256": "88afa54a41d124e9e9b5e52962a7d7f833f74ca14f5483a2e6fc14e6bde94b97",
+      "commitCallNs": "164482769",
+      "payloadBytes": 3382955,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "29",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 384,
+      "rawLineSHA256": "45b54e969f09de63de002d16b6e933ee66581bf5e0bd1a8b2a149cae89cd7d9b",
+      "commitCallNs": "196390145",
+      "payloadBytes": 3382955,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "29",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 387,
+      "rawLineSHA256": "0815e15e9ec5df21beaaba59b8e7a9206ec378381e6cd8f9d3ce4cb9d977b1fd",
+      "commitCallNs": "270446050",
+      "payloadBytes": 3382955,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "30",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 390,
+      "rawLineSHA256": "610810eacd949696751bba9046a9777c95b96a10ceb7669ebdf641203dcdfa54",
+      "commitCallNs": "197482561",
+      "payloadBytes": 3617835,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "30",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 391,
+      "rawLineSHA256": "19500e3af736d5e396181f41a77aa44f9bbd1d7d165b2ca22576fdf4e5204aba",
+      "commitCallNs": "153833786",
+      "payloadBytes": 3617835,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "30",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 392,
+      "rawLineSHA256": "9a65ddaca6f9ecee563ae34c553bcdc87f88c7ffa824d54c6b4d148b8f736664",
+      "commitCallNs": "115626640",
+      "payloadBytes": 3617835,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "30",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 393,
+      "rawLineSHA256": "8d1e7a099ce733bcf6e8e6edd5b0c6b848c288dd3d581752786cbe53e6690326",
+      "commitCallNs": "184447220",
+      "payloadBytes": 3617835,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 3,
+      "height": "31",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 398,
+      "rawLineSHA256": "4bce7164935e1c1abec0859a4f74643de4a5a3fff058466487cdef9c36e480cb",
+      "commitCallNs": "174991931",
+      "payloadBytes": 3852721,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 0,
+      "height": "31",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 399,
+      "rawLineSHA256": "03fc463c886a134d983e357d0e2180f5d954d24dd7d8ce613aad4f1690736502",
+      "commitCallNs": "202366323",
+      "payloadBytes": 3852721,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 2,
+      "height": "31",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 400,
+      "rawLineSHA256": "25d742e24a0f0d344899ba68dc894107c5c82d8ed86f55250eb7da908a30e244",
+      "commitCallNs": "208440676",
+      "payloadBytes": 3852721,
+      "durable": true
+    },
+    {
+      "arm": "after",
+      "nodeIndex": 1,
+      "height": "31",
+      "transactionsInBlockNotBusinessCount": 2,
+      "stdoutLine": 401,
+      "rawLineSHA256": "1b3e9b76a51d5d980ca530b88b13bb3e8548e7a3d5ed8bd6c25ecd7f03f4f8f1",
+      "commitCallNs": "201545256",
+      "payloadBytes": 3852721,
+      "durable": true
+    }
+  ],
+  "arms": [
+    {
+      "arm": "before",
+      "truncatedByDeadline": false,
+      "observedHeights": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35
+      ],
+      "allFourNodesSameObservedHeightPrefix": true,
+      "pooledPhysicalNodes": {
+        "physicalCommitCount": 92,
+        "outerCommitNs": {
+          "samples": 92,
+          "p50Ns": "160814555",
+          "p95Ns": "254728030",
+          "p99Ns": "332628880"
+        },
+        "persistenceSampleNs": {
+          "samples": 92,
+          "p50Ns": "160713301",
+          "p95Ns": "254630903",
+          "p99Ns": "332535038"
+        },
+        "fileOperationsNs": {
+          "samples": 92,
+          "p50Ns": "8109851",
+          "p95Ns": "62084339",
+          "p99Ns": "92183067"
+        },
+        "stagesNs": {
+          "close_file": {
+            "samples": 92,
+            "p50Ns": "12088",
+            "p95Ns": "38157",
+            "p99Ns": "14994801"
+          },
+          "directory_sync": {
+            "samples": 92,
+            "p50Ns": "183016",
+            "p95Ns": "10195371",
+            "p99Ns": "18634115"
+          },
+          "file_sync": {
+            "samples": 92,
+            "p50Ns": "5926372",
+            "p95Ns": "48463398",
+            "p99Ns": "79523791"
+          },
+          "json_encode": {
+            "samples": 92,
+            "p50Ns": "11003555",
+            "p95Ns": "50854958",
+            "p99Ns": "62936901"
+          },
+          "prepare_file": {
+            "samples": 92,
+            "p50Ns": "105128",
+            "p95Ns": "156335",
+            "p99Ns": "35009750"
+          },
+          "rename": {
+            "samples": 92,
+            "p50Ns": "374355",
+            "p95Ns": "15090954",
+            "p99Ns": "25718264"
+          },
+          "validate": {
+            "samples": 92,
+            "p50Ns": "120199876",
+            "p95Ns": "217052518",
+            "p99Ns": "239911120"
+          },
+          "write": {
+            "samples": 92,
+            "p50Ns": "588457",
+            "p95Ns": "1052127",
+            "p99Ns": "15250325"
+          }
+        },
+        "payloadBytesRange": [
+          426230,
+          4439921
+        ],
+        "validationShareOfSummedSampleTimers": {
+          "numeratorNs": "11343105196",
+          "denominatorNs": "14408914638",
+          "isWallTimeOrCPUPortion": false
+        }
+      },
+      "perNode": [
+        {
+          "nodeIndex": 0,
+          "physicalCommitCount": 23,
+          "outerCommitNs": {
+            "samples": 23,
+            "p50Ns": "160839496",
+            "p95Ns": "254728030",
+            "p99Ns": "268408202"
+          },
+          "persistenceSampleNs": {
+            "samples": 23,
+            "p50Ns": "160744393",
+            "p95Ns": "254630903",
+            "p99Ns": "268292167"
+          },
+          "fileOperationsNs": {
+            "samples": 23,
+            "p50Ns": "5485939",
+            "p95Ns": "62084339",
+            "p99Ns": "64877219"
+          },
+          "stagesNs": {
+            "close_file": {
+              "samples": 23,
+              "p50Ns": "11418",
+              "p95Ns": "31628",
+              "p99Ns": "38157"
+            },
+            "directory_sync": {
+              "samples": 23,
+              "p50Ns": "175345",
+              "p95Ns": "303137",
+              "p99Ns": "18163004"
+            },
+            "file_sync": {
+              "samples": 23,
+              "p50Ns": "2651085",
+              "p95Ns": "45448266",
+              "p99Ns": "63719632"
+            },
+            "json_encode": {
+              "samples": 23,
+              "p50Ns": "9573739",
+              "p95Ns": "55097616",
+              "p99Ns": "56030520"
+            },
+            "prepare_file": {
+              "samples": 23,
+              "p50Ns": "106330",
+              "p95Ns": "177918",
+              "p99Ns": "35009750"
+            },
+            "rename": {
+              "samples": 23,
+              "p50Ns": "374355",
+              "p95Ns": "18117469",
+              "p99Ns": "25718264"
+            },
+            "validate": {
+              "samples": 23,
+              "p50Ns": "128595872",
+              "p95Ns": "204408583",
+              "p99Ns": "221191969"
+            },
+            "write": {
+              "samples": 23,
+              "p50Ns": "594476",
+              "p95Ns": "981681",
+              "p99Ns": "1052127"
+            }
+          },
+          "payloadBytesRange": [
+            426230,
+            4439921
+          ],
+          "validationShareOfSummedSampleTimers": {
+            "numeratorNs": "2761716998",
+            "denominatorNs": "3522990391",
+            "isWallTimeOrCPUPortion": false
+          }
+        },
+        {
+          "nodeIndex": 1,
+          "physicalCommitCount": 23,
+          "outerCommitNs": {
+            "samples": 23,
+            "p50Ns": "139069010",
+            "p95Ns": "250661767",
+            "p99Ns": "332628880"
+          },
+          "persistenceSampleNs": {
+            "samples": 23,
+            "p50Ns": "138995118",
+            "p95Ns": "250566784",
+            "p99Ns": "332535038"
+          },
+          "fileOperationsNs": {
+            "samples": 23,
+            "p50Ns": "7598360",
+            "p95Ns": "37902961",
+            "p99Ns": "78262399"
+          },
+          "stagesNs": {
+            "close_file": {
+              "samples": 23,
+              "p50Ns": "12088",
+              "p95Ns": "113661",
+              "p99Ns": "119510"
+            },
+            "directory_sync": {
+              "samples": 23,
+              "p50Ns": "183016",
+              "p95Ns": "14229429",
+              "p99Ns": "16377413"
+            },
+            "file_sync": {
+              "samples": 23,
+              "p50Ns": "5892421",
+              "p95Ns": "35901148",
+              "p99Ns": "52059801"
+            },
+            "json_encode": {
+              "samples": 23,
+              "p50Ns": "10457492",
+              "p95Ns": "29225145",
+              "p99Ns": "37190567"
+            },
+            "prepare_file": {
+              "samples": 23,
+              "p50Ns": "107292",
+              "p95Ns": "154092",
+              "p99Ns": "185640"
+            },
+            "rename": {
+              "samples": 23,
+              "p50Ns": "344349",
+              "p95Ns": "14856282",
+              "p99Ns": "15090954"
+            },
+            "validate": {
+              "samples": 23,
+              "p50Ns": "115070410",
+              "p95Ns": "219770235",
+              "p99Ns": "221441115"
+            },
+            "write": {
+              "samples": 23,
+              "p50Ns": "586555",
+              "p95Ns": "1037945",
+              "p99Ns": "10377235"
+            }
+          },
+          "payloadBytesRange": [
+            426230,
+            4439921
+          ],
+          "validationShareOfSummedSampleTimers": {
+            "numeratorNs": "2807964607",
+            "denominatorNs": "3460284880",
+            "isWallTimeOrCPUPortion": false
+          }
+        },
+        {
+          "nodeIndex": 2,
+          "physicalCommitCount": 23,
+          "outerCommitNs": {
+            "samples": 23,
+            "p50Ns": "184398382",
+            "p95Ns": "246170600",
+            "p99Ns": "248850889"
+          },
+          "persistenceSampleNs": {
+            "samples": 23,
+            "p50Ns": "184326163",
+            "p95Ns": "246075476",
+            "p99Ns": "248761434"
+          },
+          "fileOperationsNs": {
+            "samples": 23,
+            "p50Ns": "10753288",
+            "p95Ns": "52779506",
+            "p99Ns": "78481890"
+          },
+          "stagesNs": {
+            "close_file": {
+              "samples": 23,
+              "p50Ns": "12329",
+              "p95Ns": "416378",
+              "p99Ns": "14994801"
+            },
+            "directory_sync": {
+              "samples": 23,
+              "p50Ns": "178790",
+              "p95Ns": "249847",
+              "p99Ns": "8752791"
+            },
+            "file_sync": {
+              "samples": 23,
+              "p50Ns": "9025193",
+              "p95Ns": "48463398",
+              "p99Ns": "68507517"
+            },
+            "json_encode": {
+              "samples": 23,
+              "p50Ns": "14938449",
+              "p95Ns": "49569441",
+              "p99Ns": "62936901"
+            },
+            "prepare_file": {
+              "samples": 23,
+              "p50Ns": "101534",
+              "p95Ns": "156335",
+              "p99Ns": "1894219"
+            },
+            "rename": {
+              "samples": 23,
+              "p50Ns": "360464",
+              "p95Ns": "575159",
+              "p99Ns": "13683996"
+            },
+            "validate": {
+              "samples": 23,
+              "p50Ns": "133355917",
+              "p95Ns": "199692653",
+              "p99Ns": "216627523"
+            },
+            "write": {
+              "samples": 23,
+              "p50Ns": "561286",
+              "p95Ns": "1231498",
+              "p99Ns": "15250325"
+            }
+          },
+          "payloadBytesRange": [
+            426230,
+            4439921
+          ],
+          "validationShareOfSummedSampleTimers": {
+            "numeratorNs": "2911811691",
+            "denominatorNs": "3773183396",
+            "isWallTimeOrCPUPortion": false
+          }
+        },
+        {
+          "nodeIndex": 3,
+          "physicalCommitCount": 23,
+          "outerCommitNs": {
+            "samples": 23,
+            "p50Ns": "180388207",
+            "p95Ns": "255033963",
+            "p99Ns": "265472514"
+          },
+          "persistenceSampleNs": {
+            "samples": 23,
+            "p50Ns": "180248596",
+            "p95Ns": "254950357",
+            "p99Ns": "265396899"
+          },
+          "fileOperationsNs": {
+            "samples": 23,
+            "p50Ns": "9571646",
+            "p95Ns": "59575937",
+            "p99Ns": "92183067"
+          },
+          "stagesNs": {
+            "close_file": {
+              "samples": 23,
+              "p50Ns": "13060",
+              "p95Ns": "18007",
+              "p99Ns": "18408"
+            },
+            "directory_sync": {
+              "samples": 23,
+              "p50Ns": "186512",
+              "p95Ns": "6455429",
+              "p99Ns": "18634115"
+            },
+            "file_sync": {
+              "samples": 23,
+              "p50Ns": "7733253",
+              "p95Ns": "38580308",
+              "p99Ns": "79523791"
+            },
+            "json_encode": {
+              "samples": 23,
+              "p50Ns": "11003555",
+              "p95Ns": "50854958",
+              "p99Ns": "60693179"
+            },
+            "prepare_file": {
+              "samples": 23,
+              "p50Ns": "106511",
+              "p95Ns": "131879",
+              "p99Ns": "153061"
+            },
+            "rename": {
+              "samples": 23,
+              "p50Ns": "496068",
+              "p95Ns": "13468571",
+              "p99Ns": "19989802"
+            },
+            "validate": {
+              "samples": 23,
+              "p50Ns": "127410392",
+              "p95Ns": "196650651",
+              "p99Ns": "239911120"
+            },
+            "write": {
+              "samples": 23,
+              "p50Ns": "598883",
+              "p95Ns": "1014340",
+              "p99Ns": "3052098"
+            }
+          },
+          "payloadBytesRange": [
+            426230,
+            4439921
+          ],
+          "validationShareOfSummedSampleTimers": {
+            "numeratorNs": "2861611900",
+            "denominatorNs": "3652455971",
+            "isWallTimeOrCPUPortion": false
+          }
+        }
+      ]
+    },
+    {
+      "arm": "after",
+      "truncatedByDeadline": true,
+      "observedHeights": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "allFourNodesSameObservedHeightPrefix": true,
+      "pooledPhysicalNodes": {
+        "physicalCommitCount": 76,
+        "outerCommitNs": {
+          "samples": 76,
+          "p50Ns": "145334210",
+          "p95Ns": "221485007",
+          "p99Ns": "296911869"
+        },
+        "persistenceSampleNs": {
+          "samples": 76,
+          "p50Ns": "145238626",
+          "p95Ns": "221390835",
+          "p99Ns": "296837537"
+        },
+        "fileOperationsNs": {
+          "samples": 76,
+          "p50Ns": "2353720",
+          "p95Ns": "56943489",
+          "p99Ns": "108803642"
+        },
+        "stagesNs": {
+          "close_file": {
+            "samples": 76,
+            "p50Ns": "11136",
+            "p95Ns": "21131",
+            "p99Ns": "15093994"
+          },
+          "directory_sync": {
+            "samples": 76,
+            "p50Ns": "168294",
+            "p95Ns": "459223",
+            "p99Ns": "14655621"
+          },
+          "file_sync": {
+            "samples": 76,
+            "p50Ns": "876712",
+            "p95Ns": "35487400",
+            "p99Ns": "66737930"
+          },
+          "json_encode": {
+            "samples": 76,
+            "p50Ns": "8837227",
+            "p95Ns": "58492926",
+            "p99Ns": "90670590"
+          },
+          "prepare_file": {
+            "samples": 76,
+            "p50Ns": "91738",
+            "p95Ns": "122605",
+            "p99Ns": "150838"
+          },
+          "rename": {
+            "samples": 76,
+            "p50Ns": "347654",
+            "p95Ns": "16203059",
+            "p99Ns": "56777272"
+          },
+          "validate": {
+            "samples": 76,
+            "p50Ns": "106437338",
+            "p95Ns": "190972133",
+            "p99Ns": "197499514"
+          },
+          "write": {
+            "samples": 76,
+            "p50Ns": "540435",
+            "p95Ns": "14980198",
+            "p99Ns": "55349205"
+          }
+        },
+        "payloadBytesRange": [
+          426229,
+          3852721
+        ],
+        "validationShareOfSummedSampleTimers": {
+          "numeratorNs": "7932322329",
+          "denominatorNs": "10150522986",
+          "isWallTimeOrCPUPortion": false
+        }
+      },
+      "perNode": [
+        {
+          "nodeIndex": 0,
+          "physicalCommitCount": 19,
+          "outerCommitNs": {
+            "samples": 19,
+            "p50Ns": "145334210",
+            "p95Ns": "296911869",
+            "p99Ns": "296911869"
+          },
+          "persistenceSampleNs": {
+            "samples": 19,
+            "p50Ns": "145238626",
+            "p95Ns": "296837537",
+            "p99Ns": "296837537"
+          },
+          "fileOperationsNs": {
+            "samples": 19,
+            "p50Ns": "3970708",
+            "p95Ns": "74577067",
+            "p99Ns": "74577067"
+          },
+          "stagesNs": {
+            "close_file": {
+              "samples": 19,
+              "p50Ns": "10706",
+              "p95Ns": "26460",
+              "p99Ns": "26460"
+            },
+            "directory_sync": {
+              "samples": 19,
+              "p50Ns": "170227",
+              "p95Ns": "10099424",
+              "p99Ns": "10099424"
+            },
+            "file_sync": {
+              "samples": 19,
+              "p50Ns": "882551",
+              "p95Ns": "36270331",
+              "p99Ns": "36270331"
+            },
+            "json_encode": {
+              "samples": 19,
+              "p50Ns": "8837227",
+              "p95Ns": "79901328",
+              "p99Ns": "79901328"
+            },
+            "prepare_file": {
+              "samples": 19,
+              "p50Ns": "88874",
+              "p95Ns": "135284",
+              "p99Ns": "135284"
+            },
+            "rename": {
+              "samples": 19,
+              "p50Ns": "329356",
+              "p95Ns": "56777272",
+              "p99Ns": "56777272"
+            },
+            "validate": {
+              "samples": 19,
+              "p50Ns": "101379147",
+              "p95Ns": "166646040",
+              "p99Ns": "166646040"
+            },
+            "write": {
+              "samples": 19,
+              "p50Ns": "555829",
+              "p95Ns": "16770653",
+              "p99Ns": "16770653"
+            }
+          },
+          "payloadBytesRange": [
+            426229,
+            3852721
+          ],
+          "validationShareOfSummedSampleTimers": {
+            "numeratorNs": "1829578399",
+            "denominatorNs": "2446463665",
+            "isWallTimeOrCPUPortion": false
+          }
+        },
+        {
+          "nodeIndex": 1,
+          "physicalCommitCount": 19,
+          "outerCommitNs": {
+            "samples": 19,
+            "p50Ns": "164482769",
+            "p95Ns": "225982740",
+            "p99Ns": "225982740"
+          },
+          "persistenceSampleNs": {
+            "samples": 19,
+            "p50Ns": "164402187",
+            "p95Ns": "225912864",
+            "p99Ns": "225912864"
+          },
+          "fileOperationsNs": {
+            "samples": 19,
+            "p50Ns": "5230999",
+            "p95Ns": "82825951",
+            "p99Ns": "82825951"
+          },
+          "stagesNs": {
+            "close_file": {
+              "samples": 19,
+              "p50Ns": "10786",
+              "p95Ns": "15093994",
+              "p99Ns": "15093994"
+            },
+            "directory_sync": {
+              "samples": 19,
+              "p50Ns": "178479",
+              "p95Ns": "14655621",
+              "p99Ns": "14655621"
+            },
+            "file_sync": {
+              "samples": 19,
+              "p50Ns": "871494",
+              "p95Ns": "51873511",
+              "p99Ns": "51873511"
+            },
+            "json_encode": {
+              "samples": 19,
+              "p50Ns": "8648583",
+              "p95Ns": "90670590",
+              "p99Ns": "90670590"
+            },
+            "prepare_file": {
+              "samples": 19,
+              "p50Ns": "96425",
+              "p95Ns": "113211",
+              "p99Ns": "113211"
+            },
+            "rename": {
+              "samples": 19,
+              "p50Ns": "335456",
+              "p95Ns": "14930396",
+              "p99Ns": "14930396"
+            },
+            "validate": {
+              "samples": 19,
+              "p50Ns": "130078531",
+              "p95Ns": "197499514",
+              "p99Ns": "197499514"
+            },
+            "write": {
+              "samples": 19,
+              "p50Ns": "548497",
+              "p95Ns": "968040",
+              "p99Ns": "968040"
+            }
+          },
+          "payloadBytesRange": [
+            426229,
+            3852721
+          ],
+          "validationShareOfSummedSampleTimers": {
+            "numeratorNs": "2137694373",
+            "denominatorNs": "2721680551",
+            "isWallTimeOrCPUPortion": false
+          }
+        },
+        {
+          "nodeIndex": 2,
+          "physicalCommitCount": 19,
+          "outerCommitNs": {
+            "samples": 19,
+            "p50Ns": "136765112",
+            "p95Ns": "270446050",
+            "p99Ns": "270446050"
+          },
+          "persistenceSampleNs": {
+            "samples": 19,
+            "p50Ns": "136665181",
+            "p95Ns": "270376876",
+            "p99Ns": "270376876"
+          },
+          "fileOperationsNs": {
+            "samples": 19,
+            "p50Ns": "5132811",
+            "p95Ns": "108803642",
+            "p99Ns": "108803642"
+          },
+          "stagesNs": {
+            "close_file": {
+              "samples": 19,
+              "p50Ns": "11387",
+              "p95Ns": "17676",
+              "p99Ns": "17676"
+            },
+            "directory_sync": {
+              "samples": 19,
+              "p50Ns": "166821",
+              "p95Ns": "1183649",
+              "p99Ns": "1183649"
+            },
+            "file_sync": {
+              "samples": 19,
+              "p50Ns": "959992",
+              "p95Ns": "66737930",
+              "p99Ns": "66737930"
+            },
+            "json_encode": {
+              "samples": 19,
+              "p50Ns": "8470665",
+              "p95Ns": "39264923",
+              "p99Ns": "39264923"
+            },
+            "prepare_file": {
+              "samples": 19,
+              "p50Ns": "92589",
+              "p95Ns": "150838",
+              "p99Ns": "150838"
+            },
+            "rename": {
+              "samples": 19,
+              "p50Ns": "411611",
+              "p95Ns": "30706528",
+              "p99Ns": "30706528"
+            },
+            "validate": {
+              "samples": 19,
+              "p50Ns": "111013991",
+              "p95Ns": "193144613",
+              "p99Ns": "193144613"
+            },
+            "write": {
+              "samples": 19,
+              "p50Ns": "521877",
+              "p95Ns": "41350993",
+              "p99Ns": "41350993"
+            }
+          },
+          "payloadBytesRange": [
+            426229,
+            3852721
+          ],
+          "validationShareOfSummedSampleTimers": {
+            "numeratorNs": "1909473802",
+            "denominatorNs": "2438319235",
+            "isWallTimeOrCPUPortion": false
+          }
+        },
+        {
+          "nodeIndex": 3,
+          "physicalCommitCount": 19,
+          "outerCommitNs": {
+            "samples": 19,
+            "p50Ns": "160713619",
+            "p95Ns": "221485007",
+            "p99Ns": "221485007"
+          },
+          "persistenceSampleNs": {
+            "samples": 19,
+            "p50Ns": "160640529",
+            "p95Ns": "221390835",
+            "p99Ns": "221390835"
+          },
+          "fileOperationsNs": {
+            "samples": 19,
+            "p50Ns": "2181259",
+            "p95Ns": "56943489",
+            "p99Ns": "56943489"
+          },
+          "stagesNs": {
+            "close_file": {
+              "samples": 19,
+              "p50Ns": "11357",
+              "p95Ns": "19629",
+              "p99Ns": "19629"
+            },
+            "directory_sync": {
+              "samples": 19,
+              "p50Ns": "166641",
+              "p95Ns": "431942",
+              "p99Ns": "431942"
+            },
+            "file_sync": {
+              "samples": 19,
+              "p50Ns": "871244",
+              "p95Ns": "35480429",
+              "p99Ns": "35480429"
+            },
+            "json_encode": {
+              "samples": 19,
+              "p50Ns": "9247386",
+              "p95Ns": "53757069",
+              "p99Ns": "53757069"
+            },
+            "prepare_file": {
+              "samples": 19,
+              "p50Ns": "93781",
+              "p95Ns": "115174",
+              "p99Ns": "115174"
+            },
+            "rename": {
+              "samples": 19,
+              "p50Ns": "423989",
+              "p95Ns": "1894673",
+              "p99Ns": "1894673"
+            },
+            "validate": {
+              "samples": 19,
+              "p50Ns": "113582214",
+              "p95Ns": "190972133",
+              "p99Ns": "190972133"
+            },
+            "write": {
+              "samples": 19,
+              "p50Ns": "535898",
+              "p95Ns": "55349205",
+              "p99Ns": "55349205"
+            }
+          },
+          "payloadBytesRange": [
+            426229,
+            3852721
+          ],
+          "validationShareOfSummedSampleTimers": {
+            "numeratorNs": "2055575755",
+            "denominatorNs": "2544059535",
+            "isWallTimeOrCPUPortion": false
+          }
+        }
+      ]
+    }
+  ],
+  "blockContent": "mixed activation, registrations, empty proof blocks and transfers; cannot isolate business-only rows without original transaction-height result",
+  "pairedCausalImprovementProven": false,
+  "afterCensoringWarning": "Only completed Commit calls emitted before deadline; absent/in-flight calls have no fabricated zero sample. Arms have different observed height sets and workloads.",
+  "limits": [
+    "Four nodes share one Go process/VM: sample timer sums are not elapsed wall time or pure CPU time.",
+    "Validation is state.validateOwned in actual atomic writer; its internal validators, histories and hash costs are not separately measured.",
+    "File operations include prepare/write/fsync/close/rename/directory sync elapsed calls, not device-only I/O time.",
+    "Before/after pooled quantiles are different observed sample sets, not a paired optimization effect.",
+    "Boot ID missing in original guard; no fabricated VM identity."
+  ],
+  "businessTPSMeasured": false,
+  "transactionFinalityMeasured": false
+}
