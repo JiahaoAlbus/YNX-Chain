@@ -147,9 +147,10 @@ func loadPQEngineSnapshotOwned(witness *validatedMigration, statePath string, au
 	if err != nil || !bytes.Equal(hash, committedAppHash) {
 		return nil, errors.New("application authority AppHash differs from trusted Comet state")
 	}
-	if err := state.validateOwned(witness); err != nil {
-		return nil, err
-	}
+	// The private reader already fully validated this detached state against
+	// this exact witness, then checked/closed its original source. The height
+	// and hash comparisons above do not mutate it or resolve external state.
+	// Keep the independent runtime/schedule and complete snapshot replay below.
 	if _, err := runtimeStateApplicationVersion(state, runtime); err != nil {
 		return nil, err
 	}

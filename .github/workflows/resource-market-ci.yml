@@ -19,6 +19,9 @@ on:
       - 'pkg/**'
       - 'third_party/cometbft/**'
       - 'scripts/loadtest/**'
+      - 'scripts/fixtures/verify-registered-n1-cabi/**'
+      - 'scripts/verify/registered-n1-verify-cabi-check.sh'
+      - 'scripts/ops/test_registered_n1_verify_cabi_supply.py'
       - 'scripts/ops/validate-private-consensus-copy.py'
       - 'scripts/ops/test_validate_private_consensus_copy.py'
       - 'scripts/ops/verify-original-native-copy.py'
@@ -629,7 +632,21 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git diff --exit-code
-          go test -p 1 ./cmd/ynx-artifact-release-cabi -count=1
+          if ! go test -json -p 1 ./cmd/ynx-artifact-release-cabi -count=1 > "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          rows = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-native-cabi-core-tests.jsonl').read_text().splitlines()]
+          required = ['TestRegisteredN1VerifyActualANDAndExpectedBinding', 'TestRegisteredN1VerifyN1AndStrictWire', 'TestRegisteredN1VerifyCurrentPolicyAndBounds', 'TestRegisteredN1VerifyEmptyMessageAndNullBridge']
+          for name in required:
+              terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('registered N1 core did not execute and pass: ' + name)
+          print('YNX_REGISTERED_N1_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=required, suitePassed=True, accountAuthorized=False), sort_keys=True))
+          PY
       - name: Execute actual C ABI and independently verify both signatures
         run: |
           set -euo pipefail
@@ -804,6 +821,21 @@ jobs:
           if command('git','status','--porcelain','--untracked-files=normal'):
               raise RuntimeError('Native CI modified source checkout')
           PY
+      - name: Verify registered N1 public supply controls
+        run: python3 -B scripts/ops/test_registered_n1_verify_cabi_supply.py
+      - name: Execute registered N1 verifier from the same sealed native archive
+        run: |
+          set -euo pipefail
+          bash scripts/verify/registered-n1-verify-cabi-check.sh \
+            "$RUNNER_TEMP/ynx-artifact-release-cabi/delivery/native-host" \
+            "$RUNNER_TEMP/ynx-registered-n1-verify-cabi"
+      - name: Upload only public registered N1 verifier and actual native evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-registered-n1-verify-cabi-native-${{ matrix.runner }}-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-registered-n1-verify-cabi/delivery/*
+          if-no-files-found: error
+          retention-days: 7
       - name: Seal the same executed archive with dedicated publisher public evidence
         run: |
           set -euo pipefail
@@ -1481,7 +1513,7 @@ jobs:
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-state-tests.jsonl').read_text().splitlines()]
-          required = ['TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash', 'TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold', 'TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis', 'TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming', 'TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas', 'TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer', 'TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets', 'TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds', 'TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting', 'TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation', 'TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles', 'TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory', 'TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads', 'TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip', 'TestPQHistoryMathCacheOwnedReplayCommitAndColdRestart', 'TestPQHistoryMathCacheWarmDynamicRejectionsMatchCold', 'TestValidatorRegistryMathCacheOwnedHitsPreserveOriginalStateAndHash', 'TestValidatorRegistryMathCacheWarmHitsNeverAuthorizeChangedRegistry', 'TestValidatorRegistryMathCacheColdRestartReverifiesWithIndependentOwner', 'TestValidatorRegistryMathCacheOwnedSnapshotsRetainWitnessAndDynamicChecks', 'TestValidatorRegistryMathCacheApplicationAndOwnedFileSnapshotsReuseOnlyMath', 'TestPQNetworkBusinessHostPreparationReturnsErrorsWithoutGoexit', 'TestPQNetworkBusinessHostPreparationUsesOwnedMathAndKeepsColdValidation', 'TestPQNetworkBusinessHostPreparationCancellationStopsBeforeCapture', 'TestPQNetworkFreshHostPreparationDoesNotBlockOriginalPacedOffers', 'TestPQNetworkFreshHostPreparationRetainsFourSlotsAndDetachedInputs', 'TestPQNetworkFreshHostPreparationPreservesErrorsAndPipelineCancellation', 'TestPQNetworkFreshHostPreparationRejectsInvalidTargetsAndJoinsGoexit', 'TestPQNetworkFreshHostPreparationProgressKeepsAllMeasuredStagesAndOriginalBudget']
+          required = ['TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash', 'TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold', 'TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis', 'TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming', 'TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas', 'TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer', 'TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets', 'TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds', 'TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting', 'TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation', 'TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles', 'TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory', 'TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads', 'TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip', 'TestPQHistoryMathCacheOwnedReplayCommitAndColdRestart', 'TestPQHistoryMathCacheWarmDynamicRejectionsMatchCold', 'TestValidatorRegistryMathCacheOwnedHitsPreserveOriginalStateAndHash', 'TestValidatorRegistryMathCacheWarmHitsNeverAuthorizeChangedRegistry', 'TestValidatorRegistryMathCacheColdRestartReverifiesWithIndependentOwner', 'TestValidatorRegistryMathCacheOwnedSnapshotsRetainWitnessAndDynamicChecks', 'TestValidatorRegistryMathCacheApplicationAndOwnedFileSnapshotsReuseOnlyMath', 'TestPQNetworkBusinessHostPreparationReturnsErrorsWithoutGoexit', 'TestPQNetworkBusinessHostPreparationUsesOwnedMathAndKeepsColdValidation', 'TestPQNetworkBusinessHostPreparationCancellationStopsBeforeCapture', 'TestPQNetworkFreshHostPreparationDoesNotBlockOriginalPacedOffers', 'TestPQNetworkFreshHostPreparationRetainsFourSlotsAndDetachedInputs', 'TestPQNetworkFreshHostPreparationPreservesErrorsAndPipelineCancellation', 'TestPQNetworkFreshHostPreparationRejectsInvalidTargetsAndJoinsGoexit', 'TestPQNetworkFreshHostPreparationProgressKeepsAllMeasuredStagesAndOriginalBudget', 'TestPQNetworkFreshHostPreparationYieldsBetweenReadinessProbes', 'TestPQEngineCheckpointValidationOwnedReadAndColdAuthority', 'TestPQEngineCheckpointValidationResealedLedgerAndCoordinates', 'TestPQEngineCheckpointValidationOriginalReadbackAndClose', 'TestPQEngineCheckpointValidationKeepsIndependentSchedulePin']
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
@@ -4267,7 +4299,7 @@ jobs:
               blob = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + leaf], text=True).strip()
               if subprocess.check_output(['git', 'hash-object', leaf], text=True).strip() != blob:
                   raise RuntimeError('actual test source differs from the committed compile input')
-              if leaf.endswith('pq_network_fresh_business_test.go') and expected['sha256'] != '40b2947fe1c9a39c19940c1acb4257b5b4cbb700ec891c6b129f73633102e24f':
+              if leaf.endswith('pq_network_fresh_business_test.go') and expected['sha256'] != '11475ccf5fe50b6882c9d0375cd3e7a6c2993f387da3252ecbe5be200c44c821':
                   raise RuntimeError('independent frozen fresh test source differs')
               copy(source_root / leaf, root / 'source' / leaf, expected, 256 << 10)
               source_leaves[leaf], source_blobs[leaf] = expected['sha256'], blob

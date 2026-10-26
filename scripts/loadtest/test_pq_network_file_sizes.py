@@ -71,7 +71,8 @@ class FileSizeControls(unittest.TestCase):
             self.assertEqual(categories[category], dict(category=category, count=len(chosen), logicalBytes=sum(chosen)))
         self.assertEqual(result["largest"][0], dict(category="other", logicalBytes=47,
             pathSHA256=hashlib.sha256(b"YNX-PQ-NETWORK-PATH/v1\0" +
-                (root + "credential-name-MUST-NOT-APPEAR").encode()).hexdigest()))
+                (root + "credential-name-MUST-NOT-APPEAR").encode()).hexdigest(),
+            arm="unknown", nodeIndex=None, kind="other"))
         encoded = sizes.encode_report(result)
         self.assertLess(len(encoded), sizes.MAX_JSON_BYTES)
         for secret in (str(self.parent), "credential-name-MUST-NOT-APPEAR", "000001.log", "synthetic-only"):
@@ -80,6 +81,109 @@ class FileSizeControls(unittest.TestCase):
         # file content hashing. This reference only inspects this tiny tree.
         reference = sum(p.lstat().st_size for p in self.case.rglob("*") if stat.S_ISREG(p.lstat().st_mode))
         self.assertEqual(result["logicalBytes"], reference)
+
+    def test_fresh_details_use_the_same_metadata_and_preserve_exact_totals(self):
+        before = "tmp/ynx-pq-fresh-paired-123456/before/"
+        after = "tmp/ynx-pq-fresh-paired-123456/after/"
+        rows = {}
+        for i, kind in enumerate(("state", "migration", "genesis", "schedule", "trusted")):
+            rows[before + "host-input-" + kind + "-" + "ab" * 32 + ".json"] = (
+                "host-input-" + kind, "before", None, i + 1)
+        rows.update({
+            before + "member-00.host-context.json": ("host-context", "before", None, 11),
+            before + "member-15.wire": ("client-wire", "before", None, 13),
+            after + "birth-16.wire": ("client-wire", "after", None, 17),
+            before + "member-00-submit.json": ("client-submission", "before", None, 19),
+            after + "member-15-readback.json": ("client-readback", "after", None, 23),
+            before + "member-00-submit.stdout": ("client-stdout-stderr", "before", None, 29),
+            after + "member-15-readback.stderr": ("client-stdout-stderr", "after", None, 31),
+            before + "validator-0/data/cs.wal/wal": ("consensus_wal", "before", 0, 37),
+            after + "validator-3/data/cs.wal/wal.000": ("consensus_wal", "after", 3, 41),
+            after + "unknown-private-name": ("other", "after", None, 43),
+        })
+        for relative, (_, _, _, size) in rows.items():
+            self.write(relative, b"x" * size)
+        with mock.patch.object(sizes, "_scan", wraps=sizes._scan) as scans:
+            result = self.scan()
+        self.assertEqual(scans.call_count, 2)
+        self.assertEqual(result["schema"], sizes.SCHEMA)
+        self.assertEqual(result["metric"], "sum-regular-file-st_size")
+        self.assertFalse(result["contentsRead"])
+        self.assertFalse(result["historicalPeakMeasured"])
+        self.assertEqual(result["consistency"], "two-identical-metadata-scans")
+        self.assertEqual(result["count"], len(rows))
+        self.assertEqual(result["logicalBytes"], sum(row[3] for row in rows.values()))
+        categories = {row["category"]: row for row in result["categories"]}
+        self.assertEqual(tuple(categories), sizes.CATEGORIES)
+        self.assertEqual(categories["consensus_wal"], dict(category="consensus_wal", count=2, logicalBytes=78))
+        by_pin = {row["pathSHA256"]: row for row in result["largest"]}
+        self.assertEqual(len(by_pin), len(rows))
+        for relative, (kind, arm, node, size) in rows.items():
+            key = hashlib.sha256(b"YNX-PQ-NETWORK-PATH/v1\0" + relative.encode()).hexdigest()
+            row = by_pin[key]
+            self.assertEqual((row["kind"], row["arm"], row["nodeIndex"], row["logicalBytes"]),
+                             (kind, arm, node, size))
+            self.assertEqual(set(row), {"category", "logicalBytes", "pathSHA256", "arm", "nodeIndex", "kind"})
+        kinds = {row["kind"]: row for row in result["otherKinds"]}
+        self.assertEqual(tuple(kinds), sizes.OTHER_KINDS)
+        for kind, item in kinds.items():
+            selected = [row[3] for row in rows.values() if row[0] == kind]
+            self.assertEqual(item, dict(kind=kind, count=len(selected), logicalBytes=sum(selected)))
+        self.assertEqual(sum(row["count"] for row in kinds.values()), categories["other"]["count"])
+        self.assertEqual(sum(row["logicalBytes"] for row in kinds.values()), categories["other"]["logicalBytes"])
+        encoded = sizes.encode_report(result)
+        for hidden in (str(self.parent), "ynx-pq-fresh-paired-123456", "unknown-private-name", "member-15", "validator-3", "ab" * 32):
+            self.assertNotIn(hidden.encode(), encoded)
+
+    def test_fresh_nested_and_unknown_names_cannot_select_a_known_kind_or_node(self):
+        root = "tmp/ynx-pq-fresh-paired-23/"
+        host = "host-input-state-" + "cd" * 32 + ".json"
+        rows = {
+            root + "before/nested/" + host: ("before", None),
+            root + "after/nested/validator-1/" + host: ("after", None),
+            root + "before/validator-4/data/unknown": ("before", None),
+            root + "after/member-16.wire": ("after", None),
+            root + "after/member-00-readback.json.extra": ("after", None),
+            root + "before/host-input-state-not-a-pin.json": ("before", None),
+            "nested/" + root + "before/" + host: ("unknown", None),
+            "tmp/ynx-pq-fresh-paired-private/before/" + host: ("unknown", None),
+            root + "not-an-arm/validator-1/data/unknown": ("unknown", None),
+            "before/validator-2/data/unknown": ("unknown", None),
+        }
+        for relative in rows:
+            self.write(relative, b"x")
+        report = self.scan()
+        by_pin = {row["pathSHA256"]: row for row in report["largest"]}
+        for relative, location in rows.items():
+            key = hashlib.sha256(b"YNX-PQ-NETWORK-PATH/v1\0" + relative.encode()).hexdigest()
+            row = by_pin[key]
+            self.assertEqual((row["arm"], row["nodeIndex"]), location)
+            self.assertEqual((row["category"], row["kind"]), ("other", "other"))
+        self.assertEqual(report["count"], len(rows))
+        self.assertEqual(report["logicalBytes"], len(rows))
+        kinds = {row["kind"]: row for row in report["otherKinds"]}
+        self.assertEqual(kinds["other"]["count"], len(rows))
+        self.assertTrue(all(row["count"] == row["logicalBytes"] == 0
+                            for kind, row in kinds.items() if kind != "other"))
+
+    def test_empty_tree_has_explicit_zero_categories_and_other_kinds(self):
+        report = self.scan()
+        self.assertEqual((report["count"], report["logicalBytes"], report["largest"]), (0, 0, []))
+        self.assertEqual(report["categories"], [dict(category=name, count=0, logicalBytes=0)
+                                               for name in sizes.CATEGORIES])
+        self.assertEqual(report["otherKinds"], [dict(kind=name, count=0, logicalBytes=0)
+                                               for name in sizes.OTHER_KINDS])
+
+    def test_known_fresh_basename_does_not_bypass_original_symlink_refusal(self):
+        original = self.write("original-private", b"retained synthetic original")
+        alias = self.case / ("tmp/ynx-pq-fresh-paired-42/before/host-input-state-"
+                             + "ef" * 32 + ".json")
+        alias.parent.mkdir(parents=True)
+        alias.symlink_to(original)
+        with self.assertRaisesRegex(sizes.ScanError, "nonregular_entry"):
+            self.scan()
+        self.assertTrue(alias.is_symlink())
+        self.assertEqual(original.read_bytes(), b"retained synthetic original")
 
     def test_no_regular_file_content_is_opened_or_read(self):
         self.write("tmp/validator-1/data/application.json", b"private bytes must not be opened")

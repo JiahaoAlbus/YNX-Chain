@@ -28,6 +28,12 @@ CATEGORIES = (
     "application_snapshot", "application_journal", "sign_state", "case_metadata",
     "other",
 )
+OTHER_KINDS = (
+    "host-input-state", "host-input-migration", "host-input-genesis",
+    "host-input-schedule", "host-input-trusted", "host-context",
+    "client-wire", "client-submission", "client-readback",
+    "client-stdout-stderr", "other",
+)
 
 
 class ScanError(Exception):
@@ -115,6 +121,40 @@ def category_for(relative):
     return "other"
 
 
+def file_detail_for(relative, category):
+    """Fixed fixture-name observations only, never ownership or deletion proof.
+
+    The Fresh caller creates exactly TMPDIR/ynx-pq-fresh-paired-<digits>/arm.
+    Do not infer a node from a nested lookalike or classify a Host/client file
+    outside that arm's direct directory. Original category totals stay intact.
+    """
+    parts = relative.split("/")
+    arm, node, tail = "unknown", None, []
+    if (len(parts) >= 4 and parts[0] == "tmp"
+            and re.fullmatch(r"ynx-pq-fresh-paired-[0-9]+", parts[1])
+            and parts[2] in ("before", "after")):
+        arm, tail = parts[2], parts[3:]
+        if len(tail) >= 2 and re.fullmatch(r"validator-[0-3]", tail[0]):
+            node = int(tail[0][-1])
+    kind = category
+    if category == "other" and len(tail) == 1:
+        name = tail[0]
+        host = re.fullmatch(r"host-input-(state|migration|genesis|schedule|trusted)-[0-9a-f]{64}\.json", name)
+        if host:
+            kind = "host-input-" + host[1]
+        elif re.fullmatch(r"member-(?:0[0-9]|1[0-5])\.host-context\.json", name):
+            kind = "host-context"
+        elif re.fullmatch(r"(?:member-(?:0[0-9]|1[0-5])|birth-(?:0[0-9]|1[0-6]))\.wire", name):
+            kind = "client-wire"
+        elif re.fullmatch(r"member-(?:0[0-9]|1[0-5])-submit\.json", name):
+            kind = "client-submission"
+        elif re.fullmatch(r"member-(?:0[0-9]|1[0-5])-readback\.json", name):
+            kind = "client-readback"
+        elif re.fullmatch(r"member-(?:0[0-9]|1[0-5])-(?:submit|readback)\.(?:stdout|stderr)", name):
+            kind = "client-stdout-stderr"
+    return {"arm": arm, "nodeIndex": node, "kind": kind}
+
+
 def _scan(root_fd):
     root_info = os.fstat(root_fd)
     records = {}
@@ -187,16 +227,22 @@ def scan_case(ephemeral_parent, case, run_id, run_attempt):
     finally:
         os.close(parent_fd)
     categories = {name: {"category": name, "count": 0, "logicalBytes": 0} for name in CATEGORIES}
+    other_kinds = {name: {"kind": name, "count": 0, "logicalBytes": 0} for name in OTHER_KINDS}
     largest = []
     for relative, metadata in first.items():
         if not stat.S_ISREG(metadata[2]):
             continue
         size = metadata[5]
         category = category_for(relative)
+        detail = file_detail_for(relative, category)
         categories[category]["count"] += 1
         categories[category]["logicalBytes"] += size
+        if category == "other":
+            other_kinds[detail["kind"]]["count"] += 1
+            other_kinds[detail["kind"]]["logicalBytes"] += size
         largest.append({"category": category, "logicalBytes": size,
-                        "pathSHA256": hashlib.sha256(b"YNX-PQ-NETWORK-PATH/v1\0" + os.fsencode(relative)).hexdigest()})
+                        "pathSHA256": hashlib.sha256(b"YNX-PQ-NETWORK-PATH/v1\0" + os.fsencode(relative)).hexdigest(),
+                        **detail})
     largest.sort(key=lambda item: (-item["logicalBytes"], item["category"], item["pathSHA256"]))
     return {"schema": SCHEMA, "status": "complete", "sourceKind": "owned-ephemeral-case-metadata",
             "observation": "post-window-retained-files", "historicalPeakMeasured": False,
@@ -204,7 +250,8 @@ def scan_case(ephemeral_parent, case, run_id, run_attempt):
             "metric": "sum-regular-file-st_size", "consistency": "two-identical-metadata-scans",
             "count": sum(item["count"] for item in categories.values()),
             "logicalBytes": sum(item["logicalBytes"] for item in categories.values()),
-            "categories": list(categories.values()), "largest": largest[:LARGEST_COUNT]}
+            "categories": list(categories.values()), "largest": largest[:LARGEST_COUNT],
+            "otherKinds": list(other_kinds.values())}
 
 
 def encode_report(report):
