@@ -2362,6 +2362,92 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Export one public contract from real Application/Comet test helpers. No
+  # node, signing authority, live release selection or pressure window starts.
+  pq-identity-public-contract:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GOMAXPROCS: '2'
+      GOGC: '50'
+      GOMEMLIMIT: '1536MiB'
+      CGO_ENABLED: '0'
+      GOFLAGS: '-p=1 -trimpath'
+      GOTOOLCHAIN: local
+    steps:
+      - name: Checkout the exact identity contract source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Select only changed public identity fixture inputs
+        id: scope
+        run: |
+          python3 -B - <<'PY'
+          import os, re, subprocess
+          from pathlib import Path
+          def previous(path):
+              p = subprocess.run(['git', 'show', 'HEAD^:' + path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+              return p.stdout if p.returncode == 0 else b''
+          paths = ('internal/bftgateway/pq_identity_contract_fixture_test.go', 'internal/bftgateway/pq_identity_test.go', 'internal/bftgateway/pq_identity.go', 'internal/consensus/pq_identity_query.go')
+          changed = any(previous(p) != Path(p).read_bytes() for p in paths)
+          def section(raw):
+              start = re.search(rb'(?m)^  pq-identity-public-contract:\n', raw)
+              if start is None:
+                  return b''
+              end = re.search(rb'(?m)^  # Supply the missing clean exporter', raw[start.end():])
+              if end is None:
+                  raise RuntimeError('public identity fixture section boundary absent')
+              return raw[start.start():start.end() + end.start()]
+          path = '.github/workflows/resource-market-ci.yml'
+          changed = changed or section(previous(path)) != section(Path(path).read_bytes())
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write('changed=' + str(changed).lower() + '\n')
+          print('Public identity fixture inputs changed:', changed)
+          PY
+      - name: Use the qualified identity fixture Go toolchain
+        if: steps.scope.outputs.changed == 'true'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Reproduce stable current-height pending and export the actual historical anchor
+        if: steps.scope.outputs.changed == 'true'
+        run: |
+          umask 077
+          mkdir "$RUNNER_TEMP/ynx-pq-identity-public-contract"
+          export YNX_PQ_IDENTITY_CONTRACT_FIXTURE_OUT="$RUNNER_TEMP/ynx-pq-identity-public-contract/fixture.json"
+          go test -v -p 1 -count=1 -timeout=90s -run '^TestPQIdentityPublicHistoricalContractFixture$' ./internal/bftgateway
+          python3 -B - <<'PY'
+          import base64, hashlib, json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['YNX_PQ_IDENTITY_CONTRACT_FIXTURE_OUT']).parent
+          raw = (root / 'fixture.json').read_bytes()
+          if not 0 < len(raw) <= 64 << 10:
+              raise RuntimeError('public identity fixture size differs')
+          paths = ('internal/bftgateway/pq_identity_contract_fixture_test.go', 'internal/bftgateway/pq_identity_test.go', 'internal/bftgateway/pq_identity.go', 'internal/consensus/pq_identity_query.go')
+          pins = {p: dict(bytes=len(Path(p).read_bytes()), sha256=hashlib.sha256(Path(p).read_bytes()).hexdigest(), gitBlob=subprocess.check_output(['git', 'rev-parse', 'HEAD:' + p], text=True).strip()) for p in paths}
+          record = dict(version='YNX-PQ-IDENTITY-PUBLIC-CONTRACT-SUPPLY/v1', commit=os.environ['GITHUB_SHA'], tree=subprocess.check_output(['git', 'rev-parse', 'HEAD^{tree}'], text=True).strip(), runId=os.environ['GITHUB_RUN_ID'], runAttempt=os.environ['GITHUB_RUN_ATTEMPT'], fixture=dict(bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest()), sourcePins=pins, publicSynthetic=True, live=False, nodeStarted=False, independentFinality=False, signingAuthority=False)
+          encoded = (json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n').encode('ascii')
+          with (root / 'SOURCE.json').open('xb') as out:
+              out.write(encoded)
+              out.flush()
+              os.fsync(out.fileno())
+          print('YNX_PQ_IDENTITY_PUBLIC_FIXTURE_BASE64 ' + base64.b64encode(raw).decode('ascii'))
+          print('YNX_PQ_IDENTITY_PUBLIC_FIXTURE_SOURCE ' + encoded.decode('ascii'), end='')
+          print('YNX_PQ_IDENTITY_PUBLIC_FIXTURE_SOURCE_PIN bytes=' + str(len(encoded)) + ' sha256=' + hashlib.sha256(encoded).hexdigest())
+          PY
+      - name: Upload only the public identity contract and its actual source pins
+        if: steps.scope.outputs.changed == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-identity-public-contract-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-pq-identity-public-contract
+          if-no-files-found: error
+          retention-days: 7
+
   # Supply the missing clean exporter for the already qualified public-upgrade
   # source. The controller revision and the binary source revision are distinct.
   offline-migration-tools-clean-7f:
