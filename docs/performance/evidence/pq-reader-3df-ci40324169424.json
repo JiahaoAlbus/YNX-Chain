@@ -1,0 +1,32 @@
+{
+  "sourceCommit": "3df2d5729a76cbea6ab0bc9c2ddf5410fdd4c069",
+  "runId": "40324169424",
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40324169424",
+  "event": "push",
+  "status": "completed",
+  "conclusion": "success",
+  "performanceContractsStage": {
+    "completedAt": "2026-10-26T12:40:15Z",
+    "conclusion": "success",
+    "name": "Verify bounded performance controller and evidence contracts",
+    "number": 7,
+    "startedAt": "2026-10-26T12:40:14Z",
+    "status": "completed"
+  },
+  "originalMetadataPin": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-preparation/CONSUMER_3DF_CI_FINAL.json",
+    "bytes": 6751,
+    "sha256": "3283f2c5a51eb8cb11eb712098b3ee48dc79e8b6613fd17f42ca9fc3d301bc18"
+  },
+  "localFocusedReaderTests": {
+    "pass": 28,
+    "fail": 0,
+    "skip": 0
+  },
+  "qualification": {
+    "readerOnly": true,
+    "newProtocol282WholeSuccessProvenHere": false,
+    "new32PairedBusinessProvenHere": false,
+    "sustained1000TPSProvenHere": false
+  }
+}
