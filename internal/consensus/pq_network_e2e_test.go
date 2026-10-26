@@ -632,6 +632,7 @@ type pqNetworkE2E struct {
 	phase                  pqNetworkProgressPhase
 	progress               pqNetworkProgressLimiter
 	custody                pqNetworkE2ECustody
+	quietObservation       pqNetworkQuietObservation
 }
 
 func pqNetworkE2ENew(t *testing.T, ctx context.Context, custody pqNetworkE2ECustody) *pqNetworkE2E {
@@ -937,6 +938,7 @@ func (n *pqNetworkE2E) constructPQ(item *pqNetworkE2ENode, initial bool) {
 
 func (n *pqNetworkE2E) startConstructed(count int) {
 	n.t.Helper()
+	n.quietObservation.invalidate()
 	for i := 0; i < count; i++ {
 		if !n.nodes[i].node.IsRunning() {
 			if err := n.nodes[i].node.Start(); err != nil {
@@ -955,6 +957,7 @@ func (n *pqNetworkE2E) startConstructed(count int) {
 }
 
 func (n *pqNetworkE2E) stop(index int) {
+	n.quietObservation.invalidate()
 	item := n.nodes[index]
 	var historyErr error
 	if n.custody != nil {
@@ -1281,47 +1284,328 @@ func (n *pqNetworkE2E) wait(stage string, ready func() bool) {
 	}
 }
 
+// One observation belongs to one fixture and its exact participating instances.
+// Every poll and every repeated quiet call still reads all actual participants;
+// only an already completed wait at that same checkpoint can be reused.
+type pqNetworkQuietNode struct {
+	item                   *pqNetworkE2ENode
+	node                   *node.Node
+	app                    *Application
+	storeHeight, appHeight int64
+	appHash                string
+	mempoolSize            int
+	running                bool
+}
+
+type pqNetworkQuietObservation struct {
+	nodes         []pqNetworkQuietNode
+	initialHeight int64
+	contextDone   <-chan struct{}
+	since         time.Time
+	last          time.Time
+	completed     bool
+}
+
+func (q *pqNetworkQuietObservation) invalidate() { *q = pqNetworkQuietObservation{} }
+
+func (q *pqNetworkQuietObservation) observe(ctx context.Context, initialHeight int64, count int, read func(int) pqNetworkQuietNode, clock func() time.Time) (int64, bool, error) {
+	if ctx == nil || read == nil || clock == nil || initialHeight < 1 || count < 1 || count > 4 {
+		q.invalidate()
+		return 0, false, errors.New("original bounded quiet observation required")
+	}
+	if err := ctx.Err(); err != nil {
+		q.invalidate()
+		return 0, false, err
+	}
+	current := make([]pqNetworkQuietNode, count)
+	for i := range current {
+		current[i] = read(i)
+	}
+	if err := ctx.Err(); err != nil {
+		q.invalidate()
+		return 0, false, err
+	}
+	// Begin/finish each stable observation after all participant reads, so slow
+	// reads cannot be credited toward the unchanged 750ms stable window.
+	now := clock()
+	if now.IsZero() {
+		q.invalidate()
+		return 0, false, errors.New("original quiet observation clock required")
+	}
+	height := current[0].storeHeight
+	if height >= initialHeight {
+		if err := pqNetworkE2EBlockBudget(initialHeight, height, 0); err != nil {
+			q.invalidate()
+			return 0, false, err
+		}
+	}
+	eligible := height >= initialHeight
+	for _, item := range current {
+		if item.item == nil || item.node == nil || item.app == nil || !item.running || item.storeHeight != height || item.appHeight != height || item.mempoolSize != 0 {
+			eligible = false
+		}
+	}
+	if !eligible {
+		q.invalidate()
+		return 0, false, nil
+	}
+	for _, item := range current[1:] {
+		if item.appHash != current[0].appHash {
+			q.invalidate()
+			return 0, false, errors.New("validators committed different AppHash at identical height")
+		}
+	}
+	same := q.initialHeight == initialHeight && q.contextDone == ctx.Done() && len(q.nodes) == count && !q.since.IsZero() && !now.Before(q.last)
+	if same {
+		for i := range current {
+			if current[i] != q.nodes[i] {
+				same = false
+			}
+		}
+	}
+	if !same {
+		*q = pqNetworkQuietObservation{nodes: current, initialHeight: initialHeight, contextDone: ctx.Done(), since: now, last: now}
+		return height, false, nil
+	}
+	q.last = now
+	if !q.completed {
+		q.completed = now.Sub(q.since) >= 750*time.Millisecond
+	}
+	return height, q.completed, nil
+}
+
 func (n *pqNetworkE2E) quiet(count int) int64 {
 	n.t.Helper()
+	if count < 1 || count > len(n.nodes) {
+		n.quietObservation.invalidate()
+		n.t.Fatal("quiet requires the original participating nodes")
+	}
 	var height int64
-	var stable time.Time
 	n.wait("same committed checkpoint and idle mempools", func() bool {
-		h := n.nodes[0].node.BlockStore().Height()
-		if h < n.doc.InitialHeight {
-			return false
-		}
-		if err := pqNetworkE2EBlockBudget(n.doc.InitialHeight, h, 0); err != nil {
-			n.t.Fatal(err)
-		}
-		var expectedHash string
-		for i := 0; i < count; i++ {
+		h, ready, err := n.quietObservation.observe(n.ctx, n.doc.InitialHeight, count, func(i int) pqNetworkQuietNode {
 			item := n.nodes[i]
+			if item == nil || item.node == nil || item.app == nil {
+				return pqNetworkQuietNode{item: item}
+			}
 			item.app.mu.RLock()
 			ah, hash := item.app.committed.Height, item.app.committed.AppHash
 			item.app.mu.RUnlock()
-			if item.node.BlockStore().Height() != h || ah != h || item.node.Mempool().Size() != 0 {
-				stable = time.Time{}
-				return false
-			}
-			if i == 0 {
-				expectedHash = hash
-			} else if hash != expectedHash {
-				n.t.Fatal("validators committed different AppHash at identical height")
-			}
+			// No Application lock is held while reading the node/store/mempool.
+			return pqNetworkQuietNode{item: item, node: item.node, app: item.app, storeHeight: item.node.BlockStore().Height(), appHeight: ah, appHash: hash, mempoolSize: item.node.Mempool().Size(), running: item.node.IsRunning()}
+		}, time.Now)
+		if err != nil {
+			n.t.Fatal(err)
 		}
-		if h != height || stable.IsZero() {
-			height = h
-			stable = time.Now()
-			return false
-		}
-		return time.Since(stable) >= 750*time.Millisecond
+		height = h
+		return ready
 	})
 	n.blockHashes(count)
+	if err := n.ctx.Err(); err != nil {
+		n.quietObservation.invalidate()
+		n.t.Fatal(err)
+	}
 	return height
+}
+
+// These DATA regressions drive mutable observations and a caller-owned clock;
+// they never invoke a node constructor/Start, listen, or sign a transaction.
+func pqNetworkQuietTestNodes() []pqNetworkQuietNode {
+	items := make([]pqNetworkQuietNode, 4)
+	for i := range items {
+		items[i] = pqNetworkQuietNode{item: &pqNetworkE2ENode{}, node: &node.Node{}, app: &Application{}, storeHeight: 7, appHeight: 7, appHash: strings.Repeat("a", 64), running: true}
+	}
+	return items
+}
+
+func TestPQNetworkQuietObservationReusesOnlyCompletedExactCheckpoint(t *testing.T) {
+	var q pqNetworkQuietObservation
+	items := pqNetworkQuietTestNodes()
+	now := time.Unix(1, 0)
+	reads := make([]int, 4)
+	read := func(i int) pqNetworkQuietNode {
+		reads[i]++
+		return items[i]
+	}
+	observe := func(want bool) {
+		t.Helper()
+		before := append([]int(nil), reads...)
+		height, ready, err := q.observe(context.Background(), 7, 4, read, func() time.Time { return now })
+		if err != nil || ready != want || height != 7 {
+			t.Fatal("exact checkpoint readiness differs", height, ready, err)
+		}
+		for i := range reads {
+			if reads[i] != before[i]+1 {
+				t.Fatal("an observation reused a node read", i, reads)
+			}
+		}
+	}
+	observe(false)
+	now = now.Add(749 * time.Millisecond)
+	observe(false)
+	now = now.Add(time.Millisecond)
+	observe(true)
+	completedAt := now
+	for i := 0; i < 3; i++ {
+		observe(true)
+	}
+	if now != completedAt || !q.completed {
+		t.Fatal("unchanged completed checkpoint required another stable interval")
+	}
+	// The retained sample is a value snapshot, not an alias to the reader's
+	// mutable slice. Even a change only in the last AppHash byte must reset it.
+	for i := range items {
+		items[i].appHash = strings.Repeat("a", 63) + "b"
+	}
+	observe(false)
+	now = now.Add(749 * time.Millisecond)
+	observe(false)
+	now = now.Add(time.Millisecond)
+	observe(true)
+}
+
+func TestPQNetworkQuietObservationChangesRequireAnotherFullWindow(t *testing.T) {
+	for _, scenario := range []string{"commit", "app-height", "store-height", "full-hash-conflict", "mempool-busy", "stopped", "node-replaced", "app-replaced", "participant-replaced", "count-changed", "context-changed", "lifecycle-invalidated", "admission-invalidated"} {
+		t.Run(scenario, func(t *testing.T) {
+			var q pqNetworkQuietObservation
+			items := pqNetworkQuietTestNodes()
+			original := append([]pqNetworkQuietNode(nil), items...)
+			now := time.Unix(1, 0)
+			var ctx context.Context = context.Background()
+			count, totalReads := 4, 0
+			read := func(i int) pqNetworkQuietNode { totalReads++; return items[i] }
+			observe := func(wantReady, wantError bool) {
+				t.Helper()
+				before := totalReads
+				_, ready, err := q.observe(ctx, 7, count, read, func() time.Time { return now })
+				if ready != wantReady || (err != nil) != wantError || totalReads != before+count {
+					t.Fatal("changed checkpoint reused waiting or skipped participating reads", ready, err, totalReads-before)
+				}
+			}
+			observe(false, false)
+			now = now.Add(750 * time.Millisecond)
+			observe(true, false)
+			now = now.Add(time.Millisecond)
+			switch scenario {
+			case "commit":
+				for i := range items {
+					items[i].storeHeight++
+					items[i].appHeight++
+				}
+			case "app-height":
+				items[2].appHeight++
+			case "store-height":
+				items[2].storeHeight++
+			case "full-hash-conflict":
+				items[3].appHash = strings.Repeat("a", 63) + "b"
+			case "mempool-busy":
+				items[2].mempoolSize = 1
+			case "stopped":
+				items[2].running = false
+			case "node-replaced":
+				items[2].node = &node.Node{}
+			case "app-replaced":
+				items[2].app = &Application{}
+			case "participant-replaced":
+				items[2].item = &pqNetworkE2ENode{}
+			case "count-changed":
+				count = 3
+			case "context-changed":
+				changed, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				ctx = changed
+			case "lifecycle-invalidated", "admission-invalidated":
+				// Same-instance restart/admission can be invisible between reads.
+				// Their real fixture entry points explicitly call this invalidation.
+				q.invalidate()
+			}
+			observe(false, scenario == "full-hash-conflict")
+			copy(items, original)
+			count, ctx = 4, context.Background()
+			// Establish the restored checkpoint at the same clock tick: no time
+			// from its prior incarnation may be inherited after an invalidation.
+			observe(false, false)
+			now = now.Add(749 * time.Millisecond)
+			observe(false, false)
+			now = now.Add(time.Millisecond)
+			observe(true, false)
+		})
+	}
+}
+
+func TestPQNetworkQuietObservationCancellationAndBounds(t *testing.T) {
+	for _, scenario := range []string{"before-read", "during-read", "after-completion", "block-budget", "count-bounds", "clock-regression", "slow-read"} {
+		t.Run(scenario, func(t *testing.T) {
+			var q pqNetworkQuietObservation
+			items := pqNetworkQuietTestNodes()
+			now := time.Unix(1, 0)
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			reads := 0
+			read := func(i int) pqNetworkQuietNode { reads++; return items[i] }
+			clock := func() time.Time { return now }
+			if _, ready, err := q.observe(ctx, 7, 4, read, clock); ready || err != nil {
+				t.Fatal("initial DATA observation failed", err)
+			}
+			now = now.Add(750 * time.Millisecond)
+			if _, ready, err := q.observe(ctx, 7, 4, read, clock); !ready || err != nil {
+				t.Fatal("completed DATA observation failed", err)
+			}
+			reads, count, wantReads := 0, 4, 4
+			wantError := false
+			switch scenario {
+			case "before-read", "after-completion":
+				if scenario == "before-read" {
+					q.invalidate()
+				}
+				cancel()
+				wantError, wantReads = true, 0
+			case "during-read":
+				read = func(i int) pqNetworkQuietNode {
+					reads++
+					if i == 1 {
+						cancel()
+					}
+					return items[i]
+				}
+				wantError = true
+			case "block-budget":
+				for i := range items {
+					items[i].storeHeight, items[i].appHeight = 55, 55
+				}
+				wantError = true
+			case "count-bounds":
+				count, wantError, wantReads = 5, true, 0
+			case "clock-regression":
+				now = now.Add(-time.Millisecond)
+			case "slow-read":
+				q.invalidate()
+				read = func(i int) pqNetworkQuietNode {
+					reads++
+					now = now.Add(time.Second)
+					return items[i]
+				}
+			}
+			_, ready, err := q.observe(ctx, 7, count, read, clock)
+			if ready || (err != nil) != wantError || reads != wantReads {
+				t.Fatal("canceled or invalid observation reused completion", ready, err, reads)
+			}
+			if scenario == "before-read" || scenario == "during-read" || scenario == "after-completion" {
+				if !errors.Is(err, context.Canceled) || len(q.nodes) != 0 || q.completed {
+					t.Fatal("cancellation did not discard the observation", err)
+				}
+			}
+			if scenario == "slow-read" && q.since != now {
+				t.Fatal("participant read latency reduced the required stable interval")
+			}
+		})
+	}
 }
 
 func (n *pqNetworkE2E) check(payload []byte) *abci.ResponseCheckTx {
 	n.t.Helper()
+	// Admission can become non-idle and finish between two quiet polls, even
+	// for a rejected offer with no new block. Never carry an observation over it.
+	n.quietObservation.invalidate()
 	results := make(chan *abci.ResponseCheckTx, 1)
 	failures := make(chan error, 1)
 	pool := n.nodes[0].node.Mempool()

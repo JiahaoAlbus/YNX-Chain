@@ -67,7 +67,7 @@ def selected_profile(consensus_e2e=False, consensus_e2e_retained_history=False,
 E2E_TEST = "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart"
 E2E_SOURCE = "internal/consensus/pq_network_e2e_test.go"
 # Updated only with the separately frozen test leaves and normal CI compilation.
-E2E_SOURCE_SHA256 = "b8c15de1e2b4b1927e8276301e5c04ef7108677d5d16043426b9bc62825598e1"
+E2E_SOURCE_SHA256 = "a6029a4e54a7cbe86e31fdc0a0e88ffac2d17940a709feb13d6f274de44829d2"
 E2E_PROGRESS_SOURCE = "internal/consensus/pq_network_progress_test.go"
 E2E_PROGRESS_SOURCE_SHA256 = "66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044"
 E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",

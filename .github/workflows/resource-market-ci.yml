@@ -2211,7 +2211,7 @@ jobs:
           case = Path(os.environ['YNX_E2E_CASE']).resolve()
           binary = Path(os.environ['YNX_E2E_BUILD']).resolve() / 'consensus.test'
           leaves = {
-              'internal/consensus/pq_network_e2e_test.go': 'b8c15de1e2b4b1927e8276301e5c04ef7108677d5d16043426b9bc62825598e1',
+              'internal/consensus/pq_network_e2e_test.go': 'a6029a4e54a7cbe86e31fdc0a0e88ffac2d17940a709feb13d6f274de44829d2',
               'internal/consensus/pq_network_progress_test.go': '66dd40ab781943d85555cac243148d9744d049d780488f542bb47e50af977044'}
           def digest(path):
               h = hashlib.sha256()
