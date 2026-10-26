@@ -45,6 +45,6 @@ export declare function createProductWalletConnection(config:ProductWalletConnec
  * supplied by the platform owner after its visible narrow read permission.
  * No endpoint/session/provider/credential or login/restore input is accepted. */
 export type ProductWalletBusinessReadConfiguration=Readonly<Pick<ProductWalletConnectionConfiguration,'registry'|'productId'|'storage'|'gatewayTimeoutMs'>&{platform:Exclude<ProductSessionPlatform,'web'>;device:import('./product-session-device-v4.js').ProductSessionDevicePortsV4;deviceCurrent:import('./product-session-device-v4.js').OriginalProductSessionDeviceCurrentSourceV4;abortContext:import('./product-session-device-v4.js').ProductSessionDeviceAbortContextV4}>;
-/** Node/backend must explicitly import the original device-v4 AND entry; an
+/** The normal Node package condition selects the original device-v4 AND entry; an
  * unsupported browser runtime fails closed without Node crypto or P256 fallback. */
 export declare function createProductWalletBusinessReadClient(config:ProductWalletBusinessReadConfiguration):Promise<import('./product-session-device-v4.js').ProductSessionBusinessReadClientV4>;

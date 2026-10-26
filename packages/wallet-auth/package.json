@@ -113,12 +113,14 @@
     },
     "./product-session-native": {
       "types": "./src/product-session-native.d.ts",
-      "import": "./src/product-session-native.js",
+      "browser": "./src/product-session-native.js",
+      "node": "./src/product-session-native-node.js",
       "default": "./src/product-session-native.js"
     },
     "./product-wallet-connection": {
       "types": "./src/product-wallet-connection.d.ts",
-      "import": "./src/product-wallet-connection.js",
+      "browser": "./src/product-wallet-connection.js",
+      "node": "./src/product-wallet-connection-node.js",
       "default": "./src/product-wallet-connection.js"
     },
     "./pq-wallet-key-backup": {
