@@ -1,0 +1,3838 @@
+{
+  "schema": "ynx-pq-fresh-282-terminal-handoff/v1",
+  "classification": "failed bounded cost calibration with actual partial observations",
+  "runId": "40330458629",
+  "runAttempt": 1,
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40330458629",
+  "status": "completed",
+  "conclusion": "failure",
+  "sourceCommit": "28251767dd8098275e59a96f86935e413e5f1355",
+  "originalWatcher": {
+    "session": 86612,
+    "exitCode": 1
+  },
+  "metadataReadback": {
+    "session": 49529,
+    "exitCode": 0,
+    "savedRawMetadata": false,
+    "note": "Original metadata returned through tool; no duplicate GET; watch and workflow logs retained"
+  },
+  "dispatchCount": 1,
+  "resultZipGETCount": 1,
+  "resultArtifact": {
+    "id": 12653528409,
+    "node_id": "MDg6QXJ0aWZhY3QxMjY1MzUyODQwOQ==",
+    "name": "ynx-pq-fresh-paired-business-28251767dd8098275e59a96f86935e413e5f1355-40330458629-1",
+    "size_in_bytes": 71509,
+    "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12653528409",
+    "archive_download_url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12653528409/zip",
+    "expired": false,
+    "digest": "sha256:e93bf5aaae14364b7962d08a8fd0a64182d289a72dc1c86f3e89f72ac844bdd6",
+    "created_at": "2026-10-26T13:28:03Z",
+    "updated_at": "2026-10-26T13:28:03Z",
+    "expires_at": "2026-11-02T13:28:02Z",
+    "workflow_run": {
+      "id": 40330458629,
+      "repository_id": 1285041796,
+      "head_repository_id": 1285041796,
+      "head_branch": "codex/ynx-pq-remote-28251767dd8098275e59a96f86935e413e5f1355",
+      "head_sha": "28251767dd8098275e59a96f86935e413e5f1355"
+    }
+  },
+  "resultZIP": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/result.zip",
+    "bytes": 71509,
+    "sha256": "e93bf5aaae14364b7962d08a8fd0a64182d289a72dc1c86f3e89f72ac844bdd6"
+  },
+  "grant": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/GRANT.json",
+    "bytes": 2447,
+    "sha256": "fd0ce2e48aae662898a8b587bc699f447ab91d048488d6043fb518df8f752451"
+  },
+  "tuple": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/TUPLE.json",
+    "bytes": 71720,
+    "sha256": "6ee24a098ad98775d4fcf58fdc274a748add0f66f9d74de47fdf521f93f20eeb"
+  },
+  "sourceSupplyChecks": {
+    "preparedKeys": 11,
+    "manifestKeys": 7,
+    "sourceLeaves": 3,
+    "expectedELFs": 4,
+    "originalSourceBytes": 3540,
+    "performedBy": "analyze-original.py",
+    "freshSourceArchiveFetchedLocally": false,
+    "localELFExecution": false
+  },
+  "guard": {
+    "firstCause": "privateBytes cap exceeded/invalid",
+    "elapsedMs": 93626,
+    "child": {
+      "pid": 3269,
+      "code": -15,
+      "startTicks": 7977
+    },
+    "cleanupComplete": true,
+    "emptyOwnedScans": [
+      {
+        "elapsedMs": 93573,
+        "hostIdentities": 154
+      },
+      {
+        "elapsedMs": 93626,
+        "hostIdentities": 154
+      }
+    ],
+    "caps": {
+      "activeMs": 105000,
+      "cleanupMs": 15000,
+      "totalMs": 120000,
+      "ownedRSSBytes": 1073741824,
+      "threads": 320,
+      "ownedProcesses": 16,
+      "privateBytes": 536870912,
+      "buildBytes": 1073741824,
+      "logBytes": 1048576,
+      "diskFloorBytes": 1073741824,
+      "rootReserveBytes": 445644800,
+      "compileReserveBytes": 1073741824,
+      "availableMemoryFloorBytes": 1207959552,
+      "sampleMs": 200
+    }
+  },
+  "resourceMax": {
+    "rssBytes": 813985792,
+    "threads": 71,
+    "privateBytes": 540234401,
+    "buildBytes": 166593006
+  },
+  "lastResourceSample": {
+    "elapsedMs": 93457,
+    "rssBytes": 712097792,
+    "threads": 60,
+    "privateBytes": 540234401,
+    "buildBytes": 166593006,
+    "freeDiskBytes": 89159344128,
+    "availableMemoryBytes": 15016460288,
+    "hostIdentities": 163,
+    "vanishedHostPIDs": [],
+    "taskReadbackObservations": []
+  },
+  "postCleanupFiles": {
+    "categories": [
+      {
+        "category": "consensus_wal",
+        "count": 23,
+        "logicalBytes": 223829148
+      },
+      {
+        "category": "blockstore_db",
+        "count": 95,
+        "logicalBytes": 111164523
+      },
+      {
+        "category": "state_db",
+        "count": 56,
+        "logicalBytes": 7303066
+      },
+      {
+        "category": "tx_index_db",
+        "count": 56,
+        "logicalBytes": 31903314
+      },
+      {
+        "category": "evidence_db",
+        "count": 48,
+        "logicalBytes": 8321
+      },
+      {
+        "category": "application_snapshot",
+        "count": 8,
+        "logicalBytes": 32231132
+      },
+      {
+        "category": "application_journal",
+        "count": 0,
+        "logicalBytes": 0
+      },
+      {
+        "category": "sign_state",
+        "count": 24,
+        "logicalBytes": 545521
+      },
+      {
+        "category": "case_metadata",
+        "count": 3,
+        "logicalBytes": 235244
+      },
+      {
+        "category": "other",
+        "count": 538,
+        "logicalBytes": 133079401
+      }
+    ],
+    "consistency": "two-identical-metadata-scans",
+    "contentsRead": false,
+    "count": 851,
+    "historicalPeakMeasured": false,
+    "largest": [
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 16045176,
+        "pathSHA256": "dc842374ef5aff608d76ff3c739de1c76cf576e600310a659eaee2e6b51cd176"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 15852294,
+        "pathSHA256": "0e33ca03a0a094b486b372f4975c0b18d5d75f3fe7405a954d3cf8d600413149"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 15697087,
+        "pathSHA256": "058a7065cb36adb43702b940cde9e8ddaa4f712f5893bc8fd6229cd950553d9d"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 15077289,
+        "pathSHA256": "6f17a503e7036a7a92ad9b5b4e6048f25cc886f9d0b9e60998613e05d541826c"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 13331356,
+        "pathSHA256": "f68dd7cd61a8315ae1828e697015d3f24a1552faa5dc4e1ecaefa4a772574003"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 12543046,
+        "pathSHA256": "84171249fa20444a96c66d3df6fba337f9a963cbd381cc6fbd1157526c879522"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 11982130,
+        "pathSHA256": "6e67ed50c02a8b666b2bbbfae333f49f1dc33fe6eea1d71793e9b8ebad0d2f10"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 11759796,
+        "pathSHA256": "1df0d22f5f626654d3fa5d86af128e6ee20078cb34b817bc959bf74c855a42b4"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 11545117,
+        "pathSHA256": "04e2ac63770261972b44c416cd9d7aa555439c6341099f2913465d190177cbd1"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 11525479,
+        "pathSHA256": "09813aa820b53c30323b78288f2e8343cebf2f78543cdc0fffaaa8a45e75d82c"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 11197704,
+        "pathSHA256": "3e08df9805d6baf6f34596d22a5d4024a3a1fea792c73a41b14fa3b98ef218b2"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 11102848,
+        "pathSHA256": "8e904bd9d877f8a8a4dd63a6f0688cdd6531be79d7bd38001c12cce772e9cf42"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 10670325,
+        "pathSHA256": "2864e4fbb4c416fa13ef1ff596e8b0dd5f34da32fffee16803d458acd9b0715a"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 10590335,
+        "pathSHA256": "87b80cc6e17289a08c4c8845ec86951ad298f4335f101b2d5f24efb8c2563c68"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 10561040,
+        "pathSHA256": "ae563e3cbd075ad2a251f36a1dc9a1a51968e2af44756b0195b8112280e9b92f"
+      },
+      {
+        "category": "consensus_wal",
+        "logicalBytes": 8935552,
+        "pathSHA256": "6c1ab4d2c92840b8428a3f534bb275a8255a3e51c3a86a4fbe890268e553dafb"
+      },
+      {
+        "category": "application_snapshot",
+        "logicalBytes": 4439937,
+        "pathSHA256": "a8f0af0d7dc26f029a97ab2eadab75527180958a4bd32049d614aec837568336"
+      },
+      {
+        "category": "application_snapshot",
+        "logicalBytes": 4439937,
+        "pathSHA256": "bce04457bda9970b4148a63b77c8872e7cdd496e2d8d3bf3ed74dd5ad037f4bd"
+      },
+      {
+        "category": "application_snapshot",
+        "logicalBytes": 4439937,
+        "pathSHA256": "d3bf5af0fbde6e7a94a297b027cec91a86dcc53c60fb7d5fc106c55695e683f0"
+      },
+      {
+        "category": "application_snapshot",
+        "logicalBytes": 4439937,
+        "pathSHA256": "eeba40155e13430df5819f74fd59fae3f53dd37457f81c6f73c6adb8edbbce0e"
+      }
+    ],
+    "logicalBytes": 540299670,
+    "metric": "sum-regular-file-st_size",
+    "observation": "post-window-retained-files",
+    "runAttempt": "1",
+    "runId": "40330458629",
+    "schema": "ynx-pq-network-file-sizes/v1",
+    "sourceKind": "owned-ephemeral-case-metadata",
+    "status": "complete"
+  },
+  "fileAttributionLimits": "Only category totals and 20 largest path hashes were exported; exact per-file names/bytes in other cannot be recovered. Source paths are not measured per-file attribution. Logical size is not allocated disk or growth rate.",
+  "arms": [
+    {
+      "arm": "before",
+      "physicalCommitObservations": 92,
+      "successfulDurableCommitObservations": 92,
+      "validatedCallbackObservations": 16,
+      "coordinatorCalls": {
+        "inclusionProbe": {
+          "perCallbackAccumulatedNs": {
+            "samples": 16,
+            "p50Ns": "290309791",
+            "p95Ns": "451103137",
+            "p99Ns": "451103137"
+          },
+          "observedCalls": "483",
+          "notInvokedCallbacks": 0,
+          "missingCallbacks": 0
+        },
+        "fullCommitCheck": {
+          "perCallbackAccumulatedNs": {
+            "samples": 9,
+            "p50Ns": "60623912",
+            "p95Ns": "168765322",
+            "p99Ns": "168765322"
+          },
+          "observedCalls": "10",
+          "notInvokedCallbacks": 7,
+          "missingCallbacks": 0
+        },
+        "hostContext": {
+          "perCallbackAccumulatedNs": {
+            "samples": 16,
+            "p50Ns": "241160776",
+            "p95Ns": "597542144",
+            "p99Ns": "597542144"
+          },
+          "observedCalls": "16",
+          "notInvokedCallbacks": 0,
+          "missingCallbacks": 0
+        }
+      },
+      "outerCommitNs": {
+        "samples": 92,
+        "p50Ns": "58563426",
+        "p95Ns": "205084388",
+        "p99Ns": "246281987"
+      },
+      "persistenceStagesNs": {
+        "close_file": {
+          "samples": 92,
+          "p50Ns": "11167",
+          "p95Ns": "11303722",
+          "p99Ns": "40247088"
+        },
+        "directory_sync": {
+          "samples": 92,
+          "p50Ns": "170537",
+          "p95Ns": "9105237",
+          "p99Ns": "31560814"
+        },
+        "file_sync": {
+          "samples": 92,
+          "p50Ns": "9451679",
+          "p95Ns": "48026798",
+          "p99Ns": "148974451"
+        },
+        "json_encode": {
+          "samples": 92,
+          "p50Ns": "11285034",
+          "p95Ns": "50889925",
+          "p99Ns": "70173376"
+        },
+        "prepare_file": {
+          "samples": 92,
+          "p50Ns": "84107",
+          "p95Ns": "197397",
+          "p99Ns": "63564412"
+        },
+        "rename": {
+          "samples": 92,
+          "p50Ns": "376056",
+          "p95Ns": "2156681",
+          "p99Ns": "42502094"
+        },
+        "validate": {
+          "samples": 92,
+          "p50Ns": "25271716",
+          "p95Ns": "114915477",
+          "p99Ns": "130702012"
+        },
+        "write": {
+          "samples": 92,
+          "p50Ns": "562616",
+          "p95Ns": "5498632",
+          "p99Ns": "40612181"
+        }
+      },
+      "hashChildNs": {
+        "document": {
+          "samples": 92,
+          "p50Ns": "952",
+          "p95Ns": "1251",
+          "p99Ns": "1493"
+        },
+        "encodeDigest": {
+          "samples": 92,
+          "p50Ns": "3076091",
+          "p95Ns": "32356139",
+          "p99Ns": "48455795"
+        }
+      },
+      "phases": [
+        {
+          "name": "anchor",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "861",
+            "p95Ns": "1683",
+            "p99Ns": "2754"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "83779",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "validator_registry",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "7553646",
+            "p95Ns": "31109956",
+            "p99Ns": "77909754"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "1061573891",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "engine_schedule",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "144978",
+            "p95Ns": "546202",
+            "p99Ns": "17353779"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "34844030",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "engine_snapshot",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "414604",
+            "p95Ns": "1451044",
+            "p99Ns": "19745970"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "96207792",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "pq_state",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "8879423",
+            "p95Ns": "80516249",
+            "p99Ns": "95786806"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "2016093256",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "migration_trace_lots",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "5678",
+            "p95Ns": "10465",
+            "p99Ns": "11397"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "546074",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "legacy_sponsor",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1623",
+            "p95Ns": "2934",
+            "p99Ns": "3355"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "160895",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "legacy_resource_market",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "832",
+            "p95Ns": "1272",
+            "p99Ns": "2364"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "78645",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "legacy_contracts",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1182",
+            "p95Ns": "1692",
+            "p99Ns": "11748"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "117527",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "legacy_pay",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1803",
+            "p95Ns": "4176",
+            "p99Ns": "9354"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "198058",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "legacy_ai",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1202",
+            "p95Ns": "1602",
+            "p99Ns": "1893"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "111569",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "legacy_trust",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "691",
+            "p95Ns": "942",
+            "p99Ns": "1112"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "63792",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "ledger_records",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "14252",
+            "p95Ns": "41012",
+            "p99Ns": "12774206"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "14444208",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "pay",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1833",
+            "p95Ns": "2364",
+            "p99Ns": "2764"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "162548",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "resource",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "13780",
+            "p95Ns": "19820",
+            "p99Ns": "31537"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "1345108",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "resource_sponsor",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "2193",
+            "p95Ns": "3946",
+            "p99Ns": "6430"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "210367",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "trust",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1392",
+            "p95Ns": "1763",
+            "p99Ns": "2144"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "121071",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "ide",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1533",
+            "p95Ns": "1983",
+            "p99Ns": "11107"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "141327",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "pq_resources",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "2835",
+            "p95Ns": "3996",
+            "p99Ns": "113691"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "360859",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "pq_dex",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "5989",
+            "p95Ns": "8893",
+            "p99Ns": "60080"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "632913",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "pq_contracts",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1332",
+            "p95Ns": "1832",
+            "p99Ns": "2324"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "119472",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "pq_native_actions",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1482",
+            "p95Ns": "2293",
+            "p99Ns": "2694"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "130977",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "pq_ethereum",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "2594",
+            "p95Ns": "3896",
+            "p99Ns": "6470"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "239527",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "pq_ordered_resources",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1993",
+            "p95Ns": "3094",
+            "p99Ns": "3325"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "170906",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "fee_events",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "6610",
+            "p95Ns": "21863",
+            "p99Ns": "24196"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "889217",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "governance",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "621",
+            "p95Ns": "902",
+            "p99Ns": "1012"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "55615",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "dex",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1171",
+            "p95Ns": "1522",
+            "p99Ns": "1592"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "100760",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "asset_auth",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "902",
+            "p95Ns": "1192",
+            "p99Ns": "3165"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "78815",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "account_abstraction",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "961",
+            "p95Ns": "1242",
+            "p99Ns": "4457"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "85102",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "account_abstraction_policy",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "1492",
+            "p95Ns": "2924",
+            "p99Ns": "7892"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "154680",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "ownership_and_vault_supply",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "341",
+            "p95Ns": "561",
+            "p99Ns": "631"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "31786",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "staking",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "3045",
+            "p95Ns": "3986",
+            "p99Ns": "5458"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "274490",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "supply",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "211",
+            "p95Ns": "370",
+            "p99Ns": "3125"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "24183",
+            "denominatorNs": "3689899823"
+          }
+        },
+        {
+          "name": "app_hash",
+          "durationNs": {
+            "samples": 92,
+            "p50Ns": "3109712",
+            "p95Ns": "32419234",
+            "p99Ns": "48488144"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "460046584",
+            "denominatorNs": "3689899823"
+          }
+        }
+      ],
+      "latencyNs": {
+        "firstNodeProposalReceiptNs": {
+          "samples": 16,
+          "p50Ns": "1014519779",
+          "p95Ns": "1912235632",
+          "p99Ns": "1912235632",
+          "missingSamples": 0
+        },
+        "firstNodeProposalAcceptedNs": {
+          "samples": 16,
+          "p50Ns": "1026755351",
+          "p95Ns": "1935309138",
+          "p99Ns": "1935309138",
+          "missingSamples": 0
+        },
+        "firstNodeFinalizeNs": {
+          "samples": 16,
+          "p50Ns": "1965276311",
+          "p95Ns": "3145813995",
+          "p99Ns": "3145813995",
+          "missingSamples": 0
+        },
+        "firstNodeDurableNs": {
+          "samples": 16,
+          "p50Ns": "2166685490",
+          "p95Ns": "3333498404",
+          "p99Ns": "3333498404",
+          "missingSamples": 0
+        },
+        "allNodesDurableNs": {
+          "samples": 16,
+          "p50Ns": "2404797054",
+          "p95Ns": "3491344938",
+          "p99Ns": "3491344938",
+          "missingSamples": 0
+        },
+        "offerToIndependentNs": {
+          "samples": 16,
+          "p50Ns": "5170843590",
+          "p95Ns": "6597184432",
+          "p99Ns": "6597184432",
+          "missingSamples": 0
+        }
+      }
+    },
+    {
+      "arm": "after",
+      "physicalCommitObservations": 76,
+      "successfulDurableCommitObservations": 76,
+      "validatedCallbackObservations": 5,
+      "coordinatorCalls": {
+        "inclusionProbe": {
+          "perCallbackAccumulatedNs": {
+            "samples": 5,
+            "p50Ns": "288267709",
+            "p95Ns": "379925060",
+            "p99Ns": "379925060"
+          },
+          "observedCalls": "144",
+          "notInvokedCallbacks": 0,
+          "missingCallbacks": 0
+        },
+        "fullCommitCheck": {
+          "perCallbackAccumulatedNs": {
+            "samples": 4,
+            "p50Ns": "70395896",
+            "p95Ns": "80186322",
+            "p99Ns": "80186322"
+          },
+          "observedCalls": "5",
+          "notInvokedCallbacks": 1,
+          "missingCallbacks": 0
+        },
+        "hostContext": {
+          "perCallbackAccumulatedNs": {
+            "samples": 5,
+            "p50Ns": "347831305",
+            "p95Ns": "382151773",
+            "p99Ns": "382151773"
+          },
+          "observedCalls": "5",
+          "notInvokedCallbacks": 0,
+          "missingCallbacks": 0
+        }
+      },
+      "outerCommitNs": {
+        "samples": 76,
+        "p50Ns": "42660016",
+        "p95Ns": "159142575",
+        "p99Ns": "181080991"
+      },
+      "persistenceStagesNs": {
+        "close_file": {
+          "samples": 76,
+          "p50Ns": "9234",
+          "p95Ns": "16045",
+          "p99Ns": "2166458"
+        },
+        "directory_sync": {
+          "samples": 76,
+          "p50Ns": "156566",
+          "p95Ns": "4910973",
+          "p99Ns": "16068600"
+        },
+        "file_sync": {
+          "samples": 76,
+          "p50Ns": "4030307",
+          "p95Ns": "31681795",
+          "p99Ns": "66158163"
+        },
+        "json_encode": {
+          "samples": 76,
+          "p50Ns": "9029063",
+          "p95Ns": "39236845",
+          "p99Ns": "65730237"
+        },
+        "prepare_file": {
+          "samples": 76,
+          "p50Ns": "80431",
+          "p95Ns": "131518",
+          "p99Ns": "24981964"
+        },
+        "rename": {
+          "samples": 76,
+          "p50Ns": "320322",
+          "p95Ns": "9120390",
+          "p99Ns": "26082136"
+        },
+        "validate": {
+          "samples": 76,
+          "p50Ns": "22399732",
+          "p95Ns": "106596847",
+          "p99Ns": "115553452"
+        },
+        "write": {
+          "samples": 76,
+          "p50Ns": "518240",
+          "p95Ns": "5087838",
+          "p99Ns": "17743276"
+        }
+      },
+      "hashChildNs": {
+        "document": {
+          "samples": 76,
+          "p50Ns": "801",
+          "p95Ns": "1192",
+          "p99Ns": "1352"
+        },
+        "encodeDigest": {
+          "samples": 76,
+          "p50Ns": "2501887",
+          "p95Ns": "17360500",
+          "p99Ns": "49640497"
+        }
+      },
+      "phases": [
+        {
+          "name": "anchor",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "762",
+            "p95Ns": "1562",
+            "p99Ns": "1712"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "63823",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "validator_registry",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "6864314",
+            "p95Ns": "43393643",
+            "p99Ns": "68624404"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "888688599",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "engine_schedule",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "133221",
+            "p95Ns": "289235",
+            "p99Ns": "543027"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "12730858",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "engine_snapshot",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "399241",
+            "p95Ns": "1554140",
+            "p99Ns": "13266938"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "53420225",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "pq_state",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "7198607",
+            "p95Ns": "59044676",
+            "p99Ns": "91763620"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "1246143149",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "migration_trace_lots",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "5779",
+            "p95Ns": "8182",
+            "p99Ns": "14041"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "438368",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "legacy_sponsor",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "1352",
+            "p95Ns": "2754",
+            "p99Ns": "758647"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "865642",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "legacy_resource_market",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "741",
+            "p95Ns": "1162",
+            "p99Ns": "1382"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "56972",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "legacy_contracts",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "892",
+            "p95Ns": "1462",
+            "p99Ns": "3445"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "69850",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "legacy_pay",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "1872",
+            "p95Ns": "3305",
+            "p99Ns": "13060"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "154453",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "legacy_ai",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "1071",
+            "p95Ns": "1743",
+            "p99Ns": "2324"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "78779",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "legacy_trust",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "661",
+            "p95Ns": "1031",
+            "p99Ns": "1122"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "49715",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "ledger_records",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "12949",
+            "p95Ns": "26550",
+            "p99Ns": "31748"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "1070508",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "pay",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "1552",
+            "p95Ns": "2133",
+            "p99Ns": "2624"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "103847",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "resource",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "13080",
+            "p95Ns": "18117",
+            "p99Ns": "25369"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "988289",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "resource_sponsor",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "2013",
+            "p95Ns": "2915",
+            "p99Ns": "3996"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "145657",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "trust",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "1202",
+            "p95Ns": "1693",
+            "p99Ns": "1973"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "83056",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "ide",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "981",
+            "p95Ns": "1963",
+            "p99Ns": "2494"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "83247",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "pq_resources",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "2313",
+            "p95Ns": "3395",
+            "p99Ns": "3976"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "165662",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "pq_dex",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "5208",
+            "p95Ns": "8423",
+            "p99Ns": "9284"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "405616",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "pq_contracts",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "1161",
+            "p95Ns": "1783",
+            "p99Ns": "3045"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "87022",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "pq_native_actions",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "1292",
+            "p95Ns": "1993",
+            "p99Ns": "2984"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "88729",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "pq_ethereum",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "2374",
+            "p95Ns": "3145",
+            "p99Ns": "13430"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "175912",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "pq_ordered_resources",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "1823",
+            "p95Ns": "2424",
+            "p99Ns": "4016"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "114483",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "fee_events",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "6059",
+            "p95Ns": "15443",
+            "p99Ns": "19570"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "534604",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "governance",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "501",
+            "p95Ns": "811",
+            "p99Ns": "932"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "35803",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "dex",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "1082",
+            "p95Ns": "1442",
+            "p99Ns": "1602"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "70597",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "asset_auth",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "711",
+            "p95Ns": "1061",
+            "p99Ns": "1092"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "45598",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "account_abstraction",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "771",
+            "p95Ns": "1191",
+            "p99Ns": "1302"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "54551",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "account_abstraction_policy",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "1362",
+            "p95Ns": "2183",
+            "p99Ns": "4727"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "112243",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "ownership_and_vault_supply",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "311",
+            "p95Ns": "580",
+            "p99Ns": "2624"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "25824",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "staking",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "2824",
+            "p95Ns": "3876",
+            "p99Ns": "4617"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "200834",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "supply",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "200",
+            "p95Ns": "370",
+            "p99Ns": "2444"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "18157",
+            "denominatorNs": "2491092611"
+          }
+        },
+        {
+          "name": "app_hash",
+          "durationNs": {
+            "samples": 76,
+            "p50Ns": "2533254",
+            "p95Ns": "17391508",
+            "p99Ns": "49689771"
+          },
+          "summedTimerShare": {
+            "numeratorNs": "283721939",
+            "denominatorNs": "2491092611"
+          }
+        }
+      ],
+      "latencyNs": {
+        "firstNodeProposalReceiptNs": {
+          "samples": 5,
+          "p50Ns": "596846542",
+          "p95Ns": "1177920338",
+          "p99Ns": "1177920338",
+          "missingSamples": 0
+        },
+        "firstNodeProposalAcceptedNs": {
+          "samples": 5,
+          "p50Ns": "608749961",
+          "p95Ns": "1189823757",
+          "p99Ns": "1189823757",
+          "missingSamples": 0
+        },
+        "firstNodeFinalizeNs": {
+          "samples": 5,
+          "p50Ns": "1422697029",
+          "p95Ns": "2003770825",
+          "p99Ns": "2003770825",
+          "missingSamples": 0
+        },
+        "firstNodeDurableNs": {
+          "samples": 5,
+          "p50Ns": "1527647159",
+          "p95Ns": "2124503555",
+          "p99Ns": "2124503555",
+          "missingSamples": 0
+        },
+        "allNodesDurableNs": {
+          "samples": 5,
+          "p50Ns": "1630653273",
+          "p95Ns": "2265101732",
+          "p99Ns": "2265101732",
+          "missingSamples": 0
+        },
+        "offerToIndependentNs": {
+          "samples": 5,
+          "p50Ns": "4056183546",
+          "p95Ns": "4918997746",
+          "p99Ns": "4918997746",
+          "missingSamples": 0
+        }
+      }
+    }
+  ],
+  "originalTransactions": [
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "bbeb8df5c800c9ff190b75ff39eeb3cf0e3f3891d18748c08f46a3256c09f64c",
+      "abciHash": "c826b698f48b64f3ec41959cc295be3c74c3dc2fb4555c4d0dda91e6aa5a503f",
+      "height": "26",
+      "index": 0,
+      "offerOffsetNs": 34263428523,
+      "independentCompletionNs": 37867144569,
+      "offerToIndependentNs": 3603716046,
+      "firstRPCNs": "1608468214",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "33bc1ee21f436bc5cded378bc94c64aa26f5cb150a57adae62c87c7f2bf82bbc",
+      "acceptedProposalNodeObservations": [
+        [
+          35039769463,
+          35049161493
+        ],
+        [
+          35033987824,
+          35043696831
+        ],
+        [
+          34895515916,
+          34905252184
+        ],
+        [
+          34699424917,
+          34709143174
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        62,
+        395018413,
+        2,
+        137695845,
+        125484471
+      ],
+      "firstNodeProposalReceiptNs": "435996394",
+      "firstNodeProposalAcceptedNs": "445714651",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "1277743577",
+      "firstNodeDurableNs": "1334455571",
+      "allNodesDurableNs": "1533760313",
+      "sourceOfferOrdinal": 0
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "9e1751ab2f7e9b592b3a321ec6db638ecccf05ac6b07ad5b3bd43e5b78fb6fd4",
+      "abciHash": "25d586ae96b10d57914583fd7d1319165f9e94c333ca2c21f339aa0e28f42306",
+      "height": "27",
+      "index": 0,
+      "offerOffsetNs": 34784938763,
+      "independentCompletionNs": 39515115048,
+      "offerToIndependentNs": 4730176285,
+      "firstRPCNs": "2247071605",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "4c1dff4cfa2bc4a45ee96436c4eacfd315c9b130afb570d8d57c4be1c438b631",
+      "acceptedProposalNodeObservations": [
+        [
+          35996114987,
+          36009177698
+        ],
+        [
+          35791552285,
+          35804320923
+        ],
+        [
+          36097515805,
+          36110675542
+        ],
+        [
+          36295776459,
+          36318999777
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        40,
+        364024154,
+        1,
+        58888311,
+        341602338
+      ],
+      "firstNodeProposalReceiptNs": "1006613522",
+      "firstNodeProposalAcceptedNs": "1019382160",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "1893166885",
+      "firstNodeDurableNs": "1949568602",
+      "allNodesDurableNs": "2177689446",
+      "sourceOfferOrdinal": 1
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "ae6c8b702f5bdf657b9b776403cc6a3adddf5bd38386c61995d23469ddd0ef76",
+      "abciHash": "42a96146f22da05044d68ccc82349d45a35206cd49bc9c040220e396bf243fdc",
+      "height": "27",
+      "index": 1,
+      "offerOffsetNs": 35335309946,
+      "independentCompletionNs": 39731585659,
+      "offerToIndependentNs": 4396275713,
+      "firstRPCNs": "1703408986",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "4c1dff4cfa2bc4a45ee96436c4eacfd315c9b130afb570d8d57c4be1c438b631",
+      "acceptedProposalNodeObservations": [
+        [
+          35996114987,
+          36009177698
+        ],
+        [
+          35791552285,
+          35804320923
+        ],
+        [
+          36097515805,
+          36110675542
+        ],
+        [
+          36295776459,
+          36318999777
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        39,
+        268999626,
+        0,
+        0,
+        167049937
+      ],
+      "firstNodeProposalReceiptNs": "456242339",
+      "firstNodeProposalAcceptedNs": "469010977",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "1342795702",
+      "firstNodeDurableNs": "1399197419",
+      "allNodesDurableNs": "1627318263",
+      "sourceOfferOrdinal": 2
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "1630596d053b62f7bfc41ce892d58c9b27688ca21edac2831259fbfe57a5d2ca",
+      "abciHash": "4241c09299d7f4ceda819af3aa578387baef915243bcd99d6e21aef8d436e665",
+      "height": "28",
+      "index": 0,
+      "offerOffsetNs": 35857278150,
+      "independentCompletionNs": 41000604853,
+      "offerToIndependentNs": 5143326703,
+      "firstRPCNs": "2643281976",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "4f6a15e580f81c9dcd85c88e34f21ba7ac79114e069e37fc331454d8a1e2faa4",
+      "acceptedProposalNodeObservations": [
+        [
+          37179250075,
+          37199880259
+        ],
+        [
+          37333733609,
+          37349372554
+        ],
+        [
+          37493708294,
+          37510475447
+        ],
+        [
+          37538490033,
+          37557107852
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        20,
+        309027710,
+        1,
+        39918022,
+        362392529
+      ],
+      "firstNodeProposalReceiptNs": "1321971925",
+      "firstNodeProposalAcceptedNs": "1342602109",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "2209723928",
+      "firstNodeDurableNs": "2263891627",
+      "allNodesDurableNs": "2532184829",
+      "sourceOfferOrdinal": 3
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "510ef2370ea2e9055e983e1d9114ea38db638e71c4576abc95d886cc3a5aff4b",
+      "abciHash": "c25a2407ce0d8209fbdfbcd542298e5f23fe90c5aed312a35a56c24fd345d5e8",
+      "height": "28",
+      "index": 1,
+      "offerOffsetNs": 36419004583,
+      "independentCompletionNs": 41171451122,
+      "offerToIndependentNs": 4752446539,
+      "firstRPCNs": "2054645386",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "4f6a15e580f81c9dcd85c88e34f21ba7ac79114e069e37fc331454d8a1e2faa4",
+      "acceptedProposalNodeObservations": [
+        [
+          37179250075,
+          37199880259
+        ],
+        [
+          37333733609,
+          37349372554
+        ],
+        [
+          37493708294,
+          37510475447
+        ],
+        [
+          37538490033,
+          37557107852
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        19,
+        250796775,
+        0,
+        0,
+        121148051
+      ],
+      "firstNodeProposalReceiptNs": "760245492",
+      "firstNodeProposalAcceptedNs": "780875676",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "1647997495",
+      "firstNodeDurableNs": "1702165194",
+      "allNodesDurableNs": "1970458396",
+      "sourceOfferOrdinal": 4
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "018b7657a480d5520c07032a573f0f199dfaef70b3dbbbf3c8d5c55a696763fd",
+      "abciHash": "efb0f473f6d4ef3219446eee5da3282db64a459a0b060670b42d2a6a24ae6a50",
+      "height": "29",
+      "index": 0,
+      "offerOffsetNs": 37164839811,
+      "independentCompletionNs": 42508757095,
+      "offerToIndependentNs": 5343917284,
+      "firstRPCNs": "2798299137",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "7e267fa2d15124e7b5d82770caa0d2974fe94cdf957e7ad6bc0b1d5086bac506",
+      "acceptedProposalNodeObservations": [
+        [
+          38797992813,
+          38810656608
+        ],
+        [
+          38742179186,
+          38776408698
+        ],
+        [
+          38438876657,
+          38469297791
+        ],
+        [
+          38673869726,
+          38697915738
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        19,
+        175500377,
+        1,
+        131641180,
+        261766106
+      ],
+      "firstNodeProposalReceiptNs": "1274036846",
+      "firstNodeProposalAcceptedNs": "1304457980",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "2312351433",
+      "firstNodeDurableNs": "2422008876",
+      "allNodesDurableNs": "2719004100",
+      "sourceOfferOrdinal": 5
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "1e7d001109f582183a00ad652d53f589440ee6d04f43d19acde0b86efcbd63e6",
+      "abciHash": "989087ac0d47f7a57d4314432b1a08b132b9d5cbae7ebd6905fe596c08f730c9",
+      "height": "29",
+      "index": 1,
+      "offerOffsetNs": 37717046738,
+      "independentCompletionNs": 42952561891,
+      "offerToIndependentNs": 5235515153,
+      "firstRPCNs": "2200156108",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "7e267fa2d15124e7b5d82770caa0d2974fe94cdf957e7ad6bc0b1d5086bac506",
+      "acceptedProposalNodeObservations": [
+        [
+          38797992813,
+          38810656608
+        ],
+        [
+          38742179186,
+          38776408698
+        ],
+        [
+          38438876657,
+          38469297791
+        ],
+        [
+          38673869726,
+          38697915738
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        20,
+        330389584,
+        0,
+        0,
+        143832579
+      ],
+      "firstNodeProposalReceiptNs": "721829919",
+      "firstNodeProposalAcceptedNs": "752251053",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "1760144506",
+      "firstNodeDurableNs": "1869801949",
+      "allNodesDurableNs": "2166797173",
+      "sourceOfferOrdinal": 6
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "dda155551ad6e82ce6c6d3d4a1ea45927b292b52fac91fd3843ace66ebda1c3a",
+      "abciHash": "e8f230a37d62442f26708abe3d9ff20a0e49709a014ed2cf678f17d3afeec12c",
+      "height": "30",
+      "index": 0,
+      "offerOffsetNs": 38877551438,
+      "independentCompletionNs": 44048395028,
+      "offerToIndependentNs": 5170843590,
+      "firstRPCNs": "2486102647",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "5a1bbf60bef8bb09e347013ca9711397002cc4c673c4b5fe226cd62f1fda7a2b",
+      "acceptedProposalNodeObservations": [
+        [
+          40326108737,
+          40337182476
+        ],
+        [
+          40247159865,
+          40257177805
+        ],
+        [
+          40123871069,
+          40133807607
+        ],
+        [
+          39892071217,
+          39904306789
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        34,
+        278747964,
+        1,
+        25312753,
+        597542144
+      ],
+      "firstNodeProposalReceiptNs": "1014519779",
+      "firstNodeProposalAcceptedNs": "1026755351",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "2025881257",
+      "firstNodeDurableNs": "2208933299",
+      "allNodesDurableNs": "2414771279",
+      "sourceOfferOrdinal": 7
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "52d534156dd2bb6022d75451fff03fd94cd3e7ffd5212fd5bb68dab731ced03d",
+      "abciHash": "cb6c771e1daaea48be82dda8695e1f731d28e0ca083b90b0bd65a231ee3d9f52",
+      "height": "31",
+      "index": 1,
+      "offerOffsetNs": 40267931207,
+      "independentCompletionNs": 45540396952,
+      "offerToIndependentNs": 5272465745,
+      "firstRPCNs": "2713406393",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "99298eb4faba7693778c7848756e58380a9382dadf5fdfab8b3a0c8ad7711724",
+      "acceptedProposalNodeObservations": [
+        [
+          41605475931,
+          41626309318
+        ],
+        [
+          41354232872,
+          41377306378
+        ],
+        [
+          41619373331,
+          41635738328
+        ],
+        [
+          41943696343,
+          41958949843
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        20,
+        290309791,
+        1,
+        43515165,
+        267466462
+      ],
+      "firstNodeProposalReceiptNs": "1086301665",
+      "firstNodeProposalAcceptedNs": "1109375171",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "2319880028",
+      "firstNodeDurableNs": "2507564437",
+      "allNodesDurableNs": "2665410971",
+      "sourceOfferOrdinal": 9
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "bc04d00a9bfcf01aa30832878957bc71894887ab82e8e77c4a8ad53cad435454",
+      "abciHash": "163184d019116d0245134f8294588d0b0f797a748e40eb10ca103274cc18e48b",
+      "height": "31",
+      "index": 0,
+      "offerOffsetNs": 39441997240,
+      "independentCompletionNs": 46039181672,
+      "offerToIndependentNs": 6597184432,
+      "firstRPCNs": "3528489373",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "99298eb4faba7693778c7848756e58380a9382dadf5fdfab8b3a0c8ad7711724",
+      "acceptedProposalNodeObservations": [
+        [
+          41605475931,
+          41626309318
+        ],
+        [
+          41354232872,
+          41377306378
+        ],
+        [
+          41619373331,
+          41635738328
+        ],
+        [
+          41943696343,
+          41958949843
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        24,
+        330262185,
+        0,
+        0,
+        184421429
+      ],
+      "firstNodeProposalReceiptNs": "1912235632",
+      "firstNodeProposalAcceptedNs": "1935309138",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "3145813995",
+      "firstNodeDurableNs": "3333498404",
+      "allNodesDurableNs": "3491344938",
+      "sourceOfferOrdinal": 8
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "61602e23ca29a615a3273b249fc32e536f75f16ea61d928527027ce649d20735",
+      "abciHash": "fc0731d7fabd1169a320fd280eb845a5b0b18b41cdc1343371cf1f27932791b9",
+      "height": "31",
+      "index": 2,
+      "offerOffsetNs": 40814124044,
+      "independentCompletionNs": 46261061823,
+      "offerToIndependentNs": 5446937779,
+      "firstRPCNs": "2154164971",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "99298eb4faba7693778c7848756e58380a9382dadf5fdfab8b3a0c8ad7711724",
+      "acceptedProposalNodeObservations": [
+        [
+          41605475931,
+          41626309318
+        ],
+        [
+          41354232872,
+          41377306378
+        ],
+        [
+          41619373331,
+          41635738328
+        ],
+        [
+          41943696343,
+          41958949843
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        21,
+        234042281,
+        0,
+        0,
+        267707711
+      ],
+      "firstNodeProposalReceiptNs": "540108828",
+      "firstNodeProposalAcceptedNs": "563182334",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "1773687191",
+      "firstNodeDurableNs": "1961371600",
+      "allNodesDurableNs": "2119218134",
+      "sourceOfferOrdinal": 10
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "0f2b1624512fd88138b1ad1f29fc55b16b47298137a2964545ee2e9804f8b6fc",
+      "abciHash": "092cf9ea084bd3cfd6da00d29167d485ecdaa1bef17c9cef9728608f97477185",
+      "height": "32",
+      "index": 0,
+      "offerOffsetNs": 41967506963,
+      "independentCompletionNs": 47429930496,
+      "offerToIndependentNs": 5462423533,
+      "firstRPCNs": "2555168239",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "c0217ea652ba5f487a85af88091d45299c7866c11a7e96d48835944a7003af71",
+      "acceptedProposalNodeObservations": [
+        [
+          43139461344,
+          43151624075
+        ],
+        [
+          43246672363,
+          43261232161
+        ],
+        [
+          43493055573,
+          43507630789
+        ],
+        [
+          43694629896,
+          43710927759
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        35,
+        320379315,
+        1,
+        63257936,
+        399823037
+      ],
+      "firstNodeProposalReceiptNs": "1171954381",
+      "firstNodeProposalAcceptedNs": "1184117112",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "2219066144",
+      "firstNodeDurableNs": "2439208045",
+      "allNodesDurableNs": "2544593372",
+      "sourceOfferOrdinal": 11
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "3b74c4f600392b0e6db6615eac55facb8f81f147da15df625300e9cb7647e77e",
+      "abciHash": "ec837d8b7cc25e6811172540a9c0913598dfffbf3ee91a538d58cda78652404f",
+      "height": "33",
+      "index": 0,
+      "offerOffsetNs": 43322726724,
+      "independentCompletionNs": 48795975637,
+      "offerToIndependentNs": 5473248913,
+      "firstRPCNs": "3045361336",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "c287535d487f87edbbfcaff5db32003aa0e69091c9327e763516f79d6f6e6d35",
+      "acceptedProposalNodeObservations": [
+        [
+          45027660120,
+          45062793929
+        ],
+        [
+          44944973992,
+          44975002054
+        ],
+        [
+          44713275593,
+          44748066951
+        ],
+        [
+          44964423467,
+          45001497249
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        29,
+        244057321,
+        1,
+        60623912,
+        398803333
+      ],
+      "firstNodeProposalReceiptNs": "1390548869",
+      "firstNodeProposalAcceptedNs": "1425340227",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "2511228505",
+      "firstNodeDurableNs": "2746540366",
+      "allNodesDurableNs": "2984651930",
+      "sourceOfferOrdinal": 12
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "b2a6bb5adfea1728b9fa361fa2a04ce32d503b207884834775f66b413088e7e2",
+      "abciHash": "70b719e2af17eca0c99f0ec1ef61ec79c01949af7af6ce6cdb3bc3b38804ea4d",
+      "height": "33",
+      "index": 1,
+      "offerOffsetNs": 43902581600,
+      "independentCompletionNs": 49007966432,
+      "offerToIndependentNs": 5105384832,
+      "firstRPCNs": "2457196322",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "c287535d487f87edbbfcaff5db32003aa0e69091c9327e763516f79d6f6e6d35",
+      "acceptedProposalNodeObservations": [
+        [
+          45027660120,
+          45062793929
+        ],
+        [
+          44944973992,
+          44975002054
+        ],
+        [
+          44713275593,
+          44748066951
+        ],
+        [
+          44964423467,
+          45001497249
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        28,
+        250016214,
+        0,
+        0,
+        157681450
+      ],
+      "firstNodeProposalReceiptNs": "810693993",
+      "firstNodeProposalAcceptedNs": "845485351",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "1931373629",
+      "firstNodeDurableNs": "2166685490",
+      "allNodesDurableNs": "2404797054",
+      "sourceOfferOrdinal": 13
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "6b1f80377848f3d407919374a46e3a0665e9f87e68c74f7ba6cff6d50cf88557",
+      "abciHash": "16d8bcd752ad1334a486e860a02bbcf90dbbab3735f0a8f8d724cb0d6f751ac3",
+      "height": "34",
+      "index": 1,
+      "offerOffsetNs": 45304103299,
+      "independentCompletionNs": 50204671118,
+      "offerToIndependentNs": 4900567819,
+      "firstRPCNs": "2344491059",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "ee5b448e1646bacf22998db8118a84d9348ada05544d11dc22f620c9a14fb814",
+      "acceptedProposalNodeObservations": [
+        [
+          46848824608,
+          46876477436
+        ],
+        [
+          46642165915,
+          46661785526
+        ],
+        [
+          46475437518,
+          46525123332
+        ],
+        [
+          46369509634,
+          46384860712
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        35,
+        451103137,
+        1,
+        168765322,
+        241160776
+      ],
+      "firstNodeProposalReceiptNs": "1065406335",
+      "firstNodeProposalAcceptedNs": "1080757413",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "1965276311",
+      "firstNodeDurableNs": "2146083576",
+      "allNodesDurableNs": "2339235421",
+      "sourceOfferOrdinal": 15
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "before",
+      "nativeHash": "345d36566b2a67f377786e903ff7a2e49b34b31a0692e3a15470099a6f1d5555",
+      "abciHash": "960fdb5de0ab3afc0ac3d953c7e1d3b9f1dffbf59c5104b96996a7df55102d25",
+      "height": "34",
+      "index": 0,
+      "offerOffsetNs": 44724191668,
+      "independentCompletionNs": 50335515075,
+      "offerToIndependentNs": 5611323407,
+      "firstRPCNs": "2932163798",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "ee5b448e1646bacf22998db8118a84d9348ada05544d11dc22f620c9a14fb814",
+      "acceptedProposalNodeObservations": [
+        [
+          46848824608,
+          46876477436
+        ],
+        [
+          46642165915,
+          46661785526
+        ],
+        [
+          46475437518,
+          46525123332
+        ],
+        [
+          46369509634,
+          46384860712
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        38,
+        412365684,
+        0,
+        0,
+        142073841
+      ],
+      "firstNodeProposalReceiptNs": "1645317966",
+      "firstNodeProposalAcceptedNs": "1660669044",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "2545187942",
+      "firstNodeDurableNs": "2725995207",
+      "allNodesDurableNs": "2919147052",
+      "sourceOfferOrdinal": 14
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "after",
+      "nativeHash": "9f993d9b01049622a4d49062f237b8140e6def3fc9c71739892989f965a8621d",
+      "abciHash": "0df5bdb0e21e4e4d93a9cfd646299d917866225fc8cd0f1ba466f472931a9979",
+      "height": "26",
+      "index": 0,
+      "offerOffsetNs": 84613573434,
+      "independentCompletionNs": 87770641430,
+      "offerToIndependentNs": 3157067996,
+      "firstRPCNs": "897976882",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "5728c108c8f6c1ba3f1acf1a53e4d2b2878a8da35619d8518c3706dbdeaaee04",
+      "acceptedProposalNodeObservations": [
+        [
+          84883111590,
+          84895553951
+        ],
+        [
+          84836140062,
+          84848000743
+        ],
+        [
+          84952173052,
+          84961472342
+        ],
+        [
+          84989332774,
+          84998709900
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        53,
+        379925060,
+        2,
+        71008855,
+        347831305
+      ],
+      "firstNodeProposalReceiptNs": "222566628",
+      "firstNodeProposalAcceptedNs": "234427309",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "752278675",
+      "firstNodeDurableNs": "790744717",
+      "allNodesDurableNs": "941330414",
+      "sourceOfferOrdinal": 0
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "after",
+      "nativeHash": "398a2acb6c0fe1aa446443d76652b4893b623b48944fbd26042db3461950b2c9",
+      "abciHash": "9187cec43438b5b75cc0f40c34fd990c8e710b34fbb72abff8742678af6558d0",
+      "height": "27",
+      "index": 0,
+      "offerOffsetNs": 85138596170,
+      "independentCompletionNs": 88974032308,
+      "offerToIndependentNs": 3835436138,
+      "firstRPCNs": "1595116445",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "5fb946d19f1e7945004c4865edb661c58af75242a05eb79a2ce3f8858585f612",
+      "acceptedProposalNodeObservations": [
+        [
+          85844846727,
+          85854006486
+        ],
+        [
+          85820936882,
+          85832459600
+        ],
+        [
+          85730551003,
+          85740864985
+        ],
+        [
+          85894759742,
+          85919974912
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        35,
+        288267709,
+        1,
+        70395896,
+        280952249
+      ],
+      "firstNodeProposalReceiptNs": "591954833",
+      "firstNodeProposalAcceptedNs": "602268815",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "1314055556",
+      "firstNodeDurableNs": "1412612262",
+      "allNodesDurableNs": "1527198268",
+      "sourceOfferOrdinal": 1
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "after",
+      "nativeHash": "d7ea7388d8a0a347359631259d81aad323d555dfe95400a68aaeb53b3d05920d",
+      "abciHash": "1e7b2e832c02b711af69c9528dd07c6cc3e198571e4c9fd0c9c59ca6bfc00a2f",
+      "height": "28",
+      "index": 1,
+      "offerOffsetNs": 86243325825,
+      "independentCompletionNs": 90299509371,
+      "offerToIndependentNs": 4056183546,
+      "firstRPCNs": "1698086614",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "77b0fd36d515d251a2950decb422c7f39fb8278029cdcf65f5584034e33c573f",
+      "acceptedProposalNodeObservations": [
+        [
+          86840172367,
+          86852075786
+        ],
+        [
+          87042295545,
+          87061835601
+        ],
+        [
+          87117326043,
+          87152747543
+        ],
+        [
+          87046203123,
+          87061823829
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        22,
+        379056834,
+        1,
+        25632573,
+        382151773
+      ],
+      "firstNodeProposalReceiptNs": "596846542",
+      "firstNodeProposalAcceptedNs": "608749961",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "1422697029",
+      "firstNodeDurableNs": "1527647159",
+      "allNodesDurableNs": "1630653273",
+      "sourceOfferOrdinal": 3
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "after",
+      "nativeHash": "91a1cc00574e66e60ddbebbb14bc2f1cc700affc89189d2013c62ec4b5cb48b5",
+      "abciHash": "0f957d42d914d374756fba4064a1e5c9df39f5a92d57aa1f50b3629951fda229",
+      "height": "28",
+      "index": 0,
+      "offerOffsetNs": 85662252029,
+      "independentCompletionNs": 90581249775,
+      "offerToIndependentNs": 4918997746,
+      "firstRPCNs": "2283816611",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "77b0fd36d515d251a2950decb422c7f39fb8278029cdcf65f5584034e33c573f",
+      "acceptedProposalNodeObservations": [
+        [
+          86840172367,
+          86852075786
+        ],
+        [
+          87042295545,
+          87061835601
+        ],
+        [
+          87117326043,
+          87152747543
+        ],
+        [
+          87046203123,
+          87061823829
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        22,
+        267742987,
+        0,
+        0,
+        104862968
+      ],
+      "firstNodeProposalReceiptNs": "1177920338",
+      "firstNodeProposalAcceptedNs": "1189823757",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "2003770825",
+      "firstNodeDurableNs": "2108720955",
+      "allNodesDurableNs": "2211727069",
+      "sourceOfferOrdinal": 2
+    },
+    {
+      "kind": "validated-readback",
+      "arm": "after",
+      "nativeHash": "019bed2fe35678f5f879d4c8e17ba752bffa5a941157ed0b0f88075f4b954bd6",
+      "abciHash": "36c4e57a79a3ff786037e5dbe8399e7eebf7e607b941a1fab44a8b767aba71e4",
+      "height": "29",
+      "index": 0,
+      "offerOffsetNs": 86958623533,
+      "independentCompletionNs": 91715141262,
+      "offerToIndependentNs": 4756517729,
+      "firstRPCNs": "2331430992",
+      "firstRPCClock": "client-duration",
+      "clockDomain": "pq-fresh:3269",
+      "finalBlockHash": "9e76effd5b2fd174abd2d7774c7726e483b016d94167f8be32ea3ffe993767fa",
+      "acceptedProposalNodeObservations": [
+        [
+          88239475603,
+          88257397212
+        ],
+        [
+          88221812422,
+          88237781237
+        ],
+        [
+          88321960614,
+          88335401147
+        ],
+        [
+          88087528702,
+          88100216253
+        ]
+      ],
+      "unboundProposalNodes": 0,
+      "coordinatorWork": [
+        12,
+        281499007,
+        1,
+        80186322,
+        381963922
+      ],
+      "firstNodeProposalReceiptNs": "1128905169",
+      "firstNodeProposalAcceptedNs": "1141592720",
+      "observedDurableNodes": 4,
+      "firstNodeFinalizeNs": "2000510272",
+      "firstNodeDurableNs": "2124503555",
+      "allNodesDurableNs": "2265101732",
+      "sourceOfferOrdinal": 4
+    }
+  ],
+  "completedProgress": [
+    {
+      "arm": "before",
+      "phase": "original-fixture",
+      "node": -1,
+      "index": -1,
+      "startNs": 25979,
+      "endNs": 242215892,
+      "durationNs": 242189913
+    },
+    {
+      "arm": "before",
+      "phase": "legacy-start",
+      "node": -1,
+      "index": -1,
+      "startNs": 242245246,
+      "endNs": 2690246285,
+      "durationNs": 2448001039
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "node": 0,
+      "index": -1,
+      "startNs": 2690284382,
+      "endNs": 5162299323,
+      "durationNs": 2472014941
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "node": 1,
+      "index": -1,
+      "startNs": 5162338271,
+      "endNs": 6888614506,
+      "durationNs": 1726276235
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "node": 2,
+      "index": -1,
+      "startNs": 6888643990,
+      "endNs": 8638653284,
+      "durationNs": 1750009294
+    },
+    {
+      "arm": "before",
+      "phase": "validator-registration",
+      "node": 3,
+      "index": -1,
+      "startNs": 8638679183,
+      "endNs": 10501402521,
+      "durationNs": 1862723338
+    },
+    {
+      "arm": "before",
+      "phase": "original-height-halt",
+      "node": -1,
+      "index": -1,
+      "startNs": 10501430403,
+      "endNs": 11724687683,
+      "durationNs": 1223257280
+    },
+    {
+      "arm": "before",
+      "phase": "activation-schedule",
+      "node": -1,
+      "index": -1,
+      "startNs": 11724693672,
+      "endNs": 11731697922,
+      "durationNs": 7004250
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "node": 0,
+      "index": -1,
+      "startNs": 11753923674,
+      "endNs": 11874267964,
+      "durationNs": 120344290
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "node": 0,
+      "index": -1,
+      "startNs": 11874306873,
+      "endNs": 11995559915,
+      "durationNs": 121253042
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "node": 0,
+      "index": -1,
+      "startNs": 11731717331,
+      "endNs": 12040715628,
+      "durationNs": 308998297
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "node": 1,
+      "index": -1,
+      "startNs": 12064205601,
+      "endNs": 12184200556,
+      "durationNs": 119994955
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "node": 1,
+      "index": -1,
+      "startNs": 12184242779,
+      "endNs": 12305236096,
+      "durationNs": 120993317
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "node": 1,
+      "index": -1,
+      "startNs": 12040735307,
+      "endNs": 12340444626,
+      "durationNs": 299709319
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "node": 2,
+      "index": -1,
+      "startNs": 12383919081,
+      "endNs": 12503342444,
+      "durationNs": 119423363
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "node": 2,
+      "index": -1,
+      "startNs": 12503380591,
+      "endNs": 12624235229,
+      "durationNs": 120854638
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "node": 2,
+      "index": -1,
+      "startNs": 12340466248,
+      "endNs": 12659438121,
+      "durationNs": 318971873
+    },
+    {
+      "arm": "before",
+      "phase": "initial-validator-custody",
+      "node": 3,
+      "index": -1,
+      "startNs": 12682921790,
+      "endNs": 12805631658,
+      "durationNs": 122709868
+    },
+    {
+      "arm": "before",
+      "phase": "original-custody-recovery",
+      "node": 3,
+      "index": -1,
+      "startNs": 12805678569,
+      "endNs": 12932833403,
+      "durationNs": 127154834
+    },
+    {
+      "arm": "before",
+      "phase": "observed-pq-construction",
+      "node": 3,
+      "index": -1,
+      "startNs": 12659459193,
+      "endNs": 12965997388,
+      "durationNs": 306538195
+    },
+    {
+      "arm": "before",
+      "phase": "pq-start-and-activation",
+      "node": -1,
+      "index": -1,
+      "startNs": 12966968709,
+      "endNs": 22822439405,
+      "durationNs": 9855470696
+    },
+    {
+      "arm": "before",
+      "phase": "initial-intent-preparation",
+      "node": -1,
+      "index": -1,
+      "startNs": 22822485335,
+      "endNs": 23538417065,
+      "durationNs": 715931730
+    },
+    {
+      "arm": "before",
+      "phase": "initial-admission",
+      "node": -1,
+      "index": -1,
+      "startNs": 23538467370,
+      "endNs": 23619869468,
+      "durationNs": 81402098
+    },
+    {
+      "arm": "before",
+      "phase": "initial-execution-and-activation",
+      "node": -1,
+      "index": -1,
+      "startNs": 23619898021,
+      "endNs": 33497445771,
+      "durationNs": 9877547750
+    },
+    {
+      "arm": "before",
+      "phase": "gateway-start",
+      "node": -1,
+      "index": -1,
+      "startNs": 33497496196,
+      "endNs": 33545073407,
+      "durationNs": 47577211
+    },
+    {
+      "arm": "before",
+      "phase": "business-intent-preparation",
+      "node": -1,
+      "index": -1,
+      "startNs": 33545114348,
+      "endNs": 34243424648,
+      "durationNs": 698310300
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 0,
+      "startNs": 34243455885,
+      "endNs": 35923107320,
+      "durationNs": 1679651435
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 0,
+      "startNs": 36969461091,
+      "endNs": 37094968055,
+      "durationNs": 125506964
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 1,
+      "startNs": 34764544645,
+      "endNs": 37137299234,
+      "durationNs": 2372754589
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 2,
+      "startNs": 35301603547,
+      "endNs": 37182312221,
+      "durationNs": 1880708674
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 0,
+      "startNs": 37094992802,
+      "endNs": 37915102169,
+      "durationNs": 820109367
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 1,
+      "startNs": 38259367192,
+      "endNs": 38601001469,
+      "durationNs": 341634277
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 2,
+      "startNs": 38632758945,
+      "endNs": 38799836273,
+      "durationNs": 167077328
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 3,
+      "startNs": 35836594110,
+      "endNs": 38832117567,
+      "durationNs": 2995523457
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 4,
+      "startNs": 36399329512,
+      "endNs": 38913397288,
+      "durationNs": 2514067776
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 1,
+      "startNs": 38601023532,
+      "endNs": 39573297356,
+      "durationNs": 972273824
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 3,
+      "startNs": 39694966701,
+      "endNs": 40057389446,
+      "durationNs": 362422745
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 4,
+      "startNs": 40086192862,
+      "endNs": 40207376626,
+      "durationNs": 121183764
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 2,
+      "startNs": 38799865407,
+      "endNs": 40231603066,
+      "durationNs": 1431737659
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 6,
+      "startNs": 37675209222,
+      "endNs": 40232714068,
+      "durationNs": 2557504846
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 5,
+      "startNs": 37137328418,
+      "endNs": 40290453052,
+      "durationNs": 3153124634
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 5,
+      "startNs": 41190272236,
+      "endNs": 41452066985,
+      "durationNs": 261794749
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 6,
+      "startNs": 41493857088,
+      "endNs": 41637720434,
+      "durationNs": 143863346
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 7,
+      "startNs": 38832143566,
+      "endNs": 41680759341,
+      "durationNs": 2848615775
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 3,
+      "startNs": 40057417778,
+      "endNs": 41968108251,
+      "durationNs": 1910690473
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 4,
+      "startNs": 40207403837,
+      "endNs": 41992394902,
+      "durationNs": 1784991065
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 5,
+      "startNs": 41452095137,
+      "endNs": 42530071967,
+      "durationNs": 1077976830
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 7,
+      "startNs": 42657901777,
+      "endNs": 43255491713,
+      "durationNs": 597589936
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 8,
+      "startNs": 39411478680,
+      "endNs": 43281653018,
+      "durationNs": 3870174338
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 6,
+      "startNs": 41637748496,
+      "endNs": 43349333432,
+      "durationNs": 1711584936
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 10,
+      "startNs": 40792402266,
+      "endNs": 43356301827,
+      "durationNs": 2563899561
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 9,
+      "startNs": 40232742961,
+      "endNs": 43383913809,
+      "durationNs": 3151170848
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 7,
+      "startNs": 43255524352,
+      "endNs": 44085845903,
+      "durationNs": 830321551
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 9,
+      "startNs": 44394657945,
+      "endNs": 44662161313,
+      "durationNs": 267503368
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 8,
+      "startNs": 44739889392,
+      "endNs": 44924343710,
+      "durationNs": 184454318
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 10,
+      "startNs": 44974899804,
+      "endNs": 45242636849,
+      "durationNs": 267737045
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 11,
+      "startNs": 41680791991,
+      "endNs": 45265439309,
+      "durationNs": 3584647318
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 9,
+      "startNs": 44662195214,
+      "endNs": 45585082749,
+      "durationNs": 922887535
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 11,
+      "startNs": 46133878247,
+      "endNs": 46533731670,
+      "durationNs": 399853423
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 12,
+      "startNs": 43281680419,
+      "endNs": 46556948267,
+      "durationNs": 3275267848
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 13,
+      "startNs": 43860370938,
+      "endNs": 46576494697,
+      "durationNs": 2716123759
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 8,
+      "startNs": 44924375628,
+      "endNs": 46600913509,
+      "durationNs": 1676537881
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 10,
+      "startNs": 45242672192,
+      "endNs": 46612336477,
+      "durationNs": 1369664285
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 12,
+      "startNs": 47373825023,
+      "endNs": 47772655878,
+      "durationNs": 398830855
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 13,
+      "startNs": 47801949234,
+      "endNs": 47959663543,
+      "durationNs": 157714309
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 14,
+      "startNs": 44683062017,
+      "endNs": 47981409693,
+      "durationNs": 3298347676
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 11,
+      "startNs": 46533757719,
+      "endNs": 47998784887,
+      "durationNs": 1465027168
+    },
+    {
+      "arm": "before",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 15,
+      "startNs": 45265551557,
+      "endNs": 48009033607,
+      "durationNs": 2743482050
+    },
+    {
+      "arm": "before",
+      "phase": "business-original-inclusion",
+      "node": -1,
+      "index": -1,
+      "startNs": 35923131907,
+      "endNs": 48035293549,
+      "durationNs": 12112161642
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 12,
+      "startNs": 47772686293,
+      "endNs": 48817424149,
+      "durationNs": 1044737856
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 13,
+      "startNs": 47959692797,
+      "endNs": 49056375135,
+      "durationNs": 1096682338
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 15,
+      "startNs": 49336068075,
+      "endNs": 49577258856,
+      "durationNs": 241190781
+    },
+    {
+      "arm": "before",
+      "phase": "business-commit-evidence",
+      "node": -1,
+      "index": -1,
+      "startNs": 36831732707,
+      "endNs": 49605953286,
+      "durationNs": 12774220579
+    },
+    {
+      "arm": "before",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 14,
+      "startNs": 49605981989,
+      "endNs": 49748072104,
+      "durationNs": 142090115
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 15,
+      "startNs": 49577283543,
+      "endNs": 50225447963,
+      "durationNs": 648164420
+    },
+    {
+      "arm": "before",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 14,
+      "startNs": 49748106656,
+      "endNs": 50356134192,
+      "durationNs": 608027536
+    },
+    {
+      "arm": "before",
+      "phase": "actual-result-validation",
+      "node": -1,
+      "index": -1,
+      "startNs": 50357286506,
+      "endNs": 51162271903,
+      "durationNs": 804985397
+    },
+    {
+      "arm": "before",
+      "phase": "normal-cleanup",
+      "node": -1,
+      "index": -1,
+      "startNs": 51162300316,
+      "endNs": 51250728574,
+      "durationNs": 88428258
+    },
+    {
+      "arm": "after",
+      "phase": "original-fixture",
+      "node": -1,
+      "index": -1,
+      "startNs": 51250785159,
+      "endNs": 51491556912,
+      "durationNs": 240771753
+    },
+    {
+      "arm": "after",
+      "phase": "legacy-start",
+      "node": -1,
+      "index": -1,
+      "startNs": 51491577844,
+      "endNs": 52397286601,
+      "durationNs": 905708757
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "node": 0,
+      "index": -1,
+      "startNs": 52397314513,
+      "endNs": 55605622541,
+      "durationNs": 3208308028
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "node": 1,
+      "index": -1,
+      "startNs": 55605652366,
+      "endNs": 57353754957,
+      "durationNs": 1748102591
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "node": 2,
+      "index": -1,
+      "startNs": 57353782819,
+      "endNs": 59176344989,
+      "durationNs": 1822562170
+    },
+    {
+      "arm": "after",
+      "phase": "validator-registration",
+      "node": 3,
+      "index": -1,
+      "startNs": 59176373211,
+      "endNs": 61032421305,
+      "durationNs": 1856048094
+    },
+    {
+      "arm": "after",
+      "phase": "original-height-halt",
+      "node": -1,
+      "index": -1,
+      "startNs": 61032447214,
+      "endNs": 62521745059,
+      "durationNs": 1489297845
+    },
+    {
+      "arm": "after",
+      "phase": "activation-schedule",
+      "node": -1,
+      "index": -1,
+      "startNs": 62521751369,
+      "endNs": 62528599762,
+      "durationNs": 6848393
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "node": 0,
+      "index": -1,
+      "startNs": 62553055535,
+      "endNs": 62672593904,
+      "durationNs": 119538369
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "node": 0,
+      "index": -1,
+      "startNs": 62672650119,
+      "endNs": 62793584258,
+      "durationNs": 120934139
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "node": 0,
+      "index": -1,
+      "startNs": 62528619862,
+      "endNs": 62828972763,
+      "durationNs": 300352901
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "node": 1,
+      "index": -1,
+      "startNs": 62855511700,
+      "endNs": 62975598304,
+      "durationNs": 120086604
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "node": 1,
+      "index": -1,
+      "startNs": 62975661870,
+      "endNs": 63096826448,
+      "durationNs": 121164578
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "node": 1,
+      "index": -1,
+      "startNs": 62828996469,
+      "endNs": 63132819247,
+      "durationNs": 303822778
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "node": 2,
+      "index": -1,
+      "startNs": 63158785152,
+      "endNs": 63280408525,
+      "durationNs": 121623373
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "node": 2,
+      "index": -1,
+      "startNs": 63280456096,
+      "endNs": 63401827440,
+      "durationNs": 121371344
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "node": 2,
+      "index": -1,
+      "startNs": 63132841421,
+      "endNs": 63437225453,
+      "durationNs": 304384032
+    },
+    {
+      "arm": "after",
+      "phase": "initial-validator-custody",
+      "node": 3,
+      "index": -1,
+      "startNs": 63462245278,
+      "endNs": 63583857043,
+      "durationNs": 121611765
+    },
+    {
+      "arm": "after",
+      "phase": "original-custody-recovery",
+      "node": 3,
+      "index": -1,
+      "startNs": 63583908391,
+      "endNs": 63705198863,
+      "durationNs": 121290472
+    },
+    {
+      "arm": "after",
+      "phase": "observed-pq-construction",
+      "node": 3,
+      "index": -1,
+      "startNs": 63437248528,
+      "endNs": 63736953076,
+      "durationNs": 299704548
+    },
+    {
+      "arm": "after",
+      "phase": "pq-start-and-activation",
+      "node": -1,
+      "index": -1,
+      "startNs": 63737893581,
+      "endNs": 73252920631,
+      "durationNs": 9515027050
+    },
+    {
+      "arm": "after",
+      "phase": "initial-intent-preparation",
+      "node": -1,
+      "index": -1,
+      "startNs": 73252947592,
+      "endNs": 73952186130,
+      "durationNs": 699238538
+    },
+    {
+      "arm": "after",
+      "phase": "initial-admission",
+      "node": -1,
+      "index": -1,
+      "startNs": 73952213921,
+      "endNs": 74065909852,
+      "durationNs": 113695931
+    },
+    {
+      "arm": "after",
+      "phase": "initial-execution-and-activation",
+      "node": -1,
+      "index": -1,
+      "startNs": 74065941039,
+      "endNs": 83878937729,
+      "durationNs": 9812996690
+    },
+    {
+      "arm": "after",
+      "phase": "gateway-start",
+      "node": -1,
+      "index": -1,
+      "startNs": 83878963548,
+      "endNs": 83925865601,
+      "durationNs": 46902053
+    },
+    {
+      "arm": "after",
+      "phase": "business-intent-preparation",
+      "node": -1,
+      "index": -1,
+      "startNs": 83925886593,
+      "endNs": 84593921430,
+      "durationNs": 668034837
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 0,
+      "startNs": 84593957334,
+      "endNs": 85590755274,
+      "durationNs": 996797940
+    },
+    {
+      "arm": "after",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 0,
+      "startNs": 86557166341,
+      "endNs": 86905022254,
+      "durationNs": 347855913
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 1,
+      "startNs": 85116684944,
+      "endNs": 86959170736,
+      "durationNs": 1842485792
+    },
+    {
+      "arm": "after",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 1,
+      "startNs": 87790968081,
+      "endNs": 88071946599,
+      "durationNs": 280978518
+    },
+    {
+      "arm": "after",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 0,
+      "startNs": 86905046370,
+      "endNs": 88092270425,
+      "durationNs": 1187224055
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 3,
+      "startNs": 86221144518,
+      "endNs": 88092852001,
+      "durationNs": 1871707483
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 2,
+      "startNs": 85642364800,
+      "endNs": 88159961846,
+      "durationNs": 2517597046
+    },
+    {
+      "arm": "after",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 3,
+      "startNs": 89053549121,
+      "endNs": 89435739352,
+      "durationNs": 382190231
+    },
+    {
+      "arm": "after",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 2,
+      "startNs": 89470418449,
+      "endNs": 89575315008,
+      "durationNs": 104896559
+    },
+    {
+      "arm": "after",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 1,
+      "startNs": 88071974611,
+      "endNs": 89612981063,
+      "durationNs": 1541006452
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 5,
+      "startNs": 87479718340,
+      "endNs": 89613629399,
+      "durationNs": 2133911059
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 4,
+      "startNs": 86926001206,
+      "endNs": 89703220895,
+      "durationNs": 2777219689
+    },
+    {
+      "arm": "after",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 4,
+      "startNs": 90372234384,
+      "endNs": 90754225927,
+      "durationNs": 381991543
+    },
+    {
+      "arm": "after",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 5,
+      "startNs": 90804157642,
+      "endNs": 90941857888,
+      "durationNs": 137700246
+    },
+    {
+      "arm": "after",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 3,
+      "startNs": 89435769367,
+      "endNs": 90965301368,
+      "durationNs": 1529532001
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 7,
+      "startNs": 88703173754,
+      "endNs": 90967277201,
+      "durationNs": 2264103447
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 6,
+      "startNs": 88092872352,
+      "endNs": 91013230581,
+      "durationNs": 2920358229
+    },
+    {
+      "arm": "after",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 2,
+      "startNs": 89575344463,
+      "endNs": 91094001232,
+      "durationNs": 1518656769
+    },
+    {
+      "arm": "after",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 7,
+      "startNs": 91735993724,
+      "endNs": 92241436214,
+      "durationNs": 505442490
+    },
+    {
+      "arm": "after",
+      "phase": "business-host-context",
+      "node": -1,
+      "index": 6,
+      "startNs": 92268111712,
+      "endNs": 92459117359,
+      "durationNs": 191005647
+    },
+    {
+      "arm": "after",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 4,
+      "startNs": 90754252888,
+      "endNs": 92500564375,
+      "durationNs": 1746311487
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 8,
+      "startNs": 89613651632,
+      "endNs": 92501307062,
+      "durationNs": 2887655430
+    }
+  ],
+  "unfinishedProgress": [
+    {
+      "arm": "after",
+      "phase": "business-original-inclusion",
+      "node": -1,
+      "index": -1,
+      "startNs": 85590784969
+    },
+    {
+      "arm": "after",
+      "phase": "business-commit-evidence",
+      "node": -1,
+      "index": -1,
+      "startNs": 86486129525
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 9,
+      "startNs": 90175018825
+    },
+    {
+      "arm": "after",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 5,
+      "startNs": 90941886151
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 10,
+      "startNs": 90967314437
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 11,
+      "startNs": 91495643590
+    },
+    {
+      "arm": "after",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 7,
+      "startNs": 92241461553
+    },
+    {
+      "arm": "after",
+      "phase": "business-independent-readback",
+      "node": -1,
+      "index": 6,
+      "startNs": 92459148807
+    },
+    {
+      "arm": "after",
+      "phase": "business-offer",
+      "node": -1,
+      "index": 12,
+      "startNs": 92501323827
+    }
+  ],
+  "unknownOfferOrdinals": {
+    "after": [
+      9,
+      10,
+      11,
+      12
+    ]
+  },
+  "neverStartedOfferOrdinals": {
+    "after": [
+      13,
+      14,
+      15
+    ]
+  },
+  "returnedButNotVerifiedOrdinals": {
+    "after": [
+      5,
+      6,
+      7,
+      8
+    ]
+  },
+  "confirmedCounts": {
+    "before": 16,
+    "after": 5,
+    "total": 21,
+    "target": 32
+  },
+  "sourceFindings": [
+    {
+      "source": "internal/consensus/pq_network_business_test.go:840",
+      "finding": "hostContext writes five full label-specific inputs per transaction: migration/genesis/state/schedule/trusted; same static source inputs are repeated per label. Exact byte share in other not exported.",
+      "owner": "Protocol",
+      "handoff": "Share only byte-identical immutable files after exact identity/hash readback; preserve per-transaction target/context, complete actual capture/Validate and independent verifier. No history deletion/hardlinking."
+    },
+    {
+      "source": "third_party/cometbft/consensus/state.go:849",
+      "finding": "Original message/timeout/end-height WAL with WriteSync at857/1803 is recovery data, not ordinary debug logging.",
+      "owner": "Protocol",
+      "retention": "Preserve WAL/HRS/rollback/history and caps."
+    },
+    {
+      "source": "third_party/cometbft/store/store.go:449",
+      "finding": "SaveBlock/SaveBlockWithExtendedCommit persist block/parts/commit using WriteSync at608. Category total alone does not prove redundant records.",
+      "owner": "Protocol"
+    }
+  ],
+  "outputPins": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/original/ynx-pq-fresh-intake-40330458629-1/relocation.json",
+      "bytes": 2457,
+      "sha256": "e94440967601ea44ec542ed22d01a69c537345250a4e2f88b634a3b851fddbd1"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/original/ynx-pq-network-40330458629-1/go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/original/ynx-pq-network-40330458629-1/go.stdout.log",
+      "bytes": 233201,
+      "sha256": "55f23e3ff39fff2dac3a5d33a484a77fdb87b77bfd49f54dc2b67ce2e11a25f0"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/original/ynx-pq-network-40330458629-1/prepared.json",
+      "bytes": 2043,
+      "sha256": "a71356a8ce7fb2fcbd90155f805918972d9f5d37bff6f1c8676e23c8699e3930"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/original/ynx-pq-network-40330458629-1.build/business-manifest.json",
+      "bytes": 1719,
+      "sha256": "1f6bc0721f6c9adda8739cf6feabac341d8ae3a3369ab540c89e0241b69eb770"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/original/ynx-pq-network-40330458629-1.file-sizes.json",
+      "bytes": 3687,
+      "sha256": "4fae9eb7baf19617474b886a2b2304e110b14a63f9cf69f8a846a7d65d5b7a3d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/original/ynx-pq-network-40330458629-1.receipt.json",
+      "bytes": 429983,
+      "sha256": "170cd0c9efe50dca61d029e55a542ea990a96d2be1594390054453236c8bfd6f"
+    }
+  ],
+  "readbackPins": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/run.log",
+      "bytes": 380181,
+      "sha256": "5e52ad97b1664026fc1a8112dbb0d395633cba298b235d99fabaafc806484a01"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/watch.raw",
+      "bytes": 32650,
+      "sha256": "86b16a07f0a2889395005625a01e1619da478aa7a5aee71f19e52ed789057f16"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/artifacts.json",
+      "bytes": 840,
+      "sha256": "5316c5fb1c4eb27f374a229d3e2a0ff6f0220ff4d46b069672fc224221564441"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/DIAGNOSTIC_EXPECTED.json",
+      "bytes": 1502,
+      "sha256": "9f1a10d9dfb80c28be9a4f56a6f1226337f9c901c4c2c8104fc6f298e97f8570"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/CONSUMER_DIAGNOSTIC.json",
+      "bytes": 36829,
+      "sha256": "e64ee5ace5bbd9daa78cc3bb7550e59217e5b1cd18ed16b75f690951e433f1f4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/ORIGINAL_DIAGNOSTIC_REPORT.json",
+      "bytes": 352644,
+      "sha256": "1ffc28621a53714c4dc4fea71b071d86357d4e7c822fa565c5eb3205701ff443"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-282-whole-once/analyze-original.py",
+      "bytes": 8193,
+      "sha256": "c863460bf0023657cb4b7f20e915b58dbde95f6bf03440c13c38b352d3be1c69"
+    }
+  ],
+  "fullPairQualified": false,
+  "sameConditionABQualified": false,
+  "sustainedTPSQualified": false,
+  "earliestBFTFormationMeasured": false,
+  "cpuUtilizationMeasured": false,
+  "nextRuntimeAuthorized": false,
+  "limitations": [
+    "2 offers/s is calibration input, not capacity or host pressure level.",
+    "Four nodes share one isolated Linux VM; no 4VM/public activation claim.",
+    "after5 is censored by storage cap; no paired causal speedup.",
+    "Proposal boundary is actual final-block ProcessProposal, not earliest global arrival.",
+    "Independent proof completion includes queue, not earliest consensus formation.",
+    "Node timer sums are not wall/CPU; progress spans may overlap.",
+    "All prior/raw histories and UNKNOWN retained; no retry or deleting data to regain cap."
+  ]
+}

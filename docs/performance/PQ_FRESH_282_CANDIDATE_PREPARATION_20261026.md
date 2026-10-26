@@ -1,5 +1,7 @@
 # 282 pipeline/cache candidate: source and supply preparation
 
+Historical preparation snapshot. The authorized actual run40330458629 has now failed on the original privateBytes cap; see [actual terminal costs](PQ_FRESH_282_TERMINAL_COST_READBACK_20261026.md). All preparation-only unmeasured statements below describe the pre-dispatch snapshot, not current runtime status.
+
 Candidate `28251767dd8098275e59a96f86935e413e5f1355`, tree
 `d12159665a09cd5206f0ab9ea89c55af120a7f84`, includes the real initial-certificate
 math cache, attempt-local validation facts and the new original offer/readback
