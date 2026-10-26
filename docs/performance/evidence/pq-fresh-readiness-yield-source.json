@@ -1,0 +1,98 @@
+{
+  "version": "YNX-PQ-FRESH-READINESS-YIELD-SOURCE-HANDOFF/v1",
+  "commit": "34c72ac522441963c3f0c9398b4b93dca982c581",
+  "parent": "81ce876f006aca44390fea1e2ecf293c6205bae0",
+  "sourcePath": "internal/consensus/pq_network_fresh_business_test.go",
+  "bytes": 175968,
+  "sha256": "11475ccf5fe50b6882c9d0375cd3e7a6c2993f387da3252ecbe5be200c44c821",
+  "gitBlob": "dd3ede200c2ff961c5206cbc52df530d3e58a3e5",
+  "change": "Recheck exact original next-offer deadline between eligible readiness callbacks; preserve each readback target and all original checks. Existing no-catchup deadline calculation is factored without changing it.",
+  "counterexample": "A readiness callback returns false after next original offer is already due. Old scan invokes another eligible callback before offer; fixed scan restarts offer scheduling first. Order assertion avoids a fragile absolute timing performance threshold.",
+  "newExactGoCase": "TestPQNetworkFreshHostPreparationYieldsBetweenReadinessProbes",
+  "unchanged": [
+    "16business/arm",
+    "500ms no-catchup interval",
+    "4offer slots",
+    "4total proof reservations",
+    "1serial Host worker",
+    "105+15s/all original resource caps",
+    "full4node exact-payload/Finalize/durable/H+1/fullAND/quorum checks",
+    "independent original CLI/verifier",
+    "nonce/fees/history/replay/UNKNOWN preservation",
+    "progress and public log shape/budget"
+  ],
+  "actualLocalCheck": {
+    "toolchain": "go1.25.7 darwin/arm64; GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off",
+    "scope": "byte-exact extracted standard-library pqFreshPipeline/pqFreshCancelJoin/pqFreshCompletion and3 original scheduling tests plus1 new source test; not original repository package or target go1.26.10",
+    "baseline": {
+      "exitCode": 1,
+      "passed": 3,
+      "failed": 1,
+      "raw": {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-readiness-yield-20261027/baseline.raw",
+        "bytes": 895,
+        "sha256": "070e714f79f2b349cccf46fb2e8d14041ffe13f6d912b4c46f7e0145a6305244"
+      }
+    },
+    "fixed": {
+      "exitCode": 0,
+      "passed": 4,
+      "failed": 0,
+      "raw": {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-readiness-yield-20261027/fixed.raw",
+        "bytes": 669,
+        "sha256": "31c13af6209bb3c8742f5be397145f007ffb4106fb6266607289dd231be48cd7"
+      }
+    },
+    "extractionSources": [
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-readiness-yield-20261027/BASELINE_SOURCE.json",
+        "bytes": 810,
+        "sha256": "ed54f0b7e07327e2191e0f5f4c7dedaa271465d8abfd2f584dd322ec1a810055"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-readiness-yield-20261027/FIXED_SOURCE.json",
+        "bytes": 229,
+        "sha256": "6b84255c9280dd819fdc6104bda46ea263e2972bfd4d240a80834658d4b554f6"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-readiness-yield-20261027/pipeline.baseline.go.txt",
+        "bytes": 3598,
+        "sha256": "331570a31ac086fbb6559e7e154c3aebd6dfa6e330c325264ea3a871a05990b1"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-readiness-yield-20261027/pipeline.go",
+        "bytes": 4008,
+        "sha256": "83495941640ee5d66293747ac5e7c18385294b058e68a51a2d7def854ef6092f"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-readiness-yield-20261027/pipeline_test.go",
+        "bytes": 7304,
+        "sha256": "1409551302a2630eb4951287b0613fedd5fd618c805b2383bc5fcbf84b5b3919"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-readiness-yield-20261027/go.mod",
+        "bytes": 47,
+        "sha256": "6ff94d53babcb31473846036da3daba3050674179003522ceaa0b6a017730bc9"
+      }
+    ]
+  },
+  "fullRepositoryGo12610TestExecuted": false,
+  "normalCIPassedForNewLeaf": false,
+  "networkGainMeasured": false,
+  "original81FailurePreserved": true,
+  "protocolOwnerNext": [
+    "Update original controller source pin from40b2947... to new exact leaf SHA.",
+    "Add new exact Go case to original workflow required-passed list; existing non-Host full group already selects the case.",
+    "Compose storage fix with this sole owned leaf; original normal push/build/wholeCI once and exact artifacts."
+  ],
+  "sharedBranchPushedByPerf": false,
+  "pressureExecutedForNewLeaf": false,
+  "newPressureAuthorized": false,
+  "sustainedTPSQualified": false,
+  "limitations": [
+    "A single slow readiness call remains unpreemptible on coordinator; this prevents multi-target scan amplification only.",
+    "Observed1.34/s gap is not attributed exclusively to this defect.",
+    "No extrapolated saved time,105s fit or1000TPS claim."
+  ]
+}
