@@ -64,5 +64,30 @@
     "fail": 0,
     "skip": 0
   },
-  "CI": "Existing chain-core.yml load-test client checks already invoke this test file; new normal push run not yet observed."
+  "CI": {
+    "sourceCommit": "729a166ec053fba1fbc202a4186a0db11e3b77a1",
+    "runId": "40309192105",
+    "snapshotStatus": "in_progress",
+    "wholeRunSuccessClaimed": true,
+    "performanceContractsStage": {
+      "completedAt": "2026-10-26T10:41:56Z",
+      "conclusion": "success",
+      "name": "Verify bounded performance controller and evidence contracts",
+      "number": 7,
+      "startedAt": "2026-10-26T10:41:55Z",
+      "status": "completed"
+    },
+    "snapshot": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-preparation/PERFORMANCE_CONSUMER_CI_SNAPSHOT.json",
+      "bytes": 5909,
+      "sha256": "7094137299212d60bfac4f30a07d0b45e042601289a4bd821067390547a913ea"
+    },
+    "finalStatus": "completed",
+    "finalConclusion": "success",
+    "finalSnapshot": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-preparation/PERFORMANCE_CONSUMER_CI_SECOND_SNAPSHOT.json",
+      "bytes": 6609,
+      "sha256": "424715f9b1680022b8d6ebb6f359467a4259457bf80094e2da2269097bfe9738"
+    }
+  }
 }
