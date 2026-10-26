@@ -304,8 +304,8 @@
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-identity-peer-owner.inc.mm",
-      "bytes": 24460,
-      "sha256": "95f53b88959df5aae7083b1263ea0afc6ac729b228df6bd07a9b650ccb04b7de"
+      "bytes": 24726,
+      "sha256": "8323e2443a468063f7e264325a58933101e1dfa6eb220bc9f95a8ba672830b5f"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-private-client.inc.mm",
@@ -439,8 +439,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-ide-identity-peer-endpoint.h",
-      "bytes": 6391,
-      "sha256": "bb42ee3d0388ec6696a64fc2e9f1213ab55ce2e0d090a403915ecc914b1fc0a2"
+      "bytes": 7396,
+      "sha256": "1220e3bcba18ca233473ec7bd236b85723980b1597f75d3f107aecd0482b8591"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-identity-peer-wire.h",
@@ -764,8 +764,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-pq-host-catalog-source-contract.mjs",
-      "bytes": 3411,
-      "sha256": "fff1be6e5bd9859b3dc35dc10fd1f17351ad4423f56b51e20405e00417155cd9"
+      "bytes": 3436,
+      "sha256": "19123c0a8d3af15d910c12ff17f30cd0a1f223f1dac1d23e313c108fce1ec5b6"
     },
     {
       "path": "packages/wallet-auth/native/original-pq-host-catalog-task-exit.h",
@@ -1566,8 +1566,8 @@
   "sourceCurrentIOInputs": [
     {
       "path": "packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
-      "bytes": 5009,
-      "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7"
+      "bytes": 5380,
+      "sha256": "c6e12b306fb49139f1166569be7ec08403304d0ecd90dd968d6dd7de910ae962"
     }
   ],
   "supplierR185": {
@@ -2382,7 +2382,8 @@
     "perProfileSourceRevocationCode": true,
     "deviceSourceIssuerQualified": false,
     "explicitDeviceBuildProfileAvailable": true,
-    "defaultFeatureFlagsEnabled": false
+    "defaultFeatureFlagsEnabled": false,
+    "sourceCurrentRetainedReadOnlyCode": true
   },
   "deviceReadLeaseBuildProfile": {
     "entry": "originalAuthDeviceV4BuildPlan",
@@ -2421,5 +2422,61 @@
     "compiled": false,
     "nativeAdmission": false,
     "sourceAdmission": false
+  },
+  "reusedCanonicalFixes": {
+    "catalogOriginalHashEquality": true,
+    "normalPeerR2RetainedReturn": true,
+    "sourceCAS": [
+      {
+        "after": {
+          "bytes": 3436,
+          "path": "packages/wallet-auth/native/original-pq-host-catalog-source-contract.mjs",
+          "sha256": "19123c0a8d3af15d910c12ff17f30cd0a1f223f1dac1d23e313c108fce1ec5b6"
+        },
+        "before": {
+          "bytes": 3411,
+          "path": "packages/wallet-auth/native/original-pq-host-catalog-source-contract.mjs",
+          "sha256": "fff1be6e5bd9859b3dc35dc10fd1f17351ad4423f56b51e20405e00417155cd9"
+        }
+      },
+      {
+        "after": {
+          "bytes": 24726,
+          "path": "apps/wallet-desktop/native/original-ide-identity-peer-owner.inc.mm",
+          "sha256": "8323e2443a468063f7e264325a58933101e1dfa6eb220bc9f95a8ba672830b5f"
+        },
+        "before": {
+          "bytes": 24460,
+          "path": "apps/wallet-desktop/native/original-ide-identity-peer-owner.inc.mm",
+          "sha256": "95f53b88959df5aae7083b1263ea0afc6ac729b228df6bd07a9b650ccb04b7de"
+        }
+      },
+      {
+        "after": {
+          "bytes": 7396,
+          "path": "packages/wallet-auth/native/original-ide-identity-peer-endpoint.h",
+          "sha256": "1220e3bcba18ca233473ec7bd236b85723980b1597f75d3f107aecd0482b8591"
+        },
+        "before": {
+          "bytes": 6391,
+          "path": "packages/wallet-auth/native/original-ide-identity-peer-endpoint.h",
+          "sha256": "bb42ee3d0388ec6696a64fc2e9f1213ab55ce2e0d090a403915ecc914b1fc0a2"
+        }
+      }
+    ],
+    "parents": [
+      {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk46-catalog-hash/SDK46_CATALOG_HASH_RUNTIME_HANDOFF.json",
+        "bytes": 13425,
+        "sha256": "0e39c997830d8fd6851923c03ec10d52d71507ce766ad23e7a8ebef69010767b"
+      },
+      {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk46-catalog-normalpeer/SDK46_CATALOG_NORMALPEER_RUNTIME_HANDOFF.json",
+        "bytes": 14831,
+        "sha256": "996fa781c33e185223cd7e2b96b55a9ae7d7c141ef8d30582e376a301b27a760"
+      }
+    ],
+    "oldRuntime46Imported": false,
+    "oldTestsRerun": false
   }
 }

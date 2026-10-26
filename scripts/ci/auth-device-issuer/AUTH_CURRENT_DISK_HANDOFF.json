@@ -1,0 +1,211 @@
+{
+  "schema": "ynx-auth-source-current-real-disk-readonly/v1",
+  "before": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-pq-device-session/runtime-r2/package/native/original-source-current-dirfd-node.cpp",
+    "bytes": 5009,
+    "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7",
+    "blob": "6dae2dfd201c0c1b651d31cf001a254ba6958bf9"
+  },
+  "after": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/source/packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+    "bytes": 5380,
+    "sha256": "c6e12b306fb49139f1166569be7ec08403304d0ecd90dd968d6dd7de910ae962",
+    "blob": "681939cb76fb22e5284d343ace0c34cb6751c3e9"
+  },
+  "currentSourceParent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-prekey-window-20261026-r2/HANDOFF.json",
+    "bytes": 10009,
+    "sha256": "61d81070266d7be8a03d447cba09d9d57ff5dd8369a26e967d78dc8e6799537a",
+    "blob": "c3c426202dedcc52cfc27d1b419bf16775001f0f"
+  },
+  "journalParent": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-factory-core-20261026-r2/HANDOFF.json",
+    "bytes": 20814,
+    "sha256": "9756808f5b39258eced50bfeb621319ad50e9ea03f83e616b940c871d3a3d6fa",
+    "blob": "423494e36615cc94625bcb86ce38e0ba674e0134"
+  },
+  "refs": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/before/original-source-current-dirfd-node.cpp",
+      "bytes": 5009,
+      "sha256": "34fcbb849aff49f5101bb9e6eda0bdc50ed4c71421c3606833ca8c5a3bca32c7",
+      "blob": "6dae2dfd201c0c1b651d31cf001a254ba6958bf9",
+      "relative": "before/original-source-current-dirfd-node.cpp",
+      "origin": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-pq-device-session/runtime-r2/package/native/original-source-current-dirfd-node.cpp"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/source/packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+      "bytes": 5380,
+      "sha256": "c6e12b306fb49139f1166569be7ec08403304d0ecd90dd968d6dd7de910ae962",
+      "blob": "681939cb76fb22e5284d343ace0c34cb6751c3e9",
+      "relative": "source/packages/wallet-auth/native/original-source-current-dirfd-node.cpp",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/packages/wallet-auth/native/original-source-current-dirfd-node.cpp"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/dependencies/original-host-dirfd-journal.h",
+      "bytes": 12401,
+      "sha256": "2fbbab48ea0e16be29acd62fee564b55f057f8a79f08e145540e5bd76cf7b277",
+      "blob": "e3e1889475f60be4868cd85bc288f9796313b416",
+      "relative": "dependencies/original-host-dirfd-journal.h",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-source/packages/wallet-auth/native/original-host-dirfd-journal.h"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/controls/device-v4-current-disk.test.mjs",
+      "bytes": 6069,
+      "sha256": "d5dc0435202cb517ad50daf3e0559efb4f4c3d922a249d79edc19d68aff47f94",
+      "blob": "ef0f8f8d47b971676e2f0958d33419ae5de67118",
+      "relative": "controls/device-v4-current-disk.test.mjs",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/controls/device-v4-current-disk.test.mjs"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/run-device-v4-current-disk.mjs",
+      "bytes": 2524,
+      "sha256": "07cede8abeaaf68b40601ba70ae62a8b5a2d8c132a354f5808864b02da506923",
+      "blob": "6366158dbaa1023ff1538b49eef8c3dbea32fd72",
+      "relative": "run-device-v4-current-disk.mjs",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/run-device-v4-current-disk.mjs"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/freeze-device-v4-current-disk.mjs",
+      "bytes": 4951,
+      "sha256": "e833732f0e4b553223562594ee1dcceb7b4c6972d6734652f67ea8323ee4a4b0",
+      "blob": "b0f43128e3ff95cded30cc0c935ef3d7e6ae402a",
+      "relative": "freeze-device-v4-current-disk.mjs",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/freeze-device-v4-current-disk.mjs"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/controls/public-fixture.mjs",
+      "bytes": 7540,
+      "sha256": "76483f73cc92c1f71f491ac8fc5c7d0f4c85350d35950f6f94bbf08151088661",
+      "blob": "ada5278618143a20f1d1cd5556286439922fa795",
+      "relative": "controls/public-fixture.mjs",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-issuer-current-BZEmyf/public-fixture.mjs"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/evidence/pass/RESULT.json",
+      "bytes": 2855,
+      "sha256": "ad19613128cb44990cd23b7c21b0085500e195ae5a6519605b04a656a060852f",
+      "blob": "9450de17710644508b8cdd40770dc14415608899",
+      "relative": "evidence/pass/RESULT.json",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-N0pMhC/RESULT.json"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/evidence/pass/compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/compile.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-N0pMhC/compile.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/evidence/pass/compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/compile.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-N0pMhC/compile.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/evidence/pass/controls.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/pass/controls.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-N0pMhC/controls.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/evidence/pass/controls.stdout",
+      "bytes": 1048,
+      "sha256": "27c7fcd8bc1a3780114dbbec0cf8531dc8f864df1ee3ffe4898ad1f746b0763c",
+      "blob": "57b9e6c8b6eb214f4f0c1d2d4fba8b4c3e7fb1a2",
+      "relative": "evidence/pass/controls.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-N0pMhC/controls.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/evidence/firstcause/RESULT.json",
+      "bytes": 2856,
+      "sha256": "c6c06469f488308d8958950896b1836c0d6a6e1b3d7cd2ef98a6d482fe372328",
+      "blob": "f380301e1ef36bfa100577af11f7f1ad893cc4ca",
+      "relative": "evidence/firstcause/RESULT.json",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-UKI6R7/RESULT.json"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/evidence/firstcause/compile.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/firstcause/compile.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-UKI6R7/compile.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/evidence/firstcause/compile.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/firstcause/compile.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-UKI6R7/compile.stdout"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/evidence/firstcause/controls.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "relative": "evidence/firstcause/controls.stderr",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-UKI6R7/controls.stderr"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-current-disk-readonly-20261026-r1/evidence/firstcause/controls.stdout",
+      "bytes": 2413,
+      "sha256": "ea822e35e19599b4105862fd6fa60a1b7894dad6fbdc75e0b26ef1ab33ee9155",
+      "blob": "e2bfb2a2ec734080beb49853b858555dccec43bb",
+      "relative": "evidence/firstcause/controls.stdout",
+      "origin": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-UKI6R7/controls.stdout"
+    }
+  ],
+  "production": {
+    "implemented": "Existing native Source-current storage module gains openV2Existing(parent,leaf), exactly the export already required by loadReleaseSelectedOriginalSourceV2(readOnly=true). Uses existing HostDirfdJournal.openRetained, shared lock and no mkdir/write. Same real partial owner returned before ready error.",
+    "unchanged": "Existing open/openV2/write/current/close API and credential/Root policy unchanged; header12401/2fbb is existing core supplier, not new delta.",
+    "normalCaller": "Original loader readOnly native.openV2Existing wrapper; no new HTTP mutation, key provider, admitted row or Source renew.",
+    "sourceFilesChanged": 1
+  },
+  "tests": {
+    "newActualProductionNativeAndKernelControls": 6,
+    "compileExit": 0,
+    "testExit": 0,
+    "asan": false,
+    "ubsan": false,
+    "realDirfdFlockFsync": true,
+    "cases": [
+      "device revoked terminal cold reconstruction without signing/reactivation",
+      "second writer rejected, failed partial close preserves original writer",
+      "applied-entered-response-lost UNKNOWN and cold orphan refusal/no replay",
+      "disk terminal tamper before signing",
+      "absent readonly journal never mkdir, partial closable",
+      "shared readers coexist, block writer and refuse mutations; exact original hashes retained"
+    ],
+    "boundaries": "PUBLIC Source/role observations/clock/PQ math and one-byte member, NOT valid Root signatures. Actual production JS state machine and production native storage/syscalls.",
+    "firstCause": "Test expected READONLY instead of original HOST_DIRFD_RECLAIM_READ_ONLY; raw kept, production error unchanged",
+    "fixtureBinary": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/evidence/device-v4-current-disk-N0pMhC/current-io.node",
+      "bytes": 230512,
+      "sha256": "752b7023a906cace106ee0b7efe21fcea98ed299e4e932eca2689b70e7390958"
+    },
+    "fixtureBinaryMayShip": false,
+    "unrelatedOldGreensRerun": false
+  },
+  "truth": {
+    "source": true,
+    "focusedActualDiskTests": true,
+    "readOnlyPrimitive": true,
+    "matchingRuntime": false,
+    "SourceAdmission": false,
+    "actualKeys": false,
+    "actualSigning": false,
+    "globalDeviceRevocation": false,
+    "installed": false,
+    "deployed": false,
+    "SSH": false,
+    "FinanceResumed": false
+  },
+  "integration": "SDK CAS one cpp delta before34fcbb84 to afterc6e12b30; existing Source-current readonly loader now reaches actual retained journal rather than missing-export rejection. Run new6 in original CI against coherent selected current JS and header. Do not ship fixture .node or treat per-profile durable revoke as global registry."
+}
