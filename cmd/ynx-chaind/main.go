@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -45,9 +46,11 @@ func main() {
 	ethereumNative := flag.Bool("ethereum-native-transfers", envBoolOrDefault("YNX_ETHEREUM_NATIVE_TRANSFERS_ENABLED", false), "enable bounded Ethereum legacy native transfer adapter on testnet/devnet")
 	exportConsensusState := flag.String("export-consensus-state", envOrDefault("YNX_EXPORT_CONSENSUS_STATE", ""), "read an existing quiescent checkpoint and export V2 migration state to a new file (or - for stdout)")
 	pqAdmissionHeight := flag.String("pq-admission-height", envOrDefault("YNX_PQ_ADMISSION_HEIGHT", ""), "optional coordinated future account PQ admission height; persists immutable schedule")
+	buildInfo := flag.Bool("build-info", false, "print embedded build identity and exit without reading state or starting services")
 	flag.Parse()
 
 	cfg := nodeRuntimeConfig{
+		BuildInfo:                *buildInfo,
 		PQAdmissionHeight:        strings.TrimSpace(*pqAdmissionHeight),
 		HTTPAddr:                 *httpAddr,
 		Network:                  *network,
@@ -71,6 +74,7 @@ func main() {
 }
 
 type nodeRuntimeConfig struct {
+	BuildInfo                bool
 	PQAdmissionHeight        string
 	EthereumNativeTransfers  bool
 	HTTPAddr                 string
@@ -148,6 +152,20 @@ func checkNodeRuntimeConfig(cfg nodeRuntimeConfig, out io.Writer) error {
 }
 
 func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
+	// Build identity is a public read, before export, configuration, credentials,
+	// constructors or services can read or change any node resources.
+	if cfg.BuildInfo {
+		raw, err := json.Marshal(currentBuildInfo())
+		if err != nil {
+			return err
+		}
+		raw = append(raw, '\n')
+		n, err := out.Write(raw)
+		if err == nil && n != len(raw) {
+			return io.ErrShortWrite
+		}
+		return err
+	}
 	// Export is an offline read, before startup config, key loading, constructors,
 	// feature enables, validator overrides or services can touch the source.
 	if cfg.ExportConsensusState != "" {

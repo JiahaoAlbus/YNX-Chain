@@ -26,6 +26,8 @@ on:
       - 'scripts/ops/test_verify_original_native_copy_once.py'
       - 'scripts/ops/build-pq-offline-migration-tools.sh'
       - 'scripts/ops/test_build_pq_offline_migration_tools.py'
+      - 'scripts/ops/build-native-transition-candidate.sh'
+      - 'scripts/ops/test_build_native_transition_candidate.py'
       - 'scripts/ops/remote/verify-retained-migration-preservation-once.sh'
       - 'scripts/ops/test_verify_retained_migration_preservation_once.py'
       - 'scripts/verify/test_original_native_copy_guard.py'
@@ -2363,7 +2365,8 @@ jobs:
           retention-days: 7
 
   # A new-source export repair must not reuse the qualified historical 7f tool
-  # identity. Its regressions and clean ELF supply are independent of Wallet UI.
+  # identity. Normal native recovery and transition supply are independent of
+  # Wallet UI and retain a separate purpose and actually compiled ELF identity.
   offline-migration-streaming:
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
@@ -2394,6 +2397,7 @@ jobs:
               p = subprocess.run(['git', 'show', 'HEAD^:' + path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
               return p.stdout if p.returncode == 0 else b''
           paths = ('internal/chain/offline_consensus_export.go', 'internal/chain/offline_consensus_export_test.go',
+              'internal/chain/devnet.go', 'internal/chain/snapshot_decode.go', 'internal/chain/snapshot_decode_test.go',
               'internal/chain/offline_consensus_decode.go', 'internal/chain/offline_consensus_decode_test.go',
               'internal/chain/canonical_state_json.go', 'internal/chain/canonical_state_json_test.go',
               'internal/chain/consensus_migration_decode.go', 'internal/chain/consensus_migration_decode_test.go',
@@ -2403,10 +2407,11 @@ jobs:
               'internal/consensus/validated_migration.go', 'internal/consensus/validator_bootstrap.go',
               'internal/consensus/validated_migration_stream_test.go',
               'internal/consensus/block_journal_readback.go', 'internal/consensus/block_journal_reader_test.go',
-              'cmd/ynx-chaind/main.go', 'cmd/ynx-chaind/consensus_export_test.go',
+              'cmd/ynx-chaind/main.go', 'cmd/ynx-chaind/consensus_export_test.go', 'cmd/ynx-chaind/build_info_test.go',
               'cmd/ynx-consensus-package/main.go', 'cmd/ynx-consensus-package/migration_public_summary.go',
               'cmd/ynx-consensus-package/migration_public_summary_test.go',
               'cmd/ynx-consensus-package/migration_import_storage.go', 'cmd/ynx-consensus-package/migration_import_storage_test.go',
+              'scripts/ops/build-native-transition-candidate.sh', 'scripts/ops/test_build_native_transition_candidate.py',
               'package.json', 'package-lock.json', 'hardhat.config.ts',
               'scripts/contracts/generate-selector-metadata.mjs', 'scripts/contracts/hardhat-output.mjs',
               'scripts/contracts/apply-hardhat-zod4-compat.mjs',
@@ -2438,6 +2443,9 @@ jobs:
         with:
           node-version: '24.19.0'
           cache: npm
+      - name: Verify normal native producer source and actual identity refusal protections
+        if: steps.scope.outputs.changed == 'true'
+        run: python3 -B scripts/ops/test_build_native_transition_candidate.py -v
       - name: Prepare the same real compiled contracts used by migration recovery fixtures
         if: steps.scope.outputs.changed == 'true'
         timeout-minutes: 3
@@ -2455,8 +2463,8 @@ jobs:
       - name: Verify unchanged canonical bytes and source and output failure protections
         if: steps.scope.outputs.changed == 'true'
         run: |
-          go test -v -p 1 -count=1 -timeout=180s -run '^(TestCanonicalStateJSON|TestConsensusMigrationOwned|TestConsensusMigrationDecode|TestConsensusMigrationDetached|TestOfflineConsensusDecode|TestOfflineConsensusFile|TestOfflineConsensusExportRequires|TestOfflineConsensusExportRejects|TestOfflineConsensusExportLegacy)' ./internal/chain
-          go test -v -p 1 -count=1 -timeout=90s -run '^(TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
+          go test -v -p 1 -count=1 -timeout=180s -run '^(TestNormalSnapshot|TestCanonicalStateJSON|TestConsensusMigrationOwned|TestConsensusMigrationDecode|TestConsensusMigrationDetached|TestOfflineConsensusDecode|TestOfflineConsensusFile|TestOfflineConsensusExportRequires|TestOfflineConsensusExportRejects|TestOfflineConsensusExportLegacy)' ./internal/chain
+          go test -v -p 1 -count=1 -timeout=90s -run '^(TestRunNodeBuildInfo|TestChaindBuildInfo|TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
           go test -v -p 1 -count=1 -timeout=180s -run '^(TestValidatedMigration|TestBlockJournalReader)' ./internal/consensus
           go test -v -p 1 -count=1 -timeout=90s -run '^(TestVerifyMigrationState|TestVerifyMigrationExecutionRetainsStrictLoader|TestMigrationPublicSummary|TestMigrationGenerationUsesStrictStreamedOriginalInput|TestMigrationImportStorage)' ./cmd/ynx-consensus-package
       - name: Build actual clean current-source offline tools without starting services
@@ -2474,6 +2482,23 @@ jobs:
         with:
           name: ynx-pq-offline-migration-streaming-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/ynx-pq-offline-streaming-tools
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Compile a distinct normal native transition candidate and read its actual build identity
+        if: steps.scope.outputs.changed == 'true'
+        run: |
+          bash scripts/ops/build-native-transition-candidate.sh \
+            --source-directory "$RUNNER_TEMP/ynx-pq-offline-streaming-source-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            --source-commit "$GITHUB_SHA" \
+            --source-tree "$(git rev-parse "$GITHUB_SHA^{tree}")" \
+            --output-directory "$RUNNER_TEMP/ynx-native-transition-candidate"
+      - name: Upload the closed normal native candidate without any keys or chain data
+        if: steps.scope.outputs.changed == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-native-transition-candidate-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ynx-native-transition-candidate
           if-no-files-found: error
           retention-days: 7
 

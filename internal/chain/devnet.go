@@ -3515,17 +3515,9 @@ func (d *Devnet) loadSnapshot() error {
 		return fmt.Errorf("open devnet snapshot: %w", err)
 	}
 	defer file.Close()
-	var snapshot devnetSnapshot
-	decoder := json.NewDecoder(file)
-	if err := decoder.Decode(&snapshot); err != nil {
-		return fmt.Errorf("decode devnet snapshot: %w", err)
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		if err == nil {
-			return errors.New("decode devnet snapshot: multiple JSON values")
-		}
-		return fmt.Errorf("decode devnet snapshot trailing data: %w", err)
+	snapshot, err := decodeNormalSnapshot(file)
+	if err != nil {
+		return err
 	}
 	markerPresent, err := validateSnapshotIntegrityMarker(d.snapshotIntegrityMarkerPath())
 	if err != nil {
