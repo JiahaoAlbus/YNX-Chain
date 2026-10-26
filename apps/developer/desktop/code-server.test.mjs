@@ -82,7 +82,7 @@ test('normal server refuses the legacy AI project mapping before any publication
     await mkdir(desktop,{recursive:true});await mkdir(sdk,{recursive:true});await mkdir(workspace);
     const artifact=join(workspace,'server.mjs');await writeFile(artifact,"console.log('PUBLIC artifact');\n");
     await copyParentControl(desktop);await copyFile(new URL('./code-server.mjs',import.meta.url),join(root,'server.mjs'));
-    for(const name of ['artifact-publication-host.mjs','artifact-publication-client.mjs','original-publication-project.mjs','publication-result-originals.mjs'])await copyFile(new URL('./'+name,import.meta.url),join(desktop,name));
+    for(const name of ['artifact-publication-host.mjs','artifact-publication-client.mjs','original-publication-project.mjs','publication-result-originals.mjs','publication-native-read-owner.mjs','artifact-publication-lifecycle.mjs','publication-pinned-read-fetch.mjs'])await copyFile(new URL('./'+name,import.meta.url),join(desktop,name));
     await writeFile(join(root,'build-provenance.json'),JSON.stringify(valid));
     await writeFile(join(desktop,'local-go-selection.mjs'),'export async function createLocalGoSelectionStore(){throw Error("PUBLIC no Go");}export function attachNativeGoSelectionChannel(){}');
     await writeFile(join(desktop,'native-tools-client.mjs'),'export function createNativeToolsClient(){return null;}');
@@ -107,7 +107,7 @@ for(const outcome of ['canonical-preview','source-missing','publisher-missing'])
   for(const directory of [desktop,sdk,workspace,profile])await mkdir(directory,{recursive:true,mode:0o700});
   const context={workspace,profile,id:'PUBLIC-local-uuid'},artifact=join(workspace,'server.mjs');await writeFile(artifact,"console.log('PUBLIC artifact');\n");
   await copyParentControl(desktop);await copyFile(new URL('./code-server.mjs',import.meta.url),join(root,'server.mjs'));
-  for(const name of ['artifact-publication-host.mjs','artifact-publication-client.mjs','original-publication-project.mjs','publication-result-originals.mjs'])await copyFile(new URL('./'+name,import.meta.url),join(desktop,name));
+  for(const name of ['artifact-publication-host.mjs','artifact-publication-client.mjs','original-publication-project.mjs','publication-result-originals.mjs','publication-native-read-owner.mjs','artifact-publication-lifecycle.mjs','publication-pinned-read-fetch.mjs'])await copyFile(new URL('./'+name,import.meta.url),join(desktop,name));
   await writeFile(join(root,'build-provenance.json'),JSON.stringify(valid));
   await writeFile(join(desktop,'local-go-selection.mjs'),'export async function createLocalGoSelectionStore(){throw Error("PUBLIC no Go");}export function attachNativeGoSelectionChannel(){}');
   await writeFile(join(desktop,'native-tools-client.mjs'),'export function createNativeToolsClient(){return null;}');
