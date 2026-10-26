@@ -379,8 +379,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 33290,
-      "sha256": "2262e381838b490a65adf21caaaeb415bd604b0b5e853208cb4ec2811998a69b"
+      "bytes": 34000,
+      "sha256": "3baf5a1559541ec3072ddcf5c2ed99df58d9c999bd46dac19d6bb7b8e029f4e4"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -789,8 +789,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-product-device-v4-source-contract.mjs",
-      "bytes": 5510,
-      "sha256": "48ac6bcbe93a859b55af82e4ce6bc1b7bb63fd4566a2e511b22285978b1d4dbe"
+      "bytes": 5705,
+      "sha256": "f1002396a55c7102aa326110ce5c236b5d12fddff81b90dd420586b1756c61cb"
     },
     {
       "path": "apps/wallet-desktop/native/original-product-device-v4-source.inc.mm",
@@ -801,6 +801,21 @@
       "path": "apps/wallet-desktop/native/original-product-device-v4-source-read.inc.mm",
       "bytes": 15593,
       "sha256": "edd4a9c5a47d4a7061d1baa3ad03ebb69316edd97dc124199b1ad161b1750b45"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-slot.h",
+      "bytes": 1115,
+      "sha256": "152056c712acab3b1b7cda4640793a0cfc1f5db689083fc1ec491c56b70d104a"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-slot.mm",
+      "bytes": 9583,
+      "sha256": "12e5b7e192efbc92b7c6b71bb387fa08862102ff5e8ac8d92f4e0f498a479b9f"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-slot-record.h",
+      "bytes": 1582,
+      "sha256": "926d06da38c9f43414ef600de0a9abc6d5a06640d7a2b46143555dfd8cf3a9fa"
     }
   ],
   "normalBuildTool": {
@@ -2279,9 +2294,9 @@
     "revokeVerified": false
   },
   "deviceSourceNativeStage": {
-    "sourceVariant": "SDK49-DEVICE-SOURCE4-STAGE/v1",
+    "sourceVariant": "SDK49-DEVICE-REGISTERED-SLOT-STAGE/v1",
     "originalAuthHandoffSHA256": "1630e5800996995b2f1338b7a6071a5c2c6357a8ffd4fdbbe2030db014b0c8a9",
-    "nativeSourceInputs": 105,
+    "nativeSourceInputs": 108,
     "addedFixedSourceLeaves": 3,
     "namedSDKNodeHunksOnly": true,
     "featureMacro": "YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE",
@@ -2297,6 +2312,9 @@
     "installed": false,
     "realLoginVerified": false,
     "restoreVerified": false,
-    "revokeVerified": false
+    "revokeVerified": false,
+    "privateSlotCode": true,
+    "registeredSlotHandoffSHA256": "546bad5bb5f1a28baf70ec4b825877ed0c84af01a67ed633991dc9bb5df1ad65",
+    "realKeychainQueried": false
   }
 }
