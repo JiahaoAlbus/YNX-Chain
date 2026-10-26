@@ -11,3 +11,8 @@ Separately, the reader normal CI [40366336885/1](https://github.com/JiahaoAlbus/
 Next consume original source-bound34-state/new Go results, complete normalCI handoff, official fresh/stage metadata, exact producer SOURCE/manifest/4ELFs and original frozen ref. Then bind the13inputs and all old limits into a fresh runtime tuple for Root's new budget/scheduling decision. The previous81 grant is consumed; no105s fit, complete32 or sustained1000TPS claim follows from source or CI.
 
 [Pending source preparation](evidence/pq-fresh-819-source-preparation-pending.json); [actual36-reader normal-CI handoff](evidence/pq-fresh-reader-36-normal-ci.json). Original working evidence: `/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-819-preparation/`.
+
+
+## Superseded candidate result
+
+Original8199 run40369044176 terminated failure: the strict test_actual_workflow_source contract expected the old step count/order (same source-contract first cause across6 of37 methods). Delivery/ProofMac were skipped by dependency, so8199 is not a complete supplier. Original owner fixed only that strict test in f8 and started normal push40370670739 with its sole observer. The8199 source/data above remain historical; see [exact f8 preparation](PQ_FRESH_F8B_PREPARATION_20261027.md). Do not convert partial8199 Native success into f8 qualification.

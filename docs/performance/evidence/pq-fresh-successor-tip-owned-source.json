@@ -1,0 +1,128 @@
+{
+  "version": "YNX-PQ-FRESH-NEGATIVE-SUCCESSOR-TIP-SOURCE/v1",
+  "commit": "a4b63d3e8843c19a07bb2a53b1db3cb6079555fd",
+  "base": "8199b85cd0592a92efe39384e3824016d1aa0791",
+  "branch": "codex/pq-readiness-successor-tip",
+  "worktree": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain",
+  "preservedOriginalBranch": {
+    "name": "codex/chain-performance-20261017",
+    "commit": "bfae05edfd52cd31dac7169af6cabda01eae3847"
+  },
+  "sourceLeaf": {
+    "sourcePath": "internal/consensus/pq_network_fresh_business_test.go",
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/internal/consensus/pq_network_fresh_business_test.go",
+    "bytes": 184376,
+    "sha256": "919a942ecfe7e85582613b8a09a10c23443a671c104ef46e6c919fb7338994c1",
+    "gitBlob": "75abfa729d3d245ff192e4062bfb9274fd0b430f"
+  },
+  "diff": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/OWNED_SOURCE_DIFF.patch",
+    "bytes": 10002,
+    "sha256": "5a5af53c34ab92347a642da10cc80e550ce0098fb4c49acaacaa92bbe698b4bc"
+  },
+  "unchangedOriginalFunctionSHA256": {
+    "pqFreshInclusionReady": "e12f853ab15e4cba30ad821d758e36cc12f59fb51e178765ea2e507baa8bc209",
+    "pqFreshCommitHeightPlan": "b1fe9eefa948516ae1d4499ec84ccec2f394c747faebf19d8aeea1e00c70d22f",
+    "pqFreshPipeline": "a6c816e58c5651ac6488d5fdb65bf33df0395a9d1ef7db7496d731f42e108e4a",
+    "pqFreshHostProgressLine": "a0d8018c8d33466d62b297546239f9c4c748c46b1f737dc783b2d235da5968ea",
+    "pqFreshNewHostQueue": "415241053b835ce51356155e8bb692dfb02606a8aba0c1824176380c317e3ff0",
+    "allTransfersCodeAfterOriginalInclusionCoordinates": "5e54a3d6b3541da3b793fbb902251238068b30651cbd99a47dcd1660e1276a70"
+  },
+  "behavior": "Known original H only: read all4 original BlockStore tips twice within this call, preserving stable per-node store identities and monotonic tips. Any insufficient H+1 tip may yield not-ready only after all reads succeed. Source errors/missing/aliased/replaced/regressing observations return errors, not pending. Unknown H uses original payload search. Tips never authorize inclusion: successful hint always invokes original complete probe and all subsequent checks.",
+  "advancingTips": "allowed; tip source replacement or regression is not",
+  "identityHandling": "opaque private original-store pointer identity remains local to one call; no pointer identity in public logs, no positive authority or cross-call cache",
+  "firstCause": "read errors wrapped with percent-w and returned; original payload/validation errors propagated; later read error not hidden by earlier low tip",
+  "newExactGoCases": [
+    "TestPQNetworkFreshSuccessorTipsWaitWithoutPayloadProbe",
+    "TestPQNetworkFreshSuccessorTipsStillRequireOriginalPayloadAndValidation",
+    "TestPQNetworkFreshSuccessorTipsKeepErrorsSourcesAndSnapshots",
+    "TestPQNetworkFreshSuccessorTipsBoundariesAndIndependentCalls"
+  ],
+  "actualLocalLightEvidence": {
+    "toolchain": "go1.25.7 darwin/arm64 GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off",
+    "scope": "exact extracted stdlib negative-hint helper, original H/H+1 budget/plan, pipeline/cancelJoin/completion,4 new source cases and4 original pipeline cases; NOT original node adapter, real blockstores, full Go1.26.10 repository package, cryptography or network",
+    "red": {
+      "meaning": "new helper before implementation unconditionally delegates original full-probe behavior; not unchanged old repository package baseline",
+      "runtimeFailedTests": 1,
+      "raw": {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/negative-hint-red.raw",
+        "bytes": 303,
+        "sha256": "8f412d6b21e2a20bcd4c6129d8e8402ded0b0f75c49b869f45475f748b06755c"
+      }
+    },
+    "green": {
+      "topLevelSourceTestsPassed": 8,
+      "failed": 0,
+      "namedSubcasesPassed": 10,
+      "raw": {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/fixed-all.raw",
+        "bytes": 3130,
+        "sha256": "7ce2fe8bf8bda47cd9983e0de4f40a6ebe88c1c4c7f22fbe76407d94ebd06baa"
+      }
+    },
+    "initialExtractionFailuresPreserved": [
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/before-implementation.raw",
+        "bytes": 183,
+        "sha256": "a1b4717c0632e595bae8be85b8611ea9e473fae5dbef11318329df5f2e14bd59"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/original-probe-behavior.raw",
+        "bytes": 183,
+        "sha256": "a1b4717c0632e595bae8be85b8611ea9e473fae5dbef11318329df5f2e14bd59"
+      }
+    ],
+    "initialFailureExplanation": "missing pqFreshAccounts in first extracted source prevented compilation; both failures retained, constant then copied exactly from source before actual runtime red test",
+    "sources": [
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/BEFORE_IMPLEMENTATION_SOURCE.json",
+        "bytes": 1193,
+        "sha256": "da798cd45276f697f0814be91f24bbe5e35ac3d922a683065dd30caa604c3eb1"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/FIXED_SOURCE.json",
+        "bytes": 923,
+        "sha256": "abc80334e650bbb6f58095515831b6d1509ff8ef7ac773011e0f1a121f1500ac"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/original-probe-behavior.go.txt",
+        "bytes": 5609,
+        "sha256": "13d7aafc8aaeef3e3983b08de8db9a0fd185314df355acf3b6031ba4d0521fc0"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/tip.go",
+        "bytes": 7153,
+        "sha256": "01552eb2081fa95e738e9b90b06cc2add2c998ab94f70fd5fa161ecb3efe221b"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/tip_test.go",
+        "bytes": 13082,
+        "sha256": "6a7f758113f84f3fbb0943336384d3bf254f2aa227034c05da9f32ba36da580b"
+      },
+      {
+        "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-successor-tip-20261027/go.mod",
+        "bytes": 52,
+        "sha256": "0d209f7e482e579e6920b4b1dc9c59275cff09a3b0aea2abb006615b60fc5d2c"
+      }
+    ]
+  },
+  "originalConstantsAndCapsUnchanged": true,
+  "originalFullReplicaChecksKept": true,
+  "originalSignatureAndIndependentVerifierKept": true,
+  "originalQueueAndNoCatchupKept": true,
+  "originalLogsAndBudgetUnchanged": true,
+  "coordinatorWorkMeaning": "existing inclusion-probe aggregate now includes cheap negative hints; no claim it counts expensive DB traversals only",
+  "normalGo12610CIExecuted": false,
+  "sourcePushedByPerf": false,
+  "currentF8SupplyChanged": false,
+  "newBuildOrNetworkRunExecuted": false,
+  "newPressureAuthorized": false,
+  "runtimeGainMeasured": false,
+  "sustainedTPSQualified": false,
+  "protocolOwnerIntegrationNext": [
+    "Review/cherry-pick sole fresh leaf after current f8 supply is handled.",
+    "Update original controller/workflow source pin to exact new leaf.",
+    "Append4 exact new cases to original normalCI required-passed list; original nonHost group already selects them.",
+    "Consume actual target-toolchain Go results and whole supply before any new Root once runtime decision."
+  ]
+}
