@@ -51,3 +51,22 @@ Compared descriptively with the earlier42 failed run, before offer-begin cadence
 Next source work is with Protocol owner: diagnose and reduce full retained WAL/blockstore/Host input amplification while preserving all safety/history/proof contracts, and use actual checkpoint-load/validation/retention tails to choose changes. Perf retains harness/reader ownership. Another runtime requires a new exact source/normalCI/supply tuple and fresh Root grant; no unchanged rerun.
 
 [Full exact terminal handoff](evidence/pq-fresh-81c-terminal-handoff.json) contains original source/artifact/guard/output pins, all phase spans, latency/stage quantiles and resource metadata. Raw7-output evidence remains at `/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-81c-whole-once/`.
+
+
+## Actual successor critical path
+
+All26 verified callbacks were joined to their original offer ordinal by the unique latest begin at/before actual offer offset with matching completed offer span; concurrent outstanding offer spans are not treated as distinct candidates for the same start. Target/successor heights join exact4-node Commit rows. Per-row target all4durable→Hostbegin→Hostcomplete→readbackbegin→independentWait intervals were monotonic and partitioned exactly.
+
+| Parent-clock interval P50 / P95, seconds | Before16 | After10 partial |
+|---|---:|---:|
+| targetAll4DurableToHostBeginNs | 1.422095 / 1.672609 | 1.400862 / 1.895936 |
+| HostProgressSpanNs | 0.621714 / 0.996330 | 0.386907 / 0.683645 |
+| HostCompleteToReadbackBeginNs | 0.000035 / 0.000130 | 0.000036 / 0.000131 |
+| readbackBeginToIndependentWaitNs | 1.228678 / 1.442018 | 1.225038 / 1.331267 |
+| targetAll4DurableToIndependentWaitNs | 3.301121 / 4.023156 | 3.160864 / 3.756587 |
+
+Before16/16 successor H+1 all4durable events occurred during Host spans, not before Hostbegin. After8/10 occurred during Host and2/10 before Host. Thus targetdurable→Hostbegin cannot be assumed to follow already completed successor durability or attributed wholly to unnecessary coordinator CPU. H+1/fullAND validation remains required. Readbackbegin→Wait includes HTTP, child verifier and scheduling, not pure crypto/BFT formation. Per-row intervals are additive; their quantiles are not.
+
+[Exact26-row critical-path data](evidence/pq-fresh-81c-successor-critical-path.json) was derived only from the original immutable logs. The first exploratory join incorrectly selected all overlapping offer spans and rejected that ambiguity; it was corrected to the same original-start binding used by the tested reader. No original evidence was edited, no runtime repeated, and no new gain or target qualification is claimed.
+
+The next-candidate original-controller/workflow binding patch is prepared separately under `/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-readiness-yield-20261027/PROTOCOL_OWNED_CI_PIN_INTEGRATION.patch` (6511bytes/SHA25657714a0c504baa452377ab27a6f1cba95cc5ff6109a1d159475da9ccb54e9896). A current-tree git apply check passed; Protocol owner still owns applying its2source pins and1required-case entry. Perf did not edit those files or claim a complete Go1.26.10 CI result.
