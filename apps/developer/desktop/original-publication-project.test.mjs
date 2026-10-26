@@ -94,12 +94,12 @@ test('normal host joins late original acquisition on close and never selects art
 test('normal host independently closes project and observer after falsy artifact cleanup failure',async t=>{
  const f=fixture(),p=captureOriginalPublicationProject(f.options);let observerCloses=0;
  const h=await hostFixture(t,{openOriginalProject:async()=>p,openNativeArtifact:async()=>({assertCurrent:async()=>{},close(){throw false;}}),openObservation:async()=>({resume:async()=>({state:'pending'}),close:async()=>{observerCloses++;}})});
- await h.host.preview(h.body);await h.host.observe('PUBLIC-request');await exactReject(()=>h.host.close(),false);await exactReject(()=>h.host.close(),false);
+ await h.host.preview(h.body);await h.host.observe('11111111-2222-4333-8444-555555555555');await exactReject(()=>h.host.close(),false);await exactReject(()=>h.host.close(),false);
  assert.equal(f.calls.filter(x=>x==='close').length,1);assert.equal(observerCloses,1);
 });
 test('closing synchronously after observe prevents a queued service factory from starting',async t=>{
  let factories=0,resumes=0;const h=await hostFixture(t,{openObservation:async()=>{factories++;return{resume:async()=>{resumes++;},close:async()=>{}};}});
- const observing=h.host.observe('PUBLIC-request');const refused=assert.rejects(observing,{code:'IDE_PUBLICATION_NOT_SUPPLIED'});
+ const observing=h.host.observe('11111111-2222-4333-8444-555555555555');const refused=assert.rejects(observing,{code:'IDE_PUBLICATION_NOT_SUPPLIED'});
  const closing=h.host.close();await refused;await closing;assert.equal(factories,0);assert.equal(resumes,0);
 });
 function workspaceFixture(){
@@ -163,4 +163,62 @@ test('observation refuses a retired original workspace selection and never reacq
  const f=workspaceFixture(),owner=projectConsumer.captureOriginalWorkspacePublicationProject(f.workspaceOptions);
  await owner.readObservationScope();f.selection.catalogRevision='9';await assert.rejects(owner.readObservationScope(),{code:'IDE_PUBLICATION_PROJECT_RETIRED'});
  owner.close();assert.equal(f.calls.filter(x=>x==='acquire-selector').length,1);
+});
+
+function serviceFixture(base=fixture()){
+ const registration={version:'YNX-IDE-SERVICE-REGISTRATION/v1',registrationId:'PUBLIC-service-registration',revision:'1',currentReference:'PUBLIC-service-current',serviceInstanceId:'PUBLIC-service-instance',projectId:base.project.projectId,account:base.principal.account,apiEndpoint:'https://PUBLIC.invalid/cloud',tlsSPKISHA256:'a'.repeat(64),audience:'PUBLIC-audience',productId:'PUBLIC-product',clientId:'PUBLIC-client',scopes:['PUBLIC:read'],issuedAtMs:500,expiresAtMs:1500,revoked:false};
+ let reads=0;const hooks={};
+ base.api.readOriginalIDECurrentServiceRegistration=(owner,id)=>{
+  assert.equal(id,base.project.projectId);assert.notEqual(id,'PUBLIC-local-uuid');reads++;base.calls.push('service');hooks.read?.(reads);
+  return structuredClone({principal:base.principal,project:base.project,serviceRegistration:registration,expiresMS:1400});
+ };
+ return{...base,registration,hooks,reads:()=>reads};
+}
+test('fixed Native service DATA uses same original project owner and remains detached with no permission flags',async()=>{
+ const f=serviceFixture(),owner=captureOriginalPublicationProject(f.options),service=await owner.readObservationServiceRegistration();
+ assert.equal(service.principal.account,f.principal.account);assert.equal(service.project.projectId,f.project.projectId);assert.equal(service.serviceRegistration.registrationId,f.registration.registrationId);assert.equal(service.expiresMS,1400);
+ assert.equal(Object.keys(service).sort().join(),'expiresMS,principal,project,serviceRegistration');assert.equal(Object.hasOwn(service,'authorized'),false);assert.equal(Object.hasOwn(service,'operationRequestId'),false);
+ assert.ok(Object.isFrozen(service.serviceRegistration)&&Object.isFrozen(service.serviceRegistration.scopes));
+ f.registration.scopes[0]='PUBLIC:changed';assert.equal(service.serviceRegistration.scopes[0],'PUBLIC:read');
+ await assert.rejects(owner.readObservationServiceRegistration(),{code:'IDE_PUBLICATION_PROJECT_RETIRED'});owner.close();assert.equal(f.calls.filter(x=>x==='acquire').length,1);
+});
+test('missing new service export and read permission cannot become endpoint aliases or retire old project review',async()=>{
+ const f=fixture(),owner=captureOriginalPublicationProject(f.options);
+ await assert.rejects(owner.readObservationServiceRegistration(),{code:'IDE_PUBLICATION_NOT_SUPPLIED'});assert.equal((await owner.assertCurrent()).projectId,f.project.projectId);owner.close();
+ const readless=serviceFixture();readless.project.read=false;const other=captureOriginalPublicationProject(readless.options);
+ await assert.rejects(other.readObservationServiceRegistration(),{code:'IDE_PUBLICATION_NOT_SUPPLIED'});assert.equal(readless.reads(),0);assert.equal((await other.assertCurrent()).projectId,readless.project.projectId);other.close();
+});
+test('service DATA rejects project/account/revoke/window/scopes/extra drift without another Source acquisition',async()=>{
+ for(const change of [f=>f.registration.projectId='PUBLIC-other',f=>f.registration.account='PUBLIC-other',f=>f.registration.revoked=true,f=>f.registration.expiresAtMs=900,f=>f.registration.scopes=[],f=>f.registration.extra='PUBLIC-not-in-schema',f=>f.registration.revision=1]){
+  const f=serviceFixture();change(f);const owner=captureOriginalPublicationProject(f.options);
+  await assert.rejects(owner.readObservationServiceRegistration(),{code:'IDE_PUBLICATION_PROJECT_RETIRED'});owner.close();assert.equal(f.calls.filter(x=>x==='acquire').length,1);
+ }
+});
+test('service DATA changed between original reads or expired during final local fence cannot return',async()=>{
+ const f=serviceFixture();f.hooks.read=count=>{if(count===2)f.registration.revision='2';};const owner=captureOriginalPublicationProject(f.options);
+ await assert.rejects(owner.readObservationServiceRegistration(),{code:'IDE_PUBLICATION_PROJECT_RETIRED'});owner.close();
+ const expired=serviceFixture(),check=expired.options.assertLocalCurrent;expired.options.assertLocalCurrent=async()=>{await check();if(expired.reads())expired.setTime(1501);};
+ const other=captureOriginalPublicationProject(expired.options);await assert.rejects(other.readObservationServiceRegistration(),{code:'IDE_PUBLICATION_PROJECT_RETIRED'});other.close();
+});
+test('Native service failure including falsy causes remains exact and closes same owner once',async()=>{
+ for(const cause of [undefined,false,Error('PUBLIC native getter failed')]){
+  const f=serviceFixture();f.api.readOriginalIDECurrentServiceRegistration=()=>{throw cause;};const owner=captureOriginalPublicationProject(f.options);
+  await exactReject(()=>owner.readObservationServiceRegistration(),cause);await exactReject(()=>owner.readObservationServiceRegistration(),cause);
+  owner.close();owner.close();assert.equal(f.calls.filter(x=>x==='close').length,1);
+ }
+});
+
+test('normal workspace selector delegates fixed service DATA without local UUID or new authority',async()=>{
+ const f=serviceFixture(workspaceFixture()),owner=projectConsumer.captureOriginalWorkspacePublicationProject(f.workspaceOptions);
+ const data=await owner.readObservationServiceRegistration();
+ assert.equal(data.project.projectId,f.project.projectId);assert.notEqual(data.project.projectId,f.context.id);
+ assert.equal(data.serviceRegistration.registrationId,f.registration.registrationId);assert.equal(data.expiresMS,1400);
+ f.selection.projectRevision='9';await assert.rejects(owner.readObservationServiceRegistration(),{code:'IDE_PUBLICATION_PROJECT_RETIRED'});
+ owner.close();assert.equal(f.calls.filter(x=>x==='acquire').length,1);assert.equal(f.calls.filter(x=>x==='acquire-selector').length,1);assert.equal(f.calls.filter(x=>x==='close-selector').length,1);
+});
+test('closing project during post-read local current fence blocks the second service getter',async()=>{
+ const f=serviceFixture();let owner;const check=f.options.assertLocalCurrent;
+ f.options.assertLocalCurrent=async()=>{await check();if(f.reads())owner.close();};
+ owner=captureOriginalPublicationProject(f.options);await assert.rejects(owner.readObservationServiceRegistration(),{code:'IDE_PUBLICATION_PROJECT_RETIRED'});
+ assert.equal(f.reads(),1);assert.equal(f.calls.filter(x=>x==='close').length,1);
 });

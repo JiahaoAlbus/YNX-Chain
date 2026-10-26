@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
 import {openProjectContractClient} from './wallet-contract-client.mjs';
+import {createProjectContractsHost} from './project-contracts-host.mjs';
 import {openContractReferenceJournal,openRelayContractReferenceJournal,contractBroadcastReferenceId} from './wallet-contract-reference-journal.mjs';
 const id='11111111-2222-3333-4444-555555555555', account='0x'+'a'.repeat(40), key='b'.repeat(64);
 const input=()=>({method:'ynx_preparePQContractAction',params:[{version:1,account,action:{kind:'contract_deploy'}}]});
@@ -74,4 +75,84 @@ for(const orphan of [false,true])test('uncertain retained writer cannot grant a 
  const f=await fixture(t),journal=await openContractReferenceJournal({profile:f.profile,projectId:id,owner:'PUBLIC-old-owner',account:'PUBLIC-old-principal'}),oldId='22222222-2222-3333-4444-555555555555';
  if(!orphan)await journal.append(oldId,{account,method:input().method,requestPayloadSHA256:createHash('sha256').update(JSON.stringify(input())).digest('hex'),originalRequestKeyHash:key,operationId:'PUBLIC-operation',transportHash:'0x'+'1'.repeat(64),memberHash:'0x'+'2'.repeat(64),state:'saved'});
  const lock=join(f.profile,'wallet-contract-query-references',oldId+'.jsonl.lock');await fs.writeFile(lock,'PUBLIC uncertain writer',{mode:0o600,flag:'wx'});const begin=f.connection.beginContractRequest.bind(f.connection);f.connection.beginContractRequest=request=>{const handle=begin(request);queueMicrotask(()=>{void handle.event();f.result.resolve({PUBLIC:'unexpected duplicate accepted'});});return handle;};await f.client.connect();await assert.rejects(f.client.request({referenceId:id,input:input()}),{code:orphan?'IDE_CONTRACT_REFERENCE_NOT_DURABLE':'IDE_CONTRACT_ORIGINAL_QUERY_REQUIRED'});assert.equal(f.calls,0);assert.equal((await f.client.listReferences()).uncertainWriter,true);assert.equal(await fs.readFile(lock,'utf8'),'PUBLIC uncertain writer');await f.client.close();
+});
+
+test('closing current project settles an unanswered original Wallet request and durably retains UNKNOWN',async t=>{
+ const f=await fixture(t);await f.client.connect();
+ const pending=f.client.request({referenceId:id,input:input()}),observed=pending.then(()=>({success:true}),error=>({code:error.code}));
+ await started(f);await f.handle.event();await f.client.close();
+ assert.deepEqual(await Promise.race([observed,new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]),{code:'IDE_CONTRACT_RETIRED'});
+ const reopened=await openProjectContractClient(f.options);
+ const row=await reopened.read(id);assert.equal(row.state,'unknown');assert.equal(row.originalRequestKeyHash,key);
+ assert.equal(f.calls,1);assert.equal(f.cancels,1);
+ f.result.resolve({PUBLIC:'late success'});await new Promise(resolve=>setImmediate(resolve));
+ assert.equal((await reopened.read(id)).state,'unknown');assert.equal(f.calls,1);await reopened.close();
+});
+test('late original Wallet correlation after close remains query-only without another request',async t=>{
+ const f=await fixture(t);await f.client.connect();
+ const pending=f.client.request({referenceId:id,input:input()}),observed=pending.catch(error=>error.code);
+ await started(f);await f.client.close();
+ assert.equal(await Promise.race([observed,new Promise(resolve=>setImmediate(()=>resolve('NOT_SETTLED')))]),'IDE_CONTRACT_RETIRED');
+ await f.handle.event();const reopened=await openProjectContractClient(f.options);const row=await reopened.read(id);
+ assert.equal(row.state,'unknown');assert.equal(row.originalRequestKeyHash,key);
+ await reopened.connect();await assert.rejects(reopened.request({referenceId:id,input:input()}),{code:'IDE_CONTRACT_REFERENCE_EXISTS'});assert.equal(f.calls,1);
+ f.result.reject(Error('PUBLIC late original RPC failure'));await new Promise(resolve=>setImmediate(resolve));await reopened.close();
+});
+
+test('close never reports clean retirement when UNKNOWN persistence is blocked by the original writer',async t=>{
+ const f=await fixture(t);await f.client.connect();const pending=f.client.request({referenceId:id,input:input()}),observed=pending.catch(error=>error.code);
+ await started(f);await f.handle.event();const bytes=await fs.readFile(f.file);
+ await fs.writeFile(f.file+'.lock','PUBLIC uncertain original writer',{mode:0o600,flag:'wx'});
+ const closed=f.client.close().then(()=>({success:true}),error=>({code:error.code}));
+ assert.deepEqual(await closed,{code:'CONTRACT_REFERENCE_BUSY'});assert.equal(await observed,'IDE_CONTRACT_RETIRED');
+ assert.deepEqual(await fs.readFile(f.file),bytes);assert.equal(await fs.readFile(f.file+'.lock','utf8'),'PUBLIC uncertain original writer');
+ assert.equal(f.calls,1);f.result.resolve({PUBLIC:'late result'});await new Promise(resolve=>setImmediate(resolve));
+});
+
+test('close retires unanswered pairing and late URI without restoring a provider',async t=>{
+ const f=await fixture(t),pairing=deferred();let options,uris=0;
+ f.connection.connect=async value=>{options=value;return pairing.promise;};
+ const pending=f.client.connect({onURI:()=>uris++}),observed=pending.catch(e=>e.code);
+ while(!options)await new Promise(resolve=>setImmediate(resolve));
+ await f.client.close();assert.equal(await observed,'IDE_CONTRACT_RETIRED');
+ options.onURI('wc:PUBLIC-late');pairing.resolve({request:async()=>{throw Error('late provider must not be used');}});await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(uris,0);assert.equal(f.calls,0);assert.equal(f.cancels,1);await f.client.close();assert.equal(f.cancels,1);
+});
+test('close retires unanswered original scope check before constructing a Wallet connection',async t=>{
+ const f=await fixture(t),scope=deferred();let entered=false;
+ f.options.relayAuthority.assertCurrent=()=>{entered=true;return scope.promise;};
+ const pending=f.client.connect(),observed=pending.catch(e=>e.code);
+ while(!entered)await new Promise(resolve=>setImmediate(resolve));
+ await f.client.close();assert.equal(await observed,'IDE_CONTRACT_RETIRED');assert.equal(f.connects,0);assert.equal(f.cancels,0);
+ scope.resolve({...f.state});await new Promise(resolve=>setImmediate(resolve));assert.equal(f.connects,0);
+});
+test('same request ID in a different project is not retired by the first project close',async t=>{
+ const first=await fixture(t),second=await fixture(t);await first.client.connect();await second.client.connect();
+ const old=first.client.request({referenceId:id,input:input()}),oldOutcome=old.catch(e=>e.code),live=second.client.request({referenceId:id,input:input()});
+ await started(first);await started(second);await first.handle.event();await second.handle.event('c'.repeat(64));
+ await first.client.close();assert.equal(await oldOutcome,'IDE_CONTRACT_RETIRED');
+ first.result.resolve({PUBLIC:'late first session'});second.result.resolve({PUBLIC:'live second session'});
+ const result=await live;assert.equal(result.reference.originalRequestKeyHash,'c'.repeat(64));assert.equal(result.reference.state,'saved');
+ assert.equal(second.cancels,0);assert.equal(first.calls,1);assert.equal(second.calls,1);await second.client.close();
+});
+test('failed cancellation is retained once after original pending state becomes UNKNOWN',async t=>{
+ const f=await fixture(t),cancel=f.connection.cancel;f.connection.cancel=async()=>{await cancel();throw false;};
+ await f.client.connect();const pending=f.client.request({referenceId:id,input:input()}),observed=pending.catch(e=>e.code);await started(f);await f.handle.event();
+ const first=f.client.close(),second=f.client.close();assert.equal(first,second);
+ assert.equal(await first.then(()=>true,cause=>cause),false);assert.equal(await observed,'IDE_CONTRACT_RETIRED');assert.equal(f.cancels,1);
+ const reopened=await openProjectContractClient(f.options);assert.equal((await reopened.read(id)).state,'unknown');f.result.reject(Error('PUBLIC late failure'));await new Promise(resolve=>setImmediate(resolve));
+});
+
+test('normal project host cancel retires actual unanswered client and only explicit retry opens a fresh attempt',async t=>{
+ const f=await fixture(t),pairing=deferred(),normalConnect=f.connection.connect;let options,opens=0;
+ f.connection.connect=value=>{options=value;return pairing.promise;};
+ const host=createProjectContractsHost({context:f.options.context,assertPathCurrent:async()=>{},assertNetworkApproved:async()=>{},openClient:async()=>++opens===1?f.client:openProjectContractClient(f.options)});
+ const first=host.call('connect'),observed=first.catch(e=>e.code);
+ while(!options)await new Promise(resolve=>setImmediate(resolve));options.onURI('wc:PUBLIC-pairing');
+ assert.equal((await host.call('inspect')).pairingURI,'wc:PUBLIC-pairing');
+ assert.equal((await host.call('cancel')).state,'cancelled');assert.equal(await observed,'IDE_CONTRACT_RETIRED');assert.equal(opens,1);
+ assert.equal((await host.call('inspect')).pairingURI,null);
+ f.connection.connect=normalConnect;assert.equal((await host.call('connect')).connected,true);assert.equal(opens,2);
+ options.onURI('wc:PUBLIC-obsolete');pairing.resolve({request:async()=>{throw Error('retired provider must not be queried');}});await new Promise(resolve=>setImmediate(resolve));
+ assert.equal((await host.call('inspect')).pairingURI,null);assert.equal(f.calls,0);await host.close();
 });

@@ -2,14 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,realpath} from 'node:fs/promises';
 import {createRequire} from 'node:module';
-import {join,resolve,sep} from 'node:path';
+import {join,resolve,sep,dirname} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createOriginalPublicationInputData} from './publication-result-originals.mjs';
+import {canonicalInputs,canonicalPQActionTestSource} from '../scripts/package-identity-admission-source.mjs';
 
 test('normal SDK public decoder feeds the Auth six-field caller without altering inner result or member',async()=>{
- const root=await realpath(process.env.YNX_DEVELOPER_CANONICAL_SDK_ROOT||fileURLToPath(new URL('../../../packages/wallet-auth',import.meta.url)));
- const metadataPath=join(root,'package.json'),metadata=JSON.parse(await readFile(metadataPath));assert.equal(metadata.name,'@ynx-chain/wallet-auth');assert.equal(metadata.version,'1.3.0-pq.3.32-auth.39');
+ // The source selection may deliberately have no dependencies. Reuse the fixed, fully pinned co-resident runtime selector.
+ const selected=await canonicalInputs(),root=await realpath(dirname(dirname(await canonicalPQActionTestSource())));
+ const metadataPath=join(root,'package.json'),metadata=JSON.parse(await readFile(metadataPath));assert.equal(metadata.name,'@ynx-chain/wallet-auth');assert.equal(metadata.version,selected.sdkVersion);
  const sdk=createRequire(pathToFileURL(metadataPath)),target=await realpath(sdk.resolve('@ynx-chain/wallet-auth/ide-artifact-release-result'));assert.ok(target.startsWith(root+sep));
  const {decodeIDEArtifactReleaseResultData}=await import(pathToFileURL(target).href);
  const fields={version:'YNX-IDE-ARTIFACT-RELEASE-RESULT/v1',purpose:'ARTIFACT-RELEASE',requestOriginal:'{"requestId":"PUBLIC-request"}',manifestOriginal:'{"projectId":"PUBLIC-project","label":"中文/🌏"}',invocationOriginal:'{"projectId":"PUBLIC-project","label":"中文/🌏"}',publisherOriginal:'AQID',signatureOriginal:'BAUG',actualApprovalRef:'00000000-0000-4000-8000-000000000001',publisherRegistrationRef:'PUBLIC-registration',publisherRevision:'1',publisherKeyVersion:'1'};

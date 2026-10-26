@@ -6,10 +6,29 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {verifyCanonicalIdentityAdmissionSource,verifyCanonicalNativeSourceSelection,canonicalNativeSourcesForOwner} from './package-identity-admission-source.mjs';
 import {sdk39ProductLayout} from './sdk39-product-layout.mjs';
+import {sdk46ProductLayout} from './sdk46-product-layout.mjs';
+import {sdk47ProductLayout} from './sdk47-product-layout.mjs';
+import {sdk48ProductLayout} from './sdk48-product-layout.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('normal selection validates exact SDK39 and complete Main18/helper11 Native without loading Native',async()=>{
+test('normal selection validates exact canonical SDK and complete Main18/helper11 Native without loading Native',async()=>{
  const sdk=await verifyCanonicalIdentityAdmissionSource();
  const native=await verifyCanonicalNativeSourceSelection();
+ if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.48'){
+ assert.equal(sdk.sdkCommit,'632af166d0b374c618bb226f63aefdcba223247c');assert.equal(sdk.files.length,415);
+ assert.equal(sdk.dependencies.length,9177);assert.equal(native.sourceLeaves,127);assert.equal(native.buildInputLeaves,115);
+ assert.equal(sdk.runtimeClosure.Auth.files,574);assert.equal(sdk.runtimeClosure.contractRelay.files,9434);
+ assert.equal(inputs.helperComponent.registered,false);assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
+ }else if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.47'){
+ assert.equal(sdk.sdkCommit,'5763b31b0e8d595bf2ed2cae2d4adf7fc5cdcadf');assert.equal(sdk.files.length,415);
+ assert.equal(sdk.dependencies.length,9177);assert.equal(native.sourceLeaves,127);assert.equal(native.buildInputLeaves,115);
+ assert.equal(sdk.runtimeClosure.Auth.files,574);assert.equal(sdk.runtimeClosure.contractRelay.files,9434);
+ assert.equal(inputs.helperComponent.registered,false);assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
+ }else if(inputs.sdkVersion==='1.3.0-pq.3.32-auth.46'){
+ assert.equal(sdk.sdkCommit,'59a3797ea3421129171565e37870568e424ec085');assert.equal(sdk.files.length,413);
+ assert.equal(sdk.dependencies.length,9177);assert.equal(native.sourceLeaves,125);assert.equal(native.buildInputLeaves,113);
+ assert.equal(sdk.runtimeClosure.Auth.files,572);assert.equal(sdk.runtimeClosure.contractRelay.files,9432);
+ assert.equal(inputs.helperComponent.registered,false);assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
+ }else{
  assert.equal(sdk.sdkCommit,'74a44b86f27456685f4a153dfdd8f4e51aaa0cc8');assert.equal(sdk.files.length,408); // 406 full-source payloads plus two original full-build inventories.
  assert.equal(sdk.dependencies.length,9177);assert.equal(native.sourceLeaves,124);assert.equal(native.buildInputLeaves,112);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
@@ -18,6 +37,7 @@ test('normal selection validates exact SDK39 and complete Main18/helper11 Native
  assert.equal(sdk.runtimeClosure.contractRelay.files,9427);assert.equal(sdk.runtimeClosure.Auth.files,567);
  assert.equal(inputs.nativeComponent.module.sha256,'2806a974f1cb64e9f8027e8cbd077aa70252252f0cb4aa6d3fe00664f804e95f');
  assert.equal(inputs.helperComponent.registered,false);
+ }
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{
  const root=await mkdtemp(join(tmpdir(),'ynx-sdk-selection-'));
@@ -25,7 +45,7 @@ test('wrong SDK bytes, missing source and a symlink are refused on the selected 
  const deps=process.env.YNX_DEVELOPER_CANONICAL_DEPENDENCY_ROOT;
  assert.ok(source&&deps,'Run source-selection controls with the original fixed supplier roots.');
  try{
-  const product=sdk39ProductLayout(inputs);
+  const product=inputs.sdkVersion==='1.3.0-pq.3.32-auth.48'?sdk48ProductLayout(inputs):inputs.sdkVersion==='1.3.0-pq.3.32-auth.47'?sdk47ProductLayout(inputs):inputs.sdkVersion==='1.3.0-pq.3.32-auth.46'?sdk46ProductLayout(inputs):sdk39ProductLayout(inputs);
   for(const row of product.files){const p=join(root,row.path);await mkdir(join(p,'..'),{recursive:true});const generated=inputs.productProjection.generated.find(g=>g.destination===row.path);const origin=generated?fileURLToPath(new URL('../../../'+generated.source,import.meta.url)):join(source,row.path);await copyFile(origin,p);}
   await verifyCanonicalIdentityAdmissionSource(root,deps);
   const path=join(root,'package.json'),original=await readFile(path);

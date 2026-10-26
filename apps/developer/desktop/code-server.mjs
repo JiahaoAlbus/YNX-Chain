@@ -38,6 +38,7 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   const { startLocalWorkbench, localProjectContext } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'local-workbench.mjs')));
   const context=await localProjectContext({supportRoot,projectDirectory:process.env.YNX_LOCAL_WORKSPACE||undefined});
   const {createLocalGoSelectionStore,attachNativeGoSelectionChannel}=await import(pathToFileURL(join(applicationRoot,'desktop','local-go-selection.mjs')));
+  let nativeServiceReadControl;
   let goStore,goToolchain;
   try{goStore=await createLocalGoSelectionStore({supportRoot,context,pathIdentityHelper:join(resources,'runtime','workspace-path-identity')});goToolchain=await goStore.load();}
   catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
@@ -88,12 +89,14 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
     closeContractAuthority:contractRuntime?()=>contractRuntime.close():undefined,
     // Independent original workspace selector. Acquired lazily only for an
     // explicit artifact review; local development never requires this Source.
-    // HTTP observation/protected approval remain unavailable until supplied.
+    // Observation obtains actual Cocoa protected read ports only after explicit review.
     openPublication:async projectContext=>{
       const {createArtifactPublicationHost}=await import(pathToFileURL(join(applicationRoot,'desktop','artifact-publication-host.mjs')));
       const {openBundledOriginalPublicationProject}=await import(pathToFileURL(join(applicationRoot,'desktop','original-publication-project.mjs')));
       const {openBundledOriginalPublicationArtifact}=await import(pathToFileURL(join(applicationRoot,'desktop','artifact-publication-client.mjs')));
+      const {openBundledPublicationReadOwner}=await import(pathToFileURL(join(applicationRoot,'desktop','publication-native-read-owner.mjs')));
       return createArtifactPublicationHost({context:projectContext,
+        openObservation:currentContext=>openBundledPublicationReadOwner({context:currentContext,control:nativeServiceReadControl,resources}),
         openOriginalProject:(currentContext,assertLocalCurrent)=>openBundledOriginalPublicationProject({context:currentContext,assertLocalCurrent}),
         openNativeArtifact:selection=>openBundledOriginalPublicationArtifact({selection,actualEntryURL:import.meta.url}),
       });
@@ -119,6 +122,10 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
     });
   const { createNativeParentControl } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'native-parent-control.mjs')));
   const parentControl = createNativeParentControl({input:process.stdin,onError:error=>console.error('YNX_NATIVE_PARENT_CONTROL '+String(error?.message??error).slice(0,240))});
+  if(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(process.env.YNX_NATIVE_GO_INSTANCE||'')){
+    const {createNativeServiceReadControl}=await import(pathToFileURL(join(applicationRoot,'desktop','native-service-read-control.mjs')));
+    nativeServiceReadControl=createNativeServiceReadControl({control:parentControl,output:process.stderr,instance:process.env.YNX_NATIVE_GO_INSTANCE,context});
+  }
   let goChannel, originalServiceChannel, identityChannel;
   if(goStore&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(process.env.YNX_NATIVE_GO_INSTANCE||'')){
     const {attachOriginalServicePipe}=await import(pathToFileURL(join(applicationRoot,'desktop','original-service-pipe.mjs')));
@@ -141,7 +148,7 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   let stopping;
   const stop = () => {
     if (stopping) return stopping;
-    parentControl.close(); goChannel?.close(); originalServiceChannel?.close(); identityChannel?.close(); retireWallet(); retireTools();
+    nativeServiceReadControl?.close(); parentControl.close(); goChannel?.close(); originalServiceChannel?.close(); identityChannel?.close(); retireWallet(); retireTools();
     stopping = (async () => {
       try { await workbench.stop(); }
       finally {

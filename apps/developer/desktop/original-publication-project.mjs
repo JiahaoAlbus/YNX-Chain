@@ -34,7 +34,7 @@ export async function openBundledOriginalPublicationProject(options){
 export function captureOriginalPublicationProject({projectID,publisherID,assertLocalCurrent,api,now=Date.now,expectedProjectRevision,expectedCatalogRevision}){
  const names=['acquireOriginalIDEProjectAuthority','readOriginalIDECurrentProject','readOriginalIDECurrentPublisher','closeOriginalIDEProjectAuthority'];
  if(!text(projectID)||!text(publisherID)||typeof assertLocalCurrent!=='function'||names.some(name=>typeof api?.[name]!=='function'))throw unavailable();
- let reference,closed=false,failed=false,firstCause,baseline,deadline,cleanupSelected=false,cleanupFailed=false,cleanupCause;
+ let reference,closed=false,failed=false,firstCause,baseline,deadline,serviceBaseline,serviceDeadline,cleanupSelected=false,cleanupFailed=false,cleanupCause;
  const remember=cause=>{if(!failed){failed=true;firstCause=cause;}return firstCause;};
  const live=()=>{if(failed)throw firstCause;if(closed)throw retired();};
  try{reference=api.acquireOriginalIDEProjectAuthority();if(reference===null||reference===undefined)throw unavailable();}catch(cause){remember(cause);}
@@ -72,10 +72,39 @@ export function captureOriginalPublicationProject({projectID,publisherID,assertL
    return Object.freeze({projectId:publisher.result.project.projectId,publisherId:publisher.result.publisher.publisherId,expiresMS:deadline});
   }catch(cause){throw remember(cause);}
  }
+ function serviceData(value,scope){
+  if(!value||Object.keys(value).sort().join()!=='expiresMS,principal,project,serviceRegistration')throw retired();
+  const project=normalized(value,false);
+  if(JSON.stringify(project.result)!==JSON.stringify({principal:scope.principal,project:scope.project}))throw retired();
+  // The fixed original Native callee owns signed selection/current validation.
+  // These checks only preserve its closed DATA schema and local binding.
+  const keys=['version','registrationId','revision','currentReference','serviceInstanceId','projectId','account','apiEndpoint','tlsSPKISHA256','audience','productId','clientId','scopes','issuedAtMs','expiresAtMs','revoked'];
+  const r=structuredClone(value.serviceRegistration);
+  if(!r||Object.keys(r).sort().join()!==[...keys].sort().join()||r.version!=='YNX-IDE-SERVICE-REGISTRATION/v1'||r.projectId!==projectID||r.account!==scope.principal.account||r.revoked!==false)throw retired();
+  if(['registrationId','currentReference','serviceInstanceId','audience','productId','clientId'].some(key=>!text(r[key]))||!text(r.apiEndpoint,2048)||!r.apiEndpoint.startsWith('https://')||!/^([a-f0-9]{64})$/.test(r.tlsSPKISHA256)||typeof r.revision!=='string'||!(/^[1-9][0-9]{0,19}$/.test(r.revision))||BigInt(r.revision)>18446744073709551615n)throw retired();
+  if(!Array.isArray(r.scopes)||r.scopes.length<1||r.scopes.length>8||r.scopes.some((scope,i)=>!text(scope,64)||i>0&&r.scopes[i-1]>=scope)||!Number.isSafeInteger(r.issuedAtMs)||!Number.isSafeInteger(r.expiresAtMs)||r.issuedAtMs<0||r.issuedAtMs>now()||r.expiresAtMs<=r.issuedAtMs||r.expiresAtMs<=now())throw retired();
+  const record=Object.fromEntries(keys.map(key=>[key,r[key]]));
+  return{record,expires:Math.min(deadline,project.expires,r.expiresAtMs)};
+ }
  return Object.freeze({
   assertCurrent,
   // Backend-only public DATA from the same independently checked Native
   // owner. This is not an HTTP proof, admission or signing approval.
+  async readObservationServiceRegistration(){
+   live();
+   if(typeof api.readOriginalIDECurrentServiceRegistration!=='function')throw Object.assign(Error('The fixed original Native service export is not supplied.'),{code:'IDE_PUBLICATION_NOT_SUPPLIED'});
+   await assertCurrent();live();const scope=JSON.parse(baseline);
+   if(scope.project.read!==true)throw Object.assign(Error('Original project read permission is unavailable.'),{code:'IDE_PUBLICATION_NOT_SUPPLIED'});
+   try{
+    const first=serviceData(api.readOriginalIDECurrentServiceRegistration(reference,projectID),scope);live();
+    await assertCurrent();live();
+    const last=serviceData(api.readOriginalIDECurrentServiceRegistration(reference,projectID),scope);live();
+    const fingerprint=JSON.stringify(first.record),expires=Math.min(first.expires,last.expires);
+    if(fingerprint!==JSON.stringify(last.record)||now()>=expires||serviceBaseline!==undefined&&(serviceBaseline!==fingerprint||expires<serviceDeadline||now()>=serviceDeadline))throw retired();
+    if(serviceBaseline===undefined){serviceBaseline=fingerprint;serviceDeadline=expires;}
+    return Object.freeze({principal:Object.freeze(scope.principal),project:Object.freeze(scope.project),serviceRegistration:Object.freeze({...first.record,scopes:Object.freeze([...first.record.scopes])}),expiresMS:serviceDeadline});
+   }catch(cause){throw remember(cause);}
+  },
   async readObservationScope(){
    await assertCurrent();live();
    const scope=JSON.parse(baseline);
@@ -131,6 +160,14 @@ export function captureOriginalWorkspacePublicationProject({context,assertLocalC
   }catch(cause){throw remember(cause);}
  }
  return Object.freeze({assertCurrent,
+  async readObservationServiceRegistration(){
+   await assertCurrent();live();
+   const service=await project.readObservationServiceRegistration();live();
+   await selectionCurrent();live();
+   const expiresMS=Math.min(selected.expiresMS,service.expiresMS);
+   if(now()>=expiresMS)throw retired();
+   return Object.freeze({...service,expiresMS});
+  },
   async readObservationScope(){
    await assertCurrent();live();
    const scope=await project.readObservationScope();live();

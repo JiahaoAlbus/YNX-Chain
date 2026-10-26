@@ -46,7 +46,37 @@ export async function updateCanonicalIdentityInputs(options){
  await writeFile(script,source);
  return {manifestSha256:digest(bytes),sdkFiles:files.length,dependencyFiles:dependencies.length,nativeSources:nativeSources.length,nativeBuildInputs:receipt.inputFiles.length,qualification:false};
 }
+export {prepareCanonicalSDK46Source} from "./sdk46-source-selection.mjs";
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+ if(process.argv[2]==="--sdk48-source"){
+  const {prepareCanonicalSDK48Source}=await import("./sdk48-source-selection.mjs");
+  const [handoff,previousInputs,nativeBaseRoot,ideRoot,outputRoot]=process.argv.slice(3);
+  const r=await prepareCanonicalSDK48Source({handoff,previousInputs,nativeBaseRoot,ideRoot,outputRoot});
+  console.log(JSON.stringify({sourceRoot:r.sourceRoot,sdkCommit:r.sdkCommit,nativeSources:r.nativeSources.length,nativeBuildInputs:r.nativeBuildInputs.length,executed:r.executed,packaged:r.packaged}));
+ }else if(process.argv[2]==="--sdk48-manifest"){
+  const {createSDK48CanonicalManifest}=await import("./sdk48-canonical-manifest.mjs");
+  const [requestPath,previousInputs,outputPath]=process.argv.slice(3);
+  console.log(JSON.stringify(await createSDK48CanonicalManifest({requestPath,previousInputs,outputPath})));
+ }else if(process.argv[2]==="--sdk47-source"){
+  const {prepareCanonicalSDK47Source}=await import("./sdk47-source-selection.mjs");
+  const [handoff,previousInputs,nativeBaseRoot,ideRoot,outputRoot]=process.argv.slice(3);
+  const r=await prepareCanonicalSDK47Source({handoff,previousInputs,nativeBaseRoot,ideRoot,outputRoot});
+  console.log(JSON.stringify({sourceRoot:r.sourceRoot,sdkCommit:r.sdkCommit,nativeSources:r.nativeSources.length,nativeBuildInputs:r.nativeBuildInputs.length,executed:r.executed,packaged:r.packaged}));
+ }else if(process.argv[2]==="--sdk47-manifest"){
+  const {createSDK47CanonicalManifest}=await import("./sdk47-canonical-manifest.mjs");
+  const [requestPath,previousInputs,outputPath]=process.argv.slice(3);
+  console.log(JSON.stringify(await createSDK47CanonicalManifest({requestPath,previousInputs,outputPath})));
+ }else if(process.argv[2]==="--sdk46-manifest"){
+  const {createSDK46CanonicalManifest}=await import("./sdk46-canonical-manifest.mjs");
+  const [requestPath,previousInputs,outputPath]=process.argv.slice(3);
+  console.log(JSON.stringify(await createSDK46CanonicalManifest({requestPath,previousInputs,outputPath})));
+ }else if(process.argv[2]==="--sdk46-source"){
+  const {prepareCanonicalSDK46Source}=await import("./sdk46-source-selection.mjs");
+  const [handoff,previousInputs,nativeBaseRoot,ideRoot,outputRoot]=process.argv.slice(3);
+  const r=await prepareCanonicalSDK46Source({handoff,previousInputs,nativeBaseRoot,ideRoot,outputRoot});
+  console.log(JSON.stringify({sourceRoot:r.sourceRoot,sdkCommit:r.sdkCommit,nativeSources:r.nativeSources.length,nativeBuildInputs:r.nativeBuildInputs.length,executed:r.executed,packaged:r.packaged}));
+ }else{
  const [sdkRoot,nativeRoot,dependencyRoot,sdkReadback,nativeIntake,runtimeManifest]=process.argv.slice(2);
  console.log(JSON.stringify(await updateCanonicalIdentityInputs({sdkRoot,nativeRoot,dependencyRoot,sdkReadback,nativeIntake,runtimeManifest})));
+}
 }

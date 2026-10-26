@@ -6,6 +6,8 @@
 #import <sys/stat.h>
 #import <fcntl.h>
 #import <unistd.h>
+#import "ynx-project-service-observation.h"
+#import "ynx-service-read-scope.h"
 
 // Native capabilities only. This is not an authentication authority: the
 // canonical SDK still verifies Wallet approvals and the Gateway's responses.
@@ -55,6 +57,10 @@ static NSString *const YNXAtomicFormat=@"ynx-developer-protected-state/v1";
 - (NSString *)consumerJournalPersist:(NSString *)raw error:(NSError **)error;
 - (NSString *)consumerJournalRead:(NSString *)intentID error:(NSError **)error;
 - (void)endUserOperation;
+- (BOOL)approveServiceRead:(id<YNXProjectServiceObservationReader>)observer requestID:(NSString *)requestID error:(NSError **)error;
+- (BOOL)endServiceRead:(NSError **)error;
+- (BOOL)finishServiceReadRequest:(NSString *)requestID error:(NSError **)error;
+- (id)performServiceReadPort:(NSDictionary *)input requestID:(NSString *)requestID error:(NSError **)error;
 - (BOOL)prepareAuthorizationURL:(NSString *)url error:(NSError **)error;
 - (BOOL)acceptCallbackURL:(NSString *)url;
 - (NSString *)routeCallback:(NSString *)url;
@@ -68,6 +74,9 @@ static NSString *const YNXAtomicFormat=@"ynx-developer-protected-state/v1";
 @implementation YNXWalletDeviceBridge {
     NSString *_tag,*_service,*_lockDirectory,*_instanceID;int _lockFD;SecKeyRef _privateKey;NSDate *_consentUntil;
     NSDictionary *_request,*_approval,*_signedChallenge;NSMutableSet *_signedNonces;
+    id<YNXProjectServiceObservationReader> _serviceReadObserver;
+    NSDictionary *_serviceReadSession;NSArray *_serviceReadPaths;NSString *_serviceReadRequestID;
+    NSTimeInterval _serviceReadBeganMono,_serviceReadBudget;
 }
 - (instancetype)initWithTag:(NSString *)tag storageService:(NSString *)service lockDirectory:(NSString *)directory {if((self=[super init])){_tag=[tag copy];_service=[service copy];_lockDirectory=[directory copy];_instanceID=NSUUID.UUID.UUIDString.lowercaseString;_lockFD=-1;_signedNonces=[NSMutableSet new];}return self;}
 - (NSString *)instanceID {return _instanceID;}
@@ -104,7 +113,113 @@ static NSString *const YNXAtomicFormat=@"ynx-developer-protected-state/v1";
     }
     return @{ @"id":@"ynx-developer-macos-device-v2",@"key":key,@"algorithm":@"p256-sha256",@"securityLevel":@"os-protected" };
 }
-- (void)endUserOperation {@synchronized(self){_consentUntil=nil;_request=nil;_approval=nil;_signedChallenge=nil;[_signedNonces removeAllObjects];if(_lockFD>=0){close(_lockFD);_lockFD=-1;}}}
+- (void)endUserOperation {@synchronized(self){[self endServiceRead:nil];_consentUntil=nil;_request=nil;_approval=nil;_signedChallenge=nil;[_signedNonces removeAllObjects];if(_lockFD>=0){close(_lockFD);_lockFD=-1;}}}
+- (BOOL)endServiceRead:(NSError **)error {
+    _serviceReadSession=nil;_serviceReadPaths=nil;_serviceReadRequestID=nil;_serviceReadBudget=0;
+    if(!_serviceReadObserver)return YES;
+    if(![_serviceReadObserver finish:error]||(error&&*error))return NO;
+    _serviceReadObserver=nil;return YES;
+}
+- (BOOL)finishServiceReadRequest:(NSString *)requestID error:(NSError **)error {
+    if(!_serviceReadObserver&&!_serviceReadRequestID)return YES;
+    if(![_serviceReadRequestID isEqual:requestID])return [self fail:error reason:@"The read request no longer owns native cleanup."];
+    return [self endServiceRead:error];
+}
+- (BOOL)approveServiceRead:(id<YNXProjectServiceObservationReader>)observer requestID:(NSString *)requestID error:(NSError **)error {
+    // Called only after the real Cocoa sheet. A renderer can supply a request
+    // identifier for review, never the observer, project, endpoint or session.
+    if(!observer||_serviceReadObserver)return [self fail:error reason:@"Explicit service read review or earlier cleanup is required."];
+    // This fresh native read sheet is independent of the old login window.
+    // Load only the existing protected device key; never create or replace it.
+    if(![self loadKeyCreating:NO error:error])return NO;
+    NSString *stored=[self stored:YNXDeviceStorageBase error:error];
+    if(error&&*error)return NO;
+    NSDictionary *session=stored?YNXAtomicJSON(stored):nil;
+    if(![self validSession:session])return [self fail:error reason:@"Connect the matching protected Wallet session before reviewing a service read."];
+    NSDictionary *data=[observer readCurrent:error];NSArray *paths=data?YNXServiceReadPaths(data,requestID):nil;
+    if(error&&*error)return NO;
+    NSString *anchor=YNXDevicePattern(session[@"sessionBinding"],@"^[0-9a-f]{64}$")?[self rawStored:[@"native-session-anchor:" stringByAppendingString:session[@"sessionBinding"]] error:error]:nil;
+    if(error&&*error)return NO;
+    if(![self validSession:session]||!paths||!YNXServiceReadSessionMatches(data,session)||![anchor isEqual:YNXDeviceDigest(@"YNX_DEVELOPER_NATIVE_SESSION_ANCHOR_V1",session)])return [self fail:error reason:@"The original service and protected Wallet session do not match."];
+    NSTimeInterval remaining=MIN([data[@"expiresMS"]doubleValue]/1000,YNXDeviceDate(session[@"expiresAt"]).timeIntervalSince1970)-NSDate.date.timeIntervalSince1970;
+    if(remaining<=0)return [self fail:error reason:@"The original service read review expired."];
+    _serviceReadObserver=observer;_serviceReadSession=[session copy];_serviceReadPaths=paths;_serviceReadRequestID=[requestID copy];
+    _serviceReadBeganMono=NSProcessInfo.processInfo.systemUptime;_serviceReadBudget=MIN(remaining,60);
+    return YES;
+}
+- (BOOL)serviceReadAllows:(NSDictionary *)proof session:(NSDictionary *)session error:(NSError **)error {
+    NSTimeInterval elapsed=NSProcessInfo.processInfo.systemUptime-_serviceReadBeganMono;
+    if(!_serviceReadObserver||!_serviceReadSession||!_serviceReadPaths||elapsed<0||elapsed>=_serviceReadBudget||![self validSession:session]||![session isEqual:_serviceReadSession]||![_serviceReadPaths containsObject:proof[@"path"]]||![proof[@"method"]isEqual:@"GET"]||![proof[@"bodyDigest"]isEqual:YNXDeviceHash(@"")])return NO;
+    NSDictionary *data=[_serviceReadObserver readCurrent:error];
+    return data&&!(error&&*error)&&YNXServiceReadSessionMatches(data,session);
+}
+// Private parent-control caller only. These are existing protected read ports,
+// never a login/restore/write capability, even if login consent also exists.
+- (id)performServiceReadPort:(NSDictionary *)input requestID:(NSString *)requestID error:(NSError **)error {
+    if(![input isKindOfClass:NSDictionary.class]||![_serviceReadRequestID isEqual:requestID]||!_serviceReadPaths.count){
+        [self fail:error reason:@"The exact native service read review is unavailable."];return nil;
+    }
+    NSString *operation=input[@"operation"];
+    BOOL shape=([operation isEqual:@"context"]&&YNXDeviceFields(input,@"operation"))||
+      ([operation isEqual:@"get"]&&YNXDeviceFields(input,@"operation key"))||
+      ([operation isEqual:@"sign"]&&YNXDeviceFields(input,@"operation input"))||
+      ([operation isEqual:@"network"]&&YNXDeviceFields(input,@"operation method url"));
+    if(!shape){[self fail:error reason:@"Private read port fields are invalid."];return nil;}
+    NSString *raw=[self stored:YNXDeviceStorageBase error:error];
+    NSDictionary *session=raw?YNXAtomicJSON(raw):nil;
+    if((error&&*error)||![session isKindOfClass:NSDictionary.class]||![self validSession:session]){if(!(error&&*error))[self fail:error reason:@"The protected read session is invalid."];return nil;}
+    NSString *pendingRevoke=[self stored:[YNXDeviceStorageBase stringByAppendingString:@":revoke"] error:error];
+    if((error&&*error)||pendingRevoke){if(!(error&&*error))[self fail:error reason:@"A pending sign-out blocks service reads."];return nil;}
+    NSDictionary *probe=@{@"method":@"GET",@"path":_serviceReadPaths.firstObject,@"bodyDigest":YNXDeviceHash(@"")};
+    NSString *anchor=[session isKindOfClass:NSDictionary.class]&&YNXDevicePattern(session[@"sessionBinding"],@"^[0-9a-f]{64}$")?[self rawStored:[@"native-session-anchor:" stringByAppendingString:session[@"sessionBinding"]] error:error]:nil;
+    if((error&&*error)||![anchor isEqual:YNXDeviceDigest(@"YNX_DEVELOPER_NATIVE_SESSION_ANCHOR_V1",session)]||![self serviceReadAllows:probe session:session error:error]){
+        if(!(error&&*error))[self fail:error reason:@"The original reviewed session is no longer current."];return nil;
+    }
+    id value=nil;
+    if([operation isEqual:@"context"]){
+        NSDictionary *current=[_serviceReadObserver readCurrent:error];
+        NSString *key=self.publicKey;
+        if(current&&key)value=@{@"requestId":requestID,@"source":current,@"device":@{@"id":@"ynx-developer-macos-device-v2",@"key":key,@"scopes":session[@"scopes"],@"purpose":@"Read reviewed project deployment status and logs"}};
+    } else if([operation isEqual:@"network"]){
+        // A fresh visible review covers only the original fixed Auth clock and
+        // this registered service's two GETs. No global package/egress grant.
+        NSDictionary *data=[_serviceReadObserver readCurrent:error];
+        if(!data||(error&&*error)){if(!(error&&*error))[self fail:error reason:@"The registered read service is no longer current."];return nil;}
+        NSURLComponents *base=[NSURLComponents componentsWithString:data[@"serviceRegistration"][@"apiEndpoint"]];
+        base.host=base.host.lowercaseString;base.scheme=base.scheme.lowercaseString;
+        NSURLComponents *target=[input[@"url"] isKindOfClass:NSString.class]?[NSURLComponents componentsWithString:input[@"url"]]:nil;target.host=target.host.lowercaseString;target.scheme=target.scheme.lowercaseString;
+        NSMutableArray *allowed=[NSMutableArray arrayWithObject:@"https://wallet-auth.ynxweb4.com/v2/product-sessions/time"];
+        for(NSString *path in _serviceReadPaths){NSURLComponents *u=[base copy];u.path=path;u.query=nil;u.fragment=nil;if(u.URL.absoluteString)[allowed addObject:u.URL.absoluteString];}
+        if(![input[@"method"]isEqual:@"GET"]||![allowed containsObject:target.URL.absoluteString]){
+            [self fail:error reason:@"This network request is outside the exact native read review."];return nil;
+        }
+        value=@YES;
+    } else if([operation isEqual:@"get"]){
+        // The SDK48 existing-session reader needs only these two records.
+        NSString *key=input[@"key"];
+        if(![key isEqual:YNXDeviceStorageBase]&&![key isEqual:[YNXDeviceStorageBase stringByAppendingString:@":revoke"]]){
+            [self fail:error reason:@"Private read storage key is outside the existing session."];return nil;
+        }
+        value=[self stored:key error:error]?:NSNull.null;
+    } else {
+        NSDictionary *sign=input[@"input"];
+        NSData *bytes=[sign isKindOfClass:NSDictionary.class]?YNXDeviceDecode(sign[@"payload"],8192):nil;
+        NSString *text=bytes?[[NSString alloc]initWithData:bytes encoding:NSUTF8StringEncoding]:nil;
+        NSRange line=[text rangeOfString:@"\n"];
+        NSDictionary *proof=text&&line.location!=NSNotFound?YNXAtomicJSON([text substringFromIndex:line.location+1]):nil;
+        if(![sign isKindOfClass:NSDictionary.class]||![sign[@"purpose"] isEqual:@"http-proof"]||![proof isKindOfClass:NSDictionary.class]||![proof[@"method"] isEqual:@"GET"]){
+            [self fail:error reason:@"Private service read signing cannot borrow login or write consent."];return nil;
+        }
+        value=[self sign:sign error:error];
+    }
+    if(error&&*error)return nil;
+    NSString *after=[self stored:YNXDeviceStorageBase error:error];NSDictionary *current=after?YNXAtomicJSON(after):nil;
+    NSString *revocationAfter=[self stored:[YNXDeviceStorageBase stringByAppendingString:@":revoke"] error:error];
+    if((error&&*error)||revocationAfter||![after isEqual:raw]||![self serviceReadAllows:probe session:current error:error]){
+        if(!(error&&*error))[self fail:error reason:@"The original session changed during the private read port call."];return nil;
+    }
+    return value;
+}
 - (BOOL)binding:(NSDictionary *)v {
     NSDictionary *fixed=@{@"version":@"2",@"productId":@"developer",@"clientId":@"ynx-developer-v1",@"applicationId":@"com.ynxweb4.developer.testnetpreview",@"bundleId":@"com.ynxweb4.developer.testnetpreview",@"packageId":NSNull.null,@"origin":@"app://macos/com.ynxweb4.developer.testnetpreview",@"callback":@"ynxdeveloper://wallet-auth/callback",@"deviceId":@"ynx-developer-macos-device-v2"};
     for(NSString *key in fixed)if(![v[key] isEqual:fixed[key]])return NO;
@@ -319,20 +434,26 @@ static NSString *const YNXAtomicFormat=@"ynx-developer-protected-state/v1";
 }
 - (BOOL)remove:(NSString *)key error:(NSError **)error {if((!YNXDeviceStorageAllowed(key)&&![key isEqual:YNXAtomicKeys()[3]])||![self consented])return [self fail:error reason:@"Explicit native connection consent is required to remove Wallet state."];if(![key hasSuffix:@":return"]&&![key isEqual:YNXAtomicKeys()[3]]){NSString *old=[self rawStored:key error:error];if(error&&*error)return NO;NSDictionary *object=old?[NSJSONSerialization JSONObjectWithData:[old dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil]:nil;if(old&&![self fullBinding:object])return [self fail:error reason:@"Existing state uses another device or protocol and was preserved."];}return [self removeAtomicKey:key error:error];}
 - (NSString *)sign:(NSDictionary *)input error:(NSError **)error {
-    if(![self consented]||!YNXDeviceFields(input,@"purpose algorithm deviceKey payload")||![input[@"algorithm"] isEqual:@"p256-sha256"]||![input[@"deviceKey"] isEqual:self.publicKey]){[self fail:error reason:@"Signing requires an explicitly approved native device operation."];return nil;}
+    BOOL loginConsent=[self consented];NSTimeInterval elapsed=NSProcessInfo.processInfo.systemUptime-_serviceReadBeganMono;
+    BOOL readConsent=_serviceReadObserver&&_serviceReadSession&&_serviceReadPaths&&elapsed>=0&&elapsed<_serviceReadBudget;
+    if((!loginConsent&&!readConsent)||!YNXDeviceFields(input,@"purpose algorithm deviceKey payload")||![input[@"algorithm"] isEqual:@"p256-sha256"]||![input[@"deviceKey"] isEqual:self.publicKey]){[self fail:error reason:@"Signing requires an explicitly approved native device operation."];return nil;}
     NSData *bytes=YNXDeviceDecode(input[@"payload"],8192);NSString *text=bytes?[[NSString alloc]initWithData:bytes encoding:NSUTF8StringEncoding]:nil;NSRange newline=[text rangeOfString:@"\n"];if(!text||newline.location==NSNotFound){[self fail:error reason:@"Signing payload is invalid."];return nil;}
-    NSString *domain=[text substringToIndex:newline.location],*json=[text substringFromIndex:newline.location+1];NSDictionary *v=[NSJSONSerialization JSONObjectWithData:[json dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil];BOOL valid=[YNXDeviceCanonical(v) isEqual:json];NSString *replay=nil;
+    NSString *domain=[text substringToIndex:newline.location],*json=[text substringFromIndex:newline.location+1];NSDictionary *v=[NSJSONSerialization JSONObjectWithData:[json dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil];if(![v isKindOfClass:NSDictionary.class]){[self fail:error reason:@"Signing payload must be a Product Session object."];return nil;}BOOL valid=[YNXDeviceCanonical(v) isEqual:json];NSString *replay=nil;BOOL serviceGET=NO;
     if([input[@"purpose"] isEqual:@"challenge"]){
-        valid=valid&&[domain isEqual:@"YNX_PRODUCT_SESSION_CHALLENGE_V2"]&&YNXDeviceFields(v,@"version challenge requestDigest approvalDigest chainId productId clientId platform applicationId bundleId packageId origin callback deviceId deviceAlgorithm deviceKey nonce state account scopes issuedAt expiresAt sessionExpiresAt")&&_request&&_approval&&[self fullBinding:v]&&YNXDeviceLifetime(v,60)&&YNXDevicePattern(v[@"challenge"],@"^[A-Za-z0-9_-]{32,64}$");
+        valid=valid&&loginConsent&&[domain isEqual:@"YNX_PRODUCT_SESSION_CHALLENGE_V2"]&&YNXDeviceFields(v,@"version challenge requestDigest approvalDigest chainId productId clientId platform applicationId bundleId packageId origin callback deviceId deviceAlgorithm deviceKey nonce state account scopes issuedAt expiresAt sessionExpiresAt")&&_request&&_approval&&[self fullBinding:v]&&YNXDeviceLifetime(v,60)&&YNXDevicePattern(v[@"challenge"],@"^[A-Za-z0-9_-]{32,64}$");
         for(NSString *f in @[@"account",@"nonce",@"state",@"scopes",@"requestDigest"])valid=valid&&[v[f] isEqual:_approval[f]];
         NSDate *sessionEnd=YNXDeviceDate(v[@"sessionExpiresAt"]),*approvalEnd=YNXDeviceDate(_approval[@"expiresAt"]),*issue=YNXDeviceDate(v[@"issuedAt"]);valid=valid&&sessionEnd&&approvalEnd&&issue&&[sessionEnd timeIntervalSinceDate:issue]>0&&[sessionEnd timeIntervalSinceDate:issue]<=180&&[sessionEnd compare:approvalEnd]!=NSOrderedDescending&&[YNXDeviceDate(v[@"expiresAt"]) compare:sessionEnd]!=NSOrderedDescending&&[v[@"approvalDigest"] isEqual:YNXDeviceDigest(@"YNX_PRODUCT_SESSION_APPROVAL_V2",_approval)];replay=v[@"challenge"];
     } else if([input[@"purpose"] isEqual:@"http-proof"]){
-        valid=valid&&[domain isEqual:@"YNX_PRODUCT_SESSION_HTTP_PROOF_V2"]&&YNXDeviceFields(v,@"version sessionBinding productId clientId applicationId bundleId packageId origin callback account deviceId deviceKey method path bodyDigest nonce issuedAt expiresAt")&&[self binding:v]&&[v[@"method"] isEqual:@"POST"]&&[@[@"/v2/product-sessions/introspect",@"/v2/product-sessions/revoke"] containsObject:v[@"path"]]&&YNXDeviceLifetime(v,60)&&YNXDevicePattern(v[@"nonce"],@"^[A-Za-z0-9_-]{32,64}$");
+        valid=valid&&[domain isEqual:@"YNX_PRODUCT_SESSION_HTTP_PROOF_V2"]&&YNXDeviceFields(v,@"version sessionBinding productId clientId applicationId bundleId packageId origin callback account deviceId deviceKey method path bodyDigest nonce issuedAt expiresAt")&&[self binding:v]&&((loginConsent&&[v[@"method"] isEqual:@"POST"]&&[@[@"/v2/product-sessions/introspect",@"/v2/product-sessions/revoke"] containsObject:v[@"path"]])||[v[@"method"]isEqual:@"GET"])&&YNXDeviceLifetime(v,60)&&YNXDevicePattern(v[@"nonce"],@"^[A-Za-z0-9_-]{32,64}$");
         NSString *stored=[self stored:YNXDeviceStorageBase error:error];NSDictionary *session=stored?[NSJSONSerialization JSONObjectWithData:[stored dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil]:nil;NSString *anchor=YNXDevicePattern(session[@"sessionBinding"],@"^[0-9a-f]{64}$")?[self rawStored:[@"native-session-anchor:" stringByAppendingString:session[@"sessionBinding"]] error:error]:nil;valid=valid&&[self validSession:session]&&[anchor isEqual:YNXDeviceDigest(@"YNX_DEVELOPER_NATIVE_SESSION_ANCHOR_V1",session)];
         for(NSString *f in @[@"sessionBinding",@"account"])valid=valid&&[v[f] isEqual:session[f]];
-        NSString *body=[v[@"path"] isEqual:@"/v2/product-sessions/revoke"]?@"{}":YNXDeviceCanonical(@{@"requiredScopes":session[@"scopes"]?:@[]});valid=valid&&[v[@"bodyDigest"] isEqual:YNXDeviceHash(body)]&&[YNXDeviceDate(v[@"expiresAt"]) compare:YNXDeviceDate(session[@"expiresAt"]) ]!=NSOrderedDescending&&[YNXDeviceDate(v[@"issuedAt"]) compare:YNXDeviceDate(session[@"issuedAt"]) ]!=NSOrderedAscending;replay=v[@"nonce"];
+        serviceGET=[v[@"method"]isEqual:@"GET"];if(serviceGET)valid=valid&&[self serviceReadAllows:v session:session error:error];
+        NSString *body=serviceGET?@"":[v[@"path"] isEqual:@"/v2/product-sessions/revoke"]?@"{}":YNXDeviceCanonical(@{@"requiredScopes":session[@"scopes"]?:@[]});valid=valid&&[v[@"bodyDigest"] isEqual:YNXDeviceHash(body)]&&[YNXDeviceDate(v[@"expiresAt"]) compare:YNXDeviceDate(session[@"expiresAt"]) ]!=NSOrderedDescending&&[YNXDeviceDate(v[@"issuedAt"]) compare:YNXDeviceDate(session[@"issuedAt"]) ]!=NSOrderedAscending;replay=v[@"nonce"];
     }else valid=NO;
+    if(error&&*error)return nil;
     if(!valid||!replay||[_signedNonces containsObject:replay]||_signedNonces.count>=256){[self fail:error reason:@"Payload exceeds the native Product Session signing capability or was already signed."];return nil;}
-    CFErrorRef failure=NULL;NSData *signature=CFBridgingRelease(SecKeyCreateSignature(_privateKey,kSecKeyAlgorithmECDSASignatureMessageX962SHA256,(__bridge CFDataRef)bytes,&failure));if(failure)CFRelease(failure);if(!signature){[self fail:error reason:@"Native device signing failed; protected state was preserved."];return nil;}[_signedNonces addObject:replay];if([input[@"purpose"] isEqual:@"challenge"])_signedChallenge=[v copy];return YNXDeviceB64(signature);
+    CFErrorRef failure=NULL;NSData *signature=CFBridgingRelease(SecKeyCreateSignature(_privateKey,kSecKeyAlgorithmECDSASignatureMessageX962SHA256,(__bridge CFDataRef)bytes,&failure));if(failure)CFRelease(failure);if(!signature){[self fail:error reason:@"Native device signing failed; protected state was preserved."];return nil;}[_signedNonces addObject:replay];
+    if(serviceGET){NSString *raw=[self stored:YNXDeviceStorageBase error:error];NSDictionary *session=raw?YNXAtomicJSON(raw):nil;if((error&&*error)||![self serviceReadAllows:v session:session error:error]){if(!(error&&*error))[self fail:error reason:@"Original service or Wallet session changed during device proof."];return nil;}}
+    if([input[@"purpose"] isEqual:@"challenge"])_signedChallenge=[v copy];return YNXDeviceB64(signature);
 }
 @end

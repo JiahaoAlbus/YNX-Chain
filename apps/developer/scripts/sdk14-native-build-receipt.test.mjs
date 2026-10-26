@@ -5,13 +5,13 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {validateCanonicalNativeBuildReceipt,copyCanonicalIdentityHelper} from './package-identity-admission-source.mjs';
 const inputs=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
-test('actual A SDK37 record retains executed provenance and rejects changed or incomplete evidence',async()=>{
+test('actual selected A record retains executed provenance and rejects changed or incomplete evidence',async()=>{
   const root=process.env.YNX_DEVELOPER_CANONICAL_NATIVE_ROOT;
-  assert.ok(root,'Original fixed SDK37 component root required.');
+  assert.ok(root,'Original fixed selected component root required.');
   const original=JSON.parse(await readFile(join(root,inputs.nativeComponent.receipt.path)));
   const view=validateCanonicalNativeBuildReceipt(original,inputs,'arm64');
-  assert.equal(view,original); // SDK37 producer uses the normal record directly.
-  assert.equal(view.inputFiles.length,112);assert.equal(view.readbackOnly,false);
+  assert.equal(view,original); // Selected producer record stays unchanged; strict versioned validator checks count/pins.
+  assert.equal(view.inputFiles.length,inputs.nativeBuildInputs.length);assert.equal(view.readbackOnly,false);
   assert.equal(view.nativeQualified,false);assert.equal(view.registrationAccepted,false);
   for(const mutate of [r=>r.helperBuild.inputFiles.pop(),r=>r.inputFiles.pop(),r=>r.exitCodes[0]=1,
     r=>r.nativeQualified=true,r=>r.helperBuild.executed=false,r=>r.ownedUndefinedScan.ownedUndefined.push('PUBLIC_FOREIGN_OWNED_SYMBOL'),r=>{delete r.ownedUndefinedScan;},r=>{r.helperBuild.ownedUndefinedScan={};},r=>r.registrationAccepted=true,r=>r.commands[0].argv.push('-DUNREVIEWED=1'),

@@ -31,12 +31,25 @@ function originalQueryResult(value,account,original){
 // This constructor does not initialize Relay, restore a session or send a request.
 export async function openProjectContractClient({context, relayAuthority, createConnection, now = Date.now}) {
   if (!context?.profile || !context.id || !context.workspace || typeof relayAuthority?.assertCurrent !== 'function' || typeof createConnection !== 'function') throw failure('IDE_CONTRACT_NOT_SUPPLIED');
-  let closed = false, busy = false, journal, provider, connection;
+  let closed = false, busy = false, journal, provider, connection, cleanup;
+  const retirement=new AbortController(),active=new Set();
+  let persistenceFailed=false,persistenceCause;
+  const rememberPersistence=cause=>{if(!persistenceFailed){persistenceFailed=true;persistenceCause=cause;}};
+  function untilRetired(start){
+    return new Promise((resolve,reject)=>{
+      let settled=false;
+      const finish=(failed,value)=>{if(settled)return;settled=true;retirement.signal.removeEventListener('abort',abort);failed?reject(value):resolve(value);};
+      const abort=()=>finish(true,failure('IDE_CONTRACT_RETIRED'));
+      retirement.signal.addEventListener('abort',abort,{once:true});
+      if(retirement.signal.aborted){abort();return;}
+      Promise.resolve().then(()=>{if(retirement.signal.aborted)throw failure('IDE_CONTRACT_RETIRED');return start();}).then(value=>finish(false,value),error=>finish(true,error));
+    });
+  }
   const scopeCurrent=createContractScopeFence({relayAuthority,now});
   const retained = new Set();
   async function current() {
     if (closed) throw failure('IDE_CONTRACT_RETIRED');
-    const state = await scopeCurrent();
+    const state = await untilRetired(scopeCurrent);
     if (closed) throw failure('IDE_CONTRACT_RETIRED');
     return state;
   }
@@ -44,16 +57,20 @@ export async function openProjectContractClient({context, relayAuthority, create
   journal = await openRelayContractReferenceJournal({profile:context.profile, projectId:context.id, scope});
   await current();
   const connectOwner=()=>{if(!connection){connection=createConnection();if(typeof connection?.beginContractRequest!=='function'||typeof connection.connect!=='function'||typeof connection.cancel!=='function')throw failure('IDE_CONTRACT_NOT_SUPPLIED');}return connection;};
-  async function exclusive(work) {
-    if (busy) throw failure('IDE_CONTRACT_BUSY');
+  function exclusive(work) {
+    if (busy) return Promise.reject(failure('IDE_CONTRACT_BUSY'));
     busy = true;
-    try { await current(); return await work(); } finally { busy = false; }
+    const operation=Promise.resolve().then(async()=>{await current();return work();});
+    active.add(operation);
+    const settled=()=>{active.delete(operation);busy=false;};
+    operation.then(settled,settled);
+    return operation;
   }
   async function walletAccount() {
     await current();
     if (!provider) throw failure('IDE_CONTRACT_NOT_CONNECTED');
-    const accounts = await provider.request({method:'eth_accounts'});
-    const chain = await provider.request({method:'eth_chainId'});
+    const accounts = await untilRetired(()=>provider.request({method:'eth_accounts'}));
+    const chain = await untilRetired(()=>provider.request({method:'eth_chainId'}));
     await current();
     if (!Array.isArray(accounts) || accounts.length !== 1 || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0]) || chain !== '0x1917') throw failure('IDE_CONTRACT_WALLET_CHANGED');
     return accounts[0].toLowerCase();
@@ -86,7 +103,7 @@ export async function openProjectContractClient({context, relayAuthority, create
           // A conflicting callback cannot erase the first observed hash. Mark
           // the original reference unknown if that append is still possible.
           try { await journal.append(referenceId, {...row, state:'unknown'}); row = {...row, state:'unknown'}; } catch { /* retain original bytes and writer lock */ }
-          persistenceError = error;
+          persistenceError = error;rememberPersistence(error);
         }
       });
       return queue;
@@ -99,7 +116,7 @@ export async function openProjectContractClient({context, relayAuthority, create
       retainedRequest.unsubscribe = handle.onCorrelation(enqueue);
       const observed = handle.outcome.then(value => ({value}), error => ({error, failed:true}));
       await enqueue(handle.snapshot());
-      const outcome = await observed;
+      const outcome = await untilRetired(()=>observed);
       await enqueue(handle.snapshot());
       if (outcome.failed) throw outcome.error;
       if (persistenceError) throw failure('IDE_CONTRACT_REFERENCE_NOT_DURABLE', persistenceError);
@@ -116,7 +133,7 @@ export async function openProjectContractClient({context, relayAuthority, create
       // failed. Never retry a partially written record or the remote request.
       if (!persistenceError) {
         row = {...row, state:'unknown'};
-        try { await journal.append(referenceId, row); } catch (journalError) { persistenceError = journalError; }
+        try { await journal.append(referenceId, row); } catch (journalError) { persistenceError = journalError;rememberPersistence(journalError); }
       }
       throw error;
     }
@@ -129,7 +146,7 @@ export async function openProjectContractClient({context, relayAuthority, create
   return Object.freeze({
     connect(options = {}) { return exclusive(async () => {
       if (Object.keys(options).some(key => key !== 'onURI') || options.onURI !== undefined && typeof options.onURI !== 'function') throw failure('IDE_CONTRACT_REQUEST_INVALID');
-      provider = await connectOwner().connect({restore:false, onURI:uri => { if (!closed) options.onURI?.(uri); }});
+      provider = await untilRetired(()=>connectOwner().connect({restore:false, onURI:uri => { if (!closed) options.onURI?.(uri); }}));
       await walletAccount();
       return Object.freeze({connected:true, chainId:'eip155:6423'});
     }); },
@@ -170,7 +187,20 @@ export async function openProjectContractClient({context, relayAuthority, create
       if (original.account !== account) throw failure('IDE_CONTRACT_WALLET_CHANGED');
       return execute(randomUUID(), {method:'ynx_getPQContractOriginal',params:[{version:1,account,originalRequestKeyHash:original.originalRequestKeyHash,refresh}]},value=>originalQueryResult(value,account,original));
     }); },
-    async close() { closed = true; provider = undefined; await connection?.cancel?.(); },
+    close() {
+      if(cleanup)return cleanup;
+      closed=true;provider=undefined;retirement.abort();
+      // Settle local waits and retain UNKNOWN before closing completes. The
+      // original correlation listener stays query-only for its late hash.
+      // Remote cleanup is separate; never repeat a failed/UNKNOWN cancellation.
+      cleanup=(async()=>{
+        const cancellation=Promise.resolve().then(()=>connection?.cancel?.());
+        const results=await Promise.allSettled([cancellation,...active]);
+        if(persistenceFailed){if(results[0].status==='rejected'&&results[0].reason!==persistenceCause)throw new AggregateError([persistenceCause,results[0].reason],'Original query persistence and connection cleanup remain uncertain.');throw persistenceCause;}
+        if(results[0].status==='rejected')throw results[0].reason;
+      })();
+      return cleanup;
+    },
     cleanupSnapshot() { return connection?.cleanupSnapshot?.()||Object.freeze({scope:'local-only',connection:'not-started',remoteCleanup:'not-proven'}); },
   });
 }

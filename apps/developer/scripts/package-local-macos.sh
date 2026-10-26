@@ -23,11 +23,16 @@ source_tree=$(/usr/bin/git -C "$repo_root" rev-parse 'HEAD^{tree}')
 source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
 # Fail before allocating a build candidate if either separately pinned input is
 # absent or changed. These are source roots, never runtime qualification flags.
+# SDK39 historical regressions use their exact frozen inputs; evidence/helper checks use the selected canonical profile.
 node --test scripts/sdk39-normal-profile.test.mjs scripts/sdk39-native-component.test.mjs scripts/sdk39-evidence-root.test.mjs scripts/sdk39-helper-copy.test.mjs
+node --test scripts/normal-preflight-version-routing.test.mjs
 node --input-type=module -e "import('./scripts/package-identity-admission-source.mjs').then(m=>m.verifyCanonicalIdentityAdmissionSource())"
 canonical_native_root=$(node scripts/package-identity-admission-source.mjs --native-source-root)
 canonical_app_native_root=$(node scripts/identity-app-custody-source.mjs)
-node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs scripts/sdk14-native-build-receipt.test.mjs scripts/sdk39-normal-profile.test.mjs
+export YNX_IDE_SERVICE_OBSERVER_NATIVE_INCLUDE="$canonical_native_root/packages/wallet-auth/native"
+canonical_profile_test=$(node scripts/canonical-normal-profile.mjs)
+node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs scripts/sdk14-native-build-receipt.test.mjs "$canonical_profile_test"
+node --test scripts/historical-native-wallet-transport-recipe.test.mjs
 node --test scripts/native-wallet-transport-recipe.test.mjs
 node --test scripts/native-source-ownership.test.mjs
 node --test scripts/admit-derived-native.test.mjs
@@ -155,7 +160,7 @@ branding_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/branding-manifest
 # publication codec. Keep those implementation units in the App link too;
 # copying a newly pinned header alone cannot supply their Objective-C symbols.
 /usr/bin/clang -fobjc-arc -mmacosx-version-min="$macos_min_version" -I"$canonical_app_native_root/packages/wallet-auth/native" -I"$canonical_native_root/packages/wallet-auth/native" -Werror=unguarded-availability -Werror=unguarded-availability-new -fmodules-cache-path="$root/module-cache" -c desktop/macos/main.m -o "$root/main.o"
-/usr/bin/clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$macos_min_version" -I"$canonical_app_native_root/packages/wallet-auth/native" -I"$canonical_native_root/packages/wallet-auth/native" -Idesktop/macos "$root/main.o" desktop/macos/original-ide-parent-supplier.mm "$canonical_native_root/packages/wallet-auth/native/original-auth-identity-source-authority.mm" "$canonical_native_root/packages/wallet-auth/native/original-auth-identity-joint-owner.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-source-binding.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-kernel.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-observation.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-helper-client.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-helper-xpc-peer.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-helper-service-install.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-publication-artifact.mm" "$canonical_app_native_root/packages/wallet-auth/native/original-ide-identity-launch-holder.mm" -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit -framework ServiceManagement -lbsm
+/usr/bin/clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$macos_min_version" -I"$canonical_app_native_root/packages/wallet-auth/native" -I"$canonical_native_root/packages/wallet-auth/native" -Idesktop/macos "$root/main.o" desktop/macos/original-ide-parent-supplier.mm desktop/macos/ynx-project-service-observation.mm "$canonical_native_root/packages/wallet-auth/native/original-auth-identity-source-authority.mm" "$canonical_native_root/packages/wallet-auth/native/original-auth-identity-joint-owner.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-source-binding.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-kernel.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-parent-observation.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-helper-client.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-helper-xpc-peer.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-helper-service-install.mm" "$canonical_native_root/packages/wallet-auth/native/original-ide-publication-artifact.mm" "$canonical_app_native_root/packages/wallet-auth/native/original-ide-identity-launch-holder.mm" -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit -framework ServiceManagement -lbsm
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
 if [[ -n "$local_node_runtime" ]]; then
   /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $macos_min_version" "$app/Contents/Info.plist"
@@ -178,10 +183,13 @@ cp desktop/marketplace-artifact-policy.mjs desktop/marketplace-artifact-transpor
 cp desktop/chain-public-reader.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/project-contracts-host.mjs desktop/wallet-contract-client.mjs desktop/wallet-contract-reference-journal.mjs desktop/contract-relay-scope.mjs desktop/project-contract-deployment.mjs desktop/project-contract-execution.mjs desktop/project-contract-runtime.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/artifact-publication-host.mjs desktop/artifact-publication-client.mjs desktop/artifact-publication-lifecycle.mjs desktop/original-publication-project.mjs desktop/publication-result-originals.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/native-service-read-control.mjs desktop/publication-native-read-owner.mjs desktop/publication-pinned-read-fetch.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 node scripts/package-identity-admission-source.mjs "$app/Contents/Resources/code"
 node scripts/package-identity-admission-source.mjs --copy-native "$app/Contents/Resources/code"
 node scripts/package-identity-admission-source.mjs --copy-helper "$app/Contents/Resources/code"
 node scripts/package-original-cloud-sdk.mjs --copy "${YNX_DEVELOPER_ORIGINAL_CLOUD_SDK_ROOT:-$repo_root/apps/cloud/sdk}" "$app/Contents/Resources/code"
+# Exercise the actual copied SDK against ephemeral Native controls, never user keys or online services.
+YNX_IDE_PUBLIC_READ_INTEROP_SDK_ROOT="$app/Contents/Resources/code/packages/wallet-auth" node --test desktop/sdk48-native-read-interop.test.mjs
 mkdir -p "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib"
 cp runtime/ynx-workbench/package.json "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/"
 cp runtime/ynx-workbench/lib/wallet-admission-channel.js runtime/ynx-workbench/lib/wallet-admission-protocol.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
@@ -205,6 +213,8 @@ mkdir -p "$app/Contents/Resources/code/apps/developer/native"
 cp -R native/ynx-brand native/ynx-tools native/ynx-go "$app/Contents/Resources/code/apps/developer/native/"
 mkdir -p "$app/Contents/Resources/code/apps/developer/scripts"
 cp scripts/compiler-worker.mjs scripts/compiler-pin.mjs scripts/solidity-semantic-index.mjs "$app/Contents/Resources/code/apps/developer/scripts/"
+cp scripts/package-original-cloud-sdk.mjs scripts/original-cloud-sdk-inputs.json "$app/Contents/Resources/code/apps/developer/scripts/"
+YNX_IDE_NATIVE_READ_PACKAGED_CODE_ROOT="$app/Contents/Resources/code" node --test scripts/packaged-native-read-runtime.test.mjs desktop/publication-packaged-cloud-interop.test.mjs
 if [[ -n "${YNX_DEVELOPER_SOLIDITY_INPUT:-}" ]]; then
   node scripts/bundle-solidity-runtime.mjs "$YNX_DEVELOPER_SOLIDITY_INPUT" "$app/Contents/Resources/code/apps/developer/compiler-runtime"
   node scripts/bundle-solidity-language-runtime.mjs "$YNX_DEVELOPER_SOLIDITY_INPUT" "$app/Contents/Resources/code/apps/developer/native/ynx-tools"

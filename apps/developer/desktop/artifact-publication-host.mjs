@@ -6,11 +6,22 @@ const unavailable=()=>Object.assign(Error('The original publication service has 
 // Per-project owner used by the normal local-workbench pipe, not a global
 // publisher or a source of identity. Preview reads only the chosen local file.
 export function createArtifactPublicationHost({context,localProjectSnapshot,openObservation,openNativeArtifact,openOriginalProject}){
- let closed=false,busy=false,draft,observation,opening,cleanup,observing;
+ let closed=false,busy=false,draft,cleanup,observing,cleanupDebtPresent=false,cleanupDebt;
+ const reads=new Set();
+ const uuid=value=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(value);
  const localLaunch=randomUUID();
  const active=new Set();
  const live=()=>{if(closed)throw unavailable();};
- async function observer(){live();if(!observation){if(typeof openObservation!=='function')throw unavailable();opening ||= Promise.resolve().then(()=>{live();return openObservation(context);});observation=await opening;if(closed){await close();throw unavailable();}}live();return observation;}
+ // One explicit query owns one acquisition. Never cache a failed factory or
+ // reuse an expired/retired native read permission for a later user request.
+ function cleanupRead(row){
+  row.cleanup ??= (async()=>{
+   try{if(row.owner)await row.owner.close();}
+   catch(cause){if(!cleanupDebtPresent){cleanupDebtPresent=true;cleanupDebt=cause;}throw cause;}
+   finally{reads.delete(row);}
+  })();
+  return row.cleanup;
+ }
  // The fixed Native factory returns cleanup custody before current/read checks.
  // A rejected factory has not allocated Native custody; failed close is kept.
  async function closeDraft(value){
@@ -21,7 +32,18 @@ export function createArtifactPublicationHost({context,localProjectSnapshot,open
   try{const owner=value?.project||await value?.projectOpening?.catch(()=>null);if(owner&&await owner.close()!==undefined)throw unavailable();}catch(cause){if(!failed){failed=true;firstCause=cause;}}
   if(failed)throw firstCause;
  }
- async function close(){closed=true;for(const controller of active)controller.abort(unavailable());active.clear();const selected=draft;cleanup ||= (async()=>{let failed=false,firstCause;try{await closeDraft(selected);}catch(cause){failed=true;firstCause=cause;}try{const owner=observation||await opening?.catch(()=>null);await owner?.close();}catch(cause){if(!failed){failed=true;firstCause=cause;}}if(failed)throw firstCause;draft=undefined;})();return cleanup;}
+ async function close(){
+  closed=true;for(const controller of active)controller.abort(unavailable());active.clear();
+  const selected=draft;
+  cleanup ||= (async()=>{
+   let failed=false,firstCause;const retain=cause=>{if(!failed){failed=true;firstCause=cause;}};
+   try{await closeDraft(selected);}catch(cause){retain(cause);}
+   // Observe all late factories/queries before cleanup, independently of drafts.
+   for(const row of [...reads])try{await row.settled;}catch{/* query outcome is observed; cleanup debt is retained below */}
+   if(cleanupDebtPresent)retain(cleanupDebt);
+   if(failed)throw firstCause;draft=undefined;
+  })();return cleanup;
+ }
  return Object.freeze({
   async preview({artifactURI,version,publishPurpose,targetEnvironment}){
    live();if(busy)throw unavailable();busy=true;
@@ -43,14 +65,27 @@ export function createArtifactPublicationHost({context,localProjectSnapshot,open
     if(typeof openNativeArtifact==='function'){next.opening=Promise.resolve().then(()=>{live();return openNativeArtifact(selected);});next.native=await next.opening;live();await next.native.assertCurrent();live();}return {draftId:next.id,binding:selected.binding,signingApproved:false,deploymentApproved:false};}finally{active.delete(controller);}}finally{busy=false;}
   },
   async observe(requestId,{observationId=randomUUID()}={}){
-   live();if(busy||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(observationId))throw unavailable();
+   live();if(cleanupDebtPresent)throw cleanupDebt;
+   if(busy||reads.size||!uuid(requestId)||!uuid(observationId)||typeof openObservation!=='function')throw unavailable();
    busy=true;const controller=new AbortController();active.add(controller);
-   let finish,abort;const selected={id:observationId,controller,done:new Promise(resolve=>finish=resolve)};observing=selected;
+   let finish,abort;const selected={id:observationId,controller,done:new Promise(resolve=>finish=resolve)};
+   observing=selected;const row={owner:undefined,cleanup:undefined,settled:undefined};reads.add(row);
    const cancelled=new Promise((_resolve,reject)=>{abort=()=>reject(controller.signal.reason);controller.signal.addEventListener('abort',abort,{once:true});});
-   // Keep both outcomes observed. A late factory remains held for cleanup,
-   // but cannot resume the SDK after this particular UI read is cancelled.
-   const work=Promise.resolve().then(()=>{controller.signal.throwIfAborted();return observer();}).then(owner=>{controller.signal.throwIfAborted();return owner.resume(requestId,{signal:controller.signal});});
-   try{const result=await Promise.race([work,cancelled]);controller.signal.throwIfAborted();live();return result;}
+   const work=Promise.resolve().then(()=>{
+    controller.signal.throwIfAborted();live();return openObservation(context);
+   }).then(owner=>{
+    row.owner=owner;controller.signal.throwIfAborted();live();
+    if(typeof owner?.resume!=='function'||typeof owner?.close!=='function')throw unavailable();
+    return owner.resume(requestId,{signal:controller.signal});
+   });
+   // Both outcomes are handled even if cancellation wins. The late owner can
+   // only be closed, never resumed; replacement waits for known cleanup.
+   row.settled=work.then(
+    async result=>{await cleanupRead(row);return result;},
+    async firstCause=>{try{await cleanupRead(row);}catch{/* retain debt separately; query first cause wins */}throw firstCause;}
+   );
+   void row.settled.catch(()=>{});
+   try{const result=await Promise.race([row.settled,cancelled]);controller.signal.throwIfAborted();live();return result;}
    finally{controller.signal.removeEventListener('abort',abort);active.delete(controller);if(observing===selected)observing=undefined;busy=false;finish();}
   },
   async cancelObservation(observationId){

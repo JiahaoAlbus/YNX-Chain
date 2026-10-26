@@ -59,6 +59,7 @@ const entries = [
   ['publicationReview','Review selected artifact','审阅所选产物'],
   ['publicationObserve','Read deployment status and logs','读取部署状态和日志'],
   ['publicationStopObservation','Stop status query','停止状态查询'],
+  ['publicationReadCleanupPending','The previous query still owns native cleanup. A new query has not started.','上一次查询的原生清理尚未完成，暂未启动新查询。'],
   ['publicationObservationStopped','Status and log query stopped.','已停止本次状态和日志查询。'],
   ['publicationUnavailable','Publication is not ready. Your project files are preserved.','发布服务尚未就绪，项目文件均保留。'],
   ['publicationProjectSourceMissing','The original project identity is not available yet. Local editing, running and debugging remain available.','正式项目身份来源尚未就绪，本地编辑、运行和调试仍可使用。'],
