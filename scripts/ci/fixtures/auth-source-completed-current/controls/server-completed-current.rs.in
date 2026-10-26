@@ -1,0 +1,22 @@
+#![allow(dead_code,unsafe_code)]
+use std::{cell::RefCell,ffi::c_void,thread::{self,ThreadId}};
+#[derive(Debug,PartialEq)]enum Error{Required,Unknown,Thread}
+#[derive(PartialEq,Debug)]enum Phase{Acquired,Entered,Closed,Unknown}
+#[derive(Default)]struct Mock{events:Vec<&'static str>,expired:bool,expire_in_callback:bool,revoked:bool,panic:bool}
+thread_local!{static MOCK:RefCell<Mock>=RefCell::new(Mock::default());}
+struct Input;impl Input{fn current(&self)->Result<(),Error>{MOCK.with(|m|{let mut m=m.borrow_mut();m.events.push("local-window");if m.expired{Err(Error::Required)}else{Ok(())}})}}
+unsafe fn ynx_source_client_server_completed_current(_:*mut c_void)->i32{MOCK.with(|m|{let mut m=m.borrow_mut();m.events.push("physical-completed");if m.panic{panic!("PUBLIC callback panic")}if m.expire_in_callback{m.expired=true}if m.revoked{8}else{0}})}
+unsafe fn ynx_source_client_server_unknown(_:*mut c_void)->i32{MOCK.with(|m|m.borrow_mut().events.push("mark-same-original-unknown"));8}
+fn status(s:i32)->Result<(),Error>{if s==0{Ok(())}else{Err(Error::Unknown)}}
+struct ServerParticipant{thread:ThreadId,phase:Phase,retire_attempted:bool,input:Input}
+impl ServerParticipant{
+ fn raw(&self)->Result<*mut c_void,Error>{if self.thread!=thread::current().id(){Err(Error::Thread)}else{Ok(std::ptr::NonNull::<u8>::dangling().as_ptr().cast())}}
+ @@ACTUAL_COMPLETED_CURRENT@@
+}
+fn owner()->ServerParticipant{MOCK.with(|m|*m.borrow_mut()=Mock::default());ServerParticipant{thread:thread::current().id(),phase:Phase::Closed,retire_attempted:true,input:Input}}
+#[test]fn same_terminal_checks_local_before_and_after_actual_physical_callback(){let mut o=owner();assert_eq!(o.completed_current(),Ok(()));assert_eq!(o.phase,Phase::Closed);MOCK.with(|m|assert_eq!(m.borrow().events,vec!["local-window","physical-completed","local-window"]));}
+#[test]fn callback_expiry_marks_original_unknown_and_never_retries(){let mut o=owner();MOCK.with(|m|m.borrow_mut().expire_in_callback=true);assert_eq!(o.completed_current(),Err(Error::Unknown));assert_eq!(o.phase,Phase::Unknown);MOCK.with(|m|{let mut m=m.borrow_mut();assert_eq!(m.events.last(),Some(&"mark-same-original-unknown"));m.events.clear();m.expired=false;m.expire_in_callback=false});assert_eq!(o.completed_current(),Err(Error::Unknown));MOCK.with(|m|assert!(m.borrow().events.is_empty()));}
+#[test]fn expired_before_call_never_enters_physical(){let mut o=owner();MOCK.with(|m|m.borrow_mut().expired=true);assert_eq!(o.completed_current(),Err(Error::Unknown));MOCK.with(|m|assert_eq!(m.borrow().events,vec!["local-window","mark-same-original-unknown"]));}
+#[test]fn physical_revoke_does_not_call_pre_effect_current_or_local_post(){let mut o=owner();MOCK.with(|m|m.borrow_mut().revoked=true);assert_eq!(o.completed_current(),Err(Error::Unknown));MOCK.with(|m|assert_eq!(m.borrow().events,vec!["local-window","physical-completed","mark-same-original-unknown"]));}
+#[test]fn incomplete_or_foreign_owner_has_no_effect(){let mut o=owner();o.retire_attempted=false;assert_eq!(o.completed_current(),Err(Error::Required));o.retire_attempted=true;o.phase=Phase::Entered;assert_eq!(o.completed_current(),Err(Error::Required));o.phase=Phase::Closed;o.thread=std::thread::spawn(||std::thread::current().id()).join().unwrap();assert_eq!(o.completed_current(),Err(Error::Thread));MOCK.with(|m|assert!(m.borrow().events.is_empty()));}
+#[test]fn panic_retains_unknown_phase(){let mut o=owner();MOCK.with(|m|m.borrow_mut().panic=true);assert!(std::panic::catch_unwind(std::panic::AssertUnwindSafe(||o.completed_current())).is_err());assert_eq!(o.phase,Phase::Unknown);MOCK.with(|m|{let mut m=m.borrow_mut();m.panic=false;m.events.clear()});assert_eq!(o.completed_current(),Err(Error::Unknown));MOCK.with(|m|assert!(m.borrow().events.is_empty()));}

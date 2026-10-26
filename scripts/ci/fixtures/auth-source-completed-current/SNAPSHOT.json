@@ -1,0 +1,55 @@
+{
+  "schema": "YNX_AUTH_COMPLETED_CURRENT_CI_SNAPSHOT/v1",
+  "handoff": {
+    "path": "AUTH_HANDOFF.json",
+    "bytes": 27153,
+    "sha256": "33258a0a78ae1ef3e69db51509a16334c9e6531e78ec8ae51023bf6bd2255161"
+  },
+  "files": [
+    {
+      "path": "source/native/rust/ynx-native-operation/src/source_first_prepared_holder.rs",
+      "bytes": 19196,
+      "sha256": "dbb7b0f51cb9ac93d5fcc1e40a0a6b2a6677c8e52fa23df0dbd2e4d9b6552e22"
+    },
+    {
+      "path": "source/native/rust/ynx-native-operation/src/source_first_prepared_holder_ffi.rs",
+      "bytes": 19480,
+      "sha256": "e67007f28571ebaad8a3d4cc0012289e1426ba26ac2e897139549c1d7bd58334"
+    },
+    {
+      "path": "source/native/rust/ynx-native-operation/src/source_platform.rs",
+      "bytes": 52504,
+      "sha256": "1157a487b093ce3d8ce865e0d649c0d142ce22ad91def528dc8429a233b9ca37"
+    },
+    {
+      "path": "controls/holder-current-wrapper.rs",
+      "bytes": 3002,
+      "sha256": "11a551bda3259c742fb2e4f1025115b9ee55a63c2fb44951b47d924baa3ba56c"
+    },
+    {
+      "path": "controls/holder-current-tests.rs.in",
+      "bytes": 4350,
+      "sha256": "075cebf3600ddf215da24614e7909dd253c3128b84c4a2fd519f55e32546e6ff"
+    },
+    {
+      "path": "controls/server-completed-current.rs.in",
+      "bytes": 3771,
+      "sha256": "0e798e716995576fb413f28b21776d40e634b3a58f1ee1cd65d96b3cb40dc4ca"
+    },
+    {
+      "path": "run-holder-completed-current.mjs",
+      "bytes": 2265,
+      "sha256": "808152aaf100db44620ce74022b30a2942aafdea6f02ed8f17bf65b7b52d803c"
+    },
+    {
+      "path": "run-server-completed-current.mjs",
+      "bytes": 1771,
+      "sha256": "88ca4b83ad78445a7f394eb0015c94b176576a44cb4f6b3eadcdf36829372751"
+    }
+  ],
+  "tests": {
+    "holder": 9,
+    "server": 6
+  },
+  "scope": "Original checked_current method and whole holder FFI; server completed_current method. PUBLIC physical/source-window mocks. Not full Native link, real Root, custody or v4 issuer."
+}
