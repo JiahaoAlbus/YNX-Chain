@@ -1,0 +1,140 @@
+{
+  "classification": "original once-window telemetry refusal with partial proof progress",
+  "runId": 40268406635,
+  "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40268406635",
+  "candidate": "7f88113ea5848291db4f2da046aa447e876b8b8a",
+  "event": "workflow_dispatch",
+  "conclusion": "failure",
+  "onceRemoteDispatch": true,
+  "grantConsumed": true,
+  "normalAdmissionPassed": true,
+  "actualOfficialFreshIntakePassed": true,
+  "actualOriginalSOURCEPinMatchedProducer": true,
+  "actualFourELFPinsMatchedTuple": true,
+  "actualRelocationPassed": true,
+  "localFreshOrStageGETCount": 0,
+  "prepared": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/result/ynx-pq-network-40268406635-1/prepared.json",
+    "bytes": 2043,
+    "sha256": "e4ca06700be0d90bdde1badf571f8b8351e50b1dfe7d51d2d3e784f6fd7ca23b"
+  },
+  "businessManifest": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/result/ynx-pq-network-40268406635-1.build/business-manifest.json",
+    "bytes": 1719,
+    "sha256": "9c175cb3baba42c6e49dcc31f05f49d5b796556461f2aecdb38828bcdb30bc38"
+  },
+  "preparedFieldCount": 11,
+  "originalPreparedExecutionAuthorized": false,
+  "resultArtifact": {
+    "id": 12627267807,
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/result.zip",
+    "bytes": 21140,
+    "sha256": "55e7233dcdf23c6d3e79f2de4dd522966a354534b603e5fd13b3ed7f19877d37"
+  },
+  "rawFiles": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/result/ynx-pq-fresh-intake-40268406635-1/relocation.json",
+      "bytes": 2457,
+      "sha256": "687b83f3675a7ee3f12215782ef5054d2a32c44b4b3ca1dc352fe61929c8fc24"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/result/ynx-pq-network-40268406635-1/go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/result/ynx-pq-network-40268406635-1/go.stdout.log",
+      "bytes": 19805,
+      "sha256": "ef52a8ecb4a1492667dfdeff2235ab4798f8e4063e89c71d6247eab6ff26064e"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/result/ynx-pq-network-40268406635-1/prepared.json",
+      "bytes": 2043,
+      "sha256": "e4ca06700be0d90bdde1badf571f8b8351e50b1dfe7d51d2d3e784f6fd7ca23b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/result/ynx-pq-network-40268406635-1.build/business-manifest.json",
+      "bytes": 1719,
+      "sha256": "9c175cb3baba42c6e49dcc31f05f49d5b796556461f2aecdb38828bcdb30bc38"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/result/ynx-pq-network-40268406635-1.file-sizes.json",
+      "bytes": 3645,
+      "sha256": "47be84e8deae4f49ed07cd206e3e39c6e7626f672b60c65e5ca4dc9d746b346d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/result/ynx-pq-network-40268406635-1.receipt.json",
+      "bytes": 248729,
+      "sha256": "949fce3d00f09d1c27e7a1d8bf6665809cb965df6e8a0023ffb369d4db448c08"
+    }
+  ],
+  "partialStageTimings": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/PARTIAL_STAGE_TIMINGS.json",
+    "bytes": 36713,
+    "sha256": "5766ddf1141b58ba3741a31e513b562602c22beb4fec2b567ca924f2acbf8a71"
+  },
+  "grant": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/GRANT.json",
+    "bytes": 6856,
+    "sha256": "8b340ee4dbd94a0da26d7939faa1a05a3bbb7c5602a3f12038f8d49839e2bf90"
+  },
+  "runLog": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/run.log",
+    "bytes": 378107,
+    "sha256": "c6c3192778d8467d417c016ac7270fa24076c86b9acb8024fa86e414f3e9ac58"
+  },
+  "firstCause": "active owned task RSS unreadable",
+  "child": {
+    "pid": 3032,
+    "code": -15,
+    "startTicks": 21326
+  },
+  "guardElapsedMs": 54645,
+  "cleanupComplete": true,
+  "cleanupMeaning": "Owned kernel processes gone; graceful Go Node.Stop completion was not observed after guard TERM.",
+  "emptyOwnedScans": [
+    {
+      "elapsedMs": 54591,
+      "hostIdentities": 162
+    },
+    {
+      "elapsedMs": 54645,
+      "hostIdentities": 162
+    }
+  ],
+  "sampledResources": {
+    "kernel": {
+      "release": "6.17.0-1022-azure",
+      "machine": "x86_64",
+      "logicalCPUs": 4
+    },
+    "peakOwnedRSSBytes": 764997632,
+    "peakThreads": 58,
+    "peakPrivateBytes": 263887989,
+    "sampleCount": 250,
+    "actualBootId": null
+  },
+  "businessObservations": {
+    "offerCallsStarted": 16,
+    "offerCallsReturned": 16,
+    "hostContextsCompleted": 6,
+    "independentReadbacksStarted": 6,
+    "independentReadbackCallbacksCompleted": 3,
+    "completedReadbackIndices": [
+      0,
+      1,
+      2
+    ],
+    "businessFinalizedCount": null,
+    "afterStarted": false
+  },
+  "telemetryFailureIdentityDetailsCaptured": false,
+  "specificFailingPIDKnown": false,
+  "rssLimitTriggered": false,
+  "activeDeadlineTriggered": false,
+  "transactionFinalityQuantiles": null,
+  "pairedComparisonCompleted": false,
+  "sustainedTPSQualified": false,
+  "goalComplete": false,
+  "nextAction": "Original controller owner reproduce unreadable-owned-RSS capture with exact PID/startTicks/state/errno diagnostics; only accept real same-identity RSS or proved gone/Z. Keep PID reuse refusal, fail-closed live RSS telemetry and all caps. New matching normal supply and Root grant before another test."
+}

@@ -78,3 +78,66 @@ the original run, not retried; any terminal failure preserves first cause,
 UNKNOWN, raw logs and cleanup before considering another grant. No old e765,
 7c9, c57 or 7a artifact, absolute recipe or consumed grant is reused. The proposed
 window is calibration only, not sustained 1000 TPS qualification.
+
+## Actual once-window outcome: 40268406635
+
+Root granted the exact tuple and the performance owner made one original
+dispatch. Original normal admission, official fresh ZIP intake and relocation
+passed. The relocation receipt's original SOURCE pin matches the supplied
+producer log pin; all four actual copied ELF byte pins match the tuple. New
+absolute manifest and strict eleven-field prepared were produced on that VM.
+No fresh/stage archive was downloaded on the local machine.
+
+The runtime guard refused at 54645 ms with firstCause
+`active owned task RSS unreadable`, then terminated the child (exit -15).
+This is a telemetry refusal, not RSS-limit exhaustion or the 105-second deadline.
+Complete samples peak at 764997632 owned RSS bytes, 58 threads and 263887989
+private bytes, below their original caps. The rejected capture contains no
+offending PID/startTicks/state/errno diagnostic, so the specific process/race
+cannot be proven from this receipt. The original controller already handles
+proved vanished and same-identity zombie processes; its generic failure can
+also mean a changed identity or still-active unreadable RSS. Do not assume an
+exit race, skip an active task or assign unreadable RSS zero.
+
+Guard cleanupComplete=true and two empty owned scans at 54591/54645 ms establish
+owned process cleanup. They do not establish that Go's graceful Node.Stop path
+completed after TERM. Original data/HRS/UNKNOWN and failure scope remain intact;
+there was no automatic retry or guard relaxation.
+
+Actual progress before refusal:
+
+| Observation | Result |
+| --- | --- |
+| Before-arm offer calls started / returned | 16 / 16 |
+| Original inclusion / Commit-evidence checks | Complete |
+| Independent Host contexts completed | 6 |
+| Independent readback calls started | 6 |
+| Independent readback callbacks completed after original validation | 3, indices 0/1/2 |
+| After arm | Not started |
+
+The old Host stable-checkpoint refusal was passed on this actual path. Partial
+proof callbacks are retained as progress; the incomplete telemetry/whole result
+cannot qualify a business-finalized count, paired result, sustained TPS or
+transaction finality quantiles. Three completed call spans are approximately
+1.010/1.075/1.134 seconds, not offer-to-finality measurements.
+
+Before-arm business-intent preparation begins at parent offset 34.146387651
+seconds; PQ start/activation takes 9.888991346 seconds and initial execution/
+activation 10.668365617 seconds. Previous run 40261635920 recorded 56.979981514
+seconds to business preparation. These are different runners/runs; hardware
+equivalence and causal benefit are not proven. Keep observed numbers without
+claiming a same-condition speedup or extrapolating an after-arm cost.
+
+The seven original public output files were recovered once from result artifact
+`12627267807`, ZIP SHA256
+`55e7233dcdf23c6d3e79f2de4dd522966a354534b603e5fd13b3ed7f19877d37`.
+Fifty-three completed and four unfinished original spans are retained under
+`/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-7f-whole-once/`
+in `PARTIAL_STAGE_TIMINGS.json`, with complete `TERMINAL_HANDOFF.json` and tracked
+evidence copies. The once grant is consumed. No full successful phaseRows or
+per-block persistence distribution is exported by this failed run.
+
+Original Protocol has the actual telemetry failure and must reproduce the
+identity/capture boundary, retain exact diagnostics, and repair it without
+lowering live RSS visibility, PID-reuse refusal, signature AND checks or caps.
+Another window requires matching normal source supply and a new Root grant.
