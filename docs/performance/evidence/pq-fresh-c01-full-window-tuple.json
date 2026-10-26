@@ -1,0 +1,937 @@
+{
+  "version": "YNX-PQ-FRESH-FULL-WINDOW-TUPLE/v1",
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "remote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
+  "workflow": "resource-market-ci.yml",
+  "candidate": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+  "tree": "dd89e9cf2e67f56e9532efc587afb85d3ead9185",
+  "ref": "codex/ynx-pq-remote-c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+  "actualRefReadback": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13\trefs/heads/codex/ynx-pq-remote-c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13\n",
+  "normalRunId": 40270671539,
+  "normalRunAttempt": 1,
+  "normalCI": {
+    "id": 40270671539,
+    "html_url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40270671539",
+    "head_sha": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+    "head_branch": "codex/ynx-pq-perf-integration",
+    "event": "push",
+    "run_attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-10-26T04:45:12Z",
+    "updated_at": "2026-10-26T05:09:03Z"
+  },
+  "normalRequiredJobs": [
+    {
+      "id": 121402595582,
+      "name": "focused-go",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T04:45:14Z",
+      "completed_at": "2026-10-26T04:57:58Z",
+      "durationSeconds": 764.0
+    },
+    {
+      "id": 121405834815,
+      "name": "protocol-delivery",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T04:58:00Z",
+      "completed_at": "2026-10-26T05:06:39Z",
+      "durationSeconds": 519.0
+    },
+    {
+      "id": 121408117542,
+      "name": "proof-verifier-macos",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-26T05:06:41Z",
+      "completed_at": "2026-10-26T05:09:02Z",
+      "durationSeconds": 141.0
+    }
+  ],
+  "sourceHandoff": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/ci-c01f2f38c/HANDOFF.json",
+    "bytes": 14051,
+    "sha256": "9856c407b40b0becbe6f450445f4ab69a423cb33cf3da5c1f06bb9971b532ab0"
+  },
+  "sourceRefReceipt": {
+    "path": "/Volumes/西部数据/YNX-large-work/protocol/ci-c01f2f38c/SOURCE_REF_RECEIPT.json",
+    "bytes": 988,
+    "sha256": "236da86d6b0edc12f7e087fc59d78e6ee37a7b8a21fc78af9b6fba5111f784b2"
+  },
+  "producerPinReadback": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/PRODUCER_SOURCE_READBACK.json",
+    "bytes": 15672,
+    "sha256": "1c8ef4177ad94a365126a64d58dd0c32d93ac5eb04abc5cf7c6bb6164aee1393"
+  },
+  "freshSourceFromActualCILog": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/FRESH_SOURCE_FROM_ACTUAL_CI.json",
+    "bytes": 3540,
+    "sha256": "364025951fb54dd190f7478b6283c13f3c17e2f1e13dc461155a2ef9538192fd"
+  },
+  "dispatchInputs": {
+    "candidate_sha": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+    "normal_ci_run_id": "40270671539",
+    "paired_n1": false,
+    "consensus_e2e": false,
+    "consensus_e2e_retained_history": false,
+    "consensus_remote_e2e_retained_history": false,
+    "consensus_fresh_paired_business": true,
+    "remote_signer_process": false,
+    "remote_checkpoint_layout": "atomic-json",
+    "remote_process_authorization": "",
+    "remote_manifest_sha256": "",
+    "remote_test_sha256": "",
+    "remote_daemon_sha256": ""
+  },
+  "ghStringInputs": {
+    "candidate_sha": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+    "normal_ci_run_id": "40270671539",
+    "paired_n1": "false",
+    "consensus_e2e": "false",
+    "consensus_e2e_retained_history": "false",
+    "consensus_remote_e2e_retained_history": "false",
+    "consensus_fresh_paired_business": "true",
+    "remote_signer_process": "false",
+    "remote_checkpoint_layout": "atomic-json",
+    "remote_process_authorization": "",
+    "remote_manifest_sha256": "",
+    "remote_test_sha256": "",
+    "remote_daemon_sha256": ""
+  },
+  "sourceContracts": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/.github/workflows/resource-market-ci.yml",
+      "sourcePath": ".github/workflows/resource-market-ci.yml",
+      "bytes": 303742,
+      "sha256": "82079a661127b3b2483bc13c8d82c341bf7c27e9d121a0c9de9be38e011f27b3",
+      "gitBlob": "b7ac7883f65812687bbc8ddc827c1683bad90865"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/scripts/loadtest/pq-paired-linux-window.py",
+      "sourcePath": "scripts/loadtest/pq-paired-linux-window.py",
+      "bytes": 99244,
+      "sha256": "4d5559700be57c441ad739cb8990cabffab95004b052f607a2c6f2a37d06144e",
+      "gitBlob": "296e7041aaad1e16d6f109e583841da2c5e79817"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/scripts/loadtest/pq-paired-recipe.mjs",
+      "sourcePath": "scripts/loadtest/pq-paired-recipe.mjs",
+      "bytes": 2359,
+      "sha256": "673eb8965329025e7a516a67e8e04f6a54c3a102b00aafa72f78e86c8748c3eb",
+      "gitBlob": "fa63e7a514645afdc88b05e8482bdc6bac1d3b7e"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/scripts/loadtest/prepare-pq-paired-benchmark.mjs",
+      "sourcePath": "scripts/loadtest/prepare-pq-paired-benchmark.mjs",
+      "bytes": 3558,
+      "sha256": "6d4b36d283cfb3371a6cb6a0019ec885bf082d858c0e0046a5ef637d17ae33bb",
+      "gitBlob": "f44c175479c46508c5368d2560da5505803e56b1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/scripts/ops/validate-pq-remote-normal-ci.py",
+      "sourcePath": "scripts/ops/validate-pq-remote-normal-ci.py",
+      "bytes": 16856,
+      "sha256": "6d617c4ba97f82d59db512962873df1202fabfc6f5422c1b56452f020fbb8475",
+      "gitBlob": "a6f33296f0c5bd2f6167186179c17ad2e14bbb26"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/scripts/ops/pq-ci-stage-inputs.py",
+      "sourcePath": "scripts/ops/pq-ci-stage-inputs.py",
+      "bytes": 8415,
+      "sha256": "1e98fa2567a0ee78fb11e1561065b39416d4d6d275cf6b0a46bdfb4d390b7457",
+      "gitBlob": "b02b4aa7cfa0871df3538eed279ef46ad819ec8f"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/internal/ynxconsensusauth/signer.go",
+      "sourcePath": "internal/ynxconsensusauth/signer.go",
+      "bytes": 16974,
+      "sha256": "ff4320b518f92359aa23d29fa641c1f2db58add88bc1b93892fab6e300b97355",
+      "gitBlob": "f165b6186e29815bdc0824b8acb0c21a3c3680ff"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/internal/ynxconsensusauth/host_key_vault.go",
+      "sourcePath": "internal/ynxconsensusauth/host_key_vault.go",
+      "bytes": 14664,
+      "sha256": "da6f1dda6f497ca426de25784964df27e33f1301c52e9c4e2750ea73f5bf5d1b",
+      "gitBlob": "b74f92e09ed358a1be0a9b1d7a64b138ad8ad590"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/internal/ynxconsensusauth/object_signer.go",
+      "sourcePath": "internal/ynxconsensusauth/object_signer.go",
+      "bytes": 8631,
+      "sha256": "3a677292bbd889682db53858b53c4f046bde44686c31505df5f4a4e93f00e960",
+      "gitBlob": "c285dea8fb219b9e29e50a5dd7c8ef24a29404c8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/internal/ynxbatch/provider.go",
+      "sourcePath": "internal/ynxbatch/provider.go",
+      "bytes": 5818,
+      "sha256": "18b57e0165ef1f403f2278429c03786bcdec69d8604be1a7b00cd902fc9b2872",
+      "gitBlob": "2b9672dfc5584b6f6ae091aaac4eb06ccd113df5"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/internal/ynxbatch/sign.go",
+      "sourcePath": "internal/ynxbatch/sign.go",
+      "bytes": 3768,
+      "sha256": "ba3537bacac9813098fb02dad51e289b3cb8d6ce5586f5c01536df8b429c02b7",
+      "gitBlob": "de99191c1b962a88db89acac1814ee2d1f9f228a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/scripts/ops/validate-pq-remote-signer-process.py",
+      "sourcePath": "scripts/ops/validate-pq-remote-signer-process.py",
+      "bytes": 33913,
+      "sha256": "17bdb35190dea5dbeb51a6b9354bd5c922575e891d53e2de0af276fdf0bd2f6b",
+      "gitBlob": "c81922e68110e71abece005b15ce04f984892dea"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/scripts/ops/test_validate_pq_remote_signer_process.py",
+      "sourcePath": "scripts/ops/test_validate_pq_remote_signer_process.py",
+      "bytes": 35827,
+      "sha256": "81f4d28dc54f067bb53834f211162cce74ff0c59afc062121b426bc82416d535",
+      "gitBlob": "9c52067fde4c9770bdbc515a132fb35e0d5b4cde"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/scripts/ops/test_validate_pq_remote_normal_ci.py",
+      "sourcePath": "scripts/ops/test_validate_pq_remote_normal_ci.py",
+      "bytes": 194115,
+      "sha256": "2661f6495abbf902d721ccc76137b799a9abb370960a67119a8aa9733245a760",
+      "gitBlob": "5cbe097bc75c9a33fb920653f199c4014054e959"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/internal/consensus/pq_network_e2e_test.go",
+      "sourcePath": "internal/consensus/pq_network_e2e_test.go",
+      "bytes": 80325,
+      "sha256": "a6029a4e54a7cbe86e31fdc0a0e88ffac2d17940a709feb13d6f274de44829d2",
+      "gitBlob": "18f7fb83493e4d3e8a8cfe4be69fc8e13dd5455a"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/internal/consensus/pq_network_fresh_business_test.go",
+      "sourcePath": "internal/consensus/pq_network_fresh_business_test.go",
+      "bytes": 101148,
+      "sha256": "6298d05c08c6f459eb0c0bf3ba3227359ab0668b9fe86725dd54f91a773a36f4",
+      "gitBlob": "bf35d89cbd99037bf88500dc245be85d1df9e783"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/internal/consensus/pq_network_business_test.go",
+      "sourcePath": "internal/consensus/pq_network_business_test.go",
+      "bytes": 53070,
+      "sha256": "0b4739b3ac7a3c8a21573074d74734da964c256e76d0f10fb5b42a8e7db63d73",
+      "gitBlob": "293e7ed4376f7030b20cb6cfc7c1059db3cec2f1"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/internal/consensus/proof_host_checkpoint.go",
+      "sourcePath": "internal/consensus/proof_host_checkpoint.go",
+      "bytes": 1931,
+      "sha256": "adffe20c13ed5e6e909aa4445e4073ae7ebf6352700261086701bcddcac0dabf",
+      "gitBlob": "eb47065f369a970d6dd737dd2bd3bf17109987a7"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/internal/consensus/proof_host_source_store.go",
+      "sourcePath": "internal/consensus/proof_host_source_store.go",
+      "bytes": 19806,
+      "sha256": "45e97e17955fff9d3e7f58d74fad999ce738c9f1eef44a082461177f5fd95756",
+      "gitBlob": "d5b053e0ff573624eb81be441027756b3a52ccb4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/scripts/loadtest/test_pq_paired_linux_window.py",
+      "sourcePath": "scripts/loadtest/test_pq_paired_linux_window.py",
+      "bytes": 102650,
+      "sha256": "863fff8585f7d0cb4e9f0f07b94673418786b86f60d42f33b9146a3f7546d433",
+      "gitBlob": "1058c9b4d2b75fa40b92f513e94edaf4d18737c8"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/third_party/cometbft/node/ynx_proof_source.go",
+      "sourcePath": "third_party/cometbft/node/ynx_proof_source.go",
+      "bytes": 2432,
+      "sha256": "eced9ca7a2de6a30df40942cd04a39987b1f8261434834ca08eecc5dac41e5d9",
+      "gitBlob": "b825418015e9c221259334350fc2492e78c262e2"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/source-contracts/third_party/cometbft/node/ynx_proof_source_test.go",
+      "sourcePath": "third_party/cometbft/node/ynx_proof_source_test.go",
+      "bytes": 3886,
+      "sha256": "8a4c6e15ef9dbd9207c95218f915d7ac539167408f8c259ead98dafedfef3968",
+      "gitBlob": "25a1786ee4b6976acb438158d20c576a103bcc58"
+    }
+  ],
+  "sourceLeaves": {
+    "internal/consensus/pq_network_business_test.go": "0b4739b3ac7a3c8a21573074d74734da964c256e76d0f10fb5b42a8e7db63d73",
+    "internal/consensus/pq_network_e2e_test.go": "a6029a4e54a7cbe86e31fdc0a0e88ffac2d17940a709feb13d6f274de44829d2",
+    "internal/consensus/pq_network_fresh_business_test.go": "6298d05c08c6f459eb0c0bf3ba3227359ab0668b9fe86725dd54f91a773a36f4"
+  },
+  "binaries": {
+    "consensus.test": {
+      "archiveMember": "build/consensus.test",
+      "bytes": 53923699,
+      "sha256": "f3b4a391a5b0fe481b28229fd2342272e5d222d7cb08b0bbdc7bdc5977c2b887",
+      "commit": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+      "newAbsolutePath": null
+    },
+    "ynx-bft-gatewayd": {
+      "archiveMember": "build/ynx-bft-gatewayd",
+      "bytes": 35391586,
+      "sha256": "52261539ce02404e5b731fd72b8bbd5eb955696aecc24ee14c4b2ea2c36caf81",
+      "commit": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+      "newAbsolutePath": null
+    },
+    "ynx-consensus-perf-client": {
+      "archiveMember": "build/ynx-consensus-perf-client",
+      "bytes": 38595797,
+      "sha256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec",
+      "commit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+      "newAbsolutePath": null
+    },
+    "ynx-consensus-proof-verify": {
+      "archiveMember": "build/ynx-consensus-proof-verify",
+      "bytes": 36642152,
+      "sha256": "328e8ad241f3b437c2e46690540b67cb6512014e9b585aa59c800ddd55d3c728",
+      "commit": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+      "newAbsolutePath": null
+    }
+  },
+  "freshArtifact": {
+    "role": "freshBusiness",
+    "id": 12629095466,
+    "name": "ynx-pq-fresh-paired-business-build-c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13-40270671539-1",
+    "archiveBytes": 81158000,
+    "officialArchiveSHA256": "a153864a312cadc9c6dca63457e14ea32dbf9fc1a6f7f842a9b38465ff276933",
+    "officialDigest": "sha256:a153864a312cadc9c6dca63457e14ea32dbf9fc1a6f7f842a9b38465ff276933",
+    "protocolCommit": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+    "gitSourceTree": "dd89e9cf2e67f56e9532efc587afb85d3ead9185",
+    "runId": 40270671539,
+    "workflowRun": {
+      "id": 40270671539,
+      "repository_id": 1285041796,
+      "head_repository_id": 1285041796,
+      "head_branch": "codex/ynx-pq-perf-integration",
+      "head_sha": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13"
+    },
+    "expired": false,
+    "downloadedLocally": false,
+    "wholeArchiveBytesVerifiedLocally": false
+  },
+  "stageArtifact": {
+    "role": "stageInputs",
+    "id": 12628832516,
+    "name": "ynx-pq-stage-inputs-c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13-40270671539-1",
+    "archiveBytes": 12183249,
+    "officialArchiveSHA256": "a2c5c2573173267b81bdf29a6f4dd4dc91049c7ee455da1aaf749708d32ea5bb",
+    "officialDigest": "sha256:a2c5c2573173267b81bdf29a6f4dd4dc91049c7ee455da1aaf749708d32ea5bb",
+    "protocolCommit": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+    "gitSourceTree": "dd89e9cf2e67f56e9532efc587afb85d3ead9185",
+    "runId": 40270671539,
+    "workflowRun": {
+      "id": 40270671539,
+      "repository_id": 1285041796,
+      "head_repository_id": 1285041796,
+      "head_branch": "codex/ynx-pq-perf-integration",
+      "head_sha": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13"
+    },
+    "expired": false,
+    "downloadedLocally": false,
+    "wholeArchiveBytesVerifiedLocally": false
+  },
+  "runner": {
+    "job": "focused-go",
+    "label": "ubuntu-24.04",
+    "vmCount": 1,
+    "architecture": "linux/amd64",
+    "actualBootId": null,
+    "actualRunnerIdentity": null,
+    "outerTimeoutMinutes": 12,
+    "concurrencyGroup": "ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade",
+    "cancelInProgress": false
+  },
+  "runtimeCaps": {
+    "activeMs": 105000,
+    "cleanupMs": 15000,
+    "totalMs": 120000,
+    "ownedRSSBytes": 1073741824,
+    "threads": 320,
+    "ownedProcesses": 16,
+    "privateBytes": 536870912,
+    "buildBytes": 1073741824,
+    "logBytes": 1048576,
+    "diskFloorBytes": 1073741824,
+    "rootReserveBytes": 445644800,
+    "compileReserveBytes": 1073741824,
+    "availableMemoryFloorBytes": 1207959552,
+    "sampleMs": 200
+  },
+  "normalAdmissionTimeoutMinutes": 1,
+  "relocationTimeoutMinutes": 3,
+  "executionStepTimeoutMinutes": 3,
+  "remainingOuterSecondsRequired": 150,
+  "stepConditions": [
+    {
+      "entry": "- uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+      "condition": "success()"
+    },
+    {
+      "entry": "- uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+      "condition": "success()"
+    },
+    {
+      "entry": "- name: Verify exact public TLS fixture and fail-closed secret scanning",
+      "condition": "success()"
+    },
+    {
+      "entry": "- name: Record exact candidate identity",
+      "condition": "success()"
+    },
+    {
+      "entry": "- name: Check reachable vulnerabilities in the eight production runtime commands",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && github.event_name == 'push') }}"
+    },
+    {
+      "entry": "- name: Verify same-source completed normal CI before remote network execution",
+      "condition": "${{ !cancelled() && steps.identity.outcome == 'success' && github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) }}"
+    },
+    {
+      "entry": "- name: Verify original-copy observation controls without touching the original case",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify Linux window controls without starting a node",
+      "condition": "${{ !cancelled() && steps.identity.outcome == 'success' }}"
+    },
+    {
+      "entry": "- name: Verify pure dual-PQ protocol and account authorization",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload only actual Go public artifact-purpose vectors",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqprotocol.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload public canonical action vectors from the actual Go codec",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqprotocol.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify forked engine keys and actual consensus objects",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Compile forked state and consensus engine without starting nodes",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify exact-height maintenance stop with real engine commit and cold stores",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce and repair same-directory database ownership without starting nodes",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify real profile state transition and historical store without starting nodes",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce and repair real Commit and engine checkpoint read ordering",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify bounded remote signer transport and unchanged legacy protobuf vectors",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify actual engine signing caller uses committed height key and round context",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Measure fresh single and bounded concurrent dual signature paths",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Measure actual policy certificate cache consumer cold and warm paths",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Install pinned contract build runtime",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify failed candidate deployment preserves services and signing history",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify original-state operator transition preserves custody and uncertain attempts",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify original key ceremony retains partial custody and never creates during resume",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Compile frozen measured production overlay without executing cases",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Generate canonical IDE contract fixture",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify actual IDE compiler materials with original Go deployment callees",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify existing Wallet inbox materials with original Go deployment callees",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload only public contract deployment registry from the actual Go caller",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqcontractregistry.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify native ledger and HTTP PQ integration",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Compile production entry points",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce opaque classic staking refusal with original successful transactions",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce the original missing PQ validator staking entry",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce source log response budget overrun before later records",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify complete state bridge and sponsor continuity",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce signed-history overwrite and unsafe rollback callers",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce source-authority initialization coupling and verify independent execution",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce JSON-only signing source and verify real journal recovery",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce atomic-only Comet operator startup and verify normal journal selection",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce Ethereum mutable-lot provenance counterexamples and verify cold recovery",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce historical AA policy counterexamples against the original state validator",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce source evidence rehash counterexamples and verify original-label coverage",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce history pagination movement across real application commits",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce the existing Wallet health refusal with the complete original Gateway",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify Whole BFT gateway and native container readback",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload only public compiled contract deploy and finality interoperability fixture",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqgateway.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload only public classic staking originals and actual HTTP interoperability fixture",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.pqgateway.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify existing Chain readback and recovery after protocol integration",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}"
+    },
+    {
+      "entry": "- name: Verify existing Chain SDK after protocol integration",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')) }}"
+    },
+    {
+      "entry": "- name: Emit application-backed public Wallet HTTP fixture",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Upload only public Wallet HTTP fixture",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.walletfixture.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify shared Wallet policy and Chain payment authorization regressions",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Reproduce private verifier process-exit telemetry counterexample",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Verify operator checkpoint format and original read-lock admission",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}"
+    },
+    {
+      "entry": "- name: Build and pin normal signer process binaries without running them",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha) }}"
+    },
+    {
+      "entry": "- name: Run the separately authorized normal remote signer process",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (success() && github.event_name == 'workflow_dispatch' && inputs.remote_signer_process && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history) }}"
+    },
+    {
+      "entry": "- name: Preserve only public remote process receipt",
+      "condition": "${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (always() && (steps.pqremoteprocess.outcome == 'success' || steps.pqremoteprocess.outcome == 'failure')) }}"
+    },
+    {
+      "entry": "- name: Install pinned contract runtime for remote network prerequisites",
+      "condition": "${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' }}"
+    },
+    {
+      "entry": "- name: Prepare same-source compiled contracts before remote network execution",
+      "condition": "${{ success() && steps.pqnetworknode.outcome == 'success' && github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' }}"
+    },
+    {
+      "entry": "- name: Relocate exact normal-CI fresh business inputs without starting nodes",
+      "condition": "${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_fresh_paired_business && inputs.candidate_sha == github.sha && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' && !inputs.paired_n1 && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history && !inputs.remote_signer_process }}"
+    },
+    {
+      "entry": "- name: Build exact bounded network binaries and recipe without starting nodes",
+      "condition": "${{ success() && github.event_name == 'workflow_dispatch' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success')) }}"
+    },
+    {
+      "entry": "- name: Run the authorized bounded four-validator transition",
+      "condition": "${{ success() && github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha && !inputs.paired_n1 && !inputs.remote_signer_process && ((steps.pqnetworkbuild.outcome == 'success' && (inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history) && !inputs.consensus_fresh_paired_business && (!inputs.consensus_remote_e2e_retained_history || (steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'))) || (inputs.consensus_fresh_paired_business && steps.identity.outcome == 'success' && steps.normalci.outcome == 'success' && steps.pqfreshprepare.outcome == 'success' && !inputs.consensus_e2e && !inputs.consensus_e2e_retained_history && !inputs.consensus_remote_e2e_retained_history)) }}"
+    },
+    {
+      "entry": "- name: Record public retained network-file size metadata after owned cleanup",
+      "condition": "${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}"
+    },
+    {
+      "entry": "- name: Preserve only public network-test logs and guard receipt",
+      "condition": "${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}"
+    },
+    {
+      "entry": "- name: Seal only successful same-source public delivery inputs",
+      "condition": "${{ success() && github.event_name == 'push' }}"
+    },
+    {
+      "entry": "- name: Upload exact same-run public delivery inputs",
+      "condition": "${{ success() && github.event_name == 'push' && steps.stagepack.outcome == 'success' }}"
+    }
+  ],
+  "topLevelJobConditions": [
+    {
+      "job": "verify",
+      "condition": "github.ref != 'refs/heads/main' && github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && (inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))",
+      "selectedByFreshDispatch": false
+    },
+    {
+      "job": "browser-verification",
+      "condition": "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')",
+      "selectedByFreshDispatch": false
+    },
+    {
+      "job": "native-compatibility",
+      "condition": "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')",
+      "selectedByFreshDispatch": false
+    },
+    {
+      "job": "caddy-source",
+      "condition": "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')",
+      "selectedByFreshDispatch": false
+    },
+    {
+      "job": "artifact-release-cabi",
+      "condition": "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')",
+      "selectedByFreshDispatch": false
+    },
+    {
+      "job": "focused-go",
+      "condition": "(github.event_name == 'push' && github.ref == 'refs/heads/main') || ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business))",
+      "selectedByFreshDispatch": true
+    },
+    {
+      "job": "protocol-delivery",
+      "condition": "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'",
+      "selectedByFreshDispatch": false
+    },
+    {
+      "job": "proof-verifier-macos",
+      "condition": "github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration')",
+      "selectedByFreshDispatch": false
+    },
+    {
+      "job": "pq-paired-n1",
+      "condition": "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha && inputs.paired_n1",
+      "selectedByFreshDispatch": false
+    }
+  ],
+  "expectedPublicOutputFiles": [
+    "receipt.json",
+    "prepared.json",
+    "go.stdout.log",
+    "go.stderr.log",
+    "file-sizes.json",
+    "business-manifest.json",
+    "relocation.json"
+  ],
+  "clientIdentity": {
+    "commit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+    "wholeTree": "4866cc3924c060eb6a29939915d39b1c5c625607",
+    "commandTree": "19b9fafcfbb3f434b9ff745fb785afb1d0741247",
+    "producerCommit": "da3060e150e2bd0f5695d67a76f3b30fafd1c696"
+  },
+  "normalVMIntake": {
+    "originalStep": "pqfreshprepare",
+    "downloadOfficialFreshArtifactOnce": true,
+    "verifyOfficialZIPDigestAndBytesBeforeExtraction": true,
+    "closedElevenFiles": true,
+    "exactOriginalSOURCE": true,
+    "sourceGitThreeLeaves": true,
+    "ELFByteHashesAndHeaders": true,
+    "fixedClientSOURCEAndBuildInfoBytes": true,
+    "newExclusiveCaseBuildIntake": true,
+    "strictPreparedFieldCount": 11,
+    "strictManifestFieldCount": 7,
+    "originalControllerValidationRequired": true,
+    "localFreshArchiveRequiredByOriginalContract": false,
+    "localStageArchiveRequiredByOriginalFreshContract": false,
+    "localArchivesDownloaded": false,
+    "localArchivesVerified": false,
+    "localELFGoBuildInfoReadback": false,
+    "originalRelocationReexecutesGoVersionM": false,
+    "goInfoEvidence": "actual same-source normal-CI producer runtime GoInfo plus fixed original client metadata; no invented embedded VCS for consensus.test",
+    "actualBootIdCaptureAvailableInOriginalGuard": false,
+    "actualBootId": null,
+    "doNotInventBootIdentity": true
+  },
+  "producerGoInfo": {
+    "ynx-bft-gatewayd": {
+      "goVersion": "go1.26.10",
+      "raw": "/home/runner/work/_temp/ynx-pq-linux-runtime-candidate/ynx-bft-gatewayd: go1.26.10\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-bft-gatewayd\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261026044506-c01f2f38cb6f\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cloudflare/circl\tv1.6.5\th1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQA=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\n\t=>\t./third_party/cometbft\t(devel)\t\n\t\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/fsnotify/fsnotify\tv1.7.0\th1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/google/orderedcode\tv0.0.1\th1:UzfcAexk9Vhv8+9pNOgRu41f16lHq725vPwnSeiG/Us=\n\tdep\tgithub.com/gorilla/websocket\tv1.5.3\th1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=\n\tdep\tgithub.com/hashicorp/golang-lru/v2\tv2.0.7\th1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs4luLUK2k=\n\tdep\tgithub.com/hashicorp/hcl\tv1.0.0\th1:0Anlzjpi4vEasTeNFn2mLJgTSwt0+6sfsiTG8qcWGx4=\n\tdep\tgithub.com/klauspost/compress\tv1.18.5\th1:/h1gH5Ce+VWNLSWqPzOVn6XBO+vJbCNGvjoaGBFW2IE=\n\tdep\tgithub.com/lib/pq\tv1.12.0\th1:mC1zeiNamwKBecjHarAr26c/+d8V5w/u4J0I/yASbJo=\n\tdep\tgithub.com/magiconair/properties\tv1.8.7\th1:IeQXZAiQcpL9mgcAe1Nu6cX9LLw6ExEHKjN0VQdvPDY=\n\tdep\tgithub.com/minio/highwayhash\tv1.0.4\th1:asJizugGgchQod2ja9NJlGOWq4s7KsAWr5XUc9Clgl4=\n\tdep\tgithub.com/mitchellh/mapstructure\tv1.5.0\th1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pelletier/go-toml/v2\tv2.2.2\th1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/rcrowley/go-metrics\tv0.0.0-20201227073835-cf1acfcdf475\th1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=\n\tdep\tgithub.com/rs/cors\tv1.11.1\th1:eU3gRzXLRK57F5rKMGMZURNdIG4EoAmX8k94r9wXWHA=\n\tdep\tgithub.com/sagikazarmark/slog-shim\tv0.1.0\th1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6gto+ugjYE=\n\tdep\tgithub.com/spf13/afero\tv1.11.0\th1:WJQKhtpdm3v2IzqG8VMqrr6Rf3UYpEF239Jy9wNepM8=\n\tdep\tgithub.com/spf13/cast\tv1.6.0\th1:GEiTHELF+vaR5dhz3VqZfFSzZjYbgeKDpBxQVS4GYJ0=\n\tdep\tgithub.com/spf13/pflag\tv1.0.6\th1:jFzHGLGAlb3ruxLB8MhbI6A8+AQX/2eW4qeyNZXNp2o=\n\tdep\tgithub.com/spf13/viper\tv1.19.0\th1:RWq5SEjt8o25SROyN3z2OrDB9l7RPd3lwTWU8EcEdcI=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/subosito/gotenv\tv1.6.0\th1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.57.0\th1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M=\n\tdep\tgolang.org/x/net\tv0.60.0\th1:79p50tfZlm0J9YfoDsSi639qSXNGVwEzOPLCxM2FsYU=\n\tdep\tgolang.org/x/sync\tv0.23.0\th1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk=\n\tdep\tgolang.org/x/sys\tv0.48.0\th1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=\n\tdep\tgolang.org/x/text\tv0.42.0\th1:JbOZXgfeCPU9gacVtYliJqOhD+zhrEqK4LfdpmlUZqI=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260526163538-3dc84a4a5aaa\th1:mZHHdPZl0dbGHCflZgAq/Q468DWVFcU2whhB2KAo8fk=\n\tdep\tgoogle.golang.org/grpc\tv1.83.2\th1:EManeRomTObA0BU7I8vXgg/78uE5MJ9M8B39EX2WscU=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/ini.v1\tv1.67.0\th1:Dgnx+6+nfE+IfzjUEISNeydPJh9AXNNsWbGP9KzCsOA=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13\n\tbuild\tvcs.time=2026-10-26T04:45:06Z\n\tbuild\tvcs.modified=false\n",
+      "settings": {
+        "-buildmode": "exe",
+        "-compiler": "gc",
+        "-trimpath": "true",
+        "CGO_ENABLED": "0",
+        "GOAMD64": "v1",
+        "GOARCH": "amd64",
+        "GOOS": "linux",
+        "vcs": "git",
+        "vcs.modified": "false",
+        "vcs.revision": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+        "vcs.time": "2026-10-26T04:45:06Z"
+      }
+    },
+    "ynx-consensus-proof-verify": {
+      "goVersion": "go1.26.10",
+      "raw": "/home/runner/work/_temp/ynx-pq-linux-runtime-candidate/ynx-consensus-proof-verify: go1.26.10\n\tpath\tgithub.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-proof-verify\n\tmod\tgithub.com/JiahaoAlbus/YNX-Chain\tv0.0.0-20261026044506-c01f2f38cb6f\t\n\tdep\tgithub.com/beorn7/perks\tv1.0.1\th1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/cloudflare/circl\tv1.6.5\th1:O64F26HEqNhznd/hrC5KZXVKYuKM2rx4deZDTc4ihQA=\n\tdep\tgithub.com/cometbft/cometbft\tv0.38.23\n\t=>\t./third_party/cometbft\t(devel)\t\n\t\n\tdep\tgithub.com/cometbft/cometbft-db\tv0.14.1\th1:SxoamPghqICBAIcGpleHbmoPqy+crij/++eZz3DlerQ=\n\tdep\tgithub.com/cosmos/gogoproto\tv1.7.0\th1:79USr0oyXAbxg3rspGh/m4SWNyoz/GLaAh0QlCe2fro=\n\tdep\tgithub.com/davecgh/go-spew\tv1.1.2-0.20180830191138-d8f796af33cc\th1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=\n\tdep\tgithub.com/decred/dcrd/dcrec/secp256k1/v4\tv4.4.0\th1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=\n\tdep\tgithub.com/fsnotify/fsnotify\tv1.7.0\th1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nosvA=\n\tdep\tgithub.com/go-kit/kit\tv0.13.0\th1:OoneCcHKHQ03LfBpoQCUfCluwd2Vt3ohz+kvbJneZAU=\n\tdep\tgithub.com/go-kit/log\tv0.2.1\th1:MRVx0/zhvdseW+Gza6N9rVzU/IVzaeE1SFI4raAhmBU=\n\tdep\tgithub.com/go-logfmt/logfmt\tv0.6.0\th1:wGYYu3uicYdqXVgoYbvnkrPVXkuLM1p1ifugDMEdRi4=\n\tdep\tgithub.com/golang/protobuf\tv1.5.4\th1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=\n\tdep\tgithub.com/golang/snappy\tv0.0.4\th1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=\n\tdep\tgithub.com/google/btree\tv1.1.3\th1:CVpQJjYgC4VbzxeGVHfvZrv1ctoYCAI8vbl07Fcxlyg=\n\tdep\tgithub.com/google/go-cmp\tv0.7.0\th1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=\n\tdep\tgithub.com/google/orderedcode\tv0.0.1\th1:UzfcAexk9Vhv8+9pNOgRu41f16lHq725vPwnSeiG/Us=\n\tdep\tgithub.com/gorilla/websocket\tv1.5.3\th1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=\n\tdep\tgithub.com/hashicorp/golang-lru/v2\tv2.0.7\th1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs4luLUK2k=\n\tdep\tgithub.com/hashicorp/hcl\tv1.0.0\th1:0Anlzjpi4vEasTeNFn2mLJgTSwt0+6sfsiTG8qcWGx4=\n\tdep\tgithub.com/klauspost/compress\tv1.18.5\th1:/h1gH5Ce+VWNLSWqPzOVn6XBO+vJbCNGvjoaGBFW2IE=\n\tdep\tgithub.com/lib/pq\tv1.12.0\th1:mC1zeiNamwKBecjHarAr26c/+d8V5w/u4J0I/yASbJo=\n\tdep\tgithub.com/magiconair/properties\tv1.8.7\th1:IeQXZAiQcpL9mgcAe1Nu6cX9LLw6ExEHKjN0VQdvPDY=\n\tdep\tgithub.com/minio/highwayhash\tv1.0.4\th1:asJizugGgchQod2ja9NJlGOWq4s7KsAWr5XUc9Clgl4=\n\tdep\tgithub.com/mitchellh/mapstructure\tv1.5.0\th1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=\n\tdep\tgithub.com/munnerz/goautoneg\tv0.0.0-20191010083416-a7dc8b61c822\th1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=\n\tdep\tgithub.com/oasisprotocol/curve25519-voi\tv0.0.0-20220708102147-0a8a51822cae\th1:FatpGJD2jmJfhZiFDElaC0QhZUDQnxUeAwTGkfAHN3I=\n\tdep\tgithub.com/pelletier/go-toml/v2\tv2.2.2\th1:aYUidT7k73Pcl9nb2gScu7NSrKCSHIDE89b3+6Wq+LM=\n\tdep\tgithub.com/pkg/errors\tv0.9.1\th1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=\n\tdep\tgithub.com/pmezard/go-difflib\tv1.0.1-0.20181226105442-5d4384ee4fb2\th1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=\n\tdep\tgithub.com/prometheus/client_golang\tv1.21.0\th1:DIsaGmiaBkSangBgMtWdNfxbMNdku5IK6iNhrEqWvdA=\n\tdep\tgithub.com/prometheus/client_model\tv0.6.1\th1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=\n\tdep\tgithub.com/prometheus/common\tv0.62.0\th1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=\n\tdep\tgithub.com/prometheus/procfs\tv0.15.1\th1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=\n\tdep\tgithub.com/rcrowley/go-metrics\tv0.0.0-20201227073835-cf1acfcdf475\th1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=\n\tdep\tgithub.com/rs/cors\tv1.11.1\th1:eU3gRzXLRK57F5rKMGMZURNdIG4EoAmX8k94r9wXWHA=\n\tdep\tgithub.com/sagikazarmark/slog-shim\tv0.1.0\th1:diDBnUNK9N/354PgrxMywXnAwEr1QZcOr6gto+ugjYE=\n\tdep\tgithub.com/spf13/afero\tv1.11.0\th1:WJQKhtpdm3v2IzqG8VMqrr6Rf3UYpEF239Jy9wNepM8=\n\tdep\tgithub.com/spf13/cast\tv1.6.0\th1:GEiTHELF+vaR5dhz3VqZfFSzZjYbgeKDpBxQVS4GYJ0=\n\tdep\tgithub.com/spf13/pflag\tv1.0.6\th1:jFzHGLGAlb3ruxLB8MhbI6A8+AQX/2eW4qeyNZXNp2o=\n\tdep\tgithub.com/spf13/viper\tv1.19.0\th1:RWq5SEjt8o25SROyN3z2OrDB9l7RPd3lwTWU8EcEdcI=\n\tdep\tgithub.com/stretchr/testify\tv1.10.0\th1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=\n\tdep\tgithub.com/subosito/gotenv\tv1.6.0\th1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=\n\tdep\tgithub.com/syndtr/goleveldb\tv1.0.1-0.20210819022825-2ae1ddf74ef7\th1:epCh84lMvA70Z7CTTCmYQn2CKbY8j86K7/FAIr141uY=\n\tdep\tgolang.org/x/crypto\tv0.57.0\th1:3ZVCjf8Ggz7zneR/EHRVx68Ctf+2pmIMP2UFhh9cC6M=\n\tdep\tgolang.org/x/net\tv0.60.0\th1:79p50tfZlm0J9YfoDsSi639qSXNGVwEzOPLCxM2FsYU=\n\tdep\tgolang.org/x/sync\tv0.23.0\th1:KameEIfc1IkluZyXWLn39Wd4tURc6GbCiISGiZm2bQk=\n\tdep\tgolang.org/x/sys\tv0.48.0\th1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=\n\tdep\tgolang.org/x/text\tv0.42.0\th1:JbOZXgfeCPU9gacVtYliJqOhD+zhrEqK4LfdpmlUZqI=\n\tdep\tgoogle.golang.org/genproto/googleapis/rpc\tv0.0.0-20260526163538-3dc84a4a5aaa\th1:mZHHdPZl0dbGHCflZgAq/Q468DWVFcU2whhB2KAo8fk=\n\tdep\tgoogle.golang.org/grpc\tv1.83.2\th1:EManeRomTObA0BU7I8vXgg/78uE5MJ9M8B39EX2WscU=\n\tdep\tgoogle.golang.org/protobuf\tv1.36.11\th1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=\n\tdep\tgopkg.in/ini.v1\tv1.67.0\th1:Dgnx+6+nfE+IfzjUEISNeydPJh9AXNNsWbGP9KzCsOA=\n\tdep\tgopkg.in/yaml.v3\tv3.0.1\th1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=linux\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13\n\tbuild\tvcs.time=2026-10-26T04:45:06Z\n\tbuild\tvcs.modified=false\n",
+      "settings": {
+        "-buildmode": "exe",
+        "-compiler": "gc",
+        "-trimpath": "true",
+        "CGO_ENABLED": "0",
+        "GOAMD64": "v1",
+        "GOARCH": "amd64",
+        "GOOS": "linux",
+        "vcs": "git",
+        "vcs.modified": "false",
+        "vcs.revision": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+        "vcs.time": "2026-10-26T04:45:06Z"
+      }
+    }
+  },
+  "expectedClosedFreshPayloadFiles": {
+    "build/business-manifest.json": {
+      "bytes": 1743,
+      "sha256": "8b67124277b4e8744fece2f2b82aaf7c223687383b1f0c5a6c15b2185e446b37"
+    },
+    "build/consensus.test": {
+      "bytes": 53923699,
+      "sha256": "f3b4a391a5b0fe481b28229fd2342272e5d222d7cb08b0bbdc7bdc5977c2b887"
+    },
+    "build/ynx-bft-gatewayd": {
+      "bytes": 35391586,
+      "sha256": "52261539ce02404e5b731fd72b8bbd5eb955696aecc24ee14c4b2ea2c36caf81"
+    },
+    "build/ynx-consensus-perf-client": {
+      "bytes": 38595797,
+      "sha256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec"
+    },
+    "build/ynx-consensus-proof-verify": {
+      "bytes": 36642152,
+      "sha256": "328e8ad241f3b437c2e46690540b67cb6512014e9b585aa59c800ddd55d3c728"
+    },
+    "client/SOURCE.json": {
+      "bytes": 708,
+      "sha256": "40aff3ccf799ae084897b37a9661c3e49914f9de13cc0cca8c94c158b6469ce9"
+    },
+    "client/go-build-info.txt": {
+      "bytes": 5526,
+      "sha256": "25ef00fcb1241abeb208239a07e2273fd90af5cc9c7a848254631b7bd91fd603"
+    },
+    "source/internal/consensus/pq_network_business_test.go": {
+      "bytes": 53070,
+      "sha256": "0b4739b3ac7a3c8a21573074d74734da964c256e76d0f10fb5b42a8e7db63d73"
+    },
+    "source/internal/consensus/pq_network_e2e_test.go": {
+      "bytes": 80325,
+      "sha256": "a6029a4e54a7cbe86e31fdc0a0e88ffac2d17940a709feb13d6f274de44829d2"
+    },
+    "source/internal/consensus/pq_network_fresh_business_test.go": {
+      "bytes": 101148,
+      "sha256": "6298d05c08c6f459eb0c0bf3ba3227359ab0668b9fe86725dd54f91a773a36f4"
+    }
+  },
+  "originalManifestExpectedPin": {
+    "bytes": 1743,
+    "sha256": "8b67124277b4e8744fece2f2b82aaf7c223687383b1f0c5a6c15b2185e446b37"
+  },
+  "phaseOverlapBudgetRequirement": "Keep original measured 7a spans and guard clock separate; no additive nested/parallel durations, no extrapolated after arm reported as measurement. Re-measure new setup/checkpoint code.",
+  "oldGrantsConsumed": true,
+  "newRootWindowAuthorized": false,
+  "preparedProduced": false,
+  "executionReady": false,
+  "dispatchExecuted": false,
+  "businessPerArm": 16,
+  "offeredPerSecond": 2,
+  "proofReadbackConcurrency": 4,
+  "syntheticOnly": true,
+  "sustainedTPSQualified": false,
+  "localELFExecuted": false,
+  "requiredFrozenRef": "codex/ynx-pq-remote-c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13",
+  "newGuardRegression": {
+    "summary": {
+      "line": 1519,
+      "raw": "2026-10-26T04:46:09.0744172Z Ran 50 tests in 0.660s",
+      "okLine": 1521,
+      "ok": "2026-10-26T04:46:09.0744487Z OK"
+    },
+    "methods": 50,
+    "oldMethodsPreserved": 42,
+    "addedMethods": [
+      "test_stable_task_requires_actual_rollup_between_identity_reads",
+      "test_original_sampler_red_then_same_identity_exit_interleaving",
+      "test_missing_rollup_can_only_settle_to_same_identity_rss_or_proved_gone",
+      "test_active_missing_rss_deadline_preserves_complete_refusal",
+      "test_recycled_pid_and_malformed_stat_or_rollup_never_settle",
+      "test_permissions_and_other_io_failures_are_not_retried",
+      "test_sample_uses_one_shared_deadline_and_records_refusal_before_cleanup",
+      "test_actual_linux_owned_child_exit_is_verified_and_active_fault_is_refused"
+    ],
+    "linuxKernelChildCaseIncluded": true,
+    "skipCount": 0,
+    "evidenceMeaning": "Actual complete unittest module success without skips on Ubuntu24.04; no individual verbose PASS lines were printed."
+  },
+  "newCommitObservationRegression": {
+    "tests": [
+      {
+        "name": "TestPQNetworkFreshCommitObservationFailureRetainsActualTiming",
+        "sourceLine": 1784,
+        "selectedByNonHostCommand": true,
+        "earlySkipPresent": false,
+        "individualVerbosePassPrinted": false
+      },
+      {
+        "name": "TestPQNetworkFreshCommitObservationBoundsAndWriteFailure",
+        "sourceLine": 1884,
+        "selectedByNonHostCommand": true,
+        "earlySkipPresent": false,
+        "individualVerbosePassPrinted": false
+      }
+    ],
+    "selector": {
+      "line": 3354,
+      "command": "YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' ./internal/consensus"
+    },
+    "packageOutput": {
+      "line": 3369,
+      "raw": "2026-10-26T04:54:28.7367458Z ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/consensus\t164.719s"
+    },
+    "evidenceMeaning": "Two same-head ungated tests are included in the actual successful complete non-Host consensus package; this is not a fabricated per-test verbose PASS or a fresh32 window."
+  },
+  "normalSourceContractRegression": {
+    "summary": {
+      "line": 1672,
+      "raw": "2026-10-26T04:46:27.4301342Z Ran 36 tests in 10.424s",
+      "okLine": 1674,
+      "ok": "2026-10-26T04:46:27.4301688Z OK"
+    },
+    "methods": 36
+  },
+  "newGuardProvesPerformance": false,
+  "officialArtifactMetadata": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-c01-preparation/OFFICIAL_ARTIFACT_METADATA.json",
+    "bytes": 21689,
+    "sha256": "ef11ac6096225d732f3663b9573da862995b3ad77a786214dc01bc014b9b1547"
+  },
+  "officialArtifactMetadataGETCount": 1,
+  "officialZIPGETCount": 0,
+  "frozenRefMissing": false,
+  "newCommitObservations": {
+    "classification": "local-persistence-observation",
+    "stream": "existing bounded stdout",
+    "rowLimit": 384,
+    "rowBytes": 1024,
+    "totalBytesMaximum": 393216,
+    "failedCommitRowsNotFinality": true,
+    "originalLogCapBytes": 1048576
+  },
+  "refReceiptEscapedTranscriptionPreserved": true,
+  "freshArtifactOfficialMetadata": {
+    "id": 12629095466,
+    "node_id": "MDg6QXJ0aWZhY3QxMjYyOTA5NTQ2Ng==",
+    "name": "ynx-pq-fresh-paired-business-build-c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13-40270671539-1",
+    "size_in_bytes": 81158000,
+    "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12629095466",
+    "archive_download_url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12629095466/zip",
+    "expired": false,
+    "digest": "sha256:a153864a312cadc9c6dca63457e14ea32dbf9fc1a6f7f842a9b38465ff276933",
+    "created_at": "2026-10-26T05:06:34Z",
+    "updated_at": "2026-10-26T05:06:34Z",
+    "expires_at": "2026-11-02T05:06:29Z",
+    "workflow_run": {
+      "id": 40270671539,
+      "repository_id": 1285041796,
+      "head_repository_id": 1285041796,
+      "head_branch": "codex/ynx-pq-perf-integration",
+      "head_sha": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13"
+    }
+  },
+  "stageArtifactOfficialMetadata": {
+    "id": 12628832516,
+    "node_id": "MDg6QXJ0aWZhY3QxMjYyODgzMjUxNg==",
+    "name": "ynx-pq-stage-inputs-c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13-40270671539-1",
+    "size_in_bytes": 12183249,
+    "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12628832516",
+    "archive_download_url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/12628832516/zip",
+    "expired": false,
+    "digest": "sha256:a2c5c2573173267b81bdf29a6f4dd4dc91049c7ee455da1aaf749708d32ea5bb",
+    "created_at": "2026-10-26T04:57:55Z",
+    "updated_at": "2026-10-26T04:57:55Z",
+    "expires_at": "2026-11-02T04:57:54Z",
+    "workflow_run": {
+      "id": 40270671539,
+      "repository_id": 1285041796,
+      "head_repository_id": 1285041796,
+      "head_branch": "codex/ynx-pq-perf-integration",
+      "head_sha": "c01f2f38cb6f7fdd146e6a4a4af49bc361d16b13"
+    }
+  },
+  "producerPinReadbackSource": "Performance owner extraction from original hashed normal CI stdout; no local archive/ELF readback"
+}
