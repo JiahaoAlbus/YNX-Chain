@@ -30,6 +30,16 @@ test('late native picker result is ignored after the project view is disposed',a
 test('normal private pipe routes actual artifact preview while rejecting renderer-provided headers or scope',async t=>{const f=await fixture(t),host=createProjectContractsHost({context:{id:'PUBLIC-project'},assertPathCurrent:async()=>{},openPublication:async()=>f.host,openClient:async()=>{throw Error('Wallet network owner must not open');}});const[a,b]=duplexPair(),server=channel.serve(a,host),client=channel.client(b);try{const result=await client.call('publication-preview',f.body);assert.equal(result.binding.localProjectId,'PUBLIC-project');assert.equal(result.deploymentApproved,false);await assert.rejects(client.call('publication-preview',{...f.body,headers:{'PUBLIC':'not admitted'}}));await assert.rejects(client.call('publication-preview',{...f.body,projectId:'PUBLIC-other'}));}finally{client.close();server.close();await host.close();}});
 
 const observationOne='22222222-2222-4222-8222-222222222222',observationTwo='33333333-3333-4333-8333-333333333333';
+// PUBLIC review controls exercise the post-approval UI lifecycle only. They
+// cannot stand in for real Cocoa approval, Source authority or Native custody.
+function reviewedBrowser(controls={}){
+ const calls={approvals:[],ends:0};
+ return {calls,crypto:{randomUUID:()=>observationTwo},ynxDesktopWallet:{
+  approveDeploymentObservation:async requestId=>{calls.approvals.push(requestId);return controls.approve?controls.approve(requestId):{approved:true,requestId};},
+  endDeploymentObservation:async()=>{calls.ends++;return controls.end?.();}
+ }};
+}
+
 test('stop status query targets only its UI observation and releases the host for another query',async t=>{
  let started;const entered=new Promise(r=>started=r);let resumes=0;
  const f=await fixture(t,{openObservation:async()=>({resume:async(_id,{signal})=>{resumes++;if(resumes===1){started();return new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true}));}return{queryOnly:true};},close(){}})});
@@ -51,19 +61,19 @@ test('publication query cancellation uses a closed correlation-only DATA body',(
  for(const body of [{},{requestId:observationOne},{observationId:observationOne,headers:{}},{observationId:'wrong'}])assert.equal(channel.valid('publication-observe-cancel',body),false);
 });
 test('actual Widget stop query preserves the request ID and ignores a late successful result',async()=>{
- const calls=[];let finish;
- const widget=new loaded.exports.ArtifactPublicationWidget({call:async(action,body)=>{calls.push({action,body});if(action==='publication-observe')return new Promise(r=>finish=r);return{cancelled:true,queryOnly:true};}},{crypto:{randomUUID:()=>observationTwo}},(_key,text)=>text);
+ const calls=[];let finish;const browser=reviewedBrowser();
+ const widget=new loaded.exports.ArtifactPublicationWidget({call:async(action,body)=>{calls.push({action,body});if(action==='publication-observe')return new Promise(r=>finish=r);return{cancelled:true,queryOnly:true};}},browser,(_key,text)=>text);
  widget.fields.requestId.value=observationOne;widget.buttons.observe.click();await tick();
  assert.equal(calls[0].action,'publication-observe');assert.equal(calls[0].body.requestId,observationOne);assert.equal(calls[0].body.observationId,observationTwo);assert.equal(Object.keys(calls[0].body).sort().join(), 'observationId,requestId');
  assert.equal(widget.buttons.cancel.disabled,false);widget.buttons.cancel.click();await tick();
- assert.equal(calls[1].action,'publication-observe-cancel');assert.equal(calls[1].body.observationId,observationTwo);assert.equal(Object.keys(calls[1].body).join(),'observationId');
+ assert.equal(calls[1].action,'publication-observe-cancel');assert.equal(calls[1].body.observationId,observationTwo);assert.equal(Object.keys(calls[1].body).join(),'observationId');assert.deepEqual(browser.calls.approvals,[observationOne]);assert.equal(browser.calls.ends,1);
  const cancelled=widget.status.textContent;assert.match(cancelled,/stopped|cancelled/i);assert.equal(widget.buttons.observe.disabled,false);
  finish({state:'PUBLIC-late-success'});await tick();assert.equal(widget.status.textContent,cancelled);assert.ok(!widget.output.textContent?.includes('PUBLIC-late-success'));assert.equal(widget.fields.requestId.value,observationOne);widget.dispose();
 });
 test('closing the publication view sends one stop for its own in-flight read without redeploying',async()=>{
- const calls=[];let finish;const widget=new loaded.exports.ArtifactPublicationWidget({call:async(action,body)=>{calls.push({action,body});if(action==='publication-observe')return new Promise(r=>finish=r);return{cancelled:true};}},{crypto:{randomUUID:()=>observationTwo}},(_key,text)=>text);
+ const calls=[];let finish;const browser=reviewedBrowser();const widget=new loaded.exports.ArtifactPublicationWidget({call:async(action,body)=>{calls.push({action,body});if(action==='publication-observe')return new Promise(r=>finish=r);return{cancelled:true};}},browser,(_key,text)=>text);
  widget.fields.requestId.value=observationOne;widget.buttons.observe.click();await tick();widget.dispose();await tick();
- assert.equal(calls.length,2);assert.equal(calls[1].action,'publication-observe-cancel');assert.equal(calls[1].body.observationId,observationTwo);finish({state:'PUBLIC-late'});await tick();
+ assert.equal(calls.length,2);assert.equal(calls[1].action,'publication-observe-cancel');assert.equal(calls[1].body.observationId,observationTwo);assert.deepEqual(browser.calls.approvals,[observationOne]);assert.equal(browser.calls.ends,1);widget.dispose();await tick();assert.equal(calls.length,2);assert.equal(browser.calls.ends,1);finish({state:'PUBLIC-late'});await tick();
 });
 
 test('stopping while the original observer factory is pending cannot resume its late owner',async t=>{
@@ -88,4 +98,21 @@ test('normal pipe stop during publication factory import cannot start a late SDK
   await refused;release({observe:async()=>{resumes++;return{};},close(){closes++;}});await tick();assert.equal(resumes,0);
  }finally{release({observe:async()=>{resumes++;},close(){closes++;}});client.close();server.close();await host.close();}
  assert.equal(closes,1);
+});
+
+
+test('native review APIs missing cannot dispatch a query even when WebCrypto is present',async()=>{
+ let calls=0;const widget=new loaded.exports.ArtifactPublicationWidget({call:async()=>{calls++;return{};}},{crypto:{randomUUID:()=>observationTwo}},(_key,text)=>text);
+ widget.fields.requestId.value=observationOne;widget.buttons.observe.click();await tick();assert.equal(calls,0);assert.equal(widget.buttons.cancel.disabled,true);assert.equal(widget.buttons.observe.disabled,false);widget.dispose();
+});
+for(const [label,result]of [['rejected',{approved:false,requestId:observationOne}],['mismatched',{approved:true,requestId:observationTwo}]])test('native review '+label+' never starts the observation and retires its review once',async()=>{
+ let calls=0;const browser=reviewedBrowser({approve:()=>result}),widget=new loaded.exports.ArtifactPublicationWidget({call:async()=>{calls++;return{};}},browser,(_key,text)=>text);
+ widget.fields.requestId.value=observationOne;widget.buttons.observe.click();await tick();assert.equal(calls,0);assert.deepEqual(browser.calls.approvals,[observationOne]);assert.equal(browser.calls.ends,1);assert.equal(widget.buttons.observe.disabled,false);widget.dispose();await tick();assert.equal(browser.calls.ends,1);
+});
+for(const action of ['stop','dispose'])test(action+' during pending native review rejects late approval without starting or cancelling an unstarted backend query',async()=>{
+ let finish,entered,calls=0;const started=new Promise(r=>entered=r),pending=new Promise(r=>finish=r),browser=reviewedBrowser({approve:()=>{entered();return pending;}});
+ const widget=new loaded.exports.ArtifactPublicationWidget({call:async()=>{calls++;return{};}},browser,(_key,text)=>text);
+ widget.fields.requestId.value=observationOne;widget.buttons.observe.click();await started;assert.equal(widget.buttons.cancel.disabled,false);
+ if(action==='stop')widget.buttons.cancel.click();else widget.dispose();await tick();assert.equal(browser.calls.ends,1);assert.equal(calls,0);
+ finish({approved:true,requestId:observationOne});await tick();assert.equal(calls,0);assert.equal(browser.calls.ends,1);assert.equal(widget.fields.requestId.value,observationOne);widget.dispose();await tick();assert.equal(browser.calls.ends,1);
 });
