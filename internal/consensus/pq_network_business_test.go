@@ -17,6 +17,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -198,6 +199,76 @@ type pqNetworkBusiness struct {
 	gatewayDone chan error
 	url         string
 	rows        []pqNetworkBusinessRow
+	hostInputMu sync.Mutex
+	hostInputs  map[string]pqBusinessHostInputIdentity
+}
+
+type pqBusinessHostInputIdentity struct {
+	info    os.FileInfo
+	changed string
+}
+
+// Reuse only this caller's completed, byte-identical immutable inputs. This is
+// file retention, never a cached validation, source grant or proof result. A
+// captured state at another height/root has other bytes and another path.
+func (b *pqNetworkBusiness) retainHostInput(name string, raw []byte) (string, error) {
+	var maximum int64
+	switch name {
+	case "migration":
+		maximum = 1 << 30
+	case "genesis":
+		maximum = 64 << 20
+	case "state":
+		maximum = 32 << 20 // unchanged original full-checkpoint capture bound
+	case "schedule":
+		maximum = 32 << 10
+	case "trusted":
+		maximum = MaxPQTrustedLightBlockBytes
+	default:
+		return "", errors.New("fixed original Host input kind required")
+	}
+	if len(raw) == 0 || int64(len(raw)) > maximum || !filepath.IsAbs(b.root) || filepath.Clean(b.root) != b.root {
+		return "", errors.New("bounded original Host input and canonical root required")
+	}
+	b.hostInputMu.Lock()
+	defer b.hostInputMu.Unlock()
+	root, err := os.Lstat(b.root)
+	resolved, resolveErr := filepath.EvalSymlinks(b.root)
+	if err != nil || resolveErr != nil || resolved != b.root || !root.IsDir() || root.Mode().Perm() != 0700 {
+		return "", errors.New("original private Host input root required")
+	}
+	pin := pqBusinessHash(raw)
+	leaf := "host-input-" + name + "-" + pin + ".json"
+	path := filepath.Join(b.root, leaf)
+	previous, reused := b.hostInputs[path]
+	if !reused {
+		// Existing or incomplete output is UNKNOWN, even if its bytes happen
+		// to match. Never adopt, unlink, truncate or overwrite that attempt.
+		if err := writeProofDeliveryExclusive(b.root, leaf, raw, pin); err != nil {
+			return "", fmt.Errorf("retain exclusive Host input: %w", err)
+		}
+	}
+	held, err := readProofHostOriginal(path, pin, maximum)
+	if err != nil {
+		return "", fmt.Errorf("read original Host input: %w", err)
+	}
+	defer held.file.Close()
+	if held.info.Mode().Perm() != 0600 || !bytes.Equal(held.raw, raw) ||
+		reused && (!samePQStateFile(previous.info, held.info) || previous.changed != held.changed) {
+		return "", errors.New("retained Host input bytes or original inode changed")
+	}
+	if err := held.unchanged(); err != nil {
+		return "", err
+	}
+	afterRoot, err := os.Lstat(b.root)
+	if err != nil || !os.SameFile(root, afterRoot) || afterRoot.Mode() != root.Mode() {
+		return "", errors.New("original Host input root changed")
+	}
+	if b.hostInputs == nil {
+		b.hostInputs = make(map[string]pqBusinessHostInputIdentity)
+	}
+	b.hostInputs[path] = pqBusinessHostInputIdentity{info: held.info, changed: held.changed}
+	return path, nil
 }
 
 func TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality(t *testing.T) {
@@ -837,8 +908,10 @@ func (b *pqNetworkBusiness) hostContext(n *pqNetworkE2E, label, kind string, wir
 	files := map[string][]byte{"migration": migration, "genesis": n.rawGenesis, "state": stateRaw, "schedule": schedule, "trusted": trustedRaw}
 	paths := map[string]string{}
 	for name, raw := range files {
-		paths[name] = filepath.Join(b.root, label+".host-"+name+".json")
-		pqBusinessWrite(n.t, paths[name], raw)
+		paths[name], err = b.retainHostInput(name, raw)
+		if err != nil {
+			n.t.Fatal(err)
+		}
 	}
 	light := map[string]string{
 		"version": "YNX-CONSENSUS-PROOF-TRUST/v1", "chainId": n.doc.ChainID,
@@ -855,6 +928,184 @@ func (b *pqNetworkBusiness) hostContext(n *pqNetworkE2E, label, kind string, wir
 	path := filepath.Join(b.root, label+".host-context.json")
 	pqBusinessWrite(n.t, path, raw)
 	return path, pqBusinessHash(raw), expected
+}
+
+func TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting(t *testing.T) {
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := &pqNetworkBusiness{root: root}
+	raw := bytes.Repeat([]byte("original retained input\n"), 1024)
+	for _, kind := range []string{"migration", "genesis", "state", "schedule", "trusted"} {
+		path, err := b.retainHostInput(kind, raw)
+		if err != nil {
+			t.Fatal(kind, err)
+		}
+		before, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		type result struct {
+			path string
+			err  error
+		}
+		results := make(chan result, 8)
+		for i := 0; i < cap(results); i++ {
+			go func() {
+				p, e := b.retainHostInput(kind, bytes.Clone(raw))
+				results <- result{p, e}
+			}()
+		}
+		for i := 0; i < cap(results); i++ {
+			r := <-results
+			if r.err != nil || r.path != path {
+				t.Fatal("concurrent complete original was not reused", r.err)
+			}
+		}
+		after, err := os.Stat(path)
+		if err != nil || !samePQStateFile(before, after) {
+			t.Fatal("byte-identical input was rewritten", err)
+		}
+		got, err := os.ReadFile(path)
+		if err != nil || !bytes.Equal(got, raw) {
+			t.Fatal("retained original differs", err)
+		}
+	}
+	leaves, err := os.ReadDir(root)
+	if err != nil || len(leaves) != 5 || len(b.hostInputs) != 5 {
+		t.Fatal("same bytes accumulated per-transaction input copies", len(leaves), err)
+	}
+}
+
+func TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation(t *testing.T) {
+	h := newEngineWiringHarness(t)
+	first := h.apply(t, nil)
+	actual, original, err := pqBusinessCaptureCheckpoint(context.Background(), h.app, h.raw.Load, first.LastBlockHeight)
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := &pqNetworkBusiness{root: root}
+	oldPath, err := b.retainHostInput("state", original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	later := h.apply(t, nil)
+	current, advanced, err := pqBusinessCaptureCheckpoint(context.Background(), h.app, h.raw.Load, later.LastBlockHeight)
+	if err != nil {
+		t.Fatal(err)
+	}
+	newPath, err := b.retainHostInput("state", advanced)
+	if err != nil || newPath == oldPath || current.LastBlockHeight == actual.LastBlockHeight {
+		t.Fatal("different actual checkpoint was reused", err)
+	}
+	if err := pqBusinessCheckpointState(h.app, actual, original, actual.LastBlockHeight, 1); err != nil {
+		t.Fatal("later Commit invalidated the retained historical original", err)
+	}
+	var mutated CommittedState
+	if err := decodeStrictJSON(original, &mutated); err != nil {
+		t.Fatal(err)
+	}
+	mutated.AppHash = pqBusinessHash([]byte("another root at the same height"))
+	wrongRoot, err := encodeCommittedStateJSON(mutated)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrongPath, err := b.retainHostInput("state", wrongRoot)
+	if err != nil || wrongPath == oldPath || wrongPath == newPath {
+		t.Fatal("same-height different-root bytes aliased the original", err)
+	}
+	// Retention is DATA only. A previously retained input cannot bypass this
+	// original full-state check before any Host context is assembled.
+	if err := pqBusinessCheckpointState(h.app, actual, wrongRoot, actual.LastBlockHeight, 1); err == nil {
+		t.Fatal("retention bypassed original complete checkpoint validation")
+	}
+	if got, err := os.ReadFile(oldPath); err != nil || !bytes.Equal(got, original) {
+		t.Fatal("new snapshot overwrote historical original", err)
+	}
+}
+
+func TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles(t *testing.T) {
+	for _, scenario := range []string{"unknown-complete", "unknown-partial", "changed-bytes", "same-bytes-replacement", "symlink", "hardlink", "permissions", "root-symlink", "kind", "empty", "bounds"} {
+		t.Run(scenario, func(t *testing.T) {
+			root, err := filepath.EvalSymlinks(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			b := &pqNetworkBusiness{root: root}
+			raw := []byte("complete original snapshot")
+			path := filepath.Join(root, "host-input-state-"+pqBusinessHash(raw)+".json")
+			kind := "state"
+			switch scenario {
+			case "unknown-complete", "unknown-partial":
+				payload := raw
+				if scenario == "unknown-partial" {
+					payload = raw[:3]
+				}
+				pqBusinessWrite(t, path, payload)
+			case "root-symlink":
+				link := filepath.Join(t.TempDir(), "original-root")
+				if err := os.Symlink(root, link); err != nil {
+					t.Fatal(err)
+				}
+				b.root = link
+			case "kind":
+				kind = "../state"
+			case "empty":
+				raw = nil
+			case "bounds":
+				kind, raw = "schedule", make([]byte, (32<<10)+1)
+			default:
+				if _, err := b.retainHostInput(kind, raw); err != nil {
+					t.Fatal(err)
+				}
+				switch scenario {
+				case "changed-bytes":
+					changed := bytes.Clone(raw)
+					changed[0] ^= 1
+					if err := os.WriteFile(path, changed, 0600); err != nil {
+						t.Fatal(err)
+					}
+				case "same-bytes-replacement", "symlink":
+					replacement := filepath.Join(root, "replacement.json")
+					pqBusinessWrite(t, replacement, raw)
+					if scenario == "same-bytes-replacement" {
+						if err := os.Rename(replacement, path); err != nil {
+							t.Fatal(err)
+						}
+					} else {
+						if err := os.Rename(path, filepath.Join(root, "retained-original.json")); err != nil {
+							t.Fatal(err)
+						}
+						if err := os.Symlink(replacement, path); err != nil {
+							t.Fatal(err)
+						}
+					}
+				case "hardlink":
+					if err := os.Link(path, filepath.Join(root, "alias.json")); err != nil {
+						t.Fatal(err)
+					}
+				case "permissions":
+					if err := os.Chmod(path, 0644); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			if _, err := b.retainHostInput(kind, raw); err == nil {
+				t.Fatal("changed/aliased/UNKNOWN Host original was accepted", scenario)
+			}
+			if scenario == "unknown-complete" || scenario == "unknown-partial" {
+				got, err := os.ReadFile(path)
+				if err != nil || scenario == "unknown-complete" && !bytes.Equal(got, raw) || scenario == "unknown-partial" && !bytes.Equal(got, raw[:3]) {
+					t.Fatal("UNKNOWN original was healed, overwritten or removed", err)
+				}
+			}
+		})
+	}
 }
 
 // Ordinary CI runs only these bounded DATA regressions. It does not create a

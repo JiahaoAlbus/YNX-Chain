@@ -94,6 +94,9 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	publicSummary := stringFlag("migration-public-summary", "json: emit bounded public metadata only after complete -verify-migration-state validation")
 	verifyExecution := stringFlag("verify-migration-execution", "read-only migration executor compatibility check; no validator binding, application restore, deployment, InitChain or PQ activation")
 	verifyPreservation := stringFlag("verify-migration-preservation", "read-only unbound Application import and complete original account/contract/history query check; no persistence, validator binding, InitChain or activation")
+	verifySchedulePreservation := stringFlag("verify-migration-schedule-preservation", "compare a complete original migration against an isolated PQ-scheduled export; no runtime start, validator binding or activation")
+	scheduledMigration := stringFlag("scheduled-migration-state", "complete after-schedule migration export for -verify-migration-schedule-preservation")
+	pqAdmissionHeight := stringFlag("pq-admission-height", "explicit coordinated future height bound by the PQ schedule preservation comparison")
 	verifyImportStorage := stringFlag("verify-migration-import-storage", "check an explicitly created or reopened uninitialized import checkpoint; no InitChain, consensus bootstrap or activation")
 	importStorageDirectory := stringFlag("import-storage-directory", "exclusive private directory for the uninitialized import checkpoint")
 	importStoragePhase := stringFlag("import-storage-phase", "create or reopen the uninitialized import checkpoint in separate invocations")
@@ -137,7 +140,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		return preparePQInitialGenesis(*initialGenesis, *initialGenesisHash, *migrationPath, *initialMigrationHash, *initialAccounts, *initialAccountsHash, *initialOutput, stdout)
 	}
 	mode := ""
-	for _, name := range []string{"verify-package", "verify-migration-state", "verify-migration-execution", "verify-migration-preservation", "verify-migration-import-storage"} {
+	for _, name := range []string{"verify-package", "verify-migration-state", "verify-migration-execution", "verify-migration-preservation", "verify-migration-import-storage", "verify-migration-schedule-preservation"} {
 		if supplied[name] {
 			if mode != "" {
 				return errors.New("verification modes are mutually exclusive")
@@ -154,7 +157,7 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		if supplied["operator-plan-hash"] && (mode != "verify-package" || strings.TrimSpace(*operatorPlanHash) == "") {
 			return errors.New("-operator-plan-hash is allowed only for pinned package generation or -verify-package with a nonempty independent pin")
 		}
-		modeInput := map[string]string{"verify-package": *verifyPackage, "verify-migration-state": *verifyMigration, "verify-migration-execution": *verifyExecution, "verify-migration-preservation": *verifyPreservation, "verify-migration-import-storage": *verifyImportStorage}
+		modeInput := map[string]string{"verify-package": *verifyPackage, "verify-migration-state": *verifyMigration, "verify-migration-execution": *verifyExecution, "verify-migration-preservation": *verifyPreservation, "verify-migration-import-storage": *verifyImportStorage, "verify-migration-schedule-preservation": *verifySchedulePreservation}
 		if strings.TrimSpace(modeInput[mode]) == "" {
 			return fmt.Errorf("-%s requires an existing input path", mode)
 		}
@@ -164,6 +167,20 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 	}
 	if supplied["migration-public-summary"] && (mode != "verify-migration-state" || *publicSummary != "json") {
 		return errors.New("-migration-public-summary json requires only -verify-migration-state")
+	}
+	if mode != "verify-migration-schedule-preservation" {
+		for _, name := range []string{"scheduled-migration-state", "pq-admission-height"} {
+			if supplied[name] {
+				return fmt.Errorf("-%s requires -verify-migration-schedule-preservation", name)
+			}
+		}
+	} else {
+		if !supplied["scheduled-migration-state"] || strings.TrimSpace(*scheduledMigration) == "" || !supplied["pq-admission-height"] {
+			return errors.New("PQ schedule preservation requires explicit -scheduled-migration-state and -pq-admission-height")
+		}
+		if _, err := parseMigrationScheduleHeight(*pqAdmissionHeight); err != nil {
+			return err
+		}
 	}
 	if mode != "verify-migration-import-storage" {
 		for _, name := range []string{"import-storage-directory", "import-storage-phase", "import-storage-sha256"} {
@@ -205,6 +222,8 @@ func runCommand(args []string, stdout, stderr io.Writer) error {
 		return err
 	case "verify-migration-preservation":
 		return verifyMigrationPreservation(*verifyPreservation, stdout)
+	case "verify-migration-schedule-preservation":
+		return verifyMigrationSchedulePreservation(*verifySchedulePreservation, *scheduledMigration, *pqAdmissionHeight, stdout)
 	case "verify-migration-import-storage":
 		return verifyMigrationImportStorage(*verifyImportStorage, *importStorageDirectory, *importStoragePhase, *importStorageSHA256, stdout)
 	case "verify-package":

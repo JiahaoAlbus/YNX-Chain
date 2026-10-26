@@ -83,7 +83,7 @@ REMOTE_E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
 BUSINESS_E2E_TEST = "TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality"
 BUSINESS_E2E_SOURCE = "internal/consensus/pq_network_business_test.go"
 # The owning test freezes this leaf together with the shared network source.
-BUSINESS_E2E_SOURCE_SHA256 = "0b4739b3ac7a3c8a21573074d74734da964c256e76d0f10fb5b42a8e7db63d73"
+BUSINESS_E2E_SOURCE_SHA256 = "c03d68d27afa7d4dddf6b1357e6147d605dbf78be6b1a8accc82dcba7d56af83"
 BUSINESS_CLIENT_COMMIT = "3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0"
 FRESH_BUSINESS_E2E_TEST = "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming"
 FRESH_BUSINESS_E2E_SOURCE = "internal/consensus/pq_network_fresh_business_test.go"
