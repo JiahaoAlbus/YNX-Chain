@@ -409,8 +409,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
-      "bytes": 12057,
-      "sha256": "c2484cbb941ad9d43423701c50226f05eecb6cab52e8fe568f7c8ea5225cc44e"
+      "bytes": 12401,
+      "sha256": "2fbbab48ea0e16be29acd62fee564b55f057f8a79f08e145540e5bd76cf7b277"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-auth-proof-data.h",
@@ -816,6 +816,46 @@
       "path": "apps/wallet-desktop/native/original-product-device-v4-slot-record.h",
       "bytes": 1582,
       "sha256": "926d06da38c9f43414ef600de0a9abc6d5a06640d7a2b46143555dfd8cf3a9fa"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-factory.h",
+      "bytes": 1410,
+      "sha256": "9b810febc59751279e2f968343d50281213e58544d284b61613bfe54353bfe69"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-factory.mm",
+      "bytes": 13702,
+      "sha256": "10210fcce2c361f656373c158de58a72747170d94d57d611b10fe9f228748dab"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-http-call.h",
+      "bytes": 3093,
+      "sha256": "31dd923e66980b31cfbad770b9edbf5072a733585e273d6dff322d6ca3becca4"
+    },
+    {
+      "path": "apps/wallet-desktop/native/product_session_http.h",
+      "bytes": 5009,
+      "sha256": "4123d8eb6f0814c24c5f94761e8dfaf607561c13e243e327635e4e3785beee25"
+    },
+    {
+      "path": "packages/wallet-auth/native/product-session-device-v4-once.h",
+      "bytes": 5234,
+      "sha256": "c6cfba08cd4fdc39afae6fdac7000321f90806c8b4bfe283f2efaacf5e1bfa03"
+    },
+    {
+      "path": "packages/wallet-auth/native/product-session-device-v4-once-binding.h",
+      "bytes": 2352,
+      "sha256": "74b36135f635d15a28279e52a3826b9ac515f392f4fef797c5ee74b385e1de8f"
+    },
+    {
+      "path": "apps/wallet-desktop/native/ProductSessionDeviceV4.h",
+      "bytes": 1907,
+      "sha256": "b149d3c9e66329a4bb425aaa8c325147d157670602f40f3868614ff9c4438115"
+    },
+    {
+      "path": "apps/wallet-desktop/native/product-device-v4-e5.c",
+      "bytes": 1709,
+      "sha256": "05055016ebd5bd06acf818f4f4d56487a803b62cee316b62feb4f5ef0be468a5"
     }
   ],
   "normalBuildTool": {
@@ -2294,9 +2334,9 @@
     "revokeVerified": false
   },
   "deviceSourceNativeStage": {
-    "sourceVariant": "SDK49-DEVICE-REGISTERED-SLOT-STAGE/v1",
+    "sourceVariant": "SDK49-DEVICE-FACTORY-CORE-STAGE/v1",
     "originalAuthHandoffSHA256": "1630e5800996995b2f1338b7a6071a5c2c6357a8ffd4fdbbe2030db014b0c8a9",
-    "nativeSourceInputs": 108,
+    "nativeSourceInputs": 116,
     "addedFixedSourceLeaves": 3,
     "namedSDKNodeHunksOnly": true,
     "featureMacro": "YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE",
@@ -2315,6 +2355,14 @@
     "revokeVerified": false,
     "privateSlotCode": true,
     "registeredSlotHandoffSHA256": "546bad5bb5f1a28baf70ec4b825877ed0c84af01a67ed633991dc9bb5df1ad65",
-    "realKeychainQueried": false
+    "realKeychainQueried": false,
+    "fixedFactoryCoreCode": true,
+    "proofOperationCoreCode": true,
+    "factoryCoreHandoffSHA256": "9756808f5b39258eced50bfeb621319ad50e9ea03f83e616b940c871d3a3d6fa",
+    "normalNativeProducer": false,
+    "asyncWorker": false,
+    "actualCrypto": false,
+    "newArchiveDownloaded": false,
+    "globalRevoke": false
   }
 }
