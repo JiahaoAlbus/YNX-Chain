@@ -180,6 +180,80 @@ export function readGuardedFreshPhasePair(raw,guard,expected){
  return readBoundFreshPhasePair(raw,guard,expected,null);
 }
 
+export const freshValidationPhases=Object.freeze(['anchor','validator_registry','engine_schedule','engine_snapshot','pq_state','migration_trace_lots','legacy_sponsor','legacy_resource_market','legacy_contracts','legacy_pay','legacy_ai','legacy_trust','ledger_records','pay','resource','resource_sponsor','trust','ide','pq_resources','pq_dex','pq_contracts','pq_native_actions','pq_ethereum','pq_ordered_resources','fee_events','governance','dex','asset_auth','account_abstraction','account_abstraction_policy','ownership_and_vault_supply','staking','supply','app_hash']);
+
+// Diagnostic observations can survive a failed window. This entry never calls
+// the successful-pair qualifier and never turns callbacks into qualified TPS.
+export function readFreshPhaseDiagnostics(stdout,guard,expected){
+ requireValue(Buffer.isBuffer(stdout)&&stdout.length>0&&stdout.length<=1<<20&&isUtf8(stdout),'bounded UTF-8 diagnostic stdout required');
+ requireValue(object(expected)&&hex(expected.stdoutSHA256,64)&&createHash('sha256').update(stdout).digest('hex')===expected.stdoutSHA256,'external original diagnostic stdout digest required');
+ requireValue(hex(expected.protocolCommit,40)&&guard?.sourceCommit===expected.protocolCommit&&Number.isSafeInteger(expected.sameProcessPID)&&expected.sameProcessPID>0&&guard.child?.pid===expected.sameProcessPID&&expected.clockDomain==='pq-fresh:'+expected.sameProcessPID,'diagnostic source/PID clock differs');
+ const leaves=['internal/consensus/pq_network_e2e_test.go','internal/consensus/pq_network_business_test.go','internal/consensus/pq_network_fresh_business_test.go'];
+ requireValue(object(expected.sourceLeaves)&&Object.keys(expected.sourceLeaves).length===3&&leaves.every(k=>hex(expected.sourceLeaves[k],64)&&guard.sourcePins?.[k]?.sha256===expected.sourceLeaves[k]),'diagnostic source leaves differ');
+ requireValue(hex(expected.consensusBinarySHA256,64)&&guard.binaryPin?.sha256===expected.consensusBinarySHA256&&JSON.stringify(expected.validationPhaseMapping)===JSON.stringify(freshValidationPhases),'diagnostic binary or source phase mapping differs');
+ requireValue(guard.cleanupComplete===true&&completedScans(guard.emptyOwnedScans,true)&&Number.isInteger(guard.child.code)&&(guard.firstCause===null||typeof guard.firstCause==='string'&&guard.firstCause.length>0),'terminal original diagnostic guard required');
+ const lines=stdout.toString('utf8').split(/\r?\n/),run='=== RUN   TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming';
+ requireValue(lines.filter(l=>/^=== RUN   /.test(l)).length===1&&lines.includes(run),'sole original diagnostic RUN required');
+ const start=lines.indexOf(run),terminal=lines.findIndex(l=>/PQ_NETWORK_FRESH_BUSINESS_SUMMARY|^--- (PASS|FAIL|SKIP):|^(PASS|FAIL)(\s|$)|^panic:|^fatal error:/.test(l)),commits=new Map(),validations=new Map(),transactions=[],identities=new Set(),abciIdentities=new Set();
+ const bounded=(v,n)=>numericDuration(v,n),key=(a,n,h)=>a+'/'+n+'/'+h;
+ const coordinate=(a,n,h)=>requireValue(['before','after'].includes(a)&&Number.isInteger(n)&&n>=0&&n<4&&typeof h==='string'&&/^[1-9][0-9]*$/.test(h),'diagnostic coordinate differs');
+ const selected=lines.map((line,index)=>({line,index})).filter(x=>/PQ_NETWORK_FRESH_COMMIT_OBSERVATION|PQ_VALIDATE|PQ_FRESH_TX/.test(x.line));
+ requireValue(selected.length>0&&selected.length<=800,'bounded original diagnostic records required');
+ for(const {line,index}of selected){
+  const m=/^(PQ_NETWORK_FRESH_COMMIT_OBSERVATION|PQ_VALIDATE|PQ_FRESH_TX) (\{.*\})$/.exec(line);
+  requireValue(m&&index>start&&(terminal===-1||index<terminal),'diagnostic source log shape or terminal order differs');
+  const [,tag,text]=m;requireValue(Buffer.byteLength(line)+1<=(tag==='PQ_NETWORK_FRESH_COMMIT_OBSERVATION'?1024:512),'diagnostic line exceeds original bound');
+  const x=json(Buffer.from(text),'diagnostic record');
+  if(tag==='PQ_NETWORK_FRESH_COMMIT_OBSERVATION'){
+   coordinate(x.arm,x.nodeIndex,x.height);const k=key(x.arm,x.nodeIndex,x.height);
+   requireValue(commits.size<384&&!commits.has(k)&&x.classification==='local-persistence-observation'&&x.pid===expected.sameProcessPID&&x.clockDomain===expected.clockDomain,'duplicate or foreign diagnostic Commit');
+   const f=bounded(x.finalizeStartNs,'Finalize start'),fe=bounded(x.finalizeEndNs,'Finalize end'),c=bounded(x.commitStartNs,'Commit start'),ce=bounded(x.commitEndNs,'Commit end');
+   requireValue(f<=fe&&fe<=c&&c<=ce&&bounded(x.commitCallNs,'Commit duration')===ce-c&&typeof x.finalizeOK==='boolean'&&typeof x.commitOK==='boolean'&&typeof x.timingAvailable==='boolean','diagnostic Commit arithmetic differs');
+   if(x.timingAvailable){
+    const t=x.commitTiming;requireValue(object(t)&&Number.isSafeInteger(t.height)&&String(t.height)===x.height&&typeof t.durable==='boolean'&&object(t.stagesNs),'diagnostic persistence sample differs');
+    requireValue(['atomic-json','snapshot-journal-v1','block-journal-v2'].includes(t.storage),'unknown diagnostic storage');
+    let sum=0n;for(const [name,value]of Object.entries(t.stagesNs)){requireValue(['validate','json_encode','delta_encode','journal_maintenance','prepare_file','write','file_sync','close_file','rename','directory_sync','version_checkpoint'].includes(name),'unknown diagnostic stage');sum+=bounded(value,'diagnostic stage');}
+    requireValue(sum<=bounded(t.elapsedNs,'persistence elapsed')&&BigInt(t.elapsedNs)<=ce-c,'diagnostic persistence stages overlap');
+   }
+   commits.set(k,x);
+  }else if(tag==='PQ_VALIDATE'){
+   coordinate(x.a,x.n,x.h);const k=key(x.a,x.n,x.h);
+   requireValue(validations.size<384&&!validations.has(k)&&Object.keys(x).length===7&&Number.isInteger(x.f)&&x.f>=-1&&x.f<34&&Array.isArray(x.p)&&x.p.length===34,'duplicate or invalid diagnostic validation');
+   x.p.forEach(n=>bounded(n,'validation phase'));const count=x.f===-1?34:x.f+1;
+   requireValue(x.p.slice(count).every(n=>n===0),'unexecuted validation suffix must be zero');
+   requireValue(bounded(x.d,'hash document')+bounded(x.x,'hash encode')<=BigInt(x.p[33]),'hash child exceeds parent phase');
+   validations.set(k,x);
+  }else{
+   coordinate(x.arm,0,x.height);
+   requireValue(transactions.length<32&&x.kind==='validated-readback'&&hex(x.nativeHash,64)&&hex(x.abciHash,64)&&x.nativeHash!==x.abciHash&&!identities.has(x.nativeHash)&&!abciIdentities.has(x.abciHash)&&Number.isSafeInteger(x.index)&&x.index>=0&&x.index<=0xffffffff&&x.clockDomain===expected.clockDomain,'duplicate or foreign diagnostic transaction');
+   const offer=bounded(x.offerOffsetNs,'offer'),end=bounded(x.independentCompletionNs,'callback');
+   requireValue(end>=offer&&bounded(x.offerToIndependentNs,'offer to callback')===end-offer&&x.firstRPCClock==='client-duration','diagnostic callback arithmetic/clock differs');
+   if(x.firstRPCNs!==null)ns(x.firstRPCNs,'child first RPC duration');
+   identities.add(x.nativeHash);abciIdentities.add(x.abciHash);transactions.push(x);
+  }
+ }
+ for(const [k,x]of validations){
+  const c=commits.get(k);requireValue(c,'validation has no matching physical Commit');
+  const sum=x.p.reduce((s,n)=>s+BigInt(n),0n),outer=c.commitTiming?.stagesNs?.validate;
+  requireValue(outer===undefined?x.f!==-1:sum<=BigInt(outer),'validation partition exceeds enclosing stage');
+  requireValue(x.f===-1||c.commitOK===false,'failed validation reported successful Commit');
+ }
+ const observed=transactions.map(x=>{
+  const rows=[0,1,2,3].map(n=>commits.get(key(x.arm,n,x.height))),successful=rows.filter(r=>r?.finalizeOK&&r.commitOK&&r.timingAvailable&&r.commitTiming.durable),offer=BigInt(x.offerOffsetNs);
+  const delta=(values,all=false)=>values.length===0||all&&values.length!==4?null:String(values.reduce((a,b)=>all?(a>b?a:b):(a<b?a:b))-offer);
+  requireValue(successful.every(r=>BigInt(r.finalizeStartNs)>=offer&&BigInt(r.commitEndNs)<=maxNs),'transaction observation precedes original offer');
+  const first=delta(successful.map(r=>BigInt(r.commitEndNs)));
+  requireValue(first===null||BigInt(first)<=BigInt(x.offerToIndependentNs),'callback precedes every captured durable observation');
+  return {...x,observedDurableNodes:successful.length,firstNodeFinalizeNs:delta(successful.map(r=>BigInt(r.finalizeEndNs))),firstNodeDurableNs:first,allNodesDurableNs:delta(successful.map(r=>BigInt(r.commitEndNs)),true)};
+ });
+ const arms=['before','after'].map(arm=>{
+  const values=[...validations.values()].filter(x=>x.a===arm),total=values.reduce((sum,x)=>sum+x.p.reduce((s,n)=>s+BigInt(n),0n),0n),tx=observed.filter(x=>x.arm===arm);
+  const rows=[...commits.values()].filter(x=>x.arm===arm),sampled=rows.filter(x=>x.timingAvailable),stages=[...new Set(sampled.flatMap(x=>Object.keys(x.commitTiming.stagesNs)))].sort();
+  return {arm,physicalCommitObservations:rows.length,successfulDurableCommitObservations:rows.filter(x=>x.finalizeOK&&x.commitOK&&x.timingAvailable&&x.commitTiming.durable).length,validatedCallbackObservations:tx.length,outerCommitNs:freshTimingQuantiles(rows.map(x=>x.commitCallNs)),persistenceStagesNs:Object.fromEntries(stages.map(k=>[k,freshTimingQuantiles(sampled.filter(x=>Object.hasOwn(x.commitTiming.stagesNs,k)).map(x=>x.commitTiming.stagesNs[k]))])),hashChildNs:{document:freshTimingQuantiles(values.filter(x=>x.f===-1||x.f===33).map(x=>x.d)),encodeDigest:freshTimingQuantiles(values.filter(x=>x.f===-1||x.f===33).map(x=>x.x))},phases:freshValidationPhases.map((name,i)=>{const samples=values.filter(x=>x.f===-1||i<=x.f).map(x=>x.p[i]),sum=samples.reduce((s,n)=>s+BigInt(n),0n);return {name,durationNs:freshTimingQuantiles(samples),summedTimerShare:{numeratorNs:String(sum),denominatorNs:String(total)}};}),latencyNs:Object.fromEntries(['firstNodeFinalizeNs','firstNodeDurableNs','allNodesDurableNs','offerToIndependentNs'].map(k=>[k,{...freshTimingQuantiles(tx.filter(x=>x[k]!==null).map(x=>x[k])),missingSamples:tx.filter(x=>x[k]===null).length}]))};
+ });
+ return {classification:'original-log-diagnostic-observations',executionAuthorized:false,sustainedTPSQualified:false,fullPairQualified:false,independentProofReverifiedHere:false,firstCause:guard.firstCause,childCode:guard.child.code,sourceCommit:expected.protocolCommit,clockDomain:expected.clockDomain,stdoutSHA256:expected.stdoutSHA256,arms,transactions:observed,interpretation:'Observed callbacks from the pinned original callee, not independent verification by this reader. Missing nodes remain null; failed phase suffix is unexecuted. Hash child intervals are not added twice. Summed node timers are not wall time/CPU. Execution/durability and queued verification completion are distinct; earliest block arrival/BFT formation and sustained TPS are unmeasured.'};
+}
+
 function originalProgressStages(lines,runIndex,summaryIndex){
  const selected=lines.map((line,index)=>({line,index})).filter(r=>r.line.includes('PQ_NETWORK_FRESH_PROGRESS'));
  if(selected.length===0)return null;
@@ -306,10 +380,10 @@ export function readFreshPhaseFile(file){
 }
 export function runFreshPhaseReadback(args){
  requireValue(Array.isArray(args)&&args.length===8,'exact result/guard/expected/output flags required');
- const options={};for(let i=0;i<args.length;i+=2){const key=args[i];requireValue(['--result','--stdout','--guard','--expected','--output'].includes(key)&&!Object.hasOwn(options,key),'duplicate or unknown readback flag');options[key]=args[i+1];}
- requireValue(Object.hasOwn(options,'--result')!==Object.hasOwn(options,'--stdout')&&['--guard','--expected','--output'].every(k=>Object.hasOwn(options,k)),'one original result or stdout and all readback flags required');
- const raw=readFreshPhaseFile(options['--result']??options['--stdout']),guard=json(readFreshPhaseFile(options['--guard']),'guard'),expected=json(readFreshPhaseFile(options['--expected']),'expected');
- const summary=(options['--stdout']?readGuardedFreshPhaseLog:readGuardedFreshPhasePair)(raw,guard,expected),out=options['--output'],parent=path.dirname(out);
+ const options={};for(let i=0;i<args.length;i+=2){const key=args[i];requireValue(['--result','--stdout','--diagnostic-stdout','--guard','--expected','--output'].includes(key)&&!Object.hasOwn(options,key),'duplicate or unknown readback flag');options[key]=args[i+1];}
+ requireValue(['--result','--stdout','--diagnostic-stdout'].filter(k=>Object.hasOwn(options,k)).length===1&&['--guard','--expected','--output'].every(k=>Object.hasOwn(options,k)),'one original result or stdout and all readback flags required');
+ const raw=readFreshPhaseFile(options['--result']??options['--stdout']??options['--diagnostic-stdout']),guard=json(readFreshPhaseFile(options['--guard']),'guard'),expected=json(readFreshPhaseFile(options['--expected']),'expected');
+ const summary=(options['--diagnostic-stdout']?readFreshPhaseDiagnostics:options['--stdout']?readGuardedFreshPhaseLog:readGuardedFreshPhasePair)(raw,guard,expected),out=options['--output'],parent=path.dirname(out);
  requireValue(path.isAbsolute(out)&&path.normalize(out)===out&&fs.realpathSync(parent)===parent,'canonical existing output parent required');
  const fd=fs.openSync(out,'wx',0o600);try{fs.writeFileSync(fd,JSON.stringify(summary)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
  const directory=fs.openSync(parent,'r');try{fs.fsyncSync(directory);}finally{fs.closeSync(directory);}

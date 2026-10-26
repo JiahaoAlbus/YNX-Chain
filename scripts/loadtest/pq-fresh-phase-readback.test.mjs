@@ -6,9 +6,73 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {freshPhaseSchema,readGuardedFreshPhasePair,readGuardedFreshPhaseLog,freshTimingQuantiles} from './pq-fresh-phase-readback.mjs';
+import {freshPhaseSchema,readGuardedFreshPhasePair,readGuardedFreshPhaseLog,freshTimingQuantiles,readFreshPhaseDiagnostics,freshValidationPhases} from './pq-fresh-phase-readback.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const h=n=>'0x'+n.toString(16).padStart(64,'0');
+
+function diagnosticFixture(){
+ const sourceLeaves=Object.fromEntries(['pq_network_e2e_test.go','pq_network_business_test.go','pq_network_fresh_business_test.go'].map((k,i)=>['internal/consensus/'+k,String(i+1).repeat(64)]));
+ const expected={protocolCommit:'a'.repeat(40),sameProcessPID:123,clockDomain:'pq-fresh:123',sourceLeaves,consensusBinarySHA256:'b'.repeat(64),validationPhaseMapping:[...freshValidationPhases]};
+ const guard={sourceCommit:expected.protocolCommit,child:{pid:123,code:-15},sourcePins:Object.fromEntries(Object.entries(sourceLeaves).map(([k,v])=>[k,{sha256:v}])),binaryPin:{sha256:expected.consensusBinarySHA256},firstCause:'105s active deadline',cleanupComplete:true,emptyOwnedScans:[{elapsedMs:105001,hostIdentities:3},{elapsedMs:105201,hostIdentities:3}]};
+ const records=[];
+ for(let n=0;n<4;n++){
+  records.push(['PQ_NETWORK_FRESH_COMMIT_OBSERVATION',{classification:'local-persistence-observation',arm:'before',nodeIndex:n,pid:123,clockDomain:expected.clockDomain,height:'1',finalizeStartNs:100,finalizeEndNs:110,finalizeOK:true,commitStartNs:110,commitEndNs:170,commitCallNs:60,commitOK:true,timingAvailable:true,commitTiming:{height:1,storage:'atomic-json',durable:true,elapsedNs:50,stagesNs:{validate:40,json_encode:1,write:1,file_sync:1,directory_sync:1}}}]);
+  records.push(['PQ_VALIDATE',{a:'before',n,h:'1',f:-1,p:Array(34).fill(1),d:0,x:1}]);
+ }
+ records.push(['PQ_FRESH_TX',{kind:'validated-readback',arm:'before',nativeHash:'c'.repeat(64),abciHash:'d'.repeat(64),height:'1',index:0,offerOffsetNs:90,independentCompletionNs:200,offerToIndependentNs:110,firstRPCNs:'2',firstRPCClock:'client-duration',clockDomain:expected.clockDomain}]);
+ return {expected,guard,records};
+}
+function diagnosticRead(f){
+ const stdout=diagnosticStdout(f);
+ return readFreshPhaseDiagnostics(stdout,f.guard,{...f.expected,stdoutSHA256:hash(stdout)});
+}
+function diagnosticStdout(f){return Buffer.from('=== RUN   TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming\n'+f.records.map(([tag,x])=>tag+' '+JSON.stringify(x)).join('\n')+'\n');}
+test('failed original window diagnostics retain observed phases/transactions without qualifying the pair',()=>{
+ const r=diagnosticRead(diagnosticFixture());
+ assert.equal(r.fullPairQualified,false);assert.equal(r.sustainedTPSQualified,false);assert.equal(r.independentProofReverifiedHere,false);
+ assert.equal(r.firstCause,'105s active deadline');assert.equal(r.arms[0].physicalCommitObservations,4);assert.equal(r.arms[0].validatedCallbackObservations,1);
+ assert.equal(r.transactions[0].firstNodeFinalizeNs,'20');assert.equal(r.transactions[0].allNodesDurableNs,'80');
+ assert.equal(r.arms[0].outerCommitNs.p50Ns,'60');assert.equal(r.arms[0].persistenceStagesNs.json_encode.samples,4);assert.equal(r.arms[0].hashChildNs.encodeDigest.p50Ns,'1');
+ assert.equal(r.arms[0].phases[33].durationNs.samples,4);assert.deepEqual(r.arms[0].phases[33].summedTimerShare,{numeratorNs:'4',denominatorNs:'136'});
+ assert.equal(r.arms[1].latencyNs.allNodesDurableNs.p50Ns,null);
+});
+test('diagnostic missing replica and failed validation suffix remain unmeasured',()=>{
+ const f=diagnosticFixture();f.records=f.records.filter(([tag,x])=>tag==='PQ_FRESH_TX'||(x.nodeIndex??x.n)!==3);
+ const validation=f.records.find(([tag])=>tag==='PQ_VALIDATE')[1],commit=f.records[0][1];
+ validation.f=4;validation.p=validation.p.map((_,i)=>i<=4?1:0);validation.x=0;commit.commitOK=false;commit.commitTiming.durable=false;delete commit.commitTiming.stagesNs.validate;
+ const r=diagnosticRead(f);assert.equal(r.transactions[0].observedDurableNodes,2);assert.equal(r.transactions[0].allNodesDurableNs,null);
+ assert.equal(r.arms[0].latencyNs.allNodesDurableNs.samples,0);assert.equal(r.arms[0].latencyNs.allNodesDurableNs.missingSamples,1);
+ assert.equal(r.arms[0].phases[4].durationNs.samples,3);assert.equal(r.arms[0].phases[5].durationNs.samples,2);
+});
+test('diagnostic source, partitions, clocks, duplicate physical samples and callbacks fail closed',()=>{
+ for(const mutate of [
+  f=>f.guard.child.pid++,f=>f.guard.cleanupComplete=false,f=>f.guard.emptyOwnedScans=[],
+  f=>f.expected.sourceLeaves['internal/consensus/pq_network_fresh_business_test.go']='9'.repeat(64),
+  f=>f.expected.validationPhaseMapping.reverse(),f=>f.guard.binaryPin.sha256='9'.repeat(64),
+  f=>f.records.push(structuredClone(f.records[0])),f=>f.records.push(structuredClone(f.records[1])),f=>f.records.push(structuredClone(f.records.at(-1))),
+  f=>f.records[1][1].p[0]=41,f=>f.records[1][1].x=2,
+  f=>{f.records[1][1].f=2;},f=>{f.records[1][1].f=33;},
+  f=>f.records.at(-1)[1].offerToIndependentNs++,f=>f.records.at(-1)[1].clockDomain='client-duration',
+  f=>f.records.at(-1)[1].firstRPCNs=2,f=>f.records.at(-1)[1].offerOffsetNs=101,
+  f=>f.records[0][1].commitTiming.stagesNs.not_source_phase=1,
+ ]){const f=diagnosticFixture();mutate(f);assert.throws(()=>diagnosticRead(f));}
+ const f=diagnosticFixture();assert.throws(()=>readFreshPhaseDiagnostics(Buffer.from('changed'),f.guard,{...f.expected,stdoutSHA256:'1'.repeat(64)}),/digest/);
+ const afterTerminal=Buffer.from(diagnosticStdout(f).toString().replace('\n','\nPASS\n'));
+ assert.throws(()=>readFreshPhaseDiagnostics(afterTerminal,f.guard,{...f.expected,stdoutSHA256:hash(afterTerminal)}),/terminal order/);
+});
+test('explicit diagnostic CLI reads the unchanged failed guard; successful-pair entry still refuses it',()=>{
+ const parent=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'pq-diagnostic-cli-')));
+ try{
+  const f=diagnosticFixture(),stdout=diagnosticStdout(f),expected={...f.expected,stdoutSHA256:hash(stdout)},guard=Buffer.from(JSON.stringify(f.guard));
+  for(const [name,bytes]of Object.entries({stdout,guard,expected:Buffer.from(JSON.stringify(expected))}))fs.writeFileSync(path.join(parent,name),bytes,{mode:0o600,flag:'wx'});
+  const script=fileURLToPath(new URL('./pq-fresh-phase-readback.mjs',import.meta.url)),out=path.join(parent,'diagnostic.json');
+  const args=[script,'--diagnostic-stdout',path.join(parent,'stdout'),'--guard',path.join(parent,'guard'),'--expected',path.join(parent,'expected'),'--output',out];
+  let r=spawnSync(process.execPath,args,{encoding:'utf8',timeout:5000});assert.equal(r.status,0,r.stderr);assert.equal(JSON.parse(fs.readFileSync(out)).fullPairQualified,false);assert.equal(fs.statSync(out).mode&0o777,0o600);
+  r=spawnSync(process.execPath,args,{encoding:'utf8',timeout:5000});assert.notEqual(r.status,0);assert.match(r.stderr,/EEXIST/);
+  assert.deepEqual(fs.readFileSync(path.join(parent,'guard')),guard);assert.deepEqual(fs.readFileSync(path.join(parent,'stdout')),stdout);
+  assert.throws(()=>readGuardedFreshPhaseLog(stdout,{...f.guard,stdoutSHA256:hash(stdout)},expected),/sole RUN\/PASS/);
+ }finally{fs.rmSync(parent,{recursive:true,force:true});}
+});
 
 // Arithmetic/identity fixtures ONLY. No nodes, signatures, approvals, keys or
 // cryptographic proof success are created by these unit objects.

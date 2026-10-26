@@ -269,3 +269,52 @@ nested timings and absence, malformed arithmetic, completion without begin,
 duplicate identities, unfinished stages and out-of-bound offsets. Raw evidence
 is `pq-fresh-c57-progress-{red,pass}.raw` under the existing WD performance root;
 full focused PASS duration is 409.5085 ms. No node, new benchmark or RPC starts.
+
+## Original validation and transaction diagnostics
+
+Use the existing reader with `--diagnostic-stdout` instead of `--stdout` to retain
+observations from an interrupted window. The same protected inputs, new-only
+0600 output and file/directory sync apply. This entry always sets
+`fullPairQualified:false`, `sustainedTPSQualified:false`, and
+`independentProofReverifiedHere:false`. It cannot substitute for the successful
+pair entry, which continues to reject failed guards and non-PASS stdout.
+
+The external expected JSON must bind `stdoutSHA256`, `protocolCommit`,
+`sameProcessPID`, `clockDomain`, the exact three `sourceLeaves`,
+`consensusBinarySHA256`, and `validationPhaseMapping` in the pinned source order.
+The original terminal guard must match source/PID, leaves and consensus ELF,
+retain its actual firstCause/child code, and report completed cleanup with the
+original empty scans. Do not add a made-up stdout hash or success state to it.
+Other ELF/manifest/intake pins remain separate provenance obligations.
+
+The original 2cf producer emits unprefixed `PQ_NETWORK_FRESH_COMMIT_OBSERVATION`,
+`PQ_VALIDATE`, and `PQ_FRESH_TX` lines directly. The reader accepts only that
+source format after the sole original RUN and before a summary or terminal
+marker. Prefix plus JSON plus newline must fit 1024/512/512 bytes, with at most
+384/384/32 respective records. Each physical Commit and validation is unique by
+arm/node/height. Each callback retains distinct native/ABCI hashes and the
+parent-process clock. Failed validation prefixes exclude unexecuted suffix slots
+from samples. Hash document and encode/digest intervals are children of app_hash,
+never additional partition work. Validation sum must fit the observed outer
+validate timer when present; missing outer validate is permitted only for a
+failed validation with failed Commit.
+
+Output separates outer Commit, persistence stages including JSON/file sync,
+34 validation phases, and hash children. Stage shares are exact sums of node
+timers, not wall time or CPU percentages. Callback joins retain first observed
+Finalize completion, first durable Commit and all-four durable completion.
+Missing node observations produce null all-node latency and a missing-sample
+count. Child first-RPC durations are retained in their own clock, not subtracted
+from parent offsets. Callback observations do not reverify proofs here and are
+not completed-pair/business-throughput credit. Earliest proposal arrival and BFT
+formation remain unmeasured.
+
+Actual original run40283157360 was consumed without another artifact GET, node
+run or guard rewrite. All 157 comparisons to its retained original analysis and
+seven original file pins passed. The readback retains before92/after68 Commit
+observations and before16/after0 validated callback observations; failure remains
+`105s active deadline`. The diagnostic/source/CLI negative cases are included
+in the existing test file invoked by `chain-core.yml`; 24 focused local tests
+passed. Tracked evidence:
+`evidence/pq-fresh-2cf-diagnostic-consumer-readback.json`. These are reader/source
+checks and actual prior-log readback, not a new throughput improvement claim.

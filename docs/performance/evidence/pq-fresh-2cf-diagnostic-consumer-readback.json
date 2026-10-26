@@ -1,0 +1,68 @@
+{
+  "kind": "actual-original-log-diagnostic-consumer-check",
+  "businessRerun": false,
+  "artifactGET": false,
+  "checks": 157,
+  "allChecksPassed": true,
+  "fullPairQualified": false,
+  "sustainedTPSQualified": false,
+  "inputPins": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/result/ynx-pq-fresh-intake-40283157360-1/relocation.json",
+      "bytes": 2457,
+      "sha256": "c29670dd800ff257853923649e27e0eb29db3450a48fb34da6bd3f9957fb8d65"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/result/ynx-pq-network-40283157360-1/go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/result/ynx-pq-network-40283157360-1/go.stdout.log",
+      "bytes": 211193,
+      "sha256": "5d0a9ac03ac7842eded433a607816910dea98082dfed72fe16e604bd150ec2fa"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/result/ynx-pq-network-40283157360-1/prepared.json",
+      "bytes": 2043,
+      "sha256": "09ff5b93c808b3c198593255a19bce51710fd926b2d0ee73f2ee62e285857179"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/result/ynx-pq-network-40283157360-1.build/business-manifest.json",
+      "bytes": 1719,
+      "sha256": "8fd393aac19499826979a6a4244c91e9882ef5a5d5753503f64a9e059010c6d4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/result/ynx-pq-network-40283157360-1.file-sizes.json",
+      "bytes": 3667,
+      "sha256": "6a1b45b12fc8ad9d5934108c3cd1e810dae5e570791292fe630e6a28a37844ca"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/result/ynx-pq-network-40283157360-1.receipt.json",
+      "bytes": 484575,
+      "sha256": "cf3c88384305f25ef4cf4d3a9ea0e3d5786945d0929e532ae66582162bb9db78"
+    }
+  ],
+  "expectedPin": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/DIAGNOSTIC_CONSUMER_EXPECTED.json",
+    "bytes": 1422,
+    "sha256": "9c9f207543261aff84b3787b73bad9d3be6ceb961666b0863b816abcbf6ba16d"
+  },
+  "outputPin": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/DIAGNOSTIC_CONSUMER_READBACK_V2.json",
+    "bytes": 24361,
+    "sha256": "6bbbaefd874b7f74ad1a93719b138dad5fd62ccd8e6871397859b502d13b5ad6"
+  },
+  "priorOriginalAnalysisPin": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-2cf-whole-once/ORIGINAL_DIAGNOSTIC_REPORT.json",
+    "bytes": 334230,
+    "sha256": "5f1d6bac821d863f9ae8acfbdeaba7f5186cb9217e67b7b41d40ed545c97876b"
+  },
+  "unitTests": {
+    "command": "node --test scripts/loadtest/pq-fresh-phase-readback.test.mjs",
+    "pass": 24,
+    "fail": 0,
+    "skip": 0
+  },
+  "CI": "Existing chain-core.yml load-test client checks already invoke this test file; new normal push run not yet observed."
+}
