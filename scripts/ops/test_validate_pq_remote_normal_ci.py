@@ -550,6 +550,9 @@ def assert_native_cabi_workflow_contract(raw):
                  "scripts/verify/publisher-registration-cabi-check.sh",
                  "scripts/fixtures/verify-product-session-http-cabi/**",
                  "scripts/verify/product-session-http-cabi-check.sh",
+                 "scripts/fixtures/verify-registered-n1-cabi/**",
+                 "scripts/verify/registered-n1-verify-cabi-check.sh",
+                 "scripts/ops/test_registered_n1_verify_cabi_supply.py",
                  "scripts/fixtures/verify-project-control-cabi/**",
                  "scripts/verify/project-control-cabi-check.sh",
                  "scripts/verify/seal-project-control-cabi.py"):
@@ -577,9 +580,12 @@ def assert_native_cabi_workflow_contract(raw):
                        "Seal the same executed archive with dedicated publisher public evidence",
                        "Upload only public publisher archive headers and real native evidence")
     device_http_name = "Execute fixed device HTTP proof ABI from the same native archive"
+    registered_names = ("Verify registered N1 public supply controls",
+                        "Execute registered N1 verifier from the same sealed native archive",
+                        "Upload only public registered N1 verifier and actual native evidence")
     ordered_names = (names[:1] + data_names + names[1:4] + wallet_names + publisher_names[:1]
                      + (device_http_name,)
-                     + names[4:9] + publisher_names[1:] + names[9:])
+                     + names[4:9] + registered_names + publisher_names[1:] + names[9:])
     need(len(steps) == len(ordered_names))
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, ordered_names)))
     named = {name: step for name, step in zip(ordered_names, steps)}
@@ -614,6 +620,21 @@ def assert_native_cabi_workflow_contract(raw):
         '          bash scripts/verify/product-session-http-cabi-check.sh \\',
         '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
         '            "$RUNNER_TEMP/ynx-product-session-http-cabi"'])
+    # This DATA-only verifier consumes the already sealed, executed archive.
+    # Its original supply controls enforce the closed public delivery catalog;
+    # no new archive build, skipped call or unconditional upload can qualify it.
+    need(lines(named[registered_names[0]]) == ["      - name: " + registered_names[0],
+        "        run: python3 -B scripts/ops/test_registered_n1_verify_cabi_supply.py"])
+    need(lines(named[registered_names[1]]) == ["      - name: " + registered_names[1],
+        "        run: |", "          set -euo pipefail",
+        '          bash scripts/verify/registered-n1-verify-cabi-check.sh \\',
+        '            "$RUNNER_TEMP/ynx-artifact-release-cabi/delivery/native-host" \\',
+        '            "$RUNNER_TEMP/ynx-registered-n1-verify-cabi"'])
+    need(lines(named[registered_names[2]]) == ["      - name: " + registered_names[2],
+        "        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", "        with:",
+        "          name: ynx-registered-n1-verify-cabi-native-${{ matrix.runner }}-${{ github.sha }}",
+        "          path: ${{ runner.temp }}/ynx-registered-n1-verify-cabi/delivery/*",
+        "          if-no-files-found: error", "          retention-days: 7"])
     steps = [named[name] for name in names]
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, names)))
     need([line for line in lines(steps[0]) if not line.lstrip().startswith("#")] == ["      - name: " + names[0],
@@ -623,9 +644,26 @@ def assert_native_cabi_workflow_contract(raw):
     need(lines(steps[1]) == ["      - name: " + names[1],
         "        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e", "        with:",
         "          go-version-file: go.mod", "          check-latest: false", "          cache: true"])
-    need(lines(steps[2]) == ["      - name: " + names[2], "        run: |", "          set -euo pipefail",
-        '          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"', "          git diff --exit-code",
-        "          go test -p 1 ./cmd/ynx-artifact-release-cabi -count=1"])
+    need(lines(steps[2]) == lines(r"""      - name: Verify fixed Native key and output cleanup behavior
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --exit-code
+          if ! go test -json -p 1 ./cmd/ynx-artifact-release-cabi -count=1 > "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          rows = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-native-cabi-core-tests.jsonl').read_text().splitlines()]
+          required = ['TestRegisteredN1VerifyActualANDAndExpectedBinding', 'TestRegisteredN1VerifyN1AndStrictWire', 'TestRegisteredN1VerifyCurrentPolicyAndBounds', 'TestRegisteredN1VerifyEmptyMessageAndNullBridge']
+          for name in required:
+              terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('registered N1 core did not execute and pass: ' + name)
+          print('YNX_REGISTERED_N1_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=required, suitePassed=True, accountAuthorized=False), sort_keys=True))
+          PY"""))
     need(lines(steps[3]) == ["      - name: " + names[3], "        run: |", "          set -euo pipefail",
         '          bash scripts/verify/artifact-release-cabi-check.sh "$RUNNER_TEMP/ynx-artifact-release-cabi"'])
     arm_lines = [line for line in lines(steps[4]) if not line.lstrip().startswith("#")]
@@ -1978,7 +2016,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change("      CGO_ENABLED: '1'", "      CGO_ENABLED: '0'"),
             change("      MACOSX_DEPLOYMENT_TARGET: '13.0'", "      MACOSX_DEPLOYMENT_TARGET: '15.0'"),
             change("          git diff --exit-code", "          git diff --exit-code || true"),
-            change("go test -p 1 ./cmd/ynx-artifact-release-cabi -count=1", "true # skipped native core tests"),
+            change("go test -json -p 1 ./cmd/ynx-artifact-release-cabi -count=1", "true # skipped native core tests"),
             change(darwin, darwin.replace("if: runner.os == 'macOS'", "if: false", 1)),
             change("go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package", "true # skipped actual Darwin migration caller"),
             change(runtime, ""), change(contracts, ""), change(darwin, ""),
@@ -2016,7 +2054,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
                    'lipo -verify_arch arm64 "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"'),
             change(arm, arm.replace("if: runner.os == 'macOS'", "if: false", 1)),
             change(seal, seal.replace("        run: |\n", "        if: always()\n        run: |\n", 1)),
-            change("python3 -B - <<'PY'", "python3 -B - <<'PY' || true"),
+            change(seal, seal.replace("python3 -B - <<'PY'", "python3 -B - <<'PY' || true", 1)),
             change("if module.get('Version') != 'v1.6.5' or module.get('Replace'):", "if False:"),
             change("targets.append(('darwin-arm64', case / 'libynx_artifact_release.a', 'darwin', 'arm64', True))",
                    "targets.append(('darwin-arm64', case / 'darwin-arm64/libynx_artifact_release.a', 'darwin', 'arm64', True))"),
@@ -2054,6 +2092,71 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_native_cabi_workflow_contract(changed)
+
+    def test_registered_n1_native_cabi_requires_executed_core_and_same_sealed_archive(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "artifact-release-cabi")
+
+        def named(name):
+            found = [step for step in steps if step.startswith("      - name: " + name + "\n")]
+            self.assertEqual(len(found), 1)
+            return found[0]
+
+        core = named("Verify fixed Native key and output cleanup behavior")
+        seal = named("Seal only native library public outputs and exact compile inputs")
+        controls = named("Verify registered N1 public supply controls")
+        execute = named("Execute registered N1 verifier from the same sealed native archive")
+        upload = named("Upload only public registered N1 verifier and actual native evidence")
+
+        def change(step, before, after):
+            self.assertIn(before, step)
+            self.assertEqual(raw.count(step), 1)
+            return raw.replace(step, step.replace(before, after, 1), 1)
+
+        mutations = []
+        for step in (controls, execute, upload):
+            mutations.extend([
+                raw.replace(step, "", 1), raw.replace(step, step + step, 1),
+                change(step, "      - name:", "      - if: false\n        name:"),
+                change(step, "      - name:", "      - continue-on-error: true\n        name:"),
+            ])
+        mutations.extend([
+            change(controls, "run: python3 -B", "run: true # python3 -B"),
+            change(controls, "test_registered_n1_verify_cabi_supply.py", "test_old_native_supply.py"),
+            change(controls, "test_registered_n1_verify_cabi_supply.py", "test_registered_n1_verify_cabi_supply.py || true"),
+            change(execute, "bash scripts/verify/registered-n1-verify-cabi-check.sh", "true # skipped registered N1 C ABI"),
+            change(execute, "ynx-artifact-release-cabi/delivery/native-host", "old-archive/delivery/native-host"),
+            change(execute, '"$RUNNER_TEMP/ynx-registered-n1-verify-cabi"', '"$RUNNER_TEMP/ynx-registered-n1-verify-cabi" || true'),
+            raw.replace(execute, "", 1).replace(seal, execute + seal, 1),
+            raw.replace(execute, "", 1).replace(controls, execute + controls, 1),
+            raw.replace(upload, "", 1).replace(execute, upload + execute, 1),
+            change(upload, "delivery/*", "**"),
+            change(upload, "delivery/*", "input/*"),
+            change(upload, "if-no-files-found: error", "if-no-files-found: ignore"),
+            change(upload, "-${{ github.sha }}", "-unbound-source"),
+            change(core, "go test -json -p 1", "go test -p 1"),
+            change(core, "go test -json -p 1", "go test -json -p 1 -run '^TestRegisteredN1Verify'"),
+            change(core, "            exit 1", "            true # swallowed native suite failure"),
+            change(core, "          for name in required:", "          required = []\n          for name in required:"),
+            change(core, "row['Action'] in ('pass', 'fail', 'skip')", "row['Action'] in ('pass',)"),
+            change(core, "if terminal != ['pass']:", "if not terminal:"),
+            change(core, "                  raise RuntimeError('registered N1 core did not execute and pass: ' + name)", "                  pass"),
+            change(core, "sourceCommit=os.environ['GITHUB_SHA']", "sourceCommit='old-source'"),
+            change(core, "matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER']", "matrixRunner='unobserved'"),
+            change(core, "accountAuthorized=False", "accountAuthorized=True"),
+        ])
+        for name in ("TestRegisteredN1VerifyActualANDAndExpectedBinding", "TestRegisteredN1VerifyN1AndStrictWire",
+                     "TestRegisteredN1VerifyCurrentPolicyAndBounds", "TestRegisteredN1VerifyEmptyMessageAndNullBridge"):
+            mutations.append(change(core, "'" + name + "'", "'UnrelatedNativeTest'"))
+        for leaf in ("scripts/fixtures/verify-registered-n1-cabi/**",
+                     "scripts/verify/registered-n1-verify-cabi-check.sh",
+                     "scripts/ops/test_registered_n1_verify_cabi_supply.py"):
+            mutations.append(raw.replace("      - '" + leaf + "'\n", "", 1))
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(registered_n1=index), self.assertRaises(AssertionError):
                 assert_native_cabi_workflow_contract(changed)
 
     def test_device_http_native_cabi_requires_same_executed_archive_and_public_data_only(self):
