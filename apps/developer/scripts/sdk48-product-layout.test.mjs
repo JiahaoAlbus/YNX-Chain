@@ -3,14 +3,25 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {sdk48ProductLayout,validateSDK48ProjectionRecord} from './sdk48-product-layout.mjs';
 const record=JSON.parse(await readFile(new URL('./canonical-identity-inputs.json',import.meta.url)));
+const sourceOnly=JSON.parse(await readFile(new URL('./fixtures/sdk48-source-only-selection.json',import.meta.url)));
 const receipt=JSON.parse(await readFile(record.productProjection.receipt.path));
 const policy=JSON.parse(await readFile(record.productProjection.finitePolicy.path));
 const metadata={name:'@ynx-chain/wallet-auth',version:record.sdkVersion};
 const validate=(r=record,p=receipt,e=policy)=>validateSDK48ProjectionRecord(r,p,e,metadata);
 test('full SDK48 projects to exact product source and runtime DATA',()=>{
- validate();const r=sdk48ProductLayout(record);
+ validate(sourceOnly);const r=sdk48ProductLayout(sourceOnly);
  assert.equal(r.files.length,400);assert.equal(r.runtimeClosure.Auth.files,564);assert.equal(r.runtimeClosure.contractRelay.files,9425);
  assert.equal(r.nativeComponent,null);assert.equal(r.runtimeClosure.contractRelay.nativeQualified,false);
+});
+test('actual component metadata survives the SDK48 source projection without granting runtime admission',()=>{
+ validate();const r=sdk48ProductLayout(record);
+ assert.ok(record.nativeComponent&&record.helperComponent,'The current positive tuple must contain the actual paired components');
+ assert.equal(r.nativeComponent,record.nativeComponent);assert.equal(r.helperComponent,record.helperComponent);
+ assert.equal(r.nativeBuildQualification,record.nativeBuildQualification);
+ assert.equal(r.nativeBuildQualification.state,'ACTUAL_EXECUTED_SDK48_RECORD');
+ assert.equal(r.nativeBuildQualification.NativeQualified,false);assert.equal(r.nativeBuildQualification.SourceQualified,false);
+ assert.equal(r.sourceOnly,true);assert.equal(r.productProjection.NativeAdmission,false);assert.equal(r.productProjection.SourceAdmission,false);
+ assert.equal(r.runtimeClosure.contractRelay.nativeQualified,false);assert.equal(r.helperComponent.installed,false);assert.equal(r.helperComponent.registered,false);
 });
 test('foreign source version is rejected',()=>{
  const r=structuredClone(record);r.sdkCommit='74a44b86f27456685f4a153dfdd8f4e51aaa0cc8';assert.throws(()=>validate(r),/identity differs/);
