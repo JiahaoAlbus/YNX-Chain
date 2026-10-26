@@ -220,6 +220,19 @@ function originalLog(f){
  return Buffer.from('=== RUN   '+name+'\n    pq_network_fresh_business_test.go:1089: PQ_NETWORK_FRESH_BUSINESS_SUMMARY '+JSON.stringify(f.data)+'\n--- PASS: '+name+' (12.34s)\nPASS\n');
 }
 function logGuard(f,raw){return {firstCause:null,child:{code:0,pid:f.expected.sameProcessPID},cleanupComplete:true,emptyOwnedScans:cleanupScans(f),sourceCommit:f.expected.protocolCommit,stdoutSHA256:hash(raw)};}
+test('original guard stays unchanged when stdout pin is external and boot identity was never measured',()=>{
+ const f=originalFixture();f.expected.vmBootId=null;const raw=originalLog(f),guard=logGuard(f,raw);delete guard.stdoutSHA256;
+ f.expected.stdoutSHA256=hash(raw);const saved=structuredClone(guard),result=readGuardedFreshPhaseLog(raw,guard,f.expected);
+ assert.equal(result.vmBootId,null);assert.equal(result.vmIdentityEvidence,'boot-id-unmeasured; original-callee-process-binding');assert.equal(result.arms[0].receiptQualifiedBusiness,16);assert.deepEqual(guard,saved);
+ assert.throws(()=>readGuardedFreshPhaseLog(raw,{...guard,stdoutSHA256:'1'.repeat(64)},f.expected),/digest/);
+ assert.throws(()=>readGuardedFreshPhaseLog(raw,guard,{...f.expected,stdoutSHA256:'1'.repeat(64)}),/digest/);
+ assert.throws(()=>readGuardedFreshPhaseLog(raw,guard,{...f.expected,stdoutSHA256:undefined}),/digest/);
+ assert.throws(()=>readGuardedFreshPhaseLog(raw,{...guard,firstCause:'original failed',child:{code:-15,pid:123}},f.expected),/completed guard/);
+ assert.throws(()=>readGuardedFreshPhaseLog(raw,guard,{...f.expected,vmBootId:undefined}),/external original/);
+ const direct=fixture();direct.expected.vmBootId=direct.data.vmBootId=null;assert.throws(()=>read(direct),/external original/);
+ const bytes=Buffer.from(JSON.stringify(f.data));f.expected.resultSHA256=hash(bytes);assert.equal(readGuardedFreshPhasePair(bytes,guard,f.expected).vmBootId,null);
+ assert.throws(()=>readGuardedFreshPhasePair(bytes,{...guard,resultSHA256:'1'.repeat(64)},f.expected),/completed guard/);
+});
 test('original stdout readback binds exact original log bytes and requires actual fresh test PASS',()=>{
  const f=originalFixture(),raw=originalLog(f),guard=logGuard(f,raw),saved=structuredClone(guard);
  const result=readGuardedFreshPhaseLog(raw,guard,f.expected);

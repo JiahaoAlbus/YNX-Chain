@@ -314,5 +314,133 @@
   },
   "freshZIPGETCount": 0,
   "stageZIPGETCount": 0,
-  "dispatchExecuted": false
+  "dispatchExecuted": false,
+  "sourceRefHandoff": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/HANDOFF.json",
+    "bytes": 4309,
+    "sha256": "8a629fe7434c7fe3d226a9ff241b881cf9a2726a3a053a4939e4fbe7e04c15bb"
+  },
+  "sourceRefVerifiedEvidence": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/CREATE_ONLY_INTENT.json",
+      "bytes": 343,
+      "sha256": "e5133c2dd47a01dbe0425c2b2b668239a22a3c3a9eb97f89384ad789ed6bd704"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/after-get.status.json",
+      "bytes": 485,
+      "sha256": "31247ef41c4a5d95595791c990a6b308221372dee4d39cdb89f8673c3bc39e50"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/after-get.stderr.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/after-get.stdout.raw",
+      "bytes": 529,
+      "sha256": "15d2d66503e270fc3d3c0afd07fb7864ca2188b90eecd2dce9e0e5fa8793710d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/before-get.status.json",
+      "bytes": 508,
+      "sha256": "b85c3a47790c6321a0fbbf66786c899e2ebc50bb744546ad754495458871f4a0"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/before-get.stderr.raw",
+      "bytes": 25,
+      "sha256": "d2c8985c89b29a842ac4946d13bdbc297709f44f20bb968faf9682664b211db6"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/before-get.stdout.raw",
+      "bytes": 114,
+      "sha256": "e2e3c64edab172132f77ce89a0e8c190db1cd30936a096344f45893bd5b75f8a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/commit-get.status.json",
+      "bytes": 526,
+      "sha256": "bb954e04010b6b1cccd4b0f18368d980b276bd200806fe9b5e2eaa61baf5e68d"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/commit-get.stderr.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/commit-get.stdout.raw",
+      "bytes": 1175,
+      "sha256": "edbc72ed367fa02d971fddc9175baa708b71c31cbc6d1dbaaef742bc3b1339cd"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/create-only.request.json",
+      "bytes": 131,
+      "sha256": "d9ef098fabd270af3c93255052d1eddcb7171efb6def4df900687ac6680fca10"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/create-post.status.json",
+      "bytes": 420,
+      "sha256": "b3e45634e1fd87d9ed2605fca0260f4d39c769b4b14a59c6d907bb7bf70889f7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/create-post.stderr.raw",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/create-post.stdout.raw",
+      "bytes": 2098,
+      "sha256": "9cc29c63cf1fba40bd394cb72f6ac1008fe9806b0f128e53a4ae9cf40ef8038b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/trigger-source-check.json",
+      "bytes": 33716,
+      "sha256": "e19ad558fb3582fc96e8a35e44c1d00872dbe076c4454c00b9142105bc7d156a"
+    }
+  ],
+  "actualIndependentGET": {
+    "ref": "refs/heads/codex/ynx-pq-remote-d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
+    "node_id": "REF_kwDOTJguhNoAR3JlZnMvaGVhZHMvY29kZXgveW54LXBxLXJlbW90ZS1kOWJhODFmMmIwODA2NTQ3YzBjNTRjZjZmYTc2ZGY4ZmQwZWRmNzJh",
+    "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/git/refs/heads/codex/ynx-pq-remote-d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
+    "object": {
+      "sha": "d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
+      "type": "commit",
+      "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/git/commits/d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a"
+    }
+  },
+  "remoteCommitTree": {
+    "sha": "d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
+    "node_id": "C_kwDOTJguhNoAKGQ5YmE4MWYyYjA4MDY1NDdjMGM1NGNmNmZhNzZkZjhmZDBlZGY3MmE",
+    "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/git/commits/d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
+    "html_url": "https://github.com/JiahaoAlbus/YNX-Chain/commit/d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
+    "author": {
+      "name": "JiahaoAlbus",
+      "email": "jiahao15345932820@gmail.com",
+      "date": "2026-10-26T09:41:21Z"
+    },
+    "committer": {
+      "name": "JiahaoAlbus",
+      "email": "jiahao15345932820@gmail.com",
+      "date": "2026-10-26T09:41:21Z"
+    },
+    "tree": {
+      "sha": "00e381d7bd49238d270aa61a392f4754b89647c6",
+      "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/git/trees/00e381d7bd49238d270aa61a392f4754b89647c6"
+    },
+    "message": "Prepare compiled contracts before migration storage regressions",
+    "parents": [
+      {
+        "sha": "308859a447f686e5b0a6b17383dddc6a0af2156d",
+        "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/git/commits/308859a447f686e5b0a6b17383dddc6a0af2156d",
+        "html_url": "https://github.com/JiahaoAlbus/YNX-Chain/commit/308859a447f686e5b0a6b17383dddc6a0af2156d"
+      }
+    ],
+    "verification": {
+      "verified": false,
+      "reason": "unsigned",
+      "signature": null,
+      "payload": null,
+      "verified_at": null
+    }
+  },
+  "readiness": "source/ref/metadata ready; Root START false"
 }

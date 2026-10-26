@@ -45,14 +45,24 @@ Four actual fresh ELF pins:
 
 The required create-only ref is
 `codex/ynx-pq-remote-d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a`.
-One actual `git ls-remote --exit-code` returned 2 with zero stdout bytes. This
-is missing-ref evidence, not an unknown dispatch. Original Protocol owner has
-been asked to supply the frozen ref and receipt; Performance neither creates
-nor moves it. Source/metadata preparation is ready except this ref. New Root
-window authorization, actual prepared, execution readiness and dispatch are
-all false. Old grants including 2cf are consumed. No START is authorized.
+The earlier actual `git ls-remote --exit-code` returned 2 with zero stdout;
+that original missing-ref evidence remains unchanged. Original owner then created
+the ref once: GET404, one POST201, independent GET exact d9 and commit/tree GET
+exact00e381. Performance checked the 4309-byte H, SHA256
+`8a629fe7434c7fe3d226a9ff241b881cf9a2726a3a053a4939e4fbe7e04c15bb`,
+and all fifteen original evidence pins. No force/update, workflow or product
+execution occurred. Source/ref/metadata readiness is now complete. Actual
+prepared, execution readiness, Root START and dispatch remain false.
 
-Once ref admission is complete, only Root can schedule a new exact one-time
+The old tuple is preserved. Final tuple is
+`FINAL_FULL_WINDOW_TUPLE.json`, 69735 bytes, SHA256
+`1d29da908c35c4f2655d459fa763c157dc6a24bef5061e2af83f5fbecc34c119`;
+final independent source readback is23307 bytes, SHA256
+`32c31a99bd9ded6b669a9dde7f93ff20181e7f3b20241db95e30b1b3b928acc0`.
+Both originals are in the same preparation directory. Root has these exact pins
+for the next once grant; Performance did not dispatch before authorization.
+
+Only Root can schedule a new exact one-time
 window at pressure level1. Original 105s active/15s cleanup/120s total, 1GiB RSS,
 16 processes, 320 threads, 512MiB private workspace, 1GiB build, 1MiB logs, 200ms
 sampling, all disk/memory/reserve floors and >=150s remaining budget are intact.

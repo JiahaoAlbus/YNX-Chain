@@ -318,3 +318,25 @@ in the existing test file invoked by `chain-core.yml`; 24 focused local tests
 passed. Tracked evidence:
 `evidence/pq-fresh-2cf-diagnostic-consumer-readback.json`. These are reader/source
 checks and actual prior-log readback, not a new throughput improvement claim.
+
+
+## Unmeasured boot identity and original guard preservation
+
+The actual original controller does not emit stdout/result digests or a VM boot
+ID. Successful original-callee projections may therefore use explicitly null
+`expected.vmBootId`, retained as null with
+`vmIdentityEvidence: boot-id-unmeasured; original-callee-process-binding`.
+Missing/omitted boot bindings remain errors; the older embedded-verifier schema
+still requires its original nonempty VM binding. The reader does not upgrade
+this missing identity into independently verified same-VM evidence.
+
+A digest may be supplied in the external pinned expected JSON as
+`stdoutSHA256` or `resultSHA256`, without modifying the original guard. At least
+one digest is mandatory. If both original guard and expected contain the digest,
+both must match; an incorrect original field is never overridden. Cleanup,
+original firstCause=null, child exit0/PID, sole RUN/PASS, source, four ELF, two
+epochs and independently verified original client projections remain mandatory.
+A failed guard is still rejected regardless of external pins. Focused tests25
+passed including this actual-contract compatibility and its negative cases.
+This change enables truthful future successful readback; it does not fabricate
+a successful four-node run or supply missing cryptographic/runner provenance.

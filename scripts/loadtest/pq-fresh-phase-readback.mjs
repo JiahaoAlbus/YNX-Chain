@@ -24,6 +24,10 @@ export function freshTimingQuantiles(values){
  return {samples:sorted.length,...Object.fromEntries([50,95,99].map(p=>['p'+p+'Ns',String(sorted[Math.ceil(p*sorted.length/100)-1])]))};
 }
 function numericDuration(v,name){requireValue(Number.isSafeInteger(v)&&v>=0&&BigInt(v)<=maxNs,name+' is not a bounded original numeric duration');return BigInt(v);}
+function boundOriginalDigest(guard,expected,key,digest){
+ const actual=guard?.[key],external=expected?.[key];
+ return (hex(actual,64)||hex(external,64))&&(actual===undefined||actual===digest)&&(external===undefined||external===digest);
+}
 function checkCommit(row){
  const t=row.commitTiming;requireValue(object(t)&&Number.isSafeInteger(t.height)&&String(t.height)===row.height&&t.durable===true&&Number.isSafeInteger(t.payloadBytes)&&t.payloadBytes>0,'missing actual durable Commit sample');
  requireValue(['atomic-json','snapshot-journal-v1','block-journal-v2'].includes(t.storage),'unknown original storage profile');
@@ -288,7 +292,7 @@ function originalProgressStages(lines,runIndex,summaryIndex){
 export function readGuardedFreshPhaseLog(stdout,guard,expected){
  requireValue(Buffer.isBuffer(stdout)&&stdout.length>0&&stdout.length<=1<<20&&isUtf8(stdout),'bounded UTF-8 original stdout required');
  const digest=createHash('sha256').update(stdout).digest('hex');
- requireValue(guard?.stdoutSHA256===digest,'original stdout digest differs');
+ requireValue(boundOriginalDigest(guard,expected,'stdoutSHA256',digest),'original stdout digest differs');
  const name='TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming',lines=stdout.toString('utf8').split(/\r?\n/);
  if(lines.at(-1)==='')lines.pop();
  const pass=new RegExp('^--- PASS: '+name+' \\([0-9]+(?:\\.[0-9]+)?s\\)$');
@@ -306,10 +310,10 @@ export function readGuardedFreshPhaseLog(stdout,guard,expected){
 
 function readBoundFreshPhasePair(raw,guard,expected,stdoutSHA256){
  requireValue(Buffer.isBuffer(raw)&&raw.length>0&&raw.length<=1<<20,'bounded original pair DATA required');
- requireValue(object(expected)&&hex(expected.protocolCommit,40)&&hex(expected.performanceClientCommit,40)&&hex(expected.clientSourceTree,40)&&hex(expected.clientCodeTree,40)&&typeof expected.vmBootId==='string'&&expected.vmBootId.length>0&&typeof expected.clockDomain==='string'&&expected.clockDomain.length>0&&Number.isSafeInteger(expected.businessPerArm)&&expected.businessPerArm>0&&expected.businessPerArm<=16&&object(expected.epochs)&&hex(expected.epochs.before,64)&&hex(expected.epochs.after,64)&&expected.epochs.before!==expected.epochs.after&&sameBinaries(expected.binaries,expected.binaries)&&Object.hasOwn(expected.binaries,expected.verifierRole),'external original case/source/clock/binary bindings required');
  const input=json(raw,'original phase result'),projected=input.version===originalFreshVersion;
+ requireValue(object(expected)&&hex(expected.protocolCommit,40)&&hex(expected.performanceClientCommit,40)&&hex(expected.clientSourceTree,40)&&hex(expected.clientCodeTree,40)&&(projected&&expected.vmBootId===null||typeof expected.vmBootId==='string'&&expected.vmBootId.length>0)&&typeof expected.clockDomain==='string'&&expected.clockDomain.length>0&&Number.isSafeInteger(expected.businessPerArm)&&expected.businessPerArm>0&&expected.businessPerArm<=16&&object(expected.epochs)&&hex(expected.epochs.before,64)&&hex(expected.epochs.after,64)&&expected.epochs.before!==expected.epochs.after&&sameBinaries(expected.binaries,expected.binaries)&&Object.hasOwn(expected.binaries,expected.verifierRole),'external original case/source/clock/binary bindings required');
  if(projected)requireValue(raw.length<=256<<10,'original callee public summary exceeds 256 KiB');
- requireValue(guard?.firstCause===null&&guard.child?.code===0&&guard.cleanupComplete===true&&completedScans(guard.emptyOwnedScans,projected)&&guard.sourceCommit===expected.protocolCommit&&(stdoutSHA256?guard.stdoutSHA256===stdoutSHA256:guard.resultSHA256===createHash('sha256').update(raw).digest('hex')),'original completed guard and raw result digest required');
+ requireValue(guard?.firstCause===null&&guard.child?.code===0&&guard.cleanupComplete===true&&completedScans(guard.emptyOwnedScans,projected)&&guard.sourceCommit===expected.protocolCommit&&(stdoutSHA256?boundOriginalDigest(guard,expected,'stdoutSHA256',stdoutSHA256):boundOriginalDigest(guard,expected,'resultSHA256',createHash('sha256').update(raw).digest('hex'))),'original completed guard and raw result digest required');
  if(projected)requireValue(guard.child.pid===expected.sameProcessPID,'original guard child differs from the phase clock process');
  const data=projected?adaptOriginal(input,expected):input;
  requireValue(data.schema===freshPhaseSchema&&['protocolCommit','performanceClientCommit','clientSourceTree','clientCodeTree','vmBootId','clockDomain'].every(k=>data[k]===expected[k])&&sameBinaries(data.binaries,expected.binaries)&&Array.isArray(data.arms)&&data.arms.length===2,'fresh pair source/VM/binary identity differs');
@@ -359,7 +363,7 @@ function readBoundFreshPhasePair(raw,guard,expected,stdoutSHA256){
   }
   summaries.push({name,epochId:arm.epochId,readbackIndexMode:mode,receiptQualifiedBusiness:originals.size,repeatedReadbacks,finalizedBusinessHashes:[...originals.keys()],latencyNs:Object.fromEntries(Object.entries(duration).map(([k,v])=>[k,{...freshTimingQuantiles(v),missingSamples:originals.size-v.length}])),flow:businessFlow(originals,measureStart,measureEnd),...(projected?{clientStagesNs:projectedClientStages(originals)}:{}),observedWindowNs:String(lastProof-firstOffer),measurementWindowNs:String(measureEnd-measureStart),receiptWindowRate:{transactions:originals.size,perSecondNumerator:String(BigInt(originals.size)*1000000000n),denominatorNs:String(measureEnd-measureStart)},nodeBlocks});
  }
- return {schema:'ynx-pq-fresh-phase-readback-v1',classification:'measurement-data-not-authority',sourceCommit:expected.protocolCommit,resultSource:stdoutSHA256?'original-go-stdout':'original-json-file',rawResultSHA256:createHash('sha256').update(raw).digest('hex'),...(stdoutSHA256?{stdoutSHA256}:{}),inputEvidence:projected?'original-callee-projected-client-receipts':'embedded-canonical-verifier-output',vmIdentityEvidence:projected?'external-runner-binding-only':'receipt-and-external-binding',arms:summaries,pairedQuantileDeltas:compareArms(summaries[0],summaries[1]),independentProofReverifiedHere:false,earliestBFTFormationMeasured:false,executionAuthorized:false,sustainedTPSQualified:false,interpretation:'Original qualified callee/verifier receipts required. Exact per-H physical Commit samples are not multiplied by tx count. Four-node durable times and proof-completion upper bounds are separate; no third-replica/BFT inference or target qualification.'};
+ return {schema:'ynx-pq-fresh-phase-readback-v1',classification:'measurement-data-not-authority',sourceCommit:expected.protocolCommit,resultSource:stdoutSHA256?'original-go-stdout':'original-json-file',rawResultSHA256:createHash('sha256').update(raw).digest('hex'),...(stdoutSHA256?{stdoutSHA256}:{}),inputEvidence:projected?'original-callee-projected-client-receipts':'embedded-canonical-verifier-output',vmBootId:expected.vmBootId,vmIdentityEvidence:projected?(expected.vmBootId===null?'boot-id-unmeasured; original-callee-process-binding':'external-runner-binding-only'):'receipt-and-external-binding',arms:summaries,pairedQuantileDeltas:compareArms(summaries[0],summaries[1]),independentProofReverifiedHere:false,earliestBFTFormationMeasured:false,executionAuthorized:false,sustainedTPSQualified:false,interpretation:'Original qualified callee/verifier receipts required. Exact per-H physical Commit samples are not multiplied by tx count. Four-node durable times and proof-completion upper bounds are separate; no third-replica/BFT inference or target qualification.'};
 }
 
 // Thin normal-runner readback entry, not a process launcher or approval API.

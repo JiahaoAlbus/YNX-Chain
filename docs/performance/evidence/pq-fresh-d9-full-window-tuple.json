@@ -428,7 +428,25 @@
   "tree": "00e381d7bd49238d270aa61a392f4754b89647c6",
   "ref": "codex/ynx-pq-remote-d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
   "requiredFrozenRef": "codex/ynx-pq-remote-d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
-  "actualRefReadback": null,
+  "actualRefReadback": {
+    "source": "original create-only independent GET receipt",
+    "pin": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/after-get.stdout.raw",
+      "bytes": 529,
+      "sha256": "15d2d66503e270fc3d3c0afd07fb7864ca2188b90eecd2dce9e0e5fa8793710d"
+    },
+    "ref": "refs/heads/codex/ynx-pq-remote-d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
+    "object": {
+      "sha": "d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a",
+      "type": "commit",
+      "url": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/git/commits/d9ba81f2b0806547c0c54cf6fa76df8fd0edf72a"
+    },
+    "remoteCommitTreePin": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/commit-get.stdout.raw",
+      "bytes": 1175,
+      "sha256": "edbc72ed367fa02d971fddc9175baa708b71c31cbc6d1dbaaef742bc3b1339cd"
+    }
+  },
   "normalRunId": 40301495281,
   "normalRunAttempt": 1,
   "normalCI": {
@@ -478,7 +496,11 @@
     "bytes": 8393,
     "sha256": "337c6bb0cc20f824c5ce0c7ad014dc2e8c86d7cc16cc70a6005fd7bab02b157c"
   },
-  "sourceRefReceipt": null,
+  "sourceRefReceipt": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/HANDOFF.json",
+    "bytes": 4309,
+    "sha256": "8a629fe7434c7fe3d226a9ff241b881cf9a2726a3a053a4939e4fbe7e04c15bb"
+  },
   "producerPinReadback": {
     "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-preparation/PRODUCER_SOURCE_READBACK.json",
     "bytes": 17260,
@@ -779,14 +801,17 @@
   "dispatchExecuted": false,
   "sustainedTPSQualified": false,
   "localELFExecuted": false,
-  "frozenRefMissing": true,
-  "sourceSupplyReadyExceptRef": true,
+  "frozenRefMissing": false,
   "refAdmissionEvidence": {
-    "status": "missing",
-    "readbackStatusPath": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-preparation/REF_READBACK_STATUS.json",
-    "actualExitCode": 2,
-    "actualRawBytes": 0,
-    "refCreatedByPerformance": false
+    "state": "created-once-and-independently-read",
+    "sourceHandoff": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/d9-frozen-source-ref-20261026/HANDOFF.json",
+      "bytes": 4309,
+      "sha256": "8a629fe7434c7fe3d226a9ff241b881cf9a2726a3a053a4939e4fbe7e04c15bb"
+    },
+    "verifiedEvidenceCount": 15,
+    "updateForcePatchUsed": false,
+    "priorMissingReadbackRetained": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-d9-preparation/REF_READBACK_STATUS.json"
   },
   "focusedGo67StepsIdenticalToPriorSource": true,
   "focusedSourceCompileRequired": false,
@@ -1065,7 +1090,7 @@
     "Validation facts optimization is enabled in both d9 arms; comparing earlier 2cf runner to d9 is not a causal same-condition facts A/B.",
     "105s diagnostic only; not stable1000TPS/10minute qualification.",
     "No actual boot ID or CPU utilization capture; preserve null.",
-    "Frozen source ref receipt is still missing; no execution readiness or Root START authorization."
+    "Source/ref metadata ready; Root START/actual runtime/prepared remain false until a new exact once grant."
   ],
   "dispatchInputNamesMatchActualWorkflow": true,
   "diagnosticConsumer": {
@@ -1077,5 +1102,7 @@
     "actual2cfOriginalReadbackChecks": 157,
     "sourceTests": 24,
     "heavyExecutionGranted": false
-  }
+  },
+  "sourceSupplyReady": true,
+  "readiness": "source-ref-CI-artifact-metadata-ready; awaiting exact Root once window grant"
 }
