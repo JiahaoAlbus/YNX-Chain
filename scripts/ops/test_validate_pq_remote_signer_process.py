@@ -160,7 +160,7 @@ class RemoteProcessControls(unittest.TestCase):
         self.assertEqual(list(self.case.iterdir()), [])
 
     def test_exact_source_and_dual_binary_pins_with_no_guard_cap_mutation(self):
-        self.assertEqual(caller.GUARD_SHA256, "1d75262d742f22877286e0d6e263f321313490a914f3e7f7571142e55040033a")
+        self.assertEqual(caller.GUARD_SHA256, "add1c678c7ccfcd5c994744d2c985bd972164bb82c4482a5af2967e6fba18b23")
         pins = caller.validate_inputs(self.args)
         self.assertEqual(set(pins), caller.BUILD_FILES)
         self.assertEqual(pins["pq_remote_process_test.go"]["sha256"], caller.SOURCE_SHA256)

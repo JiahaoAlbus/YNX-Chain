@@ -1468,7 +1468,7 @@ jobs:
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-state-tests.jsonl').read_text().splitlines()]
-          required = ['TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash', 'TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold', 'TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis', 'TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming', 'TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas', 'TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer', 'TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets', 'TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds', 'TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting', 'TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation', 'TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles']
+          required = ['TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash', 'TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold', 'TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis', 'TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming', 'TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas', 'TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer', 'TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets', 'TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds', 'TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting', 'TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation', 'TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles', 'TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory', 'TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads', 'TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip']
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
@@ -4241,7 +4241,7 @@ jobs:
               blob = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + leaf], text=True).strip()
               if subprocess.check_output(['git', 'hash-object', leaf], text=True).strip() != blob:
                   raise RuntimeError('actual test source differs from the committed compile input')
-              if leaf.endswith('pq_network_fresh_business_test.go') and expected['sha256'] != '5c1542b2ba540792016cf3a67da9ff09aa6effb6261e5b9ca6e355981a2301cf':
+              if leaf.endswith('pq_network_fresh_business_test.go') and expected['sha256'] != 'ad938ae9d31a3e157f823381a2b918a9a30ef479035f3e23e4663c3100d8c29e':
                   raise RuntimeError('independent frozen fresh test source differs')
               copy(source_root / leaf, root / 'source' / leaf, expected, 256 << 10)
               source_leaves[leaf], source_blobs[leaf] = expected['sha256'], blob

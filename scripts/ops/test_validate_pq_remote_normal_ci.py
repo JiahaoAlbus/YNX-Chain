@@ -1055,7 +1055,7 @@ def assert_fresh_business_supply_workflow_contract(raw):
         need(token in receive)
     for token in ("70e7e450997a0ae77dbad5a8be3682f482c6ddd8", "4866cc3924c060eb6a29939915d39b1c5c625607",
                   "19b9fafcfbb3f434b9ff745fb785afb1d0741247", "da3060e150e2bd0f5695d67a76f3b30fafd1c696",
-                  "5c1542b2ba540792016cf3a67da9ff09aa6effb6261e5b9ca6e355981a2301cf",
+                  "ad938ae9d31a3e157f823381a2b918a9a30ef479035f3e23e4663c3100d8c29e",
                   "YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1", "performanceClientTree=client_tree",
                   "'internal/consensus/pq_network_fresh_business_test.go'", "sourceRoot=str(source_root)",
                   "os.environ['YNX_SIGNED_BUSINESS_SOURCE_SHA']", "previous_source['protocolCommit'] != commit",
@@ -1803,7 +1803,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(receive, receive.replace("hashlib.sha256(archive).hexdigest() != digest", "False", 1), 1),
             raw.replace(seal, seal.replace("previous_source['protocolCommit'] != commit", "False", 1), 1),
             raw.replace(seal, seal.replace("4866cc3924c060eb6a29939915d39b1c5c625607", "19b9fafcfbb3f434b9ff745fb785afb1d0741247"), 1),
-            raw.replace(seal, seal.replace("5c1542b2ba540792016cf3a67da9ff09aa6effb6261e5b9ca6e355981a2301cf", "0" * 64), 1),
+            raw.replace(seal, seal.replace("ad938ae9d31a3e157f823381a2b918a9a30ef479035f3e23e4663c3100d8c29e", "0" * 64), 1),
             raw.replace(seal, seal.replace("binariesExecuted=False", "binariesExecuted=True", 1), 1),
             raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          go build ./cmd/ynx-consensus-perf-client\n          python3 -B - <<'PY'\n", 1), 1),
             raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          YNX_PQ_NETWORK_FRESH_BUSINESS_E2E=authorized-fresh-four-node-business-window\n          python3 -B - <<'PY'\n", 1), 1),
