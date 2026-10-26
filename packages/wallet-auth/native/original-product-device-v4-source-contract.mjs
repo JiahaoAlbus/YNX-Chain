@@ -41,6 +41,7 @@ export function inspectOriginalProductDeviceV4SourceScopeDATA(scope,association,
  const view=inspectProductSessionDeviceRegistrationOriginalV4Data(Buffer.from(scope.registrationOriginal,'utf8')),r=view.record;
  let session;try{session=parseProductSession(JSON.parse(scope.sessionOriginal));}catch{fail();}
  if(canonicalJSON(session)!==scope.sessionOriginal||session.version!=='4'||session.deviceAlgorithm!==c.algorithm)fail();
+ if(r.pkA===session.accountAuthorization.pkA||r.pkB===session.accountAuthorization.pkB)fail();
  if(view.registrationDigest!==e.registrationDigest||r.revokedAt!==null||r.networkId!==networkId||r.canonicalOwner!==subjectOwner||e.canonicalOwner!==subjectOwner||evmAddressFromYNX(e.account)!==subjectOwner)fail();
  for(const k of ['account','clientId','productId','platform','applicationId','deviceId'])if(e[k]!==association[k]||session[k]!==e[k])fail();
  for(const k of ['networkId','canonicalOwner','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId','generation','registrationId','revision'])if(r[k]!==e[k])fail();
@@ -50,5 +51,5 @@ export function inspectOriginalProductDeviceV4SourceScopeDATA(scope,association,
  if(canonicalJSON(scopes(c.scopes))!==canonicalJSON(scopes(session.scopes)))fail();
  const begin=Math.max(Date.parse(r.registeredAt),Date.parse(session.issuedAt)),end=Math.min(Date.parse(r.expiresAt),Date.parse(session.expiresAt));
  if(!Number.isSafeInteger(begin)||!Number.isSafeInteger(end)||profileIssued<begin||profileExpires>end||at<begin||at>=end)fail();
- return Object.freeze({version:'4',registrationDigest:view.registrationDigest,sessionBinding:e.sessionBinding,expiresAtMs:Math.min(profileExpires,end),dataOnly:true,authorized:false,nativeAdmission:false});
+ return Object.freeze({version:'4',registrationDigest:view.registrationDigest,sessionBinding:e.sessionBinding,expiresAtMs:Math.min(profileExpires,end),devicePublic:Object.freeze({pkA:r.pkA,pkB:r.pkB}),accountAuthorization:session.accountAuthorization,dataOnly:true,authorized:false,nativeAdmission:false});
 }

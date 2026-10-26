@@ -139,7 +139,12 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  if(Object.values(a).some(x=>typeof x!=='string'||!x||x.length>512)||a.productId!==e.productId||a.platform!==e.platform||a.applicationId!==e.applicationId)fail('AUTH_SOURCE_V2_ASSOCIATION');
  if(pqCatalog)inspectOriginalPQHostCatalogSourceScopeDATA(s.pqHostCatalogSource,a,root.networkId,p.expiresAtMs,atMs);
  else if(Object.hasOwn(s,'pqHostCatalogSource'))fail('AUTH_SOURCE_V2_PQ_CATALOG_DEDICATED_PURPOSE_REQUIRED');
- if(device)inspectOriginalProductDeviceV4SourceScopeDATA(s.productSessionDeviceV4,a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs);
+ if(device){
+  const data=inspectOriginalProductDeviceV4SourceScopeDATA(s.productSessionDeviceV4,a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs),height=registrations.root.executionHeight;
+  for(const [snapshot,id]of [[registrations.root,root.rootOwner],[registrations.profile,e.profileOwner],[registrations.current,e.currentOwner],[registrations.subject,p.subjectOwner]]){const record=active(snapshot,root.networkId,id,height);if(record.pkA===data.devicePublic.pkA||record.pkB===data.devicePublic.pkB)fail('AUTH_SOURCE_V2_DEVICE_KEY_ROLE_COLLISION');}
+  const accountRecord=active(registrations.subject,root.networkId,p.subjectOwner,height),authority=data.accountAuthorization;
+  for(const k of ['pkA','pkB','revision','registeredAt','activeFrom'])if(accountRecord[k]!==authority[k])fail('AUTH_SOURCE_V2_DEVICE_ACCOUNT_CURRENT_CHANGED');
+ }
  else if(Object.hasOwn(s,'productSessionDeviceV4'))fail('AUTH_SOURCE_V2_DEVICE_DEDICATED_PURPOSE_REQUIRED');
  const r=s.expectedRequest;
  if(!r||r.service!==e.service||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(expectedOps)||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('AUTH_SOURCE_V2_REQUEST');
