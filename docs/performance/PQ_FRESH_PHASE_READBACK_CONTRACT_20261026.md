@@ -216,7 +216,7 @@ This report requires the complete qualified arm: aborted/failed windows remain
 original guard failures, not a success report with zero errors. A small finite
 pair still cannot qualify sustained 1000 TPS or ten-minute stability.
 
-Nineteen focused contract/arithmetic/CLI tests pass. New cases verify exact
+Twenty focused contract/arithmetic/CLI tests pass. New cases verify exact
 queue areas by hand-derived expectations, cross-second boundaries, final
 endpoints, missing acceptance, duplicate-readback deduplication and reconciled
 UNKNOWN. Raw output is `pq-fresh-parent-clock-flow-and-backlog-20261026.raw` in
@@ -246,3 +246,26 @@ proof completed earlier and exact backlog area. Raw evidence:
 `/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-all-node-flow-red.raw`
 and `pq-fresh-all-node-flow-pass.raw`. All 19 tests pass in 388.459333 ms. No new
 RPC, process, node invocation or workload is introduced by the consumer.
+
+### Original c57 explicit progress spans
+
+The normal callee now emits `PQ_NETWORK_FRESH_PROGRESS` begin/complete lines.
+The existing successful guarded stdout path additionally returns `progressStages`
+with each original arm/phase/node/business-index span and per-arm/phase/node
+duration quantiles. Raw-file input or older stdout without events makes no
+new progress timing claim; stdout without events returns null.
+
+At most 1024 events are accepted, all from the original source log prefix,
+inside sole RUN and summary, with offsets/durations <=120 seconds, exact
+completion arithmetic, unique begin identities and no unfinished span on a
+successful original test. The existing guard/result gates remain mandatory;
+this does not admit a failed or timed-out run as qualified business measurement.
+Parent/child stages and parallel proof clients may overlap. Span durations are
+inclusive and are never summed to infer wall time, pure crypto time or BFT
+formation. Stage labels describe the original calls, not independent authority.
+
+A retained RED reproduced the missing span consumer. The 20-test PASS covers
+nested timings and absence, malformed arithmetic, completion without begin,
+duplicate identities, unfinished stages and out-of-bound offsets. Raw evidence
+is `pq-fresh-c57-progress-{red,pass}.raw` under the existing WD performance root;
+full focused PASS duration is 409.5085 ms. No node, new benchmark or RPC starts.

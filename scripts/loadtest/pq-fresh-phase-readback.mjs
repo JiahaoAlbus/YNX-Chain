@@ -180,6 +180,35 @@ export function readGuardedFreshPhasePair(raw,guard,expected){
  return readBoundFreshPhasePair(raw,guard,expected,null);
 }
 
+function originalProgressStages(lines,runIndex,summaryIndex){
+ const selected=lines.map((line,index)=>({line,index})).filter(r=>r.line.includes('PQ_NETWORK_FRESH_PROGRESS'));
+ if(selected.length===0)return null;
+ requireValue(selected.length<=1024,'bounded original progress events required');
+ const pending=new Map(),seen=new Set(),spans=[];
+ for(const {line,index}of selected){
+  const m=/^[ \t]+pq_network_fresh_business_test\.go:[1-9][0-9]*: PQ_NETWORK_FRESH_PROGRESS arm=(before|after) phase=([a-z][a-z0-9-]{0,63}) node=(-1|[0-3]) index=(-1|[0-9]|1[0-6]) event=(begin|complete) offsetNs=([0-9]+) durationNs=([0-9]+)$/.exec(line);
+  requireValue(m&&index>runIndex&&index<summaryIndex,'original progress shape or log order differs');
+  const [,arm,phase,node,business,event,offset,duration]=m,key=[arm,phase,node,business].join('/'),at=BigInt(offset),elapsed=BigInt(duration);
+  requireValue(at<=120000000000n&&elapsed<=120000000000n,'original progress outside bounded clock');
+  if(event==='begin'){
+   requireValue(elapsed===0n&&!seen.has(key),'duplicate or nonzero original progress begin');
+   seen.add(key);pending.set(key,at);
+  }else{
+   const start=pending.get(key);
+   requireValue(start!==undefined&&at>=start&&at-start===elapsed,'original progress completion arithmetic differs');
+   pending.delete(key);spans.push({arm,phase,nodeIndex:Number(node),businessIndex:Number(business),startNs:String(start),endNs:String(at),durationNs:String(elapsed)});
+  }
+ }
+ requireValue(pending.size===0,'original progress incomplete despite successful test');
+ const groups=new Map();
+ for(const s of spans){
+  const key=[s.arm,s.phase,s.nodeIndex].join('/');
+  if(!groups.has(key))groups.set(key,{arm:s.arm,phase:s.phase,nodeIndex:s.nodeIndex,values:[]});
+  groups.get(key).values.push(BigInt(s.durationNs));
+ }
+ return {clock:'original parent-process monotonic offsets',spans,groups:[...groups.values()].map(({values,...g})=>({...g,durationNs:freshTimingQuantiles(values)})),additiveWallTimeMeasured:false,interpretation:'Original explicit call spans, inclusive of nested stages, coordinator work or bounded queue handling. Overlaps are retained; durations must not be summed into wall time or interpreted as earliest BFT formation.'};
+}
+
 // Original compiled Go test emits this exact bounded public JSON in stdout.
 // Bind those original log bytes directly; do not create or rewrite a guard.
 export function readGuardedFreshPhaseLog(stdout,guard,expected){
@@ -197,7 +226,8 @@ export function readGuardedFreshPhaseLog(stdout,guard,expected){
  requireValue(lines.indexOf('=== RUN   '+name)<lines.indexOf(markers[0])&&lines.indexOf(markers[0])<lines.findIndex(l=>pass.test(l))&&lines.findIndex(l=>pass.test(l))<lines.indexOf('PASS'),'original RUN/summary/PASS order differs');
  const raw=Buffer.from(match[1],'utf8');
  requireValue(json(raw,'original stdout summary').version===originalFreshVersion,'original stdout receipt version differs');
- return readBoundFreshPhasePair(raw,guard,expected,digest);
+ const result=readBoundFreshPhasePair(raw,guard,expected,digest);
+ return {...result,progressStages:originalProgressStages(lines,lines.indexOf('=== RUN   '+name),lines.indexOf(markers[0]))};
 }
 
 function readBoundFreshPhasePair(raw,guard,expected,stdoutSHA256){

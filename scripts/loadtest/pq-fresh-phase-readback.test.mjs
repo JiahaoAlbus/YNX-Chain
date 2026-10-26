@@ -269,3 +269,17 @@ test('all-node durability keeps a late replica distinct from proof completion an
   assert.equal(result.earliestBFTFormationMeasured,false);
  }
 });
+
+test('original progress spans retain nested inclusive timing without inventing additive wall time',()=>{
+ const f=originalFixture(),line=(arm,phase,event,offset,duration)=>`    pq_network_fresh_business_test.go:415: PQ_NETWORK_FRESH_PROGRESS arm=${arm} phase=${phase} node=0 index=-1 event=${event} offsetNs=${offset} durationNs=${duration}\n`;
+ const events=line('before','observed-pq-construction','begin',10,0)+line('before','initial-validator-custody','begin',20,0)+line('before','initial-validator-custody','complete',30,10)+line('before','observed-pq-construction','complete',80,70)+line('after','observed-pq-construction','begin',100,0)+line('after','observed-pq-construction','complete',180,80);
+ const withEvents=s=>Buffer.from(originalLog(f).toString().replace(/(=== RUN[^\n]*\n)/,'$1'+s));
+ const raw=withEvents(events),result=readGuardedFreshPhaseLog(raw,logGuard(f,raw),f.expected);
+ assert.equal(result.progressStages.spans.length,3);assert.equal(result.progressStages.additiveWallTimeMeasured,false);
+ const construction=result.progressStages.groups.find(g=>g.arm==='before'&&g.phase==='observed-pq-construction');
+ assert.equal(construction.durationNs.p50Ns,'70');assert.equal(construction.durationNs.samples,1);
+ assert.equal(readGuardedFreshPhaseLog(originalLog(f),logGuard(f,originalLog(f)),f.expected).progressStages,null);
+ for(const change of [s=>s.replace('durationNs=70','durationNs=71'),s=>s.replace('event=begin offsetNs=10','event=complete offsetNs=10'),s=>s.replace('offsetNs=180','offsetNs=120000000001'),s=>s.replace('phase=initial-validator-custody','phase=observed-pq-construction'),s=>s.replace(line('after','observed-pq-construction','complete',180,80),'')]){
+  const bad=withEvents(change(events));assert.throws(()=>readGuardedFreshPhaseLog(bad,logGuard(f,bad),f.expected),/progress/);
+ }
+});
