@@ -34,6 +34,28 @@ type ValidatorRegistryEvent struct {
 	Wire             []byte `json:"wire"`
 }
 
+// validatedValidatorRegistry is local to one validation attempt. The registry
+// bytes are detached after exact replay and KeyHistory is immutable. Callers
+// hold their existing owner lock or provide immutable input throughout. It is
+// never retained on Application or supplied by a checkpoint/peer as authority.
+type validatedValidatorRegistry struct {
+	bootstrap *ConsensusBootstrap
+	registry  *ValidatorRegistryState
+	history   *ynxconsensusauth.KeyHistory
+	through   int64
+}
+
+func replayOwnedValidatorRegistry(registry *ValidatorRegistryState, bootstrap *ConsensusBootstrap, through int64) (*validatedValidatorRegistry, error) {
+	// Authenticate the original record before its JSON-based bootstrap clone
+	// could normalize a malformed in-memory representation. Preserve replay's
+	// first error, and detach only the exact successfully checked input.
+	history, err := replayValidatorRegistry(registry, bootstrap, through)
+	if err != nil {
+		return nil, err
+	}
+	return &validatedValidatorRegistry{bootstrap: bootstrap, registry: cloneValidatorRegistry(registry), history: history, through: through}, nil
+}
+
 func cloneValidatorBootstrapRecord(value ValidatorBootstrapRecord) ValidatorBootstrapRecord {
 	// The closed record contains only deterministic serializable fields.
 	raw, _ := json.Marshal(value)
@@ -110,20 +132,32 @@ func validateValidatorRegistryState(s CommittedState, migration chain.ConsensusM
 }
 
 func validateValidatorRegistryStateOwned(s CommittedState, witness *validatedMigration) error {
+	_, err := replayValidatorRegistryStateOwned(s, witness)
+	return err
+}
+
+func validateValidatorRegistryStateOwnedHistory(s CommittedState, witness *validatedMigration) (*validatedValidatorRegistry, error) {
+	history, err := replayValidatorRegistryStateOwned(s, witness)
+	if err != nil {
+		return nil, err
+	}
+	return &validatedValidatorRegistry{bootstrap: s.bootstrap, registry: cloneValidatorRegistry(s.ValidatorRegistry), history: history, through: s.Height}, nil
+}
+
+func replayValidatorRegistryStateOwned(s CommittedState, witness *validatedMigration) (*ynxconsensusauth.KeyHistory, error) {
 	if err := witness.binds(s.bootstrap); err != nil {
-		return err
+		return nil, err
 	}
 	if s.ValidatorRegistry == nil {
 		if s.Version == 16 || s.Version == 17 || s.Version == ValidatorRegistryStateVersion || s.Version == PQEngineScheduleStateVersion {
-			return errors.New("registry state version cannot omit registry history")
+			return nil, errors.New("registry state version cannot omit registry history")
 		}
-		return nil
+		return nil, nil
 	}
 	if s.Version != 16 && s.Version != 17 && s.Version != ValidatorRegistryStateVersion && s.Version != PQEngineScheduleStateVersion {
-		return errors.New("legacy state version cannot carry validator registry")
+		return nil, errors.New("legacy state version cannot carry validator registry")
 	}
-	_, err := replayValidatorRegistry(s.ValidatorRegistry, s.bootstrap, s.Height)
-	return err
+	return replayValidatorRegistry(s.ValidatorRegistry, s.bootstrap, s.Height)
 }
 
 func validateValidatorRegistryContinuation(previous, next CommittedState) error {

@@ -396,16 +396,31 @@ func (s CommittedState) validateOwnedWithTimings(witness *validatedMigration, ti
 		return errors.New("committed engine schedule requires its explicit state version")
 	}
 	timings.enter("validator_registry")
-	if err := validateValidatorRegistryStateOwned(s, witness); err != nil {
-		return err
+	var validatedRegistry *validatedValidatorRegistry
+	var err error
+	if s.PQEngineSchedule == nil {
+		// No snapshot consumes a registry fact on the unscheduled legacy path.
+		// Keep its original complete replay without adding a detached copy.
+		if err := validateValidatorRegistryStateOwned(s, witness); err != nil {
+			return err
+		}
+	} else {
+		validatedRegistry, err = validateValidatorRegistryStateOwnedHistory(s, witness)
+		if err != nil {
+			return err
+		}
 	}
 	timings.enter("engine_schedule")
-	if err := validatePQEngineSchedule(s.PQEngineSchedule, s.bootstrap, s.ValidatorRegistry, s.Height); err != nil {
-		return err
+	var validatedSchedule *validatedPQEngineSchedule
+	if validatedRegistry != nil {
+		validatedSchedule, err = validatedRegistry.validateSchedule(s.PQEngineSchedule)
+		if err != nil {
+			return err
+		}
 	}
 	timings.enter("engine_snapshot")
 	if s.PQEngineSchedule != nil {
-		if _, err := newPQEngineSnapshot(s.bootstrap, s.ValidatorRegistry, s.PQEngineSchedule, s.Height); err != nil {
+		if _, err := validatedSchedule.newSnapshot(); err != nil {
 			return err
 		}
 	}

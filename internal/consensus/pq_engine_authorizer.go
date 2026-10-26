@@ -52,23 +52,40 @@ func newPQEngineSnapshot(b *ConsensusBootstrap, registry *ValidatorRegistryState
 	if b == nil || through < b.record.InitialHeight-1 || through > math.MaxInt64-2 {
 		return nil, errors.New("engine snapshot requires pinned genesis and bounded committed height")
 	}
-	registry = cloneValidatorRegistry(registry)
-	schedule = clonePQEngineSchedule(schedule)
-	history, err := replayValidatorRegistry(registry, b, through)
+	validatedRegistry, err := replayOwnedValidatorRegistry(registry, b, through)
 	if err != nil {
 		return nil, err
 	}
-	if err = validatePQEngineSchedule(schedule, b, registry, through); err != nil {
+	validatedSchedule, err := validatedRegistry.validateSchedule(schedule)
+	if err != nil {
 		return nil, err
 	}
-	if err = validatePQEngineFutureMembership(b, history, registry, schedule); err != nil {
+	return validatedSchedule.newSnapshot()
+}
+
+// newSnapshot consumes only facts from this exact owned validation attempt.
+// In particular, state sealing need not replay the full registry and schedule
+// again after its preceding two validation phases already authenticated them.
+func (v *validatedPQEngineSchedule) newSnapshot() (*PQEngineSnapshot, error) {
+	r := v.registry
+	b, registry, history, through := r.bootstrap, r.registry, r.history, r.through
+	schedule := v.schedule
+	if b == nil || through < b.record.InitialHeight-1 || through > math.MaxInt64-2 {
+		return nil, errors.New("engine snapshot requires pinned genesis and bounded committed height")
+	}
+	if history == nil {
+		// The standalone schedule validator proves its prefix only. It must
+		// never turn that partial check into full signing/engine authority.
+		return nil, errors.New("engine snapshot requires complete authenticated registry history")
+	}
+	if err := validatePQEngineFutureMembership(b, history, registry, schedule); err != nil {
 		return nil, err
 	}
 	s := &PQEngineSnapshot{bootstrap: b, registry: registry, history: history, schedule: schedule, through: through}
 	// Comet already knows the next two validator sets. Refuse a history that
 	// would make either empty/unresolvable before any state is published.
 	for _, height := range []int64{through + 1, through + 2} {
-		if _, err = s.expectedMembersAt(height); err != nil {
+		if _, err := s.expectedMembersAt(height); err != nil {
 			return nil, err
 		}
 	}

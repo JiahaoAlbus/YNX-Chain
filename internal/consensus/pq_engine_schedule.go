@@ -263,37 +263,75 @@ func validatePQEngineFutureMembership(b *ConsensusBootstrap, history *ynxconsens
 	return nil
 }
 
+// validatedPQEngineSchedule owns the exact schedule checked against one owned
+// registry replay. No boolean supplied by a caller can skip either validation.
+type validatedPQEngineSchedule struct {
+	registry *validatedValidatorRegistry
+	schedule *PQEngineSchedule
+}
+
 func validatePQEngineSchedule(s *PQEngineSchedule, b *ConsensusBootstrap, registry *ValidatorRegistryState, through int64) error {
 	if s == nil {
 		return nil
 	}
-	if b == nil || registry == nil || s.Version != 1 || !bytes.Equal(s.GenesisID, b.genesisID) || s.ChainID != b.record.ChainID || s.RegistryHeight < b.record.InitialHeight || s.RegistryHeight > math.MaxInt64-4 || s.AuthorizedAt != s.RegistryHeight+1 || s.AuthorizedAt > through || s.ParamsUpdateHeight != s.AuthorizedAt || s.ActivationHeight < s.AuthorizedAt+3 || s.ValidatorUpdateHeight != s.ActivationHeight-2 || s.OriginalValidatorSetHash != b.record.ValidatorSetHash || s.RegistryEventCount == 0 || s.RegistryEventCount > uint64(len(registry.Events)) {
-		return errors.New("invalid engine schedule anchor or actual H+1/H+2 ordering")
+	// Standalone callers have not authenticated a complete registry here. Keep
+	// their original prefix replay rather than treating raw bytes as a fact.
+	_, err := (&validatedValidatorRegistry{bootstrap: b, registry: registry, through: through}).validateSchedule(s)
+	return err
+}
+
+func (r *validatedValidatorRegistry) validateSchedule(schedule *PQEngineSchedule) (*validatedPQEngineSchedule, error) {
+	s := clonePQEngineSchedule(schedule)
+	if s == nil {
+		return &validatedPQEngineSchedule{registry: r}, nil
 	}
-	prefix := cloneValidatorRegistry(registry)
-	prefix.Events = prefix.Events[:int(s.RegistryEventCount)]
-	prefix.Root = s.RegistryRoot
-	history, err := replayValidatorRegistry(prefix, b, s.RegistryHeight)
-	if err != nil {
-		return err
+	b, registry, through := r.bootstrap, r.registry, r.through
+	if b == nil || registry == nil || s.Version != 1 || !bytes.Equal(s.GenesisID, b.genesisID) || s.ChainID != b.record.ChainID || s.RegistryHeight < b.record.InitialHeight || s.RegistryHeight > math.MaxInt64-4 || s.AuthorizedAt != s.RegistryHeight+1 || s.AuthorizedAt > through || s.ParamsUpdateHeight != s.AuthorizedAt || s.ActivationHeight < s.AuthorizedAt+3 || s.ValidatorUpdateHeight != s.ActivationHeight-2 || s.OriginalValidatorSetHash != b.record.ValidatorSetHash || s.RegistryEventCount == 0 || s.RegistryEventCount > uint64(len(registry.Events)) {
+		return nil, errors.New("invalid engine schedule anchor or actual H+1/H+2 ordering")
+	}
+	var prefix *ValidatorRegistryState
+	history := r.history
+	if history != nil && s.RegistryEventCount == uint64(len(registry.Events)) {
+		// The scheduled prefix is the complete, already verified history. Its
+		// historical membership source is the same fixed bootstrap; only the
+		// narrower replay-height bound and the independent prefix root remain.
+		// Check height first, matching replay's original first-error order.
+		for _, event := range registry.Events {
+			if event.Height > s.RegistryHeight {
+				return nil, errors.New("registry history index/height/order invalid")
+			}
+		}
+		if s.RegistryRoot != registry.Root {
+			return nil, errors.New("validator registry root differs from complete original history")
+		}
+		prefix = registry
+	} else {
+		prefix = cloneValidatorRegistry(registry)
+		prefix.Events = prefix.Events[:int(s.RegistryEventCount)]
+		prefix.Root = s.RegistryRoot
+		var err error
+		history, err = replayValidatorRegistry(prefix, b, s.RegistryHeight)
+		if err != nil {
+			return nil, err
+		}
 	}
 	set, err := pqMembersAt(b, history, prefix, s.ActivationHeight)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(set.Validators) != len(b.record.Members) || hex.EncodeToString(set.Hash()) != s.ActivationValidatorSetHash {
-		return errors.New("engine schedule changed complete initial PQ membership")
+		return nil, errors.New("engine schedule changed complete initial PQ membership")
 	}
 	for _, event := range registry.Events[int(s.RegistryEventCount):] {
 		reg, err := ynxconsensusauth.DecodeRegistration(event.Wire)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if reg.Intent.EffectiveAt <= s.ActivationHeight {
-			return errors.New("later key event conflicts with committed initial activation")
+			return nil, errors.New("later key event conflicts with committed initial activation")
 		}
 	}
-	return nil
+	return &validatedPQEngineSchedule{registry: r, schedule: s}, nil
 }
 
 func validatePQEngineScheduleContinuation(previous, next *PQEngineSchedule) error {
