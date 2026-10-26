@@ -54,7 +54,7 @@ func main(){if len(os.Args)<2||os.Args[1]!="--build-info"{os.Exit(93)};json.NewE
         self.assertEqual((record['commit'], record['tree']), (self.commit, self.tree))
         self.assertEqual(record['sourceBefore'], {'head': self.commit, 'tree': self.tree, 'status': ''})
         self.assertEqual(record['sourceBefore'], record['sourceAfter'])
-        self.assertEqual(record['buildIdentity']['release'], 'ynx-native-transition-' + self.commit[:12])
+        self.assertEqual(record['buildIdentity']['release'], 'ynx-chain-' + self.commit[:12])
         self.assertEqual(json.loads(record['buildIdentityReadback']['raw']), record['buildIdentity'])
         self.assertTrue(record['informationalExitExecuted'])
         for field in ('runtimeStarted', 'publicDeployment', 'pqActivation', 'authorityGranted', 'deploymentReady'):

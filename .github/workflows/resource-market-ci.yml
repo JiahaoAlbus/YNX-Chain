@@ -2412,6 +2412,7 @@ jobs:
               'cmd/ynx-consensus-package/migration_public_summary_test.go',
               'cmd/ynx-consensus-package/migration_import_storage.go', 'cmd/ynx-consensus-package/migration_import_storage_test.go',
               'scripts/ops/build-native-transition-candidate.sh', 'scripts/ops/test_build_native_transition_candidate.py',
+              'scripts/verify/lib/public-bft-native-source.mjs', 'scripts/ops/remote/public-bft-native-identity.py',
               'package.json', 'package-lock.json', 'hardhat.config.ts',
               'scripts/contracts/generate-selector-metadata.mjs', 'scripts/contracts/hardhat-output.mjs',
               'scripts/contracts/apply-hardhat-zod4-compat.mjs',
@@ -2493,6 +2494,45 @@ jobs:
             --source-commit "$GITHUB_SHA" \
             --source-tree "$(git rev-parse "$GITHUB_SHA^{tree}")" \
             --output-directory "$RUNNER_TEMP/ynx-native-transition-candidate"
+      - name: Verify actual native SOURCE against both unchanged original operator identity contracts
+        if: steps.scope.outputs.changed == 'true'
+        run: |
+          export YNX_NATIVE_SOURCE="$RUNNER_TEMP/ynx-native-transition-candidate/SOURCE.json"
+          node --input-type=module - <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          import {authoritativeIdentity} from './scripts/verify/lib/public-bft-native-source.mjs';
+          const raw=fs.readFileSync(process.env.YNX_NATIVE_SOURCE),source=JSON.parse(raw);
+          assert.equal(source.version,'YNX-NATIVE-TRANSITION-CANDIDATE/v1');
+          assert.equal(source.commit,process.env.GITHUB_SHA);
+          assert.equal(source.buildIdentity.commit,source.commit);
+          // PUBLIC path-shape fixture only. These pure validators do not issue
+          // a protected approval or inspect any real native process or ledger.
+          const authoritativeSource={statePath:'/public-fixture/original/devnet-state.json',integrityMarkerPath:'/public-fixture/original/devnet-state.integrity-version',pauseMarkerPath:'/public-fixture/original/pause',mutationMarkerPath:'/public-fixture/original/mutation'};
+          const input={authoritativeCommit:source.commit,authoritativeRelease:source.buildIdentity.release,authoritativeBinarySha256:source.binaries['ynx-chaind'].sha256,authoritativeSource};
+          assert.deepEqual(authoritativeIdentity(input),input);
+          for(const release of ['ynx-native-transition-'+source.commit.slice(0,12),'pq-offline-validation'])assert.throws(()=>authoritativeIdentity({...input,authoritativeRelease:release}),/authoritative release differs/);
+          console.log('YNX_NATIVE_OPERATOR_JS_CONTRACT '+JSON.stringify({sourceCommit:source.commit,sourceSHA256:createHash('sha256').update(raw).digest('hex'),release:input.authoritativeRelease,validated:true,syntheticPathsOnly:true,originalProcessObserved:false,authorityGranted:false}));
+          JS
+          python3 -B - <<'PY'
+          import hashlib, json, os, runpy
+          from pathlib import Path
+          raw=Path(os.environ['YNX_NATIVE_SOURCE']).read_bytes(); source=json.loads(raw)
+          validate=runpy.run_path('scripts/ops/remote/public-bft-native-identity.py',run_name='native_transition_contract')['source_identity']
+          paths=dict(statePath='/public-fixture/original/devnet-state.json',integrityMarkerPath='/public-fixture/original/devnet-state.integrity-version',pauseMarkerPath='/public-fixture/original/pause',mutationMarkerPath='/public-fixture/original/mutation')
+          def check(release):
+              return validate(paths,source['commit'],release,source['binaries']['ynx-chaind']['sha256'],'public-native-transition-contract',source['commit'][:12])
+          assert check(source['buildIdentity']['release'])==paths
+          for release in ('ynx-native-transition-'+source['commit'][:12],'pq-offline-validation'):
+              try:
+                  check(release)
+              except ValueError:
+                  pass
+              else:
+                  raise RuntimeError('unchanged original native identity accepted an incompatible build label')
+          print('YNX_NATIVE_OPERATOR_PYTHON_CONTRACT '+json.dumps(dict(sourceCommit=source['commit'],sourceSHA256=hashlib.sha256(raw).hexdigest(),release=source['buildIdentity']['release'],validated=True,syntheticPathsOnly=True,originalProcessObserved=False,authorityGranted=False),sort_keys=True,separators=(',',':')))
+          PY
       - name: Upload the closed normal native candidate without any keys or chain data
         if: steps.scope.outputs.changed == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

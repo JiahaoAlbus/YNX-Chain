@@ -93,7 +93,7 @@ before = source_observation()
 require(command(['go', 'version']).strip() == b'go version go1.26.10 linux/amd64', 'normal pinned Linux Go1.26.10 required')
 output.mkdir(mode=0o700)
 binary = output / 'ynx-chaind'
-build = dict(commit=commit, release='ynx-native-transition-' + commit[:12],
+build = dict(commit=commit, release='ynx-chain-' + commit[:12],
              buildTime=datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'))
 flags = '-s -w -X main.buildCommit=' + build['commit'] + ' -X main.buildRelease=' + build['release'] + ' -X main.buildTime=' + build['buildTime']
 command(['go', 'build', '-p', '1', '-trimpath', '-buildvcs=true', '-ldflags', flags, '-o', str(binary), './cmd/ynx-chaind'], timeout=300)
