@@ -3,6 +3,9 @@ export const AUTH_SOURCE_V2:'YNX-AUTH-SOURCE/v2';
 export const AUTH_SOURCE_DOMAIN_V2:'YNX/AUTH/SOURCE-ORIGINAL/V2';
 export const AUTH_SOURCE_STATEMENT_CAP:393216;
 export type OriginalAuthSourceV2Role='enrollment'|'profile'|'current';
+/** Shared pre-role-key/private-sign body validation DATA. Never issuance,
+ * approval, a registered Source service or a global device revocation grant. */
+export function inspectOriginalProductDeviceV4IssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;dataOnly:true;authorized:false;nativeAdmission:false}>;
 export type OriginalAuthSourceJSON=null|boolean|number|string|readonly OriginalAuthSourceJSON[]|{readonly [key:string]:OriginalAuthSourceJSON};
 export interface OriginalAuthSourceV2Context {
  readonly networkId:string;readonly owner:string;

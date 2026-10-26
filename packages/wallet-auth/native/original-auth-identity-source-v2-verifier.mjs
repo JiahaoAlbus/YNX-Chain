@@ -104,6 +104,35 @@ export function selectOriginalAuthSourceAlgorithm(subjectSnapshot,credentialVers
  if(credentialVersion!==1)fail('AUTH_SOURCE_V2_SUBJECT_MIGRATION_REQUIRED');
  return Object.freeze({algorithmVersion:'ed25519',keyVersion:null,dataOnly:true,nativeAdmission:false});
 }
+// Same device body checks are used BEFORE protected role-key access/signing
+// and AFTER registered envelope verification. DATA is not a Root/role grant.
+function deviceEnrollmentBodyDATA(root,e,policy,registrations,atMs){
+ exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
+ if(e.version!==2||e.purpose!==PRODUCT_DEVICE_V4_SOURCE_PURPOSE||root.purpose!==e.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==e.purpose||e.productId!==policy.productId||e.platform!=='macos'||e.applicationId!==policy.applicationId||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||!absolute(e.currentStatePath)||canonical(e.operations)!==canonical(PRODUCT_DEVICE_V4_SOURCE_OPERATIONS))fail('AUTH_SOURCE_V2_DEVICE_ENROLLMENT_BODY');
+ window(e,atMs,86400000);const height=registrations.root.executionHeight,records=[active(registrations.root,root.networkId,root.rootOwner,height),active(registrations.profile,root.networkId,e.profileOwner,height),active(registrations.current,root.networkId,e.currentOwner,height)];
+ for(let i=0;i<records.length;i++)for(let j=0;j<i;j++)if(records[i].pkA===records[j].pkA||records[i].pkB===records[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
+}
+function deviceProfileBodyDATA(root,e,p,policy,registrations,atMs){
+ exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
+ if(p.version!==2||p.purpose!==PRODUCT_DEVICE_V4_SOURCE_PURPOSE||p.sourceId!==e.sourceId||p.enrollmentDigest!==policy.enrollmentDigest||!token(p.instanceId)||!integer(p.generation)||p.generation<1||!integer(p.minimumSequence)||p.minimumSequence<1||!integer(p.minimumFloor)||p.minimumFloor>p.minimumSequence||!owner(p.subjectOwner))fail('AUTH_SOURCE_V2_PROFILE');
+ window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
+ const s=p.selection;exact(s,['association','expectedRequest','originalHostStatePath','originalHostTerminalDirectory','productSessionDeviceV4']);const a=s.association;exact(a,['account','clientId','productId','platform','applicationId','deviceId']);
+ if(Object.values(a).some(x=>typeof x!=='string'||!x||x.length>512)||a.productId!==e.productId||a.platform!==e.platform||a.applicationId!==e.applicationId)fail('AUTH_SOURCE_V2_ASSOCIATION');
+ const r=s.expectedRequest;exact(r,['service','productId','platform','applicationId','gatewayOrigin','registryDigest','operations','instanceId']);
+ if(r.service!==e.service||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(PRODUCT_DEVICE_V4_SOURCE_OPERATIONS)||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('AUTH_SOURCE_V2_REQUEST');
+ const data=inspectOriginalProductDeviceV4SourceScopeDATA(s.productSessionDeviceV4,a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs),height=registrations.root.executionHeight;
+ for(const [snapshot,id]of [[registrations.root,root.rootOwner],[registrations.profile,e.profileOwner],[registrations.current,e.currentOwner],[registrations.subject,p.subjectOwner]]){const record=active(snapshot,root.networkId,id,height);if(record.pkA===data.devicePublic.pkA||record.pkB===data.devicePublic.pkB)fail('AUTH_SOURCE_V2_DEVICE_KEY_ROLE_COLLISION');}
+ const accountRecord=active(registrations.subject,root.networkId,p.subjectOwner,height);for(const k of ['pkA','pkB','revision','registeredAt','activeFrom'])if(accountRecord[k]!==data.accountAuthorization[k])fail('AUTH_SOURCE_V2_DEVICE_ACCOUNT_CURRENT_CHANGED');
+ return data;
+}
+export function inspectOriginalProductDeviceV4IssuanceBodyDATA(role,rootRaw,enrollmentRaw,bodyRaw,policy,registrations,atMs){
+ const contract=sourcePolicy(policy);if(contract.purpose!==PRODUCT_DEVICE_V4_SOURCE_PURPOSE||!['enrollment','profile'].includes(role))fail('AUTH_SOURCE_V2_DEVICE_ISSUANCE_ROLE_REQUIRED');exact(registrations,['root','profile','current','subject']);
+ const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);if(sha(rootRaw)!==policy.rootDigest||root.version!==2||root.algorithmVersion!==suite||root.purpose!==contract.purpose||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
+ const body=parse(bodyRaw,65536);
+ if(role==='enrollment')deviceEnrollmentBodyDATA(root,body,policy,registrations,atMs);
+ else{const verified=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);deviceProfileBodyDATA(root,verified.enrollment,body,policy,registrations,atMs);}
+ return Object.freeze({role,bodySHA256:sha(bodyRaw),dataOnly:true,authorized:false,nativeAdmission:false});
+}
 export function verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs){
  const contract=sourcePolicy(policy);
  const pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE,device=contract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE;
@@ -115,6 +144,7 @@ export function verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,polic
  // Root authority is the independently pinned original, NOT certificate keys.
  const enrollment=envelope(enrollmentRaw,'enrollment',contract.enrollmentFrame,registrations.root,root.networkId,root.rootOwner);
  const e=enrollment.body;
+ if(device)deviceEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
  if(e.version!==2||e.purpose!==contract.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==(device?PRODUCT_DEVICE_V4_SOURCE_PURPOSE:pqCatalog?PQ_HOST_CATALOG_SOURCE_PURPOSE:relay?relayPurpose:projectAuthority?projectPurpose:control?controlPurpose:publication?ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE:'wallet-product-session-v2')||e.productId!==(device?policy.productId:pqCatalog?'wallet':'developer')||e.platform!=='macos'||e.applicationId!==((device||pqCatalog)?policy.applicationId:'com.ynxweb4.developer.testnetpreview')||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||canonical(e.operations)!==canonical(expectedOps)||!absolute(e.currentStatePath))fail('AUTH_SOURCE_V2_ENROLLMENT');
  window(e,atMs,86400000);
@@ -139,12 +169,7 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  if(Object.values(a).some(x=>typeof x!=='string'||!x||x.length>512)||a.productId!==e.productId||a.platform!==e.platform||a.applicationId!==e.applicationId)fail('AUTH_SOURCE_V2_ASSOCIATION');
  if(pqCatalog)inspectOriginalPQHostCatalogSourceScopeDATA(s.pqHostCatalogSource,a,root.networkId,p.expiresAtMs,atMs);
  else if(Object.hasOwn(s,'pqHostCatalogSource'))fail('AUTH_SOURCE_V2_PQ_CATALOG_DEDICATED_PURPOSE_REQUIRED');
- if(device){
-  const data=inspectOriginalProductDeviceV4SourceScopeDATA(s.productSessionDeviceV4,a,root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs),height=registrations.root.executionHeight;
-  for(const [snapshot,id]of [[registrations.root,root.rootOwner],[registrations.profile,e.profileOwner],[registrations.current,e.currentOwner],[registrations.subject,p.subjectOwner]]){const record=active(snapshot,root.networkId,id,height);if(record.pkA===data.devicePublic.pkA||record.pkB===data.devicePublic.pkB)fail('AUTH_SOURCE_V2_DEVICE_KEY_ROLE_COLLISION');}
-  const accountRecord=active(registrations.subject,root.networkId,p.subjectOwner,height),authority=data.accountAuthorization;
-  for(const k of ['pkA','pkB','revision','registeredAt','activeFrom'])if(accountRecord[k]!==authority[k])fail('AUTH_SOURCE_V2_DEVICE_ACCOUNT_CURRENT_CHANGED');
- }
+ if(device)deviceProfileBodyDATA(root,e,p,policy,registrations,atMs);
  else if(Object.hasOwn(s,'productSessionDeviceV4'))fail('AUTH_SOURCE_V2_DEVICE_DEDICATED_PURPOSE_REQUIRED');
  const r=s.expectedRequest;
  if(!r||r.service!==e.service||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(expectedOps)||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('AUTH_SOURCE_V2_REQUEST');

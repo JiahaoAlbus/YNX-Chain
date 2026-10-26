@@ -1,5 +1,5 @@
 import {PQ_SUITE} from './pq-wallet-contract.js';
-import {acquireOriginalProductSessionDeviceV4SourceStage as acquireNative} from './original-auth-identity-private-joint-registration.js';
+import {acquireOriginalProductSessionDeviceV4SourceStage as acquireNative} from './original-auth-identity-fixed-native-image.js';
 /** Fixed original image only. This consumer preserves actual Native held values
  * and original AbortContext. It supplies no key, proof producer or permission. */
 export function acquireOriginalProductSessionDeviceV4SourceStage(...args){
