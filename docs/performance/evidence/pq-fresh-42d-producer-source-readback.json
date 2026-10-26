@@ -1,0 +1,202 @@
+{
+  "candidate": "42d12277b61b92e82ca96e9e112e437274c6444f",
+  "tree": "a64e56bda03e986130c360c530fd9eb4e021c899",
+  "runId": "40342338863",
+  "sourcePin": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/FRESH_SOURCE_FROM_ACTUAL_CI.json",
+    "bytes": 3540,
+    "sha256": "401ef8bc5725d0ac2fefa4159c6f192e68871c1cdd5c37d8cbcb2f72987f1f17"
+  },
+  "originalSourcePinMarker": {
+    "bytes": 3540,
+    "sha256": "401ef8bc5725d0ac2fefa4159c6f192e68871c1cdd5c37d8cbcb2f72987f1f17"
+  },
+  "deliveryRawPin": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-42d12277b/DELIVERY_JOB.log.raw",
+    "bytes": 541360,
+    "sha256": "a3b133b04ab2af445452e907ccc52aab33e592170240ddf9d5d9bcb2b0fa9b26"
+  },
+  "normalRuntimeProducer": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-42d-preparation/RUNTIME_CLEAN_BUILD_FROM_ACTUAL_CI.json",
+    "bytes": 47217,
+    "sha256": "036ca20aa576b356a64c4256425ffb94c2bd259f19ef6e7b18a6c739b161af1b"
+  },
+  "actualRuntimeGoInfoRoles": [
+    "ynx-abci",
+    "ynx-bft-gatewayd",
+    "ynx-comet",
+    "ynx-consensus-keycheck",
+    "ynx-consensus-package",
+    "ynx-consensus-pq-key-init",
+    "ynx-consensus-pq-remote-signer",
+    "ynx-consensus-proof-verify"
+  ],
+  "binaries": {
+    "consensus.test": {
+      "bytes": 54529977,
+      "sha256": "b5acdcb8c4615ef2c97601cb15103bd9166081a797e6d98c583aa5bbb14b5219",
+      "commit": "42d12277b61b92e82ca96e9e112e437274c6444f"
+    },
+    "ynx-bft-gatewayd": {
+      "bytes": 37164362,
+      "sha256": "66e75c84b956cacfdf275651559756d346e57a3ff35855e4b5bae13b3f801c36",
+      "commit": "42d12277b61b92e82ca96e9e112e437274c6444f"
+    },
+    "ynx-consensus-perf-client": {
+      "bytes": 38595797,
+      "sha256": "a34a55a856e021c71565b1155b2767951e73147771841fc80f73f6e582a6edec",
+      "commit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8"
+    },
+    "ynx-consensus-proof-verify": {
+      "bytes": 36882584,
+      "sha256": "666f2d14c3e71c00d3801ae3c2d0fc976726e9714e9bd031b95ccd02dd1093b2",
+      "commit": "42d12277b61b92e82ca96e9e112e437274c6444f"
+    }
+  },
+  "sourceLeaves": {
+    "internal/consensus/pq_network_business_test.go": "dcb8f38a96664c95fa3ac5e519716cad71b638501578a541942d85bab59991bf",
+    "internal/consensus/pq_network_e2e_test.go": "a6029a4e54a7cbe86e31fdc0a0e88ffac2d17940a709feb13d6f274de44829d2",
+    "internal/consensus/pq_network_fresh_business_test.go": "ad938ae9d31a3e157f823381a2b918a9a30ef479035f3e23e4663c3100d8c29e"
+  },
+  "clientIdentity": {
+    "commit": "70e7e450997a0ae77dbad5a8be3682f482c6ddd8",
+    "wholeTree": "4866cc3924c060eb6a29939915d39b1c5c625607",
+    "commandTree": "19b9fafcfbb3f434b9ff745fb785afb1d0741247",
+    "producerCommit": "da3060e150e2bd0f5695d67a76f3b30fafd1c696"
+  },
+  "originalManifestExpectedPin": {
+    "bytes": 1743,
+    "sha256": "17d35263019423ed320fc660bfa21590b75b10e1b7957f24a959f5bcbe2972e3"
+  },
+  "closedFreshArchiveExpectedFiles": 11,
+  "localArchiveDownloaded": false,
+  "localArchiveVerified": false,
+  "localELFExecuted": false,
+  "localELFGoInfoReadback": false,
+  "consensusTestEmbeddedVCSClaimed": false,
+  "sameSourceNormalWholeVerified": true,
+  "officialFreshArtifactTupleVerified": true,
+  "executionAuthorized": false,
+  "runtimeStarted": false,
+  "sustainedTPSQualified": false,
+  "wholeCI": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-42d12277b/HANDOFF_WHOLE_CI.json",
+    "bytes": 22525,
+    "sha256": "2080a862d3337ef8643488283bf8bbc9adff5aa6ef3018eeb81ad9ea9331faf5"
+  },
+  "frozenRefHandoff": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/frozen-ref-42d12277b/HANDOFF_FROZEN_REF.json",
+    "bytes": 2740,
+    "sha256": "ec1c22f48ee3fb57bb30e109d1b08e6318e848e3285771ef88bff90de48ae8a5"
+  },
+  "frozenRefReadback": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/frozen-ref-42d12277b/REF_READBACK.json",
+    "bytes": 529,
+    "sha256": "25ecf1b70de40ea6395dfba29994dfa83129fa5d073c1be1c39e752c5acb6774"
+  },
+  "freshArtifact": {
+    "role": "freshBusiness",
+    "id": 12660074419,
+    "name": "ynx-pq-fresh-paired-business-build-42d12277b61b92e82ca96e9e112e437274c6444f-40342338863-1",
+    "archiveBytes": 82301327,
+    "officialArchiveSHA256": "0532142d6a2821ea62f9d500a16f9bfb8b4b1d43a73d6bc4c8a8a60b389a8e81",
+    "officialDigest": "sha256:0532142d6a2821ea62f9d500a16f9bfb8b4b1d43a73d6bc4c8a8a60b389a8e81",
+    "protocolCommit": "42d12277b61b92e82ca96e9e112e437274c6444f",
+    "gitSourceTree": "a64e56bda03e986130c360c530fd9eb4e021c899",
+    "runId": 40342338863,
+    "workflowRun": {
+      "id": 40342338863,
+      "repository_id": 1285041796,
+      "head_repository_id": 1285041796,
+      "head_branch": "codex/ynx-pq-perf-integration",
+      "head_sha": "42d12277b61b92e82ca96e9e112e437274c6444f"
+    },
+    "expired": false,
+    "downloadedLocally": false,
+    "wholeArchiveBytesVerifiedLocally": false
+  },
+  "stageArtifact": {
+    "role": "stageInputs",
+    "id": 12659802957,
+    "name": "ynx-pq-stage-inputs-42d12277b61b92e82ca96e9e112e437274c6444f-40342338863-1",
+    "archiveBytes": 12187601,
+    "officialArchiveSHA256": "e5e9beddc8493264a00c34ec26f54bb6e3662345e2023dab18d7155755f19841",
+    "officialDigest": "sha256:e5e9beddc8493264a00c34ec26f54bb6e3662345e2023dab18d7155755f19841",
+    "protocolCommit": "42d12277b61b92e82ca96e9e112e437274c6444f",
+    "gitSourceTree": "a64e56bda03e986130c360c530fd9eb4e021c899",
+    "runId": 40342338863,
+    "workflowRun": {
+      "id": 40342338863,
+      "repository_id": 1285041796,
+      "head_repository_id": 1285041796,
+      "head_branch": "codex/ynx-pq-perf-integration",
+      "head_sha": "42d12277b61b92e82ca96e9e112e437274c6444f"
+    },
+    "expired": false,
+    "downloadedLocally": false,
+    "wholeArchiveBytesVerifiedLocally": false
+  },
+  "suppliedWholeRefsVerified": 20,
+  "suppliedRefRefsVerified": 6,
+  "all38SourceContractsVerified": true,
+  "actualGoRegressions": {
+    "sourceCommit": "42d12277b61b92e82ca96e9e112e437274c6444f",
+    "sourceTree": "a64e56bda03e986130c360c530fd9eb4e021c899",
+    "runId": 40342338863,
+    "jobId": 121640090653,
+    "jobConclusion": "success",
+    "focusedReceipt": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-42d12277b/FOCUSED_REGRESSIONS.json",
+      "bytes": 2674,
+      "sha256": "762ce961bb7cc25d0080e38def202684defd83828f89e18bae7dc08252a27ce0"
+    },
+    "originalRaw": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/ci-42d12277b/FOCUSED_JOB.log.raw",
+      "bytes": 550304,
+      "sha256": "aef7ec080f0de579706a34a5e823531618fe6918416ddfc96f13f63fe3194005"
+    },
+    "actualScriptValidatedMarkers": {
+      "YNX_INITIAL_CACHE_STATE_TESTS": {
+        "performanceMeasured": false,
+        "requiredPassed": [
+          "TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash",
+          "TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold",
+          "TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis",
+          "TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming",
+          "TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas",
+          "TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer",
+          "TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets",
+          "TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds",
+          "TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting",
+          "TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation",
+          "TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles",
+          "TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory",
+          "TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads",
+          "TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip"
+        ],
+        "sourceCommit": "42d12277b61b92e82ca96e9e112e437274c6444f",
+        "suitePassed": true
+      },
+      "YNX_INITIAL_CACHE_CRYPTO_TESTS": {
+        "performanceMeasured": false,
+        "requiredPassed": [
+          "TestPQInitialPossessionCacheRetainsBothProofsAndLiveBinding",
+          "TestPQInitialPossessionCacheSeventeenCertificatesRemainBoundedAndSeparated"
+        ],
+        "sourceCommit": "42d12277b61b92e82ca96e9e112e437274c6444f",
+        "suitePassed": true
+      }
+    },
+    "newGoCasesPassed": 3,
+    "stateCasesPassed": 14,
+    "cryptoCasesPassed": 2,
+    "wholeNormalCIQualified": false,
+    "normalStageOrFreshSupplyQualified": false,
+    "localGoTestsRerun": false,
+    "networkRuntimeExecuted": false,
+    "performanceImprovementMeasured": false,
+    "sustainedTPSQualified": false
+  },
+  "runtimeStillUnmeasured": true,
+  "newRootWindowAuthorized": false
+}
