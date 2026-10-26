@@ -231,7 +231,7 @@ func newPersistentApplicationOwned(witness *validatedMigration, statePath string
 		if authorization.schedule.RegistryHeight != committed.Height {
 			return nil, errors.New("operator schedule must bind the actual committed registry height")
 		}
-		if _, err := newPQEngineSnapshot(bootstrap, committed.ValidatorRegistry, authorization.schedule, authorization.schedule.AuthorizedAt); err != nil {
+		if _, err := newPQEngineSnapshotOwned(witness, bootstrap, committed.ValidatorRegistry, authorization.schedule, authorization.schedule.AuthorizedAt); err != nil {
 			return nil, fmt.Errorf("validate independently authorized engine candidate: %w", err)
 		}
 	}
@@ -770,7 +770,7 @@ func (a *Application) validateEngineNextValidatorsHash(height int64, hash []byte
 	if err := a.pqEngineAuthorization.ValidateCommittedSchedule(a.committed.PQEngineSchedule, a.committed.Height); err != nil {
 		return err
 	}
-	snapshot, err := newPQEngineSnapshot(a.bootstrap, a.committed.ValidatorRegistry, a.committed.PQEngineSchedule, a.committed.Height)
+	snapshot, err := newPQEngineSnapshotOwned(a.validatedMigration, a.bootstrap, a.committed.ValidatorRegistry, a.committed.PQEngineSchedule, a.committed.Height)
 	if err != nil {
 		return err
 	}
@@ -930,7 +930,7 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	}
 	response := &abcitypes.ResponseFinalizeBlock{TxResults: results, AppHash: appHash}
 	if a.bootstrap != nil {
-		snapshot, err := newPQEngineSnapshot(a.bootstrap, pending.ValidatorRegistry, pending.PQEngineSchedule, req.Height)
+		snapshot, err := newPQEngineSnapshotOwned(a.validatedMigration, a.bootstrap, pending.ValidatorRegistry, pending.PQEngineSchedule, req.Height)
 		if err != nil {
 			return nil, err
 		}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxconsensusauth"
 )
 
 // This separate use of the existing bounded certificate API does not alter the
@@ -32,6 +33,8 @@ type validatedMigration struct {
 	canonicalBytes      int
 	initialCertificates *ynxbatch.CertificateCache
 	initialScope        []byte
+	historyCertificates *chain.PQCertificateCache
+	registryMath        *ynxconsensusauth.RegistrationMathCache
 }
 
 // Counts actual complete validations at this ownership boundary, not dynamic
@@ -56,6 +59,14 @@ func newValidatedMigration(migration chain.ConsensusMigrationState, bootstrap *C
 		return nil, err
 	}
 	witness := &validatedMigration{migration: detached, bootstrap: detachValidatedBootstrap(bootstrap), canonicalHash: canonicalHash, canonicalBytes: stream.count}
+	witness.historyCertificates = chain.NewPQHistoryCertificateCache()
+	if witness.bootstrap != nil {
+		cache, err := ynxconsensusauth.NewRegistrationMathCache(witness.bootstrap.genesisID)
+		if err != nil {
+			return nil, err
+		}
+		witness.registryMath = cache
+	}
 	if witness.bootstrap != nil && witness.bootstrap.record.PQInitialAccounts != nil {
 		cache, err := ynxbatch.NewCertificateCache(initialRegistrationCertificateEntries)
 		if err != nil {

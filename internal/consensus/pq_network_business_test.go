@@ -742,14 +742,50 @@ func (b *pqNetworkBusiness) collect(n *pqNetworkE2E, label string, payload []byt
 }
 
 func (b *pqNetworkBusiness) lightBlock(n *pqNetworkE2E, height int64) *cmttypes.LightBlock {
+	block, err := b.prepareLightBlock(n.ctx, n, height)
+	if err != nil {
+		n.t.Fatal(err)
+	}
+	return block
+}
+
+func (b *pqNetworkBusiness) prepareLightBlock(ctx context.Context, n *pqNetworkE2E, height int64) (*cmttypes.LightBlock, error) {
+	if ctx == nil || n == nil || n.doc == nil || len(n.nodes) == 0 || height < 1 {
+		return nil, errors.New("original Host light-block inputs required")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	item := n.nodes[0]
+	if item == nil || item.node == nil || item.store == nil {
+		return nil, errors.New("original Host node/store required")
+	}
 	block := item.node.BlockStore().LoadBlock(height)
 	set, err := item.store.LoadValidators(height)
 	commit := item.node.BlockStore().LoadSeenCommit(height)
 	if err != nil || block == nil || set == nil || commit == nil || set.VerifyCommit(n.doc.ChainID, commit.BlockID, height, commit) != nil || !bytes.Equal(commit.BlockID.Hash, block.Hash()) {
-		n.t.Fatal("Host original BlockStore/validator-set target failed full verification")
+		return nil, errors.New("Host original BlockStore/validator-set target failed full verification")
 	}
-	return &cmttypes.LightBlock{SignedHeader: &cmttypes.SignedHeader{Header: &block.Header, Commit: commit}, ValidatorSet: set}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	return &cmttypes.LightBlock{SignedHeader: &cmttypes.SignedHeader{Header: &block.Header, Commit: commit}, ValidatorSet: set}, nil
+}
+
+// Subspans do not overlap; Total includes them. These are wall-clock spans,
+// never CPU time or an authorization/proof result. Capture includes App locking;
+// retryWait includes only the unchanged bounded crossing retry wait.
+type pqBusinessHostPreparationTimings struct {
+	TotalWallNs              int64 `json:"totalWallNs"`
+	LightBlocksWallNs        int64 `json:"lightBlocksWallNs"`
+	InputEncodingWallNs      int64 `json:"inputEncodingWallNs"`
+	CheckpointLoadWallNs     int64 `json:"checkpointLoadWallNs"`
+	CheckpointCaptureWallNs  int64 `json:"checkpointCaptureWallNs"`
+	CheckpointDecodeWallNs   int64 `json:"checkpointDecodeWallNs"`
+	CheckpointValidateWallNs int64 `json:"checkpointValidateWallNs"`
+	CheckpointRetryWaitNs    int64 `json:"checkpointRetryWaitNs"`
+	RetainInputsWallNs       int64 `json:"retainInputsWallNs"`
+	ContextWriteWallNs       int64 `json:"contextWriteWallNs"`
 }
 
 // Diagnostics contain only public coordinates and fixed phase labels. Keep the
@@ -769,6 +805,10 @@ func (e *pqBusinessCheckpointFailure) Error() string {
 func (e *pqBusinessCheckpointFailure) Unwrap() error { return e.cause }
 
 func pqBusinessCheckpointState(app *Application, actual sm.State, raw []byte, minimumHeight int64, attempt int) error {
+	return pqBusinessCheckpointStateMeasured(app, actual, raw, minimumHeight, attempt, nil)
+}
+
+func pqBusinessCheckpointStateMeasured(app *Application, actual sm.State, raw []byte, minimumHeight int64, attempt int, timing *pqBusinessHostPreparationTimings) error {
 	failure := &pqBusinessCheckpointFailure{read: "captured", decode: "not-attempted", engineHeight: actual.LastBlockHeight, minimum: minimumHeight, attempt: attempt}
 	if app == nil || minimumHeight < 1 || actual.LastBlockHeight < 0 || len(raw) < 1 || len(raw) > 32<<20 {
 		failure.phase, failure.read = "bounded-state-required", "invalid-capture"
@@ -778,7 +818,12 @@ func pqBusinessCheckpointState(app *Application, actual sm.State, raw []byte, mi
 	// These bytes come from the original Application's canonical full-state
 	// encoder. The light-proof parser's validator/token limits do not apply to
 	// complete application history; strict decode and full Validate do.
-	if err := decodeStrictJSON(raw, &state); err != nil {
+	decodeStarted := time.Now()
+	decodeErr := decodeStrictJSON(raw, &state)
+	if timing != nil {
+		timing.CheckpointDecodeWallNs += time.Since(decodeStarted).Nanoseconds()
+	}
+	if err := decodeErr; err != nil {
 		failure.phase, failure.decode = "state-decode-failed", "failed"
 		failure.cause = err
 		return failure
@@ -795,14 +840,19 @@ func pqBusinessCheckpointState(app *Application, actual sm.State, raw []byte, mi
 	// The migration/bootstrap are the original Application's immutable owned
 	// inputs, not the current mutable committed maps or a supplied fixture/RPC.
 	app.mu.RLock()
-	migration, bootstrap := app.migration, app.bootstrap
+	witness, bootstrap := app.validatedMigration, app.bootstrap
 	app.mu.RUnlock()
-	if bootstrap == nil || actual.ChainID != bootstrap.record.ChainID {
+	if bootstrap == nil || witness == nil || actual.ChainID != bootstrap.record.ChainID {
 		failure.phase = "original-chain-mismatch"
 		return failure
 	}
 	state.bootstrap = bootstrap
-	if err := state.Validate(migration); err != nil {
+	validateStarted := time.Now()
+	validateErr := state.validateOwned(witness)
+	if timing != nil {
+		timing.CheckpointValidateWallNs += time.Since(validateStarted).Nanoseconds()
+	}
+	if err := validateErr; err != nil {
 		failure.phase, failure.cause = "complete-state-validation-failed", err
 		return failure
 	}
@@ -813,6 +863,10 @@ func pqBusinessCheckpointState(app *Application, actual sm.State, raw []byte, mi
 // exporter remains one-shot. A successful full encoding is an immutable SAME
 // historical engine/App checkpoint: never retry its validation or move target.
 func pqBusinessCaptureCheckpoint(ctx context.Context, app *Application, loadActual func() (sm.State, error), minimumHeight int64) (sm.State, []byte, error) {
+	return pqBusinessCaptureCheckpointMeasured(ctx, app, loadActual, minimumHeight, nil)
+}
+
+func pqBusinessCaptureCheckpointMeasured(ctx context.Context, app *Application, loadActual func() (sm.State, error), minimumHeight int64, timing *pqBusinessHostPreparationTimings) (sm.State, []byte, error) {
 	const attempts = 8
 	if ctx == nil || app == nil || loadActual == nil || minimumHeight < 1 {
 		return sm.State{}, nil, &pqBusinessCheckpointFailure{phase: "original-capture-input-required", read: "not-attempted", decode: "not-attempted", minimum: minimumHeight}
@@ -821,17 +875,31 @@ func pqBusinessCaptureCheckpoint(ctx context.Context, app *Application, loadActu
 		if err := ctx.Err(); err != nil {
 			return sm.State{}, nil, &pqBusinessCheckpointFailure{phase: "capture-context-ended", read: "not-attempted", decode: "not-attempted", minimum: minimumHeight, attempt: attempt, cause: err}
 		}
+		loadStarted := time.Now()
 		actual, err := loadActual()
+		if timing != nil {
+			timing.CheckpointLoadWallNs += time.Since(loadStarted).Nanoseconds()
+		}
 		read := "engine-read-failed"
 		var raw []byte
 		if err == nil {
+			if contextErr := ctx.Err(); contextErr != nil {
+				return sm.State{}, nil, &pqBusinessCheckpointFailure{phase: "capture-context-ended", read: "engine-captured", decode: "not-attempted", engineHeight: actual.LastBlockHeight, minimum: minimumHeight, attempt: attempt, cause: contextErr}
+			}
 			read = "application-capture-failed"
 			// Do not hold Application.mu while calling the engine reader. The
 			// existing capture method takes its own normal read lock for encoding.
+			captureStarted := time.Now()
 			raw, err = app.captureProofHostCommittedJSON(actual)
+			if timing != nil {
+				timing.CheckpointCaptureWallNs += time.Since(captureStarted).Nanoseconds()
+			}
 		}
 		if err == nil {
-			if err = pqBusinessCheckpointState(app, actual, raw, minimumHeight, attempt); err != nil {
+			if contextErr := ctx.Err(); contextErr != nil {
+				return sm.State{}, nil, &pqBusinessCheckpointFailure{phase: "capture-context-ended", read: "captured", decode: "not-attempted", engineHeight: actual.LastBlockHeight, minimum: minimumHeight, attempt: attempt, cause: contextErr}
+			}
+			if err = pqBusinessCheckpointStateMeasured(app, actual, raw, minimumHeight, attempt, timing); err != nil {
 				return sm.State{}, nil, err
 			}
 			if err = ctx.Err(); err != nil {
@@ -848,12 +916,19 @@ func pqBusinessCaptureCheckpoint(ctx context.Context, app *Application, loadActu
 			return sm.State{}, nil, failure
 		}
 		timer := time.NewTimer(5 * time.Millisecond)
+		waitStarted := time.Now()
 		select {
 		case <-ctx.Done():
 			timer.Stop()
+			if timing != nil {
+				timing.CheckpointRetryWaitNs += time.Since(waitStarted).Nanoseconds()
+			}
 			failure.phase, failure.cause = "capture-context-ended", ctx.Err()
 			return sm.State{}, nil, failure
 		case <-timer.C:
+			if timing != nil {
+				timing.CheckpointRetryWaitNs += time.Since(waitStarted).Nanoseconds()
+			}
 		}
 	}
 	return sm.State{}, nil, &pqBusinessCheckpointFailure{phase: "commit-crossing-budget", read: "not-captured", decode: "not-attempted", minimum: minimumHeight, attempt: attempts}
@@ -864,55 +939,109 @@ func pqBusinessCheckpointErrorAt(err error, storeHeight, targetHeight int64) err
 }
 
 func (b *pqNetworkBusiness) hostContext(n *pqNetworkE2E, label, kind string, wire, payload []byte, height int64, index int) (string, string, json.RawMessage) {
-	if height < 1 || height == int64(1<<63-1) {
-		n.t.Fatal("Host original target height cannot have a committed successor")
+	path, pin, expected, err := b.prepareHostContext(n.ctx, n, label, kind, wire, payload, height, index)
+	if err != nil {
+		n.t.Fatal(err)
 	}
-	block, successor := b.lightBlock(n, height), b.lightBlock(n, height+1)
-	trusted := b.lightBlock(n, n.schedule.ActivationHeight)
+	return path, pin, expected
+}
+
+// The coordinator owns testing/logging and process starts. This entire call
+// graph returns errors, including cancellation; it never calls Fatal/Goexit.
+func (b *pqNetworkBusiness) prepareHostContext(ctx context.Context, n *pqNetworkE2E, label, kind string, wire, payload []byte, height int64, index int) (string, string, json.RawMessage, error) {
+	path, pin, expected, _, err := b.prepareHostContextMeasured(ctx, n, label, kind, wire, payload, height, index)
+	return path, pin, expected, err
+}
+
+func (b *pqNetworkBusiness) prepareHostContextMeasured(ctx context.Context, n *pqNetworkE2E, label, kind string, wire, payload []byte, height int64, index int) (path, pin string, expected json.RawMessage, timing pqBusinessHostPreparationTimings, err error) {
+	started := time.Now()
+	defer func() { timing.TotalWallNs = time.Since(started).Nanoseconds() }()
+	if ctx == nil {
+		err = errors.New("original Host preparation context required")
+		return
+	}
+	if err = ctx.Err(); err != nil {
+		return
+	}
+	if height < 1 || height == int64(1<<63-1) {
+		err = errors.New("Host original target height cannot have a committed successor")
+		return
+	}
+	if b == nil || n == nil || n.schedule == nil || label == "" || filepath.Base(label) != label || strings.ContainsAny(label, "/\\") || index < 0 {
+		err = errors.New("original bounded Host request required")
+		return
+	}
+	lightStarted := time.Now()
+	block, err := b.prepareLightBlock(ctx, n, height)
+	if err != nil {
+		return path, pin, expected, timing, err
+	}
+	successor, err := b.prepareLightBlock(ctx, n, height+1)
+	if err != nil {
+		return path, pin, expected, timing, err
+	}
+	trusted, err := b.prepareLightBlock(ctx, n, n.schedule.ActivationHeight)
+	if err != nil {
+		return path, pin, expected, timing, err
+	}
+	timing.LightBlocksWallNs = time.Since(lightStarted).Nanoseconds()
+	encodingStarted := time.Now()
 	statement := func(block *cmttypes.LightBlock) map[string]string {
 		return map[string]string{"chainId": block.ChainID, "headerHeight": strconv.FormatInt(block.Height, 10), "blockHash": hex.EncodeToString(block.Hash()), "stateHeight": strconv.FormatInt(block.Height-1, 10), "stateAppHash": hex.EncodeToString(block.AppHash)}
 	}
 	// This target never consumes an RPC response, client report or collector.
-	expected, err := json.Marshal(map[string]any{"block": statement(block), "successor": statement(successor), "transactionType": kind, "envelope": payload, "nativeWire": wire, "transactionHash": strings.TrimPrefix(SignedTransactionHash(payload), "0x"), "nativeWireHash": strings.TrimPrefix(SignedTransactionHash(wire), "0x"), "index": strconv.Itoa(index)})
+	expected, err = json.Marshal(map[string]any{"block": statement(block), "successor": statement(successor), "transactionType": kind, "envelope": payload, "nativeWire": wire, "transactionHash": strings.TrimPrefix(SignedTransactionHash(payload), "0x"), "nativeWireHash": strings.TrimPrefix(SignedTransactionHash(wire), "0x"), "index": strconv.Itoa(index)})
 	if err != nil {
-		n.t.Fatal(err)
+		return
 	}
 	migration, err := n.migration.CanonicalJSON()
 	if err != nil {
-		n.t.Fatal(err)
+		return path, pin, expected, timing, err
 	}
 	schedule, err := json.Marshal(n.schedule)
 	if err != nil {
-		n.t.Fatal(err)
+		return path, pin, expected, timing, err
 	}
 	scheduleHash, err := n.schedule.Hash()
 	if err != nil {
-		n.t.Fatal(err)
+		return path, pin, expected, timing, err
 	}
 	trustedRaw, err := cmtjson.Marshal(trusted)
 	if err != nil {
-		n.t.Fatal(err)
+		return path, pin, expected, timing, err
+	}
+	timing.InputEncodingWallNs = time.Since(encodingStarted).Nanoseconds()
+	if err = ctx.Err(); err != nil {
+		return
 	}
 	item := n.nodes[0]
 	view, err := item.node.ProofSourceView()
 	if err != nil {
-		n.t.Fatalf("Host original checkpoint unavailable: read=node-view-failed decode=not-attempted stateHeight=unknown engineHeight=unknown storeHeight=%d targetHeight=%d", item.node.BlockStore().Height(), height)
+		err = fmt.Errorf("Host original checkpoint unavailable: read=node-view-failed decode=not-attempted stateHeight=unknown engineHeight=unknown storeHeight=%d targetHeight=%d", item.node.BlockStore().Height(), height)
+		return
 	}
-	actual, stateRaw, err := pqBusinessCaptureCheckpoint(n.ctx, item.app, view.LoadState, height+1)
+	actual, stateRaw, err := pqBusinessCaptureCheckpointMeasured(ctx, item.app, view.LoadState, height+1, &timing)
 	if err != nil {
-		n.t.Fatal(pqBusinessCheckpointErrorAt(err, item.node.BlockStore().Height(), height))
+		err = pqBusinessCheckpointErrorAt(err, item.node.BlockStore().Height(), height)
+		return
 	}
 	// The node may advance after capture. The detached bytes already bind the
 	// exact authenticated engine height/AppHash and contain the required target
 	// successor. A later moving BlockStore tip is diagnostic, not that snapshot.
 	files := map[string][]byte{"migration": migration, "genesis": n.rawGenesis, "state": stateRaw, "schedule": schedule, "trusted": trustedRaw}
 	paths := map[string]string{}
+	retainStarted := time.Now()
 	for name, raw := range files {
+		if err = ctx.Err(); err != nil {
+			return
+		}
 		paths[name], err = b.retainHostInput(name, raw)
 		if err != nil {
-			n.t.Fatal(err)
+			return
 		}
 	}
+	timing.RetainInputsWallNs = time.Since(retainStarted).Nanoseconds()
+	writeStarted := time.Now()
 	light := map[string]string{
 		"version": "YNX-CONSENSUS-PROOF-TRUST/v1", "chainId": n.doc.ChainID,
 		"migrationFile": paths["migration"], "genesisFile": paths["genesis"], "stateFile": paths["state"], "scheduleFile": paths["schedule"],
@@ -923,11 +1052,119 @@ func (b *pqNetworkBusiness) hostContext(n *pqNetworkE2E, label, kind string, wir
 	}
 	raw, err := json.Marshal(map[string]any{"version": "YNX-CONSENSUS-TRANSACTION-PROOF-TRUST/v1", "lightTrust": light, "expectedTransaction": json.RawMessage(expected)})
 	if err != nil {
-		n.t.Fatal(err)
+		return path, pin, expected, timing, err
 	}
-	path := filepath.Join(b.root, label+".host-context.json")
-	pqBusinessWrite(n.t, path, raw)
-	return path, pqBusinessHash(raw), expected
+	if err = ctx.Err(); err != nil {
+		return
+	}
+	path, pin = filepath.Join(b.root, label+".host-context.json"), pqBusinessHash(raw)
+	err = writeProofDeliveryExclusive(b.root, label+".host-context.json", raw, pin)
+	timing.ContextWriteWallNs = time.Since(writeStarted).Nanoseconds()
+	if err == nil {
+		err = ctx.Err()
+	}
+	return
+}
+
+func TestPQNetworkBusinessHostPreparationReturnsErrorsWithoutGoexit(t *testing.T) {
+	root := pqBusinessPrivateHostInputRoot(t)
+	b := &pqNetworkBusiness{root: root}
+	for _, cancelled := range []bool{false, true} {
+		ctx, cancel := context.WithCancel(context.Background())
+		if cancelled {
+			cancel()
+		}
+		type outcome struct {
+			returned bool
+			err      error
+		}
+		done := make(chan outcome, 1)
+		go func() {
+			out := outcome{}
+			defer func() { done <- out }()
+			_, _, _, out.err = b.prepareHostContext(ctx, nil, "original", PQTransferType, nil, nil, 1, 0)
+			out.returned = true
+		}()
+		select {
+		case got := <-done:
+			if !got.returned || got.err == nil || cancelled && !errors.Is(got.err, context.Canceled) {
+				t.Fatal("preparation did not return its original error", got)
+			}
+		case <-time.After(time.Second):
+			t.Fatal("error-return preparation failed to join")
+		}
+		cancel()
+	}
+	if entries, err := os.ReadDir(root); err != nil || len(entries) != 0 {
+		t.Fatal("unavailable/cancelled source wrote Host inputs", err)
+	}
+}
+
+func TestPQNetworkBusinessHostPreparationUsesOwnedMathAndKeepsColdValidation(t *testing.T) {
+	f := newPQTransactionProofFixtureWithInitial(t, true)
+	h := f.light.harness
+	actual, err := h.raw.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	checks := validatedMigrationFullChecks.Load()
+	before := h.app.validatedMigration.initialCertificates.Stats()
+	var timing pqBusinessHostPreparationTimings
+	_, raw, err := pqBusinessCaptureCheckpointMeasured(context.Background(), h.app, h.raw.Load, actual.LastBlockHeight, &timing)
+	if err != nil {
+		t.Fatal(err)
+	}
+	after := h.app.validatedMigration.initialCertificates.Stats()
+	if validatedMigrationFullChecks.Load() != checks || after.Misses != before.Misses || after.Hits <= before.Hits {
+		t.Fatal("owned capture rebuilt the anchor or repeated admitted initial math", before, after)
+	}
+	if timing.CheckpointLoadWallNs <= 0 || timing.CheckpointCaptureWallNs <= 0 || timing.CheckpointDecodeWallNs <= 0 || timing.CheckpointValidateWallNs <= 0 {
+		t.Fatal("capture/decode/complete-validation spans were not measured", timing)
+	}
+	var state CommittedState
+	if err := decodeStrictJSON(raw, &state); err != nil {
+		t.Fatal(err)
+	}
+	state.bootstrap = h.f.bootstrap
+	if err := state.Validate(h.f.migration); err != nil || validatedMigrationFullChecks.Load() != checks+1 {
+		t.Fatal("independent public validation stopped rebuilding its cold anchor", err)
+	}
+	state.Accounts = cloneAccounts(state.Accounts)
+	state.Accounts[0].Balance++
+	state.AppHash, err = state.calculateHash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad, err := encodeCommittedStateJSON(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Rebuild the outer coordinate too: full state validation must reject the
+	// changed ledger even when a supplied H/hash no longer catches it first.
+	coordinate := actual
+	coordinate.AppHash, err = hex.DecodeString(state.AppHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := state.Validate(h.f.migration)
+	got := pqBusinessCheckpointState(h.app, coordinate, bad, actual.LastBlockHeight, 1)
+	if want == nil || got == nil || errors.Unwrap(got) == nil || errors.Unwrap(got).Error() != want.Error() {
+		t.Fatal("warm capture changed complete validation or its original failure", want, got)
+	}
+}
+
+func TestPQNetworkBusinessHostPreparationCancellationStopsBeforeCapture(t *testing.T) {
+	h := newEngineWiringHarness(t)
+	actual := h.apply(t, nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	var timing pqBusinessHostPreparationTimings
+	_, _, err := pqBusinessCaptureCheckpointMeasured(ctx, h.app, func() (sm.State, error) {
+		cancel()
+		return actual, nil
+	}, actual.LastBlockHeight, &timing)
+	if !errors.Is(err, context.Canceled) || timing.CheckpointCaptureWallNs != 0 || timing.CheckpointDecodeWallNs != 0 || timing.CheckpointValidateWallNs != 0 {
+		t.Fatal("cancelled worker continued into capture or full validation", err, timing)
+	}
 }
 
 func pqBusinessPrivateHostInputRoot(t *testing.T) string {

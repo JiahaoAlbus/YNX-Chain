@@ -31,10 +31,11 @@ var _ cmttypes.ConsensusEvidenceAuthority = (*PQEngineSnapshot)(nil)
 
 // CommittedPQEngineSnapshot publishes only the successfully committed state.
 // Expensive replay occurs after releasing Application.mu. In-lock candidate
-// validation must call newPQEngineSnapshot directly, not recurse here.
+// validation must call the private owned constructor, not recurse here.
 func (a *Application) CommittedPQEngineSnapshot() (*PQEngineSnapshot, error) {
 	a.mu.RLock()
 	b := a.bootstrap
+	witness := a.validatedMigration
 	registry := cloneValidatorRegistry(a.committed.ValidatorRegistry)
 	schedule := clonePQEngineSchedule(a.committed.PQEngineSchedule)
 	authorization := a.pqEngineAuthorization
@@ -44,18 +45,35 @@ func (a *Application) CommittedPQEngineSnapshot() (*PQEngineSnapshot, error) {
 	if err := authorization.ValidateCommittedSchedule(schedule, through); err != nil {
 		return nil, err
 	}
-	snapshot, err := newPQEngineSnapshot(b, registry, schedule, through)
+	snapshot, err := newPQEngineSnapshotOwned(witness, b, registry, schedule, through)
 	return withRuntimeUpgradeSnapshot(snapshot, err, runtimeAuthorization)
 }
 
 func newPQEngineSnapshot(b *ConsensusBootstrap, registry *ValidatorRegistryState, schedule *PQEngineSchedule, through int64) (*PQEngineSnapshot, error) {
+	return newPQEngineSnapshotWithMathCache(b, registry, schedule, through, nil)
+}
+
+// Owned callers must bind their actual immutable bootstrap before they can
+// reuse only that owner's successful mathematics. Registry, schedule, height,
+// root and future membership are still fully replayed on every invocation.
+func newPQEngineSnapshotOwned(witness *validatedMigration, actualBootstrap *ConsensusBootstrap, registry *ValidatorRegistryState, schedule *PQEngineSchedule, through int64) (*PQEngineSnapshot, error) {
+	if err := witness.binds(actualBootstrap); err != nil {
+		return nil, err
+	}
+	return newPQEngineSnapshotWithMathCache(actualBootstrap, registry, schedule, through, witness.registryMath)
+}
+
+func newPQEngineSnapshotWithMathCache(b *ConsensusBootstrap, registry *ValidatorRegistryState, schedule *PQEngineSchedule, through int64, cache *ynxconsensusauth.RegistrationMathCache) (*PQEngineSnapshot, error) {
 	if b == nil || through < b.record.InitialHeight-1 || through > math.MaxInt64-2 {
 		return nil, errors.New("engine snapshot requires pinned genesis and bounded committed height")
 	}
-	validatedRegistry, err := replayOwnedValidatorRegistry(registry, b, through)
+	history, err := replayValidatorRegistryWithMathCache(registry, b, through, cache)
 	if err != nil {
 		return nil, err
 	}
+	// Detach only after replay authenticates the original record. A clone must
+	// not normalize a malformed bootstrap before the original equality check.
+	validatedRegistry := &validatedValidatorRegistry{bootstrap: b, registry: cloneValidatorRegistry(registry), history: history, through: through}
 	validatedSchedule, err := validatedRegistry.validateSchedule(schedule)
 	if err != nil {
 		return nil, err

@@ -1090,7 +1090,7 @@ jobs:
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-crypto-tests.jsonl').read_text().splitlines()]
-          required = ['TestPQInitialPossessionCacheRetainsBothProofsAndLiveBinding', 'TestPQInitialPossessionCacheSeventeenCertificatesRemainBoundedAndSeparated']
+          required = ['TestPQInitialPossessionCacheRetainsBothProofsAndLiveBinding', 'TestPQInitialPossessionCacheSeventeenCertificatesRemainBoundedAndSeparated', 'TestRegistrationMathCacheWarmReplayKeepsDynamicSourceAndErrorOrder', 'TestRegistrationMathCacheEverySignatureAndRotationRemainBound', 'TestRegistrationMathCacheCapacityColdScopeAndOwnedInputs', 'TestRegistrationMathCacheNilZeroAndInvalidScope']
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
@@ -1457,7 +1457,20 @@ jobs:
           YNX_PQ_TRANSACTION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-consensus-transaction-proof-public.json
           YNX_PQ_MIGRATION_PROOF_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-migration-transaction-proof-public.json
         run: |
-          go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
+          if ! go test -json -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor|TestPQHistoryMathCache)' ./internal/chain > "$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-native-history-chain-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-native-history-chain-tests.jsonl').read_text().splitlines()]
+          required = ['TestPQHistoryMathCacheN1ScopeAndBinding']
+          for name in required:
+              matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
+              assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
+          print('YNX_NATIVE_HISTORY_CHAIN_TESTS ' + json.dumps({'sourceCommit': os.environ['GITHUB_SHA'], 'requiredPassed': required, 'suitePassed': True, 'performanceMeasured': False}, sort_keys=True))
+          PY
           # The complementary Host group below runs every excluded test with
           # the same timeout; this group still covers every non-Host test.
           if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
@@ -1468,7 +1481,7 @@ jobs:
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-state-tests.jsonl').read_text().splitlines()]
-          required = ['TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash', 'TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold', 'TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis', 'TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming', 'TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas', 'TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer', 'TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets', 'TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds', 'TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting', 'TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation', 'TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles', 'TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory', 'TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads', 'TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip']
+          required = ['TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash', 'TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold', 'TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis', 'TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming', 'TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas', 'TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer', 'TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets', 'TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds', 'TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting', 'TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation', 'TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles', 'TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory', 'TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads', 'TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip', 'TestPQHistoryMathCacheOwnedReplayCommitAndColdRestart', 'TestPQHistoryMathCacheWarmDynamicRejectionsMatchCold', 'TestValidatorRegistryMathCacheOwnedHitsPreserveOriginalStateAndHash', 'TestValidatorRegistryMathCacheWarmHitsNeverAuthorizeChangedRegistry', 'TestValidatorRegistryMathCacheColdRestartReverifiesWithIndependentOwner', 'TestValidatorRegistryMathCacheOwnedSnapshotsRetainWitnessAndDynamicChecks', 'TestValidatorRegistryMathCacheApplicationAndOwnedFileSnapshotsReuseOnlyMath', 'TestPQNetworkBusinessHostPreparationReturnsErrorsWithoutGoexit', 'TestPQNetworkBusinessHostPreparationUsesOwnedMathAndKeepsColdValidation', 'TestPQNetworkBusinessHostPreparationCancellationStopsBeforeCapture', 'TestPQNetworkFreshHostPreparationDoesNotBlockOriginalPacedOffers', 'TestPQNetworkFreshHostPreparationRetainsFourSlotsAndDetachedInputs', 'TestPQNetworkFreshHostPreparationPreservesErrorsAndPipelineCancellation', 'TestPQNetworkFreshHostPreparationRejectsInvalidTargetsAndJoinsGoexit', 'TestPQNetworkFreshHostPreparationProgressKeepsAllMeasuredStagesAndOriginalBudget']
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
@@ -2519,7 +2532,20 @@ jobs:
       - name: Verify unchanged canonical bytes and source and output failure protections
         if: steps.scope.outputs.changed == 'true'
         run: |
-          go test -v -p 1 -count=1 -timeout=180s -run '^(TestNormalSnapshot|TestCanonicalStateJSON|TestConsensusMigrationOwned|TestConsensusMigrationDecode|TestConsensusMigrationDetached|TestConsensusPQSchedulePreservation|TestOfflineConsensusDecode|TestOfflineConsensusFile|TestOfflineConsensusExportRequires|TestOfflineConsensusExportRejects|TestOfflineConsensusExportLegacy)' ./internal/chain
+          if ! go test -json -v -p 1 -count=1 -timeout=180s -run '^(TestNormalSnapshot|TestCanonicalStateJSON|TestConsensusMigrationOwned|TestConsensusMigrationDecode|TestConsensusMigrationDetached|TestConsensusPQSchedulePreservation|TestOfflineConsensusDecode|TestOfflineConsensusFile|TestOfflineConsensusExportRequires|TestOfflineConsensusExportRejects|TestOfflineConsensusExportLegacy)' ./internal/chain > "$RUNNER_TEMP/ynx-normal-snapshot-chain-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-normal-snapshot-chain-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-normal-snapshot-chain-tests.jsonl').read_text().splitlines()]
+          required = ['TestNormalSnapshotStreamingPersistenceAndColdReopen', 'TestNormalSnapshotStreamingLegacyBytesAndInvalidHistory', 'TestNormalSnapshotStreamingFailurePreservesOriginal']
+          for name in required:
+              matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
+              assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
+          print('YNX_NORMAL_SNAPSHOT_STREAMING_TESTS ' + json.dumps({'sourceCommit': os.environ['GITHUB_SHA'], 'requiredPassed': required, 'suitePassed': True, 'performanceMeasured': False}, sort_keys=True))
+          PY
           go test -v -p 1 -count=1 -timeout=90s -run '^(TestRunNodeBuildInfo|TestChaindBuildInfo|TestExportConsensusState|TestRunNodeConsensusExport|TestConsensusExport)' ./cmd/ynx-chaind
           go test -v -p 1 -count=1 -timeout=180s -run '^(TestValidatedMigration|TestBlockJournalReader)' ./internal/consensus
           go test -v -p 1 -count=1 -timeout=90s -run '^(TestVerifyMigrationState|TestVerifyMigrationExecutionRetainsStrictLoader|TestMigrationPublicSummary|TestMigrationGenerationUsesStrictStreamedOriginalInput|TestMigrationImportStorage|TestMigrationSchedulePreservation)' ./cmd/ynx-consensus-package
@@ -4241,7 +4267,7 @@ jobs:
               blob = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + leaf], text=True).strip()
               if subprocess.check_output(['git', 'hash-object', leaf], text=True).strip() != blob:
                   raise RuntimeError('actual test source differs from the committed compile input')
-              if leaf.endswith('pq_network_fresh_business_test.go') and expected['sha256'] != 'ad938ae9d31a3e157f823381a2b918a9a30ef479035f3e23e4663c3100d8c29e':
+              if leaf.endswith('pq_network_fresh_business_test.go') and expected['sha256'] != '40b2947fe1c9a39c19940c1acb4257b5b4cbb700ec891c6b129f73633102e24f':
                   raise RuntimeError('independent frozen fresh test source differs')
               copy(source_root / leaf, root / 'source' / leaf, expected, 256 << 10)
               source_leaves[leaf], source_blobs[leaf] = expected['sha256'], blob

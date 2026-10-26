@@ -160,10 +160,10 @@ func loadPQEngineSnapshotOwned(witness *validatedMigration, statePath string, au
 		if authorization.schedule.RegistryHeight != state.Height {
 			return nil, errors.New("independent engine authorization does not bind the actual committed registry height")
 		}
-		if _, err := newPQEngineSnapshot(bootstrap, state.ValidatorRegistry, authorization.schedule, authorization.schedule.AuthorizedAt); err != nil {
+		if _, err := newPQEngineSnapshotOwned(witness, bootstrap, state.ValidatorRegistry, authorization.schedule, authorization.schedule.AuthorizedAt); err != nil {
 			return nil, err
 		}
 	}
-	snapshot, err := newPQEngineSnapshot(bootstrap, state.ValidatorRegistry, state.PQEngineSchedule, state.Height)
+	snapshot, err := newPQEngineSnapshotOwned(witness, bootstrap, state.ValidatorRegistry, state.PQEngineSchedule, state.Height)
 	return withRuntimeUpgradeSnapshot(snapshot, err, runtime)
 }

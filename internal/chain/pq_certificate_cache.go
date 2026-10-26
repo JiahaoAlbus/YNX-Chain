@@ -21,6 +21,7 @@ type PQCertificateCache struct {
 	certificates *ynxbatch.CertificateCache
 	scopes       [pqPolicyScopeSlots]pqPolicyScopeMemo
 	computed     uint64
+	historical   bool
 }
 
 // Policy records/tombstones are immutable. Legal in-place append changes a
@@ -54,6 +55,16 @@ type PQCertificateCacheStats struct {
 }
 
 func NewPQCertificateCache() *PQCertificateCache { return &PQCertificateCache{} }
+
+// NewPQHistoryCertificateCache reuses only successful certificate mathematics
+// while a privately owned application revalidates its complete history. Live
+// N=1 admission keeps its existing uncached path. Every historical use hashes
+// the complete supplied policy anew: mutable/reloaded policy pointers cannot
+// borrow a previous scope. Current authorization, height and both paths are
+// still checked by the normal verifier before a mathematical hit is used.
+func NewPQHistoryCertificateCache() *PQCertificateCache {
+	return &PQCertificateCache{historical: true}
+}
 
 func pqScopeStamp(policy *ynxauth.State) pqPolicyScopeStamp {
 	stamp := pqPolicyScopeStamp{version: policy.Version, networkLength: len(policy.NetworkID), enableAt: policy.EnableAt, records: len(policy.Records), revocations: len(policy.Revocations)}
@@ -100,10 +111,12 @@ func (c *PQCertificateCache) VerifierCache(policy *ynxauth.State) (*ynxbatch.Cer
 	}
 	stamp := pqScopeStamp(policy)
 	var root *pqPolicyScopeRoot
-	for _, memo := range c.scopes {
-		if memo.policy == policy && memo.stamp == stamp {
-			root = memo.root
-			break
+	if !c.historical {
+		for _, memo := range c.scopes {
+			if memo.policy == policy && memo.stamp == stamp {
+				root = memo.root
+				break
+			}
 		}
 	}
 	if root != nil && root.ready {
@@ -183,7 +196,7 @@ func (c *PQCertificateCache) VerifyDecodedMember(policy *ynxauth.State, owner, p
 	if policy == nil {
 		return ynxauth.ErrPolicy
 	}
-	if member.Certificate.N == 1 {
+	if member.Certificate.N == 1 && (c == nil || !c.historical) {
 		return policy.VerifyDecodedMemberWithCache(owner, purpose, message, member, height, nil, nil)
 	}
 	cache, scope, err := c.VerifierCache(policy)

@@ -83,11 +83,11 @@ REMOTE_E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
 BUSINESS_E2E_TEST = "TestPQNetworkFourValidatorSignedBusinessConsumerAndIndependentFinality"
 BUSINESS_E2E_SOURCE = "internal/consensus/pq_network_business_test.go"
 # The owning test freezes this leaf together with the shared network source.
-BUSINESS_E2E_SOURCE_SHA256 = "dcb8f38a96664c95fa3ac5e519716cad71b638501578a541942d85bab59991bf"
+BUSINESS_E2E_SOURCE_SHA256 = "70f9d69db2631b362553812f58c2962c3caa43d78e06f1a63792463402ee4c4f"
 BUSINESS_CLIENT_COMMIT = "3f5b1ce792616b01b38fe4320c6d4d83fbcc22a0"
 FRESH_BUSINESS_E2E_TEST = "TestPQNetworkFourValidatorFreshPairedBusinessAndPhaseTiming"
 FRESH_BUSINESS_E2E_SOURCE = "internal/consensus/pq_network_fresh_business_test.go"
-FRESH_BUSINESS_E2E_SOURCE_SHA256 = "ad938ae9d31a3e157f823381a2b918a9a30ef479035f3e23e4663c3100d8c29e"
+FRESH_BUSINESS_E2E_SOURCE_SHA256 = "40b2947fe1c9a39c19940c1acb4257b5b4cbb700ec891c6b129f73633102e24f"
 FRESH_BUSINESS_CLIENT_COMMIT = "70e7e450997a0ae77dbad5a8be3682f482c6ddd8"
 FRESH_BUSINESS_CLIENT_TREE = "4866cc3924c060eb6a29939915d39b1c5c625607"
 FRESH_BUSINESS_CLOCK = "test-process time.Now monotonic elapsed; not a cross-process or wall-clock subtraction"

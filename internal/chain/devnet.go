@@ -3654,17 +3654,13 @@ func writeDurableSnapshotJSONMeasured(path string, value any, syncDirectory func
 	if enabled {
 		target = pqMeasuredWriter{target: file, file: measurement}
 	}
-	stream := jsonBodyWriter{target: target}
 	start = measurement.EncodeWrite.begin(enabled)
-	encoder := json.NewEncoder(&stream)
-	encoder.SetIndent("", "  ")
-	if err = encoder.Encode(value); err != nil {
+	// Encode the closed snapshot fields and history records incrementally. An
+	// Encoder.Encode of the root still buffers its complete JSON representation,
+	// even when its destination is a file or jsonBodyWriter.
+	if err = writeCanonicalStateJSON(target, value, true); err != nil {
 		measurement.EncodeWrite.finish(enabled, start, err)
 		return fmt.Errorf("encode devnet snapshot: %w", err)
-	}
-	if err = stream.Finish(); err != nil {
-		measurement.EncodeWrite.finish(enabled, start, err)
-		return fmt.Errorf("finish devnet snapshot: %w", err)
 	}
 	measurement.EncodeWrite.finish(enabled, start, nil)
 	start = measurement.FileSync.begin(enabled)

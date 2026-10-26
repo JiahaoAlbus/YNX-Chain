@@ -120,8 +120,25 @@ func (h *KeyHistory) HasPQHistory(address []byte) bool {
 }
 
 func (h *KeyHistory) Append(wire []byte, executionHeight int64, source RegistrationStateSource) (*KeyHistory, error) {
+	return h.appendWithMathCache(wire, executionHeight, source, nil)
+}
+
+// AppendWithMathCache repeats all original dynamic checks. The optional cache
+// can reuse only successful signature mathematics after those checks; it never
+// supplies membership, an accepted event, a root or a committed registry.
+func (h *KeyHistory) AppendWithMathCache(wire []byte, executionHeight int64, source RegistrationStateSource, cache *RegistrationMathCache) (*KeyHistory, error) {
+	return h.appendWithMathCache(wire, executionHeight, source, cache)
+}
+
+func (h *KeyHistory) appendWithMathCache(wire []byte, executionHeight int64, source RegistrationStateSource, cache *RegistrationMathCache) (*KeyHistory, error) {
 	if h == nil || h.byAddress == nil || source == nil {
 		return nil, errors.New("missing initialized registry or trusted membership source")
+	}
+	if cache != nil && len(wire) <= MaxRegistrationBytes {
+		// One bounded original snapshot supplies decoding, mathematics, cache
+		// identity and the returned immutable event even if a source callback
+		// subsequently modifies a caller-owned input buffer.
+		wire = bytes.Clone(wire)
 	}
 	r, err := DecodeRegistration(wire)
 	if err != nil {
@@ -142,6 +159,7 @@ func (h *KeyHistory) Append(wire []byte, executionHeight int64, source Registrat
 		return nil, errors.New("registration source does not authorize membership at execution height")
 	}
 	indices := h.byAddress[string(i.ValidatorAddress)]
+	var trusted registrationMathAuthority
 	if i.Kind == RegisterValidator {
 		if len(indices) != 0 {
 			return nil, errors.New("logical validator has already entered PQ history")
@@ -154,6 +172,7 @@ func (h *KeyHistory) Append(wire []byte, executionHeight int64, source Registrat
 		if !bytes.Equal(addressHash[:validatorAddressSize], i.ValidatorAddress) {
 			return nil, errors.New("legacy authority does not derive the stable logical address")
 		}
+		trusted.legacy = legacy
 	} else {
 		if len(indices) == 0 {
 			return nil, ErrValidatorKeyUnavailable
@@ -172,6 +191,7 @@ func (h *KeyHistory) Append(wire []byte, executionHeight int64, source Registrat
 		if current.Epoch != i.AuthorizingEpoch || !bytes.Equal(current.MLDSA87PublicKey, i.AuthorityMLDSA87PublicKey) || !bytes.Equal(current.SLHDSASHA2256fPublicKey, i.AuthoritySLHDSASHA2256fPublicKey) {
 			return nil, errors.New("registration authority is not the active complete pair")
 		}
+		trusted.a, trusted.b, trusted.epoch = current.MLDSA87PublicKey, current.SLHDSASHA2256fPublicKey, current.Epoch
 		if i.Kind == RotateValidator {
 			if last.registration.Intent.EffectiveAt > executionHeight || last.registration.Intent.Epoch == math.MaxUint64 || i.Epoch != last.registration.Intent.Epoch+1 {
 				return nil, errors.New("rotation conflicts with a pending or exhausted epoch")
@@ -190,7 +210,7 @@ func (h *KeyHistory) Append(wire []byte, executionHeight int64, source Registrat
 			}
 		}
 	}
-	if err := verifyRegistration(r); err != nil {
+	if err := cache.verify(h.anchor, wire, r, trusted); err != nil {
 		return nil, fmt.Errorf("validator-key proof rejected: %w", err)
 	}
 	eventHash, err := RegistrationHash(wire)

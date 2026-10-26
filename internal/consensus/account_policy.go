@@ -187,7 +187,13 @@ func validateConsensusPQState(state CommittedState, migration chain.ConsensusMig
 }
 
 func validateConsensusPQStateWithInitialCache(state CommittedState, migration chain.ConsensusMigrationState, initialCertificates *ynxbatch.CertificateCache, initialScope []byte) error {
-	cache := chain.NewPQCertificateCache()
+	return validateConsensusPQStateWithCaches(state, migration, initialCertificates, initialScope, nil)
+}
+
+func validateConsensusPQStateWithCaches(state CommittedState, migration chain.ConsensusMigrationState, initialCertificates *ynxbatch.CertificateCache, initialScope []byte, cache *chain.PQCertificateCache) error {
+	if cache == nil {
+		cache = chain.NewPQCertificateCache()
+	}
 	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || len(state.PQBatches) != 0 || migration.AccountPolicy != nil) {
 		return errors.New("legacy ABCI state cannot carry or erase account policy")
 	}

@@ -79,6 +79,10 @@ func cloneValidatorRegistry(value *ValidatorRegistryState) *ValidatorRegistrySta
 }
 
 func replayValidatorRegistry(value *ValidatorRegistryState, bootstrap *ConsensusBootstrap, through int64) (*ynxconsensusauth.KeyHistory, error) {
+	return replayValidatorRegistryWithMathCache(value, bootstrap, through, nil)
+}
+
+func replayValidatorRegistryWithMathCache(value *ValidatorRegistryState, bootstrap *ConsensusBootstrap, through int64, cache *ynxconsensusauth.RegistrationMathCache) (*ynxconsensusauth.KeyHistory, error) {
 	if bootstrap == nil {
 		return nil, errors.New("validator registry requires independent operator-pinned bootstrap")
 	}
@@ -107,7 +111,7 @@ func replayValidatorRegistry(value *ValidatorRegistryState, bootstrap *Consensus
 		if err != nil || event.OperationHash != "0x"+hex.EncodeToString(hash[:]) || event.ABCIHash != SignedTransactionHash(payload) || seen[event.ABCIHash] {
 			return nil, errors.New("registry original operation or ABCI identity mismatch")
 		}
-		next, err := history.Append(event.Wire, event.Height, bootstrap.membershipAt(through))
+		next, err := history.AppendWithMathCache(event.Wire, event.Height, bootstrap.membershipAt(through), cache)
 		if err != nil {
 			return nil, fmt.Errorf("replay validator registry event %d: %w", i, err)
 		}
@@ -157,7 +161,7 @@ func replayValidatorRegistryStateOwned(s CommittedState, witness *validatedMigra
 	if s.Version != 16 && s.Version != 17 && s.Version != ValidatorRegistryStateVersion && s.Version != PQEngineScheduleStateVersion {
 		return nil, errors.New("legacy state version cannot carry validator registry")
 	}
-	return replayValidatorRegistry(s.ValidatorRegistry, s.bootstrap, s.Height)
+	return replayValidatorRegistryWithMathCache(s.ValidatorRegistry, s.bootstrap, s.Height, witness.registryMath)
 }
 
 func validateValidatorRegistryContinuation(previous, next CommittedState) error {
