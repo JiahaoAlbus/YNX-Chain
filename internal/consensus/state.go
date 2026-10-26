@@ -374,6 +374,14 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 
 // This entry accepts only the owned anchor, never an external migration plus a flag.
 func (s CommittedState) validateOwned(witness *validatedMigration) error {
+	return s.validateOwnedWithTimings(witness, nil)
+}
+
+func (s CommittedState) validateOwnedWithTimings(witness *validatedMigration, timings *commitValidationTimings) (result error) {
+	timings.begin("anchor")
+	if timings != nil {
+		defer func() { timings.finish(result == nil) }()
+	}
 	if err := witness.binds(s.bootstrap); err != nil {
 		return err
 	}
@@ -387,41 +395,53 @@ func (s CommittedState) validateOwned(witness *validatedMigration) error {
 	if (s.PQEngineSchedule != nil) != (s.Version == 17 || s.Version == PQEngineScheduleStateVersion) {
 		return errors.New("committed engine schedule requires its explicit state version")
 	}
+	timings.enter("validator_registry")
 	if err := validateValidatorRegistryStateOwned(s, witness); err != nil {
 		return err
 	}
+	timings.enter("engine_schedule")
 	if err := validatePQEngineSchedule(s.PQEngineSchedule, s.bootstrap, s.ValidatorRegistry, s.Height); err != nil {
 		return err
 	}
+	timings.enter("engine_snapshot")
 	if s.PQEngineSchedule != nil {
 		if _, err := newPQEngineSnapshot(s.bootstrap, s.ValidatorRegistry, s.PQEngineSchedule, s.Height); err != nil {
 			return err
 		}
 	}
+	timings.enter("pq_state")
 	if err := validateConsensusPQState(s, migration); err != nil {
 		return err
 	}
+	timings.enter("migration_trace_lots")
 	if err := validateMigrationTraceLots(s, migration); err != nil {
 		return err
 	}
+	timings.enter("legacy_sponsor")
 	if err := validateLegacyResourceSponsor(s, migration); err != nil {
 		return err
 	}
+	timings.enter("legacy_resource_market")
 	if err := validateLegacyResourceMarket(s.LegacyResourceMarket, s, migration); err != nil {
 		return err
 	}
+	timings.enter("legacy_contracts")
 	if err := validateLegacyContracts(s, migration); err != nil {
 		return err
 	}
+	timings.enter("legacy_pay")
 	if err := validateLegacyPaySource(s.LegacyPaySource, s, migration); err != nil {
 		return err
 	}
+	timings.enter("legacy_ai")
 	if err := validateLegacyAISource(s.LegacyAISource, s, migration); err != nil {
 		return err
 	}
+	timings.enter("legacy_trust")
 	if err := validateLegacyTrustSource(s.LegacyTrustSource, s, migration); err != nil {
 		return err
 	}
+	timings.enter("ledger_records")
 	if s.ChainID != migration.Network.ChainID || s.MigrationStateHash != migration.StateHash {
 		return errors.New("committed state does not match its YNX migration anchor")
 	}
@@ -489,59 +509,77 @@ func (s CommittedState) validateOwned(witness *validatedMigration) error {
 		}
 		seenAudit[event.ID] = struct{}{}
 	}
+	timings.enter("pay")
 	if err := validatePayCommittedState(s); err != nil {
 		return err
 	}
+	timings.enter("resource")
 	if err := validateResourceCommittedState(s, migration); err != nil {
 		return err
 	}
+	timings.enter("resource_sponsor")
 	if err := validateResourceSponsorCommittedState(s); err != nil {
 		return err
 	}
+	timings.enter("trust")
 	if err := validateTrustCommittedState(s); err != nil {
 		return err
 	}
+	timings.enter("ide")
 	if err := validateIDECommittedState(s); err != nil {
 		return err
 	}
+	timings.enter("pq_resources")
 	if err := validateConsensusPQResources(s, migration); err != nil {
 		return err
 	}
+	timings.enter("pq_dex")
 	if err := validateConsensusPQDex(s, migration); err != nil {
 		return err
 	}
+	timings.enter("pq_contracts")
 	if err := validateConsensusPQContracts(s, migration); err != nil {
 		return err
 	}
+	timings.enter("pq_native_actions")
 	if err := validateConsensusPQNativeActions(s, migration); err != nil {
 		return err
 	}
+	timings.enter("pq_ethereum")
 	if err := validateConsensusPQEthereumValues(s, migration); err != nil {
 		return err
 	}
+	timings.enter("pq_ordered_resources")
 	if err := validatePQOrderedResourceUsage(s, migration); err != nil {
 		return err
 	}
+	timings.enter("fee_events")
 	if err := validateFeeEvents(s.FeeEvents); err != nil {
 		return err
 	}
+	timings.enter("governance")
 	if err := validateGovernanceExecutionCommittedState(s); err != nil {
 		return err
 	}
+	timings.enter("dex")
 	dexNativeEscrow, err := validateDexState(s.DexAssets, s.DexBalances, s.DexPools, s.DexEvents)
 	if err != nil {
 		return err
 	}
+	timings.enter("asset_auth")
 	if err := validateAssetAuthorizationState(s.StrategyMandates, s.StrategyVaults, s.AssetAuditEvents); err != nil {
 		return err
 	}
+	timings.enter("account_abstraction")
 	paymasterLocked, err := validateAccountAbstractionState(s.SmartAccounts, s.Paymasters, s.UserOperationEvents, s.FeeEvents)
 	if err != nil {
 		return err
 	}
+	timings.enter("account_abstraction_policy")
 	if err := validateAccountAbstractionPolicyState(s); err != nil {
 		return err
 	}
+	timings.enter("ownership_and_vault_supply")
 	for _, account := range s.SmartAccounts {
 		if _, exists := accountIndex(s.Accounts, account.Address); !exists {
 			return errors.New("smart account does not have a chain account")
@@ -559,9 +597,11 @@ func (s CommittedState) validateOwned(witness *validatedMigration) error {
 		}
 		vaultLiquid += int64(vault.BalanceYNXT)
 	}
+	timings.enter("staking")
 	if err := validateStakingState(s, migration); err != nil {
 		return err
 	}
+	timings.enter("supply")
 	unbonding, err := pendingUnbondingSupply(s.Unbondings)
 	if err != nil {
 		return err
@@ -572,10 +612,11 @@ func (s CommittedState) validateOwned(witness *validatedMigration) error {
 	if liquid+staked+vaultLiquid+unbonding+int64(paymasterLocked)+dexNativeEscrow != migration.LiquidSupplyYNXT+migration.StakedSupplyYNXT {
 		return errors.New("committed state changed total liquid plus staked YNXT supply")
 	}
+	timings.enter("app_hash")
 	expected := migration.StateHash
 	if s.Initialized && (!accountsEqual(s.Accounts, migration.Accounts) || s.hasApplicationRecords() || !sameConsensusPolicy(s.AccountPolicy, migration.AccountPolicy)) {
 		var err error
-		expected, err = s.calculateHash()
+		expected, err = s.calculateHashWithTimings(timings)
 		if err != nil {
 			return err
 		}
@@ -597,16 +638,36 @@ func sameInitialTraceLots(left, right map[string]chain.TrustTraceLot) bool {
 }
 
 func (s CommittedState) calculateHash() (string, error) {
+	return s.calculateHashWithTimings(nil)
+}
+
+func (s CommittedState) calculateHashWithTimings(timings *commitValidationTimings) (string, error) {
 	if !supportedCommittedStateVersion(s.Version) {
 		return "", fmt.Errorf("unsupported committed state version %d", s.Version)
 	}
-	return s.calculateHashFor(fmt.Sprintf("YNX_ABCI_STATE_V%d", s.Version), s.Version)
+	return s.calculateHashForWithTimings(fmt.Sprintf("YNX_ABCI_STATE_V%d", s.Version), s.Version, timings)
 }
 
 func supportedCommittedStateVersion(version int) bool { return version >= 7 && version <= 20 }
 
 func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
-	value, err := hashCommittedStateDocument(s.hashDocument(domain, version))
+	return s.calculateHashForWithTimings(domain, version, nil)
+}
+
+func (s CommittedState) calculateHashForWithTimings(domain string, version int, timings *commitValidationTimings) (string, error) {
+	started := timings.clock()
+	document := s.hashDocument(domain, version)
+	if timings != nil {
+		now := timings.clock()
+		timings.hashDocument += now.Sub(started)
+		started = now
+	}
+	// The original streaming encoder feeds the digest directly. This interval
+	// measures that combined operation, not two independently measured costs.
+	value, err := hashCommittedStateDocument(document)
+	if timings != nil {
+		timings.hashEncodeDigest += timings.clock().Sub(started)
+	}
 	if err != nil {
 		return "", fmt.Errorf("encode committed state hash document: %w", err)
 	}
@@ -921,9 +982,12 @@ func saveCommittedStateWithTimings(path string, state CommittedState, migration 
 // commitTimings is opt-in, local instrumentation of the actual durable write.
 // A nil recorder avoids clock reads and allocation in normal operation.
 type commitTimings struct {
-	stages  map[string]time.Duration
-	bytes   int
-	onStage func(string) // nil except explicit owned resource probes
+	stages            map[string]time.Duration
+	bytes             int
+	onStage           func(string) // nil except explicit owned resource probes
+	validationEnabled bool
+	validationClock   func() time.Time // nil except deterministic owned tests
+	validation        *commitValidationTimings
 }
 
 func (t *commitTimings) start() time.Time {
@@ -965,7 +1029,7 @@ func saveCommittedStateOwned(path string, state CommittedState, witness *validat
 		return nil
 	}
 	started := timings.start()
-	if err := state.validateOwned(witness); err != nil {
+	if err := timings.validateStateOwned(state, witness); err != nil {
 		return err
 	}
 	started = timings.mark("validate", started)

@@ -349,7 +349,7 @@ func (j *snapshotJournal) saveOwned(state CommittedState, witness *validatedMigr
 		}
 	}()
 	started := timings.start()
-	if err := state.validateOwned(witness); err != nil {
+	if err := timings.validateStateOwned(state, witness); err != nil {
 		return err
 	}
 	if state.Height <= j.height {

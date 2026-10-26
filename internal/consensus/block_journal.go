@@ -522,7 +522,7 @@ func (j *blockJournal) saveBlockOwned(previous, next CommittedState, request []b
 		}
 	}()
 	started := timings.start()
-	if err := next.validateOwned(witness); err != nil {
+	if err := timings.validateStateOwned(next, witness); err != nil {
 		return err
 	}
 	if previous.Height != j.io.height || previous.AppHash != j.appHash || previous.Version != j.stateVersion || next.Version < previous.Version || next.Height != previous.Height+1 || len(request) == 0 || len(request) > blockJournalMaxRequest {

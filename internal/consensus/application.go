@@ -55,6 +55,8 @@ type Application struct {
 	pqEngineAuthorization       *PQEngineAuthorization
 	runtimeUpgradeAuthorization *RuntimeUpgradeAuthorization
 	runtimeUpgradeCursor        *runtimeUpgradeCursor
+
+	commitValidationTimingEnabled bool
 }
 
 type transactionError struct {
@@ -985,7 +987,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 	var started time.Time
 	if a.commitTimingEnabled {
 		started = time.Now()
-		a.commitTimings = &commitTimings{}
+		a.commitTimings = &commitTimings{validationEnabled: a.commitValidationTimingEnabled}
 	}
 	var err error
 	if a.blockJournal != nil {
