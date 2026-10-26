@@ -1,0 +1,98 @@
+{
+  "version": "YNX-PERF-READER-ACTUAL-NORMAL-CI/v1",
+  "readerCodeCommit": "3bc5a6cd02bd04e4aec64f740e96bf29f6adc7d4",
+  "actualNormalCICommit": "3ce0ca7461976cee230b25ca56ad3869291f7c2a",
+  "readerLeavesByteIdenticalAcrossCommits": true,
+  "sourcePins": {
+    "scripts/loadtest/pq-fresh-phase-readback.mjs": {
+      "bytes": 61128,
+      "sha256": "24ab589b23f425f0463dcaa1bb0999e33ed4f160d070fccc1dcabe83aa4d77e7",
+      "gitBlob": "3f6a444534e6d711b90620672a4ad3896651e591"
+    },
+    "scripts/loadtest/pq-fresh-phase-readback.test.mjs": {
+      "bytes": 50617,
+      "sha256": "bc112431817f4cf4df8eb117cbf052ee1360223ab50b2f5a872297485dfd1e9d",
+      "gitBlob": "01cd6da63c48707028f4eb6b070945a0e61ccccd"
+    }
+  },
+  "runId": 40366336885,
+  "attempt": 1,
+  "event": "push",
+  "runURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/40366336885",
+  "status": "completed",
+  "conclusion": "success",
+  "job": {
+    "id": 121724949811,
+    "name": "Chain Core source and release gate",
+    "conclusion": "success"
+  },
+  "actualSuccessfulStep": "Verify bounded performance controller and evidence contracts",
+  "actualReaderNamedPasses": 36,
+  "actualCombinedJSGroup": {
+    "tests": 88,
+    "pass": 88,
+    "fail": 0,
+    "skipped": 0
+  },
+  "namedReaderPasses": [
+    "failed original window diagnostics retain observed phases/transactions without qualifying the pair",
+    "diagnostic missing replica and failed validation suffix remain unmeasured",
+    "accepted final-block proposal receipt stays distinct from execution and missing replicas",
+    "proposal callbacks reject changed coordinates, clocks, missing required lines and non-durable joins",
+    "coordinator call work separates actual accumulated calls, reuse and unpublished physical samples",
+    "diagnostic source, partitions, clocks, duplicate physical samples and callbacks fail closed",
+    "explicit diagnostic CLI reads the unchanged failed guard; successful-pair entry still refuses it",
+    "unit-only original per-H phases are not multiplied by transaction count; no authority or TPS qualification",
+    "repeat readbacks retain original offer and effect identity without double counting",
+    "UNKNOWN original submission can reconcile independently; missing local RPC stage stays missing",
+    "receipt/data cannot replace original independent verifier output or a missing node Commit",
+    "normal guard, external bindings and exact raw digest remain mandatory",
+    "actual read-only CLI preserves source bytes, creates one synced output and refuses overwrite/symlink: fixture",
+    "actual read-only CLI preserves source bytes, creates one synced output and refuses overwrite/symlink: originalFixture",
+    "actual original Go projection consumes numeric phase coordinates without inventing raw verifier output",
+    "actual callee projection rejects wrong source, clock, numeric shape, counts and projected proof identity",
+    "original completed controller cleanup records are consumed without rewriting the guard",
+    "original guard stays unchanged when stdout pin is external and boot identity was never measured",
+    "original stdout readback binds exact original log bytes and requires actual fresh test PASS",
+    "actual stdout CLI emits one summary from original logs without synthesizing or changing a guard",
+    "paired phase quantile deltas preserve physical sample counts, missing stages and exact signed ratios",
+    "uninvoked submission verifiers are not zero-duration execution samples; overlapping timing is refused",
+    "paired timing cannot compare different persistence profiles as the same condition",
+    "bounded original result gate refuses mixed tests, trailing diagnostics and over-limit public summaries",
+    "business flow integrates original backlog exactly and never invents a distinct acceptance rate",
+    "flow uses left-inclusive second buckets, includes final proof endpoint and retains reconciled UNKNOWN",
+    "all-node durability keeps a late replica distinct from proof completion and window throughput",
+    "original progress spans retain nested inclusive timing without inventing additive wall time",
+    "failed-window progress separates offers, uncertain returns, preparation and uncompleted proofs",
+    "absent progress and unbound legacy callbacks do not invent zero backlog or failure outcomes",
+    "diagnostic progress joins the original offer ordinal rather than the block transaction index",
+    "Host wall coverage preserves exact residuals without attributing them to queue or CPU",
+    "missing legacy Host timers never invent residual samples and measured zero stays zero",
+    "all ten actual Host helper wall stages survive failed-window diagnostics without proof credit",
+    "Host stage source requirement rejects missing, foreign, reordered, excessive and mixed-clock data",
+    "successful source-bound stdout requires one complete Host timing per original row when requested"
+  ],
+  "originalMetadata": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-819-preparation/READER_NORMAL_TERMINAL.json",
+    "bytes": 6837,
+    "sha256": "f5b2d85c5f859d0ba096bc6c2ab9c41ba10f76842624afefe6940ffd796f5fb6"
+  },
+  "originalRawLog": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-819-preparation/READER_NORMAL.log",
+    "bytes": 2452134,
+    "sha256": "40ad2ca7e4ad22abe602d0957e522dbd42d7239736d8033ce9c74837963444ca"
+  },
+  "focusedRaw": {
+    "path": "/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-819-preparation/READER36_FOCUSED_OUTPUT.raw",
+    "bytes": 8534,
+    "sha256": "769b48b93a0bd174a45612ff428c616c6b13273611b3be408e221ae9531dc53e"
+  },
+  "originalFetchCount": {
+    "metadata": 1,
+    "rawLog": 1
+  },
+  "newTestsRerun": false,
+  "original8199CIObserverUnchanged": true,
+  "networkPerformanceMeasured": false,
+  "sustainedTPSQualified": false
+}
