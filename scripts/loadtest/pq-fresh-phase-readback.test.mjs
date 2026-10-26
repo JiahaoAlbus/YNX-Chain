@@ -396,6 +396,27 @@ function hostDiagnosticFixture(){
  const f=proposalFixture();f.expected.inclusionWorkTimingsRequired=true;f.expected.hostPreparationTimingsRequired=true;f.records.at(-1)[1].w=[2,4,0,0,12];
  f.progress=hostProgress('before',0,'business-offer','begin',89,0)+hostProgress('before',0,'business-offer','complete',95,6)+hostProgress('before',0,'business-host-context','begin',171,0)+hostProgress('before',0,'business-host-context','complete',190,19,[10,1,1,1,1,1,1,1,1,1]);return f;
 }
+test('failed-window progress separates offers, uncertain returns, preparation and uncompleted proofs',()=>{
+ const f=hostDiagnosticFixture();
+ f.progress+=hostProgress('after',0,'business-offer','begin',195,0)+hostProgress('after',0,'business-offer','complete',197,2)+hostProgress('after',1,'business-offer','begin',198,0);
+ f.progress+=hostProgress('after',0,'business-host-context','begin',199,0)+hostProgress('after',0,'business-host-context','complete',203,4,[3,0,0,0,0,0,0,0,0,0]);
+ f.progress+=hostProgress('after',0,'business-independent-readback','begin',204,0);
+ const r=diagnosticRead(f),b=r.businessProgress.arms[0],a=r.businessProgress.arms[1];
+ assert.deepEqual(b.verifiedCallbackOfferOrdinals,[0]);assert.deepEqual(b.begunOffersAwaitingVerifiedCallback,[]);
+ assert.deepEqual(a.offerBeginOrdinals,[0,1]);assert.deepEqual(a.offerReturnOrdinals,[0]);assert.deepEqual(a.offerReturnNotObservedOrdinals,[1]);
+ assert.deepEqual(a.begunOffersAwaitingVerifiedCallback,[0,1]);assert.deepEqual(a.returnedOffersAwaitingVerifiedCallback,[0]);assert.deepEqual(a.completedPreparationsAwaitingVerifiedCallback,[0]);assert.deepEqual(a.readbackCompletionNotObservedOrdinals,[0]);
+ assert.equal(r.businessProgress.acceptedThroughput,null);assert.equal(r.businessProgress.errorRate,null);assert.equal(r.fullPairQualified,false);assert.equal(r.sustainedTPSQualified,false);
+});
+test('absent progress and unbound legacy callbacks do not invent zero backlog or failure outcomes',()=>{
+ const absent=proposalFixture(),missing=diagnosticRead(absent).businessProgress;assert.equal(missing.available,false);assert.equal(missing.arms,null);
+ const f=hostDiagnosticFixture();f.expected.hostPreparationTimingsRequired=false;f.progress=f.progress.split('\n').filter(s=>!s.includes('phase=business-offer')).join('\n');
+ const r=diagnosticRead(f).businessProgress;assert.equal(r.arms[0].verifiedCallbackObservations,1);assert.equal(r.arms[0].callbackOfferOrdinalUnbound,1);assert.equal(r.arms[0].begunOffersAwaitingVerifiedCallback,null);assert.equal(r.arms[0].completedPreparationsAwaitingVerifiedCallback,null);assert.equal(r.errorRate,null);
+ assert.match(r.interpretation,/never Comet block index/);assert.match(r.interpretation,/never rejected or replayed/);
+});
+test('diagnostic progress joins the original offer ordinal rather than the block transaction index',()=>{
+ const f=hostDiagnosticFixture();f.progress=f.progress.replaceAll('index=0','index=7');const r=diagnosticRead(f),a=r.businessProgress.arms[0];
+ assert.notEqual(r.transactions[0].index,7);assert.deepEqual(a.offerBeginOrdinals,[7]);assert.deepEqual(a.verifiedCallbackOfferOrdinals,[7]);assert.deepEqual(a.begunOffersAwaitingVerifiedCallback,[]);assert.equal(a.callbackOfferOrdinalUnbound,0);
+});
 test('Host wall coverage preserves exact residuals without attributing them to queue or CPU',()=>{
  const f=hostDiagnosticFixture();
  // A completed preparation without a verified callback is diagnostic DATA too.
