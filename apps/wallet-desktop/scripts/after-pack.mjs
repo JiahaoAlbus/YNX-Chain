@@ -53,7 +53,7 @@ export default async function afterPack(context) {
   const sdk=JSON.parse(await readFile(path.resolve(context.packager.projectDir,'../../packages/wallet-auth/package.json'),'utf8'));
   // SDK46's frozen Native100/helper105 arm64 pair uses the same original
   // normal stager and exact Library destinations, never extraFiles/manual copy.
-  if(sdk.version==='1.3.0-pq.3.32-auth.46'){
+  if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(sdk.version)){
     if(context.arch!==3)throw Error('SDK46 paired component is arm64 only');
     stageSDK13HelperBundle({contents:path.join(context.appOutDir,`${context.packager.appInfo.productFilename}.app`,'Contents'),projectDir:context.packager.projectDir});
   }

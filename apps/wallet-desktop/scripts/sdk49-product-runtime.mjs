@@ -40,9 +40,9 @@ export const SDK49_PRODUCT_PINS=Object.freeze({
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const relative=p=>typeof p==='string'&&p&&!p.startsWith('/')&&!p.includes('\\')&&!p.includes('\0')&&path.posix.normalize(p)===p&&!p.split('/').some(s=>s==='.'||s==='..');
-function rows(value,count){
+function rows(value,count,ordered=true){
  if(!Array.isArray(value)||value.length!==count)fail('SDK49_PRODUCT_ROWS_INVALID');let previous='';const map=new Map();
- for(const row of value){if(Object.keys(row).join(',')!=='bytes,path,sha256'||!relative(row.path)||row.path<=previous||!Number.isSafeInteger(row.bytes)||row.bytes<0||row.bytes>16777216||!/^[a-f0-9]{64}$/.test(row.sha256))fail('SDK49_PRODUCT_ROWS_INVALID');previous=row.path;map.set(row.path,row);}
+ for(const row of value){if(Object.keys(row).join(',')!=='bytes,path,sha256'||!relative(row.path)||ordered&&row.path<=previous||map.has(row.path)||!Number.isSafeInteger(row.bytes)||row.bytes<0||row.bytes>16777216||!/^[a-f0-9]{64}$/.test(row.sha256))fail('SDK49_PRODUCT_ROWS_INVALID');previous=row.path;map.set(row.path,row);}
  return map;
 }
 const equalRow=(a,b)=>a&&b&&a.bytes===b.bytes&&a.sha256===b.sha256;
@@ -59,7 +59,7 @@ export function assertSDK49CanonicalRuntimeManifest(raw){
  */
 export function readSDK49ProductRuntime(root,sourceCommit){
  const git=(...args)=>execFileSync('git',args,{cwd:root,maxBuffer:8<<20});
- const sdk=JSON.parse(git('show',sourceCommit+':packages/wallet-auth/package.json'));if(sdk.version!=='1.3.0-pq.3.32-auth.46')return null;
+ const sdk=JSON.parse(git('show',sourceCommit+':packages/wallet-auth/package.json'));if(sdk.version!=='1.3.0-pq.3.32-auth.49')return null;
  const present=git('ls-tree','-r','--name-only',sourceCommit,'--',base).toString().trim();if(!present)return null;
  if(JSON.stringify(present.split('\n').sort())!==JSON.stringify(Object.keys(SDK49_PRODUCT_PINS).map(name=>base+name).sort()))fail('SDK49_PRODUCT_SOURCE_SET_DIFFERS');
  const blobs=new Map(),documents=new Map();
@@ -68,10 +68,12 @@ export function readSDK49ProductRuntime(root,sourceCommit){
  assertSDK49CanonicalRuntimeManifest(blobs.get('original-ide-auth-runtime-manifest.json'));assertSDK49CanonicalRuntimeManifest(blobs.get('original-ide-contract-relay-runtime-manifest.json'));
  if(selection.kind!=='YNX_SDK49_PRODUCT_PACK_SELECTION/v1'||selection.versionSDK!==sdk.version||auth.version!=='YNX-ORIGINAL-AUTH-RUNTIME-CLOSURE/v1'||union.version!==auth.version||receipt.kind!=='YNX_SDK49_COMPLETE_PRODUCT_RUNTIME_PROJECTION/v1'||receipt.versionSDK!==sdk.version)fail('SDK49_PRODUCT_SCHEMA_DIFFERS');
  const policy=documents.get('SDK49_FINITE_EXCLUSION_POLICY.json');if(policy.kind!=='YNX_SDK49_FINITE_PRODUCT_EXCLUSION_POLICY/v1'||policy.versionSDK!==sdk.version||policy.count!==15||receipt.excludedFiles!==15||receipt.full?.Auth!==590||receipt.full?.union!==9450||receipt.product?.Auth!==580||receipt.product?.union!==9441||receipt.product?.selection!==9591)fail('SDK49_PRODUCT_FINITE_POLICY_DIFFERS');
- const selected=rows(selection.files,9591),authRows=rows(auth.files,580),unionRows=rows(union.files,9441),excluded=rows(policy.excluded,15);
+ // The exact SHA-pinned selection uses supplier locale ordering (e.g. compat/
+ // before compat.d.ts), unlike the codepoint-ordered full runtime tables.
+ const selected=rows(selection.files,9591,false),authRows=rows(auth.files,580),unionRows=rows(union.files,9441),excluded=rows(policy.excluded,15);
  for(const row of [...authRows.values(),...unionRows.values()])if(!equalRow(row,selected.get(row.path)))fail('SDK49_PRODUCT_CLOSURE_INCOMPLETE');
  for(const row of excluded.values())if(selected.has(row.path))fail('SDK49_PRODUCT_EXCLUSION_CONFLICT');
- const lock=unionRows.get('node_modules/.package-lock.json');if(lock?.bytes!==54706||lock.sha256!=='4bcda46e64a177344da39833571be1c875398fa3b4fc8e6dd12104bfc4e77048')fail('SDK49_PRODUCT_INSTALLED_LOCK_REQUIRED');
+ const lock=unionRows.get('node_modules/.package-lock.json');if(lock?.bytes!==54707||lock.sha256!=='a6156ecfdededf82c182684e86f00d803b04fc76c6a4b59b27e62ea81983e775')fail('SDK49_PRODUCT_INSTALLED_LOCK_REQUIRED');
  const manifestRows=[],contents=new Map();
  for(const[name,pin]of Object.entries(SDK49_PRODUCT_PINS).filter(([,pin])=>pin.fullSHA256)){
   const original=git('show',sourceCommit+':packages/wallet-auth/native/'+name);if(original.length!==pin.fullBytes||hash(original)!==pin.fullSHA256)fail('SDK49_PRODUCT_FULL_CUSTODY_DIFFERS');assertSDK49CanonicalRuntimeManifest(original);

@@ -42,7 +42,7 @@ if(electronDist!==null){
 // Packaging never silently compiles/downloads a missing authority implementation.
 const originalAuthNative=await stat(path.join(root,'native/original-auth-identity.node'));
 if(!originalAuthNative.isFile()||originalAuthNative.size===0)throw Error('AUTH_NATIVE_FROZEN_MODULE_REQUIRED');
-if(matchedSDK.version==='1.3.0-pq.3.32-auth.46'){
+if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(matchedSDK.version)){
   const sourceRoot=execFileSync('git',['rev-parse','--show-toplevel'],{cwd:root,encoding:'utf8'}).trim();
   const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
   assertNativeComponentGitSourceClosure(sourceRoot,sourceCommit,await readFile(path.join(root,'native/original-auth-identity-build.json')));
@@ -55,7 +55,7 @@ if (result.status !== 0) process.exit(result.status ?? 1);
 const appDir = path.join(root, "dist", arch === "x64" ? "mac" : `mac-${arch}`, `${metadata.build.productName}.app`);
 // Fail before DMG production if outer packaging/signing omitted, moved or
 // rewrote either member of the frozen SDK46 original helper pair.
-if(matchedSDK.version==='1.3.0-pq.3.32-auth.46')verifySDK13HelperBundle(
+if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(matchedSDK.version))verifySDK13HelperBundle(
   path.join(appDir,'Contents'),
   await readFile(path.resolve(root,'../..',SDK13_HELPER_ASSET)),
   await readFile(path.resolve(root,'../..',SDK13_HELPER_PLIST))

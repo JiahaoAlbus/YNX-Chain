@@ -46,6 +46,7 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  fixed['1.3.0-pq.3.32-auth.42']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.42'].inventory;
  fixed['1.3.0-pq.3.32-auth.46']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.46'].inventory;
  fixed['1.3.0-pq.3.32-auth.48']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.48'].inventory;
+ fixed['1.3.0-pq.3.32-auth.49']=WALLET_NATIVE_SOURCE_PROFILES['1.3.0-pq.3.32-auth.49'].inventory;
  if(!Object.hasOwn(fixed,sdkVersion))return {inputs:names,evidenceAssets};
  const pin=fixed[sdkVersion];
  const bad=()=>{throw Error('Canonical Native source inventory differs');};
@@ -58,13 +59,13 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  const pairedInputCount=relay?WALLET_NATIVE_SOURCE_PROFILES[sdkVersion].supplierNodeInputs+5:67;
  if(paired&&(helperNative.length!==3||new Set([...pins,...helper].map(p=>p.path)).size!==pairedInputCount))bad();
  const artifactRelease=WALLET_ARTIFACT_CABI_INPUTS.slice(0,2).some(p=>names.includes(p.path));
- if(artifactRelease&&!['1.3.0-pq.3.32-auth.20','1.3.0-pq.3.32-auth.26','1.3.0-pq.3.32-auth.28','1.3.0-pq.3.32-auth.31','1.3.0-pq.3.32-auth.32','1.3.0-pq.3.32-auth.33','1.3.0-pq.3.32-auth.34','1.3.0-pq.3.32-auth.35','1.3.0-pq.3.32-auth.36','1.3.0-pq.3.32-auth.37','1.3.0-pq.3.32-auth.38','1.3.0-pq.3.32-auth.39','1.3.0-pq.3.32-auth.40','1.3.0-pq.3.32-auth.41','1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.48'].includes(sdkVersion))bad();
+ if(artifactRelease&&!['1.3.0-pq.3.32-auth.20','1.3.0-pq.3.32-auth.26','1.3.0-pq.3.32-auth.28','1.3.0-pq.3.32-auth.31','1.3.0-pq.3.32-auth.32','1.3.0-pq.3.32-auth.33','1.3.0-pq.3.32-auth.34','1.3.0-pq.3.32-auth.35','1.3.0-pq.3.32-auth.36','1.3.0-pq.3.32-auth.37','1.3.0-pq.3.32-auth.38','1.3.0-pq.3.32-auth.39','1.3.0-pq.3.32-auth.40','1.3.0-pq.3.32-auth.41','1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.48','1.3.0-pq.3.32-auth.49'].includes(sdkVersion))bad();
  const projectControl=WALLET_PROJECT_CONTROL_INPUTS.some(p=>names.includes(p.path));
  const controlCABI=WALLET_PROJECT_CONTROL_CABI_INPUTS.slice(0,2).some(p=>names.includes(p.path));
- const cc7=names.includes(CC7_NATIVE_SOURCE.path),pqNative=isPQNativeSelection(names)||cc7;if(pqNative&&!['1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46'].includes(sdkVersion))bad();
+ const cc7=names.includes(CC7_NATIVE_SOURCE.path),pqNative=isPQNativeSelection(names)||cc7;if(pqNative&&!['1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(sdkVersion))bad();
  if(cc7&&(sdkVersion!==CC7_NATIVE_ROLE.sdk.version||!artifactRelease||!projectControl||!controlCABI))bad();
  const selectedPins=pqNativeSupplierInputs(pins,pqNative);
- const availableWallet=relay?(cc7?cc7WalletNativeInputs():walletPublisherNativeInputs(pins.length,artifactRelease,projectControl,controlCABI,pqNative)):[];
+ const availableWallet=relay?(cc7?cc7WalletNativeInputs():walletPublisherNativeInputs(pins.length,artifactRelease,projectControl,controlCABI,pqNative,sdkVersion)):[];
  const wallet=availableWallet.some(p=>names.includes(p.path))?availableWallet:[];
  const inputs=[...pins,...wallet].map(p=>p.path),sorted=value=>[...value].sort();
  if(new Set(names).size!==names.length||JSON.stringify(sorted(names))!==JSON.stringify(sorted([...inputs,...helperNative,...CANONICAL_NATIVE_EVIDENCE_TESTS])))bad();
@@ -138,7 +139,7 @@ export function canonicalArchivePlan(before,metadataBytes,dependencyRows=[],prod
  if(!Array.isArray(productManifestRows)||productManifestRows.length!==0&&productManifestRows.length!==2)throw Error('Product runtime manifest pair required');
  const productSlots=new Set(['original-ide-auth-runtime-manifest.json','original-ide-contract-relay-runtime-manifest.json'].map(name=>SDK_CANONICAL+'/native/'+name)),seenProduct=new Set();
  for(const row of productManifestRows){
-  const expectedSource=(row.sourcePath?.startsWith('runtime-projections/sdk46-product/')?'runtime-projections/sdk46-product/':row.sourcePath?.startsWith('runtime-projections/sdk42-product/')?'runtime-projections/sdk42-product/':row.sourcePath?.startsWith('runtime-projections/sdk41-product/')?'runtime-projections/sdk41-product/':row.sourcePath?.startsWith('runtime-projections/sdk40-product/')?'runtime-projections/sdk40-product/':row.sourcePath?.startsWith('runtime-projections/sdk39-product/')?'runtime-projections/sdk39-product/':row.sourcePath?.startsWith('runtime-projections/sdk38-product/')?'runtime-projections/sdk38-product/':row.sourcePath?.startsWith('runtime-projections/sdk37-product/')?'runtime-projections/sdk37-product/':row.sourcePath?.startsWith('runtime-projections/sdk36-product/')?'runtime-projections/sdk36-product/':'runtime-projections/sdk35-product/')+path.posix.basename(row.path??''),previous=rows.get(row.path);
+  const expectedSource=(row.sourcePath?.startsWith('runtime-projections/sdk49-product/')?'runtime-projections/sdk49-product/':row.sourcePath?.startsWith('runtime-projections/sdk46-product/')?'runtime-projections/sdk46-product/':row.sourcePath?.startsWith('runtime-projections/sdk42-product/')?'runtime-projections/sdk42-product/':row.sourcePath?.startsWith('runtime-projections/sdk41-product/')?'runtime-projections/sdk41-product/':row.sourcePath?.startsWith('runtime-projections/sdk40-product/')?'runtime-projections/sdk40-product/':row.sourcePath?.startsWith('runtime-projections/sdk39-product/')?'runtime-projections/sdk39-product/':row.sourcePath?.startsWith('runtime-projections/sdk38-product/')?'runtime-projections/sdk38-product/':row.sourcePath?.startsWith('runtime-projections/sdk37-product/')?'runtime-projections/sdk37-product/':row.sourcePath?.startsWith('runtime-projections/sdk36-product/')?'runtime-projections/sdk36-product/':'runtime-projections/sdk35-product/')+path.posix.basename(row.path??''),previous=rows.get(row.path);
   if(!productSlots.has(row.path)||seenProduct.has(row.path)||row.sourcePath!==expectedSource||!Number.isSafeInteger(row.bytes)||row.bytes<1||!/^[a-f0-9]{64}$/.test(row.sha256)||!Number.isSafeInteger(row.originalBytes)||row.originalBytes<1||!/^[a-f0-9]{64}$/.test(row.originalSHA256)||!previous||previous.type!=='file'||previous.unpacked||previous.executable||previous.bytes!==row.originalBytes||previous.sha256!==row.originalSHA256)throw Error('Product runtime manifest mapping differs');
   seenProduct.add(row.path);rows.set(row.path,{...previous,bytes:row.bytes,sha256:row.sha256});
  }

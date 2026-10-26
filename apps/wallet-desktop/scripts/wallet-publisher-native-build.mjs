@@ -22,7 +22,8 @@ export const WALLET_NATIVE_SOURCE_PROFILES=Object.freeze({
  '1.3.0-pq.3.32-auth.41':Object.freeze({version:'1.3.0-pq.3.32-auth.41',supplierNodeInputs:99,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:83059,sha256:'164d888911e3b24e3a2a66615e6e081e68d00e12686defbe0260d47913d1328c'}),tool:Object.freeze({bytes:15467,sha256:'d39bdb9f8507ce82c4e184007eaf804cfb94dbbd441e93290bf7253d26883480'})}),
  '1.3.0-pq.3.32-auth.42':Object.freeze({version:'1.3.0-pq.3.32-auth.42',supplierNodeInputs:99,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:83059,sha256:'7a19292ee90a48e17cf3a3fcf5d849dedb3a421ca065b87f419b0481bc7a8d12'}),tool:Object.freeze({bytes:15467,sha256:'d39bdb9f8507ce82c4e184007eaf804cfb94dbbd441e93290bf7253d26883480'})}),
  '1.3.0-pq.3.32-auth.46':Object.freeze({version:'1.3.0-pq.3.32-auth.46',supplierNodeInputs:100,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:84691,sha256:'653b1ec3d1d8aac77fd599245de57501864072536a3af7fade722f449b09389e'}),tool:Object.freeze({bytes:15553,sha256:'332bfa52666aa59b1d1d5c39eb5d11c0d539e57411a2371ccea65a4685357622'})}),
- '1.3.0-pq.3.32-auth.48':Object.freeze({version:'1.3.0-pq.3.32-auth.48',supplierNodeInputs:102,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:86169,sha256:'49b835539b0bc89f34793c12262f8bb959eabca4fbff9e96625cc6c3cdd93947'}),tool:Object.freeze({bytes:15715,sha256:'9fe292089ad4d065bb82248a6285783bec644433d567caa01e65fc25d3cf1326'})})
+ '1.3.0-pq.3.32-auth.48':Object.freeze({version:'1.3.0-pq.3.32-auth.48',supplierNodeInputs:102,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:86169,sha256:'49b835539b0bc89f34793c12262f8bb959eabca4fbff9e96625cc6c3cdd93947'}),tool:Object.freeze({bytes:15715,sha256:'9fe292089ad4d065bb82248a6285783bec644433d567caa01e65fc25d3cf1326'})}),
+ '1.3.0-pq.3.32-auth.49':Object.freeze({version:'1.3.0-pq.3.32-auth.49',supplierNodeInputs:102,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:87161,sha256:'95f6d5012b6d2edfb64c6af22de6d0fd831072945bc974c1b02a8957b3df527e'}),tool:Object.freeze({bytes:15715,sha256:'9fe292089ad4d065bb82248a6285783bec644433d567caa01e65fc25d3cf1326'})})
 });
 export function walletNativeSourceProfile(version){if(typeof version!=='string'||!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');return WALLET_NATIVE_SOURCE_PROFILES[version];}
 export const WALLET_PUBLISHER_NATIVE_INPUTS=Object.freeze([
@@ -126,12 +127,15 @@ export const SDK48_H6_MAIN_INPUTS=Object.freeze([
   "sha256": "1da905e0b38581ad34a9cf995c36f8d368425df9242a35f4e49d7b41c8100616"
  }
 ].map(Object.freeze));
-export function walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease=false,projectControl=false,controlCABI=false,pqNative=false){
- if(supplierNodeInputCount===102){
+export function walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease=false,projectControl=false,controlCABI=false,pqNative=false,version=null){
+ if(version!==null&&(!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version)||WALLET_NATIVE_SOURCE_PROFILES[version].supplierNodeInputs!==supplierNodeInputCount))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');
+ const wallet49=version==='1.3.0-pq.3.32-auth.49';
+ if(wallet49&&(supplierNodeInputCount!==102||artifactRelease!==true||projectControl!==true||controlCABI!==true||pqNative!==true))throw Error('WALLET_SDK49_FULL_PQ_ROLE_REQUIRED');
+ if(supplierNodeInputCount===102&&!wallet49){
   if(artifactRelease!==true||projectControl!==true||controlCABI!==true||pqNative!==false)throw Error('WALLET_SDK48_H6_FROZEN_ROLE_REQUIRED');
   return SDK48_H6_MAIN_INPUTS;
  }
- if(typeof pqNative!=='boolean'||pqNative&&![99,100].includes(supplierNodeInputCount))throw Error('WALLET_PQ_NATIVE_MATCHED_SDK42_OR_46_REQUIRED');
+ if(typeof pqNative!=='boolean'||pqNative&&!([99,100].includes(supplierNodeInputCount)||wallet49))throw Error('WALLET_PQ_NATIVE_MATCHED_SDK42_OR_46_REQUIRED');
  if(typeof controlCABI!=='boolean'||controlCABI&&(!projectControl||![91,92,99,100,102].includes(supplierNodeInputCount)))throw Error('WALLET_CONTROL_CABI_MATCHED_SDK26_REQUIRED');
  if(typeof projectControl!=='boolean'||projectControl&&![77,82,91,92,99,100,102].includes(supplierNodeInputCount))throw Error('WALLET_CONTROL_MATCHED_SDK20_OR_23_OR_26_REQUIRED');
  if(typeof artifactRelease!=='boolean')throw Error('WALLET_ARTIFACT_CABI_ROLE_INVALID');
@@ -152,9 +156,9 @@ const fail=()=>{throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');};
 /** Build-only composition. Original supplier bytes and helper recipe remain
  * unchanged. This extra private IO class is NOT Source/approval qualification.
  */
-export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInputCount=69,artifactRelease=false,projectControl=false,controlCABI=false,pqNative=false){
+export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInputCount=69,artifactRelease=false,projectControl=false,controlCABI=false,pqNative=false,version=null){
  if(typeof repo!=='string'||!path.isAbsolute(repo)||path.normalize(repo)!==repo)fail();
- const walletInputs=walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease,projectControl,controlCABI,pqNative),withCustody=[91,92,99,100,102].includes(supplierNodeInputCount);
+ const walletInputs=walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease,projectControl,controlCABI,pqNative,version),withCustody=[91,92,99,100,102].includes(supplierNodeInputCount);
  const controlSources=projectControl?WALLET_PROJECT_CONTROL_INPUTS.filter(p=>p.path.endsWith('.mm')&&!p.path.endsWith('.inc.mm')).map(p=>path.join(repo,p.path)):[];
  const sources=([99,100,102].includes(supplierNodeInputCount)?SDK32_NODE_TRANSLATION_UNITS:withCustody?SDK26_NODE_TRANSLATION_UNITS:SDK13_NODE_TRANSLATION_UNITS).map(n=>path.join(repo,n));
  if(plan.minimumSystemVersion!=='13.0'||JSON.stringify(plan.sources)!==JSON.stringify(sources)||!Array.isArray(plan.commands))fail();

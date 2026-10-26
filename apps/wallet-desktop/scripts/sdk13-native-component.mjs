@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {verifySDK48FullAuthRuntime,SDK48_FULL_AUTH_RUNTIME_SOURCE} from './sdk14-runtime-union.mjs';
+import {verifySDK49FullRuntimeTables} from './sdk49-runtime-source.mjs';
 import path from 'node:path';
 import {pqNativeSupplierInputs,isPQNativeSelection} from './wallet-pq-native-build.mjs';
 import {CC7_NATIVE_SOURCE,CC7_NATIVE_ROLE,cc7WalletNativeInputs} from './wallet-cc7-native-role.mjs';
@@ -45,6 +46,7 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
   same(record.runtimeUnion,{...union,filesVerified:union.files,sourceRoot:path.join(record.sourceRoot,'packages/wallet-auth'),NativeAdmission:false,installedImageQualified:false,platformQualified:false,networkActivated:false});
   pinned(readSource(SDK14_RUNTIME_UNION_SOURCE),union);
   if(profile.version==='1.3.0-pq.3.32-auth.48')verifySDK48FullAuthRuntime(readSource(SDK48_FULL_AUTH_RUNTIME_SOURCE),readSource(SDK14_RUNTIME_UNION_SOURCE));
+  if(profile.version==='1.3.0-pq.3.32-auth.49')verifySDK49FullRuntimeTables(readSource(SDK48_FULL_AUTH_RUNTIME_SOURCE),readSource(SDK14_RUNTIME_UNION_SOURCE));
  }
  const helper=record.helperBuild;
  if(!helper||helper.kind!=='YNX_WALLET_ORIGINAL_HELPER_BUILD/v1'||helper.sourceRoot!==record.sourceRoot||helper.readbackOnly!==false||helper.commandsKind!=='executed-normal-build'||helper.executed!==true||helper.serviceRegistered!==false||helper.installed!==false||helper.nativeQualified!==false||helper.appSigned!==false)fail();
@@ -52,7 +54,7 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
  same(record.exitCodes,record.commands.map(()=>0));
  const cc7=record.inputFiles?.some(p=>p.relative===CC7_NATIVE_SOURCE.path),pqNative=isPQNativeSelection(record.inputFiles?.map(p=>p.relative)??[])||cc7;
  if(cc7&&profile.version!==CC7_NATIVE_ROLE.sdk.version)fail();
- if(pqNative&&!['1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46'].includes(profile.version))fail();
+ if(pqNative&&!['1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(profile.version))fail();
  const selectedNative=pqNativeSupplierInputs(inventory.NativeInputs,pqNative),supplier=[...selectedNative,...inventory.HelperInputs];
  const rows=supplier.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.relative.localeCompare(b.relative,'en'));
  same(helper.inputFiles,rows);
@@ -61,7 +63,7 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
  const projectControl=record.inputFiles?.some(p=>WALLET_PROJECT_CONTROL_INPUTS.some(c=>c.path===p.relative));
  const controlCABI=record.inputFiles?.some(p=>WALLET_PROJECT_CONTROL_CABI_INPUTS.slice(0,2).some(c=>c.path===p.relative));
  if(cc7&&(!artifactRelease||!projectControl||!controlCABI))fail();
- const walletInputs=cc7?cc7WalletNativeInputs():walletPublisherNativeInputs(profile.supplierNodeInputs,artifactRelease,projectControl,controlCABI,pqNative);
+ const walletInputs=cc7?cc7WalletNativeInputs():walletPublisherNativeInputs(profile.supplierNodeInputs,artifactRelease,projectControl,controlCABI,pqNative,profile.version);
  for(const p of walletInputs)pinned(readSource(p.path),p);
  const names=[...inventory.NativeInputs.map(p=>p.path),...walletInputs.map(p=>p.path),...inventory.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),...CANONICAL_NATIVE_EVIDENCE_TESTS];
  const selection=canonicalNativeInputSelection(inventory.version,names,inventoryBytes,record.inputFiles);
