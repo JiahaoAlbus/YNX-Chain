@@ -2356,6 +2356,9 @@ jobs:
       GOGC: '50'
       GOMEMLIMIT: '1536MiB'
       CGO_ENABLED: '0'
+      # Use the same compilation shape for tests and the pinned binaries below.
+      # This reuses Go build-cache entries without caching or skipping test runs.
+      GOFLAGS: '-p=1 -trimpath'
       GOPROXY: https://proxy.golang.org
       GOSUMDB: sum.golang.org
     steps:

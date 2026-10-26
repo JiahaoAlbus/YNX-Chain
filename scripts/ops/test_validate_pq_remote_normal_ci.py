@@ -1376,6 +1376,10 @@ def assert_workflow_contract(raw):
                       "github.ref == 'refs/heads/codex/ynx-pq-perf-integration')")
     need(re.findall(r"(?m)^    needs: (.+)$", delivery_job) == ["[focused-go, caddy-source]"]
          and "    timeout-minutes: 12\n" in delivery_job)
+    # One build-cache shape covers the original tests and later pinned ELFs.
+    # Neither a step nor a command may silently restore the duplicate shape.
+    need(re.findall(r"(?m)^      GOFLAGS: (.+)$", delivery_job) == ["'-p=1 -trimpath'"])
+    need("GOFLAGS=" not in delivery_job and "          GOFLAGS:" not in delivery_job)
     need("continue-on-error:" not in delivery_job)
     need(re.findall(r"(?m)^    if: (.+)$", delivery_job) == [push_condition
          + " && needs.focused-go.result == 'success' && needs.caddy-source.result == 'success'"])
@@ -1703,6 +1707,27 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_actual_workflow_source_keeps_gate_guard_caps_receipts_and_normal_push(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_workflow_contract(raw)
+
+    def test_delivery_tests_and_pinned_binaries_keep_one_compilation_shape(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_workflow_contract(raw)
+        job, _ = workflow_steps(raw, "protocol-delivery")
+        flag = "      GOFLAGS: '-p=1 -trimpath'\n"
+        self.assertEqual(job.count(flag), 1)
+        mutations = [job.replace(flag, replacement, 1) for replacement in (
+            "", "      GOFLAGS: '-p=1'\n", "      GOFLAGS: '-p=2 -trimpath'\n")]
+        host = "YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s -run '^TestProofHost'"
+        self.assertIn(host, job)
+        mutations.append(job.replace(host, host.replace(" go test", " GOFLAGS= go test", 1), 1))
+        mutations.append(job.replace("          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT:",
+            "          GOFLAGS: ''\n          YNX_PROOF_HOST_SOURCE_FIXTURE_OUT:", 1))
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, job)
+            whole = raw.replace("  protocol-delivery:\n" + job,
+                "  protocol-delivery:\n" + changed, 1)
+            self.assertNotEqual(whole, raw)
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(whole)
 
     def test_fresh_execution_rejects_missing_default_gate_pins_relocation_or_original_controller(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
