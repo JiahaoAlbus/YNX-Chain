@@ -266,3 +266,47 @@ unmeasured/unqualified. `qualifiedCountEvidence` comes only from the normal
 load result, never the network counters. Import/accounting controls do not
 execute or qualify the real Linux sampler.
 
+`pq-height-vectors.py` adds a NEW functional scope: replay the existing signed
+corpus on each original Application source and collect intermediate heights
+that frozen b6/aa never emitted. Neither old full-case results nor an old
+baseline is renamed as per-height evidence. There is no signing/record mode.
+The extra test is a separate overlay; the original preparation overlay and
+frozen tools are unchanged. The initial record is the supplied original
+`Initial` snapshot, not a claim to replay heights before that input boundary.
+
+Each arm records all 32 authentic history blocks (16 Whole per block), plus
+the complete 8 original or 4 multi-Whole candidate branches: 41 or 37 records
+including Initial. Each includes exact transaction hashes, complete normal
+Check/recheck/Prepare/Process/Finalize/Commit responses, full committed state,
+accounts/balances/nonces, AppHash, Info and normal constructor cold reload.
+Whole member outcomes must all be admitted. Branch ancestry and per-height
+coordinates bind to the same original signed input. Constructor reload is
+not a process restart/crash or cache-free timing result. No timings from this
+functional run are used for performance claims.
+
+For the sole CORE hosted job, use the SAME frozen tools version on both arms:
+
+```sh
+python3 -B "$TOOLS/scripts/loadtest/pq-height-vectors.py" prepare \
+  --owner "$OWNER" --commit "$OWNER_SHA" --output "$RUNNER_TEMP/height-prepared"
+python3 -B "$TOOLS/scripts/loadtest/pq-height-vectors.py" run \
+  --prepared "$RUNNER_TEMP/height-prepared/height-prepared.json" \
+  --input "$ORIGINAL_SIGNED_INPUT" --input-sha256 "$ORIGINAL_INPUT_SHA256" \
+  --profile original --execute
+python3 -B "$TOOLS/scripts/loadtest/pq-height-vectors.py" compare \
+  --before "$BEFORE_HEIGHT_PUBLIC" --after "$AFTER_HEIGHT_PUBLIC" \
+  --output "$NEW_HEIGHT_DIFF"
+```
+
+`--profile multi-whole` consumes the already signed multi-Whole input instead;
+it never generates a replacement. Before replay here is explicitly needed to
+collect previously absent vectors. Use fresh admitted original hosted jobs,
+the same 2 CPU/4GiB/8GiB/900s limits, and always preserve partial public files
+and first cause. CORE owns actual Application execution/CI; Root's four-scope
+source workflow stays on its frozen b6/aa inputs. Tools do not dispatch jobs.
+The new comparator checks all full canonical state bytes, all responses and
+each cold observation; omitting an intermediate height fails even when the
+last state is equal. Functional equality alone does not authorize optimized
+pressure or qualify BFT/finality, throughput or network gains. New contract
+controls are `test_pq_height_vectors.py`; fixtures are not Application runs.
+

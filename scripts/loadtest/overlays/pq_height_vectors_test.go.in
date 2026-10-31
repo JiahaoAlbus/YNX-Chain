@@ -1,0 +1,209 @@
+package consensus
+
+// Functional evidence only. Never generates or re-signs the frozen input.
+import (
+	"bytes"
+	"context"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	abci "github.com/cometbft/cometbft/abci/types"
+	cmttypes "github.com/cometbft/cometbft/types"
+	"os"
+	"path/filepath"
+	"runtime"
+	"testing"
+	"time"
+)
+
+func heightVectorWrite(t *testing.T, path string, raw []byte) map[string]any {
+	t.Helper()
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, e := f.Write(raw); e != nil || n != len(raw) {
+		t.Fatal("height evidence write", e)
+	}
+	if err = f.Sync(); err != nil {
+		t.Fatal(err)
+	}
+	if err = f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return map[string]any{"path": filepath.Base(path), "sha256": baselineDigest(raw), "bytes": len(raw)}
+}
+
+func TestPQPerHeightVectors(t *testing.T) {
+	if os.Getenv("YNX_PERF_HEIGHT_VECTORS") != "same-input-functional-only" {
+		t.Skip("explicit original-input functional replay required")
+	}
+	path, out, profile := os.Getenv("YNX_PERF_BASELINE_INPUT"), os.Getenv("YNX_PERF_BASELINE_OUTPUT"), os.Getenv("YNX_PERF_BASELINE_PROFILE")
+	if !filepath.IsAbs(path) || !filepath.IsAbs(out) {
+		t.Fatal("absolute input/output required")
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil || len(raw) > 128<<20 {
+		t.Fatal("bounded original input required", err)
+	}
+	inputSHA := baselineDigest(raw)
+	if inputSHA != os.Getenv("YNX_PERF_HEIGHT_INPUT_SHA256") {
+		t.Fatal("original input SHA differs")
+	}
+	var input baselineInputs
+	if err = json.Unmarshal(raw, &input); err != nil {
+		t.Fatal(err)
+	}
+	if profile == "original" {
+		if input.Schema != "YNX-PQ-BASELINE-PUBLIC-INPUT/v1" || len(input.History) != 512 || len(input.Cases) != 8 {
+			t.Fatal("complete original signed input required")
+		}
+	} else if profile == "multi-whole" {
+		if input.Schema != "YNX-PQ-MULTI-WHOLE-PUBLIC-INPUT/v1" || len(input.History) != 528 || len(input.CandidateCases) != 4 || len(input.Cases) != 0 {
+			t.Fatal("complete original multi signed input required")
+		}
+	} else {
+		t.Fatal("explicit profile required")
+	}
+	initialHeight := input.Initial.Height
+	manifest := map[string]any{"schema": "YNX-PQ-PER-HEIGHT-VECTORS/v1", "inputSHA256": inputSHA, "profile": profile, "initialHeight": initialHeight, "architecture": runtime.GOARCH, "goVersion": runtime.Version(), "gomaxprocs": runtime.GOMAXPROCS(0), "complete": false, "records": []any{}, "scope": "original Application/ABCI functional replay from supplied Initial; all history commits and candidate branches; cold constructor reload each height; no timing, process-cold, BFT or pressure qualification"}
+	records := []any{}
+	capture := func(id, parent string, a *Application, txs [][]byte, apply bool, expectedMembers int) {
+		before := mustJSON(t, a.committed)
+		parentHash := baselineDigest(before)
+		height := a.committed.Height
+		result := map[string]any{}
+		hashes := []string{}
+		if apply {
+			height++
+			bt := time.Unix(height, 0).UTC()
+			checks, rechecks := []any{}, []any{}
+			for _, tx := range txs {
+				hashes = append(hashes, baselineDigest(tx))
+				c, e := a.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: tx, Type: abci.CheckTxType_New})
+				if e != nil || c.Code != 0 {
+					t.Fatal("normal CheckTx", e)
+				}
+				checks = append(checks, c)
+				r, e := a.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: tx, Type: abci.CheckTxType_Recheck})
+				if e != nil || r.Code != 0 {
+					t.Fatal("normal recheck", e)
+				}
+				rechecks = append(rechecks, r)
+			}
+			prepared, e := a.PrepareProposal(context.Background(), &abci.RequestPrepareProposal{Height: height, Time: bt, Txs: txs, MaxTxBytes: cmttypes.DefaultConsensusParams().Block.MaxBytes})
+			if e != nil || len(prepared.Txs) != len(txs) {
+				t.Fatal("original proposal selection", e)
+			}
+			for i, tx := range txs {
+				if !bytes.Equal(prepared.Txs[i], tx) {
+					t.Fatal("proposal changed signed input")
+				}
+			}
+			processed, e := a.ProcessProposal(context.Background(), &abci.RequestProcessProposal{Height: height, Time: bt, Txs: txs})
+			if e != nil || processed.Status != abci.ResponseProcessProposal_ACCEPT {
+				t.Fatal("original proposal rejected", e)
+			}
+			if !bytes.Equal(before, mustJSON(t, a.committed)) {
+				t.Fatal("admission mutated committed state")
+			}
+			finalized, e := a.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: height, Time: bt, Txs: txs})
+			if e != nil || len(finalized.TxResults) != len(txs) {
+				t.Fatal("original Finalize", e)
+			}
+			for _, r := range finalized.TxResults {
+				if r == nil || r.Code != 0 {
+					t.Fatal("original execution rejected")
+				}
+				var members PQBatchExecutionResult
+				if e := json.Unmarshal(r.Data, &members); e != nil || len(members.Results) != expectedMembers {
+					t.Fatal("complete original member results required", e)
+				}
+				for _, member := range members.Results {
+					if member.Outcome != "admitted" {
+						t.Fatal("original business member rejected", member)
+					}
+				}
+			}
+			committed, e := a.Commit(context.Background(), &abci.RequestCommit{})
+			if e != nil {
+				t.Fatal(e)
+			}
+			if hex.EncodeToString(finalized.AppHash) != a.committed.AppHash {
+				t.Fatal("Finalize/committed AppHash differs")
+			}
+			result = map[string]any{"checkTx": checks, "recheckTx": rechecks, "prepareProposal": prepared, "processProposal": processed, "finalize": finalized, "commit": committed}
+		}
+		state := mustJSON(t, a.committed)
+		if a.committed.Height != height {
+			t.Fatal("actual committed height differs")
+		}
+		info, e := a.Info(context.Background(), &abci.RequestInfo{})
+		if e != nil || info.LastBlockHeight != height || hex.EncodeToString(info.LastBlockAppHash) != a.committed.AppHash {
+			t.Fatal("original Info differs", e)
+		}
+		cold, e := NewPersistentApplication(input.Migration, a.statePath)
+		if e != nil {
+			t.Fatal("normal cold constructor", e)
+		}
+		coldState := mustJSON(t, cold.committed)
+		coldInfo, e := cold.Info(context.Background(), &abci.RequestInfo{})
+		if e != nil || !bytes.Equal(state, coldState) || !bytes.Equal(mustJSON(t, info), mustJSON(t, coldInfo)) {
+			t.Fatal("cold complete state/Info differs", e)
+		}
+		prefix := fmt.Sprintf("height-%03d", len(records))
+		statePin := heightVectorWrite(t, filepath.Join(out, prefix+"-state.json"), state)
+		evidence := map[string]any{"schema": "YNX-PQ-HEIGHT-RECORD/v1", "id": id, "parent": parent, "height": height, "parentCanonicalStateSHA256": parentHash, "transactionSHA256": hashes, "results": result, "accounts": a.committed.Accounts, "appHash": a.committed.AppHash, "info": info, "coldInfo": coldInfo, "coldCanonicalStateSHA256": baselineDigest(coldState), "coldEqual": true, "state": statePin}
+		pin := heightVectorWrite(t, filepath.Join(out, prefix+"-record.json"), mustJSON(t, evidence))
+		records = append(records, pin)
+	}
+	historyApp := baselineApplication(t, input, input.Initial)
+	capture("initial", "supplied-initial", historyApp, nil, false, 0)
+	histories := []int{0, 64, 256, 512}
+	if profile == "multi-whole" {
+		histories = []int{0, 512}
+	}
+	cursor := 0
+	parent := "initial"
+	for _, h := range histories {
+		for cursor < h {
+			end := cursor + 16
+			id := fmt.Sprintf("history-%03d", end)
+			capture(id, parent, historyApp, input.History[cursor:end], true, 1)
+			cursor = end
+			parent = id
+		}
+		counts := []int{1, 16}
+		for _, k := range counts {
+			name := fmt.Sprintf("H%d-K%d", h, k)
+			txs := [][]byte{input.Cases[name]}
+			if profile == "multi-whole" {
+				name = fmt.Sprintf("H%d-W%d-K1", h, k)
+				txs = input.CandidateCases[name]
+				if len(txs) != k {
+					t.Fatal("candidate signed count differs")
+				}
+				for i, tx := range txs {
+					if !bytes.Equal(tx, input.History[h+i]) {
+						t.Fatal("candidate detached from original history input")
+					}
+				}
+			}
+			members := k
+			if profile == "multi-whole" {
+				members = 1
+			}
+			capture(name, parent, baselineApplication(t, input, historyApp.committed), txs, true, members)
+		}
+	}
+	expected := 41
+	if profile == "multi-whole" {
+		expected = 37
+	}
+	if len(records) != expected {
+		t.Fatal("complete exact height denominator required")
+	}
+	manifest["records"] = records
+	manifest["complete"] = true
+	heightVectorWrite(t, filepath.Join(out, "height-manifest.json"), mustJSON(t, manifest))
+}
