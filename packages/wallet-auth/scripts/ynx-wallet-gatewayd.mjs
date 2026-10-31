@@ -13,6 +13,7 @@ import { canonicalJSON, exactFields } from "../src/canonical.js";
 import { forwardedClient, GatewayAdmissionController } from "../src/gateway-admission.js";
 import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 import {ProductSessionGatewayNodeHost} from '../src/product-session-gateway-node-host.js';
+import{openOriginalBinaryV5PolicyAfterHost,originalBinaryV5PolicyStartupStatus,closeOriginalBinaryV5PolicyAfterHost}from'./original-binary-v5-policy-launcher.mjs';
 import {buildOriginalHostPublisherOptions,bindOriginalHostReturnPublisher} from '../native/policy-revocation-source-r35-20261018/source/service-publisher.mjs';
 import {createOriginalWalletRuntimeObserverLifetime} from './original-wallet-runtime-observer-launcher.mjs';
 import {openOriginalWalletPrivateServiceAfterListen,beginOriginalWalletPrivateServiceAcquisition as beginOriginalWalletServicePrivateDispatchAcquisition,closeOriginalWalletPrivateServiceAcquisition as closeOriginalWalletServicePrivateDispatchAcquisition,originalWalletPrivateServiceAcquisitionStatus as originalWalletServicePrivateDispatchAcquisitionStatus} from './original-wallet-private-service-launcher.mjs';
@@ -78,6 +79,10 @@ const productHostOptions=productSessionStateVersion==='2'?{
  ...buildOriginalHostPublisherOptions(productRegistry,{statePath:originalProductHostOptions.statePath,now:originalProductHostOptions.now,tokenFactory:originalProductHostOptions.tokenFactory})
 }:originalProductHostOptions;
 const productHost=new ProductHost(productRegistry,productHostOptions);
+// This actual startup attempts only the dedicated fixed binary policy. Missing
+// admission leaves V5 unavailable without replacing the existing text runner.
+const originalBinaryV5Policy=productSessionStateVersion==='2'?await openOriginalBinaryV5PolicyAfterHost(productHost):null;
+if(originalBinaryV5Policy){const status=originalBinaryV5PolicyStartupStatus(originalBinaryV5Policy);if(status.failurePresent)emitEvent({event:'binary_v5_account_policy_unavailable',level:'info',service:'ynx-wallet-gatewayd',configured:false});}
 // Separate identity-only history; never migrate/reset either existing product
 // state format or its clock/nonce/control high-water marks to enable SSO.
 if(!centralBrowser&&process.env.YNX_CENTRAL_OIDC_CONFIG_FILE)throw new Error('OIDC requires explicit Central browser adoption');
@@ -149,6 +154,7 @@ function drainOriginalOwners(){
   await cleanup(()=>originalRuntimeLifetime.close());
   await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.join();});
   await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.close();});
+  await cleanup(()=>{if(originalBinaryV5Policy)closeOriginalBinaryV5PolicyAfterHost(originalBinaryV5Policy);});
   await cleanup(()=>joinOriginalProductPairSessionV4Daemon(originalPairSessionV4));
   await cleanup(()=>closeOriginalProductPairSessionV4Daemon(originalPairSessionV4));
   if(privateFailure)throw privateCause;
