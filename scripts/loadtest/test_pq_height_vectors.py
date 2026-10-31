@@ -104,5 +104,13 @@ class HeightVectorControls(unittest.TestCase):
             (target/h.LEAF).write_text("changed functional observer")
             with self.assertRaisesRegex(RuntimeError,"overlay changed"):h.validate(target/"height-prepared.json")
 
+    def test_resource_failure_interrupts_height_validation_and_observer_versions_bind(self):
+        with tempfile.TemporaryDirectory() as directory:
+            a,b=Path(directory).resolve()/"a",Path(directory).resolve()/"b";fixture(a);fixture(b)
+            def cap():raise RuntimeError("control-only observed RSS cap")
+            with self.assertRaisesRegex(RuntimeError,"observed RSS cap"):h.load_vectors(a,checkpoint=cap)
+            receipt=json.loads((b/"receipt.json").read_bytes());receipt["heightVectorLeafSHA256"]="d"*64;save(b,"receipt.json",receipt)
+            with self.assertRaisesRegex(RuntimeError,"observer/tool versions"):h.compare(a,b)
+
 
 if __name__=="__main__":unittest.main()

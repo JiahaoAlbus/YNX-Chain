@@ -15,6 +15,7 @@ import shutil
 import signal
 import sys
 import tempfile
+import threading
 import time
 
 
@@ -78,10 +79,10 @@ def bound_file(root,pin,limit):
     return raw
 
 
-def load_vectors(root,receipt_override=None):
+def load_vectors(root,receipt_override=None,require_cleanup=True,checkpoint=None):
     root=Path(root);lab.require(root.is_absolute() and root.resolve(strict=True)==root,"canonical original vector directory required")
     receipt=json.loads(read(root/"receipt.json")) if receipt_override is None else receipt_override
-    lab.require(receipt.get("perHeightComplete") is True and receipt.get("cleanupComplete") is True and receipt.get("firstCause") is None and receipt.get("testExitCode")==0,"actual complete height replay and cleanup required")
+    lab.require(receipt.get("perHeightComplete") is True and (not require_cleanup or receipt.get("cleanupComplete") is True) and receipt.get("firstCause") is None and receipt.get("testExitCode")==0,"actual complete height replay and cleanup required")
     manifest_raw=read(root/"height-manifest.json");manifest=json.loads(manifest_raw)
     lab.require(digest(manifest_raw)==receipt["heightManifestSHA256"] and manifest.get("schema")=="YNX-PQ-PER-HEIGHT-VECTORS/v1" and manifest.get("complete") is True,"complete original height manifest required")
     input_raw=read(root/"baseline-input.json",128<<20);inp=json.loads(input_raw)
@@ -95,6 +96,7 @@ def load_vectors(root,receipt_override=None):
     lab.require(manifest["initialHeight"]==initial_height,"supplied initial height differs")
     rows=[];states={};files=set()
     for pin,(identity,parent,offset,selector) in zip(manifest["records"],expected):
+        if checkpoint is not None:checkpoint()
         lab.require(pin["path"] not in files,"duplicate height evidence file");files.add(pin["path"])
         raw=bound_file(root,pin,4<<20);row=json.loads(raw)
         lab.require(row.get("schema")=="YNX-PQ-HEIGHT-RECORD/v1" and row["id"]==identity and row["parent"]==parent and row["height"]==initial_height+offset,"per-height identity/order/coordinates differ")
@@ -122,6 +124,7 @@ def load_vectors(root,receipt_override=None):
         # Retain compact ancestry only. Do not keep every growing full state
         # resident while validating another arm against the same 4GiB cap.
         states[identity]=(digest(state_raw),state["height"]);rows.append((row,digest(state_raw)))
+        if checkpoint is not None:checkpoint()
     return receipt,manifest,rows
 
 
@@ -152,6 +155,7 @@ def run(args):
     for part in (".private","public"):(work/part).mkdir(mode=0o700)
     w=lab.Window(source,work,additional_storage=(Path(args.prepared).parent,Path(__file__).resolve().parents[2]));w.env["GOMAXPROCS"]="1"
     result=dict(schema="YNX-PQ-PER-HEIGHT-RUN/v1",sourceCommit=plan["commit"],sourceTree=plan["tree"],toolsCommit=lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),heightVectorLeafSHA256=lab.guard.digest(Path(args.prepared).parent/LEAF),inputSHA256=args.input_sha256,profile=args.profile,perHeightComplete=False,firstCause=None,caps=lab.CAPS,newFunctionalValidation=True,performanceComparison=False)
+    monitor=None
     try:
         data=work/"public/baseline-input.json"
         with open(data,"xb") as out,open(original,"rb") as src:shutil.copyfileobj(src,out,65536);out.flush();os.fsync(out.fileno())
@@ -163,14 +167,24 @@ def run(args):
         manifest=work/"public/height-manifest.json"
         lab.require(result["testExitCode"]==0 and manifest.is_file(),"per-height replay incomplete; preserve partial evidence")
         result["heightManifestSHA256"]=lab.guard.digest(manifest);result["perHeightComplete"]=True
-    except BaseException as error:result["firstCause"]=str(error)
+        # Parsing every growing state is part of the SAME measured window,
+        # not unaccounted work after cleanup. Start a monitor only after the
+        # last original child launch; no preexec_fn runs with this thread.
+        normal=module("height_resource_monitor","pq-independent-load.py")
+        monitor=normal.Monitor(w,threading.Event());monitor.thread.start()
+        load_vectors(work/"public",receipt_override=result,require_cleanup=False,checkpoint=monitor.check)
+        monitor.check();w.sample()
+    except BaseException as error:result["firstCause"]=str(error);result["perHeightComplete"]=False
     finally:
+        if monitor is not None:
+            monitor.close()
+            result["evidenceObserverRetired"]=not monitor.thread.is_alive()
+            if monitor.thread.is_alive():result["firstCause"]=result["firstCause"] or "height evidence resource observer did not retire"
+            try:monitor.check()
+            except BaseException as error:result["firstCause"]=result["firstCause"] or str(error);result["perHeightComplete"]=False
         try:result["cleanupComplete"]=w.stop()
         except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error)
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,processes=w.process_receipt(),resourceSamples=w.samples,retiredSamplingEvidence=w.retired_samples)
-        if result["firstCause"] is None and result["perHeightComplete"] and result["cleanupComplete"]:
-            try:load_vectors(work/"public",receipt_override=result)
-            except Exception as error:result["perHeightComplete"]=False;result["firstCause"]="per-height evidence validation: "+str(error)
         lab.write_new(work/"public/receipt.json",result)
         print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],perHeightComplete=result["perHeightComplete"])))
     lab.require(result["firstCause"] is None and result["cleanupComplete"],"per-height functional replay failed")
