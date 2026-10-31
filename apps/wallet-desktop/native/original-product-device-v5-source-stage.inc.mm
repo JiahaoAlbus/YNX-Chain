@@ -60,14 +60,21 @@ class ProductDeviceV5NativeSource final {
  static napi_value data(napi_env e,id v){napi_value out=nullptr;if(v==NSNull.null){napi_get_null(e,&out);return out;}if([v isKindOfClass:NSString.class]){NSData*b=[v dataUsingEncoding:NSUTF8StringEncoding];return napi_create_string_utf8(e,(const char*)b.bytes,b.length,&out)==napi_ok?out:nullptr;}if([v isKindOfClass:NSNumber.class])return napi_create_double(e,[v doubleValue],&out)==napi_ok?out:nullptr;if(![v isKindOfClass:NSDictionary.class]||napi_create_object(e,&out)!=napi_ok)return nullptr;for(NSString*k in v){auto child=data(e,v[k]);if(!child)return nullptr;napi_property_descriptor d={k.UTF8String,nullptr,nullptr,nullptr,nullptr,child,napi_enumerable,nullptr};if(napi_define_properties(e,out,1,&d)!=napi_ok)return nullptr;}return napi_object_freeze(e,out)==napi_ok?out:nullptr;}
  static bool imageAdmission(ProductDeviceV5NativeSource*p){
 #ifdef YNX_DEVICE_V5_HAS_ORIGINAL_IMAGE_PORT
-  if(!p->imageLease){NSError*e=nil;p->imageLease=[p->source borrowOriginalRuntimeImageReadLeaseForNativeAddress:(const void*)&acquire error:&e];/* adopt BEFORE NSError */if(e||!p->imageLease)return fail(p->env,p->first,"PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_LEASE_NOT_SUPPLIED");}
+  try{@try{
+  if(!p->imageLease){NSError*e=nil;p->imageLease=[p->source borrowOriginalRuntimeImageReadLeaseForNativeAddress:(const void*)&acquire error:&e];/* adopt BEFORE NSError */if(e||!p->imageLease)return fail(p->env,p->first,e.localizedDescription.UTF8String?:"PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_LEASE_NOT_SUPPLIED");}
   p->imageLease->assertCurrent();const auto&v=p->imageLease->readOriginalRuntimeImageView();
   if(v.imagePath.empty()||v.imageSHA256.size()!=64||v.normalPackageRoot.empty()||v.privateModulePath.empty()||v.privateModuleURI.empty()||!v.imageBytes||!v.imageInode)return fail(p->env,p->first,"PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_VIEW_REQUIRED");
   if(p->imageCaptured){const auto&old=p->imageView;if(v.imagePath!=old.imagePath||v.imageSHA256!=old.imageSHA256||v.normalPackageRoot!=old.normalPackageRoot||v.privateModulePath!=old.privateModulePath||v.privateModuleURI!=old.privateModuleURI||v.imageDevice!=old.imageDevice||v.imageInode!=old.imageInode||v.imageBytes!=old.imageBytes)return fail(p->env,p->first,"PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_CHANGED");}else{p->imageView=v;p->imageCaptured=true;}
-#endif
-  // Auth supplied the actual port header, but its implementing image + Root
-  // entry are not frozen/activated. No caller macro or JS Boolean opens this.
+  // Only the actual original Native lease's current/view result qualifies
+  // this image. The port itself refuses absent Root/current/loaded-image
+  // binding; neither header presence nor JS DATA grants that authority.
+  return true;
+  }@catch(id){return fail(p->env,p->first,"PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_CURRENT_EXCEPTION");}}
+  catch(const std::exception&e){return fail(p->env,p->first,e.what());}
+  catch(...){return fail(p->env,p->first,"PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_CURRENT_CPP_EXCEPTION");}
+#else
   return fail(p->env,p->first,"PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_ADMISSION_NOT_SUPPLIED");
+#endif
  }
  bool current(){
   if(!actorOK(env,actor)||envClosing)return false;if(first.present)return false;

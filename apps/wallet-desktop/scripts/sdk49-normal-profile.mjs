@@ -1,63 +1,63 @@
-// Exact 530 source DATA; actual Main Native role remains a separate successor.
-export const SDK49_NORMAL_COMMIT="530614097f6e4a1400eb5a321ad8ae1b01439717";
-export const SDK49_NORMAL_TREE="30c23a5caaf9b1cba88d5abce94f36e8aa9839e0";
-export const SDK49_NORMAL_VARIANT="SDK49-REGISTERED-FINALIZATION-HTTP-V5-NATIVE164/v1";
+// Exact 984 source DATA; actual Main Native role remains a separate successor.
+export const SDK49_NORMAL_COMMIT="98467012696ad5b0f51425c5f6c48e20fe4f9b4e";
+export const SDK49_NORMAL_TREE="a66384ecd19e88aa709487c5648bb52f5c1cc918";
+export const SDK49_NORMAL_VARIANT="SDK49-ACTUAL-NATIVE-PRELOAD-SOCIAL-V4-NATIVE171/v1";
 export const SDK49_NORMAL_PREFIX=Object.freeze({
-  "bytes": 1521000,
-  "sha256": "901f1680848b98d9ff8ee26fadf1bd6a14cd7d8014cb891e7a2d38ebd689beed"
+  "bytes": 1527063,
+  "sha256": "f61a2d77b1120c460c85c1e02bad86f4c183a0219f3171032c6524c87abfc115"
 });
 export const SDK49_NORMAL_AUTH=Object.freeze({
-  "bytes": 102631,
-  "sha256": "61a44b92a1c1783e5a33daaf150e8b47604e96097e6c347ecdc974833c56ce1e",
-  "files": 712,
-  "totalBytes": 8628554
+  "bytes": 105249,
+  "sha256": "c284837899c410b33a3f2772e433d34e2749257696fc93d09c4a20c07d5cbf1b",
+  "files": 730,
+  "totalBytes": 8745094
 });
 export const SDK49_NORMAL_UNION=Object.freeze({
-  "bytes": 1488360,
-  "sha256": "0ff4b4898afc4b507e5ab73eb67a29cef8c4b6e341bed86aea95f3bf9d389a41",
-  "files": 9572,
-  "totalBytes": 78838766
+  "bytes": 1490978,
+  "sha256": "d3af9c7765a5aca73ce6aa9bd80dc0bc7f7bf539235a42390f2f759ab304624f",
+  "files": 9590,
+  "totalBytes": 78955306
 });
 export const SDK49_NORMAL_COUNTS=Object.freeze({
-  "prefix": 9799,
-  "pack": 9784,
-  "auth": 702,
-  "union": 9562,
-  "fullAuth": 712,
-  "fullUnion": 9572,
-  "native": 164,
+  "prefix": 9841,
+  "pack": 9826,
+  "auth": 720,
+  "union": 9580,
+  "fullAuth": 730,
+  "fullUnion": 9590,
+  "native": 171,
   "helpers": 5,
-  "staticSources": 274,
-  "staticEdges": 1001
+  "staticSources": 279,
+  "staticEdges": 1028
 });
 export const SDK49_NORMAL_PRODUCT_PINS=Object.freeze({
   "original-ide-auth-runtime-manifest.json": {
-    "bytes": 101194,
-    "sha256": "3af3855068f90d79bf8f41709086427ff189e46fde73b52d5385fda2c83355e3",
-    "fullBytes": 102631,
-    "fullSHA256": "61a44b92a1c1783e5a33daaf150e8b47604e96097e6c347ecdc974833c56ce1e"
+    "bytes": 103812,
+    "sha256": "cabb2490d9fe4ac846299824d88165009977b1579d91a932b6da805753b03eda",
+    "fullBytes": 105249,
+    "fullSHA256": "c284837899c410b33a3f2772e433d34e2749257696fc93d09c4a20c07d5cbf1b"
   },
   "original-ide-contract-relay-runtime-manifest.json": {
-    "bytes": 1486923,
-    "sha256": "71ccca9377053584778c02024090075da1735b1fd096b09acc85901daabff515",
-    "fullBytes": 1488360,
-    "fullSHA256": "0ff4b4898afc4b507e5ab73eb67a29cef8c4b6e341bed86aea95f3bf9d389a41"
+    "bytes": 1489541,
+    "sha256": "d8979a44192db5235b64f892a7c02ff7b98602dafbeb834c415c736cd39cc22b",
+    "fullBytes": 1490978,
+    "fullSHA256": "d3af9c7765a5aca73ce6aa9bd80dc0bc7f7bf539235a42390f2f759ab304624f"
   },
   "SDK49_FINITE_EXCLUSION_POLICY.json": {
     "bytes": 2674,
-    "sha256": "f7d538297a9ab8b3f14688605c1c39989c7fd2f65c778382d819cc7b508f1db3"
+    "sha256": "4d1fd657119f68334b298612ae909749af7caadd21076bb33df3b93f0db95bbb"
   },
   "SDK49_PRODUCT_PACK_SELECTION.json": {
-    "bytes": 1518795,
-    "sha256": "070bb3a5099b9ef247f9942fce9c5d274851bd7442a54930adb7dd2e5a532cbe"
+    "bytes": 1524864,
+    "sha256": "7a867b41dd438fc68c939fa709a30b31d6eaa8c1c5037c833dd011edc66a1352"
   },
   "STATIC_SOURCE_ANALYSIS.json": {
-    "bytes": 210072,
-    "sha256": "0bfe397bf27a3fec72c435679cffdcac166474d8a6ffdae7a1c9b377b677c573"
+    "bytes": 215749,
+    "sha256": "25f1cb10430ef8195b69cdf3916acf7394adeacc4c991623b4e5971b36f8bffb"
   },
   "PROJECTION_RECEIPT.json": {
-    "bytes": 4542,
-    "sha256": "a34b90cf6fcfa005724aefb0f430a03b76ebc8ae37a3a52de1aaf1ce490d7645"
+    "bytes": 4482,
+    "sha256": "84f2559446c7d9055a98486b1e94a9fafbd9fd4d98abfed7efed6a84d6213049"
   }
 });
 export const SDK49_NORMAL_LOCK=Object.freeze({

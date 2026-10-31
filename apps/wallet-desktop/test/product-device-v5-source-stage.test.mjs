@@ -27,15 +27,14 @@ before(async()=>{
  await fs.copyFile(path.join(sdkRoot,'native/original-auth-identity-source-authority.h'),path.join(dir,'original-auth-identity-source-authority.h'));
  const imageAPI=await fs.readFile(process.env.YNX_ORIGINAL_RUNTIME_IMAGE_PRIVATE_HEADER??path.join(here,'original-auth-runtime-image-private.PUBLIC-API.h'));
  assert.equal(createHash('sha256').update(imageAPI).digest('hex'),'a2930e74920697207ae8353d56dcfb9d7e0e3ef2174ddd7a631259dd01499336','Actual Auth native API declaration changed; reconcile the explicit PUBLIC harness.');
- await fs.writeFile(path.join(dir,'original-auth-runtime-image-private.h'),imageAPI);
+
  await fs.copyFile(path.join(native,'original-product-device-v5-factory.h'),path.join(dir,'original-product-device-v5-factory.h'));
- const source=await fs.readFile(path.join(native,'original-product-device-v5-source-stage.inc.mm'),'utf8'),refusal='return fail(p->env,p->first,"PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_ADMISSION_NOT_SUPPLIED");';
- assert.equal(source.split(refusal).length,2,'One explicit production refusal, never a runtime hook.');
+ const source=await fs.readFile(path.join(native,'original-product-device-v5-source-stage.inc.mm'),'utf8');
  const headers='/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node';
  for(const variant of ['strict','PUBLIC']){
-  const target=path.join(dir,variant);await fs.mkdir(target);await fs.writeFile(path.join(target,'PUBLIC-source-stage.inc.mm'),variant==='strict'?source:source.replace(refusal,'return true; // PUBLIC OS/Root stand-in ONLY in generated test TU'));
+  const target=path.join(dir,variant);await fs.mkdir(target);await fs.writeFile(path.join(target,'PUBLIC-source-stage.inc.mm'),source);if(variant==='PUBLIC')await fs.writeFile(path.join(target,'original-auth-runtime-image-private.h'),imageAPI);
   const binary=path.join(target,'PUBLIC-source.node');
-  const r=spawnSync('/usr/bin/clang++',['-std=c++17','-fobjc-arc','-mmacosx-version-min=13.0','-Wall','-Wextra','-Werror','-Wno-incomplete-implementation','-Wno-deprecated-declarations','-Wno-unused-function','-Wno-unused-const-variable','-shared','-undefined','dynamic_lookup','-I'+target,'-I'+dir,'-I'+headers,'-I'+native,path.join(here,'product-device-v5-source-public.mm'),'-framework','Foundation','-o',binary],{encoding:'utf8',timeout:30000});assert.equal(r.status,0,r.stdout+'\n'+r.stderr);
+  const r=spawnSync('/usr/bin/clang++',['-std=c++17','-fobjc-arc','-mmacosx-version-min=13.0','-Wall','-Wextra','-Werror','-Wno-incomplete-implementation','-Wno-deprecated-declarations','-Wno-unused-function','-Wno-unused-const-variable',...(variant==='strict'?['-DPUBLIC_NO_IMAGE_API']:[]),'-shared','-undefined','dynamic_lookup','-I'+target,'-I'+dir,'-I'+headers,'-I'+native,path.join(here,'product-device-v5-source-public.mm'),'-framework','Foundation','-o',binary],{encoding:'utf8',timeout:30000});assert.equal(r.status,0,r.stdout+'\n'+r.stderr);
   if(variant==='strict')strictBinary=binary;else b=createRequire(import.meta.url)(binary);
  }
  modulePath=path.join(dir,'original-http-binary-v5-client-private.js');
@@ -51,8 +50,8 @@ before(async()=>{
  module=createRequire(import.meta.url)(modulePath);
 });
 after(async()=>{if(dir)await fs.rm(dir,{recursive:true,force:true})});
-test('actual strict production stage refuses absent implementing-image release and retains the same native cleanup partial',only,()=>{
- const code=`const b=require(${JSON.stringify(strictBinary)});b.PUBLICConfigure(${JSON.stringify(JSON.stringify({scope:scope(),path:modulePath}))});let e;try{b.acquireOriginalProductSessionHTTPProofV5Source()}catch(x){e=x}if(e?.cause?.code!=='PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_ADMISSION_NOT_SUPPLIED'||!e.partial)process.exit(2);e.partial.retire();e.partial.join();e.partial.close();if(b.PUBLICCounts().factories!==0||b.PUBLICCounts().imageCloses!==1||b.PUBLICCounts().sourceCloses!==1)process.exit(3);`;
+test('unmodified production stage refuses a missing native image port and retains the same Source cleanup partial',only,()=>{
+ const code=`const b=require(${JSON.stringify(strictBinary)});b.PUBLICConfigure(${JSON.stringify(JSON.stringify({scope:scope(),path:modulePath}))});let e;try{b.acquireOriginalProductSessionHTTPProofV5Source()}catch(x){e=x}if(e?.cause?.code!=='PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_ADMISSION_NOT_SUPPLIED'||!e.partial)process.exit(2);e.partial.retire();e.partial.join();e.partial.close();if(b.PUBLICCounts().factories!==0||b.PUBLICCounts().imageCloses!==0||b.PUBLICCounts().sourceCloses!==1)process.exit(3);`;
  const r=spawnSync(process.execPath,['-e',code],{encoding:'utf8',timeout:15000});assert.equal(r.status,0,r.stdout+r.stderr);
 });
 test('zero-input acquisition, original tagged parent, and actual fixed native entry address',only,()=>{
@@ -62,7 +61,25 @@ test('nonnil Source plus acquisition error is adopted before error and physicall
  configure({acquireError:true});let e;try{b.acquireOriginalProductSessionHTTPProofV5Source()}catch(x){e=x}assert.equal(e.cause.code,'PUBLIC_NATIVE_FAILURE');assert.ok(e.partial);const before=b.PUBLICCounts().sourceCloses;close(e.partial);assert.equal(b.PUBLICCounts().sourceCloses,before+1);
 });
 test('nonnil image lease plus NSError remains parent-owned until cleanup',only,()=>{
- configure({imageError:true});let e;try{b.acquireOriginalProductSessionHTTPProofV5Source()}catch(x){e=x}assert.equal(e.cause.code,'PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_LEASE_NOT_SUPPLIED');const before=b.PUBLICCounts().imageCloses;close(e.partial);assert.equal(b.PUBLICCounts().imageCloses,before+1);
+ configure({imageError:true});let e;try{b.acquireOriginalProductSessionHTTPProofV5Source()}catch(x){e=x}assert.equal(e.cause.code,'PUBLIC_NATIVE_FAILURE');const before=b.PUBLICCounts().imageCloses;close(e.partial);assert.equal(b.PUBLICCounts().imageCloses,before+1);
+});
+for(const [option,code,lease] of [
+ ['imageMissing','PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_LEASE_NOT_SUPPLIED',false],
+ ['imageRootMissing','AUTH_RUNTIME_IMAGE_BINDING_V1_NOT_SUPPLIED',true],
+ ['imageCurrentFailure','PUBLIC_IMAGE_CURRENT_REFUSED',true],
+ ['imageViewFailure','PUBLIC_IMAGE_VIEW_REFUSED',true],
+ ['imageMalformed','PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_VIEW_REQUIRED',true],
+])test('runtime image port boundary refuses '+option+' before factory without reborrowing',only,()=>{
+ configure({[option]:true});const before=b.PUBLICCounts();let error;try{b.acquireOriginalProductSessionHTTPProofV5Source()}catch(e){error=e}assert.equal(error?.cause?.code,code);assert.ok(error.partial);const acquired=b.PUBLICCounts();assert.equal(acquired.imageBorrows,before.imageBorrows+1);assert.equal(acquired.factories,before.factories);assert.throws(()=>error.partial.assertCurrent(),{code});assert.equal(b.PUBLICCounts().imageBorrows,acquired.imageBorrows);close(error.partial);assert.equal(b.PUBLICCounts().imageCloses,acquired.imageCloses+(lease?1:0));
+});
+test('runtime image current/view success opens the unmodified production caller and pins one native lease',only,()=>{
+ const before=b.PUBLICCounts(),p=open(),opened=b.PUBLICCounts();assert.equal(opened.imageBorrows,before.imageBorrows+1);assert.ok(opened.imageCurrents>before.imageCurrents&&opened.imageReads>before.imageReads);p.assertCurrent();p.readOriginalScopeDATA();assert.equal(b.PUBLICCounts().imageBorrows,opened.imageBorrows);close(p);assert.equal(b.PUBLICCounts().imageCloses,opened.imageCloses+1);
+});
+test('runtime image view identity substitution fails without replacing or reborrowing its lease',only,()=>{
+ const p=open(),before=b.PUBLICCounts();configure({imageChanged:true});assert.throws(()=>p.assertCurrent(),{code:'PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_CHANGED'});assert.throws(()=>p.assertCurrent(),{code:'PRODUCT_DEVICE_V5_IMPLEMENTING_IMAGE_CHANGED'});assert.equal(b.PUBLICCounts().imageBorrows,before.imageBorrows);close(p);
+});
+test('runtime image current rejection after capture keeps the same lease and pending child out of factory',only,async()=>{
+ const p=open(),f=fixture();let resolve;f.r.recheck=()=>new Promise(r=>resolve=r);const before=b.PUBLICCounts(),flight=p.produceOriginalHTTPProofV5(f.peer,f.context);configure({imageCurrentFailure:true});resolve();const op=await flight;assert.equal(op.readOriginalStatusDATA().firstCause.code,'PUBLIC_IMAGE_CURRENT_REFUSED');assert.equal(op.readOriginalStatusDATA().factoryEntered,false);assert.equal(b.PUBLICCounts().factories,before.factories);assert.equal(b.PUBLICCounts().imageBorrows,before.imageBorrows);close(op);close(p);
 });
 test('scope DATA has exact8, deep frozen identity, and a shrinking original expiry',only,()=>{
  const s=scope(),p=open({scope:s}),a=p.readOriginalScopeDATA();assert.equal(Reflect.ownKeys(a).length,8);assert.equal(Reflect.ownKeys(a.identity).length,14);assert.ok(Object.isFrozen(a)&&Object.isFrozen(a.identity));configure({scope:{...s,expiresAtMs:s.expiresAtMs-1000}});assert.equal(p.readOriginalScopeDATA().expiresAtMs,s.expiresAtMs-1000);configure({scope:s});assert.equal(p.readOriginalScopeDATA().expiresAtMs,s.expiresAtMs-1000);close(p);
