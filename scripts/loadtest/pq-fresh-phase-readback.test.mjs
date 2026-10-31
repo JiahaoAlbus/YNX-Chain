@@ -465,3 +465,24 @@ test('successful source-bound stdout requires one complete Host timing per origi
  const missing=Buffer.from(raw.toString().replace(' hostNs=[10,1,1,1,1,1,1,1,1,1]',''));assert.throws(()=>readGuardedFreshPhaseLog(missing,logGuard(f,missing),f.expected),/Host/);
  const overflow=Buffer.from(raw.toString().replace('hostNs=[10,1,1,1,1,1,1,1,1,1]','hostNs=['+'0,'.repeat(240)+'0]'));assert.throws(()=>readGuardedFreshPhaseLog(overflow,logGuard(f,overflow),f.expected),/progress|Host/);
 });
+
+function withSuccessorCommits(f,ends=[180,181,182,183],arm='before'){
+ const base=f.records.find(([tag])=>tag==='PQ_NETWORK_FRESH_COMMIT_OBSERVATION')[1];
+ for(let n=0;n<ends.length;n++)if(ends[n]!==null){const x=structuredClone(base);x.arm=arm;x.nodeIndex=n;x.height='2';x.commitTiming.height=2;x.finalizeStartNs=ends[n]-70;x.finalizeEndNs=ends[n]-60;x.commitStartNs=ends[n]-60;x.commitEndNs=ends[n];f.records.push(['PQ_NETWORK_FRESH_COMMIT_OBSERVATION',x]);}
+ return f;
+}
+test('successor durability is joined by original arm/node/H+1 and placed inside Host span',()=>{
+ const r=diagnosticRead(withSuccessorCommits(hostDiagnosticFixture())),x=r.successorDurability.observations[0];
+ assert.equal(x.successorHeight,'2');assert.equal(x.observedDurableNodes,4);assert.equal(x.allNodesDurableOffsetNs,'183');assert.equal(x.hostSpanRelation,'during-host-span');assert.equal(x.successorToCallbackNs,'17');assert.equal(r.fullPairQualified,false);
+});
+test('missing, foreign-arm and non-durable successor replicas do not invent a readiness time',()=>{
+ for(const mutate of [f=>withSuccessorCommits(f,[180,181,182]),f=>withSuccessorCommits(f,[180,181,182,183],'after'),f=>{withSuccessorCommits(f);f.records.at(-1)[1].commitTiming.durable=false;return f;}]){
+  const x=diagnosticRead(mutate(hostDiagnosticFixture())).successorDurability.observations[0];assert.equal(x.allNodesDurableOffsetNs,null);assert.equal(x.hostSpanRelation,'unmeasured');assert.equal(x.successorToCallbackNs,null);
+ }
+});
+test('successor observations distinguish before/after Host and keep post-callback time censored',()=>{
+ for(const [ends,relation,gap]of [[[165,166,167,168],'before-host-span','32'],[[191,192,193,194],'after-host-span','6'],[[201,202,203,204],'after-host-span',null]]){
+  const x=diagnosticRead(withSuccessorCommits(hostDiagnosticFixture(),ends)).successorDurability.observations[0];assert.equal(x.hostSpanRelation,relation);assert.equal(x.successorToCallbackNs,gap);
+ }
+ const absent=diagnosticRead(withSuccessorCommits(diagnosticFixture())).successorDurability.observations[0];assert.equal(absent.hostSpanRelation,'unmeasured');assert.equal(absent.sourceOfferOrdinal,null);
+});

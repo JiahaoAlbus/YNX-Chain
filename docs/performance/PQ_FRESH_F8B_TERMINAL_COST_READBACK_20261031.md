@@ -48,3 +48,11 @@ The current implementation direction is to reduce needless full payload probes w
 ## Evidence
 
 Local original directory: `/Volumes/西部数据/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once`. Committed handoff: `evidence/pq-fresh-f8b-terminal-20261031.json` (52531 bytes, SHA-256 `a42556205d36dc213c757d56e517d68067d0104f7a6aae4256913d11dba93ed2`). Exact reader command and raw input/output pins are retained there.
+
+## Successor phase source follow-up
+
+The diagnostic reader now automatically joins original H+1 Commit observations by arm and replica to each verified callback. It emits the four-replica durability offset and its position relative to the matching original offer-ordinal Host span. Missing replicas, failed/non-durable rows and unavailable Host spans remain unmeasured; successor observations after callback never produce negative elapsed durations. This is timing DATA, not payload readiness or a BFT certificate.
+
+Actual f8 replay of retained logs only (no network or nodes): before15/16 H+1 durability observations occurred during the Host span and1/16 before it; after4/4 completed callback observations occurred during it. Thus the full Host span cannot be classified as work after H+1 readiness. The Host span includes queue, retry and scheduling; these counts do not isolate pure wait, CPU or the benefit of the separate a4 negative hint.
+
+Validation: three new counterexamples failed against the prior reader (36pass/3fail); revised reader39pass/0fail/0skip on Node26.7.0. Existing chain-core CI already includes this exact test file. Original frozen reader and terminal handoff are unchanged; new readback is a separate unqualified source follow-up. See `evidence/pq-fresh-f8b-successor-readback-20261031.json` for pins and the local output. Raw red/green outputs remain in the external `resume-20261031` directory.

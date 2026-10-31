@@ -1,0 +1,20 @@
+{
+  "readerPath": "/Users/huangjiahao/.codex/worktrees/chain-batch-v01-performance/YNX Chain/scripts/loadtest/pq-fresh-phase-readback.mjs",
+  "readerBytes": 63112,
+  "readerSHA256": "57bc64724d6105ed8f82b61a90618909e616540b2e26ef54e67e26ece270c8de",
+  "exitCode": 0,
+  "sourceExpectedUnchanged": true,
+  "originalFrozenReaderReplaced": false,
+  "output": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/SUCCESSOR_DIAGNOSTIC_V2.json",
+  "outputBytes": 93571,
+  "outputSHA256": "a20d72acb10a9108aae156ffdb896f921134f8602f461cf5bda268de811058ab",
+  "counts": {
+    "before": {
+      "before-host-span": 1,
+      "during-host-span": 15
+    },
+    "after": {
+      "during-host-span": 4
+    }
+  }
+}
