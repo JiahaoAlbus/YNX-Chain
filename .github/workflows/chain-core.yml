@@ -240,14 +240,20 @@ jobs:
         env:
           YNX_PQ_LAB_PROOF_FIXTURE_OUT: ${{ runner.temp }}/pq-lab-source-proof
           YNX_PQ_LAB_STOPPED_FIXTURE_ROOT: ${{ runner.temp }}/pq-lab-stopped-stores
+          YNX_PQ_LAB_LIVE_FIXTURE_ROOT: ${{ runner.temp }}/pq-lab-live-source
           GOMEMLIMIT: 1536MiB
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test ! -e "$YNX_PQ_LAB_PROOF_FIXTURE_OUT"
           test ! -e "$YNX_PQ_LAB_STOPPED_FIXTURE_ROOT"
-          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then
+          test ! -e "$YNX_PQ_LAB_LIVE_FIXTURE_ROOT"
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^TestPQLabLiveMaterials' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then
             cat "$RUNNER_TEMP/pq-lab-core-tests.jsonl"
+            exit 1
+          fi
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLabLiveMaterials' ./internal/consensus > "$RUNNER_TEMP/pq-lab-live-tests.jsonl"; then
+            cat "$RUNNER_TEMP/pq-lab-live-tests.jsonl"
             exit 1
           fi
           if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/pq-lab-command-tests.jsonl"; then
@@ -258,10 +264,11 @@ jobs:
           import json, os
           from pathlib import Path
           rows = []
-          for name in ('pq-lab-core-tests.jsonl', 'pq-lab-command-tests.jsonl'):
+          for name in ('pq-lab-core-tests.jsonl', 'pq-lab-live-tests.jsonl', 'pq-lab-command-tests.jsonl'):
               rows += [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / name).read_text().splitlines()]
           required = ['TestPQLabNetworkOriginalInputsExclusiveAndLoopback', 'TestPQLabNetworkActiveEngineDBRefusesCustodyCreation', 'TestPQLabNetworkRealRegistryStoppedSourcesAndColdCustody', 'TestPQLabNetworkMissingCheckpointPreservesFailedAttempt', 'TestPQLabWorkloadRealSourceCorpusExecutionAndRestart', 'TestPQLabWorkloadBoundsAliasesAndExactSource', 'TestPQLabWorkloadProofOriginalCLIInputsAndNegatives', 'TestPQLabWorkloadMaximumProtocolWhole', 'TestPQLabNormalCommandFreshIndependentProcessInputs', 'TestPQLabNormalCommandRefusesImplicitOrDuplicateInputs', 'TestPQLabWorkloadCommandInputsAndNoMutation', 'TestPQLabWorkloadCommandRealProofInputs']
           required += ['TestPQLabExportOriginalFourStoresNormalProofAndRefusals', 'TestPQLabMultiOwnerOriginalExecutionAndBounds', 'TestPQLabOnlineSenderRevocationAndPartialIntentPreserved', 'TestPQLabOnlineSenderOriginalRecoveryAndFullProof', 'TestPQLabOnlineSenderCommandOriginalLostAckAndUnknown', 'TestPQLabPreSignedCommandCurrentCheckpoint', 'TestPQLabExportCommandRejectsImplicitTrustAndUnknownInputs', 'TestPQLabNormalCommandOnlineIndependentOwnerFlags', 'TestPQLabExportCommandOriginalStoppedStoreFixture']
+          required += ['TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm', 'TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority', 'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal', 'TestPQLabLiveMaterialsCommandStrictInputs', 'TestPQLabLiveMaterialsCommandOriginalSourceResultAndProofContext']
           for name in required:
               terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != ['pass']:

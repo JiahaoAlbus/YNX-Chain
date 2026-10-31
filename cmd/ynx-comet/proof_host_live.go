@@ -21,6 +21,13 @@ func prepareOperatorProofHostLive(n *node.Node, app *consensus.Application, p pq
 	if app == nil {
 		return nil, errors.New("normal node did not retain its original owning application")
 	}
+	lab, err := consensus.IsPQLabLiveMaterialsPolicy(p.proofLivePolicy, p.proofLivePolicyHash)
+	if err != nil {
+		return nil, err
+	}
+	if lab {
+		return consensus.NewPQLabLiveMaterialsControl(n, app, p.proofLivePolicy, p.proofLivePolicyHash)
+	}
 	return consensus.NewProofHostLiveControl(n, app, p.proofLivePolicy, p.proofLivePolicyHash)
 }
 
