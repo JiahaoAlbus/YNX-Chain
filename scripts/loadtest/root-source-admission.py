@@ -7,11 +7,13 @@ The observer ends three seconds after the original source entry is launched,
 so it does not run throughout the measured source matrix.
 """
 import hashlib
+import argparse
 import importlib.util
 import json
 import os
 from pathlib import Path
 import sys
+import signal
 import threading
 import time
 
@@ -93,6 +95,22 @@ def main(argv=None):
     if scope not in base.SCOPES or sys.platform != 'linux':
         raise RuntimeError('only a fixed actual hosted Linux source scope can execute')
     lab = base.original_lab(tools, base.SCOPES[scope][0])
+    # Pin before creating the observer thread: it inherits the same two CPUs
+    # as the original Window and every actual source child.
+    cpus = sorted(os.sched_getaffinity(0))[:2]
+    if len(cpus) != 2:
+        raise RuntimeError('two actual source CPU slots required')
+    os.sched_setaffinity(0, cpus)
+    own_path = Path(__file__).with_name('root-source-scope.py')
+    own_spec = importlib.util.spec_from_file_location('root_owned_source_scope', own_path)
+    own_scope = importlib.util.module_from_spec(own_spec)
+    own_spec.loader.exec_module(own_scope)
+    parser = argparse.ArgumentParser(allow_abbrev=False)
+    parser.add_argument('--scope', choices=tuple(base.SCOPES), required=True)
+    for name in ('tools', 'owner', 'controller', 'operation'):
+        parser.add_argument('--' + name, required=True)
+    parser.add_argument('--execute', action='store_true')
+    args = parser.parse_args(argv)
     directory = Path(os.environ['RUNNER_TEMP']).resolve(strict=True) / ('root-admission-' + scope)
     directory.mkdir(mode=0o700)
     with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
@@ -108,13 +126,20 @@ def main(argv=None):
 
     observer = threading.Thread(target=watched, name='source-evidence', daemon=False)
     observer.start()
+    def interrupted(signum, frame):
+        raise base.Refused('source comparison received signal ' + str(signum))
+    prior = {sig: signal.signal(sig, interrupted) for sig in (signal.SIGINT, signal.SIGTERM)}
     try:
-        return base.main(argv)
+        own_scope.run_scope(base, args)
+        return 0
     finally:
+        for sig, handler in prior.items():
+            signal.signal(sig, handler)
         stopped.set()
         observer.join(timeout=5)
         record = dict(originalControllerSHA256=BASE_SHA256,
                       originalControllerUnchanged=True, originalAdmissionUnchanged=True,
+                      rootPhaseLifecycle='explicit waitpid for identity-checked adopted zombies before original entry',
                       noProcessKilledOrExcluded=True, diagnosticOnly=True,
                       observerJoined=not observer.is_alive(), observerErrors=errors,
                       measurements='source-only; observer active before/first3s of original entry; not chain TPS')

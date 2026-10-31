@@ -9,6 +9,8 @@ on:
       - '.github/workflows/pq-source-compare-root.yml'
       - 'scripts/loadtest/root-source-admission.py'
       - 'scripts/loadtest/root-source-admission_test.py'
+      - 'scripts/loadtest/root-source-scope.py'
+      - 'scripts/loadtest/root-source-reap_test.py'
   workflow_dispatch:
 
 permissions:
@@ -40,9 +42,13 @@ jobs:
           sparse-checkout: |
             /scripts/loadtest/pq-source-artifact-intake.py
             /scripts/loadtest/root-source-admission.py
+            /scripts/loadtest/root-source-scope.py
             /scripts/loadtest/root-source-admission_test.py
+            /scripts/loadtest/root-source-reap_test.py
       - name: New original-admission evidence controls
-        run: python3 -B scripts/loadtest/root-source-admission_test.py
+        run: |
+          python3 -B scripts/loadtest/root-source-admission_test.py
+          python3 -B scripts/loadtest/root-source-reap_test.py
 
   b8-original-replay:
     needs: intake-controls
@@ -61,6 +67,7 @@ jobs:
           sparse-checkout: |
             /scripts/loadtest/pq-source-artifact-intake.py
             /scripts/loadtest/root-source-admission.py
+            /scripts/loadtest/root-source-scope.py
       - name: Exact original eight-case tools
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -148,6 +155,7 @@ jobs:
           sparse-checkout: |
             /scripts/loadtest/pq-source-artifact-intake.py
             /scripts/loadtest/root-source-admission.py
+            /scripts/loadtest/root-source-scope.py
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: aa9447df2f5867542892f6fdbfbefbd116daed91
@@ -236,6 +244,7 @@ jobs:
           sparse-checkout: |
             /scripts/loadtest/pq-source-artifact-intake.py
             /scripts/loadtest/root-source-admission.py
+            /scripts/loadtest/root-source-scope.py
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: aa9447df2f5867542892f6fdbfbefbd116daed91
@@ -321,6 +330,7 @@ jobs:
           sparse-checkout: |
             /scripts/loadtest/pq-source-artifact-intake.py
             /scripts/loadtest/root-source-admission.py
+            /scripts/loadtest/root-source-scope.py
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: aa9447df2f5867542892f6fdbfbefbd116daed91
