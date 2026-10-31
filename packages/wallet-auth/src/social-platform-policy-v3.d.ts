@@ -1,0 +1,52 @@
+/** DATA only; never a Source/Root selection, pointer, signing or held capability. */
+export type SocialBytes32DATA=Readonly<Uint8Array>;
+export type SocialU64DATA=bigint;
+export type SocialI64MSDATA=bigint;
+export declare const SOCIAL_PLATFORM_PROFILE_V1:Readonly<{ordinary:1;strong:2}>;
+export declare const SOCIAL_PLATFORM_CAPABILITIES_V1:Readonly<{ordinary:255;strong:65791}>;
+export declare const SOCIAL_PLATFORM_ABI_V1:Readonly<{version:1;bindingBytes:224;queryBytes:240}>;
+export declare const SOCIAL_PLATFORM_SOURCE_PROOF:Readonly<{domain:'YNX/SOCIAL/SOURCE-PROOF/V1\0';classic:'libsignal';classicPublicBytes:33;classicSignatureBytes:64;pq:'ML-DSA-87';pqPublicBytes:2592;pqSignatureBytes:4627}>;
+export declare class SocialPlatformPolicyDataError extends Error{readonly code:string;constructor(code:string);}
+export interface SocialPlatformBindingFieldsDATA{readonly version:1;readonly size:224;readonly purpose:number;readonly operation:number;readonly policy_generation:SocialU64DATA;readonly storage_generation:SocialU64DATA;readonly key_epoch:SocialU64DATA;readonly registration_revision:SocialU64DATA;readonly deadline_ns:SocialU64DATA;readonly account:SocialBytes32DATA;readonly namespace_id:SocialBytes32DATA;readonly registration:SocialBytes32DATA;readonly device:SocialBytes32DATA;readonly intent:SocialBytes32DATA;}
+/** profile2 here is ABI DATA only, never this ordinary V4 grant or old strong240. */
+export type SocialPlatformBindingV1DATA=Readonly<SocialPlatformBindingFieldsDATA&({profile:1;capabilities:255}|{profile:2;capabilities:65791})>;
+export interface SocialPlatformQueryBindingV1DATA{readonly version:1;readonly size:240;readonly original:SocialPlatformBindingV1DATA;readonly query_deadline_ns:SocialU64DATA;}
+export interface SocialPlatformPolicyOriginalV3DATA{readonly version:3;readonly plane:'OriginalSourceIdentity.NativeCore';readonly bootstrap:string;readonly root:SocialBytes32DATA;readonly registration:SocialBytes32DATA;readonly source:SocialBytes32DATA;readonly namespace:SocialBytes32DATA;readonly account:SocialBytes32DATA;readonly device:SocialBytes32DATA;readonly association:SocialBytes32DATA;readonly storage_generation:SocialU64DATA;readonly platform_profile:1;readonly capabilities:255;readonly key_epoch:SocialU64DATA;readonly registration_revision:SocialU64DATA;readonly key_use:'selected-storage-record-head-journal-queue-nonce-seal-CAS';readonly first_device_operations:number;readonly message_operations:number;readonly issuer_credential:SocialBytes32DATA;readonly anchor_credential:SocialBytes32DATA;readonly generation:SocialU64DATA;readonly not_before_ms:SocialI64MSDATA;readonly expires_ms:SocialI64MSDATA;readonly max_current_age_ms:SocialI64MSDATA;}
+export interface SocialPlatformCurrentOriginalV3DATA{readonly version:3;readonly plane:'OriginalSourceIdentity.NativeCore.Current';readonly policy:SocialBytes32DATA;readonly generation:SocialU64DATA;readonly key_epoch:SocialU64DATA;readonly registration_revision:SocialU64DATA;readonly head:SocialBytes32DATA;readonly floor:SocialU64DATA;readonly revoked:boolean;readonly issued_ms:SocialI64MSDATA;readonly expires_ms:SocialI64MSDATA;readonly accepted_relation:SocialBytes32DATA|null;}
+export interface SocialSourceScopeDATA{readonly source:string;readonly store:string;readonly schema:string;readonly inode:string;readonly restore:string;readonly sourceGeneration:SocialU64DATA;readonly nativeRestoreIncarnation:SocialU64DATA;}
+export interface SocialPlatformGrantV4FieldsDATA{readonly version:4;readonly key_use:'selected-storage-record-head-journal-queue-nonce-seal-CAS';readonly policy_version:3;readonly platform_profile:1;readonly capabilities:255;readonly first_device_operations:number;readonly message_operations:number;readonly max_policy_lifetime_ms:SocialI64MSDATA;readonly max_current_age_ms:SocialI64MSDATA;readonly not_before_ms:SocialI64MSDATA;readonly expires_ms:SocialI64MSDATA;}
+export interface SocialPlatformReleaseOptInV4DATA extends SocialPlatformGrantV4FieldsDATA{readonly plane:'OriginalSourceIdentity.NativeCore.Release';readonly bootstrap:string;readonly scope:SocialSourceScopeDATA;readonly issuer_custodian:string;readonly anchor_custodian:string;}
+export interface SocialPlatformRuntimeDelegationV4DATA extends SocialPlatformGrantV4FieldsDATA{readonly purpose:'OriginalSourceIdentity.NativeCore.Runtime';readonly release_opt_in:SocialBytes32DATA;}
+export type SocialSourceRoleDATA='credential'|'record-issuer'|'record-anchor'|'current-history'|'directory-checkpoint';
+export interface SocialSourcePairDATA{readonly classic:string;readonly pq:string;}
+export interface SocialSourceEnvelopeV1DATA{readonly version:1;readonly role:SocialSourceRoleDATA;readonly body:string;readonly signature:SocialSourcePairDATA;}
+export interface SocialPlatformRuntimeApprovalV4DATA{readonly version:4;readonly release_opt_in:SocialBytes32DATA;readonly issuer:SocialSourceEnvelopeV1DATA;readonly anchor:SocialSourceEnvelopeV1DATA;}
+export interface SocialPlatformOriginalContextDATA{readonly bootstrap:string;readonly scope:SocialSourceScopeDATA;readonly issuer_custodian:string;readonly anchor_custodian:string;readonly release_opt_in:SocialBytes32DATA;readonly issuer_credential:SocialBytes32DATA;readonly anchor_credential:SocialBytes32DATA;readonly root:SocialBytes32DATA;readonly registration:SocialBytes32DATA;readonly source:SocialBytes32DATA;readonly namespace:SocialBytes32DATA;readonly account:SocialBytes32DATA;readonly device:SocialBytes32DATA;readonly association:SocialBytes32DATA;readonly storage_generation:SocialU64DATA;readonly key_epoch:SocialU64DATA;readonly registration_revision:SocialU64DATA;readonly generation:SocialU64DATA;}
+export interface SocialDataOnly{readonly dataOnly:true;readonly signatureVerified:false;readonly RootAdmission:false;readonly SourceAdmission:false;}
+export declare function inspectSocialPlatformBindingDATA(input:unknown):SocialPlatformBindingV1DATA;
+export declare function inspectSocialPlatformQueryBindingDATA(input:unknown):SocialPlatformQueryBindingV1DATA;
+export declare function assertSocialPlatformEffectBindingDATA(binding:SocialPlatformBindingV1DATA,nowNs:bigint):SocialPlatformBindingV1DATA;
+/** Fresh READ op3 and exact original row are separate. No effects, writes or UNKNOWN release. */
+export declare function assertSocialPlatformReadOriginalQueryDATA(freshRead:SocialPlatformBindingV1DATA,query:SocialPlatformQueryBindingV1DATA,expectedOriginal:SocialPlatformBindingV1DATA,state:'UNKNOWN'|'REVOKED',nowNs:bigint):SocialPlatformQueryBindingV1DATA;
+export declare function inspectSocialPlatformPolicyOriginalV3DATA(input:unknown):SocialPlatformPolicyOriginalV3DATA;
+export declare function inspectSocialPlatformCurrentOriginalV3DATA(input:unknown):SocialPlatformCurrentOriginalV3DATA;
+export declare function assertSocialPlatformPolicyCurrentDATA(policy:SocialPlatformPolicyOriginalV3DATA,current:SocialPlatformCurrentOriginalV3DATA,expectedApprovalDigest:Uint8Array,nowMs:bigint):Readonly<SocialDataOnly&{policy:SocialPlatformPolicyOriginalV3DATA;current:SocialPlatformCurrentOriginalV3DATA}>;
+export declare function inspectSocialPlatformReleaseOptInV4DATA(input:unknown):SocialPlatformReleaseOptInV4DATA;
+export declare function inspectSocialPlatformRuntimeDelegationV4DATA(input:unknown):SocialPlatformRuntimeDelegationV4DATA;
+export declare function assertSocialPlatformRuntimeV4DATA(release:SocialPlatformReleaseOptInV4DATA,issuerDelegation:SocialPlatformRuntimeDelegationV4DATA,anchorDelegation:SocialPlatformRuntimeDelegationV4DATA,policy:SocialPlatformPolicyOriginalV3DATA,expected:SocialPlatformOriginalContextDATA,nowMs:bigint):Readonly<SocialDataOnly&{release:SocialPlatformReleaseOptInV4DATA;issuerDelegation:SocialPlatformRuntimeDelegationV4DATA;anchorDelegation:SocialPlatformRuntimeDelegationV4DATA;policy:SocialPlatformPolicyOriginalV3DATA}>;
+export declare function inspectSocialSourcePublicPairDATA(input:unknown):SocialSourcePairDATA;
+export declare function inspectSocialSourceEnvelopeV1DATA(input:unknown):SocialSourceEnvelopeV1DATA;
+export declare function inspectSocialPlatformRuntimeApprovalV4DATA(input:unknown):SocialPlatformRuntimeApprovalV4DATA;
+export declare function assertSocialPlatformRuntimeApprovalV4DATA(approval:SocialPlatformRuntimeApprovalV4DATA,expectedReleaseDigest:Uint8Array,expectedPolicyOriginal:Uint8Array):Readonly<SocialDataOnly&{approval:SocialPlatformRuntimeApprovalV4DATA}>;
+export declare function encodeSocialPlatformPolicyOriginalV3DATA(input:SocialPlatformPolicyOriginalV3DATA):Uint8Array;
+export declare function decodeSocialPlatformPolicyOriginalV3DATA(original:Uint8Array):SocialPlatformPolicyOriginalV3DATA;
+export declare function encodeSocialPlatformCurrentOriginalV3DATA(input:SocialPlatformCurrentOriginalV3DATA):Uint8Array;
+export declare function decodeSocialPlatformCurrentOriginalV3DATA(original:Uint8Array):SocialPlatformCurrentOriginalV3DATA;
+export declare function encodeSocialPlatformReleaseOptInV4DATA(input:SocialPlatformReleaseOptInV4DATA):Uint8Array;
+export declare function decodeSocialPlatformReleaseOptInV4DATA(original:Uint8Array):SocialPlatformReleaseOptInV4DATA;
+export declare function encodeSocialPlatformRuntimeDelegationV4DATA(input:SocialPlatformRuntimeDelegationV4DATA):Uint8Array;
+export declare function decodeSocialPlatformRuntimeDelegationV4DATA(original:Uint8Array):SocialPlatformRuntimeDelegationV4DATA;
+export declare function encodeSocialPlatformRuntimeApprovalV4DATA(input:SocialPlatformRuntimeApprovalV4DATA):Uint8Array;
+export declare function decodeSocialPlatformRuntimeApprovalV4DATA(original:Uint8Array):SocialPlatformRuntimeApprovalV4DATA;
+export declare function encodeSocialSourceEnvelopeV1DATA(input:SocialSourceEnvelopeV1DATA):Uint8Array;
+export declare function decodeSocialSourceEnvelopeV1DATA(original:Uint8Array):SocialSourceEnvelopeV1DATA;

@@ -335,6 +335,39 @@
       "browser": null,
       "node": "./src/original-product-device-v4-registered-finalization.js",
       "default": null
+    },
+    "./product-pair-session-v4-source": {
+      "types": "./src/product-pair-session-v4-source.d.ts",
+      "browser": null,
+      "node": "./src/product-pair-session-v4-source.js"
+    },
+    "./auth-runtime-image-current": {
+      "types": "./native/original-auth-runtime-image-current-v1.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-runtime-image-current-v1.mjs"
+    },
+    "./auth-runtime-image-binding": {
+      "types": "./native/original-auth-runtime-image-binding-v1.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-runtime-image-binding-v1.mjs"
+    },
+    "./auth-fixed-native-edge": {
+      "types": "./scripts/auth-fixed-native-edge.d.mts",
+      "browser": null,
+      "node": "./scripts/auth-fixed-native-edge.mjs"
+    },
+    "./social-platform-policy": {
+      "types": "./src/social-platform-policy-v3.d.ts",
+      "browser": "./src/social-platform-policy-unavailable.js",
+      "node": "./src/social-platform-policy-v3.js",
+      "default": "./src/social-platform-policy-unavailable.js"
+    },
+    "./social-platform-policy/types-v1.h": "./native/ynx_sdk_social_platform_policy_v1.h",
+    "./social-platform-policy/profile-v1.json": "./integration/SOCIAL_PLATFORM_POLICY_PROFILE_V1.json",
+    "./auth-runtime-image-source": {
+      "types": "./src/original-auth-runtime-image-source-v1.d.ts",
+      "browser": null,
+      "node": "./src/original-auth-runtime-image-source-v1.js"
     }
   },
   "types": "./src/index.d.ts",
@@ -448,7 +481,15 @@
     "native/original-http-v5-registered-private.h",
     "native/original-http-v5-registered-private.mm",
     "native/original-http-v5-scope-private.h",
-    "native/original-http-v5-source.inc.mm"
+    "native/original-http-v5-source.inc.mm",
+    "native/original-auth-runtime-image-binding-v1.mjs",
+    "native/original-auth-runtime-image-binding-v1.d.mts",
+    "native/original-auth-runtime-image-current-v1.mjs",
+    "native/original-auth-runtime-image-current-v1.d.mts",
+    "native/original-auth-runtime-image-source-internal.h",
+    "native/original-auth-runtime-image-private.mm",
+    "native/original-auth-runtime-image-private.h",
+    "native/ynx_sdk_social_platform_policy_v1.h"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

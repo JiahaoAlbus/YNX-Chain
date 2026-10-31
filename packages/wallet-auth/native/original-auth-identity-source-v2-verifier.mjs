@@ -1,3 +1,4 @@
+import{inspectOriginalAuthRuntimeImageBindingV1DATA,ORIGINAL_AUTH_RUNTIME_IMAGE_BINDING_V1_PURPOSES}from'./original-auth-runtime-image-binding-v1.mjs';
 import{PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_OPERATIONS,inspectOriginalProductDeviceV4RegisteredFinalizationScopeDATA}from'./original-product-device-v4-registered-finalization-source-contract.mjs';
 import{PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_OPERATIONS,inspectOriginalProductSessionHTTPProofV5SourceScopeDATA}from'./original-product-session-http-v5-source-contract.mjs';
 import{CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS,inspectOriginalCloudDeploymentExecutionV2ScopeDATA}from'./original-cloud-deployment-execution-v2-contract.mjs';
@@ -127,7 +128,7 @@ function deviceProfileBodyDATA(root,e,p,policy,registrations,atMs){
  exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
  if(p.version!==2||p.purpose!==policy.signatureContract.purpose||!deviceFamily(p.purpose)||p.sourceId!==e.sourceId||p.enrollmentDigest!==policy.enrollmentDigest||!token(p.instanceId)||!integer(p.generation)||p.generation<1||!integer(p.minimumSequence)||p.minimumSequence<1||!integer(p.minimumFloor)||p.minimumFloor>p.minimumSequence||!owner(p.subjectOwner))fail('AUTH_SOURCE_V2_PROFILE');
  window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
- const field=deviceField(p.purpose),s=p.selection;exact(s,['association','expectedRequest','originalHostStatePath','originalHostTerminalDirectory',field,...(p.purpose===PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE?['originalProvisioningJournal']:p.purpose===PRODUCT_DEVICE_V4_PENDING_PURPOSE?['originalPendingDeviceJournal']:[])]);const a=s.association;exact(a,['account','clientId','productId','platform','applicationId','deviceId']);
+ const field=deviceField(p.purpose),s=p.selection,hasRuntimeImageBinding=Object.hasOwn(s,'runtimeImageBindingV1');exact(s,['association','expectedRequest','originalHostStatePath','originalHostTerminalDirectory',field,...(p.purpose===PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE?['originalProvisioningJournal']:p.purpose===PRODUCT_DEVICE_V4_PENDING_PURPOSE?['originalPendingDeviceJournal']:[]),...(hasRuntimeImageBinding?['runtimeImageBindingV1']:[])]);if(hasRuntimeImageBinding)inspectOriginalAuthRuntimeImageBindingV1DATA(s.runtimeImageBindingV1,p.purpose);const a=s.association;exact(a,['account','clientId','productId','platform','applicationId','deviceId']);
  if([PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE].includes(p.purpose)){const j=p.purpose===PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE?s.originalProvisioningJournal:s.originalPendingDeviceJournal;exact(j,['parent','directory']);for(const t of [j.parent,j.directory]){exact(t,['device','inode','uid','gid','mode']);if(!/^(0|[1-9][0-9]{0,19})$/.test(t.device)||typeof t.device!=='string'||typeof t.inode!=='string'||!/^[1-9][0-9]{0,19}$/.test(t.inode)||!integer(t.uid)||!integer(t.gid)||t.mode!==448)fail('AUTH_SOURCE_V2_PENDING_JOURNAL_IDENTITY');}}
  if(Object.values(a).some(x=>typeof x!=='string'||!x||x.length>512)||a.productId!==e.productId||a.platform!==e.platform||a.applicationId!==e.applicationId)fail('AUTH_SOURCE_V2_ASSOCIATION');
  const r=s.expectedRequest;exact(r,['service','productId','platform','applicationId','gatewayOrigin','registryDigest','operations','instanceId']);
@@ -163,6 +164,7 @@ function originalSourceProfileBodyDATA(root,e,p,enrollmentRaw,policy,registratio
  exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
  if(p.version!==2||p.purpose!==contract.purpose||p.sourceId!==e.sourceId||p.enrollmentDigest!==sha(enrollmentRaw)||!token(p.instanceId)||!integer(p.generation)||p.generation<1||!integer(p.minimumSequence)||p.minimumSequence<1||!integer(p.minimumFloor)||p.minimumFloor>p.minimumSequence||!owner(p.subjectOwner))fail('AUTH_SOURCE_V2_PROFILE');
  const s=p.selection;
+ if(Object.hasOwn(s??{},'runtimeImageBindingV1')&&!ORIGINAL_AUTH_RUNTIME_IMAGE_BINDING_V1_PURPOSES.includes(p.purpose))fail('AUTH_RUNTIME_IMAGE_BINDING_V1_PURPOSE');
  // Preserve all existing signed product/ownership/permission metadata. Only
  // these original fields are interpreted here; do not silently drop extras
  // or rewrite the original application's role schema during key migration.
@@ -313,7 +315,7 @@ function verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,polic
  if(contract.purpose===PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE&&c.head!==sha(canonical(p.selection.productSessionDeviceV4RegisteredFinalization)))fail('AUTH_SOURCE_V2_DEVICE_REGISTERED_FINALIZATION_HEAD');
  if(contract.purpose===PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE&&c.head!==sha(canonical(p.selection.productSessionHTTPProofV5)))fail('AUTH_SOURCE_V2_HTTP_V5_HEAD');
  if(!historical&&c.status!=='active')fail('AUTH_SOURCE_V2_REVOKED');
- return seal({selection:p.selection,principalId:p.selection.association.account,subjectOwner:p.subjectOwner,subjectKeyVersion:c.subjectKeyVersion,generation:p.generation,sequence:c.sequence,floor:c.floor,head:c.head,status:c.status,timeFloor:atMs,expiresAtMs:Math.min(p.expiresAtMs,c.expiresAtMs,verified.enrollment.expiresAtMs),profileDigest:sha(profileRaw),sourceId:p.sourceId,instanceId:p.instanceId,executionHeight:verified.executionHeight,...(historical?{statementExecutionHeight:current.binding.executionHeight,historical:true}:{}),dataOnly:true,nativeAdmission:false});
+ return seal({...(Object.hasOwn(p.selection,'runtimeImageBindingV1')?{runtimeImageBindingV1DATA:inspectOriginalAuthRuntimeImageBindingV1DATA(p.selection.runtimeImageBindingV1,p.purpose).runtimeImageBindingV1}:{}),selection:p.selection,principalId:p.selection.association.account,subjectOwner:p.subjectOwner,subjectKeyVersion:c.subjectKeyVersion,generation:p.generation,sequence:c.sequence,floor:c.floor,head:c.head,status:c.status,timeFloor:atMs,expiresAtMs:Math.min(p.expiresAtMs,c.expiresAtMs,verified.enrollment.expiresAtMs),profileDigest:sha(profileRaw),sourceId:p.sourceId,instanceId:p.instanceId,executionHeight:verified.executionHeight,...(historical?{statementExecutionHeight:current.binding.executionHeight,historical:true}:{}),dataOnly:true,nativeAdmission:false});
 }
 
 /** Fresh nonce/current admission DATA. Historical heads never satisfy this API. */
@@ -329,4 +331,14 @@ export function verifyOriginalAuthSourceCurrentV2(rootRaw,enrollmentRaw,profileR
 export function verifyOriginalAuthSourceTransitionV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,policy,registrations,expectedNonce,previous,atMs){
  if(arguments.length!==9)fail('AUTH_SOURCE_V2_ARGUMENTS');
  return verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,policy,registrations,expectedNonce,previous,atMs,true);
+}
+
+// Full original enrollment/profile/current mathematics and independent actual
+// build-facts expectation. This DATA result is never a preload/Source grant.
+export function verifyOriginalAuthSourceRuntimeImageBindingCurrentV1DATA(rootRaw,enrollmentRaw,profileRaw,currentRaw,policy,registrations,expectedNonce,previous,atMs,expectedRuntimeImageBindingV1){
+ const current=verifyOriginalAuthSourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,policy,registrations,expectedNonce,previous,atMs);
+ const expected=inspectOriginalAuthRuntimeImageBindingV1DATA(expectedRuntimeImageBindingV1,policy.signatureContract.purpose).runtimeImageBindingV1;
+ if(!Object.hasOwn(current,'runtimeImageBindingV1DATA'))fail('AUTH_RUNTIME_IMAGE_BINDING_V1_NOT_SUPPLIED');
+ if(canonical(current.runtimeImageBindingV1DATA)!==canonical(expected))fail('AUTH_RUNTIME_IMAGE_BINDING_V1_EXPECTED_MISMATCH');
+ return seal({runtimeImageBindingV1DATA:current.runtimeImageBindingV1DATA,profileDigest:current.profileDigest,currentDigest:sha(currentRaw),sourceId:current.sourceId,instanceId:current.instanceId,generation:current.generation,sequence:current.sequence,expiresAtMs:current.expiresAtMs,dataOnly:true,SourceAdmission:false,NativeAdmission:false,preLoadQualified:false,sameModuleInstanceVerified:false});
 }

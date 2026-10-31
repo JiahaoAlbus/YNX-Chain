@@ -14,6 +14,7 @@ import { forwardedClient, GatewayAdmissionController } from "../src/gateway-admi
 import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 import {ProductSessionGatewayNodeHost} from '../src/product-session-gateway-node-host.js';
 import{openOriginalBinaryV5PolicyAfterHost,originalBinaryV5PolicyStartupStatus,closeOriginalBinaryV5PolicyAfterHost}from'./original-binary-v5-policy-launcher.mjs';
+import{openOriginalDeviceV4ServerCurrentBeforeHost,originalDeviceV4ServerCurrentHostOptions,originalDeviceV4ServerCurrentStartupStatus,closeOriginalDeviceV4ServerCurrentAfterHost}from'./original-device-v4-server-current-launcher.mjs';
 import {buildOriginalHostPublisherOptions,bindOriginalHostReturnPublisher} from '../native/policy-revocation-source-r35-20261018/source/service-publisher.mjs';
 import {createOriginalWalletRuntimeObserverLifetime} from './original-wallet-runtime-observer-launcher.mjs';
 import {openOriginalWalletPrivateServiceAfterListen,beginOriginalWalletPrivateServiceAcquisition as beginOriginalWalletServicePrivateDispatchAcquisition,closeOriginalWalletPrivateServiceAcquisition as closeOriginalWalletServicePrivateDispatchAcquisition,originalWalletPrivateServiceAcquisitionStatus as originalWalletServicePrivateDispatchAcquisitionStatus} from './original-wallet-private-service-launcher.mjs';
@@ -73,10 +74,13 @@ if(originalAuthSourceStartup?.partial){
  Object.assign(failure,{partial:originalAuthSourceStartup.partial,cleanupCausePresent,cleanupCause});throw failure;
 }
 const originalAuthSourceCurrent=originalAuthSourceStartup;
+const originalServerDeviceCurrent=productSessionStateVersion==='2'?await openOriginalDeviceV4ServerCurrentBeforeHost():null;
+if(originalServerDeviceCurrent&&originalDeviceV4ServerCurrentStartupStatus(originalServerDeviceCurrent).failurePresent)emitEvent({event:'device_v4_server_current_unavailable',level:'info',service:'ynx-wallet-gatewayd',configured:false});
 const originalProductHostOptions={statePath:productSessionStatePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url'),...(productSessionStateVersion==='3'?{capacityPolicy}:{authIdentitySourceCurrent:originalAuthSourceCurrent})};
 const productHostOptions=productSessionStateVersion==='2'?{
  ...originalProductHostOptions,
- ...buildOriginalHostPublisherOptions(productRegistry,{statePath:originalProductHostOptions.statePath,now:originalProductHostOptions.now,tokenFactory:originalProductHostOptions.tokenFactory})
+ ...buildOriginalHostPublisherOptions(productRegistry,{statePath:originalProductHostOptions.statePath,now:originalProductHostOptions.now,tokenFactory:originalProductHostOptions.tokenFactory}),
+ ...originalDeviceV4ServerCurrentHostOptions(originalServerDeviceCurrent)
 }:originalProductHostOptions;
 const productHost=new ProductHost(productRegistry,productHostOptions);
 // This actual startup attempts only the dedicated fixed binary policy. Missing
@@ -145,6 +149,7 @@ function drainOriginalOwners(){
   await cleanup(()=>{if(originalPrivateDispatch)originalPrivateDispatch.retire();});
   await cleanup(async()=>{if(originalReturnPublisher)await originalReturnPublisher.join();});
   await cleanup(async()=>{if(originalReturnPublisher)await originalReturnPublisher.close();});
+  await cleanup(()=>{if(originalServerDeviceCurrent)return closeOriginalDeviceV4ServerCurrentAfterHost(originalServerDeviceCurrent);});
   await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.retire();});
   await cleanup(async()=>{if(originalPrivateDispatch)await originalPrivateDispatch.join();});
   await cleanup(()=>closeOriginalWalletServicePrivateDispatchAcquisition(originalPrivateAcquisition));

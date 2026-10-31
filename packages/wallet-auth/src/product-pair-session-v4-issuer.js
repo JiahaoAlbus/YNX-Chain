@@ -12,12 +12,14 @@ import {assertSessionAccountPolicy} from './product-session-account-private.js';
 import {pairV4Digest} from './product-pair-session-v4-store.js';
 const fail=c=>{throw Object.assign(Error(c),{code:c});};
 const parse=raw=>{if(typeof raw!=='string'||Buffer.byteLength(raw)>393216)fail('PAIR_V4_BODY_SIZE');const v=JSON.parse(raw);if(canonicalJSON(v)!==raw)fail('PAIR_V4_CANONICAL');return v;};
+// Same original issuer actor namespace; DATA hashing only, not a device codec or grant.
+export function productPairSessionV4ActorDATA(r,record,account){return pairV4Digest(canonicalJSON({networkId:record.networkId,canonicalOwner:evmAddressFromYNX(account),productId:r.productId,clientId:r.clientId,platform:r.platform,applicationId:r.applicationId,bundleId:r.bundleId,packageId:r.packageId,origin:r.origin,callback:r.callback,deviceId:record.deviceId}));}
 export class ProductPairSessionV4IssuerKernel {
  #registry;#store;#source;#clock;#floor=0;#active=0;#closed=false;#closeSelected=false;#closeError;
  constructor(registry,store,originalSource,clock=Date.now){this.#registry=structuredClone(registry);this.#store=store;this.#source=originalSource;this.#clock=clock;}
  #now(){const n=this.#clock();if(!Number.isSafeInteger(n)||n<this.#floor||n<0)fail('PAIR_V4_CLOCK_ROLLBACK');this.#floor=n;return n;}
  #alive(){if(this.#closed)fail('PAIR_V4_RETIRED');}
- #actor(r,record,account){return pairV4Digest(canonicalJSON({networkId:record.networkId,canonicalOwner:evmAddressFromYNX(account),productId:r.productId,clientId:r.clientId,platform:r.platform,applicationId:r.applicationId,bundleId:r.bundleId,packageId:r.packageId,origin:r.origin,callback:r.callback,deviceId:record.deviceId}));}
+ #actor(r,record,account){return productPairSessionV4ActorDATA(r,record,account);}
  async #held(request,registration,account,work){
   this.#alive();this.#active++;let held,error,result,deadline=Infinity;
   try{
