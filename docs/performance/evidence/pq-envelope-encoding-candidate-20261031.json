@@ -1,0 +1,166 @@
+{
+  "classification": "source-extracted canonical envelope serialization candidate; not business TPS",
+  "baseCommit": "f8b819c00d3baa809d6c475f6dad4f5bcda22353",
+  "productionApplied": false,
+  "owner": "Protocol account_policy.go; candidate patch handed over without editing shared files",
+  "applyCheckExitCode": 0,
+  "toolchain": "go1.25.7 darwin/arm64",
+  "cpu": "Apple M4",
+  "gomaxprocs": 2,
+  "network": false,
+  "goProxy": "off",
+  "goSumDB": "off",
+  "command": [
+    "go",
+    "test",
+    "-p",
+    "1",
+    "-timeout=30s",
+    "-v",
+    "-bench=BenchmarkHistoryEnvelope",
+    "-benchmem",
+    "-benchtime=100ms",
+    "-count=3"
+  ],
+  "tests": [
+    "all6 admitted kinds at empty/1/256/59123/exactLimit/limit+1",
+    "unsupported kinds including quotes/newline/Unicode fail with original error",
+    "exact original JSON bytes and SHA256 match",
+    "result does not alias input",
+    "100 deterministic random byte buffers match original"
+  ],
+  "benchmarkWireBytes": 59123,
+  "samples": [
+    {
+      "implementation": "original",
+      "nsPerOp": 120445,
+      "bytesPerOp": 375026,
+      "allocsPerOp": 4
+    },
+    {
+      "implementation": "original",
+      "nsPerOp": 120240,
+      "bytesPerOp": 376605,
+      "allocsPerOp": 4
+    },
+    {
+      "implementation": "original",
+      "nsPerOp": 116058,
+      "bytesPerOp": 377137,
+      "allocsPerOp": 4
+    },
+    {
+      "implementation": "candidate",
+      "nsPerOp": 38650,
+      "bytesPerOp": 122880,
+      "allocsPerOp": 1
+    },
+    {
+      "implementation": "candidate",
+      "nsPerOp": 35812,
+      "bytesPerOp": 122880,
+      "allocsPerOp": 1
+    },
+    {
+      "implementation": "candidate",
+      "nsPerOp": 37064,
+      "bytesPerOp": 122880,
+      "allocsPerOp": 1
+    }
+  ],
+  "limitations": [
+    "exact original and candidate function extraction; dependency constants transcribed from pinned source files",
+    "synthetic unsigned byte buffers, not authenticated or executed transactions",
+    "full repository Go1.26 integration, initial/restore/history tests and normal CI remain required",
+    "no source activation, no deployment, no four-node comparison or throughput claim",
+    "Commit snapshot JSON encoding is separate and is not optimized by this patch"
+  ],
+  "refs": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/internal/consensus/account_policy.go",
+      "bytes": 14327,
+      "sha256": "c160101b68481bcc41aff78f2fe623fbbda60ce7ad092f2dde66eab0b90f0e9d"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/internal/consensus/account_batch.go",
+      "bytes": 17471,
+      "sha256": "50174d70d6c8715a5f8277c13726db379622aa7d9acaa27c0252d61f1088ba36"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/internal/consensus/pq_ethereum.go",
+      "bytes": 15252,
+      "sha256": "8ab948c6b7d006ef85e14d177729936489ee584f472ae95360d9e0072dff5e15"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/internal/consensus/pq_initial_transaction.go",
+      "bytes": 4951,
+      "sha256": "9fa49ade161046474a77f02939798a9c4944c1c357b2e5ccd50b2b65125b8850"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/internal/ynxauth/policy.go",
+      "bytes": 13926,
+      "sha256": "f525369acd1df4ae12647a76f7cb183c44bab4d3964480e673eb9a427c67d721"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/internal/ynxauth/revocation.go",
+      "bytes": 10633,
+      "sha256": "f52ccc939b7f4d754d35c6ce2bf13236176d2b3a27cdc82e1f04ed027474f748"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/internal/ynxauth/pq_initial_possession.go",
+      "bytes": 4775,
+      "sha256": "803a743eafa041f9325917deb749bf3f2175e540881e3d73dbe73c35f393c7f7"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/internal/chain/pq_batch.go",
+      "bytes": 15121,
+      "sha256": "6802148aeaa2c6c4b9e4d62d0056d79d8b8051450281372d96e82a45d2841751"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/internal/ynxbatch/codec.go",
+      "bytes": 10489,
+      "sha256": "e92ab044072c4c410e769df912a927bb29ba1d5709f4642c066da7c7038203d2"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ynx-pq-perf-integration/YNX Chain/internal/ynxauth/ethereum.go",
+      "bytes": 6187,
+      "sha256": "09c465067b24f7ca6d4bbf22b824a16ae3300010630f1578ece14ca644c241be"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-envelope-encoding-20261031/candidate-v2.patch",
+      "bytes": 1191,
+      "sha256": "24337a1df83fcee74f124f3dbbc1df2edbf84629eda8aeb2f57e5a1af2ca5fde"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-envelope-encoding-20261031/encoder.go",
+      "bytes": 2765,
+      "sha256": "5fd30b64d851cbe8c5e5f51cd2f213c8a743d21fb6f4349b07937fb19c6222a4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-envelope-encoding-20261031/encoder_test.go",
+      "bytes": 2637,
+      "sha256": "67471d3654f7609509a987873b4e0b768d19debcd119ca5dbc0dc8a1b59ef9c2"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-envelope-encoding-20261031/measurement.raw",
+      "bytes": 3787,
+      "sha256": "6c067d4feb96a90166c553a9576e33f301bde895542ec5f23828619858c541b3"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-envelope-encoding-20261031/measurement-v2.raw",
+      "bytes": 3787,
+      "sha256": "308ed241c6c99742b348af9fdb3e45d23f7d497e9d88a907e6bdcecdec383e14"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-envelope-encoding-20261031/source.json",
+      "bytes": 478,
+      "sha256": "a7b1ee9373174ac14de4afc2dba7ffd9d997dd87ef374edecb4675f70dfce125"
+    }
+  ],
+  "environment": {
+    "GOTOOLCHAIN": "local",
+    "GOPROXY": "off",
+    "GOSUMDB": "off",
+    "GOMAXPROCS": "2"
+  }
+}

@@ -1,0 +1,22 @@
+--- a/internal/consensus/account_policy.go
++++ b/internal/consensus/account_policy.go
+@@ -55,7 +55,18 @@
+ 	if kind != PQTransferType && kind != PQMigrationType && kind != PQRevocationType && kind != PQWholeType && kind != PQEthereumValueType && kind != PQInitialRegistrationType || len(wire) == 0 || len(wire) > limit || kind == PQRevocationType && len(wire) > ynxauth.MaxRevocationBytes {
+ 		return nil, errors.New("unsupported or oversized ABCI PQ authorization")
+ 	}
+-	return json.Marshal(PQTransaction{Version: 1, Type: kind, WireHex: hex.EncodeToString(wire)})
++	// The admitted kinds are fixed ASCII protocol constants. Fill the same
++	// canonical JSON in one allocation without an intermediate hex string.
++	const head = `{"version":1,"type":"`
++	const middle = `","wireHex":"`
++	start := len(head) + len(kind) + len(middle)
++	payload := make([]byte, start+hex.EncodedLen(len(wire))+2)
++	offset := copy(payload, head)
++	offset += copy(payload[offset:], kind)
++	copy(payload[offset:], middle)
++	hex.Encode(payload[start:len(payload)-2], wire)
++	copy(payload[len(payload)-2:], `"}`)
++	return payload, nil
+ }
+ 
+ func DecodePQTransaction(payload []byte) (PQTransaction, []byte, error) {
