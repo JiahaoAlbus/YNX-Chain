@@ -45,3 +45,14 @@ test("original legacy origin and empty account history keep their supported publ
   const h=composed([entry(1,LEGACY_RPC_URL)]);await h.ui.refresh();assert.equal(h.get().error,null);assert.equal(h.get().records[0].origin,LEGACY_RPC_URL);
   h.replace([]);await h.ui.refresh();assert.equal(h.get().loaded,true);assert.equal(h.get().error,null);assert.equal(h.get().records.length,0);assert.equal(h.get().nextCursor,null);
 });
+test("receipt-validated self transfers remain visible on refresh and inclusive older pages",async()=>{
+  const self=entry(1);self.intent.to=account;self.receipt.to=account;
+  const first=composed([self]);
+  const saved=await first.producer.history(account);assert.equal(saved.records[0].to,account);
+  await first.ui.refresh();assert.equal(first.get().error,null);assert.equal(first.get().loaded,true);assert.equal(first.get().records[0].to,account);
+  const h=composed([self,entry(2),entry(3)],2);await h.ui.refresh();await h.ui.older();
+  assert.equal(h.get().error,null);assert.equal(h.get().loaded,true);assert.equal(h.get().nextCursor,null);
+  assert.deepEqual(h.get().records.map(r=>r.hash),[entry(3).intent.hash,entry(2).intent.hash,self.intent.hash]);
+  assert.equal(h.get().records[2].to,account);assert.equal(h.get().records[2].amount,"2.0");assert.equal(h.get().records[2].actualFee,"1.0");
+  assert.equal(h.get().records[2].confirmationScope,"local-snapshot");assert.equal(h.get().records[2].consensusFinality,false);
+});

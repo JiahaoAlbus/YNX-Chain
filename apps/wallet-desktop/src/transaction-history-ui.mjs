@@ -28,7 +28,7 @@ function publicRows(value){
 function projectRecord(value,account){
   const record=publicValues(value,FIELDS);
   const decimal=value=>typeof value==="string"&&value.length<=128&&/^(?:0|[1-9][0-9]*)\.(?:0|[0-9]{0,17}[1-9])$/.test(value);
-  if(record.account!==account||typeof record.hash!=="string"||!HASH.test(record.hash)||typeof record.to!=="string"||!ACCOUNT.test(record.to)||record.to===account||
+  if(record.account!==account||typeof record.hash!=="string"||!HASH.test(record.hash)||typeof record.to!=="string"||!ACCOUNT.test(record.to)||
       !decimal(record.amount)||record.amount==="0.0"||!decimal(record.actualFee)||typeof record.successful!=="boolean"||
       ![CANONICAL_RPC_URL,LEGACY_RPC_URL].includes(record.origin)||record.confirmed!==true||record.confirmationScope!=="local-snapshot"||record.consensusFinality!==false)throw Error("Unverified history");
   uint64(record.blockNumber,{positive:true});

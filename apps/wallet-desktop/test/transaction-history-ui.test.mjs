@@ -45,7 +45,7 @@ test("all original public display fields are required before a completed transfe
   }
 });
 test("malformed amounts, recipients, fees, block heights and result flags cannot become displayed facts",async()=>{
-  for(const patch of [{amount:"NaN"},{amount:"0.0"},{amount:2},{amount:"2e18"},{amount:"02.0"},{amount:"2.00"},{amount:"2."},{amount:"2.0000000000000000001"},{actualFee:null},{actualFee:"-1.0"},{actualFee:"1e2"},{blockNumber:"0x00"},{blockNumber:"0x0"},{blockNumber:"0x10000000000000000"},{blockNumber:2},{to:account},{to:"not a recipient"},{successful:undefined},{successful:"false"},{origin:"https://attacker.invalid"},{origin:"https://rpc-testnet.ynxweb4.com/"},{hash:{toString:()=>hash}},{privateKey:"must not be forwarded"}]){
+  for(const patch of [{amount:"NaN"},{amount:"0.0"},{amount:2},{amount:"2e18"},{amount:"02.0"},{amount:"2.00"},{amount:"2."},{amount:"2.0000000000000000001"},{actualFee:null},{actualFee:"-1.0"},{actualFee:"1e2"},{blockNumber:"0x00"},{blockNumber:"0x0"},{blockNumber:"0x10000000000000000"},{blockNumber:2},{to:account.slice(0,-1)},{to:"not a recipient"},{successful:undefined},{successful:"false"},{origin:"https://attacker.invalid"},{origin:"https://rpc-testnet.ynxweb4.com/"},{hash:{toString:()=>hash}},{privateKey:"must not be forwarded"}]){
     let last;const ui=createTransactionHistoryUI({getAccount:()=>account,render:view=>last=view,request:async()=>({ok:true,value:{records:[{...record(),...patch}],nextCursor:null}})});
     await ui.refresh();assert.equal(last.records.length,0,JSON.stringify(Object.keys(patch)));assert.ok(last.error,JSON.stringify(Object.keys(patch)));
   }
