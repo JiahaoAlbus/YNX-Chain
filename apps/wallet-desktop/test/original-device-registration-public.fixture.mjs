@@ -2,7 +2,7 @@
 // controller's fixed SDK import and authority's V4 prepare/sign/verify imports.
 // This does NOT exercise Native/Source, cryptographic signatures or HTTP.
 import {EventEmitter} from 'node:events';
-import {canonicalJSON,createProductSessionRequest,productSessionRequestDigest,productPlatformBinding,ynxAddressFromEVM} from '@ynx-chain/wallet-auth';
+import {canonicalJSON,createProductSessionRequest,productSessionRequestDigest,productSessionApprovalDigest,parseProductSessionChallenge,productPlatformBinding,ynxAddressFromEVM} from '@ynx-chain/wallet-auth';
 import {inspectProductSessionDeviceRegistrationOriginalV4Data} from '@ynx-chain/wallet-auth/product-session-device-registration-v4';
 import {prepareProductSessionApprovalV4Data} from '@ynx-chain/wallet-auth/product-session-pq-v4-codec';
 import assert from 'node:assert/strict';
@@ -33,18 +33,38 @@ function view(){
 export async function openOriginalProductDeviceV4RegistrationClient(...args){
  assert.equal(args.length,0);f.counts.open++;
  if(f.mode==='open-partial'){const e=Object.assign(Error('PUBLIC source acquisition'),{code:'PUBLIC_ACQUIRE'});e.partial={retire(){f.counts.partialRetire++;},async join(){f.counts.partialJoin++;},async close(){f.counts.partialClose++;}};throw e;}
- const original=view();f.view=original;let packet,ctx,raw=null,entered=false,closed=false;
+ let original=view();f.view=original;let packet,ctx,raw=null,entered=false,closed=false,completion=false,member=null;
  return Object.freeze({
   readOriginalRegistrationReviewDATA(selected){assert.deepEqual(selected,f.selection);f.counts.readReview++;return original;},
+  readOriginalCompletionReviewDATA(selected){
+   assert.deepEqual(selected.identityBinding,f.selection.identityBinding);assert.equal(selected.generation,f.selection.generation);assert.deepEqual(selected.publicPair,f.selection.publicPair);
+   assert.equal(selected.challengeOriginal,f.challengeOriginal);completion=true;
+   original=Object.freeze({...f.pairView,scope:Object.freeze({...f.pairView.scope,operation:'challenge-completion',pendingId:f.mode==='completion-pair-op'?'PUBLIC-pair-original':'PUBLIC-completion-original',
+    challengeOriginal:f.challengeOriginal,approvalDigest:productSessionApprovalDigest(JSON.parse(f.approvalOriginal))}),challenge:JSON.parse(f.challengeOriginal)});
+   f.view=original;return original;
+  },
   async prepareOriginalPairSubmission(input){f.counts.prepare++;assert.equal(f.sourceRetired,false,'original account policy is alive during SDK prepare');
    assert.equal(input.approvalOriginal,f.approvalOriginal);assert.ok(input.policyRef);ctx=input.abortContext;assert.equal(Object.isFrozen(ctx),true);
    if(f.mode==='prepare-false')throw false;
    if(f.mode==='source-revoked-after-prepare')f.sourceRevoked=true;
    packet=Object.freeze({PUBLIC:true});return packet;},
+  async prepareOriginalCompletionSubmission(input){
+   f.counts.completionPrepare=(f.counts.completionPrepare??0)+1;assert.equal(f.sourceRetired,false);assert.equal(input.approvalOriginal,f.approvalOriginal);ctx=input.abortContext;
+   const stored=await f.readDisk();assert.equal(stored.sessionOriginals[0].version,3);assert.equal(stored.sessionOriginals[0].completionSubmission.entered,false);
+   f.counts.nativeProof=(f.counts.nativeProof??0)+1;
+   if(f.mode==='completion-before-member-false')throw false;
+   member=Buffer.from([1,2,3,4]);
+   if(f.mode==='completion-after-member-false')throw false;
+   packet=Object.freeze({PUBLICCompletion:true});return packet;
+  },
   readOriginalPairRequestDATA(ref){assert.equal(ref,packet);const approval=JSON.parse(f.approvalOriginal);
    return Object.freeze({operationId:original.scope.pendingId,requestDigest:original.requestDigest,registrationOriginal:original.scope.registrationOriginal,
     originalBody:canonicalJSON({operationId:original.scope.pendingId,request:original.request,registrationOriginal:original.scope.registrationOriginal,registrationMember:'AA',approval}),
     dataOnly:true,registered:false,SourceAdmission:false,NativeAdmission:false});},
+  readOriginalCompletionRequestDATA(ref){assert.equal(ref,packet);return Object.freeze({operationId:original.scope.pendingId,requestDigest:original.requestDigest,registrationOriginal:original.scope.registrationOriginal,
+   challengeOriginal:f.challengeOriginal,memberOriginal:Buffer.from(member),originalBody:canonicalJSON({operationId:original.scope.pendingId,request:original.request,
+    registrationOriginal:original.scope.registrationOriginal,approval:JSON.parse(f.approvalOriginal),completion:{challenge:JSON.parse(f.challengeOriginal),deviceMember:member.toString('base64url')}}),
+   dataOnly:true,registered:false,connected:false,newSession:false,SourceAdmission:false,NativeAdmission:false});},
   async submitPreparedPair(ref,context){assert.equal(ref,packet);assert.equal(context,ctx);assert.equal(entered,false);entered=true;f.counts.submit++;
    assert.equal(f.sourceRetired,false,'original account Source is still alive at actual fixed SDK submit');
    const stored=await f.readDisk();assert.equal(stored.sessionOriginals[0].pairSubmission.entered,true);assert.ok(stored.sessionOriginals[0].approval.original);
@@ -52,11 +72,25 @@ export async function openOriginalProductDeviceV4RegistrationClient(...args){
    if(f.mode==='http-false')throw false;
    if(f.mode==='http-error-close-false')throw Object.assign(Error('PUBLIC HTTP first failure'),{code:'PUBLIC_HTTP_FIRST'});
    if(f.mode==='lost-late-abort'){f.lifecycle.lock();throw Object.assign(Error('PUBLIC SDK gateway lost original'),{code:'PAIR_V4_HTTP_OUTCOME_UNKNOWN'});}
-   raw=Object.freeze({original:canonicalJSON({registrationOriginal:original.scope.registrationOriginal,challenge:{version:'4',account:original.request.account??f.selection.identityBinding.account,requestDigest:original.requestDigest}})});
+   const approval=JSON.parse(f.approvalOriginal),{purpose,...request}=original.request;
+   const challenge=parseProductSessionChallenge({...request,account:approval.account,accountAuthorization:approval.accountAuthorization,challenge:'c'.repeat(43),
+    requestDigest:original.requestDigest,approvalDigest:productSessionApprovalDigest(approval),expiresAt:new Date(+f.at+60000).toISOString(),sessionExpiresAt:approval.expiresAt});
+   f.pairView=original;f.challengeOriginal=canonicalJSON(challenge);
+   raw=Object.freeze({original:canonicalJSON({registrationOriginal:original.scope.registrationOriginal,challenge})});
    if(f.mode==='late-lock')f.lifecycle.lock();
    if(f.mode==='non-http-partial'){raw=Object.freeze({partial:{retire(){}}});throw Object.assign(Error('PUBLIC no HTTP envelope'),{code:'PAIR_V4_HTTP_OUTCOME_UNKNOWN'});}
    return Object.freeze({operationId:original.scope.pendingId,responseOriginal:raw.original,registered:false,newSession:false,operationVerified:false});},
-  readStatusDATA(){return Object.freeze({originalResponseRetained:raw!==null,originalResponse:raw,httpEntered:entered,registered:false,newSession:false});},
+  async submitPreparedCompletion(ref,context){assert.equal(ref,packet);assert.equal(context,ctx);assert.equal(completion,true);assert.equal(entered,false);entered=true;
+   f.counts.completionSubmit=(f.counts.completionSubmit??0)+1;assert.equal(f.sourceRetired,false);
+   const stored=await f.readDisk(),c=stored.sessionOriginals[0].completionSubmission;assert.equal(c.entered,true);assert.ok(c.originalBody);assert.equal(c.memberOriginal,null);
+   if(f.onCompletionSubmit)await f.onCompletionSubmit();
+   if(f.mode==='completion-http-false')throw false;
+   raw=Object.freeze({original:canonicalJSON({version:'4',PUBLIC:'session DATA only'})});
+   if(f.mode==='completion-late-lock')f.lifecycle.lock();
+   if(f.mode==='completion-throw-with-original')throw Object.assign(Error('PUBLIC SDK late response failure'),{code:'PAIR_V4_HTTP_OUTCOME_UNKNOWN'});
+   return Object.freeze({operationId:original.scope.pendingId,responseOriginal:raw.original,registered:false,newSession:false,operationVerified:false,session:{PUBLIC:true}});
+  },
+  readStatusDATA(){return Object.freeze({originalMemberRetained:member!==null,originalMember:member?Buffer.from(member):null,originalResponseRetained:raw!==null,originalResponse:raw,httpEntered:entered,registered:false,newSession:false});},
   async close(){if(closed)return;closed=true;f.counts.clientClose++;if(['client-close-false','http-error-close-false'].includes(f.mode))throw false;}
  });
 }

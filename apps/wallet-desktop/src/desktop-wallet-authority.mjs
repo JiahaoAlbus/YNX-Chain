@@ -10,7 +10,7 @@ import {createPQWalletMigrationPossession,signPQWalletProductSessionApproval,sig
 import {captureProductSessionAccountPolicy,readProductSessionAccountPolicy,pqProductSessionRegisteredPublicBinding} from '@ynx-chain/wallet-auth/product-session-account-policy';
 import {preparePQProductSessionApproval,verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
 import {preparePQProductSessionApprovalV4,verifyProductSessionApprovalV4Data} from '@ynx-chain/wallet-auth/product-session-pq-v4-codec';
-import {readOriginalDeviceRegistrationAccountReview,submitOriginalDeviceRegistrationPair,closeOriginalDeviceRegistrationClient,readOriginalDeviceRegistrationCleanupDATA,captureOriginalDeviceRegistrationApproval,retainOriginalDeviceRegistrationFailure} from './original-device-registration-controller.mjs';
+import {readOriginalDeviceRegistrationAccountReview,submitOriginalDeviceRegistrationPair,submitOriginalDeviceRegistrationCompletion,closeOriginalDeviceRegistrationClient,readOriginalDeviceRegistrationCleanupDATA,captureOriginalDeviceRegistrationApproval,retainOriginalDeviceRegistrationFailure,recordOriginalDeviceCompletionFailure} from './original-device-registration-controller.mjs';
 import {pqPublicBindingToRegistrationKeys,encodePQNativeTransfer,decodePQTransferRequest,encodePQRegistrationIntent,decodePQAccountInitialRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {readPQTransferOriginal,preparePQMigrationOriginal} from './features/pq-transaction/transfer-binding.mjs';
 import {assertPQMigrationRequestPolicy} from '@ynx-chain/wallet-auth/pq-wallet-policy';
@@ -374,6 +374,7 @@ export class DesktopWalletAuthority {
     let effectEntered=false;
     const assertView=()=>{permission?.assert();if(effectEntered)guard.assertEffectCurrent();else guard.assert();};
     const registrationReview=registration?readOriginalDeviceRegistrationAccountReview(registration):null;
+    const completion=registrationReview?.kind==='completion';
     if(registrationReview&&(request.version!=='4'||typeof guard.submit!=='function'||typeof guard.assertEffectCurrent!=='function'))throw providerError(4100,'DEVICE_REGISTRATION_EFFECT_GUARD_REQUIRED','Original V4 approval requires the same effect guard.');
     if(guard.account!==account)throw providerError(4100,'ACCOUNT_CHANGED','Review the selected original account.');
     if(!this.#pqNetworkId||!this.#pqSessionRecognized)throw providerError(4100,'ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','The fixed committed policy source is required.');
@@ -381,7 +382,8 @@ export class DesktopWalletAuthority {
     const store=this.transactionSender?.submissions?.intentStore;
     if(['readSessionOriginal','reserveSessionOriginal','captureSessionOriginal','saveSessionOriginal','recordSessionFailure'].some(name=>typeof store?.[name]!=='function'))throw providerError(4100,'SESSION_ORIGINAL_STORE_REQUIRED','The original protected journal is required before signing.');
     const digest=productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,request,this.clock()),saved=await store.readSessionOriginal(account,digest,()=>guard.assert());guard.assert();
-    if(registration&&saved)throw providerError(4100,'SESSION_PAIR_QUERY_ORIGINAL_ONLY','A saved V4 original is query-only; no fresh signature or pair submission is permitted.');
+    if(registration&&saved&&!completion)throw providerError(4100,'SESSION_PAIR_QUERY_ORIGINAL_ONLY','A saved V4 original is query-only; no fresh signature or pair submission is permitted.');
+    if(completion&&(!saved||saved.version!==2||saved.approval?.original!==registrationReview.approvalOriginal||saved.registrationOriginal!==registrationReview.registrationOriginal||saved.requestDigest!==registrationReview.requestDigest))throw providerError(4100,'SESSION_COMPLETION_QUERY_ORIGINAL_ONLY','A prior completion or changed original is query-only.');
     if(saved&&!saved.approval)throw providerError(4100,'SESSION_APPROVAL_RESULT_UNKNOWN','The original signature outcome is unknown. No new signature is permitted.');
     if(saved?.deliveryAttempted)throw providerError(4100,'SESSION_CALLBACK_DELIVERY_UNKNOWN','The original callback may already have been delivered. No automatic repeat is permitted.');
     if(saved&&(saved.cleanupCause||!saved.cleanupComplete))throw providerError(4100,'SESSION_ORIGINAL_CLEANUP_UNKNOWN','Read the original outcome; its cleanup remains unresolved.');
@@ -404,8 +406,15 @@ export class DesktopWalletAuthority {
       const at=this.clock(),policy=readProductSessionAccountPolicy(observation,originalAccount,at);
       if(policy.algorithmVersion!=='YNX-BATCH/v0.1')throw providerError(4100,'ACCOUNT_PQ_POLICY_REQUIRED','Register the original dual-PQ account before approving a YNX product session.');
       if(saved){
+        if(completion){
+          // Reverify the same saved approval against this fresh account policy.
+          // Completion never enters withPQKeys or signs the account again.
+          verifyProductSessionApprovalV4Data(PRODUCT_SESSION_REGISTRY,request,JSON.parse(saved.approval.original),observation,Buffer.from(saved.registrationOriginal),this.clock());
+          result=Object.freeze({approvalOriginal:saved.approval.original,recovered:true});
+        }else{
         const verified=verifyPQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,saved.approval,observation,this.clock());
         result=Object.freeze({approval:verified.approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval:verified.approval},this.clock(),verified.verifiedApproval),originalRequestId:saved.requestId,recovered:true});
+        }
       }else{
       token=await store.reserveSessionOriginal({version:registration?2:1,account,requestId:originalRequestId,requestDigest:digest,request,createdAt:at.toISOString(),approval:null,deliveryAttempted:false,cleanupComplete:false,firstCause:null,storageCause:null,cleanupCause:null,...(registration?{operationId:registrationReview.operationId,registrationOriginal:registrationReview.registrationOriginal,pairSubmission:null}:{})},()=>guard.assert());guard.assert();
         const binding=pqProductSessionRegisteredPublicBinding(observation,originalAccount,at),plan=registration?
@@ -427,7 +436,7 @@ export class DesktopWalletAuthority {
       assertView();if(await resource.recheck()!==undefined)throw providerError(4100,'ACCOUNT_POLICY_CURRENT_REFUSED','Current source recheck failed.');assertView();readProductSessionAccountPolicy(observation,originalAccount,this.clock());
       if(registration){
         const current=()=>{assertView();owner.assert();readProductSessionAccountPolicy(observation,originalAccount,this.clock());};
-        result=await submitOriginalDeviceRegistrationPair(registration,{store,token,approvalOriginal:result.approvalOriginal,policyRef:observation,assertCurrent:current,
+        result=await (completion?submitOriginalDeviceRegistrationCompletion:submitOriginalDeviceRegistrationPair)(registration,{store,token,approvalOriginal:result.approvalOriginal,policyRef:observation,assertCurrent:current,
           submit:action=>{current();effectEntered=true;return guard.submit(action);}});
         current();
       }
@@ -440,10 +449,11 @@ export class DesktopWalletAuthority {
       if(owner)try{await this.#closePQ(owner,...(failed?[cause]:[]));}catch(error){if(!cleanupFailed)cleanupCause=error;cleanupFailed=true;if(!failed){failed=true;cause=error;}}
       const deviceCleanup=registration?readOriginalDeviceRegistrationCleanupDATA(registration):null;
       if(token)try{await store.recordSessionFailure(token,{firstPresent:failed,first:cause,cleanupPresent:cleanupFailed,cleanup:cleanupCause,cleanupComplete:owner?.status().closed===true&&!owner.status().cleanupDebt&&(!deviceCleanup||deviceCleanup.closed&&!deviceCleanup.cleanupPresent)});}catch(error){if(!failed){failed=true;cause=error;}}
+      if(completion)try{await recordOriginalDeviceCompletionFailure(registration,{firstPresent:failed,first:cause,cleanupPresent:cleanupFailed,cleanup:cleanupCause,cleanupComplete:owner?.status().closed===true&&!owner.status().cleanupDebt&&deviceCleanup?.closed===true&&!deviceCleanup.cleanupPresent});}catch(error){if(!failed){failed=true;cause=error;}}
     }
     if(failed)throw cause;
     try{assertView();productSessionRequestDigest(PRODUCT_SESSION_REGISTRY,request,this.clock());}
-    catch(error){if(token)try{await store.recordSessionFailure(token,{firstPresent:true,first:error,cleanupComplete:true});}catch{}throw error;}
+    catch(error){if(token)try{await store.recordSessionFailure(token,{firstPresent:true,first:error,cleanupComplete:true});}catch{}if(completion)try{await recordOriginalDeviceCompletionFailure(registration,{firstPresent:true,first:error,cleanupComplete:true});}catch{}throw error;}
     if(registration)return Object.freeze({...result,retained:true,originalRequestId,registered:false,newSession:false});
     if(result.approval.version==='3'&&this.#sessionReturnClient){
       const original=await store.readSessionOriginal(account,digest,()=>guard.assert());guard.assert();

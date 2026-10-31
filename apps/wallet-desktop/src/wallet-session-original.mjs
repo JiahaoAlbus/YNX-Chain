@@ -1,4 +1,4 @@
-import {canonicalJSON,productSessionRequestDigest,parseProductSessionRequest,evmAddressFromYNX} from '@ynx-chain/wallet-auth';
+import {canonicalJSON,productSessionRequestDigest,parseProductSessionRequest,evmAddressFromYNX,ynxAddressFromEVM,parseProductSessionChallenge,productSessionApprovalDigest} from '@ynx-chain/wallet-auth';
 import {PRODUCT_SESSION_REGISTRY} from './wallet-auth-contract.mjs';
 import {types} from 'node:util';
 import {inspectProductSessionDeviceRegistrationOriginalV4Data} from '@ynx-chain/wallet-auth/product-session-device-registration-v4';
@@ -11,6 +11,10 @@ export const SESSION_V4_PAIR_BODY_MAX_BYTES=393216;
 export const SESSION_V4_RESPONSE_MAX_BYTES=196608;
 export const SESSION_V4_RESPONSE_RESERVE_BYTES=2*SESSION_V4_RESPONSE_MAX_BYTES+8192;
 export const SESSION_V4_APPROVAL_RESERVE_BYTES=2*SESSION_V4_APPROVAL_MAX_BYTES+8192;
+export const SESSION_V4_COMPLETION_MEMBER_RESERVE_BYTES=131072+8192;
+const v4Fields=['version','account','requestId','requestDigest','request','createdAt','approval','deliveryAttempted','cleanupComplete','firstCause','storageCause','cleanupCause','operationId','registrationOriginal','pairSubmission'];
+const completionFields=['operationId','requestDigest','approvalDigest','challengeOriginal','originalBody','memberOriginal','entered','responseOriginal','firstCause','storageCause','cleanupCause','cleanupComplete'];
+const isV4=row=>row?.version===2||row?.version===3;
 function data(value,keys){
  if(!value||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)fail();
  const ds=Object.getOwnPropertyDescriptors(value),actual=Reflect.ownKeys(ds);
@@ -52,7 +56,7 @@ function v4Registration(row){
  return r;
 }
 export function parseSessionPairRequestDATA(value,original){
- const row=parseSessionOriginal(original);if(row.version!==2||row.approval===null)fail();
+ const row=parseSessionOriginal(original);if(!isV4(row)||row.approval===null)fail();
  const d=data(value,['operationId','originalBody','requestDigest','registrationOriginal','dataOnly','registered','SourceAdmission','NativeAdmission']);
  if(d.operationId!==row.operationId||d.requestDigest!==row.requestDigest||d.registrationOriginal!==row.registrationOriginal||d.dataOnly!==true||d.registered!==false||d.SourceAdmission!==false||d.NativeAdmission!==false)fail();
  const body=data(jsonOriginal(d.originalBody,SESSION_V4_PAIR_BODY_MAX_BYTES),['operationId','request','registrationOriginal','registrationMember','approval']);
@@ -62,14 +66,19 @@ export function parseSessionPairRequestDATA(value,original){
 }
 function pairDATA(row,pair){return {operationId:row.operationId,originalBody:pair.originalBody,requestDigest:row.requestDigest,registrationOriginal:row.registrationOriginal,dataOnly:true,registered:false,SourceAdmission:false,NativeAdmission:false};}
 export function parseSessionPairResponseOriginal(raw,original){
- const row=parseSessionOriginal(original);if(row.version!==2||!row.pairSubmission?.entered)fail();
+ const row=parseSessionOriginal(original);if(!isV4(row)||!row.pairSubmission?.entered)fail();
  if(typeof raw!=='string'||!raw.length||!raw.isWellFormed()||/[\u0000-\u001f]/.test(raw)||Buffer.byteLength(raw)>SESSION_V4_RESPONSE_MAX_BYTES)fail();
  // Preserve even a malformed or foreign returned original before the SDK's
  // interpretation/late checks. Opaque storage proves no binding or success.
  return raw;
 }
 export function sessionV4ReservedBytes(state){
- return (state.sessionOriginals??[]).reduce((n,row)=>n+(row.version!==2?0:!row.approval?SESSION_V4_APPROVAL_RESERVE_BYTES:row.pairSubmission&&!row.pairSubmission.responseOriginal?SESSION_V4_RESPONSE_RESERVE_BYTES:0),0);
+ return (state.sessionOriginals??[]).reduce((n,row)=>{
+  if(!isV4(row))return n;
+  const c=row.version===3?row.completionSubmission:null;
+  return n+(c?c.originalBody===null?Math.max(0,SESSION_V4_COMPLETION_MEMBER_RESERVE_BYTES-(c.memberOriginal?.length??0)):c.responseOriginal===null?SESSION_V4_RESPONSE_RESERVE_BYTES:0:
+   !row.approval?SESSION_V4_APPROVAL_RESERVE_BYTES:row.pairSubmission&&!row.pairSubmission.responseOriginal?SESSION_V4_RESPONSE_RESERVE_BYTES:0);
+ },0);
 }
 export function sessionOriginalCause(value){
  // Preserve falsy first causes, but never persist an untrusted exception's
@@ -82,6 +91,7 @@ export function sessionOriginalCause(value){
 export function parseSessionOriginal(value){
  if(types.isProxy(value))fail();
  const version=value&&Object.getOwnPropertyDescriptor(value,'version');if(version&&!Object.hasOwn(version,'value'))fail();
+ if(version?.value===3)return parseSessionCompletionOriginal(value);
  if(value&&!types.isProxy(value)&&Object.getOwnPropertyDescriptor(value,'version')?.value===2)return parseSessionOriginalV4(value);
  exact(value,['version','account','requestId','requestDigest','request','createdAt','approval','deliveryAttempted','cleanupComplete','firstCause','storageCause','cleanupCause']);
  if(value.version!==1||!/^0x[0-9a-f]{40}$/.test(value.account??'')||typeof value.requestId!=='string'||!/^[A-Za-z0-9._:-]{1,128}$/.test(value.requestId)||typeof value.createdAt!=='string'||!Number.isFinite(Date.parse(value.createdAt))||new Date(value.createdAt).toISOString()!==value.createdAt||typeof value.deliveryAttempted!=='boolean'||typeof value.cleanupComplete!=='boolean')fail();
@@ -97,7 +107,7 @@ export function parseSessionOriginal(value){
  return freeze(JSON.parse(canonicalJSON({...value,request})));
 }
 function parseSessionOriginalV4(value){
- const row=data(value,['version','account','requestId','requestDigest','request','createdAt','approval','deliveryAttempted','cleanupComplete','firstCause','storageCause','cleanupCause','operationId','registrationOriginal','pairSubmission']);
+ const row=data(value,v4Fields);
  if(row.version!==2||!/^0x[0-9a-f]{40}$/.test(row.account??'')||row.deliveryAttempted!==false||typeof row.cleanupComplete!=='boolean')fail();
  localID(row.requestId);localID(row.operationId);time(row.createdAt);safeData(row.request);
  const request=parseProductSessionRequest(PRODUCT_SESSION_REGISTRY,row.request,new Date(row.createdAt));
@@ -116,4 +126,59 @@ function parseSessionOriginalV4(value){
   }
  }
  if(Buffer.byteLength(canonicalJSON(row))>1048576)fail();return freeze(JSON.parse(canonicalJSON({...row,request})));
+}
+
+/** Independently retained pair HTTP DATA, not a Source or registration grant.
+ * This selection can be reconstructed cold without reusing a creation decision.
+ * The fresh fixed Native challenge Source must independently match it. */
+export function readSessionCompletionOriginalDATA(input){
+ const row=parseSessionOriginal(input);
+ if(!isV4(row)||!row.approval||!row.pairSubmission?.entered||row.pairSubmission.responseOriginal===null)fail();
+ const pair=data(jsonOriginal(row.pairSubmission.responseOriginal,SESSION_V4_RESPONSE_MAX_BYTES),['registrationOriginal','challenge']);
+ if(pair.registrationOriginal!==row.registrationOriginal)fail();
+ const challenge=parseProductSessionChallenge(pair.challenge),challengeOriginal=canonicalJSON(challenge),approval=jsonOriginal(row.approval.original,SESSION_V4_APPROVAL_MAX_BYTES);
+ if(challengeOriginal!==canonicalJSON(pair.challenge)||challenge.version!=='4'||challenge.requestDigest!==row.requestDigest||challenge.account!==approval.account||challenge.approvalDigest!==productSessionApprovalDigest(approval))fail();
+ for(const key of ['chainId','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId','deviceAlgorithm','deviceRegistrationId','deviceRegistrationRevision','deviceRegistrationDigest','nonce','state'])if(challenge[key]!==row.request[key])fail();
+ if(canonicalJSON(challenge.scopes)!==canonicalJSON(row.request.scopes)||canonicalJSON(challenge.accountAuthorization)!==canonicalJSON(approval.accountAuthorization))fail();
+ const registration=inspectProductSessionDeviceRegistrationOriginalV4Data(Buffer.from(row.registrationOriginal)).record;
+ const identityBinding=Object.freeze({networkId:registration.networkId,canonicalOwner:registration.canonicalOwner,account:ynxAddressFromEVM(registration.canonicalOwner),
+  ...Object.fromEntries(['productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId'].map(k=>[k,registration[k]]))});
+ return Object.freeze({identityBinding,generation:registration.generation,publicPair:Object.freeze({pkA:Buffer.from(registration.pkA,'hex'),pkB:Buffer.from(registration.pkB,'hex')}),
+  challengeOriginal,approvalOriginal:row.approval.original,approvalDigest:challenge.approvalDigest,requestDigest:row.requestDigest,registrationOriginal:row.registrationOriginal,dataOnly:true,registered:false,newSession:false});
+}
+export function parseSessionCompletionIntentDATA(value,input){
+ const row=parseSessionOriginal(input),original=readSessionCompletionOriginalDATA(row),d=data(value,['operationId','requestDigest','approvalDigest','registrationOriginal','challengeOriginal']);
+ localID(d.operationId);if(d.operationId===row.operationId||d.requestDigest!==original.requestDigest||d.approvalDigest!==original.approvalDigest||d.registrationOriginal!==original.registrationOriginal||d.challengeOriginal!==original.challengeOriginal)fail();
+ return freeze(d);
+}
+export function copySessionCompletionMember(value){
+ if(types.isProxy(value)||!types.isUint8Array(value))fail();
+ const p=Object.getPrototypeOf(Uint8Array.prototype),buffer=Object.getOwnPropertyDescriptor(p,'buffer').get.call(value),length=Object.getOwnPropertyDescriptor(p,'length').get.call(value),offset=Object.getOwnPropertyDescriptor(p,'byteOffset').get.call(value);
+ if(types.isSharedArrayBuffer(buffer)||!types.isArrayBuffer(buffer)||Object.getOwnPropertyDescriptor(ArrayBuffer.prototype,'resizable').get.call(buffer)||Object.getOwnPropertyDescriptor(ArrayBuffer.prototype,'detached').get.call(buffer)||!length||length>98304||Reflect.ownKeys(value).length!==length)fail();
+ return Buffer.from(new Uint8Array(buffer,offset,length));
+}
+function memberOriginal(raw){if(typeof raw!=='string'||!raw.length||!/^[A-Za-z0-9_-]+$/.test(raw)||Buffer.from(raw,'base64url').toString('base64url')!==raw||Buffer.from(raw,'base64url').length>98304)fail();return raw;}
+function completionBody(raw,row,phase){
+ const b=data(jsonOriginal(raw,SESSION_V4_PAIR_BODY_MAX_BYTES),['operationId','request','registrationOriginal','approval','completion']),c=data(b.completion,['challenge','deviceMember']);
+ if(b.operationId!==phase.operationId||canonicalJSON(b.request)!==canonicalJSON(row.request)||b.registrationOriginal!==row.registrationOriginal||canonicalJSON(b.approval)!==row.approval.original||canonicalJSON(c.challenge)!==phase.challengeOriginal)fail();
+ return memberOriginal(c.deviceMember);
+}
+export function parseSessionCompletionRequestDATA(value,input){
+ const row=parseSessionOriginal(input);if(row.version!==3)fail();const c=row.completionSubmission;
+ const d=data(value,['operationId','originalBody','requestDigest','registrationOriginal','challengeOriginal','memberOriginal','dataOnly','registered','connected','newSession','SourceAdmission','NativeAdmission']);
+ if(d.operationId!==c.operationId||d.requestDigest!==row.requestDigest||d.registrationOriginal!==row.registrationOriginal||d.challengeOriginal!==c.challengeOriginal||d.dataOnly!==true||['registered','connected','newSession','SourceAdmission','NativeAdmission'].some(k=>d[k]!==false))fail();
+ const member=copySessionCompletionMember(d.memberOriginal),wire=completionBody(d.originalBody,row,c);
+ if(member.toString('base64url')!==wire||c.memberOriginal!==null&&c.memberOriginal!==wire)fail();
+ return Object.freeze({...d,memberOriginal:member});
+}
+function parseSessionCompletionOriginal(value){
+ const full=data(value,[...v4Fields,'completionSubmission']),{completionSubmission,...rest}=full;
+ const row=parseSessionOriginalV4({...rest,version:2}),original=readSessionCompletionOriginalDATA(row),c=data(completionSubmission,completionFields);
+ localID(c.operationId);
+ if(c.operationId===row.operationId||c.requestDigest!==row.requestDigest||c.approvalDigest!==original.approvalDigest||c.challengeOriginal!==original.challengeOriginal||typeof c.entered!=='boolean'||typeof c.cleanupComplete!=='boolean')fail();
+ for(const cause of [c.firstCause,c.storageCause,c.cleanupCause])if(cause!==null){const d=data(cause,['kind','value','code']);if(!['error','object','undefined','boolean','number','string'].includes(d.kind)||d.code!==null&&(typeof d.code!=='string'||!/^[A-Za-z0-9_:-]{1,128}$/.test(d.code))||d.value!==null&&!['string','number','boolean'].includes(typeof d.value))fail();}
+ if(c.originalBody===null){if(c.entered||c.responseOriginal!==null)fail();if(c.memberOriginal!==null)memberOriginal(c.memberOriginal);}
+ else{if(!c.entered||c.memberOriginal!==null)fail();completionBody(c.originalBody,row,c);}
+ if(c.responseOriginal!==null&&(typeof c.responseOriginal!=='string'||!c.responseOriginal.length||!c.responseOriginal.isWellFormed()||/[\u0000-\u001f]/.test(c.responseOriginal)||Buffer.byteLength(c.responseOriginal)>SESSION_V4_RESPONSE_MAX_BYTES))fail();
+ const result={...row,version:3,completionSubmission:c};if(Buffer.byteLength(canonicalJSON(result))>1048576)fail();return freeze(JSON.parse(canonicalJSON(result)));
 }

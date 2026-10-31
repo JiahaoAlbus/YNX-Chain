@@ -5,6 +5,7 @@ import {types} from 'node:util';
 import {evmAddressFromYNX,canonicalJSON} from '@ynx-chain/wallet-auth';
 import {openOriginalProductDeviceV4RegistrationClient} from '@ynx-chain/wallet-auth/original-product-device-v4-registration-client';
 import {assertWalletIPC} from './wallet-ipc-policy.mjs';
+import {readSessionCompletionOriginalDATA,copySessionCompletionMember} from './wallet-session-original.mjs';
 
 const ports=new WeakMap(),expectedURL=new URL('./index.html',import.meta.url).href;
 const fail=code=>{throw Object.assign(Error(code),{code});};
@@ -16,13 +17,15 @@ const safeCode=e=>{const c=own(e,'code')??own(own(e,'data'),'code');return typeo
 /** Correlation for the original Main authority only, never a Source brand. */
 export function readOriginalDeviceRegistrationAccountReview(port){
  const r=state(port);r.current();if(!r.decided||r.phase!=='approving-account')fail('DEVICE_REGISTRATION_INDEPENDENT_APPROVAL_REQUIRED');
- return Object.freeze({request:r.view.request,account:r.security.account,requestId:r.request.id,
-   operationId:r.view.scope.pendingId,registrationOriginal:r.view.scope.registrationOriginal});
+ return Object.freeze({request:r.view.request,account:r.security.account,requestId:r.request.id,kind:r.kind??'pair',requestDigest:r.view.requestDigest,
+   operationId:r.view.scope.pendingId,registrationOriginal:r.view.scope.registrationOriginal,
+   ...(r.kind==='completion'?{approvalOriginal:r.originals.approvalOriginal,approvalDigest:r.originals.approvalDigest,challengeOriginal:r.originals.challengeOriginal}: {})});
 }
 export async function closeOriginalDeviceRegistrationClient(port){
  const r=state(port);if(r.closePass)return r.closePass;
  r.closePass=(async()=>{try{
   const owner=r.client??r.partial;
+  if(!r.abort.signal.aborted)r.abort.abort(Error('DEVICE_REGISTRATION_PHASE_FINISHED'));
   if(owner){
    // A Native acquisition partial is retained before interpretation. Respect
    // its retire/join/close contract; a completed SDK client owns its own drain.
@@ -40,6 +43,9 @@ export function readOriginalDeviceRegistrationCleanupDATA(port){
  const r=state(port);return Object.freeze({closed:r.clientClosed===true,cleanupPresent:r.cleanupPresent===true,cleanupCause:r.cleanupCause});
 }
 export function retainOriginalDeviceRegistrationFailure(port,cause){remember(state(port),cause);}
+export async function recordOriginalDeviceCompletionFailure(port,input){
+ const r=state(port);if(r.kind==='completion'&&r.completionToken)await r.store.recordSessionCompletionFailure(r.completionToken,input);
+}
 export function captureOriginalDeviceRegistrationApproval(port,{store,token,approval}){
  const r=state(port);if(r.approvalReturned)fail('DEVICE_REGISTRATION_APPROVAL_ALREADY_CAPTURED');
  // Retain the actual signer return before canonicalization, parse or lock.
@@ -98,13 +104,77 @@ export async function submitOriginalDeviceRegistrationPair(port,{store,token,app
    responseRetained:r.responseSaved,queryOnly:true,registered:false,connected:false,newSession:false,SourceAdmission:false,NativeAdmission:false});
 }
 
+/** Completion is a fresh original Native phase with its own source pendingId,
+ * intent, proof, body and response. The original account approval is reverified
+ * by the authority and SDK, never signed again. No pair owner is reused. */
+export async function submitOriginalDeviceRegistrationCompletion(port,{store,approvalOriginal,policyRef,assertCurrent,submit}){
+ const r=state(port);r.current();if(r.kind!=='completion'||r.completionSelected)fail('DEVICE_COMPLETION_QUERY_ORIGINAL_ONLY');
+ r.completionSelected=true;r.store=store;
+ let failed=false,cause,response,transportFailed=false,transportCause;
+ const first=e=>{if(!failed){failed=true;cause=e;}remember(r,e);};
+ const captureMember=()=>{
+  const s=r.client.readStatusDATA();r.sdkStatus=s;
+  if(!r.nativeMemberCaptured&&s.originalMemberRetained===true){
+   r.rawNativeMember=s.originalMember;r.nativeMemberCaptured=true;
+   store.captureSessionCompletionMember(r.completionToken,s.originalMember);
+  }
+ };
+ const captureResponse=()=>{
+  const s=r.client.readStatusDATA();r.sdkStatus=s;
+  if(r.responseCaptured||s.originalResponseRetained!==true&&response===undefined)return;
+  const raw=own(response,'responseOriginal')??own(s.originalResponse,'original');
+  if(typeof raw!=='string'){r.unresolvedSDKResponse=s.originalResponse;return;}
+  r.rawResponse=raw;store.captureSessionCompletionResponse(r.completionToken,raw);r.responseCaptured=true;
+ };
+ try{
+  assertCurrent();r.current();r.phase='reserving-original-completion';
+  const reserved=store.reserveSessionCompletionIntent(r.security.account,r.view.requestDigest,{operationId:r.view.scope.pendingId,requestDigest:r.view.requestDigest,
+    registrationOriginal:r.view.scope.registrationOriginal,approvalDigest:r.originals.approvalDigest,challengeOriginal:r.originals.challengeOriginal},()=>{assertCurrent();r.current();});
+  r.completionToken=reserved.token;await reserved.ready;assertCurrent();r.current();
+  r.phase='preparing-original-completion';
+  try{r.packet=await r.client.prepareOriginalCompletionSubmission({approvalOriginal,policyRef,abortContext:r.context});}
+  catch(e){first(e);}
+  // Adopt the genuine SDK-held Member before any late current/abort check,
+  // including a preparation exception after Native had already produced it.
+  try{captureMember();if(r.nativeMemberCaptured){await store.saveSessionCompletionMember(r.completionToken);r.nativeMemberSaved=true;}}
+  catch(e){first(e);}
+  if(failed)throw cause;
+  if(!r.nativeMemberCaptured)fail('DEVICE_COMPLETION_ORIGINAL_MEMBER_REQUIRED');
+  assertCurrent();r.current();
+  const data=r.client.readOriginalCompletionRequestDATA(r.packet);
+  r.completionEntrySelected=true;
+  const entry=await store.beginSessionCompletionSubmission(r.completionToken,data,()=>{assertCurrent();r.current();});
+  if(entry.created!==true)fail('DEVICE_COMPLETION_QUERY_ORIGINAL_ONLY');
+  r.completionEntrySaved=true;
+  assertCurrent();r.current();r.phase='submitting-original-completion';r.httpSelected=true;
+  response=await submit(async()=>{
+   try{return response=await r.client.submitPreparedCompletion(r.packet,r.context);}
+   catch(e){transportFailed=true;transportCause=e;throw e;}
+   finally{captureResponse();}
+  });
+ }catch(e){first(transportFailed?transportCause:e);}
+ // Storage-only after an effect. A returned session remains DATA even if its
+ // late SDK/current/abort validation failed; it cannot authorize Native.complete.
+ try{captureResponse();if(r.responseCaptured){await store.saveSessionCompletionResponse(r.completionToken);r.responseSaved=true;}}
+ catch(e){first(e);}
+ if(failed){r.phase='original-completion-unknown';throw cause;}
+ try{assertCurrent();r.current();}catch(e){remember(r,e);r.phase='original-completion-unknown';throw e;}
+ r.phase='awaiting-original-native-completion';
+ return Object.freeze({phase:r.phase,operationId:r.view.scope.pendingId,requestDigest:r.view.requestDigest,responseRetained:r.responseSaved,
+   queryOnly:true,registered:false,connected:false,newSession:false,SourceAdmission:false,NativeAdmission:false});
+}
+
 export function createOriginalDeviceRegistrationController({vault,networkId,authority,...extra}){
  if(Object.keys(extra).length||!vault?.authorization||typeof networkId!=='string'||!/^[0-9a-f]{64}$/.test(networkId)||typeof authority?.approveOriginalDeviceRegistration!=='function')fail('DEVICE_REGISTRATION_MAIN_COMPOSITION_REQUIRED');
  let active=null,closed=false;
  const status=r=>Object.freeze({requestId:r?.request?.id??null,account:r?.security.account??null,phase:r?.phase??'idle',
+   phaseKind:r?.kind??'pair',
    operationId:r?.view?.scope.pendingId??null,requestDigest:r?.view?.requestDigest??null,
    originalResponseRetained:r?.responseCaptured??false,responseSaved:r?.responseSaved??false,
    accountApprovalOriginalRetained:r?.approvalReturned??false,accountApprovalSaved:r?.approvalSaved??false,
+   accountApprovalReused:r?.kind==='completion',originalCompletionMemberRetained:r?.nativeMemberCaptured??false,
+   localSaveAvailable:Boolean(r?.kind==='completion'&&r?.decided&&r?.completionToken&&!r?.inFlight),
+   localSaveRequired:Boolean(r?.kind==='completion'&&(r?.nativeMemberCaptured&&!r?.nativeMemberSaved||r?.completionEntrySelected&&!r?.completionEntrySaved||r?.responseCaptured&&!r?.responseSaved)),
    cleanupUnresolved:r?.cleanupPresent===true,queryOnly:r?.decided===true||r?.phase==='query-only',
    registered:false,connected:false,newSession:false,SourceAdmission:false,NativeAdmission:false,
    ...(r?.firstPresent?{firstCauseCode:safeCode(r.first)}:{})});
@@ -130,7 +200,7 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   const guard=vault.authorization.current();guard.assert();const security=vault.authorization.status();
   const identity=own(selection,'identityBinding');
   if(own(identity,'networkId')!==networkId||own(identity,'canonicalOwner')!==security.account||evmAddressFromYNX(own(identity,'account'))!==security.account)fail('DEVICE_REGISTRATION_SELECTED_ACCOUNT_CHANGED');
-  const r={security,phase:'acquiring-original-review',abort:new AbortController(),firstPresent:false,clientClosed:false,clockFloor:Date.now()};
+  const r={security,kind:'pair',phase:'acquiring-original-review',abort:new AbortController(),firstPresent:false,clientClosed:false,clockFloor:Date.now()};
   r.context=Object.freeze({signal:r.abort.signal});r.current=()=>current(r);r.port=Object.freeze(Object.create(null));ports.set(r.port,r);active=r;
   r.unsubscribe=vault.authorization.subscribe(s=>{if(s.locked||s.account!==security.account||s.revision!==security.revision)retire(r,Error('DEVICE_REGISTRATION_SELECTED_ACCOUNT_CHANGED'));});
   const pass=(async()=>{try{
@@ -153,6 +223,39 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   }catch(e){remember(r,e);if(r.phase!=='query-only')r.phase='failed-before-account';try{await closeOriginalDeviceRegistrationClient(r.port);}catch{}finishLocal(r);throw e;}})();
   r.inFlight=pass;try{return await pass;}finally{r.inFlight=null;}
  }
+ async function prepareCompletionReview(digest){
+  if(arguments.length!==1||typeof digest!=='string'||!/^[0-9a-f]{64}$/.test(digest))fail('DEVICE_COMPLETION_ORIGINAL_DIGEST_REQUIRED');
+  if(closed||active&&(!active.clientClosed||active.inFlight))fail('DEVICE_REGISTRATION_ORIGINAL_UNRESOLVED');
+  const guard=vault.authorization.current();guard.assert();const security=vault.authorization.status(),store=authority.transactionSender?.submissions?.intentStore;
+  if(!store)fail('SESSION_ORIGINAL_STORE_REQUIRED');
+  const saved=await store.readSessionOriginal(security.account,digest,()=>guard.assert());guard.assert();
+  if(!saved||saved.version!==2)fail('DEVICE_COMPLETION_QUERY_ORIGINAL_ONLY');
+  if(!saved.cleanupComplete||saved.cleanupCause)fail('DEVICE_REGISTRATION_ORIGINAL_UNRESOLVED');
+  const originals=readSessionCompletionOriginalDATA(saved);
+  if(originals.identityBinding.networkId!==networkId||originals.identityBinding.canonicalOwner!==security.account)fail('DEVICE_REGISTRATION_SELECTED_ACCOUNT_CHANGED');
+  const r={security,kind:'completion',originals,store,phase:'acquiring-original-completion-review',abort:new AbortController(),firstPresent:false,clientClosed:false,clockFloor:Date.now()};
+  r.context=Object.freeze({signal:r.abort.signal});r.current=()=>current(r);r.port=Object.freeze(Object.create(null));ports.set(r.port,r);active=r;
+  r.unsubscribe=vault.authorization.subscribe(s=>{if(s.locked||s.account!==security.account||s.revision!==security.revision)retire(r,Error('DEVICE_REGISTRATION_SELECTED_ACCOUNT_CHANGED'));});
+  const work=(async()=>{try{
+   try{r.client=await openOriginalProductDeviceV4RegistrationClient();}catch(e){r.partial=own(e,'partial');throw e;}
+   current(r);
+   // These originals come from prior protected storage, never from the fresh
+   // Native view that is independently compared by this sole SDK call.
+   r.view=r.client.readOriginalCompletionReviewDATA({identityBinding:originals.identityBinding,generation:originals.generation,publicPair:originals.publicPair,challengeOriginal:originals.challengeOriginal});
+   current(r);
+   if(r.view.scope.operation!=='challenge-completion'||r.view.scope.pendingId===saved.operationId||r.view.requestDigest!==saved.requestDigest||
+      r.view.scope.registrationOriginal!==saved.registrationOriginal||r.view.scope.challengeOriginal!==originals.challengeOriginal||r.view.scope.approvalDigest!==originals.approvalDigest||canonicalJSON(r.view.request)!==canonicalJSON(saved.request))fail('DEVICE_COMPLETION_ORIGINAL_BINDING');
+   const request=r.view.request;
+   r.request=Object.freeze({id:randomUUID(),origin:request.origin,method:'ynx_completeProductDeviceV4',params:Object.freeze([]),createdAt:request.issuedAt,
+    review:Object.freeze({title:'Confirm the original device challenge / 确认原设备挑战',account:security.account,productId:request.productId,clientId:request.clientId,
+     platform:request.platform,applicationId:request.applicationId,origin:request.origin,callback:request.callback,deviceId:request.deviceId,networkId,
+     pairOperationId:saved.operationId,operationId:r.view.scope.pendingId,requestDigest:saved.requestDigest,deviceRegistrationId:request.deviceRegistrationId,
+     deviceRegistrationRevision:request.deviceRegistrationRevision,deviceRegistrationDigest:request.deviceRegistrationDigest,expiresAt:r.view.originalWindow.expiresAt,
+     warning:'Continue only this independently matched original challenge. Reuses the saved account approval without signing again. A stored session response is not registered/current Native authority.'})});
+   r.phase='review';return r.request;
+  }catch(e){remember(r,e);r.phase='completion-review-unavailable';try{await closeOriginalDeviceRegistrationClient(r.port);}catch{}finishLocal(r);throw e;}})();
+  r.inFlight=work;try{return await work;}finally{r.inFlight=null;}
+ }
  async function approveOriginal(event,id){
   const r=selected(id);if(r.phase!=='review'||r.inFlight||r.decided)fail('DEVICE_REGISTRATION_REVIEW_ALREADY_DECIDED');current(r);
   r.approvalGuard=vault.authorization.current();
@@ -166,7 +269,7 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   r.decided=true;r.phase='approving-account';const permission=Object.freeze({assert:()=>current(r)});
   const pass=(async()=>{let failed=false,cause;
    try{await authority.approveOriginalDeviceRegistration(r.port,permission);}
-   catch(e){failed=true;cause=e;remember(r,e);if(r.phase!=='original-pair-unknown')r.phase='original-approval-unknown';}
+   catch(e){failed=true;cause=e;remember(r,e);if(!['original-pair-unknown','original-completion-unknown'].includes(r.phase))r.phase=r.kind==='completion'?'original-completion-unknown':'original-approval-unknown';}
    finally{
     try{await closeOriginalDeviceRegistrationClient(r.port);}
     catch(e){remember(r,e);if(!failed){failed=true;cause=e;r.phase='original-cleanup-unconfirmed';}}
@@ -181,12 +284,16 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   await closeOriginalDeviceRegistrationClient(r.port);finishLocal(r);r.phase=r.decided?'original-pair-unknown':'cancelled-before-account';return status(r);}
  async function close(){closed=true;const r=active;if(!r)return;retire(r,Error('DEVICE_REGISTRATION_CLOSING'));if(r.inFlight)try{await r.inFlight;}catch{}
   await closeOriginalDeviceRegistrationClient(r.port);finishLocal(r);
-  if(r.store&&(r.approvalReturned&&!r.approvalSaved||r.responseCaptured&&!r.responseSaved)){
+  if(r.store&&(r.approvalReturned&&!r.approvalSaved||r.responseCaptured&&!r.responseSaved||r.nativeMemberCaptured&&!r.nativeMemberSaved)){
    try{const saved=await r.store.readSessionOriginal(r.security.account,r.view.requestDigest,()=>{});
     if(typeof r.approvalOriginal==='string'&&saved?.approval?.original===r.approvalOriginal)r.approvalSaved=true;
-    if(r.responseCaptured&&saved?.pairSubmission?.responseOriginal===r.rawResponse)r.responseSaved=true;
+    if(r.responseCaptured&&(r.kind==='completion'?saved?.completionSubmission:saved?.pairSubmission)?.responseOriginal===r.rawResponse)r.responseSaved=true;
+    if(r.nativeMemberCaptured){
+      const c=saved?.completionSubmission,raw=c?.memberOriginal??(c?.originalBody?JSON.parse(c.originalBody).completion.deviceMember:null);
+      if(raw===copySessionCompletionMember(r.rawNativeMember).toString('base64url'))r.nativeMemberSaved=true;
+    }
    }catch{}
-   if(r.approvalReturned&&!r.approvalSaved||r.responseCaptured&&!r.responseSaved)fail('DEVICE_REGISTRATION_ORIGINAL_SAVE_UNCONFIRMED');
+   if(r.approvalReturned&&!r.approvalSaved||r.responseCaptured&&!r.responseSaved||r.nativeMemberCaptured&&!r.nativeMemberSaved)fail('DEVICE_REGISTRATION_ORIGINAL_SAVE_UNCONFIRMED');
   }
  }
  async function readOriginalPairOutcome(digest){
@@ -194,6 +301,21 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   return original?Object.freeze({operationId:original.operationId,requestDigest:original.requestDigest,status:original.status,
     originalResponseRetained:original.pairSubmission?.responseOriginal!==null&&!!original.pairSubmission,queryOnly:true,canRetry:false,registered:false,newSession:false}):null;
  }
- return Object.freeze({prepareReview,approveOriginal,rejectOriginal,readOriginalPairOutcome,close,readStatusDATA:()=>status(active),
+ async function readOriginalCompletionOutcome(digest){
+  const guard=vault.authorization.current();guard.assert();const original=await authority.transactionSender.submissions.intentStore.readSessionCompletionSubmission(guard.account,digest,()=>guard.assert());
+  return original?Object.freeze({operationId:original.operationId,pairOperationId:original.pairOperationId,requestDigest:original.requestDigest,status:original.status,
+    originalResponseRetained:original.completionSubmission.responseOriginal!==null,queryOnly:true,canRetry:false,registered:false,newSession:false}):null;
+ }
+ async function saveOriginalCompletionOutcome(digest){
+  const r=active;
+  // Storage-only recovery of THIS still-held original. No current key lease,
+  // SDK acquisition, proof, signer or HTTP may be reopened after uncertainty.
+  if(!r||r.kind!=='completion'||r.view.requestDigest!==digest||!r.decided||r.inFlight||!r.completionToken)fail('DEVICE_COMPLETION_HELD_ORIGINAL_REQUIRED');
+  if(r.nativeMemberCaptured&&!r.nativeMemberSaved){await r.store.saveSessionCompletionMember(r.completionToken);r.nativeMemberSaved=true;}
+  if(r.completionEntrySelected){await r.store.saveSessionCompletionEntry(r.completionToken);r.completionEntrySaved=true;}
+  if(r.responseCaptured&&!r.responseSaved){await r.store.saveSessionCompletionResponse(r.completionToken);r.responseSaved=true;}
+  return Object.freeze({stored:true,queryOnly:true,canRetry:false,registered:false,connected:false,newSession:false});
+ }
+ return Object.freeze({prepareReview,prepareCompletionReview,approveOriginal,rejectOriginal,readOriginalPairOutcome,readOriginalCompletionOutcome,saveOriginalCompletionOutcome,close,readStatusDATA:()=>status(active),
   isPendingReview:id=>active?.request?.id===id&&active.phase==='review'&&!active.retired&&!closed});
 }

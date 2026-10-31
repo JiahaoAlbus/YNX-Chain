@@ -589,15 +589,35 @@ handleWalletIPC('wallet:prepare-device-registration',(_event,...args)=>sensitive
  }catch(cause){if(request)try{await originalDeviceRegistration.rejectOriginal(request.id);}catch{}throw cause;}
 }));
 handleWalletIPC('wallet:device-registration-status',()=>safeIPC(()=>originalDeviceRegistration?.readStatusDATA()??{phase:'idle',registered:false,connected:false,newSession:false}));
+handleWalletIPC('wallet:prepare-device-completion',(_event,...args)=>sensitiveIPC(async()=>{
+ if(args.length!==1||typeof args[0]!=='string'||!/^(?:0x)?[a-f0-9]{64}$/.test(args[0]))throw Object.assign(Error('Use the stored original request.'),{code:'DEVICE_REGISTRATION_ORIGINAL_REQUEST_REQUIRED'});
+ if(!originalDeviceRegistration||accountChangeInProgress)throw Object.assign(Error('The original account is unavailable.'),{code:'DEVICE_REGISTRATION_ORIGINAL_SELECTION_REQUIRED'});
+ if(typeof originalDeviceRegistration.prepareCompletionReview!=='function')throw Object.assign(Error('The original completion stage is unavailable.'),{code:'DEVICE_COMPLETION_STAGE_NOT_SUPPLIED'});
+ let request;try{
+  request=await originalDeviceRegistration.prepareCompletionReview(args[0]);keyAccess.current().assert();
+  if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
+  mainWindow.webContents.send('wallet:provider-request',request);keyAccess.current().assert();return Object.freeze({requestId:request.id,phase:'review'});
+ }catch(cause){if(request)try{await originalDeviceRegistration.rejectOriginal(request.id);}catch{}throw cause;}
+}));
 handleWalletIPC('wallet:device-registration-history',(_event,...args)=>sensitiveIPC(async()=>{
  if(args.length)throw Object.assign(Error('Read the selected account only.'),{code:'DEVICE_REGISTRATION_ZERO_INPUT'});
  const guard=keyAccess.current();guard.assert();
  const rows=await walletAuthority.transactionSender.submissions.intentStore.sessionRecoverySummaries(guard.account,()=>guard.assert());guard.assert();
- return rows.filter(row=>row.recordVersion===2).map(row=>Object.freeze({requestDigest:row.requestDigest,productId:row.productId,createdAt:row.createdAt,expiresAt:row.expiresAt,signed:row.signed===true,recordVersion:2,originalOperationId:row.originalOperationId,pairEntered:row.pairEntered===true,originalResponseRetained:row.originalResponseRetained===true,queryOnly:true,registered:false,newSession:false}));
+ return rows.filter(row=>[2,3].includes(row.recordVersion)).map(row=>Object.freeze({requestDigest:row.requestDigest,productId:row.productId,createdAt:row.createdAt,expiresAt:row.expiresAt,signed:row.signed===true,recordVersion:row.recordVersion,originalOperationId:row.originalOperationId,pairEntered:row.pairEntered===true,originalResponseRetained:row.originalResponseRetained===true,...(row.recordVersion===3?{completionOriginalPresent:true,completionEntered:row.completionEntered===true,completionResponseRetained:row.completionResponseRetained===true}:{}),queryOnly:true,registered:false,newSession:false}));
 }));
 handleWalletIPC('wallet:device-registration-outcome',(_event,...args)=>sensitiveIPC(async()=>{
  if(args.length!==1||typeof args[0]!=='string'||!/^(?:0x)?[a-f0-9]{64}$/.test(args[0]))throw Object.assign(Error('Read the original request only.'),{code:'DEVICE_REGISTRATION_ORIGINAL_REQUEST_REQUIRED'});
  if(!originalDeviceRegistration)throw Error('Wallet is starting.');return originalDeviceRegistration.readOriginalPairOutcome(args[0]);
+}));
+handleWalletIPC('wallet:device-completion-outcome',(_event,...args)=>sensitiveIPC(async()=>{
+ if(args.length!==1||typeof args[0]!=='string'||!/^(?:0x)?[a-f0-9]{64}$/.test(args[0]))throw Object.assign(Error('Read the original completion only.'),{code:'DEVICE_REGISTRATION_ORIGINAL_REQUEST_REQUIRED'});
+ if(!originalDeviceRegistration)throw Error('Wallet is starting.');return originalDeviceRegistration.readOriginalCompletionOutcome(args[0]);
+}));
+handleWalletIPC('wallet:save-device-completion-original',(_event,...args)=>safeIPC(async()=>{
+ // The normal IPC wrapper still verifies the exact Main frame. Storage-only
+ // custody must also work after auto-lock; it must not acquire a key lease.
+ if(args.length!==1||typeof args[0]!=='string'||!/^(?:0x)?[a-f0-9]{64}$/.test(args[0]))throw Object.assign(Error('Save the held original only.'),{code:'DEVICE_REGISTRATION_ORIGINAL_REQUEST_REQUIRED'});
+ if(!originalDeviceRegistration)throw Error('Wallet is starting.');return originalDeviceRegistration.saveOriginalCompletionOutcome(args[0]);
 }));
 handleWalletIPC('wallet:cancel-device-registration',(_event,...args)=>safeIPC(async()=>{
  if(args.length)throw Object.assign(Error('Use the original review.'),{code:'DEVICE_REGISTRATION_ZERO_INPUT'});
@@ -826,7 +846,7 @@ handleWalletIPC("wallet:provider-action", (event, id, action) => sensitiveIPC(as
    if(accountChangeInProgress)throw Error('The selected account is changing.');
    if(!['approve','reject'].includes(action))throw Error('Invalid approval action.');
    const device=action==='approve'?await originalDeviceRegistration.approveOriginal(event,id):await originalDeviceRegistration.rejectOriginal(id);
-   return Object.freeze({status:action==='approve'?'registration-result-retained':'cancelled',message:action==='approve'?'原账户批准与登记结果已保留，仍需完成原应用挑战。 / Original approval and registration outcome retained; the app challenge remains separate.':'本次账户确认已取消。 / Account confirmation cancelled.',deviceRegistration:device});
+   return Object.freeze({status:action==='approve'?'registration-result-retained':'cancelled',message:action==='approve'?'原设备操作结果已保留，登记与连接状态仍需独立核对。 / Original device outcome retained; registration and connection require independent verification.':'本次确认已取消。 / Confirmation cancelled.',deviceRegistration:device});
   }
   if(originalDeviceCreation?.isPendingReview(id)){
    if(accountChangeInProgress)throw Error('The selected account is changing.');

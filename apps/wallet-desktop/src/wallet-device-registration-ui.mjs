@@ -2,9 +2,12 @@
 // normal confirmation queue; this panel never approves, signs or submits.
 export function bindDeviceRegistrationUI({root,api,readContext,readCreation}){
  const prepare=root.querySelector('#app-device-register'),cancel=root.querySelector('#app-device-register-cancel'),detail=root.querySelector('#app-device-register-status');
+ const localSave=root.querySelector('#app-device-local-save'),localSaveDetail=root.querySelector('#app-device-local-save-status');
  let state={phase:'idle'},busy=false,error=null,generation=0,historyRows=[],historySelection=null;
+ let localSaveResult=null;
  const history=root.querySelector('#app-device-registration-history'),outcomes=new Map();
  const snapshot=()=>{const value=readContext();return Object.freeze({account:value.account,revision:value.revision});};
+ const sameSnapshot=before=>{const now=readContext();return now.account===before.account&&now.revision===before.revision;};
  const same=before=>{const now=readContext();return !now.locked&&now.account===before.account&&now.revision===before.revision;};
  const rememberError=(selection,message)=>{error={selection,message};};
  function renderHistory(){
@@ -15,24 +18,37 @@ export function bindDeviceRegistrationUI({root,api,readContext,readCreation}){
    const cacheKey=historySelection.account+':'+historySelection.revision+':'+row.requestDigest;result.textContent=outcomes.get(cacheKey)??(row.pairEntered?'原请求已进入，未获得再次发送权限。 / Original request entered; resending is not authorized.':'原设备操作记录已保留；这里只能查询。 / Original device operation retained; query only.');
    button.addEventListener('click',async()=>{
     if(button.disabled)return;const selected=snapshot();button.disabled=true;
-    try{const response=await api.deviceRegistrationOutcome(row.requestDigest);if(!same(selected))return;
+    try{const response=row.recordVersion===3?await api.deviceCompletionOutcome(row.requestDigest):await api.deviceRegistrationOutcome(row.requestDigest);if(!same(selected))return;
      const value=response?.value,text=!response?.ok||!value?'原记录暂不可读，不会重新签名或发送。 / Original record unavailable; no signing or resending.':value.status==='response-retained'?'原响应已保存，尚未据此确认登记或连接成功。 / Original response retained; registration or connection is not established by this record.':'原操作仍待核对，只能查询，不会自动重试。 / Original operation requires reconciliation; query only, no automatic retry.';
      outcomes.set(cacheKey,text);result.textContent=text;
     }catch{if(same(selected)){const text='原记录暂不可读，不会重新签名或发送。 / Original record unavailable; no signing or resending.';outcomes.set(cacheKey,text);result.textContent=text;}}
     finally{button.disabled=false;}
-   });item.append(title,button,result);history.append(item);
+   });item.append(title,button,result);
+   if(row.originalResponseRetained===true&&row.recordVersion!==3&&row.completionOriginalPresent!==true&&typeof api.prepareDeviceCompletion==='function'){
+    const completion=root.createElement('button');completion.type='button';completion.textContent='独立核对原挑战 / Review original challenge separately';completion.disabled=busy||state.phase==='review';
+    completion.addEventListener('click',async()=>{
+     if(completion.disabled||busy)return;const selected=snapshot();busy=true;error=null;render();
+     try{const response=await api.prepareDeviceCompletion(row.requestDigest);if(!same(selected))return;if(!response?.ok)rememberError(selected,'原挑战暂不可用，原记录保留，不会自动提交。 / Original challenge unavailable; record retained, no automatic submission.');}
+     catch{if(same(selected))rememberError(selected,'原挑战确认未准备完成，原记录保留。 / Original challenge review is incomplete; original record retained.');}
+     finally{busy=false;await refresh();render();}
+    });item.append(completion);
+   }
+   history.append(item);
   }
  }
  function render(next){
   if(next)state=next;const context=readContext(),creation=readCreation(),foreign=Boolean(state.account&&state.account!==context.account),currentError=error&&same(error.selection)?error.message:null;
-  prepare.disabled=busy||context.locked||!context.account||foreign||creation.phase!=='awaiting-original-registration'||creation.retired===true||state.queryOnly===true||state.cleanupUnresolved===true;
+  prepare.disabled=busy||context.locked||!context.account||foreign||state.phase==='review'||creation.phase!=='awaiting-original-registration'||creation.retired===true||state.queryOnly===true||state.cleanupUnresolved===true;
   cancel.hidden=state.phase!=='review'||foreign;cancel.disabled=busy||context.locked;
-  detail.textContent=foreign?'请切回原账户查看设备登记记录。 / Select the original account to view its device record.':context.locked?'解锁后可查看或继续原设备请求。 / Unlock to view the original device request.':currentError??(state.cleanupUnresolved?'原记录已保留，清理尚未确认，请勿重复登记。 / Original retained; cleanup remains unconfirmed.':state.phase==='awaiting-original-challenge'?'账户批准和原请求已保存，等待原应用完成挑战；尚未连接。 / Approval and original request retained; waiting for the app challenge, not connected yet.':state.queryOnly?'原操作结果待核对，只能查询，不会自动重新签名或发送。 / Original outcome requires reconciliation; query only, no automatic signing or resending.':state.phase==='review'?'请在独立确认窗口核对账户批准和本次登记请求。 / Review the account approval and registration in the separate confirmation.':state.phase==='cancelled-before-account'?'已取消本次账户确认。 / Account confirmation cancelled.':'创建设备密钥后，可单独核对此应用的账户批准与登记。 / After device creation, review account approval and registration separately.');
+  if(localSave){localSave.hidden=state.localSaveAvailable!==true||state.localSaveRequired!==true;localSave.disabled=busy;}
+  if(localSaveDetail)localSaveDetail.textContent=localSaveResult&&sameSnapshot(localSaveResult.selection)?localSaveResult.message:'';
+  detail.textContent=foreign?'请切回原账户查看设备登记记录。 / Select the original account to view its device record.':context.locked?'解锁后可查看原设备请求；已持有的本地原件可直接保存。 / Unlock to view the original request; held originals can be saved locally.':currentError??(state.cleanupUnresolved?'原记录已保留，清理尚未确认，请勿重复登记。 / Original retained; cleanup remains unconfirmed.':state.phase==='awaiting-original-native-completion'?'原挑战响应已保存，设备登记与连接仍待独立核验。 / Original challenge response retained; device registration and connection still require independent verification.':state.phase==='awaiting-original-challenge'?'账户批准和原请求已保存，等待原应用完成挑战；尚未连接。 / Approval and original request retained; waiting for the app challenge, not connected yet.':state.queryOnly?'原操作结果待核对，只能查询，不会自动重新签名或发送。 / Original outcome requires reconciliation; query only, no automatic signing or resending.':state.phase==='review'?'请在独立确认窗口核对账户批准和本次登记请求。 / Review the account approval and registration in the separate confirmation.':state.phase==='cancelled-before-account'?'已取消本次账户确认。 / Account confirmation cancelled.':'创建设备密钥后，可单独核对此应用的账户批准与登记。 / After device creation, review account approval and registration separately.');
   renderHistory();
  }
  async function refresh(){
-  const selected=snapshot(),revision=++generation;if(readContext().locked){render();return;}
-  try{const result=await api.deviceRegistrationStatus();if(revision!==generation||!same(selected))return;if(result?.ok)render(result.value);
+  const selected=snapshot(),revision=++generation;
+  try{const result=await api.deviceRegistrationStatus();if(revision!==generation||!sameSnapshot(selected))return;if(result?.ok)render(result.value);
+   if(readContext().locked)return;
    if(history&&typeof api.deviceRegistrationHistory==='function'){const rows=await api.deviceRegistrationHistory();if(revision!==generation||!same(selected))return;if(rows?.ok&&Array.isArray(rows.value)){historyRows=rows.value;historySelection=selected;}}
   }catch{}finally{render();}
  }
@@ -46,6 +62,12 @@ export function bindDeviceRegistrationUI({root,api,readContext,readCreation}){
   if(cancel.disabled||cancel.hidden||busy)return;const selected=snapshot();busy=true;error=null;render();
   try{const result=await api.cancelDeviceRegistration();if(!same(selected))return;if(result?.ok)render(result.value);else rememberError(selected,'取消结果待核对，原记录仍保留。 / Cancellation requires reconciliation; original records retained.');}
   catch{if(same(selected))rememberError(selected,'取消结果待核对，原记录仍保留。 / Cancellation requires reconciliation; original records retained.');}
+  finally{busy=false;await refresh();render();}
+ });
+ localSave?.addEventListener('click',async()=>{
+  if(localSave.disabled||localSave.hidden||busy)return;const selected=snapshot(),digest=state.requestDigest;busy=true;render();
+  try{const result=await api.saveDeviceCompletionOriginal(digest);if(!sameSnapshot(selected))return;localSaveResult={selection:selected,message:result?.ok?'原件已保存，原操作仍只读。 / Original saved; the operation remains read-only.':'本地保存未确认，原件仍被保留。 / Local save unconfirmed; original retained.'};}
+  catch{if(sameSnapshot(selected))localSaveResult={selection:selected,message:'本地保存未确认，原件仍被保留。 / Local save unconfirmed; original retained.'};}
   finally{busy=false;await refresh();render();}
  });
  render();return Object.freeze({render,refresh});

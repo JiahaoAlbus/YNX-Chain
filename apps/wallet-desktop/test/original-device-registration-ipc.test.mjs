@@ -14,3 +14,14 @@ test('normal cold history is selected-account metadata only and cannot project a
  const f=fixture();f.context.keyAccess.current=()=>({account:'PUBLIC-account',assert(){}});f.context.walletAuthority={transactionSender:{submissions:{intentStore:{async sessionRecoverySummaries(account,guard){assert.equal(account,'PUBLIC-account');guard();return[{recordVersion:1},{recordVersion:2,requestDigest:'a'.repeat(64),productId:'developer',signed:false,pairEntered:true,registered:true,newSession:true,approval:'PUBLIC must not project',originalBody:'PUBLIC must not project'}];}}}}};
  const fn=f.handlers.get('wallet:device-registration-history'),rows=await fn({});assert.equal(rows.length,1);assert.equal(rows[0].queryOnly,true);assert.equal(rows[0].registered,false);assert.equal(rows[0].newSession,false);assert.equal(Object.hasOwn(rows[0],'approval'),false);assert.equal(Object.hasOwn(rows[0],'originalBody'),false);await assert.rejects(fn({},'other-account'),e=>e.code==='DEVICE_REGISTRATION_ZERO_INPUT');
 });
+test('normal completion IPC selects only a stored digest and opens another confirmation without reusing creation',async()=>{
+ const f=fixture(),digest='c'.repeat(64),request={id:'PUBLIC-completion-review',method:'PUBLIC-completion'};f.context.originalDeviceRegistration.prepareCompletionReview=async(...args)=>{assert.deepEqual(args,[digest]);f.calls.push(['completion-review']);return request;};
+ const fn=f.handlers.get('wallet:prepare-device-completion');assert.equal((await fn({},digest)).requestId,request.id);assert.deepEqual(f.calls,[['completion-review'],['publish','wallet:provider-request',request]]);
+ await assert.rejects(fn({},digest,{registered:true}),e=>e.code==='DEVICE_REGISTRATION_ORIGINAL_REQUEST_REQUIRED');await assert.rejects(fn({},'not-original'),e=>e.code==='DEVICE_REGISTRATION_ORIGINAL_REQUEST_REQUIRED');assert.equal(f.calls.length,2);
+ const failed=fixture(true);failed.context.originalDeviceRegistration.prepareCompletionReview=async()=>request;await assert.rejects(failed.handlers.get('wallet:prepare-device-completion')({},digest));assert.deepEqual(failed.calls,[['reject',request.id]]);
+});
+test('normal local-save IPC works while locked without acquiring a key or effect lease',async()=>{
+ const f=fixture(),digest='d'.repeat(64);f.context.keyAccess.current=()=>{throw Error('PUBLIC no key lease');};f.context.sensitiveIPC=()=>{throw Error('PUBLIC no new sensitive operation');};
+ f.context.originalDeviceRegistration.saveOriginalCompletionOutcome=async value=>{assert.equal(value,digest);f.calls.push(['local-save',value]);return{stored:true,queryOnly:true,canRetry:false};};
+ const fn=f.handlers.get('wallet:save-device-completion-original');assert.equal((await fn({},digest)).stored,true);assert.deepEqual(f.calls,[['local-save',digest]]);await assert.rejects(fn({},digest,{retry:true}),e=>e.code==='DEVICE_REGISTRATION_ORIGINAL_REQUEST_REQUIRED');assert.equal(f.calls.length,1);
+});

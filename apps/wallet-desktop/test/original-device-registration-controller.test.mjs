@@ -27,10 +27,10 @@ async function setup(t,mode='normal'){
  const view=Object.freeze({version:'YNX-PRODUCT-SESSION-ACCOUNT-POLICY/v1',networkId,canonicalOwner:account,
   checkpoint:Object.freeze({kind:'trusted-node-committed/v1',height:'100',blockHash:'22'.repeat(32)}),policyVersion:'YNX-ACCOUNT-POLICY/v1',algorithmVersion:'YNX-BATCH/v0.1',
   activeRecord:Object.freeze({revision:'1',registeredAt:'10',activeFrom:'20',pkA:'11'.repeat(2592),pkB:'22'.repeat(64)}),observedAt:f.at.toISOString(),expiresAt:new Date(+f.at+60000).toISOString()});
- const source={readOriginal:()=>view,assertCurrent(){if(f.sourceRetired||f.sourceRevoked)throw Error('PUBLIC source retired');},async recheck(){},retire(){f.sourceRetired=true;},async join(){},async close(){f.counts.accountClose++;}};
+ const recognized=new WeakSet();const source=()=>{let retired=false;f.sourceRetired=false;const r={readOriginal:()=>view,assertCurrent(){if(retired||f.sourceRevoked)throw Error('PUBLIC source retired');},async recheck(){},retire(){retired=true;f.sourceRetired=true;},async join(){},async close(){f.counts.accountClose++;}};recognized.add(r);return r;};
  const vault={authorization:lifecycle,async status(){return {initialized:true,account};},async withPQKeys(_binding,action,permission){permission.assert();const result=action(Object.freeze({PUBLICHandle:true}));if(mode==='sign-late-lock')lifecycle.lock();permission.assert();return result;}};
  const authority=new DesktopWalletAuthority({vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:store}},pqNetworkId:networkId,
-  pqSessionSource:async()=>{f.counts.accountAcquire++;if(mode==='no-account-source')throw Object.assign(Error('PUBLIC missing'),{code:'PUBLIC_SOURCE_MISSING'});return source;},pqSessionRecognized:r=>r===source});
+  pqSessionSource:async()=>{f.counts.accountAcquire++;if(mode==='no-account-source')throw Object.assign(Error('PUBLIC missing'),{code:'PUBLIC_SOURCE_MISSING'});return source();},pqSessionRecognized:r=>recognized.has(r)});
  const controller=createOriginalDeviceRegistrationController({vault,networkId,authority});
  f.vault=vault;f.authority=authority;f.controller=controller;f.run=op=>lifecycle.run(op);f.event=createPUBLICRegistrationEvent(new URL('../src/index.html',import.meta.url).href);
  f.prepare=()=>f.run(()=>controller.prepareReview(f.selection));return f;
@@ -124,4 +124,157 @@ test('business first failure survives a separate falsy cleanup failure',async t=
  const f=await setup(t,'http-error-close-false'),p=await f.prepare();await assert.rejects(f.run(()=>f.controller.approveOriginal(f.event,p.id)),{code:'PUBLIC_HTTP_FIRST'});
  const row=(await f.readDisk()).sessionOriginals[0];assert.equal(row.firstCause.code,'PUBLIC_HTTP_FIRST');assert.deepEqual(row.cleanupCause,{kind:'boolean',value:false,code:null});
  assert.equal(f.controller.readStatusDATA().firstCauseCode,'PUBLIC_HTTP_FIRST');assert.equal(f.counts.clientClose,1);
+});
+
+async function pairThenCold(t,mode='normal'){
+ const f=await setup(t),p=await f.prepare();await f.run(()=>f.controller.approveOriginal(f.event,p.id));
+ f.pairRow=(await f.readDisk()).sessionOriginals[0];await f.controller.close();f.mode=mode;
+ f.controller=createOriginalDeviceRegistrationController({vault:f.vault,networkId,authority:f.authority});
+ f.complete=()=>f.run(()=>f.controller.prepareCompletionReview(f.pairRow.requestDigest));return f;
+}
+const approveCompletion=(f,p)=>f.run(()=>f.controller.approveOriginal(f.event,p.id));
+test('cold completion opens a fresh matching Source phase, reuses approval, persists its whole body before one HTTP and awaits Native',async t=>{
+ const f=await pairThenCold(t),p=await f.complete();assert.equal(p.method,'ynx_completeProductDeviceV4');assert.equal(f.counts.sign,1);assert.equal(f.counts.completionPrepare??0,0);
+ const r=await approveCompletion(f,p),row=(await f.readDisk()).sessionOriginals[0];
+ assert.equal(r.phase,'awaiting-original-native-completion');assert.equal(r.registered,false);assert.equal(r.connected,false);assert.equal(r.newSession,false);assert.equal(r.accountApprovalReused,true);
+ assert.equal(f.counts.open,2);assert.equal(f.counts.accountAcquire,2);assert.equal(f.counts.accountClose,2);assert.equal(f.counts.clientClose,2);
+ assert.equal(f.counts.sign,1);assert.equal(f.counts.plan,1);assert.equal(f.counts.nativeProof,1);assert.equal(f.counts.completionSubmit,1);
+ assert.equal(row.version,3);assert.deepEqual(row.pairSubmission,f.pairRow.pairSubmission);assert.deepEqual(row.approval,f.pairRow.approval);assert.equal(row.operationId,f.pairRow.operationId);
+ const c=row.completionSubmission;assert.notEqual(c.operationId,row.operationId);assert.equal(c.entered,true);assert.equal(c.memberOriginal,null);assert.ok(c.responseOriginal);assert.equal(c.cleanupComplete,true);
+ const body=JSON.parse(c.originalBody);assert.equal(body.completion.deviceMember,Buffer.from([1,2,3,4]).toString('base64url'));assert.deepEqual(body.approval,JSON.parse(row.approval.original));
+ const cold=createOriginalDeviceRegistrationController({vault:f.vault,networkId,authority:f.authority}),opened=f.counts.open;
+ const outcome=await f.run(()=>cold.readOriginalCompletionOutcome(row.requestDigest));assert.equal(outcome.queryOnly,true);assert.equal(outcome.canRetry,false);assert.equal(outcome.registered,false);assert.equal(f.counts.open,opened);
+ assert.ok(!JSON.stringify(outcome).includes('originalBody'));assert.ok(!JSON.stringify(outcome).includes('session DATA'));
+ await assert.rejects(f.run(()=>cold.prepareCompletionReview(row.requestDigest)),{code:'DEVICE_COMPLETION_QUERY_ORIGINAL_ONLY'});assert.equal(f.counts.open,opened);
+ const history=await f.store.sessionRecoverySummaries(account,()=>{});assert.equal(history[0].recordVersion,3);assert.equal(history[0].completionOriginalPresent,true);assert.equal(history[0].completionEntered,true);assert.equal(history[0].completionResponseRetained,true);
+ assert.ok(!JSON.stringify(history).includes('originalBody'));await f.controller.close();
+});
+for(const mode of ['completion-before-member-false','completion-after-member-false','completion-http-false','completion-late-lock','completion-throw-with-original'])test('completion '+mode+' retains originals without a new account signature or replay',async t=>{
+ const f=await pairThenCold(t,mode),p=await f.complete();await assert.rejects(approveCompletion(f,p));const row=(await f.readDisk()).sessionOriginals[0],c=row.completionSubmission;
+ assert.equal(row.version,3);assert.equal(f.counts.sign,1);assert.deepEqual(row.pairSubmission,f.pairRow.pairSubmission);assert.equal(f.counts.nativeProof,1);
+ assert.equal(f.counts.completionSubmit??0,mode.includes('before-member')||mode.includes('after-member')?0:1);
+ if(mode==='completion-after-member-false')assert.equal(c.memberOriginal,Buffer.from([1,2,3,4]).toString('base64url'));
+ if(['completion-late-lock','completion-throw-with-original'].includes(mode))assert.ok(c.responseOriginal);else assert.equal(c.responseOriginal,null);
+ if(mode.endsWith('false'))assert.deepEqual(c.firstCause,{kind:'boolean',value:false,code:null});
+ assert.equal(f.controller.readStatusDATA().registered,false);await assert.rejects(approveCompletion(f,p));
+ if(mode!=='completion-late-lock'){
+  const cold=createOriginalDeviceRegistrationController({vault:f.vault,networkId,authority:f.authority}),opened=f.counts.open;
+  await assert.rejects(f.run(()=>cold.prepareCompletionReview(row.requestDigest)),{code:'DEVICE_COMPLETION_QUERY_ORIGINAL_ONLY'});assert.equal(f.counts.open,opened);
+ }
+});
+test('fresh completion refuses the old pair pending operation before Native proof or account Source acquisition',async t=>{
+ const f=await pairThenCold(t,'completion-pair-op');await assert.rejects(f.complete(),{code:'DEVICE_COMPLETION_ORIGINAL_BINDING'});
+ assert.equal(f.counts.accountAcquire,1);assert.equal(f.counts.nativeProof??0,0);assert.equal(f.counts.sign,1);assert.equal((await f.readDisk()).sessionOriginals[0].version,2);
+});
+for(const point of ['intent','member','body','response'])test('completion lost '+point+' ACK is custody-only and cold marker never retries',async t=>{
+ const f=await pairThenCold(t),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let lost=false;
+ f.store.filePolicy.replace=async(...args)=>{const next=JSON.parse(await fs.readFile(args[0],'utf8')),c=next.sessionOriginals[0].completionSubmission;await replace(...args);
+  const matches=c&&(point==='intent'?!c.entered&&c.memberOriginal===null:point==='member'?c.memberOriginal!==null:point==='body'?c.entered&&c.responseOriginal===null:c.responseOriginal!==null);
+  if(!lost&&matches){lost=true;throw false;}};
+ const p=await f.complete();await assert.rejects(approveCompletion(f,p));assert.equal(lost,true);const row=(await f.readDisk()).sessionOriginals[0];
+ assert.equal(f.counts.nativeProof??0,point==='intent'?0:1);assert.equal(f.counts.completionSubmit??0,point==='response'?1:0);assert.equal(f.counts.sign,1);assert.equal(row.version,3);
+ if(point==='response')assert.ok(row.completionSubmission.responseOriginal);assert.deepEqual(row.pairSubmission,f.pairRow.pairSubmission);
+ const cold=createOriginalDeviceRegistrationController({vault:f.vault,networkId,authority:f.authority});await assert.rejects(f.run(()=>cold.prepareCompletionReview(row.requestDigest)),{code:'DEVICE_COMPLETION_QUERY_ORIGINAL_ONLY'});
+ await f.controller.close();
+});
+test('completion close while HTTP is in flight stores the late original before current refusal',async t=>{
+ const f=await pairThenCold(t),p=await f.complete();let reach,release;const entered=new Promise(r=>reach=r),held=new Promise(r=>release=r);f.onCompletionSubmit=async()=>{reach();await held;};
+ const flow=approveCompletion(f,p),rejected=assert.rejects(flow);await entered;const closing=f.controller.close();release();await rejected;await closing;
+ const row=(await f.readDisk()).sessionOriginals[0];assert.ok(row.completionSubmission.responseOriginal);assert.equal(f.counts.completionSubmit,1);assert.equal(f.counts.sign,1);assert.equal(f.counts.clientClose,2);assert.equal(row.completionSubmission.cleanupComplete,true);
+});
+test('completion parser copies only stable intrinsic byte arrays without executing buffer hooks',async()=>{
+ const {copySessionCompletionMember}=await import('../src/wallet-session-original.mjs');let called=0;
+ const bytes=new Uint8Array([1,2,3]);Object.defineProperty(bytes.buffer,'resizable',{get(){called++;return false;}});Object.defineProperty(bytes.buffer,'detached',{get(){called++;return false;}});
+ assert.deepEqual(copySessionCompletionMember(bytes),Buffer.from([1,2,3]));assert.equal(called,0);
+ for(const value of [new Uint8Array(new SharedArrayBuffer(3)),new Uint8Array(new ArrayBuffer(3,{maxByteLength:10})),new Proxy(new Uint8Array(3),{}),new Uint8Array(98305)])assert.throws(()=>copySessionCompletionMember(value));
+ const detached=new Uint8Array(3);structuredClone(detached.buffer,{transfer:[detached.buffer]});assert.throws(()=>copySessionCompletionMember(detached));
+});
+async function reserveCompletionDATA(f){
+ const {readSessionCompletionOriginalDATA}=await import('../src/wallet-session-original.mjs'),o=readSessionCompletionOriginalDATA(f.pairRow);
+ const intent={operationId:'PUBLIC-completion-journal',requestDigest:o.requestDigest,registrationOriginal:o.registrationOriginal,approvalDigest:o.approvalDigest,challengeOriginal:o.challengeOriginal};
+ const reserved=f.store.reserveSessionCompletionIntent(account,o.requestDigest,intent,()=>{});await reserved.ready;return {...reserved,o,intent};
+}
+function completionDATA(f,c,member){
+ return {operationId:c.intent.operationId,requestDigest:c.o.requestDigest,registrationOriginal:c.o.registrationOriginal,challengeOriginal:c.o.challengeOriginal,memberOriginal:member,
+  originalBody:JSON.stringify({}),dataOnly:true,registered:false,connected:false,newSession:false,SourceAdmission:false,NativeAdmission:false};
+}
+async function canonicalCompletionDATA(f,c,member){
+ const {canonicalJSON}=await import('@ynx-chain/wallet-auth'),d=completionDATA(f,c,member);d.originalBody=canonicalJSON({operationId:d.operationId,request:f.pairRow.request,registrationOriginal:d.registrationOriginal,
+  approval:JSON.parse(c.o.approvalOriginal),completion:{challenge:JSON.parse(c.o.challengeOriginal),deviceMember:member.toString('base64url')}});return d;
+}
+test('completion capacity reserves maximum original Member and escaped response without duplicating body bytes',async t=>{
+ const f=await pairThenCold(t),c=await reserveCompletionDATA(f),member=Buffer.alloc(98304,0x37);f.store.captureSessionCompletionMember(c.token,member);await f.store.saveSessionCompletionMember(c.token);
+ const d=await canonicalCompletionDATA(f,c,member);assert.equal((await f.store.beginSessionCompletionSubmission(c.token,d,()=>{})).created,true);
+ assert.equal((await f.store.beginSessionCompletionSubmission(c.token,d,()=>{})).created,false);
+ const {canonicalJSON,productSessionRequestDigest}=await import('@ynx-chain/wallet-auth');
+ // Legacy/public retained DATA fills the same actual bounded file. It is not
+ // cryptographic authority and does not cause a signer, Source or HTTP call.
+ for(let i=0;i<2;i++){
+  const request={...f.pairRow.request,nonce:('PUBLIC-extra-'+i).padEnd(43,'n')},createdAt=f.pairRow.createdAt,digest=productSessionRequestDigest(f.registry,request,new Date(createdAt));
+  const old={version:1,account,requestId:'PUBLIC-filler-'+i,requestDigest:digest,request,createdAt,approval:null,deliveryAttempted:false,cleanupComplete:false,firstCause:null,storageCause:null,cleanupCause:null};
+  const token=await f.store.reserveSessionOriginal(old,()=>{});f.store.captureSessionOriginal(token,{version:'2',result:'approved',requestDigest:digest,account:f.selection.identityBinding.account,padding:'x'.repeat(240000)});
+  if(i===0)await f.store.saveSessionOriginal(token);else await assert.rejects(f.store.saveSessionOriginal(token));
+ }
+ const raw='"'.repeat(196608);f.store.captureSessionCompletionResponse(c.token,raw);await f.store.saveSessionCompletionResponse(c.token);await f.store.recordSessionCompletionFailure(c.token,{cleanupComplete:true});
+ const row=(await f.readDisk()).sessionOriginals[0];assert.equal(row.completionSubmission.responseOriginal,raw);assert.equal(row.completionSubmission.memberOriginal,null);assert.deepEqual(row.pairSubmission,f.pairRow.pairSubmission);assert.ok((await fs.stat(f.filePath)).size<=1048576);
+ assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
+});
+test('completion entry write before replacement can only flush the same held body and never restore an HTTP capability',async t=>{
+ const f=await pairThenCold(t),c=await reserveCompletionDATA(f),member=Buffer.from([3,4,5]);f.store.captureSessionCompletionMember(c.token,member);await f.store.saveSessionCompletionMember(c.token);
+ const d=await canonicalCompletionDATA(f,c,member),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let once=true;
+ f.store.filePolicy.replace=async(...args)=>{if(once){once=false;throw 0;}return replace(...args);};
+ await assert.rejects(f.store.beginSessionCompletionSubmission(c.token,d,()=>{}));assert.equal((await f.readDisk()).sessionOriginals[0].completionSubmission.entered,false);
+ await assert.rejects(f.store.assertPQProgressSafeToClose(),e=>e.data?.code==='SESSION_COMPLETION_CLOSE_UNCONFIRMED');
+ assert.deepEqual(await f.store.saveSessionCompletionEntry(c.token),{stored:true,queryOnly:true,canRetry:false});
+ await f.store.recordSessionCompletionFailure(c.token,{firstPresent:true,first:0,cleanupComplete:true});assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
+ await assert.rejects(f.store.beginSessionCompletionSubmission(c.token,d,()=>{}));const cold=new FileTransactionIntentStore({filePath:f.filePath});assert.throws(()=>cold.beginSessionCompletionSubmission(c.token,d,()=>{}));assert.equal(f.counts.completionSubmit??0,0);
+});
+test('completion first cause cannot close an unretired original Source or unsaved response',async t=>{
+ const f=await pairThenCold(t),c=await reserveCompletionDATA(f);await f.store.recordSessionCompletionFailure(c.token,{firstPresent:true,first:false});
+ await assert.rejects(f.store.assertPQProgressSafeToClose(),e=>e.data?.code==='SESSION_COMPLETION_CLOSE_UNCONFIRMED');
+ await f.store.recordSessionCompletionFailure(c.token,{cleanupComplete:true});assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
+});
+test('completion body rejects original member, challenge, operation, approval and foreign field substitutions before entry',async t=>{
+ const f=await pairThenCold(t),c=await reserveCompletionDATA(f),member=Buffer.from([3,4,5]);f.store.captureSessionCompletionMember(c.token,member);await f.store.saveSessionCompletionMember(c.token);
+ const d=await canonicalCompletionDATA(f,c,member),{canonicalJSON}=await import('@ynx-chain/wallet-auth');
+ for(const edit of [x=>x.operationId=f.pairRow.operationId,x=>x.memberOriginal=Buffer.from([9]),x=>x.challengeOriginal='{}',x=>x.connected=true,x=>x.url='https://fake.invalid',x=>{let b=JSON.parse(x.originalBody);b.approval.walletProof='AB';x.originalBody=canonicalJSON(b);},x=>{let b=JSON.parse(x.originalBody);b.completion.deviceMember='AA';x.originalBody=canonicalJSON(b);},x=>x.originalBody+=' ']){
+  const bad={...d};edit(bad);assert.throws(()=>f.store.beginSessionCompletionSubmission(c.token,bad,()=>{}));
+ }
+ assert.equal((await f.readDisk()).sessionOriginals[0].completionSubmission.entered,false);
+ await f.store.recordSessionCompletionFailure(c.token,{firstPresent:true,first:false,cleanupComplete:true});
+});
+test('completion cleanup debt remains separate from a retained session response and no stale success is returned',async t=>{
+ const f=await pairThenCold(t,'client-close-false'),p=await f.complete();await assert.rejects(approveCompletion(f,p),e=>e===false);
+ const row=(await f.readDisk()).sessionOriginals[0],c=row.completionSubmission;assert.ok(c.responseOriginal);assert.equal(c.cleanupComplete,false);assert.deepEqual(c.cleanupCause,{kind:'boolean',value:false,code:null});
+ assert.equal(row.cleanupComplete,true);assert.equal(row.cleanupCause,null);assert.equal(f.counts.sign,1);assert.equal(f.counts.completionSubmit,1);
+ await assert.rejects(f.store.assertPQProgressSafeToClose(),e=>e.data?.code==='SESSION_COMPLETION_CLOSE_UNCONFIRMED');await assert.rejects(f.controller.close(),e=>e===false);
+});
+test('two independent completion reviews compete for one durable phase before producing any second Native proof',async t=>{
+ const f=await pairThenCold(t),second=createOriginalDeviceRegistrationController({vault:f.vault,networkId,authority:f.authority}),p=await f.complete(),q=await f.run(()=>second.prepareCompletionReview(f.pairRow.requestDigest));
+ await approveCompletion(f,p);await assert.rejects(f.run(()=>second.approveOriginal(f.event,q.id)));
+ assert.equal(f.counts.nativeProof,1);assert.equal(f.counts.completionSubmit,1);assert.equal(f.counts.sign,1);
+});
+test('completion failure metadata never overwrites an unsaved held complete body',async t=>{
+ const f=await pairThenCold(t),c=await reserveCompletionDATA(f),member=Buffer.from([4,5,6]);f.store.captureSessionCompletionMember(c.token,member);await f.store.saveSessionCompletionMember(c.token);
+ const d=await canonicalCompletionDATA(f,c,member),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let once=true;f.store.filePolicy.replace=async(...a)=>{if(once){once=false;throw false;}return replace(...a);};
+ await assert.rejects(f.store.beginSessionCompletionSubmission(c.token,d,()=>{}));await f.store.recordSessionCompletionFailure(c.token,{firstPresent:true,first:false,cleanupComplete:true});
+ await assert.rejects(f.store.assertPQProgressSafeToClose(),e=>e.data?.code==='SESSION_COMPLETION_CLOSE_UNCONFIRMED');
+ await f.store.saveSessionCompletionEntry(c.token);assert.equal((await f.readDisk()).sessionOriginals[0].completionSubmission.originalBody,d.originalBody);assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
+});
+test('completion lost response ACK may reconcile exact readback at shutdown without any second HTTP or signature',async t=>{
+ const f=await pairThenCold(t),c=await reserveCompletionDATA(f),member=Buffer.from([4,5,6]);f.store.captureSessionCompletionMember(c.token,member);await f.store.saveSessionCompletionMember(c.token);const d=await canonicalCompletionDATA(f,c,member);await f.store.beginSessionCompletionSubmission(c.token,d,()=>{});
+ f.store.captureSessionCompletionResponse(c.token,'PUBLIC exact response');const replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let once=true;f.store.filePolicy.replace=async(...a)=>{await replace(...a);if(once){once=false;throw false;}};
+ await assert.rejects(f.store.saveSessionCompletionResponse(c.token));await f.store.recordSessionCompletionFailure(c.token,{firstPresent:true,first:false,cleanupComplete:true});assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);assert.equal(f.counts.sign,1);assert.equal(f.counts.completionSubmit??0,0);
+});
+for(const point of ['body','response'])test('normal controller can save the held completion '+point+' locally after lock without Native, keys or HTTP replay',async t=>{
+ const f=await pairThenCold(t),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let once=true;
+ f.store.filePolicy.replace=async(...a)=>{const row=JSON.parse(await fs.readFile(a[0],'utf8')).sessionOriginals[0].completionSubmission;
+  if(once&&row&&(point==='body'?row.entered:row.responseOriginal!==null)){once=false;throw false;}await replace(...a);};
+ const p=await f.complete();await assert.rejects(approveCompletion(f,p));f.lifecycle.lock();const count={...f.counts};
+ assert.equal(f.controller.readStatusDATA().localSaveAvailable,true);assert.equal(f.controller.readStatusDATA().localSaveRequired,true);
+ const saved=await f.controller.saveOriginalCompletionOutcome(f.pairRow.requestDigest);assert.equal(saved.queryOnly,true);assert.equal(saved.canRetry,false);assert.deepEqual(f.counts,count);
+ assert.equal(f.controller.readStatusDATA().localSaveRequired,false);
+ const row=(await f.readDisk()).sessionOriginals[0];assert.ok(row.completionSubmission.originalBody);if(point==='response')assert.ok(row.completionSubmission.responseOriginal);
+ assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);await f.controller.close();
+ const cold=createOriginalDeviceRegistrationController({vault:f.vault,networkId,authority:f.authority});await assert.rejects(cold.saveOriginalCompletionOutcome(f.pairRow.requestDigest),{code:'DEVICE_COMPLETION_HELD_ORIGINAL_REQUIRED'});
 });
