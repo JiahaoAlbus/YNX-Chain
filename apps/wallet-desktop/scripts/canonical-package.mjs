@@ -16,7 +16,7 @@ export const CANONICAL_NATIVE_EVIDENCE_TESTS=Object.freeze([
  'packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs'
 ]);
 export const SDK332_NATIVE_INVENTORY='packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json';
-export function isCanonicalNativeSourceAsset(name){return typeof name==='string'&&(/^(?:apps\/wallet-desktop|packages\/wallet-auth)\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name)||[CC7_NATIVE_SOURCE.path,WALLET_ARTIFACT_CABI_INPUTS[2].path,WALLET_PROJECT_CONTROL_CABI_INPUTS[2].path,...PQ_NATIVE_INPUTS.map(p=>p.path),...DEVICE_V4_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS.map(p=>p.path),'apps/wallet-desktop/native/product-device-v4-e5.c'].includes(name));}
+export function isCanonicalNativeSourceAsset(name){return typeof name==='string'&&(/^(?:apps\/wallet-desktop|packages\/wallet-auth)\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name)||[CC7_NATIVE_SOURCE.path,WALLET_ARTIFACT_CABI_INPUTS[2].path,WALLET_PROJECT_CONTROL_CABI_INPUTS[2].path,...PQ_NATIVE_INPUTS.map(p=>p.path),...DEVICE_V4_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS.map(p=>p.path),'apps/wallet-desktop/native/product-device-v4-e5.c','packages/wallet-auth/native/original-product-device-v4-query-source-contract.d.mts'].includes(name));}
 /** Production compilation and source-inspection tests are distinct inputs.
  * Only the independently frozen auth3 inventory may select the 55 production
  * leaves. Never infer that set from the receipt currently being checked. */

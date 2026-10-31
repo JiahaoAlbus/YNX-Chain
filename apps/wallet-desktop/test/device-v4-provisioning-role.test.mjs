@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {walletNativeComponentBuildPlan,buildWalletNativeComponent} from '../scripts/build-wallet-native-component.mjs';
-import {canonicalNativeInputSelection,CANONICAL_NATIVE_EVIDENCE_TESTS} from '../scripts/canonical-package.mjs';
+import {canonicalNativeInputSelection,CANONICAL_NATIVE_EVIDENCE_TESTS,isCanonicalNativeSourceAsset} from '../scripts/canonical-package.mjs';
 import {deviceV4PQSupplierInputs,deviceV4PQReceiptCommands,assertWalletProvisioningNativeExports,DEVICE_V4_QUERY_PQ_NODE,DEVICE_V4_QUERY_PQ_ROLE} from '../scripts/wallet-device-v4-pq-role.mjs';
 // Normal recipe DATA only: the actual matching compilation is separate.
 const headers='/PUBLIC-plan-only-headers';
@@ -19,6 +19,8 @@ test('normal receipt selection accepts the exact 145-input query closure',()=>{
  const receipt=[...deviceV4PQSupplierInputs(inventory.NativeInputs),...p.walletInputFiles].map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256}));
  const result=canonicalNativeInputSelection(inventory.version,names,bytes,receipt);
  assert.equal(result.supplierNodeInputCount,145);
+ for(const row of receipt)assert.equal(isCanonicalNativeSourceAsset(row.relative),true,row.relative);
+ assert.equal(isCanonicalNativeSourceAsset('packages/wallet-auth/native/unreviewed.d.mts'),false);
  assert.throws(()=>canonicalNativeInputSelection(inventory.version,names,bytes,receipt.map((p,i)=>i? p:{...p,sha256:'0'.repeat(64)})));
 });
 test('fresh provisioning role preserves full Wallet guards and links the ecdf runtime exactly once',()=>{
