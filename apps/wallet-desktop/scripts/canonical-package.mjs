@@ -66,7 +66,7 @@ export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,re
  const cc7=names.includes(CC7_NATIVE_SOURCE.path),pqNative=isPQNativeSelection(names)||cc7;if(pqNative&&!['1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(sdkVersion))bad();
  if(cc7&&(sdkVersion!==CC7_NATIVE_ROLE.sdk.version||!artifactRelease||!projectControl||!controlCABI))bad();
  const deviceV4=isDeviceV4PQSelection(names);
- if(deviceV4&&(sdkVersion!=='1.3.0-pq.3.32-auth.49'||![117,127].includes(pins.length)||!pqNative))bad();
+ if(deviceV4&&(sdkVersion!=='1.3.0-pq.3.32-auth.49'||![117,127,137].includes(pins.length)||!pqNative))bad();
  const selectedPins=deviceV4?deviceV4PQSupplierInputs(pins):pqNativeSupplierInputs(pins,pqNative);
  const availableWallet=relay?(cc7?cc7WalletNativeInputs():walletPublisherNativeInputs(pins.length,artifactRelease,projectControl,controlCABI,pqNative,sdkVersion)):[];
  const wallet=availableWallet.some(p=>names.includes(p.path))?availableWallet:[];

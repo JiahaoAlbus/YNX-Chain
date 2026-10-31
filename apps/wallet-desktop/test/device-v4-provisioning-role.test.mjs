@@ -3,9 +3,19 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {walletNativeComponentBuildPlan} from '../scripts/build-wallet-native-component.mjs';
+import {canonicalNativeInputSelection,CANONICAL_NATIVE_EVIDENCE_TESTS} from '../scripts/canonical-package.mjs';
 import {deviceV4PQSupplierInputs,deviceV4PQReceiptCommands,assertWalletProvisioningNativeExports,DEVICE_V4_PROVISIONING_PQ_NODE,DEVICE_V4_PROVISIONING_PQ_ROLE} from '../scripts/wallet-device-v4-pq-role.mjs';
 // Normal recipe DATA only: the actual matching compilation is separate.
 const headers='/PUBLIC-plan-only-headers';
+test('normal receipt selection accepts the exact 137-input provisioning closure',()=>{
+ const bytes=readFileSync(new URL('../../../packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',import.meta.url)),inventory=JSON.parse(bytes);
+ const p=walletNativeComponentBuildPlan('arm64',headers,true,true,true,true,false,true,true);
+ const names=[...inventory.NativeInputs,...p.walletInputFiles,...inventory.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/'))].map(p=>p.path).concat(CANONICAL_NATIVE_EVIDENCE_TESTS);
+ const receipt=[...deviceV4PQSupplierInputs(inventory.NativeInputs),...p.walletInputFiles].map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256}));
+ const result=canonicalNativeInputSelection(inventory.version,names,bytes,receipt);
+ assert.equal(result.supplierNodeInputCount,137);
+ assert.throws(()=>canonicalNativeInputSelection(inventory.version,names,bytes,receipt.map((p,i)=>i? p:{...p,sha256:'0'.repeat(64)})));
+});
 test('fresh provisioning role preserves full Wallet guards and links the ecdf runtime exactly once',()=>{
  const p=walletNativeComponentBuildPlan('arm64',headers,true,true,true,true,false,true,true);
  assert.equal(p.deviceV4PQRole,DEVICE_V4_PROVISIONING_PQ_ROLE);assert.equal(p.commands.length,28);
