@@ -4,7 +4,7 @@
   "Root": false,
   "SourceAdmission": false,
   "activation": false,
-  "fileCount": 9598,
+  "fileCount": 9612,
   "files": [
     {
       "path": "AUTH_RUNTIME_CLOSURE.md",
@@ -705,6 +705,26 @@
       "path": "native/original-source-public-installation.h",
       "bytes": 16366,
       "sha256": "12ddc46612f948ad4f73e5f36a214b59ccb2786b55ea822f759dedbbe2c574b4"
+    },
+    {
+      "path": "native/original-source-root-consumer-v2.mjs",
+      "bytes": 3242,
+      "sha256": "b74a7c573a812d4a047f8291d28e0593b7a69e7fbc7d258d30b3d1c9b18da00c"
+    },
+    {
+      "path": "native/original-source-root-contract-v2.mjs",
+      "bytes": 6704,
+      "sha256": "794843ed900958501e425b05e3383e416c1783691a8ee7348a19fbfe4736f910"
+    },
+    {
+      "path": "native/original-source-root-dirfd-journal.h",
+      "bytes": 12600,
+      "sha256": "d4a8f017e7f980f227d1bb551bc43ac3566fa19b7c76614f7f1e606d2b836206"
+    },
+    {
+      "path": "native/original-source-root-dirfd-node.cpp",
+      "bytes": 5555,
+      "sha256": "acd5bbe04265a7876ca2b3718d1436c071cd9dae42b1c45d8a1c17bdfaf88e03"
     },
     {
       "path": "native/original-source-verifier-io.h",
@@ -46718,8 +46738,8 @@
     },
     {
       "path": "package.json",
-      "bytes": 25375,
-      "sha256": "347f914b7733c2fddd5200e2086d7eb6342edd9b37e0da05f3ec45e1532a9d26"
+      "bytes": 25681,
+      "sha256": "438d81c5e7aa3cee19176cc4c689dbaaae23d6326f82707ac82ba7357f4cd8e2"
     },
     {
       "path": "product-session-registry.json",
@@ -46843,8 +46863,8 @@
     },
     {
       "path": "scripts/ynx-wallet-gatewayd.mjs",
-      "bytes": 21867,
-      "sha256": "ec7881590d37b1a9e71e2ed84fa7abbf700b8e510d5601c63691be0f3814e04f"
+      "bytes": 23626,
+      "sha256": "e364ba88cb38f202fdae105509d98720251c4096e70b377ff8926f8be24b3547"
     },
     {
       "path": "src/application-action-launcher.d.ts",
@@ -47327,6 +47347,21 @@
       "sha256": "d70ce4de309967eb4bde6beb7f5a0b68b7605880be463aa19a3353b145d3c1d3"
     },
     {
+      "path": "src/original-source-root-ledger-v2.js",
+      "bytes": 9755,
+      "sha256": "d78498ea613df1f9956a41882ec6b28dd98fc915dab0631ee20dce86b9e7e123"
+    },
+    {
+      "path": "src/original-source-root-operator-v2.js",
+      "bytes": 1570,
+      "sha256": "234cd2374451199b467d12c7c2a7c80394e058fe58704fd9a11e8fee6f0a0edc"
+    },
+    {
+      "path": "src/original-source-root-owner-v2.js",
+      "bytes": 12396,
+      "sha256": "c2d0cc665acf1820597ce73aaf5672ac45b0b30f7035f6a4341be1675fb0b1ab"
+    },
+    {
       "path": "src/original-unexpired-operation-reader.js",
       "bytes": 4580,
       "sha256": "c6e7e537a9933391823b31dc38c92bc33675ead5e1f7688eb9373882d8e30656"
@@ -47552,6 +47587,41 @@
       "sha256": "27054bf82f5aebd1d588b0d472b761d18c03dc157644321495abf37dde153bb5"
     },
     {
+      "path": "src/product-pair-session-v4-account-source.js",
+      "bytes": 5901,
+      "sha256": "04b919a8c0968bebe1cbd16fbfbb91973501a3ab52f255b14b9211e6b035f305"
+    },
+    {
+      "path": "src/product-pair-session-v4-daemon.js",
+      "bytes": 4160,
+      "sha256": "1610feac2427820fc2f10fcb669dc5d7aa3f11ff9b1c59188a507ef3203b16af"
+    },
+    {
+      "path": "src/product-pair-session-v4-http.js",
+      "bytes": 2904,
+      "sha256": "af1d4b880b481e6dd6c2ec7067705864d63e217c7e47c0b586e70ef6e8233889"
+    },
+    {
+      "path": "src/product-pair-session-v4-issuer.js",
+      "bytes": 12464,
+      "sha256": "b376ab61edbea740c9c261d496604a297087501cef40178318a3b443ab57f0ac"
+    },
+    {
+      "path": "src/product-pair-session-v4-schema.sql",
+      "bytes": 3374,
+      "sha256": "577420f566509bfcedb0fa0094a7d05a40fee0831cf156ab043c6769ec4bee6c"
+    },
+    {
+      "path": "src/product-pair-session-v4-source.js",
+      "bytes": 9067,
+      "sha256": "f075c141215563e21253db55e07b476ff8af798d2a40a4401c594324f075d937"
+    },
+    {
+      "path": "src/product-pair-session-v4-store.js",
+      "bytes": 11458,
+      "sha256": "26db34a0d71cfc81cbefdcb3d6232829e41a49ac426115b967fd660a66f6fa6d"
+    },
+    {
       "path": "src/product-session-account-policy.d.ts",
       "bytes": 2090,
       "sha256": "5636b140dd072abb471cde21768d821a131a9cb0925a1dee1a42d189e031c3c7"
@@ -47658,8 +47728,8 @@
     },
     {
       "path": "src/product-session-gateway-node-host.js",
-      "bytes": 64360,
-      "sha256": "739188d5bfe0e694b389610ddf4d7309103631f5990eb3953dcd0f045dcc0078"
+      "bytes": 64747,
+      "sha256": "1db041ef9425f514541569a3a72163a84fe36cb8e1690ccc13b1f5bef0143448"
     },
     {
       "path": "src/product-session-gateway-snapshot-v2.js",
@@ -47698,8 +47768,8 @@
     },
     {
       "path": "src/product-session-pq-v4-codec.d.ts",
-      "bytes": 2479,
-      "sha256": "d5fc031372267db0082989e0f6a689b3e7d75eae0fd4826a77856d4da9281b97"
+      "bytes": 3595,
+      "sha256": "dfdf3539713031008666bea913afe5af928c84e39dff8811a661dfa800bc2e98"
     },
     {
       "path": "src/product-session-pq-v4-codec.js",
@@ -48002,5 +48072,5 @@
   "kind": "YNX_SDK49_PRODUCT_PACK_SELECTION/v1",
   "published": false,
   "versionSDK": "1.3.0-pq.3.32-auth.49",
-  "sourceVariant": "SDK49-NATIVE-READ-LEASE-ISSUER/v1"
+  "sourceVariant": "SDK49-PAIR-ISSUER-ORIGINAL-DAEMON/v1"
 }

@@ -14,6 +14,7 @@ import {sdkRuntimeUnionProfile,SDK49_RUNTIME_UNION} from '../scripts/sdk14-runti
 import {verifySDK49FullRuntimeTables} from '../scripts/sdk49-runtime-source.mjs';
 import {fixedSDKRuntimeManifestSources,assertSDKRuntimePackCoverage,relocateDesktopRuntimeSource} from '../scripts/release-provenance.mjs';
 import {verifySDK13NativeComponent} from '../scripts/sdk13-native-component.mjs';
+import {issuerSourceBytes} from './fixtures/sdk49-issuer-source-fixture.mjs';
 const source=fileURLToPath(new URL('../../..',import.meta.url)),version='1.3.0-pq.3.32-auth.49';
 const packed=fs.readFileSync(new URL('./fixtures/sdk49-daemon-product-source.json.gz',import.meta.url));
 assert.equal(createHash('sha256').update(packed).digest('hex'),'4364f73319801ac656fdc819bd64a5f70dcbd070cd073c2462c4a44a80640f44');
@@ -39,7 +40,7 @@ test('same-version daemon six-role source reaches the normal product and executa
  assert.throws(()=>assertSDK49ProductArchive(p,inventory.slice(1)),/PACK_ROW_MISSING_OR_CHANGED/);
 });
 test('new full runtime tables pair only with each other and never inherit the old default version profile',t=>{
- const f=fixture(t),a=f.read(auth),u=f.read(union),oldAuth=fs.readFileSync(path.join(source,auth)),oldUnion=fs.readFileSync(path.join(source,union));
+ const f=fixture(t),a=f.read(auth),u=f.read(union),oldAuth=issuerSourceBytes(auth),oldUnion=issuerSourceBytes(union);
  assert.equal(sdkRuntimeUnionProfile(version),SDK49_RUNTIME_UNION);
  assert.equal(sdkRuntimeUnionProfile(version,u),SDK49_DAEMON_UNION);
  assert.deepEqual(verifySDK49FullRuntimeTables(a,u),{authFiles:611,unionFiles:9471,fullAuthSubsetOfFullUnion:true,NativeAdmission:false});
@@ -49,7 +50,7 @@ test('new full runtime tables pair only with each other and never inherit the ol
 });
 test('mixed, changed and missing formal roles cannot silently select either SDK49 source image',t=>{
  const f=fixture(t),selection='runtime-projections/sdk49-product/SDK49_PRODUCT_PACK_SELECTION.json';
- f.put(selection,fs.readFileSync(path.join(source,selection)));f.commit();assert.throws(f.product,/SOURCE_PIN_DIFFERS/);
+ f.put(selection,issuerSourceBytes(selection));f.commit();assert.throws(f.product,/SOURCE_PIN_DIFFERS/);
  f.put(selection,Buffer.from(data.files[selection],'base64'));f.put('runtime-projections/sdk49-product/PROJECTION_RECEIPT.json',Buffer.from('{}'));f.commit();assert.throws(f.product,/SOURCE_PIN_DIFFERS/);
  fs.unlinkSync(path.join(f.root,selection));f.commit();assert.throws(f.product,/SOURCE_SET_DIFFERS/);
 });
@@ -62,7 +63,7 @@ test('new Root storage URL remains unavailable and requires its exact selected s
  assert.throws(()=>relocateDesktopRuntimeSource(name,raw,'1.3.0-pq.3.32-auth.46',SDK49_DAEMON_VARIANT),/Unsupported SDK source variant/);
 });
 test('the existing executed component record is refused against the new runtime before module or helper qualification',t=>{
- const f=fixture(t),record=JSON.parse(fs.readFileSync(path.join(source,'apps/wallet-desktop/native/original-auth-identity-build.json'))),before=JSON.stringify(record),reads=[];
+ const f=fixture(t),record=JSON.parse(issuerSourceBytes('apps/wallet-desktop/native/original-auth-identity-build.json')),before=JSON.stringify(record),reads=[];
  assert.throws(()=>verifySDK13NativeComponent({record,inventoryBytes:fs.readFileSync(path.join(source,record.sourceInventory.relative)),moduleBytes:Buffer.from('PUBLIC unused'),helperBytes:Buffer.from('PUBLIC unused')},name=>{reads.push(name);return f.read(name)}));
  assert.deepEqual(reads,[union]);assert.equal(JSON.stringify(record),before);
 });

@@ -21,7 +21,7 @@ test('complete normal SDK49 selected runtime closure collects every operand erro
   if(product.contents.has(canonicalSourcePath(name))){projected++;continue;}
   if(CANONICAL_NATIVE_EVIDENCE_TESTS.includes(name))continue;
   const source=git('show',commit+':'+name);
-  try{assert.deepEqual(relocateDesktopRuntimeSource(name,source,version).bytes,source,name);checked++;}catch(error){errors.push({name,cause:error.message});}
+  try{assert.deepEqual(relocateDesktopRuntimeSource(name,source,version,product.public.sourceVariant).bytes,source,name);checked++;}catch(error){errors.push({name,cause:error.message});}
  }
  assert.deepEqual(errors,[]);assert(checked>500);assert.equal(projected,2);
  console.log(JSON.stringify({scope:'normal selected runtime bytes/finite operands only; no imports or Native',checked,projected,typesExcluded}));

@@ -85,5 +85,5 @@
   "oldSDK42IdentityOrAdmissionInherited": false,
   "oldSDK43IdentityOrAdmissionInherited": false,
   "versionSDK": "1.3.0-pq.3.32-auth.49",
-  "sourceVariant": "SDK49-NATIVE-READ-LEASE-ISSUER/v1"
+  "sourceVariant": "SDK49-PAIR-ISSUER-ORIGINAL-DAEMON/v1"
 }
