@@ -110,6 +110,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /status", s.handleStatus)
 	s.mux.HandleFunc("GET /node/identity", s.handleNodeIdentity)
+	s.mux.HandleFunc("GET /node/native-transfer-metadata", s.handleNativeTransferMetadata)
 	s.mux.HandleFunc("GET /internal/replication/snapshot", s.handleReplicationSnapshot)
 	s.mux.HandleFunc("POST /evm", s.handleEVM)
 	s.mux.HandleFunc("POST /", s.handleEVM)

@@ -324,6 +324,7 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /health", g.handleHealth)
 	g.mux.HandleFunc("GET /status", g.handleStatus)
 	g.mux.HandleFunc("GET /node/pq-identity", g.handlePQIdentity)
+	g.mux.HandleFunc("GET /node/native-transfer-metadata", g.handleNativeTransferMetadata)
 	g.mux.HandleFunc("GET /node/consensus-genesis", g.handlePQConsensusGenesis)
 	g.mux.HandleFunc("GET /blocks/{height}", g.handleBlock)
 	g.mux.HandleFunc("POST /transactions/broadcast", g.handleBroadcastTransaction)
