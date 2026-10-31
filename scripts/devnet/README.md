@@ -310,3 +310,15 @@ last state is equal. Functional equality alone does not authorize optimized
 pressure or qualify BFT/finality, throughput or network gains. New contract
 controls are `test_pq_height_vectors.py`; fixtures are not Application runs.
 
+Admission vectors preserve the original static committed-state semantics:
+each Check/Recheck sees the SAME pre-state, so future-nonce Whole requests in
+a 16-Whole block correctly return outer `CodeInvalidTx`, with the original
+per-member nonce rejection data. The observer decodes original messages with
+the normal codecs, binds their owner/nonces to committed accounts, and checks
+the exact expected codes/outcomes/errors without mutating mempool/account
+state. This metadata never substitutes for the normal CheckTx mathematics.
+Prepare/Process still require the complete original ordered proposal; sequential
+Finalize still requires every original business member admitted. The earlier
+842 observer's blanket CheckTx-code-zero assumption is superseded; no successful
+actual vectors from that defective observer are presumed or grandfathered.
+

@@ -79,6 +79,37 @@ def bound_file(root,pin,limit):
     return raw
 
 
+def admission_expectation(pre_nonces,metadata,members):
+    """Nonce oracle for this frozen valid-input fixture, never an authorizer."""
+    owner=metadata["owner"];lab.require(owner in pre_nonces,"admission owner absent from original pre-state")
+    nonce=pre_nonces[owner]
+    lab.require(metadata["committedNonce"]==str(nonce) and len(metadata["memberNonces"])==members,"admission metadata detached from static pre-state")
+    outcomes=[];errors=[]
+    for text in metadata["memberNonces"]:
+        lab.require(type(text) is str and text.isdecimal() and str(int(text))==text and 0<int(text)<1<<64 and nonce<(1<<64)-1,"bounded canonical original nonce required")
+        value=int(text)
+        if value==nonce+1:outcomes.append("admitted");errors.append("");nonce+=1
+        else:outcomes.append("rejected");errors.append("signed transaction nonce %d must equal next account nonce %d"%(value,nonce+1))
+    lab.require(len(set(outcomes))==1,"frozen fixture must be all-valid or static-nonce-rejected")
+    code=0 if outcomes[0]=="admitted" else 2  # Original CodeInvalidTx, not inner CodeInvalidNonce.
+    lab.require(metadata["outcomes"]==outcomes and metadata["errors"]==errors and metadata["code"]==code,"static original nonce expectation differs")
+    return code,outcomes,errors
+
+
+def member_results(response,members):
+    import base64
+    data=json.loads(base64.b64decode(response["data"],validate=True))
+    lab.require(type(data.get("results")) is list and len(data["results"])==members,"complete original member results required")
+    return data["results"]
+
+
+def validate_admission(pre_nonces,metadata,response,members):
+    code,outcomes,errors=admission_expectation(pre_nonces,metadata,members)
+    lab.require(response.get("code",0)==code,"normal static pre-state admission code differs")
+    for i,result in enumerate(member_results(response,members)):
+        lab.require(result.get("index",0)==i and result["outcome"]==outcomes[i] and result.get("error","")==errors[i] and bool(result.get("transactionHash"))==(outcomes[i]=="admitted"),"normal nonce rejection/member result differs")
+
+
 def load_vectors(root,receipt_override=None,require_cleanup=True,checkpoint=None):
     root=Path(root);lab.require(root.is_absolute() and root.resolve(strict=True)==root,"canonical original vector directory required")
     receipt=json.loads(read(root/"receipt.json")) if receipt_override is None else receipt_override
@@ -109,21 +140,28 @@ def load_vectors(root,receipt_override=None,require_cleanup=True,checkpoint=None
         if selector is None:
             lab.require(state==initial and row["parentCanonicalStateSHA256"]==digest(state_raw) and row["results"]=={} and row["transactionSHA256"]==[],"supplied initial state differs")
         else:
-            parent_sha,parent_height=states[parent]
+            parent_sha,parent_height,pre_nonces=states[parent]
             lab.require(row["parentCanonicalStateSHA256"]==parent_sha and parent_height+1==row["height"],"height ancestry broken")
             if isinstance(selector,range):txs=[inp["history"][i] for i in selector]
             elif profile=="original":txs=[inp["cases"][selector]]
             else:txs=inp["candidateCases"][selector]
             lab.require(row["transactionSHA256"]==[tx_sha(tx) for tx in txs],"height transactions detached from original signed corpus")
-            result=row["results"];lab.require(set(result)=={"checkTx","recheckTx","prepareProposal","processProposal","finalize","commit"},"full normal response inventory required")
+            result=row["results"];lab.require(set(result)=={"checkTx","recheckTx","admissionExpectations","prepareProposal","processProposal","finalize","commit"},"full normal response inventory required")
+            members=int(selector.rsplit("-K",1)[1]) if type(selector) is str and profile=="original" else 1
+            lab.require(len(result["admissionExpectations"])==len(txs),"complete static admission metadata required")
             for key in ("checkTx","recheckTx"):
-                lab.require(len(result[key])==len(txs) and all(r.get("code",0)==0 for r in result[key]),"normal admission response count/code differs")
+                lab.require(len(result[key])==len(txs),"normal admission response count differs")
+                for meta,response in zip(result["admissionExpectations"],result[key]):validate_admission(pre_nonces,meta,response,members)
+            lab.require(result["checkTx"]==result["recheckTx"],"normal complete Check/recheck responses differ")
+            lab.require(result["prepareProposal"]["txs"]==txs and result["processProposal"]["status"]==1,"original full sequential proposal differs")
             finalized=result["finalize"];tx_results=finalized.get("tx_results",[])
             lab.require(len(tx_results)==len(txs) and all(r.get("code",0)==0 for r in tx_results),"normal Finalize result count/code differs")
+            for response in tx_results:
+                lab.require(all(r["outcome"]=="admitted" and not r.get("error") and r.get("transactionHash") for r in member_results(response,members)),"original Finalize business member rejected")
             lab.require(base64.b64decode(finalized["app_hash"],validate=True).hex()==state["appHash"],"Finalize AppHash differs")
         # Retain compact ancestry only. Do not keep every growing full state
         # resident while validating another arm against the same 4GiB cap.
-        states[identity]=(digest(state_raw),state["height"]);rows.append((row,digest(state_raw)))
+        states[identity]=(digest(state_raw),state["height"],{a["address"]:int(a["nonce"]) for a in state["accounts"]});rows.append((row,digest(state_raw)))
         if checkpoint is not None:checkpoint()
     return receipt,manifest,rows
 

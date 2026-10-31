@@ -7,14 +7,98 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmttypes "github.com/cometbft/cometbft/types"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"testing"
 	"time"
 )
+
+type heightAdmissionExpectation struct {
+	Owner          string   `json:"owner"`
+	CommittedNonce string   `json:"committedNonce"`
+	MemberNonces   []string `json:"memberNonces"`
+	Outcomes       []string `json:"outcomes"`
+	Errors         []string `json:"errors"`
+	Code           uint32   `json:"code"`
+}
+
+// Decode original signed messages only for this frozen fixture's nonce oracle.
+// Normal Check/Recheck still authenticate the original Whole independently;
+// this metadata is never an admission/authority substitute or a state write.
+func heightExpectedAdmission(t *testing.T, tx []byte, accounts []chain.ConsensusAccount, count int) heightAdmissionExpectation {
+	t.Helper()
+	envelope, wire, err := DecodePQTransaction(tx)
+	if err != nil || envelope.Type != PQWholeType {
+		t.Fatal("original Whole required", err)
+	}
+	whole, err := ynxbatch.DecodeWhole(wire)
+	if err != nil || len(whole.Messages) != count {
+		t.Fatal("original member count", err)
+	}
+	x := heightAdmissionExpectation{Owner: whole.Certificate.Owner, MemberNonces: []string{}, Outcomes: []string{}, Errors: []string{}}
+	var nonce uint64
+	found := false
+	for _, account := range accounts {
+		if account.Address == x.Owner {
+			nonce = account.Nonce
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("original pre-state owner missing")
+	}
+	x.CommittedNonce = strconv.FormatUint(nonce, 10)
+	admitted := 0
+	for _, message := range whole.Messages {
+		transfer, e := ynxauth.DecodeTransfer(message)
+		if e != nil || transfer.From != x.Owner {
+			t.Fatal("original transfer owner", e)
+		}
+		x.MemberNonces = append(x.MemberNonces, strconv.FormatUint(transfer.Nonce, 10))
+		if nonce == ^uint64(0) {
+			t.Fatal("fixture nonce exhausted")
+		}
+		if transfer.Nonce == nonce+1 {
+			nonce++
+			admitted++
+			x.Outcomes = append(x.Outcomes, "admitted")
+			x.Errors = append(x.Errors, "")
+		} else {
+			x.Outcomes = append(x.Outcomes, "rejected")
+			x.Errors = append(x.Errors, fmt.Sprintf("signed transaction nonce %d must equal next account nonce %d", transfer.Nonce, nonce+1))
+		}
+	}
+	if admitted == 0 {
+		x.Code = CodeInvalidTx
+	} else if admitted != count {
+		t.Fatal("fixture is not all-valid or static-nonce-rejected")
+	}
+	return x
+}
+
+func heightAssertAdmission(t *testing.T, response *abci.ResponseCheckTx, expected heightAdmissionExpectation) {
+	t.Helper()
+	if response == nil || response.Code != expected.Code {
+		t.Fatal("normal static pre-state Check/Recheck code differs")
+	}
+	var out PQBatchExecutionResult
+	if err := json.Unmarshal(response.Data, &out); err != nil || len(out.Results) != len(expected.Outcomes) {
+		t.Fatal("complete original admission member results", err)
+	}
+	for i, r := range out.Results {
+		if r.Index != uint32(i) || r.Outcome != expected.Outcomes[i] || r.Error != expected.Errors[i] || (r.Outcome == "admitted" && r.TransactionHash == "") || (r.Outcome == "rejected" && r.TransactionHash != "") {
+			t.Fatal("original nonce outcome/error differs", i, r)
+		}
+	}
+}
 
 func heightVectorWrite(t *testing.T, path string, raw []byte) map[string]any {
 	t.Helper()
@@ -77,17 +161,24 @@ func TestPQPerHeightVectors(t *testing.T) {
 		if apply {
 			height++
 			bt := time.Unix(height, 0).UTC()
-			checks, rechecks := []any{}, []any{}
+			checks, rechecks, expectations := []any{}, []any{}, []heightAdmissionExpectation{}
 			for _, tx := range txs {
+				expected := heightExpectedAdmission(t, tx, a.committed.Accounts, expectedMembers)
+				expectations = append(expectations, expected)
 				hashes = append(hashes, baselineDigest(tx))
 				c, e := a.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: tx, Type: abci.CheckTxType_New})
-				if e != nil || c.Code != 0 {
+				if e != nil {
 					t.Fatal("normal CheckTx", e)
 				}
+				heightAssertAdmission(t, c, expected)
 				checks = append(checks, c)
 				r, e := a.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: tx, Type: abci.CheckTxType_Recheck})
-				if e != nil || r.Code != 0 {
+				if e != nil {
 					t.Fatal("normal recheck", e)
+				}
+				heightAssertAdmission(t, r, expected)
+				if !bytes.Equal(mustJSON(t, c), mustJSON(t, r)) || !bytes.Equal(before, mustJSON(t, a.committed)) {
+					t.Fatal("recheck response or committed pre-state changed")
 				}
 				rechecks = append(rechecks, r)
 			}
@@ -132,7 +223,7 @@ func TestPQPerHeightVectors(t *testing.T) {
 			if hex.EncodeToString(finalized.AppHash) != a.committed.AppHash {
 				t.Fatal("Finalize/committed AppHash differs")
 			}
-			result = map[string]any{"checkTx": checks, "recheckTx": rechecks, "prepareProposal": prepared, "processProposal": processed, "finalize": finalized, "commit": committed}
+			result = map[string]any{"checkTx": checks, "recheckTx": rechecks, "admissionExpectations": expectations, "prepareProposal": prepared, "processProposal": processed, "finalize": finalized, "commit": committed}
 		}
 		state := mustJSON(t, a.committed)
 		if a.committed.Height != height {
