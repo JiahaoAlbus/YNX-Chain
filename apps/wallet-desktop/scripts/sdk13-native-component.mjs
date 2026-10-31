@@ -43,7 +43,7 @@ export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,he
  same(record.sourceInventory,{relative:'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',...profile.inventory});
  if(profile.requiresRuntimeUnion&&!Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version))throw Error('WALLET_MATCHED_RUNTIME_UNION_NOT_SUPPLIED');
  if(Object.hasOwn(SDK_RUNTIME_UNIONS,profile.version)){
-  const union=sdkRuntimeUnionProfile(profile.version);
+  const union=sdkRuntimeUnionProfile(profile.version,readSource(SDK14_RUNTIME_UNION_SOURCE));
   same(record.runtimeUnion,{...union,filesVerified:union.files,sourceRoot:path.join(record.sourceRoot,'packages/wallet-auth'),NativeAdmission:false,installedImageQualified:false,platformQualified:false,networkActivated:false});
   pinned(readSource(SDK14_RUNTIME_UNION_SOURCE),union);
   if(profile.version==='1.3.0-pq.3.32-auth.48')verifySDK48FullAuthRuntime(readSource(SDK48_FULL_AUTH_RUNTIME_SOURCE),readSource(SDK14_RUNTIME_UNION_SOURCE));

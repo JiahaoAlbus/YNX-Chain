@@ -22,6 +22,8 @@ import {readSDK41ProductRuntime,assertSDK41ProductArchive} from './sdk41-product
 import {readSDK42ProductRuntime,assertSDK42ProductArchive} from './sdk42-product-runtime.mjs';
 import {readSDK46ProductRuntime,assertSDK46ProductArchive} from './sdk46-product-runtime.mjs';
 import {readSDK49ProductRuntime,assertSDK49ProductArchive} from './sdk49-product-runtime.mjs';
+import {SDK49_DAEMON_AUTH,SDK49_DAEMON_VARIANT} from './sdk49-daemon-profile.mjs';
+import {verifySDK49FullRuntimeTables} from './sdk49-runtime-source.mjs';
 const readSDKProductRuntime=(root,commit)=>readSDK35ProductRuntime(root,commit)??readSDK36ProductRuntime(root,commit)??readSDK37ProductRuntime(root,commit)??readSDK38ProductRuntime(root,commit)??readSDK39ProductRuntime(root,commit)??readSDK40ProductRuntime(root,commit)??readSDK41ProductRuntime(root,commit)??readSDK42ProductRuntime(root,commit)??readSDK46ProductRuntime(root,commit)??readSDK49ProductRuntime(root,commit);
 const assertSDKProductArchive=(product,inventory)=>product?.public.kind==='YNX-WALLET-SDK49-PRODUCT-PACK/v1'?assertSDK49ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK46-PRODUCT-PACK/v1'?assertSDK46ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK42-PRODUCT-PACK/v1'?assertSDK42ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK41-PRODUCT-PACK/v1'?assertSDK41ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK40-PRODUCT-PACK/v1'?assertSDK40ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK39-PRODUCT-PACK/v1'?assertSDK39ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK38-PRODUCT-PACK/v1'?assertSDK38ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK37-PRODUCT-PACK/v1'?assertSDK37ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK36-PRODUCT-PACK/v1'?assertSDK36ProductArchive(product,inventory):assertSDK35ProductArchive(product,inventory);
 
@@ -144,16 +146,19 @@ export function fixedSDKRuntimeManifestSources(root,sourceCommit){
  // not authorize itself or arbitrary adjacent JSON. Pin its reviewed identity
  // as well as requiring byte equality with the immutable composed source.
  const bytes=execFileSync('git',['show',`${sourceCommit}:${FIXED_SDK_RUNTIME_MANIFEST}`],{cwd:root,maxBuffer:1024*1024});
- if(bytes.length!==identity.bytes||digest(bytes)!==identity.sha256)throw Error('Fixed SDK runtime manifest identity differs');
+ const selectedIdentity=sdk.version===SDK49_VERSION&&bytes.length===SDK49_DAEMON_AUTH.bytes&&digest(bytes)===SDK49_DAEMON_AUTH.sha256?SDK49_DAEMON_AUTH:identity;
+ if(bytes.length!==selectedIdentity.bytes||digest(bytes)!==selectedIdentity.sha256)throw Error('Fixed SDK runtime manifest identity differs');
  if(Object.hasOwn(SDK_RUNTIME_UNIONS,sdk.version)){
-  const pin=sdkRuntimeUnionProfile(sdk.version);
   const union=execFileSync('git',['show',`${sourceCommit}:${SDK14_RUNTIME_UNION_SOURCE}`],{cwd:root,maxBuffer:2*1024*1024});
+  const pin=sdkRuntimeUnionProfile(sdk.version,union);
   if(union.length!==pin.bytes||digest(union)!==pin.sha256)throw Error('Fixed matched SDK runtime union identity differs');
+  if(sdk.version===SDK49_VERSION)verifySDK49FullRuntimeTables(bytes,union);
   return [FIXED_SDK_RUNTIME_MANIFEST,SDK14_RUNTIME_UNION_SOURCE];
  }
  return [FIXED_SDK_RUNTIME_MANIFEST];
 }
-function selectedRelocationRules(sdkVersion){
+function selectedRelocationRules(sdkVersion,sourceVariant){
+  if(sourceVariant!==undefined&&(sourceVariant!==SDK49_DAEMON_VARIANT||sdkVersion!==SDK49_VERSION))throw Error('Unsupported SDK source variant');
   // The frozen SDK330 adds the third, distinct IDE peer delivery load. This is
   // a selected-source-version contract, never a count inferred from the input.
   if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION&&sdkVersion!==SDK_R154_VERSION&&sdkVersion!==SDK_CONTRACT_CLIENT_VERSION&&sdkVersion!==SDK_CONTRACT_CURRENT_VERSION&&sdkVersion!==SDK_AUTONOMOUS_SCOPE_VERSION&&sdkVersion!==SDK_PROJECT_READER_VERSION&&sdkVersion!==SDK_WORKSPACE_SELECTION_VERSION&&sdkVersion!==SDK_PUBLICATION_RESULT_VERSION&&sdkVersion!==SDK_CONTROL_CUSTODY_VERSION&&sdkVersion!==SDK_PRINCIPAL_CURRENT_VERSION&&sdkVersion!==SDK31_VERSION&&sdkVersion!==SDK32_VERSION&&sdkVersion!==SDK33_VERSION&&sdkVersion!==SDK34_VERSION&&sdkVersion!==SDK35_VERSION&&sdkVersion!==SDK36_VERSION&&sdkVersion!==SDK37_VERSION&&sdkVersion!==SDK38_VERSION&&sdkVersion!==SDK39_VERSION&&sdkVersion!==SDK40_VERSION&&sdkVersion!==SDK41_VERSION&&sdkVersion!==SDK42_VERSION&&sdkVersion!==SDK46_VERSION&&sdkVersion!==SDK49_VERSION)return PACKAGED_RELOCATION_RULES;
@@ -166,10 +171,11 @@ function selectedRelocationRules(sdkVersion){
   // the joint consumer into its shared loader. Keep its Vault import once;
   // the source/Git/runtime pins still bind both files byte-for-byte. Old SDK
   // rules, unknown paths and duplicate/missing operands remain refusals.
-  return [...qualified.map(rule=>rule.sourcePath===`packages/wallet-auth/src/${joint}`
+  const sdk49=[...qualified.map(rule=>rule.sourcePath===`packages/wallet-auth/src/${joint}`
     ?{...rule,operands:rule.operands.filter(operand=>operand.kind==='from'&&operand.from==='../../../apps/wallet-desktop/src/password-wallet-vault.mjs')}:rule),
     {sourcePath:'packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',packedPath:'code/packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',operands:[
       {kind:'url',from:'../../../apps/wallet-desktop/native/original-auth-identity.node',to:'../../../apps/wallet-desktop/native/original-auth-identity.node',count:1}]}];
+  return sourceVariant===SDK49_DAEMON_VARIANT?[...sdk49,{sourcePath:'packages/wallet-auth/src/original-source-root-owner-v2.js',packedPath:'code/packages/wallet-auth/src/original-source-root-owner-v2.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-root-dirfd.node',operands:[{kind:'url',from:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',count:1}]}]:sdk49;
 }
 // Build/readback DATA only. The normal package caller MUST first obtain this
 // component from verifySDK13NativeComponent; it is never Source admission.
@@ -214,8 +220,8 @@ export function declaredSDKRuntimeSources(root,sourceCommit){
  return [...names].sort();
 }
 
-export function relocateDesktopRuntimeSource(name, source, sdkVersion='1.3.0-pq.3.18') {
-  const rule = selectedRelocationRules(sdkVersion).find(item=>item.sourcePath===name);
+export function relocateDesktopRuntimeSource(name, source, sdkVersion='1.3.0-pq.3.18',sourceVariant) {
+  const rule = selectedRelocationRules(sdkVersion,sourceVariant).find(item=>item.sourcePath===name);
   let text = source.toString("utf8");
   if (!rule) {
     if (repositoryOperand.test(text)) throw new Error(`Unlisted repository operand: ${name}`);
@@ -237,9 +243,10 @@ export function relocateDesktopRuntimeSource(name, source, sdkVersion='1.3.0-pq.
 function relocationPlan(cwd, expected) {
   const root=git(cwd,"rev-parse","--show-toplevel");
   const sdk=JSON.parse(git(root,'show',`${expected.sourceCommit}:packages/wallet-auth/package.json`));
-  return selectedRelocationRules(sdk.version).map(rule=>{
+  const variant=sdk.version===SDK49_VERSION?readSDKProductRuntime(root,expected.sourceCommit)?.public.sourceVariant:undefined;
+  return selectedRelocationRules(sdk.version,variant).map(rule=>{
     const source=execFileSync("git",["show",`${expected.sourceCommit}:${rule.sourcePath}`],{cwd:root,maxBuffer:16*1024*1024});
-    const output=relocateDesktopRuntimeSource(rule.sourcePath,source,sdk.version);
+    const output=relocateDesktopRuntimeSource(rule.sourcePath,source,sdk.version,variant);
     return {...rule,gitBlob:git(root,"rev-parse",`${expected.sourceCommit}:${rule.sourcePath}`),inputBytes:source.length,inputSHA256:digest(source),emittedBytes:output.bytes.length,emittedSHA256:digest(output.bytes),operands:output.operands,source,output:output.bytes};
   });
 }
@@ -497,7 +504,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     const packed = asar.extractFile(archive, path.normalize(packedName));
     // Evidence data is never interpreted as runtime or relocated. This exact
     // closed subset can contain source-inspection operands in its test body.
-    const emitted=product?.contents.get(packedName)??(nativeBuildEvidenceAssets.includes(name)?source:relocateDesktopRuntimeSource(name,source,sdkMetadata.version).bytes);
+    const emitted=product?.contents.get(packedName)??(nativeBuildEvidenceAssets.includes(name)?source:relocateDesktopRuntimeSource(name,source,sdkMetadata.version,product?.public.sourceVariant).bytes);
     if (!emitted.equals(packed)) throw new Error(`Packaged source differs: ${name}`);
     verified.push({ path: packedName, bytes: packed.length, sha256: digest(packed) });
   }

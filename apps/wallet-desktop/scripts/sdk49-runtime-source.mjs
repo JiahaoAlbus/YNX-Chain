@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {SDK49_DAEMON_AUTH,SDK49_DAEMON_UNION} from './sdk49-daemon-profile.mjs';
 export const SDK49_VERSION='1.3.0-pq.3.32-auth.49';
 export const SDK49_SOURCE_COMMIT='ef7493e6718ac7edc11e7d7cbf8f5812313cbf05';
 export const SDK49_SOURCE_VARIANT='SDK49-NATIVE-READ-LEASE-ISSUER/v1';
@@ -18,9 +19,10 @@ function table(raw,pin){
  return j;
 }
 export function verifySDK49FullRuntimeTables(authRaw,unionRaw){
- const auth=table(authRaw,SDK49_FULL_AUTH),union=table(unionRaw,SDK49_FULL_UNION),rows=new Map(union.files.map(r=>[r.path,r]));
+ const daemon=matches(unionRaw,SDK49_DAEMON_UNION),authPin=daemon?SDK49_DAEMON_AUTH:SDK49_FULL_AUTH,unionPin=daemon?SDK49_DAEMON_UNION:SDK49_FULL_UNION;
+ const auth=table(authRaw,authPin),union=table(unionRaw,unionPin),rows=new Map(union.files.map(r=>[r.path,r]));
  for(const row of auth.files){const found=rows.get(row.path);if(!found||found.bytes!==row.bytes||found.sha256!==row.sha256)fail();}
- return {authFiles:597,unionFiles:9457,fullAuthSubsetOfFullUnion:true,NativeAdmission:false};
+ return {authFiles:authPin.files,unionFiles:unionPin.files,fullAuthSubsetOfFullUnion:true,NativeAdmission:false};
 }
 function read(root,name,pin){
  if(!relative(name))fail();const file=path.join(root,name),before=fs.lstatSync(file);
