@@ -915,8 +915,8 @@
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 19929,
-    "sha256": "071d390c68d0e0a722b32440c2c0daeccd21f15eff7dfeed1b59b2a6ccbe7075"
+    "bytes": 28035,
+    "sha256": "ddb4ea02ce889bdc72ac0399eb1b8db6dfc2f249a679acbe83da002f09a4f34c"
   },
   "require": {
     "translationUnits": 15,
@@ -2557,17 +2557,43 @@
     "purpose": "product-session-device-pending-source-v4",
     "requiredFeatureMacros": [
       "YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE",
+      "YNX_ORIGINAL_PRODUCT_DEVICE_V4_HTTP_PRODUCER_STAGE",
       "YNX_ORIGINAL_PRODUCT_DEVICE_V4_PENDING_STAGE"
     ],
     "requiredProtocolExports": [
+      "YNXProductSessionHTTPProofSignV4",
       "YNXProductSessionDeviceRegistrationSignV4",
       "YNXProductSessionDeviceChallengeSignV4"
     ],
-    "pendingNormalBuildPlanSupplied": false,
-    "actualProtocolLibrarySupplied": false,
+    "pendingNormalBuildPlanSupplied": true,
+    "actualProtocolLibrarySupplied": true,
     "compiledAdmissionRows": [],
     "oldNative117QualificationInherited": false,
     "SourceAdmission": false,
-    "installed": false
+    "installed": false,
+    "normalR2Supplier": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-v4-pending-normal-linked-20261031-r2/HANDOFF.json",
+      "bytes": 25091,
+      "sha256": "28d2e616d095847d0cba820f334e676b7308dcf0194d7f7f4968bc1211a6cfee"
+    },
+    "fixedProtocolLinkPins": [
+      {
+        "name": "libynx_artifact_release.a",
+        "bytes": 11192240,
+        "sha256": "dcaca724942436806f564477f8729cce3ba03cdbc5621611c9d704bb12cf8a72"
+      },
+      {
+        "name": "SOURCE.json",
+        "bytes": 23152,
+        "sha256": "0b8df0e0fd73b9cff0ad34118a2de097b6b9ab9cc53b1a1e281ab3462186bd7f"
+      }
+    ],
+    "componentBoundary": "SDK raw83521 arm64 Node26.7 normal component only; Main body and Electron/installation require separate matching selection",
+    "combinedGETAndPendingPlan": "SOURCE+HTTP+PENDING same image, 20 translation units plus link; raw SDK profile only, no Main/Electron or Source admission inheritance",
+    "normalCombinedSupplier": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-normal-factory-service-20261031-r1/HANDOFF.json",
+      "bytes": 30826,
+      "sha256": "f8e5ef859ac2ef6f63112de6b35bb99738daf4c14e8cc749f3b1af2a7e978567"
+    }
   }
 }
