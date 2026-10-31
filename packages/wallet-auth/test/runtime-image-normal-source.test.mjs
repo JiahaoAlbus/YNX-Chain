@@ -1,0 +1,4 @@
+import test from'node:test';import assert from'node:assert/strict';
+import{acquireOriginalAuthRuntimeImageAdmissionV1 as acquire,assertOriginalAuthRuntimeImagePreLoadCurrentV1 as current}from'../src/original-auth-runtime-image-source-v1.js';
+import{loadOriginalAuthIdentityNativeImage as load}from'../src/original-auth-identity-fixed-native-image.js';
+test('new actual normal zero-input Source and loader refuse before unavailable Native image; no fallback or caller material',async()=>{const r=await acquire();assert.equal(r.owner,null);assert.equal(r.error.code,'AUTH_RUNTIME_IMAGE_ADMISSION_NOT_SUPPLIED');assert.throws(()=>current(),{code:'AUTH_RUNTIME_IMAGE_ADMISSION_NOT_SUPPLIED'});assert.throws(()=>load(),{code:'AUTH_RUNTIME_IMAGE_ADMISSION_NOT_SUPPLIED'});await assert.rejects(acquire({approved:true}),{code:'AUTH_IMAGE_SOURCE_ZERO_INPUT'});assert.throws(()=>current({approved:true}),{code:'AUTH_IMAGE_SOURCE_ZERO_INPUT'})});

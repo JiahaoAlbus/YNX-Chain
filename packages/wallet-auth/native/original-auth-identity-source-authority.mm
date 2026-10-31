@@ -24,6 +24,7 @@
 #include <vector>
 #include "original-ide-auth-proof-data.h"
 #include "original-auth-source-v2-native-data.h"
+#include "original-auth-runtime-image-source-internal.h"
 #include "original-ide-project-app-observer.h"
 #include "original-ide-project-app-observer-data.h"
 
@@ -63,6 +64,8 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  ynx_auth_private::DeviceAssociationIdentity _httpV5SameItem;
  uint64_t _httpV5Deadline,_httpV5MonoAnchor,_httpV5WallAnchor;
  unsigned _httpV5Loans;
+ unsigned _runtimeImageLoans;
+ NSError *_runtimeImageCloseCause;
  BOOL _productHTTPV5,_httpV5ItemSelected;
  NSError *_httpV5CloseCause;
  BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry,_walletPQCatalog,_productDeviceV4,_productDeviceV4Pending,_productDeviceV4Provisioning,_productDeviceV4Query,_productDeviceV4RegisteredFinalization;
@@ -435,6 +438,39 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }
 }
 - (NSDictionary *)copyOriginalSelection:(NSError **)error {if(![self assertAuthenticatedNativePurpose:error])return nil;NSDictionary *original=[_selection copy];if(![self heldCurrent:error])return nil;return original;}
+- (BOOL)checkOriginalRuntimeImageBinding:(NSDictionary *)binding error:(NSError **)error {
+ @synchronized(self){
+  if([self class]!=YNXAuthIdentitySourceAuthority.class||!_policy||
+    !((_productHTTPV5&&_policy->purpose=="product-session-device-http-binary-source-v5")||
+      (_productDeviceV4RegisteredFinalization&&_policy->purpose=="product-session-device-registered-finalization-source-v4")))
+   return [self fail:@"AUTH_RUNTIME_IMAGE_DEDICATED_PURPOSE_REQUIRED" error:error];
+  if(![self assertAuthenticatedNativePurpose:error])return NO;
+  NSDictionary *actual=_selection[@"runtimeImageBindingV1"];
+  // Only the sole SDK mathematically checked selection, never profile hints.
+  if(![actual isKindOfClass:NSDictionary.class])return [self fail:@"AUTH_RUNTIME_IMAGE_BINDING_V1_NOT_SUPPLIED" error:error];
+  if(binding&&![actual isEqual:binding])return [self fail:@"AUTH_RUNTIME_IMAGE_BINDING_CHANGED" error:error];
+  return [self heldCurrent:error];
+ }
+}
+- (NSDictionary *)retainOriginalRuntimeImageBinding:(NSError **)error {
+ @synchronized(self){
+  if(![self checkOriginalRuntimeImageBinding:nil error:error])return nil;
+  NSData *raw=[NSJSONSerialization dataWithJSONObject:_selection[@"runtimeImageBindingV1"] options:NSJSONWritingSortedKeys error:nil];
+  NSDictionary *copy=raw.length&&raw.length<=32768?[NSJSONSerialization JSONObjectWithData:raw options:0 error:nil]:nil;
+  if(!copy||![self checkOriginalRuntimeImageBinding:copy error:error])return nil;
+  if(_runtimeImageLoans==UINT_MAX)return [self fail:@"AUTH_RUNTIME_IMAGE_LOAN_OVERFLOW" error:error],nil;
+  ++_runtimeImageLoans;return copy;
+ }
+}
+- (BOOL)finishOriginalRuntimeImageBinding:(NSDictionary *)binding error:(NSError **)error {
+ @synchronized(self){
+  if(![self heldCurrent:error]||!binding||![_selection[@"runtimeImageBindingV1"]isEqual:binding]||
+    !_cachedCurrentExpiresMS||_cachedCurrentExpiresMS<=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0))
+   return [self fail:@"AUTH_RUNTIME_IMAGE_TERMINAL_CURRENT_EXPIRED" error:error];
+  return YES;
+ }
+}
+- (void)releaseOriginalRuntimeImageLoan {@synchronized(self){if(_runtimeImageLoans)--_runtimeImageLoans;else [self fail:@"AUTH_RUNTIME_IMAGE_LOAN_UNDERFLOW" error:nil];}}
 - (NSDictionary *)copyOriginalWalletPQHostCatalogContext:(NSError **)error {
  @synchronized(self){
   if(!_walletPQCatalog||!_policy||_policy->purpose!="wallet-pq-host-catalog-source-v1"||![self assertAuthenticatedNativePurpose:error])return [self fail:@"PQ_HOST_DEDICATED_SOURCE_OWNER_REQUIRED" error:error],nil;
@@ -631,16 +667,17 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }
 }
 - (void)retire {@synchronized(self){_retired=YES;[_helperClient retire];[_custody retire];}}
-- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_httpV5Loans)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
+- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_httpV5Loans||_runtimeImageLoans)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
 - (BOOL)close:(NSError **)error {
- @synchronized(self){[self retire];if(_productHTTPV5&&_httpV5Loans){if(!_httpV5CloseCause)_httpV5CloseCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"PRODUCT_HTTP_V5_REGISTERED_CHILDREN_RETAINED"}];if(error)*error=_httpV5CloseCause;return NO;}if(_closeSelected){if(error)*error=_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause;}
+ @synchronized(self){[self retire];if(_runtimeImageLoans){if(!_runtimeImageCloseCause)_runtimeImageCloseCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_RUNTIME_IMAGE_CHILDREN_RETAINED"}];if(error)*error=_runtimeImageCloseCause;return NO;}}
+ @synchronized(self){[self retire];if(_productHTTPV5&&_httpV5Loans){if(!_httpV5CloseCause)_httpV5CloseCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"PRODUCT_HTTP_V5_REGISTERED_CHILDREN_RETAINED"}];if(error)*error=_httpV5CloseCause;return NO;}if(_closeSelected){if(error)*error=_runtimeImageCloseCause?:_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause&&!_runtimeImageCloseCause;}
   if(![self join:error])return NO;_closeSelected=YES;BOOL filesClosed=YES;
   if(_helperClient){NSError*clientError=nil;if(![_helperClient close:&clientError]||clientError){_cleanupCause=clientError?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_HELPER_CLIENT_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return NO;}_helperClient=nil;}
   if(_publicInstallation&&!_publicInstallation->close()){
    _cleanupComplete=NO;_cleanupCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_RECEIVER_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return NO;
   }
   for(auto &file:_files){if(file.selected){if(!file.complete)filesClosed=NO;continue;}file.selected=true;file.complete=::close(file.fd)==0;if(!file.complete)filesClosed=NO;}if(![self closeHeldPipes])filesClosed=NO;
-  NSError *cause=nil;BOOL custodyClosed=!_custody||[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause;}
+  NSError *cause=nil;BOOL custodyClosed=!_custody||[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_runtimeImageCloseCause?:_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause&&!_runtimeImageCloseCause;}
 }
 @end
 
