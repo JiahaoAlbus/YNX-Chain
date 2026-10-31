@@ -18,6 +18,7 @@ import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-poli
 import {DesktopWalletAuthority,MemoryPermissionStore} from '../src/desktop-wallet-authority.mjs';
 import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
 import {createPQOriginalRecord} from '../src/wallet-pq-intent-record.mjs';
+import {createPQTransferPreview} from '../src/wallet-pq-transfer-preview.mjs';
 import {createOriginalNativePQCustody} from '../src/wallet-pq-native-custody.mjs';
 import {encodeObservedPolicyOriginal} from '../src/original-policy-supplier/operator-policy-original.mjs';
 import {captureCometPolicyObservation} from '../src/original-policy-supplier/comet-projection.mjs';
@@ -361,6 +362,53 @@ test('normal independent approval calls Native TX custody once and saves the sam
 test('normal Native TX late lock retains its public Member and explicit later local save never signs again',async t=>{
  const f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true}),out=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'})),capture=f.store.capturePQTransferMember.bind(f.store);f.store.capturePQTransferMember=(...args)=>{const value=capture(...args);f.lifecycle.lock('focus-lost');return value;};
  const capsule=transactionAuth.captureOriginalWalletTransactionApprovalIPC(createPublicWalletEvent(),out.request.id,'sign');t.after(()=>transactionAuth.retireUnusedOriginalWalletTransactionApproval(capsule));await assert.rejects(f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule)));const retained=f.store.localOriginal(f.account).pq;assert(retained.wire.length>1000);assert.equal(f.native.counts.once,1);assert.equal(f.native.counts.release,1);await f.lifecycle.unlock({password:PASSWORD});assert.equal((await f.lifecycle.run(()=>f.store.saveOriginal(f.account,retained.hash,()=>f.lifecycle.current().assert()))).savedLocally,true);assert.equal(f.native.counts.once,1);
+});
+test('T-P01-03 a returned Native member cannot replace the durable intent operation or transfer',async t=>{
+ for(const changed of ['operation','amount','recipient','nonce']){
+  const f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true});
+  const out=await f.lifecycle.run(()=>f.authority.previewTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));
+  if(changed==='operation'){
+   const capture=f.store.capturePQTransferMember.bind(f.store);
+   f.store.capturePQTransferMember=(account,member)=>capture(account,member,{operationId:'different-original-operation'});
+  }else{
+   const {snapshot,transfer}=syntheticTransfer(f);
+   const replacement={...transfer,...(changed==='amount'?{amount:'4'}:changed==='recipient'?{to:'0x'+'3'.repeat(40)}:{nonce:(BigInt(transfer.nonce)+1n).toString()})};
+   const differentPolicy=changed==='nonce'?parsePQAccountAuthorization({...snapshot,ledgerNonce:transfer.nonce},{chainId:CHAIN,nativeChainId:'6423',owner:f.account}):snapshot;
+   f.native.setPublicMember(SDK.signPQWalletNativeTransfer(f.handle,replacement,differentPolicy).body);
+  }
+  const capsule=transactionAuth.captureOriginalWalletTransactionApprovalIPC(createPublicWalletEvent(),out.request.id,'sign');
+  t.after(()=>transactionAuth.retireUnusedOriginalWalletTransactionApproval(capsule));
+  await assert.rejects(f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule)));
+  const retained=f.store.localOriginal(f.account);
+  assert(retained.pqMemberData.length>1000,'first public member remains in custody');
+  assert.equal(retained.pq,null,'mismatched result is not a normally saveable signed original');
+  assert.deepEqual((await f.store.unresolvedPreparation(f.account)).intent,out.preview);
+  assert.equal((await f.store.readPQOriginals(f.account,()=>{})).length,0);
+  await assert.rejects(f.store.reserveOriginal(f.account,'pq-transfer',{intent:out.preview}));
+  const reopened=new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')});
+  assert.deepEqual((await reopened.unresolvedPreparation(f.account)).intent,out.preview);
+  await assert.rejects(reopened.reserveOriginal(f.account,'pq-transfer',{intent:out.preview}));
+  assert.equal(f.native.counts.once,1);
+ }
+});
+test('T-P01-03 local save cannot erase a different valid intent after the original Native result was retained',async t=>{
+ const f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true});
+ const out=await f.lifecycle.run(()=>f.authority.previewTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));
+ const capture=f.store.capturePQTransferMember.bind(f.store);
+ f.store.capturePQTransferMember=(...args)=>{const result=capture(...args);f.lifecycle.lock('focus-lost');return result;};
+ const capsule=transactionAuth.captureOriginalWalletTransactionApprovalIPC(createPublicWalletEvent(),out.request.id,'sign');
+ t.after(()=>transactionAuth.retireUnusedOriginalWalletTransactionApproval(capsule));
+ await assert.rejects(f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule)));
+ const original=f.store.localOriginal(f.account).pq,filePath=path.join(f.directory,'journal.json');
+ const state=JSON.parse(await fs.readFile(filePath,'utf8'));
+ state.preparations[0].intent=createPQTransferPreview({...out.request,review:{...out.request.review,amount:'4'}},{account:f.account,networkId:CHAIN});
+ const changed=JSON.stringify(state);await fs.writeFile(filePath,changed,{mode:0o600});
+ await f.lifecycle.unlock({password:PASSWORD});
+ await assert.rejects(f.lifecycle.run(()=>f.store.saveOriginal(f.account,original.hash,()=>f.lifecycle.current().assert())));
+ assert.equal(await fs.readFile(filePath,'utf8'),changed);
+ assert.equal(f.store.localOriginal(f.account).pq,original);
+ assert.equal((await f.store.readPQOriginals(f.account,()=>{})).length,0);
+ assert.equal(f.native.counts.once,1);
 });
 test('normal Native TX missing role or raw operand refuses before reservation, key entry or submit',async t=>{
  for(const missing of ['role','raw']){

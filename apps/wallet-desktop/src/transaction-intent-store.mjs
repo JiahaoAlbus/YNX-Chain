@@ -20,7 +20,7 @@ import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause
 import {parseSessionPublication,sessionPublicationIdentity} from './wallet-session-publication.mjs';
 import {initialPQProgress,parsePQProgress,capturePQProgressResult,mergePQProgressResult,pqProgressCause,pqProgressCoreEqual,pqSavedCustodyResult,PQ_PROGRESS_RESPONSE_BYTES} from './wallet-pq-progress.mjs';
 import {parsePQFinalityRecord,pqFinalityRecordGeneration,pqFinalityRecordsConflict} from './wallet-pq-finality-record.mjs';
-import {parsePQTransferPreviewIntent} from './wallet-pq-transfer-preview.mjs';
+import {parsePQTransferPreviewIntent,assertPQTransferIntentOriginal} from './wallet-pq-transfer-preview.mjs';
 import {retainPQTypedHTTPResponse} from './wallet-pq-typed-progress.mjs';
 import {readPQVerifiedFinalityTerminal,parsePQFinalityTerminalData,parsePQFinalityHistoryEntry,pqFinalityHistoryCore} from './wallet-pq-finality-terminal.mjs';
 
@@ -306,7 +306,7 @@ export class FileTransactionIntentStore {
       }catch(cause){this.originalFailed(account,cause);throw cause}
     }
     const captured=PQ_ORIGINAL_KINDS.includes(kind)?parsePQOriginalRecord(value):freezePublic(JSON.parse(JSON.stringify(value)));
-    if(PQ_ORIGINAL_KINDS.includes(kind)){const parsed=parsePQOriginalRecord(captured);if(parsed.kind!==kind||parsed.account!==account||slot.kind!==kind||slot.pq&&canonicalJSON(slot.pq)!==canonicalJSON(parsed))throw invalid();slot.pq=parsed;}
+    if(PQ_ORIGINAL_KINDS.includes(kind)){const parsed=parsePQOriginalRecord(captured);if(parsed.kind!==kind||parsed.account!==account||slot.kind!==kind||slot.pq&&canonicalJSON(slot.pq)!==canonicalJSON(parsed))throw invalid();if(slot.intent)assertPQTransferIntentOriginal(slot.intent,parsed);slot.pq=parsed;}
     else if(kind==="pay"){assertDesktopSignedPayStorage(captured);if(evmAddressFromYNX(captured.account)!==account||slot.kind!=="pay")throw invalid();if(slot.pay&&canonicalJSON(slot.pay)!==canonicalJSON(captured))throw invalid();slot.pay=Object.freeze(captured)}
     else{if(kind!=='native'||PQ_ORIGINAL_KINDS.includes(slot.kind))throw invalid();if(slot.native&&canonicalJSON(slot.native)!==canonicalJSON(captured))throw invalid();slot.native=Object.freeze(captured)}
     return slot;
@@ -435,8 +435,12 @@ export class FileTransactionIntentStore {
         const state=await this.#read();current();
         if(state.schemaVersion<6||!state.preparations.some(x=>x.account===account&&x.kind===slot.kind)||state.pqOriginals.some(x=>x.account===account))throw invalid();
         const original=parsePQOriginalRecord(slot.pq);
-        const next={...state,pqOriginals:[...state.pqOriginals,original],preparations:state.preparations.filter(x=>x.account!==account)};
         const marker=state.preparations.find(x=>x.account===account&&x.kind===slot.kind);
+        if(slot.intent){
+          if(!marker.intent||canonicalJSON(marker.intent)!==canonicalJSON(slot.intent))throw invalid();
+          assertPQTransferIntentOriginal(marker.intent,original);
+        }
+        const next={...state,pqOriginals:[...state.pqOriginals,original],preparations:state.preparations.filter(x=>x.account!==account)};
         const budget=slot.kind==='pq-typed-action'?(marker.maxBytes??PRIVATE_FILE_MAX_BYTES):PQ_ORIGINAL_RESERVE_BYTES;
         const remaining=next.preparations.filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).reduce((sum,x)=>sum+(x.kind==='pq-typed-action'?(x.maxBytes??PRIVATE_FILE_MAX_BYTES):PQ_ORIGINAL_RESERVE_BYTES),0);
         // A successful save must not consume space promised to another original

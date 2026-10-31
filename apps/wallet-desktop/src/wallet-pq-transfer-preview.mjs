@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {canonicalJSON} from '@ynx-chain/wallet-auth';
-import {encodePQNativeTransfer} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {encodePQNativeTransfer,decodePQTransferRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {pqTransferReviewBinding,exactData} from './features/pq-transaction/transfer-binding.mjs';
 
 const bind=bytes=>Object.freeze({bytes:String(bytes.length),sha3_512:createHash('sha3-512').update(bytes).digest('hex'),sha512:createHash('sha512').update(bytes).digest('hex')});
@@ -26,4 +26,15 @@ export function parsePQTransferPreviewIntent(value,account){
  const expected=createPQTransferPreview(request,{account,networkId:value.networkId});
  if(canonicalJSON(value)!==canonicalJSON(expected))throw Object.assign(Error('Stored transfer intent differs from its exact original review'),{code:'PQ_TRANSFER_INTENT_BINDING'});
  return expected;
+}
+/** Check a captured PUBLIC signed result against its pre-Native intent.
+ * This is a local identity check, never signature verification or permission.
+ * The caller retains the first native member before entering this check.
+ */
+export function assertPQTransferIntentOriginal(intent,original){
+ const reviewed=parsePQTransferPreviewIntent(intent,original.account);
+ const {transfer}=decodePQTransferRequest(Buffer.from(original.wire,'base64url'));
+ if(original.kind!=='pq-transfer'||original.operationId!==reviewed.id||
+    canonicalJSON(bind(Buffer.from(encodePQNativeTransfer(transfer))))!==canonicalJSON(reviewed.transactionBinding))
+  throw Object.assign(Error('Keep the returned original; it differs from the durable signing intent'),{code:'PQ_TRANSFER_INTENT_RESULT_MISMATCH'});
 }
