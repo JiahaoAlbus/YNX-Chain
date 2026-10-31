@@ -43,3 +43,9 @@ still uses one fixed internal tool; HTTP, proof profiles and GUI inputs cannot
 select an executable. This QA intake is separate from publisher signing and
 Source qualification. Original proof/context formats, clock and network gates
 remain the original tool's responsibility.
+
+The bundle's minimum macOS version is read from all packaged executable load
+commands and recorded in `qa-build.json` and `Info.plist`. A supplied verifier
+can require a newer macOS than the native launcher's baseline; that artifact
+does not establish compatibility with earlier systems. Building on a host
+older than the effective deployment target is refused.
