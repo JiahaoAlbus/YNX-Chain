@@ -27,6 +27,8 @@ export function signPQWalletCurrentMigration(handle: PQWalletKeyHandle, intent: 
 /** Protected main only, within original pending review/keyAccess/permission guards.
  * No generic raw signer, classic fallback, RPC effect or new permission engine. */
 export function signPQWalletProductSessionApproval(handle:PQWalletKeyHandle,reviewPlan:PQProductSessionSigningPlan,at?:Date):PQProductSessionApproval;
+/** Independent Main v4 account approval; no creation consent or device key. */
+export function signPQWalletProductSessionApprovalV4(handle:PQWalletKeyHandle,reviewPlan:import('./product-session-pq-v4-codec.js').PQProductSessionApprovalV4SigningPlan,at?:Date):import('./product-session-pq-v4-codec.js').ProductSessionApprovalV4;
 
 /** Current active registered pair only, N1 Member ACCOUNT-REVOCATION. Original
  * App pending review/keyAccess guards before/after and fresh node fence required.

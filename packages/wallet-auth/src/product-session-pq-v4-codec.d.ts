@@ -1,6 +1,10 @@
 import type {ProductSessionRequestV4,ProductSessionV4} from './index.js';
 import type {ProductSessionAccountPolicyObservation} from './product-session-account-policy.js';
 import type {VerifiedPQProductSessionApproval,ProductSessionAccountAuthorization} from './product-session-pq-approval.js';
+declare const originalV4AccountPlan:unique symbol;
+/** Opaque Main account plan; not a user permission, Source or custody grant. */
+export interface PQProductSessionApprovalV4SigningPlan {readonly [originalV4AccountPlan]:never}
+export function preparePQProductSessionApprovalV4(registry:unknown,request:ProductSessionRequestV4,input:Readonly<{account:string;expiresAt:string}>,policy:ProductSessionAccountPolicyObservation,registrationOriginal:Uint8Array,at?:Date):PQProductSessionApprovalV4SigningPlan;
 /** Exact public DATA shapes of the existing v4 codec. These types carry no
  * original Source/Native brand, key, approval or signing capability. */
 export type ProductSessionApprovalUnsignedV4 = Readonly<

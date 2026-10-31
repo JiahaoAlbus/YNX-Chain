@@ -5,6 +5,7 @@ import {canonicalJSON,WalletAuthError} from './canonical.js';import {exactPQReco
 import {parseProductSessionRequest,parseProductSessionChallenge,productSessionRequestDigest,productSessionApprovalDigest,createProductSessionChallenge,deriveProductSessionV4TargetData} from './product-session-v2.js';
 import {readAccountPolicyObservation,accountAuthorizationFromView,registerVerifiedPQSessionApproval} from './product-session-account-private.js';
 import {inspectProductSessionDeviceRegistrationOriginalV4Data} from './product-session-device-registration-v4.js';import {evmAddressFromYNX} from './crypto.js';
+import{registerPQProductSessionV4SigningPlan}from'./product-session-pq-v4-signing-private.js';
 export const PRODUCT_SESSION_APPROVAL_DOMAIN_V4='YNX-PRODUCT-SESSION-APPROVAL/v4';
 export const PRODUCT_SESSION_DEVICE_CHALLENGE_DOMAIN_V4='YNX-PRODUCT-SESSION-DEVICE-CHALLENGE/v4';
 const fail=code=>{throw new WalletAuthError(code,code);};
@@ -34,6 +35,13 @@ export function verifyProductSessionApprovalV4Data(registry,request,approval,pol
  const fresh=accountAuthorizationFromView(readAccountPolicyObservation(policyRef,approval.account,at));if(canonicalJSON(fresh)!==canonicalJSON(a))fail('ACCOUNT_POLICY_CHANGED');
  verifyMember(pqDecodeBase64url(walletProof,{max:98304}),a.networkId,a.canonicalOwner,'PRODUCT-SESSION-APPROVAL',prepared.message,a.pkA,a.pkB);
  const value=Object.freeze({...prepared.unsigned,walletProof});return Object.freeze({approval:value,verifiedApproval:registerVerifiedPQSessionApproval(value,value.requestDigest,policyRef),signatureVerified:true,dataOnly:true,NativeAdmission:false,SourceAdmission:false});
+}
+/** Main-only typed plan after its independent account review. Existing Vault
+ * permission/current/journal fences remain required; creation consent cannot
+ * supply them. No caller message, key, signer or approved flag is accepted. */
+export function preparePQProductSessionApprovalV4(registry,request,input,policyRef,registrationOriginal,at=new Date()){
+ const data=prepareProductSessionApprovalV4Data(registry,request,input,policyRef,registrationOriginal,at);
+ return registerPQProductSessionV4SigningPlan(Object.freeze({policyRef,unsigned:data.unsigned,message:Buffer.from(data.message),purpose:data.purpose}));
 }
 export function encodeProductSessionDeviceChallengeV4Message(challenge,registrationOriginal){
  const c=parseProductSessionChallenge(challenge),r=recordFor(c,registrationOriginal,c.account,new Date(c.issuedAt));if(c.version!=='4'||c.expiresAt>r.expiresAt||c.sessionExpiresAt>r.expiresAt||c.accountAuthorization.networkId!==r.networkId)fail('PQ_PAIRING_ORIGINAL_MISMATCH');

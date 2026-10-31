@@ -299,6 +299,12 @@
       "browser": null,
       "node": "./src/original-device-create-intent.js",
       "default": null
+    },
+    "./original-product-device-v4-registration-client": {
+      "types": "./src/original-product-device-v4-registration-client.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-registration-client.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",

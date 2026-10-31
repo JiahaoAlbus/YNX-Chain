@@ -9,6 +9,7 @@ import {encodePQNativeTransfer, encodePQRegistrationIntent, normalizePQRegistrat
 import {planPQNativeAction, planPQNativeTransfer, planPQAccountMigration} from './pq-wallet-policy.js';
 import {planPQAccountRevocation} from './pq-wallet-policy.js';
 import {capturePQSessionSigningPlan} from './product-session-account-private.js';
+import{capturePQProductSessionV4SigningPlan,beginPQProductSessionV4SigningPlan}from'./product-session-pq-v4-signing-private.js';
 import {AUTH_IDENTITY_PURPOSES,parseOriginalAuthIdentityRequest,inspectOriginalAuthIdentityRequest,encodeOriginalAuthIdentityRequest} from '../native/original-auth-identity-v2-contract.mjs';
 import {assertPQRegisteredRecoveryBindingData,verifyPQRegisteredMemberData} from './pq-registered-member.js';
 import {verifyOriginalAuthIdentityMemberData} from './auth-identity-verification.js';
@@ -170,6 +171,16 @@ export function signPQWalletProductSessionApproval(handle, reviewPlan, at=new Da
   const wire=signOne(handle,state,plan.message,plan.purpose,false);
   capturePQSessionSigningPlan(reviewPlan,at);live(handle);
   return Object.freeze({...plan.unsigned,walletProof:wire.toString('base64url')});
+}
+/** Fixed v4 account approval, using the existing account handle and full AND
+ * engine. No device key, new key generation or raw message is accepted. */
+export function signPQWalletProductSessionApprovalV4(handle,reviewPlan,at=new Date()){
+ const plan=capturePQProductSessionV4SigningPlan(reviewPlan,at),state=live(handle),a=plan.unsigned.accountAuthorization;
+ signingBinding(state,{chainId:a.networkId,owner:a.canonicalOwner},a.pkA,a.pkB);
+ beginPQProductSessionV4SigningPlan(reviewPlan,at);
+ const wire=signOne(handle,state,plan.message,plan.purpose,false);
+ capturePQProductSessionV4SigningPlan(reviewPlan,at);live(handle);
+ return Object.freeze({...plan.unsigned,walletProof:wire.toString('base64url')});
 }
 
 /** Original App review/keyAccess guards and current-policy fences remain mandatory
