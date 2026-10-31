@@ -100,8 +100,9 @@ func run() (exitCode int) {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})
 	productHandler, retireNativeSource, closeNativeSource := normalNativePayHandler(service, build, logger)
+	var nativeDrainErr error
 	defer func() {
-		if err := closeNativeSource(); err != nil {
+		if err := closeNativePayAfterDrain(nativeDrainErr, closeNativeSource); err != nil {
 			logger.Error("native_source_cleanup_pending", "source_ready", false)
 			exitCode = 1
 		}
@@ -123,12 +124,23 @@ func run() (exitCode int) {
 	}
 	if stopContext.Err() != nil {
 		if err := <-shutdownDone; err != nil {
+			nativeDrainErr = err
 			logger.Error("service_drain_pending", "service", "ynx-pay-product")
 			return 1
 		}
 	}
 	return 0
 }
+
+// A failed drain leaves original requests in flight. Keep the Source cleanup
+// debt and its first cause; never release its held originals under those users.
+func closeNativePayAfterDrain(drainErr error, closeSource func() error) error {
+	if drainErr != nil {
+		return drainErr
+	}
+	return closeSource()
+}
+
 func positiveInt(name string) int64 {
 	v, err := strconv.ParseInt(required(name), 10, 64)
 	if err != nil || v <= 0 {

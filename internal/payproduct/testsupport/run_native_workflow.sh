@@ -17,6 +17,11 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-drain ]; then
+ cp "$source_dir/cmd/ynx-pay-productd"/*.go "$composition/internal/payproduct/cmd/ynx-pay-productd/"
+ go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl' ./internal/payproduct/cmd/ynx-pay-productd -run '^TestNativeSourceSurvivesActualHTTPDrainTimeout$' -count=1 -timeout=1m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = auth-normal-host ]; then
  cp -R "$source_dir/nativehost" "$composition/internal/payproduct/"
  cp "$source_dir/cmd/ynx-pay-productd"/*.go "$composition/internal/payproduct/cmd/ynx-pay-productd/"
