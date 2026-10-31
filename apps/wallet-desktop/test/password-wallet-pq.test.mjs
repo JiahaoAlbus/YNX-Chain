@@ -26,7 +26,7 @@ import {sessionOriginalCause} from '../src/wallet-session-original.mjs';
 import {createPQTransferReviewUI} from '../src/wallet-pq-transfer-ui.mjs';
 import {createPQMigrationReviewUI} from '../src/wallet-pq-migration-ui.mjs';
 import {runInNewContext} from 'node:vm';
-import {registerHooks} from 'node:module';
+import {registerHooks,createRequire} from 'node:module';
 import {createPublicWalletEvent} from './public-transaction-electron-fixture.mjs';
 // Test worker only: real Auth factory, explicit PUBLIC Electron peer model.
 registerHooks({resolve(specifier,context,next){return next(specifier==='electron'?new URL('./public-transaction-electron-fixture.mjs',import.meta.url).href:specifier,context);}});
@@ -901,4 +901,12 @@ test('device-create fixed Native capture reader refuses injected methods and cop
   assert.throws(()=>device.readOriginalWalletDeviceCreateApprovalForNative(value),{code:'AUTH_DEVICE_CREATE_APPROVAL_PEER_REQUIRED'});assert.throws(()=>device.assertOriginalWalletDeviceCreateApprovalCurrentForNative(value));await assert.rejects(device.recheckOriginalWalletDeviceCreateApprovalForNative(value));
  }
  assert.equal(invoked,0);peer.close();assert.throws(()=>device.readOriginalWalletDeviceCreateApprovalForNative(peer));assert.equal(event.sender.listenerCount('destroyed'),0);
+});
+
+test('device-create fixed createRequire namespace recognizes the same original Main peer instance',async t=>{
+ const f=await deviceCreateFixture(t),{review}=f.prepare(),capsule=device.captureOriginalWalletDeviceCreateApprovalIPC(createPublicWalletEvent(),review),peer=device.claimOriginalWalletDeviceCreateApproval(capsule,review);t.after(()=>peer.close());
+ const fixed=createRequire(import.meta.url)(fileURLToPath(new URL('../src/original-policy-supplier/device-create-approval.mjs',import.meta.url)));
+ assert.equal(fixed.isOriginalWalletDeviceCreateApprovalPeer,device.isOriginalWalletDeviceCreateApprovalPeer);assert.equal(fixed.readOriginalWalletDeviceCreateApprovalForNative,device.readOriginalWalletDeviceCreateApprovalForNative);assert.equal(fixed.isOriginalWalletDeviceCreateApprovalPeer(peer),true);
+ assert.equal(fixed.readOriginalWalletDeviceCreateApprovalForNative(peer).decision,peer.readOriginalDecision());assert.equal(fixed.assertOriginalWalletDeviceCreateApprovalCurrentForNative(peer),undefined);await f.lifecycle.run(()=>fixed.recheckOriginalWalletDeviceCreateApprovalForNative(peer));
+ assert.equal(fixed.isOriginalWalletDeviceCreateApprovalPeer({...peer}),false);assert.throws(()=>fixed.readOriginalWalletDeviceCreateApprovalForNative({...peer}));peer.close();assert.throws(()=>fixed.assertOriginalWalletDeviceCreateApprovalCurrentForNative(peer));
 });
