@@ -432,6 +432,22 @@ export class ProductSessionGatewayNodeHost {
     const credential=await this.revalidateOriginalDeveloperHTTPRequest(input);
     return await this.#originalPrincipalResult(credential);
   }
+  // Actual V5 opaque credential -> the existing registered Root project
+  // Source. No session DTO, restored credential or caller Source is accepted.
+  async currentExistingDeveloperPrincipalV5(input){
+    assertOriginalDeveloperPrincipalSource(this.#authSourceCurrent);
+    return this.#originalPrincipalResultV5(await this.authenticateOriginalDeveloperHTTPRequestV5(input));
+  }
+  async recheckExistingDeveloperPrincipalV5(input){
+    assertOriginalDeveloperPrincipalSource(this.#authSourceCurrent);
+    return this.#originalPrincipalResultV5(await this.revalidateOriginalDeveloperHTTPRequestV5(input));
+  }
+  async #originalPrincipalResultV5(credential){
+    const original=await this.#originalPrincipalResult(credential),view=await readOriginalDeveloperHTTPCredential(credential);
+    if(view.method!=='POST'||view.path!=='/api/v1/ide/deployments'||typeof view.contentType!=='string'||!view.bodyBinding)fail('ORIGINAL_HTTP_V5_CREDENTIAL_REQUIRED','Original binary V5 credential unavailable');
+    const result=Object.freeze({...original,version:'YNX-ORIGINAL-DEVELOPER-HTTP-PRINCIPAL/v5',contentType:view.contentType,bodyBinding:Object.freeze({...view.bodyBinding})});
+    originalDeveloperPrincipalResults.set(result,{host:this,credential,original});this.#assertPrincipalDelivery(result);return result;
+  }
   async #originalPrincipalResult(credential){
     const result=await handleOriginalDeveloperPrincipalCurrent(this.#authSourceCurrent,credential);
     this.#assertStateIdentity();this.#authSourceCurrent.assertOriginalDeveloperPrincipalCompletion(credential,result);
@@ -440,7 +456,7 @@ export class ProductSessionGatewayNodeHost {
   #assertPrincipalDelivery(result){
     const retained=originalDeveloperPrincipalResults.get(result);
     if(!retained||retained.host!==this)fail('AUTH_ORIGINAL_PRINCIPAL_COMPLETION_NOT_ORIGINAL','Original principal result is unavailable');
-    this.#assertStateIdentity();this.#authSourceCurrent.assertOriginalDeveloperPrincipalCompletion(retained.credential,result);
+    this.#assertStateIdentity();this.#authSourceCurrent.assertOriginalDeveloperPrincipalCompletion(retained.credential,retained.original??result);
   }
 
   // Fixed private caller uses the SAME kernel/state transaction as HTTP.
@@ -546,6 +562,18 @@ export class ProductSessionGatewayNodeHost {
       let corsHeaders = {};
       try {
         this.#assertStateIdentity();
+        if(new URL(request.url,'http://127.0.0.1').pathname==='/v5/developer/original-http-principal'){
+          const u=new URL(request.url,'http://127.0.0.1');
+          if(request.method!=='POST'||u.search||u.hash||singleHeader(request.headers['content-type'])!=='application/json')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original V5 relay invalid');
+          const raw=await boundedBody(request,92274688);let input;try{input=JSON.parse(raw)}catch{fail('ORIGINAL_HTTP_REQUEST_INVALID','Original V5 relay JSON invalid')}
+          const v=privateData(input,['version','operation','requestId','method','path','bodyOriginal','contentType','proofHeader','expected']);
+          if(raw!==canonicalJSON(v)||v.version!=='5'||!['authenticate','recheck'].includes(v.operation)||typeof v.bodyOriginal!=='string'||! /^[A-Za-z0-9_-]+$/.test(v.bodyOriginal)||v.bodyOriginal.length>91051350)fail('ORIGINAL_HTTP_REQUEST_INVALID','Original V5 relay fields invalid');
+          const bodyOriginal=Buffer.from(v.bodyOriginal,'base64url');
+          if(!bodyOriginal.length||bodyOriginal.length>PRODUCT_SESSION_V5_BODY_MAX_BYTES||bodyOriginal.toString('base64url')!==v.bodyOriginal)fail('ORIGINAL_HTTP_REQUEST_INVALID','Original V5 relay body invalid');
+          const {version,operation,...original}=v;original.bodyOriginal=bodyOriginal;
+          const result=operation==='authenticate'?await this.currentExistingDeveloperPrincipalV5(original):await this.recheckExistingDeveloperPrincipalV5(original);
+          this.#assertPrincipalDelivery(result);response.writeHead(200,{'content-type':'application/json','cache-control':'no-store'});response.end(canonicalJSON(result));return;
+        }
         if(new URL(request.url,'http://127.0.0.1').pathname==='/v1/developer/original-http-principal'){
           const u=new URL(request.url,'http://127.0.0.1');if(request.method!=='POST'||u.search||u.hash||singleHeader(request.headers['content-type'])!=='application/json')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original identity relay is invalid');
           let input;try{input=JSON.parse(await boundedBody(request,3145728));}catch{fail('ORIGINAL_HTTP_REQUEST_INVALID','Original identity relay body is invalid');}
