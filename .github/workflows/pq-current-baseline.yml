@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 18
     env:
       BASELINE_OWNER_SHA: fdc08527514587d5756264e43ab63588791e189a
-      BASELINE_TOOLS_SHA: 84a647093686c143ec03ba778b5d6840daa8e02d
+      BASELINE_TOOLS_SHA: c69bbc6910319cfc0415bac7d963491197802e45
     steps:
       - name: Receive the exact original Perf baseline tools
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -56,6 +56,7 @@ jobs:
           test "$(git -C baseline-tools rev-parse HEAD)" = "$BASELINE_TOOLS_SHA"
           test "$(git -C baseline-owner rev-parse HEAD)" = "$BASELINE_OWNER_SHA"
           test "$(go env GOVERSION)" = go1.26.10
+          python3 -B baseline-tools/scripts/loadtest/test_linux_owned_rss.py
           python3 -B baseline-tools/scripts/loadtest/prepare-pq-baseline.py \
             --owner "$GITHUB_WORKSPACE/baseline-owner" --commit "$BASELINE_OWNER_SHA" \
             --output "$RUNNER_TEMP/current-baseline-source"
