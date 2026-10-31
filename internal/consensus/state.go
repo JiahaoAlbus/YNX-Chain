@@ -283,7 +283,7 @@ func sealCommittedStateOwned(witness *validatedMigration, height int64, executio
 		TraceLots:                  cloneTraceLots(execution.traceLots),
 		AccountPolicy:              cloneConsensusAccountPolicy(execution.accountPolicy),
 		PQHistory:                  clonePQHistory(execution.pqHistory),
-		PQBatches:                  cloneConsensusPQBatches(execution.pqBatches),
+		PQBatches:                  cloneExecutionPQBatches(execution),
 		Version:                    CommittedStateVersion,
 		ChainID:                    migration.Network.ChainID,
 		MigrationStateHash:         migration.StateHash,

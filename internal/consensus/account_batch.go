@@ -164,7 +164,7 @@ func (a *Application) applyPQWhole(state executionState, payload, wire []byte, h
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
 	hash, outerHash := SignedTransactionHash(wire), SignedTransactionHash(payload)
-	if _, exists := state.pqBatches[hash]; exists {
+	if _, exists := executionPQBatch(state, hash); exists {
 		return fail(errors.New("Whole already committed; its rejected members cannot be retried"))
 	}
 	if a.migration.Runtime != nil {
@@ -177,6 +177,7 @@ func (a *Application) applyPQWhole(state executionState, payload, wire []byte, h
 		return fail(err)
 	}
 	defer admission.verifier.Clear()
+	memberIndex := newPQWholeMemberIndex(state, len(admission.whole.Messages))
 	out := PQBatchExecutionResult{ABCITransactionHash: outerHash, BatchHash: hash, ExecutionHeight: uint64(height), Results: make([]chain.PQBatchMemberResult, len(admission.whole.Messages))}
 	admitted := 0
 	for i := range out.Results {
@@ -186,16 +187,12 @@ func (a *Application) applyPQWhole(state executionState, payload, wire []byte, h
 			memberHash, hashErr := chain.PQBatchTransactionHash(hash, result.Index)
 			memberErr = hashErr
 			if memberErr == nil {
-				for _, tx := range state.pqHistory {
-					if tx.Transaction.Hash == memberHash {
-						memberErr = errors.New("Whole member already exists without its proof")
-						break
-					}
+				if pqWholeHistoryContains(state, memberIndex, memberHash) {
+					memberErr = errors.New("Whole member already exists without its proof")
 				}
 			}
 			if memberErr == nil {
-				_, _, exists := findPayRecord(state.nativeTransfers, memberHash, func(v BFTNativeTransfer) string { return v.TransactionHash })
-				if exists {
+				if pqWholeNativeReceiptContains(state, memberIndex, memberHash) {
 					memberErr = errors.New("Whole member receipt already exists without its proof")
 				}
 			}
@@ -206,6 +203,7 @@ func (a *Application) applyPQWhole(state executionState, payload, wire []byte, h
 				if memberErr == nil {
 					tx := chain.Transaction{Hash: memberHash, Type: SignedTransactionType, From: native.From, To: native.To, Amount: native.Amount, Fee: native.Fee, Nonce: native.Nonce, BlockNum: uint64(height), Timestamp: blockTime.UTC(), Memo: consensusBatchMemberMemo(hash, result.Index)}
 					candidate.pqHistory = append(candidate.pqHistory, PQCommittedAuthorization{ABCITransactionHash: outerHash, Transaction: tx})
+					memberIndex = advancePQWholeMemberIndex(memberIndex, state, candidate, memberHash)
 					state = candidate
 					result.Outcome, result.TransactionHash = "admitted", memberHash
 					admitted++
@@ -228,11 +226,9 @@ func (a *Application) applyPQWhole(state executionState, payload, wire []byte, h
 		// Return original per-index rejection data, but no proof or ledger effects.
 		return executionState{}, transactionExecution{typeName: PQWholeType, hash: outerHash, resultData: data}, invalidTransaction(CodeInvalidTx, errors.New("Whole contains no admissible transfer; no result or proof was committed"))
 	}
-	state.pqBatches = cloneConsensusPQBatches(state.pqBatches)
-	if state.pqBatches == nil {
-		state.pqBatches = make(map[string]PQCommittedBatch)
+	if !putExecutionPQBatch(&state, hash, PQCommittedBatch{PQBatchProof: chain.PQBatchProof{Whole: wire, Height: uint64(height), Results: out.Results}, ABCITransactionHash: outerHash}) {
+		return fail(errors.New("Whole already committed; its rejected members cannot be retried"))
 	}
-	state.pqBatches[hash] = PQCommittedBatch{PQBatchProof: chain.PQBatchProof{Whole: bytes.Clone(wire), Height: uint64(height), Results: append([]chain.PQBatchMemberResult(nil), out.Results...)}, ABCITransactionHash: outerHash}
 	// Whole is an owned multi-member execution boundary. Publish its complete
 	// account projection once, after all isolated member attempts have finished;
 	// callers must not observe the unchanged sparse base as the final result.
