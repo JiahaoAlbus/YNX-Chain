@@ -175,7 +175,7 @@ function captureDeviceV4Request(input,fields) {
   exactFields(input,['originalBody','abortContext'],'Original device v4 transport input');
   const descriptors=Object.getOwnPropertyDescriptors(input);
   if(Reflect.ownKeys(descriptors).length!==2||Object.values(descriptors).some(d=>!Object.hasOwn(d,'value')))fail('PAIR_V4_HTTP_INPUT','Only original data inputs are accepted');
-  const {originalBody,abortContext}=input;
+  const originalBody=descriptors.originalBody.value,abortContext=descriptors.abortContext.value;
   if(!abortContext||Object.getPrototypeOf(abortContext)!==Object.prototype||!Object.isFrozen(abortContext)||Reflect.ownKeys(abortContext).length!==1)fail('PAIR_V4_ABORT_CONTEXT','Original frozen context required');
   const d=Object.getOwnPropertyDescriptor(abortContext,'signal');
   if(!d||!Object.hasOwn(d,'value'))fail('PAIR_V4_ABORT_CONTEXT','Original signal required');
