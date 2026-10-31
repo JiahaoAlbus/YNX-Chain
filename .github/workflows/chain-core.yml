@@ -270,7 +270,8 @@ jobs:
           ./Configure linux-x86_64 --release shared --prefix="$OPENSSL_PREFIX" \
             --openssldir="$OPENSSL_PREFIX/ssl" --libdir=lib
           make -j2 build_sw > "$RUNNER_TEMP/securelink-evidence/openssl-build.log" 2>&1
-          make install_sw >> "$RUNNER_TEMP/securelink-evidence/openssl-build.log" 2>&1
+          make install_sw install_ssldirs >> "$RUNNER_TEMP/securelink-evidence/openssl-build.log" 2>&1
+          test -r "$OPENSSL_PREFIX/ssl/openssl.cnf"
           printf '%s\n' "$OPENSSL_PREFIX/bin" >> "$GITHUB_PATH"
           printf 'PKG_CONFIG_LIBDIR=%s\n' "$OPENSSL_PREFIX/lib/pkgconfig" >> "$GITHUB_ENV"
           printf 'PKG_CONFIG_PATH=%s\n' "$OPENSSL_PREFIX/lib/pkgconfig" >> "$GITHUB_ENV"
@@ -285,6 +286,7 @@ jobs:
           openssl list -tls-groups | grep -F SecP384r1MLKEM1024
           openssl list -tls-signature-algorithms | grep -i mldsa87
           sha256sum "$OPENSSL_PREFIX/lib/libssl.so.3" "$OPENSSL_PREFIX/lib/libcrypto.so.3" > "$RUNNER_TEMP/securelink-evidence/openssl-libraries.sha256"
+          sha256sum "$OPENSSL_PREFIX/ssl/openssl.cnf" > "$RUNNER_TEMP/securelink-evidence/openssl-config.sha256"
           sh cmd/ynx-secure-link/check.sh native 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/native-check.log"
           CGO_ENABLED=0 sh cmd/ynx-secure-link/check.sh stub 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/unavailable-check.log"
       - name: Exercise the normal command through private IPC and actual PQ TLS
