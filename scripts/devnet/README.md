@@ -86,7 +86,11 @@ there while the sequential candidate admits them; compare both original results,
 never invent a cumulative mempool state or count rejected members as business.
 The explicit Commit diagnostic includes all validation phase durations plus
 hash-document/hash-encode-digest detail, with its same-attempt height and valid
-flag, alongside JSON/write/fsync/rename timing. Nested timings overlap. This is
+flag, alongside JSON/write/fsync/rename timing. Entry observers separately expose
+Finalize seal, full state validation and hash construction. Nested timings overlap.
+Keep both sides on this exact diagnostic version; replay the old eight-case
+decoder comparison with its original b6 tools so instrumentation is unchanged.
+This is
 additional source evidence; actual distribution and sustained chain remain
 UNMEASURED. CORE owns the one hosted workflow intake; do not dispatch duplicates.
 

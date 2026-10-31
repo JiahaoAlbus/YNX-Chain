@@ -34,6 +34,13 @@ def prepare(owner, commit, output):
         ("func (a *Application) applyPQWhole(state executionState, payload, wire []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {",'defer baselineCount("applyPQWhole",uint64(len(payload)+len(wire)),0,0)()')],
       "internal/consensus/application.go":[("func cloneExecutionStateValue(state executionState) executionState {",'defer baselineCount("cloneExecutionStateValue",0,0,0)()')]
     }
+    # Finalize's large inclusive interval previously hid seal/validation/hash.
+    # These exact entry observers preserve original arguments, return paths,
+    # serialization and full validation; only the diagnostic overlay changes.
+    hooks["internal/consensus/state.go"]=[
+      ("func sealCommittedStateOwned(witness *validatedMigration, height int64, execution executionState) (CommittedState, error) {",'defer baselineCount("sealCommittedStateOwned",0,0,0)()'),
+      ("func (s CommittedState) validateOwnedWithTimings(witness *validatedMigration, timings *commitValidationTimings) (result error) {",'defer baselineCount("validateOwnedWithTimings",0,0,0)()'),
+      ("func (s CommittedState) calculateHashForWithTimings(domain string, version int, timings *commitValidationTimings) (string, error) {",'defer baselineCount("calculateHashForWithTimings",0,0,0)()')]
     for relative,insertions in hooks.items():
         original=(source/relative).read_bytes(); text=original.decode()
         pins[relative]=sha(original)

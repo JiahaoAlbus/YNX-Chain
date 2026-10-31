@@ -28,6 +28,7 @@ class BaselineControls(unittest.TestCase):
          "internal/consensus/account_policy.go":"func DecodePQTransaction(payload []byte) (PQTransaction, []byte, error) {\n}\n",
          "internal/consensus/account_batch.go":"func cloneConsensusPQBatches(input map[string]PQCommittedBatch) map[string]PQCommittedBatch {\n}\nfunc cloneBatchTransferCandidate(state executionState) executionState {\n}\nfunc (a *Application) applyPQWhole(state executionState, payload, wire []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {\n}\n",
          "internal/consensus/application.go":"func cloneExecutionStateValue(state executionState) executionState {\n}\n"}
+        leaves["internal/consensus/state.go"]="func sealCommittedStateOwned(witness *validatedMigration, height int64, execution executionState) (CommittedState, error) {\n}\nfunc (s CommittedState) validateOwnedWithTimings(witness *validatedMigration, timings *commitValidationTimings) (result error) {\n}\nfunc (s CommittedState) calculateHashForWithTimings(domain string, version int, timings *commitValidationTimings) (string, error) {\n}\n"
         for name,content in leaves.items():
             file=owner/name;file.parent.mkdir(parents=True,exist_ok=True);file.write_text(content)
         git("add",".");git("-c","user.name=Control Fixture","-c","user.email=fixture@example.invalid","commit","-m","uncompiled control fixture")
@@ -42,6 +43,8 @@ class BaselineControls(unittest.TestCase):
             self.assertIn("inflight.go",plan["observedOwnerDirty"])
             self.assertFalse((Path(plan["source"])/"internal/consensus/inflight.go").exists())
             self.assertNotIn("baselineCount",(owner/"internal/consensus/account_policy.go").read_text())
+            self.assertNotIn("baselineCount",(owner/"internal/consensus/state.go").read_text())
+            self.assertIn("internal/consensus/state.go",plan["diagnosticPatches"])
             self.assertTrue(runner.validate(target/"prepared.json"))
             with self.assertRaises(ValueError):prep.prepare(str(owner),plan["commit"],str(target))
 
