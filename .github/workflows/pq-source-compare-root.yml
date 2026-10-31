@@ -11,6 +11,8 @@ on:
       - 'scripts/loadtest/root-source-admission_test.py'
       - 'scripts/loadtest/root-source-scope.py'
       - 'scripts/loadtest/root-source-reap_test.py'
+      - 'scripts/loadtest/root-source-established.py'
+      - 'scripts/loadtest/root-source-established_test.py'
   workflow_dispatch:
 
 permissions:
@@ -43,98 +45,42 @@ jobs:
             /scripts/loadtest/pq-source-artifact-intake.py
             /scripts/loadtest/root-source-admission.py
             /scripts/loadtest/root-source-scope.py
+            /scripts/loadtest/root-source-established.py
             /scripts/loadtest/root-source-admission_test.py
             /scripts/loadtest/root-source-reap_test.py
-      - name: New original-admission evidence controls
-        run: |
-          python3 -B scripts/loadtest/root-source-admission_test.py
-          python3 -B scripts/loadtest/root-source-reap_test.py
+            /scripts/loadtest/root-source-established.py
+            /scripts/loadtest/root-source-established_test.py
+      - name: New historical B8 reuse controls only
+        run: python3 -B scripts/loadtest/root-source-established_test.py
 
-  b8-original-replay:
+  b8-established:
     needs: intake-controls
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 5
     steps:
-      - name: Exact current intake controller
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.sha }}
-          path: controller
-          fetch-depth: 1
-          fetch-tags: false
-          persist-credentials: false
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            /scripts/loadtest/pq-source-artifact-intake.py
-            /scripts/loadtest/root-source-admission.py
-            /scripts/loadtest/root-source-scope.py
-      - name: Exact original eight-case tools
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: b6a0cab84f5985f647972209b3c389f2892b44e7
-          path: b8-tools
           fetch-depth: 1
           fetch-tags: false
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/
-      - name: Exact isolated B source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: b2120f6a0dc65666145cc9976b9f13d8b175f34d
-          path: b8-owner
-          fetch-depth: 1
-          fetch-tags: false
-          persist-credentials: false
-          sparse-checkout-cone-mode: false
-          sparse-checkout: |
-            /go.mod
-            /go.sum
-            /internal/
-            /third_party/cometbft/
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
-        with:
-          go-version: '1.26.10'
-          cache: false
-      - name: Original eight-case replay and complete full-state comparison
-        id: scope
+      - name: Reuse successful original B8 by exact artifact metadata and complete receipt
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 -B "$GITHUB_WORKSPACE/controller/scripts/loadtest/root-source-admission.py" \
-            --scope b8 --tools "$GITHUB_WORKSPACE/b8-tools" --owner "$GITHUB_WORKSPACE/b8-owner" \
-            --controller "$GITHUB_WORKSPACE/controller" --operation "$RUNNER_TEMP/pq-source-b8" --execute
-      - name: Preserve only original PUBLIC replay states receipt and full diff
-        if: always() && steps.scope.outputs.public != ''
+        run: python3 -B scripts/loadtest/root-source-established.py gate-b8 --output "$RUNNER_TEMP/established-b8"
+      - name: Preserve immutable prior B8 gate without replaying its source or input
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pq-source-b8-after-${{ github.run_id }}
-          path: ${{ steps.scope.outputs.public }}/*
-          include-hidden-files: false
-          if-no-files-found: error
-          retention-days: 7
-      - name: Preserve primary failure and original Window process/resource evidence
-        if: always() && steps.scope.outputs.diagnostics != ''
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: pq-source-b8-controller-${{ github.run_id }}
-          path: ${{ steps.scope.outputs.diagnostics }}/*
-          include-hidden-files: false
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Preserve exact original heavy-process identities without exclusions
-        if: always() && steps.scope.outputs.root_diagnostics != ''
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: pq-root-admission-b8-${{ github.run_id }}
-          path: ${{ steps.scope.outputs.root_diagnostics }}/*
-          include-hidden-files: false
+          name: pq-source-established-b8-${{ github.run_id }}
+          path: ${{ runner.temp }}/established-b8/*
           if-no-files-found: error
           retention-days: 7
 
   multi-original-before:
-    needs: b8-original-replay
+    needs: b8-established
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     outputs:
@@ -156,6 +102,7 @@ jobs:
             /scripts/loadtest/pq-source-artifact-intake.py
             /scripts/loadtest/root-source-admission.py
             /scripts/loadtest/root-source-scope.py
+            /scripts/loadtest/root-source-established.py
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: aa9447df2f5867542892f6fdbfbefbd116daed91
@@ -183,6 +130,19 @@ jobs:
         with:
           go-version: '1.26.10'
           cache: false
+      - name: Prepare only unused fixed preinstalled SDK directories on this disposable VM
+        run: |
+          sudo --preserve-env=GITHUB_ACTIONS,RUNNER_ENVIRONMENT,RUNNER_OS,ImageOS,ImageVersion,RUNNER_NAME,RUNNER_TEMP \
+            python3 -B "$GITHUB_WORKSPACE/controller/scripts/loadtest/root-source-established.py" freshen \
+            --output "$RUNNER_TEMP/ROOT-FRESH-DISK.json"
+      - name: Preserve actual fresh disk before and after without changing original admission
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-root-fresh-disk-multi-original-before-${{ github.run_id }}
+          path: ${{ runner.temp }}/ROOT-FRESH-DISK.json
+          if-no-files-found: error
+          retention-days: 7
       - name: One actual new 528-input four-case original before
         id: scope
         run: |
@@ -245,6 +205,7 @@ jobs:
             /scripts/loadtest/pq-source-artifact-intake.py
             /scripts/loadtest/root-source-admission.py
             /scripts/loadtest/root-source-scope.py
+            /scripts/loadtest/root-source-established.py
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: aa9447df2f5867542892f6fdbfbefbd116daed91
@@ -272,6 +233,19 @@ jobs:
         with:
           go-version: '1.26.10'
           cache: false
+      - name: Prepare only unused fixed preinstalled SDK directories on this disposable VM
+        run: |
+          sudo --preserve-env=GITHUB_ACTIONS,RUNNER_ENVIRONMENT,RUNNER_OS,ImageOS,ImageVersion,RUNNER_NAME,RUNNER_TEMP \
+            python3 -B "$GITHUB_WORKSPACE/controller/scripts/loadtest/root-source-established.py" freshen \
+            --output "$RUNNER_TEMP/ROOT-FRESH-DISK.json"
+      - name: Preserve actual fresh disk before and after without changing original admission
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-root-fresh-disk-multi-a-replay-${{ github.run_id }}
+          path: ${{ runner.temp }}/ROOT-FRESH-DISK.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Replay A against the actual immutable preceding before artifact
         id: scope
         env:
@@ -315,7 +289,7 @@ jobs:
           retention-days: 7
 
   multi-b-replay:
-    needs: [b8-original-replay, multi-original-before, multi-a-replay]
+    needs: [b8-established, multi-original-before, multi-a-replay]
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -331,6 +305,7 @@ jobs:
             /scripts/loadtest/pq-source-artifact-intake.py
             /scripts/loadtest/root-source-admission.py
             /scripts/loadtest/root-source-scope.py
+            /scripts/loadtest/root-source-established.py
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: aa9447df2f5867542892f6fdbfbefbd116daed91
@@ -358,6 +333,19 @@ jobs:
         with:
           go-version: '1.26.10'
           cache: false
+      - name: Prepare only unused fixed preinstalled SDK directories on this disposable VM
+        run: |
+          sudo --preserve-env=GITHUB_ACTIONS,RUNNER_ENVIRONMENT,RUNNER_OS,ImageOS,ImageVersion,RUNNER_NAME,RUNNER_TEMP \
+            python3 -B "$GITHUB_WORKSPACE/controller/scripts/loadtest/root-source-established.py" freshen \
+            --output "$RUNNER_TEMP/ROOT-FRESH-DISK.json"
+      - name: Preserve actual fresh disk before and after without changing original admission
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-root-fresh-disk-multi-b-replay-${{ github.run_id }}
+          path: ${{ runner.temp }}/ROOT-FRESH-DISK.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Replay B only after its old eight-case full comparison passed
         id: scope
         env:
