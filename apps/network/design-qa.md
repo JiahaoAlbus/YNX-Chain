@@ -36,6 +36,8 @@ The main connection action pairs the actual local service. Wallet, signed ordina
 5. History: six columns show actual saved time/hash/level/source/reason and original-record lookup; no example pass/fail rows are fabricated. Summary metadata is derived from immutable stored views and retains the same receipt ID across restart.
 6. Long text/locales: desktop and mobile language matrices checked all twelve exact locales. Arabic reports `dir=rtl`; no horizontal page overflow was observed at the reference viewports. Seven desktop routes and five mobile roots plus history/governance/settings subroutes were exercised.
 
+7. Exact d7 packaged-service browser check reproduced a manual history refresh which left its button disabled after completion. Central request begin/finish now repaints busy controls for history, native status and node reads. The first failing tests and real UI observation are preserved; 14 focused lifecycle cases and the final 52-case original client entry pass. The follow-up exact package browser confirmation is recorded separately in the owner artifacts.
+
 Post-fix evidence is the four final captures, combined comparisons, `browser-language-desktop.json`, `browser-language-mobile.json`, `browser-desktop-routes.json`, `browser-mobile-routes.json`, and `final-mobile-arabic-settings.png`.
 
 ## Required fidelity surfaces
@@ -52,7 +54,7 @@ Actual development helper → normal pairing → Testnet node reports → known 
 
 IAB console checks returned no errors/warnings. The fixed source's proof collector returned `RPC_HTTP_ERROR`; the client kept `RPC_ONLY` rather than displaying inclusion, execution or funds success. This is a real unavailable-proof result, not a visual failure or a finality claim. One early observation wait expired before the completed node response; the following actual UI snapshot showed the source result. No data or success was inserted to satisfy that wait.
 
-Automated acceptance: 49 current client/projection/i18n cases, original Node CI discovery through the helper Go target, the affected historical-store restart/integrity regression, and the separate 65-case native export/preferences contract plus actual bootstrap JavaScript checks. Native GUI/panel/restart acceptance is recorded separately against the exact subsequently built candidate, not inferred from these checks.
+Automated acceptance: 52 current client/projection/i18n cases, original Node CI discovery through the helper Go target, the affected historical-store restart/integrity regression, and the separate 65-case native export/preferences contract plus actual bootstrap JavaScript checks. Native GUI/panel/restart acceptance is recorded separately against the exact subsequently built candidate, not inferred from these checks.
 
 ## Findings
 

@@ -139,3 +139,14 @@ test('designed history filter stays local and cannot turn old verified labels in
  e.client.setHistoryFilter('RPC_ONLY');assert.equal(e.node('receipt-list').children.length,1);assert.match(e.node('receipt-list').children[0].textContent,/RPC_ONLY/);
  e.client.setHistoryFilter('all');assert.equal(e.node('receipt-list').children.length,2);
 });
+
+test('manual history refresh controls recover after success and source failure',async()=>{
+ const e=environment();await settle();e.manual('/api/receipts');
+ for(const status of [200,502]){const job=e.emit('history-refresh','click');const busy=e.node('history-refresh').disabled;e.take('/api/receipts').resolve(status===200?list([]):{error:'RPC_HTTP_ERROR'},status);await job;assert.equal(e.node('history-refresh').disabled,false,'completed history read must not leave refresh disabled');assert.equal(busy,true,'pending history read must disable its refresh');}
+});
+test('manual native refresh controls disable only during the current read',async()=>{
+ const e=environment();await settle();e.manual('/api/native-status');const job=e.emit('native-refresh','click');const busy=e.node('native-refresh').disabled;e.take('/api/native-status').resolve(native);await job;assert.equal(busy,true);assert.equal(e.node('native-refresh').disabled,false);
+});
+test('manual node refresh controls disable only during the current read',async()=>{
+ const e=environment();await settle();e.manual('/api/node-report');const job=e.emit('node-refresh','click');const busy=e.node('node-refresh').disabled;e.take('/api/node-report').resolve({classification:'RPC_ONLY',reports:{status:{status:'unavailable'},latestBlock:{status:'unavailable'},validators:{status:'unavailable'}}});await job;assert.equal(busy,true);assert.equal(e.node('node-refresh').disabled,false);
+});

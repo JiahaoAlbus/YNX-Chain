@@ -35,13 +35,14 @@ function begin(channel, options = {}) {
   abort(channel);
   const op = { channel, epoch, ticket, controller: new AbortController(), ...options };
   pending.set(channel, op);
+  controls();
   return op;
 }
 function current(op) {
   return pending.get(op.channel) === op && !op.controller.signal.aborted && op.epoch === epoch && op.ticket === ticket &&
     (!op.requiresPair || paired) && (!op.txId || txKey($('tx-id').value) === txKey(op.txId));
 }
-function finish(op) { if (pending.get(op.channel) === op) pending.delete(op.channel); }
+function finish(op) { if (pending.get(op.channel) === op) pending.delete(op.channel); controls(); }
 function invalidateEvidence(message) {
   publish('receipt',null); abort('receipt');
   text('level-tag', '尚未查询'); $('level-tag').className = 'tag neutral';
