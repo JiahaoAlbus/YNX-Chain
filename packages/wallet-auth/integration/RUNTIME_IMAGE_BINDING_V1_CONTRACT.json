@@ -1,0 +1,147 @@
+{
+  "version": "1",
+  "selectionField": "runtimeImageBindingV1",
+  "purposes": [
+    "product-session-device-registered-finalization-source-v4",
+    "product-session-device-http-binary-source-v5"
+  ],
+  "signedBy": "original AUTH-SOURCE-PROFILE frame and registered profile role; original current.profileDigest binds entire signed profile",
+  "selection": "old exact5 remains; new exact6 only for these two purposes; original scope7 unchanged",
+  "pathRelations": {
+    "fixedLoader": "${normalPackageRoot}/src/original-auth-identity-fixed-native-image.js",
+    "runtimeManifest": "${normalPackageRoot}/native/original-ide-auth-runtime-manifest.json",
+    "implementingImage": "resolve(normalPackageRoot, ../../apps/wallet-desktop/native/original-auth-identity.node)",
+    "privateModule": "${normalPackageRoot}/src/original-http-binary-v5-client-private.js"
+  },
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "normalPackageRoot",
+      "fixedLoader",
+      "runtimeManifest",
+      "implementingImage",
+      "privateModule"
+    ],
+    "properties": {
+      "version": {
+        "const": "1"
+      },
+      "normalPackageRoot": {
+        "type": "string",
+        "description": "canonical actual normal root ending /packages/wallet-auth; no alias/Stage rewriting"
+      },
+      "fixedLoader": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "canonical absolute POSIX path; strict UTF8; <=4096 bytes; fixed relation to normalPackageRoot"
+          },
+          "bytes": {
+            "const": 3004
+          },
+          "sha256": {
+            "const": "11f841402ca8e2c2879a840b4f5b5234df153949b65af2f810db3669b3cdb4ec"
+          }
+        }
+      },
+      "runtimeManifest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "canonical absolute POSIX path; strict UTF8; <=4096 bytes; fixed relation to normalPackageRoot"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1048576
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "implementingImage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "bytes",
+          "sha256"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "canonical absolute POSIX path; strict UTF8; <=4096 bytes; fixed relation to normalPackageRoot"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16777216
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      },
+      "privateModule": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "bytes",
+          "sha256",
+          "uri"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "canonical absolute POSIX path; strict UTF8; <=4096 bytes; fixed relation to normalPackageRoot"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 16777216
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "uri": {
+            "type": "string",
+            "description": "exact pathToFileURL(privateModule.path).href, no query/fragment or separate namespace"
+          }
+        }
+      }
+    }
+  },
+  "noSelfHash": "no qualificationOriginal/profileDigest or self record hash in extension; do not embed target image hash into same target image",
+  "authority": {
+    "dataOnly": true,
+    "SourceAdmission": false,
+    "NativeAdmission": false,
+    "preLoadQualified": false,
+    "sameModuleInstanceVerified": false
+  }
+}

@@ -1,0 +1,5 @@
+// Original SDK CI entrypoint supplied for sole-owner intake. No network/Root,
+// signing material or live state: PUBLIC local mathematical control records.
+import fs from'node:fs';import path from'node:path';import{homedir}from'node:os';import{spawnSync}from'node:child_process';
+const root=path.resolve(import.meta.dirname,'../../packages/wallet-auth'),parent=fs.realpathSync(homedir()),env={...process.env,AUTH_SERVER_CURRENT_STAGE:root,AUTH_SERVER_CURRENT_PUBLIC_PARENT:parent},commands=[['--test','--test-reporter=tap',root+'/test/auth-server-device-current/server-current.test.mjs'],[root+'/test/auth-server-device-current/normal-startup.mjs'],[root+'/node_modules/typescript/bin/tsc','--strict','--skipLibCheck','--noEmit','--module','NodeNext','--moduleResolution','NodeNext','--target','ES2022',root+'/test/auth-server-current-types.mts']];
+for(const args of commands){const r=spawnSync(process.execPath,args,{cwd:root,env,stdio:'inherit',timeout:180000});if(r.status!==0)process.exit(r.status??1)}
