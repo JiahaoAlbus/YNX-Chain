@@ -172,7 +172,7 @@ def compare(before,after):
     a,ma,ra=load_vectors(before);b,mb,rb=load_vectors(after)
     lab.require(a["heightVectorLeafSHA256"]==b["heightVectorLeafSHA256"],"per-height observer/tool versions differ: heightVectorLeafSHA256")
     guard_only_compatible=(a["toolsCommit"]==FUNCTIONAL_BASE and a["heightVectorLeafSHA256"]==FUNCTIONAL_LEAF
-        and b.get("compatibleFunctionalToolsCommit")==FUNCTIONAL_BASE and b.get("resourceObserverVersion")=="same-process-rss-v2"
+        and b.get("compatibleFunctionalToolsCommit")==FUNCTIONAL_BASE and b.get("resourceObserverVersion") in ("same-process-rss-v2","same-process-rss-v3-pidfd")
         and a.get("caps")==b.get("caps")==lab.CAPS)
     lab.require(a["toolsCommit"]==b["toolsCommit"] or guard_only_compatible,"per-height observer/tool versions differ: toolsCommit")
     for key in ("inputSHA256","profile","initialHeight","architecture","goVersion","gomaxprocs"):

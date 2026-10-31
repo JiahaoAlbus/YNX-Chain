@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 import re
 import resource
+import select
 import shutil
 import signal
 import socket
@@ -33,7 +34,7 @@ _spec.loader.exec_module(guard)
 CAPS = dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4 << 30,
             newBytes=8 << 30, initialMemoryBytes=6 << 30,
             initialDiskBytes=16 << 30, logBytes=4 << 20, cpus=2)
-RSS_OBSERVER_VERSION = "same-process-rss-v2"
+RSS_OBSERVER_VERSION = "same-process-rss-v3-pidfd"
 PROCESS_EVIDENCE_VERSION = "same-identity-first-last-count-v1"
 PROFILES = {"smoke": dict(count=4, rounds=2, rate=4, window="2s", timeout="20s"),
             "cohort": dict(count=64, rounds=2, rate=32, window="4s", timeout="30s")}
@@ -146,6 +147,48 @@ def same_process_rss_alternative(pid, before):
         return None
 
 
+def process_group_exit_probe(pid,before):
+    """Non-consuming kernel thread-group exit proof, not a leader-state guess.
+
+    flags=0 deliberately excludes PIDFD_THREAD: readability means LAST thread
+    exited. Open/revalidate original PID/startTicks and fdinfo PID before poll.
+    No wait/reap/signal is issued; Popen/normal parent keeps exit ownership.
+    """
+    if not hasattr(os,"pidfd_open") or not hasattr(select,"poll"):
+        return dict(state="unsupported")
+    root=Path('/proc')/str(pid);fd=None
+    def identity():
+        row=guard.parse_stat(guard.bounded(root/'stat'),pid)
+        require(row['startTicks']==before['startTicks'],'owned process identity changed around pidfd')
+        return row
+    try:
+        first=identity();fd=os.pidfd_open(pid,0);second=identity()
+        info=guard.bounded(Path('/proc/self/fdinfo')/str(fd)).decode('ascii')
+        ids=[line.split(':',1)[1].strip() for line in info.splitlines() if line.startswith('Pid:')]
+        require(ids in ([str(pid)],['-1']),'original pidfd process binding unavailable')
+        poller=select.poll();poller.register(fd,0x001|0x010|0x008|0x020)
+        events=poller.poll(0);mask=0
+        for actual,value in events:
+            require(actual==fd and value&~(0x001|0x010)==0,'unexpected pidfd poll event')
+            mask|=value
+        # Recheck after the kernel observation. A reused PID is fatal even
+        # though this pidfd itself still pins the former process.
+        final_state='gone';final_threads=None
+        try:
+            last=identity();final_state=last['state'];final_threads=last['threads']
+        except OSError as error:
+            if error.errno not in (errno.ENOENT,errno.ESRCH):raise
+        if not mask:
+            require(ids==[str(pid)],'reaped pidfd lacks kernel exit event')
+            return dict(state='not-exited',pid=pid,startTicks=before['startTicks'],pidfdFlags=0,pollMask=0,leaderState=final_state,leaderThreads=final_threads)
+        return dict(state='group-exited',pid=pid,startTicks=before['startTicks'],pidfdFlags=0,fdinfoPid=int(ids[0]),pollMask=mask,firstLeaderState=first['state'],firstThreads=first['threads'],secondLeaderState=second['state'],secondThreads=second['threads'],lastLeaderState=final_state,lastThreads=final_threads,observedMonotonicNs=time.monotonic_ns(),nonConsuming=True)
+    except OSError as error:
+        if error.errno not in (errno.ENOENT,errno.ESRCH,errno.ENOSYS):raise
+        return dict(state='unresolved',errno=error.errno)
+    finally:
+        if fd is not None:os.close(fd)
+
+
 def owned_rss(pid, before, retired=None, fallback=None):
     """Read one original identity; prove disappearance instead of guessing 0."""
     directory = Path("/proc") / str(pid)
@@ -173,12 +216,18 @@ def owned_rss(pid, before, retired=None, fallback=None):
                 if retired is not None:
                     retired(dict(pid=pid, startTicks=before["startTicks"], reason="same-identity-zombie", rssError=error.errno, sampleAttempts=attempt))
                 return 0
+            group=None
+            if current['state']=='Z':
+                group=process_group_exit_probe(pid,before)
+                if group['state']=='group-exited':
+                    if retired is not None:retired(dict(pid=pid,startTicks=before['startTicks'],reason='same-identity-pidfd-group-exited',rssError=error.errno,sampleAttempts=attempt,groupExitProof=group))
+                    return 0
             alternate=same_process_rss_alternative(pid,before)
             if alternate is not None:
                 size,event=alternate;event.update(originalRSSKernelError=error.errno,sampleAttempts=attempt)
                 if fallback is not None:fallback(event)
                 return size
-            transitions.append(dict(attempt=attempt, state=current["state"], rssError=error.errno))
+            transitions.append(dict(attempt=attempt, state=current["state"],threads=current['threads'], rssError=error.errno,groupExitProbe=group))
             require(attempt < 6, "active owned process RSS unreadable: " + json.dumps(dict(pid=pid, startTicks=before["startTicks"], transitions=transitions), separators=(",", ":")))
             time.sleep(.001)
             continue
