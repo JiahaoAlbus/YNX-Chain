@@ -8,6 +8,7 @@ PQ requires the owning normal producer/client integration, never a relabel.
 """
 import argparse
 import ctypes
+import errno
 import hashlib
 import importlib.util
 import json
@@ -86,6 +87,30 @@ def private_bytes(root):
     return total
 
 
+def owned_rss(pid, before):
+    """Read one original identity; prove disappearance instead of guessing 0."""
+    directory = Path("/proc") / str(pid)
+    try:
+        size = guard.smaps_rss(guard.bounded(directory / "smaps_rollup"))
+        after = guard.parse_stat(guard.bounded(directory / "stat"), pid)
+    except OSError as error:
+        if error.errno not in (errno.ENOENT, errno.ESRCH):
+            raise
+        # A task may exit between inventory and smaps. A second stat read must
+        # prove it gone or zombie; a live/unreadable identity cannot be omitted.
+        try:
+            current = guard.parse_stat(guard.bounded(directory / "stat"), pid)
+        except OSError as missing:
+            if missing.errno in (errno.ENOENT, errno.ESRCH):
+                return None
+            raise
+        require(current["startTicks"] == before["startTicks"], "owned process identity changed after RSS failure")
+        require(current["state"] == "Z", "active owned process RSS unreadable")
+        return 0
+    require(after["startTicks"] == before["startTicks"], "owned process identity changed during RSS read")
+    return size
+
+
 def heavy_processes(rows):
     # Hosted runner is disposable/exclusive; do not infer ownership from UID.
     result = []
@@ -161,13 +186,9 @@ class Window:
             self.known[pid] = before["startTicks"]
             if before["state"] == "Z":
                 continue
-            try:
-                size = guard.smaps_rss(guard.bounded(Path("/proc") / str(pid) / "smaps_rollup"))
-                after = guard.parse_stat(guard.bounded(Path("/proc") / str(pid) / "stat"), pid)
-            except FileNotFoundError:
-                continue
-            require(after["startTicks"] == before["startTicks"], "owned process identity changed during RSS read")
-            rss += size
+            size = owned_rss(pid, before)
+            if size is not None:
+                rss += size
         if time.monotonic() - self.last_storage_sample >= 1:
             self.storage_bytes = sum(private_bytes(root) for root in self.storage_roots)
             self.last_storage_sample = time.monotonic()
