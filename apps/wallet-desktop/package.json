@@ -67,6 +67,7 @@
     "afterPack": "scripts/after-pack.mjs",
     "files": [
       "src/**",
+      "!src/original-policy-supplier/operator-pq-identity.mjs",
       "native/original-auth-identity.node",
       "native/original-auth-identity-build.json",
       "native/original-auth-identity-r155-source-intake.json",

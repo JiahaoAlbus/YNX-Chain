@@ -24,6 +24,7 @@ import {readSDK46ProductRuntime,assertSDK46ProductArchive} from './sdk46-product
 import {readSDK49ProductRuntime,assertSDK49ProductArchive} from './sdk49-product-runtime.mjs';
 import {SDK49_DAEMON_AUTH,SDK49_DAEMON_VARIANT} from './sdk49-daemon-profile.mjs';
 import {verifySDK49FullRuntimeTables} from './sdk49-runtime-source.mjs';
+import {assertExcludedRuntimeNotTracked,assertCanonicalRuntimeMembers,UNFROZEN_POLICY_INPUT} from './desktop-runtime-members.mjs';
 const readSDKProductRuntime=(root,commit)=>readSDK35ProductRuntime(root,commit)??readSDK36ProductRuntime(root,commit)??readSDK37ProductRuntime(root,commit)??readSDK38ProductRuntime(root,commit)??readSDK39ProductRuntime(root,commit)??readSDK40ProductRuntime(root,commit)??readSDK41ProductRuntime(root,commit)??readSDK42ProductRuntime(root,commit)??readSDK46ProductRuntime(root,commit)??readSDK49ProductRuntime(root,commit);
 const assertSDKProductArchive=(product,inventory)=>product?.public.kind==='YNX-WALLET-SDK49-PRODUCT-PACK/v1'?assertSDK49ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK46-PRODUCT-PACK/v1'?assertSDK46ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK42-PRODUCT-PACK/v1'?assertSDK42ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK41-PRODUCT-PACK/v1'?assertSDK41ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK40-PRODUCT-PACK/v1'?assertSDK40ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK39-PRODUCT-PACK/v1'?assertSDK39ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK38-PRODUCT-PACK/v1'?assertSDK38ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK37-PRODUCT-PACK/v1'?assertSDK37ProductArchive(product,inventory):product?.public.kind==='YNX-WALLET-SDK36-PRODUCT-PACK/v1'?assertSDK36ProductArchive(product,inventory):assertSDK35ProductArchive(product,inventory);
 
@@ -279,6 +280,7 @@ function nativeEvidencePlan(cwd,sourceCommit){
  */
 export function assertSDKRuntimePackCoverage(cwd,sourceCommit){
  const root=git(cwd,'rev-parse','--show-toplevel'),metadata=JSON.parse(git(root,'show',`${sourceCommit}:apps/wallet-desktop/package.json`));
+ assertExcludedRuntimeNotTracked(git(root,'ls-tree','-r','--name-only',sourceCommit,'--',UNFROZEN_POLICY_INPUT).split('\n'));
  if(!Array.isArray(metadata.build?.files)||metadata.build.files.some(p=>typeof p!=='string'))throw Error('SDK_RUNTIME_PACK_FILTER_REQUIRED');
  const {FileMatcher}=createRequire(import.meta.url)('app-builder-lib/out/fileMatcher');
  const selected=new FileMatcher(cwd,'/PUBLIC/not-an-output',value=>value,metadata.build.files).createFilter(),manifests=fixedSDKRuntimeManifestSources(root,sourceCommit),seen=new Set(),product=readSDKProductRuntime(root,sourceCommit);
@@ -510,10 +512,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   }
   const allowed=new Set(names.filter(name=>!excludedTypeDeclarations.includes(name)).map(packedRuntimePath));
   if(product)for(const name of product.selected.keys())allowed.add('code/packages/wallet-auth/'+name);
-  for(const row of receipt.after){
-    const additionalSDKRuntime=/^code\/packages\/wallet-auth\/(?:native|scripts)\/.+\.(?:mjs|js|cjs|json)$/.test(row.path);
-    if(row.type!=="directory"&&(row.path.startsWith("code/apps/wallet-desktop/src/")||row.path.startsWith("code/packages/wallet-auth/src/")||additionalSDKRuntime)&&!allowed.has(row.path)) throw new Error(`Unlisted packaged runtime member: ${row.path}`);
-  }
+  assertCanonicalRuntimeMembers(receipt.after,allowed);
   return { ...expected, packagedSourceVerified: true, sourceVerificationScope: "every runtime Wallet and SDK source", runtimePackageMetadataVerified:true,verifiedRuntimePackageFields:[...RUNTIME_PACKAGE_FIELDS], excludedTypeDeclarations,
     canonicalLayoutVerified:true,sourceOperandsUnchanged:true,nativeModuleBuild,declaredSDKRuntimeAssets,nativeBuildEvidenceAssets,
     unavailableOptionalRuntimeAssets,sdkProductRuntime:product?.public??null,
