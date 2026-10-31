@@ -28,6 +28,7 @@ on:
       - 'scripts/verify/product-device-keypair-v4-cabi-check.sh'
       - 'scripts/ops/test_product_device_keypair_v4_supply.py'
       - 'scripts/fixtures/verify-invoice-tx-cabi/**'
+      - 'scripts/fixtures/verify-deployment-manifest-v2-cabi/**'
       - 'scripts/ops/validate-private-consensus-copy.py'
       - 'scripts/ops/test_validate_private_consensus_copy.py'
       - 'scripts/ops/verify-original-native-copy.py'
@@ -794,6 +795,7 @@ jobs:
               'scripts/verify/publisher-registration-cabi-check.sh', 'scripts/fixtures/verify-product-session-http-cabi',
               'scripts/verify/product-session-http-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',
               'scripts/verify/product-device-keypair-v4-cabi-check.sh', 'scripts/fixtures/verify-invoice-tx-cabi',
+              'scripts/fixtures/verify-deployment-manifest-v2-cabi',
               '.github/workflows/resource-market-ci.yml').splitlines()
           sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}
           native_os, native_arch = command('go','env','GOOS'), command('go','env','GOARCH')
@@ -902,6 +904,77 @@ jobs:
         with:
           name: ynx-product-device-keypair-cabi-native-${{ matrix.runner }}-${{ github.sha }}
           path: ${{ runner.temp }}/ynx-product-device-keypair-v4-cabi/delivery/*
+          if-no-files-found: error
+          retention-days: 7
+      - name: Execute fixed E11 V2 from the same native archive and seal its own supply
+        run: |
+          set -euo pipefail
+          if ! go test -json -p 1 -count=1 -timeout=90s -run '^TestDeploymentManifestV2' ./internal/ynxbatch > "$RUNNER_TEMP/ynx-e11-v2-codec-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-e11-v2-codec-tests.jsonl"
+            exit 1
+          fi
+          bash scripts/fixtures/verify-deployment-manifest-v2-cabi/check.sh \
+            --archive "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \
+            --case "$RUNNER_TEMP/ynx-deployment-manifest-v2-cabi"
+          python3 -B - <<'PY'
+          import hashlib, json, os, re, shutil, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          rows = []
+          for filename in ('ynx-e11-v2-codec-tests.jsonl', 'ynx-native-cabi-core-tests.jsonl'):
+              rows += [json.loads(line) for line in (root / filename).read_text().splitlines()]
+          required = ['TestDeploymentManifestV2SDKFrozenGolden', 'TestDeploymentManifestV2ExactFieldsWidthsAndOriginalBytes', 'TestDeploymentManifestV2SDKScopeEpochAndTextRules', 'TestDeploymentManifestV2IndependentBindingsRejectSameShapeSwaps', 'TestDeploymentManifestV2OriginalDualANDAndN1', 'TestDeploymentManifestV2CorePublicPreflight', 'TestDeploymentManifestV2CoreActualDualANDAndPrivateBorrow', 'TestDeploymentManifestV2CoreCleanupFailureAndUnknownRemainClosed']
+          for name in required:
+              terminal = [r['Action'] for r in rows if r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')]
+              if terminal != ['pass']:
+                  raise RuntimeError('fixed E11 V2 test did not execute and pass: ' + name)
+          base = root / 'ynx-artifact-release-cabi' / 'delivery' / 'native-host'
+          case = root / 'ynx-deployment-manifest-v2-cabi'
+          out = case / 'delivery'
+          out.mkdir(mode=0o700)
+          def pin(p):
+              raw = p.read_bytes()
+              return dict(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+          source = json.loads((base / 'SOURCE.json').read_text())
+          if source['commit'] != os.environ['GITHUB_SHA']:
+              raise RuntimeError('original archive source differs')
+          original = root / 'ynx-artifact-release-cabi' / 'libynx_artifact_release.a'
+          if pin(original) != source['archive'] or pin(base / original.name) != source['archive']:
+              raise RuntimeError('same executed native archive differs')
+          nm = subprocess.check_output(['nm', '-g', str(original)], stderr=subprocess.STDOUT)
+          if re.search(rb'\bT\s+_?YNXDeploymentManifestSignV2\b', nm) is None:
+              raise RuntimeError('actual E11 V2 native symbol absent')
+          copies = {'libynx_artifact_release.a':original,
+              'ynx_artifact_release.h':base / 'ynx_artifact_release.h',
+              'deployment_manifest_v2.h':Path('cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h'),
+              'ORIGINAL-ARCHIVE-SOURCE.json':base / 'SOURCE.json',
+              'PUBLIC-RESULT.json':case / 'output' / 'PUBLIC-RESULT.json'}
+          for name, src in copies.items():
+              shutil.copyfile(src, out / name)
+          record = dict(version='YNX-DEPLOYMENT-MANIFEST-CABI-SOURCE/v2', commit=os.environ['GITHUB_SHA'],
+              sourceTree=source['sourceTree'], runId=os.environ['GITHUB_RUN_ID'], runAttempt=os.environ['GITHUB_RUN_ATTEMPT'],
+              job=os.environ['GITHUB_JOB'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'],
+              host=source['host'], target=source['target'], minimumSystemVersion=source['minimumSystemVersion'],
+              goVersion=source['goVersion'], compilerVersion=source['compilerVersion'],
+              goMod=source['goMod'], goSum=source['goSum'], circl=source['circl'], sources=source['sources'],
+              abi='YNXDeploymentManifestSignV2', abiVersion=2, domain='YNX-CLOUD-DEPLOYMENT-MANIFEST/v2',
+              purpose='CLOUD-DEPLOYMENT-MANIFEST-V2', suite=source['suite'],
+              actualCABIExecuted=True, independentGoDualANDVerified=True, actualCControls=54, actualGoNegativeControls=26,
+              requiredPassed=required, logicalCleanupVerified=True, physicalEraseClaimed=False,
+              RootAdmission=False, SourceAdmission=False, actualCurrentApproval=False,
+              files={name:pin(out / name) for name in copies})
+          (out / 'SOURCE.json').write_text(json.dumps(record, sort_keys=True, separators=(',', ':')) + '\n')
+          if set(p.name for p in out.iterdir()) != set(copies) | {'SOURCE.json'}:
+              raise RuntimeError('unexpected public E11 V2 supply file')
+          if subprocess.check_output(['git', 'status', '--porcelain'], text=True):
+              raise RuntimeError('E11 V2 native CI changed source checkout')
+          print('YNX_DEPLOYMENT_MANIFEST_V2_NATIVE_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, cCases=54, goNegativeCases=26, sharedArchive=True, SourceAdmission=False), sort_keys=True))
+          PY
+      - name: Upload only fixed E11 V2 archive headers and actual public evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-deployment-manifest-v2-cabi-native-${{ matrix.runner }}-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-deployment-manifest-v2-cabi/delivery/*
           if-no-files-found: error
           retention-days: 7
       - name: Seal the same executed archive with dedicated publisher public evidence
