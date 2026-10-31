@@ -1,0 +1,36 @@
+{
+  "profile": "PUBLIC SDK f0 V5 DATA interoperability only; no Source/Native/HTTP authority",
+  "request": {
+    "identity": {
+      "sessionBinding": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+      "productId": "developer",
+      "clientId": "developer.macos",
+      "applicationId": "com.ynx.ide",
+      "bundleId": "com.ynx.ide",
+      "packageId": null,
+      "origin": "https://ide.ynx.example",
+      "callback": "ynx-ide://auth/callback",
+      "account": "ynx1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg36avh43",
+      "canonicalOwner": "0x1111111111111111111111111111111111111111",
+      "deviceId": "PUBLIC-v5-device",
+      "deviceRegistrationId": "PUBLIC-v5-registration",
+      "deviceRegistrationRevision": "1",
+      "deviceRegistrationDigest": "efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef"
+    },
+    "bodyDATA": {
+      "contentType": "multipart/form-data; boundary=SDK5_PUBLIC_a-1",
+      "bodyDigest": "31dd1227da0aa05d57d3a3804979e7e06c3e71070ac9cf753c6d29e4c16cd3f5",
+      "bodyBinding": {
+        "bytes": "267",
+        "sha3_512": "09739f7b10f6ce93b70cb44d6d1856f2ca7dc37f1999f4ee4766dcb1cc04c03f76719a0239517da8b56262a5957606e94b8ba76dfb07893af5d8e97622f10c66",
+        "sha512": "b9d22b4b3f3698dd16a47c978051b85aa7f4c7e668dd7c6a34d069e6d1e01c26dcefcd02d67de2947e93018a0ae44dc6a79538b7ab0e673a106cb476c1cde0d1"
+      }
+    },
+    "actualBodyLength": 267,
+    "actualContentType": "multipart/form-data; boundary=SDK5_PUBLIC_a-1",
+    "nonce": "VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV",
+    "issuedAtMs": 1793404800000,
+    "expiresAtMs": 1793404830000
+  },
+  "expectedCanonical": "{\"account\":\"ynx1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg36avh43\",\"applicationId\":\"com.ynx.ide\",\"bodyBinding\":{\"bytes\":\"267\",\"sha3_512\":\"09739f7b10f6ce93b70cb44d6d1856f2ca7dc37f1999f4ee4766dcb1cc04c03f76719a0239517da8b56262a5957606e94b8ba76dfb07893af5d8e97622f10c66\",\"sha512\":\"b9d22b4b3f3698dd16a47c978051b85aa7f4c7e668dd7c6a34d069e6d1e01c26dcefcd02d67de2947e93018a0ae44dc6a79538b7ab0e673a106cb476c1cde0d1\"},\"bodyDigest\":\"31dd1227da0aa05d57d3a3804979e7e06c3e71070ac9cf753c6d29e4c16cd3f5\",\"bundleId\":\"com.ynx.ide\",\"callback\":\"ynx-ide://auth/callback\",\"canonicalOwner\":\"0x1111111111111111111111111111111111111111\",\"clientId\":\"developer.macos\",\"contentType\":\"multipart/form-data; boundary=SDK5_PUBLIC_a-1\",\"deviceId\":\"PUBLIC-v5-device\",\"deviceRegistrationDigest\":\"efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef\",\"deviceRegistrationId\":\"PUBLIC-v5-registration\",\"deviceRegistrationRevision\":\"1\",\"expiresAt\":\"2026-10-31T00:00:30.000Z\",\"issuedAt\":\"2026-10-31T00:00:00.000Z\",\"method\":\"POST\",\"nonce\":\"VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV\",\"origin\":\"https://ide.ynx.example\",\"packageId\":null,\"path\":\"/api/v1/ide/deployments\",\"productId\":\"developer\",\"sessionBinding\":\"cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd\",\"version\":\"5\"}"
+}
