@@ -1,7 +1,7 @@
 name: PQ original-input per-height functional comparison
 
 # Original before/B are immutable successful artifacts. This repair runs only
-# actual Linux controls and the missing A arm; no signing or baseline recording.
+# only new evidence controls and the missing A arm; no signing or baseline recording.
 on:
   push:
     branches: [codex/ynx-pq-height-vectors-20261101]
@@ -27,7 +27,7 @@ env:
   GOMAXPROCS: '1'
 
 jobs:
-  linux-guard-controls:
+  evidence-controls:
     if: github.run_attempt == 1 && ((github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-height-vectors-20261101') || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
     timeout-minutes: 18
@@ -40,24 +40,26 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/pq-height-ci/
       - name: Pure fixed-artifact intake controls; no Linux claim from local preparation
-        run: python3 -B scripts/loadtest/pq-height-ci/test_pq_height_ci_arm.py
-      - name: Actual Linux owned PID Tgid smaps and unchanged-cap controls
+        run: python3 -B scripts/loadtest/pq-height-ci/test_pq_height_ci_arm.py ProcessEvidenceIntakeControls -v
+      - name: Reuse original 33 Linux controls and run only six new evidence controls
         id: controls
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           python3 -B scripts/loadtest/pq-height-ci/pq-height-ci-arm.py controls \
-            --operation "$RUNNER_TEMP/pq-height-guard-controls" --execute
+            --operation "$RUNNER_TEMP/pq-height-evidence-controls" --execute
       - name: Preserve original controls first cause and owned process resource evidence
         if: always() && steps.controls.outputs.diagnostics != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pq-height-linux-guard-controls-${{ github.run_id }}
+          name: pq-height-linux-evidence-controls-${{ github.run_id }}
           path: ${{ steps.controls.outputs.diagnostics }}/*
           if-no-files-found: error
           include-hidden-files: false
           retention-days: 7
 
   after-a:
-    needs: linux-guard-controls
+    needs: evidence-controls
     if: github.run_attempt == 1
     runs-on: ubuntu-24.04
     timeout-minutes: 25

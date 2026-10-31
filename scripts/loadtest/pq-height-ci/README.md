@@ -1,44 +1,38 @@
-# Missing-A guard repair CI
+# Missing-A process-evidence repair
 
-This source-only preparation reuses the already successful41-record before and
-B. It runs no signing, baseline recording, node, pressure or public deployment.
-Root alone owns the eventual branch push and dispatch.
+This seven-leaf preparation changes only the retained-evidence storage repair.
+Root alone owns the branch/index/push. Before9c22 and successful B are not rerun;
+signed inputc819 and old receipts are unchanged. No signing, nodes or pressure.
 
-Install controller, test, README and three vendor leaves under
-`scripts/loadtest/pq-height-ci/`; install the workflow only at
-`.github/workflows/pq-height-vectors-ci.yml`. The original9c22 directory and
-A resource-sampler failure remain unchanged.
+Tools41041e368812142808cc874421078406b8fb5885/tree
+efa33c14cf01900863b13cf0e310722aaf64f90c run both inner and outer Window cohort.
+The actual owned_rss and same_process_rss_alternative function ASTs, plus CAPS,
+are compared against independently checked-out original a786. Both full source
+SHA256 pins are required before actual AST equality is computed and recorded.
+Paired Window and original artifact-intake bytes are unchanged.
 
-Tools are fixed to `a786dda03df9cef03f27ca0de788d0f718dc30b3`, tree
-`4a73122d19c0975f3322dffb474680d2a2cd759b`. Both inner tool execution and outer
-bootstrap Window use the same actual `same-process-rss-v2` cohort bytes. The
-frozen paired Window and artifact intake are retained byte-for-byte.
+Existing Linux33 are reused through the original official API/digest/CRC/closed
+13-file intake: artifact13052310092/run41226547284/workflowde6e43a8af0ba04fd7f3c1ad0b364ffe56e88732,
+5395bytes/SHA2566ecf2298994054d786d6bb3a5e1077ff3ce6b9ee59f7357bd8c113d1f650f92a.
+The original a786 receipt,15+10+8 zero-skip counts, named real Linux passes and
+all owned child terminal successes are checked without rewriting or executing
+them. The old raw13-leaf readback remains local evidence, not source to publish.
 
-The retained before is artifact13050898515, run41223769700,
-workflow759957070c303cf2adfc5e0db70275cb51ed9c2b,676742462bytes,
-SHA256e5369f3ea4211a1041d9f3e0a1625b91e6551760bfe2ebeca4d66617b377e2e4.
-Its original sourcefdc08527514587d5756264e43ab63588791e189a and tools9c22
-receipts are verified without rewriting them. API metadata, official digest,
-ZIP framing/CRC, closed88-leaf catalog and complete41 states/responses are
-still checked. `HEIGHT_BEFORE_*` overrides are rejected.
+The evidence-controls job has GH_TOKEN only for the original API reader; tokens
+are removed from child environments and never forwarded to storage hosts.
+Its only new Linux execution is:
+`python3 -B -m unittest discover -s scripts/loadtest -p test_process_evidence.py -v`
+Exactly6 tests and the named actual zombie/kernel control must pass,0 skip.
+Only that successful job unlocks the unique fresh A window. There is no before
+or B execution job. Dispatch defaults to compile-only; exact branch push replays.
 
-Only the missing A sourceb77a3df453d880ab31aca99ce94fc9a7feb4fffb can execute.
-The new exact-branch push first runs genuine hosted Linux controls:15 ownedRSS
-controls including three named real kernel/child cases,10 height fixtures and
-8 cohort controls, all zero skip. Only their successful job unlocks fresh A.
-Dispatch defaults to compile-only; exact branch push selects replay. There is
-no before or B execution job.
+Original900s/2CPU/4GiB RSS/8GiB new storage and cleanup remain. Repeated evidence
+is counted with first/last edges, not omitted samples or a higher distinct cap.
+The original676MB before API pins/run759 remain fixed. A still requires all41
+complete states/responses equal under upstream's narrow guard-only comparison;
+performance qualification, pressure authorization and finality remain false.
 
-All checkout, preparation, compilation, download, replay, full JSON readback
-and comparison stay within the original900-second Window,2CPU,4GiB aggregate
-RSS and8GiB new storage, including cleanup and original capacity admission.
-Unknown live memory is not zero; new fallback evidence is retained. No caps,
-security parameters, source policies or signed input bytes are changed.
-
-The unchanged Go observer leaf is SHA256
-3dda570d92374df2e66aaedadb35907354ec7073ac142fb72de67a16dd2ce0e0.
-Only upstream's explicit old9c22 to guardv2 compatibility rule is used. Success
-requires all41 full states/results equal and `guardOnlyFunctionalCompatibility`
-true, while performance qualification and pressure authorization remain false.
-Actual Linux controls, Go compilation and A replay are NOT RUN by this local
-preparation; local pure intake controls do not establish those results.
+Local preparation ran only3 new source/receipt/catalog/diff pure controls and
+read the retained ZIP/source ASTs. It did not run old33, Linux6, Go, A or dispatch.
+Install the controller/test/README/vendor leaves in scripts/loadtest/pq-height-ci;
+install only the workflow at .github/workflows/pq-height-vectors-ci.yml.

@@ -34,6 +34,7 @@ CAPS = dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4 << 30,
             newBytes=8 << 30, initialMemoryBytes=6 << 30,
             initialDiskBytes=16 << 30, logBytes=4 << 20, cpus=2)
 RSS_OBSERVER_VERSION = "same-process-rss-v2"
+PROCESS_EVIDENCE_VERSION = "same-identity-first-last-count-v1"
 PROFILES = {"smoke": dict(count=4, rounds=2, rate=4, window="2s", timeout="20s"),
             "cohort": dict(count=64, rounds=2, rate=32, window="4s", timeout="30s")}
 
@@ -225,6 +226,42 @@ def validate_manifest(m, network):
     require(migration.resolve() == migration and network in migration.parents, "migration escaped owned network")
 
 
+class ProcessEvidence:
+    """Bound DISTINCT evidence identities, not repeated verified observations.
+
+    This is a receipt sink only. It never decides whether to sample/retire a
+    process. First/last raw events and exact observation counts are retained.
+    """
+    LIMIT=4096
+    MAX_COUNT=(1<<64)-1
+    def __init__(self,records,keys):
+        self.records,self.keys,self.index=records,keys,{}
+    def retain(self,event,at_ns=None):
+        require(type(event) is dict,"invalid process evidence")
+        key=[]
+        for name in self.keys:
+            value=event.get(name)
+            require(value is None or type(value) in (str,int,bool),"invalid process evidence identity")
+            key.append((name in event,type(value).__name__,value))
+        key=tuple(key);at=time.monotonic_ns() if at_ns is None else at_ns
+        require(type(at) is int and 0<=at<1<<64,"invalid process evidence clock")
+        if "sampledBytes" in event:require(type(event["sampledBytes"]) is int and 0<=event["sampledBytes"]<1<<64,"invalid process evidence byte count")
+        if key in self.index:
+            row=self.records[self.index[key]];count=int(row["observations"])
+            require(1<=count and str(count)==row["observations"],"invalid process evidence observation count")
+            require(count<self.MAX_COUNT,"process evidence observation count overflow")
+            require(at>=row["lastObservedMonotonicNs"],"process evidence clock regressed")
+            row.update(observations=str(count+1),lastObservedMonotonicNs=at,lastEvent=dict(event))
+            if "sampledBytes" in event:
+                row["minSampledBytes"]=min(row["minSampledBytes"],event["sampledBytes"])
+                row["maxSampledBytes"]=max(row["maxSampledBytes"],event["sampledBytes"])
+            return
+        require(len(self.records)<self.LIMIT,"distinct process sample evidence bound")
+        row=dict(event,evidenceVersion=PROCESS_EVIDENCE_VERSION,observations="1",firstObservedMonotonicNs=at,lastObservedMonotonicNs=at,firstEvent=dict(event),lastEvent=dict(event))
+        if "sampledBytes" in event:row.update(minSampledBytes=event["sampledBytes"],maxSampledBytes=event["sampledBytes"])
+        self.index[key]=len(self.records);self.records.append(row)
+
+
 class Window:
     def __init__(self, source, work, additional_storage=()):
         self.lock = threading.RLock()
@@ -234,6 +271,8 @@ class Window:
         self.children, self.known, self.samples = [], {}, []
         self.retired_samples = []
         self.rss_fallback_samples = []
+        self.retired_evidence=ProcessEvidence(self.retired_samples,("pid","startTicks","reason","rssError","statError"))
+        self.fallback_evidence=ProcessEvidence(self.rss_fallback_samples,("pid","startTicks","tid","threadStartTicks","sampleKind","reason","originalRSSKernelError","retired"))
         self.peak_rss = self.peak_bytes = 0
         self.last_storage_sample = 0
         self.storage_bytes = 0
@@ -267,11 +306,9 @@ class Window:
             before = rows[pid]
             self.known[pid] = before["startTicks"]
             def retain_retired(event):
-                require(len(self.retired_samples) < 4096, "retired process sample evidence bound")
-                self.retired_samples.append(event)
+                self.retired_evidence.retain(event)
             def retain_fallback(event):
-                require(len(self.rss_fallback_samples)<4096,"RSS fallback evidence bound")
-                self.rss_fallback_samples.append(event)
+                self.fallback_evidence.retain(event)
             size = owned_rss(pid, before, retain_retired, retain_fallback)
             if size is not None:
                 rss += size
@@ -553,7 +590,7 @@ def run(args):
                       elapsedSeconds=time.monotonic()-window.started, resourceSamples=window.samples,
                       cpuAffinity=window.cpus, physicalCommitMeasured=False,
                       resourceSemantics="sampled owned RSS; explicit same-process VmSize conservative upper bounds if present; artifacts 1s; not atomic or hard cgroup ceilings",
-                      resourceObserverVersion=RSS_OBSERVER_VERSION,rssSamplingFallbackEvidence=window.rss_fallback_samples,
+                      resourceObserverVersion=RSS_OBSERVER_VERSION,processEvidenceVersion=PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=window.rss_fallback_samples,
                       processPhaseMeaning="parent monotonic launch-to-observed-exit durations; includes polling; concurrent node lifetimes overlap and are not additive",
                       processPhases=[dict(name=c["name"], elapsedNs=c.get("elapsedNs"), exitCode=c["process"].returncode) for c in window.children])
         write_new(work / "public/receipt.json", result)

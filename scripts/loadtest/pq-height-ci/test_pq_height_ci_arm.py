@@ -195,5 +195,65 @@ class HeightCIControls(unittest.TestCase):
                 h.public_from_runner(log, operation)
 
 
+class ProcessEvidenceIntakeControls(unittest.TestCase):
+    """New source/receipt/catalog controls only; no rerun of retained Linux33."""
+    def record(self):
+        return dict(schema="YNX-PQ-HEIGHT-LINUX-GUARD-CONTROLS/v1", toolsCommit=h.KERNEL_TOOLS,
+                    toolsTree=h.KERNEL_TREE, workflowCommit=h.GUARD_ARTIFACT["workflowCommit"],
+                    runId=str(h.GUARD_ARTIFACT["runId"]), caps=h.CAPS, resourceObserverVersion="same-process-rss-v2",
+                    resourceObserverSHA256=h.KERNEL_SHA, firstCause=None, cleanupComplete=True,
+                    actualLinux=True, actualKernelControlPassed=True, inputGenerated=False, publicNetwork=False,
+                    performanceComparisonQualified=False, optimizedPressureAuthorized=False,
+                    fixtureCounts={name:dict(passed=count,skipped=0) for name,count in h.RETAINED_LINUX_CONTROLS.items()},
+                    processes=[dict(name=name,pid=i+1,startTicks=100+i,exited=True,rawReturnCode=0)
+                               for i,name in enumerate(h.GUARD_PROCESSES)])
+
+    def test_fixed_retained_33_receipt_rejects_source_skip_replacement_and_bad_children(self):
+        record=self.record();h.validate_guard_record(record)
+        self.assertEqual(h.retained_guard_artifact({})["artifactId"],13052310092)
+        with self.assertRaisesRegex(RuntimeError,"cannot be overridden"):
+            h.retained_guard_artifact({"HEIGHT_GUARD_ARTIFACT_ID":"other"})
+        for field,value in (("toolsCommit",h.TOOLS),("actualLinux",False),("cleanupComplete",False),
+                            ("runId","999"),("workflowCommit","f"*40),("resourceObserverSHA256","0"*64)):
+            changed=json.loads(json.dumps(record));changed[field]=value
+            with self.subTest(field=field),self.assertRaises(RuntimeError):h.validate_guard_record(changed)
+        for field,value in (("skipped",1),("skipped",False),("passed",14)):
+            changed=json.loads(json.dumps(record));changed["fixtureCounts"]["test_linux_owned_rss.py"][field]=value
+            with self.subTest(field=field,value=value),self.assertRaises(RuntimeError):h.validate_guard_record(changed)
+        changed=json.loads(json.dumps(record));changed["processes"][0]["rawReturnCode"]=1
+        with self.assertRaises(RuntimeError):h.validate_guard_record(changed)
+
+    def test_retained_13_file_catalog_uses_original_closed_zip_decoder(self):
+        self.assertEqual(len(h.GUARD_NAMES),13)
+        intake,_=h.dependencies();h.height_catalog(intake)
+        self.assertEqual(intake.public_names("linux-guard-original"),h.GUARD_NAMES)
+        with tempfile.TemporaryDirectory() as raw:
+            root=Path(raw).resolve();valid=root/"valid.zip";zipped(valid,h.GUARD_NAMES)
+            got=intake.safe_extract(valid,root/"valid","linux-guard-original")
+            self.assertEqual({p.name for p in got.iterdir()},h.GUARD_NAMES)
+            for i,names in enumerate((h.GUARD_NAMES-{"test_linux_owned_rss.log"},h.GUARD_NAMES|{".private/key.raw"})):
+                path=root/(str(i)+".zip");zipped(path,names)
+                with self.assertRaises(RuntimeError):intake.safe_extract(path,root/("out"+str(i)),"linux-guard-original")
+
+    def test_actual_pinned_kernel_ast_and_full_differential_are_both_required(self):
+        import hashlib
+        raw=b"CAPS = {}\ndef owned_rss(pid):\n return 1\ndef same_process_rss_alternative(pid):\n return 2\n"
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);old=root/"old.py";new=root/"new.py";old.write_bytes(raw);new.write_bytes(raw)
+            pin=hashlib.sha256(raw).hexdigest()
+            with mock.patch.object(h,"KERNEL_SHA",pin),mock.patch.dict(h.VENDOR,{"consensus-linux-cohort.py":pin}):
+                self.assertTrue(h.kernel_equivalence(old,new)["actualKernelASTEqual"])
+            changed=raw.replace(b"return 2",b"return 3");new.write_bytes(changed)
+            with mock.patch.object(h,"KERNEL_SHA",pin),mock.patch.dict(h.VENDOR,{"consensus-linux-cohort.py":hashlib.sha256(changed).hexdigest()}):
+                with self.assertRaisesRegex(RuntimeError,"AST or CAPS changed"):h.kernel_equivalence(old,new)
+        good=dict(before=h.ARMS["before"][0],after=h.ARMS["after-a"][0],inputSHA256=h.INPUT_SHA,recordsCompared=41,
+                  perHeightFunctionalEqual=True,guardOnlyFunctionalCompatibility=True,
+                  performanceComparisonQualified=False,optimizedPressureAuthorized=False)
+        h.fixed_diff(good,h.ARMS["after-a"][0])
+        for field,value in (("guardOnlyFunctionalCompatibility",False),("performanceComparisonQualified",True),
+                            ("optimizedPressureAuthorized",True),("recordsCompared",40)):
+            with self.subTest(field=field),self.assertRaises(RuntimeError):h.fixed_diff(dict(good,**{field:value}),h.ARMS["after-a"][0])
+
+
 if __name__ == "__main__":
     unittest.main()

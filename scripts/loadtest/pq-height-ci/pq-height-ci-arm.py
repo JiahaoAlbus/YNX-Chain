@@ -5,6 +5,7 @@ Only the existing Perf prepare/run/compare and original Window do the work.
 No signing, input generation, node, pressure, finality or optimization grant.
 """
 import argparse
+import ast
 import ctypes
 import hashlib
 import importlib.util
@@ -19,16 +20,28 @@ import sys
 import time
 
 HERE = Path(__file__).resolve().parent
-TOOLS = "a786dda03df9cef03f27ca0de788d0f718dc30b3"
-TOOLS_TREE = "4a73122d19c0975f3322dffb474680d2a2cd759b"
+TOOLS = "41041e368812142808cc874421078406b8fb5885"
+TOOLS_TREE = "efa33c14cf01900863b13cf0e310722aaf64f90c"
+KERNEL_TOOLS = "a786dda03df9cef03f27ca0de788d0f718dc30b3"
+KERNEL_TREE = "4a73122d19c0975f3322dffb474680d2a2cd759b"
+KERNEL_SHA = "d17f5d7c991ffd01fdbba61d9ead6bbdaeeb9c5d3998a8906e5280656c5561ed"
+GUARD_ARTIFACT = dict(artifactId=13052310092, runId=41226547284,
+    name="pq-height-linux-guard-controls-41226547284", size=5395,
+    digest="6ecf2298994054d786d6bb3a5e1077ff3ce6b9ee59f7357bd8c113d1f650f92a",
+    workflowCommit="de6e43a8af0ba04fd7f3c1ad0b364ffe56e88732")
+GUARD_PROCESSES = ["controller-identity", *["tools-checkout-%d" % i for i in range(6)],
+    "tools-identity", "test_linux_owned_rss", "test_pq_height_vectors",
+    "test_consensus_linux_cohort", "preserved-tools"]
+GUARD_NAMES = {"HEIGHT-GUARD-CONTROLS.json", *[name + ".log" for name in GUARD_PROCESSES]}
 BEFORE_TOOLS = "9c22b0700d4e21f7fc35ec3067339722fb8bc330"
 FUNCTIONAL_LEAF = "3dda570d92374df2e66aaedadb35907354ec7073ac142fb72de67a16dd2ce0e0"
 BEFORE_ARTIFACT = dict(artifactId=13050898515, runId=41223769700,
     name="pq-height-before-41223769700", size=676742462,
     digest="e5369f3ea4211a1041d9f3e0a1625b91e6551760bfe2ebeca4d66617b377e2e4",
     workflowCommit="759957070c303cf2adfc5e0db70275cb51ed9c2b")
-LINUX_CONTROLS = {"test_linux_owned_rss.py": 15, "test_pq_height_vectors.py": 10,
-                  "test_consensus_linux_cohort.py": 8}
+RETAINED_LINUX_CONTROLS = {"test_linux_owned_rss.py": 15, "test_pq_height_vectors.py": 10,
+                           "test_consensus_linux_cohort.py": 8}
+LINUX_CONTROLS = {"test_process_evidence.py": 6}
 ARMS = {
     "before": ("fdc08527514587d5756264e43ab63588791e189a", "883069d6f4c123d55dea797044186e6b7de2ad0e"),
     "after-a": ("b77a3df453d880ab31aca99ce94fc9a7feb4fffb", "1ab3bcca16cd7335866231af1554b9a27a0ea049"),
@@ -36,7 +49,7 @@ ARMS = {
 }
 INPUT_SHA = "c819fb976a422b855d3fc3e6939338995fa380556e642bda2ab59dcc66353401"
 VENDOR = {
-    "consensus-linux-cohort.py": "d17f5d7c991ffd01fdbba61d9ead6bbdaeeb9c5d3998a8906e5280656c5561ed",
+    "consensus-linux-cohort.py": "9a313e7230050b46da196bce64f1cc7b763f0874b7a1cd26c3ac499f5e68084d",
     "pq-paired-linux-window.py": "b87a895d7c625ae15834a73b19196310dfbba13335707b9fdb4a3e50d9ad69e2",
     "pq-source-artifact-intake.py": "0c59129b9951de6b0b0b30f098fd732c2652ffbf0a66ecddd99fe525da0b260b",
 }
@@ -91,7 +104,11 @@ def height_catalog(intake):
     original = intake.public_names
 
     def names(profile):
-        return height_names() if profile == "height-original" else original(profile)
+        if profile == "height-original":
+            return height_names()
+        if profile == "linux-guard-original":
+            return GUARD_NAMES
+        return original(profile)
 
     intake.public_names = names
 
@@ -212,6 +229,95 @@ def before_artifact(environment, intake):
     require(intake.normalize_digest(BEFORE_ARTIFACT["digest"]) == BEFORE_ARTIFACT["digest"],
             "fixed original before digest changed")
     return dict(BEFORE_ARTIFACT)
+
+
+def retained_guard_artifact(environment):
+    require(not any(key.startswith("HEIGHT_GUARD_") for key in environment),
+            "fixed original Linux controls cannot be overridden")
+    return dict(GUARD_ARTIFACT)
+
+
+def validate_guard_record(record):
+    require(record.get("schema") == "YNX-PQ-HEIGHT-LINUX-GUARD-CONTROLS/v1" and
+            record.get("toolsCommit") == KERNEL_TOOLS and record.get("toolsTree") == KERNEL_TREE and
+            record.get("workflowCommit") == GUARD_ARTIFACT["workflowCommit"] and
+            record.get("runId") == str(GUARD_ARTIFACT["runId"]) and record.get("caps") == CAPS and
+            record.get("resourceObserverVersion") == "same-process-rss-v2" and
+            record.get("resourceObserverSHA256") == KERNEL_SHA and
+            record.get("firstCause") is None and record.get("cleanupComplete") is True and
+            record.get("actualLinux") is True and record.get("actualKernelControlPassed") is True and
+            record.get("inputGenerated") is False and record.get("publicNetwork") is False and
+            record.get("performanceComparisonQualified") is False and
+            record.get("optimizedPressureAuthorized") is False,
+            "retained controls are not the actual fixed successful Linux source/run")
+    counts = record.get("fixtureCounts")
+    require(type(counts) is dict and set(counts) == set(RETAINED_LINUX_CONTROLS),
+            "retained complete 33-control denominator required")
+    for name, count in RETAINED_LINUX_CONTROLS.items():
+        value = counts[name]
+        require(type(value) is dict and set(value) == {"passed", "skipped"} and
+                type(value["passed"]) is int and value["passed"] == count and
+                type(value["skipped"]) is int and value["skipped"] == 0,
+                "retained actual Linux controls cannot skip or change denominator")
+    processes = record.get("processes")
+    require(type(processes) is list and [row.get("name") for row in processes] == GUARD_PROCESSES and
+            all(type(row.get("pid")) is int and row["pid"] > 0 and
+                type(row.get("startTicks")) is int and row["startTicks"] > 0 and
+                row.get("exited") is True and type(row.get("rawReturnCode")) is int and
+                row["rawReturnCode"] == 0 for row in processes),
+            "retained actual Linux child identities and terminal success required")
+
+
+def verify_retained_guard(root):
+    intake, _ = dependencies()
+    root = Path(root)
+    require(root.is_absolute() and root.resolve(strict=True) == root and not root.is_symlink() and
+            {p.name for p in root.iterdir()} == GUARD_NAMES, "retained closed 13-file controls catalog required")
+    for path in root.iterdir():
+        info = path.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and 0 <= info.st_size <= CAPS["logBytes"],
+                "retained control leaf must be bounded regular and unaliased")
+    record = intake.read_json(root / "HEIGHT-GUARD-CONTROLS.json", CAPS["logBytes"])
+    validate_guard_record(record)
+    for name, count in RETAINED_LINUX_CONTROLS.items():
+        required = ("test_actual_owned_thread_group_read_after_injected_leader_esrch",
+                    "test_actual_nonzero_exit_and_cleanup_signal_are_preserved",
+                    "test_actual_short_lived_descendants_do_not_create_fake_zero_samples") if name == "test_linux_owned_rss.py" else ()
+        controls_record((root / (name.removesuffix(".py") + ".log")).read_bytes(), count, required)
+    return dict(artifact=GUARD_ARTIFACT, actualLinux=True, actualKernelControlPassed=True,
+                fixtureCounts=record["fixtureCounts"], originalReceiptUnchanged=True)
+
+
+def kernel_ast(raw):
+    tree = ast.parse(raw.decode("utf-8", errors="strict"))
+    names = ("same_process_rss_alternative", "owned_rss")
+    result = {}
+    for name in names:
+        functions = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == name]
+        require(len(functions) == 1, "one actual kernel function required: " + name)
+        result[name] = ast.dump(functions[0], include_attributes=False)
+    caps = [node for node in tree.body if isinstance(node, ast.Assign) and
+            any(isinstance(target, ast.Name) and target.id == "CAPS" for target in node.targets)]
+    require(len(caps) == 1, "one original CAPS definition required")
+    result["CAPS"] = ast.dump(caps[0], include_attributes=False)
+    return result
+
+
+def kernel_equivalence(original, successor):
+    sources, pins = [], (KERNEL_SHA, VENDOR["consensus-linux-cohort.py"])
+    for path, pin in zip((Path(original), Path(successor)), pins):
+        info = path.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_nlink == 1 and 0 < info.st_size <= 1 << 20,
+                "actual bounded unaliased kernel source required")
+        raw = path.read_bytes()
+        require(len(raw) == info.st_size and hashlib.sha256(raw).hexdigest() == pin,
+                "actual kernel source differs from independent pin")
+        sources.append(kernel_ast(raw))
+    require(sources[0] == sources[1], "original kernel AST or CAPS changed")
+    return dict(originalCommit=KERNEL_TOOLS, successorCommit=TOOLS, originalSourceSHA256=pins[0],
+                successorSourceSHA256=pins[1], actualKernelASTEqual=True, originalCapsEqual=True,
+                functionASTSHA256={name: hashlib.sha256(value.encode()).hexdigest()
+                                   for name, value in sources[0].items()})
 
 
 def public_from_runner(path, operation):
@@ -356,6 +462,7 @@ def run(args):
 
 def run_controls(args):
     intake, lab = dependencies()
+    height_catalog(intake)
     if not args.execute:
         return dict(status="prepared-only", command="controls", toolsCommit=TOOLS,
                     actualLinux=False, executed=False, tests=LINUX_CONTROLS, caps=CAPS)
@@ -381,7 +488,7 @@ def run_controls(args):
                       GIT_TERMINAL_PROMPT="0", GIT_CONFIG_NOSYSTEM="1")
     window.env.pop("GH_TOKEN", None)
     window.env.pop("GITHUB_TOKEN", None)
-    record = dict(schema="YNX-PQ-HEIGHT-LINUX-GUARD-CONTROLS/v1", toolsCommit=TOOLS, toolsTree=TOOLS_TREE,
+    record = dict(schema="YNX-PQ-HEIGHT-LINUX-EVIDENCE-CONTROLS/v1", toolsCommit=TOOLS, toolsTree=TOOLS_TREE,
                   workflowCommit=os.environ["GITHUB_SHA"], runId=os.environ["GITHUB_RUN_ID"],
                   caps=CAPS, resourceObserverVersion=lab.RSS_OBSERVER_VERSION,
                   resourceObserverSHA256=VENDOR["consensus-linux-cohort.py"], firstCause=None,
@@ -393,14 +500,23 @@ def run_controls(args):
         window.wait(window.launch("controller-identity", [sys.executable, "-B", str(HERE / "pq-height-ci-arm.py"),
                     "check-controller", "--source", str(workspace), "--commit", os.environ["GITHUB_SHA"]]))
         tools = checkout(window, "tools", TOOLS, TOOLS_TREE, ["/scripts/loadtest/"])
-        for name, count in LINUX_CONTROLS.items():
-            label = name.removesuffix(".py")
-            window.wait(window.launch(label, [sys.executable, "-B", str(tools / "scripts/loadtest" / name), "-v"]))
-            required = ("test_actual_owned_thread_group_read_after_injected_leader_esrch",
-                        "test_actual_nonzero_exit_and_cleanup_signal_are_preserved",
-                        "test_actual_short_lived_descendants_do_not_create_fake_zero_samples") if name == "test_linux_owned_rss.py" else ()
-            controls_record((work / ("public/" + label + ".log")).read_bytes(), count, required)
-            record["fixtureCounts"][name] = dict(passed=count, skipped=0)
+        original = checkout(window, "original-kernel", KERNEL_TOOLS, KERNEL_TREE, ["/scripts/loadtest/"])
+        expectation = retained_guard_artifact(os.environ)
+        retained = intake.download_artifact(expectation, work / ".private/retained-linux-controls", "linux-guard-original", window.sample)
+        record["retainedLinuxControls"] = verify_retained_guard(retained)
+        equivalence = kernel_equivalence(original / "scripts/loadtest/consensus-linux-cohort.py",
+                                         tools / "scripts/loadtest/consensus-linux-cohort.py")
+        intake.write_new(work / "public/KERNEL-EQUIVALENCE.json", equivalence)
+        record["kernelEquivalence"] = equivalence
+        window.source = tools
+        label = "test_process_evidence"
+        window.wait(window.launch(label, [sys.executable, "-B", "-m", "unittest", "discover",
+                    "-s", "scripts/loadtest", "-p", "test_process_evidence.py", "-v"]))
+        controls_record((work / ("public/" + label + ".log")).read_bytes(), 6,
+                        ("test_actual_owned_zombie_reobserved_until_real_wait_and_exit",))
+        record["fixtureCounts"]["test_process_evidence.py"] = dict(passed=6, skipped=0)
+        window.wait(window.launch("preserved-original-kernel", [sys.executable, "-B", str(HERE / "pq-height-ci-arm.py"),
+                    "check-source", "--source", str(original), "--commit", KERNEL_TOOLS, "--tree", KERNEL_TREE]))
         window.wait(window.launch("preserved-tools", [sys.executable, "-B", str(HERE / "pq-height-ci-arm.py"),
                     "check-source", "--source", str(tools), "--commit", TOOLS, "--tree", TOOLS_TREE]))
         window.sample()
@@ -418,10 +534,10 @@ def run_controls(args):
                       peakNewBytes=window.peak_bytes, processes=window.process_receipt(),
                       resourceSamples=window.samples, retiredSamplingEvidence=window.retired_samples,
                       rssSamplingFallbackEvidence=window.rss_fallback_samples)
-        intake.write_new(work / "public/HEIGHT-GUARD-CONTROLS.json", record)
+        intake.write_new(work / "public/HEIGHT-EVIDENCE-CONTROLS.json", record)
     require(record["firstCause"] is None and record["cleanupComplete"] and record["actualKernelControlPassed"] and
             set(record["fixtureCounts"]) == set(LINUX_CONTROLS),
-            "actual Linux guard controls incomplete; original first cause retained")
+            "actual new Linux evidence controls or retained original controls incomplete; original first cause retained")
     return record
 
 
