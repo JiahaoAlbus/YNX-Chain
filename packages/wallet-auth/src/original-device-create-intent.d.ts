@@ -24,3 +24,16 @@ export function createOriginalDeviceCreateIntentDATA(input:OriginalDeviceCreateI
 export function inspectOriginalDeviceCreateIntentDATA(originalBytes:Uint8Array):OriginalDeviceCreateIntentDATA;
 export function assertOriginalDeviceCreateSelectionDATA(view:OriginalDeviceCreateIntentDATA,independent:OriginalDeviceCreateSelectionDATA):Readonly<{selectionMatches:true;dataOnly:true;userApproved:false;SourceAdmission:false;NativeAdmission:false}>;
 export function assertOriginalDeviceCreateIntentUnchangedDATA(original:OriginalDeviceCreateIntentDATA,current:OriginalDeviceCreateIntentDATA):Readonly<{originalMatches:true;dataOnly:true;userApproved:false;SourceAdmission:false;NativeAdmission:false}>;
+export type OriginalDeviceIdentityInputDATA=Omit<OriginalDeviceCreateIntentInputDATA,'generation'|'operationId'|'nonce'|'issuedAt'|'expiresAt'>;
+export type OriginalDeviceApplicationBindingDATA=Pick<OriginalDeviceCreateIntentInputDATA,'productId'|'clientId'|'platform'|'applicationId'|'bundleId'|'packageId'|'origin'|'callback'>;
+export interface OriginalDeviceIdentityDATA {
+ readonly identity:Readonly<OriginalDeviceCreateSelectionDATA&{version:'1';domain:typeof DEVICE_CREATE_IDENTITY_DOMAIN}>;
+ readonly stableDeviceIdentity:string;readonly stableIdentityBinding:PublicContentBinding;
+ readonly applicationBinding:Readonly<OriginalDeviceApplicationBindingDATA>;
+ readonly timeBasis:'stable-identity-data-only';readonly currentVerified:false;
+ readonly dataOnly:true;readonly userApproved:false;readonly SourceAdmission:false;readonly NativeAdmission:false;
+}
+/** No time, operation, nonce, generation or creation intent. DATA only. */
+export function createOriginalDeviceIdentityDATA(input:OriginalDeviceIdentityInputDATA):OriginalDeviceIdentityDATA;
+/** The application tuple is independently supplied and registry checked. */
+export function inspectOriginalDeviceIdentityDATA(originalIdentityBytes:Uint8Array,independentApplicationBinding:OriginalDeviceApplicationBindingDATA):OriginalDeviceIdentityDATA;
