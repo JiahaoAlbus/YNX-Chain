@@ -1,0 +1,21 @@
+# Original Device V4 completion caller
+
+This extends the existing zero-input openOriginalProductDeviceV4RegistrationClient; it does not introduce another client, Source factory, endpoint, key provider or success setter. Existing pair methods remain on the same interface. The normal callee is ProductSessionGatewayFetchAdapter.completeDeviceV4, not completeV4.
+
+## Main consumption
+
+1. Complete the existing original pair/challenge phase and persist its exact Auth original challenge. That phase is DATA and is not registered/connected.
+2. Acquire a fresh normal zero-input client only after the original Native owner supplies the actual challenge-completion pending Source. The consumed registration-pop Source cannot be switched or reopened by this SDK. Read readOriginalCompletionReviewDATA with Main's independently selected identityBinding, generation, publicPair and the exact independently persisted challengeOriginal. The SDK compares these with the original pending scope; it does not construct a Source from the HTTP challenge.
+3. Call prepareOriginalCompletionSubmission with the original approvalOriginal, real current account policy observation, and one frozen original {signal} context. It calls the original pending.produceChallengeProof once, retains the original member before late checks, verifies existing account/device math, and drains the owned Native operation before its Source. Partial Native errors remain owned children; they are never treated as HTTP responses.
+4. Read readOriginalCompletionRequestDATA using the opaque packet. Main must durably retain the exact operationId, approval, challenge, original registration, request digest, original member and entire originalBody under its EXISTING selected identity/generation/registration/ref/revision/digest and phase CAS, before submitting. The SDK cannot attest persistence and supplies no new Main state enum. No operation ID is generated: it is the original Native pendingId. Main must retain the same AbortContext identity.
+5. Submit submitPreparedCompletion once. The fixed original HTTPS /v4/product-sessions gateway inserts its same-operation record before fetch. All entered attempts, including late failures, retain their original operation and evidence. No response, timeout, abort, rejection, retire or UNKNOWN authorizes replay. A later attempt is original-query-only; this module supplies no recovery URL, replacement operation or restart packet reconstruction. The actual original query/current authority remains with its owner.
+6. Result.session and responseOriginal are DATA. Their canonical session must equal the existing codec's derived original target; current approval and original challenge window are checked before HTTP and after response. All registered/connected/newSession/operationVerified/SourceAdmission/NativeAdmission flags stay false. Main still requires its protected Source/current/actual session admission.
+7. Caller aborts its original controller when cancellation is required, then awaits close. close retires Native once and drains every active preparation/submission flight, even if a later same-packet attempt was rejected. Falsy first causes and sticky cleanup failures remain observable. It cannot cancel or replace Main's context on Main's behalf.
+
+## Gateway late-abort fix
+
+After readDeviceV4Response finishes, its exact envelope is retained on the original per-operation record before original signal/controller late checks. A resulting PAIR_V4_HTTP_OUTCOME_UNKNOWN retains that envelope in its own originalResponse property and retains the SAME cause (including 0/false). The orchestration only adopts this known gateway originalResponse; it never interprets arbitrary cause.partial as transport evidence.
+
+## Verification boundary
+
+New focused tests use the actual SDK pending client, actual fixed GatewayFetchAdapter and real temporary PUBLIC account/device AND math, with PUBLIC same-image Native and fetch stream fixtures. No live account, Root, actual Native build, network, funds or Source admission was used. Fixed registry and existing math/codec are reused. The new test file is portable by keeping its relative test/src package layout; no private absolute fixture path is embedded. Main Native145, shared package/exports, original Source, issuer, UI, workflow and old green matrices were not changed or rerun.
