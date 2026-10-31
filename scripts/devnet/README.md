@@ -117,6 +117,10 @@ ABCI bytes once and observes only the same hash thereafter. It uses the normal
 future height-halt publisher, waits for all four original nodes to exit, invokes
 activation once and resumes their exact Home/HRS/args with an inherited private
 FD mapped to 3. No credential bytes enter argv, environment or public artifacts.
+The mapping uses isolated Python descriptor syscalls and `execv` of the exact
+normal binary/argv, including source descriptors above9. Run41207445495 exposed
+Linux dash rejecting `3<&16` before the sender started; the real high-FD control
+now verifies private delivery on3 and closure of the original source descriptor.
 Current AppHash is compared with original ABCI Info; Comet status's latest header
 AppHash is the previous application boundary and is not substituted.
 

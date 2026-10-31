@@ -75,11 +75,12 @@ def original_plan(created,root):
 
 def fd3_command(command,fd):
     # Duplicate an already-open private descriptor in the child. No credential
-    # bytes, shell expansions or credential path are added to argv/environment.
+    # bytes or credential path are added to argv/environment. Linux /bin/sh
+    # (dash) rejects multi-digit redirections such as 3<&16. Use isolated
+    # Python's descriptor syscalls, then exec the exact original binary/argv.
     lab.require(type(fd) is int and fd>=3,"private inherited descriptor required")
-    script="exec 3<&%d; "%fd
-    if fd!=3:script+="exec %d<&-; "%fd
-    return ["/bin/sh","-c",script+'exec "$@"',"original-pq-recovery-fd",*command]
+    script="import os,sys\nfd=int(sys.argv[1])\nif fd!=3:\n os.dup2(fd,3,inheritable=True)\n os.close(fd)\nelse:\n os.set_inheritable(3,True)\nos.execv(sys.argv[2],sys.argv[2:])\n"
+    return [sys.executable,"-I","-c",script,str(fd),*command]
 
 
 def decoded_hash(value):

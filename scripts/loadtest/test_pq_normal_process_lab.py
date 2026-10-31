@@ -3,6 +3,7 @@ import base64
 import importlib.util
 import copy
 import json
+import fcntl
 import os
 from pathlib import Path
 import subprocess
@@ -70,9 +71,25 @@ class NormalPQControls(unittest.TestCase):
         command=["/owned/ynx-comet","start","--pq-recovery-fd","3"]
         wrapped=lab.fd3_command(command,8)
         self.assertEqual(wrapped[-len(command):],command)
-        self.assertEqual(wrapped[2],'exec 3<&8; exec 8<&-; exec "$@"')
-        self.assertEqual(lab.fd3_command(command,3)[2],'exec 3<&3; exec "$@"')
+        self.assertEqual(wrapped[:3],[sys.executable,"-I","-c"])
+        self.assertEqual(wrapped[4],"8")
+        self.assertEqual(lab.fd3_command(command,3)[4],"3")
         with self.assertRaises(RuntimeError):lab.fd3_command(command,2)
+        # Regression for real run41207445495: accumulated open logs yielded
+        # fd16; dash parsed 3<&16 as a syntax error before the original helper.
+        # Exercise a real high descriptor without a signer/node/transaction.
+        with tempfile.TemporaryDirectory() as temporary:
+            credential=Path(temporary)/"synthetic.raw";credential.write_bytes(bytes(range(32)));credential.chmod(0o600)
+            opened=os.open(credential,os.O_RDONLY|os.O_CLOEXEC)
+            try:fd=fcntl.fcntl(opened,fcntl.F_DUPFD_CLOEXEC,64)
+            finally:os.close(opened)
+            try:
+                check="import os\nassert os.read(3,33)==bytes(range(32))\ntry:\n os.fstat("+str(fd)+")\nexcept OSError:\n pass\nelse:\n raise AssertionError('original high fd remains open')\nos.close(3)\n"
+                result=subprocess.run(lab.fd3_command([sys.executable,"-I","-c",check],fd),pass_fds=(fd,),capture_output=True,timeout=5)
+                self.assertEqual(result.returncode,0,result.stderr.decode())
+                self.assertEqual(result.stdout,b"")
+                self.assertEqual(result.stderr,b"")
+            finally:os.close(fd)
 
     def test_duplicate_or_wrong_hash_is_rejected_before_any_http_or_new_intent(self):
         ceremony=object.__new__(lab.Ceremony);ceremony.attempted=set()
