@@ -16,6 +16,7 @@ import (
 const maxRequestBytes = 1 << 20
 
 type Server struct {
+	nativePay          http.Handler
 	service            *Service
 	mux                *http.ServeMux
 	business           http.Handler

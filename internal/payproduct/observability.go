@@ -80,6 +80,14 @@ func (s *Server) ObservedHandler() http.Handler {
 				return
 			}
 		}
+		if strings.HasPrefix(r.URL.Path, "/v5/pay/") {
+			if s.nativePay == nil {
+				writeJSON(w, 503, map[string]string{"code": "NATIVE_PAY_AUTHORITY_UNAVAILABLE"})
+				return
+			}
+			s.nativePay.ServeHTTP(w, r)
+			return
+		}
 		if s.business != nil {
 			s.business.ServeHTTP(w, r)
 		} else {

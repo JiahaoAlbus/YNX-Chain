@@ -154,7 +154,11 @@ func TestProductionPayCallerUsesNativeExactRoutes(t *testing.T) {
 func TestProductionDaemonEntryKeepsPrivateAuthorityClosed(t *testing.T) {
 	f := newTLSFixture(t)
 	bin := filepath.Join(t.TempDir(), "ynx-pay-productd")
-	build := exec.Command("go", "build", "-p", "1", "-tags", "pay_securelink securelink_openssl", "-o", bin, "./cmd/ynx-pay-productd")
+	tags := os.Getenv("YNX_PAY_TEST_DAEMON_BUILD_TAGS")
+	if tags == "" {
+		tags = "pay_securelink securelink_openssl"
+	}
+	build := exec.Command("go", "build", "-p", "1", "-tags", tags, "-o", bin, "./cmd/ynx-pay-productd")
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("matching normal daemon build: %v %s", err, output)
 	}
@@ -200,7 +204,7 @@ func TestProductionDaemonEntryKeepsPrivateAuthorityClosed(t *testing.T) {
 	if response.StatusCode != 200 {
 		t.Fatal("normal liveness unavailable", response.StatusCode)
 	}
-	for _, path := range []string{"/ready", "/v1/merchant/state", "/v1/invoices/unknown/payment-outcome"} {
+	for _, path := range []string{"/ready", "/v1/merchant/state", "/v1/invoices/unknown/payment-outcome", "/v5/pay/invoices/merchant/invoice"} {
 		response, err = client.Get("http://" + address + path)
 		if err != nil {
 			t.Fatal(err)

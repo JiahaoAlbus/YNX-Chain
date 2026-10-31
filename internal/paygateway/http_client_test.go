@@ -26,6 +26,11 @@ func TestGatewayHTTPClientInjectionPreservesWireAndDefault(t *testing.T) {
 		switch r.Method + " " + r.URL.RequestURI() {
 		case "GET /status":
 			_, _ = io.WriteString(w, `{"chainId":6423,"height":12,"network":"fixture","nativeCurrencySymbol":"YNXT"}`)
+		case "GET /pay/intents/00112233445566778899aabb":
+			if r.Header.Get("X-YNX-Pay-Gateway-Upstream-Key") != testUpstreamKey {
+				t.Error("original ownership read lost credential")
+			}
+			io.WriteString(w, `{"id":"00112233445566778899aabb","merchant":"`+testMerchantID+`"}`)
 		case "POST /pay/invoices":
 			raw, err := io.ReadAll(r.Body)
 			if err != nil || string(raw) != body || r.Header.Get("X-YNX-Pay-Gateway-Upstream-Key") != testUpstreamKey || r.Header.Get("X-Request-ID") != "injected-request" || r.Header.Get("Content-Type") != "application/json" {
@@ -61,8 +66,8 @@ func TestGatewayHTTPClientInjectionPreservesWireAndDefault(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer response.Body.Close()
-	if response.StatusCode != http.StatusCreated || calls.Load() != 2 {
-		t.Fatalf("injected client did not carry both original requests: HTTP %d, calls %d", response.StatusCode, calls.Load())
+	if response.StatusCode != http.StatusCreated || calls.Load() != 3 {
+		t.Fatalf("injected client did not carry status, original ownership and mutation requests: HTTP %d, calls %d", response.StatusCode, calls.Load())
 	}
 	config.HTTPClient = nil
 	defaults, err := New(config)
@@ -82,6 +87,11 @@ func TestGatewayHTTPClientCannotRedirectCredentialsToAnotherTarget(t *testing.T)
 	}))
 	defer destination.Close()
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/pay/intents/intent-original" {
+			w.Header().Set("Content-Type", "application/json")
+			io.WriteString(w, `{"id":"intent-original","merchant":"`+testMerchantID+`"}`)
+			return
+		}
 		w.Header().Set("Location", destination.URL+"/collect")
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	}))
@@ -94,7 +104,7 @@ func TestGatewayHTTPClientCannotRedirectCredentialsToAnotherTarget(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	response, err := service.Proxy(context.Background(), http.MethodPost, "/pay/invoices", "", []byte(`{"idempotencyKey":"redirect-invoice"}`), "redirect-request")
+	response, err := service.Proxy(context.Background(), http.MethodPost, "/pay/invoices", "", []byte(`{"intentId":"intent-original","idempotencyKey":"redirect-invoice"}`), "redirect-request")
 	if err != nil {
 		t.Fatal(err)
 	}

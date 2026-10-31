@@ -113,9 +113,13 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusNotImplemented, map[string]string{"error": unavailable.Error(), "requestId": requestID, "code": "BFT_FUNDS_CAPABILITY_UNAVAILABLE", "capability": unavailable.Capability})
 			return
 		}
-		s.service.FinishRequest(http.StatusBadGateway)
-		s.audit(r, requestID, body, http.StatusBadGateway, "upstream_error")
-		writeError(w, http.StatusBadGateway, requestID, err.Error())
+		status, outcome := http.StatusBadGateway, "upstream_error"
+		if errors.Is(err, ErrMerchantObjectForbidden) {
+			status, outcome = http.StatusForbidden, "merchant_object_forbidden"
+		}
+		s.service.FinishRequest(status)
+		s.audit(r, requestID, body, status, outcome)
+		writeError(w, status, requestID, err.Error())
 		return
 	}
 	defer resp.Body.Close()
