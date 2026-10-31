@@ -332,7 +332,7 @@ func productRevision(p Product, actor, action, digest string, at time.Time) Prod
 	return ProductRevision{Revision: p.Revision, Actor: actor, Action: action, RequestHash: digest, Title: p.Title, Description: p.Description, Category: p.Category, Media: append([]MediaAsset(nil), p.Media...), Variants: append([]Variant(nil), p.Variants...), Published: p.Published, At: at}
 }
 
-func (s *Store) SetInventory(actor string, in InventoryInput) (Product, error) {
+func (s *Store) SetInventory(actor string, in InventoryInput) (result Product, resultErr error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	p, ok := s.s.Products[in.ProductID]
@@ -352,6 +352,16 @@ func (s *Store) SetInventory(actor string, in InventoryInput) (Product, error) {
 	if replay {
 		return cloneProduct(p), nil
 	}
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return Product{}, err
+	}
+	defer func() {
+		if resultErr != nil {
+			s.s = before
+		}
+	}()
+	p = cloneProduct(p)
 	found := false
 	for i := range p.Variants {
 		if p.Variants[i].ID == in.VariantID {
@@ -365,6 +375,7 @@ func (s *Store) SetInventory(actor string, in InventoryInput) (Product, error) {
 	if !found {
 		return Product{}, ErrNotFound
 	}
+	p.Revision++
 	p.UpdatedAt = s.now()
 	s.s.Products[p.ID] = p
 	s.recordIdempotencyLocked(actor, "inventory.set", in.IdempotencyKey, h, p.ID)
@@ -468,6 +479,7 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (result Order, resultEr
 				p.Variants[i].Reserved += line.Quantity
 			}
 		}
+		p.Revision++
 		s.s.Products[p.ID] = p
 	}
 	now := s.now()
@@ -536,7 +548,7 @@ func (s *Store) BindInvoice(actor, orderID string, handoff PayInvoiceHandoff) (O
 	return cloneOrder(o), nil
 }
 
-func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, error) {
+func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (result Order, resultErr error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	o, ok := s.s.Orders[orderID]
@@ -558,6 +570,15 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, 
 	if o.Status != "payment_pending" {
 		return Order{}, fmt.Errorf("%w: settlement evidence mismatch", ErrInvalidState)
 	}
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return Order{}, err
+	}
+	defer func() {
+		if resultErr != nil {
+			s.s = before
+		}
+	}()
 	for _, line := range o.Lines {
 		p := cloneProduct(s.s.Products[line.ProductID])
 		for i := range p.Variants {
@@ -569,6 +590,7 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, 
 				p.Variants[i].Inventory -= line.Quantity
 			}
 		}
+		p.Revision++
 		s.s.Products[p.ID] = p
 	}
 	o.Status = "paid"
@@ -593,7 +615,7 @@ func settlementMatchesOrder(o Order, e SettlementEvidence) bool {
 	return o.InvoiceID != "" && e.InvoiceID == o.InvoiceID && e.IntentID == o.PayIntentID && e.Merchant == o.PayMerchant && sameBusinessAccount(e.PayoutAddress, o.PayPayoutAddress) && e.Status == "paid" && e.Currency == NativeSymbol && len(e.TransactionHash) == 66 && strings.HasPrefix(e.TransactionHash, "0x") && len(e.AuditHash) == 64 && sameBusinessAccount(e.Payer, o.Buyer) && e.BlockHeight > 0 && e.AmountYNXT == o.TotalYNXT && !e.ConfirmedAt.IsZero()
 }
 
-func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (Order, error) {
+func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (result Order, resultErr error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	o, ok := s.s.Orders[orderID]
@@ -611,6 +633,15 @@ func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (Ord
 	if o.Status != "refund_approved" || o.Settlement == nil || e.ID == "" || e.IntentID != o.PayIntentID || e.Merchant != o.PayMerchant || e.Currency != NativeSymbol || e.Status != "recorded" || e.AmountYNXT != o.TotalYNXT || e.BlockHeight == 0 || e.RecordedAt.IsZero() || !validTxHash || len(e.AuditHash) != 64 || len(e.RequestHash) != 64 {
 		return Order{}, fmt.Errorf("%w: refund evidence mismatch", ErrInvalidState)
 	}
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return Order{}, err
+	}
+	defer func() {
+		if resultErr != nil {
+			s.s = before
+		}
+	}()
 	o.Refund = &e
 	o.RefundStatus = "recorded_by_authoritative_pay"
 	o.Status = "refunded"
@@ -670,7 +701,7 @@ func (s *Store) Orders(actor, role string) []Order {
 	return out
 }
 
-func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res *Resolution, review *Review, idempotencyKeys ...string) (Order, error) {
+func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res *Resolution, review *Review, idempotencyKeys ...string) (result Order, resultErr error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// Enrich private copies only: retry hashes must keep representing the
@@ -770,6 +801,15 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 	if !allowed {
 		return Order{}, ErrInvalidState
 	}
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return Order{}, err
+	}
+	defer func() {
+		if resultErr != nil {
+			s.s = before
+		}
+	}()
 	if next == "cancelled" {
 		for _, line := range o.Lines {
 			p := cloneProduct(s.s.Products[line.ProductID])
@@ -778,6 +818,7 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 					p.Variants[i].Reserved -= line.Quantity
 				}
 			}
+			p.Revision++
 			s.s.Products[p.ID] = p
 		}
 	}

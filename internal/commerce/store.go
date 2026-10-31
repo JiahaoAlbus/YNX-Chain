@@ -821,6 +821,7 @@ func (s *Store) recoverExpiredLocked() bool {
 					}
 				}
 			}
+			p.Revision++
 			s.s.Products[p.ID] = p
 		}
 		o.Status = "expired"
@@ -836,8 +837,15 @@ func (s *Store) recoverExpiredLocked() bool {
 func (s *Store) Recover() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return err
+	}
 	if s.recoverExpiredLocked() {
-		return s.persistLocked()
+		if err := s.persistLocked(); err != nil {
+			s.s = before
+			return err
+		}
 	}
 	return nil
 }

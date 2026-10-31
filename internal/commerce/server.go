@@ -65,6 +65,7 @@ func (s *Server) routes() {
 	s.handleFunc("POST /api/auth/gateway/challenges", s.gatewayChallenge)
 	s.handleFunc("POST /api/auth/gateway/sessions", s.gatewaySession)
 	s.handleFunc("GET /api/products", s.products)
+	s.handleFunc("GET /api/catalog/search", s.searchCatalog)
 	s.handleFunc("GET /api/products/{id}", s.product)
 	s.handleFunc("GET /api/stores/{id}", s.publicStore)
 	s.handleFunc("GET /api/profile", s.profile)
@@ -77,6 +78,10 @@ func (s *Server) routes() {
 	s.handleFunc("POST /api/orders", s.createOrder)
 	s.handleFunc("POST /api/orders/intent-lookup", s.orderIntentLookup)
 	s.handleFunc("GET /api/orders/{id}", s.order)
+	s.handleFunc("POST /api/orders/{id}/projection", s.orderProjection)
+	// No legacy/session middleware may turn this unavailable task path into
+	// human-session authority. Its handler returns no order data in all modes.
+	s.mux.HandleFunc("POST /api/tools/shop.order.read", s.taskOrderRead)
 	s.handleFunc("POST /api/orders/{id}/pay-handoff", s.payHandoff)
 	s.handleFunc("GET /api/orders/{id}/pay-handoff", s.invoiceReference)
 	s.handleFunc("POST /api/orders/{id}/confirm-payment", s.confirmPayment)
@@ -101,6 +106,7 @@ func (s *Server) routes() {
 	s.handleFunc("POST /api/seller/stores/{id}/invitations", s.createSellerInvitation)
 	s.handleFunc("POST /api/seller/stores/{id}/invitations/{invitation}/cancel", s.cancelSellerInvitation)
 	s.handleFunc("POST /api/seller/products", s.createProduct)
+	s.handleFunc("POST /api/seller/products/{id}/listing", s.publishListing)
 	s.handleFunc("GET /api/seller/products", s.sellerProducts)
 	s.handleFunc("PUT /api/seller/products/{id}", s.updateProduct)
 	s.handleFunc("POST /api/seller/products/{id}/publish", s.publishProduct)

@@ -80,6 +80,22 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 		route, key, storeID, original = "product.create", input.IdempotencyKey, input.StoreID, input
 		kind = "product"
 		permission = permissionCatalogWrite
+	case in.Method == "POST" && strings.HasPrefix(in.Path, "/seller/products/") && strings.HasSuffix(in.Path, "/listing"):
+		parts := strings.Split(in.Path, "/")
+		if len(parts) != 5 || parts[3] == "" {
+			return nil, "", ErrConflict
+		}
+		target = parts[3]
+		p, ok := s.s.Products[target]
+		if !ok {
+			return nil, "", ErrNotFound
+		}
+		var input PublishListingInput
+		if !decode(&input) {
+			return nil, "", ErrConflict
+		}
+		route, key, storeID, original = "listing.publish."+target, input.Product.IdempotencyKey, p.StoreID, input
+		kind, permission = "product", permissionCatalogWrite
 	case in.Method == "PUT" && strings.HasPrefix(in.Path, "/seller/products/"):
 		target = strings.TrimPrefix(in.Path, "/seller/products/")
 		if target == "" || strings.Contains(target, "/") {

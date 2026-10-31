@@ -20,3 +20,5 @@
 - 保留37adc和原失败测试；先修首因，再复用已有真实 symbol 绑定 P07 函数。独立写集最多两组，重构建/GUI仅对实际冲突排程。
 - 当前元数据与交接写入 `/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P07/`；受控测试、包、安装、真实业务与发布分别标记。
 - 真实资金、生产密钥、不可逆迁移、公网激活、共享 SDK/Auth/链/发行权威不随开发任务继承。
+
+后续执行同时读取 `/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/POLICY_PRODUCT_CORE_FIRST_20261031.md`：核心服务与独立客户端优先，旧网站/Web/UI冻结。按完整功能连续实现、接线与必要功能回归；函数卡、单个patch或commit仅内部追踪，不作为用户交付终点。不重复旧绿或额外审查，真实依赖只挡相应效果。
