@@ -136,7 +136,7 @@ const approveCompletion=(f,p)=>f.run(()=>f.controller.approveOriginal(f.event,p.
 test('cold completion opens a fresh matching Source phase, reuses approval, persists its whole body before one HTTP and awaits Native',async t=>{
  const f=await pairThenCold(t),p=await f.complete();assert.equal(p.method,'ynx_completeProductDeviceV4');assert.equal(f.counts.sign,1);assert.equal(f.counts.completionPrepare??0,0);
  const r=await approveCompletion(f,p),row=(await f.readDisk()).sessionOriginals[0];
- assert.equal(r.phase,'awaiting-original-native-completion');assert.equal(r.registered,false);assert.equal(r.connected,false);assert.equal(r.newSession,false);assert.equal(r.accountApprovalReused,true);
+ assert.equal(r.phase,'awaiting-original-native-completion');assert.equal(r.registered,false);assert.equal(r.connected,false);assert.equal(r.newSession,false);assert.equal(r.accountApprovalReused,true);assert.equal(r.localSaveRequired,false);assert.equal(r.localSaveAvailable,true);
  assert.equal(f.counts.open,2);assert.equal(f.counts.accountAcquire,2);assert.equal(f.counts.accountClose,2);assert.equal(f.counts.clientClose,2);
  assert.equal(f.counts.sign,1);assert.equal(f.counts.plan,1);assert.equal(f.counts.nativeProof,1);assert.equal(f.counts.completionSubmit,1);
  assert.equal(row.version,3);assert.deepEqual(row.pairSubmission,f.pairRow.pairSubmission);assert.deepEqual(row.approval,f.pairRow.approval);assert.equal(row.operationId,f.pairRow.operationId);
@@ -277,4 +277,86 @@ for(const point of ['body','response'])test('normal controller can save the held
  const row=(await f.readDisk()).sessionOriginals[0];assert.ok(row.completionSubmission.originalBody);if(point==='response')assert.ok(row.completionSubmission.responseOriginal);
  assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);await f.controller.close();
  const cold=createOriginalDeviceRegistrationController({vault:f.vault,networkId,authority:f.authority});await assert.rejects(cold.saveOriginalCompletionOutcome(f.pairRow.requestDigest),{code:'DEVICE_COMPLETION_HELD_ORIGINAL_REQUIRED'});
+});
+
+for(const fault of ['before-intent','intent-ack','failure-metadata'])test('storage recovery '+fault+' preserves intent-only and metadata debt through the normal locked local-save entry',async t=>{
+ const f=await pairThenCold(t,fault==='failure-metadata'?'completion-before-member-false':'normal'),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let armed=true,first=true;
+ f.store.filePolicy.replace=async(...a)=>{const c=JSON.parse(await fs.readFile(a[0],'utf8')).sessionOriginals[0].completionSubmission;
+  if(armed&&c){if(fault==='intent-ack'&&first){first=false;await replace(...a);throw false;}
+   if(fault!=='failure-metadata'||c.firstCause!==null||c.cleanupComplete)throw false;}
+  return replace(...a);};
+ const p=await f.complete();await assert.rejects(approveCompletion(f,p));f.lifecycle.lock();const counts={...f.counts};
+ assert.equal(f.controller.readStatusDATA().localSaveAvailable,true);assert.equal(f.controller.readStatusDATA().localSaveRequired,true);
+ await assert.rejects(f.store.assertPQProgressSafeToClose(),e=>e.data?.code==='SESSION_COMPLETION_CLOSE_UNCONFIRMED');
+ armed=false;const saved=await f.controller.saveOriginalCompletionOutcome(f.pairRow.requestDigest);assert.equal(saved.stored,true);assert.deepEqual(f.counts,counts);
+ assert.equal(f.controller.readStatusDATA().localSaveRequired,false);const row=(await f.readDisk()).sessionOriginals[0],c=row.completionSubmission;
+ assert.equal(row.version,3);assert.equal(c.entered,false);assert.equal(c.memberOriginal,null);assert.equal(c.responseOriginal,null);assert.ok(c.firstCause);assert.ok(c.storageCause);assert.equal(c.cleanupCause,null);assert.equal(c.cleanupComplete,true);
+ assert.deepEqual(row.pairSubmission,f.pairRow.pairSubmission);assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
+ await assert.rejects(f.controller.approveOriginal(f.event,p.id));assert.equal(f.counts.completionSubmit??0,0);assert.equal(f.counts.sign,1);
+});
+test('storage recovery saves cleanup failure metadata without clearing a real original close debt',async t=>{
+ const f=await pairThenCold(t,'client-close-false'),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let armed=true;
+ f.store.filePolicy.replace=async(...a)=>{const c=JSON.parse(await fs.readFile(a[0],'utf8')).sessionOriginals[0].completionSubmission;if(armed&&c?.cleanupCause)throw 0;return replace(...a);};
+ const p=await f.complete();await assert.rejects(approveCompletion(f,p));f.lifecycle.lock();assert.equal(f.controller.readStatusDATA().localSaveRequired,true);armed=false;const counts={...f.counts};
+ await f.controller.saveOriginalCompletionOutcome(f.pairRow.requestDigest);assert.deepEqual(f.counts,counts);assert.equal(f.controller.readStatusDATA().localSaveRequired,false);assert.equal(f.controller.readStatusDATA().cleanupUnresolved,true);
+ const c=(await f.readDisk()).sessionOriginals[0].completionSubmission;assert.deepEqual(c.cleanupCause,{kind:'boolean',value:false,code:null});assert.equal(c.cleanupComplete,false);assert.ok(c.storageCause);
+ await assert.rejects(f.store.assertPQProgressSafeToClose(),e=>e.data?.code==='SESSION_COMPLETION_CLOSE_UNCONFIRMED');
+});
+for(const point of ['before','ack'])test('storage recovery local flush '+point+' failure preserves first/storage causes and readback never gives an effect token',async t=>{
+ const f=await pairThenCold(t),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let armed=true;
+ f.store.filePolicy.replace=async(...a)=>{const c=JSON.parse(await fs.readFile(a[0],'utf8')).sessionOriginals[0].completionSubmission;if(armed&&c)throw false;return replace(...a);};
+ const p=await f.complete();await assert.rejects(approveCompletion(f,p));f.lifecycle.lock();const counts={...f.counts};armed=false;
+ let fail=true,writes=0;f.store.filePolicy.replace=async(...a)=>{writes++;if(fail&&point==='before')throw 0;await replace(...a);if(fail)throw 0;};
+ await assert.rejects(f.controller.saveOriginalCompletionOutcome(f.pairRow.requestDigest));assert.equal(f.controller.readStatusDATA().localSaveRequired,true);
+ fail=false;const before=writes;await f.controller.saveOriginalCompletionOutcome(f.pairRow.requestDigest);assert.equal(writes-before,point==='ack'?0:1);
+ const c=(await f.readDisk()).sessionOriginals[0].completionSubmission;assert.equal(c.firstCause.code,'TRANSACTION_JOURNAL_WRITE_FAILED');assert.deepEqual(c.storageCause,{kind:'boolean',value:false,code:null});assert.equal(c.cleanupComplete,true);
+ assert.deepEqual(f.counts,counts);assert.equal(f.controller.readStatusDATA().localSaveRequired,false);assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
+});
+test('storage recovery direct same-token flush can preserve a failed intent but cannot set intentReady or permit a Native proof',async t=>{
+ const f=await pairThenCold(t),{readSessionCompletionOriginalDATA}=await import('../src/wallet-session-original.mjs'),o=readSessionCompletionOriginalDATA(f.pairRow),intent={operationId:'PUBLIC-failed-intent',requestDigest:o.requestDigest,registrationOriginal:o.registrationOriginal,challengeOriginal:o.challengeOriginal,approvalDigest:o.approvalDigest};
+ const replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let once=true;f.store.filePolicy.replace=async(...a)=>{if(once){once=false;throw false;}return replace(...a);};
+ const r=f.store.reserveSessionCompletionIntent(account,o.requestDigest,intent,()=>{});await assert.rejects(r.ready);await assert.rejects(f.store.recordSessionCompletionFailure(r.token,{firstPresent:true,first:0,cleanupComplete:true}));
+ await f.store.saveSessionCompletionOriginal(r.token);assert.equal(f.store.readSessionCompletionStorageDATA(r.token).localSaveRequired,false);
+ assert.throws(()=>f.store.captureSessionCompletionMember(r.token,Buffer.from([1])));assert.throws(()=>f.store.beginSessionCompletionSubmission(r.token,{},()=>{}));
+ const cold=new FileTransactionIntentStore({filePath:f.filePath});assert.throws(()=>cold.readSessionCompletionStorageDATA(r.token));assert.throws(()=>cold.saveSessionCompletionOriginal(r.token));
+ assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);assert.equal(f.counts.nativeProof??0,0);assert.equal(f.counts.completionSubmit??0,0);
+});
+test('storage recovery rejects an invalid unselected intent instead of returning a false stored success',async t=>{
+ const f=await pairThenCold(t),r=f.store.reserveSessionCompletionIntent(account,f.pairRow.requestDigest,{operationId:f.pairRow.operationId},()=>{});await assert.rejects(r.ready);
+ const state=f.store.readSessionCompletionStorageDATA(r.token);assert.equal(state.localSaveAvailable,false);assert.equal(state.localSaveRequired,false);await assert.rejects(f.store.saveSessionCompletionOriginal(r.token));assert.equal((await f.readDisk()).sessionOriginals[0].version,2);
+});
+for(const edit of ['operation','pair','cause'])test('storage recovery refuses foreign '+edit+' bytes without replacing either original',async t=>{
+ const f=await pairThenCold(t,'completion-before-member-false'),p=await f.complete();await assert.rejects(approveCompletion(f,p));f.lifecycle.lock();
+ const state=await f.readDisk(),row=state.sessionOriginals[0];if(edit==='operation')row.completionSubmission.operationId='PUBLIC-foreign-phase';
+ if(edit==='pair')row.pairSubmission.responseOriginal='{"PUBLIC":"foreign response"}';
+ if(edit==='cause')row.completionSubmission.firstCause={kind:'number',value:99,code:null};
+ const foreign=JSON.stringify(state);await fs.writeFile(f.filePath,foreign);await assert.rejects(f.controller.saveOriginalCompletionOutcome(f.pairRow.requestDigest));assert.equal(await fs.readFile(f.filePath,'utf8'),foreign);assert.equal(f.controller.readStatusDATA().localSaveRequired,true);
+ await assert.rejects(f.store.assertPQProgressSafeToClose());assert.equal(f.counts.completionSubmit??0,0);assert.equal(f.counts.sign,1);
+});
+test('storage recovery persists falsy first and cleanup metadata independently when both their original writes failed',async t=>{
+ const f=await pairThenCold(t),c=await reserveCompletionDATA(f),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let fault=true;
+ f.store.filePolicy.replace=async(...a)=>{if(fault)throw 0;return replace(...a);};await assert.rejects(f.store.recordSessionCompletionFailure(c.token,{firstPresent:true,first:false,cleanupPresent:true,cleanup:null}));
+ fault=false;await f.store.saveSessionCompletionOriginal(c.token);const row=(await f.readDisk()).sessionOriginals[0].completionSubmission;
+ assert.deepEqual(row.firstCause,{kind:'boolean',value:false,code:null});assert.deepEqual(row.cleanupCause,{kind:'object',value:null,code:null});assert.deepEqual(row.storageCause,{kind:'number',value:0,code:null});assert.equal(row.cleanupComplete,false);
+ await assert.rejects(f.store.assertPQProgressSafeToClose(),e=>e.data?.code==='SESSION_COMPLETION_CLOSE_UNCONFIRMED');
+});
+test('storage recovery never accepts a disk-only cleanup-complete claim while the original phase is live',async t=>{
+ const f=await pairThenCold(t),c=await reserveCompletionDATA(f),state=await f.readDisk();state.sessionOriginals[0].completionSubmission.cleanupComplete=true;const foreign=JSON.stringify(state);await fs.writeFile(f.filePath,foreign);
+ await assert.rejects(f.store.assertPQProgressSafeToClose(),e=>e.data?.code==='SESSION_COMPLETION_CLOSE_UNCONFIRMED');await assert.rejects(f.store.saveSessionCompletionOriginal(c.token));assert.equal(await fs.readFile(f.filePath,'utf8'),foreign);
+ assert.equal(f.store.readSessionCompletionStorageDATA(c.token).localSaveRequired,true);assert.equal(f.counts.nativeProof??0,0);
+});
+test('storage recovery returns stored only after final exact readback and retains debt if that read fails',async t=>{
+ const f=await pairThenCold(t),c=await reserveCompletionDATA(f),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let armed=true;
+ f.store.filePolicy.replace=async(...a)=>{if(armed)throw false;return replace(...a);};await assert.rejects(f.store.recordSessionCompletionFailure(c.token,{firstPresent:true,first:0,cleanupComplete:true}));armed=false;
+ const io=f.store.io;let replaced=false,reads=0,writes=0;f.store.filePolicy.replace=async(...a)=>{await replace(...a);replaced=true;writes++;};
+ f.store.io={...io,async open(file,flags,...rest){if(file===f.filePath&&replaced&&(flags&3)===0&&++reads===2)throw Object.assign(Error('PUBLIC final readback unavailable'),{code:'PUBLIC_READBACK'});return io.open(file,flags,...rest);}};
+ await assert.rejects(f.store.saveSessionCompletionOriginal(c.token));assert.equal(f.store.readSessionCompletionStorageDATA(c.token).localSaveRequired,true);assert.equal(reads,2);assert.equal(writes,1);
+ f.store.io=io;await f.store.saveSessionCompletionOriginal(c.token);assert.equal(writes,1,'same original readback needs no second replacement');assert.equal(f.store.readSessionCompletionStorageDATA(c.token).localSaveRequired,false);assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
+});
+test('storage recovery explicitly retires a ready warm effect selection even when the local flush itself fails',async t=>{
+ const f=await pairThenCold(t),c=await reserveCompletionDATA(f),member=Buffer.from([7,8,9]);f.store.captureSessionCompletionMember(c.token,member);await f.store.saveSessionCompletionMember(c.token);const d=await canonicalCompletionDATA(f,c,member),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let fail=true;
+ f.store.filePolicy.replace=async(...a)=>{if(fail)throw false;return replace(...a);};await assert.rejects(f.store.recordSessionCompletionFailure(c.token,{firstPresent:true,first:false,cleanupComplete:true}));
+ await assert.rejects(f.store.saveSessionCompletionOriginal(c.token));assert.throws(()=>f.store.beginSessionCompletionSubmission(c.token,d,()=>{}));
+ fail=false;await f.store.saveSessionCompletionOriginal(c.token);assert.throws(()=>f.store.beginSessionCompletionSubmission(c.token,d,()=>{}));assert.equal((await f.readDisk()).sessionOriginals[0].completionSubmission.entered,false);assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
+ const other=await pairThenCold(t),phase=await reserveCompletionDATA(other);await other.store.recordSessionCompletionFailure(phase.token,{firstPresent:true,first:false,cleanupComplete:true});await other.store.saveSessionCompletionOriginal(phase.token);assert.throws(()=>other.store.captureSessionCompletionMember(phase.token,Buffer.from([1])));
 });

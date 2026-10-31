@@ -167,14 +167,15 @@ export async function submitOriginalDeviceRegistrationCompletion(port,{store,app
 export function createOriginalDeviceRegistrationController({vault,networkId,authority,...extra}){
  if(Object.keys(extra).length||!vault?.authorization||typeof networkId!=='string'||!/^[0-9a-f]{64}$/.test(networkId)||typeof authority?.approveOriginalDeviceRegistration!=='function')fail('DEVICE_REGISTRATION_MAIN_COMPOSITION_REQUIRED');
  let active=null,closed=false;
+ const localStorage=r=>r?.kind==='completion'&&r?.completionToken?r.store.readSessionCompletionStorageDATA(r.completionToken):null;
  const status=r=>Object.freeze({requestId:r?.request?.id??null,account:r?.security.account??null,phase:r?.phase??'idle',
    phaseKind:r?.kind??'pair',
    operationId:r?.view?.scope.pendingId??null,requestDigest:r?.view?.requestDigest??null,
    originalResponseRetained:r?.responseCaptured??false,responseSaved:r?.responseSaved??false,
    accountApprovalOriginalRetained:r?.approvalReturned??false,accountApprovalSaved:r?.approvalSaved??false,
    accountApprovalReused:r?.kind==='completion',originalCompletionMemberRetained:r?.nativeMemberCaptured??false,
-   localSaveAvailable:Boolean(r?.kind==='completion'&&r?.decided&&r?.completionToken&&!r?.inFlight),
-   localSaveRequired:Boolean(r?.kind==='completion'&&(r?.nativeMemberCaptured&&!r?.nativeMemberSaved||r?.completionEntrySelected&&!r?.completionEntrySaved||r?.responseCaptured&&!r?.responseSaved)),
+   localSaveAvailable:Boolean(r?.decided&&!r?.inFlight&&localStorage(r)?.localSaveAvailable),
+   localSaveRequired:localStorage(r)?.localSaveRequired??false,
    cleanupUnresolved:r?.cleanupPresent===true,queryOnly:r?.decided===true||r?.phase==='query-only',
    registered:false,connected:false,newSession:false,SourceAdmission:false,NativeAdmission:false,
    ...(r?.firstPresent?{firstCauseCode:safeCode(r.first)}:{})});
@@ -276,9 +277,9 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
     finishLocal(r);
    }
    if(failed)throw cause;
-   return status(r); // Read only AFTER the original cleanup has settled.
   })();
-  r.inFlight=pass;try{return await pass;}finally{r.inFlight=null;}
+  r.inFlight=pass;try{await pass;}finally{r.inFlight=null;}
+  return status(r); // Cleanup AND this phase's in-flight state have settled.
  }
  async function rejectOriginal(id){const r=selected(id);retire(r,Error('DEVICE_REGISTRATION_USER_REJECTED'));if(r.inFlight)try{await r.inFlight;}catch{}
   await closeOriginalDeviceRegistrationClient(r.port);finishLocal(r);r.phase=r.decided?'original-pair-unknown':'cancelled-before-account';return status(r);}
@@ -295,6 +296,7 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
    }catch{}
    if(r.approvalReturned&&!r.approvalSaved||r.responseCaptured&&!r.responseSaved||r.nativeMemberCaptured&&!r.nativeMemberSaved)fail('DEVICE_REGISTRATION_ORIGINAL_SAVE_UNCONFIRMED');
   }
+  if(localStorage(r)?.localSaveRequired)fail('DEVICE_REGISTRATION_ORIGINAL_SAVE_UNCONFIRMED');
  }
  async function readOriginalPairOutcome(digest){
   const guard=vault.authorization.current();guard.assert();const original=await authority.transactionSender.submissions.intentStore.readSessionPairSubmission(guard.account,digest,()=>guard.assert());
@@ -310,11 +312,10 @@ export function createOriginalDeviceRegistrationController({vault,networkId,auth
   const r=active;
   // Storage-only recovery of THIS still-held original. No current key lease,
   // SDK acquisition, proof, signer or HTTP may be reopened after uncertainty.
-  if(!r||r.kind!=='completion'||r.view.requestDigest!==digest||!r.decided||r.inFlight||!r.completionToken)fail('DEVICE_COMPLETION_HELD_ORIGINAL_REQUIRED');
-  if(r.nativeMemberCaptured&&!r.nativeMemberSaved){await r.store.saveSessionCompletionMember(r.completionToken);r.nativeMemberSaved=true;}
-  if(r.completionEntrySelected){await r.store.saveSessionCompletionEntry(r.completionToken);r.completionEntrySaved=true;}
-  if(r.responseCaptured&&!r.responseSaved){await r.store.saveSessionCompletionResponse(r.completionToken);r.responseSaved=true;}
-  return Object.freeze({stored:true,queryOnly:true,canRetry:false,registered:false,connected:false,newSession:false});
+  if(!r||r.kind!=='completion'||r.view?.requestDigest!==digest||!r.decided||r.inFlight||!localStorage(r)?.localSaveAvailable)fail('DEVICE_COMPLETION_HELD_ORIGINAL_REQUIRED');
+  const saved=await r.store.saveSessionCompletionOriginal(r.completionToken);
+  r.nativeMemberSaved=r.nativeMemberCaptured===true;r.completionEntrySaved=r.completionEntrySelected===true;r.responseSaved=r.responseCaptured===true;
+  return saved;
  }
  return Object.freeze({prepareReview,prepareCompletionReview,approveOriginal,rejectOriginal,readOriginalPairOutcome,readOriginalCompletionOutcome,saveOriginalCompletionOutcome,close,readStatusDATA:()=>status(active),
   isPendingReview:id=>active?.request?.id===id&&active.phase==='review'&&!active.retired&&!closed});

@@ -166,8 +166,56 @@ export class FileTransactionIntentStore {
   #assertPQTerminalStored(account){for(const slot of this.#pqTerminalResults.values())if(slot.original.account===account&&!slot.stored)throw capabilityError('PQ_FINALITY_TERMINAL_SAVE_UNCONFIRMED','Preserve the verified result; reconcile its original local save before another transaction.');}
   #completionSlot(token){const slot=[...this.#sessionCompletionSlots.values()].find(s=>s.token===token);if(!slot)throw capabilityError('SESSION_COMPLETION_LIVE_OWNER_REQUIRED','Cold completion originals are query-only.');return slot;}
   #completionStorageFailure(slot,error){
-    if(!slot.storagePresent){slot.storagePresent=true;slot.storageRaw=error;}
-    if(slot.record?.completionSubmission.storageCause===null){const d=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'cause'):null;slot.record=parseSessionOriginal({...slot.record,completionSubmission:{...slot.record.completionSubmission,storageCause:sessionOriginalCause(d&&Object.hasOwn(d,'value')?d.value:error)}});}
+    slot.storageConfirmed=false;
+    if(!slot.storagePresent){const d=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'cause'):null;slot.storagePresent=true;slot.storageRaw=d&&Object.hasOwn(d,'value')?d.value:error;}
+    if(slot.record?.completionSubmission.storageCause===null)slot.record=parseSessionOriginal({...slot.record,completionSubmission:{...slot.record.completionSubmission,storageCause:sessionOriginalCause(slot.storageRaw)}});
+  }
+  #completionMerged(slot,prior){
+    if(!slot.intentAttempted||!slot.record||!prior)throw invalid();
+    const {completionSubmission:actual,...base}=prior;
+    if(canonicalJSON({...base,version:2})!==slot.pairOriginal||![2,3].includes(prior.version))throw capabilityError('SESSION_COMPLETION_ORIGINAL_CONFLICT','Preserve the original completion and its unchanged pair.');
+    const held=slot.record.completionSubmission,c=prior.version===3?actual:{...held,originalBody:null,memberOriginal:null,entered:false,responseOriginal:null,firstCause:null,storageCause:null,cleanupCause:null,cleanupComplete:false};
+    for(const k of ['operationId','requestDigest','approvalDigest','challengeOriginal'])if(c?.[k]!==held[k])throw invalid();
+    if(c.cleanupComplete&&slot.cleanupComplete!==true)throw invalid();
+    if(slot.memberCaptured&&!slot.member)throw invalid();
+    if(c.originalBody!==null&&c.originalBody!==slot.entryBody||c.responseOriginal!==null&&(!slot.responseCaptured||c.responseOriginal!==slot.rawResponse))throw invalid();
+    const member=slot.member?.toString('base64url')??null;
+    if(c.memberOriginal!==null&&c.memberOriginal!==member)throw invalid();
+    const body=slot.entryBody??null;
+    const cause=(key,present,raw)=>{
+      const expected=present?sessionOriginalCause(raw):held[key];
+      if(c[key]!==null&&canonicalJSON(c[key])!==canonicalJSON(expected))throw invalid();
+      return c[key]??expected;
+    };
+    return parseSessionOriginal({...prior,version:3,completionSubmission:{...c,originalBody:body,memberOriginal:body===null?member:null,entered:body!==null,
+      responseOriginal:slot.responseCaptured?slot.rawResponse:null,firstCause:cause('firstCause',slot.firstPresent,slot.first),
+      storageCause:cause('storageCause',slot.storagePresent,slot.storageRaw),cleanupCause:cause('cleanupCause',slot.cleanupPresent,slot.cleanup),cleanupComplete:c.cleanupComplete||slot.cleanupComplete===true}});
+  }
+  #completionMatches(slot,actual){
+    try{return actual?.version===3&&canonicalJSON(this.#completionMerged(slot,actual))===canonicalJSON(actual);}catch{return false;}
+  }
+  #completionConfirmed(slot,record){
+    slot.storageConfirmed=this.#completionMatches(slot,record);if(slot.storageConfirmed)slot.record=record;
+  }
+  readSessionCompletionStorageDATA(token){
+    const slot=this.#completionSlot(token),available=slot.intentAttempted===true&&!!slot.record;
+    return Object.freeze({localSaveAvailable:available,localSaveRequired:available&&slot.storageConfirmed!==true,
+      storageConfirmed:available&&slot.storageConfirmed===true,queryOnly:true,canRetry:false,registered:false,newSession:false});
+  }
+  /** Same held token, DATA custody only. Reconcile the original phase even if
+   * its first write never replaced the file. This cannot set intentReady or
+   * return an HTTP capability, and never reopens Native or a signer. */
+  saveSessionCompletionOriginal(token){
+    const slot=this.#completionSlot(token);slot.storageOnly=true;
+    return this.#mutate(async()=>{try{
+      const state=await this.#read(),prior=state.sessionOriginals?.find(r=>r.account===slot.account&&r.requestDigest===slot.digest);
+      const record=this.#completionMerged(slot,prior);
+      if(canonicalJSON(record)!==canonicalJSON(prior))await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?record:r)});
+      const saved=(await this.#read()).sessionOriginals?.find(r=>r.account===slot.account&&r.requestDigest===slot.digest);
+      if(!this.#completionMatches(slot,saved))throw invalid();this.#completionConfirmed(slot,saved);
+      slot.memberSaved=slot.memberCaptured===true;slot.responseSaved=slot.responseCaptured===true;
+      return Object.freeze({stored:true,queryOnly:true,canRetry:false,registered:false,connected:false,newSession:false});
+    }catch(e){this.#completionStorageFailure(slot,e);throw e;}});
   }
   /** Explicit new completion confirmation selects a fresh Native phase. This
    * only reserves DATA custody before proof production. It gives no HTTP entry:
@@ -181,18 +229,19 @@ export class FileTransactionIntentStore {
       check();const state=await this.#read();check();const prior=state.sessionOriginals?.find(r=>r.account===account&&r.requestDigest===digest);
       if(!prior||prior.version!==2||!prior.cleanupComplete||prior.cleanupCause)throw capabilityError('SESSION_COMPLETION_QUERY_ORIGINAL_ONLY','Only the saved original pair with completed cleanup may select a new phase.');
       const d=parseSessionCompletionIntentDATA(intent,prior);
+      slot.pairOriginal=canonicalJSON(prior);
       slot.record=parseSessionOriginal({...prior,version:3,completionSubmission:{operationId:d.operationId,requestDigest:d.requestDigest,approvalDigest:d.approvalDigest,challengeOriginal:d.challengeOriginal,
         originalBody:null,memberOriginal:null,entered:false,responseOriginal:null,firstCause:null,storageCause:null,cleanupCause:null,cleanupComplete:false}});
-      check();slot.intentAttempted=true;await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?slot.record:r)});check();
+      slot.intentAttempted=true;slot.storageConfirmed=false;check();await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?slot.record:r)});check();
       const saved=(await this.#read()).sessionOriginals?.find(r=>r.account===account&&r.requestDigest===digest);check();
-      if(canonicalJSON(saved?.completionSubmission)!==canonicalJSON(slot.record.completionSubmission))throw invalid();slot.intentReady=true;
+      if(canonicalJSON(saved?.completionSubmission)!==canonicalJSON(slot.record.completionSubmission))throw invalid();slot.intentReady=true;this.#completionConfirmed(slot,saved);
       return Object.freeze({stored:true,queryOnly:true});
     }catch(e){this.#completionStorageFailure(slot,e);throw e;}});void ready.catch(()=>{});
     return Object.freeze({token,ready});
   }
   captureSessionCompletionMember(token,value){
-    const slot=this.#completionSlot(token);if(!slot.intentReady||slot.memberCaptured)throw capabilityError('SESSION_COMPLETION_MEMBER_ALREADY_CAPTURED','Preserve the same original Native member.');
-    slot.memberCaptured=true;slot.rawMember=value;slot.member=copySessionCompletionMember(value);
+    const slot=this.#completionSlot(token);if(slot.storageOnly||!slot.intentReady||slot.memberCaptured)throw capabilityError('SESSION_COMPLETION_MEMBER_ALREADY_CAPTURED','Preserve the same original Native member.');
+    slot.storageConfirmed=false;slot.memberCaptured=true;slot.rawMember=value;slot.member=copySessionCompletionMember(value);
   }
   saveSessionCompletionMember(token){
     const slot=this.#completionSlot(token);if(!slot.memberCaptured||!slot.member)throw invalid();
@@ -201,11 +250,11 @@ export class FileTransactionIntentStore {
       if(prior?.version!==3||!c||c.operationId!==held.operationId||c.challengeOriginal!==held.challengeOriginal||c.originalBody!==null)throw invalid();
       const member=slot.member.toString('base64url');if(c.memberOriginal!==null&&c.memberOriginal!==member)throw invalid();
       const record=parseSessionOriginal({...prior,completionSubmission:{...c,memberOriginal:member,storageCause:c.storageCause??held.storageCause}});
-      await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?record:r)});slot.record=record;slot.memberSaved=true;return Object.freeze({stored:true,queryOnly:true});
+      await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?record:r)});this.#completionConfirmed(slot,record);slot.memberSaved=true;return Object.freeze({stored:true,queryOnly:true});
     }catch(e){this.#completionStorageFailure(slot,e);throw e;}});
   }
   beginSessionCompletionSubmission(token,requestDATA,guard){
-    const slot=this.#completionSlot(token);if(!slot.intentReady||!slot.memberSaved||typeof guard!=='function')throw capabilityError('SESSION_COMPLETION_LIVE_OWNER_REQUIRED','Original Native proof custody and the live completion confirmation are required.');
+    const slot=this.#completionSlot(token);if(slot.storageOnly||!slot.intentReady||!slot.memberSaved||typeof guard!=='function')throw capabilityError('SESSION_COMPLETION_LIVE_OWNER_REQUIRED','Original Native proof custody and the live completion confirmation are required.');
     const d=parseSessionCompletionRequestDATA(requestDATA,slot.record);
     if(!slot.member.equals(d.memberOriginal))throw invalid();
     const check=()=>{if(this.#pqClosing)throw capabilityError('SESSION_PAIR_CLOSING','Wallet is closing.');guard();};
@@ -217,16 +266,16 @@ export class FileTransactionIntentStore {
       // The complete canonical body retains this EXACT member and approval.
       // Avoid a duplicate member copy in the 1MiB journal; never change bytes.
       const record=parseSessionOriginal({...prior,completionSubmission:{...c,originalBody:d.originalBody,memberOriginal:null,entered:true}});
-      check();slot.beginAttempted=true;slot.entryBody=d.originalBody;slot.record=record;
+      check();slot.storageConfirmed=false;slot.beginAttempted=true;slot.entryBody=d.originalBody;slot.record=record;
       await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?record:r)});check();
       const saved=(await this.#read()).sessionOriginals?.find(r=>r.account===slot.account&&r.requestDigest===slot.digest);check();
-      if(saved?.completionSubmission.originalBody!==d.originalBody||!saved.completionSubmission.entered)throw invalid();slot.entryAcknowledged=true;
+      if(saved?.completionSubmission.originalBody!==d.originalBody||!saved.completionSubmission.entered)throw invalid();slot.entryAcknowledged=true;this.#completionConfirmed(slot,saved);
       return Object.freeze({created:true,queryOnly:false,operationId:d.operationId});
     }catch(e){this.#completionStorageFailure(slot,e);throw e;}});
   }
   captureSessionCompletionResponse(token,raw){
     const slot=this.#completionSlot(token);if(!slot.beginAttempted||slot.responseCaptured)throw capabilityError('SESSION_COMPLETION_RESPONSE_ALREADY_CAPTURED','Keep the first original completion response.');
-    slot.responseCaptured=true;slot.rawResponse=raw;
+    slot.storageConfirmed=false;slot.responseCaptured=true;slot.rawResponse=raw;
   }
   saveSessionCompletionEntry(token){
     const slot=this.#completionSlot(token);if(!slot.beginAttempted||!slot.entryBody)throw invalid();
@@ -234,7 +283,7 @@ export class FileTransactionIntentStore {
       const state=await this.#read(),prior=state.sessionOriginals?.find(r=>r.account===slot.account&&r.requestDigest===slot.digest),held=slot.record.completionSubmission,c=prior?.completionSubmission;
       if(prior?.version!==3||c?.operationId!==held.operationId||c.originalBody!==null&&c.originalBody!==slot.entryBody)throw invalid();
       const record=parseSessionOriginal({...prior,completionSubmission:{...c,originalBody:slot.entryBody,memberOriginal:null,entered:true,storageCause:c.storageCause??held.storageCause}});
-      await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?record:r)});slot.record=record;return Object.freeze({stored:true,queryOnly:true,canRetry:false});
+      await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?record:r)});this.#completionConfirmed(slot,record);return Object.freeze({stored:true,queryOnly:true,canRetry:false});
     }catch(e){this.#completionStorageFailure(slot,e);throw e;}});
   }
   saveSessionCompletionResponse(token){
@@ -243,7 +292,7 @@ export class FileTransactionIntentStore {
       const state=await this.#read(),prior=state.sessionOriginals?.find(r=>r.account===slot.account&&r.requestDigest===slot.digest),c=prior?.completionSubmission;
       if(prior?.version!==3||!c?.entered||c.operationId!==slot.record.completionSubmission.operationId||c.originalBody!==slot.entryBody||c.responseOriginal!==null&&c.responseOriginal!==slot.rawResponse)throw invalid();
       const record=parseSessionOriginal({...prior,completionSubmission:{...c,responseOriginal:slot.rawResponse,storageCause:c.storageCause??slot.record.completionSubmission.storageCause}});
-      await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?record:r)});slot.record=record;slot.responseSaved=true;
+      await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?record:r)});this.#completionConfirmed(slot,record);slot.responseSaved=true;
       return Object.freeze({stored:true,queryOnly:true,registered:false,newSession:false});
     }catch(e){this.#completionStorageFailure(slot,e);throw e;}});
   }
@@ -251,13 +300,14 @@ export class FileTransactionIntentStore {
     const slot=this.#completionSlot(token);
     if(firstPresent&&!slot.firstPresent){slot.firstPresent=true;slot.first=first;}
     if(cleanupPresent&&!slot.cleanupPresent){slot.cleanupPresent=true;slot.cleanup=cleanup;}
-    return this.#mutate(async()=>{
+    slot.cleanupComplete=slot.cleanupComplete===true||cleanupComplete;slot.storageConfirmed=false;
+    return this.#mutate(async()=>{try{
       const state=await this.#read(),prior=state.sessionOriginals?.find(r=>r.account===slot.account&&r.requestDigest===slot.digest),c=prior?.completionSubmission,held=slot.record?.completionSubmission;
       if(prior?.version!==3||!c||c.operationId!==held?.operationId)throw invalid();
       const record=parseSessionOriginal({...prior,completionSubmission:{...c,firstCause:c.firstCause??(slot.firstPresent?sessionOriginalCause(slot.first):null),
-        storageCause:c.storageCause??held.storageCause,cleanupCause:c.cleanupCause??(slot.cleanupPresent?sessionOriginalCause(slot.cleanup):null),cleanupComplete:c.cleanupComplete||cleanupComplete}});
-      await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?record:r)});slot.record=record;
-    });
+        storageCause:c.storageCause??held.storageCause,cleanupCause:c.cleanupCause??(slot.cleanupPresent?sessionOriginalCause(slot.cleanup):null),cleanupComplete:c.cleanupComplete||slot.cleanupComplete===true}});
+      await this.#write({...state,sessionOriginals:state.sessionOriginals.map(r=>r===prior?record:r)});this.#completionConfirmed(slot,record);
+    }catch(e){this.#completionStorageFailure(slot,e);throw e;}});
   }
   async readSessionCompletionSubmission(account,digest,guard){
     const row=await this.readSessionOriginal(account,digest,guard);if(row?.version!==3)return null;
@@ -885,12 +935,13 @@ export class FileTransactionIntentStore {
     return this.#mutate(async()=>{
       const state=await this.#read();
       for(const slot of this.#sessionCompletionSlots.values()){
-        const actual=state.sessionOriginals?.find(r=>r.account===slot.account&&r.requestDigest===slot.digest)?.completionSubmission,held=slot.record?.completionSubmission;
-        const same=actual&&held&&actual.operationId===held.operationId;
-        const memberStored=same&&slot.member&&(actual.memberOriginal===slot.member.toString('base64url')||actual.originalBody!==null&&actual.originalBody===slot.entryBody);
-        if(slot.memberCaptured&&!memberStored||slot.beginAttempted&&(!same||actual.originalBody!==slot.entryBody)||
-           slot.responseCaptured&&(!same||actual.responseOriginal!==slot.rawResponse)||
-           slot.intentReady&&!actual?.cleanupComplete||slot.cleanupPresent&&!actual?.cleanupComplete)throw capabilityError('SESSION_COMPLETION_CLOSE_UNCONFIRMED','Preserve original completion proof, body, response and cleanup debt; save locally without retrying.');
+        const actual=state.sessionOriginals?.find(r=>r.account===slot.account&&r.requestDigest===slot.digest);
+        if(slot.intentAttempted){
+          const matches=this.#completionMatches(slot,actual);slot.storageConfirmed=matches;
+          if(matches)this.#completionConfirmed(slot,actual);
+          if(!matches||!actual.completionSubmission.cleanupComplete)throw capabilityError('SESSION_COMPLETION_CLOSE_UNCONFIRMED','Preserve original completion intent, proof, body, response and failure metadata; save locally without retrying.');
+        }
+        if(slot.cleanupPresent&&slot.cleanupComplete!==true)throw capabilityError('SESSION_COMPLETION_CLOSE_UNCONFIRMED','The original completion cleanup debt remains unresolved.');
       }
       for(const slot of sessions(this).values())if(isV4Session(slot.record)){
         const actual=state.sessionOriginals?.find(r=>r.account===slot.record.account&&r.requestDigest===slot.record.requestDigest);
