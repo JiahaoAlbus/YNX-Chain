@@ -30,7 +30,18 @@ export function projectPendingTransactions(response,account){
       if(progress&&(typeof row.resultStorageConfirmed!=='boolean'||typeof row.resultHeldInMemory!=='boolean'))throw Error('Invalid PQ progress storage display');
       records.push(Object.freeze(row));continue;
     }
-    if(unknown){const row=values(source,["hash","account","status","canRetryExact","to","amount","signingUnknown"]);if(row.account!==account||row.hash!==null||row.to!==null||row.amount!==null||row.status!=="signing_unknown"||row.canRetryExact!==false||row.signingUnknown!==true)throw Error("Invalid unknown signing display");records.push(Object.freeze(row));continue}
+    if(unknown){
+      const hasIntent=Object.hasOwn(source,'signingIntent');
+      const row=values(source,["hash","account","status","canRetryExact","to","amount","signingUnknown",...(hasIntent?['signingIntent']:[])]);
+      if(row.account!==account||row.hash!==null||row.to!==null||row.amount!==null||row.status!=="signing_unknown"||row.canRetryExact!==false||row.signingUnknown!==true)throw Error("Invalid unknown signing display");
+      if(hasIntent){
+        const intent=values(row.signingIntent,['operationId','networkId','nativeChainId','recipient','amountAtoms','feeAtoms','nonce']);
+        const decimal=value=>typeof value==='string'&&/^(0|[1-9][0-9]{0,19})$/.test(value)&&BigInt(value)<=18446744073709551615n;
+        if(typeof intent.operationId!=='string'||!/^[A-Za-z0-9_-]{1,128}$/.test(intent.operationId)||typeof intent.networkId!=='string'||!/^[0-9a-f]{64}$/.test(intent.networkId)||typeof intent.recipient!=='string'||!ACCOUNT.test(intent.recipient)||![intent.nativeChainId,intent.amountAtoms,intent.feeAtoms,intent.nonce].every(decimal)||intent.nativeChainId==='0'||intent.amountAtoms==='0')throw Error('Invalid original signing intent display');
+        row.signingIntent=Object.freeze(intent);
+      }
+      records.push(Object.freeze(row));continue;
+    }
     const record=values(source,["hash","account","status","canRetryExact","to","amount",...(local?["localRetention"]:[])]);
     if(local){
       const flags=Object.hasOwn(record.localRetention,'originalCausePresent')||Object.hasOwn(record.localRetention,'storageCausePresent');

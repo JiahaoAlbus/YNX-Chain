@@ -896,7 +896,17 @@ async function refreshTransactions() {
     if (records===null) { document.querySelector("#transaction-resolution-result").textContent = errorText(result); return; }
     for (const record of records) {
       const row = document.createElement("div"), description = document.createElement("p");
-      if(record.signingUnknown){description.textContent="An interrupted signing operation has an unknown result. No complete original is available to this view. New signatures and retries remain blocked; preserve the journal.";row.append(description);list.append(row);continue}
+      if(record.signingUnknown){
+        description.textContent="签名结果未知；保留原操作，不重新签名或发送。 / Signing outcome unknown. Preserve the original; no replacement signature or send.";
+        row.append(description);
+        if(record.signingIntent){
+          const intent=record.signingIntent;
+          const facts=document.createElement('p');
+          facts.textContent=`原操作 / Original operation: ${intent.operationId}\n收款地址 / Recipient: ${intent.recipient}\n金额（原子单位） / Amount (atoms): ${intent.amountAtoms}\n费用（原子单位） / Fee (atoms): ${intent.feeAtoms}\nNonce: ${intent.nonce}\nNetwork: ${intent.networkId} · ${intent.nativeChainId}`;
+          facts.style.whiteSpace='pre-wrap';row.append(facts);
+        }
+        list.append(row);continue;
+      }
       if(['pq-transfer','pq-migration','pq-revocation','pq-typed-action','pq-account-initial'].includes(record.kind)){
         const kind=record.kind==='pq-account-initial'?'PQ 新账户登记原件（未准入） / PQ initial registration original (not admitted)':record.kind==='pq-transfer'?'PQ 转账 / PQ transfer':record.kind==='pq-migration'?'PQ 账户迁移 / PQ account migration':record.kind==='pq-typed-action'?'PQ 原操作记录 / PQ original action':'PQ 终止授权 / Terminal PQ revocation';
         description.textContent=kind+' · '+record.hash;row.append(description);

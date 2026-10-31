@@ -6,9 +6,21 @@ import {originalRetention} from "./transaction-intent-store.mjs";
 import {parsePQReadResponse} from './wallet-pq-submission-evidence.mjs';
 import {PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
 import {observePQTypedOriginalQuery} from './wallet-pq-typed-original.mjs';
+import {parsePQTransferPreviewIntent} from './wallet-pq-transfer-preview.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/;
 const failure = (code, message, data = {}) => Object.assign(capabilityError(code, message), { data: { code, ...data } });
+function unknownSigning(account,marker){
+  const row={hash:null,account,status:'signing_unknown',canRetryExact:false,to:null,amount:null,signingUnknown:true};
+  if(marker?.kind==='pq-transfer'&&marker.intent){
+    const intent=parsePQTransferPreviewIntent(marker.intent,account);
+    // The saved pre-sign preview does not prove that signing failed or never
+    // occurred. Expose only original intent DATA, never its old signed:false
+    // flag as the outcome of a possibly-entered Native call.
+    row.signingIntent=Object.freeze({operationId:intent.id,networkId:intent.networkId,nativeChainId:intent.nativeChainId,recipient:intent.recipient,amountAtoms:intent.amount,feeAtoms:intent.fee,nonce:intent.nonce});
+  }
+  return Object.freeze(row);
+}
 
 // V2 stores exact signed bytes in the private local journal before any POST.
 // Neither public UI rows nor errors expose those replayable bytes.
@@ -55,10 +67,12 @@ export class TransactionSubmissions {
   }
   async list(account) {
     const local=this.intentStore?.localOriginal(account);
-    if(PQ_ORIGINAL_KINDS.includes(local?.kind)&&!local.pq)return [{hash:null,account,status:'signing_unknown',canRetryExact:false,to:null,amount:null,signingUnknown:true}];
+    if(PQ_ORIGINAL_KINDS.includes(local?.kind)&&!local.pq)return [unknownSigning(account,local)];
     if(PQ_ORIGINAL_KINDS.includes(local?.kind)&&local.pq)return [{hash:local.pq.hash,account,kind:local.kind,operationId:local.pq.operationId,status:'pq-save-unconfirmed',canRetryExact:false}];
     if(local?.kind==="native"&&local.native){const record=local.native;return [{hash:record.hash,account,status:"signed_unpersisted",canRetryExact:false,to:record.transaction.to,amount:formatEther(record.transaction.value),localRetention:originalRetention(local)}]}
-    if(local?.kind==="native"||await this.intentStore?.unresolvedPreparation?.(account))return [{hash:null,account,status:"signing_unknown",canRetryExact:false,to:null,amount:null,signingUnknown:true}];
+    if(local?.kind==="native")return [unknownSigning(account,null)];
+    const preparation=await this.intentStore?.unresolvedPreparation?.(account);
+    if(preparation)return [unknownSigning(account,preparation)];
     const pq=typeof account==='string'&&/^0x[0-9a-f]{40}$/.test(account)?await this.intentStore?.pqSummaries?.(account):null;if(pq?.length)return pq;
     return (await this.#intents()).filter(record => record.account === account).map(record => ({ hash: record.hash, account, status: this.#records.get(record.hash)?.status ?? "uncertain", canRetryExact: this.#savedOnly.get(account)!==record.hash&&Boolean(record.raw ?? this.#records.get(record.hash)?.raw), to: record.to, amount: formatEther(record.value) }));
   }
