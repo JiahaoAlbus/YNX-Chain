@@ -5,7 +5,7 @@ import path from 'node:path';
 import {SDK_CANONICAL} from './canonical-package.mjs';
 import {SDK49_SOURCE_COMMIT,SDK49_SOURCE_VARIANT} from './sdk49-runtime-source.mjs';
 import {SDK49_DAEMON_PRODUCT_PINS,SDK49_DAEMON_VARIANT,SDK49_DAEMON_COMMIT,SDK49_DAEMON_TREE} from './sdk49-daemon-profile.mjs';
-import {SDK49_NORMAL_PRODUCT_PINS,SDK49_NORMAL_VARIANT,SDK49_NORMAL_COMMIT,SDK49_NORMAL_TREE} from './sdk49-normal-profile.mjs';
+import {SDK49_NORMAL_PRODUCT_PINS,SDK49_NORMAL_VARIANT,SDK49_NORMAL_COMMIT,SDK49_NORMAL_TREE,SDK49_NORMAL_COUNTS,SDK49_NORMAL_LOCK} from './sdk49-normal-profile.mjs';
 const base='runtime-projections/sdk49-product/';
 // SDK49 normal prefix has no separate legacy build-input tables to exclude.
 // Preserve full Native custody separately; product slots use only formal6 pins.
@@ -66,14 +66,14 @@ export function readSDK49ProductRuntime(root,sourceCommit){
  const present=git('ls-tree','-r','--name-only',sourceCommit,'--',base).toString().trim();if(!present)return null;
  const rawReceipt=git('show',sourceCommit+':'+base+'PROJECTION_RECEIPT.json'),daemon=rawReceipt.length===SDK49_DAEMON_PRODUCT_PINS['PROJECTION_RECEIPT.json'].bytes&&hash(rawReceipt)===SDK49_DAEMON_PRODUCT_PINS['PROJECTION_RECEIPT.json'].sha256;
  const normal=rawReceipt.length===SDK49_NORMAL_PRODUCT_PINS['PROJECTION_RECEIPT.json'].bytes&&hash(rawReceipt)===SDK49_NORMAL_PRODUCT_PINS['PROJECTION_RECEIPT.json'].sha256;
- const pins=normal?SDK49_NORMAL_PRODUCT_PINS:daemon?SDK49_DAEMON_PRODUCT_PINS:SDK49_PRODUCT_PINS,counts=normal?{pack:9661,auth:622,union:9482,fullAuth:632,fullUnion:9492}:daemon?{pack:9612,auth:601,union:9462,fullAuth:611,fullUnion:9471}:{pack:9598,auth:587,union:9448,fullAuth:597,fullUnion:9457};
+ const pins=normal?SDK49_NORMAL_PRODUCT_PINS:daemon?SDK49_DAEMON_PRODUCT_PINS:SDK49_PRODUCT_PINS,counts=normal?SDK49_NORMAL_COUNTS:daemon?{pack:9612,auth:601,union:9462,fullAuth:611,fullUnion:9471}:{pack:9598,auth:587,union:9448,fullAuth:597,fullUnion:9457};
  if(JSON.stringify(present.split('\n').sort())!==JSON.stringify(Object.keys(pins).map(name=>base+name).sort()))fail('SDK49_PRODUCT_SOURCE_SET_DIFFERS');
  const blobs=new Map(),documents=new Map();
  for(const[name,pin]of Object.entries(pins)){const raw=git('show',sourceCommit+':'+base+name);if(raw.length!==pin.bytes||hash(raw)!==pin.sha256)fail('SDK49_PRODUCT_SOURCE_PIN_DIFFERS');blobs.set(name,raw);documents.set(name,JSON.parse(raw));}
  const selection=documents.get('SDK49_PRODUCT_PACK_SELECTION.json'),auth=documents.get('original-ide-auth-runtime-manifest.json'),union=documents.get('original-ide-contract-relay-runtime-manifest.json'),receipt=documents.get('PROJECTION_RECEIPT.json');
  const analysis=documents.get('STATIC_SOURCE_ANALYSIS.json');
  if(normal){
-  if(receipt.schema!=='ynx-sdk49-normal-main-product-source-projection/v1'||receipt.sourceCommit!==SDK49_NORMAL_COMMIT||receipt.sourceTree!==SDK49_NORMAL_TREE||receipt.sourceVariant!==SDK49_NORMAL_VARIANT||receipt.counts?.prefixFiles!==9676||receipt.counts?.NativeInputs!==145||receipt.counts?.HelperInputs!==5||analysis.kind!=='YNX_SDK49_NORMAL_MAIN_SOURCE_ANALYSIS/v1'||analysis.sources?.length!==265||analysis.edges?.length!==954||receipt.inheritedOldRoleQualification!==false||['NativeAdmission','SourceAdmission','RootAdmission','compiled','installed','activation','realLogin','realRestore','realRevoke'].some(k=>receipt[k]!==false))fail('SDK49_PRODUCT_SUCCESSOR_ROLE_REQUIRED');
+  if(receipt.schema!=='ynx-sdk49-normal-main-product-source-projection/v1'||receipt.sourceCommit!==SDK49_NORMAL_COMMIT||receipt.sourceTree!==SDK49_NORMAL_TREE||receipt.sourceVariant!==SDK49_NORMAL_VARIANT||receipt.counts?.prefixFiles!==SDK49_NORMAL_COUNTS.prefix||receipt.counts?.NativeInputs!==SDK49_NORMAL_COUNTS.native||receipt.counts?.HelperInputs!==SDK49_NORMAL_COUNTS.helpers||analysis.kind!=='YNX_SDK49_NORMAL_MAIN_SOURCE_ANALYSIS/v1'||analysis.sources?.length!==SDK49_NORMAL_COUNTS.staticSources||analysis.edges?.length!==SDK49_NORMAL_COUNTS.staticEdges||receipt.inheritedOldRoleQualification!==false||['NativeAdmission','SourceAdmission','RootAdmission','compiled','installed','activation','realLogin','realRestore','realRevoke'].some(k=>receipt[k]!==false))fail('SDK49_PRODUCT_SUCCESSOR_ROLE_REQUIRED');
  }else if(daemon){
   if(receipt.schema!=='ynx-sdk49-pair-daemon-product-source-projection/v1'||receipt.sourceCommit!==SDK49_DAEMON_COMMIT||receipt.sourceTree!==SDK49_DAEMON_TREE||receipt.counts?.prefixFiles!==9627||receipt.counts?.NativeInputs!==117||receipt.counts?.HelperInputs!==5||receipt.ASTSources!==224||receipt.literalEdges!==768||analysis.kind!=='YNX_SDK49_PAIR_DAEMON_STATIC_SOURCE_ANALYSIS/v1'||analysis.sources?.length!==224||analysis.edges?.length!==768||receipt.RootStorageAddonSupplied!==false||receipt.SourceAdmission!==false||receipt.RootAdmission!==false||receipt.compiled!==false||receipt.installed!==false)fail('SDK49_PRODUCT_SUCCESSOR_ROLE_REQUIRED');
  }else if(receipt.commit!==SDK49_SOURCE_COMMIT||receipt.sourceVariant!==SDK49_SOURCE_VARIANT||receipt.fullPrefixFiles!==9613||receipt.NativeInputs!==117||receipt.HelperInputs!==5||receipt.NativeChanged!==26||receipt.HelperChanged!==0||receipt.ASTSources!==213||receipt.literalEdges!==726||analysis.kind!=='YNX_SDK49_BUILD_STATIC_SOURCE_ANALYSIS/v1'||analysis.sources?.length!==213||analysis.edges?.length!==726)fail('SDK49_PRODUCT_SUCCESSOR_ROLE_REQUIRED');
@@ -87,7 +87,7 @@ export function readSDK49ProductRuntime(root,sourceCommit){
  const selected=normal?rows(selection.files,counts.pack):rows(selection.files,counts.pack,false,'path,bytes,sha256'),authRows=rows(auth.files,counts.auth),unionRows=rows(union.files,counts.union),excluded=rows(policy.excluded,15,true,normal?'bytes,path,sha256':'path,bytes,sha256');
  for(const row of [...authRows.values(),...unionRows.values()])if(!equalRow(row,selected.get(row.path)))fail('SDK49_PRODUCT_CLOSURE_INCOMPLETE');
  for(const row of excluded.values())if(selected.has(row.path))fail('SDK49_PRODUCT_EXCLUSION_CONFLICT');
- const lock=(normal?selected:unionRows).get('node_modules/.package-lock.json');if(lock?.bytes!==54707||lock.sha256!=='a6156ecfdededf82c182684e86f00d803b04fc76c6a4b59b27e62ea81983e775')fail('SDK49_PRODUCT_INSTALLED_LOCK_REQUIRED');
+ const lock=(normal?selected:unionRows).get('node_modules/.package-lock.json'),lockPin=normal?SDK49_NORMAL_LOCK:{bytes:54707,sha256:'a6156ecfdededf82c182684e86f00d803b04fc76c6a4b59b27e62ea81983e775'};if(lock?.bytes!==lockPin.bytes||lock.sha256!==lockPin.sha256)fail('SDK49_PRODUCT_INSTALLED_LOCK_REQUIRED');
  const manifestRows=[],contents=new Map();
  for(const[name,pin]of Object.entries(pins).filter(([,pin])=>pin.fullSHA256)){
   const original=git('show',sourceCommit+':packages/wallet-auth/native/'+name);if(original.length!==pin.fullBytes||hash(original)!==pin.fullSHA256)fail('SDK49_PRODUCT_FULL_CUSTODY_DIFFERS');assertSDK49CanonicalRuntimeManifest(original);

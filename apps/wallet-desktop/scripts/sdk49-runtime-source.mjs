@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {SDK49_DAEMON_AUTH,SDK49_DAEMON_UNION,SDK49_DAEMON_COMMIT,SDK49_DAEMON_TREE,SDK49_DAEMON_VARIANT} from './sdk49-daemon-profile.mjs';
-import {SDK49_NORMAL_AUTH,SDK49_NORMAL_UNION,SDK49_NORMAL_COMMIT,SDK49_NORMAL_TREE,SDK49_NORMAL_VARIANT,SDK49_NORMAL_PREFIX} from './sdk49-normal-profile.mjs';
+import {SDK49_NORMAL_AUTH,SDK49_NORMAL_UNION,SDK49_NORMAL_COMMIT,SDK49_NORMAL_TREE,SDK49_NORMAL_VARIANT,SDK49_NORMAL_PREFIX,SDK49_NORMAL_COUNTS} from './sdk49-normal-profile.mjs';
 export const SDK49_VERSION='1.3.0-pq.3.32-auth.49';
 export const SDK49_SOURCE_COMMIT='ef7493e6718ac7edc11e7d7cbf8f5812313cbf05';
 export const SDK49_SOURCE_VARIANT='SDK49-NATIVE-READ-LEASE-ISSUER/v1';
@@ -34,7 +34,7 @@ function read(root,name,pin){
 /** Validate normal supplier DATA/source bytes only. No import aliases, Native
  * execution, manifest replacement, issuer or build/admission qualification. */
 export function verifySDK49NormalSource(root,inventoryRaw){
- const normal=matches(inventoryRaw,SDK49_NORMAL_PREFIX),daemon=matches(inventoryRaw,SDK49_DAEMON_PREFIX_INVENTORY),count=normal?9676:daemon?9627:9613;
+ const normal=matches(inventoryRaw,SDK49_NORMAL_PREFIX),daemon=matches(inventoryRaw,SDK49_DAEMON_PREFIX_INVENTORY),count=normal?SDK49_NORMAL_COUNTS.prefix:daemon?9627:9613;
  if(typeof root!=='string'||!path.isAbsolute(root)||path.normalize(root)!==root||fs.realpathSync(root)!==root||!normal&&!daemon&&!matches(inventoryRaw,SDK49_PREFIX_INVENTORY))fail();
  const inventory=JSON.parse(inventoryRaw);
  if(normal){if(inventory.schema!=='ynx-complete-normal-sdk-prefix/v1'||inventory.sourceCommit!==SDK49_NORMAL_COMMIT||inventory.sourceTree!==SDK49_NORMAL_TREE)fail();}
