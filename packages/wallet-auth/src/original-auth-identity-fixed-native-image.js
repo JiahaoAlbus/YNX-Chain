@@ -13,3 +13,13 @@ export function acquireOriginalProductSessionDeviceV4SourceStage(...args){
  // Do not translate Native failure: preserve SAME error and its actual partial.
  return descriptor.value.call(native);
 }
+// Same fixed image and independent provisioning Source; never a keygen or
+// approval alias for the original registered-device HTTP Source above.
+export function acquireOriginalProductSessionDeviceV4ProvisioningSourceStage(...args){
+ if(args.length)throw failure('DEVICE_PROVISIONING_SOURCE_ZERO_INPUT');
+ let native;try{native=loadOriginalAuthIdentityNativeImage();}catch(cause){throw Object.assign(failure('DEVICE_PROVISIONING_NATIVE_SOURCE_STAGE_NOT_SUPPLIED'),{cause});}
+ const descriptor=Object.getOwnPropertyDescriptor(native,'acquireOriginalProductSessionDeviceV4ProvisioningSource');
+ if(!descriptor||!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')throw failure('DEVICE_PROVISIONING_NATIVE_SOURCE_STAGE_NOT_SUPPLIED');
+ // Preserve SAME Native error/partial: no fallback, retry, or DTO adapter.
+ return descriptor.value.call(native);
+}
