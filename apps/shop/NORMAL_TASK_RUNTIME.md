@@ -24,3 +24,20 @@ The formal relative modules and original Core14 files are pinned in
 changes come from the SDK's actual normal composition. No supplier crypto or
 policy implementation was modified. The main CI reads the root Go version and
 its existing `make test` includes the new commerce regressions.
+
+`PrepareOriginalShopTaskOrderSDKCodec` now installs the actual SDK request
+decoder and original outer-channel checker. `OpenOriginalShopTaskOrdersSDK`
+joins that codec to the original native factory. The thin DATA mapping retains
+all exact E21/E3 binding/proof/input operands and owns copied bytes. The network
+decoder requires the exact LINK-sealed original request before invoking the
+Source's current outer-carrier mapping. It never writes a TLS exporter into the
+signed inner holder/session channel. The external final-frame encoder remains
+mandatory; the DATA-only encoder cannot fill that role automatically.
+
+Current normal dependency graph is independently read back at the original
+SDK install receipt `normal-go-runtime-integration-v5-20261031/LIVE_INSTALL_RESULT.json`.
+The same-byte Shop intake preserved this product's Go module graph and source.
+New tests exercise real SDK request grammar/mapping, invalid media/target/kind/
+carrier, unsealed TLS denial and full bootstrap refusal with the actual empty
+original Source. They do not claim a native TLS product execution or admitted
+response proof.

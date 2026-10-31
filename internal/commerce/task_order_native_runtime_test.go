@@ -29,3 +29,26 @@ func TestShopTaskOrderNativeCancelledStartupPreservesCause(t *testing.T) {
 		t.Fatal("cancelled startup lost original cause", err)
 	}
 }
+
+func TestShopTaskOrderSDKBootstrapUsesOriginalZeroSource(t *testing.T) {
+	_, call, encoder := publicShopSDKRequest(t)
+	channels := &publicShopOuterChannel{}
+	_, _, _, response, _, _ := publicShopTaskFixture(t)
+	prepared, err := OpenOriginalShopTaskOrdersSDK(context.Background(), encoder, channels, response, call.Binding.Target, call.Binding.Resources[0].Kind)
+	if prepared != nil || !errors.Is(err, native.ErrUnavailable) || channels.checks != 0 {
+		t.Fatal("actual bootstrap replaced empty original Source with PUBLIC operands", err)
+	}
+	for _, absent := range []string{"final-frame", "outer-source"} {
+		var frame OriginalShopTaskOrderResponseEncoder = encoder
+		var outer OriginalShopTaskOrderOuterChannelAuthority = channels
+		if absent == "final-frame" {
+			frame = nil
+		} else {
+			outer = nil
+		}
+		codec, err := PrepareOriginalShopTaskOrderSDKCodec(context.Background(), frame, outer, call.Binding.Target, call.Binding.Resources[0].Kind)
+		if codec != nil || err == nil {
+			t.Fatal("missing original operand prepared", absent, err)
+		}
+	}
+}
