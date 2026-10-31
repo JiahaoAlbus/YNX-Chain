@@ -574,8 +574,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 51888,
-      "sha256": "856499981e418b5205c691e7c86ba4ec6d10f4bb119ef39debec0cafb9164c07"
+      "bytes": 53919,
+      "sha256": "37c37caf4d69b444e88f7e29fc4acca2ca1fff982aeccd6ca953b3b7c8b40e53"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -589,8 +589,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-source-v2-dispatch.mjs",
-      "bytes": 7334,
-      "sha256": "01bed3893f9230060660c44690195a05586168636178a97db5115ee2a605ce30"
+      "bytes": 8478,
+      "sha256": "f5e8712d04afcdd413934e861d5a08c2ad2689cec6b6799e74a7da837f12cd9f"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-source-v2-native-data.h",
@@ -1096,6 +1096,26 @@
       "path": "packages/wallet-auth/native/product-session-device-v4-once.h",
       "bytes": 5234,
       "sha256": "c6cfba08cd4fdc39afae6fdac7000321f90806c8b4bfe283f2efaacf5e1bfa03"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-runtime-image-binding-v1.mjs",
+      "bytes": 3325,
+      "sha256": "12973052ad7db7532e38f6876794bca9c4176f4d116807f9c7660eb9cb3c12f8"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-runtime-image-binding-v1.d.mts",
+      "bytes": 1432,
+      "sha256": "f7e64bc7f16b12be434d2e60a779ad0843ca09920a93bbdbcca61f0b7a2dfd09"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-runtime-image-current-v1.mjs",
+      "bytes": 303,
+      "sha256": "0c5cb441f13e41579d5e98ee8477256e7e4f453ca5900a25934d9a372dfaf47e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-runtime-image-current-v1.d.mts",
+      "bytes": 1949,
+      "sha256": "538942571c96b8c806e8462de14f2d133830d35efebcf3e67aac5ba13060912d"
     }
   ],
   "normalBuildTool": {
@@ -3139,5 +3159,20 @@
     "RootAdmission": false,
     "SourceAdmission": false,
     "serverRegisteredDeviceCurrentNormalSourceSupplied": false
+  },
+  "serverCurrentAndSignedRuntimeImageV1Successor": {
+    "NativeInputs": 168,
+    "serverDeviceCurrentCODE": true,
+    "normalDaemonConstructorWiring": true,
+    "signedImageProfileSchema": "runtimeImageBindingV1",
+    "genericScannerRelaxed": false,
+    "NativePreloadImageQualified": false,
+    "sameLoadedImageVerified": false,
+    "sameModuleInstanceVerified": false,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "realLogin": false,
+    "realRestore": false,
+    "realRevoke": false
   }
 }

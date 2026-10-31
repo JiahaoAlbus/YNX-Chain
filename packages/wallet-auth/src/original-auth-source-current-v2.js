@@ -1,3 +1,5 @@
+// Existing signed Current verification entry; no new signer/service/loader.
+export{verifyOriginalAuthSourceRuntimeImageBindingCurrentV1DATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
 import{PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE}from'../native/original-product-device-v4-registered-finalization-source-contract.mjs';
 import{PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE}from'../native/original-product-session-http-v5-source-contract.mjs';
 import{CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS,inspectOriginalCloudDeploymentExecutionV2ScopeDATA}from'../native/original-cloud-deployment-execution-v2-contract.mjs';
