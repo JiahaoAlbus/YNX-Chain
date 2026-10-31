@@ -1,0 +1,55 @@
+{
+  "actualCCreator": true,
+  "actualDualANDVerified": true,
+  "authProvisioningVerified": false,
+  "cCases": 39,
+  "independentFullPairImport": true,
+  "logicalCleanupOnly": true,
+  "negativeCases": [
+    "first-signature-A",
+    "first-signature-B",
+    "first-full-pair-binding",
+    "first-full-pair-math",
+    "first-wrong-purpose",
+    "second-signature-A",
+    "second-signature-B",
+    "second-full-pair-binding",
+    "second-full-pair-math",
+    "second-wrong-purpose"
+  ],
+  "osCustodyImported": false,
+  "physicalEraseClaimed": false,
+  "privateTestFilesRemoved": true,
+  "publicPins": {
+    "firstA": {
+      "bytes": 2592,
+      "sha256": "e765734f8d6a2bbf182031f1661e303fa2bd4d42174ba94234996c573a7b4c7d"
+    },
+    "firstB": {
+      "bytes": 64,
+      "sha256": "af5078abe54310bab61a681b05ce542458a3b93500c5019e87bc121540080061"
+    },
+    "firstMember": {
+      "bytes": 63730,
+      "sha256": "e05ef0593ce1267d884bcb25b69aae6747d59884f26a95cf901e1b52cd6c04c2"
+    },
+    "secondA": {
+      "bytes": 2592,
+      "sha256": "51a3012276f873ac99101505b5399897976fb5af78acfac8cab88f728548eaf0"
+    },
+    "secondB": {
+      "bytes": 64,
+      "sha256": "dfb76e502404be932e79ee468b83da1f34bbe265c7520974e0de89931a1b1527"
+    },
+    "secondMember": {
+      "bytes": 63730,
+      "sha256": "8e0389883f721d4d91bab3b5c06fc82f1385b32dcb208380c07b7d0807f9a58d"
+    }
+  },
+  "purpose": "product-session-device-v4",
+  "rootGrant": false,
+  "syntheticOnly": true,
+  "typedRegistrationInspected": true,
+  "version": "YNX-PRODUCT-DEVICE-KEYPAIR-PUBLIC-RESULT/v4",
+  "visibleApprovalVerified": false
+}
