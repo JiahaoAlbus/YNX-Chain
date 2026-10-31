@@ -22,6 +22,7 @@ import socket
 import stat
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
 
@@ -164,6 +165,7 @@ def validate_manifest(m, network):
 
 class Window:
     def __init__(self, source, work, additional_storage=()):
+        self.lock = threading.RLock()
         self.source, self.work = source, work
         self.storage_roots = [work, *additional_storage]
         self.started = time.monotonic()
@@ -173,6 +175,7 @@ class Window:
         self.last_storage_sample = 0
         self.storage_bytes = 0
         self.logs = []
+        self.closed_log_identity = {}
         self.stopping = False
         self.env = {k: v for k, v in os.environ.items() if not k.startswith(("CMT_", "YNX_", "GOFLAGS"))}
         self.env.update(GOMAXPROCS="2", GOMEMLIMIT="1024MiB", GOGC="75",
@@ -189,6 +192,10 @@ class Window:
         os.sched_setaffinity(0, self.cpus)
 
     def sample(self):
+        with self.lock:
+            return self._sample()
+
+    def _sample(self):
         require(time.monotonic() - self.started < CAPS["totalSeconds"] - CAPS["cleanupSeconds"], "total operation deadline exceeded")
         rows, _ = guard.proc_inventory()
         ids = guard.owned_set(rows, os.getpid(), known=self.known)
@@ -213,14 +220,24 @@ class Window:
         require(size <= CAPS["newBytes"], "new artifacts exceeded 8GiB")
         require(shutil.disk_usage(self.work).free >= 1 << 30, "runtime disk reserve below 1GiB")
         for _, log in self.logs:
-            require(os.fstat(log.fileno()).st_size <= CAPS["logBytes"], "bounded process log exceeded")
+            if log.closed:
+                current=os.stat(log.name,follow_symlinks=False)
+                require(stat.S_ISREG(current.st_mode) and (current.st_dev,current.st_ino)==self.closed_log_identity.get(log.name),"retired original process log identity changed")
+                length=current.st_size
+            else:length=os.fstat(log.fileno()).st_size
+            require(length <= CAPS["logBytes"], "bounded process log exceeded")
         for c in self.children:
             if c["persistent"] and c["process"].poll() is not None and not self.stopping:
                 raise RuntimeError("normal node exited early: " + c["name"])
         if len(self.samples) < 1800 and (not self.samples or time.monotonic() - self.samples[-1]["at"] >= 1):
             self.samples.append(dict(at=time.monotonic(), rssBytes=rss, newBytes=size, processes=len(ids)))
 
-    def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None):
+    def launch(self, name, command, persistent=False, pass_fds=(), stdin_path=None, stdin_pipe=False, thread_safe=False):
+        with self.lock:
+            return self._launch(name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe)
+
+    def _launch(self, name, command, persistent, pass_fds, stdin_path, stdin_pipe, thread_safe):
+        require(not (stdin_pipe and stdin_path is not None), "one original stdin transport required")
         self.sample()
         log = open(self.work / "public" / (name + ".log"), "xb", buffering=0)
         os.chmod(log.name, 0o600); self.logs.append((name, log))
@@ -228,9 +245,15 @@ class Window:
             os.sched_setaffinity(0, self.cpus)
             resource.setrlimit(resource.RLIMIT_FSIZE, (CAPS["newBytes"], CAPS["newBytes"]))
         source_input = open(stdin_path, "rb") if stdin_path is not None else None
+        actual_command = command
+        if thread_safe:
+            # No Python preexec_fn after worker threads exist. The isolated
+            # child applies the SAME affinity/file cap before the original exec.
+            shim="import json,os,resource,sys\nos.sched_setaffinity(0,json.loads(sys.argv[1]))\ncap=int(sys.argv[2])\nresource.setrlimit(resource.RLIMIT_FSIZE,(cap,cap))\nos.execvp(sys.argv[3],sys.argv[3:])\n"
+            actual_command=[sys.executable,"-I","-c",shim,json.dumps(self.cpus),str(CAPS["newBytes"]),*command]
         try:
-            proc = subprocess.Popen(command, cwd=self.source, env=self.env, stdin=source_input if source_input is not None else subprocess.DEVNULL,
-                                    stdout=log, stderr=subprocess.STDOUT, start_new_session=True, preexec_fn=restrict,
+            proc = subprocess.Popen(actual_command, cwd=self.source, env=self.env, stdin=subprocess.PIPE if stdin_pipe else source_input if source_input is not None else subprocess.DEVNULL,
+                                    stdout=log, stderr=subprocess.STDOUT, start_new_session=True, preexec_fn=None if thread_safe else restrict,
                                     pass_fds=pass_fds)
         finally:
             if source_input is not None:
@@ -251,8 +274,20 @@ class Window:
         for row in self.children:
             if row["process"] is proc and "elapsedNs" not in row:
                 row["elapsedNs"] = time.monotonic_ns() - row["startedNs"]
-        require(allow_failure or proc.returncode == 0, "normal command failed; retain original log")
+        name=next((row["name"] for row in self.children if row["process"] is proc),"owned-child")
+        require(allow_failure or proc.returncode == 0, "normal command failed: %s pid=%d returnCode=%s; retain original log"%(name,proc.pid,proc.returncode))
         return proc.returncode
+
+    def retire_log(self,proc):
+        """Close a finished transient stream without losing its inode/size guard."""
+        with self.lock:
+            require(proc.poll() is not None,"cannot retire a live original process log")
+            child=next(row for row in self.children if row["process"] is proc)
+            require(not child["persistent"],"persistent original stream must remain open")
+            log=next(log for name,log in self.logs if name==child["name"])
+            if not log.closed:
+                info=os.fstat(log.fileno());require(info.st_size<=CAPS["logBytes"],"bounded process log exceeded")
+                self.closed_log_identity[log.name]=(info.st_dev,info.st_ino);log.close()
 
     def rpc(self, url, method, params=""):
         require(re.fullmatch(r"http://127\.0\.0\.1:[0-9]+", url), "non-loopback RPC refused")

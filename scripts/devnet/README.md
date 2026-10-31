@@ -175,3 +175,68 @@ partial observations intact and do not erase independent functional proofs.
 Run41209173671 did not enable the option; its green functional paths supply
 no logical-wire baseline.
 
+The independent single-transfer load entry is `pq-independent-load.py`. It
+uses the original normal CORE continuous `live-materials setup/request/result`
+callee, never a stopped exporter. Receive an exact clean CORE source containing
+that callee; its uncommitted implementation is not runtime qualification. The
+normal source build, registry/halt/activation and original pins remain in the
+owning hosted job. Four preparation owners are reserved and never recycled into
+the measured pool; their unresolved originals remain separate in the receipt.
+
+The full workload-bound logical arrival plan is persisted before any measured
+account signs. An independent monotonic arrival thread records actual releases
+even while the controller is blocked in a durable journal write; these times
+are never backdated to planned arrivals. A ready account reserves one nonce, uses its
+original persistent normal sender (online) or normal corpus dispatcher
+(pre-signed), posts the exact original once, observes its hash on four nodes,
+uses one independently pinned owning-node live policy, runs the normal verifier
+and original online `confirm`. Only that complete successful proof returns the
+account to the pool. Each failed/UNKNOWN account retains its reservation and
+originals for reconciliation; the controller never restarts it or re-signs.
+
+```sh
+python3 -B -m unittest discover -s scripts/loadtest -p test_pq_independent_load.py -v
+python3 -B scripts/loadtest/pq-independent-load.py \
+  --source "$GITHUB_WORKSPACE" --commit "$GITHUB_SHA" \
+  --mode online --rate 100 --seconds "$PQ_WINDOW_SECONDS" \
+  --accounts "$PQ_ACCOUNT_COUNT" --per-account "$PQ_ACCOUNT_CAPACITY" \
+  --tail-seconds 30 --proof-timeout 30 --wire-observation --execute
+```
+
+CORE chooses and records the real account/process capacity within the original
+2 CPU/4GiB RSS/8GiB new/900s admission. Current normal corpus aggregate limits
+are 1024 pre-signed and 10000 online operations INCLUDING the four preparation
+owners. The window must fit the complete demand; it is never shortened or
+the rate lowered automatically. Each current online owner uses one normal
+process; there is no invented low-memory multiplex signer. If enough original
+processes cannot fit, preparation stops at the actual cap and records all
+configured demand as unreleased/unsubmitted. A normal CORE multiplex callee
+must be supplied before claiming a larger practical account pool. The source
+and any separate tools checkout are counted, with overlaps removed.
+
+Sampling and callee workers run outside the clock/controller thread. Worker
+spawns use an isolated child applying the SAME CPU affinity and file limit
+before `exec`, without a Python `preexec_fn` after threads start. The new Linux
+control must actually execute in the original hosted job; a macOS skip is not
+its validation. Claims/stages are fsynced into exclusive bounded journal
+segments; uncertain writes never trigger a retry or overwrite.
+
+Reports separate planned demand, actual release/lag, one POST attempt,
+identity-bound source ACK/inclusion evidence, actual final receipts inside
+the fixed window and tail, not-sent/failed/UNKNOWN, account and stage queues.
+Source ACK is not finality. Missing outcomes censor the FULL-cohort percentiles
+rather than disappear from the denominator. Cold signer/checkpoint time, live
+proof queues/publisher/reader, normal verifier and confirm points are distinct;
+completed per-transaction stage intervals and their totals retain IO/scheduling
+overhead; an unresolved last interval is censored. Account queue and worker
+queue time remain separate from normal callee time. The qualified
+receipt time is an observed bound including original consumer overhead, not
+physical Commit formation. Short finite windows do not qualify sustained TPS.
+
+Run `--mode pre-signed` in its own fresh job. Higher levels 500/1000 require the
+preceding level's exact result via `--prior-result`/`--prior-result-sha256`, same
+source/mode, complete demand and successful original proofs, actual source
+evidence, no growing outstanding backlog, and the existing receipt latency
+targets. A cap, missing independent final proof, late feeder or unresolved
+operation stops escalation. Original failures/artifacts remain retained.
+

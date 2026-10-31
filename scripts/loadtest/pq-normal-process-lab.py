@@ -113,7 +113,7 @@ def decoded_hash(value):
 
 
 class Ceremony:
-    def __init__(self,window,root,created,bins,observe_wire=False):
+    def __init__(self,window,root,created,bins,observe_wire=False,expected_owners=8):
         self.w,self.root,self.bins=window,root,bins
         self.plan=original_plan(created,root);self.pin=created["planSHA256"]
         self.workload=created["workload"];self.nodes=[];self.attempted=set();self.observations=[]
@@ -121,7 +121,7 @@ class Ceremony:
         self.workload_pin=lab.guard.digest(root/"workload/PUBLIC-WORKLOAD.json")
         self.mode=self.workload["mode"]
         self.observe_wire=observe_wire;self.wire_outputs=[]
-        lab.require(self.mode in ("online","pre-signed") and len(self.workload["owners"])==8,"original eight independent owners required")
+        lab.require(self.mode in ("online","pre-signed") and len(self.workload["owners"])==expected_owners,"exact original independent owner pool required")
 
     def call(self,name,args):
         proc=self.w.launch(name,[str(self.bins/"ynx-consensus-pq-lab"),*args]);self.w.wait(proc)
@@ -280,7 +280,10 @@ class Ceremony:
         row["observation"]=self.post_once(name,raw,row["transaction"]["abciHash"])
         return row
 
-    def execute(self):
+    def activation_startup(self,activation):
+        return activation
+
+    def prepare_network(self):
         self.start();self.quiet(int(self.plan["initialHeight"]))
         for i in range(4):
             before=self.quiet();registration=self.call("registration-%d"%i,["registration","--synthetic","--root",str(self.root),"--plan-sha256",self.pin,"--node",str(i),"--approved-at",str(before["height"]+1)])
@@ -305,10 +308,14 @@ class Ceremony:
         activation=self.call("activate-original",["activate","--synthetic","--root",str(self.root),"--plan-sha256",self.pin])
         self.activation_pin=lab.guard.digest(self.root/"activation/activation.json")
         lab.require(int(activation["registryHeight"])==target and int(activation["activationHeight"])==target+4,"original activation R/A differs")
-        self.start(activation);checkpoint=self.quiet(target)
+        self.start(self.activation_startup(activation));checkpoint=self.quiet(target)
         while checkpoint["height"]<int(activation["activationHeight"]):
             lab.require(self.next_workload<4,"bounded original activation traffic exceeded reserved owners")
             self.traffic("activation-traffic-%d"%self.next_workload,self.next_workload);checkpoint=self.quiet()
+        return activation
+
+    def execute(self):
+        activation=self.prepare_network()
         planned=[dict(id=digest((self.pin+":functional:"+str(i)).encode()),owner=i,status="not-submitted") for i in range(4,8)]
         lab.write_new(self.w.work/"public/functional-cohort-plan.json",dict(schema="YNX-PQ-FOUR-PROCESS-FUNCTIONAL-PLAN/v1",planSHA256=self.pin,mode=self.mode,requests=planned,fixedWindowConfigured=False))
         functional=[]
