@@ -1,0 +1,34 @@
+{
+  "schema": "original-auth-go-policy-source-intake/v1",
+  "owner": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+  "originalModule": "ynx.local/authgrantpolicy",
+  "supplier": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-policy-go-source/HANDOFF.json",
+    "bytes": 6694,
+    "sha256": "3355ec5a8fadd44307387a10d512dd1f8abcebf5889fc0f533f8a6910e170362"
+  },
+  "sourceFiles": [
+    {
+      "slot": "packages/auth-grant-policy/go/go.mod",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-grant-normal-go-intake-v5-20261031/source/packages/auth-grant-policy/go/go.mod",
+      "bytes": 44,
+      "sha256": "52ce10782f53ddf0c5e30ca51d59273a75b522d456032a1c417c4f6188b7468e"
+    },
+    {
+      "slot": "packages/auth-grant-policy/go/task_grant.go",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-grant-normal-go-intake-v5-20261031/source/packages/auth-grant-policy/go/task_grant.go",
+      "bytes": 25544,
+      "sha256": "fb4a74cec0588f48fed2636adcbc6283cf81113a096d3f813d11503516ac9036"
+    },
+    {
+      "slot": "packages/auth-grant-policy/go/INTEGRATION.md",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-grant-normal-go-intake-v5-20261031/source/packages/auth-grant-policy/go/INTEGRATION.md",
+      "bytes": 8082,
+      "sha256": "79d284d91d543460b7fddd9c41e5b6f306b150fc3636b79fa9e6d9ce3036cf0a"
+    }
+  ],
+  "algorithmChanged": false,
+  "protectedSourceSupplied": false,
+  "original13TestsReused": true,
+  "originalRawLogTruncationRetained": true
+}
