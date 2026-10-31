@@ -62,6 +62,21 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/YNXShopDerivedData" \
             CODE_SIGNING_ALLOWED=NO \
             build | tee "$RUNNER_TEMP/ynx-shop-ios-build.log"
+      - name: Check invoice preview context using the actual generated Native pin
+        run: |
+          set -euo pipefail
+          SDK_PIN="$(find "$RUNNER_TEMP/YNXShopDerivedData" -path '*/commerce-native-r9/NativeSDKPin.swift' -print -quit)"
+          test -n "$SDK_PIN"
+          SOURCES=()
+          for SOURCE in YNXShop/*.swift; do
+            case "$SOURCE" in
+              */ContentView.swift|*/YNXShopApp.swift) ;;
+              *) SOURCES+=("$SOURCE") ;;
+            esac
+          done
+          xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/InvoicePreviewContextChecks.swift \
+            -o "$RUNNER_TEMP/ynx-shop-invoice-preview-checks"
+          "$RUNNER_TEMP/ynx-shop-invoice-preview-checks"
       - name: Boot, install, launch, and exercise deep link
         run: |
           DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for runtime in d.values() for x in runtime if x["name"].startswith("iPhone") and x["isAvailable"]))')"
