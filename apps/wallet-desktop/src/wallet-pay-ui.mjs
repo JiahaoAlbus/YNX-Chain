@@ -49,13 +49,13 @@ function original(value,account){
  * Closing/editing/locking invalidates main-held review AND current operation.
  */
 export function createDesktopPayUI({getContext,api,render}){
-  let revision=0,busy=false,review=null,retained=null,available=false,historyRecords=[],historyCursor=null,settleBlocked=false,savedLocally=false;
+  let revision=0,busy=false,review=null,retained=null,available=false,historyRecords=[],historyCursor=null,historyOwner=null,settleBlocked=false,savedLocally=false;
   const view=(notice=savedLocally?"Saved locally. This action did not send or settle a payment. / 已本地保存，此操作未发送或结算付款。":"",error=null)=>render({busy,review,original:retained,available,notice,error,historyCursor,settleBlocked,savedLocally});
-  function clear(){revision++;busy=false;review=null;retained=null;available=false;historyRecords=[];historyCursor=null;settleBlocked=false;savedLocally=false;view();return Promise.resolve(api.payCancel()).catch(()=>{})}
+  function clear(){revision++;busy=false;review=null;retained=null;available=false;historyRecords=[];historyCursor=null;historyOwner=null;settleBlocked=false;savedLocally=false;view();return Promise.resolve(api.payCancel()).catch(()=>{})}
   const capture=(before=getContext(),current=revision)=>({before,owns:()=>current===revision,live:()=>{const after=getContext();return current===revision&&before.open&&after.open&&!!before.account&&before.account===after.account&&before.keyRevision===after.keyRevision&&!before.locked&&!after.locked}});
   const request=async(fn,accept,{notice="Checking Pay…",failure="Pay could not be verified. Preserve the original; restore it and check its original hash or receipt."}={})=>{
     if(busy)return;const {before,live}=capture();if(!live()){view("Unlock Wallet before reviewing or restoring Pay.");return}busy=true;view(notice);
-    try{const received=await fn();if(!live())return;const response=snapshotPayDisplay(received);if(!live())return;if(response?.ok!==true)throw Error("Pay request failed");accept(response.value,before.account);busy=false;view()}
+    try{const received=await fn();if(!live())return;const response=snapshotPayDisplay(received);if(!live())return;if(response?.ok!==true)throw Error("Pay request failed");accept(response.value,before.account,before.keyRevision);busy=false;view()}
     catch{if(live()){busy=false;view("",failure)}}
   };
   const acceptOriginal=(value,account)=>{if(value?.kind!=="original"&&value?.kind!=="archived")throw Error("Wrong Pay result");retained=value.original===null?null:original(value.original,account);settleBlocked=!!retained?.settlementAttempted;review=null};
@@ -98,13 +98,16 @@ export function createDesktopPayUI({getContext,api,render}){
         {notice:action==="check"?"Checking the original transaction hash…":action==="receipt"?"Reading the original authenticated settlement receipt…":action==="done"?"Archiving the verified receipt…":"Submitting the original result once…"});
     },
     history:async(more=false)=>{
+      const context=getContext();
+      if(historyOwner&&(historyOwner.account!==context.account||historyOwner.keyRevision!==context.keyRevision)){
+        historyRecords=[];historyCursor=null;historyOwner=null;view();if(more)return null;
+      }
       if(busy||!available||more&&historyCursor===null)return null;
-      if(!more){historyRecords=[];historyCursor=null}
-      let records=null;await request(()=>api.payHistory(more?historyCursor:null),(value,account)=>{
+      let records=null;await request(()=>api.payHistory(more?historyCursor:null),(value,account,keyRevision)=>{
         if(value?.account!==account||!Array.isArray(value.records)||value.records.length>50||value.nextCursor!==null&&!hash(value.nextCursor))throw Error("Wrong history");
         const verified=value.records.map(item=>original(item,account)),combined=more?[...historyRecords,...verified]:verified;
         if(verified.some(item=>item.status!=="archived")||new Set(combined.map(item=>item.hash)).size!==combined.length||value.nextCursor!==null&&verified.at(-1)?.hash!==value.nextCursor)throw Error("Wrong history");
-        historyRecords=Object.freeze(combined);historyCursor=value.nextCursor;records=historyRecords;
+        historyRecords=Object.freeze(combined);historyCursor=value.nextCursor;historyOwner={account,keyRevision};records=historyRecords;
       },{notice:"Reading verified Pay history…"});return records;
     },
   });return ui;
@@ -150,7 +153,7 @@ export function mountDesktopPayUI({document,api,getContext}){
   buttons.save.addEventListener("click",()=>ui.action("save"));
   document.querySelector("#protected-pay-next").addEventListener("click",()=>{qrRevision++;qrIntent=null;qrFile.invalidate();reference.value="";history.replaceChildren();void ui.open();reference.focus()});
   for(const action of ["check","settle","receipt","done"])buttons[action].addEventListener("click",()=>void ui.action(action));
-  const loadHistory=async more=>{const current=getContext(),bound={account:current.account,keyRevision:current.keyRevision,revision:qrRevision};if(!more)history.replaceChildren();const records=await ui.history(more);if(!records||!qrLive(bound))return;history.replaceChildren();for(const item of records){const row=document.createElement("p");setWalletCopy(row,"{name} · {amount} YNXT + {fee} YNXT fee · {invoice} · {hash} · verified Pay settlement, local native checkpoint (not consensus finality)",{name:item.merchant,amount:item.amount,fee:item.fee,invoice:item.invoiceId,hash:item.hash});history.append(row)}if(records.length===0){const row=document.createElement("p");setWalletCopy(row,"No verified Pay receipts saved for this account.");history.append(row)}};
+  const loadHistory=async more=>{const current=getContext(),bound={account:current.account,keyRevision:current.keyRevision,revision:qrRevision};const records=await ui.history(more);if(!records||!qrLive(bound))return;history.replaceChildren();for(const item of records){const row=document.createElement("p");setWalletCopy(row,"{name} · {amount} YNXT + {fee} YNXT fee · {invoice} · {hash} · verified Pay settlement, local native checkpoint (not consensus finality)",{name:item.merchant,amount:item.amount,fee:item.fee,invoice:item.invoiceId,hash:item.hash});history.append(row)}if(records.length===0){const row=document.createElement("p");setWalletCopy(row,"No verified Pay receipts saved for this account.");history.append(row)}};
   buttons.history.addEventListener("click",()=>loadHistory(false));document.querySelector("#protected-pay-older").addEventListener("click",()=>loadHistory(true));
   const qrLive=bound=>{const current=getContext();return bound&&bound.revision===qrRevision&&sheet.open&&!current.locked&&bound.account===current.account&&bound.keyRevision===current.keyRevision};
   const qrFile=createQRFileInput({document,selector:"#protected-pay-qr",
