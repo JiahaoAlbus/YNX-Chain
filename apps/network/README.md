@@ -1,10 +1,32 @@
 # YNX Network
 
-Independent Network PWA and local helper. Product source is confined to
+Independent macOS QA application, responsive desktop/mobile client and local
+helper. The native App owns its window and helper; it embeds the same local
+client in WKWebView. Product source is confined to
 `apps/network/**` and `cmd/ynx-network-helper/**`; Explorer, Monitor, Chain,
 Auth, SDK, shared locks and release authority are unchanged.
 
-## Run the normal local entry
+## Independent client and normal local entry
+
+The normal desktop QA entry is `YNX Network QA.app`, built with
+`apps/network/qa/build.mjs` as described in `qa/README.md`. The current client
+implements the user's seven-screen desktop and five-entry mobile designs in
+light/dark themes. It labels the current deployment Testnet and uses only
+observed helper/RPC data. Missing metrics, Wallet operations, production node
+controls and public resource contribution remain explicitly unavailable.
+
+The twelve client languages are English, Simplified/Traditional Chinese,
+Japanese, Korean, Spanish, French, German, Portuguese, Russian, Arabic and
+Indonesian. Arabic uses RTL layout; transaction identifiers and original
+reports retain their original content. Theme/language preferences carry no
+permissions. Mobile responsive/browser validation does not prove an installed
+Android/iOS node, local phone helper or physical-device acceptance.
+
+Transaction receipts can be read back and exported as historical public JSON
+with `authority:false`. The native App uses its normal Save panel and refuses
+to replace existing files. Export preserves `reportText`; parsed JSON numbers
+are not claimed to reproduce original wire bytes. A receipt file is never a
+fresh trust anchor, transaction authorization or funds-state proof.
 
 From this checkout:
 
@@ -19,8 +41,8 @@ and proof verification for 15 minutes. Revoke it in the PWA. Restart the helper
 to issue a new pairing code. No node, validator, signer or contribution job is
 started by this entry.
 
-The prefilled transaction is a historical test transaction, not a freshly sent
-payment. Its source REST response is always presented as `RPC_ONLY`.
+The transaction input starts empty. A source REST response is always presented
+as `RPC_ONLY` until independent proof actually validates.
 
 The service now keeps a private product directory (default user config directory
 `YNXNetwork`, or `--data-dir`). It contains local observation history, managed

@@ -34,6 +34,9 @@ type ReceiptSummary struct {
 	TxID          string `json:"txId"`
 	ObservedAt    string `json:"observedAt"`
 	ReportedLevel string `json:"reportedLevel"`
+	Source        string `json:"source,omitempty"`
+	Reason        string `json:"reason,omitempty"`
+	Detail        string `json:"detail,omitempty"`
 }
 type receiptSnapshot struct {
 	Version int `json:"version"`
@@ -205,7 +208,7 @@ func (s *ReceiptStore) List() []ReceiptSummary {
 	for _, r := range s.records {
 		var v ProofView
 		_ = json.Unmarshal(r.View, &v)
-		out = append(out, ReceiptSummary{r.ReceiptID, r.TxID, r.ObservedAt, v.Level})
+		out = append(out, ReceiptSummary{ReceiptID: r.ReceiptID, TxID: r.TxID, ObservedAt: r.ObservedAt, ReportedLevel: v.Level, Source: v.Source, Reason: v.Reason, Detail: v.Detail})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ObservedAt > out[j].ObservedAt })
 	return out

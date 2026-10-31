@@ -1,5 +1,12 @@
 'use strict';
 const $ = id => document.getElementById(id);
+const tr = (key, params) => typeof window !== 'undefined' && window.NetworkI18n ? window.NetworkI18n.t(key, params) : String(key).replace(/\{(\w+)\}/g, (_, k) => String(params?.[k] ?? '{'+k+'}'));
+const textBindings = new Map();
+function paint(el, key, params) { const render=typeof key==='function'?key:()=>tr(key,params); textBindings.set(el,render); el.removeAttribute?.('data-i18n'); el.textContent=render(); }
+function publish(channel,value) { if(typeof window !== 'undefined')window.NetworkUI?.receive(channel,value); }
+let historyFilter='all';
+const reasonMessages=Object.freeze({NOT_SUPPLIED:'独立证明或信任材料尚未提供。',BAD_PROOF:'证明未通过核验，原始原因见交易详情。',CANCELLED:'本次核验已取消或超时。',REVOKED:'本机证明通道已关闭。',STATE_NOT_PROVEN:'资金、账户与发票状态尚未验证；ABCI 成功不等于到账证明'});
+const reasonText=view=>tr(reasonMessages[view.reason]||view.detail||'未提供');
 const levels = ['RPC_ONLY', 'HEADER_VERIFIED', 'INCLUSION_VERIFIED', 'STATE_VERIFIED'];
 const pending = new Map();
 let ticket = sessionStorage.getItem('ynxNetworkTicket') || '';
@@ -12,15 +19,15 @@ const PAGE_SIZE = 20;
 const txKey = value => String(value || '').trim().toLowerCase().replace(/^0x/, '');
 function canonicalTx(value) { const hash = txKey(value); if (!/^[a-f0-9]{64}$/.test(hash)) throw new Error('INVALID_TX_ID'); return '0x' + hash; }
 function receiptID(value) { if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value)) throw new Error('INVALID_RECEIPT_ID'); return value; }
-function text(id, value) { $(id).textContent = value; }
-function notice(value, error = false) { text('notice', value); $('notice').classList.toggle('error', error); }
+function text(id, value, params) { paint($(id), value, params); }
+function notice(value, error = false, params) { text('notice', value, params); $('notice').classList.toggle('error', error); }
 function controls() {
   for (const id of ['proof-file']) $(id).disabled = !paired;
   for (const [id,channel] of [['lookup-button','receipt'],['history-open','receipt'],['node-refresh','node'],['native-refresh','native'],['history-refresh','history']]) $(id).disabled = !paired || pending.has(channel);
   $('pair-form').hidden = paired;
   $('revoke').hidden = !paired;
   $('history-prev').disabled = !paired || historyPage === 0;
-  $('history-next').disabled = !paired || (historyPage + 1) * PAGE_SIZE >= receiptRows.length;
+  $('history-next').disabled = !paired || (historyPage + 1) * PAGE_SIZE >= receiptRows.filter(row=>historyFilter==='all'||historyFilter==='verified'&&row.reportedLevel!=='RPC_ONLY'||row.reportedLevel===historyFilter).length;
 }
 function abort(channel) { const op = pending.get(channel); if (op) op.controller.abort(); pending.delete(channel); }
 function abortAll() { for (const op of pending.values()) op.controller.abort(); pending.clear(); }
@@ -36,11 +43,11 @@ function current(op) {
 }
 function finish(op) { if (pending.get(op.channel) === op) pending.delete(op.channel); }
 function invalidateEvidence(message) {
-  abort('receipt');
+  publish('receipt',null); abort('receipt');
   text('level-tag', '尚未查询'); $('level-tag').className = 'tag neutral';
   document.querySelectorAll('.levels li').forEach((row, index) => {
     row.classList.remove('reached', 'reported');
-    row.querySelector('.step-status').textContent = index === 0 ? '待查询' : index === 3 ? '等待状态证明' : '缺少证据';
+    paint(row.querySelector('.step-status'), index === 0 ? '待查询' : index === 3 ? '等待状态证明' : '缺少证据');
   });
   $('evidence-meta').hidden = true;
   for (const id of ['meta-tx', 'meta-level', 'meta-source', 'meta-height', 'meta-reason', 'meta-receipt', 'meta-time', 'meta-context', 'raw-report']) text(id, '');
@@ -54,6 +61,7 @@ function invalidateEvidence(message) {
   controls();
 }
 function clearPanels() {
+  publish('reset',null);
   receiptRows = []; historyPage = 0;
   $('receipt-list').replaceChildren();
   text('history-state', '配对后读取本机历史记录。历史不是当前授权。');
@@ -96,11 +104,11 @@ function scheduleExpiry(expires) {
     if (epoch === expiryEpoch && ticket === expiryTicket) clearPairing('本次配对票据已到期。重启 helper 后可重新配对。');
   }, Math.max(0, Math.min(deadline - Date.now(), 15 * 60 * 1000)));
 }
-function readableTime(value) { const date = new Date(value); return Number.isFinite(date.getTime()) ? date.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }) : '时间未提供'; }
-function collectionLabel(label, value) {
-  if (!value || (value.status !== 'reported' && value.status !== 'unavailable')) return label + '：未提供来源状态';
-  return label + '：' + (value.status === 'reported' ? '已取回，仅表示来源返回' : '不可用') + (value.code ? ' · ' + value.code : '') + (value.source ? ' · ' + value.source : '');
-}
+function readableTime(value) { const date = new Date(value); return Number.isFinite(date.getTime()) ? date.toLocaleString(typeof window!=='undefined'&&window.NetworkI18n?window.NetworkI18n.locale:'zh-Hans') : tr('时间未提供'); }
+function collectionLabel(label, value) { return () => {
+  if (!value || (value.status !== 'reported' && value.status !== 'unavailable')) return tr('{label}：未提供来源状态',{label:tr(label)});
+  return tr('{label}：{state}{code}{source}',{label:tr(label),state:tr(value.status==='reported'?'已取回，仅表示来源返回':'不可用'),code:value.code?' · '+value.code:'',source:value.source?' · '+value.source:''});
+}; }
 function validateView(view, txId, historical = false) {
   if (!view || typeof view !== 'object' || txKey(view.txId) !== txKey(txId)) throw new Error('RECEIPT_TX_MISMATCH');
   const index = levels.indexOf(view.level);
@@ -114,23 +122,22 @@ function renderView(view, op, options = {}) {
   if (!current(op)) return false;
   const historical = options.historical === true;
   const index = validateView(view, options.txId || op.txId, historical);
-  text('level-tag', historical ? '历史记录 · ' + view.level : view.level);
+  text('level-tag',historical?'历史记录 · {level}':'{level}',{level:view.level});
   $('level-tag').className = 'tag ' + (historical ? 'neutral' : index === 0 ? 'reported' : 'verified');
   document.querySelectorAll('.levels li').forEach((row, i) => {
     row.classList.toggle('reached', !historical && i > 0 && i <= index);
     row.classList.toggle('reported', !historical && i === 0);
-    row.querySelector('.step-status').textContent = historical ? '未重新核验' : i === 0 ? '数据源报告' : i <= index ? '已验证' : i === 3 ? '等待状态证明' : '缺少证据';
+    paint(row.querySelector('.step-status'), historical ? '未重新核验' : i === 0 ? '数据源报告' : i <= index ? '已验证' : i === 3 ? '等待状态证明' : '缺少证据');
   });
   $('evidence-meta').hidden = false;
-  text('meta-tx', view.txId); text('meta-level', historical ? '当时记录 ' + view.level + '；当前未重新核验' : view.level);
+  text('meta-tx', view.txId); text('meta-level',historical?'当时记录 {level}；当前未重新核验':'{level}',{level:view.level});
   text('meta-source', view.source || '独立证明来源未提供'); text('meta-height', view.height || '未证明');
-  text('meta-reason', [view.reason, view.detail].filter(Boolean).join(' · ') || '未提供');
-  const prefix = historical ? '历史记录中：' : '';
+  text('meta-reason',()=>[view.reason,reasonText(view)].filter(Boolean).join(' · '));
   const abci = view.abciResultVerified === true;
-  text('execution-result', prefix + (abci ? '确定性 ABCI 结果' + (historical ? '当时记录为已核验' : '已核验') + ' · ' + (view.executionOutcome || '结果未说明') + (view.abciExecutionCode ? ' · code ' + view.abciExecutionCode : '') : '尚未验证确定性 ABCI 执行结果'));
-  text('member-result', prefix + (view.selectedMemberResultVerified === true ? '指定成员结果' + (historical ? '当时已核验' : '已核验') + ' · ' + (view.selectedMemberOutcome || '未说明') : '尚未验证指定成员的执行结果'));
+  text('execution-result',()=>tr(historical?'历史记录中：{result}':'{result}',{result:abci?tr(historical?'确定性 ABCI 结果当时记录为已核验 · {outcome}{code}':'确定性 ABCI 结果已核验 · {outcome}{code}',{outcome:tr(view.executionOutcome||'结果未说明'),code:view.abciExecutionCode?' · code '+view.abciExecutionCode:''}):tr('尚未验证确定性 ABCI 执行结果')}));
+  text('member-result',()=>tr(historical?'历史记录中：{result}':'{result}',{result:view.selectedMemberResultVerified===true?tr(historical?'指定成员结果当时已核验 · {outcome}':'指定成员结果已核验 · {outcome}',{outcome:tr(view.selectedMemberOutcome||'未说明')}):tr('尚未验证指定成员的执行结果')}));
   text('funds-result', historical ? '历史记录不证明当前资金、账户或发票状态' : view.level === 'STATE_VERIFIED' && view.fundsVerified === true ? '本次具体资金状态已有对应证明；授权仍独立' : '资金、账户与发票状态尚未验证；ABCI 成功不等于到账证明');
-  if (!historical) notice(view.detail || '已显示本次可证明层级。缺少的证明不会被推断为成功。');
+  if (!historical) notice(reasonMessages[view.reason]||'已显示本次可证明层级。缺少的证明不会被推断为成功。');
   return true;
 }
 function renderReceipt(record, op, historical) {
@@ -142,7 +149,7 @@ function renderReceipt(record, op, historical) {
   if (historical) $('tx-id').value = txId;
   if (!renderView(record.view, op, { historical, txId })) return false;
   $('receipt-id').value = id;
-  text('meta-receipt', id); text('meta-time', readableTime(record.observedAt)); text('meta-context', record.contextPin || '未提供；历史标识不授予当前权限');
+  text('meta-receipt', id); text('meta-time',()=>readableTime(record.observedAt)); text('meta-context', record.contextPin || '未提供；历史标识不授予当前权限');
   text('collection-report', collectionLabel('裸交易报告', record.reportCollection));
   text('collection-proof', collectionLabel('证明来源', record.proofCollection));
   const exactReport = typeof record.reportText === 'string';
@@ -151,11 +158,12 @@ function renderReceipt(record, op, historical) {
   text('raw-report', exactReport ? record.reportText : hasReport ? JSON.stringify(record.report, null, 2) : '');
   text('raw-label', exactReport ? historical ? '查看保存时的原始 RPC 报告（历史快照）' : '查看本次原始 RPC 报告' : '查看已解析的 RPC 对象（原始字节未保存）');
   if (historical) notice('已查回原保存回执。历史层级、上下文标识和原始报告不代表当前授权、当前信任期或资金到账；可重新查询交易作本次核验。');
+  publish('receipt',{record,historical});
   return true;
 }
 async function nodeReport() {
   if (!paired) return;
-  const op = begin('node', { requiresPair: true }); text('node-state', '正在查询固定 RPC 源…'); text('node-source', '');
+  publish('node',null); const op = begin('node', { requiresPair: true }); text('node-state', '正在查询固定 RPC 源…'); text('node-source', '');
   for (const name of ['status', 'latestBlock', 'validators']) { text('node-' + name + '-state', '正在读取'); text('node-' + name + '-raw', ''); }
   try {
     const value = await api('/api/node-report', {}, op); if (!current(op)) return;
@@ -166,38 +174,41 @@ async function nodeReport() {
       if (!report || (report.status !== 'reported' && report.status !== 'unavailable')) throw new Error('INVALID_NODE_REPORT');
       if (report.status === 'reported') reported++;
     }
-    text('node-state', '仅 RPC 返回 · ' + reported + '/3 项来源可读；不构成独立验证'); text('node-source', value.source || '来源未提供');
+    publish('node',value); text('node-state','仅 RPC 返回 · {count}/3 项来源可读；不构成独立验证',{count:reported}); text('node-source', value.source || '来源未提供');
     for (const name of ['status', 'latestBlock', 'validators']) {
       const report = value.reports[name]; text('node-' + name + '-state', collectionLabel('来源', report));
-      text('node-' + name + '-raw', report.status === 'reported' ? '已解析的来源对象（不等同于原始字节）：\n' + JSON.stringify(report.data, null, 2) : '本项不可用；不会填入估计数据。');
+      text('node-' + name + '-raw',report.status==='reported'?'已解析的来源对象（不等同于原始字节）：\n{report}':'本项不可用；不会填入估计数据。',{report:JSON.stringify(report.data,null,2)});
     }
-  } catch (error) { if (current(op)) { text('node-state', '节点报告未完成 · ' + error.message); for (const name of ['status', 'latestBlock', 'validators']) text('node-' + name + '-state', '未取得本次报告'); } }
+  } catch (error) { if (current(op)) { text('node-state','节点报告未完成 · {error}',{error:error.message}); for (const name of ['status', 'latestBlock', 'validators']) text('node-' + name + '-state', '未取得本次报告'); } }
   finally { finish(op); controls(); }
 }
 async function nativeStatus() {
   if (!paired) return;
-  const op = begin('native', { requiresPair: true }); text('native-state', '正在读取本机 helper 的原生自检…'); text('native-peer', '本次凭据尚未提供'); text('native-raw', '');
+  publish('native',null); const op = begin('native', { requiresPair: true }); text('native-state', '正在读取本机 helper 的原生自检…'); text('native-peer', '本次凭据尚未提供'); text('native-raw', '');
   try {
     const value = await api('/api/native-status', {}, op); if (!current(op)) return;
     if (value.browserIdentityVerified !== false) throw new Error('BROWSER_IDENTITY_NOT_ESTABLISHED');
     const response = value.native, peer = response && response.peer;
     const verified = response && response.code === 'OK' && peer && peer.nativeIPCVerified === true && peer.browserIdentityVerified === false && Number.isInteger(peer.uid) && peer.uid >= 0 && peer.uid <= 4294967295;
-    text('native-state', verified ? 'helper 原生自连接已通过内核凭据核对' : '原生自检不可用 · ' + (value.code || response && response.code || 'NATIVE_UNAVAILABLE'));
-    text('native-peer', verified ? '原生调用方 UID ' + peer.uid + (Number.isInteger(peer.pid) && peer.pid > 0 ? ' · PID ' + peer.pid : ' · PID 未提供') + ' · ' + (peer.credentialSource || '来源未提供') : '没有可显示的已核对原生凭据');
-    text('native-note', '浏览器 OS 身份：未验证。以上只描述 helper 的原生自连接；不构成网页管理权限或 Wallet 批准。' + (value.note ? ' ' + value.note : ''));
+    publish('native',value); text('native-state',verified?'helper 原生自连接已通过内核凭据核对':'原生自检不可用 · {code}',{code:value.code||response&&response.code||'NATIVE_UNAVAILABLE'});
+    text('native-peer',()=>verified?tr('原生调用方 UID {uid} · PID {pid} · {source}',{uid:peer.uid,pid:Number.isInteger(peer.pid)&&peer.pid>0?peer.pid:tr('未提供'),source:peer.credentialSource||tr('来源未提供')}):tr('没有可显示的已核对原生凭据'));
+    text('native-note','浏览器 OS 身份：未验证。以上只描述 helper 的原生自连接；不构成网页管理权限或 Wallet 批准。');
     text('native-raw', JSON.stringify(value, null, 2));
-  } catch (error) { if (current(op)) { text('native-state', '原生状态未取得 · ' + error.message); text('native-peer', '没有本次已核对原生凭据'); } }
+  } catch (error) { if (current(op)) { text('native-state','原生状态未取得 · {error}',{error:error.message}); text('native-peer', '没有本次已核对原生凭据'); } }
   finally { finish(op); }
 }
 function renderHistoryPage() {
   const list = $('receipt-list'); list.replaceChildren();
-  for (const summary of receiptRows.slice(historyPage * PAGE_SIZE, (historyPage + 1) * PAGE_SIZE)) {
+  const filtered=receiptRows.filter(row=>historyFilter==='all'||historyFilter==='verified'&&row.reportedLevel!=='RPC_ONLY'||row.reportedLevel===historyFilter);
+  for (const summary of filtered.slice(historyPage * PAGE_SIZE, (historyPage + 1) * PAGE_SIZE)) {
     const button = document.createElement('button'); button.type = 'button'; button.className = 'history-row'; button.disabled = !paired;
     const tx = document.createElement('span'); tx.textContent = summary.txId;
-    const details = document.createElement('span'); details.textContent = readableTime(summary.observedAt) + ' · 当时记录 ' + summary.reportedLevel;
-    button.append(tx, details); button.addEventListener('click', () => openHistorical(summary.receiptId, summary.txId)); list.appendChild(button);
+    const details = document.createElement('span'); details.textContent = readableTime(summary.observedAt);
+    const level=document.createElement('span');level.className='history-level';level.textContent=summary.reportedLevel;const source=document.createElement('span');source.className='history-source';source.textContent=typeof summary.source==='string'?summary.source:'—';const reason=document.createElement('span');reason.className='history-reason';reason.textContent=typeof summary.reason==='string'?summary.reason:'—';const action=document.createElement('span');action.className='history-action';action.textContent=tr('查回原记录');
+    button.append(details, tx, level, source, reason, action); button.addEventListener('click', () => openHistorical(summary.receiptId, summary.txId)); list.appendChild(button);
   }
-  text('history-page', receiptRows.length ? '第 ' + (historyPage + 1) + '/' + Math.ceil(receiptRows.length / PAGE_SIZE) + ' 页' : ''); controls();
+  text('history-page',filtered.length?'第 {page}/{pages} 页':'',{page:historyPage+1,pages:Math.ceil(filtered.length/PAGE_SIZE)}); controls();
+  $('history-next').disabled=!paired||(historyPage+1)*PAGE_SIZE>=filtered.length;
 }
 async function refreshHistory() {
   if (!paired) return;
@@ -208,8 +219,8 @@ async function refreshHistory() {
     const rows = value.receipts.map(row => { receiptID(row.receiptId); canonicalTx(row.txId); if (!levels.includes(row.reportedLevel)) throw new Error('INVALID_HISTORY_LEVEL'); return row; });
     const unique = new Set(rows.map(row => row.receiptId)); if (unique.size !== rows.length) throw new Error('DUPLICATE_RECEIPT_ID');
     receiptRows = rows; historyPage = 0; renderHistoryPage();
-    text('history-state', rows.length ? '本机历史记录 ' + rows.length + ' 条 · 不授予当前权限；选中后读取原保存快照' : '本机尚无保存回执；完成一次真实查询后可在这里查回。');
-  } catch (error) { if (current(op)) { receiptRows = []; historyPage = 0; renderHistoryPage(); text('history-state', '历史读取未完成 · ' + error.message); } }
+    text('history-state',rows.length?'本机历史记录 {count} 条 · 不授予当前权限；选中后读取原保存快照':'本机尚无保存回执；完成一次真实查询后可在这里查回。',{count:rows.length});
+  } catch (error) { if (current(op)) { receiptRows = []; historyPage = 0; renderHistoryPage(); text('history-state','历史读取未完成 · {error}',{error:error.message}); } }
   finally { finish(op); }
 }
 async function openHistorical(id, expectedTx) {
@@ -219,7 +230,7 @@ async function openHistorical(id, expectedTx) {
     receiptID(id); const value = await api('/api/receipt', { id }, op); if (!current(op)) return;
     if (value.historical !== true || value.authority !== false) throw new Error('INVALID_HISTORY_AUTHORITY');
     renderReceipt(value.receipt, op, true);
-  } catch (error) { if (current(op)) { invalidateEvidence(); notice('历史回执未取得：' + error.message, true); } }
+  } catch (error) { if (current(op)) { invalidateEvidence(); notice('历史回执未取得：{error}',true,{error:error.message}); } }
   finally { finish(op); }
 }
 async function status(refresh = true, announcePair = false) {
@@ -227,16 +238,16 @@ async function status(refresh = true, announcePair = false) {
   try {
     const value = await api('/api/status', {}, op); if (!current(op)) return false;
     if (value.paired !== true || value.callerOsIdentityVerified !== false) throw new Error('INVALID_PAIRING_STATUS');
-    paired = true; controls();
+    paired = true; controls(); publish('status',value);
     const anchor = value.checkpoint;
-    text('anchor-summary', value.pqIndependentTrustConfigured === true ? '本机已配置独立 PQ 验证入口；每笔仍须实际取回证据并通过核验。' : value.anchorConfigured && anchor ? '独立检查点 · ' + anchor.source + ' · 高度 ' + anchor.height + ' · 信任期至 ' + anchor.trustUntil : '独立上下文：未配置。将读取原证明来源，缺独立 Source 时保持 RPC_ONLY。');
-    text('pair-state', '已配对本机 helper · 网页只读查证权限 · 浏览器 OS 身份未验证' + (value.version ? ' · ' + value.version : ''));
+    text('anchor-summary',value.pqIndependentTrustConfigured===true?'本机已配置独立 PQ 验证入口；每笔仍须实际取回证据并通过核验。':value.anchorConfigured&&anchor?'独立检查点 · {source} · 高度 {height} · 信任期至 {until}':'独立上下文：未配置。将读取原证明来源，缺独立 Source 时保持 RPC_ONLY。',{source:anchor?.source,height:anchor?.height,until:anchor?.trustUntil});
+    text('pair-state','已配对本机 helper · 网页只读查证权限 · 浏览器 OS 身份未验证{version}',{version:value.version?' · '+value.version:''});
     const expiry = sessionStorage.getItem('ynxNetworkTicketExpires'); if (expiry) scheduleExpiry(expiry);
     if (announcePair) notice('配对完成。节点来源、原生自检和本机历史分别读取；查询交易将取回实际证明并显示本次层级。');
     if (refresh) await Promise.allSettled([nodeReport(), nativeStatus(), refreshHistory()]);
     return current(op) && paired;
   } catch (error) {
-    if (current(op)) { paired = false; controls(); invalidateEvidence(); clearPanels(); text('pair-state', 'helper 连接尚未确认，请重开当前入口或使用新的配对码。'); notice('连接未确认：' + error.message, true); }
+    if (current(op)) { paired = false; controls(); invalidateEvidence(); clearPanels(); text('pair-state', 'helper 连接尚未确认，请重开当前入口或使用新的配对码。'); notice('连接未确认：{error}',true,{error:error.message}); }
     return false;
   } finally { finish(op); }
 }
@@ -252,7 +263,7 @@ $('pair-form').addEventListener('submit', async event => {
     $('pair-code').value = ''; ticket = result.ticket; sessionStorage.setItem('ynxNetworkTicket', ticket);
     if (typeof result.expires === 'string') sessionStorage.setItem('ynxNetworkTicketExpires', result.expires);
     finish(op); await status(true, true);
-  } catch (error) { if (current(op)) notice('配对未完成：' + error.message, true); }
+  } catch (error) { if (current(op)) notice('配对未完成：{error}',true,{error:error.message}); }
   finally { finish(op); $('pair-button').disabled = false; }
 });
 $('revoke').addEventListener('click', async () => {
@@ -263,7 +274,7 @@ $('revoke').addEventListener('click', async () => {
     const value = await api('/api/revoke', {}, op); if (!current(op)) return;
     if (value.revoked !== true) throw new Error('REVOCATION_NOT_CONFIRMED');
     clearPairing('配对已撤销；原票据失效。重启 helper 后可重新配对。');
-  } catch (error) { if (current(op)) clearPairing('本页票据已清除；helper 撤销结果未确认，请关闭该 helper。' + error.message); }
+  } catch (error) { if (current(op)) clearPairing(()=>tr('本页票据已清除；helper 撤销结果未确认，请关闭该 helper。{error}',{error:error.message})); }
   finally { finish(op); }
 });
 $('lookup-form').addEventListener('submit', async event => {
@@ -273,7 +284,7 @@ $('lookup-form').addEventListener('submit', async event => {
     op.txId = canonicalTx($('tx-id').value); $('lookup-button').disabled = true;
     const record = await api('/api/client-receipt', { txId: op.txId }, op); if (!current(op)) return;
     if (renderReceipt(record, op, false)) await refreshHistory();
-  } catch (error) { if (current(op)) { invalidateEvidence(); notice('本次回执未完成：' + error.message, true); } }
+  } catch (error) { if (current(op)) { invalidateEvidence(); notice('本次回执未完成：{error}',true,{error:error.message}); } }
   finally { finish(op); controls(); }
 });
 $('proof-file').addEventListener('change', async event => {
@@ -284,7 +295,7 @@ $('proof-file').addEventListener('change', async event => {
     const proof = JSON.parse(await file.text()); if (!current(op)) return;
     const view = await api('/api/verify', { txId: op.txId, proof }, op);
     if (renderView(view, op)) { text('collection-report', '导入证明：未查询裸 RPC 报告'); text('collection-proof', '导入内容只作待核对证明；不导入独立信任或权限'); }
-  } catch (error) { if (current(op)) { invalidateEvidence(); notice('导入证明未通过：' + error.message, true); } }
+  } catch (error) { if (current(op)) { invalidateEvidence(); notice('导入证明未通过：{error}',true,{error:error.message}); } }
   finally { finish(op); event.target.value = ''; }
 });
 $('node-refresh').addEventListener('click', nodeReport);
@@ -292,7 +303,8 @@ $('native-refresh').addEventListener('click', nativeStatus);
 $('history-refresh').addEventListener('click', refreshHistory);
 $('history-form').addEventListener('submit', event => { event.preventDefault(); return openHistorical($('receipt-id').value.trim()); });
 $('history-prev').addEventListener('click', () => { if (paired && historyPage > 0) { historyPage--; renderHistoryPage(); } });
-$('history-next').addEventListener('click', () => { if (paired && (historyPage + 1) * PAGE_SIZE < receiptRows.length) { historyPage++; renderHistoryPage(); } });
+$('history-next').addEventListener('click', () => { if (paired && (historyPage + 1) * PAGE_SIZE < receiptRows.filter(row=>historyFilter==='all'||historyFilter==='verified'&&row.reportedLevel!=='RPC_ONLY'||row.reportedLevel===historyFilter).length) { historyPage++; renderHistoryPage(); } });
+if(typeof window!=='undefined')window.NetworkClient=Object.freeze({setHistoryFilter(value){if(!['all','RPC_ONLY','verified'].includes(value))return;historyFilter=value;historyPage=0;renderHistoryPage();},rerenderLocale(){for(const [el,render]of textBindings)el.textContent=render();renderHistoryPage();}});
 invalidateEvidence();
 controls();
 if (typeof window !== 'undefined') window.addEventListener('pageshow', event => {

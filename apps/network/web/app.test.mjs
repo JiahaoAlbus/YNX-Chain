@@ -1,3 +1,5 @@
+import './i18n.test.mjs';
+import './overview.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {environment,settle,A,B,R1,R2,view,record,htmlIDs} from './test-support.mjs';
@@ -117,4 +119,23 @@ test('T-P09 pair background completion never overwrites a newer receipt notice',
   if(mode==='historical'){assert.match(e.node('level-tag').textContent,/历史记录/);assert.equal(e.rows.some(row=>row.classList.contains('reached')),false);}
   else{e.take('/api/client-receipt').resolve(record(A,'RPC_ONLY'));await settle();e.take('/api/receipts').resolve(list([]));await lookup;}
  });
+});
+
+
+test('designed client publishes only accepted readonly projections and clears export on tx edits',async()=>{
+ const e=environment();await settle();
+ const confirmed=e.uiEvents.find(event=>event.channel==='status');assert.equal(confirmed.value.paired,true);
+ assert.equal(Object.hasOwn(confirmed.value,'ticket'),false);assert.equal(Object.hasOwn(confirmed.value,'code'),false);
+ const lookup=e.emit('lookup-form','submit');e.take('/api/client-receipt').resolve(record());await lookup;
+ assert.equal(e.uiEvents.at(-1).channel,'receipt');assert.equal(e.uiEvents.at(-1).value.record.receiptId,R1);
+ e.node('tx-id').value=B;e.emit('tx-id','input');assert.equal(e.uiEvents.at(-1).value,null);
+ const bad=e.emit('lookup-form','submit');e.take('/api/client-receipt').resolve(record(A));await bad;
+ assert.equal(e.uiEvents.filter(event=>event.channel==='receipt'&&event.value?.record.txId===B).length,0);
+});
+test('designed history filter stays local and cannot turn old verified labels into current proof',async()=>{
+ const e=environment({autoConnected:false});await settle();e.take('/api/node-report').resolve({classification:'RPC_ONLY',reports:{status:{status:'unavailable'},latestBlock:{status:'unavailable'},validators:{status:'unavailable'}}});e.take('/api/native-status').resolve(native);
+ e.take('/api/receipts').resolve(list([{receiptId:R1,txId:A,observedAt:'2026-10-31T10:00:00Z',reportedLevel:'RPC_ONLY'},{receiptId:R2,txId:B,observedAt:'2026-10-31T11:00:00Z',reportedLevel:'INCLUSION_VERIFIED'}]));await settle();
+ const before=e.requests.length;e.client.setHistoryFilter('verified');assert.equal(e.node('receipt-list').children.length,1);assert.match(e.node('receipt-list').children[0].textContent,/INCLUSION_VERIFIED/);assert.equal(e.requests.length,before);assert.equal(e.rows.some(row=>row.classList.contains('reached')),false);
+ e.client.setHistoryFilter('RPC_ONLY');assert.equal(e.node('receipt-list').children.length,1);assert.match(e.node('receipt-list').children[0].textContent,/RPC_ONLY/);
+ e.client.setHistoryFilter('all');assert.equal(e.node('receipt-list').children.length,2);
 });

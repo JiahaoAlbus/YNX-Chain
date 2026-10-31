@@ -1,1 +1,17 @@
-{"name":"YNX Network","short_name":"Network","lang":"zh-CN","start_url":"/","display":"standalone","background_color":"#f7f9fd","theme_color":"#123de0","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "YNX Network · Testnet",
+  "short_name": "Network",
+  "lang": "zh-Hans",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f5fa",
+  "theme_color": "#f4f5fa",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -87,7 +87,7 @@ func TestClientRevokedLateTransportCannotPersistReceipt(t *testing.T) {
 func TestClientOriginalReceiptImmutableAndCorruptionPreserved(t *testing.T) {
 	h, _ := fixture(t, "https://rpc.example")
 	path := clientStore(t, h)
-	view, _ := json.Marshal(receipt.ProofView{TxID: knownTx, Level: receipt.RPCOnly, Reason: "NO_INDEPENDENT_TRUST"})
+	view, _ := json.Marshal(receipt.ProofView{TxID: knownTx, Level: receipt.RPCOnly, Source: "https://rpc.example/proof", Reason: "NO_INDEPENDENT_TRUST", Detail: "original first cause"})
 	reportText := "{\n \"status\":\"reported\",\"amount\":9007199254740993\n}"
 	original, err := h.receipts.Save(receipt.ClientReceipt{TxID: knownTx, View: view, Report: json.RawMessage(reportText), ReportText: reportText})
 	if err != nil {
@@ -111,6 +111,14 @@ func TestClientOriginalReceiptImmutableAndCorruptionPreserved(t *testing.T) {
 	got, ok := store.Get(original.ReceiptID)
 	if !ok || string(got.View) != string(view) || string(got.Report) != string(loaded.Report) || got.ReportText != reportText {
 		t.Fatalf("original bytes changed %v", got)
+	}
+	summaries := store.List()
+	if len(summaries) != 1 || summaries[0].ReceiptID != original.ReceiptID || summaries[0].ReportedLevel != receipt.RPCOnly || summaries[0].Source != "https://rpc.example/proof" || summaries[0].Reason != "NO_INDEPENDENT_TRUST" || summaries[0].Detail != "original first cause" {
+		t.Fatalf("historical source or first cause lost after restart: %+v", summaries)
+	}
+	summaries[0].Reason = "caller replacement"
+	if store.List()[0].Reason != "NO_INDEPENDENT_TRUST" {
+		t.Fatal("caller changed stored first cause through a history projection")
 	}
 	if err := store.Close(); err != nil {
 		t.Fatal(err)

@@ -34,13 +34,14 @@ export function environment(options={}){
   if(options.autoConnected!==false&&!manualRoutes.has(path)&&Object.hasOwn(defaults,path))return Promise.resolve(response(defaults[path]));
   return new Promise(resolve=>requests.push({path,options:request,resolve:(body,status=200)=>resolve(response(body,status))}));
  });
+ const uiEvents=[], windowObject={addEventListener:(type,fn)=>windowHandlers.set(type,fn),NetworkUI:{receive:(channel,value)=>uiEvents.push({channel,value})}};
  const timerSet=(fn,ms)=>{const id=++timerID;timers.set(id,{fn,ms});return id;};
  runInNewContext(options.source||appSource,{
   document:{getElementById:id=>nodes.get(id)||null,querySelectorAll:selector=>selector==='.levels li'?rows:[],createElement:tag=>new Element(tag)},
   sessionStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,String(value)),removeItem:key=>storage.delete(key)},
-  navigator:{},window:{addEventListener:(type,fn)=>windowHandlers.set(type,fn)},fetch,console,AbortController,setTimeout:timerSet,clearTimeout:id=>timers.delete(id)
+  navigator:{},window:windowObject,fetch,console,AbortController,setTimeout:timerSet,clearTimeout:id=>timers.delete(id)
  });
- return {node:id=>{const n=nodes.get(id);if(!n)throw Error('Missing actual HTML id '+id);return n;},rows,storage,requests,pending:requests,timers,
+ return {uiEvents,client:windowObject.NetworkClient,node:id=>{const n=nodes.get(id);if(!n)throw Error('Missing actual HTML id '+id);return n;},rows,storage,requests,pending:requests,timers,
   emit:(id,type)=>nodes.get(id).emit(type),
   take:path=>{const index=requests.findIndex(r=>r.path===path);if(index<0)throw Error('No pending request '+path+'; got '+requests.map(r=>r.path));return requests.splice(index,1)[0];},
   manual:path=>manualRoutes.add(path),

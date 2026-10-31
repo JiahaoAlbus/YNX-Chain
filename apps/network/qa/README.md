@@ -49,3 +49,30 @@ commands and recorded in `qa-build.json` and `Info.plist`. A supplied verifier
 can require a newer macOS than the native launcher's baseline; that artifact
 does not establish compatibility with earlier systems. Building on a host
 older than the effective deployment target is refused.
+
+## Designed client and public receipt export
+
+The standalone window hosts the desktop/mobile light/dark client and all twelve
+language catalogs from the user's supplied design. Network metrics are projections
+of the actual fixed RPC reports, never design examples or multi-source claims.
+The bundled original YNX brand and Font Awesome Free icons are local assets;
+the App loads no third-party font/icon scripts.
+
+Native public receipt export is a main-frame, exact-origin, bounded JSON bridge
+to `NSSavePanel`. It accepts no arbitrary path, command or executable. The user
+selects a new `.json` file; cancellation, stale navigation, overlap and existing
+destinations preserve the original files. The exported envelope labels the
+record historical and `authority:false`; `reportText` retains the original
+numeric lexemes, while parsed JSON is not claimed to preserve original wire
+numbers or independently verify its own receipt ID.
+
+The native export contract is discovered by the existing `./cmd/...` Go test
+entry as `TestP09QANativeExportBridgeContract`. It compiles and executes the
+actual launcher functions against private temporary files on macOS, without
+starting an App, helper or GUI; other platforms report an explicit skip.
+
+The native QA bundle persists only the exact approved language and theme enums
+in its own bundle preferences domain. A main-frame, exact-origin document-start
+bootstrap restores them across helper port changes; browser pairing tickets,
+trust and approvals are never stored or restored by this bridge. Appearance
+changes affect this App only, and other QA versions retain their own domain.

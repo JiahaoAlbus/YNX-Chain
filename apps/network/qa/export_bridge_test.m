@@ -1,0 +1,87 @@
+// Isolated no-GUI contract tests of the actual native launcher functions.
+// No NSApplication, WKWebView, NSSavePanel or helper process is instantiated.
+#define main QAActualLauncherMain
+#import "launcher.m"
+#undef main
+static NSUInteger cases=0;
+static void check(BOOL ok,NSString *name){cases++;if(!ok){fprintf(stderr,"FAIL %s\n",name.UTF8String);exit(1);}printf("PASS %s\n",name.UTF8String);}
+@interface ExportTestTask:NSObject
+@property(getter=isRunning) BOOL running;
+@end
+@implementation ExportTestTask
+@end
+@interface ExportTestWeb:NSObject
+@property NSURL *URL;@property NSUInteger calls;@property NSString *function;@property NSDictionary *arguments;
+@end
+@implementation ExportTestWeb
+-(void)callAsyncJavaScript:(NSString*)function arguments:(NSDictionary*)arguments inFrame:(id)frame inContentWorld:(id)world completionHandler:(id)handler{self.calls++;self.function=function;self.arguments=arguments;}
+@end
+@interface ExportTestOrigin:NSObject
+@property NSString *protocol;@property NSString *host;@property NSInteger port;
+@end
+@implementation ExportTestOrigin
+@end
+@interface ExportTestFrame:NSObject
+@property BOOL isMainFrame;@property ExportTestOrigin *securityOrigin;
+@end
+@implementation ExportTestFrame
+@end
+@interface ExportTestMessage:NSObject
+@property NSString *name;@property ExportTestWeb *webView;@property ExportTestFrame *frameInfo;@property id body;
+@end
+@implementation ExportTestMessage
+@end
+@interface PreferenceTestDefaults:NSObject
+@property NSMutableDictionary *domain;@property NSUInteger writes;@property NSString *queriedDomain;
+@end
+@implementation PreferenceTestDefaults
+-(instancetype)init{if((self=[super init]))_domain=[NSMutableDictionary dictionary];return self;}
+-(NSDictionary*)persistentDomainForName:(NSString*)domain{self.queriedDomain=domain;return self.domain;}
+-(void)setObject:(id)value forKey:(NSString*)key{self.writes++;self.domain[key]=value;}
+@end
+@interface PreferenceTestApp:QAApp
+@property NSUInteger refreshes;@property NSString *appliedTheme;
+@end
+@implementation PreferenceTestApp
+-(void)refreshPreferenceScript{self.refreshes++;}
+-(void)applyPreferenceAppearance:(NSString*)theme{self.appliedTheme=theme;}
+@end
+static NSDictionary *envelope(void){NSString *tx=[@"0x"stringByAppendingString:[@"a"stringByPaddingToLength:64 withString:@"a" startingAtIndex:0]];return @{@"version":@"YNX-NETWORK-RECEIPT-EXPORT/v1",@"record":@{@"receiptId":[@"b"stringByPaddingToLength:64 withString:@"b" startingAtIndex:0],@"txId":tx,@"observedAt":@"2026-11-01T01:00:00Z",@"contextPin":[@"c"stringByPaddingToLength:64 withString:@"c" startingAtIndex:0],@"view":@{@"txId":tx,@"level":@"RPC_ONLY",@"height":@"",@"source":@"https://rpc.ynxweb4.com",@"detail":@"Untrusted report; no authority",@"fundsVerified":@NO,@"nativeGrant":@NO},@"report":@{@"nonce":@(9007199254740992.0)},@"reportText":@"{\"nonce\":9007199254740993,\"memo\":\"escaped \\\"quote\\\"\"}",@"reportCollection":@{@"status":@"reported",@"source":@"https://rpc.ynxweb4.com/txs/public"},@"proofCollection":@{@"status":@"unavailable",@"source":@"",@"code":@"NOT_SUPPLIED"}}};}
+static NSMutableDictionary *copyEnvelope(void){NSData *raw=[NSJSONSerialization dataWithJSONObject:envelope() options:0 error:nil];return [NSJSONSerialization JSONObjectWithData:raw options:NSJSONReadingMutableContainers error:nil];}
+int main(int argc,const char **argv){@autoreleasepool{
+  if(argc!=2)return 2;NSString *dir=@(argv[1]);NSData *data=QAExportData(envelope());check(data!=nil,@"actual public receipt envelope accepted");NSDictionary *parsed=[NSJSONSerialization JSONObjectWithData:data options:0 error:nil];check([parsed[@"version"]isEqual:@"YNX-NETWORK-LOCAL-RECEIPT-EXPORT/v1"]&&[parsed[@"historical"]isEqual:@YES]&&[parsed[@"authority"]isEqual:@NO]&&[parsed[@"receipt"]isEqual:envelope()[@"record"]],@"public file envelope is historical/non-authoritative and keeps exact record object");check([parsed[@"receipt"][@"reportText"]isEqual:envelope()[@"record"][@"reportText"]],@"original reportText large integer and escaped strings unchanged");
+  NSMutableDictionary *bad=copyEnvelope();bad[@"path"]=@"/bin/sh";check(!QAExportData(bad),@"top path and command selection denied");bad=copyEnvelope();bad[@"record"][@"privateKey"]=@"fixture-only-not-a-key";check(!QAExportData(bad),@"unknown private record field denied");bad=copyEnvelope();bad[@"record"][@"view"][@"command"]=@"sh";check(!QAExportData(bad),@"view command field denied");bad=copyEnvelope();bad[@"record"][@"view"][@"txId"]=[@"d"stringByPaddingToLength:64 withString:@"d" startingAtIndex:0];check(!QAExportData(bad),@"view transaction mismatch denied");bad=copyEnvelope();bad[@"record"][@"receiptId"]=@"../../target";check(!QAExportData(bad),@"receipt filename injection denied");bad=copyEnvelope();bad[@"record"][@"contextPin"]=@"missing";check(!QAExportData(bad),@"malformed public context identifier denied");bad=copyEnvelope();bad[@"record"][@"view"][@"nativeGrant"]=@1;check(!QAExportData(bad),@"numeric boolean coercion denied");bad=copyEnvelope();bad[@"record"][@"reportText"]=[@"x"stringByPaddingToLength:(4<<20) withString:@"x" startingAtIndex:0];check(!QAExportData(bad),@"four MiB envelope cap enforced");bad=copyEnvelope();NSMutableArray *deep=[NSMutableArray array];NSMutableArray *cursor=deep;for(int i=0;i<60;i++){NSMutableArray *next=[NSMutableArray array];[cursor addObject:next];cursor=next;}bad[@"record"][@"report"]=deep;check(!QAExportData(bad),@"deep public JSON is bounded");bad=copyEnvelope();bad[@"record"][@"report"]=[NSDate date];check(!QAExportData(bad),@"non-JSON values denied");check(!QAExportData(@[])&&!QAExportData(NSNull.null),@"non-dictionary envelopes denied");
+  NSString *origin=@"http://127.0.0.1:15432";NSURL *current=[NSURL URLWithString:[origin stringByAppendingString:@"/index.html"]];check(QAExportOrigin(origin,@"http",@"127.0.0.1",15432,current),@"exact current loopback origin accepted");check(!QAExportOrigin(origin,@"https",@"127.0.0.1",15432,current),@"wrong protocol denied");check(!QAExportOrigin(origin,@"http",@"localhost",15432,current),@"localhost alias denied");check(!QAExportOrigin(origin,@"http",@"127.0.0.1",15433,current),@"wrong helper port denied");check(!QAExportOrigin(origin,@"http",@"127.0.0.1",15432,[NSURL URLWithString:@"https://evil.example/"]),@"nonlocal current page denied");
+  ExportTestTask *task=[ExportTestTask new];task.running=YES;ExportTestWeb *web=[ExportTestWeb new];web.URL=current;QAApp *app=[QAApp new];app.web=(WKWebView*)web;app.task=(NSTask*)task;app.origin=origin;app.exportToken=@"owned-export";app.generation=7;app.documentGeneration=3;app.documentReady=YES;
+  check([app exportCurrent:@"owned-export" helper:7 document:3 origin:origin],@"active helper and document generation accepted");check(![app exportCurrent:@"owned-export" helper:6 document:3 origin:origin],@"stale helper generation denied");check(![app exportCurrent:@"owned-export" helper:7 document:2 origin:origin],@"stale document generation denied");check(![app exportCurrent:@"old-export" helper:7 document:3 origin:origin],@"stale export token denied");app.changing=YES;check(![app exportCurrent:@"owned-export" helper:7 document:3 origin:origin],@"proof reconfiguration denies export");app.changing=NO;task.running=NO;check(![app exportCurrent:@"owned-export" helper:7 document:3 origin:origin],@"stopped helper denies export");task.running=YES;
+  ExportTestOrigin *sender=[ExportTestOrigin new];sender.protocol=@"http";sender.host=@"127.0.0.1";sender.port=15432;ExportTestFrame *frame=[ExportTestFrame new];frame.securityOrigin=sender;frame.isMainFrame=NO;ExportTestMessage *message=[ExportTestMessage new];message.name=@"networkExport";message.webView=web;message.frameInfo=frame;message.body=envelope();[app userContentController:nil didReceiveScriptMessage:(WKScriptMessage*)message];check(web.calls==0,@"iframe messages rejected without panel or callback");frame.isMainFrame=YES;sender.port=15433;[app userContentController:nil didReceiveScriptMessage:(WKScriptMessage*)message];check(web.calls==0,@"wrong-origin messages rejected without panel or callback");sender.port=15432;message.body=@{};[app userContentController:nil didReceiveScriptMessage:(WKScriptMessage*)message];check(web.calls==1&&[web.arguments[@"result"][@"code"]isEqual:@"EXPORT_INVALID_RECEIPT"],@"invalid schema returns fixed failed event only");check([web.function containsString:@"network:export-result"]&&![web.function containsString:@"escaped"]&&[web.arguments[@"result"][@"status"]isEqual:@"failed"],@"callback static function uses named arguments");app.exportPanel=(NSSavePanel*)[NSObject new];message.body=envelope();[app userContentController:nil didReceiveScriptMessage:(WKScriptMessage*)message];check(web.calls==2&&[web.arguments[@"result"][@"code"]isEqual:@"EXPORT_BUSY"],@"overlapping request rejected without second panel");app.exportPanel=nil;[app exportResult:@"saved" code:@"EXPORT_SAVED" helper:6 document:3 origin:origin];check(web.calls==2,@"late callback cannot reach a new helper generation");
+  NSString *target=[dir stringByAppendingPathComponent:@"receipt.json"];NSURL *url=[NSURL fileURLWithPath:target];check([QAExportFinish(NSModalResponseCancel,data,url)isEqual:@"EXPORT_CANCELLED"]&&![[NSFileManager defaultManager]fileExistsAtPath:target],@"user cancel writes no file");check([QAExportFinish(NSModalResponseAbort,data,url)isEqual:@"EXPORT_PANEL_FAILED"]&&![[NSFileManager defaultManager]fileExistsAtPath:target],@"panel failure writes no file");check([QAExportFinish(NSModalResponseOK,data,url)isEqual:@"EXPORT_SAVED"],@"user-approved isolated target published atomically");NSData *saved=[NSData dataWithContentsOfFile:target];check([saved isEqual:data],@"saved record bytes match validated public JSON");struct stat st;check(!lstat(target.fileSystemRepresentation,&st)&&S_ISREG(st.st_mode)&&(st.st_mode&0777)==0600,@"exported file is regular private0600");check([QAExportFinish(NSModalResponseCancel,[NSData data],url)isEqual:@"EXPORT_CANCELLED"]&&[[NSData dataWithContentsOfFile:target]isEqual:saved],@"cancel preserves existing destination");check([QAExportWrite([@"replacement"dataUsingEncoding:NSUTF8StringEncoding],url)isEqual:@"EXPORT_DESTINATION_EXISTS"]&&[[NSData dataWithContentsOfFile:target]isEqual:saved],@"existing original is never overwritten");
+  NSString *link=[dir stringByAppendingPathComponent:@"link.json"];symlink(target.fileSystemRepresentation,link.fileSystemRepresentation);check([QAExportWrite(data,[NSURL fileURLWithPath:link])isEqual:@"EXPORT_DESTINATION_EXISTS"]&&[[NSData dataWithContentsOfFile:target]isEqual:saved],@"symlink destination preserves original target");check([QAExportWrite(data,[NSURL fileURLWithPath:[dir stringByAppendingPathComponent:@"not-json.txt"]])isEqual:@"EXPORT_DESTINATION_INVALID"],@"non-json destination denied");check([QAExportWrite(data,[NSURL URLWithString:@"https://example.invalid/file.json"])isEqual:@"EXPORT_DESTINATION_INVALID"],@"non-file destination denied");check([QAExportWrite(data,[NSURL fileURLWithPath:[dir stringByAppendingPathComponent:@"missing/file.json"]])isEqual:@"EXPORT_DESTINATION_UNAVAILABLE"],@"missing parent fails without altering original");
+  NSArray *files=[[NSFileManager defaultManager]contentsOfDirectoryAtPath:dir error:nil];check(files.count==2&&![[files componentsJoinedByString:@","]containsString:@".ynx-public-receipt"],@"completed and failed writes leave no temporary export files");
+  // UI settings are benign, current-bundle enum metadata only. This fake
+  // defaults store avoids writing real user preferences in a no-GUI test.
+  NSString *domain=@"dev.ynx.network.qa.contract";PreferenceTestDefaults *defaults=[PreferenceTestDefaults new];
+  NSDictionary *empty=QAPreferenceRead(nil,nil);check([empty isEqual:@{@"locale":@"zh-Hans",@"theme":@"light"}],@"preference defaults are zh-Hans and light");
+  BOOL all=YES;for(NSString *locale in QAPreferenceLocales())for(NSString *theme in @[@"light",@"dark",@"system"]){all=all&&QAPreferenceValues(@{@"version":@"YNX-NETWORK-UI-PREFERENCES/v1",@"locale":locale,@"theme":theme})!=nil;}check(QAPreferenceLocales().count==12&&all,@"all exact12 language tags and three themes accepted");
+  NSDictionary *selection=@{@"version":@"YNX-NETWORK-UI-PREFERENCES/v1",@"locale":@"ja",@"theme":@"system"};
+  check(!QAPreferenceValues(@[])&&!QAPreferenceValues(@{})&&!QAPreferenceValues(@{@"version":@"bad",@"locale":@"en",@"theme":@"dark"}),@"unknown preference schema rejected");
+  check(!QAPreferenceValues(@{@"version":@"YNX-NETWORK-UI-PREFERENCES/v1",@"locale":@"en-US",@"theme":@"light"})&&!QAPreferenceValues(@{@"version":@"YNX-NETWORK-UI-PREFERENCES/v1",@"locale":@"fr-CA",@"theme":@"light"}),@"unknown and broadened locale tags rejected");
+  check(!QAPreferenceValues(@{@"version":@"YNX-NETWORK-UI-PREFERENCES/v1",@"locale":@"en",@"theme":@"DarkAqua"})&&!QAPreferenceValues(@{@"version":@"YNX-NETWORK-UI-PREFERENCES/v1",@"locale":@"en",@"theme":@YES}),@"unknown and non-string themes rejected");
+  NSMutableDictionary *permission=[selection mutableCopy];permission[@"ticket"]=@"fixture-only";check(!QAPreferenceValues(permission),@"preference body cannot carry pairing or permission metadata");
+  defaults.domain[@"untouched"]=@"keep";check(QAPreferenceStore((NSUserDefaults*)defaults,domain,selection)&&defaults.writes==2&&[defaults.domain[@"untouched"]isEqual:@"keep"],@"preference store writes exactly two enum keys and preserves other data");
+  NSDictionary *restored=QAPreferenceRead((NSUserDefaults*)defaults,domain);check([restored isEqual:@{@"locale":@"ja",@"theme":@"system"}]&&[defaults.queriedDomain isEqual:domain],@"preference read uses only current bundle persistent domain");
+  NSUInteger writes=defaults.writes;check(!QAPreferenceStore((NSUserDefaults*)defaults,domain,permission)&&defaults.writes==writes,@"rejected preference body preserves previous values");
+  check(!QAPreferenceStore((NSUserDefaults*)defaults,@"NSGlobalDomain",selection)&&defaults.writes==writes,@"preference caller cannot select global or foreign domain");
+  defaults.domain[@"ynxNetworkLocale"]=@"<script>injected()</script>";defaults.domain[@"ynxNetworkTheme"]=@"run command";check([QAPreferenceRead((NSUserDefaults*)defaults,domain)isEqual:empty],@"corrupt stored enums fall back without authority or script injection");
+  NSString *safe=QAPreferenceBootstrap(QAPreferenceRead((NSUserDefaults*)defaults,domain),origin);check([safe containsString:@"zh-Hans"]&&[safe containsString:@"light"]&&![safe containsString:@"injected()"],@"bootstrap serializes only validated native enum literals");
+  check([QAPreferenceBootstrap(restored,nil)containsString:@"\"origin\":\"\""]&&[QAPreferenceBootstrap(restored,@"https://evil.example")containsString:@"\"origin\":\"\""],@"bootstrap cannot restore preferences into unbound or nonlocal origins");
+  PreferenceTestApp *settings=[PreferenceTestApp new];settings.web=(WKWebView*)web;settings.task=(NSTask*)task;settings.origin=origin;settings.documentReady=YES;settings.generation=7;settings.documentGeneration=3;settings.exportToken=@"unrelated-export";settings.preferences=(NSUserDefaults*)defaults;settings.preferenceDomain=domain;
+  message.name=@"networkPreferences";message.body=selection;frame.isMainFrame=NO;[settings userContentController:nil didReceiveScriptMessage:(WKScriptMessage*)message];check(defaults.writes==writes,@"iframe cannot mutate native preferences");
+  frame.isMainFrame=YES;sender.port=15433;[settings userContentController:nil didReceiveScriptMessage:(WKScriptMessage*)message];check(defaults.writes==writes,@"wrong helper origin cannot mutate native preferences");sender.port=15432;
+  [settings userContentController:nil didReceiveScriptMessage:(WKScriptMessage*)message];check(defaults.writes==writes+2&&settings.refreshes==1&&[settings.appliedTheme isEqual:@"system"],@"valid main-frame setting updates store and App-only appearance");
+  check(settings.generation==7&&settings.documentGeneration==3&&[settings.exportToken isEqual:@"unrelated-export"]&&settings.code==nil,@"benign preference change does not alter helper epoch pairing or export ownership");
+  message.body=permission;[settings userContentController:nil didReceiveScriptMessage:(WKScriptMessage*)message];check(defaults.writes==writes+2&&settings.refreshes==1,@"invalid preference handler input leaves native state unchanged");
+  task.running=NO;message.body=selection;[settings userContentController:nil didReceiveScriptMessage:(WKScriptMessage*)message];check(defaults.writes==writes+2,@"stopped helper cannot update preferences");task.running=YES;settings.documentReady=NO;[settings userContentController:nil didReceiveScriptMessage:(WKScriptMessage*)message];check(defaults.writes==writes+2,@"uncommitted document cannot update preferences");
+  NSString *bootstrap=QAPreferenceBootstrap(restored,origin);check([bootstrap writeToFile:[dir stringByAppendingPathComponent:@"preferences-bootstrap.js"] atomically:YES encoding:NSUTF8StringEncoding error:nil],@"actual native preference bootstrap emitted for JavaScript contract execution");
+  check([QAPreferenceBootstrap(restored,@"http://127.0.0.1:25433")writeToFile:[dir stringByAppendingPathComponent:@"preferences-bootstrap-next.js"] atomically:YES encoding:NSUTF8StringEncoding error:nil],@"same bundle preferences generate a new exact-port bootstrap");printf("SUMMARY %lu passed; no GUI/panel/native WebKit process/helper started; actual launcher functions and real isolated filesystem used\n",(unsigned long)cases);return 0;
+}}
