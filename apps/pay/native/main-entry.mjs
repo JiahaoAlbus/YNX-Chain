@@ -31,7 +31,9 @@ export function createNativePayMainEntry({getMain,getContext}){
    if(!originalSource?.pay||typeof originalSource.current!=='function')fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');
    source=originalSource;
   },
-  status(){return {client:'YNX Pay',normalMainEntry:true,sourceSupplied:!!source,available:!!source,reason:source?null:'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE',approvalInOriginalMain:true,paymentAuthorized:false};},
+  status(){let reason=source?null:'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE';
+   if(source)try{context()();if(source.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}catch(error){reason=error?.code??'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE';}
+   return {client:'YNX Pay',normalMainEntry:true,sourceSupplied:!!source,available:reason===null,reason,approvalInOriginalMain:true,paymentAuthorized:false};},
   cancel,
   async invoke(raw){
    const request=input(raw);if(!source)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');if(active)fail('NATIVE_PAY_MAIN_BUSY');

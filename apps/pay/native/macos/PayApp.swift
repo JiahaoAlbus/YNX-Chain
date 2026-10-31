@@ -109,7 +109,7 @@ struct PayHome: View {
                     }
                     TextField("Original Native hash (optional)", text: $model.nativeHash)
                     Button("Recover original receipt") { model.perform("recover") }
-                }.padding().tabItem { Label("Invoice", systemImage: "doc.text") }
+                }.padding().disabled(!model.sourceReady).tabItem { Label("Invoice", systemImage: "doc.text") }
                 Form {
                     TextField("Original merchant intent ID", text: $model.intent)
                     HStack {
@@ -118,14 +118,14 @@ struct PayHome: View {
                         Button("Recover original invoice") { model.perform("recover-intent") }
                     }
                     Text("The originating Shop or Cloud bill supplies this intent. Opening this view never creates or reprices an order.").foregroundStyle(.secondary)
-                }.padding().tabItem { Label("Merchant", systemImage: "building.2") }
+                }.padding().disabled(!model.sourceReady).tabItem { Label("Merchant", systemImage: "building.2") }
                 Form {
                     TextField("Merchant account", text: $model.merchant)
                     TextField("Invoice ID", text: $model.invoice)
                     TextField("Refund reference", text: $model.refund)
                     TextField("Refund amount (atoms)", text: $model.amount)
                     Button("Review original-payer refund in Wallet") { model.perform("refund-review") }
-                }.padding().tabItem { Label("Refund", systemImage: "arrow.uturn.backward") }
+                }.padding().disabled(!model.sourceReady).tabItem { Label("Refund", systemImage: "arrow.uturn.backward") }
                 Form {
                     Picker("Original action", selection: $model.kind) {
                         Text("Merchant invoice").tag("invoice_terms")
@@ -135,8 +135,8 @@ struct PayHome: View {
                     TextField("Original Main transaction hash", text: $model.originalHash)
                     Button("Review separate submission in Wallet") { model.perform("broadcast-review") }
                     Text("Wallet shows the exact retained transaction and obtains separate approval. Pay cannot approve or sign here. An unknown outcome is recovered by its original hash.").foregroundStyle(.secondary)
-                }.padding().tabItem { Label("Wallet review", systemImage: "checkmark.shield") }
-            }.disabled(model.busy || !model.sourceReady)
+                }.padding().disabled(!model.sourceReady).tabItem { Label("Wallet review", systemImage: "checkmark.shield") }
+            }.disabled(model.busy)
             Text("Original response").font(.headline)
             ScrollView { Text(model.result.isEmpty ? "No invoice or transaction is selected." : model.result).font(.system(.body, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
                 .padding().background(.quaternary, in: RoundedRectangle(cornerRadius: 10)).frame(minHeight: 130, maxHeight: 220)

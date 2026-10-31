@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import {registerHooks} from 'node:module';
-import {pathToFileURL} from 'node:url';
+import {pathToFileURL,fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {createNativePayMainEntry} from '../main-entry.mjs';
 const root=process.env.PAY_CLIENT_MAIN_SOURCE,fixtureFile=process.env.PAY_CLIENT_QA_MANIFEST;
@@ -13,7 +13,9 @@ if(!path.isAbsolute(root??'')||!path.isAbsolute(fixtureFile??''))throw Error('Ex
 const sdk=path.join(root,'packages/wallet-auth'),pkg=JSON.parse(fs.readFileSync(path.join(sdk,'package.json')));
 const entry=v=>typeof v==='string'?v:v&&entry(v.node??v.import??v.default);
 const namespaces=new Map(Object.entries(pkg.exports).flatMap(([k,v])=>{const target=entry(v);return typeof target==='string'?[['@ynx-chain/wallet-auth'+(k==='.'?'':k.slice(1)),pathToFileURL(path.join(sdk,target)).href]]:[]}));
-registerHooks({resolve(name,context,next){if(namespaces.has(name))return {url:namespaces.get(name),shortCircuit:true};return next(name,context);}});
+const sourceFiles=new Map(),hashSource=file=>createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+registerHooks({resolve(name,context,next){const result=namespaces.has(name)?{url:namespaces.get(name),shortCircuit:true}:next(name,context);
+ if(result.url?.startsWith('file:')){const file=fileURLToPath(result.url);if(file.startsWith(root+path.sep)&&!sourceFiles.has(file))sourceFiles.set(file,hashSource(file));}return result;}});
 const mainRoot=path.join(root,'apps/wallet-desktop/src');
 const original=relative=>import(pathToFileURL(path.join(mainRoot,relative)).href);
 const {DesktopWalletAuthority,MemoryPermissionStore}=await original('desktop-wallet-authority.mjs');
@@ -57,4 +59,7 @@ for(const [i,record] of records.entries()){
   results.push({kind:record.typed.review.action.kind,actualMainQueue:true,originalJournal:true,originalStatus:'signed-unsubmitted',dispatches:dispatched});
  }finally{lifecycle.lock();fs.rmSync(directory,{recursive:true,force:true});}
 }
-console.log(JSON.stringify({result:'PASS',results,actualMainSource:root,fixture:fixtureFile,realSource:false,actualVisibleApproval:false,NativeKeysCreated:false,fundsDispatched:false}));
+for(const [file,hash] of sourceFiles)assert.equal(hashSource(file),hash,'Actual Main source changed during validation: '+file);
+const result={result:'PASS',results,actualMainSource:root,sourceFiles:[...sourceFiles].map(([file,sha256])=>({file,sha256})),fixture:fixtureFile,realSource:false,actualVisibleApproval:false,NativeKeysCreated:false,fundsDispatched:false};
+if(process.env.PAY_MAIN_NORMAL_RESULT){assert.ok(path.isAbsolute(process.env.PAY_MAIN_NORMAL_RESULT));fs.writeFileSync(process.env.PAY_MAIN_NORMAL_RESULT,JSON.stringify(result,null,2)+'\n');}
+console.log(JSON.stringify({...result,sourceFiles:sourceFiles.size}));

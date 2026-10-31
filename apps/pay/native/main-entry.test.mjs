@@ -13,7 +13,7 @@ test('normal Main entry reads original Pay and invalidates late account/source r
  entry.compose({current(){if(!live)throw Object.assign(Error(),{code:'SOURCE_RETIRED'})},pay:{readInvoice:()=>new Promise(r=>resolve=r)}});
  const pending=entry.invoke({action:'invoice',merchant:account,invoiceId:'invoice-100'});account='0x'+'2'.repeat(40);resolve({paidAtoms:'100'});
  await assert.rejects(pending,{code:'NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE'});
- live=false;await assert.rejects(entry.invoke({action:'invoice',merchant:account,invoiceId:'invoice-100'}),{code:'SOURCE_RETIRED'});
+ live=false;assert.equal(entry.status().available,false);assert.equal(entry.status().reason,'SOURCE_RETIRED');await assert.rejects(entry.invoke({action:'invoice',merchant:account,invoiceId:'invoice-100'}),{code:'SOURCE_RETIRED'});
  assert.throws(()=>entry.compose({}),{code:'NATIVE_PAY_MAIN_ALREADY_COMPOSED'});
 });
 test('normal Main input rejects accessors and extra caller authority without invoking them',async()=>{

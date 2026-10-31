@@ -8,7 +8,7 @@ const write=value=>process.stdout.write(JSON.stringify(value)+'\n');
 try{
  const configFile=path.resolve(path.dirname(process.argv[1]),'desktop-runtime.json');
  const config=JSON.parse(fs.readFileSync(configFile,'utf8'));
- if(!config.runtime){write({phase:'unavailable',code:'NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED',normalMainEntry:false,installedClient:true,mainApproval:false,submission:false});process.exitCode=2;}
+ if(!config.runtime){write({phase:'unavailable',code:'NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED',normalMainEntry:false,clientStarted:true,mainApproval:false,submission:false});process.exitCode=2;}
  else{
   const file=path.resolve(path.dirname(configFile),config.runtime);
   if(!file.startsWith(path.dirname(configFile)+path.sep)||createHash('sha256').update(fs.readFileSync(file)).digest('hex')!==config.sha256)throw Object.assign(Error(),{code:'NATIVE_PAY_NORMAL_RUNTIME_IDENTITY_MISMATCH'});

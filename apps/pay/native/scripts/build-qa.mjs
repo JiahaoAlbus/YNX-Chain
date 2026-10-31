@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),args=process.argv.slice(2),macApp=args.includes('--mac-app');
 const manifestAt=args.indexOf('--main-runtime-manifest'),runtimeManifest=manifestAt>=0?args[manifestAt+1]:null;
+if(manifestAt>=0&&!runtimeManifest)throw Error('Original owner bridge manifest path required.');
 const output=args.find((a,i)=>a!=='--mac-app'&&a!=='--main-runtime-manifest'&&(manifestAt<0||i!==manifestAt+1));
 if(!output||!path.isAbsolute(output))throw Error('Explicit absolute QA output required.');
 await fs.mkdir(path.join(output,'bin'),{recursive:true});await fs.mkdir(path.join(output,'lib'),{recursive:true});
