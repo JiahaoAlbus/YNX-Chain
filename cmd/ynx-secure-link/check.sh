@@ -32,7 +32,7 @@ def paths(base, head):
     return [p for p in git('diff', '--no-renames', '--name-only', '-z', base, head).split(b'\0') if p]
 
 def owned(p):
-    return p == b'.github/workflows/chain-core.yml' or p.startswith((b'cmd/ynx-secure-link/', b'internal/securelink/'))
+    return p == b'.github/workflows/chain-core.yml' or p.startswith((b'cmd/ynx-secure-link/', b'cmd/ynx-secure-link-caller/', b'internal/securelink/'))
 
 event, ref, target = (os.environ.get(k, '') for k in ('LINK_EVENT', 'LINK_REF', 'LINK_BASE_REF'))
 head = commit(os.environ.get('LINK_HEAD', ''))

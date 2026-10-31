@@ -1,0 +1,22 @@
+import {spawnSync} from 'node:child_process';
+import {existsSync, mkdirSync, realpathSync} from 'node:fs';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+const directory = path.dirname(fileURLToPath(import.meta.url));
+const testFork = process.argv.length === 3 && process.argv[2] === '--fork-test';
+if (process.argv.length !== 2 && !testFork) throw Error('usage: node build.mjs [--fork-test]');
+const prefix = path.dirname(path.dirname(realpathSync(process.execPath)));
+const include = process.env.NODE_INCLUDE_DIR || path.join(prefix, 'include', 'node');
+if (!existsSync(path.join(include, 'node_api.h'))) throw Error('installed Node N-API headers unavailable; no dependency download is performed');
+if (!['darwin','linux'].includes(process.platform)) throw Error('native Unix peer credentials unsupported on this platform');
+mkdirSync(path.join(directory,'build'), {recursive:true});
+const output = path.join(directory,'build',testFork?'caller-fork-test.node':'caller.node');
+const args = ['-std=c11','-O2','-Wall','-Wextra','-Werror','-fPIC','-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=ynx_secure_link_caller',`-I${include}`];
+if (testFork) args.push('-DYNX_CALLER_FORK_TESTS');
+args.push(...(process.platform === 'darwin' ? ['-bundle','-undefined','dynamic_lookup'] : ['-shared','-pthread']));
+args.push(path.join(directory,'native.c'),'-o',output);
+const result = spawnSync(process.env.CC || 'clang',args,{stdio:'inherit'});
+if (result.error) throw result.error;
+if (result.status !== 0) process.exit(result.status || 1);
+console.log(JSON.stringify({output,node:process.version,napi:process.versions.napi,platform:process.platform,arch:process.arch,include}));

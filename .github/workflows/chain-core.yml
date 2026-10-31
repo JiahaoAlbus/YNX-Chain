@@ -371,6 +371,9 @@ jobs:
         with:
           go-version: "1.26.10"
           cache: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '26.7.0'
       - name: Verify original immutable workflow action policy
         run: node scripts/verify/github-actions-pins-check.mjs chain-core.yml
       - name: Preserve the original source safety scanners
@@ -386,6 +389,17 @@ jobs:
           go version | tee "$RUNNER_TEMP/securelink-evidence/go-version.txt"
           test "$(go env GOVERSION)" = go1.26.10
           cc --version > "$RUNNER_TEMP/securelink-evidence/compiler.txt"
+      - name: Exercise original Node callers and actual OS peer bindings
+        run: |
+          set -euo pipefail
+          sh cmd/ynx-secure-link-caller/check.sh outbound 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/node-outbound-check.log"
+          sh cmd/ynx-secure-link-caller/check.sh inbound 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/node-inbound-check.log"
+          for result in node-outbound-check.log node-inbound-check.log; do
+            grep -Eq '(^# |^ℹ )fail 0$' "$RUNNER_TEMP/securelink-evidence/$result"
+            grep -Eq '(^# |^ℹ )skipped 0$' "$RUNNER_TEMP/securelink-evidence/$result"
+          done
+          grep -Eq '(^# |^ℹ )tests 11$' "$RUNNER_TEMP/securelink-evidence/node-outbound-check.log"
+          grep -Eq '(^# |^ℹ )tests 25$' "$RUNNER_TEMP/securelink-evidence/node-inbound-check.log"
       - name: Cache only the bounded upstream source archive (never keys or native binaries)
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
