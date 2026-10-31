@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/open-protocol",
-  "version": "0.0.0-dev.2",
+  "version": "0.0.0-dev.3",
   "private": true,
   "type": "module",
   "exports": {
@@ -19,6 +19,12 @@
     "./identity-event": {
       "types": "./src/identity-event.d.ts",
       "import": "./src/identity-event.js"
+    },
+    "./bound-grant": {
+      "types": "./src/bound-grant.d.ts",
+      "browser": null,
+      "node": "./src/bound-grant.js",
+      "default": null
     }
   },
   "files": [
@@ -31,6 +37,7 @@
     "test:framing": "node --test test/framing.test.mjs",
     "test:identity-challenge": "node --test test/identity-challenge.test.mjs",
     "test": "node --test test/*.test.mjs",
-    "test:identity-event": "node --test test/identity-event.test.mjs"
+    "test:identity-event": "node --test test/identity-event.test.mjs",
+    "test:bound-grant": "node --test test/bound-grant.test.mjs"
   }
 }

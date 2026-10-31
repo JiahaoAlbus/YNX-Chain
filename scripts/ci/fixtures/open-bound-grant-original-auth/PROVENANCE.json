@@ -1,0 +1,11 @@
+{
+  "source": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-normal-factory-service-20261031-r1/source/packages/wallet-auth/src/original-bound-grant-policy.js",
+    "bytes": 16865,
+    "sha256": "c14c036f3be4a62ec494c291468f6fa8cca4ddbb1cd1ef62e256da2283e60756"
+  },
+  "owner": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+  "role": "EXACT_ORIGINAL_AUTH_SOURCE_TEST_SNAPSHOT_NOT_SHIPPED",
+  "notProvider": true,
+  "notProductionAuthority": true
+}
