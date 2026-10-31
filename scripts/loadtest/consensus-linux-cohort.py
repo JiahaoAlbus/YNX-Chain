@@ -184,7 +184,7 @@ class Window:
         if len(self.samples) < 1800 and (not self.samples or time.monotonic() - self.samples[-1]["at"] >= 1):
             self.samples.append(dict(at=time.monotonic(), rssBytes=rss, newBytes=size, processes=len(ids)))
 
-    def launch(self, name, command, persistent=False):
+    def launch(self, name, command, persistent=False, pass_fds=()):
         self.sample()
         log = open(self.work / "public" / (name + ".log"), "xb", buffering=0)
         os.chmod(log.name, 0o600); self.logs.append((name, log))
@@ -192,7 +192,8 @@ class Window:
             os.sched_setaffinity(0, self.cpus)
             resource.setrlimit(resource.RLIMIT_FSIZE, (CAPS["newBytes"], CAPS["newBytes"]))
         proc = subprocess.Popen(command, cwd=self.source, env=self.env, stdin=subprocess.DEVNULL,
-                                stdout=log, stderr=subprocess.STDOUT, start_new_session=True, preexec_fn=restrict)
+                                stdout=log, stderr=subprocess.STDOUT, start_new_session=True, preexec_fn=restrict,
+                                pass_fds=pass_fds)
         row = dict(name=name, process=proc, persistent=persistent, command=command, startedNs=time.monotonic_ns())
         self.children.append(row)
         try:
