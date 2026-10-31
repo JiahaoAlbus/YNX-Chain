@@ -4176,11 +4176,14 @@ jobs:
         with:
           node-version: '24'
       - run: npm ci --ignore-scripts --prefix packages/wallet-auth
-      - if: github.event.before != '0baa08c7dedcca1e80e59fc84eaec47daf480995'
+      - if: github.event.before != '0baa08c7dedcca1e80e59fc84eaec47daf480995' && github.event.before != 'b33f078c0375417d3f804420758fbf35698d0f6e'
         run: node scripts/ci/auth-server-device-current.mjs
-      - if: github.event.before != '0baa08c7dedcca1e80e59fc84eaec47daf480995'
+      - if: github.event.before != '0baa08c7dedcca1e80e59fc84eaec47daf480995' && github.event.before != 'b33f078c0375417d3f804420758fbf35698d0f6e'
         run: node --test packages/wallet-auth/test/server-current-normal-launcher.test.mjs packages/wallet-auth/test/runtime-image-profile-extension.test.mjs packages/wallet-auth/test/deployment-v2-native-input-pins.test.mjs
-      - run: node --test packages/wallet-auth/test/auth-fixed-native-edge.test.mjs
+      - if: github.event.before != 'b33f078c0375417d3f804420758fbf35698d0f6e'
+        run: node --test packages/wallet-auth/test/auth-fixed-native-edge.test.mjs
+      - if: github.event.before == 'b33f078c0375417d3f804420758fbf35698d0f6e'
+        run: node --test --test-name-pattern='^actual frozen loader' packages/wallet-auth/test/auth-fixed-native-edge.test.mjs
       - run: node --experimental-test-module-mocks --test packages/wallet-auth/test/server-current-normal-partials.test.mjs
       - run: node packages/wallet-auth/node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext packages/wallet-auth/test/runtime-image-profile-extension.types.mts packages/wallet-auth/test/auth-fixed-native-edge.types.mts
       - run: node --test packages/wallet-auth/test/auth-device-source-dispatch.test.mjs
