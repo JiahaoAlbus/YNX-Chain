@@ -175,6 +175,7 @@ export class CctpReader {
     if (lower(receipt.transactionHash) !== hash || !HASH.test(receipt.blockHash ?? '') || lower(block?.hash) !== lower(receipt.blockHash) ||
       quantity(block.number) !== quantity(receipt.blockNumber) || lower(tx.blockHash) !== lower(receipt.blockHash) || quantity(tx.blockNumber) !== quantity(receipt.blockNumber) ||
       lower(receipt.from) !== account || lower(receipt.to) !== lower(to) || !Array.isArray(block.transactions) ||
+      block.transactions.filter(value => lower(value) === hash).length !== 1 ||
       quantity(receipt.transactionIndex) > BigInt(Number.MAX_SAFE_INTEGER) || quantity(tx.transactionIndex) !== quantity(receipt.transactionIndex) ||
       lower(block.transactions[Number(quantity(receipt.transactionIndex))]) !== hash || !Array.isArray(receipt.logs) || receipt.logs.length > 2000 || quantity(receipt.status) > 1n)
       fail('CCTP_RECEIPT_MISMATCH', 'The receipt is not bound to the original transaction in a canonical RPC block.');

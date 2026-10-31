@@ -63,7 +63,7 @@ export class CctpStore {
   async pendingNetwork(networkId){return (await this.file.read()).records.filter(r=>unresolved(r)&&[r.binding.sourceNetwork.id,r.binding.destinationNetwork.id].includes(networkId)).length}
   async get(id){const r=(await this.file.read()).records.find(r=>r.id===id);if(!r)fail('NOT_FOUND','Original cross-chain transfer was not found.');return clone(r)}
   async insert(r){await this.file.mutate(v=>{if(v.records.some(x=>x.id===r.id||x.binding.account===r.binding.account&&unresolved(x)))fail('UNRESOLVED','Resolve the existing cross-chain transfer first.');v.records.push(clone(r));return v});return clone(r)}
-  async update(id,revision,mutate){let result;await this.file.mutate(v=>{const r=v.records.find(x=>x.id===id);if(!r||r.revision!==revision)fail('CONFLICT','The original transfer changed. Read its current result.');const immutable=JSON.stringify(r.binding);mutate(r);if(JSON.stringify(r.binding)!==immutable)fail('BINDING_CHANGED','The original transfer inputs cannot change.');r.revision++;result=clone(r);return v});return result}
+  async update(id,revision,mutate){let result;await this.file.mutate(v=>{const r=v.records.find(x=>x.id===id);if(!r||r.revision!==revision)fail('CONFLICT','The original transfer changed. Read its current result.');const immutable=JSON.stringify(r.binding);mutate(r);if(r.id!==id||JSON.stringify(r.binding)!==immutable)fail('BINDING_CHANGED','The original transfer identity and inputs cannot change.');r.revision++;result=clone(r);return v});return result}
 }
 
 /**
@@ -136,10 +136,37 @@ export class CctpFlow {
     this.#quotes.clear();this.#quotes.set(q.quoteId,q);
     return {...clone(q),availability,minimumReceivedUnits:(BigInt(amountUnits)-BigInt(maxFeeUnits)).toString(),slippageBps:0,gasFees:'Each approve, burn and mint has a separate native ETH fee review.',service:'Circle CCTP V2 burn and mint; Circle attestation required; no automatic refund.'};
   }
-  async start(quoteId){
-    const q=this.#quotes.get(quoteId);if(!q||q.expiresAt<=this.now())fail('QUOTE_EXPIRED','Review current route fees again.');this.#quotes.delete(quoteId);await this.#live(q);
-    const r={id:this.id(),revision:0,binding:clone(q),state:'ready',operations:[],proof:null,destination:null,firstError:null,createdAt:this.now(),updatedAt:this.now()};
-    return this.store.insert(r);
+  async start(input){
+    let quoteId=input,operationId;
+    if(typeof input!=='string'){
+      exactObject(input,['quoteId','operationId']);
+      quoteId=input.quoteId;operationId=input.operationId;
+      if(!identifier(operationId))fail('INVALID_INPUT','Use the original operation ID.');
+    }
+    if(!identifier(quoteId))fail('INVALID_INPUT','Use the original quote ID.');
+    return this.#run('start:'+quoteId,async()=>{
+      const context=await this.wallet.context();await this.wallet.assert(context);
+      const records=await this.store.list(context.account);
+      let original=operationId?records.find(r=>r.id===operationId):undefined;
+      const matches=records.filter(r=>r.binding.quoteId===quoteId);
+      await this.wallet.assert(context);
+      if(original&&original.binding.account!==context.account)fail('ACCOUNT_CHANGED','Select the account that owns this transfer.');
+      if(matches.length>1||original&&original.binding.quoteId!==quoteId||operationId&&matches[0]&&matches[0].id!==operationId)
+        fail('BINDING_CHANGED','Keep the original operation and quote binding.');
+      original??=matches[0];
+      const q=this.#quotes.get(quoteId);
+      if(original){
+        if(q&&JSON.stringify(original.binding)!==JSON.stringify(q))fail('BINDING_CHANGED','The original transfer inputs cannot change.');
+        this.#quotes.delete(quoteId);
+        // Recover DATA only, even after quote expiry or a lost start response.
+        // Original prepare/confirm still require their own live protected review.
+        return original;
+      }
+      if(!q||q.expiresAt<=this.now())fail('QUOTE_EXPIRED','Review current route fees again.');
+      this.#quotes.delete(quoteId);await this.#live(q);
+      const r={id:operationId??this.id(),revision:0,binding:clone(q),state:'ready',operations:[],proof:null,destination:null,firstError:null,createdAt:this.now(),updatedAt:this.now()};
+      return this.store.insert(r);
+    });
   }
   async prepareStep(id){return this.#run(id,async()=>{
     let r=await this.#owned(id);

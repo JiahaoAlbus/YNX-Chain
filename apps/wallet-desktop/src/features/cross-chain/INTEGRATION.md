@@ -108,3 +108,43 @@ Each recorded step displays both its state and original hash, so a hash cannot h
 The current actual normal desktop entry was read at Main's frozen `2d6fb34df2341825d74d546123d51c6fae145736`: `renderer.js:1282` creates the `Cross-chain test transfer / 测试资产跨链` button beside the original `#open-multichain` entry and a dialog with the same aria-label. It mounts this owned UI through original preload `crossChain` and Main `installCctpIPC`. Main already consumed c3a's 13 changed leaves and ninth IPC; the fee/status successor needs only its exact changed leaves plus `fee-status-ci.patch`, a single new import in the existing CI test entry. No new preload, Main mount, account, network settings, signer or build route.
 
 Normal installation verification remains Main/A-owned. In a matching installation, the existing route check reports the saved Sepolia/Base Sepolia identities; a normal quote displays current fee versus maximum; existing original history/check displays each original operation state/hash and actual target receipt scope. Missing saved network admission, a funded authorized test-asset route or an actual original transaction hash remains that specific dependency. Controlled display fixtures are not user funds, an actual Circle attestation or source-to-target arrival evidence. The existing timeout/recovery path was inspected without changes: failures preserve the same-intent write fence, and late preflight/quote replies remain suppressed.
+
+## P01-07 original operation binding and lost start acknowledgement
+
+The existing `CctpFlow.start` and `wallet:cross-chain-start` now accept either the
+legacy quote ID string or the exact DATA object `{quoteId, operationId}`. Both IDs
+use the existing CCTP identifier domain. The explicit `operationId` becomes the
+record's original `id`; its immutable `binding.quoteId` identifies the original
+quote. This does not add a second controller, schema, signer or approval channel.
+Original records retain their original IDs and version-1 disk format.
+
+Main's P01 caller must retain the same operation and quote IDs before starting:
+
+```js
+const original = await crossChain.start({quoteId: quote.quoteId, operationId});
+// After a lost response, repeat only this same lookup; never make a new quote
+// or operation ID to replace an unresolved original.
+```
+
+Once a matching record exists, start returns that account-owned record without
+writing, allocating another ID, refreshing a quote, preparing, signing or sending.
+This includes cold recovery after quote expiry and records that already contain
+an original review, transaction hash or message proof. Legacy string callers can
+likewise recover the unique record by its persisted quote ID. An ambiguous quote,
+an operation bound to another quote, or another operation claiming that quote
+fails closed. An absent cold record does not create an intent without its original
+live quote. Storage read errors propagate. Store updates cannot rename the
+original record ID or change its quote binding.
+
+This is operation identity DATA, not permission to spend. `walletApproval` or
+`approved:true` is not accepted as a start input. Existing `prepareStep` and
+`confirmStep` still require original protected reviews, current lifecycle guards
+and Main's normal authorization. The generic V5 `Ctx`/`Quote`/`Approval` to
+`Call<Effect>` port remains Main's shared input/output contract; this feature
+does not claim to implement that authority or a complete `runCrossRoute` port.
+
+`T-P01-07` cases in the existing flow test module exercise the actual start IPC,
+lost acknowledgements, cold UNKNOWN recovery, original burn/message identity,
+conflicting bindings, no Approval-DATA substitution, concurrent starts and read
+failure. Main's existing `test/cross-chain.test.mjs` already imports this module.
+These are controlled public protocol observations, never real bridge effects.

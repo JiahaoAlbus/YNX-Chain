@@ -185,3 +185,42 @@ test('expired original mint remains queryable while pending or after an onchain 
   const reverted = fixture({message: {expiry: 99}}); reverted.state.targetReceipt.status = '0x0'; reverted.state.targetReceipt.logs = [];
   assert.equal((await reverted.reader.destination(targetInput(reverted.raw))).state, 'reverted');
 });
+
+test('desktop canonical transaction identity rejects a duplicate original burn hash before Iris', async () => {
+  let canonicalReads = 0;
+  const f = fixture({rpc: ({source, method, params}) => {
+    if (source && method === 'eth_getBlockByNumber' && params[0] === '0x64') {
+      canonicalReads++;
+      return {hash: sourceBlock, number: '0x64', transactions: [sourceHash, sourceHash]};
+    }
+  }});
+  await assert.rejects(f.reader.attestation(sourceInput), {code: 'CCTP_RECEIPT_MISMATCH'});
+  assert.equal(canonicalReads, 1);
+  assert.equal(f.requests.length, 0);
+});
+
+test('desktop canonical transaction identity rejects a duplicate original mint hash on its initial read', async () => {
+  let canonicalReads = 0;
+  const f = fixture({rpc: ({source, method, params}) => {
+    if (!source && method === 'eth_getBlockByNumber' && params[0] === '0x64') {
+      canonicalReads++;
+      return {hash: targetBlock, number: '0x64', transactions: [targetHash, targetHash]};
+    }
+  }});
+  await assert.rejects(f.reader.destination(targetInput(f.raw)), {code: 'CCTP_RECEIPT_MISMATCH'});
+  assert.equal(canonicalReads, 1);
+  assert.equal(f.calls.some(call => call.method === 'eth_getBlockByNumber' && call.params[0] === 'finalized'), false);
+});
+
+test('desktop canonical transaction identity rejects a duplicate original mint hash on its final reread', async () => {
+  let canonicalReads = 0;
+  const f = fixture({rpc: ({source, method, params}) => {
+    if (!source && method === 'eth_getBlockByNumber' && params[0] === '0x64') {
+      canonicalReads++;
+      return {hash: targetBlock, number: '0x64', transactions: canonicalReads === 1 ? [targetHash] : [targetHash, targetHash]};
+    }
+  }});
+  await assert.rejects(f.reader.destination(targetInput(f.raw)), {code: 'CCTP_RECEIPT_MISMATCH'});
+  assert.equal(canonicalReads, 2);
+  assert.equal(f.calls.some(call => call.method === 'eth_getBlockByNumber' && call.params[0] === 'finalized'), true);
+});
