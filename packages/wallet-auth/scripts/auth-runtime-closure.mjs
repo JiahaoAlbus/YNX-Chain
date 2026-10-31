@@ -37,6 +37,9 @@ function moduleReferences(raw,file){
  const sf=ts.createSourceFile(file,raw,ts.ScriptTarget.Latest,true,file.endsWith('.cjs')?ts.ScriptKind.JS:ts.ScriptKind.JS);
  if(sf.parseDiagnostics.length)failure('AUTH_RUNTIME_MODULE_PARSE');
  const refs=[];const resourceReaders=new Set(['readFileSync','readFile']);
+ // A module-local function binding named readFile is not filesystem IO.
+ // Imported readers and property-based IO still take the strict resource path.
+ for(const statement of sf.statements)if(ts.isFunctionDeclaration(statement)&&statement.name)resourceReaders.delete(statement.name.text);
  for(const statement of sf.statements)if(ts.isImportDeclaration(statement)&&statement.importClause?.namedBindings&&ts.isNamedImports(statement.importClause.namedBindings))for(const item of statement.importClause.namedBindings.elements)if(['readFileSync','readFile'].includes((item.propertyName??item.name).text))resourceReaders.add(item.name.text);
  const literal=n=>n&&(ts.isStringLiteral(n)||ts.isNoSubstitutionTemplateLiteral(n));
  const add=(node,kind)=>{if(literal(node)&&['node:module','module','node:vm','vm','node:child_process','child_process','node:worker_threads','worker_threads'].includes(node.text))failure('AUTH_RUNTIME_INDIRECT_CODE_UNSUPPORTED');if(!literal(node))failure('AUTH_RUNTIME_DYNAMIC_IMPORT_UNSUPPORTED');refs.push({specifier:node.text,kind});};

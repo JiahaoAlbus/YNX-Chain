@@ -305,6 +305,12 @@
       "browser": null,
       "node": "./src/original-product-device-v4-registration-client.js",
       "default": null
+    },
+    "./original-ide-deployment-v2": {
+      "types": "./native/original-ide-deployment-v2.d.mts",
+      "browser": null,
+      "node": "./native/original-ide-deployment-v2.mjs",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -382,7 +388,19 @@
     "native/original-product-device-v4-query-source-contract.mjs",
     "native/original-product-device-v4-query-source-contract.d.mts",
     "native/original-product-device-v4-query-journal.h",
-    "native/original-product-device-v4-query-source.inc.mm"
+    "native/original-product-device-v4-query-source.inc.mm",
+    "native/original-ide-deployment-v2-kernel.mjs",
+    "native/original-ide-deployment-v2-journal.mjs",
+    "native/original-ide-deployment-v2-contract.mjs",
+    "native/original-ide-deployment-v2.mjs",
+    "native/original-ide-deployment-v2.d.mts",
+    "native/original-ide-deployment-v2-key-loan.h",
+    "native/original-ide-deployment-v2-key-loan.cpp",
+    "native/original-ide-deployment-v2-call.cpp",
+    "native/original-ide-deployment-v2-addon.cpp",
+    "native/original-ide-deployment-v2-call.h",
+    "native/core-abi/ynx_artifact_release.h",
+    "native/core-abi/deployment_manifest_v2.h"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -463,7 +481,8 @@
     "esbuild": "0.25.9",
     "typescript": "^5.9.3",
     "@ynx/batch-v01-candidate": "file:testdata/ynx-batch-v01-candidate-0.1.0-candidate.3.tgz",
-    "@types/node": "24.13.3"
+    "@types/node": "24.13.3",
+    "@ynx-chain/open-protocol": "file:testdata/ynx-chain-open-protocol-0.0.0-dev.4.tgz"
   },
   "engines": {
     "node": ">=22"
@@ -471,7 +490,8 @@
   "private": true,
   "peerDependencies": {
     "@ynx/batch-v01-candidate": "0.1.0-candidate.3",
-    "@types/node": ">=22.13.9"
+    "@types/node": ">=22.13.9",
+    "@ynx-chain/open-protocol": "0.0.0-dev.4"
   },
   "peerDependenciesMeta": {
     "@ynx/batch-v01-candidate": {
