@@ -1,5 +1,5 @@
 import {createHash} from 'node:crypto';
-import {DEVICE_V4_PQ_PROTOCOL_INPUTS,DEVICE_V4_PQ_NODE,DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS,DEVICE_V4_PENDING_PQ_NODE,isDeviceV4PQSelection,deviceV4PQSupplierInputs,deviceV4PQReceiptCommands} from './wallet-device-v4-pq-role.mjs';
+import {DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS,DEVICE_V4_PROVISIONING_PQ_NODE,DEVICE_V4_PQ_PROTOCOL_INPUTS,DEVICE_V4_PQ_NODE,DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS,DEVICE_V4_PENDING_PQ_NODE,isDeviceV4PQSelection,deviceV4PQSupplierInputs,deviceV4PQReceiptCommands} from './wallet-device-v4-pq-role.mjs';
 import path from 'node:path';
 import {verifyNativeContinuationReceipt} from './wallet-native-continuation.mjs';
 import {PQ_NATIVE_INPUTS,PQ_NATIVE_ARCHIVE,PQ_NATIVE_PROVENANCE,isPQNativeSelection,pqNativeSupplierInputs,pqNativeReceiptCommands} from './wallet-pq-native-build.mjs';
@@ -16,7 +16,7 @@ export const CANONICAL_NATIVE_EVIDENCE_TESTS=Object.freeze([
  'packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs'
 ]);
 export const SDK332_NATIVE_INVENTORY='packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json';
-export function isCanonicalNativeSourceAsset(name){return typeof name==='string'&&(/^(?:apps\/wallet-desktop|packages\/wallet-auth)\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name)||[CC7_NATIVE_SOURCE.path,WALLET_ARTIFACT_CABI_INPUTS[2].path,WALLET_PROJECT_CONTROL_CABI_INPUTS[2].path,...PQ_NATIVE_INPUTS.map(p=>p.path),...DEVICE_V4_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS.map(p=>p.path),'apps/wallet-desktop/native/product-device-v4-e5.c'].includes(name));}
+export function isCanonicalNativeSourceAsset(name){return typeof name==='string'&&(/^(?:apps\/wallet-desktop|packages\/wallet-auth)\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name)||[CC7_NATIVE_SOURCE.path,WALLET_ARTIFACT_CABI_INPUTS[2].path,WALLET_PROJECT_CONTROL_CABI_INPUTS[2].path,...PQ_NATIVE_INPUTS.map(p=>p.path),...DEVICE_V4_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS.map(p=>p.path),'apps/wallet-desktop/native/product-device-v4-e5.c'].includes(name));}
 /** Production compilation and source-inspection tests are distinct inputs.
  * Only the independently frozen auth3 inventory may select the 55 production
  * leaves. Never infer that set from the receipt currently being checked. */
@@ -189,7 +189,7 @@ export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,
  for(const expected of PINNED_NODE_HEADER_PINS){const actual=receipt.headers.find(p=>p.relative===expected.relative);if(!actual||actual.bytes!==expected.bytes||actual.sha256!==expected.sha256)bad();}
  if(!pinShape(receipt.output)||receipt.output.relative!=='apps/wallet-desktop/native/original-auth-identity.node'||moduleBytes.length!==receipt.output.bytes||digest(moduleBytes)!==receipt.output.sha256)bad();
  const arches=receipt.architectures;if(arches.length<1||arches.length>2||new Set(arches).size!==arches.length||arches.some(a=>!['arm64','x86_64'].includes(a)))bad();
- const cc7=expectedInputs.includes(CC7_NATIVE_SOURCE.path),pqNative=isPQNativeSelection(expectedInputs)||cc7,deviceV4=isDeviceV4PQSelection(expectedInputs),pendingDeviceV4=expectedInputs.includes(DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS[1].path);
+ const cc7=expectedInputs.includes(CC7_NATIVE_SOURCE.path),pqNative=isPQNativeSelection(expectedInputs)||cc7,deviceV4=isDeviceV4PQSelection(expectedInputs),pendingDeviceV4=expectedInputs.includes(DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS[1].path),provisioningDeviceV4=expectedInputs.includes(DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS[2].path);
  if(Object.hasOwn(receipt,'buildContinuation')&&!pqNative)bad();
  verifyNativeContinuationReceipt(receipt);
  verifySDK46RecordFinalizationReceipt(receipt);
@@ -230,7 +230,7 @@ export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,
  if(withControlCABI&&(!withProjectControl||!withCustody||!(pqNative?oldArchive:newArchive)))bad();
  if(withArtifactCABI&&(!withPublisherApproval||!(pqNative?oldArchive:withCustody?newArchive:oldArchive)))bad();
  const cabiInputs=[...(withControlCABI?WALLET_PROJECT_CONTROL_CABI_INPUTS:[]),...(withArtifactCABI?[...WALLET_ARTIFACT_CABI_INPUTS.slice(0,2),withCustody?WALLET_PROJECT_CONTROL_CABI_INPUTS[2]:WALLET_ARTIFACT_CABI_INPUTS[2]]:[])];
- const exactCABI=deviceV4?[...walletPublisherNativeInputs(pendingDeviceV4?127:117,true,true,true,true,'1.3.0-pq.3.32-auth.49'),pendingDeviceV4?DEVICE_V4_PENDING_PQ_NODE:DEVICE_V4_PQ_NODE]:pqNative?[...cabiInputs.filter(p=>!p.path.endsWith('.a')),...(cc7?cc7WalletNativeInputs():PQ_NATIVE_INPUTS),PQ_NATIVE_PROVENANCE.override.after]:cabiInputs;
+ const exactCABI=deviceV4?[...walletPublisherNativeInputs(provisioningDeviceV4?137:pendingDeviceV4?127:117,true,true,true,true,'1.3.0-pq.3.32-auth.49'),provisioningDeviceV4?DEVICE_V4_PROVISIONING_PQ_NODE:pendingDeviceV4?DEVICE_V4_PENDING_PQ_NODE:DEVICE_V4_PQ_NODE]:pqNative?[...cabiInputs.filter(p=>!p.path.endsWith('.a')),...(cc7?cc7WalletNativeInputs():PQ_NATIVE_INPUTS),PQ_NATIVE_PROVENANCE.override.after]:cabiInputs;
  if(exactCABI.length){if(JSON.stringify(arches)!==JSON.stringify(['arm64']))bad();for(const p of exactCABI){const row=receipt.inputFiles.find(v=>v.relative===p.path);if(!row||row.bytes!==p.bytes||row.sha256!==p.sha256)bad();}}
  if(sourceRel.some(name=>!expectedInputs.includes(name)))bad();
  for(let i=0;i<compilers.length;i++){

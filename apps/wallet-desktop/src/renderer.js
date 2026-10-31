@@ -817,9 +817,24 @@ async function proposalAction(action) {
 document.querySelector("#reject-proposal").addEventListener("click", () => proposalAction("reject"));
 document.querySelector("#approve-proposal").addEventListener("click", () => proposalAction("approve"));
 
+let deviceCreationBusy=false,deviceCreationState={phase:'idle',effectEntryInvoked:false};
+function renderDeviceCreationStatus(state){
+ deviceCreationState=state??deviceCreationState;const d=deviceCreationState,latest=d.latestOutcome?.state;
+ const text=d.account&&d.account!==keyState.account?'请切回原账户查看这次设备操作。 / Select the original account to inspect this operation.':d.cleanupUnresolved?'操作尚未完全结束，原记录已保留；请勿重复创建。 / Original records retained; cleanup is unconfirmed; do not create again.':latest==='UNKNOWN'||d.phase==='original-outcome-unknown'?'操作结果待核对，原记录已保留，不会自动重试。 / Original outcome retained; verification is required before any new attempt.':latest==='REGISTERED_LOCAL_ASSOCIATION'?'设备登记记录已保存；账户签名和转账仍需单独批准。 / Device registration retained; account signatures and transfers need separate approval.':latest==='PENDING_REGISTRATION'?'设备密钥已准备；应用登记尚未完成，需要单独确认。 / Device keys prepared; app registration still requires separate approval.':d.phase==='review'&&!d.retired?'请核对确认窗口中的应用、账户和设备。 / Review the app, account and device in the confirmation.':d.phase==='cancelled-before-effect'?'已取消，本次未发起创建。 / Cancelled before creation.':d.effectEntryInvoked?'创建请求已进入，结果尚未确认，不会自动重试。 / Creation entered; outcome unconfirmed; no automatic retry.':d.phase==='failed-before-effect'?'尚未取得有效请求，请先从原应用发起设备连接。 / Original device request unavailable; start from the app.':'从原应用发起连接后，在这里核对设备请求。 / Start a connection from the original app to review its device request.';
+ document.querySelector('#app-device-status').textContent=text;
+ document.querySelector('#app-device-create').disabled=deviceCreationBusy||keyState.locked||!keyState.account||(d.effectEntryInvoked&&latest!=='REGISTERED_LOCAL_ASSOCIATION')||d.cleanupUnresolved===true;
+ document.querySelector('#app-device-cancel').hidden=!d.requestId||d.phase==='cancelled-before-effect'||latest==='REGISTERED_LOCAL_ASSOCIATION';document.querySelector('#app-device-cancel').disabled=deviceCreationBusy;
+}
+async function refreshDeviceCreationStatus(){if(!window.ynxWallet.deviceCreateStatus)return;try{const result=await window.ynxWallet.deviceCreateStatus();if(result?.ok)renderDeviceCreationStatus(result.value);}catch{}}
+document.querySelector('#app-device-create').addEventListener('click',async()=>{
+ if(deviceCreationBusy)return;deviceCreationBusy=true;renderDeviceCreationStatus();try{const result=await window.ynxWallet.prepareDeviceCreate();if(!result?.ok)document.querySelector('#app-device-status').textContent=result?.error?.message??'设备请求不可用。 / Device request unavailable.';}catch{document.querySelector('#app-device-status').textContent='设备请求未完成，请核对原应用。 / Device request incomplete; check the original app.';}finally{deviceCreationBusy=false;void refreshDeviceCreationStatus();}
+});
+document.querySelector('#app-device-cancel').addEventListener('click',async()=>{if(deviceCreationBusy)return;deviceCreationBusy=true;try{const result=await window.ynxWallet.cancelDeviceCreate();if(result?.ok)renderDeviceCreationStatus(result.value);}finally{deviceCreationBusy=false;void refreshDeviceCreationStatus();}});
+void refreshDeviceCreationStatus();
 const providerPanel = document.querySelector("#provider-request");
 window.ynxWallet.onProviderRequest(request => {
   approvalQueue.enqueue("provider", request);
+  if(request.method==='ynx_createProductDevice')void refreshDeviceCreationStatus();
 });
 window.ynxWallet.onProviderRequestExpired(event => {
   const shown = approvalQueue.current?.type === "provider" && approvalQueue.current.review.id === event.id;
@@ -837,7 +852,7 @@ async function providerAction(action) {
     if(!current())return;
     walletConnectDetail.textContent = result.ok ? (result.value?.responseDelivered === false ? "Wallet locked before the response could be delivered. Check the app and any submitted transaction before trying again." : result.value?.status === "success" ? "Your response was delivered to the app." : result.value?.message ?? "Request declined.") : errorText(result);
   } catch { if(current())walletConnectDetail.textContent = "The response was interrupted. Check the app before requesting another signature."; }
-  finally { if(approvalQueue.current === item && approvalQueue.busy)approvalQueue.finish(item.key); void refreshTransactions(); }
+  finally { if(approvalQueue.current === item && approvalQueue.busy)approvalQueue.finish(item.key); void refreshTransactions();void refreshDeviceCreationStatus(); }
 }
 document.querySelector("#reject-provider").addEventListener("click", () => providerAction("reject"));
 document.querySelector("#approve-provider").addEventListener("click", () => providerAction("approve"));
@@ -1255,6 +1270,7 @@ function renderKeyState(state) {
   if(typeof pqRegisteredRestoreUI!=='undefined'){if(securityChanged)pqRegisteredRestoreUI.invalidate();else pqRegisteredRestoreUI.render();}
   if(typeof sessionRecoveryUI!=='undefined')sessionRecoveryUI.render();
   updateOriginalAdmissionSecurity(previousKeyState,state);
+  renderDeviceCreationStatus();void refreshDeviceCreationStatus();
   if(securityChanged)familyUI?.invalidate();
   if(securityChanged&&typeof cctpUI!=='undefined')cctpUI?.invalidate();
   if(securityChanged)ideIdentityUI?.invalidate();else ideIdentityUI?.render();

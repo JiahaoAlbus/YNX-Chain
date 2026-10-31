@@ -1,3 +1,4 @@
+import {createOriginalDeviceCreationController} from './original-device-create-controller.mjs';
 import {createPQTypedActionNodeReader} from './features/pq-transaction/typed-action-query-node.mjs';
 import {normalizeWalletPQTransferInput} from './wallet-pq-transfer-input.mjs';
 import {inspectRetainedPQOriginal} from './wallet-pq-local-original.mjs';
@@ -126,6 +127,7 @@ let authorizationController;
 let protocolReady = false;
 let lastCallback = null;
 let walletAuthority;
+let originalDeviceCreation;
 let pqTransactionSubmission;
 let pqFinalityCollection;
 let originalIDEIdentityPeer;
@@ -308,7 +310,7 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
 }
 async function shutdownOriginalPQWallet(){
   pqFinalityCollection?.retire();
-  await Promise.all([walletAuthority?.shutdownPQReviews(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
+  await Promise.all([walletAuthority?.shutdownPQReviews(),originalDeviceCreation?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
 }
 const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
@@ -558,6 +560,17 @@ async function prepareLocalPQTransferReview(input){
   }catch(error){if(typeof response?.request?.id==='string')walletAuthority.expire(response.request.id);throw error;}
 }
 handleWalletIPC('wallet:pq-transfer-review',(_event,input)=>sensitiveIPC(()=>prepareLocalPQTransferReview(input)));
+handleWalletIPC('wallet:prepare-device-create',(_event,...args)=>sensitiveIPC(async()=>{
+ if(args.length)throw Object.assign(Error('Device creation uses only the original app request.'),{code:'DEVICE_CREATE_ZERO_INPUT'});
+ if(!originalDeviceCreation)throw Error('Wallet is starting.');if(accountChangeInProgress)throw Error('The selected account is changing.');let request;
+ try{
+  request=await originalDeviceCreation.prepareReview();keyAccess.current().assert();
+  if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
+  mainWindow.webContents.send('wallet:provider-request',request);keyAccess.current().assert();return Object.freeze({requestId:request.id,phase:'review'});
+ }catch(cause){if(request)try{await originalDeviceCreation.rejectOriginal(request.id);}catch{}throw Object.assign(Error('暂时无法读取有效的应用设备请求。请从原应用发起连接。 / An original app device request is unavailable. Start from the app.'),{cause,code:'DEVICE_CREATE_ORIGINAL_REQUEST_UNAVAILABLE'});}
+}));
+handleWalletIPC('wallet:device-create-status',()=>safeIPC(()=>originalDeviceCreation?.readStatusDATA()??{phase:'idle',effectEntryInvoked:false}));
+handleWalletIPC('wallet:cancel-device-create',()=>safeIPC(async()=>{const state=originalDeviceCreation?.readStatusDATA();if(!state?.requestId)return state??{phase:'idle'};return originalDeviceCreation.rejectOriginal(state.requestId);}));
 async function prepareLocalPQAccountInitialReview(action,input){
   const guard=keyAccess.current();guard.assert();let response;
   try{
@@ -765,6 +778,12 @@ handleWalletIPC("wallet:walletconnect-proposal-action", (_event, id, action, exp
 }));
 
 handleWalletIPC("wallet:provider-action", (event, id, action) => sensitiveIPC(async () => {
+  if(originalDeviceCreation?.isPendingReview(id)){
+   if(accountChangeInProgress)throw Error('The selected account is changing.');
+   if(!['approve','reject'].includes(action))throw Error('Invalid approval action.');
+   const device=action==='approve'?await originalDeviceCreation.approveOriginal(event,id):await originalDeviceCreation.rejectOriginal(id);
+   return Object.freeze({status:action==='approve'?'device-registration-required':'cancelled',message:action==='approve'?'设备密钥已准备；应用登记尚未完成，需要单独确认。 / Device keys are prepared; app registration still requires separate approval.':'已取消，本次未创建密钥。 / Cancelled before device creation.',deviceCreation:device});
+  }
   const lease = keyAccess.current();
   const transport = walletConnectRequests.get(id);
   if(transport){const entry=walletConnectInbox.get(transport.entryKey);await walletConnectInbox.markDecided(entry,lease.assert);}
@@ -920,6 +939,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const accountNetwork = new CanonicalAccountNetwork({ fetchImpl: net.fetch.bind(net) });
   const passwordVault = new PasswordWalletVault({ filePath: path.join(userData, "wallet-vault-v3.json"), legacyFilePaths: [path.join(userData, "wallet-vault-v2.json"), path.join(userData, "wallet-vault-v1.json")], safeStorage, authorization: keyAccess, pqSDK:Object.freeze({...pqKeySDK,...pqBackupSDK,...pqContractSDK}) });
   originalAdmissionVault=passwordVault;
+  originalDeviceCreation=createOriginalDeviceCreationController({vault:passwordVault,networkId:PQ_CANONICAL_NETWORK_ID});
   const originalIdentityStartup=initializeOriginalAuthIdentityStartup(passwordVault);
   if(!originalIdentityStartup.implementingModuleAvailable)console.warn('AUTH_IDENTITY_NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED');
   familyAccounts = createMnemonicFamilyAccounts({

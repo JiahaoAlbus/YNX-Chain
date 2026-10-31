@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("ynxWallet", {
+  prepareDeviceCreate:()=>ipcRenderer.invoke('wallet:prepare-device-create'),
+  deviceCreateStatus:()=>ipcRenderer.invoke('wallet:device-create-status'),
+  cancelDeviceCreate:()=>ipcRenderer.invoke('wallet:cancel-device-create'),
   startIDEProjectControl:()=>ipcRenderer.invoke('wallet:ide-project-control-start'),
   decideIDEProjectControl:(reviewId,decision)=>ipcRenderer.invoke('wallet:ide-project-control-decide',reviewId,decision),
   observeIDEProjectControl:()=>ipcRenderer.invoke('wallet:ide-project-control-observe'),

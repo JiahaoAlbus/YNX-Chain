@@ -1,0 +1,19 @@
+// PUBLIC Native/Source boundary for Main orchestration tests only. These are
+// synthetic public buffers, NOT cryptographic results, Native tags or Root grants.
+import {isOriginalWalletDeviceCreateApprovalPeer,readOriginalWalletDeviceCreateApprovalForNative,assertOriginalWalletDeviceCreateApprovalCurrentForNative,recheckOriginalWalletDeviceCreateApprovalForNative} from '../src/original-policy-supplier/device-create-approval.mjs';
+let fixture;
+export function configurePublicDeviceCreation(config){
+ const events=[],counts={prepare:0,complete:0,capture:0},pair={pkA:Buffer.alloc(2592,41),pkB:Buffer.alloc(64,42)};
+ let sourceRetired=false,sourceClosed=false,childClosed=true,child;
+ const fail=c=>{throw Object.assign(Error(c),{code:c});};
+ const data=state=>Object.freeze({operation:'5'.repeat(64),state,association:state==='REGISTERED_LOCAL_ASSOCIATION'?'PUBLIC-association':'',firstCause:state==='UNKNOWN'?'PUBLIC_UNKNOWN':'',result:0,cleanup:0,outputState:0,reportedLengthsExact:Object.freeze(['0','0','2592','64']),recoveredOriginal:false});
+ const source={readIntentOriginalDATA(){events.push('read-intent');return Buffer.from(config.originalBytes);},assertCurrent(){if(sourceRetired||sourceClosed)fail('PUBLIC_SOURCE_RETIRED');},captureOriginalCreationApproval(peer){
+  counts.capture++;events.push('capture');if(!isOriginalWalletDeviceCreateApprovalPeer(peer)||readOriginalWalletDeviceCreateApprovalForNative(peer).decision.approvedTerms!==Buffer.from(config.originalBytes).toString())fail('PUBLIC_ORIGINAL_PEER_REQUIRED');
+  childClosed=false;let retired=false,original=null;
+  child={assertCurrent(){source.assertCurrent();if(retired||childClosed)fail('PUBLIC_CHILD_RETIRED');assertOriginalWalletDeviceCreateApprovalCurrentForNative(peer);},async recheck(){events.push('child-recheck');if(config.beforeRecheck)await config.beforeRecheck();await recheckOriginalWalletDeviceCreateApprovalForNative(peer);child.assertCurrent();},prepare(){counts.prepare++;events.push('prepare');if(counts.prepare!==1)fail('PUBLIC_DUPLICATE_PREPARE');child.assertCurrent();original=config.malformedOutcome?Object.freeze({state:'UNKNOWN',extra:1}):data('PENDING_REGISTRATION');config.onPrepare?.();if(config.prepareError)throw config.prepareError;return original;},readPublicPairDATA(){events.push('read-pair');child.assertCurrent();return Object.freeze({pkA:Buffer.from(pair.pkA),pkB:Buffer.from(pair.pkB)});},complete(){events.push('complete');counts.complete++;child.assertCurrent();if(!config.registrationReady)fail('PUBLIC_REGISTERED_SOURCE_REQUIRED');original=data('REGISTERED_LOCAL_ASSOCIATION');config.onComplete?.();return original;},readOriginalOutcomeDATA(){events.push('read-outcome');if(!original)fail('PUBLIC_NOT_ENTERED');return original;},retire(){events.push('child-retire');retired=true;if(original?.state==='PENDING_REGISTRATION')original=data('UNKNOWN');},join(){events.push('child-join');if(!retired)fail('PUBLIC_RETIRE_FIRST');},close(){events.push('child-close');if(config.childCloseError)throw config.childCloseError;childClosed=true;}};
+  config.onCapture?.();if(config.captureError){Object.defineProperty(config.captureError,'partial',{value:child});throw config.captureError;}return child;
+ },retire(){events.push('source-retire');sourceRetired=true;},join(){events.push('source-join');if(!sourceRetired||!childClosed)fail('PUBLIC_CHILD_FIRST');},close(){events.push('source-close');if(!childClosed)fail('PUBLIC_CHILD_FIRST');sourceClosed=true;}};
+ fixture={source,config,events,counts,get child(){return child;},get sourceClosed(){return sourceClosed;}};
+ if(config.acquireError)Object.defineProperty(config.acquireError,'partial',{value:source});return fixture;
+}
+export function acquireOriginalProductSessionDeviceV4ProvisioningSourceStage(...args){if(args.length||!fixture)throw Error('PUBLIC_FIXED_SOURCE_ZERO_INPUT');fixture.events.push('acquire');if(fixture.config.acquireError)throw fixture.config.acquireError;return fixture.source;}

@@ -1,0 +1,27 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {walletNativeComponentBuildPlan} from '../scripts/build-wallet-native-component.mjs';
+import {deviceV4PQSupplierInputs,deviceV4PQReceiptCommands,assertWalletProvisioningNativeExports,DEVICE_V4_PROVISIONING_PQ_NODE,DEVICE_V4_PROVISIONING_PQ_ROLE} from '../scripts/wallet-device-v4-pq-role.mjs';
+// Normal recipe DATA only: the actual matching compilation is separate.
+const headers='/PUBLIC-plan-only-headers';
+test('fresh provisioning role preserves full Wallet guards and links the ecdf runtime exactly once',()=>{
+ const p=walletNativeComponentBuildPlan('arm64',headers,true,true,true,true,false,true,true);
+ assert.equal(p.deviceV4PQRole,DEVICE_V4_PROVISIONING_PQ_ROLE);assert.equal(p.commands.length,28);
+ const cpp=p.commands.filter(c=>c.tool==='/usr/bin/clang++');assert.equal(cpp.length,25);
+ for(const c of cpp)for(const flag of ['SOURCE','HTTP_PRODUCER','PENDING','PROVISIONING'])assert(c.argv.includes('-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_'+flag+'_STAGE'));
+ assert.equal(p.commands.at(-1).argv.filter(x=>x.endsWith('.a')).length,1);assert(p.commands.at(-1).argv.some(x=>x.endsWith('/device-v4-provisioning-protocol/typed/libynx_artifact_release.a')));
+ for(const name of ['original-product-device-v4-provisioning.mm','original-product-device-v4-association-keychain.mm','original-product-device-v4-core-creator.mm'])assert(cpp.some(c=>c.argv.some(x=>x.endsWith('/'+name))));
+ assert.deepEqual(deviceV4PQReceiptCommands({deviceV4PQRole:p.deviceV4PQRole,architectures:['arm64'],pqNativeBaseCommands:p.pqNativeBaseCommands,sourceRoot:fileURLToPath(new URL('../../..',import.meta.url)).replace(/\/$/,''),headerRoot:headers,commands:p.commands}),p.pqNativeBaseCommands);
+});
+test('new provisioning role rejects the older entry and a changed supplier Node identity',()=>{
+ assert.throws(()=>walletNativeComponentBuildPlan('arm64',headers,true,true,true,true,false,true,false),{message:'WALLET_PROVISIONING_EXPLICIT_FULL_ROLE_REQUIRED'});
+ const inventory=JSON.parse(readFileSync(new URL('../../../packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',import.meta.url)));
+ const selected=deviceV4PQSupplierInputs(inventory.NativeInputs);assert.deepEqual(selected.find(p=>p.path===DEVICE_V4_PROVISIONING_PQ_NODE.path),DEVICE_V4_PROVISIONING_PQ_NODE);
+ assert.throws(()=>deviceV4PQSupplierInputs(inventory.NativeInputs.map(p=>p.path===DEVICE_V4_PROVISIONING_PQ_NODE.path?{...p,sha256:'0'.repeat(64)}:p)));
+});
+test('provisioning export scan requires the new device-only creator as well as all prior signing APIs',()=>{
+ const names=['YNXTransactionBatchSignV1','YNXAccountInitialSignV1','YNXProductSessionHTTPProofSignV4','YNXProductSessionDeviceRegistrationSignV4','YNXProductSessionDeviceChallengeSignV4'],old=names.map(n=>'000 T _'+n).join('\n');
+ assert.throws(()=>assertWalletProvisioningNativeExports(old));assertWalletProvisioningNativeExports(old+'\n000 T _YNXProductSessionDeviceKeypairGenerateV4');
+});

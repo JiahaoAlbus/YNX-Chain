@@ -1,4 +1,4 @@
-import {deviceV4PQWalletInputs,composeDeviceV4PQCommands,DEVICE_V4_PQ_PROTOCOL_INPUTS,DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS} from './wallet-device-v4-pq-role.mjs';
+import {deviceV4PQWalletInputs,composeDeviceV4PQCommands,DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS,DEVICE_V4_PQ_PROTOCOL_INPUTS,DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS} from './wallet-device-v4-pq-role.mjs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {pqNativeWalletInputs,composePQNativeCommands,PQ_NATIVE_PROVENANCE,PQ_NATIVE_ARCHIVE} from './wallet-pq-native-build.mjs';
@@ -28,8 +28,10 @@ export const WALLET_NATIVE_SOURCE_PROFILES=Object.freeze({
  '1.3.0-pq.3.32-auth.49':Object.freeze({version:'1.3.0-pq.3.32-auth.49',supplierNodeInputs:117,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:96500,sha256:'bcbce919faa28ff1351747c7446a1d13e42bdba6508572247a055580a86f3523'}),tool:Object.freeze({bytes:19929,sha256:'071d390c68d0e0a722b32440c2c0daeccd21f15eff7dfeed1b59b2a6ccbe7075'})})
 });
 export const WALLET_SDK49_PENDING_SOURCE_PROFILE=Object.freeze({version:'1.3.0-pq.3.32-auth.49',supplierNodeInputs:127,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:101191,sha256:'bbafe00b2da0e5cc81ba0d4f18925b11ff94bd9b022aa456efb1d324a18cce4d'}),tool:Object.freeze({bytes:28035,sha256:'ddb4ea02ce889bdc72ac0399eb1b8db6dfc2f249a679acbe83da002f09a4f34c'})});
+export const WALLET_SDK49_PROVISIONING_SOURCE_PROFILE=Object.freeze({version:'1.3.0-pq.3.32-auth.49',supplierNodeInputs:137,requiresRuntimeUnion:true,inventory:Object.freeze({"bytes":107444,"sha256":"54bff95bf1efcd4350358365ab58c6d9e15569657ad616faa38134beacb97758"}),tool:Object.freeze({"bytes":32908,"sha256":"cc8ffcaf0a6ffecabe345bf17d976f35139e31082d309272122ca37a63af8ccd"})});
 export function walletNativeSourceProfile(version,inventoryBytes=null){
  if(typeof version!=='string'||!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');
+ const provision=WALLET_SDK49_PROVISIONING_SOURCE_PROFILE;if(version===provision.version&&Buffer.isBuffer(inventoryBytes)&&inventoryBytes.length===provision.inventory.bytes&&createHash('sha256').update(inventoryBytes).digest('hex')===provision.inventory.sha256)return provision;
  const next=WALLET_SDK49_PENDING_SOURCE_PROFILE;
  if(version===next.version&&Buffer.isBuffer(inventoryBytes)&&inventoryBytes.length===next.inventory.bytes&&createHash('sha256').update(inventoryBytes).digest('hex')===next.inventory.sha256)return next;
  return WALLET_NATIVE_SOURCE_PROFILES[version];
@@ -136,25 +138,25 @@ export const SDK48_H6_MAIN_INPUTS=Object.freeze([
  }
 ].map(Object.freeze));
 export function walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease=false,projectControl=false,controlCABI=false,pqNative=false,version=null){
- if(version!==null&&(!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version)||(supplierNodeInputCount===127?version!==WALLET_SDK49_PENDING_SOURCE_PROFILE.version:WALLET_NATIVE_SOURCE_PROFILES[version].supplierNodeInputs!==supplierNodeInputCount)))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');
- if([117,127].includes(supplierNodeInputCount)&&version!=='1.3.0-pq.3.32-auth.49')throw Error('WALLET_DEVICE_V4_EXPLICIT_SOURCE_ROLE_REQUIRED');
+ if(version!==null&&(!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version)||([127,137].includes(supplierNodeInputCount)?version!==WALLET_SDK49_PENDING_SOURCE_PROFILE.version:WALLET_NATIVE_SOURCE_PROFILES[version].supplierNodeInputs!==supplierNodeInputCount)))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');
+ if([117,127,137].includes(supplierNodeInputCount)&&version!=='1.3.0-pq.3.32-auth.49')throw Error('WALLET_DEVICE_V4_EXPLICIT_SOURCE_ROLE_REQUIRED');
  const wallet49=version==='1.3.0-pq.3.32-auth.49';
- if(wallet49&&(![117,127].includes(supplierNodeInputCount)||artifactRelease!==true||projectControl!==true||controlCABI!==true||pqNative!==true))throw Error('WALLET_SDK49_FULL_PQ_ROLE_REQUIRED');
+ if(wallet49&&(![117,127,137].includes(supplierNodeInputCount)||artifactRelease!==true||projectControl!==true||controlCABI!==true||pqNative!==true))throw Error('WALLET_SDK49_FULL_PQ_ROLE_REQUIRED');
  if(supplierNodeInputCount===102&&!wallet49){
   if(artifactRelease!==true||projectControl!==true||controlCABI!==true||pqNative!==false)throw Error('WALLET_SDK48_H6_FROZEN_ROLE_REQUIRED');
   return SDK48_H6_MAIN_INPUTS;
  }
  if(typeof pqNative!=='boolean'||pqNative&&!([99,100].includes(supplierNodeInputCount)||wallet49))throw Error('WALLET_PQ_NATIVE_MATCHED_SDK42_OR_46_REQUIRED');
- if(typeof controlCABI!=='boolean'||controlCABI&&(!projectControl||![91,92,99,100,102,117,127].includes(supplierNodeInputCount)))throw Error('WALLET_CONTROL_CABI_MATCHED_SDK26_REQUIRED');
- if(typeof projectControl!=='boolean'||projectControl&&![77,82,91,92,99,100,102,117,127].includes(supplierNodeInputCount))throw Error('WALLET_CONTROL_MATCHED_SDK20_OR_23_OR_26_REQUIRED');
+ if(typeof controlCABI!=='boolean'||controlCABI&&(!projectControl||![91,92,99,100,102,117,127,137].includes(supplierNodeInputCount)))throw Error('WALLET_CONTROL_CABI_MATCHED_SDK26_REQUIRED');
+ if(typeof projectControl!=='boolean'||projectControl&&![77,82,91,92,99,100,102,117,127,137].includes(supplierNodeInputCount))throw Error('WALLET_CONTROL_MATCHED_SDK20_OR_23_OR_26_REQUIRED');
  if(typeof artifactRelease!=='boolean')throw Error('WALLET_ARTIFACT_CABI_ROLE_INVALID');
- if(artifactRelease&&![77,91,92,99,100,102,117,127].includes(supplierNodeInputCount))throw Error('WALLET_ARTIFACT_CABI_SDK20_REQUIRED');
- if(![69,71,75,76,77,82,91,92,99,100,102,117,127].includes(supplierNodeInputCount))throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');
- const selected=artifactRelease&&supplierNodeInputCount===77?withCABI:[77,82,91,92,99,100,102,117,127].includes(supplierNodeInputCount)?withApproval:WALLET_PUBLISHER_NATIVE_INPUTS;
+ if(artifactRelease&&![77,91,92,99,100,102,117,127,137].includes(supplierNodeInputCount))throw Error('WALLET_ARTIFACT_CABI_SDK20_REQUIRED');
+ if(![69,71,75,76,77,82,91,92,99,100,102,117,127,137].includes(supplierNodeInputCount))throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');
+ const selected=artifactRelease&&supplierNodeInputCount===77?withCABI:[77,82,91,92,99,100,102,117,127,137].includes(supplierNodeInputCount)?withApproval:WALLET_PUBLISHER_NATIVE_INPUTS;
  // The new archive co-resides both ABIs. Combined roles retain BOTH fixed
  // headers/adapters, but NEVER also link the historical Go runtime archive.
- const selectedInputs=Object.freeze(pqNativeWalletInputs([...selected,...(projectControl?WALLET_PROJECT_CONTROL_INPUTS:[]),...(controlCABI?WALLET_PROJECT_CONTROL_CABI_INPUTS:[]),...(artifactRelease&&[91,92,99,100,102,117,127].includes(supplierNodeInputCount)?[...WALLET_ARTIFACT_CABI_INPUTS.slice(0,2),...(controlCABI?[]:[WALLET_PROJECT_CONTROL_CABI_INPUTS[2]])]:[])],pqNative));
- return wallet49?Object.freeze(deviceV4PQWalletInputs(selectedInputs,supplierNodeInputCount===127)):selectedInputs;
+ const selectedInputs=Object.freeze(pqNativeWalletInputs([...selected,...(projectControl?WALLET_PROJECT_CONTROL_INPUTS:[]),...(controlCABI?WALLET_PROJECT_CONTROL_CABI_INPUTS:[]),...(artifactRelease&&[91,92,99,100,102,117,127,137].includes(supplierNodeInputCount)?[...WALLET_ARTIFACT_CABI_INPUTS.slice(0,2),...(controlCABI?[]:[WALLET_PROJECT_CONTROL_CABI_INPUTS[2]])]:[])],pqNative));
+ return wallet49?Object.freeze(deviceV4PQWalletInputs(selectedInputs,[127,137].includes(supplierNodeInputCount),supplierNodeInputCount===137)):selectedInputs;
 }
 export const SDK13_NODE_TRANSLATION_UNITS=Object.freeze([
  'apps/wallet-desktop/native/original-auth-identity-node.mm',
@@ -168,9 +170,9 @@ const fail=()=>{throw Error('WALLET_PUBLISHER_NATIVE_PLAN_MISMATCH');};
  */
 export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInputCount=69,artifactRelease=false,projectControl=false,controlCABI=false,pqNative=false,version=null){
  if(typeof repo!=='string'||!path.isAbsolute(repo)||path.normalize(repo)!==repo)fail();
- const walletInputs=walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease,projectControl,controlCABI,pqNative,version),withCustody=[91,92,99,100,102,117,127].includes(supplierNodeInputCount);
+ const walletInputs=walletPublisherNativeInputs(supplierNodeInputCount,artifactRelease,projectControl,controlCABI,pqNative,version),withCustody=[91,92,99,100,102,117,127,137].includes(supplierNodeInputCount);
  const controlSources=projectControl?WALLET_PROJECT_CONTROL_INPUTS.filter(p=>p.path.endsWith('.mm')&&!p.path.endsWith('.inc.mm')).map(p=>path.join(repo,p.path)):[];
- const sources=([99,100,102,117,127].includes(supplierNodeInputCount)?SDK32_NODE_TRANSLATION_UNITS:withCustody?SDK26_NODE_TRANSLATION_UNITS:SDK13_NODE_TRANSLATION_UNITS).map(n=>path.join(repo,n));
+ const sources=([99,100,102,117,127,137].includes(supplierNodeInputCount)?SDK32_NODE_TRANSLATION_UNITS:withCustody?SDK26_NODE_TRANSLATION_UNITS:SDK13_NODE_TRANSLATION_UNITS).map(n=>path.join(repo,n));
  if(plan.minimumSystemVersion!=='13.0'||JSON.stringify(plan.sources)!==JSON.stringify(sources)||!Array.isArray(plan.commands))fail();
  const store=path.join(repo,WALLET_PUBLISHER_NATIVE_INPUTS[1].path),output=path.join(repo,'apps/wallet-desktop/native/original-auth-identity.node');
  if(plan.output!==output||JSON.stringify(plan.outputs)!==JSON.stringify([output]))fail();
@@ -190,14 +192,14 @@ export function composeWalletPublisherNativeBuildPlan(plan,repo,supplierNodeInpu
   argv.splice(end,0,store,...controlSources);if(!withCustody)argv.splice(argv.indexOf('-lbsm'),0,'-framework','LocalAuthentication');
   if(artifactRelease||controlCABI||pqNative){const archive=pqNative?walletInputs.find(p=>p.path.endsWith('.a')):withCustody?WALLET_PROJECT_CONTROL_CABI_INPUTS[2]:WALLET_ARTIFACT_CABI_INPUTS[2];argv.splice(argv.lastIndexOf('-o'),0,path.join(repo,archive.path));argv.unshift('-I'+path.join(repo,'apps/wallet-desktop/native'));}
   if(artifactRelease)argv.unshift(WALLET_ARTIFACT_CABI_FLAG);
-  if([77,82,91,92,99,100,102,117,127].includes(supplierNodeInputCount))argv.unshift(WALLET_PUBLISHER_APPROVAL_FLAG);
+  if([77,82,91,92,99,100,102,117,127,137].includes(supplierNodeInputCount))argv.unshift(WALLET_PUBLISHER_APPROVAL_FLAG);
   if(projectControl)argv.unshift(WALLET_PROJECT_CONTROL_FLAG);
   if(controlCABI)argv.unshift(WALLET_PROJECT_CONTROL_CABI_FLAG);
   return {...command,argv};
  });
- const deviceV4=version==='1.3.0-pq.3.32-auth.49'&&[117,127].includes(supplierNodeInputCount);
- const historical=deviceV4?commands.map(c=>({...c,argv:c.argv.map(a=>a===path.join(repo,(supplierNodeInputCount===127?DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS:DEVICE_V4_PQ_PROTOCOL_INPUTS)[0].path)?path.join(repo,PQ_NATIVE_ARCHIVE.path):a)})):commands;
+ const deviceV4=version==='1.3.0-pq.3.32-auth.49'&&[117,127,137].includes(supplierNodeInputCount);
+ const historical=deviceV4?commands.map(c=>({...c,argv:c.argv.map(a=>a===path.join(repo,(supplierNodeInputCount===137?DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS:supplierNodeInputCount===127?DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS:DEVICE_V4_PQ_PROTOCOL_INPUTS)[0].path)?path.join(repo,PQ_NATIVE_ARCHIVE.path):a)})):commands;
  const headerFlag=plan.commands[0].argv.find(a=>a.startsWith('-I')&&a!=='-I'+path.join(repo,'packages/wallet-auth/native'));
- const role=deviceV4?composeDeviceV4PQCommands(historical,repo,headerFlag.slice(2),supplierNodeInputCount===127):pqNative?composePQNativeCommands(commands,repo):null;
+ const role=deviceV4?composeDeviceV4PQCommands(historical,repo,headerFlag.slice(2),[127,137].includes(supplierNodeInputCount),supplierNodeInputCount===137):pqNative?composePQNativeCommands(commands,repo):null;
  return {...plan,sources:[...sources,store,...controlSources,...(deviceV4?role.sources:[])],commands:role?.commands??commands,...(role?{...(deviceV4?{deviceV4PQRole:role.deviceV4PQRole}:{pqNativeRole:PQ_NATIVE_PROVENANCE}),pqNativeBaseCommands:historical,intermediateOutputs:role.intermediateOutputs}:{}),walletInputFiles:walletInputs,supplierNodeInputCount,nativeGrant:false,approval:false};
 }

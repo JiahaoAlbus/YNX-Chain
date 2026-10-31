@@ -29,10 +29,12 @@ import {runInNewContext} from 'node:vm';
 import {registerHooks,createRequire} from 'node:module';
 import {createPublicWalletEvent} from './public-transaction-electron-fixture.mjs';
 // Test worker only: real Auth factory, explicit PUBLIC Electron peer model.
-registerHooks({resolve(specifier,context,next){return next(specifier==='electron'?new URL('./public-transaction-electron-fixture.mjs',import.meta.url).href:specifier,context);}});
+registerHooks({resolve(specifier,context,next){if(context.parentURL?.endsWith('/src/original-device-create-controller.mjs')&&specifier.endsWith('/original-auth-identity-fixed-native-image.js'))return next(new URL('./public-device-create-native-fixture.mjs',import.meta.url).href,context);return next(specifier==='electron'?new URL('./public-transaction-electron-fixture.mjs',import.meta.url).href:specifier,context);}});
 const transactionAuth=await import('../src/original-policy-supplier/transaction-permission.mjs');
 const device=await import('../src/original-policy-supplier/device-create-approval.mjs');
 const deviceReview=await import('../src/original-policy-supplier/device-create-review.mjs');
+const {createOriginalDeviceCreationController}=await import('../src/original-device-create-controller.mjs');
+const {configurePublicDeviceCreation}=await import('./public-device-create-native-fixture.mjs');
 import {createOriginalDeviceCreateIntentDATA} from '@ynx-chain/wallet-auth/original-device-create-intent';
 import {productPlatformBinding} from '../../../packages/wallet-auth/src/product-session-registry.js';
 import {formatApprovalReview} from '../src/approval-review-display.mjs';
@@ -909,4 +911,39 @@ test('device-create fixed createRequire namespace recognizes the same original M
  assert.equal(fixed.isOriginalWalletDeviceCreateApprovalPeer,device.isOriginalWalletDeviceCreateApprovalPeer);assert.equal(fixed.readOriginalWalletDeviceCreateApprovalForNative,device.readOriginalWalletDeviceCreateApprovalForNative);assert.equal(fixed.isOriginalWalletDeviceCreateApprovalPeer(peer),true);
  assert.equal(fixed.readOriginalWalletDeviceCreateApprovalForNative(peer).decision,peer.readOriginalDecision());assert.equal(fixed.assertOriginalWalletDeviceCreateApprovalCurrentForNative(peer),undefined);await f.lifecycle.run(()=>fixed.recheckOriginalWalletDeviceCreateApprovalForNative(peer));
  assert.equal(fixed.isOriginalWalletDeviceCreateApprovalPeer({...peer}),false);assert.throws(()=>fixed.readOriginalWalletDeviceCreateApprovalForNative({...peer}));peer.close();assert.throws(()=>fixed.assertOriginalWalletDeviceCreateApprovalCurrentForNative(peer));
+});
+
+async function deviceControllerFixture(t,options={}){
+ const f=await deviceCreateFixture(t),config={originalBytes:new TextEncoder().encode(f.make().approvedTerms),...options},native=configurePublicDeviceCreation(config),controller=createOriginalDeviceCreationController({vault:f.vault,networkId:CHAIN});
+ t.after(async()=>{try{await controller.close();}catch{}});return {...f,config,native,controller,prepare:()=>f.lifecycle.run(()=>controller.prepareReview())};
+}
+test('device-create normal Main controller uses separate real review and only original registered Source completion',async t=>{
+ const f=await deviceControllerFixture(t),request=await f.prepare();assert.equal(request.method,'ynx_createProductDevice');assert.equal(f.native.counts.prepare,0);
+ const result=await f.lifecycle.run(()=>f.controller.approveOriginal(createPublicWalletEvent(),request.id));assert.equal(result.phase,'awaiting-original-registration');assert.equal(result.originalOutcome.state,'PENDING_REGISTRATION');assert.equal(f.native.counts.complete,0);
+ await assert.rejects(f.lifecycle.run(()=>f.controller.approveOriginal(createPublicWalletEvent(),request.id)));assert.equal(f.native.counts.prepare,1);
+ const pair=await f.lifecycle.run(()=>f.controller.readPublicPairForOriginalRegistration(request.id));assert.equal(pair.pkA.length,2592);assert.equal(pair.pkB.length,64);pair.pkA.fill(0);assert.equal((await f.lifecycle.run(()=>f.controller.readPublicPairForOriginalRegistration(request.id))).pkA[0],41);
+ await assert.rejects(f.controller.completeOriginalRegistration(request.id,{registered:true}),{code:'DEVICE_CREATE_REGISTRATION_ZERO_DTO'});assert.equal(f.native.counts.complete,0);
+ f.config.registrationReady=true;const completed=await f.lifecycle.run(()=>f.controller.completeOriginalRegistration(request.id));assert.equal(completed.phase,'registered-original-result-retained');assert.equal(completed.originalOutcome.state,'PENDING_REGISTRATION');assert.equal(completed.latestOutcome.state,'REGISTERED_LOCAL_ASSOCIATION');assert(f.native.events.indexOf('child-close')<f.native.events.indexOf('source-join'));assert.equal(f.native.sourceClosed,true);
+});
+test('device-create normal Main cancel never captures approval creates keys or completes registration',async t=>{
+ const f=await deviceControllerFixture(t),request=await f.prepare(),cancelled=await f.controller.rejectOriginal(request.id);assert.equal(cancelled.phase,'cancelled-before-effect');assert.equal(cancelled.effectEntryInvoked,false);assert.deepEqual(f.native.counts,{prepare:0,complete:0,capture:0});assert.equal(f.native.sourceClosed,true);
+});
+test('device-create normal Main adopts source and child partials before the same original failure escapes',async t=>{
+ for(const kind of ['acquireError','captureError']){const original=Object.assign(Error('PUBLIC_ORIGINAL_PARTIAL_FAILURE'),{code:'PUBLIC_ORIGINAL_PARTIAL_FAILURE'}),f=await deviceControllerFixture(t,{[kind]:original});if(kind==='acquireError')await assert.rejects(f.prepare(),e=>e===original);else{const request=await f.prepare();await assert.rejects(f.lifecycle.run(()=>f.controller.approveOriginal(createPublicWalletEvent(),request.id)),e=>e===original);assert(f.native.events.indexOf('child-close')<f.native.events.indexOf('source-join'));}assert.equal(f.native.sourceClosed,true);assert.equal(f.native.counts.prepare,0);}
+});
+test('device-create normal Main retains first Native result when late lock changes pending state to UNKNOWN',async t=>{
+ const f=await deviceControllerFixture(t);f.config.onPrepare=()=>f.lifecycle.lock();const request=await f.prepare();await assert.rejects(f.lifecycle.run(()=>f.controller.approveOriginal(createPublicWalletEvent(),request.id)));const state=f.controller.readStatusDATA();assert.equal(state.effectEntryInvoked,true);assert.equal(state.originalOutcome.state,'PENDING_REGISTRATION');assert.equal(state.latestOutcome.state,'UNKNOWN');assert.equal(f.native.counts.prepare,1);await f.lifecycle.unlock({password:PASSWORD});await assert.rejects(f.prepare(),{code:'DEVICE_CREATE_ORIGINAL_UNRESOLVED'});assert.equal(f.native.counts.prepare,1);
+});
+test('device-create normal Main retains original UNKNOWN after Native error or malformed public outcome without replay',async t=>{
+ for(const kind of ['error','malformed']){const original=Object.assign(Error('PUBLIC_POST_EFFECT_FAILURE'),{code:'PUBLIC_POST_EFFECT_FAILURE'}),f=await deviceControllerFixture(t,kind==='error'?{prepareError:original}:{malformedOutcome:true}),request=await f.prepare();await assert.rejects(f.lifecycle.run(()=>f.controller.approveOriginal(createPublicWalletEvent(),request.id)));const state=f.controller.readStatusDATA();assert.equal(state.effectEntryInvoked,true);assert.equal(state.originalOutcomeRetained,true);assert.equal(state.phase,'original-outcome-unknown');assert.equal(f.native.counts.prepare,1);await assert.rejects(f.prepare(),{code:'DEVICE_CREATE_ORIGINAL_UNRESOLVED'});assert.equal(f.native.counts.prepare,1);}
+});
+test('device-create normal Main shutdown retires a pending recheck then drains child before parent without prepare',async t=>{
+ let release,entered;const waiting=new Promise(r=>release=r),started=new Promise(r=>entered=r),f=await deviceControllerFixture(t,{beforeRecheck:()=>{entered();return waiting;}}),request=await f.prepare(),approval=f.lifecycle.run(()=>f.controller.approveOriginal(createPublicWalletEvent(),request.id));await started;const closing=f.controller.close();release();await assert.rejects(approval);await closing;assert.equal(f.native.counts.prepare,0);assert(f.native.events.indexOf('child-close')<f.native.events.indexOf('source-join'));assert.equal(f.native.sourceClosed,true);
+});
+test('device-create normal Main unresolved child close keeps parent custody and does not rerun close or keygen',async t=>{
+ const original=Object.assign(Error('PUBLIC_CHILD_CLOSE_UNKNOWN'),{code:'PUBLIC_CHILD_CLOSE_UNKNOWN'}),f=await deviceControllerFixture(t,{childCloseError:original}),request=await f.prepare();await f.lifecycle.run(()=>f.controller.approveOriginal(createPublicWalletEvent(),request.id));await assert.rejects(f.controller.rejectOriginal(request.id));assert.equal(f.controller.readStatusDATA().cleanupUnresolved,true);assert.equal(f.native.events.includes('source-join'),false);assert.equal(f.native.events.filter(x=>x==='child-close').length,1);await assert.rejects(f.controller.close());assert.equal(f.native.events.filter(x=>x==='child-close').length,1);assert.equal(f.native.counts.prepare,1);
+});
+
+test('device-create normal Main adopts a late child partial after the selected session was already retired',async t=>{
+ const original=Object.assign(Error('PUBLIC_LATE_CAPTURE_PARTIAL'),{code:'PUBLIC_LATE_CAPTURE_PARTIAL'}),f=await deviceControllerFixture(t,{captureError:original});f.config.onCapture=()=>f.lifecycle.lock();const request=await f.prepare();await assert.rejects(f.lifecycle.run(()=>f.controller.approveOriginal(createPublicWalletEvent(),request.id)),e=>e===original);assert(f.native.events.includes('child-retire'));assert(f.native.events.indexOf('child-close')<f.native.events.indexOf('source-join'));assert.equal(f.native.sourceClosed,true);assert.equal(f.native.counts.prepare,0);
 });
