@@ -4202,7 +4202,7 @@ jobs:
       - run: node scripts/ci/runtime-image-preload-controls.mjs
       - run: node --experimental-vm-modules --test packages/wallet-auth/test/fixed-native-preload-guard.test.mjs
       - run: node --test packages/wallet-auth/test/runtime-image-normal-source.test.mjs packages/wallet-auth/test/social-platform-policy.test.mjs packages/wallet-auth/test/deployment-v2-native-input-pins.test.mjs
-      - run: node --test --test-name-pattern='two new families: original signed profile|^actual frozen loader' packages/wallet-auth/test/runtime-image-profile-extension.test.mjs packages/wallet-auth/test/auth-fixed-native-edge.test.mjs
+      - run: node --test --test-name-pattern='^two new families|^actual frozen loader' packages/wallet-auth/test/runtime-image-profile-extension.test.mjs packages/wallet-auth/test/auth-fixed-native-edge.test.mjs
       - run: node packages/wallet-auth/node_modules/typescript/bin/tsc --noEmit --strict --target ES2022 --module NodeNext --moduleResolution NodeNext packages/wallet-auth/test/social-platform-policy-types.mts packages/wallet-auth/test/runtime-image-profile-extension.types.mts
       - run: cc -std=c11 -fsyntax-only packages/wallet-auth/test/social-platform-policy-layout.c
       - run: node scripts/ci/native-preload-social-package.mjs
