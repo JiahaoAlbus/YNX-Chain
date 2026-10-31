@@ -1,0 +1,41 @@
+{
+  "status": "IMPLEMENTED_NEW_DATA_CONTRACT_NOT_DEPLOYED_PRODUCTION_WIRE",
+  "decisionSource": "Parent sole OPEN under current Root V5 specific SDK authorization; Auth explicitly confirmed Grant/Holder purposes and original payload formats, 2026-10-31",
+  "request": {
+    "domain": "YNX-OPEN/SHOP-ORDER-READ-REQUEST/1",
+    "contentType": "application/vnd.ynx.shop-order-read.v1",
+    "method": "POST",
+    "path": "/api/tools/shop.order.read",
+    "E5": ["domain UTF8", "bindingE21", "grantProofE3", "holderProofE3", "inputOriginal"],
+    "maxBytes": 1048576,
+    "normalAdapter": "Must pass actual HTTP Content-Type; P07's existing handler independently checks exact method/path/empty RawPath/query. Profile fields are DATA, not target authority.",
+    "grantProof": {"purpose": "YNX-OPEN/BOUND-GRANT/1", "payload": "exact original canonical EncodeBoundGrant E21", "wire": "opaque original signature bytes, never rewritten or cryptographically verified here"},
+    "holderProof": {"purpose": "YNX-OPEN/GRANT-EFFECT/1", "payload": "exact original EncodeGrantEffect E3", "innerGrant": "canonical re-encoding must byte-equal GrantProof.payload", "wire": "opaque original signature bytes"},
+    "crossBinding": ["grant ID/revision/realm/tenant/holder/holderEpoch/audience/operation/resources", "task Ref/generation/step/input exact dual Bind", "tool ID/version/schema/purpose/risk and target", "holderSession ID/epoch/INNER channel preserved exactly", "selected source Ref/revision/fields/label/content Bind"],
+    "independentExpected": "Explicit original registered target and orderKind; never copied back from request",
+    "authorityNotEstablished": ["account identity", "current key/session/channel", "actual proof signatures", "protected Source", "approval", "operation slot"]
+  },
+  "response": {
+    "contentType": "application/json",
+    "maxBytes": 1048576,
+    "exactKeys": ["version", "profile", "projection", "source", "authFence"],
+    "version": "1",
+    "profile": "YNX-OPEN/SHOP-ORDER-READ-RESULT/1",
+    "projectionExactKeys": ["orderId", "snapshot", "fields", "data"],
+    "sourceExactKeys": ["resource", "fields", "label", "binding"],
+    "sourceResource": "original fullRef, private Revision represented as rev; source fields/label/binding must equal independent selected source",
+    "authFence": ["same-authority-resource-fence", "egress-only-read-fence"],
+    "data": "exact requested original nine-field subset only; every value string. Original P07 time.Time must first be serialized to its own RFC3339 JSON string; no float/coercion or arbitrary nested values",
+    "canonicalJSON": "recursive sorted ASCII schema/field keys, compact delimiters, strings exactly JSON.stringify with strict valid Unicode, no HTML escaping/Unicode normalization; preserve genuine U+2028/U+2029 and literal backslash-u sequences distinctly",
+    "sourceBytes": "UTF8(canonicalJSON(projection.data))",
+    "sourceBinding": "Bind(exact sourceBytes); must match declared AND independently selected Source.binding",
+    "responseBinding": "Bind(exact canonical responseOriginal)",
+    "independentExpected": "selection(orderId,snapshot,sorted fields) and original selected Source(resource fullRef/revision,fields,label,binding)",
+    "decoder": "strict bounded UTF8, exact types/keys, DATA cross-bind, canonical re-encoding byte equality rejects duplicate/unknown/alternate JSON representations and old PUBLIC fixture shape"
+  },
+  "returnedData": ["responseOriginal", "sourceBytes", "responseBinding", "sourceBinding", "declaredSource", "projection", "authFence", "dataOnly=true", "sourceVerified=false", "operationVerified=false"],
+  "forbiddenMintedResults": ["originalOpID", "remoteRef", "COMMITTED", "verified=true", "global atomicity"],
+  "remainingOwningCode": ["P07 original normal codec adapter/composition install", "Auth actual Node reserve operationId and original grantRef/expectedRevision association", "Auth/P07 original protected Source/LINK verifier bridge, real account/tenant/resource/current/proof acceptance", "P08 verified originalOpID/remoteRef correlation to original durable selected call", "separate authorized model disclosure and real model/tool execution"],
+  "UNKNOWN": "Codec never changes durable status or chooses a replacement operation. Original operation/UNKNOWN remains original authority/caller; changed request/path/nonce/input/generation is not evidence of retry identity.",
+  "admission": {"normalDataRequestResponse": true, "signatureVerified": false, "SourceAdmission": false, "current": false, "registered": false, "serviceAdapterInstalled": false, "realShopRequest": false, "realModelCall": false, "operationVerified": false, "globalAtomic": false}
+}
