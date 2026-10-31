@@ -7,7 +7,7 @@ import {pathToFileURL} from 'node:url';
 import {AUTH_RUNTIME_MANIFEST_VERSION,AUTH_RUNTIME_MANIFEST_PATH,AUTH_RUNTIME_REQUIRED_FILES} from './auth-runtime-manifest-contract.mjs';
 export const FIXED_NATIVE_EDGE_VERSION='YNX-ORIGINAL-AUTH-FIXED-NATIVE-EDGE/v1';
 export const FIXED_NATIVE_LOADER_PATH='src/original-auth-identity-fixed-native-image.js';
-export const FIXED_NATIVE_LOADER_SHA256='11f841402ca8e2c2879a840b4f5b5234df153949b65af2f810db3669b3cdb4ec';
+export const FIXED_NATIVE_LOADER_SHA256='04d8bd31b1ab26f9902e67bed062e718c4507242210ea142d7c76e2385e7edb4';
 export const FIXED_NATIVE_SPECIFIER='../../../apps/wallet-desktop/native/original-auth-identity.node';
 const PURPOSE='product-session-device-http-binary-source-v5';
 const hash=b=>createHash('sha256').update(b).digest('hex');
@@ -20,7 +20,7 @@ function capture(p,max){path(p);const before=lstatSync(p);if(before.size<1||befo
 function selected(v,max){const x=exact(v,['path','bytes','sha256']);if(!Number.isSafeInteger(x.bytes)||x.bytes<1||x.bytes>max||typeof x.sha256!=='string'||! /^[0-9a-f]{64}$/.test(x.sha256))fail('FIXED_EDGE_PIN_SCHEMA');const r=capture(x.path,max);if(r.pin.bytes!==x.bytes||r.pin.sha256!==x.sha256)fail('FIXED_EDGE_PIN_MISMATCH');return r;}
 function parse(raw){let value;try{value=JSON.parse(raw.toString('utf8'));}catch{fail('FIXED_EDGE_JSON');}if(!Buffer.from(canonical(value),'utf8').equals(raw))fail('FIXED_EDGE_CANONICAL');return value;}
 const inside=(r,p)=>p===r||p.startsWith(r+'/');
-export function inspectOriginalAuthFixedNativeLoaderDATA(packageRoot){const root=path(packageRoot,true);const loader=capture(join(root,FIXED_NATIVE_LOADER_PATH),16384);if(loader.pin.bytes!==3004||loader.pin.sha256!==FIXED_NATIVE_LOADER_SHA256)fail('FIXED_EDGE_LOADER_CODEPIN');return Object.freeze({loader:Object.freeze(loader.pin),specifier:FIXED_NATIVE_SPECIFIER,implementingImagePath:resolve(dirname(loader.pin.path),FIXED_NATIVE_SPECIFIER),dataOnly:true,SourceAdmission:false,NativeAdmission:false});}
+export function inspectOriginalAuthFixedNativeLoaderDATA(packageRoot){const root=path(packageRoot,true);const loader=capture(join(root,FIXED_NATIVE_LOADER_PATH),16384);if(loader.pin.bytes!==3401||loader.pin.sha256!==FIXED_NATIVE_LOADER_SHA256)fail('FIXED_EDGE_LOADER_CODEPIN');return Object.freeze({loader:Object.freeze(loader.pin),specifier:FIXED_NATIVE_SPECIFIER,implementingImagePath:resolve(dirname(loader.pin.path),FIXED_NATIVE_SPECIFIER),dataOnly:true,SourceAdmission:false,NativeAdmission:false});}
 // Caller must independently select every pin. These pins do NOT authenticate the
 // qualifier, signatures, currentness, OS identity or the later loaded image.
 export function generateOriginalAuthFixedNativeEdgeMetadataDATA(packageRoot,input){

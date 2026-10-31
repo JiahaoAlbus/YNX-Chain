@@ -274,7 +274,94 @@
       "browser": null,
       "node": "./src/original-product-device-v4-source-stage.js",
       "default": null
-    }
+    },
+    "./original-product-device-v4-pending-client": {
+      "types": "./src/original-product-device-v4-pending-client.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-pending-client.js",
+      "default": null
+    },
+    "./original-product-device-v4-pending-review-data": {
+      "types": "./src/original-product-device-v4-pending-review-data.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-pending-review-data.js",
+      "default": null
+    },
+    "./public-content-binding": {
+      "types": "./src/public-content-binding.d.ts",
+      "import": "./src/public-content-binding.js",
+      "default": "./src/public-content-binding.js"
+    },
+    "./original-device-create-intent": {
+      "types": "./src/original-device-create-intent.d.ts",
+      "browser": null,
+      "node": "./src/original-device-create-intent.js",
+      "default": null
+    },
+    "./original-product-device-v4-registration-client": {
+      "types": "./src/original-product-device-v4-registration-client.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-registration-client.js",
+      "default": null
+    },
+    "./original-ide-deployment-v2": {
+      "types": "./native/original-ide-deployment-v2.d.mts",
+      "browser": null,
+      "node": "./native/original-ide-deployment-v2.mjs",
+      "default": null
+    },
+    "./product-session-proof-v5": {
+      "types": "./src/product-session-proof-v5.d.ts",
+      "browser": null,
+      "node": "./src/product-session-proof-v5.js",
+      "default": null
+    },
+    "./product-session-device-v5": {
+      "types": "./src/product-session-device-v5.d.ts",
+      "browser": null,
+      "node": "./src/product-session-device-v5.js",
+      "default": null
+    },
+    "./original-http-binary-v5-client": {
+      "types": "./src/original-http-binary-v5-client.d.ts",
+      "browser": null,
+      "node": "./src/original-http-binary-v5-client.js",
+      "default": null
+    },
+    "./original-product-device-v4-registered-finalization": {
+      "types": "./src/original-product-device-v4-registered-finalization.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-registered-finalization.js",
+      "default": null
+    },
+    "./product-pair-session-v4-source": {
+      "types": "./src/product-pair-session-v4-source.d.ts",
+      "browser": null,
+      "node": "./src/product-pair-session-v4-source.js"
+    },
+    "./auth-runtime-image-current": {
+      "types": "./native/original-auth-runtime-image-current-v1.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-runtime-image-current-v1.mjs"
+    },
+    "./auth-runtime-image-binding": {
+      "types": "./native/original-auth-runtime-image-binding-v1.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-runtime-image-binding-v1.mjs"
+    },
+    "./auth-fixed-native-edge": {
+      "types": "./scripts/auth-fixed-native-edge.d.mts",
+      "browser": null,
+      "node": "./scripts/auth-fixed-native-edge.mjs"
+    },
+    "./social-platform-policy": {
+      "types": "./src/social-platform-policy-v3.d.ts",
+      "browser": "./src/social-platform-policy-unavailable.js",
+      "node": "./src/social-platform-policy-v3.js",
+      "default": "./src/social-platform-policy-unavailable.js"
+    },
+    "./social-platform-policy/types-v1.h": "./native/ynx_sdk_social_platform_policy_v1.h",
+    "./social-platform-policy/profile-v1.json": "./integration/SOCIAL_PLATFORM_POLICY_PROFILE_V1.json"
   },
   "NativeInputs": [
     {
@@ -569,8 +656,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-      "bytes": 77337,
-      "sha256": "02aa1a4cfa3f3d46c54be671a9942848ac8d879f54a423ef06721c44cadc4b1d"
+      "bytes": 80093,
+      "sha256": "82742591d58585ea5b1ac246d1ac2664d138813bea3096679a25f486ff9582da"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
@@ -1100,12 +1187,12 @@
     {
       "path": "packages/wallet-auth/native/original-auth-runtime-image-binding-v1.mjs",
       "bytes": 3325,
-      "sha256": "12973052ad7db7532e38f6876794bca9c4176f4d116807f9c7660eb9cb3c12f8"
+      "sha256": "cb6ad65afa713dc039df50bdffc42ce132624f851ba2a868f194e239496a3560"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-runtime-image-binding-v1.d.mts",
       "bytes": 1432,
-      "sha256": "f7e64bc7f16b12be434d2e60a779ad0843ca09920a93bbdbcca61f0b7a2dfd09"
+      "sha256": "de9ba349cc3e86ec9014315241db4ba74075104ebc9a274a78f7b41a1199fd5b"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-runtime-image-current-v1.mjs",
@@ -1116,6 +1203,21 @@
       "path": "packages/wallet-auth/native/original-auth-runtime-image-current-v1.d.mts",
       "bytes": 1949,
       "sha256": "538942571c96b8c806e8462de14f2d133830d35efebcf3e67aac5ba13060912d"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-runtime-image-source-internal.h",
+      "bytes": 506,
+      "sha256": "c392ce3ddcda28b66d7ab4008b81f4c10f1b92195679837ab186fa6552ffcecc"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-runtime-image-private.mm",
+      "bytes": 11388,
+      "sha256": "f34e9c0bb96e9c251b5c604d853bd29a935c41ed0d664c22a50813d64496f922"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-runtime-image-private.h",
+      "bytes": 1893,
+      "sha256": "a2930e74920697207ae8353d56dcfb9d7e0e3ef2174ddd7a631259dd01499336"
     }
   ],
   "normalBuildTool": {
@@ -3174,5 +3276,45 @@
     "realLogin": false,
     "realRestore": false,
     "realRevoke": false
+  },
+  "nativeLoadedImageSourceComposition": {
+    "NativeInputs": 171,
+    "originalSourceSameModuleLeaseCODE": true,
+    "supplier": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-runtime-image-source/native-controls/HANDOFF.json",
+      "bytes": 7892,
+      "sha256": "a49ddaa730d1bcb797f74aea1c1939283b076e16522512f0cba7512c216dd0cb"
+    },
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "preLoadQualified": false,
+    "sameLoadedImageVerified": false,
+    "sameModuleInstanceVerified": false,
+    "NativeCompiled": false
+  },
+  "preLoadGuard3401SuccessorWIP": {
+    "fixedLoader": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-native-preload-social-policy-20261101/source/packages/wallet-auth/src/original-auth-identity-fixed-native-image.js",
+      "bytes": 3401,
+      "sha256": "04d8bd31b1ab26f9902e67bed062e718c4507242210ea142d7c76e2385e7edb4"
+    },
+    "guard": "assertOriginalAuthRuntimeImagePreLoadCurrentV1",
+    "actualAuthJSFactoryIntaken": false,
+    "NativeInputRows": 171,
+    "SourceAdmission": false,
+    "RootAdmission": false,
+    "frozenOldManifestPreserved": true
+  },
+  "actualRuntimeImageSourceAndGuardSuccessor": {
+    "factory": "acquireOriginalAuthRuntimeImageAdmissionV1",
+    "syncGuard": "assertOriginalAuthRuntimeImagePreLoadCurrentV1",
+    "actualSourceSupplied": true,
+    "normalPublicNodeOnly": true,
+    "fixedLoaderBytes": 3401,
+    "fixedLoaderSHA256": "04d8bd31b1ab26f9902e67bed062e718c4507242210ea142d7c76e2385e7edb4",
+    "NativeInputCount": 171,
+    "RootAdmission": false,
+    "sameLoadedImageQualified": false,
+    "realLogin": false
   }
 }

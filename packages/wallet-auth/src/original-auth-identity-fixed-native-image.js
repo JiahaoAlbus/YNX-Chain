@@ -1,9 +1,16 @@
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
+import{assertOriginalAuthRuntimeImagePreLoadCurrentV1}from'./original-auth-runtime-image-source-v1.js';
 // One fixed implementing image, shared by joint and device consumers.
 // No provider, endpoint, path input or public loader setter.
 const requireOriginal=createRequire(import.meta.url);
-export const loadOriginalAuthIdentityNativeImage=()=>requireOriginal(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)));
+export const loadOriginalAuthIdentityNativeImage=()=>{
+ // The actual zero-input Source must already be acquired/rechecked by normal
+ // Main. This synchronous fence never starts asynchronous work or loads on a
+ // missing/expired/retired Source; no legacy unguarded fallback exists.
+ assertOriginalAuthRuntimeImagePreLoadCurrentV1();
+ return requireOriginal(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)));
+};
 const failure=code=>Object.assign(new Error(code),{code});
 export function acquireOriginalProductSessionDeviceV4SourceStage(...args){
  if(args.length)throw failure('PRODUCT_DEVICE_V4_SOURCE_ARGUMENTS_INVALID');
