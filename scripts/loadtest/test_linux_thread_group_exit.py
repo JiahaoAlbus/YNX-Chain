@@ -38,7 +38,7 @@ class ThreadGroupExitControls(unittest.TestCase):
             calls.append(str(path));return stat(ticks=100 if len(calls)==1 else ticks_after)
         with mock.patch.object(lab.os,'pidfd_open',return_value=17,create=True) as opened,mock.patch.object(lab.os,'close') as closed,mock.patch.object(lab.select,'poll',return_value=poller,create=True),mock.patch.object(lab.guard,'bounded',side_effect=kernel):
             result=lab.process_group_exit_probe(42,dict(startTicks=100))
-            opened.assert_called_once_with(42,0);poller.poll.assert_called_once_with(0);closed.assert_called_once_with(17)
+            opened.assert_called_once_with(42,0);poller.poll.assert_called_once_with(20);closed.assert_called_once_with(17)
         return result
 
     def test_original_six_Z_esrch_observations_are_not_zero_without_group_proof(self):

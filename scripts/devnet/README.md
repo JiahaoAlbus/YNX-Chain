@@ -386,13 +386,15 @@ Guard `same-process-rss-v3-pidfd` addresses the later real 41228413687 A
 Z/ESRCH failure (PID5403/startTicks49598), rather than guessing that a zombie
 leader means every thread exited. After an original same-identity Z rollup
 failure it opens `pidfd_open(pid,0)`, brackets that open with the original
-leader startTicks and fdinfo PID binding, then polls without waiting. Flags
+leader startTicks and fdinfo PID binding, then polls for at most 20ms. Flags
 deliberately exclude PIDFD_THREAD. As the [pidfd API documents](https://man7.org/linux/man-pages/man2/pidfd_open.2.html),
 default process-pidfd readiness signals LAST-thread exit; a leader alone is
 insufficient. Only that kernel group-exit proof permits retirement of a
 multi-thread Z process. Descriptor errors/reuse/uncertain binding remain fatal
 or unresolved, never RSS zero. The proof closes its descriptor and never
-signals, waits or reaps; normal parent/Popen ownership is unchanged.
+signals or consumes a wait/reap; normal parent/Popen ownership is unchanged.
+At most six such bounded polls add <=120ms plus original retry sleeps/reads,
+inside the unchanged operation deadline; elapsed time never proves exit.
 
 If that pidfd is not ready, the original real same-group RSS/positive upper
 bound path still runs; lacking either, the run still fails. Transitions now

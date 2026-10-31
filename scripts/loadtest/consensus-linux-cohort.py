@@ -167,7 +167,9 @@ def process_group_exit_probe(pid,before):
         ids=[line.split(':',1)[1].strip() for line in info.splitlines() if line.startswith('Pid:')]
         require(ids in ([str(pid)],['-1']),'original pidfd process binding unavailable')
         poller=select.poll();poller.register(fd,0x001|0x010|0x008|0x020)
-        events=poller.poll(0);mask=0
+        # A fixed <=20ms kernel-lifetime poll lets in-flight exit cleanup
+        # finish; readiness, never elapsed time, is the retirement proof.
+        events=poller.poll(20);mask=0
         for actual,value in events:
             require(actual==fd and value&~(0x001|0x010)==0,'unexpected pidfd poll event')
             mask|=value
@@ -180,8 +182,8 @@ def process_group_exit_probe(pid,before):
             if error.errno not in (errno.ENOENT,errno.ESRCH):raise
         if not mask:
             require(ids==[str(pid)],'reaped pidfd lacks kernel exit event')
-            return dict(state='not-exited',pid=pid,startTicks=before['startTicks'],pidfdFlags=0,pollMask=0,leaderState=final_state,leaderThreads=final_threads)
-        return dict(state='group-exited',pid=pid,startTicks=before['startTicks'],pidfdFlags=0,fdinfoPid=int(ids[0]),pollMask=mask,firstLeaderState=first['state'],firstThreads=first['threads'],secondLeaderState=second['state'],secondThreads=second['threads'],lastLeaderState=final_state,lastThreads=final_threads,observedMonotonicNs=time.monotonic_ns(),nonConsuming=True)
+            return dict(state='not-exited',pid=pid,startTicks=before['startTicks'],pidfdFlags=0,pollTimeoutMs=20,pollMask=0,leaderState=final_state,leaderThreads=final_threads)
+        return dict(state='group-exited',pid=pid,startTicks=before['startTicks'],pidfdFlags=0,fdinfoPid=int(ids[0]),pollTimeoutMs=20,pollMask=mask,firstLeaderState=first['state'],firstThreads=first['threads'],secondLeaderState=second['state'],secondThreads=second['threads'],lastLeaderState=final_state,lastThreads=final_threads,observedMonotonicNs=time.monotonic_ns(),nonConsuming=True)
     except OSError as error:
         if error.errno not in (errno.ENOENT,errno.ESRCH,errno.ENOSYS):raise
         return dict(state='unresolved',errno=error.errno)
