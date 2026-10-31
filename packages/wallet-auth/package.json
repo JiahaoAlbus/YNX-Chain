@@ -368,6 +368,12 @@
       "types": "./src/original-auth-runtime-image-source-v1.d.ts",
       "browser": null,
       "node": "./src/original-auth-runtime-image-source-v1.js"
+    },
+    "./pay-native-cloud-bill-source-data": {
+      "types": "./native/original-pay-cloud-bill-source-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-pay-cloud-bill-source-contract.mjs",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -489,7 +495,9 @@
     "native/original-auth-runtime-image-source-internal.h",
     "native/original-auth-runtime-image-private.mm",
     "native/original-auth-runtime-image-private.h",
-    "native/ynx_sdk_social_platform_policy_v1.h"
+    "native/ynx_sdk_social_platform_policy_v1.h",
+    "native/original-pay-cloud-bill-source-contract.mjs",
+    "native/original-pay-cloud-bill-source-contract.d.mts"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -558,7 +566,8 @@
     "test:r226-normal-source-route": "node --test test-r226-normal-source-route.mjs",
     "test:publication-result-decoder": "node --test test/ide-artifact-release-result.test.mjs",
     "test:product-session-v4-codec-types": "tsc -p test/tsconfig.product-session-v4-codec-types.json",
-    "test:product-device-v4-pending-client-types": "tsc -p test/tsconfig.product-device-v4-pending-client-types.json"
+    "test:product-device-v4-pending-client-types": "tsc -p test/tsconfig.product-device-v4-pending-client-types.json",
+    "test:pay-source-family": "node --test test/pay-source-family.test.mjs test/pay-source-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pay-source-family.types.mts"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",

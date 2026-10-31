@@ -1,3 +1,4 @@
+import{PAY_NATIVE_CLOUD_BILL_SOURCE_PURPOSE as PAY_PURPOSE}from'./original-pay-cloud-bill-source-contract.mjs';
 // Same ORIGINAL bounded CLI, sole SDK327 Source v2 mathematics. No Source,
 // Root, account, signer, arbitrary endpoint or granting callback is created.
 import {randomBytes} from 'node:crypto';
@@ -48,9 +49,10 @@ export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuth
  // its independently release-selected purpose carries applicationId; legacy
  // purposes keep their exact five-field schema. The original N1 verifier
  // still checks the application against signed enrollment/profile originals.
+ const pay=input.policy.signatureContract.purpose===PAY_PURPOSE;
  const pqCatalog=input.policy.signatureContract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const device=devicePurposes.includes(input.policy.signatureContract.purpose);
- exact(input.policy,device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
+ exact(input.policy,pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
  exact(input.previous,['sequence','floor','head','timeFloor','executionHeight']);
  const p=input.previous;
  if(!Number.isSafeInteger(p.sequence)||p.sequence<0||!Number.isSafeInteger(p.floor)||p.floor<0||p.floor>p.sequence||!Number.isSafeInteger(p.timeFloor)||p.timeFloor<0||Date.now()<p.timeFloor||!(p.head===''||typeof p.head==='string'&&/^[0-9a-f]{64}$/.test(p.head))||typeof p.executionHeight!=='string'||!/^(0|[1-9][0-9]*)$/.test(p.executionHeight)||BigInt(p.executionHeight)>0xffffffffffffffffn)fail('AUTH_SOURCE_V2_DISPATCH_PREVIOUS');

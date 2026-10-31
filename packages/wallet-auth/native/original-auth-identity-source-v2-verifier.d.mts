@@ -22,6 +22,8 @@ export interface OriginalAuthSourceV2Policy {
  readonly applicationId?:string;
  /** Mandatory only for device-v4, pinned by the same compiled Source row. */
  readonly productId?:string;
+ /** Required only by the dedicated Pay Source; independently release-pinned. */
+ readonly platform?:'linux'|'macos'|'windows';
 }
 /** Four separately branded snapshots. Parsing alone does not authenticate their
  * origin. Native must supply/recheck genuine current registrations around use. */
@@ -31,7 +33,7 @@ export interface OriginalAuthSourceV2Registrations {
 }
 export interface OriginalAuthSourceV2Selection {
  readonly [key:string]:OriginalAuthSourceJSON;
- readonly association:Readonly<{account:string;clientId:string;platform:'macos';deviceId:string;productId:string;applicationId:string}>;
+ readonly association:Readonly<{account:string;clientId:string;platform:'macos'|'linux'|'windows';deviceId:string;productId:string;applicationId:string}>;
  readonly expectedRequest:Readonly<Record<string,OriginalAuthSourceJSON>>;
  readonly originalHostStatePath:string;readonly originalHostTerminalDirectory:string;
 }
@@ -41,7 +43,7 @@ export interface OriginalAuthSourceV2Root {
 }
 /** Signed enrollment DATA only. The original verifier binds the service and
  * exact operation tuple to the independently admitted purpose; types do not. */
-export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5';
+export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1';
 export type OriginalAuthSourceV2Operations=
  readonly ['beginYNX','handleReturn','restore','disconnect']|
  readonly ['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']|
@@ -54,7 +56,8 @@ export type OriginalAuthSourceV2Operations=
  readonly ['deployment.execute-existing']|
  readonly ['deployment.read-original']|
  readonly ['device.registered-finalize']|
- readonly ['device.current','device.http-proof-v5'];
+ readonly ['device.current','device.http-proof-v5']|
+ readonly ['create','read','lookup','merchant_review','submit_merchant_member','reconcile','prepare_terms','register_terms','review_settlement','settle','review_refund','refund'];
 export interface OriginalAuthSourceV2Enrollment {
  readonly version:2;readonly purpose:string;readonly rootId:string;readonly rootOwner:string;
  readonly sourceId:string;readonly service:OriginalAuthSourceV2Service;readonly productId:string;readonly platform:'macos';
@@ -116,3 +119,6 @@ export interface OriginalAuthSourceV2TransitionData extends Omit<OriginalAuthSou
  readonly statementExecutionHeight:string;
 }
 export function verifyOriginalAuthSourceTransitionV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,currentRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,expectedNonce:string,previous:OriginalAuthSourceV2Previous,atMs:number):Readonly<OriginalAuthSourceV2TransitionData>;
+
+/** Dedicated Pay body DATA under original SourceV2 frames, before role key use. */
+export function inspectOriginalPayCloudBillSourceIssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:import('./original-pay-cloud-bill-source-contract.mjs').OriginalPayCloudBillSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
