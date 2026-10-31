@@ -424,13 +424,13 @@
     },
     {
       "path": "apps/wallet-desktop/native/original-product-device-v4-provisioning-approval.inc.mm",
-      "bytes": 16288,
-      "sha256": "c273b6283588e9b4b3660c771ac8643aa72dc391fdd3947f3e5237cc43b4e5cb"
+      "bytes": 16539,
+      "sha256": "dd4799c09afad0eae810e76ddfcd895503253b027af5f928e3add67647027a1a"
     },
     {
       "path": "apps/wallet-desktop/native/original-product-device-v4-provisioning-composition.inc.mm",
-      "bytes": 8915,
-      "sha256": "a9acdbee785475a0ba57324b06294cb9a0707fff837ab279c46321f8c7f8de3b"
+      "bytes": 9784,
+      "sha256": "12994bce29cfba90ce703c7764c71efadc7400fdcdff93b2e863bafdc63837e5"
     },
     {
       "path": "apps/wallet-desktop/native/original-product-device-v4-provisioning-source.inc.mm",
@@ -2672,6 +2672,57 @@
     "installed": false,
     "actualLogin": false,
     "actualRestore": false,
-    "actualRevoke": false
+    "actualRevoke": false,
+    "operationCurrentSuccessor": {
+      "supplier": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/HANDOFF.json",
+        "bytes": 135664,
+        "sha256": "c30fff3b8d880c2e0a13bc3703b1e4a7064d39dfc16058901853f0f9acdeb88b"
+      },
+      "sourceCAS": [
+        {
+          "relativePath": "apps/wallet-desktop/native/original-product-device-v4-provisioning-approval.inc.mm",
+          "old": {
+            "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-source-runtime-20261031-r4/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-approval.inc.mm",
+            "bytes": 16288,
+            "sha256": "c273b6283588e9b4b3660c771ac8643aa72dc391fdd3947f3e5237cc43b4e5cb",
+            "gitBlob": "1c5af65120b92787191e19fad11075b080296063"
+          },
+          "successor": {
+            "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-approval.inc.mm",
+            "bytes": 16539,
+            "sha256": "dd4799c09afad0eae810e76ddfcd895503253b027af5f928e3add67647027a1a",
+            "gitBlob": "a3cb87bcc805357433a14a4141b4c756788bb9d1"
+          }
+        },
+        {
+          "relativePath": "apps/wallet-desktop/native/original-product-device-v4-provisioning-composition.inc.mm",
+          "old": {
+            "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-source-runtime-20261031-r4/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-composition.inc.mm",
+            "bytes": 8915,
+            "sha256": "a9acdbee785475a0ba57324b06294cb9a0707fff837ab279c46321f8c7f8de3b",
+            "gitBlob": "f829bd4bfb39c55b26b06b6f2fe60fa38e3f363a"
+          },
+          "successor": {
+            "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/delta/apps/wallet-desktop/native/original-product-device-v4-provisioning-composition.inc.mm",
+            "bytes": 9784,
+            "sha256": "12994bce29cfba90ce703c7764c71efadc7400fdcdff93b2e863bafdc63837e5",
+            "gitBlob": "97d01db87d3a9ac46ad09016a34cd9d3d0ad8177"
+          }
+        }
+      ],
+      "APIChanged": false,
+      "CoreChanged": false,
+      "CLIChanged": false,
+      "NativeImage": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-device-provision-operation-current-20261031-r5/candidate/original-auth-identity.node",
+        "bytes": 8716744,
+        "sha256": "c243257d472f28b69e618f8efc38b0312ada3efe61de63120902e77a6fdac1f9",
+        "gitBlob": "d34554f948fca9420d4707146c2393b6a5d17699",
+        "relativePath": "candidate/original-auth-identity.node"
+      },
+      "SourceAdmission": false,
+      "AppBuilt": false
+    }
   }
 }
