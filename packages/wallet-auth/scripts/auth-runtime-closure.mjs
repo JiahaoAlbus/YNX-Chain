@@ -10,7 +10,7 @@ import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 export const AUTH_RUNTIME_MANIFEST_VERSION='YNX-ORIGINAL-AUTH-RUNTIME-CLOSURE/v1';
 export const AUTH_RUNTIME_MANIFEST_PATH='native/original-ide-auth-runtime-manifest.json';
-export const AUTH_RUNTIME_REQUIRED_FILES=Object.freeze(['package.json','native/original-auth-identity-source-verifier.mjs','native/original-ide-auth-proof-dispatch.mjs','native/original-auth-identity-v2-contract.mjs','src/auth-identity-verification.js','src/pq-wallet-policy.js','src/pq-wallet-authorization.js']);
+export const AUTH_RUNTIME_REQUIRED_FILES=Object.freeze(['package.json','central-registry.json','product-session-registry.json','native/original-auth-identity-source-verifier.mjs','native/original-ide-auth-proof-dispatch.mjs','native/original-auth-identity-v2-contract.mjs','src/auth-identity-verification.js','src/pq-wallet-policy.js','src/pq-wallet-authorization.js']);
 const defaults=['native/original-auth-identity-source-verifier.mjs','src/auth-identity-verification.js'];
 const failure=code=>{throw Object.assign(new Error(code),{code});};
 const ascii=p=>typeof p==='string'&&/^[\x20-\x7e]+$/.test(p)&&!p.includes('\\')&&!p.startsWith('/')&&!p.endsWith('/')&&p.split('/').every(v=>v&&v!=='.'&&v!=='..');
