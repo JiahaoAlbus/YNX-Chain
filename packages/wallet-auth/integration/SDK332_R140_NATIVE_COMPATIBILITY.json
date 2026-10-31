@@ -574,8 +574,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 41800,
-      "sha256": "ca3b04c8de591fac09eaf5a231f239323d5ddb161c24cf4d5c8e19fd2fe24674"
+      "bytes": 50060,
+      "sha256": "bc6b77a8f0f46459dee6b48f96f0dc47a58523cc3191a07f37eae14b810c252a"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -596,6 +596,21 @@
       "path": "packages/wallet-auth/native/original-auth-source-v2-native-data.h",
       "bytes": 1516,
       "sha256": "c1961de8ce4ee0832cf39f2ba50ed1c383973a9aa920c2dca4fba419a1a9e243"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-cloud-deployment-execute-approval-v2.mjs",
+      "bytes": 4272,
+      "sha256": "ffcdb580abede417eacac379f84ceb8442fbbf2e328402b1de36d516bbe8df9a"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-cloud-deployment-execution-v2-contract.mjs",
+      "bytes": 7074,
+      "sha256": "261e1c386effbdb2c0163e2c768b5ceedbbaeefa5209a9d5f001bfe34b66009e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-cloud-deployment-recovery-v2-contract.mjs",
+      "bytes": 1551,
+      "sha256": "943a1b1b9032ab290d0284dc607ee1dda8dc9ad731edb9651a601f182101f2be"
     },
     {
       "path": "packages/wallet-auth/native/original-developer-principal-data.mjs",
@@ -3046,5 +3061,19 @@
     "protectedRunnerSupplied": false,
     "RootAdmission": false,
     "SourceAdmission": false
+  },
+  "cloudDeploymentExecutionAuthorityV2": {
+    "supplier": "auth-owned-r258/deployment-v2-authority-source/HANDOFF.json",
+    "supplierSHA256": "08f76be53b2bd646540dc115d26b98d216710184b9e4c9e3c340b8c8e8b52137",
+    "SourceCodeSupplied": true,
+    "SDKCASModified": 3,
+    "SDKNewLeaves": 5,
+    "NativeInputRefresh": "All actual bytes/hash checked; corrected stale ca3 verifier declaration; new 155-input successor, never old Native145/152 qualification",
+    "NativeCompiled": false,
+    "AppInstalled": false,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "binaryAuthRootPrincipalSource": "a2096d6435fab6293634a904f4a9f49db7f786ba",
+    "actualBinaryConsumerQualified": false
   }
 }
