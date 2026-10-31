@@ -41,3 +41,18 @@ New tests exercise real SDK request grammar/mapping, invalid media/target/kind/
 carrier, unsealed TLS denial and full bootstrap refusal with the actual empty
 original Source. They do not claim a native TLS product execution or admitted
 response proof.
+
+The original held response authority now receives two additional detached byte
+operands on `OriginalShopTaskOrderResponse`: exact SDK `ResponseOriginal` and
+`SourceBytes` from this locked read. They travel with the original binding,
+protected operation/remote ref, projection, Source and fence. The receipt owner
+must validate/retain those bytes under that same operation, then expose them
+only through its actual verified-result/history API. It must not infer a model
+result by parsing an opaque `original` object or serialize a new projection.
+
+The final encoder must also return byte-identical `ResponseOriginal` and
+`SourceBytes` on `OriginalShopTaskOrderEncoding`. Missing, altered or aliased
+post-attestation bytes suppress HTTP output. These inner SDK DATA bytes remain
+distinct from the final proof frame (`Body`); no DATA-only response is promoted
+to a verified receipt. Shop creates no receipt DB or history endpoint and does
+not dispatch again to recover an uncertain original operation.

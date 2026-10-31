@@ -27,9 +27,10 @@ type OriginalShopTaskOrderCall struct {
 }
 
 type OriginalShopTaskOrderEncoding struct {
-	SourceBytes []byte
-	Body        []byte
-	ContentType string
+	ResponseOriginal []byte
+	SourceBytes      []byte
+	Body             []byte
+	ContentType      string
 }
 
 // These locators are selected by the original protected operation authority,
@@ -42,6 +43,12 @@ type OriginalShopTaskOrderResponse struct {
 	Projection OrderProjection
 	Source     authgrant.Source
 	AuthScope  authgrant.FenceScope
+	// Exact unchanged SDK DATA bytes frozen from this original locked read.
+	// These are not the final signed frame and confer no receipt authority.
+	// The original attester/receipt owner must retain them under the SAME
+	// protected operation; never infer them by parsing an opaque original value.
+	ResponseOriginal []byte
+	SourceBytes      []byte
 }
 
 type OriginalShopTaskOrderResponseAuthority interface {
@@ -63,6 +70,8 @@ type HeldOriginalShopTaskOrderResponse interface {
 type OriginalShopTaskOrderAttest func(context.Context, []byte, []byte) (authgrant.Proof, error)
 
 func copyShopTaskResponse(r OriginalShopTaskOrderResponse) OriginalShopTaskOrderResponse {
+	r.ResponseOriginal = bytes.Clone(r.ResponseOriginal)
+	r.SourceBytes = bytes.Clone(r.SourceBytes)
 	r.Binding = copyShopTaskOrderCall(OriginalShopTaskOrderCall{Binding: r.Binding}).Binding
 	r.Source.Fields = append([]string(nil), r.Source.Fields...)
 	r.Projection.Fields = append([]string(nil), r.Projection.Fields...)
@@ -289,6 +298,8 @@ func (s *Store) readOriginalTaskOrderAtEffect(ctx context.Context, held *authgra
 	if err != nil {
 		return taskOrderReadPayload{}, err
 	}
+	expected.ResponseOriginal = bytes.Clone(frozen.ResponseOriginal)
+	expected.SourceBytes = bytes.Clone(frozen.SourceBytes)
 	attestCalls := 0
 	var attestFailure error
 	attest := func(callbackContext context.Context, sourceBytes, payload []byte) (authgrant.Proof, error) {
@@ -332,7 +343,7 @@ func (s *Store) readOriginalTaskOrderAtEffect(ctx context.Context, held *authgra
 	if attestCalls != 1 {
 		return taskOrderReadPayload{}, ErrUnavailable
 	}
-	if !bytes.Equal(encoded.SourceBytes, frozen.SourceBytes) {
+	if !bytes.Equal(encoded.SourceBytes, frozen.SourceBytes) || !bytes.Equal(encoded.ResponseOriginal, frozen.ResponseOriginal) {
 		return taskOrderReadPayload{}, ErrConflict
 	}
 	// Encoding may run code at an SDK boundary. Recheck while still holding

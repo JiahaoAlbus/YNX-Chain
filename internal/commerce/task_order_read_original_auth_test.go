@@ -62,6 +62,7 @@ type publicShopTaskVerifier struct {
 	responseOpened, responseClosed, attests int
 	operation                               *OriginalShopTaskOrderOperation
 	badResponseProof                        bool
+	retainedResponse, retainedSource        []byte
 }
 
 // PUBLIC response operation/proof stand-in, not a durable registry or signer.
@@ -82,6 +83,11 @@ func (p *publicShopTaskResponse) AttestShopOrderReadResponse(_ context.Context, 
 	if p.verifier.source.closed != 0 || r.Operation.OriginalOperationID != "PUBLIC-original-op" || r.Operation.RemoteRef != "PUBLIC-remote-ref" {
 		return authgrant.Proof{}, ErrUnavailable
 	}
+	if len(r.ResponseOriginal) == 0 || taskOrderBytesBinding(r.SourceBytes) != r.Source.Binding {
+		return authgrant.Proof{}, ErrUnavailable
+	}
+	p.verifier.retainedResponse = bytes.Clone(r.ResponseOriginal)
+	p.verifier.retainedSource = bytes.Clone(r.SourceBytes)
 	if p.verifier.badResponseProof {
 		payload = []byte("PUBLIC wrong proof payload")
 	}
@@ -153,7 +159,7 @@ func (c *publicShopTaskCodec) EncodeShopOrderRead(ctx context.Context, response 
 		Operation  OriginalShopTaskOrderOperation `json:"operation"`
 	}{p, source.Label, scope, response.Operation})
 	if c.skipAttestation {
-		return OriginalShopTaskOrderEncoding{SourceBytes: data, Body: body, ContentType: "application/json"}, nil
+		return OriginalShopTaskOrderEncoding{ResponseOriginal: bytes.Clone(response.ResponseOriginal), SourceBytes: data, Body: body, ContentType: "application/json"}, nil
 	}
 	proof, err := attest(ctx, data, body)
 	if err != nil {
@@ -166,7 +172,7 @@ func (c *publicShopTaskCodec) EncodeShopOrderRead(ctx context.Context, response 
 		Payload json.RawMessage `json:"payload"`
 		Proof   authgrant.Proof `json:"proof"`
 	}{body, proof})
-	return OriginalShopTaskOrderEncoding{SourceBytes: data, Body: envelope, ContentType: "application/json"}, nil
+	return OriginalShopTaskOrderEncoding{ResponseOriginal: bytes.Clone(response.ResponseOriginal), SourceBytes: data, Body: envelope, ContentType: "application/json"}, nil
 }
 
 func publicShopTaskFixture(t *testing.T) (*Store, Order, *PreparedOriginalShopTaskOrders, *publicShopTaskVerifier, *publicShopTaskCodec, []byte) {

@@ -154,7 +154,7 @@ func (c *originalShopTaskOrderSDKCodec) EncodeShopOrderRead(ctx context.Context,
 	if err := c.channels.Current(ctx); err != nil {
 		return OriginalShopTaskOrderEncoding{}, err
 	}
-	out.Body, out.SourceBytes = bytes.Clone(out.Body), bytes.Clone(out.SourceBytes)
+	out.Body, out.SourceBytes, out.ResponseOriginal = bytes.Clone(out.Body), bytes.Clone(out.SourceBytes), bytes.Clone(out.ResponseOriginal)
 	return out, nil
 }
 
