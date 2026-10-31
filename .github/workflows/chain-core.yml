@@ -6,6 +6,7 @@ on:
       - codex/final-chain-core
       - codex/ynx-pq-perf-integration
       - codex/v5-link-native-ci
+      - codex/ynx-pq-transport-core-ci-20261031
     paths:
       - ".github/workflows/chain-core.yml"
       - "Makefile"
@@ -14,6 +15,7 @@ on:
       - "hardhat.config.ts"
       - "cmd/**"
       - "internal/**"
+      - "third_party/cometbft/**"
       - "docs/architecture/STREAMBFT_CANDIDATE.md"
       - "docs/formal/streambft/**"
       - "docs/integration/**"
@@ -130,12 +132,13 @@ jobs:
 
   verify:
     name: Chain Core source and release gate
-    # Preserve every pre-existing trigger/gate. Only the two newly added LINK
-    # events use the strict owned-closure job below; mixed candidates fail there.
+    # Preserve every pre-existing trigger/gate. The two LINK events and the
+    # exact new transport push use their own strict source-closure jobs.
     if: >-
       (github.event_name != 'push' || github.ref != 'refs/heads/codex/ynx-pq-perf-integration') &&
       !(github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-link-native-ci') &&
-      !(github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration')
+      !(github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration') &&
+      !(github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-transport-core-ci-20261031')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -268,6 +271,7 @@ jobs:
 
   link-scope:
     name: Select actual LINK changed closure
+    if: "!(github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-transport-core-ci-20261031')"
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     outputs:
@@ -395,3 +399,528 @@ jobs:
           path: ${{ runner.temp }}/securelink-evidence/
           if-no-files-found: error
           retention-days: 14
+
+
+  pq-transport-actual:
+    name: Frozen transport actual Application and Reactor differential (DATA only)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-transport-core-ci-20261031'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GOTOOLCHAIN: local
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: 1536MiB
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=1 -trimpath'
+    steps:
+      - name: Checkout only the frozen transport closure and actual new test
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 16
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /go.mod
+            /go.sum
+            /internal/
+            /third_party/cometbft/
+            /.github/workflows/chain-core.yml
+      - name: Reserve new private work and only public evidence directories
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -B - <<'PYCASE'
+          import os
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP']) / ('pq-transport-actual-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT'])
+          root.mkdir(mode=0o700)
+          for name in ('public', 'tmp', 'cache', 'mod-cache', 'artifacts'):
+              (root / name).mkdir(mode=0o700)
+          if root.resolve(strict=True) != root or (root / 'artifacts').stat().st_mode & 0o777 != 0o700:
+              raise RuntimeError('canonical private artifact root required')
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              for name, value in {'YNX_NETWORK_NEXT_ARTIFACT_ROOT': root / 'artifacts', 'YNX_TRANSPORT_CASE': root, 'GOTMPDIR': root / 'tmp', 'TMPDIR': root / 'tmp', 'GOCACHE': root / 'cache', 'GOMODCACHE': root / 'mod-cache'}.items():
+                  f.write(name + '=' + str(value) + '\n')
+          PYCASE
+      - name: Reject any source outside the exact original ten plus three owned leaves
+        run: |
+          set -euo pipefail
+          if ! python3 -B - > "$YNX_TRANSPORT_CASE/public/source-check.log" 2>&1 <<'PYSOURCE'
+          import hashlib, json, os, re, stat, subprocess
+          from pathlib import Path
+          BASE = 'c7836406262efa3f800c191ac439fd8d3aa519c5'
+          FROZEN = '2bbbef7e7a5c90af5511cb7f56cb133d7b8610c6'
+          REF = 'refs/heads/codex/ynx-pq-transport-core-ci-20261031'
+          ORIGINAL = {
+              'internal/transportlab/lossless_hex_test.go': ('A', 'a037f207bcdf2efdb5fe0b543d3ed794661a4904'),
+              'third_party/cometbft/mempool/lossless_hex_codec.go': ('A', '0143768cedc50bfa30f7ac8f53f55e29fa4e1473'),
+              'third_party/cometbft/mempool/lossless_hex_codec_test.go': ('A', 'd0eb1a75149b3d9e3b58d72d6b8d4395b719c2f4'),
+              'third_party/cometbft/mempool/lossless_hex_transport.go': ('A', 'bf2a5e0ddfc6fd2b7e261fd850a8c09047af46bd'),
+              'third_party/cometbft/mempool/lossless_hex_transport_test.go': ('A', '7abd00210a9516a92047acb6cdb089281e67c5e1'),
+              'third_party/cometbft/mempool/reactor.go': ('M', '8371c3aab9f3640dd1025cd9e83c221b963e7786'),
+              'third_party/cometbft/node/lossless_hex_test.go': ('A', '5e58a9ee55db8120ca044a4b1eb1a8b54a5b95ae'),
+              'third_party/cometbft/node/node.go': ('M', '1f39893421a82ab7e28f2eb05960b7f0ef1073d0'),
+              'third_party/cometbft/proto/tendermint/mempool/types.pb.go': ('M', '7f966902de0dbc8ffcbf3e7191ac023115e9f903'),
+              'third_party/cometbft/proto/tendermint/mempool/types.proto': ('M', 'a69162406c5e7114a5988d088fcfa6e51e60427a'),
+          }
+          ADDITIONAL = {
+              'internal/transportlab/actual_application_test.go': ('ffe1aa04aab8c84d46ee1d83f8b2bb82a2afb741', 'b60e76c8a68d14f8300a0e779a67627a009649b146e05e3e13dfbeafdbb00f18'),
+              'internal/transportlab/application_state_test.go': ('5755bdf07f22095c5627caf081474e866b6b39a0', 'f3b2a38878f10b043241bae5cf9ce2ec980e2b832e0ec3b41ab23e127d364c6a'),
+          }
+          EXPECTED = {name: row[0] for name, row in ORIGINAL.items()}
+          EXPECTED.update({name: 'A' for name in ADDITIONAL})
+          EXPECTED['.github/workflows/chain-core.yml'] = 'M'
+          def validate_closure(changes, blobs, modes, parent, digests):
+              if parent != FROZEN or changes != EXPECTED or set(blobs) != set(EXPECTED) or set(modes) != set(EXPECTED) or set(digests) != set(EXPECTED):
+                  raise RuntimeError('complete source range is not the original exact thirteen-leaf closure')
+              if any(mode != '100644' for mode in modes.values()):
+                  raise RuntimeError('source closure contains a link, executable or non-file mode')
+              for name, (_, blob) in ORIGINAL.items():
+                  if blobs[name] != blob:
+                      raise RuntimeError('original frozen transport source changed: ' + name)
+              for name, (blob, digest) in ADDITIONAL.items():
+                  if blobs[name] != blob or digests[name] != digest:
+                      raise RuntimeError('actual Application fixture differs from the frozen original: ' + name)
+          def git(*args):
+              return subprocess.check_output(['git', *args]).decode().strip()
+          head = git('rev-parse', 'HEAD')
+          if not re.fullmatch('[0-9a-f]{40}', head) or head != os.environ['GITHUB_SHA'] or os.environ['GITHUB_EVENT_NAME'] != 'push' or os.environ['GITHUB_REF'] != REF:
+              raise RuntimeError('exact event-bound candidate identity required')
+          subprocess.run(['git', 'merge-base', '--is-ancestor', BASE, head], check=True)
+          parts = subprocess.check_output(['git', 'diff', '--name-status', '-z', '--no-renames', BASE, head]).split(b'\0')
+          if parts[-1] != b'' or (len(parts) - 1) % 2:
+              raise RuntimeError('unrecognized source delta framing')
+          changes = {}
+          for i in range(0, len(parts)-1, 2):
+              action, path = parts[i].decode(), parts[i+1].decode()
+              if path in changes:
+                  raise RuntimeError('duplicate source delta')
+              changes[path] = action
+          blobs, modes, pins = {}, {}, {}
+          for name in EXPECTED:
+              row = git('ls-tree', head, '--', name).split('\t')
+              if len(row) != 2 or row[1] != name:
+                  raise RuntimeError('missing exact source leaf: ' + name)
+              mode, kind, blob = row[0].split()
+              if kind != 'blob':
+                  raise RuntimeError('non-blob source leaf')
+              original = subprocess.check_output(['git', 'cat-file', 'blob', blob])
+              path = Path(name)
+              info = path.lstat()
+              if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or path.read_bytes() != original:
+                  raise RuntimeError('checked out source differs from its original Git blob: ' + name)
+              blobs[name], modes[name] = blob, mode
+              pins[name] = dict(bytes=len(original), sha256=hashlib.sha256(original).hexdigest(), gitBlob=blob, mode=mode)
+          validate_closure(changes, blobs, modes, git('rev-parse', 'HEAD^'), {name: row['sha256'] for name, row in pins.items()})
+          for name in ('go.mod', 'go.sum'):
+              blob = git('rev-parse', head + ':' + name)
+              if blob != git('rev-parse', BASE + ':' + name) or blob != git('rev-parse', FROZEN + ':' + name):
+                  raise RuntimeError('production module graph changed')
+              raw = Path(name).read_bytes()
+              if raw != subprocess.check_output(['git', 'cat-file', 'blob', blob]):
+                  raise RuntimeError('production module checkout changed')
+              pins[name] = dict(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest(), gitBlob=blob)
+          if git('status', '--porcelain', '--untracked-files=normal'):
+              raise RuntimeError('candidate checkout is not clean')
+          result = dict(version='YNX-PQ-TRANSPORT-ACTUAL-CI-SOURCE/v1', classification='data', commit=head,
+              tree=git('rev-parse', 'HEAD^{tree}'), baseline=BASE, frozenTransport=FROZEN,
+              frozenActualFixture='05500bd907375884a727161e73ba634f1c6e1a27', cometForkTree=git('rev-parse', 'HEAD:third_party/cometbft'),
+              changedPaths=changes, sourcePins=pins, publicDeployment=False, nodeStarted=False, sourceGrant=False)
+          with (Path(os.environ['YNX_TRANSPORT_CASE']) / 'public' / 'SOURCE.json').open('x') as f:
+              json.dump(result, f, sort_keys=True); f.write('\n')
+          print('YNX_PQ_TRANSPORT_EXACT_SOURCE ' + head)
+          PYSOURCE
+          then
+            cat "$YNX_TRANSPORT_CASE/public/source-check.log"
+            exit 1
+          fi
+          cat "$YNX_TRANSPORT_CASE/public/source-check.log"
+      - name: Install the fixed affected-test Go toolchain without cache restore
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Record the fixed actual-test runtime without modifying the module graph
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PYRUNTIME'
+          import json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['YNX_TRANSPORT_CASE'])
+          version = subprocess.check_output(['go', 'env', 'GOVERSION'], text=True).strip()
+          if version != 'go1.26.10' or os.environ['CGO_ENABLED'] != '1':
+              raise RuntimeError('race runtime must use fixed Go and CGO1')
+          artifact = Path(os.environ['YNX_NETWORK_NEXT_ARTIFACT_ROOT'])
+          if artifact != root / 'artifacts' or artifact.resolve(strict=True) != artifact or artifact.stat().st_mode & 0o777 != 0o700:
+              raise RuntimeError('canonical original mandatory artifact root required')
+          runtime = dict(version='YNX-PQ-TRANSPORT-ACTUAL-CI-RUNTIME/v1', goVersion=version,
+              goEnvironment=subprocess.check_output(['go', 'env', 'GOOS', 'GOARCH', 'CGO_ENABLED'], text=True).splitlines(),
+              compiler=subprocess.check_output(['cc', '--version'], text=True)[:4096],
+              gomaxprocs=os.environ['GOMAXPROCS'], gomemlimit=os.environ['GOMEMLIMIT'],
+              buildTags=['transportlab_actual'], race=True, testTimeout='5m', moduleReadOnly=True,
+              temporaryModuleCreated=False, productionModuleChanged=False, opensslBuilt=False,
+              nodeStarted=False, publicActivation=False)
+          with (root / 'public' / 'RUNTIME.json').open('x') as f:
+              json.dump(runtime, f, sort_keys=True); f.write('\n')
+          PYRUNTIME
+      - name: Execute only the frozen actual Application and Reactor differential
+        id: transporttest
+        run: |
+          set -euo pipefail
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=5m -race -tags transportlab_actual -run '^TestLosslessHexActualApplicationLifecycleAndCold$' ./internal/transportlab > "$YNX_TRANSPORT_CASE/public/actual-tests.jsonl" 2> "$YNX_TRANSPORT_CASE/public/actual-tests.stderr.log"; then
+            cat "$YNX_TRANSPORT_CASE/public/actual-tests.jsonl"
+            cat "$YNX_TRANSPORT_CASE/public/actual-tests.stderr.log"
+            exit 1
+          fi
+          git diff --exit-code -- go.mod go.sum
+          test -z "$(git status --porcelain --untracked-files=normal)"
+      - name: Qualify actual test terminal PASS without skip or zero-hit acceptance
+        id: transportqualify
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PYQUALIFY'
+          import hashlib, json, os
+          from pathlib import Path
+          REQUIRED = ['TestLosslessHexActualApplicationLifecycleAndCold']
+          PACKAGE = 'github.com/JiahaoAlbus/YNX-Chain/internal/transportlab'
+          def qualify(events, required):
+              if not events or not required or len(required) != len(set(required)):
+                  raise RuntimeError('nonempty exact required terminal set is mandatory')
+              if any(row.get('Action') in ('fail', 'skip') for row in events):
+                  raise RuntimeError('actual affected test failed or skipped')
+              top = {}
+              for row in events:
+                  name = row.get('Test')
+                  if row.get('Package') != PACKAGE:
+                      if row.get('Action') in ('pass', 'fail', 'skip', 'run'):
+                          raise RuntimeError('unexpected test package')
+                      continue
+                  if name and '/' not in name and row.get('Action') in ('pass', 'fail', 'skip'):
+                      top.setdefault(name, []).append(row['Action'])
+              if set(top) != set(required) or any(top[name] != ['pass'] for name in required):
+                  raise RuntimeError('required actual Application function did not execute and PASS once')
+              package = [row for row in events if row.get('Package') == PACKAGE and not row.get('Test') and row.get('Action') in ('pass', 'fail', 'skip')]
+              if len(package) != 1 or package[0]['Action'] != 'pass':
+                  raise RuntimeError('actual affected package did not complete once')
+              return package[0].get('Elapsed')
+          root = Path(os.environ['YNX_TRANSPORT_CASE']) / 'public'
+          events = [json.loads(line) for line in (root / 'actual-tests.jsonl').read_text().splitlines()]
+          elapsed = qualify(events, REQUIRED)
+          source = json.loads((root / 'SOURCE.json').read_text())
+          if source['commit'] != os.environ['GITHUB_SHA']:
+              raise RuntimeError('test candidate differs from original source witness')
+          for name in ('go.mod', 'go.sum'):
+              if hashlib.sha256(Path(name).read_bytes()).hexdigest() != source['sourcePins'][name]['sha256']:
+                  raise RuntimeError('production module inputs changed during the actual test')
+          receipt = dict(version='YNX-PQ-TRANSPORT-ACTUAL-CI-RESULT/v1', classification='data',
+              commit=os.environ['GITHUB_SHA'], requiredPassed=REQUIRED, package=PACKAGE,
+              packageElapsedSeconds=elapsed, suitePassed=True, race=True, cgoEnabled=True,
+              buildTags=['transportlab_actual'], productionModuleChanged=False,
+              nodeStarted=False, publicActivation=False, physicalBytesMeasured=False,
+              publicTPSMeasured=False, sourceGrant=False)
+          with (root / 'QUALIFICATION.json').open('x') as f:
+              json.dump(receipt, f, sort_keys=True); f.write('\n')
+          print('YNX_PQ_TRANSPORT_ACTUAL_EXECUTED ' + json.dumps(receipt, sort_keys=True))
+          PYQUALIFY
+      - name: Preserve original public actual case without rewriting its bytes
+        id: preserveactual
+        if: always()
+        env:
+          ORIGINAL_TEST_OUTCOME: ${{ steps.transporttest.outcome }}
+          ORIGINAL_QUALIFICATION_OUTCOME: ${{ steps.transportqualify.outcome }}
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PYPRESERVE'
+          import hashlib, json, os, re, stat
+          from pathlib import Path, PurePosixPath
+
+          MAX_LEAF = 64 << 20
+          MAX_TOTAL = 256 << 20
+          COLD_DIRS = {'plain-original', 'restored-original', 'negative-sigma-A-plain', 'negative-sigma-A-restored', 'negative-sigma-B-plain', 'negative-sigma-B-restored'}
+          PAYLOAD = {'account-migration.wire', 'account-policy.json', 'invalid-signature-0.abci', 'invalid-signature-1.abci'} | {f'transaction-{i:04d}.{ext}' for i in range(3) for ext in ('wire', 'abci')}
+          MANIFEST_KEYS = {'version', 'syntheticOnly', 'networkStarted', 'deployedSourceQualification', 'authorityGranted', 'nativeChainId', 'originalGenesisHash', 'migrationStateHash', 'sourceHeight', 'owner', 'recipient', 'initialOwnerBalance', 'expectedFinalOwnerBalance', 'expectedFinalOwnerNonce', 'expectedRecipientDelta', 'sourceRegistration', 'sourcePolicy', 'transactions', 'invalidSignatureEnvelopes'}
+          TX_KEYS = {'type', 'wire', 'envelope', 'nativeHash', 'abciHash', 'firstNonce', 'members', 'amountPerMember', 'feePerMember'}
+
+          class Refused(RuntimeError):
+              pass
+
+          def require(ok, cause):
+              if not ok:
+                  raise Refused(cause)
+
+          def relative(name):
+              require(type(name) is str and name.isascii() and 0 < len(name) <= 256, 'noncanonical public relative path')
+              require('\\' not in name and not any(ord(c) < 32 or ord(c) == 127 for c in name), 'noncanonical public relative path')
+              parts = PurePosixPath(name).parts
+              require(parts and not name.startswith('/') and all(p not in ('.', '..') for p in parts) and '/'.join(parts) == name, 'public path traversal or alias')
+              return parts
+
+          def allowed_file(name):
+              parts = relative(name)
+              if len(parts) == 1:
+                  if name in ('actual-steps.jsonl', 'bound-migration.json'):
+                      return True
+                  if re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}\.state\.json', name):
+                      stem = name[:-len('.state.json')]
+                      require(not re.search(r'(?:private|secret|seed|key|credential|custody)', stem, re.I), 'secret filename is not public evidence')
+                      return True
+              if len(parts) == 2 and parts[0] in COLD_DIRS and parts[1] == 'state.json':
+                  return True
+              if len(parts) == 2 and parts[0] == 'public-corpus' and parts[1] in PAYLOAD | {'PUBLIC-WORKLOAD.json'}:
+                  return True
+              raise Refused('unknown public artifact path: ' + name)
+
+          def canonical_directory(path):
+              path = Path(path)
+              require(path.is_absolute() and str(path) == os.path.normpath(str(path)) and path.resolve(strict=True) == path, 'canonical directory without symlinks required')
+              info = path.lstat()
+              require(stat.S_ISDIR(info.st_mode), 'public directory is not regular')
+              return path
+
+          def directory_fd(root, parts, create=False):
+              root = canonical_directory(root)
+              fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+              try:
+                  for part in parts:
+                      if create:
+                          try:
+                              os.mkdir(part, 0o700, dir_fd=fd)
+                          except FileExistsError:
+                              pass
+                      child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd)
+                      os.close(fd)
+                      fd = child
+                  return fd
+              except BaseException:
+                  os.close(fd)
+                  raise
+
+          def stamp(info):
+              return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+          def read_leaf(root, name):
+              parts = relative(name)
+              allowed_file(name)
+              parent = directory_fd(root, parts[:-1])
+              fd = None
+              try:
+                  before = os.stat(parts[-1], dir_fd=parent, follow_symlinks=False)
+                  require(stat.S_ISREG(before.st_mode) and before.st_nlink == 1 and 0 < before.st_size <= MAX_LEAF, 'public leaf is linked, empty, nonregular or oversized')
+                  fd = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC, dir_fd=parent)
+                  require(stamp(before) == stamp(os.fstat(fd)), 'public leaf changed before read')
+                  chunks, remaining = [], before.st_size
+                  while remaining:
+                      chunk = os.read(fd, min(65536, remaining))
+                      require(bool(chunk), 'public leaf shortened during read')
+                      chunks.append(chunk)
+                      remaining -= len(chunk)
+                  require(not os.read(fd, 1), 'public leaf grew during read')
+                  require(stamp(before) == stamp(os.fstat(fd)) == stamp(os.stat(parts[-1], dir_fd=parent, follow_symlinks=False)), 'public leaf changed during read')
+                  return b''.join(chunks)
+              finally:
+                  if fd is not None:
+                      os.close(fd)
+                  os.close(parent)
+
+          def write_exclusive(root, name, raw):
+              parts = relative(name)
+              if name != 'ACTUAL-ARTIFACTS.json':
+                  allowed_file(name)
+              parent = directory_fd(root, parts[:-1], create=True)
+              fd = None
+              try:
+                  fd = os.open(parts[-1], os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600, dir_fd=parent)
+                  data = memoryview(raw)
+                  while data:
+                      n = os.write(fd, data)
+                      require(n > 0, 'short public artifact write')
+                      data = data[n:]
+                  os.fsync(fd)
+                  os.fsync(parent)
+              finally:
+                  if fd is not None:
+                      os.close(fd)
+                  os.close(parent)
+
+          def strict_pairs(pairs):
+              result = {}
+              for key, value in pairs:
+                  require(key not in result, 'duplicate public JSON key')
+                  result[key] = value
+              return result
+
+          def corpus_pins(raw):
+              require(len(raw) <= 65536, 'public corpus manifest too large')
+              m = json.loads(raw, object_pairs_hook=strict_pairs)
+              require(type(m) is dict and set(m) == MANIFEST_KEYS, 'public corpus manifest schema changed')
+              require(m['version'] == 'YNX-PQ-LOOPBACK-WORKLOAD/v1' and m['syntheticOnly'] is True and m['networkStarted'] is False and m['authorityGranted'] is False and m['deployedSourceQualification'] is False, 'public corpus is not the original synthetic DATA profile')
+              for key in MANIFEST_KEYS - {'syntheticOnly', 'networkStarted', 'authorityGranted', 'deployedSourceQualification', 'sourceRegistration', 'sourcePolicy', 'transactions', 'invalidSignatureEnvelopes'}:
+                  require(type(m[key]) is str and 0 < len(m[key]) <= 256, 'public corpus scalar changed')
+              require(type(m['transactions']) is list and len(m['transactions']) == 3 and type(m['invalidSignatureEnvelopes']) is list and len(m['invalidSignatureEnvelopes']) == 2, 'original three-transfer AND controls required')
+              rows = [(m['sourceRegistration'], 'account-migration.wire'), (m['sourcePolicy'], 'account-policy.json')]
+              for index, tx in enumerate(m['transactions']):
+                  require(type(tx) is dict and set(tx) == TX_KEYS, 'public transaction manifest schema changed')
+                  require(all(type(tx[k]) is str and 0 < len(tx[k]) <= 256 for k in TX_KEYS - {'wire', 'envelope'}), 'public transaction scalar changed')
+                  rows.extend([(tx['wire'], f'transaction-{index:04d}.wire'), (tx['envelope'], f'transaction-{index:04d}.abci')])
+              rows.extend((row, f'invalid-signature-{i}.abci') for i, row in enumerate(m['invalidSignatureEnvelopes']))
+              result = {}
+              for row, expected in rows:
+                  require(type(row) is dict and set(row) == {'path', 'bytes', 'sha256'} and all(type(v) is str for v in row.values()), 'exact public file row required')
+                  require(row['path'] == expected and expected in PAYLOAD, 'public corpus path or role changed')
+                  require(re.fullmatch(r'[1-9][0-9]{0,8}', row['bytes']) and int(row['bytes']) <= MAX_LEAF, 'public corpus byte bound changed')
+                  require(re.fullmatch(r'[0-9a-f]{64}', row['sha256']) and row['sha256'] != '0' * 64, 'canonical public corpus SHA256 required')
+                  result['public-corpus/' + expected] = row
+              require(len(result) == 10, 'exact original ten public payload pins required')
+              return result
+
+          def inventory(run):
+              found, first = [], None
+              for base, dirs, files in os.walk(run, topdown=True, followlinks=False):
+                  rel = Path(base).relative_to(run)
+                  for name in list(dirs):
+                      path = Path(base) / name
+                      valid = rel == Path('.') and name in COLD_DIRS | {'public-corpus'} and not path.is_symlink()
+                      if not valid:
+                          first = first or 'unknown or linked artifact directory: ' + str(path.relative_to(run))
+                          dirs.remove(name)
+                  for name in files:
+                      path = Path(base) / name
+                      item = path.relative_to(run).as_posix()
+                      try:
+                          allowed_file(item)
+                          require(not path.is_symlink(), 'linked public artifact leaf')
+                          found.append(item)
+                      except Refused as e:
+                          first = first or str(e)
+              require(len(found) <= 128, 'public artifact inventory exceeds fixed bound')
+              return sorted(found), first
+
+          def preserve(artifact_root, destination, test_outcome, qualification_outcome, commit):
+              destination = Path(destination)
+              canonical_directory(destination.parent)
+              require(not destination.exists() and not destination.is_symlink(), 'public preservation output already exists')
+              destination.mkdir(mode=0o700)
+              catalog = dict(version='YNX-PQ-TRANSPORT-ACTUAL-ARTIFACTS/v1', classification='data', commit=commit,
+              syntheticOnly=True, networkStarted=False, authorityGranted=False,
+                  originalTestOutcome=test_outcome, originalQualificationOutcome=qualification_outcome,
+                  originalTestLog='actual-tests.jsonl', partial=True, functionalTestPassed=False, files=[], requiredMissing=[],
+                  preservationError=None, sourceGrant=False, rootGrant=False, proofVerified=False,
+                  physicalBytesMeasured=False, publicTPSMeasured=False, publicActivation=False, coldProcessProven=False)
+              total, available, pins, trace_states = 0, [], {}, {}
+              original_passed = test_outcome == 'success' and qualification_outcome == 'success'
+              try:
+                  artifact_root = canonical_directory(artifact_root)
+                  children = list(artifact_root.iterdir())
+                  require(len(children) == 1 and re.fullmatch(r'application-lossless-[A-Za-z0-9_-]{1,64}', children[0].name) and not children[0].is_symlink(), 'one original actual Application run directory required')
+                  run = canonical_directory(children[0])
+                  catalog['sourceRun'] = run.name
+                  available, first = inventory(run)
+                  catalog['preservationError'] = first
+                  manifest_name = 'public-corpus/PUBLIC-WORKLOAD.json'
+                  manifest = None
+                  if manifest_name in available:
+                      try:
+                          manifest = read_leaf(run, manifest_name)
+                          pins = corpus_pins(manifest)
+                      except (Refused, OSError, ValueError) as e:
+                          catalog['preservationError'] = catalog['preservationError'] or str(e)
+                  for name in available:
+                      try:
+                          if name.startswith('public-corpus/'):
+                              if not pins:
+                                  continue
+                              raw = manifest if name == manifest_name else read_leaf(run, name)
+                              if name != manifest_name:
+                                  row = pins[name]
+                                  require(len(raw) == int(row['bytes']) and hashlib.sha256(raw).hexdigest() == row['sha256'], 'public corpus bytes or SHA256 differ from original manifest: ' + name)
+                          else:
+                              raw = read_leaf(run, name)
+                          # Keep bounded space for the independently generated catalog.
+                          require(total + len(raw) <= MAX_TOTAL - 65536, 'total public artifact bytes exceed bound')
+                          write_exclusive(destination, name, raw)
+                          total += len(raw)
+                          catalog['files'].append(dict(path=name, bytes=str(len(raw)), sha256=hashlib.sha256(raw).hexdigest()))
+                          if name == 'actual-steps.jsonl':
+                              try:
+                                  events = [json.loads(line, object_pairs_hook=strict_pairs) for line in raw.decode('utf8').splitlines()]
+                                  for event in events:
+                                      if event.get('completePublicStateCompared') is True:
+                                          state_name = event.get('stage', '') + '.state.json'
+                                          allowed_file(state_name)
+                                          require(type(event.get('stateBytes')) is int and 0 < event['stateBytes'] <= MAX_LEAF, 'invalid public trace state byte witness')
+                                          trace_states[state_name] = str(event['stateBytes'])
+                                  catalog['testTraceCompleteReported'] = bool(events and events[-1].get('stage') == 'complete' and events[-1].get('fullStateEqual') is True and events[-1].get('coldApplicationReloadEqual') is True)
+                              except (Refused, ValueError, UnicodeError, AttributeError, TypeError) as e:
+                                  catalog['preservationError'] = catalog['preservationError'] or ('public trace incomplete or invalid: ' + str(e))
+                      except (Refused, OSError, ValueError) as e:
+                          catalog['preservationError'] = catalog['preservationError'] or str(e)
+                  required = {'actual-steps.jsonl', 'bound-migration.json', manifest_name} | {'public-corpus/' + name for name in PAYLOAD} | {name + '/state.json' for name in COLD_DIRS} | set(trace_states)
+                  have = {row['path']: row for row in catalog['files']}
+                  catalog['requiredMissing'] = sorted(required - set(have))
+                  snapshots = [name for name in have if '/' not in name and name.endswith('.state.json')]
+                  if original_passed:
+                      require(pins and not catalog['requiredMissing'] and snapshots and catalog.get('testTraceCompleteReported') is True, 'successful actual test did not retain its complete public trace/corpus/state')
+                      require(all(have[name]['bytes'] == size for name, size in trace_states.items()), 'public trace and retained complete state byte witnesses differ')
+                      require(not catalog['preservationError'], catalog['preservationError'] or 'public preservation rejected')
+                      catalog['partial'] = False
+                      catalog['functionalTestPassed'] = True
+              except (Refused, OSError, ValueError, IndexError) as e:
+                  catalog['preservationError'] = catalog['preservationError'] or str(e)
+              encoded = (json.dumps(catalog, sort_keys=True) + '\n').encode()
+              require(len(encoded) <= 65536 and total + len(encoded) <= MAX_TOTAL, 'public preservation catalog exceeds bound')
+              write_exclusive(destination, 'ACTUAL-ARTIFACTS.json', encoded)
+              fd = directory_fd(destination, ())
+              try:
+                  os.fsync(fd)
+              finally:
+                  os.close(fd)
+              return catalog
+
+          def main():
+              case_name = os.environ.get('YNX_TRANSPORT_CASE')
+              if not case_name:
+                  print('YNX_ACTUAL_PRESERVATION_NOT_STARTED noOwnedCase=true')
+                  return 0
+              case = canonical_directory(Path(case_name))
+              destination = case / 'public' / 'actual'
+              catalog = preserve(case / 'artifacts', destination, os.environ.get('ORIGINAL_TEST_OUTCOME', 'not-started'), os.environ.get('ORIGINAL_QUALIFICATION_OUTCOME', 'not-started'), os.environ['GITHUB_SHA'])
+              # Only completed, checked leaves are uploaded. A failed partial write or an
+              # unknown/secret source leaf is never admitted by a directory glob.
+              paths = [destination / 'ACTUAL-ARTIFACTS.json'] + [destination / row['path'] for row in catalog['files']]
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write('public_paths<<YNX_ACTUAL_PUBLIC_PATHS_V1\n')
+                  for path in paths:
+                      f.write(str(path) + '\n')
+                  f.write('YNX_ACTUAL_PUBLIC_PATHS_V1\n')
+              print('YNX_ACTUAL_PUBLIC_PRESERVED ' + json.dumps(dict(partial=catalog['partial'], files=len(catalog['files']), preservationError=catalog['preservationError'], sourceGrant=False, physicalBytesMeasured=False), sort_keys=True))
+              return 1 if catalog['preservationError'] else 0
+
+          if __name__ == '__main__':
+              raise SystemExit(main())
+          PYPRESERVE
+      - name: Preserve only explicit public logs source and runtime witnesses
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-transport-actual-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/pq-transport-actual-${{ github.run_id }}-${{ github.run_attempt }}/public/source-check.log
+            ${{ runner.temp }}/pq-transport-actual-${{ github.run_id }}-${{ github.run_attempt }}/public/SOURCE.json
+            ${{ runner.temp }}/pq-transport-actual-${{ github.run_id }}-${{ github.run_attempt }}/public/RUNTIME.json
+            ${{ runner.temp }}/pq-transport-actual-${{ github.run_id }}-${{ github.run_attempt }}/public/actual-tests.jsonl
+            ${{ runner.temp }}/pq-transport-actual-${{ github.run_id }}-${{ github.run_attempt }}/public/actual-tests.stderr.log
+            ${{ runner.temp }}/pq-transport-actual-${{ github.run_id }}-${{ github.run_attempt }}/public/QUALIFICATION.json
+          include-hidden-files: false
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Upload only the checked public actual catalog and original byte leaves
+        if: always() && steps.preserveactual.outputs.public_paths != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-transport-actual-public-case-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ steps.preserveactual.outputs.public_paths }}
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
