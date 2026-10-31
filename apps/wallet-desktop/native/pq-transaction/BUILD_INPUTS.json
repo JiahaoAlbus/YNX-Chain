@@ -101,15 +101,15 @@
     "sameAddon": "native/original-auth-identity.node",
     "sameNativeThread": true,
     "linkGoArchiveExactlyOnce": {
-      "sourceCommit": "74457f76d395da289cca6b3a6b353fa1349366df",
-      "path": "/Volumes/西部数据/YNX-large-work/protocol/native-tx-74457f76d/darwin-arm64/libynx_artifact_release.a",
-      "bytes": 10251632,
-      "sha256": "2256d6e3a6355771185fcd65a4b686de9d950de78a30054183c7fffed6f0b9f6",
+      "sourceCommit": "a59f7673f487e50d3a176bf48293e3647092e2cb",
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/core-macos-20261031.nWC5OM/official-macos-tx/delivery/libynx_artifact_release.a",
+      "bytes": 11192240,
+      "sha256": "dcaca724942436806f564477f8729cce3ba03cdbc5621611c9d704bb12cf8a72",
       "goVersion": "go version go1.26.10 darwin/arm64",
       "sourceRecord": {
         "path": "apps/wallet-desktop/native/pq-transaction/PROTOCOL_SOURCE.json",
-        "bytes": 19055,
-        "sha256": "f8393a99b0f64caa9cfea96f90fe6f15442b9d0757e14aeb5c36cb7508d9a91d"
+        "bytes": 26460,
+        "sha256": "6b946af20360bc6fb7f03cfb69ac3324bbac55f4c2eb8f304357230391f4594a"
       },
       "includes": [
         "ARTIFACT",
