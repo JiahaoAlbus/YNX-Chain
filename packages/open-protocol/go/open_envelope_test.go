@@ -15,7 +15,7 @@ func TestOPEN02ActualPublicEntry(t *testing.T) {
 	if !r.OK || !bytes.Equal(r.Value, wire) {
 		t.Fatal("actual entry differs")
 	}
-	if r = EncodeOpenEnvelope(ctx, "YNX-OPEN/IDENTITY-CONTROLLER/1", ctx.Realm, all[2:]); r.OK || r.Code != "UNSUPPORTED" {
+	if r = EncodeOpenEnvelope(ctx, "YNX-OPEN/UNKNOWN/1", ctx.Realm, all[2:]); r.OK || r.Code != "UNSUPPORTED" {
 		t.Fatal("unfrozen profile accepted")
 	}
 	ctx.Tenant = "00000000000000000000000000000000"
