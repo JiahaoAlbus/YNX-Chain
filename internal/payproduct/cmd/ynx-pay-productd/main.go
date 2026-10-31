@@ -12,8 +12,10 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
@@ -26,7 +28,16 @@ var (
 	buildTime    = "unknown"
 )
 
-func main() {
+func main() { os.Exit(run()) }
+func run() (exitCode int) {
+	if len(os.Args) == 2 && os.Args[1] == "--native-source-self-check" {
+		result := normalNativePaySelfCheck()
+		_ = json.NewEncoder(os.Stdout).Encode(result)
+		if result["sourceReady"] != true {
+			return 2
+		}
+		return 0
+	}
 	key, err := decodeKey(required("YNX_PAY_PRODUCT_INTEGRITY_KEY"))
 	if err != nil {
 		log.Fatal(err)
@@ -71,23 +82,52 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	stopContext, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
 	go func() {
 		ticker := time.NewTicker(15 * time.Second)
 		defer ticker.Stop()
-		for range ticker.C {
-			service.RetryDue(context.Background())
+		for {
+			select {
+			case <-stopContext.Done():
+				return
+			case <-ticker.C:
+				service.RetryDue(stopContext)
+			}
 		}
 	}()
 	addr := env("YNX_PAY_PRODUCT_ADDR", "127.0.0.1:6431")
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})
-	productServer := payproduct.NewClosedProductionServerWithLogger(service, build, logger)
-	server := &http.Server{Addr: addr, Handler: productServer.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second, ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError)}
+	productHandler, retireNativeSource, closeNativeSource := normalNativePayHandler(service, build, logger)
+	defer func() {
+		if err := closeNativeSource(); err != nil {
+			logger.Error("native_source_cleanup_pending", "source_ready", false)
+			exitCode = 1
+		}
+	}()
+	server := &http.Server{Addr: addr, Handler: productHandler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second, ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError)}
+	shutdownDone := make(chan error, 1)
+	go func() {
+		<-stopContext.Done()
+		retireNativeSource()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		shutdownDone <- server.Shutdown(ctx)
+	}()
 	logger.Info("service_start", "service", "ynx-pay-product", "address", addr, "commit", build.Commit, "release", build.Release, "build_time", build.BuildTime)
 	if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("service_exit", "service", "ynx-pay-product", "error", "listen_failed")
-		os.Exit(1)
+		retireNativeSource()
+		return 1
 	}
+	if stopContext.Err() != nil {
+		if err := <-shutdownDone; err != nil {
+			logger.Error("service_drain_pending", "service", "ynx-pay-product")
+			return 1
+		}
+	}
+	return 0
 }
 func positiveInt(name string) int64 {
 	v, err := strconv.ParseInt(required(name), 10, 64)
