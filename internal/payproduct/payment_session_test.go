@@ -205,3 +205,34 @@ func TestOpenPaymentSessionRejectsHistoricalInvalidAliases(t *testing.T) {
 		})
 	}
 }
+
+func TestVerifyPaymentSessionRequiresTrustedKeyAndExactOuterFields(t *testing.T) {
+	now := time.Date(2026, 10, 31, 1, 0, 0, 0, time.UTC)
+	pay := &fakePay{}
+	s, _ := testService(t, pay, func() time.Time { return now })
+	m, _ := onboard(t, s)
+	pay.invoice.Merchant, pay.invoice.PayoutAddress, pay.invoice.Amount = m.CentralMerchantID, m.PayoutAddress, 100
+	invoice, err := s.CreateInvoice(context.Background(), m, InvoiceInput{Amount: 100, ExpiresInMinutes: 30, IdempotencyKey: "consumer-verifier-invoice"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	session, err := s.OpenPaymentSession(context.Background(), m, PaymentSessionInput{InvoiceID: invoice.ID, SourceOrder: "original-shop-order"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	public, _ := hex.DecodeString(m.InvoiceSigningPublicKey)
+	if err = VerifyPaymentSession(session, m.ID, public); err != nil {
+		t.Fatal(err)
+	}
+	mutations := []func(*PaymentSession){func(v *PaymentSession) { v.SourceOrder = "another-order" }, func(v *PaymentSession) { v.ID = "another-intent" }, func(v *PaymentSession) { v.Invoice.Amount = 1 }, func(v *PaymentSession) { v.Status = "committed" }, func(v *PaymentSession) { v.DeepLink = "ynxpay://invoice/other" }, func(v *PaymentSession) { v.InvoiceAuthority = "v5" }}
+	for _, mutate := range mutations {
+		changed := session
+		mutate(&changed)
+		if VerifyPaymentSession(changed, m.ID, public) == nil {
+			t.Fatal("outer field mutation accepted")
+		}
+	}
+	if VerifyPaymentSession(session, "another-merchant", public) == nil || VerifyPaymentSession(session, m.ID, make([]byte, 32)) == nil || VerifyPaymentSession(session, m.ID, nil) == nil {
+		t.Fatal("untrusted merchant/key accepted")
+	}
+}

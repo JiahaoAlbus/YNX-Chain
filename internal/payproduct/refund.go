@@ -194,12 +194,12 @@ func (s *Service) RefreshRefund(ctx context.Context, actor MerchantPrincipal, re
 		if current.Status != "submitted" {
 			return errors.New("refund request state changed")
 		}
+		if err := s.enqueueWebhook(data, actor.Merchant, "refund.committed", request.ID); err != nil {
+			return err
+		}
 		data.Refunds[request.ID] = request
 		appendAudit(data, request.MerchantID, actor.Account, "refund.committed", request.ID, "refunded", evidence.ReceiptID, now)
 		return nil
 	})
-	if err == nil {
-		_ = s.queueWebhook(actor.Merchant, "refund.committed", request.ID)
-	}
 	return request, err
 }

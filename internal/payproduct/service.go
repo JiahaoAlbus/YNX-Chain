@@ -476,10 +476,16 @@ func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.P
 	invoice.Status = "committed"
 	auditID := "aud_" + hashString(invoice.MerchantID, "invoice.committed", invoice.ID, v.CreatedAt.Format(time.RFC3339Nano))[:20]
 	invoice.Settlement = &SettlementEvidence{ID: v.ID, ChainID: ChainID, TransactionHash: v.TransactionHash, BlockNumber: v.BlockNumber, Finality: "committed", Payer: v.Payer, Payee: v.PayoutAddress, PayoutAddress: v.PayoutAddress, Amount: v.Amount, Asset: v.Currency, InvoiceID: invoice.ID, CentralInvoiceID: v.InvoiceID, IntentID: v.IntentID, IdempotencyKey: v.IdempotencyKey, ReceiptID: v.ID, Status: "committed", AuditHash: v.AuditHash, AuditID: auditID, CommittedAt: v.CreatedAt, Source: "authoritative-central-pay-api", SourceAsOf: v.CreatedAt, SourceVersion: 1, Confidence: "authoritative"}
-	if err := s.saveInvoice(invoice, "invoice.committed"); err != nil {
+	if err := s.store.Update(func(data *Snapshot) error {
+		if err := s.enqueueWebhook(data, merchant, "invoice.committed", invoice.ID); err != nil {
+			return err
+		}
+		data.Invoices[invoice.ID] = invoice
+		appendAudit(data, invoice.MerchantID, "system", "invoice.committed", invoice.ID, "committed", "", s.now())
+		return nil
+	}); err != nil {
 		return Invoice{}, err
 	}
-	_ = s.queueWebhook(merchant, "invoice.committed", invoice.ID)
 	return invoice, nil
 }
 func (s *Service) saveInvoice(invoice Invoice, action string) error {
@@ -516,6 +522,17 @@ func (s *Service) SetWebhook(merchant Merchant, endpoint string) error {
 	})
 }
 func (s *Service) queueWebhook(merchant Merchant, event, objectID string) error {
+	return s.store.Update(func(data *Snapshot) error { return s.enqueueWebhook(data, merchant, event, objectID) })
+}
+
+// Called in the original business transaction: no committed state can lose its
+// notification between two separate writes. Rotation does not mint a new event.
+func (s *Service) enqueueWebhook(data *Snapshot, merchant Merchant, event, objectID string) error {
+	for _, old := range data.Deliveries {
+		if old.MerchantID == merchant.ID && old.EventType == event && old.ObjectID == objectID && old.ParentDeliveryID == "" {
+			return nil
+		}
+	}
 	if merchant.WebhookURL == "" {
 		return nil
 	}
@@ -526,48 +543,110 @@ func (s *Service) queueWebhook(merchant Merchant, event, objectID string) error 
 		return err
 	}
 	id := "whd_" + hashString(event, objectID, fmt.Sprint(merchant.SecretVersion))[:20]
+	if _, exists := data.Deliveries[id]; exists {
+		return errors.New("webhook event identity is already bound")
+	}
 	payloadHash := hexSHA(payload)
-	delivery := WebhookDelivery{ID: id, MerchantID: merchant.ID, EventType: event, ObjectID: objectID, Endpoint: merchant.WebhookURL, PayloadHash: payloadHash, Signature: hmacHex([]byte(secret), webhookSigningMaterial(id, now, payloadHash)), SecretVersion: merchant.SecretVersion, Status: "pending", CreatedAt: now, UpdatedAt: now}
-	return s.store.Update(func(data *Snapshot) error {
-		if _, ok := data.Deliveries[id]; !ok {
-			data.Deliveries[id] = delivery
-		}
-		return nil
-	})
+	data.Deliveries[id] = WebhookDelivery{ID: id, MerchantID: merchant.ID, EventType: event, ObjectID: objectID, Endpoint: merchant.WebhookURL, PayloadHash: payloadHash, Signature: hmacHex([]byte(secret), webhookSigningMaterial(id, now, payloadHash)), SecretVersion: merchant.SecretVersion, Status: "pending", CreatedAt: now, UpdatedAt: now}
+	return nil
 }
+
+// webhookEvent follows the original persisted replay lineage. Local delivery IDs
+// may differ; a manual retry must retain the same recipient inbox event identity.
+func webhookEvent(data Snapshot, id string) (WebhookDelivery, error) {
+	seen := map[string]bool{}
+	var previous WebhookDelivery
+	for {
+		d, ok := data.Deliveries[id]
+		if !ok || seen[id] {
+			return WebhookDelivery{}, errors.New("original webhook event requires recovery")
+		}
+		if previous.ID != "" && (d.MerchantID != previous.MerchantID || d.EventType != previous.EventType || d.ObjectID != previous.ObjectID) {
+			return WebhookDelivery{}, errors.New("webhook replay lineage changed")
+		}
+		seen[id] = true
+		if d.ParentDeliveryID == "" {
+			return d, nil
+		}
+		previous = d
+		id = d.ParentDeliveryID
+	}
+}
+
 func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, error) {
 	s.mutation.Lock()
 	defer s.mutation.Unlock()
-	var d WebhookDelivery
-	var merchant Merchant
+	var d, event WebhookDelivery
 	err := s.store.View(func(data Snapshot) error {
 		var ok bool
 		d, ok = data.Deliveries[id]
 		if !ok {
 			return errors.New("webhook delivery not found")
 		}
-		merchant = data.Merchants[d.MerchantID]
-		return nil
+		var err error
+		event, err = webhookEvent(data, id)
+		return err
 	})
 	if err != nil {
 		return d, err
 	}
-	if d.Status == "delivered" {
+	if d.Status == "delivered" || d.Status == "dead_letter" || d.Status == "failed" {
 		return d, nil
 	}
-	payload, _ := json.Marshal(map[string]any{"event": d.EventType, "objectId": d.ObjectID, "merchantId": d.MerchantID, "occurredAt": d.CreatedAt})
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, d.Endpoint, strings.NewReader(string(payload)))
+	if d.Status != "pending" && d.Status != "retrying" {
+		return d, errors.New("webhook delivery requires recovery")
+	}
+	if d.Attempt >= 5 || d.NextAttemptAt.After(s.now()) {
+		return d, nil
+	}
+	if err := ctx.Err(); err != nil {
+		return d, err
+	}
+	payload, _ := json.Marshal(map[string]any{"event": d.EventType, "objectId": d.ObjectID, "merchantId": d.MerchantID, "occurredAt": event.CreatedAt})
+	if hexSHA(payload) != d.PayloadHash {
+		return d, errors.New("original webhook payload hash changed")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, d.Endpoint, strings.NewReader(string(payload)))
+	if err != nil {
+		return d, err
+	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-YNX-Event-ID", d.ID)
-	req.Header.Set("X-YNX-Delivery-ID", d.ID)
+	req.Header.Set("X-YNX-Event-ID", event.ID)
+	req.Header.Set("X-YNX-Delivery-ID", event.ID)
 	req.Header.Set("X-YNX-Timestamp", d.CreatedAt.UTC().Format(time.RFC3339Nano))
 	req.Header.Set("X-YNX-Payload-SHA256", d.PayloadHash)
 	req.Header.Set("X-YNX-Signature-Version", fmt.Sprint(d.SecretVersion))
 	req.Header.Set("X-YNX-Signature", "v"+fmt.Sprint(d.SecretVersion)+"="+d.Signature)
 	applyCorrelationHeaders(req)
-	resp, sendErr := s.client.Do(req)
+	// Reserve the attempt AND its next allowed dispatch before network effects.
+	// On response loss/cold restart this exact event remains bounded and retryable.
 	d.Attempt++
-	d.UpdatedAt = s.now()
+	d.UpdatedAt = s.now().UTC()
+	d.HTTPStatus = 0
+	d.Status = "retrying"
+	if d.Attempt >= 5 {
+		d.Status = "dead_letter"
+		at := d.UpdatedAt
+		d.DeadLetteredAt = &at
+		d.NextAttemptAt = time.Time{}
+	} else {
+		d.NextAttemptAt = d.UpdatedAt.Add(time.Duration(1<<min(d.Attempt, 6)) * time.Minute)
+	}
+	if err = s.store.Update(func(data *Snapshot) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if data.Merchants[d.MerchantID].Status != "active" {
+			return errors.New("webhook merchant is inactive")
+		}
+		data.Deliveries[id] = d
+		return nil
+	}); err != nil {
+		return d, err
+	}
+	client := *s.client
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	resp, sendErr := client.Do(req)
 	if sendErr == nil {
 		d.HTTPStatus = resp.StatusCode
 		_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
@@ -575,24 +654,17 @@ func (s *Service) Deliver(ctx context.Context, id string) (WebhookDelivery, erro
 	}
 	if sendErr == nil && d.HTTPStatus >= 200 && d.HTTPStatus < 300 {
 		d.Status = "delivered"
-	} else {
-		d.Status = "retrying"
-		if d.Attempt >= 5 {
-			deadLetteredAt := s.now().UTC()
-			d.Status = "dead_letter"
-			d.DeadLetteredAt = &deadLetteredAt
-			d.NextAttemptAt = time.Time{}
-		} else {
-			d.NextAttemptAt = s.now().Add(time.Duration(1<<min(d.Attempt, 6)) * time.Minute)
-		}
+		d.NextAttemptAt = time.Time{}
+		d.DeadLetteredAt = nil
 	}
+	d.UpdatedAt = s.now().UTC()
 	err = s.store.Update(func(data *Snapshot) error {
 		data.Deliveries[id] = d
 		outcome := d.Status
 		if sendErr != nil {
 			outcome += " " + sendErr.Error()
 		}
-		appendAudit(data, merchant.ID, "system", "webhook.deliver", id, outcome, "", s.now())
+		appendAudit(data, d.MerchantID, "system", "webhook.deliver", id, outcome, "", s.now())
 		return nil
 	})
 	return d, err
@@ -612,7 +684,7 @@ func (s *Service) ManualReplayWebhook(actor MerchantPrincipal, deliveryID, reaso
 	}
 	s.mutation.Lock()
 	defer s.mutation.Unlock()
-	var original WebhookDelivery
+	var original, event WebhookDelivery
 	var merchant Merchant
 	if err := s.store.View(func(data Snapshot) error {
 		var ok bool
@@ -624,7 +696,9 @@ func (s *Service) ManualReplayWebhook(actor MerchantPrincipal, deliveryID, reaso
 			return errors.New("only a dead-letter webhook can be manually replayed")
 		}
 		merchant = data.Merchants[original.MerchantID]
-		return nil
+		var err error
+		event, err = webhookEvent(data, original.ID)
+		return err
 	}); err != nil {
 		return WebhookDelivery{}, err
 	}
@@ -643,14 +717,14 @@ func (s *Service) ManualReplayWebhook(actor MerchantPrincipal, deliveryID, reaso
 		return replay, err
 	}
 	now := s.now().UTC()
-	payload, _ := json.Marshal(map[string]any{"event": original.EventType, "objectId": original.ObjectID, "merchantId": original.MerchantID, "occurredAt": now})
+	payload, _ := json.Marshal(map[string]any{"event": original.EventType, "objectId": original.ObjectID, "merchantId": original.MerchantID, "occurredAt": event.CreatedAt})
 	secret, err := s.open(merchant.WebhookSecretCipher)
 	if err != nil {
 		return WebhookDelivery{}, errors.New("webhook signing secret unavailable")
 	}
 	id := "whd_" + hashString(original.ID, key, now.Format(time.RFC3339Nano))[:20]
 	payloadHash := hexSHA(payload)
-	replay = WebhookDelivery{ID: id, MerchantID: original.MerchantID, EventType: original.EventType, ObjectID: original.ObjectID, Endpoint: merchant.WebhookURL, PayloadHash: payloadHash, Signature: hmacHex([]byte(secret), webhookSigningMaterial(id, now, payloadHash)), SecretVersion: merchant.SecretVersion, Status: "pending", ParentDeliveryID: original.ID, ManualReplayReason: reason, ReplayedBy: actor.Account, CreatedAt: now, UpdatedAt: now}
+	replay = WebhookDelivery{ID: id, MerchantID: original.MerchantID, EventType: original.EventType, ObjectID: original.ObjectID, Endpoint: merchant.WebhookURL, PayloadHash: payloadHash, Signature: hmacHex([]byte(secret), webhookSigningMaterial(event.ID, now, payloadHash)), SecretVersion: merchant.SecretVersion, Status: "pending", ParentDeliveryID: original.ID, ManualReplayReason: reason, ReplayedBy: actor.Account, CreatedAt: now, UpdatedAt: now}
 	if replay.Endpoint == "" {
 		return WebhookDelivery{}, errors.New("merchant webhook endpoint is unavailable")
 	}

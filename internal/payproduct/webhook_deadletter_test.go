@@ -47,6 +47,9 @@ func TestWebhookDeadLetterAndAuditedManualReplay(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		if i < 4 {
+			now = original.NextAttemptAt
+		}
 	}
 	if original.Status != "dead_letter" || original.Attempt != 5 || original.DeadLetteredAt == nil || !original.NextAttemptAt.IsZero() {
 		t.Fatalf("delivery did not enter terminal dead letter state: %+v", original)

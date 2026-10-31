@@ -281,6 +281,7 @@ func TestSettlementMismatchExpiryAndWebhookRetry(t *testing.T) {
 		if err != nil || d.Status != "retrying" || d.Attempt != 1 {
 			t.Fatalf("webhook failure did not persist a retry: %+v %v", d, err)
 		}
+		now = d.NextAttemptAt
 		d, err = service.Deliver(context.Background(), id)
 		if err != nil || d.Status != "delivered" || d.Attempt != 2 {
 			t.Fatalf("webhook retry did not deliver idempotently: %+v %v", d, err)
