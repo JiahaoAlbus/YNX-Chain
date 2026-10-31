@@ -1661,7 +1661,7 @@ jobs:
           # Preserve the complete original test set. Production operator cases
           # get their own bounded process so late cases do not inherit an almost
           # expired suite clock. Host and large recovery retain their own groups.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLabLiveMaterials)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
             exit 1
           fi
@@ -1670,11 +1670,19 @@ jobs:
             exit 1
           fi
           cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
+          # New continuous proof tests receive their own unchanged bounded
+          # process; no original non-Host test is dropped or given a stale clock.
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLabLiveMaterials' ./internal/consensus > "$RUNNER_TEMP/ynx-live-materials-state-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-live-materials-state-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-live-materials-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           python3 -B - <<'PY'
           import json, os
           from pathlib import Path
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-initial-cache-state-tests.jsonl').read_text().splitlines()]
           required = ['TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash', 'TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold', 'TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis', 'TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming', 'TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas', 'TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer', 'TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets', 'TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds', 'TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting', 'TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation', 'TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles', 'TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory', 'TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads', 'TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip', 'TestPQHistoryMathCacheOwnedReplayCommitAndColdRestart', 'TestPQHistoryMathCacheWarmDynamicRejectionsMatchCold', 'TestValidatorRegistryMathCacheOwnedHitsPreserveOriginalStateAndHash', 'TestValidatorRegistryMathCacheWarmHitsNeverAuthorizeChangedRegistry', 'TestValidatorRegistryMathCacheColdRestartReverifiesWithIndependentOwner', 'TestValidatorRegistryMathCacheOwnedSnapshotsRetainWitnessAndDynamicChecks', 'TestValidatorRegistryMathCacheApplicationAndOwnedFileSnapshotsReuseOnlyMath', 'TestPQNetworkBusinessHostPreparationReturnsErrorsWithoutGoexit', 'TestPQNetworkBusinessHostPreparationUsesOwnedMathAndKeepsColdValidation', 'TestPQNetworkBusinessHostPreparationCancellationStopsBeforeCapture', 'TestPQNetworkFreshHostPreparationDoesNotBlockOriginalPacedOffers', 'TestPQNetworkFreshHostPreparationRetainsFourSlotsAndDetachedInputs', 'TestPQNetworkFreshHostPreparationPreservesErrorsAndPipelineCancellation', 'TestPQNetworkFreshHostPreparationRejectsInvalidTargetsAndJoinsGoexit', 'TestPQNetworkFreshHostPreparationProgressKeepsAllMeasuredStagesAndOriginalBudget', 'TestPQNetworkFreshHostPreparationYieldsBetweenReadinessProbes', 'TestPQEngineCheckpointValidationOwnedReadAndColdAuthority', 'TestPQEngineCheckpointValidationResealedLedgerAndCoordinates', 'TestPQEngineCheckpointValidationOriginalReadbackAndClose', 'TestPQEngineCheckpointValidationKeepsIndependentSchedulePin', 'TestPQNetworkFreshSuccessorTipsWaitWithoutPayloadProbe', 'TestPQNetworkFreshSuccessorTipsStillRequireOriginalPayloadAndValidation', 'TestPQNetworkFreshSuccessorTipsKeepErrorsSourcesAndSnapshots', 'TestPQNetworkFreshSuccessorTipsBoundariesAndIndependentCalls', 'TestABCIPQEnvelopeEncodingDifferential', 'TestABCIPQEnvelopeEncodingRandomDifferential']
+          required += ['TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm', 'TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority', 'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal']
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
