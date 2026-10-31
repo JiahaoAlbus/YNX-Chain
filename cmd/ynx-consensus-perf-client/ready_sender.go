@@ -477,6 +477,7 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			now := time.Now()
 			at, due := now.UTC(), nextOffer.UTC()
 			results[index].offerMonotonic = now
+			results[index].scheduledMonotonic = nextOffer
 			results[index].OfferedAt, results[index].ScheduledAt = &at, &due
 			inFlight[e.Sender], last[e.Sender] = true, e.Index
 			active++

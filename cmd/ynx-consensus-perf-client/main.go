@@ -71,6 +71,10 @@ type errorObservation struct {
 type transactionResult struct {
 	offerMonotonic               time.Time
 	submitMonotonic              time.Time
+	scheduledMonotonic           time.Time
+	checkTxMonotonic             time.Time
+	includedMonotonic            time.Time
+	finalMonotonic               time.Time
 	Index                        int                `json:"index"`
 	Round                        int                `json:"round,omitempty"`
 	SignedTransaction            string             `json:"signedTransaction,omitempty"`
@@ -162,37 +166,39 @@ type summary struct {
 }
 
 type report struct {
-	SchemaVersion        int                     `json:"schemaVersion"`
-	RoundsRequested      int                     `json:"roundsRequested"`
-	RoundsCompleted      int                     `json:"roundsCompleted"`
-	Kind                 string                  `json:"kind"`
-	ChainID              string                  `json:"chainId"`
-	GenesisSHA256        string                  `json:"genesisSha256"`
-	Endpoints            []string                `json:"endpoints"`
-	Concurrency          int                     `json:"concurrency"`
-	OfferedRate          float64                 `json:"configuredOfferedRate"`
-	ObserverConcurrency  int                     `json:"observerConcurrency"`
-	LoadMode             string                  `json:"loadMode"`
-	LoadQueues           pacedStatistics         `json:"loadQueues"`
-	DurableReadback      durableReaderStats      `json:"durableReadback"`
-	GroupedObservation   groupedObservationStats `json:"groupedObservation"`
-	SenderMode           string                  `json:"senderMode"`
-	InclusionMode        string                  `json:"inclusionMode"`
-	ReadySenders         readySenderStats        `json:"readySenders"`
-	RetentionMode        string                  `json:"retentionMode,omitempty"`
-	TerminalStream       *terminalStreamReport   `json:"terminalStream,omitempty"`
-	TimeoutMs            int64                   `json:"timeoutMs"`
-	PollMs               int64                   `json:"pollMs"`
-	StartedAt            time.Time               `json:"startedAt"`
-	MeasurementStartedAt *time.Time              `json:"measurementStartedAt,omitempty"`
-	FinishedAt           time.Time               `json:"finishedAt"`
-	GoVersion            string                  `json:"goVersion"`
-	Platform             string                  `json:"platform"`
-	GOMAXPROCS           int                     `json:"gomaxprocs"`
-	Summary              summary                 `json:"summary"`
-	Transactions         []transactionResult     `json:"transactions"`
-	SetupErrors          []errorObservation      `json:"setupErrors"`
-	Interpretation       []string                `json:"interpretation"`
+	measurementOrigin     time.Time
+	MonotonicObservations *monotonicObservationReport `json:"monotonicObservations,omitempty"`
+	SchemaVersion         int                         `json:"schemaVersion"`
+	RoundsRequested       int                         `json:"roundsRequested"`
+	RoundsCompleted       int                         `json:"roundsCompleted"`
+	Kind                  string                      `json:"kind"`
+	ChainID               string                      `json:"chainId"`
+	GenesisSHA256         string                      `json:"genesisSha256"`
+	Endpoints             []string                    `json:"endpoints"`
+	Concurrency           int                         `json:"concurrency"`
+	OfferedRate           float64                     `json:"configuredOfferedRate"`
+	ObserverConcurrency   int                         `json:"observerConcurrency"`
+	LoadMode              string                      `json:"loadMode"`
+	LoadQueues            pacedStatistics             `json:"loadQueues"`
+	DurableReadback       durableReaderStats          `json:"durableReadback"`
+	GroupedObservation    groupedObservationStats     `json:"groupedObservation"`
+	SenderMode            string                      `json:"senderMode"`
+	InclusionMode         string                      `json:"inclusionMode"`
+	ReadySenders          readySenderStats            `json:"readySenders"`
+	RetentionMode         string                      `json:"retentionMode,omitempty"`
+	TerminalStream        *terminalStreamReport       `json:"terminalStream,omitempty"`
+	TimeoutMs             int64                       `json:"timeoutMs"`
+	PollMs                int64                       `json:"pollMs"`
+	StartedAt             time.Time                   `json:"startedAt"`
+	MeasurementStartedAt  *time.Time                  `json:"measurementStartedAt,omitempty"`
+	FinishedAt            time.Time                   `json:"finishedAt"`
+	GoVersion             string                      `json:"goVersion"`
+	Platform              string                      `json:"platform"`
+	GOMAXPROCS            int                         `json:"gomaxprocs"`
+	Summary               summary                     `json:"summary"`
+	Transactions          []transactionResult         `json:"transactions"`
+	SetupErrors           []errorObservation          `json:"setupErrors"`
+	Interpretation        []string                    `json:"interpretation"`
 }
 
 func main() {
@@ -570,7 +576,9 @@ func submitTransaction(ctx context.Context, client *rpchttp.HTTP, raw cmttypes.T
 		addError(&result.Errors, "broadcast_tx_sync", err)
 		return start, false
 	}
-	now := time.Now().UTC()
+	observed := time.Now()
+	result.checkTxMonotonic = observed
+	now := observed.UTC()
 	elapsed := time.Since(start).Seconds() * 1000
 	result.CheckTxObservedAt, result.CheckTxMs = &now, &elapsed
 	result.CheckTxCode, result.CheckTxLog = &broadcast.Code, broadcast.Log
@@ -613,7 +621,9 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 					result.Status = "execution_failed"
 					return
 				}
-				now := time.Now().UTC()
+				observed := time.Now()
+				result.includedMonotonic = observed
+				now := observed.UTC()
 				elapsed := time.Since(start).Seconds() * 1000
 				result.IncludedObservedAt, result.InclusionMs = &now, &elapsed
 				included = queried
@@ -683,6 +693,7 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 					}
 					now := observed.UTC()
 					elapsed := observed.Sub(start).Seconds() * 1000
+					result.finalMonotonic = observed
 					result.ConfirmedObservedAt, result.ConfirmationMs = &now, &elapsed
 					result.Status, result.QuorumVerified, result.TransactionProofVerified = "confirmed", true, true
 					result.DurableStateVerified, result.DurableStateHeight, result.DurableStateAppHash = true, state.Height, state.AppHash
@@ -957,6 +968,7 @@ func execute(o options) error {
 		started := time.Now()
 		at := started.UTC()
 		r.MeasurementStartedAt = &at
+		r.measurementOrigin = started
 		var roundErr error
 		runRound := func(txs []cmttypes.Tx, results []transactionResult) {
 			for i := range results {
@@ -1090,7 +1102,11 @@ func execute(o options) error {
 		}
 		return nil
 	}()
-	r.FinishedAt = time.Now().UTC()
+	finished := time.Now()
+	r.FinishedAt = finished.UTC()
+	if !o.reuseResultSlots {
+		r.MonotonicObservations = captureMonotonicReport(r.measurementOrigin, finished, r.Transactions)
+	}
 	if runErr != nil {
 		addError(&r.SetupErrors, "run", runErr)
 	}

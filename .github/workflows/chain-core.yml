@@ -100,7 +100,7 @@ jobs:
       - name: Verify actual ready-sender Commit phase observations
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
-          -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery)$'
+          -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestMonotonicObservation.*)$'
           -count=1 -timeout=45s -v
       - run: node scripts/verify/integration-contract-check.mjs
       - run: node scripts/verify/chain-core-release-check.mjs
