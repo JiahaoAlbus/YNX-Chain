@@ -60,8 +60,13 @@ export async function openOriginalProductSessionDeviceV4PendingProofClient(...ar
   selected=true;
   try{
    operation=call(owner,name,original); // Adopt BEFORE any ABI/error inspection.
-   for(const key of operationMethods)method(operation,key);
   }catch(cause){boundary(cause);throw cause;}
+  try{for(const key of operationMethods)method(operation,key);}
+  catch(error){
+   // This is our own ABI refusal, not a translated Native exception. Preserve
+   // the SAME entered partial for public readback; cleanup remains this client.
+   Object.defineProperty(error,'partial',{value:operation});boundary(error);throw error;
+  }
   // Return the SAME original operation before assertCurrent can expose a late
   // error. Native owns the member/status/partial; the client retains cleanup.
   return operation;

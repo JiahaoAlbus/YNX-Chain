@@ -69,3 +69,12 @@ test('close adopts the synchronous original operation before the caller await re
  const f=fixture(),{api,restore}=await openWith(f.native);
  try{const c=await api.openOriginalProductSessionDeviceV4PendingProofClient(),pending=c.produceRegistrationProof(ctx());assert.equal(c.status().operationRetained,true);const closing=c.close();assert.equal(await pending,f.op);await closing;await assert.rejects(c.produceChallengeProof(ctx()),{code:'PENDING_DEVICE_V4_CLIENT_RETIRED'});assert.equal(c.status().closed,true);}finally{restore();}
 });
+test('post-adoption ABI refusal retains SAME partial for readback and owned cleanup',async()=>{
+ const f=fixture({op:{readOriginalStatus:null}}),{api,restore}=await openWith(f.native);
+ try{const c=await api.openOriginalProductSessionDeviceV4PendingProofClient();await assert.rejects(c.produceRegistrationProof(ctx()),e=>e.code==='PENDING_DEVICE_V4_ORIGINAL_ABI_REQUIRED'&&e.partial===f.op&&e.partial.readOriginalMember()===f.op.readOriginalMember());assert.equal(c.status().operationRetained,true);assert.equal(c.status().unknown,true);await c.close();assert.equal(c.status().closed,true);assert.equal(c.status().unknown,true);}finally{restore();}
+});
+test('caller cancellation keeps original signal, partial and cleanup; it cannot enter a fresh proof',async()=>{
+ const controller=new AbortController(),original=Object.freeze({signal:controller.signal}),cause=Object.freeze(Error('PUBLIC original abort'));
+ const f=fixture({capture:c=>assert.equal(c,original),op:{assertCurrent(){if(original.signal.aborted)throw cause;}}}),{api,restore}=await openWith(f.native);
+ try{const c=await api.openOriginalProductSessionDeviceV4PendingProofClient(),op=await c.produceChallengeProof(original);controller.abort();assert.throws(()=>op.assertCurrent(),e=>e===cause);assert.equal(op.readOriginalMember(),f.op.readOriginalMember());await c.close();await assert.rejects(c.produceRegistrationProof(ctx()),{code:'PENDING_DEVICE_V4_CLIENT_RETIRED'});assert.deepEqual(f.trace,['challenge','op.retire','op.join','op.close','owner.retire','owner.join','owner.close']);}finally{restore();}
+});

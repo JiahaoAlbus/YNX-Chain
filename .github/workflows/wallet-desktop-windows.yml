@@ -3664,3 +3664,6 @@ jobs:
         run: node --experimental-test-module-mocks --test --test-concurrency=1 scripts/ci/sdk49-pending-client.test.mjs
       - name: Distinct registration, challenge, GET and management type boundaries
         run: npm run test:product-device-v4-pending-client-types --prefix packages/wallet-auth
+      - name: Node-only public subpath imports without Native acquisition
+        working-directory: packages/wallet-auth
+        run: node --input-type=module -e 'const m=await import("@ynx-chain/wallet-auth/original-product-device-v4-pending-client");if(typeof m.openOriginalProductSessionDeviceV4PendingProofClient!=="function")throw Error("PUBLIC_EXPORT_MISSING");'
