@@ -203,3 +203,51 @@ is the real handler drain; `Close` reports `ErrLocalCallerDraining` while handle
 still own work. Native caller retirement joins its single attempt and closes
 only its own descriptors. Neither side deletes an existing socket, reconnects,
 replays an UNKNOWN operation, or borrows Wallet/IDE native handles.
+
+## Original TLS request into the Node authority
+
+Use `NewAuthorityIPCIngress(AuthorityIPCIngressConfig)` as the real
+`NewHTTPServer` handler. It requires the server's private original TLS request
+binding, exact registered POST/JSON routes, original unconsumed body and explicit
+Content-Length. It refuses ordinary/copy requests, replaced or partially read
+bodies, changed length/MIME, chunked framing and identity headers. Each request
+uses one fixed Node Unix endpoint with current UID/PID checks and no retry.
+
+The ingress transfers one private per-request control socket through
+`SCM_RIGHTS` before the unchanged local HTTP request. The Node native listener
+accepts only the registered Go bridge UID/PID, retains that control FD privately,
+and gives only the data FD to Node's original HTTP parser. Its distinct inbound
+tag/request WeakMap cannot accept an outbound handle or caller-created request.
+There is no channel/caller header or JSON capability token.
+
+The original Auth bootstrap holds the actual server returned by
+`openInboundAuthorityServer(registration, originalHandler)`. Its private resolver
+must use the instance-bound forms:
+
+```js
+const handle = acquireInboundCaller(nativeRequest, registeredServer);
+const material = await currentInboundCaller(nativeRequest, handle,
+                                            registeredServer);
+releaseInboundCaller(handle);
+```
+
+`Current` calls Go through the exclusive FD and rechecks the original TLS
+request/Gate, exact Node peer, route and lifecycle every time. Returned Body and
+exporter are owned copies; Host describes the original TLS Host, while the local
+HTTP Host is the fixed registered Service. It never consumes or replaces the
+original Node request stream. Auth reads/compares that stream and parses its own
+untouched request candidate, including its original nonce/narrowing data. LINK
+does not produce Nonce, Account, role, business ctx, Source or receipt evidence.
+
+Repeated acquire of the same request returns the same handle. Logical release
+does not close the socket before the response producer finishes; response
+finish/close, abort and retirement invalidate it. Retirement stops new accepts
+and dispatch; Join waits for native accept/current work, returned handler
+promises and actual socket closure. The Auth owner remains responsible for
+children outside its returned promise. The general unbound accessors prove only
+transport provenance and cannot replace the original registered listener.
+
+Functional evidence separately covers Node outbound, Node inbound, Go material
+seals, and a composed real Native Node -> Unix caller -> native TLS -> restricted
+Unix/SCM -> Node original request pipeline. Synthetic credentials and opaque DATA
+fixtures do not establish production Source admission or whole-response proof.
