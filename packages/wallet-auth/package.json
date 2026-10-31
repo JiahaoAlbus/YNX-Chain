@@ -293,6 +293,12 @@
       "types": "./src/public-content-binding.d.ts",
       "import": "./src/public-content-binding.js",
       "default": "./src/public-content-binding.js"
+    },
+    "./original-device-create-intent": {
+      "types": "./src/original-device-create-intent.d.ts",
+      "browser": null,
+      "node": "./src/original-device-create-intent.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
