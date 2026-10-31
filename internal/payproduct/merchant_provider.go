@@ -132,3 +132,30 @@ func (p *merchantGuardedPay) Settlement(ctx context.Context, id string) (chain.P
 	}
 	return out, nil
 }
+
+// Preserve the original authorized refund capability through the same scoped
+// provider wrapper. A Merchant admission still cannot replace Wallet approval.
+func (p *merchantGuardedPay) CreateAuthorizedRefund(ctx context.Context, input AuthorizedRefundSubmission) (chain.RefundRecord, error) {
+	api, ok := p.original.(AuthorizedRefundAPI)
+	if !ok {
+		return chain.RefundRecord{}, errors.New("authoritative refund transaction API is unavailable")
+	}
+	return merchantProviderMutation(p, ctx, "refund.authorized", input.IdempotencyKey, input, func() (chain.RefundRecord, error) { return api.CreateAuthorizedRefund(ctx, input) })
+}
+func (p *merchantGuardedPay) RefundEvidence(ctx context.Context, id string) (AuthoritativeRefundEvidence, error) {
+	api, ok := p.original.(AuthorizedRefundAPI)
+	if !ok {
+		return AuthoritativeRefundEvidence{}, errors.New("authoritative refund evidence API is unavailable")
+	}
+	if err := p.service.store.View(func(Snapshot) error { return ctx.Err() }); err != nil {
+		return AuthoritativeRefundEvidence{}, err
+	}
+	out, err := api.RefundEvidence(ctx, id)
+	if err != nil {
+		return out, err
+	}
+	if err = p.service.store.View(func(Snapshot) error { return ctx.Err() }); err != nil {
+		return AuthoritativeRefundEvidence{}, err
+	}
+	return out, nil
+}

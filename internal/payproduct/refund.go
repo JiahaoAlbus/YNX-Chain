@@ -76,6 +76,9 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 		return RefundRequest{}, errors.New("owner or finance role required for refund submission")
 	}
 	api, ok := s.pay.(AuthorizedRefundAPI)
+	if guarded, scoped := s.pay.(*merchantGuardedPay); scoped {
+		_, ok = guarded.original.(AuthorizedRefundAPI)
+	}
 	if !ok {
 		return RefundRequest{}, errors.New("authoritative refund transaction API is unavailable")
 	}
@@ -124,6 +127,35 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 		return RefundRequest{}, errors.New("submitted refund authorization does not match the idempotent replay")
 	}
 	submission := AuthorizedRefundSubmission{RequestID: request.ID, InvoiceID: invoice.CentralID, IntentID: invoice.IntentID, MerchantID: actor.Merchant.CentralMerchantID, MerchantAccount: actor.Account, Payer: request.Payer, Amount: request.Amount, Asset: invoice.Asset, Reason: request.Reason, TransactionHash: strings.ToLower(authorization.TransactionHash), AuthorizationDigest: digest, IdempotencyKey: key}
+	// Durable reservation precedes the first external effect. An unknown result
+	// cannot be reopened by a new key, authorization or process restart.
+	now := s.now().UTC()
+	request.Status, request.ApprovedBy, request.AuthorizationDigest, request.RefundTransactionHash, request.SubmittedAt, request.UpdatedAt = "unknown", actor.Account, digest, submission.TransactionHash, &now, now
+	slot := hashString("YNX_PAY_ORIGINAL_REFUND_DISPATCH_V1", request.ID)
+	if err = s.store.Update(func(data *Snapshot) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if data.Refunds[request.ID].Status != "requested" {
+			return errors.New("original refund outcome requires recovery")
+		}
+		for id, candidate := range data.Refunds {
+			if id != request.ID && (candidate.AuthorizationDigest == digest || (candidate.RefundTransactionHash != "" && candidate.RefundTransactionHash == request.RefundTransactionHash)) {
+				return errors.New("refund authorization or transaction already reserved")
+			}
+		}
+		if data.BusinessDispatches == nil {
+			data.BusinessDispatches = map[string]BusinessDispatchRecord{}
+		}
+		if _, exists := data.BusinessDispatches[slot]; exists {
+			return errors.New("original refund dispatch requires recovery")
+		}
+		data.BusinessDispatches[slot] = BusinessDispatchRecord{Account: actor.Account, MerchantID: request.MerchantID, RequestHash: hashJSON(submission), Operation: "refund.submit", IdempotencyKey: key, Phase: "unknown", ResultCipher: s.seal(string(mustCanonical(submission))), UpdatedAt: now}
+		data.Refunds[request.ID] = request
+		return nil
+	}); err != nil {
+		return RefundRequest{}, err
+	}
 	central, err := api.CreateAuthorizedRefund(ctx, submission)
 	if err != nil {
 		return RefundRequest{}, err
@@ -131,11 +163,11 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 	if !identifierRE.MatchString(central.ID) || central.IntentID != invoice.IntentID || central.Amount != request.Amount || central.Currency != invoice.Asset || (central.Status != "submitted" && central.Status != "pending") || central.IdempotencyKey != key {
 		return RefundRequest{}, errors.New("central Pay refund submission was incomplete or mismatched")
 	}
-	now := s.now().UTC()
+	now = s.now().UTC()
 	request.Status, request.ApprovedBy, request.AuthorizationDigest, request.RefundTransactionHash, request.CentralRefundID, request.SubmittedAt, request.UpdatedAt = "submitted", actor.Account, digest, strings.ToLower(authorization.TransactionHash), central.ID, &now, now
 	err = s.store.Update(func(data *Snapshot) error {
 		current := data.Refunds[request.ID]
-		if current.Status != "requested" {
+		if current.Status != "unknown" || current.AuthorizationDigest != digest || current.RefundTransactionHash != submission.TransactionHash {
 			return errors.New("refund request state changed")
 		}
 		for id, candidate := range data.Refunds {
@@ -146,6 +178,10 @@ func (s *Service) SubmitRefundAuthorization(ctx context.Context, actor MerchantP
 				return errors.New("refund transaction replay rejected")
 			}
 		}
+		record := data.BusinessDispatches[slot]
+		record.Phase = "submitted"
+		record.UpdatedAt = now
+		data.BusinessDispatches[slot] = record
 		data.Refunds[request.ID] = request
 		appendAudit(data, request.MerchantID, actor.Account, "refund.submit", request.ID, "submitted", digest, now)
 		return nil
@@ -158,6 +194,9 @@ func (s *Service) RefreshRefund(ctx context.Context, actor MerchantPrincipal, re
 		return RefundRequest{}, errors.New("merchant case role required")
 	}
 	api, ok := s.pay.(AuthorizedRefundAPI)
+	if guarded, scoped := s.pay.(*merchantGuardedPay); scoped {
+		_, ok = guarded.original.(AuthorizedRefundAPI)
+	}
 	if !ok {
 		return RefundRequest{}, errors.New("authoritative refund evidence API is unavailable")
 	}
@@ -177,12 +216,18 @@ func (s *Service) RefreshRefund(ctx context.Context, actor MerchantPrincipal, re
 	if request.Status == "refunded" && request.Evidence != nil {
 		return request, nil
 	}
+	if request.Status == "unknown" && request.CentralRefundID == "" {
+		return request, nil
+	}
 	if request.Status != "submitted" || request.CentralRefundID == "" {
 		return RefundRequest{}, errors.New("refund has not been submitted with merchant Wallet authorization")
 	}
 	evidence, err := api.RefundEvidence(ctx, request.CentralRefundID)
 	if err != nil {
 		return RefundRequest{}, err
+	}
+	if !walletDigestPattern.MatchString(evidence.AuditHash) || !walletTxPattern.MatchString(evidence.TransactionHash) || !identifierRE.MatchString(evidence.ReceiptID) {
+		return RefundRequest{}, errors.New("authoritative refund evidence is incomplete or mismatched")
 	}
 	if evidence.ID != request.CentralRefundID || evidence.RequestID != request.ID || evidence.InvoiceID != invoice.CentralID || evidence.IntentID != invoice.IntentID || evidence.ChainID != ChainID || evidence.MerchantID != actor.Merchant.CentralMerchantID || evidence.MerchantAccount != request.ApprovedBy || evidence.Payer != request.Payer || evidence.Amount != request.Amount || evidence.Asset != invoice.Asset || strings.ToLower(evidence.TransactionHash) != request.RefundTransactionHash || evidence.BlockNumber == 0 || evidence.Finality != "committed" || evidence.Status != "refunded" || evidence.ReceiptID == "" || len(evidence.AuditHash) != 64 || evidence.CommittedAt.IsZero() || evidence.Source != "authoritative-central-pay-api" || evidence.SourceAsOf.IsZero() || evidence.SourceVersion <= 0 || evidence.Confidence != "authoritative" {
 		return RefundRequest{}, errors.New("authoritative refund evidence is incomplete or mismatched")
@@ -193,6 +238,11 @@ func (s *Service) RefreshRefund(ctx context.Context, actor MerchantPrincipal, re
 		current := data.Refunds[request.ID]
 		if current.Status != "submitted" {
 			return errors.New("refund request state changed")
+		}
+		for id, other := range data.Refunds {
+			if id != request.ID && other.Evidence != nil && (other.Evidence.ReceiptID == evidence.ReceiptID || other.Evidence.TransactionHash == evidence.TransactionHash) {
+				return errors.New("refund funds event is already claimed")
+			}
 		}
 		if err := s.enqueueWebhook(data, actor.Merchant, "refund.committed", request.ID); err != nil {
 			return err

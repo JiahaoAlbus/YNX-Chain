@@ -79,12 +79,23 @@ type WalletPaymentResult struct {
 }
 
 func (s *Service) SubmitSignedSettlement(ctx context.Context, session WalletSession, invoiceID string, intent SignedPaymentIntent, result WalletPaymentResult, key string) (Invoice, error) {
-	invoice, err := s.Invoice(ctx, invoiceID)
+	var invoice Invoice
+	err := s.store.View(func(data Snapshot) error {
+		var ok bool
+		invoice, ok = data.Invoices[invoiceID]
+		if !ok {
+			return errors.New("invoice not found")
+		}
+		return nil
+	})
 	if err != nil {
 		return Invoice{}, err
 	}
 	if err := validatePaymentIntent(intent, invoice, session, s.now().UTC()); err != nil {
 		return Invoice{}, err
+	}
+	if !hasScope(session.Scopes, "pay:settlement:submit") || !s.now().Before(session.ExpiresAt) {
+		return Invoice{}, errors.New("active payer session required")
 	}
 	intentDigest := digestCanonical(walletPayIntentDomain, intent)
 	if err := validateWalletPaymentResult(result, intent, intentDigest, session, s.now().UTC()); err != nil {
@@ -105,6 +116,20 @@ func (s *Service) SubmitSignedSettlement(ctx context.Context, session WalletSess
 	if previous.Key != "" && (previous.RequestHash != requestHash || previous.ObjectID != invoiceID) {
 		return Invoice{}, errors.New("wallet payment result replay rejected")
 	}
+	fresh, err := s.reservePaymentDispatch(ctx, invoice, session, intent, result, key)
+	if err != nil {
+		return Invoice{}, err
+	}
+	if !fresh {
+		out, err := s.ReconcilePaymentOutcome(ctx, session, invoiceID)
+		if err != nil {
+			return Invoice{}, err
+		}
+		if out.Status == "unknown" {
+			return Invoice{}, errors.New("original payment outcome is unknown; reconcile only")
+		}
+		return out.Invoice, nil
+	}
 	settled, err := s.SubmitSettlement(ctx, invoiceID, session.Account, result.TransactionHash, key)
 	if err != nil {
 		return Invoice{}, err
@@ -112,21 +137,7 @@ func (s *Service) SubmitSignedSettlement(ctx context.Context, session WalletSess
 	if settled.Settlement == nil {
 		return Invoice{}, errors.New("authoritative settlement receipt is missing")
 	}
-	settled.Settlement.IntentDigest = intentDigest
-	settled.Settlement.RequestNonce = result.RequestID
-	if err := s.saveInvoice(settled, "invoice.wallet-proof-bound"); err != nil {
-		return Invoice{}, err
-	}
-	err = s.store.Update(func(data *Snapshot) error {
-		mapKey := "wallet-payment-result:" + result.TransactionHash
-		if current, exists := data.Idempotency[mapKey]; exists && (current.RequestHash != requestHash || current.ObjectID != invoiceID) {
-			return errors.New("wallet payment result replay rejected")
-		}
-		data.Idempotency[mapKey] = IdempotencyRecord{Scope: "wallet-payment-result", Key: result.TransactionHash, RequestHash: requestHash, ObjectID: invoiceID, CreatedAt: s.now()}
-		appendAudit(data, invoice.MerchantID, "wallet:"+session.Account, "payment.signed-intent.accept", invoiceID, "committed", intentDigest, s.now())
-		return nil
-	})
-	return settled, err
+	return settled, nil
 }
 
 func validatePaymentIntent(intent SignedPaymentIntent, invoice Invoice, session WalletSession, now time.Time) error {
@@ -348,10 +359,13 @@ func (s *Service) CreateRefundRequest(session WalletSession, invoiceID string, a
 		var reserved int64
 		for _, candidate := range data.Refunds {
 			if candidate.InvoiceID == invoiceID && candidate.Status != "rejected" && candidate.Status != "cancelled" && candidate.Status != "failed" {
+				if candidate.Amount < 0 || candidate.Amount > invoice.Amount-reserved {
+					return errors.New("aggregate refund requests exceed the paid invoice amount")
+				}
 				reserved += candidate.Amount
 			}
 		}
-		if reserved+amount > invoice.Amount {
+		if amount > invoice.Amount-reserved {
 			return errors.New("aggregate refund requests exceed the paid invoice amount")
 		}
 		return nil
