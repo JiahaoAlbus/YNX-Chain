@@ -37,7 +37,9 @@ const release = `ynx-bft-gateway-${commit}`;
 // These bytes are an explicit synthetic executable-transport boundary. They
 // pass the real header/pin reader but are NEVER executed or called Go evidence.
 const metadataELF=Buffer.alloc((1<<20)+64);metadataELF.set([127,69,76,70,2,1,1]);metadataELF.writeUInt16LE(2,16);metadataELF.writeUInt16LE(62,18);metadataELF.writeUInt32LE(1,20);
-const runtimeSource=Buffer.from(JSON.stringify({version:'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2',commit:fullCommit,platform:'linux/amd64',binaries:{'ynx-consensus-package':{bytes:metadataELF.length,sha256:digest(metadataELF)}},runtimeStarted:false,publicDeployment:false,pqActivation:false})+'\n');
+const portableSource='cmd/ynx-consensus-proof-verify/portable_import.go';
+const runtimeSourceRecord={version:'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2',commit:fullCommit,platform:'linux/amd64',proofVerifierContract:'YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1',proofVerifierSources:Object.fromEntries(['internal/consensus/pq_light_proof.go','cmd/ynx-consensus-proof-verify/main.go','cmd/ynx-consensus-proof-verify/trust.go'].map(name=>[name,{bytes:1,sha256:'a'.repeat(64)}])),binaries:{'ynx-consensus-package':{bytes:metadataELF.length,sha256:digest(metadataELF)}},runtimeStarted:false,publicDeployment:false,pqActivation:false};
+const runtimeSource=Buffer.from(JSON.stringify(runtimeSourceRecord)+'\n');
 const manifestPin=digest(runtimeSource);
 const roles = ['primary', 'singapore', 'silicon-valley', 'seoul'];
 const write = (file, value, mode = 0o600) => { fs.mkdirSync(path.dirname(file), {recursive:true}); fs.writeFileSync(file, typeof value === 'string' ? value : JSON.stringify(value)+'\n', {mode}); };
@@ -171,8 +173,39 @@ function run(f,action='prepare',change={},expected=0){
   return p;
 }
 function originals(f){return [f.planPath,f.validator,path.join(f.transaction,'approval.json'),path.join(f.transaction,'final-snapshot/migration.json'),path.join(f.transaction,'final-snapshot/remote-evidence.json'),path.join(f.env.CONSENSUS_CANDIDATE_RUNTIME_BUNDLE,'original-marker')].map(p=>[p,fs.readFileSync(p)]);}
+function runtimeSourceInventoryControls(){
+  const variants=[
+    ['v2-three',s=>{s.version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2';delete s.proofVerifierSources[portableSource];},true],
+    ['v3-four',()=>{},true],
+    ['v2-four',s=>{s.version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2';},false],
+    ['v3-missing-portable',s=>{delete s.proofVerifierSources[portableSource];},false],
+    ['unknown-source',s=>{s.proofVerifierSources['unapproved.go']={bytes:1,sha256:'a'.repeat(64)};},false],
+    ['joined-source-key',s=>{s.proofVerifierSources={[Object.keys(s.proofVerifierSources).sort().join(',')]:{bytes:1,sha256:'a'.repeat(64)}};},false],
+    ['wrong-contract',s=>{s.proofVerifierContract='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v2';},false],
+    ['byte-string',s=>{s.proofVerifierSources[portableSource].bytes='1';},false],
+    ['byte-boolean',s=>{s.proofVerifierSources[portableSource].bytes=true;},false],
+    ['byte-out-of-bound',s=>{s.proofVerifierSources[portableSource].bytes=(16<<20)+1;},false],
+    ['zero-digest',s=>{s.proofVerifierSources[portableSource].sha256='0'.repeat(64);},false],
+    ['row-extra',s=>{s.proofVerifierSources[portableSource].approved=true;},false],
+    ['tampered-original-pin',s=>{s.proofVerifierSources[portableSource].bytes++;},false,true],
+  ];
+  for(const [name,mutate,accepted,keepOriginalPin]of variants){
+    const x=fixture('runtime-source-'+name),source=structuredClone(runtimeSourceRecord);
+    source.version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3';source.proofVerifierSources[portableSource]={bytes:1,sha256:'a'.repeat(64)};
+    const original=Buffer.from(JSON.stringify(source)+'\n'),originalPin=digest(original);mutate(source);
+    const changed=Buffer.from(JSON.stringify(source)+'\n'),sourceFile=path.join(path.dirname(x.env.SYNTHETIC_METADATA_ELF),'SOURCE.json');
+    fs.writeFileSync(sourceFile,changed);const identity=fs.lstatSync(sourceFile,{bigint:true});
+    const result=node([bindingCLI,'--migration-public-summary',path.join(x.transaction,'final-snapshot/migration.json'),fullCommit,keepOriginalPin?originalPin:digest(changed)],accepted?0:1,{...x.env,PUBLIC_BFT_MIGRATION_VERIFIER:x.env.SYNTHETIC_METADATA_ELF});
+    if(accepted){assert.equal(JSON.parse(result.stdout).classification,'data');assert.equal(fs.existsSync(x.log+'.summary'),true);}
+    else{assert.equal(fs.existsSync(x.log+'.summary'),false,'unqualified source reached summary spawn');if(keepOriginalPin)assert.match(result.stderr,/SOURCE differs from independent runtime pin/);}
+    const after=fs.lstatSync(sourceFile,{bigint:true});assert.deepEqual(fs.readFileSync(sourceFile),changed);for(const key of ['dev','ino','mode','size','mtimeNs','ctimeNs'])assert.equal(after[key],identity[key]);
+    assert.equal(fs.existsSync(x.log),false);assert.equal(fs.existsSync(x.log+'.transport'),false);assert.equal(fs.existsSync(path.join(x.transaction,'candidate')),false);
+  }
+  console.log('PUBLIC_BFT_RUNTIME_SOURCE_INVENTORY_CONTROLS_DATA_ONLY cases='+variants.length+'; summary transport double; no ELF/service/Source authority');
+}
 const unchanged=before=>before.forEach(([p,b])=>assert.deepEqual(fs.readFileSync(p),b,`original changed: ${p}`));
 try {
+  runtimeSourceInventoryControls();
   const nativeIdentity={authoritativeCommit:'65efa82e06158f9616172144c3c9efdd8088f227',authoritativeRelease:'ynx-network-surgical-65efa82e0615',authoritativeBinarySha256:'b'.repeat(64),authoritativeSource:{statePath:'/var/lib/ynx-chain/testnet/devnet-state.json',integrityMarkerPath:'/var/lib/ynx-chain/testnet/devnet-state.integrity-version',pauseMarkerPath:'/var/lib/ynx-chain/block-production-pause.json',mutationMarkerPath:'/var/lib/ynx-chain/mutation-freeze.json'}};
   function nativeFixture(name){
     const x=fixture(name);Object.assign(x.approval,nativeIdentity);write(path.join(x.transaction,'approval.json'),x.approval);

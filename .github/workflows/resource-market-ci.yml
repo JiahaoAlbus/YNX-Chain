@@ -3442,7 +3442,7 @@ jobs:
           source_after = source_observation()
           if source_after != source_before:
               raise RuntimeError('runtime original source changed during the eight ELF builds')
-          record = dict(version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2',
+          record = dict(version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3',
               commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'], platform='linux/amd64',
               cometForkTree=subprocess.check_output(['git','rev-parse','HEAD:third_party/cometbft'],text=True).strip(),
               goMod=pin(Path('go.mod')), goSum=pin(Path('go.sum')),
@@ -4300,7 +4300,7 @@ jobs:
           runtime = Path(os.environ['YNX_RUNTIME_CANDIDATE']).resolve(strict=True)
           remote_source = read_record(remote / 'SOURCE.json', os.environ['YNX_REMOTE_MANIFEST_SHA'])
           runtime_source = read_record(runtime / 'SOURCE.json', os.environ['YNX_RUNTIME_MANIFEST_SHA'])
-          if remote_source['version'] != 'YNX-PQ-REMOTE-SIGNER-PROCESS-BUILD/v1' or runtime_source['version'] != 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2' or remote_source['commit'] != commit or runtime_source['commit'] != commit:
+          if remote_source['version'] != 'YNX-PQ-REMOTE-SIGNER-PROCESS-BUILD/v1' or runtime_source['version'] != 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3' or remote_source['commit'] != commit or runtime_source['commit'] != commit:
               raise RuntimeError('same-run original protocol build required')
           if remote_source['binaries']['consensus.test']['sha256'] != os.environ['YNX_REMOTE_TEST_SHA']:
               raise RuntimeError('normal test executable independent pin differs')

@@ -13,6 +13,7 @@ fail() { echo "gateway dependency source fixture failed: $*" >&2; exit 1; }
 hash() { sha256sum "$1" | awk '{print $1}'; }
 
 new_fixture() {
+  local runtime_profile="${1:-v2}"
   fixture_number=$((fixture_number + 1))
   root="$tmp/case-$fixture_number"
   mkdir -m 0700 "$root"
@@ -60,7 +61,21 @@ EOF
   gateway_pin="$(hash "$stage/ynx-bft-gatewayd")"
   verifier_pin="$(hash "$stage/ynx-consensus-package")"
   backup_pin="$(hash "$evidence/primary.tar.gz")"
-  printf '{"binaries":{"ynx-bft-gatewayd":{"bytes":%s,"sha256":"%s"},"ynx-consensus-package":{"bytes":%s,"sha256":"%s"}},"commit":"%s","platform":"linux/amd64","version":"YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2"}\n' "$(stat -c %s "$stage/ynx-bft-gatewayd")" "$gateway_pin" "$(stat -c %s "$stage/ynx-consensus-package")" "$verifier_pin" "$full_commit" >"$stage/runtime-SOURCE.json"
+  python3 -B - "$stage" "$full_commit" "$runtime_profile" "$gateway_pin" "$verifier_pin" <<'PY_SOURCE_FIXTURE'
+import json,os,pathlib,sys
+stage=pathlib.Path(sys.argv[1]); commit,version,gateway_pin,verifier_pin=sys.argv[2:]
+assert version in ('v2','v3'),'closed synthetic public runtime fixture version required'
+names=['internal/consensus/pq_light_proof.go','cmd/ynx-consensus-proof-verify/main.go','cmd/ynx-consensus-proof-verify/trust.go']
+if version=='v3': names.append('cmd/ynx-consensus-proof-verify/portable_import.go')
+source=dict(version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/'+version,platform='linux/amd64',commit=commit,
+            proofVerifierContract='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1',
+            proofVerifierSources={name:dict(bytes=1,sha256='d'*64) for name in names},
+            binaries={name:dict(bytes=(stage/name).stat().st_size,sha256=pin) for name,pin in
+                      [('ynx-bft-gatewayd',gateway_pin),('ynx-consensus-package',verifier_pin)]})
+with (stage/'runtime-SOURCE.json').open('x') as f:
+    os.chmod(stage/'runtime-SOURCE.json',0o600)
+    json.dump(source,f,separators=(',',':'),sort_keys=True); f.write('\n')
+PY_SOURCE_FIXTURE
   runtime_pin="$(hash "$stage/runtime-SOURCE.json")"
   for marker in mutation-freeze.json block-production-pause.json; do
     printf '{"transactionId":"%s","commit":"%s","bftRelease":"%s"}\n' "$tx" "$short_commit" "$release" >"$root/var/lib/ynx-chain/$marker"
@@ -166,6 +181,63 @@ assert_untouched() {
 }
 assert_no_start() { ! grep -q '^systemctl start ' "$FIX_COMMAND_LOG" || fail 'rejected gateway attempted service start'; }
 
+# Independently execute only the original metadata callee. The actual shell's
+# separate external SOURCE/binary checksum guard is exercised by the normal
+# full fixture below; PYRUNTIME itself must never be credited with that check.
+python3 -B - "$tmp/runtime-source-controls" "$repo/scripts/ops/remote/public-bft-dependencies.sh" "$repo/scripts/verify/public-bft-gateway-dependencies-check.sh" <<'PY_RUNTIME_SOURCE_CONTROLS'
+import copy,hashlib,os,pathlib,subprocess,sys
+root,helper,test=map(pathlib.Path,sys.argv[1:]); root.mkdir(mode=0o700)
+source=helper.read_text(); fixture_source=test.read_text()
+prefix='  if ! python3 -B - "$stage/runtime-SOURCE.json" "$runtime_commit" <<\'PYRUNTIME\'\n'
+assert source.count(prefix)==1,'one original gateway runtime callee required'
+start=source.index(prefix)+len(prefix); end=source.index('\nPYRUNTIME\n',start); callee=source[start:end]
+prefix='  python3 -B - "$stage" "$full_commit" "$runtime_profile" "$gateway_pin" "$verifier_pin" <<\'PY_SOURCE_FIXTURE\'\n'
+assert fixture_source.count(prefix)==1,'one actual public source fixture generator required'
+start=fixture_source.index(prefix)+len(prefix); end=fixture_source.index('\nPY_SOURCE_FIXTURE\n',start); fixture=fixture_source[start:end]
+commit='0123456789abcdef0123456789abcdef01234567'; portable='cmd/ynx-consensus-proof-verify/portable_import.go'
+cases=0
+def pin(raw): return hashlib.sha256(raw).hexdigest()
+def identity(path):
+    s=path.lstat(); return s.st_dev,s.st_ino,s.st_mode,s.st_nlink,s.st_size,s.st_mtime_ns,s.st_ctime_ns
+def invoke(label,version,accepted,mutate=None,cause=None):
+    global cases
+    case=root/label; case.mkdir(mode=0o700)
+    binaries={}
+    for name in ('ynx-bft-gatewayd','ynx-consensus-package'):
+        raw=('inert PUBLIC metadata fixture '+name+'\n').encode(); path=case/name
+        with path.open('xb') as f: os.chmod(path,0o600); f.write(raw)
+        binaries[name]=pin(raw)
+    result=subprocess.run([sys.executable,'-B','-',str(case),commit,version,binaries['ynx-bft-gatewayd'],binaries['ynx-consensus-package']],
+                          input=fixture,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=10)
+    assert result.returncode==0,(label,result.stderr)
+    source_file=case/'runtime-SOURCE.json'
+    if mutate is not None:
+        import json
+        value=json.loads(source_file.read_bytes()); mutate(value)
+        source_file.write_text(json.dumps(value,separators=(',',':'),sort_keys=True)+'\n')
+    before=(identity(source_file),source_file.read_bytes())
+    result=subprocess.run([sys.executable,'-B','-',str(source_file),commit],input=callee,text=True,
+                          stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=10)
+    assert (identity(source_file),source_file.read_bytes())==before,'metadata reader changed original SOURCE bytes/inode/mode'
+    assert (result.returncode==0)==accepted,(label,result.returncode,result.stderr)
+    assert not result.stdout,(label,'metadata reader unexpectedly emitted a receipt')
+    if not accepted:
+        assert 'gateway runtime SOURCE rejected:' in result.stderr,(label,result.stderr)
+        if cause: assert cause in result.stderr,(label,result.stderr)
+    cases+=1
+invoke('qualified-v2-three','v2',True)
+invoke('qualified-v3-four','v3',True)
+invoke('mixed-v2-four','v2',False,lambda v:v['proofVerifierSources'].update({portable:dict(bytes=1,sha256='d'*64)}),'version-specific gateway proof verifier sources differ')
+invoke('missing-v3-portable','v3',False,lambda v:v['proofVerifierSources'].pop(portable),'version-specific gateway proof verifier sources differ')
+invoke('unknown-source','v3',False,lambda v:v['proofVerifierSources'].update({'unapproved.go':dict(bytes=1,sha256='d'*64)}),'version-specific gateway proof verifier sources differ')
+invoke('wrong-contract','v3',False,lambda v:v.update(proofVerifierContract='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v2'),'version-specific gateway proof verifier sources differ')
+for label,field,value in [('string-bytes','bytes','1'),('boolean-bytes','bytes',True),('zero-bytes','bytes',0),
+                          ('overflow-bytes','bytes',(16<<20)+1),('uppercase-sha','sha256','A'*64),('zero-sha','sha256','0'*64)]:
+    invoke(label,'v3',False,lambda v,f=field,x=value:v['proofVerifierSources'][portable].update({f:x}),'original gateway proof verifier source pin differs')
+invoke('extra-pin-field','v3',False,lambda v:v['proofVerifierSources'][portable].update(unapproved=True),'original gateway proof verifier source pin differs')
+print('GATEWAY_RUNTIME_SOURCE_METADATA_DATA_ONLY cases='+str(cases)+' sourceGrant=false rootGrant=false binaryExecuted=false externalSOURCEPinVerifiedByThisCallee=false')
+PY_RUNTIME_SOURCE_CONTROLS
+
 new_fixture
 invoke >"$root/start.stdout" 2>"$root/start.stderr"
 receipt="$evidence/primary-dependencies-start.json"
@@ -192,6 +264,39 @@ test -f "$receipt" && test -f "$installed/bin/ynx-bft-gatewayd" && test -f "$lau
 if invoke >"$root/rollback-repeat.stdout" 2>"$root/rollback-repeat.stderr"; then fail 'repeated rollback accepted'; fi
 [[ "$(grep -c '^systemctl stop ' "$FIX_COMMAND_LOG")" == 1 ]]
 assert_untouched
+
+new_fixture v3
+invoke >"$root/v3-start.stdout" 2>"$root/v3-start.stderr"
+grep -Fq "\"runtimeSOURCEsha256\":\"$runtime_pin\"" "$evidence/primary-dependencies-start.json"
+[[ "$(grep -c '^systemctl start ' "$FIX_COMMAND_LOG")" == 1 ]]
+assert_untouched
+
+for source_failure in v2-mixed-four v3-missing-portable unknown-source malformed-portable-pin original-source-pin-tamper; do
+  if [[ "$source_failure" == v2-mixed-four ]]; then new_fixture v2; else new_fixture v3; fi
+  python3 -B - "$stage/runtime-SOURCE.json" "$source_failure" <<'PY_SOURCE_NEGATIVE'
+import json,pathlib,sys
+path=pathlib.Path(sys.argv[1]); failure=sys.argv[2]; source=json.loads(path.read_bytes())
+portable='cmd/ynx-consensus-proof-verify/portable_import.go'
+if failure=='v2-mixed-four': source['proofVerifierSources'][portable]=dict(bytes=1,sha256='d'*64)
+elif failure=='v3-missing-portable': del source['proofVerifierSources'][portable]
+elif failure=='unknown-source': source['proofVerifierSources']['unapproved.go']=dict(bytes=1,sha256='d'*64)
+elif failure=='malformed-portable-pin': source['proofVerifierSources'][portable]['bytes']='1'
+elif failure=='original-source-pin-tamper': source['proofVerifierSources'][portable]['bytes']=2
+else: raise AssertionError('unknown synthetic SOURCE negative')
+path.write_text(json.dumps(source,separators=(',',':'),sort_keys=True)+'\n')
+PY_SOURCE_NEGATIVE
+  # Only the last case deliberately keeps the ORIGINAL independent byte pin.
+  # Repinning the other malformed fixtures reaches the strict metadata reader;
+  # it does not authenticate source leaves against a repository checkout.
+  if [[ "$source_failure" != original-source-pin-tamper ]]; then args[20]="$(hash "$stage/runtime-SOURCE.json")"; fi
+  source_before="$(hash "$stage/runtime-SOURCE.json")"
+  if invoke >"$root/source-negative.stdout" 2>"$root/source-negative.stderr"; then fail "runtime SOURCE negative accepted: $source_failure"; fi
+  assert_no_start
+  [[ "$(hash "$stage/runtime-SOURCE.json")" == "$source_before" ]]
+  test ! -e "$evidence/primary-dependencies-start.json"
+  if [[ "$source_failure" == original-source-pin-tamper ]]; then grep -Fq 'gateway original runtime bytes differ from independent pins' "$root/source-negative.stderr"; fi
+  assert_untouched
+done
 
 for failure in missing-pin legacy-unit-active operator-absent wrong-unit dropin runtime-mismatch runtime-source-association old-attempt; do
   new_fixture

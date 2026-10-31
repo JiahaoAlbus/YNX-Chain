@@ -78,7 +78,18 @@ try:
     exact_fields(record, ('version', 'commit', 'runId', 'platform', 'cometForkTree', 'goMod', 'goSum',
                          'proofVerifierContract', 'proofVerifierSources', 'binaries', 'operator',
                          'runtimeStarted', 'publicDeployment', 'pqActivation', 'purpose'))
-    require(record['version'] == 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2'
+    # Preserve the qualified v2 artifact and give the additional portable
+    # importer provenance its own closed manifest version. Neither version
+    # accepts the other's source inventory or arbitrary optional sources.
+    source_profiles = {
+        'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2': (
+            'internal/consensus/pq_light_proof.go', 'cmd/ynx-consensus-proof-verify/main.go',
+            'cmd/ynx-consensus-proof-verify/trust.go'),
+        'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3': (
+            'internal/consensus/pq_light_proof.go', 'cmd/ynx-consensus-proof-verify/main.go',
+            'cmd/ynx-consensus-proof-verify/trust.go', 'cmd/ynx-consensus-proof-verify/portable_import.go'),
+    }
+    require(record['version'] in source_profiles
             and record['commit'] == expected_commit and record['platform'] == 'linux/amd64',
             'runtime version, platform or independent commit differs')
     require(type(record['runId']) is str and re.fullmatch('[1-9][0-9]*', record['runId'])
@@ -90,8 +101,7 @@ try:
             and record['proofVerifierContract'] == 'YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1', 'runtime contract differs')
     pin(record['goMod'], 16 << 20)
     pin(record['goSum'], 16 << 20)
-    sources = ('internal/consensus/pq_light_proof.go', 'cmd/ynx-consensus-proof-verify/main.go',
-               'cmd/ynx-consensus-proof-verify/trust.go')
+    sources = source_profiles[record['version']]
     exact_fields(record['proofVerifierSources'], sources)
     for value in record['proofVerifierSources'].values():
         pin(value, 16 << 20)
@@ -330,7 +340,9 @@ try:
     source_pin, _, raw = read_pin(root / 'SOURCE.json', 128 << 10, originals[root / 'SOURCE.json'], True)
     require(source_pin['sha256'] == manifest_sha, 'original SOURCE independent pin changed')
     record = json.loads(raw.decode('utf8'), object_pairs_hook=unique)
-    require(record['version'] == 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2' and record['commit'] == commit,
+    # Full version-specific inventory validation already ran above; bind the
+    # same original SOURCE bytes again before copying the selected public tool.
+    require(record['version'] in ('YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2', 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3') and record['commit'] == commit,
             'original runtime identity changed')
     wanted = record['binaries'][binary]
     require(set(wanted) == {'bytes', 'sha256'} and type(wanted['bytes']) is int

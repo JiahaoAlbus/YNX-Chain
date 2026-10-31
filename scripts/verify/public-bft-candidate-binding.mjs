@@ -58,6 +58,17 @@ function hashOriginalFile(file, maximum = 1 << 30, singleLink = false, capture =
 // The driver first validates the complete original eight-ELF runtime. This
 // reader additionally binds the selected normal callee to that external SOURCE
 // pin. No installed package or incoming summary can select its own authority.
+function requireRuntimeProofSources(source) {
+  const sources = ["internal/consensus/pq_light_proof.go", "cmd/ynx-consensus-proof-verify/main.go", "cmd/ynx-consensus-proof-verify/trust.go"];
+  if (source.version === "YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3") sources.push("cmd/ynx-consensus-proof-verify/portable_import.go");
+  else if (source.version !== "YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2") fail("unsupported normal runtime SOURCE version");
+  const pins = source.proofVerifierSources;
+  if (source.proofVerifierContract !== "YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1" || !pins || typeof pins !== "object" || Array.isArray(pins) || Object.keys(pins).length !== sources.length || !sources.every(name => Object.hasOwn(pins, name))) fail("version-specific normal proof verifier source inventory differs");
+  for (const pin of Object.values(pins)) {
+    if (!pin || typeof pin !== "object" || Array.isArray(pin) || Object.keys(pin).sort().join() !== "bytes,sha256" || !Number.isSafeInteger(pin.bytes) || pin.bytes <= 0 || pin.bytes > 16 << 20 || !hash(pin.sha256)) fail("normal proof verifier source pin differs");
+  }
+}
+
 function verifiedMigrationSummary(file, runtimeCommit, runtimeManifestSHA256) {
   const binary = process.env.PUBLIC_BFT_MIGRATION_VERIFIER;
   if (!path.isAbsolute(binary || "") || path.basename(binary) !== "ynx-consensus-package" || !/^[0-9a-f]{40}$/.test(runtimeCommit || "") || /^0{40}$/.test(runtimeCommit) || !hash(runtimeManifestSHA256)) fail("independently pinned normal migration verifier is required");
@@ -66,7 +77,8 @@ function verifiedMigrationSummary(file, runtimeCommit, runtimeManifestSHA256) {
   if (sourcePin.sha256 !== runtimeManifestSHA256) fail("migration verifier SOURCE differs from independent runtime pin");
   let source;
   try { source = JSON.parse(sourcePin.raw.toString("utf8")); } catch { fail("normal migration verifier SOURCE is not JSON"); }
-  if (!source || Array.isArray(source) || typeof source!=="object" || !sameOriginalFile(sourcePin.identity, fs.lstatSync(sourcePath,{bigint:true})) || source.version !== "YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2" || source.commit !== runtimeCommit || source.platform !== "linux/amd64" || source.runtimeStarted !== false || source.publicDeployment !== false || source.pqActivation !== false) fail("normal migration verifier SOURCE identity differs");
+  if (!source || Array.isArray(source) || typeof source!=="object" || !sameOriginalFile(sourcePin.identity, fs.lstatSync(sourcePath,{bigint:true})) || source.commit !== runtimeCommit || source.platform !== "linux/amd64" || source.runtimeStarted !== false || source.publicDeployment !== false || source.pqActivation !== false) fail("normal migration verifier SOURCE identity differs");
+  requireRuntimeProofSources(source);
   const wanted = source.binaries?.["ynx-consensus-package"];
   if (!wanted || Object.keys(wanted).sort().join() !== "bytes,sha256" || !Number.isSafeInteger(wanted.bytes) || wanted.bytes <= 1 << 20 || wanted.bytes > 128 << 20 || !hash(wanted.sha256)) fail("normal migration verifier binary pin is incomplete");
   const executable = hashOriginalFile(binary, 128 << 20, true);

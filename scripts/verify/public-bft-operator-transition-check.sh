@@ -19,7 +19,8 @@ schedule=dict(registryHeight=9007199254740993,registryRoot='5'*64,registryEventC
 new=json.loads(json.dumps(old)); new['pqSchedule']=base64.b64encode(json.dumps(schedule,separators=(',',':')).encode()).decode(); new['pqScheduleHash']='6'*64
 for r in new['roles']: r.update(hostBinding={'fixturePublicOnly':True},remoteSigner='tcp://127.0.0.1:41000',transportKeyPath='/srv/'+r['role']+'/keys/transport',signerPeerPublicKey='7'*64,remoteTimeout='5s')
 oldpin=dump(p/'old/common/operator-plan.json',old); newpin=dump(p/'next/common/operator-plan.json',new)
-src=dict(version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2',platform='linux/amd64',commit='8'*40,binaries={n:dict(sha256='9'*64) for n in ['ynx-comet','ynx-consensus-package','ynx-consensus-keycheck']})
+source_names=['internal/consensus/pq_light_proof.go','cmd/ynx-consensus-proof-verify/main.go','cmd/ynx-consensus-proof-verify/trust.go']
+src=dict(version='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2',platform='linux/amd64',commit='8'*40,proofVerifierContract='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1',proofVerifierSources={n:dict(bytes=1,sha256='d'*64) for n in source_names},binaries={n:dict(sha256='9'*64) for n in ['ynx-comet','ynx-consensus-package','ynx-consensus-keycheck']})
 oldsrc=dict(src,commit='a'*40); oldmanifest=dump(p/'old-SOURCE.json',oldsrc); manifest=dump(p/'SOURCE.json',src)
 a=dict(version='YNX-OPERATOR-TRANSITION-APPROVAL/v1',transitionId='source-control-transition',phase='quiesce',approved=True,oldOperatorPlanSHA256=oldpin,oldRuntimeCommit=oldsrc['commit'],oldRuntimeManifestSHA256=oldmanifest,nextOperatorPlanSHA256=None,runtimeCommit=src['commit'],runtimeManifestSHA256=manifest,cutoverTransactionId='source-original-cutover',freezeSHA256={r:'b'*64 for r in roles},nativePauseSHA256='c'*64,checkpoint=None,backups=None)
 dump(p/'quiesce.json',a)
@@ -40,6 +41,92 @@ bind() {
 bind quiesce "$tmp/meta/quiesce.json" - - >"$tmp/quiesce.binding"
 bind install "$tmp/meta/install.json" "$tmp/meta/next" "$newpin" >"$tmp/install.binding"
 grep -Fq '"height":"9007199254740993"' "$tmp/install.binding" || fail 'height rounded above 2^53'
+
+# Only PUBLIC inert metadata enters these controls. Execute the complete real
+# binding Python callee rather than a second inventory validator or a fake ELF.
+# This block is independently portable; later service/process source controls
+# still exercise their original GNU/Linux shell paths in the normal CI job.
+python3 -B - "$tmp/meta" "$helper" <<'PY_RUNTIME_SOURCE_CONTROLS'
+import copy,hashlib,json,os,pathlib,subprocess,sys
+root=pathlib.Path(sys.argv[1]); helper=pathlib.Path(sys.argv[2])
+source=helper.read_text()
+prefix='operator_transition_binding() {\n  python3 -B - "$@" <<\'PY\'\n'
+assert source.count(prefix)==1,'one original operator binding callee required'
+start=source.index(prefix)+len(prefix); end=source.index('\nPY\n}',start)
+callee=source[start:end]
+base_old=json.loads((root/'old-SOURCE.json').read_bytes())
+base_new=json.loads((root/'SOURCE.json').read_bytes())
+base_approval=json.loads((root/'install.json').read_bytes())
+portable='cmd/ynx-consensus-proof-verify/portable_import.go'
+control=root/'runtime-source-controls'; control.mkdir(mode=0o700)
+def sha(raw): return hashlib.sha256(raw).hexdigest()
+def save(path,value):
+    raw=(json.dumps(value,separators=(',',':'))+'\n').encode()
+    with path.open('xb') as f: os.chmod(path,0o600); f.write(raw)
+    return sha(raw)
+def profile(original,version):
+    value=copy.deepcopy(original); value['version']='YNX-PQ-LINUX-RUNTIME-CANDIDATE/'+version
+    if version=='v3': value['proofVerifierSources'][portable]=dict(bytes=2,sha256='e'*64)
+    return value
+def identity(path):
+    s=path.lstat(); return s.st_dev,s.st_ino,s.st_mode,s.st_size,s.st_mtime_ns,s.st_ctime_ns
+def invoke(name,old,new,accepted,cause=None,tamper=None):
+    case=control/name; case.mkdir(mode=0o700)
+    oldfile=case/'old-SOURCE.json'; newfile=case/'SOURCE.json'
+    oldmanifest=save(oldfile,old); manifest=save(newfile,new)
+    approval=copy.deepcopy(base_approval)
+    approval['oldRuntimeManifestSHA256']=oldmanifest; approval['runtimeManifestSHA256']=manifest
+    approvalfile=case/'approval.json'; approvalpin=save(approvalfile,approval)
+    # When requested, retain both original independent pins. The callee cannot
+    # authenticate repinned source metadata against absent repository leaves.
+    if tamper is not None:
+        path=oldfile if tamper=='old' else newfile
+        value=json.loads(path.read_bytes()); first=next(iter(value['proofVerifierSources']))
+        value['proofVerifierSources'][first]['bytes']+=1
+        path.write_bytes((json.dumps(value,separators=(',',':'))+'\n').encode())
+    originals=(approvalfile,oldfile,newfile,root/'old/common/operator-plan.json',root/'next/common/operator-plan.json')
+    before={p:(identity(p),p.read_bytes()) for p in originals}
+    args=['install','source-control-transition','primary',str(approvalfile),approvalpin,
+          str(root/'old'),approval['oldOperatorPlanSHA256'],str(oldfile),old['commit'],oldmanifest,
+          str(root/'next'),approval['nextOperatorPlanSHA256'],str(newfile),new['commit'],manifest]
+    result=subprocess.run([sys.executable,'-B','-',*args],input=callee,text=True,
+                          stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=10)
+    for p,witness in before.items(): assert (identity(p),p.read_bytes())==witness,'binding changed original public bytes/inode/mode'
+    assert (result.returncode==0)==accepted,(name,result.returncode,result.stderr)
+    if accepted:
+        bound=json.loads(result.stdout)
+        assert bound['oldRuntimeCommit']==old['commit'] and bound['runtimeCommit']==new['commit']
+        assert bound['oldRuntimeManifestSHA256']==oldmanifest and bound['runtimeManifestSHA256']==manifest
+        assert bound['checkpoint']['height']=='9007199254740993'
+    else:
+        assert not result.stdout,(name,'rejected source emitted a binding')
+        assert 'operator transition binding rejected:' in result.stderr,(name,result.stderr)
+        if cause is not None: assert cause in result.stderr,(name,result.stderr)
+v2old=profile(base_old,'v2'); v2new=profile(base_new,'v2')
+v3old=profile(base_old,'v3'); v3new=profile(base_new,'v3')
+invoke('old-v2-next-v3',v2old,v3new,True)
+invoke('old-v3-next-v3',v3old,v3new,True)
+for side in ('old','next'):
+    old,new=copy.deepcopy(v2old),copy.deepcopy(v2new)
+    (old if side=='old' else new)['proofVerifierSources'][portable]=dict(bytes=2,sha256='e'*64)
+    invoke(side+'-v2-mixed-four',old,new,False,'version-specific proof verifier sources required')
+    old,new=copy.deepcopy(v3old),copy.deepcopy(v3new)
+    del (old if side=='old' else new)['proofVerifierSources'][portable]
+    invoke(side+'-v3-missing-portable',old,new,False,'version-specific proof verifier sources required')
+bad=copy.deepcopy(v3new); bad['proofVerifierSources']['cmd/ynx-consensus-proof-verify/unknown.go']=dict(bytes=1,sha256='d'*64)
+invoke('unknown-source',v2old,bad,False,'version-specific proof verifier sources required')
+bad=copy.deepcopy(v3new); bad['proofVerifierContract']='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v2'
+invoke('wrong-proof-contract',v2old,bad,False,'version-specific proof verifier sources required')
+for label,field,value in [('string-bytes','bytes','1'),('boolean-bytes','bytes',True),('zero-bytes','bytes',0),
+                          ('overflow-bytes','bytes',(16<<20)+1),('uppercase-sha','sha256','A'*64),('zero-sha','sha256','0'*64)]:
+    bad=copy.deepcopy(v3new); bad['proofVerifierSources'][portable][field]=value
+    invoke(label,v2old,bad,False,'original proof verifier source pin required')
+bad=copy.deepcopy(v3new); bad['proofVerifierSources'][portable]['unapproved']=True
+invoke('extra-row-field',v2old,bad,False,'original proof verifier source pin required')
+invoke('next-original-bytepin-tamper',v2old,v3new,False,'runtime pin mismatch',tamper='next')
+invoke('old-original-bytepin-tamper',v3old,v3new,False,'old runtime pin mismatch',tamper='old')
+print('OPERATOR_RUNTIME_SOURCE_INVENTORY_DATA_ONLY cases=17 oldV2ToNextV3Bound=true sourceGrant=false rootGrant=false binaryExecuted=false')
+PY_RUNTIME_SOURCE_CONTROLS
 cp "$tmp/meta/install.json" "$tmp/install-original.json"
 for mutation in approved phase oldOperatorPlanSHA256 oldRuntimeCommit oldRuntimeManifestSHA256 nextOperatorPlanSHA256 runtimeCommit runtimeManifestSHA256 missingFreeze nativePause checkpoint backup; do
   python3 -B - "$tmp/install-original.json" "$tmp/negative.json" "$mutation" <<'PY'

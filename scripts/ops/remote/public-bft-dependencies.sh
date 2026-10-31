@@ -144,7 +144,38 @@ single_app_gateway() {
   # files to that independently pinned SOURCE as well as to the driver's pins;
   # unrelated individually valid artifacts cannot be combined accidentally.
   (( $(stat -c %s "$stage/runtime-SOURCE.json") <= 131072 )) || fail "runtime SOURCE exceeds original manifest bound"
-  grep -Fq '"version":"YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2"' "$stage/runtime-SOURCE.json" && grep -Fq '"platform":"linux/amd64"' "$stage/runtime-SOURCE.json" && grep -Fq "\"commit\":\"$runtime_commit\"" "$stage/runtime-SOURCE.json" || fail "original gateway runtime SOURCE identity differs"
+  if ! python3 -B - "$stage/runtime-SOURCE.json" "$runtime_commit" <<'PYRUNTIME'
+import json,re,sys
+from pathlib import Path
+def need(value,message):
+    if not value: raise ValueError(message)
+def unique(pairs):
+    value={}
+    for key,item in pairs:
+        need(key not in value,'duplicate runtime SOURCE field')
+        value[key]=item
+    return value
+try:
+    with Path(sys.argv[1]).open('rb') as source_file:
+        raw=source_file.read((128<<10)+1)
+    need(0<len(raw)<=128<<10,'bounded original runtime SOURCE required')
+    source=json.loads(raw,object_pairs_hook=unique)
+    profiles={
+        'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2': {'internal/consensus/pq_light_proof.go','cmd/ynx-consensus-proof-verify/main.go','cmd/ynx-consensus-proof-verify/trust.go'},
+        'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3': {'internal/consensus/pq_light_proof.go','cmd/ynx-consensus-proof-verify/main.go','cmd/ynx-consensus-proof-verify/trust.go','cmd/ynx-consensus-proof-verify/portable_import.go'},
+    }
+    need(type(source) is dict and source.get('version') in profiles and source.get('platform')=='linux/amd64' and source.get('commit')==sys.argv[2],'original gateway runtime SOURCE identity differs')
+    sources=source.get('proofVerifierSources')
+    need(source.get('proofVerifierContract')=='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1' and type(sources) is dict and set(sources)==profiles[source['version']],'version-specific gateway proof verifier sources differ')
+    for pin in sources.values():
+        need(type(pin) is dict and set(pin)=={'bytes','sha256'} and type(pin['bytes']) is int and 0<pin['bytes']<=16<<20 and type(pin['sha256']) is str and re.fullmatch('[0-9a-f]{64}',pin['sha256']) and pin['sha256']!='0'*64,'original gateway proof verifier source pin differs')
+except (OSError,ValueError,TypeError,KeyError) as error:
+    print('gateway runtime SOURCE rejected: '+str(error),file=sys.stderr)
+    sys.exit(1)
+PYRUNTIME
+  then
+    fail "original gateway runtime SOURCE identity differs"
+  fi
   grep -Fq "\"ynx-bft-gatewayd\":{\"bytes\":$(stat -c %s "$stage/ynx-bft-gatewayd"),\"sha256\":\"$gateway_pin\"}" "$stage/runtime-SOURCE.json" && grep -Fq "\"ynx-consensus-package\":{\"bytes\":$(stat -c %s "$stage/ynx-consensus-package"),\"sha256\":\"$verifier_pin\"}" "$stage/runtime-SOURCE.json" || fail "gateway binaries differ from independently pinned original runtime SOURCE records"
   test -x "$stage/ynx-consensus-package" && test -x "$stage/ynx-bft-gatewayd" || fail "original gateway and normal package verifier executables are required"
   # The driver validated the original complete eight-ELF SOURCE before staging

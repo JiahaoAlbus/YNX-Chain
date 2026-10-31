@@ -291,10 +291,22 @@ test('original primary staging installs paused products; current path retains th
 
 const runtimeNames = ['ynx-abci', 'ynx-comet', 'ynx-bft-gatewayd', 'ynx-consensus-pq-remote-signer', 'ynx-consensus-pq-key-init', 'ynx-consensus-proof-verify', 'ynx-consensus-package', 'ynx-consensus-keycheck'];
 const operatorNames = ['ynx-consensus-pq-remote-signer.service.in', 'ynx-consensus-pq-remote-signer-launch.sh', 'ynx-consensus-pq-remote-signer.conf.in'];
+const portableVerifierSource = 'cmd/ynx-consensus-proof-verify/portable_import.go';
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const filePin = bytes => ({ bytes: bytes.length, sha256: sha256(bytes) });
 
-function runtimeFixture(directory) {
+function runtimeOriginalMetadata(path) {
+  try {
+    const info = lstatSync(path, { bigint: true });
+    return Object.fromEntries(['dev', 'ino', 'mode', 'uid', 'gid', 'nlink', 'size', 'mtimeNs', 'ctimeNs'].map(key => [key, info[key]]));
+  } catch (error) {
+    if (error.code === 'ENOENT' || error.code === 'ENOTDIR') return null;
+    throw error;
+  }
+}
+
+function runtimeFixture(directory, profile = 'v2') {
+  assert.ok(['v2', 'v3'].includes(profile), 'closed runtime fixture profile required');
   const bundle = join(directory, 'runtime');
   mkdirSync(join(bundle, 'operator'), { recursive: true, mode: 0o700 });
   // These bytes exercise ELF/header/integrity parsing only. No test executes
@@ -319,25 +331,30 @@ function runtimeFixture(directory) {
     operator[name] = filePin(bytes);
   }
   const sourcePin = filePin(Buffer.from('public source metadata fixture'));
-  const record = { version: 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2', commit: 'a'.repeat(40), runId: '123456', platform: 'linux/amd64', cometForkTree: 'b'.repeat(40), goMod: sourcePin, goSum: sourcePin, proofVerifierContract: 'YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1', proofVerifierSources: Object.fromEntries(['internal/consensus/pq_light_proof.go', 'cmd/ynx-consensus-proof-verify/main.go', 'cmd/ynx-consensus-proof-verify/trust.go'].map(name => [name, sourcePin])), binaries, operator, runtimeStarted: false, publicDeployment: false, pqActivation: false, purpose: 'normal entrypoint binaries and operator configuration only; no keys, credentials, ledger or signing history' };
+  const proofVerifierSources = Object.fromEntries(['internal/consensus/pq_light_proof.go', 'cmd/ynx-consensus-proof-verify/main.go', 'cmd/ynx-consensus-proof-verify/trust.go'].map(name => [name, sourcePin]));
+  // Public source metadata is covered by the independent exact SOURCE pin.
+  // The parser validates its shape; the runtime bundle does not carry these
+  // source files and cannot authenticate repinned metadata against a checkout.
+  if (profile === 'v3') proofVerifierSources[portableVerifierSource] = filePin(readFileSync(join(root, portableVerifierSource)));
+  const record = { version: `YNX-PQ-LINUX-RUNTIME-CANDIDATE/${profile}`, commit: 'a'.repeat(40), runId: '123456', platform: 'linux/amd64', cometForkTree: 'b'.repeat(40), goMod: sourcePin, goSum: sourcePin, proofVerifierContract: 'YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1', proofVerifierSources, binaries, operator, runtimeStarted: false, publicDeployment: false, pqActivation: false, purpose: 'normal entrypoint binaries and operator configuration only; no keys, credentials, ledger or signing history' };
   const raw = Buffer.from(JSON.stringify(record) + '\n');
   writeFileSync(join(bundle, 'SOURCE.json'), raw, { mode: 0o600 });
   return { bundle, record, pin: sha256(raw), commit: record.commit };
 }
 
-function runtimeValidation(mutate = () => {}) {
+function runtimeValidation(mutate = () => {}, { profile = 'v2' } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'ynx-runtime-pin-'));
   try {
-    const fixture = runtimeFixture(directory);
+    const fixture = runtimeFixture(directory, profile);
     mutate(fixture, directory);
     const paths = ['SOURCE.json', ...runtimeNames, ...operatorNames.map(name => `operator/${name}`)];
-    const before = Object.fromEntries(paths.map(name => [name, savedPath(join(fixture.bundle, name))]));
+    const before = Object.fromEntries(paths.map(name => [name, { value: savedPath(join(fixture.bundle, name)), metadata: runtimeOriginalMetadata(join(fixture.bundle, name)) }]));
     // Sourcing the ACTUAL script must only define the parser, without loading
     // deploy env, reserving work, executing binaries or contacting transport.
     const script = 'set -Eeuo pipefail\nsource "$YNX_RUNTIME_SCRIPT"\nvalidate_runtime_bundle "$YNX_RUNTIME_BUNDLE" "$YNX_RUNTIME_COMMIT" "$YNX_RUNTIME_MANIFEST"';
     const result = spawnSync('bash', ['-c', script], { cwd: directory, encoding: 'utf8', env: { ...process.env, YNX_RUNTIME_SCRIPT: join(root, relative), YNX_RUNTIME_BUNDLE: fixture.bundle, YNX_RUNTIME_COMMIT: fixture.commit, YNX_RUNTIME_MANIFEST: fixture.pin } });
     assert.equal(result.error, undefined);
-    for (const name of paths) assert.deepEqual(savedPath(join(fixture.bundle, name)), before[name], `validation changed original ${name}`);
+    for (const name of paths) assert.deepEqual({ value: savedPath(join(fixture.bundle, name)), metadata: runtimeOriginalMetadata(join(fixture.bundle, name)) }, before[name], `validation changed original ${name} bytes/inode/mode`);
     assert.equal(existsSync(join(directory, 'tmp')), false, 'parser invoked deployment work creation');
     return { status: result.status, stderr: result.stderr };
   } finally {
@@ -356,12 +373,18 @@ test('actual runtime parser accepts exactly the externally pinned v2 eight-binar
   assert.equal(result.status, 0, result.stderr);
 });
 
+test('actual runtime parser accepts exactly the externally pinned v3 portable-source eight-binary artifact without running or rewriting it', () => {
+  const result = runtimeValidation(() => {}, { profile: 'v3' });
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test('actual runtime parser refuses missing pins, stale v1, altered bytes, false metadata and non-original files without fallback', async t => {
   const cases = {
     missing_commit: f => { f.commit = ''; },
     abbreviated_commit: f => { f.commit = f.commit.slice(0, 12); },
     wrong_commit: f => { f.commit = 'c'.repeat(40); },
     wrong_manifest: f => { f.pin = 'd'.repeat(64); },
+    v2_with_v3_portable_source: f => { f.record.proofVerifierSources[portableVerifierSource] = filePin(readFileSync(join(root, portableVerifierSource))); repinRuntime(f); },
     old_six_binary_version: f => { f.record.version = 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v1'; repinRuntime(f); },
     missing_verifier: f => { rmSync(join(f.bundle, 'ynx-consensus-package')); },
     altered_binary: f => { const path = join(f.bundle, 'ynx-abci'); const bytes = readFileSync(path); bytes[65] ^= 1; writeFileSync(path, bytes); },
@@ -387,15 +410,35 @@ test('actual runtime parser refuses missing pins, stale v1, altered bytes, false
   });
 });
 
-function runtimePreparation(mode, { source = current, bsdChmod = false } = {}) {
+test('actual runtime v3 parser rejects incomplete, unapproved, malformed or independently unpinned portable source metadata', async t => {
+  const cases = {
+    missing_portable_source: { mutate: f => { delete f.record.proofVerifierSources[portableVerifierSource]; repinRuntime(f); }, cause: /unexpected manifest fields/ },
+    unapproved_source: { mutate: f => { f.record.proofVerifierSources['cmd/ynx-consensus-proof-verify/unapproved.go'] = f.record.proofVerifierSources[portableVerifierSource]; repinRuntime(f); }, cause: /unexpected manifest fields/ },
+    malformed_portable_byte_count: { mutate: f => { f.record.proofVerifierSources[portableVerifierSource].bytes = '1'; repinRuntime(f); }, cause: /invalid manifest byte count/ },
+    malformed_portable_digest: { mutate: f => { f.record.proofVerifierSources[portableVerifierSource].sha256 = 'AB'.repeat(32); repinRuntime(f); }, cause: /invalid manifest SHA256/ },
+    tampered_portable_metadata_under_original_pin: { mutate: f => {
+      f.record.proofVerifierSources[portableVerifierSource].bytes++;
+      // Deliberately keep the ORIGINAL independent SOURCE pin. The parser
+      // authenticates this exact document, not source files absent from it.
+      writeFileSync(join(f.bundle, 'SOURCE.json'), Buffer.from(JSON.stringify(f.record) + '\n'));
+    }, cause: /SOURCE.json differs from independent manifest pin/ },
+  };
+  for (const [name, { mutate, cause }] of Object.entries(cases)) await t.test(name, () => {
+    const result = runtimeValidation(mutate, { profile: 'v3' });
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, cause);
+  });
+});
+
+function runtimePreparation(mode, { source = current, bsdChmod = false, profile = 'v2' } = {}) {
   // Darwin exposes its temporary root through /var -> /private/var. The
   // production parser correctly requires original canonical paths on both OSes.
   const directory = realpathSync(mkdtempSync(join(tmpdir(), 'ynx-runtime-copy-')));
   try {
-    const fixture = runtimeFixture(directory);
+    const fixture = runtimeFixture(directory, profile);
     const destination = join(directory, 'retained-runtime');
     const entries = ['SOURCE.json', ...runtimeNames, ...operatorNames.map(name => `operator/${name}`)];
-    const before = Object.fromEntries(entries.map(name => [name, { value: savedPath(join(fixture.bundle, name)), mode: lstatSync(join(fixture.bundle, name)).mode }]));
+    const before = Object.fromEntries(entries.map(name => [name, { value: savedPath(join(fixture.bundle, name)), mode: lstatSync(join(fixture.bundle, name)).mode, metadata: runtimeOriginalMetadata(join(fixture.bundle, name)) }]));
     if (mode === 'existing_directory') { mkdirSync(destination); writeFileSync(join(destination, 'UNKNOWN'), 'original retained attempt'); }
     if (mode === 'existing_file') writeFileSync(destination, 'original retained file');
     if (mode === 'existing_symlink') symlinkSync(join(directory, 'absent-target'), destination);
@@ -435,7 +478,7 @@ function runtimePreparation(mode, { source = current, bsdChmod = false } = {}) {
     assert.equal(result.error, undefined);
     for (const name of entries) {
       const path = join(fixture.bundle, name);
-      assert.deepEqual({ value: savedPath(path), mode: lstatSync(path).mode }, before[name], `preparation changed original ${name} bytes/mode`);
+      assert.deepEqual({ value: savedPath(path), mode: lstatSync(path).mode, metadata: runtimeOriginalMetadata(path) }, before[name], `preparation changed original ${name} bytes/inode/mode`);
     }
     const copies = existsSync(trace) ? readFileSync(trace, 'utf8').trim().split('\n').length : 0;
     const chmodCalls = existsSync(chmodTrace) ? readFileSync(chmodTrace, 'utf8').trim().split('\n').length : 0;
@@ -458,6 +501,34 @@ test('actual runtime preparation makes only a verified private executable copy a
     assert.equal(result.prepared[name].mode, 0o755);
     assert.deepEqual(result.prepared[name].value, result.before[name].value);
   }
+});
+
+test('actual runtime v3 preparation preserves 0644 originals, exclusive copies and UNKNOWN failures', async t => {
+  for (const mode of ['fresh', 'existing_directory', 'copy_unknown', 'copy_tamper']) await t.test(mode, () => {
+    const result = runtimePreparation(mode, { profile: 'v3' });
+    for (const name of runtimeNames) assert.equal(result.before[name].mode & 0o777, 0o644);
+    if (mode === 'fresh') {
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.copies, 12);
+      for (const name of runtimeNames) {
+        assert.equal(result.prepared[name].mode, 0o755);
+        assert.deepEqual(result.prepared[name].value, result.before[name].value);
+      }
+      return;
+    }
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.equal(result.destination.kind, 'directory');
+    if (mode === 'existing_directory') {
+      assert.equal(result.copies, 0);
+      assert.deepEqual(result.destination, result.oldDestination);
+      assert.equal(result.marker, 'original retained attempt');
+    } else {
+      assert.deepEqual(result.prepared['ynx-abci'].value, result.before['ynx-abci'].value);
+      assert.equal(result.prepared['ynx-abci'].mode & 0o111, 0);
+      if (mode === 'copy_unknown') { assert.equal(result.status, 31); assert.equal(result.copies, 2); }
+      else assert.equal(result.copies, 12);
+    }
+  });
 });
 
 test('actual runtime preparation reproduces original BSD chmod failure and retains the partially executable UNKNOWN copy', () => {
@@ -535,8 +606,38 @@ function applyOwnedDirectoryPortability(source, reverse = false) {
 
 function originalLateSnapshotSource() {
   // Rebuild the complete previously frozen production source, not a mock of
-  // the missing check. Only this fix's small metadata-witness diff is reversed.
-  const unnormalized = applyOwnedDirectoryPortability(current, true);
+  // the missing check. Reverse the later closed-version dispatch separately,
+  // preserving the exact historical bytes/hash rather than changing its oracle.
+  let unnormalized = applyOwnedDirectoryPortability(current, true);
+  const versionProfiles = [
+    '    # Preserve the qualified v2 artifact and give the additional portable',
+    '    # importer provenance its own closed manifest version. Neither version',
+    "    # accepts the other's source inventory or arbitrary optional sources.",
+    '    source_profiles = {',
+    "        'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2': (",
+    "            'internal/consensus/pq_light_proof.go', 'cmd/ynx-consensus-proof-verify/main.go',",
+    "            'cmd/ynx-consensus-proof-verify/trust.go'),",
+    "        'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3': (",
+    "            'internal/consensus/pq_light_proof.go', 'cmd/ynx-consensus-proof-verify/main.go',",
+    "            'cmd/ynx-consensus-proof-verify/trust.go', 'cmd/ynx-consensus-proof-verify/portable_import.go'),",
+    '    }',
+    "    require(record['version'] in source_profiles",
+    '',
+  ].join('\n');
+  const reverseVersionDispatch = [
+    [versionProfiles, "    require(record['version'] == 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2'\n"],
+    ["    sources = source_profiles[record['version']]\n", "    sources = ('internal/consensus/pq_light_proof.go', 'cmd/ynx-consensus-proof-verify/main.go',\n               'cmd/ynx-consensus-proof-verify/trust.go')\n"],
+    [[
+      '    # Full version-specific inventory validation already ran above; bind the',
+      '    # same original SOURCE bytes again before copying the selected public tool.',
+      "    require(record['version'] in ('YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2', 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3') and record['commit'] == commit,",
+      '',
+    ].join('\n'), "    require(record['version'] == 'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2' and record['commit'] == commit,\n"],
+  ];
+  for (const [after, before] of reverseVersionDispatch) {
+    assert.equal(unnormalized.split(after).length - 1, 1, 'closed runtime version reversal must be exact');
+    unnormalized = unnormalized.replace(after, before);
+  }
   const begin = unnormalized.indexOf('  local originals_snapshot\n', unnormalized.indexOf('prepare_runtime_tool() {\n'));
   const end = unnormalized.indexOf('  validate_runtime_bundle "$1" "$2" "$3" || return', begin);
   assert.ok(begin >= 0 && end > begin);
@@ -555,10 +656,10 @@ function originalLateSnapshotSource() {
 
 const lateUnusedMutation = 'LATE_UNUSED_FIXTURE_CHANGE\n';
 
-function runtimeToolPreparation(mode, binary = selectedRuntimeTools[0], phase = null, toolSource = current) {
+function runtimeToolPreparation(mode, binary = selectedRuntimeTools[0], phase = null, toolSource = current, profile = 'v2') {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), 'ynx-runtime-tool-')));
   try {
-    const fixture = runtimeFixture(directory);
+    const fixture = runtimeFixture(directory, profile);
     let work = join(directory, 'new-work');
     if (mode === 'bad_pin') fixture.pin = 'e'.repeat(64);
     if (mode === 'altered_selected' || mode === 'altered_unused') {
@@ -593,21 +694,25 @@ function runtimeToolPreparation(mode, binary = selectedRuntimeTools[0], phase = 
       const caller = source.slice(start, end);
       assert.equal(caller.split('prepare_runtime_tool ').length - 1, 1);
       assert.doesNotMatch(caller, /prepare_runtime_bundle |validate_runtime_bundle /);
+      // These four paths are remote DATA arguments, never local fixture files.
+      // Keep the real caller's ASCII target-path contract when local TMPDIR is
+      // on a Unicode volume. Transport below stops before any remote action.
+      const remoteFixtureRoot = '/var/tmp/ynx-runtime-tool-public-fixture';
       Object.assign(env, {
         CONSENSUS_CANDIDATE_KEY_ROLE: 'primary', CONSENSUS_CANDIDATE_KEY_WORK_ROOT: work,
         CONSENSUS_CANDIDATE_KEY_CEREMONY_RESUME: '',
         CONSENSUS_CANDIDATE_RUNTIME_BUNDLE: fixture.bundle, CONSENSUS_CANDIDATE_RUNTIME_COMMIT: fixture.commit,
         CONSENSUS_CANDIDATE_RUNTIME_MANIFEST_SHA256: fixture.pin,
-        CONSENSUS_PQ_KEY_DIRECTORY: phase === 'pq-approve-first-registration' || phase === 'legacy-verify-recovery' ? '' : join(directory, 'remote-custody'),
-        CONSENSUS_PQ_STATE_DIRECTORY: phase === 'pq-approve-first-registration' || phase === 'legacy-verify-recovery' ? '' : join(directory, 'remote-history'),
+        CONSENSUS_PQ_KEY_DIRECTORY: phase === 'pq-approve-first-registration' || phase === 'legacy-verify-recovery' ? '' : join(remoteFixtureRoot, 'remote-custody'),
+        CONSENSUS_PQ_STATE_DIRECTORY: phase === 'pq-approve-first-registration' || phase === 'legacy-verify-recovery' ? '' : join(remoteFixtureRoot, 'remote-history'),
         CONSENSUS_PQ_EPOCH_REQUEST: phase === 'pq-new-epoch' ? publicInput : '', CONSENSUS_PQ_EPOCH_REQUEST_SHA256: phase === 'pq-new-epoch' ? filePin(readFileSync(publicInput)).sha256 : '',
         CONSENSUS_PQ_CONSENSUS_GENESIS: phase === 'pq-inspect' || phase === 'legacy-verify-recovery' ? '' : genesis,
         CONSENSUS_PQ_CONSENSUS_GENESIS_SHA256: phase === 'pq-inspect' || phase === 'legacy-verify-recovery' ? '' : filePin(readFileSync(genesis)).sha256,
         CONSENSUS_PQ_ENCRYPTED_CREDENTIAL_SHA256: phase === 'pq-new-epoch' ? 'c'.repeat(64) : '',
         CONSENSUS_PQ_PUBLIC_RECORD: phase === 'pq-approve-first-registration' ? publicInput : '',
         CONSENSUS_PQ_PUBLIC_RECORD_SHA256: phase === 'pq-approve-first-registration' ? filePin(readFileSync(publicInput)).sha256 : '',
-        CONSENSUS_PQ_APPROVAL_DIRECTORY: phase === 'pq-approve-first-registration' ? join(directory, 'remote-approval') : '',
-        CONSENSUS_LEGACY_RECOVERY_PARENT: phase === 'legacy-verify-recovery' ? join(directory, 'remote-recovery') : '',
+        CONSENSUS_PQ_APPROVAL_DIRECTORY: phase === 'pq-approve-first-registration' ? join(remoteFixtureRoot, 'remote-approval') : '',
+        CONSENSUS_LEGACY_RECOVERY_PARENT: phase === 'legacy-verify-recovery' ? join(remoteFixtureRoot, 'remote-recovery') : '',
         CONSENSUS_LEGACY_RECOVERY_ROLE_MANIFEST_REMOTE: phase === 'legacy-verify-recovery' ? `/opt/ynx-chain/consensus-candidates/ynx-consensus-candidate-${fixture.commit.slice(0, 12)}/primary/role/role-manifest.json` : '',
         CONSENSUS_LEGACY_RECOVERY_ROLE_MANIFEST_SHA256: phase === 'legacy-verify-recovery' ? 'd'.repeat(64) : '',
       });
@@ -649,8 +754,9 @@ function runtimeToolPreparation(mode, binary = selectedRuntimeTools[0], phase = 
 }
 
 test('actual runtime preparation selects one fixed PUBLIC tool after exactly one complete bundle validation', async t => {
-  for (const binary of selectedRuntimeTools) await t.test(binary, () => {
-    const result = runtimeToolPreparation('fresh', binary);
+  const profiles = [...selectedRuntimeTools.map(binary => [binary, 'v2']), [selectedRuntimeTools[0], 'v3']];
+  for (const [binary, profile] of profiles) await t.test(profile === 'v2' ? binary : `${binary}-v3`, () => {
+    const result = runtimeToolPreparation('fresh', binary, null, current, profile);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout, '', 'preparation must not mix DATA diagnostics into a ceremony receipt');
     assert.equal(result.validationCalls, 1);

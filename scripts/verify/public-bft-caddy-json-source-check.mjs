@@ -10,6 +10,9 @@ import {spawnSync} from "node:child_process";
 import {fileURLToPath} from "node:url";
 import {caddySourceIdentity} from "./lib/public-bft-native-source.mjs";
 
+const controlArgs=process.argv.slice(2);
+assert.ok(controlArgs.length===0||(controlArgs.length===1&&controlArgs[0]==="--runtime-source-only"),"only the fixed runtime-source test selector is accepted");
+const runtimeSourceOnly=controlArgs.length===1;
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "ynx-caddy-source-controls-")));
 const profile = "single-app-gateway/v1", fullCommit = "0123456789abcdef0123456789abcdef01234567";
@@ -27,8 +30,12 @@ const approvalProgram = path.join(repo, "scripts/verify/validate-public-bft-cuto
 // Go migration validity. Only the subprocess transport below is doubled.
 const summaryELF=Buffer.alloc((1<<20)+64);
 summaryELF.set([127,69,76,70,2,1,1]);summaryELF.writeUInt16LE(2,16);summaryELF.writeUInt16LE(62,18);summaryELF.writeUInt32LE(1,20);
-const summarySOURCE=encode({version:"YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2",commit:fullCommit,platform:"linux/amd64",
-  binaries:{"ynx-consensus-package":{bytes:summaryELF.length,sha256:sha(summaryELF)}},runtimeStarted:false,publicDeployment:false,pqActivation:false});
+const portableSource="cmd/ynx-consensus-proof-verify/portable_import.go";
+const sourcePins=()=>Object.fromEntries(["internal/consensus/pq_light_proof.go","cmd/ynx-consensus-proof-verify/main.go","cmd/ynx-consensus-proof-verify/trust.go"].map(name=>[name,{bytes:1,sha256:hash("a")}]));
+const summarySourceRecord={version:"YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2",commit:fullCommit,platform:"linux/amd64",
+  proofVerifierContract:"YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1",proofVerifierSources:sourcePins(),
+  binaries:{"ynx-consensus-package":{bytes:summaryELF.length,sha256:sha(summaryELF)}},runtimeStarted:false,publicDeployment:false,pqActivation:false};
+const summarySOURCE=encode(summarySourceRecord);
 const summaryRuntimePin=sha(summarySOURCE);
 let cases = 0, serial = 0;
 function check(name, action) {
@@ -163,7 +170,37 @@ function driverFixture(f,json,corrupt=false) {
   return {run,log,transaction,binding,files:[approvalFile,bindingFile,manifestFile]};
 }
 
+function runtimeSourceInventoryControls(){
+  for(const [name,mutate,accepted,keepOriginalPin] of [
+    ["v3 exact four sources",()=>{},true,false],
+    ["v2 cannot carry four sources",s=>{s.version="YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2";},false,false],
+    ["v3 requires portable source",s=>{delete s.proofVerifierSources[portableSource];},false,false],
+    ["unknown source is rejected",s=>{s.proofVerifierSources["unapproved.go"]={bytes:1,sha256:hash("a")};},false,false],
+    ["joined source keys cannot alias the exact inventory",s=>{s.proofVerifierSources={[Object.keys(s.proofVerifierSources).sort().join(",")]:{bytes:1,sha256:hash("a")}};},false,false],
+    ["source byte string is rejected",s=>{s.proofVerifierSources[portableSource].bytes="1";},false,false],
+    ["source zero digest is rejected",s=>{s.proofVerifierSources[portableSource].sha256=hash("0");},false,false],
+    ["source row extra is rejected",s=>{s.proofVerifierSources[portableSource].approved=true;},false,false],
+    ["original contract is required",s=>{s.proofVerifierContract="YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v2";},false,false],
+    ["changed SOURCE remains bound to original external pin",s=>{s.proofVerifierSources[portableSource].bytes++;},false,true],
+  ])check(`normal runtime metadata ${name}`,()=>{
+    const x=fixture(),source=structuredClone(summarySourceRecord);
+    source.version="YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3";
+    source.proofVerifierSources[portableSource]={bytes:1,sha256:hash("a")};
+    const original=encode(source),originalPin=sha(original);mutate(source);
+    const changed=encode(source);fs.writeFileSync(x.verifier.source,changed);
+    const sourceSaved=snapshot([x.verifier.source,x.verifier.binary]),calls=fs.readFileSync(x.verifier.calls,"utf8");
+    const result=cli(bindingProgram,["--migration-public-summary",path.join(x.transaction,"final-snapshot/migration.json"),fullCommit,keepOriginalPin?originalPin:sha(changed)],accepted,x.verifier.env);
+    if(accepted){assert.equal(JSON.parse(result.stdout).classification,"data");assert.ok(fs.readFileSync(x.verifier.calls,"utf8").length>calls.length);}
+    else{assert.equal(fs.readFileSync(x.verifier.calls,"utf8"),calls,"unqualified source reached verifier spawn");if(keepOriginalPin)assert.match(result.stderr,/SOURCE differs from independent runtime pin/);}
+    unchanged(sourceSaved);
+  });
+}
+
 try {
+  if(runtimeSourceOnly){
+    runtimeSourceInventoryControls();
+    console.log(`PUBLIC_BFT_CADDY_RUNTIME_SOURCE_CONTROLS_DATA_ONLY cases=${cases}; summary transport double; no driver/ELF/service/Root authority`);
+  } else {
   check("typed absence and explicit original identity preserve approved material",()=>{
     assert.deepEqual(caddySourceIdentity({}),{});
     assert.deepEqual(caddySourceIdentity({custodyProfile:profile}),{});
@@ -195,6 +232,7 @@ try {
     assert.match(badPin.stderr,/migration verifier SOURCE differs from independent runtime pin/);
     unchanged(saved);
   });
+  runtimeSourceInventoryControls();
   check("normal actual binding and approval evidence carry exact original source",()=>{
     assert.deepEqual(f.manifest.rpcUpstreams.map(value=>value.host).sort(),["evm.ynxweb4.com","rpc-testnet.ynxweb4.com","rpc.ynxweb4.com"]);
     assert.equal(f.manifest.rpcUpstreams.find(value=>value.host==="evm.ynxweb4.com").pointer,evmPointer);
@@ -321,6 +359,7 @@ try {
     }
   });
   console.log(`PUBLIC_BFT_CADDY_JSON_SOURCE_CONTROLS_DATA_ONLY cases=${cases}; public fixtures, custody-child double, no service/SSH/Root authority`);
+  }
 } finally {
   fs.rmSync(root,{recursive:true,force:true});
 }

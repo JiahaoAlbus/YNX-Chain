@@ -29,6 +29,16 @@ def read(p):
 def sha(raw): return hashlib.sha256(raw).hexdigest()
 def pin(s): return type(s) is str and re.fullmatch('[0-9a-f]{64}',s) and s!='0'*64
 def decimal(s): return type(s) is str and re.fullmatch('[1-9][0-9]*',s) and int(s)<=2**63-1
+def runtime_profile(source):
+    profiles={
+        'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2': {'internal/consensus/pq_light_proof.go','cmd/ynx-consensus-proof-verify/main.go','cmd/ynx-consensus-proof-verify/trust.go'},
+        'YNX-PQ-LINUX-RUNTIME-CANDIDATE/v3': {'internal/consensus/pq_light_proof.go','cmd/ynx-consensus-proof-verify/main.go','cmd/ynx-consensus-proof-verify/trust.go','cmd/ynx-consensus-proof-verify/portable_import.go'},
+    }
+    need(source.get('version') in profiles and source.get('platform')=='linux/amd64','normal versioned runtime required')
+    sources=source.get('proofVerifierSources')
+    need(source.get('proofVerifierContract')=='YNX-CONSENSUS-PROOF-VERIFY-REQUEST/v1' and type(sources) is dict and set(sources)==profiles[source['version']],'version-specific proof verifier sources required')
+    for value in sources.values():
+        need(type(value) is dict and set(value)=={'bytes','sha256'} and type(value['bytes']) is int and 0<value['bytes']<=16<<20 and pin(value['sha256']),'original proof verifier source pin required')
 try:
     phase,tx,role,approval,approvalpin,oldpkg,oldpin,oldsource,oldcommit,oldmanifest,newpkg,newpin,source,commit,manifest=sys.argv[1:]
     roles=('primary','singapore','silicon-valley','seoul')
@@ -44,7 +54,7 @@ try:
     oldraw,old=read(pathlib.Path(oldpkg)/'common/operator-plan.json'); need(sha(oldraw)==oldpin,'old plan pin mismatch')
     oldraw,oldsrc=read(oldsource); need(sha(oldraw)==oldmanifest and oldsrc['commit']==oldcommit,'old runtime pin mismatch')
     raw,src=read(source); need(sha(raw)==manifest and src['commit']==commit,'runtime pin mismatch')
-    for s in (oldsrc,src): need(s['version']=='YNX-PQ-LINUX-RUNTIME-CANDIDATE/v2' and s['platform']=='linux/amd64','normal v2 runtime required')
+    for s in (oldsrc,src): runtime_profile(s)
     need(old['version']=='YNX-PRODUCTION-OPERATOR/v1' and not old['pqSchedule'] and not old['pqScheduleHash'],'only the original bootstrap/runtime to first-PQ transition is supported; no schedule rollback')
     oldroles={r['role']:r for r in old['roles']}; need(set(oldroles)==set(roles),'original four roles required')
     def halt_profile(plan):
