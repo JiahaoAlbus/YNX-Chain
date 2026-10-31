@@ -5,7 +5,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AtomicMultiFile, multiError, validateNetwork } from '../../multichain-config.mjs';
-import { CctpFlow, CctpStore, validateCctpStore } from './cctp-flow.mjs';
+import { CctpFlow, CctpStore, validateCctpStore, installCctpIPC } from './cctp-flow.mjs';
 import { ROUTE } from './cctp-wire.mjs';
 
 const ACCOUNT = '0x1111111111111111111111111111111111111111';
@@ -96,6 +96,125 @@ async function harness(t, { allowanceUnits = '0' } = {}) {
   };
   return { filePath, calls, current, original, wallet, reader, guard, store, flow, createFlow, start, confirm, included, proof, mintReady };
 }
+
+test('T-P01-07 lost start acknowledgement restores the original durable quote after cold expiry without a new intent', async t => {
+  const h = await harness(t);
+  const quote = await h.flow.quote(copy(INPUT));
+  // The producer completed, but its returned intent ID did not reach the caller.
+  await h.flow.start(quote.quoteId);
+  const [original] = await h.store.list(ACCOUNT);
+  const before = await readFile(h.filePath, 'utf8');
+  h.current.time = quote.expiresAt + 1;
+  const cold = h.createFlow(new CctpStore({filePath: h.filePath}));
+  cold.id = () => assert.fail('Recovering an original start cannot allocate another intent ID');
+  const observed = await cold.start(quote.quoteId);
+  assert.deepEqual(observed, original);
+  assert.equal(await readFile(h.filePath, 'utf8'), before);
+  assert.equal((await h.store.list(ACCOUNT)).length, 1);
+  assert.equal(h.calls.prepare.length, 0);
+  assert.equal(h.calls.send.length, 0);
+});
+
+test('T-P01-07 supplied operation ID crosses the existing IPC and cold UNKNOWN only reads the original burn and message', async t => {
+  const h = await harness(t, {allowanceUnits: '1000000'});
+  const quote = await h.flow.quote(copy(INPUT)), operationId = randomUUID();
+  const input = {quoteId: quote.quoteId, operationId};
+  const mount = flow => {
+    const handlers = new Map();
+    installCctpIPC({handle: (name, action) => handlers.set(name, action), safe: action => action(), sensitive: action => action(), flow, getGuard: () => h.guard});
+    return (name, value) => handlers.get('wallet:cross-chain-' + name)({}, value);
+  };
+  h.flow.id = () => assert.fail('A supplied original operation ID must not be replaced');
+  const call = mount(h.flow), record = await call('start', input);
+  assert.equal(record.id, operationId);
+  assert.equal(record.binding.quoteId, quote.quoteId);
+  const review = await call('prepare', record.id);
+  h.current.sendError = multiError('RPC_TIMEOUT_AFTER_SEND', 'Controlled post-submit disconnect.');
+  const uncertain = await call('confirm', {id: record.id, reviewId: review.id});
+  const before = await readFile(h.filePath, 'utf8');
+  const cold = h.createFlow(new CctpStore({filePath: h.filePath}));
+  cold.id = () => assert.fail('Cold recovery cannot allocate a new operation');
+  const coldCall = mount(cold), recovered = await coldCall('start', input);
+  assert.deepEqual(recovered, uncertain);
+  assert.equal(await readFile(h.filePath, 'utf8'), before);
+  await assert.rejects(coldCall('prepare', operationId), code('CCTP_CHECK_ORIGINAL'));
+  await assert.rejects(coldCall('confirm', {id: operationId, reviewId: review.id}), code('CCTP_CHECK_ORIGINAL'));
+  const checked = await coldCall('check', operationId);
+  assert.equal(checked.operations[0].id, review.id);
+  assert.equal(checked.operations[0].hash, TX.burn);
+  h.included(review); h.current.proof = h.proof();
+  const ready = await coldCall('check', operationId);
+  const claim = await coldCall('start', input);
+  assert.equal(claim.id, operationId);
+  assert.equal(claim.state, 'mint-ready');
+  assert.equal(claim.proof.sourceTxHash, TX.burn);
+  assert.equal(claim.proof.nonce, NONCE);
+  assert.deepEqual(claim, ready);
+  assert.ok(h.calls.check.every(value => value.id === review.id));
+  assert.equal(h.calls.prepare.length, 1);
+  assert.equal(h.calls.send.length, 1);
+  assert.equal((await h.store.list(ACCOUNT)).length, 1);
+});
+
+test('T-P01-07 an operation cannot be rebound to another quote or another operation ID', async t => {
+  const h = await harness(t), operationId = randomUUID(), quote = await h.flow.quote(copy(INPUT));
+  const original = await h.flow.start({quoteId: quote.quoteId, operationId});
+  const before = await readFile(h.filePath, 'utf8');
+  const replacement = await h.flow.quote({...INPUT, recipient: OTHER_ACCOUNT});
+  await assert.rejects(h.flow.start({quoteId: replacement.quoteId, operationId}), code('CCTP_BINDING_CHANGED'));
+  await assert.rejects(h.flow.start({quoteId: quote.quoteId, operationId: randomUUID()}), code('CCTP_BINDING_CHANGED'));
+  assert.deepEqual(await h.flow.start(quote.quoteId), original);
+  assert.equal(await readFile(h.filePath, 'utf8'), before);
+  h.current.context.account = OTHER_ACCOUNT;
+  const cold = h.createFlow(new CctpStore({filePath: h.filePath}));
+  await assert.rejects(cold.start({quoteId: quote.quoteId, operationId}));
+  assert.equal(await readFile(h.filePath, 'utf8'), before);
+  assert.equal(h.calls.prepare.length, 0);
+  assert.equal(h.calls.send.length, 0);
+});
+
+test('T-P01-07 Approval DATA cannot authorize start or replace a protected step review', async t => {
+  const h = await harness(t), quote = await h.flow.quote(copy(INPUT)), operationId = randomUUID();
+  await assert.rejects(h.flow.start({quoteId: quote.quoteId, operationId, walletApproval: {approved: true}}), code('MULTICHAIN_INVALID_INPUT'));
+  await assert.rejects(h.flow.start({quoteId: quote.quoteId}), code('CCTP_INVALID_INPUT'));
+  assert.deepEqual(await h.store.list(ACCOUNT), []);
+  const record = await h.flow.start({quoteId: quote.quoteId, operationId});
+  const before = await readFile(h.filePath, 'utf8');
+  await assert.rejects(h.flow.confirmStep({id: operationId, reviewId: randomUUID()}, h.guard), code('CCTP_CHECK_ORIGINAL'));
+  await assert.rejects(h.flow.confirmStep({id: operationId, reviewId: randomUUID(), walletApproval: {approved: true}}, h.guard), code('MULTICHAIN_INVALID_INPUT'));
+  await assert.rejects(h.store.update(operationId, record.revision, value => {value.id = randomUUID();}), code('CCTP_BINDING_CHANGED'));
+  assert.equal(await readFile(h.filePath, 'utf8'), before);
+  assert.equal(h.calls.prepare.length, 0);
+  assert.equal(h.calls.send.length, 0);
+});
+
+test('T-P01-07 overlapping starts share the original quote reservation', async t => {
+  const h = await harness(t), quote = await h.flow.quote(copy(INPUT)), input = {quoteId: quote.quoteId, operationId: randomUUID()};
+  const entered = gate(), release = gate(); let held = false;
+  h.current.hooks.assert = async () => {if (!held) {held = true; entered.resolve(); await release.promise;}};
+  const first = h.flow.start(input);
+  await entered.promise;
+  try {await assert.rejects(h.flow.start(input), code('CCTP_BUSY'));} finally {release.resolve();}
+  const original = await first;
+  assert.equal(original.id, input.operationId);
+  assert.deepEqual(await h.flow.start(input), original);
+  assert.equal((await h.store.list(ACCOUNT)).length, 1);
+  assert.equal(h.calls.send.length, 0);
+});
+
+test('T-P01-07 lookup errors or an absent cold original cannot create a replacement', async t => {
+  const h = await harness(t), quote = await h.flow.quote(copy(INPUT)), input = {quoteId: quote.quoteId, operationId: randomUUID()};
+  const originalList = h.store.list.bind(h.store), failure = new Error('Controlled original metadata read failure');
+  h.store.list = async () => {throw failure;};
+  await assert.rejects(h.flow.start(input), error => error === failure);
+  h.store.list = originalList;
+  const cold = h.createFlow(new CctpStore({filePath: h.filePath}));
+  cold.id = () => assert.fail('An absent cold original cannot be replaced');
+  await assert.rejects(cold.start(input), code('CCTP_QUOTE_EXPIRED'));
+  assert.deepEqual(await h.store.list(ACCOUNT), []);
+  assert.equal(h.calls.prepare.length, 0);
+  assert.equal(h.calls.send.length, 0);
+});
 
 test('quote → exact approve → burn → attestation → mint requires a finalized target receipt and survives a new disk reader', async t => {
   const h = await harness(t);
