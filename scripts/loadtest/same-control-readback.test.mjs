@@ -132,3 +132,27 @@ test('T-REL-05 adapter separates included execution failures from successful mem
  x.summaryRaw=Buffer.from(JSON.stringify(report));x.contextRaw=Buffer.from(JSON.stringify(ctx));x.bindings.sha256.summary=hash(x.summaryRaw);x.bindings.sha256.context=hash(x.contextRaw);
  const r=measureOriginalFinalCohort(x);assert.equal(r.coverage.reportedIncludedAll,2);assert.equal(r.coverage.reportedIncluded,1);assert.equal(r.bench.cohort.counts.included,2);assert.equal(r.bench.cohort.counts.includedBusinessSuccess,1);assert.equal(r.bench.cohort.counts.final_failed,1);assert.equal(r.bench.cohort.counts.committed_success,1);
 });
+
+function withOriginalMonotonicTrace(){
+ const x=rawCohortFixture(false),report=JSON.parse(x.summaryRaw);report.monotonicObservations={schema:'YNX-PERF-MONOTONIC-OBSERVATIONS/v1',observationCutoffNs:'10000000000',missingClockPoints:0,invalidClockPoints:0,unqualifiedFinalSlots:0,logicalGenerationMeasured:false,fixedWindowConfigured:false,physicalCommitMeasured:false,rows:report.transactions.map((r,i)=>({slot:i,index:r.index,round:r.round,hash:r.hash,scheduledOffsetNs:'0',offeredOffsetNs:'1',submittedOffsetNs:'2',checkTxObservedOffsetNs:'3',includedObservedOffsetNs:'4',qualifiedFinalObservedOffsetNs:'5'}))};return {x,report};
+}
+test('T-REL-05 monotonic bridge consumes producer clock data without UTC or formal-window invention',()=>{
+ const {x,report}=withOriginalMonotonicTrace();x.summaryRaw=Buffer.from(JSON.stringify(report));x.bindings.sha256.summary=hash(x.summaryRaw);const r=measureOriginalFinalCohort(x);
+ assert.equal(r.clientMonotonicData.denominator,2);assert.equal(r.clientMonotonicData.conditionalOfferToQualifiedFinalNs.p95Ns,'4');assert.equal(r.clientMonotonicData.observedStageCounts.qualifiedFinalObservedOffsetNs,2);assert.equal(r.clientMonotonicData.logicalGenerationMeasured,false);assert.equal(r.bench,null);assert.equal(r.sustainedTPSQualified,false);
+});
+test('T-REL-05 monotonic bridge refuses detached slots reversed clocks and widened producer claims',()=>{
+ for(const mutate of [r=>r.monotonicObservations.rows[0].hash='other',r=>r.monotonicObservations.rows[0].qualifiedFinalObservedOffsetNs='2',r=>r.monotonicObservations.physicalCommitMeasured=true,r=>r.monotonicObservations.rows.pop(),r=>{r.transactions[0].checkTxIdentityVerified=false;r.summary.finalSubmitted=1;}]){
+  const {x,report}=withOriginalMonotonicTrace();mutate(report);x.summaryRaw=Buffer.from(JSON.stringify(report));x.bindings.sha256.summary=hash(x.summaryRaw);assert.throws(()=>measureOriginalFinalCohort(x));
+ }
+});
+test('T-REL-05 monotonic bridge actual producer-schema CLI delivers bounded readback data',()=>{
+ const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ynx-clock-flow-')));try{
+  const {x,report}=withOriginalMonotonicTrace();x.summaryRaw=Buffer.from(JSON.stringify(report));x.bindings.sha256.summary=hash(x.summaryRaw);
+  const files={manifest:x.manifestRaw,journal:x.journalRaw,summary:x.summaryRaw,bindings:Buffer.from(JSON.stringify(x.bindings))};
+  for(const [name,raw]of Object.entries(files))fs.writeFileSync(path.join(root,name),raw,{mode:0o600});
+  const script=fileURLToPath(new URL('./same-control-readback.mjs',import.meta.url)),out=path.join(root,'readback.json');
+  const result=spawnSync(process.execPath,[script,...Object.keys(files).flatMap(name=>['--'+name,path.join(root,name)]),'--output',out],{encoding:'utf8',timeout:10000});assert.equal(result.status,0,result.stderr);
+  const readback=JSON.parse(fs.readFileSync(out));assert.equal(readback.coverage.denominator,2);assert.equal(readback.clientMonotonicData.conditionalOfferToQualifiedFinalNs.p99Ns,'4');assert.equal(readback.clientMonotonicData.physicalCommitMeasured,false);assert.equal(readback.bench,null);assert.equal(readback.sustainedTPSQualified,false);
+  for(const [name,raw]of Object.entries(files))assert.deepEqual(fs.readFileSync(path.join(root,name)),raw);
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});

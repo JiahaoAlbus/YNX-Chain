@@ -69,6 +69,9 @@ func TestMonotonicObservationExportKeepsExactNsAndPrivateOrigin(t *testing.T) {
 	if _, ok := fields["measurementOrigin"]; ok {
 		t.Fatal("private Go origin exported as UTC authority")
 	}
+	if out.Schema != monotonicObservationSchema {
+		t.Fatal("missing fixed observation schema")
+	}
 	if _, ok := fields["monotonicObservations"]; !ok {
 		t.Fatal("normal report path omitted observation data")
 	}

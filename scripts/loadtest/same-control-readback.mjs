@@ -219,6 +219,7 @@ export function measureOriginalFinalCohort({manifestRaw,journalRaw,summaryRaw,co
  }
  requireValue(report.summary.effectiveBusinessIncluded===reportedIncluded&&report.summary.finalSubmitted===reportedFinal,'original summary totals differ from actual rows');
  const coverage={denominator:n,observedRows:observed.size,missingRequestIds:[...ids].filter(id=>!observed.has(id)),reportedIncluded,reportedIncludedAll,reportedFinal};
+ const clientMonotonicData=readOriginalMonotonicData(report.monotonicObservations,report.transactions,n,final);
  let bench=null;const missing=['Existing CORE DTO supplies no independently bound full logical-generation/physical-Commit monotonic projection; an external projection is DATA only.'];
  if(contextRaw===undefined)missing.push('CORE original logical-generation/monotonic-clock/Commit projection not supplied; UTC and elapsed-summary fields are not substituted');
  else{
@@ -235,7 +236,22 @@ export function measureOriginalFinalCohort({manifestRaw,journalRaw,summaryRaw,co
   requireValue(Array.isArray(bindings.requests),'externally selected complete cohort IDs required');
   bench=measureFinalCohort(ctx,bindings.fromHeight,bindings.untilHeight,bindings.requests,bindings.run);
  }
- return {functionId:'REL-05',classification:'original-raw-measurement-data-not-authority',run:bindings.run,runReferenceAuthority:'local output label only; original CORE has no arbitrary generic runID DTO',originalRunBinding:{manifestSHA256:sha(manifestRaw),genesisHash:manifest.genesisHash,migrationHash:manifest.migrationStateHash,journalSHA256:sha(journalRaw),summarySHA256:sha(summaryRaw)},reportedClientOfferToFinalMs:{denominator:n,missingSamples:n-clientElapsed.length,conditionalSuccessOnly:true,clock:'original client Go monotonic queueDelayMs + confirmationMs; UTC is not subtracted',...(clientElapsed.length?percentiles(clientElapsed):{samples:0,p50:null,p95:null,p99:null})},sourceSHA256:Object.fromEntries(Object.entries(raws).map(([key,raw])=>[key,sha(raw)])),coverage,bench,missingContracts:missing,CORESourceAuthenticated:false,timingProjectionAuthenticated:false,originalFinalBoundary:'Go client verified finality observation; not a physical final Commit timestamp',sustainedTPSQualified:false,signatureAndConsensusVerification:'Original Go qualifiedBusinessFinal/verifiedBusinessInclusion predicates are consumed as reports; signatures are not re-verified here.'};
+ return {functionId:'REL-05',classification:'original-raw-measurement-data-not-authority',run:bindings.run,runReferenceAuthority:'local output label only; original CORE has no arbitrary generic runID DTO',originalRunBinding:{manifestSHA256:sha(manifestRaw),genesisHash:manifest.genesisHash,migrationHash:manifest.migrationStateHash,journalSHA256:sha(journalRaw),summarySHA256:sha(summaryRaw)},reportedClientOfferToFinalMs:{denominator:n,missingSamples:n-clientElapsed.length,conditionalSuccessOnly:true,clock:'original client Go monotonic queueDelayMs + confirmationMs; UTC is not subtracted',...(clientElapsed.length?percentiles(clientElapsed):{samples:0,p50:null,p95:null,p99:null})},sourceSHA256:Object.fromEntries(Object.entries(raws).map(([key,raw])=>[key,sha(raw)])),coverage,clientMonotonicData,bench,missingContracts:missing,CORESourceAuthenticated:false,timingProjectionAuthenticated:false,originalFinalBoundary:'Go client verified finality observation; not a physical final Commit timestamp',sustainedTPSQualified:false,signatureAndConsensusVerification:'Original Go qualifiedBusinessFinal/verifiedBusinessInclusion predicates are consumed as reports; signatures are not re-verified here.'};
+}
+function readOriginalMonotonicData(trace,rows,denominator,qualifiedFinal){
+ if(trace===undefined)return null;
+ requireValue(trace?.schema==='YNX-PERF-MONOTONIC-OBSERVATIONS/v1'&&Array.isArray(trace.rows)&&trace.rows.length===rows.length&&trace.logicalGenerationMeasured===false&&trace.fixedWindowConfigured===false&&trace.physicalCommitMeasured===false,'unsupported original observation schema or wider clock claim');
+ for(const key of ['missingClockPoints','invalidClockPoints','unqualifiedFinalSlots'])requireValue(Number.isSafeInteger(trace[key])&&trace[key]>=0,'invalid original clock accounting');
+ const cutoff=cohortNs(trace.observationCutoffNs,'original observation cutoff'),keys=['scheduledOffsetNs','offeredOffsetNs','submittedOffsetNs','checkTxObservedOffsetNs','includedObservedOffsetNs','qualifiedFinalObservedOffsetNs'];
+ const counts=Object.fromEntries(keys.map(k=>[k,0])),latencies=[];
+ for(const [slot,t]of trace.rows.entries()){
+  const original=rows[slot];requireValue(t.slot===slot&&t.index===original.index&&t.round===(original.round??0)&&t.hash===original.hash,'original clock slot/index/hash binding differs');
+  let last=0n;const times={};
+  for(const key of keys){if(t[key]===undefined||t[key]===null)continue;const value=cohortNs(t[key],key);requireValue(value>=last&&value<=cutoff,'original observation order/cutoff differs');times[key]=value;last=value;counts[key]++;}
+  if(times.qualifiedFinalObservedOffsetNs!==undefined){requireValue(qualifiedFinal(original),'unqualified original final clock promoted');if(times.offeredOffsetNs!==undefined)latencies.push(times.qualifiedFinalObservedOffsetNs-times.offeredOffsetNs);}
+ }
+ latencies.sort((a,b)=>a<b?-1:a>b?1:0);
+ return {schema:trace.schema,denominator,observationCutoffNs:String(cutoff),observedStageCounts:counts,missingClockPoints:trace.missingClockPoints,invalidClockPoints:trace.invalidClockPoints,unqualifiedFinalSlots:trace.unqualifiedFinalSlots,conditionalOfferToQualifiedFinalNs:{samples:latencies.length,denominator,missingSamples:denominator-latencies.length,conditionalSuccessOnly:true,...Object.fromEntries([50,95,99].map(p=>['p'+p+'Ns',latencies.length?String(latencies[Math.ceil(p*latencies.length/100)-1]):null]))},clockSource:'original same-process Go monotonic export; never UTC subtraction',logicalGenerationMeasured:false,fixedWindowConfigured:false,physicalCommitMeasured:false,sourceAuthenticatedHere:false};
 }
 function readCohortRawFile(file,maxBytes){
  requireValue(typeof file==='string'&&path.isAbsolute(file)&&path.normalize(file)===file&&fs.realpathSync(file)===file,'canonical original input path required');

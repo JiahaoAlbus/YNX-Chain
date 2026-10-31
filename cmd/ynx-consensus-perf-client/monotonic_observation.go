@@ -8,7 +8,10 @@ import (
 // Optional data projection of the original client's actual observation points.
 // This is neither a new verifier nor a generic run identity. Original signed
 // journal/manifest identities and existing qualifiedBusinessFinal remain required.
+const monotonicObservationSchema = "YNX-PERF-MONOTONIC-OBSERVATIONS/v1"
+
 type monotonicObservationReport struct {
+	Schema                    string                    `json:"schema"`
 	Clock                     string                    `json:"clock"`
 	ObservationCutoffNs       string                    `json:"observationCutoffNs"`
 	Rows                      []monotonicObservationRow `json:"rows"`
@@ -37,7 +40,7 @@ func captureMonotonicReport(origin, cutoff time.Time, results []transactionResul
 	if !hasMonotonic(origin) || !hasMonotonic(cutoff) || cutoff.Before(origin) || len(results) > maxTransactions {
 		return nil
 	}
-	out := &monotonicObservationReport{Clock: "original client Go monotonic since private measurement origin; final event is verified observation upper bound, not physical Commit", ObservationCutoffNs: strconv.FormatInt(cutoff.Sub(origin).Nanoseconds(), 10), Rows: make([]monotonicObservationRow, 0, len(results))}
+	out := &monotonicObservationReport{Schema: monotonicObservationSchema, Clock: "original client Go monotonic since private measurement origin; final event is verified observation upper bound, not physical Commit", ObservationCutoffNs: strconv.FormatInt(cutoff.Sub(origin).Nanoseconds(), 10), Rows: make([]monotonicObservationRow, 0, len(results))}
 	point := func(at time.Time, reported bool) *string {
 		if at.IsZero() {
 			if reported {
