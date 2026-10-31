@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/open-protocol",
-  "version": "0.0.0-dev.1",
+  "version": "0.0.0-dev.2",
   "private": true,
   "type": "module",
   "exports": {
@@ -15,6 +15,10 @@
     "./framing": {
       "types": "./src/framing.d.ts",
       "import": "./src/framing.js"
+    },
+    "./identity-event": {
+      "types": "./src/identity-event.d.ts",
+      "import": "./src/identity-event.js"
     }
   },
   "files": [
@@ -26,6 +30,7 @@
   "scripts": {
     "test:framing": "node --test test/framing.test.mjs",
     "test:identity-challenge": "node --test test/identity-challenge.test.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "test:identity-event": "node --test test/identity-event.test.mjs"
   }
 }

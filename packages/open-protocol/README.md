@@ -5,9 +5,9 @@ reuses existing `U32BE(count) || U32BE(length) || bytes` framing and does not
 change wallet-auth or original chain bytes.
 
 - `@ynx-chain/open-protocol`: `encodeOpenEnvelope(ctx, domain, realm, fields)`
-  returns a `Promise<Result<Uint8Array>>`. Only
-  `YNX-OPEN/IDENTITY-CHALLENGE/1` is supported. Other profiles return
-  `UNSUPPORTED`, including not-yet-defined IdentityEvent role envelopes.
+  returns a `Promise<Result<Uint8Array>>`. The typed challenge
+  and four explicit identity-role domains are supported. Undefined profiles
+  return `UNSUPPORTED`.
 - `./identity-challenge`: typed `encodeIdentityChallengeV1DATA`,
   `decodeIdentityChallengeV1DATA`, and `assertIdentityChallengeV1BindingDATA`.
 - `./framing`: generic E control framing with 1 MiB/1024-field limits.
@@ -36,5 +36,32 @@ The old committed YNX-BATCH Context vector tests generic E compatibility only.
 The two new synthetic-identifier vectors test this new v1 profile in both Go
 and TS. Neither set is a signature, Source grant or production result.
 
-IdentityEvent field schemas, optional-value tags and protected role-proof
-validation remain separate owner work, listed in the machine-readable proposal.
+The newly defined IdentityEvent field schema and presence tags are implemented
+below. Protected role-proof validation remains original Auth owner work.
+
+## IdentityEvent and role authorization v1
+
+Package dev.2 adds the explicit new IdentityEvent E10 schema and four distinct
+role-auth E10 domains. Public encodeOpenEnvelope accepts eight fields after
+domain/realm for those roles. It binds the selected ctx realm and the original
+event subject tenant, plus exact outer/inner action/realm/from/to generations.
+
+The inner event uses subject Ref E(realm16,tenant16,agent,id16,revU64BE), explicit
+one-byte presence tags for newPair/previous, and a byte-length + both digest
+binding. register is 0 to 1; every nonregister action, including suspend/revoke,
+is strictly +1 with overflow refused and previous present. Pair material is
+mandatory only for register/rotate/recover. subjectRef.rev is not inferred to
+equal epoch. Old pair history is retained by Auth, never erased by this codec.
+
+Role DATA admission is action-specific: register controller/newPoP; rotate
+controller/oldPair/newPoP; suspend/revoke controller; recover recovery/newPoP.
+This matrix is not a completed AND or threshold authorization: Auth must still
+require every necessary proof, independent preregistered recovery controllers,
+unique threshold members, current head and policy. A revoked identity is never
+revived merely because an event encodes successfully. No account asset-key
+authority is introduced. Protected signing, trusted Source/channel and genuine
+identity transitions remain unverified external effects.
+
+New five-event and nine-role synthetic vectors are a new schema interoperability
+fixture, not a signature result or prior production qualification. Challenge
+v1 bytes and its separate domain remain unchanged.

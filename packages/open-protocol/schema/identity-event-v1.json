@@ -1,0 +1,126 @@
+{
+  "schema": "YNX-OPEN/IDENTITY-EVENT/1",
+  "revision": 1,
+  "status": "NEW_V1_TYPED_DATA_SCHEMA_NOT_AUTHORITY",
+  "grammar": "E=count U32BE then each field length U32BE + exact bytes; no trailing",
+  "eventFieldCount": 10,
+  "eventFields": [
+    [
+      "id",
+      "bytes16"
+    ],
+    [
+      "subject",
+      "E(realm16,tenant16,ASCII agent,id16,revU64BE)"
+    ],
+    [
+      "action",
+      "ASCII register|rotate|suspend|revoke|recover"
+    ],
+    [
+      "fromEpoch",
+      "U64BE"
+    ],
+    [
+      "toEpoch",
+      "U64BE"
+    ],
+    [
+      "newPair",
+      "E(U8 0) OR E(U8 1,ASCII YNX-BATCH/v0.1,pkA2592,pkB64)"
+    ],
+    [
+      "trustId",
+      "bytes16"
+    ],
+    [
+      "policyId",
+      "bytes16"
+    ],
+    [
+      "previous",
+      "E(U8 0) OR E(U8 1,previousEventId16)"
+    ],
+    [
+      "bound",
+      "E(byteLengthU64BE,sha3_512[64],sha512[64])"
+    ]
+  ],
+  "roleFieldCount": 10,
+  "roleFields": [
+    "domainByRoleASCII",
+    "realm16",
+    "networkBindingE",
+    "actionASCII",
+    "audience16",
+    "eventOriginalE10",
+    "nonce32",
+    "notAfterUnixMillisecondsU64BE",
+    "expectedEpochU64BE",
+    "nextEpochU64BE"
+  ],
+  "domains": {
+    "controller": "YNX-OPEN/IDENTITY-CONTROLLER/1",
+    "oldPair": "YNX-OPEN/IDENTITY-OLD-PAIR/1",
+    "newPoP": "YNX-OPEN/IDENTITY-NEW-POP/1",
+    "recovery": "YNX-OPEN/IDENTITY-RECOVERY/1"
+  },
+  "allowedRoleDATA": {
+    "register": [
+      "controller",
+      "newPoP"
+    ],
+    "rotate": [
+      "controller",
+      "oldPair",
+      "newPoP"
+    ],
+    "suspend": [
+      "controller"
+    ],
+    "revoke": [
+      "controller"
+    ],
+    "recover": [
+      "recovery",
+      "newPoP"
+    ]
+  },
+  "actionConstraints": {
+    "register": "from=0,to=1; previous absent; newPair present",
+    "allNonregister": "from>=1,to=from+1; uint64 overflow rejected; previous present",
+    "rotateRecover": "newPair present",
+    "suspendRevoke": "newPair absent; old pair remains historical, never erased by codec"
+  },
+  "subjectRevision": "canonical U64 only; not silently equated with epoch",
+  "outerInnerBindings": [
+    "realm=event.subject.realm",
+    "action=event.action",
+    "expectedEpoch=event.fromEpoch",
+    "nextEpoch=event.toEpoch"
+  ],
+  "publicEntry": {
+    "symbol": "encodeOpenEnvelope(ctx,domain,realm,fields)",
+    "roleFieldArgumentCount": 8,
+    "ctxBindings": [
+      "realm",
+      "event.subject.tenant"
+    ],
+    "unknownDomain": "UNSUPPORTED"
+  },
+  "networkBinding": "Same frozen challenge v1 offchain/ynx-chain E mapping; zero genesis rejected",
+  "limits": {
+    "bytes": 1048576,
+    "fields": 1024
+  },
+  "AuthAuthorityNotInCodec": [
+    "controller trust and complete required-role AND",
+    "registered independent recovery controllers, unique threshold members",
+    "revoked state cannot be revived",
+    "current epoch, expected head and subjectRef.rev meaning",
+    "authority clock/challenge use/replay/channel",
+    "signature verification and key custody",
+    "no asset-key access"
+  ],
+  "challengeBytesChanged": false
+}

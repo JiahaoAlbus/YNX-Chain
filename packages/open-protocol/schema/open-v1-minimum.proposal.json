@@ -1,5 +1,5 @@
 {
-  "status": "IDENTITY_EVENT_PROPOSAL_NOT_FROZEN_CHALLENGE_HAS_SEPARATE_FROZEN_SCHEMA",
+  "status": "SUPERSEDED_FOR_IDENTITY_EVENT_BY_NEW_FORMAL_V1_SCHEMA",
   "schemaVersion": "YNX-OPEN/v1-draft.1",
   "genericFraming": {
     "grammar": "E = U32BE(count) || (U32BE(fieldLength) || fieldBytes)*",
@@ -103,12 +103,13 @@
   ],
   "existingGoldenVectorScope": "YNX-BATCH Context generic E only; not a new OPEN semantic/signature vector",
   "notImplemented": [
-    "IdentityEvent and role-proof domain mapping beyond the separately implemented challenge profile",
     "signature verification",
+    "current trust and registered recovery threshold",
     "one-time challenge authority",
     "Grant",
     "Task",
     "Disclosure",
     "admission"
-  ]
+  ],
+  "supersededBy": "identity-event-v1.json"
 }

@@ -43,7 +43,7 @@ func openDisplay(s string) bool {
 	return true
 }
 
-// EncodeOpenEnvelope only supports the explicit typed challenge profile.
+// EncodeOpenEnvelope supports the explicit typed challenge and identity-role profiles.
 // Success binds DATA to ctx, never account authority or trusted channel state.
 func EncodeOpenEnvelope(ctx OpenCtxV1, domain, realm string, fields [][]byte) OpenEncodeResultV1 {
 	bad := func(code string) OpenEncodeResultV1 { return OpenEncodeResultV1{Code: code, RequestID: ctx.RequestID} }
@@ -64,10 +64,15 @@ func EncodeOpenEnvelope(ctx OpenCtxV1, domain, realm string, fields [][]byte) Op
 	if e != nil || strconv.FormatUint(epoch, 10) != ctx.ActorEpoch || !openDisplay(ctx.TraceID) || !openDisplay(ctx.RequestID) {
 		return bad("INVALID")
 	}
-	if domain != IdentityChallengeDomain {
+	role := domainRole(domain) != ""
+	if domain != IdentityChallengeDomain && !role {
 		return bad("UNSUPPORTED")
 	}
-	if realm != ctx.Realm || len(fields) != 9 {
+	count := 9
+	if role {
+		count = 8
+	}
+	if realm != ctx.Realm || len(fields) != count {
 		return bad("INVALID")
 	}
 	all := [][]byte{[]byte(domain), realmBytes}
@@ -79,9 +84,20 @@ func EncodeOpenEnvelope(ctx OpenCtxV1, domain, realm string, fields [][]byte) Op
 		}
 		return bad("INVALID")
 	}
-	c, e := DecodeIdentityChallengeV1DATA(wire)
-	if e != nil || !bytes.Equal(c.Tenant, tenant) || !bytes.Equal(c.Realm, realmBytes) {
-		return bad("INVALID")
+	if role {
+		r, err := DecodeIdentityRoleAuthorizationV1DATA(wire)
+		if err != nil {
+			return bad("INVALID")
+		}
+		event, err := DecodeIdentityEventV1DATA(r.EventOriginal)
+		if err != nil || !bytes.Equal(event.Subject.Tenant, tenant) || !bytes.Equal(event.Subject.Realm, realmBytes) {
+			return bad("INVALID")
+		}
+	} else {
+		c, err := DecodeIdentityChallengeV1DATA(wire)
+		if err != nil || !bytes.Equal(c.Tenant, tenant) || !bytes.Equal(c.Realm, realmBytes) {
+			return bad("INVALID")
+		}
 	}
 	return OpenEncodeResultV1{OK: true, Value: wire}
 }
