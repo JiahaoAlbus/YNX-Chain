@@ -16,7 +16,7 @@ import {parsePQOriginalRecord,createPQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,P
 import {preparePQTransferTransport,decodePQTransferRequest,pqPublicBindingToRegistrationKeys} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {pqTypedOriginalSummary,createPQTypedOriginalFromMember} from './wallet-pq-typed-original.mjs';
 import {createPQAccountInitialOriginalFromMember} from './wallet-pq-account-initial-original.mjs';
-import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause} from './wallet-session-original.mjs';
+import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause,parseSessionPairRequestDATA,parseSessionPairResponseOriginal,sessionV4ReservedBytes} from './wallet-session-original.mjs';
 import {parseSessionPublication,sessionPublicationIdentity} from './wallet-session-publication.mjs';
 import {initialPQProgress,parsePQProgress,capturePQProgressResult,mergePQProgressResult,pqProgressCause,pqProgressCoreEqual,pqSavedCustodyResult,PQ_PROGRESS_RESPONSE_BYTES} from './wallet-pq-progress.mjs';
 import {parsePQFinalityRecord,pqFinalityRecordGeneration,pqFinalityRecordsConflict} from './wallet-pq-finality-record.mjs';
@@ -173,24 +173,28 @@ export class FileTransactionIntentStore {
   async sessionRecoverySummaries(account,guard){
     if(!ACCOUNT.test(account??'')||typeof guard!=='function')throw invalid();
     guard();const state=await this.#read();guard();
-    return Object.freeze((state.sessionOriginals??[]).filter(row=>row.account===account).map(row=>Object.freeze({requestDigest:row.requestDigest,requestId:row.requestId,productId:row.request.productId,createdAt:row.createdAt,expiresAt:row.request.expiresAt,signed:row.approval!==null,deliveryAttempted:row.deliveryAttempted,publicationStatus:state.sessionPublications?.find(p=>p.account===account&&p.requestDigest===row.requestDigest)?.status??'not-published'})));
+    return Object.freeze((state.sessionOriginals??[]).filter(row=>row.account===account).map(row=>Object.freeze({requestDigest:row.requestDigest,requestId:row.requestId,productId:row.request.productId,createdAt:row.createdAt,expiresAt:row.request.expiresAt,signed:row.approval!==null,deliveryAttempted:row.deliveryAttempted,publicationStatus:state.sessionPublications?.find(p=>p.account===account&&p.requestDigest===row.requestDigest)?.status??'not-published',...(row.version===2?{version:2,operationId:row.operationId,queryOnly:true,canRetry:false,pairStatus:row.pairSubmission?row.pairSubmission.responseOriginal===null?'entry-retained':'response-retained':'not-entered'}:{})})));
   }
   async readSessionOriginal(account,digest,guard){
     if(!ACCOUNT.test(account??'')||typeof digest!=='string'||typeof guard!=='function')throw invalid();guard();
     const state=await this.#read();guard();const actual=state.sessionOriginals?.find(row=>row.account===account&&row.requestDigest===digest),slot=sessions(this).get(account+':'+digest);
     if(slot?.record.approval&&(!actual?.approval||canonicalJSON(slot.record.approval)!==canonicalJSON(actual.approval)))throw capabilityError('SESSION_ORIGINAL_SAVE_UNKNOWN','The signed original remains in custody; readback did not prove its durable save. Do not sign again.');
     if(slot&&!actual)throw capabilityError('SESSION_ORIGINAL_SAVE_UNKNOWN','The original reservation is unresolved. Do not sign again.');
+    if(slot?.record.version===2&&actual&&(actual.version!==2||actual.operationId!==slot.record.operationId||actual.registrationOriginal!==slot.record.registrationOriginal||actual.requestId!==slot.record.requestId||
+       slot.pairBeginAttempted&&actual.pairSubmission&&actual.pairSubmission.originalBody!==slot.record.pairSubmission?.originalBody))throw capabilityError('SESSION_PAIR_ORIGINAL_CONFLICT','Readback does not match the retained original pair.');
     return actual?parseSessionOriginal(actual):null;
   }
   async reserveSessionOriginal(input,guard){
     const record=parseSessionOriginal(input),key=record.account+':'+record.requestDigest;
-    if(record.approval!==null||record.deliveryAttempted||record.cleanupComplete||record.firstCause!==null||record.storageCause!==null||record.cleanupCause!==null||typeof guard!=='function'||sessions(this).has(key)||sessions(this).size>=ORIGINAL_OWNER_LIMIT)throw invalid();
+    if(record.version===2&&this.#pqClosing)throw capabilityError('SESSION_PAIR_CLOSING','No new V4 signing entry may start while closing.');
+    if(record.approval!==null||record.version===2&&record.pairSubmission!==null||record.deliveryAttempted||record.cleanupComplete||record.firstCause!==null||record.storageCause!==null||record.cleanupCause!==null||typeof guard!=='function'||sessions(this).has(key)||sessions(this).size>=ORIGINAL_OWNER_LIMIT)throw invalid();
+    const check=()=>{if(record.version===2&&this.#pqClosing)throw capabilityError('SESSION_PAIR_CLOSING','No new V4 signing entry may start while closing.');guard();};
     const token=Object.freeze(Object.create(null)),slot={token,record,captured:false,saveAttempted:false,firstRawPresent:false,cleanupRawPresent:false};sessions(this).set(key,slot);
     await this.#mutate(async()=>{
-      guard();const state=paySuccessor(await this.#read());guard();
+      check();const state=paySuccessor(await this.#read());check();
       if(state.sessionOriginals?.some(row=>row.account===record.account&&row.requestDigest===record.requestDigest)||(state.sessionOriginals?.length??0)>=ORIGINAL_OWNER_LIMIT||Buffer.byteLength(canonicalJSON(state))+SESSION_ORIGINAL_RESERVE_BYTES*(1+(state.sessionOriginals??[]).filter(row=>!row.approval).length)>PRIVATE_FILE_MAX_BYTES)throw invalid();
       const next={...state,schemaVersion:Math.max(7,state.schemaVersion),pqOriginals:state.pqOriginals??[],preparations:state.preparations??[],sessionOriginals:[...(state.sessionOriginals??[]),record]};
-      guard();await this.#write(next);guard();
+      check();await this.#write(next);check();
     });return token;
   }
   async readSessionPublication(account,digest,guard){
@@ -237,6 +241,89 @@ export class FileTransactionIntentStore {
     });
   }
   #sessionSlot(token){const slot=[...sessions(this).values()].find(row=>row.token===token);if(!slot)throw invalid();return slot;}
+  /** A same-process original signing token is mandatory. Cold readback can
+   * observe entered/UNKNOWN but never obtains a new submit capability. */
+  beginSessionPairSubmission(token,requestDATA,guard){
+    const slot=this.#sessionSlot(token);
+    if(this.#pqClosing)throw capabilityError('SESSION_PAIR_CLOSING','No new pair submission may start while closing.');
+    if(slot.record.version!==2||!slot.approvalSaved||typeof guard!=='function')throw capabilityError('SESSION_PAIR_ORIGINAL_REQUIRED','The acknowledged original approval and its live owner are required.');
+    const data=parseSessionPairRequestDATA(requestDATA,slot.record);
+    const check=()=>{if(this.#pqClosing)throw capabilityError('SESSION_PAIR_CLOSING','No new pair submission may start while closing.');guard();};
+    return this.#mutate(async()=>{
+      check();const state=await this.#read();check();
+      const prior=state.sessionOriginals?.find(row=>row.account===slot.record.account&&row.requestDigest===slot.record.requestDigest);
+      if(!prior||prior.version!==2||canonicalJSON(prior.approval)!==canonicalJSON(slot.record.approval)||prior.operationId!==data.operationId)throw invalid();
+      if(prior.pairSubmission){
+        if(prior.pairSubmission.originalBody!==data.originalBody)throw capabilityError('SESSION_PAIR_ORIGINAL_CONFLICT','Preserve the original pair body.');
+        return Object.freeze({created:false,queryOnly:true,operationId:data.operationId});
+      }
+      if(slot.pairBeginAttempted)throw capabilityError('SESSION_PAIR_OUTCOME_UNKNOWN','Original entry is unconfirmed. Query only; never submit again.');
+      const record=parseSessionOriginal({...prior,pairSubmission:{operationId:data.operationId,requestDigest:data.requestDigest,originalBody:data.originalBody,entered:true,responseOriginal:null}});
+      check();slot.pairBeginAttempted=true;slot.record=record;
+      try{
+        await this.#write({...state,sessionOriginals:state.sessionOriginals.map(row=>row===prior?record:row)});check();
+        const actual=(await this.#read()).sessionOriginals?.find(row=>row.account===record.account&&row.requestDigest===record.requestDigest);check();
+        if(!actual?.pairSubmission||canonicalJSON(actual.pairSubmission)!==canonicalJSON(record.pairSubmission))throw invalid();
+        slot.pairEntryAcknowledged=true;
+        return Object.freeze({created:true,queryOnly:false,operationId:data.operationId});
+      }catch(error){this.#sessionStorageFailure(slot,error);throw error;}
+    });
+  }
+  async readSessionPairSubmission(account,digest,guard){
+    const row=await this.readSessionOriginal(account,digest,guard);if(!row||row.version!==2)return null;
+    const slot=sessions(this).get(account+':'+digest),held=slot?.pairBeginAttempted?slot.record.pairSubmission:null;
+    const confirmed=Boolean(row.pairSubmission&&(!held||row.pairSubmission.originalBody===held.originalBody));
+    return Object.freeze({operationId:row.operationId,requestDigest:row.requestDigest,pairSubmission:row.pairSubmission??held,
+      status:!confirmed&&held?'entry-save-unknown':row.pairSubmission?.responseOriginal!==null&&row.pairSubmission?'response-retained':confirmed?'entry-retained':'not-entered',
+      storageConfirmed:confirmed,queryOnly:true,canRetry:false,registered:false,newSession:false});
+  }
+  /** Flush only the same held entry after an uncertain local save. Returning
+   * from this method NEVER authorizes SDK submit, including in this process. */
+  saveSessionPairEntry(token){
+    const slot=this.#sessionSlot(token);if(!slot.pairBeginAttempted||!slot.record.pairSubmission)throw invalid();
+    return this.#mutate(async()=>{
+      try{
+        const state=await this.#read(),prior=state.sessionOriginals?.find(row=>row.account===slot.record.account&&row.requestDigest===slot.record.requestDigest);
+        if(!prior||prior.version!==2||canonicalJSON(prior.approval)!==canonicalJSON(slot.record.approval)||prior.pairSubmission&&prior.pairSubmission.originalBody!==slot.record.pairSubmission.originalBody)throw invalid();
+        const record=parseSessionOriginal({...prior,storageCause:prior.storageCause??slot.record.storageCause,pairSubmission:prior.pairSubmission??slot.record.pairSubmission});
+        await this.#write({...state,sessionOriginals:state.sessionOriginals.map(row=>row===prior?record:row)});slot.record=record;
+        return Object.freeze({stored:true,queryOnly:true,canRetry:false});
+      }catch(error){this.#sessionStorageFailure(slot,error);throw error;}
+    });
+  }
+  #sessionStorageFailure(slot,error){
+    if(!slot.pairStorageCausePresent){slot.pairStorageCausePresent=true;slot.pairStorageCause=error;}
+    if(slot.record.storageCause===null){const d=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'cause'):null;slot.record=parseSessionOriginal({...slot.record,storageCause:sessionOriginalCause(d&&Object.hasOwn(d,'value')?d.value:error)});}
+  }
+  /** Synchronous custody BEFORE parsing, lifecycle checks or queued storage.
+   * Invalid/oversized returned data stays in original memory and fences close;
+   * it never creates a replacement entry or a successful registration. */
+  captureSessionPairResponse(token,responseOriginal){
+    const slot=this.#sessionSlot(token);if(slot.record.version!==2||!slot.pairBeginAttempted)throw invalid();
+    if(slot.pairResponseCaptured)throw capabilityError('SESSION_PAIR_RESPONSE_ALREADY_CAPTURED','Keep the first response original.');
+    slot.pairResponseCaptured=true;slot.pairRawResponse=responseOriginal;
+  }
+  retainedSessionPairResponse(token){
+    const slot=this.#sessionSlot(token);
+    return Object.freeze({captured:slot.pairResponseCaptured===true,original:slot.pairRawResponse,storageConfirmed:slot.pairResponseSaved===true,queryOnly:true,registered:false});
+  }
+  saveSessionPairResponse(token){
+    const slot=this.#sessionSlot(token);
+    if(!slot.pairResponseCaptured)throw capabilityError('SESSION_PAIR_RESPONSE_REQUIRED','Capture the returned original first.');
+    // Storage-only: caller does not re-enter a current lease, signing or HTTP.
+    return this.#mutate(async()=>{
+      try{
+        const state=await this.#read(),prior=state.sessionOriginals?.find(row=>row.account===slot.record.account&&row.requestDigest===slot.record.requestDigest);
+        if(!prior?.pairSubmission||prior.pairSubmission.originalBody!==slot.record.pairSubmission?.originalBody||prior.operationId!==slot.record.operationId)throw invalid();
+        const raw=parseSessionPairResponseOriginal(slot.pairRawResponse,prior);
+        if(prior.pairSubmission.responseOriginal!==null&&prior.pairSubmission.responseOriginal!==raw)throw invalid();
+        const record=parseSessionOriginal({...prior,storageCause:prior.storageCause??slot.record.storageCause,pairSubmission:{...prior.pairSubmission,responseOriginal:raw}});
+        await this.#write({...state,sessionOriginals:state.sessionOriginals.map(row=>row===prior?record:row)});
+        slot.record=record;slot.pairResponseSaved=true;
+        return Object.freeze({stored:true,queryOnly:true,registered:false,operationId:record.operationId});
+      }catch(error){this.#sessionStorageFailure(slot,error);throw error;}
+    });
+  }
   captureSessionOriginal(token,approval){
     const slot=this.#sessionSlot(token);if(slot.captured)throw capabilityError('SESSION_ORIGINAL_ALREADY_CAPTURED','The original signature is retained. Do not sign again.');
     // Synchronous capture BEFORE verification, callback encoding, lock fences,
@@ -253,6 +340,7 @@ export class FileTransactionIntentStore {
       try{const state=await this.#read(),prior=state.sessionOriginals?.find(row=>row.account===slot.record.account&&row.requestDigest===slot.record.requestDigest);
         if(!prior||prior.approval!==null||prior.requestId!==slot.record.requestId)throw invalid();
         await this.#write({...state,sessionOriginals:state.sessionOriginals.map(row=>row===prior?slot.record:row)});
+        slot.approvalSaved=true;
       }catch(error){if(slot.record.storageCause===null)slot.record=parseSessionOriginal({...slot.record,storageCause:sessionOriginalCause(error)});throw error;}
     });
   }
@@ -690,6 +778,14 @@ export class FileTransactionIntentStore {
     this.#pqClosing=true;
     return this.#mutate(async()=>{
       const state=await this.#read();
+      for(const slot of sessions(this).values())if(slot.record.version===2){
+        const actual=state.sessionOriginals?.find(r=>r.account===slot.record.account&&r.requestDigest===slot.record.requestDigest);
+        if(slot.captured&&(!actual?.approval||canonicalJSON(actual.approval)!==canonicalJSON(slot.record.approval))||
+           slot.pairBeginAttempted&&(!actual?.pairSubmission||actual.pairSubmission.originalBody!==slot.record.pairSubmission.originalBody)||
+           slot.pairResponseCaptured&&(!slot.pairResponseSaved||actual?.pairSubmission?.responseOriginal!==slot.pairRawResponse)||
+           slot.pairEntryAcknowledged&&!slot.pairResponseCaptured&&(!slot.firstRawPresent||!actual?.cleanupComplete)||
+           slot.cleanupRawPresent&&!actual?.cleanupComplete)throw capabilityError('SESSION_PAIR_CLOSE_UNCONFIRMED','Preserve the original V4 entry, response or cleanup debt. Save locally; never resubmit.');
+      }
       for(const slot of owner(this).values())if(PQ_ORIGINAL_KINDS.includes(slot.kind)&&Object.hasOwn(slot,'pqMemberUnverified'))throw capabilityError(slot.kind==='pq-account-initial'?'PQ_ACCOUNT_INITIAL_CLOSE_UNCONFIRMED':'PQ_NATIVE_MEMBER_CLOSE_UNCONFIRMED','Keep Wallet open; the original public Member has not been confirmed saved. No replacement signing is permitted.');
       for(const slot of this.#pqTerminalResults.values())if(!slot.stored||!state.pqHistory?.some(r=>canonicalJSON(r)===canonicalJSON(slot.history)))throw capabilityError('PQ_FINALITY_CLOSE_UNCONFIRMED','Keep Wallet open; a verified terminal result has unconfirmed local storage.');
       for(const slot of this.#pqFinalityResults.values())if(!slot.stored||!state.pqFinalityObservations?.some(r=>canonicalJSON(r)===canonicalJSON(slot.row)))throw capabilityError('PQ_FINALITY_CLOSE_UNCONFIRMED','Keep Wallet open; a finality observation has unconfirmed local storage. Never resubmit or regenerate it.');
@@ -851,7 +947,7 @@ export class FileTransactionIntentStore {
     let file;
     try {
       parseState(state); const encoded = `${JSON.stringify(state)}\n`;
-      if (Buffer.byteLength(encoded) > 1024 * 1024) throw invalid();
+      if (Buffer.byteLength(encoded)+sessionV4ReservedBytes(state) > PRIVATE_FILE_MAX_BYTES) throw capabilityError('SESSION_ORIGINAL_STORAGE_CAPACITY','Keep every original and its reserved result space. No new effect may start.');
       await this.filePolicy.directory(directory);
       file = await this.io.open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL, 0o600);
       await this.filePolicy.protect(temporary);
