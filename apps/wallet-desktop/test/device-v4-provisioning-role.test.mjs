@@ -2,11 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {walletNativeComponentBuildPlan} from '../scripts/build-wallet-native-component.mjs';
+import {walletNativeComponentBuildPlan,buildWalletNativeComponent} from '../scripts/build-wallet-native-component.mjs';
 import {canonicalNativeInputSelection,CANONICAL_NATIVE_EVIDENCE_TESTS} from '../scripts/canonical-package.mjs';
 import {deviceV4PQSupplierInputs,deviceV4PQReceiptCommands,assertWalletProvisioningNativeExports,DEVICE_V4_PROVISIONING_PQ_NODE,DEVICE_V4_PROVISIONING_PQ_ROLE} from '../scripts/wallet-device-v4-pq-role.mjs';
 // Normal recipe DATA only: the actual matching compilation is separate.
 const headers='/PUBLIC-plan-only-headers';
+test('actual provisioning entry reaches pinned-header validation before executing a compiler',()=>{
+ // A deliberately absent header root stops the real entry before any command
+ // or output mutation, while exercising argument forwarding and source checks.
+ assert.throws(()=>buildWalletNativeComponent('arm64',headers,true,true,true,true,null,null,false,true,true),e=>e.code==='ENOENT'&&e.path===headers+'/node_api.h');
+});
 test('normal receipt selection accepts the exact 137-input provisioning closure',()=>{
  const bytes=readFileSync(new URL('../../../packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json',import.meta.url)),inventory=JSON.parse(bytes);
  const p=walletNativeComponentBuildPlan('arm64',headers,true,true,true,true,false,true,true);
