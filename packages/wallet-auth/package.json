@@ -276,6 +276,12 @@
       "browser": null,
       "node": "./src/original-product-device-v4-source-stage.js",
       "default": null
+    },
+    "./original-product-device-v4-pending-client": {
+      "types": "./src/original-product-device-v4-pending-client.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-pending-client.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -408,7 +414,8 @@
     "test:r225-pq-dispatcher": "node --test --test-concurrency=1 test-pq-catalog-source-dispatch.mjs test/r225-pq-dispatcher-intake.test.mjs",
     "test:r226-normal-source-route": "node --test test-r226-normal-source-route.mjs",
     "test:publication-result-decoder": "node --test test/ide-artifact-release-result.test.mjs",
-    "test:product-session-v4-codec-types": "tsc -p test/tsconfig.product-session-v4-codec-types.json"
+    "test:product-session-v4-codec-types": "tsc -p test/tsconfig.product-session-v4-codec-types.json",
+    "test:product-device-v4-pending-client-types": "tsc -p test/tsconfig.product-device-v4-pending-client-types.json"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
