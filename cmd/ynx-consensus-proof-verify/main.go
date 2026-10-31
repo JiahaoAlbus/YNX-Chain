@@ -81,6 +81,9 @@ func parseOptions(args []string) (options, error) {
 }
 
 func run(args []string, input io.Reader, output io.Writer, localClock func() time.Time) int {
+	if isPortableImportInvocation(args) {
+		return runPortableImport(args, output)
+	}
 	if isHostSourceSelectionInvocation(args) {
 		return runHostSourceSelection(args, input, output)
 	}
