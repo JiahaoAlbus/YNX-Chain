@@ -339,6 +339,18 @@ def public_from_runner(path, operation):
     return public
 
 
+def public_after_cleanup(public, operation, cleanup_complete):
+    # A signalled producer may publish its partial path only while exiting.
+    # Read it only after the original cleanup proves every owned writer closed.
+    # Missing/invalid late DATA never replaces the original failure or qualifies.
+    if public is not None or cleanup_complete is not True:
+        return public
+    try:
+        return public_from_runner(operation / "public/original-height-run.log", operation)
+    except (OSError, ValueError, RuntimeError):
+        return None
+
+
 def github_output(name, value):
     require(name in ("diagnostics", "public") and "\n" not in value and "\r" not in value,
             "closed public workflow output required")
@@ -446,6 +458,7 @@ def run(args):
             record["cleanupError"] = str(error)
         if not record["cleanupComplete"] and record["firstCause"] is None:
             record["firstCause"] = record.get("cleanupError", "original cleanup incomplete")
+        public = public_after_cleanup(public, work, record["cleanupComplete"])
         record.update(elapsedSeconds=time.monotonic() - window.started, peakRSSBytes=window.peak_rss,
                       peakNewBytes=window.peak_bytes, processes=window.process_receipt(),
                       resourceSamples=window.samples, retiredSamplingEvidence=window.retired_samples,

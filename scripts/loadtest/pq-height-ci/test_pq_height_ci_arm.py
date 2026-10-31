@@ -255,5 +255,44 @@ class ProcessEvidenceIntakeControls(unittest.TestCase):
             with self.subTest(field=field),self.assertRaises(RuntimeError):h.fixed_diff(dict(good,**{field:value}),h.ARMS["after-a"][0])
 
 
+    def test_partial_path_printed_only_during_stop_is_preserved_after_terminal_cleanup(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            work=Path(temporary).resolve();(work/"public").mkdir()
+            public=work/"pq-height-vectors-late/public";public.mkdir(parents=True)
+            log=work/"public/original-height-run.log"
+            record=dict(firstCause="original live PID RSS refusal",cleanupComplete=False,
+                        compileComplete=False,perHeightComplete=False,comparisonComplete=False)
+            self.assertIsNone(h.public_after_cleanup(None,work,False))
+            class Writer:
+                def stop(self):
+                    log.write_text(json.dumps(dict(publicArtifacts=str(public),firstCause="interrupted:15"))+"\n")
+                    return True
+            record["cleanupComplete"]=Writer().stop()
+            self.assertEqual(h.public_after_cleanup(None,work,record["cleanupComplete"]),public)
+            self.assertEqual(record["firstCause"],"original live PID RSS refusal")
+            self.assertFalse(record["compileComplete"] or record["perHeightComplete"] or record["comparisonComplete"])
+            # Merely seeing a late path is insufficient while writers are UNKNOWN.
+            self.assertIsNone(h.public_after_cleanup(None,work,False))
+            self.assertEqual(len(h.height_names()),88)
+            self.assertNotIn("original-height-run.log",h.height_names())
+
+    def test_partial_after_cleanup_missing_duplicate_and_nonowned_paths_stay_unpublished(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            work=Path(temporary).resolve();(work/"public").mkdir()
+            log=work/"public/original-height-run.log"
+            self.assertIsNone(h.public_after_cleanup(None,work,True))
+            private=work/".private/public";private.mkdir(parents=True)
+            log.write_text(json.dumps(dict(publicArtifacts=str(private)))+"\n")
+            self.assertIsNone(h.public_after_cleanup(None,work,True))
+            public=work/"pq-height-vectors-late/public";public.mkdir(parents=True)
+            row=json.dumps(dict(publicArtifacts=str(public)))+"\n"
+            log.write_text(row+row)
+            self.assertIsNone(h.public_after_cleanup(None,work,True))
+            log.write_text("not a complete runner JSON row\n")
+            self.assertIsNone(h.public_after_cleanup(None,work,True))
+            # Existing owned DATA is kept without replacing it from a late log.
+            self.assertEqual(h.public_after_cleanup(public,work,True),public)
+
+
 if __name__ == "__main__":
     unittest.main()
