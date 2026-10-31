@@ -284,8 +284,8 @@
     },
     {
       "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
-      "bytes": 83926,
-      "sha256": "a649b4c8c10f3e57c5869ad11842b47c0653213cc7017bebfbb37d7279720af9"
+      "bytes": 84296,
+      "sha256": "413bffda85672179182a7a1018cceee6a60a81d9042e5f85ef19a46a7d937d47"
     },
     {
       "path": "apps/wallet-desktop/native/original-ide-auth-identity-binding.inc.mm",
@@ -448,6 +448,26 @@
       "sha256": "133d63a1275f07f5a180617ac42a98c660deb59d52666c30faefa98a8c6d8f57"
     },
     {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-query-composition.inc.mm",
+      "bytes": 7605,
+      "sha256": "b95c8b77cfacfe884f88bf3f5130caae1204736ad10d1c33ca24cdc71ea1a834"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-query-reader.h",
+      "bytes": 3497,
+      "sha256": "81ab47ba30f5e262f1e8e1579ecf75576cfbda7ae3a8c952d2565172c6e5176a"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-query-reader.mm",
+      "bytes": 13848,
+      "sha256": "8a0aab949432399a9877c5b6d72fe59f9c07af6bfb6359565b6869a6182a4024"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-query-source.inc.mm",
+      "bytes": 22855,
+      "sha256": "39b1c53e887a4eff0a798925927cfcf9095141c6f6a54fedc1cc887255863153"
+    },
+    {
       "path": "apps/wallet-desktop/native/original-product-device-v4-slot-record.h",
       "bytes": 1582,
       "sha256": "926d06da38c9f43414ef600de0a9abc6d5a06640d7a2b46143555dfd8cf3a9fa"
@@ -514,18 +534,18 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
-      "bytes": 1913,
-      "sha256": "39e746f1c289a20d2f70bf973ed464ac56de229c16457312593a2b79ce96c936"
+      "bytes": 1998,
+      "sha256": "dea4afc921e15dedfff513ed4dcae6a6417cb3415674a6d717378ce014486cc7"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
-      "bytes": 17847,
-      "sha256": "fe35e6e154acbfbc4a408d7010419dede0f4a01e2f8b7f388872edc48b6d6810"
+      "bytes": 18841,
+      "sha256": "1a12db3092bc554adc02841d7fd00490e16ec5e1ea03ac01c37e278bf07be48e"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-native-release.h",
-      "bytes": 3583,
-      "sha256": "7708f4d8316e927081b9a59661047660538ccb81b596b044a47e5a173ca110e8"
+      "bytes": 3784,
+      "sha256": "3ff3942efd6795dca5656137d6b37c00e36bcec879dee4e7b3f7097ba2ab50a5"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-public-limits.h",
@@ -534,13 +554,13 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
-      "bytes": 9124,
-      "sha256": "5c48efd4e2c3e5c1d949dfc6ba9c9b51d01e702e13ed183d1eec7e38c9c236bb"
+      "bytes": 9600,
+      "sha256": "7f34226cc8e1eba1876ede4b26f62edeb5733908fa426e5918b0832c16de403a"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-      "bytes": 75532,
-      "sha256": "9050552f04ecab3bb0feb193929003df95924aec1385779c8a8c032f058c4d97"
+      "bytes": 75898,
+      "sha256": "44e694aef85e0df864e0a225ab39169cda8bf86c35805c559a20f3716645d403"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
@@ -933,6 +953,11 @@
       "sha256": "4857056f8d5068e283aac729f877a2d1324d09ed1ee63fa90b8180cae948b8df"
     },
     {
+      "path": "packages/wallet-auth/native/original-product-device-v4-query-journal.h",
+      "bytes": 2776,
+      "sha256": "088a48f6642940c74b1e8b973ffc8a73bdd9ac4719edf0a4afeae3202d66ef75"
+    },
+    {
       "path": "packages/wallet-auth/native/original-product-device-v4-query-source-contract.d.mts",
       "bytes": 1459,
       "sha256": "4f0c7d9625398340aad0b782776dd2b11764ffaf38167111caaf90e84fce4d75"
@@ -941,6 +966,11 @@
       "path": "packages/wallet-auth/native/original-product-device-v4-query-source-contract.mjs",
       "bytes": 3243,
       "sha256": "08dc31e70ecd393a52812f556c6a35c414f10a23d19bc1a94fdc74fb8f6ef97d"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-product-device-v4-query-source.inc.mm",
+      "bytes": 6887,
+      "sha256": "6772bf1c37e38767392bab664a8af8fbad5d64e9b6c68d5e2d675fadedb9e6e9"
     },
     {
       "path": "packages/wallet-auth/native/original-product-device-v4-source-contract.mjs",
@@ -975,8 +1005,8 @@
   ],
   "normalBuildTool": {
     "path": "apps/wallet-desktop/scripts/build-original-auth-identity-native.mjs",
-    "bytes": 32908,
-    "sha256": "cc8ffcaf0a6ffecabe345bf17d976f35139e31082d309272122ca37a63af8ccd"
+    "bytes": 34757,
+    "sha256": "1217a2903ca036e6e94e2acc50aafe54aa3f6ceee5d8063aac2b1115cb9e0173"
   },
   "require": {
     "translationUnits": 15,
@@ -2755,5 +2785,35 @@
     "actualOutcomeQuery": false,
     "NativeInputs": 139,
     "R5BaselineNativeInputs": 137
+  },
+  "deviceOriginalQueryNativeSource": {
+    "supplier": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-query-native-source/HANDOFF.json",
+      "bytes": 13402,
+      "sha256": "66d079c881977dbe9814631480f720e3a7a821d6896f3afea9609567cffef0d8"
+    },
+    "wrapper": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-query-sdk-source/HANDOFF.json",
+      "bytes": 3806,
+      "sha256": "545b75efaa60b812cb50da469cb170fb179656c4cef66e4d4dc0ccb886790a45"
+    },
+    "NativeInputs": 145,
+    "normalBuildMode": "device-v4-query",
+    "fixedCallee": "acquireOriginalProductSessionDeviceV4QuerySourceStage",
+    "sourcePurpose": "product-session-device-query-source-v4",
+    "sourceOperations": [
+      "device.original-query"
+    ],
+    "SourceImplemented": true,
+    "NativeQueryReader": true,
+    "NativeQueryNAPI": true,
+    "MainQueryModuleBytes": 3759,
+    "MainQueryModuleSHA256": "fed746e6a3d020bba57763340ece5d8427ce0203a3aaf4c82edfe9a5f9396a29",
+    "MainNodeBodyRawNotInterchangeable": true,
+    "compiledSingleECDFImageSupplierBytes": 9086408,
+    "compiledSingleECDFImageSHA256": "6b7cbdf6109d0b2b08de2a1e42cc35b6f49e47f3694121034980ef8f25872cf2",
+    "SourceAdmission": false,
+    "AppInstalled": false,
+    "actualOutcomeQuery": false
   }
 }

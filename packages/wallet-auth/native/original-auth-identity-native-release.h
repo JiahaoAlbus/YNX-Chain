@@ -39,6 +39,9 @@ struct NativeSourceRelease {
  // module. Never a path/function supplied by peer, renderer or HTTP DATA.
  std::string productDeviceV4ApprovalModulePath,productDeviceV4ApprovalModuleDigest;
  uint64_t productDeviceV4ApprovalModuleBytes=0;
+ // Independent read-only query Main module. Never a creation approval alias.
+ std::string productDeviceV4QueryModulePath,productDeviceV4QueryModuleDigest;
+ uint64_t productDeviceV4QueryModuleBytes=0;
 };
 inline const std::vector<NativeSourceRelease>& originalNativeSourceReleases(){
  // An independently approved App build may supply typed ROWS via its frozen

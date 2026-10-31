@@ -163,6 +163,19 @@ export function originalAuthProvisioningDeviceV4BuildPlan(arch,headers,typedRoot
  const base=originalAuthNativeBuildPlan(arch,headers),linkArgv=base.commands[0].argv,at=linkArgv.indexOf(base.sources[0]);commands.push({tool:'/usr/bin/clang++',argv:[...linkArgv.slice(0,at),...c.objectOutputs,...objects,protocolInputs[0].path,'-lresolv','-o',base.output]});
  return{...c,commands,output:base.output,outputs:[base.output],sources:[...c.sources,...extra],intermediateOutputs:[...c.objectOutputs,...objects],compileOnly:false,linkReady:true,protocolInputs,archiveCount:1,deviceV4ProvisioningStage:true,ownedUndefinedScan:base.ownedUndefinedScan,ownedRequiredExportsScan:{tool:'/usr/bin/nm',argv:['-gU',base.output]},requiredOwnedExports:[...c.requiredOwnedExports,'YNXProductSessionDeviceKeypairGenerateV4'],sourceAdmission:false,nativeAdmission:false};
 }
+// Same ecdf single-archive image. Add only read-only query Source/reader TU;
+// never replace the original 23-TU provider closure or relax owned exports.
+export function originalAuthQueryDeviceV4BuildPlan(arch,headers,typedRoot,creatorRoot){
+ const parent=originalAuthProvisioningDeviceV4BuildPlan(arch,headers,typedRoot,creatorRoot),wallet=path.join(app,'native');
+ const required=['original-product-device-v4-query-reader.mm','original-product-device-v4-query-reader.h','original-product-device-v4-query-source.inc.mm','original-product-device-v4-query-composition.inc.mm'];
+ for(const name of required){const s=lstatSync(path.join(wallet,name));if(!s.isFile()||s.isSymbolicLink())throw Error('AUTH_QUERY_DEVICE_V4_SOURCE_REQUIRED');}
+ const compile=parent.commands.slice(0,-1).map(c=>({tool:c.tool,argv:c.tool==='/usr/bin/clang++'?['-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_QUERY_STAGE',...c.argv]:c.argv}));
+ const seed=compile.find(c=>c.tool==='/usr/bin/clang++'),flags=seed.argv.slice(0,seed.argv.indexOf('-c')),reader=path.join(wallet,required[0]),object=path.join(wallet,'original-auth-query-device-v4.arm64.reader.o');
+ compile.push({tool:'/usr/bin/clang++',argv:[...flags,'-c',reader,'-o',object]});
+ const link=parent.commands.at(-1),at=link.argv.lastIndexOf('-o');if(at<0)throw Error('AUTH_QUERY_PARENT_LINK');
+ compile.push({tool:link.tool,argv:[...link.argv.slice(0,at),object,...link.argv.slice(at)]});
+ return{...parent,commands:compile,sources:[...parent.sources,reader],intermediateOutputs:[...parent.intermediateOutputs,object],deviceV4QueryStage:true,nullableIdentityABI:2,archiveCount:1};
+}
 // Source-only normal helper executable recipe. No install, signing, Root row
 // or system approval is performed by constructing or executing this compiler.
 export function originalIDEHelperBuildPlan(arch){
@@ -189,17 +202,17 @@ export function assertOriginalProvisioningDeviceV4Exports(text){
  if(!text.split(/\r?\n/).some(line=>/\b[Tt]\s+_YNXProductSessionDeviceKeypairGenerateV4$/.test(line.trim())))throw Error('AUTH_PROVISIONING_DEVICE_V4_EXPORT_MISSING');
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===here){
- const provisioningV4=process.argv[2]==='device-v4-provisioning',pendingV4=process.argv[2]==='device-v4-pending',deviceV4=process.argv[2]==='device-v4',helperOnly=process.argv[2]==='helper',ioOnly=process.argv[2]==='source-current-io',headers=ioOnly||deviceV4||pendingV4||provisioningV4?process.argv[4]:process.argv[3];
+ const queryV4=process.argv[2]==='device-v4-query',provisioningV4=process.argv[2]==='device-v4-provisioning',pendingV4=process.argv[2]==='device-v4-pending',deviceV4=process.argv[2]==='device-v4',helperOnly=process.argv[2]==='helper',ioOnly=process.argv[2]==='source-current-io',headers=ioOnly||deviceV4||pendingV4||provisioningV4||queryV4?process.argv[4]:process.argv[3];
  if(!ioOnly&&process.platform!=='darwin')throw Error('AUTH_NATIVE_MAC_ONLY');
  if(ioOnly&&process.platform==='linux'&&process.argv[3]!==process.arch)throw Error('AUTH_SOURCE_CURRENT_IO_CROSS_COMPILER_NOT_SUPPLIED');
  if(helperOnly&&process.argv.length!==4)throw Error('AUTH_NATIVE_HELPER_BUILD_INPUT_INVALID');
  if(deviceV4&&process.argv.length!==6)throw Error('AUTH_DEVICE_V4_BUILD_INPUT_INVALID');
  if(pendingV4&&process.argv.length!==6)throw Error('AUTH_PENDING_DEVICE_V4_BUILD_INPUT_INVALID');
- const planOnly=provisioningV4&&process.argv.length===8&&process.argv[7]==='--plan';
- if(provisioningV4&&process.argv.length!==7&&!planOnly)throw Error('AUTH_PROVISIONING_DEVICE_V4_BUILD_INPUT_INVALID');
- const plan=provisioningV4?originalAuthProvisioningDeviceV4BuildPlan(process.argv[3],headers,process.argv[5],process.argv[6]):pendingV4?originalAuthPendingDeviceV4BuildPlan(process.argv[3],headers,process.argv[5]):deviceV4?originalAuthDeviceV4BuildPlan(process.argv[3],headers,process.argv[5]):helperOnly?originalIDEHelperBuildPlan(process.argv[3]):ioOnly?originalAuthSourceCurrentIOBuildPlan(process.platform,process.argv[3],headers):originalAuthNativeBuildPlan(process.argv[2]??'arm64',headers);
+ const planOnly=(provisioningV4||queryV4)&&process.argv.length===8&&process.argv[7]==='--plan';
+ if((provisioningV4||queryV4)&&process.argv.length!==7&&!planOnly)throw Error(queryV4?'AUTH_QUERY_DEVICE_V4_BUILD_INPUT_INVALID':'AUTH_PROVISIONING_DEVICE_V4_BUILD_INPUT_INVALID');
+ const plan=queryV4?originalAuthQueryDeviceV4BuildPlan(process.argv[3],headers,process.argv[5],process.argv[6]):provisioningV4?originalAuthProvisioningDeviceV4BuildPlan(process.argv[3],headers,process.argv[5],process.argv[6]):pendingV4?originalAuthPendingDeviceV4BuildPlan(process.argv[3],headers,process.argv[5]):deviceV4?originalAuthDeviceV4BuildPlan(process.argv[3],headers,process.argv[5]):helperOnly?originalIDEHelperBuildPlan(process.argv[3]):ioOnly?originalAuthSourceCurrentIOBuildPlan(process.platform,process.argv[3],headers):originalAuthNativeBuildPlan(process.argv[2]??'arm64',headers);
  if(!helperOnly&&!existsSync(path.join(headers,'node_api.h')))throw Error('AUTH_NATIVE_PINNED_HEADERS_REQUIRED');
- if(deviceV4||pendingV4||provisioningV4)for(const file of [...plan.outputs,...plan.intermediateOutputs])if(existsSync(file))throw Error('AUTH_DEVICE_V4_OUTPUT_EXISTS');
+ if(deviceV4||pendingV4||provisioningV4||queryV4)for(const file of [...plan.outputs,...plan.intermediateOutputs])if(existsSync(file))throw Error('AUTH_DEVICE_V4_OUTPUT_EXISTS');
  // Explicit local headers only; opt-in device-v4 also binds its supplied local
  // official archive. No download, fallback library or hidden build.
  if(planOnly){process.stdout.write(JSON.stringify(plan)+'\n');}else{
@@ -208,6 +221,6 @@ if(process.argv[1]&&path.resolve(process.argv[1])===here){
  // classes or namespace symbols. Check the actual final binary before release.
  if(!ioOnly)assertOriginalAuthOwnedSymbols(execFileSync(plan.ownedUndefinedScan.tool,plan.ownedUndefinedScan.argv,{encoding:'utf8'}));
  if(pendingV4)assertOriginalPendingDeviceV4Exports(execFileSync(plan.ownedRequiredExportsScan.tool,plan.ownedRequiredExportsScan.argv,{encoding:'utf8'}));
- if(provisioningV4)assertOriginalProvisioningDeviceV4Exports(execFileSync(plan.ownedRequiredExportsScan.tool,plan.ownedRequiredExportsScan.argv,{encoding:'utf8'}));
+ if(provisioningV4||queryV4)assertOriginalProvisioningDeviceV4Exports(execFileSync(plan.ownedRequiredExportsScan.tool,plan.ownedRequiredExportsScan.argv,{encoding:'utf8'}));
  }
 }
