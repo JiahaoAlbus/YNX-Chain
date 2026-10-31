@@ -6,8 +6,9 @@
   "bin": {"ynx-pay-native": "./cli.mjs"},
   "scripts": {
     "start": "node cli.mjs",
-    "test": "node --test merchant-invoice-approval.test.mjs pay-business-client.test.mjs notification-inbox.test.mjs",
-    "build:qa": "node scripts/build-qa.mjs"
+    "test": "node --test merchant-invoice-approval.test.mjs pay-business-client.test.mjs notification-inbox.test.mjs main-entry.test.mjs",
+    "build:qa": "node scripts/build-qa.mjs",
+    "build:qa:mac": "node scripts/build-qa.mjs --mac-app"
   },
   "engines": {"node": ">=26.7.0"}
 }

@@ -3,6 +3,14 @@ import {createHash} from 'node:crypto';
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 const messageOf=(review,encode)=>Buffer.from(encode(review.action));
+export function rejectNativePayPending(main,id){
+ try{return main.reject(id);}catch(error){
+  // Actual DesktopWalletAuthority.reject removes the original pending request
+  // and then throws this expected provider rejection to its original caller.
+  if(error?.code===4001&&error?.data?.code==='USER_REJECTED_REQUEST')return;
+  throw error;
+ }
+}
 
 /** Main-process adapter only: the original Main object, original protected
  * journal and private Pay client are supplied by normal composition. It never
@@ -32,7 +40,7 @@ export function createNativeInvoiceMerchantApproval({main,pay}){
    // cannot silently alter the original Pay intent or be approved by this adapter.
    try{
     current();if(pending?.status!=='approval-required'||pending.request?.method!=='ynx_signPQNativeAction'||!messageOf(pending.request.review.typedReview,encodePQNativeAction).equals(bytes))fail('NATIVE_INVOICE_MAIN_REVIEW_CHANGED');
-   }catch(error){if(pending?.request?.id)main.reject(pending.request.id);throw error;}
+   }catch(error){if(pending?.request?.id)try{rejectNativePayPending(main,pending.request.id);}catch(cleanup){if(error&&typeof error==='object')error.cleanupCause=cleanup;}throw error;}
    return pending; // The existing Main UI/Auth approval path owns this review.
   },
   async readOriginalMerchantMember(intentId,originalHash,current){
@@ -46,7 +54,7 @@ export function createNativeInvoiceMerchantApproval({main,pay}){
    if(envelope.toString('base64url')!==saved.wire||'0x'+digest(envelope)!==saved.hash)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_BINDING');
    const decoded=decodePQActionTransportData(envelope),member=Buffer.from(decoded.member);
    if(decoded.originals.length||'0x'+digest(member)!==saved.typed.memberHash)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_BINDING');
-   current();return Object.freeze({intentId,sourceOrder:view.request.sourceOrder,operationId:saved.operationId,member:member.toString('base64'),nativeHash:saved.typed.memberHash,abciHash:saved.hash,signingMessageHash:view.signingMessageHash,signingOnly:true,broadcastApprovalRequired:true,consensusFinality:false});
+   current();return Object.freeze({intentId,sourceOrder:view.request.sourceOrder,owner:view.merchant,operationId:saved.operationId,member:member.toString('base64'),nativeHash:saved.typed.memberHash,abciHash:saved.hash,signingMessageHash:view.signingMessageHash,signingOnly:true,broadcastApprovalRequired:true,consensusFinality:false});
   }
  });
 }
@@ -62,6 +70,17 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
  const invoicePath=(merchant,invoiceId)=>{if(!/^0x[0-9a-f]{40}$/.test(merchant??'')||! /^[a-z0-9][a-z0-9._:-]{0,63}$/.test(invoiceId??''))fail('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');return `/v5/pay/invoices/${merchant}/${invoiceId}`;};
  const memberBody=member=>{if(!(member instanceof Uint8Array)||!member.length||member.length>98304)fail('NATIVE_INVOICE_MEMBER_BOUNDS');return Buffer.from(member).toString('base64');};
  const id=value=>{if(typeof value!=='string'||!/^npi_[0-9a-f]{48}$/.test(value))fail('NATIVE_INVOICE_ORIGINAL_ID_REQUIRED');return value};
+ async function packet(method,path,input,assertCurrent){
+  if(typeof assertCurrent!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
+  const body=Buffer.from(JSON.stringify(input));if(body.length>2*1024*1024)fail('NATIVE_INVOICE_REQUEST_BOUNDS');
+  assertCurrent();
+  // Sole original Source/LINK transport; it also fences immediately before
+  // its actual write. No post-response fence here: original Main must retain
+  // the real response before late lock, parse, completion and cleanup.
+  const result=await requestPrivate(Object.freeze({origin,method,path,body,contentType:'application/json',assertCurrent}));
+  if(!(result?.body instanceof Uint8Array)||result.body.length>2*1024*1024)fail('NATIVE_INVOICE_RESPONSE_BOUNDS');
+  return {method:result.method,requestPath:result.requestPath,status:result.status,contentType:result.contentType,cacheControl:result.cacheControl??'',body:Uint8Array.from(result.body)};
+ }
  async function call(method,path,input){
   const body=input===undefined?undefined:Buffer.from(JSON.stringify(input));
   if(body&&body.length>2*1024*1024)fail('NATIVE_INVOICE_REQUEST_BOUNDS');
@@ -73,6 +92,12 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
   return value;
  }
  return Object.freeze({
+  // Normal Main dispatcher only, after its genuine separate approval and
+  // same-journal durable UNKNOWN. Preserve actual /v5/... HTTP metadata;
+  // never relabel this packet as a Core broadcast/finality response.
+  submitMerchantMemberPacket:(intentId,member,current)=>packet('POST',`/v5/pay/invoice-intents/${id(intentId)}/merchant-member`,{member:memberBody(member)},current),
+  submitSettlementPacket:(merchant,invoiceId,member,current)=>packet('POST',invoicePath(merchant,invoiceId)+'/settlements',{member:memberBody(member)},current),
+  submitRefundPacket:(merchant,invoiceId,member,current)=>packet('POST',invoicePath(merchant,invoiceId)+'/refunds',{member:memberBody(member)},current),
   async merchantTermsReview(intentId){const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/merchant-review`,{});if(value.intent?.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
   async readInvoiceIntent(intentId){const value=await call('GET',`/v5/pay/invoice-intents/${id(intentId)}`);if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
   async submitMerchantMember(intentId,member){
@@ -130,7 +155,7 @@ export function createNativePayActionApproval({main,pay,readInvoiceOriginals}){
   const invoiceOriginals=await originals(bill,kind,current);
   const pending=await main.requestPQTypedAction({kind:action.kind,fee:action.fee,payload:action.payload,invoiceOriginals});
   try{current();if(pending?.status!=='approval-required'||pending.request?.method!=='ynx_signPQNativeAction'||!messageOf(pending.request.review.typedReview,encodePQNativeAction).equals(bytes))fail('NATIVE_INVOICE_MAIN_REVIEW_CHANGED');}
-  catch(error){if(pending?.request?.id)main.reject(pending.request.id);throw error;}
+  catch(error){if(pending?.request?.id)try{rejectNativePayPending(main,pending.request.id);}catch(cleanup){if(error&&typeof error==='object')error.cleanupCause=cleanup;}throw error;}
   return pending;
  }
  return Object.freeze({

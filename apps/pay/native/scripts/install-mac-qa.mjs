@@ -1,0 +1,20 @@
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
+const build=path.dirname(fileURLToPath(import.meta.url)),destination=process.argv[2];
+if(process.platform!=='darwin'||!destination||!path.isAbsolute(destination))throw Error('Explicit absolute local QA install root required on macOS.');
+const manifest=JSON.parse(await fs.readFile(path.join(build,'BUILD.json'),'utf8'));
+if(manifest.macApp!=='YNX Pay QA.app'||manifest.signature!=='local ad-hoc QA only'||typeof manifest.sourceRuntimeBundled!=='boolean')throw Error('Exact local QA app manifest required.');
+const app=path.join(build,manifest.macApp),target=path.join(destination,manifest.macApp);
+try{await fs.lstat(target);throw Error('Existing app is preserved; choose a new versioned QA install directory.');}catch(error){if(error.code!=='ENOENT')throw error;}
+await fs.mkdir(destination,{recursive:true});
+execFileSync('/usr/bin/codesign',['--verify','--deep','--strict',app]);
+execFileSync('/usr/bin/ditto',[app,target]);
+execFileSync('/usr/bin/codesign',['--verify','--deep','--strict',target]);
+const executable=path.join(target,'Contents/MacOS/YNXPay'),expected=manifest.files.find(f=>f.path==='YNX Pay QA.app/Contents/MacOS/YNXPay');
+if(!expected||createHash('sha256').update(await fs.readFile(executable)).digest('hex')!==expected.sha256)throw Error('Installed executable differs; preserve installed candidate for inspection.');
+const source=JSON.parse(await fs.readFile(path.join(target,'Contents/Resources/SOURCE.json'),'utf8'));if(source.head!==manifest.head)throw Error('Installed source identity differs.');
+const smoke=execFileSync(executable,['--self-check'],{encoding:'utf8',env:{PATH:'/usr/bin:/bin'}}).trim();
+console.log(JSON.stringify({head:manifest.head,target,executableSha256:expected.sha256,signature:'local ad-hoc QA only',installedClient:true,sourceRuntimeSupplied:manifest.sourceRuntimeBundled,actualMainApproval:false,productionFunds:false,smoke:JSON.parse(smoke)}));

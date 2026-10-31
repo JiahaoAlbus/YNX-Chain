@@ -1,4 +1,4 @@
-import {createNativeInvoiceMerchantApproval,createNativePayActionApproval} from './merchant-invoice-approval.mjs';
+import {createNativeInvoiceMerchantApproval,createNativePayActionApproval,rejectNativePayPending} from './merchant-invoice-approval.mjs';
 const failure=code=>Object.assign(Error(code),{code});
 const clone=value=>structuredClone(value);
 
@@ -26,6 +26,26 @@ export class NativePayBusinessClient {
  async reviewMerchantTerms(intentId){return this.#run({intentId},'reviewing',async current=>{if(!this.#merchant)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');const pending=await this.#merchant.requestMerchantTerms(intentId,current);return {walletRequest:pending.request,approvalRequired:true,bill:null};});}
  async reviewPayment(merchant,invoiceId){return this.#run({merchant,invoiceId},'reviewing',async current=>{if(!this.#actions)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');const pending=await this.#actions.requestSettlement(merchant,invoiceId,current);return {walletRequest:pending.request,approvalRequired:true,bill:null};});}
  async reviewRefund(merchant,invoiceId,refundId,amountAtoms){return this.#run({merchant,invoiceId,refundId},'reviewing',async current=>{if(!this.#actions)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');const pending=await this.#actions.requestRefund(merchant,invoiceId,refundId,amountAtoms,current);return {walletRequest:pending.request,approvalRequired:true,bill:null};});}
+ // Normal Main entry: request its existing separate broadcast review. The
+ // existing Main UI/Auth pipeline owns approval, durable UNKNOWN and dispatch.
+ // This method never invokes approve(), a supplied send callback, or Core.
+ async reviewOriginalBroadcast(reference){return this.#run(reference,'reviewing',async current=>{
+  const {kind,merchant,invoiceId,intentId,originalHash}=reference;
+  if(typeof this.#runtime.main?.requestPQBroadcast!=='function')throw failure('NATIVE_PAY_MAIN_BROADCAST_REVIEW_UNAVAILABLE');
+  let original;
+  if(kind==='invoice_terms'){
+   if(!this.#merchant)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');
+   original=await this.#merchant.readOriginalMerchantMember(intentId,originalHash,current);
+  }else if(['invoice_settle','invoice_refund'].includes(kind)){
+   if(!this.#actions)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');
+   original=await this.#actions.readOriginalActionMember({merchant,invoiceId,kind,originalHash},current);
+  }else throw failure('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');
+  current();const pending=await this.#runtime.main.requestPQBroadcast(original.abciHash);
+  try{current();const review=pending?.request?.review;
+   if(pending?.status!=='approval-required'||pending.request.method!=='ynx_broadcastPQNativeAction'||review.hash!==original.abciHash||review.memberHash!==original.nativeHash||review.account!==original.owner||review.operationId!==original.operationId||review.typedAction?.kind!==kind)throw failure('NATIVE_PAY_MAIN_BROADCAST_REVIEW_CHANGED');
+  }catch(error){if(pending?.request?.id)try{rejectNativePayPending(this.#runtime.main,pending.request.id);}catch(cleanup){if(error&&typeof error==='object')error.cleanupCause=cleanup;}throw error;}
+  return {walletRequest:pending.request,approvalRequired:true,bill:null,recovery:{...reference,nativeHash:original.nativeHash,abciHash:original.abciHash},clientIndependentFinality:false};
+ });}
  // The original Main/Auth callee owns the actual protected approval and its
  // durable submission reservation. It must call send from that same context.
  // A boolean, callback response, pasted Member or CLI flag grants nothing.

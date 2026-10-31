@@ -17,7 +17,12 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
-node --test "$client_root/merchant-invoice-approval.test.mjs" "$client_root/pay-business-client.test.mjs" "$client_root/notification-inbox.test.mjs"
+node --test "$client_root/merchant-invoice-approval.test.mjs" "$client_root/pay-business-client.test.mjs" "$client_root/notification-inbox.test.mjs" "$client_root/main-entry.test.mjs"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = main-entry ]; then
+ export PAY_CLIENT_QA_MANIFEST="$fixture_dir/manifest.json"
+ node "$client_root/testsupport/main-normal-review.mjs"
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = notifications ]; then
  go test -p 1 -tags pay_pq ./internal/payproduct -run '^TestNativeInvoiceEvents' -count=1 -timeout=4m -v
  exit
@@ -29,4 +34,8 @@ if [ -n "${PAY_CLIENT_MAIN_SOURCE:-}" ]; then
  export PAY_CLIENT_WORKFLOW_DRIVER="$client_root/testsupport/business-workflow.mjs"
 fi
 go test -p 1 ./internal/consensus -run '^TestExportPayConsumerWorkflow$' -count=1 -timeout=3m
+if [ -n "${PAY_CLIENT_MAIN_SOURCE:-}" ]; then
+ export PAY_CLIENT_QA_MANIFEST="$fixture_dir/manifest.json"
+ node "$client_root/testsupport/main-normal-review.mjs"
+fi
 go test -p 1 -tags "$native_tags" ./internal/payproduct/... ./internal/paygateway/... -count=1 -timeout=5m
