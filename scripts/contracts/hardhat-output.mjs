@@ -56,15 +56,15 @@ export function finishHardhatOutput(root=process.cwd()){
  const backups=[];
  for(const e of entries){
   if(e.done)continue;
-  const temp=fs.mkdtempSync(path.join(base,'.'+e.name+'-publish-'));let backup;
+  const temp=fs.mkdtempSync(path.join(base,'.'+e.name+'-publish-')),staged=path.join(temp,'output');let backup;
   try{
-   fs.cpSync(e.target,temp,{recursive:true,errorOnExist:true,force:false});
-   if(treeContents(temp)!==treeContents(e.target))throw Error('copied artifact output differs');
+   fs.cpSync(e.target,staged,{recursive:true,errorOnExist:true,force:false});
+   if(treeContents(staged)!==treeContents(e.target))throw Error('copied artifact output differs');
    if(info(e.destination)){
     regularDirectory(path.join(root,'cache'));const savedBase=path.join(root,'cache','hardhat-retained-artifacts');regularDirectory(savedBase);fs.mkdirSync(savedBase,{recursive:true,mode:0o700});
     const saved=fs.mkdtempSync(path.join(savedBase,'build-'));backup=path.join(saved,e.name);fs.renameSync(e.destination,backup);backups.push(backup);
    }
-   fs.renameSync(temp,e.destination);
+   fs.renameSync(staged,e.destination);
   }catch(err){
    if(backup&&!info(e.destination))fs.renameSync(backup,e.destination);
    throw err;
