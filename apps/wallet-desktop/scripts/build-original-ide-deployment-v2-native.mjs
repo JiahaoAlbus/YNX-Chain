@@ -9,7 +9,7 @@ export function originalIDEDeploymentV2BuildPlan(arch,headers,coreRoot){
  if(!fs.statSync(path.resolve(headers,'node_api.h')).isFile())throw Error('IDE_V2_NODE_HEADERS_REQUIRED');
  exact(archive,v.CoreTuple.archive);for(const r of v.newNativeInputs)exact(root+'/'+r.path,r);
  const args=['-arch',arch,'-std=c++17','-Wall','-Wextra','-Werror','-Wno-unused-function','-fPIC','-shared','-undefined','dynamic_lookup','-I'+path.resolve(headers),n+'/original-ide-deployment-v2-addon.cpp',n+'/original-ide-deployment-v2-call.cpp',archive,'-framework','CoreFoundation','-framework','Security','-o',output];
- return{schema:'ynx-ide-deployment-v2-native-build/v1',arch,compiler:'/usr/bin/clang++',args,output,coreTuple:v.CoreTuple,newNativeInputs:v.newNativeInputs,includedNotSeparateTU:n+'/original-ide-deployment-v2-key-loan.cpp',normalCIRelease:false,SourceAdmission:false,installed:false};
+ return{schema:'ynx-ide-deployment-v2-native-build/v1',arch,compiler:'/usr/bin/clang++',args,output,coreTuple:v.CoreTuple,newNativeInputs:v.newNativeInputs,includedNotSeparateTU:n+'/original-ide-deployment-v2-key-loan.cpp',formalCoreComponent:v.CoreTuple.classification==='FORMAL_MACOS_ARM64_NATIVE_COMPONENT',normalCIRelease:false,SourceAdmission:false,installed:false};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===import.meta.filename){
  const args=process.argv.slice(2),planOnly=args.length===4&&args[3]==='--plan';if(args.length!==3&&!planOnly)throw Error('IDE_V2_BUILD_ARGUMENTS_INVALID');

@@ -13,9 +13,9 @@
     "sha256": "c38cb438c9e9e7fffb0d8640e917de6970c5a7a1bbe9e0634fe6b29919c926cb"
   },
   "newBuildRecipe": {
-    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-deployment-v2-intake-20261031/source/apps/wallet-desktop/scripts/build-original-ide-deployment-v2-native.mjs",
-    "bytes": 2493,
-    "sha256": "2259ea99b693f978ca217a5dd0ebc37ac97b090f2e7eae171f76e1c63a01760d"
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-deployment-v2-normal-core-20261031/source/apps/wallet-desktop/scripts/build-original-ide-deployment-v2-native.mjs",
+    "bytes": 2580,
+    "sha256": "3f7d4261cf78bc5b316f4d85e4b8bde002b7161b9945fa3f5cc5d7f8e1914a55"
   },
   "OpenPeer": "0.0.0-dev.4",
   "OpenPublicCIArchive": {
@@ -34,7 +34,7 @@
     "browserRefused": true
   },
   "NativeInputs": 152,
-  "CoreFormalNormalCI": false,
+  "CoreFormalNormalCI": true,
   "SourceAdmission": false,
   "RootAdmission": false,
   "installed": false,
@@ -46,5 +46,11 @@
   "firstCauses": [
     "Supplier verifier omits Query purpose and independent if(deployment) rejects prior device purposes; merged exclusive guard",
     "Closure scanner misclassified module-local pure readFile decoder as filesystem IO; corrected lexical function binding; four new controls pass"
-  ]
+  ],
+  "CoreFormalNormalCIQualifier": "macOS arm64 component only; whole resource run and Source/Root admission not implied",
+  "formalCoreSource": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-deployment-v2-normal-core-20261031/source/packages/wallet-auth/integration/ide-deployment-v2-core/SOURCE.json",
+    "bytes": 29632,
+    "sha256": "54aba58a5de93d79a7a94207c3068fc9c8bbd30934f38026e4e6f539d4b2fe4c"
+  }
 }
