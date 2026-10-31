@@ -72,9 +72,10 @@ async function fixture(t) {
 }
 
 import {createProductSessionRequest} from '@ynx-chain/wallet-auth';
-import {PUBLICFinalizationNative} from './public-device-finalization-native.fixture.mjs';
+import {PUBLICFinalizationNative,PUBLICPreloadAdmission} from './public-device-finalization-native.fixture.mjs';
 const {createOriginalDeviceFinalizationController}=await import('../src/original-device-finalization-controller.mjs');
 async function setup(t, mode='normal') {
+ PUBLICPreloadAdmission.acquire=null;PUBLICPreloadAdmission.current=mode==='preload-false'?()=>{throw false;}:null;
  const f=await fixture(t), events=[],b=productPlatformBinding(registry,'developer','macos');
  const terms=createOriginalDeviceCreateIntentDATA({...f.input,generation:'1',operationId:'PUBLIC-finalize-creation',nonce:'a'.repeat(64),issuedAt:'2020-01-01T00:00:00.000Z',expiresAt:'2020-01-01T00:00:30.000Z'});
  const review=Object.freeze({identityBinding:Object.freeze({...f.input}),originalCreationTerms19:terms.approvedTerms,originalGeneration:'1',originalCreationOperation:terms.terms.operationId,originalRegistrationOperation:null,dataOnly:true,SourceAdmission:false,NativeAdmission:false});
@@ -94,6 +95,9 @@ test('normal controller consumes actual fixed zeroarg API and independent genuin
  assert.equal(s.SourceAdmission,false);assert.equal(s.newSession,false);assert.equal(s.connected,false);assert.equal(s.keyGenerated,false);assert.equal(s.registrationResent,false);
  assert.equal(f.commits(),1);assert(f.events.indexOf('child-close')<f.events.indexOf('source-close'));assert.deepEqual(f.counts(),{privateRestores:0,nativeLoads:0});
  await assert.rejects(f.run(),{code:'DEVICE_FINALIZATION_ORIGINAL_QUERY_ONLY'});assert.equal(f.commits(),1);
+});
+test('pre-load current refusal prevents the normal Native loader and local finalization effect',async t=>{
+ const f=await setup(t,'preload-false');await assert.rejects(f.run(),e=>e===false);assert.equal(f.events.includes('acquire'),false);assert.equal(f.commits(),0);assert.equal(f.captured(),0);assert.equal(f.controller.readStatusDATA().effectEntered,false);await f.controller.close();
 });
 for(const mode of ['acquire-false','acquire-zero'])test('nonnull Native acquisition owner is drained before preserving '+mode+' error',async t=>{
  const f=await setup(t,mode);await assert.rejects(f.run(),error=>error===(mode==='acquire-false'?false:0));assert.equal(f.commits(),0);assert.equal(f.captured(),0);

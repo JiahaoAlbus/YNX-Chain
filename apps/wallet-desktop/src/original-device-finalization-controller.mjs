@@ -6,6 +6,7 @@ import {parseProductSessionRequest} from '@ynx-chain/wallet-auth';
 import {productPlatformBinding} from '../../../packages/wallet-auth/src/product-session-registry.js';
 import {PRODUCT_SESSION_REGISTRY} from './wallet-auth-contract.mjs';
 import {captureOriginalDeviceV4RegisteredFinalizationSelection,readOriginalDeviceV4RegisteredFinalizationForNative} from './original-policy-supplier/device-registered-finalization-selection.mjs';
+import {createOriginalRuntimeImagePreloadController} from './original-runtime-image-preload.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const descriptor=(value,key)=>value&&['object','function'].includes(typeof value)&&!types.isProxy(value)?Object.getOwnPropertyDescriptor(value,key):null;
 const own=(value,key)=>{const d=descriptor(value,key);return d&&Object.hasOwn(d,'value')?d.value:undefined;};
@@ -24,7 +25,7 @@ function project(value){
 }
 export function createOriginalDeviceFinalizationController({vault,networkId,...extra}){
  if(Object.keys(extra).length||!vault?.authorization||!/^[a-f0-9]{64}$/.test(networkId??''))fail('DEVICE_FINALIZATION_MAIN_COMPOSITION_REQUIRED');
- let active=null,closed=false;
+ let active=null,closed=false;const imagePreload=createOriginalRuntimeImagePreloadController();
  const remember=(r,cause)=>{if(!r.firstPresent){r.firstPresent=true;r.first=cause;}};
  const cleanupFailure=(r,cause)=>{if(!r.cleanupFailure){r.cleanupFailure=true;r.cleanupFirst=cause;}remember(r,cause);};
  const retain=(r,value)=>{if(!r.rawRetained)r.firstRawOutcome=value;r.rawOutcome=value;r.rawRetained=true;r.view=project(value);if(!r.firstView)r.firstView=r.view;};
@@ -66,6 +67,7 @@ export function createOriginalDeviceFinalizationController({vault,networkId,...e
   r.unsubscribe=vault.authorization.subscribe(s=>{if(s.locked||s.account!==r.security.account||s.revision!==r.security.revision)retire(r);});
   const task=(async()=>{let failed=false,cause;
    try{
+    await imagePreload.ensureCurrent();current(r);imagePreload.assertCurrent();
     const native=loadOriginalAuthIdentityNativeImage(),fn=own(native,'acquireOriginalProductSessionDeviceV4RegisteredFinalizationSource');
     if(typeof fn!=='function')fail('DEVICE_FINALIZATION_NATIVE_SOURCE_NOT_SUPPLIED');
     let envelope;
@@ -95,6 +97,6 @@ export function createOriginalDeviceFinalizationController({vault,networkId,...e
    if(failed)throw cause;
   })();r.inFlight=task;try{await task;}finally{r.inFlight=null;}return status();
  }
- async function close(){closed=true;if(!active)return;retire(active);if(active.inFlight)try{await active.inFlight;}catch{}await drain(active);}
+ async function close(){closed=true;if(active){retire(active);if(active.inFlight)try{await active.inFlight;}catch{}await drain(active);}await imagePreload.close();}
  return Object.freeze({finalizeOriginal,readStatusDATA:status,close});
 }
