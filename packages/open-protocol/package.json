@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/open-protocol",
-  "version": "0.0.0-dev.5",
+  "version": "0.0.0-dev.4",
   "private": true,
   "type": "module",
   "exports": {
@@ -26,10 +26,10 @@
       "node": "./src/bound-grant.js",
       "default": null
     },
-    "./shop-order-read": {
-      "types": "./src/shop-order-read.d.ts",
+    "./deployment-v2": {
+      "types": "./src/deployment-v2.d.ts",
       "browser": null,
-      "node": "./src/shop-order-read.js",
+      "node": "./src/deployment-v2.js",
       "default": null
     }
   },

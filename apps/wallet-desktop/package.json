@@ -21,7 +21,8 @@
     "dist:windows": "electron-builder --win nsis --x64 --publish never",
     "dist:mac": "node scripts/build-mac.mjs",
     "dist:mac:arm64": "node scripts/build-mac.mjs arm64",
-    "build:original-auth-native": "node scripts/build-original-auth-identity-native.mjs"
+    "build:original-auth-native": "node scripts/build-wallet-native-component.mjs",
+    "build:wallet-native-component": "node scripts/build-wallet-native-component.mjs component"
   },
   "dependencies": {
     "@reown/walletkit": "1.5.6",
@@ -48,7 +49,11 @@
   "build": {
     "appId": "com.ynxweb4.wallet.macos",
     "productName": "YNX Wallet",
+    "extraMetadata": {
+      "main": "code/apps/wallet-desktop/src/main.mjs"
+    },
     "removePackageScripts": false,
+    "removePackageKeywords": false,
     "protocols": [
       {
         "name": "YNX Wallet Authorization",
@@ -62,9 +67,15 @@
     "afterPack": "scripts/after-pack.mjs",
     "files": [
       "src/**",
+      "!src/original-policy-supplier/operator-pq-identity.mjs",
       "native/original-auth-identity.node",
+      "native/original-auth-identity-build.json",
+      "native/original-auth-identity-r155-source-intake.json",
+      "native/YNXIdentityReceiver",
       "package.json",
       "node_modules/@ynx-chain/wallet-auth/**",
+      "!node_modules/@ynx-chain/wallet-auth/native/tests/**",
+      "!node_modules/@ynx-chain/wallet-auth/native/test-pq-catalog-source-contract.mjs",
       "node_modules/@noble/**"
     ],
     "linux": {
@@ -90,6 +101,7 @@
       ]
     },
     "mac": {
+      "signIgnore": ["/Contents/Resources/consensus-proof-verifier/darwin-arm64/ynx-consensus-proof-verify$"],
       "extendInfo": {
         "NSCameraUsageDescription": "Scan a YNX receiving QR code locally. Camera frames are not uploaded, and scanning never authorizes a payment."
       },

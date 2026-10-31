@@ -19,6 +19,7 @@
 + (instancetype)acquireOriginalProductSessionDeviceV4Profile:(NSError **)error;
 + (instancetype)acquireOriginalProductSessionDeviceV4PendingProfile:(NSError **)error;
 + (instancetype)acquireOriginalProductSessionDeviceV4ProvisioningProfile:(NSError **)error;
++ (instancetype)acquireOriginalProductSessionDeviceV4QueryProfile:(NSError **)error;
 - (NSString *)copyOriginalResourceDirectory:(NSError **)error;
 - (NSData *)copyOriginalProfile:(NSError **)error;
 - (NSData *)copyOriginalHead:(NSError **)error;

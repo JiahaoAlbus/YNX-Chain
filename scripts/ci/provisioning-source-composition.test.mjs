@@ -15,7 +15,7 @@ test('complete provisioning source graph pins new Native leaves and normal build
   assert.equal(createHash('sha256').update(raw).digest('hex'),r.sha256,r.path);
  }
  for(const p of ['apps/wallet-desktop/native/original-product-device-v4-provisioning-source.inc.mm','apps/wallet-desktop/native/original-product-device-v4-provisioning-composition.inc.mm','apps/wallet-desktop/native/original-product-device-v4-provisioning-approval.inc.mm','apps/wallet-desktop/native/original-product-device-v4-core-creator.mm','apps/wallet-desktop/native/product_device_keypair_v4.h','packages/wallet-auth/native/original-product-device-v4-provisioning-source-contract.mjs'])assert(paths.has(p),p);
- assert.equal(contract.NativeInputs.length,contract.deviceOriginalQuerySourceKernel?.NativeInputs??contract.deviceProvisioningNativeSuccessor.NativeInputs);
+ assert.equal(contract.NativeInputs.length,contract.deviceOriginalQueryNativeSource?.NativeInputs??contract.deviceOriginalQuerySourceKernel?.NativeInputs??contract.deviceProvisioningNativeSuccessor.NativeInputs);
  assert.equal(contract.deviceProvisioningNativeSuccessor.SourceAdmission,false);
 });
 test('provisioning export scan requires creator and all inherited HTTP/typed symbols',async()=>{

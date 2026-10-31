@@ -5,6 +5,12 @@ export const PQ_NATIVE_ACTION_MAX_PAYLOAD_BYTES:4096;
 export type PQNativeActionU64=string|bigint;
 export interface PQNativeActionPayloadMap {
  stake:{amount:PQNativeActionU64};
+ /** Original Core ledger units1. expiresAt is execution height, never wall time. */
+ invoice_terms:{invoiceID:string;sessionID:string;recipient:string;payer:string;assetID:'YNXT';unitVersion:'1';feeRule:'native-transfer-fee-one/v1';keyEpoch:PQNativeActionU64;revision:PQNativeActionU64;amount:PQNativeActionU64;maxFee:PQNativeActionU64;expiresAt:PQNativeActionU64};
+ /** Hashes are strict nonzero lower hex64 encoded as original raw32 WIRE. */
+ invoice_settle:{merchant:string;invoiceID:string;termsHashHex:string;amount:PQNativeActionU64};
+ /** Recipient absent: original ledger derives the original payer at execution. */
+ invoice_refund:{invoiceID:string;refundID:string;termsHashHex:string;settlementHashHex:string;amount:PQNativeActionU64};
  resource_delegation_create:{provider:string;beneficiary:string;amountYNXT:PQNativeActionU64;policyHash:string;idempotencyKey:string;requestHash:string};
  resource_rental_create:{address:string;provider:string;bandwidth:PQNativeActionU64;compute:PQNativeActionU64;aiCredits:PQNativeActionU64;trustCredits:PQNativeActionU64;quoteID:string;quoteExpiresAt:string;policyHash:string;maxPriceYNXT:PQNativeActionU64;idempotencyKey:string;requestHash:string};
  dex_asset_create:{assetID:string;symbol:string;name:string;decimals:number;maxSupply:PQNativeActionU64;initialSupply:PQNativeActionU64};
