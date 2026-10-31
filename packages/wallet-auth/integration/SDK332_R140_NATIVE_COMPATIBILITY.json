@@ -2988,5 +2988,63 @@
     "SourceAdmission": false,
     "RootAdmission": false,
     "installed": false
+  },
+  "httpProofV5DataMath": {
+    "supplierResult": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-http-proof-v5-codec-20261031/FUNCTION_RESULT.json",
+    "contract": "http-binary-request-contract-20261031/HTTP_PROOF_V5_CONTRACT_FINAL_PATH.json",
+    "wire": "E6 domain/version/network/owner/canonicalUnsigned23/sharedBodyBindE3",
+    "wholeBodyMax": 68288512,
+    "LegacyV4Modified": false,
+    "NativeProducerSupplied": false,
+    "SourceAdmission": false,
+    "RootAdmission": false,
+    "installed": false
+  },
+  "deviceRegistrationCompletionNormalCaller": {
+    "sourceCommit": "c987a99914a36897a083bdff322e9cb57bdeeb73",
+    "CASApplied": [
+      {
+        "path": "packages/wallet-auth/src/original-product-device-v4-registration-client.d.ts",
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-registration-complete-v5-20261031/source/packages/wallet-auth/src/original-product-device-v4-registration-client.d.ts",
+        "beforeBytes": 2974,
+        "beforeSHA256": "587c4837d06dda814a76503de4dd7420e6b3b96c5b40b1a15c56fec525221b2f",
+        "afterBytes": 5436,
+        "afterSHA256": "3a7c25aa6b45b8b6a9f5d87e9aa6d62d665d584f8a7a8df79fb6c25b3f2c190d"
+      },
+      {
+        "path": "packages/wallet-auth/src/original-product-device-v4-registration-client.js",
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-registration-complete-v5-20261031/source/packages/wallet-auth/src/original-product-device-v4-registration-client.js",
+        "beforeBytes": 11769,
+        "beforeSHA256": "bfc42fc7f1ec6544fe9b65b4c3759545a4d3c767e0895d967c2ad99d324159e2",
+        "afterBytes": 19323,
+        "afterSHA256": "9cebeb09bf777c411448256bb693a60a35ba47c655d23303f041842868a4de0c"
+      },
+      {
+        "path": "packages/wallet-auth/src/product-session-gateway-client.js",
+        "source": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-device-registration-complete-v5-20261031/source/packages/wallet-auth/src/product-session-gateway-client.js",
+        "beforeBytes": 25927,
+        "beforeSHA256": "4506590e79720794b1d5e2c194c808ca1be31b38767c5cbc04edcaf8caffb0f7",
+        "afterBytes": 26253,
+        "afterSHA256": "7f1a1b49f0daae9cbf2068b405fec6a867d3965f99cc08547d30c67c216a8e72"
+      }
+    ],
+    "RootAdmission": false,
+    "SourceAdmission": false
+  },
+  "httpProofV5OriginalTransport": {
+    "normalFactory": "openOriginalHTTPBinaryClientV5",
+    "nativeSourceEntry": "acquireOriginalProductSessionHTTPProofV5Source",
+    "NativeProducerSupplied": false,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "actualHTTP": false,
+    "installed": false
+  },
+  "httpProofV5ServerCurrent": {
+    "source": "sdk49-http-v5-server-verifier-20261031/FUNCTION_RESULT.json",
+    "accountPolicyRunner": "runBinaryV5",
+    "protectedRunnerSupplied": false,
+    "RootAdmission": false,
+    "SourceAdmission": false
   }
 }

@@ -311,6 +311,24 @@
       "browser": null,
       "node": "./native/original-ide-deployment-v2.mjs",
       "default": null
+    },
+    "./product-session-proof-v5": {
+      "types": "./src/product-session-proof-v5.d.ts",
+      "browser": null,
+      "node": "./src/product-session-proof-v5.js",
+      "default": null
+    },
+    "./product-session-device-v5": {
+      "types": "./src/product-session-device-v5.d.ts",
+      "browser": null,
+      "node": "./src/product-session-device-v5.js",
+      "default": null
+    },
+    "./original-http-binary-v5-client": {
+      "types": "./src/original-http-binary-v5-client.d.ts",
+      "browser": null,
+      "node": "./src/original-http-binary-v5-client.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -401,7 +419,17 @@
     "native/original-ide-deployment-v2-call.h",
     "native/core-abi/ynx_artifact_release.h",
     "native/core-abi/deployment_manifest_v2.h",
-    "src/original-ide-deployment-v2-source.js"
+    "src/original-ide-deployment-v2-source.js",
+    "src/product-session-proof-v5.js",
+    "src/product-session-proof-v5.d.ts",
+    "HTTP_PROOF_V5_DATA.md",
+    "docs/original-device-v4-completion.md",
+    "src/product-session-device-v5.js",
+    "src/product-session-device-v5.d.ts",
+    "src/original-http-binary-v5-client.js",
+    "src/original-http-binary-v5-client-private.js",
+    "src/original-http-binary-v5-client.d.ts",
+    "HTTP_V5_SERVER_CURRENT.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

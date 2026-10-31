@@ -4,7 +4,7 @@ import{types}from'node:util';
 import{openOriginalProductSessionDeviceV4PendingProofClient}from'./original-product-device-v4-pending-client.js';
 import{inspectOriginalProductDeviceV4PendingReviewDATA}from'./original-product-device-v4-pending-review-data.js';
 import{createOriginalDeviceIdentityDATA}from'./original-device-create-intent.js';
-import{verifyProductSessionApprovalV4Data,verifyProductSessionDeviceRegistrationProofV4Data}from'./product-session-pq-v4-codec.js';
+import{verifyProductSessionApprovalV4Data,verifyProductSessionDeviceRegistrationProofV4Data,verifyProductSessionV4CompletionData}from'./product-session-pq-v4-codec.js';
 import{captureVerifiedPQSessionApproval}from'./product-session-account-private.js';
 import{ProductSessionGatewayFetchAdapter}from'./product-session-gateway-client.js';
 import{canonicalJSON,WalletAuthError}from'./canonical.js';
@@ -17,6 +17,7 @@ const fail=c=>{throw new WalletAuthError(c,c);};
 const record=(v,keys)=>{if(!v||types.isProxy(v)||Object.getPrototypeOf(v)!==Object.prototype)fail('DEVICE_REGISTRATION_EXACT_DATA');const ds=Object.getOwnPropertyDescriptors(v);if(Reflect.ownKeys(ds).length!==keys.length||keys.some(k=>!ds[k]||!Object.hasOwn(ds[k],'value')))fail('DEVICE_REGISTRATION_EXACT_DATA');return Object.fromEntries(keys.map(k=>[k,ds[k].value]));};
 const originalContext=v=>{if(!v||types.isProxy(v)||!Object.isFrozen(v))fail('DEVICE_REGISTRATION_ORIGINAL_ABORT_CONTEXT');const c=record(v,['signal']);let stop;try{stop=aborted.call(c.signal);}catch{fail('DEVICE_REGISTRATION_ORIGINAL_ABORT_CONTEXT');}if(stop)throw reason.call(c.signal);return v;};
 const bytes=(v,n)=>{if(types.isProxy(v)||!types.isUint8Array(v)||types.isSharedArrayBuffer(bufferOf.call(v)))fail('DEVICE_REGISTRATION_ORIGINAL_BYTES');const length=lengthOf.call(v);if(n?length!==n:!length||length>98304)fail('DEVICE_REGISTRATION_ORIGINAL_BYTES');const out=Buffer.alloc(length);try{setBytes.call(out,v);}catch{fail('DEVICE_REGISTRATION_ORIGINAL_BYTES');}return out;};
+function operationMethod(op,name){if(!op||types.isProxy(op))fail('DEVICE_REGISTRATION_NATIVE_OPERATION_REQUIRED');const d=Object.getOwnPropertyDescriptor(op,name);if(!d||!Object.hasOwn(d,'value')||typeof d.value!=='function')fail('DEVICE_REGISTRATION_NATIVE_OPERATION_REQUIRED');return d.value.call(op);}
 const parseOriginal=(raw,max)=>{if(typeof raw!=='string'||!raw.length||Buffer.byteLength(raw)>max)fail('DEVICE_REGISTRATION_ORIGINAL_REQUIRED');const v=JSON.parse(raw);if(canonicalJSON(v)!==raw)fail('DEVICE_REGISTRATION_CANONICAL_REQUIRED');return v;};
 
 /** Zero input. A failure's original Native partial remains caller-owned.
@@ -28,16 +29,17 @@ export async function openOriginalProductDeviceV4RegistrationClient(...args){
  if(args.length)fail('DEVICE_REGISTRATION_ZERO_INPUT');
  const pending=await openOriginalProductSessionDeviceV4PendingProofClient();
  const gateway=new ProductSessionGatewayFetchAdapter({endpoint:origin,fetch:(...a)=>originalFetch(...a),walletInstalled:async()=>false,schemeRegistered:async()=>false,timeoutMs:30000});
- const owner={};let review,selection,selected=false,closed=false,closing,prepareFlight,submitFlight,hasCause=false,firstCause,retainedMember=null,preparedRef=null,clockFloor=0;
+ const flights=new Set(),owner={};let review,selection,selected=false,closed=false,closing,prepareFlight,submitFlight,hasCause=false,firstCause,retainedMember=null,preparedRef=null,clockFloor=0;
  const remember=e=>{if(!hasCause){hasCause=true;firstCause=e;}};
  const alive=()=>{if(closed)fail('DEVICE_REGISTRATION_RETIRED');};
  const now=()=>{alive();const n=Date.now();if(!Number.isSafeInteger(n)||n<clockFloor)fail('DEVICE_REGISTRATION_CLOCK_ROLLBACK');clockFloor=n;return new Date(n);};
  const packet=ref=>{const p=packets.get(ref);if(!p||p.owner!==owner)fail('DEVICE_REGISTRATION_ORIGINAL_PACKET_REQUIRED');return p;};
- function readReview(independent){
+ function readReview(independent,operation='registration-pop'){
   alive();if(selected)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');pending.assertCurrent();
-  const i=record(independent,['identityBinding','generation','publicPair']),identity=createOriginalDeviceIdentityDATA(i.identityBinding),pair=record(i.publicPair,['pkA','pkB']),pkA=bytes(pair.pkA,2592).toString('hex'),pkB=bytes(pair.pkB,64).toString('hex');
+  const i=record(independent,['identityBinding','generation','publicPair',...(operation==='challenge-completion'?['challengeOriginal']:[])]),identity=createOriginalDeviceIdentityDATA(i.identityBinding),pair=record(i.publicPair,['pkA','pkB']),pkA=bytes(pair.pkA,2592).toString('hex'),pkB=bytes(pair.pkB,64).toString('hex');
   const view=inspectOriginalProductDeviceV4PendingReviewDATA(pending.readOriginalReview());pending.assertCurrent();
-  if(view.scope.operation!=='registration-pop'||view.scope.expected.generation!==i.generation||view.record.pkA!==pkA||view.record.pkB!==pkB)fail('DEVICE_REGISTRATION_SELECTED_PAIR_MISMATCH');
+  if(view.scope.operation!==operation||view.scope.expected.generation!==i.generation||view.record.pkA!==pkA||view.record.pkB!==pkB)fail('DEVICE_REGISTRATION_SELECTED_PAIR_MISMATCH');
+  if(operation==='challenge-completion'&&(typeof i.challengeOriginal!=='string'||i.challengeOriginal!==view.scope.challengeOriginal))fail('DEVICE_REGISTRATION_SELECTED_CHALLENGE_MISMATCH');
   for(const k of ['networkId','canonicalOwner','account','productId','clientId','deviceId'])if(view.scope.expected[k]!==identity.identity[k])fail('DEVICE_REGISTRATION_SELECTED_IDENTITY_MISMATCH');
   for(const[k,v]of Object.entries(identity.applicationBinding))if(view.scope.expected[k]!==v)fail('DEVICE_REGISTRATION_SELECTED_APPLICATION_MISMATCH');
   // Independent Main identity + actual new public pair are compared directly;
@@ -45,28 +47,28 @@ export async function openOriginalProductDeviceV4RegistrationClient(...args){
   const capture=canonicalJSON({identity:identity.identity,applicationBinding:identity.applicationBinding,generation:i.generation,pkA,pkB,scope:view.scope});if(selection&&selection!==capture)fail('DEVICE_REGISTRATION_SELECTION_CHANGED');selection=capture;review=view;return view;
  }
  async function preparePair(input){
-  alive();const i=record(input,['approvalOriginal','policyRef','abortContext']),context=originalContext(i.abortContext);if(!review)fail('DEVICE_REGISTRATION_REVIEW_REQUIRED');if(selected)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');
+  alive();const i=record(input,['approvalOriginal','policyRef','abortContext']),context=originalContext(i.abortContext);if(!review||review.scope.operation!=='registration-pop')fail('DEVICE_REGISTRATION_REVIEW_REQUIRED');if(selected)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');
   pending.assertCurrent();const approval=parseOriginal(i.approvalOriginal,196608),at=now(),verified=verifyProductSessionApprovalV4Data(registry,review.request,approval,i.policyRef,Buffer.from(review.scope.registrationOriginal),at);pending.assertCurrent();
   selected=true;let op,failed=false,cause,wire;const first=e=>{if(!failed){failed=true;cause=e;remember(e);}};
   try{
    try{op=await pending.produceRegistrationProof(context);}catch(e){if(e!==null&&(typeof e==='object'||typeof e==='function')&&!types.isProxy(e)){const d=Object.getOwnPropertyDescriptor(e,'partial');if(d&&Object.hasOwn(d,'value'))op=d.value;}throw e;}
    // Read and retain original output before a late current or interpretation error.
-   if(!op||types.isProxy(op))fail('DEVICE_REGISTRATION_NATIVE_OPERATION_REQUIRED');wire=bytes(op.readOriginalMember());retainedMember=Buffer.from(wire);
-   if(op.assertCurrent()!==undefined)fail('DEVICE_REGISTRATION_NATIVE_CURRENT_REFUSED');pending.assertCurrent();originalContext(context);
+   if(!op||types.isProxy(op))fail('DEVICE_REGISTRATION_NATIVE_OPERATION_REQUIRED');wire=bytes(operationMethod(op,'readOriginalMember'));retainedMember=Buffer.from(wire);
+   if(operationMethod(op,'assertCurrent')!==undefined)fail('DEVICE_REGISTRATION_NATIVE_CURRENT_REFUSED');pending.assertCurrent();originalContext(context);
    verifyProductSessionDeviceRegistrationProofV4Data(Buffer.from(review.scope.registrationOriginal),wire,now());
    captureVerifiedPQSessionApproval(verified.verifiedApproval,approval,review.requestDigest,now());
-  }catch(e){first(e);if(op&&!retainedMember)try{retainedMember=bytes(op.readOriginalMember());}catch{}}
+  }catch(e){first(e);if(op&&!retainedMember)try{retainedMember=bytes(operationMethod(op,'readOriginalMember'));}catch{}}
   try{await pending.close();}catch(e){first(e);}
   if(failed)throw cause;alive();originalContext(context);captureVerifiedPQSessionApproval(verified.verifiedApproval,approval,review.requestDigest,now());
   const body={operationId:review.scope.pendingId,request:review.request,registrationOriginal:review.scope.registrationOriginal,registrationMember:wire.toString('base64url'),approval},bodyOriginal=canonicalJSON(body);if(Buffer.byteLength(bodyOriginal)>393216)fail('DEVICE_REGISTRATION_HTTP_BODY_LIMIT');
-  const ref=Object.freeze({});packets.set(ref,{owner,body,bodyOriginal,context,verified:verified.verifiedApproval,entered:false,response:null,outcome:null});preparedRef=ref;return ref;
+  const ref=Object.freeze({});packets.set(ref,{kind:'pair',owner,body,bodyOriginal,context,verified:verified.verifiedApproval,entered:false,responsePresent:false,response:null,outcome:null});preparedRef=ref;return ref;
  }
- function readPacket(ref){const p=packet(ref);return Object.freeze({operationId:p.body.operationId,originalBody:p.bodyOriginal,requestDigest:review.requestDigest,registrationOriginal:review.scope.registrationOriginal,dataOnly:true,registered:false,SourceAdmission:false,NativeAdmission:false});}
+ function readPacket(ref){const p=packet(ref);if(p.kind!=='pair')fail('DEVICE_REGISTRATION_PACKET_PHASE_MISMATCH');return Object.freeze({operationId:p.body.operationId,originalBody:p.bodyOriginal,requestDigest:review.requestDigest,registrationOriginal:review.scope.registrationOriginal,dataOnly:true,registered:false,SourceAdmission:false,NativeAdmission:false});}
  async function submit(ref,context){
-  alive();const p=packet(ref);if(originalContext(context)!==p.context)fail('DEVICE_REGISTRATION_ORIGINAL_CONTEXT_CHANGED');if(p.entered)fail('DEVICE_REGISTRATION_QUERY_ORIGINAL_ONLY');
+  alive();const p=packet(ref);if(p.kind!=='pair')fail('DEVICE_REGISTRATION_PACKET_PHASE_MISMATCH');if(p.entered)fail('DEVICE_REGISTRATION_QUERY_ORIGINAL_ONLY');if(originalContext(context)!==p.context)fail('DEVICE_REGISTRATION_ORIGINAL_CONTEXT_CHANGED');
   captureVerifiedPQSessionApproval(p.verified,p.body.approval,review.requestDigest,now());p.entered=true;
   try{
-   p.response=await gateway.pairDeviceV4({originalBody:p.bodyOriginal,abortContext:p.context}); // Retain before late current/status checks.
+   p.response=await gateway.pairDeviceV4({originalBody:p.bodyOriginal,abortContext:p.context});p.responsePresent=true; // Retain before late current/status checks.
    originalContext(p.context);captureVerifiedPQSessionApproval(p.verified,p.body.approval,review.requestDigest,now());
    const result=p.response;if(typeof result?.original!=='string'||result.recoveryOnly===true)fail('DEVICE_REGISTRATION_ORIGINAL_OUTCOME_UNRESOLVED');
    const original=record(parseOriginal(result.original,196608),['registrationOriginal','challenge']);if(original.registrationOriginal!==review.scope.registrationOriginal)fail('DEVICE_REGISTRATION_ORIGINAL_RECORD_CHANGED');
@@ -75,14 +77,58 @@ export async function openOriginalProductDeviceV4RegistrationClient(...args){
    for(const k of ['chainId','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId','deviceAlgorithm','deviceRegistrationId','deviceRegistrationRevision','deviceRegistrationDigest','nonce','state'])if(challenge[k]!==review.request[k])fail('DEVICE_REGISTRATION_CHALLENGE_MISMATCH');
    if(canonicalJSON(challenge.scopes)!==canonicalJSON(review.request.scopes)||canonicalJSON(challenge.accountAuthorization)!==canonicalJSON(p.body.approval.accountAuthorization))fail('DEVICE_REGISTRATION_CHALLENGE_MISMATCH');
    p.outcome=Object.freeze({operationId:p.body.operationId,responseOriginal:result.original,registrationOriginal:original.registrationOriginal,challenge,dataOnly:true,operationVerified:false,registered:false,connected:false,newSession:false,SourceAdmission:false,NativeAdmission:false});return p.outcome;
-  }catch(e){remember(e);throw e;}
+  }catch(e){retainResponseFailure(p,e);remember(e);throw e;}
+ }
+
+ function retainResponseFailure(p,cause){
+  if(!cause||types.isProxy(cause)||!(cause instanceof WalletAuthError)||Object.getOwnPropertyDescriptor(cause,'code')?.value!=='PAIR_V4_HTTP_OUTCOME_UNKNOWN')return;
+  const seen=new Set();for(let e=cause,n=0;n<4&&e!==null&&(typeof e==='object'||typeof e==='function')&&!types.isProxy(e)&&!seen.has(e);n++){
+   seen.add(e);for(const key of ['originalResponse']){const d=Object.getOwnPropertyDescriptor(e,key);if(d&&Object.hasOwn(d,'value')&&!p.responsePresent){p.response=d.value;p.responsePresent=true;}}
+   const d=Object.getOwnPropertyDescriptor(e,'cause');if(!d||!Object.hasOwn(d,'value'))break;e=d.value;
+  }
+ }
+ function track(work,prepare=false){const flight=work();flights.add(flight);flight.then(()=>flights.delete(flight),e=>{if(prepare)remember(e);flights.delete(flight);});return flight;}
+ async function prepareCompletion(input){
+  alive();const i=record(input,['approvalOriginal','policyRef','abortContext']),context=originalContext(i.abortContext);if(!review||review.scope.operation!=='challenge-completion')fail('DEVICE_REGISTRATION_COMPLETION_REVIEW_REQUIRED');if(selected)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');
+  pending.assertCurrent();const approval=parseOriginal(i.approvalOriginal,196608),at=now(),verified=verifyProductSessionApprovalV4Data(registry,review.request,approval,i.policyRef,Buffer.from(review.scope.registrationOriginal),at);
+  if(productSessionApprovalDigest(approval)!==review.scope.approvalDigest||canonicalJSON(review.challenge)!==review.scope.challengeOriginal)fail('DEVICE_REGISTRATION_COMPLETION_ORIGINAL_MISMATCH');pending.assertCurrent();
+  selected=true;let op,failed=false,cause,wire,target;const first=e=>{if(!failed){failed=true;cause=e;remember(e);}};
+  try{
+   try{op=await pending.produceChallengeProof(context);}catch(e){if(e!==null&&(typeof e==='object'||typeof e==='function')&&!types.isProxy(e)){const d=Object.getOwnPropertyDescriptor(e,'partial');if(d&&Object.hasOwn(d,'value'))op=d.value;}throw e;}
+   if(!op||types.isProxy(op))fail('DEVICE_REGISTRATION_NATIVE_OPERATION_REQUIRED');wire=bytes(operationMethod(op,'readOriginalMember'));retainedMember=Buffer.from(wire);
+   if(operationMethod(op,'assertCurrent')!==undefined)fail('DEVICE_REGISTRATION_NATIVE_CURRENT_REFUSED');pending.assertCurrent();originalContext(context);
+   target=verifyProductSessionV4CompletionData(registry,review.request,approval,{challenge:review.challenge,deviceMember:wire.toString('base64url')},i.policyRef,Buffer.from(review.scope.registrationOriginal),now());
+   captureVerifiedPQSessionApproval(verified.verifiedApproval,approval,review.requestDigest,now());
+  }catch(e){first(e);if(op&&!retainedMember)try{retainedMember=bytes(operationMethod(op,'readOriginalMember'));}catch{}}
+  try{await pending.close();}catch(e){first(e);}if(failed)throw cause;
+  alive();originalContext(context);captureVerifiedPQSessionApproval(verified.verifiedApproval,approval,review.requestDigest,now());
+  const completion={challenge:review.challenge,deviceMember:wire.toString('base64url')},body={operationId:review.scope.pendingId,request:review.request,registrationOriginal:review.scope.registrationOriginal,approval,completion},bodyOriginal=canonicalJSON(body);if(Buffer.byteLength(bodyOriginal)>393216)fail('DEVICE_REGISTRATION_HTTP_BODY_LIMIT');
+  const ref=Object.freeze({});packets.set(ref,{kind:'completion',owner,body,bodyOriginal,context,verified:verified.verifiedApproval,entered:false,responsePresent:false,response:null,outcome:null,target,member:Buffer.from(wire)});preparedRef=ref;return ref;
+ }
+ function readCompletionPacket(ref){const p=packet(ref);if(p.kind!=='completion')fail('DEVICE_REGISTRATION_PACKET_PHASE_MISMATCH');return Object.freeze({operationId:p.body.operationId,originalBody:p.bodyOriginal,requestDigest:review.requestDigest,registrationOriginal:review.scope.registrationOriginal,challengeOriginal:review.scope.challengeOriginal,memberOriginal:Buffer.from(p.member),dataOnly:true,registered:false,connected:false,newSession:false,SourceAdmission:false,NativeAdmission:false});}
+ function completionWindow(p){const at=now().toISOString(),c=p.body.completion.challenge;if(c.issuedAt>at||c.expiresAt<=at||c.sessionExpiresAt<=at||p.target.session.expiresAt<=at)fail('DEVICE_REGISTRATION_COMPLETION_WINDOW');}
+ async function submitCompletion(ref,context){
+  alive();const p=packet(ref);if(p.kind!=='completion')fail('DEVICE_REGISTRATION_PACKET_PHASE_MISMATCH');if(p.entered)fail('DEVICE_REGISTRATION_QUERY_ORIGINAL_ONLY');if(originalContext(context)!==p.context)fail('DEVICE_REGISTRATION_ORIGINAL_CONTEXT_CHANGED');
+  try{captureVerifiedPQSessionApproval(p.verified,p.body.approval,review.requestDigest,now());completionWindow(p);}catch(e){remember(e);throw e;}p.entered=true;
+  try{
+   p.response=await gateway.completeDeviceV4({originalBody:p.bodyOriginal,abortContext:p.context});p.responsePresent=true;
+   originalContext(p.context);captureVerifiedPQSessionApproval(p.verified,p.body.approval,review.requestDigest,now());completionWindow(p);
+   const result=p.response;if(typeof result?.original!=='string'||result.recoveryOnly===true)fail('DEVICE_REGISTRATION_ORIGINAL_OUTCOME_UNRESOLVED');
+   const session=parseOriginal(result.original,196608);if(canonicalJSON(session)!==canonicalJSON(p.target.session))fail('DEVICE_REGISTRATION_COMPLETION_SESSION_MISMATCH');
+   if(session.expiresAt<=now().toISOString())fail('DEVICE_REGISTRATION_COMPLETION_SESSION_EXPIRED');
+   p.outcome=Object.freeze({operationId:p.body.operationId,responseOriginal:result.original,registrationOriginal:review.scope.registrationOriginal,challengeOriginal:review.scope.challengeOriginal,session:p.target.session,dataOnly:true,operationVerified:false,registered:false,connected:false,newSession:false,SourceAdmission:false,NativeAdmission:false});return p.outcome;
+  }catch(e){retainResponseFailure(p,e);remember(e);throw e;}
  }
  return Object.freeze({
-  readOriginalRegistrationReviewDATA:readReview,
-  prepareOriginalPairSubmission(input){if(prepareFlight)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');prepareFlight=preparePair(input);return prepareFlight;},
+  readOriginalRegistrationReviewDATA(independent){return readReview(independent);},
+  readOriginalCompletionReviewDATA(independent){return readReview(independent,'challenge-completion');},
+  prepareOriginalPairSubmission(input){if(prepareFlight)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');prepareFlight=track(()=>preparePair(input),true);return prepareFlight;},
   readOriginalPairRequestDATA:readPacket,
-  submitPreparedPair(ref,context){const flight=submit(ref,context);submitFlight=flight;return flight;},
-  readStatusDATA(){const p=preparedRef?packet(preparedRef):null;return Object.freeze({proofSelected:selected,originalMemberRetained:retainedMember!==null,httpEntered:p?.entered??false,originalResponseRetained:p?.response!==null&&p?.response!==undefined,originalResponse:p?.response??null,firstCausePresent:hasCause,firstCause,registered:false,newSession:false,SourceAdmission:false,NativeAdmission:false});},
-  close(){closed=true;if(!closing)closing=(async()=>{try{if(prepareFlight)await prepareFlight;}catch{}try{if(submitFlight)await submitFlight;}catch{}await pending.close();})();return closing;},
+  prepareOriginalCompletionSubmission(input){if(prepareFlight)fail('DEVICE_REGISTRATION_PROOF_ALREADY_ENTERED');prepareFlight=track(()=>prepareCompletion(input),true);return prepareFlight;},
+  readOriginalCompletionRequestDATA:readCompletionPacket,
+  submitPreparedCompletion(ref,context){return track(()=>submitCompletion(ref,context));},
+  submitPreparedPair(ref,context){const flight=track(()=>submit(ref,context));submitFlight=flight;return flight;},
+  readStatusDATA(){const p=preparedRef?packet(preparedRef):null;return Object.freeze({proofSelected:selected,originalMemberRetained:retainedMember!==null,originalMember:retainedMember?Buffer.from(retainedMember):null,httpEntered:p?.entered??false,originalResponseRetained:p?.responsePresent??false,originalResponse:p?.response??null,firstCausePresent:hasCause,firstCause,registered:false,newSession:false,SourceAdmission:false,NativeAdmission:false});},
+  close(){closed=true;if(!closing)closing=(async()=>{let retireFailed=false,retireCause;try{pending.retire();}catch(e){retireFailed=true;retireCause=e;remember(e);}await Promise.allSettled([...flights]);try{await pending.close();}catch(e){remember(e);if(!retireFailed)throw e;}if(retireFailed)throw retireCause;})();return closing;},
  });
 }
