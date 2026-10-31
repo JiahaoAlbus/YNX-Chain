@@ -10,8 +10,10 @@ import (
 	policy "ynx.local/authgrantpolicy"
 )
 
-// OriginalShopTaskOrderResponseEncoder is the original final response-frame
-// encoder, not SDK DATA-only JSON. It must carry the actual operation/proof.
+// OriginalShopTaskOrderResponseEncoder implements the registered final response
+// contract and MUST invoke the held original attester. SDK JSON alone confers
+// no receipt authority. Auth's registered client expects the exact SDK JSON as
+// Body and verifies its original operation/receipt through protected Source.
 type OriginalShopTaskOrderResponseEncoder interface {
 	EncodeShopOrderRead(context.Context, OriginalShopTaskOrderResponse, OriginalShopTaskOrderAttest) (OriginalShopTaskOrderEncoding, error)
 }
@@ -159,8 +161,8 @@ func (c *originalShopTaskOrderSDKCodec) EncodeShopOrderRead(ctx context.Context,
 }
 
 // OpenOriginalShopTaskOrdersSDK joins the actual SDK request decoder and the
-// original native Source factory. Missing final frame/channel/response authority
-// stays unavailable; it never substitutes DATA-only JSON as a tool receipt.
+// original native Source factory. Missing encoder/channel/response authority
+// stays unavailable; it never substitutes DATA-only decoding for a receipt.
 func OpenOriginalShopTaskOrdersSDK(ctx context.Context, encoder OriginalShopTaskOrderResponseEncoder, channels OriginalShopTaskOrderOuterChannelAuthority, responses OriginalShopTaskOrderResponseAuthority, target policy.Sink, kind string) (*PreparedOriginalShopTaskOrders, error) {
 	codec, err := PrepareOriginalShopTaskOrderSDKCodec(ctx, encoder, channels, target, kind)
 	if err != nil {

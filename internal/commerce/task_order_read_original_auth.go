@@ -44,11 +44,12 @@ type OriginalShopTaskOrderResponse struct {
 	Source     authgrant.Source
 	AuthScope  authgrant.FenceScope
 	// Exact unchanged SDK DATA bytes frozen from this original locked read.
-	// These are not the final signed frame and confer no receipt authority.
+	// These bytes alone confer no receipt authority.
 	// The original attester/receipt owner must retain them under the SAME
 	// protected operation; never infer them by parsing an opaque original value.
 	ResponseOriginal []byte
 	SourceBytes      []byte
+	ResponseBinding  authgrant.Bind
 }
 
 type OriginalShopTaskOrderResponseAuthority interface {
@@ -60,6 +61,10 @@ type HeldOriginalShopTaskOrderResponse interface {
 	Operation() (OriginalShopTaskOrderOperation, error)
 	// The original authority must independently validate the exact expected
 	// typed response and canonical payload before attesting. Not a blind signer.
+	// For Auth's registered SDK-result transport, the payload is the exact SDK
+	// result JSON. The held owner MUST retain/verify its original protected
+	// binding/operation/remote/byte association; signing unscoped DATA alone is
+	// insufficient. The receiver's real Source verifies the original receipt.
 	AttestShopOrderReadResponse(context.Context, OriginalShopTaskOrderResponse, []byte) (authgrant.Proof, error)
 	Close() error
 }
@@ -300,6 +305,7 @@ func (s *Store) readOriginalTaskOrderAtEffect(ctx context.Context, held *authgra
 	}
 	expected.ResponseOriginal = bytes.Clone(frozen.ResponseOriginal)
 	expected.SourceBytes = bytes.Clone(frozen.SourceBytes)
+	expected.ResponseBinding = authgrant.Bind{Bytes: frozen.ResponseBinding.Bytes, SHA3_512: frozen.ResponseBinding.SHA3_512, SHA512: frozen.ResponseBinding.SHA512}
 	attestCalls := 0
 	var attestFailure error
 	attest := func(callbackContext context.Context, sourceBytes, payload []byte) (authgrant.Proof, error) {

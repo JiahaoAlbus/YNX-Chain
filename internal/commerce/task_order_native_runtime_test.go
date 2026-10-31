@@ -52,3 +52,12 @@ func TestShopTaskOrderSDKBootstrapUsesOriginalZeroSource(t *testing.T) {
 		}
 	}
 }
+
+func TestShopTaskOrderSDKResultBootstrapNeedsActualOriginalSource(t *testing.T) {
+	_, call, _ := publicShopSDKRequest(t)
+	_, _, _, response, _, _ := publicShopTaskFixture(t)
+	prepared, err := OpenOriginalShopTaskOrdersSDKResult(context.Background(), &publicShopOuterChannel{}, response, call.Binding.Target, call.Binding.Resources[0].Kind)
+	if prepared != nil || !errors.Is(err, native.ErrUnavailable) {
+		t.Fatal("registered result encoder admitted PUBLIC original Source", err)
+	}
+}

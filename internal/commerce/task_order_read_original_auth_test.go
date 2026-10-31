@@ -83,7 +83,7 @@ func (p *publicShopTaskResponse) AttestShopOrderReadResponse(_ context.Context, 
 	if p.verifier.source.closed != 0 || r.Operation.OriginalOperationID != "PUBLIC-original-op" || r.Operation.RemoteRef != "PUBLIC-remote-ref" {
 		return authgrant.Proof{}, ErrUnavailable
 	}
-	if len(r.ResponseOriginal) == 0 || taskOrderBytesBinding(r.SourceBytes) != r.Source.Binding {
+	if len(r.ResponseOriginal) == 0 || taskOrderBytesBinding(r.SourceBytes) != r.Source.Binding || taskOrderBytesBinding(r.ResponseOriginal) != r.ResponseBinding {
 		return authgrant.Proof{}, ErrUnavailable
 	}
 	p.verifier.retainedResponse = bytes.Clone(r.ResponseOriginal)

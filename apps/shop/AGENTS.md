@@ -14,6 +14,8 @@
 
 ## 当前具体授权：V5 P07
 
+当前适用根 AGENTS.md / YNX_EXECUTION_POLICY.md 顶部 `V5_DIRECT_SCOPE_20261031`：九产品及原 Core/Auth/SDK/Perf/LINK 继续；10/18 四产品限制保留作历史，未恢复非 V5 旧线。唯一总控与原 A 职责不变。直接子任务均已结束，不因本次适用性记录重启；后续实际拆分继承完整功能段、至少约10分钟实质工作要求，短修复由父线合并，不凑时或重跑旧绿。
+
 2026-10-31 批次 V5-BATCH-20261031-J0-P07 由本人明确恢复 Shop。唯一总控为 `01a19136-8605-7773-9d79-99c6f91c3a36`；旧总控保持暂停，不向旧入口派工或促其续跑。
 
 - 本 owner 写 `internal/commerce/**`、`apps/shop/**` 与本产品 Seller；Pay 网关/发票/退款权威由 P06 唯一 owner 写，不修改 `internal/paygateway/**` 或 `04-pay/internal/payproduct/**`。
