@@ -27,3 +27,16 @@ Affected tests cover the fixed routes and exact source order/Member/uint64 atom
 serialization, lost-response retention without retry, redirects, unusable
 responses, transport absence and invalid locators. These are PUBLIC product
 contract tests, not a live Source, Native signature or funds integration test.
+
+The current P06 intent successor supplies existing-operation recovery at
+`GET /v5/pay/invoice-intents/{originalOperation}` and
+`POST /v5/pay/invoice-intents/{originalOperation}/reconcile`. Shop consumes both
+through `ReadOriginalInvoiceIntent` / `ReconcileOriginalInvoiceIntent`, using
+the same stable canonical `npi_` ID. It sends no replacement product request,
+price, Member, nonce or signing review. SourceOrder/store/merchant authorization
+and the retained original bill remain with P06's real Source/read path. A lost
+response does not retry or create an intent. PREPARED/signed_not_submitted and
+ISSUED are not payment. No notification is allowed to alter Shop paid/refund or
+inventory state; original product refresh remains a read-only original-order
+lookup with actual authorization. These are raw transport results, never a
+replacement for P06's qualified financial reader or Core proof.

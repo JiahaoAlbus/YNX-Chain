@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -110,13 +111,13 @@ func (c *NativeShopPayClient) exchange(ctx context.Context, method, path string,
 	out.Uncertain = mutation
 	resp, err := c.client.Do(req) // exactly one dispatch, no retry or fallback
 	if err != nil {
-		return out, ErrUnavailable
+		return out, errors.Join(err, ErrUnavailable)
 	}
 	defer resp.Body.Close()
 	out.Status = resp.StatusCode
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, nativePayProductLimit+1))
 	if err != nil || len(raw) > nativePayProductLimit {
-		return out, ErrUnavailable
+		return out, errors.Join(err, ErrUnavailable)
 	}
 	// Retain original bounded bytes even when unusable. They must not be
 	// silently replaced by a later observation or reinterpreted as success.
@@ -204,4 +205,38 @@ func (c *NativeShopPayClient) Reconcile(ctx context.Context, merchant, invoice, 
 		return NativeShopPayExchange{}, ErrInvalidState
 	}
 	return c.exchange(ctx, "POST", path+"/operations/"+originalHash+"/reconcile", struct{}{}, false)
+}
+
+// P06's stable product operation is the original intent ID, not a later native
+// or ABCI hash. These are read/reconcile-only consumer routes. In particular,
+// PREPARED/signed_not_submitted lookup must not create, review, sign or send.
+func originalNativeShopPayIntentPath(operation string) (string, error) {
+	if len(operation) != 52 || !strings.HasPrefix(operation, "npi_") {
+		return "", ErrInvalidState
+	}
+	raw, err := hex.DecodeString(operation[4:])
+	if err != nil || len(raw) != 24 || hex.EncodeToString(raw) != operation[4:] {
+		return "", ErrInvalidState
+	}
+	return "/v5/pay/invoice-intents/" + operation, nil
+}
+
+// ReadOriginalInvoiceIntent carries the existing original operation only. The
+// original Pay Source checks sourceOrder/merchant/store/caller and returns its
+// retained request; Shop never reconstructs that approved bill from current
+// prices. Raw response DATA is not a paid/refunded acknowledgement.
+func (c *NativeShopPayClient) ReadOriginalInvoiceIntent(ctx context.Context, originalOperation string) (NativeShopPayExchange, error) {
+	path, err := originalNativeShopPayIntentPath(originalOperation)
+	if err != nil {
+		return NativeShopPayExchange{}, err
+	}
+	return c.exchange(ctx, "GET", path, nil, false)
+}
+
+func (c *NativeShopPayClient) ReconcileOriginalInvoiceIntent(ctx context.Context, originalOperation string) (NativeShopPayExchange, error) {
+	path, err := originalNativeShopPayIntentPath(originalOperation)
+	if err != nil {
+		return NativeShopPayExchange{}, err
+	}
+	return c.exchange(ctx, "POST", path+"/reconcile", struct{}{}, false)
 }

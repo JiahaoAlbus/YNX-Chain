@@ -88,13 +88,14 @@ func TestNativeShopPayOriginalProductContractRoutesAndMoney(t *testing.T) {
 
 func TestNativeShopPayLostMutationRetainsOriginalAndNeverRetries(t *testing.T) {
 	count := 0
+	cause := errors.New("PUBLIC response lost after original Member dispatch")
 	client, _ := NewOriginalNativeShopPayClient("https://pay.invalid", &http.Client{Transport: nativeShopPayTransport(func(r *http.Request) (*http.Response, error) {
 		count++
-		return nil, errors.New("PUBLIC response lost after original Member dispatch")
+		return nil, cause
 	})})
 	out, err := client.SubmitRefund(context.Background(), "merchant", "invoice", []byte("PUBLIC-original-Member"))
 	var original struct{ Member []byte }
-	if err == nil || count != 1 || !out.Uncertain || json.Unmarshal(out.Request, &original) != nil || string(original.Member) != "PUBLIC-original-Member" || !strings.HasSuffix(out.Path, "/refunds") {
+	if !errors.Is(err, cause) || count != 1 || !out.Uncertain || json.Unmarshal(out.Request, &original) != nil || string(original.Member) != "PUBLIC-original-Member" || !strings.HasSuffix(out.Path, "/refunds") {
 		t.Fatal("UNKNOWN lost original request or retried", out, err, count)
 	}
 }
@@ -160,5 +161,44 @@ func TestNativeShopPayMissingTransportAndAlternateLocatorsFailBeforeDispatch(t *
 	}
 	if count != 0 {
 		t.Fatal("invalid product data reached transport", count)
+	}
+}
+
+func TestNativeShopPayOriginalIntentRecoveryNeverCreatesOrResends(t *testing.T) {
+	var paths []string
+	op := "npi_" + strings.Repeat("a", 48)
+	client, err := NewOriginalNativeShopPayClient("https://pay.invalid", &http.Client{Transport: nativeShopPayTransport(func(r *http.Request) (*http.Response, error) {
+		paths = append(paths, r.Method+" "+r.URL.Path)
+		body, _ := io.ReadAll(r.Body)
+		if r.Method == "GET" && len(body) != 0 || r.Method == "POST" && !bytes.Equal(body, []byte(`{}`)) {
+			t.Fatal("recovery reconstructed a bill or Member", string(body))
+		}
+		return nativeShopPayResponse(200, `{"intentId":"`+op+`","originalOperation":"`+op+`","state":"PREPARED","phase":"signed_not_submitted","request":{"sourceOrder":"original-order"}}`), nil
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	read, err := client.ReadOriginalInvoiceIntent(context.Background(), op)
+	if err != nil || !bytes.Contains(read.Response, []byte(`"phase":"signed_not_submitted"`)) {
+		t.Fatal(read, err)
+	}
+	recovered, err := client.ReconcileOriginalInvoiceIntent(context.Background(), op)
+	if err != nil || !bytes.Equal(read.Response, recovered.Response) {
+		t.Fatal(recovered, err)
+	}
+	if strings.Join(paths, "\n") != "GET /v5/pay/invoice-intents/"+op+"\nPOST /v5/pay/invoice-intents/"+op+"/reconcile" {
+		t.Fatal("original lookup changed operation or dispatched a producer", paths)
+	}
+	before := len(paths)
+	for _, invalid := range []string{"", "npi_" + strings.Repeat("A", 48), "npi_" + strings.Repeat("a", 47), "npi_" + strings.Repeat("a", 48) + "/merchant-member", strings.Repeat("a", 64)} {
+		if _, err := client.ReadOriginalInvoiceIntent(context.Background(), invalid); err == nil {
+			t.Fatal("non-original product op accepted", invalid)
+		}
+		if _, err := client.ReconcileOriginalInvoiceIntent(context.Background(), invalid); err == nil {
+			t.Fatal("non-original reconcile op accepted", invalid)
+		}
+	}
+	if len(paths) != before {
+		t.Fatal("invalid original locator reached dispatch")
 	}
 }
