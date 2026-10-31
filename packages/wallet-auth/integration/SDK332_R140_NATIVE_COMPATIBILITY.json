@@ -2857,16 +2857,35 @@
       "commit": "928f49a2ad6bc7d087110a550317712ccf7e651d",
       "tree": "3289dc4e59ade770dee52522bdb7511805c10d46",
       "header": {
-        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/pq-storage-f8-20261031/cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h",
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/deployment_manifest_v2.h",
         "bytes": 4243,
         "sha256": "502a86840c3029878cdbfc7531b4dd64a58179e630e861842b9c104433921781"
       },
       "archive": {
-        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/deployment-manifest-v2-affected-ivmkqrw1/libynx_artifact_release.a",
-        "bytes": 11475768,
-        "sha256": "3183c845ad48080f887cc8949520a64c9f797c83af2af7baa6cdaeafb28ba92a"
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/libynx_artifact_release.a",
+        "bytes": 11358000,
+        "sha256": "7eafad13541e632f8560dd578cc409bea319c2b312135d497566cca2804057c0"
       },
-      "classification": "DEV_ARCHIVE_NOT_FORMAL_NORMALCI"
+      "classification": "FORMAL_MACOS_ARM64_NATIVE_COMPONENT",
+      "source": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/SOURCE.json",
+        "bytes": 29632,
+        "sha256": "54aba58a5de93d79a7a94207c3068fc9c8bbd30934f38026e4e6f539d4b2fe4c"
+      },
+      "originalArchiveSource": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/core-e11-native-928-20261031-r1/macos-arm64/delivery/ORIGINAL-ARCHIVE-SOURCE.json",
+        "bytes": 31516,
+        "sha256": "c68c05d110aab6261423926b643d6af74ef39a67d2b9d667c25bea26073f72fe"
+      },
+      "officialArtifact": {
+        "id": 13044013347,
+        "runId": 41204973224,
+        "bytes": 4018903,
+        "sha256": "f0da6c472948a0626ab03aa1af4a7e1e6ca725d2d2b40e5fb4ac617cb5678dd4"
+      },
+      "wholeResourceRunSuccess": false,
+      "SourceAdmission": false,
+      "RootAdmission": false
     },
     "newNativeInputs": [
       {
@@ -2910,6 +2929,22 @@
     "NativeImplemented": true,
     "SourceAdmission": false,
     "normalCIRelease": false,
-    "installed": false
+    "installed": false,
+    "previousDevCoreTuple": {
+      "commit": "928f49a2ad6bc7d087110a550317712ccf7e651d",
+      "tree": "3289dc4e59ade770dee52522bdb7511805c10d46",
+      "header": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/pq-storage-f8-20261031/cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h",
+        "bytes": 4243,
+        "sha256": "502a86840c3029878cdbfc7531b4dd64a58179e630e861842b9c104433921781"
+      },
+      "archive": {
+        "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/protocol/deployment-manifest-v2-affected-ivmkqrw1/libynx_artifact_release.a",
+        "bytes": 11475768,
+        "sha256": "3183c845ad48080f887cc8949520a64c9f797c83af2af7baa6cdaeafb28ba92a"
+      },
+      "classification": "DEV_ARCHIVE_NOT_FORMAL_NORMALCI"
+    },
+    "normalNativeComponent": true
   }
 }
