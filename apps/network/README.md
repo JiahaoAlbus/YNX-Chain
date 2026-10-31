@@ -129,6 +129,36 @@ operations. It contains no guessed Wallet transport: production submission is
 `UNSUPPORTED` until the original Wallet publisher is supplied. Registry voting
 reports are not native PQ votes or independently proved funds state.
 
+## Independent local QA client
+
+The `0.3-qa` PWA pairs with this exact local helper. Its protected POST APIs
+read the configured node (`/api/node-report`), collect a transaction report and
+invoke the pinned original verifier (`/api/client-receipt`), and expose a
+read-only native self-connection diagnostic (`/api/native-status`). The node
+block report uses the original gateway's `/status.height` and numeric
+`/blocks/{height}` route. Source data and collector availability remain
+`RPC_ONLY`; independent proof validation determines a separate proof level.
+
+`/api/receipts` lists local immutable receipt IDs; `/api/receipt` with `{id}`
+returns the original saved view, RPC report and collection metadata with
+`historical:true, authority:false`. Receipt IDs bind the complete compact
+record, including observation time and the independent configuration digest.
+The private receipt store uses an exclusive kernel lock and bounded,
+integrity-protected atomic snapshots. Restart preserves records and requires a
+fresh pairing code. Historical receipt views never become current proof,
+funds state, consent, replay permission or application authority.
+
+The HTTP native status shows the helper's actual kernel-authenticated native
+self-connection. It explicitly reports browser identity as unverified and
+does not expose management, Wallet signing or permission creation. A ticket
+permits only receipt read/verify, node read and native status. Revocation and
+expiry fence both response publication and durable receipt creation.
+
+QA bundles and version-specific data directories are independent of installed
+applications. Formal signing, installation and public release remain with the
+original release owner. Browser acceptance is a separate gate for each exact
+candidate, scheduled through the controller's shared GUI window.
+
 ## Focused verification and existing CI
 
 ```sh

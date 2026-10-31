@@ -35,7 +35,7 @@ import (
 )
 
 const ticketLife = 15 * time.Minute
-const serviceVersion = "V5-NETWORK-SERVICE/0.2-dev"
+const serviceVersion = "V5-NETWORK-SERVICE/0.3-qa"
 
 var sourceRevision = "unrecorded-development-source"
 
@@ -51,6 +51,8 @@ type helper struct {
 	anchor                                         *receipt.TrustAnchor
 	pqCommand                                      *receipt.PQCommandVerifier
 	history                                        *receipt.History
+	receipts                                       *receipt.ReceiptStore
+	ipcDirectory                                   string
 	historyContextPin                              string
 	resourceState                                  string
 	rpc                                            string
@@ -160,7 +162,7 @@ func (h *helper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.ticket = randomToken()
 		h.ticketUntil = h.now().Add(ticketLife)
 		h.ticketContext, h.ticketCancel = context.WithDeadline(context.Background(), h.ticketUntil)
-		sendJSON(w, 200, map[string]any{"ticket": h.ticket, "expires": h.ticketUntil.UTC().Format(time.RFC3339), "origin": h.origin, "scope": []string{"receipt.read", "receipt.verify"}})
+		sendJSON(w, 200, map[string]any{"ticket": h.ticket, "expires": h.ticketUntil.UTC().Format(time.RFC3339), "origin": h.origin, "scope": []string{"receipt.read", "receipt.verify", "node.read", "native.status"}})
 	default:
 		ctx, release, ok := h.authorizedContext(r)
 		if !ok {
@@ -184,6 +186,16 @@ func (h *helper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.lookup(w, r)
 		case "/api/lookup-proof":
 			h.lookupProof(w, r)
+		case "/api/node-report":
+			h.nodeReport(w, r)
+		case "/api/client-receipt":
+			h.clientReceipt(w, r)
+		case "/api/receipts":
+			h.listReceipts(w, r)
+		case "/api/receipt":
+			h.getReceipt(w, r)
+		case "/api/native-status":
+			h.nativeStatus(w, r)
 		case "/api/history":
 			if h.history == nil {
 				denied(w, 503, "HISTORY_NOT_CONFIGURED")
@@ -217,11 +229,26 @@ func (h *helper) sendAuthorizedJSON(w http.ResponseWriter, r *http.Request, valu
 		denied(w, 401, "PAIRING_REQUIRED")
 		return
 	}
+	if record, ok := value.(receipt.ClientReceipt); ok {
+		var err error
+		record, err = h.receipts.Save(record)
+		if err != nil {
+			denied(w, 503, "RECEIPT_WRITE_FAILED")
+			return
+		}
+		value = record
+	}
 	if view, ok := receiptObservation(value); ok && h.history != nil {
 		if err := h.history.Observe(view, h.historyContextPin); err != nil {
 			denied(w, 503, "HISTORY_WRITE_FAILED")
 			return
 		}
+	}
+	// A durable write may straddle expiry. Retain that historical computation,
+	// but never publish it as a current response under an expired ticket.
+	if r.Context().Err() != nil || !h.now().Before(h.ticketUntil) || h.ticketContext.Err() != nil {
+		denied(w, 401, "PAIRING_REQUIRED")
+		return
 	}
 	sendJSON(w, 200, value)
 }
@@ -232,6 +259,11 @@ func receiptObservation(value any) (receipt.ProofView, bool) {
 		return v, true
 	case receipt.PQProofView:
 		return v.ProofView, true
+	case receipt.ClientReceipt:
+		var view receipt.ProofView
+		if json.Unmarshal(v.View, &view) == nil {
+			return view, true
+		}
 	case map[string]any:
 		return receiptObservation(v["view"])
 	}
@@ -393,6 +425,11 @@ func run() (runErr error) {
 		return fmt.Errorf("private Network history: %w", err)
 	}
 	defer func() { runErr = errors.Join(runErr, history.Close()) }()
+	receipts, err := receipt.OpenReceiptStore(filepath.Join(*dataDir, "client-receipts.json"))
+	if err != nil {
+		return fmt.Errorf("private Network receipt store: %w", err)
+	}
+	defer func() { runErr = errors.Join(runErr, receipts.Close()) }()
 	resource, err := contribution.NewDisabled(filepath.Join(*dataDir, "resource-journal.json"))
 	if err != nil {
 		log.Printf("Local resource capability unavailable; existing journal preserved: %v", err)
@@ -467,12 +504,14 @@ func run() (runErr error) {
 	h := newHelper(origin, current.Uid, code, *rpc, anchor)
 	h.pqCommand = pqVerifier
 	h.history = history
+	h.receipts = receipts
+	h.ipcDirectory = ipcDir
 	if resource == nil {
 		h.resourceState = "unavailable"
 	}
 	configDigest := sha256.Sum256([]byte(*anchorPin + ":" + *pqContextPin + ":" + *pqExecutablePin))
 	h.historyContextPin = hex.EncodeToString(configDigest[:])
-	fmt.Printf("YNX Network local helper\nOpen: %s\nOne-use pairing code: %s\nScope: receipt read/verify only; expires after 15 minutes. Revoke in the app. Restart helper to pair again.\n", origin, code)
+	fmt.Printf("YNX Network local helper\nOpen: %s\nOne-use pairing code: %s\nScope: receipt read/verify, node read, native status; expires after 15 minutes. Revoke in the app. Restart helper to pair again.\n", origin, code)
 	server := &http.Server{Handler: h, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 45 * time.Second, MaxHeaderBytes: 16 << 10}
 	shutdownDone := make(chan struct{})
 	var shutdownErr error
