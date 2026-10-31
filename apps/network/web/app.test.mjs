@@ -98,3 +98,23 @@ test('T-P09 back-forward restored page discards active proof and re-handshakes b
  const e=environment();await settle();const lookup=e.emit('lookup-form','submit');e.take('/api/client-receipt').resolve(record());await lookup;assert.equal(e.node('level-tag').textContent,'INCLUSION_VERIFIED');
  e.pageshow();assert.equal(e.node('evidence-meta').hidden,true);assert.equal(e.node('lookup-button').disabled,true);await settle();assert.equal(e.node('lookup-button').disabled,false);assert.equal(e.node('level-tag').textContent,'尚未查询');assert.equal(e.rows.some(row=>row.classList.contains('reached')),false);
 });
+
+test('T-P09 pair background completion never overwrites a newer receipt notice',async(t)=>{
+ for(const mode of ['historical','new-lookup'])await t.test(mode,async()=>{
+  const e=environment({ticket:false,autoConnected:false});e.node('pair-code').value='one-use-code';
+  const pairing=e.emit('pair-form','submit');e.take('/api/pair/challenge').resolve({challenge:'challenge'});await settle();e.take('/api/pair').resolve({ticket:'fresh-ticket'});await settle();
+  const slowNode=e.take('/api/node-report');e.take('/api/native-status').resolve(native);e.take('/api/receipts').resolve(list([{receiptId:R1,txId:A,observedAt:'2026-10-31T10:00:00Z',reportedLevel:'RPC_ONLY'}]));await settle();
+  assert.equal(e.node('lookup-button').disabled,false);
+  let lookup;
+  if(mode==='historical'){
+   const open=e.node('receipt-list').children[0].emit('click');e.take('/api/receipt').resolve(historical(record(A,'RPC_ONLY')));await open;assert.match(e.node('notice').textContent,/历史/);
+  }else{
+   lookup=e.emit('lookup-form','submit');assert.match(e.node('notice').textContent,/正在读取/);
+  }
+  const currentNotice=e.node('notice').textContent;
+  slowNode.resolve({classification:'RPC_ONLY',source:'slow-source',reports:{status:{status:'unavailable'},latestBlock:{status:'unavailable'},validators:{status:'unavailable'}}});await pairing;
+  assert.equal(e.node('notice').textContent,currentNotice,'old pair completion replaced the current receipt notice');
+  if(mode==='historical'){assert.match(e.node('level-tag').textContent,/历史记录/);assert.equal(e.rows.some(row=>row.classList.contains('reached')),false);}
+  else{e.take('/api/client-receipt').resolve(record(A,'RPC_ONLY'));await settle();e.take('/api/receipts').resolve(list([]));await lookup;}
+ });
+});

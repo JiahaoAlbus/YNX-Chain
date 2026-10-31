@@ -222,7 +222,7 @@ async function openHistorical(id, expectedTx) {
   } catch (error) { if (current(op)) { invalidateEvidence(); notice('历史回执未取得：' + error.message, true); } }
   finally { finish(op); }
 }
-async function status(refresh = true) {
+async function status(refresh = true, announcePair = false) {
   const op = begin('status');
   try {
     const value = await api('/api/status', {}, op); if (!current(op)) return false;
@@ -232,6 +232,7 @@ async function status(refresh = true) {
     text('anchor-summary', value.pqIndependentTrustConfigured === true ? '本机已配置独立 PQ 验证入口；每笔仍须实际取回证据并通过核验。' : value.anchorConfigured && anchor ? '独立检查点 · ' + anchor.source + ' · 高度 ' + anchor.height + ' · 信任期至 ' + anchor.trustUntil : '独立上下文：未配置。将读取原证明来源，缺独立 Source 时保持 RPC_ONLY。');
     text('pair-state', '已配对本机 helper · 网页只读查证权限 · 浏览器 OS 身份未验证' + (value.version ? ' · ' + value.version : ''));
     const expiry = sessionStorage.getItem('ynxNetworkTicketExpires'); if (expiry) scheduleExpiry(expiry);
+    if (announcePair) notice('配对完成。节点来源、原生自检和本机历史分别读取；查询交易将取回实际证明并显示本次层级。');
     if (refresh) await Promise.allSettled([nodeReport(), nativeStatus(), refreshHistory()]);
     return current(op) && paired;
   } catch (error) {
@@ -250,7 +251,7 @@ $('pair-form').addEventListener('submit', async event => {
     if (typeof result.ticket !== 'string' || !result.ticket || result.ticket.length > 512) throw new Error('INVALID_PAIRING_TICKET');
     $('pair-code').value = ''; ticket = result.ticket; sessionStorage.setItem('ynxNetworkTicket', ticket);
     if (typeof result.expires === 'string') sessionStorage.setItem('ynxNetworkTicketExpires', result.expires);
-    finish(op); if (await status()) notice('配对完成。节点来源、原生自检和本机历史分别读取；查询交易将取回实际证明并显示本次层级。');
+    finish(op); await status(true, true);
   } catch (error) { if (current(op)) notice('配对未完成：' + error.message, true); }
   finally { finish(op); $('pair-button').disabled = false; }
 });
