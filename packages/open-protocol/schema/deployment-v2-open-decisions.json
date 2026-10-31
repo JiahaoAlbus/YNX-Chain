@@ -1,0 +1,56 @@
+{
+  "status": "INITIAL_FIRST_CAUSE_PRESERVED_RESOLVED_BY_PARENT",
+  "known": {
+    "oldManifestKeys": [
+      "projectId",
+      "version",
+      "contentDigest",
+      "publishPurpose",
+      "targetEnvironment",
+      "byteSize"
+    ],
+    "oldContentDigest": "SHA-256",
+    "oldPublicationPurpose": "ARTIFACT-RELEASE",
+    "logicalManifestKeys": [
+      "project",
+      "version",
+      "artifact",
+      "env",
+      "publisher",
+      "binding"
+    ],
+    "logicalFileObjKeys": [
+      "ref",
+      "content",
+      "size",
+      "mime",
+      "objectKey"
+    ],
+    "logicalRefKeys": [
+      "realm",
+      "tenant",
+      "kind",
+      "id",
+      "rev"
+    ],
+    "bindWire": "E(U64BE(actualByteLength),SHA3-512(actualBytes)[64],SHA-512(actualBytes)[64])"
+  },
+  "requiredDecisions": [
+    "Independent V2 domain/version and exact field count/order",
+    "V2 ID/fullRef compatibility physical mapping and exact allowed kind bindings",
+    "Which actual original bytes source Bind covers",
+    "Full binding preimage and exclusion rule to avoid self-reference",
+    "Issuer and subject identities, epoch fields, and their structural equality rules",
+    "Deployment generation/slot revision/rollback representation and DATA relations",
+    "Normal constructor/decoder call ports that Auth and Cloud will consume"
+  ],
+  "authority": {
+    "sourceAdmission": false,
+    "signing": false,
+    "registered": false,
+    "current": false,
+    "deployment": false,
+    "rollback": false
+  },
+  "resolution": "All listed physical DATA decisions resolved by parent sole OPEN 2026-10-31; exact implemented new profile in deployment-v2.json. Source/signing/effects remain unavailable."
+}

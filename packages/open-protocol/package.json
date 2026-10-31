@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/open-protocol",
-  "version": "0.0.0-dev.3",
+  "version": "0.0.0-dev.4",
   "private": true,
   "type": "module",
   "exports": {
@@ -24,6 +24,12 @@
       "types": "./src/bound-grant.d.ts",
       "browser": null,
       "node": "./src/bound-grant.js",
+      "default": null
+    },
+    "./deployment-v2": {
+      "types": "./src/deployment-v2.d.ts",
+      "browser": null,
+      "node": "./src/deployment-v2.js",
       "default": null
     }
   },
