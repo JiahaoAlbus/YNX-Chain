@@ -12,8 +12,8 @@ const actionKeys = ['chainId','nativeChainId','owner','nonce','fee','kind','payl
 const termsKeys = ['invoiceID','sessionID','recipient','payer','assetID','unitVersion','feeRule','keyEpoch','revision','amount','maxFee','expiresAt'];
 const payloadKeys = {
   invoice_terms:termsKeys,
-  invoice_settle:['merchant','invoiceID','termsHash','amount'],
-  invoice_refund:['invoiceID','refundID','termsHash','settlementHash','amount'],
+  invoice_settle:['merchant','invoiceID','termsHashHex','amount'],
+  invoice_refund:['invoiceID','refundID','termsHashHex','settlementHashHex','amount'],
 };
 function data(value, fields) {
   if (!value || typeof value !== 'object' || types.isProxy(value) || Object.getPrototypeOf(value) !== Object.prototype) invalid();
@@ -39,9 +39,9 @@ function actionData(value) {
     if (p.assetID !== 'YNXT' || p.unitVersion !== '1' || p.feeRule !== 'native-transfer-fee-one/v1') invalid();
     for (const k of ['keyEpoch','revision','maxFee','expiresAt']) uint(p[k]);
   } else {
-    hash(p.termsHash);
+    hash(p.termsHashHex);
     if (a.kind === 'invoice_settle') address(p.merchant);
-    else {id(p.refundID); hash(p.settlementHash);}
+    else {id(p.refundID); hash(p.settlementHashHex);}
   }
   return Object.freeze({...a, payload:Object.freeze(p)});
 }
@@ -60,7 +60,7 @@ export function projectPQInvoiceReviewData(input, references = null) {
     const r = data(references, ['terms','termsDigest','settlement']);
     terms = actionData(r.terms); termsHash = hash(r.termsDigest);
     if (terms.kind !== 'invoice_terms' || terms.chainId !== a.chainId || terms.nativeChainId !== a.nativeChainId ||
-        terms.payload.invoiceID !== p.invoiceID || termsHash !== p.termsHash ||
+        terms.payload.invoiceID !== p.invoiceID || termsHash !== p.termsHashHex ||
         terms.owner !== (a.kind === 'invoice_settle' ? p.merchant : a.owner)) mismatch();
     if (a.kind === 'invoice_settle') {
       if (r.settlement !== null || p.amount !== terms.payload.amount ||
@@ -69,10 +69,10 @@ export function projectPQInvoiceReviewData(input, references = null) {
     } else {
       const s = data(r.settlement, ['action','memberHash']);
       settlement = actionData(s.action);
-      if (typeof s.memberHash !== 'string' || !/^0x[0-9a-f]{64}$/.test(s.memberHash) || s.memberHash !== '0x' + p.settlementHash ||
+      if (typeof s.memberHash !== 'string' || !/^0x[0-9a-f]{64}$/.test(s.memberHash) || s.memberHash !== '0x' + p.settlementHashHex ||
           settlement.kind !== 'invoice_settle' || settlement.chainId !== a.chainId || settlement.nativeChainId !== a.nativeChainId ||
           settlement.payload.merchant !== a.owner || settlement.payload.invoiceID !== p.invoiceID ||
-          settlement.payload.termsHash !== termsHash || settlement.payload.amount !== terms.payload.amount ||
+          settlement.payload.termsHashHex !== termsHash || settlement.payload.amount !== terms.payload.amount ||
           terms.payload.payer !== '' && terms.payload.payer !== settlement.owner ||
           settlement.owner === terms.owner || settlement.owner === terms.payload.recipient ||
           BigInt(p.amount) > BigInt(settlement.payload.amount)) mismatch();
@@ -89,7 +89,7 @@ export function projectPQInvoiceReviewData(input, references = null) {
     invoiceID:p.invoiceID,termsHash,terms:Object.freeze({...t}),
     actionPayload:p,amount:units(p.amount),fee:units(a.fee),
     principalMoves:a.kind !== 'invoice_terms',refundID:refund ? p.refundID : null,
-    settlementNativeHash:refund ? '0x' + p.settlementHash : null,
+    settlementNativeHash:refund ? '0x' + p.settlementHashHex : null,
     expiryRule:'execution-height-inclusive',purpose:'TX-BATCH',memberCount:1,memberIndex:0,
     currentLedgerChecksRequired:true,permissionGranted:false,dataOnly:true,
     nativeAdmission:false,submitted:false,consensusFinality:false,

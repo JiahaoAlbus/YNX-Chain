@@ -69,7 +69,9 @@ export const DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS=Object.freeze([
  }
 ].map(Object.freeze));
 export const DEVICE_V4_PROVISIONING_PQ_NODE=Object.freeze({"path":"apps/wallet-desktop/native/original-auth-identity-node.mm","bytes":63187,"sha256":"8de60dbbdf3f4b7730d86bfd4ef0e0c59b7ef22428a9fea0935e062d277a33ec"});
+export const DEVICE_V4_QUERY_PQ_NODE=Object.freeze({path:'apps/wallet-desktop/native/original-auth-identity-node.mm',bytes:63557,sha256:'ae7f74dd7c810f6cc2074abf458a63e41f81f64b127007b2b33726481f832453'});
 export const DEVICE_V4_PROVISIONING_PQ_ROLE=Object.freeze({kind:'YNX_WALLET_DEVICE_V4_PROVISIONING_PQ_SINGLE_ARCHIVE/v1',protocol:Object.freeze({commit:'ecdf8073e9f2b03bbb8e8b8d6e9d1bf28673b6a3',tree:'bb7459b9486669d8adb44a0127812babdc848b37',arch:'arm64',platform:'darwin'}),inputs:DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS,callerNode:DEVICE_V4_PROVISIONING_PQ_NODE,Source:false,Root:false,approval:false});
+export const DEVICE_V4_QUERY_PQ_ROLE=Object.freeze({...DEVICE_V4_PROVISIONING_PQ_ROLE,kind:'YNX_WALLET_DEVICE_V4_QUERY_PQ_SINGLE_ARCHIVE/v1',callerNode:DEVICE_V4_QUERY_PQ_NODE});
 export function assertWalletProvisioningNativeExports(text){assertWalletPendingNativeExports(text);if(!text.split(/\r?\n/).some(line=>/\b[Tt]\s+_YNXProductSessionDeviceKeypairGenerateV4$/.test(line.trim())))fail();}
 export function isDeviceV4PQSelection(names){return names.includes(DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS[2].path)||names.includes(DEVICE_V4_PQ_PROTOCOL_INPUTS[2].path)||names.includes(DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS[1].path);}
 export function assertWalletPendingNativeExports(text){
@@ -79,6 +81,7 @@ export function assertWalletPendingNativeExports(text){
 }
 export function deviceV4PQSupplierInputs(pins){
  const row=pins?.find(p=>p.path===DEVICE_V4_PQ_NODE.path);
+ if(pins?.length===145){if(row?.bytes!==84296||row?.sha256!=='413bffda85672179182a7a1018cceee6a60a81d9042e5f85ef19a46a7d937d47')fail();return pins.map(p=>p.path===DEVICE_V4_PQ_NODE.path?DEVICE_V4_QUERY_PQ_NODE:p);}
  if(pins?.length===137){if(row?.bytes!==83926||row?.sha256!=="a649b4c8c10f3e57c5869ad11842b47c0653213cc7017bebfbb37d7279720af9")fail();return pins.map(p=>p.path===DEVICE_V4_PQ_NODE.path?DEVICE_V4_PROVISIONING_PQ_NODE:p);}
  if(pins?.length===127){
   if(row?.bytes!==83521||row?.sha256!=='58693eaa300b07dfd261cba29333f7017556aacd4970fa17cd9df53e33950acc')fail();
@@ -98,7 +101,8 @@ export function deviceV4PQWalletInputs(inputs,pending=false,provisioning=false){
 /** One fresh combined recipe, not two linked addons/Go runtimes. The legacy
  * caller composition remains DATA for exact receipt replay only; none of its
  * commands execute before this plan is returned. Old roles are not changed. */
-export function composeDeviceV4PQCommands(baseCommands,repo,headers,pending=false,provisioning=false){
+export function composeDeviceV4PQCommands(baseCommands,repo,headers,pending=false,provisioning=false,query=false){
+ if(typeof query!=='boolean'||query&&!provisioning)fail();
  if(typeof provisioning!=='boolean'||provisioning&&!pending)fail();
  if(typeof pending!=='boolean')fail();
  if(typeof repo!=='string'||!path.isAbsolute(repo)||path.normalize(repo)!==repo||typeof headers!=='string'||!path.isAbsolute(headers)||path.normalize(headers)!==headers)fail();
@@ -112,11 +116,11 @@ export function composeDeviceV4PQCommands(baseCommands,repo,headers,pending=fals
  const legacy=composePQNativeCommands(baseCommands,repo),wallet=path.join(repo,'apps/wallet-desktop/native');
  const oldArchive=path.join(repo,PQ_NATIVE_ARCHIVE.path),archive=path.join(repo,protocolInputs[0].path),oldLink=legacy.commands.at(-1);
  if(oldLink.tool!=='/usr/bin/xcrun'||oldLink.argv.filter(p=>p.endsWith('.a')).join()!==oldArchive)fail();
- const flags=['-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE','-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_HTTP_PRODUCER_STAGE',...(pending?['-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_PENDING_STAGE']:[]),...(provisioning?['-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_PROVISIONING_STAGE']:[])];
+ const flags=['-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE','-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_HTTP_PRODUCER_STAGE',...(pending?['-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_PENDING_STAGE']:[]),...(provisioning?['-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_PROVISIONING_STAGE']:[]),...(query?['-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_QUERY_STAGE']:[])];
  if(baseCommands.some(c=>c.argv.some(a=>flags.includes(a)||a.includes('PUBLIC_TEST')||a.startsWith('-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_'))))fail();
  const cpp=legacy.commands.filter(c=>c.tool==='/usr/bin/clang++');
  if(cpp.length!==18||legacy.commands.length!==20)fail();
- const extraSources=['original-product-device-v4-factory.mm','original-product-device-v4-slot.mm',...(pending?['original-product-device-v4-pending-custody.mm','original-product-device-v4-typed-producer.mm']:[]),...(provisioning?['original-product-device-v4-provisioning.mm','original-product-device-v4-association-keychain.mm','original-product-device-v4-core-creator.mm']:[])].map(name=>path.join(wallet,name)),e5Source=path.join(wallet,'product-device-v4-e5.c');
+ const extraSources=['original-product-device-v4-factory.mm','original-product-device-v4-slot.mm',...(pending?['original-product-device-v4-pending-custody.mm','original-product-device-v4-typed-producer.mm']:[]),...(provisioning?['original-product-device-v4-provisioning.mm','original-product-device-v4-association-keychain.mm','original-product-device-v4-core-creator.mm']:[]),...(query?['original-product-device-v4-query-reader.mm']:[])].map(name=>path.join(wallet,name)),e5Source=path.join(wallet,'product-device-v4-e5.c');
  for(const file of [...extraSources,e5Source])regular(file);
  const e5Object=path.join(wallet,'original-product-device-v4-e5.arm64.o'),e5={tool:'/usr/bin/clang',argv:['-std=c11','-mmacosx-version-min=13.0','-arch','arm64','-I'+wallet,'-c',e5Source,'-o',e5Object]},extraObjects=extraSources.map((_,i)=>path.join(repo,'apps/wallet-desktop/native/pq-transaction/device-v4-'+i+'.o'));
  const decorate=command=>({tool:command.tool,argv:[...flags,...command.argv]});
@@ -125,12 +129,12 @@ export function composeDeviceV4PQCommands(baseCommands,repo,headers,pending=fals
  const link={tool:oldLink.tool,argv:oldLink.argv.flatMap(a=>a===oldArchive?[e5Object,...extraObjects,archive]:[a])};
  if(link.argv.filter(p=>p.endsWith('.a')).join()!==archive||link.argv.includes(oldArchive))fail();
  const commands=[e5,...legacy.commands.slice(0,-1).map(c=>c.tool==='/usr/bin/clang++'?decorate(c):c),...extra,link];
- return {commands,intermediateOutputs:[e5Object,...legacy.intermediateOutputs,...extraObjects],deviceV4PQRole:provisioning?DEVICE_V4_PROVISIONING_PQ_ROLE:pending?DEVICE_V4_PENDING_PQ_ROLE:DEVICE_V4_PQ_ROLE,pqNativeBaseCommands:baseCommands,protocolInputs,sources:[...extraSources,e5Source],nativeGrant:false,approval:false};
+ return {commands,intermediateOutputs:[e5Object,...legacy.intermediateOutputs,...extraObjects],deviceV4PQRole:query?DEVICE_V4_QUERY_PQ_ROLE:provisioning?DEVICE_V4_PROVISIONING_PQ_ROLE:pending?DEVICE_V4_PENDING_PQ_ROLE:DEVICE_V4_PQ_ROLE,pqNativeBaseCommands:baseCommands,protocolInputs,sources:[...extraSources,e5Source],nativeGrant:false,approval:false};
 }
 export function deviceV4PQReceiptCommands(receipt){
- const provisioning=receipt.deviceV4PQRole?.kind===DEVICE_V4_PROVISIONING_PQ_ROLE.kind,pending=provisioning||receipt.deviceV4PQRole?.kind===DEVICE_V4_PENDING_PQ_ROLE.kind;
- if(JSON.stringify(receipt.deviceV4PQRole)!==JSON.stringify(provisioning?DEVICE_V4_PROVISIONING_PQ_ROLE:pending?DEVICE_V4_PENDING_PQ_ROLE:DEVICE_V4_PQ_ROLE)||JSON.stringify(receipt.architectures)!==JSON.stringify(['arm64'])||!Array.isArray(receipt.pqNativeBaseCommands))fail();
- const actual=composeDeviceV4PQCommands(receipt.pqNativeBaseCommands,receipt.sourceRoot,receipt.headerRoot,pending,provisioning);
+ const query=receipt.deviceV4PQRole?.kind===DEVICE_V4_QUERY_PQ_ROLE.kind,provisioning=query||receipt.deviceV4PQRole?.kind===DEVICE_V4_PROVISIONING_PQ_ROLE.kind,pending=provisioning||receipt.deviceV4PQRole?.kind===DEVICE_V4_PENDING_PQ_ROLE.kind;
+ if(JSON.stringify(receipt.deviceV4PQRole)!==JSON.stringify(query?DEVICE_V4_QUERY_PQ_ROLE:provisioning?DEVICE_V4_PROVISIONING_PQ_ROLE:pending?DEVICE_V4_PENDING_PQ_ROLE:DEVICE_V4_PQ_ROLE)||JSON.stringify(receipt.architectures)!==JSON.stringify(['arm64'])||!Array.isArray(receipt.pqNativeBaseCommands))fail();
+ const actual=composeDeviceV4PQCommands(receipt.pqNativeBaseCommands,receipt.sourceRoot,receipt.headerRoot,pending,provisioning,query);
  if(JSON.stringify(receipt.commands)!==JSON.stringify(actual.commands))fail();
  return receipt.pqNativeBaseCommands;
 }

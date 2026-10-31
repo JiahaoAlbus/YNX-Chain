@@ -19,8 +19,6 @@ const envelope = {chainId:core.envelope.networkHex,nativeChainId:core.envelope.n
   owner:merchant,nonce:core.envelope.nonce,fee:'1'};
 function vector(name) {
   const v = core.vectors.find(row => row.name === name), payload = {...v.input};
-  if (payload.termsHashHex) {payload.termsHash = payload.termsHashHex; delete payload.termsHashHex;}
-  if (payload.settlementHashHex) {payload.settlementHash = payload.settlementHashHex; delete payload.settlementHashHex;}
   return {...envelope,kind:v.kind,payload};
 }
 function inputs(open = false) {
@@ -84,7 +82,7 @@ test('all terms, network, fee, amount and reference substitutions refuse instead
   const edits = [
     f => {f.settle.chainId = '77'.repeat(32);}, f => {f.settle.nativeChainId = '6423';},
     f => {f.settle.payload.merchant = payer;}, f => {f.settle.payload.invoiceID = 'another-invoice';},
-    f => {f.settle.payload.termsHash = '33'.repeat(32);}, f => {f.settle.payload.amount = '1';},
+    f => {f.settle.payload.termsHashHex = '33'.repeat(32);}, f => {f.settle.payload.amount = '1';},
     f => {f.settle.owner = merchant;}, f => {f.settle.owner = f.terms.payload.recipient;},
     f => {f.terms.payload.payer = merchant;}, f => {f.settle.fee = '2';},
   ];
@@ -99,7 +97,7 @@ test('refund rejects missing/foreign settlement, different native hash, excess p
   const edits = [
     f => {f.settlement = null;}, f => {f.settlement.memberHash = '0x' + '33'.repeat(32);},
     f => {f.settlement.action = f.terms;}, f => {f.settle.payload.invoiceID = 'other';},
-    f => {f.settle.payload.merchant = payer;}, f => {f.settle.payload.termsHash = '33'.repeat(32);},
+    f => {f.settle.payload.merchant = payer;}, f => {f.settle.payload.termsHashHex = '33'.repeat(32);},
     f => {f.settle.chainId = '33'.repeat(32);}, f => {f.refund.owner = payer;},
     f => {f.settle.owner = merchant;}, f => {f.refund.payload.amount = '9007199254740998';},
     f => {f.refund.payload.recipient = '0x' + '44'.repeat(20);},
@@ -151,18 +149,13 @@ test('existing normal caller freezes exact canonical bytes and denies copied rev
   assert.equal(pqTypedActionInvocationData(review).signerEntered,false);
 });
 
-test('sole SDK invoice capability is explicit; unsupported three kinds never create signable reviews', t => {
+test('matched sole SDK supports all three invoice codecs while live signing still requires exact original references', () => {
   const s = snapshot(), f = inputs(), candidates = [f.terms,f.settle,f.refund];
   for (const [i,a] of candidates.entries()) {
     a.chainId = chain; a.nativeChainId = '6423'; a.nonce = '8'; a.owner = merchant;
     if (a.kind === 'invoice_terms') {a.payload.keyEpoch = '1'; a.payload.expiresAt = '101';}
-    let supported = false;
-    try {const wire = encodePQNativeAction(a); assert.deepEqual(decodePQNativeAction(wire),a); supported = true;}
-    catch (error) {assert.equal(error.code,'PQ_NATIVE_ACTION_INVALID');}
-    if (!supported) {
-      assert.throws(() => preparePQTypedActionReview(s,a,meta('unsupported-invoice-' + i)),{code:'PQ_NATIVE_ACTION_INVALID'});
-      t.diagnostic(a.kind + ': SOLE_SDK_UNAVAILABLE; no live invoice-positive claim');
-    } else if (a.kind === 'invoice_terms') {
+    const wire = encodePQNativeAction(a); assert.deepEqual(decodePQNativeAction(wire),a);
+    if (a.kind === 'invoice_terms') {
       const review = preparePQTypedActionReview(s,a,meta('live-invoice-terms'));
       const display = readPQTypedActionInvoiceReviewData(review);
       assert.equal(display.kind,'invoice_terms'); assert.equal(display.operationId,review.operationId);
@@ -174,6 +167,16 @@ test('sole SDK invoice capability is explicit; unsupported three kinds never cre
       assert.throws(() => preparePQTypedActionReview(s,a,meta('missing-original-' + i)));
     }
   }
+});
+
+test('normal settlement review binds the sole SDK full merchant message hash and independent payer selection',()=>{
+ const f=inputs();Object.assign(f.terms,{chainId:chain,nativeChainId:'6423',nonce:'8'});Object.assign(f.terms.payload,{keyEpoch:'1',expiresAt:'101'});
+ const termsMessage=encodePQNativeAction(f.terms),termsHashHex=sha(termsMessage),settle={...f.settle,chainId:chain,nativeChainId:'6423',nonce:'8',payload:{...f.settle.payload,termsHashHex}};
+ const metadata={...meta('live-settlement'),account:payer},s=snapshot(payer),review=preparePQTypedActionReview(s,settle,metadata,{termsMessage,settlement:null});
+ const view=readPQTypedActionInvoiceReviewData(review);assert.equal(view.payer,payer);assert.equal(view.termsHash,termsHashHex);assert.deepEqual(view.terms,f.terms.payload);
+ assert.equal(recheckPQTypedActionReview(review,s,{account:payer,networkId:chain},at).action.kind,'invoice_settle');
+ const wrong=encodePQNativeAction({...f.terms,payload:{...f.terms.payload,amount:'1'}});assert.throws(()=>preparePQTypedActionReview(s,settle,metadata,{termsMessage:wrong,settlement:null}));
+ cancelPQTypedActionReview(review);assert.throws(()=>signPQReviewedTypedAction(review,s,{}, {account:payer,networkId:chain},at),{code:'PQ_TYPED_ACTION_REVIEW_CANCELLED'});
 });
 
 test('invoice port declarations keep raw units, immutable terms, original snapshot requirements and false authority', () => {
