@@ -1,0 +1,31 @@
+{
+  "name": "@ynx-chain/open-protocol",
+  "version": "0.0.0-dev.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/open-envelope.d.ts",
+      "import": "./src/open-envelope.js"
+    },
+    "./identity-challenge": {
+      "types": "./src/identity-challenge.d.ts",
+      "import": "./src/identity-challenge.js"
+    },
+    "./framing": {
+      "types": "./src/framing.d.ts",
+      "import": "./src/framing.js"
+    }
+  },
+  "files": [
+    "src/",
+    "schema/",
+    "go/",
+    "test/fixtures/"
+  ],
+  "scripts": {
+    "test:framing": "node --test test/framing.test.mjs",
+    "test:identity-challenge": "node --test test/identity-challenge.test.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}
