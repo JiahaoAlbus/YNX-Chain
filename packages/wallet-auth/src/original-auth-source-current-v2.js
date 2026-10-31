@@ -8,6 +8,7 @@ import {openSync,readFileSync,fstatSync,lstatSync,realpathSync,closeSync,constan
 import {batchSign,extract,encodeMember,discardBatch,importKeyMaterial,destroyKey,KEY_MATERIAL_FORMAT,SUITE} from '@ynx/batch-v01-candidate';
 import {canonical,sha} from '../native/original-auth-identity-source-verifier.mjs';
 import {PRODUCT_DEVICE_V4_SOURCE_PURPOSE} from '../native/original-product-device-v4-source-contract.mjs';
+import {PRODUCT_DEVICE_V4_PENDING_PURPOSE} from '../native/original-product-device-v4-pending-source-contract.mjs';
 import {verifyOriginalAuthSourceProfileV2,verifyOriginalAuthSourceTransitionV2,verifyOriginalAuthSourceCurrentV2,encodeOriginalAuthSourceStatementV2,canonicalOriginalAuthSourceEnvelopeV2} from '../native/original-auth-identity-source-v2-verifier.mjs';
 import {fetchOriginalNativeAuthorization} from '../native/original-ide-auth-proof-dispatch.mjs';
 import {parsePQAccountAuthorization,inspectPQAuthorizationView,assertPQAuthorizationCurrent} from './pq-wallet-policy.js';
@@ -91,6 +92,7 @@ export class OriginalAuthSourceCurrentV2Kernel {
   try{const p=this.#profiles.get(profileDigest);if(!p)fail('AUTH_SOURCE_V2_PROFILE_NOT_REGISTERED');exact(state,['status','floor','head']);const before=await this.#views(p),v=this.#verify(p,before),old=this.#rows.get(profileDigest),sequence=old?old.sequence+1:p.body.minimumSequence;
    if(!Number.isSafeInteger(sequence)||!['active','revoked','retired'].includes(state.status)||!Number.isSafeInteger(state.floor)||state.floor<Math.max(p.body.minimumFloor,old?.floor??0)||state.floor>sequence||typeof state.head!=='string'||!/^[a-f0-9]{64}$/.test(state.head)||old&&old.status!=='active'&&state.status!==old.status)fail('AUTH_SOURCE_V2_TRANSITION_INVALID');
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4)))fail('AUTH_SOURCE_V2_DEVICE_HEAD');
+   if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_PENDING_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4Pending)))fail('AUTH_SOURCE_V2_DEVICE_PENDING_HEAD');
    const body=this.#body(p,profileDigest,{...state,sequence},randomBytes(32).toString('base64url'),v),currentRaw=this.#signed(body,v,before),projection=verifyOriginalAuthSourceTransitionV2(this.#root,this.#enrollment,p.raw,currentRaw,this.#policy,before,body.nonce,ZERO,this.#time()),raw=canonical({version:2,profileDigest,previousDigest:old?.recordDigest??'',currentRaw});if(Buffer.byteLength(raw)>CAP)fail('AUTH_SOURCE_V2_CAPACITY');
    // Signing and persistence are within one selected operation. Any later
    // exception preserves the exact signed partial and poisons this owner.
@@ -224,7 +226,7 @@ export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic,readO
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_SOURCE_V2_NATIVE_RUNTIME_NOT_SUPPLIED');
  const rootRaw=readPublic(entry.rootPath,entry.policy.rootDigest),enrollmentRaw=readPublic(entry.enrollmentPath,entry.policy.enrollmentDigest),profiles=entry.profiles.map(p=>readPublic(p.path,p.sha256)),root=parsed(rootRaw,16384),enrollment=hint(enrollmentRaw);
  const get=fetchOriginalNativeAuthorization;
- const devicePurpose=entry.policy.signatureContract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE;let acquisitionFloor=-1;
+ const devicePurpose=[PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE].includes(entry.policy.signatureContract.purpose);let acquisitionFloor=-1;
  const acquisitionTime=()=>{const n=Date.now();if(devicePurpose&&(!Number.isSafeInteger(n)||n<0||n<acquisitionFloor))fail('AUTH_SOURCE_V2_CLOCK_ROLLBACK');acquisitionFloor=n;return n;};
  if(devicePurpose)acquisitionTime();
  let selected;const selectedViews=[];

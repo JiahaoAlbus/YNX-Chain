@@ -51,6 +51,9 @@ struct JointLifecycle {
 // Exact authenticated public scope for THIS dedicated Source, bounded by
 // pre/post physical current. Not a key slot or account/Root signing permit.
 - (NSDictionary *)copyOriginalProductSessionDeviceV4Scope:(NSError **)error;
++ (instancetype)acquireOriginalProductSessionDeviceV4PendingSource:(NSError **)error;
+- (BOOL)assertOriginalProductSessionDeviceV4PendingSourceCurrent:(NSError **)error;
+- (NSDictionary *)copyOriginalProductSessionDeviceV4PendingScope:(NSError **)error;
 - (NSDictionary *)copyOriginalWalletPQHostCatalogContext:(NSError **)error;
 // Helper's own independently admitted Source, bound to ONE actual incoming
 // OS message. Peer identity supplies target only, never Source permission.

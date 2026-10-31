@@ -66,6 +66,8 @@ public:
  // Existing original journal only: no mkdir, write, lease renewal or replay.
  // This is read custody, NOT Source authentication or reclaimed admission.
  void openRetained(const std::string&parentPath,const std::string&journalLeaf){openSelected(parentPath,journalLeaf,true);}
+ // Pending intent writer must never recreate a deleted cold-start namespace.
+ void openProductDeviceV4PendingExisting(const std::string&p,const std::string&l){openSelected(p,l,true);if(flock(directory,LOCK_EX|LOCK_NB))fail("HOST_DIRFD_WRITER_ALREADY_HELD");readOnly=false;assertCurrent();}
  void assertCurrent(){
   if(!opened||retired||unknown||parent<0||directory<0)fail("HOST_DIRFD_UNRESOLVED");
   struct stat p{},d{},named{};
