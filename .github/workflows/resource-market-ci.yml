@@ -15,6 +15,7 @@ on:
       - 'internal/consensus/**'
       - 'internal/api/**'
       - 'internal/bftgateway/**'
+      - 'internal/faucet/**'
       - 'cmd/**'
       - 'pkg/**'
       - 'third_party/cometbft/**'
