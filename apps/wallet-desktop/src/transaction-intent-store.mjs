@@ -20,6 +20,7 @@ import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause
 import {parseSessionPublication,sessionPublicationIdentity} from './wallet-session-publication.mjs';
 import {initialPQProgress,parsePQProgress,capturePQProgressResult,mergePQProgressResult,pqProgressCause,pqProgressCoreEqual,pqSavedCustodyResult,PQ_PROGRESS_RESPONSE_BYTES} from './wallet-pq-progress.mjs';
 import {parsePQFinalityRecord,pqFinalityRecordGeneration,pqFinalityRecordsConflict} from './wallet-pq-finality-record.mjs';
+import {parsePQTransferPreviewIntent} from './wallet-pq-transfer-preview.mjs';
 import {retainPQTypedHTTPResponse} from './wallet-pq-typed-progress.mjs';
 import {readPQVerifiedFinalityTerminal,parsePQFinalityTerminalData,parsePQFinalityHistoryEntry,pqFinalityHistoryCore} from './wallet-pq-finality-terminal.mjs';
 
@@ -59,7 +60,19 @@ export function assertIntentReceipt(intent, receipt, capabilities = intent.capab
   catch { throw invalid(); }
 }
 function parseState(data) {
-  if (!data || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].includes(data.schemaVersion)) throw invalid();
+  if(data?.schemaVersion===12){
+    if(!Array.isArray(data.preparations))throw invalid();
+    const preparations=data.preparations.map(marker=>{
+      if(!marker||!Object.hasOwn(marker,'intent'))return marker;
+      if(marker.kind!=='pq-transfer'||Object.keys(marker).sort().join()!=='account,intent,kind')throw invalid();
+      try{return {...marker,intent:parsePQTransferPreviewIntent(marker.intent,marker.account)}}catch{throw invalid()}
+    });
+    // Reuse every original schema11 journal/history/UNKNOWN check. Old markers
+    // remain old markers; no missing review is synthesized during readback.
+    const prior=parseState({...data,schemaVersion:11,preparations:preparations.map(marker=>{if(!marker||!Object.hasOwn(marker,'intent'))return marker;const {intent,...legacy}=marker;return legacy;})});
+    return {...prior,schemaVersion:12,preparations};
+  }
+  if (!data || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].includes(data.schemaVersion)) throw invalid();
   const legacy = data.schemaVersion === 1;
   const signed = data.schemaVersion >= 3;
   if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===11 ? "payHistory,payProgress,pqFinalityObservations,pqHistory,pqOriginals,pqProgress,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===10 ? "payHistory,payProgress,pqFinalityObservations,pqOriginals,pqProgress,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===9 ? "payHistory,payProgress,pqOriginals,pqProgress,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===8 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,sessionPublications,signedPayments" : data.schemaVersion===7 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,sessionOriginals,signedPayments" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
@@ -255,7 +268,7 @@ export class FileTransactionIntentStore {
     });
   }
   localOriginal(account){return owner(this).get(account)??null}
-  async unresolvedPreparation(account){return (await this.#read()).preparations?.find(x=>x.account===account)??null}
+  async unresolvedPreparation(account){const marker=(await this.#read()).preparations?.find(x=>x.account===account)??null;return marker?freezePublic(marker):null}
   async assertNoPreparation(account){
     this.#assertPQTerminalStored(account);
     const state=await this.#read();if(owner(this).has(account)||state.preparations?.some(x=>x.account===account)||state.pqOriginals?.some(x=>x.account===account))throw capabilityError("TRANSACTION_SIGNING_RESULT_UNKNOWN","An original signing operation remains unresolved. Do not sign or send a replacement.");
@@ -263,18 +276,20 @@ export class FileTransactionIntentStore {
   async reserveOriginal(account,kind,options={}){
     this.#assertPQTerminalStored(account);
     if(!ACCOUNT.test(account??"")||!["native","pay",...PQ_ORIGINAL_KINDS].includes(kind))throw invalid();
-    if(!options||Object.keys(options).some(k=>k!=='reserveBytes')||Object.hasOwn(options,'reserveBytes')&&kind!=='pq-typed-action')throw invalid();
+    if(!options||Object.keys(options).some(k=>!['reserveBytes','intent'].includes(k))||Object.values(Object.getOwnPropertyDescriptors(options)).some(d=>!Object.hasOwn(d,'value'))||Object.hasOwn(options,'reserveBytes')&&kind!=='pq-typed-action'||Object.hasOwn(options,'intent')&&kind!=='pq-transfer')throw invalid();
+    let intent=null;if(Object.hasOwn(options,'intent'))try{intent=parsePQTransferPreviewIntent(options.intent,account)}catch{throw invalid()}
     const reserveBytes=options.reserveBytes??PQ_ORIGINAL_RESERVE_BYTES;
     if(!Number.isSafeInteger(reserveBytes)||reserveBytes<PQ_ORIGINAL_RESERVE_BYTES||reserveBytes>PRIVATE_FILE_MAX_BYTES)throw invalid();
     const slots=owner(this);if(slots.has(account)||slots.size>=ORIGINAL_OWNER_LIMIT)throw capabilityError("TRANSACTION_SIGNING_RESULT_UNKNOWN","Original operation capacity or account conflict; nothing new was signed.");
-    const slot={account,kind,native:null,pay:null,pq:null,originalCause:null,storageCause:null,originalCausePresent:false,storageCausePresent:false};slots.set(account,slot);
+    const slot={account,kind,native:null,pay:null,pq:null,originalCause:null,storageCause:null,originalCausePresent:false,storageCausePresent:false,...(intent?{intent}:{})};slots.set(account,slot);
     try{await this.#mutate(async()=>{
-      const state=paySuccessor(await this.#read());
+      let state=paySuccessor(await this.#read());
+      if(intent)state={...pqProgressSuccessor(state),schemaVersion:12,pqFinalityObservations:state.pqFinalityObservations??[],pqHistory:state.pqHistory??[]};
       if(state.preparations?.some(x=>x.account===account)||state.pqOriginals?.some(x=>x.account===account)||state.records.some(x=>x.account===account)||state.signedPayments.some(x=>evmAddressFromYNX(x.account)===account)||(state.preparations?.length??0)>=ORIGINAL_OWNER_LIMIT)throw invalid();
       const pq=PQ_ORIGINAL_KINDS.includes(kind);
       const outstanding=(state.preparations??[]).filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).reduce((sum,x)=>sum+(x.kind==='pq-typed-action'?(x.maxBytes??PRIVATE_FILE_MAX_BYTES):PQ_ORIGINAL_RESERVE_BYTES),0);
       if(pq&&Buffer.byteLength(JSON.stringify(state))+reserveBytes+outstanding>PRIVATE_FILE_MAX_BYTES)throw invalid();
-      await this.#write({...state,schemaVersion:pq?Math.max(6,state.schemaVersion):Math.max(5,state.schemaVersion),...(pq?{pqOriginals:state.pqOriginals??[]}:{}),preparations:[...(state.preparations??[]),{account,kind,...(kind==='pq-typed-action'?{maxBytes:reserveBytes}:{})}]});
+      await this.#write({...state,schemaVersion:pq?Math.max(6,state.schemaVersion):Math.max(5,state.schemaVersion),...(pq?{pqOriginals:state.pqOriginals??[]}:{}),preparations:[...(state.preparations??[]),{account,kind,...(intent?{intent}:{}),...(kind==='pq-typed-action'?{maxBytes:reserveBytes}:{})}]});
     });return slot}catch(error){slots.delete(account);throw error}
   }
   captureOriginal(account,value,kind){
@@ -649,7 +664,7 @@ export class FileTransactionIntentStore {
           if((state.pqHistory?.length??0)>=64)throw capabilityError('PQ_FINALITY_STORAGE_CAPACITY','Preserve original history; the terminal archive is full.');
           if(!slot.history||slot.firstPresent&&slot.history.storageCause===null){const core={version:1,original:slot.original,progress,finality:effectiveFinality,storageCause:slot.firstPresent?pqTerminalStorageCause(slot.first):null,previousSeal:null};if(typeof this.finalityProtection?.seal!=='function'||typeof this.finalityProtection?.verify!=='function')throw capabilityError('PQ_FINALITY_HISTORY_PROTECTION_UNAVAILABLE','Original OS-protected terminal storage is unavailable.');slot.history=parsePQFinalityHistoryEntry({...core,seal:this.finalityProtection.seal(core)});}
           else if(canonicalJSON(slot.history.progress)!==canonicalJSON(progress))throw capabilityError('PQ_FINALITY_TARGET_CONFLICT','Pending progress changed; preserve the same terminal archive without replacement.');
-          const next={...state,schemaVersion:11,pqOriginals:state.pqOriginals.filter(r=>r!==active),pqProgress:(state.pqProgress??[]).filter(r=>r.account!==original.account||r.hash!==original.hash),pqHistory:[...(state.pqHistory??[]),slot.history]};
+          const next={...state,schemaVersion:Math.max(11,state.schemaVersion),pqOriginals:state.pqOriginals.filter(r=>r!==active),pqProgress:(state.pqProgress??[]).filter(r=>r.account!==original.account||r.hash!==original.hash),pqHistory:[...(state.pqHistory??[]),slot.history]};
           const reserved=(state.preparations??[]).filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).reduce((n,x)=>n+(x.maxBytes??PQ_ORIGINAL_RESERVE_BYTES),0);
           if(Buffer.byteLength(JSON.stringify(next))+reserved+1>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_FINALITY_STORAGE_CAPACITY','Preserve original evidence; terminal history cannot fit.');
           guard();await this.#write(next);

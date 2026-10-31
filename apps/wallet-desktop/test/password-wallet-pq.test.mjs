@@ -354,6 +354,7 @@ test('T-P01-02 policy source timeout returns without signing or reserving a tran
 });
 test('normal independent approval calls Native TX custody once and saves the same public Member without portable fallback',async t=>{
  const f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true}),out=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));f.vault.withPQKeys=()=>assert.fail('Native TX may not fall back to portable JS');
+ const nativeEntry=f.vault.withPQNativeTransaction.bind(f.vault);f.vault.withPQNativeTransaction=async(...args)=>{const marker=await f.store.unresolvedPreparation(f.account);assert.equal(marker.intent.id,out.request.id);assert.deepEqual(marker.intent.binding,out.preview.binding);return nativeEntry(...args);};
  const capsule=transactionAuth.captureOriginalWalletTransactionApprovalIPC(createPublicWalletEvent(),out.request.id,'sign');t.after(()=>transactionAuth.retireUnusedOriginalWalletTransactionApproval(capsule));const response=await f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule));
  assert.equal(response.status,'success');assert.equal(response.result.submitted,false);const [record]=await f.store.readPQOriginals(f.account,()=>{});assert.equal(record.hash,response.result.hash);assert.equal(record.kind,'pq-transfer');assert.equal(f.native.counts.once,1);assert.equal(f.native.counts.close,1);assert.equal(f.native.counts.release,1);await assert.rejects(f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule)));assert.equal(f.native.counts.once,1);
 });

@@ -750,7 +750,7 @@ export class DesktopWalletAuthority {
           this.#pqTxOwners.add(auth);guard.assert();
           if(this.#pqTxRecognized(auth)!==true)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original transaction permission is not recognized.');
           if(await auth.recheck()!==undefined||auth.assertCurrent()!==undefined)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original Native transaction permission must remain current.');guard.assert();
-          await store.reserveOriginal(status.account,'pq-transfer');
+          await store.reserveOriginal(status.account,'pq-transfer',{intent:reviewed.preview});
           guard.assert();if(auth.assertCurrent()!==undefined||auth.enterSign()!==undefined)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original Native sign entry must be exact.');
           await this.vault.withPQNativeTransaction(pqRegisteredPublicBinding(refreshed),{messageOriginal:Buffer.from(encodePQNativeTransfer(plan.transfer)),policyOriginal:nativePolicy,nativeChainId:plan.transfer.nativeChainId,keyVersion:refreshed.activeRevision,executionHeight:refreshed.executionHeight},outcome=>{
             const captured=store.capturePQTransferMember(status.account,outcome.member,{operationId:pending.id});hash=captured.transportHash;

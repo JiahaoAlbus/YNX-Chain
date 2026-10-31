@@ -12,6 +12,7 @@ import {createPQVerifiedFinalityTerminal} from '../src/wallet-pq-finality-termin
 import {readCompletedPackagedPQCaller,createPackagedPQFinalityVerifier} from '../src/wallet-pq-verifier-assets.mjs';
 import {createPQFinalityHistoryProtection} from '../src/wallet-pq-finality-history-protection.mjs';
 import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
+import {createPQTransferPreview} from '../src/wallet-pq-transfer-preview.mjs';
 import {initialPQProgress} from '../src/wallet-pq-progress.mjs';
 import {projectPQTransactionProgress} from '../src/features/pq-transaction/progress-view.mjs';
 import {createPQTransactionSubmission} from '../src/features/pq-transaction/submission.mjs';
@@ -55,6 +56,13 @@ test('controlled private adoption atomically archives succeeded and on-chain rej
   const cold=new f.Store({filePath:f.filePath,finalityProtection:f.protection}),progress=await cold.readPQProgress(binding.account,original.hash,()=>{}),view=projectPQTransactionProgress(progress,{account:original.account,hash:original.hash,kind:original.kind});
   assert.equal(view.status,'finalized-'+outcome);assert.equal(view.consensusFinality,true);assert.equal(view.nativeGrant,false);assert.equal(view.canRetry,false);assert.equal(view.clearsOriginal,false);assert.deepEqual(await cold.readPQOriginals(binding.account,()=>{}),[original]);assert.equal((await cold.pqSummaries(binding.account))[0].status,'pq-finalized-'+outcome);await cold.assertNoPreparation(binding.account);await cold.reserveOriginal(binding.account,'pq-transfer');
  }
+});
+test('T-P01-03 terminal archival preserves schema12 and another account exact signing intent',async t=>{
+ const f=await fixture(t),account='0x'+'ff'.repeat(20),networkId='a'.repeat(64);
+ const intent=createPQTransferPreview({id:'other-original-intent',origin:'ynx-wallet:local-pq',method:'ynx_signPQNativeTransfer',params:[],createdAt:'2026-10-31T00:00:00.000Z',review:{title:'Pending',account,chainId:networkId,nativeChainId:'6423',from:account,to:'0x'+'ee'.repeat(20),amount:'3',fee:'1',nonce:'7',policyRevision:'1',expiresAt:'2026-10-31T00:01:00.000Z',warning:'Not approved'}},{account,networkId});
+ await f.store.reserveOriginal(account,'pq-transfer',{intent});await f.adopt();
+ assert.equal(JSON.parse(await fs.readFile(f.filePath,'utf8')).schemaVersion,12);
+ const cold=new f.Store({filePath:f.filePath,finalityProtection:f.protection});assert.deepEqual((await cold.unresolvedPreparation(account)).intent,intent);await assert.rejects(cold.reserveOriginal(account,'pq-transfer',{intent}));
 });
 test('production journal rejects public DTOs, copied receipts and authority booleans before any terminal mutation',async t=>{
  const f=await fixture(t),actual=new FileTransactionIntentStore({filePath:f.filePath,finalityProtection:f.protection}),before=await fs.readFile(f.filePath);
