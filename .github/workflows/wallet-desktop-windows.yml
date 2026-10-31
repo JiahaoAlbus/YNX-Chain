@@ -3680,6 +3680,8 @@ jobs:
           node-version: 24.19.0
       - name: Exact Native supplier source and standalone npm payload
         run: node scripts/ci/sdk49-pending-native-package.mjs
+      - name: Install exact Source kernel dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts --no-audit --fund=false --prefix packages/wallet-auth
       - name: New pending Source full verifier issuer and current integration
         run: node scripts/ci/auth-device-v4-pending/run-device-v4-pending-source.mjs --package-root "${{ github.workspace }}/packages/wallet-auth" --evidence-root "${{ runner.temp }}/sdk49-pending-native-source"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
