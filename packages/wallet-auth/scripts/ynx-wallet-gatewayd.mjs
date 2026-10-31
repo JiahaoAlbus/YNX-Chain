@@ -21,6 +21,7 @@ import {parseProductSessionControlCapacityPolicy} from '../src/product-session-c
 import {createCentralBrowserSessionRegistry} from '../src/central-browser-session-registry.js';
 import {CentralBrowserSessionStore} from '../src/central-browser-session-store.js';
 import {CentralBrowserSessionAuthority,CentralBrowserSessionNodeRoutes} from '../src/central-browser-session.js';
+import {openOriginalProductPairSessionV4Daemon,dispatchOriginalProductPairSessionV4Daemon,originalProductPairSessionV4DaemonStatus,retireOriginalProductPairSessionV4Daemon,joinOriginalProductPairSessionV4Daemon,closeOriginalProductPairSessionV4Daemon} from '../src/product-pair-session-v4-daemon.js';
 
 const address=process.env.YNX_WALLET_GATEWAY_HTTP_ADDR??"127.0.0.1";
 const port=integer(process.env.YNX_WALLET_GATEWAY_HTTP_PORT??"6439","YNX_WALLET_GATEWAY_HTTP_PORT",1,65535);
@@ -83,7 +84,12 @@ if(!centralBrowser&&process.env.YNX_CENTRAL_OIDC_CONFIG_FILE)throw new Error('OI
 const central=centralBrowser?new CentralBrowserSessionNodeRoutes(new CentralBrowserSessionAuthority(createCentralBrowserSessionRegistry(productRegistry,{ecosystem:ecosystemIdentity}),new CentralBrowserSessionStore(`${productSessionStatePath}.browser`),{...loadCentralBackendConfiguration(process.env.YNX_CENTRAL_BROWSER_BACKEND_CONFIG_FILE),oidc:loadCentralOIDCConfiguration(process.env.YNX_CENTRAL_OIDC_CONFIG_FILE),businessRevalidation,privateBusinessRevalidation,privateProductRegistry:productRegistry,privateBackendRegistrations:privateBusinessRevalidation?loadPrivateRegistrations(privateRegistrationFile):[],productRevalidator:(session,scopes,productId,at)=>productHost.revalidate(session,scopes,productId,at,businessRevalidation||privateBusinessRevalidation)})):null;
 const admission=new GatewayAdmissionController({maxConcurrent:integer(process.env.YNX_WALLET_GATEWAY_MAX_CONCURRENT??"64","YNX_WALLET_GATEWAY_MAX_CONCURRENT",1,1024),maxPerWindow:integer(process.env.YNX_WALLET_GATEWAY_RATE_LIMIT??"300","YNX_WALLET_GATEWAY_RATE_LIMIT",1,100000)});
 const legacyHandler=host.handler(),productHandler=productHost.handler();
+// Once at actual startup. Default-off is private-service disabled only; any
+// configured failure retains its original owner and first cause for drain.
+const originalPairSessionV4=await openOriginalProductPairSessionV4Daemon();
+const originalPairSessionV4Startup=originalProductPairSessionV4DaemonStatus(originalPairSessionV4);
 const gatewayHandler=async(request,response)=>{
+  if(await dispatchOriginalProductPairSessionV4Daemon(originalPairSessionV4,request,response))return;
   const path=new URL(request.url,'http://127.0.0.1').pathname;
   if(path==='/v1/auth-identity/source-current'){
     if(!originalAuthSourceCurrent){response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});response.end('{"error":"AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED"}');return;}
@@ -100,9 +106,11 @@ const gatewayHandler=async(request,response)=>{
   }
   return request.url?.startsWith('/v2/product-sessions/')?productHandler(request,response):legacyHandler(request,response);
 };
-const server=productSessionStateVersion==='2'
- ?productHost.createOriginalWalletServiceRuntimeDaemonServer({legacyHost:host,central,admission,emitEvent})
+let server;
+try{server=productSessionStateVersion==='2'
+ ?productHost.createOriginalWalletServiceRuntimeDaemonServer({legacyHost:host,central,admission,emitEvent,originalPairSessionV4})
  :createServer((request,response)=>{const ticket=admission.enter(forwardedClient(request));if(!ticket.ok){response.writeHead(ticket.status,{"cache-control":"no-store","content-type":"application/json; charset=utf-8","retry-after":"60"});response.end(canonicalJSON({error:{code:ticket.code,message:"Wallet Gateway admission policy rejected the request"},ok:false}));return}response.once("finish",ticket.release);response.once("close",ticket.release);Promise.resolve(gatewayHandler(request,response)).catch(error=>{ticket.release();if(!response.headersSent){response.writeHead(500,{"cache-control":"no-store","content-type":"application/json; charset=utf-8"});response.end(canonicalJSON({error:{code:"INTERNAL_ERROR",message:"Wallet Gateway request failed"},ok:false}))}emitEvent({at:new Date().toISOString(),error:error instanceof Error?error.message:"unknown",event:"handler_error",level:"error",service:"ynx-wallet-gatewayd"})})});
+}catch(cause){let cleanupCausePresent=false,cleanupCause;try{await closeOriginalProductPairSessionV4Daemon(originalPairSessionV4);}catch(error){cleanupCausePresent=true;cleanupCause=error;}throw Object.assign(new Error('PAIR_V4_ORIGINAL_SERVER_STARTUP_FAILED',{cause}),{partial:originalPairSessionV4,cleanupCausePresent,cleanupCause});}
 let originalReturnPublisher=null; // Main-only original Host binding, never a public metadata route.
 const originalRuntimeLifetime=createOriginalWalletRuntimeObserverLifetime(productHost,server);
 // The fixed original Native acquisition owns its actual service-role Source.
@@ -112,6 +120,7 @@ const originalPrivateAcquisition=beginOriginalWalletServicePrivateDispatchAcquis
 let originalOwnerDrain=null,originalServerClosed=false;
 let originalPrivateTerminalUnknown=false;
 let originalListenSucceeded=false,originalStartupCause,originalStartupFailure=false;
+if(originalPairSessionV4Startup.failurePresent){originalStartupCause=originalPairSessionV4Startup.firstCause;originalStartupFailure=true;}
 let originalShutdown=null,originalObserverFailure=false,originalObserverCause,originalHTTPFailure=false,originalHTTPCause;
 const originalRequestListener=server.listeners('request')[0];
 let originalHTTPRetired=false;
@@ -126,6 +135,7 @@ function drainOriginalOwners(){
  originalOwnerDrain=Promise.resolve().then(async()=>{
   let privateFailure=false,privateCause;
   const cleanup=async action=>{try{await action();}catch(cause){if(!privateFailure){privateFailure=true;privateCause=cause;}}};
+  await cleanup(()=>retireOriginalProductPairSessionV4Daemon(originalPairSessionV4));
   await cleanup(()=>{if(originalReturnPublisher)originalReturnPublisher.retire();});
   await cleanup(()=>{if(originalPrivateDispatch)originalPrivateDispatch.retire();});
   await cleanup(async()=>{if(originalReturnPublisher)await originalReturnPublisher.join();});
@@ -139,12 +149,15 @@ function drainOriginalOwners(){
   await cleanup(()=>originalRuntimeLifetime.close());
   await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.join();});
   await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.close();});
+  await cleanup(()=>joinOriginalProductPairSessionV4Daemon(originalPairSessionV4));
+  await cleanup(()=>closeOriginalProductPairSessionV4Daemon(originalPairSessionV4));
   if(privateFailure)throw privateCause;
  });return originalOwnerDrain;
 }
 function stopOriginalDaemon(reason){
  if(originalShutdown)return originalShutdown;
  if(originalReturnPublisher)originalReturnPublisher.retire();
+ try{retireOriginalProductPairSessionV4Daemon(originalPairSessionV4);}catch(cause){if(!originalStartupFailure){originalStartupCause=cause;originalStartupFailure=true;}process.exitCode=1;}
  try{if(originalPrivateDispatch)originalPrivateDispatch.retire();}catch(cause){if(!originalStartupFailure){originalStartupCause=cause;originalStartupFailure=true;}process.exitCode=1;}
  originalRuntimeLifetime.retire();retireOriginalHTTP();
  // Reserve both independent completions before any foreign callback.
@@ -165,7 +178,7 @@ function stopOriginalDaemon(reason){
 // v3 retains its original control/capacity contract, with no silent publisher.
 try{if(productSessionStateVersion==='2')originalReturnPublisher=bindOriginalHostReturnPublisher(productHost);}
 catch(cause){if(!originalStartupFailure){originalStartupCause=cause;originalStartupFailure=true;}process.exitCode=1;emitEvent({event:'original_return_publisher_startup_failed',level:'error',service:'ynx-wallet-gatewayd',code:cause?.code??'AUTH_PUBLISHER_ORIGINAL_HOST_REQUIRED'});}
-if(originalStartupFailure)void stopOriginalDaemon('return_publisher_startup_failed');
+if(originalStartupFailure)void stopOriginalDaemon(originalPairSessionV4Startup.failurePresent?'pair_v4_source_startup_failed':'return_publisher_startup_failed');
 else server.listen(port,address,()=>{
  originalListenSucceeded=true;
  try{originalRuntimeLifetime.afterListen();}catch(error){originalRuntimeLifetime.retire(error);void originalRuntimeLifetime.close().catch(()=>{});emitEvent({event:'original_runtime_observer_unavailable',level:'warn',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_RUNTIME_NOT_CONFIGURED'});}
