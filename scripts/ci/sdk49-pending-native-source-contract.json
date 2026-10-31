@@ -1,0 +1,123 @@
+{
+  "schema": "ynx-sdk49-pending-native-exact-source/v1",
+  "sourceFiles": [
+    {
+      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "bytes": 83521,
+      "sha256": "58693eaa300b07dfd261cba29333f7017556aacd4970fa17cd9df53e33950acc"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-pending-custody.h",
+      "bytes": 949,
+      "sha256": "c559014f1bd3026683fdd1bd0d7b4ad25270681ee12292020ac1d2c43772b9b0"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-pending-custody.mm",
+      "bytes": 7372,
+      "sha256": "d3a205b6c99adb0f9c8dad0a70cc62e0b409ef15816524f162df7893077a080e"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-pending-once.h",
+      "bytes": 5551,
+      "sha256": "d676f1ba1397b44d62e74be240e4be34c931395f3eb7c1eeaa42256438e2b982"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-typed-producer.h",
+      "bytes": 1566,
+      "sha256": "e2df118a1056f5b6e3b840d4b1e001c61d49ffca498fc7d562b04184776e4266"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-typed-producer.inc.mm",
+      "bytes": 13398,
+      "sha256": "9583e023f5f1c108a2bcf69f38b7e3965b70bfd263d7e2c8580c601ec244ad91"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-typed-producer.mm",
+      "bytes": 13023,
+      "sha256": "748abfe7909051b4b4b27419f49ebc86bbca27b1c737350759f0b0bf0aa79e86"
+    },
+    {
+      "path": "apps/wallet-desktop/native/product_device_challenge_v4.h",
+      "bytes": 2673,
+      "sha256": "fc4e2d792f52fe259744bfd1920713ee69a58f30bd3f0b7ceeecba09d78b4ef9"
+    },
+    {
+      "path": "apps/wallet-desktop/native/product_device_registration_v4.h",
+      "bytes": 5814,
+      "sha256": "aa630561ec84d70892e06020bb377dd9c603ce3bc3f7a769fd14fff497010c70"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
+      "bytes": 1821,
+      "sha256": "85c2b883216087ad47340ecc5b0b4dce22069e52726a311d96168f4700f9e30d"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+      "bytes": 16776,
+      "sha256": "b27ce10791c3767436208183e636a75cb3471cab71efdd2d721e216e7b93c4d1"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+      "bytes": 8523,
+      "sha256": "93d28ea4742b020bc547b20121c00fd84156127d22d2afc95be1b82df5324a13"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+      "bytes": 68023,
+      "sha256": "32bc12f489595d8c5a5a9c9035f908fdc02efa7afb9e4f8d39ccabe6c7d7eebc"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+      "bytes": 40008,
+      "sha256": "0e0d9d3a0b3f061a21a14609b614638dc565713e162517d7344f37b44af7d8dd"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
+      "bytes": 12692,
+      "sha256": "5c2a2856bdde5906b5833878a44f6fc16227f07d812582335fad99fcce061a14"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-product-device-v4-pending-journal.h",
+      "bytes": 1846,
+      "sha256": "76993802d6b832fb134ffcb5691e2f99153d7287b5a7bbf2ef20cdcf517fae89"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-product-device-v4-pending-source-contract.mjs",
+      "bytes": 4720,
+      "sha256": "d5c928b27f4f9e81e4aff08c2ac9672c0039d3a8093fa3c6cd2dd8c1b24b0ad9"
+    },
+    {
+      "path": "packages/wallet-auth/src/original-auth-source-current-v2.js",
+      "bytes": 35267,
+      "sha256": "2dd56e5d83efee95c8b51b4fe9d8d0ea50b05f540fd533cdd845344b6f03586c"
+    },
+    {
+      "path": "packages/wallet-auth/src/original-auth-source-issuance-v2.js",
+      "bytes": 16702,
+      "sha256": "c4182be915b8162c3a1456a1931f4f000b1b730785e473a2e4ce8071aad505b6"
+    },
+    {
+      "path": "packages/wallet-auth/src/original-product-device-v4-pending-client.js",
+      "bytes": 7037,
+      "sha256": "18210ce6cc4680a68d45d6c7e49a8c26619bed23b218e696bf3b4e94c2ca2d33"
+    },
+    {
+      "path": "packages/wallet-auth/src/original-product-device-v4-pending-client.d.ts",
+      "bytes": 3642,
+      "sha256": "f2790033ee13dc0d104e34586a301d738f6b25d34206664da7127008db511547"
+    },
+    {
+      "path": "packages/wallet-auth/package.json",
+      "bytes": 26375,
+      "sha256": "f4273d8821cffcce4415d8680201ecd1f1f8445aa6e6fe06d9366a724538baab"
+    },
+    {
+      "path": "packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json",
+      "bytes": 99884,
+      "sha256": "f10d3245dc5fdef9a4de0cdbeca56e284d002c79130646e4182b77e034c84410"
+    }
+  ],
+  "NativeInputs": 127,
+  "SourceAdmission": false,
+  "ProtocolLibrarySupplied": false
+}

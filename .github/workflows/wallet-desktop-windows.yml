@@ -3667,3 +3667,24 @@ jobs:
       - name: Node-only public subpath imports without Native acquisition
         working-directory: packages/wallet-auth
         run: node --input-type=module -e 'const m=await import("@ynx-chain/wallet-auth/original-product-device-v4-pending-client");if(typeof m.openOriginalProductSessionDeviceV4PendingProofClient!=="function")throw Error("PUBLIC_EXPORT_MISSING");'
+
+  auth49-pending-native-source-package:
+    name: Auth49 pending Native exact source and packed public caller
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth49-pending-native-20261031'
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24.19.0
+      - name: Exact Native supplier source and standalone npm payload
+        run: node scripts/ci/sdk49-pending-native-package.mjs
+      - name: New pending Source full verifier issuer and current integration
+        run: node scripts/ci/auth-device-v4-pending/run-device-v4-pending-source.mjs --package-root "${{ github.workspace }}/packages/wallet-auth" --evidence-root "${{ runner.temp }}/sdk49-pending-native-source"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: sdk49-pending-native-source-package-evidence
+          path: ${{ runner.temp }}/sdk49-pending-native-source
+          if-no-files-found: error
