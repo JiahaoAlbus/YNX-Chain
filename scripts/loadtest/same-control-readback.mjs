@@ -3,6 +3,10 @@
 // Go client's responsibility; this consumer never turns report booleans into a
 // new independently authenticated consensus proof.
 import {createHash} from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {isUtf8} from 'node:buffer';
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const requireValue=(ok,message)=>{if(!ok)throw Error(message);};
 function signedBytes(text){
@@ -97,3 +101,218 @@ export function bindBaselineStoppedProof({observationRaw,guardRaw,expectedGuardS
  requireValue(businessInputs===count,'signed blocks do not retain the complete business input count');
  return {kind:'original baseline proof bound to separately inspected retained Go verifier receipt',guardSHA256:expectedGuardSHA256,observationSHA256:sha(observationRaw),replaySHA256:replayHash,accountsSHA256:accountsHash,originalStores:4,verifiedBusinessInputsPerStore:count,signedBlockHeights:[...seen],finalHeight:canonical.height,finalAppHash:canonical.appHash,canonicalSnapshotSHA256:canonical.snapshotSha256,cryptographicVerifier:'existing retained Go VerifyCommitLight and application replay; no cryptographic re-verification in this JavaScript consumer',newThroughputOrLatencySamples:false};
 }
+
+// REL-05 measurement kernel over a complete source inventory. This computes
+// DATA only: the original CORE source/run/ledger/clock adapter must authenticate
+// inputs separately. No caller-provided flag can promote this result to proof.
+const cohortNs=(v,label)=>{requireValue(typeof v==='string'&&/^(0|[1-9][0-9]*)$/.test(v),label+' requires exact nonnegative decimal ns');return BigInt(v);};
+const cohortId=v=>typeof v==='string'&&v.length>0&&v.length<=256;
+function cohortLatency(rows,cutoff,thresholds){
+ const completed=[],bounds=[];let censored=0,failed=0;
+ const violations=Object.fromEntries(Object.keys(thresholds).map(k=>[k,{deadlineExceeded:0,failed:0}]));
+ for(const r of rows){
+  if(r.outcome==='committed_success'){
+   const elapsed=r.final-r.offered;completed.push(elapsed);bounds.push(elapsed);
+   for(const [k,limit]of Object.entries(thresholds))if(elapsed>limit)violations[k].deadlineExceeded++;
+  }else if(r.outcome==='unknown_or_unfinished'){
+   const elapsed=cutoff-r.offered;bounds.push(elapsed);censored++;
+   for(const [k,limit]of Object.entries(thresholds))if(elapsed>limit)violations[k].deadlineExceeded++;
+  }else{failed++;for(const k of Object.keys(thresholds))violations[k].failed++;}
+ }
+ completed.sort((a,b)=>a<b?-1:a>b?1:0);bounds.sort((a,b)=>a<b?-1:a>b?1:0);
+ const quantiles={};
+ for(const p of [50,95,99]){
+  const rank=Math.ceil(rows.length*p/100),finite=rank>0&&rank<=bounds.length;
+  quantiles['p'+p]={denominator:rows.length,rank,ns:censored===0&&finite?String(bounds[rank-1]):null,lowerBoundNs:finite?String(bounds[rank-1]):null,unboundedByFailures:rank>bounds.length&&rank>0,rightCensored:censored>0};
+ }
+ return {denominator:rows.length,successfulSamples:completed.length,rightCensoredSamples:censored,failedWithoutSuccessLatency:failed,algorithm:'nearest-rank on the full logical-request cohort; failures have no finite time-to-success, unfinished ages are lower bounds',quantiles,completedSuccessOnly:{conditional:true,samples:completed.length,...Object.fromEntries([50,95,99].map(p=>['p'+p+'Ns',completed.length?String(completed[Math.ceil(completed.length*p/100)-1]):null]))},slo:violations};
+}
+export function measureFinalCohort(ctx,fromHeight,untilHeight,requests,run){
+ requireValue(ctx&&cohortId(run)&&ctx.run===run,'original run reference differs');
+ const lower=cohortNs(fromHeight,'fromHeight'),upper=cohortNs(untilHeight,'untilHeight');requireValue(lower>0n&&upper>=lower,'invalid original height range');
+ requireValue(cohortId(ctx.clockDomain)&&ctx.isolatedNetwork===true,'isolated original clock domain required');
+ const start=cohortNs(ctx.windowStartNs,'window start'),end=cohortNs(ctx.windowEndNs,'window end'),cutoff=cohortNs(ctx.observedUntilNs,'observation cutoff');requireValue(start<end&&cutoff>=end,'fixed window or observation cutoff differs');
+ const inside=n=>n!==null&&n>=start&&n<end;
+ const clockError=ctx.clockSynchronizationErrorNs===undefined||ctx.clockSynchronizationErrorNs===null?null:String(cohortNs(ctx.clockSynchronizationErrorNs,'clock uncertainty'));
+ requireValue(Array.isArray(ctx.plan)&&ctx.plan.length<=2000000&&Array.isArray(ctx.records)&&ctx.records.length<=2000000&&Array.isArray(requests),'bounded complete original request inventory required');
+ const plans=new Map(),wanted=new Set(),records=new Map();
+ for(const p of ctx.plan){
+  requireValue(p&&cohortId(p.id)&&!plans.has(p.id)&&['online_signed','pre_signed'].includes(p.signingMode),'duplicate/invalid planned identity or signing mode');
+  const offered=cohortNs(p.generatedAtNs,'logical generation');plans.set(p.id,{...p,offered});if(inside(offered))wanted.add(p.id);
+ }
+ requireValue(wanted.size>0&&requests.length===wanted.size&&new Set(requests).size===requests.length&&requests.every(id=>wanted.has(id)),'requests must include the entire fixed-window plan, including unsent/rejected identities');
+ for(const r of ctx.records){requireValue(r&&plans.has(r.id)&&!records.has(r.id)&&r.clockDomain===ctx.clockDomain,'duplicate, unplanned or foreign-clock observation');for(const k of ['rejectedBeforeAdmission','finalFailed','timedOut','sourceRequestFailed','measurementLost'])requireValue(r[k]===undefined||typeof r[k]==='boolean','invalid observation flag '+k);records.set(r.id,r);}
+ const thresholds={p95:2000000000n,p99:5000000000n},rows=[],members=new Set();let preWindowBacklogFinals=0;
+ for(const p of plans.values()){
+  const r=records.get(p.id);
+  const stamp=(key)=>{if(r?.[key]===undefined||r[key]===null)return null;const n=cohortNs(r[key],key);requireValue(n>=p.offered&&n<=cutoff,'event outside original generation/cutoff');return n;};
+  const submitted=stamp('submittedAtNs'),accepted=stamp('acceptedAtNs'),included=stamp('includedAtNs'),final=stamp('finalCommitAtNs');
+  requireValue(accepted===null||submitted!==null&&accepted>=submitted,'acceptance has no original submission');
+  requireValue(included===null||submitted!==null&&included>=submitted,'inclusion has no original submission');
+  requireValue(final===null||included!==null&&final>=included,'final Commit has no original inclusion');
+  const height=r?.height===undefined?null:cohortNs(r.height,'observed height');
+  requireValue(included===null||height!==null&&height>0n,'inclusion height missing');
+  const businessIncluded=included!==null&&r.executionCode===0&&r.businessKind==='transfer'&&typeof r.memberId==='string'&&/^[a-f0-9]{64}$/.test(r.memberId);
+  const success=businessIncluded&&final!==null;
+  if(businessIncluded){requireValue(!members.has(r.memberId),'duplicate successful business member identity');members.add(r.memberId);}
+  if(!wanted.has(p.id)){if(success&&inside(final))preWindowBacklogFinals++;continue;}
+  requireValue(!r?.rejectedBeforeAdmission||accepted===null&&included===null&&final===null,'rejection contradicts accepted/ledger observation');
+  let outcome='unknown_or_unfinished';
+  if(success)outcome='committed_success';
+  else if(r?.rejectedBeforeAdmission===true)outcome='rejected_before_admission';
+  else if(r?.finalFailed===true||included!==null&&Number.isInteger(r?.executionCode)&&r.executionCode!==0)outcome='final_failed';
+  requireValue(!(success&&r?.finalFailed),'successful member contradicts final failure');
+  rows.push({id:p.id,mode:p.signingMode,offered:p.offered,submitted,accepted,included,final,height,businessIncluded,outcome,timeout:r?.timedOut===true,sourceFailure:r?.sourceRequestFailed===true,lost:!r||r.measurementLost===true});
+ }
+ const summarize=selected=>{
+  const counts={offered:selected.length,submitted:0,accepted:0,included:0,includedBusinessSuccess:0,committed_success:0,rejected_before_admission:0,final_failed:0,unknown_or_unfinished:0,timedOut:0,sourceRequestFailed:0,measurementLost:0,tailFinals:0,finalsOutsideHeightRange:0};
+  const window={submitted:0,accepted:0,included:0,includedBusinessSuccess:0,finalCommitBusinessSuccess:0};
+  for(const r of selected){
+   counts[r.outcome]++;if(r.submitted!==null)counts.submitted++;if(r.accepted!==null)counts.accepted++;
+   if(inside(r.submitted))window.submitted++;if(inside(r.accepted))window.accepted++;
+   if(r.included!==null){counts.included++;if(r.height>=lower&&r.height<=upper&&inside(r.submitted)&&inside(r.included))window.included++;}
+   if(r.timeout)counts.timedOut++;if(r.sourceFailure)counts.sourceRequestFailed++;if(r.lost)counts.measurementLost++;
+   if(r.businessIncluded){counts.includedBusinessSuccess++;if(r.height>=lower&&r.height<=upper&&inside(r.submitted)&&inside(r.included))window.includedBusinessSuccess++;}
+   if(r.outcome==='committed_success'){
+    const heightOK=r.height>=lower&&r.height<=upper;
+    if(!heightOK)counts.finalsOutsideHeightRange++;
+    if(r.final>=end)counts.tailFinals++;
+    if(heightOK&&inside(r.submitted)&&inside(r.final))window.finalCommitBusinessSuccess++;
+   }
+  }
+  const n=selected.length,final=counts.committed_success;
+  counts.notSubmitted=n-counts.submitted;
+  const boundaryObservations={generatedWithoutSubmissionAtWindowEnd:selected.filter(r=>r.submitted===null||r.submitted>=end).length,submittedWithoutFinalCommitAtWindowEnd:selected.filter(r=>inside(r.submitted)&&(r.final===null||r.final>=end)).length,interpretation:"Observation gaps, not a measurement of physical queue depth; rejected requests and missing telemetry remain visible."};
+  return {counts,window,boundaryObservations,latency:cohortLatency(selected,cutoff,thresholds),successFraction:{numerator:final,denominator:n},failureFraction:{numerator:counts.final_failed+counts.rejected_before_admission,denominator:n},unknownFraction:{numerator:counts.unknown_or_unfinished,denominator:n},completeQualityFloorObserved:n>0&&BigInt(final)*1000n>=BigInt(n)*999n&&counts.unknown_or_unfinished===0&&counts.measurementLost===0,finalWindowRate:{numerator:window.finalCommitBusinessSuccess,perSecondNumerator:String(BigInt(window.finalCommitBusinessSuccess)*1000000000n),denominatorNs:String(end-start)}};
+ };
+ return {functionId:'REL-05',classification:'measurement-data-not-authority',run,fromHeight,untilHeight,clockDomain:ctx.clockDomain,window:{startNs:String(start),endNs:String(end),observedUntilNs:String(cutoff),boundary:'start inclusive, end exclusive; tail drain separately reported'},preWindowBacklogFinalsExcluded:preWindowBacklogFinals,cohort:summarize(rows),signingGroups:Object.fromEntries(['online_signed','pre_signed'].map(mode=>[mode,summarize(rows.filter(r=>r.mode===mode))])),inventoryCoverage:'complete against supplied plan; CORE must independently bind the original inventory/run/ledger/clock',independentProofReverifiedHere:false,signatureThroughputQualified:false,sustainedTPSQualified:false,formal1800SecondWindowObserved:end-start===1800000000000n,openLoopDeclared:ctx.loadModel==='open_loop',clockSynchronizationErrorNs:clockError,interpretation:'Submitted/accepted are intermediate counts, never summed with exclusive terminal outcomes. Late drain and prior-window backlog cannot raise the formal fixed-window final rate. Unknown/timeout identities remain in all denominators and right-censored latency. Source authenticity and two-run R6 qualification remain with original CORE/REL owners.'};
+}
+
+// Thin adapter for the existing Go ready-sender raw JSONL and summary. SHA
+// bindings detect mixed bytes; they are not an independent CORE attestation.
+export function measureOriginalFinalCohort({manifestRaw,journalRaw,summaryRaw,contextRaw,planRaw,inputRaw,bindings}){
+ const raws={manifest:manifestRaw,journal:journalRaw,summary:summaryRaw,...(contextRaw===undefined?{}:{context:contextRaw}),...(planRaw===undefined?{}:{plan:planRaw,input:inputRaw})};
+ for(const [key,raw]of Object.entries(raws))requireValue(Buffer.isBuffer(raw)&&raw.length>0&&raw.length<=(key==='manifest'?1048576:8388608)&&isUtf8(raw)&&bindings?.sha256?.[key]===sha(raw),'original '+key+' bytes/digest differ');
+ requireValue(cohortId(bindings.run)&&Number.isSafeInteger(bindings.count)&&bindings.count>0&&Number.isSafeInteger(bindings.rounds)&&bindings.rounds>=2&&bindings.rounds<=32&&bindings.count*bindings.rounds<=2048,'original bounded ready-sender profile required');
+ const manifest=JSON.parse(manifestRaw),report=JSON.parse(summaryRaw),n=bindings.count*bindings.rounds;
+ requireValue(['chainId','genesisHash','migrationStateHash'].every(k=>typeof manifest[k]==='string'&&manifest[k].length>0),'original manifest identity missing');
+ requireValue(report.declaredCohort===undefined||planRaw!==undefined,'declared source requires its original plan and input files');
+ if(planRaw!==undefined){requireValue(contextRaw===undefined,'external context cannot override original declared cohort');return readDeclaredFinalCohort(raws,bindings,manifest,report);}
+ requireValue(report.chainId===manifest.chainId&&report.genesisSha256===manifest.genesisHash&&report.roundsRequested===bindings.rounds&&Array.isArray(report.transactions)&&report.transactions.length<=n&&report.summary?.input===n&&!report.retentionMode&&!report.terminalStream,'original complete-inventory summary profile differs');
+ const lines=journalRaw.toString('utf8').split('\n');requireValue(lines.pop()===''&&lines.length===n+1,'original complete journal inventory required');
+ const header=JSON.parse(lines.shift());requireValue(header.kind==='YNX_LOCAL_READY_SENDER_V1'&&header.manifestSha256===sha(manifestRaw)&&header.migrationHash===manifest.migrationStateHash&&header.genesisHash===manifest.genesisHash,'original journal/manifest binding differs');
+ const inputs=new Map(),ids=new Set(),nonces=new Set(),senders=new Map();
+ for(const line of lines){
+  requireValue(Buffer.byteLength(line)<=65536,'original signed row bound');const e=JSON.parse(line),bytes=signedBytes(e.transaction),hash=sha(bytes).toUpperCase(),tx=JSON.parse(bytes);
+  requireValue(Number.isSafeInteger(e.index)&&e.index>=0&&e.index<n&&!inputs.has(e.index)&&e.sender===e.index%bindings.count&&e.round===Math.floor(e.index/bindings.count)+1&&e.hash===hash&&!ids.has(hash),'original signed index/hash/round differs');
+  requireValue(tx.version===1&&tx.chainId===6423&&tx.type==='transfer'&&tx.nonce===e.round&&tx.amount===1&&tx.fee===1&&typeof tx.signature==='string'&&/^[a-fA-F0-9]+$/.test(tx.signature)&&typeof tx.publicKey==='string'&&typeof tx.from==='string'&&typeof tx.to==='string','original signed transfer format differs');
+  const nonce=JSON.stringify([tx.from,tx.nonce]),template=JSON.stringify([tx.from,tx.to,tx.publicKey]);requireValue(!nonces.has(nonce)&&(!senders.has(e.sender)||senders.get(e.sender)===template),'original sender/nonce identity differs');
+  nonces.add(nonce);senders.set(e.sender,template);ids.add(hash);inputs.set(e.index,{id:hash,round:e.round,bytes:bytes.toString('base64')});
+ }
+ const observed=new Map(),positions=new Set();let reportedIncluded=0,reportedFinal=0,reportedIncludedAll=0;const clientElapsed=[];
+ const includedAny=r=>Number.isSafeInteger(r.height)&&r.height>0&&Number.isInteger(r.executionCode)&&r.transactionProofVerified===true;
+ const included=r=>Number.isSafeInteger(r.height)&&r.height>0&&r.executionCode===0&&r.quorumVerified===true&&r.transactionProofVerified===true&&r.durableStateVerified===true&&r.durableStateHeight>=r.height&&typeof r.durableSnapshotSha256==='string'&&r.durableSnapshotSha256.length>0&&(!['block-journal','snapshot-journal'].includes(r.durableStoreFormat)||(r.durableInfoVerified===true&&r.durableInfoHeight>=r.durableStateHeight));
+ const final=r=>included(r)&&r.status==='confirmed'&&typeof r.confirmedObservedAt==='string'&&r.confirmedObservedAt.length>0&&r.checkTxIdentityVerified===true&&r.checkTxCode===0;
+ for(const r of report.transactions){
+  const input=inputs.get(r.index);requireValue(input&&!observed.has(input.id)&&r.hash===input.id&&r.round===input.round&&r.signedTransaction===input.bytes,'original report signed identity differs');observed.set(input.id,r);
+  if(includedAny(r)){requireValue(typeof r.blockHash==='string'&&r.blockHash.length>0&&Number.isSafeInteger(r.blockTxIndex)&&r.blockTxIndex>=0&&Number.isSafeInteger(r.blockTxTotal)&&r.blockTxIndex<r.blockTxTotal,'original included position missing');const position=JSON.stringify([r.height,r.blockHash,r.blockTxIndex]);requireValue(!positions.has(position),'duplicate original ledger position');positions.add(position);reportedIncludedAll++;}
+  if(included(r))reportedIncluded++;
+  if(final(r)){reportedFinal++;if(r.queueDelayMs!==undefined&&r.queueDelayMs!==null&&r.confirmationMs!==undefined&&r.confirmationMs!==null){requireValue(Number.isFinite(r.queueDelayMs)&&r.queueDelayMs>=0&&Number.isFinite(r.confirmationMs)&&r.confirmationMs>=0,'invalid original monotonic duration');clientElapsed.push(r.queueDelayMs+r.confirmationMs);}}
+ }
+ requireValue(report.summary.effectiveBusinessIncluded===reportedIncluded&&report.summary.finalSubmitted===reportedFinal,'original summary totals differ from actual rows');
+ const coverage={denominator:n,observedRows:observed.size,missingRequestIds:[...ids].filter(id=>!observed.has(id)),reportedIncluded,reportedIncludedAll,reportedFinal};
+ const clientMonotonicData=readOriginalMonotonicData(report.monotonicObservations,report.transactions,n,final);
+ let bench=null;const missing=['Existing CORE DTO supplies no independently bound full logical-generation/physical-Commit monotonic projection; an external projection is DATA only.'];
+ if(contextRaw===undefined)missing.push('CORE original logical-generation/monotonic-clock/Commit projection not supplied; UTC and elapsed-summary fields are not substituted');
+ else{
+  const ctx=JSON.parse(contextRaw);requireValue(ctx.run===bindings.run&&Array.isArray(ctx.plan)&&ctx.plan.length===n&&new Set(ctx.plan.map(p=>p.id)).size===n&&ctx.plan.every(p=>ids.has(p.id))&&Array.isArray(ctx.records),'cohort projection differs from complete original inventory');
+  for(const r of ctx.records){
+   const original=observed.get(r.id);requireValue(original,'projection invented a missing original report row');
+   if(r.acceptedAtNs!==undefined&&r.acceptedAtNs!==null)requireValue(original.checkTxIdentityVerified===true&&original.checkTxCode===0,'projected acceptance differs from original');
+   if(r.includedAtNs!==undefined&&r.includedAtNs!==null)requireValue(includedAny(original)&&r.height===String(original.height)&&r.executionCode===original.executionCode&&r.memberId===r.id.toLowerCase()&&r.businessKind==='transfer','projected inclusion differs from original');
+   if(r.finalCommitAtNs!==undefined&&r.finalCommitAtNs!==null)requireValue(final(original),'projected final differs from original qualified client result');
+   if(r.rejectedBeforeAdmission===true)requireValue(original.checkTxIdentityVerified===true&&Number.isInteger(original.checkTxCode)&&original.checkTxCode!==0,'projected rejection differs from original');
+   if(r.finalFailed===true)requireValue(Number.isInteger(original.executionCode)&&original.executionCode!==0,'projected failure differs from original execution');
+   if(r.timedOut===true)requireValue(original.status==='timeout','projected timeout differs from original');
+  }
+  requireValue(Array.isArray(bindings.requests),'externally selected complete cohort IDs required');
+  bench=measureFinalCohort(ctx,bindings.fromHeight,bindings.untilHeight,bindings.requests,bindings.run);
+ }
+ return {functionId:'REL-05',classification:'original-raw-measurement-data-not-authority',run:bindings.run,runReferenceAuthority:'local output label only; original CORE has no arbitrary generic runID DTO',originalRunBinding:{manifestSHA256:sha(manifestRaw),genesisHash:manifest.genesisHash,migrationHash:manifest.migrationStateHash,journalSHA256:sha(journalRaw),summarySHA256:sha(summaryRaw)},reportedClientOfferToFinalMs:{denominator:n,missingSamples:n-clientElapsed.length,conditionalSuccessOnly:true,clock:'original client Go monotonic queueDelayMs + confirmationMs; UTC is not subtracted',...(clientElapsed.length?percentiles(clientElapsed):{samples:0,p50:null,p95:null,p99:null})},sourceSHA256:Object.fromEntries(Object.entries(raws).map(([key,raw])=>[key,sha(raw)])),coverage,clientMonotonicData,bench,missingContracts:missing,CORESourceAuthenticated:false,timingProjectionAuthenticated:false,originalFinalBoundary:'Go client verified finality observation; not a physical final Commit timestamp',sustainedTPSQualified:false,signatureAndConsensusVerification:'Original Go qualifiedBusinessFinal/verifiedBusinessInclusion predicates are consumed as reports; signatures are not re-verified here.'};
+}
+// Source-declared bounded cohort: a complete plan exists before dispatch,
+// independently of which successors were signed, submitted or successful.
+function readDeclaredFinalCohort(raws,bindings,manifest,report){
+ const schema='YNX-PERF-DECLARED-COHORT/v1',plan=JSON.parse(raws.plan),observed=report.declaredCohort,trace=report.monotonicObservations,n=bindings.count*bindings.rounds;
+ requireValue(plan.schema===schema&&observed?.schema===schema&&observed.planSha256===sha(raws.plan)&&plan.manifestSha256===sha(raws.manifest)&&plan.inputSha256===sha(raws.input)&&plan.genesisHash===manifest.genesisHash&&plan.migrationHash===manifest.migrationStateHash,'declared source plan binding differs');
+ requireValue(plan.senders===bindings.count&&plan.rounds===bindings.rounds&&Array.isArray(plan.rows)&&plan.rows.length===n&&plan.windowStartNs==='0'&&Number.isFinite(plan.offeredRate)&&plan.offeredRate>0&&plan.offeredRate<=2048,'invalid declared plan inventory/rate');
+ const end=cohortNs(plan.windowEndNs,'declared window end');requireValue(end>0n&&end<=30000000000n&&end===BigInt(Math.trunc(n*1000000000/plan.offeredRate)),'declared complete count/rate/window differs');
+ requireValue(report.chainId===manifest.chainId&&report.genesisSha256===manifest.genesisHash&&report.roundsRequested===plan.rounds&&report.senderMode==='ready-pool'&&!report.retentionMode&&!report.terminalStream&&report.summary?.input===n&&Array.isArray(report.transactions)&&report.transactions.length<=n,'declared original full-history report differs');
+ requireValue(trace?.schema==='YNX-PERF-MONOTONIC-OBSERVATIONS/v1'&&observed.observationCutoffNs===trace.observationCutoffNs&&Array.isArray(observed.releasedOffsetNs)&&observed.releasedOffsetNs.length===n&&typeof observed.windowCompleted==='boolean','original release/cutoff observation missing');
+ const cutoff=cohortNs(observed.observationCutoffNs,'original observation cutoff');
+ const decodedInput=JSON.parse(raws.input),seed=Array.isArray(decodedInput)?decodedInput:decodedInput.transactions;requireValue(Array.isArray(seed)&&seed.length===plan.senders,'declared original seed count differs');
+ const seedOwners=new Set();const seedHashes=seed.map(text=>{const bytes=signedBytes(text),tx=JSON.parse(bytes);requireValue(tx.type==='transfer'&&tx.chainId===6423&&tx.version===1&&tx.nonce===1&&tx.amount===1&&tx.fee===1&&typeof tx.from==='string'&&!seedOwners.has(tx.from),'original distinct seed sender/nonce differs');seedOwners.add(tx.from);return sha(bytes).toUpperCase();}),ids=new Set();
+ for(const [i,p]of plan.rows.entries()){
+  const sender=i%plan.senders,round=Math.floor(i/plan.senders)+1,expected=sha(Buffer.from(JSON.stringify([schema,plan.manifestSha256,plan.inputSha256,i,sender,round])));
+  requireValue(p.index===i&&p.sender===sender&&p.round===round&&p.id===expected&&!ids.has(p.id)&&p.signingMode===(round===1?'pre_signed':'online_signed')&&p.logicalArrivalOffsetNs===String(Math.trunc(i*1000000000/plan.offeredRate)),'declared original logical identity/arrival differs');ids.add(p.id);
+  const release=observed.releasedOffsetNs[i];if(release!==null){const at=cohortNs(release,'actual logical release');requireValue(at>=BigInt(p.logicalArrivalOffsetNs)&&at<=cutoff,'logical release precedes plan or exceeds cutoff');}
+ }
+ requireValue(observed.windowCompleted===(cutoff>=end&&observed.releasedOffsetNs.every(x=>x!==null)),'source window completion differs from releases/cutoff');
+ const lines=raws.journal.toString('utf8').split('\n');requireValue(lines.pop()===''&&lines.length>=1&&lines.length<=n+1,'bounded original signed journal prefix required');
+ const header=JSON.parse(lines.shift());requireValue(header.kind==='YNX_LOCAL_READY_SENDER_V1'&&header.manifestSha256===plan.manifestSha256&&header.genesisHash===plan.genesisHash&&header.migrationHash===plan.migrationHash,'original declared journal header differs');
+ const signed=new Map(),hashes=new Set(),nonces=new Set();
+ for(const line of lines){const e=JSON.parse(line);requireValue(Number.isSafeInteger(e.index)&&e.index>=0&&e.index<n&&!signed.has(e.index)&&Buffer.byteLength(line)<=65536,'duplicate/out-of-plan signed intent');const p=plan.rows[e.index],bytes=signedBytes(e.transaction),hash=sha(bytes).toUpperCase(),tx=JSON.parse(bytes);requireValue(e.sender===p.sender&&e.round===p.round&&e.hash===hash&&!hashes.has(hash)&&tx.type==='transfer'&&tx.version===1&&tx.chainId===6423&&tx.nonce===p.round&&tx.amount===1&&tx.fee===1&&typeof tx.signature==='string'&&/^[a-fA-F0-9]+$/.test(tx.signature),'original signed intent binding differs');if(p.round===1)requireValue(hash===seedHashes[p.sender],'first intent differs from original pre-signed seed');const nonce=JSON.stringify([tx.from,tx.nonce]);requireValue(!nonces.has(nonce),'duplicate original sender/nonce');nonces.add(nonce);hashes.add(hash);signed.set(e.index,{hash,bytes:bytes.toString('base64')});}
+ const included=r=>Number.isSafeInteger(r.height)&&r.height>0&&r.executionCode===0&&r.quorumVerified===true&&r.transactionProofVerified===true&&r.durableStateVerified===true&&r.durableStateHeight>=r.height&&typeof r.durableSnapshotSha256==='string'&&r.durableSnapshotSha256.length>0&&(!['block-journal','snapshot-journal'].includes(r.durableStoreFormat)||(r.durableInfoVerified===true&&r.durableInfoHeight>=r.durableStateHeight));
+ const final=r=>included(r)&&r.status==='confirmed'&&typeof r.confirmedObservedAt==='string'&&r.checkTxIdentityVerified===true&&r.checkTxCode===0;
+ const sourceRows=new Map();let sourceIncluded=0,sourceFinal=0;const positions=new Set();
+ for(const r of report.transactions){requireValue(Number.isSafeInteger(r.index)&&r.index>=0&&r.index<n&&!sourceRows.has(r.index)&&r.round===plan.rows[r.index].round,'original declared result identity differs');const intent=signed.get(r.index);if(r.hash){requireValue(intent&&intent.hash===r.hash&&intent.bytes===r.signedTransaction,'result has no matching durable signed intent');}else requireValue(!r.submittedAt&&!r.confirmedObservedAt,'unsigned result invented an effect');if(included(r)){const position=JSON.stringify([r.height,r.blockHash,r.blockTxIndex]);requireValue(typeof r.blockHash==='string'&&r.blockHash.length>0&&Number.isSafeInteger(r.blockTxIndex)&&r.blockTxIndex>=0&&r.blockTxIndex<r.blockTxTotal&&!positions.has(position),'duplicate/missing original ledger position');positions.add(position);sourceIncluded++;}if(final(r))sourceFinal++;sourceRows.set(r.index,r);}
+ requireValue(report.summary.effectiveBusinessIncluded===sourceIncluded&&report.summary.finalSubmitted===sourceFinal,'declared original summary claims differ');
+ const clockData=readOriginalMonotonicData(trace,report.transactions,n,final),ctx={run:bindings.run,clockDomain:'original-client-process-monotonic',isolatedNetwork:true,loadModel:'open_loop',windowStartNs:'0',windowEndNs:plan.windowEndNs,observedUntilNs:observed.observationCutoffNs,plan:plan.rows.map(p=>({id:p.id,signingMode:p.signingMode,generatedAtNs:p.logicalArrivalOffsetNs})),records:[]};
+ for(const t of trace.rows){const r=sourceRows.get(t.index),p=plan.rows[t.index],release=observed.releasedOffsetNs[t.index],row={id:p.id,clockDomain:ctx.clockDomain};
+  if(t.submittedOffsetNs!==undefined){requireValue(release!==null&&BigInt(t.submittedOffsetNs)>=BigInt(release),'effect before actual independent generation');row.submittedAtNs=t.submittedOffsetNs;}
+  if(t.checkTxObservedOffsetNs!==undefined&&r.checkTxIdentityVerified===true&&r.checkTxCode===0)row.acceptedAtNs=t.checkTxObservedOffsetNs;
+  if(t.includedObservedOffsetNs!==undefined&&r.transactionProofVerified===true&&Number.isInteger(r.executionCode)){row.includedAtNs=t.includedObservedOffsetNs;row.height=String(r.height);row.executionCode=r.executionCode;row.businessKind='transfer';row.memberId=r.hash.toLowerCase();}
+  if(t.qualifiedFinalObservedOffsetNs!==undefined)row.finalCommitAtNs=t.qualifiedFinalObservedOffsetNs;
+  if(r.checkTxIdentityVerified===true&&Number.isInteger(r.checkTxCode)&&r.checkTxCode!==0)row.rejectedBeforeAdmission=true;
+  if(Number.isInteger(r.executionCode)&&r.executionCode!==0)row.finalFailed=true;
+  if(r.status==='timeout')row.timedOut=true;
+  if(r.status==='submission_unknown'||r.status==='not_submitted'&&r.errors?.some(e=>e.stage==='before_submission'&&e.count>0))row.sourceRequestFailed=true;
+  if(r.submittedAt&&t.submittedOffsetNs===undefined||final(r)&&t.qualifiedFinalObservedOffsetNs===undefined)row.measurementLost=true;
+  ctx.records.push(row);
+ }
+ const requests=plan.rows.map(p=>p.id),bench=observed.windowCompleted?measureFinalCohort(ctx,bindings.fromHeight,bindings.untilHeight,requests,bindings.run):null;
+ const reportedTerminalCounts={committed_success:0,rejected_before_admission:0,final_failed:0,unknown_or_unfinished:0};for(const p of plan.rows){const r=sourceRows.get(p.index);if(r&&final(r))reportedTerminalCounts.committed_success++;else if(r?.checkTxIdentityVerified===true&&Number.isInteger(r.checkTxCode)&&r.checkTxCode!==0)reportedTerminalCounts.rejected_before_admission++;else if(Number.isInteger(r?.executionCode)&&r.executionCode!==0)reportedTerminalCounts.final_failed++;else reportedTerminalCounts.unknown_or_unfinished++;}
+ return {functionId:'REL-05',classification:'original-declared-cohort-measurement-data-not-authority',run:bindings.run,runReferenceAuthority:'local output label; existing manifest/input/plan/journal hashes bind original source facts, not new authority',sourceSHA256:Object.fromEntries(Object.entries(raws).map(([k,v])=>[k,sha(v)])),reportedTerminalCounts,coverage:{denominator:n,senderCount:plan.senders,signedIntentRows:signed.size,observedRows:sourceRows.size,missingResultRows:n-sourceRows.size,withoutDurableSignedIntent:n-signed.size,notReleased:observed.releasedOffsetNs.filter(x=>x===null).length},signaturePresenceMeaning:'durable journal evidence only; missing intent is not proof no in-memory signature or external effect exists, and never authorizes replay',logicalArrivalBasis:'immutable pre-dispatch constant-arrival schedule; actual release lag remains inside end-to-end latency, missing release never erases planned demand',windowCompleted:observed.windowCompleted,actualReleaseOffsetNs:observed.releasedOffsetNs,clientMonotonicData:clockData,bench,missingContracts:observed.windowCompleted?[]:['original declared window or logical release coverage incomplete'],CORESourceAuthenticated:false,physicalCommitMeasured:false,originalFinalBoundary:'original qualified client observation upper bound, not physical Commit formation',sustainedTPSQualified:false};
+}
+function readOriginalMonotonicData(trace,rows,denominator,qualifiedFinal){
+ if(trace===undefined)return null;
+ requireValue(trace?.schema==='YNX-PERF-MONOTONIC-OBSERVATIONS/v1'&&Array.isArray(trace.rows)&&trace.rows.length===rows.length&&trace.logicalGenerationMeasured===false&&trace.fixedWindowConfigured===false&&trace.physicalCommitMeasured===false,'unsupported original observation schema or wider clock claim');
+ for(const key of ['missingClockPoints','invalidClockPoints','unqualifiedFinalSlots'])requireValue(Number.isSafeInteger(trace[key])&&trace[key]>=0,'invalid original clock accounting');
+ const cutoff=cohortNs(trace.observationCutoffNs,'original observation cutoff'),keys=['scheduledOffsetNs','offeredOffsetNs','submittedOffsetNs','checkTxObservedOffsetNs','includedObservedOffsetNs','qualifiedFinalObservedOffsetNs'];
+ const counts=Object.fromEntries(keys.map(k=>[k,0])),latencies=[];
+ for(const [slot,t]of trace.rows.entries()){
+  const original=rows[slot];requireValue(t.slot===slot&&t.index===original.index&&t.round===(original.round??0)&&t.hash===original.hash,'original clock slot/index/hash binding differs');
+  let last=0n;const times={};
+  for(const key of keys){if(t[key]===undefined||t[key]===null)continue;const value=cohortNs(t[key],key);requireValue(value>=last&&value<=cutoff,'original observation order/cutoff differs');times[key]=value;last=value;counts[key]++;}
+  if(times.qualifiedFinalObservedOffsetNs!==undefined){requireValue(qualifiedFinal(original),'unqualified original final clock promoted');if(times.offeredOffsetNs!==undefined)latencies.push(times.qualifiedFinalObservedOffsetNs-times.offeredOffsetNs);}
+ }
+ latencies.sort((a,b)=>a<b?-1:a>b?1:0);
+ return {schema:trace.schema,denominator,observationCutoffNs:String(cutoff),observedStageCounts:counts,missingClockPoints:trace.missingClockPoints,invalidClockPoints:trace.invalidClockPoints,unqualifiedFinalSlots:trace.unqualifiedFinalSlots,conditionalOfferToQualifiedFinalNs:{samples:latencies.length,denominator,missingSamples:denominator-latencies.length,conditionalSuccessOnly:true,...Object.fromEntries([50,95,99].map(p=>['p'+p+'Ns',latencies.length?String(latencies[Math.ceil(p*latencies.length/100)-1]):null]))},clockSource:'original same-process Go monotonic export; never UTC subtraction',logicalGenerationMeasured:false,fixedWindowConfigured:false,physicalCommitMeasured:false,sourceAuthenticatedHere:false};
+}
+function readCohortRawFile(file,maxBytes){
+ requireValue(typeof file==='string'&&path.isAbsolute(file)&&path.normalize(file)===file&&fs.realpathSync(file)===file,'canonical original input path required');
+ const before=fs.lstatSync(file,{bigint:true});requireValue(before.isFile()&&before.nlink===1n&&before.size>0n&&before.size<=BigInt(maxBytes)&&(before.mode&0o022n)===0n,'bounded protected original input required');
+ requireValue(Number.isInteger(fs.constants.O_NOFOLLOW),'original no-follow identity support required');
+ const fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);
+ try{const opened=fs.fstatSync(fd,{bigint:true});requireValue(opened.dev===before.dev&&opened.ino===before.ino,'original changed during open');const raw=Buffer.alloc(Number(before.size));let offset=0;while(offset<raw.length){const n=fs.readSync(fd,raw,offset,raw.length-offset,null);requireValue(n>0,'truncated original input');offset+=n;}const after=fs.fstatSync(fd,{bigint:true}),named=fs.lstatSync(file,{bigint:true});for(const key of ['dev','ino','size','mode','nlink','mtimeNs','ctimeNs'])requireValue(before[key]===after[key]&&after[key]===named[key],'original changed during read');requireValue(raw.length===Number(before.size),'original length differs');return raw;}finally{fs.closeSync(fd);}
+}
+export function runFinalCohortReadback(args){
+ requireValue(Array.isArray(args)&&[10,12,14].includes(args.length),'exact manifest/journal/summary/bindings/output and optional context flags required');const o={};
+ for(let i=0;i<args.length;i+=2){requireValue(['--manifest','--journal','--summary','--bindings','--context','--plan','--input','--output'].includes(args[i])&&!Object.hasOwn(o,args[i]),'duplicate or unknown cohort flag');o[args[i]]=args[i+1];}
+ requireValue(['--manifest','--journal','--summary','--bindings','--output'].every(k=>typeof o[k]==='string'),'original cohort inputs missing');
+ requireValue(!!o['--plan']===!!o['--input'],'declared plan and original input must be supplied together');
+ const bindings=JSON.parse(readCohortRawFile(o['--bindings'],1048576)),result=measureOriginalFinalCohort({manifestRaw:readCohortRawFile(o['--manifest'],1048576),journalRaw:readCohortRawFile(o['--journal'],8388608),summaryRaw:readCohortRawFile(o['--summary'],8388608),bindings,...(o['--context']?{contextRaw:readCohortRawFile(o['--context'],8388608)}:{}),...(o['--plan']?{planRaw:readCohortRawFile(o['--plan'],8388608),inputRaw:readCohortRawFile(o['--input'],8388608)}:{})});
+ const out=o['--output'],parent=path.dirname(out);requireValue(path.isAbsolute(out)&&path.normalize(out)===out&&fs.realpathSync(parent)===parent,'canonical existing output parent required');
+ const fd=fs.openSync(out,'wx',0o600);try{fs.writeFileSync(fd,JSON.stringify(result)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}const directory=fs.openSync(parent,'r');try{fs.fsyncSync(directory);}finally{fs.closeSync(directory);}return result;
+}
+if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){try{runFinalCohortReadback(process.argv.slice(2));}catch(error){process.stderr.write('final cohort readback refused: '+error.message+'\n');process.exitCode=1;}}

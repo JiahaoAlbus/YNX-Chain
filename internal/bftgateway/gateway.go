@@ -333,6 +333,7 @@ func (g *Gateway) routes() {
 	g.mux.HandleFunc("GET /transactions/pq/ethereum/{hash}", g.handlePQEthereumTransaction)
 	g.mux.HandleFunc("GET /transactions/pq/ethereum/originals/{hash}", g.handlePQEthereumOriginal)
 	g.mux.HandleFunc("POST /transactions/pq/actions/broadcast", g.handlePQActionBroadcast)
+	g.mux.HandleFunc("GET /invoices/pq/{merchant}/{invoice}", g.handlePQInvoice)
 	g.mux.HandleFunc("GET /transactions/pq/actions/{hash}", g.handlePQActionTransaction)
 	g.mux.HandleFunc("GET /transactions/pq/actions/originals/{hash}", g.handlePQActionOriginal)
 	g.mux.HandleFunc("GET /txs/{hash}/pq-action-finality-proof", g.handlePQActionABCIFinality)

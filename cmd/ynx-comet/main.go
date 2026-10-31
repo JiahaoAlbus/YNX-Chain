@@ -35,6 +35,7 @@ type pqOptions struct {
 	remoteAddress, transportKey, peerPin                              string
 	remoteTimeout                                                     time.Duration
 	runtimePlan, runtimePlanHash                                      string
+	invoiceSchedule, invoiceScheduleHash                              string
 	stateLayout                                                       string
 	heightHaltControl, heightHaltPlanHash, heightHaltSessionID        string
 	proofLivePolicy, proofLivePolicyHash                              string
@@ -44,7 +45,7 @@ type pqOptions struct {
 }
 
 func (p pqOptions) enabled() bool {
-	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured()
+	return p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured()
 }
 
 func (p pqOptions) remote() bool {
@@ -62,6 +63,9 @@ func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
 }
 
 func (p pqOptions) validate() error {
+	if err := p.validateInvoiceOptions(); err != nil {
+		return err
+	}
 	if err := p.validateCheckpointAccess(); err != nil {
 		return err
 	}
@@ -479,6 +483,8 @@ func main() {
 	registerCheckpointAccessFlags(f, &options)
 	f.StringVar(&options.runtimePlan, "runtime-upgrade-plan", "", "canonical independently pinned old-runtime upgrade plan")
 	f.StringVar(&options.runtimePlanHash, "runtime-upgrade-plan-hash", "", "independent exact runtime upgrade plan hash")
+	f.StringVar(&options.invoiceSchedule, "pq-invoice-schedule", "", "canonical independently pinned invoice activation schedule (default disabled)")
+	f.StringVar(&options.invoiceScheduleHash, "pq-invoice-schedule-hash", "", "independent exact invoice schedule hash")
 	f.StringVar(&options.migration, "migration-state", "", "original validated key-bound migration JSON")
 	f.StringVar(&options.state, "abci-state", "", "existing durable application state for the in-process PQ node")
 	f.StringVar(&options.stateLayout, "abci-state-layout", "atomic-json", "original application storage layout: atomic-json, snapshot-journal or block-journal")

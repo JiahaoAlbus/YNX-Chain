@@ -57,7 +57,21 @@ func NewBlockJournaledApplicationWithRuntimeUpgrade(migration chain.ConsensusMig
 	return newJournaledApplicationWithRuntimeAuthority(migration, path, bootstrap, pq, authorization, true)
 }
 
-func newJournaledApplicationWithRuntimeAuthority(state chain.ConsensusMigrationState, path string, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, block bool) (*Application, error) {
+func newJournaledApplicationWithRuntimeAuthority(state chain.ConsensusMigrationState, path string, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, block bool, invoiceOption ...*PQInvoiceAuthorization) (*Application, error) {
+	var invoice *PQInvoiceAuthorization
+	if len(invoiceOption) > 1 {
+		return nil, errors.New("duplicate invoice authorization")
+	}
+	if len(invoiceOption) == 1 {
+		invoice = invoiceOption[0]
+	}
+	if invoice != nil {
+		owned := *invoice
+		invoice = &owned
+	}
+	if block && invoice != nil {
+		return nil, errors.New("invoice authorization does not support block-journal replay")
+	}
 	path = strings.TrimSpace(path)
 	if path == "" || bootstrap == nil {
 		return nil, errors.New("authorized journal requires an explicit durable path and independent bootstrap")
@@ -74,7 +88,7 @@ func newJournaledApplicationWithRuntimeAuthority(state chain.ConsensusMigrationS
 	if block {
 		a.blockJournal, committed, err = openBlockJournalWithRuntimeAuthority(path, a.migration, bootstrap, authorization, runtime)
 	} else {
-		a.journal, committed, err = openSnapshotJournalWithRuntimeAuthority(path, a.migration, bootstrap, authorization, runtime)
+		a.journal, committed, err = openSnapshotJournalWithRuntimeAuthority(path, a.migration, bootstrap, authorization, runtime, invoice)
 	}
 	if err != nil {
 		return nil, err
@@ -84,6 +98,7 @@ func newJournaledApplicationWithRuntimeAuthority(state chain.ConsensusMigrationS
 	committed.bootstrap = bootstrap
 	a.committed, a.statePath, a.pqEngineAuthorization = committed, path, authorization
 	a.runtimeUpgradeAuthorization = runtime
+	a.pqInvoiceAuthorization = invoice
 	a.observePersistenceResult(committed, nil)
 	return a, nil
 }

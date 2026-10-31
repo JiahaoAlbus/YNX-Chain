@@ -127,8 +127,26 @@ func openSnapshotJournalWithAuthority(path string, migration chain.ConsensusMigr
 	return openSnapshotJournalWithRuntimeAuthority(path, migration, bootstrap, authorization, nil)
 }
 
-func openSnapshotJournalWithRuntimeAuthority(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization) (*snapshotJournal, CommittedState, error) {
+func openSnapshotJournalWithRuntimeAuthority(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, invoiceOption ...*PQInvoiceAuthorization) (*snapshotJournal, CommittedState, error) {
+	var invoice *PQInvoiceAuthorization
+	if len(invoiceOption) > 1 {
+		return nil, CommittedState{}, errors.New("duplicate invoice authorization")
+	}
+	if len(invoiceOption) == 1 {
+		invoice = invoiceOption[0]
+	}
 	var preflight os.FileInfo
+	if invoice != nil {
+		// The feature binds an existing initialized checkpoint, never a newly
+		// created journal. Use the normal stable, locked read before any writes.
+		state, err := readPQEngineCommittedState(path, migration, bootstrap, authorization, runtime)
+		if err != nil {
+			return nil, CommittedState{}, err
+		}
+		if err := validateInvoiceStartup(state, migration, bootstrap, invoice); err != nil {
+			return nil, CommittedState{}, err
+		}
+	}
 	if runtime != nil {
 		var err error
 		preflight, err = preflightRuntimeJournalAuthority(path, migration, bootstrap, authorization, runtime, false)
@@ -245,6 +263,9 @@ func openSnapshotJournalWithRuntimeAuthority(path string, migration chain.Consen
 		return nil, CommittedState{}, errors.New("authorized snapshot journal has an incomplete tail; original bytes require reconciliation")
 	}
 	if latest == nil {
+		if err := validateInvoiceStartup(initial, migration, bootstrap, invoice); err != nil {
+			return nil, CommittedState{}, err
+		}
 		if bootstrap != nil {
 			if err := validateJournalAuthority(initial, migration, bootstrap, authorization); err != nil {
 				return nil, CommittedState{}, err
@@ -264,6 +285,9 @@ func openSnapshotJournalWithRuntimeAuthority(path string, migration chain.Consen
 		if err := validateJournalRuntimeAuthority(state, migration, bootstrap, authorization, runtime); err != nil {
 			return nil, CommittedState{}, err
 		}
+	}
+	if err := validateInvoiceStartup(state, migration, bootstrap, invoice); err != nil {
+		return nil, CommittedState{}, err
 	}
 	// A complete record can come from an unacknowledged prior write. Sync it
 	// during recovery before Info publishes its height, without truncating it.

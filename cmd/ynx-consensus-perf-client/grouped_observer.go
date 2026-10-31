@@ -219,6 +219,7 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 			}
 			observed := time.Now()
 			now, elapsed := observed.UTC(), observed.Sub(job.started).Seconds()*1000
+			r.includedMonotonic = observed
 			r.IncludedObservedAt, r.InclusionMs = &now, &elapsed
 			included = queried
 			g.included[i] = included
@@ -351,6 +352,7 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 		for _, job := range valid {
 			r := &g.results[job.index]
 			now, elapsed := observed.UTC(), observed.Sub(job.started).Seconds()*1000
+			r.finalMonotonic = observed
 			r.Status, r.ConfirmedObservedAt, r.ConfirmationMs = "confirmed", &now, &elapsed
 			r.DurableStateVerified, r.DurableStateHeight, r.DurableStateAppHash = true, state.Height, state.AppHash
 			r.DurableSnapshotSHA256, r.DurableSnapshotCacheHit = state.SnapshotSHA256, state.SnapshotCacheHit

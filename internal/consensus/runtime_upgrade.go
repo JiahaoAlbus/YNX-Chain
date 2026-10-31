@@ -206,7 +206,7 @@ func (c *runtimeUpgradeCursor) validateCheckpoint(s CommittedState, trusted runt
 		if s.Height == c.plan.CheckpointHeight && s.AppHash != c.plan.CheckpointAppHash {
 			return errors.New("runtime upgrade boundary differs from independently pinned checkpoint hash")
 		}
-	} else if (s.Version != 18 && s.Version != 19 && s.Version != 20) || trusted.appVersion != c.plan.NewApplicationVersion {
+	} else if (s.Version != 18 && s.Version != 19 && s.Version != 20 && s.Version != PQInvoiceLedgerStateVersion) || trusted.appVersion != c.plan.NewApplicationVersion {
 		return errors.New("post-upgrade checkpoint must use the authorized runtime and exact supported schema")
 	}
 	return nil

@@ -287,6 +287,18 @@ func paidSettlementForIntent(values []BFTPaySettlement, intentID string) (int, B
 }
 
 func payTransferClaimed(state executionState, transactionHash string) bool {
+	if state.invoiceLedger != nil {
+		for _, record := range state.invoiceLedger.Records {
+			if record.Settlement != nil && record.Settlement.ABCIHash == transactionHash {
+				return true
+			}
+			for _, refund := range record.Refunds {
+				if refund.ABCIHash == transactionHash {
+					return true
+				}
+			}
+		}
+	}
 	for _, settlement := range state.paySettlements {
 		if settlement.TransactionHash == transactionHash {
 			return true

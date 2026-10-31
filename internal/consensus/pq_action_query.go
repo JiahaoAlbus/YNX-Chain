@@ -69,6 +69,7 @@ type pqActionEffects struct {
 	DEX       *pqActionDexEffects            `json:"dex"`
 	Contract  *BFTEVMReceipt                 `json:"contract"`
 	Staking   *pqActionStakingEffects        `json:"staking,omitempty"`
+	Invoice   *pqActionInvoiceEffects        `json:"invoice,omitempty"`
 }
 
 // DecodePQActionTransport uses exactly the existing executor codecs. It does
@@ -123,7 +124,7 @@ func pqActionOriginal(entry PQCommittedAuthorization) ([]byte, error) {
 		r, _, _, err := decodePQContractHistory(tx)
 		return r.Transport, err
 	}
-	for _, prefix := range []string{pqNativeActionHistoryMemo, pqResourceHistoryMemo, pqDexHistoryMemo, pqStakingHistoryMemo} {
+	for _, prefix := range []string{pqNativeActionHistoryMemo, pqResourceHistoryMemo, pqDexHistoryMemo, pqStakingHistoryMemo, pqInvoiceHistoryMemo} {
 		limit := 4*chain.MaxPQActionMemberBytes + 1024
 		if prefix == pqStakingHistoryMemo {
 			limit = 2*MaxPQContractTransactionBytes + len(prefix)
@@ -181,6 +182,12 @@ func ValidatePQActionHistoryView(v PQActionHistoryView, queryHeight int64) (chai
 	}
 	if tx.BlockHash != "" || len(tx.Logs) != 0 || tx.Sponsor != "" || tx.SponsorPoolID != "" || tx.ResourceSource != "" || tx.ResourceType != "" || tx.ResourceConsumed != 0 || tx.ActionReference != "" {
 		return fail(errors.New("action history contains unexecuted metadata"))
+	}
+	if ynxauth.IsInvoiceAction(action.Kind) {
+		return tx, action, validatePQActionInvoice(entry, effects, auth)
+	}
+	if effects.Invoice != nil {
+		return fail(errors.New("non-invoice action acquired invoice effects"))
 	}
 	feeBearing := isDexAction(action.Kind) || isStakingAction(action.Kind) || action.Kind == ynxauth.ActionContractDeploy || action.Kind == ynxauth.ActionContractExecute
 	if feeBearing {
@@ -372,6 +379,26 @@ func pqActionHistoryView(s CommittedState, m chain.ConsensusMigrationState, hash
 	}
 	effects := pqActionEffects{}
 	switch {
+	case ynxauth.IsInvoiceAction(action.Kind):
+		var merchant, id string
+		merchant, id, err = invoiceActionIdentity(action)
+		if err == nil {
+			var original PQInvoiceView
+			var result PQInvoiceEffect
+			original, result, err = pqInvoiceView(s, m, merchant, id, hash)
+			effects.Invoice = &pqActionInvoiceEffects{Original: original, Result: result}
+		}
+		if err == nil && action.Kind != ynxauth.ActionInvoiceTerms {
+			for _, transfer := range s.NativeTransfers {
+				if transfer.TransactionHash == entry.ABCITransactionHash {
+					if effects.Invoice.Transfer != nil {
+						return v, errors.New("duplicate invoice transfer receipt")
+					}
+					copy := transfer
+					effects.Invoice.Transfer = &copy
+				}
+			}
+		}
 	case action.Kind == ynxauth.ActionStake:
 		err = validateConsensusPQNativeActions(s, m)
 	case isStakingAction(action.Kind):
@@ -408,7 +435,7 @@ func pqActionHistoryView(s CommittedState, m chain.ConsensusMigrationState, hash
 	if err != nil {
 		return v, err
 	}
-	if isDexAction(action.Kind) || isStakingAction(action.Kind) || isPQContractHistory(entry.Transaction) {
+	if isDexAction(action.Kind) || isStakingAction(action.Kind) || isPQContractHistory(entry.Transaction) || ynxauth.IsInvoiceAction(action.Kind) {
 		if m.Runtime == nil {
 			return v, errors.New("action fee lacks complete original source lineage")
 		}

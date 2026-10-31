@@ -352,6 +352,9 @@ func openBlockJournalWithRuntimeAuthority(path string, migration chain.Consensus
 	if err != nil {
 		return nil, CommittedState{}, err
 	}
+	if state.InvoiceLedger != nil {
+		return nil, CommittedState{}, errors.New("invoice ledger is unsupported in block-journal writer recovery")
+	}
 	if bootstrap != nil {
 		if j.io.end != info.Size() {
 			return nil, CommittedState{}, errors.New("authorized block journal has an incomplete tail; original bytes retained")

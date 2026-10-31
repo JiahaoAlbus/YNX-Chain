@@ -53,6 +53,7 @@ type Application struct {
 	persistence                 applicationPersistenceObservation
 	pqCertificateCache          *chain.PQCertificateCache
 	pqEngineAuthorization       *PQEngineAuthorization
+	pqInvoiceAuthorization      *PQInvoiceAuthorization
 	runtimeUpgradeAuthorization *RuntimeUpgradeAuthorization
 	runtimeUpgradeCursor        *runtimeUpgradeCursor
 
@@ -69,6 +70,7 @@ type executionState struct {
 	bootstrap                  *ConsensusBootstrap
 	validatorRegistry          *ValidatorRegistryState
 	pqEngineSchedule           *PQEngineSchedule
+	invoiceLedger              *PQInvoiceLedger
 	legacyContracts            *LegacyContracts
 	legacyResourceMarket       *LegacyResourceMarket
 	legacyResourceSponsor      *LegacyResourceSponsor
@@ -208,7 +210,18 @@ func newPersistentApplicationWithAuthorization(state chain.ConsensusMigrationSta
 }
 
 // The only migration input of this private constructor is the owned witness.
-func newPersistentApplicationOwned(witness *validatedMigration, statePath string, hooks *committedPersistenceHooks, authorization *PQEngineAuthorization) (*Application, error) {
+func newPersistentApplicationOwned(witness *validatedMigration, statePath string, hooks *committedPersistenceHooks, authorization *PQEngineAuthorization, invoiceOption ...*PQInvoiceAuthorization) (*Application, error) {
+	var invoice *PQInvoiceAuthorization
+	if len(invoiceOption) > 1 {
+		return nil, errors.New("duplicate invoice authorization")
+	}
+	if len(invoiceOption) == 1 {
+		invoice = invoiceOption[0]
+	}
+	if invoice != nil {
+		owned := *invoice
+		invoice = &owned
+	}
 	if err := witness.valid(); err != nil {
 		return nil, err
 	}
@@ -235,6 +248,9 @@ func newPersistentApplicationOwned(witness *validatedMigration, statePath string
 			return nil, fmt.Errorf("validate independently authorized engine candidate: %w", err)
 		}
 	}
+	if err := validateInvoiceStartup(committed, migration, bootstrap, invoice); err != nil {
+		return nil, err
+	}
 	if err := confirmLoadedCommittedState(strings.TrimSpace(statePath), hooks); err != nil {
 		return nil, err
 	}
@@ -249,15 +265,16 @@ func newPersistentApplicationOwned(witness *validatedMigration, statePath string
 		return nil, errors.New("YNX migration has no active fee recipient")
 	}
 	application := &Application{
-		pqCertificateCache:    chain.NewPQCertificateCache(),
-		pqEngineAuthorization: authorization,
-		bootstrap:             bootstrap,
-		persistenceHooks:      hooks,
-		migration:             migration,
-		validatedMigration:    witness,
-		committed:             committed,
-		statePath:             strings.TrimSpace(statePath),
-		feeRecipient:          feeRecipient,
+		pqCertificateCache:     chain.NewPQCertificateCache(),
+		pqEngineAuthorization:  authorization,
+		pqInvoiceAuthorization: invoice,
+		bootstrap:              bootstrap,
+		persistenceHooks:       hooks,
+		migration:              migration,
+		validatedMigration:     witness,
+		committed:              committed,
+		statePath:              strings.TrimSpace(statePath),
+		feeRecipient:           feeRecipient,
 	}
 	application.observeLoadedPersistence(persistedBefore, persistedBeforeErr)
 	return application, nil
@@ -393,6 +410,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	}
 	if queryPQAction(response, req, a.committed, a.migration) {
+		return response, nil
+	}
+	if queryPQInvoice(response, req, a.committed, a.migration) {
 		return response, nil
 	}
 	if req.Path == "/validator-registry" {
@@ -924,6 +944,12 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	if err := validatePQEngineScheduleContinuation(a.committed.PQEngineSchedule, pending.PQEngineSchedule); err != nil {
 		return nil, err
 	}
+	if err := validatePQInvoiceContinuation(a.committed.InvoiceLedger, pending.InvoiceLedger); err != nil {
+		return nil, err
+	}
+	if err := a.pqInvoiceAuthorization.ValidateCommittedLedger(pending.InvoiceLedger, pending.Height); err != nil {
+		return nil, err
+	}
 	appHash, err := hex.DecodeString(pending.AppHash)
 	if err != nil {
 		return nil, err
@@ -984,6 +1010,12 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 	if err := a.pqEngineAuthorization.ValidateCommittedSchedule(a.pending.PQEngineSchedule, a.pending.Height); err != nil {
 		return nil, err
 	}
+	if err := validatePQInvoiceContinuation(a.committed.InvoiceLedger, a.pending.InvoiceLedger); err != nil {
+		return nil, err
+	}
+	if err := a.pqInvoiceAuthorization.ValidateCommittedLedger(a.pending.InvoiceLedger, a.pending.Height); err != nil {
+		return nil, err
+	}
 	var started time.Time
 	if a.commitTimingEnabled {
 		started = time.Now()
@@ -1042,7 +1074,7 @@ func (a *Application) committedExecutionStateView() executionState {
 	}
 	return executionState{
 		hashVersion: a.replayStateVersion,
-		bootstrap:   a.bootstrap, validatorRegistry: a.committed.ValidatorRegistry, pqEngineSchedule: a.committed.PQEngineSchedule,
+		bootstrap:   a.bootstrap, validatorRegistry: a.committed.ValidatorRegistry, pqEngineSchedule: a.committed.PQEngineSchedule, invoiceLedger: a.committed.InvoiceLedger,
 		legacyContracts: a.committed.LegacyContracts, legacyResourceMarket: a.committed.LegacyResourceMarket, legacyResourceSponsor: a.committed.LegacyResourceSponsor,
 		legacyPaySource: a.committed.LegacyPaySource, legacyAISource: a.committed.LegacyAISource, legacyTrustSource: a.committed.LegacyTrustSource,
 		traceLots: traceLots, accountPolicy: a.committed.AccountPolicy, pqHistory: a.committed.PQHistory, pqBatches: a.committed.PQBatches,
@@ -1351,8 +1383,9 @@ func (a *Application) applyAuthorizedEthereumValueTransfer(state executionState,
 
 func cloneExecutionStateValue(state executionState) executionState {
 	return executionState{
-		hashVersion: state.hashVersion,
-		bootstrap:   state.bootstrap, validatorRegistry: cloneValidatorRegistry(state.validatorRegistry), pqEngineSchedule: clonePQEngineSchedule(state.pqEngineSchedule),
+		hashVersion:   state.hashVersion,
+		invoiceLedger: clonePQInvoiceLedger(state.invoiceLedger),
+		bootstrap:     state.bootstrap, validatorRegistry: cloneValidatorRegistry(state.validatorRegistry), pqEngineSchedule: clonePQEngineSchedule(state.pqEngineSchedule),
 		legacyContracts: cloneLegacyContracts(state.legacyContracts), legacyResourceMarket: cloneLegacyResourceMarket(state.legacyResourceMarket), legacyResourceSponsor: cloneLegacyResourceSponsor(state.legacyResourceSponsor),
 		legacyPaySource: cloneLegacyPaySource(state.legacyPaySource), legacyAISource: cloneLegacyAISource(state.legacyAISource), legacyTrustSource: cloneLegacyTrustSource(state.legacyTrustSource),
 		traceLots: cloneTraceLots(state.traceLots), accountPolicy: cloneConsensusAccountPolicy(state.accountPolicy), pqHistory: clonePQHistory(state.pqHistory), pqBatches: cloneConsensusPQBatches(state.pqBatches),

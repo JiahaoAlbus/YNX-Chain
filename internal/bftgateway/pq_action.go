@@ -36,6 +36,7 @@ type PQActionView struct {
 	Fee                   uint64          `json:"fee,string"`
 	Nonce                 uint64          `json:"nonce,string"`
 	Effects               json.RawMessage `json:"effects,omitempty"`
+	ExecutionData         []byte          `json:"executionData,omitempty"`
 	ReadbackURL           string          `json:"readbackUrl"`
 	ABCIReadbackURL       string          `json:"abciReadbackUrl,omitempty"`
 	Error                 string          `json:"error,omitempty"`
@@ -129,7 +130,11 @@ func (g *Gateway) projectPQAction(ctx context.Context, indexed cometTx, known *c
 		v.Status, v.Error, v.ExecutionHeight, v.CometIndex = "rejected", indexed.TxResult.Log, height, &indexed.Index
 		return v, nil
 	}
-	if !bytes.Equal(indexed.TxResult.Data, []byte(v.ABCITransactionHash)) {
+	if ynxauth.IsInvoiceAction(action.Kind) {
+		if _, err := consensus.ValidatePQInvoiceEffectData(wire, indexed.Tx, height, indexed.TxResult.Data); err != nil {
+			return v, err
+		}
+	} else if !bytes.Equal(indexed.TxResult.Data, []byte(v.ABCITransactionHash)) {
 		return v, errors.New("successful action index lacks exact execution identity")
 	}
 	var history consensus.PQActionHistoryView
@@ -150,6 +155,13 @@ func (g *Gateway) projectPQAction(ctx context.Context, indexed cometTx, known *c
 	}
 	if tx.Hash != v.NativeTransactionHash || history.ABCITransactionHash != v.ABCITransactionHash {
 		return v, errors.New("committed action original identity mismatch")
+	}
+	if ynxauth.IsInvoiceAction(action.Kind) {
+		expected, err := consensus.PQInvoiceActionResult(history, queryHeight)
+		if err != nil || !bytes.Equal(expected, indexed.TxResult.Data) {
+			return v, errors.New("indexed invoice result differs from original historical execution")
+		}
+		v.ExecutionData = bytes.Clone(indexed.TxResult.Data)
 	}
 	effects, err := decimalPQActionEffects(history.Effects)
 	if err != nil {
@@ -286,7 +298,11 @@ func (g *Gateway) handlePQActionBroadcast(w http.ResponseWriter, r *http.Request
 		writeJSON(w, http.StatusUnprocessableEntity, confirmed)
 		return
 	}
-	if !confirmed.Committed || !bytes.Equal(broadcast.Result.TxResult.Data, []byte(v.ABCITransactionHash)) {
+	expectedData := []byte(v.ABCITransactionHash)
+	if ynxauth.IsInvoiceAction(action.Kind) {
+		expectedData = confirmed.ExecutionData
+	}
+	if !confirmed.Committed || len(expectedData) == 0 || !bytes.Equal(broadcast.Result.TxResult.Data, expectedData) {
 		unknown(errors.New("broadcast action result lacks matching committed original"))
 		return
 	}

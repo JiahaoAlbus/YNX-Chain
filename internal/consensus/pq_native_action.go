@@ -33,7 +33,7 @@ func EncodePQNativeActionTransaction(wire []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if action.Kind != ynxauth.ActionStake && action.Kind != ynxauth.ActionResourceDelegate && action.Kind != ynxauth.ActionResourceRent && !isDexAction(action.Kind) && !isStakingAction(action.Kind) {
+	if action.Kind != ynxauth.ActionStake && action.Kind != ynxauth.ActionResourceDelegate && action.Kind != ynxauth.ActionResourceRent && !isDexAction(action.Kind) && !isStakingAction(action.Kind) && !ynxauth.IsInvoiceAction(action.Kind) {
 		return nil, errors.New("ABCI native action executor is not enabled for this kind")
 	}
 	return json.Marshal(PQTransaction{Version: 1, Type: PQActionType, WireHex: hex.EncodeToString(wire)})
@@ -89,6 +89,9 @@ func (a *Application) applyPQActionTransaction(state executionState, raw []byte,
 	action, err := ynxauth.DecodeAction(member.Message)
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	if ynxauth.IsInvoiceAction(action.Kind) {
+		return a.applyPQInvoiceAction(state, raw, height, at)
 	}
 	if action.Kind == ynxauth.ActionContractDeploy || action.Kind == ynxauth.ActionContractExecute {
 		return a.applyPQContractAction(state, raw, height, at)

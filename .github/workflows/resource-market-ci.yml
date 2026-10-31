@@ -24,6 +24,10 @@ on:
       - 'scripts/ops/test_registered_n1_verify_cabi_supply.py'
       - 'scripts/fixtures/verify-product-device-v4-cabi/**'
       - 'scripts/verify/product-device-v4-cabi-check.sh'
+      - 'scripts/fixtures/verify-product-device-keypair-v4/**'
+      - 'scripts/verify/product-device-keypair-v4-cabi-check.sh'
+      - 'scripts/ops/test_product_device_keypair_v4_supply.py'
+      - 'scripts/fixtures/verify-invoice-tx-cabi/**'
       - 'scripts/ops/validate-private-consensus-copy.py'
       - 'scripts/ops/test_validate_private_consensus_copy.py'
       - 'scripts/ops/verify-original-native-copy.py'
@@ -655,6 +659,20 @@ jobs:
                   raise RuntimeError('fixed product device core did not execute and pass: ' + name)
           print('YNX_PRODUCT_DEVICE_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=device, suitePassed=True, accountAuthorized=False, nativeCustodyVerified=False), sort_keys=True))
           PY
+      - name: Qualify device creator and invoice execution from the original full core suite
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          rows = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-native-cabi-core-tests.jsonl').read_text().splitlines()]
+          required = ['TestProductDeviceKeypairV4FreshActualImportAndAND', 'TestProductDeviceKeypairV4FullPairAndDERCorruptionRejected', 'TestProductDeviceKeypairV4PreTransferFailureClearsAndPreservesFirstCause', 'TestProductDeviceKeypairV4LatePrivateOutcomeStaysUnknown', 'TestInvoiceTransactionCanonicalVectorsAndOwnedSigning', 'TestInvoiceTransactionCurrentPolicyEpochAndFullPair', 'TestInvoiceTransactionANDTamperAndUnknownPreservation', 'TestInvoiceTransactionPublicExportPreservesExisting']
+          for name in required:
+              terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('new native core did not execute and pass: ' + name)
+          print('YNX_DEVICE_CREATOR_INVOICE_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=required, suitePassed=True, accountAuthorized=False, nativeCustodyVerified=False), sort_keys=True))
+          PY
       - name: Execute actual C ABI and independently verify both signatures
         run: |
           set -euo pipefail
@@ -671,6 +689,19 @@ jobs:
           bash scripts/verify/account-initial-cabi-check.sh \
             "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \
             "$RUNNER_TEMP/ynx-account-initial-cabi"
+      - name: Execute invoice actions through the existing Wallet transaction C ABI
+        run: |
+          set -euo pipefail
+          bash scripts/fixtures/verify-invoice-tx-cabi/check.sh \
+            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \
+            "$RUNNER_TEMP/ynx-invoice-tx-cabi"
+      - name: Upload only the actual invoice C ABI public result
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-invoice-tx-cabi-public-${{ matrix.runner }}-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-invoice-tx-cabi/PUBLIC-RESULT.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Execute fixed publisher generation and both registration proofs from the same archive
         run: |
           set -euo pipefail
@@ -761,7 +792,9 @@ jobs:
               'scripts/verify/transaction-batch-cabi-check.sh', 'scripts/fixtures/verify-account-initial-cabi',
               'scripts/verify/account-initial-cabi-check.sh', 'scripts/fixtures/verify-publisher-registration-cabi',
               'scripts/verify/publisher-registration-cabi-check.sh', 'scripts/fixtures/verify-product-session-http-cabi',
-              'scripts/verify/product-session-http-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()
+              'scripts/verify/product-session-http-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',
+              'scripts/verify/product-device-keypair-v4-cabi-check.sh', 'scripts/fixtures/verify-invoice-tx-cabi',
+              '.github/workflows/resource-market-ci.yml').splitlines()
           sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}
           native_os, native_arch = command('go','env','GOOS'), command('go','env','GOARCH')
           targets = [('native-host', case / 'libynx_artifact_release.a', native_os, native_arch, True)]
@@ -855,6 +888,20 @@ jobs:
         with:
           name: ynx-product-device-sign-cabi-native-${{ matrix.runner }}-${{ github.sha }}
           path: ${{ runner.temp }}/ynx-product-device-v4-cabi/delivery/*
+          if-no-files-found: error
+          retention-days: 7
+      - name: Execute the fixed device creator from the same sealed native archive
+        run: |
+          set -euo pipefail
+          python3 -B scripts/ops/test_product_device_keypair_v4_supply.py
+          bash scripts/verify/product-device-keypair-v4-cabi-check.sh \
+            "$RUNNER_TEMP/ynx-artifact-release-cabi/delivery/native-host" \
+            "$RUNNER_TEMP/ynx-product-device-keypair-v4-cabi"
+      - name: Upload only the public device creator archive header and actual evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-product-device-keypair-cabi-native-${{ matrix.runner }}-${{ github.sha }}
+          path: ${{ runner.temp }}/ynx-product-device-keypair-v4-cabi/delivery/*
           if-no-files-found: error
           retention-days: 7
       - name: Seal the same executed archive with dedicated publisher public evidence

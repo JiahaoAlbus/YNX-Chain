@@ -37,6 +37,9 @@ func (p pqOptions) validateApplicationLayout() error {
 }
 
 func newOperatorApplication(migration chain.ConsensusMigrationState, path string, bootstrap *consensus.ConsensusBootstrap, pq *consensus.PQEngineAuthorization, options pqOptions) (*consensus.Application, error) {
+	if err := options.validateInvoiceOptions(); err != nil {
+		return nil, err
+	}
 	if err := options.validateApplicationLayout(); err != nil {
 		return nil, err
 	}
@@ -47,10 +50,16 @@ func newOperatorApplication(migration chain.ConsensusMigrationState, path string
 	if err != nil {
 		return nil, err
 	}
+	invoice, err := options.loadInvoiceAuthorization()
+	if err != nil {
+		return nil, err
+	}
 	var app *consensus.Application
 	switch options.applicationLayout() {
 	case "snapshot-journal":
-		if runtime != nil {
+		if invoice != nil {
+			app, err = consensus.NewJournaledApplicationWithInvoiceAuthorization(migration, path, bootstrap, pq, runtime, invoice)
+		} else if runtime != nil {
 			app, err = consensus.NewJournaledApplicationWithRuntimeUpgrade(migration, path, bootstrap, pq, runtime)
 		} else if pq != nil {
 			app, err = consensus.NewJournaledApplicationWithEngineAuthorization(migration, path, bootstrap, pq)
@@ -66,7 +75,9 @@ func newOperatorApplication(migration chain.ConsensusMigrationState, path string
 			app, err = consensus.NewBlockJournaledApplicationWithBootstrap(migration, path, bootstrap)
 		}
 	default:
-		if runtime != nil {
+		if invoice != nil {
+			app, err = consensus.NewPersistentApplicationWithInvoiceAuthorization(migration, path, bootstrap, pq, runtime, invoice)
+		} else if runtime != nil {
 			app, err = consensus.NewPersistentApplicationWithRuntimeUpgrade(migration, path, bootstrap, pq, runtime)
 		} else if pq != nil {
 			app, err = consensus.NewPersistentApplicationWithEngineAuthorization(migration, path, bootstrap, pq)

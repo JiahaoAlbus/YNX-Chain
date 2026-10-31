@@ -38,6 +38,8 @@ import (
 const maxTransactions = consensus.EphemeralWorkloadMaxTransactions
 
 type options struct {
+	cohortWindow                   time.Duration
+	cohort                         *declaredCohort
 	manifest, transactions, output string
 	concurrency                    int
 	rounds                         int
@@ -68,6 +70,10 @@ type errorObservation struct {
 type transactionResult struct {
 	offerMonotonic               time.Time
 	submitMonotonic              time.Time
+	scheduledMonotonic           time.Time
+	checkTxMonotonic             time.Time
+	includedMonotonic            time.Time
+	finalMonotonic               time.Time
 	Index                        int                `json:"index"`
 	Round                        int                `json:"round,omitempty"`
 	SignedTransaction            string             `json:"signedTransaction,omitempty"`
@@ -159,37 +165,40 @@ type summary struct {
 }
 
 type report struct {
-	SchemaVersion        int                     `json:"schemaVersion"`
-	RoundsRequested      int                     `json:"roundsRequested"`
-	RoundsCompleted      int                     `json:"roundsCompleted"`
-	Kind                 string                  `json:"kind"`
-	ChainID              string                  `json:"chainId"`
-	GenesisSHA256        string                  `json:"genesisSha256"`
-	Endpoints            []string                `json:"endpoints"`
-	Concurrency          int                     `json:"concurrency"`
-	OfferedRate          float64                 `json:"configuredOfferedRate"`
-	ObserverConcurrency  int                     `json:"observerConcurrency"`
-	LoadMode             string                  `json:"loadMode"`
-	LoadQueues           pacedStatistics         `json:"loadQueues"`
-	DurableReadback      durableReaderStats      `json:"durableReadback"`
-	GroupedObservation   groupedObservationStats `json:"groupedObservation"`
-	SenderMode           string                  `json:"senderMode"`
-	InclusionMode        string                  `json:"inclusionMode"`
-	ReadySenders         readySenderStats        `json:"readySenders"`
-	RetentionMode        string                  `json:"retentionMode,omitempty"`
-	TerminalStream       *terminalStreamReport   `json:"terminalStream,omitempty"`
-	TimeoutMs            int64                   `json:"timeoutMs"`
-	PollMs               int64                   `json:"pollMs"`
-	StartedAt            time.Time               `json:"startedAt"`
-	MeasurementStartedAt *time.Time              `json:"measurementStartedAt,omitempty"`
-	FinishedAt           time.Time               `json:"finishedAt"`
-	GoVersion            string                  `json:"goVersion"`
-	Platform             string                  `json:"platform"`
-	GOMAXPROCS           int                     `json:"gomaxprocs"`
-	Summary              summary                 `json:"summary"`
-	Transactions         []transactionResult     `json:"transactions"`
-	SetupErrors          []errorObservation      `json:"setupErrors"`
-	Interpretation       []string                `json:"interpretation"`
+	DeclaredCohort        *declaredCohortReport `json:"declaredCohort,omitempty"`
+	measurementOrigin     time.Time
+	MonotonicObservations *monotonicObservationReport `json:"monotonicObservations,omitempty"`
+	SchemaVersion         int                         `json:"schemaVersion"`
+	RoundsRequested       int                         `json:"roundsRequested"`
+	RoundsCompleted       int                         `json:"roundsCompleted"`
+	Kind                  string                      `json:"kind"`
+	ChainID               string                      `json:"chainId"`
+	GenesisSHA256         string                      `json:"genesisSha256"`
+	Endpoints             []string                    `json:"endpoints"`
+	Concurrency           int                         `json:"concurrency"`
+	OfferedRate           float64                     `json:"configuredOfferedRate"`
+	ObserverConcurrency   int                         `json:"observerConcurrency"`
+	LoadMode              string                      `json:"loadMode"`
+	LoadQueues            pacedStatistics             `json:"loadQueues"`
+	DurableReadback       durableReaderStats          `json:"durableReadback"`
+	GroupedObservation    groupedObservationStats     `json:"groupedObservation"`
+	SenderMode            string                      `json:"senderMode"`
+	InclusionMode         string                      `json:"inclusionMode"`
+	ReadySenders          readySenderStats            `json:"readySenders"`
+	RetentionMode         string                      `json:"retentionMode,omitempty"`
+	TerminalStream        *terminalStreamReport       `json:"terminalStream,omitempty"`
+	TimeoutMs             int64                       `json:"timeoutMs"`
+	PollMs                int64                       `json:"pollMs"`
+	StartedAt             time.Time                   `json:"startedAt"`
+	MeasurementStartedAt  *time.Time                  `json:"measurementStartedAt,omitempty"`
+	FinishedAt            time.Time                   `json:"finishedAt"`
+	GoVersion             string                      `json:"goVersion"`
+	Platform              string                      `json:"platform"`
+	GOMAXPROCS            int                         `json:"gomaxprocs"`
+	Summary               summary                     `json:"summary"`
+	Transactions          []transactionResult         `json:"transactions"`
+	SetupErrors           []errorObservation          `json:"setupErrors"`
+	Interpretation        []string                    `json:"interpretation"`
 }
 
 func main() {
@@ -208,6 +217,7 @@ func main() {
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
 	flag.BoolVar(&o.segmentedIntents, "segmented-intents", false, "durable signed-input segments; requires ready-pool, terminal-stream and slot reuse; finite caps unchanged")
 	flag.BoolVar(&o.reuseResultSlots, "reuse-result-slots", false, "one result slot per sender with cumulative interval statistics; requires terminal-stream; finite caps unchanged")
+	flag.DurationVar(&o.cohortWindow, "cohort-window", 0, "opt-in fixed logical-arrival window; ready-pool/full-history only, planned count / offered-rate, within original timeout")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "unexpected positional arguments")
@@ -220,6 +230,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.cohortWindow < 0 || o.cohortWindow > o.timeout || o.cohortWindow > 30*time.Second || o.cohortWindow > 0 && (o.senderMode != "ready-pool" || o.reuseResultSlots || o.terminalStream || o.output == "" || o.offeredRate <= 0) {
+		return errors.New("declared cohort requires original bounded ready-pool full history and unchanged timeout")
+	}
 	if o.inclusionMode != "" && o.inclusionMode != "tx-query" && o.inclusionMode != "block-scan" {
 		return errors.New("unsupported inclusion mode")
 	}
@@ -553,7 +566,9 @@ func submitTransaction(ctx context.Context, client *rpchttp.HTTP, raw cmttypes.T
 		addError(&result.Errors, "broadcast_tx_sync", err)
 		return start, false
 	}
-	now := time.Now().UTC()
+	observed := time.Now()
+	result.checkTxMonotonic = observed
+	now := observed.UTC()
 	elapsed := time.Since(start).Seconds() * 1000
 	result.CheckTxObservedAt, result.CheckTxMs = &now, &elapsed
 	result.CheckTxCode, result.CheckTxLog = &broadcast.Code, broadcast.Log
@@ -596,7 +611,9 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 					result.Status = "execution_failed"
 					return
 				}
-				now := time.Now().UTC()
+				observed := time.Now()
+				result.includedMonotonic = observed
+				now := observed.UTC()
 				elapsed := time.Since(start).Seconds() * 1000
 				result.IncludedObservedAt, result.InclusionMs = &now, &elapsed
 				included = queried
@@ -666,6 +683,7 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 					}
 					now := observed.UTC()
 					elapsed := observed.Sub(start).Seconds() * 1000
+					result.finalMonotonic = observed
 					result.ConfirmedObservedAt, result.ConfirmationMs = &now, &elapsed
 					result.Status, result.QuorumVerified, result.TransactionProofVerified = "confirmed", true, true
 					result.DurableStateVerified, result.DurableStateHeight, result.DurableStateAppHash = true, state.Height, state.AppHash
@@ -847,6 +865,7 @@ func execute(o options) error {
 	if o.segmentedIntents {
 		r.Interpretation = append(r.Interpretation, "Signed-input waves use private hash-chained segments persisted before dispatch. readySenders.intentSegments binds their completed inventory. Failed or missing receipt evidence is never a resubmission authorization. Workload and byte caps are unchanged.")
 	}
+	var cohort *declaredCohort
 	runErr := func() error {
 		data, err := readBounded(o.manifest, 1024*1024)
 		if err != nil {
@@ -884,6 +903,7 @@ func execute(o options) error {
 		if err != nil {
 			return err
 		}
+		inputRaw := append([]byte(nil), data...)
 		txs, err := decodeTransactions(data)
 		if err != nil {
 			return err
@@ -893,6 +913,13 @@ func execute(o options) error {
 		}
 		if len(txs)*o.rounds > maxTransactions {
 			return errors.New("total round transactions exceed bounded input limit")
+		}
+		var cohortPlan declaredCohortPlan
+		if o.cohortWindow > 0 {
+			cohortPlan, err = makeDeclaredCohortPlan(manifestRaw, inputRaw, m.GenesisHash, m.MigrationStateHash, len(txs), o.rounds, o.offeredRate, o.cohortWindow)
+			if err != nil {
+				return err
+			}
 		}
 		var pool *ephemeralSenderPool
 		if o.rounds > 1 {
@@ -934,9 +961,25 @@ func execute(o options) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		var planDigest, planPath string
+		if o.cohortWindow > 0 {
+			planPath = o.output + ".cohort-plan.json"
+			planDigest, err = persistDeclaredCohort(planPath, cohortPlan)
+			if err != nil {
+				return err
+			}
+		}
 		started := time.Now()
+		if o.cohortWindow > 0 {
+			if deadline, ok := ctx.Deadline(); !ok || started.Add(o.cohortWindow).After(deadline) {
+				return errors.New("predeclared window cannot fit original remaining timeout; plan retained")
+			}
+			cohort = startDeclaredCohort(ctx, started, planPath, cohortPlan, planDigest)
+			o.cohort = cohort
+		}
 		at := started.UTC()
 		r.MeasurementStartedAt = &at
+		r.measurementOrigin = started
 		var roundErr error
 		runRound := func(txs []cmttypes.Tx, results []transactionResult) {
 			for i := range results {
@@ -990,9 +1033,15 @@ func execute(o options) error {
 			}
 		}
 		r.SenderMode = o.senderMode
+		if o.cohortWindow > 0 {
+			r.Interpretation = append(r.Interpretation, "Declared logical arrivals and a fixed window were persisted before dispatch. Legacy Summary rates still include drain; use declaredCohort plus monotonic observations for fixed-window accounting. No physical Commit timestamp or sustained TPS is inferred.")
+		}
 		r.InclusionMode = o.inclusionMode
 		if o.senderMode == "ready-pool" {
 			r.LoadMode = "paced_ready_sender_pool_and_grouped_observation"
+			if o.cohortWindow > 0 {
+				r.LoadMode = "declared_open_loop_arrival_with_ready_sender_admission"
+			}
 			var stream *terminalStream
 			if o.terminalStream {
 				stream, err = newTerminalStream(o.output+".terminal-stream", pool)
@@ -1070,7 +1119,15 @@ func execute(o options) error {
 		}
 		return nil
 	}()
-	r.FinishedAt = time.Now().UTC()
+	if cohort != nil {
+		runErr = errors.Join(runErr, cohort.finish(ctx, true))
+	}
+	finished := time.Now()
+	r.DeclaredCohort = cohort.snapshot(finished)
+	r.FinishedAt = finished.UTC()
+	if !o.reuseResultSlots {
+		r.MonotonicObservations = captureMonotonicReport(r.measurementOrigin, finished, r.Transactions)
+	}
 	if runErr != nil {
 		addError(&r.SetupErrors, "run", runErr)
 	}

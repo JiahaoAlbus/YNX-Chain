@@ -100,6 +100,7 @@ func runPacedWorkers(ctx context.Context, o options, started time.Time, results 
 		offered := time.Now()
 		results[index].offerMonotonic = offered
 		at, due := offered.UTC(), scheduled.UTC()
+		results[index].scheduledMonotonic = scheduled
 		results[index].OfferedAt, results[index].ScheduledAt = &at, &due
 		atomicMaximum(&peakSubmit, pendingSubmit.Add(1))
 		jobs <- job{index, offered}

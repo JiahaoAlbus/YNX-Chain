@@ -158,7 +158,7 @@ func replayValidatorRegistryStateOwned(s CommittedState, witness *validatedMigra
 		}
 		return nil, nil
 	}
-	if s.Version != 16 && s.Version != 17 && s.Version != ValidatorRegistryStateVersion && s.Version != PQEngineScheduleStateVersion {
+	if s.Version != 16 && s.Version != 17 && s.Version != ValidatorRegistryStateVersion && s.Version != PQEngineScheduleStateVersion && s.Version != PQInvoiceLedgerStateVersion {
 		return nil, errors.New("legacy state version cannot carry validator registry")
 	}
 	return replayValidatorRegistryWithMathCache(s.ValidatorRegistry, s.bootstrap, s.Height, witness.registryMath)
@@ -169,7 +169,7 @@ func validateValidatorRegistryContinuation(previous, next CommittedState) error 
 		return nil
 	}
 	old, current := previous.ValidatorRegistry, next.ValidatorRegistry
-	if (next.Version != ValidatorRegistryStateVersion && next.Version != PQEngineScheduleStateVersion) || current == nil || current.Version != old.Version || len(current.Events) < len(old.Events) || !reflect.DeepEqual(current.Bootstrap, old.Bootstrap) {
+	if (next.Version != ValidatorRegistryStateVersion && next.Version != PQEngineScheduleStateVersion && next.Version != PQInvoiceLedgerStateVersion) || current == nil || current.Version != old.Version || len(current.Events) < len(old.Events) || !reflect.DeepEqual(current.Bootstrap, old.Bootstrap) {
 		return errors.New("validator registry downgrade, history removal or bootstrap substitution")
 	}
 	for i := range old.Events {

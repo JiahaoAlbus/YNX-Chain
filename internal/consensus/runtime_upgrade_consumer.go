@@ -91,7 +91,7 @@ func runtimeStateApplicationVersion(state CommittedState, authorization *Runtime
 		}
 		return p.OldApplicationVersion, nil
 	}
-	if state.Version != 18 && state.Version != 19 && state.Version != 20 {
+	if state.Version != 18 && state.Version != 19 && state.Version != 20 && state.Version != PQInvoiceLedgerStateVersion {
 		return 0, errors.New("runtime upgrade file uses an unsupported post-upgrade schema")
 	}
 	return p.NewApplicationVersion, nil
@@ -132,7 +132,11 @@ func (a *Application) prepareConsensusExecution(state executionState, height int
 	if err != nil {
 		return state, err
 	}
-	return preparePQEngineExecution(state, height, a.pqEngineAuthorization)
+	state, err = preparePQEngineExecution(state, height, a.pqEngineAuthorization)
+	if err != nil {
+		return state, err
+	}
+	return a.preparePQInvoiceExecution(state, height)
 }
 
 func validateHistoricalRuntimeEnvelope(state executionState, kind string) error {

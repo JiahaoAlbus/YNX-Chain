@@ -423,6 +423,13 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			raw := p.pending[sender]
 			if last[sender] >= 0 {
 				index = last[sender] + senders
+			}
+			if err = o.cohort.waitArrival(ctx, index); err != nil {
+				runErr = err
+				break
+			}
+			if last[sender] >= 0 {
+				index = last[sender] + senders
 				raw, err = p.nextForSenderMeasured(sender, results[storageIndex(last[sender])], &stats.Supply)
 			}
 			if err != nil {
@@ -477,6 +484,7 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			now := time.Now()
 			at, due := now.UTC(), nextOffer.UTC()
 			results[index].offerMonotonic = now
+			results[index].scheduledMonotonic = nextOffer
 			results[index].OfferedAt, results[index].ScheduledAt = &at, &due
 			inFlight[e.Sender], last[e.Sender] = true, e.Index
 			active++

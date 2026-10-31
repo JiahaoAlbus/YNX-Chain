@@ -110,7 +110,10 @@ func (a *Application) OfferSnapshot(_ context.Context, req *abcitypes.RequestOff
 	if err != nil || metadata.Schema != stateSyncSnapshotSchema || !supportedCommittedStateVersion(metadata.StateVersion) || metadata.ChainID != a.migration.Network.ChainID || metadata.MigrationStateHash != a.migration.StateHash || metadata.Height != snapshot.Height || metadata.ChunkSize != stateSyncSnapshotChunkSize || metadata.PayloadBytes < 1 || metadata.PayloadBytes > stateSyncSnapshotMaxBytes {
 		return &abcitypes.ResponseOfferSnapshot{Result: abcitypes.ResponseOfferSnapshot_REJECT}, nil
 	}
-	if (metadata.StateVersion == 16 || metadata.StateVersion == 17 || metadata.StateVersion == ValidatorRegistryStateVersion || metadata.StateVersion == PQEngineScheduleStateVersion) && a.bootstrap == nil {
+	if (metadata.StateVersion == 16 || metadata.StateVersion == 17 || metadata.StateVersion == ValidatorRegistryStateVersion || metadata.StateVersion == PQEngineScheduleStateVersion || metadata.StateVersion == PQInvoiceLedgerStateVersion) && a.bootstrap == nil {
+		return &abcitypes.ResponseOfferSnapshot{Result: abcitypes.ResponseOfferSnapshot_REJECT}, nil
+	}
+	if metadata.StateVersion == PQInvoiceLedgerStateVersion && a.pqInvoiceAuthorization == nil {
 		return &abcitypes.ResponseOfferSnapshot{Result: abcitypes.ResponseOfferSnapshot_REJECT}, nil
 	}
 	expectedChunks := uint32((metadata.PayloadBytes + metadata.ChunkSize - 1) / metadata.ChunkSize)
@@ -191,7 +194,7 @@ func (a *Application) ApplySnapshotChunk(_ context.Context, req *abcitypes.Reque
 		return &abcitypes.ResponseApplySnapshotChunk{Result: abcitypes.ResponseApplySnapshotChunk_REJECT_SNAPSHOT}, nil
 	}
 	state.bootstrap = a.bootstrap
-	if a.committed.Height > int64(a.migration.Height) && state.Version < a.committed.Version || validateConsensusPQContinuation(a.committed, state) != nil || validateValidatorRegistryContinuation(a.committed, state) != nil || validatePQEngineScheduleContinuation(a.committed.PQEngineSchedule, state.PQEngineSchedule) != nil || a.pqEngineAuthorization.ValidateCommittedSchedule(state.PQEngineSchedule, state.Height) != nil {
+	if a.committed.Height > int64(a.migration.Height) && state.Version < a.committed.Version || validateConsensusPQContinuation(a.committed, state) != nil || validateValidatorRegistryContinuation(a.committed, state) != nil || validatePQEngineScheduleContinuation(a.committed.PQEngineSchedule, state.PQEngineSchedule) != nil || a.pqEngineAuthorization.ValidateCommittedSchedule(state.PQEngineSchedule, state.Height) != nil || validatePQInvoiceContinuation(a.committed.InvoiceLedger, state.InvoiceLedger) != nil || a.pqInvoiceAuthorization.ValidateCommittedLedger(state.InvoiceLedger, state.Height) != nil {
 		a.snapshotRestore = nil
 		return &abcitypes.ResponseApplySnapshotChunk{Result: abcitypes.ResponseApplySnapshotChunk_REJECT_SNAPSHOT}, nil
 	}

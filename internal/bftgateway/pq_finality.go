@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 	coretypes "github.com/cometbft/cometbft/rpc/core/types"
@@ -366,7 +367,14 @@ func (g *Gateway) collectPQActionFinality(ctx context.Context, hash string, abci
 	if err != nil || !bytes.Equal(wire, original.Wire) || action.Kind != original.Type || action.Owner != original.From || action.Nonce != original.Nonce || action.Fee != original.Fee {
 		return view, errors.New("indexed action differs from complete original transport")
 	}
-	return g.collectPQExecutionFinality(ctx, view, consensus.PQActionType, original.Status, wire, original.Transport, original.NativeTransactionHash, original.ABCITransactionHash, original.ExecutionHeight, *original.CometIndex, nil)
+	var firstResult *pqWholeFinalityResult
+	if !rejected && ynxauth.IsInvoiceAction(action.Kind) {
+		if _, err = consensus.ValidatePQInvoiceEffectData(wire, original.Transport, original.ExecutionHeight, original.ExecutionData); err != nil {
+			return view, err
+		}
+		firstResult = &pqWholeFinalityResult{data: bytes.Clone(original.ExecutionData)}
+	}
+	return g.collectPQExecutionFinality(ctx, view, consensus.PQActionType, original.Status, wire, original.Transport, original.NativeTransactionHash, original.ABCITransactionHash, original.ExecutionHeight, *original.CometIndex, firstResult)
 }
 
 // This read-only collector checks exact original bytes against actual Comet
@@ -396,8 +404,26 @@ func (g *Gateway) collectPQExecutionFinality(ctx context.Context, view PQFinalit
 		if err != nil || actualOutcome != outcome {
 			return view, errors.New("finality Whole execution outcome differs from indexed original")
 		}
-	} else if rejected && (tx.TxResult.Code == 0 || len(tx.TxResult.Data) != 0) || !rejected && (tx.TxResult.Code != 0 || !bytes.Equal(tx.TxResult.Data, []byte(abciHash))) {
-		return view, errors.New("finality execution outcome or data differs from indexed original")
+	} else {
+		expectedData := []byte(abciHash)
+		if kind == consensus.PQActionType {
+			_, action, err := consensus.DecodePQActionTransport(payload)
+			if err != nil {
+				return view, err
+			}
+			if !rejected && ynxauth.IsInvoiceAction(action.Kind) {
+				if firstWholeResult == nil || firstWholeResult.code != 0 {
+					return view, errors.New("invoice finality lacks first validated original result")
+				}
+				if _, err = consensus.ValidatePQInvoiceEffectData(wire, payload, height, tx.TxResult.Data); err != nil {
+					return view, err
+				}
+				expectedData = firstWholeResult.data
+			}
+		}
+		if rejected && (tx.TxResult.Code == 0 || len(tx.TxResult.Data) != 0) || !rejected && (tx.TxResult.Code != 0 || !bytes.Equal(tx.TxResult.Data, expectedData)) {
+			return view, errors.New("finality execution outcome or data differs from indexed original")
+		}
 	}
 	block, first, err := g.finalityBlock(ctx, h)
 	if err != nil {

@@ -328,6 +328,18 @@ func pqTransactionOutcome(kind string, wire, envelope []byte, height int64, resu
 			}
 			return "rejected", false, nil, nil
 		}
+		if kind == PQActionType {
+			_, action, err := DecodePQActionTransport(envelope)
+			if err != nil {
+				return "", false, nil, err
+			}
+			if ynxauth.IsInvoiceAction(action.Kind) {
+				if _, err = ValidatePQInvoiceEffectData(wire, envelope, uint64(height), result.Data); err != nil {
+					return "", false, nil, err
+				}
+				return "succeeded", true, nil, nil
+			}
+		}
 		if !bytes.Equal(result.Data, []byte(SignedTransactionHash(envelope))) {
 			return "", false, nil, errors.New("successful PQ result does not bind the original ABCI transaction hash")
 		}

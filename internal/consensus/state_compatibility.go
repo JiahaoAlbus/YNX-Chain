@@ -246,6 +246,9 @@ func validateHistoricalStateFields(s CommittedState, migration chain.ConsensusMi
 	if !supportedCommittedStateVersion(s.Version) {
 		return errors.New("unsupported historical committed state version")
 	}
+	if s.Version < PQInvoiceLedgerStateVersion && s.InvoiceLedger != nil {
+		return errors.New("historical state cannot carry invoice ledger")
+	}
 	// These source domains were never admitted by earlier executors. Omitted
 	// optional fields preserve every existing checkpoint's wire and hash; they
 	// cannot be smuggled into historical projections which do not commit them.

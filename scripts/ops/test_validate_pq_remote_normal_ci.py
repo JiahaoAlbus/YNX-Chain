@@ -652,10 +652,15 @@ def assert_native_cabi_workflow_contract(raw):
                         "Upload only public registered N1 verifier and actual native evidence")
     product_device_names = ("Execute both fixed product device C ABIs from the same sealed native archive",
                             "Upload only public fixed product device headers archive and executed evidence")
-    ordered_names = (names[:1] + data_names + names[1:4] + wallet_names + publisher_names[:1]
+    creator_names = ("Execute the fixed device creator from the same sealed native archive",
+                     "Upload only the public device creator archive header and actual evidence")
+    new_core_name = "Qualify device creator and invoice execution from the original full core suite"
+    invoice_name = "Execute invoice actions through the existing Wallet transaction C ABI"
+    invoice_upload = "Upload only the actual invoice C ABI public result"
+    ordered_names = (names[:1] + data_names + names[1:3] + (new_core_name,) + names[3:4] + wallet_names + (invoice_name, invoice_upload) + publisher_names[:1]
                      + (device_http_name,)
-                     + names[4:9] + registered_names + product_device_names + publisher_names[1:] + names[9:])
-    need(len(steps) == len(ordered_names) == 27)
+                     + names[4:9] + registered_names + product_device_names + creator_names + publisher_names[1:] + names[9:])
+    need(len(steps) == len(ordered_names) == 32)
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, ordered_names)))
     named = {name: step for name, step in zip(ordered_names, steps)}
     need(lines(named[data_names[0]]) == ["      - name: " + data_names[0],
@@ -676,6 +681,41 @@ def assert_native_cabi_workflow_contract(raw):
         '          bash scripts/verify/account-initial-cabi-check.sh \\',
         '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
         '            "$RUNNER_TEMP/ynx-account-initial-cabi"'])
+    need(lines(named[invoice_name]) == ["      - name: " + invoice_name,
+        "        run: |", "          set -euo pipefail",
+        '          bash scripts/fixtures/verify-invoice-tx-cabi/check.sh \\',
+        '            "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a" \\',
+        '            "$RUNNER_TEMP/ynx-invoice-tx-cabi"'])
+    need(lines(named[invoice_upload]) == ["      - name: " + invoice_upload,
+        "        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", "        with:",
+        "          name: ynx-invoice-tx-cabi-public-${{ matrix.runner }}-${{ github.sha }}",
+        "          path: ${{ runner.temp }}/ynx-invoice-tx-cabi/PUBLIC-RESULT.json",
+        "          if-no-files-found: error", "          retention-days: 7"])
+    need(lines(named[creator_names[0]]) == ["      - name: " + creator_names[0],
+        "        run: |", "          set -euo pipefail",
+        '          python3 -B scripts/ops/test_product_device_keypair_v4_supply.py',
+        '          bash scripts/verify/product-device-keypair-v4-cabi-check.sh \\',
+        '            "$RUNNER_TEMP/ynx-artifact-release-cabi/delivery/native-host" \\',
+        '            "$RUNNER_TEMP/ynx-product-device-keypair-v4-cabi"'])
+    need(lines(named[creator_names[1]]) == ["      - name: " + creator_names[1],
+        "        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", "        with:",
+        "          name: ynx-product-device-keypair-cabi-native-${{ matrix.runner }}-${{ github.sha }}",
+        "          path: ${{ runner.temp }}/ynx-product-device-keypair-v4-cabi/delivery/*",
+        "          if-no-files-found: error", "          retention-days: 7"])
+    need(lines(named[new_core_name]) == lines(r"""      - name: Qualify device creator and invoice execution from the original full core suite
+        run: |
+          set -euo pipefail
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          rows = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-native-cabi-core-tests.jsonl').read_text().splitlines()]
+          required = ['TestProductDeviceKeypairV4FreshActualImportAndAND', 'TestProductDeviceKeypairV4FullPairAndDERCorruptionRejected', 'TestProductDeviceKeypairV4PreTransferFailureClearsAndPreservesFirstCause', 'TestProductDeviceKeypairV4LatePrivateOutcomeStaysUnknown', 'TestInvoiceTransactionCanonicalVectorsAndOwnedSigning', 'TestInvoiceTransactionCurrentPolicyEpochAndFullPair', 'TestInvoiceTransactionANDTamperAndUnknownPreservation', 'TestInvoiceTransactionPublicExportPreservesExisting']
+          for name in required:
+              terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('new native core did not execute and pass: ' + name)
+          print('YNX_DEVICE_CREATOR_INVOICE_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=required, suitePassed=True, accountAuthorized=False, nativeCustodyVerified=False), sort_keys=True))
+          PY"""))
     # The fixed publisher caller executes the archive already built by the
     # original C-ABI step. Its dedicated seven-leaf seal follows the original
     # same-source seal, and upload follows both successful real call and seals.
@@ -797,7 +837,9 @@ def assert_native_cabi_workflow_contract(raw):
         "'scripts/verify/transaction-batch-cabi-check.sh', 'scripts/fixtures/verify-account-initial-cabi',",
         "'scripts/verify/account-initial-cabi-check.sh', 'scripts/fixtures/verify-publisher-registration-cabi',",
         "'scripts/verify/publisher-registration-cabi-check.sh', 'scripts/fixtures/verify-product-session-http-cabi',",
-        "'scripts/verify/product-session-http-cabi-check.sh', '.github/workflows/resource-market-ci.yml').splitlines()",
+        "'scripts/verify/product-session-http-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',",
+        "'scripts/verify/product-device-keypair-v4-cabi-check.sh', 'scripts/fixtures/verify-invoice-tx-cabi',",
+        "'.github/workflows/resource-market-ci.yml').splitlines()",
         "sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}",
         "native_os, native_arch = command('go','env','GOOS'), command('go','env','GOARCH')",
         "targets = [('native-host', case / 'libynx_artifact_release.a', native_os, native_arch, True)]",
@@ -1829,6 +1871,33 @@ def assert_workflow_contract(raw):
 
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
+    def test_device_creator_and_invoice_native_calls_cannot_be_skipped_or_widen_outputs(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "artifact-release-cabi")
+        labels = (
+            "Qualify device creator and invoice execution from the original full core suite",
+            "Execute invoice actions through the existing Wallet transaction C ABI",
+            "Upload only the actual invoice C ABI public result",
+            "Execute the fixed device creator from the same sealed native archive",
+            "Upload only the public device creator archive header and actual evidence",
+        )
+        for label in labels:
+            matches = [step for step in steps if step.startswith("      - name: " + label + "\n")]
+            self.assertEqual(len(matches), 1)
+            original = matches[0]
+            changes = ["", original.replace("        run: |", "        if: false\n        run: |", 1)]
+            if "        uses:" in original:
+                changes.append(original.replace("/delivery/*", "/**", 1))
+            if "terminal != ['pass']" in original:
+                changes.append(original.replace("terminal != ['pass']", "False", 1))
+                changes.append(original.replace("'TestProductDeviceKeypairV4LatePrivateOutcomeStaysUnknown', ", "", 1))
+            for changed in changes:
+                if changed == original:
+                    continue
+                with self.subTest(label=label, changed=changed[:150]), self.assertRaises(AssertionError):
+                    assert_native_cabi_workflow_contract(raw.replace(original, changed, 1))
+
     def test_browser_public_snapshot_and_actual_headless_job_are_closed_and_required_for_its_artifact(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_browser_verification_workflow_contract(raw)

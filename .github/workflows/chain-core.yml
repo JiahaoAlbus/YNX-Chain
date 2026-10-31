@@ -5,6 +5,7 @@ on:
     branches:
       - codex/final-chain-core
       - codex/ynx-pq-perf-integration
+      - codex/v5-link-native-ci
     paths:
       - ".github/workflows/chain-core.yml"
       - "Makefile"
@@ -27,6 +28,7 @@ on:
   pull_request:
     branches:
       - main
+      - codex/ynx-pq-perf-integration
     paths:
       - ".github/workflows/chain-core.yml"
       - "Makefile"
@@ -114,7 +116,12 @@ jobs:
 
   verify:
     name: Chain Core source and release gate
-    if: github.event_name != 'push' || github.ref != 'refs/heads/codex/ynx-pq-perf-integration'
+    # Preserve every pre-existing trigger/gate. Only the two newly added LINK
+    # events use the strict owned-closure job below; mixed candidates fail there.
+    if: >-
+      (github.event_name != 'push' || github.ref != 'refs/heads/codex/ynx-pq-perf-integration') &&
+      !(github.event_name == 'push' && github.ref == 'refs/heads/codex/v5-link-native-ci') &&
+      !(github.event_name == 'pull_request' && github.base_ref == 'codex/ynx-pq-perf-integration')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -147,7 +154,7 @@ jobs:
       - name: Verify actual ready-sender Commit phase observations
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
-          -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery)$'
+          -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestMonotonicObservation.*|TestDeclaredCohort.*)$'
           -count=1 -timeout=45s -v
       - run: make integration-contract-check
       - run: make chain-core-release-check
@@ -170,3 +177,133 @@ jobs:
             release/chain-core/public-product-metadata.json
           if-no-files-found: error
           retention-days: 90
+
+  link-scope:
+    name: Select actual LINK changed closure
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      changed: ${{ steps.paths.outputs.changed }}
+      exclusive_link: ${{ steps.paths.outputs.exclusive_link }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: paths
+        name: Select event-bound inputs and reject changes outside the LINK lease
+        env:
+          LINK_EVENT: ${{ github.event_name }}
+          LINK_REF: ${{ github.ref }}
+          LINK_BASE_REF: ${{ github.base_ref }}
+          LINK_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          LINK_BASE: ${{ github.event.pull_request.base.sha }}
+          LINK_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          sh cmd/ynx-secure-link/check.sh ci-scope >> "$GITHUB_OUTPUT"
+
+  link-native:
+    name: LINK native S3 source and isolated transport (not Chain release)
+    needs: link-scope
+    if: needs.link-scope.outputs.changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOTOOLCHAIN: local
+      GOMAXPROCS: "2"
+      CGO_ENABLED: "1"
+      OPENSSL_VERSION: "3.6.4"
+      # Tarball digest from the official openssl/openssl release asset metadata.
+      OPENSSL_SOURCE_SHA256: "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # original immutable setup-go
+        with:
+          go-version: "1.26.10"
+          cache: false
+      - name: Verify original immutable workflow action policy
+        run: node scripts/verify/github-actions-pins-check.mjs chain-core.yml
+      - name: Preserve the original source safety scanners
+        run: |
+          make no-placeholder-check
+          make secret-scan
+      - name: Prepare job-private inputs and evidence
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/securelink-source" "$RUNNER_TEMP/securelink-evidence"
+          printf 'GOCACHE=%s\n' "$RUNNER_TEMP/securelink-go-cache" >> "$GITHUB_ENV"
+          printf 'OPENSSL_PREFIX=%s\n' "$RUNNER_TEMP/securelink-openssl" >> "$GITHUB_ENV"
+          go version | tee "$RUNNER_TEMP/securelink-evidence/go-version.txt"
+          test "$(go env GOVERSION)" = go1.26.10
+          cc --version > "$RUNNER_TEMP/securelink-evidence/compiler.txt"
+      - name: Cache only the bounded upstream source archive (never keys or native binaries)
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/securelink-source/openssl-3.6.4.tar.gz
+          key: link-openssl-source-${{ runner.os }}-${{ runner.arch }}-3.6.4-${{ env.OPENSSL_SOURCE_SHA256 }}
+      - name: Verify official source and build the fixed private OpenSSL runtime
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          archive="$RUNNER_TEMP/securelink-source/openssl-$OPENSSL_VERSION.tar.gz"
+          source_url="https://github.com/openssl/openssl/releases/download/openssl-$OPENSSL_VERSION/openssl-$OPENSSL_VERSION.tar.gz"
+          if [[ ! -e "$archive" ]]; then
+            curl --fail --location --silent --show-error --proto '=https' --tlsv1.2 \
+              --max-time 180 --retry 2 --max-filesize 60000000 "$source_url" -o "$archive"
+          fi
+          test -f "$archive" && test ! -L "$archive"
+          test "$(stat -c %s "$archive")" -le 60000000
+          printf '%s  %s\n' "$OPENSSL_SOURCE_SHA256" "$archive" | sha256sum --check --strict
+          tar -xzf "$archive" -C "$RUNNER_TEMP/securelink-source"
+          cd "$RUNNER_TEMP/securelink-source/openssl-$OPENSSL_VERSION"
+          # Upstream Apache-2.0 license and all notices travel with the evidence.
+          grep -q 'Apache License' LICENSE.txt
+          cp LICENSE.txt "$RUNNER_TEMP/securelink-evidence/OPENSSL-LICENSE.txt"
+          if [[ -f NOTICE ]]; then cp NOTICE "$RUNNER_TEMP/securelink-evidence/OPENSSL-NOTICE.txt"; fi
+          printf 'url=%s\nsha256=%s\nlicense=Apache-2.0\n' "$source_url" "$OPENSSL_SOURCE_SHA256" > "$RUNNER_TEMP/securelink-evidence/openssl-source.txt"
+          printf '%s\n' './Configure linux-x86_64 --release shared --prefix=<job-private> --openssldir=<job-private>/ssl --libdir=lib' > "$RUNNER_TEMP/securelink-evidence/openssl-build-flags.txt"
+          ./Configure linux-x86_64 --release shared --prefix="$OPENSSL_PREFIX" \
+            --openssldir="$OPENSSL_PREFIX/ssl" --libdir=lib
+          make -j2 build_sw > "$RUNNER_TEMP/securelink-evidence/openssl-build.log" 2>&1
+          make install_sw install_ssldirs >> "$RUNNER_TEMP/securelink-evidence/openssl-build.log" 2>&1
+          test -r "$OPENSSL_PREFIX/ssl/openssl.cnf"
+          printf '%s\n' "$OPENSSL_PREFIX/bin" >> "$GITHUB_PATH"
+          printf 'PKG_CONFIG_LIBDIR=%s\n' "$OPENSSL_PREFIX/lib/pkgconfig" >> "$GITHUB_ENV"
+          printf 'PKG_CONFIG_PATH=%s\n' "$OPENSSL_PREFIX/lib/pkgconfig" >> "$GITHUB_ENV"
+          printf 'LD_LIBRARY_PATH=%s\n' "$OPENSSL_PREFIX/lib" >> "$GITHUB_ENV"
+      - name: Read back runtime provenance and test actual PQ positive and negative paths
+        run: |
+          set -euo pipefail
+          test "$(pkg-config --modversion openssl)" = "$OPENSSL_VERSION"
+          test "$(pkg-config --variable=prefix openssl)" = "$OPENSSL_PREFIX"
+          openssl version -a | tee "$RUNNER_TEMP/securelink-evidence/openssl-runtime.txt"
+          openssl list -providers >> "$RUNNER_TEMP/securelink-evidence/openssl-runtime.txt"
+          openssl list -tls-groups | grep -F SecP384r1MLKEM1024
+          openssl list -tls-signature-algorithms | grep -i mldsa87
+          sha256sum "$OPENSSL_PREFIX/lib/libssl.so.3" "$OPENSSL_PREFIX/lib/libcrypto.so.3" > "$RUNNER_TEMP/securelink-evidence/openssl-libraries.sha256"
+          sha256sum "$OPENSSL_PREFIX/ssl/openssl.cnf" > "$RUNNER_TEMP/securelink-evidence/openssl-config.sha256"
+          sh cmd/ynx-secure-link/check.sh native 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/native-check.log"
+          CGO_ENABLED=0 sh cmd/ynx-secure-link/check.sh stub 2>&1 | tee "$RUNNER_TEMP/securelink-evidence/unavailable-check.log"
+      - name: Exercise the normal command through private IPC and actual PQ TLS
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/securelink-evidence"
+          go build -mod=readonly -p 1 -tags securelink_openssl -o "$evidence/ynx-secure-link-linux-amd64" ./cmd/ynx-secure-link
+          go version -m "$evidence/ynx-secure-link-linux-amd64" > "$evidence/binary-buildinfo.txt"
+          python3 cmd/ynx-secure-link/smoke.py "$evidence/ynx-secure-link-linux-amd64" --output "$evidence/normal-entry-smoke.json"
+          git diff --exit-code
+          git rev-parse HEAD > "$evidence/source-head.txt"
+          sha256sum "$evidence/ynx-secure-link-linux-amd64" > "$evidence/binary.sha256"
+      - name: Upload scoped evidence and upstream notices (no test keys)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: link-native-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/securelink-evidence/
+          if-no-files-found: error
+          retention-days: 14

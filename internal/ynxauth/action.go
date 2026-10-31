@@ -196,6 +196,10 @@ func (a Action) Validate() error {
 		if a.Fee != StakingActionFee {
 			return ErrAction
 		}
+	case InvoiceTermsPayload, InvoiceSettlePayload, InvoiceRefundPayload:
+		if a.Fee != InvoiceActionFee {
+			return ErrAction
+		}
 	}
 	return nil
 }
@@ -240,6 +244,9 @@ func DecodeAction(wire []byte) (Action, error) {
 // not accept maps, JSON, pointers, callbacks or arbitrary action strings. No
 // spelling is silently normalized. All limits are checked before wire creation.
 func EncodeActionPayload(kind string, payload any) ([]byte, error) {
+	if IsInvoiceAction(kind) {
+		return encodeInvoiceActionPayload(kind, payload)
+	}
 	var f [][]byte
 	switch p := payload.(type) {
 	case ContractDeployPayload:
@@ -335,6 +342,9 @@ func EncodeActionPayload(kind string, payload any) ([]byte, error) {
 // malformed integer widths, trailing bytes and noncanonical field values. The
 // decoded object carries no verified flag and never executes a state transition.
 func DecodeActionPayload(kind string, wire []byte) (any, error) {
+	if IsInvoiceAction(kind) {
+		return decodeInvoiceActionPayload(kind, wire)
+	}
 	if kind == ActionStakeDelegate || kind == ActionStakeUnbond || kind == ActionStakeWithdraw {
 		return decodeStakingActionPayload(kind, wire)
 	}
