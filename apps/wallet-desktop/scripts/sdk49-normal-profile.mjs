@@ -1,50 +1,50 @@
-// Exact matched query/registration source DATA, not admission.
-export const SDK49_NORMAL_COMMIT="56df76928be58c21c21c5c221768a39d2dc00c6a";
-export const SDK49_NORMAL_TREE="fc338d76faaffe66b0c00ce423cc2eb967a29efe";
-export const SDK49_NORMAL_VARIANT="SDK49-DEVICE-QUERY-NATIVE-MATCHING/v1";
+// Exact matched registration/completion source DATA, not admission.
+export const SDK49_NORMAL_COMMIT="c987a99914a36897a083bdff322e9cb57bdeeb73";
+export const SDK49_NORMAL_TREE="32a1a997e006213fcdbf7a10495b81b462c80fe8";
+export const SDK49_NORMAL_VARIANT="SDK49-DEVICE-REGISTRATION-COMPLETION-NATIVE145/v1";
 export const SDK49_NORMAL_PREFIX=Object.freeze({
-  "bytes": 1501853,
-  "sha256": "6ac96d813532f450d442b6b61a5910b62e4515e4963fcea483f040e0b9a09566"
+  "bytes": 1502290,
+  "sha256": "f39c6482d0f14cada425b904a9d54c29dac8168699a57d8e1947ddc647b65412"
 });
 export const SDK49_NORMAL_AUTH=Object.freeze({
   "bytes": 90136,
-  "sha256": "3902391c1d1bc15ce05cafd6c994755a36b4e9ee797425931ffecd10f90be591",
+  "sha256": "c0e24225aab0d08c0120f4f84429ebda8cb325a2169e5ea99af83603eb2eb145",
   "files": 632,
-  "totalBytes": 8074924
+  "totalBytes": 8085311
 });
 export const SDK49_NORMAL_UNION=Object.freeze({
   "bytes": 1475865,
-  "sha256": "44af8bad261f389d4956c4ef49c9bd11f9a695558f4a55c26398f5fb72e3fe56",
+  "sha256": "dbfb3cb6e7c3cd2a17cbbdc883d10a6fb42617438fdeb0a90a3a5aa7949cb208",
   "files": 9492,
-  "totalBytes": 78285136
+  "totalBytes": 78295523
 });
 export const SDK49_NORMAL_PRODUCT_PINS=Object.freeze({
   "original-ide-auth-runtime-manifest.json": {
     "bytes": 88699,
-    "sha256": "27bc7ddc04463d22f4e8b3be2bec18dbdf52c7a079a68be65c9ce2aeed97c855",
+    "sha256": "b0a07d83bdd754f1157113d30c94a2796a92ac084891cc2b792a4ddc81705bd7",
     "fullBytes": 90136,
-    "fullSHA256": "3902391c1d1bc15ce05cafd6c994755a36b4e9ee797425931ffecd10f90be591"
+    "fullSHA256": "c0e24225aab0d08c0120f4f84429ebda8cb325a2169e5ea99af83603eb2eb145"
   },
   "original-ide-contract-relay-runtime-manifest.json": {
     "bytes": 1474428,
-    "sha256": "f55d3517368e0c1062b6a5c251c86643484050258884752d48f3f0063858f4db",
+    "sha256": "2e6bc0115bbccacc72763ba76dff54acd42fa71b04d062c997add3c7eb87957a",
     "fullBytes": 1475865,
-    "fullSHA256": "44af8bad261f389d4956c4ef49c9bd11f9a695558f4a55c26398f5fb72e3fe56"
+    "fullSHA256": "dbfb3cb6e7c3cd2a17cbbdc883d10a6fb42617438fdeb0a90a3a5aa7949cb208"
   },
   "SDK49_FINITE_EXCLUSION_POLICY.json": {
-    "bytes": 2661,
-    "sha256": "50c45b5b42e6cb92e5bba82221ac674ec5d0fc0cc11c2308f4c82d299ae5c1f9"
+    "bytes": 2673,
+    "sha256": "fb0b02b3b30a83cdaabd1bf8d5e0f356d507b70de5d424db4747bd360b5c4890"
   },
   "SDK49_PRODUCT_PACK_SELECTION.json": {
-    "bytes": 1499635,
-    "sha256": "d63addf43f21c3a194a2c3ce41f5955caa2c3d27a489bc8d22d458aae75523e1"
+    "bytes": 1500083,
+    "sha256": "48c78621b9bb33d96c4510a4a5497998e48ceba25968ac56f9d335d6d8722c76"
   },
   "STATIC_SOURCE_ANALYSIS.json": {
-    "bytes": 200297,
-    "sha256": "13cfdae1087a4744d907b6eedc56110020710edbfff7f181bfa2ceb21b1ae3b6"
+    "bytes": 200298,
+    "sha256": "28a0449a4997c730f9f8d1270ba2631b56191f084f54d8d24abadcedb52bdfe5"
   },
   "PROJECTION_RECEIPT.json": {
-    "bytes": 4543,
-    "sha256": "0443756f50d59f0ae0683b78db31a7c19aa5758d56714577a699778b22727bec"
+    "bytes": 4566,
+    "sha256": "cc2da6c26769341fa02825ad5516a55ecbef76dcc6a11e555cb8102d4a0c9fcb"
   }
 });

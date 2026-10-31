@@ -12,7 +12,7 @@ test('normal Main consumes one complete SDK prefix and full2 source without lend
  const inventory=gunzipSync(readFileSync(new URL('./fixtures/sdk49-normal-prefix.json.gz',import.meta.url)));
  const result=verifySDK49NormalSource(path.join(root,'packages/wallet-auth'),inventory);
  assert.equal(result.sourceCommit,SDK49_NORMAL_COMMIT);assert.equal(result.sourceVariant,SDK49_NORMAL_VARIANT);
- assert.equal(result.normalPrefixFiles,9673);assert.equal(result.materializedFiles,9675);
+ assert.equal(result.normalPrefixFiles,9676);assert.equal(result.materializedFiles,9678);
  for(const flag of ['NativeAdmission','SourceAdmission','issuerSupplied','AppBuilt','installed'])assert.equal(result[flag],false);
  const changed=Buffer.from(inventory);changed[0]^=1;assert.throws(()=>verifySDK49NormalSource(path.join(root,'packages/wallet-auth'),changed));
 });
@@ -25,7 +25,7 @@ test('normal full source tables keep Auth within the same union and reject a cha
 test('normal six source slots project the matching product closure, preserving finite exclusions and full source custody',()=>{
  const result=readSDK49ProductRuntime(root,'HEAD');
  assert.equal(result.public.sourceVariant,SDK49_NORMAL_VARIANT);assert.equal(result.public.inputs.length,6);
- assert.equal(result.selected.size,9658);assert.equal(result.authRows.size,622);assert.equal(result.unionRows.size,9482);assert.equal(result.excluded.size,15);
+ assert.equal(result.selected.size,9661);assert.equal(result.authRows.size,622);assert.equal(result.unionRows.size,9482);assert.equal(result.excluded.size,15);
  assert.equal(result.manifestRows.length,2);assert.equal(result.public.SourceQualified,false);assert.equal(result.public.Root,false);
  assert.equal(result.selected.get('node_modules/.package-lock.json').sha256,'a6156ecfdededf82c182684e86f00d803b04fc76c6a4b59b27e62ea81983e775');
 });
