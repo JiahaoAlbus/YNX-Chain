@@ -15,6 +15,17 @@ static BOOL privateDirectory(NSString *dir) {
 }
 static int qaFailure(NSString *message,BOOL cli){fprintf(stderr,"%s\n",message.UTF8String);if(!cli){[NSApplication sharedApplication];NSAlert *alert=[NSAlert new];alert.messageText=@"YNX Network QA could not start";alert.informativeText=message;[alert runModal];}return 2;}
 static BOOL packagedFiles(NSString *helper,NSString *proof,NSDictionary *build){return [[digest(helper)description]isEqual:build[@"helperSHA256"]]&&[[digest(proof)description]isEqual:build[@"proofSHA256"]];}
+static void installApplicationMenu(NSApplication *app) {
+  NSMenu *bar=[NSMenu new];
+  NSMenuItem *applicationItem=[[NSMenuItem alloc]initWithTitle:@"YNX Network QA" action:nil keyEquivalent:@""];
+  NSMenu *application=[[NSMenu alloc]initWithTitle:@"YNX Network QA"];
+  NSMenuItem *quit=[[NSMenuItem alloc]initWithTitle:@"Quit YNX Network QA" action:@selector(terminate:) keyEquivalent:@"q"];
+  quit.target=app;[application addItem:quit];applicationItem.submenu=application;[bar addItem:applicationItem];
+  NSMenuItem *fileItem=[[NSMenuItem alloc]initWithTitle:@"File" action:nil keyEquivalent:@""];
+  NSMenu *file=[[NSMenu alloc]initWithTitle:@"File"];
+  [file addItem:[[NSMenuItem alloc]initWithTitle:@"Close Window" action:@selector(performClose:) keyEquivalent:@"w"]];
+  fileItem.submenu=file;[bar addItem:fileItem];app.mainMenu=bar;
+}
 static NSArray<NSString*> *helperArguments(NSString *data,NSString *rpc,NSString *proof,NSDictionary *build,NSDictionary *profile) {
   NSMutableArray *args=[NSMutableArray arrayWithArray:@[@"--data-dir",data,@"--rpc",rpc]];
   if(profile)[args addObjectsFromArray:@[@"--pq-verifier",proof,@"--pq-verifier-sha256",build[@"proofSHA256"],@"--pq-context",profile[@"contextPath"],@"--pq-context-sha256",profile[@"contextSHA256"]]];
@@ -95,5 +106,5 @@ int main(int argc,const char **argv){@autoreleasepool{
   if(showProfile){NSDictionary *status=profile?@{@"configured":@YES,@"profile":profile,@"authority":@NO}:@{@"configured":@NO,@"authority":@NO};NSData *out=[NSJSONSerialization dataWithJSONObject:status options:NSJSONWritingSortedKeys error:nil];fwrite(out.bytes,1,out.length,stdout);fputc('\n',stdout);close(session);return 0;}
   NSArray<NSString*> *arguments=helperArguments(data,rpc,proof,build,profile);
   if(headless){char **args=calloc(arguments.count+2,sizeof(char*));args[0]=strdup(helper.fileSystemRepresentation);for(NSUInteger i=0;i<arguments.count;i++)args[i+1]=strdup(arguments[i].UTF8String);execv(helper.fileSystemRepresentation,args);perror("QA helper exec");return 2;}
-  NSApplication *app=[NSApplication sharedApplication];[app setActivationPolicy:NSApplicationActivationPolicyRegular];QAApp *delegate=[QAApp new];delegate.helper=helper;delegate.proof=proof;delegate.data=data;delegate.rpc=rpc;delegate.build=build;delegate.profiles=profiles;app.delegate=delegate;[app run];close(session);return 0;
+  NSApplication *app=[NSApplication sharedApplication];[app setActivationPolicy:NSApplicationActivationPolicyRegular];installApplicationMenu(app);QAApp *delegate=[QAApp new];delegate.helper=helper;delegate.proof=proof;delegate.data=data;delegate.rpc=rpc;delegate.build=build;delegate.profiles=profiles;app.delegate=delegate;[app run];close(session);return 0;
 }}
