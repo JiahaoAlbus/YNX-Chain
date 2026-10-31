@@ -59,6 +59,8 @@ export function createNativeInvoiceMerchantApproval({main,pay}){
 export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
  const url=new URL(origin);
  if(url.origin!==origin||url.username||url.password||!['https:','http:'].includes(url.protocol)||url.protocol==='http:'&&!['localhost','127.0.0.1','[::1]'].includes(url.hostname)||typeof requestPrivate!=='function')fail('NATIVE_INVOICE_PRIVATE_TRANSPORT_UNAVAILABLE');
+ const invoicePath=(merchant,invoiceId)=>{if(!/^0x[0-9a-f]{40}$/.test(merchant??'')||! /^[a-z0-9][a-z0-9._:-]{0,63}$/.test(invoiceId??''))fail('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');return `/v5/pay/invoices/${merchant}/${invoiceId}`;};
+ const memberBody=member=>{if(!(member instanceof Uint8Array)||!member.length||member.length>98304)fail('NATIVE_INVOICE_MEMBER_BOUNDS');return Buffer.from(member).toString('base64');};
  const id=value=>{if(typeof value!=='string'||!/^npi_[0-9a-f]{48}$/.test(value))fail('NATIVE_INVOICE_ORIGINAL_ID_REQUIRED');return value};
  async function call(method,path,input){
   const body=input===undefined?undefined:Buffer.from(JSON.stringify(input));
@@ -77,6 +79,74 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
    if(!(member instanceof Uint8Array)||!member.length||member.length>98304)fail('NATIVE_INVOICE_MEMBER_BOUNDS');
    const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/merchant-member`,{member:Buffer.from(member).toString('base64')});if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;
   },
-  async reconcileInvoiceIntent(intentId){const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/reconcile`,{});if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;}
+  async reconcileInvoiceIntent(intentId){const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/reconcile`,{});if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
+  async readInvoice(merchant,invoiceId){const value=await call('GET',invoicePath(merchant,invoiceId));if(value.merchant!==merchant||value.invoiceId!==invoiceId)fail('NATIVE_PAY_ACTION_BILL_MISMATCH');return value;},
+  reviewSettlement:(merchant,invoiceId)=>call('POST',invoicePath(merchant,invoiceId)+'/review',{}),
+  reviewRefund:(merchant,invoiceId,refundId,amountAtoms)=>call('POST',invoicePath(merchant,invoiceId)+'/refund-review',{refundId,amountAtoms}),
+  submitSettlement:(merchant,invoiceId,member)=>call('POST',invoicePath(merchant,invoiceId)+'/settlements',{member:memberBody(member)}),
+  submitRefund:(merchant,invoiceId,member)=>call('POST',invoicePath(merchant,invoiceId)+'/refunds',{member:memberBody(member)}),
+  reconcileOperation:(merchant,invoiceId,nativeHash)=>{if(!/^0x[0-9a-f]{64}$/.test(nativeHash??''))fail('NATIVE_PAY_ORIGINAL_HASH_REQUIRED');return call('POST',invoicePath(merchant,invoiceId)+'/operations/'+nativeHash+'/reconcile',{});}
+
+ });
+}
+
+/** All three invoice kinds use Main's one original typed-action review and
+ * journal. readInvoiceOriginals is the original Main/Source read-only archive
+ * port; it supplies retained terms and, for refunds, the payer's original
+ * settlement review/Member/public snapshots. Its DATA does not grant consent. */
+export function createNativePayActionApproval({main,pay,readInvoiceOriginals}){
+ const journal=main?.transactionSender?.submissions?.intentStore;
+ if(typeof main?.requestPQTypedAction!=='function'||typeof main?.reject!=='function'||typeof journal?.readPQOriginals!=='function'||typeof journal?.unresolvedPreparation!=='function')fail('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');
+ const sdk=()=>import('@ynx-chain/wallet-auth/pq-native-action');
+ async function selected(current){current();if(typeof main.vault?.status!=='function')fail('NATIVE_PAY_SELECTED_ACCOUNT_UNAVAILABLE');const status=await main.vault.status();current();if(!status.initialized||!/^0x[0-9a-f]{40}$/.test(status.account??''))fail('NATIVE_PAY_SELECTED_ACCOUNT_UNAVAILABLE');return status.account;}
+ function bind(action,bill,kind,refund){
+  if(action.kind!==kind||action.chainId!==bill.genesis||action.nativeChainId!==bill.nativeChainId||action.fee!=='1'||action.payload.invoiceID!==bill.invoiceId)fail('NATIVE_PAY_ACTION_BILL_MISMATCH');
+  if(kind==='invoice_settle'&&(action.payload.merchant!==bill.merchant||action.payload.termsHashHex!==bill.termsHash||action.payload.amount!==bill.principalAtoms))fail('NATIVE_PAY_ACTION_BILL_MISMATCH');
+  if(kind==='invoice_refund'&&(action.owner!==bill.merchant||action.payload.termsHashHex!==bill.termsHash||'0x'+action.payload.settlementHashHex!==bill.settlementNativeHash||refund&&(action.payload.refundID!==refund.refundId||action.payload.amount!==refund.amountAtoms)))fail('NATIVE_PAY_ACTION_BILL_MISMATCH');
+ }
+ async function originals(bill,kind,current){
+  if(typeof readInvoiceOriginals!=='function')fail('NATIVE_PAY_INVOICE_ORIGINALS_UNAVAILABLE');
+  current();const retained=await readInvoiceOriginals(Object.freeze({merchant:bill.merchant,invoiceId:bill.invoiceId,termsNativeHash:bill.termsNativeHash,settlementNativeHash:bill.settlementNativeHash,kind}),current);current();
+  if(!(retained?.termsMessage instanceof Uint8Array)||digest(retained.termsMessage)!==bill.termsHash)fail('NATIVE_PAY_TERMS_ORIGINAL_MISMATCH');
+  const {decodePQNativeAction}=await sdk(),terms=decodePQNativeAction(retained.termsMessage);
+  if(terms.kind!=='invoice_terms'||terms.owner!==bill.merchant||terms.chainId!==bill.genesis||terms.nativeChainId!==bill.nativeChainId||terms.payload.invoiceID!==bill.invoiceId||terms.payload.sessionID!==bill.sessionId||terms.payload.amount!==bill.principalAtoms||terms.payload.assetID!==bill.assetId||terms.payload.unitVersion!==bill.unitVersion)fail('NATIVE_PAY_TERMS_ORIGINAL_MISMATCH');
+  if(kind==='invoice_refund'){
+   const member=retained.settlement?.member,recorded=bill.operations?.[bill.settlementNativeHash]?.member;
+   if(!(member instanceof Uint8Array)||'0x'+digest(member)!==bill.settlementNativeHash||typeof recorded!=='string'||!Buffer.from(member).equals(Buffer.from(recorded,'base64')))fail('NATIVE_PAY_SETTLEMENT_ORIGINAL_UNAVAILABLE');
+  }else if(retained.settlement!==null)fail('NATIVE_PAY_INVOICE_ORIGINALS_UNAVAILABLE');
+  return retained;
+ }
+ async function request(kind,merchant,invoiceId,current,refund){
+  if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');current();
+  const bill=await pay.readInvoice(merchant,invoiceId);current();
+  const reviewed=kind==='invoice_settle'?await pay.reviewSettlement(merchant,invoiceId):await pay.reviewRefund(merchant,invoiceId,refund.refundId,refund.amountAtoms);current();
+  const bytes=Buffer.from(reviewed.message,'base64'),{decodePQNativeAction,encodePQNativeAction}=await sdk();
+  if(bytes.toString('base64')!==reviewed.message)fail('NATIVE_PAY_REVIEW_BINDING');
+  const action=decodePQNativeAction(bytes);bind(action,bill,kind,refund);
+  if(action.owner!==reviewed.owner||action.nonce!==reviewed.nonce||reviewed.feeAtoms!=='1'||await selected(current)!==action.owner)fail('NATIVE_PAY_REVIEW_BINDING');
+  const rows=await journal.readPQOriginals(action.owner,current);current();
+  if(rows.some(row=>row.kind==='pq-typed-action'&&digest(messageOf(row.typed.review,encodePQNativeAction))===digest(bytes))||await journal.unresolvedPreparation(action.owner))fail('NATIVE_INVOICE_ORIGINAL_RECONCILE_REQUIRED');current();
+  const invoiceOriginals=await originals(bill,kind,current);
+  const pending=await main.requestPQTypedAction({kind:action.kind,fee:action.fee,payload:action.payload,invoiceOriginals});
+  try{current();if(pending?.status!=='approval-required'||pending.request?.method!=='ynx_signPQNativeAction'||!messageOf(pending.request.review.typedReview,encodePQNativeAction).equals(bytes))fail('NATIVE_INVOICE_MAIN_REVIEW_CHANGED');}
+  catch(error){if(pending?.request?.id)main.reject(pending.request.id);throw error;}
+  return pending;
+ }
+ return Object.freeze({
+  requestSettlement:(merchant,invoiceId,current)=>request('invoice_settle',merchant,invoiceId,current),
+  requestRefund:(merchant,invoiceId,refundId,amountAtoms,current)=>request('invoice_refund',merchant,invoiceId,current,{refundId,amountAtoms}),
+  async readOriginalActionMember({merchant,invoiceId,kind,originalHash},current){
+   if(!['invoice_settle','invoice_refund'].includes(kind)||typeof current!=='function')fail('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');
+   current();const bill=await pay.readInvoice(merchant,invoiceId);current();
+   const account=await selected(current),rows=await journal.readPQOriginals(account,current);current();
+   const saved=rows.find(row=>row.kind==='pq-typed-action'&&row.hash===originalHash&&row.account===account);
+   if(!saved)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_REQUIRED');
+   const {encodePQNativeAction}=await sdk();bind(saved.typed.review.action,bill,kind);
+   const {decodePQActionTransportData}=await import('@ynx-chain/wallet-auth/pq-action-transport');
+   const envelope=Buffer.from(saved.wire,'base64url');if(envelope.toString('base64url')!==saved.wire||'0x'+digest(envelope)!==saved.hash)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_BINDING');
+   const decoded=decodePQActionTransportData(envelope),member=Buffer.from(decoded.member);
+   if(decoded.originals.length||'0x'+digest(member)!==saved.typed.memberHash||digest(messageOf(saved.typed.review,encodePQNativeAction))!==saved.typed.review.requestDigest)fail('NATIVE_INVOICE_ORIGINAL_MEMBER_BINDING');
+   current();return Object.freeze({kind,merchant,invoiceId,operationId:saved.operationId,member:member.toString('base64'),nativeHash:saved.typed.memberHash,abciHash:saved.hash,owner:account,broadcastApprovalRequired:true,consensusFinality:false});
+  }
  });
 }

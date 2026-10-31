@@ -7,7 +7,7 @@ if err != nil { t.Fatal(err) }
 h.app, h.source.app = app, app
 h.proxy = startEngineTestProxy(t, app)
 light := &pqLightProofFixture{harness:h, schedule:schedule, authorization:authorization}
-type row struct { Wire []byte; Data []byte; Expected PQTransactionProofExpectation; Proof PQTransactionProofRequest; View PQInvoiceView; Registration ynxbatch.Registration; Nonce, Height uint64 }
+type row struct { Wire []byte; Data []byte; Expected PQTransactionProofExpectation; Proof PQTransactionProofRequest; View PQInvoiceView; Registration ynxbatch.Registration; Nonce, Height uint64; PriorAuthorization PQWalletAccountView; Message []byte }
 var rows []row
 terms := ynxauth.InvoiceTermsPayload{InvoiceID:"invoice-100",SessionID:"session-100",Recipient:account.owner,Payer:account.other,AssetID:"YNXT",UnitVersion:"1",FeeRule:"native-transfer-fee-one/v1",KeyEpoch:1,Revision:1,Amount:100,MaxFee:1,ExpiresAt:1000}
 var termsEffect, settlementEffect PQInvoiceEffect
@@ -19,7 +19,10 @@ for step:=0; step<3; step++ {
   if step==2 { kind,nonce=ynxauth.ActionInvoiceRefund,3; payload=ynxauth.InvoiceRefundPayload{InvoiceID:terms.InvoiceID,RefundID:"refund-30",TermsHash:invoiceHashBytes(t,termsEffect.TermsHash),SettlementHash:invoiceHashBytes(t,settlementEffect.NativeHash),Amount:30} }
   owner,key,pub:=account.owner,account.key,account.public
   if other { owner,key,pub=account.other,account.otherKey,account.otherPublic }
+  priorQuery,err:=h.app.Query(context.Background(),&abci.RequestQuery{Path:PQWalletAuthorizationPath+owner});if err!=nil||priorQuery.Code!=0 {t.Fatal("actual pre-action account authorization",err,priorQuery)}
+  var prior PQWalletAccountView;if err=json.Unmarshal(priorQuery.Value,&prior);err!=nil {t.Fatal(err)}
   wire:=pqABCIContractWire(t, account,key,owner,kind,payload,nonce,1)
+  signedMember,err:=ynxbatch.DecodeMember(wire);if err!=nil {t.Fatal(err)}
   envelope,err:=EncodePQNativeActionTransaction(wire); if err!=nil {t.Fatal(err)}
   height:=h.app.committed.Height+1
   check,err:=h.app.CheckTx(context.Background(),&abci.RequestCheckTx{Tx:envelope}); if err!=nil||check.Code!=0 {t.Fatal("invoice CheckTx",err,check)}
@@ -36,7 +39,7 @@ for step:=0; step<3; step++ {
   query,err:=h.app.Query(context.Background(),&abci.RequestQuery{Path:PQInvoiceQueryPath+account.owner+"/"+terms.InvoiceID});if err!=nil||query.Code!=0 {t.Fatal(err,query)}
   var view PQInvoiceView;if err=json.Unmarshal(query.Value,&view);err!=nil {t.Fatal(err)}
   if err=ValidatePQInvoiceView(view,account.owner,terms.InvoiceID,query.Height);err!=nil {t.Fatal(err)}
-  rows=append(rows,row{wire,results.TxResults[0].Data,expected,proof,view,ynxbatch.Registration{AlgorithmVersion:ynxbatch.Version,Owner:owner,Purpose:"TX-BATCH",PolicyRevision:"independent-fixture-original-account",ChainID:account.network,PKA:pub.PKA,PKB:pub.PKB,Enabled:true,ActiveFrom:1},nonce-1,uint64(height)})
+  rows=append(rows,row{wire,results.TxResults[0].Data,expected,proof,view,ynxbatch.Registration{AlgorithmVersion:ynxbatch.Version,Owner:owner,Purpose:"TX-BATCH",PolicyRevision:"independent-fixture-original-account",ChainID:account.network,PKA:pub.PKA,PKB:pub.PKB,Enabled:true,ActiveFrom:1},nonce-1,uint64(height),prior,signedMember.Message})
 }
 engine,err:=h.raw.Load();if err!=nil {t.Fatal(err)}
 source,err:=NewPQEngineFileSource(f.migration,h.path,f.bootstrap,authorization);if err!=nil {t.Fatal(err)}

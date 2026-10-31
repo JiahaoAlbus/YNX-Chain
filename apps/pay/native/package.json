@@ -1,0 +1,13 @@
+{
+  "name": "@ynx-chain/pay-native-qa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {"ynx-pay-native": "./cli.mjs"},
+  "scripts": {
+    "start": "node cli.mjs",
+    "test": "node --test merchant-invoice-approval.test.mjs pay-business-client.test.mjs",
+    "build:qa": "node scripts/build-qa.mjs"
+  },
+  "engines": {"node": ">=26.7.0"}
+}

@@ -17,5 +17,11 @@ export PAY_CORE_WORKFLOW_DIR="$fixture_dir"
 native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_TAGS:-}"
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
+client_root="$source_dir/../../apps/pay/native"
+node --test "$client_root/merchant-invoice-approval.test.mjs" "$client_root/pay-business-client.test.mjs"
+if [ -n "${PAY_CLIENT_MAIN_SOURCE:-}" ]; then
+ export PAY_CLIENT_WORKFLOW_DIR="$fixture_dir"
+ export PAY_CLIENT_WORKFLOW_DRIVER="$client_root/testsupport/business-workflow.mjs"
+fi
 go test -p 1 ./internal/consensus -run '^TestExportPayConsumerWorkflow$' -count=1 -timeout=3m
 go test -p 1 -tags "$native_tags" ./internal/payproduct/... ./internal/paygateway/... -count=1 -timeout=5m
