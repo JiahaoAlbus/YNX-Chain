@@ -60,7 +60,14 @@ export async function openOriginalProductSessionDeviceV4PendingProofClient(...ar
   selected=true;
   try{
    operation=call(owner,name,original); // Adopt BEFORE any ABI/error inspection.
-  }catch(cause){boundary(cause);throw cause;}
+  }catch(cause){
+   // A Native throw may already own a held child. Adopt its original partial
+   // before interpreting any error/status; close must drain it before parent.
+   if(cause!==null&&(typeof cause==='object'||typeof cause==='function')&&!types.isProxy(cause)){
+    const d=Object.getOwnPropertyDescriptor(cause,'partial');if(d&&Object.hasOwn(d,'value'))operation=d.value;
+   }
+   boundary(cause);throw cause;
+  }
   try{for(const key of operationMethods)method(operation,key);}
   catch(error){
    // This is our own ABI refusal, not a translated Native exception. Preserve

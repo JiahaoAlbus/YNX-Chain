@@ -36,6 +36,11 @@ const args=v=>{
  if(!Array.isArray(v)||types.isProxy(v)||Object.getPrototypeOf(v)!==Array.prototype||v.length!==1)bad();
  const ds=Object.getOwnPropertyDescriptors(v);if(Reflect.ownKeys(ds).length!==2||!ds[0]||!Object.hasOwn(ds[0],'value'))bad();return Object.freeze([uint(ds[0].value,false,(1n<<64n)-1n)]);
 };
+// Exact Core invoice_action.go payload domains; original E12 Action is unchanged.
+const invoiceDomains=Object.freeze({invoice_terms:'YNX-INVOICE-TERMS/v1',invoice_settle:'YNX-INVOICE-SETTLE/v1',invoice_refund:'YNX-INVOICE-REFUND/v1'});
+const invoiceID=v=>{string(v);if(!/^[a-z0-9][a-z0-9._:-]{0,63}$/.test(v))bad();return v;};
+const invoiceHash=v=>{hex(v,64);if(v==='0'.repeat(64))bad();return v;};
+const invoiceFixed=(v,expected)=>{if(v!==expected)bad();return v;};
 const definitions={
  stake:[['amount','p']],
  resource_delegation_create:[['provider','a'],['beneficiary','r'],['amountYNXT','p'],['policyHash','h'],['idempotencyKey','i'],['requestHash','h']],
@@ -49,12 +54,15 @@ const definitions={
  dex_swap_exact_output:[['poolID','o'],['assetOut','q'],['amountOut','p'],['maxAmountIn','p'],['deadlineUnix','p']],
  contract_deploy:[['name','cn'],['sourceHash','h'],['deployedBytecodeHash','h'],['compilerConfigHash','h'],['constructorArgs','args'],['value','z']],
  contract_execute:[['name','cn'],['target','target'],['sourceHash','h'],['deployedBytecodeHash','h'],['compilerConfigHash','h'],['expectedStorageCommitment','h'],['calldata','data'],['value','z']],
+ invoice_terms:[['invoiceID','iv-id'],['sessionID','iv-id'],['recipient','a'],['payer','iv-payer'],['assetID','iv-asset'],['unitVersion','iv-unit'],['feeRule','iv-fee'],['keyEpoch','p'],['revision','p'],['amount','p'],['maxFee','p'],['expiresAt','p']],
+ invoice_settle:[['merchant','a'],['invoiceID','iv-id'],['termsHashHex','iv-hash'],['amount','p']],
+ invoice_refund:[['invoiceID','iv-id'],['refundID','iv-id'],['termsHashHex','iv-hash'],['settlementHashHex','iv-hash'],['amount','p']],
  stake_delegate:[['validator','v'],['amountYNXT','p']],stake_unbond:[['delegationID','id'],['amountYNXT','p']],stake_withdraw:[['unbondingID','id']],
 };
 function definition(kind){if(typeof kind!=='string'||!Object.hasOwn(definitions,kind))bad();return definitions[kind];}
 function normalizePayload(kind,input){
  const def=definition(kind);if(types.isProxy(input))bad();exactPQRecord(input,def.map(([k])=>k));const out={};
- for(const [key,type]of def){const v=input[key];out[key]=type==='p'?uint(v,true):type==='n'?uint(v):type==='z'?zero(v):type==='a'?addr(v):type==='h'?hex(v,64):type==='id'?hex(v,24):type==='r'?resource(v):type==='i'?text(v,3,128):type==='e'?expiry(v):type==='c'?custom(v):type==='q'?asset(v):type==='o'?pool(v):type==='d'?decimal(v):type==='b'?bps(v):type==='cn'?name(v):type==='target'?target(v):type==='args'?args(v):type==='v'?text(v,1,128):type==='t'?text(v,1,80):type==='s'?(()=>{string(v);if(!/^[A-Z][A-Z0-9]{1,11}$/.test(v))bad();return v;})():string(v);}
+ for(const [key,type]of def){const v=input[key];out[key]=type==='iv-id'?invoiceID(v):type==='iv-payer'?(v===''?'':addr(v)):type==='iv-asset'?invoiceFixed(v,'YNXT'):type==='iv-unit'?invoiceFixed(v,'1'):type==='iv-fee'?invoiceFixed(v,'native-transfer-fee-one/v1'):type==='iv-hash'?invoiceHash(v):type==='p'?uint(v,true):type==='n'?uint(v):type==='z'?zero(v):type==='a'?addr(v):type==='h'?hex(v,64):type==='id'?hex(v,24):type==='r'?resource(v):type==='i'?text(v,3,128):type==='e'?expiry(v):type==='c'?custom(v):type==='q'?asset(v):type==='o'?pool(v):type==='d'?decimal(v):type==='b'?bps(v):type==='cn'?name(v):type==='target'?target(v):type==='args'?args(v):type==='v'?text(v,1,128):type==='t'?text(v,1,80):type==='s'?(()=>{string(v);if(!/^[A-Z][A-Z0-9]{1,11}$/.test(v))bad();return v;})():string(v);}
  if(kind==='resource_rental_create'&&['bandwidth','compute','aiCredits','trustCredits'].every(k=>out[k]==='0'))bad();
  if(kind==='dex_asset_create'&&BigInt(out.maxSupply)<BigInt(out.initialSupply))bad();
  if(kind==='dex_pool_create'&&out.asset0>=out.asset1)bad();
@@ -64,7 +72,7 @@ function normalizePayload(kind,input){
  return Object.freeze(out);
 }
 function pair(v){const n=BigInt(v);return [u32(Number(n>>32n)),u32(Number(n&0xffffffffn))];}
-function payloadBytes(kind,p){const f=[];for(const [k,t]of definition(kind)){if(['p','n','z'].includes(t))f.push(...pair(p[k]));else if(['d','b'].includes(t))f.push(u32(p[k]));else if(t==='args')f.push(u32(1),...pair(p[k][0]));else f.push(Buffer.from(p[k]));}const wire=encodeFields(f);if(wire.length>4096)bad();return wire;}
+function payloadBytes(kind,p){const f=Object.hasOwn(invoiceDomains,kind)?[Buffer.from(invoiceDomains[kind]),u32(1)]:[];for(const [k,t]of definition(kind)){if(['p','n','z'].includes(t))f.push(...pair(p[k]));else if(t==='iv-hash')f.push(Buffer.from(p[k],'hex'));else if(['d','b'].includes(t))f.push(u32(p[k]));else if(t==='args')f.push(u32(1),...pair(p[k][0]));else f.push(Buffer.from(p[k]));}const wire=encodeFields(f);if(wire.length>4096)bad();return wire;}
 export function encodePQNativeActionPayload(kind,payload){return new Uint8Array(payloadBytes(kind,normalizePayload(kind,payload)));}
 const typedArrayPrototype=Object.getPrototypeOf(Uint8Array.prototype),bufferGetter=Object.getOwnPropertyDescriptor(typedArrayPrototype,'buffer').get,lengthGetter=Object.getOwnPropertyDescriptor(typedArrayPrototype,'length').get,offsetGetter=Object.getOwnPropertyDescriptor(typedArrayPrototype,'byteOffset').get;
 function bytes(value,max){
@@ -78,15 +86,15 @@ function fields(wire,count,max){const b=bytes(wire,max);if(b.length<4||b.readUIn
 const read32=f=>{if(!f||f.length!==4)bad();return f.readUInt32BE(0);};
 const readText=f=>{try{return new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(f);}catch{bad();}};
 export function decodePQNativeActionPayload(kind,wire){
- const def=definition(kind),count=def.reduce((n,[,t])=>n+(['p','n','z'].includes(t)?2:t==='args'?3:1),0),f=fields(wire,count,4096);let i=0;const input={},read64=()=>((BigInt(read32(f[i++]))<<32n)|BigInt(read32(f[i++]))).toString();
- for(const [k,t]of def){if(['p','n','z'].includes(t))input[k]=read64();else if(['d','b'].includes(t))input[k]=read32(f[i++]);else if(t==='args'){if(read32(f[i++])!==1)bad();input[k]=[read64()];}else input[k]=readText(f[i++]);}
+ const def=definition(kind),count=def.reduce((n,[,t])=>n+(['p','n','z'].includes(t)?2:t==='args'?3:1),Object.hasOwn(invoiceDomains,kind)?2:0),f=fields(wire,count,4096);let i=0;if(Object.hasOwn(invoiceDomains,kind)){if(readText(f[0])!==invoiceDomains[kind]||read32(f[1])!==1)bad();i=2;}const input={},read64=()=>((BigInt(read32(f[i++]))<<32n)|BigInt(read32(f[i++]))).toString();
+ for(const [k,t]of def){if(['p','n','z'].includes(t))input[k]=read64();else if(t==='iv-hash'){if(f[i].length!==32)bad();input[k]=f[i++].toString('hex');}else if(['d','b'].includes(t))input[k]=read32(f[i++]);else if(t==='args'){if(read32(f[i++])!==1)bad();input[k]=[read64()];}else input[k]=readText(f[i++]);}
  const normalized=normalizePayload(kind,input);if(!Buffer.from(payloadBytes(kind,normalized)).equals(bytes(wire,4096)))bad();return normalized;
 }
 export function normalizePQNativeAction(input){
  if(types.isProxy(input))bad();exactPQRecord(input,['chainId','nativeChainId','owner','nonce','fee','kind','payload']);
  const out={chainId:pqHex(input.chainId,32).toString('hex'),nativeChainId:uint(input.nativeChainId,true),owner:addr(input.owner),nonce:uint(input.nonce,true,(1n<<64n)-1n),fee:uint(input.fee),kind:input.kind,payload:normalizePayload(input.kind,input.payload)};
  if(out.kind==='resource_delegation_create'&&out.payload.provider!==out.owner||out.kind==='resource_rental_create'&&out.payload.address!==out.owner)bad();
- const required=out.kind==='contract_deploy'?'10':out.kind==='contract_execute'?'2':out.kind.startsWith('stake_')?'1':null;if(required!==null&&out.fee!==required)bad();
+ const required=Object.hasOwn(invoiceDomains,out.kind)?'1':out.kind==='contract_deploy'?'10':out.kind==='contract_execute'?'2':out.kind.startsWith('stake_')?'1':null;if(required!==null&&out.fee!==required)bad();
  return Object.freeze(out);
 }
 export function encodePQNativeAction(input){const p=normalizePQNativeAction(input),wire=encodeFields([PQ_NATIVE_ACTION_DOMAIN,u32(1),Buffer.from(p.chainId,'hex'),...pair(p.nativeChainId),p.owner,...pair(p.nonce),...pair(p.fee),p.kind,payloadBytes(p.kind,p.payload)]);if(wire.length>8192)bad();return new Uint8Array(wire);}

@@ -59,6 +59,12 @@ struct JointLifecycle {
 // Retains the exact module file/current; not a caller path or user approval.
 - (NSString *)copyOriginalProductSessionDeviceV4ApprovalModulePath:(NSError **)error;
 - (NSDictionary *)copyOriginalProductSessionDeviceV4ProvisioningJournal:(NSError **)error;
++ (instancetype)acquireOriginalProductSessionDeviceV4QuerySource:(NSError **)error;
+- (BOOL)assertOriginalProductSessionDeviceV4QuerySourceCurrent:(NSError **)error;
+// Private current query scope + original profile window/journal selection.
+// No creation approval, raw key access or caller-selectable path.
+- (NSDictionary *)copyOriginalProductSessionDeviceV4QueryContext:(NSError **)error;
+- (NSString *)copyOriginalProductSessionDeviceV4QueryModulePath:(NSError **)error;
 - (BOOL)assertOriginalProductSessionDeviceV4PendingSourceCurrent:(NSError **)error;
 - (NSDictionary *)copyOriginalProductSessionDeviceV4PendingScope:(NSError **)error;
 - (NSDictionary *)copyOriginalWalletPQHostCatalogContext:(NSError **)error;

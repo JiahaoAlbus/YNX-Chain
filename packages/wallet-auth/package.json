@@ -299,6 +299,12 @@
       "browser": null,
       "node": "./src/original-device-create-intent.js",
       "default": null
+    },
+    "./original-product-device-v4-registration-client": {
+      "types": "./src/original-product-device-v4-registration-client.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-registration-client.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -372,7 +378,11 @@
     "native/original-product-device-v4-pending-source-contract.mjs",
     "native/original-auth-identity-native-release.h",
     "native/original-product-device-v4-provisioning-journal.h",
-    "native/original-product-device-v4-provisioning-source-contract.mjs"
+    "native/original-product-device-v4-provisioning-source-contract.mjs",
+    "native/original-product-device-v4-query-source-contract.mjs",
+    "native/original-product-device-v4-query-source-contract.d.mts",
+    "native/original-product-device-v4-query-journal.h",
+    "native/original-product-device-v4-query-source.inc.mm"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

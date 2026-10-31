@@ -1,6 +1,7 @@
 #import "original-auth-identity-source-authority.h"
 #include "original-product-device-v4-pending-journal.h"
 #include "original-product-device-v4-provisioning-journal.h"
+#include "original-product-device-v4-query-journal.h"
 #include <algorithm>
 #import <Security/Security.h>
 #import "original-ide-helper-xpc-peer.h"
@@ -30,6 +31,7 @@ static NSString *SourceSHA(NSData *raw){unsigned char bytes[CC_SHA256_DIGEST_LEN
 static bool SourceSame(struct stat a,struct stat b){return a.st_dev==b.st_dev&&a.st_ino==b.st_ino&&a.st_uid==b.st_uid&&a.st_gid==b.st_gid&&a.st_mode==b.st_mode&&a.st_nlink==b.st_nlink&&a.st_size==b.st_size&&a.st_mtimespec.tv_sec==b.st_mtimespec.tv_sec&&a.st_mtimespec.tv_nsec==b.st_mtimespec.tv_nsec&&a.st_ctimespec.tv_sec==b.st_ctimespec.tv_sec&&a.st_ctimespec.tv_nsec==b.st_ctimespec.tv_nsec;}
 struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;bool selected=false,complete=false;};
 @implementation YNXAuthIdentitySourceAuthority {
+ NSDictionary*_productDeviceV4QueryJournalObservedIdentity;
  YNXAuthIdentityCurrentOwner *_custody;
  YNXIDEHelperMessagePeer *_helperPeer;
  YNXIDEHelperClient *_helperClient;
@@ -53,7 +55,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  BOOL _relayRuntimePinned,_relayRuntimeEntered;
  NSData *_relayRuntimeManifestOriginal;
  BOOL _proofClosurePinned,_ideProofSelected,_ideProofVerified;
- BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry,_walletPQCatalog,_productDeviceV4,_productDeviceV4Pending,_productDeviceV4Provisioning;
+ BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry,_walletPQCatalog,_productDeviceV4,_productDeviceV4Pending,_productDeviceV4Provisioning,_productDeviceV4Query;
  NSError *_firstCause,*_cleanupCause;
  std::unique_ptr<ynx_auth_private::SourcePublicInstallation> _publicInstallation;
 }
@@ -317,6 +319,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "original-ide-contract-relay-source.inc.mm"
 #include "original-ide-contract-relay-runtime.inc.mm"
 #include "original-ide-project-authority-source.inc.mm"
+#include "original-product-device-v4-query-source.inc.mm"
 #include "original-ide-project-control-source.inc.mm"
 #include "original-ide-project-control-custody-source.inc.mm"
 - (BOOL)assertCurrent:(NSError **)error {return [self assertAuthenticatedNativePurpose:error];}
@@ -371,11 +374,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
    uint64_t before=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);if(before<_timeFloor)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CLOCK_ROLLBACK" error:error];
    NSDictionary *contract=@{@"purpose":[NSString stringWithUTF8String:_policy->purpose.c_str()],@"enrollmentFrame":[NSString stringWithUTF8String:_policy->enrollmentFrame.c_str()],@"profileFrame":[NSString stringWithUTF8String:_policy->profileFrame.c_str()],@"currentFrame":[NSString stringWithUTF8String:_policy->currentFrame.c_str()]};
    NSMutableDictionary *policy=[@{@"rootDigest":[NSString stringWithUTF8String:_policy->rootDigest.c_str()],@"enrollmentDigest":[NSString stringWithUTF8String:_policy->enrollmentDigest.c_str()],@"endpoint":[NSString stringWithUTF8String:_policy->endpoint.c_str()],@"spki":[NSString stringWithUTF8String:_policy->spki.c_str()],@"signatureContract":contract}mutableCopy];
-   if(_policy->purpose=="product-session-device-source-v4"||_policy->purpose=="product-session-device-pending-source-v4"||_policy->purpose=="product-session-device-provisioning-source-v4"){
-    if((_policy->purpose=="product-session-device-source-v4"?!_productDeviceV4:_policy->purpose=="product-session-device-pending-source-v4"?!_productDeviceV4Pending:!_productDeviceV4Provisioning)||_policy->productDeviceV4ApplicationId.empty()||_policy->productDeviceV4ProductId.empty())return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
+   if(_policy->purpose=="product-session-device-source-v4"||_policy->purpose=="product-session-device-pending-source-v4"||_policy->purpose=="product-session-device-provisioning-source-v4"||_policy->purpose=="product-session-device-query-source-v4"){
+    if((_policy->purpose=="product-session-device-source-v4"?!_productDeviceV4:_policy->purpose=="product-session-device-pending-source-v4"?!_productDeviceV4Pending:_policy->purpose=="product-session-device-provisioning-source-v4"?!_productDeviceV4Provisioning:!_productDeviceV4Query)||_policy->productDeviceV4ApplicationId.empty()||_policy->productDeviceV4ProductId.empty())return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ApplicationId.c_str()];
     policy[@"productId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ProductId.c_str()];
-   }else if(_productDeviceV4||_productDeviceV4Pending||_productDeviceV4Provisioning)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
+   }else if(_productDeviceV4||_productDeviceV4Pending||_productDeviceV4Provisioning||_productDeviceV4Query)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="wallet-pq-host-catalog-source-v1"){
     if(!_walletPQCatalog||_policy->walletPQApplicationId.empty())return [self fail:@"PQ_HOST_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->walletPQApplicationId.c_str()];

@@ -23,3 +23,14 @@ export function acquireOriginalProductSessionDeviceV4ProvisioningSourceStage(...
  // Preserve SAME Native error/partial: no fallback, retry, or DTO adapter.
  return descriptor.value.call(native);
 }
+// Independent cold-query Source. No creation terms, approval, registration,
+// network recovery, provider input or writable journal capability is accepted.
+export function acquireOriginalProductSessionDeviceV4QuerySourceStage(...args){
+ if(args.length)throw failure('DEVICE_QUERY_SOURCE_ZERO_INPUT');
+ let native;try{native=loadOriginalAuthIdentityNativeImage();}catch(cause){throw Object.assign(failure('DEVICE_QUERY_NATIVE_SOURCE_STAGE_NOT_SUPPLIED'),{cause});}
+ const descriptor=Object.getOwnPropertyDescriptor(native,'acquireOriginalProductSessionDeviceV4QuerySource');
+ if(!descriptor||!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')throw failure('DEVICE_QUERY_NATIVE_SOURCE_STAGE_NOT_SUPPLIED');
+ // Retain the exact thrown value and its partial; never translate a Native
+ // Source failure into ABSENT, regenerate a device, or reopen the Source.
+ return descriptor.value.call(native);
+}
