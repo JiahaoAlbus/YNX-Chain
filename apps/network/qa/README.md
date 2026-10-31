@@ -31,3 +31,15 @@ The local profile contains only build/owner identity, original public context pa
 A missing or changed public context stops helper startup. The native configuration entry remains available to explicitly choose new original material and enter its independent digest; the previous profile is archived and the changed original file is preserved. A damaged or foreign local profile cannot be overwritten through this recovery path.
 
 `source-manifest.json` records HEAD, source state, exact source/embed hashes, compiler identity, executable SHA256, actual service version and observed signatures. QA build, functional process acceptance, GUI, install, publisher signing and public release are separate gates.
+
+When the original CORE owner supplies a matching local QA verifier, the builder
+accepts `--original-verifier /absolute/original-tool`,
+`--original-verifier-sha256 INDEPENDENT_64HEX` and
+`--original-verifier-source ORIGINAL_40HEX` together. It captures a regular,
+current-user, non-writable-by-others executable without following a final
+symlink, checks the independently delivered digest, and binds its bytes and
+supplier source declaration into the build identity and manifest. The bundle
+still uses one fixed internal tool; HTTP, proof profiles and GUI inputs cannot
+select an executable. This QA intake is separate from publisher signing and
+Source qualification. Original proof/context formats, clock and network gates
+remain the original tool's responsibility.
