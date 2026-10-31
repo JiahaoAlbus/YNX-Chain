@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -147,5 +148,67 @@ func TestProductionPayCallerUsesNativeExactRoutes(t *testing.T) {
 	os.WriteFile(path, raw, 0600)
 	if _, err = NewProductionHTTPPayAPI(cfg.Origin, "synthetic-pay-key", path); err == nil {
 		t.Fatal("missing mTLS certificate downgraded")
+	}
+}
+
+func TestProductionDaemonEntryKeepsPrivateAuthorityClosed(t *testing.T) {
+	f := newTLSFixture(t)
+	bin := filepath.Join(t.TempDir(), "ynx-pay-productd")
+	build := exec.Command("go", "build", "-p", "1", "-tags", "pay_securelink securelink_openssl", "-o", bin, "./cmd/ynx-pay-productd")
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("matching normal daemon build: %v %s", err, output)
+	}
+	addressListener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := addressListener.Addr().String()
+	addressListener.Close()
+	cfg := productionLinkConfig{TLS: f.config(false), Policy: securelink.Policy{Edges: []securelink.Edge{{ID: "pay-adapter", LocalSAN: "pay.ynx.test", PeerSAN: "adapter.ynx.test", Epoch: 1, Roots: []securelink.Root{{Fingerprint: f.root, Until: time.Now().Add(time.Hour)}}, Routes: []securelink.Route{{Method: "GET", Path: "/health", Risk: "read"}}}}}, EdgeID: "pay-adapter", Address: "127.0.0.1:1", Origin: "https://adapter.ynx.test", TimeoutSeconds: 1}
+	dir := t.TempDir()
+	configFile := filepath.Join(dir, "edge.json")
+	raw, _ := json.Marshal(cfg)
+	if err = os.WriteFile(configFile, raw, 0600); err != nil {
+		t.Fatal(err)
+	}
+	child := exec.Command(bin)
+	// Isolated synthetic fixtures only; never inherit real Pay configuration.
+	for _, entry := range os.Environ() {
+		if !strings.HasPrefix(entry, "YNX_PAY_PRODUCT_") {
+			child.Env = append(child.Env, entry)
+		}
+	}
+	child.Env = append(child.Env, "YNX_PAY_PRODUCT_INTEGRITY_KEY="+hex.EncodeToString(bytes32(7)), "YNX_PAY_PRODUCT_GATEWAY_ASSERTION_KEY="+hex.EncodeToString(bytes32(8)), "YNX_PAY_PRODUCT_BOOTSTRAP_KEY="+strings.Repeat("synthetic", 4), "YNX_PAY_PRODUCT_CENTRAL_URL="+cfg.Origin, "YNX_PAY_PRODUCT_CENTRAL_KEY=synthetic-fixture-only", "YNX_PAY_PRODUCT_CENTRAL_MERCHANT_ID=synthetic-central-merchant", "YNX_PAY_PRODUCT_PUBLIC_URL=http://"+address, "YNX_PAY_PRODUCT_LINK_CONFIG="+configFile, "YNX_PAY_PRODUCT_STORE="+filepath.Join(dir, "state.json"), "YNX_PAY_PRODUCT_ADDR="+address)
+	if err = child.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() { child.Process.Kill(); child.Wait() }()
+	client := &http.Client{Timeout: time.Second}
+	deadline := time.Now().Add(5 * time.Second)
+	var response *http.Response
+	for {
+		response, err = client.Get("http://" + address + "/health/live")
+		if err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("normal daemon did not start", err)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	response.Body.Close()
+	if response.StatusCode != 200 {
+		t.Fatal("normal liveness unavailable", response.StatusCode)
+	}
+	for _, path := range []string{"/ready", "/v1/merchant/state", "/v1/invoices/unknown/payment-outcome"} {
+		response, err = client.Get("http://" + address + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, _ := io.ReadAll(response.Body)
+		response.Body.Close()
+		if response.StatusCode != 503 {
+			t.Fatal("missing real private authority was bypassed", path, response.StatusCode, string(body))
+		}
 	}
 }
