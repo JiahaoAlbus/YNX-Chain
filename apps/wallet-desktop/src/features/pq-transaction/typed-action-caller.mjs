@@ -1,9 +1,10 @@
 import {createHash} from 'node:crypto';
 import {types} from 'node:util';
-import {encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
+import {encodePQNativeAction,decodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
 import {assertPQAuthorizationCurrent, planPQNativeAction} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {signPQWalletNativeAction} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
 import {verifyPQRegisteredMemberData} from '@ynx-chain/wallet-auth/pq-registered-member';
+import {PQ_INVOICE_ACTION_KINDS,projectPQInvoiceReviewData} from './invoice-review-data.mjs';
 
 // Main-only SDK331 consumer. These WeakMap entries correlate immutable DATA;
 // they are NOT the original pending review, consent, permission or journal.
@@ -53,10 +54,10 @@ function sameData(actual, expected) {
     sameData(a[key].value, e[key].value);
   }
 }
-function memberBytes(value) {
+function memberBytes(value, maximum = 8 * 1024 * 1024) {
   if (types.isProxy(value) || !types.isUint8Array(value)) fail('PQ_TYPED_ACTION_MEMBER_INVALID');
   const buffer = bufferOf.call(value), length = lengthOf.call(value), offset = offsetOf.call(value);
-  if (types.isSharedArrayBuffer(buffer) || resizableBuffer.call(buffer) || detachedBuffer.call(buffer) || !length || length > 8 * 1024 * 1024) fail('PQ_TYPED_ACTION_MEMBER_INVALID');
+  if (types.isSharedArrayBuffer(buffer) || resizableBuffer.call(buffer) || detachedBuffer.call(buffer) || !length || length > maximum) fail('PQ_TYPED_ACTION_MEMBER_INVALID');
   const keys = Reflect.ownKeys(value);
   if (keys.length !== length || keys.some((key, i) => key !== String(i))) fail('PQ_TYPED_ACTION_MEMBER_INVALID');
   return Buffer.from(new Uint8Array(buffer, offset, length));
@@ -80,12 +81,53 @@ function reviewData(snapshot, input, metadata) {
 }
 
 /** Build exact typed signing DATA from an original authenticated snapshot.
- * SDK331 checks all 16 payloads, current pair, nonce and real executor fees.
+ * The sole SDK checks supported kinds, current pair, nonce and executor fees;
+ * no projection can add a kind that its codec/plan does not support.
+ * invoiceOriginals are original Main-retained bytes/snapshots, never renderer
+ * authority: termsMessage is the complete canonical merchant action; a refund
+ * also needs its original settlement review, Member and retained snapshots.
  * Original Main owns the request ID, user review and trustworthy source. */
-export function preparePQTypedActionReview(snapshot, input, metadata) {
+export function preparePQTypedActionReview(snapshot, input, metadata, invoiceOriginals = null) {
   const review = reviewData(snapshot, input, metadata);
-  reviews.set(review, {snapshot, signingSnapshot:null, entered:false});
+  let invoice = null;
+  if (PQ_INVOICE_ACTION_KINDS.includes(review.action.kind)) {
+    let references;
+    if (review.action.kind === 'invoice_terms') {
+      if (invoiceOriginals !== null) fail('PQ_INVOICE_REVIEW_ORIGINALS_INVALID');
+      references = {termsDigest:review.requestDigest};
+      if (review.action.payload.keyEpoch !== review.policyRevision) fail('PQ_INVOICE_REVIEW_REFERENCE_MISMATCH');
+    } else {
+      const original = exact(invoiceOriginals, ['termsMessage','settlement']);
+      // Decode only through the sole SDK; never reconstruct invoice framing.
+      const termsBytes = memberBytes(original.termsMessage,8192), terms = decodePQNativeAction(termsBytes);
+      let settlement = null;
+      if (review.action.kind === 'invoice_refund') {
+        const retained = exact(original.settlement, ['review','member','original']);
+        const inspected = inspectPQTypedActionMember(retained.review,retained.member,retained.original);
+        settlement = {action:inspected.action,memberHash:inspected.memberHash};
+      } else if (original.settlement !== null) fail('PQ_INVOICE_REVIEW_ORIGINALS_INVALID');
+      references = {terms,termsDigest:digest(termsBytes),settlement};
+    }
+    invoice = Object.freeze({...projectPQInvoiceReviewData(review.action,references),
+      operationId:review.operationId,requestDigest:review.requestDigest,
+      policyRevision:review.policyRevision,executionHeight:review.executionHeight,
+      createdAt:review.createdAt,expiresAt:review.expiresAt,
+      signingOnly:true,broadcastRequiresSeparateApproval:true});
+    if (review.action.kind !== 'invoice_refund' && BigInt(invoice.terms.expiresAt) < BigInt(review.executionHeight)) fail('PQ_INVOICE_REVIEW_EXPIRED');
+  } else if (invoiceOriginals !== null) fail('PQ_INVOICE_REVIEW_ORIGINALS_INVALID');
+  reviews.set(review, {snapshot, signingSnapshot:null, entered:false, cancelled:false, invoice});
   return review;
+}
+
+/** Main maps this exact frozen DATA into its existing approval view. Neither
+ * this object nor a serialized copy grants approval or calls a signer. */
+export function readPQTypedActionInvoiceReviewData(review) {return state(review).invoice;}
+
+/** Retire the live correlation when Main cancels its original review. A late
+ * approval cannot reopen it; an already-entered signer never becomes retryable. */
+export function cancelPQTypedActionReview(review) {
+  const entry = state(review); entry.cancelled = true;
+  return Object.freeze({operationId:review.operationId,signerEntered:entry.entered,dataOnly:true,canRetry:false});
 }
 
 function archivedReview(value, options) {
@@ -105,12 +147,14 @@ function archivedReview(value, options) {
  * No boolean here is permission and this call does not acquire custody. */
 export function recheckPQTypedActionReview(review, refreshed, selectedBinding, at = Date.now()) {
   const entry = state(review), selected = binding(selectedBinding);
+  if (entry.cancelled) fail('PQ_TYPED_ACTION_REVIEW_CANCELLED');
   if (selected.account !== review.account || selected.networkId !== review.networkId) fail('PQ_TYPED_ACTION_BINDING_MISMATCH');
   if (!Number.isSafeInteger(at) || at < Date.parse(review.createdAt) || at >= Date.parse(review.expiresAt)) fail('PQ_TYPED_ACTION_REVIEW_EXPIRED');
   assertPQAuthorizationCurrent(entry.snapshot, refreshed);
   const plan = planPQNativeAction(refreshed, review.action);
   matches(plan, selected);
   if (plan.policy.policyRevision !== review.policyRevision || plan.policy.activeRecord.pkA !== review.pair.pkA || plan.policy.activeRecord.pkB !== review.pair.pkB || digest(encodePQNativeAction(plan.action)) !== review.requestDigest) fail('PQ_TYPED_ACTION_BINDING_MISMATCH');
+  if (entry.invoice && review.action.kind !== 'invoice_refund' && BigInt(entry.invoice.terms.expiresAt) < BigInt(plan.policy.executionHeight)) fail('PQ_INVOICE_REVIEW_EXPIRED');
   return plan;
 }
 

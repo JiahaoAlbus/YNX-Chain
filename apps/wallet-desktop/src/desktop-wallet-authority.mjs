@@ -15,7 +15,7 @@ import {assertPQMigrationRequestPolicy} from '@ynx-chain/wallet-auth/pq-wallet-p
 import {pqMigrationBroadcastPermissionRequest} from './features/pq-transaction/migration-permission-binding.mjs';
 import {pqBroadcastPermissionRequest} from './features/pq-transaction/submission.mjs';
 import {encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
-import {preparePQTypedActionReview,signPQReviewedTypedAction} from './features/pq-transaction/typed-action-caller.mjs';
+import {preparePQTypedActionReview,signPQReviewedTypedAction,readPQTypedActionInvoiceReviewData,cancelPQTypedActionReview} from './features/pq-transaction/typed-action-caller.mjs';
 import {capturePQContractDeploymentMaterialData} from '@ynx-chain/wallet-auth/pq-contract-deployment-transport';
 import {inspectPQGoValidatedContractMaterial} from './features/pq-transaction/contract-deployment-material.mjs';
 import {pqTypedSignPermissionRequest,pqTypedBroadcastPermissionRequest} from './wallet-pq-typed-permission.mjs';
@@ -218,7 +218,8 @@ export class DesktopWalletAuthority {
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
   async #preparePQTypedAction(input,connection=null){
-    if(!input||Object.getPrototypeOf(input)!==Object.prototype||!['fee,kind,payload','deployment,fee,kind,payload'].includes(Reflect.ownKeys(input).sort().join())||Object.values(Object.getOwnPropertyDescriptors(input)).some(d=>!Object.hasOwn(d,'value')))throw providerError(-32602,'PQ_TYPED_ACTION_INPUT_INVALID','Supply only kind, fee, payload and deployment materials when required. Account, network and nonce come from original policy.');
+    if(!input||Object.getPrototypeOf(input)!==Object.prototype||!['fee,kind,payload','deployment,fee,kind,payload','fee,invoiceOriginals,kind,payload'].includes(Reflect.ownKeys(input).sort().join())||Object.values(Object.getOwnPropertyDescriptors(input)).some(d=>!Object.hasOwn(d,'value')))throw providerError(-32602,'PQ_TYPED_ACTION_INPUT_INVALID','Supply only kind, fee, payload and the required original materials. Account, network and nonce come from original policy.');
+    if(Object.hasOwn(input,'invoiceOriginals')&&!['invoice_terms','invoice_settle','invoice_refund'].includes(input.kind))throw providerError(-32602,'PQ_TYPED_ACTION_INPUT_INVALID','Invoice originals are only accepted for an invoice action.');
     if(['stake_delegate','stake_unbond','stake_withdraw'].includes(input.kind))throw providerError(4100,'PQ_TYPED_CLASSIC_ORIGINALS_NOT_SUPPLIED','The original protected staking witness source is required before signing.');
     let deployment,deploymentReview;
     if(input.kind==='contract_deploy'){
@@ -240,7 +241,8 @@ export class DesktopWalletAuthority {
     try{
       guard.assert();permission.assert();if(this.#pqShuttingDown||this.#pqPolicyRecognized(resource)!==true)throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original typed policy is not recognized.');
       const {snapshot,expiresAt}=owner.read(),policy=inspectPQWalletActionPolicy(snapshot,'pq-native-action'),at=this.clock().getTime(),id=this.requestId();
-      const typedReview=preparePQTypedActionReview(snapshot,{chainId:this.#pqNetworkId,nativeChainId:'6423',owner:status.account,nonce:policy.nextNonce,fee:input.fee,kind:input.kind,payload:input.payload},{operationId:id,account:status.account,networkId:this.#pqNetworkId,createdAt:new Date(at).toISOString(),expiresAt:new Date(Math.min(Date.parse(expiresAt),at+120000)).toISOString()});
+      const typedReview=preparePQTypedActionReview(snapshot,{chainId:this.#pqNetworkId,nativeChainId:'6423',owner:status.account,nonce:policy.nextNonce,fee:input.fee,kind:input.kind,payload:input.payload},{operationId:id,account:status.account,networkId:this.#pqNetworkId,createdAt:new Date(at).toISOString(),expiresAt:new Date(Math.min(Date.parse(expiresAt),at+120000)).toISOString()},input.invoiceOriginals??null);
+      const invoiceReview=readPQTypedActionInvoiceReviewData(typedReview);
       const archive={review:typedReview,reviewSnapshot:JSON.parse(JSON.stringify(snapshot)),signingSnapshot:JSON.parse(JSON.stringify(snapshot)),...(deployment?{deployment}: {}),...(connected?{initiator:{origin:connected.origin,sessionBindingHash:connected.sessionBindingHash,requestKeyHash:connected.requestKeyHash}}:{})};
       // N1 Member includes both full signatures/public pair; fixed codec
       // overhead is conservatively reserved before custody or key entry.
@@ -249,12 +251,12 @@ export class DesktopWalletAuthority {
       if(!Number.isSafeInteger(reserveBytes)||reserveBytes>PRIVATE_FILE_MAX_BYTES-65536)throw providerError(4100,'PQ_TYPED_ORIGINAL_CAPACITY','There is insufficient protected journal capacity for this exact operation. Nothing was signed.');
       if(deployment)inspectPQGoValidatedContractMaterial(typedReview.action,deployment);
       this.#pruneExpired();if(this.pending.size>=MAX_PENDING_REQUESTS||connected&&[...this.pending.values()].filter(p=>p.origin===connected.origin).length>=MAX_PENDING_REQUESTS_PER_ORIGIN)throw providerError(4200,'PENDING_REQUEST_LIMIT','Finish pending reviews first.');
-      const pending=deepFreeze({id,origin:connected?.origin??'ynx-wallet:local-pq',method:'ynx_signPQNativeAction',params:[],createdAt:typedReview.createdAt,review:{title:'Sign PQ action locally',account:status.account,...(connected?{initiatorOrigin:connected.origin}:{}),typedReview,...(deploymentReview?{deployment:deploymentReview}:{}),expiresAt:typedReview.expiresAt,warning:'Sign and retain this exact typed action only. Broadcast requires a separate original approval. Compiler material must still pass original Go authentication. No submission, contract execution or finality is claimed.'}});
+      const pending=deepFreeze({id,origin:connected?.origin??'ynx-wallet:local-pq',method:'ynx_signPQNativeAction',params:[],createdAt:typedReview.createdAt,review:{title:'Sign PQ action locally',account:status.account,...(connected?{initiatorOrigin:connected.origin}:{}),typedReview,...(invoiceReview?{invoice:invoiceReview}:{}),...(deploymentReview?{deployment:deploymentReview}:{}),expiresAt:typedReview.expiresAt,warning:'Sign and retain this exact typed action only. Broadcast requires a separate original approval. Compiler material must still pass original Go authentication. No submission, contract execution or finality is claimed.'}});
       // The preparation operation's key guard ends when preparation returns.
       // Bind the persistent review to its security revision instead; approval
       // obtains its own current key guard, as do existing transfer reviews.
       let cancelled=false;const revision=this.vault.authorization.status().revision,lease=Object.freeze({assert:()=>{permission.assert();owner.assert();if(cancelled||this.#pqShuttingDown||this.vault.authorization.status().revision!==revision||this.clock().getTime()>=Date.parse(pending.review.expiresAt))throw providerError(4100,'REQUEST_EXPIRED','Review this original action again.');}});
-      lease.assert();this.#pqReviews.set(pending,{snapshot,owner,typedReview,archive,reserveBytes});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Typed action cancelled.')).catch(()=>{});return true;}});this.pending.set(id,pending);
+      lease.assert();this.#pqReviews.set(pending,{snapshot,owner,typedReview,archive,reserveBytes});this.#reviewLeases.set(pending,{lease,permission,cancel:()=>{if(cancelled)return false;cancelled=true;cancelPQTypedActionReview(typedReview);void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Typed action cancelled.')).catch(()=>{});return true;}});this.pending.set(id,pending);
       return Object.freeze({status:'approval-required',request:pending});
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
