@@ -1,0 +1,15 @@
+# Controlled local resource executor
+
+`NewDisabled` is the production default. The helper exposes no contribution API, and this package contains no production publisher root. `NewControlledSandbox` requires a trusted fixture authorizer and labels every receipt `CONTROLLED_SANDBOX`; temporary test Ed25519 signatures do not imply original-issuer authority or production PQ support.
+
+Only `verify_chunk` is implemented. A canonical manifest binds the exact job, issuer, input byte length and SHA3-512/SHA-512, expiry, and resource limits. A separately verified consent binds its principal, job, that complete manifest, identical limits, expiry and single-use nonce. Other work kinds, disk allocation and egress are rejected. Jobs never contain executable code, URLs, host paths or shell commands.
+
+There is one operation at a time, with at most 8 MiB input, 24 MiB reserved work memory and five seconds wall time. Hashing checks cancellation between 4 KiB chunks. `cpuMilli` controls a cooperative duty cycle with a bounded chunk burst; it is not an OS-enforced CPU quota. Memory limits describe work buffers, not the entire Go host process. Production process/OS quota integration remains absent.
+
+`StopContribution` seals new scheduling, cancels the owned operation and waits for its accounting and quota release. Restart schedules nothing and `NewDisabled` remains disabled. The atomic productstore journal preserves local measured usage, consumed approval nonces, one result/receipt per job and independently reverified bytes. Its checksum is integrity protection, not issuer authentication. Its exclusive `.owner` directory belongs only to the configured journal; a crash leaves that lock for explicit local reconciliation rather than automatic takeover. Interrupted jobs never replay automatically, and their recorded usage is a lower bound.
+
+`VerifyWorkReceipt` re-reads the original bytes before counting a job. On restart, old verified receipts remain historical and count zero; original manifest and user-consent signatures must pass again before re-auditing, and the old job is never executed again. `VerifyResourceMeter` derives unique verified jobs from current-process checks; it accepts no self-reported CPU or imported counters, and reports rewards `NOT_AUTHORIZED`. This is local sandbox evidence, not global service, settlement, governance weight or public resource-network proof. A journal write failure is surfaced by `Wait`, `StopContribution` and `Close`, keeps scheduling sealed and retains the owner lock for reconciliation.
+
+The existing Resource Market `PrepareMeter`, `RecordUsage` and `ConfirmSettlement` remain their original owners' provider-metering/economic authority. They are not reused as volunteer-job authorization. Production integration needs the canonical issuer/key-epoch/revocation manifest verifier and genuine local user-consent contract, plus an OS quota and lifecycle adapter. No existing resource daemon, schema, shared lock or economic state is modified.
+
+Canonical test discovery: `GOMAXPROCS=2 go test -p 1 ./cmd/ynx-network-helper -run 'TestP09(07|08|09)Contribution'` (also discovered by existing `make test`).
