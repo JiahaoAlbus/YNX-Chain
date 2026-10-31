@@ -153,7 +153,7 @@ func (h *helper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		switch r.URL.Path {
 		case "/api/status":
-			sendJSON(w, 200, map[string]any{"paired": true, "anchorConfigured": h.anchor != nil, "checkpoint": h.anchor.Summary(), "helperOsUid": h.uid, "callerOsIdentityVerified": false, "assurance": "local-code-origin-ticket", "contribution": "disabled", "managedNodes": 0, "rpc": h.rpc})
+			sendJSON(w, 200, map[string]any{"paired": true, "anchorConfigured": h.anchor != nil, "checkpoint": h.anchor.Summary(), "helperOsUid": h.uid, "callerOsIdentityVerified": false, "assurance": "local-code-origin-ticket", "pqIndependentTrustConfigured": false, "contribution": "disabled", "managedNodes": 0, "rpc": h.rpc})
 		case "/api/revoke":
 			h.mu.Lock()
 			h.ticket = ""
@@ -184,6 +184,16 @@ func (h *helper) verify(w http.ResponseWriter, r *http.Request) {
 	}
 	if !txPattern.MatchString(in.TxID) {
 		denied(w, 400, "INVALID_TX_ID")
+		return
+	}
+	var format struct {
+		Version string `json:"version"`
+	}
+	if json.Unmarshal(in.Proof, &format) == nil && format.Version == "YNX-PQ-RPC-TRANSACTION-PROOF/v1" {
+		// The collector's independentFinality/verification fields never supply
+		// local trust. A pinned original host context is not yet configured for
+		// this public-receipt helper; do not convert a PQ proof to classic keys.
+		sendJSON(w, 200, receipt.VerifyPQNetworkReceipt(in.TxID, nil, in.Proof, h.now()))
 		return
 	}
 	var proof receipt.ChainProof

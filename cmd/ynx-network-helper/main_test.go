@@ -224,3 +224,15 @@ func TestNetworkPWAStateBindings(t *testing.T) {
 	}
 	t.Logf("%s", output)
 }
+
+func TestTP0902PQCollectorNeverSelfAuthenticates(t *testing.T) {
+	_, s := fixture(t, "https://rpc.example")
+	ticket := pair(t, s)
+	code, out := call(t, s, "/api/verify", s.URL, ticket, map[string]any{
+		"txId":  knownTx,
+		"proof": map[string]any{"version": "YNX-PQ-RPC-TRANSACTION-PROOF/v1", "source": "fake-rpc", "status": "ready", "independentFinality": true, "proofVerification": "verified", "nativeTransactionHash": knownTx},
+	})
+	if code != 200 || out["level"] != "RPC_ONLY" || out["executionVerified"] != false {
+		t.Fatalf("collector forged trust: %d %+v", code, out)
+	}
+}

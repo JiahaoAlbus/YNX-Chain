@@ -61,12 +61,25 @@ with this product. `receipt.AnchorDocument` defines the public file format:
 and a complete Comet LightBlock. The local trust-window cap is 14 days, with
 10 seconds maximum clock drift. The adapter reuses the repository-pinned
 CometBFT v0.38.23 `light.Verify` and `types.TxProof.Validate`; it does not claim
-compatibility with an unbound PQ consensus fork.
+compatibility with an unbound PQ consensus fork. The separate PQ adapter is
+compiled on the exact original CORE-09 candidate and calls its original
+`consensus.VerifyPQLightProof` / `VerifyPQTransactionProof`; it never routes PQ
+keys through the classic adapter.
 
 The canonical CORE owner must supply the activated member/event proof schema,
 success semantics, complete path to the signed state commitment, execution H
 to commitment-header height vectors, and the PQ historical-key light verifier.
 P09 does not add a parallel consensus verifier or a new receipt-root format.
+
+CORE-09's collector format is `YNX-PQ-RPC-TRANSACTION-PROOF/v1`. Its HTTP result
+and `independentFinality`/`proofVerification` fields supply no trust. The helper
+accepts imported collector data but currently has no independently configured
+PQ host context, so that path remains `RPC_ONLY`. The code adapter accepts an
+original snapshot/trusted block and exact independently pinned transaction
+expectation only as separate trusted in-process inputs. It uses local time and
+the original H inclusion / H+1 result commitment verifier. A proved ABCI result
+is distinct from account balance, invoice event or funds-state membership;
+the adapter does not promote those absent proofs to `STATE_VERIFIED`.
 
 ## Focused verification and existing CI
 
