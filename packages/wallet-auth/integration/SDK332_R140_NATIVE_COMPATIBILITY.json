@@ -372,6 +372,12 @@
       "browser": null,
       "node": "./native/original-pay-cloud-bill-source-contract.mjs",
       "default": null
+    },
+    "./social-local-signed-data": {
+      "types": "./src/social-local-signed-v2.d.ts",
+      "browser": null,
+      "node": "./src/social-local-signed-v2.js",
+      "default": null
     }
   },
   "NativeInputs": [
@@ -3347,5 +3353,48 @@
     "SourceAdmission": false,
     "NativeAdmission": false,
     "old171RuntimeQualificationInherited": false
+  },
+  "socialLocalSignedV2DATAInputs": [
+    {
+      "path": "packages/wallet-auth/src/social-local-signed-v2.js",
+      "bytes": 21333,
+      "sha256": "f29591aad71abef784133017472d92c507b95e9285f96f90ab25ad15d8706c24"
+    },
+    {
+      "path": "packages/wallet-auth/src/social-local-signed-v2.d.ts",
+      "bytes": 9686,
+      "sha256": "0706ba67630dae730ac364e1e088808de6b0652c1368fb29fc38c322582c7a40"
+    },
+    {
+      "path": "packages/wallet-auth/src/social-platform-policy-v3.js",
+      "bytes": 23146,
+      "sha256": "ddec7b77f4af6f6f9ef36abc247d79f0506bec36ef9e6163c808f205d455a5e7"
+    },
+    {
+      "path": "packages/wallet-auth/src/social-platform-policy-v3.d.ts",
+      "bytes": 10278,
+      "sha256": "f628eefe7de22593b0e7765c6c35bb1eebab9c94dc002a8404f2131cb89ab56a"
+    },
+    {
+      "path": "packages/wallet-auth/integration/SOCIAL_LOCAL_SIGNED_V2_SCHEMA.json",
+      "bytes": 3338,
+      "sha256": "4e22b97e478ae5064d31280a0f5d5ee1e507271dccd97a2d92af042f90403d70"
+    },
+    {
+      "path": "packages/wallet-auth/integration/SOCIAL_ORDINARY_OBSERVATION_V2_ABI.json",
+      "bytes": 1960,
+      "sha256": "25667ed1b496f255b9330756f9df127de13081a5e875eff9e676ca2ecf9645b8"
+    }
+  ],
+  "socialLocalSignedV2Successor": {
+    "newBodyDATA": true,
+    "declaredNativeInputs": 173,
+    "newNativeCompileInputsAdded": 0,
+    "MainCABIHeaderOnly": true,
+    "realBackendGetterSupplied": false,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "MACVerified": false,
+    "oldNativeQualificationInherited": false
   }
 }

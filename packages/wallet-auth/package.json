@@ -374,6 +374,12 @@
       "browser": null,
       "node": "./native/original-pay-cloud-bill-source-contract.mjs",
       "default": null
+    },
+    "./social-local-signed-data": {
+      "types": "./src/social-local-signed-v2.d.ts",
+      "browser": null,
+      "node": "./src/social-local-signed-v2.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -567,7 +573,8 @@
     "test:publication-result-decoder": "node --test test/ide-artifact-release-result.test.mjs",
     "test:product-session-v4-codec-types": "tsc -p test/tsconfig.product-session-v4-codec-types.json",
     "test:product-device-v4-pending-client-types": "tsc -p test/tsconfig.product-device-v4-pending-client-types.json",
-    "test:pay-source-family": "node --test test/pay-source-family.test.mjs test/pay-source-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pay-source-family.types.mts"
+    "test:pay-source-family": "node --test test/pay-source-family.test.mjs test/pay-source-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pay-source-family.types.mts",
+    "test:social-local-signed-v2": "node --test test/social-local-signed-v2.test.mjs test/social-local-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/social-local-signed-v2.types.mts"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
