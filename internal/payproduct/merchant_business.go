@@ -217,6 +217,7 @@ func merchantBusinessRoute(method, path string) (permission string, creation, re
 	fixed := map[string]string{
 		"POST /v1/merchant/sessions": "read", "POST /v1/merchant/members": "members",
 		"POST /v1/merchant/mutations/lookup": "read",
+		"POST /v1/merchant/payment-sessions": "invoice",
 		"GET /v1/merchant/state":             "read", "GET /v1/merchant/analytics": "read", "GET /v1/merchant/reconciliation.csv": "reconcile",
 		"POST /v1/merchant/catalog": "invoice", "POST /v1/merchant/invoices": "invoice", "POST /v1/merchant/split-payments": "invoice", "POST /v1/merchant/quant-bills": "invoice", "POST /v1/merchant/recurring-drafts": "invoice", "PUT /v1/merchant/webhook": "webhook", "POST /v1/merchant/webhook/rotate": "webhook",
 	}
@@ -224,6 +225,9 @@ func merchantBusinessRoute(method, path string) (permission string, creation, re
 		return p, path == "/v1/merchant/sessions", false
 	}
 	parts := strings.Split(path, "/")
+	if method == "GET" && len(parts) == 5 && parts[1] == "v1" && parts[2] == "merchant" && parts[3] == "payment-sessions" && identifierRE.MatchString(parts[4]) {
+		return "read", false, false
+	}
 	if method == "GET" && len(parts) == 5 && parts[1] == "v1" && parts[2] == "merchant" && parts[3] == "sessions" && identifierRE.MatchString(parts[4]) {
 		return "read", false, true
 	}

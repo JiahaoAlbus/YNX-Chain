@@ -2,6 +2,7 @@ package paygateway
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -104,6 +105,14 @@ func (s *Server) handleProxy(w http.ResponseWriter, r *http.Request) {
 	s.service.StartRequest()
 	resp, err := s.service.Proxy(r.Context(), r.Method, r.URL.Path, r.URL.RawQuery, body, requestID)
 	if err != nil {
+		var unavailable *FundsCapabilityUnavailableError
+		if errors.As(err, &unavailable) {
+			s.service.FinishRequest(http.StatusNotImplemented)
+			s.audit(r, requestID, body, http.StatusNotImplemented, "capability_unavailable")
+			w.Header().Set("X-Request-ID", requestID)
+			writeJSON(w, http.StatusNotImplemented, map[string]string{"error": unavailable.Error(), "requestId": requestID, "code": "BFT_FUNDS_CAPABILITY_UNAVAILABLE", "capability": unavailable.Capability})
+			return
+		}
 		s.service.FinishRequest(http.StatusBadGateway)
 		s.audit(r, requestID, body, http.StatusBadGateway, "upstream_error")
 		writeError(w, http.StatusBadGateway, requestID, err.Error())

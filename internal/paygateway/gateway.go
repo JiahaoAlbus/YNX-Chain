@@ -34,7 +34,19 @@ const (
 	UpstreamBFT           = "bft"
 )
 
+// FundsCapabilityUnavailableError distinguishes a missing funds action from an
+// upstream outage. Metadata records cannot satisfy settlement or refund calls.
+type FundsCapabilityUnavailableError struct {
+	Capability string
+	Reason     string
+}
+
+func (e *FundsCapabilityUnavailableError) Error() string { return e.Reason }
+
 type Config struct {
+	// HTTPClient carries the owner-supplied transport without changing Pay wire
+	// semantics. New copies it and disables redirects to preserve target binding.
+	HTTPClient        *http.Client
 	ChainURL          string
 	MerchantID        string
 	APIKey            string
@@ -122,9 +134,16 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
+	client := http.Client{Timeout: 30 * time.Second}
+	if normalized.HTTPClient != nil {
+		client = *normalized.HTTPClient
+	}
+	// A redirect cannot select a different service identity or receive sensitive
+	// gateway headers/signed bodies. Return the original response for readback.
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	service := &Service{
 		cfg:        normalized,
-		httpClient: &http.Client{Timeout: 30 * time.Second},
+		httpClient: &client,
 		seen:       map[string][]time.Time{},
 	}
 	if normalized.UpstreamMode == UpstreamBFT {
@@ -319,7 +338,13 @@ func (s *Service) PrepareBody(path string, body []byte) ([]byte, error) {
 func (s *Service) Proxy(ctx context.Context, method, path, rawQuery string, body []byte, requestID string) (*http.Response, error) {
 	if s.cfg.UpstreamMode == UpstreamBFT && method == http.MethodPost {
 		if strings.HasPrefix(path, "/pay/invoices/") && strings.HasSuffix(path, "/settle") {
-			return nil, errors.New("invoice settlement is not implemented for candidate BFT Pay mode")
+			return nil, &FundsCapabilityUnavailableError{Capability: "invoice_settlement", Reason: "invoice settlement is not implemented for candidate BFT Pay mode"}
+		}
+		if path == "/pay/refunds" {
+			// ActionPayRefundCreate records metadata only; it neither checks a paid
+			// invoice nor transfers funds back to its payer. Do not dispatch it as
+			// the money-moving refund API or consume a signer nonce for it.
+			return nil, &FundsCapabilityUnavailableError{Capability: "refund_transfer", Reason: "refund transfer is not implemented for candidate BFT Pay mode"}
 		}
 		return s.proxyBFTMutation(ctx, path, body, requestID)
 	}

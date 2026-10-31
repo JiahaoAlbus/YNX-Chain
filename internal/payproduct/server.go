@@ -50,6 +50,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /v1/merchant/mutations/lookup", s.merchantMutationLookup)
 	s.mux.HandleFunc("POST /v1/merchant/catalog", s.catalog)
 	s.mux.HandleFunc("POST /v1/merchant/invoices", s.createInvoice)
+	s.mux.HandleFunc("POST /v1/merchant/payment-sessions", s.openPaymentSession)
+	s.mux.HandleFunc("GET /v1/merchant/payment-sessions/{sourceOrder}", s.paymentSession)
 	s.mux.HandleFunc("POST /v1/merchant/split-payments", s.createSplitPayment)
 	s.mux.HandleFunc("POST /v1/merchant/quant-bills", s.createQuantBill)
 	s.mux.HandleFunc("POST /v1/merchant/recurring-drafts", s.createRecurringDraft)

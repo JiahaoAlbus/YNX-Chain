@@ -130,6 +130,9 @@ func (s *Service) SubmitSignedSettlement(ctx context.Context, session WalletSess
 }
 
 func validatePaymentIntent(intent SignedPaymentIntent, invoice Invoice, session WalletSession, now time.Time) error {
+	if invoice.Amount <= 0 || invoice.Fee < 0 || invoice.Amount > int64(^uint64(0)>>1)-invoice.Fee {
+		return errors.New("payment principal and fee exceed supported integer units")
+	}
 	issued, err := strictMilliseconds(intent.QuoteIssuedAt)
 	if err != nil {
 		return errors.New("payment quote issue time is invalid")

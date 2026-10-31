@@ -319,6 +319,21 @@ func (s *Service) createInvoice(ctx context.Context, merchant Merchant, input In
 	if input.ExpiresInMinutes < 1 || input.ExpiresInMinutes > 24*60 {
 		return Invoice{}, errors.New("invoice expiry must be between 1 and 1440 minutes")
 	}
+	var registered Merchant
+	if err := s.store.View(func(data Snapshot) error {
+		var err error
+		registered, err = registeredInvoiceMerchant(data, merchant)
+		return err
+	}); err != nil {
+		return Invoice{}, err
+	}
+	merchant = registered
+	scope := "invoice:" + merchant.ID
+	if existing, ok, err := s.idempotentInvoice(scope, key, invoiceRequestHash(input, binding)); err != nil {
+		return Invoice{}, err
+	} else if ok {
+		return existing, nil
+	}
 	baseAmount := input.Amount
 	description := strings.TrimSpace(input.Description)
 	var itemID string
@@ -347,22 +362,19 @@ func (s *Service) createInvoice(ctx context.Context, merchant Merchant, input In
 		return Invoice{}, errors.New("invoice total exceeds supported range")
 	}
 	amount := baseAmount + input.TipAmount
-	scope := "invoice:" + merchant.ID
-	if existing, ok, err := s.idempotentInvoice(scope, key, invoiceRequestHash(input, binding)); err != nil {
-		return Invoice{}, err
-	} else if ok {
-		return existing, nil
-	}
 	intent, err := s.pay.CreateIntent(ctx, merchant.CentralMerchantID, merchant.PayoutAddress, amount, "product-intent-"+key)
 	if err != nil {
 		return Invoice{}, err
+	}
+	if !identifierRE.MatchString(intent.ID) || intent.Merchant != merchant.CentralMerchantID || intent.PayoutAddress != merchant.PayoutAddress || intent.Amount != amount || intent.Currency != NativeAsset || intent.Status != "created" {
+		return Invoice{}, errors.New("central Pay intent did not match the merchant request")
 	}
 	hours := (input.ExpiresInMinutes + 59) / 60
 	central, err := s.pay.CreateInvoice(ctx, intent.ID, hours, "product-invoice-"+key)
 	if err != nil {
 		return Invoice{}, err
 	}
-	if central.Currency != NativeAsset || central.Amount != amount || central.Merchant != merchant.CentralMerchantID || central.PayoutAddress != merchant.PayoutAddress || central.Status != "issued" {
+	if !identifierRE.MatchString(central.ID) || central.IntentID != intent.ID || central.Currency != NativeAsset || central.Amount != amount || central.Merchant != merchant.CentralMerchantID || central.PayoutAddress != merchant.PayoutAddress || central.Status != "issued" || !central.DueAt.After(s.now()) {
 		return Invoice{}, errors.New("central Pay invoice did not match the merchant request")
 	}
 	expiry := s.now().Add(time.Duration(input.ExpiresInMinutes) * time.Minute)
@@ -395,7 +407,12 @@ func (s *Service) createInvoice(ctx context.Context, merchant Merchant, input In
 	}
 	invoice.Signature = hex.EncodeToString(ed25519.Sign(ed25519.PrivateKey(privateKey), invoiceSigningMaterial(invoice)))
 	err = s.idempotentUpdate("invoice", merchant.ID, key, invoiceRequestHash(input, binding), invoice.ID, func(data *Snapshot) error {
-		data.Invoices[invoice.ID] = invoice
+		if _, err := registeredInvoiceMerchant(*data, merchant); err != nil {
+			return err
+		}
+		if err := claimInvoiceAliases(data, invoice); err != nil {
+			return err
+		}
 		appendAudit(data, merchant.ID, merchant.ID, "invoice.create", invoice.ID, "committed", "central invoice "+central.ID, s.now())
 		return nil
 	})
@@ -826,6 +843,9 @@ func (s *Service) idempotentInvoice(scope, key, requestHash string) (Invoice, bo
 				return errors.New("idempotency key reused with different request")
 			}
 			out, ok = data.Invoices[r.ObjectID]
+			if !ok {
+				return errors.New("original invoice receipt requires recovery")
+			}
 		}
 		return nil
 	})

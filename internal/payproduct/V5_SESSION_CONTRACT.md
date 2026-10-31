@@ -1,0 +1,37 @@
+# P06 J0 invoice and legacy session contract
+
+Owner: P06 `01a1913a-1295-7fb1-9759-35aba95356d6`; sole control `01a19136-8605-7773-9d79-99c6f91c3a36`. Backend successor base: `37adc4cc78b117ce22b1338b1dd51094f53e751f`; original Pay app source remains `04-pay` at `53eb677c0e41d1ddf73d7faa105958181dc29236`. This candidate does not claim a matched UI/package/install/deployment or V5 funds authority.
+
+## Existing invoice registration (P06-01 compatibility delta)
+
+`POST /v1/merchant/invoices` remains `InvoiceInput -> Invoice`, implemented by `Service.CreateInvoice/createInvoice`. Canonical Merchant request proofs, current original membership and bound console carrier remain required by the formal server. No service API key, Shop admission, client-supplied merchant object or self-declared public key replaces that authority. The original compatibility server remains a legacy integration surface, not the formal mount.
+
+The server re-reads the original active merchant identity before provider calls and rechecks it in the original Store transaction. Provider intent/invoice must match merchant, recipient, integer principal, YNXT and status; the central invoice must bind the returned intent and a future due time. Product ID, central invoice ID and intent ID cannot collide with any alias of another registered invoice. Since old links do not carry a kind tag, this is one unambiguous legacy lookup namespace; existing records are preserved, never renamed. A different amount, asset, recipient, merchant, transport key or cross-kind alias cannot overwrite an original registration. A missing original idempotent receipt requires recovery, not a second request. Exact original requests return the original invoice before mutable catalog lookup.
+
+Original invoice versions 1-5 and `invoiceSigningMaterial` bytes are retained. These are Ed25519 product signatures, not the V5 dual-PQ/Chain merchant commitment. Existing `Invoice.Amount/Fee` retain the original integer YNXT domain. No conversion to V5 Money atoms, unitVersion, genesis or ChainRef is asserted without CORE's authoritative mapping.
+
+## Durable order/session binding (P06-02 legacy projection)
+
+- `POST /v1/merchant/payment-sessions`: authenticated canonical merchant `invoice` permission; body `{"invoiceId":"<product OR central OR original intent ID>","sourceOrder":"<exact order ID>"}`.
+- `GET /v1/merchant/payment-sessions/{sourceOrder}`: authenticated canonical merchant `read` permission; reads the original binding only. Missing receipt returns an error and makes zero provider calls.
+- Go: `Service.OpenPaymentSession`, `Service.PaymentSession`, `PaymentSessionInput`, `PaymentSession` in `payment_session.go`.
+- `PaymentSession.id == original Invoice.intentId`; this is the authoritative alias within this legacy Pay projection. No second intent/session identity is minted. `invoiceId` is the product ID; `centralInvoiceId` remains the original central ID; `deepLink == ynxpay://invoice/<product invoice ID>`.
+- The original Store transaction writes `IdempotencyRecord` under `payment-session:<merchant>:<sourceOrder>`. Its Key preserves the exact raw order ID; ObjectID preserves the original invoice; RequestHash binds product/central/intent/order/original invoice signature. Existing schema and atomic snapshot are reused. One order cannot bind another invoice; one invoice cannot bind another order. Only one owner/process may write this local Store; no multi-host uniqueness is claimed.
+- New binding requires an unexpired pending invoice and a valid original registered merchant signature. A signed historical invoice with missing/noncanonical aliases cannot activate a new session. Existing signed history remains readable after expiry; expiry does not reissue or approve funds.
+- Response includes `version=1`, `invoiceAuthority=legacy_ed25519_product_projection`, full original public `invoice`, IDs/order/deepLink/status/createdAt/expiresAt, `signedPayload`, `signature`. Public invoice preserves the existing ExpectedPayerHash redaction contract.
+
+The merchant signs the exact UTF-8 bytes obtained by decoding unpadded base64 `signedPayload`; the signature is hex Ed25519. Payload JSON is `{"domain":"YNX_PAY_SESSION_V1","session":<the descriptor with signedPayload and signature empty>}`. Consumers must verify against the independently trusted registered merchant key, require that domain, and compare every outer field to the parsed signed inner session (except the two signature fields). Trusting the response-carried key or only outer fields is insufficient. `TestOpenPaymentSessionBindsOriginalOrderAliasesAndColdRead` verifies raw payload signature and order tamper rejection.
+
+`sourceOrder` is an assertion by the authenticated merchant, not proof of a real Shop order, original buyer, inventory deadline or Shop authority. P07 must check its own original Order and session/current actor before accepting this binding. This descriptor is preview/recovery evidence only; it cannot activate or approve a new V5 asset operation. Pay's absent genesis/unitVersion/current checkpoint/current Wallet policy/dual-PQ issuer evidence must remain NOT_SUPPLIED. No client should fill those fields to manufacture a trusted V5 Invoice.
+
+## P06-03 and funds boundary
+
+`validatePaymentIntent` now rejects principal+fee int64 overflow. Existing Wallet result/intent verification, original product submission/reconciliation and refund authorization are retained. A complete V5 `quotePaymentReview` still needs the actual trusted checkpoint, immutable CORE invoice commitment and current Wallet policy; no placeholder quote/verifier was introduced.
+
+BFT gateway normal `POST /pay/invoices/{id}/settle` and `POST /pay/refunds` return HTTP 501 with `code=BFT_FUNDS_CAPABILITY_UNAVAILABLE`, capability and requestId. Both refuse before idempotency/nonce queries, signing or broadcast. Settlement retains the inherited firstcause `invoice settlement is not implemented for candidate BFT Pay mode`. Current BFT refund action records metadata only; `recorded` is not money returned. Existing authoritative mode remains separate. CORE must supply versioned immutable invoice registration, atomic payer-signed settle, merchant-approved refund, unique original funds events and finality/member/asset/account/principal readback. A new nonce or callback cannot create the missing authority.
+
+## Focused source verification
+
+`GOMAXPROCS=2 go test -p 1 ./internal/paygateway ./internal/payproduct -count=1`
+
+New registration tests cover amount1 vs100, same-amount/different-key alias conflict, forged/retired merchant, wrong intent/asset/recipient, expired/empty aliases, missing original receipt, cross-kind collision with cold original session readback and actual HTTP registration. New session tests cover aliases, signature/order tampering, original cold lookup, merchant isolation/revocation, concurrency and expired history. Existing `make test` already includes these packages and test files via `./internal/...`; no shared CI changes are required.

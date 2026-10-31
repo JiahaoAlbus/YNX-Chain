@@ -194,7 +194,25 @@ func TestAIReviewChecksMerchantAndCommitBeforeCancellation(t *testing.T) {
 	originalCancel := s.aiCancels[run.ID]
 	s.aiCancels[run.ID] = func() { cancellations.Add(1); originalCancel() }
 	s.aiMu.Unlock()
-	t.Cleanup(originalCancel)
+	t.Cleanup(func() {
+		originalCancel()
+		// Cancellation signals the original worker; it does not join its final
+		// Store archival write. Wait before TempDir removes that same Store.
+		deadline := time.Now().Add(time.Second)
+		for {
+			s.aiMu.Lock()
+			_, active := s.aiCancels[run.ID]
+			s.aiMu.Unlock()
+			if !active {
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Error("original AI worker did not finish before Store cleanup")
+				return
+			}
+			time.Sleep(time.Millisecond)
+		}
+	})
 	if _, err := s.ReviewAI(Merchant{ID: "mrc_other"}, run.ID, "cancelled"); err == nil {
 		t.Fatal("another merchant cancelled the run")
 	}
