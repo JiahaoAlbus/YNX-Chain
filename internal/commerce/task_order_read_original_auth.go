@@ -1,6 +1,7 @@
 package commerce
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha3"
 	"crypto/sha512"
@@ -31,19 +32,62 @@ type OriginalShopTaskOrderEncoding struct {
 	ContentType string
 }
 
+// These locators are selected by the original protected operation authority,
+// never derived from a step ID, response hash, snapshot or HTTP header.
+type OriginalShopTaskOrderOperation struct{ OriginalOperationID, RemoteRef string }
+
+type OriginalShopTaskOrderResponse struct {
+	Binding    authgrant.TaskEffectBinding
+	Operation  OriginalShopTaskOrderOperation
+	Projection OrderProjection
+	Source     authgrant.Source
+	AuthScope  authgrant.FenceScope
+}
+
+type OriginalShopTaskOrderResponseAuthority interface {
+	OpenShopOrderReadResponse(context.Context, OriginalShopTaskOrderCall) (HeldOriginalShopTaskOrderResponse, error)
+}
+type HeldOriginalShopTaskOrderResponse interface {
+	// Resolve the existing durable selection for this exact call/semantic slot;
+	// keep it immutable through proof commit and Close. Never infer or mint it.
+	Operation() (OriginalShopTaskOrderOperation, error)
+	// The original authority must independently validate the exact expected
+	// typed response and canonical payload before attesting. Not a blind signer.
+	AttestShopOrderReadResponse(context.Context, OriginalShopTaskOrderResponse, []byte) (authgrant.Proof, error)
+	Close() error
+}
+
+// In-process only; invoke synchronously exactly once and never retain it. The
+// encoder asks the held original authority to attest actual source bytes and
+// canonical payload. No serialized callback or bool.
+type OriginalShopTaskOrderAttest func(context.Context, []byte, []byte) (authgrant.Proof, error)
+
+func copyShopTaskResponse(r OriginalShopTaskOrderResponse) OriginalShopTaskOrderResponse {
+	r.Binding = copyShopTaskOrderCall(OriginalShopTaskOrderCall{Binding: r.Binding}).Binding
+	r.Source.Fields = append([]string(nil), r.Source.Fields...)
+	r.Projection.Fields = append([]string(nil), r.Projection.Fields...)
+	data := make(map[string]any, len(r.Projection.Data))
+	for k, v := range r.Projection.Data {
+		data[k] = v
+	}
+	r.Projection.Data = data
+	return r
+}
+
 // The actual SDK supplies both operations. Calls must be concurrency-safe and
-// return owned values. Encoding must be pure: encode only
-// the given detached projection and its verified original source/label. It
+// return owned values. Encoding is pure apart from the one supplied attest call:
+// encode the detached response context and verified original source/label. It
 // returns the exact source-content bytes for the shared dual digest check.
 // No local JSON-to-Grant decoder, signer, Source provider or default codec exists.
 type OriginalShopTaskOrderCodec interface {
 	DecodeShopOrderRead(context.Context, *http.Request, []byte) (OriginalShopTaskOrderCall, error)
-	EncodeShopOrderRead(context.Context, OrderProjection, authgrant.Source, authgrant.FenceScope) (OriginalShopTaskOrderEncoding, error)
+	EncodeShopOrderRead(context.Context, OriginalShopTaskOrderResponse, OriginalShopTaskOrderAttest) (OriginalShopTaskOrderEncoding, error)
 }
 
 type originalShopTaskOrderReader struct {
 	verifier  authgrant.OriginalTaskGrantVerifier
 	codec     OriginalShopTaskOrderCodec
+	responses OriginalShopTaskOrderResponseAuthority
 	tool      authgrant.Tool
 	target    authgrant.Sink
 	orderKind string
@@ -54,11 +98,11 @@ type originalShopTaskOrderReader struct {
 // must come from original protected producers; this function implements neither.
 // Tool/schema/target/kind are trusted registered profile operands, not request
 // metadata. A nil/zero/partial installation stays closed.
-func PrepareOriginalShopTaskOrders(verifier authgrant.OriginalTaskGrantVerifier, codec OriginalShopTaskOrderCodec, tool authgrant.Tool, target authgrant.Sink, orderKind string, current func(context.Context) error) (*PreparedOriginalShopTaskOrders, error) {
-	if missingTaskOrderOperand(verifier) || missingTaskOrderOperand(codec) || current == nil || orderKind == "" || tool != ShopOrderReadToolDescriptor() || target.Operation != shopOrderReadOperation || target.Path != shopOrderReadPath || target.Service == "" || target.Tenant == "" || target.Origin == "" || target.Region == "" {
+func PrepareOriginalShopTaskOrders(verifier authgrant.OriginalTaskGrantVerifier, codec OriginalShopTaskOrderCodec, responses OriginalShopTaskOrderResponseAuthority, tool authgrant.Tool, target authgrant.Sink, orderKind string, current func(context.Context) error) (*PreparedOriginalShopTaskOrders, error) {
+	if missingTaskOrderOperand(verifier) || missingTaskOrderOperand(codec) || missingTaskOrderOperand(responses) || current == nil || orderKind == "" || tool != ShopOrderReadToolDescriptor() || target.Operation != shopOrderReadOperation || target.Path != shopOrderReadPath || target.Service == "" || target.Tenant == "" || target.Origin == "" || target.Region == "" {
 		return nil, ErrUnavailable
 	}
-	reader := &originalShopTaskOrderReader{verifier, codec, tool, target, orderKind}
+	reader := &originalShopTaskOrderReader{verifier: verifier, codec: codec, responses: responses, tool: tool, target: target, orderKind: orderKind}
 	return &PreparedOriginalShopTaskOrders{reader: reader, current: current}, nil
 }
 
@@ -140,7 +184,17 @@ func (r *originalShopTaskOrderReader) readTaskOrder(ctx context.Context, store *
 	// The outer lifecycle includes SDK encoding and every partial close. No
 	// order bytes escape to HTTP if source acquisition, final check or close fails.
 	var held *authgrant.TaskGrantCheck
+	var response HeldOriginalShopTaskOrderResponse
 	defer func() {
+		if !missingTaskOrderOperand(response) {
+			if closeErr := response.Close(); closeErr != nil {
+				if err == nil {
+					err = closeErr
+				} else {
+					err = errors.Join(err, closeErr)
+				}
+			}
+		}
 		if held != nil {
 			if closeErr := held.Close(); closeErr != nil {
 				if err == nil {
@@ -155,7 +209,7 @@ func (r *originalShopTaskOrderReader) readTaskOrder(ctx context.Context, store *
 			err = taskOrderAuthFailure(err)
 		}
 	}()
-	if r == nil || missingTaskOrderOperand(r.verifier) || missingTaskOrderOperand(r.codec) || store == nil || ctx == nil {
+	if r == nil || missingTaskOrderOperand(r.verifier) || missingTaskOrderOperand(r.codec) || missingTaskOrderOperand(r.responses) || store == nil || ctx == nil {
 		return result, ErrUnavailable
 	}
 	if err = ctx.Err(); err != nil {
@@ -178,10 +232,33 @@ func (r *originalShopTaskOrderReader) readTaskOrder(ctx context.Context, store *
 	if err != nil {
 		return result, err
 	}
-	return store.readOriginalTaskOrderAtEffect(ctx, held, r.codec, call, selection)
+	response, err = r.responses.OpenShopOrderReadResponse(ctx, copyShopTaskOrderCall(call))
+	if err != nil {
+		return result, err
+	}
+	if missingTaskOrderOperand(response) {
+		return result, ErrUnavailable
+	}
+	operation, err := response.Operation()
+	if err != nil {
+		return result, err
+	}
+	if !validShopTaskOperation(operation) {
+		return result, ErrUnavailable
+	}
+	return store.readOriginalTaskOrderAtEffect(ctx, held, r.codec, response, operation, call, selection)
 }
 
-func (s *Store) readOriginalTaskOrderAtEffect(ctx context.Context, held *authgrant.TaskGrantCheck, codec OriginalShopTaskOrderCodec, call OriginalShopTaskOrderCall, selection ShopOrderReadSelection) (taskOrderReadPayload, error) {
+func validShopTaskOperation(op OriginalShopTaskOrderOperation) bool {
+	for _, s := range []string{op.OriginalOperationID, op.RemoteRef} {
+		if len(s) == 0 || len(s) > 256 || strings.IndexFunc(s, unicode.IsControl) != -1 {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Store) readOriginalTaskOrderAtEffect(ctx context.Context, held *authgrant.TaskGrantCheck, codec OriginalShopTaskOrderCodec, response HeldOriginalShopTaskOrderResponse, operation OriginalShopTaskOrderOperation, call OriginalShopTaskOrderCall, selection ShopOrderReadSelection) (taskOrderReadPayload, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := ctx.Err(); err != nil {
@@ -203,9 +280,49 @@ func (s *Store) readOriginalTaskOrderAtEffect(ctx context.Context, held *authgra
 	}
 	source := call.Binding.Sources[0]
 	source.Fields = append([]string(nil), source.Fields...)
-	encoded, err := codec.EncodeShopOrderRead(ctx, projection, source, decision.Scope)
+	expected := OriginalShopTaskOrderResponse{Binding: copyShopTaskOrderCall(call).Binding, Operation: operation, Projection: projection, Source: source, AuthScope: decision.Scope}
+	attestCalls := 0
+	var attestFailure error
+	attest := func(callbackContext context.Context, sourceBytes, payload []byte) (authgrant.Proof, error) {
+		attestCalls++
+		if callbackContext == nil {
+			attestFailure = ErrUnavailable
+			return authgrant.Proof{}, attestFailure
+		}
+		if e := callbackContext.Err(); e != nil {
+			attestFailure = e
+			return authgrant.Proof{}, e
+		}
+		if attestCalls != 1 || len(payload) == 0 || len(payload) > maxBody || taskOrderBytesBinding(sourceBytes) != call.Binding.Sources[0].Binding {
+			attestFailure = ErrConflict
+			return authgrant.Proof{}, attestFailure
+		}
+		if _, e := authgrant.CheckTaskGrantAtEffect(ctx, held); e != nil {
+			attestFailure = e
+			return authgrant.Proof{}, e
+		}
+		proof, e := response.AttestShopOrderReadResponse(ctx, copyShopTaskResponse(expected), append([]byte(nil), payload...))
+		if e != nil {
+			attestFailure = e
+			return authgrant.Proof{}, e
+		}
+		if !bytes.Equal(proof.Payload, payload) || len(proof.Wire) == 0 || len(proof.Wire) > maxBody || proof.Purpose == "" {
+			attestFailure = ErrUnavailable
+			return authgrant.Proof{}, attestFailure
+		}
+		proof.Payload = append([]byte(nil), proof.Payload...)
+		proof.Wire = append([]byte(nil), proof.Wire...)
+		return proof, nil
+	}
+	encoded, err := codec.EncodeShopOrderRead(ctx, copyShopTaskResponse(expected), attest)
 	if err != nil {
 		return taskOrderReadPayload{}, err
+	}
+	if attestFailure != nil {
+		return taskOrderReadPayload{}, attestFailure
+	}
+	if attestCalls != 1 {
+		return taskOrderReadPayload{}, ErrUnavailable
 	}
 	if taskOrderBytesBinding(encoded.SourceBytes) != call.Binding.Sources[0].Binding {
 		return taskOrderReadPayload{}, ErrConflict

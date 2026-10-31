@@ -54,10 +54,42 @@ func (s *publicShopTaskSource) Join() error   { s.joined++; return nil }
 func (s *publicShopTaskSource) Close() error  { s.closed++; return s.closeErr }
 
 type publicShopTaskVerifier struct {
-	source *publicShopTaskSource
-	opens  int
-	first  error
-	onOpen func()
+	source                                  *publicShopTaskSource
+	opens                                   int
+	first                                   error
+	onOpen                                  func()
+	responseErr, responseCloseErr           error
+	responseOpened, responseClosed, attests int
+	operation                               *OriginalShopTaskOrderOperation
+	badResponseProof                        bool
+}
+
+// PUBLIC response operation/proof stand-in, not a durable registry or signer.
+type publicShopTaskResponse struct{ verifier *publicShopTaskVerifier }
+
+func (v *publicShopTaskVerifier) OpenShopOrderReadResponse(context.Context, OriginalShopTaskOrderCall) (HeldOriginalShopTaskOrderResponse, error) {
+	v.responseOpened++
+	return &publicShopTaskResponse{v}, v.responseErr
+}
+func (p *publicShopTaskResponse) Operation() (OriginalShopTaskOrderOperation, error) {
+	if p.verifier.operation != nil {
+		return *p.verifier.operation, nil
+	}
+	return OriginalShopTaskOrderOperation{"PUBLIC-original-op", "PUBLIC-remote-ref"}, nil
+}
+func (p *publicShopTaskResponse) AttestShopOrderReadResponse(_ context.Context, r OriginalShopTaskOrderResponse, payload []byte) (authgrant.Proof, error) {
+	p.verifier.attests++
+	if p.verifier.source.closed != 0 || r.Operation.OriginalOperationID != "PUBLIC-original-op" || r.Operation.RemoteRef != "PUBLIC-remote-ref" {
+		return authgrant.Proof{}, ErrUnavailable
+	}
+	if p.verifier.badResponseProof {
+		payload = []byte("PUBLIC wrong proof payload")
+	}
+	return authgrant.Proof{Payload: append([]byte(nil), payload...), Wire: []byte("PUBLIC-not-a-response-signature"), Purpose: "PUBLIC-response-proof"}, nil
+}
+func (p *publicShopTaskResponse) Close() error {
+	p.verifier.responseClosed++
+	return p.verifier.responseCloseErr
 }
 
 func (v *publicShopTaskVerifier) OpenTaskGrantSource(_ context.Context, _ authgrant.TaskEffectBinding, g, h authgrant.Proof) (authgrant.HeldTaskGrantSource, error) {
@@ -81,6 +113,7 @@ type publicShopTaskCodec struct {
 	source           *publicShopTaskSource
 	decodes, encodes int
 	onEncode         func()
+	skipAttestation  bool
 }
 
 func (c *publicShopTaskCodec) DecodeShopOrderRead(_ context.Context, _ *http.Request, raw []byte) (OriginalShopTaskOrderCall, error) {
@@ -98,8 +131,9 @@ func (c *publicShopTaskCodec) DecodeShopOrderRead(_ context.Context, _ *http.Req
 	call.Input = raw
 	return call, nil
 }
-func (c *publicShopTaskCodec) EncodeShopOrderRead(_ context.Context, p OrderProjection, source authgrant.Source, scope authgrant.FenceScope) (OriginalShopTaskOrderEncoding, error) {
+func (c *publicShopTaskCodec) EncodeShopOrderRead(ctx context.Context, response OriginalShopTaskOrderResponse, attest OriginalShopTaskOrderAttest) (OriginalShopTaskOrderEncoding, error) {
 	c.encodes++
+	p, source, scope := response.Projection, response.Source, response.AuthScope
 	if c.source.closed != 0 {
 		return OriginalShopTaskOrderEncoding{}, errors.New("PUBLIC Source closed before original read/encoding")
 	}
@@ -113,11 +147,26 @@ func (c *publicShopTaskCodec) EncodeShopOrderRead(_ context.Context, p OrderProj
 	// PUBLIC local result encoding only, not the missing sole SDK Source codec.
 	data, _ := json.Marshal(p.Data)
 	body, _ := json.Marshal(struct {
-		Projection OrderProjection      `json:"projection"`
-		Label      string               `json:"label"`
-		Scope      authgrant.FenceScope `json:"authScope"`
-	}{p, source.Label, scope})
-	return OriginalShopTaskOrderEncoding{SourceBytes: data, Body: body, ContentType: "application/json"}, nil
+		Projection OrderProjection                `json:"projection"`
+		Label      string                         `json:"label"`
+		Scope      authgrant.FenceScope           `json:"authScope"`
+		Operation  OriginalShopTaskOrderOperation `json:"operation"`
+	}{p, source.Label, scope, response.Operation})
+	if c.skipAttestation {
+		return OriginalShopTaskOrderEncoding{SourceBytes: data, Body: body, ContentType: "application/json"}, nil
+	}
+	proof, err := attest(ctx, data, body)
+	if err != nil {
+		return OriginalShopTaskOrderEncoding{}, err
+	}
+	if len(proof.Wire) == 0 {
+		return OriginalShopTaskOrderEncoding{}, ErrUnavailable
+	}
+	envelope, _ := json.Marshal(struct {
+		Payload json.RawMessage `json:"payload"`
+		Proof   authgrant.Proof `json:"proof"`
+	}{body, proof})
+	return OriginalShopTaskOrderEncoding{SourceBytes: data, Body: envelope, ContentType: "application/json"}, nil
 }
 
 func publicShopTaskFixture(t *testing.T) (*Store, Order, *PreparedOriginalShopTaskOrders, *publicShopTaskVerifier, *publicShopTaskCodec, []byte) {
@@ -149,7 +198,7 @@ func publicShopTaskFixture(t *testing.T) (*Store, Order, *PreparedOriginalShopTa
 		return authgrant.Proof{Payload: []byte("PUBLIC-payload"), Wire: []byte(w), Purpose: "PUBLIC-task-proof"}
 	}
 	codec := &publicShopTaskCodec{source: held, call: OriginalShopTaskOrderCall{Binding: b, Grant: proof("PUBLIC-grant-not-signature"), Holder: proof("PUBLIC-holder-not-signature"), Input: append([]byte(nil), input...)}}
-	prepared, err := PrepareOriginalShopTaskOrders(v, codec, tool, target, resource.Kind, func(ctx context.Context) error { return ctx.Err() })
+	prepared, err := PrepareOriginalShopTaskOrders(v, codec, v, tool, target, resource.Kind, func(ctx context.Context) error { return ctx.Err() })
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +224,7 @@ func TestShopTaskOrderReadOriginalAuthActualHTTPStoreProjection(t *testing.T) {
 	s, o, p, v, c, body := publicShopTaskFixture(t)
 	before := transitionDomainSnapshot(t, s)
 	w := shopTaskRequest(t, s, p, body)
-	if w.Code != 200 || !bytes.Contains(w.Body.Bytes(), []byte(`"orderId":"`+o.ID+`"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"totalYNXT":"25"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"authScope":"egress-only-read-fence"`)) || c.encodes != 1 || v.opens != 1 || v.source.asserts != 3 || v.source.closed != 1 || v.source.retired != 1 || v.source.joined != 1 {
+	if w.Code != 200 || !bytes.Contains(w.Body.Bytes(), []byte(`"orderId":"`+o.ID+`"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"totalYNXT":"25"`)) || !bytes.Contains(w.Body.Bytes(), []byte(`"authScope":"egress-only-read-fence"`)) || c.encodes != 1 || v.opens != 1 || v.source.asserts != 4 || v.source.closed != 1 || v.source.retired != 1 || v.source.joined != 1 {
 		t.Fatal(w.Code, w.Body.String(), v.opens, v.source.asserts, v.source.closed)
 	}
 	for _, secret := range []string{o.Buyer, o.PayPayoutAddress, o.InvoiceID, o.PayIntentID, o.Address.Line1, "PUBLIC-grant-not-signature", "same-authority-resource-fence"} {
@@ -340,10 +389,10 @@ func TestShopTaskOrderReadPartialCloseAndSecretCausePreserved(t *testing.T) {
 func TestShopTaskOrderReadNoPartialInstallOrAlternateHTTPAuthority(t *testing.T) {
 	s, _, p, v, c, body := publicShopTaskFixture(t)
 	reader := p.reader.(*originalShopTaskOrderReader)
-	if _, err := PrepareOriginalShopTaskOrders(nil, c, reader.tool, reader.target, reader.orderKind, p.current); !errors.Is(err, ErrUnavailable) {
+	if _, err := PrepareOriginalShopTaskOrders(nil, c, v, reader.tool, reader.target, reader.orderKind, p.current); !errors.Is(err, ErrUnavailable) {
 		t.Fatal("missing protected verifier activated")
 	}
-	if _, err := PrepareOriginalShopTaskOrders(v, nil, reader.tool, reader.target, reader.orderKind, p.current); !errors.Is(err, ErrUnavailable) {
+	if _, err := PrepareOriginalShopTaskOrders(v, nil, v, reader.tool, reader.target, reader.orderKind, p.current); !errors.Is(err, ErrUnavailable) {
 		t.Fatal("missing original SDK codec activated")
 	}
 	for _, path := range []string{shopOrderReadPath + "?approved=true", "/api/tools/shop%2eorder.read"} {
@@ -387,5 +436,42 @@ func TestShopTaskOrderReadRuntimeCustodyRetirementDropsResponse(t *testing.T) {
 	w := shopTaskRequest(t, s, p, body)
 	if w.Code != 503 || bytes.Contains(w.Body.Bytes(), []byte(o.ID)) || v.source.closed != 1 || c.encodes != 1 {
 		t.Fatal("retired runtime published private read", w.Code, w.Body.String(), v.source.closed)
+	}
+}
+
+func TestShopTaskOrderReadOriginalResponseAssociationRequired(t *testing.T) {
+	for _, fault := range []string{"no-response-source", "empty-original-op", "empty-remote-ref", "skip-attestation", "wrong-proof-payload", "partial-response-source", "response-close"} {
+		t.Run(fault, func(t *testing.T) {
+			s, _, p, v, c, body := publicShopTaskFixture(t)
+			cause := errors.New("PUBLIC response source first cause")
+			switch fault {
+			case "no-response-source":
+				r := p.reader.(*originalShopTaskOrderReader)
+				if _, err := PrepareOriginalShopTaskOrders(v, c, nil, r.tool, r.target, r.orderKind, p.current); !errors.Is(err, ErrUnavailable) {
+					t.Fatal("missing response source installed", err)
+				}
+				return
+			case "empty-original-op":
+				v.operation = &OriginalShopTaskOrderOperation{RemoteRef: "PUBLIC-remote-ref"}
+			case "empty-remote-ref":
+				v.operation = &OriginalShopTaskOrderOperation{OriginalOperationID: "PUBLIC-original-op"}
+			case "skip-attestation":
+				c.skipAttestation = true
+			case "wrong-proof-payload":
+				v.badResponseProof = true
+			case "partial-response-source":
+				v.responseErr = cause
+			case "response-close":
+				v.responseCloseErr = cause
+			}
+			before := transitionDomainSnapshot(t, s)
+			result, err := p.reader.readTaskOrder(context.Background(), s, httptest.NewRequest("POST", shopOrderReadPath, bytes.NewReader(body)), body)
+			if err == nil || len(result.Body) != 0 || v.source.closed != 1 || v.responseClosed != 1 || !bytes.Equal(before, transitionDomainSnapshot(t, s)) {
+				t.Fatal("unassociated response escaped", fault, err, v.source.closed, v.responseClosed)
+			}
+			if (fault == "partial-response-source" || fault == "response-close") && !errors.Is(err, cause) {
+				t.Fatal("original response first cause lost", err)
+			}
+		})
 	}
 }
