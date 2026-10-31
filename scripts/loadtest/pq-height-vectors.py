@@ -198,7 +198,7 @@ def run(args):
     for part in (".private","public"):(work/part).mkdir(mode=0o700)
     w=lab.Window(source,work,additional_storage=(Path(args.prepared).parent,Path(__file__).resolve().parents[2]));w.env["GOMAXPROCS"]="1"
     result=dict(schema="YNX-PQ-PER-HEIGHT-RUN/v1",sourceCommit=plan["commit"],sourceTree=plan["tree"],toolsCommit=lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),heightVectorLeafSHA256=lab.guard.digest(Path(args.prepared).parent/LEAF),inputSHA256=args.input_sha256,profile=args.profile,perHeightComplete=False,firstCause=None,caps=lab.CAPS,newFunctionalValidation=True,performanceComparison=False)
-    result.update(resourceObserverVersion=lab.RSS_OBSERVER_VERSION,resourceObserverSHA256=lab.guard.digest(Path(__file__).with_name("consensus-linux-cohort.py")),compatibleFunctionalToolsCommit=FUNCTIONAL_BASE if result["heightVectorLeafSHA256"]==FUNCTIONAL_LEAF else None)
+    result.update(resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,resourceObserverSHA256=lab.guard.digest(Path(__file__).with_name("consensus-linux-cohort.py")),compatibleFunctionalToolsCommit=FUNCTIONAL_BASE if result["heightVectorLeafSHA256"]==FUNCTIONAL_LEAF else None)
     monitor=None
     try:
         data=work/"public/baseline-input.json"

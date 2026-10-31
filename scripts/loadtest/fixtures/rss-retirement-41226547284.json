@@ -1,0 +1,170 @@
+{
+  "schema": "YNX-RETIREMENT-BOUND-REGRESSION/v1",
+  "sourceRun": 41226547284,
+  "sourceDiagnostic": 13051019174,
+  "sourceZIP_SHA256": "ab1a50d762d010607200dd8199cbb0aa710287155604c573a2a8e57ee2700fe0",
+  "firstCause": "retired process sample evidence bound",
+  "observations": 4096,
+  "groups": [
+    {
+      "event": {
+        "pid": 2266,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 2681
+      },
+      "count": 1
+    },
+    {
+      "event": {
+        "pid": 2278,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 2782
+      },
+      "count": 485
+    },
+    {
+      "event": {
+        "pid": 2290,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 2870
+      },
+      "count": 474
+    },
+    {
+      "event": {
+        "pid": 2298,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 2894
+      },
+      "count": 474
+    },
+    {
+      "event": {
+        "pid": 2321,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 2941
+      },
+      "count": 470
+    },
+    {
+      "event": {
+        "pid": 2323,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 2953
+      },
+      "count": 1
+    },
+    {
+      "event": {
+        "pid": 2324,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 2974
+      },
+      "count": 1
+    },
+    {
+      "event": {
+        "pid": 2335,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 3054
+      },
+      "count": 460
+    },
+    {
+      "event": {
+        "pid": 2336,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 3057
+      },
+      "count": 1
+    },
+    {
+      "event": {
+        "pid": 2337,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 3078
+      },
+      "count": 1
+    },
+    {
+      "event": {
+        "pid": 2340,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 3102
+      },
+      "count": 2
+    },
+    {
+      "event": {
+        "pid": 2351,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 3334
+      },
+      "count": 442
+    },
+    {
+      "event": {
+        "pid": 2359,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 3359
+      },
+      "count": 440
+    },
+    {
+      "event": {
+        "pid": 2384,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 3460
+      },
+      "count": 434
+    },
+    {
+      "event": {
+        "pid": 2405,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 3488
+      },
+      "count": 5
+    },
+    {
+      "event": {
+        "pid": 2419,
+        "reason": "same-identity-zombie",
+        "rssError": 3,
+        "sampleAttempts": 1,
+        "startTicks": 4158
+      },
+      "count": 405
+    }
+  ]
+}

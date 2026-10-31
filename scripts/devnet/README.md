@@ -355,3 +355,30 @@ normal job; local macOS skips are not Linux evidence. No before regeneration,
 signature regeneration, old source-scope replay or new CI dispatch is done
 by the guard tools.
 
+Evidence sink `same-identity-first-last-count-v1` fixes the subsequent real
+41226547284 A failure before Go: 4096 retirement observations represented only
+16 distinct original identities/reasons. The compact regression fixture is
+derived from original diagnostic13051019174; its unchanged original ZIP stays
+at the owning CORE evidence path. The original raw diagnostic is not replaced.
+
+Retirement aggregation keys are exact `(pid,startTicks,reason,rssError,statError)`;
+fallback keys additionally include TID/thread start, sample kind and original
+error. Missing fields, different identities or different reasons stay distinct.
+Every observation retains its original first/last raw event, monotonic bounds
+and exact decimal uint64 count. Fallback byte bounds retain min/max as well.
+The original 4096 limit now bounds DISTINCT evidence rows; it is not increased.
+Count overflow, clock regression and too many distinct rows remain fatal.
+The sink never authorizes retirement and never short-circuits sampling: every
+RSS/identity/exit check and every 4GiB resource comparison still runs.
+
+Reuse the a786 real Linux guard controls from run41226547284 job124611786883
+(33/33, zero skip; artifact13052310092 SHA256
+`6ecf2298994054d786d6bb3a5e1077ff3ce6b9ee59f7357bd8c113d1f650f92a`).
+Only the added `test_process_evidence.py` group needs the successor Linux job:
+six tests including a real owned zombie repeatedly sampled before its actual
+wait/reap. No old guard suite, before/B vector replay or source benchmark is
+repeated solely for this receipt sink change. The original same-process RSS
+algorithm, 3dda functional Go leaf, input and signatures remain unchanged.
+The narrow 9c22 before functional compatibility still applies, without timing,
+pressure or performance qualification. Successor receipts state both versions.
+
