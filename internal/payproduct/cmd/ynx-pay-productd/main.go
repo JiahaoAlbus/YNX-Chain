@@ -35,7 +35,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	pay, err := payproduct.NewHTTPPayAPI(required("YNX_PAY_PRODUCT_CENTRAL_URL"), required("YNX_PAY_PRODUCT_CENTRAL_KEY"))
+	pay, err := payproduct.NewProductionHTTPPayAPI(required("YNX_PAY_PRODUCT_CENTRAL_URL"), required("YNX_PAY_PRODUCT_CENTRAL_KEY"), strings.TrimSpace(os.Getenv("YNX_PAY_PRODUCT_LINK_CONFIG")))
 	if err != nil {
 		log.Fatal(err)
 	}
