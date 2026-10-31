@@ -21,6 +21,24 @@ started by this entry.
 
 The prefilled transaction is a historical test transaction, not a freshly sent
 payment. Its source REST response is always presented as `RPC_ONLY`.
+
+The service now keeps a private product directory (default user config directory
+`YNXNetwork`, or `--data-dir`). It contains local observation history, managed
+ordinary-node metadata, the disabled resource journal and optional Wallet
+handoff/outbox. `--native-status` connects to the running service over a Unix
+socket, authenticating both processes using actual kernel peer credentials.
+It is a separate native channel; HTTP receipt tickets never gain those rights.
+Shutdown cancels owned requests and closes the native endpoint. Known kernel
+locks recover after a process crash; unknown legacy owners and replaced socket
+identities are retained and refused. History is explicitly historical local
+data, never a current checkpoint or approval.
+
+The native API supports structured node status/intents, participation
+prepare/get/submit/reconcile/revoke and resource status/meter/stop. Original
+publisher signatures and ordinary-node release mode are still required before
+production install/start. A native request or JSON consent flag cannot create
+the opaque approval produced by the trusted visible-consent entry. Resource
+execution defaults disabled; status/stop do not enable it.
 The helper uses a numeric loopback listener, checks Host and Origin, accepts no
 arbitrary shell or request destination, and refuses upstream redirects.
 This is local-user code pairing for public receipt operations. The helper's OS
@@ -86,6 +104,30 @@ expectation only as separate trusted in-process inputs. It uses local time and
 the original H inclusion / H+1 result commitment verifier. A proved ABCI result
 is distinct from account balance, invoice event or funds-state membership;
 the adapter does not promote those absent proofs to `STATE_VERIFIED`.
+
+For the real offline command path, configure all four local startup flags:
+`--pq-verifier`, `--pq-verifier-sha256`, `--pq-context`,
+`--pq-context-sha256`. Use the original `ynx-consensus-proof-verify` executable
+and its original `YNX-CONSENSUS-TRANSACTION-PROOF-TRUST/v1` public context, with
+digests obtained independently. The service captures immutable private copies;
+the original CORE command independently loads and verifies its original source
+files on each request using the current local clock. No HTTP field can select
+an executable, trust file or target. `POST /api/lookup-proof` collects the
+original `/txs/{hash}/pq-finality-proof` and calls that verifier. Exact Whole
+member identities are derived with the existing codec from the pinned original
+Whole and mapped back to its collector target. Rejected and partial outcomes
+remain explicit; verified ABCI results still do not prove funds state.
+
+For native staking/governance preparation, `--participation-config` and
+`--participation-config-sha256` select a separately pinned local document with
+version `YNX-NETWORK-PARTICIPATION-CONFIG/v1` and a `network` object containing
+`genesis`, `networkId32`, `nativeChainId` and `cometChainId`. None is derived from
+an RPC report. `--governance-rpc` optionally selects the fixed governance read
+origin. The service reuses actual original native delegation/unbond payload
+codecs and read APIs, persists blocked intents and reconciles original UNKNOWN
+operations. It contains no guessed Wallet transport: production submission is
+`UNSUPPORTED` until the original Wallet publisher is supplied. Registry voting
+reports are not native PQ votes or independently proved funds state.
 
 ## Focused verification and existing CI
 

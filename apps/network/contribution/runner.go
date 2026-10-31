@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/internal/localstore"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productstore"
 	"golang.org/x/crypto/sha3"
 )
@@ -149,7 +150,8 @@ type operation struct {
 }
 type Runner struct {
 	mu                      sync.Mutex
-	path, ownerDir          string
+	path                    string
+	lock                    *localstore.Lock
 	authorizer              Authorizer
 	sandbox, sealed, closed bool
 	active                  *operation
@@ -178,18 +180,24 @@ func open(path string, authority Authorizer, sandbox bool) (*Runner, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return nil, err
 	}
-	// This lock is private to the supplied product journal. A crashed owner is
-	// reconciled explicitly; this code never removes another owner's stale lock.
+	// Never take over a legacy directory owner. New journals use a persistent
+	// private marker with a kernel lock, released on crash without deleting data.
 	owner := path + ".owner"
-	if err := os.Mkdir(owner, 0700); err != nil {
+	if _, err := os.Lstat(owner); err == nil {
+		return nil, ErrConflict
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
+	lock, err := localstore.Acquire(path + ".owner.lock")
+	if err != nil {
 		return nil, fmt.Errorf("exclusive local journal owner: %w", err)
 	}
-	r := &Runner{path: path, ownerDir: owner, authorizer: authority, sandbox: sandbox,
+	r := &Runner{path: path, lock: lock, authorizer: authority, sandbox: sandbox,
 		data: journal{Version: 1, Jobs: map[string]Record{}, Nonces: map[string]string{}}, authorizedJobs: map[string]time.Time{}}
 	ok := false
 	defer func() {
 		if !ok {
-			_ = os.Remove(owner)
+			_ = lock.Close()
 		}
 	}()
 	if fi, err := os.Lstat(path); err == nil {
@@ -230,11 +238,18 @@ func open(path string, authority Authorizer, sandbox bool) (*Runner, error) {
 	if len(r.data.Nonces) != len(r.data.Jobs) {
 		return nil, ErrInvalid
 	}
-	if err := productstore.Save(path, r.data); err != nil {
+	if err := r.persist(); err != nil {
 		return nil, err
 	}
 	ok = true
 	return r, nil
+}
+
+func (r *Runner) persist() error {
+	if err := r.lock.Check(); err != nil {
+		return err
+	}
+	return productstore.Save(r.path, r.data)
 }
 
 func validateStoredRecord(id string, rec Record, nonces map[string]string) error {
@@ -458,7 +473,7 @@ func (r *Runner) StartContribution(ctx context.Context, w Work, c Consent, manif
 	r.data.Jobs[w.Job] = rec
 	r.data.Nonces[rec.ConsentNonce] = w.Job
 	r.authorizedJobs[w.Job] = approvedUntil
-	if err := productstore.Save(r.path, r.data); err != nil {
+	if err := r.persist(); err != nil {
 		// An ambiguous durable claim is never retried in this process.
 		rec.State, rec.Failure = "unknown", err.Error()
 		r.data.Jobs[w.Job] = rec
@@ -490,7 +505,7 @@ func (r *Runner) StartContribution(ctx context.Context, w Work, c Consent, manif
 			rec.State = "stopped"
 		}
 		r.data.Jobs[w.Job] = rec
-		if err := productstore.Save(r.path, r.data); err != nil {
+		if err := r.persist(); err != nil {
 			r.sealed = true
 			r.persistenceErr = err
 			bindErr = err
@@ -503,7 +518,7 @@ func (r *Runner) StartContribution(ctx context.Context, w Work, c Consent, manif
 	}
 	rec.State = "running"
 	r.data.Jobs[w.Job] = rec
-	if err := productstore.Save(r.path, r.data); err != nil {
+	if err := r.persist(); err != nil {
 		rec.State, rec.Failure = "unknown", err.Error()
 		r.data.Jobs[w.Job] = rec
 		r.sealed = true
@@ -601,7 +616,7 @@ func (r *Runner) run(ctx context.Context, op *operation, w Work, input []byte, c
 		rec.Result = resultFor(w, bound)
 	}
 	r.data.Jobs[w.Job] = rec
-	if err := productstore.Save(r.path, r.data); err != nil {
+	if err := r.persist(); err != nil {
 		rec.State = "unknown"
 		rec.Failure = "local journal write failed: " + err.Error()
 		r.data.Jobs[w.Job] = rec
@@ -702,7 +717,7 @@ func (r *Runner) VerifyWorkReceipt(ctx context.Context, job string, candidate Re
 	rec.Usage.WallMicros += usage.WallMicros
 	r.data.Jobs[job] = rec
 	fail := func(cause error) (Receipt, error) {
-		if err := productstore.Save(r.path, r.data); err != nil {
+		if err := r.persist(); err != nil {
 			r.sealed = true
 			r.persistenceErr = err
 			return Receipt{}, err
@@ -723,7 +738,7 @@ func (r *Runner) VerifyWorkReceipt(ctx context.Context, job string, candidate Re
 	rec.State = "verified"
 	rec.Receipt = &receipt
 	r.data.Jobs[job] = rec
-	if err := productstore.Save(r.path, r.data); err != nil {
+	if err := r.persist(); err != nil {
 		rec.State = priorState
 		rec.Receipt = priorReceipt
 		r.data.Jobs[job] = rec
@@ -808,5 +823,5 @@ func (r *Runner) Close() error {
 		return nil
 	}
 	r.closed = true
-	return os.Remove(r.ownerDir)
+	return r.lock.Close()
 }

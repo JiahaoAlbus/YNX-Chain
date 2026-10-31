@@ -4,6 +4,7 @@ package main
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
@@ -18,18 +19,25 @@ import (
 	"os"
 	"os/signal"
 	"os/user"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/contribution"
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/localipc"
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/ownednode"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/receipt"
 	networkweb "github.com/JiahaoAlbus/YNX-Chain/apps/network/web"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 )
 
 const ticketLife = 15 * time.Minute
+const serviceVersion = "V5-NETWORK-SERVICE/0.2-dev"
+
+var sourceRevision = "unrecorded-development-source"
 
 var txPattern = regexp.MustCompile(`^(0x)?[a-fA-F0-9]{64}$`)
 
@@ -41,6 +49,10 @@ type helper struct {
 	ticketCancel                                   context.CancelFunc
 	attempts                                       int
 	anchor                                         *receipt.TrustAnchor
+	pqCommand                                      *receipt.PQCommandVerifier
+	history                                        *receipt.History
+	historyContextPin                              string
+	resourceState                                  string
 	rpc                                            string
 	client                                         *http.Client
 	now                                            func() time.Time
@@ -55,7 +67,7 @@ func randomToken() string {
 }
 func newHelper(origin, uid, code, rpc string, anchor *receipt.TrustAnchor) *helper {
 	u, _ := url.Parse(origin)
-	return &helper{origin: origin, host: u.Host, uid: uid, bootCode: code, rpc: strings.TrimRight(rpc, "/"), anchor: anchor, now: time.Now, client: &http.Client{Timeout: 12 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("redirect refused") }}}
+	return &helper{origin: origin, host: u.Host, uid: uid, bootCode: code, rpc: strings.TrimRight(rpc, "/"), anchor: anchor, resourceState: "disabled", now: time.Now, client: &http.Client{Timeout: 12 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("redirect refused") }}}
 }
 func sendJSON(w http.ResponseWriter, status int, value any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -159,7 +171,7 @@ func (h *helper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		r = r.WithContext(ctx)
 		switch r.URL.Path {
 		case "/api/status":
-			sendJSON(w, 200, map[string]any{"paired": true, "anchorConfigured": h.anchor != nil, "checkpoint": h.anchor.Summary(), "helperOsUid": h.uid, "callerOsIdentityVerified": false, "assurance": "local-code-origin-ticket", "pqIndependentTrustConfigured": false, "contribution": "disabled", "managedNodes": 0, "rpc": h.rpc})
+			sendJSON(w, 200, map[string]any{"version": serviceVersion, "sourceRevision": sourceRevision, "paired": true, "anchorConfigured": h.anchor != nil, "checkpoint": h.anchor.Summary(), "helperOsUid": h.uid, "callerOsIdentityVerified": false, "assurance": "local-code-origin-ticket", "pqIndependentTrustConfigured": h.pqCommand != nil, "contribution": h.resourceState, "managedNodes": 0, "rpc": h.rpc})
 		case "/api/revoke":
 			h.mu.Lock()
 			h.ticket = ""
@@ -170,6 +182,14 @@ func (h *helper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.verify(w, r)
 		case "/api/lookup":
 			h.lookup(w, r)
+		case "/api/lookup-proof":
+			h.lookupProof(w, r)
+		case "/api/history":
+			if h.history == nil {
+				denied(w, 503, "HISTORY_NOT_CONFIGURED")
+				return
+			}
+			h.sendAuthorizedJSON(w, r, map[string]any{"classification": "historical-local-projection", "authority": false, "observations": h.history.List()})
 		default:
 			denied(w, 404, "UNSUPPORTED")
 		}
@@ -197,7 +217,25 @@ func (h *helper) sendAuthorizedJSON(w http.ResponseWriter, r *http.Request, valu
 		denied(w, 401, "PAIRING_REQUIRED")
 		return
 	}
+	if view, ok := receiptObservation(value); ok && h.history != nil {
+		if err := h.history.Observe(view, h.historyContextPin); err != nil {
+			denied(w, 503, "HISTORY_WRITE_FAILED")
+			return
+		}
+	}
 	sendJSON(w, 200, value)
+}
+
+func receiptObservation(value any) (receipt.ProofView, bool) {
+	switch v := value.(type) {
+	case receipt.ProofView:
+		return v, true
+	case receipt.PQProofView:
+		return v.ProofView, true
+	case map[string]any:
+		return receiptObservation(v["view"])
+	}
+	return receipt.ProofView{}, false
 }
 func (h *helper) verify(w http.ResponseWriter, r *http.Request) {
 	var in struct {
@@ -218,6 +256,10 @@ func (h *helper) verify(w http.ResponseWriter, r *http.Request) {
 		// The collector's independentFinality/verification fields never supply
 		// local trust. A pinned original host context is not yet configured for
 		// this public-receipt helper; do not convert a PQ proof to classic keys.
+		if h.pqCommand != nil {
+			h.sendAuthorizedJSON(w, r, h.pqCommand.Verify(r.Context(), in.TxID, in.Proof))
+			return
+		}
 		h.sendAuthorizedJSON(w, r, receipt.VerifyPQNetworkReceipt(in.TxID, nil, in.Proof, h.now()))
 		return
 	}
@@ -293,13 +335,99 @@ func run() error {
 	anchorFile := flag.String("anchor", "", "independently obtained checkpoint document")
 	anchorPin := flag.String("anchor-pin", "", "SHA-256 document pin obtained independently of queried RPC")
 	anchorSource := flag.String("anchor-source", "", "human-readable independent checkpoint source")
+	pqExecutable := flag.String("pq-verifier", "", "original CORE verifier executable; never supplied by HTTP")
+	pqExecutablePin := flag.String("pq-verifier-sha256", "", "independent exact executable digest")
+	pqContext := flag.String("pq-context", "", "original independent public transaction trust context")
+	pqContextPin := flag.String("pq-context-sha256", "", "independent exact context digest")
+	dataDir := flag.String("data-dir", "", "private Network product directory; defaults to user config/YNXNetwork")
+	nativeStatus := flag.Bool("native-status", false, "query running helper through kernel-authenticated local IPC, then exit")
+	nativeCall := flag.Bool("native-call", false, "read one bounded structured native IPC request from stdin and print its response")
+	showVersion := flag.Bool("version", false, "print service version and exact recorded source, then exit")
+	participationConfig := flag.String("participation-config", "", "independently configured network identity for native participation")
+	participationPin := flag.String("participation-config-sha256", "", "exact independent network configuration digest")
+	governanceRPC := flag.String("governance-rpc", "", "fixed governance read source; defaults to configured chain RPC")
 	flag.Parse()
+	if *showVersion {
+		fmt.Printf("%s %s\n", serviceVersion, sourceRevision)
+		return nil
+	}
 	host, _, err := net.SplitHostPort(*listen)
 	if err != nil || net.ParseIP(host) == nil || !net.ParseIP(host).IsLoopback() {
 		return errors.New("listen must be numeric loopback")
 	}
 	if err = validRPC(*rpc); err != nil {
 		return err
+	}
+	if *dataDir == "" {
+		base, err := os.UserConfigDir()
+		if err != nil {
+			return err
+		}
+		*dataDir = filepath.Join(base, "YNXNetwork")
+	}
+	ipcDir := filepath.Join(*dataDir, "ipc")
+	if *nativeStatus || *nativeCall {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		request := localipc.Request{Version: localipc.Version, ID: randomToken(), Operation: "status"}
+		if *nativeCall {
+			if *nativeStatus {
+				return errors.New("choose one native client entry")
+			}
+			raw, err := io.ReadAll(io.LimitReader(os.Stdin, localipc.MaxMessageBytes+1))
+			if err != nil || len(raw) > localipc.MaxMessageBytes {
+				return errors.New("bounded native request required")
+			}
+			if err := nativeDecode(raw, &request); err != nil {
+				return err
+			}
+		}
+		result, err := localipc.Call(ctx, ipcDir, request)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(os.Stdout).Encode(result)
+	}
+	history, err := receipt.OpenHistory(filepath.Join(*dataDir, "proof-history.json"))
+	if err != nil {
+		return fmt.Errorf("private Network history: %w", err)
+	}
+	defer history.Close()
+	resource, err := contribution.NewDisabled(filepath.Join(*dataDir, "resource-journal.json"))
+	if err != nil {
+		log.Printf("Local resource capability unavailable; existing journal preserved: %v", err)
+	}
+	if resource != nil {
+		defer resource.Close()
+	}
+	node, err := ownednode.New(ownednode.Config{Directory: filepath.Join(*dataDir, ownednode.DirectoryName)})
+	if err != nil {
+		log.Printf("Owned node capability unavailable; existing state preserved: %v", err)
+	}
+	if node != nil {
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			node.Close(ctx)
+		}()
+	}
+	if *governanceRPC == "" {
+		*governanceRPC = *rpc
+	}
+	participationService, err := openParticipationConfig(*participationConfig, *participationPin, *governanceRPC, *rpc, *dataDir)
+	if err != nil {
+		return fmt.Errorf("native participation configuration: %w", err)
+	}
+	if participationService != nil {
+		defer participationService.Close()
+	}
+	var pqVerifier *receipt.PQCommandVerifier
+	if *pqExecutable != "" || *pqExecutablePin != "" || *pqContext != "" || *pqContextPin != "" {
+		pqVerifier, err = receipt.OpenPQCommandVerifier(*pqExecutable, *pqExecutablePin, *pqContext, *pqContextPin)
+		if err != nil {
+			return fmt.Errorf("original PQ trust configuration refused: %w", err)
+		}
+		defer pqVerifier.Close()
 	}
 	var anchor *receipt.TrustAnchor
 	if *anchorFile != "" {
@@ -323,21 +451,47 @@ func run() error {
 		return err
 	}
 	defer listener.Close()
+	serviceContext, stopService := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopService()
+	native, err := startNativeService(serviceContext, ipcDir, participationService, node, resource)
+	if err != nil {
+		return fmt.Errorf("native Network service: %w", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		native.Close(ctx)
+	}()
 	origin := "http://" + listener.Addr().String()
 	code := randomToken()
 	h := newHelper(origin, current.Uid, code, *rpc, anchor)
+	h.pqCommand = pqVerifier
+	h.history = history
+	if resource == nil {
+		h.resourceState = "unavailable"
+	}
+	configDigest := sha256.Sum256([]byte(*anchorPin + ":" + *pqContextPin + ":" + *pqExecutablePin))
+	h.historyContextPin = hex.EncodeToString(configDigest[:])
 	fmt.Printf("YNX Network local helper\nOpen: %s\nOne-use pairing code: %s\nScope: receipt read/verify only; expires after 15 minutes. Revoke in the app. Restart helper to pair again.\n", origin, code)
 	server := &http.Server{Handler: h, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 45 * time.Second, MaxHeaderBytes: 16 << 10}
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-	defer signal.Stop(stop)
+	shutdownDone := make(chan struct{})
 	go func() {
-		<-stop
+		defer close(shutdownDone)
+		<-serviceContext.Done()
+		h.mu.Lock()
+		h.ticket = ""
+		if h.ticketCancel != nil {
+			h.ticketCancel()
+		}
+		h.mu.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		_ = server.Shutdown(ctx)
 	}()
-	if err = server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	err = server.Serve(listener)
+	stopService()
+	<-shutdownDone
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
 	return nil
