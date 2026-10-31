@@ -178,6 +178,50 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
+  client-observations:
+    name: Original client observations and cohort readback
+    # The original full release job deliberately omits integration pushes.
+    # Execute the actual new client functions on those pushes as well.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GOMAXPROCS: '2'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+      - name: Execute the current client and qualify actual terminal results
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          if ! go test -json -p 1 ./cmd/ynx-consensus-perf-client -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestMonotonicObservation.*|TestDeclaredCohort.*)$' -count=1 -timeout=45s > "$RUNNER_TEMP/client-observation-tests.jsonl"; then
+            cat "$RUNNER_TEMP/client-observation-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          rows = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'client-observation-tests.jsonl').read_text().splitlines()]
+          required = ['TestReadySenderFastAccountAdvancesBeforeSlowPeer', 'TestReadySenderSegmentedIntentBarrierAndRecovery', 'TestMonotonicObservationExportUsesActualClockAndOriginalFinalGate', 'TestMonotonicObservationExportNeverReconstructsUTCOrDropsMissingSlots', 'TestMonotonicObservationExportKeepsExactNsAndPrivateOrigin', 'TestMonotonicObservationCaptureOnGroupedObserver', 'TestMonotonicObservationCaptureOnPacedScheduler', 'TestMonotonicObservationExportWithholdsReversedPoint', 'TestDeclaredCohortPlanPredeclaresFullDemandAndRefusesOverwrite', 'TestDeclaredCohortOriginalReadyPoolKeepsUnsentFutureRequests', 'TestDeclaredCohortCancellationRetainsOriginalPlanWithoutInventingArrivals', 'TestDeclaredCohortSignedExecutionPersistenceAndRestart', 'TestDeclaredCohortOptionsKeepOriginalResourceAndModeBounds']
+          for name in required:
+              terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('current client function did not execute and pass: ' + name)
+          print('YNX_CLIENT_OBSERVATIONS_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, publicTPSMeasured=False), sort_keys=True))
+          PY
+      - name: Exercise the original readback CLI and complete logical denominators
+        run: node --test scripts/loadtest/same-control-readback.test.mjs
+
   link-scope:
     name: Select actual LINK changed closure
     runs-on: ubuntu-24.04
