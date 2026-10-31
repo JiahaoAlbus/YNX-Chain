@@ -187,6 +187,9 @@ func (t *Transport) roundTrip(req *http.Request, prepare func(context.Context, *
 			return fail(e)
 		}
 	}
+	if err = markDispatchPossible(req.Context()); err != nil {
+		return fail(err)
+	}
 	if err = clone.Write(p.conn); err != nil {
 		return fail(err)
 	}

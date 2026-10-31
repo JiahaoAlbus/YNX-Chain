@@ -1,0 +1,247 @@
+{
+  "schema": "ynx-normal-caller-source-provenance/v1",
+  "authorityH": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/observed/HANDOFF.json",
+    "bytes": 15913,
+    "sha256": "1d21fb24ad1d8c0b44913afdceed94582d567f1f6ef779e6899724fad88d55dd"
+  },
+  "authorityManifest": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/observed/MANIFEST.json",
+    "bytes": 254916,
+    "sha256": "b502adf0f06c7d7b1ea1bc1dd19b9ee2621593c63afd7e4606887c34258881a9"
+  },
+  "brokerH": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/broker-frozen-snapshot/HANDOFF.json",
+    "bytes": 11020,
+    "sha256": "e329cbdb673c321c09b193bade53847faabc21074891eadda9b37277ce9039f1"
+  },
+  "normalSDKManifest": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/NORMAL_INSTALL_MANIFEST.json",
+    "sha256": "047bba6b55eafc416f023451a0cb687f0d2a99abf29ae247c7f2ae825dbf9908"
+  },
+  "LINKGoPin": "a91362e5a939f4d1249cbbed6b87ee5945b261f5",
+  "LINKFullParentPin": "eb59dce2260a3f617fc50f8b02d2a38bdfbd8747",
+  "NodeAddonInstalled": false,
+  "SourceAdmission": false,
+  "RootAdmission": false,
+  "normalRows": [
+    {
+      "path": "packages/auth-grant-history-client/go/authority_client.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/authority_client.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/authority_client.go",
+        "bytes": 10102,
+        "sha256": "8a788444a7d55af29aa06a79e1684d5148fdd56a50dec3620aed3a63037a07d3"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/authority_client.go",
+        "bytes": 9217,
+        "sha256": "8046d3eb643d38bb158b4043ff11c8332cf4c750dbe1d4a424d64539c4655de4"
+      },
+      "before": "8046d3eb643d38bb158b4043ff11c8332cf4c750dbe1d4a424d64539c4655de4",
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/client.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/client.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/client.go",
+        "bytes": 10666,
+        "sha256": "295560ac001fd46f949db62095b7660e747ad3dd02b262b1a261aed6f501baf2"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/client.go",
+        "bytes": 10666,
+        "sha256": "295560ac001fd46f949db62095b7660e747ad3dd02b262b1a261aed6f501baf2"
+      },
+      "before": "295560ac001fd46f949db62095b7660e747ad3dd02b262b1a261aed6f501baf2",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/issuer_factory.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/issuer_factory.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/issuer_factory.go",
+        "bytes": 2204,
+        "sha256": "2e15c813cd6d6604779178f42af24bfe541598f7cf7aed083e74f0f3bede2abb"
+      },
+      "expectedBefore": null,
+      "before": null,
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/local_registration.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/local_registration.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/local_registration.go",
+        "bytes": 4457,
+        "sha256": "2e142f77b6ca7c0da3e9eebba460e508e85a0b2c06baad404cab1e8bc55b9205"
+      },
+      "expectedBefore": null,
+      "before": null,
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/original_service_body.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/original_service_body.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/original_service_body.go",
+        "bytes": 2680,
+        "sha256": "6e2f920ea8824ab886543979036082008e743f734e7dc0708bfd33a8f48e6c98"
+      },
+      "expectedBefore": null,
+      "before": null,
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/result.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/result.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/result.go",
+        "bytes": 3897,
+        "sha256": "8fc5316c886560f89fb1df8c0d52f3404e49914156b2ba632f60a4d39ab18c00"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/result.go",
+        "bytes": 3897,
+        "sha256": "8fc5316c886560f89fb1df8c0d52f3404e49914156b2ba632f60a4d39ab18c00"
+      },
+      "before": "8fc5316c886560f89fb1df8c0d52f3404e49914156b2ba632f60a4d39ab18c00",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/service_result.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/service_result.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/service_result.go",
+        "bytes": 3896,
+        "sha256": "be6f792535b92a9867793e280a70044542a5aaad9a5df23988bc18c66368e966"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/service_result.go",
+        "bytes": 3896,
+        "sha256": "be6f792535b92a9867793e280a70044542a5aaad9a5df23988bc18c66368e966"
+      },
+      "before": "be6f792535b92a9867793e280a70044542a5aaad9a5df23988bc18c66368e966",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/source_protected.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/source_protected.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/source_protected.go",
+        "bytes": 3814,
+        "sha256": "81ce339398d16ed6a90ada3d23aaa56310ec39b078f149a5c230037f99fab779"
+      },
+      "expectedBefore": null,
+      "before": null,
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/source_provider.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/source_provider.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/source_provider.go",
+        "bytes": 14183,
+        "sha256": "12cc2b98e0f75cdfd09d5c84d2b1e1dd517cda6c4c074250c44d25b2c3fd3251"
+      },
+      "expectedBefore": null,
+      "before": null,
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/source_runtime.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/source_runtime.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/source_runtime.go",
+        "bytes": 4950,
+        "sha256": "3514bd18e8e6e95e31cb2a433328ce26206f17f4377e3ab576f0ead17ece6083"
+      },
+      "expectedBefore": null,
+      "before": null,
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/whole_candidate_data.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/whole_candidate_data.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/whole_candidate_data.go",
+        "bytes": 2591,
+        "sha256": "43dfc3404ff11ac7056a72b0c092ca9bd18bdf0f056fe77ca49af78ee7ea6168"
+      },
+      "expectedBefore": null,
+      "before": null,
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/whole_response.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/whole_response.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/whole_response.go",
+        "bytes": 19858,
+        "sha256": "0d06d657747b1d1ba3946f0d7a9a214f1b5ed7f9f8ac6726a9c6b73f3c6c33a0"
+      },
+      "expectedBefore": null,
+      "before": null,
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/go.mod",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/go.mod",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/go.mod",
+        "bytes": 851,
+        "sha256": "24ce009db5e7b862805c09a4e45ffa31ad545197120e130b013c4730910bd21d"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/go.mod",
+        "bytes": 504,
+        "sha256": "10fa971331f4661b5d9e88ab9bee6772cff179951a5cedd5f423299948430b22"
+      },
+      "before": "10fa971331f4661b5d9e88ab9bee6772cff179951a5cedd5f423299948430b22",
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/go.sum",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/go.sum",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/packages/auth-grant-history-client/go/go.sum",
+        "bytes": 793,
+        "sha256": "19d0d4e704482ce1c982d72da9497d51e2ab5d8b6d1273357984a3d5cbf83765"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/go.sum",
+        "bytes": 153,
+        "sha256": "c5aa31f1f2b470a810c0dc6bf49bcc63eb42a100ad9b093ba23a54895bf63f64"
+      },
+      "before": "c5aa31f1f2b470a810c0dc6bf49bcc63eb42a100ad9b093ba23a54895bf63f64",
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/original_local_broker.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-authority-broker/evidence/selection-4888g3/go/original_local_broker.go",
+      "after": {
+        "bytes": 10432,
+        "sha256": "d7dda43cd17ec3e21dc770ad7ece6bcfdb429b3394c6499c4ff3aa5854aa3786"
+      },
+      "expectedBefore": null,
+      "before": null,
+      "knownLINKPredecessor": null,
+      "action": "INSTALLED_CAS"
+    }
+  ]
+}

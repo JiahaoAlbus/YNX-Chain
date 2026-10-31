@@ -28,7 +28,19 @@ type TaskAuthorityResult struct {
 	State, OriginalOperation, Original string
 	RecoveryOnly                       bool
 	Resource                           *TaskResourceResult
+	OriginalServiceResponse            []byte
 }
+
+// Observation only after a verifier has returned metadata. Never preserve a
+// stale body, opaque receipt, Source, scope or binding as usable authorization.
+func authorityObservationPartial(r TaskAuthorityResult) TaskAuthorityResult {
+	p := TaskAuthorityResult{State: r.State, OriginalOperation: r.OriginalOperation, RecoveryOnly: true}
+	if r.Resource != nil {
+		p.Resource = &TaskResourceResult{OperationID: r.Resource.OperationID, RemoteRef: r.Resource.RemoteRef}
+	}
+	return p
+}
+
 type authoritySource interface {
 	Current(context.Context) error
 	AssertOriginalCallerAndBinding(context.Context, TaskAuthorityCall) error
@@ -44,7 +56,7 @@ type authorityClientSelection struct {
 	EffectOperation, QueryOperation string
 }
 
-var admittedOriginalAuthorityClients = [...]func() (authorityClientSelection, error){}
+var admittedOriginalAuthorityClients = [...]func() (authorityClientSelection, error){acquireProtectedOriginalAuthorityClient}
 
 type TaskAuthorityClient struct {
 	selected authorityClientSelection
@@ -65,7 +77,7 @@ func OpenOriginalTaskAuthorityClient() (*TaskAuthorityClient, error) {
 		if e != nil {
 			return c, e
 		}
-		if s.Peer == nil || s.Source == nil || s.EffectOperation == "" || s.QueryOperation == "" {
+		if s.Peer == nil || s.Source == nil || s.EffectOperation == "" && s.QueryOperation == "" {
 			return c, ErrUnavailable
 		}
 		return c, nil
@@ -194,6 +206,9 @@ func (c *TaskAuthorityClient) exchange(ctx context.Context, history bool, in Tas
 	if history {
 		route, action = c.selected.QueryOperation, "query"
 	}
+	if route == "" {
+		return result, ErrUnavailable
+	}
 	response, e := c.selected.Peer.Exchange(ctx, route, func(ctx context.Context, actual link.AuthenticatedChannel) (link.WireRequest, error) {
 		if e := c.current(ctx); e != nil {
 			return link.WireRequest{}, e
@@ -225,19 +240,24 @@ func (c *TaskAuthorityClient) verifyReceivedAuthority(ctx context.Context, actio
 	originalResponse := bytes.Clone(response.Body)
 	result, e := c.selected.Source.VerifyOriginalAuthorityResponse(ctx, action, call, response)
 	if e != nil {
-		return TaskAuthorityResult{}, e
+		return authorityObservationPartial(result), e
 	}
 	if !bytes.Equal(originalResponse, response.Body) {
 		return TaskAuthorityResult{}, ErrBinding
 	}
-	result, e = correlateAuthorityResult(originalResponse, call, history, result)
+	serviceBody := bytes.Clone(result.OriginalServiceResponse)
+	if len(serviceBody) == 0 {
+		return TaskAuthorityResult{}, ErrWholeResponseUnavailable
+	}
+	result.OriginalServiceResponse = nil
+	result, e = correlateAuthorityResult(serviceBody, call, history, result)
 	if e != nil {
 		return TaskAuthorityResult{}, e
 	}
 	// Original service uses HTTP200 for ok/recovery and HTTP409 for UNKNOWN
 	// error. HTTP status alone is never proof, but disagreement is fail closed.
 	var statusEnvelope serviceEnvelopeDATA
-	if json.Unmarshal(originalResponse, &statusEnvelope) != nil || statusEnvelope.OK && response.StatusCode != 200 || !statusEnvelope.OK && response.StatusCode != 409 {
+	if json.Unmarshal(serviceBody, &statusEnvelope) != nil || statusEnvelope.OK && response.StatusCode != 200 || !statusEnvelope.OK && response.StatusCode != 409 {
 		return TaskAuthorityResult{}, ErrBinding
 	}
 	// No HTTP status, body ref or request field alone becomes a verified result.
@@ -250,8 +270,9 @@ func (c *TaskAuthorityClient) verifyReceivedAuthority(ctx context.Context, actio
 		return TaskAuthorityResult{}, ErrBinding
 	}
 	if e = c.current(ctx); e != nil {
-		return TaskAuthorityResult{}, e
+		return authorityObservationPartial(result), e
 	}
+	result.OriginalServiceResponse = bytes.Clone(serviceBody)
 	return result, nil
 }
 func (c *TaskAuthorityClient) AuthorizeAtEffect(ctx context.Context, in TaskAuthorityCall) (TaskAuthorityResult, error) {

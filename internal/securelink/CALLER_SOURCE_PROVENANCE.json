@@ -1,0 +1,471 @@
+{
+  "schema": "ynx-normal-caller-source-provenance/v1",
+  "authorityH": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/observed/HANDOFF.json",
+    "bytes": 15913,
+    "sha256": "1d21fb24ad1d8c0b44913afdceed94582d567f1f6ef779e6899724fad88d55dd"
+  },
+  "authorityManifest": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/observed/MANIFEST.json",
+    "bytes": 254916,
+    "sha256": "b502adf0f06c7d7b1ea1bc1dd19b9ee2621593c63afd7e4606887c34258881a9"
+  },
+  "brokerH": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/broker-frozen-snapshot/HANDOFF.json",
+    "bytes": 11020,
+    "sha256": "e329cbdb673c321c09b193bade53847faabc21074891eadda9b37277ce9039f1"
+  },
+  "normalSDKManifest": {
+    "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/NORMAL_INSTALL_MANIFEST.json",
+    "sha256": "047bba6b55eafc416f023451a0cb687f0d2a99abf29ae247c7f2ae825dbf9908"
+  },
+  "LINKGoPin": "a91362e5a939f4d1249cbbed6b87ee5945b261f5",
+  "LINKFullParentPin": "eb59dce2260a3f617fc50f8b02d2a38bdfbd8747",
+  "NodeAddonInstalled": false,
+  "SourceAdmission": false,
+  "RootAdmission": false,
+  "normalRows": [
+    {
+      "path": "internal/securelink/native/bridge.c",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/native/bridge.c",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/native/bridge.c",
+        "bytes": 12615,
+        "sha256": "f02544b772a5612508847da0d04ae111c6183dbd01e92322e59f705e2080400c"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/native/bridge.c",
+        "bytes": 12615,
+        "sha256": "f02544b772a5612508847da0d04ae111c6183dbd01e92322e59f705e2080400c"
+      },
+      "before": "f02544b772a5612508847da0d04ae111c6183dbd01e92322e59f705e2080400c",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/native/bridge.h",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/native/bridge.h",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/native/bridge.h",
+        "bytes": 909,
+        "sha256": "1907167f353b83af9465b2d45b0791f686b633bf39d56ca17515a5138a5ebc1c"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/native/bridge.h",
+        "bytes": 909,
+        "sha256": "1907167f353b83af9465b2d45b0791f686b633bf39d56ca17515a5138a5ebc1c"
+      },
+      "before": "1907167f353b83af9465b2d45b0791f686b633bf39d56ca17515a5138a5ebc1c",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/native/openssl.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/native/openssl.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/native/openssl.go",
+        "bytes": 10829,
+        "sha256": "0afbf8448b502ae6acb07cfa93db6ad11b2fcee7ea75ace9d9c7879872956c61"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/native/openssl.go",
+        "bytes": 10829,
+        "sha256": "0afbf8448b502ae6acb07cfa93db6ad11b2fcee7ea75ace9d9c7879872956c61"
+      },
+      "before": "0afbf8448b502ae6acb07cfa93db6ad11b2fcee7ea75ace9d9c7879872956c61",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/native/types.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/native/types.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/native/types.go",
+        "bytes": 1793,
+        "sha256": "cad71f6b8cdfa234302c25853068501b43f8c4841f53e37be3892d92ad01dd5c"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/native/types.go",
+        "bytes": 1793,
+        "sha256": "cad71f6b8cdfa234302c25853068501b43f8c4841f53e37be3892d92ad01dd5c"
+      },
+      "before": "cad71f6b8cdfa234302c25853068501b43f8c4841f53e37be3892d92ad01dd5c",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/native/unavailable.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/native/unavailable.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/native/unavailable.go",
+        "bytes": 1527,
+        "sha256": "b9066a4ce2ac94e8a4e4bcac4c3270293e160fac0df763da2b874d4fb5a72b89"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/native/unavailable.go",
+        "bytes": 1527,
+        "sha256": "b9066a4ce2ac94e8a4e4bcac4c3270293e160fac0df763da2b874d4fb5a72b89"
+      },
+      "before": "b9066a4ce2ac94e8a4e4bcac4c3270293e160fac0df763da2b874d4fb5a72b89",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/authority_ingress.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/authority_ingress.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/authority_ingress.go",
+        "bytes": 1423,
+        "sha256": "e114e7b0f01ae1cad05e58bbd3e8968d0822f70f751bceeb2996d7ed8f1c967f"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/authority_ingress.go",
+        "bytes": 1423,
+        "sha256": "e114e7b0f01ae1cad05e58bbd3e8968d0822f70f751bceeb2996d7ed8f1c967f"
+      },
+      "before": "e114e7b0f01ae1cad05e58bbd3e8968d0822f70f751bceeb2996d7ed8f1c967f",
+      "knownLINKPredecessor": "e114e7b0f01ae1cad05e58bbd3e8968d0822f70f751bceeb2996d7ed8f1c967f",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/authority_ingress_unix.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/authority_ingress_unix.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/authority_ingress_unix.go",
+        "bytes": 15804,
+        "sha256": "715ab6e6cdab45ba498cd1da96793a16788b84452fb63ee1783229da7384e957"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/authority_ingress_unix.go",
+        "bytes": 15804,
+        "sha256": "715ab6e6cdab45ba498cd1da96793a16788b84452fb63ee1783229da7384e957"
+      },
+      "before": "715ab6e6cdab45ba498cd1da96793a16788b84452fb63ee1783229da7384e957",
+      "knownLINKPredecessor": "715ab6e6cdab45ba498cd1da96793a16788b84452fb63ee1783229da7384e957",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/authority_ingress_unsupported.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/authority_ingress_unsupported.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/authority_ingress_unsupported.go",
+        "bytes": 646,
+        "sha256": "cbe8b72c827181d3a8c3dbd67a3b5d1be94d958355dba8710a744812c642357a"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/authority_ingress_unsupported.go",
+        "bytes": 646,
+        "sha256": "cbe8b72c827181d3a8c3dbd67a3b5d1be94d958355dba8710a744812c642357a"
+      },
+      "before": "cbe8b72c827181d3a8c3dbd67a3b5d1be94d958355dba8710a744812c642357a",
+      "knownLINKPredecessor": "cbe8b72c827181d3a8c3dbd67a3b5d1be94d958355dba8710a744812c642357a",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/channel.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/channel.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/channel.go",
+        "bytes": 4965,
+        "sha256": "f2994e89c5c11d70fc704bd81fa8a766a9cc0fa0a961fcae64dbe50d24a42aed"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/channel.go",
+        "bytes": 4965,
+        "sha256": "f2994e89c5c11d70fc704bd81fa8a766a9cc0fa0a961fcae64dbe50d24a42aed"
+      },
+      "before": "f2994e89c5c11d70fc704bd81fa8a766a9cc0fa0a961fcae64dbe50d24a42aed",
+      "knownLINKPredecessor": "f2994e89c5c11d70fc704bd81fa8a766a9cc0fa0a961fcae64dbe50d24a42aed",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/gate.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/gate.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/gate.go",
+        "bytes": 9655,
+        "sha256": "57e9499cc439c798568b6f1ba421c1a7951bdcd7b78dcaebdba6d89611b3caea"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/gate.go",
+        "bytes": 9655,
+        "sha256": "57e9499cc439c798568b6f1ba421c1a7951bdcd7b78dcaebdba6d89611b3caea"
+      },
+      "before": "57e9499cc439c798568b6f1ba421c1a7951bdcd7b78dcaebdba6d89611b3caea",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/http.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/http.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/http.go",
+        "bytes": 14016,
+        "sha256": "2360322a646da775d2b5babb5ece766ef0671e3a628169d7d1b0a18e69acab18"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/http.go",
+        "bytes": 14016,
+        "sha256": "2360322a646da775d2b5babb5ece766ef0671e3a628169d7d1b0a18e69acab18"
+      },
+      "before": "2360322a646da775d2b5babb5ece766ef0671e3a628169d7d1b0a18e69acab18",
+      "knownLINKPredecessor": "2360322a646da775d2b5babb5ece766ef0671e3a628169d7d1b0a18e69acab18",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/ipc.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc.go",
+        "bytes": 2962,
+        "sha256": "92d89356ea934d8bdca2cf9a987d4a9fbb0d99cc84d408c02ccd11028b2715a4"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/ipc.go",
+        "bytes": 2962,
+        "sha256": "92d89356ea934d8bdca2cf9a987d4a9fbb0d99cc84d408c02ccd11028b2715a4"
+      },
+      "before": "92d89356ea934d8bdca2cf9a987d4a9fbb0d99cc84d408c02ccd11028b2715a4",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/ipc_darwin.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc_darwin.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc_darwin.go",
+        "bytes": 550,
+        "sha256": "5728519120472056c1d41e3533ebd5baeda2ae7330977662f47ea2b444f24ebe"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/ipc_darwin.go",
+        "bytes": 550,
+        "sha256": "5728519120472056c1d41e3533ebd5baeda2ae7330977662f47ea2b444f24ebe"
+      },
+      "before": "5728519120472056c1d41e3533ebd5baeda2ae7330977662f47ea2b444f24ebe",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/ipc_linux.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc_linux.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc_linux.go",
+        "bytes": 546,
+        "sha256": "1d39c51612e2c97edbc013d847c58b4d6c003a50b263a7ea91cc7aaa89d0b27b"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/ipc_linux.go",
+        "bytes": 546,
+        "sha256": "1d39c51612e2c97edbc013d847c58b4d6c003a50b263a7ea91cc7aaa89d0b27b"
+      },
+      "before": "1d39c51612e2c97edbc013d847c58b4d6c003a50b263a7ea91cc7aaa89d0b27b",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/ipc_peer_darwin.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc_peer_darwin.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc_peer_darwin.go",
+        "bytes": 345,
+        "sha256": "8fe3c4a8175d9228101bc095f73296051b8ac566a06aa291752c83ef9b647c4e"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/ipc_peer_darwin.go",
+        "bytes": 345,
+        "sha256": "8fe3c4a8175d9228101bc095f73296051b8ac566a06aa291752c83ef9b647c4e"
+      },
+      "before": "8fe3c4a8175d9228101bc095f73296051b8ac566a06aa291752c83ef9b647c4e",
+      "knownLINKPredecessor": "8fe3c4a8175d9228101bc095f73296051b8ac566a06aa291752c83ef9b647c4e",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/ipc_peer_linux.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc_peer_linux.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc_peer_linux.go",
+        "bytes": 279,
+        "sha256": "04810b0582f1f7bd0d67358f5ad355e162f33a8064d0645002780adfe13cfc0f"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/ipc_peer_linux.go",
+        "bytes": 279,
+        "sha256": "04810b0582f1f7bd0d67358f5ad355e162f33a8064d0645002780adfe13cfc0f"
+      },
+      "before": "04810b0582f1f7bd0d67358f5ad355e162f33a8064d0645002780adfe13cfc0f",
+      "knownLINKPredecessor": "04810b0582f1f7bd0d67358f5ad355e162f33a8064d0645002780adfe13cfc0f",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/ipc_unsupported.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc_unsupported.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/ipc_unsupported.go",
+        "bytes": 483,
+        "sha256": "8002fadcc2fe0b40d7ef53599dbf23720252c6dd55d745beb8b7ab8fe62a4e42"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/ipc_unsupported.go",
+        "bytes": 483,
+        "sha256": "8002fadcc2fe0b40d7ef53599dbf23720252c6dd55d745beb8b7ab8fe62a4e42"
+      },
+      "before": "8002fadcc2fe0b40d7ef53599dbf23720252c6dd55d745beb8b7ab8fe62a4e42",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/local_caller.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/local_caller.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/local_caller.go",
+        "bytes": 3682,
+        "sha256": "5f62fe3d60068c3c60be2e73dda15cb7f6ad2723b5b4bfcf87fba655ea00283a"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/local_caller.go",
+        "bytes": 3682,
+        "sha256": "5f62fe3d60068c3c60be2e73dda15cb7f6ad2723b5b4bfcf87fba655ea00283a"
+      },
+      "before": "5f62fe3d60068c3c60be2e73dda15cb7f6ad2723b5b4bfcf87fba655ea00283a",
+      "knownLINKPredecessor": "5f62fe3d60068c3c60be2e73dda15cb7f6ad2723b5b4bfcf87fba655ea00283a",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/local_caller_unix.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/local_caller_unix.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/local_caller_unix.go",
+        "bytes": 15052,
+        "sha256": "e21df81c992b22bba2a485d854839c706438f294a90acb5e16cd51a049f2612d"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/local_caller_unix.go",
+        "bytes": 15052,
+        "sha256": "e21df81c992b22bba2a485d854839c706438f294a90acb5e16cd51a049f2612d"
+      },
+      "before": "e21df81c992b22bba2a485d854839c706438f294a90acb5e16cd51a049f2612d",
+      "knownLINKPredecessor": "e21df81c992b22bba2a485d854839c706438f294a90acb5e16cd51a049f2612d",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/local_caller_unsupported.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/local_caller_unsupported.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/local_caller_unsupported.go",
+        "bytes": 1174,
+        "sha256": "dac950548325fb9f22cf71be9b005e14a7e1736a729e22ba4c1b9dd030566918"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/local_caller_unsupported.go",
+        "bytes": 1174,
+        "sha256": "dac950548325fb9f22cf71be9b005e14a7e1736a729e22ba4c1b9dd030566918"
+      },
+      "before": "dac950548325fb9f22cf71be9b005e14a7e1736a729e22ba4c1b9dd030566918",
+      "knownLINKPredecessor": "dac950548325fb9f22cf71be9b005e14a7e1736a729e22ba4c1b9dd030566918",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/protected_client.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/protected_client.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/protected_client.go",
+        "bytes": 12693,
+        "sha256": "9e82eabce25ce57d85b65b2b98448ca899f69765a51f2d346ba54c019836bfdb"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/protected_client.go",
+        "bytes": 12693,
+        "sha256": "9e82eabce25ce57d85b65b2b98448ca899f69765a51f2d346ba54c019836bfdb"
+      },
+      "before": "9e82eabce25ce57d85b65b2b98448ca899f69765a51f2d346ba54c019836bfdb",
+      "knownLINKPredecessor": "9e82eabce25ce57d85b65b2b98448ca899f69765a51f2d346ba54c019836bfdb",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/protected_material.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/protected_material.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/protected_material.go",
+        "bytes": 5857,
+        "sha256": "42ad8b4594dc18e8213016e158792c71708356d492221a18140bd5584838c45a"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/protected_material.go",
+        "bytes": 5857,
+        "sha256": "42ad8b4594dc18e8213016e158792c71708356d492221a18140bd5584838c45a"
+      },
+      "before": "42ad8b4594dc18e8213016e158792c71708356d492221a18140bd5584838c45a",
+      "knownLINKPredecessor": "42ad8b4594dc18e8213016e158792c71708356d492221a18140bd5584838c45a",
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/read.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/read.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/read.go",
+        "bytes": 11174,
+        "sha256": "6dab86c08adf4878a9f445c4cce0cd9613827e158c6959766d16ca70b3df844e"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/read.go",
+        "bytes": 11174,
+        "sha256": "6dab86c08adf4878a9f445c4cce0cd9613827e158c6959766d16ca70b3df844e"
+      },
+      "before": "6dab86c08adf4878a9f445c4cce0cd9613827e158c6959766d16ca70b3df844e",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/static.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/static.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/static.go",
+        "bytes": 4471,
+        "sha256": "cafb2c191e3d7eb74a725016dbbbe940bb2564878496153e4513e1bd7cd5a127"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/static.go",
+        "bytes": 4471,
+        "sha256": "cafb2c191e3d7eb74a725016dbbbe940bb2564878496153e4513e1bd7cd5a127"
+      },
+      "before": "cafb2c191e3d7eb74a725016dbbbe940bb2564878496153e4513e1bd7cd5a127",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/witness.go",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/witness.go",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/witness.go",
+        "bytes": 1248,
+        "sha256": "a4221fe1d8008617179d93c4ac0779eb60d1a65799edfec479e5f42e6ef7b008"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/witness.go",
+        "bytes": 1248,
+        "sha256": "a4221fe1d8008617179d93c4ac0779eb60d1a65799edfec479e5f42e6ef7b008"
+      },
+      "before": "a4221fe1d8008617179d93c4ac0779eb60d1a65799edfec479e5f42e6ef7b008",
+      "knownLINKPredecessor": null,
+      "action": "SAME_BYTES"
+    },
+    {
+      "path": "internal/securelink/PROTECTED_CALLER.md",
+      "preparedFile": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/PROTECTED_CALLER.md",
+      "after": {
+        "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-normal-closed-intake-20261031/normal-root/internal/securelink/PROTECTED_CALLER.md",
+        "bytes": 14961,
+        "sha256": "eca3fbf4fd05c02fd54d593eac53f6f5f0312237629c477a470c27bcee80b199"
+      },
+      "expectedBefore": {
+        "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/internal/securelink/PROTECTED_CALLER.md",
+        "bytes": 12161,
+        "sha256": "6c41c0983269ba37137243a7df44897149ec190f61c4e6e16f91fe4c438e9c50"
+      },
+      "before": "6c41c0983269ba37137243a7df44897149ec190f61c4e6e16f91fe4c438e9c50",
+      "knownLINKPredecessor": "6c41c0983269ba37137243a7df44897149ec190f61c4e6e16f91fe4c438e9c50",
+      "action": "INSTALLED_CAS"
+    }
+  ]
+}
