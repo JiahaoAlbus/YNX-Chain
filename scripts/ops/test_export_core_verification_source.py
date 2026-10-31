@@ -176,6 +176,20 @@ class FrozenVerificationSourceControls(unittest.TestCase):
                 exporter.Snapshot(Path('/unused'), '0' * 40)
             call.assert_not_called()
 
+    def test_e11_verifier_profile_uses_its_frozen_actual_source_only(self):
+        self.assertEqual(exporter.DEPLOYMENT_REF, '928f49a2ad6bc7d087110a550317712ccf7e651d')
+        arguments = [str(SCRIPT), '--profile', 'deployment-v2', '--repository', '/repo', '--output', '/fresh']
+        with mock.patch('sys.argv', arguments), mock.patch.object(exporter, 'export') as call, \
+                mock.patch.object(exporter, 'export_securelink') as secure:
+            exporter.main()
+            call.assert_called_once_with(Path('/repo'), Path('/fresh'), exporter.DEPLOYMENT_REF)
+            secure.assert_not_called()
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(exporter, 'Snapshot') as snapshot:
+            root = Path(temporary).resolve()
+            with self.assertRaisesRegex(RuntimeError, 'fixed math source profile'):
+                exporter.export(root, root / 'fresh', exporter.SECURELINK_REF)
+            snapshot.assert_not_called()
+
     def test_securelink_full_native_and_platform_dependency_closure(self):
         local = [dict(ImportPath=exporter.MODULE + '/' + name, Module=dict(Path=exporter.MODULE),
                       Imports=['golang.org/x/sys/unix']) for name in exporter.SECURELINK_PACKAGES]

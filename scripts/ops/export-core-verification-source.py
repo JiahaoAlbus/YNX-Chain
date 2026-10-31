@@ -17,6 +17,7 @@ import tempfile
 import zipfile
 
 REF = 'fdc08527514587d5756264e43ab63588791e189a'
+DEPLOYMENT_REF = '928f49a2ad6bc7d087110a550317712ccf7e651d'
 SECURELINK_REF = '07101a583caddef5e07b0ddfc0569cc015ae6345'
 SECURELINK_PACKAGES = ('internal/securelink', 'internal/securelink/native')
 SECURELINK_MODULES = {'golang.org/x/sys': 'v0.48.0'}
@@ -101,7 +102,7 @@ def parse_tree(raw):
 class Snapshot:
     def __init__(self, repository, ref=REF):
         self.repository = repository
-        need(ref in (REF, SECURELINK_REF), 'fixed original source profile required')
+        need(ref in (REF, SECURELINK_REF, DEPLOYMENT_REF), 'fixed original source profile required')
         self.ref = ref
         self.tree = command(['git', 'rev-parse', ref + '^{tree}'], repository).decode().strip()
         need(command(['git', 'rev-parse', ref + '^{commit}'], repository).decode().strip() == ref, 'exact frozen commit required')
@@ -225,11 +226,12 @@ def exported_methods(files):
     return sorted(methods)
 
 
-def export(repository, output):
+def export(repository, output, source_ref=REF):
     need(repository.is_absolute() and repository.resolve(strict=True) == repository, 'canonical original repository required')
     need(output.is_absolute() and output.parent.resolve(strict=True) == output.parent and not output.exists() and not output.is_symlink(),
          'fresh absolute source output required; retain existing/UNKNOWN')
-    snapshot = Snapshot(repository)
+    need(source_ref in (REF, DEPLOYMENT_REF), 'fixed math source profile required')
+    snapshot = Snapshot(repository, source_ref)
     work = Path(tempfile.mkdtemp(prefix='core-verification-work-fdc-', dir=output.parent))
     probe = work / 'frozen-probe'
     probe.mkdir(mode=0o700)
@@ -293,9 +295,9 @@ def export(repository, output):
     need({path: row['Version'] for path, row in selected.items()} == EXPECTED_MODULES, 'minimal graph changed frozen selected versions')
     # A real local file module proxy exercises normal module resolution and
     # internal visibility, without a relative replace, module alias or rewrite.
-    seconds = int(command(['git', 'show', '-s', '--format=%ct', REF], repository))
+    seconds = int(command(['git', 'show', '-s', '--format=%ct', source_ref], repository))
     stamp = datetime.fromtimestamp(seconds, timezone.utc)
-    module_version = 'v0.0.0-' + stamp.strftime('%Y%m%d%H%M%S') + '-' + REF[:12]
+    module_version = 'v0.0.0-' + stamp.strftime('%Y%m%d%H%M%S') + '-' + source_ref[:12]
     proxy = work / 'normal-file-proxy'
     version_dir = proxy / module_escape(MODULE) / '@v'
     version_dir.mkdir(mode=0o700, parents=True)
@@ -368,7 +370,7 @@ def export(repository, output):
     actual = {str(path.relative_to(output)) for path in output.rglob('*') if path.is_file()}
     need(actual == set(carried), 'closed complete source supply required')
     implementation = Path(__file__).resolve(strict=True)
-    source = dict(version=VERSION, classification='original-public-production-math-source', sourceCommit=REF, sourceTree=snapshot.tree,
+    source = dict(version=VERSION, classification='original-public-production-math-source', sourceCommit=source_ref, sourceTree=snapshot.tree,
                   rootModule=MODULE, package=PACKAGE, minimumGo=MIN_GO, productionPackages=local, productionSourceLeafCount=len(files),
                   files=carried, directExternalModules=sorted(direct), externalModules=modules,
                   normalModuleRequirementsFile='requirements/go.require.fragment', exactSumAdditionsFile='requirements/go.sum.fragment',
@@ -377,8 +379,13 @@ def export(repository, output):
                   rootLicenseFiles=root_license_names, rootLicenseFound=bool(root_license_names), originalUpstreamLicenseFiles=licensing,
                   producer=dict(kind='local-frozen-git-object-source-export', githubCIProducer=False,
                                 implementation=dict(path='scripts/ops/export-core-verification-source.py', **pin(implementation.read_bytes()))),
-                  validatedSourceCIReference=dict(runId='41196019511', url='https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/41196019511',
-                                                  commit=REF, referenceOnly=True, producerOfThisBundle=False),
+                  validatedSourceCIReference=(dict(runId='41196019511', url='https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/41196019511',
+                                                  commit=REF, referenceOnly=True, producerOfThisBundle=False) if source_ref == REF else
+                      dict(runId='41204973224', url='https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/41204973224',
+                           commit=DEPLOYMENT_REF, componentJobs=[124548097153, 124548097114],
+                           componentConclusion='success', wholeRunConclusion='failure',
+                           scope='fixed E11 V2 native and independent Go codec/AND component only',
+                           referenceOnly=True, producerOfThisBundle=False)),
                   verification=dict(sameNameRootAPICompiledAndChecked=True, normalSubmoduleAPICompiledAndChecked=True,
                                     externalModuleChecksumsVerified=True, relativeReplaceUsed=False, actualDependencyPlatforms=['/'.join(p) for p in PLATFORMS],
                                     workspace=str(work), privateKeyInstancesCreated=False, cryptographicKnownAnswerSuiteRepeated=False),
@@ -668,9 +675,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--repository', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
-    parser.add_argument('--profile', choices=('ynxbatch', 'securelink'), default='ynxbatch')
+    parser.add_argument('--profile', choices=('ynxbatch', 'securelink', 'deployment-v2'), default='ynxbatch')
     args = parser.parse_args()
-    (export_securelink if args.profile == 'securelink' else export)(args.repository, args.output)
+    if args.profile == 'securelink':
+        export_securelink(args.repository, args.output)
+    else:
+        export(args.repository, args.output, DEPLOYMENT_REF if args.profile == 'deployment-v2' else REF)
 
 
 if __name__ == '__main__':
