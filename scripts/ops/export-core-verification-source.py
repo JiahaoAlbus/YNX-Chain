@@ -18,6 +18,9 @@ import zipfile
 
 REF = 'fdc08527514587d5756264e43ab63588791e189a'
 DEPLOYMENT_REF = '928f49a2ad6bc7d087110a550317712ccf7e651d'
+HTTP_V5_REF = '8d134c93d3f5500aea01cd0f0f5e88127d4dd37f'
+HTTP_V5_GOLDEN = 'internal/ynxbatch/testdata/product-session-proof-v5-public.json'
+HTTP_V5_GOLDEN_SHA256 = 'caaf17f69d655d4cc2167767fc3130cac68fec579f00f87d79e4cce79be8aa2d'
 SECURELINK_REF = '07101a583caddef5e07b0ddfc0569cc015ae6345'
 SECURELINK_PACKAGES = ('internal/securelink', 'internal/securelink/native')
 SECURELINK_MODULES = {'golang.org/x/sys': 'v0.48.0'}
@@ -102,7 +105,7 @@ def parse_tree(raw):
 class Snapshot:
     def __init__(self, repository, ref=REF):
         self.repository = repository
-        need(ref in (REF, SECURELINK_REF, DEPLOYMENT_REF), 'fixed original source profile required')
+        need(ref in (REF, SECURELINK_REF, DEPLOYMENT_REF, HTTP_V5_REF), 'fixed original source profile required')
         self.ref = ref
         self.tree = command(['git', 'rev-parse', ref + '^{tree}'], repository).decode().strip()
         need(command(['git', 'rev-parse', ref + '^{commit}'], repository).decode().strip() == ref, 'exact frozen commit required')
@@ -226,13 +229,107 @@ def exported_methods(files):
     return sorted(methods)
 
 
+def http_v5_validation(snapshot):
+    """Public fixed SDK original used only in isolated consumer validation.
+
+    The public fixture and test are NOT production Source bundle leaves. No
+    private material is read or generated, and no signatures are newly created.
+    """
+    need(snapshot.ref == HTTP_V5_REF, 'HTTP V5 exact source required')
+    golden = snapshot.read(HTTP_V5_GOLDEN)
+    need(hashlib.sha256(golden).hexdigest() == HTTP_V5_GOLDEN_SHA256, 'HTTP V5 final-path SDK original differs')
+    smoke = r'''package sourceconsumer
+import (
+ "bytes"
+ "crypto/sha256"
+ "encoding/base64"
+ "encoding/hex"
+ "encoding/json"
+ "os"
+ "testing"
+ batch "github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
+)
+// Compile the actual typed production signatures, not a wrapper or substitute.
+var _ func([]byte,[]byte,string,batch.ProductSessionHTTPBinding)([]byte,error) = batch.BuildProductSessionHTTPV5Message
+var _ func([]byte,batch.ProductSessionHTTPBinding)(batch.ProductSessionHTTPMessage,error) = batch.InspectProductSessionHTTPV5Message
+var _ func([]byte,batch.ProductSessionHTTPBinding,[]byte)(batch.ProductSessionHTTPMessage,error) = batch.InspectProductSessionHTTPV5Member
+func TestFrozenHTTPV5PublicOriginal(t *testing.T) {
+ raw,err:=os.ReadFile("http-v5-golden.json");if err!=nil{t.Fatal(err)}
+ sum:=sha256.Sum256(raw)
+ if hex.EncodeToString(sum[:])!="caaf17f69d655d4cc2167767fc3130cac68fec579f00f87d79e4cce79be8aa2d"{t.Fatal("original public fixture changed")}
+ var g struct{UnsignedCanonicalJSON,BodyBase64url,ContentType,NetworkID,PKA,PKB,MessageBase64url,MemberBase64url string;Unsigned struct{CanonicalOwner string}}
+ if err=json.Unmarshal(raw,&g);err!=nil{t.Fatal(err)}
+ h:=func(s string)[]byte{b,e:=hex.DecodeString(s);if e!=nil{t.Fatal(e)};return b}
+ b64:=func(s string)[]byte{b,e:=base64.RawURLEncoding.DecodeString(s);if e!=nil{t.Fatal(e)};return b}
+ binding:=batch.ProductSessionHTTPBinding{NetworkID:h(g.NetworkID),Owner:g.Unsigned.CanonicalOwner,PKA:h(g.PKA),PKB:h(g.PKB)}
+ body,member:=b64(g.BodyBase64url),b64(g.MemberBase64url)
+ message,err:=batch.BuildProductSessionHTTPV5Message([]byte(g.UnsignedCanonicalJSON),body,g.ContentType,binding)
+ if err!=nil||!bytes.Equal(message,b64(g.MessageBase64url)){t.Fatalf("actual body/E6 binding failed: %v",err)}
+ if len(body)!=267||len(message)!=1532||len(member)!=59159{t.Fatal("fixed full-path original lengths differ")}
+ inspected,err:=batch.InspectProductSessionHTTPV5Message(message,binding)
+ if err!=nil||!bytes.Equal(inspected.UnsignedOriginal,[]byte(g.UnsignedCanonicalJSON)){t.Fatalf("typed E6 rejected: %v",err)}
+ if _,err=batch.InspectProductSessionHTTPV5Member(member,binding,message);err!=nil{t.Fatalf("actual dual AND rejected: %v",err)}
+ for _,branch:=range []string{"A","B"}{
+  m,e:=batch.DecodeMember(member);if e!=nil{t.Fatal(e)}
+  if branch=="A"{m.Certificate.SigmaA[0]^=1}else{m.Certificate.SigmaB[0]^=1}
+  bad,e:=batch.EncodeMember(m);if e!=nil{t.Fatal(e)}
+  if _,e=batch.InspectProductSessionHTTPV5Member(bad,binding,message);e==nil{t.Fatal("bad AND branch accepted",branch)}
+ }
+ changed:=bytes.Clone(body);changed[len(changed)-1]^=1
+ if _,err=batch.BuildProductSessionHTTPV5Message([]byte(g.UnsignedCanonicalJSON),changed,g.ContentType,binding);err==nil{t.Fatal("wrong captured body accepted")}
+ if _,err=batch.BuildProductSessionHTTPV5Message([]byte(g.UnsignedCanonicalJSON),body,g.ContentType+"x",binding);err==nil{t.Fatal("wrong captured content type accepted")}
+ wrong:=binding;wrong.PKB=bytes.Clone(binding.PKB);wrong.PKB[0]^=1
+ if _,err=batch.InspectProductSessionHTTPV5Member(member,wrong,message);err==nil{t.Fatal("independent full pair ignored")}
+}
+'''.encode()
+    contract = dict(version='YNX-CORE-HTTP-V5-SOURCE-API/v1', package=PACKAGE, sourceCommit=HTTP_V5_REF,
+                    profile='http-v5', method='POST', path='/api/v1/ide/deployments',
+                    importRule='Keep the original module/import identity. Go internal visibility requires the original root module or a descendant module under github.com/JiahaoAlbus/YNX-Chain/. No package rewrite or relative replace.',
+                    purpose='PRODUCT-SESSION-HTTP-PROOF', messageDomain='YNX-PRODUCT-SESSION-HTTP-PROOF/v5',
+                    bindingType='ProductSessionHTTPBinding{NetworkID []byte, Owner string, PKA []byte, PKB []byte}',
+                    bindingWidths=dict(NetworkID=32, Owner=42, PKA=2592, PKB=64),
+                    publicAPIs=[
+                        dict(function='BuildProductSessionHTTPV5Message', signature='func(unsignedOriginal, actualBody []byte, actualContentType string, binding ProductSessionHTTPBinding) ([]byte, error)',
+                             checks='Exact canonical unsigned23; actual complete immutable binary body SHA256/SHA3-512/SHA512, length and actual content type; fixed E6 with original shared E3.'),
+                        dict(function='InspectProductSessionHTTPV5Message', signature='func(message []byte, binding ProductSessionHTTPBinding) (ProductSessionHTTPMessage, error)',
+                             checks='Typed E6 and tuple consistency only; has no actual body input. Compare to independently built original.'),
+                        dict(function='InspectProductSessionHTTPV5Member', signature='func(member []byte, binding ProductSessionHTTPBinding, expectedMessage []byte) (ProductSessionHTTPMessage, error)',
+                             checks='Exact original E6, N1/index0/empty paths, purpose/network/owner/full pair, both roots and both real signatures.')],
+                    limits=dict(bodyBytes=68288512, messageBytes=16384, memberBytes=98304),
+                    inputsImmutableDuringCall=True, resultOriginalsDetached=True,
+                    independentBindingRequired=True, actualBodyRequiredBeforeMemberUse=True,
+                    publicOriginalValidation=dict(repositoryPath=HTTP_V5_GOLDEN, sha256=HTTP_V5_GOLDEN_SHA256,
+                        shippedInProductionSource=False, originalSDKSignatureVerified=True,
+                        bothSignatureMutationsRejected=True, newlyCreatedSignatures=False),
+                    grants=dict(Source=False, Root=False, currentRegistration=False, native=False, userApproval=False,
+                                clock=False, durableOnce=False, HTTPExecution=False),
+                    boundary='DATA math only. Auth/Main must supply original registered identity, source/current/revocation, clock, scope, approval and durable once. No V4 downgrade.')
+    return smoke, golden, contract
+
+
+def math_ci_reference(source_ref):
+    # A pending run is not validation evidence. HTTP V5's independently executed
+    # source consumers are recorded below; do not borrow another profile's CI.
+    if source_ref == HTTP_V5_REF:
+        return None
+    if source_ref == REF:
+        return dict(runId='41196019511', url='https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/41196019511',
+                    commit=REF, referenceOnly=True, producerOfThisBundle=False)
+    need(source_ref == DEPLOYMENT_REF, 'fixed math source profile required')
+    return dict(runId='41204973224', url='https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/41204973224',
+                commit=DEPLOYMENT_REF, componentJobs=[124548097153, 124548097114],
+                componentConclusion='success', wholeRunConclusion='failure',
+                scope='fixed E11 V2 native and independent Go codec/AND component only',
+                referenceOnly=True, producerOfThisBundle=False)
+
+
 def export(repository, output, source_ref=REF):
     need(repository.is_absolute() and repository.resolve(strict=True) == repository, 'canonical original repository required')
     need(output.is_absolute() and output.parent.resolve(strict=True) == output.parent and not output.exists() and not output.is_symlink(),
          'fresh absolute source output required; retain existing/UNKNOWN')
-    need(source_ref in (REF, DEPLOYMENT_REF), 'fixed math source profile required')
+    need(source_ref in (REF, DEPLOYMENT_REF, HTTP_V5_REF), 'fixed math source profile required')
     snapshot = Snapshot(repository, source_ref)
-    work = Path(tempfile.mkdtemp(prefix='core-verification-work-fdc-', dir=output.parent))
+    work = Path(tempfile.mkdtemp(prefix='core-verification-work-http-v5-' if source_ref == HTTP_V5_REF else 'core-verification-work-fdc-', dir=output.parent))
     probe = work / 'frozen-probe'
     probe.mkdir(mode=0o700)
     initial = sorted({name for package in BOOTSTRAP for name in snapshot.production(package)})
@@ -283,6 +380,12 @@ def export(repository, output, source_ref=REF):
     methods = exported_methods({name: raw for name, raw in files.items() if name.startswith('internal/ynxbatch/')})
     smoke = api_smoke(functions, methods)
     write_new(minimum, 'sourceconsumer/api_test.go', smoke)
+    http_validation = None
+    if source_ref == HTTP_V5_REF:
+        need({'BuildProductSessionHTTPV5Message', 'InspectProductSessionHTTPV5Message', 'InspectProductSessionHTTPV5Member'} <= set(functions), 'actual HTTP V5 production API closure missing')
+        http_validation = http_v5_validation(snapshot)
+        write_new(minimum, 'sourceconsumer/http_v5_api_test.go', http_validation[0])
+        write_new(minimum, 'sourceconsumer/http-v5-golden.json', http_validation[1])
     env = go_environment()
     go_version = command(['go', 'env', 'GOVERSION'], minimum, env=env).decode().strip()
     need(go_version == 'go' + MIN_GO, 'original cached Go1.26.10 producer required')
@@ -314,6 +417,9 @@ def export(repository, output, source_ref=REF):
     consumer.mkdir(mode=0o700)
     write_new(consumer, 'go.mod', ('module ' + MODULE + '/source-verification-consumer\n\ngo ' + MIN_GO + '\n\nrequire ' + MODULE + ' ' + module_version + '\n').encode())
     write_new(consumer, 'api_test.go', smoke)
+    if http_validation is not None:
+        write_new(consumer, 'http_v5_api_test.go', http_validation[0])
+        write_new(consumer, 'http-v5-golden.json', http_validation[1])
     consumer_env = dict(env, GOPROXY=proxy.as_uri() + ',' + os.environ.get('GOPROXY', 'https://proxy.golang.org,direct'),
                         GONOSUMDB=MODULE)
     command(['go', 'mod', 'tidy'], consumer, env=consumer_env)
@@ -355,6 +461,8 @@ def export(repository, output, source_ref=REF):
                                                localFileProxyForTestOnly=True, testModuleVersion=module_version,
                                                privateKeyInstancesCreated=False, NISTOrSignatureSuiteRepeated=False)),
     }
+    if http_validation is not None:
+        generated['validation/HTTP-V5-API.json'] = encoded(http_validation[2])
     for name, raw in generated.items():
         write_new(output, name, raw)
         carried[name] = dict(**pin(raw), gitBlob=None, kind='locally-derived-source-closure-metadata')
@@ -379,19 +487,17 @@ def export(repository, output, source_ref=REF):
                   rootLicenseFiles=root_license_names, rootLicenseFound=bool(root_license_names), originalUpstreamLicenseFiles=licensing,
                   producer=dict(kind='local-frozen-git-object-source-export', githubCIProducer=False,
                                 implementation=dict(path='scripts/ops/export-core-verification-source.py', **pin(implementation.read_bytes()))),
-                  validatedSourceCIReference=(dict(runId='41196019511', url='https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/41196019511',
-                                                  commit=REF, referenceOnly=True, producerOfThisBundle=False) if source_ref == REF else
-                      dict(runId='41204973224', url='https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/41204973224',
-                           commit=DEPLOYMENT_REF, componentJobs=[124548097153, 124548097114],
-                           componentConclusion='success', wholeRunConclusion='failure',
-                           scope='fixed E11 V2 native and independent Go codec/AND component only',
-                           referenceOnly=True, producerOfThisBundle=False)),
+                  validatedSourceCIReference=math_ci_reference(source_ref),
                   verification=dict(sameNameRootAPICompiledAndChecked=True, normalSubmoduleAPICompiledAndChecked=True,
                                     externalModuleChecksumsVerified=True, relativeReplaceUsed=False, actualDependencyPlatforms=['/'.join(p) for p in PLATFORMS],
                                     workspace=str(work), privateKeyInstancesCreated=False, cryptographicKnownAnswerSuiteRepeated=False),
                   containsOriginalKeyGenCode=True, privateMaterialIncluded=False, consumerModuleModified=False,
                   SDKInstallerOwnsConsumerGraph=True, SourceAdmission=False, RootAdmission=False, nativeGrant=False,
                   policy='Full original production package, not a new crypto module. SDK merges minimum requirements/sums; source does not grant current/Root/approval.')
+    if http_validation is not None:
+        source.update(sourceProfile='http-v5', typedAPIContractFile='validation/HTTP-V5-API.json')
+        source['verification'].update(actualHTTPV5PublicOriginalANDVerified=True, publicFixtureShipped=False,
+                                      newSignaturesCreated=False, sameNameRootAndSubmoduleHTTPV5Calls=True)
     write_new(output, 'SOURCE.json', encoded(source))
     fd = os.open(output, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
@@ -675,12 +781,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--repository', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
-    parser.add_argument('--profile', choices=('ynxbatch', 'securelink', 'deployment-v2'), default='ynxbatch')
+    parser.add_argument('--profile', choices=('ynxbatch', 'securelink', 'deployment-v2', 'http-v5'), default='ynxbatch')
     args = parser.parse_args()
     if args.profile == 'securelink':
         export_securelink(args.repository, args.output)
     else:
-        export(args.repository, args.output, DEPLOYMENT_REF if args.profile == 'deployment-v2' else REF)
+        export(args.repository, args.output, {'ynxbatch': REF, 'deployment-v2': DEPLOYMENT_REF, 'http-v5': HTTP_V5_REF}[args.profile])
 
 
 if __name__ == '__main__':

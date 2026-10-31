@@ -190,6 +190,93 @@ class FrozenVerificationSourceControls(unittest.TestCase):
                 exporter.export(root, root / 'fresh', exporter.SECURELINK_REF)
             snapshot.assert_not_called()
 
+    def test_http_v5_profile_pins_complete_final_path_source(self):
+        self.assertEqual(exporter.HTTP_V5_REF, '8d134c93d3f5500aea01cd0f0f5e88127d4dd37f')
+        arguments = [str(SCRIPT), '--profile', 'http-v5', '--repository', '/repo', '--output', '/fresh']
+        with mock.patch('sys.argv', arguments), mock.patch.object(exporter, 'export') as call, \
+                mock.patch.object(exporter, 'export_securelink') as secure:
+            exporter.main()
+            call.assert_called_once_with(Path('/repo'), Path('/fresh'), exporter.HTTP_V5_REF)
+            secure.assert_not_called()
+        for extra in (['--ref', exporter.REF], ['--source-commit', exporter.DEPLOYMENT_REF],
+                      ['--provider', '/arbitrary'], ['--profile', 'http-v4']):
+            with mock.patch('sys.argv', arguments + extra), mock.patch.object(exporter, 'export') as call:
+                with self.assertRaises(SystemExit):
+                    exporter.main()
+                call.assert_not_called()
+
+    def test_http_v5_has_no_borrowed_or_pending_ci_success_claim(self):
+        self.assertIsNone(exporter.math_ci_reference(exporter.HTTP_V5_REF))
+        old = exporter.math_ci_reference(exporter.REF)
+        self.assertEqual((old['commit'], old['runId']), (exporter.REF, '41196019511'))
+        self.assertFalse(old['producerOfThisBundle'])
+        old = exporter.math_ci_reference(exporter.DEPLOYMENT_REF)
+        self.assertEqual((old['commit'], old['runId']), (exporter.DEPLOYMENT_REF, '41204973224'))
+        self.assertEqual(old['wholeRunConclusion'], 'failure')
+        with self.assertRaises(RuntimeError):
+            exporter.math_ci_reference('0' * 40)
+
+    def test_http_v5_calls_actual_typed_and_public_sdk_apis_without_signing(self):
+        golden = (SCRIPT.parents[2] / exporter.HTTP_V5_GOLDEN).read_bytes()
+        snapshot = mock.Mock(ref=exporter.HTTP_V5_REF)
+        snapshot.read.return_value = golden
+        smoke, original, contract = exporter.http_v5_validation(snapshot)
+        snapshot.read.assert_called_once_with(exporter.HTTP_V5_GOLDEN)
+        self.assertEqual(original, golden)
+        self.assertEqual(hashlib.sha256(golden).hexdigest(), exporter.HTTP_V5_GOLDEN_SHA256)
+        for name in ('BuildProductSessionHTTPV5Message', 'InspectProductSessionHTTPV5Message', 'InspectProductSessionHTTPV5Member'):
+            self.assertIn(('batch.' + name + '(').encode(), smoke)
+            self.assertIn(name, [row['function'] for row in contract['publicAPIs']])
+        for bad in (b'batch.KeyGen(', b'batch.BatchSign(', b'batch.ImportKeyMaterial(', b'replace '):
+            self.assertNotIn(bad, smoke)
+        self.assertIn(b'm.Certificate.SigmaA[0]^=1', smoke)
+        self.assertIn(b'm.Certificate.SigmaB[0]^=1', smoke)
+        self.assertEqual((contract['method'], contract['path']), ('POST', '/api/v1/ide/deployments'))
+        self.assertEqual(contract['limits']['bodyBytes'], 68288512)
+        self.assertTrue(contract['independentBindingRequired'])
+        self.assertTrue(contract['actualBodyRequiredBeforeMemberUse'])
+        self.assertFalse(contract['publicOriginalValidation']['shippedInProductionSource'])
+        self.assertFalse(contract['publicOriginalValidation']['newlyCreatedSignatures'])
+        self.assertFalse(any(contract['grants'].values()))
+
+    def test_http_v5_rejects_changed_public_golden_before_consumer(self):
+        snapshot = mock.Mock(ref=exporter.HTTP_V5_REF)
+        snapshot.read.return_value = b'changed public input, not a signing fixture'
+        with self.assertRaisesRegex(RuntimeError, 'final-path SDK original differs'):
+            exporter.http_v5_validation(snapshot)
+        snapshot.ref = exporter.DEPLOYMENT_REF
+        snapshot.read.reset_mock()
+        with self.assertRaisesRegex(RuntimeError, 'exact source required'):
+            exporter.http_v5_validation(snapshot)
+        snapshot.read.assert_not_called()
+
+    def test_http_v5_complete_production_selection_excludes_fixture_and_custody(self):
+        snapshot = object.__new__(exporter.Snapshot)
+        snapshot.entries = dict.fromkeys([
+            'internal/ynxbatch/product_session_http.go', 'internal/ynxbatch/product_session_http_v5.go',
+            'internal/ynxbatch/product_session_http_v5_test.go', exporter.HTTP_V5_GOLDEN,
+            'internal/ynxbatch/testdata/SYNTHETIC-ONLY-a.der', 'internal/ynxbatch/provider.go',
+            'cmd/ynx-artifact-release-cabi/device_http_v5_bridge.go'])
+        self.assertEqual(snapshot.production('internal/ynxbatch'), [
+            'internal/ynxbatch/product_session_http.go', 'internal/ynxbatch/product_session_http_v5.go',
+            'internal/ynxbatch/provider.go'])
+
+    def test_http_v5_existing_unknown_output_is_preserved_before_go_or_git(self):
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(exporter, 'Snapshot') as snapshot, \
+                mock.patch.object(exporter, 'command') as command:
+            root = Path(temporary).resolve()
+            output = root / 'original'
+            output.mkdir(mode=0o700)
+            original = output / 'SOURCE.json'
+            original.write_bytes(b'UNKNOWN exact original')
+            before = original.stat()
+            with self.assertRaisesRegex(RuntimeError, 'retain existing/UNKNOWN'):
+                exporter.export(root, output, exporter.HTTP_V5_REF)
+            self.assertEqual(original.read_bytes(), b'UNKNOWN exact original')
+            self.assertEqual((original.stat().st_ino, original.stat().st_mtime_ns), (before.st_ino, before.st_mtime_ns))
+            snapshot.assert_not_called()
+            command.assert_not_called()
+
     def test_securelink_full_native_and_platform_dependency_closure(self):
         local = [dict(ImportPath=exporter.MODULE + '/' + name, Module=dict(Path=exporter.MODULE),
                       Imports=['golang.org/x/sys/unix']) for name in exporter.SECURELINK_PACKAGES]
