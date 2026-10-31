@@ -400,7 +400,8 @@
     "native/original-ide-deployment-v2-addon.cpp",
     "native/original-ide-deployment-v2-call.h",
     "native/core-abi/ynx_artifact_release.h",
-    "native/core-abi/deployment_manifest_v2.h"
+    "native/core-abi/deployment_manifest_v2.h",
+    "src/original-ide-deployment-v2-source.js"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

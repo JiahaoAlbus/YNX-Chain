@@ -2946,5 +2946,47 @@
       "classification": "DEV_ARCHIVE_NOT_FORMAL_NORMALCI"
     },
     "normalNativeComponent": true
+  },
+  "ideDeploymentV2IssuanceAndCurrentSource": {
+    "supplierHandoff": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/admission-issuance-source/HANDOFF.json",
+    "CAS": {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/CAS.json",
+      "bytes": 1683,
+      "sha256": "4b85dd2367343f5facae045351c5202e96da58794a87da629412f2b90add1a65"
+    },
+    "leaves": [
+      {
+        "target": "packages/wallet-auth/src/original-auth-source-current-v2.js",
+        "beforeSHA256": "df05230d9a9a2c9e2d550b2ebaf5ed7fb6894dd37468d1d776c9ab0506523b27",
+        "afterSHA256": "05031800fe66a9385a550239be6713d7c3e469a5fd3c8ca14ef1c1a8a1c35a75",
+        "patch": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/original-auth-source-current-v2.js.patch"
+      },
+      {
+        "target": "packages/wallet-auth/src/original-auth-source-issuance-v2.js",
+        "beforeSHA256": "4f4a22840399b27f00fd53572146763fe5d22ed9b3036fec25ddb128357ee277",
+        "afterSHA256": "d8e7678aa07fed0505905efa90f892f0f0bd5467cab169f0450c6b7e252b28fb",
+        "patch": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/original-auth-source-issuance-v2.js.patch"
+      },
+      {
+        "target": "packages/wallet-auth/src/original-ide-deployment-v2-source.js",
+        "before": null,
+        "afterSHA256": "9aa60ef0cc001ad2b5a6e3414684ed004eefaab02dedb1a24bc98a30e03e681c"
+      },
+      {
+        "target": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+        "beforeSHA256": "c38cb438c9e9e7fffb0d8640e917de6970c5a7a1bbe9e0634fe6b29919c926cb",
+        "afterSHA256": "1e38a280a3b335be13b9c30cf044d7f0a089dce0dde83112c58d30b95ac41156",
+        "patch": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/admission-issuance-source/evidence/run-zy9MPH/original-auth-identity-source-v2-verifier.mjs.patch"
+      }
+    ],
+    "normalSourceSelectors": [
+      "acquireOriginalIDEDeploymentV2Source",
+      "acquireOriginalIDEDeploymentV2SourceIssuer"
+    ],
+    "SourceImplemented": true,
+    "CurrentImplemented": true,
+    "SourceAdmission": false,
+    "RootAdmission": false,
+    "installed": false
   }
 }

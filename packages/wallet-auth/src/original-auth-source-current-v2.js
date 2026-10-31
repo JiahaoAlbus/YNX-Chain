@@ -15,6 +15,7 @@ import {verifyOriginalAuthSourceProfileV2,verifyOriginalAuthSourceTransitionV2,v
 import {fetchOriginalNativeAuthorization} from '../native/original-ide-auth-proof-dispatch.mjs';
 import {parsePQAccountAuthorization,inspectPQAuthorizationView,assertPQAuthorizationCurrent} from './pq-wallet-policy.js';
 import {encodeOriginalIDEApprovalCurrentDATA,canonicalOriginalIDEApprovalCurrentDATA,verifyOriginalIDEApprovalCurrentDATA,inspectOriginalIDEApprovalScopeDATA,ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE} from '../native/original-ide-publication-approval-contract.mjs';
+import {IDE_DEPLOYMENT_V2_SOURCE_PURPOSE} from '../native/original-ide-deployment-v2-contract.mjs';
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const CAP=393216,ZERO=Object.freeze({sequence:0,floor:0,head:'',timeFloor:0,executionHeight:'0'});
 const nonced=value=>typeof value==='string'&&/^[A-Za-z0-9_-]{43}$/.test(value)&&Buffer.from(value,'base64url').toString('base64url')===value;
@@ -25,6 +26,14 @@ import {readOriginalDeveloperHTTPCredential,assertOriginalDeveloperHTTPCredentia
 import {encodeOriginalDeveloperPrincipalDATA} from '../native/original-developer-principal-data.mjs';
 export {originalApprovalStateHeadDATA};
 function parsed(raw,cap=CAP){if(typeof raw!=='string'||!raw.length||Buffer.byteLength(raw)>cap)fail('AUTH_SOURCE_V2_CAPACITY');let v;try{v=JSON.parse(raw);}catch{fail('AUTH_SOURCE_V2_CANONICAL');}if(canonical(v)!==raw)fail('AUTH_SOURCE_V2_CANONICAL');return v;}
+// Only already verified signed originals reach this local final-clock fence.
+// A V2 approval/registered role may end BEFORE the enclosing Source profile.
+function originalSourceEffectExpiry(body,purpose){
+ if(purpose==='ide-project-control-authority-v1')return Number(body.selection.projectControlCapture.expiresAtMs);
+ if(purpose!==IDE_DEPLOYMENT_V2_SOURCE_PURPOSE||!body.selection)return Infinity;
+ const s=body.selection.ideDeploymentV2;if(!s)fail('IDE_DEPLOYMENT_V2_DEDICATED_SOURCE_REQUIRED');
+ return Math.min(...['publisherOriginal','issuerOriginal','projectOriginal','resourceOriginal','approvalOriginal'].map(k=>{const v=parsed(s[k],32768);if(!Number.isSafeInteger(v.expiresAtMs))fail('IDE_DEPLOYMENT_V2_WINDOW');return v.expiresAtMs;}));
+}
 function hint(raw){const e=parsed(raw),b=Buffer.from(e.body??'','base64url');if(e.version!==2||e.role!=='profile'&&e.role!=='enrollment'&&e.role!=='current'||!b.length||b.length>65536||b.toString('base64url')!==e.body)fail('AUTH_SOURCE_V2_ENVELOPE');return parsed(new TextDecoder('utf8',{fatal:true}).decode(b),65536);}
 function exact(v,keys){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).sort().join('|')!==keys.slice().sort().join('|')||Object.values(Object.getOwnPropertyDescriptors(v)).some(d=>!Object.hasOwn(d,'value')||!d.enumerable))fail('AUTH_SOURCE_V2_SCHEMA');}
 function sameViews(before,after){for(const role of ['root','profile','current','subject']){assertPQAuthorizationCurrent(before[role],after[role]);if(before[role].executionHeight!==after[role].executionHeight)fail('AUTH_SOURCE_V2_HEIGHT_CHANGED');}}
@@ -60,7 +69,7 @@ export class OriginalAuthSourceCurrentV2Kernel {
   this.#alive();this.#signer.assertCurrent(views.current);
   if(this.#loan&&this.#io.ready(this.#loan)!==undefined)fail('AUTH_SOURCE_V2_CUSTODY_CHANGED');
   if(receipt&&(this.#rows.get(receipt.digest)!==receipt.state||this.#io.read(this.#loan,receipt.key+'.entered')!==receipt.raw||this.#io.read(this.#loan,receipt.key+'.terminal')!==receipt.terminal))fail('AUTH_SOURCE_V2_POST_COMPLETION_CHANGED');
-  const limit=Math.min(expires,profile.body.expiresAtMs,hint(this.#enrollment).expiresAtMs,this.#policy.signatureContract.purpose==='ide-project-control-authority-v1'?Number(profile.body.selection.projectControlCapture.expiresAtMs):Infinity);
+  const limit=Math.min(expires,profile.body.expiresAtMs,hint(this.#enrollment).expiresAtMs,originalSourceEffectExpiry(profile.body,this.#policy.signatureContract.purpose));
   const now=this.#time();this.#alive();if(now>=limit)fail('AUTH_SOURCE_V2_POST_COMPLETION_EXPIRED');
  }
  async initialize(){
@@ -83,11 +92,11 @@ export class OriginalAuthSourceCurrentV2Kernel {
    for(const {raw,event,projection,body}of events){const old=this.#rows.get(event.profileDigest),p=this.#profiles.get(event.profileDigest);if(projection.sequence!==(old?old.sequence+1:p.body.minimumSequence)||event.previousDigest!==(old?.recordDigest??'')||old&&(projection.floor<old.floor||body.issuedAtMs<old.issuedAtMs||BigInt(projection.statementExecutionHeight)<BigInt(old.statementExecutionHeight)||old.status!=='active'&&projection.status!==old.status))fail('AUTH_SOURCE_V2_HISTORY_ROLLBACK');this.#rows.set(event.profileDigest,{...projection,issuedAtMs:body.issuedAtMs,recordDigest:sha(raw)});}
    const completed=new Map();for(const [digest,p]of this.#profiles)completed.set(digest,await this.#post(p,observations.get(digest)));
    for(const [digest,p]of this.#profiles)this.#completed(p,completed.get(digest));
-   const finalTime=this.#time();this.#alive();for(const p of this.#profiles.values())if(finalTime>=Math.min(p.body.expiresAtMs,hint(this.#enrollment).expiresAtMs,this.#policy.signatureContract.purpose==='ide-project-control-authority-v1'?Number(p.body.selection.projectControlCapture.expiresAtMs):Infinity))fail('AUTH_SOURCE_V2_POST_COMPLETION_EXPIRED');
+   const finalTime=this.#time();this.#alive();for(const p of this.#profiles.values())if(finalTime>=Math.min(p.body.expiresAtMs,hint(this.#enrollment).expiresAtMs,originalSourceEffectExpiry(p.body,this.#policy.signatureContract.purpose)))fail('AUTH_SOURCE_V2_POST_COMPLETION_EXPIRED');
    this.#initialized=true;
   }catch(error){this.#remember(error);throw error;}finally{this.#entered=false;}
  }
- #body(p,digest,state,challenge,v){const now=this.#time();return {version:2,purpose:this.#policy.signatureContract.purpose,sourceId:v.profile.sourceId,enrollmentDigest:this.#policy.enrollmentDigest,profileDigest:digest,instanceId:v.profile.instanceId,generation:v.profile.generation,subjectOwner:v.profile.subjectOwner,subjectKeyVersion:v.subjectKeyVersion,sequence:state.sequence,floor:state.floor,head:state.head,status:state.status,nonce:challenge,issuedAtMs:now,expiresAtMs:Math.min(now+30000,v.profile.expiresAtMs,v.enrollment.expiresAtMs,this.#policy.signatureContract.purpose==='ide-project-control-authority-v1'?Number(p.body.selection.projectControlCapture.expiresAtMs):Infinity)};}
+ #body(p,digest,state,challenge,v){const now=this.#time();return {version:2,purpose:this.#policy.signatureContract.purpose,sourceId:v.profile.sourceId,enrollmentDigest:this.#policy.enrollmentDigest,profileDigest:digest,instanceId:v.profile.instanceId,generation:v.profile.generation,subjectOwner:v.profile.subjectOwner,subjectKeyVersion:v.subjectKeyVersion,sequence:state.sequence,floor:state.floor,head:state.head,status:state.status,nonce:challenge,issuedAtMs:now,expiresAtMs:Math.min(now+30000,v.profile.expiresAtMs,v.enrollment.expiresAtMs,originalSourceEffectExpiry(p.body,this.#policy.signatureContract.purpose))};}
  #signed(body,v,views){const binding={networkId:v.root.networkId,owner:v.enrollment.currentOwner,keyVersion:views.current.activeRevision,executionHeight:views.current.executionHeight};const bodyRaw=canonical(body),message=encodeOriginalAuthSourceStatementV2('current',this.#policy.signatureContract.currentFrame,binding,bodyRaw);this.#partial=Object.freeze({phase:'SIGN_SELECTED',profileDigest:body.profileDigest,nonce:body.nonce,bodyRaw});const member=this.#signer.signCurrent(message,binding,views.current);const raw=canonicalOriginalAuthSourceEnvelopeV2('current',binding,bodyRaw,member);this.#partial=Object.freeze({phase:'SIGNED',profileDigest:body.profileDigest,nonce:body.nonce,currentRaw:raw});return raw;}
  async transition(profileDigest,state){
   this.#alive();if(!this.#initialized||this.#entered)fail('AUTH_SOURCE_V2_NOT_READY');this.#entered=true;
@@ -97,6 +106,7 @@ export class OriginalAuthSourceCurrentV2Kernel {
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4Provisioning)))fail('AUTH_SOURCE_V2_DEVICE_PROVISIONING_HEAD');
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_QUERY_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4Query)))fail('AUTH_SOURCE_V2_DEVICE_QUERY_HEAD');
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_PENDING_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4Pending)))fail('AUTH_SOURCE_V2_DEVICE_PENDING_HEAD');
+   if(this.#policy.signatureContract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE&&state.head!==sha(canonical(p.body.selection.ideDeploymentV2)))fail('IDE_DEPLOYMENT_V2_CURRENT_HEAD');
    const body=this.#body(p,profileDigest,{...state,sequence},randomBytes(32).toString('base64url'),v),currentRaw=this.#signed(body,v,before),projection=verifyOriginalAuthSourceTransitionV2(this.#root,this.#enrollment,p.raw,currentRaw,this.#policy,before,body.nonce,ZERO,this.#time()),raw=canonical({version:2,profileDigest,previousDigest:old?.recordDigest??'',currentRaw});if(Buffer.byteLength(raw)>CAP)fail('AUTH_SOURCE_V2_CAPACITY');
    // Signing and persistence are within one selected operation. Any later
    // exception preserves the exact signed partial and poisons this owner.
@@ -230,13 +240,13 @@ export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic,readO
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_SOURCE_V2_NATIVE_RUNTIME_NOT_SUPPLIED');
  const rootRaw=readPublic(entry.rootPath,entry.policy.rootDigest),enrollmentRaw=readPublic(entry.enrollmentPath,entry.policy.enrollmentDigest),profiles=entry.profiles.map(p=>readPublic(p.path,p.sha256)),root=parsed(rootRaw,16384),enrollment=hint(enrollmentRaw);
  const get=fetchOriginalNativeAuthorization;
- const devicePurpose=[PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE].includes(entry.policy.signatureContract.purpose);let acquisitionFloor=-1;
- const acquisitionTime=()=>{const n=Date.now();if(devicePurpose&&(!Number.isSafeInteger(n)||n<0||n<acquisitionFloor))fail('AUTH_SOURCE_V2_CLOCK_ROLLBACK');acquisitionFloor=n;return n;};
- if(devicePurpose)acquisitionTime();
+ const sensitivePurpose=[PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE].includes(entry.policy.signatureContract.purpose);let acquisitionFloor=-1;
+ const acquisitionTime=()=>{const n=Date.now();if(sensitivePurpose&&(!Number.isSafeInteger(n)||n<0||n<acquisitionFloor))fail('AUTH_SOURCE_V2_CLOCK_ROLLBACK');acquisitionFloor=n;return n;};
+ if(sensitivePurpose)acquisitionTime();
  let selected;const selectedViews=[];
  for(const raw of profiles){const p=hint(raw),owners=[root.rootOwner,enrollment.profileOwner,enrollment.currentOwner,p.subjectOwner],s=await Promise.all(owners.map(async owner=>parsePQAccountAuthorization(await get(entry.node,owner),{chainId:root.networkId,nativeChainId:entry.node.nativeChainId,owner}))),views=Object.fromEntries(['root','profile','current','subject'].map((k,i)=>[k,s[i]]));verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,raw,entry.policy,views,acquisitionTime());selected=views.current;selectedViews.push(views);}
  if(!selected)fail('AUTH_SOURCE_V2_PROFILES');const record=inspectPQAuthorizationView(selected).activeRecord;if(!record)fail('AUTH_SOURCE_V2_CURRENT_ROLE_UNAVAILABLE');
- if(devicePurpose){
+ if(sensitivePurpose){
   // Every asynchronous registration observation must finish BEFORE the final
   // device-profile/key-open fence. A first profile may expire while a later
   // profile is observed; no current role key may be read on that stale set.
@@ -244,7 +254,7 @@ export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic,readO
   // The verifier itself calls retained math/view suppliers. Recheck all local
   // original windows after those callbacks, immediately before key custody.
   const now=acquisitionTime();
-  for(const body of[enrollment,...profiles.map(hint)])if(now<body.issuedAtMs||now>=body.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
+  for(const body of[enrollment,...profiles.map(hint)])if(now<body.issuedAtMs||now>=Math.min(body.expiresAtMs,originalSourceEffectExpiry(body,entry.policy.signatureContract.purpose)))fail('AUTH_SOURCE_V2_EXPIRED');
  }
  let a,b,keys,service,closed=false,closeSelected=false,closeCause,closeFailed=false;
  const signer=Object.freeze({retire(){closed=true;},join(){},assertCurrent(snapshot){if(closed)fail('AUTH_SOURCE_V2_KEY_CLOSED');a.assertCurrent();b.assertCurrent();const view=inspectPQAuthorizationView(snapshot);if(!view.pqSigningEnabled||!view.activeRecord||view.activeRecord.pkA!==record.pkA||view.activeRecord.pkB!==record.pkB||view.activeRecord.revision!==record.revision||snapshot.owner!==selected.owner)fail('AUTH_SOURCE_V2_CURRENT_ROLE_CHANGED');},signCurrent(message,binding,snapshot){this.assertCurrent(snapshot);let batch;try{batch=batchSign(keys.privateKey,{chainId:Buffer.from(binding.networkId,'hex'),owner:binding.owner,purpose:'AUTH-SOURCE-CURRENT'},[Buffer.from(message)]).batch;return encodeMember(extract(batch,0));}finally{if(batch)discardBatch(batch);}},close(){if(closeSelected){if(closeFailed)throw closeCause;return;}closed=true;closeSelected=true;for(const work of [()=>{if(keys&&!destroyKey(keys.privateKey))fail('AUTH_SOURCE_V2_KEY_CLOSE_UNKNOWN');},()=>b?.close(),()=>a?.close()])try{work();}catch(e){if(!closeFailed){closeCause=e;closeFailed=true;}}if(closeFailed)throw closeCause;}});
