@@ -70,6 +70,9 @@ func EncodePQTransaction(kind string, wire []byte) ([]byte, error) {
 }
 
 func DecodePQTransaction(payload []byte) (PQTransaction, []byte, error) {
+	if tx, wire, err, handled := tryDecodePQCanonicalWhole(payload); handled {
+		return tx, wire, err
+	}
 	var tx PQTransaction
 	if len(payload) == 0 || len(payload) > MaxPQWholeTransactionBytes {
 		return tx, nil, errors.New("ABCI PQ envelope size is invalid")
