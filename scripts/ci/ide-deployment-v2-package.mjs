@@ -1,0 +1,16 @@
+import fs from'node:fs';import path from'node:path';import os from'node:os';import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';
+const root=path.resolve(fileURLToPath(new URL('../..',import.meta.url))),pkg=root+'/packages/wallet-auth',out=fs.mkdtempSync(path.join(process.env.RUNNER_TEMP??os.tmpdir(),'ide-deployment-v2-package-'));
+const run=(tool,args,cwd)=>{const r=spawnSync(tool,args,{cwd,encoding:'utf8',maxBuffer:4<<20});if(r.status!==0)throw Error(tool+':'+r.stderr);return r.stdout;};
+const info=JSON.parse(run('npm',['pack','--ignore-scripts','--json','--pack-destination',out],pkg))[0];for(const p of ['native/original-ide-deployment-v2.mjs','native/original-ide-deployment-v2.d.mts','native/original-ide-deployment-v2-addon.cpp','native/core-abi/deployment_manifest_v2.h'])if(!info.files.some(r=>r.path===p))throw Error('NORMAL_REGISTRATION_ENTRY_NOT_PACKAGED');run('/usr/bin/tar',['-xzf',out+'/'+info.filename,'-C',out],pkg);
+fs.mkdirSync(out+'/package/node_modules/@noble',{recursive:true});for(const n of ['hashes','curves','post-quantum'])fs.cpSync(pkg+'/node_modules/@noble/'+n,out+'/package/node_modules/@noble/'+n,{recursive:true});fs.mkdirSync(out+'/package/node_modules/@ynx',{recursive:true});fs.cpSync(pkg+'/node_modules/@ynx/batch-v01-candidate',out+'/package/node_modules/@ynx/batch-v01-candidate',{recursive:true});
+fs.mkdirSync(out+'/package/node_modules/@ynx-chain',{recursive:true});fs.cpSync(pkg+'/node_modules/@ynx-chain/open-protocol',out+'/package/node_modules/@ynx-chain/open-protocol',{recursive:true});
+run(process.execPath,['--input-type=module','-e',"import assert from'node:assert/strict';import{acquireOriginalIDEDeploymentV2Signer as open}from'@ynx-chain/wallet-auth/original-ide-deployment-v2';assert.throws(()=>open(),{code:'IDE_DEPLOYMENT_V2_ROOT_PROFILE_NOT_SUPPLIED'});assert.throws(()=>open({provider:true}),{code:'IDE_DEPLOYMENT_V2_CALLER_FACTORY_FORBIDDEN'});"],out+'/package');
+const browser=spawnSync(process.execPath,['--conditions=browser','--input-type=module','-e',"import '@ynx-chain/wallet-auth/original-ide-deployment-v2'"],{cwd:out+'/package',encoding:'utf8'});if(browser.status===0||!browser.stderr.includes('ERR_PACKAGE_PATH_NOT_EXPORTED'))throw Error('BROWSER_PROFILE_NOT_REFUSED');
+fs.writeFileSync(out+'/package/normal-api.mts',`import{acquireOriginalIDEDeploymentV2Signer as open}from'@ynx-chain/wallet-auth/original-ide-deployment-v2';const{owner,error}=open();void error;const p=await owner.signOriginalE11(new Uint8Array(),new Uint8Array());const a:false=p.sourceGranted;void a;
+// @ts-expect-error no provider API
+open({approved:true});
+// @ts-expect-error exact original byte input only
+owner.signOriginalE11('fake',new Uint8Array());
+`);
+run(process.execPath,[pkg+'/node_modules/typescript/bin/tsc','--noEmit','--strict','--target','ES2022','--module','NodeNext','--moduleResolution','NodeNext',out+'/package/normal-api.mts'],out+'/package');
+const result={package:info.filename,members:info.files.length,normalPublicEntry:true,RootEmptyRefused:true,callerOverrideRefused:true,browserRefused:true,actualPublicTypes:true,SourceAdmission:false,NativeAdmission:false,installed:false,deployed:false};fs.writeFileSync(out+'/RESULT.json',JSON.stringify(result,null,2)+'\n');console.log(JSON.stringify({out,...result}));

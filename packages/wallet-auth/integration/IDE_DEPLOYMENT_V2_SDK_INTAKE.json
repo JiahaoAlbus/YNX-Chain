@@ -1,0 +1,50 @@
+{
+  "schema": "ynx-original-ide-deployment-v2-sdk-intake/v1",
+  "supplierHandoff": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/ide-deployment-v2-source/HANDOFF.json",
+    "bytes": 5685,
+    "sha256": "b9032836f043685b95e9afde8e24b3519f300d517354b38d0d3dcece0d4d55b0"
+  },
+  "verifiedSupplierPins": 134,
+  "publicModule": "@ynx-chain/wallet-auth/original-ide-deployment-v2",
+  "mergedVerifier": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-deployment-v2-intake-20261031/source/packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
+    "bytes": 43290,
+    "sha256": "c38cb438c9e9e7fffb0d8640e917de6970c5a7a1bbe9e0634fe6b29919c926cb"
+  },
+  "newBuildRecipe": {
+    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-ide-deployment-v2-intake-20261031/source/apps/wallet-desktop/scripts/build-original-ide-deployment-v2-native.mjs",
+    "bytes": 2493,
+    "sha256": "2259ea99b693f978ca217a5dd0ebc37ac97b090f2e7eae171f76e1c63a01760d"
+  },
+  "OpenPeer": "0.0.0-dev.4",
+  "OpenPublicCIArchive": {
+    "bytes": 52065,
+    "sha256": "bce32fba92e8d0da88ef3776e7c0b22b69b0241b0790c7b2723c85787bc0f082"
+  },
+  "lockDelta": [
+    "packages root metadata",
+    "node_modules/@ynx-chain/open-protocol only"
+  ],
+  "normalPublicPackage": {
+    "members": 426,
+    "actualPublicTypes": true,
+    "RootEmptyRefused": true,
+    "callerOverrideRefused": true,
+    "browserRefused": true
+  },
+  "NativeInputs": 152,
+  "CoreFormalNormalCI": false,
+  "SourceAdmission": false,
+  "RootAdmission": false,
+  "installed": false,
+  "deployed": false,
+  "oldGroupsRerun": false,
+  "parentCompilerRun": false,
+  "accountsUNKNOWN": "preserved",
+  "legacyQueryFamilyPreserved": true,
+  "firstCauses": [
+    "Supplier verifier omits Query purpose and independent if(deployment) rejects prior device purposes; merged exclusive guard",
+    "Closure scanner misclassified module-local pure readFile decoder as filesystem IO; corrected lexical function binding; four new controls pass"
+  ]
+}
