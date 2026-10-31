@@ -8,7 +8,9 @@ import (
 	"errors"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
+	"io"
 	"math/rand"
+	"strings"
 	"testing"
 )
 
@@ -110,4 +112,102 @@ func pqEnvelopeLegacyEncode(kind string, wire []byte) ([]byte, error) {
 		return nil, errors.New("unsupported or oversized ABCI PQ authorization")
 	}
 	return json.Marshal(PQTransaction{Version: 1, Type: kind, WireHex: hex.EncodeToString(wire)})
+}
+
+// Exact decoder before the lower-case hex scan optimization.
+func pqEnvelopeLegacyDecode(payload []byte) (PQTransaction, []byte, error) {
+	var tx PQTransaction
+	if len(payload) == 0 || len(payload) > MaxPQWholeTransactionBytes {
+		return tx, nil, errors.New("ABCI PQ envelope size is invalid")
+	}
+	d := json.NewDecoder(bytes.NewReader(payload))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&tx); err != nil {
+		return tx, nil, err
+	}
+	var extra any
+	if err := d.Decode(&extra); err != io.EOF {
+		return tx, nil, errors.New("trailing ABCI PQ envelope")
+	}
+	wire, err := hex.DecodeString(tx.WireHex)
+	if err != nil || tx.Version != 1 || hex.EncodeToString(wire) != tx.WireHex {
+		return tx, nil, errors.New("noncanonical ABCI PQ wire")
+	}
+	canonical, err := EncodePQTransaction(tx.Type, wire)
+	if err != nil || !bytes.Equal(canonical, payload) {
+		return tx, nil, errors.New("noncanonical ABCI PQ envelope")
+	}
+	return tx, wire, nil
+}
+
+func TestABCIPQEnvelopeDecodingDifferential(t *testing.T) {
+	inputs := [][]byte{nil, {}, []byte("{}"), []byte("null"), []byte("[]"), []byte("{bad"), []byte(`{"version":1,"type":"unknown","wireHex":"ab"}`), []byte(`{"version":1,"type":"pq_transfer","wireHex":""}`)}
+	for _, kind := range []string{PQTransferType, PQMigrationType, PQRevocationType, PQWholeType, PQEthereumValueType, PQInitialRegistrationType} {
+		payload, err := EncodePQTransaction(kind, []byte{0xab, 0xcd, 0xef, 0, 0x12})
+		if err != nil {
+			t.Fatal(err)
+		}
+		inputs = append(inputs, payload, append(bytes.Clone(payload), ' '), bytes.Replace(payload, []byte("abcdef"), []byte("ABCDEF"), 1), bytes.Replace(payload, []byte("abcdef"), []byte("abcdeG"), 1), bytes.Replace(payload, []byte("abcdef"), []byte("abcde"), 1), bytes.Replace(payload, []byte(`"version":1`), []byte(`"version":1,"version":1`), 1), bytes.Replace(payload, []byte(`"version":1`), []byte(`"version":2`), 1), bytes.Replace(payload, []byte(`"wireHex":`), []byte(`"wireHex":"ab","wireHex":`), 1), bytes.Replace(payload, []byte(`"wireHex":`), []byte(`"WireHex":`), 1), bytes.Replace(payload, []byte("ab"), []byte(`\u0061b`), 1))
+	}
+	for i, payload := range inputs {
+		want, ww, we := pqEnvelopeLegacyDecode(payload)
+		got, gw, ge := DecodePQTransaction(payload)
+		if got != want || !bytes.Equal(ww, gw) || (we == nil) != (ge == nil) || we != nil && we.Error() != ge.Error() {
+			t.Fatalf("decoder behavior differs at case%d: %v / %v", i, we, ge)
+		}
+	}
+	// Every byte value is decoded through the original canonical envelope.
+	wire := make([]byte, 256)
+	for i := range wire {
+		wire[i] = byte(i)
+	}
+	payload, _ := EncodePQTransaction(PQTransferType, wire)
+	_, got, err := DecodePQTransaction(payload)
+	if err != nil || !bytes.Equal(got, wire) {
+		t.Fatal("byte roundtrip", err)
+	}
+	if _, _, err = DecodePQTransaction(bytes.Replace(payload, []byte("aa"), []byte("aA"), 1)); err == nil {
+		t.Fatal("mixed-case hex accepted")
+	}
+	if _, _, err = DecodePQTransaction([]byte(strings.Replace(string(payload), "00", "０0", 1))); err == nil {
+		t.Fatal("non-ASCII hex accepted")
+	}
+}
+
+var pqEnvelopeDecodedSink []byte
+var pqEnvelopeTxSink PQTransaction
+
+func TestABCIPQEnvelopeDecodingAllocationCost(t *testing.T) {
+	payload, _ := EncodePQTransaction(PQTransferType, make([]byte, 59123))
+	cost := func(decode func([]byte) (PQTransaction, []byte, error)) float64 {
+		return testing.AllocsPerRun(20, func() {
+			var err error
+			pqEnvelopeTxSink, pqEnvelopeDecodedSink, err = decode(payload)
+			if err != nil {
+				panic(err)
+			}
+		})
+	}
+	old, newCost := cost(pqEnvelopeLegacyDecode), cost(DecodePQTransaction)
+	if newCost >= old {
+		t.Fatalf("decoder allocation reduction absent: old=%v candidate=%v", old, newCost)
+	}
+}
+func BenchmarkABCIPQEnvelopeDecode(b *testing.B) {
+	payload, _ := EncodePQTransaction(PQTransferType, make([]byte, 59123))
+	for _, c := range []struct {
+		name string
+		f    func([]byte) (PQTransaction, []byte, error)
+	}{{"original", pqEnvelopeLegacyDecode}, {"candidate", DecodePQTransaction}} {
+		b.Run(c.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				var err error
+				pqEnvelopeTxSink, pqEnvelopeDecodedSink, err = c.f(payload)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }
