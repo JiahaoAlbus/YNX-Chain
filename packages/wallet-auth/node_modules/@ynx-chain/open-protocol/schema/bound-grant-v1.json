@@ -1,0 +1,124 @@
+{
+  "profile": "YNX-OPEN/BOUND-GRANT/1",
+  "effectProfile": "YNX-OPEN/GRANT-EFFECT/1",
+  "status": "NEW_PUBLIC_COMPATIBILITY_WIRE_NOT_LEGACY_DEPLOYMENT_PROOF",
+  "dataVersion": "AUTH-BOUND-GRANT-PRIVATE/v1",
+  "grantOuterCount": 21,
+  "grantKeys": [
+    "version",
+    "id",
+    "realm",
+    "tenant",
+    "issuer",
+    "issuerEpoch",
+    "holder",
+    "holderEpoch",
+    "audience",
+    "operation",
+    "resources",
+    "cap",
+    "singleMax",
+    "validFrom",
+    "expires",
+    "nonce",
+    "rev",
+    "nonDelegable",
+    "approvalId",
+    "binding"
+  ],
+  "framing": "E U32BE count then U32BE byte lengths, control<=1MiB, lists<=1024, DATA nesting<=16",
+  "outer": "E(domainASCII,...all20grantFields)",
+  "effect": {
+    "count": 3,
+    "encoding": "E(effectDomainASCII,completeBoundGrantWire,completeStepBindingE10)",
+    "stepEquality": "exact canonical encoded bytes equal grant.binding"
+  },
+  "idCompatibility": {
+    "legacy": "bounded ASCII UTF8 [A-Za-z0-9._:/-]{1,256}; never infer raw16 from shape; explicit legacy representation selected by profile version",
+    "newGrantIdAndNonce": "canonical lower hex32 in DATA -> raw16 in WIRE; shape only, entropy generation owned by original Auth producer",
+    "approvalId": "existing consent reference preserved, not remapped"
+  },
+  "ref": [
+    "realm UTF8",
+    "tenant UTF8",
+    "kind UTF8",
+    "id UTF8",
+    "rev U64BE"
+  ],
+  "bind": [
+    "bytes U64BE",
+    "SHA3-512 raw64",
+    "SHA-512 raw64"
+  ],
+  "stepKeys": [
+    "task",
+    "generation",
+    "stepId",
+    "input",
+    "tool",
+    "target",
+    "purpose",
+    "risk",
+    "holderSession",
+    "sources"
+  ],
+  "tool": [
+    "id UTF8",
+    "version U64BE",
+    "schema BindE3"
+  ],
+  "target": [
+    "service",
+    "tenant",
+    "origin",
+    "path",
+    "region",
+    "operation"
+  ],
+  "holderSession": [
+    "id UTF8",
+    "epoch U64BE",
+    "channel UTF8"
+  ],
+  "source": [
+    "ref RefE5",
+    "fields E(UTF8...)",
+    "label ASCII PUBLIC|TENANT|RESTRICTED|VAULT",
+    "binding BindE3"
+  ],
+  "sets": {
+    "resources": "strict lexicographic complete Ref E bytes; unique, nonempty",
+    "sources": "strict lexicographic Ref E bytes; Ref unique",
+    "fields": "strict valid UTF8 byte lexicographic order, unique, nonempty, UTF16<=128, UTF8<=512; reject *, unpaired surrogates; no NFC/replacement/normalization"
+  },
+  "flags": {
+    "nonDelegable": "raw U8 1 only"
+  },
+  "structuralChecks": [
+    "holder.kind agent, issuer.kind not agent",
+    "realm/tenant/ref/task/targetservice bindings",
+    "sources within selected resource Ref set",
+    "singleMax<=cap,validFrom<expires",
+    "exact20grant/exact10binding and unknown fields rejected"
+  ],
+  "notCodecAuthority": [
+    "actual Source/current issuer/holder/task/session",
+    "trusted catalog operation/audience/risk/receipt mapping",
+    "real signatures, full approval, no asset/wallet.approve permission",
+    "VAULT/disclosure/external target rules",
+    "resource-owned budget and semantic slot transaction",
+    "CSPRNG entropy check",
+    "HTTP routes/reconcile effects"
+  ],
+  "semanticSlot": "resource authority derives GrantScope + taskRef/rev/gen + step + tool + operation; requestId and changed body digest do not create fresh slots; UNKNOWN keeps original reservation/dispatch",
+  "toolSpecMapping": {
+    "id": "binding.tool.id",
+    "revision": "binding.tool.version",
+    "schema": "binding.tool.schema",
+    "aud": "grant.audience",
+    "risk": "binding.risk",
+    "receiptType": "no field in private grant; remains trusted catalog/real receipt contract",
+    "handler": "no SDK inference or service handler creation"
+  },
+  "nodeCompatibility": "public bound-grant Node subpath permits exact Proxy refusal; Go counterpart standard library only; existing browser-neutral profiles unchanged"
+}

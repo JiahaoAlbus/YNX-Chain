@@ -1,3 +1,6 @@
+import{CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS,inspectOriginalCloudDeploymentExecutionV2ScopeDATA}from'./original-cloud-deployment-execution-v2-contract.mjs';
+import{CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_OPERATIONS,inspectOriginalCloudDeploymentRecoveryV2ScopeDATA}from'./original-cloud-deployment-recovery-v2-contract.mjs';
+import{IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,IDE_DEPLOYMENT_V2_OPERATIONS,inspectOriginalIDEDeploymentV2ScopeDATA}from'./original-ide-deployment-v2-contract.mjs';
 // Original Auth v2 credential mathematics. Not a Source/Root constructor,
 // registration issuer, Native admission, signing owner, session or TLS upgrade.
 // Native must supply independently authenticated current registration views
@@ -140,31 +143,21 @@ export function inspectOriginalProductDeviceV4IssuanceBodyDATA(role,rootRaw,enro
  else{const verified=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);deviceProfileBodyDATA(root,verified.enrollment,body,policy,registrations,atMs);}
  return Object.freeze({role,bodySHA256:sha(bodyRaw),dataOnly:true,authorized:false,nativeAdmission:false});
 }
-export function verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs){
+function originalSourceEnrollmentBodyDATA(root,e,policy,registrations,atMs){
  const contract=sourcePolicy(policy);
  const pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE,device=deviceFamily(contract.purpose);
- const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,expectedOps=device?deviceOperations(contract.purpose):pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
- exact(registrations,['root','profile','current','subject']);
- if(sha(rootRaw)!==policy.rootDigest||sha(enrollmentRaw)!==policy.enrollmentDigest)fail('AUTH_SOURCE_V2_NOT_PINNED');
- const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);
- if(root.version!==2||root.algorithmVersion!==suite||root.purpose!==contract.purpose||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
- // Root authority is the independently pinned original, NOT certificate keys.
- const enrollment=envelope(enrollmentRaw,'enrollment',contract.enrollmentFrame,registrations.root,root.networkId,root.rootOwner);
- const e=enrollment.body;
+ const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,execution=contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,recovery=contract.purpose===CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE,deployment=contract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,expectedOps=execution?CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS:recovery?CLOUD_DEPLOYMENT_RECOVERY_V2_OPERATIONS:deployment?IDE_DEPLOYMENT_V2_OPERATIONS:device?deviceOperations(contract.purpose):pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
  if(device)deviceEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
- if(e.version!==2||e.purpose!==contract.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==(device?contract.purpose:pqCatalog?PQ_HOST_CATALOG_SOURCE_PURPOSE:relay?relayPurpose:projectAuthority?projectPurpose:control?controlPurpose:publication?ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE:'wallet-product-session-v2')||e.productId!==(device?policy.productId:pqCatalog?'wallet':'developer')||e.platform!=='macos'||e.applicationId!==((device||pqCatalog)?policy.applicationId:'com.ynxweb4.developer.testnetpreview')||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||canonical(e.operations)!==canonical(expectedOps)||!absolute(e.currentStatePath))fail('AUTH_SOURCE_V2_ENROLLMENT');
+ if(e.version!==2||e.purpose!==contract.purpose||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==((execution||recovery)?contract.purpose:deployment?IDE_DEPLOYMENT_V2_SOURCE_PURPOSE:device?contract.purpose:pqCatalog?PQ_HOST_CATALOG_SOURCE_PURPOSE:relay?relayPurpose:projectAuthority?projectPurpose:control?controlPurpose:publication?ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE:'wallet-product-session-v2')||e.productId!==(device?policy.productId:pqCatalog?'wallet':'developer')||e.platform!=='macos'||e.applicationId!==((device||pqCatalog)?policy.applicationId:'com.ynxweb4.developer.testnetpreview')||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||canonical(e.operations)!==canonical(expectedOps)||!absolute(e.currentStatePath))fail('AUTH_SOURCE_V2_ENROLLMENT');
  window(e,atMs,86400000);
  const height=registrations.root.executionHeight;
  const roleKeys=[active(registrations.root,root.networkId,root.rootOwner,height),active(registrations.profile,root.networkId,e.profileOwner,height),active(registrations.current,root.networkId,e.currentOwner,height)];
  for(let i=0;i<roleKeys.length;i++)for(let j=0;j<i;j++)if(roleKeys[i].pkA===roleKeys[j].pkA||roleKeys[i].pkB===roleKeys[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
- return seal({root,enrollment:e,enrollmentBinding:enrollment.binding,executionHeight:registrations.root.executionHeight,dataOnly:true,nativeAdmission:false});
 }
-export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileRaw,policy,registrations,atMs){
+function originalSourceProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs){
  const contract=sourcePolicy(policy),pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE,device=deviceFamily(contract.purpose);
- const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,expectedOps=device?deviceOperations(contract.purpose):pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
- const {root,enrollment:e,enrollmentBinding}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);
- const profile=envelope(profileRaw,'profile',contract.profileFrame,registrations.profile,root.networkId,e.profileOwner),p=profile.body;
+ const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,execution=contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,recovery=contract.purpose===CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE,deployment=contract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,expectedOps=execution?CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS:recovery?CLOUD_DEPLOYMENT_RECOVERY_V2_OPERATIONS:deployment?IDE_DEPLOYMENT_V2_OPERATIONS:device?deviceOperations(contract.purpose):pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
  exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
  if(p.version!==2||p.purpose!==contract.purpose||p.sourceId!==e.sourceId||p.enrollmentDigest!==sha(enrollmentRaw)||!token(p.instanceId)||!integer(p.generation)||p.generation<1||!integer(p.minimumSequence)||p.minimumSequence<1||!integer(p.minimumFloor)||p.minimumFloor>p.minimumSequence||!owner(p.subjectOwner))fail('AUTH_SOURCE_V2_PROFILE');
  const s=p.selection;
@@ -177,6 +170,8 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  if(pqCatalog)inspectOriginalPQHostCatalogSourceScopeDATA(s.pqHostCatalogSource,a,root.networkId,p.expiresAtMs,atMs);
  else if(Object.hasOwn(s,'pqHostCatalogSource'))fail('AUTH_SOURCE_V2_PQ_CATALOG_DEDICATED_PURPOSE_REQUIRED');
  if(device)deviceProfileBodyDATA(root,e,p,policy,registrations,atMs);
+ else if(execution||recovery){const field=execution?'cloudDeploymentExecutionV2':'cloudDeploymentRecoveryV2';exact(s,['association','expectedRequest','originalHostStatePath','originalHostTerminalDirectory',field]);const data=(execution?inspectOriginalCloudDeploymentExecutionV2ScopeDATA:inspectOriginalCloudDeploymentRecoveryV2ScopeDATA)(s[field],a,root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.generation,p.issuedAtMs,p.expiresAtMs,atMs);if(execution)for(const [snapshot,id]of [[registrations.root,root.rootOwner],[registrations.profile,e.profileOwner],[registrations.current,e.currentOwner],[registrations.subject,p.subjectOwner]]){const record=active(snapshot,root.networkId,id,registrations.root.executionHeight);for(const role of[data.publisher,data.issuer])if(record.pkA===Buffer.from(role.pkA,'base64url').toString('hex')||record.pkB===Buffer.from(role.pkB,'base64url').toString('hex'))fail('DEPLOYMENT_EXECUTION_V2_ROLE_COLLISION');}}
+ else if(deployment){exact(s,['association','expectedRequest','originalHostStatePath','originalHostTerminalDirectory','ideDeploymentV2']);const deploymentData=inspectOriginalIDEDeploymentV2ScopeDATA(s.ideDeploymentV2,a,root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.generation,p.issuedAtMs,p.expiresAtMs,atMs);for(const [snapshot,id]of [[registrations.root,root.rootOwner],[registrations.profile,e.profileOwner],[registrations.current,e.currentOwner],[registrations.subject,p.subjectOwner]]){const record=active(snapshot,root.networkId,id,registrations.root.executionHeight);for(const role of [deploymentData.publisher,deploymentData.issuer])if(record.pkA===Buffer.from(role.pkA,'base64url').toString('hex')||record.pkB===Buffer.from(role.pkB,'base64url').toString('hex'))fail('IDE_DEPLOYMENT_V2_RELEASE_KEY_ROLE_COLLISION');}}else if(Object.hasOwn(s,'cloudDeploymentExecutionV2')||Object.hasOwn(s,'cloudDeploymentRecoveryV2'))fail('DEPLOYMENT_EXECUTION_V2_DEDICATED_SOURCE_REQUIRED');else if(Object.hasOwn(s,'ideDeploymentV2'))fail('IDE_DEPLOYMENT_V2_DEDICATED_SOURCE_REQUIRED');
  else if(Object.hasOwn(s,'productSessionDeviceV4')||Object.hasOwn(s,'productSessionDeviceV4Pending')||Object.hasOwn(s,'productSessionDeviceV4Provisioning')||Object.hasOwn(s,'productSessionDeviceV4Query'))fail('AUTH_SOURCE_V2_DEVICE_DEDICATED_PURPOSE_REQUIRED');
  const r=s.expectedRequest;
  if(!r||r.service!==e.service||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(expectedOps)||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('AUTH_SOURCE_V2_REQUEST');
@@ -208,7 +203,43 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  if(publication)verifyPublicationAuthority(s,p,e,root,registrations,atMs);
  else if(Object.hasOwn(s,'publicationApprovalAuthority'))fail('AUTH_SOURCE_V2_PUBLICATION_DEDICATED_PURPOSE_REQUIRED');
  const selected=selectOriginalAuthSourceAlgorithm(registrations.subject,2);
- return Object.freeze({root,enrollment:e,profile:p,executionHeight:height,credentialIssuedHeights:Object.freeze({enrollment:enrollmentBinding.executionHeight,profile:profile.binding.executionHeight}),subjectKeyVersion:selected.keyVersion,dataOnly:true,nativeAdmission:false});
+ return Object.freeze({subjectKeyVersion:selected.keyVersion});
+}
+// Unsigned DATA preflight under the SAME original schemas, not Root authority.
+// Normal issuer calls before opening role keys and again at each signing fence.
+export function inspectOriginalIDEDeploymentV2IssuanceBodyDATA(role,rootRaw,enrollmentRaw,bodyRaw,policy,registrations,atMs){
+ const contract=sourcePolicy(policy);if(![IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(contract.purpose)||!['enrollment','profile'].includes(role))fail('IDE_DEPLOYMENT_V2_ISSUANCE_ROLE_REQUIRED');
+ exact(registrations,['root','profile','current','subject']);
+ const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);
+ if(sha(rootRaw)!==policy.rootDigest||root.version!==2||root.algorithmVersion!==suite||root.purpose!==contract.purpose||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
+ const body=parse(bodyRaw,65536);
+ if(role==='enrollment')originalSourceEnrollmentBodyDATA(root,body,policy,registrations,atMs);
+ else{const {enrollment}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);originalSourceProfileBodyDATA(root,enrollment,body,enrollmentRaw,policy,registrations,atMs);}
+ const special=role==='profile'&&(contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE||contract.purpose===CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE),field=contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE?'cloudDeploymentExecutionV2':'cloudDeploymentRecoveryV2';
+ const effectExpiresAtMs=special?(contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE?inspectOriginalCloudDeploymentExecutionV2ScopeDATA:inspectOriginalCloudDeploymentRecoveryV2ScopeDATA)(body.selection[field],body.selection.association,root.networkId,body.subjectOwner,body.sourceId,body.instanceId,body.generation,body.issuedAtMs,body.expiresAtMs,atMs).effectExpiresAtMs:role==='profile'?Math.min(body.expiresAtMs,...['publisherOriginal','issuerOriginal','projectOriginal','resourceOriginal','approvalOriginal'].map(k=>parse(body.selection.ideDeploymentV2[k],32768).expiresAtMs)):body.expiresAtMs;
+ return Object.freeze({role,bodySHA256:sha(bodyRaw),effectExpiresAtMs,dataOnly:true,authorized:false,nativeAdmission:false});
+}
+export function verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs){
+ const contract=sourcePolicy(policy);
+ const pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE,device=deviceFamily(contract.purpose);
+ const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,execution=contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,recovery=contract.purpose===CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE,deployment=contract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,expectedOps=execution?CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS:recovery?CLOUD_DEPLOYMENT_RECOVERY_V2_OPERATIONS:deployment?IDE_DEPLOYMENT_V2_OPERATIONS:device?deviceOperations(contract.purpose):pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
+ exact(registrations,['root','profile','current','subject']);
+ if(sha(rootRaw)!==policy.rootDigest||sha(enrollmentRaw)!==policy.enrollmentDigest)fail('AUTH_SOURCE_V2_NOT_PINNED');
+ const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);
+ if(root.version!==2||root.algorithmVersion!==suite||root.purpose!==contract.purpose||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
+ // Root authority is the independently pinned original, NOT certificate keys.
+ const enrollment=envelope(enrollmentRaw,'enrollment',contract.enrollmentFrame,registrations.root,root.networkId,root.rootOwner);
+ const e=enrollment.body;
+ originalSourceEnrollmentBodyDATA(root,e,policy,registrations,atMs);
+ return seal({root,enrollment:e,enrollmentBinding:enrollment.binding,executionHeight:registrations.root.executionHeight,dataOnly:true,nativeAdmission:false});
+}
+export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileRaw,policy,registrations,atMs){
+ const contract=sourcePolicy(policy),pqCatalog=contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE,device=deviceFamily(contract.purpose);
+ const relay=contract.purpose===relayPurpose,projectAuthority=contract.purpose===projectPurpose,control=contract.purpose===controlPurpose,publication=contract.purpose===ORIGINAL_IDE_APPROVAL_SOURCE_PURPOSE,execution=contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,recovery=contract.purpose===CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE,deployment=contract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,expectedOps=execution?CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS:recovery?CLOUD_DEPLOYMENT_RECOVERY_V2_OPERATIONS:deployment?IDE_DEPLOYMENT_V2_OPERATIONS:device?deviceOperations(contract.purpose):pqCatalog?PQ_HOST_CATALOG_SOURCE_OPERATIONS:relay?relayOps:projectAuthority?projectOps:control?controlOps:publication?publicationOps:ops;
+ const {root,enrollment:e,enrollmentBinding}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);
+ const profile=envelope(profileRaw,'profile',contract.profileFrame,registrations.profile,root.networkId,e.profileOwner),p=profile.body;
+ const {subjectKeyVersion}=originalSourceProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs);
+ return Object.freeze({root,enrollment:e,profile:p,executionHeight:registrations.root.executionHeight,credentialIssuedHeights:Object.freeze({enrollment:enrollmentBinding.executionHeight,profile:profile.binding.executionHeight}),subjectKeyVersion,dataOnly:true,nativeAdmission:false});
 }
 function verifyPublicationAuthority(s,p,e,root,registrations,at){
  const a=s.publicationApprovalAuthority;exact(a,['scopeOriginal','principal','publisherOriginal','callerIdentity']);
@@ -269,6 +300,8 @@ function verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,polic
  if(c.sequence===previous.sequence&&previous.head&&c.head!==previous.head)fail('AUTH_SOURCE_V2_EQUIVOCATION');
  if(historical&&(!integer(atMs)||atMs<c.issuedAtMs))fail('AUTH_SOURCE_V2_EXPIRED');
  window(c,historical?c.issuedAtMs:atMs,30000);if(c.expiresAtMs>Math.min(p.expiresAtMs,verified.enrollment.expiresAtMs))fail('AUTH_SOURCE_V2_EXPIRED');
+ if([CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(contract.purpose)&&c.head!==sha(canonical(p.selection[contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE?'cloudDeploymentExecutionV2':'cloudDeploymentRecoveryV2'])))fail('DEPLOYMENT_EXECUTION_V2_CURRENT_HEAD');
+ if(contract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE&&c.head!==sha(canonical(p.selection.ideDeploymentV2)))fail('IDE_DEPLOYMENT_V2_CURRENT_HEAD');
  if(contract.purpose===controlPurpose&&(c.head!==sha(canonical(p.selection.projectControlCapture))||BigInt(c.expiresAtMs)>BigInt(p.selection.projectControlCapture.expiresAtMs)))fail('AUTH_SOURCE_V2_CONTROL_CAPTURE_HEAD');
  if(contract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE&&(c.head!==sha(canonical(p.selection.pqHostCatalogSource))||c.expiresAtMs>p.selection.pqHostCatalogSource.expiresAtMs))fail('AUTH_SOURCE_V2_PQ_CATALOG_HEAD');
  if(contract.purpose===PRODUCT_DEVICE_V4_SOURCE_PURPOSE&&c.head!==sha(canonical(p.selection.productSessionDeviceV4)))fail('AUTH_SOURCE_V2_DEVICE_HEAD');

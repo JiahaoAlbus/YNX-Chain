@@ -1,0 +1,108 @@
+{
+  "schema": "YNX-OPEN/IDENTITY-CHALLENGE/1",
+  "status": "NEW_V1_PHYSICAL_SCHEMA_DATA_CODEC_NOT_AUTHORITY",
+  "grammar": "E(fields), U32BE field count and byte lengths",
+  "fieldCount": 11,
+  "fields": [
+    {
+      "name": "domain",
+      "encoding": "ASCII",
+      "constant": "YNX-OPEN/IDENTITY-CHALLENGE/1"
+    },
+    {
+      "name": "realm",
+      "encoding": "bytes",
+      "length": 16
+    },
+    {
+      "name": "networkBinding",
+      "encoding": "E(ASCII offchain) OR E(ASCII ynx-chain, genesis[32], nativeChainId U64BE, networkId[32])",
+      "zeroGenesisRejected": true
+    },
+    {
+      "name": "tenant",
+      "encoding": "bytes",
+      "length": 16
+    },
+    {
+      "name": "subject",
+      "encoding": "E(agentId[16], epoch U64BE)",
+      "fieldCount": 2
+    },
+    {
+      "name": "audience",
+      "encoding": "bytes",
+      "length": 16
+    },
+    {
+      "name": "purpose",
+      "encoding": "ASCII",
+      "constant": "YNX-OPEN/IDENTITY-AUTH/1"
+    },
+    {
+      "name": "channelBinding",
+      "encoding": "bytes",
+      "length": 32
+    },
+    {
+      "name": "nonce",
+      "encoding": "bytes",
+      "length": 32
+    },
+    {
+      "name": "issuedAt",
+      "encoding": "U64BE",
+      "unit": "Unix milliseconds"
+    },
+    {
+      "name": "expiresAt",
+      "encoding": "U64BE",
+      "unit": "Unix milliseconds"
+    }
+  ],
+  "constraints": {
+    "controlBytesMax": 1048576,
+    "lifetimeMillisecondsMinExclusive": 0,
+    "lifetimeMillisecondsMaxInclusive": 60000,
+    "canonicalDecimalIntegersInTS": true,
+    "noTrailingBytes": true,
+    "fixedFieldOrder": true
+  },
+  "authorityOwnedByAuth": [
+    "current identity and epoch/status",
+    "authoritative clock and expiry",
+    "single-use challenge transaction",
+    "actual authenticated channel binding",
+    "full challenge proof with IDENTITY-AUTH purpose"
+  ],
+  "source": "Explicit new V5 schema mapping agreed by sole SDK schema owner and original Auth owner through parent; not a pre-existing deployment qualification",
+  "publicEntry": {
+    "symbol": "encodeOpenEnvelope(ctx,domain,realm,fields)",
+    "domain": "YNX-OPEN/IDENTITY-CHALLENGE/1",
+    "realmArgument": "lowercase hex32 display => raw16; equal to ctx.realm",
+    "fieldsCount": 9,
+    "fieldsOrder": [
+      "networkBinding",
+      "tenant",
+      "subject",
+      "audience",
+      "purpose",
+      "channelBinding",
+      "nonce",
+      "issuedAt",
+      "expiresAt"
+    ],
+    "contextBinding": [
+      "realm",
+      "tenant"
+    ],
+    "sameWidthReordering": "Requires selected expected binding; syntax parser alone cannot identify exchanged valid same-width values",
+    "errors": [
+      "INVALID",
+      "BOUNDS",
+      "UNSUPPORTED"
+    ],
+    "authority": false
+  },
+  "realAuthTransport": "NOT_SUPPLIED; caller-controlled HTTP channel hashes are not trusted channel bindings"
+}
