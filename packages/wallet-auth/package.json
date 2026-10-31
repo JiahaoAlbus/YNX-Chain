@@ -372,7 +372,9 @@
     "native/original-product-device-v4-pending-source-contract.mjs",
     "native/original-auth-identity-native-release.h",
     "native/original-product-device-v4-provisioning-journal.h",
-    "native/original-product-device-v4-provisioning-source-contract.mjs"
+    "native/original-product-device-v4-provisioning-source-contract.mjs",
+    "native/original-product-device-v4-query-source-contract.mjs",
+    "native/original-product-device-v4-query-source-contract.d.mts"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

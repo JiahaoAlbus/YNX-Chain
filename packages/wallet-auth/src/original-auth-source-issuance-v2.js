@@ -12,7 +12,8 @@ import {inspectOriginalProductDeviceV4IssuanceBodyDATA} from '../native/original
 import {PRODUCT_DEVICE_V4_SOURCE_PURPOSE} from '../native/original-product-device-v4-source-contract.mjs';
 import {PRODUCT_DEVICE_V4_PENDING_PURPOSE} from '../native/original-product-device-v4-pending-source-contract.mjs';
 import{PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE}from'../native/original-product-device-v4-provisioning-source-contract.mjs';
-const devicePurpose=p=>[PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE].includes(p);
+import{PRODUCT_DEVICE_V4_QUERY_PURPOSE}from'../native/original-product-device-v4-query-source-contract.mjs';
+const devicePurpose=p=>[PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE].includes(p);
 import {fetchOriginalNativeAuthorization} from '../native/original-ide-auth-proof-dispatch.mjs';
 import {parsePQAccountAuthorization,inspectPQAuthorizationView,assertPQAuthorizationCurrent} from './pq-wallet-policy.js';
 import {verifyPQRegisteredMemberData} from './pq-registered-member.js';
@@ -21,7 +22,7 @@ const roles=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOU
 // Existing separately admitted families plus the dedicated device-v4 CODE
 // contract. This creates no admitted row/approval/key/Root. RECEIVE remains the
 // normal AdministrationProfile/private-daemon + IDE-parent Source family.
-const PURPOSES=Object.freeze(['wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE]);
+const PURPOSES=Object.freeze(['wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE]);
 function document(raw){let v;try{v=JSON.parse(raw);}catch{fail('AUTH_ISSUANCE_CANONICAL');}if(typeof raw!=='string'||Buffer.byteLength(raw)>393216||canonical(v)!==raw)fail('AUTH_ISSUANCE_CANONICAL');return v;}
 function exact(v,names){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).sort().join('|')!==names.slice().sort().join('|')||Object.values(Object.getOwnPropertyDescriptors(v)).some(d=>!Object.hasOwn(d,'value')))fail('AUTH_ISSUANCE_SCHEMA');}
 function window(v,now){if(!Number.isSafeInteger(v.issuedAtMs)||!Number.isSafeInteger(v.expiresAtMs)||v.issuedAtMs<0||v.expiresAtMs<=v.issuedAtMs||v.expiresAtMs-v.issuedAtMs>86400000||now<v.issuedAtMs||now>=v.expiresAtMs)fail('AUTH_ISSUANCE_EXPIRED');}
