@@ -1735,7 +1735,7 @@ jobs:
           # Preserve the complete original test set. Production operator cases
           # get their own bounded process so late cases do not inherit an almost
           # expired suite clock. Host and large recovery retain their own groups.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLabLiveMaterials)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestPQLab)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
             exit 1
           fi
@@ -1744,13 +1744,13 @@ jobs:
             exit 1
           fi
           cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
-          # New continuous proof tests receive their own unchanged bounded
-          # process; no original non-Host test is dropped or given a stale clock.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLabLiveMaterials' ./internal/consensus > "$RUNNER_TEMP/ynx-live-materials-state-tests.jsonl"; then
-            cat "$RUNNER_TEMP/ynx-live-materials-state-tests.jsonl"
+          # Normal PQ lab producers and continuous capture run together in
+          # their own bounded process. The original complete union is retained.
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"
             exit 1
           fi
-          cat "$RUNNER_TEMP/ynx-live-materials-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
+          cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           python3 -B - <<'PY'
           import json, os
           from pathlib import Path
@@ -3450,7 +3450,8 @@ jobs:
               proofVerifierSources={name:pin(Path(name)) for name in
                   ('internal/consensus/pq_light_proof.go',
                    'cmd/ynx-consensus-proof-verify/main.go',
-                   'cmd/ynx-consensus-proof-verify/trust.go')},
+                   'cmd/ynx-consensus-proof-verify/trust.go',
+                   'cmd/ynx-consensus-proof-verify/portable_import.go')},
               binaries=binaries, operator=operator, runtimeStarted=False,
               publicDeployment=False, pqActivation=False,
               purpose='normal entrypoint binaries and operator configuration only; no keys, credentials, ledger or signing history')
@@ -4670,7 +4671,8 @@ jobs:
               if not 1 << 20 < binaries[name]['bytes'] <= 128 << 20:
                   raise RuntimeError('macOS verifier exceeds the original per-binary bound')
           names = ('internal/consensus/pq_light_proof.go', 'internal/consensus/pq_transaction_proof.go',
-              'cmd/ynx-consensus-proof-verify/main.go', 'cmd/ynx-consensus-proof-verify/trust.go', 'cmd/ynx-consensus-proof-verify/transaction.go')
+              'cmd/ynx-consensus-proof-verify/main.go', 'cmd/ynx-consensus-proof-verify/trust.go', 'cmd/ynx-consensus-proof-verify/transaction.go',
+              'cmd/ynx-consensus-proof-verify/portable_import.go')
           record = dict(version='YNX-PQ-MACOS-PROOF-VERIFIER-CANDIDATE/v1', commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'],
               platforms=['darwin/arm64', 'darwin/amd64'], goVersion=subprocess.check_output(['go', 'version'], text=True).strip(),
               goMod=pin(Path('go.mod')), goSum=pin(Path('go.sum')), cometForkTree=subprocess.check_output(['git','rev-parse','HEAD:third_party/cometbft'], text=True).strip(),
