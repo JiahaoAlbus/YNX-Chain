@@ -50,7 +50,6 @@
   put('mobile-source-state',nodes?'固定 RPC 来源 · 尚非独立验证':'连接本机后读取 Testnet 数据');$('mobile-source-state').parentElement.classList.toggle('has-report',!!model.status);
   put('managed-node-state',model.native?.nodeControl==='unavailable'?'正式节点控制尚未开放':'尚未读取');
   put('resource-state',model.native?.resourceContribution==='disabled'?'已关闭':model.native?.resourceContribution==='unavailable'?'不可用':'默认关闭');
-  $('overview-refresh').disabled=!paired;
   const body=$('latest-block-rows');body.replaceChildren();
   if(model.latestBlock){const b=model.latestBlock,row=document.createElement('tr');for(const value of [formatInteger(b.height),short(b.hash),short(b.validator),formatInteger(b.transactionCount),time(b.time)]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}body.append(row);}else{const row=document.createElement('tr');row.className='empty-table-row';const cell=document.createElement('td');cell.colSpan=5;cell.textContent=t(paired?'本次未取得可绑定的最新区块。':'连接本机后显示实际最新区块');row.append(cell);body.append(row);}
   const list=$('validator-list');list.replaceChildren();const validators=model.validators;
