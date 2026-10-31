@@ -94,35 +94,43 @@ export function createPQTransactionSubmission({intentStore, networkId,
         const request = plan.typed?bindPQTypedBroadcastRequest(plan,typedBroadcastRequest):plan.migration?bindPQMigrationBroadcastRequest(plan,typedBroadcastRequest):pqBroadcastPermissionRequest(plan.binding);
         const assertBinding = plan.typed?assertPQTypedBroadcastPermission:plan.migration?assertPQMigrationBroadcastPermission:assertPermissionBinding;
         const completion = outcome => ({outcome,transportHash:hash,...(plan.typed?{memberHash:plan.typed.local.memberHash}:plan.migration?{abciTransactionHash:plan.binding.abciTransactionHash}:{})});
+        // Closing can start while an approval, journal write or node preflight
+        // is awaiting. Fence each later effect boundary, but keep custody of
+        // a POST already started and its returned response/cleanup obligation.
+        const assertOpen = () => {if (closing) throw failure('PQ_TRANSACTION_CLOSING');};
+        const assertBeforeSubmit = () => {assertOpen(); guard.assert();};
         let resource, permissionBinding, entered = false, submitted = false, returned = false, completed = false, failed = false, cause, result, transportCause, transportFailed = false;
         try {
+          assertBeforeSubmit();
           try {resource = await acquire(request);} catch (error) {
             const partial = error && typeof error === 'object' ? Object.getOwnPropertyDescriptor(error, 'partial') : null;
             if (partial && Object.hasOwn(partial,'value') && partial.value) {resource = partial.value; resources.add(resource);}
             throw error;
           }
           // Retain foreign ownership before post-await lock/brand checks.
-          resources.add(resource); guard.assert();
+          resources.add(resource); assertBeforeSubmit();
           if (recognized(resource) !== true) throw failure(plan.migration?'PQ_MIGRATION_PERMISSION_NOT_SUPPLIED':'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED');
           for (const name of ['readOriginal','assertCurrent','recheck','enterBroadcast','complete','retire','join','close']) if (typeof resource?.[name] !== 'function') throw failure('PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED');
           if (resource.assertCurrent() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
           permissionBinding = assertBinding(resource, request);
           if (await resource.recheck() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
-          guard.assert(); assertBinding(resource, request, permissionBinding);
-          const marker = await intentStore.beginPQSubmission(guard.account, hash, () => {guard.assert();resource.assertCurrent();});
+          assertBeforeSubmit(); assertBinding(resource, request, permissionBinding);
+          const marker = await intentStore.beginPQSubmission(guard.account, hash, () => {assertBeforeSubmit();resource.assertCurrent();});
           if (marker.created !== true) throw failure('PQ_TRANSACTION_ALREADY_ENTERED');
           entered = true;
-          guard.assert();
+          assertBeforeSubmit();
           if (await resource.recheck() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
-          guard.assert(); assertBinding(resource, request, permissionBinding);
+          assertBeforeSubmit(); assertBinding(resource, request, permissionBinding);
           if (await resource.enterBroadcast() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_ENTRY_UNKNOWN');
-          guard.assert();
+          assertBeforeSubmit();
           const response = await guard.submit(async () => {
+            assertOpen();
             guard.assertEffectCurrent();
             if (resource.assertCurrent() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
             submitted = true;
             try {
               const assertCurrent = () => {
+                assertOpen();
                 guard.assertEffectCurrent();
                 if (resource.assertCurrent() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
                 assertBinding(resource, request, permissionBinding);
