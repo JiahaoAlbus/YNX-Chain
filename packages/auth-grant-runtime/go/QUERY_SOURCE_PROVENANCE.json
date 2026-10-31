@@ -1,0 +1,31 @@
+{
+  "schema": "ynx-p08-original-auth-result-normal-intake/v1",
+  "originalH": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-result-source/HANDOFF.json",
+    "bytes": 41203,
+    "sha256": "df810a34e961e5b902a2a3feb31c7c5ecd2a0a05e4dc7c62ed64defcb3aa4526"
+  },
+  "normalFiles": [
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-result-source/runtime-intake/query_runtime.go",
+      "target": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-runtime/go/query_runtime.go",
+      "path": "packages/auth-grant-runtime/go/query_runtime.go",
+      "bytes": 4131,
+      "sha256": "207b695dc65b8bafbfbd7741f85df1b763e96cbb749f7aaab8b79b7897eb8cd1",
+      "expectedBeforeSHA256": null,
+      "before": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-result-source/runtime-intake/query_material.go",
+      "target": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-runtime/go/query_material.go",
+      "path": "packages/auth-grant-runtime/go/query_material.go",
+      "bytes": 2883,
+      "sha256": "36dc7080baa19aaa9937501a3a340a012b707e37d1e78894b50ae4bac7d1b8ec",
+      "expectedBeforeSHA256": null,
+      "before": null,
+      "action": "INSTALLED_CAS"
+    }
+  ],
+  "sourceAdmission": false
+}

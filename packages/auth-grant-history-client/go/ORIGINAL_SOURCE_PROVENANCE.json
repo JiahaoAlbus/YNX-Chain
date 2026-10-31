@@ -1,0 +1,71 @@
+{
+  "schema": "ynx-p08-original-auth-result-normal-intake/v1",
+  "originalH": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-result-source/HANDOFF.json",
+    "bytes": 41203,
+    "sha256": "df810a34e961e5b902a2a3feb31c7c5ecd2a0a05e4dc7c62ed64defcb3aa4526"
+  },
+  "normalFiles": [
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/normal-go-runtime-integration-v5-20261031/history-client/ai/source/packages/auth-grant-history-client/go/go.mod",
+      "target": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/go.mod",
+      "path": "packages/auth-grant-history-client/go/go.mod",
+      "bytes": 504,
+      "sha256": "10fa971331f4661b5d9e88ab9bee6772cff179951a5cedd5f423299948430b22",
+      "expectedBeforeSHA256": null,
+      "before": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/normal-go-runtime-integration-v5-20261031/history-client/ai/source/packages/auth-grant-history-client/go/go.sum",
+      "target": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/go.sum",
+      "path": "packages/auth-grant-history-client/go/go.sum",
+      "bytes": 153,
+      "sha256": "c5aa31f1f2b470a810c0dc6bf49bcc63eb42a100ad9b093ba23a54895bf63f64",
+      "expectedBeforeSHA256": null,
+      "before": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-result-source/link-client/client.go",
+      "target": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/client.go",
+      "path": "packages/auth-grant-history-client/go/client.go",
+      "bytes": 10666,
+      "sha256": "295560ac001fd46f949db62095b7660e747ad3dd02b262b1a261aed6f501baf2",
+      "expectedBeforeSHA256": null,
+      "before": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-result-source/link-client/authority_client.go",
+      "target": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/authority_client.go",
+      "path": "packages/auth-grant-history-client/go/authority_client.go",
+      "bytes": 9217,
+      "sha256": "8046d3eb643d38bb158b4043ff11c8332cf4c750dbe1d4a424d64539c4655de4",
+      "expectedBeforeSHA256": null,
+      "before": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-result-source/link-client/result.go",
+      "target": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/result.go",
+      "path": "packages/auth-grant-history-client/go/result.go",
+      "bytes": 3897,
+      "sha256": "8fc5316c886560f89fb1df8c0d52f3404e49914156b2ba632f60a4d39ab18c00",
+      "expectedBeforeSHA256": null,
+      "before": null,
+      "action": "INSTALLED_CAS"
+    },
+    {
+      "source": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/grant-result-source/link-client/service_result.go",
+      "target": "/Users/huangjiahao/Desktop/YNX Final Worktrees/14-ai/packages/auth-grant-history-client/go/service_result.go",
+      "path": "packages/auth-grant-history-client/go/service_result.go",
+      "bytes": 3896,
+      "sha256": "be6f792535b92a9867793e280a70044542a5aaad9a5df23988bc18c66368e966",
+      "expectedBeforeSHA256": null,
+      "before": null,
+      "action": "INSTALLED_CAS"
+    }
+  ],
+  "sourceAdmission": false
+}
