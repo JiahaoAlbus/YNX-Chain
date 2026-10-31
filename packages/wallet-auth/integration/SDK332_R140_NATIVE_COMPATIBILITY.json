@@ -361,7 +361,18 @@
       "default": "./src/social-platform-policy-unavailable.js"
     },
     "./social-platform-policy/types-v1.h": "./native/ynx_sdk_social_platform_policy_v1.h",
-    "./social-platform-policy/profile-v1.json": "./integration/SOCIAL_PLATFORM_POLICY_PROFILE_V1.json"
+    "./social-platform-policy/profile-v1.json": "./integration/SOCIAL_PLATFORM_POLICY_PROFILE_V1.json",
+    "./auth-runtime-image-source": {
+      "types": "./src/original-auth-runtime-image-source-v1.d.ts",
+      "browser": null,
+      "node": "./src/original-auth-runtime-image-source-v1.js"
+    },
+    "./pay-native-cloud-bill-source-data": {
+      "types": "./native/original-pay-cloud-bill-source-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-pay-cloud-bill-source-contract.mjs",
+      "default": null
+    }
   },
   "NativeInputs": [
     {
@@ -661,8 +672,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 53919,
-      "sha256": "37c37caf4d69b444e88f7e29fc4acca2ca1fff982aeccd6ca953b3b7c8b40e53"
+      "bytes": 60222,
+      "sha256": "131147a2b71d26ec9099822be3ef87a2a4b97a191e259f8700fc2174e3abf0ff"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -676,8 +687,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-source-v2-dispatch.mjs",
-      "bytes": 8478,
-      "sha256": "f5e8712d04afcdd413934e861d5a08c2ad2689cec6b6799e74a7da837f12cd9f"
+      "bytes": 8770,
+      "sha256": "3c94db2a349e26fd6df155213b19b138287d3a33ca2490d3c2bbbfb14b6faa5c"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-source-v2-native-data.h",
@@ -1218,6 +1229,16 @@
       "path": "packages/wallet-auth/native/original-auth-runtime-image-private.h",
       "bytes": 1893,
       "sha256": "a2930e74920697207ae8353d56dcfb9d7e0e3ef2174ddd7a631259dd01499336"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-pay-cloud-bill-source-contract.mjs",
+      "bytes": 9000,
+      "sha256": "bd6c0e30132f59b2c9c4f0c796be2f4596ff70972c818f1f18149f3faa9664e0"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-pay-cloud-bill-source-contract.d.mts",
+      "bytes": 3443,
+      "sha256": "458abf3ab495d999ada9c8911213b3dc9ec24b6619199ad888911342400e8473"
     }
   ],
   "normalBuildTool": {
@@ -3316,5 +3337,15 @@
     "RootAdmission": false,
     "sameLoadedImageQualified": false,
     "realLogin": false
+  },
+  "paySourceFamilyV1Successor": {
+    "NativeInputs": 173,
+    "signedPurpose": "pay-native-cloud-bill-source-v1",
+    "signedSelectionKey": "payNativeCloudBillV1",
+    "codeOnly": true,
+    "RootAdmission": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false,
+    "old171RuntimeQualificationInherited": false
   }
 }
