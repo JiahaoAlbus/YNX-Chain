@@ -549,6 +549,12 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (Order, 
 	if o.Status == "paid" && o.Settlement != nil && o.Settlement.TransactionHash == e.TransactionHash {
 		return cloneOrder(o), nil
 	}
+	// Recovery may not have run since the reservation expired. A matching Pay
+	// receipt alone cannot extend it or consume stock now reserved by others.
+	// The original Pay receipt remains the reconciliation source; never pay again.
+	if !o.ReservationExpiresAt.After(s.now()) {
+		return Order{}, fmt.Errorf("%w: reservation expired; payment receipt requires reconciliation", ErrInvalidState)
+	}
 	if o.Status != "payment_pending" {
 		return Order{}, fmt.Errorf("%w: settlement evidence mismatch", ErrInvalidState)
 	}
