@@ -90,6 +90,7 @@ class IndependentLoadControls(unittest.TestCase):
         self.assertEqual(result["submitted"],0);self.assertEqual(result["notQualified"],20)
         self.assertEqual(result["actualSubmissionAttemptTPS"],0);self.assertEqual(result["actualSourceEvidencedTPS"],0)
         self.assertEqual(result["terminalCounts"]["unknown"],2)
+        self.assertEqual(int(result["offeredWindowEndMonotonicNs"])-int(result["originMonotonicNs"]),result["windowNs"])
         self.assertTrue(all(a["quarantined"] and a["pending"] is not None for a in result["accountState"]))
 
     def test_durable_controller_io_does_not_backdate_or_block_arrival_clock(self):

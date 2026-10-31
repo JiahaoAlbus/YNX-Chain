@@ -316,7 +316,7 @@ def run(args):
     for root in (source,Path(__file__).resolve().parents[2]):
         if any(existing==root or existing in root.parents for existing in roots):continue
         roots=[existing for existing in roots if root not in existing.parents];roots.append(root)
-    w=lab.Window(source,work,additional_storage=tuple(roots));stop=threading.Event();backend=monitor=journal=ceremony=None
+    w=lab.Window(source,work,additional_storage=tuple(roots));stop=threading.Event();backend=monitor=journal=ceremony=network=None
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout; explicit process count; initialization has no separate ready acknowledgment and may remain in signing time")
     lab.write_new(work/"public/requested-load.json",dict(source=identity,mode=args.mode,rate=args.rate,seconds=args.seconds,tailSeconds=args.tail_seconds,accounts=args.accounts,perAccountCapacity=args.per_account,configuredDemand=demand,sourceGrant=False))
     try:
@@ -334,6 +334,10 @@ def run(args):
         result["normalLiveCalleeUsed"]=True
         backend=NormalBackend(ceremony,owners,stop);journal=Journal(work/"public/load-events.jsonl")
         monitor=Monitor(w,stop);monitor.thread.start()
+        if args.network_accounting:
+            hook=module("original_pq_network_window","pq-network-window.py")
+            network=hook.NetworkWindow(ceremony,lab,args.commit,lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),result["planSHA256"],demand)
+            network.capture("start");monitor.check()
         result["loadExecuted"]=True
         result["loadResult"]=scheduler.run(plan,backend,journal.emit,monitor.check,stop)
         monitor.check();lab.check_source(source,args.commit)
@@ -342,6 +346,15 @@ def run(args):
     finally:
         stop.set()
         if backend is not None:backend.stop()
+        result["networkAccountingRequested"]=args.network_accounting
+        if network is not None and network.start is not None:
+            try:
+                original_load=result.get("loadResult",{})
+                result["networkAccounting"]=network.finish(original_load.get("qualified"),{key:original_load.get(key) for key in ("originMonotonicNs","offeredWindowEndMonotonicNs","windowNs","observationCutoffNs")})
+                if monitor is not None:monitor.check()
+            except Exception as error:
+                result["networkAccounting"]=dict(status="UNKNOWN",reason="original network checkpoint or accounting failed",errorType=type(error).__name__,physicalBytesMeasured=False,gainsQualified=False)
+                result["firstCause"]=result["firstCause"] or "original network checkpoint or accounting artifact failed"
         if monitor is not None:
             monitor.close()
             result["resourceObserverRetired"]=not monitor.thread.is_alive()
@@ -361,6 +374,7 @@ def run(args):
 if __name__=="__main__":
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("--source",required=True);p.add_argument("--commit",required=True);p.add_argument("--mode",choices=("online","pre-signed"),required=True)
     p.add_argument("--rate",type=int,choices=(100,500,1000),default=100);p.add_argument("--seconds",type=int,required=True);p.add_argument("--tail-seconds",type=int,default=30);p.add_argument("--accounts",type=int,required=True);p.add_argument("--per-account",type=int,required=True);p.add_argument("--proof-timeout",type=int,default=30);p.add_argument("--wire-observation",action="store_true");p.add_argument("--prior-result");p.add_argument("--prior-result-sha256");p.add_argument("--execute",action="store_true")
+    p.add_argument("--network-accounting",action="store_true",help="explicit frozen LINK owned TCP pre-load/post-drain checkpoints; absent live metrics remain unmeasured")
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
     args=p.parse_args();result=run(args);print(json.dumps(result))

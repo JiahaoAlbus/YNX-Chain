@@ -240,3 +240,29 @@ evidence, no growing outstanding backlog, and the existing receipt latency
 targets. A cap, missing independent final proof, late feeder or unresolved
 operation stops escalation. Original failures/artifacts remain retained.
 
+Optional `--network-accounting` connects the original supervisor to the frozen
+LINK `05500bd907375884a727161e73ba634f1c6e1a27` TCP/accounting modules. Their
+two byte-identical module copies are hash checked before import; no transport,
+metrics endpoint, packet capture or separate runner is enabled. The normal
+live PQ children supply exact PID/startTicks, peer ID and original loopback
+P2P endpoints. The original ownership guard remains inside the sampler.
+
+`network-binding.json`, `network-start.json`, `network-end.json` and
+`network-accounting.json` are retained under the SAME public artifacts and
+referenced by the original run receipt. Start sampling precedes the load clock;
+end sampling follows drain while original nodes and the resource observer are
+still alive, before cleanup. Sampling duration is recorded. This bracket
+includes drain/consumer overhead and is not an atomic exact offered-window
+counter. Keep this flag and all sampling conditions identical on both sides
+of a future comparison; an old run without counters is not its byte baseline.
+
+Current WireObserver output is after-stop lifetime only, and no normal live
+lossless or original Prometheus endpoint is supplied. Those window layers
+stay missing/UNKNOWN; after-stop lifetime values are not inserted into live
+checkpoints. TCP endpoint observations retain closed/missing/reused/reset
+states and incomplete coverage. TCP, queued proto, attempted and logical
+counts are not added together; physical bytes, delivery and gains remain
+unmeasured/unqualified. `qualifiedCountEvidence` comes only from the normal
+load result, never the network counters. Import/accounting controls do not
+execute or qualify the real Linux sampler.
+

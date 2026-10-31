@@ -232,4 +232,7 @@ def run(plan,backend,emit,check_resources,stop,origin=None):
                 ledger.event(dict(kind="unknown",id=row["id"],index=row["index"],atNs=time.monotonic_ns()-origin,error="original operation incomplete at bounded cutoff; preserve state and reconcile, never retry"))
         try:check_resources()
         except BaseException as error:failure=failure or str(error)
-    return ledger.report(time.monotonic_ns()-origin,failure)
+    result=ledger.report(time.monotonic_ns()-origin,failure)
+    result.update(originMonotonicNs=str(origin),offeredWindowEndMonotonicNs=str(origin+plan["windowNs"]),
+                  clockMeaning="same parent monotonic clock as original network checkpoints; wall-clock time not inferred")
+    return result
