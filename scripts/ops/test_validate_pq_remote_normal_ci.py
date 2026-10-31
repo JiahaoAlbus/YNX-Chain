@@ -659,12 +659,36 @@ def assert_native_cabi_workflow_contract(raw):
     invoice_upload = "Upload only the actual invoice C ABI public result"
     e11_names = ("Execute fixed E11 V2 from the same native archive and seal its own supply",
                  "Upload only fixed E11 V2 archive headers and actual public evidence")
+    v5_names = ("Execute fixed binary HTTP V5 from the same native archive",
+                "Upload only fixed binary HTTP V5 archive and actual public evidence")
     ordered_names = (names[:1] + data_names + names[1:3] + (new_core_name,) + names[3:4] + wallet_names + (invoice_name, invoice_upload) + publisher_names[:1]
                      + (device_http_name,)
-                     + names[4:9] + registered_names + product_device_names + creator_names + e11_names + publisher_names[1:] + names[9:])
-    need(len(steps) == len(ordered_names) == 34)
+                     + names[4:9] + registered_names + product_device_names + creator_names + e11_names + v5_names + publisher_names[1:] + names[9:])
+    need(len(steps) == len(ordered_names) == 36)
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, ordered_names)))
     named = {name: step for name, step in zip(ordered_names, steps)}
+    v5 = named[v5_names[0]]
+    for token in ("-run '^TestProductSessionHTTPV5' ./internal/ynxbatch",
+        'bash scripts/fixtures/verify-product-session-http-v5-cabi/check.sh \\',
+        '"$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"',
+        "if terminal != ['pass']:", "pin(original) != source['archive'] or pin(base / original.name) != source['archive']",
+        "result['archiveSHA256'] != source['archive']['sha256']", "result['syntheticPrivateFilesRemoved'] is not True",
+        "interop['actualCCalls'] != 50", "interop['dualANDVerified'] is not True",
+        "interop['path'] != '/api/v1/ide/deployments'", "interop['sourceGoldenSHA256'] != 'caaf17f69d655d4cc2167767fc3130cac68fec579f00f87d79e4cce79be8aa2d'",
+        "if interop[key] is not False:", "rb'\\bT\\s+_?YNXProductSessionHTTPProofSignV5\\b'",
+        "'product_session_http_v5.h':Path('cmd/ynx-artifact-release-cabi/product_session_http_v5.h')",
+        "'ORIGINAL-ARCHIVE-SOURCE.json':base / 'SOURCE.json'", "'PUBLIC-RESULT.json':case / 'PUBLIC-RESULT.json'",
+        "abi='YNXProductSessionHTTPProofSignV5', domain='YNX-PRODUCT-SESSION-HTTP-PROOF/v5'",
+        "SourceAdmission=False, RootAdmission=False, actualCurrentApproval=False, privateMaterialIncluded=False",
+        "if set(p.name for p in out.iterdir()) != set(copies) | {'SOURCE.json'}:",
+        "if subprocess.check_output(['git', 'status', '--porcelain'], text=True):"):
+        need(token in v5)
+    need(re.findall(r"(?m)^          required = (.+)$", v5) == [repr(['TestProductSessionHTTPV5FinalSDKOriginalAND', 'TestProductSessionHTTPV5ActualBinaryAndStrict23', 'TestProductSessionHTTPV5BinaryBodyCapAndSharedE3', 'TestDeviceHTTPV5ActualANDAndIndependentOriginal', 'TestDeviceHTTPV5PublicAndPrivateRefusals', 'TestDeviceHTTPV5UnknownRetainsOriginalAndCleanup'])])
+    need(lines(named[v5_names[1]]) == ['      - name: ' + v5_names[1],
+        '        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
+        '        with:', '          name: ynx-product-session-http-v5-native-${{ matrix.runner }}-${{ github.sha }}',
+        '          path: ${{ runner.temp }}/ynx-http-v5-cabi/delivery/*',
+        '          if-no-files-found: error', '          retention-days: 7'])
     e11 = named[e11_names[0]]
     need(e11.startswith("      - name: " + e11_names[0] + "\n        run: |\n          set -euo pipefail\n"))
     for token in (
@@ -1920,6 +1944,11 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
         assert_native_cabi_workflow_contract(raw)
         for before, after in (
             ('bash scripts/fixtures/verify-deployment-manifest-v2-cabi/check.sh', 'true # omitted E11 C caller'),
+            ('bash scripts/fixtures/verify-product-session-http-v5-cabi/check.sh', 'true # omitted V5 actual C caller'),
+            ("interop['dualANDVerified'] is not True", "False"),
+            ("interop['actualCCalls'] != 50", "False"),
+            ("if interop[key] is not False:", "if False:"),
+            ('${{ runner.temp }}/ynx-http-v5-cabi/delivery/*', '${{ runner.temp }}/ynx-http-v5-cabi/**'),
             ("purpose='CLOUD-DEPLOYMENT-MANIFEST-V2'", "purpose='ARTIFACT-RELEASE'"),
             ('RootAdmission=False, SourceAdmission=False, actualCurrentApproval=False', 'RootAdmission=True, SourceAdmission=True, actualCurrentApproval=True'),
             ('actualCABIExecuted=True, independentGoDualANDVerified=True, actualCControls=54, actualGoNegativeControls=26', 'actualCABIExecuted=True, independentGoDualANDVerified=False, actualCControls=0, actualGoNegativeControls=0'),
