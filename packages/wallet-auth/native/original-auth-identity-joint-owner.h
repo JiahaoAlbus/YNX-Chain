@@ -17,6 +17,7 @@
 // account/BIRTH profile fallback or private-key access. Actual Source verifier
 // and independently admitted device purpose remain separate requirements.
 + (instancetype)acquireOriginalProductSessionDeviceV4Profile:(NSError **)error;
++ (instancetype)acquireOriginalProductSessionDeviceV4PendingProfile:(NSError **)error;
 - (NSString *)copyOriginalResourceDirectory:(NSError **)error;
 - (NSData *)copyOriginalProfile:(NSError **)error;
 - (NSData *)copyOriginalHead:(NSError **)error;

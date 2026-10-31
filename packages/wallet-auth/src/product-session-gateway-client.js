@@ -18,6 +18,7 @@ export function productSessionGatewayAuthority(adapter) {
 
 export class ProductSessionGatewayFetchAdapter {
   #endpoint; #fetch; #walletInstalled; #schemeRegistered; #timeoutMs;
+  #deviceV4Entered = new Map();
   constructor(config) {
     exactFields(config, ["endpoint", "fetch", "walletInstalled", "schemeRegistered", "timeoutMs"], "Product Session Gateway fetch adapter configuration");
     this.#endpoint = endpoint(config.endpoint);
@@ -54,6 +55,45 @@ export class ProductSessionGatewayFetchAdapter {
   async complete(input) {
     exactFields(input, ["requestId", "request", "approval", "completion"], "Product Session Gateway completion request");
     return this.#request(input.requestId, "/v2/product-sessions/complete", { request: input.request, approval: input.approval, completion: input.completion }, null);
+  }
+
+  // Exact original Auth v4 routes, not the v2 response wrapper. The existing
+  // coordinator must persist its original intent BEFORE this transport call.
+  // This per-instance guard does not replace that durable journal or recovery.
+  pairDeviceV4(input) { return this.#deviceV4('/v4/product-pairs', ['operationId','request','registrationOriginal','registrationMember','approval'], input); }
+  challengeDeviceV4(input) { return this.#deviceV4('/v4/product-session-challenges', ['operationId','request','registrationOriginal','approval'], input); }
+  completeDeviceV4(input) { return this.#deviceV4('/v4/product-sessions', ['operationId','request','registrationOriginal','approval','completion'], input); }
+
+  async #deviceV4(route, fields, input) {
+    const {originalBody, signal, operationId} = captureDeviceV4Request(input, fields);
+    const prior=this.#deviceV4Entered.get(operationId);
+    if (prior) { if(prior.failed)throw prior.error;throw deviceV4Unknown(operationId, new WalletAuthError('PAIR_V4_RECOVER_ORIGINAL_ONLY','Query the original operation; transport never resubmits it')); }
+    const controller = new AbortController();
+    const forward = () => controller.abort(deviceV4Reason.call(signal));
+    deviceV4Listen.call(signal,'abort', forward, {once:true});
+    let rejectAbort;
+    const stopped = new Promise((_, reject) => { rejectAbort = reject; });
+    const onStop = () => rejectAbort(controller.signal.reason);
+    controller.signal.addEventListener('abort', onStop, {once:true});
+    const timer = setTimeout(() => controller.abort(new WalletAuthError('PAIR_V4_HTTP_TIMEOUT','Original operation outcome must be reconciled')), this.#timeoutMs);
+    try {
+      if (deviceV4Aborted.call(signal)) throw deviceV4Reason.call(signal);
+      this.#deviceV4Entered.set(operationId,{failed:false}); // one fetch, including synchronous/falsy failure
+      const fetch = this.#fetch;
+      const response = await Promise.race([Promise.resolve().then(() => fetch(this.#endpoint+route, {method:'POST',headers:{accept:'application/json','content-type':'application/json'},body:originalBody,credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal})), stopped]);
+      const result = await readDeviceV4Response(response, stopped);
+      if (deviceV4Aborted.call(signal)) throw deviceV4Reason.call(signal);
+      if (controller.signal.aborted) throw controller.signal.reason;
+      return result;
+    } catch (cause) {
+      if (!this.#deviceV4Entered.has(operationId)) throw cause;
+      const record=this.#deviceV4Entered.get(operationId);
+      if(!record.failed){record.failed=true;record.error=deviceV4Unknown(operationId,cause);}
+      throw record.error;
+    } finally {
+      clearTimeout(timer); deviceV4Unlisten.call(signal,'abort', forward);
+      controller.signal.removeEventListener('abort', onStop);
+    }
   }
 
   async publishReturn(input) {
@@ -122,6 +162,50 @@ export class ProductSessionGatewayFetchAdapter {
       return await readGatewayResponse(response, requestId);
     } finally { clearTimeout(timeout); }
   }
+}
+
+const deviceV4Aborted = Object.getOwnPropertyDescriptor(AbortSignal.prototype,'aborted').get;
+const deviceV4Reason = Object.getOwnPropertyDescriptor(AbortSignal.prototype,'reason').get;
+const deviceV4Listen = EventTarget.prototype.addEventListener;
+const deviceV4Unlisten = EventTarget.prototype.removeEventListener;
+function deviceV4Unknown(operationId,cause) {
+  return Object.assign(new WalletAuthError('PAIR_V4_HTTP_OUTCOME_UNKNOWN','Retain the original operation and reconcile; no retry is authorized'),{operationId,cause,recoverOnly:true,outcomeUnknown:true,retryAuthorized:false});
+}
+function captureDeviceV4Request(input,fields) {
+  exactFields(input,['originalBody','abortContext'],'Original device v4 transport input');
+  const descriptors=Object.getOwnPropertyDescriptors(input);
+  if(Reflect.ownKeys(descriptors).length!==2||Object.values(descriptors).some(d=>!Object.hasOwn(d,'value')))fail('PAIR_V4_HTTP_INPUT','Only original data inputs are accepted');
+  const originalBody=descriptors.originalBody.value,abortContext=descriptors.abortContext.value;
+  if(!abortContext||Object.getPrototypeOf(abortContext)!==Object.prototype||!Object.isFrozen(abortContext)||Reflect.ownKeys(abortContext).length!==1)fail('PAIR_V4_ABORT_CONTEXT','Original frozen context required');
+  const d=Object.getOwnPropertyDescriptor(abortContext,'signal');
+  if(!d||!Object.hasOwn(d,'value'))fail('PAIR_V4_ABORT_CONTEXT','Original signal required');
+  const signal=d.value;let aborted;try{aborted=deviceV4Aborted.call(signal);}catch{fail('PAIR_V4_ABORT_CONTEXT','Original signal required');}
+  if(aborted)throw deviceV4Reason.call(signal);
+  if(typeof originalBody!=='string'||!originalBody.length||new TextEncoder().encode(originalBody).length>393216)fail('PAIR_V4_HTTP_SIZE','Original body exceeds the Auth route budget');
+  let body;try{body=JSON.parse(originalBody);}catch{fail('PAIR_V4_HTTP_BODY','Original body must be JSON');}
+  exactFields(body,fields,'Original device v4 route body');
+  if(canonicalJSON(body)!==originalBody||typeof body.operationId!=='string'||!/^[a-f0-9]{64}$/.test(body.operationId)||body.request?.version!=='4'||body.approval?.version!=='4'||typeof body.registrationOriginal!=='string')fail('PAIR_V4_HTTP_BODY','Original route binding is invalid');
+  return {originalBody,signal,operationId:body.operationId};
+}
+async function readDeviceV4Response(response,stopped) {
+  if(!response||!Number.isInteger(response.status)||!response.headers||typeof response.headers.get!=='function'||!response.body||typeof response.body.getReader!=='function')fail('PAIR_V4_HTTP_RESPONSE','Original streaming response required');
+  if(!/^application\/json(?:;\s*charset=utf-8)?$/i.test(response.headers.get('content-type')??'')||!/(^|,)\s*no-store\s*(,|$)/i.test(response.headers.get('cache-control')??''))fail('PAIR_V4_HTTP_RESPONSE','Original response headers invalid');
+  const length=response.headers.get('content-length');
+  if(length!==null&&(!/^(0|[1-9][0-9]*)$/.test(length)||Number(length)>MAX_RESPONSE_BYTES))fail('PAIR_V4_HTTP_RESPONSE','Response exceeds budget');
+  const reader=response.body.getReader(),chunks=[];let size=0,done=false;
+  try { while(true){const part=await Promise.race([reader.read(),stopped]);if(part.done){done=true;break;}if(!(part.value instanceof Uint8Array))fail('PAIR_V4_HTTP_RESPONSE','Byte stream required');size+=part.value.length;if(size>MAX_RESPONSE_BYTES)fail('PAIR_V4_HTTP_RESPONSE','Response exceeds budget');chunks.push(Uint8Array.from(part.value));} }
+  finally { if(!done){void reader.cancel().catch(()=>{});try{reader.releaseLock();}catch{/* Preserve the original read/abort cause while cancellation drains. */}}else reader.releaseLock(); }
+  const raw=new Uint8Array(size);let offset=0;for(const chunk of chunks){raw.set(chunk,offset);offset+=chunk.length;}
+  let value;try{value=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));}catch{fail('PAIR_V4_HTTP_RESPONSE','Invalid response JSON');}
+  if(response.status===409){exactFields(value,['code','newSession'],'Original recovery-only response');if(value.code!=='PAIR_V4_RECOVER_ORIGINAL_ONLY'||value.newSession!==false)fail('PAIR_V4_HTTP_RESPONSE','Invalid recovery-only response');throw Object.assign(new WalletAuthError(value.code,'Original operation requires recovery'),{originalResponse:value});}
+  if(response.status!==200){exactFields(value,['code','authorized','newSession'],'Original refused response');if(typeof value.code!=='string'||!/^PAIR_V4_[A-Z0-9_]+$/.test(value.code)||value.authorized!==false||value.newSession!==false)fail('PAIR_V4_HTTP_RESPONSE','Invalid refusal');throw Object.assign(new WalletAuthError(value.code,'Original Auth refused this request'),{originalResponse:value});}
+  exactFields(value,['original','durable','sourceAdmission','nativeAdmission'],'Original durable response');
+  if(value.durable!==true||value.sourceAdmission!==false||value.nativeAdmission!==false||typeof value.original!=='string'||!value.original.length||new TextEncoder().encode(value.original).length>393216)fail('PAIR_V4_HTTP_RESPONSE','Invalid original result');
+  let original;try{original=JSON.parse(value.original);}catch{fail('PAIR_V4_HTTP_RESPONSE','Original result is not JSON');}
+  if(canonicalJSON(original)!==value.original)fail('PAIR_V4_HTTP_RESPONSE','Original result bytes changed');
+  // DATA only. The existing caller verifies the returned original against the
+  // request, current Source, account approval and fixed proof codecs.
+  return Object.freeze(value);
 }
 
 export function decodeProductSessionGatewayProofHeaderV2(value) {

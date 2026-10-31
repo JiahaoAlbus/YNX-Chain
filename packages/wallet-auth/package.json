@@ -276,6 +276,23 @@
       "browser": null,
       "node": "./src/original-product-device-v4-source-stage.js",
       "default": null
+    },
+    "./original-product-device-v4-pending-client": {
+      "types": "./src/original-product-device-v4-pending-client.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-pending-client.js",
+      "default": null
+    },
+    "./original-product-device-v4-pending-review-data": {
+      "types": "./src/original-product-device-v4-pending-review-data.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-pending-review-data.js",
+      "default": null
+    },
+    "./public-content-binding": {
+      "types": "./src/public-content-binding.d.ts",
+      "import": "./src/public-content-binding.js",
+      "default": "./src/public-content-binding.js"
     }
   },
   "types": "./src/index.d.ts",
@@ -340,7 +357,13 @@
     "native/original-source-root-contract-v2.mjs",
     "native/original-source-root-consumer-v2.mjs",
     "native/original-source-root-dirfd-journal.h",
-    "native/original-source-root-dirfd-node.cpp"
+    "native/original-source-root-dirfd-node.cpp",
+    "native/original-auth-identity-joint-owner.h",
+    "native/original-auth-identity-joint-owner.mm",
+    "native/original-auth-identity-source-authority.h",
+    "native/original-host-dirfd-journal.h",
+    "native/original-product-device-v4-pending-journal.h",
+    "native/original-product-device-v4-pending-source-contract.mjs"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -408,7 +431,8 @@
     "test:r225-pq-dispatcher": "node --test --test-concurrency=1 test-pq-catalog-source-dispatch.mjs test/r225-pq-dispatcher-intake.test.mjs",
     "test:r226-normal-source-route": "node --test test-r226-normal-source-route.mjs",
     "test:publication-result-decoder": "node --test test/ide-artifact-release-result.test.mjs",
-    "test:product-session-v4-codec-types": "tsc -p test/tsconfig.product-session-v4-codec-types.json"
+    "test:product-session-v4-codec-types": "tsc -p test/tsconfig.product-session-v4-codec-types.json",
+    "test:product-device-v4-pending-client-types": "tsc -p test/tsconfig.product-device-v4-pending-client-types.json"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",

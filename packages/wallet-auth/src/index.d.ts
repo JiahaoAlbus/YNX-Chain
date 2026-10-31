@@ -296,12 +296,20 @@ export declare class WalletConnectRequestReplayStore {constructor(snapshot?:read
 export declare function walletConnectRejection(error:unknown):Readonly<{code:number;message:string}>;
 export declare function decodeProductSessionGatewayProofHeaderV2(value:unknown):Readonly<Record<string,unknown>>;
 export interface ProductSessionGatewayFetchAdapter {
+  /** Three existing Auth routes only. Persist the original intent before
+   * transport. A durable response is DATA, never a connected/current grant.
+   * Uncertain delivery retains operationId and forbids automatic replay. */
+  pairDeviceV4(input:ProductSessionDeviceV4TransportInput):Promise<ProductSessionDeviceV4TransportResult>;
+  challengeDeviceV4(input:ProductSessionDeviceV4TransportInput):Promise<ProductSessionDeviceV4TransportResult>;
+  completeDeviceV4(input:ProductSessionDeviceV4TransportInput):Promise<ProductSessionDeviceV4TransportResult>;
   publishReturn(input:Readonly<{requestId:string;request:unknown;approval:unknown}>):Promise<Readonly<{reference:string;nonce:string;state:string;expiresAt:string}>>;
   returnChallenge(input:Readonly<{requestId:string;reference:string;request:unknown}>):Promise<Readonly<Record<string,unknown>>>;
   completeReturn(input:Readonly<{requestId:string;reference:string;request:unknown;completion:unknown}>):Promise<Readonly<Record<string,unknown>>>;
   returnOutcome(input:Readonly<{requestId:string;reference:string;request:unknown;completion:unknown}>):Promise<Readonly<Record<string,unknown>>>;
   publicationOutcome(input:Readonly<{requestId:string;publicationRequestId:string;request:unknown;approval:unknown}>):Promise<ProductSessionPublicationOutcome>;
 }
+export type ProductSessionDeviceV4TransportInput=Readonly<{originalBody:string;abortContext:Readonly<{signal:AbortSignal}>}>;
+export type ProductSessionDeviceV4TransportResult=Readonly<{original:string;durable:true;sourceAdmission:false;nativeAdmission:false}>;
 export type ProductSessionPublicationOutcome=Readonly<{state:'not_found';retryAuthorized:false}>|Readonly<{state:'pending'|'completed';reference:string;expiresAt:string;requestDigest:string;account:string;approvalDigest:string;retryAuthorized:false}>;
 export declare function encodeProductSessionGatewayProofHeaderV2(value:unknown):string;
 export declare const PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES:1048576;
