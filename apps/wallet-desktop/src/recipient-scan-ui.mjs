@@ -7,9 +7,15 @@ import {createRecipientCameraControls} from './recipient-camera-ui.mjs';
 export function createRecipientScanUI({document:doc,getContext,image,onChoose=()=>{},onInvalidate=()=>{},bindEntry=true,selectors={entry:'#scan-recipient',panel:'#recipient-scan-panel',file:'#recipient-qr-file'}}) {
   const entry=doc.querySelector(selectors.entry),panel=doc.querySelector(selectors.panel);
   let intent=null;
+  const sameOwner=(before,after)=>before.open&&!before.locked&&Boolean(before.account)&&after.open&&!after.locked&&after.account===before.account&&after.keyRevision===before.keyRevision&&after.networkId===before.networkId&&after.configRevision===before.configRevision;
   const chooser=createQRFileInput({document:doc,selector:selectors.file,onClick:()=>{
+    const before=getContext();intent=null;
+    if(!before.open||before.locked||!before.account)return;
     onChoose();
-    const current=getContext();intent=current.open&&!current.locked&&current.account?{...current}:null;
+    const after=getContext();
+    // Reselection retires a draft just like opening the panel. Capture only
+    // that draft's successor, never a different account/key/network owner.
+    if(sameOwner(before,after))intent={...after};
   },onCancel:()=>{intent=null},onChange:file=>{
     const before=intent,after=getContext();intent=null;
     if(!before||!after.open||after.locked||after.account!==before.account||after.keyRevision!==before.keyRevision||after.draftRevision!==before.draftRevision||after.networkId!==before.networkId||after.configRevision!==before.configRevision)return;
@@ -24,7 +30,7 @@ export function createRecipientScanUI({document:doc,getContext,image,onChoose=()
     // borrow an account/key change that happened during that retirement.
     const after=getContext();
     intent=null;chooser.invalidate();panel.hidden=true;
-    if(!after.open||after.locked||after.account!==current.account||after.keyRevision!==current.keyRevision||after.networkId!==current.networkId||after.configRevision!==current.configRevision)return;
+    if(!sameOwner(current,after))return;
     intent={...after};panel.hidden=false;chooser.focus();
   };
   if(bindEntry)entry.addEventListener("click",open);

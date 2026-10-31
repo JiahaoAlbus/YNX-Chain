@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {createRecipientScanUI} from "../src/recipient-scan-ui.mjs";
 import {fileInputDOM} from "./fixture-file-input-dom.mjs";
-function mounted(){
+function mounted(onChoose=()=>{}){
   const node=()=>({value:"",hidden:true,files:[],listeners:{},addEventListener(type,fn){this.listeners[type]=fn},focus(){this.focused=true}}),entry=node(),panel=node(),calls=[];let input=fileInputDOM(node(),next=>input=next);
   const context={open:true,locked:false,account:"original-public-account",keyRevision:2,draftRevision:3};
   const document={querySelector:selector=>({"#scan-recipient":entry,"#recipient-scan-panel":panel,"#recipient-qr-file":input})[selector]};
-  const ui=createRecipientScanUI({document,getContext:()=>({...context}),image:file=>calls.push(file)});
+  const ui=createRecipientScanUI({document,getContext:()=>({...context}),image:file=>calls.push(file),onChoose:()=>onChoose(context)});
   return{ui,context,entry,panel,get input(){return input},calls};
 }
 
@@ -37,4 +37,19 @@ test("reopening the Scan panel replaces rather than reuses a chooser even withou
   const h=mounted();h.entry.listeners.click();const old=h.input;h.entry.listeners.click();assert.notEqual(h.input,old);
   old.files=[{name:"old"}];old.listeners.change();assert.deepEqual(h.calls,[]);
   h.input.files=[{name:"current"}];h.input.listeners.change();assert.equal(h.calls[0].name,"current");
+});
+
+test("reselecting a photo cannot borrow an account, key or network changed by draft retirement",()=>{
+  for(const mutation of [{account:'replacement-account'},{keyRevision:9},{networkId:'replacement-network'},{configRevision:9}]){
+    let choices=0;const h=mounted(context=>{if(++choices===2)Object.assign(context,mutation)});
+    h.entry.listeners.click();h.input.listeners.click();h.input.files=[{name:'obsolete-selection'}];h.input.listeners.change();
+    assert.deepEqual(h.calls,[],JSON.stringify(mutation));
+  }
+});
+test("photo reselection captures its own successor draft but rejects later draft edits",()=>{
+  for(const lateEdit of [false,true]){
+    const h=mounted(context=>{context.draftRevision++});h.entry.listeners.click();h.input.listeners.click();
+    if(lateEdit)h.context.draftRevision++;
+    h.input.files=[{name:'selected'}];h.input.listeners.change();assert.equal(h.calls.length,lateEdit?0:1);
+  }
 });
