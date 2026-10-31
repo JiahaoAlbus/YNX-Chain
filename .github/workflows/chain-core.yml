@@ -275,10 +275,29 @@ jobs:
           GOMEMLIMIT: 1536MiB
         run: |
           set -euo pipefail
-          if ! (cd third_party/cometbft && go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^TestMempoolWireObserver' ./mempool) > "$RUNNER_TEMP/wire-observer-tests.jsonl"; then
+          # The original mempool tests use testify/mock. Keep its already
+          # pinned Comet objx dependency in a temporary test module; production
+          # go.mod/go.sum and their crypto dependency graph stay untouched.
+          python3 -B - <<'PY'
+          import os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          module, sums = root / 'wire-observer-test.mod', root / 'wire-observer-test.sum'
+          for src, dst in [('go.mod', module), ('go.sum', sums)]:
+              with dst.open('xb') as f:
+                  f.write(Path(src).read_bytes())
+          subprocess.run(['go', 'mod', 'edit', '-modfile=' + str(module), '-require=github.com/stretchr/objx@v0.5.2'], check=True)
+          lines = [line for line in Path('third_party/cometbft/go.sum').read_text().splitlines() if line.startswith('github.com/stretchr/objx v0.5.2')]
+          if len(lines) != 2:
+              raise RuntimeError('exact original Comet test dependency sum pair required')
+          with sums.open('a') as f:
+              f.write('\n'.join(lines) + '\n')
+          PY
+          if ! go test -mod=readonly -modfile="$RUNNER_TEMP/wire-observer-test.mod" -json -p 1 -count=1 -timeout=90s -run '^TestMempoolWireObserver' github.com/cometbft/cometbft/mempool > "$RUNNER_TEMP/wire-observer-tests.jsonl"; then
             cat "$RUNNER_TEMP/wire-observer-tests.jsonl"
             exit 1
           fi
+          git diff --exit-code -- go.mod go.sum
           if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run '^TestOperatorWireObservation' ./cmd/ynx-comet > "$RUNNER_TEMP/wire-caller-tests.jsonl"; then
             cat "$RUNNER_TEMP/wire-caller-tests.jsonl"
             exit 1
