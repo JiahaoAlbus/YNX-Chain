@@ -382,7 +382,8 @@
     "native/original-product-device-v4-query-source-contract.mjs",
     "native/original-product-device-v4-query-source-contract.d.mts",
     "native/original-product-device-v4-query-journal.h",
-    "native/original-product-device-v4-query-source.inc.mm"
+    "native/original-product-device-v4-query-source.inc.mm",
+    "docs/original-device-v4-completion.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
