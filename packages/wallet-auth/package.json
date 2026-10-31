@@ -429,7 +429,11 @@
     "src/original-http-binary-v5-client.js",
     "src/original-http-binary-v5-client-private.js",
     "src/original-http-binary-v5-client.d.ts",
-    "HTTP_V5_SERVER_CURRENT.md"
+    "HTTP_V5_SERVER_CURRENT.md",
+    "scripts/original-cloud-deployment-execution-approval-v2.mjs",
+    "native/original-cloud-deployment-execute-approval-v2.mjs",
+    "native/original-cloud-deployment-execution-v2-contract.mjs",
+    "native/original-cloud-deployment-recovery-v2-contract.mjs"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

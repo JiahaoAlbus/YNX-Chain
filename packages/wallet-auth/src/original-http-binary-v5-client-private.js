@@ -26,6 +26,9 @@ function peer(v){const r=peers.get(v);if(!r)fail('HTTP_V5_ORIGINAL_TRANSPORT_PEE
 // A hash/JSON copy/ordinary submission reference never belongs to this map.
 export function isOriginalHTTPBinaryTransportV5Peer(v){return peers.has(v)}
 export function readOriginalHTTPBinaryTransportV5ForNative(v){if(arguments.length!==1)fail('HTTP_V5_PEER_ARGUMENTS');const r=peer(v);current(r);return Object.freeze({version:'5',requestId:r.requestId,method:'POST',path:'/api/v1/ide/deployments',url:r.scope.targetURL,contentType:r.contentType,bodyOriginal:Buffer.from(r.body),expectedSlotRevision:r.expectedSlotRevision,rollbackTarget:r.rollbackTarget})}
+// Pure DATA from the SAME privately owned final body. Native independently
+// captures bytes and Core recomputes all three hashes before signing.
+export function readOriginalHTTPBinaryTransportV5BodyDATAForNative(v){if(arguments.length!==1)fail('HTTP_V5_PEER_ARGUMENTS');const r=peer(v);current(r);const d=createProductSessionHTTPBodyV5DATA(r.body,r.contentType);return Object.freeze({contentType:d.contentType,bodyDigest:d.bodyDigest,bodyBinding:Object.freeze({...d.bodyBinding})})}
 export function assertOriginalHTTPBinaryTransportV5Current(v){if(arguments.length!==1)fail('HTTP_V5_PEER_ARGUMENTS');current(peer(v))}
 export async function recheckOriginalHTTPBinaryTransportV5(v){if(arguments.length!==1)fail('HTTP_V5_PEER_ARGUMENTS');current(peer(v))}
 const drainStates=new WeakMap();

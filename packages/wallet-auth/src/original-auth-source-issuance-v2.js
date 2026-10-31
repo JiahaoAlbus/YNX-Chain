@@ -1,3 +1,5 @@
+import{CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS,inspectOriginalCloudDeploymentExecutionV2ScopeDATA}from'../native/original-cloud-deployment-execution-v2-contract.mjs';
+import{CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_OPERATIONS,inspectOriginalCloudDeploymentRecoveryV2ScopeDATA}from'../native/original-cloud-deployment-recovery-v2-contract.mjs';
 // PRIVATE protected administration counterpart, never an HTTP signing API.
 // A PUBLIC kernel fixture is not a release-selected issuer or role grant.
 import {createRequire} from 'node:module';
@@ -24,7 +26,7 @@ const roles=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOU
 // Existing separately admitted families plus the dedicated device-v4 CODE
 // contract. This creates no admitted row/approval/key/Root. RECEIVE remains the
 // normal AdministrationProfile/private-daemon + IDE-parent Source family.
-const PURPOSES=Object.freeze(['wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE]);
+const PURPOSES=Object.freeze(['wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE]);
 function document(raw){let v;try{v=JSON.parse(raw);}catch{fail('AUTH_ISSUANCE_CANONICAL');}if(typeof raw!=='string'||Buffer.byteLength(raw)>393216||canonical(v)!==raw)fail('AUTH_ISSUANCE_CANONICAL');return v;}
 function exact(v,names){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).sort().join('|')!==names.slice().sort().join('|')||Object.values(Object.getOwnPropertyDescriptors(v)).some(d=>!Object.hasOwn(d,'value')))fail('AUTH_ISSUANCE_SCHEMA');}
 function window(v,now){if(!Number.isSafeInteger(v.issuedAtMs)||!Number.isSafeInteger(v.expiresAtMs)||v.issuedAtMs<0||v.expiresAtMs<=v.issuedAtMs||v.expiresAtMs-v.issuedAtMs>86400000||now<v.issuedAtMs||now>=v.expiresAtMs)fail('AUTH_ISSUANCE_EXPIRED');}
@@ -48,7 +50,7 @@ export class OriginalSourceIssuanceV2Kernel {
   if(!Object.hasOwn(roles,p.role)||!PURPOSES.includes(p.policy.signatureContract.purpose))fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
   const root=document(p.rootRaw),body=document(p.bodyRaw),binding=p.binding;let effectExpiresAtMs=body.expiresAtMs;
   if(devicePurpose(p.policy.signatureContract.purpose))inspectOriginalProductDeviceV4IssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now());
-  else if(p.policy.signatureContract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE)effectExpiresAtMs=inspectOriginalIDEDeploymentV2IssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
+  else if([IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(p.policy.signatureContract.purpose))effectExpiresAtMs=inspectOriginalIDEDeploymentV2IssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
   if(sha(p.rootRaw)!==p.policy.rootDigest||root.purpose!==p.policy.signatureContract.purpose||body.purpose!==root.purpose||root.networkId!==binding.networkId||binding.owner!==(p.role==='enrollment'?root.rootOwner:document(Buffer.from(document(p.enrollmentRaw).body,'base64url').toString('utf8')).profileOwner))fail('AUTH_ISSUANCE_ROLE_BINDING');
   // A normal profile may not borrow even an independently signed catalog
   // enrollment. Reject this BEFORE intent persistence or any signing effect,
@@ -130,7 +132,7 @@ export async function loadReleaseSelectedOriginalSourceIssuanceV2(entry){
   if(entry.plan.binding.owner!==selected.owner||entry.plan.binding.networkId!==selected.networkId||entry.plan.binding.keyVersion!==record.revision||entry.plan.binding.executionHeight!==selected.executionHeight)fail('AUTH_ISSUANCE_ROLE_BINDING');
   let effectExpiresAtMs=Infinity;
   if(devicePurpose(entry.plan.policy.signatureContract.purpose))inspectOriginalProductDeviceV4IssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now());
-  else if(entry.plan.policy.signatureContract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE)effectExpiresAtMs=inspectOriginalIDEDeploymentV2IssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
+  else if([IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(entry.plan.policy.signatureContract.purpose))effectExpiresAtMs=inspectOriginalIDEDeploymentV2IssuanceBodyDATA(entry.plan.role,entry.plan.rootRaw,entry.plan.enrollmentRaw,entry.plan.bodyRaw,entry.plan.policy,firstViews,Date.now()).effectExpiresAtMs;
   independentApproval(entry.plan,approval.readOriginal(),Date.now());
   window(document(entry.plan.bodyRaw),Date.now());
   if(Date.now()>=effectExpiresAtMs)fail('IDE_DEPLOYMENT_V2_ISSUANCE_EFFECT_EXPIRED');

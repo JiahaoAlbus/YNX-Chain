@@ -1,3 +1,5 @@
+import{CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_OPERATIONS,inspectOriginalCloudDeploymentExecutionV2ScopeDATA}from'../native/original-cloud-deployment-execution-v2-contract.mjs';
+import{CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_OPERATIONS,inspectOriginalCloudDeploymentRecoveryV2ScopeDATA}from'../native/original-cloud-deployment-recovery-v2-contract.mjs';
 // PRIVATE normal Source-current counterpart. A PUBLIC test kernel is not a
 // service registration. Only the release-selected original factory may mount.
 import {randomBytes} from 'node:crypto';
@@ -30,7 +32,10 @@ function parsed(raw,cap=CAP){if(typeof raw!=='string'||!raw.length||Buffer.byteL
 // A V2 approval/registered role may end BEFORE the enclosing Source profile.
 function originalSourceEffectExpiry(body,purpose){
  if(purpose==='ide-project-control-authority-v1')return Number(body.selection.projectControlCapture.expiresAtMs);
- if(purpose!==IDE_DEPLOYMENT_V2_SOURCE_PURPOSE||!body.selection)return Infinity;
+ if(!body.selection)return Infinity;
+ if(purpose===CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE)return body.selection.cloudDeploymentRecoveryV2.expiresAtMs;
+ if(purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE){const s=body.selection.cloudDeploymentExecutionV2,r=parsed(s.resourceOriginal,32768);return Math.min(...['publisherOriginal','issuerOriginal','projectOriginal','resourceOriginal','executeApprovalScopeOriginal'].map(k=>parsed(s[k],32768).expiresAtMs),r.resourceValidUntilMs-r.runtimeSeconds*1000+1);}
+ if(purpose!==IDE_DEPLOYMENT_V2_SOURCE_PURPOSE)return Infinity;
  const s=body.selection.ideDeploymentV2;if(!s)fail('IDE_DEPLOYMENT_V2_DEDICATED_SOURCE_REQUIRED');
  return Math.min(...['publisherOriginal','issuerOriginal','projectOriginal','resourceOriginal','approvalOriginal'].map(k=>{const v=parsed(s[k],32768);if(!Number.isSafeInteger(v.expiresAtMs))fail('IDE_DEPLOYMENT_V2_WINDOW');return v.expiresAtMs;}));
 }
@@ -106,6 +111,7 @@ export class OriginalAuthSourceCurrentV2Kernel {
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4Provisioning)))fail('AUTH_SOURCE_V2_DEVICE_PROVISIONING_HEAD');
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_QUERY_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4Query)))fail('AUTH_SOURCE_V2_DEVICE_QUERY_HEAD');
    if(this.#policy.signatureContract.purpose===PRODUCT_DEVICE_V4_PENDING_PURPOSE&&state.head!==sha(canonical(p.body.selection.productSessionDeviceV4Pending)))fail('AUTH_SOURCE_V2_DEVICE_PENDING_HEAD');
+   if([CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(this.#policy.signatureContract.purpose)&&state.head!==sha(canonical(p.body.selection[this.#policy.signatureContract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE?'cloudDeploymentExecutionV2':'cloudDeploymentRecoveryV2'])))fail('DEPLOYMENT_EXECUTION_V2_CURRENT_HEAD');
    if(this.#policy.signatureContract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE&&state.head!==sha(canonical(p.body.selection.ideDeploymentV2)))fail('IDE_DEPLOYMENT_V2_CURRENT_HEAD');
    const body=this.#body(p,profileDigest,{...state,sequence},randomBytes(32).toString('base64url'),v),currentRaw=this.#signed(body,v,before),projection=verifyOriginalAuthSourceTransitionV2(this.#root,this.#enrollment,p.raw,currentRaw,this.#policy,before,body.nonce,ZERO,this.#time()),raw=canonical({version:2,profileDigest,previousDigest:old?.recordDigest??'',currentRaw});if(Buffer.byteLength(raw)>CAP)fail('AUTH_SOURCE_V2_CAPACITY');
    // Signing and persistence are within one selected operation. Any later
@@ -240,7 +246,7 @@ export async function loadReleaseSelectedOriginalSourceV2(entry,readPublic,readO
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_SOURCE_V2_NATIVE_RUNTIME_NOT_SUPPLIED');
  const rootRaw=readPublic(entry.rootPath,entry.policy.rootDigest),enrollmentRaw=readPublic(entry.enrollmentPath,entry.policy.enrollmentDigest),profiles=entry.profiles.map(p=>readPublic(p.path,p.sha256)),root=parsed(rootRaw,16384),enrollment=hint(enrollmentRaw);
  const get=fetchOriginalNativeAuthorization;
- const sensitivePurpose=[PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE].includes(entry.policy.signatureContract.purpose);let acquisitionFloor=-1;
+ const sensitivePurpose=[PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(entry.policy.signatureContract.purpose);let acquisitionFloor=-1;
  const acquisitionTime=()=>{const n=Date.now();if(sensitivePurpose&&(!Number.isSafeInteger(n)||n<0||n<acquisitionFloor))fail('AUTH_SOURCE_V2_CLOCK_ROLLBACK');acquisitionFloor=n;return n;};
  if(sensitivePurpose)acquisitionTime();
  let selected;const selectedViews=[];
