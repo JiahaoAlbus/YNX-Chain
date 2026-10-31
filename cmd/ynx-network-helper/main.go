@@ -153,7 +153,7 @@ func (h *helper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		switch r.URL.Path {
 		case "/api/status":
-			sendJSON(w, 200, map[string]any{"paired": true, "anchorConfigured": h.anchor != nil, "checkpoint": h.anchor.Summary(), "osUid": h.uid, "contribution": "disabled", "managedNodes": 0, "rpc": h.rpc})
+			sendJSON(w, 200, map[string]any{"paired": true, "anchorConfigured": h.anchor != nil, "checkpoint": h.anchor.Summary(), "helperOsUid": h.uid, "callerOsIdentityVerified": false, "assurance": "local-code-origin-ticket", "contribution": "disabled", "managedNodes": 0, "rpc": h.rpc})
 		case "/api/revoke":
 			h.mu.Lock()
 			h.ticket = ""

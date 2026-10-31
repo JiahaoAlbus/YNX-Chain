@@ -91,7 +91,7 @@ func TestTP0903ChallengeReplayAndRevocation(t *testing.T) {
 	if code, _ := call(t, s, "/api/pair", s.URL, "", input); code != 403 {
 		t.Fatalf("replay = %d", code)
 	}
-	if code, out := call(t, s, "/api/status", s.URL, ticket, nil); code != 200 || out["osUid"] != "local-test-uid" || out["contribution"] != "disabled" {
+	if code, out := call(t, s, "/api/status", s.URL, ticket, nil); code != 200 || out["helperOsUid"] != "local-test-uid" || out["callerOsIdentityVerified"] != false || out["assurance"] != "local-code-origin-ticket" || out["contribution"] != "disabled" {
 		t.Fatalf("status = %d %v", code, out)
 	}
 	if code, _ := call(t, s, "/api/status", "https://attacker.example", ticket, nil); code != 403 {

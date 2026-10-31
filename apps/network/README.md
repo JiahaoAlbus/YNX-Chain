@@ -23,6 +23,12 @@ The prefilled transaction is a historical test transaction, not a freshly sent
 payment. Its source REST response is always presented as `RPC_ONLY`.
 The helper uses a numeric loopback listener, checks Host and Origin, accepts no
 arbitrary shell or request destination, and refuses upstream redirects.
+This is local-user code pairing for public receipt operations. The helper's OS
+UID identifies its own process; TCP, Origin and a code do not authenticate the
+browser caller's OS identity. P09-03's privileged OS-identity gate remains open.
+Future node/resource controls require actual controlled IPC peer credentials
+or the original OS application identity channel and cannot reuse this ticket
+as privileged authorization.
 
 ## Proof levels and trust
 
