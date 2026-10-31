@@ -1,0 +1,136 @@
+{
+  "profile": "Shop original input + private TaskEffectBinding DATA primitives",
+  "status": "IMPLEMENTED_DATA_PRIMITIVES_NOT_FROZEN_REQUEST_RESPONSE_WIRE",
+  "decision": "Existing P07 input/tool contract; parent direction authorizes DATA Binding/proof primitives only while P07/Auth formalize per-request result association",
+  "route": {
+    "method": "POST",
+    "path": "/api/tools/shop.order.read",
+    "rawPath": "",
+    "rawQuery": "",
+    "requestContentTypeCheckedByExistingHandler": false,
+    "maxBodyBytes": 1048576,
+    "responseContentTypes": [
+      "application/json",
+      "application/cbor"
+    ]
+  },
+  "input": {
+    "exactKeys": [
+      "orderId",
+      "fields",
+      "snapshot"
+    ],
+    "maxBytes": 32768,
+    "orderId": "nonempty strict UTF8 <=256bytes",
+    "snapshot": "lower SHA512 hex128 from complete original order, not a Ref revision or permission",
+    "fields": "strictly sorted/unique selection from exact original nine-field schema; no defaults",
+    "decoder": "duplicate/unknown keys, trailing values and malformed/replacement Unicode refused; ORIGINAL bytes retained and hashed",
+    "producer": "JSON key order orderId,fields,snapshot; no HTML escaping, U+2028/U+2029 escaped; pre-sign canonicalization only"
+  },
+  "tool": {
+    "id": "shop.order.read",
+    "version": "1",
+    "operation": "shop.order.read",
+    "purpose": "read-selected-shop-order",
+    "risk": "read",
+    "schema": "Bind(exact schema/shop-order-read-input.schema.json original bytes)"
+  },
+  "framing": "E = U32BE count then U32BE length + field bytes; <=1MiB fixed-count nested frames",
+  "bindingE21": [
+    "realm ASCII",
+    "tenant ASCII",
+    "account ASCII",
+    "audience ASCII",
+    "grantId ASCII",
+    "grantRevision U64BE",
+    "task RefE5",
+    "generation U64BE",
+    "stepId ASCII",
+    "holder RefE5",
+    "holderEpoch U64BE",
+    "sessionId ASCII",
+    "sessionEpoch U64BE",
+    "channelBinding ASCII",
+    "tool E6",
+    "input BindE3",
+    "fields E(sorted ASCII fields)",
+    "target SinkE6",
+    "resources E(one RefE5)",
+    "sources E(one SourceE4)",
+    "egressActual absent E(U8[0])"
+  ],
+  "refE5": [
+    "realm ASCII",
+    "tenant ASCII",
+    "kind ASCII",
+    "id ASCII",
+    "rev U64BE"
+  ],
+  "toolE6": [
+    "id ASCII",
+    "version U64BE",
+    "operation ASCII",
+    "purpose ASCII",
+    "risk ASCII",
+    "schema BindE3"
+  ],
+  "sinkE6": [
+    "service ASCII",
+    "tenant ASCII",
+    "origin ASCII",
+    "path ASCII",
+    "region ASCII",
+    "operation ASCII"
+  ],
+  "sourceE4": [
+    "ref RefE5",
+    "fields E(sorted allowlisted fields)",
+    "label ASCII PUBLIC|TENANT|RESTRICTED|VAULT",
+    "binding BindE3"
+  ],
+  "bindE3": [
+    "actual byte length U64BE",
+    "raw SHA3-512[64]",
+    "raw SHA-512[64]"
+  ],
+  "privateCompatibility": {
+    "ASCII": "original Auth identifier [A-Za-z0-9._:/-]{1,256}; no new hex conversion/renaming",
+    "U64": "canonical unsigned decimal strings externally, exact unsigned8 big endian WIRE",
+    "sourceMapping": "public sources[].ref maps to existing private Source.Resource, public ref.rev maps to private Ref.Revision"
+  },
+  "bindingChecks": [
+    "explicit independent expected target and orderKind required",
+    "registered original tool/version/operation/purpose/risk/schema exact",
+    "target path/operation fixed; service=audience and target tenant=top tenant",
+    "task/holder/resource realm and tenant equal top; holder kind=agent",
+    "input dual Bind covers exact original input",
+    "exactly one resource/source; orderId=resource.id; resource.kind=expected orderKind; source.ref=resource",
+    "selected input fields=binding fields=source fields",
+    "egressActual absent; DATA label does not permit model disclosure"
+  ],
+  "proofE3": [
+    "purpose original ASCII",
+    "payloadOriginal opaque bytes",
+    "wireOriginal opaque bytes"
+  ],
+  "proofChecks": "nonempty bounded Uint8Array original bytes, strict capture without iterator/ownbuffer/Proxy/SAB/detached; purpose must equal explicitly supplied expectedPurpose; no signature verification or automatic grant parsing",
+  "remaining": [
+    "full request domain and fixed proof purpose meaning",
+    "P07/Auth per-request original effect reference/operation association CODE",
+    "formal response and SourceBytes canonical preimage",
+    "normal original codec/service/Source/verifier bridge"
+  ],
+  "authority": {
+    "signatureVerified": false,
+    "SourceAdmission": false,
+    "current": false,
+    "registered": false,
+    "requestTransportFrozen": false,
+    "responseTransportFrozen": false,
+    "realShopRequest": false,
+    "modelCall": false,
+    "COMMITTED": false,
+    "globalAtomic": false
+  },
+  "subsequentResolution": "Parent sole OPEN/Auth confirmed new complete DATA transport; see shop-order-read-transport.json. Original primitive vectors retained unchanged. Actual P07/Auth Source/adapter/correlation bridge still not supplied."
+}
