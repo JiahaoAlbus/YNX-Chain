@@ -24,6 +24,7 @@ import urllib.request
 spec=importlib.util.spec_from_file_location("normal_linux_lab",Path(__file__).with_name("consensus-linux-cohort.py"))
 lab=importlib.util.module_from_spec(spec);spec.loader.exec_module(lab)
 HELPER_COMMIT="a78803d31632a461df7f012e2c13e46f17c48e6d"
+WIRE_OBSERVER_COMMIT="e3a7319267b4c48d3f9164d702a38a3c3ac51713"
 
 
 def digest(raw):return hashlib.sha256(raw).hexdigest()
@@ -51,6 +52,29 @@ def require_verified(verified,tx):
     result=verified.get("result") or {}
     lab.require(verified.get("code")=="VERIFIED_TRANSACTION_DATA" and result.get("included") is True and result.get("finalized") is True and result.get("executionSuccessful") is True and str(result.get("executionCode"))=="0" and result.get("nativeGrant") is False,"original verifier did not establish full successful H/H+1 data")
     lab.require(comet_hash(result.get("transactionHash"))==comet_hash(tx["abciHash"]) and comet_hash(result.get("nativeWireHash"))==comet_hash(tx["nativeHash"]),"original full-proof dual hash differs")
+
+
+def validate_wire_observation(record):
+    lab.require(type(record) is dict,"original observer object required")
+    lab.require(record["version"]=="YNX-COMET-WIRE-OBSERVATION/v1" and record["scope"]=="synthetic-loopback-lab/v1" and record["syntheticOnly"] is True and record["independentFinality"] is False and record["physicalBytesMeasured"] is False,"original logical-only observer scope differs")
+    lab.require(record["captureBoundary"]=="after-normal-node-stop;completed-calls-only;in-flight-excluded","original observer lifecycle differs")
+    snapshot=record["snapshot"]
+    lab.require(type(snapshot) is dict,"original observer snapshot object required")
+    lab.require(snapshot["schema"]=="YNX-MEMPOOL-WIRE-OBSERVATION/v1" and snapshot["attached"] is True and snapshot["overflow"] is False and snapshot["physicalBytesMeasured"] is False,"original observer not attached, overflowed or measurement kind differs")
+    groups=("sendAttempts","sendQueued","sendNotQueued","received")
+    fields=("messages","transactions","transactionBytes","reencodedProtoBytes")
+    def counter(value):
+        lab.require(type(value) is int and 0<=value<1<<64,"bounded original unsigned counter required")
+        return value
+    for group in groups:
+        lab.require(type(snapshot[group]) is dict,"original message totals object required")
+        for field in fields:counter(snapshot[group][field])
+    for field in fields:
+        lab.require(snapshot["sendAttempts"][field]==snapshot["sendQueued"][field]+snapshot["sendNotQueued"][field],"original completed send accounting differs")
+    for field in ("emptyReceived","sendCallNs","sendCallMaxNs","checkTxCalls","checkTxReturnNil","checkTxReturnError","checkTxCallNs","checkTxCallMaxNs"):counter(snapshot[field])
+    lab.require(snapshot["checkTxCalls"]==snapshot["checkTxReturnNil"]+snapshot["checkTxReturnError"],"original CheckTx return accounting differs")
+    lab.require(snapshot["sendCallMaxNs"]<=snapshot["sendCallNs"] and snapshot["checkTxCallMaxNs"]<=snapshot["checkTxCallNs"],"original call duration accounting differs")
+    return snapshot
 
 
 def original_plan(created,root):
@@ -89,24 +113,52 @@ def decoded_hash(value):
 
 
 class Ceremony:
-    def __init__(self,window,root,created,bins):
+    def __init__(self,window,root,created,bins,observe_wire=False):
         self.w,self.root,self.bins=window,root,bins
         self.plan=original_plan(created,root);self.pin=created["planSHA256"]
         self.workload=created["workload"];self.nodes=[];self.attempted=set();self.observations=[]
         self.next_workload=0;self.used_indices=set();self.transfers=[];self.pending_owners=set();self.activation_pin=""
         self.workload_pin=lab.guard.digest(root/"workload/PUBLIC-WORKLOAD.json")
         self.mode=self.workload["mode"]
+        self.observe_wire=observe_wire;self.wire_outputs=[]
         lab.require(self.mode in ("online","pre-signed") and len(self.workload["owners"])==8,"original eight independent owners required")
 
     def call(self,name,args):
         proc=self.w.launch(name,[str(self.bins/"ynx-consensus-pq-lab"),*args]);self.w.wait(proc)
         return json.loads((self.w.work/"public"/(name+".log")).read_bytes())
 
+    def wire_arguments(self,phase,index):
+        if not self.observe_wire:return []
+        lab.require(phase in ("bootstrap","pq") and type(index) is int and 0<=index<4,"original observer lifetime identity required")
+        directory=self.w.work/"public/node-wire";directory.mkdir(mode=0o700,exist_ok=True)
+        path=directory/("%s-node-%d.json"%(phase,index))
+        lab.require(directory.resolve()==directory and not path.exists(),"fresh original observer output required")
+        lab.require(not any(row["phase"]==phase and row["node"]==index for row in self.wire_outputs),"original observer lifetime cannot be replayed")
+        self.wire_outputs.append(dict(phase=phase,node=index,path=path))
+        return ["--wire-observation-output",str(path),"--wire-observation-scope","synthetic-loopback-lab/v1"]
+
+    def wire_readback(self):
+        result=dict(enabled=self.observe_wire,logicalReadbackComplete=False,producerAllExitZero=False,physicalBytesMeasured=False,independentFinality=False,networkPackingReady=False,observations=[],errors=[],meaning="per-node lifetime totals include preparation/retries; completed calls only, in-flight excluded; no per-business or physical-byte denominator")
+        if not self.observe_wire:return result
+        for row in self.wire_outputs:
+            try:
+                path=row["path"];lab.require(path.resolve()==path,"original observer path changed")
+                raw=lab.guard.bounded(path,64<<10);snapshot=validate_wire_observation(json.loads(raw))
+                name="%s-node-%d"%(row["phase"],row["node"])
+                child=next(c for c in self.w.children if c["name"]==name)
+                result["observations"].append(dict(phase=row["phase"],node=row["node"],file=str(path.relative_to(self.w.work/"public")),sha256=digest(raw),producerExitCode=child["process"].returncode,snapshot=snapshot))
+            except (OSError,ValueError,KeyError,RuntimeError,StopIteration) as error:
+                result["errors"].append(dict(phase=row["phase"],node=row["node"],error=str(error)))
+        result["logicalReadbackComplete"]=not result["errors"] and {(r["phase"],r["node"]) for r in result["observations"]}=={(phase,i) for phase in ("bootstrap","pq") for i in range(4)}
+        result["producerAllExitZero"]=result["logicalReadbackComplete"] and all(r["producerExitCode"]==0 for r in result["observations"])
+        return result
+
     def start(self,activation=None):
         self.w.stopping=False
         for n in self.plan["nodes"]:
+            observed=self.wire_arguments("bootstrap" if activation is None else "pq",n["index"])
             if activation is None:
-                proc=self.w.launch("bootstrap-node-%d"%n["index"],[str(self.bins/"ynx-comet"),*n["bootstrapArgs"]],True)
+                proc=self.w.launch("bootstrap-node-%d"%n["index"],[str(self.bins/"ynx-comet"),*n["bootstrapArgs"],*observed],True)
             else:
                 a=activation["nodes"][n["index"]]
                 lab.require(a["index"]==n["index"] and a["recoveryFD"]==3 and a["recoveryCredentialFile"]==n["recoveryCredentialFile"],"activation changed original credential mapping")
@@ -115,7 +167,7 @@ class Ceremony:
                 try:
                     info=os.fstat(fd)
                     lab.require(stat.S_ISREG(info.st_mode) and info.st_size==32 and info.st_mode&0o077==0 and info.st_nlink==1,"original private recovery file required")
-                    command=fd3_command([str(self.bins/"ynx-comet"),*a["args"]],fd)
+                    command=fd3_command([str(self.bins/"ynx-comet"),*a["args"],*observed],fd)
                     proc=self.w.launch("pq-node-%d"%n["index"],command,True,pass_fds=(fd,))
                 finally:os.close(fd)
             self.nodes.append(proc)
@@ -353,6 +405,8 @@ class Ceremony:
 def run(args):
     source=Path(args.source);identity=lab.check_source(source,args.commit)
     lab.git(source,"merge-base","--is-ancestor",HELPER_COMMIT,args.commit)
+    observe_wire=getattr(args,"wire_observation",False)
+    if observe_wire:lab.git(source,"merge-base","--is-ancestor",WIRE_OBSERVER_COMMIT,args.commit)
     if not args.execute:return dict(status="prepared-only",source=identity,helper=HELPER_COMMIT,mode=args.mode,scope="four normal process functional cohort and original stopped proof; sustained window withheld")
     lab.require(sys.platform=="linux" and os.environ.get("GITHUB_ACTIONS")=="true" and os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted","dedicated hosted Linux job required")
     parent=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True);rows,_=lab.guard.proc_inventory()
@@ -361,20 +415,25 @@ def run(args):
     work=Path(tempfile.mkdtemp(prefix="pq-normal-process-",dir=parent));work.chmod(0o700)
     (work/".private").mkdir(mode=0o700);(work/"public").mkdir(mode=0o700)
     w=lab.Window(source,work,additional_storage=(source,));result=dict(schema="YNX-PQ-NORMAL-PROCESS-CEREMONY/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],signingMode=args.mode,firstCause=None,phaseComplete=False,sameHost=True,physicalFaultDomains=1,configuredFunctionalDenominator=4,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED")
+    ceremony=None
     try:
         bins=work/".private/bin"
         for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify"):
             w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1","-o",str(bins/name),"./cmd/"+name]))
+        result["binaries"]={name:lab.guard.digest(bins/name) for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify")}
         root=work/".private/network"
         proc=w.launch("create-original",[str(bins/"ynx-consensus-pq-lab"),"create","--synthetic","--root",str(root),"--transactions","32","--batch-size","1","--owners","8",*(["--online"] if args.mode=="online" else []),"--base-p2p-port","31656","--base-rpc-port","31757"]);w.wait(proc)
         created=json.loads((work/"public/create-original.log").read_bytes())
         result["originalPlanSHA256"]=created["planSHA256"]
-        result.update(Ceremony(w,root,created,bins).execute())
+        ceremony=Ceremony(w,root,created,bins,observe_wire)
+        result.update(ceremony.execute())
         lab.check_source(source,args.commit)
     except BaseException as error:result["firstCause"]=str(error)
     finally:
         try:result["cleanupComplete"]=w.stop()
         except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error)
+        result["wireObservationRequested"]=observe_wire
+        if ceremony is not None:result["wireObservation"]=ceremony.wire_readback()
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,
                       processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,
                       completedFunctionalProofs=[p.name for p in (work/"public").glob("functional-owner-*-final-proof.json")])
@@ -384,7 +443,7 @@ def run(args):
 
 
 if __name__=="__main__":
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--source",required=True);parser.add_argument("--commit",required=True);parser.add_argument("--mode",choices=["pre-signed","online"],required=True);parser.add_argument("--execute",action="store_true");args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--source",required=True);parser.add_argument("--commit",required=True);parser.add_argument("--mode",choices=["pre-signed","online"],required=True);parser.add_argument("--wire-observation",action="store_true");parser.add_argument("--execute",action="store_true");args=parser.parse_args()
     def interrupted(signum,frame):raise RuntimeError("normal PQ lab received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
     print(json.dumps(run(args)))

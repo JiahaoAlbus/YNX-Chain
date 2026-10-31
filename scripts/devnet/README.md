@@ -153,3 +153,25 @@ domains. Those four formal metrics remain UNMEASURED until the separately
 scheduled same-condition sustained windows. Never repeat the ceremony after
 UNKNOWN or manufacture trusted light blocks from RPC responses.
 
+For the next isolated logical-wire observation window, explicitly append
+`--wire-observation`. Default remains off, and the source must retain original
+CLI ancestor `e3a7319267b4c48d3f9164d702a38a3c3ac51713`. CORE alone adds the
+three `test_pq_wire_readback.py` controls to its owning job before this opt-in.
+The harness appends only the original `--wire-observation-output` and
+`--wire-observation-scope synthetic-loopback-lab/v1` arguments to each normal
+node. Each bootstrap/PQ lifetime gets a distinct fresh file under
+`public/node-wire/`; the original plan, configuration, genesis, operator pins,
+credentials, signing, channel, and canonical transaction bytes remain pinned.
+
+After normal cleanup, read back all eight original completed-call snapshots,
+retain per-file SHA256, per-node exit codes and missing/invalid outputs, and
+check attempts=queued+notQueued and CheckTx-return accounting. Each real built
+binary SHA256 is also retained. These are cumulative per-node lifetime totals
+including preparation/retries; no isolated business denominator or physical
+socket/handshake/TCP-byte result is inferred. Readback completeness and clean
+producer exits are separate fields; neither implies async admission, finality
+or permission for network packing. Measurement errors leave raw files and
+partial observations intact and do not erase independent functional proofs.
+Run41209173671 did not enable the option; its green functional paths supply
+no logical-wire baseline.
+
