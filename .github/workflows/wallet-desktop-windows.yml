@@ -4244,10 +4244,6 @@ jobs:
       CGO_ENABLED: '0'
       GOPROXY: 'off'
       GOSUMDB: 'off'
-      GOCACHE: ${{ runner.temp }}/social-local-golden-go-cache
-      GOMODCACHE: ${{ runner.temp }}/social-local-golden-go-modules
-      GOTMPDIR: ${{ runner.temp }}/social-local-golden-go-tmp
-      SOCIAL_GOLDEN_GENERATED: ${{ runner.temp }}/social-local-golden.json
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -4258,6 +4254,12 @@ jobs:
           go-version: '1.26.10'
           cache: false
       - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - name: Set isolated golden cache paths after runner start
+        run: |
+          printf 'GOCACHE=%s/social-local-golden-go-cache\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'GOMODCACHE=%s/social-local-golden-go-modules\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'GOTMPDIR=%s/social-local-golden-go-tmp\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'SOCIAL_GOLDEN_GENERATED=%s/social-local-golden.json\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Generate actual stdlib Go golden byte vectors
         run: |
           mkdir -p "$GOCACHE" "$GOMODCACHE" "$GOTMPDIR"
