@@ -1,3 +1,7 @@
+import {assertProductSessionControlSessionAllowed,productSessionControlClockFloor} from './product-session-control-intent.js';
+import {verifyOriginalProductSessionHTTPProofV5,productSessionHTTPProofV5ReplayKey} from './product-session-device-v5.js';
+import {decodeProductSessionProofHeaderV5,assertProductSessionHTTPBodyV5DATA,PRODUCT_SESSION_V5_BODY_MAX_BYTES} from './product-session-proof-v5.js';
+import {PRODUCT_SESSION_DEVICE_V4_EXPECTED_FIELDS} from './product-session-device-v4.js';
 import {verifyOriginalProductSessionHTTPProofV4,productSessionHTTPProofV4ReplayKey} from './product-session-device-v4.js';
 import {decodeProductSessionProofHeaderV4} from './product-session-proof-v4.js';
 import {readAccountPolicyObservation,assertSessionAccountPolicy} from './product-session-account-private.js';
@@ -125,7 +129,9 @@ export class ProductSessionGatewayNodeHost {
     // Keep durable state, never one user's borrowed capability on the Host.
     this.#handler=this.#newHandler(candidate.snapshot());
   }
-  async #withAccountPolicy(operation,execute){
+  async #withAccountPolicy(operation,execute,binaryV5=false){
+    const runner=binaryV5?this.#accountPolicy?.runBinaryV5:this.#accountPolicy?.run;
+    if(binaryV5&&typeof runner!=='function')fail('ACCOUNT_POLICY_BINARY_V5_NOT_SUPPLIED','Normal explicit binary V5 current-policy runner is unavailable');
     if(!this.#accountPolicy)return execute(null);
     let active=true,entered=false,result,firstPresent=false,firstCause;
     const run=context=>{
@@ -135,7 +141,7 @@ export class ProductSessionGatewayNodeHost {
       }catch(cause){if(!firstPresent){firstPresent=true;firstCause=cause;}throw cause;}
     };
     let returned;
-    try{returned=await this.#accountPolicy.run(Object.freeze(operation),run);}finally{active=false;}
+    try{returned=await runner.call(this.#accountPolicy,Object.freeze(operation),run);}finally{active=false;}
     if(firstPresent)throw firstCause; // A supplier cannot suppress an execution refusal.
     if(!entered||result===undefined)fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Normal policy runner did not execute the original transaction');
     if(returned!==undefined)fail('ACCOUNT_POLICY_RUNNER_INVALID','Normal policy runner cannot substitute a result');
@@ -246,8 +252,8 @@ export class ProductSessionGatewayNodeHost {
     this.#authSourceCurrent=options.authIdentitySourceCurrent??null;
     if(Object.hasOwn(options,'deviceCurrent')){if(!options.deviceCurrent||['readCurrent','assertCurrent','readRegistrationOriginal','readSessionOriginal'].some(n=>typeof options.deviceCurrent[n]!=='function'))fail('PRODUCT_SESSION_DEVICE_CURRENT_NOT_SUPPLIED','Original device current source required');this.#deviceCurrent=options.deviceCurrent;}
     if(Object.hasOwn(options,'accountPolicy')){
-      const config=privateData(options.accountPolicy,['mode','run']);
-      if(config.mode!=='required'||typeof config.run!=='function')fail('ACCOUNT_POLICY_CONFIG_INVALID','Normal account policy configuration is invalid');
+      const config=privateData(options.accountPolicy,['mode','run',...(Object.hasOwn(options.accountPolicy,'runBinaryV5')?['runBinaryV5']:[])]);
+      if(config.mode!=='required'||typeof config.run!=='function'||Object.hasOwn(config,'runBinaryV5')&&typeof config.runBinaryV5!=='function')fail('ACCOUNT_POLICY_CONFIG_INVALID','Normal account policy configuration is invalid');
       this.#accountPolicy=Object.freeze(config);
     }
     if(Object.hasOwn(options,'centralBackend')){if(options.centralBrowser!==true)fail("INVALID_HOST","Confidential clients require explicit central adoption");exactFields(options.centralBackend,["backendClients","familySealKey"],"Confidential client host dependencies");}
@@ -310,6 +316,55 @@ export class ProductSessionGatewayNodeHost {
     const expires=Math.min(Date.parse(p.expiresAt),Date.parse(session.expiresAt)),credential=Object.freeze({}),view=Object.freeze({session,method:v.method,path:v.path,bodyDigest:p.bodyDigest,proofExpiresMS:expires});let completed=null,last=Date.parse(p.issuedAt);
     const complete=()=>{this.#assertStateIdentity();const at=+this.#now();if(completed===null||snapshotDigest(this.#handler.snapshot())!==completed||at<last||at>=expires)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original v4 credential no longer current');last=at;};
     const recheck=async()=>{completed=null;await verify(true,session.scopes);completed=snapshotDigest(this.#handler.snapshot());complete();};
+    originalDeveloperHTTPCredentials.set(credential,{view,recheck,complete});await recheck();return credential;
+  }
+
+
+  // V5 uses the same durable replay ledger and opaque credential WeakMap.
+  // Binary account current must be explicitly supplied by the original runner.
+  async authenticateOriginalDeveloperHTTPRequestV5(input){return this.#originalDeveloperV5(input,false);}
+  async revalidateOriginalDeveloperHTTPRequestV5(input){return this.#originalDeveloperV5(input,true);}
+  async #originalDeveloperV5(input,alreadyConsumed){
+    const captured=privateData(input,['requestId','method','path','bodyOriginal','contentType','proofHeader','expected']);
+    if(!validRequestId(captured.requestId)||captured.method!=='POST'||captured.path!=='/api/v1/ide/deployments'||typeof captured.proofHeader!=='string')fail('ORIGINAL_HTTP_REQUEST_INVALID','Original V5 binary request invalid');
+    const expected=Object.freeze(privateData(captured.expected,PRODUCT_SESSION_DEVICE_V4_EXPECTED_FIELDS));
+    for(const [key,value]of Object.entries(expected))if(!(typeof value==='string'&&value.length>0&&value.length<=2048||(key==='bundleId'||key==='packageId')&&value===null))fail('ORIGINAL_HTTP_REQUEST_INVALID','Original selected tuple invalid');
+    const ta=Object.getPrototypeOf(Uint8Array.prototype),length=Object.getOwnPropertyDescriptor(ta,'byteLength').get,buffer=Object.getOwnPropertyDescriptor(ta,'buffer').get,set=Uint8Array.prototype.set;
+    const copy=actual=>{if(types.isProxy(actual)||!types.isUint8Array(actual))fail('ORIGINAL_HTTP_REQUEST_INVALID','Original binary bytes required');const n=length.call(actual);if(!n||n>PRODUCT_SESSION_V5_BODY_MAX_BYTES||types.isSharedArrayBuffer(buffer.call(actual)))fail('ORIGINAL_HTTP_REQUEST_INVALID','Original binary byte budget');const out=Buffer.alloc(n);try{set.call(out,actual)}catch{fail('ORIGINAL_HTTP_REQUEST_INVALID','Detached original binary body')}return out;};
+    const v=Object.freeze({...captured,bodyOriginal:copy(captured.bodyOriginal),expected});
+    if(this.#deviceCurrent===null)fail('PRODUCT_SESSION_DEVICE_CURRENT_NOT_SUPPLIED','Original registered-device current Source required');
+    if(this.#accountPolicy===null||typeof this.#accountPolicy.runBinaryV5!=='function')fail('ACCOUNT_POLICY_BINARY_V5_NOT_SUPPLIED','Normal explicit binary V5 current-policy runner unavailable');
+    this.#assertStateIdentity();const decoded=decodeProductSessionProofHeaderV5(v.proofHeader),{member,...p}=decoded,selected=this.#handler.snapshot().authority.sessions.find(s=>s.sessionBinding===p.sessionBinding);
+    if(!selected||selected.version!=='4'||selected.productId!=='developer')fail('CROSS_PRODUCT_SESSION','Original registered developer session required');
+    const session=JSON.parse(canonicalJSON(selected));Object.freeze(session.scopes);Object.freeze(session.accountAuthorization);Object.freeze(session);
+    const assertSessionSnapshot=()=>{this.#assertStateIdentity();const snapshot=this.#handler.snapshot(),authority=snapshot.authority,at=this.#now(),iso=at.toISOString(),stored=authority.sessions.find(s=>s.sessionBinding===session.sessionBinding);
+      if(!stored||canonicalJSON(stored)!==canonicalJSON(session))fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original V5 complete session changed');
+      const floor=snapshot.schemaVersion===3?productSessionControlClockFloor(snapshot):walletSessionControlClockFloor(snapshot);
+      if(+at<floor||iso<session.issuedAt||iso>=session.expiresAt)fail('SESSION_EXPIRED','Original V5 session/current clock refused');
+      if(snapshot.schemaVersion===3)assertProductSessionControlSessionAllowed(snapshot,session.sessionBinding,at);
+      if(authority.revokedSessions.includes(session.sessionBinding)||authority.revokedAccounts.some(r=>r.account===session.account&&session.issuedAt<=r.before))fail('SESSION_REVOKED','Original V5 session/account revoked');
+      // Legacy deviceBinding has no defined mapping to a V4 registration.
+      // Preserve uncertainty rather than treating old device revocation as clear.
+      if(authority.revokedDevices.length)fail('PRODUCT_SESSION_V5_DEVICE_REVOCATION_UNAVAILABLE','Legacy device revocation mapping unavailable');
+    };
+    assertProductSessionHTTPBodyV5DATA(v.bodyOriginal,v.contentType,p);
+    const controller=new AbortController(),abortContext=Object.freeze({signal:controller.signal}),key=productSessionHTTPProofV5ReplayKey(v.proofHeader);
+    const policyOperation=()=>Object.freeze({version:'5',requestId:v.requestId,method:v.method,path:v.path,bodyOriginal:copy(v.bodyOriginal),contentType:v.contentType,bodyDigest:p.bodyDigest,bodyBinding:p.bodyBinding,proofHeader:v.proofHeader,walletControlProofHeader:null,session,at:this.#now().toISOString()});
+    const withCurrent=async execute=>{const operation=policyOperation();const result=await this.#withAccountPolicy(operation,ctx=>{assertSessionAccountPolicy(session,readAccountPolicyObservation(ctx.observation,session.account,this.#now()));assertSessionSnapshot();return execute(ctx);},true);assertProductSessionHTTPBodyV5DATA(operation.bodyOriginal,operation.contentType,p);return result;};
+    const verify=async existing=>{
+      const before=snapshotDigest(this.#handler.snapshot());await withCurrent(()=>true);
+      const result=await verifyOriginalProductSessionHTTPProofV5({headerName:'x-ynx-product-session-proof-v5',header:v.proofHeader,request:{method:v.method,path:v.path,bodyOriginal:v.bodyOriginal,contentType:v.contentType,requiredScopes:session.scopes},expected:v.expected,source:this.#deviceCurrent,abortContext,at:this.#now(),consumeNonce:async row=>{
+        await withCurrent(context=>{this.#assertStateIdentity();const at=this.#now().toISOString();if(at<p.issuedAt||at>=p.expiresAt||snapshotDigest(this.#handler.snapshot())!==before)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original replay/current window changed');
+          const found=this.#handler.snapshot().consumedProofs.includes(row.key);if(existing){if(!found)fail('ORIGINAL_HTTP_NOT_AUTHENTICATED','Original V5 nonce was not consumed');return true;}if(found)fail('REPLAY','Original V5 nonce already consumed');
+          const next=JSON.parse(canonicalJSON(this.#handler.snapshot()));if(next.consumedProofs.length>=20000)fail('CAPACITY','Original proof ledger at capacity');next.consumedProofs.push(row.key);next.consumedProofs.sort();const candidate=this.#newHandler(next,context);this.#persist(candidate.snapshot());this.#retainHandlerSnapshot(candidate);this.#assertStateIdentity();return true;
+        });
+      }});
+      await withCurrent(()=>true);this.#assertStateIdentity();if(this.#now().toISOString()>=p.expiresAt||!this.#handler.snapshot().consumedProofs.includes(key)||canonicalJSON(result.session)!==canonicalJSON(session))fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original V5 source/session changed');return result;
+    };
+    try{await verify(alreadyConsumed);}catch(cause){controller.abort(cause);throw cause;}
+    const expires=Math.min(Date.parse(p.expiresAt),Date.parse(session.expiresAt)),credential=Object.freeze({}),view=Object.freeze({session,method:v.method,path:v.path,bodyDigest:p.bodyDigest,contentType:p.contentType,bodyBinding:p.bodyBinding,proofExpiresMS:expires});let completed=null,last=Date.parse(p.issuedAt);
+    const complete=()=>{this.#assertStateIdentity();const at=+this.#now();if(completed===null||snapshotDigest(this.#handler.snapshot())!==completed||at<last||at>=expires)fail('ORIGINAL_HTTP_COMPLETION_CHANGED','Original V5 credential no longer current');assertSessionSnapshot();last=at;};
+    const recheck=async()=>{completed=null;await verify(true);completed=snapshotDigest(this.#handler.snapshot());complete();};
     originalDeveloperHTTPCredentials.set(credential,{view,recheck,complete});await recheck();return credential;
   }
 

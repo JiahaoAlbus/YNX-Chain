@@ -7,6 +7,10 @@ export type OriginalReturnPublicationOutcome=Readonly<{state:'not_found';retryAu
  * post-recheck and retain original cleanup/UNKNOWN. Cannot return a response.
  * After execute entered, later refusal does not undo the persisted original. */
 export type OriginalAccountPolicyRunner=(operation:OriginalAccountPolicyOperation,execute:(context:ProductSessionAccountContext&Readonly<{required:true}>)=>undefined)=>Promise<void>;
+export type OriginalAccountPolicyBinaryV5Operation=Readonly<{version:'5';requestId:string;method:'POST';path:'/api/v1/ide/deployments';bodyOriginal:Uint8Array;contentType:string;bodyDigest:string;bodyBinding:import('./product-session-proof-v5.js').ProductSessionHTTPBodyV5Binding;proofHeader:string;walletControlProofHeader:null;session:ProductSession;at:string}>;
+/** Explicit original current-policy runner, never a text/body:'' fallback. */
+export type OriginalAccountPolicyBinaryV5Runner=(operation:OriginalAccountPolicyBinaryV5Operation,execute:(context:ProductSessionAccountContext&Readonly<{required:true}>)=>undefined)=>Promise<void>;
+export type OriginalDeveloperHTTPBinaryRequestV5=Readonly<{requestId:string;method:'POST';path:'/api/v1/ide/deployments';bodyOriginal:Uint8Array;contentType:string;proofHeader:string;expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>;
 export declare const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION: 1;
 /** Exact original HTTP bytes; the Host consumes the device proof once. */
 export type OriginalDeveloperHTTPRequest=Readonly<{requestId:string;method:string;path:string;body:string;proofHeader:string}>;
@@ -25,7 +29,7 @@ export type ProductSessionGatewayNodeHostOptions=Readonly<{
   privateBusinessRevalidation?:boolean;privateBackendRegistrations?:readonly PrivateBusinessRegistration[];
   centralBackend?:Readonly<{backendClients:readonly Readonly<{clientId:string;keyId:string;publicKey:string}>[];familySealKey:unknown}>;
   centralOIDC?:unknown;
-  accountPolicy?:Readonly<{mode:'required';run:OriginalAccountPolicyRunner}>;
+  accountPolicy?:Readonly<{mode:'required';run:OriginalAccountPolicyRunner;runBinaryV5?:OriginalAccountPolicyBinaryV5Runner}>;
   deviceCurrent?:import('./product-session-device-v4.js').OriginalProductSessionDeviceCurrentSourceV4;
 }>;
 /** familySealKey must be a Node Buffer of 32 bytes; explicit central adoption and exact provisioned public keys are required. */
@@ -33,6 +37,8 @@ export declare class ProductSessionGatewayNodeHost {
   constructor(registry:unknown,options:ProductSessionGatewayNodeHostOptions);
   handler():(request:unknown,response:unknown)=>Promise<void>;
   snapshot():Readonly<Record<string,unknown>>;
+  authenticateOriginalDeveloperHTTPRequestV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPCredential>;
+  revalidateOriginalDeveloperHTTPRequestV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPCredential>;
   authenticateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;
   authenticateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
   revalidateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
@@ -56,3 +62,8 @@ export declare class ProductSessionGatewayNodeHost {
   executeOriginalWalletServicePrivateTransactionWithPolicy(owner:object):Promise<Readonly<{status:number;headers:Readonly<Record<string,string>>;body:string}>>;
   handleOriginalWalletServicePrivateRequest(input:unknown,retained:unknown,association:unknown,accountContext?:ProductSessionAccountContext|null):Readonly<{status:number;headers:Readonly<Record<string,string>>;body:string}>;
 }
+
+/** Actual same-process original Host credential view; DATA, not a grant. */
+export interface OriginalDeveloperHTTPCredentialView {readonly session:ProductSession;readonly method:string;readonly path:string;readonly bodyDigest:string;readonly proofExpiresMS:number;readonly contentType?:string;readonly bodyBinding?:import('./product-session-proof-v5.js').ProductSessionHTTPBodyV5Binding}
+export function readOriginalDeveloperHTTPCredential(credential:OriginalDeveloperHTTPCredential):Promise<Readonly<OriginalDeveloperHTTPCredentialView>>;
+export function assertOriginalDeveloperHTTPCredentialCompletion(credential:OriginalDeveloperHTTPCredential):Readonly<OriginalDeveloperHTTPCredentialView>;
