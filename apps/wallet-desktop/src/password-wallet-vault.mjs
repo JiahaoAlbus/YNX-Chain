@@ -19,6 +19,9 @@ import { PasswordVaultFile, vaultStorageError } from "./password-vault-file.mjs"
 import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession,decryptPasswordVaultOriginalAdmissionCatalog,preparePasswordVaultPQRecord,decryptPasswordVaultPQRecord,preparePasswordVaultPQReservation,reopenPreparedPasswordVaultPQRecord } from "./password-vault-crypto.mjs";
 
 const fail = (code, message) => { throw providerError(4100, code, message); };
+// Main-only provenance of a protected ASSET selection; not device or Source authority.
+const originalSelectedPQPublicLeases=new WeakSet();
+export const isOriginalSelectedPQAccountPublicLease=lease=>originalSelectedPQPublicLeases.has(lease);
 const cancelled = () => keyAccessError("WALLET_OPERATION_CANCELLED");
 const options = guard => ({ guard: () => guard.assert() });
 const identityFor = secret => { const identity = walletIdentity(secret); return { account: evmAddressFromYNX(identity.account), ynxAccount: identity.account, publicKey: identity.accountPublicKey }; };
@@ -276,7 +279,7 @@ export class PasswordWalletVault {
       retire:()=>retire(),close:()=>retire()
     });
     unsubscribe=this.authorization.subscribe(state=>{if(state.locked||state.account!==account||state.revision!==security.revision)retire(cancelled());});
-    this.#selectedPQPublicLeases.add(lease);assertCurrent();return lease;
+    originalSelectedPQPublicLeases.add(lease);this.#selectedPQPublicLeases.add(lease);assertCurrent();return lease;
   }
   /** Explicit original-main backup callback only; never expose through preload.
    * Existing SDK envelope/credential are kept separate at the normal file/UI
