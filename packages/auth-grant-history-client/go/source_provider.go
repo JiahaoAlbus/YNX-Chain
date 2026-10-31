@@ -164,6 +164,9 @@ func (s *protectedAuthoritySource) check(ctx context.Context) error {
 	if seen["effect"] && (d.EffectOperation == "" || d.LocalEffectPath == "") || seen["query"] && (d.QueryOperation == "" || d.LocalQueryPath == "") {
 		return ErrUnavailable
 	}
+	if e := validateFormalOperations(d, s.profile); e != nil {
+		return e
+	}
 	s.mu.Lock()
 	now := time.Now().UnixMilli()
 	if s.retired || now < s.lastTime {
@@ -254,18 +257,6 @@ func (s *protectedAuthoritySource) AssertOriginalCallerAndBinding(ctx context.Co
 	return e
 }
 
-type originalRequestCandidateDATA struct {
-	Version, Nonce, Account, CurrentTaskRevision, CurrentGeneration, SourceExpires string
-	OriginalBody                                                                   []byte
-}
-
-func originalRequestCandidateBytes(expected OriginalWholeResponseExpected) ([]byte, error) {
-	body, e := originalAuthorityBodyDATA(expected.Call, expected.History)
-	if e != nil {
-		return nil, e
-	}
-	return canonicalOriginalJSON(originalRequestCandidateDATA{Version: requestCandidateVersion, Nonce: expected.Nonce, Account: expected.Account, CurrentTaskRevision: expected.CurrentTaskRevision, CurrentGeneration: expected.CurrentGeneration, SourceExpires: expected.SourceExpires, OriginalBody: body})
-}
 func (s *protectedAuthoritySource) PrepareOriginalAuthorityWire(ctx context.Context, actual link.AuthenticatedChannel, action string, call TaskAuthorityCall) (link.WireRequest, error) {
 	var zero link.WireRequest
 	if e := s.enter(ctx); e != nil {
@@ -295,7 +286,7 @@ func (s *protectedAuthoritySource) PrepareOriginalAuthorityWire(ctx context.Cont
 		return zero, e
 	}
 	n := hex.EncodeToString(nonce)
-	wire, e := originalRequestCandidateBytes(OriginalWholeResponseExpected{Call: call, History: history, Nonce: n, Account: s.caller.Request.Account, CurrentTaskRevision: s.caller.Request.TaskRevision, CurrentGeneration: s.caller.Request.Generation, SourceExpires: s.caller.Expires})
+	wire, e := originalRequestDATABytes(OriginalWholeResponseExpected{Call: call, History: history, Nonce: n, Account: s.caller.Request.Account, CurrentTaskRevision: s.caller.Request.TaskRevision, CurrentGeneration: s.caller.Request.Generation, SourceExpires: s.caller.Expires})
 	if e != nil {
 		return zero, e
 	}
@@ -375,11 +366,11 @@ func (s *protectedAuthoritySource) VerifyOriginalAuthorityResponse(ctx context.C
 	if p == nil || p.action != action || !reflect.DeepEqual(p.call, call) || !reflect.DeepEqual(m.Profile, s.profile) || !bytes.Equal(m.Request.Body, p.wire) || m.Request.ContentType != "application/json" || m.ContentType != "application/json" || m.Channel.ConnectionID != p.channel.ConnectionID || !bytes.Equal(m.Channel.Exporter, p.channel.Exporter) {
 		return zero, ErrBinding
 	}
-	evidence, e := DecodeOriginalWholeResponseCandidateDATA(m.ResponseBody, int(m.Operation.MaxResponseBytes))
+	evidence, e := DecodeOriginalWholeResponseDATA(m.ResponseBody, int(m.Operation.MaxResponseBytes))
 	if e != nil {
 		return zero, e
 	}
-	expected := OriginalWholeResponseExpected{Call: p.call, History: action == "query", Authority: s.caller.Authority, Nonce: p.nonce, Account: s.caller.Request.Account, CurrentTaskRevision: s.caller.Request.TaskRevision, CurrentGeneration: s.caller.Request.Generation, SourceExpires: s.caller.Expires, Transport: OriginalResponseTransportFacts{Action: action, Path: m.Operation.Path, Service: m.Profile.Service, Origin: m.Profile.Origin, ContentType: "application/json", StatusCode: m.StatusCode}}
+	expected := OriginalWholeResponseExpected{RequestOriginal: bytes.Clone(p.wire), Call: p.call, History: action == "query", Authority: s.caller.Authority, Nonce: p.nonce, Account: s.caller.Request.Account, CurrentTaskRevision: s.caller.Request.TaskRevision, CurrentGeneration: s.caller.Request.Generation, SourceExpires: s.caller.Expires, Transport: OriginalResponseTransportFacts{Method: m.Operation.Method, Action: action, Path: m.Operation.Path, Service: m.Profile.Service, Origin: m.Profile.Origin, ContentType: "application/json", StatusCode: m.StatusCode}}
 	result, e := s.verifier.Verify(ctx, expected, evidence)
 	if e != nil {
 		return authorityObservationPartial(result), e

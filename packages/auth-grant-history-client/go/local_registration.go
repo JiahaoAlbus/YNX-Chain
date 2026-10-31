@@ -2,6 +2,7 @@ package originalclient
 
 import (
 	"context"
+	open "github.com/JiahaoAlbus/YNX-Chain/packages/open-protocol/go"
 	"strings"
 )
 
@@ -37,7 +38,7 @@ func (s *protectedAuthoritySource) ReadOriginalLocalCallerRegistration(ctx conte
 	out = OriginalLocalCallerRegistration{LocalService: d.LocalService, PeerUID: d.LocalUID, PeerPID: d.LocalPID, Actions: append([]string(nil), d.Actions...), Expires: d.Expires}
 	// Exact base64/candidate metadata overhead counts against existing remote
 	// request budget. Do not widen the fixed LINK operation's registered bound.
-	empty, e := canonicalOriginalJSON(originalRequestCandidateDATA{Version: requestCandidateVersion, Nonce: strings.Repeat("0", 64), Account: d.Request.Account, CurrentTaskRevision: d.Request.TaskRevision, CurrentGeneration: d.Request.Generation, SourceExpires: d.Expires, OriginalBody: []byte{}})
+	empty, e := open.EncodeTaskAuthorityRequestDATA(open.TaskAuthorityRequestInputDATA{Version: "1", Nonce: strings.Repeat("0", 64), Account: d.Request.Account, CurrentTaskRevision: d.Request.TaskRevision, CurrentGeneration: d.Request.Generation, SourceExpires: d.Expires, OriginalBody: []byte{0}})
 	if e != nil {
 		return OriginalLocalCallerRegistration{}, e
 	}
@@ -52,7 +53,7 @@ func (s *protectedAuthoritySource) ReadOriginalLocalCallerRegistration(ctx conte
 				max = op.MaxRequestBytes
 			}
 		}
-		remaining := max - int64(len(empty))
+		remaining := max - int64(len(empty)-2)
 		if remaining < 4 {
 			return OriginalLocalCallerRegistration{}, ErrWholeResponseLimit
 		}

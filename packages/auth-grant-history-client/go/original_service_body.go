@@ -4,29 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	open "github.com/JiahaoAlbus/YNX-Chain/packages/open-protocol/go"
-	"io"
 )
-
-// Candidate DATA uses the original Node canonical ordering, not the retained
-// protected-document struct-order encoding. Keep those grammars distinct.
-func decodeCanonicalSourceDATA(raw []byte, out any) error {
-	if len(raw) < 1 || len(raw) > 1048576 || uniqueServiceJSON(raw) != nil {
-		return ErrSourceProof
-	}
-	d := json.NewDecoder(bytes.NewReader(raw))
-	d.DisallowUnknownFields()
-	if e := d.Decode(out); e != nil {
-		return e
-	}
-	if d.Decode(new(any)) != io.EOF {
-		return ErrSourceProof
-	}
-	again, e := canonicalOriginalJSON(out)
-	if e != nil || !bytes.Equal(again, raw) {
-		return ErrSourceProof
-	}
-	return nil
-}
 
 // Same ORIGINAL Node canonicalJSON semantics for its PRIVATE service body.
 // Shared OPEN does all E21/E3 decoding; this does not define an OPEN codec.

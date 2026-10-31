@@ -3,59 +3,26 @@ package originalclient
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	core "github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 	open "github.com/JiahaoAlbus/YNX-Chain/packages/open-protocol/go"
-	"reflect"
 	"strconv"
 	"sync"
 	"time"
 	policy "ynx.local/authgrantpolicy"
 )
 
-// PRIVATE CANDIDATE purpose. Not E21/E3 and NOT a published/admitted SDK domain.
-// SDK/Root must independently accept the exact final public contract.
-const OriginalTaskResponseCandidatePurpose = "YNX-OPEN/TASK-AUTHORITY-RESPONSE/1"
-const responseCandidateVersion = "AUTH-TASK-AUTHORITY-RESPONSE/private-candidate-v1"
-const requestCandidateVersion = "AUTH-TASK-AUTHORITY-REQUEST/private-candidate-v1"
+// Sole SDK purpose and grammar; actual independent Root/issuer admission remains separate.
+const OriginalTaskResponsePurpose = open.TaskAuthorityResponsePurpose
+const responseFormalVersion = "1"
+const requestFormalVersion = "1"
 
 var ErrWholeResponse = errors.New("AUTH_ORIGINAL_WHOLE_RESPONSE_INVALID")
 var ErrWholeResponseUnavailable = errors.New("AUTH_ORIGINAL_WHOLE_RESPONSE_SOURCE_NOT_SUPPLIED")
 var ErrWholeResponseLimit = errors.New("AUTH_ORIGINAL_WHOLE_RESPONSE_TOTAL_BYTES_LIMIT")
 
-type OriginalResponseTransportFacts struct {
-	Action, Path, Service, Origin, ContentType string
-	StatusCode                                 int
-}
-type OriginalResponseCallBinding struct {
-	GrantRef                                           open.LegacyGrantRefV1
-	GrantPayload, GrantWire, HolderPayload, HolderWire policy.Bind
-	Issuer, Holder                                     open.LegacyGrantRefV1
-	IssuerEpoch, HolderEpoch                           string
-	Binding                                            open.GrantStepBindingV1
-	RequestBinding                                     policy.Bind
-}
-type OriginalResponseResourceFacts struct {
-	OperationID, RemoteRef, AuthScope string
-	Source                            policy.Source
-	ResponseBinding                   policy.Bind
-}
-type OriginalWholeResponsePayload struct {
-	Version, Purpose, Realm, Tenant, Authority                     string
-	Account, CurrentTaskRevision, CurrentGeneration, SourceExpires string
-	ResponseIssuer                                                 open.LegacyGrantRefV1
-	IssuerEpoch, PolicyRevision, Height                            string
-	ChainID                                                        []byte
-	Call                                                           OriginalResponseCallBinding
-	Transport                                                      OriginalResponseTransportFacts
-	OperationID, State                                             string
-	OpaqueOriginalBinding, WholeServiceResponseBinding             policy.Bind
-	WholeRequestBinding                                            policy.Bind
-	Resource                                                       *OriginalResponseResourceFacts
-	Nonce, IssuedAt, Expires                                       string
-}
+type OriginalResponseTransportFacts = open.TaskAuthorityTransportDATA
+type OriginalWholeResponsePayload = open.TaskAuthorityResponsePayloadDATA
 
 // SDK owns final outer WIRE. Proof is OUTSIDE OriginalBody: no self-reference.
 type OriginalWholeResponseEvidence struct {
@@ -63,6 +30,7 @@ type OriginalWholeResponseEvidence struct {
 	Proof        policy.Proof
 }
 type OriginalWholeResponseExpected struct {
+	RequestOriginal                                                []byte
 	Call                                                           TaskAuthorityCall
 	History                                                        bool
 	Transport                                                      OriginalResponseTransportFacts
@@ -72,7 +40,7 @@ type OriginalWholeResponseExpected struct {
 
 type responseIssuerRegistration struct {
 	Authority, Realm, Tenant, Service, Epoch, PolicyRevision, Height string
-	Principal                                                        open.LegacyGrantRefV1
+	Principal                                                        open.TaskAuthorityFullRefDATA
 	Role, Purpose, Status, ObservedAt, Expires                       string
 	ChainID, PKA, PKB                                                []byte
 	ActiveFrom                                                       uint64
@@ -105,7 +73,7 @@ func (o *responseIssuerOwner) current(ctx context.Context) error {
 		return e
 	}
 	r := o.registration
-	if r.Authority == "" || r.Realm == "" || r.Tenant == "" || r.Principal.ID == "" || r.Principal.Realm != r.Realm || r.Principal.Tenant != r.Tenant || r.Role != r.Principal.Kind || (r.Role != "service" && r.Role != "organization") || r.Purpose != OriginalTaskResponseCandidatePurpose || r.Status != "active" || r.Service == "" || len(r.ChainID) != 32 || len(r.PKA) != core.PublicKeyASize || len(r.PKB) != core.PublicKeyBSize {
+	if r.Authority == "" || r.Realm == "" || r.Tenant == "" || r.Principal.ID == "" || r.Role != r.Principal.Kind || (r.Role != "service" && r.Role != "organization") || r.Purpose != OriginalTaskResponsePurpose || r.Status != "active" || r.Service == "" || len(r.ChainID) != 32 || len(r.PKA) != core.PublicKeyASize || len(r.PKB) != core.PublicKeyBSize {
 		return ErrWholeResponseUnavailable
 	}
 	at := time.Now().UnixMilli()
@@ -130,7 +98,7 @@ func (o *responseIssuerOwner) current(ctx context.Context) error {
 	if height < r.ActiveFrom || r.RevokedAt != nil && height >= *r.RevokedAt {
 		return ErrSourceCurrent
 	}
-	_, e = sourceUint(r.Principal.Rev)
+	_, e = open.EncodeTaskAuthorityFullRefDATA(r.Principal)
 	return e
 }
 func sourceUint(s string) (uint64, error) {
@@ -139,69 +107,6 @@ func sourceUint(s string) (uint64, error) {
 		return 0, ErrWholeResponse
 	}
 	return v, nil
-}
-func originalCallBinding(call TaskAuthorityCall, history bool) (OriginalResponseCallBinding, error) {
-	copied, e := authorityCall(call, history)
-	if e != nil {
-		return OriginalResponseCallBinding{}, e
-	}
-	g, e := open.DecodeBoundGrant(copied.Grant.Payload)
-	if e != nil {
-		return OriginalResponseCallBinding{}, e
-	}
-	body, e := originalAuthorityBodyDATA(copied, history)
-	if e != nil {
-		return OriginalResponseCallBinding{}, e
-	}
-	return OriginalResponseCallBinding{GrantRef: copied.GrantRef, GrantPayload: bindResult(copied.Grant.Payload), GrantWire: bindResult(copied.Grant.Wire), HolderPayload: bindResult(copied.Holder.Payload), HolderWire: bindResult(copied.Holder.Wire), Issuer: g.Issuer, Holder: g.Holder, IssuerEpoch: g.IssuerEpoch, HolderEpoch: g.HolderEpoch, Binding: g.Binding, RequestBinding: bindResult(body)}, nil
-}
-func payloadForOriginalResponse(reg responseIssuerRegistration, expected OriginalWholeResponseExpected, original []byte, issued, expires string) (OriginalWholeResponsePayload, error) {
-	call, e := originalCallBinding(expected.Call, expected.History)
-	if e != nil {
-		return OriginalWholeResponsePayload{}, e
-	}
-	result, e := originalServiceResultDATA(original, expected.Call, expected.History)
-	if e != nil {
-		return OriginalWholeResponsePayload{}, e
-	}
-	g, e := open.DecodeBoundGrant(expected.Call.Grant.Payload)
-	if e != nil || g.Realm != reg.Realm || g.Tenant != reg.Tenant || expected.Authority != reg.Authority || expected.Transport.Service != reg.Service || expected.Transport.ContentType != "application/json" || len(expected.Nonce) != 64 {
-		return OriginalWholeResponsePayload{}, ErrWholeResponse
-	}
-	n, e := hex.DecodeString(expected.Nonce)
-	if e != nil || hex.EncodeToString(n) != expected.Nonce {
-		return OriginalWholeResponsePayload{}, ErrWholeResponse
-	}
-	if expected.Transport.Action != "effect" && expected.Transport.Action != "query" || expected.History != (expected.Transport.Action == "query") || expected.Transport.Path == "" || expected.Transport.Origin == "" {
-		return OriginalWholeResponsePayload{}, ErrWholeResponse
-	}
-	var envelope serviceEnvelopeDATA
-	if json.Unmarshal(original, &envelope) != nil || envelope.OK && expected.Transport.StatusCode != 200 || !envelope.OK && expected.Transport.StatusCode != 409 {
-		return OriginalWholeResponsePayload{}, ErrWholeResponse
-	}
-	if expected.Account == "" || expected.CurrentTaskRevision == "" || expected.CurrentGeneration == "" {
-		return OriginalWholeResponsePayload{}, ErrWholeResponse
-	}
-	if _, e = sourceUint(expected.CurrentTaskRevision); e != nil {
-		return OriginalWholeResponsePayload{}, e
-	}
-	if _, e = sourceUint(expected.CurrentGeneration); e != nil {
-		return OriginalWholeResponsePayload{}, e
-	}
-	if _, e = sourceUint(expected.SourceExpires); e != nil {
-		return OriginalWholeResponsePayload{}, e
-	}
-	p := OriginalWholeResponsePayload{Version: responseCandidateVersion, Purpose: OriginalTaskResponseCandidatePurpose, Realm: reg.Realm, Tenant: reg.Tenant, Authority: reg.Authority, Account: expected.Account, CurrentTaskRevision: expected.CurrentTaskRevision, CurrentGeneration: expected.CurrentGeneration, SourceExpires: expected.SourceExpires, ResponseIssuer: reg.Principal, IssuerEpoch: reg.Epoch, PolicyRevision: reg.PolicyRevision, Height: reg.Height, ChainID: bytes.Clone(reg.ChainID), Call: call, Transport: expected.Transport, OperationID: result.OriginalOperation, State: result.State, OpaqueOriginalBinding: bindResult([]byte(result.Original)), WholeServiceResponseBinding: bindResult(original), Nonce: expected.Nonce, IssuedAt: issued, Expires: expires}
-	if result.Resource != nil {
-		r := result.Resource
-		p.Resource = &OriginalResponseResourceFacts{OperationID: r.OperationID, RemoteRef: r.RemoteRef, AuthScope: r.AuthScope, Source: r.Source, ResponseBinding: r.ResponseBinding}
-	}
-	request, e := originalRequestCandidateBytes(expected)
-	if e != nil {
-		return OriginalWholeResponsePayload{}, e
-	}
-	p.WholeRequestBinding = bindResult(request)
-	return p, nil
 }
 
 // Concrete protected-current/Core AND verifier. Its pin is supplied only by
@@ -213,84 +118,6 @@ func (v *OriginalWholeResponseVerifier) Current(ctx context.Context) error {
 		return ErrWholeResponseUnavailable
 	}
 	return v.issuer.current(ctx)
-}
-func (v *OriginalWholeResponseVerifier) Verify(ctx context.Context, expected OriginalWholeResponseExpected, evidence OriginalWholeResponseEvidence) (TaskAuthorityResult, error) {
-	var zero TaskAuthorityResult
-	if e := v.Current(ctx); e != nil {
-		return zero, e
-	}
-	start := time.Now().UnixMilli()
-	original := bytes.Clone(evidence.OriginalBody)
-	proof := policy.Proof{Purpose: evidence.Proof.Purpose, Payload: bytes.Clone(evidence.Proof.Payload), Wire: bytes.Clone(evidence.Proof.Wire)}
-	if proof.Purpose != OriginalTaskResponseCandidatePurpose || len(original) < 1 || len(original) > 1048576 || len(proof.Payload) > 65536 {
-		return zero, ErrWholeResponse
-	}
-	var p OriginalWholeResponsePayload
-	if decodeCanonicalSourceDATA(proof.Payload, &p) != nil {
-		return zero, ErrWholeResponse
-	}
-	canonical, e := canonicalOriginalJSON(p)
-	if e != nil || !bytes.Equal(canonical, proof.Payload) {
-		return zero, ErrWholeResponse
-	}
-	wanted, e := payloadForOriginalResponse(v.issuer.registration, expected, original, p.IssuedAt, p.Expires)
-	if e != nil || !reflect.DeepEqual(p, wanted) {
-		return zero, ErrWholeResponse
-	}
-	issued, e := sourceUint(p.IssuedAt)
-	if e != nil {
-		return zero, e
-	}
-	end, e := sourceUint(p.Expires)
-	if e != nil || end <= issued || end-issued > 60000 || start < 0 || uint64(start) < issued || uint64(start) >= end {
-		return zero, ErrWholeResponse
-	}
-	regEnd, _ := sourceUint(v.issuer.registration.Expires)
-	if end > regEnd {
-		return zero, ErrWholeResponse
-	}
-	sourceEnd, e := sourceUint(expected.SourceExpires)
-	if e != nil || end > sourceEnd {
-		return zero, ErrWholeResponse
-	}
-	member, e := core.DecodeMember(proof.Wire)
-	if e != nil || !bytes.Equal(member.Message, proof.Payload) {
-		return zero, ErrWholeResponse
-	}
-	r := v.issuer.registration
-	height, e := sourceUint(r.Height)
-	if e != nil {
-		return zero, e
-	}
-	verifier, e := core.NewVerifier(core.VerifierOptions{ChainID: bytes.Clone(r.ChainID), Purpose: OriginalTaskResponseCandidatePurpose, ResolveTrustedOwner: func(q core.TrustRequest) (core.Registration, error) {
-		if e := v.Current(ctx); e != nil {
-			return core.Registration{}, e
-		}
-		if q.Owner != r.Principal.ID || q.Purpose != OriginalTaskResponseCandidatePurpose || q.Height != height || !bytes.Equal(q.ChainID, r.ChainID) {
-			return core.Registration{}, ErrWholeResponse
-		}
-		return core.Registration{AlgorithmVersion: core.Version, Owner: r.Principal.ID, Purpose: OriginalTaskResponseCandidatePurpose, PolicyRevision: r.PolicyRevision, ChainID: bytes.Clone(r.ChainID), PKA: bytes.Clone(r.PKA), PKB: bytes.Clone(r.PKB), Enabled: true, ActiveFrom: r.ActiveFrom, RevokedAt: r.RevokedAt}, nil
-	}})
-	if e != nil {
-		return zero, e
-	}
-	defer verifier.Clear()
-	if e = verifier.VerifyOne(proof.Wire, height); e != nil {
-		return zero, e
-	}
-	result, e := originalServiceResultDATA(original, expected.Call, expected.History)
-	if e != nil {
-		return zero, e
-	}
-	if e = v.Current(ctx); e != nil {
-		return authorityObservationPartial(result), e
-	}
-	now := time.Now().UnixMilli()
-	if now < start || uint64(now) >= end || !bytes.Equal(original, evidence.OriginalBody) || !bytes.Equal(proof.Payload, evidence.Proof.Payload) || !bytes.Equal(proof.Wire, evidence.Proof.Wire) {
-		return authorityObservationPartial(result), ErrSourceCurrent
-	}
-	result.Resource = cloneTaskResource(result.Resource)
-	return result, nil
 }
 
 // Gate is the original same-authority Node Source/SQL + protected actual caller
@@ -383,7 +210,7 @@ func (s *OriginalWholeResponseIssuer) SignOriginalAuthorityResponse(ctx context.
 	if e != nil {
 		return evidence, e
 	}
-	wire, e := canonicalOriginalJSON(payload)
+	wire, e := open.EncodeTaskAuthorityResponsePayloadDATA(payload)
 	if e != nil {
 		return evidence, e
 	}
@@ -405,7 +232,7 @@ func (s *OriginalWholeResponseIssuer) SignOriginalAuthorityResponse(ctx context.
 	}
 	s.seen[expected.Nonce] = struct{}{}
 	s.mu.Unlock()
-	batch, e := core.BatchSign(s.key, core.Metadata{ChainID: bytes.Clone(s.issuer.registration.ChainID), Owner: s.issuer.registration.Principal.ID, Purpose: OriginalTaskResponseCandidatePurpose}, [][]byte{wire}, core.SignOptions{})
+	batch, e := core.BatchSign(s.key, core.Metadata{ChainID: bytes.Clone(s.issuer.registration.ChainID), Owner: s.issuer.registration.Principal.ID, Purpose: OriginalTaskResponsePurpose}, [][]byte{wire}, core.SignOptions{})
 	if e != nil {
 		return evidence, e
 	}
@@ -418,7 +245,7 @@ func (s *OriginalWholeResponseIssuer) SignOriginalAuthorityResponse(ctx context.
 	if e != nil {
 		return evidence, e
 	}
-	evidence = OriginalWholeResponseEvidence{OriginalBody: body, Proof: policy.Proof{Purpose: OriginalTaskResponseCandidatePurpose, Payload: wire, Wire: memberWire}}
+	evidence = OriginalWholeResponseEvidence{OriginalBody: body, Proof: policy.Proof{Purpose: OriginalTaskResponsePurpose, Payload: wire, Wire: memberWire}}
 	// Preserve an already-signed partial for custody/reconciliation on late error,
 	// but never return usable model data as business success or re-sign UNKNOWN.
 	partial := func(cause error) (OriginalWholeResponseEvidence, error) {
@@ -445,7 +272,7 @@ func (s *OriginalWholeResponseIssuer) SignOriginalAuthorityResponse(ctx context.
 	if e != nil {
 		return partial(e)
 	}
-	finalWire, e := canonicalOriginalJSON(finalPayload)
+	finalWire, e := open.EncodeTaskAuthorityResponsePayloadDATA(finalPayload)
 	if e != nil || !bytes.Equal(finalWire, wire) {
 		return partial(ErrSourceCurrent)
 	}
