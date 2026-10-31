@@ -156,3 +156,41 @@ test('T-REL-05 monotonic bridge actual producer-schema CLI delivers bounded read
   for(const [name,raw]of Object.entries(files))assert.deepEqual(fs.readFileSync(path.join(root,name)),raw);
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
+function declaredSourceFixture(){
+ const {x,report}=withOriginalMonotonicTrace(),journal=x.journalRaw.toString().trimEnd().split('\n'),seed=JSON.parse(journal[1]),inputRaw=Buffer.from(JSON.stringify({transactions:[seed.transaction]}));
+ const plan={schema:'YNX-PERF-DECLARED-COHORT/v1',manifestSha256:hash(x.manifestRaw),inputSha256:hash(inputRaw),genesisHash:'genesis',migrationHash:'migration',senders:1,rounds:2,offeredRate:1,windowStartNs:'0',windowEndNs:'2000000000',rows:[]};
+ for(let i=0;i<2;i++)plan.rows.push({id:hash(Buffer.from(JSON.stringify([plan.schema,plan.manifestSha256,plan.inputSha256,i,0,i+1]))),index:i,sender:0,round:i+1,signingMode:i?'online_signed':'pre_signed',logicalArrivalOffsetNs:String(i*1000000000)});
+ const planRaw=Buffer.from(JSON.stringify(plan)+'\n');report.senderMode='ready-pool';report.declaredCohort={schema:plan.schema,planSha256:hash(planRaw),planPath:'not-an-input-authority',windowCompleted:true,observationCutoffNs:'4000000000',releasedOffsetNs:['1','1000000001']};
+ report.monotonicObservations.observationCutoffNs='4000000000';report.monotonicObservations.rows=report.transactions.map((r,i)=>({slot:i,index:r.index,round:r.round,hash:r.hash,scheduledOffsetNs:String(i*1000000000),offeredOffsetNs:String(i*1000000000+100),submittedOffsetNs:String(i*1000000000+200),checkTxObservedOffsetNs:String(i*1000000000+300),includedObservedOffsetNs:String(i*1000000000+400),qualifiedFinalObservedOffsetNs:i?'2500000000':'500000000'}));
+ x.planRaw=planRaw;x.inputRaw=inputRaw;x.summaryRaw=Buffer.from(JSON.stringify(report));x.bindings.sha256.plan=hash(planRaw);x.bindings.sha256.input=hash(inputRaw);x.bindings.sha256.summary=hash(x.summaryRaw);return {x,report,plan,journal};
+}
+test('T-REL-05 declared source keeps fixed-window finals distinct from tail drain and signing groups',()=>{
+ const {x}=declaredSourceFixture();const missingPlan={...x};delete missingPlan.planRaw;delete missingPlan.inputRaw;assert.throws(()=>measureOriginalFinalCohort(missingPlan),/requires its original plan/);const r=measureOriginalFinalCohort(x);assert.equal(r.bench.cohort.counts.offered,2);assert.equal(r.bench.cohort.counts.committed_success,2);assert.equal(r.bench.cohort.counts.tailFinals,1);assert.equal(r.bench.cohort.window.finalCommitBusinessSuccess,1);assert.equal(r.bench.cohort.finalWindowRate.denominatorNs,'2000000000');assert.equal(r.bench.signingGroups.pre_signed.counts.offered,1);assert.equal(r.bench.signingGroups.online_signed.counts.offered,1);assert.equal(r.sustainedTPSQualified,false);
+});
+test('T-REL-05 declared source preserves unsigned and unsubmitted logical successors after failure',()=>{
+ const {x,report,journal}=declaredSourceFixture();x.journalRaw=Buffer.from(journal.slice(0,2).join('\n')+'\n');report.transactions[1]={index:1,round:2,hash:'',status:'not_submitted',errors:[]};report.summary.effectiveBusinessIncluded=1;report.summary.finalSubmitted=1;report.monotonicObservations.rows[1]={slot:1,index:1,round:2,hash:''};x.summaryRaw=Buffer.from(JSON.stringify(report));x.bindings.sha256.journal=hash(x.journalRaw);x.bindings.sha256.summary=hash(x.summaryRaw);
+ const r=measureOriginalFinalCohort(x);assert.equal(r.coverage.denominator,2);assert.equal(r.coverage.withoutDurableSignedIntent,1);assert.equal(r.bench.cohort.counts.unknown_or_unfinished,1);assert.equal(r.bench.cohort.latency.quantiles.p95.denominator,2);assert.equal(r.bench.cohort.latency.quantiles.p95.ns,null);assert.equal(r.bench.cohort.latency.slo.p95.deadlineExceeded,1);
+});
+test('T-REL-05 declared source refuses effects before generation and postselected source plans',()=>{
+ for(const mutate of [a=>a.report.declaredCohort.releasedOffsetNs[0]=null,a=>a.plan.rows[0].logicalArrivalOffsetNs='1',a=>a.report.declaredCohort.windowCompleted=false]){
+  const a=declaredSourceFixture();mutate(a);a.x.planRaw=Buffer.from(JSON.stringify(a.plan)+'\n');a.report.declaredCohort.planSha256=hash(a.x.planRaw);a.x.summaryRaw=Buffer.from(JSON.stringify(a.report));a.x.bindings.sha256.plan=hash(a.x.planRaw);a.x.bindings.sha256.summary=hash(a.x.summaryRaw);assert.throws(()=>measureOriginalFinalCohort(a.x));
+ }
+});
+test('T-REL-05 declared source withholds window rate when generation remains incomplete',()=>{
+ const {x,report,journal}=declaredSourceFixture();
+ x.journalRaw=Buffer.from(journal.slice(0,2).join('\n')+'\n');
+ report.transactions[1]={index:1,round:2,hash:'',status:'not_submitted',errors:[]};
+ report.monotonicObservations.rows[1]={slot:1,index:1,round:2,hash:''};
+ report.summary.effectiveBusinessIncluded=1;report.summary.finalSubmitted=1;
+ report.declaredCohort.releasedOffsetNs[1]=null;report.declaredCohort.windowCompleted=false;
+ x.summaryRaw=Buffer.from(JSON.stringify(report));x.bindings.sha256.summary=hash(x.summaryRaw);x.bindings.sha256.journal=hash(x.journalRaw);
+ const r=measureOriginalFinalCohort(x);assert.equal(r.coverage.denominator,2);assert.equal(r.coverage.notReleased,1);assert.equal(r.bench,null);assert.equal(r.reportedTerminalCounts.unknown_or_unfinished,1);
+});
+test('T-REL-05 declared source actual CLI consumes persisted plan and seed through the original entry',()=>{
+ const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ynx-declared-flow-')));try{
+  const {x}=declaredSourceFixture(),files={manifest:x.manifestRaw,journal:x.journalRaw,summary:x.summaryRaw,plan:x.planRaw,input:x.inputRaw,bindings:Buffer.from(JSON.stringify(x.bindings))};
+  for(const [name,raw]of Object.entries(files))fs.writeFileSync(path.join(root,name),raw,{mode:0o600});
+  const script=fileURLToPath(new URL('./same-control-readback.mjs',import.meta.url)),out=path.join(root,'result.json'),args=[script,...Object.keys(files).flatMap(k=>['--'+k,path.join(root,k)]),'--output',out];
+  const r=spawnSync(process.execPath,args,{encoding:'utf8',timeout:10000});assert.equal(r.status,0,r.stderr);const data=JSON.parse(fs.readFileSync(out));assert.equal(data.coverage.denominator,2);assert.equal(data.bench.cohort.window.finalCommitBusinessSuccess,1);assert.equal(data.bench.cohort.counts.tailFinals,1);for(const [name,raw]of Object.entries(files))assert.deepEqual(fs.readFileSync(path.join(root,name)),raw);
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});

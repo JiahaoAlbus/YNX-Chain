@@ -37,6 +37,7 @@ func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
 
 func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...bool) {
 	segmented := len(segmentOption) > 0 && segmentOption[0]
+	declared := len(segmentOption) > 1 && segmentOption[1]
 	path, manifest, m, migration, initial := senderFixture(t)
 	p, err := loadSenderPool(path, manifest, m, migration, initial, 2)
 	if err != nil {
@@ -70,7 +71,29 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	var finalizeNs, commitNs int64
 	var finalizeCalls, commitCalls int
 	controllerStarted := time.Now()
-	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, terminalSink: stream.append, reuseResultSlots: reuseSlots, segmentedIntents: segmented}, p, txs, results,
+	var cohort *declaredCohort
+	if declared {
+		input := transactionInput{}
+		for _, raw := range initial {
+			input.Transactions = append(input.Transactions, base64.StdEncoding.EncodeToString(raw))
+		}
+		inputRaw, _ := json.Marshal(input)
+		rate := float64(2048)
+		window := time.Duration(float64(6) * float64(time.Second) / rate)
+		plan, err := makeDeclaredCohortPlan(manifest, inputRaw, m.GenesisHash, m.MigrationStateHash, 3, 2, 2048, window)
+		if err != nil {
+			t.Fatal(err)
+		}
+		planPath := filepath.Join(t.TempDir(), "declared-plan.json")
+		digest, err := persistDeclaredCohort(planPath, plan)
+		if err != nil {
+			t.Fatal(err)
+		}
+		controllerStarted = time.Now()
+		cohort = startDeclaredCohort(ctx, controllerStarted, planPath, plan, digest)
+		defer cohort.finish(ctx, false)
+	}
+	stats, err := runReadySenderPool(ctx, options{cohort: cohort, rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, terminalSink: stream.append, reuseResultSlots: reuseSlots, segmentedIntents: segmented}, p, txs, results,
 		func(index int) (time.Time, bool) {
 			var data []byte
 			var readErr error
@@ -156,6 +179,24 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	if err != nil || !fastOffered.Load() || stats.Completed != 6 || stats.Offered != 6 || stats.Prepared != 6 || stats.RoundsCompleted != 2 || stats.Quarantined != 0 || stats.PeakInFlight > 3 || !p.stopped {
 		t.Fatalf("continuous ready run failed: %+v %v", stats, err)
 	}
+	if cohort != nil {
+		if err := cohort.finish(ctx, true); err != nil {
+			t.Fatal(err)
+		}
+		snapshot := cohort.snapshot(time.Now())
+		if !snapshot.WindowCompleted {
+			t.Fatal("real signed workflow lost declared window")
+		}
+		for _, r := range results {
+			if r.offerMonotonic.Before(cohort.releaseTimes[r.Index]) {
+				t.Fatal("actual offer preceded logical release")
+			}
+		}
+		if stats.Supply.SignedSuccessors != 3 {
+			t.Fatal("online successor signing was omitted")
+		}
+	}
+
 	if stats.Supply.SignAttempts != 3 || stats.Supply.EncodeAttempts != 3 || stats.Supply.SignedSuccessors != 3 || stats.Supply.JournalDurableEnvelopes != 6 || stats.Supply.JournalAppendAttempts < 2 || stats.Supply.JournalDurableBytes <= 0 || stats.Supply.SignNs <= 0 || stats.Supply.EncodeNs <= 0 || stats.Supply.JournalAppendNs <= 0 || stats.Supply.JournalSetupNs <= 0 {
 		t.Fatalf("supply stages do not match actual signed/durable workload: %+v", stats.Supply)
 	}

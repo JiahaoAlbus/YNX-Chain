@@ -38,6 +38,8 @@ import (
 const maxTransactions = consensus.EphemeralWorkloadMaxTransactions
 
 type options struct {
+	cohortWindow                                                                 time.Duration
+	cohort                                                                       *declaredCohort
 	manifest, transactions, output                                               string
 	pqWholeWire, pqMemberWire, pqRegistrationWire, pqGateway                     string
 	pqReadbackOnly, pqCollectProof, pqReadbackIndexBaseline                      bool
@@ -166,6 +168,7 @@ type summary struct {
 }
 
 type report struct {
+	DeclaredCohort        *declaredCohortReport `json:"declaredCohort,omitempty"`
 	measurementOrigin     time.Time
 	MonotonicObservations *monotonicObservationReport `json:"monotonicObservations,omitempty"`
 	SchemaVersion         int                         `json:"schemaVersion"`
@@ -228,6 +231,7 @@ func main() {
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
 	flag.BoolVar(&o.segmentedIntents, "segmented-intents", false, "durable signed-input segments; requires ready-pool, terminal-stream and slot reuse; finite caps unchanged")
 	flag.BoolVar(&o.reuseResultSlots, "reuse-result-slots", false, "one result slot per sender with cumulative interval statistics; requires terminal-stream; finite caps unchanged")
+	flag.DurationVar(&o.cohortWindow, "cohort-window", 0, "opt-in fixed logical-arrival window; ready-pool/full-history only, planned count / offered-rate, within original timeout")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "unexpected positional arguments")
@@ -241,7 +245,13 @@ func main() {
 
 func validateOptions(o options) error {
 	if pqWholeCaseSelected(o) {
+		if o.cohortWindow != 0 {
+			return errors.New("declared cohort is not supported by the separate PQ case")
+		}
 		return validatePQWholeCaseOptions(o)
+	}
+	if o.cohortWindow < 0 || o.cohortWindow > o.timeout || o.cohortWindow > 30*time.Second || o.cohortWindow > 0 && (o.senderMode != "ready-pool" || o.reuseResultSlots || o.terminalStream || o.output == "" || o.offeredRate <= 0) {
+		return errors.New("declared cohort requires original bounded ready-pool full history and unchanged timeout")
 	}
 	if o.inclusionMode != "" && o.inclusionMode != "tx-query" && o.inclusionMode != "block-scan" {
 		return errors.New("unsupported inclusion mode")
@@ -830,6 +840,9 @@ func qualifiedBusinessFinal(r transactionResult) bool {
 
 func execute(o options) error {
 	if pqWholeCaseSelected(o) {
+		if o.cohortWindow != 0 {
+			return errors.New("declared cohort is not supported by the separate PQ case")
+		}
 		return executePQWholeCase(o)
 	}
 	if o.inclusionMode == "" {
@@ -878,6 +891,7 @@ func execute(o options) error {
 	if o.segmentedIntents {
 		r.Interpretation = append(r.Interpretation, "Signed-input waves use private hash-chained segments persisted before dispatch. readySenders.intentSegments binds their completed inventory. Failed or missing receipt evidence is never a resubmission authorization. Workload and byte caps are unchanged.")
 	}
+	var cohort *declaredCohort
 	runErr := func() error {
 		data, err := readBounded(o.manifest, 1024*1024)
 		if err != nil {
@@ -915,6 +929,7 @@ func execute(o options) error {
 		if err != nil {
 			return err
 		}
+		inputRaw := append([]byte(nil), data...)
 		txs, err := decodeTransactions(data)
 		if err != nil {
 			return err
@@ -924,6 +939,13 @@ func execute(o options) error {
 		}
 		if len(txs)*o.rounds > maxTransactions {
 			return errors.New("total round transactions exceed bounded input limit")
+		}
+		var cohortPlan declaredCohortPlan
+		if o.cohortWindow > 0 {
+			cohortPlan, err = makeDeclaredCohortPlan(manifestRaw, inputRaw, m.GenesisHash, m.MigrationStateHash, len(txs), o.rounds, o.offeredRate, o.cohortWindow)
+			if err != nil {
+				return err
+			}
 		}
 		var pool *ephemeralSenderPool
 		if o.rounds > 1 {
@@ -965,7 +987,22 @@ func execute(o options) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
+		var planDigest, planPath string
+		if o.cohortWindow > 0 {
+			planPath = o.output + ".cohort-plan.json"
+			planDigest, err = persistDeclaredCohort(planPath, cohortPlan)
+			if err != nil {
+				return err
+			}
+		}
 		started := time.Now()
+		if o.cohortWindow > 0 {
+			if deadline, ok := ctx.Deadline(); !ok || started.Add(o.cohortWindow).After(deadline) {
+				return errors.New("predeclared window cannot fit original remaining timeout; plan retained")
+			}
+			cohort = startDeclaredCohort(ctx, started, planPath, cohortPlan, planDigest)
+			o.cohort = cohort
+		}
 		at := started.UTC()
 		r.MeasurementStartedAt = &at
 		r.measurementOrigin = started
@@ -1022,9 +1059,15 @@ func execute(o options) error {
 			}
 		}
 		r.SenderMode = o.senderMode
+		if o.cohortWindow > 0 {
+			r.Interpretation = append(r.Interpretation, "Declared logical arrivals and a fixed window were persisted before dispatch. Legacy Summary rates still include drain; use declaredCohort plus monotonic observations for fixed-window accounting. No physical Commit timestamp or sustained TPS is inferred.")
+		}
 		r.InclusionMode = o.inclusionMode
 		if o.senderMode == "ready-pool" {
 			r.LoadMode = "paced_ready_sender_pool_and_grouped_observation"
+			if o.cohortWindow > 0 {
+				r.LoadMode = "declared_open_loop_arrival_with_ready_sender_admission"
+			}
 			var stream *terminalStream
 			if o.terminalStream {
 				stream, err = newTerminalStream(o.output+".terminal-stream", pool)
@@ -1102,7 +1145,11 @@ func execute(o options) error {
 		}
 		return nil
 	}()
+	if cohort != nil {
+		runErr = errors.Join(runErr, cohort.finish(ctx, true))
+	}
 	finished := time.Now()
+	r.DeclaredCohort = cohort.snapshot(finished)
 	r.FinishedAt = finished.UTC()
 	if !o.reuseResultSlots {
 		r.MonotonicObservations = captureMonotonicReport(r.measurementOrigin, finished, r.Transactions)

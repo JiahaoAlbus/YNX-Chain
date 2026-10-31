@@ -423,6 +423,13 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			raw := p.pending[sender]
 			if last[sender] >= 0 {
 				index = last[sender] + senders
+			}
+			if err = o.cohort.waitArrival(ctx, index); err != nil {
+				runErr = err
+				break
+			}
+			if last[sender] >= 0 {
+				index = last[sender] + senders
 				raw, err = p.nextForSenderMeasured(sender, results[storageIndex(last[sender])], &stats.Supply)
 			}
 			if err != nil {

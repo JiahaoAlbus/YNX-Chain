@@ -10,6 +10,8 @@ import (
 // journal/manifest identities and existing qualifiedBusinessFinal remain required.
 const monotonicObservationSchema = "YNX-PERF-MONOTONIC-OBSERVATIONS/v1"
 
+// The following flags describe this point-only projection. An opt-in
+// declaredCohort separately owns its source demand, releases and fixed window.
 type monotonicObservationReport struct {
 	Schema                    string                    `json:"schema"`
 	Clock                     string                    `json:"clock"`
