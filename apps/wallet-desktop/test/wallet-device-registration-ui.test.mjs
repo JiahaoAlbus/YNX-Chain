@@ -25,3 +25,12 @@ test('held originals can be saved from the locked panel without querying history
  const ui=bindDeviceRegistrationUI({root:{querySelector:id=>nodes.get(id),createElement:()=>new Element()},readContext:()=>context,readCreation:()=>({phase:'idle'}),api:{async deviceRegistrationStatus(){return{ok:true,value:{...state}};},async deviceRegistrationHistory(){calls.push('history');return{ok:true,value:[]};},async saveDeviceCompletionOriginal(...args){calls.push(['local-save',args]);state.localSaveRequired=false;return{ok:true,value:{stored:true,queryOnly:true,canRetry:false}};}}});
  await ui.refresh();const save=nodes.get('#app-device-local-save');assert.equal(save.hidden,false);assert.equal(save.disabled,false);await save.events.click();assert.deepEqual(calls,[['local-save',['e'.repeat(64)]]]);assert.equal(save.hidden,true);assert.match(nodes.get('#app-device-local-save-status').textContent,/remains read-only/);
 });
+test('a successful IPC envelope without confirmed original storage never displays a saved result',async()=>{
+ for(const value of [undefined,{stored:false},{stored:true,queryOnly:false},{stored:true,queryOnly:true,canRetry:true}]){
+  const nodes=new Map(),events={};for(const id of ['#app-device-register','#app-device-register-cancel','#app-device-register-status','#app-device-local-save','#app-device-local-save-status'])nodes.set(id,{textContent:'',addEventListener:(name,fn)=>{events[id+name]=fn;}});
+  const state={phase:'original-completion-unknown',phaseKind:'completion',requestDigest:'f'.repeat(64),localSaveAvailable:true,localSaveRequired:true,queryOnly:true};
+  const ui=bindDeviceRegistrationUI({root:{querySelector:id=>nodes.get(id)},readContext:()=>({account:'PUBLIC',revision:1,locked:true}),readCreation:()=>({phase:'idle'}),api:{async deviceRegistrationStatus(){return{ok:true,value:state};},async saveDeviceCompletionOriginal(){return{ok:true,value};}}});
+  await ui.refresh();await events['#app-device-local-saveclick']();
+  assert.match(nodes.get('#app-device-local-save-status').textContent,/Local save unconfirmed/);assert.equal(nodes.get('#app-device-local-save').hidden,false);
+ }
+});

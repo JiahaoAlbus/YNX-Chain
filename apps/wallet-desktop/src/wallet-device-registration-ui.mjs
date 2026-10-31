@@ -66,7 +66,7 @@ export function bindDeviceRegistrationUI({root,api,readContext,readCreation}){
  });
  localSave?.addEventListener('click',async()=>{
   if(localSave.disabled||localSave.hidden||busy)return;const selected=snapshot(),digest=state.requestDigest;busy=true;render();
-  try{const result=await api.saveDeviceCompletionOriginal(digest);if(!sameSnapshot(selected))return;localSaveResult={selection:selected,message:result?.ok?'原件已保存，原操作仍只读。 / Original saved; the operation remains read-only.':'本地保存未确认，原件仍被保留。 / Local save unconfirmed; original retained.'};}
+  try{const result=await api.saveDeviceCompletionOriginal(digest);if(!sameSnapshot(selected))return;localSaveResult={selection:selected,message:result?.ok===true&&result.value?.stored===true&&result.value?.queryOnly===true&&result.value?.canRetry===false?'原件已保存，原操作仍只读。 / Original saved; the operation remains read-only.':'本地保存未确认，原件仍被保留。 / Local save unconfirmed; original retained.'};}
   catch{if(sameSnapshot(selected))localSaveResult={selection:selected,message:'本地保存未确认，原件仍被保留。 / Local save unconfirmed; original retained.'};}
   finally{busy=false;await refresh();render();}
  });
