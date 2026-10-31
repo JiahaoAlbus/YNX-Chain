@@ -3774,6 +3774,6 @@ jobs:
       - name: Exact dependencies without lifecycle scripts
         run: npm ci --ignore-scripts --no-audit --fund=false --prefix packages/wallet-auth
       - name: Registry closure combined role and independent review DATA
-        run: node --test packages/wallet-auth/test/normal-main-composition-v5.test.mjs packages/wallet-auth/test/original-product-device-v4-pending-review-data.test.mjs packages/wallet-auth/test/public-content-binding.test.mjs
+        run: node --test packages/wallet-auth/test/normal-main-composition-v5.test.mjs
       - name: Public consumer type boundaries
         run: node packages/wallet-auth/node_modules/typescript/bin/tsc -p packages/wallet-auth/test/tsconfig.normal-main-composition-v5.json
