@@ -1,0 +1,114 @@
+{
+  "status": "IDENTITY_EVENT_PROPOSAL_NOT_FROZEN_CHALLENGE_HAS_SEPARATE_FROZEN_SCHEMA",
+  "schemaVersion": "YNX-OPEN/v1-draft.1",
+  "genericFraming": {
+    "grammar": "E = U32BE(count) || (U32BE(fieldLength) || fieldBytes)*",
+    "maxControlBytes": 1048576,
+    "maxFields": 1024,
+    "maxNesting": 16
+  },
+  "roleAuthentication": {
+    "totalFields": 10,
+    "fieldOrder": [
+      "domainByRole",
+      "realm",
+      "networkBinding",
+      "action",
+      "audience",
+      "eventBytes",
+      "challenge32",
+      "notAfter",
+      "expectedEpoch",
+      "nextEpoch"
+    ],
+    "domainPattern": "YNX-OPEN/<type>/1",
+    "domainByRole": {
+      "controller": "YNX-OPEN/IDENTITY-CONTROLLER/1",
+      "oldKey": "YNX-OPEN/IDENTITY-OLD-PAIR/1",
+      "newPoP": "YNX-OPEN/IDENTITY-NEW-POP/1",
+      "recovery": "YNX-OPEN/IDENTITY-RECOVERY/1"
+    },
+    "realmProposal": {
+      "encoding": "raw ID16",
+      "confirmed": true
+    },
+    "networkBindingProposal": {
+      "encoding": "E(ASCII offchain) OR E(ASCII ynx-chain, genesis32, nativeChainIdU64BE, networkId32)",
+      "confirmed": true
+    },
+    "actionProposal": {
+      "encoding": "exact enum UTF8",
+      "values": [
+        "register",
+        "rotate",
+        "suspend",
+        "revoke",
+        "recover"
+      ],
+      "confirmed": false
+    },
+    "audienceProposal": {
+      "encoding": "raw registered service ID16",
+      "confirmed": true
+    },
+    "challenge32": {
+      "bytes": 32,
+      "maxLifetimeSeconds": 60,
+      "oneTimeStore": "Auth owned; not supplied by codec"
+    },
+    "integerProposal": {
+      "fields": [
+        "notAfter",
+        "expectedEpoch",
+        "nextEpoch"
+      ],
+      "encoding": "U64BE",
+      "timeUnit": "Unix milliseconds for notAfter",
+      "confirmed": true
+    },
+    "epochs": {
+      "register": {
+        "expected": "0",
+        "next": "1"
+      },
+      "rotateRecover": "strict +1; uint64 overflow rejected"
+    },
+    "protectedValidator": "Auth owner must bind exact role/action/domain and authenticated current issuer; no generic signer or interchangeable role proof"
+  },
+  "identityEventProposal": {
+    "fieldOrder": [
+      "id",
+      "subject",
+      "action",
+      "fromEpoch",
+      "toEpoch",
+      "newPair",
+      "trust",
+      "policy",
+      "previous",
+      "bound"
+    ],
+    "source": "OPEN packet logical KeyEvent type; physical mapping awaiting Auth agreement",
+    "id": "raw16",
+    "subjectRefProposal": "E(realm16, tenant16, kindUTF8, id16, revisionU64BE)",
+    "newPairProposal": "E(presentU8, suiteTagUTF8, pkA, pkB) when present; E(absentU8) when absent; tag bytes not yet assigned",
+    "previousProposal": "E(presentU8, previousId16) or E(absentU8); tag bytes not yet assigned",
+    "boundProposal": "E(byteLengthU64BE, SHA3-512[64], SHA-512[64])",
+    "confirmed": false
+  },
+  "requiredAuthDecisions": [
+    "complete IdentityEvent field sequence and Ref representation",
+    "presence tag bytes and allowed action-specific nulls",
+    "role-specific protected verifier contract/current policy"
+  ],
+  "existingGoldenVectorScope": "YNX-BATCH Context generic E only; not a new OPEN semantic/signature vector",
+  "notImplemented": [
+    "IdentityEvent and role-proof domain mapping beyond the separately implemented challenge profile",
+    "signature verification",
+    "one-time challenge authority",
+    "Grant",
+    "Task",
+    "Disclosure",
+    "admission"
+  ]
+}
