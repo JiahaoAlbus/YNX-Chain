@@ -30,6 +30,7 @@ type Reactor struct {
 	wireObserver        atomic.Pointer[WireObserver]
 	wireObserverMu      sync.Mutex
 	wireObserverStarted bool
+	losslessHex         atomic.Pointer[losslessHexTransport]
 
 	// Semaphores to keep track of how many connections to peers are active for broadcasting
 	// transactions. Each semaphore has a capacity that puts an upper bound on the number of
@@ -85,7 +86,7 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 		},
 	}
 
-	return []*p2p.ChannelDescriptor{
+	channels := []*p2p.ChannelDescriptor{
 		{
 			ID:                  MempoolChannel,
 			Priority:            5,
@@ -93,6 +94,10 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 			MessageType:         &protomem.Message{},
 		},
 	}
+	if transport := memR.losslessHex.Load(); transport != nil {
+		channels = append(channels, transport.channel())
+	}
+	return channels
 }
 
 // AddPeer implements Reactor.
@@ -150,43 +155,13 @@ func (memR *Reactor) Receive(e p2p.Envelope) {
 	memR.Logger.Debug("Receive", "src", e.Src, "chId", e.ChannelID, "msg", e.Message)
 	switch msg := e.Message.(type) {
 	case *protomem.Txs:
-		observer := memR.wireObserver.Load()
-		if observer != nil {
-			observer.received(msg)
-		}
-		protoTxs := msg.GetTxs()
-		if len(protoTxs) == 0 {
-			memR.Logger.Error("received empty txs from peer", "src", e.Src)
+		if e.ChannelID == LosslessHexV1Channel {
+			memR.rejectLosslessHex(e, fmt.Errorf("legacy Txs on experimental channel"))
 			return
 		}
-		txInfo := TxInfo{SenderID: memR.ids.GetForPeer(e.Src)}
-		if e.Src != nil {
-			txInfo.SenderP2PID = e.Src.ID()
-		}
-
-		var err error
-		for _, tx := range protoTxs {
-			ntx := types.Tx(tx)
-			var started time.Time
-			if observer != nil {
-				started = time.Now()
-			}
-			err = memR.mempool.CheckTx(ntx, nil, txInfo)
-			if observer != nil {
-				observer.checked(time.Since(started), err)
-			}
-			if err != nil {
-				switch {
-				case errors.Is(err, ErrTxInCache):
-					memR.Logger.Debug("Tx already exists in cache", "tx", ntx.String())
-				case errors.As(err, &ErrMempoolIsFull{}):
-					// using debug level to avoid flooding when traffic is high
-					memR.Logger.Debug(err.Error())
-				default:
-					memR.Logger.Info("Could not check tx", "tx", ntx.String(), "err", err)
-				}
-			}
-		}
+		memR.receiveOriginalTxs(e, msg)
+	case *protomem.LosslessHexV1:
+		memR.receiveLosslessHex(e, msg)
 	default:
 		memR.Logger.Error("unknown message type", "src", e.Src, "chId", e.ChannelID, "msg", e.Message)
 		memR.Switch.StopPeerForError(e.Src, fmt.Errorf("mempool cannot handle message of type: %T", e.Message))
@@ -194,6 +169,48 @@ func (memR *Reactor) Receive(e p2p.Envelope) {
 	}
 
 	// broadcasting happens from go routines per peer
+}
+
+// Both carriers enter this unchanged original path with complete original C.
+// Packed bytes/hash metadata never reach CheckTx, its cache, TxKey or ABCI.
+func (memR *Reactor) receiveOriginalTxs(e p2p.Envelope, msg *protomem.Txs) {
+	observer := memR.wireObserver.Load()
+	if observer != nil {
+		observer.received(msg)
+	}
+	protoTxs := msg.GetTxs()
+	if len(protoTxs) == 0 {
+		memR.Logger.Error("received empty txs from peer", "src", e.Src)
+		return
+	}
+	txInfo := TxInfo{SenderID: memR.ids.GetForPeer(e.Src)}
+	if e.Src != nil {
+		txInfo.SenderP2PID = e.Src.ID()
+	}
+
+	var err error
+	for _, tx := range protoTxs {
+		ntx := types.Tx(tx)
+		var started time.Time
+		if observer != nil {
+			started = time.Now()
+		}
+		err = memR.mempool.CheckTx(ntx, nil, txInfo)
+		if observer != nil {
+			observer.checked(time.Since(started), err)
+		}
+		if err != nil {
+			switch {
+			case errors.Is(err, ErrTxInCache):
+				memR.Logger.Debug("Tx already exists in cache", "tx", ntx.String())
+			case errors.As(err, &ErrMempoolIsFull{}):
+				// using debug level to avoid flooding when traffic is high
+				memR.Logger.Debug(err.Error())
+			default:
+				memR.Logger.Info("Could not check tx", "tx", ntx.String(), "err", err)
+			}
+		}
+	}
 }
 
 // PeerState describes the state of a peer.
@@ -205,6 +222,8 @@ type PeerState interface {
 func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	peerID := memR.ids.GetForPeer(peer)
 	var next *clist.CElement
+	var pendingTx *mempoolTx
+	var pendingEnvelope p2p.Envelope
 
 	for {
 		// In case of both next.NextWaitChan() and peer.Quit() are variable at the same time
@@ -252,23 +271,28 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 
 		if !memTx.isSender(peerID) {
 			msg := &protomem.Txs{Txs: [][]byte{memTx.tx}}
+			if pendingTx != memTx {
+				// Select one carrier for this logical send. A queue rejection
+				// retries the SAME envelope; it never guesses packed then raw.
+				pendingTx = memTx
+				pendingEnvelope = memR.losslessHexEnvelope(peer, msg)
+			}
 			observer := memR.wireObserver.Load()
 			var started time.Time
 			if observer != nil {
 				started = time.Now()
 			}
-			success := peer.Send(p2p.Envelope{
-				ChannelID: MempoolChannel,
-				Message:   msg,
-			})
+			success := peer.Send(pendingEnvelope)
 			if observer != nil {
 				observer.sent(msg, time.Since(started), success)
 			}
+			memR.recordLosslessHexSend(pendingEnvelope, success)
 			if !success {
 				time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
 				continue
 			}
 		}
+		pendingTx = nil
 
 		select {
 		case <-next.NextWaitChan():

@@ -12,3 +12,11 @@ message Message {
     Txs txs = 1;
   }
 }
+
+// Experimental version-one lossless hex carrier. This message is registered
+// only on its own opt-in channel; it never changes the legacy Message/Txs wire.
+// frame is bounded and restored before the original CheckTx/cache/TxKey path.
+// Its embedded original hash is integrity metadata, never authorization.
+message LosslessHexV1 {
+  bytes frame = 1;
+}

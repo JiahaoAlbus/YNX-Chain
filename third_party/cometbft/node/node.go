@@ -85,7 +85,8 @@ type Node struct {
 	prometheusSrv     *http.Server
 	pprofSrv          *http.Server
 
-	proofSourceConsumer proofSourceConsumerLifetime // optional read-only consumer, joined before closing stores
+	proofSourceConsumer          proofSourceConsumerLifetime // optional read-only consumer, joined before closing stores
+	experimentalMempoolWireError error                       // fail closed during explicit source-lab option registration
 }
 
 // Option sets a parameter for the node.
@@ -128,6 +129,60 @@ func CustomReactors(reactors map[string]p2p.Reactor) Option {
 				n.Logger.Error("Node info is not of type DefaultNodeInfo. Custom reactor channels can not be added.")
 			}
 		}
+	}
+}
+
+// ExperimentalMempoolLosslessHex explicitly registers the source-lab v1
+// carrier on the normal node's existing mempool reactor and authenticated
+// NodeInfo. Default node construction does not call it or advertise its channel.
+// This is not production activation or evidence of a physical-byte/TPS gain.
+func ExperimentalMempoolLosslessHex(limits mempl.LosslessHexLimits) Option {
+	return func(n *Node) {
+		if n.experimentalMempoolWireError != nil {
+			return
+		}
+		fail := func(err error) {
+			n.experimentalMempoolWireError = fmt.Errorf("experimental mempool lossless hex: %w", err)
+		}
+		reactor, ok := n.mempoolReactor.(*mempl.Reactor)
+		if !ok || n.sw.Reactor("MEMPOOL") != reactor {
+			fail(fmt.Errorf("original flood mempool reactor required"))
+			return
+		}
+		info, ok := n.nodeInfo.(p2p.DefaultNodeInfo)
+		if !ok || info.HasChannel(mempl.LosslessHexV1Channel) {
+			fail(fmt.Errorf("unclaimed DefaultNodeInfo capability required"))
+			return
+		}
+		for _, other := range n.sw.Reactors() {
+			for _, ch := range other.GetChannels() {
+				if ch.ID == mempl.LosslessHexV1Channel {
+					fail(fmt.Errorf("version-one experiment channel already owned"))
+					return
+				}
+			}
+		}
+		if n.IsRunning() || n.sw.IsRunning() {
+			fail(fmt.Errorf("registration must precede node start"))
+			return
+		}
+		// Remove with the ORIGINAL descriptor list, then enable and register
+		// the same reactor. No p2p internals or legacy message codec is changed.
+		n.sw.RemoveReactor("MEMPOOL", reactor)
+		if err := reactor.EnableExperimentalLosslessHex(limits); err != nil {
+			n.sw.AddReactor("MEMPOOL", reactor)
+			fail(err)
+			return
+		}
+		n.sw.AddReactor("MEMPOOL", reactor)
+		info.Channels = append(append([]byte(nil), info.Channels...), mempl.LosslessHexV1Channel)
+		if err := info.Validate(); err != nil {
+			fail(err)
+			return
+		}
+		n.nodeInfo = info
+		n.sw.SetNodeInfo(info)
+		n.transport.AddChannel(mempl.LosslessHexV1Channel)
 	}
 }
 
@@ -558,6 +613,9 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 
 	for _, option := range options {
 		option(node)
+	}
+	if node.experimentalMempoolWireError != nil {
+		return nil, node.experimentalMempoolWireError
 	}
 
 	constructed = true
