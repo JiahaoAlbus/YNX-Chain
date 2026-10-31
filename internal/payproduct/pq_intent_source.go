@@ -8,7 +8,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 )
 
@@ -61,27 +60,21 @@ func (s *registeredNativeInvoiceIntentSource) ResolveInvoiceIntent(ctx context.C
 	if hashJSON(original.Intent) != hashJSON(a.Intent) || original.MerchantAccount != a.Intent.Merchant || original.ProductMerchantID == "" || original.Terms.Recipient != a.Intent.Recipient || original.StoreID != a.Intent.StoreID || (a.Intent.ProductID == "shop.order" && original.StoreID == "") {
 		return empty, errors.New("current original product/merchant/store/bill binding unavailable")
 	}
-	// Source supplies the association; recipient equality cannot discover it.
-	err = s.parent.store.View(func(data Snapshot) error {
-		if err := original.Current(); err != nil {
-			return err
-		}
-		merchant, ok := data.Merchants[original.ProductMerchantID]
-		recipient, e := accountaddress.Normalize(merchant.PayoutAddress)
-		if !ok || merchant.Status != "active" || e != nil || recipient != original.Terms.Recipient {
-			return ErrNativePayUnavailable
-		}
-		if a.Operation == "merchant_review" || a.Operation == "submit_merchant_member" {
-			account, e := accountaddress.Encode(original.Caller)
-			member, ok := data.MerchantMembers[original.ProductMerchantID+":"+account]
-			if e != nil || !ok || member.Status != "active" || !roleAllows(member.Role, "invoice") {
-				return ErrNativePayUnavailable
-			}
-		}
-		return nil
-	})
+	// Source supplies the actual association; recipient equality cannot discover
+	// it. Capture once outside the lock, then recheck this local commit generation
+	// inside every original Store mutation without re-entering Store.View.
+	fence, err := s.parent.store.CaptureNativeMerchantFence(original.ProductMerchantID, original.Caller, original.Terms.Recipient, a.Operation == "merchant_review" || a.Operation == "submit_merchant_member")
 	if err != nil {
 		return empty, err
 	}
-	return NativeInvoiceIntentBinding{Caller: original.Caller, Merchant: original.MerchantAccount, Terms: original.Terms, Until: original.Until, Current: original.Current}, nil
+	current := func() error {
+		if err := original.Current(); err != nil {
+			return err
+		}
+		return fence.Current()
+	}
+	if err = current(); err != nil {
+		return empty, err
+	}
+	return NativeInvoiceIntentBinding{Caller: original.Caller, Merchant: original.MerchantAccount, Terms: original.Terms, Until: original.Until, Current: current}, nil
 }

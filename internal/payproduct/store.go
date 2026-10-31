@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,14 +23,15 @@ type diskEnvelope struct {
 
 type Store struct {
 	// Request-scoped authorization shares the original durable Store and lock.
-	parent       *Store
-	authorize    func() (func(*Snapshot) error, error)
-	consume      func(*Snapshot) error
-	afterCommit  func()
-	mu           sync.RWMutex
-	path         string
-	integrityKey []byte
-	data         Snapshot
+	parent            *Store
+	authorize         func() (func(*Snapshot) error, error)
+	consume           func(*Snapshot) error
+	afterCommit       func()
+	mu                sync.RWMutex
+	path              string
+	integrityKey      []byte
+	data              Snapshot
+	merchantAuthority atomic.Pointer[merchantAuthorityState]
 }
 
 func OpenStore(path string, integrityKey []byte) (*Store, error) {
@@ -38,7 +40,9 @@ func OpenStore(path string, integrityKey []byte) (*Store, error) {
 	}
 	raw, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return &Store{path: path, integrityKey: append([]byte(nil), integrityKey...), data: emptySnapshot()}, nil
+		s := &Store{path: path, integrityKey: append([]byte(nil), integrityKey...), data: emptySnapshot()}
+		s.publishMerchantAuthority()
+		return s, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("read pay product store: %w", err)
@@ -78,6 +82,7 @@ func decodeStoreBytes(path string, raw, integrityKey []byte) (*Store, error) {
 		return nil, fmt.Errorf("unsupported pay product snapshot version %d", s.data.Version)
 	}
 	s.normalize()
+	s.publishMerchantAuthority()
 	return s, nil
 }
 
@@ -196,6 +201,7 @@ func (s *Store) Update(fn func(*Snapshot) error) error {
 			return err
 		}
 		s.parent.data = next
+		s.parent.publishMerchantAuthority()
 		s.afterCommit()
 		return nil
 	}
@@ -209,6 +215,7 @@ func (s *Store) Update(fn func(*Snapshot) error) error {
 		return err
 	}
 	s.data = next
+	s.publishMerchantAuthority()
 	return nil
 }
 func (s *Store) persist(data Snapshot) error {

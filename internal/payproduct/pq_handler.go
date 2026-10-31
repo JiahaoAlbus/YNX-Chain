@@ -190,7 +190,7 @@ func nativePayBody(w http.ResponseWriter, r *http.Request, out any) bool {
 }
 func nativePayError(w http.ResponseWriter, err error) {
 	code, status := "NATIVE_PAY_REQUEST_REJECTED", http.StatusConflict
-	if errors.Is(err, ErrNativePayUnavailable) {
+	if errors.Is(err, ErrNativePayUnavailable) || errors.Is(err, ErrNativeMerchantFenceUnavailable) {
 		code, status = "NATIVE_PAY_AUTHORITY_UNAVAILABLE", http.StatusServiceUnavailable
 	}
 	writeJSON(w, status, map[string]string{"code": code, "error": err.Error()})
