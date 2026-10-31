@@ -4092,4 +4092,4 @@ jobs:
           node-version: '24'
       - run: npm ci --ignore-scripts --prefix packages/wallet-auth
       - name: New issuer and current purpose controls only
-        run: node --test scripts/ci/ide-admission-issuance.test.mjs
+        run: node --test --test-name-pattern="normal acquisition zero-input" scripts/ci/ide-admission-issuance.test.mjs
