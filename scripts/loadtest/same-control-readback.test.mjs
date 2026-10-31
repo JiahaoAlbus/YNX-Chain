@@ -1,5 +1,6 @@
+import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
 import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
-import {qualifySameControlReadback,compareSameControlReadbacks,measureFinalCohort} from './same-control-readback.mjs';
+import {qualifySameControlReadback,compareSameControlReadbacks,measureFinalCohort,measureOriginalFinalCohort} from './same-control-readback.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 // Deliberately unsigned format fixtures: these test refusal/binding, never crypto.
 function fixture(){
@@ -92,4 +93,42 @@ test('T-REL-05 the exact 99.9 percent floor never forgives any unknown observati
  c.records[999]={id:'large-999',clockDomain:c.clockDomain,rejectedBeforeAdmission:true};let r=cohortRead(c);assert.equal(r.cohort.completeQualityFloorObserved,true);assert.equal(r.cohort.successFraction.denominator,1000);assert.equal(r.sustainedTPSQualified,false);
  c.records[998]={id:'large-998',clockDomain:c.clockDomain,rejectedBeforeAdmission:true};assert.equal(cohortRead(c).cohort.completeQualityFloorObserved,false);
  c.records.pop();r=cohortRead(c);assert.equal(r.cohort.completeQualityFloorObserved,false);assert.equal(r.cohort.counts.measurementLost,1);assert.equal(r.cohort.latency.denominator,1000);
+});
+
+function rawCohortFixture(withContext=true){
+ const x=fixture(),ctx={run:'raw-fixture-run',clockDomain:'fixture-core-projection',isolatedNetwork:true,loadModel:'open_loop',windowStartNs:'0',windowEndNs:'10000000000',observedUntilNs:'20000000000',plan:[],records:[]};
+ for(const [i,r]of x.report.transactions.entries()){ctx.plan.push({id:r.hash,signingMode:i?'pre_signed':'online_signed',generatedAtNs:String(BigInt(i)*1000000000n)});ctx.records.push({id:r.hash,clockDomain:ctx.clockDomain,submittedAtNs:String(BigInt(i)*1000000000n),acceptedAtNs:String(BigInt(i)*1000000000n+1n),includedAtNs:String(BigInt(i+1)*1000000000n),finalCommitAtNs:String(BigInt(i+2)*1000000000n),height:String(r.height),executionCode:0,businessKind:'transfer',memberId:r.hash.toLowerCase()});}
+ const input={manifestRaw:x.manifestRaw,journalRaw:x.journalRaw,summaryRaw:Buffer.from(JSON.stringify(x.report)),...(withContext?{contextRaw:Buffer.from(JSON.stringify(ctx))}:{})};
+ input.bindings={run:ctx.run,count:1,rounds:2,fromHeight:'1',untilHeight:'99',requests:ctx.plan.map(p=>p.id),sha256:Object.fromEntries(Object.entries(input).map(([k,v])=>[k.replace('Raw',''),hash(v)]))};return input;
+}
+test('T-REL-05 adapter binds original raw journal and summary to the cohort kernel without proof promotion',()=>{
+ const x=rawCohortFixture(),r=measureOriginalFinalCohort(x);assert.equal(r.coverage.denominator,2);assert.equal(r.bench.cohort.counts.committed_success,2);assert.equal(r.bench.signingGroups.pre_signed.counts.offered,1);assert.equal(r.timingProjectionAuthenticated,false);assert.equal(r.CORESourceAuthenticated,false);assert.equal(r.sustainedTPSQualified,false);assert.equal(r.reportedClientOfferToFinalMs.p95,23);assert.equal(r.reportedClientOfferToFinalMs.denominator,2);assert.match(r.runReferenceAuthority,/local output label/);
+});
+test('T-REL-05 adapter keeps the original denominator when a report row is lost and refuses fabricated recovery',()=>{
+ const x=rawCohortFixture(false),report=JSON.parse(x.summaryRaw);report.transactions.pop();report.summary.effectiveBusinessIncluded=1;report.summary.finalSubmitted=1;x.summaryRaw=Buffer.from(JSON.stringify(report));x.bindings.sha256.summary=hash(x.summaryRaw);
+ const r=measureOriginalFinalCohort(x);assert.equal(r.coverage.denominator,2);assert.equal(r.coverage.observedRows,1);assert.equal(r.coverage.missingRequestIds.length,1);assert.equal(r.bench,null);assert.ok(r.missingContracts.some(message=>/UTC/.test(message)));
+ const context=JSON.parse(rawCohortFixture().contextRaw);x.contextRaw=Buffer.from(JSON.stringify(context));x.bindings.sha256.context=hash(x.contextRaw);assert.throws(()=>measureOriginalFinalCohort(x),/invented a missing/);
+ context.records.pop();x.contextRaw=Buffer.from(JSON.stringify(context));x.bindings.sha256.context=hash(x.contextRaw);const partial=measureOriginalFinalCohort(x);assert.equal(partial.bench.cohort.counts.measurementLost,1);assert.equal(partial.bench.cohort.latency.denominator,2);
+});
+test('T-REL-05 adapter refuses mixed raw bytes summary totals and promoted unqualified observations',()=>{
+ const x=rawCohortFixture();x.summaryRaw=Buffer.from('{}');assert.throws(()=>measureOriginalFinalCohort(x),/digest/);
+ const y=rawCohortFixture(),report=JSON.parse(y.summaryRaw);report.transactions[0].quorumVerified=false;report.summary.effectiveBusinessIncluded=1;report.summary.finalSubmitted=1;y.summaryRaw=Buffer.from(JSON.stringify(report));y.bindings.sha256.summary=hash(y.summaryRaw);assert.throws(()=>measureOriginalFinalCohort(y),/projected final/);
+ const z=rawCohortFixture(),context=JSON.parse(z.contextRaw);context.plan.pop();z.contextRaw=Buffer.from(JSON.stringify(context));z.bindings.sha256.context=hash(z.contextRaw);assert.throws(()=>measureOriginalFinalCohort(z),/complete original inventory/);
+});
+test('T-REL-05 adapter actual read-only CLI preserves originals and refuses overwrite and links',()=>{
+ const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ynx-final-cohort-')));try{
+  const x=rawCohortFixture(),files={manifest:x.manifestRaw,journal:x.journalRaw,summary:x.summaryRaw,context:x.contextRaw,bindings:Buffer.from(JSON.stringify(x.bindings))};
+  for(const [name,raw]of Object.entries(files))fs.writeFileSync(path.join(root,name),raw,{mode:0o600});
+  const script=fileURLToPath(new URL('./same-control-readback.mjs',import.meta.url)),out=path.join(root,'result.json'),args=[script,...Object.keys(files).flatMap(k=>['--'+k,path.join(root,k)]),'--output',out];
+  const r=spawnSync(process.execPath,args,{encoding:'utf8',timeout:10000});assert.equal(r.status,0,r.stderr);assert.equal(JSON.parse(fs.readFileSync(out)).bench.cohort.counts.offered,2);
+  for(const [name,raw]of Object.entries(files))assert.deepEqual(fs.readFileSync(path.join(root,name)),raw);
+  const saved=fs.readFileSync(out);assert.equal(spawnSync(process.execPath,args,{encoding:'utf8',timeout:10000}).status,1);assert.deepEqual(fs.readFileSync(out),saved);
+  fs.symlinkSync(path.join(root,'journal'),path.join(root,'journal-link'));const linked=[...args],index=linked.indexOf('--journal');linked[index+1]=path.join(root,'journal-link');linked[linked.length-1]=path.join(root,'other.json');assert.equal(spawnSync(process.execPath,linked,{encoding:'utf8',timeout:10000}).status,1);assert.equal(fs.existsSync(path.join(root,'other.json')),false);
+ }finally{fs.rmSync(root,{recursive:true,force:true});}
+});
+
+test('T-REL-05 adapter separates included execution failures from successful members and final Commit',()=>{
+ const x=rawCohortFixture(),report=JSON.parse(x.summaryRaw),ctx=JSON.parse(x.contextRaw);report.transactions[1].executionCode=7;report.transactions[1].status='execution_failed';report.summary.effectiveBusinessIncluded=1;report.summary.finalSubmitted=1;ctx.records[1].executionCode=7;delete ctx.records[1].finalCommitAtNs;ctx.records[1].finalFailed=true;
+ x.summaryRaw=Buffer.from(JSON.stringify(report));x.contextRaw=Buffer.from(JSON.stringify(ctx));x.bindings.sha256.summary=hash(x.summaryRaw);x.bindings.sha256.context=hash(x.contextRaw);
+ const r=measureOriginalFinalCohort(x);assert.equal(r.coverage.reportedIncludedAll,2);assert.equal(r.coverage.reportedIncluded,1);assert.equal(r.bench.cohort.counts.included,2);assert.equal(r.bench.cohort.counts.includedBusinessSuccess,1);assert.equal(r.bench.cohort.counts.final_failed,1);assert.equal(r.bench.cohort.counts.committed_success,1);
 });

@@ -3,6 +3,10 @@
 // Go client's responsibility; this consumer never turns report booleans into a
 // new independently authenticated consensus proof.
 import {createHash} from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {isUtf8} from 'node:buffer';
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const requireValue=(ok,message)=>{if(!ok)throw Error(message);};
 function signedBytes(text){
@@ -161,11 +165,12 @@ export function measureFinalCohort(ctx,fromHeight,untilHeight,requests,run){
   rows.push({id:p.id,mode:p.signingMode,offered:p.offered,submitted,accepted,included,final,height,businessIncluded,outcome,timeout:r?.timedOut===true,sourceFailure:r?.sourceRequestFailed===true,lost:!r||r.measurementLost===true});
  }
  const summarize=selected=>{
-  const counts={offered:selected.length,submitted:0,accepted:0,includedBusinessSuccess:0,committed_success:0,rejected_before_admission:0,final_failed:0,unknown_or_unfinished:0,timedOut:0,sourceRequestFailed:0,measurementLost:0,tailFinals:0,finalsOutsideHeightRange:0};
-  const window={submitted:0,accepted:0,includedBusinessSuccess:0,finalCommitBusinessSuccess:0};
+  const counts={offered:selected.length,submitted:0,accepted:0,included:0,includedBusinessSuccess:0,committed_success:0,rejected_before_admission:0,final_failed:0,unknown_or_unfinished:0,timedOut:0,sourceRequestFailed:0,measurementLost:0,tailFinals:0,finalsOutsideHeightRange:0};
+  const window={submitted:0,accepted:0,included:0,includedBusinessSuccess:0,finalCommitBusinessSuccess:0};
   for(const r of selected){
    counts[r.outcome]++;if(r.submitted!==null)counts.submitted++;if(r.accepted!==null)counts.accepted++;
    if(inside(r.submitted))window.submitted++;if(inside(r.accepted))window.accepted++;
+   if(r.included!==null){counts.included++;if(r.height>=lower&&r.height<=upper&&inside(r.submitted)&&inside(r.included))window.included++;}
    if(r.timeout)counts.timedOut++;if(r.sourceFailure)counts.sourceRequestFailed++;if(r.lost)counts.measurementLost++;
    if(r.businessIncluded){counts.includedBusinessSuccess++;if(r.height>=lower&&r.height<=upper&&inside(r.submitted)&&inside(r.included))window.includedBusinessSuccess++;}
    if(r.outcome==='committed_success'){
@@ -182,3 +187,69 @@ export function measureFinalCohort(ctx,fromHeight,untilHeight,requests,run){
  };
  return {functionId:'REL-05',classification:'measurement-data-not-authority',run,fromHeight,untilHeight,clockDomain:ctx.clockDomain,window:{startNs:String(start),endNs:String(end),observedUntilNs:String(cutoff),boundary:'start inclusive, end exclusive; tail drain separately reported'},preWindowBacklogFinalsExcluded:preWindowBacklogFinals,cohort:summarize(rows),signingGroups:Object.fromEntries(['online_signed','pre_signed'].map(mode=>[mode,summarize(rows.filter(r=>r.mode===mode))])),inventoryCoverage:'complete against supplied plan; CORE must independently bind the original inventory/run/ledger/clock',independentProofReverifiedHere:false,signatureThroughputQualified:false,sustainedTPSQualified:false,formal1800SecondWindowObserved:end-start===1800000000000n,openLoopDeclared:ctx.loadModel==='open_loop',clockSynchronizationErrorNs:clockError,interpretation:'Submitted/accepted are intermediate counts, never summed with exclusive terminal outcomes. Late drain and prior-window backlog cannot raise the formal fixed-window final rate. Unknown/timeout identities remain in all denominators and right-censored latency. Source authenticity and two-run R6 qualification remain with original CORE/REL owners.'};
 }
+
+// Thin adapter for the existing Go ready-sender raw JSONL and summary. SHA
+// bindings detect mixed bytes; they are not an independent CORE attestation.
+export function measureOriginalFinalCohort({manifestRaw,journalRaw,summaryRaw,contextRaw,bindings}){
+ const raws={manifest:manifestRaw,journal:journalRaw,summary:summaryRaw,...(contextRaw===undefined?{}:{context:contextRaw})};
+ for(const [key,raw]of Object.entries(raws))requireValue(Buffer.isBuffer(raw)&&raw.length>0&&raw.length<=(key==='manifest'?1048576:8388608)&&isUtf8(raw)&&bindings?.sha256?.[key]===sha(raw),'original '+key+' bytes/digest differ');
+ requireValue(cohortId(bindings.run)&&Number.isSafeInteger(bindings.count)&&bindings.count>0&&Number.isSafeInteger(bindings.rounds)&&bindings.rounds>=2&&bindings.rounds<=32&&bindings.count*bindings.rounds<=2048,'original bounded ready-sender profile required');
+ const manifest=JSON.parse(manifestRaw),report=JSON.parse(summaryRaw),n=bindings.count*bindings.rounds;
+ requireValue(['chainId','genesisHash','migrationStateHash'].every(k=>typeof manifest[k]==='string'&&manifest[k].length>0),'original manifest identity missing');
+ requireValue(report.chainId===manifest.chainId&&report.genesisSha256===manifest.genesisHash&&report.roundsRequested===bindings.rounds&&Array.isArray(report.transactions)&&report.transactions.length<=n&&report.summary?.input===n&&!report.retentionMode&&!report.terminalStream,'original complete-inventory summary profile differs');
+ const lines=journalRaw.toString('utf8').split('\n');requireValue(lines.pop()===''&&lines.length===n+1,'original complete journal inventory required');
+ const header=JSON.parse(lines.shift());requireValue(header.kind==='YNX_LOCAL_READY_SENDER_V1'&&header.manifestSha256===sha(manifestRaw)&&header.migrationHash===manifest.migrationStateHash&&header.genesisHash===manifest.genesisHash,'original journal/manifest binding differs');
+ const inputs=new Map(),ids=new Set(),nonces=new Set(),senders=new Map();
+ for(const line of lines){
+  requireValue(Buffer.byteLength(line)<=65536,'original signed row bound');const e=JSON.parse(line),bytes=signedBytes(e.transaction),hash=sha(bytes).toUpperCase(),tx=JSON.parse(bytes);
+  requireValue(Number.isSafeInteger(e.index)&&e.index>=0&&e.index<n&&!inputs.has(e.index)&&e.sender===e.index%bindings.count&&e.round===Math.floor(e.index/bindings.count)+1&&e.hash===hash&&!ids.has(hash),'original signed index/hash/round differs');
+  requireValue(tx.version===1&&tx.chainId===6423&&tx.type==='transfer'&&tx.nonce===e.round&&tx.amount===1&&tx.fee===1&&typeof tx.signature==='string'&&/^[a-fA-F0-9]+$/.test(tx.signature)&&typeof tx.publicKey==='string'&&typeof tx.from==='string'&&typeof tx.to==='string','original signed transfer format differs');
+  const nonce=JSON.stringify([tx.from,tx.nonce]),template=JSON.stringify([tx.from,tx.to,tx.publicKey]);requireValue(!nonces.has(nonce)&&(!senders.has(e.sender)||senders.get(e.sender)===template),'original sender/nonce identity differs');
+  nonces.add(nonce);senders.set(e.sender,template);ids.add(hash);inputs.set(e.index,{id:hash,round:e.round,bytes:bytes.toString('base64')});
+ }
+ const observed=new Map(),positions=new Set();let reportedIncluded=0,reportedFinal=0,reportedIncludedAll=0;const clientElapsed=[];
+ const includedAny=r=>Number.isSafeInteger(r.height)&&r.height>0&&Number.isInteger(r.executionCode)&&r.transactionProofVerified===true;
+ const included=r=>Number.isSafeInteger(r.height)&&r.height>0&&r.executionCode===0&&r.quorumVerified===true&&r.transactionProofVerified===true&&r.durableStateVerified===true&&r.durableStateHeight>=r.height&&typeof r.durableSnapshotSha256==='string'&&r.durableSnapshotSha256.length>0&&(!['block-journal','snapshot-journal'].includes(r.durableStoreFormat)||(r.durableInfoVerified===true&&r.durableInfoHeight>=r.durableStateHeight));
+ const final=r=>included(r)&&r.status==='confirmed'&&typeof r.confirmedObservedAt==='string'&&r.confirmedObservedAt.length>0&&r.checkTxIdentityVerified===true&&r.checkTxCode===0;
+ for(const r of report.transactions){
+  const input=inputs.get(r.index);requireValue(input&&!observed.has(input.id)&&r.hash===input.id&&r.round===input.round&&r.signedTransaction===input.bytes,'original report signed identity differs');observed.set(input.id,r);
+  if(includedAny(r)){requireValue(typeof r.blockHash==='string'&&r.blockHash.length>0&&Number.isSafeInteger(r.blockTxIndex)&&r.blockTxIndex>=0&&Number.isSafeInteger(r.blockTxTotal)&&r.blockTxIndex<r.blockTxTotal,'original included position missing');const position=JSON.stringify([r.height,r.blockHash,r.blockTxIndex]);requireValue(!positions.has(position),'duplicate original ledger position');positions.add(position);reportedIncludedAll++;}
+  if(included(r))reportedIncluded++;
+  if(final(r)){reportedFinal++;if(r.queueDelayMs!==undefined&&r.queueDelayMs!==null&&r.confirmationMs!==undefined&&r.confirmationMs!==null){requireValue(Number.isFinite(r.queueDelayMs)&&r.queueDelayMs>=0&&Number.isFinite(r.confirmationMs)&&r.confirmationMs>=0,'invalid original monotonic duration');clientElapsed.push(r.queueDelayMs+r.confirmationMs);}}
+ }
+ requireValue(report.summary.effectiveBusinessIncluded===reportedIncluded&&report.summary.finalSubmitted===reportedFinal,'original summary totals differ from actual rows');
+ const coverage={denominator:n,observedRows:observed.size,missingRequestIds:[...ids].filter(id=>!observed.has(id)),reportedIncluded,reportedIncludedAll,reportedFinal};
+ let bench=null;const missing=['Existing CORE DTO supplies no independently bound full logical-generation/physical-Commit monotonic projection; an external projection is DATA only.'];
+ if(contextRaw===undefined)missing.push('CORE original logical-generation/monotonic-clock/Commit projection not supplied; UTC and elapsed-summary fields are not substituted');
+ else{
+  const ctx=JSON.parse(contextRaw);requireValue(ctx.run===bindings.run&&Array.isArray(ctx.plan)&&ctx.plan.length===n&&new Set(ctx.plan.map(p=>p.id)).size===n&&ctx.plan.every(p=>ids.has(p.id))&&Array.isArray(ctx.records),'cohort projection differs from complete original inventory');
+  for(const r of ctx.records){
+   const original=observed.get(r.id);requireValue(original,'projection invented a missing original report row');
+   if(r.acceptedAtNs!==undefined&&r.acceptedAtNs!==null)requireValue(original.checkTxIdentityVerified===true&&original.checkTxCode===0,'projected acceptance differs from original');
+   if(r.includedAtNs!==undefined&&r.includedAtNs!==null)requireValue(includedAny(original)&&r.height===String(original.height)&&r.executionCode===original.executionCode&&r.memberId===r.id.toLowerCase()&&r.businessKind==='transfer','projected inclusion differs from original');
+   if(r.finalCommitAtNs!==undefined&&r.finalCommitAtNs!==null)requireValue(final(original),'projected final differs from original qualified client result');
+   if(r.rejectedBeforeAdmission===true)requireValue(original.checkTxIdentityVerified===true&&Number.isInteger(original.checkTxCode)&&original.checkTxCode!==0,'projected rejection differs from original');
+   if(r.finalFailed===true)requireValue(Number.isInteger(original.executionCode)&&original.executionCode!==0,'projected failure differs from original execution');
+   if(r.timedOut===true)requireValue(original.status==='timeout','projected timeout differs from original');
+  }
+  requireValue(Array.isArray(bindings.requests),'externally selected complete cohort IDs required');
+  bench=measureFinalCohort(ctx,bindings.fromHeight,bindings.untilHeight,bindings.requests,bindings.run);
+ }
+ return {functionId:'REL-05',classification:'original-raw-measurement-data-not-authority',run:bindings.run,runReferenceAuthority:'local output label only; original CORE has no arbitrary generic runID DTO',originalRunBinding:{manifestSHA256:sha(manifestRaw),genesisHash:manifest.genesisHash,migrationHash:manifest.migrationStateHash,journalSHA256:sha(journalRaw),summarySHA256:sha(summaryRaw)},reportedClientOfferToFinalMs:{denominator:n,missingSamples:n-clientElapsed.length,conditionalSuccessOnly:true,clock:'original client Go monotonic queueDelayMs + confirmationMs; UTC is not subtracted',...(clientElapsed.length?percentiles(clientElapsed):{samples:0,p50:null,p95:null,p99:null})},sourceSHA256:Object.fromEntries(Object.entries(raws).map(([key,raw])=>[key,sha(raw)])),coverage,bench,missingContracts:missing,CORESourceAuthenticated:false,timingProjectionAuthenticated:false,originalFinalBoundary:'Go client verified finality observation; not a physical final Commit timestamp',sustainedTPSQualified:false,signatureAndConsensusVerification:'Original Go qualifiedBusinessFinal/verifiedBusinessInclusion predicates are consumed as reports; signatures are not re-verified here.'};
+}
+function readCohortRawFile(file,maxBytes){
+ requireValue(typeof file==='string'&&path.isAbsolute(file)&&path.normalize(file)===file&&fs.realpathSync(file)===file,'canonical original input path required');
+ const before=fs.lstatSync(file,{bigint:true});requireValue(before.isFile()&&before.nlink===1n&&before.size>0n&&before.size<=BigInt(maxBytes)&&(before.mode&0o022n)===0n,'bounded protected original input required');
+ requireValue(Number.isInteger(fs.constants.O_NOFOLLOW),'original no-follow identity support required');
+ const fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);
+ try{const opened=fs.fstatSync(fd,{bigint:true});requireValue(opened.dev===before.dev&&opened.ino===before.ino,'original changed during open');const raw=Buffer.alloc(Number(before.size));let offset=0;while(offset<raw.length){const n=fs.readSync(fd,raw,offset,raw.length-offset,null);requireValue(n>0,'truncated original input');offset+=n;}const after=fs.fstatSync(fd,{bigint:true}),named=fs.lstatSync(file,{bigint:true});for(const key of ['dev','ino','size','mode','nlink','mtimeNs','ctimeNs'])requireValue(before[key]===after[key]&&after[key]===named[key],'original changed during read');requireValue(raw.length===Number(before.size),'original length differs');return raw;}finally{fs.closeSync(fd);}
+}
+export function runFinalCohortReadback(args){
+ requireValue(Array.isArray(args)&&[10,12].includes(args.length),'exact manifest/journal/summary/bindings/output and optional context flags required');const o={};
+ for(let i=0;i<args.length;i+=2){requireValue(['--manifest','--journal','--summary','--bindings','--context','--output'].includes(args[i])&&!Object.hasOwn(o,args[i]),'duplicate or unknown cohort flag');o[args[i]]=args[i+1];}
+ requireValue(['--manifest','--journal','--summary','--bindings','--output'].every(k=>typeof o[k]==='string'),'original cohort inputs missing');
+ const bindings=JSON.parse(readCohortRawFile(o['--bindings'],1048576)),result=measureOriginalFinalCohort({manifestRaw:readCohortRawFile(o['--manifest'],1048576),journalRaw:readCohortRawFile(o['--journal'],8388608),summaryRaw:readCohortRawFile(o['--summary'],8388608),bindings,...(o['--context']?{contextRaw:readCohortRawFile(o['--context'],8388608)}:{})});
+ const out=o['--output'],parent=path.dirname(out);requireValue(path.isAbsolute(out)&&path.normalize(out)===out&&fs.realpathSync(parent)===parent,'canonical existing output parent required');
+ const fd=fs.openSync(out,'wx',0o600);try{fs.writeFileSync(fd,JSON.stringify(result)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}const directory=fs.openSync(parent,'r');try{fs.fsyncSync(directory);}finally{fs.closeSync(directory);}return result;
+}
+if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){try{runFinalCohortReadback(process.argv.slice(2));}catch(error){process.stderr.write('final cohort readback refused: '+error.message+'\n');process.exitCode=1;}}
