@@ -10,20 +10,27 @@ def compare(before,after):
     receipts=[json.loads((root/"receipt.json").read_bytes()) for root in (before,after)]
     if not all(r.get("sourceMatrixComplete") is True and r.get("cleanupComplete") is True for r in receipts): raise ValueError("both complete actual source matrices and cleanup required")
     if receipts[0]["inputSha256"]!=receipts[1]["inputSha256"]: raise ValueError("original valid public inputs differ")
+    profiles=[r.get("profile","original") for r in receipts]
+    if profiles[0]!=profiles[1]:raise ValueError("source profiles differ")
+    if profiles[0]=="original":cases=["H%d-K%d"%(h,k) for h in (0,64,256,512) for k in (1,16)]
+    elif profiles[0]=="multi-whole":cases=["H%d-W%d-K1"%(h,w) for h in (0,512) for w in (1,16)]
+    else:raise ValueError("unsupported source profile")
+    for receipt in receipts:
+        if receipt.get("expectedCases",cases)!=cases or receipt.get("completedCases",cases)!=cases:raise ValueError("complete exact profile denominator required")
     rows=[]
-    for h in (0,64,256,512):
-        for k in (1,16):
-            case="H%d-K%d"%(h,k)
-            measures=[json.loads((root/(case+"-measure.json")).read_bytes()) for root in (before,after)]
-            states=[json.loads((root/(case+"-after.json")).read_bytes()) for root in (before,after)]
-            if states[0]!=states[1]: raise ValueError(case+": full committed state differs; no fields projected away")
-            for field in ("inputSha256","outerTxHash","memberResults","appHash","blockHeight","historyWholeCount","members","wholeCountInCandidate"):
-                if measures[0][field]!=measures[1][field]: raise ValueError(case+": "+field+" differs")
-            if measures[0]["inputSha256"]!=receipts[0]["inputSha256"]: raise ValueError(case+": detached input binding")
-            phases=[{p["name"]:p for p in m["phases"]} for m in measures]
-            if set(phases[0])!=set(phases[1]): raise ValueError("phase inventory differs")
-            rows.append(dict(case=case,completeStateEqual=True,
-                             phases={name:dict(before=phases[0][name],after=phases[1][name]) for name in phases[0]}))
+    for case in cases:
+        measures=[json.loads((root/(case+"-measure.json")).read_bytes()) for root in (before,after)]
+        states=[json.loads((root/(case+"-after.json")).read_bytes()) for root in (before,after)]
+        if states[0]!=states[1]: raise ValueError(case+": full committed state differs; no fields projected away")
+        fields=["inputSha256","memberResults","appHash","blockHeight","historyWholeCount","members","wholeCountInCandidate"]
+        fields += ["outerTxHashes","totalMembers","envelopeBytes","checkTxResponses","recheckTxResponses","finalizeResponse","architecture","goVersion","gomaxprocs"] if profiles[0]=="multi-whole" else ["outerTxHash"]
+        for field in fields:
+            if measures[0][field]!=measures[1][field]: raise ValueError(case+": "+field+" differs")
+        if measures[0]["inputSha256"]!=receipts[0]["inputSha256"]: raise ValueError(case+": detached input binding")
+        phases=[{p["name"]:p for p in m["phases"]} for m in measures]
+        if set(phases[0])!=set(phases[1]): raise ValueError("phase inventory differs")
+        rows.append(dict(case=case,completeStateEqual=True,
+                         phases={name:dict(before=phases[0][name],after=phases[1][name]) for name in phases[0]}))
     return dict(schema="YNX-SAME-INPUT-SOURCE-DIFFERENTIAL/v1",beforeCommit=receipts[0]["sourceCommit"],afterCommit=receipts[1]["sourceCommit"],
                 inputSha256=receipts[0]["inputSha256"],cases=rows,
                 stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",

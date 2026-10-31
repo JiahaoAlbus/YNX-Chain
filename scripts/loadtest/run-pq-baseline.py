@@ -18,6 +18,12 @@ spec=importlib.util.spec_from_file_location("normal_lab",Path(__file__).with_nam
 lab=importlib.util.module_from_spec(spec);spec.loader.exec_module(lab)
 
 
+def case_names(profile):
+    if profile=="multi-whole":return ["H%d-W%d-K1"%(h,w) for h in (0,512) for w in (1,16)]
+    if profile=="original":return ["H%d-K%d"%(h,k) for h in (0,64,256,512) for k in (1,16)]
+    raise ValueError("explicit known source profile required")
+
+
 def validate(prepared):
     prepared=Path(prepared)
     lab.require(prepared.is_absolute() and prepared.resolve(strict=True)==prepared,"canonical original prepared input required")
@@ -45,6 +51,7 @@ def validate(prepared):
 
 def run(args):
     plan,source=validate(args.prepared)
+    cases=case_names(args.profile)
     if not args.execute: return dict(status="prepared-only",commit=plan["commit"],scope=plan["scope"],baselineReady=False)
     lab.require(sys.platform=="linux" and os.environ.get("GITHUB_ACTIONS")=="true" and os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted","dedicated hosted Linux source CI required")
     parent=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
@@ -56,7 +63,7 @@ def run(args):
     window=lab.Window(source,work,additional_storage=(Path(args.prepared).parent,));window.env["GOMAXPROCS"]="1"
     result=dict(schema="YNX-CURRENT-SOURCE-BASELINE-RUN/v1",sourceCommit=plan["commit"],sourceTree=plan["tree"],
                 originalArchiveSHA256=plan["archiveSha256"],originalOwnerDirtyExcluded=plan["observedOwnerDirty"],
-                caps=lab.CAPS,firstCause=None,sourceMatrixComplete=False,fullChainBaselineReady=False,
+                caps=lab.CAPS,profile=args.profile,expectedCases=cases,firstCause=None,sourceMatrixComplete=False,fullChainBaselineReady=False,
                 protectedSignerBaseline="UNMEASURED",hopBytes="UNMEASURED",stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",
                 scope="instrumented real signed local ABCI state/Commit/cold reopen; not BFT or protected Wallet signer; inclusive observer overhead disclosed")
     try:
@@ -73,11 +80,11 @@ def run(args):
                 output.flush();os.fsync(output.fileno())
             data.chmod(0o600)
         window.env.update(YNX_PERF_CURRENT_BASELINE="source-ci-only",YNX_PERF_BASELINE_INPUT=str(data),
-                          YNX_PERF_BASELINE_OUTPUT=str(work/"public"),YNX_PERF_BASELINE_RECORD="1" if args.mode=="record" else "0")
-        proc=window.launch("actual-baseline",[str(binary),"-test.run=^TestPQCurrentBaseline$","-test.count=1","-test.timeout=780s","-test.v"])
+                          YNX_PERF_BASELINE_OUTPUT=str(work/"public"),YNX_PERF_BASELINE_PROFILE=args.profile,YNX_PERF_BASELINE_RECORD="1" if args.mode=="record" else "0")
+        test="TestPQMultiWholeBaseline" if args.profile=="multi-whole" else "TestPQCurrentBaseline"
+        proc=window.launch("actual-baseline",[str(binary),"-test.run=^"+test+"$","-test.count=1","-test.timeout=780s","-test.v"])
         code=window.wait(proc,allow_failure=True);result["testExitCode"]=code
         if data.exists(): result["inputSha256"]=lab.guard.digest(data)
-        cases=["H%d-K%d"%(h,k) for h in (0,64,256,512) for k in (1,16)]
         result["completedCases"]=[case for case in cases if (work/"public"/(case+"-measure.json")).is_file() and (work/"public"/(case+"-after.json")).is_file()]
         result["sourceMatrixComplete"]=code==0 and result["completedCases"]==cases
         lab.require(result["sourceMatrixComplete"],"source baseline incomplete; partial measurements/first failure retained")
@@ -97,6 +104,7 @@ def run(args):
 if __name__=="__main__":
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--prepared",required=True)
     parser.add_argument("--mode",choices=["record","replay"],required=True);parser.add_argument("--input");parser.add_argument("--input-sha256")
+    parser.add_argument("--profile",choices=["original","multi-whole"],default="original")
     parser.add_argument("--execute",action="store_true");args=parser.parse_args()
     def interrupted(signum,frame): raise RuntimeError("baseline received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)

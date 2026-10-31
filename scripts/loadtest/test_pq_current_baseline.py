@@ -81,5 +81,34 @@ class BaselineControls(unittest.TestCase):
                 before,after=self.pair(Path(directory));path=after/"receipt.json";receipt=json.loads(path.read_bytes());receipt[field]=value;path.write_text(json.dumps(receipt))
                 with self.assertRaises(ValueError):diff.compare(before,after)
 
+    def multi_pair(self,root):
+        cases=runner.case_names("multi-whole");dirs=[root/"before",root/"after"]
+        for i,directory in enumerate(dirs):
+            directory.mkdir();(directory/"receipt.json").write_text(json.dumps(dict(profile="multi-whole",expectedCases=cases,completedCases=cases,sourceMatrixComplete=True,cleanupComplete=True,inputSha256="new-independent-signed-corpus",sourceCommit=str(i)*40)))
+            for case in cases:
+                h=int(case.split("-")[0][1:]);w=int(case.split("-")[1][1:])
+                # Uncompiled contract fixture, never a Go or measurement result.
+                measure=dict(inputSha256="new-independent-signed-corpus",outerTxHashes=[str(n) for n in range(w)],memberResults=[dict(outcome="admitted")]*w,appHash="full",blockHeight=h+4,historyWholeCount=h,members=1,wholeCountInCandidate=w,totalMembers=w,envelopeBytes=w*100,checkTxResponses=[dict(code=0,data="original")]*w,recheckTxResponses=[dict(code=0,data="original")]*w,finalizeResponse=dict(appHash="full",txResults=[dict(code=0)]*w),architecture="control",goVersion="control",gomaxprocs=1,phases=[dict(name="Commit",elapsedNs=123)])
+                (directory/(case+"-measure.json")).write_text(json.dumps(measure))
+                (directory/(case+"-after.json")).write_text(json.dumps(dict(accounts=[dict(balance=10,nonce=w)],feeEvents=[dict(fee=w)],history=[str(n) for n in range(w)],appHash="full")))
+        return dirs
+
+    def test_multi_whole_denominator_and_original_admission_errors_are_compared(self):
+        self.assertEqual(runner.case_names("multi-whole"),["H0-W1-K1","H0-W16-K1","H512-W1-K1","H512-W16-K1"])
+        with self.assertRaises(ValueError):runner.case_names("unknown")
+        for field in (None,"outerTxHashes","checkTxResponses","recheckTxResponses","finalizeResponse","wholeCountInCandidate","members","gomaxprocs"):
+            with tempfile.TemporaryDirectory() as temporary:
+                before,after=self.multi_pair(Path(temporary))
+                if field:
+                    path=after/"H512-W16-K1-measure.json";data=json.loads(path.read_bytes());data[field]="changed";path.write_text(json.dumps(data))
+                    with self.assertRaisesRegex(ValueError,field+" differs"):diff.compare(before,after)
+                else:self.assertEqual(len(diff.compare(before,after)["cases"]),4)
+
+    def test_source_profiles_and_truncated_case_inventory_cannot_mix(self):
+        for change in (dict(profile="original"),dict(completedCases=["H0-W1-K1"]),dict(expectedCases=["H0-W1-K1"])):
+            with tempfile.TemporaryDirectory() as temporary:
+                before,after=self.multi_pair(Path(temporary));path=after/"receipt.json";data=json.loads(path.read_bytes());data.update(change);path.write_text(json.dumps(data))
+                with self.assertRaises(ValueError):diff.compare(before,after)
+
 
 if __name__=="__main__":unittest.main()

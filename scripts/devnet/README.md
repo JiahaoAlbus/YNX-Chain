@@ -73,6 +73,23 @@ member results/AppHash, including fees, balances, nonce and history, without a
 projection that discards differences. Source matrices never establish final
 chain TPS or authorize skipping failure/competition/partition qualification.
 
+Additional same-candidate coverage uses `run-pq-baseline.py --profile multi-whole`
+with the existing `--prepared`, `--mode record|replay` and replay SHA pin. It runs
+only `TestPQMultiWholeBaseline`: H0/H512 × WholeCount1/16, one member per Whole.
+Record a NEW synthetic 528-Whole signed public corpus against the frozen
+unoptimized source, then replay those exact bytes on the candidate. The original
+512-history/eight-case corpus and receipt remain unchanged. Each phase uses the
+same candidate order/height/time; complete CheckTx/recheck responses, full
+Finalize response, member outcomes, after-state and cold restart are retained.
+Original CheckTx sees committed state, so later nonces can have rejected members
+there while the sequential candidate admits them; compare both original results,
+never invent a cumulative mempool state or count rejected members as business.
+The explicit Commit diagnostic includes all validation phase durations plus
+hash-document/hash-encode-digest detail, with its same-attempt height and valid
+flag, alongside JSON/write/fsync/rename timing. Nested timings overlap. This is
+additional source evidence; actual distribution and sustained chain remain
+UNMEASURED. CORE owns the one hosted workflow intake; do not dispatch duplicates.
+
 The real four-process PQ functional/proof entry consumes CORE helper commit
 `a78803d31632a461df7f012e2c13e46f17c48e6d` or a descendant, with its original
 normal node source. CORE must retain that ancestor in the CI checkout history:

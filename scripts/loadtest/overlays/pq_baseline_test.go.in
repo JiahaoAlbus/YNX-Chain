@@ -18,11 +18,12 @@ import (
 )
 
 type baselineInputs struct {
-	Schema    string                        `json:"schema"`
-	Migration chain.ConsensusMigrationState `json:"migration"`
-	Initial   CommittedState                `json:"initial"`
-	History   [][]byte                      `json:"history"`
-	Cases     map[string][]byte             `json:"cases"`
+	Schema         string                        `json:"schema"`
+	Migration      chain.ConsensusMigrationState `json:"migration"`
+	Initial        CommittedState                `json:"initial"`
+	History        [][]byte                      `json:"history"`
+	Cases          map[string][]byte             `json:"cases"`
+	CandidateCases map[string][][]byte           `json:"candidateCases,omitempty"`
 }
 type baselinePhase struct {
 	Name                  string                     `json:"name"`
@@ -30,6 +31,32 @@ type baselinePhase struct {
 	ProcessAllocatedBytes uint64                     `json:"processAllocatedBytesDuringPhase"`
 	Counters              map[string]baselineCounter `json:"counters"`
 	Commit                *CommitTimingSample        `json:"commit,omitempty"`
+	Validation            *baselineValidation        `json:"validation,omitempty"`
+}
+
+// Explicit diagnostic projection: production detail fields remain json:"-".
+type baselineValidation struct {
+	Height             int64            `json:"height"`
+	Valid              bool             `json:"valid"`
+	ElapsedNs          int64            `json:"elapsedNs"`
+	FailedPhase        string           `json:"failedPhase"`
+	PhaseNs            map[string]int64 `json:"phaseNs"`
+	HashDocumentNs     int64            `json:"hashDocumentNs"`
+	HashEncodeDigestNs int64            `json:"hashEncodeDigestNs"`
+}
+
+func baselineAttachCommit(t *testing.T, app *Application, phase *baselinePhase) {
+	t.Helper()
+	timing, ok := app.LastCommitTiming()
+	if !ok || !timing.Durable {
+		t.Fatal("actual durable Commit timing missing")
+	}
+	detail, ok := app.LastCommitValidationTiming()
+	if !ok || !detail.Valid || detail.Height != timing.Height || detail.FailedPhase != "" {
+		t.Fatal("same successful Commit validation detail missing")
+	}
+	phase.Commit = &timing
+	phase.Validation = &baselineValidation{detail.Height, detail.Valid, detail.ElapsedNs, detail.FailedPhase, detail.PhaseNs, detail.HashDocumentNs, detail.HashEncodeDigestNs}
 }
 
 func baselineDigest(raw []byte) string { h := sha256.Sum256(raw); return hex.EncodeToString(h[:]) }
@@ -113,9 +140,24 @@ func baselineGenerate(t *testing.T, path string) baselineInputs {
 	registration := f.registration(t, false, uint64(height+1))
 	baselineCommit(t, f.a, [][]byte{mustPQEnvelope(t, PQMigrationType, registration)})
 	input := baselineInputs{Schema: "YNX-PQ-BASELINE-PUBLIC-INPUT/v1", Migration: f.m, Initial: f.a.committed, Cases: map[string][]byte{}}
-	for i := 0; i < 512; i++ {
+	limit := 512
+	if os.Getenv("YNX_PERF_BASELINE_PROFILE") == "multi-whole" {
+		limit = 528
+	}
+	for i := 0; i < limit; i++ {
 		wire := abciWhole(t, f, f.transferMessage(t, false, uint64(i+2), 1))
 		input.History = append(input.History, mustPQEnvelope(t, PQWholeType, wire))
+	}
+	if limit == 528 {
+		input.Schema = "YNX-PQ-MULTI-WHOLE-PUBLIC-INPUT/v1"
+		input.CandidateCases = make(map[string][][]byte)
+		for _, history := range []int{0, 512} {
+			for _, count := range []int{1, 16} {
+				input.CandidateCases[fmt.Sprintf("H%d-W%d-K1", history, count)] = input.History[history : history+count]
+			}
+		}
+		baselineWrite(t, path, input)
+		return input
 	}
 	for _, history := range []int{0, 64, 256, 512} {
 		for _, members := range []int{1, 16} {
@@ -138,6 +180,9 @@ func baselineApplication(t *testing.T, input baselineInputs, state CommittedStat
 		t.Fatal(err)
 	}
 	app.SetCommitTimingEnabled(true)
+	if err := app.SetCommitValidationTimingEnabled(true); err != nil {
+		t.Fatal(err)
+	}
 	return app
 }
 func TestPQCurrentBaseline(t *testing.T) {
@@ -238,11 +283,7 @@ func TestPQCurrentBaseline(t *testing.T) {
 					t.Fatal(e)
 				}
 			}))
-			timing, ok := app.LastCommitTiming()
-			if !ok || !timing.Durable {
-				t.Fatal("actual Commit timing/durability missing")
-			}
-			phases[len(phases)-1].Commit = &timing
+			baselineAttachCommit(t, app, &phases[len(phases)-1])
 			after := mustJSON(t, app.committed)
 			var cold *Application
 			phases = append(phases, baselineStage(t, "ColdReopen", func() {
@@ -274,6 +315,168 @@ func TestPQCurrentBaseline(t *testing.T) {
 				"scope": "real signed local ABCI calls/Commit/cold state, no consensus node or chain finality", "copyByteMeaning": "exact known backing-slice subset only; map buckets/account lots/allocator padding remain UNMEASURED; nested inclusive function times overlap; counter traversal overhead excluded from function timer but included in parent stage", "architecture": runtime.GOARCH, "goVersion": runtime.Version(), "gomaxprocs": runtime.GOMAXPROCS(0),
 			})
 			t.Logf("YNX_CURRENT_ABCI_BASELINE case=%s input=%s height=%d bytes=%d", name, inputHash, height, len(payload))
+		}
+	}
+}
+
+// Additional corpus: independent signed Wholes per candidate, one member each.
+// It never relabels K16 as sixteen Wholes or replaces the original eight cases.
+func TestPQMultiWholeBaseline(t *testing.T) {
+	if os.Getenv("YNX_PERF_CURRENT_BASELINE") != "source-ci-only" || os.Getenv("YNX_PERF_BASELINE_PROFILE") != "multi-whole" {
+		t.Skip("explicit additional hosted corpus required")
+	}
+	inputPath, output := os.Getenv("YNX_PERF_BASELINE_INPUT"), os.Getenv("YNX_PERF_BASELINE_OUTPUT")
+	if !filepath.IsAbs(inputPath) || !filepath.IsAbs(output) {
+		t.Fatal("absolute private paths required")
+	}
+	var input baselineInputs
+	generationNs := int64(0)
+	if os.Getenv("YNX_PERF_BASELINE_RECORD") == "1" {
+		started := time.Now()
+		input = baselineGenerate(t, inputPath)
+		generationNs = time.Since(started).Nanoseconds()
+	} else {
+		raw, err := os.ReadFile(inputPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(raw) > 128<<20 {
+			t.Fatal("bounded public input required")
+		}
+		if err = json.Unmarshal(raw, &input); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if input.Schema != "YNX-PQ-MULTI-WHOLE-PUBLIC-INPUT/v1" || len(input.History) != 528 || len(input.CandidateCases) != 4 || len(input.Cases) != 0 {
+		t.Fatal("separate complete multi-Whole input required")
+	}
+	raw, err := os.ReadFile(inputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inputHash := baselineDigest(raw)
+	historyApp := baselineApplication(t, input, input.Initial)
+	for _, history := range []int{0, 512} {
+		if history == 512 {
+			for start := 0; start < 512; start += 16 {
+				baselineCommit(t, historyApp, input.History[start:start+16])
+			}
+		}
+		if len(historyApp.committed.PQBatches) != history {
+			t.Fatal("authentic committed Whole history differs")
+		}
+		for _, count := range []int{1, 16} {
+			name := fmt.Sprintf("H%d-W%d-K1", history, count)
+			payloads := input.CandidateCases[name]
+			if len(payloads) != count {
+				t.Fatal("candidate Whole denominator differs")
+			}
+			hashes := make([]string, count)
+			envelopeBytes := 0
+			for i, payload := range payloads {
+				if !bytes.Equal(payload, input.History[history+i]) {
+					t.Fatal("candidate differs from exact original signed sequence")
+				}
+				hashes[i] = SignedTransactionHash(payload)
+				envelopeBytes += len(payload)
+			}
+			app := baselineApplication(t, input, historyApp.committed)
+			before := mustJSON(t, app.committed)
+			height := app.committed.Height + 1
+			blockTime := time.Unix(height, 0).UTC()
+			phases := []baselinePhase{}
+			checked := make([][]byte, count)
+			checkResponses := make([]*abci.ResponseCheckTx, count)
+			recheckResponses := make([]*abci.ResponseCheckTx, count)
+			phases = append(phases, baselineStage(t, "CheckTx", func() {
+				for i, payload := range payloads {
+					r, e := app.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: payload})
+					if e != nil || r == nil {
+						t.Fatalf("original CheckTx %d: %v %+v", i, e, r)
+					}
+					// Normal admission is stateless across these calls: nonce N+1
+					// rejects until N commits. Preserve that original failure too.
+					if (i == 0 && r.Code != 0) || (i > 0 && r.Code != CodeInvalidTx) {
+						t.Fatalf("original committed-state nonce admission %d differs: %+v", i, r)
+					}
+					checked[i] = r.Data
+					checkResponses[i] = r
+				}
+			}))
+			phases = append(phases, baselineStage(t, "RecheckTx", func() {
+				for i, payload := range payloads {
+					r, e := app.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: payload, Type: abci.CheckTxType_Recheck})
+					if e != nil || !bytes.Equal(mustJSON(t, r), mustJSON(t, checkResponses[i])) {
+						t.Fatalf("original recheck %d differs", i)
+					}
+					recheckResponses[i] = r
+				}
+			}))
+			phases = append(phases, baselineStage(t, "PrepareProposal", func() {
+				r, e := app.PrepareProposal(context.Background(), &abci.RequestPrepareProposal{Height: height, Time: blockTime, Txs: payloads, MaxTxBytes: cmttypes.DefaultConsensusParams().Block.MaxBytes})
+				if e != nil || len(r.Txs) != count {
+					t.Fatal("proposal changed original count", e)
+				}
+				for i := range payloads {
+					if !bytes.Equal(r.Txs[i], payloads[i]) {
+						t.Fatal("proposal changed original order/bytes")
+					}
+				}
+			}))
+			phases = append(phases, baselineStage(t, "ProcessProposal", func() {
+				r, e := app.ProcessProposal(context.Background(), &abci.RequestProcessProposal{Height: height, Time: blockTime, Txs: payloads})
+				if e != nil || r.Status != abci.ResponseProcessProposal_ACCEPT {
+					t.Fatal("original proposal rejected", e)
+				}
+			}))
+			if !bytes.Equal(before, mustJSON(t, app.committed)) {
+				t.Fatal("admission/proposal mutated committed state")
+			}
+			var finalized *abci.ResponseFinalizeBlock
+			phases = append(phases, baselineStage(t, "FinalizeBlock", func() {
+				var e error
+				finalized, e = app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: height, Time: blockTime, Txs: payloads})
+				if e != nil || len(finalized.TxResults) != count {
+					t.Fatal("original Finalize count differs", e)
+				}
+				for i, r := range finalized.TxResults {
+					if r.Code != 0 {
+						t.Fatalf("original Finalize %d differs", i)
+					}
+				}
+			}))
+			phases = append(phases, baselineStage(t, "Commit", func() {
+				if _, e := app.Commit(context.Background(), &abci.RequestCommit{}); e != nil {
+					t.Fatal(e)
+				}
+			}))
+			baselineAttachCommit(t, app, &phases[len(phases)-1])
+			after := mustJSON(t, app.committed)
+			phases = append(phases, baselineStage(t, "ColdReopen", func() {
+				cold, e := NewPersistentApplication(input.Migration, app.statePath)
+				if e != nil {
+					t.Fatal(e)
+				}
+				if !bytes.Equal(after, mustJSON(t, cold.committed)) {
+					t.Fatal("full cold state differs")
+				}
+			}))
+			outcomes := make([]PQBatchExecutionResult, count)
+			for i, r := range finalized.TxResults {
+				if e := json.Unmarshal(r.Data, &outcomes[i]); e != nil {
+					t.Fatal(e)
+				}
+				if len(outcomes[i].Results) != 1 || outcomes[i].Results[0].Outcome != "admitted" {
+					t.Fatal("one authentic admitted member per Whole required")
+				}
+			}
+			baselineWrite(t, filepath.Join(output, name+"-after.json"), app.committed)
+			baselineWrite(t, filepath.Join(output, name+"-measure.json"), map[string]any{
+				"schema": "YNX-CURRENT-MULTI-WHOLE-BASELINE/v1", "inputSha256": inputHash, "case": name, "historyWholeCount": history, "members": 1, "wholeCountInCandidate": count, "totalMembers": count, "blockHeight": height, "envelopeBytes": envelopeBytes, "outerTxHashes": hashes, "memberResults": outcomes, "committedCanonicalJSONSha256": baselineDigest(after), "appHash": hex.EncodeToString(finalized.AppHash), "phases": phases, "fixturePreparationNs": generationNs,
+				"checkTxResponses": checkResponses, "recheckTxResponses": recheckResponses, "finalizeResponse": finalized,
+				"admissionMeaning": "each original CheckTx uses committed state; future owner nonces may have rejected members there; only sequential candidate Finalize admitted outcomes count; no admission state invented",
+				"architecture":     runtime.GOARCH, "goVersion": runtime.Version(), "gomaxprocs": runtime.GOMAXPROCS(0), "signatureMode": "pre_signed", "actualDistribution": "UNMEASURED", "effectiveFinalTPS": "UNMEASURED", "P95FinalConfirmation": "UNMEASURED", "hopBytes": "UNMEASURED", "scope": "additional real signed WholeCount1/16 x H0/H512, Nmembers1, same candidate context; local source only; nested inclusive counters overlap"})
+			t.Logf("YNX_MULTI_WHOLE_BASELINE case=%s input=%s wholes=%d membersPerWhole=1", name, inputHash, count)
 		}
 	}
 }
