@@ -10,15 +10,49 @@ The operator/catalogue supplies `FixedPeerProfile`: ID, positive decimal
 Revision, logical Service, EdgeID, exact LocalSAN/PeerSAN, fixed HTTPS Origin and
 TCP Address, positive Epoch, explicit root fingerprints/windows, and immutable
 Operations. Each `ServiceOperation` has an ID, one exact Method/Path and bounded
-MaxRequestBytes/MaxResponseBytes. Copies returned by `Profile()` cannot change
-the client. A per-call destination, path, identity header or method is not an
-argument to `Exchange`.
+MaxRequestBytes/MaxResponseBytes and an immutable `MediaProfile`. Copies returned
+by `Profile()` cannot change the client. A per-call destination, path, identity
+header, method or media-profile registration is not an argument to `Exchange`.
 
 The actual P07 carrier is `POST /api/tools/shop.order.read`, with opaque original
-SDK request at most 32 KiB and response at most 1 MiB, application/json or
-application/cbor. The operation ID is `shop.order.read`. Registered service/SAN,
-origin/address, root epoch/fingerprints and credentials remain supplied by their
-original authorities. Test identities are not defaults for that registration.
+SDK E5 request at most 1 MiB and canonical JSON response at most 1 MiB. The
+operation ID is `shop.order.read`. Register this new DATA contract explicitly:
+
+```go
+securelink.ServiceOperation{
+    ID: "shop.order.read", Method: http.MethodPost,
+    Path: "/api/tools/shop.order.read",
+    MaxRequestBytes: 1 << 20, MaxResponseBytes: 1 << 20,
+    MediaProfile: securelink.MediaProfileShopOrderReadV1,
+}
+```
+
+This finite profile accepts only request
+`application/vnd.ynx.shop-order-read.v1` and a single response Content-Type value
+equal to `application/json`. Parameters, different casing and aliases are
+refused; the request MIME is not also enabled for responses. `Accept` advertises
+only the response MIME. Registration rejects another operation/method/path or
+budgets above either 1 MiB ceiling. Lower supplied budgets stay lower. LINK does
+not inspect or rewrite E5 framing, signed inner channels or canonical JSON; the
+original SDK validates those bytes as DATA and the original authority separately
+verifies Source and the same operation/ref before settlement.
+The 1 MiB request ceiling applies to the full E5 envelope; it does not change
+the SDK's independent limits on the enclosed original input or proof fields.
+
+The empty media profile and explicit `MediaProfileJSONCBOR` retain the original
+exact JSON/CBOR request types and the original parsed JSON/CBOR response MIME
+compatibility, including response parameters. Their existing operation budgets
+are unchanged; in particular the old 32 KiB fixture is not enlarged by this new
+registration. An unregistered vendor request is denied. No arbitrary MIME list,
+wildcard or caller-provided media profile is admitted.
+
+The contract used for this change is the original SDK's
+`schema/shop-order-read-transport.json`, SHA-256
+`04d0a2b7b933ef1b01979e6bdfb449d31d05003e0102c552890eb46e24a88118`.
+It explicitly remains DATA-only, with Source and operation verification false.
+Registered service/SAN, origin/address, root epoch/fingerprints and credentials
+remain supplied by their original authorities. Test identities are not defaults
+for that registration.
 
 ```go
 client, err := securelink.NewFixedPeerClient(securelink.FixedPeerClientConfig{
