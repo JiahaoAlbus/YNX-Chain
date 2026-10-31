@@ -615,6 +615,12 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #endif
 #include "original-product-device-v4-typed-producer.inc.mm"
 #endif
+#ifdef YNX_ORIGINAL_PRODUCT_DEVICE_V4_PROVISIONING_STAGE
+#ifndef YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE
+#error "provisioning stage requires original Source intrinsics"
+#endif
+#include "original-product-device-v4-provisioning-source.inc.mm"
+#endif
 static napi_value Register(napi_env env,napi_value exports){
  // This original addon owns main-thread-only platform Source/UI/native
  // inventories. Worker environments cannot borrow them via DATA exports.
@@ -642,6 +648,9 @@ static napi_value Register(napi_env env,napi_value exports){
 #endif
 #ifdef YNX_ORIGINAL_PRODUCT_DEVICE_V4_PENDING_STAGE
  if(!RegisterOriginalProductDeviceV4PendingStage(env,exports))return nullptr;
+#endif
+#ifdef YNX_ORIGINAL_PRODUCT_DEVICE_V4_PROVISIONING_STAGE
+ if(!RegisterOriginalProductDeviceV4ProvisioningSourceStage(env,exports))return nullptr;
 #endif
  return RegisterOriginalIDEAuthIdentityBinding(env,exports,methods);
 }

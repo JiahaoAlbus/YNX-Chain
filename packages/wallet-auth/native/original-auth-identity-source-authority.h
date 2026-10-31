@@ -52,6 +52,13 @@ struct JointLifecycle {
 // pre/post physical current. Not a key slot or account/Root signing permit.
 - (NSDictionary *)copyOriginalProductSessionDeviceV4Scope:(NSError **)error;
 + (instancetype)acquireOriginalProductSessionDeviceV4PendingSource:(NSError **)error;
++ (instancetype)acquireOriginalProductSessionDeviceV4ProvisioningSource:(NSError **)error;
+- (BOOL)assertOriginalProductSessionDeviceV4ProvisioningSourceCurrent:(NSError **)error;
+- (NSDictionary *)copyOriginalProductSessionDeviceV4ProvisioningScope:(NSError **)error;
+// Native-only fixed Main loader input from THIS original release selection.
+// Retains the exact module file/current; not a caller path or user approval.
+- (NSString *)copyOriginalProductSessionDeviceV4ApprovalModulePath:(NSError **)error;
+- (NSDictionary *)copyOriginalProductSessionDeviceV4ProvisioningJournal:(NSError **)error;
 - (BOOL)assertOriginalProductSessionDeviceV4PendingSourceCurrent:(NSError **)error;
 - (NSDictionary *)copyOriginalProductSessionDeviceV4PendingScope:(NSError **)error;
 - (NSDictionary *)copyOriginalWalletPQHostCatalogContext:(NSError **)error;

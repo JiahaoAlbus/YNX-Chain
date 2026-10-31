@@ -1,0 +1,44 @@
+// Private Source/current + original journal/Keychain/Core composition. No new
+// dispatcher, Root row, caller registration success or private JS output.
+class ProvisioningV4Authority final:public ynx_auth_private::OriginalDeviceProvisioningAuthority{
+ ProvisioningV4Approval*a_;YNXAuthIdentitySourceAuthority*__strong registered_=nil;
+ NSDictionary*__strong scope_=nil;bool acquired_=false,closeSelected_=false,closeResult_=false;
+ static void refuse(){throw std::runtime_error("DEVICE_PROVISIONING_ORIGINAL_AUTHORITY");}
+ static std::string text(NSString*s){if(![s isKindOfClass:NSString.class])refuse();NSData*b=[s dataUsingEncoding:NSUTF8StringEncoding];if(!b.length||b.length>65536)refuse();return std::string((const char*)b.bytes,b.length);}
+ static std::string canonical(NSDictionary*d){NSData*b=[NSJSONSerialization dataWithJSONObject:d options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];if(!b.length||b.length>65536)refuse();return std::string((const char*)b.bytes,b.length);}
+ static NSString*hex(const uint8_t*p,size_t n){NSMutableString*s=[NSMutableString new];for(size_t i=0;i<n;i++)[s appendFormat:@"%02x",p[i]];return s;}
+ NSDictionary*registered(const ynx_auth_private::DevicePairPublicView&pair){
+  assertCurrent();NSError*e=nil;if(!acquired_){acquired_=true;registered_=[YNXAuthIdentitySourceAuthority acquireOriginalProductSessionDeviceV4Source:&e];if(e||!registered_)refuse();}
+  if(!registered_||![registered_ assertOriginalProductSessionDeviceV4SourceCurrent:&e]||e)refuse();NSDictionary*s=[registered_ copyOriginalProductSessionDeviceV4Scope:&e];if(!s||e||(scope_&&![scope_ isEqual:s]))refuse();
+  NSString*raw=s[@"registrationOriginal"];NSData*b=[raw dataUsingEncoding:NSUTF8StringEncoding];NSDictionary*r=b?[NSJSONSerialization JSONObjectWithData:b options:0 error:nil]:nil;auto intent=readOriginalIntent();NSData*t=[NSData dataWithBytes:intent.approvedTerms.data() length:intent.approvedTerms.size()];NSDictionary*terms=[NSJSONSerialization JSONObjectWithData:t options:0 error:nil];
+  if(![r isKindOfClass:NSDictionary.class]||![terms isKindOfClass:NSDictionary.class]||![r[@"pkA"]isEqual:hex(pair.pa.data(),pair.pa.size())]||![r[@"pkB"]isEqual:hex(pair.pb.data(),pair.pb.size())]||r[@"revokedAt"]!=NSNull.null)refuse();
+  for(NSString*k in @[@"networkId",@"canonicalOwner",@"productId",@"clientId",@"platform",@"applicationId",@"bundleId",@"packageId",@"origin",@"callback",@"deviceId",@"generation"])if(![r[k]isEqual:terms[k]])refuse();
+  if(![registered_ assertOriginalProductSessionDeviceV4SourceCurrent:&e]||e)refuse();assertCurrent();scope_=s;return s;
+ }
+public:
+ explicit ProvisioningV4Authority(ProvisioningV4Approval*a):a_(a){}
+ void assertCurrent()override{if(!a_||!a_->rechecked||!ProvisioningV4ApprovalCurrent(a_))refuse();}
+ ynx_auth_private::DeviceProvisioningIntent readOriginalIntent()override{assertCurrent();const auto i=ProvisioningV4Intent(a_->parent->scope);assertCurrent();return i;}
+ void verifyOriginalCreationApproval(const ynx_auth_private::DeviceProvisioningIntent&i)override{const auto held=readOriginalIntent();if(i.network!=held.network||i.stableDeviceIdentity!=held.stableDeviceIdentity||i.approvedTerms!=held.approvedTerms)refuse();assertCurrent();}
+ ynx_auth_private::RegisteredDeviceAssociation readOriginalRegisteredDevice(const ynx_auth_private::DevicePairPublicView&pair,const std::string&operation)override{if(operation.size()!=64)refuse();NSDictionary*s=registered(pair);return{text(s[@"registrationOriginal"]),canonical(s[@"expected"]),0};}
+ void assertRegisteredCurrent(const ynx_auth_private::RegisteredDeviceAssociation&r,const ynx_auth_private::DevicePairPublicView&pair)override{NSDictionary*s=registered(pair);if(r.result||r.registrationOriginal!=text(s[@"registrationOriginal"])||r.associationOriginal!=canonical(s[@"expected"]))refuse();}
+ void assertSelectedPublicAssociation(const std::string&association,const std::string&selected)override{assertCurrent();if(!scope_||canonical(scope_[@"expected"])!=association)refuse();NSData*b=[NSData dataWithBytes:selected.data() length:selected.size()];NSDictionary*d=[NSJSONSerialization JSONObjectWithData:b options:0 error:nil];if(![d isKindOfClass:NSDictionary.class]||d.count!=2||![d[@"account"]isEqual:scope_[@"expected"][@"canonicalOwner"]]||![d[@"networkId"]isEqual:scope_[@"expected"][@"networkId"]])refuse();assertCurrent();}
+ bool close(){if(closeSelected_)return closeResult_;closeSelected_=true;@try{NSError*e=nil;[registered_ retire];if(registered_&&(![registered_ join:&e]||e))return false;if(registered_&&(![registered_ close:&e]||e))return false;registered_=nil;scope_=nil;closeResult_=true;return true;}@catch(id){return false;}}
+};
+struct ProvisioningV4Composition{
+ std::shared_ptr<ProvisioningV4Authority>authority;
+ std::shared_ptr<ynx_auth_private::OriginalDeviceAssociationStore>store;
+ std::unique_ptr<ynx_auth_private::OriginalDeviceOnlyCreator>creator;
+ ynx_auth_private::HostDirfdJournal journal;
+ std::unique_ptr<ynx_auth_private::OriginalDeviceProvisioning>operation;
+ bool closeSelected=false,closeResult=false;
+ bool close(){if(closeSelected)return closeResult;closeSelected=true;bool ok=true;if(operation){operation->retire();if(!operation->close())ok=false;}if(authority&&!authority->close())ok=false;if(!journal.close())ok=false;if(ok){operation.reset();authority.reset();store.reset();creator.reset();}closeResult=ok;return ok;}
+};
+static napi_value ProvisioningV4OutcomeDATA(napi_env env,const ynx_auth_private::DeviceProvisioningPublicOutcome&o){napi_value out=nullptr,v=nullptr,lengths=nullptr;napi_create_object(env,&out);for(const auto&entry:{std::pair<const char*,std::string>{"operation",o.operation},{"state",o.state},{"association",o.association},{"firstCause",o.firstCause}}){napi_create_string_utf8(env,entry.second.data(),entry.second.size(),&v);napi_set_named_property(env,out,entry.first,v);}for(const auto&entry:{std::pair<const char*,double>{"result",(double)o.creator.result},{"cleanup",(double)o.creator.cleanup},{"outputState",(double)o.creator.outputState}}){napi_create_double(env,entry.second,&v);napi_set_named_property(env,out,entry.first,v);}napi_create_array_with_length(env,4,&lengths);for(uint32_t i=0;i<4;i++){auto s=std::to_string(o.creator.lengths[i]);napi_create_string_utf8(env,s.data(),s.size(),&v);napi_set_element(env,lengths,i,v);}napi_object_freeze(env,lengths);napi_set_named_property(env,out,"reportedLengthsExact",lengths);napi_get_boolean(env,o.recoveredOriginal,&v);napi_set_named_property(env,out,"recoveredOriginal",v);napi_object_freeze(env,out);return out;}
+static napi_value ProvisioningV4Prepare(napi_env env,ProvisioningV4Approval*a){
+ if(a->attempted||a->recheckPending||!a->rechecked||!ProvisioningV4ApprovalCurrent(a))return DeviceV4Throw(env,"DEVICE_PROVISIONING_ORIGINAL_PREPARE_REQUIRED");a->attempted=true;a->composition=std::make_shared<ProvisioningV4Composition>();auto&c=*a->composition;
+ try{@try{c.authority=std::make_shared<ProvisioningV4Authority>(a);c.authority->assertCurrent();NSError*e=nil;NSDictionary*j=[a->parent->source copyOriginalProductSessionDeviceV4ProvisioningJournal:&e];if(!j||e)throw std::runtime_error("DEVICE_PROVISIONING_JOURNAL_REQUIRED");c.journal.openProductDeviceV4PendingExisting([j[@"parent"]UTF8String],[j[@"leaf"]UTF8String]);c.authority->assertCurrent();c.store=ynx_auth_private::openOriginalDeviceAssociationKeychainStore();c.creator=ynx_auth_private::openOriginalCoreDeviceOnlyCreator();c.operation=std::make_unique<ynx_auth_private::OriginalDeviceProvisioning>(c.journal,c.authority,c.store,*c.creator);return ProvisioningV4OutcomeDATA(env,c.operation->prepare());}@catch(id){a->failed=true;}}catch(...){a->failed=true;}
+ return DeviceV4Throw(env,"DEVICE_PROVISIONING_PREPARE_UNKNOWN_OR_UNAVAILABLE");
+}
+static napi_value ProvisioningV4ReadPair(napi_env env,ProvisioningV4Approval*a){if(!a->composition||!a->composition->operation||!ProvisioningV4ApprovalCurrent(a))return DeviceV4Throw(env,"DEVICE_PROVISIONING_PUBLIC_PAIR_UNAVAILABLE");try{const auto pair=a->composition->operation->readPublicPair();napi_value out=nullptr,v=nullptr;napi_create_object(env,&out);napi_create_buffer_copy(env,pair.pa.size(),pair.pa.data(),nullptr,&v);napi_set_named_property(env,out,"pkA",v);napi_create_buffer_copy(env,pair.pb.size(),pair.pb.data(),nullptr,&v);napi_set_named_property(env,out,"pkB",v);napi_object_freeze(env,out);return out;}catch(...){a->failed=true;return DeviceV4Throw(env,"DEVICE_PROVISIONING_PUBLIC_PAIR_UNAVAILABLE");}}
+static napi_value ProvisioningV4Complete(napi_env env,ProvisioningV4Approval*a){if(!a->composition||!a->composition->operation||!ProvisioningV4ApprovalCurrent(a))return DeviceV4Throw(env,"DEVICE_PROVISIONING_COMPLETION_UNAVAILABLE");try{return ProvisioningV4OutcomeDATA(env,a->composition->operation->complete());}catch(...){a->failed=true;return DeviceV4Throw(env,"DEVICE_PROVISIONING_COMPLETION_UNKNOWN");}}

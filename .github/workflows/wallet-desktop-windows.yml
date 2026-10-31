@@ -3865,6 +3865,26 @@ jobs:
           path: ${{ runner.temp }}/device-create-intent-package-*/**
           if-no-files-found: error
 
+  provisioning-source-r4-composition:
+    name: Original provisioning Source matching graph and package
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth49-provisioning-source-r4-20261031'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install original locked SDK dependencies
+        run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - name: Only affected provisioning composition controls
+        run: node --test scripts/ci/provisioning-source-composition.test.mjs
+      - name: Actual packaged fixed-image entry and missing-image refusal
+        run: node scripts/ci/provisioning-source-package.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: provisioning-source-package-evidence
+          path: ${{ runner.temp }}/provisioning-source-package-*/**
+
   open-deployment-v2:
     name: Cloud V2 canonical full reference actual artifact and payload bindings
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/open-protocol-deployment-v2-20261031'

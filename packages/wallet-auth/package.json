@@ -369,7 +369,10 @@
     "native/original-auth-identity-source-authority.h",
     "native/original-host-dirfd-journal.h",
     "native/original-product-device-v4-pending-journal.h",
-    "native/original-product-device-v4-pending-source-contract.mjs"
+    "native/original-product-device-v4-pending-source-contract.mjs",
+    "native/original-auth-identity-native-release.h",
+    "native/original-product-device-v4-provisioning-journal.h",
+    "native/original-product-device-v4-provisioning-source-contract.mjs"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
