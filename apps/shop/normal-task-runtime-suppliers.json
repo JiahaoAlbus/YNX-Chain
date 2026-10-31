@@ -1,5 +1,5 @@
 {
-  "originalSDKCommit": "88db5b7c78da1da4ca7469439f64416367a40bcc",
+  "originalSDKCommit": "6cc5412c72bd01d8ec7cf1506aaa1a8f71212d11",
   "originalAuthPolicyCommit": "7a5c07c629c15755be95c0786bb06cb431a8fb60",
   "corePackage": "core-go-verification-source-fdc-20261031-r1",
   "coreSourceManifestSHA256": "8cc60774c16472bd4c0e0b21b6fcd9930a729e3460551827ff4d532d753e6ed4",
@@ -11,9 +11,69 @@
   "absoluteReplace": false,
   "pins": [
     {
+      "path": "cmd/ynx-secure-link-caller/.gitignore",
+      "bytes": 8,
+      "sha256": "020c2606e8ed484089c2083e0be438b9d0736bee1558a6b76af0d58bd23f69cf"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/README.md",
+      "bytes": 5799,
+      "sha256": "317d245373c09deebb1508f720d2fee42b857e7f8d8bbbe23b7f0a73b7efaa36"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/build.mjs",
+      "bytes": 1689,
+      "sha256": "2649b89d45ffe82d86d38f7089ba07c5ab1edf44f0bc43b06ec344faa923405e"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/caller.test.mjs",
+      "bytes": 10324,
+      "sha256": "237431353391becc84a67d9d1cd551627c828351d6daed2196561b43d921c82f"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/check.sh",
+      "bytes": 874,
+      "sha256": "79b897fa55e7fe3d35c167bc6b37e4a9512044b58aa56d760c0c253f61c78616"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/fork.test.mjs",
+      "bytes": 1405,
+      "sha256": "f6eb41b3fcf149d94de4bfec142e0f42689754d11ef2d5ee48921b4b8ac60541"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/go-integration.test.mjs",
+      "bytes": 3884,
+      "sha256": "16f5a1776faff23f3c135ef6e1e0cf3a5063ddeb4a1bc2741f39cba3190b52c9"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/go-peer-fixture/main.go",
+      "bytes": 2538,
+      "sha256": "f45abbf828f6220caa2db9f63e4056f6de339070e81693f1462aad32c7323af7"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/inbound-caller.mjs",
+      "bytes": 16201,
+      "sha256": "fab7f9edbf184650f729fd49a79325545c1ee8193fa0233b3f7b4f3856dfaea6"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/inbound-caller.test.mjs",
+      "bytes": 14777,
+      "sha256": "6c8deba559d5723dac3a7208a1f269553164dfec172030d20075f8cb282fb267"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/native.c",
+      "bytes": 33214,
+      "sha256": "45ad3c0ef184dc4ba4e6600f1de8ad787b28328e780354e2c9174ad268411bb3"
+    },
+    {
+      "path": "cmd/ynx-secure-link-caller/private-caller.mjs",
+      "bytes": 14318,
+      "sha256": "e57e4c9fb3c3dc605919c7950556ee34d7c2d1e5f1991c8e9b5b36e2762c5b3e"
+    },
+    {
       "path": "go.mod",
-      "bytes": 4926,
-      "sha256": "04452972e43ab74a8c0e91ee00541d596a53b468937f6a0d0ddb6382bfaacc12"
+      "bytes": 5128,
+      "sha256": "f6b5cd8e2e09bdb583d0917770338f98d230b93562c6e4ad303bec60f99cf19d"
     },
     {
       "path": "go.sum",
@@ -24,6 +84,166 @@
       "path": "internal/accountaddress/address.go",
       "bytes": 5709,
       "sha256": "9854a581af2e42b0b29ce60f69002eaddabfeef1907b9fcf1b78ac9595acc8ac"
+    },
+    {
+      "path": "internal/securelink/PROTECTED_CALLER.md",
+      "bytes": 14961,
+      "sha256": "eca3fbf4fd05c02fd54d593eac53f6f5f0312237629c477a470c27bcee80b199"
+    },
+    {
+      "path": "internal/securelink/authority_ingress.go",
+      "bytes": 1423,
+      "sha256": "e114e7b0f01ae1cad05e58bbd3e8968d0822f70f751bceeb2996d7ed8f1c967f"
+    },
+    {
+      "path": "internal/securelink/authority_ingress_openssl_test.go",
+      "bytes": 17517,
+      "sha256": "27bf76c3e021d7bf8280066670d519788fe6237f648290cdebe0fabe0a17eb3d"
+    },
+    {
+      "path": "internal/securelink/authority_ingress_test.go",
+      "bytes": 2474,
+      "sha256": "b6f5e2824a12cb12b69d49777459ac6482c43dff2316973f57ce4d99e3176536"
+    },
+    {
+      "path": "internal/securelink/authority_ingress_unix.go",
+      "bytes": 15804,
+      "sha256": "715ab6e6cdab45ba498cd1da96793a16788b84452fb63ee1783229da7384e957"
+    },
+    {
+      "path": "internal/securelink/authority_ingress_unsupported.go",
+      "bytes": 646,
+      "sha256": "cbe8b72c827181d3a8c3dbd67a3b5d1be94d958355dba8710a744812c642357a"
+    },
+    {
+      "path": "internal/securelink/channel.go",
+      "bytes": 4965,
+      "sha256": "f2994e89c5c11d70fc704bd81fa8a766a9cc0fa0a961fcae64dbe50d24a42aed"
+    },
+    {
+      "path": "internal/securelink/gate.go",
+      "bytes": 9655,
+      "sha256": "57e9499cc439c798568b6f1ba421c1a7951bdcd7b78dcaebdba6d89611b3caea"
+    },
+    {
+      "path": "internal/securelink/http.go",
+      "bytes": 14016,
+      "sha256": "2360322a646da775d2b5babb5ece766ef0671e3a628169d7d1b0a18e69acab18"
+    },
+    {
+      "path": "internal/securelink/ipc.go",
+      "bytes": 2962,
+      "sha256": "92d89356ea934d8bdca2cf9a987d4a9fbb0d99cc84d408c02ccd11028b2715a4"
+    },
+    {
+      "path": "internal/securelink/ipc_darwin.go",
+      "bytes": 550,
+      "sha256": "5728519120472056c1d41e3533ebd5baeda2ae7330977662f47ea2b444f24ebe"
+    },
+    {
+      "path": "internal/securelink/ipc_linux.go",
+      "bytes": 546,
+      "sha256": "1d39c51612e2c97edbc013d847c58b4d6c003a50b263a7ea91cc7aaa89d0b27b"
+    },
+    {
+      "path": "internal/securelink/ipc_peer_darwin.go",
+      "bytes": 345,
+      "sha256": "8fe3c4a8175d9228101bc095f73296051b8ac566a06aa291752c83ef9b647c4e"
+    },
+    {
+      "path": "internal/securelink/ipc_peer_linux.go",
+      "bytes": 279,
+      "sha256": "04810b0582f1f7bd0d67358f5ad355e162f33a8064d0645002780adfe13cfc0f"
+    },
+    {
+      "path": "internal/securelink/ipc_unsupported.go",
+      "bytes": 483,
+      "sha256": "8002fadcc2fe0b40d7ef53599dbf23720252c6dd55d745beb8b7ab8fe62a4e42"
+    },
+    {
+      "path": "internal/securelink/local_caller.go",
+      "bytes": 3682,
+      "sha256": "5f62fe3d60068c3c60be2e73dda15cb7f6ad2723b5b4bfcf87fba655ea00283a"
+    },
+    {
+      "path": "internal/securelink/local_caller_test.go",
+      "bytes": 20473,
+      "sha256": "48f69c9180edd2779ba3c356c35954dd6efbdaa8f3cd7544d1d49009b7d0f92f"
+    },
+    {
+      "path": "internal/securelink/local_caller_unix.go",
+      "bytes": 15052,
+      "sha256": "e21df81c992b22bba2a485d854839c706438f294a90acb5e16cd51a049f2612d"
+    },
+    {
+      "path": "internal/securelink/local_caller_unsupported.go",
+      "bytes": 1174,
+      "sha256": "dac950548325fb9f22cf71be9b005e14a7e1736a729e22ba4c1b9dd030566918"
+    },
+    {
+      "path": "internal/securelink/local_client_error_test.go",
+      "bytes": 1609,
+      "sha256": "9b1d5c199035e49c3b45224784689887cffaa0b271a6e42f368334745bbc209d"
+    },
+    {
+      "path": "internal/securelink/native/bridge.c",
+      "bytes": 12615,
+      "sha256": "f02544b772a5612508847da0d04ae111c6183dbd01e92322e59f705e2080400c"
+    },
+    {
+      "path": "internal/securelink/native/bridge.h",
+      "bytes": 909,
+      "sha256": "1907167f353b83af9465b2d45b0791f686b633bf39d56ca17515a5138a5ebc1c"
+    },
+    {
+      "path": "internal/securelink/native/openssl.go",
+      "bytes": 10829,
+      "sha256": "0afbf8448b502ae6acb07cfa93db6ad11b2fcee7ea75ace9d9c7879872956c61"
+    },
+    {
+      "path": "internal/securelink/native/types.go",
+      "bytes": 1793,
+      "sha256": "cad71f6b8cdfa234302c25853068501b43f8c4841f53e37be3892d92ad01dd5c"
+    },
+    {
+      "path": "internal/securelink/native/unavailable.go",
+      "bytes": 1527,
+      "sha256": "b9066a4ce2ac94e8a4e4bcac4c3270293e160fac0df763da2b874d4fb5a72b89"
+    },
+    {
+      "path": "internal/securelink/protected_client.go",
+      "bytes": 12693,
+      "sha256": "9e82eabce25ce57d85b65b2b98448ca899f69765a51f2d346ba54c019836bfdb"
+    },
+    {
+      "path": "internal/securelink/protected_material.go",
+      "bytes": 5857,
+      "sha256": "42ad8b4594dc18e8213016e158792c71708356d492221a18140bd5584838c45a"
+    },
+    {
+      "path": "internal/securelink/protected_material_openssl_test.go",
+      "bytes": 8170,
+      "sha256": "3c6f9a51582bd55a9da016fe72ac4b41889099a60b7c78ac47e86e70a9fef83c"
+    },
+    {
+      "path": "internal/securelink/protected_material_test.go",
+      "bytes": 1069,
+      "sha256": "33eb40cc82fce3180e78404c8346d8414b9b4f6a26fd68298ba02d6e0ee15fdc"
+    },
+    {
+      "path": "internal/securelink/read.go",
+      "bytes": 11174,
+      "sha256": "6dab86c08adf4878a9f445c4cce0cd9613827e158c6959766d16ca70b3df844e"
+    },
+    {
+      "path": "internal/securelink/static.go",
+      "bytes": 4471,
+      "sha256": "cafb2c191e3d7eb74a725016dbbbe940bb2564878496153e4513e1bd7cd5a127"
+    },
+    {
+      "path": "internal/securelink/witness.go",
+      "bytes": 1248,
+      "sha256": "a4221fe1d8008617179d93c4ac0779eb60d1a65799edfec479e5f42e6ef7b008"
     },
     {
       "path": "internal/ynxbatch/artifact_publication.go",
@@ -91,49 +311,99 @@
       "sha256": "b75f0a913574d08d3d9bac3f01d06d8bbbf106bdc802a7c8349b74560587fdb8"
     },
     {
-      "path": "licenses/github.com/cloudflare/circl@v1.6.5/LICENSE",
-      "bytes": 3028,
-      "sha256": "b0da1764fe4d13d610b695536fc3f2ebc362482d053a1cd258e36975bc6b97a7"
+      "path": "packages/auth-grant-history-client/go/authority_client.go",
+      "bytes": 10102,
+      "sha256": "8a788444a7d55af29aa06a79e1684d5148fdd56a50dec3620aed3a63037a07d3"
     },
     {
-      "path": "licenses/golang.org/x/crypto@v0.57.0/LICENSE",
-      "bytes": 1453,
-      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      "path": "packages/auth-grant-history-client/go/client.go",
+      "bytes": 10666,
+      "sha256": "295560ac001fd46f949db62095b7660e747ad3dd02b262b1a261aed6f501baf2"
     },
     {
-      "path": "licenses/golang.org/x/crypto@v0.57.0/PATENTS",
-      "bytes": 1303,
-      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+      "path": "packages/auth-grant-history-client/go/formal_operations.go",
+      "bytes": 922,
+      "sha256": "205c072be9de9f56dc69f94de69382d137bd299f084d23439fd7178fdf24f225"
     },
     {
-      "path": "licenses/golang.org/x/net@v0.60.0/LICENSE",
-      "bytes": 1453,
-      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      "path": "packages/auth-grant-history-client/go/go.mod",
+      "bytes": 851,
+      "sha256": "24ce009db5e7b862805c09a4e45ffa31ad545197120e130b013c4730910bd21d"
     },
     {
-      "path": "licenses/golang.org/x/net@v0.60.0/PATENTS",
-      "bytes": 1303,
-      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+      "path": "packages/auth-grant-history-client/go/go.sum",
+      "bytes": 793,
+      "sha256": "19d0d4e704482ce1c982d72da9497d51e2ab5d8b6d1273357984a3d5cbf83765"
     },
     {
-      "path": "licenses/golang.org/x/sys@v0.48.0/LICENSE",
-      "bytes": 1453,
-      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      "path": "packages/auth-grant-history-client/go/issuer_factory.go",
+      "bytes": 2204,
+      "sha256": "2e15c813cd6d6604779178f42af24bfe541598f7cf7aed083e74f0f3bede2abb"
     },
     {
-      "path": "licenses/golang.org/x/sys@v0.48.0/PATENTS",
-      "bytes": 1303,
-      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+      "path": "packages/auth-grant-history-client/go/local_registration.go",
+      "bytes": 4527,
+      "sha256": "010fa3ed38132df2a2826b57c88133460418a90d746310397501a5e6f9d7e90c"
     },
     {
-      "path": "licenses/golang.org/x/text@v0.42.0/LICENSE",
-      "bytes": 1453,
-      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      "path": "packages/auth-grant-history-client/go/original_local_broker.go",
+      "bytes": 10432,
+      "sha256": "d7dda43cd17ec3e21dc770ad7ece6bcfdb429b3394c6499c4ff3aa5854aa3786"
     },
     {
-      "path": "licenses/golang.org/x/text@v0.42.0/PATENTS",
-      "bytes": 1303,
-      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+      "path": "packages/auth-grant-history-client/go/original_service_body.go",
+      "bytes": 2053,
+      "sha256": "2c77bcbfcfa1c1127d5ebbf3beb87746d8bd97f0be1744082a504416e41ab4b1"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/result.go",
+      "bytes": 3897,
+      "sha256": "8fc5316c886560f89fb1df8c0d52f3404e49914156b2ba632f60a4d39ab18c00"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/service_result.go",
+      "bytes": 3896,
+      "sha256": "be6f792535b92a9867793e280a70044542a5aaad9a5df23988bc18c66368e966"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/source_protected.go",
+      "bytes": 3814,
+      "sha256": "81ce339398d16ed6a90ada3d23aaa56310ec39b078f149a5c230037f99fab779"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/source_provider.go",
+      "bytes": 13588,
+      "sha256": "6074c266dbb40b86eb5b1c8323d8f7169fba191589e09c56e8729411bee98e38"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/source_runtime.go",
+      "bytes": 4950,
+      "sha256": "3514bd18e8e6e95e31cb2a433328ce26206f17f4377e3ab576f0ead17ece6083"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/whole_formal_bind.go",
+      "bytes": 9151,
+      "sha256": "1d8e8f52d1f56f3cdd7abbd714d0479144baba9fe63c987817bd17f703a4b474"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/whole_formal_data.go",
+      "bytes": 2641,
+      "sha256": "431e192835a4cab31c07e11f627b995379fdc8363c40a44b1ce5bf826e3d1038"
+    },
+    {
+      "path": "packages/auth-grant-history-client/go/whole_response.go",
+      "bytes": 10714,
+      "sha256": "b68d6e9e98d7228bdd0f81b8ddefc44eb358133dc7fe58bf6b8df7d1d1be64da"
+    },
+    {
+      "path": "packages/auth-grant-policy/go/go.mod",
+      "bytes": 44,
+      "sha256": "52ce10782f53ddf0c5e30ca51d59273a75b522d456032a1c417c4f6188b7468e"
+    },
+    {
+      "path": "packages/auth-grant-policy/go/task_grant.go",
+      "bytes": 25544,
+      "sha256": "fb4a74cec0588f48fed2636adcbc6283cf81113a096d3f813d11503516ac9036"
     },
     {
       "path": "packages/auth-grant-runtime/go/go.mod",
@@ -149,6 +419,16 @@
       "path": "packages/auth-grant-runtime/go/protected.go",
       "bytes": 3811,
       "sha256": "48bcf931ea1cd38d4468be86c422f88c4d9d7bb8ed2bf202efc88573109feff9"
+    },
+    {
+      "path": "packages/auth-grant-runtime/go/query_material.go",
+      "bytes": 2883,
+      "sha256": "36dc7080baa19aaa9937501a3a340a012b707e37d1e78894b50ae4bac7d1b8ec"
+    },
+    {
+      "path": "packages/auth-grant-runtime/go/query_runtime.go",
+      "bytes": 4131,
+      "sha256": "207b695dc65b8bafbfbd7741f85df1b763e96cbb749f7aaab8b79b7897eb8cd1"
     },
     {
       "path": "packages/auth-grant-runtime/go/request_metadata.go",
@@ -204,6 +484,33 @@
       "path": "packages/open-protocol/go/shop_order_read.go",
       "bytes": 25134,
       "sha256": "43975ffa7b45f2d11f4e76e2c530571fb5ef159ed07dcd173c4a0ccc9f0dcfdd"
+    },
+    {
+      "path": "packages/open-protocol/go/task_authority_response.go",
+      "bytes": 23506,
+      "sha256": "848f13e744d232a1470cd7d3d6b570b9564b04cc218bf7e0b41124ef4f8067ed"
     }
-  ]
+  ],
+  "formalSuccessor": {
+    "bundle": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/auth-task-authority-formal-normal-intake-20261031/AUTH_FORMAL_NORMAL_SOURCE.tar.gz",
+    "bundleBytes": 2429173,
+    "bundleSHA256": "c404098f31c292d57c59a09ea9b4a14ed32de723cdc2264778e35867b3e088b1",
+    "AuthFormalHandoffBytes": 18067,
+    "AuthFormalHandoffSHA256": "b6c8594a988e0dd89bb8d1c92ce83fea9eea114b4bcaa81863b6df1fa332c00e",
+    "AuthBrokerHandoffBytes": 11020,
+    "AuthBrokerHandoffSHA256": "e329cbdb673c321c09b193bade53847faabc21074891eadda9b37277ce9039f1",
+    "LINKCommit": "eb59dce2260a3f617fc50f8b02d2a38bdfbd8747",
+    "installation": "Shop-specific exact before/after CAS; P08 baseline not used",
+    "newOrUpdated": 51,
+    "sameByteSkipped": 43,
+    "activeCandidateFallback": false,
+    "normalNamespace": "relative Auth history client/runtime/policy/OPEN/root modules",
+    "GoModDelta": "only formal client require + relative replace; go.sum unchanged",
+    "RootSourceAdmission": false,
+    "externalBuildAndModuleCaches": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P07/formal-intake",
+    "upstreamNodeAuthority": "complete supplied node-original-layout retained by original Auth/SDK, not a replacement Shop authority daemon",
+    "SDKJS_SHA256": "8ceee5cbe63ec03b1c8f57093b9ee9b57e1d7fb30acd958b6c21a19ad2e15f3d",
+    "SDKGo_SHA256": "848f13e744d232a1470cd7d3d6b570b9564b04cc218bf7e0b41124ef4f8067ed"
+  },
+  "previousOriginalSDKCommit": "88db5b7c78da1da4ca7469439f64416367a40bcc"
 }

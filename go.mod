@@ -93,6 +93,7 @@ require (
 tool github.com/cometbft/cometbft/cmd/cometbft
 
 require (
+	github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-history-client/go v0.0.0
 	github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go v0.0.0
 	github.com/JiahaoAlbus/YNX-Chain/packages/open-protocol/go v0.0.0
 	github.com/cloudflare/circl v1.6.5
@@ -105,3 +106,5 @@ replace ynx.local/authgrantpolicy => ./packages/auth-grant-policy/go
 replace github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go => ./packages/auth-grant-runtime/go
 
 replace github.com/JiahaoAlbus/YNX-Chain/packages/open-protocol/go => ./packages/open-protocol/go
+
+replace github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-history-client/go => ./packages/auth-grant-history-client/go

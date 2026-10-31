@@ -2,6 +2,7 @@ package securelink
 
 import (
 	"context"
+	"io"
 	"net/http"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink/native"
@@ -63,6 +64,9 @@ type serviceChannelBinding struct {
 	method, path          string
 	url, requestURI, host string
 	id                    native.ConnectionID
+	body                  io.ReadCloser
+	contentLength         int64
+	contentTypes          []string
 }
 
 // withServiceChannel is called only by the native HTTP server after its Gate
@@ -75,7 +79,7 @@ func withServiceChannel(r *http.Request, conn *native.Conn, gate *Gate, edge str
 	if state.LocalEKU != "serverAuth" || state.PeerEKU != "clientAuth" {
 		return r
 	}
-	binding := &serviceChannelBinding{conn: conn, gate: gate, edge: edge, method: r.Method, path: r.URL.EscapedPath(), url: r.URL.String(), requestURI: r.RequestURI, host: r.Host, id: conn.ID()}
+	binding := &serviceChannelBinding{conn: conn, gate: gate, edge: edge, method: r.Method, path: r.URL.EscapedPath(), url: r.URL.String(), requestURI: r.RequestURI, host: r.Host, id: conn.ID(), body: r.Body, contentLength: r.ContentLength, contentTypes: append([]string(nil), r.Header.Values("Content-Type")...)}
 	bound := r.WithContext(context.WithValue(r.Context(), serviceChannelKey{}, binding))
 	binding.request = bound
 	return bound
