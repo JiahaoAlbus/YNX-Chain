@@ -11,14 +11,19 @@ fixture_hash=$(shasum -a 256 "$composition/internal/ynxauth/testdata/invoice-act
 [ "$fixture_hash" = d5895426311ef8f4eea003d1ec548834d92ea9100052a5eed2d3d0616dbbff9a ] || { echo 'CORE fixture pin differs' >&2; exit 2; }
 cp "$source_dir"/*.go "$composition/internal/payproduct/"
 cp "$source_dir/../paygateway"/*.go "$composition/internal/paygateway/"
-/usr/bin/python3 "$source_dir/testsupport/generate_core_workflow.py" "$composition"
 cd "$composition"
 export PAY_CORE_WORKFLOW_DIR="$fixture_dir"
 native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_TAGS:-}"
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
-node --test "$client_root/merchant-invoice-approval.test.mjs" "$client_root/pay-business-client.test.mjs"
+node --test "$client_root/merchant-invoice-approval.test.mjs" "$client_root/pay-business-client.test.mjs" "$client_root/notification-inbox.test.mjs"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = notifications ]; then
+ go test -p 1 -tags pay_pq ./internal/payproduct -run '^TestNativeInvoiceEvents' -count=1 -timeout=4m -v
+ exit
+fi
+[ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = full ] || { echo 'unknown native workflow suite' >&2; exit 2; }
+/usr/bin/python3 "$source_dir/testsupport/generate_core_workflow.py" "$composition"
 if [ -n "${PAY_CLIENT_MAIN_SOURCE:-}" ]; then
  export PAY_CLIENT_WORKFLOW_DIR="$fixture_dir"
  export PAY_CLIENT_WORKFLOW_DRIVER="$client_root/testsupport/business-workflow.mjs"

@@ -33,6 +33,15 @@ test('no default transport and no request-controlled origin',()=>{
  for(const origin of ['http://public.example','https://pay.example/path','https://user:pass@pay.example'])assert.throws(()=>createPrivateNativeInvoiceClient({origin,requestPrivate(){}}));
  assert.throws(()=>createPrivateNativeInvoiceClient({origin:'https://pay.example'}),{code:'NATIVE_INVOICE_PRIVATE_TRANSPORT_UNAVAILABLE'});
 });
+test('event reads use the original fixed-origin private transport and exact invoice binding',async()=>{
+ const merchant='0x'+'1'.repeat(40),invoiceId='invoice-100',calls=[];let wrong=false;
+ const client=createPrivateNativeInvoiceClient({origin:'https://pay.example',async requestPrivate({method,path}){
+  calls.push([method,path]);return {method,requestPath:path,status:200,contentType:'application/json',body:Buffer.from(JSON.stringify({merchant,invoiceId:wrong?'different':invoiceId,events:[]}))};
+ }});
+ assert.deepEqual((await client.readInvoiceEvents(merchant,invoiceId)).events,[]);
+ assert.deepEqual(calls,[['GET',`/v5/pay/invoices/${merchant}/${invoiceId}/events`]]);
+ wrong=true;await assert.rejects(client.readInvoiceEvents(merchant,invoiceId),{code:'NATIVE_PAY_EVENT_REFERENCE_MISMATCH'});
+});
 test('missing protected Main or changed signing bytes cannot enter any signing review',async()=>{
  assert.throws(()=>createNativeInvoiceMerchantApproval({main:{},pay:{}}),{code:'NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE'});
  let entries=0;

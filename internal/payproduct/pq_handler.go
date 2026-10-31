@@ -25,6 +25,14 @@ func (s *Server) MountNativePay(service *NativePayService) error {
 // No JSON request can supply a registration, grant, proof anchor or private key.
 func (n *NativePayService) Handler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v5/pay/invoices/{merchant}/{invoice}/events", func(w http.ResponseWriter, r *http.Request) {
+		feed, err := n.InvoiceEvents(r.Context(), r.PathValue("merchant"), r.PathValue("invoice"))
+		if err != nil {
+			nativePayError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, feed)
+	})
 	mux.HandleFunc("POST /v5/pay/invoice-terms/review", func(w http.ResponseWriter, r *http.Request) {
 		var input struct {
 			SourceOrder string                     `json:"sourceOrder"`

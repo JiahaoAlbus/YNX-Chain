@@ -49,6 +49,36 @@ export class NativePayBusinessClient {
   const bill=await this.#pay.readInvoice(merchant,invoiceId);current();return {bill,queryOnly:true,clientIndependentFinality:false};
  });}
  async recoverIntent(intentId){return this.#run({intentId},'recovering',async current=>{await this.#pay.reconcileInvoiceIntent(intentId);current();const intent=await this.#pay.readInvoiceIntent(intentId);current();return {intent,bill:intent.invoice??null,queryOnly:true,clientIndependentFinality:false};});}
+ async syncNotifications(merchant,invoiceId){return this.#run({merchant,invoiceId},'recovering',async current=>{
+  let bill=await this.#pay.readInvoice(merchant,invoiceId);current();
+  const inbox=this.#runtime.notificationInbox,readScope=this.#runtime.readNotificationScope;
+  if(!inbox||typeof readScope!=='function')return {bill,notifications:{phase:'unavailable',reason:'NATIVE_PAY_NOTIFICATION_SCOPE_UNAVAILABLE'},queryOnly:true,clientIndependentFinality:false};
+  let scope;
+  try{const supplied=await readScope();current();if(typeof supplied.current!=='function')throw failure('NATIVE_PAY_NOTIFICATION_SCOPE_UNAVAILABLE');scope=Object.freeze({source:supplied.source,principal:supplied.principal,genesis:supplied.genesis,bindingDigest:supplied.bindingDigest,current:supplied.current});}
+  catch(error){current();return {bill,notifications:{phase:'unavailable',reason:error.code??'NATIVE_PAY_NOTIFICATION_SCOPE_UNAVAILABLE'},queryOnly:true,clientIndependentFinality:false};}
+  const scopeCurrent=()=>{current();if(scope.current()!==undefined)throw failure('NATIVE_PAY_NOTIFICATION_SCOPE_UNAVAILABLE');};
+  let feed;
+  try{feed=await this.#pay.readInvoiceEvents(merchant,invoiceId);scopeCurrent();
+  if(feed.events.some(e=>e.merchant!==merchant||e.invoiceId!==invoiceId||e.genesis!==bill.genesis||e.sourceOrder!==bill.sourceOrder||e.sessionId!==bill.sessionId))throw failure('NATIVE_PAY_EVENT_REFERENCE_MISMATCH');
+  inbox.stage(scope,feed.events,scopeCurrent);
+  }catch(error){scopeCurrent();return {bill,notifications:{phase:'unavailable',reason:error.code??'NATIVE_PAY_EVENT_READ_UNAVAILABLE'},queryOnly:true,clientIndependentFinality:false};}
+  const pending=inbox.pending(scope,merchant,invoiceId,scopeCurrent);let refreshed=0,reason=null;
+  for(const event of pending){
+   try{
+    scopeCurrent();const original=bill.operations?.[event.nativeHash];
+    if(!original||original.status!=='confirmed'||!original.effect||original.abciHash!==event.abciHash||original.kind!==event.kind||original.effect.merchant!==event.merchant||original.effect.genesis!==event.genesis||original.effect.invoiceId!==event.invoiceId||original.effect.sessionId!==event.sessionId||original.effect.nativeHash!==event.nativeHash||original.effect.abciHash!==event.abciHash||original.effect.member!==event.memberIndex||original.effect.event!==event.eventIndex||original.effect.height!==event.executionHeight)throw failure('NATIVE_PAY_EVENT_ORIGINAL_UNAVAILABLE');
+    if(typeof this.#runtime.refreshOriginalProduct!=='function')throw failure('NATIVE_PAY_PRODUCT_READER_UNAVAILABLE');
+    // Existing Cloud/Shop original lookup only; never create/reprice/pay from
+    // an event. The callback result is not used as a funds receipt.
+    const observed=await this.#runtime.refreshOriginalProduct(Object.freeze({...event}),scopeCurrent);scopeCurrent();
+    if(observed?.sourceOrder!==event.sourceOrder||observed?.queryOnly!==true)throw failure('NATIVE_PAY_PRODUCT_READER_UNAVAILABLE');
+    inbox.refreshed(scope,event,scopeCurrent);refreshed++;
+   }catch(error){scopeCurrent();reason=error.code??'NATIVE_PAY_NOTIFICATION_REFRESH_PENDING';break;}
+  }
+  bill=await this.#pay.readInvoice(merchant,invoiceId);scopeCurrent();
+  return {bill,notifications:{phase:reason?'pending':'refreshed',refreshed,pending:inbox.pending(scope,merchant,invoiceId,scopeCurrent).length,reason},queryOnly:true,clientIndependentFinality:false};
+ });}
+
 }
 
 // UI/CLI output excludes full Member/envelope/policy material. Facts stay the
@@ -61,5 +91,6 @@ export function nativePaySummary(state){
  if(state.intent)summary.intent={intentId:state.intent.intentId,originalOperation:state.intent.originalOperation,state:state.intent.state,phase:state.intent.phase,termsNativeHash:state.intent.termsNativeHash};
  if(state.walletRequest)summary.walletRequest={id:state.walletRequest.id,method:state.walletRequest.method,review:state.walletRequest.review.invoice??{title:state.walletRequest.review.title},approvalRequired:true};
  if(state.recovery)summary.recovery=state.recovery;
+ if(state.notifications)summary.notifications=state.notifications;
  return summary;
 }

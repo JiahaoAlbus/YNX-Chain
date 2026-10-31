@@ -81,6 +81,7 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
   },
   async reconcileInvoiceIntent(intentId){const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/reconcile`,{});if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
   async readInvoice(merchant,invoiceId){const value=await call('GET',invoicePath(merchant,invoiceId));if(value.merchant!==merchant||value.invoiceId!==invoiceId)fail('NATIVE_PAY_ACTION_BILL_MISMATCH');return value;},
+  async readInvoiceEvents(merchant,invoiceId){const value=await call('GET',invoicePath(merchant,invoiceId)+'/events');if(value.merchant!==merchant||value.invoiceId!==invoiceId||!Array.isArray(value.events))fail('NATIVE_PAY_EVENT_REFERENCE_MISMATCH');return value;},
   reviewSettlement:(merchant,invoiceId)=>call('POST',invoicePath(merchant,invoiceId)+'/review',{}),
   reviewRefund:(merchant,invoiceId,refundId,amountAtoms)=>call('POST',invoicePath(merchant,invoiceId)+'/refund-review',{refundId,amountAtoms}),
   submitSettlement:(merchant,invoiceId,member)=>call('POST',invoicePath(merchant,invoiceId)+'/settlements',{member:memberBody(member)}),
