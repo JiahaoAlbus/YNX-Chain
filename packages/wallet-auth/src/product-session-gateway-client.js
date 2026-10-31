@@ -82,13 +82,16 @@ export class ProductSessionGatewayFetchAdapter {
       const fetch = this.#fetch;
       const response = await Promise.race([Promise.resolve().then(() => fetch(this.#endpoint+route, {method:'POST',headers:{accept:'application/json','content-type':'application/json'},body:originalBody,credentials:'omit',redirect:'error',cache:'no-store',signal:controller.signal})), stopped]);
       const result = await readDeviceV4Response(response, stopped);
+      // Retain the exact parsed original envelope BEFORE abort/current lateguards.
+      const entered = this.#deviceV4Entered.get(operationId);
+      entered.response = result; entered.responseRead = true;
       if (deviceV4Aborted.call(signal)) throw deviceV4Reason.call(signal);
       if (controller.signal.aborted) throw controller.signal.reason;
       return result;
     } catch (cause) {
       if (!this.#deviceV4Entered.has(operationId)) throw cause;
       const record=this.#deviceV4Entered.get(operationId);
-      if(!record.failed){record.failed=true;record.error=deviceV4Unknown(operationId,cause);}
+      if(!record.failed){record.failed=true;record.error=deviceV4Unknown(operationId,cause);if(record.responseRead)Object.defineProperty(record.error,'originalResponse',{value:record.response,enumerable:true});}
       throw record.error;
     } finally {
       clearTimeout(timer); deviceV4Unlisten.call(signal,'abort', forward);
