@@ -1746,6 +1746,7 @@ jobs:
           a, b = text.index(start), text.index(end)
           assert 'switch options.applicationLayout()' in text[a:b]
           original = '''\tvar app *consensus.Application
+          \t_ = invoice // Historical atomic-only counterexample intentionally ignores this feature.
           \tif runtime != nil {
           \t\tapp, err = consensus.NewPersistentApplicationWithRuntimeUpgrade(migration, path, bootstrap, pq, runtime)
           \t} else if pq != nil {
