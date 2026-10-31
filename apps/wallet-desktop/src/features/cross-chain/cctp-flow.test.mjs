@@ -38,7 +38,7 @@ async function harness(t, { allowanceUnits = '0' } = {}) {
     async snapshot() { return { revision: current.revision, networks: copy(current.networks), account: current.context.account }; },
     async assert(context, revision) {
       await current.hooks.assert?.(context, revision);
-      if (JSON.stringify(context) !== JSON.stringify(current.context) || revision !== current.revision) throw multiError('MULTICHAIN_CONTEXT_CHANGED', 'Fixture context changed.');
+      if (JSON.stringify(context) !== JSON.stringify(current.context) || revision !== undefined && revision !== current.revision) throw multiError('MULTICHAIN_CONTEXT_CHANGED', 'Fixture context changed.');
     },
     async prepareCctpStep(input) {
       calls.prepare.push(copy(input));

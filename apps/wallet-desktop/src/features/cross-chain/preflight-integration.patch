@@ -1,0 +1,24 @@
+diff --git a/apps/wallet-desktop/src/preload.cjs b/apps/wallet-desktop/src/preload.cjs
+--- a/apps/wallet-desktop/src/preload.cjs
++++ b/apps/wallet-desktop/src/preload.cjs
+@@ -1,7 +1,7 @@
+ const { contextBridge, ipcRenderer } = require("electron");
+ 
+ contextBridge.exposeInMainWorld("ynxWallet", {
+-  crossChain:Object.freeze({routes:()=>ipcRenderer.invoke('wallet:cross-chain-routes'),quote:input=>ipcRenderer.invoke('wallet:cross-chain-quote',input),start:id=>ipcRenderer.invoke('wallet:cross-chain-start',id),prepare:id=>ipcRenderer.invoke('wallet:cross-chain-prepare',id),confirm:input=>ipcRenderer.invoke('wallet:cross-chain-confirm',input),check:id=>ipcRenderer.invoke('wallet:cross-chain-check',id),cancel:id=>ipcRenderer.invoke('wallet:cross-chain-cancel',id),history:()=>ipcRenderer.invoke('wallet:cross-chain-history')}),
++  crossChain:Object.freeze({preflight:input=>ipcRenderer.invoke('wallet:cross-chain-preflight',input),routes:()=>ipcRenderer.invoke('wallet:cross-chain-routes'),quote:input=>ipcRenderer.invoke('wallet:cross-chain-quote',input),start:id=>ipcRenderer.invoke('wallet:cross-chain-start',id),prepare:id=>ipcRenderer.invoke('wallet:cross-chain-prepare',id),confirm:input=>ipcRenderer.invoke('wallet:cross-chain-confirm',input),check:id=>ipcRenderer.invoke('wallet:cross-chain-check',id),cancel:id=>ipcRenderer.invoke('wallet:cross-chain-cancel',id),history:()=>ipcRenderer.invoke('wallet:cross-chain-history')}),
+   onCrossChainContextChanged:callback=>{const listener=()=>callback();ipcRenderer.on('wallet:cross-chain-context-changed',listener);return()=>ipcRenderer.removeListener('wallet:cross-chain-context-changed',listener);},
+   pqKeyPreparationStatus:()=>ipcRenderer.invoke('wallet:pq-keys-status'),
+   recoverPQKeys:()=>ipcRenderer.invoke('wallet:pq-keys-recover'),
+diff --git a/apps/wallet-desktop/test/cross-chain.test.mjs b/apps/wallet-desktop/test/cross-chain.test.mjs
+--- a/apps/wallet-desktop/test/cross-chain.test.mjs
++++ b/apps/wallet-desktop/test/cross-chain.test.mjs
+@@ -6,3 +6,8 @@
+ import '../src/features/cross-chain/cctp-recovery.test.mjs';
+ import '../src/features/cross-chain/cctp-reconcile-delta.test.mjs';
+ import '../src/features/cross-chain/cctp-ui-wait.test.mjs';
++import '../src/features/cross-chain/cctp-preflight-reader.test.mjs';
++import '../src/features/cross-chain/cctp-finality-recheck.test.mjs';
++import '../src/features/cross-chain/cctp-preflight-flow.test.mjs';
++import '../src/features/cross-chain/cctp-preflight-ui.test.mjs';
++import '../src/features/cross-chain/cctp-proof-refresh.test.mjs';

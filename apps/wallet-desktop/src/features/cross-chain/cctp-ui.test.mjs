@@ -40,7 +40,7 @@ function fixture({ locale = 'en', recipient = RECIPIENT } = {}) {
   const review = { id: REVIEW_ID, intentId: INTENT_ID, step: 'burn', transaction: { to: '0x1111111111111111111111111111111111111111' }, fee: '2345' };
   const pending = { ...copy(ready), state: 'burn-pending', operations: [{ id: REVIEW_ID, step: 'burn', state: 'unknown', hash: TX_HASH }] };
   const calls = [], overrides = {};
-  const defaultResults = { quote, start: ready, prepare: review, confirm: pending, check: pending, history: [pending], cancel: { cancelled: true, record: { ...ready, state: 'cancelled' } } };
+  const defaultResults = { preflight: {routeId:'cctp-v2-sepolia-base-sepolia-usdc',available:true,source:{side:'source',chainId:11155111,genesis:'0x'+'11'.repeat(32),status:'verified',stage:'rpc-identity',errorCode:null},destination:{side:'destination',chainId:84532,genesis:'0x'+'22'.repeat(32),status:'verified',stage:'rpc-identity',errorCode:null},canSign:false,approved:false,canRetry:false,targetReceived:false}, quote, start: ready, prepare: review, confirm: pending, check: pending, history: [pending], cancel: { cancelled: true, record: { ...ready, state: 'cancelled' } } };
   const api = Object.fromEntries(Object.keys(defaultResults).map(method => [method, async input => {
     calls.push({ method, input: copy(input) });
     if (overrides[method]) return overrides[method](input);
@@ -56,7 +56,7 @@ function fixture({ locale = 'en', recipient = RECIPIENT } = {}) {
 test('actual buttons call quote → start → prepare → confirm once each, with exact IDs and correct USDC decimal units', async () => {
   const h = fixture(); await h.fill();
   await button(h.root, 'Review route and fees').click();
-  assert.deepEqual(h.calls[0], { method: 'quote', input: { routeId: 'cctp-v2-sepolia-base-sepolia-usdc', asset: 'USDC', amount: '1', recipient: RECIPIENT, maxProtocolFee: '0', maxSourceGasFeeWei: '1000000000000000', maxDestinationGasFeeWei: '1000000000000000' } });
+  assert.deepEqual(h.calls[1], { method: 'quote', input: { routeId: 'cctp-v2-sepolia-base-sepolia-usdc', asset: 'USDC', amount: '1', recipient: RECIPIENT, maxProtocolFee: '0', maxSourceGasFeeWei: '1000000000000000', maxDestinationGasFeeWei: '1000000000000000' } });
   const amounts = detailValues(h.root);
   assert.ok(amounts.some(value => /^1(?:\.0{1,6})?$/.test(value)), '1,000,000 base units must display as 1 USDC');
   assert.ok(amounts.some(value => /^0\.99990{0,2}$/.test(value)), 'minimum received must use six-decimal USDC units');
@@ -72,10 +72,10 @@ test('actual buttons call quote → start → prepare → confirm once each, wit
   await confirm.dispatch('click'); // Duplicate callback, including detached/stale button.
   assert.equal(h.calls.filter(value => value.method === 'confirm').length, 1);
   dispatched.resolve(ok(h.pending)); await action;
-  assert.deepEqual(h.calls.map(value => value.method), ['quote', 'start', 'prepare', 'confirm']);
-  assert.equal(h.calls[1].input, h.quote.quoteId);
-  assert.equal(h.calls[2].input, INTENT_ID);
-  assert.deepEqual(h.calls[3].input, { id: INTENT_ID, reviewId: REVIEW_ID });
+  assert.deepEqual(h.calls.map(value => value.method), ['preflight', 'quote', 'start', 'prepare', 'confirm']);
+  assert.equal(h.calls[2].input, h.quote.quoteId);
+  assert.equal(h.calls[3].input, INTENT_ID);
+  assert.deepEqual(h.calls[4].input, { id: INTENT_ID, reviewId: REVIEW_ID });
   assert.ok(h.root.textContent.includes(TX_HASH));
   assert.ok(hasButton(h.root, 'Check original transfer'));
   assert.ok(!hasButton(h.root, 'Confirm and send this transaction'));
@@ -98,15 +98,15 @@ test('history restore selects the original pending intent and requires explicit 
 
 test('input invalidation and owner lock invalidation suppress late quote results', async t => {
   for (const invalidation of ['input', 'lock']) await t.test(invalidation, async () => {
-    const h = fixture(); await h.fill(); const delayed = gate();
-    h.overrides.quote = () => delayed.promise;
-    const action = button(h.root, 'Review route and fees').click();
+    const h = fixture(); await h.fill(); const delayed = gate(), entered = gate();
+    h.overrides.quote = () => { entered.resolve(); return delayed.promise; };
+    const action = button(h.root, 'Review route and fees').click(); await entered.promise;
     if (invalidation === 'input') { h.input('Amount (USDC)').value = '2'; await h.input('Amount (USDC)').dispatch('input'); }
     else h.ui.invalidate();
     delayed.resolve(ok(h.quote)); await action;
     assert.ok(!hasButton(h.root, 'Confirm route'));
     assert.equal(detailValues(h.root).length, 0);
-    assert.deepEqual(h.calls.map(value => value.method), ['quote']);
+    assert.deepEqual(h.calls.map(value => value.method), ['preflight', 'quote']);
   });
 });
 
@@ -163,26 +163,26 @@ test('recipient strings use textContent in quote, review and history without HTM
 });
 
 test('dispose clears the UI and ignores a delayed response from an original request', async () => {
-  const h = fixture(); const delayed = gate(); h.overrides.quote = () => delayed.promise;
-  const action = button(h.root, 'Review route and fees').click(); h.ui.dispose();
+  const h = fixture(); const delayed = gate(), entered = gate(); h.overrides.quote = () => { entered.resolve(); return delayed.promise; };
+  const action = button(h.root, 'Review route and fees').click(); await entered.promise; h.ui.dispose();
   delayed.resolve(ok(h.quote)); await action;
   assert.equal(h.root.children.length, 0);
-  assert.equal(h.calls.length, 1);
+  assert.equal(h.calls.length, 2);
 });
 
 test('IPC retains original safe/sensitive wrappers and obtains a custody guard only for confirm', async () => {
   const handlers = new Map(), calls = [], wrappers = [];
   const guard = { marker: 'original-authority-guard' }; let guardCalls = 0;
-  const flow = Object.fromEntries(['routes', 'history', 'check', 'quote', 'start', 'prepareStep', 'cancel', 'confirmStep'].map(method => [method, (...args) => { calls.push({ method, args }); return { method }; }]));
+  const flow = Object.fromEntries(['routes', 'preflight', 'history', 'check', 'quote', 'start', 'prepareStep', 'cancel', 'confirmStep'].map(method => [method, (...args) => { calls.push({ method, args }); return { method }; }]));
   installCctpIPC({
     handle(name, handler) { assert.ok(!handlers.has(name)); handlers.set(name, handler); },
     safe: async action => { wrappers.push('safe'); return { ok: true, value: await action() }; },
     sensitive: async action => { wrappers.push('sensitive'); return { ok: true, value: await action() }; },
     flow, getGuard() { guardCalls++; return guard; },
   });
-  assert.equal(handlers.size, 8);
+  assert.equal(handlers.size, 9);
   for (const [name, method, wrapper, input] of [
-    ['routes', 'routes', 'safe', undefined], ['history', 'history', 'safe', undefined], ['check', 'check', 'safe', INTENT_ID],
+    ['routes', 'routes', 'safe', undefined], ['preflight', 'preflight', 'safe', {routeId:'cctp-v2-sepolia-base-sepolia-usdc'}], ['history', 'history', 'safe', undefined], ['check', 'check', 'safe', INTENT_ID],
     ['quote', 'quote', 'sensitive', { amount: '1' }], ['start', 'start', 'sensitive', 'quote-id'], ['prepare', 'prepareStep', 'sensitive', INTENT_ID], ['cancel', 'cancel', 'sensitive', INTENT_ID],
   ]) {
     assert.deepEqual(await handlers.get(`wallet:cross-chain-${name}`)({}, input), { ok: true, value: { method } });
@@ -196,4 +196,55 @@ test('IPC retains original safe/sensitive wrappers and obtains a custody guard o
   assert.equal(wrappers.at(-1), 'sensitive');
   assert.equal(guardCalls, 1);
   assert.deepEqual(calls.at(-1), { method: 'confirmStep', args: [input, guard] });
+});
+
+test('recovery UI discards a cold burn or mint review while retaining prior confirmed hashes and requiring a fresh confirmation', async t => {
+  for (const step of ['burn', 'mint']) await t.test(step, async () => {
+    const h = fixture(), original = { ...copy(h.ready), state: `${step}-ready`, operations: [
+      { id: 'prior-id', step: step === 'mint' ? 'burn' : 'approve', state: 'included', hash: TX_HASH },
+      { id: REVIEW_ID, step, state: 'review', hash: null },
+    ] };
+    h.overrides.history = async () => ok([original]);
+    h.overrides.cancel = async () => ok({ cancelled: true, reason: 'review-only', record: { ...copy(original), operations: original.operations.map(op => op.id === REVIEW_ID ? { ...op, state: 'cancelled' } : op) } });
+    h.overrides.prepare = async () => ok({ ...h.review, id: 'fresh-review-id', step });
+    await button(h.root, 'Restore transfer history').click();
+    await nodes(h.root, 'button').find(node => node.textContent.startsWith(`${step}-ready ·`)).click();
+    assert.ok(!hasButton(h.root, 'Confirm and send this transaction'));
+    assert.ok(!hasButton(h.root, 'Review next transaction'));
+    assert.ok(!hasButton(h.root, 'Cancel before sending'));
+    await button(h.root, 'Discard current review').click();
+    assert.deepEqual(h.calls.map(call => call.method), ['history', 'cancel']);
+    assert.equal(h.calls.at(-1).input, INTENT_ID);
+    assert.ok(h.root.textContent.includes(TX_HASH));
+    assert.ok(h.root.textContent.includes(`${step}-ready`));
+    assert.ok(h.root.textContent.includes('Current review discarded.'));
+    assert.ok(!h.root.textContent.includes('Cancelled before sending'));
+    assert.ok(!hasButton(h.root, 'Confirm and send this transaction'));
+    await button(h.root, 'Review next transaction').click();
+    assert.ok(hasButton(h.root, 'Discard current review'), 'a fresh review also has a local discard action');
+    assert.equal(h.calls.filter(call => call.method === 'confirm').length, 0);
+    await button(h.root, 'Confirm and send this transaction').click();
+    assert.deepEqual(h.calls.at(-1), { method: 'confirm', input: { id: INTENT_ID, reviewId: 'fresh-review-id' } });
+  });
+});
+
+test('recovery UI does not offer discard for an uncertain original operation or reuse a review after cancellation timeout', async t => {
+  await t.test('original dispatch remains query-only', async () => {
+    const h = fixture();
+    await button(h.root, 'Restore transfer history').click();
+    await nodes(h.root, 'button').find(node => node.textContent.startsWith('burn-pending ·')).click();
+    assert.ok(!hasButton(h.root, 'Discard current review'));
+    assert.ok(!hasButton(h.root, 'Cancel before sending'));
+    assert.ok(hasButton(h.root, 'Check original transfer'));
+    assert.equal(h.calls.length, 1);
+  });
+  await t.test('cancel timeout consumes the visible confirmation', async () => {
+    const h = fixture(); await h.reachReview();
+    h.overrides.cancel = async () => { throw new Error('Cancellation response lost'); };
+    await button(h.root, 'Cancel before sending').click();
+    assert.ok(!hasButton(h.root, 'Confirm and send this transaction'));
+    assert.ok(!hasButton(h.root, 'Review next transaction'));
+    assert.ok(hasButton(h.root, 'Check original transfer'));
+    assert.equal(h.calls.filter(call => call.method === 'confirm').length, 0);
+  });
 });
