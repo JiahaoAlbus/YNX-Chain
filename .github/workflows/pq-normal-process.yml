@@ -1,0 +1,86 @@
+name: Original four-process PQ functional path
+
+on:
+  push:
+    branches:
+      - codex/ynx-pq-normal-process-20261031
+  workflow_dispatch:
+    inputs:
+      signing_mode:
+        description: Fresh independent functional window; never replay original UNKNOWN
+        type: choice
+        default: both
+        options:
+          - both
+          - online
+          - pre-signed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pq-normal-process-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  functional:
+    name: Normal original PQ processes (${{ matrix.mode }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    strategy:
+      max-parallel: 1
+      fail-fast: true
+      matrix:
+        mode: [online, pre-signed]
+    env:
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: 1024MiB
+      GOTOOLCHAIN: local
+      GOTELEMETRY: 'off'
+      PYTHONDONTWRITEBYTECODE: '1'
+      SIGNING_MODE: ${{ matrix.mode }}
+      REQUESTED_MODE: ${{ inputs.signing_mode || 'both' }}
+    steps:
+      - name: Receive the exact original source and required helper ancestor
+        if: env.REQUESTED_MODE == 'both' || env.REQUESTED_MODE == matrix.mode
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 16
+          filter: blob:none
+          persist-credentials: false
+      - name: Install the pinned normal owner toolchain without shared caches
+        if: env.REQUESTED_MODE == 'both' || env.REQUESTED_MODE == matrix.mode
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Execute all original callee controls including Linux private FD inheritance
+        if: env.REQUESTED_MODE == 'both' || env.REQUESTED_MODE == matrix.mode
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor a78803d31632a461df7f012e2c13e46f17c48e6d HEAD
+          python3 -B - <<'PY'
+          import unittest
+          for pattern, count in [('test_pq_normal_process_lab.py', 9), ('test_consensus_linux_cohort.py', 8)]:
+              suite = unittest.defaultTestLoader.discover('scripts/loadtest', pattern=pattern)
+              result = unittest.TextTestRunner(verbosity=2).run(suite)
+              if result.testsRun != count or result.skipped or not result.wasSuccessful():
+                  raise SystemExit('all original controls must actually execute and pass on Linux: ' + pattern)
+          PY
+      - name: Execute one newly admitted original four-process functional window
+        if: env.REQUESTED_MODE == 'both' || env.REQUESTED_MODE == matrix.mode
+        run: |
+          set -euo pipefail
+          python3 -B scripts/loadtest/pq-normal-process-lab.py \
+            --source "$GITHUB_WORKSPACE" --commit "$GITHUB_SHA" \
+            --mode "$SIGNING_MODE" --execute
+      - name: Retain only original public results and first failure
+        if: always() && (env.REQUESTED_MODE == 'both' || env.REQUESTED_MODE == matrix.mode)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-normal-process-${{ matrix.mode }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pq-normal-process-*/public/
+          if-no-files-found: warn
+          retention-days: 14
