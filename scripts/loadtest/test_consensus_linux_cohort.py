@@ -58,6 +58,19 @@ class NormalCohortControls(unittest.TestCase):
             (root / "foreign").symlink_to("/tmp", target_is_directory=True)
             with self.assertRaisesRegex(RuntimeError, "nonregular"): lab.private_bytes(root)
 
+    def test_checkout_outside_work_is_counted_against_aggregate_storage_cap(self):
+        # Real file inventory/cap enforcement only, with no process or node run.
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);source=root/"checkout";source.mkdir();work=root/"run";work.mkdir()
+            (source/"tracked-source").write_bytes(b"x"*4096)
+            (work/".private").mkdir();(work/"public").mkdir()
+            with mock.patch.object(lab.os,"sched_getaffinity",return_value={0},create=True),mock.patch.object(lab.os,"sched_setaffinity",create=True):
+                window=lab.Window(source,work,additional_storage=(source,))
+            self.assertLess(lab.private_bytes(work),4096)
+            with mock.patch.object(lab.guard,"proc_inventory",return_value=({},None)),mock.patch.object(lab.guard,"owned_set",return_value=set()),mock.patch.dict(lab.CAPS,newBytes=2048):
+                with self.assertRaisesRegex(RuntimeError,"new artifacts exceeded 8GiB"):window.sample()
+            self.assertGreaterEqual(window.peak_bytes,4096)
+
     def test_profiles_keep_original_probe_limits_and_pq_refuses_before_dispatch(self):
         for profile in lab.PROFILES.values():
             self.assertLessEqual(profile["count"]*profile["rounds"], 2048)
