@@ -23,6 +23,7 @@ import {PRIVATE_FILE_MAX_BYTES} from './bounded-private-file-read.mjs';
 import {createPQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {normalizePQAccountInitialInput,preparePQAccountInitialSignReview,preparePQAccountInitialBroadcastReview,projectPQAccountInitialReview} from './wallet-pq-account-initial-review.mjs';
 import {retainPQPolicyResource} from './wallet-pq-policy-owner.mjs';
+import {createPQTransferPreview} from './wallet-pq-transfer-preview.mjs';
 import {assertSessionReturnTransport} from './wallet-session-return-boundary.mjs';
 import {prepareSessionPublicationReturn,sessionPublicationOutcome} from './wallet-session-publication.mjs';
 import {PQ_CONNECTION_METHODS,parsePQConnectionRequest,readWalletPQConnection} from './wallet-pq-connection-contract.mjs';
@@ -97,6 +98,7 @@ export class DesktopWalletAuthority {
     void pass.then(()=>this.#pqInFlight.delete(pass),()=>this.#pqInFlight.delete(pass));return pass;
   }
   requestPQTransfer(input){return this.#trackPQ(()=>this.#preparePQTransfer(input));}
+  previewTransfer(input){return this.requestPQTransfer(input);}
   requestPQTypedAction(input){return this.#trackPQ(()=>this.#preparePQTypedAction(input));}
   requestPQMigration(input){return this.#trackPQ(()=>this.#preparePQTransfer(input,'migration'));}
   requestPQRevocation(input){return this.#trackPQ(()=>this.#preparePQTransfer(input,'revocation'));}
@@ -293,8 +295,10 @@ export class DesktopWalletAuthority {
     // current original lease, bound to the same security generation below.
     const securityRevision=this.vault.authorization.status().revision;
     const approvalPermission=Object.freeze({assert:()=>{permission.assert();owner.assert();if(cancelled||this.vault.authorization.status().revision!==securityRevision||this.clock().getTime()-Date.parse(pending.createdAt)>=APPROVAL_TTL_MS)throw providerError(4100,'REQUEST_EXPIRED','Review this transfer again.');}});
-    lease.assert();this.#pqReviews.set(pending,{snapshot,plan,owner,proposal});this.#reviewLeases.set(pending,{lease:approvalPermission,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Review cancelled.')).catch(()=>{});return true;}});this.pending.set(pending.id,pending);
-    return Object.freeze({status:'approval-required',request:pending});
+    lease.assert();
+    const preview=migration||revocation?null:createPQTransferPreview(pending,{account:status.account,networkId:this.#pqNetworkId});
+    this.#pqReviews.set(pending,{snapshot,plan,owner,proposal,preview});this.#reviewLeases.set(pending,{lease:approvalPermission,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Review cancelled.')).catch(()=>{});return true;}});this.pending.set(pending.id,pending);
+    return Object.freeze({status:'approval-required',request:pending,...(preview?{preview}:{})});
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
 

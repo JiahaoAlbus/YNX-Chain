@@ -550,11 +550,11 @@ async function prepareLocalPQTransferReview(input){
   const guard=keyAccess.current();guard.assert();let response;
   try{
     const selected=normalizeWalletPQTransferInput(input);
-    response=await walletAuthority.requestPQTransfer(selected);guard.assert();
+    response=await walletAuthority.previewTransfer(selected);guard.assert();
     if(response?.status!=='approval-required'||response.request?.method!=='ynx_signPQNativeTransfer'||typeof response.request.id!=='string'||response.request.review?.account!==guard.account)throw Object.assign(Error('The original PQ transfer review is unavailable.'),{code:'YNX_PQ_REVIEW_REQUIRED'});
     if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
     mainWindow.webContents.send('wallet:provider-request',response.request);guard.assert();
-    return Object.freeze({protocol:'YNX-BATCH/v0.1',account:response.request.review.account,requestId:response.request.id,signed:false,submitted:false});
+    return Object.freeze({protocol:'YNX-BATCH/v0.1',account:response.request.review.account,requestId:response.request.id,preview:response.preview,signed:false,submitted:false});
   }catch(error){if(typeof response?.request?.id==='string')walletAuthority.expire(response.request.id);throw error;}
 }
 handleWalletIPC('wallet:pq-transfer-review',(_event,input)=>sensitiveIPC(()=>prepareLocalPQTransferReview(input)));

@@ -339,6 +339,19 @@ async function approvalFixture(t,{onRecheck,acquire,migration=false,activeMigrat
  const store=new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')}),authority=new DesktopWalletAuthority({vault:f.vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:store}},pqPolicySource:source,pqPolicyRecognized:value=>value===resource,pqNetworkId:CHAIN,...(transactionPermission?{pqTransactionPermissionSource:transactionAuth.acquireOriginalWalletTransactionPermission,pqTransactionPermissionRecognized:transactionAuth.isOriginalWalletTransactionPermission}:{})});
  return {...f,authority,store,counts,resource,native};
 }
+test('T-P01-02 actual Native-bound authority creates immutable preview without entering signer or journal',async t=>{
+ const f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true});f.vault.withPQKeys=()=>assert.fail('Preview cannot restore portable keys');
+ const out=await f.lifecycle.run(()=>f.authority.previewTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));
+ assert.equal(out.preview.id,out.request.id);assert.equal(out.preview.nonce,out.request.review.nonce);assert.equal(out.preview.policyRevision,out.request.review.policyRevision);
+ assert(Object.isFrozen(out.preview));assert(Object.isFrozen(out.preview.binding));assert.throws(()=>out.preview.amount='999',TypeError);
+ assert.deepEqual([out.preview.approved,out.preview.signed,out.preview.submitted],[false,false,false]);
+ assert.equal(f.native.counts.once,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);assert.equal((await f.store.readPQOriginals(f.account,()=>{})).length,0);f.authority.cancelAll();assert.equal(f.native.counts.once,0);
+});
+test('T-P01-02 policy source timeout returns without signing or reserving a transaction',async t=>{
+ const timeout=Object.assign(Error('PUBLIC policy source timeout'),{code:'ETIMEDOUT'}),f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true,acquire:async()=>{throw timeout}});
+ await assert.rejects(f.lifecycle.run(()=>f.authority.previewTransfer({to:'0x'+'2'.repeat(40),amount:'3'})),error=>error===timeout);
+ assert.equal(f.native.counts.once,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);assert.equal((await f.store.readPQOriginals(f.account,()=>{})).length,0);
+});
 test('normal independent approval calls Native TX custody once and saves the same public Member without portable fallback',async t=>{
  const f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true}),out=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));f.vault.withPQKeys=()=>assert.fail('Native TX may not fall back to portable JS');
  const capsule=transactionAuth.captureOriginalWalletTransactionApprovalIPC(createPublicWalletEvent(),out.request.id,'sign');t.after(()=>transactionAuth.retireUnusedOriginalWalletTransactionApproval(capsule));const response=await f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule));

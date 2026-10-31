@@ -39,28 +39,31 @@ async function setup(t, options = {}) {
   lifecycle.setAccount(account); await lifecycle.unlock();
   const counts = {posts: 0, gets: 0, acquired: 0, retired: 0, joined: 0, closed: 0, completed: 0};
   const recognized = new WeakSet();
+  let rechecks = 0;
   const acquire = async request => {
     counts.acquired++;
     const index = counts.acquired;
     const now = Date.now(), binding = Object.freeze({...request, issuedAt: new Date(now).toISOString(), expiresAt: new Date(now + 30000).toISOString(), policyRevision: '1'});
     const resource = {
       readOriginal: () => binding, assertCurrent() {},
-      async recheck() { if (options.cleanupDebt && index === 1) throw Object.assign(Error('Controlled revoked peer'), {code: 'QA_REVOKED'}); },
-      enterBroadcast() {}, complete() { counts.completed++; },
+      async recheck() { await options.boundary?.('recheck-' + (++rechecks)); if (options.cleanupDebt && index === 1) throw Object.assign(Error('Controlled revoked peer'), {code: 'QA_REVOKED'}); },
+      async enterBroadcast() { await options.boundary?.('entry'); }, complete() { counts.completed++; },
       retire() { counts.retired++; },
       async join() { counts.joined++; if (options.cleanupDebt && index === 1) throw Object.assign(Error('Controlled join failure'), {code: 'QA_JOIN_FAILED'}); },
       async close() { counts.closed++; },
     };
-    recognized.add(resource); return resource;
+    recognized.add(resource); await options.boundary?.('acquire'); return resource;
   };
   const transport = options.transportFactory ? options.transportFactory({lifecycle, counts}) : {
-    async submitTransfer(request) {
+    async submitTransfer(request, assertCurrent) {
+      await options.boundary?.('preflight'); assertCurrent();
       counts.posts++;
       const cold = new FileTransactionIntentStore({filePath});
       assert.equal((await cold.readPQProgress(account, original.hash, () => {})).status, 'submission-unknown');
       assert.deepEqual(request.body, Buffer.from(original.wire, 'base64url'));
       if (options.throwFalse) throw false;
       if (options.lateLock) lifecycle.lock('focus-lost');
+      await options.boundary?.('returned');
       return options.lateLock ? inclusion : unknown;
     },
     async readOriginal(hash) { counts.gets++; assert.equal(hash, original.hash); return inclusion; },
@@ -146,4 +149,55 @@ test('real lifecycle lock during node preflight prevents the later POST while re
   assert.equal(f.counts.posts, 0);
   assert.equal((await f.cold().readPQProgress(account, original.hash, () => {})).status, 'submission-unknown');
   assert.equal((await f.cold().readPQOriginals(account, () => {}))[0].wire, original.wire);
+});
+
+for (const boundary of ['acquire', 'recheck-1', 'recheck-2', 'entry', 'preflight']) {
+  test('P01-04 close during ' + boundary + ' fences a late POST and preserves the same original', async t => {
+    let controller, closes = 0;
+    const f = await setup(t, {boundary: async phase => {
+      if (phase !== boundary) return;
+      await Promise.resolve();
+      assert.throws(() => controller.assertSafeToClose(), {code:'PQ_TRANSACTION_CLEANUP_PENDING'});
+      closes++;
+    }});
+    controller = f.create();
+    await assert.rejects(f.lifecycle.run(guard => controller.broadcast(original.hash, guard)));
+    assert.equal(closes, 1);
+    assert.equal(f.counts.posts, 0, 'shutdown fences new outward submission after any awaited pre-effect stage');
+    assert.equal(f.counts.acquired, 1);
+    assert.equal(f.counts.closed, 1, 'adopted resource still retires, joins and closes');
+    const cold = f.cold();
+    assert.deepEqual(await cold.readPQOriginals(account, () => {}), [original]);
+    const entered = ['recheck-2', 'entry', 'preflight'].includes(boundary);
+    assert.equal((await cold.readPQProgress(account, original.hash, () => {})).status,
+      entered ? 'submission-unknown' : 'signed-unsubmitted');
+    controller.assertSafeToClose();
+    await assert.rejects(f.lifecycle.run(guard => controller.broadcast(original.hash, guard)), {code:'PQ_TRANSACTION_CLOSING'});
+    assert.equal(f.counts.acquired, 1);
+    if (entered) {
+      const recovered = await f.lifecycle.run(guard => f.create(cold, false).reconcile(original.hash, guard));
+      assert.equal(recovered.status, 'inclusion-observed');
+      assert.equal(recovered.consensusFinality, false);
+      assert.equal(f.counts.gets, 1);
+      assert.equal(f.counts.posts, 0, 'cold recovery only queries this original');
+    }
+  });
+}
+
+test('P01-04 close after POST retains returned response and allows only original read recovery', async t => {
+  let controller;
+  const f = await setup(t, {boundary: async phase => {
+    if (phase === 'returned') assert.throws(() => controller.assertSafeToClose(), {code:'PQ_TRANSACTION_CLEANUP_PENDING'});
+  }});
+  controller = f.create();
+  assert.equal((await f.lifecycle.run(guard => controller.broadcast(original.hash, guard))).status, 'submission-unknown');
+  assert.equal(f.counts.posts, 1); assert.equal(f.counts.closed, 1); assert.equal(f.counts.completed, 1);
+  const cold = f.cold(), journal = JSON.parse(await fs.readFile(f.filePath, 'utf8'));
+  assert.equal(journal.pqProgress[0].result.text, unknown.text);
+  assert.deepEqual(await cold.readPQOriginals(account, () => {}), [original]);
+  controller.assertSafeToClose();
+  await assert.rejects(f.lifecycle.run(guard => controller.broadcast(original.hash, guard)), {code:'PQ_TRANSACTION_CLOSING'});
+  const recovered = await f.lifecycle.run(guard => f.create(cold, false).reconcile(original.hash, guard));
+  assert.equal(recovered.status, 'inclusion-observed'); assert.equal(recovered.consensusFinality, false);
+  assert.equal(f.counts.gets, 1); assert.equal(f.counts.posts, 1);
 });
