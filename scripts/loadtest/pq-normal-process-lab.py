@@ -442,7 +442,7 @@ def run(args):
         result["wireObservationRequested"]=observe_wire
         if ceremony is not None:result["wireObservation"]=ceremony.wire_readback()
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,
-                      processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,
+                      processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples,
                       completedFunctionalProofs=[p.name for p in (work/"public").glob("functional-owner-*-final-proof.json")])
         lab.write_new(work/"public/receipt.json",result);print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],phaseComplete=result["phaseComplete"])))
     lab.require(result["firstCause"] is None and result["cleanupComplete"],"normal ceremony failed; original intent/state/UNKNOWN retained")

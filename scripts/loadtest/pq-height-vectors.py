@@ -28,6 +28,8 @@ base=module("height_base_prepare","prepare-pq-baseline.py")
 runner=module("height_base_runner","run-pq-baseline.py")
 lab=runner.lab
 LEAF="pq_height_vectors_test.go.in"
+FUNCTIONAL_BASE="9c22b0700d4e21f7fc35ec3067339722fb8bc330"
+FUNCTIONAL_LEAF="3dda570d92374df2e66aaedadb35907354ec7073ac142fb72de67a16dd2ce0e0"
 
 
 def digest(raw):return hashlib.sha256(raw).hexdigest()
@@ -168,8 +170,11 @@ def load_vectors(root,receipt_override=None,require_cleanup=True,checkpoint=None
 
 def compare(before,after):
     a,ma,ra=load_vectors(before);b,mb,rb=load_vectors(after)
-    for key in ("toolsCommit","heightVectorLeafSHA256"):
-        lab.require(a[key]==b[key],"per-height observer/tool versions differ: "+key)
+    lab.require(a["heightVectorLeafSHA256"]==b["heightVectorLeafSHA256"],"per-height observer/tool versions differ: heightVectorLeafSHA256")
+    guard_only_compatible=(a["toolsCommit"]==FUNCTIONAL_BASE and a["heightVectorLeafSHA256"]==FUNCTIONAL_LEAF
+        and b.get("compatibleFunctionalToolsCommit")==FUNCTIONAL_BASE and b.get("resourceObserverVersion")=="same-process-rss-v2"
+        and a.get("caps")==b.get("caps")==lab.CAPS)
+    lab.require(a["toolsCommit"]==b["toolsCommit"] or guard_only_compatible,"per-height observer/tool versions differ: toolsCommit")
     for key in ("inputSHA256","profile","initialHeight","architecture","goVersion","gomaxprocs"):
         lab.require(ma[key]==mb[key],"height comparison configuration/input differs: "+key)
     for (x,sx),(y,sy) in zip(ra,rb):
@@ -177,7 +182,7 @@ def compare(before,after):
         # Compare complete normal responses/accounts and cold observations.
         # Only artifact filenames/pins are packaging, never state projections.
         lab.require({k:v for k,v in x.items() if k!="state"}=={k:v for k,v in y.items() if k!="state"},"complete per-height results differ: "+x["id"])
-    return dict(schema="YNX-PQ-PER-HEIGHT-DIFFERENTIAL/v1",before=a["sourceCommit"],after=b["sourceCommit"],inputSHA256=ma["inputSHA256"],profile=ma["profile"],recordsCompared=len(ra),perHeightFunctionalEqual=True,scope="all 32 history commits plus complete profile candidate branches, from supplied Initial; complete result/account/nonce/AppHash/full state/cold constructor equality",proofMathReverifiedHere=False,optimizedPressureAuthorized=False,stableTPS="UNMEASURED",finality="UNMEASURED")
+    return dict(schema="YNX-PQ-PER-HEIGHT-DIFFERENTIAL/v1",before=a["sourceCommit"],after=b["sourceCommit"],inputSHA256=ma["inputSHA256"],profile=ma["profile"],recordsCompared=len(ra),perHeightFunctionalEqual=True,guardOnlyFunctionalCompatibility=guard_only_compatible,performanceComparisonQualified=False,scope="all 32 history commits plus complete profile candidate branches, from supplied Initial; complete result/account/nonce/AppHash/full state/cold constructor equality",proofMathReverifiedHere=False,optimizedPressureAuthorized=False,stableTPS="UNMEASURED",finality="UNMEASURED")
 
 
 def run(args):
@@ -193,6 +198,7 @@ def run(args):
     for part in (".private","public"):(work/part).mkdir(mode=0o700)
     w=lab.Window(source,work,additional_storage=(Path(args.prepared).parent,Path(__file__).resolve().parents[2]));w.env["GOMAXPROCS"]="1"
     result=dict(schema="YNX-PQ-PER-HEIGHT-RUN/v1",sourceCommit=plan["commit"],sourceTree=plan["tree"],toolsCommit=lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),heightVectorLeafSHA256=lab.guard.digest(Path(args.prepared).parent/LEAF),inputSHA256=args.input_sha256,profile=args.profile,perHeightComplete=False,firstCause=None,caps=lab.CAPS,newFunctionalValidation=True,performanceComparison=False)
+    result.update(resourceObserverVersion=lab.RSS_OBSERVER_VERSION,resourceObserverSHA256=lab.guard.digest(Path(__file__).with_name("consensus-linux-cohort.py")),compatibleFunctionalToolsCommit=FUNCTIONAL_BASE if result["heightVectorLeafSHA256"]==FUNCTIONAL_LEAF else None)
     monitor=None
     try:
         data=work/"public/baseline-input.json"
@@ -222,7 +228,7 @@ def run(args):
             except BaseException as error:result["firstCause"]=result["firstCause"] or str(error);result["perHeightComplete"]=False
         try:result["cleanupComplete"]=w.stop()
         except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error)
-        result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,processes=w.process_receipt(),resourceSamples=w.samples,retiredSamplingEvidence=w.retired_samples)
+        result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,processes=w.process_receipt(),resourceSamples=w.samples,retiredSamplingEvidence=w.retired_samples,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         lab.write_new(work/"public/receipt.json",result)
         print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],perHeightComplete=result["perHeightComplete"])))
     lab.require(result["firstCause"] is None and result["cleanupComplete"],"per-height functional replay failed")

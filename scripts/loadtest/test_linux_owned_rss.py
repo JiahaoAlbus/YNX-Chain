@@ -13,14 +13,14 @@ spec=importlib.util.spec_from_file_location("cohort_rss",Path(__file__).with_nam
 lab=importlib.util.module_from_spec(spec);spec.loader.exec_module(lab)
 
 
-def stat_line(state="S",ticks=100):
-    fields=[state]+["0"]*45;fields[1]="1";fields[2]="42";fields[17]="2";fields[19]=str(ticks)
-    return ("42 (owned compiler) "+" ".join(fields)).encode()
+def stat_line(state="S",ticks=100,threads=2,pid=42):
+    fields=[state]+["0"]*45;fields[1]="1";fields[2]="42";fields[17]=str(threads);fields[19]=str(ticks)
+    return (str(pid)+" (owned compiler) "+" ".join(fields)).encode()
 
 
 class OwnedRSSControls(unittest.TestCase):
     def read(self,values):
-        with mock.patch.object(lab.guard,"bounded",side_effect=values), mock.patch.object(lab.time,"sleep"):
+        with mock.patch.object(lab.guard,"bounded",side_effect=values), mock.patch.object(lab.time,"sleep"),mock.patch.object(lab,"same_process_rss_alternative",return_value=None):
             return lab.owned_rss(42,dict(startTicks=100))
 
     def test_attempt2_esrch_then_proved_gone_is_not_a_fake_zero_live_sample(self):
@@ -28,7 +28,77 @@ class OwnedRSSControls(unittest.TestCase):
         self.assertIsNone(self.read([FileNotFoundError(errno.ENOENT,"exited"),ProcessLookupError(errno.ESRCH,"gone")]))
 
     def test_same_identity_zombie_has_no_live_rss(self):
-        self.assertEqual(self.read([ProcessLookupError(errno.ESRCH,"exited"),stat_line("Z")]),0)
+        self.assertEqual(self.read([ProcessLookupError(errno.ESRCH,"exited"),stat_line("Z",threads=1)]),0)
+
+    def alternative(self,vm=None,tgid=42,tid_ticks_after=None):
+        calls={};events=[]
+        def kernel(path,limit=65536):
+            name=str(path);calls[name]=calls.get(name,0)+1
+            if name.endswith('smaps_rollup'):
+                if '/task/43/' in name:return b'Rss: 13 kB\n'
+                raise ProcessLookupError(errno.ESRCH,'original mm unavailable')
+            if name.endswith('/stat'):
+                pid=43 if '/task/43/' in name else 42
+                ticks=200 if pid==43 else 100
+                if pid==43 and tid_ticks_after is not None and calls[name]>1:ticks=tid_ticks_after
+                return stat_line('R',ticks=ticks,pid=pid)
+            if name.endswith('/status'):
+                pid=43 if '/task/43/' in name else 42
+                return ('Tgid: %d\nPid: %d\n'%(tgid,pid)+('VmSize: %d kB\n'%vm if vm is not None else '')).encode()
+            raise AssertionError(name)
+        with mock.patch.object(lab.guard,'bounded',side_effect=kernel),mock.patch.object(Path,'iterdir',return_value=iter([Path('/proc/42/task/43')])):
+            value=lab.owned_rss(42,dict(startTicks=100),fallback=events.append)
+        return value,events
+
+    def test_original_live_R_esrch_recovers_real_same_thread_group_mm(self):
+        value,events=self.alternative()
+        self.assertEqual(value,13*1024);self.assertEqual(events[0]['tid'],43)
+        self.assertEqual(events[0]['sampleKind'],'same-thread-group-smaps');self.assertFalse(events[0]['retired'])
+
+    def test_live_mm_failure_uses_explicit_conservative_virtual_bound_not_zero(self):
+        value,events=self.alternative(vm=8192)
+        self.assertEqual(value,8192*1024)
+        self.assertEqual(events[0]['sampleKind'],'same-thread-group-VmSize-upper-bound')
+        self.assertEqual(events[0]['originalRSSKernelError'],errno.ESRCH)
+        self.assertFalse(events[0]['retired'])
+
+    def test_alternative_other_thread_group_or_reused_thread_is_fatal(self):
+        with self.assertRaisesRegex(RuntimeError,'thread group differs'):self.alternative(tgid=99)
+        with self.assertRaisesRegex(RuntimeError,'member identity changed'):self.alternative(tid_ticks_after=201)
+
+    def test_multi_thread_zombie_without_mm_proof_never_becomes_zero(self):
+        with self.assertRaisesRegex(RuntimeError,'RSS unreadable'):
+            self.read([ProcessLookupError(errno.ESRCH,'mm'),stat_line('Z',threads=2)]*6)
+
+    def test_conservative_bound_still_trips_original_aggregate_cap(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);(root/'.private').mkdir();(root/'public').mkdir()
+            with mock.patch.object(lab.os,'sched_getaffinity',return_value={0,1},create=True),mock.patch.object(lab.os,'sched_setaffinity',create=True):window=lab.Window(root,root)
+            def fallback_read(pid,before,retired,fallback):
+                fallback(dict(pid=pid,startTicks=100,sampleKind='same-thread-group-VmSize-upper-bound',sampledBytes=5<<30,retired=False));return 5<<30
+            with mock.patch.object(lab.guard,'proc_inventory',return_value=({42:dict(startTicks=100,state='R')},[])),mock.patch.object(lab.guard,'owned_set',return_value={42}),mock.patch.object(lab,'owned_rss',side_effect=fallback_read):
+                with self.assertRaisesRegex(RuntimeError,'RSS exceeded 4GiB'):window.sample()
+            self.assertEqual(window.peak_rss,5<<30);self.assertFalse(window.rss_fallback_samples[0]['retired'])
+
+    @unittest.skipUnless(sys.platform=='linux','actual owned Linux PID/Tgid/smaps proof requires sole CORE job')
+    def test_actual_owned_thread_group_read_after_injected_leader_esrch(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);(root/'.private').mkdir();(root/'public').mkdir();window=lab.Window(Path(__file__).resolve().parents[2],root)
+            ready=root/'.private/ready'
+            script="import pathlib,sys,time; b=bytearray(8<<20); pathlib.Path(sys.argv[1]).write_text('ready'); time.sleep(10)"
+            proc=window.launch('real-owned-mm',[sys.executable,'-I','-c',script,str(ready)])
+            try:
+                until=lab.time.monotonic()+3
+                while not ready.exists() and lab.time.monotonic()<until:lab.time.sleep(.01)
+                self.assertTrue(ready.exists())
+                before=lab.guard.parse_stat(lab.guard.bounded(Path('/proc')/str(proc.pid)/'stat'),proc.pid)
+                original=lab.guard.bounded;events=[]
+                def read_kernel(path,limit=65536):
+                    if path==Path('/proc')/str(proc.pid)/'smaps_rollup':raise ProcessLookupError(errno.ESRCH,'control injection only at leader rollup')
+                    return original(path,limit)
+                with mock.patch.object(lab.guard,'bounded',side_effect=read_kernel):value=lab.owned_rss(proc.pid,before,fallback=events.append)
+                self.assertGreater(value,0);self.assertEqual(events[0]['sampleKind'],'same-thread-group-smaps');self.assertFalse(events[0]['retired'])
+            finally:self.assertTrue(window.stop())
 
     def test_live_unreadable_and_recycled_pids_fail_closed(self):
         for state,ticks in (("S",100),("Z",101),("S",101)):

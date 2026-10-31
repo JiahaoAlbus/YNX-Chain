@@ -155,5 +155,15 @@ class HeightVectorControls(unittest.TestCase):
             receipt=json.loads((b/"receipt.json").read_bytes());receipt["heightVectorLeafSHA256"]="d"*64;save(b,"receipt.json",receipt)
             with self.assertRaisesRegex(RuntimeError,"observer/tool versions"):h.compare(a,b)
 
+    def test_guard_only_successor_reuses_original_functional_before_without_performance_grant(self):
+        with tempfile.TemporaryDirectory() as directory:
+            a,b=Path(directory).resolve()/"a",Path(directory).resolve()/"b";fixture(a);fixture(b)
+            for root in (a,b):
+                receipt=json.loads((root/"receipt.json").read_bytes());receipt.update(toolsCommit=h.FUNCTIONAL_BASE,heightVectorLeafSHA256=h.FUNCTIONAL_LEAF,caps=h.lab.CAPS);save(root,"receipt.json",receipt)
+            receipt=json.loads((b/"receipt.json").read_bytes());receipt.update(toolsCommit="e"*40,compatibleFunctionalToolsCommit=h.FUNCTIONAL_BASE,resourceObserverVersion="same-process-rss-v2");save(b,"receipt.json",receipt)
+            result=h.compare(a,b);self.assertTrue(result["guardOnlyFunctionalCompatibility"]);self.assertFalse(result["performanceComparisonQualified"]);self.assertFalse(result["optimizedPressureAuthorized"])
+            receipt["caps"]["rssBytes"]+=1;save(b,"receipt.json",receipt)
+            with self.assertRaisesRegex(RuntimeError,"versions differ"):h.compare(a,b)
+
 
 if __name__=="__main__":unittest.main()

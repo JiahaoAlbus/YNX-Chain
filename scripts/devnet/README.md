@@ -322,3 +322,36 @@ Finalize still requires every original business member admitted. The earlier
 842 observer's blanket CheckTx-code-zero assumption is superseded; no successful
 actual vectors from that defective observer are presumed or grandfathered.
 
+RSS guard `same-process-rss-v2` preserves the real 41223769700 A first cause:
+PID3702/startTicks19407 stayed R while leader `smaps_rollup` returned ESRCH.
+The original six-attempt failure remains when no additional proof is available.
+The successor first brackets a same-process task read with leader/member
+startTicks and kernel Tgid/Pid checks. It counts one real shared-address-space
+rollup, or an explicitly labelled positive kernel VmSize conservative upper
+bound. Neither a thread's missing mm nor a multithreaded zombie leader is
+counted as zero. Changed identities, permissions, missing proof and deadlines
+remain fatal. Only a same-identity single-thread zombie or proved disappearance
+qualifies as retired. No foreign process is signalled by this change.
+
+The kernel documents [Tgid, VmSize and RSS semantics](https://docs.kernel.org/filesystems/proc.html),
+including non-atomic/asynchronous process observations; the
+[clone API](https://man7.org/linux/man-pages/man2/clone.2.html) requires shared VM
+for a thread group. The VmSize bound is an accounting inference from total
+mapped virtual size, not a precise RSS measurement or an interval peak proof.
+Every fallback retains PID/TID/startTicks/kind/bytes/time/error in
+`rssSamplingFallbackEvidence`; those samples remain charged to the SAME
+aggregate 4GiB cap and can safely refuse an overestimate. No cap is relaxed.
+
+The successful 9c22 before artifact13050898515 (41 vectors, original c819 input)
+is retained. Guard-only compatibility requires that exact original tools pin,
+the unchanged functional Go leaf SHA256
+`3dda570d92374df2e66aaedadb35907354ec7073ac142fb72de67a16dd2ce0e0`,
+an explicitly recorded v2 successor and identical original caps. All original
+input, state, response, nonce, ancestor, cold and Go/CPU checks still run.
+This narrow reuse is FUNCTIONAL only; `performanceComparisonQualified=false`
+and pressure remains separately gated. Other tool/leaf/cap mismatches fail.
+The Linux actual-owned-child task fallback control must execute in CORE's
+normal job; local macOS skips are not Linux evidence. No before regeneration,
+signature regeneration, old source-scope replay or new CI dispatch is done
+by the guard tools.
+

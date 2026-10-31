@@ -94,7 +94,7 @@ def run(args):
         try: result["cleanupComplete"]=window.stop()
         except BaseException as error: result["cleanupComplete"]=False;result["cleanupError"]=str(error)
         result.update(elapsedSeconds=time.monotonic()-window.started,peakRSSBytes=window.peak_rss,peakNewBytes=window.peak_bytes,resourceSamples=window.samples,
-                      processes=window.process_receipt(),retiredSamplingEvidence=window.retired_samples)
+                      processes=window.process_receipt(),retiredSamplingEvidence=window.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,rssSamplingFallbackEvidence=window.rss_fallback_samples)
         lab.write_new(work/"public/receipt.json",result)
         print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],sourceMatrixComplete=result["sourceMatrixComplete"])))
     lab.require(result["firstCause"] is None and result["cleanupComplete"],"normal source baseline failed; retain public receipt")
