@@ -1658,12 +1658,18 @@ jobs:
               assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)
           print('YNX_NATIVE_HISTORY_CHAIN_TESTS ' + json.dumps({'sourceCommit': os.environ['GITHUB_SHA'], 'requiredPassed': required, 'suitePassed': True, 'performanceMeasured': False}, sort_keys=True))
           PY
-          # The complementary Host group below runs every excluded test with
-          # the same timeout; this group still covers every non-Host test.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
+          # Preserve the complete original test set. Production operator cases
+          # get their own bounded process so late cases do not inherit an almost
+          # expired suite clock. Host and large recovery retain their own groups.
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction)' ./internal/consensus > "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
             exit 1
           fi
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestProduction' ./internal/consensus > "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           python3 -B - <<'PY'
           import json, os
           from pathlib import Path

@@ -657,12 +657,44 @@ def assert_native_cabi_workflow_contract(raw):
     new_core_name = "Qualify device creator and invoice execution from the original full core suite"
     invoice_name = "Execute invoice actions through the existing Wallet transaction C ABI"
     invoice_upload = "Upload only the actual invoice C ABI public result"
+    e11_names = ("Execute fixed E11 V2 from the same native archive and seal its own supply",
+                 "Upload only fixed E11 V2 archive headers and actual public evidence")
     ordered_names = (names[:1] + data_names + names[1:3] + (new_core_name,) + names[3:4] + wallet_names + (invoice_name, invoice_upload) + publisher_names[:1]
                      + (device_http_name,)
-                     + names[4:9] + registered_names + product_device_names + creator_names + publisher_names[1:] + names[9:])
-    need(len(steps) == len(ordered_names) == 32)
+                     + names[4:9] + registered_names + product_device_names + creator_names + e11_names + publisher_names[1:] + names[9:])
+    need(len(steps) == len(ordered_names) == 34)
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, ordered_names)))
     named = {name: step for name, step in zip(ordered_names, steps)}
+    e11 = named[e11_names[0]]
+    need(e11.startswith("      - name: " + e11_names[0] + "\n        run: |\n          set -euo pipefail\n"))
+    for token in (
+        "-run '^TestDeploymentManifestV2' ./internal/ynxbatch",
+        'bash scripts/fixtures/verify-deployment-manifest-v2-cabi/check.sh \\',
+        '--archive "$RUNNER_TEMP/ynx-artifact-release-cabi/libynx_artifact_release.a"',
+        '--case "$RUNNER_TEMP/ynx-deployment-manifest-v2-cabi"',
+        "if terminal != ['pass']:",
+        "if source['commit'] != os.environ['GITHUB_SHA']:",
+        "pin(original) != source['archive'] or pin(base / original.name) != source['archive']",
+        "rb'\\bT\\s+_?YNXDeploymentManifestSignV2\\b'",
+        "'deployment_manifest_v2.h':Path('cmd/ynx-artifact-release-cabi/deployment_manifest_v2.h')",
+        "'ORIGINAL-ARCHIVE-SOURCE.json':base / 'SOURCE.json'",
+        "'PUBLIC-RESULT.json':case / 'output' / 'PUBLIC-RESULT.json'",
+        "sources=source['sources']",
+        "abi='YNXDeploymentManifestSignV2', abiVersion=2, domain='YNX-CLOUD-DEPLOYMENT-MANIFEST/v2'",
+        "purpose='CLOUD-DEPLOYMENT-MANIFEST-V2'",
+        "actualCABIExecuted=True, independentGoDualANDVerified=True, actualCControls=54, actualGoNegativeControls=26",
+        "RootAdmission=False, SourceAdmission=False, actualCurrentApproval=False",
+        "if set(p.name for p in out.iterdir()) != set(copies) | {'SOURCE.json'}:",
+        "if subprocess.check_output(['git', 'status', '--porcelain'], text=True):",
+    ):
+        need(token in e11)
+    e11_required = re.findall(r"(?m)^          required = (.+)$", e11)
+    need(e11_required == [repr(['TestDeploymentManifestV2SDKFrozenGolden', 'TestDeploymentManifestV2ExactFieldsWidthsAndOriginalBytes', 'TestDeploymentManifestV2SDKScopeEpochAndTextRules', 'TestDeploymentManifestV2IndependentBindingsRejectSameShapeSwaps', 'TestDeploymentManifestV2OriginalDualANDAndN1', 'TestDeploymentManifestV2CorePublicPreflight', 'TestDeploymentManifestV2CoreActualDualANDAndPrivateBorrow', 'TestDeploymentManifestV2CoreCleanupFailureAndUnknownRemainClosed'])])
+    need(lines(named[e11_names[1]]) == ['      - name: ' + e11_names[1],
+        '        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
+        '        with:', '          name: ynx-deployment-manifest-v2-cabi-native-${{ matrix.runner }}-${{ github.sha }}',
+        '          path: ${{ runner.temp }}/ynx-deployment-manifest-v2-cabi/delivery/*',
+        '          if-no-files-found: error', '          retention-days: 7'])
     need(lines(named[data_names[0]]) == ["      - name: " + data_names[0],
         "        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020", "        with:",
         "          node-version: '24.19.0'"])
@@ -1030,13 +1062,18 @@ def assert_state_math_required_workflow_contract(step):
     if required != [repr(["TestPQHistoryMathCacheN1ScopeAndBinding"]), repr(list(STATE_MATH_REQUIRED_TESTS))]:
         raise AssertionError("exact chain1/state40 actual terminal qualification required")
     command = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
-               "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' "
+               "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction)' "
                "./internal/consensus > \"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl\"; then\n")
+    production = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
+                  "-run '^TestProduction' ./internal/consensus > \"$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl\"; then\n")
+    merge = ('          cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> '
+             '"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n')
     terminal = ("              matches = [event for event in events if event.get('Test') == name and "
                 "event['Action'] in ('pass', 'fail', 'skip')]\n"
                 "              assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)\n")
-    if (step.count(command) != 1 or step.count("./internal/consensus") != 1 or
-            step.count(terminal) != 2 or step.count("            exit 1\n") != 2 or
+    if (step.count(command) != 1 or step.count(production) != 1 or step.count(merge) != 1 or
+            step.count("./internal/consensus") != 2 or
+            step.count(terminal) != 2 or step.count("            exit 1\n") != 3 or
             "          required = []" in step or "          for name in required:\n" not in step):
         raise AssertionError("state40 must run once with exact unique PASS events and retained failures")
 
@@ -1702,7 +1739,8 @@ def assert_workflow_contract(raw):
     non_host = by_name("Verify complete state bridge and sponsor continuity")[0]
     assert_state_math_required_workflow_contract(non_host)
     host = by_name("Verify original Host source, live lifecycle and delivery persistence")[0]
-    need("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' ./internal/consensus" in non_host)
+    need("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction)' ./internal/consensus" in non_host)
+    need("-run '^TestProduction' ./internal/consensus" in non_host)
     need("-run '^TestProofHost' ./internal/consensus" in host)
     need("YNX_PROOF_HOST_SOURCE_FIXTURE_OUT: ${{ runner.temp }}/ynx-proof-host-source-public" in host)
     need("YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json" in host)
@@ -1871,6 +1909,21 @@ def assert_workflow_contract(raw):
 
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
+    def test_e11_v2_native_supply_keeps_actual_typed_calls_and_no_authority(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        for before, after in (
+            ('bash scripts/fixtures/verify-deployment-manifest-v2-cabi/check.sh', 'true # omitted E11 C caller'),
+            ("purpose='CLOUD-DEPLOYMENT-MANIFEST-V2'", "purpose='ARTIFACT-RELEASE'"),
+            ('RootAdmission=False, SourceAdmission=False, actualCurrentApproval=False', 'RootAdmission=True, SourceAdmission=True, actualCurrentApproval=True'),
+            ('actualCABIExecuted=True, independentGoDualANDVerified=True, actualCControls=54, actualGoNegativeControls=26', 'actualCABIExecuted=True, independentGoDualANDVerified=False, actualCControls=0, actualGoNegativeControls=0'),
+            ('${{ runner.temp }}/ynx-deployment-manifest-v2-cabi/delivery/*', '${{ runner.temp }}/ynx-deployment-manifest-v2-cabi/**'),
+            ('if terminal != [\'pass\']:', 'if False: # accepts skipped E11 tests'),
+        ):
+            self.assertIn(before, raw)
+            with self.subTest(before=before), self.assertRaises(AssertionError):
+                assert_native_cabi_workflow_contract(raw.replace(before, after))
+
     def test_device_creator_and_invoice_native_calls_cannot_be_skipped_or_widen_outputs(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_native_cabi_workflow_contract(raw)
@@ -2680,7 +2733,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("artifact-ids: ${{ needs.focused-go.outputs.inputs-artifact-id }}", "name: old-same-name-artifact"),
             ('--manifest-sha256 "$YNX_STAGE_MANIFEST_SHA256"', '--manifest-sha256 "0000000000000000000000000000000000000000000000000000000000000000"'),
             ("      - name: Verify original public cutover caller preserves independent operator and runtime pins\n", "      - name: Silently skipped original caller\n"),
-            ("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)'", "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestABCI)'"),
+            ("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction)'", "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$|TestProduction|TestABCI)'"),
             ("-run '^TestProofHost'", "-run '^TestProofHostMissing'"),
             ("-run '^TestTransactionProofInitialPreparedFundingOriginalCLI$'", "-run '^TestTransactionProofInitialPreparedFundingOriginalCLIMissing$'"),
             ("YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json", "UNUSED_INITIAL_FUNDED_FIXTURE: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json"),
