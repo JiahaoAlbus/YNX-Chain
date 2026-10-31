@@ -1,0 +1,85 @@
+"""Preparation/differential controls only; fake rows are never measurements."""
+import importlib.util
+import json
+from pathlib import Path
+import subprocess
+import tempfile
+import unittest
+
+
+def module(name,file):
+    spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(file))
+    result=importlib.util.module_from_spec(spec);spec.loader.exec_module(result);return result
+
+
+prep=module("baseline_prepare","prepare-pq-baseline.py")
+runner=module("baseline_run","run-pq-baseline.py")
+diff=module("baseline_compare","compare-pq-baseline.py")
+
+
+class BaselineControls(unittest.TestCase):
+    def frozen(self,root):
+        owner=root/"owner";owner.mkdir()
+        def git(*args):return subprocess.check_output(["git","-C",str(owner),*args],stderr=subprocess.DEVNULL).decode().strip()
+        git("init");
+        leaves={
+         "go.mod":"module control-only\n", "go.sum":"control-only\n",
+         "third_party/cometbft/go.mod":"module control-only-not-built\n",
+         "internal/consensus/account_policy.go":"func DecodePQTransaction(payload []byte) (PQTransaction, []byte, error) {\n}\n",
+         "internal/consensus/account_batch.go":"func cloneConsensusPQBatches(input map[string]PQCommittedBatch) map[string]PQCommittedBatch {\n}\nfunc cloneBatchTransferCandidate(state executionState) executionState {\n}\nfunc (a *Application) applyPQWhole(state executionState, payload, wire []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {\n}\n",
+         "internal/consensus/application.go":"func cloneExecutionStateValue(state executionState) executionState {\n}\n"}
+        for name,content in leaves.items():
+            file=owner/name;file.parent.mkdir(parents=True,exist_ok=True);file.write_text(content)
+        git("add",".");git("-c","user.name=Control Fixture","-c","user.email=fixture@example.invalid","commit","-m","uncompiled control fixture")
+        head=git("rev-parse","HEAD")
+        (owner/"internal/consensus/inflight.go").write_text("never include owner untracked file")
+        target=root/"prepared";plan=prep.prepare(str(owner),head,str(target))
+        return owner,target,plan
+
+    def test_actual_archive_preparation_excludes_owner_dirty_and_preserves_originals(self):
+        with tempfile.TemporaryDirectory() as directory:
+            owner,target,plan=self.frozen(Path(directory).resolve())
+            self.assertIn("inflight.go",plan["observedOwnerDirty"])
+            self.assertFalse((Path(plan["source"])/"internal/consensus/inflight.go").exists())
+            self.assertNotIn("baselineCount",(owner/"internal/consensus/account_policy.go").read_text())
+            self.assertTrue(runner.validate(target/"prepared.json"))
+            with self.assertRaises(ValueError):prep.prepare(str(owner),plan["commit"],str(target))
+
+    def test_changed_source_and_extra_overlay_are_refused(self):
+        for mutation in ("source","overlay"):
+            with tempfile.TemporaryDirectory() as directory:
+                _,target,plan=self.frozen(Path(directory).resolve())
+                if mutation=="source":(Path(plan["source"])/"go.mod").write_text("changed")
+                else:
+                    path=target/"overlay.json";obj=json.loads(path.read_bytes());obj["Replace"]["/foreign.go"]="/foreign.go";path.write_text(json.dumps(obj))
+                with self.assertRaises(RuntimeError):runner.validate(target/"prepared.json")
+
+    def pair(self,root):
+        dirs=[root/"before",root/"after"]
+        for i,directory in enumerate(dirs):
+            directory.mkdir();(directory/"receipt.json").write_text(json.dumps(dict(sourceMatrixComplete=True,cleanupComplete=True,inputSha256="same-public-input",sourceCommit=str(i)*40)))
+            for h in (0,64,256,512):
+                for k in (1,16):
+                    case="H%d-K%d"%(h,k)
+                    measure=dict(inputSha256="same-public-input",outerTxHash="original",memberResults=[dict(outcome="admitted")],appHash="app",blockHeight=h+4,historyWholeCount=h,members=k,wholeCountInCandidate=1,phases=[dict(name="Commit",elapsedNs=123,counters={})])
+                    (directory/(case+"-measure.json")).write_text(json.dumps(measure))
+                    (directory/(case+"-after.json")).write_text(json.dumps(dict(accounts=[dict(balance=10,nonce=1)],feeEvents=[dict(fee=1)],PQHistory=["original"],AppHash="same")))
+        return dirs
+
+    def test_complete_state_comparison_never_projects_fees_nonce_or_history_away(self):
+        for field in (None,"accounts","feeEvents","PQHistory","AppHash"):
+            with tempfile.TemporaryDirectory() as directory:
+                before,after=self.pair(Path(directory))
+                if field:
+                    path=after/"H256-K16-after.json";state=json.loads(path.read_bytes());state[field]=["changed"];path.write_text(json.dumps(state))
+                    with self.assertRaisesRegex(ValueError,"full committed state differs"):diff.compare(before,after)
+                else:self.assertEqual(diff.compare(before,after)["stableFinalTPS"],"UNMEASURED")
+
+    def test_incomplete_or_different_input_runs_cannot_form_before_after(self):
+        for field,value in (("inputSha256","different"),("sourceMatrixComplete",False),("cleanupComplete",False)):
+            with tempfile.TemporaryDirectory() as directory:
+                before,after=self.pair(Path(directory));path=after/"receipt.json";receipt=json.loads(path.read_bytes());receipt[field]=value;path.write_text(json.dumps(receipt))
+                with self.assertRaises(ValueError):diff.compare(before,after)
+
+
+if __name__=="__main__":unittest.main()

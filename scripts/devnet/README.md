@@ -39,3 +39,37 @@ H/H+1 verifier path. Do not substitute the in-process Go E2E or relabel the
 legacy result. Commit-stage export also remains a normal node producer gap;
 the harness reports actual process/operation times and original client stages.
 
+The current-version **source baseline** is a separate opt-in path. It freezes
+only the chosen owner's committed Go graph and adds entry observers through a
+guarded Go overlay. It neither edits the owner checkout nor includes its
+in-progress/untracked lab source. A dedicated hosted source job can run:
+
+```sh
+python3 -B scripts/loadtest/prepare-pq-baseline.py \
+  --owner "$BASELINE_OWNER_CHECKOUT" --commit "$BASELINE_OWNER_SHA" \
+  --output "$RUNNER_TEMP/current-baseline-source"
+python3 -B scripts/loadtest/run-pq-baseline.py \
+  --prepared "$RUNNER_TEMP/current-baseline-source/prepared.json" \
+  --mode record --execute
+```
+
+CORE supplies the checkout at the exact declared baseline SHA; do not silently
+replace it with a later integrated candidate. The first declared source is
+`fdc08527514587d5756264e43ab63588791e189a`. Upload only
+`$RUNNER_TEMP/pq-baseline-*/public/` on success **and failure**. The fixed matrix
+uses authentic signed Whole history H=0/64/256/512, K=1/16, original CheckTx,
+recheck, Prepare/ProcessProposal, FinalizeBlock, durable Commit and cold reopen.
+Actual account distribution, protected Wallet online signing, engine votes,
+mempool and per-hop byte counts remain `UNMEASURED` in this source-only result.
+Entry counters report calls, inclusive time and exact known copied slice bytes;
+unknown map/account allocator bytes are not fabricated. Parent phase time and
+process allocation include diagnostic overhead; nested timers are not additive.
+
+The first run retains its public signed input bundle. Later candidates must use
+`--mode replay --input ORIGINAL_BUNDLE --input-sha256 EXACT_SHA256`, then
+`compare-pq-baseline.py --before ORIGINAL_PUBLIC --after CANDIDATE_PUBLIC
+--output NEW_RESULT`. This compares the **entire** committed state and exact
+member results/AppHash, including fees, balances, nonce and history, without a
+projection that discards differences. Source matrices never establish final
+chain TPS or authorize skipping failure/competition/partition qualification.
+

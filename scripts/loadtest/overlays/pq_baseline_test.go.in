@@ -1,0 +1,279 @@
+package consensus
+
+import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	abci "github.com/cometbft/cometbft/abci/types"
+	cmttypes "github.com/cometbft/cometbft/types"
+	"os"
+	"path/filepath"
+	"runtime"
+	"testing"
+	"time"
+)
+
+type baselineInputs struct {
+	Schema    string                        `json:"schema"`
+	Migration chain.ConsensusMigrationState `json:"migration"`
+	Initial   CommittedState                `json:"initial"`
+	History   [][]byte                      `json:"history"`
+	Cases     map[string][]byte             `json:"cases"`
+}
+type baselinePhase struct {
+	Name                  string                     `json:"name"`
+	ElapsedNs             int64                      `json:"elapsedNs"`
+	ProcessAllocatedBytes uint64                     `json:"processAllocatedBytesDuringPhase"`
+	Counters              map[string]baselineCounter `json:"counters"`
+	Commit                *CommitTimingSample        `json:"commit,omitempty"`
+}
+
+func baselineDigest(raw []byte) string { h := sha256.Sum256(raw); return hex.EncodeToString(h[:]) }
+func baselineWrite(t *testing.T, path string, value any) {
+	t.Helper()
+	raw, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = f.Write(append(raw, '\n')); err != nil {
+		f.Close()
+		t.Fatal(err)
+	}
+	if err = f.Sync(); err != nil {
+		f.Close()
+		t.Fatal(err)
+	}
+	if err = f.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+func baselineStage(t *testing.T, name string, f func()) baselinePhase {
+	t.Helper()
+	baselineProbe.Lock()
+	baselineProbe.phase = name
+	baselineProbe.counters = make(map[string]baselineCounter)
+	baselineProbe.Unlock()
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	started := time.Now()
+	f()
+	elapsed := time.Since(started).Nanoseconds()
+	runtime.ReadMemStats(&after)
+	baselineProbe.Lock()
+	row := baselinePhase{Name: name, ElapsedNs: elapsed, ProcessAllocatedBytes: after.TotalAlloc - before.TotalAlloc, Counters: baselineProbe.counters}
+	baselineProbe.phase = ""
+	baselineProbe.counters = nil
+	baselineProbe.Unlock()
+	return row
+}
+func baselineCommit(t *testing.T, a *Application, txs [][]byte) {
+	t.Helper()
+	height := a.committed.Height + 1
+	response, err := a.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: height, Time: time.Unix(height, 0).UTC(), Txs: txs})
+	if err != nil || len(response.TxResults) != len(txs) {
+		t.Fatalf("real history FinalizeBlock: %v", err)
+	}
+	for _, result := range response.TxResults {
+		if result.Code != 0 {
+			t.Fatalf("real history rejected: %s", result.Log)
+		}
+	}
+	if _, err = a.Commit(context.Background(), &abci.RequestCommit{}); err != nil {
+		t.Fatal(err)
+	}
+}
+func baselineGenerate(t *testing.T, path string) baselineInputs {
+	t.Helper()
+	f := newABCIRevocationFixture(t)
+	// Fund through the original synthetic ledger before exporting a fresh
+	// migration. Never alter balances/policies/receipts in a snapshot by hand.
+	if _, err := f.d.Faucet(f.owner, 100000); err != nil {
+		t.Fatal(err)
+	}
+	f.d.ProduceBlock()
+	var err error
+	f.m, err = f.d.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.path = filepath.Join(t.TempDir(), "baseline-registered.json")
+	f.a, err = NewPersistentApplication(f.m, f.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	height := f.a.committed.Height + 1
+	registration := f.registration(t, false, uint64(height+1))
+	baselineCommit(t, f.a, [][]byte{mustPQEnvelope(t, PQMigrationType, registration)})
+	input := baselineInputs{Schema: "YNX-PQ-BASELINE-PUBLIC-INPUT/v1", Migration: f.m, Initial: f.a.committed, Cases: map[string][]byte{}}
+	for i := 0; i < 512; i++ {
+		wire := abciWhole(t, f, f.transferMessage(t, false, uint64(i+2), 1))
+		input.History = append(input.History, mustPQEnvelope(t, PQWholeType, wire))
+	}
+	for _, history := range []int{0, 64, 256, 512} {
+		for _, members := range []int{1, 16} {
+			messages := make([][]byte, members)
+			for i := range messages {
+				messages[i] = f.transferMessage(t, false, uint64(history+i+2), 1)
+			}
+			input.Cases[fmt.Sprintf("H%d-K%d", history, members)] = mustPQEnvelope(t, PQWholeType, abciWhole(t, f, messages...))
+		}
+	}
+	baselineWrite(t, path, input)
+	return input
+}
+func baselineApplication(t *testing.T, input baselineInputs, state CommittedState) *Application {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "state.json")
+	baselineWrite(t, path, state)
+	app, err := NewPersistentApplication(input.Migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.SetCommitTimingEnabled(true)
+	return app
+}
+func TestPQCurrentBaseline(t *testing.T) {
+	if os.Getenv("YNX_PERF_CURRENT_BASELINE") != "source-ci-only" {
+		t.Skip("explicit isolated source baseline required")
+	}
+	inputPath, output := os.Getenv("YNX_PERF_BASELINE_INPUT"), os.Getenv("YNX_PERF_BASELINE_OUTPUT")
+	if !filepath.IsAbs(inputPath) || !filepath.IsAbs(output) {
+		t.Fatal("private absolute input/output paths required")
+	}
+	var input baselineInputs
+	generationNs := int64(0)
+	if os.Getenv("YNX_PERF_BASELINE_RECORD") == "1" {
+		started := time.Now()
+		input = baselineGenerate(t, inputPath)
+		generationNs = time.Since(started).Nanoseconds()
+	} else {
+		raw, err := os.ReadFile(inputPath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(raw) > 128<<20 {
+			t.Fatal("public input byte bound")
+		}
+		if err = json.Unmarshal(raw, &input); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if input.Schema != "YNX-PQ-BASELINE-PUBLIC-INPUT/v1" || len(input.History) != 512 || len(input.Cases) != 8 {
+		t.Fatal("complete fixed baseline input required")
+	}
+	raw, err := os.ReadFile(inputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inputHash := baselineDigest(raw)
+	historyApp := baselineApplication(t, input, input.Initial)
+	historyIndex := 0
+	for _, history := range []int{0, 64, 256, 512} {
+		for historyIndex < history {
+			end := historyIndex + 16
+			if end > history {
+				end = history
+			}
+			baselineCommit(t, historyApp, input.History[historyIndex:end])
+			historyIndex = end
+		}
+		if len(historyApp.committed.PQBatches) != history {
+			t.Fatal("H is not authentic committed Whole history")
+		}
+		for _, members := range []int{1, 16} {
+			name := fmt.Sprintf("H%d-K%d", history, members)
+			payload := input.Cases[name]
+			app := baselineApplication(t, input, historyApp.committed)
+			before := mustJSON(t, app.committed)
+			height := app.committed.Height + 1
+			blockTime := time.Unix(height, 0).UTC()
+			phases := []baselinePhase{}
+			var checked *abci.ResponseCheckTx
+			phases = append(phases, baselineStage(t, "CheckTx", func() {
+				var e error
+				checked, e = app.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: payload})
+				if e != nil || checked.Code != 0 {
+					t.Fatalf("CheckTx: %v %+v", e, checked)
+				}
+			}))
+			phases = append(phases, baselineStage(t, "RecheckTx", func() {
+				r, e := app.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: payload, Type: abci.CheckTxType_Recheck})
+				if e != nil || r.Code != 0 || !bytes.Equal(r.Data, checked.Data) {
+					t.Fatal("recheck changed same-input result")
+				}
+			}))
+			phases = append(phases, baselineStage(t, "PrepareProposal", func() {
+				r, e := app.PrepareProposal(context.Background(), &abci.RequestPrepareProposal{Height: height, Time: blockTime, Txs: [][]byte{payload}, MaxTxBytes: cmttypes.DefaultConsensusParams().Block.MaxBytes})
+				if e != nil || len(r.Txs) != 1 || !bytes.Equal(r.Txs[0], payload) {
+					t.Fatal("proposal selection differs")
+				}
+			}))
+			phases = append(phases, baselineStage(t, "ProcessProposal", func() {
+				r, e := app.ProcessProposal(context.Background(), &abci.RequestProcessProposal{Height: height, Time: blockTime, Txs: [][]byte{payload}})
+				if e != nil || r.Status != abci.ResponseProcessProposal_ACCEPT {
+					t.Fatal("proposal rejected authentic input")
+				}
+			}))
+			if !bytes.Equal(before, mustJSON(t, app.committed)) {
+				t.Fatal("admission/proposal mutated committed state")
+			}
+			var finalized *abci.ResponseFinalizeBlock
+			phases = append(phases, baselineStage(t, "FinalizeBlock", func() {
+				var e error
+				finalized, e = app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: height, Time: blockTime, Txs: [][]byte{payload}})
+				if e != nil || len(finalized.TxResults) != 1 || finalized.TxResults[0].Code != 0 || !bytes.Equal(finalized.TxResults[0].Data, checked.Data) {
+					t.Fatal("FinalizeBlock changed real member result")
+				}
+			}))
+			phases = append(phases, baselineStage(t, "Commit", func() {
+				if _, e := app.Commit(context.Background(), &abci.RequestCommit{}); e != nil {
+					t.Fatal(e)
+				}
+			}))
+			timing, ok := app.LastCommitTiming()
+			if !ok || !timing.Durable {
+				t.Fatal("actual Commit timing/durability missing")
+			}
+			phases[len(phases)-1].Commit = &timing
+			after := mustJSON(t, app.committed)
+			var cold *Application
+			phases = append(phases, baselineStage(t, "ColdReopen", func() {
+				var e error
+				cold, e = NewPersistentApplication(input.Migration, app.statePath)
+				if e != nil || !bytes.Equal(after, mustJSON(t, cold.committed)) {
+					t.Fatalf("cold restore changed full committed state: %v", e)
+				}
+			}))
+			var outcomes PQBatchExecutionResult
+			if err = json.Unmarshal(finalized.TxResults[0].Data, &outcomes); err != nil {
+				t.Fatal(err)
+			}
+			if len(outcomes.Results) != members {
+				t.Fatal("member count differs")
+			}
+			for _, r := range outcomes.Results {
+				if r.Outcome != "admitted" {
+					t.Fatal("authentic baseline member failed", r)
+				}
+			}
+			// Complete after-state is retained: future differential must compare all
+			// fields, including AppHash, tx/member IDs, fees, history and nonce.
+			baselineWrite(t, filepath.Join(output, name+"-after.json"), app.committed)
+			baselineWrite(t, filepath.Join(output, name+"-measure.json"), map[string]any{
+				"schema": "YNX-CURRENT-ABCI-BASELINE/v1", "inputSha256": inputHash, "case": name, "historyWholeCount": history, "members": members, "blockHeight": height, "wholeCountInCandidate": 1,
+				"envelopeBytes": len(payload), "outerTxHash": SignedTransactionHash(payload), "memberResults": outcomes.Results, "committedCanonicalJSONSha256": baselineDigest(after), "appHash": hex.EncodeToString(finalized.AppHash), "phases": phases,
+				"fixturePreparationNs": generationNs, "signatureMode": "pre_signed", "actualDistribution": "UNMEASURED", "protectedWalletOnlineSigning": "UNMEASURED", "mempool": "UNMEASURED", "engineBlockMaxBytes": "UNMEASURED", "voteWait": "UNMEASURED", "hopBytes": "UNMEASURED", "effectiveFinalTPS": "UNMEASURED", "P95FinalConfirmation": "UNMEASURED",
+				"scope": "real signed local ABCI calls/Commit/cold state, no consensus node or chain finality", "copyByteMeaning": "exact known backing-slice subset only; map buckets/account lots/allocator padding remain UNMEASURED; nested inclusive function times overlap; counter traversal overhead excluded from function timer but included in parent stage", "architecture": runtime.GOARCH, "goVersion": runtime.Version(), "gomaxprocs": runtime.GOMAXPROCS(0),
+			})
+			t.Logf("YNX_CURRENT_ABCI_BASELINE case=%s input=%s height=%d bytes=%d", name, inputHash, height, len(payload))
+		}
+	}
+}

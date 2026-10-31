@@ -127,8 +127,9 @@ def validate_manifest(m, network):
 
 
 class Window:
-    def __init__(self, source, work):
+    def __init__(self, source, work, additional_storage=()):
         self.source, self.work = source, work
+        self.storage_roots = [work, *additional_storage]
         self.started = time.monotonic()
         self.children, self.known, self.samples = [], {}, []
         self.peak_rss = self.peak_bytes = 0
@@ -168,7 +169,7 @@ class Window:
             require(after["startTicks"] == before["startTicks"], "owned process identity changed during RSS read")
             rss += size
         if time.monotonic() - self.last_storage_sample >= 1:
-            self.storage_bytes = private_bytes(self.work)
+            self.storage_bytes = sum(private_bytes(root) for root in self.storage_roots)
             self.last_storage_sample = time.monotonic()
         size = self.storage_bytes
         self.peak_rss, self.peak_bytes = max(self.peak_rss, rss), max(self.peak_bytes, size)
