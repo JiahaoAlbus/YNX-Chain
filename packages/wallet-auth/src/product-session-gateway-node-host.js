@@ -27,6 +27,7 @@ import {handleOriginalAuthSourceCurrent,handleOriginalDeveloperPrincipalCurrent,
 import {openOriginalAuthSourceCurrentRequest} from './original-auth-source-current-request.js';
 import {verifyProductSessionProofV2,productSessionProofV2Digest} from './product-session-proof-v2.js';
 import {httpBodyDigest} from './session-proof.js';
+import {dispatchOriginalProductPairSessionV4Daemon} from './product-pair-session-v4-daemon.js';
 
 export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 // Actual same-process Host inventory, not registration or readiness authority.
@@ -437,13 +438,16 @@ export class ProductSessionGatewayNodeHost {
 
   // This original Host constructs its own real daemon listener and Server.
   // No caller-supplied handler registration/allowlist can acquire its brand.
-  createOriginalWalletServiceRuntimeDaemonServer({legacyHost,central,admission,emitEvent}) {
+  createOriginalWalletServiceRuntimeDaemonServer({legacyHost,central,admission,emitEvent,originalPairSessionV4=null}) {
     this.#assertStateIdentity();
     if(this.#originalRuntimeServer)fail('ORIGINAL_RUNTIME_ALREADY_CREATED','Original daemon Server already exists');
     const legacyHandler=CanonicalWalletGatewayNodeHost.prototype.handler.call(legacyHost);
     const productHandler=this.#createHandler();
     if(typeof emitEvent!=='function')fail('INVALID_HOST','Original event sink is absent');
     const dispatch=async(request,response)=>{
+      // SAME admitted v2 listener, not gatewayd's unused v3 pre-router. Only
+      // the private startup ref can dispatch; no caller handler/Source setter.
+      if(await dispatchOriginalProductPairSessionV4Daemon(originalPairSessionV4,request,response))return;
       const path=new URL(request.url,'http://127.0.0.1').pathname;
       // The real v2 daemon uses THIS listener, not gatewayd's v3 pre-router.
       // The existing original Source/principal handlers own strict method,

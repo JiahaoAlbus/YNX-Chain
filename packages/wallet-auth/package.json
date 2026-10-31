@@ -336,7 +336,11 @@
     "native/original-ide-project-app-observer-data.h",
     "native/original-product-device-v4-source-contract.mjs",
     "native/product-session-device-v4-once.h",
-    "native/product-session-device-v4-once-binding.h"
+    "native/product-session-device-v4-once-binding.h",
+    "native/original-source-root-contract-v2.mjs",
+    "native/original-source-root-consumer-v2.mjs",
+    "native/original-source-root-dirfd-journal.h",
+    "native/original-source-root-dirfd-node.cpp"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
