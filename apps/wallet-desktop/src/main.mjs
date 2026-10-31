@@ -1,5 +1,6 @@
 import {createOriginalDeviceCreationController} from './original-device-create-controller.mjs';
 import {createOriginalDeviceQueryController} from './original-device-query-controller.mjs';
+import {createOriginalDeviceFinalizationController} from './original-device-finalization-controller.mjs';
 import {createOriginalDeviceRegistrationController} from './original-device-registration-controller.mjs';
 import {createPQTypedActionNodeReader} from './features/pq-transaction/typed-action-query-node.mjs';
 import {normalizeWalletPQTransferInput} from './wallet-pq-transfer-input.mjs';
@@ -131,6 +132,7 @@ let lastCallback = null;
 let walletAuthority;
 let originalDeviceCreation;
 let originalDeviceQuery;
+let originalDeviceFinalization;
 let originalDeviceRegistration;
 let pqTransactionSubmission;
 let pqFinalityCollection;
@@ -316,7 +318,7 @@ async function shutdownOriginalPQWallet(){
   pqFinalityCollection?.retire();
   // The registration client must settle its child/callback custody before the
   // original creation parent closes. Other owners still drain after a failure.
-  const registration=await Promise.allSettled([originalDeviceRegistration?.close()]);
+  const registration=await Promise.allSettled([originalDeviceRegistration?.close(),originalDeviceFinalization?.close()]);
   const others=await Promise.allSettled([walletAuthority?.shutdownPQReviews(),originalDeviceCreation?.close(),originalDeviceQuery?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
   const failed=[...registration,...others].find(r=>r.status==='rejected');if(failed)throw failed.reason;
 }
@@ -623,6 +625,16 @@ handleWalletIPC('wallet:cancel-device-registration',(_event,...args)=>safeIPC(as
  if(args.length)throw Object.assign(Error('Use the original review.'),{code:'DEVICE_REGISTRATION_ZERO_INPUT'});
  const state=originalDeviceRegistration?.readStatusDATA();if(!state?.requestId)return state??{phase:'idle'};
  return originalDeviceRegistration.rejectOriginal(state.requestId);
+}));
+handleWalletIPC('wallet:device-finalization-status',(_event,...args)=>safeIPC(async()=>{
+ if(args.length)throw Object.assign(Error('Read the original status only.'),{code:'DEVICE_FINALIZATION_ZERO_INPUT'});
+ return originalDeviceFinalization?.readStatusDATA()??{phase:'idle'};
+}));
+handleWalletIPC('wallet:finalize-original-device',(_event,...args)=>sensitiveIPC(async()=>{
+ if(args.length)throw Object.assign(Error('Use the original app request.'),{code:'DEVICE_FINALIZATION_ZERO_INPUT'});
+ const review=authorizationController?.pending;
+ if(!originalDeviceFinalization||accountChangeInProgress||!review||review.loadingAccount||review.account!==keyAccess.status().account)throw Object.assign(Error('请从原应用发起连接，再完成原设备记录。 / Start from the original app, then finish its device record.'),{code:'DEVICE_FINALIZATION_ORIGINAL_REQUEST_REQUIRED'});
+ return originalDeviceFinalization.finalizeOriginal(review.request);
 }));
 handleWalletIPC('wallet:query-original-device',(_event,...args)=>sensitiveIPC(async()=>{
  if(args.length)throw Object.assign(Error('Use the original app request.'),{code:'DEVICE_QUERY_ZERO_INPUT'});
@@ -1011,6 +1023,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   originalAdmissionVault=passwordVault;
   originalDeviceCreation=createOriginalDeviceCreationController({vault:passwordVault,networkId:PQ_CANONICAL_NETWORK_ID});
   originalDeviceQuery=createOriginalDeviceQueryController({vault:passwordVault,networkId:PQ_CANONICAL_NETWORK_ID});
+  originalDeviceFinalization=createOriginalDeviceFinalizationController({vault:passwordVault,networkId:PQ_CANONICAL_NETWORK_ID});
   const originalIdentityStartup=initializeOriginalAuthIdentityStartup(passwordVault);
   if(!originalIdentityStartup.implementingModuleAvailable)console.warn('AUTH_IDENTITY_NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED');
   familyAccounts = createMnemonicFamilyAccounts({

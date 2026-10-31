@@ -1,3 +1,4 @@
+import {bindDeviceFinalizationUI} from './wallet-device-finalization-ui.mjs';
 import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
 import {bindDeviceRegistrationUI} from './wallet-device-registration-ui.mjs';
 import { formatApprovalReview } from "./approval-review-display.mjs";
@@ -818,7 +819,7 @@ async function proposalAction(action) {
 document.querySelector("#reject-proposal").addEventListener("click", () => proposalAction("reject"));
 document.querySelector("#approve-proposal").addEventListener("click", () => proposalAction("approve"));
 
-let deviceCreationBusy=false,deviceCreationState={phase:'idle',effectEntryInvoked:false},deviceQueryBusy=false,deviceQuerySelection=null,deviceRegistrationUI=null;
+let deviceCreationBusy=false,deviceCreationState={phase:'idle',effectEntryInvoked:false},deviceQueryBusy=false,deviceQuerySelection=null,deviceRegistrationUI=null,deviceFinalizationUI=null;
 function renderDeviceCreationStatus(state){
  deviceCreationState=state??deviceCreationState;const d=deviceCreationState,latest=d.latestOutcome?.state;
  const text=d.account&&d.account!==keyState.account?'请切回原账户查看这次设备操作。 / Select the original account to inspect this operation.':d.cleanupUnresolved?'操作尚未完全结束，原记录已保留；请勿重复创建。 / Original records retained; cleanup is unconfirmed; do not create again.':latest==='UNKNOWN'||d.phase==='original-outcome-unknown'?'操作结果待核对，原记录已保留，不会自动重试。 / Original outcome retained; verification is required before any new attempt.':latest==='REGISTERED_LOCAL_ASSOCIATION'?'设备登记记录已保存；账户签名和转账仍需单独批准。 / Device registration retained; account signatures and transfers need separate approval.':latest==='PENDING_REGISTRATION'?'设备密钥已准备；应用登记尚未完成，需要单独确认。 / Device keys prepared; app registration still requires separate approval.':d.phase==='review'&&!d.retired?'请核对确认窗口中的应用、账户和设备。 / Review the app, account and device in the confirmation.':d.phase==='cancelled-before-effect'?'已取消，本次未发起创建。 / Cancelled before creation.':d.effectEntryInvoked?'创建请求已进入，结果尚未确认，不会自动重试。 / Creation entered; outcome unconfirmed; no automatic retry.':d.phase==='failed-before-effect'?'尚未取得有效请求，请先从原应用发起设备连接。 / Original device request unavailable; start from the app.':'从原应用发起连接后，在这里核对设备请求。 / Start a connection from the original app to review its device request.';
@@ -827,7 +828,7 @@ function renderDeviceCreationStatus(state){
  document.querySelector('#app-device-cancel').hidden=!d.requestId||d.phase==='cancelled-before-effect'||latest==='REGISTERED_LOCAL_ASSOCIATION';document.querySelector('#app-device-cancel').disabled=deviceCreationBusy;
  document.querySelector('#app-device-query').disabled=deviceQueryBusy||keyState.locked||!keyState.account;
  if(deviceQuerySelection&&(keyState.locked||deviceQuerySelection.account!==keyState.account||deviceQuerySelection.revision!==keyState.revision))document.querySelector('#app-device-query-status').textContent='';
- deviceRegistrationUI?.render();
+ deviceRegistrationUI?.render();deviceFinalizationUI?.render();
 }
 async function refreshDeviceCreationStatus(){if(!window.ynxWallet.deviceCreateStatus)return;try{const result=await window.ynxWallet.deviceCreateStatus();if(result?.ok)renderDeviceCreationStatus(result.value);}catch{}}
 document.querySelector('#app-device-create').addEventListener('click',async()=>{
@@ -846,6 +847,8 @@ document.querySelector('#app-device-query').addEventListener('click',async()=>{
 });
 deviceRegistrationUI=bindDeviceRegistrationUI({root:document,api:window.ynxWallet,readContext:()=>keyState,readCreation:()=>deviceCreationState});
 void deviceRegistrationUI.refresh();
+deviceFinalizationUI=bindDeviceFinalizationUI({root:document,api:window.ynxWallet,readContext:()=>keyState});
+void deviceFinalizationUI.refresh();
 void refreshDeviceCreationStatus();
 const providerPanel = document.querySelector("#provider-request");
 window.ynxWallet.onProviderRequest(request => {

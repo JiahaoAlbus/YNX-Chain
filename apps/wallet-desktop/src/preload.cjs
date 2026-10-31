@@ -4,6 +4,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   prepareDeviceCreate:()=>ipcRenderer.invoke('wallet:prepare-device-create'),
   deviceCreateStatus:()=>ipcRenderer.invoke('wallet:device-create-status'),
   queryOriginalDevice:()=>ipcRenderer.invoke('wallet:query-original-device'),
+  finalizeOriginalDevice:()=>ipcRenderer.invoke('wallet:finalize-original-device'),
+  deviceFinalizationStatus:()=>ipcRenderer.invoke('wallet:device-finalization-status'),
   prepareDeviceRegistration:()=>ipcRenderer.invoke('wallet:prepare-device-registration'),
   prepareDeviceCompletion:digest=>ipcRenderer.invoke('wallet:prepare-device-completion',digest),
   deviceRegistrationStatus:()=>ipcRenderer.invoke('wallet:device-registration-status'),
