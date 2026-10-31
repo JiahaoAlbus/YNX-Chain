@@ -329,6 +329,12 @@
       "browser": null,
       "node": "./src/original-http-binary-v5-client.js",
       "default": null
+    },
+    "./original-product-device-v4-registered-finalization": {
+      "types": "./src/original-product-device-v4-registered-finalization.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-registered-finalization.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -433,7 +439,16 @@
     "scripts/original-cloud-deployment-execution-approval-v2.mjs",
     "native/original-cloud-deployment-execute-approval-v2.mjs",
     "native/original-cloud-deployment-execution-v2-contract.mjs",
-    "native/original-cloud-deployment-recovery-v2-contract.mjs"
+    "native/original-cloud-deployment-recovery-v2-contract.mjs",
+    "native/original-product-device-v4-registered-finalization-source-contract.mjs",
+    "native/original-product-session-http-v5-source-contract.mjs",
+    "native/original-product-device-v4-registered-finalization-source.inc.mm",
+    "native/original-registered-finalization-scope-private.h",
+    "native/original-http-v5-acquire.inc.mm",
+    "native/original-http-v5-registered-private.h",
+    "native/original-http-v5-registered-private.mm",
+    "native/original-http-v5-scope-private.h",
+    "native/original-http-v5-source.inc.mm"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

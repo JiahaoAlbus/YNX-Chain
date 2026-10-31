@@ -63,6 +63,14 @@ static NSURL *YNXOriginalProductDeviceV4QueryRegistryResources(void){
  NSString*base=[NSString stringWithFormat:@"/Library/Application Support/YNX/OriginalAuthIdentity/UID-%u/Wallet/ProductSessionDeviceV4Query",getuid()];
  return [NSURL fileURLWithPath:base isDirectory:YES];
 }
+static NSURL *YNXOriginalHTTPV5RegistryResources(void){
+ if(getuid()==0||getuid()!=geteuid()||getgid()!=getegid())return nil;return [NSURL fileURLWithPath:[NSString stringWithFormat:@"/Library/Application Support/YNX/OriginalAuthIdentity/UID-%u/Wallet/ProductSessionHTTPProofV5",getuid()] isDirectory:YES];
+}
+static NSURL *YNXOriginalProductDeviceV4RegisteredFinalizationRegistryResources(void){
+ if(getuid()==0||getuid()!=geteuid()||getgid()!=getegid())return nil;
+ NSString*base=[NSString stringWithFormat:@"/Library/Application Support/YNX/OriginalAuthIdentity/UID-%u/Wallet/ProductSessionDeviceV4RegisteredFinalization",getuid()];
+ return [NSURL fileURLWithPath:base isDirectory:YES];
+}
 static BOOL YNXOriginalIDEProtectedAncestors(NSString *path){
  NSString *part=@"/";for(NSString *name in path.pathComponents){if([name isEqual:@"/"])continue;part=[part stringByAppendingPathComponent:name];struct stat s;
   if(lstat(part.fileSystemRepresentation,&s)||!ynx_auth_ide_private::originalIDERegistryDirectory(s))return NO;
@@ -98,7 +106,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  NSString *_rootPath;
  NSData *_profileRaw,*_headRaw;
  BOOL _retired,_closeSelected,_cleanupComplete;
- NSUInteger _entered;BOOL _ideConsumer,_ideRegistry,_contractRelay,_projectAuthority,_projectControl,_walletPQCatalog,_ideProjectObserver,_productDeviceV4,_productDeviceV4Pending,_productDeviceV4Provisioning,_productDeviceV4Query;
+ NSUInteger _entered;BOOL _ideConsumer,_ideRegistry,_contractRelay,_projectAuthority,_projectControl,_walletPQCatalog,_ideProjectObserver,_productDeviceV4,_productDeviceV4Pending,_productDeviceV4Provisioning,_productDeviceV4Query,_productDeviceV4RegisteredFinalization,_productHTTPV5;
  NSString *_actualIDEResources;
  NSError *_firstCause,*_cleanupCause;
 }
@@ -165,6 +173,16 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  @catch(id){[owner fail:@"PRODUCT_QUERY_V4_PROFILE_EXCEPTION" error:error];return owner;}}
  catch(...){[owner fail:@"PRODUCT_QUERY_V4_PROFILE_CPP" error:error];return owner;}
 }
++ (instancetype)acquireOriginalProductSessionHTTPProofV5Profile:(NSError**)error{
+ YNXAuthIdentityCurrentOwner*owner=[self new];owner->_ideRegistry=YES;owner->_productHTTPV5=YES;
+ try{@try{if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;}@catch(id){[owner fail:@"PRODUCT_HTTP_V5_PROFILE_EXCEPTION" error:error];return owner;}}catch(...){[owner fail:@"PRODUCT_HTTP_V5_PROFILE_CPP" error:error];return owner;}
+}
++ (instancetype)acquireOriginalProductSessionDeviceV4RegisteredFinalizationProfile:(NSError **)error {
+ YNXAuthIdentityCurrentOwner*owner=[self new];owner->_ideRegistry=YES;owner->_productDeviceV4RegisteredFinalization=YES;
+ try{@try{if([owner capture:error])return owner;[owner retire];if(![owner close:nil])return owner;return nil;}
+ @catch(id){[owner fail:@"PRODUCT_REGISTERED_FINALIZATION_V4_PROFILE_EXCEPTION" error:error];return owner;}}
+ catch(...){[owner fail:@"PRODUCT_REGISTERED_FINALIZATION_V4_PROFILE_CPP" error:error];return owner;}
+}
 - (NSString *)copyOriginalResourceDirectory:(NSError **)error {
  @synchronized(self){if(![self assertOriginalCurrent:error])return nil;return [_rootPath.stringByDeletingLastPathComponent copy];}
 }
@@ -172,7 +190,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
  @synchronized(self){
   if(_ideConsumer){_actualIDEResources=YNXActualIDEConsumerResources().path;if(!_actualIDEResources)return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_UNAVAILABLE" error:error];}
   if(_ideProjectObserver){_actualIDEResources=YNXActualIDEObserverResources().path;if(!_actualIDEResources)return [self fail:@"IDE_OBSERVER_ACTUAL_APP_UNAVAILABLE" error:error];}
-  NSURL *resources=_productDeviceV4Query?YNXOriginalProductDeviceV4QueryRegistryResources():_productDeviceV4Provisioning?YNXOriginalProductDeviceV4ProvisioningRegistryResources():_productDeviceV4Pending?YNXOriginalProductDeviceV4PendingRegistryResources():_productDeviceV4?YNXOriginalProductDeviceV4RegistryResources():_walletPQCatalog?YNXOriginalWalletPQRegistryResources():_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
+  NSURL *resources=_productHTTPV5?YNXOriginalHTTPV5RegistryResources():_productDeviceV4RegisteredFinalization?YNXOriginalProductDeviceV4RegisteredFinalizationRegistryResources():_productDeviceV4Query?YNXOriginalProductDeviceV4QueryRegistryResources():_productDeviceV4Provisioning?YNXOriginalProductDeviceV4ProvisioningRegistryResources():_productDeviceV4Pending?YNXOriginalProductDeviceV4PendingRegistryResources():_productDeviceV4?YNXOriginalProductDeviceV4RegistryResources():_walletPQCatalog?YNXOriginalWalletPQRegistryResources():_ideRegistry?YNXOriginalIDERegistryResources():NSBundle.mainBundle.resourceURL;
   if(_contractRelay)resources=[resources URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
   if(_projectAuthority)resources=[resources URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
   if(_projectControl)resources=[resources URLByAppendingPathComponent:@"project-control" isDirectory:YES];
@@ -196,7 +214,7 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
   if(_retired)return [self fail:@"AUTH_IDENTITY_ORIGINAL_RETIRED" error:error];
   if(_ideConsumer&&![YNXActualIDEConsumerResources().path isEqual:_actualIDEResources])return [self fail:@"AUTH_IDENTITY_IDE_ACTUAL_PARENT_ENTRY_CHANGED" error:error];
   if(_ideProjectObserver&&![YNXActualIDEObserverResources().path isEqual:_actualIDEResources])return [self fail:@"IDE_OBSERVER_ACTUAL_APP_CHANGED" error:error];
-  NSURL *expectedRegistry=_productDeviceV4Query?YNXOriginalProductDeviceV4QueryRegistryResources():_productDeviceV4Provisioning?YNXOriginalProductDeviceV4ProvisioningRegistryResources():_productDeviceV4Pending?YNXOriginalProductDeviceV4PendingRegistryResources():_productDeviceV4?YNXOriginalProductDeviceV4RegistryResources():_walletPQCatalog?YNXOriginalWalletPQRegistryResources():YNXOriginalIDERegistryResources();
+  NSURL *expectedRegistry=_productHTTPV5?YNXOriginalHTTPV5RegistryResources():_productDeviceV4RegisteredFinalization?YNXOriginalProductDeviceV4RegisteredFinalizationRegistryResources():_productDeviceV4Query?YNXOriginalProductDeviceV4QueryRegistryResources():_productDeviceV4Provisioning?YNXOriginalProductDeviceV4ProvisioningRegistryResources():_productDeviceV4Pending?YNXOriginalProductDeviceV4PendingRegistryResources():_productDeviceV4?YNXOriginalProductDeviceV4RegistryResources():_walletPQCatalog?YNXOriginalWalletPQRegistryResources():YNXOriginalIDERegistryResources();
   if(_contractRelay)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"contract-relay" isDirectory:YES];
   if(_projectAuthority)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-authority" isDirectory:YES];
   if(_projectControl)expectedRegistry=[expectedRegistry URLByAppendingPathComponent:@"project-control" isDirectory:YES];

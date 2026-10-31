@@ -60,6 +60,15 @@ struct JointLifecycle {
 - (NSString *)copyOriginalProductSessionDeviceV4ApprovalModulePath:(NSError **)error;
 - (NSDictionary *)copyOriginalProductSessionDeviceV4ProvisioningJournal:(NSError **)error;
 + (instancetype)acquireOriginalProductSessionDeviceV4QuerySource:(NSError **)error;
++ (instancetype)acquireOriginalProductSessionHTTPProofV5Source:(NSError **)error;
+- (BOOL)assertOriginalProductSessionHTTPProofV5SourceCurrent:(NSError **)error;
+- (NSDictionary *)copyOriginalProductSessionHTTPProofV5Scope:(NSError **)error;
+- (NSString *)copyOriginalProductSessionHTTPProofV5ModulePath:(NSError **)error;
++ (instancetype)acquireOriginalProductSessionDeviceV4RegisteredFinalizationSource:(NSError **)error;
+- (BOOL)assertOriginalProductSessionDeviceV4RegisteredFinalizationSourceCurrent:(NSError **)error;
+- (NSDictionary*)readOriginalProductSessionDeviceV4RegisteredFinalizationScope:(NSError **)error;
+- (NSDictionary*)copyOriginalProductSessionDeviceV4RegisteredFinalizationContext:(NSError **)error;
+- (NSString*)copyOriginalProductSessionDeviceV4RegisteredFinalizationModulePath:(NSError **)error;
 - (BOOL)assertOriginalProductSessionDeviceV4QuerySourceCurrent:(NSError **)error;
 // Private current query scope + original profile window/journal selection.
 // No creation approval, raw key access or caller-selectable path.
