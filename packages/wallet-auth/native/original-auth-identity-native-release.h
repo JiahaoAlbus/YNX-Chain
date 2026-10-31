@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <cstdint>
 namespace ynx_auth_private {
 // PRIVATE release admission, not a runtime JSON/ENV allowlist. Root must bind
 // actual independently approved public enrollment and exact verifier images.
@@ -34,6 +35,10 @@ struct NativeSourceRelease {
  // Empty old rows cannot acquire device Source. Original release process must
  // independently bind both values; never renderer/ENV/current-response input.
  std::string productDeviceV4ApplicationId,productDeviceV4ProductId;
+ // Provisioning only: independently frozen original Main private approval
+ // module. Never a path/function supplied by peer, renderer or HTTP DATA.
+ std::string productDeviceV4ApprovalModulePath,productDeviceV4ApprovalModuleDigest;
+ uint64_t productDeviceV4ApprovalModuleBytes=0;
 };
 inline const std::vector<NativeSourceRelease>& originalNativeSourceReleases(){
  // An independently approved App build may supply typed ROWS via its frozen

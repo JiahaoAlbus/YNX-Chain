@@ -1,5 +1,6 @@
 #import "original-auth-identity-source-authority.h"
 #include "original-product-device-v4-pending-journal.h"
+#include "original-product-device-v4-provisioning-journal.h"
 #include <algorithm>
 #import <Security/Security.h>
 #import "original-ide-helper-xpc-peer.h"
@@ -52,7 +53,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  BOOL _relayRuntimePinned,_relayRuntimeEntered;
  NSData *_relayRuntimeManifestOriginal;
  BOOL _proofClosurePinned,_ideProofSelected,_ideProofVerified;
- BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry,_walletPQCatalog,_productDeviceV4,_productDeviceV4Pending;
+ BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry,_walletPQCatalog,_productDeviceV4,_productDeviceV4Pending,_productDeviceV4Provisioning;
  NSError *_firstCause,*_cleanupCause;
  std::unique_ptr<ynx_auth_private::SourcePublicInstallation> _publicInstallation;
 }
@@ -143,6 +144,45 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 }
 - (NSDictionary *)copyOriginalProductSessionDeviceV4PendingScope:(NSError **)error {
  @synchronized(self){if(![self assertOriginalProductSessionDeviceV4PendingSourceCurrent:error])return nil;NSDictionary*s=_selection[@"productSessionDeviceV4Pending"];if(![s isKindOfClass:NSDictionary.class]||s.count!=8||![s[@"version"]isEqual:@"4"]||![s[@"expected"]isKindOfClass:NSDictionary.class]||[s[@"expected"]count]!=16)return [self fail:@"PRODUCT_PENDING_V4_SCOPE_REQUIRED" error:error],nil;NSData*raw=[NSJSONSerialization dataWithJSONObject:s options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];if(!raw.length||raw.length>65536)return [self fail:@"PRODUCT_PENDING_V4_SCOPE_CAPACITY" error:error],nil;NSDictionary*copy=[NSJSONSerialization JSONObjectWithData:raw options:0 error:nil];if(!copy||![self assertOriginalProductSessionDeviceV4PendingSourceCurrent:error]||![_selection[@"productSessionDeviceV4Pending"]isEqual:copy])return [self fail:@"PRODUCT_PENDING_V4_SCOPE_CHANGED" error:error],nil;return copy;}
+}
++ (instancetype)acquireOriginalProductSessionDeviceV4ProvisioningSource:(NSError **)error {
+ YNXAuthIdentitySourceAuthority*s=[self new];s->_productDeviceV4Provisioning=YES;s->_ideRegistry=YES;s->_headDigest=@"";s->_pipeHandles=[NSMutableArray array];s->_pipeStates=[NSMutableArray array];
+ BOOL released=NO;for(const auto&p:ynx_auth_private::originalNativeSourceReleases())if(p.purpose=="product-session-device-provisioning-source-v4"&&!p.productDeviceV4ApplicationId.empty()&&!p.productDeviceV4ProductId.empty())released=YES;if(!released){[s fail:@"PRODUCT_PROVISIONING_V4_INDEPENDENT_RELEASE_NOT_SUPPLIED" error:error];return s;}
+ try{@try{NSError*e=nil;s->_custody=[YNXAuthIdentityCurrentOwner acquireOriginalProductSessionDeviceV4ProvisioningProfile:&e];if(e||!s->_custody){[s fail:e.localizedDescription?:@"PRODUCT_PROVISIONING_V4_PROFILE_NOT_SUPPLIED" error:error];return s;}s->_profileOriginal=[s->_custody copyOriginalProfile:&e];s->_headOriginal=[s->_custody copyOriginalHead:&e];id source=SourceOriginalBodyHint(s->_profileOriginal)[@"sourceId"];
+  if([source isKindOfClass:NSString.class])for(const auto&p:ynx_auth_private::originalNativeSourceReleases())if(p.sourceId==[source UTF8String]){if(s->_policy){[s fail:@"PRODUCT_PROVISIONING_V4_DUPLICATE_RELEASE" error:error];return s;}s->_policy=&p;}
+  if(e||!s->_policy||s->_policy->purpose!="product-session-device-provisioning-source-v4"||s->_policy->productDeviceV4ApplicationId.empty()||s->_policy->productDeviceV4ProductId.empty()){[s fail:@"PRODUCT_PROVISIONING_V4_INDEPENDENT_RELEASE_NOT_SUPPLIED" error:error];return s;}
+  NSString*root=[[s->_custody copyOriginalResourceDirectory:&e]stringByAppendingPathComponent:@"original-auth-identity"];if(root)s->_rootOriginal=[s holdPublic:[root stringByAppendingPathComponent:@"root.original"] maximum:ynx_auth_private::OriginalAuthPublicRootMax image:NO digest:s->_policy->rootDigest error:&e];if(s->_rootOriginal)s->_enrollmentOriginal=[s holdPublic:[root stringByAppendingPathComponent:@"enrollment.original"] maximum:ynx_auth_private::OriginalAuthPublicOriginalMax image:NO digest:s->_policy->enrollmentDigest error:&e];
+  if(e||!s->_enrollmentOriginal||![SourceProofDictionary(s->_rootOriginal,16384)[@"version"]isEqual:@2]||![s holdPublic:[NSString stringWithUTF8String:s->_policy->verifierImagePath.c_str()] maximum:131072 image:YES digest:s->_policy->verifierImageDigest error:&e]||![s holdPublic:[NSString stringWithUTF8String:s->_policy->nodeImagePath.c_str()] maximum:134217728 image:YES digest:s->_policy->nodeImageDigest error:&e]||![s assertOriginalProductSessionDeviceV4ProvisioningSourceCurrent:&e]){[s fail:e.localizedDescription?:@"PRODUCT_PROVISIONING_V4_SOURCE_NOT_CURRENT" error:error];return s;}return s;
+ }@catch(id){[s fail:@"PRODUCT_PROVISIONING_V4_SOURCE_EXCEPTION" error:error];return s;}}catch(...){[s fail:@"PRODUCT_PROVISIONING_V4_SOURCE_CPP" error:error];return s;}
+}
+- (BOOL)assertOriginalProductSessionDeviceV4ProvisioningSourceCurrent:(NSError **)error {
+ if([self class]!=YNXAuthIdentitySourceAuthority.class||!_productDeviceV4Provisioning||!_policy||_policy->purpose!="product-session-device-provisioning-source-v4"||![SourceProofDictionary(_rootOriginal,16384)[@"version"]isEqual:@2])return [self fail:@"PRODUCT_PROVISIONING_V4_DEDICATED_SOURCE_REQUIRED" error:error];
+ if(![self assertAuthenticatedNativePurpose:error])return NO;if(![_selection[@"expectedRequest"][@"operations"]isEqual:@[@"device.creation-prepare",@"device.original-query"]])return [self fail:@"PRODUCT_PROVISIONING_V4_OPERATIONS_REQUIRED" error:error];if(!ynx_auth_private::originalProvisioningDeviceV4JournalCurrent(_selection))return [self fail:@"PRODUCT_PROVISIONING_V4_JOURNAL_IDENTITY" error:error];return [self heldCurrent:error];
+}
+- (NSDictionary *)copyOriginalProductSessionDeviceV4ProvisioningScope:(NSError **)error {
+ @synchronized(self){if(![self assertOriginalProductSessionDeviceV4ProvisioningSourceCurrent:error])return nil;NSDictionary*s=_selection[@"productSessionDeviceV4Provisioning"];if(![s isKindOfClass:NSDictionary.class]||s.count!=3||![s[@"version"]isEqual:@"4"]||![s[@"intentOriginal"]isKindOfClass:NSString.class]||![s[@"nativeIntentDATA"]isKindOfClass:NSDictionary.class]||[s[@"nativeIntentDATA"]count]!=5)return [self fail:@"PRODUCT_PROVISIONING_V4_SCOPE_REQUIRED" error:error],nil;NSData*raw=[NSJSONSerialization dataWithJSONObject:s options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];if(!raw.length||raw.length>65536)return [self fail:@"PRODUCT_PROVISIONING_V4_SCOPE_CAPACITY" error:error],nil;NSDictionary*copy=[NSJSONSerialization JSONObjectWithData:raw options:0 error:nil];if(!copy||![self assertOriginalProductSessionDeviceV4ProvisioningSourceCurrent:error]||![_selection[@"productSessionDeviceV4Provisioning"]isEqual:copy])return [self fail:@"PRODUCT_PROVISIONING_V4_SCOPE_CHANGED" error:error],nil;return copy;}
+}
+- (NSString *)copyOriginalProductSessionDeviceV4ApprovalModulePath:(NSError **)error {
+ @synchronized(self){
+  if(![self assertOriginalProductSessionDeviceV4ProvisioningSourceCurrent:error])return nil;
+  const auto&path=_policy->productDeviceV4ApprovalModulePath;const auto&digest=_policy->productDeviceV4ApprovalModuleDigest;const auto bytes=_policy->productDeviceV4ApprovalModuleBytes;
+  if(path.empty()||path.front()!='/'||path.size()>4096||digest.size()!=64||!bytes||bytes>131072)return [self fail:@"PRODUCT_PROVISIONING_V4_MAIN_MODULE_RELEASE_REQUIRED" error:error],nil;
+  NSString*p=[NSString stringWithUTF8String:path.c_str()];
+  // Existing holdPublic pins no-symlink protected ancestry, FD identity/hash.
+  // Reuse the held record, never reacquire substituted bytes on every call.
+  NSData*raw=nil;for(auto&held:_files)if([held.path isEqual:p]){struct stat st{};if(fstat(held.fd,&st)||!SourceSame(st,held.identity))return [self fail:@"PRODUCT_PROVISIONING_V4_MAIN_MODULE_CHANGED" error:error],nil;if((uint64_t)st.st_size!=bytes)return [self fail:@"PRODUCT_PROVISIONING_V4_MAIN_MODULE_BYTES" error:error],nil;return [self heldCurrent:error]?[p copy]:nil;}
+  raw=[self holdPublic:p maximum:131072 image:NO digest:digest error:error];if(!raw||raw.length!=bytes||![self assertOriginalProductSessionDeviceV4ProvisioningSourceCurrent:error])return [self fail:@"PRODUCT_PROVISIONING_V4_MAIN_MODULE_BINDING" error:error],nil;
+  return [p copy];
+ }
+}
+- (NSDictionary *)copyOriginalProductSessionDeviceV4ProvisioningJournal:(NSError **)error {
+ @synchronized(self){if(![self assertOriginalProductSessionDeviceV4ProvisioningSourceCurrent:error])return nil;
+  NSString*parent=_selection[@"originalHostTerminalDirectory"],*stable=_selection[@"productSessionDeviceV4Provisioning"][@"nativeIntentDATA"][@"stableDeviceIdentity"];NSData*b=[stable dataUsingEncoding:NSUTF8StringEncoding];
+  if(!parent.length||!b.length||b.length>1024)return [self fail:@"PRODUCT_PROVISIONING_V4_JOURNAL_SCOPE" error:error],nil;
+  NSString*leaf=[@"device-v4-provisioning-" stringByAppendingString:SourceSHA(b)];
+  NSDictionary*context=@{@"parent":parent,@"leaf":leaf,@"identity":_selection[@"originalProvisioningJournal"]};
+  if(![self assertOriginalProductSessionDeviceV4ProvisioningSourceCurrent:error])return nil;return context;
+ }
 }
 - (BOOL)assertOriginalProductSessionDeviceV4SourceCurrent:(NSError **)error {
  if([self class]!=YNXAuthIdentitySourceAuthority.class||!_productDeviceV4||!_policy||_policy->purpose!="product-session-device-source-v4")return [self fail:@"PRODUCT_DEVICE_V4_ORIGINAL_SOURCE_REQUIRED" error:error];
@@ -331,11 +371,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
    uint64_t before=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);if(before<_timeFloor)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CLOCK_ROLLBACK" error:error];
    NSDictionary *contract=@{@"purpose":[NSString stringWithUTF8String:_policy->purpose.c_str()],@"enrollmentFrame":[NSString stringWithUTF8String:_policy->enrollmentFrame.c_str()],@"profileFrame":[NSString stringWithUTF8String:_policy->profileFrame.c_str()],@"currentFrame":[NSString stringWithUTF8String:_policy->currentFrame.c_str()]};
    NSMutableDictionary *policy=[@{@"rootDigest":[NSString stringWithUTF8String:_policy->rootDigest.c_str()],@"enrollmentDigest":[NSString stringWithUTF8String:_policy->enrollmentDigest.c_str()],@"endpoint":[NSString stringWithUTF8String:_policy->endpoint.c_str()],@"spki":[NSString stringWithUTF8String:_policy->spki.c_str()],@"signatureContract":contract}mutableCopy];
-   if(_policy->purpose=="product-session-device-source-v4"||_policy->purpose=="product-session-device-pending-source-v4"){
-    if((_policy->purpose=="product-session-device-source-v4"?!_productDeviceV4:!_productDeviceV4Pending)||_policy->productDeviceV4ApplicationId.empty()||_policy->productDeviceV4ProductId.empty())return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
+   if(_policy->purpose=="product-session-device-source-v4"||_policy->purpose=="product-session-device-pending-source-v4"||_policy->purpose=="product-session-device-provisioning-source-v4"){
+    if((_policy->purpose=="product-session-device-source-v4"?!_productDeviceV4:_policy->purpose=="product-session-device-pending-source-v4"?!_productDeviceV4Pending:!_productDeviceV4Provisioning)||_policy->productDeviceV4ApplicationId.empty()||_policy->productDeviceV4ProductId.empty())return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ApplicationId.c_str()];
     policy[@"productId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ProductId.c_str()];
-   }else if(_productDeviceV4||_productDeviceV4Pending)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
+   }else if(_productDeviceV4||_productDeviceV4Pending||_productDeviceV4Provisioning)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="wallet-pq-host-catalog-source-v1"){
     if(!_walletPQCatalog||_policy->walletPQApplicationId.empty())return [self fail:@"PQ_HOST_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->walletPQApplicationId.c_str()];
@@ -576,7 +616,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }
 }
 - (void)retire {@synchronized(self){_retired=YES;[_helperClient retire];[_custody retire];}}
-- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return [_custody join:error];}}
+- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
 - (BOOL)close:(NSError **)error {
  @synchronized(self){[self retire];if(_closeSelected){if(error)*error=_cleanupCause;return _cleanupComplete;}
   if(![self join:error])return NO;_closeSelected=YES;BOOL filesClosed=YES;
@@ -585,7 +625,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
    _cleanupComplete=NO;_cleanupCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_RECEIVER_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return NO;
   }
   for(auto &file:_files){if(file.selected){if(!file.complete)filesClosed=NO;continue;}file.selected=true;file.complete=::close(file.fd)==0;if(!file.complete)filesClosed=NO;}if(![self closeHeldPipes])filesClosed=NO;
-  NSError *cause=nil;BOOL custodyClosed=[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return _cleanupComplete;}
+  NSError *cause=nil;BOOL custodyClosed=!_custody||[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return _cleanupComplete;}
 }
 @end
 
