@@ -131,6 +131,7 @@ func (c Config) normalized() (Config, error) {
 }
 
 type Service struct {
+	lifecycle            serviceLifecycle
 	coreAuthToken        string
 	admissions           *admissionStore
 	cfg                  Config
@@ -276,6 +277,10 @@ type resolvedRecipient struct {
 }
 
 func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (response Response, status int, err error) {
+	if !s.beginOperation() {
+		return Response{RequestID: req.RequestID, Status: "admission_unavailable", RetrySameRequest: req.RequestID != ""}, http.StatusServiceUnavailable, errServiceClosed
+	}
+	defer s.endOperation()
 	defer func() { s.recordRequestOutcome(response, status, err) }()
 	if s.cfg.UpstreamMode == UpstreamAuthoritative {
 		return s.requestAuthoritative(ctx, req, remoteAddr)
@@ -599,7 +604,7 @@ func (s *Service) Health() Health {
 		admissionCapacity = 0
 		admissionRemaining = 0
 	}
-	return Health{
+	health := Health{
 		OK:                s.lastError == "",
 		Service:           "ynx-faucetd",
 		RequestPath:       "/request",
@@ -631,6 +636,10 @@ func (s *Service) Health() Health {
 		LastError:                s.lastError,
 		TruthfulStatus:           s.truthfulStatus(),
 	}
+	if s.isClosing() {
+		return closingHealth(health)
+	}
+	return health
 }
 
 type rpcStatus struct {

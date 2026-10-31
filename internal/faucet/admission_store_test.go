@@ -129,10 +129,14 @@ func TestDurableFaucetReceiptStoreFailureRetainsOriginalAdmission(t *testing.T) 
 	core := api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
 	var s *Service
 	var closeOnce sync.Once
+	var posts atomic.Int32
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		core.ServeHTTP(w, r)
 		if r.URL.Path == "/faucet/requests" {
-			closeOnce.Do(func() { _ = s.Close() })
+			posts.Add(1)
+			// The original intent and real Core write already exist. Fail only
+			// receipt persistence; graceful Close must drain this HTTP worker.
+			closeOnce.Do(func() { _ = s.admissions.db.Close() })
 		}
 	}))
 	defer upstream.Close()
@@ -143,10 +147,23 @@ func TestDurableFaucetReceiptStoreFailureRetainsOriginalAdmission(t *testing.T) 
 	if err == nil || status != 503 || resp.Status != "receipt_persistence_uncertain" || !resp.RetrySameRequest {
 		t.Fatalf("receipt failure: %+v %d %v", resp, status, err)
 	}
-	s = openTestFaucet(t, cfg)
-	resp, status, err = s.Request(context.Background(), req, "192.0.2.1")
+	if posts.Load() != 1 {
+		t.Fatal("receipt failure did not exercise the original Core write", posts.Load())
+	}
+	reopened := openTestFaucet(t, cfg)
+	// Preserve the original direct Request retry branch. Its durable Core
+	// idempotency is distinct from the GET-only shutdown recovery regression.
+	resp, status, err = reopened.Request(context.Background(), req, "192.0.2.1")
 	if err != nil || status != 200 || !resp.Replayed {
 		t.Fatalf("receipt recovery: %+v %d %v", resp, status, err)
+	}
+	other := req
+	other.RequestID = "other_0123456789abcdef0123456789abcdef"
+	if _, status, _ := reopened.Request(context.Background(), other, "192.0.2.1"); status != 429 {
+		t.Fatal("receipt store failure reset quota", status)
+	}
+	if posts.Load() != 2 {
+		t.Fatal("direct retry did not use the original idempotent Core request", posts.Load())
 	}
 	if a, _ := d.Account(req.Address); a.Balance != 100 {
 		t.Fatal("receipt loss credited twice")

@@ -82,7 +82,9 @@ func (s *Service) requireFreshFaucetCapability(ctx context.Context) error {
 		f = &capabilityFlight{done: make(chan struct{})}
 		s.capabilityFlight = f
 		s.flightStats.capabilityStarted++
+		s.retainWorker()
 		go func() {
+			defer s.endOperation()
 			probeCtx, cancel := context.WithTimeout(context.Background(), s.cfg.HealthTimeout)
 			defer cancel()
 			f.err = s.probeFaucetCapability(probeCtx, s.httpClient)
@@ -125,7 +127,9 @@ func (s *Service) fundAdmitted(ctx context.Context, record admissionRecord, hash
 		s.fundingFlights[record.RequestID] = f
 		s.flightStats.fundingStarted++
 		s.flightStats.fundingActive++
+		s.retainWorker()
 		go func() {
+			defer s.endOperation()
 			opCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			f.result.tx, f.result.status, f.result.err = s.sendDurableFaucetRequest(opCtx, record, hash)

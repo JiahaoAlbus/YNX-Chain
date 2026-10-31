@@ -15,6 +15,10 @@ import (
 // RequestStatus only reads an existing admitted intent and its deterministic
 // chain transaction. It cannot create an admission, charge quota, or mint.
 func (s *Service) RequestStatus(ctx context.Context, id string) (Response, int, error) {
+	if !s.beginOperation() {
+		return Response{RequestID: id, Status: "admission_unavailable", RetrySameRequest: id != ""}, http.StatusServiceUnavailable, errServiceClosed
+	}
+	defer s.endOperation()
 	if s.admissions == nil {
 		return Response{}, 503, errors.New("durable status unavailable")
 	}
@@ -63,7 +67,9 @@ func (s *Service) recoverReceipt(ctx context.Context, record admissionRecord, ha
 		s.statusFlights[record.RequestID] = f
 		s.flightStats.statusStarted++
 		s.flightStats.statusActive++
+		s.retainWorker()
 		go func() {
+			defer s.endOperation()
 			opCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 			f.result = s.fetchAndPersistReceipt(opCtx, record, hash)

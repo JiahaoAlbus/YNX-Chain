@@ -21,14 +21,21 @@ type healthProbeStats struct {
 // MonitorHealth keeps the metrics snapshot fresh without relying on a public
 // caller. It performs only the same bounded read-only probe used by /health.
 func (s *Service) MonitorHealth(ctx context.Context, interval time.Duration) {
-	if interval <= 0 {
+	if interval <= 0 || !s.beginOperation() {
 		return
 	}
+	defer s.endOperation()
+	stop := s.stopSignal()
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
+		if s.isClosing() {
+			return
+		}
 		_ = s.CheckHealth(ctx)
 		select {
+		case <-stop:
+			return
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
@@ -41,6 +48,10 @@ func (s *Service) MonitorHealth(ctx context.Context, interval time.Duration) {
 // all upstream stages (including response bodies) share one bounded deadline.
 // This read-only probe never retries or changes admission / transaction state.
 func (s *Service) CheckHealth(ctx context.Context) Health {
+	if !s.beginOperation() {
+		return closingHealth(s.Health())
+	}
+	defer s.endOperation()
 	if ctx.Err() != nil {
 		return s.canceledHealth(ctx)
 	}
@@ -49,7 +60,9 @@ func (s *Service) CheckHealth(ctx context.Context) Health {
 	if f == nil {
 		f = &healthFlight{done: make(chan struct{})}
 		s.healthFlight = f
+		s.retainWorker()
 		go func() {
+			defer s.endOperation()
 			probeCtx, cancel := context.WithTimeout(context.Background(), s.cfg.HealthTimeout)
 			defer cancel()
 			result := s.probeHealth(probeCtx)
@@ -81,6 +94,9 @@ func (s *Service) CheckHealth(ctx context.Context) Health {
 // claiming an indefinitely stale success. Startup and stale snapshots fall back
 // to a real bounded probe in the handler.
 func (s *Service) RecentHealth(maxAge time.Duration) (Health, bool) {
+	if s.isClosing() {
+		return Health{}, false
+	}
 	s.healthMu.Lock()
 	h := s.healthStats.last
 	s.healthMu.Unlock()

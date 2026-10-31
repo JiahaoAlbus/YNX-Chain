@@ -123,13 +123,6 @@ func syncAdmissionDirectory(path string) error {
 	return f.Sync()
 }
 
-func (s *Service) Close() error {
-	if s.admissions != nil {
-		return s.admissions.db.Close()
-	}
-	return nil
-}
-
 func quotaKey(ip, address string) []byte { key, _ := json.Marshal([]string{ip, address}); return key }
 
 func (s *admissionStore) importLegacyQuota(tx *bolt.Tx) error {
