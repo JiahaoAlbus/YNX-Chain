@@ -172,6 +172,7 @@ type RefundEvidence struct {
 type CartConsumption struct{ PreviousRevision, Revision string }
 
 type Order struct {
+	ReturnReceipts                                                                              []ReturnReceipt  `json:",omitempty"`
 	CartConsumption                                                                             *CartConsumption `json:",omitempty"`
 	ID, Buyer, StoreID, Status, Currency, InvoiceID, PayIntentID, PayMerchant, PayPayoutAddress string
 	Lines                                                                                       []OrderLine
@@ -296,6 +297,14 @@ func cloneProduct(product Product) Product {
 // Orders contain mutable evidence pointers as well as line and timeline slices.
 // Keep stored records and response snapshots independent after releasing the lock.
 func cloneOrder(order Order) Order {
+	order.ReturnReceipts = append([]ReturnReceipt(nil), order.ReturnReceipts...)
+	for i := range order.ReturnReceipts {
+		order.ReturnReceipts[i].Items = append([]ReturnItem(nil), order.ReturnReceipts[i].Items...)
+		if order.ReturnReceipts[i].RestockedAt != nil {
+			when := *order.ReturnReceipts[i].RestockedAt
+			order.ReturnReceipts[i].RestockedAt = &when
+		}
+	}
 	if order.CartConsumption != nil {
 		v := *order.CartConsumption
 		order.CartConsumption = &v

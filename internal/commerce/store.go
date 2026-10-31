@@ -20,7 +20,7 @@ import (
 
 const (
 	PersistenceSchemaVersionV1      = 1
-	CurrentPersistenceSchemaVersion = 15
+	CurrentPersistenceSchemaVersion = 16
 	persistenceEnvelopeVersion      = 1
 	persistenceRollbackSuffix       = ".schema-rollback"
 )
@@ -524,6 +524,20 @@ func RestoreCommerceBackup(path string, key []byte) error {
 }
 
 func containsRetiredIntents(candidate, current Snapshot) bool {
+	for id, order := range current.Orders {
+		for _, receipt := range order.ReturnReceipts {
+			found := false
+			for _, saved := range candidate.Orders[id].ReturnReceipts {
+				if saved.ID == receipt.ID && requestHash(saved) == requestHash(receipt) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return false
+			}
+		}
+	}
 	for id, record := range current.BusinessEffects {
 		previous, ok := candidate.BusinessEffects[id]
 		if !ok || requestHash(previous) != requestHash(record) {
@@ -572,6 +586,11 @@ func hasPrivacyProtection(snapshot Snapshot) bool {
 }
 
 func hasBusinessProtection(snapshot Snapshot) bool {
+	for _, order := range snapshot.Orders {
+		if len(order.ReturnReceipts) != 0 {
+			return true
+		}
+	}
 	return len(snapshot.BusinessBrowserBindings) > 0 || len(snapshot.BusinessNonces) > 0 || len(snapshot.BusinessActorNamespaces) > 0 || len(snapshot.BusinessEffects) > 0 || len(snapshot.RetiredBusinessEffects) > 0
 }
 
@@ -804,25 +823,21 @@ func (s *Store) Product(id string) (Product, error) {
 	return cloneProduct(p), nil
 }
 
-func (s *Store) recoverExpiredLocked() bool {
+func (s *Store) recoverExpiredLocked(storeID string) (bool, error) {
 	changed := false
 	now := s.now()
-	for id, o := range s.s.Orders {
-		if o.Status != "payment_pending" || o.ReservationExpiresAt.After(now) {
+	ids := make([]string, 0, len(s.s.Orders))
+	for id := range s.s.Orders {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		o := s.s.Orders[id]
+		if o.Status != "payment_pending" || o.ReservationExpiresAt.After(now) || (storeID != "" && o.StoreID != storeID) {
 			continue
 		}
-		for _, line := range o.Lines {
-			p := cloneProduct(s.s.Products[line.ProductID])
-			for i := range p.Variants {
-				if p.Variants[i].ID == line.VariantID {
-					p.Variants[i].Reserved -= line.Quantity
-					if p.Variants[i].Reserved < 0 {
-						p.Variants[i].Reserved = 0
-					}
-				}
-			}
-			p.Revision++
-			s.s.Products[p.ID] = p
+		if err := s.applyReservationLocked(o, false); err != nil {
+			return changed, err
 		}
 		o.Status = "expired"
 		o.UpdatedAt = now
@@ -831,7 +846,7 @@ func (s *Store) recoverExpiredLocked() bool {
 		s.auditLocked(o.Buyer, "buyer", "reservation_expired", "order", id, "released", "unpaid inventory reservation released")
 		changed = true
 	}
-	return changed
+	return changed, nil
 }
 
 func (s *Store) Recover() error {
@@ -841,7 +856,12 @@ func (s *Store) Recover() error {
 	if err != nil {
 		return err
 	}
-	if s.recoverExpiredLocked() {
+	changed, err := s.recoverExpiredLocked("")
+	if err != nil {
+		s.s = before
+		return err
+	}
+	if changed {
 		if err := s.persistLocked(); err != nil {
 			s.s = before
 			return err

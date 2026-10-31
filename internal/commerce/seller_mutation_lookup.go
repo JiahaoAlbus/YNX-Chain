@@ -121,6 +121,32 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 		route, key, storeID, target, original = "inventory.set", input.IdempotencyKey, input.StoreID, input.ProductID, input
 		kind = "product"
 		permission = permissionInventoryWrite
+	case in.Method == "POST" && strings.HasPrefix(in.Path, "/orders/") && (strings.HasSuffix(in.Path, "/return-receipts") || strings.HasSuffix(in.Path, "/return-restock")):
+		parts := strings.Split(in.Path, "/")
+		if len(parts) != 4 || parts[2] == "" {
+			return nil, "", ErrConflict
+		}
+		target = parts[2]
+		order, ok := s.s.Orders[target]
+		if !ok {
+			return nil, "", ErrNotFound
+		}
+		storeID, kind = order.StoreID, "order"
+		if parts[3] == "return-receipts" {
+			var input ReceiveReturnInput
+			if !decode(&input) {
+				return nil, "", ErrConflict
+			}
+			route, key, original = "return.receive."+target, input.IdempotencyKey, input
+			permission = permissionFulfillmentWrite
+		} else {
+			var input RestockReturnInput
+			if !decode(&input) {
+				return nil, "", ErrConflict
+			}
+			route, key, original = "return.restock."+target, input.IdempotencyKey, input
+			permission = permissionInventoryWrite
+		}
 	case in.Method == "POST" && strings.HasPrefix(in.Path, "/orders/") && strings.HasSuffix(in.Path, "/transition"):
 		parts := strings.Split(in.Path, "/")
 		if len(parts) != 4 {

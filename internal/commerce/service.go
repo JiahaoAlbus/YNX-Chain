@@ -421,7 +421,9 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (result Order, resultEr
 			s.s = before
 		}
 	}()
-	s.recoverExpiredLocked()
+	if _, err := s.recoverExpiredLocked(in.StoreID); err != nil {
+		return Order{}, err
+	}
 	lines := []OrderLine{}
 	var total int64
 	seen := map[string]bool{}
@@ -558,7 +560,15 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (result 
 	if !settlementMatchesOrder(o, e) {
 		return Order{}, fmt.Errorf("%w: settlement evidence mismatch", ErrInvalidState)
 	}
-	if o.Status == "paid" && o.Settlement != nil && o.Settlement.TransactionHash == e.TransactionHash {
+	if o.Settlement != nil {
+		if !settlementWasApplied(o) {
+			return Order{}, ErrInvalidState
+		}
+		if !sameSettlementObservation(*o.Settlement, e) {
+			return Order{}, ErrConflict
+		}
+		// A late duplicate observes the original payment; it cannot rewind a
+		// shipment/return/refund or consume the goods that were later restocked.
 		return cloneOrder(o), nil
 	}
 	// Recovery may not have run since the reservation expired. A matching Pay
@@ -579,19 +589,8 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (result 
 			s.s = before
 		}
 	}()
-	for _, line := range o.Lines {
-		p := cloneProduct(s.s.Products[line.ProductID])
-		for i := range p.Variants {
-			if p.Variants[i].ID == line.VariantID {
-				if p.Variants[i].Reserved < line.Quantity || p.Variants[i].Inventory < line.Quantity {
-					return Order{}, ErrInventory
-				}
-				p.Variants[i].Reserved -= line.Quantity
-				p.Variants[i].Inventory -= line.Quantity
-			}
-		}
-		p.Revision++
-		s.s.Products[p.ID] = p
+	if err := s.applyReservationLocked(o, true); err != nil {
+		return Order{}, err
 	}
 	o.Status = "paid"
 	o.Settlement = &e
@@ -606,6 +605,9 @@ func (s *Store) ConfirmSettlement(orderID string, e SettlementEvidence) (result 
 }
 
 func settlementMatchesOrder(o Order, e SettlementEvidence) bool {
+	if o.Currency != NativeSymbol || o.TotalYNXT <= 0 || !invoiceRecoveryID.MatchString(o.InvoiceID) || !invoiceRecoveryID.MatchString(o.PayIntentID) || o.PayMerchant == "" || o.PayPayoutAddress == "" {
+		return false
+	}
 	if _, err := hex.DecodeString(strings.TrimPrefix(e.TransactionHash, "0x")); err != nil {
 		return false
 	}
@@ -613,6 +615,24 @@ func settlementMatchesOrder(o Order, e SettlementEvidence) bool {
 		return false
 	}
 	return o.InvoiceID != "" && e.InvoiceID == o.InvoiceID && e.IntentID == o.PayIntentID && e.Merchant == o.PayMerchant && sameBusinessAccount(e.PayoutAddress, o.PayPayoutAddress) && e.Status == "paid" && e.Currency == NativeSymbol && len(e.TransactionHash) == 66 && strings.HasPrefix(e.TransactionHash, "0x") && len(e.AuditHash) == 64 && sameBusinessAccount(e.Payer, o.Buyer) && e.BlockHeight > 0 && e.AmountYNXT == o.TotalYNXT && !e.ConfirmedAt.IsZero()
+}
+
+func sameSettlementObservation(a, b SettlementEvidence) bool {
+	a.ConfirmedAt = a.ConfirmedAt.UTC()
+	b.ConfirmedAt = b.ConfirmedAt.UTC()
+	return a == b
+}
+
+func settlementWasApplied(o Order) bool {
+	if o.Settlement == nil || !settlementMatchesOrder(o, *o.Settlement) {
+		return false
+	}
+	switch o.Status {
+	case "paid", "shipped", "delivered", "reviewed", "return_requested", "return_approved", "return_rejected", "refund_requested", "refund_approved", "refund_rejected", "refunded", "disputed":
+		return true
+	default:
+		return false
+	}
 }
 
 func (s *Store) BindRefundEvidence(actor, orderID string, e RefundEvidence) (result Order, resultErr error) {
@@ -811,15 +831,8 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 		}
 	}()
 	if next == "cancelled" {
-		for _, line := range o.Lines {
-			p := cloneProduct(s.s.Products[line.ProductID])
-			for i := range p.Variants {
-				if p.Variants[i].ID == line.VariantID {
-					p.Variants[i].Reserved -= line.Quantity
-				}
-			}
-			p.Revision++
-			s.s.Products[p.ID] = p
+		if err := s.applyReservationLocked(o, false); err != nil {
+			return Order{}, err
 		}
 	}
 	now := s.now()
