@@ -141,3 +141,65 @@ handler fixtures. They prove channel-before-encoding, exact carrier/body,
 request sealing, current revocation, bounded I/O and no retry/query fallback.
 They do not prove production Source/signature admission, SDK response semantics,
 live Shop business, installation or deployment.
+
+## Original local caller to private Auth source
+
+`NewLocalCallerServer(LocalCallerServerConfig)` reuses `ListenPrivate` and
+requires one registered OS UID/PID, service (also the exact HTTP Host), finite
+method/path registrations and bounded I/O. Only its actual Unix connection can
+mint `LocalCaller`. The server captures the exact bounded opaque request body
+before invoking the handler and gives that handler an independent reader. It
+does not decode or modify the original Auth service body.
+
+Inside that handler, use `LocalCallerFromRequest(r)` and pass the original
+`r.Context()` to the private Auth client. Its normal derived timeout contexts
+can use `LocalCallerFromContext(ctx)`. `caller.Current(ctx)` rechecks the actual
+OS UID/PID/fd, original request/target and request lifetime, returning owned
+`RequestBody` plus service/method/path/content-type/length transport materials.
+Copied requests, identity headers and fabricated contexts cannot acquire a new
+caller. Ending/cancelling the original request, closing the peer or retiring
+the server invalidates its handle. OS process identity is not account, holder,
+Grant, Source or business approval; the original private Auth provider must
+independently qualify the original caller and signed call.
+
+When that same live local caller context reaches `FixedPeerClient.Exchange`,
+the actual exchange also retains a private process-local binding. At the
+original Auth `VerifyOriginalAuthorityResponse` boundary, call:
+
+```go
+exchange, err := securelink.ProtectedExchangeFromResponse(ctx, response)
+material, err := exchange.Current(ctx)
+```
+
+The accessor accepts the actual unchanged `WireResponse`, not a diagnostic
+`AuthenticatedChannel` or serialized header. It checks its private binding to
+the original local caller, registered profile/operation and actual native TLS
+connection. `Current` rechecks both live endpoints and returns detached copies
+of the original local request, actual protected request and full response bytes,
+status, MIME and current channel. Zero/copied handles, changed response bytes or
+metadata, another caller, revocation and a released local request fail closed.
+An ordinary non-IPC Exchange remains supported but supplies no such private
+caller bridge. Source verification must finish before the local handler releases
+its caller; saving/exporting the material cannot revive the handle.
+
+These materials define no receipt/proof domain and confer no authorization.
+Auth alone verifies the complete original response proof, issuer, current
+state, original operation and body/resource qualification. SDK alone owns the
+public schema and normal composition. Missing original Source/Root registration
+continues unavailable; a public LINK constructor cannot fill its admission list.
+
+`DispatchError` preserves its original `Cause` through `Unwrap`, reports
+`DispatchPossible` immediately before the original write, and counts only
+actually observed `PartialResponseBytes`. It never asserts that an uncertain
+write did not happen, translates a native first cause into a fabricated receipt,
+retries, or chooses an operation. The Node native caller in
+`cmd/ynx-secure-link-caller` similarly preserves cause/dispatch uncertainty and
+uses separate `responseProgress` diagnostics. It does not define `error.partial`:
+the SDK's existing partial field belongs to an actually produced owned native
+child, with child-before-source drain semantics.
+
+Local server `Retire` blocks new dispatch and cancels active handles. `Join(ctx)`
+is the real handler drain; `Close` reports `ErrLocalCallerDraining` while handlers
+still own work. Native caller retirement joins its single attempt and closes
+only its own descriptors. Neither side deletes an existing socket, reconnects,
+replays an UNKNOWN operation, or borrows Wallet/IDE native handles.

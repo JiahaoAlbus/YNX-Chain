@@ -108,6 +108,7 @@ type WireResponse struct {
 	ContentType string
 	StatusCode  int
 	Channel     AuthenticatedChannel
+	material    *ProtectedExchange
 }
 type PrepareWire func(context.Context, AuthenticatedChannel) (WireRequest, error)
 
@@ -251,8 +252,7 @@ func (c *FixedPeerClient) RevokeService(san string, epoch uint64) (int, error) {
 	return c.transport.gate.RevokeService(san, epoch)
 }
 
-func (c *FixedPeerClient) Exchange(ctx context.Context, operation string, prepare PrepareWire) (WireResponse, error) {
-	var result WireResponse
+func (c *FixedPeerClient) Exchange(ctx context.Context, operation string, prepare PrepareWire) (result WireResponse, err error) {
 	if c == nil || c.transport == nil || ctx == nil || prepare == nil {
 		return result, ErrUnavailable
 	}
@@ -262,6 +262,21 @@ func (c *FixedPeerClient) Exchange(ctx context.Context, operation string, prepar
 	}
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
+	capture := &exchangeCapture{}
+	defer func() {
+		if err != nil {
+			err = &DispatchError{Cause: err, DispatchPossible: capture.dispatchPossible.Load(), PartialResponseBytes: capture.partialResponseBytes}
+		}
+	}()
+	// An absent local caller preserves the ordinary wire API. A real caller
+	// that has ceased to be current must never downgrade into that mode.
+	if ctx.Value(localCallerKey{}) != nil {
+		capture.caller, err = LocalCallerFromContext(ctx)
+		if err != nil {
+			return result, err
+		}
+	}
+	ctx = context.WithValue(ctx, exchangeCaptureKey{}, capture)
 	req, err := http.NewRequestWithContext(ctx, op.Method, c.profile.Origin+op.Path, nil)
 	if err != nil {
 		return result, ErrDenied
@@ -292,6 +307,10 @@ func (c *FixedPeerClient) Exchange(ctx context.Context, operation string, prepar
 			return WireRequest{}, ErrDenied
 		}
 		wire.Body = bytes.Clone(wire.Body)
+		if capture.caller != nil {
+			capture.conn = conn
+			capture.request = WireRequest{Body: bytes.Clone(wire.Body), ContentType: wire.ContentType}
+		}
 		return wire, nil
 	})
 	if err != nil {
@@ -306,6 +325,7 @@ func (c *FixedPeerClient) Exchange(ctx context.Context, operation string, prepar
 		return result, ErrBounds
 	}
 	body, e := io.ReadAll(io.LimitReader(response.Body, op.MaxResponseBytes+1))
+	capture.partialResponseBytes = int64(len(body))
 	if e != nil {
 		return result, e
 	}
@@ -315,6 +335,13 @@ func (c *FixedPeerClient) Exchange(ctx context.Context, operation string, prepar
 	result.Body = body
 	result.ContentType = response.Header.Get("Content-Type")
 	result.Channel = channel
+	if capture.caller != nil {
+		material := &ProtectedExchange{caller: capture.caller, client: c, conn: capture.conn, operation: op,
+			request: capture.request, responseBody: bytes.Clone(body), responseContentType: result.ContentType,
+			statusCode: result.StatusCode, channel: cloneAuthenticatedChannel(channel)}
+		material.self = material
+		result.material = material
+	}
 	// Even HTTP 200 is only a completed transport exchange. The original SDK
 	// must verify operation/Source/proofs; LINK never returns business COMMITTED.
 	return result, nil
