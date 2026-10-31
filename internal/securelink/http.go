@@ -2,6 +2,7 @@ package securelink
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"io"
 	"net"
@@ -120,6 +121,13 @@ func proxyIdentityHeader(h http.Header) bool {
 	return false
 }
 func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return t.roundTrip(req, nil)
+}
+
+// prepare runs only after this exact native connection has passed its service
+// gate. Its returned wire is sent on that same connection, never another pool
+// member. The public http.RoundTripper path has no prepare capability.
+func (t *Transport) roundTrip(req *http.Request, prepare func(context.Context, *native.Conn) (WireRequest, error)) (*http.Response, error) {
 	if req == nil {
 		return nil, ErrDenied
 	}
@@ -158,6 +166,27 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	clone := req.Clone(req.Context())
 	clone.RequestURI = ""
 	clone.Close = false
+	if prepare != nil {
+		wire, e := prepare(req.Context(), p.conn)
+		if e != nil {
+			return fail(e)
+		}
+		clone.Body = io.NopCloser(bytes.NewReader(wire.Body))
+		defer clone.Body.Close()
+		clone.ContentLength = int64(len(wire.Body))
+		clone.GetBody = nil
+		if wire.ContentType != "" {
+			clone.Header.Set("Content-Type", wire.ContentType)
+		}
+		// The original SDK/Auth preparation may have waited on authority. A
+		// revoked/expired/cancelled channel must not emit its prepared body.
+		if e = req.Context().Err(); e != nil {
+			return fail(e)
+		}
+		if _, e = t.gate.AuthenticateServicePeer(req.Context(), p.conn, t.edge, req.Method, req.URL.EscapedPath()); e != nil {
+			return fail(e)
+		}
+	}
 	if err = clone.Write(p.conn); err != nil {
 		return fail(err)
 	}
@@ -357,7 +386,7 @@ func NewHTTPServer(cfg HTTPServerConfig) (*HTTPServer, error) {
 			http.Error(w, "service peer denied", http.StatusForbidden)
 			return
 		}
-		cfg.Handler.ServeHTTP(w, r)
+		cfg.Handler.ServeHTTP(w, withServiceChannel(r, conn, s.gate, s.edge))
 	})}
 	return s, nil
 }

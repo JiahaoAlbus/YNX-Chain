@@ -64,6 +64,7 @@ jobs:
     timeout-minutes: 2
     outputs:
       changed: ${{ steps.paths.outputs.changed }}
+      client_changed: ${{ steps.paths.outputs.client_changed }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
@@ -78,6 +79,7 @@ jobs:
           [[ "$BEFORE" =~ ^[0-9a-f]{40}$ && "$AFTER" =~ ^[0-9a-f]{40}$ ]]
           if [[ "$BEFORE" == 0000000000000000000000000000000000000000 ]]; then
             printf 'changed=true\n' >> "$GITHUB_OUTPUT"
+            printf 'client_changed=true\n' >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if ! git cat-file -e "$BEFORE^{commit}"; then
@@ -91,6 +93,18 @@ jobs:
             printf 'changed=true\n' >> "$GITHUB_OUTPUT"
           else
             printf 'changed=false\n' >> "$GITHUB_OUTPUT"
+          fi
+          git diff --name-only "$BEFORE" "$AFTER" -- \
+            go.mod go.sum third_party/cometbft \
+            cmd/ynx-consensus-perf-client cmd/ynx-consensus-pq-lab cmd/ynx-comet \
+            internal/consensus internal/chain internal/ynxbatch internal/ynxauth \
+            internal/ynxconsensusauth internal/accountaddress internal/bftgateway \
+            scripts/loadtest/same-control-readback.mjs scripts/loadtest/same-control-readback.test.mjs \
+            .github/workflows/chain-core.yml > "$RUNNER_TEMP/client-observation-changes.txt"
+          if [[ -s "$RUNNER_TEMP/client-observation-changes.txt" ]]; then
+            printf 'client_changed=true\n' >> "$GITHUB_OUTPUT"
+          else
+            printf 'client_changed=false\n' >> "$GITHUB_OUTPUT"
           fi
 
   contract-tooling:
@@ -182,7 +196,8 @@ jobs:
     name: Original client observations and cohort readback
     # The original full release job deliberately omits integration pushes.
     # Execute the actual new client functions on those pushes as well.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
+    needs: contract-tooling-scope
+    if: needs.contract-tooling-scope.outputs.client_changed == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     env:
