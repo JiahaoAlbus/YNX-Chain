@@ -92,3 +92,7 @@ require (
 )
 
 tool github.com/cometbft/cometbft/cmd/cometbft
+
+require ynx.local/authgrantpolicy v0.0.0
+
+replace ynx.local/authgrantpolicy => ./packages/auth-grant-policy/go

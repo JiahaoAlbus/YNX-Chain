@@ -27,6 +27,10 @@ type OrderProjection struct {
 func (s *Store) ReadScopedOrder(actor, role, id string, fields []string, snapshot string) (OrderProjection, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.readScopedOrderLocked(actor, role, id, fields, snapshot)
+}
+
+func (s *Store) readScopedOrderLocked(actor, role, id string, fields []string, snapshot string) (OrderProjection, error) {
 	o, ok := s.s.Orders[id]
 	if !ok {
 		return OrderProjection{}, ErrNotFound
@@ -100,15 +104,4 @@ func (s *Server) orderProjection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, http.StatusOK, projection)
-}
-
-// The normal task path fails closed until original Auth supplies its protected
-// Source/current resource fence and sole SDK codec. No request DTO, transport
-// peer, model assertion or ordinary buyer login activates this authority.
-func (s *Server) taskOrderRead(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "no-store")
-	write(w, http.StatusServiceUnavailable, map[string]string{
-		"code":  "SHOP_TASK_ORDER_READ_NOT_ADMITTED",
-		"error": "protected task grant resource fence and sole SDK source codec not supplied",
-	})
 }

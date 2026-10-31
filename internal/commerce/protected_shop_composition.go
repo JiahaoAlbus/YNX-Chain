@@ -20,6 +20,7 @@ type ShopRuntimeCurrent func(context.Context) error
 // OriginalShopProfile holds already-loaded original protected key/seal inputs.
 // This does not register their backend role, identify an account or grant scopes.
 type OriginalShopProfile struct {
+	TaskOrders   *PreparedOriginalShopTaskOrders
 	BackendKeyID string
 	BackendKey   ed25519.PrivateKey
 	BrowserSeal  []byte
@@ -30,6 +31,7 @@ type OriginalShopProfile struct {
 }
 
 type PreparedOriginalShop struct {
+	taskOrders    *PreparedOriginalShopTaskOrders
 	keyID         string
 	key           ed25519.PrivateKey
 	seal          []byte
@@ -72,7 +74,7 @@ func PrepareOriginalShop(ctx context.Context, p OriginalShopProfile) (*PreparedO
 	// Existing private role and BrowserGrant are revalidated at each request by
 	// the original factories; successful preparation is not their enrollment.
 	failed = false
-	return &PreparedOriginalShop{keyID: p.BackendKeyID, key: key, seal: seal, current: p.Current, buyer: p.BuyerActor, seller: p.SellerActor, transport: p.Transport}, nil
+	return &PreparedOriginalShop{taskOrders: p.TaskOrders, keyID: p.BackendKeyID, key: key, seal: seal, current: p.Current, buyer: p.BuyerActor, seller: p.SellerActor, transport: p.Transport}, nil
 }
 
 // OpenOriginal invokes the original caller-owned Store opener only after the
@@ -85,12 +87,27 @@ func (p *PreparedOriginalShop) OpenOriginal(ctx context.Context, open func() (*S
 	if err := shopCurrent(ctx, p.current); err != nil {
 		return nil, nil, err
 	}
+	if p.taskOrders != nil {
+		var err error
+		cfg, err = p.taskOrders.configured(ctx, cfg)
+		if err != nil {
+			return nil, nil, err
+		}
+	} else {
+		cfg.taskOrders = nil
+	}
 	store, err := open()
 	if err != nil {
 		return nil, nil, err
 	}
 	if err := shopCurrent(ctx, p.current); err != nil {
 		return nil, nil, err
+	}
+	if p.taskOrders != nil {
+		cfg, err = p.taskOrders.configured(ctx, cfg)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 	buyer, err := NewCommerceCombinedWebV2Server(store, cfg, p.keyID, p.key, p.seal, p.transport, p.bindCurrent(p.buyer))
 	if err != nil {
