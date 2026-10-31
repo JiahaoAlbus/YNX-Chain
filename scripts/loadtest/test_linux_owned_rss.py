@@ -20,7 +20,7 @@ def stat_line(state="S",ticks=100):
 
 class OwnedRSSControls(unittest.TestCase):
     def read(self,values):
-        with mock.patch.object(lab.guard,"bounded",side_effect=values):
+        with mock.patch.object(lab.guard,"bounded",side_effect=values), mock.patch.object(lab.time,"sleep"):
             return lab.owned_rss(42,dict(startTicks=100))
 
     def test_attempt2_esrch_then_proved_gone_is_not_a_fake_zero_live_sample(self):
@@ -32,7 +32,8 @@ class OwnedRSSControls(unittest.TestCase):
 
     def test_live_unreadable_and_recycled_pids_fail_closed(self):
         for state,ticks in (("S",100),("Z",101),("S",101)):
-            with self.assertRaises(RuntimeError):self.read([ProcessLookupError(errno.ESRCH,"raced"),stat_line(state,ticks)])
+            attempts=6 if ticks==100 else 1
+            with self.assertRaises(RuntimeError):self.read([ProcessLookupError(errno.ESRCH,"raced"),stat_line(state,ticks)]*attempts)
 
     def test_permissions_or_unknown_kernel_errors_are_not_missing_samples(self):
         with self.assertRaises(PermissionError):self.read([PermissionError(errno.EACCES,"denied")])
@@ -46,7 +47,14 @@ class OwnedRSSControls(unittest.TestCase):
         events=[]
         with mock.patch.object(lab.guard,"bounded",side_effect=[ProcessLookupError(errno.ESRCH,"exited"),FileNotFoundError(errno.ENOENT,"gone")]):
             self.assertIsNone(lab.owned_rss(42,dict(startTicks=100),events.append))
-        self.assertEqual(events,[dict(pid=42,startTicks=100,reason="second-stat-proved-gone",rssError=errno.ESRCH,statError=errno.ENOENT)])
+        self.assertEqual(events,[dict(pid=42,startTicks=100,reason="second-stat-proved-gone",rssError=errno.ESRCH,statError=errno.ENOENT,sampleAttempts=1)])
+
+    def test_transient_same_identity_must_recover_real_rss_or_prove_exit(self):
+        transient=[ProcessLookupError(errno.ESRCH,"transition"),stat_line("S")]
+        self.assertEqual(self.read(transient+[b"Rss: 9 kB\n",stat_line()]),9216)
+        self.assertIsNone(self.read(transient+[ProcessLookupError(errno.ESRCH,"transition"),FileNotFoundError(errno.ENOENT,"gone")]))
+        with self.assertRaisesRegex(RuntimeError,'"pid":42.*"startTicks":100.*"attempt":6'):
+            self.read(transient*6)
 
     @unittest.skipUnless(sys.platform=="linux","real Linux child lifecycle; not a fake node")
     def test_actual_nonzero_exit_and_cleanup_signal_are_preserved(self):
@@ -62,6 +70,19 @@ class OwnedRSSControls(unittest.TestCase):
             self.assertIsNone(rows["actual-exit-7"]["signal"])
             self.assertEqual(rows["actual-cleanup-signal"]["signal"],signal.SIGTERM)
             self.assertTrue(all(row["exited"] and row["pid"]>0 and row["startTicks"] is not None for row in rows.values()))
+
+    @unittest.skipUnless(sys.platform=="linux","actual short-lived compiler-like child churn requires Linux")
+    def test_actual_short_lived_descendants_do_not_create_fake_zero_samples(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary);(root/".private").mkdir();(root/"public").mkdir()
+            window=lab.Window(Path(__file__).resolve().parents[2],root)
+            try:
+                for i in range(8):
+                    # Process lifecycle only. These are never validators or tx.
+                    proc=window.launch("short-lived-wave-%d"%i,["/bin/sh","-c","i=0; while [ $i -lt 32 ]; do /usr/bin/true; i=$((i+1)); done"])
+                    self.assertEqual(window.wait(proc),0)
+            finally:self.assertTrue(window.stop())
+            self.assertTrue(all(row["exitCode"]==0 for row in window.process_receipt()))
 
 
 if __name__=="__main__":unittest.main()

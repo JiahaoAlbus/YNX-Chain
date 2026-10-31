@@ -90,29 +90,36 @@ def private_bytes(root):
 def owned_rss(pid, before, retired=None):
     """Read one original identity; prove disappearance instead of guessing 0."""
     directory = Path("/proc") / str(pid)
-    try:
-        size = guard.smaps_rss(guard.bounded(directory / "smaps_rollup"))
-        after = guard.parse_stat(guard.bounded(directory / "stat"), pid)
-    except OSError as error:
-        if error.errno not in (errno.ENOENT, errno.ESRCH):
-            raise
-        # A task may exit between inventory and smaps. A second stat read must
-        # prove it gone or zombie; a live/unreadable identity cannot be omitted.
+    transitions = []
+    # A dying/execing task can still expose a non-Z stat briefly after its mm
+    # became unavailable. Reopen only this same original identity, at most six
+    # attempts/5ms sleep total. No missing live sample becomes RSS zero.
+    for attempt in range(1, 7):
         try:
-            current = guard.parse_stat(guard.bounded(directory / "stat"), pid)
-        except OSError as missing:
-            if missing.errno in (errno.ENOENT, errno.ESRCH):
+            size = guard.smaps_rss(guard.bounded(directory / "smaps_rollup"))
+            after = guard.parse_stat(guard.bounded(directory / "stat"), pid)
+        except OSError as error:
+            if error.errno not in (errno.ENOENT, errno.ESRCH):
+                raise
+            try:
+                current = guard.parse_stat(guard.bounded(directory / "stat"), pid)
+            except OSError as missing:
+                if missing.errno in (errno.ENOENT, errno.ESRCH):
+                    if retired is not None:
+                        retired(dict(pid=pid, startTicks=before["startTicks"], reason="second-stat-proved-gone", rssError=error.errno, statError=missing.errno, sampleAttempts=attempt))
+                    return None
+                raise
+            require(current["startTicks"] == before["startTicks"], "owned process identity changed after RSS failure")
+            if current["state"] == "Z":
                 if retired is not None:
-                    retired(dict(pid=pid, startTicks=before["startTicks"], reason="second-stat-proved-gone", rssError=error.errno, statError=missing.errno))
-                return None
-            raise
-        require(current["startTicks"] == before["startTicks"], "owned process identity changed after RSS failure")
-        require(current["state"] == "Z", "active owned process RSS unreadable")
-        if retired is not None:
-            retired(dict(pid=pid, startTicks=before["startTicks"], reason="same-identity-zombie", rssError=error.errno))
-        return 0
-    require(after["startTicks"] == before["startTicks"], "owned process identity changed during RSS read")
-    return size
+                    retired(dict(pid=pid, startTicks=before["startTicks"], reason="same-identity-zombie", rssError=error.errno, sampleAttempts=attempt))
+                return 0
+            transitions.append(dict(attempt=attempt, state=current["state"], rssError=error.errno))
+            require(attempt < 6, "active owned process RSS unreadable: " + json.dumps(dict(pid=pid, startTicks=before["startTicks"], transitions=transitions), separators=(",", ":")))
+            time.sleep(.001)
+            continue
+        require(after["startTicks"] == before["startTicks"], "owned process identity changed during RSS read")
+        return size
 
 
 def heavy_processes(rows):
@@ -222,7 +229,7 @@ class Window:
             resource.setrlimit(resource.RLIMIT_FSIZE, (CAPS["newBytes"], CAPS["newBytes"]))
         proc = subprocess.Popen(command, cwd=self.source, env=self.env, stdin=subprocess.DEVNULL,
                                 stdout=log, stderr=subprocess.STDOUT, start_new_session=True, preexec_fn=restrict)
-        row = dict(name=name, process=proc, persistent=persistent, command=command, startedNs=time.monotonic_ns())
+        row = dict(name=name, process=proc, persistent=persistent, command=list(command), startedNs=time.monotonic_ns())
         self.children.append(row)
         try:
             row["startTicks"] = guard.parse_stat(guard.bounded(Path("/proc") / str(proc.pid) / "stat"), proc.pid)["startTicks"]
@@ -336,6 +343,7 @@ class Window:
             process = child["process"]
             status = process.poll()
             rows.append(dict(name=child["name"], pid=process.pid, startTicks=child.get("startTicks"),
+                             command=child["command"],
                              rawReturnCode=status, exitCode=status if status is not None and status >= 0 else None,
                              signal=-status if status is not None and status < 0 else None,
                              exited=status is not None, observedLaunchToExitNs=child.get("elapsedNs")))

@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 18
     env:
       BASELINE_OWNER_SHA: fdc08527514587d5756264e43ab63588791e189a
-      BASELINE_TOOLS_SHA: f573d827a9561fb96f1ca2a010a27a1d31a4cbe3
+      BASELINE_TOOLS_SHA: b6a0cab84f5985f647972209b3c389f2892b44e7
     steps:
       - name: Receive the exact original Perf baseline tools
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -56,7 +56,16 @@ jobs:
           test "$(git -C baseline-tools rev-parse HEAD)" = "$BASELINE_TOOLS_SHA"
           test "$(git -C baseline-owner rev-parse HEAD)" = "$BASELINE_OWNER_SHA"
           test "$(go env GOVERSION)" = go1.26.10
-          python3 -B baseline-tools/scripts/loadtest/test_linux_owned_rss.py
+          python3 -B - <<'PY'
+          import importlib.util, pathlib, sys, unittest
+          path = pathlib.Path('baseline-tools/scripts/loadtest/test_linux_owned_rss.py').resolve(strict=True)
+          spec = importlib.util.spec_from_file_location('actual_linux_rss_controls', path)
+          module = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromModule(module))
+          if not result.wasSuccessful() or result.testsRun != 9 or result.skipped:
+              raise SystemExit('all nine real Linux observer controls must execute without skips')
+          PY
           python3 -B baseline-tools/scripts/loadtest/prepare-pq-baseline.py \
             --owner "$GITHUB_WORKSPACE/baseline-owner" --commit "$BASELINE_OWNER_SHA" \
             --output "$RUNNER_TEMP/current-baseline-source"
