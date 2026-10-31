@@ -2,10 +2,27 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {walletAuthDependencyPlan,assertWalletAuthDependencyDeclarations} from '../scripts/wallet-auth-dependencies.mjs';
 import {fileURLToPath} from 'node:url';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,mkdirSync,writeFileSync,rmSync,realpathSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
-test('actual frozen R3e declaration graph accepts exact 316 pinned files with PQ tilde declaration and fixed resolved version',()=>{
- const plan=walletAuthDependencyPlan(root,'78c39e54e0353827ea0c199b84cac4148e627bff');assert.equal(plan.rows.length,316);assert.equal(plan.public.versions['@noble/ciphers'],'2.2.0');
+test('frozen R3e source declarations accept exact316 public bytes independently of the installed successor',t=>{
+ const frozen='78c39e54e0353827ea0c199b84cac4148e627bff',fixture=realpathSync(mkdtempSync(path.join(tmpdir(),'wallet-r3e-declarations-')));
+ t.after(()=>rmSync(fixture,{recursive:true,force:true}));
+ const put=(name,bytes)=>{const file=path.join(fixture,name);mkdirSync(path.dirname(file),{recursive:true});writeFileSync(file,bytes);};
+ const source=name=>execFileSync('git',['show',frozen+':'+name],{cwd:root});
+ const manifestName='apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json',manifest=JSON.parse(source(manifestName));
+ put(manifestName,source(manifestName));put('packages/wallet-auth/package.json',source('packages/wallet-auth/package.json'));
+ const archive=path.join(root,'packages/wallet-auth/testdata/ynx-batch-v01-candidate-0.1.0-candidate.2.tgz'),raw=readFileSync(archive);
+ assert.equal(raw.length,manifest.provider.bytes);assert.equal(createHash('sha256').update(raw).digest('hex'),manifest.provider.sha256);
+ for(const row of manifest.files){
+  const bytes=row.path.startsWith('@ynx/batch-v01-candidate/')?execFileSync('tar',['-xOf',archive,'package/'+row.path.slice('@ynx/batch-v01-candidate/'.length)]):readFileSync(path.join(root,'packages/wallet-auth/node_modules',row.path));
+  assert.equal(bytes.length,row.bytes);assert.equal(createHash('sha256').update(bytes).digest('hex'),row.sha256);put('packages/wallet-auth/node_modules/'+row.path,bytes);
+ }
+ const git=(...args)=>execFileSync('git',args,{cwd:fixture,stdio:'pipe'});git('init','-q');git('add','.');git('-c','user.name=PUBLIC fixture','-c','user.email=public@example.invalid','-c','commit.gpgsign=false','commit','-qm','Frozen R3e public inputs');
+ const plan=walletAuthDependencyPlan(fixture,'HEAD');assert.equal(plan.rows.length,316);assert.equal(plan.public.versions['@noble/ciphers'],'2.2.0');
  assert.deepEqual(plan.public.declarations.find(row=>row.name==='@noble/ciphers'),{name:'@noble/ciphers',resolvedVersion:'2.2.0',source:'pq.dependencies',declared:'~2.2.0'});
 });
 function metadata(){return [JSON.parse(readFileSync(new URL('../../../packages/wallet-auth/package.json',import.meta.url))),...['@ynx/batch-v01-candidate','@noble/post-quantum'].map(name=>JSON.parse(readFileSync(new URL('../../../packages/wallet-auth/node_modules/'+name+'/package.json',import.meta.url))))];}

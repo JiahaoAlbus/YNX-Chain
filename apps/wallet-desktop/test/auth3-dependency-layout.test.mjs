@@ -21,16 +21,20 @@ function fixture(t,version='1.3.0-pq.3.32-auth.3'){
  put('apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json',bytes);
  const sdk=JSON.parse(readFileSync(new URL('../../../packages/wallet-auth/package.json',import.meta.url)));
  // Match the actual recipe: baseline source descriptor plus locked successor.
- put('packages/wallet-auth/package.json',JSON.stringify({...sdk,version:'1.3.0-pq.3.18'}));
+ put('packages/wallet-auth/package.json',JSON.stringify({...sdk,version:'1.3.0-pq.3.18',peerDependencies:{...sdk.peerDependencies,'@ynx/batch-v01-candidate':'0.1.0-candidate.2'}}));
  put('apps/wallet-desktop/package-lock.json',JSON.stringify({packages:{'../../packages/wallet-auth':{version}}}));
  // Frozen public bytes only; reproduce npm's distinct root and PQ-local graphs.
  const selectedRelative=version==='1.3.0-pq.3.32-auth.14'?p=>p:relative;
+ const oldProvider=new URL('../../../packages/wallet-auth/testdata/ynx-batch-v01-candidate-0.1.0-candidate.2.tgz',import.meta.url);
+ const archive=readFileSync(oldProvider);
+ assert.equal(archive.length,manifest.provider.bytes);assert.equal(createHash('sha256').update(archive).digest('hex'),manifest.provider.sha256);
  for(const pin of manifest.files){
   // Fixture construction only: reproduce each historical layout from the
   // SAME316 pinned public bytes, regardless of the test host's npm layout.
   // Production walletAuthDependencyPlan above has no fallback/search path.
   const candidates=[...new Set([relative(pin.path),pin.path])].map(p=>path.join(dependencyRoot,p));
-  const data=candidates.filter(existsSync).map(p=>readFileSync(p)).find(b=>b.length===pin.bytes&&createHash('sha256').update(b).digest('hex')===pin.sha256);
+  const archived=pin.path.startsWith('@ynx/batch-v01-candidate/')?[execFileSync('tar',['-xOf',fileURLToPath(oldProvider),'package/'+pin.path.slice('@ynx/batch-v01-candidate/'.length)])]:[];
+  const data=[...candidates.filter(existsSync).map(p=>readFileSync(p)),...archived].find(b=>b.length===pin.bytes&&createHash('sha256').update(b).digest('hex')===pin.sha256);
   assert(data,'Original pinned fixture leaf required: '+pin.path);put('packages/wallet-auth/node_modules/'+selectedRelative(pin.path),data);
  }
  const outer=Buffer.from('{"name":"@noble/ciphers","version":"1.3.0","main":"index.js"}');
