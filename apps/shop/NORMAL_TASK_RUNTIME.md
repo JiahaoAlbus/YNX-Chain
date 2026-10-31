@@ -78,3 +78,13 @@ SHA256 `df810a34e961e5b902a2a3feb31c7c5ecd2a0a05e4dc7c62ed64defcb3aa4526`.
 The concrete final SDK encoder is supplied locally; the protected Source,
 operation-attestation and history admissions remain external runtime gates.
 Shop creates no receipt DB/history endpoint and never re-dispatches UNKNOWN.
+
+The normal consumer is now implemented in `task_order_consumer.go` and
+`task_order_consumer_ipc.go`; usage and exact recovery/lifetime semantics are in
+`TASK_ORDER_CONSUMER.md`. It consumes the complete formal Auth normal package,
+original typed broker and full LINK eb59 closure using Shop-specific CAS pins.
+The original Source implementation, formal Method/fullRef/body binding and
+actual Core verifier are supplied code, not a pending contract. Root-pinned
+issuer/custody/caller/resource admissions remain runtime inputs. Missing those
+inputs still denies the actual normal factories; PUBLIC IPC tests do not fill
+their release tables or substitute for native-TLS business acceptance.
