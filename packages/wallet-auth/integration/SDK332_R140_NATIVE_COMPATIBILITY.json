@@ -544,8 +544,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 41076,
-      "sha256": "2852456ad8c59b06d7f9ef9f49e36e93d2243ded6c0921e0c786cbf78290cf8f"
+      "bytes": 41800,
+      "sha256": "ca3b04c8de591fac09eaf5a231f239323d5ddb161c24cf4d5c8e19fd2fe24674"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -931,6 +931,16 @@
       "path": "packages/wallet-auth/native/original-product-device-v4-provisioning-source-contract.mjs",
       "bytes": 2046,
       "sha256": "4857056f8d5068e283aac729f877a2d1324d09ed1ee63fa90b8180cae948b8df"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-product-device-v4-query-source-contract.d.mts",
+      "bytes": 1459,
+      "sha256": "4f0c7d9625398340aad0b782776dd2b11764ffaf38167111caaf90e84fce4d75"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-product-device-v4-query-source-contract.mjs",
+      "bytes": 3243,
+      "sha256": "08dc31e70ecd393a52812f556c6a35c414f10a23d19bc1a94fdc74fb8f6ef97d"
     },
     {
       "path": "packages/wallet-auth/native/original-product-device-v4-source-contract.mjs",
@@ -2724,5 +2734,26 @@
       "SourceAdmission": false,
       "AppBuilt": false
     }
+  },
+  "deviceOriginalQuerySourceKernel": {
+    "supplier": {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-query-source/HANDOFF.json",
+      "bytes": 21275,
+      "sha256": "d6006b355ed66e1b8bb50690df745a8bef2b12e72aafc49711c82f296876c6fc"
+    },
+    "purpose": "product-session-device-query-source-v4",
+    "operations": [
+      "device.original-query"
+    ],
+    "JSKernel": true,
+    "NativeQueryReader": false,
+    "NativeQuerySource": false,
+    "NativeQueryNAPI": false,
+    "MainQueryPeer": false,
+    "normalTablesEmpty": true,
+    "SourceAdmission": false,
+    "actualOutcomeQuery": false,
+    "NativeInputs": 139,
+    "R5BaselineNativeInputs": 137
   }
 }
