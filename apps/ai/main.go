@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/fs"
@@ -30,58 +32,90 @@ var (
 var assets embed.FS
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// Keep process exit outside the service lifetime so original Source owners
+// can be retired and closed after HTTP handlers have drained.
+func run() (runErr error) {
 	httpAddr := flag.String("http", env("YNX_AI_CLIENT_HTTP_ADDR", "127.0.0.1:6438"), "YNX AI client listen address")
 	statePath := flag.String("state", env("YNX_AI_CLIENT_STATE_PATH", ""), "absolute encrypted product state path")
 	backupCreate := flag.String("backup-create", "", "create an immutable encrypted backup at this absolute path and exit")
 	backupRestore := flag.String("backup-restore", "", "restore an authenticated encrypted backup into the configured state path and exit")
 	flag.Parse()
 	if *backupCreate != "" && *backupRestore != "" {
-		log.Fatal("-backup-create and -backup-restore are mutually exclusive")
+		return fmt.Errorf("-backup-create and -backup-restore are mutually exclusive")
 	}
 	if *statePath == "" {
-		log.Fatal("YNX_AI_CLIENT_STATE_PATH is required")
+		return fmt.Errorf("YNX_AI_CLIENT_STATE_PATH is required")
 	}
 	key, err := decodeKey(os.Getenv("YNX_AI_CLIENT_CONTENT_KEY"))
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	store, err := aiproduct.NewStore(*statePath, key)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	if *backupCreate != "" {
 		manifest, err := store.CreateBackup(*backupCreate)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		if err := json.NewEncoder(os.Stdout).Encode(manifest); err != nil {
-			log.Fatal(err)
+			return err
 		}
-		return
+		return nil
 	}
 	if *backupRestore != "" {
 		manifest, err := store.RestoreBackup(*backupRestore)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		if err := json.NewEncoder(os.Stdout).Encode(manifest); err != nil {
-			log.Fatal(err)
+			return err
 		}
-		return
+		return nil
 	}
 	web, err := fs.Sub(assets, "web")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
-	server, err := aiproduct.NewServer(aiproduct.Config{BYOKGatewayKey: os.Getenv("YNX_AI_BYOK_ACCESS_KEY"), CanonicalWalletGatewayOrigin: env("YNX_AI_WALLET_GATEWAY_ORIGIN", ""), GatewayURL: env("YNX_AI_CLIENT_GATEWAY_URL", "http://127.0.0.1:6429"), GatewayKey: os.Getenv("YNX_AI_GATEWAY_API_KEY"), ExactWalletCallback: env("YNX_AI_CLIENT_WALLET_CALLBACK", "ynxai://wallet-auth/callback"), TrustURL: env("YNX_AI_CLIENT_TRUST_URL", "https://trust.ynxweb4.com/appeals"), ProviderName: env("YNX_AI_CLIENT_PROVIDER_NAME", "configured OpenAI-compatible provider"), InputUSDPerMillion: envFloat("YNX_AI_CLIENT_INPUT_USD_PER_MILLION"), OutputUSDPerMillion: envFloat("YNX_AI_CLIENT_OUTPUT_USD_PER_MILLION"), ResourceUnitsPerKTokens: envInt64("YNX_AI_CLIENT_RESOURCE_UNITS_PER_KTOKENS", 1), GenerationTimeout: envDuration("YNX_AI_CLIENT_GENERATION_TIMEOUT", 45*time.Second), Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}, AllowLocalFixtureAuth: env("YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH", "0") == "1", Logger: slog.New(slog.NewJSONHandler(os.Stdout, nil))}, store, web)
+	fixtureAuth := env("YNX_AI_ALLOW_LOCAL_FIXTURE_AUTH", "0") == "1"
+	var taskRuntime *aiproduct.PreparedOriginalTaskRuntime
+	var taskErr error
+	if !fixtureAuth {
+		taskRuntime, taskErr = aiproduct.OpenOriginalTaskRuntime(context.Background(), aiproduct.TaskModelConfig{
+			ChainURL:       env("YNX_AI_GATEWAY_CHAIN_URL", "http://127.0.0.1:6420"),
+			ProviderURL:    env("YNX_AI_PROVIDER_URL", "https://api.openai.com/v1"),
+			ProviderAPIKey: os.Getenv("OPENAI_API_KEY"), Model: os.Getenv("AI_MODEL_NAME"),
+			AccessAPIKey: os.Getenv("YNX_AI_GATEWAY_API_KEY"), UpstreamKey: os.Getenv("YNX_AI_GATEWAY_UPSTREAM_KEY"),
+			UpstreamMode: env("YNX_AI_GATEWAY_UPSTREAM_MODE", "authoritative"),
+			AuditLog:     env("YNX_AI_GATEWAY_AUDIT_LOG", "tmp/ai-gateway/audit.jsonl"),
+			Window:       envDuration("YNX_AI_GATEWAY_RATE_LIMIT_WINDOW", time.Minute), MaxRequests: int(envInt64("YNX_AI_GATEWAY_RATE_LIMIT_MAX", 30)),
+		})
+	}
+	if taskErr != nil {
+		if taskRuntime != nil {
+			taskErr = errors.Join(taskErr, taskRuntime.Close())
+		}
+		taskRuntime = nil
+		log.Printf("YNX AI task runtime unavailable: %v", taskErr)
+	} else if taskRuntime != nil {
+		defer func() { runErr = errors.Join(runErr, taskRuntime.Close()) }()
+		if cause := taskRuntime.NewEffectsUnavailable(); cause != nil {
+			log.Printf("YNX AI task runtime holds original recovery only; new effects unavailable: %v", cause)
+		}
+	}
+	server, err := aiproduct.NewServer(aiproduct.Config{TaskRuntime: taskRuntime, BYOKGatewayKey: os.Getenv("YNX_AI_BYOK_ACCESS_KEY"), CanonicalWalletGatewayOrigin: env("YNX_AI_WALLET_GATEWAY_ORIGIN", ""), GatewayURL: env("YNX_AI_CLIENT_GATEWAY_URL", "http://127.0.0.1:6429"), GatewayKey: os.Getenv("YNX_AI_GATEWAY_API_KEY"), ExactWalletCallback: env("YNX_AI_CLIENT_WALLET_CALLBACK", "ynxai://wallet-auth/callback"), TrustURL: env("YNX_AI_CLIENT_TRUST_URL", "https://trust.ynxweb4.com/appeals"), ProviderName: env("YNX_AI_CLIENT_PROVIDER_NAME", "configured OpenAI-compatible provider"), InputUSDPerMillion: envFloat("YNX_AI_CLIENT_INPUT_USD_PER_MILLION"), OutputUSDPerMillion: envFloat("YNX_AI_CLIENT_OUTPUT_USD_PER_MILLION"), ResourceUnitsPerKTokens: envInt64("YNX_AI_CLIENT_RESOURCE_UNITS_PER_KTOKENS", 1), GenerationTimeout: envDuration("YNX_AI_CLIENT_GENERATION_TIMEOUT", 45*time.Second), Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}, AllowLocalFixtureAuth: fixtureAuth, Logger: slog.New(slog.NewJSONHandler(os.Stdout, nil))}, store, web)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	srv := &http.Server{Addr: *httpAddr, Handler: server.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX AI client listening on http://%s; provider responses remain Gateway-backed only", *httpAddr)
-	if err := httpdrain.ListenAndServe(srv, envDuration("YNX_AI_CLIENT_SHUTDOWN_TIMEOUT", 60*time.Second)); err != nil {
-		log.Fatal(err)
-	}
+	return httpdrain.ListenAndServe(srv, envDuration("YNX_AI_CLIENT_SHUTDOWN_TIMEOUT", 60*time.Second))
 }
 
 func decodeKey(value string) ([]byte, error) {

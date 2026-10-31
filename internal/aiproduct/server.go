@@ -23,6 +23,7 @@ import (
 )
 
 type Config struct {
+	TaskRuntime                  *PreparedOriginalTaskRuntime
 	CanonicalWalletGatewayOrigin string
 	GatewayURL                   string
 	GatewayKey                   string
@@ -40,19 +41,26 @@ type Config struct {
 }
 
 type Server struct {
-	wallet      canonicalSessionAuthorizer
-	browserSSO  *productsessionv2.BrowserSSO
-	cfg         Config
-	store       *Store
-	client      *http.Client
-	mux         *http.ServeMux
-	static      fs.FS
-	registry    ProductAIRegistry
-	logger      *slog.Logger
-	metrics     *requestMetrics
-	mu          sync.Mutex
-	generations map[string]activeGeneration
-	visitors    map[string][]time.Time
+	toolEffects       originalToolEffectSource
+	taskModel         *taskModelService
+	taskModelAdmit    originalTaskModelAdmission
+	taskActiveRuns    map[string]taskActiveModelRun
+	taskActiveEffects map[string]*taskActiveEffectRun
+	taskRuntimeOnce   sync.Once
+	taskRuntimeID     string
+	wallet            canonicalSessionAuthorizer
+	browserSSO        *productsessionv2.BrowserSSO
+	cfg               Config
+	store             *Store
+	client            *http.Client
+	mux               *http.ServeMux
+	static            fs.FS
+	registry          ProductAIRegistry
+	logger            *slog.Logger
+	metrics           *requestMetrics
+	mu                sync.Mutex
+	generations       map[string]activeGeneration
+	visitors          map[string][]time.Time
 }
 
 type activeGeneration struct {
@@ -103,6 +111,11 @@ func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
 			return nil, err
 		}
 	}
+	if cfg.TaskRuntime != nil {
+		if err := cfg.TaskRuntime.install(s); err != nil {
+			return nil, err
+		}
+	}
 	s.routes()
 	return s, nil
 }
@@ -111,6 +124,22 @@ func (s *Server) Handler() http.Handler { return securityHeaders(s.observe(s.mux
 
 func (s *Server) routes() {
 	s.registerBrowserSSO()
+	s.mux.HandleFunc("POST /api/tasks", s.authed("ai:conversations", s.handleTaskCreate))
+	s.mux.HandleFunc("POST /api/tasks/{id}/prepare", s.authed("ai:permissions", s.handleTaskPrepare))
+	s.mux.HandleFunc("GET /api/agents", s.authed("ai:permissions", s.handleAgentConfigurationList))
+	s.mux.HandleFunc("POST /api/agents", s.authed("ai:permissions", s.handleAgentConfigurationWrite))
+	s.mux.HandleFunc("PATCH /api/agents/{agentId}", s.authed("ai:permissions", s.handleAgentConfigurationWrite))
+	s.mux.HandleFunc("POST /api/tasks/{id}/agent-configuration", s.authed("ai:permissions", s.handleTaskAgentConfiguration))
+	s.mux.HandleFunc("GET /api/tasks/{id}", s.authed("ai:conversations", s.handleTaskProjection))
+	s.mux.HandleFunc("POST /api/tasks/{id}/tool-steps", s.authed("ai:permissions", s.requestToolStep))
+	s.mux.HandleFunc("POST /api/tasks/{id}/cancel", s.authed("ai:permissions", s.handleTaskCancel))
+	s.mux.HandleFunc("POST /api/tasks/{id}/complete", s.authed("ai:permissions", s.handleTaskComplete))
+	s.mux.HandleFunc("GET /api/tasks/{id}/tool-steps/{stepId}/result", s.authed("ai:conversations", s.handleTaskToolResult))
+	s.mux.HandleFunc("POST /api/tasks/{id}/tool-steps/{stepId}/dispatch", s.authed("ai:permissions", s.handleTaskToolDispatch))
+	s.mux.HandleFunc("POST /api/tasks/{id}/tool-steps/{stepId}/approve", s.authed("ai:permissions", s.handleBoundTaskStepApproval))
+	s.mux.HandleFunc("POST /api/tasks/{id}/tool-steps/{stepId}/reconcile", s.authed("ai:permissions", s.handleTaskToolReconcile))
+	s.mux.HandleFunc("POST /api/tasks/{id}/runs", s.authed("ai:generate", s.handleTaskModelRun))
+	s.mux.HandleFunc("GET /api/tasks/{id}/runs/{runId}", s.authed("ai:conversations", s.handleTaskModelRunRead))
 	s.mux.HandleFunc("GET /healthz", s.handleHealth)
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)

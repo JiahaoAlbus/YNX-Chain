@@ -85,23 +85,24 @@ type PermissionRecord struct {
 }
 
 type ActionRecord struct {
-	ID                string    `json:"id"`
-	Account           string    `json:"account"`
-	ConversationID    string    `json:"conversationId"`
-	Kind              string    `json:"kind"`
-	Scope             string    `json:"scope"`
-	Description       string    `json:"description"`
-	PayloadPreview    string    `json:"payloadPreview"`
-	Target            string    `json:"target"`
-	Risk              string    `json:"risk"`
-	Evidence          []string  `json:"evidence"`
-	Provider          string    `json:"provider"`
-	Status            string    `json:"status"`
-	GatewayID         string    `json:"gatewayId,omitempty"`
-	PermissionID      string    `json:"permissionId,omitempty"`
-	WalletStillNeeded bool      `json:"walletStillNeeded"`
-	CreatedAt         time.Time `json:"createdAt"`
-	ReviewedAt        time.Time `json:"reviewedAt,omitempty"`
+	ToolStep          *ToolStepBinding `json:"toolStep,omitempty"`
+	ID                string           `json:"id"`
+	Account           string           `json:"account"`
+	ConversationID    string           `json:"conversationId"`
+	Kind              string           `json:"kind"`
+	Scope             string           `json:"scope"`
+	Description       string           `json:"description"`
+	PayloadPreview    string           `json:"payloadPreview"`
+	Target            string           `json:"target"`
+	Risk              string           `json:"risk"`
+	Evidence          []string         `json:"evidence"`
+	Provider          string           `json:"provider"`
+	Status            string           `json:"status"`
+	GatewayID         string           `json:"gatewayId,omitempty"`
+	PermissionID      string           `json:"permissionId,omitempty"`
+	WalletStillNeeded bool             `json:"walletStillNeeded"`
+	CreatedAt         time.Time        `json:"createdAt"`
+	ReviewedAt        time.Time        `json:"reviewedAt,omitempty"`
 }
 
 type Appeal struct {

@@ -1,0 +1,43 @@
+name: YNX AI task runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/ecosystem-ai, codex/final-ai]
+    paths: &runtime-paths
+      - "internal/aiproduct/**"
+      - "internal/aigateway/**"
+      - "apps/ai/main.go"
+      - "packages/auth-grant-policy/go/**"
+      - "packages/auth-grant-runtime/go/**"
+      - "packages/auth-grant-history-client/go/**"
+      - "packages/open-protocol/go/**"
+      - "internal/ynxbatch/**"
+      - "internal/accountaddress/**"
+      - "internal/securelink/**"
+      - "go.mod"
+      - "go.sum"
+      - ".github/workflows/ynx-ai-runtime.yml"
+  pull_request:
+    paths: *runtime-paths
+
+permissions:
+  contents: read
+
+jobs:
+  task-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOWORK: "off"
+      GOTOOLCHAIN: local
+      GOFLAGS: ""
+      CGO_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Verify normal task, model and startup packages
+        run: go test -mod=readonly -race -p 2 ./internal/aiproduct ./internal/aigateway ./apps/ai

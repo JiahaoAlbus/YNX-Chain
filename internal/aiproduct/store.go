@@ -34,6 +34,10 @@ type storedAttachment struct {
 }
 
 type persistentState struct {
+	Tasks               map[string]TaskRecord                          `json:"tasks,omitempty"`
+	TaskEvents          map[string][]TaskEvent                         `json:"taskEvents,omitempty"`
+	TaskRuns            map[string]taskModelRun                        `json:"taskRuns,omitempty"`
+	AgentConfigurations map[string]AgentConfiguration                  `json:"agentConfigurations,omitempty"`
 	ProviderCredentials map[string]map[string]storedProviderCredential `json:"providerCredentials,omitempty"`
 	Version             int                                            `json:"version"`
 	Conversations       map[string]Conversation                        `json:"conversations"`
