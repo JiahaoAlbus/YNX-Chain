@@ -311,6 +311,37 @@ test('normal migration proposal reads only same protected public pair without cl
  const possession=await f.lifecycle.run(()=>f.vault.withPQKeys(proposal,handle=>SDK.createPQWalletMigrationPossession(handle,intent)));assert.ok(possession instanceof Uint8Array);assert.ok(possession.length>1000);
  f.lifecycle.lock();await assert.rejects(f.vault.readPQProposalBinding(CHAIN));
 });
+test('T-P01-01 selected public account lease reads only the protected selection and never opens a private Native or portable key',async t=>{
+ let armed=false,privateRestores=0;
+ const sdk={...SDK,restorePQWalletKeyHandle(...args){if(armed){privateRestores++;throw Error('PUBLIC_SELECTION_MUST_NOT_RESTORE_KEYS');}return SDK.restorePQWalletKeyHandle(...args);}};
+ const native=controlledNativeTransaction(),f=await fixture(t,sdk,native.custody);
+ await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'PUBLIC-selected-account'}));armed=true;
+ const before=await fs.readFile(f.filePath,'utf8');
+ const selected=await f.lifecycle.run(()=>f.vault.captureSelectedPQAccountPublic(CHAIN));
+ t.after(()=>selected.close());const view=selected.readPublic();
+ assert.equal(view.account,f.account);assert.equal(view.networkId,CHAIN);assert.deepEqual(view.publicBinding,f.binding);assert(Object.isFrozen(view));assert(Object.isFrozen(view.publicBinding));
+ assert.equal(view.purpose,'product-session-device-selection-v4');
+ for(const name of ['chainRegistrationVerified','deviceRegistrationVerified','signingAuthorized','transactionAuthorized'])assert.equal(view[name],false);
+ for(const name of ['deviceId','registrationOriginal','credential','wire','handle','pkcs8A','pkcs8B'])assert.equal(name in view,false);
+ await f.lifecycle.run(()=>selected.recheck());assert.equal(selected.assertCurrent(),undefined);
+ assert.equal(privateRestores,0);assert.equal(native.counts.open,0);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+ selected.close();assert.throws(()=>selected.readPublic());
+});
+test('T-P01-01 selected public lease cannot survive blur, account change, renewed unlock or changed protected file',async t=>{
+ for(const change of ['focus','account','unlock','file']){
+  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'PUBLIC-selected-account'}));
+  const selected=await f.lifecycle.run(()=>f.vault.captureSelectedPQAccountPublic(CHAIN));t.after(()=>selected.close());
+  if(change==='focus')f.lifecycle.setFocused(false);
+  if(change==='account')f.lifecycle.setAccount('0x'+'4'.repeat(40));
+  if(change==='unlock'){f.lifecycle.lock();await f.lifecycle.unlock({password:PASSWORD});}
+  if(change==='file'){
+   const before=await fs.readFile(f.filePath,'utf8');await fs.writeFile(f.filePath,before+'\n',{mode:0o600});
+   await assert.rejects(f.lifecycle.run(()=>selected.recheck()));
+   await fs.writeFile(f.filePath,before,{mode:0o600});
+  }
+  assert.throws(()=>selected.readPublic());
+ }
+});
 test('original Vault typed-sign caller restores only the matching pair and retires its temporary handle',async t=>{
  const f=await fixture(t),{snapshot,transfer}=syntheticTransfer(f);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-sign-source'}));let selected;
  const result=await f.lifecycle.run(()=>f.vault.withPQKeys(f.binding,(handle,binding,guard)=>{guard.assert();selected=handle;assert.deepEqual(binding,f.binding);return SDK.signPQWalletNativeTransfer(handle,transfer,snapshot);}));

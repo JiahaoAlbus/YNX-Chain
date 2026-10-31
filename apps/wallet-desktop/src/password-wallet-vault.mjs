@@ -71,6 +71,7 @@ export class PasswordWalletVault {
   #pqRecoveryDebt = new Set();
   #pqNativeCustody; #pqNativeDebt=new Set();
   #pqRestoreResults = new WeakMap();
+  #selectedPQPublicLeases = new Set();
   constructor({ filePath, legacyFilePaths = [], safeStorage, authorization, fileStore = new PasswordVaultFile(filePath), randomSecret = () => randomBytes(32).toString("hex"), now = Date.now, pqSDK = null, nativePQCustody=createOriginalNativePQCustody() } = {}) {
     if (!filePath || !authorization) throw new Error("Password Wallet requires storage and authorization");
     this.filePath = filePath; this.files = fileStore; this.legacyFilePaths = [...new Set(legacyFilePaths)]; this.safeStorage = safeStorage; this.authorization = authorization; this.randomSecret = randomSecret; this.now = now;
@@ -232,11 +233,50 @@ export class PasswordWalletVault {
   /** Main-only public proposal read. This proves protected local custody,
    * not registration or current-account authority; PoP remains separate. */
   async readPQProposalBinding(networkId){
+    const selected=await this.captureSelectedPQAccountPublic(networkId);
+    try{return selected.readPublic().publicBinding;}finally{selected.close();}
+  }
+  /** Original Main selection only. No PQ payload/KEY7/private key read occurs.
+   * Auth may compare this independently selected account with its own held
+   * device registration; this lease cannot manufacture that registration or
+   * confer Source, device proof, account approval or asset signing authority.
+   * Never install a renderer/preload/IPC path for this handle.
+   */
+  async captureSelectedPQAccountPublic(networkId){
+    if(this.#selectedPQPublicLeases.size>=64)fail('PQ_SELECTED_PUBLIC_CAPACITY','Close the original public selection before opening another.');
     const guard=this.authorization.current(),current=await this.#readUnlocked(guard),account=current.vault.activeAccount;
     if(guard.account!==account)throw cancelled();const record=current.vault.pqKeyRecords?.find(row=>row.account===account);
     if(!record)fail('PASSWORD_VAULT_PQ_ORIGINAL_REQUIRED','Create and back up the independent proposed key pair first.');
     if(record.binding.chainId!==networkId||record.binding.owner!==account)fail('PQ_KEY_BINDING_CHANGED','The proposed pair belongs to another original network or account.');
-    await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();return Object.freeze({...record.binding});
+    const security=this.authorization.status(),session=this.#session,digest=current.snapshot.digest;
+    const publicBinding=Object.freeze({...record.binding});
+    const view=Object.freeze({version:'YNX-WALLET-SELECTED-ASSET-PUBLIC/v1',purpose:'product-session-device-selection-v4',account,networkId,publicBinding,localSelectionOnly:true,chainRegistrationVerified:false,deviceRegistrationVerified:false,signingAuthorized:false,transactionAuthorized:false});
+    await this.files.assertCurrent(digest,guard);guard.assert();
+    if(this.#selectedPQPublicLeases.size>=64)fail('PQ_SELECTED_PUBLIC_CAPACITY','Close the original public selection before opening another.');
+    let retired=false,first,hasFirst=false,unsubscribe;
+    const retire=(...causes)=>{
+      retired=true;if(causes.length&&!hasFirst){hasFirst=true;first=causes[0];}
+      unsubscribe?.();this.#selectedPQPublicLeases.delete(lease);
+    };
+    const assertCurrent=()=>{
+      if(hasFirst)throw first;if(retired)throw cancelled();
+      try{
+        this.authorization.assertUnlocked();const now=this.authorization.status();
+        if(now.account!==account||now.revision!==security.revision||this.#session!==session||this.#digest!==digest)throw cancelled();
+      }catch(cause){retire(cause);throw cause;}
+    };
+    const lease=Object.freeze({
+      assertCurrent,
+      readPublic:()=>{assertCurrent();return view;},
+      recheck:async()=>{
+        assertCurrent();const originalGuard=this.authorization.current();
+        try{await this.files.assertCurrent(digest,originalGuard);originalGuard.assert();assertCurrent();}
+        catch(cause){retire(cause);throw cause;}
+      },
+      retire:()=>retire(),close:()=>retire()
+    });
+    unsubscribe=this.authorization.subscribe(state=>{if(state.locked||state.account!==account||state.revision!==security.revision)retire(cancelled());});
+    this.#selectedPQPublicLeases.add(lease);assertCurrent();return lease;
   }
   /** Explicit original-main backup callback only; never expose through preload.
    * Existing SDK envelope/credential are kept separate at the normal file/UI
