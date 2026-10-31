@@ -129,3 +129,8 @@ must not be added to those children. `sha256.blockSHA2` and `sha512.blockSHA512`
 are present in the actual profile. The whole test invocation took 185.88 seconds
 wall time and reported a peak RSS of 272,793,600 bytes; sampled signing windows
 and process CPU deltas are recorded separately per scenario.
+
+The hold statements above describe the historical d244 baseline capture. The
+subsequently authorized, isolated internal-scheduling candidate, its mixed after
+results and retained runner failure are documented in `INTERNAL_SCHEDULING.md`.
+Normal untagged builds still use the original upstream backend.

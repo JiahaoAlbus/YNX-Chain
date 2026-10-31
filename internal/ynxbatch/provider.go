@@ -160,7 +160,7 @@ func signSignaturesWithEntropy(s *privateKeyState, ma, mb []byte, parallel *Para
 	}()
 	var errA, errB error
 	parallel.runPair(func() { errA = mldsa87.SignTo(s.a, ma, nil, true, a) }, func() {
-		b, errB = slhdsa.SignRandomized(s.b, entropy, slhdsa.NewMessage(mb), nil)
+		b, errB = signProviderSLH(s.b, entropy, mb)
 	})
 	if errA != nil {
 		return a, b, errA
@@ -187,7 +187,7 @@ func signSignaturesSequential(s *privateKeyState, ma, mb []byte, entropy io.Read
 	if err = mldsa87.SignTo(s.a, ma, nil, true, a); err != nil {
 		return a, b, err
 	}
-	b, err = slhdsa.SignRandomized(s.b, entropy, slhdsa.NewMessage(mb), nil)
+	b, err = signProviderSLH(s.b, entropy, mb)
 	if err != nil {
 		return a, b, err
 	}

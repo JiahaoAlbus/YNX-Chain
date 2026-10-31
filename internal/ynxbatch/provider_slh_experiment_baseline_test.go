@@ -28,39 +28,40 @@ type slhBaselineSample struct {
 	Nanoseconds int64 `json:"nanoseconds"`
 }
 type slhBaselineResult struct {
-	Mode                string                `json:"mode"`
-	CallerScope         string                `json:"caller_scope"`
-	Provider            string                `json:"provider"`
-	Entropy             string                `json:"entropy"`
-	Context             string                `json:"context"`
-	Go                  string                `json:"go"`
-	OS                  string                `json:"os"`
-	Arch                string                `json:"arch"`
-	GOMAXPROCS          int                   `json:"gomaxprocs"`
-	NumCPU              int                   `json:"num_cpu"`
-	Callers             int                   `json:"callers"`
-	SharedKey           bool                  `json:"shared_key"`
-	SamplesPerCaller    int                   `json:"samples_per_caller"`
-	WarmupPerCaller     int                   `json:"warmup_per_caller"`
-	QuantileMethod      string                `json:"quantile_method"`
-	P50NS               int64                 `json:"p50_ns"`
-	P95NS               int64                 `json:"p95_ns"`
-	P99NS               int64                 `json:"p99_ns"`
-	WallNS              int64                 `json:"wall_ns"`
-	OperationsPerSecond float64               `json:"operations_per_second"`
-	CPUUserNS           int64                 `json:"cpu_user_ns"`
-	CPUSystemNS         int64                 `json:"cpu_system_ns"`
-	CPUCoresUsed        float64               `json:"cpu_cores_used"`
-	TotalAllocBytes     uint64                `json:"total_alloc_bytes"`
-	Mallocs             uint64                `json:"mallocs"`
-	GoroutinesBefore    int                   `json:"goroutines_before"`
-	GoroutinesAfterJoin int                   `json:"goroutines_after_join"`
-	Verified            int                   `json:"verified"`
-	TamperRejected      bool                  `json:"tamper_rejected"`
-	DestroyedKeys       int                   `json:"destroyed_keys"`
-	DestroyRejects      bool                  `json:"destroy_rejects"`
-	ProviderStats       ParallelProviderStats `json:"provider_stats"`
-	Samples             []slhBaselineSample   `json:"samples"`
+	Mode                   string                `json:"mode"`
+	CallerScope            string                `json:"caller_scope"`
+	Provider               string                `json:"provider"`
+	Entropy                string                `json:"entropy"`
+	Context                string                `json:"context"`
+	Go                     string                `json:"go"`
+	OS                     string                `json:"os"`
+	Arch                   string                `json:"arch"`
+	GOMAXPROCS             int                   `json:"gomaxprocs"`
+	NumCPU                 int                   `json:"num_cpu"`
+	Callers                int                   `json:"callers"`
+	SharedKey              bool                  `json:"shared_key"`
+	SamplesPerCaller       int                   `json:"samples_per_caller"`
+	WarmupPerCaller        int                   `json:"warmup_per_caller"`
+	QuantileMethod         string                `json:"quantile_method"`
+	P50NS                  int64                 `json:"p50_ns"`
+	P95NS                  int64                 `json:"p95_ns"`
+	P99NS                  int64                 `json:"p99_ns"`
+	WallNS                 int64                 `json:"wall_ns"`
+	OperationsPerSecond    float64               `json:"operations_per_second"`
+	CPUUserNS              int64                 `json:"cpu_user_ns"`
+	CPUSystemNS            int64                 `json:"cpu_system_ns"`
+	CPUCoresUsed           float64               `json:"cpu_cores_used"`
+	TotalAllocBytes        uint64                `json:"total_alloc_bytes"`
+	Mallocs                uint64                `json:"mallocs"`
+	GoroutinesBefore       int                   `json:"goroutines_before"`
+	GoroutinesAfterJoin    int                   `json:"goroutines_after_join"`
+	Verified               int                   `json:"verified"`
+	TamperRejected         bool                  `json:"tamper_rejected"`
+	DestroyedKeys          int                   `json:"destroyed_keys"`
+	DestroyRejects         bool                  `json:"destroy_rejects"`
+	ProviderStats          ParallelProviderStats `json:"provider_stats"`
+	ExperimentalScheduling any                   `json:"experimental_scheduling,omitempty"`
+	Samples                []slhBaselineSample   `json:"samples"`
 }
 
 func slhBaselineQuantile(sorted []int64, q float64) int64 {
@@ -122,6 +123,7 @@ func slhBaselineRun(t *testing.T, out, name, mode string, callers int, shared bo
 			t.Fatal(err)
 		}
 		keys[i] = key
+		registerSLHBaselineSyntheticKey(t, key)
 		t.Cleanup(key.Destroy)
 	}
 	metadata := Metadata{ChainID: bytes.Repeat([]byte{51}, 32), Owner: "public-synthetic-slh-baseline", Purpose: "TX-BATCH"}
@@ -159,7 +161,7 @@ func slhBaselineRun(t *testing.T, out, name, mode string, callers int, shared bo
 			// original rand.Reader and nil (empty) FIPS pure-mode context.
 			s := k.state
 			s.mu.Lock()
-			sig, e := slhdsa.SignRandomized(s.b, rand.Reader, slhdsa.NewMessage(mb), nil)
+			sig, e := signProviderSLH(s.b, rand.Reader, mb)
 			s.mu.Unlock()
 			return slhBaselineArtifact{raw: sig}, time.Since(start).Nanoseconds(), e
 		}
@@ -242,9 +244,9 @@ func slhBaselineRun(t *testing.T, out, name, mode string, callers int, shared bo
 	for e := range failures {
 		t.Fatal(e)
 	}
-	r := slhBaselineResult{Mode: mode, CallerScope: "BatchSign incl key mutex, canonical trees, dual signatures, encode; wire clone/discard excluded from latency", Provider: ProviderVersion + " SLH-DSA-SHA2-256f", Entropy: "crypto/rand.Reader unchanged; fresh synthetic KeyGen", Context: "FIPS pure mode, nil context; canonical CERT/B domain unchanged", Go: runtime.Version(), OS: runtime.GOOS, Arch: runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), NumCPU: runtime.NumCPU(), Callers: callers, SharedKey: shared, SamplesPerCaller: n, WarmupPerCaller: warmup, QuantileMethod: "nearest-rank ceil(p*N), pooled closed-loop operation latency; no confidence interval", WallNS: wall.Nanoseconds(), OperationsPerSecond: float64(callers*n) / wall.Seconds(), TotalAllocBytes: after.TotalAlloc - before.TotalAlloc, Mallocs: after.Mallocs - before.Mallocs, GoroutinesBefore: goroutines, GoroutinesAfterJoin: afterJoin}
+	r := slhBaselineResult{Mode: mode, CallerScope: "BatchSign incl key mutex, canonical trees, dual signatures, encode; wire clone/discard excluded from latency", Provider: ProviderVersion + " SLH-DSA-SHA2-256f" + slhProviderExperimentLabel(), Entropy: "crypto/rand.Reader unchanged; fresh synthetic KeyGen", Context: "FIPS pure mode, nil context; canonical CERT/B domain unchanged", Go: runtime.Version(), OS: runtime.GOOS, Arch: runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), NumCPU: runtime.NumCPU(), Callers: callers, SharedKey: shared, SamplesPerCaller: n, WarmupPerCaller: warmup, QuantileMethod: "nearest-rank ceil(p*N), pooled closed-loop operation latency; no confidence interval", WallNS: wall.Nanoseconds(), OperationsPerSecond: float64(callers*n) / wall.Seconds(), TotalAllocBytes: after.TotalAlloc - before.TotalAlloc, Mallocs: after.Mallocs - before.Mallocs, GoroutinesBefore: goroutines, GoroutinesAfterJoin: afterJoin}
 	if mode == "slh" {
-		r.CallerScope = "original upstream SLH SignRandomized + original per-key mutex; canonical CERT/B message reused; no BatchSign framing or ML-DSA"
+		r.CallerScope = "SLH backend identified by provider field + original per-key mutex; canonical CERT/B message reused; no BatchSign framing or ML-DSA"
 	}
 	cpuNS := func(v syscall.Timeval) int64 { return v.Sec*int64(time.Second) + int64(v.Usec)*1000 }
 	r.CPUUserNS = cpuNS(cpuAfter.Utime) - cpuNS(cpuBefore.Utime)
@@ -313,6 +315,7 @@ func slhBaselineRun(t *testing.T, out, name, mode string, callers int, shared bo
 		t.Fatal("tampered SLH signature accepted")
 	}
 	r.ProviderStats = provider.Stats()
+	r.ExperimentalScheduling = slhProviderExperimentSnapshot()
 	if r.ProviderStats.InFlight != 0 {
 		t.Fatal("provider worker did not join")
 	}
