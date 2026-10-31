@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
@@ -39,10 +40,19 @@ type createResult struct {
 
 func run(args []string, out io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("choose create, registration, halt, activate or proof-context")
+		return errors.New("choose create, registration, halt, activate, export, sender, presigned or proof-context")
 	}
 	if args[0] == "proof-context" {
 		return runPQLabProofContext(args[1:], out)
+	}
+	if args[0] == "export" {
+		return runPQLabExport(args[1:], out)
+	}
+	if args[0] == "sender" {
+		return runPQLabSender(args[1:], out)
+	}
+	if args[0] == "presigned" {
+		return runPQLabPreSigned(args[1:], out)
 	}
 	if args[0] != "create" && args[0] != "registration" && args[0] != "halt" && args[0] != "activate" {
 		return errors.New("unknown PQ lab operation")
@@ -54,10 +64,13 @@ func run(args []string, out io.Writer) error {
 	var pin *string
 	var index *int
 	var height *int64
-	var count, batch, p2p, rpc *int
+	var count, batch, owners, p2p, rpc *int
+	var online *bool
 	if args[0] == "create" {
 		count = fs.Int("transactions", 32, "bounded original AND transfer corpus (1..1024)")
 		batch = fs.Int("batch-size", 1, "power-of-two members per original transaction (1..1024, no waiting for batches)")
+		owners = fs.Int("owners", 1, "independent synthetic transaction owners (1..1000)")
+		online = fs.Bool("online", false, "retain new synthetic sender custody for explicit bounded signing; no network submission")
 		p2p = fs.Int("base-p2p-port", 31656, "four distinct loopback P2P ports")
 		rpc = fs.Int("base-rpc-port", 31757, "four distinct loopback RPC ports")
 	} else {
@@ -80,13 +93,17 @@ func run(args []string, out io.Writer) error {
 	var err error
 	switch args[0] {
 	case "create":
+		if *owners < 1 || *owners > consensus.MaxPQLabOwners {
+			return errors.New("explicit owners must be between 1 and 1000")
+		}
 		if err = preflightPQLabCreate(*root); err != nil {
 			return err
 		}
-		source, sourceErr := consensus.NewPQLabWorkloadSource(consensus.PQLabWorkloadOptions{Transfers: *count, BatchSize: *batch})
+		source, sourceErr := consensus.NewPQLabWorkloadSource(consensus.PQLabWorkloadOptions{Transfers: *count, BatchSize: *batch, Owners: *owners, Online: *online})
 		if sourceErr != nil {
 			return sourceErr
 		}
+		defer source.Destroy()
 		plan, createErr := consensus.GeneratePQLabNetwork(source.Migration, consensus.PQLabNetworkOptions{RootDir: *root, BaseP2P: *p2p, BaseRPC: *rpc})
 		if createErr != nil {
 			return createErr
@@ -122,6 +139,38 @@ func run(args []string, out io.Writer) error {
 	}
 	// On a broken stdout the original result/keys remain on disk. No cleanup or
 	// automatic replay is performed; the runner reconciles the original files.
+	return json.NewEncoder(out).Encode(result)
+}
+
+// This dispatch reads only the original stopped stores and PUBLIC originals.
+// The normal proof-context command remains a separate consumer of its pinned
+// output; neither step obtains authority from the untrusted proof itself.
+func runPQLabExport(args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("ynx-consensus-pq-lab export", flag.ContinueOnError)
+	fs.SetOutput(io.Discard)
+	synthetic := fs.Bool("synthetic", false, "required isolated loopback acknowledgement")
+	var o consensus.PQLabExportOptions
+	fs.StringVar(&o.RootDir, "root", "", "original four-node lab root")
+	fs.StringVar(&o.PlanSHA256, "plan-sha256", "", "independent original network plan SHA256")
+	fs.StringVar(&o.ActivationSHA256, "activation-sha256", "", "independent original activation receipt SHA256")
+	fs.StringVar(&o.TransactionFile, "transaction", "", "original public corpus/sender ABCI envelope")
+	fs.StringVar(&o.TransactionSHA256, "transaction-sha256", "", "independent exact ABCI envelope hash")
+	fs.StringVar(&o.NativeWireHash, "native-wire-hash", "", "independent exact native wire SHA256, without 0x")
+	fs.StringVar(&o.OutputDir, "output", "", "fresh public export directory; failed attempts retained")
+	fs.DurationVar(&o.TrustingPeriod, "trusting-period", 0, "explicit positive local light trusting period")
+	fs.DurationVar(&o.MaxClockDrift, "max-clock-drift", 0, "explicit positive local maximum clock drift")
+	fs.Uint64Var(&o.TrustNumerator, "trust-numerator", 0, "explicit light trust numerator")
+	fs.Uint64Var(&o.TrustDenominator, "trust-denominator", 0, "explicit light trust denominator")
+	if err := parsePQLabFlags(fs, args); err != nil {
+		return err
+	}
+	if !*synthetic {
+		return errors.New("export requires --synthetic; no public-network custody accepted")
+	}
+	result, err := consensus.ExportPQLabProof(o, time.Now().UTC())
+	if err != nil {
+		return err
+	}
 	return json.NewEncoder(out).Encode(result)
 }
 
