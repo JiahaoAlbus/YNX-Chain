@@ -126,6 +126,32 @@ type localCallerState struct {
 	active   atomic.Bool
 }
 
+func (s *localCallerState) currentOriginalCaller(r *http.Request) error {
+	if r == nil || s.request != r || s.ctx == nil || r.Context() != s.ctx || s.handle == nil || s.handle.state != s || s.conn == nil || s.conn.UnixConn == nil || s.server == nil {
+		return ErrDenied
+	}
+	if s.server.cfg.PeerUID == 0 || s.server.cfg.PeerPID <= 0 || s.material.PeerUID != s.server.cfg.PeerUID || s.material.PeerPID != s.server.cfg.PeerPID || s.material.Service != s.server.cfg.Service {
+		return ErrDenied
+	}
+	// Consult only the privately minted context, never a caller-supplied
+	// context's Value/Err callback. The request context must be that exact value.
+	if s.ctx.Value(localCallerKey{}) != s.handle {
+		return ErrDenied
+	}
+	if r.URL == nil || r.Method != s.material.Method || r.Host != s.material.Service || r.RequestURI != s.material.Path || r.URL.String() != s.material.Path || r.URL.EscapedPath() != s.material.Path || r.ProtoMajor != 1 || r.ProtoMinor != 1 || r.ContentLength != s.material.ContentLength || r.Header.Get("Content-Type") != s.material.ContentType || len(r.Header.Values("Content-Type")) > 1 || localIdentityHeader(r.Header) {
+		return ErrDenied
+	}
+	// Preserve the original cancellation/deadline cause rather than replacing
+	// an already observed context error with a generic lifecycle denial.
+	if err := s.ctx.Err(); err != nil {
+		return err
+	}
+	if !s.active.Load() || s.server.closed.Load() || s.conn.closed.Load() {
+		return ErrDenied
+	}
+	return nil
+}
+
 func (s *localCallerState) current(ctx context.Context) (LocalCallerMaterial, error) {
 	if ctx == nil || s.ctx == nil || ctx.Value(localCallerKey{}) != s.handle || s.request == nil || s.conn == nil || s.server == nil || !s.active.Load() || s.server.closed.Load() || s.conn.closed.Load() {
 		return LocalCallerMaterial{}, ErrDenied

@@ -162,6 +162,44 @@ the server invalidates its handle. OS process identity is not account, holder,
 Grant, Source or business approval; the original private Auth provider must
 independently qualify the original caller and signed call.
 
+### Synchronous same-request lifecycle fence
+
+The original Go private-request owner may retain its acquired `*LocalCaller`
+and the exact `*http.Request`, then call:
+
+```go
+err := caller.CurrentOriginalCaller(originalRequest)
+```
+
+This error-only accessor checks that same privately minted request's local
+lifecycle. It reads the original request/context, registered route and immutable
+UID/PID binding, plus cancellation, handler-active, server-retired and local
+connection-closed flags. It performs no socket/syscall/FD I/O, control message,
+callback, body copy or Store access, and takes no server/Store mutex. A copied,
+cloned, newly created or context-replaced request cannot borrow the caller. A
+value-copy of a legitimately acquired `LocalCaller` retains the same original
+capability and lifetime; it does not mint another caller.
+
+Use the existing `LocalCallerFromRequest(originalRequest)` and full
+`caller.Current(originalRequest.Context())` at the original capture boundary,
+outside a product Store lock. That full operation still checks the real OS
+UID/PID/socket and supplies the original owned opaque body. The no-I/O accessor
+is a final same-request lifecycle fence for that already captured private Auth
+lease. It returns no material, Source, principal, approval or authorization.
+Auth must retain its independent current Root, account, merchant, bill,
+operation/body, nonce and permission checks; a LINK service or a Cloud locator
+does not replace any of them. Auth may close over its own original pointer and
+caller in its private `Current` function. LINK accepts no supplied callback,
+boolean, header, JSON caller or exported context setter.
+
+No-I/O checking cannot synchronously discover an unobserved remote socket close
+or a changed external policy. Cancellation and close invalidate the fence once
+observed by the original request/connection lifecycle; remote-close tests must
+wait for that original cancellation observation. This does not replace fresh
+OS/TLS/Gate checks at boundaries that require them. Existing `Current`, private
+TLS channel accessors, Node inbound/outbound WeakMaps and retire/join/close
+ownership retain their original meanings.
+
 When that same live local caller context reaches `FixedPeerClient.Exchange`,
 the actual exchange also retains a private process-local binding. At the
 original Auth `VerifyOriginalAuthorityResponse` boundary, call:
