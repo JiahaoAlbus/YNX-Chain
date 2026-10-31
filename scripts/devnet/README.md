@@ -73,20 +73,20 @@ member results/AppHash, including fees, balances, nonce and history, without a
 projection that discards differences. Source matrices never establish final
 chain TPS or authorize skipping failure/competition/partition qualification.
 
-The real four-process PQ **ceremony** entry consumes CORE helper commit
-`56f04dae0059db75598a42de38f44d4dec434ce0` or a descendant, with its original
+The real four-process PQ functional/proof entry consumes CORE helper commit
+`a78803d31632a461df7f012e2c13e46f17c48e6d` or a descendant, with its original
 normal node source. CORE must retain that ancestor in the CI checkout history:
 
 ```sh
 python3 -B -m unittest discover -s scripts/loadtest -p test_pq_normal_process_lab.py -v
 python3 -B scripts/loadtest/pq-normal-process-lab.py \
-  --source "$GITHUB_WORKSPACE" --commit "$GITHUB_SHA" --execute
+  --source "$GITHUB_WORKSPACE" --commit "$GITHUB_SHA" --mode pre-signed --execute
 ```
 
 Use another dedicated hosted source job with the same resource admission and
 limits as above; run the current-owner diagnostic baseline first. Upload only
 `$RUNNER_TEMP/pq-normal-process-*/public/` on success or failure. It builds the
-original helper/node, starts four normal bootstrap processes, obtains each
+original helper/node/verifier, starts four normal bootstrap processes, obtains each
 validator registration once at the actual common next height, posts its exact
 ABCI bytes once and observes only the same hash thereafter. It uses the normal
 future height-halt publisher, waits for all four original nodes to exit, invokes
@@ -95,15 +95,32 @@ FD mapped to 3. No credential bytes enter argv, environment or public artifacts.
 Current AppHash is compared with original ABCI Info; Comet status's latest header
 AppHash is the previous application boundary and is not substituted.
 
-This entry deliberately **does not qualify finality or measure a load window**.
-It retains RPC execution/automatic-successor observations, ACK/UNKNOWN, original
-hashes, monotonic observation points, actual process/resource data and explicit
-registration/preparation/functional traffic counts. The corpus currently has
-one source owner. Completing this ceremony is neither a many-account benchmark
-nor proof of dual-PQ quorum. CORE still needs the normal stopped BlockStore/App
-export of independent pinned proof materials and original H/H+1 transaction
-proof, then the existing `proof-context` and verifier CLI. Do not manufacture a
-trusted light block from these RPC responses. Private original files remain in
-this job for that normal exporter; never upload/clone custody or repeat the
-registration/activation ceremony after UNKNOWN.
+Run `--mode online` in a separate fresh admitted job for the original protected
+sender path. Modes are never pooled. Eight independent original synthetic owners
+reserve four for preparation and four for functional transfers; each has one
+outstanding operation, no batch wait and no replay of UNKNOWN. Before dispatch,
+an immutable four-request plan retains the complete functional denominator.
+Pre-signed requests select the exact current owner/nonce from the original
+owner-major manifest. Online requests use the original credential-FD sender,
+save originals once, and close functional pending operations only through its
+normal independent-proof `confirm`; unresolved preparation operations remain.
+
+After original H/H+1 observations, stop all four normal nodes, require identical
+full committed-state file hashes, then invoke the original stopped-store
+`export`, pinned `proof-context` and normal `ynx-consensus-proof-verify` CLI.
+Qualify only successful original dual-hash transaction DATA, with nativeGrant
+false. Original RPC observations are immutable and separately linked by SHA256.
+Only public proof subtrees are uploaded, never custody, credentials, HRS or DBs.
+
+The entry records parent-monotonic checkpoint wait, original sender dispatch,
+broadcast round trip, all-node inclusion observation, successor availability,
+stopped export, proof-context, verifier and online-confirm intervals. Dispatch
+includes original CLI startup, validation and durable publication; it is not a
+crypto-only timer. Inclusion is a polled upper bound, not a physical block clock.
+Qualified return includes cohort completion, shutdown/export/verification and
+is not continuous-load finality latency. Four successful functional proofs
+cannot establish stable TPS, finality P95, byte saturation or independent fault
+domains. Those four formal metrics remain UNMEASURED until the separately
+scheduled same-condition sustained windows. Never repeat the ceremony after
+UNKNOWN or manufacture trusted light blocks from RPC responses.
 
