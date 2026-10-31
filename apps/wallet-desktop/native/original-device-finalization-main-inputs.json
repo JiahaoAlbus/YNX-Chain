@@ -1,0 +1,48 @@
+{
+  "kind": "YNX_WALLET_COLD_FINALIZATION_MAIN_NATIVE_SOURCE_INPUTS/v1",
+  "supplierManifestSHA256": "82685513ffce0b494ca9a0d20d3ab307824d20736bd218dcdab1925f783f7309",
+  "guardedMainNodeOnlyTwoHunks": true,
+  "inputs": [
+    {
+      "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "bytes": 63871,
+      "sha256": "4af4e41ae995d559fb31ce402abac3dfafe5cb797fe01a6ac353353c26102f2d"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-device-registered-finalization-source.inc.mm",
+      "bytes": 31005,
+      "sha256": "599ffee8e86303fed73baaf1b5218faf6b7e1b9c3f8097bd609751788c4d277f"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-device-finalization-storage-correlation.inc",
+      "bytes": 7075,
+      "sha256": "f2e7d39ee6803b072902bd52db3f97ee848eb885c35dcb5a72469a699f8ac7dc"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-association-keychain.mm",
+      "bytes": 10313,
+      "sha256": "508d4588dc4ca6d33fcfdd8e6698d7cfe0624bed4e2cd687ec14cc12662ac829"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-registered-finalization.h",
+      "bytes": 5637,
+      "sha256": "5dea74ae1bc2b0a8249ae059d042e1b296596aeb7186f48e9c704a8d7ed95dc9"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-product-device-v4-registered-finalization.mm",
+      "bytes": 14907,
+      "sha256": "8b8fd6a5ecf581f52cfc46048263c787b90f937a3a8fa4fc90394dc35e4b22b7"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-registered-finalization-keychain-methods.inc",
+      "bytes": 8039,
+      "sha256": "4c1151057a628d56dbd16c27f5c8d7f614735081bed065bc2b93b68aef218fd9"
+    }
+  ],
+  "coherentSyntaxTranslationUnits": 3,
+  "coherentSyntaxPassed": true,
+  "fullNativeRoleBuilt": false,
+  "SourceAdmission": false,
+  "RootAdmission": false,
+  "AppInstalled": false
+}

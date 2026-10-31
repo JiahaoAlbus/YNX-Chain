@@ -1,4 +1,4 @@
-#include "original-product-device-v4-provisioning.h"
+#include "original-product-device-v4-registered-finalization.h"
 #import <Security/Security.h>
 #import <LocalAuthentication/LocalAuthentication.h>
 #include <CommonCrypto/CommonDigest.h>
@@ -23,12 +23,12 @@ static void fail(const char*c){throw std::runtime_error(c);}
 static bool hex64(const std::string&s){return s.size()==64&&std::all_of(s.begin(),s.end(),[](char c){return(c>='0'&&c<='9')||(c>='a'&&c<='f');});}
 static NSString*ns(const std::string&s){NSString*n=[[NSString alloc]initWithBytes:s.data() length:s.size() encoding:NSUTF8StringEncoding];if(!n)fail("DEVICE_ASSOCIATION_UTF8");return n;}
 static std::string text(NSData*d){return std::string((const char*)d.bytes,d.length);}
-static NSData*bytes(const std::string&s){return[NSData dataWithBytes:s.data() length:s.size()];}
+[[maybe_unused]] static NSData*bytes(const std::string&s){return[NSData dataWithBytes:s.data() length:s.size()];}
 static std::string hash(const std::string&s){unsigned char h[32];CC_SHA256(s.data(),(CC_LONG)s.size(),h);const char*x="0123456789abcdef";std::string out;for(auto b:h){out+=x[b>>4];out+=x[b&15];}return out;}
 static void field(NSMutableData*d,const void*p,size_t n){if(n>65536)fail("DEVICE_ASSOCIATION_BOUND");uint8_t b[4]={(uint8_t)(n>>24),(uint8_t)(n>>16),(uint8_t)(n>>8),(uint8_t)n};[d appendBytes:b length:4];[d appendBytes:p length:n];}
 struct SecretDataGuard{NSMutableData*__strong data;explicit SecretDataGuard(NSMutableData*d):data(d){}~SecretDataGuard(){@try{if(data.length)[data resetBytesInRange:NSMakeRange(0,data.length)];}@catch(id){}data=nil;}};
 static NSMutableDictionary*query(){LAContext*c=[LAContext new];c.interactionNotAllowed=YES;return[@{(__bridge id)kSecClass:(__bridge id)kSecClassGenericPassword,(__bridge id)kSecAttrService:service,(__bridge id)kSecAttrSynchronizable:@NO,(__bridge id)kSecUseDataProtectionKeychain:@YES,(__bridge id)kSecUseAuthenticationContext:c}mutableCopy];}
-class KeychainDeviceAssociation final:public OriginalDeviceAssociationStore {
+class KeychainDeviceAssociation final:public OriginalRegisteredDeviceFinalizationStore {
  std::thread::id actor_=std::this_thread::get_id();uid_t uid_=getuid();
  void actor(){if(uid_==0||getuid()!=uid_||geteuid()!=uid_||getgid()!=getegid()||std::this_thread::get_id()!=actor_||!pthread_main_np())fail("DEVICE_ASSOCIATION_ACTOR");}
  DeviceAssociationIdentity observe(NSDictionary*entry,const std::string&network){
@@ -53,7 +53,9 @@ public:
  }
  DeviceAssociationIdentity readPublic(const std::string&network,const std::string&digest)override{actor();if(!hex64(network)||!hex64(digest))fail("DEVICE_ASSOCIATION_SCOPE");NSMutableDictionary*q=query();q[(__bridge id)kSecAttrAccount]=ns("uid:"+std::to_string(uid_)+":network:"+network+":registration:"+digest);auto i=read(q,network);if(i.metadata.empty())fail("DEVICE_ASSOCIATION_NOT_REGISTERED");return i;}
  DeviceAssociationIdentity readPendingPublic(const std::string&network,const std::string&op)override{actor();if(!hex64(network)||!hex64(op))fail("DEVICE_ASSOCIATION_SCOPE");NSMutableDictionary*q=query();q[(__bridge id)kSecAttrAccount]=ns("uid:"+std::to_string(uid_)+":device-provision:"+op);auto i=read(q,network);if(i.operation!=op||!i.metadata.empty())fail("DEVICE_ASSOCIATION_NOT_PENDING");return i;}
+#include "original-registered-finalization-keychain-methods.inc"
  void assertIdentity(const DeviceAssociationIdentity&i)override{actor();NSMutableDictionary*q=query();q[(__bridge id)kSecAttrAccount]=ns(i.account);q[(__bridge id)kSecValuePersistentRef]=[[NSData alloc]initWithBase64EncodedString:ns(i.persistentRef) options:0];auto now=read(q,i.network);if(now.account!=i.account||now.persistentRef!=i.persistentRef||now.metadata!=i.metadata||now.operation!=i.operation||now.osIdentity!=i.osIdentity||now.publicPair.pa!=i.publicPair.pa||now.publicPair.pb!=i.publicPair.pb)fail("DEVICE_ASSOCIATION_IDENTITY_CHANGED");}
 };
 std::shared_ptr<OriginalDeviceAssociationStore>openOriginalDeviceAssociationKeychainStore(){return std::make_shared<KeychainDeviceAssociation>();}
+std::shared_ptr<OriginalRegisteredDeviceFinalizationStore>openOriginalRegisteredDeviceFinalizationKeychainStore(){return std::make_shared<KeychainDeviceAssociation>();}
 }
