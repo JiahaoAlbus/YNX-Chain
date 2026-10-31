@@ -1,0 +1,27 @@
+{
+  "profile": "YNX-CLOUD-DEPLOYMENT-MANIFEST/v2",
+  "status": "IMPLEMENTED_DATA_PROFILE_PARENT_SOLE_OPEN_DECISION",
+  "decisionSource": "Parent /root sole OPEN implementation decision under current Root V5 specific shared SDK authorization, 2026-10-31; this is new WIRE, not a pre-existing deployed contract",
+  "framing": "E = U32BE(count) || (U32BE(byteLength(field)) || field)*",
+  "inputExactKeys": ["realm", "tenant", "project", "version", "artifact", "env", "publisher", "publisherEpoch", "issuer", "issuerEpoch"],
+  "payloadOriginalE11": ["domain UTF8", "realm UTF8", "tenant UTF8", "project RefE5", "version U64BE", "artifact FileObjE5", "env UTF8", "publisher RefE5", "publisherEpoch U64BE", "issuer RefE5", "issuerEpoch U64BE"],
+  "fullRefE5": ["realm UTF8", "tenant UTF8", "kind UTF8", "id UTF8", "rev U64BE"],
+  "fileObjE5": ["ref RefE5", "content BindE3", "size U64BE", "mime ASCII", "objectKey UTF8"],
+  "bindE3": ["actual length U64BE", "SHA3-512 raw64", "SHA-512 raw64"],
+  "allU64": "Canonical decimal strings externally, 0..18446744073709551615 inclusive; exactly 8 unsigned big-endian bytes in WIRE",
+  "utf8Profile": "Nonempty strict UTF8, <=256 bytes per field, no unpaired UTF16 surrogate, no normalization/ID padding/hex guessing",
+  "mime": "Nonempty printable ASCII 0x20..0x7e, <=256 bytes, explicitly selected",
+  "env": "Explicit nonempty UTF8 <=256bytes, no leading/trailing Unicode whitespace or control characters; old manifest selection semantics retained",
+  "objectKey": "Explicit original opaque UTF8 key <=256bytes; control characters and URL scheme:// or // prefix rejected; never generated/normalized; actual path/catalog/tenant authorization remains original Cloud Source",
+  "bindings": {
+    "artifact.content": "Bind(exact actual artifact bytes); size equals content.bytes, <=67108864",
+    "manifest.binding": "Bind(exact payloadOriginal E11 bytes); external wrapper, never a self-referential field"
+  },
+  "maxManifestBytes": 16384,
+  "scopeEqualities": ["project.realm/tenant = top realm/tenant", "artifact.ref.realm/tenant = top realm/tenant", "publisher.realm/tenant = top realm/tenant"],
+  "publisher": "V2 signature subject; publisherEpoch is explicit subject epoch independent of Ref.rev",
+  "issuer": "Explicit original Auth issuer fullRef/epoch, not defaulted or trusted by equality; different realm/tenant allowed as DATA",
+  "excluded": ["requestId", "expectedSlotRevision", "rollbackTo", "generation", "deploymentId", "sourceBind", "signature", "approval", "permission"],
+  "decoder": "Bounded exact E11/nested fixed counts, strict UTF8/U64/bytes/scope; re-encode and compare exact payload bytes; optional independent expected full Bind",
+  "actualAdmission": {"source": false, "signature": false, "publisherCurrent": false, "serviceCallerWired": false, "deployment": false, "rollback": false}
+}
