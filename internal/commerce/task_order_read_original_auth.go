@@ -281,6 +281,14 @@ func (s *Store) readOriginalTaskOrderAtEffect(ctx context.Context, held *authgra
 	source := call.Binding.Sources[0]
 	source.Fields = append([]string(nil), source.Fields...)
 	expected := OriginalShopTaskOrderResponse{Binding: copyShopTaskOrderCall(call).Binding, Operation: operation, Projection: projection, Source: source, AuthScope: decision.Scope}
+	// Bind the ACTUAL original Store projection through the sole SDK DATA
+	// encoder before any response authority sees a signing request. A custom
+	// envelope codec cannot substitute different bytes with a matching declared
+	// source, or redefine source canonicalization. Ref.rev remains Source-owned.
+	frozen, err := encodeOriginalShopOrderDATA(copyShopTaskResponse(expected))
+	if err != nil {
+		return taskOrderReadPayload{}, err
+	}
 	attestCalls := 0
 	var attestFailure error
 	attest := func(callbackContext context.Context, sourceBytes, payload []byte) (authgrant.Proof, error) {
@@ -293,7 +301,7 @@ func (s *Store) readOriginalTaskOrderAtEffect(ctx context.Context, held *authgra
 			attestFailure = e
 			return authgrant.Proof{}, e
 		}
-		if attestCalls != 1 || len(payload) == 0 || len(payload) > maxBody || taskOrderBytesBinding(sourceBytes) != call.Binding.Sources[0].Binding {
+		if attestCalls != 1 || len(payload) == 0 || len(payload) > maxBody || !bytes.Equal(sourceBytes, frozen.SourceBytes) {
 			attestFailure = ErrConflict
 			return authgrant.Proof{}, attestFailure
 		}
@@ -324,7 +332,7 @@ func (s *Store) readOriginalTaskOrderAtEffect(ctx context.Context, held *authgra
 	if attestCalls != 1 {
 		return taskOrderReadPayload{}, ErrUnavailable
 	}
-	if taskOrderBytesBinding(encoded.SourceBytes) != call.Binding.Sources[0].Binding {
+	if !bytes.Equal(encoded.SourceBytes, frozen.SourceBytes) {
 		return taskOrderReadPayload{}, ErrConflict
 	}
 	// Encoding may run code at an SDK boundary. Recheck while still holding

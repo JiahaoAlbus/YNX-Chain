@@ -1,0 +1,209 @@
+{
+  "originalSDKCommit": "88db5b7c78da1da4ca7469439f64416367a40bcc",
+  "originalAuthPolicyCommit": "7a5c07c629c15755be95c0786bb06cb431a8fb60",
+  "corePackage": "core-go-verification-source-fdc-20261031-r1",
+  "coreSourceManifestSHA256": "8cc60774c16472bd4c0e0b21b6fcd9930a729e3460551827ff4d532d753e6ed4",
+  "authRuntimeHandoffSHA256": "599acc000c4c863352b07ff787d39080e5baa8d64200ca6c8d563e0fbd2f869b",
+  "normalSDKComposition": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/normal-go-runtime-integration-v5-20261031",
+  "go": "1.26.10",
+  "sourceAdmitted": false,
+  "normalGoWork": "off",
+  "absoluteReplace": false,
+  "pins": [
+    {
+      "path": "go.mod",
+      "bytes": 4926,
+      "sha256": "04452972e43ab74a8c0e91ee00541d596a53b468937f6a0d0ddb6382bfaacc12"
+    },
+    {
+      "path": "go.sum",
+      "bytes": 37808,
+      "sha256": "f7ff6b8a3699d8c89c3c24f9e904f95f48e74495adda6a041b70a537c44fd7ed"
+    },
+    {
+      "path": "internal/accountaddress/address.go",
+      "bytes": 5709,
+      "sha256": "9854a581af2e42b0b29ce60f69002eaddabfeef1907b9fcf1b78ac9595acc8ac"
+    },
+    {
+      "path": "internal/ynxbatch/artifact_publication.go",
+      "bytes": 12934,
+      "sha256": "d47936adacc71c093bce15f6801553f849de728edf1af1f228d2d3a0cc85e962"
+    },
+    {
+      "path": "internal/ynxbatch/certificate_cache.go",
+      "bytes": 3033,
+      "sha256": "b24c173e8bcac5b179e73064893832a6da561a165cf4705874057b805eb6ef90"
+    },
+    {
+      "path": "internal/ynxbatch/codec.go",
+      "bytes": 10489,
+      "sha256": "e92ab044072c4c410e769df912a927bb29ba1d5709f4642c066da7c7038203d2"
+    },
+    {
+      "path": "internal/ynxbatch/key_material.go",
+      "bytes": 6348,
+      "sha256": "8e110786013ba79d3cb0a834fe7c7faa3581af2c6bc218eb451f2e5250a756dd"
+    },
+    {
+      "path": "internal/ynxbatch/parallel_provider.go",
+      "bytes": 2970,
+      "sha256": "31ee65025f33a6dc752c9ba9d24220753928a72466e2db5c22d39c6c69b29bfe"
+    },
+    {
+      "path": "internal/ynxbatch/product_device_v4.go",
+      "bytes": 17397,
+      "sha256": "2031531734f67a1a57dd1fa59fe75ef877a3448019d213057d6b9de3f6e567c8"
+    },
+    {
+      "path": "internal/ynxbatch/product_session_http.go",
+      "bytes": 16643,
+      "sha256": "bb407c3706238dd8137e2d0da2a1241bf10abfa8e4615256387ca4d053d68ac3"
+    },
+    {
+      "path": "internal/ynxbatch/project_control.go",
+      "bytes": 19332,
+      "sha256": "579e20dcff1c01db86c9b72dd254af390fff19f8832d7bf27b209831ff7c26f3"
+    },
+    {
+      "path": "internal/ynxbatch/provider.go",
+      "bytes": 5818,
+      "sha256": "18b57e0165ef1f403f2278429c03786bcdec69d8604be1a7b00cd902fc9b2872"
+    },
+    {
+      "path": "internal/ynxbatch/publisher_registration.go",
+      "bytes": 19245,
+      "sha256": "48b95eb168de221472c87347aff90776e7ac8f1ff0711ebbca6243c19a9c0a35"
+    },
+    {
+      "path": "internal/ynxbatch/sign.go",
+      "bytes": 3768,
+      "sha256": "ba3537bacac9813098fb02dad51e289b3cb8d6ce5586f5c01536df8b429c02b7"
+    },
+    {
+      "path": "internal/ynxbatch/tree.go",
+      "bytes": 3853,
+      "sha256": "2affe538430a6bca557ecd7a726dbe750bebc51b1983c2c3df241adf1e6fb387"
+    },
+    {
+      "path": "internal/ynxbatch/verify.go",
+      "bytes": 9493,
+      "sha256": "b75f0a913574d08d3d9bac3f01d06d8bbbf106bdc802a7c8349b74560587fdb8"
+    },
+    {
+      "path": "licenses/github.com/cloudflare/circl@v1.6.5/LICENSE",
+      "bytes": 3028,
+      "sha256": "b0da1764fe4d13d610b695536fc3f2ebc362482d053a1cd258e36975bc6b97a7"
+    },
+    {
+      "path": "licenses/golang.org/x/crypto@v0.57.0/LICENSE",
+      "bytes": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "licenses/golang.org/x/crypto@v0.57.0/PATENTS",
+      "bytes": 1303,
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+    },
+    {
+      "path": "licenses/golang.org/x/net@v0.60.0/LICENSE",
+      "bytes": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "licenses/golang.org/x/net@v0.60.0/PATENTS",
+      "bytes": 1303,
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+    },
+    {
+      "path": "licenses/golang.org/x/sys@v0.48.0/LICENSE",
+      "bytes": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "licenses/golang.org/x/sys@v0.48.0/PATENTS",
+      "bytes": 1303,
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+    },
+    {
+      "path": "licenses/golang.org/x/text@v0.42.0/LICENSE",
+      "bytes": 1453,
+      "sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+    },
+    {
+      "path": "licenses/golang.org/x/text@v0.42.0/PATENTS",
+      "bytes": 1303,
+      "sha256": "96f408bfae65bf137fc2525d3ecb030271c50c1e90799f87abf8846d8dd505cc"
+    },
+    {
+      "path": "packages/auth-grant-runtime/go/go.mod",
+      "bytes": 668,
+      "sha256": "bc1531eb94ef0c3c34acde6d9f92f228c9ad78ca2181e3d98fcfb40f80c6a4bf"
+    },
+    {
+      "path": "packages/auth-grant-runtime/go/go.sum",
+      "bytes": 793,
+      "sha256": "19d0d4e704482ce1c982d72da9497d51e2ab5d8b6d1273357984a3d5cbf83765"
+    },
+    {
+      "path": "packages/auth-grant-runtime/go/protected.go",
+      "bytes": 3811,
+      "sha256": "48bcf931ea1cd38d4468be86c422f88c4d9d7bb8ed2bf202efc88573109feff9"
+    },
+    {
+      "path": "packages/auth-grant-runtime/go/request_metadata.go",
+      "bytes": 7813,
+      "sha256": "250247234dd4ed4026863a6b0f1cd85b557778a09f3a5cc708577c0376344ab1"
+    },
+    {
+      "path": "packages/auth-grant-runtime/go/runtime.go",
+      "bytes": 16798,
+      "sha256": "9b28c21cae3097ae39c1e4bdccc66594705b84fcb71699c0654c02ef3da29400"
+    },
+    {
+      "path": "packages/open-protocol/go/bound_grant.go",
+      "bytes": 19501,
+      "sha256": "6bf52601a7949e7e4455245d730b1ee7bf183a035591f1e3fa4aa9bcc802b5c0"
+    },
+    {
+      "path": "packages/open-protocol/go/bound_grant_calls.go",
+      "bytes": 1796,
+      "sha256": "5fbce257a274f896b56e255c547ed32c6acfc6e79a92aa6c79ee10c253b5f324"
+    },
+    {
+      "path": "packages/open-protocol/go/deployment_v2.go",
+      "bytes": 8511,
+      "sha256": "cf5b89c0cc5ae2db28d4fb3b6794fd01972340d84d6dc0e414c7356c99ccbf9f"
+    },
+    {
+      "path": "packages/open-protocol/go/framing.go",
+      "bytes": 1807,
+      "sha256": "aa5dcd3d73dc0e331b1def6f2083725863dfc27cc694c4acb9fbbf5bfdb4784b"
+    },
+    {
+      "path": "packages/open-protocol/go/go.mod",
+      "bytes": 75,
+      "sha256": "0f24358bad82276e55c886fa1ec87663cec668f1a6d075f79c86317e9acd52ba"
+    },
+    {
+      "path": "packages/open-protocol/go/identity_challenge.go",
+      "bytes": 4648,
+      "sha256": "f1184f27184a9a3458e53acafe1f63378b00ce4a4504835d7df2cb5b0a78719e"
+    },
+    {
+      "path": "packages/open-protocol/go/identity_event.go",
+      "bytes": 8403,
+      "sha256": "4e82b0c2fc537ee839930b7afcc8ea3c5088176f34eb5da592bcfc3e4b2658f3"
+    },
+    {
+      "path": "packages/open-protocol/go/open_envelope.go",
+      "bytes": 2595,
+      "sha256": "ce8e6d23890c83d03742dc4e3ddb945cc9264b70adb791665d73bf54b9377526"
+    },
+    {
+      "path": "packages/open-protocol/go/shop_order_read.go",
+      "bytes": 25134,
+      "sha256": "43975ffa7b45f2d11f4e76e2c530571fb5ef159ed07dcd173c4a0ccc9f0dcfdd"
+    }
+  ]
+}

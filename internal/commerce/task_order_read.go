@@ -55,6 +55,16 @@ func missingTaskOrderOperand(v any) bool {
 type PreparedOriginalShopTaskOrders struct {
 	reader  originalTaskOrderReader
 	current func(context.Context) error
+	close   func() error
+}
+
+// Close drains only runtime custody acquired by this prepared composition.
+// Caller-supplied operands from PrepareOriginalShopTaskOrders stay caller-owned.
+func (p *PreparedOriginalShopTaskOrders) Close() error {
+	if p == nil || p.close == nil {
+		return nil
+	}
+	return p.close()
 }
 
 func (p *PreparedOriginalShopTaskOrders) configured(ctx context.Context, cfg ServerConfig) (ServerConfig, error) {
