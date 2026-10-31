@@ -5,17 +5,20 @@ package payproduct
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/bftgateway"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
@@ -161,12 +164,32 @@ func TestNativePayCoreWorkflow100Refund30ColdRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	ctx := context.Background()
+	intentRequest := NativeInvoiceProductIntent{ProductID: "shop.order", StoreID: "registered-original-store", SourceOrder: "order-100", Merchant: f.Merchant, Recipient: f.Terms.Recipient, Genesis: hex.EncodeToString(f.Network), NativeChainID: strconv.FormatUint(f.NativeChainID, 10), AssetID: f.Terms.AssetID, UnitVersion: f.Terms.UnitVersion, AmountAtoms: "100", DomainData: json.RawMessage(`{"orderId":"order-100","storeId":"registered-original-store","approvalRef":"original-order-approval"}`)}
+	intentSource, intentReader := nativeIntentTestSource(t, parent, intentRequest, f.Terms)
+	privateServer, intents, err := NewPrivateNativePayServer(parent, service.cfg, intentSource, buildinfo.Info{}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	privateEndpoint := httptest.NewServer(privateServer.Handler())
+	defer privateEndpoint.Close()
+	privateClient, err := NewNativeInvoiceIntentClient(privateEndpoint.URL, privateEndpoint.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	activate(f.Rows[0])
+	originalIntent, err := privateClient.CreateInvoiceIntent(ctx, intentRequest, func() error { return nil })
+	if err != nil {
+		t.Fatal(err)
+	}
+	intentReader.snapshot.Caller = f.Merchant
 	for step, row := range f.Rows {
 		current = step
 		activate(row)
 		var prepared NativePaySigningRequest
 		if step == 0 {
-			prepared, err = service.PrepareTerms(ctx, "order-100", f.Terms)
+			var review NativeMerchantTermsReview
+			review, err = privateClient.MerchantTermsReview(ctx, originalIntent.IntentID)
+			prepared.Message = review.Message
 		}
 		if step == 1 {
 			prepared, err = service.PrepareSettlement(ctx, f.Merchant, f.Terms.InvoiceID)
@@ -180,7 +203,15 @@ func TestNativePayCoreWorkflow100Refund30ColdRecovery(t *testing.T) {
 		}
 		var op NativePayOperation
 		if step == 0 {
-			op, err = service.RegisterTerms(ctx, "order-100", row.Wire)
+			var submitted NativeInvoiceIntentView
+			submitted, err = privateClient.SubmitMerchantTerms(ctx, originalIntent.IntentID, row.Wire)
+			if err == nil {
+				state, e := service.Read(ctx, f.Merchant, f.Terms.InvoiceID)
+				if e != nil {
+					t.Fatal(e)
+				}
+				op = state.Operations[submitted.TermsNativeHash]
+			}
 		}
 		if step == 1 {
 			op, err = service.SubmitSettlement(ctx, f.Merchant, f.Terms.InvoiceID, row.Wire)
@@ -229,6 +260,10 @@ func TestNativePayCoreWorkflow100Refund30ColdRecovery(t *testing.T) {
 		if _, err = service.Reconcile(ctx, f.Merchant, f.Terms.InvoiceID, op.NativeHash); err != nil || writes != step+1 {
 			t.Fatal("finality replay changed original dispatch", err, writes)
 		}
+	}
+	intentResult, e := intents.ReadInvoiceIntent(ctx, originalIntent.IntentID)
+	if e != nil || intentResult.State != "ISSUED" || intentResult.OriginalOperation != originalIntent.OriginalOperation || intentResult.Invoice["netPaidAtoms"] != "70" {
+		t.Fatal("normal original intent reader lost independent finalized 100/30/70", e, intentResult)
 	}
 	state, err := service.Read(ctx, f.Merchant, f.Terms.InvoiceID)
 	if err != nil {

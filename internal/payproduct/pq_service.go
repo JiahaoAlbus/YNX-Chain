@@ -29,6 +29,9 @@ type NativePayAccess struct {
 	Action                                      *ynxauth.Action
 }
 type NativePayAuthorization struct {
+	// Original Source may explicitly authorize a product reader for this exact
+	// existing order/invoice/session; this is never accepted from HTTP.
+	BoundInvoiceRead              bool
 	BoundInvoiceID                string
 	BoundOrderID, BoundSessionID  string
 	ProductMerchantID             string
@@ -212,7 +215,7 @@ func (n *NativePayService) Read(ctx context.Context, merchant, id string) (Nativ
 		if !found {
 			return errors.New("native invoice not found")
 		}
-		allowed := grant.Principal == state.Merchant || grant.Principal == state.Terms.Payer || state.Terms.Payer == "" && grant.BoundOrderID == state.SourceOrder && grant.BoundSessionID == state.SessionID
+		allowed := grant.BoundInvoiceRead && grant.BoundInvoiceID == state.InvoiceID && grant.BoundOrderID == state.SourceOrder && grant.BoundSessionID == state.SessionID || grant.Principal == state.Merchant || grant.Principal == state.Terms.Payer || state.Terms.Payer == "" && grant.BoundOrderID == state.SourceOrder && grant.BoundSessionID == state.SessionID
 		if op, ok := state.Operations[state.SettlementOperation]; ok {
 			allowed = allowed || grant.Principal == op.Owner
 		}
