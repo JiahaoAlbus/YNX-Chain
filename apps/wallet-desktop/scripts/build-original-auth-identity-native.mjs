@@ -201,7 +201,10 @@ export function assertOriginalProvisioningDeviceV4Exports(text){
  assertOriginalPendingDeviceV4Exports(text);
  if(!text.split(/\r?\n/).some(line=>/\b[Tt]\s+_YNXProductSessionDeviceKeypairGenerateV4$/.test(line.trim())))throw Error('AUTH_PROVISIONING_DEVICE_V4_EXPORT_MISSING');
 }
-if(process.argv[1]&&path.resolve(process.argv[1])===here){
+if(process.argv[1]&&path.resolve(process.argv[1])===here&&process.argv[2]==='device-http-v5'){
+ execFileSync(process.execPath,[path.join(path.dirname(here),'build-original-http-v5-native.mjs'),...process.argv.slice(3)],{stdio:'inherit'});
+}
+if(process.argv[1]&&path.resolve(process.argv[1])===here&&process.argv[2]!=='device-http-v5'){
  const queryV4=process.argv[2]==='device-v4-query',provisioningV4=process.argv[2]==='device-v4-provisioning',pendingV4=process.argv[2]==='device-v4-pending',deviceV4=process.argv[2]==='device-v4',helperOnly=process.argv[2]==='helper',ioOnly=process.argv[2]==='source-current-io',headers=ioOnly||deviceV4||pendingV4||provisioningV4||queryV4?process.argv[4]:process.argv[3];
  if(!ioOnly&&process.platform!=='darwin')throw Error('AUTH_NATIVE_MAC_ONLY');
  if(ioOnly&&process.platform==='linux'&&process.argv[3]!==process.arch)throw Error('AUTH_SOURCE_CURRENT_IO_CROSS_COMPILER_NOT_SUPPLIED');
