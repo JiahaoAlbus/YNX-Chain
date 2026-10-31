@@ -22,7 +22,7 @@ test('IDE source input cannot change a byte, borrow an older prefix or acquire a
  assert.throws(()=>bind({compositionRaw:Buffer.concat([compositionRaw,Buffer.from('\n')])}));
  const changed=JSON.parse(compositionRaw);changed.nativeComponent={kind:'invented'};changed.newRuntimeQualified=true;
  assert.throws(()=>bind({compositionRaw:Buffer.from(JSON.stringify(changed))}));
- const older=execFileSync('git',['show','d1e5c18498780c3f3b448ccbf5f6708067d7684e:runtime-projections/sdk49-full/SDK49_COMPLETE_NORMAL_PREFIX_FILE_INVENTORY.json'],{cwd:root});
+ const older=execFileSync('git',['show','d1e5c18498780c3f3b448ccbf5f6708067d7684e:runtime-projections/sdk49-full/SDK49_COMPLETE_NORMAL_PREFIX_FILE_INVENTORY.json'],{cwd:root,maxBuffer:4<<20});
  assert.throws(()=>bind({inventoryRaw:older}));
 });
 test('source-only successor does not carry the previous compiled module or its executed record',()=>{
