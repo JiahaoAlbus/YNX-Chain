@@ -591,8 +591,16 @@ class ArtifactIntakeControls(unittest.TestCase):
         for key, value in changes.items():
             after = self.machine()
             after[key] = value
-            with self.subTest(key=key), self.assertRaises(intake.Refused):
-                intake.hardware_qualification(self.machine(), after)
+            with self.subTest(key=key):
+                if key in ('architecture', 'goVersion', 'affinityCount', 'probeGOMAXPROCS'):
+                    with self.assertRaises(intake.Refused):
+                        intake.hardware_qualification(self.machine(), after)
+                else:
+                    result = intake.hardware_qualification(self.machine(), after)
+                    self.assertIs(result['performanceComparisonQualified'], False)
+                    self.assertIs(result['samePhysicalHostClaim'], False)
+                    self.assertEqual(result['differentFields'], [key])
+                    self.assertEqual(result['reason'], 'actual-runner-hardware-or-image-differs')
         missing = self.machine()
         missing.pop('cpuModels')
         with self.assertRaises(intake.Refused):

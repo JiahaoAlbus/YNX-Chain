@@ -1,8 +1,14 @@
 name: PQ complete source comparisons
 
-# Original CORE is the sole dispatcher. No push, PR, schedule or retry starts
-# another 528-input record. Original B8 before is downloaded, never regenerated.
+# Original CORE dispatches only this isolated branch. No PR, schedule or retry
+# starts another 528-input record. Original B8 before is never regenerated.
 on:
+  push:
+    branches: [codex/ynx-pq-source-compare-20261031]
+    paths:
+      - '.github/workflows/pq-source-compare.yml'
+      - 'scripts/loadtest/pq-source-artifact-intake.py'
+      - 'scripts/loadtest/pq-source-artifact-intake_test.py'
   workflow_dispatch:
 
 permissions:

@@ -234,7 +234,12 @@ def hardware_qualification(before, after, allow_missing=False):
     if before is None and allow_missing:
         return dict(performanceComparisonQualified=False, reason='original-before-hardware-NOT_SUPPLIED', samePhysicalHostClaim=False)
     typed(before)
-    require(all(before[key] == after[key] for key in HARDWARE_KEYS), 'actual runner hardware/configuration differs; no performance qualification')
+    differences = [key for key in HARDWARE_KEYS if before[key] != after[key]]
+    if differences:
+        # Full original-state comparison is independent of machine identity.
+        # Preserve its result, but never qualify a cross-configuration speedup.
+        return dict(performanceComparisonQualified=False, samePhysicalHostClaim=False,
+                    reason='actual-runner-hardware-or-image-differs', differentFields=differences)
     require(after['affinityCount'] == 2 and after['probeGOMAXPROCS'] == 1 and after['goVersion'] == 'go1.26.10', 'fixed two-CPU Go configuration differs')
     return dict(performanceComparisonQualified=True, samePhysicalHostClaim=False, reason='paired-same-configuration-source-measurements-only')
 
