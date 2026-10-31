@@ -1,4 +1,12 @@
 const labels = Object.freeze({
+  networkId: "网络标识 / Network", canonicalOwner: "所选资产账户 / Selected asset account",
+  productId: "应用 / App", clientId: "客户端 / Client", platform: "系统 / Platform",
+  applicationId: "应用标识 / Application", bundleId: "Bundle ID", packageId: "Package ID",
+  origin: "请求来源 / Origin", callback: "返回地址 / Callback", deviceId: "设备标识 / Device",
+  generation: "设备密钥代次 / Device key generation", operationId: "本次操作 / Operation",
+  issuedAt: "请求时间 / Issued", expiresAt: "截止时间 / Expires",
+  binding: "完整创建条款指纹 / Exact creation terms fingerprints",
+  stableIdentityBinding: "固定设备身份指纹 / Stable device identity fingerprints",
   account: "Account", from: "From", to: "Recipient", chainId: "Network",
   value: "Amount", data: "Call data", message: "Message", messageHex: "Message bytes",
   domain: "Signing domain", types: "Type definitions", primaryType: "Primary type",
@@ -48,7 +56,8 @@ export function formatApprovalReview(review) {
     } else if (field === "chainId" && ["0x1917", "6423"].includes(content)) {
       content = "YNX Testnet · 6423 (0x1917)";
     }
-    lines.push(`${labels[field] ?? field}: ${visibleText(content)}`);
+    const label=review.purpose==='device.create'&&field==='domain'?'设备创建用途 / Device creation domain':review.purpose==='device.create'&&field==='nonce'?'本次请求唯一值 / Request nonce':labels[field]??field;
+    lines.push(`${label}: ${visibleText(content)}`);
   }
   return lines.join("\n\n");
 }

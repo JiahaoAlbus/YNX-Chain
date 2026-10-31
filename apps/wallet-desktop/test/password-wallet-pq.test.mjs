@@ -32,6 +32,10 @@ import {createPublicWalletEvent} from './public-transaction-electron-fixture.mjs
 registerHooks({resolve(specifier,context,next){return next(specifier==='electron'?new URL('./public-transaction-electron-fixture.mjs',import.meta.url).href:specifier,context);}});
 const transactionAuth=await import('../src/original-policy-supplier/transaction-permission.mjs');
 const device=await import('../src/original-policy-supplier/device-create-approval.mjs');
+const deviceReview=await import('../src/original-policy-supplier/device-create-review.mjs');
+import {createOriginalDeviceCreateIntentDATA} from '@ynx-chain/wallet-auth/original-device-create-intent';
+import {productPlatformBinding} from '../../../packages/wallet-auth/src/product-session-registry.js';
+import {formatApprovalReview} from '../src/approval-review-display.mjs';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {createProductSessionRequest,encodeProductSessionWalletURL,ynxAddressFromEVM,productSessionRequestDigest,productSessionApprovalDigest} from '@ynx-chain/wallet-auth';
@@ -824,62 +828,65 @@ test('session cause summaries preserve falsy causes without copying diagnostic p
  const error=Object.assign(Error('PRIVATE_DIAGNOSTIC_DO_NOT_COPY'),{data:{code:'QA_SOURCE_FAILURE'}});assert.deepEqual(sessionOriginalCause(error),{kind:'error',value:null,code:'QA_SOURCE_FAILURE'});assert.equal(JSON.stringify(sessionOriginalCause(error)).includes('PRIVATE_DIAGNOSTIC'),false);
 });
 
-test('device-create approval keeps an original local-window peer, one review and a separate purpose',async t=>{
+async function deviceCreateFixture(t){
  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'PUBLIC-device-create'}));
  const selected=await f.lifecycle.run(()=>f.vault.captureSelectedPQAccountPublic(CHAIN));t.after(()=>selected.close());
- const event=createPublicWalletEvent(),capsule=device.captureOriginalWalletDeviceCreateApprovalIPC(event,'original-device-create',selected);
- const peer=device.claimOriginalWalletDeviceCreateApproval(capsule,'original-device-create');
+ const product=productPlatformBinding(PRODUCT_SESSION_REGISTRY,'developer','macos'),at=Date.now();
+ const input={networkId:CHAIN,canonicalOwner:f.account,account:ynxAddressFromEVM(f.account),...Object.fromEntries(['productId','clientId','platform','applicationId','bundleId','packageId','origin','callback'].map(k=>[k,product[k]])),deviceId:'PUBLIC-device-original',generation:'1',operationId:'PUBLIC-device-create-op',nonce:'3'.repeat(64),issuedAt:new Date(at).toISOString(),expiresAt:new Date(at+30000).toISOString()};
+ const make=(delta={})=>createOriginalDeviceCreateIntentDATA({...input,...delta});
+ const prepare=(delta={})=>{const view=make(delta),review=deviceReview.prepareOriginalWalletDeviceCreateReviewDATA(new TextEncoder().encode(view.approvedTerms),selected);t.after(()=>review.close());return {review,view};};
+ return {...f,selected,make,prepare,input};
+}
+test('device-create approval keeps one original exact byte review and a separate purpose',async t=>{
+ const f=await deviceCreateFixture(t),{review,view}=f.prepare(),event=createPublicWalletEvent(),capsule=device.captureOriginalWalletDeviceCreateApprovalIPC(event,review);
+ assert.throws(()=>device.captureOriginalWalletDeviceCreateApprovalIPC(event,review),{code:'AUTH_DEVICE_CREATE_REVIEW_ALREADY_DECIDED'});
+ const peer=device.claimOriginalWalletDeviceCreateApproval(capsule,review);
  try{
-  const decision=peer.readOriginalDecision();assert.equal(decision.purpose,'device.create');assert.equal(decision.reviewId,'original-device-create');assert(Object.isFrozen(decision));
-  assert.equal(Date.parse(decision.expiresAt)-Date.parse(decision.issuedAt),30000);
-  assert.equal(device.isOriginalWalletDeviceCreateApprovalPeer(peer),true);
-  assert.equal(device.isOriginalWalletDeviceCreateApprovalPeer({...peer}),false);
-  assert.equal(device.isOriginalWalletDeviceCreateApprovalPeer(decision),false);
-  assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(capsule,'original-device-create'));
-  device.retireUnusedOriginalWalletDeviceCreateApproval(capsule);assert.equal(peer.assertCurrent(),undefined);
+  const decision=peer.readOriginalDecision();assert.equal(decision.purpose,'device.create');assert.equal(decision.reviewId,review.id);assert(Object.isFrozen(decision));
+  assert.equal(decision.approvedTerms,view.approvedTerms);assert.deepEqual(decision.binding,view.binding);assert.deepEqual(decision.stableIdentityBinding,view.stableIdentityBinding);assert.equal(decision.stableDeviceIdentity,view.stableDeviceIdentity);
+  assert(Date.parse(decision.expiresAt)<=Date.parse(view.terms.expiresAt));assert(Date.parse(decision.expiresAt)-Date.parse(decision.issuedAt)<=30000);
+  assert.equal(device.isOriginalWalletDeviceCreateApprovalPeer(peer),true);assert.equal(device.isOriginalWalletDeviceCreateApprovalPeer({...peer}),false);assert.equal(device.isOriginalWalletDeviceCreateApprovalPeer(decision),false);
+  assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(capsule,review));device.retireUnusedOriginalWalletDeviceCreateApproval(capsule);assert.equal(peer.assertCurrent(),undefined);
+  await f.lifecycle.run(()=>peer.recheck());
  }finally{peer.close();}
- assert.throws(()=>peer.readOriginalDecision());
+ assert.throws(()=>peer.readOriginalDecision());assert.throws(()=>device.captureOriginalWalletDeviceCreateApprovalIPC(event,review));
 });
-test('device-create approval refuses fake JSON, a different review, funds capsules and a navigated window',async t=>{
- const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'PUBLIC-device-create'}));
- const selected=await f.lifecycle.run(()=>f.vault.captureSelectedPQAccountPublic(CHAIN));t.after(()=>selected.close());
- assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(Object.freeze({approved:true}),'review'));
- const event=createPublicWalletEvent(),capsule=device.captureOriginalWalletDeviceCreateApprovalIPC(event,'review',selected);
- assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(capsule,'another-review'));
- const funds=transactionAuth.captureOriginalWalletTransactionApprovalIPC(event,'review','sign');
- try{assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(funds,'review'));}finally{transactionAuth.retireUnusedOriginalWalletTransactionApproval(funds);}
- event.sender.emit('did-start-navigation');assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(capsule,'review'));
- device.retireUnusedOriginalWalletDeviceCreateApproval(capsule);
+test('device-create approval refuses JSON and cloned reviews, replacement bytes, funds capsules and navigation',async t=>{
+ const f=await deviceCreateFixture(t),{review,view}=f.prepare(),{review:other}=f.prepare({nonce:'4'.repeat(64)}),event=createPublicWalletEvent();
+ assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(Object.freeze({approved:true}),review));
+ assert.throws(()=>device.captureOriginalWalletDeviceCreateApprovalIPC(event,{...review}));
+ assert.throws(()=>device.captureOriginalWalletDeviceCreateApprovalIPC(event,review.id));
+ const capsule=device.captureOriginalWalletDeviceCreateApprovalIPC(event,review);
+ assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(capsule,other));
+ for(const delta of [{generation:'2'},{operationId:'PUBLIC-device-other-op'},{nonce:'4'.repeat(64)},{expiresAt:new Date(Date.parse(f.input.expiresAt)-1).toISOString()}])assert.throws(()=>review.assertOriginalIntentDATA(f.make(delta)),{code:'DEVICE_CREATE_INTENT_CONFLICT'});
+ assert.equal(review.assertOriginalIntentDATA(view).originalMatches,true);
+ const funds=transactionAuth.captureOriginalWalletTransactionApprovalIPC(event,review.id,'sign');try{assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(funds,review));}finally{transactionAuth.retireUnusedOriginalWalletTransactionApproval(funds);}
+ event.sender.emit('did-start-navigation');assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(capsule,review));device.retireUnusedOriginalWalletDeviceCreateApproval(capsule);
  assert.equal(event.sender.listenerCount('destroyed'),0);assert.equal(event.sender.listenerCount('did-start-navigation'),0);
- const bad=createPublicWalletEvent();bad.senderFrame={url:bad.sender.mainFrame.url};assert.throws(()=>device.captureOriginalWalletDeviceCreateApprovalIPC(bad,'review',selected));
+ const bad=createPublicWalletEvent();bad.senderFrame={url:bad.sender.mainFrame.url};assert.throws(()=>device.captureOriginalWalletDeviceCreateApprovalIPC(bad,review));
 });
-
-test('device-create approval retires the original decision on Wallet lock, account, renewed unlock and changed protected file',async t=>{
+test('device-create approval retires the decision on Wallet lock account renewed unlock and changed protected file',async t=>{
  for(const change of ['focus','account','unlock','file']){
-  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'PUBLIC-device-create'}));
-  const selected=await f.lifecycle.run(()=>f.vault.captureSelectedPQAccountPublic(CHAIN));t.after(()=>selected.close());
-  assert.equal(isOriginalSelectedPQAccountPublicLease(selected),true);assert.equal(isOriginalSelectedPQAccountPublicLease({...selected}),false);
-  const event=createPublicWalletEvent();assert.throws(()=>device.captureOriginalWalletDeviceCreateApprovalIPC(event,'review',{...selected}));
-  const capsule=device.captureOriginalWalletDeviceCreateApprovalIPC(event,'review',selected),peer=device.claimOriginalWalletDeviceCreateApproval(capsule,'review');t.after(()=>peer.close());
-  if(change==='focus')f.lifecycle.setFocused(false);
-  if(change==='account')f.lifecycle.setAccount('0x'+'4'.repeat(40));
-  if(change==='unlock'){f.lifecycle.lock();await f.lifecycle.unlock({password:PASSWORD});}
-  if(change==='file'){
-   const before=await fs.readFile(f.filePath,'utf8');await fs.writeFile(f.filePath,before+'\n',{mode:0o600});
-   await assert.rejects(f.lifecycle.run(()=>peer.recheck()));await fs.writeFile(f.filePath,before,{mode:0o600});
-  }
-  assert.throws(()=>peer.assertCurrent());assert.throws(()=>peer.readOriginalDecision());
+  const f=await deviceCreateFixture(t),{review}=f.prepare();assert.equal(isOriginalSelectedPQAccountPublicLease(f.selected),true);assert.equal(isOriginalSelectedPQAccountPublicLease({...f.selected}),false);
+  const event=createPublicWalletEvent(),capsule=device.captureOriginalWalletDeviceCreateApprovalIPC(event,review),peer=device.claimOriginalWalletDeviceCreateApproval(capsule,review);t.after(()=>peer.close());
+  if(change==='focus')f.lifecycle.setFocused(false);if(change==='account')f.lifecycle.setAccount('0x'+'4'.repeat(40));if(change==='unlock'){f.lifecycle.lock();await f.lifecycle.unlock({password:PASSWORD});}
+  if(change==='file'){const before=await fs.readFile(f.filePath,'utf8');await fs.writeFile(f.filePath,before+'\n',{mode:0o600});await assert.rejects(f.lifecycle.run(()=>peer.recheck()));await fs.writeFile(f.filePath,before,{mode:0o600});}
+  assert.throws(()=>peer.assertCurrent());assert.throws(()=>peer.readOriginalDecision());assert.throws(()=>review.assertCurrent());
  }
 });
-
-test('device-create approval expires permanently and rejects clock rollback without reviving the peer',async t=>{
- const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'PUBLIC-device-create'}));
- const selected=await f.lifecycle.run(()=>f.vault.captureSelectedPQAccountPublic(CHAIN));t.after(()=>selected.close());
- const start=Date.now();t.mock.timers.enable({apis:['Date'],now:start});
- const event=createPublicWalletEvent(),capsule=device.captureOriginalWalletDeviceCreateApprovalIPC(event,'expires',selected),peer=device.claimOriginalWalletDeviceCreateApproval(capsule,'expires');t.after(()=>peer.close());
- t.mock.timers.setTime(start+30000);assert.throws(()=>peer.assertCurrent());
- t.mock.timers.setTime(start+1);assert.throws(()=>peer.assertCurrent());assert.equal(event.sender.listenerCount('destroyed'),0);
- const second=createPublicWalletEvent(),next=device.captureOriginalWalletDeviceCreateApprovalIPC(second,'rollback',selected),p=device.claimOriginalWalletDeviceCreateApproval(next,'rollback');t.after(()=>p.close());
- t.mock.timers.setTime(start+2);p.assertCurrent();t.mock.timers.setTime(start+1);assert.throws(()=>p.assertCurrent());
- t.mock.timers.setTime(start+3);assert.throws(()=>p.readOriginalDecision());assert.equal(second.sender.listenerCount('did-start-navigation'),0);
+test('device-create approval expires permanently and rejects clock rollback without reviving its original review',async t=>{
+ const f=await deviceCreateFixture(t),start=Date.parse(f.input.issuedAt);t.mock.timers.enable({apis:['Date'],now:start});
+ const {review}=f.prepare(),event=createPublicWalletEvent(),capsule=device.captureOriginalWalletDeviceCreateApprovalIPC(event,review),peer=device.claimOriginalWalletDeviceCreateApproval(capsule,review);t.after(()=>peer.close());
+ t.mock.timers.setTime(start+30000);assert.throws(()=>peer.assertCurrent());t.mock.timers.setTime(start+1);assert.throws(()=>peer.assertCurrent());assert.equal(event.sender.listenerCount('destroyed'),0);
+ const {review:nextReview}=f.prepare(),second=createPublicWalletEvent(),next=device.captureOriginalWalletDeviceCreateApprovalIPC(second,nextReview),p=device.claimOriginalWalletDeviceCreateApproval(next,nextReview);t.after(()=>p.close());
+ t.mock.timers.setTime(start+2);p.assertCurrent();t.mock.timers.setTime(start+1);assert.throws(()=>p.assertCurrent());t.mock.timers.setTime(start+3);assert.throws(()=>p.readOriginalDecision());assert.throws(()=>nextReview.assertCurrent());assert.equal(second.sender.listenerCount('did-start-navigation'),0);
+});
+test('device-create review rejects a different protected asset account or network and shows complete canonical terms',async t=>{
+ const f=await deviceCreateFixture(t),{review,view}=f.prepare();
+ assert.equal(review.request.review.purpose,'device.create');for(const [k,v]of Object.entries(view.terms))assert.equal(review.request.review[k],v);
+ for(const delta of [{networkId:'b'.repeat(64)},{canonicalOwner:'0x'+'4'.repeat(40),account:ynxAddressFromEVM('0x'+'4'.repeat(40))}])assert.throws(()=>f.prepare(delta),{code:'AUTH_DEVICE_CREATE_SELECTED_ACCOUNT_CHANGED'});
+ assert.throws(()=>deviceReview.prepareOriginalWalletDeviceCreateReviewDATA(new TextEncoder().encode(view.approvedTerms),{...f.selected}));
+ const displayed=formatApprovalReview(review.request.review);for(const value of [view.terms.account,view.terms.canonicalOwner,view.terms.networkId,view.terms.deviceId,view.terms.operationId,view.terms.nonce,view.terms.callback,view.terms.expiresAt,view.binding.sha512,view.stableIdentityBinding.sha3_512])assert(displayed.includes(value));
+ assert(!displayed.includes('Signing domain:'));assert(!displayed.includes('Transaction nonce:'));
+ assert.equal(view.userApproved,false);assert.equal(view.SourceAdmission,false);assert.equal(view.NativeAdmission,false);
 });

@@ -34,7 +34,7 @@ function read(root,name,pin){
 /** Validate normal supplier DATA/source bytes only. No import aliases, Native
  * execution, manifest replacement, issuer or build/admission qualification. */
 export function verifySDK49NormalSource(root,inventoryRaw){
- const normal=matches(inventoryRaw,SDK49_NORMAL_PREFIX),daemon=matches(inventoryRaw,SDK49_DAEMON_PREFIX_INVENTORY),count=normal?9641:daemon?9627:9613;
+ const normal=matches(inventoryRaw,SDK49_NORMAL_PREFIX),daemon=matches(inventoryRaw,SDK49_DAEMON_PREFIX_INVENTORY),count=normal?9647:daemon?9627:9613;
  if(typeof root!=='string'||!path.isAbsolute(root)||path.normalize(root)!==root||fs.realpathSync(root)!==root||!normal&&!daemon&&!matches(inventoryRaw,SDK49_PREFIX_INVENTORY))fail();
  const inventory=JSON.parse(inventoryRaw);
  if(normal){if(inventory.schema!=='ynx-complete-normal-sdk-prefix/v1'||inventory.sourceCommit!==SDK49_NORMAL_COMMIT||inventory.sourceTree!==SDK49_NORMAL_TREE)fail();}
