@@ -848,6 +848,8 @@ test('device-create approval keeps one original exact byte review and a separate
   assert.equal(device.isOriginalWalletDeviceCreateApprovalPeer(peer),true);assert.equal(device.isOriginalWalletDeviceCreateApprovalPeer({...peer}),false);assert.equal(device.isOriginalWalletDeviceCreateApprovalPeer(decision),false);
   assert.throws(()=>device.claimOriginalWalletDeviceCreateApproval(capsule,review));device.retireUnusedOriginalWalletDeviceCreateApproval(capsule);assert.equal(peer.assertCurrent(),undefined);
   await f.lifecycle.run(()=>peer.recheck());
+  const nativeRead=device.readOriginalWalletDeviceCreateApprovalForNative(peer);assert.equal(nativeRead.decision,decision);assert.deepEqual(nativeRead.selectedAccountDATA,{account:f.account,networkId:CHAIN});assert.equal(nativeRead.localSelectionOnly,true);assert(Object.isFrozen(nativeRead));assert(Object.isFrozen(nativeRead.selectedAccountDATA));
+  assert.equal(device.assertOriginalWalletDeviceCreateApprovalCurrentForNative(peer),undefined);await f.lifecycle.run(()=>device.recheckOriginalWalletDeviceCreateApprovalForNative(peer));
  }finally{peer.close();}
  assert.throws(()=>peer.readOriginalDecision());assert.throws(()=>device.captureOriginalWalletDeviceCreateApprovalIPC(event,review));
 });
@@ -872,6 +874,7 @@ test('device-create approval retires the decision on Wallet lock account renewed
   if(change==='focus')f.lifecycle.setFocused(false);if(change==='account')f.lifecycle.setAccount('0x'+'4'.repeat(40));if(change==='unlock'){f.lifecycle.lock();await f.lifecycle.unlock({password:PASSWORD});}
   if(change==='file'){const before=await fs.readFile(f.filePath,'utf8');await fs.writeFile(f.filePath,before+'\n',{mode:0o600});await assert.rejects(f.lifecycle.run(()=>peer.recheck()));await fs.writeFile(f.filePath,before,{mode:0o600});}
   assert.throws(()=>peer.assertCurrent());assert.throws(()=>peer.readOriginalDecision());assert.throws(()=>review.assertCurrent());
+  assert.throws(()=>device.readOriginalWalletDeviceCreateApprovalForNative(peer));assert.throws(()=>device.assertOriginalWalletDeviceCreateApprovalCurrentForNative(peer));await assert.rejects(device.recheckOriginalWalletDeviceCreateApprovalForNative(peer));
  }
 });
 test('device-create approval expires permanently and rejects clock rollback without reviving its original review',async t=>{
@@ -889,4 +892,13 @@ test('device-create review rejects a different protected asset account or networ
  const displayed=formatApprovalReview(review.request.review);for(const value of [view.terms.account,view.terms.canonicalOwner,view.terms.networkId,view.terms.deviceId,view.terms.operationId,view.terms.nonce,view.terms.callback,view.terms.expiresAt,view.binding.sha512,view.stableIdentityBinding.sha3_512])assert(displayed.includes(value));
  assert(!displayed.includes('Signing domain:'));assert(!displayed.includes('Transaction nonce:'));
  assert.equal(view.userApproved,false);assert.equal(view.SourceAdmission,false);assert.equal(view.NativeAdmission,false);
+});
+
+test('device-create fixed Native capture reader refuses injected methods and copied decision DATA',async t=>{
+ const f=await deviceCreateFixture(t),{review}=f.prepare(),event=createPublicWalletEvent(),capsule=device.captureOriginalWalletDeviceCreateApprovalIPC(event,review),peer=device.claimOriginalWalletDeviceCreateApproval(capsule,review);t.after(()=>peer.close());
+ let invoked=0;const fake={assertCurrent(){invoked++;},readOriginalDecision(){invoked++;return peer.readOriginalDecision();}};
+ for(const value of [fake,{...peer},peer.readOriginalDecision(),JSON.parse(JSON.stringify(peer.readOriginalDecision())),new Proxy(peer,{get(){invoked++;throw Error('UNTRUSTED_PEER_GETTER');}})]){
+  assert.throws(()=>device.readOriginalWalletDeviceCreateApprovalForNative(value),{code:'AUTH_DEVICE_CREATE_APPROVAL_PEER_REQUIRED'});assert.throws(()=>device.assertOriginalWalletDeviceCreateApprovalCurrentForNative(value));await assert.rejects(device.recheckOriginalWalletDeviceCreateApprovalForNative(value));
+ }
+ assert.equal(invoked,0);peer.close();assert.throws(()=>device.readOriginalWalletDeviceCreateApprovalForNative(peer));assert.equal(event.sender.listenerCount('destroyed'),0);
 });

@@ -6,7 +6,7 @@ import {BrowserWindow} from 'electron';
 import {readOriginalWalletDeviceCreateReview} from './device-create-review.mjs';
 import {assertWalletIPC} from '../wallet-ipc-policy.mjs';
 const expectedURL=new URL('../index.html',import.meta.url).href;
-const capsules=new WeakMap(),peers=new WeakSet(),capturedReviews=new WeakSet(),held=new Set();
+const capsules=new WeakMap(),peers=new WeakMap(),capturedReviews=new WeakSet(),held=new Set();
 const fail=code=>{throw Object.assign(Error(code),{code});};
 function dispose(state){
  if(state.closed)return;state.closed=true;held.delete(state);
@@ -43,6 +43,23 @@ export function retireUnusedOriginalWalletDeviceCreateApproval(capsule){
  const state=capsules.get(capsule);if(state&&!state.consumed)dispose(state);
 }
 export function isOriginalWalletDeviceCreateApprovalPeer(peer){return peers.has(peer);}
+function originalPeerState(peer){
+ const state=peers.get(peer);if(!state||!state.consumed||!state.decision)fail('AUTH_DEVICE_CREATE_APPROVAL_PEER_REQUIRED');
+ current(state);return state;
+}
+// Fixed private Main module entrypoints for Auth's release-selected Native
+// capture. Auth must acquire these functions through its own protected fixed
+// module loader, never from caller-supplied callbacks or a generic setter.
+// This DATA read is not a Native proof. Native retains the SAME opaque peer,
+// independently checks Source/terms/once-journal and owns the type-tagged proof.
+export function readOriginalWalletDeviceCreateApprovalForNative(peer){
+ const state=originalPeerState(peer),selected=state.selectedPublicLease.readPublic();
+ return Object.freeze({decision:state.decision,selectedAccountDATA:Object.freeze({account:selected.account,networkId:selected.networkId}),localSelectionOnly:true});
+}
+export function assertOriginalWalletDeviceCreateApprovalCurrentForNative(peer){originalPeerState(peer);}
+export async function recheckOriginalWalletDeviceCreateApprovalForNative(peer){
+ const state=originalPeerState(peer);await state.selectedPublicLease.recheck();originalPeerState(peer);
+}
 /** A consumed capsule exposes only the original user-window decision. Passing
  * its public DATA to Native must never stand in for this same opaque peer.
  * Main's held canonical review and Auth's provisioning owner remain separate.
@@ -53,6 +70,7 @@ export function claimOriginalWalletDeviceCreateApproval(capsule,originalReview){
  if(!state||state.consumed||state.originalReview!==originalReview||state.reviewId!==reviewId)fail('AUTH_DEVICE_CREATE_APPROVAL_CAPSULE_REQUIRED');
  current(state);state.consumed=true;
  const decision=Object.freeze({purpose:'device.create',reviewId,approvedTerms:original.original.approvedTerms,stableDeviceIdentity:original.original.stableDeviceIdentity,binding:original.original.binding,stableIdentityBinding:original.original.stableIdentityBinding,issuedAt:new Date(state.issued).toISOString(),expiresAt:new Date(state.expires).toISOString()});
+ state.decision=decision;
  const peer=Object.freeze({
   assertCurrent:()=>{current(state);},
   recheck:async()=>{current(state);await state.selectedPublicLease.recheck();current(state);},
@@ -60,5 +78,5 @@ export function claimOriginalWalletDeviceCreateApproval(capsule,originalReview){
   retire:()=>{state.revoked=true;dispose(state);},
   close:()=>dispose(state)
  });
- peers.add(peer);return peer;
+ peers.set(peer,state);return peer;
 }
