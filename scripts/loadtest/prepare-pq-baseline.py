@@ -41,6 +41,13 @@ def prepare(owner, commit, output):
       ("func sealCommittedStateOwned(witness *validatedMigration, height int64, execution executionState) (CommittedState, error) {",'defer baselineCount("sealCommittedStateOwned",0,0,0)()'),
       ("func (s CommittedState) validateOwnedWithTimings(witness *validatedMigration, timings *commitValidationTimings) (result error) {",'defer baselineCount("validateOwnedWithTimings",0,0,0)()'),
       ("func (s CommittedState) calculateHashForWithTimings(domain string, version int, timings *commitValidationTimings) (string, error) {",'defer baselineCount("calculateHashForWithTimings",0,0,0)()')]
+    if (source/"internal/consensus/pq_proof_history.go").is_file():
+        hooks["internal/consensus/pq_proof_history.go"]=[
+          ("func ownedExecutionPQBatch(proof PQCommittedBatch) PQCommittedBatch {","defer baselineOwnedProof(proof)()"),
+          ("func cloneExecutionPQBatches(state executionState) map[string]PQCommittedBatch {",'defer baselineCount("cloneExecutionPQBatches_materialize",0,0,0)()'),
+          ("func putExecutionPQBatch(state *executionState, hash string, proof PQCommittedBatch) bool {",'defer baselineCount("putExecutionPQBatch_delta",uint64(len(proof.Whole)),0,1)()'),
+          ("func newPQWholeMemberIndex(state executionState, members int) *pqWholeMemberIndex {",'defer baselineCount("newPQWholeMemberIndex",0,0,uint64(len(state.pqHistory)+len(state.nativeTransfers)))()'),
+          ("func advancePQWholeMemberIndex(index *pqWholeMemberIndex, before, after executionState, hash string) *pqWholeMemberIndex {",'defer baselineCount("advancePQWholeMemberIndex",0,0,0)()')]
     for relative,insertions in hooks.items():
         original=(source/relative).read_bytes(); text=original.decode()
         pins[relative]=sha(original)

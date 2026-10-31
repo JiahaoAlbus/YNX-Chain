@@ -88,6 +88,10 @@ The explicit Commit diagnostic includes all validation phase durations plus
 hash-document/hash-encode-digest detail, with its same-attempt height and valid
 flag, alongside JSON/write/fsync/rename timing. Entry observers separately expose
 Finalize seal, full state validation and hash construction. Nested timings overlap.
+When the candidate supplies `pq_proof_history.go`, exact guarded hooks also
+record owned proof byte/result copies, delta publication, full materialization
+and index build/advance. Original clone counters alone cannot demonstrate a
+reduction in total copying; known backing bytes exclude AVL/map allocator costs.
 Keep both sides on this exact diagnostic version; replay the old eight-case
 decoder comparison with its original b6 tools so instrumentation is unchanged.
 This is

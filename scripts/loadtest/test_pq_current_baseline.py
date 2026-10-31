@@ -18,7 +18,7 @@ diff=module("baseline_compare","compare-pq-baseline.py")
 
 
 class BaselineControls(unittest.TestCase):
-    def frozen(self,root):
+    def frozen(self,root,history=False):
         owner=root/"owner";owner.mkdir()
         def git(*args):return subprocess.check_output(["git","-C",str(owner),*args],stderr=subprocess.DEVNULL).decode().strip()
         git("init");
@@ -29,6 +29,13 @@ class BaselineControls(unittest.TestCase):
          "internal/consensus/account_batch.go":"func cloneConsensusPQBatches(input map[string]PQCommittedBatch) map[string]PQCommittedBatch {\n}\nfunc cloneBatchTransferCandidate(state executionState) executionState {\n}\nfunc (a *Application) applyPQWhole(state executionState, payload, wire []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {\n}\n",
          "internal/consensus/application.go":"func cloneExecutionStateValue(state executionState) executionState {\n}\n"}
         leaves["internal/consensus/state.go"]="func sealCommittedStateOwned(witness *validatedMigration, height int64, execution executionState) (CommittedState, error) {\n}\nfunc (s CommittedState) validateOwnedWithTimings(witness *validatedMigration, timings *commitValidationTimings) (result error) {\n}\nfunc (s CommittedState) calculateHashForWithTimings(domain string, version int, timings *commitValidationTimings) (string, error) {\n}\n"
+        if history:
+            leaves["internal/consensus/pq_proof_history.go"]="\n".join(anchor+" {\n}" for anchor in (
+                "func ownedExecutionPQBatch(proof PQCommittedBatch) PQCommittedBatch",
+                "func cloneExecutionPQBatches(state executionState) map[string]PQCommittedBatch",
+                "func putExecutionPQBatch(state *executionState, hash string, proof PQCommittedBatch) bool",
+                "func newPQWholeMemberIndex(state executionState, members int) *pqWholeMemberIndex",
+                "func advancePQWholeMemberIndex(index *pqWholeMemberIndex, before, after executionState, hash string) *pqWholeMemberIndex"))
         for name,content in leaves.items():
             file=owner/name;file.parent.mkdir(parents=True,exist_ok=True);file.write_text(content)
         git("add",".");git("-c","user.name=Control Fixture","-c","user.email=fixture@example.invalid","commit","-m","uncompiled control fixture")
@@ -56,6 +63,17 @@ class BaselineControls(unittest.TestCase):
                 else:
                     path=target/"overlay.json";obj=json.loads(path.read_bytes());obj["Replace"]["/foreign.go"]="/foreign.go";path.write_text(json.dumps(obj))
                 with self.assertRaises(RuntimeError):runner.validate(target/"prepared.json")
+
+    def test_candidate_owned_copy_materialization_and_indexes_cannot_hide_behind_old_zero(self):
+        with tempfile.TemporaryDirectory() as directory:
+            owner,target,plan=self.frozen(Path(directory).resolve(),history=True)
+            self.assertTrue(runner.validate(target/"prepared.json"))
+            self.assertIn("internal/consensus/pq_proof_history.go",plan["diagnosticPatches"])
+            original=(owner/"internal/consensus/pq_proof_history.go").read_text()
+            self.assertNotIn("baseline",original)
+            observed=(target/"pq_proof_history.go.observed").read_text()
+            for counter in ("baselineOwnedProof","cloneExecutionPQBatches_materialize","putExecutionPQBatch_delta","newPQWholeMemberIndex","advancePQWholeMemberIndex"):
+                self.assertIn(counter,observed)
 
     def pair(self,root):
         dirs=[root/"before",root/"after"]

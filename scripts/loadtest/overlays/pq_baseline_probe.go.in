@@ -62,6 +62,14 @@ func baselineBatches(input map[string]PQCommittedBatch) func() {
 	}
 	return baselineCount("cloneConsensusPQBatches", 0, backing, uint64(len(input)))
 }
+
+func baselineOwnedProof(proof PQCommittedBatch) func() {
+	if !baselineCounting() {
+		return func() {}
+	}
+	backing := uint64(len(proof.Whole)) + uint64(len(proof.Results))*uint64(unsafe.Sizeof(chain.PQBatchMemberResult{}))
+	return baselineCount("ownedExecutionPQBatch_copy", 0, backing, 1)
+}
 func baselineMember(state executionState) func() {
 	if !baselineCounting() {
 		return func() {}
