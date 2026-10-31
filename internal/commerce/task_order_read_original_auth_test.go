@@ -213,6 +213,7 @@ func shopTaskRequest(t *testing.T, s *Store, p *PreparedOriginalShopTaskOrders, 
 		t.Fatal("normal task composition lost original Store", err, opens)
 	}
 	r := httptest.NewRequest("POST", shopOrderReadPath, bytes.NewReader(body))
+	r.Header.Set("Content-Type", ShopOrderReadRequestContentType)
 	r.Header.Set("Authorization", "Bearer ordinary-login-is-not-grant")
 	r.Header.Set("X-Tool-Class", "read")
 	w := httptest.NewRecorder()
@@ -349,6 +350,7 @@ func TestShopTaskOrderReadLateResourcePermissionOrAuthorityChangeStopsOutput(t *
 					t.Fatal(err)
 				}
 				r := httptest.NewRequest("POST", shopOrderReadPath, bytes.NewReader(body)).WithContext(ctx)
+				r.Header.Set("Content-Type", ShopOrderReadRequestContentType)
 				w = httptest.NewRecorder()
 				server.Handler().ServeHTTP(w, r)
 			} else {

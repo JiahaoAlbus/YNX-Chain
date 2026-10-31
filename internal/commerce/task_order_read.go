@@ -12,6 +12,8 @@ import (
 const shopOrderReadOperation = "shop.order.read"
 const shopOrderReadPath = "/api/tools/shop.order.read"
 
+const ShopOrderReadRequestContentType = "application/vnd.ynx.shop-order-read.v1"
+
 // Only the original private composition can install this in-process reader.
 // No HTTP/session/model value creates one. Its actual Auth consumer is built
 // with the original normal-source Auth supplier module.
@@ -130,6 +132,11 @@ func (s *Server) taskOrderRead(w http.ResponseWriter, r *http.Request) {
 		write(w, 403, map[string]string{"code": "SHOP_TASK_ORDER_READ_TARGET_MISMATCH"})
 		return
 	}
+	media := r.Header.Values("Content-Type")
+	if len(media) != 1 || media[0] != ShopOrderReadRequestContentType {
+		write(w, 415, map[string]string{"code": "SHOP_TASK_ORDER_READ_MEDIA_REQUIRED"})
+		return
+	}
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBody))
 	if err != nil {
 		write(w, 413, map[string]string{"code": "SHOP_TASK_ORDER_READ_BODY_BOUNDS"})
@@ -153,7 +160,7 @@ func (s *Server) taskOrderRead(w http.ResponseWriter, r *http.Request) {
 		write(w, 503, map[string]string{"code": "SHOP_TASK_ORDER_READ_UNAVAILABLE"})
 		return
 	}
-	if len(result.Body) == 0 || len(result.Body) > maxBody || (result.ContentType != "application/json" && result.ContentType != "application/cbor") || (result.ContentType == "application/json" && !json.Valid(result.Body)) || (result.AuthFence != "same-authority-resource-fence" && result.AuthFence != "egress-only-read-fence") {
+	if len(result.Body) == 0 || len(result.Body) > maxBody || result.ContentType != "application/json" || !json.Valid(result.Body) || (result.AuthFence != "same-authority-resource-fence" && result.AuthFence != "egress-only-read-fence") {
 		write(w, 503, map[string]string{"code": "SHOP_TASK_ORDER_READ_ENCODING_UNAVAILABLE"})
 		return
 	}

@@ -33,6 +33,61 @@ type FixedPeerProfile struct {
 type ServiceOperation struct {
 	ID, Method, Path                  string
 	MaxRequestBytes, MaxResponseBytes int64
+	MediaProfile                      OperationMediaProfile
+}
+
+// OperationMediaProfile selects a finite, independently registered pair of
+// request/response media rules. It is deployment DATA, not a per-call override.
+// The empty value preserves the original JSON/CBOR caller's behavior.
+type OperationMediaProfile string
+
+const (
+	MediaProfileJSONCBOR        OperationMediaProfile = "json-cbor"
+	MediaProfileShopOrderReadV1 OperationMediaProfile = "shop-order-read-v1"
+	shopOrderReadRequestMedia                         = "application/vnd.ynx.shop-order-read.v1"
+)
+
+func validateOperationMediaProfile(op ServiceOperation) error {
+	switch op.MediaProfile {
+	case "", MediaProfileJSONCBOR:
+		return nil
+	case MediaProfileShopOrderReadV1:
+		// The new E5 DATA contract has this exact registered carrier and two
+		// independent 1 MiB ceilings. Registration never increases a smaller
+		// operation budget, nor permits this request MIME on other operations.
+		if op.ID != "shop.order.read" || op.Method != http.MethodPost || op.Path != "/api/tools/shop.order.read" || op.MaxRequestBytes > 1<<20 || op.MaxResponseBytes > 1<<20 {
+			return ErrDenied
+		}
+		return nil
+	default:
+		return ErrDenied
+	}
+}
+
+func (op ServiceOperation) requestContentTypeAllowed(value string) bool {
+	if op.MediaProfile == MediaProfileShopOrderReadV1 {
+		return value == shopOrderReadRequestMedia
+	}
+	return value == "application/json" || value == "application/cbor"
+}
+
+func (op ServiceOperation) responseContentTypeAllowed(header http.Header) bool {
+	if op.MediaProfile == MediaProfileShopOrderReadV1 {
+		values := header.Values("Content-Type")
+		return len(values) == 1 && values[0] == "application/json"
+	}
+	// Preserve the original JSON/CBOR profile's response MIME parameter
+	// compatibility. The registered E5 profile deliberately does not use this
+	// normalization: request E5 and response JSON are separate exact contracts.
+	media, _, err := mime.ParseMediaType(header.Get("Content-Type"))
+	return err == nil && (media == "application/json" || media == "application/cbor")
+}
+
+func (op ServiceOperation) responseAccept() string {
+	if op.MediaProfile == MediaProfileShopOrderReadV1 {
+		return "application/json"
+	}
+	return "application/json, application/cbor"
 }
 
 type FixedPeerClientConfig struct {
@@ -100,6 +155,9 @@ func validateFixedPeerProfile(p FixedPeerProfile) (FixedPeerProfile, map[string]
 		}
 		if op.MaxRequestBytes == 0 && op.Method != http.MethodGet && op.Method != http.MethodHead {
 			return FixedPeerProfile{}, nil, 0, ErrDenied
+		}
+		if err := validateOperationMediaProfile(op); err != nil {
+			return FixedPeerProfile{}, nil, 0, err
 		}
 		parsed, e := url.ParseRequestURI(op.Path)
 		if e != nil || parsed.Path != op.Path || parsed.RawPath != "" || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" {
@@ -208,7 +266,7 @@ func (c *FixedPeerClient) Exchange(ctx context.Context, operation string, prepar
 	if err != nil {
 		return result, ErrDenied
 	}
-	req.Header.Set("Accept", "application/json, application/cbor")
+	req.Header.Set("Accept", op.responseAccept())
 	var channel AuthenticatedChannel
 	response, err := c.transport.roundTrip(req, func(ctx context.Context, conn *native.Conn) (WireRequest, error) {
 		actual, e := authenticatedChannel(ctx, conn, c.transport.gate, c.profile.EdgeID, op.Method, op.Path)
@@ -230,7 +288,7 @@ func (c *FixedPeerClient) Exchange(ctx context.Context, operation string, prepar
 			if (op.Method != http.MethodGet && op.Method != http.MethodHead) || wire.ContentType != "" {
 				return WireRequest{}, ErrDenied
 			}
-		} else if wire.ContentType != "application/json" && wire.ContentType != "application/cbor" {
+		} else if !op.requestContentTypeAllowed(wire.ContentType) {
 			return WireRequest{}, ErrDenied
 		}
 		wire.Body = bytes.Clone(wire.Body)
@@ -241,8 +299,7 @@ func (c *FixedPeerClient) Exchange(ctx context.Context, operation string, prepar
 	}
 	defer response.Body.Close()
 	result.StatusCode = response.StatusCode
-	media, _, e := mime.ParseMediaType(response.Header.Get("Content-Type"))
-	if e != nil || (media != "application/json" && media != "application/cbor") {
+	if !op.responseContentTypeAllowed(response.Header) {
 		return result, ErrDenied
 	}
 	if response.ContentLength > op.MaxResponseBytes {

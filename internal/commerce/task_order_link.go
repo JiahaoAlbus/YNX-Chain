@@ -16,7 +16,7 @@ import (
 type originalLINKTaskOrderReader struct{ reader originalTaskOrderReader }
 
 func (l originalLINKTaskOrderReader) readTaskOrder(ctx context.Context, store *Store, r *http.Request, body []byte) (taskOrderReadPayload, error) {
-	if len(body) > 32<<10 {
+	if len(body) > maxBody {
 		return taskOrderReadPayload{}, taskOrderAuthFailure(ErrInvalidState)
 	}
 	if missingTaskOrderOperand(l.reader) {
@@ -35,6 +35,15 @@ func (l originalLINKTaskOrderReader) readTaskOrder(ctx context.Context, store *S
 		return taskOrderReadPayload{}, ErrUnavailable
 	}
 	return result, nil
+}
+
+// The operator explicitly registers this finite media profile. Smaller
+// supplied budgets are preserved; this does not broaden legacy LINK siblings.
+func ShopOrderReadLINKOperation(requestLimit, responseLimit int64) (securelink.ServiceOperation, error) {
+	if requestLimit < 1 || responseLimit < 1 || requestLimit > maxBody || responseLimit > maxBody {
+		return securelink.ServiceOperation{}, ErrInvalidState
+	}
+	return securelink.ServiceOperation{ID: shopOrderReadOperation, Method: http.MethodPost, Path: shopOrderReadPath, MaxRequestBytes: requestLimit, MaxResponseBytes: responseLimit, MediaProfile: securelink.MediaProfileShopOrderReadV1}, nil
 }
 
 // OpenOriginalLINK is the direct producer entry. LINK supplies actual native
