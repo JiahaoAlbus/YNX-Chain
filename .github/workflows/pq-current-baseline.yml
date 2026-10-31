@@ -1,0 +1,77 @@
+name: PQ current source baseline
+
+on:
+  push:
+    branches:
+      - codex/ynx-pq-current-baseline-20261031
+    paths:
+      - .github/workflows/pq-current-baseline.yml
+      - scripts/loadtest/prepare-pq-baseline.py
+      - scripts/loadtest/run-pq-baseline.py
+      - scripts/loadtest/compare-pq-baseline.py
+      - scripts/loadtest/consensus-linux-cohort.py
+      - scripts/loadtest/overlays/pq_baseline_*.go.in
+      - scripts/loadtest/test_pq_current_baseline.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pq-current-baseline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  source-baseline:
+    name: Frozen fdc source execution and durable-state baseline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      BASELINE_OWNER_SHA: fdc08527514587d5756264e43ab63588791e189a
+      BASELINE_TOOLS_SHA: 84a647093686c143ec03ba778b5d6840daa8e02d
+    steps:
+      - name: Receive the exact original Perf baseline tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.BASELINE_TOOLS_SHA }}
+          path: baseline-tools
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Receive the exact unoptimized owner source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.BASELINE_OWNER_SHA }}
+          path: baseline-owner
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install the actual pinned owner Go toolchain without shared caches
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          check-latest: false
+          cache: false
+      - name: Execute the original bounded source baseline once
+        run: |
+          set -euo pipefail
+          test "$(git -C baseline-tools rev-parse HEAD)" = "$BASELINE_TOOLS_SHA"
+          test "$(git -C baseline-owner rev-parse HEAD)" = "$BASELINE_OWNER_SHA"
+          test "$(go env GOVERSION)" = go1.26.10
+          python3 -B baseline-tools/scripts/loadtest/prepare-pq-baseline.py \
+            --owner "$GITHUB_WORKSPACE/baseline-owner" --commit "$BASELINE_OWNER_SHA" \
+            --output "$RUNNER_TEMP/current-baseline-source"
+          # Keep both received source graphs inside the original Window's
+          # counted storage root, together with its archive and private caches.
+          mkdir -m 0700 "$RUNNER_TEMP/current-baseline-source/.inputs"
+          mv -- "$GITHUB_WORKSPACE/baseline-tools" "$RUNNER_TEMP/current-baseline-source/.inputs/tools"
+          mv -- "$GITHUB_WORKSPACE/baseline-owner" "$RUNNER_TEMP/current-baseline-source/.inputs/owner"
+          python3 -B "$RUNNER_TEMP/current-baseline-source/.inputs/tools/scripts/loadtest/run-pq-baseline.py" \
+            --prepared "$RUNNER_TEMP/current-baseline-source/prepared.json" \
+            --mode record --execute
+      - name: Retain only public measurements and the original failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-current-baseline-fdc-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/pq-baseline-*/public/
+          if-no-files-found: error
+          retention-days: 14

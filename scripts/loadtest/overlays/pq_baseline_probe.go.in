@@ -1,0 +1,73 @@
+package consensus
+
+// Diagnostic overlay only. The normal committed functions remain byte-pinned;
+// observers do not remove copies, bypass math, or change execution/storage.
+import (
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"sync"
+	"time"
+	"unsafe"
+)
+
+type baselineCounter struct {
+	Calls                   uint64 `json:"calls"`
+	InclusiveNs             int64  `json:"inclusiveNs"`
+	InputBytes              uint64 `json:"inputBytes"`
+	KnownCopiedBackingBytes uint64 `json:"knownCopiedBackingBytes"`
+	MapEntries              uint64 `json:"mapEntries"`
+}
+
+var baselineProbe struct {
+	sync.Mutex
+	phase    string
+	counters map[string]baselineCounter
+}
+
+func baselineCounting() bool {
+	baselineProbe.Lock()
+	defer baselineProbe.Unlock()
+	return baselineProbe.phase != ""
+}
+func baselineCount(name string, input, backing, entries uint64) func() {
+	baselineProbe.Lock()
+	phase := baselineProbe.phase
+	baselineProbe.Unlock()
+	if phase == "" {
+		return func() {}
+	}
+	started := time.Now()
+	return func() {
+		elapsed := time.Since(started).Nanoseconds()
+		baselineProbe.Lock()
+		defer baselineProbe.Unlock()
+		if baselineProbe.phase != phase {
+			panic("baseline phase changed inside measured function")
+		}
+		row := baselineProbe.counters[name]
+		row.Calls++
+		row.InclusiveNs += elapsed
+		row.InputBytes += input
+		row.KnownCopiedBackingBytes += backing
+		row.MapEntries += entries
+		baselineProbe.counters[name] = row
+	}
+}
+func baselineBatches(input map[string]PQCommittedBatch) func() {
+	if !baselineCounting() {
+		return func() {}
+	}
+	var backing uint64
+	for _, proof := range input {
+		backing += uint64(len(proof.Whole)) + uint64(len(proof.Results))*uint64(unsafe.Sizeof(chain.PQBatchMemberResult{}))
+	}
+	return baselineCount("cloneConsensusPQBatches", 0, backing, uint64(len(input)))
+}
+func baselineMember(state executionState) func() {
+	if !baselineCounting() {
+		return func() {}
+	}
+	// Exact known slice-element bytes only. Strings share backing bytes; map
+	// buckets, recursively owned account lots and allocator padding are unknown.
+	backing := uint64(len(state.nativeTransfers))*uint64(unsafe.Sizeof(BFTNativeTransfer{})) + uint64(len(state.pqHistory))*uint64(unsafe.Sizeof(PQCommittedAuthorization{}))
+	return baselineCount("cloneBatchTransferCandidate", 0, backing, uint64(len(state.traceLots)))
+}
