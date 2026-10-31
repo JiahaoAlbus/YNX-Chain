@@ -9,12 +9,18 @@ import (
 var errInvoiceNotBound = errors.New("original invoice not yet bound")
 var invoiceRecoveryID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$`)
 
+func hasInvoiceBinding(order Order) bool {
+	return order.InvoiceID != "" || order.PayIntentID != "" || order.PayMerchant != "" || order.PayPayoutAddress != ""
+}
+
 // Existing invoice recovery is a local read under the original action nonce
 // transaction. It cannot create another Pay intent or grant settlement.
 func boundInvoiceHandoff(order Order) (PayInvoiceHandoff, error) {
-	if order.InvoiceID == "" {
+	if !hasInvoiceBinding(order) {
 		return PayInvoiceHandoff{}, errInvoiceNotBound
 	}
+	// Partial historical bindings are not fresh orders. Keep them readable,
+	// but never create a second Pay intent by guessing the missing invoice.
 	if order.Status != "payment_pending" || !invoiceRecoveryID.MatchString(order.InvoiceID) || order.PayIntentID == "" || order.PayMerchant == "" || order.PayPayoutAddress == "" {
 		return PayInvoiceHandoff{}, ErrInvalidState
 	}

@@ -497,12 +497,30 @@ func (s *Store) BindInvoice(actor, orderID string, handoff PayInvoiceHandoff) (O
 	if o.Buyer != actor {
 		return Order{}, ErrUnauthorized
 	}
-	if o.Status != "payment_pending" || handoff.InvoiceID == "" || handoff.IntentID == "" || handoff.Merchant == "" || handoff.PayoutAddress == "" {
+	if o.Status != "payment_pending" || !invoiceRecoveryID.MatchString(handoff.InvoiceID) || !invoiceRecoveryID.MatchString(handoff.IntentID) || handoff.Merchant == "" || handoff.PayoutAddress == "" {
 		return Order{}, ErrInvalidState
 	}
-	if o.InvoiceID != "" && (o.InvoiceID != handoff.InvoiceID || o.PayIntentID != handoff.IntentID || o.PayMerchant != handoff.Merchant || o.PayPayoutAddress != handoff.PayoutAddress) {
+	hasBinding := hasInvoiceBinding(o)
+	if hasBinding && (o.InvoiceID != handoff.InvoiceID || o.PayIntentID != handoff.IntentID || o.PayMerchant != handoff.Merchant || o.PayPayoutAddress != handoff.PayoutAddress) {
 		return Order{}, ErrConflict
 	}
+	if handoff.DeepLink != "" && handoff.DeepLink != "ynxpay://invoice/"+handoff.InvoiceID {
+		return Order{}, ErrInvalidState
+	}
+	if hasBinding {
+		// Reading the original attachment does not create another event or audit.
+		return cloneOrder(o), nil
+	}
+	for id, bound := range s.s.Orders {
+		if id != orderID && (bound.InvoiceID == handoff.InvoiceID || bound.PayIntentID == handoff.IntentID) {
+			return Order{}, ErrConflict
+		}
+	}
+	before, err := cloneSnapshot(s.s)
+	if err != nil {
+		return Order{}, err
+	}
+	o = cloneOrder(o)
 	o.InvoiceID = handoff.InvoiceID
 	o.PayIntentID = handoff.IntentID
 	o.PayMerchant = handoff.Merchant
@@ -512,6 +530,7 @@ func (s *Store) BindInvoice(actor, orderID string, handoff PayInvoiceHandoff) (O
 	s.s.Orders[o.ID] = o
 	s.auditLocked(actor, "buyer", "pay_invoice_bound", "order", o.ID, "pending", "awaiting authoritative settlement")
 	if err := s.persistLocked(); err != nil {
+		s.s = before
 		return Order{}, err
 	}
 	return cloneOrder(o), nil

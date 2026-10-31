@@ -54,7 +54,7 @@ func (s *Server) payInvoiceEffect(target string, body []byte) (businessEffectPla
 		if err != nil {
 			return nil, err
 		}
-		if order.InvoiceID != "" {
+		if hasInvoiceBinding(order) {
 			return nil, ErrConflict
 		}
 		return encodeEffect(effectPayInput{Order: order, Key: in.IdempotencyKey, BaseURL: pay.BaseURL, Merchant: pay.MerchantID, Payout: pay.PayoutAddress})
@@ -71,7 +71,7 @@ func (s *Server) payInvoiceEffect(target string, body []byte) (businessEffectPla
 		if current.Status != "payment_pending" || !current.ReservationExpiresAt.After(tx.now()) || current.TotalYNXT != saved.Order.TotalYNXT || current.Currency != saved.Order.Currency || current.StoreID != saved.Order.StoreID || current.Buyer != saved.Order.Buyer {
 			return ErrInvalidState
 		}
-		if current.InvoiceID != "" {
+		if hasInvoiceBinding(current) {
 			return ErrConflict
 		}
 		if saved.BaseURL != pay.BaseURL || saved.Merchant != pay.MerchantID || saved.Payout != pay.PayoutAddress {
