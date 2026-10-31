@@ -17,6 +17,10 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = merchant-fence-link ]; then
+ go test -race -p 1 -tags 'pay_pq pay_localcaller_current' ./internal/payproduct -run '^TestNativeMerchantFenceOriginalLocalCallerAndStoreCommit$' -count=1 -timeout=4m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = merchant-fence ]; then
  go test -race -p 1 -tags pay_pq ./internal/payproduct -run '^TestNativeMerchantFence|^TestNativeInvoiceIntentBindingChecksOriginalMemberAtFinalStoreCommit$' -count=1 -timeout=4m -v
  exit
