@@ -242,7 +242,7 @@ YNX_TESTNET = {
     "chainIdDecimal": 6423,
     "chainName": "YNX Testnet",
     "nativeCurrency": {"name": "YNXT", "symbol": "YNXT", "decimals": 18},
-    "rpcUrls": ["https://evm.ynxweb4.com"],
-    "restUrls": ["https://rpc.ynxweb4.com"],
+    "rpcUrls": ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"],
+    "restUrls": ["https://rpc-testnet.ynxweb4.com", "https://rpc.ynxweb4.com"],
     "blockExplorerUrls": ["https://explorer.ynxweb4.com"],
 }

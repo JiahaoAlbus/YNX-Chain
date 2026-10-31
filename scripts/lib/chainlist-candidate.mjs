@@ -14,9 +14,11 @@ export const VERIFICATION_CONFIG_PATH = "chain-metadata/ynx-testnet-verification
 const TESTNET_KEYS = ["chain", "chainId", "explorers", "faucets", "infoURL", "name", "nativeCurrency", "networkId", "rpc", "shortName", "status"];
 const EXPECTED_ENDPOINTS = Object.freeze({
   explorer: "https://explorer.ynxweb4.com",
-  faucet: "https://faucet.ynxweb4.com",
+  faucet: "https://faucet-testnet.ynxweb4.com",
+  legacyFaucet: "https://faucet.ynxweb4.com",
+  legacyRpc: "https://evm.ynxweb4.com",
   info: "https://www.ynxweb4.com",
-  rpc: "https://evm.ynxweb4.com",
+  rpc: "https://rpc-testnet.ynxweb4.com",
 });
 
 export function readCanonicalJSON(filePath) {
@@ -54,8 +56,8 @@ export function validateTestnetMetadata(metadata) {
   if (metadata.nativeCurrency.name !== TESTNET_NATIVE_SYMBOL || metadata.nativeCurrency.symbol !== TESTNET_NATIVE_SYMBOL || metadata.nativeCurrency.decimals !== 18) {
     throw new Error("YNX Testnet native currency mismatch");
   }
-  validateExactURLArray(metadata.rpc, [EXPECTED_ENDPOINTS.rpc], "RPC URLs");
-  validateExactURLArray(metadata.faucets, [EXPECTED_ENDPOINTS.faucet], "Faucet URLs");
+  validateExactURLArray(metadata.rpc, [EXPECTED_ENDPOINTS.rpc, EXPECTED_ENDPOINTS.legacyRpc], "RPC URLs");
+  validateExactURLArray(metadata.faucets, [EXPECTED_ENDPOINTS.faucet, EXPECTED_ENDPOINTS.legacyFaucet], "Faucet URLs");
   validateHTTPSURL(metadata.infoURL, "info URL");
   if (metadata.infoURL !== EXPECTED_ENDPOINTS.info) throw new Error("YNX Testnet info URL mismatch");
   if (!Array.isArray(metadata.explorers) || metadata.explorers.length !== 1) throw new Error("YNX Testnet must have exactly one Explorer");
@@ -139,7 +141,7 @@ export function buildWalletAddEthereumChain(metadata) {
 
 export function buildSDKNetworkModule(metadata) {
   const payload = buildWalletAddEthereumChain(metadata);
-  return `// Generated from chain-metadata/ynx-testnet.json; verify with make chainlist-candidate-check.\nexport const ynxTestnet = Object.freeze({\n  chainId: ${JSON.stringify(payload.chainId)},\n  chainIdDecimal: ${metadata.chainId},\n  chainName: ${JSON.stringify(payload.chainName)},\n  nativeCurrency: Object.freeze(${JSON.stringify(payload.nativeCurrency)}),\n  rpcUrls: Object.freeze(${JSON.stringify(payload.rpcUrls)}),\n  restUrls: Object.freeze([\"https://rpc.ynxweb4.com\"]),\n  blockExplorerUrls: Object.freeze(${JSON.stringify(payload.blockExplorerUrls)}),\n  faucetUrls: Object.freeze(${JSON.stringify(metadata.faucets)}),\n  infoUrl: ${JSON.stringify(metadata.infoURL)},\n});\n`;
+  return `// Generated from chain-metadata/ynx-testnet.json; verify with make chainlist-candidate-check.\nexport const ynxTestnet = Object.freeze({\n  chainId: ${JSON.stringify(payload.chainId)},\n  chainIdDecimal: ${metadata.chainId},\n  chainName: ${JSON.stringify(payload.chainName)},\n  nativeCurrency: Object.freeze(${JSON.stringify(payload.nativeCurrency)}),\n  rpcUrls: Object.freeze(${JSON.stringify(payload.rpcUrls)}),\n  restUrls: Object.freeze([\"https://rpc-testnet.ynxweb4.com\",\"https://rpc.ynxweb4.com\"]),\n  blockExplorerUrls: Object.freeze(${JSON.stringify(payload.blockExplorerUrls)}),\n  faucetUrls: Object.freeze(${JSON.stringify(metadata.faucets)}),\n  infoUrl: ${JSON.stringify(metadata.infoURL)},\n});\n`;
 }
 
 export function buildCandidateStatus() {

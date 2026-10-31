@@ -16,6 +16,12 @@ YNX Testnet is an EVM-compatible Layer-1 with native YNXT and support for smart
 contracts, ERC-20 tokens, NFTs, and decentralized applications. This guide covers
 the complete developer workflow from setup to deployment.
 
+The reviewed Testnet RPC/Faucet aliases below are separate from Mainnet. The old
+`rpc.ynxweb4.com`, `evm.ynxweb4.com` and `faucet.ynxweb4.com` locations remain
+explicit compatibility endpoints, not automatic write-retry targets. Check the
+current bundled endpoint authority and its expiry before treating an SDK profile
+as active; this guide itself is not a live-service health proof.
+
 ## Network identity
 
 | Field | Value |
@@ -32,7 +38,7 @@ the complete developer workflow from setup to deployment.
 
 Visit the faucet:
 ```
-https://faucet.ynxweb4.com
+https://faucet-testnet.ynxweb4.com
 ```
 
 Provide your wallet address to receive Testnet YNXT for gas fees.
@@ -50,7 +56,7 @@ await window.ethereum.request({
     chainId: '0x1917',
     chainName: 'YNX Testnet',
     nativeCurrency: { name: 'YNXT', symbol: 'YNXT', decimals: 18 },
-    rpcUrls: ['https://evm.ynxweb4.com'],
+    rpcUrls: ['https://rpc-testnet.ynxweb4.com'],
     blockExplorerUrls: ['https://explorer.ynxweb4.com']
   }]
 });
@@ -89,7 +95,7 @@ module.exports = {
   solidity: "0.8.20",
   networks: {
     ynxTestnet: {
-      url: "https://evm.ynxweb4.com",
+      url: "https://rpc-testnet.ynxweb4.com",
       chainId: 6423,
       accounts: [process.env.PRIVATE_KEY]
     }
@@ -123,7 +129,7 @@ out = "out"
 libs = ["lib"]
 
 [rpc_endpoints]
-ynx_testnet = "https://evm.ynxweb4.com"
+ynx_testnet = "https://rpc-testnet.ynxweb4.com"
 ```
 
 Deploy:
@@ -215,7 +221,7 @@ npm install ethers web3
 
 ```javascript
 const { ethers } = require('ethers');
-const provider = new ethers.JsonRpcProvider('https://evm.ynxweb4.com');
+const provider = new ethers.JsonRpcProvider('https://rpc-testnet.ynxweb4.com');
 const balance = await provider.getBalance(address);
 ```
 
@@ -229,7 +235,7 @@ pip install web3
 
 ```python
 from web3 import Web3
-w3 = Web3(Web3.HTTPProvider('https://evm.ynxweb4.com'))
+w3 = Web3(Web3.HTTPProvider('https://rpc-testnet.ynxweb4.com'))
 balance = w3.eth.get_balance(address)
 ```
 
@@ -242,7 +248,7 @@ import (
     "github.com/ethereum/go-ethereum/ethclient"
 )
 
-client, _ := ethclient.Dial("https://evm.ynxweb4.com")
+client, _ := ethclient.Dial("https://rpc-testnet.ynxweb4.com")
 balance, _ := client.BalanceAt(context.Background(), address, nil)
 ```
 

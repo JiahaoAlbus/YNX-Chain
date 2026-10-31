@@ -9,7 +9,7 @@ test("builds the bounded EIP-3085 payload", () => {
     chainId: "0x1917",
     chainName: "YNX Testnet",
     nativeCurrency: {decimals: 18, name: "YNXT", symbol: "YNXT"},
-    rpcUrls: ["https://evm.ynxweb4.com"],
+    rpcUrls: ["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"],
   });
 });
 
