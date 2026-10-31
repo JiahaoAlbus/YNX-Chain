@@ -424,6 +424,12 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #ifdef YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE
 #include "original-product-device-v4-source.inc.mm"
 #endif
+#ifdef YNX_ORIGINAL_PRODUCT_DEVICE_V4_PENDING_STAGE
+#ifndef YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE
+#error Pending stage requires original read/AbortSignal intrinsics, never a replacement provider
+#endif
+#include "original-product-device-v4-typed-producer.inc.mm"
+#endif
 static napi_value Register(napi_env env,napi_value exports){
  struct Method {const char *name;napi_callback callback;void *data;};
  Method methods[]={{"captureOriginalIDEPrivateClient",IDEClientCapture,nullptr},{"assertOriginalIDEPrivateClientReady",IDEClientReady,nullptr},{"captureOriginalIDEPrivateClientResult",IDEClientResult,nullptr},{"acquireOriginalNativePrivateServiceOwner",ServiceAcquire,nullptr},{"assertOriginalNativePrivateServiceOwnerReady",ServiceReady,nullptr},{"readOriginalNativePrivateServiceRequest",ServiceRead,nullptr},{"writeOriginalNativePrivateServiceResponse",ServiceWrite,nullptr},{"retireOriginalNativePrivateServiceOwner",ServiceLifecycle,(void*)0},{"joinOriginalNativePrivateServiceOwner",ServiceLifecycle,(void*)1},{"closeOriginalNativePrivateServiceOwner",ServiceLifecycle,(void*)2},{"acquireOriginalIDEAdministrationProfile",IDEAcquireAdministration,nullptr},{"readOriginalIDEParentInstalledFrame",IDEInstalledFrame,nullptr},{"assertOriginalIDEParentAcknowledgement",IDEAcknowledge,nullptr},{"beginOriginalIDEParentPrelude",IDEBeginPrelude,nullptr},{"takeOriginalIDEParentSenderDescriptor",IDETakeSender,nullptr},{"acquireOriginalIDEAdmissionParentDelivery",IDENodeAcquire,nullptr},{"reserveOriginalIDEParentIntent",IDEReserve,nullptr},{"readOriginalIDEParentIntent",IDEIntentRead,nullptr},{"assertOriginalIDEParentIntentCurrent",IDEIntentLifecycle,(void *)ideIntentCurrent},{"retireOriginalIDEParentIntent",IDEIntentLifecycle,(void *)ideIntentRetire},{"joinOriginalIDEParentIntent",IDEIntentLifecycle,(void *)ideIntentJoin},{"closeOriginalIDEParentIntent",IDEIntentLifecycle,(void *)ideIntentClose},{"acquireOriginalAdministrationProfile",Acquire,nullptr},{"readOriginalAdministrationProfile",ReadAdministration,nullptr},{"assertOriginalAdministrationProfileCurrent",Lifecycle,(void *)adminCurrent},{"retireOriginalAdministrationProfile",Lifecycle,(void *)adminRetire},{"joinOriginalAdministrationProfile",Lifecycle,(void *)adminJoin},{"closeOriginalAdministrationProfile",Lifecycle,(void *)adminClose},{"reserveOriginalJointRegistration",Reserve,nullptr},{"commitOriginalJointRegistration",Commit,nullptr},{"readOriginalJointRegistration",ReadJoint,nullptr},{"assertOriginalJointCurrent",Lifecycle,(void *)jointCurrent},{"assertOriginalJointExecutorChild",Lifecycle,(void *)jointChild},{"assertOriginalJointSuccession",Lifecycle,(void *)jointSuccession},{"retireOriginalJoint",Lifecycle,(void *)jointRetire},{"joinOriginalJoint",Lifecycle,(void *)jointJoin},{"closeOriginalJoint",Lifecycle,(void *)jointClose},
@@ -437,6 +443,9 @@ static napi_value Register(napi_env env,napi_value exports){
 #endif
 #ifdef YNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE
  if(!RegisterOriginalProductDeviceV4SourceStage(env,exports))return nullptr;
+#endif
+#ifdef YNX_ORIGINAL_PRODUCT_DEVICE_V4_PENDING_STAGE
+ if(!RegisterOriginalProductDeviceV4PendingStage(env,exports))return nullptr;
 #endif
  return exports;
 }

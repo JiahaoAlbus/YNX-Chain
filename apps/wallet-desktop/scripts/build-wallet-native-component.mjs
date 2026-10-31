@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import * as originalBuild from './build-original-auth-identity-native.mjs';
-import {deviceV4PQSupplierInputs} from './wallet-device-v4-pq-role.mjs';
+import {deviceV4PQSupplierInputs,assertWalletPendingNativeExports} from './wallet-device-v4-pq-role.mjs';
 import {pqNativeSupplierInputs} from './wallet-pq-native-build.mjs';
 import {CC7_NATIVE_ROLE,cc7WalletNativeInputs,composeCC7WalletNativeBuildPlan,verifyCC7NativeRoleInputClosure} from './wallet-cc7-native-role.mjs';
 import {inspectOriginalC5NativeContinuation,nativeContinuationFilePin} from './wallet-native-continuation.mjs';
@@ -19,14 +19,15 @@ const here=fileURLToPath(import.meta.url),app=path.resolve(path.dirname(here),'.
 const hash=b=>createHash('sha256').update(b).digest('hex');
 function assertMatchedOriginalBuild(){
  const sdk=JSON.parse(readFileSync(path.join(repo,'packages/wallet-auth/package.json')));
- const profile=walletNativeSourceProfile(sdk.version);
+ const inventoryBytes=readFileSync(path.join(repo,'packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json'));
+ const profile=walletNativeSourceProfile(sdk.version,inventoryBytes);
  const tool=path.join(app,'scripts/build-original-auth-identity-native.mjs'),toolStat=lstatSync(tool),toolBytes=readFileSync(tool);
  if(!toolStat.isFile()||toolStat.isSymbolicLink()||toolBytes.length!==profile.tool.bytes||hash(toolBytes)!==profile.tool.sha256)throw Error('WALLET_NATIVE_ORIGINAL_BUILD_TOOL_DIFFERS');
  return profile;
 }
 export function walletNativeComponentBuildPlan(arch,headers,artifactRelease=false,projectControl=false,controlCABI=false,pqNative=false,cc7=false,deviceV4=false){
  const profile=assertMatchedOriginalBuild();
- if(typeof deviceV4!=='boolean'||deviceV4!==(profile.version==='1.3.0-pq.3.32-auth.49'&&profile.supplierNodeInputs===117)||deviceV4&&(cc7||arch!=='arm64'||!artifactRelease||!projectControl||!controlCABI||!pqNative))throw Error('WALLET_DEVICE_V4_EXPLICIT_FULL_ROLE_REQUIRED');
+ if(typeof deviceV4!=='boolean'||deviceV4!==(profile.version==='1.3.0-pq.3.32-auth.49'&&[117,127].includes(profile.supplierNodeInputs))||deviceV4&&(cc7||arch!=='arm64'||!artifactRelease||!projectControl||!controlCABI||!pqNative))throw Error('WALLET_DEVICE_V4_EXPLICIT_FULL_ROLE_REQUIRED');
  if(typeof cc7!=='boolean'||cc7&&(profile.version!==CC7_NATIVE_ROLE.sdk.version||arch!=='arm64'||!artifactRelease||!projectControl||!controlCABI||!pqNative))throw Error('WALLET_CC7_MATCHED_FULL_ROLE_REQUIRED');
  if(pqNative&&!['1.3.0-pq.3.32-auth.42','1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(profile.version))throw Error('WALLET_PQ_NATIVE_MATCHED_SDK42_OR_46_REQUIRED');
  for(const pin of cc7?cc7WalletNativeInputs():walletPublisherNativeInputs(profile.supplierNodeInputs,artifactRelease,projectControl,controlCABI,pqNative,profile.version)){const file=path.join(repo,pin.path),stat=lstatSync(file),bytes=readFileSync(file);if(!stat.isFile()||stat.isSymbolicLink()||bytes.length!==pin.bytes||hash(bytes)!==pin.sha256)throw Error('WALLET_NATIVE_PUBLISHER_SOURCE_DIFFERS');}
@@ -84,6 +85,7 @@ export function buildWalletNativeComponent(arch,headers,artifactRelease=false,pr
   continuationRecord={kind:'YNX_WALLET_NATIVE_SAME_ATTEMPT_CONTINUATION/v1',original:resumed,probe:nativeContinuationFilePin(probePath),runIntent:nativeContinuationFilePin(runIntent),priorPrefixCommands:19,thisInvocationNodeCommands:1,thisInvocationHelperCommands:helper.commands.length,originalPrefixExecutedPreviously:true,strictToolchainIdentityQualified:false,futureToolchainReuseAuthorized:false};
  }
  for(const command of finalized?[]:resumed?resumed.remainingCommands:[...node.commands,...helper.commands])execFileSync(command.tool,command.argv,{stdio:'inherit'});
+ if(deviceV4&&profile.supplierNodeInputs===127)assertWalletPendingNativeExports(execFileSync('/usr/bin/nm',['-gU',node.output],{encoding:'utf8',maxBuffer:16<<20}));
  const scan=plan=>{const stdout=execFileSync(plan.ownedUndefinedScan.tool,plan.ownedUndefinedScan.argv,{encoding:'utf8'});originalBuild.assertOriginalAuthOwnedSymbols(stdout);return {...plan.ownedUndefinedScan,exit:0,stdoutSHA256:hash(Buffer.from(stdout)),ownedUndefined:[]};};
  const nodeScan=scan(node),helperScan=scan(helper),moduleBytes=regular(node.output),helperBytes=regular(helper.output);
  const record={schemaVersion:1,kind:'YNX_WALLET_ORIGINAL_NATIVE_BUILD',napiVersion:8,headerVersion:'22.13.1',minimumSystemVersion:'13.0',readbackOnly:false,commandsKind:'executed-normal-build',appSigned:false,nativeQualified:false,registrationAccepted:false,relativeBases:{inputFiles:'repository-root',output:'repository-root',headers:'pinned-header-root'},sourceRoot:repo,headerRoot:headers,sourceInventory:{relative:inventoryRelative,...inventoryPin},inputFiles:[...selectedNative,...node.walletInputFiles].map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})),headers:headerPins,architectures,commands:node.commands,exitCodes:node.commands.map(()=>0),ownedUndefinedScan:nodeScan,output:pin('apps/wallet-desktop/native/original-auth-identity.node',moduleBytes),helperBuild:{kind:'YNX_WALLET_ORIGINAL_HELPER_BUILD/v1',sourceRoot:repo,architectures,readbackOnly:false,commandsKind:'executed-normal-build',executed:true,serviceRegistered:false,installed:false,nativeQualified:false,appSigned:false,inputFiles:supplier.map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.relative.localeCompare(b.relative,'en')),commands:helper.commands,exitCodes:helper.commands.map(()=>0),ownedUndefinedScan:helperScan,output:pin(SDK13_HELPER_SOURCE_OUTPUT,helperBytes),packagedOutput:SDK13_HELPER_ASSET,plist:pin(SDK13_HELPER_PLIST,regular(path.join(repo,SDK13_HELPER_PLIST)))}};

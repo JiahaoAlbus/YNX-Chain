@@ -104,6 +104,50 @@ export function originalAuthDeviceV4BuildPlan(arch,headers,protocolRoot){
  const commands=base.commands.map(command=>({tool:command.tool,argv:[...command.argv.slice(0,-2),'-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE','-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_HTTP_PRODUCER_STAGE','-I'+wallet,...extra,object,protocol[0].path,'-lresolv',...command.argv.slice(-2)]}));
  return {...base,commands:[compile,...commands],sources:[...base.sources,...extra,e5],intermediateOutputs:[object],deviceV4Inputs:inputs,protocolInputs:protocol,deviceV4Stage:true,nativeAdmission:false,sourceAdmission:false};
 }
+// Separate pending purpose. Never link the GET/HTTP b0 archive above or use
+// dynamic_lookup as a replacement for either owned registration/challenge ABI.
+export const ORIGINAL_PENDING_DEVICE_V4_HEADER_PINS=Object.freeze([
+ Object.freeze({name:'product_device_registration_v4.h',bytes:5814,sha256:'aa630561ec84d70892e06020bb377dd9c603ce3bc3f7a769fd14fff497010c70'}),
+ Object.freeze({name:'product_device_challenge_v4.h',bytes:2673,sha256:'fc4e2d792f52fe259744bfd1920713ee69a58f30bd3f0b7ceeecba09d78b4ef9'})
+]);
+// Original Protocol same-source macos-15 ABI job 41188462021/1, artifact
+// 13037194283, source a59f7673f487e50d3a176bf48293e3647092e2cb.
+// Release source pins only, not caller/ENV injection or a Source grant.
+export const ORIGINAL_PENDING_DEVICE_V4_LINK_PINS=Object.freeze([
+ Object.freeze({name:'libynx_artifact_release.a',bytes:11192240,sha256:'dcaca724942436806f564477f8729cce3ba03cdbc5621611c9d704bb12cf8a72'}),
+ Object.freeze({name:'SOURCE.json',bytes:23152,sha256:'0b8df0e0fd73b9cff0ad34118a2de097b6b9ab9cc53b1a1e281ab3462186bd7f'})
+]);
+export function originalAuthPendingDeviceV4CompilePlan(arch,headers){
+ if(arch!=='arm64')throw Error('AUTH_PENDING_DEVICE_V4_ARCHITECTURE_NOT_SUPPLIED');
+ const base=originalAuthNativeBuildPlan(arch,headers),wallet=path.join(app,'native'),native=path.join(repo,'packages/wallet-auth/native');
+ const regular=file=>{const s=lstatSync(file);if(!s.isFile()||s.isSymbolicLink())throw Error('AUTH_PENDING_DEVICE_V4_SOURCE_NOT_REGULAR');return readFileSync(file);};
+ const closure=['original-product-device-v4-source.inc.mm','original-product-device-v4-source-read.inc.mm','original-product-device-v4-http-producer.inc.mm','original-product-device-v4-factory.h','original-product-device-v4-factory.mm','original-product-device-v4-slot.h','original-product-device-v4-slot.mm','original-product-device-v4-http-call.h','ProductSessionDeviceV4.h','product-device-v4-e5.c','product_session_http.h','original-product-device-v4-typed-producer.inc.mm','original-product-device-v4-typed-producer.h','original-product-device-v4-typed-producer.mm','original-product-device-v4-pending-custody.h','original-product-device-v4-pending-custody.mm','original-product-device-v4-pending-once.h','original-product-device-v4-slot-record.h'].map(n=>path.join(wallet,n));
+ closure.push(...['original-product-device-v4-pending-journal.h','original-host-dirfd-journal.h','original-product-device-v4-pending-source-contract.mjs'].map(n=>path.join(native,n)));
+ for(const file of closure)regular(file);
+ for(const pin of ORIGINAL_PENDING_DEVICE_V4_HEADER_PINS){const b=regular(path.join(wallet,pin.name));if(b.length!==pin.bytes||createHash('sha256').update(b).digest('hex')!==pin.sha256)throw Error('AUTH_PENDING_DEVICE_V4_HEADER_DIFFERS');}
+ const httpHeader=regular(path.join(wallet,'product_session_http.h')),httpPin=ORIGINAL_DEVICE_V4_PROTOCOL_PINS[1];if(httpHeader.length!==httpPin.bytes||createHash('sha256').update(httpHeader).digest('hex')!==httpPin.sha256)throw Error('AUTH_PENDING_DEVICE_V4_HTTP_HEADER_DIFFERS');
+ const extra=['original-product-device-v4-factory.mm','original-product-device-v4-slot.mm','original-product-device-v4-pending-custody.mm','original-product-device-v4-typed-producer.mm','product-device-v4-e5.c'].map(n=>path.join(wallet,n)),sources=[...base.sources,...extra];
+ const objectOutputs=sources.map((_,i)=>path.join(wallet,'original-auth-pending-device-v4.arm64.'+i+'.o'));
+ const argv=base.commands[0].argv,at=argv.indexOf(base.sources[0]);if(at<0||base.commands.length!==1)throw Error('AUTH_PENDING_DEVICE_V4_BASE_PLAN_INVALID');
+ const flags=argv.slice(0,at).filter(x=>!['-dynamiclib','-undefined','dynamic_lookup'].includes(x));
+ const commands=sources.map((file,i)=>file.endsWith('.c')?{tool:'/usr/bin/clang',argv:['-std=c11','-mmacosx-version-min='+base.minimumSystemVersion,'-arch','arm64','-I'+wallet,'-c',file,'-o',objectOutputs[i]]}:{tool:'/usr/bin/clang++',argv:[...flags,'-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_SOURCE_STAGE','-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_HTTP_PRODUCER_STAGE','-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_PENDING_STAGE','-I'+wallet,'-c',file,'-o',objectOutputs[i]]});
+ return {...base,commands,sources,outputs:objectOutputs,objectOutputs,closure,headerPins:ORIGINAL_PENDING_DEVICE_V4_HEADER_PINS,compileOnly:true,linkReady:false,deviceV4PendingStage:true,deviceV4HTTPStage:true,nativeAdmission:false,sourceAdmission:false,requiredOwnedExports:['YNXProductSessionHTTPProofSignV4','YNXProductSessionDeviceRegistrationSignV4','YNXProductSessionDeviceChallengeSignV4']};
+}
+export function originalAuthPendingDeviceV4BuildPlan(arch,headers,protocolRoot){
+ if(arch!=='arm64'||typeof headers!=='string'||!path.isAbsolute(headers)||typeof protocolRoot!=='string'||!path.isAbsolute(protocolRoot)||path.normalize(protocolRoot)!==protocolRoot)throw Error('AUTH_PENDING_DEVICE_V4_BUILD_INPUT_INVALID');
+ // No compilation, output placement or fallback before a concrete official
+ // link contract exists. The actual compile recipe above is independently
+ // usable by the normal original build owner; it is not a finished addon.
+ if(ORIGINAL_PENDING_DEVICE_V4_LINK_PINS===null)throw Error('AUTH_PENDING_DEVICE_V4_PROTOCOL_ARCHIVE_NOT_SUPPLIED');
+ for(let dir=protocolRoot;;dir=path.dirname(dir)){const s=lstatSync(dir);if(!s.isDirectory()||s.isSymbolicLink())throw Error('AUTH_PENDING_DEVICE_V4_PROTOCOL_ROOT_INVALID');if(path.dirname(dir)===dir)break;}
+ const pins=ORIGINAL_PENDING_DEVICE_V4_LINK_PINS;if(!Array.isArray(pins)||pins.length!==2||pins[0].name!=='libynx_artifact_release.a'||pins[1].name!=='SOURCE.json')throw Error('AUTH_PENDING_DEVICE_V4_LINK_CONTRACT_INVALID');
+ const protocolInputs=[...pins,...ORIGINAL_PENDING_DEVICE_V4_HEADER_PINS].map(pin=>{if(!Number.isSafeInteger(pin.bytes)||pin.bytes<1||!/^[a-f0-9]{64}$/.test(pin.sha256))throw Error('AUTH_PENDING_DEVICE_V4_LINK_CONTRACT_INVALID');const file=path.join(protocolRoot,pin.name),s=lstatSync(file);if(!s.isFile()||s.isSymbolicLink())throw Error('AUTH_PENDING_DEVICE_V4_PROTOCOL_NOT_REGULAR');const b=readFileSync(file);if(b.length!==pin.bytes||createHash('sha256').update(b).digest('hex')!==pin.sha256)throw Error('AUTH_PENDING_DEVICE_V4_PROTOCOL_PIN_DIFFERS');return{...pin,path:file};});
+ const sourceManifest=JSON.parse(readFileSync(path.join(protocolRoot,'SOURCE.json'),'utf8')),httpSource=sourceManifest.sources?.['cmd/ynx-artifact-release-cabi/product_session_http.h'],httpPin=ORIGINAL_DEVICE_V4_PROTOCOL_PINS[1];if(httpSource?.bytes!==httpPin.bytes||httpSource?.sha256!==httpPin.sha256)throw Error('AUTH_PENDING_DEVICE_V4_OFFICIAL_HTTP_SOURCE_DIFFERS');
+ const compile=originalAuthPendingDeviceV4CompilePlan(arch,headers),base=originalAuthNativeBuildPlan(arch,headers),argv=base.commands[0].argv,at=argv.indexOf(base.sources[0]);
+ const link={tool:'/usr/bin/clang++',argv:[...argv.slice(0,at),...compile.objectOutputs,protocolInputs[0].path,'-lresolv','-o',base.output]};
+ return{...compile,commands:[...compile.commands,link],outputs:[base.output],output:base.output,intermediateOutputs:compile.objectOutputs,protocolInputs,compileOnly:false,linkReady:true,ownedUndefinedScan:base.ownedUndefinedScan,ownedRequiredExportsScan:{tool:'/usr/bin/nm',argv:['-gU',base.output]},nativeAdmission:false,sourceAdmission:false};
+}
+export function assertOriginalPendingDeviceV4Exports(text){if(typeof text!=='string')throw Error('AUTH_PENDING_DEVICE_V4_EXPORT_SCAN_INVALID');for(const symbol of ['YNXProductSessionHTTPProofSignV4','YNXProductSessionDeviceRegistrationSignV4','YNXProductSessionDeviceChallengeSignV4'])if(!text.split(/\r?\n/).some(line=>new RegExp('\\b[Tt]\\s+_'+symbol+'$').test(line.trim())))throw Error('AUTH_PENDING_DEVICE_V4_EXPORT_MISSING');}
 // Source-only normal helper executable recipe. No install, signing, Root row
 // or system approval is performed by constructing or executing this compiler.
 export function originalIDEHelperBuildPlan(arch){
@@ -126,18 +170,20 @@ export function originalAuthSourceCurrentIOBuildPlan(platform,arch,headers){
  if(arches.length===2)commands.push({tool:'/usr/bin/lipo',argv:['-create',output+'.arm64',output+'.x64','-output',output]});return {commands,output,source};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===here){
- const deviceV4=process.argv[2]==='device-v4',helperOnly=process.argv[2]==='helper',ioOnly=process.argv[2]==='source-current-io',headers=ioOnly||deviceV4?process.argv[4]:process.argv[3];
+ const pendingV4=process.argv[2]==='device-v4-pending',deviceV4=process.argv[2]==='device-v4',helperOnly=process.argv[2]==='helper',ioOnly=process.argv[2]==='source-current-io',headers=ioOnly||deviceV4||pendingV4?process.argv[4]:process.argv[3];
  if(!ioOnly&&process.platform!=='darwin')throw Error('AUTH_NATIVE_MAC_ONLY');
  if(ioOnly&&process.platform==='linux'&&process.argv[3]!==process.arch)throw Error('AUTH_SOURCE_CURRENT_IO_CROSS_COMPILER_NOT_SUPPLIED');
  if(helperOnly&&process.argv.length!==4)throw Error('AUTH_NATIVE_HELPER_BUILD_INPUT_INVALID');
  if(deviceV4&&process.argv.length!==6)throw Error('AUTH_DEVICE_V4_BUILD_INPUT_INVALID');
- const plan=deviceV4?originalAuthDeviceV4BuildPlan(process.argv[3],headers,process.argv[5]):helperOnly?originalIDEHelperBuildPlan(process.argv[3]):ioOnly?originalAuthSourceCurrentIOBuildPlan(process.platform,process.argv[3],headers):originalAuthNativeBuildPlan(process.argv[2]??'arm64',headers);
+ if(pendingV4&&process.argv.length!==6)throw Error('AUTH_PENDING_DEVICE_V4_BUILD_INPUT_INVALID');
+ const plan=pendingV4?originalAuthPendingDeviceV4BuildPlan(process.argv[3],headers,process.argv[5]):deviceV4?originalAuthDeviceV4BuildPlan(process.argv[3],headers,process.argv[5]):helperOnly?originalIDEHelperBuildPlan(process.argv[3]):ioOnly?originalAuthSourceCurrentIOBuildPlan(process.platform,process.argv[3],headers):originalAuthNativeBuildPlan(process.argv[2]??'arm64',headers);
  if(!helperOnly&&!existsSync(path.join(headers,'node_api.h')))throw Error('AUTH_NATIVE_PINNED_HEADERS_REQUIRED');
- if(deviceV4)for(const file of [...plan.outputs,...plan.intermediateOutputs])if(existsSync(file))throw Error('AUTH_DEVICE_V4_OUTPUT_EXISTS');
+ if(deviceV4||pendingV4)for(const file of [...plan.outputs,...plan.intermediateOutputs])if(existsSync(file))throw Error('AUTH_DEVICE_V4_OUTPUT_EXISTS');
  // Explicit local headers only; opt-in device-v4 also binds its supplied local
  // official archive. No download, fallback library or hidden build.
  for(const {tool,argv} of plan.commands)execFileSync(tool,argv,{stdio:'inherit'});
  // Node's dynamic_lookup may resolve NAPI at load time, never our own parser,
  // classes or namespace symbols. Check the actual final binary before release.
  if(!ioOnly)assertOriginalAuthOwnedSymbols(execFileSync(plan.ownedUndefinedScan.tool,plan.ownedUndefinedScan.argv,{encoding:'utf8'}));
+ if(pendingV4)assertOriginalPendingDeviceV4Exports(execFileSync(plan.ownedRequiredExportsScan.tool,plan.ownedRequiredExportsScan.argv,{encoding:'utf8'}));
 }

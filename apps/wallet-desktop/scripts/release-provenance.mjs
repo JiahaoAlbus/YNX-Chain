@@ -23,6 +23,7 @@ import {readSDK42ProductRuntime,assertSDK42ProductArchive} from './sdk42-product
 import {readSDK46ProductRuntime,assertSDK46ProductArchive} from './sdk46-product-runtime.mjs';
 import {readSDK49ProductRuntime,assertSDK49ProductArchive} from './sdk49-product-runtime.mjs';
 import {SDK49_DAEMON_AUTH,SDK49_DAEMON_VARIANT} from './sdk49-daemon-profile.mjs';
+import {SDK49_NORMAL_AUTH,SDK49_NORMAL_VARIANT} from './sdk49-normal-profile.mjs';
 import {verifySDK49FullRuntimeTables} from './sdk49-runtime-source.mjs';
 import {assertExcludedRuntimeNotTracked,assertCanonicalRuntimeMembers,UNFROZEN_POLICY_INPUT} from './desktop-runtime-members.mjs';
 const readSDKProductRuntime=(root,commit)=>readSDK35ProductRuntime(root,commit)??readSDK36ProductRuntime(root,commit)??readSDK37ProductRuntime(root,commit)??readSDK38ProductRuntime(root,commit)??readSDK39ProductRuntime(root,commit)??readSDK40ProductRuntime(root,commit)??readSDK41ProductRuntime(root,commit)??readSDK42ProductRuntime(root,commit)??readSDK46ProductRuntime(root,commit)??readSDK49ProductRuntime(root,commit);
@@ -147,7 +148,7 @@ export function fixedSDKRuntimeManifestSources(root,sourceCommit){
  // not authorize itself or arbitrary adjacent JSON. Pin its reviewed identity
  // as well as requiring byte equality with the immutable composed source.
  const bytes=execFileSync('git',['show',`${sourceCommit}:${FIXED_SDK_RUNTIME_MANIFEST}`],{cwd:root,maxBuffer:1024*1024});
- const selectedIdentity=sdk.version===SDK49_VERSION&&bytes.length===SDK49_DAEMON_AUTH.bytes&&digest(bytes)===SDK49_DAEMON_AUTH.sha256?SDK49_DAEMON_AUTH:identity;
+ const selectedIdentity=sdk.version===SDK49_VERSION&&bytes.length===SDK49_NORMAL_AUTH.bytes&&digest(bytes)===SDK49_NORMAL_AUTH.sha256?SDK49_NORMAL_AUTH:sdk.version===SDK49_VERSION&&bytes.length===SDK49_DAEMON_AUTH.bytes&&digest(bytes)===SDK49_DAEMON_AUTH.sha256?SDK49_DAEMON_AUTH:identity;
  if(bytes.length!==selectedIdentity.bytes||digest(bytes)!==selectedIdentity.sha256)throw Error('Fixed SDK runtime manifest identity differs');
  if(Object.hasOwn(SDK_RUNTIME_UNIONS,sdk.version)){
   const union=execFileSync('git',['show',`${sourceCommit}:${SDK14_RUNTIME_UNION_SOURCE}`],{cwd:root,maxBuffer:2*1024*1024});
@@ -159,7 +160,7 @@ export function fixedSDKRuntimeManifestSources(root,sourceCommit){
  return [FIXED_SDK_RUNTIME_MANIFEST];
 }
 function selectedRelocationRules(sdkVersion,sourceVariant){
-  if(sourceVariant!==undefined&&(sourceVariant!==SDK49_DAEMON_VARIANT||sdkVersion!==SDK49_VERSION))throw Error('Unsupported SDK source variant');
+  if(sourceVariant!==undefined&&(![SDK49_DAEMON_VARIANT,SDK49_NORMAL_VARIANT].includes(sourceVariant)||sdkVersion!==SDK49_VERSION))throw Error('Unsupported SDK source variant');
   // The frozen SDK330 adds the third, distinct IDE peer delivery load. This is
   // a selected-source-version contract, never a count inferred from the input.
   if(sdkVersion!==SDK330_VERSION&&sdkVersion!==SDK332_VERSION&&sdkVersion!==SDK332_R140_VERSION&&sdkVersion!==SDK332_CLEANUP_VERSION&&sdkVersion!==SDK332_DEPLOYMENT_VERSION&&sdkVersion!==SDK_R154_VERSION&&sdkVersion!==SDK_CONTRACT_CLIENT_VERSION&&sdkVersion!==SDK_CONTRACT_CURRENT_VERSION&&sdkVersion!==SDK_AUTONOMOUS_SCOPE_VERSION&&sdkVersion!==SDK_PROJECT_READER_VERSION&&sdkVersion!==SDK_WORKSPACE_SELECTION_VERSION&&sdkVersion!==SDK_PUBLICATION_RESULT_VERSION&&sdkVersion!==SDK_CONTROL_CUSTODY_VERSION&&sdkVersion!==SDK_PRINCIPAL_CURRENT_VERSION&&sdkVersion!==SDK31_VERSION&&sdkVersion!==SDK32_VERSION&&sdkVersion!==SDK33_VERSION&&sdkVersion!==SDK34_VERSION&&sdkVersion!==SDK35_VERSION&&sdkVersion!==SDK36_VERSION&&sdkVersion!==SDK37_VERSION&&sdkVersion!==SDK38_VERSION&&sdkVersion!==SDK39_VERSION&&sdkVersion!==SDK40_VERSION&&sdkVersion!==SDK41_VERSION&&sdkVersion!==SDK42_VERSION&&sdkVersion!==SDK46_VERSION&&sdkVersion!==SDK49_VERSION)return PACKAGED_RELOCATION_RULES;
@@ -176,7 +177,7 @@ function selectedRelocationRules(sdkVersion,sourceVariant){
     ?{...rule,operands:rule.operands.filter(operand=>operand.kind==='from'&&operand.from==='../../../apps/wallet-desktop/src/password-wallet-vault.mjs')}:rule),
     {sourcePath:'packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',packedPath:'code/packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',operands:[
       {kind:'url',from:'../../../apps/wallet-desktop/native/original-auth-identity.node',to:'../../../apps/wallet-desktop/native/original-auth-identity.node',count:1}]}];
-  return sourceVariant===SDK49_DAEMON_VARIANT?[...sdk49,{sourcePath:'packages/wallet-auth/src/original-source-root-owner-v2.js',packedPath:'code/packages/wallet-auth/src/original-source-root-owner-v2.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-root-dirfd.node',operands:[{kind:'url',from:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',count:1}]}]:sdk49;
+  return [SDK49_DAEMON_VARIANT,SDK49_NORMAL_VARIANT].includes(sourceVariant)?[...sdk49,{sourcePath:'packages/wallet-auth/src/original-source-root-owner-v2.js',packedPath:'code/packages/wallet-auth/src/original-source-root-owner-v2.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-root-dirfd.node',operands:[{kind:'url',from:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',count:1}]}]:sdk49;
 }
 // Build/readback DATA only. The normal package caller MUST first obtain this
 // component from verifySDK13NativeComponent; it is never Source admission.

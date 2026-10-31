@@ -2,6 +2,7 @@ import {createHash} from 'node:crypto';
 import {openSync,readSync,fstatSync,closeSync,lstatSync,realpathSync,constants} from 'node:fs';
 import path from 'node:path';
 import {SDK49_DAEMON_UNION} from './sdk49-daemon-profile.mjs';
+import {SDK49_NORMAL_UNION} from './sdk49-normal-profile.mjs';
 export const SDK14_RUNTIME_UNION=Object.freeze({bytes:1453193,sha256:'bf1826a33910b8c2879316a64f5b8c84f5280d26dbdc3b5ee23157b8a2736b5d',files:9335,totalBytes:77245456});
 export const SDK18_RUNTIME_UNION=Object.freeze({bytes:1453193,sha256:'774c520036f356e93e7f58333a8f64f98cf71c7b439b1d550f06a4b69a589f85',files:9335,totalBytes:77260211});
 export const SDK19_RUNTIME_UNION=Object.freeze({bytes:1453193,sha256:'a208e293f36e624cd52bb9f8328c4c92d715e1f72c63ad1c07d18c5031edcdbc',files:9335,totalBytes:77265325});
@@ -27,7 +28,7 @@ export const SDK48_FULL_AUTH_RUNTIME=Object.freeze({bytes:81691,sha256:'9f2d4fb0
 export const SDK48_FULL_AUTH_RUNTIME_SOURCE='packages/wallet-auth/native/original-ide-auth-runtime-manifest.json';
 export const SDK49_RUNTIME_UNION=Object.freeze({bytes:1470778,sha256:'de0cfa0bbccb7338c2f35e8326c4a739b1273293e55c162e2b211fd6172104e7',files:9457,totalBytes:78060924});
 export const SDK_RUNTIME_UNIONS=Object.freeze({'1.3.0-pq.3.32-auth.14':SDK14_RUNTIME_UNION,'1.3.0-pq.3.32-auth.18':SDK18_RUNTIME_UNION,'1.3.0-pq.3.32-auth.19':SDK19_RUNTIME_UNION,'1.3.0-pq.3.32-auth.20':SDK20_RUNTIME_UNION,'1.3.0-pq.3.32-auth.23':SDK23_RUNTIME_UNION,'1.3.0-pq.3.32-auth.26':SDK26_RUNTIME_UNION,'1.3.0-pq.3.32-auth.28':SDK28_RUNTIME_UNION,'1.3.0-pq.3.32-auth.31':SDK31_RUNTIME_UNION,'1.3.0-pq.3.32-auth.32':SDK32_RUNTIME_UNION,'1.3.0-pq.3.32-auth.33':SDK33_RUNTIME_UNION,'1.3.0-pq.3.32-auth.34':SDK34_RUNTIME_UNION,'1.3.0-pq.3.32-auth.35':SDK35_RUNTIME_UNION,'1.3.0-pq.3.32-auth.36':SDK36_RUNTIME_UNION,'1.3.0-pq.3.32-auth.37':SDK37_RUNTIME_UNION,'1.3.0-pq.3.32-auth.38':SDK38_RUNTIME_UNION,'1.3.0-pq.3.32-auth.39':SDK39_RUNTIME_UNION,'1.3.0-pq.3.32-auth.40':SDK40_RUNTIME_UNION,'1.3.0-pq.3.32-auth.41':SDK41_RUNTIME_UNION,'1.3.0-pq.3.32-auth.42':SDK42_RUNTIME_UNION,'1.3.0-pq.3.32-auth.46':SDK46_RUNTIME_UNION,'1.3.0-pq.3.32-auth.48':SDK48_RUNTIME_UNION,'1.3.0-pq.3.32-auth.49':SDK49_RUNTIME_UNION});
-export function sdkRuntimeUnionProfile(version,manifestBytes){if(typeof version!=='string'||!Object.hasOwn(SDK_RUNTIME_UNIONS,version))throw Error('WALLET_RUNTIME_UNION_VERSION_UNSUPPORTED');if(version==='1.3.0-pq.3.32-auth.49'&&Buffer.isBuffer(manifestBytes)&&manifestBytes.length===SDK49_DAEMON_UNION.bytes&&sha(manifestBytes)===SDK49_DAEMON_UNION.sha256)return SDK49_DAEMON_UNION;return SDK_RUNTIME_UNIONS[version];}
+export function sdkRuntimeUnionProfile(version,manifestBytes){if(typeof version!=='string'||!Object.hasOwn(SDK_RUNTIME_UNIONS,version))throw Error('WALLET_RUNTIME_UNION_VERSION_UNSUPPORTED');if(version==='1.3.0-pq.3.32-auth.49'&&Buffer.isBuffer(manifestBytes)){for(const pin of [SDK49_NORMAL_UNION,SDK49_DAEMON_UNION])if(manifestBytes.length===pin.bytes&&sha(manifestBytes)===pin.sha256)return pin;}return SDK_RUNTIME_UNIONS[version];}
 export const SDK14_RUNTIME_UNION_SOURCE='packages/wallet-auth/native/original-ide-contract-relay-runtime-manifest.json';
 const sha=b=>createHash('sha256').update(b).digest('hex');
 export function verifySDK48FullAuthRuntime(authBytes,unionBytes){
