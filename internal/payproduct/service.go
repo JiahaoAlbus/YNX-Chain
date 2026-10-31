@@ -470,6 +470,10 @@ func (s *Service) SubmitSettlement(ctx context.Context, id, payer, tx, key strin
 	return s.acceptSettlement(invoice, merchant, settlement)
 }
 func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.PaySettlement) (Invoice, error) {
+	_, payerErr := nativewallet.NormalizeNativeAddress(v.Payer)
+	if payerErr != nil || !identifierRE.MatchString(v.ID) || v.CreatedAt.IsZero() || !walletTxPattern.MatchString(v.TransactionHash) || !walletDigestPattern.MatchString(v.AuditHash) {
+		return Invoice{}, errors.New("authoritative settlement evidence is incomplete or mismatched")
+	}
 	if v.Status != "paid" || v.BlockNumber == 0 || v.InvoiceID != invoice.CentralID || v.IntentID != invoice.IntentID || v.Merchant != merchant.CentralMerchantID || v.PayoutAddress != invoice.PayoutAddress || v.Amount != invoice.Amount || v.Currency != NativeAsset || (invoice.ExpectedPayer != "" && (v.Payer != invoice.ExpectedPayer || invoice.ExpectedPayerHash != hashString("YNX_PAY_EXPECTED_PAYER_V1", invoice.ExpectedPayer))) || !strings.HasPrefix(v.TransactionHash, "0x") || len(v.TransactionHash) != 66 || len(v.AuditHash) != 64 || !identifierRE.MatchString(v.IdempotencyKey) {
 		return Invoice{}, errors.New("authoritative settlement evidence is incomplete or mismatched")
 	}
@@ -477,6 +481,14 @@ func (s *Service) acceptSettlement(invoice Invoice, merchant Merchant, v chain.P
 	auditID := "aud_" + hashString(invoice.MerchantID, "invoice.committed", invoice.ID, v.CreatedAt.Format(time.RFC3339Nano))[:20]
 	invoice.Settlement = &SettlementEvidence{ID: v.ID, ChainID: ChainID, TransactionHash: v.TransactionHash, BlockNumber: v.BlockNumber, Finality: "committed", Payer: v.Payer, Payee: v.PayoutAddress, PayoutAddress: v.PayoutAddress, Amount: v.Amount, Asset: v.Currency, InvoiceID: invoice.ID, CentralInvoiceID: v.InvoiceID, IntentID: v.IntentID, IdempotencyKey: v.IdempotencyKey, ReceiptID: v.ID, Status: "committed", AuditHash: v.AuditHash, AuditID: auditID, CommittedAt: v.CreatedAt, Source: "authoritative-central-pay-api", SourceAsOf: v.CreatedAt, SourceVersion: 1, Confidence: "authoritative"}
 	if err := s.store.Update(func(data *Snapshot) error {
+		claimed, replay, err := claimLegacySettlement(data, invoice)
+		if err != nil {
+			return err
+		}
+		if replay {
+			invoice = claimed
+			return nil
+		}
 		if err := s.enqueueWebhook(data, merchant, "invoice.committed", invoice.ID); err != nil {
 			return err
 		}
