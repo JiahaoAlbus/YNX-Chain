@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 18
     env:
       BASELINE_OWNER_SHA: fdc08527514587d5756264e43ab63588791e189a
-      BASELINE_TOOLS_SHA: c69bbc6910319cfc0415bac7d963491197802e45
+      BASELINE_TOOLS_SHA: f573d827a9561fb96f1ca2a010a27a1d31a4cbe3
     steps:
       - name: Receive the exact original Perf baseline tools
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

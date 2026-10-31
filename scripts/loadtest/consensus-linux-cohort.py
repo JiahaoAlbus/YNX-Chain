@@ -87,7 +87,7 @@ def private_bytes(root):
     return total
 
 
-def owned_rss(pid, before):
+def owned_rss(pid, before, retired=None):
     """Read one original identity; prove disappearance instead of guessing 0."""
     directory = Path("/proc") / str(pid)
     try:
@@ -102,10 +102,14 @@ def owned_rss(pid, before):
             current = guard.parse_stat(guard.bounded(directory / "stat"), pid)
         except OSError as missing:
             if missing.errno in (errno.ENOENT, errno.ESRCH):
+                if retired is not None:
+                    retired(dict(pid=pid, startTicks=before["startTicks"], reason="second-stat-proved-gone", rssError=error.errno, statError=missing.errno))
                 return None
             raise
         require(current["startTicks"] == before["startTicks"], "owned process identity changed after RSS failure")
         require(current["state"] == "Z", "active owned process RSS unreadable")
+        if retired is not None:
+            retired(dict(pid=pid, startTicks=before["startTicks"], reason="same-identity-zombie", rssError=error.errno))
         return 0
     require(after["startTicks"] == before["startTicks"], "owned process identity changed during RSS read")
     return size
@@ -157,6 +161,7 @@ class Window:
         self.storage_roots = [work, *additional_storage]
         self.started = time.monotonic()
         self.children, self.known, self.samples = [], {}, []
+        self.retired_samples = []
         self.peak_rss = self.peak_bytes = 0
         self.last_storage_sample = 0
         self.storage_bytes = 0
@@ -186,7 +191,10 @@ class Window:
             self.known[pid] = before["startTicks"]
             if before["state"] == "Z":
                 continue
-            size = owned_rss(pid, before)
+            def retain_retired(event):
+                require(len(self.retired_samples) < 4096, "retired process sample evidence bound")
+                self.retired_samples.append(event)
+            size = owned_rss(pid, before, retain_retired)
             if size is not None:
                 rss += size
         if time.monotonic() - self.last_storage_sample >= 1:
@@ -321,6 +329,17 @@ class Window:
             except ChildProcessError: break
         rows, _ = guard.proc_inventory()
         return not any(pid != os.getpid() and self.known.get(pid) == row["startTicks"] for pid, row in rows.items())
+
+    def process_receipt(self):
+        rows = []
+        for child in self.children:
+            process = child["process"]
+            status = process.poll()
+            rows.append(dict(name=child["name"], pid=process.pid, startTicks=child.get("startTicks"),
+                             rawReturnCode=status, exitCode=status if status is not None and status >= 0 else None,
+                             signal=-status if status is not None and status < 0 else None,
+                             exited=status is not None, observedLaunchToExitNs=child.get("elapsedNs")))
+        return rows
 
 
 def ports_available():
