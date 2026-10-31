@@ -37,6 +37,8 @@ type helper struct {
 	mu                                             sync.Mutex
 	origin, host, uid, bootCode, challenge, ticket string
 	challengeUntil, ticketUntil                    time.Time
+	ticketContext                                  context.Context
+	ticketCancel                                   context.CancelFunc
 	attempts                                       int
 	anchor                                         *receipt.TrustAnchor
 	rpc                                            string
@@ -145,18 +147,23 @@ func (h *helper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.bootCode = ""
 		h.ticket = randomToken()
 		h.ticketUntil = h.now().Add(ticketLife)
+		h.ticketContext, h.ticketCancel = context.WithDeadline(context.Background(), h.ticketUntil)
 		sendJSON(w, 200, map[string]any{"ticket": h.ticket, "expires": h.ticketUntil.UTC().Format(time.RFC3339), "origin": h.origin, "scope": []string{"receipt.read", "receipt.verify"}})
 	default:
-		if !h.authorized(r) {
+		ctx, release, ok := h.authorizedContext(r)
+		if !ok {
 			denied(w, 401, "PAIRING_REQUIRED")
 			return
 		}
+		defer release()
+		r = r.WithContext(ctx)
 		switch r.URL.Path {
 		case "/api/status":
 			sendJSON(w, 200, map[string]any{"paired": true, "anchorConfigured": h.anchor != nil, "checkpoint": h.anchor.Summary(), "helperOsUid": h.uid, "callerOsIdentityVerified": false, "assurance": "local-code-origin-ticket", "pqIndependentTrustConfigured": false, "contribution": "disabled", "managedNodes": 0, "rpc": h.rpc})
 		case "/api/revoke":
 			h.mu.Lock()
 			h.ticket = ""
+			h.ticketCancel()
 			h.mu.Unlock()
 			sendJSON(w, 200, map[string]bool{"revoked": true})
 		case "/api/verify":
@@ -168,11 +175,29 @@ func (h *helper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-func (h *helper) authorized(r *http.Request) bool {
+func (h *helper) authorizedContext(r *http.Request) (context.Context, func(), bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	got := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
-	return h.ticket != "" && h.now().Before(h.ticketUntil) && subtle.ConstantTimeCompare([]byte(got), []byte(h.ticket)) == 1
+	if h.ticket == "" || !h.now().Before(h.ticketUntil) || h.ticketContext == nil || h.ticketContext.Err() != nil || subtle.ConstantTimeCompare([]byte(got), []byte(h.ticket)) != 1 {
+		return nil, nil, false
+	}
+	ctx, cancel := context.WithCancel(r.Context())
+	stop := context.AfterFunc(h.ticketContext, cancel)
+	return ctx, func() { stop(); cancel() }, true
+}
+
+// Serialize the response boundary with revoke. Offline proof verification has
+// no cancellation API; it may finish computation but cannot publish a result
+// under an expired/revoked ticket. HTTP transport observes the request context.
+func (h *helper) sendAuthorizedJSON(w http.ResponseWriter, r *http.Request, value any) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if r.Context().Err() != nil || h.ticket == "" || !h.now().Before(h.ticketUntil) || h.ticketContext.Err() != nil {
+		denied(w, 401, "PAIRING_REQUIRED")
+		return
+	}
+	sendJSON(w, 200, value)
 }
 func (h *helper) verify(w http.ResponseWriter, r *http.Request) {
 	var in struct {
@@ -193,7 +218,7 @@ func (h *helper) verify(w http.ResponseWriter, r *http.Request) {
 		// The collector's independentFinality/verification fields never supply
 		// local trust. A pinned original host context is not yet configured for
 		// this public-receipt helper; do not convert a PQ proof to classic keys.
-		sendJSON(w, 200, receipt.VerifyPQNetworkReceipt(in.TxID, nil, in.Proof, h.now()))
+		h.sendAuthorizedJSON(w, r, receipt.VerifyPQNetworkReceipt(in.TxID, nil, in.Proof, h.now()))
 		return
 	}
 	var proof receipt.ChainProof
@@ -201,7 +226,7 @@ func (h *helper) verify(w http.ResponseWriter, r *http.Request) {
 		denied(w, 400, "INVALID_PROOF")
 		return
 	}
-	sendJSON(w, 200, receipt.VerifyNetworkReceipt(in.TxID, h.anchor, proof, h.now()))
+	h.sendAuthorizedJSON(w, r, receipt.VerifyNetworkReceipt(in.TxID, h.anchor, proof, h.now()))
 }
 func (h *helper) lookup(w http.ResponseWriter, r *http.Request) {
 	var in struct {
@@ -222,11 +247,19 @@ func (h *helper) lookup(w http.ResponseWriter, r *http.Request) {
 	}
 	response, err := h.client.Do(request)
 	if err != nil {
+		if r.Context().Err() != nil {
+			denied(w, 401, "PAIRING_REQUIRED")
+			return
+		}
 		denied(w, 502, "RPC_UNAVAILABLE")
 		return
 	}
 	defer response.Body.Close()
 	raw, err := io.ReadAll(io.LimitReader(response.Body, (2<<20)+1))
+	if r.Context().Err() != nil {
+		denied(w, 401, "PAIRING_REQUIRED")
+		return
+	}
 	if err != nil || len(raw) > 2<<20 {
 		denied(w, 502, "RPC_RESPONSE_LIMIT")
 		return
@@ -239,7 +272,7 @@ func (h *helper) lookup(w http.ResponseWriter, r *http.Request) {
 		denied(w, 502, "RPC_INVALID_JSON")
 		return
 	}
-	sendJSON(w, 200, map[string]any{"view": receipt.VerifyNetworkReceipt(in.TxID, nil, receipt.ChainProof{Source: endpoint}, h.now()), "report": json.RawMessage(raw), "reportedBy": endpoint})
+	h.sendAuthorizedJSON(w, r, map[string]any{"view": receipt.VerifyNetworkReceipt(in.TxID, nil, receipt.ChainProof{Source: endpoint}, h.now()), "report": json.RawMessage(raw), "reportedBy": endpoint})
 }
 func validRPC(raw string) error {
 	u, err := url.Parse(raw)

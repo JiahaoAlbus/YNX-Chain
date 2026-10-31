@@ -30,6 +30,12 @@ Future node/resource controls require actual controlled IPC peer credentials
 or the original OS application identity channel and cannot reuse this ticket
 as privileged authorization.
 
+Each authenticated receipt request inherits the ticket's expiry and revocation
+context. Revoking or expiring a pairing cancels in-flight HTTP lookups and
+blocks late reports or proof results at the backend response boundary. The
+offline consensus verifier has no cancellation API: an already running proof
+calculation may finish, but its result cannot be returned under a revoked ticket.
+
 ## Proof levels and trust
 
 | Level | Evidence actually checked |
