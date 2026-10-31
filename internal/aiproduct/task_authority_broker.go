@@ -40,6 +40,15 @@ func (b *originalTaskAuthorityBroker) current(ctx context.Context) error {
 	}
 	return b.client.Current(ctx)
 }
+func (b *originalTaskAuthorityBroker) effectCurrent(ctx context.Context) error {
+	if err := b.current(ctx); err != nil {
+		return err
+	}
+	if client, ok := b.client.(interface{ NewEffectsCurrent(context.Context) error }); ok {
+		return client.NewEffectsCurrent(ctx)
+	}
+	return nil
+}
 
 func (p *PreparedOriginalTaskRuntime) queryCurrent(ctx context.Context) error {
 	if p == nil || ctx == nil || missingTaskRuntimeOperand(p.authority) {

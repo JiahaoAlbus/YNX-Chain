@@ -37,7 +37,35 @@ func OpenOriginalTaskRuntime(ctx context.Context, cfg TaskModelConfig) (*Prepare
 	if client == nil || queryOwner == nil {
 		return p, errors.Join(effectErr, errTaskEffectSourceUnavailable)
 	}
-	p.authority, p.broker = authority, &originalTaskAuthorityBroker{client: client}
+	authBroker, brokerErr := originalclient.OpenOriginalTaskAuthorityBroker(ctx, client)
+	p.owners.authBroker = authBroker
+	if brokerErr != nil {
+		return p, errors.Join(effectErr, brokerErr)
+	}
+	if authBroker == nil {
+		return p, errors.Join(effectErr, errTaskEffectSourceUnavailable)
+	}
+	registration, registrationErr := authBroker.ReadRegistration(ctx)
+	if registrationErr != nil {
+		return p, errors.Join(effectErr, registrationErr)
+	}
+	localRegistration, effectAvailable, registrationErr := taskCallerRegistration(registration)
+	if registrationErr != nil {
+		return p, errors.Join(effectErr, registrationErr)
+	}
+	typedBroker := &originalTaskCallerTypedBroker{owner: authBroker}
+	endpoint, endpointErr := openTaskCallerEndpoint(ctx, localRegistration, typedBroker)
+	p.owners.endpoint = endpoint
+	if endpointErr != nil {
+		return p, errors.Join(effectErr, endpointErr)
+	}
+	ipcClient := &taskIPCBrokerClient{client: client, broker: typedBroker, endpoint: endpoint, effectAvailable: effectAvailable}
+	callOwner, callErr := newTaskCallerLifetime(ipcClient)
+	p.owners.calls = callOwner
+	if callErr != nil {
+		return p, errors.Join(effectErr, callErr)
+	}
+	p.authority, p.broker = authority, &originalTaskAuthorityBroker{client: callOwner}
 	if err := p.queryCurrent(ctx); err != nil {
 		return p, errors.Join(effectErr, err)
 	}
@@ -75,10 +103,13 @@ func (p *PreparedOriginalTaskRuntime) NewEffectsUnavailable() error {
 }
 
 type originalTaskRuntimeOwners struct {
-	native *nativeTaskRuntimeAuthority
-	client *originalclient.TaskAuthorityClient
-	once   sync.Once
-	err    error
+	native     *nativeTaskRuntimeAuthority
+	client     *originalclient.TaskAuthorityClient
+	calls      *taskCallerLifetime
+	authBroker *originalclient.OriginalTaskAuthorityBroker
+	endpoint   *taskCallerEndpoint
+	once       sync.Once
+	err        error
 }
 
 // Close follows HTTP request draining in the normal app. Original client Close
@@ -90,6 +121,26 @@ func (p *PreparedOriginalTaskRuntime) Close() error {
 	}
 	o := p.owners
 	o.once.Do(func() {
+		if o.calls != nil {
+			o.err = errors.Join(o.err, o.calls.Retire())
+		}
+		if o.endpoint != nil {
+			o.err = errors.Join(o.err, o.endpoint.Retire())
+		}
+		if o.authBroker != nil {
+			o.err = errors.Join(o.err, o.authBroker.Retire())
+		}
+		if o.calls != nil {
+			// The original IPC client has no persistent fd/Close method: each
+			// Call owns its connection. Drain actual calls before Source owners.
+			o.err = errors.Join(o.err, o.calls.Join(context.Background()))
+		}
+		if o.endpoint != nil {
+			o.err = errors.Join(o.err, o.endpoint.Join(context.Background()))
+		}
+		if o.authBroker != nil {
+			o.err = errors.Join(o.err, o.authBroker.Close())
+		}
 		if o.native != nil {
 			o.err = errors.Join(o.err, o.native.Retire())
 		}

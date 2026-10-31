@@ -118,7 +118,7 @@ func (p *PreparedOriginalTaskRuntime) current(ctx context.Context) error {
 		}
 	}
 	if p.broker != nil {
-		if err := p.broker.current(ctx); err != nil {
+		if err := p.broker.effectCurrent(ctx); err != nil {
 			return err
 		}
 	}
