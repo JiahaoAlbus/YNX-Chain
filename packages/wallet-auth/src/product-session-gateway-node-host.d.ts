@@ -23,6 +23,7 @@ export type OriginalDeveloperHTTPPrincipalDATA=Readonly<{
   profileDigest:string;currentRaw:string;method:string;path:string;bodyDigest:string;expiresAtMs:number;
   dataOnly:true;authorized:false;nativeAdmission:false;
 }>;
+export type OriginalDeveloperHTTPPrincipalDATAV5=Readonly<Omit<OriginalDeveloperHTTPPrincipalDATA,'version'>&{version:'YNX-ORIGINAL-DEVELOPER-HTTP-PRINCIPAL/v5';contentType:string;bodyBinding:import('./product-session-proof-v5.js').ProductSessionHTTPBodyV5Binding}>;
 export type ProductSessionGatewayNodeHostOptions=Readonly<{
   now:()=>Date;statePath:string;tokenFactory:()=>string;
   centralBrowser?:boolean;centralBrowserEcosystem?:boolean;businessRevalidation?:boolean;
@@ -42,6 +43,8 @@ export declare class ProductSessionGatewayNodeHost {
   authenticateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;
   authenticateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
   revalidateOriginalDeveloperHTTPRequestV4(input:OriginalDeveloperHTTPRequest&Readonly<{expected:import('./product-session-device-v4.js').ProductSessionDeviceCurrentExpectedV4}>):Promise<OriginalDeveloperHTTPCredential>;
+  currentExistingDeveloperPrincipalV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPPrincipalDATAV5>;
+  recheckExistingDeveloperPrincipalV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPPrincipalDATAV5>;
   currentExistingDeveloperPrincipal(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPPrincipalDATA>;
   /** Observation of an already-consumed original proof; never a new nonce or business execution. */
   revalidateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;
