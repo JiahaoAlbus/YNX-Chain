@@ -3,6 +3,8 @@ package mempool
 import (
 	"context"
 	"errors"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"fmt"
@@ -24,6 +26,10 @@ type Reactor struct {
 	config  *cfg.MempoolConfig
 	mempool *CListMempool
 	ids     *mempoolIDs
+
+	wireObserver        atomic.Pointer[WireObserver]
+	wireObserverMu      sync.Mutex
+	wireObserverStarted bool
 
 	// Semaphores to keep track of how many connections to peers are active for broadcasting
 	// transactions. Each semaphore has a capacity that puts an upper bound on the number of
@@ -60,6 +66,9 @@ func (memR *Reactor) SetLogger(l log.Logger) {
 
 // OnStart implements p2p.BaseReactor.
 func (memR *Reactor) OnStart() error {
+	memR.wireObserverMu.Lock()
+	memR.wireObserverStarted = true
+	memR.wireObserverMu.Unlock()
 	if !memR.config.Broadcast {
 		memR.Logger.Info("Tx broadcasting is disabled")
 	}
@@ -141,6 +150,10 @@ func (memR *Reactor) Receive(e p2p.Envelope) {
 	memR.Logger.Debug("Receive", "src", e.Src, "chId", e.ChannelID, "msg", e.Message)
 	switch msg := e.Message.(type) {
 	case *protomem.Txs:
+		observer := memR.wireObserver.Load()
+		if observer != nil {
+			observer.received(msg)
+		}
 		protoTxs := msg.GetTxs()
 		if len(protoTxs) == 0 {
 			memR.Logger.Error("received empty txs from peer", "src", e.Src)
@@ -154,7 +167,14 @@ func (memR *Reactor) Receive(e p2p.Envelope) {
 		var err error
 		for _, tx := range protoTxs {
 			ntx := types.Tx(tx)
+			var started time.Time
+			if observer != nil {
+				started = time.Now()
+			}
 			err = memR.mempool.CheckTx(ntx, nil, txInfo)
+			if observer != nil {
+				observer.checked(time.Since(started), err)
+			}
 			if err != nil {
 				switch {
 				case errors.Is(err, ErrTxInCache):
@@ -231,10 +251,19 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		// https://github.com/tendermint/tendermint/issues/5796
 
 		if !memTx.isSender(peerID) {
+			msg := &protomem.Txs{Txs: [][]byte{memTx.tx}}
+			observer := memR.wireObserver.Load()
+			var started time.Time
+			if observer != nil {
+				started = time.Now()
+			}
 			success := peer.Send(p2p.Envelope{
 				ChannelID: MempoolChannel,
-				Message:   &protomem.Txs{Txs: [][]byte{memTx.tx}},
+				Message:   msg,
 			})
+			if observer != nil {
+				observer.sent(msg, time.Since(started), success)
+			}
 			if !success {
 				time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
 				continue

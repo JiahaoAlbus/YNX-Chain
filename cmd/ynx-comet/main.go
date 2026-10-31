@@ -42,10 +42,11 @@ type pqOptions struct {
 	proofLiveBind                                                     func(*consensus.Application) error
 	checkpointAccess                                                  consensus.PQCheckpointAccess
 	checkpointAccessRequested                                         bool
+	wireObservationOutput, wireObservationScope                       string
 }
 
 func (p pqOptions) enabled() bool {
-	return p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured()
+	return p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured() || p.wireObservationConfigured()
 }
 
 func (p pqOptions) remote() bool {
@@ -63,6 +64,9 @@ func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
 }
 
 func (p pqOptions) validate() error {
+	if err := p.validateWireObservation(); err != nil {
+		return err
+	}
 	if err := p.validateInvoiceOptions(); err != nil {
 		return err
 	}
@@ -333,6 +337,11 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if err != nil {
 		return err
 	}
+	observation, err := prepareOperatorWireObservation(config, options)
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, observation.close()) }()
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 	if config.LogFormat == cfg.LogFormatJSON {
 		logger = log.NewTMJSONLogger(log.NewSyncWriter(os.Stdout))
@@ -391,18 +400,25 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 		_ = node.ProxyApp().Stop()
 		return err
 	}
+	if err := observation.install(node); err != nil {
+		_ = closePQCustody(custody)
+		node.OnStop()
+		_ = node.ProxyApp().Stop()
+		return err
+	}
 	if err := node.Start(); err != nil {
 		_ = closePQCustody(custody)
 		node.OnStop()
 		_ = node.ProxyApp().Stop()
 		return err
 	}
+	observation.started()
 	defer func() { result = errors.Join(result, node.ProxyApp().Stop()) }()
 	var liveDone <-chan struct{}
 	if live != nil {
 		if err = live.Start(ctx); err != nil {
 			_ = live.Close()
-			return errors.Join(err, node.Stop())
+			return errors.Join(err, stopPQNodeWithObservation(node, observation))
 		}
 		liveDone = live.Done()
 	}
@@ -448,10 +464,7 @@ waitForStop:
 	if options.remote() {
 		_ = custody.Close()
 	} // unblock any pending remote call before node shutdown
-	if node.IsRunning() {
-		return errors.Join(result, node.Stop())
-	}
-	return result
+	return errors.Join(result, stopPQNodeWithObservation(node, observation))
 }
 
 func closePQCustody(custody io.Closer) error {
@@ -481,6 +494,7 @@ func main() {
 	registerHeightHaltFlags(f, &options)
 	registerProofHostLiveFlags(f, &options)
 	registerCheckpointAccessFlags(f, &options)
+	registerWireObservationFlags(f, &options)
 	f.StringVar(&options.runtimePlan, "runtime-upgrade-plan", "", "canonical independently pinned old-runtime upgrade plan")
 	f.StringVar(&options.runtimePlanHash, "runtime-upgrade-plan-hash", "", "independent exact runtime upgrade plan hash")
 	f.StringVar(&options.invoiceSchedule, "pq-invoice-schedule", "", "canonical independently pinned invoice activation schedule (default disabled)")

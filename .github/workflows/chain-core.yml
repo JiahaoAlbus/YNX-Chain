@@ -269,6 +269,34 @@ jobs:
           print('YNX_PQ_LAB_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, nodeProcessesStarted=0, publicActivation=False), sort_keys=True))
           PY
 
+      - name: Verify the default-off normal node wire observation adapter
+        env:
+          CGO_ENABLED: '0'
+          GOMEMLIMIT: 1536MiB
+        run: |
+          set -euo pipefail
+          if ! (cd third_party/cometbft && go test -mod=readonly -json -p 1 -count=1 -timeout=90s -run '^TestMempoolWireObserver' ./mempool) > "$RUNNER_TEMP/wire-observer-tests.jsonl"; then
+            cat "$RUNNER_TEMP/wire-observer-tests.jsonl"
+            exit 1
+          fi
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run '^TestOperatorWireObservation' ./cmd/ynx-comet > "$RUNNER_TEMP/wire-caller-tests.jsonl"; then
+            cat "$RUNNER_TEMP/wire-caller-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          rows = []
+          for filename in ('wire-observer-tests.jsonl', 'wire-caller-tests.jsonl'):
+              rows += [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / filename).read_text().splitlines()]
+          required = ['TestMempoolWireObserverOriginalReceiveAndCheckTx', 'TestMempoolWireObserverOriginalSendRetryAndBytes', 'TestMempoolWireObserverLifecycleAndConcurrentSnapshot', 'TestMempoolWireObserverOverflowIsExplicit', 'TestOperatorWireObservationFlagsDefaultAndFailClosed', 'TestOperatorWireObservationActualPinnedConstructorAndReactor', 'TestOperatorWireObservationActualScopeAndLoopbackRefusals', 'TestOperatorWireObservationNormalStopOneOutputAndPublicSchema', 'TestOperatorWireObservationFailureAndUnknownPreserveOriginal', 'TestOperatorWireObservationPathAndEndpointBoundaries', 'TestOperatorWireObservationExactOutputReadback']
+          for name in required:
+              terminal = [r['Action'] for r in rows if r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')]
+              if terminal != ['pass']:
+                  raise RuntimeError('original observation adapter did not execute and pass: ' + name)
+          print('YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, physicalBytesMeasured=False, nodeProcessesStarted=0), sort_keys=True))
+          PY
+
   link-scope:
     name: Select actual LINK changed closure
     runs-on: ubuntu-24.04
