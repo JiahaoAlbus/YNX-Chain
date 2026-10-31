@@ -1,0 +1,391 @@
+name: PQ Root exact source comparisons
+
+# Root owns only this isolated source-compare workflow. No PR, schedule or retry
+# starts another 528-input record. Original B8 before is never regenerated.
+on:
+  push:
+    branches: [codex/ynx-pq-source-root-20261031]
+    paths:
+      - '.github/workflows/pq-source-compare-root.yml'
+      - 'scripts/loadtest/root-source-admission.py'
+      - 'scripts/loadtest/root-source-admission_test.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ynx-pq-source-compare-v1
+  cancel-in-progress: false
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+  GOTOOLCHAIN: local
+  GOMAXPROCS: '1'
+
+jobs:
+  intake-controls:
+    if: github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/loadtest/pq-source-artifact-intake.py
+            /scripts/loadtest/root-source-admission.py
+            /scripts/loadtest/root-source-admission_test.py
+      - name: New original-admission evidence controls
+        run: python3 -B scripts/loadtest/root-source-admission_test.py
+
+  b8-original-replay:
+    needs: intake-controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Exact current intake controller
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/loadtest/pq-source-artifact-intake.py
+            /scripts/loadtest/root-source-admission.py
+      - name: Exact original eight-case tools
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: b6a0cab84f5985f647972209b3c389f2892b44e7
+          path: b8-tools
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/
+      - name: Exact isolated B source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: b2120f6a0dc65666145cc9976b9f13d8b175f34d
+          path: b8-owner
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /go.mod
+            /go.sum
+            /internal/
+            /third_party/cometbft/
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Original eight-case replay and complete full-state comparison
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B "$GITHUB_WORKSPACE/controller/scripts/loadtest/root-source-admission.py" \
+            --scope b8 --tools "$GITHUB_WORKSPACE/b8-tools" --owner "$GITHUB_WORKSPACE/b8-owner" \
+            --controller "$GITHUB_WORKSPACE/controller" --operation "$RUNNER_TEMP/pq-source-b8" --execute
+      - name: Preserve only original PUBLIC replay states receipt and full diff
+        if: always() && steps.scope.outputs.public != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-source-b8-after-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.public }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve primary failure and original Window process/resource evidence
+        if: always() && steps.scope.outputs.diagnostics != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-source-b8-controller-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.diagnostics }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Preserve exact original heavy-process identities without exclusions
+        if: always() && steps.scope.outputs.root_diagnostics != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-root-admission-b8-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.root_diagnostics }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+
+  multi-original-before:
+    needs: b8-original-replay
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      artifact_id: ${{ steps.before.outputs.artifact-id }}
+      artifact_digest: ${{ steps.before.outputs.artifact-digest }}
+      artifact_name: pq-source-multi-before-${{ github.run_id }}
+      run_id: ${{ steps.scope.outputs.run_id }}
+      input_sha256: ${{ steps.scope.outputs.input_sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/loadtest/pq-source-artifact-intake.py
+            /scripts/loadtest/root-source-admission.py
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: aa9447df2f5867542892f6fdbfbefbd116daed91
+          path: multi-tools
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/
+      - name: Original fdc source for the NEW four-case before
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fdc08527514587d5756264e43ab63588791e189a
+          path: multi-owner
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /go.mod
+            /go.sum
+            /internal/
+            /third_party/cometbft/
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: One actual new 528-input four-case original before
+        id: scope
+        run: |
+          python3 -B "$GITHUB_WORKSPACE/controller/scripts/loadtest/root-source-admission.py" \
+            --scope multi-before --tools "$GITHUB_WORKSPACE/multi-tools" --owner "$GITHUB_WORKSPACE/multi-owner" \
+            --controller "$GITHUB_WORKSPACE/controller" --operation "$RUNNER_TEMP/pq-source-multi-before" --execute
+      - name: Publish only the complete actual before and capture real artifact identity
+        id: before
+        if: success() && steps.scope.outputs.public != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-source-multi-before-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.public }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve failed before as partial PUBLIC only without ready outputs
+        if: failure() && steps.scope.outputs.public != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-source-multi-before-PARTIAL-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.public }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve original before controller/resource first cause
+        if: always() && steps.scope.outputs.diagnostics != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-source-multi-before-controller-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.diagnostics }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Preserve exact original heavy-process identities without exclusions
+        if: always() && steps.scope.outputs.root_diagnostics != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-root-admission-multi-before-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.root_diagnostics }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+
+  multi-a-replay:
+    needs: multi-original-before
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/loadtest/pq-source-artifact-intake.py
+            /scripts/loadtest/root-source-admission.py
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: aa9447df2f5867542892f6fdbfbefbd116daed91
+          path: multi-tools
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/
+      - name: Exact A private-proof-history source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: b77a3df453d880ab31aca99ce94fc9a7feb4fffb
+          path: multi-owner
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /go.mod
+            /go.sum
+            /internal/
+            /third_party/cometbft/
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Replay A against the actual immutable preceding before artifact
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MULTI_BEFORE_ARTIFACT_ID: ${{ needs.multi-original-before.outputs.artifact_id }}
+          MULTI_BEFORE_ARTIFACT_DIGEST: ${{ needs.multi-original-before.outputs.artifact_digest }}
+          MULTI_BEFORE_ARTIFACT_NAME: ${{ needs.multi-original-before.outputs.artifact_name }}
+          MULTI_BEFORE_RUN_ID: ${{ needs.multi-original-before.outputs.run_id }}
+          MULTI_BEFORE_INPUT_SHA256: ${{ needs.multi-original-before.outputs.input_sha256 }}
+        run: |
+          python3 -B "$GITHUB_WORKSPACE/controller/scripts/loadtest/root-source-admission.py" \
+            --scope multi-a --tools "$GITHUB_WORKSPACE/multi-tools" --owner "$GITHUB_WORKSPACE/multi-owner" \
+            --controller "$GITHUB_WORKSPACE/controller" --operation "$RUNNER_TEMP/pq-source-multi-a" --execute
+      - name: Preserve A PUBLIC full-state comparison
+        if: always() && steps.scope.outputs.public != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-source-multi-a-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.public }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve A primary controller/resource evidence
+        if: always() && steps.scope.outputs.diagnostics != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-source-multi-a-controller-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.diagnostics }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Preserve exact original heavy-process identities without exclusions
+        if: always() && steps.scope.outputs.root_diagnostics != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-root-admission-multi-a-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.root_diagnostics }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+
+  multi-b-replay:
+    needs: [b8-original-replay, multi-original-before, multi-a-replay]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          path: controller
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /scripts/loadtest/pq-source-artifact-intake.py
+            /scripts/loadtest/root-source-admission.py
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: aa9447df2f5867542892f6fdbfbefbd116daed91
+          path: multi-tools
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/
+      - name: Separate one-variable B source against the SAME new before
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: b2120f6a0dc65666145cc9976b9f13d8b175f34d
+          path: multi-owner
+          fetch-depth: 1
+          fetch-tags: false
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /go.mod
+            /go.sum
+            /internal/
+            /third_party/cometbft/
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Replay B only after its old eight-case full comparison passed
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MULTI_BEFORE_ARTIFACT_ID: ${{ needs.multi-original-before.outputs.artifact_id }}
+          MULTI_BEFORE_ARTIFACT_DIGEST: ${{ needs.multi-original-before.outputs.artifact_digest }}
+          MULTI_BEFORE_ARTIFACT_NAME: ${{ needs.multi-original-before.outputs.artifact_name }}
+          MULTI_BEFORE_RUN_ID: ${{ needs.multi-original-before.outputs.run_id }}
+          MULTI_BEFORE_INPUT_SHA256: ${{ needs.multi-original-before.outputs.input_sha256 }}
+        run: |
+          python3 -B "$GITHUB_WORKSPACE/controller/scripts/loadtest/root-source-admission.py" \
+            --scope multi-b --tools "$GITHUB_WORKSPACE/multi-tools" --owner "$GITHUB_WORKSPACE/multi-owner" \
+            --controller "$GITHUB_WORKSPACE/controller" --operation "$RUNNER_TEMP/pq-source-multi-b" --execute
+      - name: Preserve B PUBLIC full-state comparison
+        if: always() && steps.scope.outputs.public != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-source-multi-b-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.public }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve B primary controller/resource evidence
+        if: always() && steps.scope.outputs.diagnostics != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-source-multi-b-controller-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.diagnostics }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+      - name: Preserve exact original heavy-process identities without exclusions
+        if: always() && steps.scope.outputs.root_diagnostics != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-root-admission-multi-b-${{ github.run_id }}
+          path: ${{ steps.scope.outputs.root_diagnostics }}/*
+          include-hidden-files: false
+          if-no-files-found: error
+          retention-days: 7
+
