@@ -1,7 +1,7 @@
 name: PQ original-input per-height functional comparison
 
-# Root-only exact branch push or explicit dispatch. Independent of the chief's four-scope
-# source comparison. Never produces/signs inputs or authorizes pressure.
+# Original before/B are immutable successful artifacts. This repair runs only
+# actual Linux controls and the missing A arm; no signing or baseline recording.
 on:
   push:
     branches: [codex/ynx-pq-height-vectors-20261101]
@@ -27,14 +27,10 @@ env:
   GOMAXPROCS: '1'
 
 jobs:
-  before:
+  linux-guard-controls:
     if: github.run_attempt == 1 && ((github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-height-vectors-20261101') || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    outputs:
-      artifact_id: ${{ steps.bundle.outputs.artifact-id }}
-      artifact_digest: ${{ steps.bundle.outputs.artifact-digest }}
-      artifact_name: pq-height-before-${{ github.run_id }}
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -43,87 +39,62 @@ jobs:
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/pq-height-ci/
-      - name: Pure closed-intake controls; no actual replay claim
+      - name: Pure fixed-artifact intake controls; no Linux claim from local preparation
         run: python3 -B scripts/loadtest/pq-height-ci/test_pq_height_ci_arm.py
+      - name: Actual Linux owned PID Tgid smaps and unchanged-cap controls
+        id: controls
+        run: |
+          python3 -B scripts/loadtest/pq-height-ci/pq-height-ci-arm.py controls \
+            --operation "$RUNNER_TEMP/pq-height-guard-controls" --execute
+      - name: Preserve original controls first cause and owned process resource evidence
+        if: always() && steps.controls.outputs.diagnostics != ''
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pq-height-linux-guard-controls-${{ github.run_id }}
+          path: ${{ steps.controls.outputs.diagnostics }}/*
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 7
+
+  after-a:
+    needs: linux-guard-controls
+    if: github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: /scripts/loadtest/pq-height-ci/
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version: '1.26.10'
           cache: false
-      - name: Original Window including checkout intake prepare compilation and replay
+      - name: Missing A only with exact retained before and all 41 states
         id: arm
         env:
           GH_TOKEN: ${{ github.token }}
           HEIGHT_MODE: ${{ github.event_name == 'push' && 'replay' || inputs.mode }}
         run: |
           python3 -B scripts/loadtest/pq-height-ci/pq-height-ci-arm.py arm \
-            --arm before --mode "$HEIGHT_MODE" --operation "$RUNNER_TEMP/pq-height-before" --execute
-      - name: Publish only successful new before heights
-        id: bundle
-        if: success() && (github.event_name == 'push' || inputs.mode == 'replay') && steps.arm.outputs.public != ''
+            --arm after-a --mode "$HEIGHT_MODE" --operation "$RUNNER_TEMP/pq-height-after-a" --execute
+      - name: Publish only successful new A heights
+        if: success() && steps.arm.outputs.public != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pq-height-before-${{ github.run_id }}
+          name: pq-height-after-a-${{ github.run_id }}
           path: ${{ steps.arm.outputs.public }}/*
           if-no-files-found: error
           include-hidden-files: false
           retention-days: 7
-      - name: Preserve partial public evidence without qualifying it
+      - name: Preserve failed partial A without qualification
         if: failure() && steps.arm.outputs.public != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pq-height-before-PARTIAL-${{ github.run_id }}
-          path: ${{ steps.arm.outputs.public }}/*
-          if-no-files-found: error
-          include-hidden-files: false
-          retention-days: 7
-      - name: Preserve original process identities resource samples and first cause
-        if: always() && steps.arm.outputs.diagnostics != ''
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: pq-height-before-window-${{ github.run_id }}
-          path: ${{ steps.arm.outputs.diagnostics }}/*
-          if-no-files-found: error
-          include-hidden-files: false
-          retention-days: 7
-
-  after:
-    needs: before
-    if: github.run_attempt == 1 && (github.event_name == 'push' || inputs.mode == 'replay')
-    runs-on: ubuntu-24.04
-    timeout-minutes: 25
-    strategy:
-      fail-fast: false
-      max-parallel: 1
-      matrix:
-        arm: [after-a, after-b]
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.sha }}
-          fetch-depth: 1
-          persist-credentials: false
-          sparse-checkout-cone-mode: false
-          sparse-checkout: /scripts/loadtest/pq-height-ci/
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
-        with:
-          go-version: '1.26.10'
-          cache: false
-      - name: Same original bytes and all 41 heights on fresh isolated source arm
-        id: arm
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEIGHT_ARM: ${{ matrix.arm }}
-          HEIGHT_BEFORE_ARTIFACT_ID: ${{ needs.before.outputs.artifact_id }}
-          HEIGHT_BEFORE_ARTIFACT_DIGEST: ${{ needs.before.outputs.artifact_digest }}
-          HEIGHT_BEFORE_ARTIFACT_NAME: ${{ needs.before.outputs.artifact_name }}
-        run: |
-          python3 -B scripts/loadtest/pq-height-ci/pq-height-ci-arm.py arm \
-            --arm "$HEIGHT_ARM" --mode replay --operation "$RUNNER_TEMP/pq-height-$HEIGHT_ARM" --execute
-      - name: Preserve actual or partial public height records
-        if: always() && steps.arm.outputs.public != ''
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: pq-height-${{ matrix.arm }}-${{ github.run_id }}
+          name: pq-height-after-a-PARTIAL-${{ github.run_id }}
           path: ${{ steps.arm.outputs.public }}/*
           if-no-files-found: error
           include-hidden-files: false
@@ -132,7 +103,7 @@ jobs:
         if: always() && steps.arm.outputs.diagnostics != ''
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pq-height-${{ matrix.arm }}-window-${{ github.run_id }}
+          name: pq-height-after-a-window-${{ github.run_id }}
           path: ${{ steps.arm.outputs.diagnostics }}/*
           if-no-files-found: error
           include-hidden-files: false

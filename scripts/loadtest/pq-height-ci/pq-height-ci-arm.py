@@ -19,8 +19,16 @@ import sys
 import time
 
 HERE = Path(__file__).resolve().parent
-TOOLS = "9c22b0700d4e21f7fc35ec3067339722fb8bc330"
-TOOLS_TREE = "642d8442606ddc6d7cf44c2497109350f9ebee20"
+TOOLS = "a786dda03df9cef03f27ca0de788d0f718dc30b3"
+TOOLS_TREE = "4a73122d19c0975f3322dffb474680d2a2cd759b"
+BEFORE_TOOLS = "9c22b0700d4e21f7fc35ec3067339722fb8bc330"
+FUNCTIONAL_LEAF = "3dda570d92374df2e66aaedadb35907354ec7073ac142fb72de67a16dd2ce0e0"
+BEFORE_ARTIFACT = dict(artifactId=13050898515, runId=41223769700,
+    name="pq-height-before-41223769700", size=676742462,
+    digest="e5369f3ea4211a1041d9f3e0a1625b91e6551760bfe2ebeca4d66617b377e2e4",
+    workflowCommit="759957070c303cf2adfc5e0db70275cb51ed9c2b")
+LINUX_CONTROLS = {"test_linux_owned_rss.py": 15, "test_pq_height_vectors.py": 10,
+                  "test_consensus_linux_cohort.py": 8}
 ARMS = {
     "before": ("fdc08527514587d5756264e43ab63588791e189a", "883069d6f4c123d55dea797044186e6b7de2ad0e"),
     "after-a": ("b77a3df453d880ab31aca99ce94fc9a7feb4fffb", "1ab3bcca16cd7335866231af1554b9a27a0ea049"),
@@ -28,7 +36,7 @@ ARMS = {
 }
 INPUT_SHA = "c819fb976a422b855d3fc3e6939338995fa380556e642bda2ab59dcc66353401"
 VENDOR = {
-    "consensus-linux-cohort.py": "df2f0e885cc52bb1caa095282a491113f044fd428320f74d7bae116bd13ef62b",
+    "consensus-linux-cohort.py": "d17f5d7c991ffd01fdbba61d9ead6bbdaeeb9c5d3998a8906e5280656c5561ed",
     "pq-paired-linux-window.py": "b87a895d7c625ae15834a73b19196310dfbba13335707b9fdb4a3e50d9ad69e2",
     "pq-source-artifact-intake.py": "0c59129b9951de6b0b0b30f098fd732c2652ffbf0a66ecddd99fe525da0b260b",
 }
@@ -60,7 +68,8 @@ def dependencies():
                 "frozen original bootstrap dependency changed: " + name)
     intake = load_module("height_original_intake", HERE / "vendor/pq-source-artifact-intake.py")
     lab = load_module("height_original_window", HERE / "vendor/consensus-linux-cohort.py")
-    require(lab.CAPS == CAPS, "original Window caps changed")
+    require(lab.CAPS == CAPS and lab.RSS_OBSERVER_VERSION == "same-process-rss-v2",
+            "original Window caps or fixed RSS observer changed")
     return intake, lab
 
 
@@ -99,12 +108,25 @@ def pass_record(raw):
             "skipped/failed/zero-hit/additional test cannot qualify")
 
 
-def controls_record(raw):
+def controls_record(raw, count=10, required=()):
     require(len(raw) <= CAPS["logBytes"], "bounded upstream control log required")
     lines = raw.decode("utf-8", errors="strict").splitlines()
-    require(sum(re.fullmatch(r"Ran 9 tests in [0-9.]+s", line) is not None for line in lines) == 1 and
+    require(sum(re.fullmatch(r"Ran " + str(count) + r" tests in [0-9.]+s", line) is not None for line in lines) == 1 and
             lines.count("OK") == 1 and not any("skipped" in line.lower() or "FAILED" in line for line in lines),
-            "nine actual original fixture controls with zero skips required")
+            "exact actual upstream fixture controls with zero skips required")
+    for name in required:
+        require(sum(line.startswith(name + " (") and line.endswith(" ... ok") for line in lines) == 1,
+                "named actual Linux kernel control did not pass: " + name)
+
+
+def fixed_diff(diff, commit):
+    require(diff.get("before") == ARMS["before"][0] and diff.get("after") == commit and
+            diff.get("inputSHA256") == INPUT_SHA and diff.get("recordsCompared") == 41 and
+            diff.get("perHeightFunctionalEqual") is True and
+            diff.get("guardOnlyFunctionalCompatibility") is True and
+            diff.get("performanceComparisonQualified") is False and
+            diff.get("optimizedPressureAuthorized") is False,
+            "complete exact 41-record guard-only functional differential required")
 
 
 def verify_height(root, arm, tools, published=False, expected_run=None, expected_workflow=None):
@@ -123,7 +145,7 @@ def verify_height(root, arm, tools, published=False, expected_run=None, expected
     receipt, manifest, records = h.load_vectors(root)
     commit, tree = ARMS[arm]
     require(receipt.get("sourceCommit") == commit and receipt.get("sourceTree") == tree and
-            receipt.get("toolsCommit") == TOOLS and receipt.get("caps") == CAPS and
+            receipt.get("toolsCommit") == (BEFORE_TOOLS if arm == "before" else TOOLS) and receipt.get("caps") == CAPS and
             receipt.get("inputSHA256") == INPUT_SHA and receipt.get("profile") == "original" and
             receipt.get("newFunctionalValidation") is True and receipt.get("performanceComparison") is False and
             receipt.get("evidenceObserverRetired") is True,
@@ -132,8 +154,13 @@ def verify_height(root, arm, tools, published=False, expected_run=None, expected
             type(manifest.get("gomaxprocs")) is int and manifest["gomaxprocs"] == 1 and len(records) == 41,
             "actual exact compiler/configuration and 41-record denominator required")
     expected_leaf = intake.digest(tools / "scripts/loadtest/overlays/pq_height_vectors_test.go.in")
-    require(receipt.get("heightVectorLeafSHA256") == expected_leaf,
+    require(expected_leaf == FUNCTIONAL_LEAF and receipt.get("heightVectorLeafSHA256") == expected_leaf,
             "actual height observer differs from fixed tools")
+    if arm != "before":
+        require(receipt.get("resourceObserverVersion") == "same-process-rss-v2" and
+                receipt.get("resourceObserverSHA256") == intake.digest(tools / "scripts/loadtest/consensus-linux-cohort.py") and
+                receipt.get("compatibleFunctionalToolsCommit") == BEFORE_TOOLS,
+                "actual fixed guard-only successor provenance required")
     children = receipt.get("processes", [])
     require([p.get("name") for p in children] == ["compile-height-vectors", "actual-height-vectors"] and
             all(type(p.get("pid")) is int and p["pid"] > 0 and type(p.get("startTicks")) is int and
@@ -141,17 +168,20 @@ def verify_height(root, arm, tools, published=False, expected_run=None, expected
             "actual compile/replay process identities and terminal zero required")
     pass_record((root / "actual-height-vectors.log").read_bytes())
     if published:
+        require(arm == "before" and expected_run == str(BEFORE_ARTIFACT["runId"]) and
+                expected_workflow == BEFORE_ARTIFACT["workflowCommit"],
+                "only the fixed independently successful original before may be reused")
         controller = intake.read_json(root / "HEIGHT-CI.json", 4 << 20)
         require(controller.get("schema") == "YNX-PQ-HEIGHT-CI/v1" and controller.get("arm") == arm and
                 controller.get("mode") == "replay" and controller.get("sourceCommit") == commit and
-                controller.get("toolsCommit") == TOOLS and controller.get("inputSHA256") == INPUT_SHA and
+                controller.get("toolsCommit") == BEFORE_TOOLS and controller.get("inputSHA256") == INPUT_SHA and
                 controller.get("caps") == CAPS and controller.get("firstCause") is None and
                 controller.get("cleanupComplete") is True and controller.get("perHeightComplete") is True and
                 controller.get("runId") == expected_run and controller.get("workflowCommit") == expected_workflow,
-                "before must be actual complete same-run per-height result, not old baseline")
+                "before must be the actual complete fixed prior run, never a regenerated baseline")
         original = controller.get("originalArtifact", {})
         require(original == intake.OLD_ARTIFACT, "original signed corpus provenance changed")
-    return dict(schema="YNX-PQ-HEIGHT-READBACK/v1", sourceCommit=commit, toolsCommit=TOOLS,
+    return dict(schema="YNX-PQ-HEIGHT-READBACK/v1", sourceCommit=commit, toolsCommit=receipt["toolsCommit"],
                 inputSHA256=INPUT_SHA, records=41, exactTestPass=True, perHeightComplete=True,
                 fullChainBaselineReady=False, performanceComparison=False)
 
@@ -175,13 +205,13 @@ def checkout(window, name, commit, tree, paths):
 
 
 def before_artifact(environment, intake):
-    fields = ("HEIGHT_BEFORE_ARTIFACT_ID", "HEIGHT_BEFORE_ARTIFACT_DIGEST", "HEIGHT_BEFORE_ARTIFACT_NAME")
-    require(all(environment.get(key) for key in fields), "actual successful before artifact outputs required")
-    require(re.fullmatch(r"[1-9][0-9]{0,19}", environment[fields[0]]) is not None, "positive actual artifact ID required")
-    require(environment[fields[2]] == "pq-height-before-" + environment["GITHUB_RUN_ID"], "same-run before artifact required")
-    return dict(artifactId=int(environment[fields[0]]), runId=int(environment["GITHUB_RUN_ID"]),
-                name=environment[fields[2]], digest=intake.normalize_digest(environment[fields[1]]), size=None,
-                workflowCommit=environment["GITHUB_SHA"])
+    # No caller-supplied output may silently replace the retained 41-record
+    # before. The official API will bind ID, run, workflow, byte count/digest.
+    require(not any(key.startswith("HEIGHT_BEFORE_") for key in environment),
+            "fixed original before artifact cannot be overridden")
+    require(intake.normalize_digest(BEFORE_ARTIFACT["digest"]) == BEFORE_ARTIFACT["digest"],
+            "fixed original before digest changed")
+    return dict(BEFORE_ARTIFACT)
 
 
 def public_from_runner(path, operation):
@@ -212,6 +242,7 @@ def github_output(name, value):
 
 def run(args):
     intake, lab = dependencies()
+    require(args.arm == "after-a", "only the missing after-a arm may execute")
     height_catalog(intake)
     commit, tree = ARMS[args.arm]
     if not args.execute:
@@ -244,6 +275,8 @@ def run(args):
     window.env.pop("GITHUB_TOKEN", None)
     record = dict(schema="YNX-PQ-HEIGHT-CI/v1", arm=args.arm, mode=args.mode, toolsCommit=TOOLS,
                   sourceCommit=commit, sourceTree=tree, inputSHA256=INPUT_SHA,
+                  resourceObserverVersion=lab.RSS_OBSERVER_VERSION,
+                  resourceObserverSHA256=VENDOR["consensus-linux-cohort.py"],
                   workflowCommit=os.environ["GITHUB_SHA"], runId=os.environ["GITHUB_RUN_ID"],
                   originalArtifact=intake.OLD_ARTIFACT, firstCause=None, cleanupComplete=False,
                   compileComplete=False, perHeightComplete=False, comparisonComplete=False,
@@ -259,10 +292,6 @@ def run(args):
                     "check-controller", "--source", str(workspace), "--commit", os.environ["GITHUB_SHA"]]))
         tools = checkout(window, "tools", TOOLS, TOOLS_TREE, ["/scripts/loadtest/"])
         owner = checkout(window, "owner", commit, tree, ["/go.mod", "/go.sum", "/internal/", "/third_party/cometbft/"])
-        if args.arm == "before":
-            window.wait(window.launch("upstream-height-controls", [sys.executable, "-B", str(tools / "scripts/loadtest/test_pq_height_vectors.py")]))
-            controls_record((work / "public/upstream-height-controls.log").read_bytes())
-            record["upstreamFixtureControls"] = dict(passed=9, skipped=0, actualApplicationReplay=False)
         prepared = work / "prepared"
         window.wait(window.launch("prepare-height", [sys.executable, "-B", str(tools / "scripts/loadtest/pq-height-vectors.py"),
                     "prepare", "--owner", str(owner), "--commit", commit, "--output", str(prepared)]))
@@ -273,16 +302,11 @@ def run(args):
                         "-mod=readonly", "-p", "1", "-c", "-o", str(binary), "./internal/consensus"]))
             record.update(compileComplete=True, binarySHA256=intake.digest(binary))
         else:
-            if args.arm == "before":
-                before = intake.download_artifact(intake.OLD_ARTIFACT, work / ".private/original", "original", window.sample)
-                window.wait(window.launch("validate-original-input", [sys.executable, "-B", str(HERE / "vendor/pq-source-artifact-intake.py"),
-                            "verify-public", "--public", str(before), "--profile", "original", "--source-commit", ARMS["before"][0], "--expected-input", INPUT_SHA]))
-            else:
-                expectation = before_artifact(os.environ, intake)
-                before = intake.download_artifact(expectation, work / ".private/height-before", "height-original", window.sample)
-                window.wait(window.launch("validate-before-heights", [sys.executable, "-B", str(HERE / "pq-height-ci-arm.py"),
-                            "verify-height", "--public", str(before), "--arm", "before", "--tools", str(tools), "--published",
-                            "--run-id", os.environ["GITHUB_RUN_ID"], "--workflow", os.environ["GITHUB_SHA"]]))
+            expectation = before_artifact(os.environ, intake)
+            before = intake.download_artifact(expectation, work / ".private/height-before", "height-original", window.sample)
+            window.wait(window.launch("validate-before-heights", [sys.executable, "-B", str(HERE / "pq-height-ci-arm.py"),
+                        "verify-height", "--public", str(before), "--arm", "before", "--tools", str(tools), "--published",
+                        "--run-id", str(BEFORE_ARTIFACT["runId"]), "--workflow", BEFORE_ARTIFACT["workflowCommit"]]))
             command = [sys.executable, "-B", str(tools / "scripts/loadtest/pq-height-vectors.py"), "run",
                        "--prepared", str(prepared / "height-prepared.json"), "--input", str(before / "baseline-input.json"),
                        "--input-sha256", INPUT_SHA, "--profile", "original", "--execute"]
@@ -291,16 +315,13 @@ def run(args):
             window.wait(window.launch("validate-actual-heights", [sys.executable, "-B", str(HERE / "pq-height-ci-arm.py"),
                         "verify-height", "--public", str(public), "--arm", args.arm, "--tools", str(tools)]))
             record.update(compileComplete=True, perHeightComplete=True)
-            if args.arm != "before":
-                target = work / "public/HEIGHT-DIFFERENTIAL.json"
-                window.wait(window.launch("compare-original-heights", [sys.executable, "-B", str(tools / "scripts/loadtest/pq-height-vectors.py"),
-                            "compare", "--before", str(before), "--after", str(public), "--output", str(target)]))
-                diff = intake.read_json(target, 1 << 20)
-                require(diff.get("before") == ARMS["before"][0] and diff.get("after") == commit and
-                        diff.get("inputSHA256") == INPUT_SHA and diff.get("recordsCompared") == 41 and
-                        diff.get("perHeightFunctionalEqual") is True and diff.get("optimizedPressureAuthorized") is False,
-                        "complete exact 41-record differential required")
-                record["comparisonComplete"] = True
+            target = work / "public/HEIGHT-DIFFERENTIAL.json"
+            window.wait(window.launch("compare-original-heights", [sys.executable, "-B", str(tools / "scripts/loadtest/pq-height-vectors.py"),
+                        "compare", "--before", str(before), "--after", str(public), "--output", str(target)]))
+            diff = intake.read_json(target, 1 << 20)
+            fixed_diff(diff, commit)
+            record.update(comparisonComplete=True, guardOnlyFunctionalCompatibility=True,
+                          performanceComparisonQualified=False, reusedBeforeArtifact=expectation)
         window.wait(window.launch("validate-preserved-source", [sys.executable, "-B", str(HERE / "pq-height-ci-arm.py"),
                     "check-prepared", "--prepared", str(prepared / "height-prepared.json"), "--tools", str(tools),
                     "--arm", args.arm]))
@@ -321,14 +342,86 @@ def run(args):
             record["firstCause"] = record.get("cleanupError", "original cleanup incomplete")
         record.update(elapsedSeconds=time.monotonic() - window.started, peakRSSBytes=window.peak_rss,
                       peakNewBytes=window.peak_bytes, processes=window.process_receipt(),
-                      resourceSamples=window.samples, retiredSamplingEvidence=window.retired_samples)
+                      resourceSamples=window.samples, retiredSamplingEvidence=window.retired_samples,
+                      rssSamplingFallbackEvidence=window.rss_fallback_samples)
         intake.write_new(work / "public/HEIGHT-CI.json", record)
         if public is not None:
             intake.write_new(public / "HEIGHT-CI.json", record)
             github_output("public", str(public))
     require(record["firstCause"] is None and record["cleanupComplete"] and record["compileComplete"] and
-            (args.mode == "compile-only" or (record["perHeightComplete"] and (args.arm == "before" or record["comparisonComplete"]))),
+            (args.mode == "compile-only" or (record["perHeightComplete"] and record["comparisonComplete"])),
             "height arm incomplete; retained original first cause and process evidence")
+    return record
+
+
+def run_controls(args):
+    intake, lab = dependencies()
+    if not args.execute:
+        return dict(status="prepared-only", command="controls", toolsCommit=TOOLS,
+                    actualLinux=False, executed=False, tests=LINUX_CONTROLS, caps=CAPS)
+    require(sys.platform == "linux" and os.environ.get("GITHUB_ACTIONS") == "true" and
+            os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted" and os.environ.get("GITHUB_RUN_ATTEMPT") == "1",
+            "fresh sole hosted Linux first attempt required")
+    require(os.uname().machine == "x86_64" and len(os.sched_getaffinity(0)) >= 2,
+            "actual amd64 two CPU affinity required")
+    parent = Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+    workspace = Path(os.environ["GITHUB_WORKSPACE"]).resolve(strict=True)
+    work = Path(args.operation)
+    require(work.is_absolute() and work.parent == parent and not work.exists() and not work.is_symlink(),
+            "fresh exact job-owned control operation required")
+    rows, _ = lab.guard.proc_inventory()
+    lab.admit(lab.guard.memory_available(), shutil.disk_usage(parent).free, lab.heavy_processes(rows))
+    require(ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) == 0, "original subreaper required")
+    work.mkdir(mode=0o700)
+    for name in (".private", "public"):
+        (work / name).mkdir(mode=0o700)
+    window = lab.Window(HERE, work, additional_storage=(parent, workspace))
+    window.storage_roots = intake.nonoverlapping_roots(window.storage_roots)
+    window.env.update(RUNNER_TEMP=str(work), GOMAXPROCS="1", PYTHONDONTWRITEBYTECODE="1",
+                      GIT_TERMINAL_PROMPT="0", GIT_CONFIG_NOSYSTEM="1")
+    window.env.pop("GH_TOKEN", None)
+    window.env.pop("GITHUB_TOKEN", None)
+    record = dict(schema="YNX-PQ-HEIGHT-LINUX-GUARD-CONTROLS/v1", toolsCommit=TOOLS, toolsTree=TOOLS_TREE,
+                  workflowCommit=os.environ["GITHUB_SHA"], runId=os.environ["GITHUB_RUN_ID"],
+                  caps=CAPS, resourceObserverVersion=lab.RSS_OBSERVER_VERSION,
+                  resourceObserverSHA256=VENDOR["consensus-linux-cohort.py"], firstCause=None,
+                  actualLinux=True, actualKernelControlPassed=False, fixtureCounts={}, cleanupComplete=False,
+                  publicNetwork=False, inputGenerated=False, performanceComparisonQualified=False,
+                  optimizedPressureAuthorized=False)
+    github_output("diagnostics", str(work / "public"))
+    try:
+        window.wait(window.launch("controller-identity", [sys.executable, "-B", str(HERE / "pq-height-ci-arm.py"),
+                    "check-controller", "--source", str(workspace), "--commit", os.environ["GITHUB_SHA"]]))
+        tools = checkout(window, "tools", TOOLS, TOOLS_TREE, ["/scripts/loadtest/"])
+        for name, count in LINUX_CONTROLS.items():
+            label = name.removesuffix(".py")
+            window.wait(window.launch(label, [sys.executable, "-B", str(tools / "scripts/loadtest" / name), "-v"]))
+            required = ("test_actual_owned_thread_group_read_after_injected_leader_esrch",
+                        "test_actual_nonzero_exit_and_cleanup_signal_are_preserved",
+                        "test_actual_short_lived_descendants_do_not_create_fake_zero_samples") if name == "test_linux_owned_rss.py" else ()
+            controls_record((work / ("public/" + label + ".log")).read_bytes(), count, required)
+            record["fixtureCounts"][name] = dict(passed=count, skipped=0)
+        window.wait(window.launch("preserved-tools", [sys.executable, "-B", str(HERE / "pq-height-ci-arm.py"),
+                    "check-source", "--source", str(tools), "--commit", TOOLS, "--tree", TOOLS_TREE]))
+        window.sample()
+        record["actualKernelControlPassed"] = True
+    except BaseException as error:
+        record["firstCause"] = str(error)
+    finally:
+        try:
+            record["cleanupComplete"] = window.stop()
+        except BaseException as error:
+            record["cleanupError"] = str(error)
+        if not record["cleanupComplete"] and record["firstCause"] is None:
+            record["firstCause"] = record.get("cleanupError", "original cleanup incomplete")
+        record.update(elapsedSeconds=time.monotonic() - window.started, peakRSSBytes=window.peak_rss,
+                      peakNewBytes=window.peak_bytes, processes=window.process_receipt(),
+                      resourceSamples=window.samples, retiredSamplingEvidence=window.retired_samples,
+                      rssSamplingFallbackEvidence=window.rss_fallback_samples)
+        intake.write_new(work / "public/HEIGHT-GUARD-CONTROLS.json", record)
+    require(record["firstCause"] is None and record["cleanupComplete"] and record["actualKernelControlPassed"] and
+            set(record["fixtureCounts"]) == set(LINUX_CONTROLS),
+            "actual Linux guard controls incomplete; original first cause retained")
     return record
 
 
@@ -336,9 +429,12 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     sub = parser.add_subparsers(dest="command", required=True)
     p = sub.add_parser("arm", allow_abbrev=False)
-    p.add_argument("--arm", choices=tuple(ARMS), required=True)
+    p.add_argument("--arm", choices=("after-a",), required=True)
     p.add_argument("--operation", required=True)
     p.add_argument("--mode", choices=("compile-only", "replay"), default="replay")
+    p.add_argument("--execute", action="store_true")
+    p = sub.add_parser("controls", allow_abbrev=False)
+    p.add_argument("--operation", required=True)
     p.add_argument("--execute", action="store_true")
     p = sub.add_parser("check-source", allow_abbrev=False)
     for name in ("source", "commit", "tree"):
@@ -383,6 +479,8 @@ def main(argv=None):
         value = dict(sourceCommit=plan["commit"], sourceTree=plan["tree"], archiveSHA256=plan["archiveSha256"], preserved=True)
     elif args.command == "verify-height":
         value = verify_height(args.public, args.arm, args.tools, args.published, args.run_id, args.workflow)
+    elif args.command == "controls":
+        value = run_controls(args)
     else:
         value = run(args)
     print(json.dumps(value, separators=(",", ":")))

@@ -33,6 +33,7 @@ _spec.loader.exec_module(guard)
 CAPS = dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4 << 30,
             newBytes=8 << 30, initialMemoryBytes=6 << 30,
             initialDiskBytes=16 << 30, logBytes=4 << 20, cpus=2)
+RSS_OBSERVER_VERSION = "same-process-rss-v2"
 PROFILES = {"smoke": dict(count=4, rounds=2, rate=4, window="2s", timeout="20s"),
             "cohort": dict(count=64, rounds=2, rate=32, window="4s", timeout="30s")}
 
@@ -88,7 +89,63 @@ def private_bytes(root):
     return total
 
 
-def owned_rss(pid, before, retired=None):
+def same_process_rss_alternative(pid, before):
+    """Real same-thread-group RSS or a kernel VmSize upper bound, never a zero guess.
+
+    CLONE_THREAD requires shared VM. Recheck leader + member identities and
+    kernel Tgid/Pid around the read. Count the shared address space ONCE.
+    VmSize counts virtual mapped pages and conservatively bounds resident pages;
+    it can cause a safe over-cap refusal and is always labelled as a bound.
+    """
+    root=Path("/proc")/str(pid);deadline=time.monotonic()+.05
+    def leader():
+        row=guard.parse_stat(guard.bounded(root/"stat"),pid)
+        require(row["startTicks"]==before["startTicks"],"owned process identity changed in RSS alternative")
+        return row
+    def fields(path):
+        result={}
+        for line in guard.bounded(path).decode("ascii").splitlines():
+            key,sep,value=line.partition(":")
+            if sep:
+                require(key not in result,"duplicate kernel status field")
+                result[key]=value.split()
+        return result
+    try:
+        leader()
+        tids=sorted(int(p.name) for p in (root/"task").iterdir() if p.name.isdecimal())
+        require(len(tids)<=4096,"owned thread inventory bound")
+        for tid in [pid]+[tid for tid in tids if tid!=pid]:
+            require(time.monotonic()<deadline,"owned RSS alternative deadline exceeded")
+            task=root/"task"/str(tid)
+            try:
+                first=guard.parse_stat(guard.bounded(task/"stat"),tid)
+                status=fields(task/"status")
+                require(status.get("Tgid")==[str(pid)] and status.get("Pid")==[str(tid)],"RSS alternative thread group differs")
+                try:
+                    value=guard.smaps_rss(guard.bounded(task/"smaps_rollup"));kind="same-thread-group-smaps"
+                except OSError as error:
+                    if error.errno not in (errno.ENOENT,errno.ESRCH):raise
+                    vm=status.get("VmSize")
+                    if vm is None:continue
+                    require(len(vm)==2 and vm[0].isdecimal() and vm[1]=="kB" and int(vm[0])>0,"invalid conservative VmSize bound")
+                    value=int(vm[0])*1024;kind="same-thread-group-VmSize-upper-bound"
+                last=guard.parse_stat(guard.bounded(task/"stat"),tid)
+                again=fields(task/"status");leader()
+                require(last["startTicks"]==first["startTicks"] and again.get("Tgid")==[str(pid)] and again.get("Pid")==[str(tid)],"RSS alternative member identity changed")
+                event=dict(pid=pid,startTicks=before["startTicks"],tid=tid,threadStartTicks=first["startTicks"],sampleKind=kind,sampledBytes=value,retired=False,reason=kind,observedMonotonicNs=time.monotonic_ns())
+                return value,event
+            except OSError as error:
+                if error.errno not in (errno.ENOENT,errno.ESRCH):raise
+                # No absent/reused member is retired or charged zero.
+                continue
+        leader()
+        return None
+    except OSError as error:
+        if error.errno not in (errno.ENOENT,errno.ESRCH):raise
+        return None
+
+
+def owned_rss(pid, before, retired=None, fallback=None):
     """Read one original identity; prove disappearance instead of guessing 0."""
     directory = Path("/proc") / str(pid)
     transitions = []
@@ -111,10 +168,15 @@ def owned_rss(pid, before, retired=None):
                     return None
                 raise
             require(current["startTicks"] == before["startTicks"], "owned process identity changed after RSS failure")
-            if current["state"] == "Z":
+            if current["state"] == "Z" and current["threads"] == 1:
                 if retired is not None:
                     retired(dict(pid=pid, startTicks=before["startTicks"], reason="same-identity-zombie", rssError=error.errno, sampleAttempts=attempt))
                 return 0
+            alternate=same_process_rss_alternative(pid,before)
+            if alternate is not None:
+                size,event=alternate;event.update(originalRSSKernelError=error.errno,sampleAttempts=attempt)
+                if fallback is not None:fallback(event)
+                return size
             transitions.append(dict(attempt=attempt, state=current["state"], rssError=error.errno))
             require(attempt < 6, "active owned process RSS unreadable: " + json.dumps(dict(pid=pid, startTicks=before["startTicks"], transitions=transitions), separators=(",", ":")))
             time.sleep(.001)
@@ -171,6 +233,7 @@ class Window:
         self.started = time.monotonic()
         self.children, self.known, self.samples = [], {}, []
         self.retired_samples = []
+        self.rss_fallback_samples = []
         self.peak_rss = self.peak_bytes = 0
         self.last_storage_sample = 0
         self.storage_bytes = 0
@@ -203,12 +266,13 @@ class Window:
         for pid in ids:
             before = rows[pid]
             self.known[pid] = before["startTicks"]
-            if before["state"] == "Z":
-                continue
             def retain_retired(event):
                 require(len(self.retired_samples) < 4096, "retired process sample evidence bound")
                 self.retired_samples.append(event)
-            size = owned_rss(pid, before, retain_retired)
+            def retain_fallback(event):
+                require(len(self.rss_fallback_samples)<4096,"RSS fallback evidence bound")
+                self.rss_fallback_samples.append(event)
+            size = owned_rss(pid, before, retain_retired, retain_fallback)
             if size is not None:
                 rss += size
         if time.monotonic() - self.last_storage_sample >= 1:
@@ -488,7 +552,8 @@ def run(args):
         result.update(peakRSSBytes=window.peak_rss, peakNewBytes=window.peak_bytes,
                       elapsedSeconds=time.monotonic()-window.started, resourceSamples=window.samples,
                       cpuAffinity=window.cpus, physicalCommitMeasured=False,
-                      resourceSemantics="sampled /proc owned RSS (200ms wait loop), allocated artifact bytes (1s); not hard cgroup ceilings or atomic host snapshots",
+                      resourceSemantics="sampled owned RSS; explicit same-process VmSize conservative upper bounds if present; artifacts 1s; not atomic or hard cgroup ceilings",
+                      resourceObserverVersion=RSS_OBSERVER_VERSION,rssSamplingFallbackEvidence=window.rss_fallback_samples,
                       processPhaseMeaning="parent monotonic launch-to-observed-exit durations; includes polling; concurrent node lifetimes overlap and are not additive",
                       processPhases=[dict(name=c["name"], elapsedNs=c.get("elapsedNs"), exitCode=c["process"].returncode) for c in window.children])
         write_new(work / "public/receipt.json", result)

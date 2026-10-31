@@ -39,7 +39,7 @@ class HeightCIControls(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw:
             target = Path(raw) / "not-created"
             with contextlib.redirect_stdout(io.StringIO()) as out:
-                self.assertEqual(h.main(["arm", "--arm", "before", "--operation", str(target)]), 0)
+                self.assertEqual(h.main(["arm", "--arm", "after-a", "--operation", str(target)]), 0)
             self.assertFalse(target.exists())
             self.assertFalse(json.loads(out.getvalue())["executed"])
 
@@ -47,7 +47,7 @@ class HeightCIControls(unittest.TestCase):
         with tempfile.TemporaryDirectory() as raw, mock.patch.dict(h.os.environ, {"GITHUB_ACTIONS": "false"}):
             target = Path(raw) / "not-created"
             with self.assertRaisesRegex(RuntimeError, "fresh sole hosted"):
-                h.main(["arm", "--arm", "before", "--operation", str(target), "--execute"])
+                h.main(["arm", "--arm", "after-a", "--operation", str(target), "--execute"])
             self.assertFalse(target.exists())
 
     def test_exact_actual_test_pass_and_no_zero_skip(self):
@@ -59,10 +59,10 @@ class HeightCIControls(unittest.TestCase):
             with self.subTest(raw=raw[:40]), self.assertRaises(RuntimeError):
                 h.pass_record(raw)
 
-    def test_nine_upstream_controls_are_not_math_and_cannot_skip(self):
-        good = b".........\n----------------------------------------------------------------------\nRan 9 tests in 0.123s\n\nOK\n"
+    def test_exact_upstream_controls_are_not_math_and_cannot_skip(self):
+        good = b".........\n----------------------------------------------------------------------\nRan 10 tests in 0.123s\n\nOK\n"
         h.controls_record(good)
-        for raw in (good.replace(b"9 tests", b"0 tests"), good.replace(b"OK", b"OK (skipped=1)"), good + good):
+        for raw in (good.replace(b"10 tests", b"0 tests"), good.replace(b"OK", b"OK (skipped=1)"), good + good):
             with self.assertRaises(RuntimeError):
                 h.controls_record(raw)
 
@@ -111,16 +111,53 @@ class HeightCIControls(unittest.TestCase):
                     intake.safe_extract(archive, root / "new", "height-original")
                 self.assertFalse((root / "new").exists())
 
-    def test_same_run_before_pins_required(self):
+    def test_fixed_successful_before_cannot_be_overridden_or_regenerated(self):
         intake, _ = h.dependencies()
-        env = {"HEIGHT_BEFORE_ARTIFACT_ID": "123", "HEIGHT_BEFORE_ARTIFACT_DIGEST": "sha256:" + "a" * 64,
-               "HEIGHT_BEFORE_ARTIFACT_NAME": "pq-height-before-456", "GITHUB_RUN_ID": "456", "GITHUB_SHA": "b" * 40}
-        self.assertEqual(h.before_artifact(env, intake)["workflowCommit"], "b" * 40)
-        for field, value in (("HEIGHT_BEFORE_ARTIFACT_ID", "0"), ("HEIGHT_BEFORE_ARTIFACT_DIGEST", "0" * 64),
-                             ("HEIGHT_BEFORE_ARTIFACT_NAME", "pq-current-baseline-fdc-41202295972-1")):
-            changed = dict(env, **{field: value})
+        got = h.before_artifact({"GITHUB_RUN_ID": "999", "GITHUB_SHA": "b" * 40}, intake)
+        self.assertEqual(got, h.BEFORE_ARTIFACT)
+        self.assertEqual(got["artifactId"], 13050898515)
+        self.assertEqual(got["runId"], 41223769700)
+        self.assertEqual(got["workflowCommit"], "759957070c303cf2adfc5e0db70275cb51ed9c2b")
+        self.assertEqual(got["size"], 676742462)
+        for field in ("HEIGHT_BEFORE_ARTIFACT_ID", "HEIGHT_BEFORE_ARTIFACT_DIGEST", "HEIGHT_BEFORE_ARTIFACT_NAME"):
+            with self.subTest(field=field), self.assertRaisesRegex(RuntimeError, "cannot be overridden"):
+                h.before_artifact({field: "untrusted"}, intake)
+        got["artifactId"] = 1
+        self.assertEqual(h.BEFORE_ARTIFACT["artifactId"], 13050898515)
+
+    def test_only_missing_after_a_can_execute(self):
+        with tempfile.TemporaryDirectory() as raw:
+            for arm in ("before", "after-b"):
+                with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    h.main(["arm", "--arm", arm, "--operation", str(Path(raw) / arm)])
+                self.assertFalse((Path(raw) / arm).exists())
+
+    def test_linux_controls_require_real_named_pass_and_cannot_hide_skip(self):
+        name = "test_actual_owned_thread_group_read_after_injected_leader_esrch"
+        good = (name + " (__main__.OwnedRSSControls." + name + ") ... ok\n"
+                + "Ran 15 tests in 0.123s\n\nOK\n").encode()
+        h.controls_record(good, 15, (name,))
+        for raw in (good.replace(b" ... ok", b" ... skipped"), good.replace(b"Ran 15", b"Ran 12"),
+                    good.replace(name.encode(), b"other_name"), good + good):
+            with self.subTest(raw=raw[:32]), self.assertRaises(RuntimeError):
+                h.controls_record(raw, 15, (name,))
+        with tempfile.TemporaryDirectory() as raw:
+            target = Path(raw) / "not-created"
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                h.main(["controls", "--operation", str(target)])
+            self.assertFalse(target.exists())
+            self.assertFalse(json.loads(out.getvalue())["actualLinux"])
+
+    def test_guard_only_comparison_never_grants_performance_or_pressure(self):
+        good = dict(before=h.ARMS["before"][0], after=h.ARMS["after-a"][0], inputSHA256=h.INPUT_SHA,
+                    recordsCompared=41, perHeightFunctionalEqual=True, guardOnlyFunctionalCompatibility=True,
+                    performanceComparisonQualified=False, optimizedPressureAuthorized=False)
+        h.fixed_diff(good, h.ARMS["after-a"][0])
+        for field, value in (("recordsCompared", 40), ("guardOnlyFunctionalCompatibility", False),
+                             ("performanceComparisonQualified", True), ("optimizedPressureAuthorized", True),
+                             ("inputSHA256", "f" * 64), ("after", h.ARMS["after-b"][0])):
             with self.subTest(field=field), self.assertRaises(RuntimeError):
-                h.before_artifact(changed, intake)
+                h.fixed_diff(dict(good, **{field: value}), h.ARMS["after-a"][0])
 
     def test_checkout_is_owned_sequential_and_never_go_env(self):
         class Window:
