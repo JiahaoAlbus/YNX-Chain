@@ -23,6 +23,7 @@ public:
  ynx_auth_private::RegisteredDeviceAssociation readOriginalRegisteredDevice(const ynx_auth_private::DevicePairPublicView&pair,const std::string&operation)override{if(operation.size()!=64)refuse();NSDictionary*s=registered(pair);return{text(s[@"registrationOriginal"]),canonical(s[@"expected"]),0};}
  void assertRegisteredCurrent(const ynx_auth_private::RegisteredDeviceAssociation&r,const ynx_auth_private::DevicePairPublicView&pair)override{NSDictionary*s=registered(pair);if(r.result||r.registrationOriginal!=text(s[@"registrationOriginal"])||r.associationOriginal!=canonical(s[@"expected"]))refuse();}
  void assertSelectedPublicAssociation(const std::string&association,const std::string&selected)override{assertCurrent();if(!scope_||canonical(scope_[@"expected"])!=association)refuse();NSData*b=[NSData dataWithBytes:selected.data() length:selected.size()];NSDictionary*d=[NSJSONSerialization JSONObjectWithData:b options:0 error:nil];if(![d isKindOfClass:NSDictionary.class]||d.count!=2||![d[@"account"]isEqual:scope_[@"expected"][@"canonicalOwner"]]||![d[@"networkId"]isEqual:scope_[@"expected"][@"networkId"]])refuse();assertCurrent();}
+ void assertRegisteredObservationCurrent(){assertCurrent();if(!registered_||!scope_)refuse();NSError*e=nil;if(![registered_ assertOriginalProductSessionDeviceV4SourceCurrent:&e]||e)refuse();NSDictionary*s=[registered_ copyOriginalProductSessionDeviceV4Scope:&e];if(!s||e||![scope_ isEqual:s])refuse();assertCurrent();}
  bool close(){if(closeSelected_)return closeResult_;closeSelected_=true;@try{NSError*e=nil;[registered_ retire];if(registered_&&(![registered_ join:&e]||e))return false;if(registered_&&(![registered_ close:&e]||e))return false;registered_=nil;scope_=nil;closeResult_=true;return true;}@catch(id){return false;}}
 };
 struct ProvisioningV4Composition{
@@ -34,6 +35,14 @@ struct ProvisioningV4Composition{
  bool closeSelected=false,closeResult=false;
  bool close(){if(closeSelected)return closeResult;closeSelected=true;bool ok=true;if(operation){operation->retire();if(!operation->close())ok=false;}if(authority&&!authority->close())ok=false;if(!journal.close())ok=false;if(ok){operation.reset();authority.reset();store.reset();creator.reset();}closeResult=ok;return ok;}
 };
+static bool ProvisioningV4OperationCurrent(ProvisioningV4Approval*a){
+ if(!a->composition||!a->composition->operation)return true;
+ try{@try{auto&c=*a->composition;const auto state=c.operation->originalOutcomeDATA().state;
+  if(state=="PENDING_REGISTRATION"){(void)c.operation->readPublicPair();return true;}
+  if(state=="REGISTERED_LOCAL_ASSOCIATION"){c.authority->assertRegisteredObservationCurrent();return true;}
+ }@catch(id){}}catch(...){}
+ a->failed=true;if(a->first.empty())a->first="DEVICE_PROVISIONING_OPERATION_NOT_CURRENT";return false;
+}
 static napi_value ProvisioningV4OutcomeDATA(napi_env env,const ynx_auth_private::DeviceProvisioningPublicOutcome&o){napi_value out=nullptr,v=nullptr,lengths=nullptr;napi_create_object(env,&out);for(const auto&entry:{std::pair<const char*,std::string>{"operation",o.operation},{"state",o.state},{"association",o.association},{"firstCause",o.firstCause}}){napi_create_string_utf8(env,entry.second.data(),entry.second.size(),&v);napi_set_named_property(env,out,entry.first,v);}for(const auto&entry:{std::pair<const char*,double>{"result",(double)o.creator.result},{"cleanup",(double)o.creator.cleanup},{"outputState",(double)o.creator.outputState}}){napi_create_double(env,entry.second,&v);napi_set_named_property(env,out,entry.first,v);}napi_create_array_with_length(env,4,&lengths);for(uint32_t i=0;i<4;i++){auto s=std::to_string(o.creator.lengths[i]);napi_create_string_utf8(env,s.data(),s.size(),&v);napi_set_element(env,lengths,i,v);}napi_object_freeze(env,lengths);napi_set_named_property(env,out,"reportedLengthsExact",lengths);napi_get_boolean(env,o.recoveredOriginal,&v);napi_set_named_property(env,out,"recoveredOriginal",v);napi_object_freeze(env,out);return out;}
 static napi_value ProvisioningV4Prepare(napi_env env,ProvisioningV4Approval*a){
  if(a->attempted||a->recheckPending||!a->rechecked||!ProvisioningV4ApprovalCurrent(a))return DeviceV4Throw(env,"DEVICE_PROVISIONING_ORIGINAL_PREPARE_REQUIRED");a->attempted=true;a->composition=std::make_shared<ProvisioningV4Composition>();auto&c=*a->composition;
