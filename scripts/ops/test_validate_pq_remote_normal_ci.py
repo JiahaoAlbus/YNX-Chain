@@ -521,6 +521,71 @@ def workflow_steps(raw, name="focused-go"):
     return job, chunks[1:]
 
 
+PRODUCT_DEVICE_CORE_TESTS = (
+    "TestProductDeviceRegistrationActualANDAndPurposeIsolation",
+    "TestProductDeviceRegistrationPreflightAndBorrowedPair",
+    "TestProductDeviceRegistrationRetainsOriginalAndFirstFailure",
+    "TestProductDeviceRegistrationNullBridgeAndMemoryBounds",
+    "TestProductDeviceChallengeActualANDWithSeparateAccountPair",
+    "TestProductDeviceChallengeRejectsChangedTupleAndTime",
+    "TestProductDeviceChallengeRetainsOriginalAndFirstFailure",
+    "TestProductDeviceChallengeNullBridge",
+)
+
+PRODUCT_DEVICE_CODEC_TESTS = (
+    "TestProductSessionDeviceV4FixedE5AndDistinctAccountPair",
+    "TestProductSessionDeviceV4CanonicalOriginalsRejectAliases",
+    "TestProductSessionDeviceV4Registration20Values",
+    "TestProductSessionDeviceV4Challenge26AndAccountTuple",
+    "TestProductSessionDeviceV4URLAndPlatformContracts",
+    "TestProductSessionDeviceV4BindingBoundsAndDetachment",
+    "TestProductSessionDeviceV4MemberN1AndActualAND",
+)
+
+STATE_MATH_REQUIRED_TESTS = (
+    "TestPQInitialHistoryCacheReusesMathAndKeepsColdRestoreAndStateHash",
+    "TestPQInitialHistoryCacheRejectsMutationsInOriginalOrderAndOnCold",
+    "TestPQInitialHistoryCacheSeparatesBootstrapAtSameNativeGenesis",
+    "TestPQNetworkFreshProposalActualDelegateFinalBlockAndOwnedTiming",
+    "TestPQNetworkFreshProposalLogBindsVerifiedCallbackAndMissingReplicas",
+    "TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer",
+    "TestPQNetworkFreshPipelineReadinessNeverReoffersAndCancelsBothWaitSets",
+    "TestPQNetworkFreshPipelineKeepsBothOriginalFourSlotBounds",
+    "TestPQNetworkBusinessHostInputReusesExactBytesWithoutRewriting",
+    "TestPQNetworkBusinessHostInputKeepsDifferentCheckpointsAndFullValidation",
+    "TestPQNetworkBusinessHostInputRejectsChangedAliasedAndUnknownFiles",
+    "TestPQNetworkFreshInclusionScanSkipsOnlyPreviouslySearchedHistory",
+    "TestPQNetworkFreshInclusionScanRetainsMissingHeightAndIndependentPayloads",
+    "TestPQNetworkFreshInclusionScanRejectsInvalidInputsAndWaitsForNewTip",
+    "TestPQHistoryMathCacheOwnedReplayCommitAndColdRestart",
+    "TestPQHistoryMathCacheWarmDynamicRejectionsMatchCold",
+    "TestValidatorRegistryMathCacheOwnedHitsPreserveOriginalStateAndHash",
+    "TestValidatorRegistryMathCacheWarmHitsNeverAuthorizeChangedRegistry",
+    "TestValidatorRegistryMathCacheColdRestartReverifiesWithIndependentOwner",
+    "TestValidatorRegistryMathCacheOwnedSnapshotsRetainWitnessAndDynamicChecks",
+    "TestValidatorRegistryMathCacheApplicationAndOwnedFileSnapshotsReuseOnlyMath",
+    "TestPQNetworkBusinessHostPreparationReturnsErrorsWithoutGoexit",
+    "TestPQNetworkBusinessHostPreparationUsesOwnedMathAndKeepsColdValidation",
+    "TestPQNetworkBusinessHostPreparationCancellationStopsBeforeCapture",
+    "TestPQNetworkFreshHostPreparationDoesNotBlockOriginalPacedOffers",
+    "TestPQNetworkFreshHostPreparationRetainsFourSlotsAndDetachedInputs",
+    "TestPQNetworkFreshHostPreparationPreservesErrorsAndPipelineCancellation",
+    "TestPQNetworkFreshHostPreparationRejectsInvalidTargetsAndJoinsGoexit",
+    "TestPQNetworkFreshHostPreparationProgressKeepsAllMeasuredStagesAndOriginalBudget",
+    "TestPQNetworkFreshHostPreparationYieldsBetweenReadinessProbes",
+    "TestPQEngineCheckpointValidationOwnedReadAndColdAuthority",
+    "TestPQEngineCheckpointValidationResealedLedgerAndCoordinates",
+    "TestPQEngineCheckpointValidationOriginalReadbackAndClose",
+    "TestPQEngineCheckpointValidationKeepsIndependentSchedulePin",
+    "TestPQNetworkFreshSuccessorTipsWaitWithoutPayloadProbe",
+    "TestPQNetworkFreshSuccessorTipsStillRequireOriginalPayloadAndValidation",
+    "TestPQNetworkFreshSuccessorTipsKeepErrorsSourcesAndSnapshots",
+    "TestPQNetworkFreshSuccessorTipsBoundariesAndIndependentCalls",
+    "TestABCIPQEnvelopeEncodingDifferential",
+    "TestABCIPQEnvelopeEncodingRandomDifferential",
+)
+
+
 def assert_native_cabi_workflow_contract(raw):
     """Closed source contract; actual C/Go execution remains the native job."""
     job, steps = workflow_steps(raw, "artifact-release-cabi")
@@ -553,6 +618,8 @@ def assert_native_cabi_workflow_contract(raw):
                  "scripts/fixtures/verify-registered-n1-cabi/**",
                  "scripts/verify/registered-n1-verify-cabi-check.sh",
                  "scripts/ops/test_registered_n1_verify_cabi_supply.py",
+                 "scripts/fixtures/verify-product-device-v4-cabi/**",
+                 "scripts/verify/product-device-v4-cabi-check.sh",
                  "scripts/fixtures/verify-project-control-cabi/**",
                  "scripts/verify/project-control-cabi-check.sh",
                  "scripts/verify/seal-project-control-cabi.py"):
@@ -583,10 +650,12 @@ def assert_native_cabi_workflow_contract(raw):
     registered_names = ("Verify registered N1 public supply controls",
                         "Execute registered N1 verifier from the same sealed native archive",
                         "Upload only public registered N1 verifier and actual native evidence")
+    product_device_names = ("Execute both fixed product device C ABIs from the same sealed native archive",
+                            "Upload only public fixed product device headers archive and executed evidence")
     ordered_names = (names[:1] + data_names + names[1:4] + wallet_names + publisher_names[:1]
                      + (device_http_name,)
-                     + names[4:9] + registered_names + publisher_names[1:] + names[9:])
-    need(len(steps) == len(ordered_names))
+                     + names[4:9] + registered_names + product_device_names + publisher_names[1:] + names[9:])
+    need(len(steps) == len(ordered_names) == 27)
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, ordered_names)))
     named = {name: step for name, step in zip(ordered_names, steps)}
     need(lines(named[data_names[0]]) == ["      - name: " + data_names[0],
@@ -635,6 +704,16 @@ def assert_native_cabi_workflow_contract(raw):
         "          name: ynx-registered-n1-verify-cabi-native-${{ matrix.runner }}-${{ github.sha }}",
         "          path: ${{ runner.temp }}/ynx-registered-n1-verify-cabi/delivery/*",
         "          if-no-files-found: error", "          retention-days: 7"])
+    need(lines(named[product_device_names[0]]) == ["      - name: " + product_device_names[0],
+        "        run: |", "          set -euo pipefail",
+        '          bash scripts/verify/product-device-v4-cabi-check.sh \\',
+        '            "$RUNNER_TEMP/ynx-artifact-release-cabi/delivery/native-host" \\',
+        '            "$RUNNER_TEMP/ynx-product-device-v4-cabi"'])
+    need(lines(named[product_device_names[1]]) == ["      - name: " + product_device_names[1],
+        "        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02", "        with:",
+        "          name: ynx-product-device-sign-cabi-native-${{ matrix.runner }}-${{ github.sha }}",
+        "          path: ${{ runner.temp }}/ynx-product-device-v4-cabi/delivery/*",
+        "          if-no-files-found: error", "          retention-days: 7"])
     steps = [named[name] for name in names]
     need(all(step.startswith("      - name: " + name + "\n") for step, name in zip(steps, names)))
     need([line for line in lines(steps[0]) if not line.lstrip().startswith("#")] == ["      - name: " + names[0],
@@ -663,6 +742,12 @@ def assert_native_cabi_workflow_contract(raw):
               if terminal != ['pass']:
                   raise RuntimeError('registered N1 core did not execute and pass: ' + name)
           print('YNX_REGISTERED_N1_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=required, suitePassed=True, accountAuthorized=False), sort_keys=True))
+          device = ['TestProductDeviceRegistrationActualANDAndPurposeIsolation', 'TestProductDeviceRegistrationPreflightAndBorrowedPair', 'TestProductDeviceRegistrationRetainsOriginalAndFirstFailure', 'TestProductDeviceRegistrationNullBridgeAndMemoryBounds', 'TestProductDeviceChallengeActualANDWithSeparateAccountPair', 'TestProductDeviceChallengeRejectsChangedTupleAndTime', 'TestProductDeviceChallengeRetainsOriginalAndFirstFailure', 'TestProductDeviceChallengeNullBridge']
+          for name in device:
+              terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('fixed product device core did not execute and pass: ' + name)
+          print('YNX_PRODUCT_DEVICE_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=device, suitePassed=True, accountAuthorized=False, nativeCustodyVerified=False), sort_keys=True))
           PY"""))
     need(lines(steps[3]) == ["      - name: " + names[3], "        run: |", "          set -euo pipefail",
         '          bash scripts/verify/artifact-release-cabi-check.sh "$RUNNER_TEMP/ynx-artifact-release-cabi"'])
@@ -857,6 +942,61 @@ def assert_native_cabi_workflow_contract(raw):
         "          name: ynx-publisher-registration-cabi-native-${{ matrix.runner }}-${{ github.sha }}",
         "          path: ${{ runner.temp }}/ynx-publisher-registration-cabi/delivery/*",
         "          if-no-files-found: error", "          retention-days: 7"])
+
+
+def assert_product_device_codec_workflow_contract(raw):
+    """Require actual seven-case qualification from the ONE original suite."""
+    _, steps = workflow_steps(raw)
+    found = [step for step in steps if step.startswith(
+        "      - name: Verify pure dual-PQ protocol and account authorization\n")]
+    if len(found) != 1:
+        raise AssertionError("one original full protocol suite required")
+    pure = found[0]
+    marker = "          # Retain the complete original suite, and qualify the new cache cases\n"
+    expected = r"""      - name: Verify pure dual-PQ protocol and account authorization
+        id: pqprotocol
+        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        env:
+          YNX_ACTION_INTEROP_OUT: ${{ runner.temp }}/ynx-native-action-public-interop.json
+          YNX_IDE_ARTIFACT_PUBLIC_FIXTURE_OUT: ${{ runner.temp }}/ynx-ide-artifact-public.json
+        run: |
+          if ! go test -json -p 1 -count=1 -timeout=180s ./internal/ynxbatch > "$RUNNER_TEMP/ynx-product-device-codec-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-product-device-codec-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-product-device-codec-tests.jsonl').read_text().splitlines()]
+          required = ['TestProductSessionDeviceV4FixedE5AndDistinctAccountPair', 'TestProductSessionDeviceV4CanonicalOriginalsRejectAliases', 'TestProductSessionDeviceV4Registration20Values', 'TestProductSessionDeviceV4Challenge26AndAccountTuple', 'TestProductSessionDeviceV4URLAndPlatformContracts', 'TestProductSessionDeviceV4BindingBoundsAndDetachment', 'TestProductSessionDeviceV4MemberN1AndActualAND']
+          for name in required:
+              terminal = [event['Action'] for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('fixed product device codec did not execute and pass: ' + name)
+          print('YNX_PRODUCT_DEVICE_CODEC_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=required, suitePassed=True, sourceQualified=False), sort_keys=True))
+          PY
+"""
+    if pure.count(marker) != 1 or pure.split(marker, 1)[0] != expected:
+        raise AssertionError("exact typed seven-case JSON qualification required")
+    if pure.count("go test ") != 2 or pure.count("./internal/ynxbatch") != 1 or " -run " in pure or " -skip " in pure:
+        raise AssertionError("new codec must reuse the original full suite once without filtering")
+
+
+def assert_state_math_required_workflow_contract(step):
+    """Keep all old38 plus both actual envelope cases in the same execution."""
+    required = re.findall(r"(?m)^          required = (.+)$", step)
+    if required != [repr(["TestPQHistoryMathCacheN1ScopeAndBinding"]), repr(list(STATE_MATH_REQUIRED_TESTS))]:
+        raise AssertionError("exact chain1/state40 actual terminal qualification required")
+    command = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
+               "-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' "
+               "./internal/consensus > \"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl\"; then\n")
+    terminal = ("              matches = [event for event in events if event.get('Test') == name and "
+                "event['Action'] in ('pass', 'fail', 'skip')]\n"
+                "              assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)\n")
+    if (step.count(command) != 1 or step.count("./internal/consensus") != 1 or
+            step.count(terminal) != 2 or step.count("            exit 1\n") != 2 or
+            "          required = []" in step or "          for name in required:\n" not in step):
+        raise AssertionError("state40 must run once with exact unique PASS events and retained failures")
 
 
 def assert_runtime_gateway_identity_workflow_contract(raw):
@@ -1093,7 +1233,7 @@ def assert_fresh_business_supply_workflow_contract(raw):
         need(token in receive)
     for token in ("70e7e450997a0ae77dbad5a8be3682f482c6ddd8", "4866cc3924c060eb6a29939915d39b1c5c625607",
                   "19b9fafcfbb3f434b9ff745fb785afb1d0741247", "da3060e150e2bd0f5695d67a76f3b30fafd1c696",
-                  "11475ccf5fe50b6882c9d0375cd3e7a6c2993f387da3252ecbe5be200c44c821",
+                  "919a942ecfe7e85582613b8a09a10c23443a671c104ef46e6c919fb7338994c1",
                   "YNX-PQ-NETWORK-FRESH-BUSINESS-BUILD/v1", "performanceClientTree=client_tree",
                   "'internal/consensus/pq_network_fresh_business_test.go'", "sourceRoot=str(source_root)",
                   "os.environ['YNX_SIGNED_BUSINESS_SOURCE_SHA']", "previous_source['protocolCommit'] != commit",
@@ -1302,6 +1442,7 @@ def assert_workflow_contract(raw):
     assert_native_compatibility_classification_contract(raw)
     assert_browser_verification_workflow_contract(raw)
     assert_native_cabi_workflow_contract(raw)
+    assert_product_device_codec_workflow_contract(raw)
     assert_runtime_gateway_identity_workflow_contract(raw)
     assert_macos_source_register_workflow_contract(raw)
     assert_signed_business_supply_workflow_contract(raw)
@@ -1517,6 +1658,7 @@ def assert_workflow_contract(raw):
             need(condition(step).startswith("${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (")
                  and condition(step).endswith(") }}"))
     non_host = by_name("Verify complete state bridge and sponsor continuity")[0]
+    assert_state_math_required_workflow_contract(non_host)
     host = by_name("Verify original Host source, live lifecycle and delivery persistence")[0]
     need("-skip '^(TestProofHost|TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$)' ./internal/consensus" in non_host)
     need("-run '^TestProofHost' ./internal/consensus" in host)
@@ -1841,7 +1983,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(receive, receive.replace("hashlib.sha256(archive).hexdigest() != digest", "False", 1), 1),
             raw.replace(seal, seal.replace("previous_source['protocolCommit'] != commit", "False", 1), 1),
             raw.replace(seal, seal.replace("4866cc3924c060eb6a29939915d39b1c5c625607", "19b9fafcfbb3f434b9ff745fb785afb1d0741247"), 1),
-            raw.replace(seal, seal.replace("11475ccf5fe50b6882c9d0375cd3e7a6c2993f387da3252ecbe5be200c44c821", "0" * 64), 1),
+            raw.replace(seal, seal.replace("919a942ecfe7e85582613b8a09a10c23443a671c104ef46e6c919fb7338994c1", "0" * 64), 1),
             raw.replace(seal, seal.replace("binariesExecuted=False", "binariesExecuted=True", 1), 1),
             raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          go build ./cmd/ynx-consensus-perf-client\n          python3 -B - <<'PY'\n", 1), 1),
             raw.replace(seal, seal.replace("          python3 -B - <<'PY'\n", "          YNX_PQ_NETWORK_FRESH_BUSINESS_E2E=authorized-fresh-four-node-business-window\n          python3 -B - <<'PY'\n", 1), 1),
@@ -2093,6 +2235,74 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):
                 assert_native_cabi_workflow_contract(changed)
+
+    def test_product_device_native_cabi_cannot_skip_signing_or_export_private_inputs(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "artifact-release-cabi")
+
+        def named(name):
+            found = [step for step in steps if step.startswith("      - name: " + name + "\n")]
+            self.assertEqual(len(found), 1)
+            return found[0]
+
+        core = named("Verify fixed Native key and output cleanup behavior")
+        seal = named("Seal only native library public outputs and exact compile inputs")
+        execute = named("Execute both fixed product device C ABIs from the same sealed native archive")
+        upload = named("Upload only public fixed product device headers archive and executed evidence")
+
+        def change(step, before, after):
+            self.assertIn(before, step)
+            return raw.replace(step, step.replace(before, after, 1), 1)
+
+        mutations = [
+            raw.replace(execute, "", 1), raw.replace(upload, "", 1),
+            raw.replace(execute, execute + execute, 1),
+            change(execute, "        run: |", "        if: false\n        run: |"),
+            change(execute, "        run: |", "        continue-on-error: true\n        run: |"),
+            change(execute, "bash scripts/verify/product-device-v4-cabi-check.sh", "true # skipped real typed signing"),
+            change(execute, "ynx-artifact-release-cabi/delivery/native-host", "unrelated-archive/delivery/native-host"),
+            change(execute, '"$RUNNER_TEMP/ynx-product-device-v4-cabi"', '"$RUNNER_TEMP/ynx-product-device-v4-cabi" || true'),
+            raw.replace(execute, "", 1).replace(seal, execute + seal, 1),
+            raw.replace(upload, "", 1).replace(execute, upload + execute, 1),
+            change(upload, "delivery/*", "input/*"),
+            change(upload, "delivery/*", "**"),
+            change(upload, "if-no-files-found: error", "if-no-files-found: ignore"),
+            change(upload, "-${{ github.sha }}", "-unbound-source"),
+            change(core, "          for name in device:", "          device = []\n          for name in device:"),
+            change(core, "fixed product device core did not execute and pass: ", "unqualified device case: "),
+        ]
+        for name in PRODUCT_DEVICE_CORE_TESTS:
+            mutations.append(change(core, "'" + name + "'", "'UnrelatedNativeTest'"))
+        for leaf in ("scripts/fixtures/verify-product-device-v4-cabi/**", "scripts/verify/product-device-v4-cabi-check.sh"):
+            mutations.append(raw.replace("      - '" + leaf + "'\n", "", 1))
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(product_device=index), self.assertRaises(AssertionError):
+                assert_native_cabi_workflow_contract(changed)
+
+    def test_product_device_codec_requires_every_case_from_the_original_full_suite(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_product_device_codec_workflow_contract(raw)
+        _, steps = workflow_steps(raw)
+        pure = next(step for step in steps if step.startswith(
+            "      - name: Verify pure dual-PQ protocol and account authorization\n"))
+
+        def change(before, after):
+            self.assertIn(before, pure)
+            return raw.replace(pure, pure.replace(before, after, 1), 1)
+
+        mutations = [
+            change("go test -json -p 1 -count=1 -timeout=180s ./internal/ynxbatch", "go test -json -p 1 -count=1 -timeout=180s ./internal/ynxbatch -run '^TestProductSessionDevice'"),
+            change("if terminal != ['pass']:", "if not terminal:"),
+            change("fixed product device codec did not execute and pass: ", "unqualified codec case: "),
+        ]
+        for name in PRODUCT_DEVICE_CODEC_TESTS:
+            mutations.append(change("'" + name + "'", "'UnrelatedCodecTest'"))
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(product_device_codec=index), self.assertRaises(AssertionError):
+                assert_product_device_codec_workflow_contract(changed)
 
     def test_registered_n1_native_cabi_requires_executed_core_and_same_sealed_archive(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()

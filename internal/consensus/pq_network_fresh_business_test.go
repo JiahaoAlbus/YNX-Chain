@@ -1098,6 +1098,57 @@ func pqFreshScanPayload(payload []byte, minimum, tip int64, load func(int64) *cm
 	return 0, 0, next, nil
 }
 
+// A negative hint may avoid an impossible H/H+1 probe. It never supplies a
+// positive inclusion fact: the original probe remains the sole authority.
+func pqFreshProbeAfterSuccessorTips(initial, known int64, read func(int) (string, int64, error), probe func() (int64, int, bool, error)) (int64, int, bool, error) {
+	if initial < 1 || known < 0 || probe == nil {
+		return 0, 0, false, errors.New("original target and full inclusion probe required")
+	}
+	if known == 0 {
+		return probe() // Discover the target through the unchanged original search.
+	}
+	plan, err := pqFreshCommitHeightPlan(initial, []int64{known})
+	if err != nil {
+		return 0, 0, false, err
+	}
+	if read == nil {
+		return 0, 0, false, errors.New("original successor tip reader missing")
+	}
+	var sources [4]string
+	var tips [4]int64
+	seen := make(map[string]bool, 4)
+	ready := true
+	// Both observations belong to this call only. Advancing tips are allowed;
+	// replacement, aliasing or regression is an error, never fake pending.
+	// Visit all nodes even after a low tip so a later read error is not hidden.
+	for pass := 0; pass < 2; pass++ {
+		for i := 0; i < 4; i++ {
+			source, tip, err := read(i)
+			if err != nil {
+				return 0, 0, false, fmt.Errorf("original node %d successor tip read: %w", i, err)
+			}
+			if source == "" || tip < initial-1 {
+				return 0, 0, false, errors.New("original successor tip source missing or height invalid")
+			}
+			if pass == 0 {
+				if seen[source] {
+					return 0, 0, false, errors.New("successor tips alias an original node store")
+				}
+				seen[source], sources[i], tips[i] = true, source, tip
+			} else if source != sources[i] || tip < tips[i] {
+				return 0, 0, false, errors.New("original successor tip source changed or height regressed")
+			}
+			if tip < plan[len(plan)-1] {
+				ready = false
+			}
+		}
+	}
+	if !ready {
+		return 0, 0, false, nil
+	}
+	return probe()
+}
+
 // Reads real BlockStores and stored FinalizeBlock results; it never repeats an
 // offer, derives a target from RPC, or treats mempool acceptance as execution.
 func pqFreshInclusionReady(n *pqNetworkE2E, payload []byte, minimum *int64) (int64, int, bool) {
@@ -1763,7 +1814,26 @@ func pqFreshTransfers(n *pqNetworkE2E, b *pqNetworkBusiness, accounts []pqFreshA
 			row.coordinatorWork[0]++
 			row.coordinatorWork[1] += time.Since(probeStarted).Nanoseconds()
 		}
-		h, ix, ready := pqFreshInclusionReady(n, row.payload, &searchHeights[i])
+		h, ix, ready, err := pqFreshProbeAfterSuccessorTips(n.doc.InitialHeight, row.Height, func(index int) (string, int64, error) {
+			if err := ctx.Err(); err != nil {
+				return "", 0, err
+			}
+			if len(n.nodes) != 4 || n.nodes[index] == nil || n.nodes[index].node == nil || n.nodes[index].store == nil {
+				return "", 0, errors.New("four original node stores required for successor tip observation")
+			}
+			store := n.nodes[index].node.BlockStore()
+			if store == nil {
+				return "", 0, errors.New("original block store missing during successor tip observation")
+			}
+			return fmt.Sprintf("%p", store), store.Height(), nil
+		}, func() (int64, int, bool, error) {
+			h, ix, ready := pqFreshInclusionReady(n, row.payload, &searchHeights[i])
+			return h, ix, ready, nil
+		})
+		if err != nil {
+			finishProbe()
+			return false, err
+		}
 		if h != 0 {
 			row.Height, row.Index = h, ix
 		}
@@ -3239,6 +3309,161 @@ func TestPQNetworkFreshPipelineStartsOriginalReadbackBeforeLastOffer(t *testing.
 	})
 	if err != nil || !overlapped || offers != 2 || proofs != 2 || maximum > pqFreshInFlight || len(starts) != 2 || starts[1].Sub(starts[0]) < pqFreshInterval {
 		t.Fatal("original readback remained globally serialized, repeated an offer or changed pacing", err)
+	}
+}
+
+func TestPQNetworkFreshSuccessorTipsWaitWithoutPayloadProbe(t *testing.T) {
+	reads, probes := 0, 0
+	h, ix, ready, err := pqFreshProbeAfterSuccessorTips(7, 9, func(i int) (string, int64, error) {
+		reads++
+		tip := int64(10)
+		if i == 2 {
+			tip = 9
+		}
+		return fmt.Sprintf("original-%d", i), tip, nil
+	}, func() (int64, int, bool, error) {
+		probes++
+		return 9, 1, true, nil
+	})
+	if err != nil || ready || h != 0 || ix != 0 || reads != 8 || probes != 0 {
+		t.Fatal("incomplete successor tips read payloads or created inclusion credit", h, ix, ready, reads, probes, err)
+	}
+}
+
+func TestPQNetworkFreshSuccessorTipsStillRequireOriginalPayloadAndValidation(t *testing.T) {
+	for _, fault := range []string{"payload", "validation", "not-ready", "actual-probe"} {
+		t.Run(fault, func(t *testing.T) {
+			reads, probes := 0, 0
+			cause := errors.New("original " + fault + " first cause")
+			h, ix, ready, err := pqFreshProbeAfterSuccessorTips(7, 9, func(i int) (string, int64, error) {
+				reads++
+				return fmt.Sprintf("original-%d", i), int64(10 + (reads-1)/4), nil
+			}, func() (int64, int, bool, error) {
+				probes++
+				switch fault {
+				case "payload":
+					if !bytes.Equal([]byte("changed payload"), []byte("original signed payload")) {
+						return 0, 0, false, cause
+					}
+				case "validation":
+					return 0, 0, false, cause
+				case "not-ready":
+					return 0, 0, false, nil
+				}
+				return 9, 2, true, nil
+			})
+			if reads != 8 || probes != 1 {
+				t.Fatal("ready tips replaced or repeated original probe", reads, probes)
+			}
+			if fault == "payload" || fault == "validation" {
+				if !errors.Is(err, cause) || ready {
+					t.Fatal("ready metadata authorized rejected original payload or validation", ready, err)
+				}
+			} else if fault == "not-ready" {
+				if err != nil || ready || h != 0 || ix != 0 {
+					t.Fatal("ready tips fabricated a missing original inclusion", h, ix, ready, err)
+				}
+			} else if err != nil || !ready || h != 9 || ix != 2 {
+				t.Fatal("original probe coordinates were replaced", h, ix, ready, err)
+			}
+		})
+	}
+}
+
+func TestPQNetworkFreshSuccessorTipsKeepErrorsSourcesAndSnapshots(t *testing.T) {
+	for _, fault := range []string{"read-error", "missing", "duplicate", "changed-source", "regression", "invalid-tip"} {
+		t.Run(fault, func(t *testing.T) {
+			reads, probes := 0, 0
+			cause := errors.New("original tip read failed")
+			_, _, ready, err := pqFreshProbeAfterSuccessorTips(7, 9, func(i int) (string, int64, error) {
+				pass := reads / 4
+				reads++
+				id, tip := fmt.Sprintf("original-%d", i), int64(10)
+				if fault == "read-error" {
+					if i == 0 {
+						tip = 9 // An earlier insufficient tip must not hide a later error.
+					}
+					if i == 3 {
+						return "", 0, cause
+					}
+				}
+				if i == 1 {
+					switch fault {
+					case "missing":
+						id = ""
+					case "duplicate":
+						id = "original-0"
+					case "changed-source":
+						if pass == 1 {
+							id = "other-instance"
+						}
+					case "regression":
+						if pass == 1 {
+							tip = 9
+						}
+					case "invalid-tip":
+						tip = -1
+					}
+				}
+				return id, tip, nil
+			}, func() (int64, int, bool, error) {
+				probes++
+				return 9, 0, true, nil
+			})
+			if err == nil || ready || probes != 0 || fault == "read-error" && !errors.Is(err, cause) {
+				t.Fatal("tip fault became pending or positive inclusion", fault, probes, ready, err)
+			}
+		})
+	}
+}
+
+func TestPQNetworkFreshSuccessorTipsBoundariesAndIndependentCalls(t *testing.T) {
+	for _, pair := range [][2]int64{{0, 1}, {7, -1}, {7, 6}, {7, 54}, {1, int64(1<<63 - 1)}} {
+		_, _, ready, err := pqFreshProbeAfterSuccessorTips(pair[0], pair[1], func(int) (string, int64, error) {
+			t.Fatal("invalid original height read a tip")
+			return "", 0, nil
+		}, func() (int64, int, bool, error) {
+			t.Fatal("invalid original height entered payload probe")
+			return 0, 0, true, nil
+		})
+		if err == nil || ready {
+			t.Fatal("invalid height or successor overflow became pending/ready", pair, err)
+		}
+	}
+	for _, test := range [][3]int64{{1, 1, 1}, {1, 1, 2}, {7, 53, 54}, {int64(1<<63 - 48), int64(1<<63 - 2), int64(1<<63 - 1)}} {
+		calls := 0
+		h, _, ready, err := pqFreshProbeAfterSuccessorTips(test[0], test[1], func(i int) (string, int64, error) {
+			return fmt.Sprintf("boundary-node-%d", i), test[2], nil
+		}, func() (int64, int, bool, error) {
+			calls++
+			return test[1], 0, true, nil
+		})
+		want := test[2] > test[1]
+		if err != nil || ready != want || want && (h != test[1] || calls != 1) || !want && (h != 0 || calls != 0) {
+			t.Fatal("valid H/H+1 boundary changed original probe or produced pending error", test, h, ready, calls, err)
+		}
+	}
+	probes := 0
+	probe := func() (int64, int, bool, error) { probes++; return 9, 1, true, nil }
+	if h, _, ready, err := pqFreshProbeAfterSuccessorTips(7, 0, nil, probe); err != nil || !ready || h != 9 || probes != 1 {
+		t.Fatal("unknown target bypassed or changed original search", h, ready, err)
+	}
+	for scope, tip := range []int64{10, 9, 10} {
+		before := probes
+		_, _, ready, err := pqFreshProbeAfterSuccessorTips(7, 9, func(i int) (string, int64, error) {
+			return fmt.Sprintf("scope-%d-node-%d", scope, i), tip, nil
+		}, probe)
+		if err != nil || ready != (tip == 10) || probes-before != map[bool]int{false: 0, true: 1}[tip == 10] {
+			t.Fatal("another instance inherited cached tip qualification", scope, ready, probes, err)
+		}
+	}
+	if _, _, ready, err := pqFreshProbeAfterSuccessorTips(7, 9, nil, probe); err == nil || ready {
+		t.Fatal("missing known-target tip reader bypassed observation")
+	}
+	if _, _, ready, err := pqFreshProbeAfterSuccessorTips(7, 9, func(i int) (string, int64, error) {
+		return fmt.Sprintf("node-%d", i), 10, nil
+	}, nil); err == nil || ready {
+		t.Fatal("tip metadata replaced missing original probe")
 	}
 }
 
