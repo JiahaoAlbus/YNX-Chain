@@ -1,4 +1,5 @@
 import {createOriginalDeviceCreationController} from './original-device-create-controller.mjs';
+import {createOriginalDeviceQueryController} from './original-device-query-controller.mjs';
 import {createPQTypedActionNodeReader} from './features/pq-transaction/typed-action-query-node.mjs';
 import {normalizeWalletPQTransferInput} from './wallet-pq-transfer-input.mjs';
 import {inspectRetainedPQOriginal} from './wallet-pq-local-original.mjs';
@@ -128,6 +129,7 @@ let protocolReady = false;
 let lastCallback = null;
 let walletAuthority;
 let originalDeviceCreation;
+let originalDeviceQuery;
 let pqTransactionSubmission;
 let pqFinalityCollection;
 let originalIDEIdentityPeer;
@@ -310,7 +312,7 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
 }
 async function shutdownOriginalPQWallet(){
   pqFinalityCollection?.retire();
-  await Promise.all([walletAuthority?.shutdownPQReviews(),originalDeviceCreation?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
+  await Promise.all([walletAuthority?.shutdownPQReviews(),originalDeviceCreation?.close(),originalDeviceQuery?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
 }
 const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
@@ -570,6 +572,12 @@ handleWalletIPC('wallet:prepare-device-create',(_event,...args)=>sensitiveIPC(as
  }catch(cause){if(request)try{await originalDeviceCreation.rejectOriginal(request.id);}catch{}throw Object.assign(Error('暂时无法读取有效的应用设备请求。请从原应用发起连接。 / An original app device request is unavailable. Start from the app.'),{cause,code:'DEVICE_CREATE_ORIGINAL_REQUEST_UNAVAILABLE'});}
 }));
 handleWalletIPC('wallet:device-create-status',()=>safeIPC(()=>originalDeviceCreation?.readStatusDATA()??{phase:'idle',effectEntryInvoked:false}));
+handleWalletIPC('wallet:query-original-device',(_event,...args)=>sensitiveIPC(async()=>{
+ if(args.length)throw Object.assign(Error('Use the original app request.'),{code:'DEVICE_QUERY_ZERO_INPUT'});
+ const review=authorizationController?.pending;
+ if(!originalDeviceQuery||accountChangeInProgress||!review||review.loadingAccount||review.account!==keyAccess.status().account)throw Object.assign(Error('请从原应用重新发起连接，再查询该设备。 / Start the connection from the original app, then check its device.'),{code:'DEVICE_QUERY_ORIGINAL_REQUEST_REQUIRED'});
+ return originalDeviceQuery.queryOriginal(review.request);
+}));
 handleWalletIPC('wallet:cancel-device-create',()=>safeIPC(async()=>{const state=originalDeviceCreation?.readStatusDATA();if(!state?.requestId)return state??{phase:'idle'};return originalDeviceCreation.rejectOriginal(state.requestId);}));
 async function prepareLocalPQAccountInitialReview(action,input){
   const guard=keyAccess.current();guard.assert();let response;
@@ -940,6 +948,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const passwordVault = new PasswordWalletVault({ filePath: path.join(userData, "wallet-vault-v3.json"), legacyFilePaths: [path.join(userData, "wallet-vault-v2.json"), path.join(userData, "wallet-vault-v1.json")], safeStorage, authorization: keyAccess, pqSDK:Object.freeze({...pqKeySDK,...pqBackupSDK,...pqContractSDK}) });
   originalAdmissionVault=passwordVault;
   originalDeviceCreation=createOriginalDeviceCreationController({vault:passwordVault,networkId:PQ_CANONICAL_NETWORK_ID});
+  originalDeviceQuery=createOriginalDeviceQueryController({vault:passwordVault,networkId:PQ_CANONICAL_NETWORK_ID});
   const originalIdentityStartup=initializeOriginalAuthIdentityStartup(passwordVault);
   if(!originalIdentityStartup.implementingModuleAvailable)console.warn('AUTH_IDENTITY_NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED');
   familyAccounts = createMnemonicFamilyAccounts({

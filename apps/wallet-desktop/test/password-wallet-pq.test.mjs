@@ -29,7 +29,7 @@ import {runInNewContext} from 'node:vm';
 import {registerHooks,createRequire} from 'node:module';
 import {createPublicWalletEvent} from './public-transaction-electron-fixture.mjs';
 // Test worker only: real Auth factory, explicit PUBLIC Electron peer model.
-registerHooks({resolve(specifier,context,next){if(context.parentURL?.endsWith('/src/original-device-create-controller.mjs')&&specifier.endsWith('/original-auth-identity-fixed-native-image.js'))return next(new URL('./public-device-create-native-fixture.mjs',import.meta.url).href,context);return next(specifier==='electron'?new URL('./public-transaction-electron-fixture.mjs',import.meta.url).href:specifier,context);}});
+registerHooks({resolve(specifier,context,next){if(context.parentURL?.endsWith('/src/original-device-query-controller.mjs')&&specifier.endsWith('/original-auth-identity-fixed-native-image.js'))return next(new URL('./public-device-query-native-fixture.mjs',import.meta.url).href,context);if(context.parentURL?.endsWith('/src/original-device-create-controller.mjs')&&specifier.endsWith('/original-auth-identity-fixed-native-image.js'))return next(new URL('./public-device-create-native-fixture.mjs',import.meta.url).href,context);return next(specifier==='electron'?new URL('./public-transaction-electron-fixture.mjs',import.meta.url).href:specifier,context);}});
 const transactionAuth=await import('../src/original-policy-supplier/transaction-permission.mjs');
 const device=await import('../src/original-policy-supplier/device-create-approval.mjs');
 const deviceReview=await import('../src/original-policy-supplier/device-create-review.mjs');
@@ -946,4 +946,25 @@ test('device-create normal Main unresolved child close keeps parent custody and 
 
 test('device-create normal Main adopts a late child partial after the selected session was already retired',async t=>{
  const original=Object.assign(Error('PUBLIC_LATE_CAPTURE_PARTIAL'),{code:'PUBLIC_LATE_CAPTURE_PARTIAL'}),f=await deviceControllerFixture(t,{captureError:original});f.config.onCapture=()=>f.lifecycle.lock();const request=await f.prepare();await assert.rejects(f.lifecycle.run(()=>f.controller.approveOriginal(createPublicWalletEvent(),request.id)),e=>e===original);assert(f.native.events.includes('child-retire'));assert(f.native.events.indexOf('child-close')<f.native.events.indexOf('source-join'));assert.equal(f.native.sourceClosed,true);assert.equal(f.native.counts.prepare,0);
+});
+
+async function deviceQueryFixture(t,options={}){
+ const f=await deviceCreateFixture(t),{createOriginalDeviceIdentityDATA}=await import('@ynx-chain/wallet-auth/original-device-create-intent'),{configurePublicDeviceQuery}=await import('./public-device-query-native-fixture.mjs'),{createOriginalDeviceQueryController}=await import('../src/original-device-query-controller.mjs');
+ const app=productPlatformBinding(PRODUCT_SESSION_REGISTRY,'developer','macos'),identity=createOriginalDeviceIdentityDATA({networkId:CHAIN,canonicalOwner:f.account,account:ynxAddressFromEVM(f.account),deviceId:f.input.deviceId,...Object.fromEntries(['productId','clientId','platform','applicationId','bundleId','packageId','origin','callback'].map(k=>[k,app[k]]))}),{version,domain,...stable}=identity.identity;
+ const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:'developer',platform:'macos',deviceId:f.input.deviceId,deviceAlgorithm:contractSDK.PQ_SUITE,deviceRegistrationId:'11111111-1111-4111-8111-111111111111',deviceRegistrationRevision:'1',deviceRegistrationDigest:'3'.repeat(64),scopes:[app.scopes[0]],purpose:'PUBLIC query only',nonce:'N'.repeat(32),state:'S'.repeat(32)},new Date());
+ const config={scope:{version:'4',stableDeviceIdentity:identity.stableDeviceIdentity,identityBinding:{...stable,...identity.applicationBinding}},outcome:Object.freeze({operation:'PUBLIC-query',state:'UNKNOWN',authority:false,hasPublicPair:false,unknownMarkerObserved:true,localTerminalObserved:false,registeredCurrentObserved:false,creatorOutcomeObserved:false}),...options},native=configurePublicDeviceQuery(config),controller=createOriginalDeviceQueryController({vault:f.vault,networkId:CHAIN});
+ t.after(async()=>{try{await controller.close();}catch{}});return{...f,request,config,native,controller};
+}
+test('original device query uses the genuine selected public lease and drains Native child before parent without creation',async t=>{
+ const f=await deviceQueryFixture(t),result=await f.lifecycle.run(()=>f.controller.queryOriginal(f.request));assert.equal(result.outcome.state,'UNKNOWN');assert.equal(result.authority,false);assert.equal(result.creationInvoked,false);assert.equal(result.cleanupUnresolved,false);assert(f.native.events.indexOf('child-close')<f.native.events.indexOf('source-close'));assert(!f.native.events.includes('prepare'));
+});
+test('original device query refuses a different Source identity and does not turn refusal into ABSENT',async t=>{
+ const f=await deviceQueryFixture(t);f.config.scope.identityBinding={...f.config.scope.identityBinding,deviceId:'PUBLIC-different-device'};await assert.rejects(f.lifecycle.run(()=>f.controller.queryOriginal(f.request)),{code:'DEVICE_QUERY_ORIGINAL_SELECTION_CHANGED'});assert.equal(f.controller.readStatusDATA().outcome,null);assert(!f.native.events.includes('capture'));assert(f.native.events.includes('source-close'));
+});
+test('original device query retains the original read across late focus lock without any signing or replay',async t=>{
+ const f=await deviceQueryFixture(t);f.config.onRead=()=>f.lifecycle.lock('focus-lost');await assert.rejects(f.lifecycle.run(()=>f.controller.queryOriginal(f.request)));const status=f.controller.readStatusDATA();assert.equal(status.originalOutcomeRetained,true);assert.equal(status.outcome.state,'UNKNOWN');assert.equal(status.authority,false);assert.equal(f.native.events.filter(x=>x==='read').length,1);
+});
+test('original device query captures failed-acquisition partial and preserves failed child cleanup debt',async t=>{
+ const first=Object.assign(Error('PUBLIC acquire refused'),{code:'PUBLIC_QUERY_ACQUIRE'}),a=await deviceQueryFixture(t,{acquireError:first});await assert.rejects(a.lifecycle.run(()=>a.controller.queryOriginal(a.request)),e=>e===first);assert(a.native.events.includes('source-close'));assert.equal(a.controller.readStatusDATA().outcome,null);
+ const b=await deviceQueryFixture(t,{closeError:false});b.config.closeError=Object.assign(Error('PUBLIC close'),{code:'PUBLIC_QUERY_CLOSE'});await assert.rejects(b.lifecycle.run(()=>b.controller.queryOriginal(b.request)));assert.equal(b.controller.readStatusDATA().cleanupUnresolved,true);assert(!b.native.events.includes('source-close'));await assert.rejects(b.lifecycle.run(()=>b.controller.queryOriginal(b.request)),{code:'DEVICE_QUERY_ORIGINAL_UNRESOLVED'});assert.equal(b.native.events.filter(x=>x==='acquire').length,1);
 });
