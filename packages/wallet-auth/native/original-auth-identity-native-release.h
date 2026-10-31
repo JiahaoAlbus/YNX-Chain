@@ -42,6 +42,11 @@ struct NativeSourceRelease {
  // Independent read-only query Main module. Never a creation approval alias.
  std::string productDeviceV4QueryModulePath,productDeviceV4QueryModuleDigest;
  uint64_t productDeviceV4QueryModuleBytes=0;
+ // Independent registered-local finalization Main peer, never creation/query.
+ std::string productHTTPV5TransportModulePath,productHTTPV5TransportModuleDigest;
+ uint64_t productHTTPV5TransportModuleBytes=0;
+ std::string productDeviceV4RegisteredFinalizationModulePath,productDeviceV4RegisteredFinalizationModuleDigest;
+ uint64_t productDeviceV4RegisteredFinalizationModuleBytes=0;
 };
 inline const std::vector<NativeSourceRelease>& originalNativeSourceReleases(){
  // An independently approved App build may supply typed ROWS via its frozen
@@ -57,4 +62,3 @@ inline const std::vector<NativeSourceRelease>& originalNativeSourceReleases(){
  return admitted;
 }
 }
-

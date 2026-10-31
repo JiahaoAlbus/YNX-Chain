@@ -38,6 +38,9 @@ export declare class ProductSessionGatewayNodeHost {
   constructor(registry:unknown,options:ProductSessionGatewayNodeHostOptions);
   handler():(request:unknown,response:unknown)=>Promise<void>;
   snapshot():Readonly<Record<string,unknown>>;
+  /** Original normal release acquisition, no config/provider/Root input. */
+  supplyOriginalBinaryV5AccountPolicy():Promise<Readonly<{configured:true}>>;
+  closeOriginalBinaryV5AccountPolicy():void;
   authenticateOriginalDeveloperHTTPRequestV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPCredential>;
   revalidateOriginalDeveloperHTTPRequestV5(input:OriginalDeveloperHTTPBinaryRequestV5):Promise<OriginalDeveloperHTTPCredential>;
   authenticateOriginalDeveloperHTTPRequest(input:OriginalDeveloperHTTPRequest):Promise<OriginalDeveloperHTTPCredential>;

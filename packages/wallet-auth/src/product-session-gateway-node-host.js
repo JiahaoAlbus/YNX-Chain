@@ -1,3 +1,4 @@
+import{acquireOriginalBinaryV5AccountPolicyRunner,assertOriginalBinaryV5AccountPolicyOwner}from'./original-binary-http-account-policy-v5.js';
 import {assertProductSessionControlSessionAllowed,productSessionControlClockFloor} from './product-session-control-intent.js';
 import {verifyOriginalProductSessionHTTPProofV5,productSessionHTTPProofV5ReplayKey} from './product-session-device-v5.js';
 import {decodeProductSessionProofHeaderV5,assertProductSessionHTTPBodyV5DATA,PRODUCT_SESSION_V5_BODY_MAX_BYTES} from './product-session-proof-v5.js';
@@ -112,7 +113,7 @@ export class ProductSessionGatewayNodeHost {
   #privateTerminalJournal; #privateTerminalOriginal; #privateRetainedOwners=new WeakMap();
   #authSourceCurrent=null;
   #deviceCurrent=null;
-  #accountPolicy=null;
+  #accountPolicy=null;#binaryAccountPolicyOwner=null;#binaryPolicyAcquiring=false;
 
   #requiredAccountContext(context){
     if(!this.#accountPolicy){if(context!==null)fail('ACCOUNT_POLICY_MODE_REQUIRED','Account context requires the normal service policy mode');return null;}
@@ -322,6 +323,18 @@ export class ProductSessionGatewayNodeHost {
 
   // V5 uses the same durable replay ledger and opaque credential WeakMap.
   // Binary account current must be explicitly supplied by the original runner.
+  // Fixed original startup acquisition only; no callback/Root/node/key input.
+  // Missing binary current leaves the original text policy and V4 service intact.
+  async supplyOriginalBinaryV5AccountPolicy(){
+    if(arguments.length||!this.#accountPolicy||this.#accountPolicy.mode!=='required'||this.#accountPolicy.runBinaryV5||this.#binaryPolicyAcquiring)fail('ACCOUNT_POLICY_BINARY_V5_SUPPLY_INVALID','Original normal binary policy supply invalid');
+    this.#binaryPolicyAcquiring=true;
+    const opened=await acquireOriginalBinaryV5AccountPolicyRunner();this.#binaryAccountPolicyOwner=opened.owner;
+    if(opened.error!==null)throw opened.error;const owner=assertOriginalBinaryV5AccountPolicyOwner(opened.owner);
+    this.#accountPolicy=Object.freeze({...this.#accountPolicy,runBinaryV5:owner.runBinaryV5});
+    return Object.freeze({configured:true});
+  }
+  closeOriginalBinaryV5AccountPolicy(){const owner=this.#binaryAccountPolicyOwner;if(owner){owner.retire?.();owner.join?.();owner.close();}}
+
   async authenticateOriginalDeveloperHTTPRequestV5(input){return this.#originalDeveloperV5(input,false);}
   async revalidateOriginalDeveloperHTTPRequestV5(input){return this.#originalDeveloperV5(input,true);}
   async #originalDeveloperV5(input,alreadyConsumed){

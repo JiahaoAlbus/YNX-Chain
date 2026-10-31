@@ -41,7 +41,7 @@ export interface OriginalAuthSourceV2Root {
 }
 /** Signed enrollment DATA only. The original verifier binds the service and
  * exact operation tuple to the independently admitted purpose; types do not. */
-export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2';
+export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5';
 export type OriginalAuthSourceV2Operations=
  readonly ['beginYNX','handleReturn','restore','disconnect']|
  readonly ['ynx_preparePQContractAction','ynx_preparePQContractBroadcast','ynx_getPQContractOriginal']|
@@ -52,7 +52,9 @@ export type OriginalAuthSourceV2Operations=
  readonly ['device.current','device.http-proof']|
  readonly ['deployment.sign-e11']|
  readonly ['deployment.execute-existing']|
- readonly ['deployment.read-original'];
+ readonly ['deployment.read-original']|
+ readonly ['device.registered-finalize']|
+ readonly ['device.current','device.http-proof-v5'];
 export interface OriginalAuthSourceV2Enrollment {
  readonly version:2;readonly purpose:string;readonly rootId:string;readonly rootOwner:string;
  readonly sourceId:string;readonly service:OriginalAuthSourceV2Service;readonly productId:string;readonly platform:'macos';

@@ -30,8 +30,12 @@
 static NSString *SourceSHA(NSData *raw){unsigned char bytes[CC_SHA256_DIGEST_LENGTH];CC_SHA256(raw.bytes,(CC_LONG)raw.length,bytes);NSMutableString *out=[NSMutableString string];for(auto c:bytes)[out appendFormat:@"%02x",c];return out;}
 static bool SourceSame(struct stat a,struct stat b){return a.st_dev==b.st_dev&&a.st_ino==b.st_ino&&a.st_uid==b.st_uid&&a.st_gid==b.st_gid&&a.st_mode==b.st_mode&&a.st_nlink==b.st_nlink&&a.st_size==b.st_size&&a.st_mtimespec.tv_sec==b.st_mtimespec.tv_sec&&a.st_mtimespec.tv_nsec==b.st_mtimespec.tv_nsec&&a.st_ctimespec.tv_sec==b.st_ctimespec.tv_sec&&a.st_ctimespec.tv_nsec==b.st_ctimespec.tv_nsec;}
 struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;bool selected=false,complete=false;};
+#include "original-registered-finalization-scope-private.h"
+#include "original-http-v5-scope-private.h"
+#include "original-http-v5-registered-private.h"
 @implementation YNXAuthIdentitySourceAuthority {
  NSDictionary*_productDeviceV4QueryJournalObservedIdentity;
+ NSDictionary*_productDeviceV4RegisteredFinalizationJournalObservedIdentity;
  YNXAuthIdentityCurrentOwner *_custody;
  YNXIDEHelperMessagePeer *_helperPeer;
  YNXIDEHelperClient *_helperClient;
@@ -55,7 +59,13 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  BOOL _relayRuntimePinned,_relayRuntimeEntered;
  NSData *_relayRuntimeManifestOriginal;
  BOOL _proofClosurePinned,_ideProofSelected,_ideProofVerified;
- BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry,_walletPQCatalog,_productDeviceV4,_productDeviceV4Pending,_productDeviceV4Provisioning,_productDeviceV4Query;
+ std::shared_ptr<ynx_auth_private::OriginalDeviceAssociationStore> _httpV5Store;
+ ynx_auth_private::DeviceAssociationIdentity _httpV5SameItem;
+ uint64_t _httpV5Deadline,_httpV5MonoAnchor,_httpV5WallAnchor;
+ unsigned _httpV5Loans;
+ BOOL _productHTTPV5,_httpV5ItemSelected;
+ NSError *_httpV5CloseCause;
+ BOOL _retired,_invalid,_entered,_closeSelected,_cleanupComplete,_ideRegistry,_walletPQCatalog,_productDeviceV4,_productDeviceV4Pending,_productDeviceV4Provisioning,_productDeviceV4Query,_productDeviceV4RegisteredFinalization;
  NSError *_firstCause,*_cleanupCause;
  std::unique_ptr<ynx_auth_private::SourcePublicInstallation> _publicInstallation;
 }
@@ -320,6 +330,8 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "original-ide-contract-relay-runtime.inc.mm"
 #include "original-ide-project-authority-source.inc.mm"
 #include "original-product-device-v4-query-source.inc.mm"
+#include "original-product-device-v4-registered-finalization-source.inc.mm"
+#include "original-http-v5-source.inc.mm"
 #include "original-ide-project-control-source.inc.mm"
 #include "original-ide-project-control-custody-source.inc.mm"
 - (BOOL)assertCurrent:(NSError **)error {return [self assertAuthenticatedNativePurpose:error];}
@@ -374,11 +386,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
    uint64_t before=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);if(before<_timeFloor)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CLOCK_ROLLBACK" error:error];
    NSDictionary *contract=@{@"purpose":[NSString stringWithUTF8String:_policy->purpose.c_str()],@"enrollmentFrame":[NSString stringWithUTF8String:_policy->enrollmentFrame.c_str()],@"profileFrame":[NSString stringWithUTF8String:_policy->profileFrame.c_str()],@"currentFrame":[NSString stringWithUTF8String:_policy->currentFrame.c_str()]};
    NSMutableDictionary *policy=[@{@"rootDigest":[NSString stringWithUTF8String:_policy->rootDigest.c_str()],@"enrollmentDigest":[NSString stringWithUTF8String:_policy->enrollmentDigest.c_str()],@"endpoint":[NSString stringWithUTF8String:_policy->endpoint.c_str()],@"spki":[NSString stringWithUTF8String:_policy->spki.c_str()],@"signatureContract":contract}mutableCopy];
-   if(_policy->purpose=="product-session-device-source-v4"||_policy->purpose=="product-session-device-pending-source-v4"||_policy->purpose=="product-session-device-provisioning-source-v4"||_policy->purpose=="product-session-device-query-source-v4"){
-    if((_policy->purpose=="product-session-device-source-v4"?!_productDeviceV4:_policy->purpose=="product-session-device-pending-source-v4"?!_productDeviceV4Pending:_policy->purpose=="product-session-device-provisioning-source-v4"?!_productDeviceV4Provisioning:!_productDeviceV4Query)||_policy->productDeviceV4ApplicationId.empty()||_policy->productDeviceV4ProductId.empty())return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
+   if(_policy->purpose=="product-session-device-source-v4"||_policy->purpose=="product-session-device-pending-source-v4"||_policy->purpose=="product-session-device-provisioning-source-v4"||_policy->purpose=="product-session-device-query-source-v4"||_policy->purpose=="product-session-device-registered-finalization-source-v4"||_policy->purpose=="product-session-device-http-binary-source-v5"){
+    if((_policy->purpose=="product-session-device-source-v4"?!_productDeviceV4:_policy->purpose=="product-session-device-pending-source-v4"?!_productDeviceV4Pending:_policy->purpose=="product-session-device-provisioning-source-v4"?!_productDeviceV4Provisioning:_policy->purpose=="product-session-device-query-source-v4"?!_productDeviceV4Query:_policy->purpose=="product-session-device-registered-finalization-source-v4"?!_productDeviceV4RegisteredFinalization:!_productHTTPV5)||_policy->productDeviceV4ApplicationId.empty()||_policy->productDeviceV4ProductId.empty())return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ApplicationId.c_str()];
     policy[@"productId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ProductId.c_str()];
-   }else if(_productDeviceV4||_productDeviceV4Pending||_productDeviceV4Provisioning||_productDeviceV4Query)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
+   }else if(_productDeviceV4||_productDeviceV4Pending||_productDeviceV4Provisioning||_productDeviceV4Query||_productDeviceV4RegisteredFinalization||_productHTTPV5)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="wallet-pq-host-catalog-source-v1"){
     if(!_walletPQCatalog||_policy->walletPQApplicationId.empty())return [self fail:@"PQ_HOST_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->walletPQApplicationId.c_str()];
@@ -619,16 +631,16 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }
 }
 - (void)retire {@synchronized(self){_retired=YES;[_helperClient retire];[_custody retire];}}
-- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
+- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_httpV5Loans)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
 - (BOOL)close:(NSError **)error {
- @synchronized(self){[self retire];if(_closeSelected){if(error)*error=_cleanupCause;return _cleanupComplete;}
+ @synchronized(self){[self retire];if(_productHTTPV5&&_httpV5Loans){if(!_httpV5CloseCause)_httpV5CloseCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"PRODUCT_HTTP_V5_REGISTERED_CHILDREN_RETAINED"}];if(error)*error=_httpV5CloseCause;return NO;}if(_closeSelected){if(error)*error=_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause;}
   if(![self join:error])return NO;_closeSelected=YES;BOOL filesClosed=YES;
   if(_helperClient){NSError*clientError=nil;if(![_helperClient close:&clientError]||clientError){_cleanupCause=clientError?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_HELPER_CLIENT_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return NO;}_helperClient=nil;}
   if(_publicInstallation&&!_publicInstallation->close()){
    _cleanupComplete=NO;_cleanupCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_RECEIVER_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return NO;
   }
   for(auto &file:_files){if(file.selected){if(!file.complete)filesClosed=NO;continue;}file.selected=true;file.complete=::close(file.fd)==0;if(!file.complete)filesClosed=NO;}if(![self closeHeldPipes])filesClosed=NO;
-  NSError *cause=nil;BOOL custodyClosed=!_custody||[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return _cleanupComplete;}
+  NSError *cause=nil;BOOL custodyClosed=!_custody||[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause;}
 }
 @end
 

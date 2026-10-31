@@ -36,3 +36,28 @@ export function verifyProductSessionDeviceChallengeV4Data(challenge:unknown,regi
 export function verifyProductSessionV4CompletionData(registry:unknown,request:ProductSessionRequestV4,approval:unknown,completion:Readonly<{challenge:unknown;deviceMember:string}>,policy:ProductSessionAccountPolicyObservation,registrationOriginal:Uint8Array,at?:Date):Readonly<{session:ProductSessionV4;dataOnly:true;registered:false;authorized:false;nativeAdmission:false}>;
 export function encodeProductSessionDeviceRegistrationV4Message(registrationOriginal:Uint8Array):Uint8Array;
 export function verifyProductSessionDeviceRegistrationProofV4Data(registrationOriginal:Uint8Array,member:Uint8Array,at?:Date):Readonly<{signatureVerified:true;dataOnly:true;registered:false;current:false;NativeAdmission:false;SourceAdmission:false}>;
+
+/** Actual original SQLite operation terminal_ms values, not now/observation
+ * or caller-provided authority. All four originals are canonical UTF8 strings. */
+export interface StoredProductSessionV4IssueOriginalInputDATA {
+ readonly pairInputOriginal:string;readonly completeInputOriginal:string;
+ readonly sessionOriginal:string;readonly challengeOriginal:string;
+ readonly pairCommittedAtMs:number;readonly completeCommittedAtMs:number;
+}
+export interface StoredProductSessionV4IssueOriginalDATA {
+ readonly version:'4';readonly originals:Readonly<StoredProductSessionV4IssueOriginalInputDATA>;
+ readonly pairOperationId:string;readonly completeOperationId:string;
+ readonly pairRequest:ProductSessionRequestV4;readonly request:ProductSessionRequestV4;
+ readonly pairApproval:ProductSessionApprovalV4;readonly completionApproval:ProductSessionApprovalV4;
+ readonly registration:import('./product-session-device-registration-v4.js').ProductSessionDeviceRegistrationV4;
+ readonly registrationDigest:string;readonly registrationOriginal:string;
+ readonly challenge:ProductSessionDeviceChallengeV4;readonly session:ProductSessionV4;
+ readonly pairAccountAuthorization:ProductSessionAccountAuthorization;readonly completionAccountAuthorization:ProductSessionAccountAuthorization;
+ readonly signatureVerified:true;readonly accountApprovalsVerified:2;readonly registrationPoPVerified:true;readonly deviceCompletionVerified:true;
+ readonly timeBasis:'original-signatures-and-store-commits-only';readonly historical:true;readonly dataOnly:true;
+ readonly SourceAdmission:false;readonly RootAdmission:false;readonly NativeAdmission:false;readonly nativeAdmission:false;
+ readonly authorized:false;readonly registered:false;readonly current:false;readonly newSession:false;readonly connected:false;
+}
+/** Historical mathematics only: no policyRef/current/provider/callback/clock
+ * input, no fabricated observation, no capability or issuer registration. */
+export function inspectStoredProductSessionV4IssueOriginalDATA(registry:unknown,input:StoredProductSessionV4IssueOriginalInputDATA):Readonly<StoredProductSessionV4IssueOriginalDATA>;

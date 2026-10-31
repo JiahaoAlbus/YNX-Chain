@@ -29,6 +29,7 @@ export function readOriginalHTTPBinaryTransportV5ForNative(v){if(arguments.lengt
 // Pure DATA from the SAME privately owned final body. Native independently
 // captures bytes and Core recomputes all three hashes before signing.
 export function readOriginalHTTPBinaryTransportV5BodyDATAForNative(v){if(arguments.length!==1)fail('HTTP_V5_PEER_ARGUMENTS');const r=peer(v);current(r);const d=createProductSessionHTTPBodyV5DATA(r.body,r.contentType);return Object.freeze({contentType:d.contentType,bodyDigest:d.bodyDigest,bodyBinding:Object.freeze({...d.bodyBinding})})}
+export function assertOriginalHTTPBinaryTransportV5Context(v,sameContext){if(arguments.length!==2)fail('HTTP_V5_PEER_ARGUMENTS');const r=peer(v);current(r);if(sameContext!==r.context)fail('HTTP_V5_ORIGINAL_CONTEXT');context(sameContext)}
 export function assertOriginalHTTPBinaryTransportV5Current(v){if(arguments.length!==1)fail('HTTP_V5_PEER_ARGUMENTS');current(peer(v))}
 export async function recheckOriginalHTTPBinaryTransportV5(v){if(arguments.length!==1)fail('HTTP_V5_PEER_ARGUMENTS');current(peer(v))}
 const drainStates=new WeakMap();
@@ -58,7 +59,7 @@ export async function openOriginalHTTPBinaryClientV5(...args){
  const packet=v=>{const r=packets.get(v);if(!r||r.owner!==owner)fail('HTTP_V5_ORIGINAL_PACKET_REQUIRED');return r};
  function prepare(input){
   alive();const i=record(input,['requestId','expectedSlotRevision','rollbackTarget','bodySnapshot','abortContext']),snapshot=record(i.bodySnapshot,['bodyOriginal','contentType']),body=bytes(snapshot.bodyOriginal,PRODUCT_SESSION_V5_BODY_MAX_BYTES),ctx=context(i.abortContext);
-  if(typeof i.requestId!=='string'||! /^[A-Za-z0-9._:-]{1,128}$/.test(i.requestId)||typeof i.expectedSlotRevision!=='string'||! /^(0|[1-9][0-9]{0,19})$/.test(i.expectedSlotRevision)||BigInt(i.expectedSlotRevision)>0xffffffffffffffffn||typeof i.rollbackTarget!=='string'||i.rollbackTarget.length>128||/[\r\n\0]/.test(i.rollbackTarget))fail('HTTP_V5_ORIGINAL_OPERATION');
+  if(typeof i.requestId!=='string'||! /^req_[A-Za-z0-9_-]{12,80}$/.test(i.requestId)||typeof i.expectedSlotRevision!=='string'||! /^(0|[1-9][0-9]{0,19})$/.test(i.expectedSlotRevision)||BigInt(i.expectedSlotRevision)>0xffffffffffffffffn||typeof i.rollbackTarget!=='string'||i.rollbackTarget.length>128||/[\r\n\0]/.test(i.rollbackTarget))fail('HTTP_V5_ORIGINAL_OPERATION');
   if(operationIds.has(i.requestId))fail('HTTP_V5_QUERY_ORIGINAL_ONLY');
   if(method(source,'assertCurrent')!==undefined)fail('HTTP_V5_SOURCE_CURRENT');const scope=originalScope(source);if(body.length>Number(scope.maxBodyBytes))fail('HTTP_V5_SELECTED_BODY_LIMIT');
   // Hash/Content-Type parsing here is DATA preflight only. Native independently
@@ -80,7 +81,7 @@ export async function openOriginalHTTPBinaryClientV5(...args){
  }
  async function submit(v,sameContext){
   alive();const r=packet(v);current(r);if(sameContext!==r.context||context(sameContext)!==r.context)fail('HTTP_V5_ORIGINAL_CONTEXT');if(!r.header||r.phase!=='signed'||r.httpEntered)fail('HTTP_V5_QUERY_ORIGINAL_ONLY');if(method(source,'assertCurrent')!==undefined)fail('HTTP_V5_SOURCE_CURRENT');
-  const headers={'content-type':r.contentType,'accept':'application/json',[PRODUCT_SESSION_PROOF_HEADER_V5]:r.header,'idempotency-key':r.requestId,'x-deployment-manifest-version':'2','x-expected-deployment-revision':r.expectedSlotRevision};if(r.rollbackTarget)headers['x-rollback-to']=r.rollbackTarget;
+  const headers={'content-type':r.contentType,'accept':'application/json',[PRODUCT_SESSION_PROOF_HEADER_V5]:r.header,'idempotency-key':r.requestId,'x-request-id':r.requestId,'x-deployment-manifest-version':'2','x-expected-deployment-revision':r.expectedSlotRevision};if(r.rollbackTarget)headers['x-rollback-to']=r.rollbackTarget;
   if(Buffer.byteLength(Object.entries(headers).map(([k,v])=>k+': '+v+'\r\n').join(''))>262144)fail('HTTP_V5_TOTAL_HEADER_LIMIT');r.httpEntered=true;r.phase='entered';
   const controller=new AbortController(),forward=()=>controller.abort(reason.call(r.context.signal));r.controller=controller;r.context.signal.addEventListener('abort',forward,{once:true});const timer=setTimeout(()=>controller.abort(Object.assign(Error('HTTP_V5_HTTP_TIMEOUT'),{code:'HTTP_V5_HTTP_TIMEOUT'})),Math.max(1,Math.min(30000,Math.min(r.scope.expiresAtMs,r.proofExpiresAtMs)-originalNow())));
   try{
