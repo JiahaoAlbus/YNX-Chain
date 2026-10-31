@@ -129,6 +129,26 @@ func (v *Verifier) AuthenticateCertificate(wire []byte, height uint64) (*Authent
 	if err != nil {
 		return nil, err
 	}
+	return v.authenticateCertificateLocked(c, height)
+}
+
+// c must be an owned result of the strict wire decoder. This private core is
+// never an entry point for a caller's typed/unverified certificate. Keeping its
+// snapshot before the resolver preserves the raw APIs' callback boundary.
+func (v *Verifier) authenticateCertificateSnapshot(c Certificate, height uint64) (*AuthenticatedHandle, error) {
+	if v == nil {
+		return nil, ErrHandle
+	}
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	if v.resolve == nil || v.epoch == 0 {
+		return nil, ErrHandle
+	}
+	return v.authenticateCertificateLocked(c, height)
+}
+
+// Caller holds v.mu and has checked the issuing verifier's live epoch.
+func (v *Verifier) authenticateCertificateLocked(c Certificate, height uint64) (*AuthenticatedHandle, error) {
 	trust, err := v.current(c, height)
 	if err != nil {
 		return nil, err
@@ -250,7 +270,14 @@ func (v *Verifier) VerifyWholeBatch(wire []byte, messages [][]byte, height uint6
 		return err
 	}
 	input := copyMessages(messages)
-	h, err := v.AuthenticateCertificate(wire, height)
+	return v.verifyWholeSnapshot(c, input, height)
+}
+
+// Both raw Whole APIs arrive here only after strict certificate/message bounds
+// and a complete owned snapshot. Authentication, both trees and both current
+// registration refreshes are the same on cache misses and mathematical hits.
+func (v *Verifier) verifyWholeSnapshot(c Certificate, input [][]byte, height uint64) error {
+	h, err := v.authenticateCertificateSnapshot(c, height)
 	if err != nil {
 		return err
 	}
@@ -294,11 +321,7 @@ func (v *Verifier) VerifyWhole(wire []byte, height uint64) error {
 	if err != nil {
 		return err
 	}
-	cert, err := EncodeCertificate(w.Certificate)
-	if err != nil {
-		return err
-	}
-	return v.VerifyWholeBatch(cert, w.Messages, height)
+	return v.verifyWholeSnapshot(w.Certificate, w.Messages, height)
 }
 
 // Clear invalidates all issued handles in addition to dropping successful cache

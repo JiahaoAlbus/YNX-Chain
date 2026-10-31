@@ -78,10 +78,6 @@ func authenticateConsensusBatchCached(wire []byte, policy *ynxauth.State, height
 	if err != nil {
 		return nil, err
 	}
-	cert, err := ynxbatch.EncodeCertificate(whole.Certificate)
-	if err != nil {
-		return nil, err
-	}
 	certificates, scope, err := cache.VerifierCache(policy)
 	if err != nil {
 		return nil, err
@@ -92,7 +88,9 @@ func authenticateConsensusBatchCached(wire []byte, policy *ynxauth.State, height
 	if err != nil {
 		return nil, err
 	}
-	if err = verifier.VerifyWholeBatch(cert, whole.Messages, height); err != nil {
+	// The raw Whole verifier takes its own strict owned snapshot before invoking
+	// the resolver. Admission's separate decoded copy is never a verified token.
+	if err = verifier.VerifyWhole(wire, height); err != nil {
 		verifier.Clear()
 		return nil, err
 	}
@@ -291,6 +289,20 @@ func validateConsensusPQBatchesCached(state CommittedState, migration chain.Cons
 		}
 		refs[hash][index] = entry
 	}
+	// This is a derived index for this one validation call, not retained work or
+	// authority. Ordinary small histories keep the allocation-free scan. A bulk
+	// Whole or a longer N=1 history otherwise rescans all effects per member.
+	var effects map[string]consensusBatchEffects
+	if len(state.NativeTransfers)+len(state.FeeEvents) >= 32 {
+		members := 0
+		for _, proof := range state.PQBatches {
+			members += len(proof.Results)
+			if members >= 8 {
+				effects = indexConsensusBatchEffects(state)
+				break
+			}
+		}
+	}
 	for hash, proof := range state.PQBatches {
 		if hash != SignedTransactionHash(proof.Whole) || proof.Height <= migration.Height || proof.Height > uint64(state.Height) || len(proof.Results) == 0 || len(proof.Results) > ynxbatch.MaxN {
 			return errors.New("invalid ABCI Whole proof identity, height or result bound")
@@ -308,7 +320,7 @@ func validateConsensusPQBatchesCached(state CommittedState, migration chain.Cons
 		if err != nil {
 			return err
 		}
-		err = validateConsensusBatchCoverage(state, migration, hash, proof, admission, refs[hash])
+		err = validateConsensusBatchCoverageWithEffects(state, migration, hash, proof, admission, refs[hash], effects)
 		admission.verifier.Clear()
 		if err != nil {
 			return err
@@ -317,7 +329,97 @@ func validateConsensusPQBatchesCached(state CommittedState, migration chain.Cons
 	return nil
 }
 
+// Counts and equality are collected without accepting/rejecting anything.
+// Original result/authorization/identity checks still run first; wrong values
+// precede duplicate-count errors exactly as in the original two scans.
+type consensusBatchEffects struct {
+	receipt                          BFTNativeTransfer
+	fee                              BFTFeeEvent
+	receipts, fees                   int
+	differentReceipts, differentFees bool
+}
+
+func (e *consensusBatchEffects) addReceipt(receipt BFTNativeTransfer) {
+	if e.receipts == 0 {
+		e.receipt = receipt
+	} else if e.receipt != receipt {
+		e.differentReceipts = true
+	}
+	e.receipts++
+}
+
+func (e *consensusBatchEffects) addFee(fee BFTFeeEvent) {
+	if e.fees == 0 {
+		e.fee = fee
+	} else if e.fee != fee {
+		e.differentFees = true
+	}
+	e.fees++
+}
+
+func indexConsensusBatchEffects(state CommittedState) map[string]consensusBatchEffects {
+	// Only Whole member hashes can be queried by coverage. In particular, do
+	// not allocate one large aggregate for every unrelated historical transfer.
+	// A malformed proof falls back to the original scans so indexing cannot
+	// introduce an earlier error or replace normal proof validation.
+	index := make(map[string]consensusBatchEffects)
+	for batchHash, proof := range state.PQBatches {
+		if len(proof.Results) == 0 || len(proof.Results) > ynxbatch.MaxN {
+			return nil
+		}
+		for i, result := range proof.Results {
+			if result.Index != uint32(i) {
+				return nil
+			}
+			hash, err := chain.PQBatchTransactionHash(batchHash, uint32(i))
+			if err != nil {
+				return nil
+			}
+			index[hash] = consensusBatchEffects{}
+		}
+	}
+	for _, receipt := range state.NativeTransfers {
+		value, member := index[receipt.TransactionHash]
+		if !member {
+			continue
+		}
+		value.addReceipt(receipt)
+		index[receipt.TransactionHash] = value
+	}
+	for _, fee := range state.FeeEvents {
+		value, member := index[fee.TxHash]
+		if !member {
+			continue
+		}
+		value.addFee(fee)
+		index[fee.TxHash] = value
+	}
+	return index
+}
+
+func consensusBatchEffectsAt(state CommittedState, hash string, index map[string]consensusBatchEffects) consensusBatchEffects {
+	if index != nil {
+		return index[hash]
+	}
+	var value consensusBatchEffects
+	for _, receipt := range state.NativeTransfers {
+		if receipt.TransactionHash == hash {
+			value.addReceipt(receipt)
+		}
+	}
+	for _, fee := range state.FeeEvents {
+		if fee.TxHash == hash {
+			value.addFee(fee)
+		}
+	}
+	return value
+}
+
 func validateConsensusBatchCoverage(state CommittedState, migration chain.ConsensusMigrationState, batchHash string, proof PQCommittedBatch, admission *consensusBatchAdmission, refs map[uint32]PQCommittedAuthorization) error {
+	return validateConsensusBatchCoverageWithEffects(state, migration, batchHash, proof, admission, refs, nil)
+}
+
+func validateConsensusBatchCoverageWithEffects(state CommittedState, migration chain.ConsensusMigrationState, batchHash string, proof PQCommittedBatch, admission *consensusBatchAdmission, refs map[uint32]PQCommittedAuthorization, effects map[string]consensusBatchEffects) error {
 	if len(proof.Results) != len(admission.whole.Messages) {
 		return errors.New("Whole result count differs from original messages")
 	}
@@ -340,20 +442,10 @@ func validateConsensusBatchCoverage(state CommittedState, migration chain.Consen
 			return err
 		}
 		entry, exists := refs[result.Index]
-		receiptCount, feeCount := 0, 0
-		for _, receipt := range state.NativeTransfers {
-			if receipt.TransactionHash == memberHash {
-				receiptCount++
-			}
-		}
-		for _, fee := range state.FeeEvents {
-			if fee.TxHash == memberHash {
-				feeCount++
-			}
-		}
+		effect := consensusBatchEffectsAt(state, memberHash, effects)
 		switch result.Outcome {
 		case "rejected":
-			if result.TransactionHash != "" || result.Error == "" || exists || receiptCount != 0 || feeCount != 0 {
+			if result.TransactionHash != "" || result.Error == "" || exists || effect.receipts != 0 || effect.fees != 0 {
 				return errors.New("rejected Whole member acquired a historical effect")
 			}
 		case "admitted":
@@ -375,17 +467,13 @@ func validateConsensusBatchCoverage(state CommittedState, migration chain.Consen
 			}
 			expectedReceipt := BFTNativeTransfer{TransactionHash: memberHash, From: tx.From, To: tx.To, Amount: tx.Amount, Fee: tx.Fee, BlockHeight: int64(proof.Height), CommittedAt: tx.Timestamp}
 			expectedFee := newCurrentFeeEvent(memberHash, SignedTransactionType, tx.From, feeRecipient, tx.Fee, int64(proof.Height), tx.Timestamp)
-			for _, receipt := range state.NativeTransfers {
-				if receipt.TransactionHash == memberHash && receipt != expectedReceipt {
-					return errors.New("Whole native receipt differs from its signed member")
-				}
+			if effect.receipts > 0 && (effect.differentReceipts || effect.receipt != expectedReceipt) {
+				return errors.New("Whole native receipt differs from its signed member")
 			}
-			for _, fee := range state.FeeEvents {
-				if fee.TxHash == memberHash && fee != expectedFee {
-					return errors.New("Whole fee receipt differs from its signed member")
-				}
+			if effect.fees > 0 && (effect.differentFees || effect.fee != expectedFee) {
+				return errors.New("Whole fee receipt differs from its signed member")
 			}
-			if receiptCount != 1 || feeCount != 1 {
+			if effect.receipts != 1 || effect.fees != 1 {
 				return errors.New("Whole admission requires exactly one native and fee receipt")
 			}
 			admitted++
