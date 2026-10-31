@@ -82,6 +82,13 @@ export function createOriginalDeviceCreationController({vault,networkId}){
  function readPublicPairForOriginalRegistration(id){
   if(arguments.length!==1)fail('DEVICE_CREATE_REGISTRATION_ZERO_DTO');const r=selected(id);if(r.phase!=='awaiting-original-registration')fail('DEVICE_CREATE_ORIGINAL_NOT_PENDING');current(r);r.child.assertCurrent();return publicPair(r.pair);
  }
+ function readOriginalRegistrationSelectionDATA(id){
+  if(arguments.length!==1)fail('DEVICE_CREATE_REGISTRATION_ZERO_DTO');const r=selected(id),pair=readPublicPairForOriginalRegistration(id),terms=r.review.request.review;
+  const keys=['networkId','canonicalOwner','account','productId','clientId','platform','applicationId','bundleId','packageId','origin','callback','deviceId'];
+  // Independent original Main selection and actual new PUBLIC pair only. This
+  // cannot assert registrationId/revision/digest, consent or Source authority.
+  return Object.freeze({identityBinding:Object.freeze(Object.fromEntries(keys.map(k=>[k,terms[k]]))),generation:terms.generation,publicPair:pair});
+ }
  async function completeOriginalRegistration(id){
   if(arguments.length!==1)fail('DEVICE_CREATE_REGISTRATION_ZERO_DTO');const r=selected(id);if(r.phase!=='awaiting-original-registration'||r.inFlight)fail('DEVICE_CREATE_ORIGINAL_NOT_PENDING');current(r);r.phase='completing-original-registration';
   const task=(async()=>{try{
@@ -92,5 +99,5 @@ export function createOriginalDeviceCreationController({vault,networkId}){
  }
  async function rejectOriginal(id){const r=selected(id);retire(r);if(r.inFlight)try{await r.inFlight;}catch{}r.phase=r.effectEntryInvoked?'original-outcome-unknown':'cancelled-before-effect';await drain(r);return status(r);}
  async function close(){closed=true;const r=active;if(!r)return;retire(r);if(r.inFlight)try{await r.inFlight;}catch{}await drain(r);}
- return Object.freeze({prepareReview,approveOriginal,readPublicPairForOriginalRegistration,completeOriginalRegistration,rejectOriginal,close,readStatusDATA:()=>status(active),isPendingReview:id=>active?.review?.id===id&&active.phase==='review'&&!active.retired});
+ return Object.freeze({prepareReview,approveOriginal,readPublicPairForOriginalRegistration,readOriginalRegistrationSelectionDATA,completeOriginalRegistration,rejectOriginal,close,readStatusDATA:()=>status(active),isPendingReview:id=>active?.review?.id===id&&active.phase==='review'&&!active.retired});
 }
