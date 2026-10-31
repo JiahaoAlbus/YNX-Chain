@@ -1,0 +1,50 @@
+{
+  "provider": {
+    "path": "native-source/protected-source/android/ynx_native_core_ordinary_local_observation_v2.h",
+    "bytes": 2239,
+    "sha256": "140dbce0d0a63a933d21a68d9a2ab61e818431723b053a69957332aff31a0c44"
+  },
+  "abi": {
+    "version": 2,
+    "size": 424,
+    "profile": 1,
+    "kind": [
+      1,
+      2,
+      3
+    ],
+    "local": {
+      "offset": 16,
+      "size": 296,
+      "phaseCommitted": 3,
+      "originalOffsetWithinLocal": 72,
+      "originalBytes": 224,
+      "ordinalOffsetWithinLocal": 16,
+      "nonceOffsetWithinLocal": 24,
+      "transcriptOffsetWithinLocal": 36
+    },
+    "rowDigest": 312,
+    "resultDigest": 344,
+    "protectedOutputDigest": 376,
+    "resultOriginal": {
+      "offset": 408,
+      "spanBytes": 16
+    },
+    "resultPayloadMax": 33554432
+  },
+  "callee": "ynx_native_core_resource_driver_ordinary_local_observation_query_v2",
+  "declarationSupplied": true,
+  "getterImplementationSupplied": false,
+  "SDKCopiesPrivateImplementation": false,
+  "MACVerified": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "supersedesOnlySchemaPacketPrivateProjectionNotSupplied": true,
+  "backendCallee": "ynx_held_backend_ordinary_local_observation_query_v2(ynx_held_backend_v1 *actual_backend,void *SAME_current_policy,uint32_t kind,ynx_native_core_ordinary_local_observation_v2 *out424)",
+  "backendDefinitionOwner": "Client only; Auth resource facade is a different callee, no same-name SDK stub",
+  "backendDefinitionSupplied": false,
+  "backendDefinitionPin": null,
+  "spanLifetime": "actual backend/recognized query borrow owns span; only while original held loan remains open and actual current passes each use; no caller buffer/cross-dispose",
+  "unknown": "fresh actually authorized READ may inspect SAME old row only; no effect replay/deadline renewal",
+  "canonicalRowFormat": "Client formal H/source/domain bytes required; SDK does NOT implement or guess row canonicalizer/MAC from summary"
+}

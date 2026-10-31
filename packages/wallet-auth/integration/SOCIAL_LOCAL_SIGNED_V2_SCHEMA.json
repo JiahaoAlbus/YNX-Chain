@@ -1,0 +1,109 @@
+{
+  "status": "sole SDK exact DATA grammar for Main/Auth implementation; actual Root0 inactive",
+  "checkpoint": {
+    "version": 2,
+    "purpose": "SOCIAL_FIRST_DEVICE_INDEPENDENT_CHECKPOINT_V2",
+    "platformProfile": 1,
+    "exactFieldOrder": [
+      "version",
+      "purpose",
+      "platformProfile",
+      "engineCommitDigest",
+      "administrationDomain",
+      "enrollmentDigest",
+      "policyOriginalDigest",
+      "issuerCurrentDigest",
+      "anchorCurrentDigest",
+      "namespaceDigest",
+      "operation",
+      "intentDigest",
+      "storageGeneration",
+      "keyEpoch",
+      "registrationRevision",
+      "localOrdinal",
+      "localTranscript",
+      "localRowDigest",
+      "localResultDigest",
+      "protectedOutputDigest",
+      "sequence",
+      "previousDigest",
+      "issuedMS",
+      "expiresMS"
+    ],
+    "u64DecimalStrings": [
+      "storageGeneration",
+      "keyEpoch",
+      "registrationRevision",
+      "localOrdinal"
+    ],
+    "digestSyntax": "32 actual bytes as 64 lowerhex chars",
+    "sequence": "1",
+    "previousDigest": null
+  },
+  "terminal": {
+    "version": 2,
+    "purpose": "SOCIAL_FIRST_DEVICE_INDEPENDENT_TERMINAL_V2",
+    "platformProfile": 1,
+    "state": "local-committed",
+    "exactFieldOrder": [
+      "version",
+      "purpose",
+      "platformProfile",
+      "engineCommitDigest",
+      "checkpointDigest",
+      "issuerEnrollmentDigest",
+      "anchorEnrollmentDigest",
+      "issuerCurrentDigest",
+      "anchorCurrentDigest",
+      "operation",
+      "nonce",
+      "onceDigest",
+      "protectedOutputDigest",
+      "sequence",
+      "previousDigest",
+      "state",
+      "issuedMS",
+      "expiresMS"
+    ],
+    "onceDigest": "MUST equal CP2.localRowDigest; NOT localResultDigest",
+    "checkpointDigest": "SHA256 entire signed CP2 original"
+  },
+  "rootOptIn": {
+    "version": 1,
+    "purpose": "SOCIAL_FIRST_DEVICE_ORDINARY_LOCAL_SIGNED_V2",
+    "exactFieldOrder": [
+      "version",
+      "purpose",
+      "bootstrap",
+      "scope",
+      "platform_profile",
+      "checkpoint_body_version",
+      "terminal_body_version",
+      "release_opt_in_digest",
+      "not_before_ms",
+      "expires_ms"
+    ],
+    "digest": "release_opt_in_digest raw32 Go [32] array; entire RootReleaseOptInV4 envelope SHA, same as Approval4.release_opt_in; not per-refresh Approval4 hash",
+    "scope": "existing sourceScope7",
+    "platform_profile": 1,
+    "checkpoint_body_version": 2,
+    "terminal_body_version": 2,
+    "signature": "existing actual Root container/frame/roles; no new algorithm or callback; independent AND with Root4/dualDeleg4/Policy3/actualscope/current"
+  },
+  "policyOriginalDigest": "CP2 only: entire per-instance RuntimeApprovalV4 original SHA; Approval4 not upgraded or rewritten",
+  "frames": {
+    "checkpoint": "YNX/SOCIAL/FIRST-DEVICE-INDEPENDENT-CHECKPOINT/V1\u0000",
+    "terminal": "YNX/SOCIAL/FIRST-DEVICE-INDEPENDENT-TERMINAL/V1\u0000"
+  },
+  "roles": [
+    "first-device-independent-checkpoint-anchor",
+    "first-device-independent-terminal-issuer",
+    "first-device-independent-terminal-anchor"
+  ],
+  "oldStrongV1": "unchanged and rejects new body2; no synthetic TPM counter/floor or dual-commit",
+  "privateProjectionV2": {
+    "actualCABI": "NOT_SUPPLIED; no guessed offsets/size"
+  },
+  "RootAdmission": false,
+  "SourceAdmission": false
+}
