@@ -1,0 +1,1954 @@
+{
+  "classification": "terminal failed original once; measured diagnostic data, not load qualification",
+  "runId": 41178187822,
+  "runAttempt": 1,
+  "sourceCommit": "f8b819c00d3baa809d6c475f6dad4f5bcda22353",
+  "remoteStatus": "completed",
+  "remoteConclusion": "failure",
+  "firstCause": "privateBytes cap exceeded/invalid",
+  "elapsedMs": 100739,
+  "cleanupComplete": true,
+  "resourceMax": {
+    "rssBytes": 804724736,
+    "threads": 63,
+    "privateBytes": 538946192,
+    "buildBytes": 167436027
+  },
+  "ZIPGETCount": 1,
+  "readerExitCode": 0,
+  "fullPairQualified": false,
+  "sustainedTPSQualified": false,
+  "independentProofReverifiedHere": false,
+  "businessProgress": {
+    "available": true,
+    "clock": "original parent-process monotonic offsets",
+    "arms": [
+      {
+        "arm": "before",
+        "offerBeginOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "offerReturnOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "offerStartNotObservedOrdinals": [],
+        "offerReturnNotObservedOrdinals": [],
+        "completedPreparationOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "readbackBeginOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "readbackCompleteOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "verifiedCallbackObservations": 16,
+        "verifiedCallbackOfferOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "callbackOfferOrdinalUnbound": 0,
+        "begunOffersAwaitingVerifiedCallback": [],
+        "returnedOffersAwaitingVerifiedCallback": [],
+        "completedPreparationsAwaitingVerifiedCallback": [],
+        "readbackCompletionNotObservedOrdinals": []
+      },
+      {
+        "arm": "after",
+        "offerBeginOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "offerReturnOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "offerStartNotObservedOrdinals": [
+          12,
+          13,
+          14,
+          15
+        ],
+        "offerReturnNotObservedOrdinals": [
+          8,
+          9,
+          10,
+          11
+        ],
+        "completedPreparationOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "readbackBeginOrdinals": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "readbackCompleteOrdinals": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "verifiedCallbackObservations": 4,
+        "verifiedCallbackOfferOrdinals": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "callbackOfferOrdinalUnbound": 0,
+        "begunOffersAwaitingVerifiedCallback": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "returnedOffersAwaitingVerifiedCallback": [
+          4,
+          5,
+          6,
+          7
+        ],
+        "completedPreparationsAwaitingVerifiedCallback": [
+          4,
+          5
+        ],
+        "readbackCompletionNotObservedOrdinals": [
+          4,
+          5
+        ]
+      }
+    ],
+    "acceptedThroughput": null,
+    "errorRate": null,
+    "sustainedTPSQualified": false,
+    "interpretation": "Observed original progress states, not a guard-deadline snapshot or a throughput/error-rate measurement. Offer begin is not server acceptance; offer return is not independent proof. No-return outcomes remain unobserved and must be reconciled, never rejected or replayed. Completed preparation creates no business credit. Missing callback-to-offer binding makes derived pending callback sets null. Missing start events are not proof that a transaction never started. Callback offer ordinals derive from original offer intervals, never Comet block index."
+  },
+  "storage": {
+    "categories": [
+      {
+        "category": "consensus_wal",
+        "count": 24,
+        "logicalBytes": 267998200
+      },
+      {
+        "category": "blockstore_db",
+        "count": 95,
+        "logicalBytes": 113317564
+      },
+      {
+        "category": "state_db",
+        "count": 56,
+        "logicalBytes": 7304749
+      },
+      {
+        "category": "tx_index_db",
+        "count": 56,
+        "logicalBytes": 32364157
+      },
+      {
+        "category": "evidence_db",
+        "count": 48,
+        "logicalBytes": 8317
+      },
+      {
+        "category": "application_snapshot",
+        "count": 8,
+        "logicalBytes": 32700912
+      },
+      {
+        "category": "application_journal",
+        "count": 0,
+        "logicalBytes": 0
+      },
+      {
+        "category": "sign_state",
+        "count": 24,
+        "logicalBytes": 545521
+      },
+      {
+        "category": "case_metadata",
+        "count": 3,
+        "logicalBytes": 235289
+      },
+      {
+        "category": "other",
+        "count": 424,
+        "logicalBytes": 84479818
+      }
+    ],
+    "consistency": "two-identical-metadata-scans",
+    "contentsRead": false,
+    "count": 738,
+    "historicalPeakMeasured": false,
+    "largest": [
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 17131314,
+        "nodeIndex": 0,
+        "pathSHA256": "f8add2bde4e07af006487b4d244da1c3be3a4db58113e9e970668f318aad3cff"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 16741496,
+        "nodeIndex": 3,
+        "pathSHA256": "2839d01dac9b936a8174e21b46569b6f89ed201a1da89e75c2761c53727a7e41"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 15494712,
+        "nodeIndex": 2,
+        "pathSHA256": "7f7d63ffb6fdcc53273b50c522575c527a673e0be4b748e768515491b2359677"
+      },
+      {
+        "arm": "after",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 15462866,
+        "nodeIndex": 3,
+        "pathSHA256": "c72d72c8e0b865bacd51f9504833f47a1280f1226debab4acb3b68af73dc870e"
+      },
+      {
+        "arm": "after",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 15208937,
+        "nodeIndex": 0,
+        "pathSHA256": "dab6dce7977bf65683d292a8936f9c168b8f0b3aa04686c719ddb14d901446fc"
+      },
+      {
+        "arm": "after",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 15164014,
+        "nodeIndex": 2,
+        "pathSHA256": "1cf505fcb2a7cdf4aa06143b327321f2e957b868bbbfb3b0fa322f7c12483f2b"
+      },
+      {
+        "arm": "after",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 14774073,
+        "nodeIndex": 3,
+        "pathSHA256": "4b3d6433b87ac19a0dedce609c64d6236773f8ca1ce100487755c33bac2cd229"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 14478270,
+        "nodeIndex": 1,
+        "pathSHA256": "b74e1ff5bb7cf38e49b5247b0790be0540bb57bb1d403e8d323b597c07cd8a94"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 14458024,
+        "nodeIndex": 2,
+        "pathSHA256": "3edc77019b36f6046454eb272700e1bce2f0f24e91287f0d211fc88fd4a0c15a"
+      },
+      {
+        "arm": "after",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 14177189,
+        "nodeIndex": 0,
+        "pathSHA256": "c63a537634a2b3c93d662b91bb9fc09575ffb4b0657eef4cf8250cc2a08dd23b"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 13931716,
+        "nodeIndex": 3,
+        "pathSHA256": "3ee984be934a59930e0fd525c24f2a886149807ad83a4c278b9f20980d8aa27c"
+      },
+      {
+        "arm": "after",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 13787639,
+        "nodeIndex": 1,
+        "pathSHA256": "393428414df4099ecaafba5cf23f8d356da5af5c91cafd4e697e3b0461531664"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 13752303,
+        "nodeIndex": 1,
+        "pathSHA256": "af367c0338c962029c7e19436eec9953a25a297a71d3335963031d31c425db76"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 13684653,
+        "nodeIndex": 0,
+        "pathSHA256": "3b5001979491bd1fee312229bb4b93a62abbf15576ab29805d8523cbdf246ee2"
+      },
+      {
+        "arm": "after",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 13595759,
+        "nodeIndex": 2,
+        "pathSHA256": "a50bde343a969b52c6f83097f30066a982c6ac60a35a42c4244eb8119377d752"
+      },
+      {
+        "arm": "after",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 10526402,
+        "nodeIndex": 1,
+        "pathSHA256": "d4cee0d52a3a126bc2cbeb74b79d462ce13bae734014bf6ec0ebc370abe0a39b"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 7654233,
+        "nodeIndex": 0,
+        "pathSHA256": "7d442b6d7acefca86426a354b38eeef16cfb7f7bbfd4c4c16be56ed303f0b534"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 7395881,
+        "nodeIndex": 3,
+        "pathSHA256": "c3ea3a76a1df8c597f1f75a4d443a0d2ef694def0a0897f71754d22881f49bfc"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 7128281,
+        "nodeIndex": 2,
+        "pathSHA256": "1e4bfae6d340f5d7bd1a35ee8ab53b7f922c43b798161e1b4a87805076b5de71"
+      },
+      {
+        "arm": "before",
+        "category": "consensus_wal",
+        "kind": "consensus_wal",
+        "logicalBytes": 6873513,
+        "nodeIndex": 1,
+        "pathSHA256": "73cbd78f0e15c9cf93026d061548e5636aa4bfc01fa23fb365af35de5d793a65"
+      }
+    ],
+    "logicalBytes": 538954527,
+    "metric": "sum-regular-file-st_size",
+    "observation": "post-window-retained-files",
+    "otherKinds": [
+      {
+        "count": 14,
+        "kind": "host-input-state",
+        "logicalBytes": 49710272
+      },
+      {
+        "count": 2,
+        "kind": "host-input-migration",
+        "logicalBytes": 133244
+      },
+      {
+        "count": 2,
+        "kind": "host-input-genesis",
+        "logicalBytes": 282864
+      },
+      {
+        "count": 2,
+        "kind": "host-input-schedule",
+        "logicalBytes": 1002
+      },
+      {
+        "count": 2,
+        "kind": "host-input-trusted",
+        "logicalBytes": 479495
+      },
+      {
+        "count": 22,
+        "kind": "host-context",
+        "logicalBytes": 5153712
+      },
+      {
+        "count": 66,
+        "kind": "client-wire",
+        "logicalBytes": 3907168
+      },
+      {
+        "count": 28,
+        "kind": "client-submission",
+        "logicalBytes": 45837
+      },
+      {
+        "count": 22,
+        "kind": "client-readback",
+        "logicalBytes": 56859
+      },
+      {
+        "count": 100,
+        "kind": "client-stdout-stderr",
+        "logicalBytes": 0
+      },
+      {
+        "count": 164,
+        "kind": "other",
+        "logicalBytes": 24709365
+      }
+    ],
+    "runAttempt": "1",
+    "runId": "41178187822",
+    "schema": "ynx-pq-network-file-sizes/v1",
+    "sourceKind": "owned-ephemeral-case-metadata",
+    "status": "complete"
+  },
+  "arms": {
+    "before": {
+      "commitRecords": 92,
+      "verifiedTransactions": 16,
+      "validationFailures": 0,
+      "phases": [
+        {
+          "name": "pq_state",
+          "index": 4,
+          "timing": {
+            "count": 92,
+            "p50Ns": 20330636,
+            "p95Ns": 119893858,
+            "p99Ns": 137025301
+          },
+          "sumNs": 3010936934,
+          "summedTimerSharePercent": 60.895384504307295
+        },
+        {
+          "name": "app_hash",
+          "index": 33,
+          "timing": {
+            "count": 92,
+            "p50Ns": 5011295,
+            "p95Ns": 43080474,
+            "p99Ns": 73667309
+          },
+          "sumNs": 1224036241,
+          "summedTimerSharePercent": 24.75580165801704
+        },
+        {
+          "name": "validator_registry",
+          "index": 1,
+          "timing": {
+            "count": 92,
+            "p50Ns": 3996676,
+            "p95Ns": 16778157,
+            "p99Ns": 44513784
+          },
+          "sumNs": 503076429,
+          "summedTimerSharePercent": 10.174584606231027
+        },
+        {
+          "name": "engine_snapshot",
+          "index": 3,
+          "timing": {
+            "count": 92,
+            "p50Ns": 677652,
+            "p95Ns": 2838909,
+            "p99Ns": 18827754
+          },
+          "sumNs": 121011006,
+          "summedTimerSharePercent": 2.447414841676334
+        },
+        {
+          "name": "engine_schedule",
+          "index": 2,
+          "timing": {
+            "count": 92,
+            "p50Ns": 263731,
+            "p95Ns": 978313,
+            "p99Ns": 40978699
+          },
+          "sumNs": 75498648,
+          "summedTimerSharePercent": 1.5269397201912136
+        },
+        {
+          "name": "ledger_records",
+          "index": 12,
+          "timing": {
+            "count": 92,
+            "p50Ns": 18795,
+            "p95Ns": 53109,
+            "p99Ns": 66794
+          },
+          "sumNs": 2340620,
+          "summedTimerSharePercent": 0.047338405952302064
+        },
+        {
+          "name": "resource",
+          "index": 14,
+          "timing": {
+            "count": 92,
+            "p50Ns": 16912,
+            "p95Ns": 24165,
+            "p99Ns": 42659
+          },
+          "sumNs": 1641385,
+          "summedTimerSharePercent": 0.033196567342849044
+        },
+        {
+          "name": "fee_events",
+          "index": 24,
+          "timing": {
+            "count": 92,
+            "p50Ns": 8156,
+            "p95Ns": 35085,
+            "p99Ns": 51957
+          },
+          "sumNs": 1262351,
+          "summedTimerSharePercent": 0.025530707287938437
+        },
+        {
+          "name": "pq_dex",
+          "index": 19,
+          "timing": {
+            "count": 92,
+            "p50Ns": 6332,
+            "p95Ns": 14006,
+            "p99Ns": 60272
+          },
+          "sumNs": 717199,
+          "summedTimerSharePercent": 0.01450515564704441
+        },
+        {
+          "name": "migration_trace_lots",
+          "index": 5,
+          "timing": {
+            "count": 92,
+            "p50Ns": 6832,
+            "p95Ns": 9999,
+            "p99Ns": 23243
+          },
+          "sumNs": 653774,
+          "summedTimerSharePercent": 0.013222402189616567
+        },
+        {
+          "name": "pq_resources",
+          "index": 18,
+          "timing": {
+            "count": 92,
+            "p50Ns": 2795,
+            "p95Ns": 5069,
+            "p99Ns": 5491
+          },
+          "sumNs": 277696,
+          "summedTimerSharePercent": 0.005616326434590183
+        },
+        {
+          "name": "resource_sponsor",
+          "index": 15,
+          "timing": {
+            "count": 92,
+            "p50Ns": 2515,
+            "p95Ns": 5581,
+            "p99Ns": 22252
+          },
+          "sumNs": 274093,
+          "summedTimerSharePercent": 0.005543456734832792
+        },
+        {
+          "name": "pq_ethereum",
+          "index": 22,
+          "timing": {
+            "count": 92,
+            "p50Ns": 2325,
+            "p95Ns": 4859,
+            "p99Ns": 24777
+          },
+          "sumNs": 263280,
+          "summedTimerSharePercent": 0.00532476673664332
+        },
+        {
+          "name": "staking",
+          "index": 31,
+          "timing": {
+            "count": 92,
+            "p50Ns": 2374,
+            "p95Ns": 4388,
+            "p99Ns": 24576
+          },
+          "sumNs": 261568,
+          "summedTimerSharePercent": 0.005290142000039197
+        },
+        {
+          "name": "pq_ordered_resources",
+          "index": 23,
+          "timing": {
+            "count": 92,
+            "p50Ns": 2144,
+            "p95Ns": 4859,
+            "p99Ns": 31969
+          },
+          "sumNs": 247780,
+          "summedTimerSharePercent": 0.005011283432108333
+        },
+        {
+          "name": "account_abstraction_policy",
+          "index": 29,
+          "timing": {
+            "count": 92,
+            "p50Ns": 2235,
+            "p95Ns": 5130,
+            "p99Ns": 5951
+          },
+          "sumNs": 238094,
+          "summedTimerSharePercent": 0.004815386703867953
+        },
+        {
+          "name": "legacy_pay",
+          "index": 9,
+          "timing": {
+            "count": 92,
+            "p50Ns": 2064,
+            "p95Ns": 4107,
+            "p99Ns": 5811
+          },
+          "sumNs": 218206,
+          "summedTimerSharePercent": 0.004413157287055577
+        },
+        {
+          "name": "legacy_sponsor",
+          "index": 6,
+          "timing": {
+            "count": 92,
+            "p50Ns": 1603,
+            "p95Ns": 2855,
+            "p99Ns": 17823
+          },
+          "sumNs": 172779,
+          "summedTimerSharePercent": 0.003494408508016166
+        },
+        {
+          "name": "pq_native_actions",
+          "index": 21,
+          "timing": {
+            "count": 92,
+            "p50Ns": 1443,
+            "p95Ns": 2985,
+            "p99Ns": 3046
+          },
+          "sumNs": 151652,
+          "summedTimerSharePercent": 0.0030671206515703155
+        },
+        {
+          "name": "pay",
+          "index": 13,
+          "timing": {
+            "count": 92,
+            "p50Ns": 1532,
+            "p95Ns": 1914,
+            "p99Ns": 3376
+          },
+          "sumNs": 134378,
+          "summedTimerSharePercent": 0.0027177586772130662
+        },
+        {
+          "name": "pq_contracts",
+          "index": 20,
+          "timing": {
+            "count": 92,
+            "p50Ns": 1322,
+            "p95Ns": 2154,
+            "p99Ns": 3647
+          },
+          "sumNs": 128820,
+          "summedTimerSharePercent": 0.002605349631625617
+        },
+        {
+          "name": "trust",
+          "index": 16,
+          "timing": {
+            "count": 92,
+            "p50Ns": 1142,
+            "p95Ns": 1543,
+            "p99Ns": 2384
+          },
+          "sumNs": 99234,
+          "summedTimerSharePercent": 0.002006980789820963
+        },
+        {
+          "name": "legacy_ai",
+          "index": 10,
+          "timing": {
+            "count": 92,
+            "p50Ns": 993,
+            "p95Ns": 1433,
+            "p99Ns": 2115
+          },
+          "sumNs": 95543,
+          "summedTimerSharePercent": 0.0019323313138829867
+        },
+        {
+          "name": "legacy_contracts",
+          "index": 8,
+          "timing": {
+            "count": 92,
+            "p50Ns": 1022,
+            "p95Ns": 1493,
+            "p99Ns": 3246
+          },
+          "sumNs": 91656,
+          "summedTimerSharePercent": 0.0018537177909973418
+        },
+        {
+          "name": "legacy_resource_market",
+          "index": 7,
+          "timing": {
+            "count": 92,
+            "p50Ns": 932,
+            "p95Ns": 1323,
+            "p99Ns": 5891
+          },
+          "sumNs": 90851,
+          "summedTimerSharePercent": 0.0018374368838908473
+        },
+        {
+          "name": "ide",
+          "index": 17,
+          "timing": {
+            "count": 92,
+            "p50Ns": 912,
+            "p95Ns": 1262,
+            "p99Ns": 2204
+          },
+          "sumNs": 84590,
+          "summedTimerSharePercent": 0.0017108098535880373
+        },
+        {
+          "name": "anchor",
+          "index": 0,
+          "timing": {
+            "count": 92,
+            "p50Ns": 772,
+            "p95Ns": 1082,
+            "p99Ns": 12704
+          },
+          "sumNs": 81848,
+          "summedTimerSharePercent": 0.0016553536457793317
+        },
+        {
+          "name": "dex",
+          "index": 26,
+          "timing": {
+            "count": 92,
+            "p50Ns": 912,
+            "p95Ns": 1232,
+            "p99Ns": 1583
+          },
+          "sumNs": 79839,
+          "summedTimerSharePercent": 0.0016147221645657322
+        },
+        {
+          "name": "account_abstraction",
+          "index": 28,
+          "timing": {
+            "count": 92,
+            "p50Ns": 782,
+            "p95Ns": 1083,
+            "p99Ns": 1282
+          },
+          "sumNs": 68132,
+          "summedTimerSharePercent": 0.0013779512583598553
+        },
+        {
+          "name": "asset_auth",
+          "index": 27,
+          "timing": {
+            "count": 92,
+            "p50Ns": 551,
+            "p95Ns": 902,
+            "p99Ns": 1242
+          },
+          "sumNs": 53026,
+          "summedTimerSharePercent": 0.001072436497178854
+        },
+        {
+          "name": "legacy_trust",
+          "index": 11,
+          "timing": {
+            "count": 92,
+            "p50Ns": 500,
+            "p95Ns": 951,
+            "p99Ns": 1242
+          },
+          "sumNs": 51345,
+          "summedTimerSharePercent": 0.0010384387271838015
+        },
+        {
+          "name": "governance",
+          "index": 25,
+          "timing": {
+            "count": 92,
+            "p50Ns": 511,
+            "p95Ns": 811,
+            "p99Ns": 3577
+          },
+          "sumNs": 50386,
+          "summedTimerSharePercent": 0.001019043211761282
+        },
+        {
+          "name": "ownership_and_vault_supply",
+          "index": 30,
+          "timing": {
+            "count": 92,
+            "p50Ns": 251,
+            "p95Ns": 641,
+            "p99Ns": 742
+          },
+          "sumNs": 29138,
+          "summedTimerSharePercent": 0.0005893081630671265
+        },
+        {
+          "name": "supply",
+          "index": 32,
+          "timing": {
+            "count": 92,
+            "p50Ns": 220,
+            "p95Ns": 410,
+            "p99Ns": 711
+          },
+          "sumNs": 23424,
+          "summedTimerSharePercent": 0.0004737440597050028
+        }
+      ],
+      "commitOuter": {
+        "count": 92,
+        "p50Ns": 88370777,
+        "p95Ns": 291339420,
+        "p99Ns": 359590663
+      },
+      "persistStages": {
+        "close_file": {
+          "count": 92,
+          "p50Ns": 9368,
+          "p95Ns": 21039,
+          "p99Ns": 28884
+        },
+        "directory_sync": {
+          "count": 92,
+          "p50Ns": 185656,
+          "p95Ns": 9892852,
+          "p99Ns": 16280050
+        },
+        "file_sync": {
+          "count": 92,
+          "p50Ns": 1414976,
+          "p95Ns": 20093167,
+          "p99Ns": 28930759
+        },
+        "json_encode": {
+          "count": 92,
+          "p50Ns": 37200111,
+          "p95Ns": 146466324,
+          "p99Ns": 181941302
+        },
+        "prepare_file": {
+          "count": 92,
+          "p50Ns": 86010,
+          "p95Ns": 164676,
+          "p99Ns": 435611
+        },
+        "rename": {
+          "count": 92,
+          "p50Ns": 286784,
+          "p95Ns": 646474,
+          "p99Ns": 12985294
+        },
+        "validate": {
+          "count": 92,
+          "p50Ns": 37796821,
+          "p95Ns": 144899127,
+          "p99Ns": 179016297
+        },
+        "write": {
+          "count": 92,
+          "p50Ns": 675538,
+          "p95Ns": 2408947,
+          "p99Ns": 21444189
+        }
+      },
+      "hashDocument": {
+        "count": 92,
+        "p50Ns": 491,
+        "p95Ns": 1012,
+        "p99Ns": 1312
+      },
+      "hashEncodeDigest": {
+        "count": 92,
+        "p50Ns": 4936595,
+        "p95Ns": 42995586,
+        "p99Ns": 73620071
+      },
+      "transactionsObserved": {
+        "firstNodeFinalizeObservedNs": {
+          "count": 16,
+          "p50Ns": 2658630407,
+          "p95Ns": 3419605125,
+          "p99Ns": 3419605125
+        },
+        "firstNodeDurableObservedNs": {
+          "count": 16,
+          "p50Ns": 2855158618,
+          "p95Ns": 3711694442,
+          "p99Ns": 3711694442
+        },
+        "allNodeDurableObservedNs": {
+          "count": 16,
+          "p50Ns": 3183797774,
+          "p95Ns": 3846195434,
+          "p99Ns": 3846195434
+        },
+        "offerToIndependentNs": {
+          "count": 16,
+          "p50Ns": 6932641549,
+          "p95Ns": 8370988287,
+          "p99Ns": 8370988287
+        }
+      },
+      "firstRPCChildDuration": {
+        "count": 16,
+        "p50Ns": 3003067753,
+        "p95Ns": 3967347323,
+        "p99Ns": 3967347323
+      },
+      "perNode": {
+        "0": {
+          "commitOuter": {
+            "count": 23,
+            "p50Ns": 96087491,
+            "p95Ns": 273146488,
+            "p99Ns": 328387775
+          },
+          "validate": {
+            "count": 23,
+            "p50Ns": 41710883,
+            "p95Ns": 139303857,
+            "p99Ns": 179016297
+          }
+        },
+        "1": {
+          "commitOuter": {
+            "count": 23,
+            "p50Ns": 86811646,
+            "p95Ns": 248819419,
+            "p99Ns": 274366825
+          },
+          "validate": {
+            "count": 23,
+            "p50Ns": 35871308,
+            "p95Ns": 144899127,
+            "p99Ns": 162854678
+          }
+        },
+        "2": {
+          "commitOuter": {
+            "count": 23,
+            "p50Ns": 88370777,
+            "p95Ns": 291339420,
+            "p99Ns": 359590663
+          },
+          "validate": {
+            "count": 23,
+            "p50Ns": 36833887,
+            "p95Ns": 143606575,
+            "p99Ns": 172702924
+          }
+        },
+        "3": {
+          "commitOuter": {
+            "count": 23,
+            "p50Ns": 89647194,
+            "p95Ns": 296266561,
+            "p99Ns": 326289753
+          },
+          "validate": {
+            "count": 23,
+            "p50Ns": 38894479,
+            "p95Ns": 132893910,
+            "p99Ns": 165108240
+          }
+        }
+      }
+    },
+    "after": {
+      "commitRecords": 76,
+      "verifiedTransactions": 4,
+      "validationFailures": 0,
+      "phases": [
+        {
+          "name": "pq_state",
+          "index": 4,
+          "timing": {
+            "count": 76,
+            "p50Ns": 16299772,
+            "p95Ns": 65456239,
+            "p99Ns": 122532397
+          },
+          "sumNs": 1829557374,
+          "summedTimerSharePercent": 56.311638205509354
+        },
+        {
+          "name": "app_hash",
+          "index": 33,
+          "timing": {
+            "count": 76,
+            "p50Ns": 4242602,
+            "p95Ns": 35137064,
+            "p99Ns": 53416584
+          },
+          "sumNs": 733518749,
+          "summedTimerSharePercent": 22.57685000626049
+        },
+        {
+          "name": "validator_registry",
+          "index": 1,
+          "timing": {
+            "count": 76,
+            "p50Ns": 3229746,
+            "p95Ns": 24486942,
+            "p99Ns": 59267569
+          },
+          "sumNs": 480880764,
+          "summedTimerSharePercent": 14.800948025561581
+        },
+        {
+          "name": "engine_snapshot",
+          "index": 3,
+          "timing": {
+            "count": 76,
+            "p50Ns": 662965,
+            "p95Ns": 2355570,
+            "p99Ns": 31600281
+          },
+          "sumNs": 132552683,
+          "summedTimerSharePercent": 4.079816700115998
+        },
+        {
+          "name": "migration_trace_lots",
+          "index": 5,
+          "timing": {
+            "count": 76,
+            "p50Ns": 6913,
+            "p95Ns": 10350,
+            "p99Ns": 40804660
+          },
+          "sumNs": 41331933,
+          "summedTimerSharePercent": 1.2721486029933888
+        },
+        {
+          "name": "engine_schedule",
+          "index": 2,
+          "timing": {
+            "count": 76,
+            "p50Ns": 222785,
+            "p95Ns": 593065,
+            "p99Ns": 1177674
+          },
+          "sumNs": 21454351,
+          "summedTimerSharePercent": 0.6603398552102515
+        },
+        {
+          "name": "supply",
+          "index": 32,
+          "timing": {
+            "count": 76,
+            "p50Ns": 221,
+            "p95Ns": 441,
+            "p99Ns": 1957073
+          },
+          "sumNs": 1975661,
+          "summedTimerSharePercent": 0.06080853709741863
+        },
+        {
+          "name": "ledger_records",
+          "index": 12,
+          "timing": {
+            "count": 76,
+            "p50Ns": 15829,
+            "p95Ns": 41417,
+            "p99Ns": 80631
+          },
+          "sumNs": 1475323,
+          "summedTimerSharePercent": 0.04540871808279606
+        },
+        {
+          "name": "resource",
+          "index": 14,
+          "timing": {
+            "count": 76,
+            "p50Ns": 16431,
+            "p95Ns": 30938,
+            "p99Ns": 83315
+          },
+          "sumNs": 1413012,
+          "summedTimerSharePercent": 0.04349085831076166
+        },
+        {
+          "name": "pq_ordered_resources",
+          "index": 23,
+          "timing": {
+            "count": 76,
+            "p50Ns": 2094,
+            "p95Ns": 4398,
+            "p99Ns": 1050729
+          },
+          "sumNs": 1202522,
+          "summedTimerSharePercent": 0.03701222206009131
+        },
+        {
+          "name": "fee_events",
+          "index": 24,
+          "timing": {
+            "count": 76,
+            "p50Ns": 7473,
+            "p95Ns": 25397,
+            "p99Ns": 34825
+          },
+          "sumNs": 792658,
+          "summedTimerSharePercent": 0.0243970870501395
+        },
+        {
+          "name": "pq_dex",
+          "index": 19,
+          "timing": {
+            "count": 76,
+            "p50Ns": 6302,
+            "p95Ns": 14637,
+            "p99Ns": 18265
+          },
+          "sumNs": 552716,
+          "summedTimerSharePercent": 0.017011952652978845
+        },
+        {
+          "name": "account_abstraction_policy",
+          "index": 29,
+          "timing": {
+            "count": 76,
+            "p50Ns": 2134,
+            "p95Ns": 5911,
+            "p99Ns": 22843
+          },
+          "sumNs": 209018,
+          "summedTimerSharePercent": 0.0064333298106447655
+        },
+        {
+          "name": "pq_resources",
+          "index": 18,
+          "timing": {
+            "count": 76,
+            "p50Ns": 2555,
+            "p95Ns": 4618,
+            "p99Ns": 5240
+          },
+          "sumNs": 203791,
+          "summedTimerSharePercent": 0.006272448858189761
+        },
+        {
+          "name": "resource_sponsor",
+          "index": 15,
+          "timing": {
+            "count": 76,
+            "p50Ns": 2174,
+            "p95Ns": 4459,
+            "p99Ns": 6652
+          },
+          "sumNs": 193439,
+          "summedTimerSharePercent": 0.005953826394096742
+        },
+        {
+          "name": "staking",
+          "index": 31,
+          "timing": {
+            "count": 76,
+            "p50Ns": 2354,
+            "p95Ns": 4047,
+            "p99Ns": 14236
+          },
+          "sumNs": 191138,
+          "summedTimerSharePercent": 0.005883004302725216
+        },
+        {
+          "name": "legacy_pay",
+          "index": 9,
+          "timing": {
+            "count": 76,
+            "p50Ns": 2134,
+            "p95Ns": 4789,
+            "p99Ns": 9157
+          },
+          "sumNs": 186682,
+          "summedTimerSharePercent": 0.0057458538293868764
+        },
+        {
+          "name": "pq_ethereum",
+          "index": 22,
+          "timing": {
+            "count": 76,
+            "p50Ns": 2265,
+            "p95Ns": 4248,
+            "p99Ns": 4669
+          },
+          "sumNs": 176490,
+          "summedTimerSharePercent": 0.005432155978340117
+        },
+        {
+          "name": "legacy_sponsor",
+          "index": 6,
+          "timing": {
+            "count": 76,
+            "p50Ns": 1422,
+            "p95Ns": 2705,
+            "p99Ns": 3847
+          },
+          "sumNs": 124862,
+          "summedTimerSharePercent": 0.003843106463638188
+        },
+        {
+          "name": "pq_native_actions",
+          "index": 21,
+          "timing": {
+            "count": 76,
+            "p50Ns": 1402,
+            "p95Ns": 2595,
+            "p99Ns": 3647
+          },
+          "sumNs": 109744,
+          "summedTimerSharePercent": 0.0033777920884297003
+        },
+        {
+          "name": "pay",
+          "index": 13,
+          "timing": {
+            "count": 76,
+            "p50Ns": 1513,
+            "p95Ns": 1954,
+            "p99Ns": 2124
+          },
+          "sumNs": 104147,
+          "summedTimerSharePercent": 0.0032055229683052196
+        },
+        {
+          "name": "pq_contracts",
+          "index": 20,
+          "timing": {
+            "count": 76,
+            "p50Ns": 1222,
+            "p95Ns": 2033,
+            "p99Ns": 2274
+          },
+          "sumNs": 94956,
+          "summedTimerSharePercent": 0.0029226347276291244
+        },
+        {
+          "name": "legacy_ai",
+          "index": 10,
+          "timing": {
+            "count": 76,
+            "p50Ns": 922,
+            "p95Ns": 1593,
+            "p99Ns": 9377
+          },
+          "sumNs": 89091,
+          "summedTimerSharePercent": 0.0027421168806521586
+        },
+        {
+          "name": "legacy_contracts",
+          "index": 8,
+          "timing": {
+            "count": 76,
+            "p50Ns": 942,
+            "p95Ns": 1523,
+            "p99Ns": 5100
+          },
+          "sumNs": 76550,
+          "summedTimerSharePercent": 0.0023561195543199956
+        },
+        {
+          "name": "trust",
+          "index": 16,
+          "timing": {
+            "count": 76,
+            "p50Ns": 1062,
+            "p95Ns": 1543,
+            "p99Ns": 1994
+          },
+          "sumNs": 75833,
+          "summedTimerSharePercent": 0.002334051132106443
+        },
+        {
+          "name": "legacy_resource_market",
+          "index": 7,
+          "timing": {
+            "count": 76,
+            "p50Ns": 821,
+            "p95Ns": 1222,
+            "p99Ns": 2084
+          },
+          "sumNs": 63817,
+          "summedTimerSharePercent": 0.0019642126923323207
+        },
+        {
+          "name": "ide",
+          "index": 17,
+          "timing": {
+            "count": 76,
+            "p50Ns": 851,
+            "p95Ns": 1232,
+            "p99Ns": 1443
+          },
+          "sumNs": 62711,
+          "summedTimerSharePercent": 0.0019301713046500487
+        },
+        {
+          "name": "dex",
+          "index": 26,
+          "timing": {
+            "count": 76,
+            "p50Ns": 872,
+            "p95Ns": 1202,
+            "p99Ns": 1262
+          },
+          "sumNs": 61952,
+          "summedTimerSharePercent": 0.001906810171511853
+        },
+        {
+          "name": "anchor",
+          "index": 0,
+          "timing": {
+            "count": 76,
+            "p50Ns": 721,
+            "p95Ns": 1342,
+            "p99Ns": 3126
+          },
+          "sumNs": 60363,
+          "summedTimerSharePercent": 0.001857902608196184
+        },
+        {
+          "name": "account_abstraction",
+          "index": 28,
+          "timing": {
+            "count": 76,
+            "p50Ns": 691,
+            "p95Ns": 972,
+            "p99Ns": 1382
+          },
+          "sumNs": 50976,
+          "summedTimerSharePercent": 0.0015689817165384207
+        },
+        {
+          "name": "legacy_trust",
+          "index": 11,
+          "timing": {
+            "count": 76,
+            "p50Ns": 521,
+            "p95Ns": 1032,
+            "p99Ns": 1342
+          },
+          "sumNs": 42987,
+          "summedTimerSharePercent": 0.0013230896313723532
+        },
+        {
+          "name": "asset_auth",
+          "index": 27,
+          "timing": {
+            "count": 76,
+            "p50Ns": 531,
+            "p95Ns": 942,
+            "p99Ns": 1032
+          },
+          "sumNs": 40519,
+          "summedTimerSharePercent": 0.0012471274751337936
+        },
+        {
+          "name": "governance",
+          "index": 25,
+          "timing": {
+            "count": 76,
+            "p50Ns": 491,
+            "p95Ns": 812,
+            "p99Ns": 871
+          },
+          "sumNs": 36562,
+          "summedTimerSharePercent": 0.001125335638733477
+        },
+        {
+          "name": "ownership_and_vault_supply",
+          "index": 30,
+          "timing": {
+            "count": 76,
+            "p50Ns": 250,
+            "p95Ns": 572,
+            "p99Ns": 781
+          },
+          "sumNs": 22861,
+          "summedTimerSharePercent": 0.0007036348678159297
+        }
+      ],
+      "commitOuter": {
+        "count": 76,
+        "p50Ns": 72573548,
+        "p95Ns": 213277512,
+        "p99Ns": 260592320
+      },
+      "persistStages": {
+        "close_file": {
+          "count": 76,
+          "p50Ns": 9047,
+          "p95Ns": 12463,
+          "p99Ns": 1698062
+        },
+        "directory_sync": {
+          "count": 76,
+          "p50Ns": 182740,
+          "p95Ns": 1960639,
+          "p99Ns": 26029115
+        },
+        "file_sync": {
+          "count": 76,
+          "p50Ns": 1205008,
+          "p95Ns": 6266611,
+          "p99Ns": 28801191
+        },
+        "json_encode": {
+          "count": 76,
+          "p50Ns": 27882149,
+          "p95Ns": 119874525,
+          "p99Ns": 148836311
+        },
+        "prepare_file": {
+          "count": 76,
+          "p50Ns": 81140,
+          "p95Ns": 137305,
+          "p99Ns": 186548
+        },
+        "rename": {
+          "count": 76,
+          "p50Ns": 247481,
+          "p95Ns": 506683,
+          "p99Ns": 14677129
+        },
+        "validate": {
+          "count": 76,
+          "p50Ns": 34843328,
+          "p95Ns": 118204532,
+          "p99Ns": 138326009
+        },
+        "write": {
+          "count": 76,
+          "p50Ns": 640123,
+          "p95Ns": 1152063,
+          "p99Ns": 9563435
+        }
+      },
+      "hashDocument": {
+        "count": 76,
+        "p50Ns": 481,
+        "p95Ns": 1142,
+        "p99Ns": 8206
+      },
+      "hashEncodeDigest": {
+        "count": 76,
+        "p50Ns": 4182200,
+        "p95Ns": 34939876,
+        "p99Ns": 53367602
+      },
+      "transactionsObserved": {
+        "firstNodeFinalizeObservedNs": {
+          "count": 4,
+          "p50Ns": 1505003386,
+          "p95Ns": 2564848276,
+          "p99Ns": 2564848276
+        },
+        "firstNodeDurableObservedNs": {
+          "count": 4,
+          "p50Ns": 1643195131,
+          "p95Ns": 2693665710,
+          "p99Ns": 2693665710
+        },
+        "allNodeDurableObservedNs": {
+          "count": 4,
+          "p50Ns": 1827014799,
+          "p95Ns": 2802151432,
+          "p99Ns": 2802151432
+        },
+        "offerToIndependentNs": {
+          "count": 4,
+          "p50Ns": 5010923060,
+          "p95Ns": 6963555704,
+          "p99Ns": 6963555704
+        }
+      },
+      "firstRPCChildDuration": {
+        "count": 4,
+        "p50Ns": 1932768677,
+        "p95Ns": 2879764473,
+        "p99Ns": 2879764473
+      },
+      "perNode": {
+        "0": {
+          "commitOuter": {
+            "count": 19,
+            "p50Ns": 61656633,
+            "p95Ns": 260592320,
+            "p99Ns": 260592320
+          },
+          "validate": {
+            "count": 19,
+            "p50Ns": 36162528,
+            "p95Ns": 107414188,
+            "p99Ns": 107414188
+          }
+        },
+        "1": {
+          "commitOuter": {
+            "count": 19,
+            "p50Ns": 86883803,
+            "p95Ns": 209114397,
+            "p99Ns": 209114397
+          },
+          "validate": {
+            "count": 19,
+            "p50Ns": 30545107,
+            "p95Ns": 118204532,
+            "p99Ns": 118204532
+          }
+        },
+        "2": {
+          "commitOuter": {
+            "count": 19,
+            "p50Ns": 80207908,
+            "p95Ns": 213277512,
+            "p99Ns": 213277512
+          },
+          "validate": {
+            "count": 19,
+            "p50Ns": 39306246,
+            "p95Ns": 131757010,
+            "p99Ns": 131757010
+          }
+        },
+        "3": {
+          "commitOuter": {
+            "count": 19,
+            "p50Ns": 70282514,
+            "p95Ns": 251131194,
+            "p99Ns": 251131194
+          },
+          "validate": {
+            "count": 19,
+            "p50Ns": 31530023,
+            "p95Ns": 138326009,
+            "p99Ns": 138326009
+          }
+        }
+      }
+    }
+  },
+  "hostPreparationArms": [
+    {
+      "arm": "before",
+      "completedPreparations": 16,
+      "completedWithoutStageTimings": 0,
+      "phases": {
+        "totalWallNs": {
+          "samples": 16,
+          "p50Ns": "457071676",
+          "p95Ns": "902782155",
+          "p99Ns": "902782155",
+          "notInvokedSamples": 0
+        },
+        "lightBlocksWallNs": {
+          "samples": 16,
+          "p50Ns": "49907099",
+          "p95Ns": "123411909",
+          "p99Ns": "123411909",
+          "notInvokedSamples": 0
+        },
+        "inputEncodingWallNs": {
+          "samples": 16,
+          "p50Ns": "2129156",
+          "p95Ns": "31164213",
+          "p99Ns": "31164213",
+          "notInvokedSamples": 0
+        },
+        "checkpointLoadWallNs": {
+          "samples": 16,
+          "p50Ns": "18973565",
+          "p95Ns": "632521272",
+          "p99Ns": "632521272",
+          "notInvokedSamples": 0
+        },
+        "checkpointCaptureWallNs": {
+          "samples": 16,
+          "p50Ns": "63390689",
+          "p95Ns": "103379058",
+          "p99Ns": "103379058",
+          "notInvokedSamples": 0
+        },
+        "checkpointDecodeWallNs": {
+          "samples": 16,
+          "p50Ns": "60266683",
+          "p95Ns": "164355528",
+          "p99Ns": "164355528",
+          "notInvokedSamples": 0
+        },
+        "checkpointValidateWallNs": {
+          "samples": 16,
+          "p50Ns": "62773180",
+          "p95Ns": "109138127",
+          "p99Ns": "109138127",
+          "notInvokedSamples": 0
+        },
+        "checkpointRetryWaitNs": {
+          "samples": 7,
+          "p50Ns": "5521756",
+          "p95Ns": "11642165",
+          "p99Ns": "11642165",
+          "notInvokedSamples": 9
+        },
+        "retainInputsWallNs": {
+          "samples": 16,
+          "p50Ns": "38102264",
+          "p95Ns": "67170036",
+          "p99Ns": "67170036",
+          "notInvokedSamples": 0
+        },
+        "contextWriteWallNs": {
+          "samples": 16,
+          "p50Ns": "3978600",
+          "p95Ns": "25824302",
+          "p99Ns": "25824302",
+          "notInvokedSamples": 0
+        }
+      }
+    },
+    {
+      "arm": "after",
+      "completedPreparations": 6,
+      "completedWithoutStageTimings": 0,
+      "phases": {
+        "totalWallNs": {
+          "samples": 6,
+          "p50Ns": "425490842",
+          "p95Ns": "750607017",
+          "p99Ns": "750607017",
+          "notInvokedSamples": 0
+        },
+        "lightBlocksWallNs": {
+          "samples": 6,
+          "p50Ns": "54315206",
+          "p95Ns": "94636544",
+          "p99Ns": "94636544",
+          "notInvokedSamples": 0
+        },
+        "inputEncodingWallNs": {
+          "samples": 6,
+          "p50Ns": "2379161",
+          "p95Ns": "37832021",
+          "p99Ns": "37832021",
+          "notInvokedSamples": 0
+        },
+        "checkpointLoadWallNs": {
+          "samples": 6,
+          "p50Ns": "106813990",
+          "p95Ns": "335063753",
+          "p99Ns": "335063753",
+          "notInvokedSamples": 0
+        },
+        "checkpointCaptureWallNs": {
+          "samples": 6,
+          "p50Ns": "44535628",
+          "p95Ns": "119111554",
+          "p99Ns": "119111554",
+          "notInvokedSamples": 0
+        },
+        "checkpointDecodeWallNs": {
+          "samples": 6,
+          "p50Ns": "44450224",
+          "p95Ns": "97894603",
+          "p99Ns": "97894603",
+          "notInvokedSamples": 0
+        },
+        "checkpointValidateWallNs": {
+          "samples": 6,
+          "p50Ns": "54389242",
+          "p95Ns": "116529201",
+          "p99Ns": "116529201",
+          "notInvokedSamples": 0
+        },
+        "checkpointRetryWaitNs": {
+          "samples": 3,
+          "p50Ns": "11853217",
+          "p95Ns": "29710262",
+          "p99Ns": "29710262",
+          "notInvokedSamples": 3
+        },
+        "retainInputsWallNs": {
+          "samples": 6,
+          "p50Ns": "29177851",
+          "p95Ns": "117325978",
+          "p99Ns": "117325978",
+          "notInvokedSamples": 0
+        },
+        "contextWriteWallNs": {
+          "samples": 6,
+          "p50Ns": "3256982",
+          "p95Ns": "9037590",
+          "p99Ns": "9037590",
+          "notInvokedSamples": 0
+        }
+      }
+    }
+  ],
+  "limitations": [
+    "diagnostic rows alone never qualify the complete32; consult original guard and successful full-pair reader",
+    "phase shares use sum of timers across nodes, not walltime or CPU",
+    "nearest rank quantiles; partial after not causal speedup",
+    "first-node Finalize completion is observed execution; original proposal receipt is parsed separately by the source-bound reader",
+    "durable node completion and independent proof readback are separate observations; no earliest BFT formation timestamp",
+    "firstRPCNs is child duration; never subtract from parent clock",
+    "mixed setup/empty/business Commit rows deduplicated by arm,node,height; no multiplication by transaction count",
+    "not sustained 1000 business TPS evidence",
+    "before and after are original case arms, not source optimization AB",
+    "post-window retained storage is not historical category peak",
+    "no-return after ordinals8-11 remain UNKNOWN; never replay",
+    "later a4 source is excluded from this f8 runtime"
+  ],
+  "nextActions": [
+    "Root coordinates a fresh pressure-level1 resource window after exact candidate qualification; no redispatch of consumed f8 grant",
+    "Protocol owner optimizes measured pq_state validation and JSON encoding while preserving all checks and durable semantics",
+    "Perf local a4 negative readiness hint closure remains separate and unmeasured; Protocol applies source and four-file closure before CI"
+  ],
+  "files": [
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/original/ynx-pq-fresh-intake-41178187822-1/relocation.json",
+      "bytes": 2457,
+      "sha256": "2fdeec74531a85403215a82346d6a0fdb0ada9a9a3be3548b6f8430032e7dba3"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/original/ynx-pq-network-41178187822-1/go.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/original/ynx-pq-network-41178187822-1/go.stdout.log",
+      "bytes": 233246,
+      "sha256": "530e6bcfce0ab1977739deeb68f0a0bb6082bf3fc54306c88b70050dae09f071"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/original/ynx-pq-network-41178187822-1/prepared.json",
+      "bytes": 2043,
+      "sha256": "fc397d11922f0f1b92ce65ef372821eabb8a2435c5163044c3a15c8658afc72a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/original/ynx-pq-network-41178187822-1.build/business-manifest.json",
+      "bytes": 1719,
+      "sha256": "75557c63d08d81ff52c63c6152ad05b7a17fd6e15b9cedfe87a4bc549b1d60c9"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/original/ynx-pq-network-41178187822-1.file-sizes.json",
+      "bytes": 5367,
+      "sha256": "5c35285d72944cc1654f42171818bbb12e22570df108ec29571b2546195dc458"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/original/ynx-pq-network-41178187822-1.receipt.json",
+      "bytes": 472963,
+      "sha256": "2fd606acc633187c76bec9030eb5c83c98ca5f38b712c58256ceb72ed799cccc"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/GRANT.json",
+      "bytes": 26473,
+      "sha256": "20473b8ff9cb8f238257a5e3a6063443d737545a6876804bab5888ef2b8f9fa9"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/TUPLE.json",
+      "bytes": 90502,
+      "sha256": "f3814283f4fd4e1de21946eb900dfefe51e2c1f717d0178e745ec9c6b670d95c"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/TERMINAL.json",
+      "bytes": 18098,
+      "sha256": "2cc8571ab4bf3c6c1ab56b6323f2537e660209b75ed123c879b1e603007726a4"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/artifacts.json",
+      "bytes": 840,
+      "sha256": "93bacd14e0c04f63144a21d98e32a7188b0a255b5485a02cbb20e48ee100472b"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/result.zip",
+      "bytes": 74137,
+      "sha256": "d22274dfd24a0ce118572477e0a04fc455083fad43b40cc4e7c092f86b979dfa"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/result.zip.status.json",
+      "bytes": 260,
+      "sha256": "e578eb50d6a1fb6c152daab9d2671592d55f533b4f4c9d13ae3b1e01af0cf9a7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/frozen-reader.mjs",
+      "bytes": 61128,
+      "sha256": "24ab589b23f425f0463dcaa1bb0999e33ed4f160d070fccc1dcabe83aa4d77e7"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/DIAGNOSTIC_EXPECTED.json",
+      "bytes": 1544,
+      "sha256": "3f9eae002e6198cbafd167951bbba51219683b3ce89779f06de3928321e487ee"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/CONSUMER_DIAGNOSTIC.json",
+      "bytes": 85703,
+      "sha256": "453953e58284630da79342f42ceb482b1ab146fcc3b8b710c3f5521338ea101a"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/ORIGINAL_DIAGNOSTIC_REPORT.json",
+      "bytes": 351392,
+      "sha256": "b72d0e2bfce2d48526d85d47a5bf89577e66daa3c1493bf73f3cd94eee4e6fda"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/analyze-original.py",
+      "bytes": 8594,
+      "sha256": "f28e88bfd0ccdca567665a846a91cc2a1ccc7ab4d561d3b63d5f504fd6bd21ce"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/run.log",
+      "bytes": 381883,
+      "sha256": "9bd3c1036f1f5af2fa6c4efe2ff5e34f7b9a8f2fb216827f1e81a36931c60884"
+    },
+    {
+      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/chain-performance-20261017/pq-fresh-f8b-whole-once/run.log.status.json",
+      "bytes": 130,
+      "sha256": "d1a48e8a86bd5ba062721da6b2dee4676bc17256a084e4353819e20af4720536"
+    }
+  ]
+}
