@@ -1,0 +1,205 @@
+{
+  "profile": "YNX-OPEN/TASK-AUTHORITY-RESPONSE/1",
+  "version": "1",
+  "status": "Root-authorized sole shared SDK public grammar; not Source/Root admission",
+  "encoding": "Strict UTF8 canonicalJSON; lexical ASCII schema keys; no BOM/alternate spelling/duplicate/unknown fields; strings never normalized; all byte slots canonical unpadded base64url",
+  "caps": {
+    "wholeRequestBytes": 1048576,
+    "payloadBytes": 65536,
+    "individualProofWireBytes": 1048576,
+    "individualServiceBodyBytes": 1048576,
+    "exactWholeResponseBytes": 1048576,
+    "registeredMaxResponseBytes": "mandatory independent function argument 1..1048576; exact outer must also fit this max; base64/proof overhead counts"
+  },
+  "definitions": {
+    "fullRef": {
+      "exact": [
+        "realm",
+        "tenant",
+        "kind",
+        "id",
+        "rev"
+      ],
+      "strings": "nonempty strict UTF8 <=256bytes; no ID/realm/tenant/epoch filling",
+      "rev": "canonical U64 decimal; independent from issuerEpoch",
+      "E5": "E(UTF8realm,UTF8tenant,UTF8kind,UTF8id,U64BErev)"
+    },
+    "bind": {
+      "exact": [
+        "bytes",
+        "sha3_512",
+        "sha512"
+      ],
+      "bytes": "canonical U64 decimal",
+      "digests": "lowercase hex128 of actual original bytes"
+    },
+    "proof": {
+      "exact": [
+        "purpose",
+        "payloadOriginal",
+        "wireOriginal"
+      ],
+      "byteFields": "canonical unpadded base64url; nonempty; actual original byte strings, not parsed/reencoded business DTOs"
+    },
+    "request": {
+      "exact": [
+        "version",
+        "nonce",
+        "account",
+        "currentTaskRevision",
+        "currentGeneration",
+        "sourceExpires",
+        "originalBody"
+      ],
+      "version": "1",
+      "nonce": "lowerhex64 /32 bytes",
+      "account": "independent original account narrowing; UTF8 <=256bytes",
+      "currentTaskRevision": "canonical U64, actual current task revision",
+      "currentGeneration": "canonical U64; distinct from immutable original signed generation",
+      "sourceExpires": "canonical U64 millis ceiling",
+      "originalBody": "exact existing Node service request bytes"
+    },
+    "payload": {
+      "exact": [
+        "version",
+        "purpose",
+        "realm",
+        "tenant",
+        "authority",
+        "account",
+        "currentTaskRevision",
+        "currentGeneration",
+        "sourceExpires",
+        "responseIssuer",
+        "issuerEpoch",
+        "policyRevision",
+        "height",
+        "chainID",
+        "call",
+        "transport",
+        "operationID",
+        "state",
+        "opaqueOriginalBinding",
+        "wholeServiceResponseBinding",
+        "wholeRequestBinding",
+        "resource",
+        "nonce",
+        "issuedAt",
+        "expires"
+      ],
+      "version": "1",
+      "purpose": "YNX-OPEN/TASK-AUTHORITY-RESPONSE/1",
+      "responseIssuer": "fullRef exact5; service/organization; cross organization only independently bound to registered expected",
+      "issuerEpoch": "independent canonical U64",
+      "policyRevision": "independent canonical U64",
+      "height": "canonical U64",
+      "chainID": "canonical lowercase hex64 represents exact32 network bytes",
+      "operationID": "actual original Node operation lowerhex64; not local EffectRef/step/request ID",
+      "state": [
+        "COMMITTED",
+        "FAILED",
+        "UNKNOWN"
+      ],
+      "opaqueOriginalBinding": "dual Bind of strict UTF8 original opaque STRING bytes, including possible empty string; never parsed as resource content",
+      "wholeServiceResponseBinding": "Bind of exact existing original Node service response only; outer proof excluded",
+      "wholeRequestBinding": "Bind of complete exact shared request carrier including nonce/current narrowing/original body",
+      "issuedAt": "canonical U64 millis",
+      "expires": "canonical U64 millis; issued<expires; delta<=60000; <=caller Source ceiling and independently expected issuer expiry"
+    },
+    "call": {
+      "exact": [
+        "grantRef",
+        "grantPayload",
+        "grantWire",
+        "holderPayload",
+        "holderWire",
+        "issuer",
+        "holder",
+        "issuerEpoch",
+        "holderEpoch",
+        "binding",
+        "requestBinding"
+      ],
+      "proofBinds": "4 independent dual Binds of exact original E21 grant payload/wire and E3 holder payload/wire",
+      "binding": "unaltered original shared GrantStepBindingV1 with its10 fields; original E21/E3 codec validates it",
+      "requestBinding": "Bind exact original Node request body",
+      "grantRef": "current selected full legacy-compatible grant ref; query rev may advance; effect rev exact signed"
+    },
+    "transport": {
+      "exact": [
+        "action",
+        "method",
+        "path",
+        "service",
+        "origin",
+        "contentType",
+        "statusCode"
+      ],
+      "action": [
+        "effect",
+        "query"
+      ],
+      "method": "POST; actual registered method mandatory; never guessed from Action/path",
+      "path": "actual original registered route; no query/fragment in this pathname field",
+      "service": "independent actual registered service string",
+      "origin": "independent exact original fixed protected peer origin; no URL self-trust",
+      "contentType": "application/json actual original body MIME",
+      "statusCode": "actual200 or409;409 only UNKNOWN; status is not authority"
+    },
+    "resource": {
+      "presence": "required only COMMITTED; FAILED/UNKNOWN must null",
+      "exact": [
+        "operationID",
+        "remoteRef",
+        "authScope",
+        "source",
+        "responseBinding"
+      ],
+      "authScope": "egress-only-read-fence",
+      "source": {
+        "exact": [
+          "resource",
+          "fields",
+          "label",
+          "binding"
+        ],
+        "resource": "original selected Ref5 including original rev",
+        "fields": "original UTF8 byte-sorted unique field mask; no wildcard; each UTF16<=128/UTF8<=512; count1..1024",
+        "label": [
+          "PUBLIC",
+          "TENANT",
+          "RESTRICTED",
+          "VAULT"
+        ],
+        "binding": "Bind actual SourceBytes"
+      },
+      "responseBinding": "Bind actual ResponseOriginal; original response/source bytes supplied separately by original Node/Source result callee"
+    },
+    "outer": {
+      "exact": [
+        "version",
+        "originalBody",
+        "proof"
+      ],
+      "version": "1",
+      "originalBody": "canonical base64url of exact existing Node service response bytes; not opaqueOriginal",
+      "proof": "exact proof3; Purpose unique response domain, signed payload exact canonicalJSON; actual original Core Member wire",
+      "flagsInWire": false
+    }
+  },
+  "expected": {
+    "registeredSubject": "principal fullRef5 mandatory, not LegacyID; issuerEpoch/policyRevision/height/network/expiry independently selected",
+    "request": "actual requestOriginal + independent original call+current narrowing",
+    "actualResult": "actual original Node operation/state/opaque STRING and actual Resource response/source originals; no parsing of opaqueOriginal",
+    "at": "explicit canonical U64 authority-clock snapshot; does not acquire current qualification",
+    "maxResponseBytes": "explicit independent actual operation cap"
+  },
+  "cryptoGate": "Original Core N1/index0/empty paths/ML-DSA-87 AND SLH-DSA-SHA2-256f over exact complete canonical payload + unique purpose; not implemented by DATA codec; no signer or trust from embedded keys",
+  "authority": {
+    "dataOnly": true,
+    "signatureVerified": false,
+    "SourceAdmission": false,
+    "NativeAdmission": false,
+    "operationVerified": false
+  }
+}

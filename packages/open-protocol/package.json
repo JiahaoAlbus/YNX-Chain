@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/open-protocol",
-  "version": "0.0.0-dev.5",
+  "version": "0.0.0-dev.6",
   "private": true,
   "type": "module",
   "exports": {
@@ -30,6 +30,12 @@
       "types": "./src/shop-order-read.d.ts",
       "browser": null,
       "node": "./src/shop-order-read.js",
+      "default": null
+    },
+    "./task-authority-response": {
+      "types": "./src/task-authority-response.d.ts",
+      "browser": null,
+      "node": "./src/task-authority-response.js",
       "default": null
     }
   },
