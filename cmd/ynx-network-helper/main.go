@@ -329,7 +329,7 @@ func validRPC(raw string) error {
 	}
 	return nil
 }
-func run() error {
+func run() (runErr error) {
 	listen := flag.String("listen", "127.0.0.1:0", "numeric loopback listener; port 0 chooses a free port")
 	rpc := flag.String("rpc", "https://rpc.ynxweb4.com", "fixed read-only REST source")
 	anchorFile := flag.String("anchor", "", "independently obtained checkpoint document")
@@ -392,13 +392,13 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("private Network history: %w", err)
 	}
-	defer history.Close()
+	defer func() { runErr = errors.Join(runErr, history.Close()) }()
 	resource, err := contribution.NewDisabled(filepath.Join(*dataDir, "resource-journal.json"))
 	if err != nil {
 		log.Printf("Local resource capability unavailable; existing journal preserved: %v", err)
 	}
 	if resource != nil {
-		defer resource.Close()
+		defer func() { runErr = errors.Join(runErr, resource.Close()) }()
 	}
 	node, err := ownednode.New(ownednode.Config{Directory: filepath.Join(*dataDir, ownednode.DirectoryName)})
 	if err != nil {
@@ -408,7 +408,7 @@ func run() error {
 		defer func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			node.Close(ctx)
+			runErr = errors.Join(runErr, node.Close(ctx))
 		}()
 	}
 	if *governanceRPC == "" {
@@ -419,7 +419,7 @@ func run() error {
 		return fmt.Errorf("native participation configuration: %w", err)
 	}
 	if participationService != nil {
-		defer participationService.Close()
+		defer func() { runErr = errors.Join(runErr, participationService.Close()) }()
 	}
 	var pqVerifier *receipt.PQCommandVerifier
 	if *pqExecutable != "" || *pqExecutablePin != "" || *pqContext != "" || *pqContextPin != "" {
@@ -427,7 +427,7 @@ func run() error {
 		if err != nil {
 			return fmt.Errorf("original PQ trust configuration refused: %w", err)
 		}
-		defer pqVerifier.Close()
+		defer func() { runErr = errors.Join(runErr, pqVerifier.Close()) }()
 	}
 	var anchor *receipt.TrustAnchor
 	if *anchorFile != "" {
@@ -460,7 +460,7 @@ func run() error {
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		native.Close(ctx)
+		runErr = errors.Join(runErr, native.Close(ctx))
 	}()
 	origin := "http://" + listener.Addr().String()
 	code := randomToken()
@@ -475,6 +475,7 @@ func run() error {
 	fmt.Printf("YNX Network local helper\nOpen: %s\nOne-use pairing code: %s\nScope: receipt read/verify only; expires after 15 minutes. Revoke in the app. Restart helper to pair again.\n", origin, code)
 	server := &http.Server{Handler: h, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 45 * time.Second, MaxHeaderBytes: 16 << 10}
 	shutdownDone := make(chan struct{})
+	var shutdownErr error
 	go func() {
 		defer close(shutdownDone)
 		<-serviceContext.Done()
@@ -486,15 +487,15 @@ func run() error {
 		h.mu.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		_ = server.Shutdown(ctx)
+		shutdownErr = server.Shutdown(ctx)
 	}()
 	err = server.Serve(listener)
 	stopService()
 	<-shutdownDone
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return err
+		return errors.Join(err, shutdownErr)
 	}
-	return nil
+	return shutdownErr
 }
 func main() {
 	if err := run(); err != nil {

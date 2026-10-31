@@ -160,6 +160,10 @@ func nativeParticipation(ctx context.Context, service *participation.Service, r 
 			return "CONFLICT"
 		case errors.Is(err, participation.ErrStale):
 			return "STALE"
+		case errors.Is(err, participation.ErrUnavailable):
+			return "UNAVAILABLE"
+		case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+			return "CANCELLED"
 		default:
 			return "INVALID"
 		}
