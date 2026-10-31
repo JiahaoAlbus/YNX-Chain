@@ -1,0 +1,21 @@
+{
+  "AppInstalled": false,
+  "SourceAdmission": false,
+  "actualArchitecture": "arm64",
+  "actualCCalls": 50,
+  "actualRequiredGroups": 6,
+  "archive": {
+    "bytes": 11433080,
+    "sha256": "f078524c371648a284343d69496e4d37276f3a90bea220af7ef99e568e883c6a"
+  },
+  "artifactId": 13047407494,
+  "closedFiles": 6,
+  "componentQualified": true,
+  "crcPassed": true,
+  "run": "41213694963",
+  "source": "8d134c93d3f5500aea01cd0f0f5e88127d4dd37f",
+  "sourceInputsVerified": 150,
+  "symbolVerified": true,
+  "wholeRunStatus": "in_progress",
+  "wholeRunSuccessClaim": false
+}

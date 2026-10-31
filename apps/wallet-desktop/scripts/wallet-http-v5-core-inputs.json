@@ -1,0 +1,50 @@
+{
+  "kind": "YNX_WALLET_HTTP_V5_FROZEN_CORE_COMPONENT/v1",
+  "source": "8d134c93d3f5500aea01cd0f0f5e88127d4dd37f",
+  "tree": "14ac495b71fce71655070f6e7ee1deddb3b4ccbb",
+  "platform": "darwin",
+  "arch": "arm64",
+  "run": "41213694963",
+  "artifactId": 13047407494,
+  "inputs": [
+    {
+      "path": "apps/wallet-desktop/native/device-v5-protocol/SOURCE.json",
+      "bytes": 31385,
+      "sha256": "0b6a1b28d460256afd8191a1943fbe5c9f8995460b26c8bfeb817f95bbc4ab0b"
+    },
+    {
+      "path": "apps/wallet-desktop/native/device-v5-protocol/ORIGINAL-ARCHIVE-SOURCE.json",
+      "bytes": 33548,
+      "sha256": "2bdeab5efe684666e76ce2186dcae8cb5175be997c7d917628987bc728975f66"
+    },
+    {
+      "path": "apps/wallet-desktop/native/device-v5-protocol/PUBLIC-RESULT.json",
+      "bytes": 89342,
+      "sha256": "62f786bb6998afd90b2928ebe4e659fb79c8d0290775602732dd71d9a1f49200"
+    },
+    {
+      "path": "apps/wallet-desktop/native/device-v5-protocol/libynx_artifact_release.a",
+      "bytes": 11433080,
+      "sha256": "f078524c371648a284343d69496e4d37276f3a90bea220af7ef99e568e883c6a"
+    },
+    {
+      "path": "apps/wallet-desktop/native/device-v5-protocol/product_session_http_v5.h",
+      "bytes": 3429,
+      "sha256": "00100302fe9ee1c0e0ab81d6c1c52975f31f4a35967b73d51691ab8b275e28b7"
+    },
+    {
+      "path": "apps/wallet-desktop/native/device-v5-protocol/ynx_artifact_release.h",
+      "bytes": 5089,
+      "sha256": "1da905e0b38581ad34a9cf995c36f8d368425df9242a35f4e49d7b41c8100616"
+    },
+    {
+      "path": "apps/wallet-desktop/native/device-v5-protocol/QUALIFIED-COMPONENT.json",
+      "bytes": 569,
+      "sha256": "847f72f76ae06c681fe2be69647a114a95ff5acb54f69e86269cb0df453fb942"
+    }
+  ],
+  "SourceAdmission": false,
+  "RootAdmission": false,
+  "normalAppCompiled": false,
+  "installed": false
+}
