@@ -97,3 +97,88 @@ export function bindBaselineStoppedProof({observationRaw,guardRaw,expectedGuardS
  requireValue(businessInputs===count,'signed blocks do not retain the complete business input count');
  return {kind:'original baseline proof bound to separately inspected retained Go verifier receipt',guardSHA256:expectedGuardSHA256,observationSHA256:sha(observationRaw),replaySHA256:replayHash,accountsSHA256:accountsHash,originalStores:4,verifiedBusinessInputsPerStore:count,signedBlockHeights:[...seen],finalHeight:canonical.height,finalAppHash:canonical.appHash,canonicalSnapshotSHA256:canonical.snapshotSha256,cryptographicVerifier:'existing retained Go VerifyCommitLight and application replay; no cryptographic re-verification in this JavaScript consumer',newThroughputOrLatencySamples:false};
 }
+
+// REL-05 measurement kernel over a complete source inventory. This computes
+// DATA only: the original CORE source/run/ledger/clock adapter must authenticate
+// inputs separately. No caller-provided flag can promote this result to proof.
+const cohortNs=(v,label)=>{requireValue(typeof v==='string'&&/^(0|[1-9][0-9]*)$/.test(v),label+' requires exact nonnegative decimal ns');return BigInt(v);};
+const cohortId=v=>typeof v==='string'&&v.length>0&&v.length<=256;
+function cohortLatency(rows,cutoff,thresholds){
+ const completed=[],bounds=[];let censored=0,failed=0;
+ const violations=Object.fromEntries(Object.keys(thresholds).map(k=>[k,{deadlineExceeded:0,failed:0}]));
+ for(const r of rows){
+  if(r.outcome==='committed_success'){
+   const elapsed=r.final-r.offered;completed.push(elapsed);bounds.push(elapsed);
+   for(const [k,limit]of Object.entries(thresholds))if(elapsed>limit)violations[k].deadlineExceeded++;
+  }else if(r.outcome==='unknown_or_unfinished'){
+   const elapsed=cutoff-r.offered;bounds.push(elapsed);censored++;
+   for(const [k,limit]of Object.entries(thresholds))if(elapsed>limit)violations[k].deadlineExceeded++;
+  }else{failed++;for(const k of Object.keys(thresholds))violations[k].failed++;}
+ }
+ completed.sort((a,b)=>a<b?-1:a>b?1:0);bounds.sort((a,b)=>a<b?-1:a>b?1:0);
+ const quantiles={};
+ for(const p of [50,95,99]){
+  const rank=Math.ceil(rows.length*p/100),finite=rank>0&&rank<=bounds.length;
+  quantiles['p'+p]={denominator:rows.length,rank,ns:censored===0&&finite?String(bounds[rank-1]):null,lowerBoundNs:finite?String(bounds[rank-1]):null,unboundedByFailures:rank>bounds.length&&rank>0,rightCensored:censored>0};
+ }
+ return {denominator:rows.length,successfulSamples:completed.length,rightCensoredSamples:censored,failedWithoutSuccessLatency:failed,algorithm:'nearest-rank on the full logical-request cohort; failures have no finite time-to-success, unfinished ages are lower bounds',quantiles,completedSuccessOnly:{conditional:true,samples:completed.length,...Object.fromEntries([50,95,99].map(p=>['p'+p+'Ns',completed.length?String(completed[Math.ceil(completed.length*p/100)-1]):null]))},slo:violations};
+}
+export function measureFinalCohort(ctx,fromHeight,untilHeight,requests,run){
+ requireValue(ctx&&cohortId(run)&&ctx.run===run,'original run reference differs');
+ const lower=cohortNs(fromHeight,'fromHeight'),upper=cohortNs(untilHeight,'untilHeight');requireValue(lower>0n&&upper>=lower,'invalid original height range');
+ requireValue(cohortId(ctx.clockDomain)&&ctx.isolatedNetwork===true,'isolated original clock domain required');
+ const start=cohortNs(ctx.windowStartNs,'window start'),end=cohortNs(ctx.windowEndNs,'window end'),cutoff=cohortNs(ctx.observedUntilNs,'observation cutoff');requireValue(start<end&&cutoff>=end,'fixed window or observation cutoff differs');
+ const inside=n=>n!==null&&n>=start&&n<end;
+ const clockError=ctx.clockSynchronizationErrorNs===undefined||ctx.clockSynchronizationErrorNs===null?null:String(cohortNs(ctx.clockSynchronizationErrorNs,'clock uncertainty'));
+ requireValue(Array.isArray(ctx.plan)&&ctx.plan.length<=2000000&&Array.isArray(ctx.records)&&ctx.records.length<=2000000&&Array.isArray(requests),'bounded complete original request inventory required');
+ const plans=new Map(),wanted=new Set(),records=new Map();
+ for(const p of ctx.plan){
+  requireValue(p&&cohortId(p.id)&&!plans.has(p.id)&&['online_signed','pre_signed'].includes(p.signingMode),'duplicate/invalid planned identity or signing mode');
+  const offered=cohortNs(p.generatedAtNs,'logical generation');plans.set(p.id,{...p,offered});if(inside(offered))wanted.add(p.id);
+ }
+ requireValue(wanted.size>0&&requests.length===wanted.size&&new Set(requests).size===requests.length&&requests.every(id=>wanted.has(id)),'requests must include the entire fixed-window plan, including unsent/rejected identities');
+ for(const r of ctx.records){requireValue(r&&plans.has(r.id)&&!records.has(r.id)&&r.clockDomain===ctx.clockDomain,'duplicate, unplanned or foreign-clock observation');for(const k of ['rejectedBeforeAdmission','finalFailed','timedOut','sourceRequestFailed','measurementLost'])requireValue(r[k]===undefined||typeof r[k]==='boolean','invalid observation flag '+k);records.set(r.id,r);}
+ const thresholds={p95:2000000000n,p99:5000000000n},rows=[],members=new Set();let preWindowBacklogFinals=0;
+ for(const p of plans.values()){
+  const r=records.get(p.id);
+  const stamp=(key)=>{if(r?.[key]===undefined||r[key]===null)return null;const n=cohortNs(r[key],key);requireValue(n>=p.offered&&n<=cutoff,'event outside original generation/cutoff');return n;};
+  const submitted=stamp('submittedAtNs'),accepted=stamp('acceptedAtNs'),included=stamp('includedAtNs'),final=stamp('finalCommitAtNs');
+  requireValue(accepted===null||submitted!==null&&accepted>=submitted,'acceptance has no original submission');
+  requireValue(included===null||submitted!==null&&included>=submitted,'inclusion has no original submission');
+  requireValue(final===null||included!==null&&final>=included,'final Commit has no original inclusion');
+  const height=r?.height===undefined?null:cohortNs(r.height,'observed height');
+  requireValue(included===null||height!==null&&height>0n,'inclusion height missing');
+  const businessIncluded=included!==null&&r.executionCode===0&&r.businessKind==='transfer'&&typeof r.memberId==='string'&&/^[a-f0-9]{64}$/.test(r.memberId);
+  const success=businessIncluded&&final!==null;
+  if(businessIncluded){requireValue(!members.has(r.memberId),'duplicate successful business member identity');members.add(r.memberId);}
+  if(!wanted.has(p.id)){if(success&&inside(final))preWindowBacklogFinals++;continue;}
+  requireValue(!r?.rejectedBeforeAdmission||accepted===null&&included===null&&final===null,'rejection contradicts accepted/ledger observation');
+  let outcome='unknown_or_unfinished';
+  if(success)outcome='committed_success';
+  else if(r?.rejectedBeforeAdmission===true)outcome='rejected_before_admission';
+  else if(r?.finalFailed===true||included!==null&&Number.isInteger(r?.executionCode)&&r.executionCode!==0)outcome='final_failed';
+  requireValue(!(success&&r?.finalFailed),'successful member contradicts final failure');
+  rows.push({id:p.id,mode:p.signingMode,offered:p.offered,submitted,accepted,included,final,height,businessIncluded,outcome,timeout:r?.timedOut===true,sourceFailure:r?.sourceRequestFailed===true,lost:!r||r.measurementLost===true});
+ }
+ const summarize=selected=>{
+  const counts={offered:selected.length,submitted:0,accepted:0,includedBusinessSuccess:0,committed_success:0,rejected_before_admission:0,final_failed:0,unknown_or_unfinished:0,timedOut:0,sourceRequestFailed:0,measurementLost:0,tailFinals:0,finalsOutsideHeightRange:0};
+  const window={submitted:0,accepted:0,includedBusinessSuccess:0,finalCommitBusinessSuccess:0};
+  for(const r of selected){
+   counts[r.outcome]++;if(r.submitted!==null)counts.submitted++;if(r.accepted!==null)counts.accepted++;
+   if(inside(r.submitted))window.submitted++;if(inside(r.accepted))window.accepted++;
+   if(r.timeout)counts.timedOut++;if(r.sourceFailure)counts.sourceRequestFailed++;if(r.lost)counts.measurementLost++;
+   if(r.businessIncluded){counts.includedBusinessSuccess++;if(r.height>=lower&&r.height<=upper&&inside(r.submitted)&&inside(r.included))window.includedBusinessSuccess++;}
+   if(r.outcome==='committed_success'){
+    const heightOK=r.height>=lower&&r.height<=upper;
+    if(!heightOK)counts.finalsOutsideHeightRange++;
+    if(r.final>=end)counts.tailFinals++;
+    if(heightOK&&inside(r.submitted)&&inside(r.final))window.finalCommitBusinessSuccess++;
+   }
+  }
+  const n=selected.length,final=counts.committed_success;
+  counts.notSubmitted=n-counts.submitted;
+  const boundaryObservations={generatedWithoutSubmissionAtWindowEnd:selected.filter(r=>r.submitted===null||r.submitted>=end).length,submittedWithoutFinalCommitAtWindowEnd:selected.filter(r=>inside(r.submitted)&&(r.final===null||r.final>=end)).length,interpretation:"Observation gaps, not a measurement of physical queue depth; rejected requests and missing telemetry remain visible."};
+  return {counts,window,boundaryObservations,latency:cohortLatency(selected,cutoff,thresholds),successFraction:{numerator:final,denominator:n},failureFraction:{numerator:counts.final_failed+counts.rejected_before_admission,denominator:n},unknownFraction:{numerator:counts.unknown_or_unfinished,denominator:n},completeQualityFloorObserved:n>0&&BigInt(final)*1000n>=BigInt(n)*999n&&counts.unknown_or_unfinished===0&&counts.measurementLost===0,finalWindowRate:{numerator:window.finalCommitBusinessSuccess,perSecondNumerator:String(BigInt(window.finalCommitBusinessSuccess)*1000000000n),denominatorNs:String(end-start)}};
+ };
+ return {functionId:'REL-05',classification:'measurement-data-not-authority',run,fromHeight,untilHeight,clockDomain:ctx.clockDomain,window:{startNs:String(start),endNs:String(end),observedUntilNs:String(cutoff),boundary:'start inclusive, end exclusive; tail drain separately reported'},preWindowBacklogFinalsExcluded:preWindowBacklogFinals,cohort:summarize(rows),signingGroups:Object.fromEntries(['online_signed','pre_signed'].map(mode=>[mode,summarize(rows.filter(r=>r.mode===mode))])),inventoryCoverage:'complete against supplied plan; CORE must independently bind the original inventory/run/ledger/clock',independentProofReverifiedHere:false,signatureThroughputQualified:false,sustainedTPSQualified:false,formal1800SecondWindowObserved:end-start===1800000000000n,openLoopDeclared:ctx.loadModel==='open_loop',clockSynchronizationErrorNs:clockError,interpretation:'Submitted/accepted are intermediate counts, never summed with exclusive terminal outcomes. Late drain and prior-window backlog cannot raise the formal fixed-window final rate. Unknown/timeout identities remain in all denominators and right-censored latency. Source authenticity and two-run R6 qualification remain with original CORE/REL owners.'};
+}

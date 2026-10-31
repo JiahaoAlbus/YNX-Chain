@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
-import {qualifySameControlReadback,compareSameControlReadbacks} from './same-control-readback.mjs';
+import {qualifySameControlReadback,compareSameControlReadbacks,measureFinalCohort} from './same-control-readback.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 // Deliberately unsigned format fixtures: these test refusal/binding, never crypto.
 function fixture(){
@@ -42,4 +42,54 @@ test('baseline proof binding refuses another observation, changed bytes or incom
  const missing=args();missing.expectedGuardSHA256='0'.repeat(64);assert.throws(()=>bindBaselineStoppedProof(missing),/guard digest/);
  guard.offlineAfter.rows[0].inode='replacement';assert.throws(()=>bindBaselineStoppedProof(args()),/identities/);
  guard.offlineAfter=guard.offlineBefore;guard.go.code=1;assert.throws(()=>bindBaselineStoppedProof(args()),/did not complete/);
+});
+
+// T-REL-05: unsigned arithmetic fixtures, never independent ledger proof.
+function cohortFixture(){
+ const second=1000000000n,ctx={run:'fixture-run',clockDomain:'fixture-parent-monotonic',isolatedNetwork:true,loadModel:'open_loop',windowStartNs:'0',windowEndNs:String(10n*second),observedUntilNs:String(20n*second),plan:[],records:[]};
+ for(let i=0;i<4;i++){
+  const id='request-'+i;ctx.plan.push({id,generatedAtNs:String(BigInt(i)*second),signingMode:i<2?'online_signed':'pre_signed'});
+  ctx.records.push({id,clockDomain:ctx.clockDomain,submittedAtNs:String(BigInt(i)*second),acceptedAtNs:String(BigInt(i)*second+1n),includedAtNs:String(BigInt(i+1)*second),finalCommitAtNs:String(BigInt(i+2)*second),height:String(i+1),executionCode:0,businessKind:'transfer',memberId:(i+1).toString(16).padStart(64,'0')});
+ }
+ return ctx;
+}
+const cohortRead=ctx=>measureFinalCohort(ctx,'1','99',ctx.plan.filter(p=>BigInt(p.generatedAtNs)>=BigInt(ctx.windowStartNs)&&BigInt(p.generatedAtNs)<BigInt(ctx.windowEndNs)).map(p=>p.id),ctx.run);
+test('T-REL-05 complete terminal partition keeps rejection timeout lost rows and signing groups',()=>{
+ const c=cohortFixture();c.records[1]={id:'request-1',clockDomain:c.clockDomain,rejectedBeforeAdmission:true,sourceRequestFailed:true};c.records[2]={id:'request-2',clockDomain:c.clockDomain,submittedAtNs:'2000000000',acceptedAtNs:'2000000001',timedOut:true};c.records.pop();
+ const r=cohortRead(c),n=r.cohort.counts;assert.equal(n.offered,4);assert.equal(n.committed_success,1);assert.equal(n.rejected_before_admission,1);assert.equal(n.unknown_or_unfinished,2);assert.equal(n.measurementLost,1);assert.equal(n.sourceRequestFailed,1);assert.equal(n.accepted,2);assert.equal(n.committed_success+n.rejected_before_admission+n.final_failed+n.unknown_or_unfinished,n.offered);
+ assert.equal(r.signingGroups.online_signed.counts.offered,2);assert.equal(r.signingGroups.pre_signed.counts.offered,2);assert.equal(r.sustainedTPSQualified,false);assert.equal(r.independentProofReverifiedHere,false);
+});
+test('T-REL-05 prior backlog and tail drain cannot inflate the fixed-window final numerator',()=>{
+ const c=cohortFixture();c.windowStartNs='1000000000';c.records[3].finalCommitAtNs='11000000000';const r=cohortRead(c);
+ assert.equal(r.preWindowBacklogFinalsExcluded,1);assert.equal(r.cohort.counts.offered,3);assert.equal(r.cohort.counts.committed_success,3);assert.equal(r.cohort.counts.tailFinals,1);assert.equal(r.cohort.window.finalCommitBusinessSuccess,2);assert.equal(r.cohort.finalWindowRate.denominatorNs,'9000000000');
+ c.records[2].finalCommitAtNs=c.windowEndNs;assert.equal(cohortRead(c).cohort.window.finalCommitBusinessSuccess,1);
+});
+test('T-REL-05 censored P95/P99 retain the full denominator and overdue SLO violations',()=>{
+ const c=cohortFixture();c.records[3]={id:'request-3',clockDomain:c.clockDomain,timedOut:true};const r=cohortRead(c).cohort.latency;
+ assert.equal(r.denominator,4);assert.equal(r.successfulSamples,3);assert.equal(r.quantiles.p95.ns,null);assert.equal(r.quantiles.p99.denominator,4);assert.equal(r.quantiles.p95.lowerBoundNs,'17000000000');assert.equal(r.rightCensoredSamples,1);assert.equal(r.slo.p95.deadlineExceeded,1);assert.equal(r.slo.p99.deadlineExceeded,1);assert.equal(r.completedSuccessOnly.conditional,true);assert.equal(r.completedSuccessOnly.p95Ns,'2000000000');
+});
+test('T-REL-05 valid inclusion remains separate from unfinished final Commit and execution failures',()=>{
+ const c=cohortFixture();delete c.records[0].finalCommitAtNs;c.records[1].executionCode=7;const n=cohortRead(c).cohort.counts;
+ assert.equal(n.includedBusinessSuccess,3);assert.equal(n.committed_success,2);assert.equal(n.final_failed,1);assert.equal(n.unknown_or_unfinished,1);
+});
+test('T-REL-05 incomplete selected inventory duplicate members and foreign clocks fail closed',()=>{
+ const c=cohortFixture();assert.throws(()=>measureFinalCohort(c,'1','99',['request-0'],c.run),/entire fixed-window plan/);
+ for(const mutate of [x=>x.plan.push(x.plan[0]),x=>x.records.push(x.records[0]),x=>x.records[1].memberId=x.records[0].memberId,x=>x.records[0].clockDomain='other',x=>x.records[0].rejectedBeforeAdmission=true,x=>x.plan[0].signingMode='unspecified',x=>x.records[0].submittedAtNs=0,x=>x.records[0].timedOut='true']){const x=cohortFixture();mutate(x);assert.throws(()=>cohortRead(x));}
+ assert.throws(()=>measureFinalCohort(c,'1','99',c.plan.map(p=>p.id),'another-run'),/run reference/);
+});
+test('T-REL-05 exact ns beyond float precision and R6 length are measurement DATA only',()=>{
+ const c=cohortFixture(),offset=9007199254740993n;
+ for(const key of ['windowStartNs','windowEndNs','observedUntilNs'])c[key]=String(BigInt(c[key])+offset);
+ for(const p of c.plan)p.generatedAtNs=String(BigInt(p.generatedAtNs)+offset);
+ for(const r of c.records)for(const key of ['submittedAtNs','acceptedAtNs','includedAtNs','finalCommitAtNs'])r[key]=String(BigInt(r[key])+offset);
+ const r=cohortRead(c);assert.equal(r.cohort.latency.quantiles.p95.ns,'2000000000');assert.equal(r.cohort.latency.quantiles.p99.denominator,4);assert.equal(r.formal1800SecondWindowObserved,false);assert.equal(r.signatureThroughputQualified,false);
+ c.windowEndNs=String(offset+1800000000000n);c.observedUntilNs=c.windowEndNs;assert.equal(cohortRead(c).formal1800SecondWindowObserved,true);assert.equal(cohortRead(c).sustainedTPSQualified,false);
+});
+
+test('T-REL-05 the exact 99.9 percent floor never forgives any unknown observation',()=>{
+ const c=cohortFixture();c.plan=[];c.records=[];
+ for(let i=0;i<1000;i++){const id='large-'+i;c.plan.push({id,generatedAtNs:'0',signingMode:'online_signed'});c.records.push({id,clockDomain:c.clockDomain,submittedAtNs:'0',includedAtNs:'1',finalCommitAtNs:'2',height:'1',executionCode:0,businessKind:'transfer',memberId:(i+1).toString(16).padStart(64,'0')});}
+ c.records[999]={id:'large-999',clockDomain:c.clockDomain,rejectedBeforeAdmission:true};let r=cohortRead(c);assert.equal(r.cohort.completeQualityFloorObserved,true);assert.equal(r.cohort.successFraction.denominator,1000);assert.equal(r.sustainedTPSQualified,false);
+ c.records[998]={id:'large-998',clockDomain:c.clockDomain,rejectedBeforeAdmission:true};assert.equal(cohortRead(c).cohort.completeQualityFloorObserved,false);
+ c.records.pop();r=cohortRead(c);assert.equal(r.cohort.completeQualityFloorObserved,false);assert.equal(r.cohort.counts.measurementLost,1);assert.equal(r.cohort.latency.denominator,1000);
 });
