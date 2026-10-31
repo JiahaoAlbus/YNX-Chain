@@ -184,7 +184,7 @@ jobs:
     # Execute the actual new client functions on those pushes as well.
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 8
     env:
       GOMAXPROCS: '2'
     steps:
@@ -221,6 +221,35 @@ jobs:
           PY
       - name: Exercise the original readback CLI and complete logical denominators
         run: node --test scripts/loadtest/same-control-readback.test.mjs
+      - name: Verify normal PQ lab producers and the original proof caller
+        env:
+          YNX_PQ_LAB_PROOF_FIXTURE_OUT: ${{ runner.temp }}/pq-lab-source-proof
+          GOMEMLIMIT: 1536MiB
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test ! -e "$YNX_PQ_LAB_PROOF_FIXTURE_OUT"
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then
+            cat "$RUNNER_TEMP/pq-lab-core-tests.jsonl"
+            exit 1
+          fi
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/pq-lab-command-tests.jsonl"; then
+            cat "$RUNNER_TEMP/pq-lab-command-tests.jsonl"
+            exit 1
+          fi
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          rows = []
+          for name in ('pq-lab-core-tests.jsonl', 'pq-lab-command-tests.jsonl'):
+              rows += [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / name).read_text().splitlines()]
+          required = ['TestPQLabNetworkOriginalInputsExclusiveAndLoopback', 'TestPQLabNetworkActiveEngineDBRefusesCustodyCreation', 'TestPQLabNetworkRealRegistryStoppedSourcesAndColdCustody', 'TestPQLabNetworkMissingCheckpointPreservesFailedAttempt', 'TestPQLabWorkloadRealSourceCorpusExecutionAndRestart', 'TestPQLabWorkloadBoundsAliasesAndExactSource', 'TestPQLabWorkloadProofOriginalCLIInputsAndNegatives', 'TestPQLabWorkloadMaximumProtocolWhole', 'TestPQLabNormalCommandFreshIndependentProcessInputs', 'TestPQLabNormalCommandRefusesImplicitOrDuplicateInputs', 'TestPQLabWorkloadCommandInputsAndNoMutation', 'TestPQLabWorkloadCommandRealProofInputs']
+          for name in required:
+              terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('normal PQ lab function did not execute and pass: ' + name)
+          print('YNX_PQ_LAB_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, nodeProcessesStarted=0, publicActivation=False), sort_keys=True))
+          PY
 
   link-scope:
     name: Select actual LINK changed closure
