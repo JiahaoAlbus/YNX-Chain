@@ -13,7 +13,7 @@ import {canonicalJSON,evmAddressFromYNX} from "@ynx-chain/wallet-auth";
 import {assertDesktopSignedPayStorage,parseDesktopSignedPayRecord} from "./wallet-pay-record.mjs";
 import {assertDesktopPayProgress,assertDesktopPayEvidence,parseDesktopPaySettlement} from "./wallet-pay-settlement.mjs";
 import {parsePQOriginalRecord,createPQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
-import {preparePQTransferTransport} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {preparePQTransferTransport,decodePQTransferRequest,pqPublicBindingToRegistrationKeys} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {pqTypedOriginalSummary,createPQTypedOriginalFromMember} from './wallet-pq-typed-original.mjs';
 import {createPQAccountInitialOriginalFromMember} from './wallet-pq-account-initial-original.mjs';
 import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause} from './wallet-session-original.mjs';
@@ -324,13 +324,17 @@ export class FileTransactionIntentStore {
       return Object.freeze({transportHash:original.hash,memberHash:original.typed.memberHash});
     }catch(cause){this.originalFailed(account,cause);throw cause}
   }
-  capturePQTransferMember(account,member,{operationId}){
+  capturePQTransferMember(account,member,{operationId,registeredPublicBinding=null}){
     const slot=owner(this).get(account);
     if(slot?.kind!=='pq-transfer'||Object.hasOwn(slot,'pqMemberUnverified'))throw invalid();
     slot.pqMemberUnverified=member;
     try{
       if(!nativeTypes.isUint8Array(member)||nativeTypes.isProxy(member)||member.buffer instanceof SharedArrayBuffer||member.byteLength>98304)throw invalid();
       slot.pqMemberData=Buffer.from(member);
+      if(slot.intent||registeredPublicBinding!==null){
+        const pair=pqPublicBindingToRegistrationKeys(registeredPublicBinding),decoded=decodePQTransferRequest(slot.pqMemberData);
+        if(pair.owner!==account||(slot.intent&&pair.chainId!==slot.intent.networkId)||decoded.pkA!==pair.pkA||decoded.pkB!==pair.pkB)throw capabilityError('PQ_NATIVE_ORIGINAL_BINDING','Keep the returned original; it does not match the registered signing pair.');
+      }
       const original=createPQOriginalRecord({account,kind:'pq-transfer',operationId,request:preparePQTransferTransport(slot.pqMemberData)});
       this.captureOriginal(account,original,'pq-transfer');return Object.freeze({transportHash:original.hash});
     }catch(cause){this.originalFailed(account,cause);throw cause;}

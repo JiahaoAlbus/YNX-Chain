@@ -364,12 +364,19 @@ test('normal Native TX late lock retains its public Member and explicit later lo
  const capsule=transactionAuth.captureOriginalWalletTransactionApprovalIPC(createPublicWalletEvent(),out.request.id,'sign');t.after(()=>transactionAuth.retireUnusedOriginalWalletTransactionApproval(capsule));await assert.rejects(f.lifecycle.run(()=>f.authority.approve(out.request.id,capsule)));const retained=f.store.localOriginal(f.account).pq;assert(retained.wire.length>1000);assert.equal(f.native.counts.once,1);assert.equal(f.native.counts.release,1);await f.lifecycle.unlock({password:PASSWORD});assert.equal((await f.lifecycle.run(()=>f.store.saveOriginal(f.account,retained.hash,()=>f.lifecycle.current().assert()))).savedLocally,true);assert.equal(f.native.counts.once,1);
 });
 test('T-P01-03 a returned Native member cannot replace the durable intent operation or transfer',async t=>{
- for(const changed of ['operation','amount','recipient','nonce']){
+ for(const changed of ['operation','amount','recipient','nonce','pair']){
   const f=await approvalFixture(t,{nativeTransaction:true,transactionPermission:true});
   const out=await f.lifecycle.run(()=>f.authority.previewTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));
   if(changed==='operation'){
    const capture=f.store.capturePQTransferMember.bind(f.store);
-   f.store.capturePQTransferMember=(account,member)=>capture(account,member,{operationId:'different-original-operation'});
+   f.store.capturePQTransferMember=(account,member,options)=>capture(account,member,{...options,operationId:'different-original-operation'});
+  }else if(changed==='pair'){
+   const replacement=await SDK.createPQWalletKeyHandle({chainId:CHAIN,owner:f.account});
+   try{
+    const {snapshot,transfer}=syntheticTransfer(f),keys=pqPublicBindingToRegistrationKeys(SDK.readPQWalletKeyPublic(replacement));
+    const differentPolicy=parsePQAccountAuthorization({...snapshot,records:snapshot.records.map(row=>({...row,pkA:keys.pkA,pkB:keys.pkB}))},{chainId:CHAIN,nativeChainId:'6423',owner:f.account});
+    f.native.setPublicMember(SDK.signPQWalletNativeTransfer(replacement,transfer,differentPolicy).body);
+   }finally{SDK.destroyPQWalletKeyHandle(replacement);}
   }else{
    const {snapshot,transfer}=syntheticTransfer(f);
    const replacement={...transfer,...(changed==='amount'?{amount:'4'}:changed==='recipient'?{to:'0x'+'3'.repeat(40)}:{nonce:(BigInt(transfer.nonce)+1n).toString()})};

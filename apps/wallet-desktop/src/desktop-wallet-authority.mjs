@@ -753,7 +753,7 @@ export class DesktopWalletAuthority {
           await store.reserveOriginal(status.account,'pq-transfer',{intent:reviewed.preview});
           guard.assert();if(auth.assertCurrent()!==undefined||auth.enterSign()!==undefined)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Original Native sign entry must be exact.');
           await this.vault.withPQNativeTransaction(pqRegisteredPublicBinding(refreshed),{messageOriginal:Buffer.from(encodePQNativeTransfer(plan.transfer)),policyOriginal:nativePolicy,nativeChainId:plan.transfer.nativeChainId,keyVersion:refreshed.activeRevision,executionHeight:refreshed.executionHeight},outcome=>{
-            const captured=store.capturePQTransferMember(status.account,outcome.member,{operationId:pending.id});hash=captured.transportHash;
+            const captured=store.capturePQTransferMember(status.account,outcome.member,{operationId:pending.id,registeredPublicBinding:pqRegisteredPublicBinding(refreshed)});hash=captured.transportHash;
             const decoded=decodePQTransferRequest(outcome.member),pair=pqPublicBindingToRegistrationKeys(pqRegisteredPublicBinding(refreshed));
             if(JSON.stringify(decoded.transfer)!==JSON.stringify(plan.transfer)||decoded.pkA!==pair.pkA||decoded.pkB!==pair.pkB)throw providerError(4100,'PQ_NATIVE_ORIGINAL_BINDING','Keep the returned original; its exact reviewed transfer did not match.');
             borrowed.captureProduced(hash);if(auth.complete({outcome:'returned',transportHash:hash})!==undefined)throw providerError(4100,'PQ_TRANSACTION_RESULT_BINDING','Keep the original Native result.');
