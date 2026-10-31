@@ -170,3 +170,14 @@ test('V4 reserve does not return a signing token when close arrives during its d
  const cold=await new FileTransactionIntentStore({filePath}).readSessionPairSubmission(account,f.row.requestDigest,()=>{});
  assert.equal(cold.queryOnly,true);assert.equal(cold.pairSubmission,null);
 });
+test('cold history keeps v1 fields unchanged and projects only v2 query metadata with false authority',async t=>{
+ const f=await setup(t);await f.store.beginSessionPairSubmission(f.token,f.data,f.guard);
+ f.store.captureSessionPairResponse(f.token,'{"PUBLIC":"original response"}');await f.store.saveSessionPairResponse(f.token);
+ await f.store.reserveSessionOriginal(legacy('old-history'),f.guard);const before=await fs.readFile(f.filePath,'utf8');
+ const rows=await f.cold().sessionRecoverySummaries(account,f.guard),v2=rows.find(r=>r.recordVersion===2),old=rows.find(r=>r.requestId==='old-history');
+ assert.deepEqual(Object.keys(old).sort(),['requestDigest','requestId','productId','createdAt','expiresAt','signed','deliveryAttempted','publicationStatus'].sort());
+ assert.equal(v2.originalOperationId,f.row.operationId);assert.equal(v2.pairEntered,true);assert.equal(v2.originalResponseRetained,true);
+ assert.equal(v2.queryOnly,true);assert.equal(v2.registered,false);assert.equal(v2.newSession,false);
+ for(const row of rows)for(const name of ['approval','originalBody','responseOriginal','registrationOriginal','wire'])assert.equal(Object.hasOwn(row,name),false);
+ assert.equal(await fs.readFile(f.filePath,'utf8'),before,'history projection performs no write');
+});

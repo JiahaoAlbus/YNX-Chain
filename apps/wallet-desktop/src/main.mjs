@@ -1,5 +1,6 @@
 import {createOriginalDeviceCreationController} from './original-device-create-controller.mjs';
 import {createOriginalDeviceQueryController} from './original-device-query-controller.mjs';
+import {createOriginalDeviceRegistrationController} from './original-device-registration-controller.mjs';
 import {createPQTypedActionNodeReader} from './features/pq-transaction/typed-action-query-node.mjs';
 import {normalizeWalletPQTransferInput} from './wallet-pq-transfer-input.mjs';
 import {inspectRetainedPQOriginal} from './wallet-pq-local-original.mjs';
@@ -130,6 +131,7 @@ let lastCallback = null;
 let walletAuthority;
 let originalDeviceCreation;
 let originalDeviceQuery;
+let originalDeviceRegistration;
 let pqTransactionSubmission;
 let pqFinalityCollection;
 let originalIDEIdentityPeer;
@@ -312,7 +314,11 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
 }
 async function shutdownOriginalPQWallet(){
   pqFinalityCollection?.retire();
-  await Promise.all([walletAuthority?.shutdownPQReviews(),originalDeviceCreation?.close(),originalDeviceQuery?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
+  // The registration client must settle its child/callback custody before the
+  // original creation parent closes. Other owners still drain after a failure.
+  const registration=await Promise.allSettled([originalDeviceRegistration?.close()]);
+  const others=await Promise.allSettled([walletAuthority?.shutdownPQReviews(),originalDeviceCreation?.close(),originalDeviceQuery?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
+  const failed=[...registration,...others].find(r=>r.status==='rejected');if(failed)throw failed.reason;
 }
 const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
@@ -572,13 +578,43 @@ handleWalletIPC('wallet:prepare-device-create',(_event,...args)=>sensitiveIPC(as
  }catch(cause){if(request)try{await originalDeviceCreation.rejectOriginal(request.id);}catch{}throw Object.assign(Error('暂时无法读取有效的应用设备请求。请从原应用发起连接。 / An original app device request is unavailable. Start from the app.'),{cause,code:'DEVICE_CREATE_ORIGINAL_REQUEST_UNAVAILABLE'});}
 }));
 handleWalletIPC('wallet:device-create-status',()=>safeIPC(()=>originalDeviceCreation?.readStatusDATA()??{phase:'idle',effectEntryInvoked:false}));
+handleWalletIPC('wallet:prepare-device-registration',(_event,...args)=>sensitiveIPC(async()=>{
+ if(args.length)throw Object.assign(Error('Use the original prepared device.'),{code:'DEVICE_REGISTRATION_ZERO_INPUT'});
+ if(!originalDeviceCreation||!originalDeviceRegistration||accountChangeInProgress)throw Object.assign(Error('The original device selection is unavailable.'),{code:'DEVICE_REGISTRATION_ORIGINAL_SELECTION_REQUIRED'});
+ const state=originalDeviceCreation.readStatusDATA(),selection=originalDeviceCreation.readOriginalRegistrationSelectionDATA(state.requestId);let request;
+ try{
+  request=await originalDeviceRegistration.prepareReview(selection);keyAccess.current().assert();
+  if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
+  mainWindow.webContents.send('wallet:provider-request',request);keyAccess.current().assert();return Object.freeze({requestId:request.id,phase:'review'});
+ }catch(cause){if(request)try{await originalDeviceRegistration.rejectOriginal(request.id);}catch{}throw cause;}
+}));
+handleWalletIPC('wallet:device-registration-status',()=>safeIPC(()=>originalDeviceRegistration?.readStatusDATA()??{phase:'idle',registered:false,connected:false,newSession:false}));
+handleWalletIPC('wallet:device-registration-history',(_event,...args)=>sensitiveIPC(async()=>{
+ if(args.length)throw Object.assign(Error('Read the selected account only.'),{code:'DEVICE_REGISTRATION_ZERO_INPUT'});
+ const guard=keyAccess.current();guard.assert();
+ const rows=await walletAuthority.transactionSender.submissions.intentStore.sessionRecoverySummaries(guard.account,()=>guard.assert());guard.assert();
+ return rows.filter(row=>row.recordVersion===2).map(row=>Object.freeze({requestDigest:row.requestDigest,productId:row.productId,createdAt:row.createdAt,expiresAt:row.expiresAt,signed:row.signed===true,recordVersion:2,originalOperationId:row.originalOperationId,pairEntered:row.pairEntered===true,originalResponseRetained:row.originalResponseRetained===true,queryOnly:true,registered:false,newSession:false}));
+}));
+handleWalletIPC('wallet:device-registration-outcome',(_event,...args)=>sensitiveIPC(async()=>{
+ if(args.length!==1||typeof args[0]!=='string'||!/^(?:0x)?[a-f0-9]{64}$/.test(args[0]))throw Object.assign(Error('Read the original request only.'),{code:'DEVICE_REGISTRATION_ORIGINAL_REQUEST_REQUIRED'});
+ if(!originalDeviceRegistration)throw Error('Wallet is starting.');return originalDeviceRegistration.readOriginalPairOutcome(args[0]);
+}));
+handleWalletIPC('wallet:cancel-device-registration',(_event,...args)=>safeIPC(async()=>{
+ if(args.length)throw Object.assign(Error('Use the original review.'),{code:'DEVICE_REGISTRATION_ZERO_INPUT'});
+ const state=originalDeviceRegistration?.readStatusDATA();if(!state?.requestId)return state??{phase:'idle'};
+ return originalDeviceRegistration.rejectOriginal(state.requestId);
+}));
 handleWalletIPC('wallet:query-original-device',(_event,...args)=>sensitiveIPC(async()=>{
  if(args.length)throw Object.assign(Error('Use the original app request.'),{code:'DEVICE_QUERY_ZERO_INPUT'});
  const review=authorizationController?.pending;
  if(!originalDeviceQuery||accountChangeInProgress||!review||review.loadingAccount||review.account!==keyAccess.status().account)throw Object.assign(Error('请从原应用重新发起连接，再查询该设备。 / Start the connection from the original app, then check its device.'),{code:'DEVICE_QUERY_ORIGINAL_REQUEST_REQUIRED'});
  return originalDeviceQuery.queryOriginal(review.request);
 }));
-handleWalletIPC('wallet:cancel-device-create',()=>safeIPC(async()=>{const state=originalDeviceCreation?.readStatusDATA();if(!state?.requestId)return state??{phase:'idle'};return originalDeviceCreation.rejectOriginal(state.requestId);}));
+handleWalletIPC('wallet:cancel-device-create',()=>safeIPC(async()=>{
+ const state=originalDeviceCreation?.readStatusDATA();if(!state?.requestId)return state??{phase:'idle'};
+ const registration=originalDeviceRegistration?.readStatusDATA();if(registration?.requestId)await originalDeviceRegistration.rejectOriginal(registration.requestId);
+ return originalDeviceCreation.rejectOriginal(state.requestId);
+}));
 async function prepareLocalPQAccountInitialReview(action,input){
   const guard=keyAccess.current();guard.assert();let response;
   try{
@@ -786,6 +822,12 @@ handleWalletIPC("wallet:walletconnect-proposal-action", (_event, id, action, exp
 }));
 
 handleWalletIPC("wallet:provider-action", (event, id, action) => sensitiveIPC(async () => {
+  if(originalDeviceRegistration?.isPendingReview(id)){
+   if(accountChangeInProgress)throw Error('The selected account is changing.');
+   if(!['approve','reject'].includes(action))throw Error('Invalid approval action.');
+   const device=action==='approve'?await originalDeviceRegistration.approveOriginal(event,id):await originalDeviceRegistration.rejectOriginal(id);
+   return Object.freeze({status:action==='approve'?'registration-result-retained':'cancelled',message:action==='approve'?'原账户批准与登记结果已保留，仍需完成原应用挑战。 / Original approval and registration outcome retained; the app challenge remains separate.':'本次账户确认已取消。 / Account confirmation cancelled.',deviceRegistration:device});
+  }
   if(originalDeviceCreation?.isPendingReview(id)){
    if(accountChangeInProgress)throw Error('The selected account is changing.');
    if(!['approve','reject'].includes(action))throw Error('Invalid approval action.');
@@ -1018,6 +1060,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
     transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), pqReadTypedOriginal:createPQTypedActionNodeReader().readOriginal, intentStore:originalTransactionIntentStore })
   });
+  originalDeviceRegistration=createOriginalDeviceRegistrationController({vault:passwordVault,networkId:PQ_CANONICAL_NETWORK_ID,authority:walletAuthority});
   authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
   nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork, onTransferAttempt: record => { mainWindow?.webContents.send("wallet:transfer-attempt",record); } });
   const cctpStore=new CctpStore({filePath:path.join(userData,'cross-chain-cctp-v1.json')}),cctpAdapter=new CctpEVMAdapter();
