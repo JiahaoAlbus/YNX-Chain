@@ -113,3 +113,38 @@ P01 review routing is now actually frozen at `a437d525a7d35d31a9ef664629433bcaa1
 The two new original UNKNOWN query callees are `readInvoiceIntentPacket(id,current)` and `readInvoicePacket(merchant,invoiceId,current)`. They send only their fixed GET route with no body, no reconcile POST or Member; they return the same six raw fields without JSON parsing or a post-response current check, so Main stores its first exact packet before later failure. SDK5aa Pay inspection accepts POST only; GET remains raw DATA/UNKNOWN and must never be relabelled POST/Core. Read-only Native acquisition uses the original owner's query contract, not a fabricated approval capsule.
 
 The sole SDK parser is now supplied in complete SDK `5aa1a6596885c31138e7825c111b6ce1c81ed8ef`: `@ynx-chain/wallet-auth/pq-native-pay-observation.inspectPQNativePayResponseDATA(snapshot,{member,originals},target,response)`. Terms target is exactly `{intentId}`, settlement/refund target `{}`; the sole codec derives merchant/invoice paths from the original Member. Main first retains actual six-field packet, then passes it unchanged. It returns observation-only UNKNOWN with paid/submitted/permission/finality/retry false. Complete553-member archive,9966-file prefix and root6/full2 mapping are consumed together; no few-leaf hotmix. This public DATA parser is not the missing Native approved Source getter/recognizer and cannot grant a payment.
+
+
+## Invoice query size and cumulative refund acceptance
+
+Ordinary invoice GET and the nested invoice in intent GET retain every exact
+operation `member`, hashes, kind, owner, status, failure and verified effect.
+They omit repeated per-operation `envelope` and collector `observation`.
+Top-level original `termsMember`/`termsEnvelope` remain. Wallet refund review
+continues to compare the retained settlement Member with
+`operations[settlementNativeHash].member`. The journal, authenticated original
+archive route, independent proof expectations, and direct action responses
+retain their complete original contracts. Existing 1 MiB Product / 2 MiB Go
+response caps remain unchanged; five actual operations fit below 1 MiB.
+
+The existing isolated CI runner adds `multi-refund-fixture`, `multi-refund` and
+`shop-multi-refund` selectors. The first exports a new temporary-chain fixture
+using the original Core BlockExecutor/history query/H and H+1 verifier; it
+never overwrites a retained fixture. The latter two enable the explicit `pay_multi_refund` test tag, leaving the
+existing three-row full-suite requirements unchanged. They consume five
+originals: terms, payment100, same-block refund30/index0 and refund20/index1,
+then refund50. The Shop selector requires the original P07 driver binary and
+SHA256, follows its normal prepare/confirm/return path, cold-opens after each
+refund, and observes cumulative30/50/100 with net70/50/0. Separate goods receipt
+and explicit restock follow full financial refund. Receipt stages perform no
+Core calls or money POSTs and leave Pay disk bytes unchanged. PUBLIC fixture
+Source/key setup is not genuine Root admission, installed Main acceptance,
+mempool acceptance of sequential same-block nonces, or real funds evidence.
+
+The multi-refund Pay cold/proof case runs with race detection. The two-process
+Shop journey runs the normal Go target under the original unchanged 20s Shop
+client budget. Its first full race-instrumented attempt timed out on the final
+four-receipt GET; that failed log and original Shop state remain separate.
+Normal execution completed the full journey in17.543s; this is not a claim that
+the full instrumented journey passed. No retry of that uncertain original
+Shop action, larger timeout, cached trust or skipped verifier is introduced.

@@ -5,6 +5,14 @@ composition=${1:?isolated composition path required}
 fixture_dir=${2:?explicit temporary-chain public fixture output required}
 case "$composition" in */owners/P06/pq-core-composition-*) ;; *) echo 'isolated P06 composition required' >&2; exit 2;; esac
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = multi-refund-fixture ]; then
+ : "${PAY_GO_BINARY:?exact original Go executable required}"
+ /usr/bin/python3 "$source_dir/testsupport/generate_core_workflow.py" "$composition" --multi-refund
+ cd "$composition"
+ export PAY_CORE_WORKFLOW_DIR="$fixture_dir"
+ "$PAY_GO_BINARY" test -p 1 ./internal/consensus -run '^TestExportPayMultiRefundWorkflow$' -count=1 -timeout=5m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = r6-native-caller ]; then
  : "${PAY_NODE_BINARY:?exact original Node executable required}"
  : "${PAY_NATIVE_CALLER_INTAKE:?verified original Native component intake required}"
@@ -77,6 +85,11 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = multi-refund ]; then
+ export PAY_MULTI_REFUND_WORKFLOW_DIR="$fixture_dir"
+ go test -race -p 1 -tags 'pay_pq pay_multi_refund pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativePaySameBlockPartialRefundsThenFullColdReceipt$' -count=1 -timeout=5m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = archive-unix-host ]; then
  : "${PAY_ARCHIVE_UNIX_SOCKET_ROOT:?owned short external Unix socket root required}"
  cp -R "$source_dir/nativehost" "$composition/internal/payproduct/"
@@ -88,6 +101,16 @@ if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = archive-unix ]; then
  : "${PAY_ARCHIVE_UNIX_SOCKET_ROOT:?owned short external Unix socket root required}"
  export PAY_R6_ARCHIVE_CLIENT_DRIVER="$client_root/testsupport/r6-archive-recovery.mjs"
  go test -race -p 1 -tags 'pay_pq pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativePayR6ActualArchiveClientNormalHTTPColdAndMerchantReceipt$|^TestNativeArchiveFiniteCanonicalWirePaths$|^TestNativeArchiveHandlerRejectsAliasesBeforeSourceCapture$' -count=1 -timeout=5m -v
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = shop-multi-refund ]; then
+ : "${PAY_SHOP_REFUND_DRIVER_BINARY:?exact original Shop driver required}"
+ : "${PAY_SHOP_REFUND_DRIVER_SHA256:?exact original Shop driver hash required}"
+ export PAY_MULTI_REFUND_WORKFLOW_DIR="$fixture_dir"
+ # Exercise the normal target under the unchanged original Shop 20s deadline.
+ # The separate multi-refund suite retains race coverage for proof/cold state.
+ # Full instrumented two-process run exceeded20s; its first cause is retained.
+ go test -p 1 -tags 'pay_pq pay_multi_refund pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativePayActualShopSameBlockCumulativeRefundCold$' -count=1 -timeout=5m -v
  exit
 fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = shop-refund-journey ]; then

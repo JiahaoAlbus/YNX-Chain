@@ -1,0 +1,66 @@
+// New temporary-chain fixture only. Original consensus, invoice transition,
+// executor, history replay and independent H/H+1 verifier remain unchanged.
+invoiceAuth, invoiceSchedule := invoiceAuthorizationFor(t, app)
+invoiceSchedule.ActivationHeight = invoiceSchedule.AuthorizedAt
+invoiceAuth = invoiceAuthorizationFrom(t, invoiceSchedule)
+app, err = NewPersistentApplicationWithInvoiceAuthorization(f.migration, h.path, f.bootstrap, authorization, nil, invoiceAuth)
+if err != nil { t.Fatal(err) }
+h.app, h.source.app = app, app
+h.proxy = startEngineTestProxy(t, app)
+light := &pqLightProofFixture{harness:h, schedule:schedule, authorization:authorization}
+type row struct { Wire []byte; Data []byte; Expected PQTransactionProofExpectation; Proof PQTransactionProofRequest; View PQInvoiceView; Registration ynxbatch.Registration; Nonce, Height uint64 }
+type actionSpec struct { other bool; kind string; payload any; nonce uint64 }
+var rows []row
+terms := ynxauth.InvoiceTermsPayload{InvoiceID:"invoice-multi-100",SessionID:"session-multi-100",Recipient:account.owner,Payer:account.other,AssetID:"YNXT",UnitVersion:"1",FeeRule:"native-transfer-fee-one/v1",KeyEpoch:1,Revision:1,Amount:100,MaxFee:1,ExpiresAt:1000}
+var termsEffect, settlementEffect PQInvoiceEffect
+blockExpectation := func(b *cmttypes.LightBlock) PQLightProofExpectation { return PQLightProofExpectation{ChainID:b.ChainID,HeaderHeight:b.Height,BlockHash:bytes.Clone(b.Hash()),StateHeight:b.Height-1,StateAppHash:bytes.Clone(b.AppHash)} }
+commit := func(actions []actionSpec) {
+ t.Helper()
+ wires, envelopes := make([][]byte,len(actions)), make(cmttypes.Txs,len(actions))
+ for i,spec := range actions {
+  owner,key:=account.owner,account.key
+  if spec.other { owner,key=account.other,account.otherKey }
+  wires[i]=pqABCIContractWire(t,account,key,owner,spec.kind,spec.payload,spec.nonce,1)
+  envelopes[i],err=EncodePQNativeActionTransaction(wires[i]);if err!=nil {t.Fatal(err)}
+ }
+ height:=h.app.committed.Height+1
+ // Actual BlockExecutor applies ordered sequential nonces in one block. This
+ // fixture does not claim standalone CheckTx/mempool proposal acceptance for
+ // the second transaction before the first has executed.
+ h.apply(t,envelopes);h.apply(t,nil)
+ results,e:=h.raw.LoadFinalizeBlockResponse(height);if e!=nil||len(results.TxResults)!=len(actions){t.Fatal("actual multi-refund execution",e)}
+ block,successor:=light.block(t,height),light.block(t,height+1)
+ for i,spec:=range actions {
+  result:=results.TxResults[i];if result.Code!=0 {t.Fatal("original sequential action rejected",spec.kind,spec.nonce,result.Code,result.Log)}
+  var effect PQInvoiceEffect;if e=json.Unmarshal(result.Data,&effect);e!=nil {t.Fatal(e)}
+  if spec.kind==ynxauth.ActionInvoiceTerms {termsEffect=effect};if spec.kind==ynxauth.ActionInvoiceSettle {settlementEffect=effect}
+  txProof,e:=cmtjson.Marshal(h.blocks.LoadBlock(height).Data.Txs.Proof(i));if e!=nil {t.Fatal(e)}
+  execution,resultProof,e:=EncodePQTransactionExecutionProof(results.TxResults,i);if e!=nil {t.Fatal(e)}
+  native:=sha256.Sum256(wires[i])
+  expected:=PQTransactionProofExpectation{Block:blockExpectation(block),Successor:blockExpectation(successor),TransactionType:PQActionType,Envelope:envelopes[i],NativeWire:wires[i],TransactionHash:envelopes[i].Hash(),NativeWireHash:native[:],Index:int64(i)}
+  proof:=PQTransactionProofRequest{Version:PQTransactionProofVersion,Block:light.encode(t,block),Successor:light.encode(t,successor),TransactionProof:txProof,ExecutionResult:execution,ExecutionProof:resultProof}
+  // The exact original action's historical prefix comes from the same real
+  // Core query implementation, never a truncated/reconstructed JSON history.
+  view,last,e:=pqInvoiceView(h.app.committed,f.migration,account.owner,terms.InvoiceID,SignedTransactionHash(wires[i]));if e!=nil||last.NativeHash!=effect.NativeHash {t.Fatal("actual original invoice prefix",e)}
+  owner,pub:=account.owner,account.public;if spec.other {owner,pub=account.other,account.otherPublic}
+  rows=append(rows,row{wires[i],result.Data,expected,proof,view,ynxbatch.Registration{AlgorithmVersion:ynxbatch.Version,Owner:owner,Purpose:"TX-BATCH",PolicyRevision:"independent-fixture-original-account",ChainID:account.network,PKA:pub.PKA,PKB:pub.PKB,Enabled:true,ActiveFrom:1},spec.nonce-1,uint64(height)})
+ }
+}
+commit([]actionSpec{{false,ynxauth.ActionInvoiceTerms,terms,2}})
+commit([]actionSpec{{true,ynxauth.ActionInvoiceSettle,ynxauth.InvoiceSettlePayload{Merchant:account.owner,InvoiceID:terms.InvoiceID,TermsHash:invoiceHashBytes(t,termsEffect.TermsHash),Amount:100},2}})
+refund:=func(id string,amount,nonce uint64) actionSpec {return actionSpec{false,ynxauth.ActionInvoiceRefund,ynxauth.InvoiceRefundPayload{InvoiceID:terms.InvoiceID,RefundID:id,TermsHash:invoiceHashBytes(t,termsEffect.TermsHash),SettlementHash:invoiceHashBytes(t,settlementEffect.NativeHash),Amount:amount},nonce}}
+commit([]actionSpec{refund("refund-first-30",30,3),refund("refund-second-20",20,4)})
+commit([]actionSpec{refund("refund-final-50",50,5)})
+if len(rows)!=5||rows[2].Height!=rows[3].Height||rows[2].Expected.Index!=0||rows[3].Expected.Index!=1||rows[4].View.Record.RefundedAtoms!=100 {t.Fatal("actual same-block/full-refund fixture invariant")}
+engine,err:=h.raw.Load();if err!=nil {t.Fatal(err)}
+source,err:=NewPQEngineFileSource(f.migration,h.path,f.bootstrap,authorization);if err!=nil {t.Fatal(err)}
+authority,err:=source.ConsensusAuthorityForState(engine.ChainID,engine.LastBlockHeight,engine.AppHash);if err!=nil {t.Fatal(err)}
+snapshot,ok:=authority.(*PQEngineSnapshot);if !ok {t.Fatal("real engine snapshot required")}
+trust:=PQLightProofTrust{Snapshot:snapshot,TrustedLightBlock:light.block(t,schedule.ActivationHeight),TrustingPeriod:time.Hour,MaxClockDrift:time.Second,TrustLevel:cmtmath.Fraction{Numerator:1,Denominator:3},Now:light.block(t,engine.LastBlockHeight).Time.Add(time.Second)}
+for _,row:=range rows {result,e:=VerifyPQTransactionProof(trust,row.Expected,row.Proof);if e!=nil||!result.Finalized||!result.ExecutionSuccessful||result.Index!=row.Expected.Index {t.Fatal("actual independent original action proof",e,result)}}
+output:=os.Getenv("PAY_CORE_WORKFLOW_DIR");if output=="" {t.Fatal("new explicit multi-refund fixture output required")};if _,e:=os.Stat(filepath.Join(output,"manifest.json"));!os.IsNotExist(e){t.Fatal("never overwrite a retained fixture")};if err=os.MkdirAll(output,0700);err!=nil {t.Fatal(err)}
+write:=func(name string,value any){raw,e:=json.Marshal(value);if e!=nil {t.Fatal(e)};if e=os.WriteFile(filepath.Join(output,name),raw,0600);e!=nil {t.Fatal(e)}}
+stateRaw,err:=os.ReadFile(h.path);if err!=nil {t.Fatal(err)};if err=os.WriteFile(filepath.Join(output,"engine.state"),stateRaw,0600);err!=nil {t.Fatal(err)}
+trustedRaw,err:=cmtjson.Marshal(trust.TrustedLightBlock);if err!=nil {t.Fatal(err)}
+write("manifest.json",struct{Migration chain.ConsensusMigrationState;Genesis []byte;Pins ConsensusBootstrapPins;Schedule []byte;ScheduleHash string;EngineChain string;EngineHeight int64;EngineAppHash []byte;Trusted []byte;Now time.Time;Terms ynxauth.InvoiceTermsPayload;Merchant string;Network []byte;NativeChainID uint64;Rows []row}{f.migration,f.raw,f.pins,scheduleRaw,scheduleHash,engine.ChainID,engine.LastBlockHeight,engine.AppHash,trustedRaw,trust.Now,terms,account.owner,account.network,uint64(f.migration.Network.ChainID),rows})
+t.Log("ACTUAL_MULTI_REFUND_FIXTURE paid100/refund30+20_same_block/refund50_full; independentProofs5; originalRefundIDs3; mempoolAdmissionNotClaimed=true realFunds=false")

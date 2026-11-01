@@ -33,9 +33,22 @@ import (
 // prepare original orders/temporary Members; actual normal Pay proof math,
 // HTTP routes, Shop business effects, cold Store and return flow execute.
 func TestNativePayActualShopReceiptReturnPartialRefundCold(t *testing.T) {
+	runNativePayActualShopRefundCold(t, false)
+}
+
+func runNativePayActualShopRefundCold(t *testing.T, multi bool) {
+	t.Helper()
 	dir, driver := os.Getenv("PAY_CORE_WORKFLOW_DIR"), os.Getenv("PAY_SHOP_REFUND_DRIVER_BINARY")
 	if !filepath.IsAbs(dir) || !filepath.IsAbs(driver) {
 		t.Fatal("exact Core fixture and original Shop driver required")
+	}
+	rowCount := 3
+	if multi {
+		dir = os.Getenv("PAY_MULTI_REFUND_WORKFLOW_DIR")
+		rowCount = 5
+		if !filepath.IsAbs(dir) {
+			t.Fatal("exact multi-refund fixture required")
+		}
 	}
 	driverBytes, err := os.ReadFile(driver)
 	if err != nil {
@@ -50,7 +63,7 @@ func TestNativePayActualShopReceiptReturnPartialRefundCold(t *testing.T) {
 		t.Fatal(err)
 	}
 	var f nativeCoreWorkflowManifest
-	if json.Unmarshal(raw, &f) != nil || len(f.Rows) != 3 {
+	if json.Unmarshal(raw, &f) != nil || len(f.Rows) != rowCount {
 		t.Fatal("complete original fixture required")
 	}
 	bootstrap, err := consensus.NewConsensusBootstrap(f.Genesis, f.Pins, f.Migration)
@@ -71,8 +84,14 @@ func TestNativePayActualShopReceiptReturnPartialRefundCold(t *testing.T) {
 	}
 	proofs := &nativeWorkflowProofSource{rows: f.Rows, trust: consensus.PQLightProofTrust{Snapshot: snapshot, TrustedLightBlock: &trusted, TrustingPeriod: time.Hour, MaxClockDrift: time.Second, TrustLevel: cmtmath.Fraction{Numerator: 1, Denominator: 3}, Now: f.Now}}
 	var current atomic.Int32
-	var corePosts atomic.Int32
+	var corePosts, coreReadsDuringReceipt atomic.Int32
+	var receiptStage atomic.Bool
 	core := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if receiptStage.Load() {
+			coreReadsDuringReceipt.Add(1)
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 		row := f.Rows[current.Load()]
 		envelope, action, e := nativePayHTTPMember(row.Wire)
 		if e != nil {
@@ -81,7 +100,7 @@ func TestNativePayActualShopReceiptReturnPartialRefundCold(t *testing.T) {
 			return
 		}
 		nativeHash, abciHash := consensus.SignedTransactionHash(row.Wire), consensus.SignedTransactionHash(envelope)
-		index := uint32(0)
+		index := uint32(row.Expected.Index)
 		if r.Method == "POST" {
 			body, _ := io.ReadAll(r.Body)
 			if !bytes.Equal(body, row.Wire) {
@@ -116,7 +135,7 @@ func TestNativePayActualShopReceiptReturnPartialRefundCold(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	command := exec.CommandContext(t.Context(), driver, "-test.run=^TestP06OriginalPayShopDriver$")
+	command := exec.CommandContext(t.Context(), driver, "-test.run=^TestP06OriginalPayShopDriver$", "-test.timeout=5m")
 	command.Env = append(os.Environ(), "PAY_SHOP_ORIGINAL_DRIVER=1")
 	input, err := command.StdinPipe()
 	if err != nil {
@@ -176,7 +195,7 @@ func TestNativePayActualShopReceiptReturnPartialRefundCold(t *testing.T) {
 		return message{}
 	}
 	termsView := nativeIntentView(nativeInvoiceIntentRecord{Terms: f.Terms}).Terms
-	send(map[string]any{"phase": "init", "merchant": f.Merchant, "payer": f.Terms.Payer, "genesis": hex.EncodeToString(f.Network), "nativeChainId": strconv.FormatUint(f.NativeChainID, 10), "terms": termsView, "refundId": "refund-30"})
+	send(map[string]any{"phase": "init", "merchant": f.Merchant, "payer": f.Terms.Payer, "genesis": hex.EncodeToString(f.Network), "nativeChainId": strconv.FormatUint(f.NativeChainID, 10), "terms": termsView, "refundId": "refund-30", "MultiRefund": multi})
 	original := receive("original").Request
 	if original.ProductID != "shop.order" || original.StoreID == "" || original.SourceOrder == "" || original.Merchant != f.Merchant || original.Recipient != f.Terms.Recipient || original.Genesis != hex.EncodeToString(f.Network) || original.NativeChainID != strconv.FormatUint(f.NativeChainID, 10) || original.AssetID != f.Terms.AssetID || original.UnitVersion != f.Terms.UnitVersion || original.AmountAtoms != "100" {
 		t.Fatal("Shop original request changed actual Core terms")
@@ -270,24 +289,50 @@ func TestNativePayActualShopReceiptReturnPartialRefundCold(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	receiptStage.Store(true)
 	send(map[string]any{"phase": "paid", "origin": endpoint.URL, "original": original, "invoiceIntent": issued})
 	beforeRefund := receive("refund").Result
 	if corePosts.Load() != 2 || beforeRefund["paidAtoms"] != "100" {
 		t.Fatal("Shop receipt stage sent a money action")
 	}
-	advance(2)
-	core.Close()
-	cold, err := OpenStore(parent.store.path, parent.key)
-	if err != nil {
-		t.Fatal(err)
+	var result map[string]any
+	var stageResults []map[string]any
+	for i := 2; i < len(f.Rows); i++ {
+		receiptStage.Store(false)
+		advance(i)
+		if i == len(f.Rows)-1 {
+			core.Close()
+		}
+		cold, e := OpenStore(parent.store.path, parent.key)
+		if e != nil {
+			t.Fatal(e)
+		}
+		parent.store = cold
+		payDiskBefore, e := os.ReadFile(parent.store.path)
+		if e != nil {
+			t.Fatal(e)
+		}
+		receiptStage.Store(true)
+		send(map[string]any{"phase": "refunded"})
+		phase := "done"
+		if i < len(f.Rows)-1 {
+			phase = "refund-progress"
+		}
+		result = receive(phase).Result
+		stageResults = append(stageResults, result)
+		wantRefund, wantNet := "30", "70"
+		if multi {
+			wantRefund = []string{"30", "50", "100"}[i-2]
+			wantNet = []string{"70", "50", "0"}[i-2]
+		}
+		if result["paidAtoms"] != "100" || result["refundedAtoms"] != wantRefund || result["netPaidAtoms"] != wantNet {
+			t.Fatal("Shop original cumulative stage", i, result)
+		}
+		payDiskAfter, e := os.ReadFile(parent.store.path)
+		if e != nil || !bytes.Equal(payDiskBefore, payDiskAfter) {
+			t.Fatal("receipt stage changed original Pay disk", i, e)
+		}
 	}
-	parent.store = cold
-	payDiskBefore, err := os.ReadFile(parent.store.path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	send(map[string]any{"phase": "refunded"})
-	result := receive("done").Result
 	_ = input.Close()
 	for scanner.Scan() {
 	} // original Go test binary's final PASS
@@ -299,7 +344,11 @@ func TestNativePayActualShopReceiptReturnPartialRefundCold(t *testing.T) {
 	if err != nil {
 		t.Fatal("original Shop driver", err, readStderr())
 	}
-	for k, want := range map[string]string{"paidAtoms": "100", "refundedAtoms": "30", "netPaidAtoms": "70"} {
+	wantRefund, wantNet := "30", "70"
+	if multi {
+		wantRefund, wantNet = "100", "0"
+	}
+	for k, want := range map[string]string{"paidAtoms": "100", "refundedAtoms": wantRefund, "netPaidAtoms": wantNet} {
 		if result[k] != want {
 			t.Fatal("Shop original amount", k, result)
 		}
@@ -309,10 +358,9 @@ func TestNativePayActualShopReceiptReturnPartialRefundCold(t *testing.T) {
 			t.Fatal("Shop original acceptance", k, result)
 		}
 	}
-	payDiskAfter, err := os.ReadFile(parent.store.path)
-	if err != nil || !bytes.Equal(payDiskBefore, payDiskAfter) || unexpectedMoneyPosts.Load() != 0 || corePosts.Load() != 3 || reads.Load() == 0 || preparationPosts.Load() != 1 || originalLookupPosts.Load() != 1 {
-		t.Fatal("receipt recovery changed original Pay state or sent money", err, unexpectedMoneyPosts.Load(), corePosts.Load(), reads.Load())
+	if unexpectedMoneyPosts.Load() != 0 || corePosts.Load() != int32(rowCount) || coreReadsDuringReceipt.Load() != 0 || reads.Load() == 0 || preparationPosts.Load() != 1 || originalLookupPosts.Load() != 1 {
+		t.Fatal("receipt recovery queried Core or sent money", unexpectedMoneyPosts.Load(), corePosts.Load(), coreReadsDuringReceipt.Load(), reads.Load())
 	}
-	t.Logf("ACTUAL_PAY_SHOP_STAGED_RECEIPT_RETURN %s", mustNativeReceiptJSON(map[string]any{"original": original, "beforeRefund": beforeRefund, "result": result, "PayGET": reads.Load(), "originalPreparationPOST": preparationPosts.Load(), "originalQueryOnlyLookupPOST": originalLookupPosts.Load(), "moneyPOST": unexpectedMoneyPosts.Load(), "CoreSetupMemberPOST": corePosts.Load(), "CoreOfflineAfterRefund": true, "PayColdDiskUnchanged": true, "RootAdmission": false, "funds": false}))
+	t.Logf("ACTUAL_PAY_SHOP_STAGED_RECEIPT_RETURN %s", mustNativeReceiptJSON(map[string]any{"original": original, "beforeRefund": beforeRefund, "result": result, "stageResults": stageResults, "sameBlockCumulative": multi, "CoreReceiptCalls": coreReadsDuringReceipt.Load(), "PayGET": reads.Load(), "originalPreparationPOST": preparationPosts.Load(), "originalQueryOnlyLookupPOST": originalLookupPosts.Load(), "moneyPOST": unexpectedMoneyPosts.Load(), "CoreSetupMemberPOST": corePosts.Load(), "CoreOfflineAfterRefund": true, "PayColdDiskUnchanged": true, "RootAdmission": false, "funds": false}))
 }
 func mustNativeReceiptJSON(v any) string { b, _ := json.Marshal(v); return string(b) }

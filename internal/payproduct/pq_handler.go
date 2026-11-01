@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 	"io"
@@ -226,6 +227,24 @@ func nativePayError(w http.ResponseWriter, err error) {
 	}
 	writeJSON(w, status, map[string]string{"code": code, "error": err.Error()})
 }
+
+// Invoice reads retain the exact Member needed by the original Wallet review.
+// Envelope/collector observations remain in the journal and original-archive
+// route; repeating them for every operation can exceed the private read limit.
+// Direct action responses retain their original complete operation contract.
+type nativeInvoiceOperationView struct {
+	Merchant   string                     `json:"merchant"`
+	InvoiceID  string                     `json:"invoiceId"`
+	NativeHash string                     `json:"nativeHash"`
+	ABCIHash   string                     `json:"abciHash"`
+	Member     []byte                     `json:"member"`
+	Kind       string                     `json:"kind"`
+	Owner      string                     `json:"owner"`
+	Status     string                     `json:"status"`
+	Failure    string                     `json:"failure,omitempty"`
+	Effect     *consensus.PQInvoiceEffect `json:"effect,omitempty"`
+}
+
 func nativeInvoiceProjection(s NativePayInvoice) (map[string]any, error) {
 	status := "awaiting_terms_finality"
 	paid, refunded, termsFee, paymentFee, refundFees := uint64(0), uint64(0), uint64(0), uint64(0), uint64(0)
@@ -276,7 +295,11 @@ func nativeInvoiceProjection(s NativePayInvoice) (map[string]any, error) {
 	if err != nil {
 		return nil, err
 	}
-	return map[string]any{"genesis": hex.EncodeToString(action.ChainID), "nativeChainId": strconv.FormatUint(action.NativeChainID, 10), "merchant": s.Merchant, "invoiceId": s.InvoiceID, "sessionId": s.SessionID, "sourceOrder": s.SourceOrder, "status": status, "refundStatus": refundStatus, "assetId": s.Terms.AssetID, "unitVersion": s.Terms.UnitVersion, "principalAtoms": strconv.FormatUint(s.Terms.Amount, 10), "paidAtoms": strconv.FormatUint(paid, 10), "refundedAtoms": strconv.FormatUint(refunded, 10), "netPaidAtoms": strconv.FormatUint(paid-refunded, 10), "termsFeeAtoms": strconv.FormatUint(termsFee, 10), "paymentFeeAtoms": strconv.FormatUint(paymentFee, 10), "refundFeeAtoms": strconv.FormatUint(refundFees, 10), "feeRule": s.Terms.FeeRule, "maxFeeAtoms": strconv.FormatUint(s.Terms.MaxFee, 10), "expiresAtHeight": strconv.FormatUint(s.Terms.ExpiresAt, 10), "termsHash": s.TermsHash, "termsMember": termsOp.Member, "termsEnvelope": termsOp.Envelope, "termsNativeHash": termsOp.NativeHash, "settlementNativeHash": s.SettlementOperation, "operations": s.Operations, "authority": "core-native-invoice-proof-gated"}, nil
+	operations := make(map[string]nativeInvoiceOperationView, len(s.Operations))
+	for hash, op := range s.Operations {
+		operations[hash] = nativeInvoiceOperationView{Merchant: op.Merchant, InvoiceID: op.InvoiceID, NativeHash: op.NativeHash, ABCIHash: op.ABCIHash, Member: op.Member, Kind: op.Kind, Owner: op.Owner, Status: op.Status, Failure: op.Failure, Effect: op.Effect}
+	}
+	return map[string]any{"genesis": hex.EncodeToString(action.ChainID), "nativeChainId": strconv.FormatUint(action.NativeChainID, 10), "merchant": s.Merchant, "invoiceId": s.InvoiceID, "sessionId": s.SessionID, "sourceOrder": s.SourceOrder, "status": status, "refundStatus": refundStatus, "assetId": s.Terms.AssetID, "unitVersion": s.Terms.UnitVersion, "principalAtoms": strconv.FormatUint(s.Terms.Amount, 10), "paidAtoms": strconv.FormatUint(paid, 10), "refundedAtoms": strconv.FormatUint(refunded, 10), "netPaidAtoms": strconv.FormatUint(paid-refunded, 10), "termsFeeAtoms": strconv.FormatUint(termsFee, 10), "paymentFeeAtoms": strconv.FormatUint(paymentFee, 10), "refundFeeAtoms": strconv.FormatUint(refundFees, 10), "feeRule": s.Terms.FeeRule, "maxFeeAtoms": strconv.FormatUint(s.Terms.MaxFee, 10), "expiresAtHeight": strconv.FormatUint(s.Terms.ExpiresAt, 10), "termsHash": s.TermsHash, "termsMember": termsOp.Member, "termsEnvelope": termsOp.Envelope, "termsNativeHash": termsOp.NativeHash, "settlementNativeHash": s.SettlementOperation, "operations": operations, "authority": "core-native-invoice-proof-gated"}, nil
 }
 
 func decodeNativeTermsInput(fields map[string]json.RawMessage) (ynxauth.InvoiceTermsPayload, error) {

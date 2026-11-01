@@ -23,5 +23,14 @@ account.otherKey, account.otherPublic, err = ynxbatch.KeyGen()
 if err != nil { t.Fatal(err) }; t.Cleanup(account.otherKey.Destroy)''', 1)
 prefix = prefix.replace('\th.apply(t, registrations)', '''registrations = append(registrations, mustPQEnvelope(t, PQMigrationType, account.registration(t, true, uint64(f.doc.InitialHeight+1))))
 \th.apply(t, registrations)''', 1)
-tail = pathlib.Path(__file__).with_name('core_workflow_tail.go.txt').read_text()
-(root / 'internal/consensus/pay_consumer_workflow_test.go').write_text('package consensus\n'+imports+'\nfunc TestExportPayConsumerWorkflow(t *testing.T) {\n'+prefix+tail+'\n}\n')
+multi = len(sys.argv) == 3 and sys.argv[2] == '--multi-refund'
+if len(sys.argv) > 2 and not multi:
+    raise SystemExit('only explicit --multi-refund fixture successor is supported')
+tail_name = 'core_multi_refund_tail.go.txt' if multi else 'core_workflow_tail.go.txt'
+test_name = 'TestExportPayMultiRefundWorkflow' if multi else 'TestExportPayConsumerWorkflow'
+file_name = 'pay_multi_refund_workflow_test.go' if multi else 'pay_consumer_workflow_test.go'
+if multi:
+    imports = '\n'.join(line for line in imports.splitlines()
+                        if '"context"' not in line and 'abci "' not in line)
+tail = pathlib.Path(__file__).with_name(tail_name).read_text()
+(root / 'internal/consensus' / file_name).write_text('package consensus\n'+imports+'\nfunc '+test_name+'(t *testing.T) {\n'+prefix+tail+'\n}\n')
