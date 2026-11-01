@@ -8,6 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {assemblePhysicalQACodeLayout,openPhysicalCodeView} from '../scripts/physical-code-layout.mjs';
+import {desktopAsarHeaderIntegrity} from '../scripts/release-provenance.mjs';
 const app=fileURLToPath(new URL('..',import.meta.url)),require=createRequire(new URL('../package.json',import.meta.url)),asar=require('@electron/asar');
 const sha=b=>createHash('sha256').update(b).digest('hex');
 async function fixture(t){
@@ -23,6 +24,8 @@ async function fixture(t){
 test('offline physical assembly keeps one SDK/native copy, original bytes and the normal canonical URI',async t=>{
  const f=await fixture(t),r=assemblePhysicalQACodeLayout(f.resources,app,f.profile),view=openPhysicalCodeView(f.resources,app);
  assert.equal(r.RootAdmission,false);assert.equal(r.officialRelease,false);assert.equal(fs.existsSync(path.join(f.resources,'app.asar.unpacked')),false);
+ assert.deepEqual(desktopAsarHeaderIntegrity(f.resources,app),view.actualAsarHeaderIntegrity);
+ assert.notDeepEqual(view.actualAsarHeaderIntegrity,r.originalAsarHeaderIntegrity);
  for(const[n,b]of Object.entries(f.files))assert.equal(fs.readFileSync(path.join(view.root,n),'utf8'),b);
  assert.equal(fs.realpathSync(path.join(view.root,'node_modules/@ynx-chain/wallet-auth')),path.join(view.root,'code/packages/wallet-auth'));
  assert.equal(asar.listPackage(path.join(f.resources,'app.asar')).filter(p=>p.includes('wallet-auth')).length,0);

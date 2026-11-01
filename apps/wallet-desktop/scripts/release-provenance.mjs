@@ -435,7 +435,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     if(receipt.after.some(member=>member.path===asset))throw Error('Unreviewed optional source-current Native module');
     return {declaredBy:row.sourcePath,path:asset,packaged:false,capability:'NOT_SUPPLIED'};
   }));
-  if(!isDeepStrictEqual(desktopAsarHeaderIntegrity(resources,cwd),receipt.asarHeaderIntegrity)) throw new Error("Relocated ASAR header integrity differs");
+  if(!isDeepStrictEqual(desktopAsarHeaderIntegrity(resources,cwd),physical?.actualAsarHeaderIntegrity??receipt.asarHeaderIntegrity)) throw new Error("Relocated ASAR header integrity differs");
   let macAsarIntegrityVerified=false;
   if(path.basename(resources)==="Resources"&&path.basename(path.dirname(resources))==="Contents"){
     const plist=path.join(path.dirname(resources),"Info.plist");
