@@ -46,7 +46,11 @@ func readInitializationMigration(path string, maximum int64, hooks *initializati
 		return state, err
 	}
 	limited := &io.LimitedReader{R: file, N: maximum + 1}
-	state, err = chain.ReadConsensusMigrationState(initializationChunkReader{limited})
+	inputStart := bufio.NewReaderSize(initializationChunkReader{limited}, 64*1024)
+	err = initializationMigrationSkipLeadingSpace(inputStart)
+	if err == nil {
+		state, err = chain.ReadConsensusMigrationState(initializationChunkReader{inputStart})
+	}
 	if identityErr := check(); identityErr != nil {
 		return chain.ConsensusMigrationState{}, identityErr
 	}
@@ -157,4 +161,23 @@ func (c *initializationCanonicalComparator) finish() error {
 		return errors.New("public operator binding must be one complete canonical JSON value")
 	}
 	return nil
+}
+
+// encoding/json.Decoder.Token retains a whitespace-only prefix while peeking.
+// Consume only the four permitted document-leading JSON whitespace bytes with
+// a fixed buffer. Interior bytes (including every token/string separator) and
+// the complete original-byte bound/canonical second pass remain unchanged.
+func initializationMigrationSkipLeadingSpace(input *bufio.Reader) error {
+	for {
+		b, err := input.ReadByte()
+		if err != nil {
+			return err
+		}
+		switch b {
+		case ' ', '\t', '\r', '\n':
+			continue
+		default:
+			return input.UnreadByte()
+		}
+	}
 }

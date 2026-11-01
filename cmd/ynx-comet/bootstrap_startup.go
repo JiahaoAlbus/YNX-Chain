@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 
-	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	cfg "github.com/cometbft/cometbft/config"
 	"github.com/cometbft/cometbft/libs/log"
@@ -27,13 +25,9 @@ func constructBootstrapNode(config *cfg.Config, logger log.Logger, options pqOpt
 	if config == nil || logger == nil || !options.bootstrapOnly() || options.validate() != nil || config.PrivValidatorListenAddr != "" {
 		return nil, nil, errors.New("bootstrap-only construction requires complete independent pins and original local custody")
 	}
-	rawMigration, err := readBounded(options.migration, 1<<30)
+	migration, err := readInitializationMigration(options.migration, 1<<30, nil)
 	if err != nil {
 		return nil, nil, err
-	}
-	var migration chain.ConsensusMigrationState
-	if err = json.Unmarshal(rawMigration, &migration); err != nil {
-		return nil, nil, fmt.Errorf("decode original bootstrap migration: %w", err)
 	}
 	rawGenesis, err := readBounded(config.GenesisFile(), 64<<20)
 	if err != nil {

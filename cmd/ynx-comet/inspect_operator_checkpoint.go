@@ -1,12 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"strconv"
 
-	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/spf13/cobra"
 )
@@ -43,16 +41,8 @@ func newInspectOperatorCheckpointCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			migrationRaw, err := readInitializationInput(options.migration, 1<<30)
+			migration, err := readInitializationMigration(options.migration, 1<<30, nil)
 			if err != nil {
-				return err
-			}
-			var compact bytes.Buffer
-			if err := json.Compact(&compact, migrationRaw); err != nil {
-				return err
-			}
-			var migration chain.ConsensusMigrationState
-			if err := decodeStrict(compact.Bytes(), &migration); err != nil {
 				return err
 			}
 			pins := consensus.ConsensusBootstrapPins{CometGenesisSHA256: options.genesisHash, OriginalGenesisHash: options.originalGenesisHash, MigrationStateHash: options.migrationHash}

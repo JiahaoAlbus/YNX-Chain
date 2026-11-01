@@ -61,14 +61,11 @@ func LoadPQOperatorInputs(files PQOperatorFiles) (*PQOperatorInputs, error) {
 	if files.State == "" {
 		return nil, errors.New("original committed state path is required")
 	}
-	migrationRaw, err := readPQOperatorFile(files.Migration, 1<<30, false)
+	migration, err := readPQOperatorMigration(files.Migration, 1<<30, nil)
 	if err != nil {
 		return nil, err
 	}
-	in := new(PQOperatorInputs)
-	if err = json.Unmarshal(migrationRaw, &in.Migration); err != nil {
-		return nil, err
-	}
+	in := &PQOperatorInputs{Migration: migration}
 	genesis, err := readPQOperatorFile(files.Genesis, 64<<20, false)
 	if err != nil {
 		return nil, err

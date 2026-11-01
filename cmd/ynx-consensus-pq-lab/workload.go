@@ -216,7 +216,7 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 						proof, e := consensus.DecodePQTransactionProofRequest(wire)
 						err = e
 						if err == nil {
-							result, err = sender.Confirm(command.Request, m, proof, time.Now().UTC())
+							result, err = sender.ConfirmMeasured(command.Request, m, proof, time.Now().UTC(), metrics)
 						}
 					}
 				}

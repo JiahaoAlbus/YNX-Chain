@@ -70,16 +70,8 @@ func newInspectProofHostTargetCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			migrationRaw, err := readInitializationInput(f.source.migration, 1<<30)
+			migration, err := readInitializationMigration(f.source.migration, 1<<30, nil)
 			if err != nil {
-				return err
-			}
-			var compact bytes.Buffer
-			if err = json.Compact(&compact, migrationRaw); err != nil {
-				return err
-			}
-			var migration chain.ConsensusMigrationState
-			if err = decodeStrict(compact.Bytes(), &migration); err != nil {
 				return err
 			}
 			pins := consensus.ConsensusBootstrapPins{CometGenesisSHA256: f.source.genesisHash, OriginalGenesisHash: f.source.originalGenesisHash, MigrationStateHash: f.source.migrationHash}

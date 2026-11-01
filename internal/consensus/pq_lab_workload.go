@@ -1384,15 +1384,27 @@ func (s *PQLabSender) SignMeasured(r PQLabSenderRequest, checkpoint *PQLabSender
 // rejected or partial execution stays explicitly rejected/partial; it never
 // increments an invented nonce. The next Sign reads actual account state again.
 func (s *PQLabSender) Confirm(r PQLabSenderRequest, m PQLabProofMaterials, proof PQTransactionProofRequest, now time.Time) (PQLabProofExport, error) {
+	return s.ConfirmMeasured(r, m, proof, now, nil)
+}
+
+// ConfirmMeasured observes the same original-operation confirmation path.
+// These nested signer/proof intervals are not ABCI Commit measurements.
+func (s *PQLabSender) ConfirmMeasured(r PQLabSenderRequest, m PQLabProofMaterials, proof PQTransactionProofRequest, now time.Time, metrics *PQLabMetrics) (PQLabProofExport, error) {
+	endTotal := pqLabMeasure(metrics, "confirm.total")
+	defer endTotal()
 	if s == nil {
 		return PQLabProofExport{}, errors.New("missing sender")
 	}
+	endLock := pqLabMeasure(metrics, "confirm.lockWait")
 	s.mu.Lock()
+	endLock()
 	defer s.mu.Unlock()
 	if s.key == nil {
 		return PQLabProofExport{}, errors.New("closed sender")
 	}
+	endRecover := pqLabMeasure(metrics, "confirm.recoverOriginal")
 	original, err := s.recoverLocked(r)
+	endRecover()
 	if err != nil {
 		return PQLabProofExport{}, err
 	}
@@ -1400,19 +1412,32 @@ func (s *PQLabSender) Confirm(r PQLabSenderRequest, m PQLabProofMaterials, proof
 	if err != nil {
 		return PQLabProofExport{}, err
 	}
-	wire, err := pqLabRead(filepath.Join(directory, "transaction.wire"), MaxPQWholeTransactionBytes)
+	endBinding := pqLabMeasure(metrics, "confirm.originalBinding")
+	err = func() error {
+		wire, err := pqLabRead(filepath.Join(directory, "transaction.wire"), MaxPQWholeTransactionBytes)
+		if err != nil {
+			return err
+		}
+		envelope, err := pqLabRead(filepath.Join(directory, "transaction.abci"), MaxPQWholeTransactionBytes)
+		if err != nil {
+			return err
+		}
+		if !bytes.Equal(m.Expected.NativeWire, wire) || !bytes.Equal(m.Expected.Envelope, envelope) || m.Expected.TransactionType != original.Transaction.Type || m.Pins.OriginalGenesisHash != s.manifest.OriginalGenesisHash || m.Pins.MigrationStateHash != s.manifest.MigrationStateHash {
+			return errors.New("confirmation proof differs from exact original operation")
+		}
+		return nil
+	}()
+	endBinding()
 	if err != nil {
 		return PQLabProofExport{}, err
-	}
-	envelope, err := pqLabRead(filepath.Join(directory, "transaction.abci"), MaxPQWholeTransactionBytes)
-	if err != nil {
-		return PQLabProofExport{}, err
-	}
-	if !bytes.Equal(m.Expected.NativeWire, wire) || !bytes.Equal(m.Expected.Envelope, envelope) || m.Expected.TransactionType != original.Transaction.Type || m.Pins.OriginalGenesisHash != s.manifest.OriginalGenesisHash || m.Pins.MigrationStateHash != s.manifest.MigrationStateHash {
-		return PQLabProofExport{}, errors.New("confirmation proof differs from exact original operation")
 	}
 	confirmedPath := filepath.Join(directory, "CONFIRMED.json")
-	if _, e := os.Lstat(confirmedPath); e == nil {
+	endLookup := pqLabMeasure(metrics, "confirm.confirmedLookup")
+	_, confirmedErr := os.Lstat(confirmedPath)
+	endLookup()
+	if confirmedErr == nil {
+		endRead := pqLabMeasure(metrics, "confirm.readConfirmedOriginal")
+		defer endRead()
 		saved, e := s.readRecord(confirmedPath)
 		if e != nil {
 			return PQLabProofExport{}, ErrPQLabSenderUnknown
@@ -1422,26 +1447,35 @@ func (s *PQLabSender) Confirm(r PQLabSenderRequest, m PQLabProofMaterials, proof
 			return PQLabProofExport{}, ErrPQLabSenderUnknown
 		}
 		return prior, nil
-	} else if !os.IsNotExist(e) {
+	} else if !os.IsNotExist(confirmedErr) {
 		return PQLabProofExport{}, ErrPQLabSenderUnknown
 	}
 	proofDirectory := filepath.Join(directory, "confirmation-proof")
 	var result PQLabProofExport
 	if _, e := os.Lstat(proofDirectory); e == nil {
+		endProof := pqLabMeasure(metrics, "confirm.recheckProofInputs")
 		result, err = recheckPQLabProofInputs(proofDirectory, m, proof, now)
+		endProof()
 	} else if os.IsNotExist(e) {
+		endProof := pqLabMeasure(metrics, "confirm.writeProofInputs")
 		result, err = WritePQLabProofInputs(proofDirectory, m, proof, now)
+		endProof()
 	} else {
 		err = e
 	}
 	if err != nil {
 		return PQLabProofExport{}, err
 	}
+	endEncode := pqLabMeasure(metrics, "confirm.encodeConfirmedRecord")
 	raw, err := json.Marshal(result)
+	endEncode()
 	if err != nil {
 		return PQLabProofExport{}, err
 	}
-	if err = s.writeRecord(filepath.Join(directory, "CONFIRMED.json"), raw); err != nil {
+	endPersist := pqLabMeasure(metrics, "confirm.persistConfirmedRecord")
+	err = s.writeRecordMeasured(filepath.Join(directory, "CONFIRMED.json"), raw, metrics)
+	endPersist()
+	if err != nil {
 		return PQLabProofExport{}, ErrPQLabSenderUnknown
 	}
 	return result, nil

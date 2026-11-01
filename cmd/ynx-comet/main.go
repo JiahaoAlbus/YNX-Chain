@@ -195,13 +195,10 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 	if err != nil {
 		return nil, nil, errors.New("cannot load original P2P node identity")
 	}
-	rawMigration, err := os.ReadFile(options.migration)
+	var migration chain.ConsensusMigrationState
+	migration, err = readInitializationMigration(options.migration, 1<<30, nil)
 	if err != nil {
 		return nil, nil, err
-	}
-	var migration chain.ConsensusMigrationState
-	if err := json.Unmarshal(rawMigration, &migration); err != nil {
-		return nil, nil, fmt.Errorf("decode migration: %w", err)
 	}
 	rawGenesis, err := os.ReadFile(config.GenesisFile())
 	if err != nil {
@@ -477,7 +474,7 @@ func closePQCustody(custody io.Closer) error {
 
 func main() {
 	root := commands.RootCmd
-	root.AddCommand(newInitializeApplicationCommand())
+	root.AddCommand(newInitializeApplicationCommand(), newInspectFreshApplicationCommand())
 	root.AddCommand(newInspectOperatorCheckpointCommand(), newEncodeValidatorRegistrationCommand(), newApproveFirstValidatorRegistrationCommand())
 	root.AddCommand(newRequestHeightHaltCommand())
 	root.AddCommand(newExportProofHostSourceCommand())

@@ -427,7 +427,8 @@ func TestPQLabOnlineSenderOriginalRecoveryAndFullProof(t *testing.T) {
 	bad := proof
 	bad.ExecutionResult = bytes.Clone(proof.ExecutionResult)
 	bad.ExecutionResult[len(bad.ExecutionResult)-1] ^= 1
-	if _, err = sender.Confirm(request, m, bad, time.Now().UTC()); err == nil {
+	refusedMetrics := &PQLabMetrics{}
+	if _, err = sender.ConfirmMeasured(request, m, bad, time.Now().UTC(), refusedMetrics); err == nil {
 		t.Fatal("bad proof released outstanding operation")
 	}
 	// A failed verification retains exact checkpoint originals, without a success
@@ -436,7 +437,8 @@ func TestPQLabOnlineSenderOriginalRecoveryAndFullProof(t *testing.T) {
 	if _, err = os.Stat(filepath.Join(operation, "confirmation-proof", "PUBLIC-PROOF-INPUTS.json")); !os.IsNotExist(err) {
 		t.Fatal("bad proof published success")
 	}
-	confirmed, err := sender.Confirm(request, m, proof, time.Now().UTC())
+	confirmMetrics := &PQLabMetrics{}
+	confirmed, err := sender.ConfirmMeasured(request, m, proof, time.Now().UTC(), confirmMetrics)
 	if err != nil {
 		t.Fatal("normal H/H+1 confirmation", err)
 	}
@@ -446,6 +448,44 @@ func TestPQLabOnlineSenderOriginalRecoveryAndFullProof(t *testing.T) {
 	if again, err := sender.Confirm(request, m, proof, time.Now().UTC()); err != nil || again.Context != confirmed.Context {
 		t.Fatal("confirmed lost acknowledgement recovery", err)
 	}
+
+	// The measured callee must retain proof refusal, exact original recovery,
+	// real persistence, and an idempotent read that never rewrites the record.
+	if refusedMetrics.Snapshot().Stages["confirm.writeProofInputs"].Calls != 1 || refusedMetrics.Snapshot().Stages["confirm.persistConfirmedRecord"].Calls != 0 {
+		t.Fatal("a refused proof must not report successful confirmation persistence")
+	}
+	measured := confirmMetrics.Snapshot()
+	for _, stage := range []string{"confirm.total", "confirm.recoverOriginal", "confirm.originalBinding", "confirm.recheckProofInputs", "confirm.persistConfirmedRecord", "sender.fileFsync", "sender.directoryFsync"} {
+		if measured.Stages[stage].Calls != 1 || measured.Stages[stage].ElapsedNS < 0 {
+			t.Fatal("confirmation stage was not observed at its original callee", stage)
+		}
+	}
+	confirmedFile := filepath.Join(operation, "CONFIRMED.json")
+	beforeMeasuredRetry, err := os.ReadFile(confirmedFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeMeasuredStat, err := os.Stat(confirmedFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	retryMetrics := &PQLabMetrics{}
+	if again, e := sender.ConfirmMeasured(request, m, proof, time.Now().UTC(), retryMetrics); e != nil || again.Context != confirmed.Context {
+		t.Fatal("measured exact retry lost the original confirmation", e)
+	}
+	afterMeasuredRetry, err := os.ReadFile(confirmedFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterMeasuredStat, err := os.Stat(confirmedFile)
+	if err != nil || !os.SameFile(beforeMeasuredStat, afterMeasuredStat) || !beforeMeasuredStat.ModTime().Equal(afterMeasuredStat.ModTime()) || !bytes.Equal(beforeMeasuredRetry, afterMeasuredRetry) {
+		t.Fatal("observation changed the existing original confirmation record", err)
+	}
+	retryObserved := retryMetrics.Snapshot()
+	if retryObserved.Stages["confirm.readConfirmedOriginal"].Calls != 1 || retryObserved.Stages["confirm.persistConfirmedRecord"].Calls != 0 || retryObserved.Stages["sender.fileFsync"].Calls != 0 {
+		t.Fatal("an original acknowledgement recovery must not invent a persistence sample")
+	}
+
 	next := request
 	next.OperationID = strings.Repeat("c", 64)
 	next.FirstNonce = 4

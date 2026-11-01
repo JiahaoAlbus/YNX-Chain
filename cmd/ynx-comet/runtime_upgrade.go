@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -105,12 +104,8 @@ func constructRuntimeNode(config *cfg.Config, logger log.Logger, options pqOptio
 	if config == nil || logger == nil || !options.runtimeOnly() || options.validate() != nil || config.PrivValidatorListenAddr != "" {
 		return nil, nil, errors.New("runtime-only construction requires complete independent operator configuration")
 	}
-	raw, err := os.ReadFile(options.migration)
+	migration, err := readInitializationMigration(options.migration, 1<<30, nil)
 	if err != nil {
-		return nil, nil, err
-	}
-	var migration chain.ConsensusMigrationState
-	if err = json.Unmarshal(raw, &migration); err != nil {
 		return nil, nil, err
 	}
 	genesis, err := os.ReadFile(config.GenesisFile())
