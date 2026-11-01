@@ -1,12 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createTaskAPI,TaskAPIError,TaskWorkspaceController,type Task,type TaskAPI,type TaskPersistence,type WorkspaceRecord,type TaskProjection,type TaskStep} from "./tasks";
+import {createTaskAPI,TaskAPIError,TaskWorkspaceController,type Task,type TaskAPI,type TaskPersistence,type WorkspaceRecord,type TaskProjection,type TaskStep,type TaskRequestSnapshot} from "./tasks";
 
 const task:Task={id:"task_original",conversationId:"conv_original",holder:"holder_original",revision:2,generation:1,status:"READY"};
 const step:TaskStep={id:"step_original",status:"UNKNOWN",toolStep:{taskId:task.id,taskRevision:2,generation:1,holder:task.holder,toolId:"ai.conversation.read",toolVersion:"1",authorityOperationId:"original-node-op"}};
 const projection:TaskProjection={...task,cursor:2,hasMore:false,events:[],steps:[step]};
 function storage(){let saved:WorkspaceRecord|null=null;const values:string[]=[];const api:TaskPersistence={read:async()=>saved?JSON.parse(JSON.stringify(saved)):null,write:async(_id,value)=>{values.push(JSON.stringify(value));saved=JSON.parse(JSON.stringify(value))}};return {api,values,get saved(){return saved}}}
-function mockAPI(changes:Partial<TaskAPI>={}):TaskAPI{return {list:async()=>({tasks:[task],hasMore:false}),task:async()=>JSON.parse(JSON.stringify(projection)),create:async()=>task,prepare:async()=>({task:{...task,revision:3}}),cancel:async()=>({task:{...task,status:"RECONCILING",revision:3},remoteRollback:false}),approve:async()=>({}),reconcile:async()=>({}),result:async()=>({state:"COMMITTED",effectRef:step.id,result:{actual:"PUBLIC controlled result"}}),run:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[step.id],recoveryOnly:false}),runView:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"UNKNOWN",steps:[step.id],recoveryOnly:true}),...changes}}
+function mockAPI(changes:Partial<TaskAPI>={}):TaskAPI{return {list:async()=>({tasks:[task],hasMore:false}),task:async()=>JSON.parse(JSON.stringify(projection)),create:async()=>task,prepare:async()=>({task:{...task,revision:3}}),cancel:async()=>({task:{...task,status:"RECONCILING",revision:3},remoteRollback:false}),approve:async()=>({}),dispatch:async()=>({state:"COMMITTED",effectRef:step.id,result:{}}),reconcile:async()=>({}),result:async()=>({state:"COMMITTED",effectRef:step.id,result:{actual:"PUBLIC controlled result"}}),run:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[step.id],recoveryOnly:false}),runView:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"UNKNOWN",steps:[step.id],recoveryOnly:true}),...changes}}
 test("native task requests use fresh original scope proof and fixed route, no legacy bearer",async()=>{
  const scopes:string[]=[],requests:{url:string;init:RequestInit}[]=[];
  const api=createTaskAPI("http://127.0.0.1:6438",{identity:"PUBLIC-session",proof:async scope=>{scopes.push(scope);return `PUBLIC-${scopes.length}`}},async(input,init)=>{requests.push({url:String(input),init:init!});return new Response(JSON.stringify({tasks:[],hasMore:false}),{status:200})});
@@ -54,4 +54,31 @@ test("lost model response resumes only after readback of its exact original run"
 });
 test("unreadable prior journal cannot be overwritten or bypassed by task creation",async()=>{
  let creates=0,writes=0;const persistence:TaskPersistence={read:async()=>{throw Error("PUBLIC original journal unavailable")},write:async()=>{writes++}};const c=new TaskWorkspaceController("PUBLIC",mockAPI({create:async()=>{creates++;return task}}),persistence,()=>"replacement_id");await c.restore();await c.create("conv_original");assert.equal(creates,0);assert.equal(writes,0);assert.match(c.state.error,/original journal unavailable/);
+});
+test("proof acquisition snapshots exact method path and bytes before asynchronous signer work",async()=>{
+ let entered!:()=>void,release!:()=>void;const started=new Promise<void>(r=>entered=r),pending=new Promise<void>(r=>release=r);let signed:TaskRequestSnapshot|undefined,sent:RequestInit|undefined;
+ const original={...task};const api=createTaskAPI("http://127.0.0.1:6438",{identity:"PUBLIC",proof:async(_scope,request)=>{assert.ok(Object.isFrozen(request));signed=request;entered();await pending;return "PUBLIC-controlled-proof"}},async(_url,init)=>{sent=init;return new Response(JSON.stringify({task:{...task,status:"RECONCILING"},remoteRollback:false}),{status:200})});
+ const call=api.cancel(original,new AbortController().signal);await started;original.revision=999;original.generation=888;release();await call;assert.deepEqual(signed,{method:"POST",path:"/api/tasks/task_original/cancel",bodyOriginal:'{"revision":2,"generation":1}'});assert.equal(sent!.body,signed!.bodyOriginal);assert.equal(sent!.method,signed!.method);
+});
+test("cancel while awaiting native proof never dispatches a previously requested body",async()=>{
+ let entered!:()=>void,release!:()=>void;const started=new Promise<void>(r=>entered=r),pending=new Promise<void>(r=>release=r);let sends=0;const abort=new AbortController();const api=createTaskAPI("http://127.0.0.1:6438",{identity:"PUBLIC",proof:async()=>{entered();await pending;return "PUBLIC-proof"}},async()=>{sends++;return new Response("{}")});const call=api.cancel(task,abort.signal);await started;abort.abort();release();await assert.rejects(call,/TASK_REQUEST_CANCELLED/);assert.equal(sends,0);
+});
+test("approved Shop step executes once after durable journal and original result survives lost response",async()=>{
+ const saved=storage();let calls=0,ids=0;const approved:TaskStep={...step,status:"approved_not_executed",toolStep:{...step.toolStep,toolId:"shop.order.read"}};
+ const api=mockAPI({task:async()=>({...projection,steps:[approved]}),dispatch:async(taskID,stepID,ref)=>{assert.equal(saved.saved!.deliveries.at(-1)!.state,"PENDING");assert.equal(taskID,task.id);assert.equal(stepID,step.id);assert.equal(ref,"PRIVATE original grant ref");calls++;throw Error("PUBLIC lost original response")}});
+ const c=new TaskWorkspaceController("PUBLIC",api,saved.api,()=>`delivery_${++ids}`);await c.select(task.id);await c.dispatch(task,approved,"PRIVATE original grant ref");assert.equal(calls,1);assert.equal(saved.saved!.deliveries.at(-1)!.state,"UNKNOWN");
+ c.dispose();const restored=new TaskWorkspaceController("PUBLIC",api,saved.api,()=>`delivery_${++ids}`);await restored.restore();await restored.select(task.id);await restored.dispatch(task,approved,"PRIVATE original grant ref");assert.equal(calls,1);assert.match(restored.state.error,/ORIGINAL_DELIVERY_RETAINED/);await restored.readResult(approved);assert.equal(restored.state.receipt!.state,"COMMITTED");assert.ok(saved.values.every(raw=>!raw.includes("PRIVATE original grant ref")&&!raw.includes("controlled result")));
+});
+test("native step actions reject foreign, changed, unapproved or cancelled execution before network",async()=>{
+ let calls=0;const approved:TaskStep={...step,status:"approved_not_executed",toolStep:{...step.toolStep,toolId:"shop.order.read"}};
+ const api=mockAPI({task:async()=>({...projection,steps:[approved]}),dispatch:async()=>{calls++;return {state:"COMMITTED",effectRef:step.id,result:{}}},approve:async()=>{calls++;return {}}});
+ const c=new TaskWorkspaceController("PUBLIC",api,storage().api,()=>"delivery");await c.select(task.id);
+ for(const candidate of [{...approved,id:"foreign_step"},{...approved,status:"NEEDS_APPROVAL"},{...approved,toolStep:{...approved.toolStep,holder:"different_holder"}},{...approved,toolStep:{...approved.toolStep,taskId:"foreign_task"}}])await assert.rejects(c.dispatch(task,candidate,"ref"),/ORIGINAL_STEP_CHANGED/);
+ await assert.rejects(c.approve(task,{...approved,status:"NEEDS_APPROVAL"},"ref"),/ORIGINAL_STEP_CHANGED/);
+ c.state.projection!.status="CANCELLED";await assert.rejects(c.dispatch(c.state.projection!,approved,"ref"),/TASK_NOT_EXECUTABLE/);assert.equal(calls,0);
+});
+test("dispatch transport uses exact original route and proof-bound bytes; Shop model choice and resume remain distinct",async()=>{
+ const requests:{path:string;body:unknown}[]=[];const api=createTaskAPI("http://127.0.0.1:6438",{identity:"PUBLIC",proof:async(_scope,request)=>{requests.push({path:request.path,body:JSON.parse(request.bodyOriginal)});return "PUBLIC-proof"}},async()=>new Response(JSON.stringify({state:"COMMITTED",effectRef:step.id,result:{}})));
+ const signal=new AbortController().signal;await api.dispatch(task.id,step.id,"PRIVATE ref",signal);await api.run(task,"original_run","prompt","ref",["ai.conversation.read","shop.order.read"],false,signal);await api.run(task,"original_run","","ref",[],true,signal);
+ assert.equal(requests[0]!.path,"/api/tasks/task_original/tool-steps/step_original/dispatch");assert.deepEqual(requests[0]!.body,{authorizationRef:"PRIVATE ref"});assert.deepEqual((requests[1]!.body as {toolIds:string[]}).toolIds,["ai.conversation.read","shop.order.read"]);assert.deepEqual((requests[2]!.body as {toolIds:string[]}).toolIds,[]);assert.equal((requests[2]!.body as {resume:boolean}).resume,true);
 });

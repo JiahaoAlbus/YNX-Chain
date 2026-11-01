@@ -1,9 +1,12 @@
 // Native task orchestration only. Canonical proof acquisition belongs to the
 // original Wallet session; neither a legacy token nor this UI grants authority.
 export type TaskScope="ai:conversations"|"ai:permissions"|"ai:generate";
-export type TaskCredentials={identity:string;proof:(scope:TaskScope)=>Promise<string>};
+// Transport operands for the original matching SDK signer, not an authority
+// DTO or new proof grammar. The shared SDK owns canonical bytes/domain/version.
+export type TaskRequestSnapshot=Readonly<{method:"GET"|"POST";path:string;bodyOriginal:string}>;
+export type TaskCredentials={identity:string;proof:(scope:TaskScope,request:TaskRequestSnapshot)=>Promise<string>};
 export type Task={id:string;conversationId:string;holder:string;revision:number;generation:number;status:string;cancelledAt?:string};
-export type TaskStep={id:string;status:string;toolStep:{taskId:string;taskRevision:number;generation:number;holder:string;toolId:string;toolVersion:string;authorityOperationId?:string;remoteOperationId?:string;remoteRef?:string;effectFirstCause?:string}};
+export type TaskStep={id:string;status:string;toolStep:{taskId:string;taskRevision:number;generation:number;holder:string;toolId:string;toolVersion:string;inputDigest?:string;approvedFields?:string[];authorityOperationId?:string;remoteOperationId?:string;remoteRef?:string;effectFirstCause?:string}};
 export type TaskProjection=Task&{cursor:number;hasMore:boolean;events:unknown[];steps:TaskStep[]};
 export type TaskRun={id:string;runId:string;taskId:string;status:string;steps:string[];content?:string;firstCause?:string;recoveryOnly:boolean};
 export type TaskReceipt={state:string;effectRef:string;originalOperationId?:string;authorityOperationId?:string;remoteRef?:string;result:unknown;authScope?:string};
@@ -16,8 +19,9 @@ const segment=(id:string)=>{if(!/^[A-Za-z0-9_-]{1,128}$/.test(id))throw new Erro
 export function createTaskAPI(base:string,credentials:TaskCredentials,fetcher:typeof fetch=fetch){
  const endpoint=new URL(base);if(endpoint.username||endpoint.password||endpoint.search||endpoint.hash||!['http:','https:'].includes(endpoint.protocol))throw new Error("INVALID_TASK_ENDPOINT");
  const request=async<T>(path:string,scope:TaskScope,signal:AbortSignal,body?:unknown):Promise<T>=>{
-  const proof=await credentials.proof(scope);if(signal.aborted)throw new Error("TASK_REQUEST_CANCELLED");if(!proof||proof.length>16384||/[\r\n\0]/.test(proof))throw new Error("CANONICAL_TASK_PROOF_UNAVAILABLE");
-  const response=await fetcher(`${base.replace(/\/$/,"")}${path}`,{method:body===undefined?"GET":"POST",redirect:"error",credentials:"omit",signal,headers:{Accept:"application/json",...(body===undefined?{}:{"Content-Type":"application/json"}),"X-YNX-Product-Session-Proof-V2":proof},body:body===undefined?undefined:JSON.stringify(body)});
+  const method=body===undefined?"GET":"POST",bodyOriginal=body===undefined?"":JSON.stringify(body);const snapshot:TaskRequestSnapshot=Object.freeze({method,path,bodyOriginal});
+  const proof=await credentials.proof(scope,snapshot);if(signal.aborted)throw new Error("TASK_REQUEST_CANCELLED");if(!proof||proof.length>16384||/[\r\n\0]/.test(proof))throw new Error("CANONICAL_TASK_PROOF_UNAVAILABLE");
+  const response=await fetcher(`${base.replace(/\/$/,"")}${path}`,{method,redirect:"error",credentials:"omit",signal,headers:{Accept:"application/json",...(body===undefined?{}:{"Content-Type":"application/json"}),"X-YNX-Product-Session-Proof-V2":proof},body:body===undefined?undefined:bodyOriginal});
   if(response.redirected)throw new Error("TASK_REDIRECT_REJECTED");
   const raw=await response.text();if(raw.length>20<<20)throw new Error("TASK_RESPONSE_TOO_LARGE");const value=JSON.parse(raw);
   if(!response.ok)throw new TaskAPIError(response.status,typeof value.code==="string"?value.code:`HTTP_${response.status}`);
@@ -30,6 +34,7 @@ export function createTaskAPI(base:string,credentials:TaskCredentials,fetcher:ty
   prepare:(task:Task,signal:AbortSignal)=>request<{task:Task}>(`/api/tasks/${segment(task.id)}/prepare`,"ai:permissions",signal,{revision:task.revision,generation:task.generation}),
   cancel:(task:Task,signal:AbortSignal)=>request<{task:Task;remoteRollback:false}>(`/api/tasks/${segment(task.id)}/cancel`,"ai:permissions",signal,{revision:task.revision,generation:task.generation}),
   approve:(task:string,step:string,authorizationRef:string,signal:AbortSignal)=>request<unknown>(`/api/tasks/${segment(task)}/tool-steps/${segment(step)}/approve`,"ai:permissions",signal,{authorizationRef}),
+  dispatch:(task:string,step:string,authorizationRef:string,signal:AbortSignal)=>request<TaskReceipt>(`/api/tasks/${segment(task)}/tool-steps/${segment(step)}/dispatch`,"ai:permissions",signal,{authorizationRef}),
   reconcile:(task:string,step:string,authorizationRef:string,signal:AbortSignal)=>request<unknown>(`/api/tasks/${segment(task)}/tool-steps/${segment(step)}/reconcile`,"ai:permissions",signal,{authorizationRef}),
   result:(task:string,step:string,signal:AbortSignal)=>request<TaskReceipt>(`/api/tasks/${segment(task)}/tool-steps/${segment(step)}/result`,"ai:conversations",signal),
   run:(task:Task,runId:string,prompt:string,authorizationRef:string,toolIds:string[],resume:boolean,signal:AbortSignal)=>request<TaskRun>(`/api/tasks/${segment(task.id)}/runs`,"ai:generate",signal,{runId:segment(runId),taskRevision:task.revision,generation:task.generation,prompt,authorizationRef,toolIds,resume}),
@@ -76,7 +81,18 @@ export class TaskWorkspaceController{
   try{await this.persist(this.state.record);if(request.signal.aborted)throw new Error("TASK_REQUEST_CANCELLED");const result=await this.api.cancel(task,request.signal);delivery.state="RESPONSE_RECEIVED";await this.persist(this.state.record);if(!this.disposed){this.state.projection={...this.state.projection!,...result.task};this.request?.abort();this.request=null;this.epoch++;this.state.busy=false;this.state.run=null;this.emit()}}
   catch(error){if(delivery.state==="PENDING"){delivery.state=error instanceof TaskAPIError?"REJECTED_RESPONSE":"UNKNOWN";await this.persist(this.state.record)}throw error}finally{this.cancellation=null}
  }
- async approve(expected:Task,step:TaskStep,ref:string){const task=this.current(expected);if(step.status!=="NEEDS_APPROVAL"||step.toolStep.taskRevision!==task.revision||step.toolStep.generation!==task.generation)throw new Error("ORIGINAL_STEP_APPROVAL_REQUIRED");await this.mutate("approve",task,step.id,"",s=>this.api.approve(task.id,step.id,ref,s),()=>{})}
+ private currentStep(task:Task,expected:TaskStep,status:string){
+  const step=this.state.projection?.steps.find(item=>item.id===expected.id);
+  if(!step||step.status!==status||expected.status!==status||step.toolStep.taskId!==task.id||step.toolStep.taskRevision!==task.revision||step.toolStep.generation!==task.generation||step.toolStep.holder!==task.holder||JSON.stringify(step.toolStep)!==JSON.stringify(expected.toolStep))throw new Error("ORIGINAL_STEP_CHANGED_REFRESH_REQUIRED");
+  return step;
+ }
+ async approve(expected:Task,step:TaskStep,ref:string){const task=this.current(expected);const original=this.currentStep(task,step,"NEEDS_APPROVAL");await this.mutate("approve",task,original.id,"",s=>this.api.approve(task.id,original.id,ref,s),()=>{})}
+ async dispatch(expected:Task,step:TaskStep,ref:string){
+  const task=this.current(expected);const original=this.currentStep(task,step,"approved_not_executed");
+  if(!["READY","WORKING"].includes(task.status)||(task.cancelledAt&&!task.cancelledAt.startsWith("0001-")))throw new Error("TASK_NOT_EXECUTABLE");
+  if(!ref||ref.length>256)throw new Error("ORIGINAL_AUTHORIZATION_REFERENCE_REQUIRED");
+  await this.mutate("dispatch",task,original.id,"",s=>this.api.dispatch(task.id,original.id,ref,s),value=>{this.state.receipt=value as TaskReceipt});
+ }
  async reconcile(expected:Task,step:TaskStep,ref:string){const task=this.current(expected);if(!["UNKNOWN","DISPATCHING","RECONCILING"].includes(step.status))throw new Error("ORIGINAL_QUERY_ONLY");await this.mutate("query",task,step.id,"",s=>this.api.reconcile(task.id,step.id,ref,s),()=>{})}
  async readResult(step:TaskStep){const task=this.state.projection;if(!task)return;await this.work(signal=>this.api.result(task.id,step.id,signal),receipt=>{this.state.receipt=receipt})}
  async readRun(runId:string){const task=this.state.projection;if(!task)return;await this.work(async signal=>{const run=await this.api.runView(task.id,runId,signal);if(run.taskId!==task.id||(run.runId!==runId&&run.id!==runId))throw new Error("ORIGINAL_RUN_BINDING_MISMATCH");if(!run.recoveryOnly&&run.status!=="UNKNOWN"){this.state.record={...this.state.record,deliveries:this.state.record.deliveries.map(delivery=>delivery.taskId===task.id&&delivery.runId===run.runId&&["run","resume"].includes(delivery.action)&&["PENDING","UNKNOWN"].includes(delivery.state)?{...delivery,state:"ORIGINAL_OBSERVED" as const}:delivery)};await this.persist(this.state.record)}return run},run=>{this.state.run=run})}

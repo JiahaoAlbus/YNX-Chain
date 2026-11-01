@@ -31,7 +31,7 @@ queries use the existing step/run, never another effect. The daemon's run read
 route accepts the scoped original public run ID as well as its existing
 internal key, preserving compatibility without replaying the provider.
 
-`TaskCredentials.proof(scope)` is a transport operand supplied by the original
+`TaskCredentials.proof(scope, request)` is a transport operand supplied by the original
 native Wallet/session owner. The legacy `Session.token` is **not** used for task
 requests, and proofs are not cached or persisted. Every request selects a fixed
 server route/scope and awaits a fresh proof. No method in this module generates
@@ -66,3 +66,24 @@ are explicitly PUBLIC controls, not real task admission. iOS/Android Metro
 exports are runnable JS/Hermes candidates for this native shell, not installed
 or signed applications. Visual/runtime acceptance awaits the shared GUI window
 and a real registered native session; build/export success is not that proof.
+
+## Original approved tool execution
+
+The native workspace now calls the existing dispatch route only for a current
+`approved_not_executed` step whose task, revision, generation and holder match
+the current projection and the reviewed step. Confirmation shows the tool, step,
+input digest and approved fields. The server still checks the original Grant,
+resource authority and effect fence. Submission is journaled before the request;
+response loss survives restart and cannot cause another dispatch. Query and
+committed-result read use the original step. A UI confirmation is not a Grant.
+
+New model runs can select conversation plus `shop.order.read`. Resume sends no
+replacement tool selection and retains the server checkpoint tool set. This is
+order reading, not order creation, payment or approval of a purchase. Request
+method, fixed route and JSON body bytes are captured before awaiting the signer,
+then the exact body bytes are sent. The matching SDK owns canonicalization,
+proof grammar and version; the inactive historical adapter is not V6 support.
+
+The new snapshot and dispatch regressions are PUBLIC transport/controller
+controls. Matching SDK/Auth native action authorization, actual protected Source
+and real order lifecycle remain required before business acceptance.
