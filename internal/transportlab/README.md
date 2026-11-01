@@ -80,3 +80,48 @@ public corpus, bound migration, per-commit/reload complete state and
 or UNKNOWN artifact. Trace records contain public coordinates/hashes and actual
 codes, not keys or invented receipts. A local compile is not functional success;
 the real CI log and resulting artifacts must qualify the exact final source pin.
+
+## Live counter input for the original normal window
+
+`mempool.(*Reactor).LiveWireObservation() mempool.LiveWireObservation` reads
+bounded detached DATA from the actual running reactor. It attaches no observer,
+enables no carrier and resets no counters. The normal Core producer still owns
+the original pre-start `SetWireObserver` call. Core's existing private operator
+producer obtains the actual `node.MempoolReactor().(*mempool.Reactor)` and calls
+this method while the node remains live; the normal command/permissions remain
+Core-owned. An after-stop lifetime snapshot cannot substitute for either live
+window endpoint. No public RPC or new socket collector is part of this API.
+
+The envelope schema is `YNX-MEMPOOL-LIVE-WIRE-OBSERVATION/v1`. Producer PID,
+private reactor/observer lifetime IDs, lifecycle generation and kernel
+`CLOCK_MONOTONIC` nanoseconds use decimal strings. The original wire and
+lossless snapshot schemas retain their original numeric formats. Capture is
+non-atomic, includes only completed named calls, excludes in-flight calls, and
+qualifies only its endpoints. IDs are DATA, not authority; the original normal
+supervisor must independently bind its process start/source/window identity.
+
+Wire absent, pre-start/stopped, writer-lock busy, overflow, clock failure or a
+stop crossing capture is UNKNOWN with a reason and `complete:false`. Available
+raw snapshots may remain attached as incomplete evidence. An unenabled lossless
+carrier remains `null/DISABLED`; no missing value becomes measured zero. The
+proto field stays `null/UNKNOWN`: this callee does not infer actual serialized
+queue bytes from original-C protobuf sizes, frame lengths or transaction counts.
+Actual owned-node metrics require the separate original raw metrics capture.
+
+Perf's existing hook can wrap the Core producer's raw JSON with the pure
+`original_live_node_capture(node, raw, sha256, start_monotonic_ns,
+end_monotonic_ns)` keyword API in `scripts/loadtest/network-layer-accounting.py`.
+The `node` is its original `{name,pid,startTicks}` receipt; all clock bounds must
+be the same kernel `CLOCK_MONOTONIC` domain. `account_layers` binds both raw
+hashes, enclosing read bounds, original PID/start, reactor/observer lifetime and
+generation, and refuses stale snapshots, changed material or mixed live and
+after-stop endpoints. This helper performs no read, network call or authority
+check, and cannot establish a producer from a JSON PID. Retain the original raw
+capture and private operator/process binding in the existing supervisor receipt.
+
+The new counter tests use the existing BaseApplication carrier fixture solely
+to observe actual reactor counter calls. They do not repeat or replace the
+separate real PQ/AND Application test. Core owns the minimal normal command
+call site; Perf owns the existing hook and sole actual measurement window.
+Until that window runs, physical bytes, gains, pressure and sustained TPS remain
+unmeasured; the carrier remains default off.

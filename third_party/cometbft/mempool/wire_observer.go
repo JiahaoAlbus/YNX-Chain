@@ -20,6 +20,7 @@ import (
 // This does not register a channel, packing capability, or alternative encoding.
 type WireObserver struct {
 	claimed  atomic.Bool
+	liveID   atomic.Uint64
 	mu       sync.Mutex
 	snapshot WireSnapshot
 }
@@ -83,6 +84,9 @@ func (memR *Reactor) SetWireObserver(observer *WireObserver) error {
 	if !observer.claimed.CompareAndSwap(false, true) {
 		return errors.New("mempool: wire observer already belongs to a reactor")
 	}
+	// This private process-local lifetime is minted only by the original
+	// attachment, never supplied by a request or a live snapshot caller.
+	observer.liveID.Store(nextLiveWireID())
 	memR.wireObserver.Store(observer)
 	return nil
 }

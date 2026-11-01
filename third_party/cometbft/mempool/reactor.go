@@ -31,6 +31,7 @@ type Reactor struct {
 	wireObserverMu      sync.Mutex
 	wireObserverStarted bool
 	losslessHex         atomic.Pointer[losslessHexTransport]
+	liveWire            liveWireLifetime
 
 	// Semaphores to keep track of how many connections to peers are active for broadcasting
 	// transactions. Each semaphore has a capacity that puts an upper bound on the number of
@@ -49,6 +50,7 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
 	memR.activePersistentPeersSemaphore = semaphore.NewWeighted(int64(memR.config.ExperimentalMaxGossipConnectionsToPersistentPeers))
 	memR.activeNonPersistentPeersSemaphore = semaphore.NewWeighted(int64(memR.config.ExperimentalMaxGossipConnectionsToNonPersistentPeers))
+	memR.liveWire.initialize()
 
 	return memR
 }
@@ -73,7 +75,16 @@ func (memR *Reactor) OnStart() error {
 	if !memR.config.Broadcast {
 		memR.Logger.Info("Tx broadcasting is disabled")
 	}
+	memR.liveWire.generation.Add(1)
+	memR.liveWire.active.Store(true)
 	return nil
+}
+
+// OnStop preserves the original empty BaseReactor stop semantics. It marks
+// only this observation lifetime; it does not stop a mempool, peer or parent.
+func (memR *Reactor) OnStop() {
+	memR.liveWire.active.Store(false)
+	memR.liveWire.generation.Add(1)
 }
 
 // GetChannels implements Reactor by returning the list of channels for this

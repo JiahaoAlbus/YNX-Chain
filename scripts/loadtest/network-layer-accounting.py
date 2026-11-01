@@ -309,6 +309,107 @@ def validate_tcp_scope(snapshot, checkpoint, owned):
         seen.add(name)
 
 
+def _live_data(capture, *, node, checkpoint):
+    require(type(capture) is dict and capture.get("source") == "original-owned-node-live-wire",
+            "live_capture_not_supplied")
+    require(capture.get("pid") == node["pid"] and counter(capture.get("startTicks")) == counter(node["startTicks"]),
+            "live_process_identity_changed")
+    lo, hi = bounds(capture); outer_lo, outer_hi = bounds(checkpoint)
+    require(outer_lo <= lo <= hi <= outer_hi, "live_capture_outside_checkpoint")
+    raw = capture.get("raw")
+    require(type(raw) is str and len(raw.encode()) <= 128 << 10, "live_capture_bound")
+    require(capture.get("sha256") == hashlib.sha256(raw.encode()).hexdigest(), "live_capture_hash_mismatch")
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            require(key not in result, "live_duplicate_json_key")
+            result[key] = value
+        return result
+    try:
+        value = json.loads(raw, object_pairs_hook=pairs,
+                           parse_constant=lambda _: (_ for _ in ()).throw(AccountingError("live_nonfinite_json")))
+    except (json.JSONDecodeError, RecursionError):
+        raise AccountingError("live_invalid_json") from None
+    require(type(value) is dict and value.get("schema") == "YNX-MEMPOOL-LIVE-WIRE-OBSERVATION/v1",
+            "live_schema_mismatch")
+    require(all(value.get(field) is True for field in ("nonAtomic", "completedCallsOnly", "inFlightExcluded", "endpointOnly"))
+            and value.get("physicalBytesMeasured") is False, "live_coverage_claim_invalid")
+    reason = value.get("reason")
+    if value.get("status") != "OBSERVED" or value.get("complete") is not True:
+        require(type(reason) is str and re.fullmatch(r"[a-z0-9_]{1,80}", reason), "live_status_unknown")
+        raise AccountingError("live_" + reason)
+    require(value.get("clock") == "CLOCK_MONOTONIC" and value.get("clockStatus") == "OBSERVED"
+            and value.get("clockError") == "", "live_kernel_clock_unavailable")
+    for field in ("producerPID", "reactorLifetimeID", "observerLifetimeID", "lifecycleGeneration",
+                  "startMonotonicNs", "endMonotonicNs"):
+        require(type(value.get(field)) is str, "live_metadata_must_be_decimal_string")
+        counter(value[field])
+    require(counter(value["producerPID"]) == node["pid"]
+            and all(counter(value[field]) > 0 for field in ("reactorLifetimeID", "observerLifetimeID", "lifecycleGeneration")),
+            "live_producer_lifetime_identity_invalid")
+    require(lo <= counter(value["startMonotonicNs"]) <= counter(value["endMonotonicNs"]) <= hi,
+            "live_snapshot_stale_or_outside_capture")
+    require(value.get("reactorRunningAtStart") is True and value.get("reactorRunningAtEnd") is True,
+            "live_reactor_not_running")
+    require(value.get("proto") is None and type(value.get("protoStatus")) is dict
+            and value["protoStatus"].get("status") == "UNKNOWN"
+            and value["protoStatus"].get("complete") is False, "live_proto_inference_forbidden")
+    wire_status = value.get("wireStatus")
+    require(type(wire_status) is dict and wire_status.get("status") == "OBSERVED"
+            and wire_status.get("complete") is True and wire_status.get("attached") is True
+            and wire_status.get("overflow") is False, "live_wire_unavailable_or_overflow")
+    _wire(value.get("wire"))
+    lossless_status = value.get("losslessStatus")
+    require(type(lossless_status) is dict and lossless_status.get("status") in ("OBSERVED", "DISABLED", "UNKNOWN"),
+            "live_lossless_status_invalid")
+    if lossless_status["status"] == "OBSERVED":
+        require(lossless_status.get("complete") is True and lossless_status.get("attached") is True
+                and lossless_status.get("overflow") is False, "live_lossless_incomplete")
+        _lossless(value.get("lossless"))
+    return value
+
+
+def original_live_node_capture(*, node, raw, sha256, start_monotonic_ns, end_monotonic_ns):
+    """Wrap the original owned producer's raw read; no I/O or new authority.
+
+    The normal Core publisher and Perf supervisor retain their original private
+    transport/process ownership. Counter hashes bind DATA, never authenticate a
+    producer. Missing/stopped/busy snapshots remain null with their first cause.
+    """
+    capture = dict(source="original-owned-node-live-wire", pid=node["pid"],
+                   startTicks=str(counter(node["startTicks"])), raw=raw, sha256=sha256,
+                   startMonotonicNs=str(counter(start_monotonic_ns)), endMonotonicNs=str(counter(end_monotonic_ns)))
+    result = dict(name=node["name"], pid=node["pid"], startTicks=capture["startTicks"],
+                  live=capture, wire=None, lossless=None, proto=None, liveStatus="UNKNOWN", liveReason=None)
+    try:
+        value = _live_data(capture, node=node, checkpoint=capture)
+        result.update(wire=value["wire"], liveStatus="OBSERVED")
+        if value["losslessStatus"]["status"] == "OBSERVED":
+            result["lossless"] = value["lossless"]
+    except (AccountingError, KeyError, TypeError) as error:
+        result["liveReason"] = str(error) if isinstance(error, AccountingError) else "live_invalid_capture"
+    return result
+
+
+def _live_pair(before, after, *, node, start, end):
+    a = _live_data(before.get("live"), node=node, checkpoint=start)
+    b = _live_data(after.get("live"), node=node, checkpoint=end)
+    for field in ("producerPID", "reactorLifetimeID", "observerLifetimeID", "lifecycleGeneration"):
+        require(a[field] == b[field], "live_lifetime_or_generation_changed")
+    require(counter(a["endMonotonicNs"]) <= counter(b["startMonotonicNs"]), "live_window_time_reversed")
+    for row, value in ((before, a), (after, b)):
+        require(row.get("wire") == value["wire"], "live_wire_material_changed")
+        expected = value["lossless"] if value["losslessStatus"]["status"] == "OBSERVED" else None
+        require(row.get("lossless") == expected, "live_lossless_material_changed")
+    return dict(startSnapshotSHA256=before["live"]["sha256"], endSnapshotSHA256=after["live"]["sha256"],
+                reactorLifetimeID=a["reactorLifetimeID"], observerLifetimeID=a["observerLifetimeID"],
+                lifecycleGeneration=a["lifecycleGeneration"], clock="CLOCK_MONOTONIC",
+                wireStatus=dict(start=a["wireStatus"], end=b["wireStatus"]),
+                losslessStatus=dict(start=a["losslessStatus"], end=b["losslessStatus"]),
+                protoStatus=dict(start=a["protoStatus"], end=b["protoStatus"]),
+                endpointOnly=True, captureIsAtomic=False)
+
+
 def account_layers(*, binding, start, end):
     """Return data only. Qualified count/finality remain the owner's evidence."""
     originals = validate_binding(binding)
@@ -331,6 +432,20 @@ def account_layers(*, binding, start, end):
                 "codec frame attempts include queue-false retries; queued is queue acceptance only; restored bytes are original-C")
             row["serializedProto"] = proto_delta(before.get("proto"), after.get("proto"),
                 binding=binding, node=node, start=start, end=end)
+            if before.get("live") is not None or after.get("live") is not None:
+                try:
+                    row["liveWindow"] = _live_pair(before, after, node=node, start=start, end=end)
+                    states = row["liveWindow"]["losslessStatus"]
+                    if any(states[side]["status"] != "OBSERVED" for side in ("start", "end")):
+                        if all(states[side]["status"] == "DISABLED" for side in ("start", "end")):
+                            row["attempted"] = unknown("live_lossless_disabled")
+                        else:
+                            row["attempted"] = unknown("live_lossless_unavailable_or_changed")
+                except (AccountingError, KeyError, TypeError) as error:
+                    cause = str(error) if isinstance(error, AccountingError) else "live_invalid_capture"
+                    row["liveWindow"] = unknown(cause)
+                    row["logical"] = unknown(cause)
+                    row["attempted"] = unknown(cause)
         rows.append(row)
     tcp = unknown("owned_tcp_snapshots_not_supplied")
     if start.get("tcp") is not None and end.get("tcp") is not None:
