@@ -2,6 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import {createPrivateNativeInvoiceClient,createNativeInvoiceMerchantApproval} from './merchant-invoice-approval.mjs';
+import {createHash} from 'node:crypto';
+
+test('original terms archive reads retained bytes only and refuses invented remote refund history',async()=>{
+ const merchant='0x'+'1'.repeat(40),terms=Buffer.from('PUBLIC original signing DATA'),hash='0x'+'2'.repeat(64),requests=[];
+ let value={merchant,invoiceId:'original',termsNativeHash:hash,settlementNativeHash:'',termsMessage:terms.toString('base64'),termsHash:createHash('sha256').update(terms).digest('hex')};
+ const pay=createPrivateNativeInvoiceClient({origin:'https://pay.example',async requestPrivate(r){r.assertCurrent();requests.push(r);return{method:r.method,requestPath:r.path,status:200,contentType:'application/json',body:Buffer.from(JSON.stringify(value))};}});
+ const ref={merchant,invoiceId:'original',termsNativeHash:hash,settlementNativeHash:'',kind:'invoice_settle'};
+ const original=await pay.readInvoiceOriginals(ref,()=>{});assert.deepEqual(Buffer.from(original.termsMessage),terms);assert.equal(original.settlement,null);
+ await assert.rejects(pay.readInvoiceOriginals({...ref,kind:'invoice_refund'},()=>{}),{code:'NATIVE_PAY_SETTLEMENT_ARCHIVE_UNAVAILABLE'});
+ value={...value,termsHash:'0'.repeat(64)};await assert.rejects(pay.readInvoiceOriginals(ref,()=>{}),{code:'NATIVE_PAY_TERMS_ORIGINAL_MISMATCH'});
+ assert.ok(requests.every(r=>r.method==='GET'&&r.body===undefined));
+});
 
 // Loopback HTTP transport fixtures only. They are not qualified LINK/Source,
 // actual Main approval, Native signatures, or a chain receipt.

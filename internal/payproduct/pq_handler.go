@@ -3,6 +3,8 @@
 package payproduct
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -85,6 +87,20 @@ func (n *NativePayService) Handler() http.Handler {
 			nativePayError(w, err)
 			return
 		}
+		// Original stored signing DATA, not reconstructed terms/current pricing.
+		// Keep this on the authenticated GET only; POST observations retain their
+		// existing exact response contract. It grants no approval or finality.
+		member, err := ynxbatch.DecodeMember(state.Operations[state.TermsOperation].Member)
+		if err != nil {
+			nativePayError(w, err)
+			return
+		}
+		digest := sha256.Sum256(member.Message)
+		if hex.EncodeToString(digest[:]) != state.TermsHash {
+			nativePayError(w, errors.New("stored native terms message hash differs"))
+			return
+		}
+		view["termsMessage"] = bytes.Clone(member.Message)
 		writeJSON(w, http.StatusOK, view)
 	})
 	for _, refund := range []bool{false, true} {
