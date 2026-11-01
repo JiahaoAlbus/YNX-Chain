@@ -1,17 +1,17 @@
 {
   "schemaVersion": 2,
-  "sdkCommit": "a4f96f843c57f3d44d6d0ae6e778f1782cfd5d5c",
+  "sdkCommit": "cada5bc8b4765f0021d937e76ceb3a580c78d9ec",
   "provider": {
-    "version": "0.1.0-candidate.2",
-    "bytes": 17804,
-    "sha256": "401eca733083c2ac67998295c54f09f0553760b99eaf0adf9ef1e1a85b4cbd0b"
+    "version": "0.1.0-candidate.3",
+    "bytes": 21185,
+    "sha256": "4ca90de383f74c347d2b218a7f6162381f504d521f6c9f251b2bfe82b674c33e"
   },
   "versions": {
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
     "@noble/ciphers": "2.2.0",
     "@noble/post-quantum": "0.6.1",
-    "@ynx/batch-v01-candidate": "0.1.0-candidate.2"
+    "@ynx/batch-v01-candidate": "0.1.0-candidate.3"
   },
   "files": [
     {
@@ -1556,8 +1556,8 @@
     },
     {
       "path": "@ynx/batch-v01-candidate/package.json",
-      "bytes": 789,
-      "sha256": "931ef94fbfb3801373319a2c1e2293a701e08c95441f21dbbf80a753393ab256"
+      "bytes": 979,
+      "sha256": "31d57b663d038659c9c276cd4f25913b27bfb2304d6800a86e0f7cf90b38efdf"
     },
     {
       "path": "@ynx/batch-v01-candidate/PROVENANCE.json",
@@ -1566,18 +1566,18 @@
     },
     {
       "path": "@ynx/batch-v01-candidate/README.md",
-      "bytes": 11689,
-      "sha256": "0fefa513f3d6028d1196caa8b8e99bb592047992c74918bfbd55abf615e1d256"
+      "bytes": 14372,
+      "sha256": "b4a879b46c002e78c5076b67756cde64cd50430783ffba59a18eb869c8dce0f8"
     },
     {
       "path": "@ynx/batch-v01-candidate/src/codec.mjs",
-      "bytes": 7367,
-      "sha256": "8d09c7fc5322dc9807a7f291d796e103f80868683d73a517b6807c18e6861bdb"
+      "bytes": 720,
+      "sha256": "950cf17cee0de419722d115c7429074300c5691297d7d2478a547a8c65ee6c71"
     },
     {
       "path": "@ynx/batch-v01-candidate/src/index.mjs",
-      "bytes": 10443,
-      "sha256": "7c08731cce2a5c0b264f6d83119c8b1792adda6a22492867d50dcafdec0ce9a3"
+      "bytes": 4258,
+      "sha256": "2306b53dbce24c1fd9485c9d35ebf63e48442cb8061a43af49393b5b39aedd36"
     },
     {
       "path": "@ynx/batch-v01-candidate/src/native.mjs",
@@ -1586,14 +1586,14 @@
     },
     {
       "path": "@ynx/batch-v01-candidate/src/portable.mjs",
-      "bytes": 4264,
-      "sha256": "29cd8bcab5c1cf03ea5c7f9cc739989191617ef393f720c45e108471487cade4"
+      "bytes": 3902,
+      "sha256": "143ffe9898995a1ab934747f0c46d9d1b5bf5ac49764129c4d3dab5d64850c65"
     },
     {
       "path": "@ynx/batch-v01-candidate/src/tree.mjs",
-      "bytes": 2472,
-      "sha256": "93c41d45d78dce23ec449b214e29a6a161d154ed8dd2a40fe79fb0f67c7f647f"
+      "bytes": 630,
+      "sha256": "7a49bcb3f51c2ed511985833a82e3c10b9cbecd81629544d7b6bf2f8f06e7272"
     }
   ],
-  "profile": "Same 316 IDE/PQ dependency file identities as SDK312; dependency versions unchanged. Original clean119 full closure is separately required for WalletConnect browser bundling."
+  "profile": "Same 316 path selection; six provider tuples aligned to the existing declared and integrity-verified candidate.3 archive. Dependency file coverage only; no Native/Source/App qualification."
 }

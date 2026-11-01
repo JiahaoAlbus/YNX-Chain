@@ -15,7 +15,7 @@ const parse=raw=>{if(typeof raw!=='string'||Buffer.byteLength(raw)>393216)fail('
 // Same original issuer actor namespace; DATA hashing only, not a device codec or grant.
 export function productPairSessionV4ActorDATA(r,record,account){return pairV4Digest(canonicalJSON({networkId:record.networkId,canonicalOwner:evmAddressFromYNX(account),productId:r.productId,clientId:r.clientId,platform:r.platform,applicationId:r.applicationId,bundleId:r.bundleId,packageId:r.packageId,origin:r.origin,callback:r.callback,deviceId:record.deviceId}));}
 export class ProductPairSessionV4IssuerKernel {
- #registry;#store;#source;#clock;#floor=0;#active=0;#closed=false;#closeSelected=false;#closeError;
+ #registry;#store;#source;#clock;#floor=0;#active=0;#closed=false;#closeSelected=false;#closeError;#closeFlight;
  constructor(registry,store,originalSource,clock=Date.now){this.#registry=structuredClone(registry);this.#store=store;this.#source=originalSource;this.#clock=clock;}
  #now(){const n=this.#clock();if(!Number.isSafeInteger(n)||n<this.#floor||n<0)fail('PAIR_V4_CLOCK_ROLLBACK');this.#floor=n;return n;}
  #alive(){if(this.#closed)fail('PAIR_V4_RETIRED');}
@@ -69,5 +69,5 @@ export class ProductPairSessionV4IssuerKernel {
  async recover(raw){const body=parse(raw);exactPQRecord(body,['request','registrationOriginal','account','operationId']);return this.#held(body.request,body.registrationOriginal,body.account,async({actor,current})=>{await current();const record=this.#store.recover({actor,operation:body.operationId});return Object.freeze({record,recoverOnly:true,newSession:false,sourceAdmission:false,nativeAdmission:false});});}
  retire(){this.#closed=true;}
  join(){if(!this.#closed||this.#active)fail('PAIR_V4_JOIN_PENDING');}
- close(){if(this.#closeSelected){if(this.#closeError)throw this.#closeError.cause;return;}this.retire();this.join();this.#closeSelected=true;for(const close of [()=>this.#store.close(),()=>this.#source.close()])try{close();}catch(e){this.#closeError??={cause:e};}if(this.#closeError)throw this.#closeError.cause;}
+ close(){if(!this.#closeFlight)this.#closeFlight=(async()=>{this.retire();this.join();this.#closeSelected=true;try{await this.#source.close();}catch(cause){this.#closeError??={cause};throw this.#closeError.cause;}})();return this.#closeFlight;}
 }

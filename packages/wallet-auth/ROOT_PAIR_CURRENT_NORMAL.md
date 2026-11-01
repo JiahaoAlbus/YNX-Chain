@@ -1,0 +1,15 @@
+# Stable Root-current and pair normal SDK composition
+
+This source composes formal Auth Root-current V3, its physical capture helper, and the per-request pair Source/issuer into the normal SDK. The Root V2 execute, keys, permit and once kernel remain unchanged. Runtime acquisition captures a fresh recognized Root read owner per request; startup qualifies only the stable plan. Source and issuer closure must be awaited; partial owners and falsy/UNKNOWN failures remain retained.
+
+Node-only admin entry: `@ynx-chain/wallet-auth/pair-current-commissioning`, `commissionStableReviewedPairCurrentSDK()` with zero arguments, or `node scripts/commission-pair-current-sdk.mjs`. No ENV/provider/JSON registration override exists. The empty compiled selection rejects `PAIR_V4_SOURCE_NOT_CONFIGURED`; the Root reader's empty selection rejects `ROOT_V3_READ_RELEASE_NOT_CONFIGURED`.
+
+The stable Auth emitter returns `STABLE_REVIEWED_SOURCE_CANDIDATE_ONLY` with exactly two CAS paths: `src/product-pair-session-v4-source.js` and `src/root-current-v3/root-read-current-owner-v3.mjs`. The strict stable adapter rejects old RootV2 two-CAS receipts, finite checkpoint compilation, extra/accessor data, or approval flags. It delegates to the same build-only `reviewed-sdk-source-materialization/core.mjs` used by the existing pair/image wrappers. It does not compile short-lived Root current bytes into a release.
+
+Root modules include a fixed Native IO `createRequire`, which the existing strict Auth runtime analyzer correctly refuses. The new recipe retains the original strict Auth entries/guard unchanged. Its two Root/pair CAS paths are explicitly source-only, verified against the complete actual source inventory and separate literal static analysis. They are not inserted into the strict Auth runtime graph/union or claimed Native/Source-qualified. All five Root modules remain in the complete source/package and static analysis. Computed/external Native edges remain unqualified.
+
+PUBLIC normal composition tests exercise the new exact two-CAS adapter, full2 regeneration, root6 mapping and every npm member readback. Their commented test-source delta is not a reviewed real row, real Root approval, real Source selection or actual runtime image. Normal production package tests exercise zero-input rejection/import/types/browser boundary. Existing Auth 15+5+7 and physical capture22 evidence is reused, not rerun.
+
+The parent App316 two-leaf metadata/provider alignment is applied by exact before/after CAS. It fixes the declared provider archive metadata and its compiled manifest pin; it supplies no App/Native/Root/Source qualification. No App316 acceptance matrix is rerun here.
+
+Real independent stable plan/service review, registered Root writer/source/image identity, protected namespace/bootstrap floor, postbuild runtime-image profile, Main/A whole Native/App build, installation, login/session restoration/revocation and real account acceptance remain separate and unverified. No account/key/Root registry or old frozen supplier was changed.

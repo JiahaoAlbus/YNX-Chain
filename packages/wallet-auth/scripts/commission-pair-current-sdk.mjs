@@ -1,0 +1,2 @@
+import {commissionStableReviewedPairCurrentSDK} from './pair-current-commissioning/commission-sdk.mjs';
+try{if(process.argv.length!==2)throw Object.assign(Error('PAIR_STABLE_ZERO_INPUT'),{code:'PAIR_STABLE_ZERO_INPUT'});console.log(JSON.stringify(commissionStableReviewedPairCurrentSDK()));}catch(e){console.error(JSON.stringify({code:e?.code??'PAIR_STABLE_FAILED',partial:e?.partial??null}));process.exitCode=65;}
