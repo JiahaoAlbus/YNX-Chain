@@ -32,9 +32,12 @@ normal=module("normal_pq_load","pq-normal-process-lab.py")
 scheduler=module("independent_pq_load","pq-independent-scheduler.py")
 lab=normal.lab
 proof_readback=module("original_public_proof_readback","pq-public-proof-readback.py")
+commit_readback=module("original_normal_commit_readback","pq-commit-observation.py")
 
 
 CALLEE_SOURCE = "7037966eb2ce7a7167f02a09ee1f3bc0eebd1026"
+# Final CORE consumer graph + normal CI + same-input per-height equivalence NOT_SUPPLIED.
+COMMIT_OBSERVATION_SOURCE = None
 
 
 def callee_snapshot(value):
@@ -167,8 +170,9 @@ class SenderSession:
 
 
 class LoadCeremony(normal.Ceremony):
-    def __init__(self,*args,operations,proof_timeout,**kwargs):
+    def __init__(self,*args,operations,proof_timeout,commit_observation=False,**kwargs):
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
+        self.commit_observation_enabled=commit_observation;self.commit_observation_descriptors=[]
         self.measurements=CalleeMeasurements(operations,len(self.workload["owners"])-4 if self.mode=="online" else 0)
         verifier=self.bins/"ynx-consensus-proof-verify";self.verifier_binary_pin=lab.guard.digest(verifier)
         info=verifier.stat();self.verifier_binary_identity=(info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns)
@@ -183,7 +187,14 @@ class LoadCeremony(normal.Ceremony):
             policy=Path(result["policy"]["path"]);lab.require(policy.resolve()==policy and self.root in policy.parents and lab.guard.digest(policy)==result["policy"]["sha256"],"normal startup policy pin differs")
             lab.require(result["nodeArguments"]==[*original,"--proof-host-live-policy",str(policy),"--proof-host-live-policy-sha256",result["policy"]["sha256"]],"normal live setup arguments differ from exact pinned policy opt-in")
             self.live.append(dict(node=node,policy=policy,pin=result["policy"]["sha256"],sequence=0,lock=threading.Lock(),retired=False))
-            resumed["nodes"][node]["args"]=result["nodeArguments"]
+            resumed["nodes"][node]["args"]=list(result["nodeArguments"])
+            if self.commit_observation_enabled:
+                private=self.w.work/".private/commit-observations";private.mkdir(mode=0o700,exist_ok=True)
+                output=private/("pq-node-%d.json"%node)
+                observed=commit_readback.arguments(output,private)
+                lab.require(not any(a.startswith("--commit-observation-") for a in resumed["nodes"][node]["args"]),"duplicate original Commit observer flags")
+                resumed["nodes"][node]["args"].extend(observed)
+                self.commit_observation_descriptors.append(dict(node=node,path=str(output),processName="pq-node-%d"%node))
         return resumed
 
 
@@ -492,6 +503,8 @@ def validate_escalation(args):
 def run(args):
     demand=validate_options(args)
     lab.require(args.commit==CALLEE_SOURCE,"exact new703 ready/timings source qualification required; old75 qualification cannot be reused")
+    if getattr(args,"commit_observation",False):
+        lab.require(COMMIT_OBSERVATION_SOURCE is not None and args.commit==COMMIT_OBSERVATION_SOURCE,"final exact CORE Commit consumer source/normal CI/same-input equivalence NOT_SUPPLIED; old703 continuation cannot qualify it")
     source=Path(args.source);identity=lab.check_source(source,args.commit)
     lab.git(source,"merge-base","--is-ancestor",normal.HELPER_COMMIT,args.commit)
     if args.wire_observation:lab.git(source,"merge-base","--is-ancestor",normal.WIRE_OBSERVER_COMMIT,args.commit)
@@ -517,7 +530,7 @@ def run(args):
         result["binaries"]={n:lab.guard.digest(bins/n) for n in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify")}
         root=work/".private/network";p=w.launch("create-original",[str(bins/"ynx-consensus-pq-lab"),"create","--synthetic","--root",str(root),"--transactions",str(args.per_account),"--batch-size","1","--owners",str(args.accounts+4),*(["--online"] if args.mode=="online" else []),"--base-p2p-port","31656","--base-rpc-port","31757"]);w.wait(p)
         created=json.loads((work/"public/create-original.log").read_bytes())
-        ceremony=LoadCeremony(w,root,created,bins,args.wire_observation,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout)
+        ceremony=LoadCeremony(w,root,created,bins,args.wire_observation,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False))
         owners=[dict(ownerIndex=o["index"],address=o["owner"],nextNonce=int(o["initialNonce"])+1,capacity=int(o["memberCapacity"])) for o in ceremony.workload["owners"][4:]]
         lab.require(ceremony.workload["batchSize"]=="1" and ceremony.workload["outstandingPerOwner"]=="1" and ceremony.workload["batchWaitNanoseconds"]=="0","original independent single transfers and one pending required")
         plan=scheduler.make_plan(ceremony.pin,ceremony.workload_pin,args.mode,owners,args.rate,args.seconds*1_000_000_000,args.tail_seconds*1_000_000_000)
@@ -558,6 +571,17 @@ def run(args):
             journal.close();result["journalSegments"]=[dict(path=str(p.relative_to(work/"public")),bytes=p.stat().st_size,sha256=lab.guard.digest(p)) for p in journal.paths]
         try:result["cleanupComplete"]=w.stop()
         except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
+        if ceremony is not None and ceremony.commit_observation_enabled:
+            try:
+                observed=commit_readback.retain_after_stop(w,ceremony.commit_observation_descriptors,ceremony.plan["chainId"],ceremony.plan["originalGenesisHash"])
+                result["normalCommitObservation"]=observed
+                if not observed["fourOriginalSnapshotsValid"]:result["firstCause"]=result["firstCause"] or "original normal Commit observations incomplete/invalid; preserve missing/overflow and first cause"
+                measured=sum(lab.private_bytes(root) for root in w.storage_roots);w.peak_bytes=max(w.peak_bytes,measured)
+                observed["postStopStorageBytes"]=measured
+                lab.require(measured<=lab.CAPS["newBytes"],"original Commit public readback exceeded unchanged8GiB storage cap")
+            except BaseException as error:
+                result["commitObservationReadbackError"]=dict(errorType=type(error).__name__,reason=str(error),missingStagesAreUnknown=True)
+                result["firstCause"]=result["firstCause"] or "original normal Commit readback failed"
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()
@@ -571,6 +595,7 @@ def run(args):
 if __name__=="__main__":
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("--source",required=True);p.add_argument("--commit",required=True);p.add_argument("--mode",choices=("online","pre-signed"),required=True)
     p.add_argument("--rate",type=int,choices=(100,500,1000),default=100);p.add_argument("--seconds",type=int,required=True);p.add_argument("--tail-seconds",type=int,default=30);p.add_argument("--accounts",type=int,required=True);p.add_argument("--per-account",type=int,required=True);p.add_argument("--proof-timeout",type=int,default=30);p.add_argument("--wire-observation",action="store_true");p.add_argument("--prior-result");p.add_argument("--prior-result-sha256");p.add_argument("--execute",action="store_true")
+    p.add_argument("--commit-observation",action="store_true",help="explicit final qualified normal Commit consumer only; no signer fsync/finality or whole replay claim")
     p.add_argument("--network-accounting",action="store_true",help="explicit frozen LINK owned TCP pre-load/post-drain checkpoints; absent live metrics remain unmeasured")
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
