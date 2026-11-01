@@ -68,6 +68,41 @@ def validate_declared_contract(snapshot,pid,chain_id,genesis_hash,require_runtim
     for value in samples:sample(value);require(value['height']>previous,'original Commit samples duplicate/regressed');previous=value['height']
     return snapshot
 
+def persistence_stage_summary(snapshot):
+    """Reduce validated retained successes only; keep each node/storage separate.
+
+    Neither failure timings nor unobservedLatest are successful sample members.
+    Missing stages stay missing; stage spans are never summed into a fake total.
+    """
+    def distribution(values):
+        ordered=sorted(values);n=len(ordered)
+        return dict(count=n,minNs=ordered[0] if n else None,
+                    medianNs=(ordered[(n-1)//2]+ordered[n//2])/2 if n else None,
+                    maxNs=ordered[-1] if n else None,
+                    retainedSampleP95Ns=ordered[(95*n+99)//100-1] if n>=20 else None)
+    groups={}
+    for sample in snapshot['samples']:
+        value=sample['persistence'];groups.setdefault(value['storage'],[]).append(value)
+    reduced={}
+    for storage,values in sorted(groups.items()):
+        names=sorted({name for value in values for name in value['stagesNs']})
+        reduced[storage]=dict(retainedSuccessCount=len(values),
+            heightRange=[values[0]['height'],values[-1]['height']],
+            persistenceElapsed=distribution([v['elapsedNs'] for v in values]),
+            stages={name:dict(distribution([v['stagesNs'][name] for v in values if name in v['stagesNs']]),
+                              missingRetainedSamples=sum(name not in v['stagesNs'] for v in values)) for name in names})
+    return dict(schema='YNX-PERF-RETAINED-COMMIT-STAGES/v1',byStorage= reduced,
+        retainedSuccessCount=len(snapshot['samples']),successNotifications=snapshot['successNotifications'],
+        errorNotifications=snapshot['errorNotifications'],droppedSuccessSamples=snapshot['droppedSuccessSamples'],
+        sampleOverflow=snapshot['sampleOverflow'],notificationCaptureComplete=snapshot['coverage']['notificationCaptureComplete'],
+        observedHeightGaps=[dict(v) for v in snapshot['coverage']['observedHeightGaps']],
+        rejectedNotifications=dict(snapshot['rejectedNotifications']),
+        lastFailureTimingAvailable=snapshot['lastFailure'] is not None and snapshot['lastFailure']['timing'] is not None,
+        unobservedLatestExcluded=snapshot['unobservedLatest'] is not None,
+        allCommitAttemptsCovered=False,unreportedStagesAreUnknown=True,stagesAdded=False,
+        businessTPS=None,inclusionLatency=None,finalConfirmationLatency=None,
+        meaning='Per original node and storage, retained successful persistence spans only. P95 is nearest rank for at least20 retained samples, never a sustained/business latency. No node pooling, failure/overflow zero fill, stage addition or chain bottleneck inference.')
+
 def retain_after_stop(window,descriptors,chain_id,genesis_hash):
     result=dict(schema='YNX-PERF-ORIGINAL-COMMIT-READBACK/v1',expectedNodes=4,originalSnapshots=[],errors=[],allCommitAttemptsCovered=False,replayCoverageComplete=False,unreportedStagesAreUnknown=True,independentFinality=False,signerFsyncMeasured=False,meaning='Only original stopped normal-node snapshots. Persistence spans are not signer fsync, inclusion, finality or complete replay/commit coverage; absent stages are UNKNOWN.')
     require(len(descriptors)==4,'four original normal-node Commit descriptors required')
@@ -91,7 +126,7 @@ def retain_after_stop(window,descriptors,chain_id,genesis_hash):
             record=dict(node=node,processName=name,pid=child['process'].pid,path=str(public.relative_to(window.work/'public')),bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest(),sourceStopped=True,usable=False)
             result['originalSnapshots'].append(record)
             snapshot=validate_declared_contract(strict(raw),child['process'].pid,chain_id,genesis_hash)
-            record.update(usable=True,sampleCount=len(snapshot['samples']),droppedSuccessSamples=snapshot['droppedSuccessSamples'],overflow=snapshot['sampleOverflow'],rawOriginalObservation=snapshot)
+            record.update(usable=True,sampleCount=len(snapshot['samples']),droppedSuccessSamples=snapshot['droppedSuccessSamples'],overflow=snapshot['sampleOverflow'],rawOriginalObservation=snapshot,retainedPersistenceStages=persistence_stage_summary(snapshot))
         except (OSError,ValueError,RuntimeError,KeyError) as error:result['errors'].append(dict(node=node,errorType=type(error).__name__,reason=str(error),missingStagesAreUnknown=True))
     result['validOriginalNodes']=sum(x['usable'] for x in result['originalSnapshots']);result['fourOriginalSnapshotsValid']=result['validOriginalNodes']==4 and not result['errors']
     return result

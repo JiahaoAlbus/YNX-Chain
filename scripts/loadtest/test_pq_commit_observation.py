@@ -95,4 +95,39 @@ class CommitObservationDeclaredControls(unittest.TestCase):
             for child in children:child['process'].poll=lambda:0
             report=m.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'ynx_642399-1','b'*64);self.assertEqual(report['validOriginalNodes'],0);self.assertEqual(list((root/'public').iterdir()),[])
 
+class CommitStageSummaryControls(unittest.TestCase):
+    def test_missing_stage_never_zero_filled_or_added_and_storage_not_pooled(self):
+        value=declared(123);first=value['samples'][0]
+        second=copy.deepcopy(first);second.update(height=20);second['persistence'].update(height=20,elapsedNs=200,stagesNs={'file_sync':80})
+        third=copy.deepcopy(second);third.update(height=21);third['persistence'].update(height=21,storage='block-journal-v2',stagesNs={'delta_encode':7})
+        value['samples'] += [second,third];value['successNotifications']=3
+        report=m.persistence_stage_summary(value);atomic=report['byStorage']['atomic-json']
+        self.assertEqual(atomic['stages']['json_encode']['count'],1);self.assertEqual(atomic['stages']['json_encode']['missingRetainedSamples'],1)
+        self.assertEqual(atomic['stages']['json_encode']['minNs'],20);self.assertEqual(atomic['persistenceElapsed']['medianNs'],150)
+        self.assertIsNone(atomic['persistenceElapsed']['retainedSampleP95Ns']);self.assertEqual(report['byStorage']['block-journal-v2']['retainedSuccessCount'],1)
+        self.assertFalse(report['stagesAdded']);self.assertIsNone(report['businessTPS'])
+    def test_overflow_latest_and_failure_not_success_samples(self):
+        original=json.loads(FIXTURE.read_bytes())['cases']['gap-and-overflow'];before=copy.deepcopy(original)
+        report=m.persistence_stage_summary(original)
+        self.assertEqual(report['retainedSuccessCount'],1);self.assertEqual(report['droppedSuccessSamples'],2);self.assertTrue(report['sampleOverflow']);self.assertTrue(report['unobservedLatestExcluded'])
+        self.assertEqual(report['observedHeightGaps'],[dict(afterHeight=9,beforeHeight=11)]);self.assertEqual(original,before)
+        failed=json.loads(FIXTURE.read_bytes())['cases']['missing-failure-timing'];report=m.persistence_stage_summary(failed)
+        self.assertEqual(report['byStorage'],{});self.assertEqual(report['errorNotifications'],1);self.assertFalse(report['lastFailureTimingAvailable'])
+    def test_retained_percentile_exact_nearest_rank_is_not_business_latency(self):
+        value=declared(123);first=value['samples'][0];value['samples']=[]
+        for height in range(1,21):
+            item=copy.deepcopy(first);item.update(height=height);item['persistence'].update(height=height,elapsedNs=height*100);value['samples'].append(item)
+        value['successNotifications']=20;report=m.persistence_stage_summary(value)
+        self.assertEqual(report['byStorage']['atomic-json']['persistenceElapsed']['retainedSampleP95Ns'],1900)
+        self.assertIsNone(report['inclusionLatency']);self.assertIsNone(report['finalConfirmationLatency']);self.assertFalse(report['allCommitAttemptsCovered'])
+    def test_runtime_readback_attaches_summary_only_after_original_validation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp).resolve();(root/'public').mkdir();descriptors=[];children=[]
+            for i in range(4):
+                path=root/('node%d.json'%i);snapshot=declared(123+i);snapshot['captureBoundary']=m.CAPTURE_BOUNDARY
+                path.write_text(json.dumps(snapshot));path.chmod(0o600)
+                descriptors.append(dict(node=i,path=str(path),processName='pq-node-%d'%i));children.append(dict(name='pq-node-%d'%i,process=SimpleNamespace(pid=123+i,poll=lambda:0)))
+            report=m.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'ynx_642399-1','b'*64)
+            self.assertTrue(report['fourOriginalSnapshotsValid']);self.assertEqual([r['retainedPersistenceStages']['retainedSuccessCount'] for r in report['originalSnapshots']],[1]*4)
+
 if __name__=='__main__':unittest.main()
