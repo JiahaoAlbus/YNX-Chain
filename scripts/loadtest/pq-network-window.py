@@ -2,7 +2,8 @@
 
 Captures bracket the complete finite load plus drain, not an atomic fixed-window
 network count. Missing live logical/proto publishers remain absent. Nothing in
-this hook enables the experimental transport, metrics endpoint or packet capture.
+this hook enables experimental transport or metrics endpoints. Header capture
+requires the separate explicit opt-in and dedicated controlled namespace.
 """
 import hashlib
 import importlib.util
@@ -26,9 +27,9 @@ def frozen_module(name):
 
 
 class NetworkWindow:
-    def __init__(self,ceremony,lab,source,tools,input_sha,demand,live_reader=None):
+    def __init__(self,ceremony,lab,source,tools,input_sha,demand,live_reader=None,header_capture=False,header_capture_seconds=45):
         self.c,self.lab=ceremony,lab;self.start=None;self.end=None
-        self.live_reader=live_reader
+        self.live_reader=live_reader;self.header_capture_requested=header_capture;self.header_capture_seconds=header_capture_seconds;self.header_capture=None
         self.tcp=frozen_module("owned-tcp-accounting.py");self.layers=frozen_module("network-layer-accounting.py")
         nodes=[]
         for planned in ceremony.plan["nodes"]:
@@ -75,11 +76,25 @@ class NetworkWindow:
                 proto="no original owned metrics endpoint supplied; no endpoint enabled or size inferred"))
         self.lab.write_new(self.c.w.work/("public/network-%s.json"%side),checkpoint)
         setattr(self,side,checkpoint)
+        if side=="start" and self.header_capture_requested:
+            path=Path(__file__).with_name("pq-owned-header-capture.py");spec=importlib.util.spec_from_file_location("original_owned_header_capture",path);capture=importlib.util.module_from_spec(spec);spec.loader.exec_module(capture)
+            self.header_capture=capture.OwnedHeaderCapture(sample,self.c.w.work/"public",self.header_capture_seconds)
+            state=self.header_capture.start()
+            self.lab.write_new(self.c.w.work/"public/network-header-capture-start.json",{key:state.get(key) for key in ("schema","status","reason","packetCaptureExecuted","captureStartedMonotonicNs","controlledNamespace","filterSHA256","filterAttachedBeforeBind","filterLocked","maxPackets","maxIpBytes","maxSeconds")})
         return checkpoint
 
     def finish(self,qualified_count,load_clock=None,load_result=None):
         self.lab.require(self.start is not None and self.end is None,"original start checkpoint required before finish")
-        self.capture("end")
+        try:self.capture("end")
+        except BaseException:
+            if getattr(self,"header_capture",None) is not None:
+                closed=self.header_capture.stop()
+                self.lab.write_new(self.c.w.work/"public/network-header-capture.json",closed)
+            raise
+        header=None
+        if getattr(self,"header_capture",None) is not None:
+            header=self.header_capture.stop(self.end.get("tcp"),load_result)
+            self.lab.write_new(self.c.w.work/"public/network-header-capture.json",header)
         result=self.layers.account_layers(binding=self.binding,start=self.start,end=self.end)
         result.update(frozenLINKSource=LINK_COMMIT,frozenModules=FROZEN,qualifiedCountEvidence=qualified_count,loadClockEvidence=load_clock,
             qualifiedCountMeaning="normal load result evidence only; not inferred from network counters; immutable binding count remains null",
@@ -88,6 +103,7 @@ class NetworkWindow:
             originalCheckpoints=[dict(path="network-%s.json"%side,sha256=self.lab.guard.digest(self.c.w.work/("public/network-%s.json"%side))) for side in ("start","end")])
         path=Path(__file__).with_name("pq-hop-byte-accounting.py")
         spec=importlib.util.spec_from_file_location("original_hop_byte_accounting",path);hops=importlib.util.module_from_spec(spec);spec.loader.exec_module(hops)
+        result["ownedHeaderCapture"]=header
         result["perHopTCPAccounting"]=hops.directional_hops(self.binding,self.start,self.end,load_result)
         self.lab.write_new(self.c.w.work/"public/network-hop-accounting.json",result["perHopTCPAccounting"])
         self.lab.write_new(self.c.w.work/"public/network-accounting.json",result)

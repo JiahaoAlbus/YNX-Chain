@@ -610,3 +610,37 @@ These use UNIT counter vectors, not observed packet/business measurements.
 Original proof/Commit groups need not be rerun for this independent accounting
 change. Actual network snapshots still require the original owned Linux nodes;
 absence of permissions/publishers never enables a fallback capture.
+
+Optional `--header-hop-capture` requires `--network-accounting` and requests the
+owned Linux header backend. It reuses the original frozen endpoint/PID/socket
+scope; it does not start nodes or a new capture process. It refuses shared or
+unproven namespaces, foreign/reused tuples, and absent CAP_NET_RAW. It never
+enters a namespace, escalates privileges, enables promiscuous mode or widens a
+filter on failure. The socket is created with protocol0 (no reception), then
+an exact IPv4/TCP4-tuple cBPF filter is installed and locked before binding lo.
+Only40 header bytes enter userspace. Kernel `MSG_TRUNC` supplies the original
+IP datagram length; TCP options are length-accounted without reading payload.
+
+`network-owned-header-original.pcap` retains the actual40-byte prefixes with
+original IP lengths; `network-header-capture.json` retains scope, clock bounds,
+limits, kernel drops and SHA256. Only outgoing copies enter per-hop IP totals;
+receiver duplicates, SYN/FIN/RST/ACK-only events, payload lengths and original
+TCP retransmission counters remain separate. Fixed limits are65536 outgoing
+packets,256MiB outgoing IP bytes,120s,32 exact directed tuples; bound/drop/
+identity failures preserve partial/UNKNOWN. These are kernel IPv4 observations,
+not physical headers, hardware frames, exact per-tx attribution or proof/finality.
+Loopback/GSO/GRO segmentation and pre-start/born-closed flows remain limitations.
+
+The existing900s/4GiB/8GiB/owned-PID budget is unchanged. Capture bytes and its
+one supervisor thread remain inside the normal supervisor accounting. Use the
+same capture flags on both sides of a qualified comparison. On an unsupported
+host or without the controlled namespace/permissions, save only the exact
+unavailable reason; never substitute57839-wire objects or zero traffic.
+
+Primary interface contracts: [Linux packet(7)](https://man7.org/linux/man-pages/man7/packet.7.html),
+[Linux socket-filter documentation](https://docs.kernel.org/networking/filter.html).
+Only this new feature's isolated offline/filter/permission controls are needed:
+
+```sh
+python3 -I -B scripts/loadtest/test_pq_owned_header_capture.py -v
+```

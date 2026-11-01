@@ -502,6 +502,7 @@ def validate_escalation(args):
 
 def run(args):
     demand=validate_options(args)
+    lab.require(not getattr(args,"header_hop_capture",False) or args.network_accounting,"header capture requires original owned network accounting scope")
     lab.require(args.commit==CALLEE_SOURCE,"exact new703 ready/timings source qualification required; old75 qualification cannot be reused")
     if getattr(args,"commit_observation",False):
         lab.require(COMMIT_OBSERVATION_SOURCE is not None and args.commit==COMMIT_OBSERVATION_SOURCE,"final exact CORE Commit consumer source/normal CI/same-input equivalence NOT_SUPPLIED; old703 continuation cannot qualify it")
@@ -542,7 +543,7 @@ def run(args):
         result["senderPoolPreparation"]=backend.prepare(monitor.check)
         if args.network_accounting:
             hook=module("original_pq_network_window","pq-network-window.py")
-            network=hook.NetworkWindow(ceremony,lab,args.commit,lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),result["planSHA256"],demand)
+            network=hook.NetworkWindow(ceremony,lab,args.commit,lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),result["planSHA256"],demand,header_capture=getattr(args,"header_hop_capture",False),header_capture_seconds=min(120,args.seconds+args.tail_seconds+10))
             network.capture("start");monitor.check()
         result["loadExecuted"]=True
         result["loadResult"]=scheduler.run(plan,backend,journal.emit,monitor.check,stop)
@@ -596,6 +597,7 @@ if __name__=="__main__":
     p=argparse.ArgumentParser(description=__doc__);p.add_argument("--source",required=True);p.add_argument("--commit",required=True);p.add_argument("--mode",choices=("online","pre-signed"),required=True)
     p.add_argument("--rate",type=int,choices=(100,500,1000),default=100);p.add_argument("--seconds",type=int,required=True);p.add_argument("--tail-seconds",type=int,default=30);p.add_argument("--accounts",type=int,required=True);p.add_argument("--per-account",type=int,required=True);p.add_argument("--proof-timeout",type=int,default=30);p.add_argument("--wire-observation",action="store_true");p.add_argument("--prior-result");p.add_argument("--prior-result-sha256");p.add_argument("--execute",action="store_true")
     p.add_argument("--commit-observation",action="store_true",help="explicit final qualified normal Commit consumer only; no signer fsync/finality or whole replay claim")
+    p.add_argument("--header-hop-capture",action="store_true",help="explicit owned controlled-netns exact-tuple IPv4 header-only capture; no physical-wire claim or permission escalation")
     p.add_argument("--network-accounting",action="store_true",help="explicit frozen LINK owned TCP pre-load/post-drain checkpoints; absent live metrics remain unmeasured")
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
