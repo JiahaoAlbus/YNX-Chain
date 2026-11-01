@@ -147,7 +147,7 @@ def prepare_wire_live_source(root, fresh_output, expected_commit, expected_tree)
     fresh_output.mkdir(mode=0o700)
     source = fresh_output / "source"
     source.mkdir(mode=0o700)
-    extract(root, commit, source, ("go.mod", "go.sum", "cmd", "internal", "pkg", "contracts", "third_party"))
+    extract(root, commit, source, ("go.mod", "go.sum", "cmd", "internal", "contracts", "third_party"))
     extract(root, FORK_COMMIT + ":third_party/cometbft", source / "third_party/cometbft")
     require(not (source / ".git").exists(), "composition cannot manufacture original VCS identity")
     require((source / "go.mod").read_bytes() == git(root, "show", commit + ":go.mod") and
