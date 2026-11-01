@@ -124,7 +124,7 @@ jobs:
         with:
           ref: d9038b9292f9c28d38decb9717282e50febffdb1
           path: source
-          fetch-depth: 1
+          fetch-depth: 0
           filter: blob:none
           persist-credentials: false
           sparse-checkout-cone-mode: false
@@ -140,7 +140,7 @@ jobs:
             /scripts/loadtest/pq-source-artifact-intake.py
       - name: Receive and verify only the independently pinned matching supplier object
         run: |
-          git -C source fetch --no-tags --depth=1 origin 54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076
+          git -C source fetch --no-tags origin 54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076
           test "$(git -C source rev-parse HEAD)" = "d9038b9292f9c28d38decb9717282e50febffdb1"
           test "$(git -C source rev-parse 54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076:third_party/cometbft)" = "b1e9a83ab11ed141fda90bc47521faa412176caa"
           test -z "$(git -C source status --porcelain)"

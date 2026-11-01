@@ -1,5 +1,5 @@
 """Fixed finite profile controls only; never starts the runtime."""
-import contextlib,importlib.util,io,json,os
+import contextlib,importlib.util,io,json,os,subprocess,tempfile
 from pathlib import Path
 import unittest
 from unittest import mock
@@ -35,6 +35,32 @@ class FixedLiveProfileControls(unittest.TestCase):
   self.assertEqual(raw.count('  '+c.PROFILE+':\n'),1)
   self.assertNotIn('  current896-coldready-initialize500-only:',raw)
   self.assertIn('github.run_attempt == 1',raw)
-  self.assertIn('fetch --no-tags --depth=1 origin 54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076',raw)
+  self.assertIn('fetch --no-tags origin 54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076',raw)
   self.assertIn(c.GO_SOURCE,raw);self.assertIn(c.TOOLS,raw)
+  source_step=raw.split('      - name: Receive fixed original normal source',1)[1].split('      - name: Receive and verify only the independently pinned matching supplier object',1)[0]
+  self.assertIn('fetch-depth: 0',source_step)
+  self.assertNotIn('fetch-depth: 1',source_step)
+
+ def test_actual_git_shallow_failure_and_full_history_with_supplier(self):
+  # Real local Git transport and objects, no user repo/network/Go/node.
+  with tempfile.TemporaryDirectory(prefix='ynx-history-control-') as temporary:
+   root=Path(temporary);remote=root/'remote'
+   def git(directory,*args,check=True):
+    return subprocess.run(['git','-C',str(directory),*args],check=check,capture_output=True,text=True)
+   subprocess.run(['git','init','-b','main',str(remote)],check=True,capture_output=True)
+   def commit(name):
+    (remote/name).write_text(name);git(remote,'add',name)
+    git(remote,'-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-m',name)
+    return git(remote,'rev-parse','HEAD').stdout.strip()
+   helper=commit('helper');wire=commit('wire');source=commit('source')
+   git(remote,'checkout','-b','supplier');supplier=commit('supplier');git(remote,'checkout','main')
+   old=root/'shallow';subprocess.run(['git','clone','--depth=1','--branch','main',remote.as_uri(),str(old)],check=True,capture_output=True)
+   git(old,'fetch','--no-tags','--depth=1','origin',supplier)
+   self.assertNotEqual(git(old,'merge-base','--is-ancestor',helper,source,check=False).returncode,0)
+   complete=root/'full';subprocess.run(['git','clone','--branch','main',remote.as_uri(),str(complete)],check=True,capture_output=True)
+   git(complete,'fetch','--no-tags','origin',supplier)
+   self.assertEqual(git(complete,'rev-parse','--is-shallow-repository').stdout.strip(),'false')
+   for ancestor in (helper,wire):self.assertEqual(git(complete,'merge-base','--is-ancestor',ancestor,source).returncode,0)
+   self.assertEqual(git(complete,'rev-parse','HEAD').stdout.strip(),source)
+   self.assertEqual(git(complete,'status','--porcelain').stdout,'')
 if __name__=='__main__':unittest.main()

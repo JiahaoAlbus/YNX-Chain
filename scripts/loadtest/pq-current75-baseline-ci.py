@@ -95,6 +95,10 @@ def execute(source,tools):
     require(controller==workspace/'controller' and source==workspace/'source' and tools==workspace/'tools','only exact three owned checkout locations allowed')
     require(git(controller,'rev-parse','HEAD')==os.environ['GITHUB_SHA'] and git(controller,'status','--porcelain','--untracked-files=all')=='','exact clean original controller required')
     checked_source(source,GO_SOURCE,GO_TREE);checked_source(tools,TOOLS,TOOLS_TREE)
+    require(git(source,'rev-parse','--is-shallow-repository')=='false','complete original source history required; shallow checkout cannot qualify normal ancestry')
+    for ancestor in ('a78803d31632a461df7f012e2c13e46f17c48e6d','e3a7319267b4c48d3f9164d702a38a3c3ac51713'):
+        git(source,'merge-base','--is-ancestor',ancestor,GO_SOURCE)
+
     require(git(source,'rev-parse','HEAD:third_party/cometbft')==FORK_TREE,'original production fork graph differs')
     require(git(source,'rev-parse','54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076:third_party/cometbft')=='b1e9a83ab11ed141fda90bc47521faa412176caa','exact selected supplier object not received')
     for path,pin in SOURCE_PINS.items():pinned_bytes(source/path,pin)
