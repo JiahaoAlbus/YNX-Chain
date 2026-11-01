@@ -1,3 +1,7 @@
+#include "pay_native_permission_private.hpp"
+#include "pay_native_source_math_completion.inc"
+static void YNXOriginalWalletNativePayHiddenMarker(){}
+namespace ynx_auth_private {const void* original_wallet_pay_source_code_marker()noexcept{return (const void*)&YNXOriginalWalletNativePayHiddenMarker;}}
 #import "original-auth-identity-source-authority.h"
 #include "original-product-device-v4-pending-journal.h"
 #include "original-product-device-v4-provisioning-journal.h"
@@ -34,6 +38,12 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
 #include "original-registered-finalization-scope-private.h"
 #include "original-http-v5-scope-private.h"
 #include "original-http-v5-registered-private.h"
+@interface YNXAuthIdentityCurrentOwner(IDECocoaChildFirst)
+- (BOOL)closeOriginalIDERegistryChildFirst:(NSError**)error;
+@end
+@interface YNXAuthIdentitySourceAuthority(IDECocoaChildFirst)
+- (BOOL)closeOriginalIDECocoaParentChildFirst:(NSError**)error;
+@end
 @implementation YNXAuthIdentitySourceAuthority {
  NSDictionary*_productDeviceV4QueryJournalObservedIdentity;
  NSDictionary*_productDeviceV4RegisteredFinalizationJournalObservedIdentity;
@@ -64,6 +74,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  ynx_auth_private::DeviceAssociationIdentity _httpV5SameItem;
  uint64_t _httpV5Deadline,_httpV5MonoAnchor,_httpV5WallAnchor;
  unsigned _httpV5Loans;
+ BOOL _walletNativePay,_ideCocoaParentSource;
+ std::shared_ptr<ynx_auth_private::PayObservedState> _payObserved;
+ std::chrono::steady_clock::time_point _payCurrentMonoDeadline;
+ NSString*_payObservedIdentity;
+ NSError*_payCloseCause;
  unsigned _runtimeImageLoans;
  NSError *_runtimeImageCloseCause;
  BOOL _productHTTPV5,_httpV5ItemSelected;
@@ -73,6 +88,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  std::unique_ptr<ynx_auth_private::SourcePublicInstallation> _publicInstallation;
 }
 - (BOOL)fail:(NSString *)code error:(NSError **)error {
+ if(_walletNativePay)ynx_auth_private::OriginalPaySourceMathCompletion::retire(_payObserved);
  _invalid=YES;if(!_firstCause)_firstCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:code}];if(error)*error=_firstCause;return NO;
 }
 - (BOOL)closeHeldPipes {
@@ -268,7 +284,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  [s retire];if(![s close:nil])return s;return nil;
 }
 + (instancetype)acquireOriginalIDEParentSource:(NSError **)error {
- YNXAuthIdentitySourceAuthority *s=[self new];s->_ideRegistry=YES;s->_headDigest=@"";s->_pipeHandles=[NSMutableArray array];s->_pipeStates=[NSMutableArray array];
+ YNXAuthIdentitySourceAuthority *s=[self new];s->_ideCocoaParentSource=YES;s->_ideRegistry=YES;s->_headDigest=@"";s->_pipeHandles=[NSMutableArray array];s->_pipeStates=[NSMutableArray array];
  s->_custody=[YNXAuthIdentityCurrentOwner acquireOriginalIDERegistryProfile:error];if(!s->_custody)return nil;
  s->_profileOriginal=[s->_custody copyOriginalProfile:error];s->_headOriginal=[s->_custody copyOriginalHead:error];
  if(s->_profileOriginal&&s->_headOriginal){
@@ -394,6 +410,10 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ApplicationId.c_str()];
     policy[@"productId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ProductId.c_str()];
    }else if(_productDeviceV4||_productDeviceV4Pending||_productDeviceV4Provisioning||_productDeviceV4Query||_productDeviceV4RegisteredFinalization||_productHTTPV5)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
+   if(_policy->purpose=="wallet-native-pay-client-source-v1"){
+    if(!_walletNativePay||!_payObserved||_policy->walletNativePayUID!=getuid()||_policy->walletNativePayProductId!="wallet"||_policy->walletNativePayPlatform!="macos"||_policy->walletNativePayApplicationId.empty())return [self fail:@"PAY_NATIVE_DEDICATED_RELEASE_REQUIRED" error:error];
+    policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->walletNativePayApplicationId.c_str()];policy[@"productId"]=[NSString stringWithUTF8String:_policy->walletNativePayProductId.c_str()];policy[@"platform"]=[NSString stringWithUTF8String:_policy->walletNativePayPlatform.c_str()];
+   }else if(_walletNativePay)return [self fail:@"PAY_NATIVE_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="wallet-pq-host-catalog-source-v1"){
     if(!_walletPQCatalog||_policy->walletPQApplicationId.empty())return [self fail:@"PQ_HOST_DEDICATED_SOURCE_OWNER_REQUIRED" error:error];
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->walletPQApplicationId.c_str()];
@@ -431,6 +451,14 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
    id currentBody=SourceOriginalBodyHint(currentBytes);
    id nonce=[currentBody isKindOfClass:NSDictionary.class]?currentBody[@"nonce"]:nil;
    if(!currentBytes||currentBytes.length>(sourceV2?393216:32768)||![nonce isKindOfClass:NSString.class]||[nonce length]!=43)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_CURRENT_ORIGINAL_INVALID" error:error];
+   if(_walletNativePay){
+    uint64_t issuerEpoch=0,currentEpoch=0;
+    if(!SourceProofU64(SourceProofDictionary(_profileOriginal,393216)[@"keyVersion"],issuerEpoch,true)||!SourceProofU64(SourceProofDictionary(currentBytes,393216)[@"keyVersion"],currentEpoch,true)||![projection[@"selection"][@"walletNativePayClientV1"]isKindOfClass:NSDictionary.class])return [self fail:@"PAY_NATIVE_VERIFIED_ROLE_EPOCHS_REQUIRED" error:error];
+    NSString*identity=[NSString stringWithFormat:@"%@:%@:%llu:%llu",SourceSHA(_profileOriginal),projection[@"head"],(unsigned long long)issuerEpoch,(unsigned long long)currentEpoch];
+    auto finalMono=std::chrono::steady_clock::now();uint64_t finalWall=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0);if(finalWall<after||finalWall>=expires)return [self fail:@"PAY_NATIVE_OBSERVER_LATE" error:error];
+    if(!ynx_auth_private::OriginalPaySourceMathCompletion::observe(_payObserved,issuerEpoch,currentEpoch,![_payObservedIdentity isEqual:identity]))return [self fail:@"PAY_NATIVE_OBSERVED_RETIRED" error:error];_payObservedIdentity=[identity copy];
+    _payCurrentMonoDeadline=finalMono+std::chrono::milliseconds(expires-finalWall);
+   }
    _currentOriginal=[currentBytes copy];_currentNonce=[nonce copy];
    _selection=[projection[@"selection"] copy];_sequence=sequence;_floor=floor;_headDigest=[projection[@"head"] copy];_timeFloor=after;_cachedCurrentExpiresMS=expires;if(sourceV2)_observationHeight=[projection[@"executionHeight"]copy];return YES;
   }@catch(NSException *){return [self fail:@"AUTH_IDENTITY_NATIVE_VERIFIER_UNKNOWN" error:error];}
@@ -666,9 +694,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   @finally{_entered=NO;}
  }
 }
-- (void)retire {@synchronized(self){_retired=YES;[_helperClient retire];[_custody retire];}}
-- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_httpV5Loans||_runtimeImageLoans)return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
+- (void)retire {@synchronized(self){if(_walletNativePay)ynx_auth_private::OriginalPaySourceMathCompletion::retire(_payObserved);_retired=YES;[_helperClient retire];[_custody retire];}}
+- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_httpV5Loans||_runtimeImageLoans||(_payObserved&&ynx_auth_private::OriginalPaySourceMathCompletion::loans(_payObserved)))return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
 - (BOOL)close:(NSError **)error {
+ if(_ideCocoaParentSource)return [self closeOriginalIDECocoaParentChildFirst:error];
+ if(_walletNativePay)return [self closeOriginalWalletNativePaySource:error];
  @synchronized(self){[self retire];if(_runtimeImageLoans){if(!_runtimeImageCloseCause)_runtimeImageCloseCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_RUNTIME_IMAGE_CHILDREN_RETAINED"}];if(error)*error=_runtimeImageCloseCause;return NO;}}
  @synchronized(self){[self retire];if(_productHTTPV5&&_httpV5Loans){if(!_httpV5CloseCause)_httpV5CloseCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"PRODUCT_HTTP_V5_REGISTERED_CHILDREN_RETAINED"}];if(error)*error=_httpV5CloseCause;return NO;}if(_closeSelected){if(error)*error=_runtimeImageCloseCause?:_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause&&!_runtimeImageCloseCause;}
   if(![self join:error])return NO;_closeSelected=YES;BOOL filesClosed=YES;
@@ -679,6 +709,18 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   for(auto &file:_files){if(file.selected){if(!file.complete)filesClosed=NO;continue;}file.selected=true;file.complete=::close(file.fd)==0;if(!file.complete)filesClosed=NO;}if(![self closeHeldPipes])filesClosed=NO;
   NSError *cause=nil;BOOL custodyClosed=!_custody||[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_runtimeImageCloseCause?:_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause&&!_runtimeImageCloseCause;}
 }
+#include "pay_native_source_methods.inc"
+- (BOOL)closeOriginalIDECocoaParentChildFirst:(NSError**)error {
+ @synchronized(self){[self retire];if(_closeSelected){if(error)*error=_cleanupCause;return _cleanupComplete;}if(![self join:error])return NO;_closeSelected=YES;
+  auto refuse=[&](NSError*e){if(!_cleanupCause)_cleanupCause=e?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_COCOA_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return NO;};
+  if(_helperClient){NSError*e=nil;if(![_helperClient close:&e]||e)return refuse(e);_helperClient=nil;}
+  if(_publicInstallation&&!_publicInstallation->close())return refuse(nil);
+  for(auto it=_files.rbegin();it!=_files.rend();++it){if(it->selected){if(!it->complete)return refuse(nil);continue;}it->selected=true;it->complete=::close(it->fd)==0;if(!it->complete)return refuse(nil);}
+  for(NSUInteger n=_pipeHandles.count;n>0;--n){NSUInteger i=n-1;if(_pipeStates[i].intValue==1)continue;if(_pipeStates[i].intValue!=0)return refuse(nil);_pipeStates[i]=@2;NSError*e=nil;if(![_pipeHandles[i]closeAndReturnError:&e]||e)return refuse(e);_pipeStates[i]=@1;}
+  NSError*e=nil;if(_custody&&![_custody closeOriginalIDERegistryChildFirst:&e])return refuse(e);_cleanupComplete=YES;return YES;
+ }
+}
+
 @end
 
 @implementation YNXIDEProjectServiceObserver {

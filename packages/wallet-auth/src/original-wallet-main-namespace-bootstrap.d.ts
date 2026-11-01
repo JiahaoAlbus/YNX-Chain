@@ -1,26 +1,33 @@
 import type {OriginalRuntimeImageAdmissionOwnerV1} from './original-auth-runtime-image-source-v1.js';
+import type {OriginalWalletMainNodeLoadResultV1} from './original-wallet-main-namespace-node-loader-private.js';
 export interface OriginalWalletMainNamespaceStartupCompletionV1 {
  readonly admission:OriginalRuntimeImageAdmissionOwnerV1|null;
+ /** SAME returned/nonnull own partial candidate, retained before recognition. */
+ readonly nativeOwner:unknown;readonly nativeOwnerPresent:boolean;
+ readonly loadResult:Readonly<OriginalWalletMainNodeLoadResultV1>|null;
  readonly errorPresent:boolean;readonly error:unknown;
- readonly nativeOwnerPresent:false;readonly SourceAdmission:false;
- readonly NativeAdmission:false;readonly MainRegistered:false;
+ readonly SourceAdmission:false;readonly NativeAdmission:false;readonly MainRegistered:false;
 }
 export interface OriginalWalletMainNamespaceStartupStatusV1 {
  readonly retired:boolean;readonly acquisitionComplete:boolean;readonly admissionPresent:boolean;
- readonly parentRetireSelected:boolean;readonly joinSelected:boolean;readonly joinComplete:boolean;
- readonly closeSelected:boolean;readonly closeComplete:boolean;
- readonly startupErrorPresent:boolean;readonly startupError:unknown;
- readonly cleanupErrorPresent:boolean;readonly cleanupError:unknown;
- readonly nativeOwnerPresent:false;readonly dataOnly:true;
+ readonly parentRetireSelected:boolean;readonly nativeInitializationEntered:boolean;
+ readonly nativeOwnerPresent:boolean;readonly nativeOwnerRecognized:boolean;readonly nativeCustodyUnknown:boolean;
+ readonly nodeLoadSelected:boolean;readonly nodeLoadComplete:boolean;
+ readonly nativeRetireSelected:boolean;readonly nativeJoinSelected:boolean;readonly nativeJoinComplete:boolean;
+ readonly nativeCloseSelected:boolean;readonly nativeCloseComplete:boolean;
+ readonly joinSelected:boolean;readonly joinComplete:boolean;readonly closeSelected:boolean;readonly closeComplete:boolean;
+ readonly startupErrorPresent:boolean;readonly startupError:unknown;readonly identityErrorPresent:boolean;readonly identityError:unknown;
+ readonly cleanupErrorPresent:boolean;readonly cleanupError:unknown;readonly dataOnly:true;
  readonly SourceAdmission:false;readonly NativeAdmission:false;readonly MainRegistered:false;
 }
-/** Synchronous custody controller. No Source/Native identity or admission. */
+/** Synchronous custody controller. Native recognition/current is not a status flag. */
 export interface OriginalWalletMainNamespaceStartupAttemptV1 {
  readonly completion:Promise<Readonly<OriginalWalletMainNamespaceStartupCompletionV1>>;
- /** Immediately denies startup. Original retire failure may be thrown, even false. */
+ /** Loader retirement, then cached Native retirement; exact failure may throw. */
  retire():void;
- /** Same sticky pending/debt; no replacement slot or successful retry on failure. */
+ /** Waits late import, closes SAME joined Native child, then joins image parent. */
  join():Promise<void>;
+ /** Child completion before image close; failure/UNKNOWN retains original debt. */
  close():Promise<void>;
  statusDATA():Readonly<OriginalWalletMainNamespaceStartupStatusV1>;
 }
