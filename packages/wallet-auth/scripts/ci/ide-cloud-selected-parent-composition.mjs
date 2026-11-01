@@ -1,0 +1,3 @@
+import{spawnSync}from'node:child_process';import{fileURLToPath}from'node:url';import path from'node:path';
+const pkg=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+for(const args of[['--test',path.join(pkg,'test/ide-cloud-selected-parent-composition.test.mjs')],[path.join(pkg,'node_modules/typescript/bin/tsc'),'--noEmit','--strict','--target','ES2022','--module','NodeNext','--moduleResolution','NodeNext',path.join(pkg,'test/ide-cloud-selected-parent-composition.types.mts')]]){const r=spawnSync(process.execPath,args,{cwd:pkg,env:process.env,stdio:'inherit'});if(r.status!==0)process.exit(r.status??1)}
