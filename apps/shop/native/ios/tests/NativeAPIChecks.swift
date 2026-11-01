@@ -62,7 +62,7 @@ final class StubProtocol:URLProtocol,@unchecked Sendable {
         for pair in [("PUT","/api/orders"),("GET","/api/seller/products"),("POST","/api/profile"),("GET","/api/orders/../profile")]{do{_ = try AppleNativeBusinessPolicy.scopes(pair.0,pair.1);throw NSError(domain:"scope broadened",code:1)}catch ShopError.security{print("PASS fixed Buyer scope route refuses "+pair.1)}}
         try check(try AppleNativeBusinessPolicy.scopes("POST","/api/orders/id/pay-handoff")==["account:read","shop:orders:write"],"payment preparation uses original Buyer scopes")
         try check(try AppleNativeBusinessPolicy.scopes("GET","/api/orders/id/native-pay-intent")==["account:read","shop:orders:write"],"original Native intent uses narrow read action")
-        do{_ = try AppleNativeBusinessPolicy.scopes("POST","/api/orders/id/native-pay-intent");throw NSError(domain:"intent mutation permitted",code:1)}catch ShopError.security{print("PASS Native intent cannot authorize POST")}
+        do{_ = try AppleNativeBusinessPolicy.scopes("DELETE","/api/orders/id/native-pay-intent");throw NSError(domain:"intent mutation permitted",code:1)}catch ShopError.security{print("PASS Native intent cannot authorize DELETE")}
         var nativeOrder=Order(orderID:"ord_original",status:"payment_pending",totalYNXT:10,refundStatus:nil,trustStatus:nil,payDeepLink:nil,buyer:account,storeID:"store_original",currency:"YNXT")
         nativeOrder.payIntentID="npi_"+String(repeating:"ab",count:24)
         var intentCalls=0

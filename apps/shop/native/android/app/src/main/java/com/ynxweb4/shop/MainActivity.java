@@ -62,7 +62,7 @@ public final class MainActivity extends Activity {
         else if(privacyChanged){clearPrivatePresentation();showAccount();}
         if(current!=null)sessionClock.postDelayed(this::reconcileSession,Math.max(1,Math.min(1000,Duration.between(Instant.now(),current.expiresAt).toMillis()+1)));
     }
-    @Override protected void onResume(){super.onResume();if(api!=null){reconcileSession();resumePaymentReadback();}}
+    @Override protected void onResume(){super.onResume();if(api!=null){reconcileSession();resumePaymentReadback();resumeNativeInvoiceReferences();}}
     @Override protected void onPause(){cancelOrderAction();cancelPayPresentation();paymentReadbackWork=null;clearAI();sessionClock.removeCallbacksAndMessages(null);super.onPause();}
 
     @Override protected void attachBaseContext(Context base){super.attachBaseContext(LocaleController.apply(base));}
@@ -253,7 +253,7 @@ public final class MainActivity extends Activity {
     }
 
     private void pay(JSONObject order){
-		if(NativeIntentObservation.isNative(order)){checkPayment(order);return;}
+		if(NativeIntentObservation.isNative(order)||order.optString("PayIntentID").isEmpty()){prepareNativeInvoice(order);return;}
         if(payHandoffWork!=null)return;final ProductSession expected;final long generation;final BuyerPaymentReview.Pending pending;final Object work=new Object();final long view=viewRevision,presentation=payPresentationRevision;
         try{expected=api.session();if(expected==null){signIn();return;}generation=PrivacyLifecycle.requireWritable(secure,expected.account);BuyerOrderReadback.validate(order,expected);pending=BuyerPaymentReview.prepare(secure,expected,order);}catch(Exception error){status.setText(message(error));return;}
         payHandoffWork=work;status.setText(getString(R.string.loading));
@@ -264,6 +264,42 @@ public final class MainActivity extends Activity {
                 invoiceDialog=new AlertDialog.Builder(this).setTitle(getString(R.string.pay_handoff)).setMessage(pending.original.order.getString("ID")+" · "+formatYNXT(pending.original.order.getLong("TotalYNXT"))+"\n"+receipt.getString("invoiceId")+"\n"+getString(R.string.payment_boundary)).setNegativeButton(getString(R.string.cancel),null).setPositiveButton(getString(R.string.pay_handoff),(d,w)->{if(view!=viewRevision||!isCurrent(expected,generation))return;try{wallet.reviewInvoice(expected,link,()->presentation==payPresentationRevision&&view==viewRevision,(opened,launchFailure)->{if(view!=viewRevision||!isCurrent(expected,generation))return;if(launchFailure!=null||!"opened".equals(opened)){status.setText(getString(R.string.unavailable));return;}try{BuyerPaymentReview.opened(secure,expected,pending);}catch(Exception storage){status.setText(getString(R.string.security_error));}});}catch(Exception rejected){status.setText(getString(R.string.unavailable));}}).create();final AlertDialog shown=invoiceDialog;showDialog(shown,()->{if(invoiceDialog==shown)invoiceDialog=null;});
             }catch(Exception rejected){status.setText(getString(R.string.unavailable));}});
         },"shop-invoice-handoff").start();
+    }
+    private void prepareNativeInvoice(JSONObject order){
+        if(payHandoffWork!=null)return;
+        try{
+            ProductSession expected=api.session();if(expected==null){signIn();return;}
+            long generation=PrivacyLifecycle.requireWritable(secure,expected.account),view=viewRevision,presentation=payPresentationRevision;
+            BuyerOrderReadback.validate(order,expected);NativeInvoiceJourney.Record original=NativeInvoiceJourney.prepare(secure,expected,order);
+            Object work=new Object();payHandoffWork=work;status.setText(getString(R.string.loading));
+            new Thread(()->{JSONObject result=null;Exception failure=null;
+                try{result=api.requestForSession(original.method(),original.path(),original.method().equals("GET")?null:original.body(),expected,generation,()->{if(original.mayCreate())NativeInvoiceJourney.dispatched(secure,original);},()->payHandoffWork==work&&view==viewRevision&&presentation==payPresentationRevision);}
+                catch(Exception error){failure=error;}
+                JSONObject received=result;Exception error=failure;
+                runOnUiThread(()->{if(payHandoffWork!=work)return;payHandoffWork=null;if(view!=viewRevision||presentation!=payPresentationRevision||!isCurrent(expected,generation))return;
+                    if(error!=null){status.setText(message(error));return;}
+                    try{NativeInvoiceJourney.Record retained=NativeInvoiceJourney.observed(secure,original,received);
+                        wallet.openOriginalNativePay(expected,retained.operation,()->view==viewRevision&&presentation==payPresentationRevision&&isCurrent(expected,generation),(opened,navError)->runOnUiThread(()->{
+                            if(view!=viewRevision||!isCurrent(expected,generation))return;
+                            if(navError!=null){status.setText(message(navError));return;}
+                            resumeNativeInvoiceReferences();showOrders();
+                        }));
+                    }catch(Exception invalid){status.setText(message(invalid));}
+                });
+            }).start();
+        }catch(Exception error){status.setText(message(error));}
+    }
+    private void resumeNativeInvoiceReferences(){
+        try{ProductSession expected=api.session();if(expected==null)return;long view=viewRevision;
+            JSONObject rows=NativeInvoiceJourney.records(secure,expected.account);
+            for(String id:rows.keySet()){
+                NativeInvoiceJourney.Record original=new NativeInvoiceJourney.Record(rows.getJSONObject(id));if(original.mayCreate())continue;
+                api.request(original.method(),original.path(),original.method().equals("GET")?null:original.body(),()->view==viewRevision,(result,error)->{
+                    if(error!=null){status.setText(message(error));return;}
+                    try{NativeInvoiceJourney.observed(secure,original,result);}catch(Exception invalid){status.setText(message(invalid));}
+                });
+            }
+        }catch(Exception error){status.setText(message(error));}
     }
     private void resumePaymentReadback(){
         if(paymentReadbackWork!=null)return;final ProductSession expected;final BuyerPaymentReview.Pending pending;final long generation;final Object work=new Object();final long view=viewRevision;
@@ -364,6 +400,7 @@ public final class MainActivity extends Activity {
     private void performPrivacyDeletion(boolean retry){
         try{
             ProductSession expected=api.session();if(expected==null){signIn();return;}
+            if(NativeInvoiceJourney.records(secure,expected.account).length()!=0)throw new IllegalStateException("Original Native invoice recovery is unresolved");
             api.deleteBuyerData(expected,retry,(value,error)->{
                 clearPrivatePresentation();showAccount();
                 try{JSONObject state=api.privacy().snapshot(expected.account);String phase=state.optString("phase");status.setText(PrivacyLifecycle.ACTIVE.equals(phase)&&error!=null?getString(R.string.privacy_delete_failed)+" "+message(error):privacyMessage(state.optString("reason",phase)));}

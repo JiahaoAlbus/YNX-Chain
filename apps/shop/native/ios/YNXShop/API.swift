@@ -127,16 +127,27 @@ final class ShopRedirectPolicy:NSObject,URLSessionTaskDelegate,@unchecked Sendab
     func openInvoice(_ url:URL,expected:ShopSession)async throws
     func proof(method:String,path:String,body:String,expected:ShopSession)async throws->[String:Any]
 }
+// Supplied by the original qualified Main/Pay navigation owner. It opens the
+// existing Main intent entry; no URL, JSON capsule, approve or send is accepted.
+@MainActor protocol AppleOriginalNativePayNavigation:AnyObject {
+    func openOriginalIntent(_ operation:String,expected:ShopSession)async throws
+}
 extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)async throws {throw ShopError.unavailable}}
 @MainActor final class APIClient {
     let base:URL
     private let session:URLSession
     private let authority:AppleNativeAuthority?
+	private let nativePayNavigation:AppleOriginalNativePayNavigation?
+	let nativeInvoiceMode:Bool
     private var revision=0
     var onSessionChanged:(()->Void)?
-    init(base:URL=URL(string:"https://shop-api.ynxweb4.com/api")!,session:URLSession?=nil,authority:AppleNativeAuthority?=nil){self.base=base;self.session=session ?? URLSession(configuration:.ephemeral,delegate:ShopRedirectPolicy(),delegateQueue:nil);self.authority=authority ?? (try? AppleNativeSessionBridge());if let bridge=self.authority as? AppleNativeSessionBridge{bridge.changed={[weak self] in self?.onSessionChanged?()}}}
+    init(base:URL=URL(string:"https://shop-api.ynxweb4.com/api")!,session:URLSession?=nil,authority:AppleNativeAuthority?=nil,nativeInvoiceMode:Bool=true,nativePayNavigation:AppleOriginalNativePayNavigation?=nil){self.nativeInvoiceMode=nativeInvoiceMode;self.nativePayNavigation=nativePayNavigation;self.base=base;self.session=session ?? URLSession(configuration:.ephemeral,delegate:ShopRedirectPolicy(),delegateQueue:nil);self.authority=authority ?? (try? AppleNativeSessionBridge());if let bridge=self.authority as? AppleNativeSessionBridge{bridge.changed={[weak self] in self?.onSessionChanged?()}}}
     var currentSession:ShopSession?{authority?.current}
     func reviewInvoice(_ url:URL,expected:ShopSession)async throws {let check=try capture();guard currentSession==expected,let authority else{throw ShopError.contextChanged};try await authority.openInvoice(url,expected:expected);try check()}
+    func openOriginalNativePay(_ operation:String)async throws {
+        let check=try capture();guard NativeWire.matches(operation,"^npi_[a-f0-9]{48}$"),let current=currentSession,let navigation=nativePayNavigation else{throw ShopError.unavailable}
+        try await navigation.openOriginalIntent(operation,expected:current);try check()
+    }
     func invalidate(){revision+=1}
     func restoreNative()async throws{guard let authority else{throw ShopError.unavailable};try await authority.restore()}
     func connectNative()async throws{guard let authority else{throw ShopError.unavailable};try await authority.restore();if authority.current==nil{try await authority.connect()}}

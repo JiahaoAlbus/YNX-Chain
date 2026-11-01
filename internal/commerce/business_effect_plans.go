@@ -218,6 +218,8 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 	var plan businessEffectPlan
 	var err error
 	switch pattern {
+	case "POST /api/orders/{id}/native-pay-intent", "POST /api/orders/{id}/native-pay-intent-lookup":
+		plan, err = s.nativeInvoicePreparation(r.Context(), r.PathValue("id"), body, verified, pattern == "POST /api/orders/{id}/native-pay-intent-lookup")
 	case "GET /api/orders/{id}/native-pay-intent":
 		plan, err = s.nativePayIntentObservation(r.PathValue("id"), verified.proof)
 	case "POST /api/orders/{id}/pay-handoff":

@@ -30,7 +30,7 @@ jobs:
       - name: Verify original intent recovery and build the normal Shop service
         run: |
           set -euo pipefail
-          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI)' -count=1
+          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI)' -count=1
           go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
       - uses: actions/setup-java@v4
         with:
@@ -73,7 +73,7 @@ jobs:
         run: |
           set -euo pipefail
           bash apps/shop/native/android/gradlew -p apps/shop/native/android --no-daemon \
-            :app:assembleDebug :app:testDebugUnitTest --tests com.ynxweb4.shop.NativeIntentObservationTest
+            :app:assembleDebug :app:testDebugUnitTest --tests com.ynxweb4.shop.NativeIntentObservationTest --tests com.ynxweb4.shop.NativeInvoiceJourneyTest
       - uses: actions/upload-artifact@v4
         with:
           name: ynx-shop-android-debug
@@ -116,6 +116,8 @@ jobs:
             esbuild@0.25.9 @noble/curves@2.2.0 @noble/hashes@2.2.0
           ln -s "$RUNNER_TEMP/ynx-shop-native-tools/node_modules" ../../node_modules
           node -e 'const r=require("node:module").createRequire(process.cwd()+"/YNXShop.xcodeproj/package-check.cjs");if(r("esbuild").version!=="0.25.9")throw Error("Native compiler mismatch")'
+      - name: Check original Main intent navigation contract
+        run: node --test ../pay-intent-navigation.test.mjs
       - name: Build for iOS Simulator
         run: |
           set -o pipefail
@@ -148,6 +150,9 @@ jobs:
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/BuyerJourneyChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-buyer-journey-checks"
           "$RUNNER_TEMP/ynx-shop-buyer-journey-checks"
+          xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/NativeInvoiceJourneyChecks.swift \
+            -o "$RUNNER_TEMP/ynx-shop-native-invoice-journey-checks"
+          "$RUNNER_TEMP/ynx-shop-native-invoice-journey-checks"
       - name: Boot, install, launch, and exercise deep link
         run: |
           DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for runtime in d.values() for x in runtime if x["name"].startswith("iPhone") and x["isAvailable"]))')"

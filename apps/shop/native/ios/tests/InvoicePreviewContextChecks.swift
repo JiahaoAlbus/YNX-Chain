@@ -56,7 +56,7 @@ final class PreviewHTTP:URLProtocol,@unchecked Sendable {
         let authority=PreviewAuthority();authority.current=session(a)
         let inbox=PreviewInbox();PreviewHTTP.handler={inbox.receive($0)}
         let config=URLSessionConfiguration.ephemeral;config.protocolClasses=[PreviewHTTP.self]
-        let http=URLSession(configuration:config),api=APIClient(base:URL(string:"https://shop.ynxweb4.com/api")!,session:http,authority:authority)
+        let http=URLSession(configuration:config),api=APIClient(base:URL(string:"https://shop.ynxweb4.com/api")!,session:http,authority:authority,nativeInvoiceMode:false)
         var storage:[String:Data]=[:]
         let queue=OfflineQueue(read:{storage["queue"]},write:{storage["queue"]=$0},readPhase:{storage["phase"]},writePhase:{storage["phase"]=$0})
         let unknown=try queue.prepareUnsent(account:a,path:"orders/original/transition",input:["Action":"cancelled"])

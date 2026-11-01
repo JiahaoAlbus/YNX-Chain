@@ -16,6 +16,32 @@ import (
 
 const nativePayProductLimit = 2 << 20
 
+// P06 product DATA only. Its real joint Source independently checks every
+// field against the registered merchant, original order and approved price.
+type NativeShopInvoiceRequestDATA struct {
+	ProductID     string          `json:"productId"`
+	StoreID       string          `json:"storeId,omitempty"`
+	SourceOrder   string          `json:"sourceOrder"`
+	Merchant      string          `json:"merchant"`
+	Recipient     string          `json:"recipient"`
+	Genesis       string          `json:"genesis"`
+	NativeChainID string          `json:"nativeChainId"`
+	AssetID       string          `json:"assetId"`
+	UnitVersion   string          `json:"unitVersion"`
+	AmountAtoms   string          `json:"amountAtoms"`
+	DomainData    json.RawMessage `json:"domainData"`
+}
+
+func (c *NativeShopPayClient) CreateOriginalInvoiceIntentDATA(ctx context.Context, input NativeShopInvoiceRequestDATA) (NativeShopPayExchange, error) {
+	input.DomainData = bytes.Clone(input.DomainData)
+	return c.exchange(ctx, "POST", "/v5/pay/invoice-intents", input, true)
+}
+
+func (c *NativeShopPayClient) LookupOriginalInvoiceIntentDATA(ctx context.Context, input NativeShopInvoiceRequestDATA) (NativeShopPayExchange, error) {
+	input.DomainData = bytes.Clone(input.DomainData)
+	return c.exchange(ctx, "POST", "/v5/pay/invoice-intents/lookup", input, false)
+}
+
 // NativeShopPayTerms is P06's product DATA, not CORE signing bytes or approval.
 // Amounts remain exact atom strings. Legacy order decimals are never converted.
 type NativeShopPayTerms struct {

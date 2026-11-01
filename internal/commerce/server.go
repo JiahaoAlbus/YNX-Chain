@@ -36,7 +36,9 @@ type ServerConfig struct {
 	NativePay *NativeShopPayClient
 	// Independent Native mode may recover historical references, but cannot
 	// fall through to the retired invoice creator while its Native Source is absent.
-	NativeInvoiceOnly         bool
+	NativeInvoiceOnly bool
+	// Original approved-price DATA reader; never a Pay Source grant or signer.
+	NativeInvoiceDATA         OriginalShopNativeInvoiceDATAReader
 	Trust                     TrustGateway
 	AI                        HTTPAIGateway
 	ProviderTester            ProviderTester
@@ -95,6 +97,9 @@ func (s *Server) routes() {
 		// Only the original V2 action path may admit this private observation.
 		failBusiness(w, ErrUnauthorized)
 	})
+	for _, pattern := range []string{"POST /api/orders/{id}/native-pay-intent", "POST /api/orders/{id}/native-pay-intent-lookup"} {
+		s.handleFunc(pattern, func(w http.ResponseWriter, r *http.Request) { failBusiness(w, ErrUnauthorized) })
+	}
 	s.handleFunc("POST /api/orders/{id}/transition", s.orderTransition)
 	s.handleFunc("POST /api/orders/{id}/return-receipts", s.receiveReturn)
 	s.handleFunc("POST /api/orders/{id}/return-restock", s.restockReturn)

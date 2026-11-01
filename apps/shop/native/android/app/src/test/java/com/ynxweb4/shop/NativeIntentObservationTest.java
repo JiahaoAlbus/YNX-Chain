@@ -10,7 +10,7 @@ public class NativeIntentObservationTest {
   JSONObject original=order();assertTrue(NativeIntentObservation.isNative(original));assertEquals("/orders/ord_original/native-pay-intent",NativeIntentObservation.path(original,"original_account"));NativeIntentObservation.validate(original,observation());
   assertThrows(SecurityException.class,()->NativeIntentObservation.path(original,"foreign"));
   assertEquals("[\"account:read\",\"shop:orders:write\"]",NativeProductState.canonical(NativeBusinessPolicy.scopes("GET","/api/orders/ord_original/native-pay-intent")));
-  assertThrows(SecurityException.class,()->NativeBusinessPolicy.scopes("POST","/api/orders/ord_original/native-pay-intent"));
+  assertThrows(SecurityException.class,()->NativeBusinessPolicy.scopes("DELETE","/api/orders/ord_original/native-pay-intent"));
  }
  @Test public void reboundOriginalAndInventedFundsAreRejected()throws Exception{
   for(String key:new String[]{"orderId","originalOperation","state","phase","queryOnly","fundsVerified"}){JSONObject invalid=observation();invalid.put(key,key.equals("phase")?"invalid/phase":"foreign");assertThrows(SecurityException.class,()->NativeIntentObservation.validate(order(),invalid));}

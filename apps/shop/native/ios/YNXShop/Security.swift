@@ -1,6 +1,47 @@
 import CryptoKit
 import Foundation
 import Security
+import CoreFoundation
+
+// Product recovery metadata in the existing Vault, never a wallet transaction
+// journal, signing capsule or permission to create/send during cold restore.
+@MainActor final class NativeInvoicePreparationJournal {
+    struct Record:Codable,Equatable {let account:String;let orderID:String;let digest:String;let key:String;let lookupByKey:Bool;var phase:String;var originalOperation:String?}
+    private let read:(String)throws->Data?,write:(String,Data)throws->Void
+    init(read:@escaping (String)throws->Data?={try Vault.read($0)},write:@escaping (String,Data)throws->Void={try Vault.put($0,$1)}){self.read=read;self.write=write}
+    private func hash(_ data:Data)->String{SHA256.hash(data:data).map{String(format:"%02x",$0)}.joined()}
+    private func namespace(_ account:String)->String{"apple-native-invoice-v1-"+hash(Data(account.utf8))}
+    private func digest(_ order:Order)throws->String{try hash(CanonicalJSON.data([order.orderID,order.buyer ?? "",order.storeID ?? "",String(order.totalYNXT),order.currency ?? ""]))}
+    func records(_ account:String)throws->[String:Record]{
+        guard let raw=try read(namespace(account)) else{return [:]}
+        let saved=try JSONDecoder().decode([String:Record].self,from:raw)
+        guard saved.allSatisfy({$0.key==$0.value.orderID && $0.value.account==account && NativeWire.matches($0.key,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") && NativeWire.matches($0.value.key,"^[A-Za-z0-9._:-]{8,128}$") && NativeWire.matches($0.value.digest,"^[a-f0-9]{64}$") && ["prepared","unknown","reference"].contains($0.value.phase) && ($0.value.phase=="reference" || $0.value.lookupByKey) && ($0.value.phase=="reference" ? NativeWire.matches($0.value.originalOperation ?? "","^npi_[a-f0-9]{48}$"):$0.value.originalOperation==nil)}) else{throw ShopError.security}
+        return saved
+    }
+    private func save(_ values:[String:Record],_ account:String)throws{let data=try JSONEncoder().encode(values);try write(namespace(account),data);guard try read(namespace(account))==data else{throw ShopError.security}}
+    func prepare(_ order:Order,account:String,legacyPending:Bool)throws->Record{
+        try AppleBuyerReceipt.validate(order,account:account)
+        var saved=try records(account);let d=try digest(order)
+        if let original=saved[order.orderID]{guard original.digest==d else{throw ShopError.unresolvedMutation};return original}
+        guard !legacyPending else{throw ShopError.unresolvedMutation}
+        let operation=order.payIntentID.flatMap{NativeWire.matches($0,"^npi_[a-f0-9]{48}$") ? $0:nil}
+        guard operation != nil || ((order.payIntentID ?? "").isEmpty && (order.invoiceID ?? "").isEmpty && order.status=="payment_pending") else{throw ShopError.security}
+        let value=Record(account:account,orderID:order.orderID,digest:d,key:UUID().uuidString,lookupByKey:operation==nil,phase:operation==nil ? "prepared":"reference",originalOperation:operation)
+        saved[order.orderID]=value;try save(saved,account);return value
+    }
+    func dispatched(_ original:Record)throws{
+        var saved=try records(original.account);guard saved[original.orderID]==original,original.phase=="prepared" else{throw ShopError.unresolvedMutation}
+        var pending=original;pending.phase="unknown";saved[original.orderID]=pending;try save(saved,original.account)
+    }
+    func observed(_ original:Record,result:[String:Any])throws->Record{
+        var saved=try records(original.account);guard var current=saved[original.orderID],current.key==original.key,current.digest==original.digest else{throw ShopError.security}
+        guard result["orderId"] as? String==original.orderID,let operation=result["originalOperation"] as? String,NativeWire.matches(operation,"^npi_[a-f0-9]{48}$"),current.originalOperation==nil || current.originalOperation==operation,
+              let state=result["state"] as? String,["PREPARED","ISSUED"].contains(state),let phase=result["phase"] as? String,NativeWire.matches(phase,"^[A-Za-z0-9._:-]{1,96}$"),
+              let funds=result["fundsVerified"] as? NSNumber,CFGetTypeID(funds)==CFBooleanGetTypeID(),!funds.boolValue,
+              let query=result["queryOnly"] as? NSNumber,CFGetTypeID(query)==CFBooleanGetTypeID(),original.phase=="prepared" || query.boolValue else{throw ShopError.security}
+        current.phase="reference";current.originalOperation=operation;saved[original.orderID]=current;try save(saved,original.account);return current
+    }
+}
 
 enum Vault {
     static let service = "com.ynxweb4.shop.secure"

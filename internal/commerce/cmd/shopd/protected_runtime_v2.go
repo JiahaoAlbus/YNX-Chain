@@ -17,13 +17,15 @@ var originalShopRuntimeInputs struct {
 	nativeFiles   *commerce.OriginalNativeBuyerFilesPair
 	// Borrowed qualified Pay caller supplied by the original hosting owner.
 	// Neither ENV nor a request can create/select its protected transport.
-	nativePay *commerce.NativeShopPayClient
+	nativePay         *commerce.NativeShopPayClient
+	nativeInvoiceDATA commerce.OriginalShopNativeInvoiceDATAReader
 }
 
 type preparedOriginalShopRuntime struct {
-	prepared  *commerce.PreparedOriginalShop
-	native    *commerce.PreparedOriginalNativeBuyers
-	nativePay *commerce.NativeShopPayClient
+	prepared          *commerce.PreparedOriginalShop
+	native            *commerce.PreparedOriginalNativeBuyers
+	nativePay         *commerce.NativeShopPayClient
+	nativeInvoiceDATA commerce.OriginalShopNativeInvoiceDATAReader
 }
 
 func prepareOriginalShopRuntime(ctx context.Context, f originalShopFiles) (originalShopRuntime, error) {
@@ -49,10 +51,11 @@ func prepareOriginalShopRuntime(ctx context.Context, f originalShopFiles) (origi
 			return nil, err
 		}
 	}
-	return preparedOriginalShopRuntime{prepared: p, native: native, nativePay: inputs.nativePay}, nil
+	return preparedOriginalShopRuntime{prepared: p, native: native, nativePay: inputs.nativePay, nativeInvoiceDATA: inputs.nativeInvoiceDATA}, nil
 }
 func (p preparedOriginalShopRuntime) servers(ctx context.Context, store *commerce.Store, cfg commerce.ServerConfig) (http.Handler, http.Handler, http.Handler, *commerce.Server, *commerce.Server, error) {
 	cfg.NativePay = p.nativePay
+	cfg.NativeInvoiceDATA = p.nativeInvoiceDATA
 	buyer, seller, err := p.prepared.OpenOriginal(ctx, func() (*commerce.Store, error) { return store, nil }, cfg)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err

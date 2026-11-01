@@ -122,3 +122,49 @@ remain recoverable without creating another operation. The 2026-11-01 P06 normal
 host inventory explicitly reports `PAY_HOST_ORIGINAL_ENGINE_SOURCE_CONTRACT_NOT_LINKED`;
 this is a real supplier composition gap, separate from Root registration, and
 must not be hidden by a legacy service key or a replacement Shop Source.
+
+## Native creation and original approval navigation successor
+
+The actual V2 Buyer routes now include `POST /api/orders/{id}/native-pay-intent`
+and `POST /api/orders/{id}/native-pay-intent-lookup`, with only
+`{IdempotencyKey}`. `NativeInvoiceDATA` is the original pricing/bill DATA reader:
+it supplies the exact approved Native atoms, network and merchant association
+DATA for the detached actual owned checkout. No legacy amount conversion or
+current-catalog repricing occurs. This DATA port creates no Source, membership,
+signature, approval or terms: the actual P06 joint Shop/Pay Source independently
+checks the complete request and derives its own CORE terms. Missing either
+side stays unavailable, and the existing Cloud-only Source family is unchanged.
+
+The same original BusinessEffects record captures the complete immutable
+request before exactly one Pay create POST. An ambiguous attempt cannot create
+again, choose a new key or read new prices. Explicit lookup uses the retained
+original bytes and only P06's fixed lookup endpoint. A successful authenticated
+reply must match the whole request, original npi, merchant/recipient and exact
+Money terms. The reference attaches only to the same original order. Lookup
+may recover a cancelled order's original reference without changing its status,
+reservation or funds. It resolves the original product record while preserving
+its unknown dispatch Step and actual original response evidence.
+
+The normal startup borrows `nativePay` and `nativeInvoiceDATA` into the same
+original Store/Buyer composition. Main's Source-owned
+`readOriginalInvoiceIntent({productId,sourceOrder},current)` can read the
+captured product DATA through `ReadOriginalShopNativeInvoiceRequestDATA` using
+the actual authenticated actor/role. That resource read does not authorize Pay.
+The exact working production contract is also recorded in the owning P07
+`NATIVE_ORDER_HANDOFF_CONTRACT.md` coordination file.
+
+Apple and Android keep the original key, attempted/UNKNOWN state and npi in
+their existing encrypted product stores. New creation needs an explicit click;
+cold opening/return only performs original lookup or GET. The reference is
+durable before calling the original typed Main navigation port. Missing Main
+bridge keeps it and reports unavailable; it never synthesizes a URL or capsule.
+The normal Main adapter consumes P06's fixed `intent`/`recover-intent` actions,
+validates returned original references and retains independent-finality=false.
+It never approves, signs, sends or invokes the planned Pay broadcast callee.
+The original Main owner supplies that real protected UI/IPC bridge and queue.
+
+The original Pay Source, actual Main navigation/broadcast implementation,
+matching installed images and real approval/funds acceptance remain distinct
+gates. Consumer tests use PUBLIC ports, actual product Store/journal and native
+models; the frozen actual P06 normal entry also verifies honest Source-absent
+refusal without constructing Main or authority. No such check is a real payment.

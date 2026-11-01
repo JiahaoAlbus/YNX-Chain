@@ -27,7 +27,7 @@ func validateBusinessEffects(snapshot Snapshot) error {
 			return ErrInvalidState
 		}
 		for _, step := range record.Steps {
-			if readBusinessEffect(record.Kind) && step.Method != http.MethodGet {
+			if readBusinessEffect(record.Kind) && !readBusinessEffectStep(record.Kind, step.Method, step.Path) {
 				return ErrInvalidState
 			}
 			if step.Method == "" || step.Origin == "" || step.Path == "" || !validDigest(step.RequestDigest) || effectDigest(string(step.Request)) != step.RequestDigest || (len(step.Request) > 0 && !json.Valid(step.Request)) {
@@ -84,7 +84,14 @@ type businessEffectPlan struct {
 // This list is owner-defined, never caller supplied. A fresh signed settlement
 // observation may repeat its GET after an unavailable or pending response.
 func readBusinessEffect(kind string) bool {
-	return kind == "pay.settlement" || kind == "pay.native-intent"
+	return kind == "pay.settlement" || kind == "pay.native-intent" || kind == "pay.native-lookup"
+}
+
+func readBusinessEffectStep(kind, method, path string) bool {
+	if kind == "pay.native-lookup" {
+		return method == http.MethodPost && path == "/v5/pay/invoice-intents/lookup"
+	}
+	return method == http.MethodGet
 }
 
 func effectDigest(parts ...string) string {
