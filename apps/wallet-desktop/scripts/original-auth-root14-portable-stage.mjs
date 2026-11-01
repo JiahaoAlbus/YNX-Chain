@@ -1,5 +1,7 @@
 import fs from'node:fs';import path from'node:path';import{fileURLToPath}from'node:url';import{relocateOriginalAuthRuntime,pinRegular}from'./original-auth-runtime-relocate.mjs';
-const app=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),repo=path.resolve(app,'../..'),native=path.join(app,'native','root14-product45');
+const app=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),repo=path.resolve(app,'../..');
+export function root14Resource8PortableStagePaths(){const root=path.join(app,'native','root14-product45-resource8');return{root,input:path.join(root,'original-auth-identity.linked.node'),output:path.join(root,'original-auth-identity.node'),libraries:path.join(root,'original-auth-runtime-libs')};}
+export function runRoot14Resource8PortableStage(){const native=root14Resource8PortableStagePaths().root;
 if(process.argv.length!==2)throw Error('NATIVE_PORTABLE_FIXED_STAGE_ZERO_ARGUMENTS');
 const config=JSON.parse(fs.readFileSync(path.join(app,'native','original-wallet-portable-runtime-inputs.json'),'utf8'));
 const relative=p=>{if(typeof p!=='string'||path.isAbsolute(p)||p.split('/').some(s=>!s||s==='.'||s==='..')||p.includes('\\'))throw Error('NATIVE_PORTABLE_RELATIVE_INPUT');return path.join(repo,p);};
@@ -14,3 +16,6 @@ const output=path.join(native,'original-auth-identity.node');fs.copyFileSync(res
 const facts={...result,outputModule:pinRegular(output),libraryDirectory:targetLib,libraries:config.libraries.map(l=>pinRegular(path.join(targetLib,l.name))),copiedFromStaging:true,buildRecordGenerated:false,RootAdmission:false,SourceAdmission:false,ElectronLoad:false};
 fs.writeFileSync(path.join(native,'original-auth-portable-runtime.json'),JSON.stringify(facts,null,2)+'\n',{flag:'wx',mode:0o644});
 console.log(JSON.stringify({portableRuntime:facts.outputModule,dependencyCount:3,relocated:true,adhocQAOnly:true,recordMustFollow:true}));
+
+}
+if(process.argv[1]===fileURLToPath(import.meta.url))runRoot14Resource8PortableStage();
