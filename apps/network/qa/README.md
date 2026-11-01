@@ -130,3 +130,38 @@ journal; the normal App and native/HTTP resource service remain disabled. Neithe
 these signatures nor an RPC report establish production publisher authority,
 human consent, block validity, reward or funds. Actual canonical publisher,
 key epoch/revocation and visible native consent remain separate production gates.
+
+## Native ordinary-node decisions
+
+The ordinary App remains the read-only client while the original signed node
+runtime is unavailable. A controlled WASM CLI packet does not enable App controls,
+create native consent or supply that release. The native node IPC entry prepares
+an exact manager/node/action/artifact/generation intent; production install/start
+returns `UNSUPPORTED` before showing a prompt when the original release is absent.
+
+For a supported owned-node effect, the helper invokes only the fixed native
+producer captured from its own bundle. The builder compiles that producer's
+digest into the helper; no HTTP request, intent, profile or runtime option can
+select a prompt executable. `--native-consent` is a dedicated native child mode
+with bounded stdin and no browser bridge. It displays the exact intent digest,
+artifact, action, node, generation, mode and expiry. Cancel is the default button;
+closing, timeout, client cancellation, invalid responses and changed binaries
+cannot approve. Only a matching fresh child decision reaches the manager's
+short-lived, peer-bound opaque approval, which is consumed once. This local
+decision is not a publisher signature, Wallet approval, person identity proof,
+validator/signer permission or Root authority.
+
+The fixed native text supports the same twelve languages and Arabic RTL while
+keeping hashes and original intent fields LTR. Language/theme enums are taken
+from the App's existing preferences when its helper starts or restarts; this does
+not claim live synchronization of an already running helper's prompt appearance.
+No general environment, HOME override or caller-supplied display text reaches the
+producer. A visible review has a bounded 60-second lifetime; only native node
+effect transport requests receive the corresponding longer response budget.
+Read-only and other IPC operations retain their short timeout and original scope.
+
+`TestP09QANativeConsentContract` connects the actual Cocoa parser/display/response
+contract to helper CI without opening a window. Its injected decisions and the
+separate Go process transport fixtures do not establish a human click. Actual
+dialog acceptance, original signed runtime intake and production release are
+reported separately from this code and contract validation.

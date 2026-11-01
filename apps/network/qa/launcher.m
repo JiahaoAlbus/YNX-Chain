@@ -117,9 +117,11 @@ static BOOL privateDirectory(NSString *dir) {
 static int qaFailure(NSString *message,BOOL cli){fprintf(stderr,"%s\n",message.UTF8String);if(!cli){[NSApplication sharedApplication];NSAlert *alert=[NSAlert new];alert.messageText=@"YNX Network QA could not start";alert.informativeText=message;[alert runModal];}return 2;}
 static BOOL packagedFiles(NSString *helper,NSString *proof,NSDictionary *build){
  BOOL matched=[[digest(helper)description]isEqual:build[@"helperSHA256"]]&&[[digest(proof)description]isEqual:build[@"proofSHA256"]];
- id pin=build[@"resourceWorkerSHA256"];if(!pin)return matched; // Older QA builds have no task worker.
- NSString *worker=[[helper stringByDeletingLastPathComponent]stringByAppendingPathComponent:@"ynx-network-task-worker"];
- return matched&&[pin isKindOfClass:NSString.class]&&[pin length]==64&&[[digest(worker)description]isEqual:pin];
+ id pin=build[@"resourceWorkerSHA256"]; // Older QA builds have no task worker.
+ if(pin){NSString *worker=[[helper stringByDeletingLastPathComponent]stringByAppendingPathComponent:@"ynx-network-task-worker"];matched=matched&&[pin isKindOfClass:NSString.class]&&[pin length]==64&&[[digest(worker)description]isEqual:pin];}
+ id consent=build[@"nativeConsentSHA256"];
+ if(consent){NSString *producer=[[helper stringByDeletingLastPathComponent]stringByAppendingPathComponent:@"ynx-network-native-consent"];matched=matched&&[consent isKindOfClass:NSString.class]&&[consent length]==64&&[[digest(producer)description]isEqual:consent];}
+ return matched;
 }
 static void installApplicationMenu(NSApplication *app) {
   NSMenu *bar=[NSMenu new];
@@ -134,6 +136,8 @@ static void installApplicationMenu(NSApplication *app) {
 }
 static NSArray<NSString*> *helperArguments(NSString *data,NSString *rpc,NSString *proof,NSDictionary *build,NSDictionary *profile) {
   NSMutableArray *args=[NSMutableArray arrayWithArray:@[@"--data-dir",data,@"--rpc",rpc]];
+  NSDictionary *preferences=QAPreferenceRead(NSUserDefaults.standardUserDefaults,NSBundle.mainBundle.bundleIdentifier);
+  [args addObjectsFromArray:@[@"--native-ui-locale",preferences[@"locale"],@"--native-ui-theme",preferences[@"theme"]]];
   if(profile)[args addObjectsFromArray:@[@"--pq-verifier",proof,@"--pq-verifier-sha256",build[@"proofSHA256"],@"--pq-context",profile[@"contextPath"],@"--pq-context-sha256",profile[@"contextSHA256"]]];
   return args;
 }

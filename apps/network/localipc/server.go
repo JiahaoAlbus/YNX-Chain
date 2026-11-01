@@ -225,6 +225,12 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		writeResponse(w, protocolError("ENDPOINT_CHANGED", request.ID, peer))
 		return
 	}
+	if OperationTimeout(request.Operation) > 10*time.Second {
+		if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(OperationTimeout(request.Operation))); err != nil {
+			writeResponse(w, protocolError("DENIED", request.ID, peer))
+			return
+		}
+	}
 	result, err := s.dispatch(r.Context(), peer, request)
 	if r.Context().Err() != nil {
 		writeResponse(w, protocolError("CANCELLED", request.ID, peer))

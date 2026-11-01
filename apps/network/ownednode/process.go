@@ -2,8 +2,6 @@ package ownednode
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"os"
 	"os/exec"
@@ -61,38 +59,64 @@ func (m *Manager) Start(ctx context.Context, peer localipc.Peer, intent Intent, 
 	if m.state.Stage != "installed" && m.state.Stage != "stopped" {
 		return "", errors.New("node artifact is not installed")
 	}
-	if _, err = m.capacity(1024); err != nil {
-		return "", err
-	}
-	for _, name := range []string{"bin", "data"} {
-		if _, err = privateDir(filepath.Join(m.directory, name), m.uid, false); err != nil {
-			return "", err
-		}
-	}
-	executable := filepath.Join(m.directory, "bin", artifactName)
-	artifact, _, err := readOwnedFile(executable, m.uid, int64(m.maxArtifact))
+	artifact, _, err := m.artifact()
 	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256(artifact)
-	if hex.EncodeToString(sum[:]) != m.state.ArtifactSHA256 {
-		return "", errors.New("managed artifact changed; no launch")
+	if _, err = m.capacity(uint64(len(artifact)) + 1024); err != nil {
+		return "", err
+	}
+	if err = ctx.Err(); err != nil {
+		return "", err
 	}
 	if err = m.consume(peer, intent, approval); err != nil {
 		return "", err
 	}
-	command := exec.Command(executable) // Fixed managed artifact, no shell, args or caller path/PID.
+	runID := randomID()
+	m.state.Stage = "starting"
+	m.state.Generation++
+	m.state.RunID = runID
+	if err = m.save(); err != nil {
+		return "", m.reconcile(err)
+	}
+	capture, err := m.captureRuntime(artifact, runID)
+	if err != nil {
+		return "", m.reconcile(err)
+	}
+	if err = m.runtimeUnchanged(capture); err != nil {
+		return "", m.reconcile(err)
+	}
+	if err = ctx.Err(); err != nil {
+		return "", m.reconcile(err)
+	}
+	command := exec.Command(capture.path) // Fixed captured bytes; no task path, shell, args or PID.
 	command.Dir = filepath.Join(m.directory, "data")
-	command.Env = []string{"LANG=C", "HOME=" + command.Dir}
+	command.Env = []string{"LC_ALL=C", "LANG=C", "GOMAXPROCS=1"}
+	command.WaitDelay = 250 * time.Millisecond
 	output := &cappedOutput{remaining: 4096}
 	command.Stdout = output
 	command.Stderr = output
-	if err = command.Start(); err != nil {
-		m.firstCause(err)
-		_ = m.save()
-		return "", err
+	if err = ctx.Err(); err != nil {
+		return "", m.reconcile(err)
 	}
-	running := &child{cmd: command, done: make(chan struct{}), runID: randomID()}
+	if err = command.Start(); err != nil {
+		return "", m.reconcile(err)
+	}
+	m.state.LastPID = command.Process.Pid
+	if err = m.runtimeUnchanged(capture); err == nil {
+		err = ctx.Err()
+	}
+	if err != nil {
+		_ = command.Process.Kill()
+		waitErr := command.Wait()
+		if waitErr != nil {
+			m.state.LastExit = waitErr.Error()
+		} else {
+			m.state.LastExit = "exit 0 after cancelled/invalid start"
+		}
+		return "", m.reconcile(err)
+	}
+	running := &child{cmd: command, done: make(chan struct{}), runID: runID, capture: capture}
 	m.process = running
 	m.state.Stage = "running"
 	m.state.Generation++
@@ -118,7 +142,15 @@ func (m *Manager) wait(running *child) {
 	defer m.mu.Unlock()
 	if m.process == running {
 		m.process = nil
+		identityErr := m.runtimeUnchanged(running.capture)
+		if identityErr == nil {
+			identityErr = m.cleanupRuntime(running.capture)
+		}
 		m.state.Stage = "stopped"
+		if identityErr != nil {
+			m.state.Stage = "reconcile_required"
+			m.firstCause(identityErr)
+		}
 		m.state.Generation++
 		if err != nil {
 			m.state.LastExit = err.Error()
@@ -149,6 +181,9 @@ func (m *Manager) monitorCapacity(running *child) {
 				return
 			}
 			_, err := m.capacity(0)
+			if err == nil {
+				err = m.runtimeUnchanged(running.capture)
+			}
 			if err != nil {
 				m.firstCause(err)
 				running.stopRequested = true
@@ -219,12 +254,17 @@ func (m *Manager) terminate(ctx context.Context, running *child) error {
 		_ = running.cmd.Process.Kill()
 	case <-ctx.Done():
 		_ = running.cmd.Process.Kill()
+		// Cancellation is not permission to release the original handle before
+		// Wait. The pinned foreground runtime has no child-process contract.
+		<-running.done
 		return ctx.Err()
 	}
 	select {
 	case <-running.done:
 		return nil
 	case <-ctx.Done():
+		_ = running.cmd.Process.Kill()
+		<-running.done
 		return ctx.Err()
 	}
 }

@@ -81,6 +81,7 @@ type child struct {
 	done          chan struct{}
 	runID         string
 	stopRequested bool
+	capture       *runtimeCapture
 }
 type Manager struct {
 	mu                                    sync.Mutex
@@ -88,8 +89,10 @@ type Manager struct {
 	uid                                   uint32
 	fixture                               bool
 	rootInfo, stateInfo                   os.FileInfo
+	stateRaw                              []byte
 	state                                 persistentState
 	lock                                  *os.File
+	lockInfo                              os.FileInfo
 	maxArtifact, quotaBytes, minFreeBytes uint64
 	stopGrace                             time.Duration
 	approvals                             map[string]*Approval
@@ -144,6 +147,16 @@ func New(cfg Config) (*Manager, error) {
 			return nil, ErrUnsafePath
 		}
 		m.stateInfo = info
+		m.stateRaw = append([]byte(nil), raw...)
+	}
+	rootIdentity := identity(root)
+	if m.state.RootIdentity == nil {
+		if !fresh && m.state.Stage != "not_installed" {
+			return nil, ErrReconcile
+		}
+		m.state.RootIdentity = &rootIdentity
+	} else if *m.state.RootIdentity != rootIdentity {
+		return nil, ErrUnsafePath
 	}
 	lockPath := filepath.Join(cfg.Directory, lockName)
 	if _, err = os.Lstat(lockPath); err == nil {
@@ -183,6 +196,18 @@ func New(cfg Config) (*Manager, error) {
 		m.lock.Close()
 		return nil, errors.New("another owner holds the node manager")
 	}
+	m.lockInfo, err = m.lock.Stat()
+	if err != nil {
+		_ = unlockFile(m.lock)
+		_ = m.lock.Close()
+		return nil, err
+	}
+	lockNamed, err := os.Lstat(lockPath)
+	if err != nil || !os.SameFile(lockNamed, m.lockInfo) {
+		_ = unlockFile(m.lock)
+		_ = m.lock.Close()
+		return nil, ErrUnsafePath
+	}
 	complete := false
 	defer func() {
 		if !complete {
@@ -191,7 +216,35 @@ func New(cfg Config) (*Manager, error) {
 		}
 	}()
 	for _, name := range []string{"bin", "data"} {
-		if _, err = privateDir(filepath.Join(cfg.Directory, name), m.uid, true); err != nil {
+		info, dirErr := privateDir(filepath.Join(cfg.Directory, name), m.uid, true)
+		if dirErr != nil {
+			return nil, dirErr
+		}
+		var expected **FileIdentity
+		if name == "bin" {
+			expected = &m.state.BinIdentity
+		} else {
+			expected = &m.state.DataIdentity
+		}
+		current := identity(info)
+		if *expected == nil {
+			if !fresh && m.state.Stage != "not_installed" {
+				return nil, ErrReconcile
+			}
+			entries, readErr := os.ReadDir(filepath.Join(cfg.Directory, name))
+			if readErr != nil || len(entries) != 0 {
+				return nil, ErrReconcile
+			}
+			*expected = &current
+		} else if **expected != current {
+			return nil, ErrUnsafePath
+		}
+	}
+	if m.state.ArtifactSHA256 != "" && m.state.ArtifactIdentity == nil && m.state.Stage != "installing" && m.state.Stage != "reconcile_required" {
+		return nil, ErrReconcile
+	}
+	if !fresh && m.state.Stage == "not_installed" {
+		if err = m.save(); err != nil {
 			return nil, err
 		}
 	}
@@ -201,6 +254,14 @@ func New(cfg Config) (*Manager, error) {
 		}
 	} else {
 		switch m.state.Stage {
+		case "installing":
+			m.state.Stage = "reconcile_required"
+			if m.state.FirstCause == "" {
+				m.state.FirstCause = "manager reopened with incomplete artifact installation; preserve original staging/final bytes"
+			}
+			if err = m.save(); err != nil {
+				return nil, err
+			}
 		case "running", "starting", "stopping":
 			m.state.Stage = "reconcile_required"
 			if m.state.FirstCause == "" {
@@ -341,37 +402,15 @@ func (m *Manager) InstallFixture(ctx context.Context, peer localipc.Peer, intent
 	if _, err = os.Lstat(path); !errors.Is(err, os.ErrNotExist) {
 		return ErrUnsafePath
 	}
+	if err = ctx.Err(); err != nil {
+		return err
+	}
 	if err = m.consume(peer, intent, approval); err != nil {
 		return err
 	}
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o700)
-	if err != nil {
-		return err
-	}
-	_, err = file.Write(artifact)
-	if err == nil {
-		err = file.Sync()
-	}
-	closeErr := file.Close()
-	if err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		m.state.Stage = "reconcile_required"
-		m.firstCause(err)
-		_ = m.save()
-		return err
-	}
-	m.state.ArtifactSHA256 = intent.ArtifactSHA256
-	m.state.Stage = "installed"
-	m.state.Generation++
-	if err = m.save(); err != nil {
-		m.state.Stage = "reconcile_required"
-		m.firstCause(err)
-		return ErrReconcile
-	}
-	return nil
+	return m.publishFixtureArtifact(ctx, intent, artifact)
 }
+
 func (m *Manager) Status(peer localipc.Peer) (Status, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

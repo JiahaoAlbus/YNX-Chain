@@ -22,17 +22,31 @@ const lockName = "manager.lock"
 const artifactName = "node"
 
 type persistentState struct {
-	Version        string `json:"version"`
-	ManagerID      string `json:"managerId"`
-	Mode           string `json:"mode"`
-	NodeID         string `json:"nodeId"`
-	Stage          string `json:"stage"`
-	Generation     uint64 `json:"generation,string"`
-	ArtifactSHA256 string `json:"artifactSHA256"`
-	RunID          string `json:"runId"`
-	LastPID        int    `json:"lastPid"`
-	LastExit       string `json:"lastExit"`
-	FirstCause     string `json:"firstCause"`
+	Version          string        `json:"version"`
+	ManagerID        string        `json:"managerId"`
+	Mode             string        `json:"mode"`
+	NodeID           string        `json:"nodeId"`
+	Stage            string        `json:"stage"`
+	Generation       uint64        `json:"generation,string"`
+	ArtifactSHA256   string        `json:"artifactSHA256"`
+	RunID            string        `json:"runId"`
+	LastPID          int           `json:"lastPid"`
+	LastExit         string        `json:"lastExit"`
+	FirstCause       string        `json:"firstCause"`
+	RootIdentity     *FileIdentity `json:"rootIdentity,omitempty"`
+	BinIdentity      *FileIdentity `json:"binIdentity,omitempty"`
+	DataIdentity     *FileIdentity `json:"dataIdentity,omitempty"`
+	ArtifactIdentity *FileIdentity `json:"artifactIdentity,omitempty"`
+}
+
+// FileIdentity is local filesystem provenance, not publisher authentication.
+// Directory bytes are omitted because normal data writes change their size.
+type FileIdentity struct {
+	Device   string `json:"device"`
+	Inode    string `json:"inode"`
+	OwnerUID string `json:"ownerUid"`
+	Mode     string `json:"mode"`
+	Bytes    string `json:"bytes,omitempty"`
 }
 type lockRecord struct {
 	Version   string `json:"version"`
@@ -97,7 +111,11 @@ func readOwnedFile(path string, uid uint32, limit int64) ([]byte, os.FileInfo, e
 		return nil, nil, ErrUnsafePath
 	}
 	raw, err := io.ReadAll(io.LimitReader(file, limit+1))
-	if err != nil || int64(len(raw)) > limit {
+	after, statErr := file.Stat()
+	named, nameErr := os.Lstat(path)
+	if err != nil || int64(len(raw)) != info.Size() || statErr != nil || nameErr != nil ||
+		!os.SameFile(info, after) || !os.SameFile(info, named) || info.Mode() != after.Mode() || info.Mode() != named.Mode() ||
+		info.Size() != after.Size() || info.Size() != named.Size() || !info.ModTime().Equal(after.ModTime()) || !info.ModTime().Equal(named.ModTime()) {
 		return nil, nil, ErrUnsafePath
 	}
 	return raw, info, nil
@@ -119,8 +137,23 @@ func strictRecord(raw []byte, out any) error {
 }
 func (m *Manager) rootUnchanged() error {
 	info, err := privateDir(m.directory, m.uid, false)
-	if err != nil || !os.SameFile(info, m.rootInfo) {
+	if err != nil || !os.SameFile(info, m.rootInfo) || m.state.RootIdentity != nil && identity(info) != *m.state.RootIdentity {
 		return ErrUnsafePath
+	}
+	for name, expected := range map[string]*FileIdentity{"bin": m.state.BinIdentity, "data": m.state.DataIdentity} {
+		if expected == nil {
+			continue
+		}
+		info, err := privateDir(filepath.Join(m.directory, name), m.uid, false)
+		if err != nil || identity(info) != *expected {
+			return ErrUnsafePath
+		}
+	}
+	if m.lock != nil && m.lockInfo != nil {
+		current, err := os.Lstat(filepath.Join(m.directory, lockName))
+		if err != nil || !os.SameFile(current, m.lockInfo) || current.Mode() != m.lockInfo.Mode() {
+			return ErrUnsafePath
+		}
 	}
 	return nil
 }
@@ -130,8 +163,8 @@ func (m *Manager) save() error {
 	}
 	path := filepath.Join(m.directory, stateName)
 	if m.stateInfo != nil {
-		actual, err := os.Lstat(path)
-		if err != nil || !os.SameFile(actual, m.stateInfo) || !actual.Mode().IsRegular() {
+		prior, actual, err := readOwnedFile(path, m.uid, 16<<10)
+		if err != nil || !os.SameFile(actual, m.stateInfo) || !bytes.Equal(prior, m.stateRaw) {
 			return ErrUnsafePath
 		}
 	} else if _, err := os.Lstat(path); !errors.Is(err, os.ErrNotExist) {
@@ -169,9 +202,12 @@ func (m *Manager) save() error {
 	if err = file.Close(); err != nil {
 		return err
 	}
+	if err = m.rootUnchanged(); err != nil {
+		return err
+	}
 	if m.stateInfo != nil {
-		actual, statErr := os.Lstat(path)
-		if statErr != nil || !os.SameFile(actual, m.stateInfo) {
+		prior, actual, statErr := readOwnedFile(path, m.uid, 16<<10)
+		if statErr != nil || !os.SameFile(actual, m.stateInfo) || !bytes.Equal(prior, m.stateRaw) {
 			return ErrUnsafePath
 		}
 	} else if _, statErr := os.Lstat(path); !errors.Is(statErr, os.ErrNotExist) {
@@ -191,6 +227,9 @@ func (m *Manager) save() error {
 		return err
 	}
 	m.stateInfo, err = os.Lstat(path)
+	if err == nil {
+		m.stateRaw = append([]byte(nil), raw...)
+	}
 	return err
 }
 func (m *Manager) capacity(extra uint64) (Capacity, error) {

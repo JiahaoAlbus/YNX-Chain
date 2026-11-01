@@ -74,6 +74,13 @@ Future node/resource controls require actual controlled IPC peer credentials
 or the original OS application identity channel and cannot reuse this ticket
 as privileged authorization.
 
+Native ordinary-node effects additionally require the fixed visible Cocoa
+producer's fresh decision for the exact prepared intent. It defaults to Cancel
+and cannot accept a JSON approval boolean. Missing original signed runtime gates
+install/start before prompting; a read-only browser ticket gains no effect route.
+The controlled WASM CLI, ordinary App, native local decision, production publisher
+and Wallet approval remain separate entries. See [native node decisions](qa/README.md#native-ordinary-node-decisions).
+
 Each authenticated receipt request inherits the ticket's expiry and revocation
 context. Revoking or expiring a pairing cancels in-flight HTTP lookups and
 blocks late reports or proof results at the backend response boundary. The

@@ -28,6 +28,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/contribution"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/localipc"
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/nativeconsent"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/ownednode"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/receipt"
 	networkweb "github.com/JiahaoAlbus/YNX-Chain/apps/network/web"
@@ -378,10 +379,15 @@ func run() (runErr error) {
 	participationConfig := flag.String("participation-config", "", "independently configured network identity for native participation")
 	participationPin := flag.String("participation-config-sha256", "", "exact independent network configuration digest")
 	governanceRPC := flag.String("governance-rpc", "", "fixed governance read source; defaults to configured chain RPC")
+	nativeLocale := flag.String("native-ui-locale", "zh-Hans", "native local consent language enum; no authority")
+	nativeTheme := flag.String("native-ui-theme", "light", "native local consent theme enum; no authority")
 	controlledPacket := flag.String("run-controlled-wasm", "", "explicit controlled public-block QA packet; never production authority")
 	controlledIssuerPin := flag.String("controlled-issuer-key-sha256", "", "independent controlled fixture issuer public-key pin")
 	controlledConsentPin := flag.String("controlled-consent-key-sha256", "", "independent controlled fixture consent public-key pin")
 	flag.Parse()
+	if !nativeconsent.Locale(*nativeLocale) || !nativeconsent.Theme(*nativeTheme) {
+		return errors.New("unsupported native appearance enum")
+	}
 	if *controlledPacket != "" || *controlledIssuerPin != "" || *controlledConsentPin != "" {
 		if *controlledPacket == "" || *controlledIssuerPin == "" || *controlledConsentPin == "" || *nativeStatus || *nativeCall || *showVersion || *anchorFile != "" || *pqExecutable != "" || *pqContext != "" || *participationConfig != "" {
 			return errors.New("controlled WASM QA requires its packet, two independent key pins and explicit data directory only")
@@ -419,8 +425,6 @@ func run() (runErr error) {
 	}
 	ipcDir := filepath.Join(*dataDir, "ipc")
 	if *nativeStatus || *nativeCall {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
 		request := localipc.Request{Version: localipc.Version, ID: randomToken(), Operation: "status"}
 		if *nativeCall {
 			if *nativeStatus {
@@ -434,6 +438,12 @@ func run() (runErr error) {
 				return err
 			}
 		}
+		timeout := 5 * time.Second
+		if budget := localipc.OperationTimeout(request.Operation); budget > 10*time.Second {
+			timeout = budget
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
 		result, err := localipc.Call(ctx, ipcDir, request)
 		if err != nil {
 			return err
@@ -510,7 +520,16 @@ func run() (runErr error) {
 	defer listener.Close()
 	serviceContext, stopService := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopService()
-	native, err := startNativeService(serviceContext, ipcDir, participationService, node, resource)
+	producer, err := openNativeConsent(*nativeLocale, *nativeTheme)
+	if err != nil {
+		log.Printf("Native visible consent unavailable; no node approval: %v", err)
+	}
+	var consent []nodeConsent
+	if producer != nil {
+		consent = append(consent, producer)
+		defer func() { runErr = errors.Join(runErr, producer.Close()) }()
+	}
+	native, err := startNativeService(serviceContext, ipcDir, participationService, node, resource, consent...)
 	if err != nil {
 		return fmt.Errorf("native Network service: %w", err)
 	}

@@ -11,5 +11,14 @@ int main(int argc,const char **argv){@autoreleasepool{
  [[NSFileManager defaultManager]removeItemAtPath:worker error:nil];check(!packagedFiles(helper,proof,build),"missing worker cannot silently fall back");
  build[@"resourceWorkerSHA256"]=@YES;check(!packagedFiles(helper,proof,build),"non-string worker pin denied");
  build[@"resourceWorkerSHA256"]=@"short";check(!packagedFiles(helper,proof,build),"malformed worker pin denied");
+ [@"restored-fixed-worker"writeToFile:worker atomically:YES encoding:NSUTF8StringEncoding error:nil];build[@"resourceWorkerSHA256"]=digest(worker);
+ NSString *producer=[dir stringByAppendingPathComponent:@"ynx-network-native-consent"];
+ [@"fixed-native-producer"writeToFile:producer atomically:YES encoding:NSUTF8StringEncoding error:nil];build[@"nativeConsentSHA256"]=digest(producer);
+ check(packagedFiles(helper,proof,build),"new exact fixed native producer accepted");
+ [@"changed-producer"writeToFile:producer atomically:YES encoding:NSUTF8StringEncoding error:nil];check(!packagedFiles(helper,proof,build),"changed native producer denied");
+ [[NSFileManager defaultManager]removeItemAtPath:producer error:nil];check(!packagedFiles(helper,proof,build),"missing native producer denied");
+ build[@"nativeConsentSHA256"]=@YES;check(!packagedFiles(helper,proof,build),"non-string native producer pin denied");
+ build[@"nativeConsentSHA256"]=@"short";check(!packagedFiles(helper,proof,build),"malformed native producer pin denied");
+ [build removeObjectForKey:@"nativeConsentSHA256"];check(packagedFiles(helper,proof,build),"prior worker-only QA remains compatible");
  return 0;
 }}

@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 )
 
 func jsonMarshalResponse(r Response) ([]byte, error) { return json.Marshal(r) }
@@ -72,7 +71,7 @@ func Call(ctx context.Context, directory string, request Request) (Response, err
 		return connection, nil
 	}}
 	defer transport.CloseIdleConnections()
-	client := &http.Client{Transport: transport, Timeout: 10 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("IPC redirects denied") }}
+	client := &http.Client{Transport: transport, Timeout: OperationTimeout(request.Operation), CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("IPC redirects denied") }}
 	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localipc/v1/call", bytes.NewReader(raw))
 	if err != nil {
 		return out, err

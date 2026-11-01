@@ -12,10 +12,23 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"time"
 	"unicode/utf8"
 )
 
 const Version = "YNX-NETWORK-LOCAL-IPC/v1"
+
+// Visible native decisions need time to review the exact intent. All other
+// operations retain the short original transport budget; this adds no scope.
+func OperationTimeout(operation string) time.Duration {
+	switch operation {
+	case "node_install", "node_start", "node_stop":
+		return 65 * time.Second
+	default:
+		return 10 * time.Second
+	}
+}
+
 const MaxMessageBytes = 16 << 10
 const SocketName = "network-helper.sock"
 const LockName = "network-helper.lock"
@@ -116,7 +129,7 @@ func validateRequest(r Request) error {
 		if err != nil || len(digest) != 32 || hex.EncodeToString(digest) != p.IntentSHA256 {
 			return errors.New("permission intent requires canonical SHA256")
 		}
-	case "participation_prepare", "participation_reconcile", "participation_revoke", "participation_get", "participation_submit", "node_prepare", "node_install", "node_start", "node_status", "node_stop", "resource_status", "resource_meter", "resource_stop":
+	case "participation_prepare", "participation_reconcile", "participation_revoke", "participation_get", "participation_submit", "node_prepare", "node_install", "node_start", "node_status", "node_artifact", "node_stop", "resource_status", "resource_meter", "resource_stop":
 		if r.Permission != nil || len(r.Payload) == 0 || len(r.Payload) > 12<<10 || !json.Valid(r.Payload) || len(bytes.TrimSpace(r.Payload)) == 0 || bytes.TrimSpace(r.Payload)[0] != '{' {
 			return errors.New("bounded typed native payload required")
 		}
@@ -250,7 +263,7 @@ func responseError(code string) error { return fmt.Errorf("native IPC request re
 
 func payloadOperation(operation string) bool {
 	switch operation {
-	case "participation_prepare", "participation_reconcile", "participation_revoke", "participation_get", "participation_submit", "node_prepare", "node_install", "node_start", "node_status", "node_stop", "resource_status", "resource_meter", "resource_stop":
+	case "participation_prepare", "participation_reconcile", "participation_revoke", "participation_get", "participation_submit", "node_prepare", "node_install", "node_start", "node_status", "node_artifact", "node_stop", "resource_status", "resource_meter", "resource_stop":
 		return true
 	}
 	return false
