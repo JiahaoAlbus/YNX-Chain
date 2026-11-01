@@ -27,3 +27,7 @@ export function inspectOriginalAITaskActionV6SourceScopeDATA(scope,association,n
  else{server=scope.serverIssuer;exact(server,['canonicalOwner','pkA','pkB','revision','endpoint','spki']);if(server.canonicalOwner!==subjectOwner||association.account!==subjectOwner)fail('AI_TASK_SOURCE_SERVER_OWNER');owner(server.canonicalOwner);hex(server.pkA,5184);hex(server.pkB,128);dec(server.revision);hex(server.spki);text(server.endpoint,2048);let u;try{u=new URL(server.endpoint);}catch{fail();}if(u.protocol!=='https:'||u.username||u.password||u.search||u.hash||u.href!==server.endpoint)fail('AI_TASK_SOURCE_SERVER_ENDPOINT');}
  const original=canonical(scope);if(Buffer.byteLength(original)>49152)fail('AI_TASK_SOURCE_SCOPE_CAPACITY');return Object.freeze({scopeOriginal:original,scope:freeze(JSON.parse(original)),role:scope.role,effectExpiresAtMs:Math.min(profileExpiresAtMs,device?.expiresAtMs??Infinity),...(device?{devicePublic:device.devicePublic,accountAuthorization:device.accountAuthorization}:{}),...(server?{serverIssuer:freeze({...server})}:{}),dataOnly:true,SourceAdmission:false,NativeAdmission:false,authorized:false,current:false,registered:false,preLoadQualified:false});
 }
+
+// Same run body parser as the normal SDK client. These references are DATA
+// inputs to the separately qualified Browser reader, never AI Source admission.
+export {inspectProductSessionTaskSelectedPagesV6DATA as inspectOriginalAITaskActionV6SelectedPagesRequestDATA} from '../src/product-session-task-action-v6.js';

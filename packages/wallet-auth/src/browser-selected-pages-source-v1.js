@@ -1,0 +1,2 @@
+// Node-only Source contract DATA. No browser global, Native provider or factory.
+export {BROWSER_SELECTED_PAGES_SOURCE_PURPOSE,BROWSER_SELECTED_PAGES_SOURCE_SELECTION_KEY,BROWSER_SELECTED_PAGES_SOURCE_OPERATIONS,BROWSER_SELECTED_PAGES_APPLICATION_ID,inspectOriginalBrowserSelectedPagesScopeV1DATA,inspectOriginalBrowserSelectedPagesBorrowV1DATA} from '../native/original-browser-selected-pages-source-contract.mjs';

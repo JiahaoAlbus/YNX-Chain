@@ -452,6 +452,12 @@
       "browser": null,
       "node": "./src/original-wallet-main-namespace-bootstrap.js",
       "default": null
+    },
+    "./browser-selected-pages-source-data": {
+      "types": "./src/browser-selected-pages-source-v1.d.ts",
+      "browser": null,
+      "node": "./src/browser-selected-pages-source-v1.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -699,7 +705,9 @@
     "native/vendor/link/include/tx_batch.h",
     "native/vendor/link/include/ynx_artifact_release.h",
     "native/vendor/link/include/ynx_project_control.h",
-    "native/vendor/link/libynx_artifact_release.a"
+    "native/vendor/link/libynx_artifact_release.a",
+    "native/original-browser-selected-pages-source-contract.mjs",
+    "native/original-browser-selected-pages-source-contract.d.mts"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

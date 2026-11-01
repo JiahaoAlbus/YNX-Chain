@@ -130,3 +130,6 @@ export function inspectOriginalAITaskActionV6SourceIssuanceBodyDATA(role:'enroll
 
 /** Wallet client pre-key DATA only; native immutable release row and actual approval remain mandatory. */
 export function inspectOriginalWalletPayClientSourceIssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
+
+/** Browser uses the same SourceV2 N1/Root signature mathematics; this is DATA only. */
+export function inspectOriginalBrowserSelectedPagesSourceIssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
