@@ -274,7 +274,7 @@ function runtimeSourceVerificationInputs(root,sourceCommit,product,nativeInputs,
   const names=[...new Set([...git(root,'ls-tree','-r','--name-only',sourceCommit,'apps/wallet-desktop/src','packages/wallet-auth/src',...requiredRuntimeAssets).split('\n'),...declaredSDKRuntimeAssets,...nativeInputs.filter(name=>name.startsWith('packages/wallet-auth/')&&name.endsWith('.mjs')&&!name.endsWith('.test.mjs')),...nativeBuildEvidenceAssets])];
   for(const name of requiredRuntimeAssets)if(!names.includes(name))throw Error(`Required runtime asset is missing from the selected commit: ${name}`);
   const excludedTypeDeclarations=names.filter(name=>name.endsWith('.d.ts')&&!product?.selected.has(name.replace(/^packages\/wallet-auth\//,'')));
-  return {names,excludedTypeDeclarations};
+  return {names,excludedTypeDeclarations,declaredSDKRuntimeAssets};
 }
 function expectedRuntimeSourceBytes(name,source,sdkVersion,product,nativeBuildEvidenceAssets){
   return product?.contents.get(packedRuntimePath(name))??(nativeBuildEvidenceAssets.includes(name)?source:relocateDesktopRuntimeSource(name,source,sdkVersion,product?.public.sourceVariant).bytes);
@@ -527,7 +527,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   // wallet-auth-contract.mjs reads this registry from the SDK root at runtime.
   // Require it in the commit as well as the archive: ls-tree alone can silently
   // omit a named path that no longer exists in the selected commit.
-  const {names,excludedTypeDeclarations}=runtimeSourceVerificationInputs(root,expected.sourceCommit,product,nativeInputs,nativeBuildEvidenceAssets);
+  const {names,excludedTypeDeclarations,declaredSDKRuntimeAssets}=runtimeSourceVerificationInputs(root,expected.sourceCommit,product,nativeInputs,nativeBuildEvidenceAssets);
   // electron-builder excludes TypeScript declarations from an executable package.
   // Keep that exclusion explicit; all runtime logic binds to the selected
   // checkout. Canonical packaging validates the seven closed operand inventories
