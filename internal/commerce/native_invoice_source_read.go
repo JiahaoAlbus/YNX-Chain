@@ -256,7 +256,7 @@ func (s *OriginalShopInvoiceReadService) serveHTTP(w http.ResponseWriter, r *htt
 		code := status(err)
 		if errors.Is(err, ErrShopInvoiceReadSourceNotSupplied) || (s != nil && s.retired.Load()) {
 			code = 503
-		} else if errors.Is(err, errShopInvoiceReadDenied) {
+		} else if isOriginalShopInvoiceReadDenied(err) {
 			code = 403
 		}
 		fail(w, code, err)

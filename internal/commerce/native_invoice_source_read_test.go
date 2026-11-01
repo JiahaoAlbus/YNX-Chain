@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	productsource "github.com/JiahaoAlbus/YNX-Chain/authowned/productreadsource"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink"
 )
 
@@ -67,6 +68,9 @@ func (h *publicInvoiceReadHold) current(ctx context.Context) error {
 	}
 	if h.owner.mode == "late" && n >= 2 {
 		return errShopInvoiceReadDenied
+	}
+	if h.owner.mode == "auth-late" && n >= 2 {
+		return productsource.ErrRetired
 	}
 	return h.owner.current(ctx)
 }
@@ -164,7 +168,7 @@ func sourceReadCall(t *testing.T, c *securelink.LocalCallerClient, body []byte) 
 func TestShopInvoiceSourceNormalFactoryMissingDoesNotOpenStore(t *testing.T) {
 	opens := 0
 	svc, err := OpenOriginalShopInvoiceReadService(t.Context(), func() (*Store, error) { opens++; return nil, nil })
-	if !errors.Is(err, ErrShopInvoiceReadSourceNotSupplied) || !errors.Is(err, errShopProductAuthCalleeNotLinked) || opens != 0 {
+	if !errors.Is(err, ErrShopInvoiceReadSourceNotSupplied) || !errors.Is(err, productsource.ErrNotSupplied) || opens != 0 {
 		t.Fatal("ordinary data/ENV activated Source", err, opens)
 	}
 	if svc != nil {
@@ -208,7 +212,7 @@ func TestShopInvoiceSourceActualUnixColdOriginalReadNoMutation(t *testing.T) {
 	}
 }
 func TestShopInvoiceSourceRejectsWrongScopeAndLateCurrent(t *testing.T) {
-	for _, mode := range []string{"missing", "purpose", "epoch", "tenant", "store", "actor", "late"} {
+	for _, mode := range []string{"missing", "purpose", "epoch", "tenant", "store", "actor", "late", "auth-late"} {
 		t.Run(mode, func(t *testing.T) {
 			s, buyer, o, _ := publicSourceInvoiceRecord(t)
 			_, _, client := publicInvoiceReadService(t, s, buyer, o, mode)
@@ -219,6 +223,9 @@ func TestShopInvoiceSourceRejectsWrongScopeAndLateCurrent(t *testing.T) {
 			}
 			if bytes.Contains(response.Body, []byte("domainData")) {
 				t.Fatal("denial leaked original bill")
+			}
+			if mode == "auth-late" && (err != nil || response.StatusCode != 403) {
+				t.Fatal("actual Auth retirement lost original denial status", response.StatusCode, err)
 			}
 		})
 	}

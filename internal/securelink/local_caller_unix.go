@@ -75,7 +75,7 @@ func localRoutes(routes []LocalCallerRoute) (map[string]LocalCallerRoute, error)
 		if r.Method == "" || len(r.Method) > 32 || strings.Trim(r.Method, "ABCDEFGHIJKLMNOPQRSTUVWXYZ") != "" || r.Method == http.MethodConnect || err != nil || u == nil || u.Path == "" || u.Path != r.Path || u.EscapedPath() != r.Path || u.String() != r.Path || u.IsAbs() || u.Host != "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || strings.Contains(r.Path, "//") || strings.Contains(r.Path, "/../") || strings.Contains(r.Path, "/./") || strings.HasSuffix(r.Path, "/..") || strings.HasSuffix(r.Path, "/.") {
 			return nil, ErrDenied
 		}
-		if r.MaxBodyBytes < 1 || r.MaxBodyBytes > 16<<20 || r.Timeout <= 0 || r.Timeout > time.Minute {
+		if r.MaxBodyBytes < 0 || (r.MaxBodyBytes == 0 && r.Method != http.MethodGet) || r.MaxBodyBytes > 16<<20 || r.Timeout <= 0 || r.Timeout > time.Minute {
 			return nil, ErrBounds
 		}
 		key := r.Method + " " + r.Path
@@ -124,6 +124,32 @@ type localCallerState struct {
 	material LocalCallerMaterial
 	handle   *LocalCaller
 	active   atomic.Bool
+}
+
+func (s *localCallerState) currentOriginalCaller(r *http.Request) error {
+	if r == nil || s.request != r || s.ctx == nil || r.Context() != s.ctx || s.handle == nil || s.handle.state != s || s.conn == nil || s.conn.UnixConn == nil || s.server == nil {
+		return ErrDenied
+	}
+	if s.server.cfg.PeerUID == 0 || s.server.cfg.PeerPID <= 0 || s.material.PeerUID != s.server.cfg.PeerUID || s.material.PeerPID != s.server.cfg.PeerPID || s.material.Service != s.server.cfg.Service {
+		return ErrDenied
+	}
+	// Consult only the privately minted context, never a caller-supplied
+	// context's Value/Err callback. The request context must be that exact value.
+	if s.ctx.Value(localCallerKey{}) != s.handle {
+		return ErrDenied
+	}
+	if r.URL == nil || r.Method != s.material.Method || r.Host != s.material.Service || r.RequestURI != s.material.Path || r.URL.String() != s.material.Path || r.URL.EscapedPath() != s.material.Path || r.ProtoMajor != 1 || r.ProtoMinor != 1 || r.ContentLength != s.material.ContentLength || r.Header.Get("Content-Type") != s.material.ContentType || len(r.Header.Values("Content-Type")) > 1 || localIdentityHeader(r.Header) {
+		return ErrDenied
+	}
+	// Preserve the original cancellation/deadline cause rather than replacing
+	// an already observed context error with a generic lifecycle denial.
+	if err := s.ctx.Err(); err != nil {
+		return err
+	}
+	if !s.active.Load() || s.server.closed.Load() || s.conn.closed.Load() {
+		return ErrDenied
+	}
+	return nil
 }
 
 func (s *localCallerState) current(ctx context.Context) (LocalCallerMaterial, error) {
@@ -397,6 +423,13 @@ func NewLocalCallerClient(cfg LocalCallerClientConfig) (*LocalCallerClient, erro
 }
 
 func (c *LocalCallerClient) Call(ctx context.Context, method, path, contentType string, body []byte) (out LocalCallerResponse, err error) {
+	return c.call(ctx, method, path, contentType, body, nil)
+}
+
+// beforeWrite is private to the same-process native holder. Its native-only
+// Source fence runs at the actual write, after peer evidence and immediately
+// before the dispatch-possible marker. Ordinary Call does not gain authority.
+func (c *LocalCallerClient) call(ctx context.Context, method, path, contentType string, body []byte, beforeWrite func() error) (out LocalCallerResponse, err error) {
 	var dispatched bool
 	var partialBytes int64
 	defer func() {
@@ -450,6 +483,11 @@ func (c *LocalCallerClient) Call(ctx context.Context, method, path, contentType 
 	if err = localPeer(u, c.cfg.PeerUID, c.cfg.PeerPID); err != nil {
 		return out, err
 	}
+	if beforeWrite != nil {
+		if err = beforeWrite(); err != nil {
+			return out, err
+		}
+	}
 	dispatched = true
 	if err = req.Write(conn); err != nil {
 		return out, err
@@ -463,12 +501,14 @@ func (c *LocalCallerClient) Call(ctx context.Context, method, path, contentType 
 		return out, err
 	}
 	defer resp.Body.Close()
+	out = LocalCallerResponse{PacketPresent: true, Method: req.Method, RequestPath: req.URL.RequestURI(), StatusCode: resp.StatusCode, Header: resp.Header.Clone()}
 	budget.remaining = c.cfg.MaxResponseBytes + int64(c.cfg.MaxHeaderBytes) - int64(reader.Buffered())
 	if resp.ContentLength > c.cfg.MaxResponseBytes {
 		return out, ErrBounds
 	}
 	b, err := io.ReadAll(io.LimitReader(resp.Body, c.cfg.MaxResponseBytes+1))
 	partialBytes = int64(len(b))
+	out.Body = b // adopt exact partial DATA before examining any late failure
 	if err != nil {
 		return out, err
 	}
@@ -478,5 +518,5 @@ func (c *LocalCallerClient) Call(ctx context.Context, method, path, contentType 
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
-	return LocalCallerResponse{StatusCode: resp.StatusCode, Header: resp.Header.Clone(), Body: b}, nil
+	return out, nil
 }

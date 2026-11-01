@@ -108,3 +108,7 @@ replace github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go => ./pac
 replace github.com/JiahaoAlbus/YNX-Chain/packages/open-protocol/go => ./packages/open-protocol/go
 
 replace github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-history-client/go => ./packages/auth-grant-history-client/go
+
+require github.com/JiahaoAlbus/YNX-Chain/authowned/productreadsource v0.0.0
+
+replace github.com/JiahaoAlbus/YNX-Chain/authowned/productreadsource => ./internal/commerce/third_party/productreadsource

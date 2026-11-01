@@ -3,13 +3,15 @@
 The original `shopd` normal startup calls
 `OpenOriginalShopInvoiceReadService(ctx, sameOriginalStoreOpener)`. It borrows
 the same already-open Store as Buyer/Seller. It opens no second writer, state
-database, account namespace or payment engine. Its sole normal Auth factory
-currently returns `SHOP_ORIGINAL_NATIVE_INVOICE_READ_SOURCE_NOT_SUPPLIED`:
-the genuine shared Native ProductSource read callee is **not supplied** in this
-frozen input. The read plane remains unavailable; public Shop service continues.
+database, account namespace or payment engine. The normal Auth factory calls
+the actual `productreadsource.OpenOriginalProductReadAuthority(ctx)` through
+the original owner's exact private adapter. Its independent compiled release
+table is empty: normal acquisition returns `PRODUCT_READ_SOURCE_NOT_SUPPLIED`,
+joined with the existing Shop Source-not-supplied error. This is Root0 refusal
+by a linked concrete producer; the public Shop service continues.
 
 The actual consumer/router/lifecycle code is implemented independently of that
-missing shared authority. No public setter, JSON, flag, provider callback,
+uncommissioned authority. No public setter, JSON, flag, provider callback,
 ProductSession, AI task grant, OS peer or copied Root projection can fill the
 factory. Only the original Auth adapter may consume its genuine concrete owner
 and wrap it into the private consumer seam. PUBLIC authority implementations
@@ -79,12 +81,15 @@ debt in the existing service ledger. Full Source refresh stays outside Store;
 the held Native observed epoch/deadline check is local under the original lock.
 It does not open an actor namespace, reconstruct a bill or widen Wallet scope.
 
-Auth has actual C++ `acquire_original_product_root`,
-`read_original_product_scope` and `borrow_original_product_read_permission`.
-Its accepted component does not yet expose the matching Go/owned-C service
-bridge plus Root-selected Shop resource registration. The one remaining shared
-supplier boundary is `acquireOriginalShopProductReadSource`; normal startup
-reports `SHOP_NATIVE_PRODUCT_AUTH_GO_CALLEE_NOT_LINKED` joined with the existing
-Source-not-supplied error. This is an owning callee/registration CODE gap, not a
-claim that only a Root permission or signature is missing. Native/Main's Node
-image and detached scope DATA cannot substitute for that service bridge.
+The original Auth Go producer now supplies actual `CaptureDATA`, `Current`,
+`OpenShopRead` and opaque `Hold.Current`/`Close`. The exact one-leaf f3d adapter
+CAS is consumed together with its complete immutable Go module, complete
+original LINK package and its two original C headers. No second Go runtime or
+Node client image is loaded. `PRODUCT_SOURCE_DEPENDENCIES.json` records every
+supplied file; `verify_product_source_inputs.py` rejects missing, edited or
+mixed package input. Auth and LINK remain the source owners.
+
+Real independent release registration, protected signed originals/resource
+mapping and operational Source qualification remain absent. A linked normal
+constructor and PUBLIC controls are not Root admission, merchant approval,
+financial proof or deployment. The Node/Main client source is a separate owner.

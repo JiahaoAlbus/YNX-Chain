@@ -60,12 +60,18 @@ jobs:
               except (subprocess.SubprocessError, UnicodeError):
                   changed = []  # uncertain comparison keeps the full checks
           def source_path(path):
-              return path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")
+              return (path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")) or path.startswith("internal/securelink/") or path.startswith("cmd/ynx-secure-link-caller/") or path.startswith("internal/commerce/third_party/productreadsource/") or path in {"internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json", "internal/commerce/verify_product_source_inputs.py"}
           def native_client_path(path):
               return path in {"internal/commerce/native_pay_client.go", "internal/commerce/native_pay_archive_client_test.go"}
           read_path = lambda p: source_path(p) or native_client_path(p)
-          allowed = lambda p: read_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", ".github/workflows/shop-native.yml"}
+          allowed = lambda p: read_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", ".github/workflows/shop-native.yml", "go.mod"}
           source_only = bool(changed) and any(map(read_path, changed)) and all(map(allowed, changed))
+          if source_only and "go.mod" in changed:
+              module = "github.com/JiahaoAlbus/YNX-Chain/authowned/productreadsource"
+              permitted = {"require " + module + " v0.0.0", "replace " + module + " => ./internal/commerce/third_party/productreadsource", ""}
+              delta = subprocess.check_output(["git", "diff", "--unified=0", base, "HEAD", "--", "go.mod"]).decode()
+              lines = [line[1:].strip() for line in delta.splitlines() if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))]
+              source_only = all(line in permitted for line in lines)
           tests = []
           if not source_only or any(map(source_path, changed)):
               tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI"])
@@ -85,6 +91,8 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+      - name: Verify complete original Auth and LINK input packages
+        run: python3 internal/commerce/verify_product_source_inputs.py
       - name: Verify original intent recovery and build the normal Shop service
         if: needs.change-scope.outputs.source-only != 'true'
         run: |

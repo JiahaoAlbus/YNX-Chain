@@ -162,6 +162,44 @@ the server invalidates its handle. OS process identity is not account, holder,
 Grant, Source or business approval; the original private Auth provider must
 independently qualify the original caller and signed call.
 
+### Synchronous same-request lifecycle fence
+
+The original Go private-request owner may retain its acquired `*LocalCaller`
+and the exact `*http.Request`, then call:
+
+```go
+err := caller.CurrentOriginalCaller(originalRequest)
+```
+
+This error-only accessor checks that same privately minted request's local
+lifecycle. It reads the original request/context, registered route and immutable
+UID/PID binding, plus cancellation, handler-active, server-retired and local
+connection-closed flags. It performs no socket/syscall/FD I/O, control message,
+callback, body copy or Store access, and takes no server/Store mutex. A copied,
+cloned, newly created or context-replaced request cannot borrow the caller. A
+value-copy of a legitimately acquired `LocalCaller` retains the same original
+capability and lifetime; it does not mint another caller.
+
+Use the existing `LocalCallerFromRequest(originalRequest)` and full
+`caller.Current(originalRequest.Context())` at the original capture boundary,
+outside a product Store lock. That full operation still checks the real OS
+UID/PID/socket and supplies the original owned opaque body. The no-I/O accessor
+is a final same-request lifecycle fence for that already captured private Auth
+lease. It returns no material, Source, principal, approval or authorization.
+Auth must retain its independent current Root, account, merchant, bill,
+operation/body, nonce and permission checks; a LINK service or a Cloud locator
+does not replace any of them. Auth may close over its own original pointer and
+caller in its private `Current` function. LINK accepts no supplied callback,
+boolean, header, JSON caller or exported context setter.
+
+No-I/O checking cannot synchronously discover an unobserved remote socket close
+or a changed external policy. Cancellation and close invalidate the fence once
+observed by the original request/connection lifecycle; remote-close tests must
+wait for that original cancellation observation. This does not replace fresh
+OS/TLS/Gate checks at boundaries that require them. Existing `Current`, private
+TLS channel accessors, Node inbound/outbound WeakMaps and retire/join/close
+ownership retain their original meanings.
+
 When that same live local caller context reaches `FixedPeerClient.Exchange`,
 the actual exchange also retains a private process-local binding. At the
 original Auth `VerifyOriginalAuthorityResponse` boundary, call:
@@ -246,6 +284,78 @@ and dispatch; Join waits for native accept/current work, returned handler
 promises and actual socket closure. The Auth owner remains responsible for
 children outside its returned promise. The general unbound accessors prove only
 transport provenance and cannot replace the original registered listener.
+
+### Node synchronous observed-lifecycle fence
+
+The original Node authority can retain its exact request, acquired handle and
+registered listener instance, then use the error-only synchronous accessor:
+
+```js
+import {
+  acquireInboundCaller, currentInboundCaller, assertCurrentInboundCaller,
+  releaseInboundCaller,
+} from './cmd/ynx-secure-link-caller/inbound-caller.mjs';
+
+const held = acquireInboundCaller(originalRequest, registeredServer);
+try {
+  const originalTransport = await currentInboundCaller(
+    originalRequest, held, registeredServer);
+  // The original Auth owner independently qualifies this DATA and the body.
+  // Inside its own synchronous transaction, it can AND its other fences with:
+  assertCurrentInboundCaller(originalRequest, held, registeredServer);
+} finally {
+  releaseInboundCaller(held);
+}
+```
+
+`assertCurrentInboundCaller` returns `undefined` on success and throws on
+failure. All three original operands are mandatory. It checks private WeakMap
+custody, a positive logical hold, the observed local lifecycle, and unchanged
+original request/header DATA. It performs no native call, syscall, FD/control
+I/O, Promise, body copy, user getter or callback. It returns no material or
+authorization. A copied request/handle, another registered listener, changed
+metadata, a released hold, response completion, abort or retirement is denied.
+
+This accessor cannot discover a remote close or policy change that the local
+lifecycle has not observed. Fresh `currentInboundCaller` remains asynchronous
+and performs real control I/O; the original per-request control protocol permits
+at most 64 fresh queries. The synchronous accessor does not consume that budget
+or refresh it. The outbound `currentAuthorityCaller` is a synchronous native OS
+check and is **not** this no-I/O fence.
+
+### Go business-resource custody across the Node boundary
+
+The actual Go import is
+`github.com/JiahaoAlbus/YNX-Chain/internal/securelink`. Its
+`LocalCallerServer`/`LocalCallerClient` accept a finite operator-owned route
+table; the Node authority wrappers above register only the two existing
+`task-grants/effect` and `task-grants/effect-query` paths. Those paths and their
+transport materials do not define a V6 TaskStore capture/execute/query API.
+The original Auth owner supplies and composes that business API, retaining the
+actual Go/P08 resources rather than serializing their authority into JSON.
+
+In particular, `LocalCallerClient.Call` and Node `exchangeAuthority` are
+one-request exchanges. Returning their complete response ends that original
+request. A Go snapshot captured with that request's context cannot remain current
+for later Node work after the exchange returns. Do not detach cancellation with
+`context.WithoutCancel`, treat a returned `current: true` as a capability, or
+mint a new caller/token to extend its lifetime. The actual capture request and
+its owning resources must remain alive through their original release, abort,
+timeout or retirement. Registering a local OS peer supplies no Root, account,
+session, issuer, Source or business permission.
+
+Node local custody and remote fresh Current are separate checks. Neither is an
+atomic check of another process's Store. At the actual Go business CAS, P08's
+original snapshot/receipt Current remains the source check under its Store lock;
+Node cannot replace it with a cached mirror. An uncertain dispatch or lost
+response retains the original operation and first failure as UNKNOWN. Recovery
+queries that original operation through its independently admitted query path;
+it never automatically dispatches the mutation again.
+
+The dedicated ordinary-Go AI V6 request transport and its separate native
+runtime profile are documented in [TASK_RUNTIME.md](TASK_RUNTIME.md). They do
+not weaken this original native TLS caller profile or turn an ordinary HTTP
+request into a native TLS channel.
 
 Functional evidence separately covers Node outbound, Node inbound, Go material
 seals, and a composed real Native Node -> Unix caller -> native TLS -> restricted
