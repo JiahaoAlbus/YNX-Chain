@@ -80,6 +80,7 @@ type executionState struct {
 	traceLots                  map[string]chain.TrustTraceLot
 	accountPolicy              *ynxauth.State
 	pqBatches                  map[string]PQCommittedBatch
+	pqBatchDelta               *nativeDelta[PQCommittedBatch] // immutable candidate-only append paths, never serialized
 	pqHistory                  []PQCommittedAuthorization
 	accounts                   []chain.ConsensusAccount
 	nativeAccounts             *nativeDelta[nativeAccountValue]
@@ -1064,6 +1065,17 @@ func (a *Application) cloneTransactionState(state executionState) executionState
 	return state
 }
 
+// Whole proof history is append-only. Borrow its private immutable base and
+// persistent candidate paths while retaining every other transaction isolation
+// copy. Other transaction kinds and committed snapshots materialize owned maps.
+func (a *Application) cloneWholeTransactionState(state executionState) executionState {
+	base, delta := state.pqBatches, state.pqBatchDelta
+	state.pqBatches, state.pqBatchDelta = nil, nil
+	state = a.cloneTransactionState(state)
+	state.pqBatches, state.pqBatchDelta = base, delta
+	return state
+}
+
 // committedExecutionStateView borrows immutable committed records. The caller
 // must hold a.mu while using it. applyTransaction isolates every supported
 // transaction before mutation; callers that mutate state directly must clone.
@@ -1103,7 +1115,9 @@ func (a *Application) applyTransactionAt(state executionState, payload []byte, h
 	if err := validateHistoricalRuntimeEnvelope(state, kind); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
-	if kind == ValidatorRegistryTransactionType || kind == PQActionType || kind == PQTransferType || kind == PQMigrationType || kind == PQInitialRegistrationType || kind == PQRevocationType || kind == PQWholeType || kind == SignedActionType {
+	if kind == PQWholeType {
+		state = a.cloneWholeTransactionState(state)
+	} else if kind == ValidatorRegistryTransactionType || kind == PQActionType || kind == PQTransferType || kind == PQMigrationType || kind == PQInitialRegistrationType || kind == PQRevocationType || kind == SignedActionType {
 		state = a.cloneTransactionState(state)
 	}
 	if kind == ValidatorRegistryTransactionType {
@@ -1388,7 +1402,7 @@ func cloneExecutionStateValue(state executionState) executionState {
 		bootstrap:     state.bootstrap, validatorRegistry: cloneValidatorRegistry(state.validatorRegistry), pqEngineSchedule: clonePQEngineSchedule(state.pqEngineSchedule),
 		legacyContracts: cloneLegacyContracts(state.legacyContracts), legacyResourceMarket: cloneLegacyResourceMarket(state.legacyResourceMarket), legacyResourceSponsor: cloneLegacyResourceSponsor(state.legacyResourceSponsor),
 		legacyPaySource: cloneLegacyPaySource(state.legacyPaySource), legacyAISource: cloneLegacyAISource(state.legacyAISource), legacyTrustSource: cloneLegacyTrustSource(state.legacyTrustSource),
-		traceLots: cloneTraceLots(state.traceLots), accountPolicy: cloneConsensusAccountPolicy(state.accountPolicy), pqHistory: clonePQHistory(state.pqHistory), pqBatches: cloneConsensusPQBatches(state.pqBatches),
+		traceLots: cloneTraceLots(state.traceLots), accountPolicy: cloneConsensusAccountPolicy(state.accountPolicy), pqHistory: clonePQHistory(state.pqHistory), pqBatches: cloneExecutionPQBatches(state),
 		nativeTransfers: append([]BFTNativeTransfer(nil), state.nativeTransfers...), paySettlements: append([]BFTPaySettlement(nil), state.paySettlements...),
 
 		accounts: cloneExecutionAccounts(state), feeEvents: state.feeEvents, strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), smartAccounts: cloneSmartAccounts(state.smartAccounts), paymasters: clonePaymasters(state.paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), state.userOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), state.stakeDelegations...), unbondings: cloneUnbondings(state.unbondings), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),

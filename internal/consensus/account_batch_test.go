@@ -53,7 +53,7 @@ func batchCandidateJSON(t *testing.T, s executionState) []byte {
 		Batches  map[string]PQCommittedBatch
 		Receipts []BFTNativeTransfer
 		Fees     []BFTFeeEvent
-	}{cloneExecutionAccounts(s), s.traceLots, s.accountPolicy, s.pqHistory, s.pqBatches, s.nativeTransfers, s.feeEvents.events()})
+	}{cloneExecutionAccounts(s), s.traceLots, s.accountPolicy, s.pqHistory, cloneExecutionPQBatches(s), s.nativeTransfers, s.feeEvents.events()})
 }
 
 func TestABCIWholePartialExecutionMatchesSourceAndProposalIsolation(t *testing.T) {
