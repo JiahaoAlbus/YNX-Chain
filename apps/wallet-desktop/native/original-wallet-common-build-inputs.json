@@ -1257,6 +1257,61 @@
       "path": "apps/wallet-desktop/scripts/original-auth-common-image-readback.cjs",
       "bytes": 2260,
       "sha256": "63566624030491b9e78566eb25247d4608cede654444a691d04ee6f9a6655a53"
+    },
+    {
+      "path": "packages/wallet-auth/native/vendor/runtime-inputs/libssl.3.dylib",
+      "bytes": 984944,
+      "sha256": "f71b9ec34307e4e94f0fc7660ae41645014e3ebde593193383186f01ff4eb5ea"
+    },
+    {
+      "path": "packages/wallet-auth/native/vendor/runtime-inputs/OPENSSL-LICENSE.txt",
+      "bytes": 10175,
+      "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
+    },
+    {
+      "path": "packages/wallet-auth/native/vendor/runtime-inputs/OPENSSL-AUTHORS.md",
+      "bytes": 1022,
+      "sha256": "b9f638dfc06b59c2d3b808186c3b30f713805a5db390f5b77b1703ac58acb83e"
+    },
+    {
+      "path": "packages/wallet-auth/native/vendor/runtime-inputs/libcrypto.3.dylib",
+      "bytes": 5137392,
+      "sha256": "9621b5d455ef3e9a08e98ce9aa095f8353aea98dd7ba1387df43e8aaa1874dfc"
+    },
+    {
+      "path": "packages/wallet-auth/native/vendor/runtime-inputs/libuv.1.dylib",
+      "bytes": 202912,
+      "sha256": "3b2cf896a443b663998cb7f7defd89931b2262c2a2408a0a5865a58dace1ac42"
+    },
+    {
+      "path": "packages/wallet-auth/native/vendor/runtime-inputs/LIBUV-LICENSE.txt",
+      "bytes": 1079,
+      "sha256": "16de0c32b265cb7d46a6d3bd614f259dd4d693a5e26b3407b04aae8d73041f0c"
+    },
+    {
+      "path": "packages/wallet-auth/native/vendor/runtime-inputs/LIBUV-LICENSE-extra.txt",
+      "bytes": 1603,
+      "sha256": "262c44bd2cdba037e6d2a82fba15f5800d292bc993a6f5d6b6ea487744d02836"
+    },
+    {
+      "path": "packages/wallet-auth/native/vendor/runtime-inputs/LIBUV-LICENSE-docs.txt",
+      "bytes": 18652,
+      "sha256": "cce5d01fa4a83b794271bd2c28cffdf99afd43c803e6ddefddae39b591ea7448"
+    },
+    {
+      "path": "apps/wallet-desktop/scripts/original-auth-runtime-relocate.mjs",
+      "bytes": 8143,
+      "sha256": "e8c695a817183315bfdd7b545491b574be89cd042de33bb18f106d091ad18dd4"
+    },
+    {
+      "path": "apps/wallet-desktop/scripts/original-auth-portable-stage.mjs",
+      "bytes": 2369,
+      "sha256": "07904d4434f029a2cb038291e3f8fd39e8a625bff41ac835f630c9d05bcdaf0d"
+    },
+    {
+      "path": "apps/wallet-desktop/native/original-wallet-portable-runtime-inputs.json",
+      "bytes": 6597,
+      "sha256": "b2f0fffd2105e83d2a49c2a104fad301baea95d10b81c93ff505dec320319c9a"
     }
   ],
   "translationUnits": [
@@ -1470,21 +1525,22 @@
   "archiveCount": 1,
   "strictGate": "apps/wallet-desktop/scripts/original-auth-common-image-gate.mjs",
   "readback": "apps/wallet-desktop/scripts/original-auth-common-image-readback.cjs",
-  "systemInputs": [
+  "systemInputs": [{"path":"/Library/Developer/CommandLineTools/SDKs/MacOSX27.2.sdk/usr/lib/libbsm.0.tbd","bytes":4678,"sha256":"12b45397e34d2d80e6df3a3ff926f9b71abd01e060aaef80fafc9ec3f91282c3"}],
+  "systemInputProvenance": [
     {
-      "path": "/opt/homebrew/Cellar/openssl@3/3.6.4/lib/libssl.3.dylib",
-      "bytes": 888928,
-      "sha256": "ebee4a51513f22f6efc6d3b9ff9d638015d2d924c0e443b31df2735798cb8dcb"
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libssl.3.dylib",
+      "bytes": 984944,
+      "sha256": "f71b9ec34307e4e94f0fc7660ae41645014e3ebde593193383186f01ff4eb5ea"
     },
     {
-      "path": "/opt/homebrew/Cellar/openssl@3/3.6.4/lib/libcrypto.3.dylib",
-      "bytes": 4872736,
-      "sha256": "380d32d4d229136f9ded004906634491c8d416779d031abadc3d6463b1ef8e3d"
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libcrypto.3.dylib",
+      "bytes": 5137392,
+      "sha256": "9621b5d455ef3e9a08e98ce9aa095f8353aea98dd7ba1387df43e8aaa1874dfc"
     },
     {
-      "path": "/opt/homebrew/Cellar/libuv/1.52.1/lib/libuv.1.0.0.dylib",
-      "bytes": 189408,
-      "sha256": "c56f794e7c9dbcf8c45fba6109836196263a4d5e95936eee7601593532c6cfe9"
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/libuv/lib/libuv.1.0.0.dylib",
+      "bytes": 202912,
+      "sha256": "3b2cf896a443b663998cb7f7defd89931b2262c2a2408a0a5865a58dace1ac42"
     },
     {
       "path": "/Library/Developer/CommandLineTools/SDKs/MacOSX27.2.sdk/usr/lib/libbsm.0.tbd",
@@ -1493,11 +1549,9 @@
     }
   ],
   "systemLibraries": [
-    "-L/opt/homebrew/Cellar/openssl@3/3.6.4/lib",
-    "-lssl",
-    "-lcrypto",
-    "-L/opt/homebrew/Cellar/libuv/1.52.1/lib",
-    "-luv"
+    "packages/wallet-auth/native/vendor/runtime-inputs/libssl.3.dylib",
+    "packages/wallet-auth/native/vendor/runtime-inputs/libcrypto.3.dylib",
+    "packages/wallet-auth/native/vendor/runtime-inputs/libuv.1.dylib"
   ],
   "node": {
     "version": "v26.7.0",

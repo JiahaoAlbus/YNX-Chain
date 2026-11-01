@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "libraries": [
+    {
+      "name": "libssl.3.dylib",
+      "input": {
+        "path": "packages/wallet-auth/native/vendor/runtime-inputs/libssl.3.dylib",
+        "bytes": 984944,
+        "sha256": "f71b9ec34307e4e94f0fc7660ae41645014e3ebde593193383186f01ff4eb5ea"
+      },
+      "licenses": [
+        {
+          "name": "OPENSSL-LICENSE.txt",
+          "input": {
+            "path": "packages/wallet-auth/native/vendor/runtime-inputs/OPENSSL-LICENSE.txt",
+            "bytes": 10175,
+            "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
+          }
+        },
+        {
+          "name": "OPENSSL-AUTHORS.md",
+          "input": {
+            "path": "packages/wallet-auth/native/vendor/runtime-inputs/OPENSSL-AUTHORS.md",
+            "bytes": 1022,
+            "sha256": "b9f638dfc06b59c2d3b808186c3b30f713805a5db390f5b77b1703ac58acb83e"
+          }
+        }
+      ],
+      "source": {
+        "name": "OpenSSL",
+        "version": "3.6.4",
+        "license": "Apache-2.0",
+        "sourceArchive": "https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz",
+        "sourceArchiveSHA256": "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+        "formula": null,
+        "packageReceipt": null,
+        "mappingOnly": true,
+        "reproducibleBuildClaim": false,
+        "sourceBuildReceipt": {
+          "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/RESULT.json",
+          "bytes": 11510,
+          "sha256": "0fecb947d8991700d1f031ed79cdc6084a33bccd7c29cec0c6d2d252aae93473"
+        },
+        "builtFromPinnedSource": true,
+        "actualDeploymentTarget": "13.0",
+        "sourceAlgorithmsUnmodified": true
+      },
+      "originalInput": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libssl.3.dylib",
+        "bytes": 984944,
+        "sha256": "f71b9ec34307e4e94f0fc7660ae41645014e3ebde593193383186f01ff4eb5ea"
+      }
+    },
+    {
+      "name": "libcrypto.3.dylib",
+      "input": {
+        "path": "packages/wallet-auth/native/vendor/runtime-inputs/libcrypto.3.dylib",
+        "bytes": 5137392,
+        "sha256": "9621b5d455ef3e9a08e98ce9aa095f8353aea98dd7ba1387df43e8aaa1874dfc"
+      },
+      "licenses": [
+        {
+          "name": "OPENSSL-LICENSE.txt",
+          "input": {
+            "path": "packages/wallet-auth/native/vendor/runtime-inputs/OPENSSL-LICENSE.txt",
+            "bytes": 10175,
+            "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a"
+          }
+        },
+        {
+          "name": "OPENSSL-AUTHORS.md",
+          "input": {
+            "path": "packages/wallet-auth/native/vendor/runtime-inputs/OPENSSL-AUTHORS.md",
+            "bytes": 1022,
+            "sha256": "b9f638dfc06b59c2d3b808186c3b30f713805a5db390f5b77b1703ac58acb83e"
+          }
+        }
+      ],
+      "source": {
+        "name": "OpenSSL",
+        "version": "3.6.4",
+        "license": "Apache-2.0",
+        "sourceArchive": "https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz",
+        "sourceArchiveSHA256": "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+        "formula": null,
+        "packageReceipt": null,
+        "mappingOnly": true,
+        "reproducibleBuildClaim": false,
+        "sourceBuildReceipt": {
+          "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/RESULT.json",
+          "bytes": 11510,
+          "sha256": "0fecb947d8991700d1f031ed79cdc6084a33bccd7c29cec0c6d2d252aae93473"
+        },
+        "builtFromPinnedSource": true,
+        "actualDeploymentTarget": "13.0",
+        "sourceAlgorithmsUnmodified": true
+      },
+      "originalInput": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libcrypto.3.dylib",
+        "bytes": 5137392,
+        "sha256": "9621b5d455ef3e9a08e98ce9aa095f8353aea98dd7ba1387df43e8aaa1874dfc"
+      }
+    },
+    {
+      "name": "libuv.1.dylib",
+      "input": {
+        "path": "packages/wallet-auth/native/vendor/runtime-inputs/libuv.1.dylib",
+        "bytes": 202912,
+        "sha256": "3b2cf896a443b663998cb7f7defd89931b2262c2a2408a0a5865a58dace1ac42"
+      },
+      "licenses": [
+        {
+          "name": "LIBUV-LICENSE.txt",
+          "input": {
+            "path": "packages/wallet-auth/native/vendor/runtime-inputs/LIBUV-LICENSE.txt",
+            "bytes": 1079,
+            "sha256": "16de0c32b265cb7d46a6d3bd614f259dd4d693a5e26b3407b04aae8d73041f0c"
+          }
+        },
+        {
+          "name": "LIBUV-LICENSE-extra.txt",
+          "input": {
+            "path": "packages/wallet-auth/native/vendor/runtime-inputs/LIBUV-LICENSE-extra.txt",
+            "bytes": 1603,
+            "sha256": "262c44bd2cdba037e6d2a82fba15f5800d292bc993a6f5d6b6ea487744d02836"
+          }
+        },
+        {
+          "name": "LIBUV-LICENSE-docs.txt",
+          "input": {
+            "path": "packages/wallet-auth/native/vendor/runtime-inputs/LIBUV-LICENSE-docs.txt",
+            "bytes": 18652,
+            "sha256": "cce5d01fa4a83b794271bd2c28cffdf99afd43c803e6ddefddae39b591ea7448"
+          }
+        }
+      ],
+      "source": {
+        "name": "libuv",
+        "version": "1.52.1",
+        "license": "MIT and upstream extra license texts",
+        "sourceArchive": "https://dist.libuv.org/dist/v1.52.1/libuv-v1.52.1.tar.gz",
+        "sourceArchiveSHA256": "66d511b9e6e334c0e62279eb234fbfb2b3110b1479c09b95b44c7afca8cff9e7",
+        "formula": null,
+        "packageReceipt": null,
+        "mappingOnly": true,
+        "reproducibleBuildClaim": false,
+        "sourceBuildReceipt": {
+          "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/RESULT.json",
+          "bytes": 11510,
+          "sha256": "0fecb947d8991700d1f031ed79cdc6084a33bccd7c29cec0c6d2d252aae93473"
+        },
+        "builtFromPinnedSource": true,
+        "actualDeploymentTarget": "13.0",
+        "sourceAlgorithmsUnmodified": true
+      },
+      "originalInput": {
+        "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/libuv/lib/libuv.1.0.0.dylib",
+        "bytes": 202912,
+        "sha256": "3b2cf896a443b663998cb7f7defd89931b2262c2a2408a0a5865a58dace1ac42"
+      }
+    }
+  ]
+}

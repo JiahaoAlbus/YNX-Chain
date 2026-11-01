@@ -1,6 +1,6 @@
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {existsSync,readFileSync,lstatSync,writeFileSync} from 'node:fs';
+import {existsSync,readFileSync,lstatSync,writeFileSync,openSync,fstatSync,readSync,closeSync,constants} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 const here=fileURLToPath(import.meta.url),app=path.resolve(path.dirname(here),'..'),repo=path.resolve(app,'../..');
@@ -206,14 +206,20 @@ export function assertOriginalProvisioningDeviceV4Exports(text){
 export function originalAuthNativeBuildPlan(arch,headers){
  if(arch!=='arm64'||typeof headers!=='string'||!path.isAbsolute(headers)||path.normalize(headers)!==headers)throw Error('AUTH_NATIVE_COMMON_MATCHING_INPUT_INVALID');
  const manifestPath=path.join(app,'native/original-wallet-common-build-inputs.json');
- const regular=file=>{const stat=lstatSync(file);if(!stat.isFile()||stat.isSymbolicLink())throw Error('AUTH_NATIVE_COMMON_INPUT_NOT_REGULAR');return readFileSync(file);};
+ const regular=file=>{const fd=openSync(file,constants.O_RDONLY|constants.O_NOFOLLOW);try{const stat=fstatSync(fd),named=lstatSync(file);if(!stat.isFile()||named.isSymbolicLink()||stat.dev!==named.dev||stat.ino!==named.ino)throw Error('AUTH_NATIVE_COMMON_INPUT_NOT_REGULAR');const raw=Buffer.alloc(stat.size+1);let used=0;while(used<raw.length){const n=readSync(fd,raw,used,raw.length-used,used);if(!n)break;used+=n;}const after=fstatSync(fd),nameAfter=lstatSync(file);if(used!==stat.size||after.dev!==stat.dev||after.ino!==stat.ino||after.size!==stat.size||after.mode!==stat.mode||after.mtimeMs!==stat.mtimeMs||after.ctimeMs!==stat.ctimeMs||nameAfter.isSymbolicLink()||nameAfter.dev!==after.dev||nameAfter.ino!==after.ino)throw Error('AUTH_NATIVE_COMMON_INPUT_CHANGED');return raw.subarray(0,used);}finally{closeSync(fd);}};
  const digest=raw=>createHash('sha256').update(raw).digest('hex');
- const raw=regular(manifestPath);if(digest(raw)!=='9c6ec33318fb17bdd7d167ac65b0483634781152e83a6dd0cdcd2edf25d8fbd5')throw Error('AUTH_NATIVE_COMMON_MANIFEST_PIN');
+ const raw=regular(manifestPath);if(digest(raw)!=='b06fda221e299c6dd94052f139774c7efc4efd7d434bd6fdf2ba5b21b135d729')throw Error('AUTH_NATIVE_COMMON_MANIFEST_PIN');
  const m=JSON.parse(raw);if(m.version!==1||m.arch!=='arm64'||m.translationUnits.length!==50||m.swiftSources.length!==2||m.archiveCount!==1)throw Error('AUTH_NATIVE_COMMON_MANIFEST_SHAPE');
- const relative=value=>{if(typeof value!=='string'||!value.length||path.isAbsolute(value)||value.split('/').some(x=>x==='..'||x==='.'||x==='')||value.includes('\\'))throw Error('AUTH_NATIVE_COMMON_RELATIVE_INPUT');return path.join(repo,value);};
+ const relative=value=>{if(typeof value!=='string'||!value.length||path.isAbsolute(value)||value.split('/').some(x=>x==='..'||x==='.'||x==='')||value.includes('\\'))throw Error('AUTH_NATIVE_COMMON_RELATIVE_INPUT');let current=repo;for(const part of value.split('/').slice(0,-1)){current=path.join(current,part);const st=lstatSync(current);if(!st.isDirectory()||st.isSymbolicLink())throw Error('AUTH_NATIVE_COMMON_PARENT_NOT_DIRECTORY');}return path.join(repo,value);};
  const inputs=m.files.map(row=>{const file=relative(row.path),b=regular(file);if(!Number.isSafeInteger(row.bytes)||b.length!==row.bytes||digest(b)!==row.sha256)throw Error('AUTH_NATIVE_COMMON_INPUT_PIN:'+row.path);return{...row,path:file};});
  const selected=new Set(inputs.map(x=>x.path)),source=value=>{const file=relative(value);if(!selected.has(file))throw Error('AUTH_NATIVE_COMMON_SOURCE_UNPINNED');return file;};
- for(const row of m.systemInputs){if(typeof row.path!=='string'||!path.isAbsolute(row.path))throw Error('AUTH_NATIVE_COMMON_SYSTEM_INPUT');const b=regular(row.path);if(b.length!==row.bytes||digest(b)!==row.sha256)throw Error('AUTH_NATIVE_COMMON_SYSTEM_PIN');}
+ for(const row of m.systemInputs){if(typeof row.path!=='string'||!path.isAbsolute(row.path)||!row.path.endsWith('.tbd'))throw Error('AUTH_NATIVE_COMMON_SYSTEM_INPUT');const b=regular(row.path);if(b.length!==row.bytes||digest(b)!==row.sha256)throw Error('AUTH_NATIVE_COMMON_SYSTEM_PIN');}
+ // Fixed source-built runtime files are selected from THIS source root.
+ // Old supplier installation paths are provenance, never executable inputs.
+ const libraryPaths=['libssl.3.dylib','libcrypto.3.dylib','libuv.1.dylib'].map(name=>'packages/wallet-auth/native/vendor/runtime-inputs/'+name);
+ if(!Array.isArray(m.systemLibraries)||m.systemLibraries.length!==3||m.systemLibraries.some((p,i)=>p!==libraryPaths[i]))throw Error('AUTH_NATIVE_COMMON_RUNTIME_LIBRARY_SELECTION');
+ const systemLibraries=m.systemLibraries.map(source);
+ for(const file of systemLibraries){const st=lstatSync(file);if((st.mode&0o777)!==0o755)throw Error('AUTH_NATIVE_COMMON_RUNTIME_LIBRARY_MODE');}
  if(process.version!==m.node.version||process.versions.uv!==m.node.uv||digest(regular(process.execPath))!==m.node.sha256)throw Error('AUTH_NATIVE_COMMON_NODE_PIN');
  for(const row of m.node.headers){if(!/^[A-Za-z0-9_.-]+\.h$/.test(row.name))throw Error('AUTH_NATIVE_COMMON_NODE_HEADER');const b=regular(path.join(headers,row.name));if(b.length!==row.bytes||digest(b)!==row.sha256)throw Error('AUTH_NATIVE_COMMON_NODE_HEADER_PIN');}
  const minimumSystemVersion=validateOriginalMacMinimumSystemVersion(m.minimumSystemVersion),wallet=path.join(app,'native'),native=path.join(repo,'packages/wallet-auth/native'),producer=path.join(repo,'apps/pay/native/producer'),vendor=path.join(native,'vendor/link/include');
@@ -230,11 +236,13 @@ export function originalAuthNativeBuildPlan(arch,headers){
  const swift=m.swiftSources.map(source),swiftObject=path.join(wallet,'original-auth-common.arm64.PQ.o');objects.push(swiftObject);sources.push(...swift);
  commands.push({tool:'/usr/bin/swiftc',argv:['-parse-as-library','-whole-module-optimization','-emit-object','-module-name','YNXWalletPrivatePQ','-target','arm64-apple-macosx'+minimumSystemVersion,'-DYNX_ACCOUNT_INITIAL_NATIVE_V1','-Xcc','-DYNX_ACCOUNT_INITIAL_NATIVE_V1','-import-objc-header',source(m.swiftHeader),...swift,'-o',swiftObject]});
  const archive=source(m.archive),output=path.join(wallet,'original-auth-identity.node');
+ const linked=path.join(wallet,'original-auth-identity.linked.node');
  if(inputs.filter(row=>row.path.endsWith('.a')).length!==1)throw Error('AUTH_NATIVE_COMMON_SINGLE_GO_REQUIRED');
- commands.push({tool:'/usr/bin/swiftc',argv:['-emit-library','-o',output,...objects,archive,...['Foundation','Security','IOKit','AppKit','ServiceManagement'].flatMap(x=>['-framework',x]),'-lresolv','-Xlinker','-lbsm',...m.systemLibraries.flatMap(x=>['-Xlinker',x]),'-Xlinker','-undefined','-Xlinker','dynamic_lookup']});
+ commands.push({tool:'/usr/bin/swiftc',argv:['-emit-library','-target','arm64-apple-macosx'+minimumSystemVersion,'-o',linked,...objects,archive,...['Foundation','Security','IOKit','AppKit','ServiceManagement'].flatMap(x=>['-framework',x]),'-lresolv','-Xlinker','-lbsm',...systemLibraries.flatMap(x=>['-Xlinker',x]),'-Xlinker','-undefined','-Xlinker','dynamic_lookup']});
+ commands.push({tool:process.execPath,argv:[source('apps/wallet-desktop/scripts/original-auth-portable-stage.mjs')]});
  const planFile=path.join(wallet,'original-auth-common-plan.json');
  const postCommands=[{tool:process.execPath,argv:[source(m.strictGate),planFile]},{tool:process.execPath,argv:[source(m.readback),output]}];
- return{commands,postCommands,output,outputs:[output],intermediateOutputs:objects,sources,minimumSystemVersion,normalCommonImage:true,normalManifest:manifestPath,matchingInputs:inputs,systemInputs:m.systemInputs,goArchives:inputs.filter(row=>row.path===archive),gatePlanFile:planFile,ownedUndefinedScan:{tool:'/usr/bin/nm',argv:['-u',output],rejectPattern:'YNX|ynx'},sourceAdmission:false,nativeAdmission:false};
+ return{commands,postCommands,output,outputs:[output],intermediateOutputs:[...objects,linked,path.join(wallet,'original-auth-runtime-libs'),path.join(wallet,'.original-auth-portable-component'),path.join(wallet,'original-auth-portable-runtime.json')],sources,minimumSystemVersion,normalCommonImage:true,normalManifest:manifestPath,matchingInputs:inputs,systemInputs:m.systemInputs,goArchives:inputs.filter(row=>row.path===archive),gatePlanFile:planFile,ownedUndefinedScan:{tool:'/usr/bin/nm',argv:['-u',output],rejectPattern:'YNX|ynx'},sourceAdmission:false,nativeAdmission:false};
 }
 
 if(process.argv[1]&&path.resolve(process.argv[1])===here){
@@ -263,7 +271,7 @@ if(process.argv[1]&&path.resolve(process.argv[1])===here){
  if(plan.normalCommonImage){
   const b=readFileSync(plan.output);writeFileSync(plan.gatePlanFile,JSON.stringify({version:1,image:{path:plan.output,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')},goArchives:plan.goArchives})+'\n');
   for(const {tool,argv}of plan.postCommands)execFileSync(tool,argv,{stdio:'inherit'});
-  for(const row of [...plan.matchingInputs,...plan.systemInputs]){const b=readFileSync(row.path);if(b.length!==row.bytes||createHash('sha256').update(b).digest('hex')!==row.sha256)throw Error('AUTH_NATIVE_COMMON_POST_INPUT_CHANGED');}
+  for(const row of [...plan.matchingInputs,...plan.systemInputs]){let current=path.parse(row.path).root;for(const part of row.path.slice(current.length).split('/').slice(0,-1)){current=path.join(current,part);const st=lstatSync(current);if(!st.isDirectory()||st.isSymbolicLink())throw Error('AUTH_NATIVE_COMMON_POST_PARENT_CHANGED');}const st=lstatSync(row.path),b=readFileSync(row.path);if(!st.isFile()||st.isSymbolicLink()||b.length!==row.bytes||createHash('sha256').update(b).digest('hex')!==row.sha256)throw Error('AUTH_NATIVE_COMMON_POST_INPUT_CHANGED');if(row.path.includes('/vendor/runtime-inputs/')&&(st.mode&0o222)!==0o200)throw Error('AUTH_NATIVE_COMMON_POST_RUNTIME_MODE_CHANGED');}
  }
  }
 }

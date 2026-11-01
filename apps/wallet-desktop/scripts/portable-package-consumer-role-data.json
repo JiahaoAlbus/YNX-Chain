@@ -1,0 +1,52 @@
+{
+  "kind": "YNX_PORTABLE_PACKAGE_CONSUMER_APPROVED_PINS/v1",
+  "mainFiles": [
+    {
+      "relative": "apps/wallet-desktop/package.json",
+      "bytes": 4661,
+      "sha256": "9915ebfb16106d83cfe3f8e6175ff4d8487ab8a62507d7d7039f05486a603140"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/portable-runtime-pack.mjs",
+      "bytes": 5640,
+      "sha256": "11861dc9d9d468db0323961b28e1a6c4bbc385b76bc6baa36e39e9df62e16173"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/release-provenance.mjs",
+      "bytes": 62728,
+      "sha256": "64b08bd5c2d820f9fae6f1f3db2a09de3f76c6f01bc764d2c1e8866b1ea32992"
+    },
+    {
+      "relative": "apps/wallet-desktop/test/wallet-portable-runtime-pack.test.mjs",
+      "bytes": 15368,
+      "sha256": "ffe36c17174b8a20c0d7f343631bc4013ff040ede7a4cac8a1120c2eb7d9bc66"
+    }
+  ],
+  "sdkFiles": [
+    {
+      "relative": "apps/wallet-desktop/scripts/canonical-native-portable-qa-profile.mjs",
+      "bytes": 47150,
+      "sha256": "be5fd7c72f84f67c5e043b47efe1ea93189302e09dbb3bc436f0fd1f9dd84ff7"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/native-component-source-closure.mjs",
+      "bytes": 6804,
+      "sha256": "17e3ff8c412efa1152903347e5a7bfc2cf70382ba753f2b3cf77f95443bda5df"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/sdk13-native-component.mjs",
+      "bytes": 13481,
+      "sha256": "20abc91cf02f022b23898821743186aaca4019393fee42a18f836751b194ff75"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/portable-package-consumer-role.mjs",
+      "bytes": 7282,
+      "sha256": "a14436970dafb3a6578d42b3cef9c932f5d08290ed1563c4b57a2bcadf138c19"
+    },
+    {
+      "relative": "apps/wallet-desktop/scripts/test/portable-package-consumer-role.test.mjs",
+      "bytes": 7587,
+      "sha256": "3fbe12571fc5a71ae6f4f51e0f0705278b6d01d62a7c1a910e438de55059bcdc"
+    }
+  ]
+}

@@ -699,7 +699,8 @@
     "native/vendor/link/include/tx_batch.h",
     "native/vendor/link/include/ynx_artifact_release.h",
     "native/vendor/link/include/ynx_project_control.h",
-    "native/vendor/link/libynx_artifact_release.a"
+    "native/vendor/link/libynx_artifact_release.a",
+    "native/vendor/runtime-inputs"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

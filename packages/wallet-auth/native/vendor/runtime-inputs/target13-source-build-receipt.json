@@ -1,0 +1,295 @@
+{
+  "version": 1,
+  "sourceArchives": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/openssl-3.6.4.tar.gz",
+      "bytes": 55003802,
+      "sha256": "9bffaa1ad1e07b354c21bd3324ec02fa15579f45a7d0494b3e74bc449b7333ef",
+      "url": "https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz",
+      "version": "3.6.4"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/libuv-v1.52.1.tar.gz",
+      "bytes": 1354296,
+      "sha256": "66d511b9e6e334c0e62279eb234fbfb2b3110b1479c09b95b44c7afca8cff9e7",
+      "url": "https://dist.libuv.org/dist/v1.52.1/libuv-v1.52.1.tar.gz",
+      "version": "1.52.1"
+    }
+  ],
+  "steps": [
+    {
+      "name": "openssl-fetch",
+      "cmd": "/usr/bin/curl",
+      "args": [
+        "--fail",
+        "--location",
+        "--proto",
+        "=https",
+        "--tlsv1.2",
+        "--connect-timeout",
+        "20",
+        "--max-time",
+        "180",
+        "--output",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/openssl-3.6.4.tar.gz",
+        "https://github.com/openssl/openssl/releases/download/openssl-3.6.4/openssl-3.6.4.tar.gz"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "openssl-archive-list",
+      "cmd": "/usr/bin/tar",
+      "args": [
+        "-tf",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/openssl-3.6.4.tar.gz"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "openssl-extract",
+      "cmd": "/usr/bin/tar",
+      "args": [
+        "--no-same-owner",
+        "--no-same-permissions",
+        "-xzf",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/openssl-3.6.4.tar.gz",
+        "-C",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "libuv-fetch",
+      "cmd": "/usr/bin/curl",
+      "args": [
+        "--fail",
+        "--location",
+        "--proto",
+        "=https",
+        "--tlsv1.2",
+        "--connect-timeout",
+        "20",
+        "--max-time",
+        "180",
+        "--output",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/libuv-v1.52.1.tar.gz",
+        "https://dist.libuv.org/dist/v1.52.1/libuv-v1.52.1.tar.gz"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "libuv-archive-list",
+      "cmd": "/usr/bin/tar",
+      "args": [
+        "-tf",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/libuv-v1.52.1.tar.gz"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "libuv-extract",
+      "cmd": "/usr/bin/tar",
+      "args": [
+        "--no-same-owner",
+        "--no-same-permissions",
+        "-xzf",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/libuv-v1.52.1.tar.gz",
+        "-C",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "openssl-configure",
+      "cmd": "/usr/bin/perl",
+      "args": [
+        "./Configure",
+        "darwin64-arm64-cc",
+        "shared",
+        "no-tests",
+        "--prefix=/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl",
+        "--openssldir=/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/ssl",
+        "-mmacosx-version-min=13.0"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/openssl-3.6.4",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "openssl-build-libs",
+      "cmd": "/usr/bin/make",
+      "args": [
+        "-j2",
+        "build_libs"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/openssl-3.6.4",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "openssl-install-dev",
+      "cmd": "/usr/bin/make",
+      "args": [
+        "install_dev"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/openssl-3.6.4",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "libuv-configure",
+      "cmd": "/opt/homebrew/bin/cmake",
+      "args": [
+        "-S",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/sources/libuv-v1.52.1",
+        "-B",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/libuv-build",
+        "-DCMAKE_BUILD_TYPE=Release",
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET=13.0",
+        "-DCMAKE_OSX_ARCHITECTURES=arm64",
+        "-DCMAKE_INSTALL_PREFIX=/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/libuv",
+        "-DLIBUV_BUILD_TESTS=OFF",
+        "-DLIBUV_BUILD_BENCH=OFF",
+        "-DBUILD_TESTING=OFF",
+        "-DLIBUV_BUILD_SHARED=ON"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "libuv-build",
+      "cmd": "/opt/homebrew/bin/cmake",
+      "args": [
+        "--build",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/libuv-build",
+        "--parallel",
+        "2"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "libuv-install",
+      "cmd": "/opt/homebrew/bin/cmake",
+      "args": [
+        "--install",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/libuv-build"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "library-0-build-version",
+      "cmd": "/usr/bin/xcrun",
+      "args": [
+        "vtool",
+        "-show-build",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libssl.3.dylib"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "library-0-dependencies",
+      "cmd": "/usr/bin/otool",
+      "args": [
+        "-L",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libssl.3.dylib"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "library-1-build-version",
+      "cmd": "/usr/bin/xcrun",
+      "args": [
+        "vtool",
+        "-show-build",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libcrypto.3.dylib"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "library-1-dependencies",
+      "cmd": "/usr/bin/otool",
+      "args": [
+        "-L",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libcrypto.3.dylib"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "library-2-build-version",
+      "cmd": "/usr/bin/xcrun",
+      "args": [
+        "vtool",
+        "-show-build",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/libuv/lib/libuv.1.0.0.dylib"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    },
+    {
+      "name": "library-2-dependencies",
+      "cmd": "/usr/bin/otool",
+      "args": [
+        "-L",
+        "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/libuv/lib/libuv.1.0.0.dylib"
+      ],
+      "cwd": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY",
+      "status": 0,
+      "signal": null
+    }
+  ],
+  "failure": null,
+  "passed": true,
+  "install": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install",
+  "libraries": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libssl.3.dylib",
+      "bytes": 984944,
+      "sha256": "f71b9ec34307e4e94f0fc7660ae41645014e3ebde593193383186f01ff4eb5ea"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libcrypto.3.dylib",
+      "bytes": 5137392,
+      "sha256": "9621b5d455ef3e9a08e98ce9aa095f8353aea98dd7ba1387df43e8aaa1874dfc"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/libuv/lib/libuv.1.0.0.dylib",
+      "bytes": 202912,
+      "sha256": "3b2cf896a443b663998cb7f7defd89931b2262c2a2408a0a5865a58dace1ac42"
+    }
+  ],
+  "target": "arm64-apple-macosx13.0",
+  "deploymentTargetEnvironment": "13.0",
+  "sourceAlgorithmsUnmodified": true,
+  "compilerParallelism": 2,
+  "privateKeysRead": false,
+  "SourceSigned": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "installedProduct": false
+}

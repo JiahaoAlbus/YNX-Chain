@@ -1,3 +1,4 @@
+import {canonicalPortableQAProfile} from './canonical-native-portable-qa-profile.mjs';
 import {canonicalCommonQAProfile} from './canonical-native-qa-profile.mjs';
 import {deviceV4PQWalletInputs,composeDeviceV4PQCommands,DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS,DEVICE_V4_PQ_PROTOCOL_INPUTS,DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS} from './wallet-device-v4-pq-role.mjs';
 import path from 'node:path';
@@ -31,7 +32,8 @@ export const WALLET_NATIVE_SOURCE_PROFILES=Object.freeze({
 export const WALLET_SDK49_PENDING_SOURCE_PROFILE=Object.freeze({version:'1.3.0-pq.3.32-auth.49',supplierNodeInputs:127,requiresRuntimeUnion:true,inventory:Object.freeze({bytes:101191,sha256:'bbafe00b2da0e5cc81ba0d4f18925b11ff94bd9b022aa456efb1d324a18cce4d'}),tool:Object.freeze({bytes:28035,sha256:'ddb4ea02ce889bdc72ac0399eb1b8db6dfc2f249a679acbe83da002f09a4f34c'})});
 export const WALLET_SDK49_PROVISIONING_SOURCE_PROFILE=Object.freeze({version:'1.3.0-pq.3.32-auth.49',supplierNodeInputs:137,requiresRuntimeUnion:true,inventory:Object.freeze({"bytes":107444,"sha256":"54bff95bf1efcd4350358365ab58c6d9e15569657ad616faa38134beacb97758"}),tool:Object.freeze({"bytes":32908,"sha256":"cc8ffcaf0a6ffecabe345bf17d976f35139e31082d309272122ca37a63af8ccd"})});
 export const WALLET_SDK49_QUERY_SOURCE_PROFILE=Object.freeze({"version":"1.3.0-pq.3.32-auth.49","supplierNodeInputs":145,"requiresRuntimeUnion":true,"inventory":{"bytes":111112,"sha256":"df2dcef552c55a1252601c7e5e0b366f6562c677b323804c0498662862f3239a"},"tool":{"bytes":34757,"sha256":"1217a2903ca036e6e94e2acc50aafe54aa3f6ceee5d8063aac2b1115cb9e0173"}});
-export function walletNativeSourceProfile(version,inventoryBytes=null){
+export function walletNativeSourceProfile(version,inventoryBytes=null,portableManifestBytes){
+ if(portableManifestBytes!==undefined){const portable=canonicalPortableQAProfile(version,inventoryBytes,portableManifestBytes);if(!portable)throw Error('PORTABLE_QA_PROFILE_NOT_SELECTED');return portable;}
  const common=canonicalCommonQAProfile(version,inventoryBytes);if(common)return common;
  if(typeof version!=='string'||!Object.hasOwn(WALLET_NATIVE_SOURCE_PROFILES,version))throw Error('WALLET_NATIVE_MATCHED_SDK_REQUIRED');
  const query=WALLET_SDK49_QUERY_SOURCE_PROFILE;if(version===query.version&&Buffer.isBuffer(inventoryBytes)&&inventoryBytes.length===query.inventory.bytes&&createHash('sha256').update(inventoryBytes).digest('hex')===query.inventory.sha256)return query;
