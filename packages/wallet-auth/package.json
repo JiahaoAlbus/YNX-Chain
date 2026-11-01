@@ -510,6 +510,12 @@
       "browser": null,
       "node": "./src/original-product-device-v4-management-client.js",
       "default": null
+    },
+    "./network-resource-source-v2-data": {
+      "types": "./native/original-network-resource-source-v2-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-network-resource-source-v2-contract.mjs",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -778,7 +784,9 @@
     "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.md",
     "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.json",
     "docs/PRODUCTION_RUNTIME_PACKAGE.md",
-    "docs/PENDING_PAIR_ORIGINAL_QUERY_INTAKE.md"
+    "docs/PENDING_PAIR_ORIGINAL_QUERY_INTAKE.md",
+    "native/original-network-resource-source-v2-contract.mjs",
+    "native/original-network-resource-source-v2-contract.d.mts"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

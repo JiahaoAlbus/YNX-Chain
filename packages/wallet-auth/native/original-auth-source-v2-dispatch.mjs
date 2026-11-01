@@ -1,3 +1,4 @@
+import{NETWORK_RESOURCE_SOURCE_PURPOSE as NR_PURPOSE,NETWORK_RESOURCE_SOURCE_SELECTION_KEY as NR_KEY,NETWORK_RESOURCE_SOURCE_OPERATIONS as NR_OPS,inspectOriginalNetworkResourceSourceScopeV2DATA,captureOriginalNetworkResourceOriginalsV1DATA,assertOriginalNetworkResourceOriginalsCurrentV1DATA}from'./original-network-resource-source-v2-contract.mjs';
 import{WALLET_NATIVE_PRODUCT_SOURCE_PURPOSE as WPR_PURPOSE}from'./original-wallet-product-source-contract.mjs';
 import{BROWSER_SELECTED_PAGES_SOURCE_PURPOSE as BROWSER_PURPOSE}from'./original-browser-selected-pages-source-contract.mjs';
 import{WALLET_NATIVE_PAY_CLIENT_SOURCE_PURPOSE as WPC_PURPOSE}from'./original-wallet-pay-client-source-contract.mjs';
@@ -44,7 +45,8 @@ async function registrations(node,owners,networkId,get){
 }
 // Optional getters are explicit PUBLIC DATA test seams only. The stdin branch
 // NEVER accepts a function/module/provider/clock selector and passes neither.
-export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuthorization,getCurrent=fetchSourceCurrentV2){
+export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuthorization,getCurrent=fetchSourceCurrentV2,networkOriginals){
+ const nr=input?.policy?.signatureContract?.purpose===NR_PURPOSE;const held=nr?captureOriginalNetworkResourceOriginalsV1DATA(networkOriginals):undefined;const fence=()=>{if(nr)assertOriginalNetworkResourceOriginalsCurrentV1DATA(held);};
  exact(input,['operation','node','rootRaw','enrollmentRaw','profileRaw','headRaw','policy','previous']);
  if(input.operation!=='auth-source-v2-native-node/v1')fail('AUTH_SOURCE_V2_DISPATCH_OPERATION');
  exact(input.node,['origin','spki','nativeChainId']);
@@ -54,7 +56,7 @@ export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuth
  // purposes keep their exact five-field schema. The original N1 verifier
  // still checks the application against signed enrollment/profile originals.
  const ai=input.policy.signatureContract.purpose===AI_PURPOSE;
- const pay=[PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(input.policy.signatureContract.purpose);
+ const pay=[NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(input.policy.signatureContract.purpose);
  const pqCatalog=input.policy.signatureContract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const device=devicePurposes.includes(input.policy.signatureContract.purpose);
  exact(input.policy,ai?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform','sourceRole']:pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
@@ -66,12 +68,12 @@ export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuth
  if(root?.version!==2||root.algorithmVersion!=='YNX-BATCH/v0.1'||typeof root.networkId!=='string'||!/^[0-9a-f]{64}$/.test(root.networkId))fail('AUTH_SOURCE_V2_DISPATCH_ROOT');
  const owners=[root.rootOwner,enrollment.profileOwner,enrollment.currentOwner,profile.subjectOwner];
  if(owners.some(v=>typeof v!=='string'||!/^0x[0-9a-f]{40}$/.test(v)))fail('AUTH_SOURCE_V2_DISPATCH_OWNER');
- const before=await registrations(input.node,owners,root.networkId,get);
+ const before=await registrations(input.node,owners,root.networkId,get);fence();
  // The held baseline is immutable and may predate a successful prior fetch.
  // Verify its own signed history from zero, then merge it with retained Native
  // watermarks. Passing a later Native sequence as the historical head's prior
  // would make every second current check spuriously fail as rollback.
- const baseline=verifyOriginalAuthSourceTransitionV2(input.rootRaw,input.enrollmentRaw,input.profileRaw,input.headRaw,input.policy,before,head.nonce,{sequence:0,floor:0,head:'',timeFloor:0,executionHeight:'0'},Date.now());
+ const baseline=verifyOriginalAuthSourceTransitionV2(input.rootRaw,input.enrollmentRaw,input.profileRaw,input.headRaw,input.policy,before,head.nonce,{sequence:0,floor:0,head:'',timeFloor:0,executionHeight:'0'},Date.now(),...(nr?[held]:[]));fence();
  if(baseline.historical!==true||baseline.dataOnly!==true||baseline.nativeAdmission!==false)fail('AUTH_SOURCE_V2_DISPATCH_BASELINE_RESULT');
  if(baseline.status!=='active')fail('AUTH_SOURCE_V2_DISPATCH_TERMINAL_BASELINE');
  if(BigInt(before.root.executionHeight)<BigInt(p.executionHeight))fail('AUTH_SOURCE_V2_DISPATCH_OBSERVATION_ROLLBACK');
@@ -79,12 +81,12 @@ export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuth
  const previous={sequence:Math.max(input.previous.sequence,baseline.sequence),floor:Math.max(input.previous.floor,baseline.floor),head:baseline.sequence>input.previous.sequence?baseline.head:input.previous.head,timeFloor:Math.max(input.previous.timeFloor,baseline.timeFloor),executionHeight:baseline.executionHeight};
  const nonce=randomBytes(32).toString('base64url');
  const currentRaw=await getCurrent(input.policy.endpoint,input.policy.spki,sha(input.profileRaw),nonce);
- const projection=verifyOriginalAuthSourceCurrentV2(input.rootRaw,input.enrollmentRaw,input.profileRaw,currentRaw,input.policy,before,nonce,previous,Date.now());
- const after=await registrations(input.node,owners,root.networkId,get);
+ const projection=verifyOriginalAuthSourceCurrentV2(input.rootRaw,input.enrollmentRaw,input.profileRaw,currentRaw,input.policy,before,nonce,previous,Date.now(),...(nr?[held]:[]));fence();
+ const after=await registrations(input.node,owners,root.networkId,get);fence();
  for(const role of ['root','profile','current','subject']){
   assertPQAuthorizationCurrent(before[role],after[role]);
   if(before[role].executionHeight!==after[role].executionHeight)fail('AUTH_SOURCE_V2_DISPATCH_HEIGHT_CHANGED');
  }
  const now=Date.now();if(now<projection.timeFloor||now>=projection.expiresAtMs||projection.status!=='active'||projection.dataOnly!==true||projection.nativeAdmission!==false)fail('AUTH_SOURCE_V2_DISPATCH_POST_CURRENT_EXPIRED');
- return Object.freeze({projection,currentRaw});
+ fence();return Object.freeze({projection,currentRaw});
 }
