@@ -1,3 +1,4 @@
+import {mountDesktopReceiveDesign,receiveDesignCopy} from './desktop-receive-design.mjs';
 /** Render a local module matrix without changing the document's image/script CSP. */
 import {setWalletCopy} from "./wallet-locale.mjs";
 // IPC produces public data fields. Snapshot them before touching the canvas;
@@ -73,52 +74,45 @@ export function createBitcoinReceiveCodeUI({document,parent,api,getContext,getSe
   download.addEventListener('click',exportPNG);invalidate();return {invalidate,refresh,exportPNG};
 }
 
-export function createReceiveCodeUI({ canvas, status, requestCode, draw = drawReceiveCode, exportButton, getContext, savePNG }) {
-  let revision = 0, rendered = null;
-  function clear() {
-    revision++;
-    rendered = null;
-    if (exportButton) exportButton.disabled = true;
-    canvas.hidden = true;
-    canvas.width = canvas.height = 1;
-    status.textContent = "";
+export function drawYNXEVMCompatibilityReceiveCode(canvas,code,expectedAccount){
+ const account=ownValue(code,'account');
+ if(ownValue(code,'format')!=='evm'||ownValue(code,'nativeAccount')!==expectedAccount||ownValue(code,'chainId')!=='ynx_6423-1'||ownValue(code,'asset')!=='YNXT'||!/^0x[a-f0-9]{40}$/.test(account)||ownValue(code,'payload')!==account)throw Error('Invalid compatibility receiving code');
+ paintReceiveModules(canvas,ownValue(code,'size'),ownValue(code,'modules'));
+}
+export function createReceiveCodeUI({canvas,status,requestCode,draw=drawReceiveCode,exportButton,getContext,savePNG}){
+ let revision=0,rendered=null,lastAccount=null;
+ const design=mountDesktopReceiveDesign({canvas,onRetry:()=>refresh(lastAccount),onNative:()=>refresh(lastAccount),onCompatibility:()=>refreshCompatibility(lastAccount)});
+ function clear(){revision++;rendered=null;lastAccount=null;if(exportButton)exportButton.disabled=true;canvas.hidden=true;canvas.width=canvas.height=1;status.textContent='';design.format('ynx');design.state('unavailable');}
+ async function load(account,format){
+  clear();lastAccount=account;if(!account)return;const current=revision,initial={...getContext?.()};
+  const live=()=>current===revision&&(!getContext||getContext()?.open===true&&getContext()?.account===account&&getContext()?.keyRevision===initial?.keyRevision);
+  design.format(format);design.state('loading');setWalletCopy(status,'Preparing your receiving code…');
+  try{
+   if(!live())return;
+   const request=format==='ynx'?requestCode:canvas.ownerDocument?.defaultView?.ynxWallet?.receiveCompatibilityCode;
+   if(typeof request!=='function')throw Error('RECEIVE_COMPATIBILITY_NOT_SUPPLIED');
+   const result=await request(account);if(!live())return;
+   if(ownValue(result,'ok')!==true)throw Error('Receiving account unavailable');const value=ownValue(result,'value');
+   if(format==='ynx')draw(canvas,value,account);else drawYNXEVMCompatibilityReceiveCode(canvas,value,account);
+   if(!live()){canvas.hidden=true;return;}
+   canvas.hidden=false;const context=getContext?.();rendered={revision:current,account,keyRevision:context?.keyRevision,format};
+   design.state('ready',format==='ynx'?account:ownValue(value,'account'));
+   if(exportButton)exportButton.disabled=!(context?.open===true&&context.account===account&&typeof savePNG==='function');
+   setWalletCopy(status,format==='ynx'?'Scan with a Wallet that supports YNX Testnet.':receiveDesignCopy(canvas.ownerDocument,'compatibilityReady'));
+  }catch{
+   if(!live())return;canvas.hidden=true;canvas.width=canvas.height=1;design.state('unavailable');
+   setWalletCopy(status,format==='ynx'?'The receiving code is unavailable. Reopen Receive to try again.':receiveDesignCopy(canvas.ownerDocument,'compatibilityUnavailable'));
   }
-  async function refresh(account) {
-    clear();
-    if (!account) return;
-    const current = revision;
-    setWalletCopy(status,"Preparing your receiving code…");
-    try {
-      const result = await requestCode(account);
-      if (current !== revision) return;
-      if (ownValue(result, "ok") !== true) throw new Error("Receiving account unavailable");
-      const value = ownValue(result, "value");
-      if (current !== revision) return;
-      draw(canvas, value, account);
-      // Rendering or a supplied adapter may invalidate Receive synchronously.
-      // A retired request cannot make the canvas visible or publish success.
-      if (current !== revision) return;
-      canvas.hidden = false;
-      const context = getContext?.();
-      rendered = {revision:current,account,keyRevision:context?.keyRevision};
-      if (exportButton) exportButton.disabled = !(context?.open===true&&context.account===account&&typeof savePNG==="function");
-      setWalletCopy(status,"Scan with a Wallet that supports YNX Testnet.");
-    } catch {
-      if (current !== revision) return;
-      canvas.hidden = true;
-      setWalletCopy(status,"The receiving code is unavailable. Reopen Receive to try again.");
-    }
-  }
-  function exportPNG() {
-    const before=rendered;
-    const live=()=>{const context=getContext?.();return before&&rendered===before&&before.revision===revision&&!canvas.hidden&&context?.open===true&&context.account===before.account&&context.keyRevision===before.keyRevision};
-    if (!live() || typeof savePNG !== "function") return;
-    try {
-      const dataURL=canvas.toDataURL("image/png");
-      if (!live() || typeof dataURL!=="string" || dataURL.length>8*1024*1024 || !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(dataURL) || !/^ynx1[a-z0-9]+$/.test(before.account)) return;
-      savePNG(dataURL,`YNX-Testnet-receive-${before.account}.png`);
-      if(live())setWalletCopy(status,"Receiving PNG download started. It contains only your public receiving information.");
-    } catch { if(live())setWalletCopy(status,"Receiving PNG download could not start. Reopen Receive and try again."); }
-  }
-  return { clear, refresh, exportPNG };
+ }
+ function refresh(account){return load(account,'ynx');}
+ function refreshCompatibility(account){return load(account,'evm');}
+ function exportPNG(){
+  const before=rendered;
+  const live=()=>{const context=getContext?.();return before&&rendered===before&&before.revision===revision&&!canvas.hidden&&context?.open===true&&context.account===before.account&&context.keyRevision===before.keyRevision;};
+  if(!live()||typeof savePNG!=='function')return;
+  try{const dataURL=canvas.toDataURL('image/png');if(!live()||typeof dataURL!=='string'||dataURL.length>8*1024*1024||!/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(dataURL)||!/^ynx1[a-z0-9]+$/.test(before.account))return;
+   savePNG(dataURL,'YNX-Testnet-'+(before.format==='evm'?'EVM-':'')+'receive-'+before.account+'.png');if(live())setWalletCopy(status,'Receiving PNG download started. It contains only your public receiving information.');
+  }catch{if(live())setWalletCopy(status,'Receiving PNG download could not start. Reopen Receive and try again.');}
+ }
+ return {clear,refresh,exportPNG,refreshCompatibility};
 }

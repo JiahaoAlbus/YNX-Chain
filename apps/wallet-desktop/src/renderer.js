@@ -1,5 +1,9 @@
+import {createApprovedDesktopUI} from './approved-desktop-ui.mjs';
+let desktopUI=null;
+let accountStatusObserved=false;
 import {bindDeviceFinalizationUI} from './wallet-device-finalization-ui.mjs';
 import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
+import {createAITaskReviewQueueObserver} from './wallet-ai-task-review-queue.mjs';
 import {bindDeviceRegistrationUI} from './wallet-device-registration-ui.mjs';
 import { formatApprovalReview } from "./approval-review-display.mjs";
 import {appendPQBroadcastActions} from './wallet-pq-broadcast-ui.mjs';
@@ -266,6 +270,7 @@ const chain = document.querySelector("#chain");
 const indicator = document.querySelector("#indicator");
 
 function render(status) {
+  desktopUI?.updateNetwork(status);
   indicator.className = `indicator ${status.available ? "ok" : "failed"}`;
   network.textContent = status.available ? "Connected to YNX Testnet" : "YNX Testnet unavailable";
   chain.textContent = status.available ? status.chainId : "Unavailable";
@@ -281,6 +286,8 @@ window.ynxWallet.status().then(render);
 const authorization = document.querySelector("#authorization");
 const authResult = document.querySelector("#auth-result");
 const approvalQueue = new ApprovalReviewQueue({ onChange: () => queueMicrotask(presentApproval) });
+const aiTaskReviewObserver=createAITaskReviewQueueObserver({readPending:()=>window.ynxWallet.aiTaskReviews(),getContext:()=>keyState,queue:approvalQueue});
+setInterval(()=>{void aiTaskReviewObserver.refresh();},2000);
 const authorizationChoices = new Map();
 let creatingAuthorizationAccount = false;
 setInterval(() => approvalQueue.sweep(), 1000);
@@ -331,6 +338,7 @@ function authorizationErrorText(result) {
 }
 
 function presentApproval() {
+  desktopUI?.updatePending({count:approvalQueue.count,ai:approvalQueue.current?.review?.method==='ynx_approveAITaskActionV6'});
   const item = approvalQueue.current;
   const panels = { authorization, proposal: document.querySelector("#walletconnect-proposal"), provider: document.querySelector("#provider-request") };
   for (const [type, panel] of Object.entries(panels)) if (!item || type !== item.type) { if (panel.open) panel.close(); panel.hidden = true; }
@@ -420,6 +428,7 @@ const mnemonicBackupButton=document.createElement('button');mnemonicBackupButton
 document.querySelector('#backup-section').insertAdjacentElement('beforebegin',mnemonicBackupButton);
 mnemonicBackupButton.addEventListener('click',()=>mnemonicUI.openBackup());
 function renderAccount(payload) {
+  accountStatusObserved=true;
   clearAssetBalance();
   clearTransactionResolution();
   invalidateWalletConnectSessions();
@@ -432,6 +441,7 @@ function renderAccount(payload) {
   receiveShareUI.invalidate();
   if (payload?.ok === false) {
     accountState = null;
+    desktopUI?.render(null,keyState);
     activeAccount = null; transactionHistoryUI.clear();
     if(typeof transferAttemptUI!=="undefined")void transferAttemptUI.refresh();
     receiveCodeUI.clear();
@@ -446,6 +456,7 @@ function renderAccount(payload) {
     pendingImportOperation.commit={view:accountViewRevision,security:accountSecurityIntent,revision:keyState.revision,account:status.account};
   }
   accountState = status;
+  desktopUI?.render(accountState,keyState);
   passwordUI?.render(); renderKeyDetail();
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
@@ -901,7 +912,8 @@ const transactionHistoryUI = createTransactionHistoryUI({
       for (const [label, value] of [["Recipient", nativeAccountLabel(record.to)], ["Transaction", record.hash], ["Actual fee", `${record.actualFee} YNXT`], ["Block", record.blockNumber]]) {
         const term = document.createElement("dt"), detail = document.createElement("dd"); copyUI(term,label); detail.textContent = value; detail.dir="ltr"; facts.append(term, detail);
       }
-      row.append(title, facts); list.append(row);
+      const open=document.createElement('button');open.type='button';open.textContent=document.documentElement.lang.startsWith('zh')?'查看原交易详情':'View original transfer';open.addEventListener('click',()=>desktopUI?.showHistoryRecord(record));
+      row.append(title,facts,open);list.append(row);
     }
   },
 });
@@ -1202,19 +1214,21 @@ document.querySelector("#cancel-transfer").addEventListener("click", () => actOn
 document.querySelector("#confirm-transfer").addEventListener("click", () => actOnTransfer("approve"));
 
 function setView(name) {
-  if (!["overview", "connections", "accounts"].includes(name)) return;
+  if (!["overview","connections","accounts","history","security","agents","permissions","resolver","settings"].includes(name)) return;
   if (name === "overview" && !activeAccount) name = "accounts";
-  if (name === "connections") void refreshWalletConnectConnectionView();
+  if (name === "connections"||name === "permissions") void refreshWalletConnectConnectionView();
+  if(name==="history")void transactionHistoryUI.refresh();
   for (const panel of document.querySelectorAll("[data-panel]")) panel.hidden = panel.dataset.panel !== name;
   for (const button of document.querySelectorAll("nav [data-view]")) {
     const active = button.dataset.view === name;
     button.classList.toggle("active", active);
     if (active) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current");
   }
-  copyUI(document.querySelector("#page-title"),{ overview: "Overview", connections: "Connections", accounts: "Accounts & backup" }[name]);
+  copyUI(document.querySelector("#page-title"),{overview:"Assets",connections:"Connections",accounts:"Accounts & backup",history:"Transactions",security:"Security center",agents:"AI Agent",permissions:"Permissions",resolver:"Address Resolver",settings:"Settings"}[name]);
+  desktopUI?.viewChanged(name);
   window.scrollTo({ top: 0 });
 }
-for (const button of document.querySelectorAll("[data-view]")) button.addEventListener("click", () => setView(button.dataset.view));
+for (const button of document.querySelectorAll("[data-view]")) button.addEventListener("click", () => {desktopUI?.enterWorkspace();setView(button.dataset.view);});
 for (const button of document.querySelectorAll("[data-close]")) button.addEventListener("click", () => document.getElementById(button.dataset.close).close());
 for (const dialog of document.querySelectorAll("dialog")) dialog.addEventListener("close", () => queueMicrotask(presentApproval));
 document.querySelector("#open-send").addEventListener("click", () => {
@@ -1271,6 +1285,7 @@ function renderKeyDetail() {
 function renderKeyState(state) {
   if(Number.isSafeInteger(state?.revision)&&Number.isSafeInteger(keyState.revision)&&state.revision<keyState.revision)return;
   const securityChanged=state.revision!==keyState.revision||state.locked!==keyState.locked||state.account!==keyState.account||state.authenticating!==keyState.authenticating;
+  if(securityChanged)aiTaskReviewObserver.invalidate();
   if(securityChanged){accountSecurityIntent++;invalidateWalletConnectSessions();}
   securityViewRevision++;
   const accountChanged = state.account !== keyState.account;
@@ -1280,6 +1295,7 @@ function renderKeyState(state) {
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   const previousKeyState=keyState;
   keyState = state;
+  if(accountStatusObserved)desktopUI?.render(accountState,keyState);
   if(typeof pqTransferReviewUI!=='undefined')pqTransferReviewUI.render();
   if(typeof pqTypedActionReviewUI!=='undefined'){if(securityChanged)pqTypedActionReviewUI.invalidate();else pqTypedActionReviewUI.render();}
   if(typeof pqMigrationReviewUI!=='undefined')pqMigrationReviewUI.render();
@@ -1358,3 +1374,8 @@ projectControlOpen.addEventListener('click',()=>projectControlDialog.showModal()
 projectControlDialog.addEventListener('close',()=>{projectControlUI.invalidate();void window.ynxWallet.retireIDEProjectControl().catch(()=>{});});
 window.addEventListener('blur',()=>projectControlUI.invalidate());
 
+
+// Full approved desktop presentation consumes only existing public state and
+// delegates all protected actions to their original controls/controllers.
+desktopUI=createApprovedDesktopUI({document,api:window.ynxWallet,navigate:setView,unlock:()=>document.querySelector('#unlock-wallet').click(),openImport:()=>document.querySelector('#open-import').click(),openCrossChain:()=>{if(window.ynxWallet.crossChain)cctpOpen.click();},openNetworks:()=>document.querySelector('#open-multichain').click(),reviewPending:presentApproval,writeClipboard:writeReceivingClipboard});
+if(accountStatusObserved)desktopUI.render(accountState,keyState);

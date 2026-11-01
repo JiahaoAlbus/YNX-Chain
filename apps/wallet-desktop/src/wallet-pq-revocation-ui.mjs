@@ -7,7 +7,7 @@ export function createPQRevocationReviewUI({api,getKeyState,document:doc=documen
  label.textContent='我理解这是终止授权，不是退出登录或普通锁定。 / I understand this is terminal revocation, not sign-out or locking.';
  button.type='submit';button.textContent='审查终止 PQ 授权（仅本地保存） / Review terminal PQ revocation (save only)';result.setAttribute('role','status');form.append(help,ack,label,button,result);section.append(form);
  let busy=false,generation=0;
- const render=()=>{const state=getKeyState();button.disabled=busy||state.locked||state.authenticating||!ack.checked;ack.disabled=busy||state.locked||state.authenticating;};
+ const render=()=>{const state=getKeyState();button.disabled=typeof api.preparePQRevocation!=='function'||!state.account||busy||state.locked||state.authenticating||!ack.checked;ack.disabled=busy||state.locked||state.authenticating;};
  ack.addEventListener('change',()=>{generation++;render();});
  form.addEventListener('submit',async event=>{
   event.preventDefault();if(busy)return;const state={...getKeyState()},token=generation;

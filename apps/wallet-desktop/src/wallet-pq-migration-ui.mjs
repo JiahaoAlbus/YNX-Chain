@@ -5,7 +5,7 @@ export function createPQMigrationReviewUI({api,getKeyState,document:doc=document
  form.id='pq-migration-form';height.id='pq-migration-height';height.type='text';height.inputMode='numeric';height.autocomplete='off';label.htmlFor=height.id;label.textContent='PQ 首次迁移生效区块高度 / Initial PQ activation height';
  help.textContent='需先在受保护钱包中准备独立的新密钥对。这里只审查、签名并本地保存，不广播或激活。现有 PQ 账户轮换尚不可用。 / Requires a protected proposed key pair. Review, sign and save only; no broadcast or activation. Active PQ rotation is unavailable.';
  button.type='submit';button.textContent='审查首次 PQ 迁移（仅本地保存） / Review initial PQ migration (save only)';result.setAttribute('role','status');form.append(label,height,help,button,result);section.append(form);
- let busy=false,generation=0;const render=()=>{const state=getKeyState();button.disabled=busy||state.locked||state.authenticating;};
+ let busy=false,generation=0;const render=()=>{const state=getKeyState();button.disabled=typeof api.preparePQMigration!=='function'||!state.account||busy||state.locked||state.authenticating;};
  height.addEventListener('input',()=>{generation++;});
  form.addEventListener('submit',async event=>{
   event.preventDefault();if(busy)return;const security={...getKeyState()},token=generation,activateAt=height.value.trim();

@@ -89,7 +89,7 @@ import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { loadPublicWalletConnectConfig } from "./walletconnect-public-config.mjs";
 import { WalletConnectRequestInbox } from "./walletconnect-request-inbox.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
-import { createReceiveCode, createBitcoinReceiveCode, createEVMReceiveCode } from "./receive-code.mjs";
+import { createReceiveCode, createBitcoinReceiveCode, createEVMReceiveCode, createYNXEVMCompatibilityReceiveCode, resolveReceivingAddress } from "./receive-code.mjs";
 import { NativeContractClient } from "./native-contract.mjs";
 import { createNativeContractService } from "./native-contract-service.mjs";
 import { WalletPayInvoiceClient } from "./wallet-pay-invoice-reference.mjs";
@@ -879,6 +879,9 @@ handleWalletIPC("wallet:commit-mnemonic-account", async (_event,input) => {
   return creationView?{...response,creationView}:response;
 });
 handleWalletIPC("wallet:recovery-phrase", (_event,password) => sensitiveIPC(() => walletAuthority.vault.recoveryPhrase(password)));
+// Read-only same-account encodings; no permission, key or network provider enters from renderer.
+handleWalletIPC("wallet:receive-compatibility-code", (_event, expectedAccount) => safeIPC(() => createYNXEVMCompatibilityReceiveCode(expectedAccount, () => walletAuthority.accountStatus())));
+handleWalletIPC("wallet:resolve-receiving-address", (_event, input) => safeIPC(() => resolveReceivingAddress(input, () => walletAuthority.accountStatus())));
 handleWalletIPC("wallet:receive-code", (_event, expectedAccount) => typeof expectedAccount==='string'
   ? safeIPC(() => createReceiveCode(expectedAccount, () => walletAuthority.accountStatus()))
   : sensitiveIPC(() => {if(Object.getOwnPropertyDescriptor(expectedAccount??{},'family')?.value==='evm'){if(!multichain)throw new Error('Wallet is starting.');return createEVMReceiveCode(expectedAccount,{readSnapshot:()=>multichain.snapshot(),getContext:()=>({...keyAccess.status(),networkEpoch:multichain.epoch})});}if(!familyAccounts||!familyRead)throw new Error('Wallet is starting.');return createBitcoinReceiveCode(expectedAccount,{readAccount:value=>familyAccounts.account(value),readNetworks:()=>familyRead.snapshot(),getContext:()=>familyRead.getContext()});}));

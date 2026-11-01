@@ -1,0 +1,57 @@
+/* Approved desktop p9–14 / p25–30. Consumes production Receive DOM ids. */
+#receive-sheet.receive-design, .receive-design, .address-resolver-design {
+  box-sizing: border-box; color: var(--ynx-text); background: var(--ynx-surface);
+  border: 1px solid var(--ynx-border); border-radius: var(--ynx-radius-panel);
+  font-family: var(--ynx-font); font-size:0.875rem; line-height: 1.5;
+}
+#receive-sheet.receive-design { width: min(482px, calc(100vw - 48px)); padding: 24px 32px; max-height: calc(100dvh - 88px); }
+.receive-design .dialog-brand { display: none; }
+.receive-design .dialog-heading { display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 12px; }
+.receive-design .dialog-heading h2 { font-size:1.25rem; line-height: 28px; font-weight: 700; margin: 0; }
+.receive-design .dialog-heading [data-close] { position: absolute; right: 0; top: 0; padding: 0 4px; min-height: 28px; color: var(--ynx-text-secondary); border: 0; background: transparent; font-size:0.75rem; }
+.receive-network-label { width: fit-content; margin: 0 auto 16px; background: var(--ynx-surface-secondary); border-radius: 24px; padding: 8px 16px; font-size:0.75rem; color: var(--ynx-text); }
+.receive-code-slot { position: relative; width: 242px; height: 242px; display: grid; place-items: center; margin: 0 auto 20px; border: 1px solid var(--ynx-border); border-radius: 12px; background: var(--ynx-qr-bg); overflow: hidden; }
+.receive-code-slot canvas { width: 240px; height: 240px; max-width: 100%; image-rendering: pixelated; display: block; background: #fff; filter: none; border: 0; padding: 0; border-radius: 0; }
+.receive-code-placeholder { display: grid; place-items: center; align-content: center; gap: 18px; padding: 16px; color: #737780; text-align: center; font-size:0.75rem; }
+.receive-code-placeholder progress { width: 76px; height: 5px; accent-color: #002fa7; }
+.receive-design[data-receive-state='unavailable'] .receive-code-slot { background: var(--ynx-surface-secondary); }
+.receive-design [for='receive-address'], .receive-design [for='receive-evm-address'] { display: block; text-align: center; font-size:0.75rem; color: var(--ynx-text-secondary); margin-top: 12px; }
+.receive-design #receive-address, .receive-design #receive-evm-address { display: block; width: 100%; border: 1px solid transparent; border-radius: 10px; background: var(--ynx-surface-secondary); color: var(--ynx-text); font: 13px/22px var(--ynx-font-mono); text-align: center; direction: ltr; padding: 12px 8px; min-height: 56px; box-sizing: border-box; text-overflow: clip; }
+.receive-design #receive-address:focus-visible, .address-resolver-design input:focus-visible { outline: 2px solid var(--ynx-focus); outline-offset: 2px; }
+.receive-network-warning { margin: 16px 0; padding: 12px 16px; border-radius: 10px; color: var(--ynx-warning); background: var(--ynx-warning-bg); font-size:0.75rem; }
+.receive-design #receive-qr-status { margin: 12px 0; color: var(--ynx-text-secondary); font-size:0.75rem; text-align: center; }
+.receive-design[data-receive-state='unavailable'] #receive-qr-status { color: var(--ynx-danger); background: var(--ynx-danger-bg); padding: 12px 16px; border-radius: 10px; }
+.receive-design .receive-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.receive-design button, .address-resolver-design button { border: 1px solid var(--ynx-border); border-radius: 10px; background: var(--ynx-surface); color: var(--ynx-text); min-height: 44px; padding: 10px 12px; cursor: pointer; font: 14px/22px var(--ynx-font); }
+.receive-design button.primary, .address-resolver-design button.primary { color: var(--ynx-on-brand); background: var(--ynx-brand); border-color: var(--ynx-brand); font-weight: 600; }
+.receive-design button:hover:enabled, .address-resolver-design button:hover:enabled { border-color: var(--ynx-brand); }
+.receive-design button.primary:hover:enabled, .address-resolver-design button.primary:hover:enabled { background: var(--ynx-brand-hover); }
+.receive-design button:disabled, .address-resolver-design button:disabled { color: var(--ynx-text-secondary); background: var(--ynx-surface-secondary); border-color: transparent; opacity: 1; cursor: default; }
+.receive-design button:focus-visible, .address-resolver-design button:focus-visible { outline: 2px solid var(--ynx-focus); outline-offset: 3px; }
+.receive-design #download-receiving-png, .receive-design .receive-retry { display: block; width: 100%; margin: 8px 0; color: var(--ynx-brand); border: 0; background: transparent; min-height: 30px; font-size:0.75rem; }
+.receive-design .muted { text-align: center; color: var(--ynx-text-secondary); font-size:0.6875rem; line-height: 20px; margin-top: 16px; }
+.receive-design #receive-status { font-size:0.75rem; color: var(--ynx-text-secondary); text-align: center; overflow-wrap: anywhere; }
+.receive-design #receive-compatibility { margin-top: 16px; border-top: 1px solid var(--ynx-border); padding-top: 12px; color: var(--ynx-text-secondary); font-size:0.75rem; }
+.receive-design #receive-compatibility summary { color: var(--ynx-brand); cursor: pointer; }
+.receive-compatibility-label { color: var(--ynx-warning); background: var(--ynx-warning-bg); padding: 5px 12px; border-radius: 16px; font-size:0.75rem; text-align: center; margin: 0 auto 12px; }
+.address-resolver-design { width: min(602px, 100%); padding: 24px 32px; }
+.address-resolver-design h2 { font-size:1.25rem; line-height: 28px; text-align: center; margin: 0 0 4px; }
+.address-resolver-design .resolver-description { text-align: center; color: var(--ynx-text-secondary); margin: 0 0 20px; }
+.address-resolver-design label { display: block; margin-bottom: 4px; font-size:0.75rem; }
+.address-resolver-design input { width: 100%; box-sizing: border-box; border: 1px solid var(--ynx-border); border-radius: 8px; padding: 16px; min-height: 56px; background: var(--ynx-surface-secondary); color: var(--ynx-text); font: 12px/22px var(--ynx-font-mono); }
+.address-resolver-design .resolver-directions, .address-resolver-design .resolver-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0; }
+.address-resolver-design .resolver-result { margin-top: 16px; border: 1px solid var(--ynx-border); border-radius: 12px; padding: 12px 24px; }
+.address-resolver-design .resolver-result div { display: grid; grid-template-columns: 90px 1fr; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--ynx-border); }
+.address-resolver-design .resolver-result div:last-child { border-bottom: 0; }
+.address-resolver-design dt { color: var(--ynx-text-secondary); font-size:0.75rem; }
+.address-resolver-design dd { margin: 0; overflow-wrap: anywhere; font: 12px/20px var(--ynx-font-mono); }
+.address-resolver-design [role='status'] { font-size:0.75rem; color: var(--ynx-text-secondary); }
+.address-resolver-design[data-resolver-state='invalid'] input { border-color: var(--ynx-danger); }
+.address-resolver-design[data-resolver-state='invalid'] [role='status'] { color: var(--ynx-danger); }
+.address-resolver-design[data-resolver-state='unconfirmed'] [role='status'] { color: var(--ynx-warning); }
+.address-resolver-design .resolver-evidence { margin-top: 20px; font-size:0.75rem; color: var(--ynx-text-secondary); }
+@media (max-width: 560px) { #receive-sheet.receive-design, .address-resolver-design { padding: 20px; width: calc(100vw - 32px); } .receive-design .receive-actions { gap: 8px; } }
+@media (prefers-reduced-motion: reduce) { .receive-design *, .address-resolver-design * { animation: none !important; transition: none !important; } }
+/* The original generic Receive warning is superseded by the bound network banner. */
+.receive-design > p:not([id]):not([class]) { display: none; }
+.receive-design[hidden], .address-resolver-design[hidden], .receive-design [hidden], .address-resolver-design [hidden] { display: none !important; }

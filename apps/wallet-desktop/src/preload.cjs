@@ -116,6 +116,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   sessionPublicationOutcome: digest => ipcRenderer.invoke('wallet:session-publication-outcome',digest),
   accountStatus: () => ipcRenderer.invoke("wallet:account-status"),
   receiveCode: account => ipcRenderer.invoke("wallet:receive-code", account),
+  receiveCompatibilityCode: account => ipcRenderer.invoke("wallet:receive-compatibility-code", account),
+  resolveReceivingAddress: input => ipcRenderer.invoke("wallet:resolve-receiving-address", input),
   paymentRecipient: input => ipcRenderer.invoke("wallet:payment-recipient", input),
   paymentQR: input => ipcRenderer.invoke("wallet:payment-qr", input),
   beginRecipientCamera: () => ipcRenderer.invoke("wallet:camera-begin"),

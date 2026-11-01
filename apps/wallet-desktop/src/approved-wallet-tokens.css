@@ -1,0 +1,25 @@
+/* Approved desktop PDF p1. Tokens only; shared shell remains owned by Main. */
+:root {
+  --ynx-brand: #002fa7; --ynx-brand-hover: #00268c; --ynx-on-brand: #ffffff;
+  --ynx-bg: #ffffff; --ynx-surface: #ffffff; --ynx-surface-secondary: #f7f8fa;
+  --ynx-text: #17191d; --ynx-text-secondary: #737780; --ynx-border: #e6e8ec;
+  --ynx-success: #16a34a; --ynx-success-bg: #e8f6ee;
+  --ynx-danger: #dc2626; --ynx-danger-bg: #faeaea;
+  --ynx-warning: #b45309; --ynx-warning-bg: #faf1e2;
+  --ynx-focus: #002fa7; --ynx-qr-ink: #002fa7; --ynx-qr-bg: #ffffff;
+  --ynx-radius-control: 6px; --ynx-radius-button: 10px; --ynx-radius-panel: 16px;
+  --ynx-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'MiSans', sans-serif;
+  --ynx-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  --ynx-space: 4px; --ynx-sidebar-width: 232px; --ynx-topbar-height: 56px;
+  --ynx-content-max: 1160px;
+}
+:root[data-theme='dark'], :root[data-appearance='dark'], .theme-dark, [data-wallet-theme='dark'] {
+  --ynx-brand: #4d7cfe; --ynx-brand-hover: #6b92ff; --ynx-on-brand: #101114;
+  --ynx-bg: #101114; --ynx-surface: #191b20; --ynx-surface-secondary: #23262d;
+  --ynx-text: #f5f6f8; --ynx-text-secondary: #a0a4ad; --ynx-border: #30333a;
+  --ynx-success: #32ce82; --ynx-success-bg: #183c2c;
+  --ynx-danger: #f26960; --ynx-danger-bg: #411f24;
+  --ynx-warning: #f0a53a; --ynx-warning-bg: #402f1d; --ynx-focus: #4d7cfe;
+  /* QR stays canonical blue on opaque white in both themes. Never invert. */
+  --ynx-qr-ink: #002fa7; --ynx-qr-bg: #ffffff;
+}

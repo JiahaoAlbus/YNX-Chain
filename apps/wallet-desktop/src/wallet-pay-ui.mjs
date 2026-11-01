@@ -55,7 +55,7 @@ export function createDesktopPayUI({getContext,api,render}){
   const capture=(before=getContext(),current=revision)=>({before,owns:()=>current===revision,live:()=>{const after=getContext();return current===revision&&before.open&&after.open&&!!before.account&&before.account===after.account&&before.keyRevision===after.keyRevision&&!before.locked&&!after.locked}});
   const request=async(fn,accept,{notice="Checking Pay…",failure="Pay could not be verified. Preserve the original; restore it and check its original hash or receipt."}={})=>{
     if(busy)return;const {before,live}=capture();if(!live()){view("Unlock Wallet before reviewing or restoring Pay.");return}busy=true;view(notice);
-    try{const received=await fn();if(!live())return;const response=snapshotPayDisplay(received);if(!live())return;if(response?.ok!==true)throw Error("Pay request failed");accept(response.value,before.account,before.keyRevision);busy=false;view()}
+    try{const received=await fn();if(!live())return;const response=snapshotPayDisplay(received);if(!live())return;if(response?.ok!==true||response.value?.ok===false)throw Error("Pay request failed");accept(response.value,before.account,before.keyRevision);busy=false;view()}
     catch{if(live()){busy=false;view("",failure)}}
   };
   const acceptOriginal=(value,account)=>{if(value?.kind!=="original"&&value?.kind!=="archived")throw Error("Wrong Pay result");retained=value.original===null?null:original(value.original,account);settleBlocked=!!retained?.settlementAttempted;review=null};
@@ -68,7 +68,7 @@ export function createDesktopPayUI({getContext,api,render}){
       const {before,live,owns}=capture(getContext(),revision+1),cancelled=clear();
       if(!live()){if(owns()&&before.locked)view("Unlock Wallet before reviewing or restoring Pay.");await cancelled;return}
       await cancelled;if(!live())return;
-      try{const received=await api.payStatus();if(!live())return;const result=snapshotPayDisplay(received);if(!live())return;if(result?.ok!==true||typeof result.value?.available!=="boolean"||result.value.paymentAuthorized!==false)throw Error();available=result.value.available;
+      try{const received=await api.payStatus();if(!live())return;const result=snapshotPayDisplay(received);if(!live())return;if(result?.ok!==true||result.value?.ok===false||typeof result.value?.available!=="boolean"||result.value.paymentAuthorized!==false)throw Error();available=result.value.available;
         if(!available){view("Protected Pay is unavailable in this build. No payment was approved. Your saved originals remain on this device.");return}view();if(live())await ui.restore();
       }catch{if(live())view("","Pay readiness could not be verified. Nothing was signed.")}
     },

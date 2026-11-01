@@ -35,13 +35,13 @@ test('PQ existing-record refusal points to original-result check, not a newly un
 
 const policyValue=()=>({account:'TEST-A',authorizationStatus:'active',ledgerNonce:'1',committedHeight:'2',executionHeight:'3',policyRevision:'1',readOnly:true,signingAuthorized:false});
 test('normal policy button queries selected owner without key generation or approval modal',async()=>{
- const f=fixture();let reads=0;f.api.pqAccountAuthorization=async()=>{reads++;return {ok:true,value:policyValue()};};f.policyCheck.click();await settled();assert.equal(reads,1);assert.match(f.policyResult.textContent,/active/);assert.match(f.policyResult.textContent,/nonce: 1/);assert.equal(f.dialog.open,false);assert.equal(f.counts().generates,0);
+ const f=fixture();let reads=0;f.api.pqAccountAuthorization=async()=>{reads++;return {ok:true,value:policyValue()};};f.ui.render();f.policyCheck.click();await settled();assert.equal(reads,1);assert.match(f.policyResult.textContent,/active/);assert.match(f.policyResult.textContent,/nonce: 1/);assert.equal(f.dialog.open,false);assert.equal(f.counts().generates,0);
 });
 test('normal policy UI discards late result on lock and invalidation',async()=>{
- const f=fixture();let release;f.api.pqAccountAuthorization=()=>new Promise(r=>release=r);f.policyCheck.click();f.lock();f.ui.invalidate();release({ok:true,value:policyValue()});await settled();assert.equal(f.policyResult.textContent,'');assert.equal(f.policyCheck.disabled,true);
+ const f=fixture();let release;f.api.pqAccountAuthorization=()=>new Promise(r=>release=r);f.ui.render();f.policyCheck.click();f.lock();f.ui.invalidate();release({ok:true,value:policyValue()});await settled();assert.equal(f.policyResult.textContent,'');assert.equal(f.policyCheck.disabled,true);
 });
 test('normal policy UI retains unavailable instead of displaying legacy or accepting another owner',async()=>{
  for(const response of [{ok:false,error:{code:'AUTH_POLICY_SOURCE_UNAVAILABLE'}},{ok:true,value:{...policyValue(),account:'TEST-B'}},{ok:true,value:{...policyValue(),signingAuthorized:true}}]){
-  const f=fixture();f.api.pqAccountAuthorization=async()=>response;f.policyCheck.click();await settled();assert.match(f.policyResult.textContent,/account state not inferred/);assert.equal(f.counts().generates,0);
+  const f=fixture();f.api.pqAccountAuthorization=async()=>response;f.ui.render();f.policyCheck.click();await settled();assert.match(f.policyResult.textContent,/account state not inferred/);assert.equal(f.counts().generates,0);
  }
 });

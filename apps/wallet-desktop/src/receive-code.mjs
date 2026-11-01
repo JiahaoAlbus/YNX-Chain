@@ -52,3 +52,29 @@ export async function createBitcoinReceiveCode(input,{readAccount,readNetworks,g
   if(!live(await getContext())||JSON.stringify(config)!==JSON.stringify(bitcoinReceiveNetwork(await readNetworks(),request.network))||!live(await getContext()))throw Error('FAMILY_ACCOUNT_CHANGED');
   return Object.freeze({...request,...config,path,payload,size:qr.modules.size,modules:Array.from(qr.modules.data),networkVerified:false});
 }
+
+/** Explicit same selected account's supported 20-byte compatibility encoding.
+ * The existing checksum codec and two selected-status reads are the binding;
+ * no prefix substitution, lookup service, key or network permission is used. */
+export async function createYNXEVMCompatibilityReceiveCode(expectedAccount,readAccountStatus){
+ const initial=await readAccountStatus();
+ if(!initial?.initialized||initial.ynxAccount!==expectedAccount)fail();
+ const account=evmAddressFromYNX(expectedAccount);if(account!==initial.account)fail();
+ const {modules}=QRCode.create(account,{errorCorrectionLevel:'M'});
+ const after=await readAccountStatus();if(!after?.initialized||after.account!==account||after.ynxAccount!==expectedAccount)fail();
+ return Object.freeze({format:'evm',nativeAccount:expectedAccount,account,chainId:'ynx_6423-1',asset:'YNXT',payload:account,size:modules.size,modules:Array.from(modules.data)});
+}
+
+export async function resolveReceivingAddress(input,readAccountStatus){
+ const keys=['address','direction','networkId'];
+ if(!input||Reflect.ownKeys(input).length!==keys.length||keys.some(k=>!Object.hasOwn(Object.getOwnPropertyDescriptor(input,k)??{},'value')))throw Object.assign(Error('Invalid address format'),{code:'RECEIVE_RESOLVER_INVALID'});
+ const {address,direction,networkId}=input;
+ if(networkId!=='ynx_6423-1'||!['ynx-to-evm','evm-to-ynx'].includes(direction)||typeof address!=='string')throw Object.assign(Error('Unsupported address conversion'),{code:'RECEIVE_RESOLVER_UNSUPPORTED'});
+ const {ynxAddressFromEVM}=await import('@ynx-chain/wallet-auth');let canonicalOwner,target;
+ try{if(direction==='ynx-to-evm'){canonicalOwner=evmAddressFromYNX(address);target=canonicalOwner;if(ynxAddressFromEVM(target)!==address)throw Error();}else{target=ynxAddressFromEVM(address);canonicalOwner=evmAddressFromYNX(target);if(canonicalOwner!==address)throw Error();}}
+ catch{throw Object.assign(Error('Invalid address format or checksum'),{code:'RECEIVE_RESOLVER_INVALID'});}
+ const initial=await readAccountStatus();
+ if(!initial?.initialized||initial.account!==canonicalOwner||evmAddressFromYNX(initial.ynxAccount)!==canonicalOwner)throw Object.assign(Error('The corresponding account binding cannot be confirmed'),{code:'RECEIVE_RESOLVER_UNCONFIRMED'});
+ const after=await readAccountStatus();if(!after?.initialized||after.account!==initial.account||after.ynxAccount!==initial.ynxAccount)fail();
+ return Object.freeze({source:address,target,direction,networkId,canonicalOwner,method:'same-account-encoding'});
+}

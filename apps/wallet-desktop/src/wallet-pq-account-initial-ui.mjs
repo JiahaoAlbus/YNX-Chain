@@ -8,7 +8,7 @@ export function createPQAccountInitialUI({api,getKeyState,document:doc=document}
  label.textContent='拟生效高度 / Proposed activation height';height.type='text';height.inputMode='numeric';height.autocomplete='off';height.id='pq-account-initial-height';label.htmlFor=height.id;open.type='button';open.textContent='打开登记签名预览 / Preview registration signing';open.disabled=true;result.setAttribute('role','status');panel.append(title,help,label,height,open,result);doc.querySelector('#backup-section').append(panel);
  let busy=false,generation=0;
  const same=s=>{const now=getKeyState();return !now.locked&&!now.authenticating&&now.account===s.account&&now.revision===s.revision;};
- const render=()=>{const s=getKeyState();open.disabled=busy||s.locked||s.authenticating||!s.account;};
+ const render=()=>{const s=getKeyState();open.disabled=typeof api.preparePQAccountInitial!=='function'||busy||s.locked||s.authenticating||!s.account;};
  open.addEventListener('click',async()=>{
   const state={...getKeyState()},token=generation;if(busy||!same(state)||!state.account)return;
   busy=true;render();

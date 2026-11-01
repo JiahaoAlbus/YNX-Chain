@@ -33,6 +33,15 @@ const labels = Object.freeze({
   publicKeyBSHA256: "完整公钥 B 指纹 / Full public key B fingerprint",
   effectReady: "真实签名／提交尚未启用 / Signing or submission enabled",
 });
+const aiTaskLabels=Object.freeze({
+ domain:'任务签名域 / Task signing domain',purpose:'任务密钥固定用途 / Task key purpose',
+ requestDigest:'原任务请求消息 SHA-256 / Original task request message SHA-256',
+ nonce:'本次任务请求唯一值 / Task request nonce',generation:'任务运行代次 / Task run generation',
+ taskId:'任务编号 / Task',taskRevision:'任务版本 / Task revision',stepId:'任务步骤 / Step',runId:'运行编号 / Run',
+ action:'本次任务动作 / Task action',method:'请求方法 / Request method',path:'固定请求路径 / Fixed request path',
+ bodyDigest:'原请求正文 SHA-256 / Original request body SHA-256',bodyBytes:'原请求正文长度 / Original request body bytes',
+ selectedAssetAccountDATA:'当前钱包资产账户（仅上下文，不是任务签名密钥） / Selected wallet asset account (context only, not the task signing key)',
+});
 
 // Directional and invisible characters must not visually rewrite a signature request.
 export function visibleText(value) {
@@ -58,7 +67,7 @@ export function formatApprovalReview(review) {
     } else if (field === "chainId" && ["0x1917", "6423"].includes(content)) {
       content = "YNX Testnet · 6423 (0x1917)";
     }
-    const label=review.purpose==='device.create'&&field==='domain'?'设备创建用途 / Device creation domain':review.purpose==='device.create'&&field==='nonce'?'本次请求唯一值 / Request nonce':labels[field]??field;
+    const label=review.purpose==='PRODUCT-SESSION-AI-TASK-ACTION'?(aiTaskLabels[field]??labels[field]??field):review.purpose==='device.create'&&field==='domain'?'设备创建用途 / Device creation domain':review.purpose==='device.create'&&field==='nonce'?'本次请求唯一值 / Request nonce':labels[field]??field;
     lines.push(`${label}: ${visibleText(content)}`);
   }
   return lines.join("\n\n");

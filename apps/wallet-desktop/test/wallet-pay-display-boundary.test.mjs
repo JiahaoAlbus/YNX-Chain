@@ -140,3 +140,7 @@ test("mounted Pay QR accepts only detached literal success and never reviews or 
   assert.equal(reads,0);
 });
 
+test('flat nativePay failure inside successful IPC envelope cannot enable approval or claim readiness',async()=>{
+ const f=harness();await f.ui.open();f.response({ok:true,value:{version:'ynx.pay.main-result/v1',ok:false,kind:'review',review:review(),phase:'unavailable',outcome:'UNKNOWN',canRetry:false}});await f.ui.review('inv_'+'a'.repeat(20));assert.equal(f.views.at(-1).review,null);assert(f.views.at(-1).error);assert.equal(f.calls.approve,0);
+ const status=harness();status.status({ok:true,value:{version:'ynx.pay.main-result/v1',ok:false,available:true,paymentAuthorized:false}});await status.ui.open();assert.equal(status.views.at(-1).available,false);
+});
