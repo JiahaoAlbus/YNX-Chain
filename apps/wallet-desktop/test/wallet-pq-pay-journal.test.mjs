@@ -92,3 +92,22 @@ test('journal reader alone gets 8 MiB budget; vault/default 1 MiB reader remains
  assert.equal((await readBoundedTransactionJournal(handle(PRIVATE_FILE_MAX_BYTES+1))).length,PRIVATE_FILE_MAX_BYTES+1);
  await assert.rejects(readBoundedTransactionJournal(handle(TRANSACTION_JOURNAL_MAX_BYTES+1)),code('PRIVATE_FILE_READ_TOO_LARGE'));
 });
+test('Pay query original GET and submission responses each retain 2 MiB in the same bounded cold journal',async t=>{
+ const f=await fixture(t),{target}=await f.store.bindPQPaySubmissionTarget(original.account,original.hash,ref,guard);await f.store.beginPQSubmission(original.account,original.hash,guard,target);
+ await f.store.savePQPaySubmissionPacket(original.account,original.hash,packet(Buffer.alloc(2097152,255)));const submission=JSON.parse(await f.read()).pqProgress[0].result;
+ const query=await f.store.beginPQPayQuery(original.account,original.hash,guard);assert.equal(query.request.method,'GET');assert.equal(query.stored,false);
+ const response=packet(Buffer.alloc(2097152,254),{method:'GET',requestPath:query.request.requestPath});await f.store.savePQPayQueryPacket(original.account,original.hash,response);
+ const before=await f.read(),state=JSON.parse(before);assert.deepEqual(state.pqProgress[0].result,submission);assert.equal(state.pqProgress[0].queryResult.bodyBytes,2097152);assert.ok(Buffer.byteLength(before)<TRANSACTION_JOURNAL_MAX_BYTES);
+ const cold=f.cold(),p=await cold.readPQProgress(original.account,original.hash,guard);assert.equal(p.storageConfirmed,true);assert.equal(p.metadataConfirmed,true);assert.equal(p.status,'submission-unknown');assert.equal((await cold.readPQPayQueryPacket(original.account,original.hash)).body[0],254);
+ await f.store.savePQPayQueryPacket(original.account,original.hash,response);assert.equal(await f.read(),before);
+ await assert.rejects(f.store.savePQPayQueryPacket(original.account,original.hash,packet(Buffer.from([1]),{method:'GET',requestPath:query.request.requestPath})),code('PQ_PAY_QUERY_RESPONSE_CONFLICT'));
+ assert.equal(await f.read(),before);await assert.rejects(f.store.assertPQProgressSafeToClose(),code('PQ_PROGRESS_CLOSE_UNCONFIRMED'));
+});
+test('Pay query uncapturable first response stays owned; valid later callback cannot erase it',async t=>{
+ const f=await fixture(t),{target}=await f.store.bindPQPaySubmissionTarget(original.account,original.hash,ref,guard);await f.store.beginPQSubmission(original.account,original.hash,guard,target);
+ const query=await f.store.beginPQPayQuery(original.account,original.hash,guard),first=packet(Buffer.alloc(2097153),{method:'GET',requestPath:query.request.requestPath});
+ assert.throws(()=>f.store.savePQPayQueryPacket(original.account,original.hash,first),code('PQ_PAY_PACKET_TOO_LARGE'));
+ assert.throws(()=>f.store.savePQPayQueryPacket(original.account,original.hash,packet()),code('PQ_PAY_QUERY_CAPTURE_UNCONFIRMED'));
+ assert.equal(f.store.selectPQProgressOutcome(original.account,original.hash,s=>s.firstPayQueryResponse),first);
+ await assert.rejects(f.store.assertPQProgressSafeToClose(),code('PQ_PROGRESS_CLOSE_UNCONFIRMED'));assert.equal((await f.store.readPQProgress(original.account,original.hash,guard)).storageConfirmed,false);
+});

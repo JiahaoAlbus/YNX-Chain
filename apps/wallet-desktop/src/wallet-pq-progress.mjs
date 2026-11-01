@@ -77,5 +77,5 @@ export function mergePQProgressResult(current,result,original){
  }
  return parsePQProgress({...prior,status:next.status,result:next.result},original);
 }
-export function pqProgressCoreEqual(left,right){return canonicalJSON({version:left.version,target:left.target??null,status:left.status,result:left.result})===canonicalJSON({version:right.version,target:right.target??null,status:right.status,result:right.result});}
+export function pqProgressCoreEqual(left,right){const data=p=>({version:p.version,target:p.target??null,status:p.status,result:p.result,querySelected:Object.hasOwn(p,'queryResult'),queryResult:p.queryResult??null});return canonicalJSON(data(left))===canonicalJSON(data(right));}
 export function pqSavedCustodyResult(account,hash,progress){return Object.freeze({account,hash,savedLocally:true,submitted:progress?(progress.status==='inclusion-observed'?true:progress.status==='signed-unsubmitted'?false:null):false,confirmed:false,...(progress?{submissionStatus:progress.status}:{})});}

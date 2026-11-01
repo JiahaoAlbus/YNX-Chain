@@ -135,6 +135,7 @@ let originalDeviceQuery;
 let originalDeviceFinalization;
 let originalDeviceRegistration;
 let pqTransactionSubmission;
+let originalPQPaySupply=null,originalPQPayComposition=null,originalPQPayCompositionCause,originalPQPayBootEntered=false;
 let pqFinalityCollection;
 let originalIDEIdentityPeer;
 let originalIDEIdentityPeerLoading;
@@ -155,9 +156,9 @@ let originalPQHostCatalogReceiver;
 // normal ingress. Its consumer derives the exact six fields from the journal,
 // receives/persists the original DATA pair, then selects under that same owner.
 const pqBroadcastApprovalContext=new AsyncLocalStorage();
-async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard}){
+async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard,payTarget=null}){
   const context={request,capsule,borrow,guard,selected:false,closed:false};let failed=false,cause,result;
-  try{result=await pqBroadcastApprovalContext.run(context,()=>Object.hasOwn(request,'typedAction')||request.purpose==='ACCOUNT-MIGRATION'?pqTransactionSubmission.broadcast(hash,guard,request):pqTransactionSubmission.broadcast(hash,guard));}
+  try{result=await pqBroadcastApprovalContext.run(context,()=>Object.hasOwn(request,'typedAction')||request.purpose==='ACCOUNT-MIGRATION'?pqTransactionSubmission.broadcast(hash,guard,request,payTarget):pqTransactionSubmission.broadcast(hash,guard));}
   catch(error){failed=true;cause=error;}
   finally{
     context.closed=true;
@@ -419,7 +420,26 @@ installDesktopPayIPC({handleWalletIPC,safeIPC,service:desktopPayService});
 // Main-process boot composition only. Sole issuer A supplies its admitted real
 // policy, quote/current-authority/business and authenticated settlement ports.
 // This function is NOT an IPC, renderer, CLI or environment activation path.
-export function composeProtectedDesktopPay(integration){desktopPayService.compose(integration)}
+export function composeProtectedDesktopPay(integration,pqNative=null){
+  if(integration!==null)desktopPayService.compose(integration);
+  if(pqNative===null)return;
+  // Original issuer boot composition only. This has no IPC/env/CLI setter;
+  // real Source factories and their recognizer stay owned by Native/Auth.
+  if(originalPQPayBootEntered||walletAuthority||originalPQPayComposition)throw Object.assign(Error('Pay must be composed once before Wallet startup.'),{code:'PQ_PAY_BOOT_COMPOSITION_REQUIRED'});
+  originalPQPayComposition=(async()=>{
+    const ds=Object.getOwnPropertyDescriptors(pqNative);
+    if(Object.getPrototypeOf(pqNative)!==Object.prototype||Reflect.ownKeys(ds).length!==2||['acquireOriginalPaySource','isOriginalPaySource'].some(k=>!Object.hasOwn(ds[k]??{},'value')||!ds[k].enumerable||typeof ds[k].value!=='function'))throw Object.assign(Error('Original Pay Source factories are required.'),{code:'PQ_PAY_DISPATCH_SOURCE_NOT_SUPPLIED'});
+    // Fixed normal SDK export only, never a supplied parser, file path or URL.
+    const {inspectPQNativePayResponseDATA}=await import('@ynx-chain/wallet-auth/pq-native-pay-observation');
+    if(typeof inspectPQNativePayResponseDATA!=='function')throw Object.assign(Error('Original Pay response parser is required.'),{code:'PQ_PAY_RESPONSE_PARSER_NOT_SUPPLIED'});
+    originalPQPaySupply=Object.freeze({acquireOriginalPaySource:ds.acquireOriginalPaySource.value,isOriginalPaySource:ds.isOriginalPaySource.value,inspectPayResponse:inspectPQNativePayResponseDATA});
+    return Object.freeze({configured:true,SourceAdmission:false});
+  })();
+  // Preserve the first actual failure and reject the caller's composition.
+  // Wallet startup handles only this optional Pay failure independently.
+  void originalPQPayComposition.catch(cause=>{originalPQPayCompositionCause=cause;originalPQPaySupply=null;});
+  return originalPQPayComposition;
+}
 const startupProtocolUrls = [];
 let protocolRegistration = { platform: process.platform, attempted: false, registered: false };
 const initialProtocolUrl = extractYNXWalletProtocolUrl(process.argv);
@@ -1013,6 +1033,10 @@ app.on("second-instance", (_event, argv) => {
 });
 
 if (singleInstanceLock) app.whenReady().then(async () => {
+  originalPQPayBootEntered=true;
+  // A missing Pay-only dependency must not prevent the ordinary Wallet from
+  // starting, or change existing accounts and original Core UNKNOWN records.
+  if(originalPQPayComposition)try{await originalPQPayComposition;}catch{/* first cause retained; only Pay stays unavailable */}
   if (process.platform === "win32" && !isolatedProfile) {
     const accepted = app.setAsDefaultProtocolClient("ynxwallet");
     protocolRegistration = { platform: process.platform, attempted: true, registered: accepted && app.isDefaultProtocolClient("ynxwallet") };
@@ -1054,7 +1078,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   originalPQHostCatalogReceiver=createOriginalPQHostCatalogReceiver({directory:path.join(userData,'pq-host-registrations-v1')});
   const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,verifierReceipt:originalPQVerifierReceipt,createSource:(original,binding)=>createOriginalPQHostSource({original,binding,receiver:originalPQHostCatalogReceiver}),createSelection:(original,binding,sourceCatalog)=>createPQHostSelectionCapture({original,binding,evidence:originalPQFinalityEvidence,sourceCatalog,selector:createOriginalPQHostSelector()}),createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier,persistObservation:(original,record)=>originalTransactionIntentStore.savePQFinalityObservation(original,record),flushObservation:(original,record,guard)=>originalTransactionIntentStore.flushPQFinalityObservation(original.account,original.hash,pqFinalityRecordGeneration(record),()=>guard.assert()),adoptTerminal:(original,token,guard)=>originalTransactionIntentStore.adoptPQFinalityTerminal(original,token,()=>guard.assert())});
   pqFinalityCollection=createPQFinalityCollection({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,evidence:originalPQFinalityEvidence,transport:originalPQNodeTransport,typedTransport:createPQTypedActionFinalityNodeReader(),verification:originalPQFinalityVerification});
-  pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,isOriginalWalletMigrationBroadcastPermission,
+  pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,isOriginalWalletMigrationBroadcastPermission,...(originalPQPaySupply??{}),
     readTypedOriginal:createPQTypedActionNodeReader().readOriginal,
     acquireOriginalWalletTransactionPermission:request=>{
       const context=pqBroadcastApprovalContext.getStore();
@@ -1086,6 +1110,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     // The real Source factory owns admission: its empty release table refuses
     // until original Root/Protocol rows exist. Never an active-policy fallback.
     pqBroadcastSource:executeOriginalPQBroadcast,
+    pqPayBroadcastSource:originalPQPaySupply?executeOriginalPQBroadcast:null,
     pqSessionSource:acquireOriginalAccountPolicy,
     pqSessionRecognized:isOriginalAccountPolicyResource,
     pqNetworkId:PQ_CANONICAL_NETWORK_ID,

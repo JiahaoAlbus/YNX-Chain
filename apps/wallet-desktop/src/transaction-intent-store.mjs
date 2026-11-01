@@ -1,5 +1,5 @@
 import * as filesystem from "node:fs/promises";
-import {normalizePQPayTargetDATA,initialPQPayProgress,enterPQPaySubmission,capturePQPayPacket,PQ_PAY_PROGRESS_RESERVE_BYTES} from './wallet-pq-pay-progress.mjs';
+import {normalizePQPayTargetDATA,initialPQPayProgress,enterPQPaySubmission,capturePQPayPacket,PQ_PAY_PROGRESS_RESERVE_BYTES,pqPayQueryRequestDATA,capturePQPayQueryPacket,mergePQPayQueryPacket,PQ_PAY_QUERY_RESERVE_BYTES} from './wallet-pq-pay-progress.mjs';
 import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
 import {types as nativeTypes} from 'node:util';
@@ -26,7 +26,10 @@ import {retainPQTypedHTTPResponse} from './wallet-pq-typed-progress.mjs';
 import {readPQVerifiedFinalityTerminal,parsePQFinalityTerminalData,parsePQFinalityHistoryEntry,pqFinalityHistoryCore} from './wallet-pq-finality-terminal.mjs';
 
 const isV4Session=row=>row?.version===2||row?.version===3;
-const pqPayReservedBytes=state=>(state.pqProgress??[]).filter(row=>row.version===2&&row.status==='submission-unknown'&&row.result===null).length*PQ_PAY_PROGRESS_RESERVE_BYTES;
+// Reserve both the original response and one readonly recovery observation
+// before dispatch. Filling the file with lost responses must not prevent the
+// original query needed to recover them. No truncation or UNKNOWN eviction.
+const pqPayReservedBytes=state=>(state.pqProgress??[]).filter(row=>row.version===2&&row.status==='submission-unknown').reduce((sum,row)=>sum+(row.result===null?PQ_PAY_PROGRESS_RESERVE_BYTES:0)+(row.queryResult==null?PQ_PAY_QUERY_RESERVE_BYTES:0),0);
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
 const invalid = () => capabilityError("TRANSACTION_JOURNAL_INVALID", "The local transaction journal cannot be verified. New transactions are blocked; preserve the journal and check any known transaction hashes.");
@@ -715,7 +718,7 @@ export class FileTransactionIntentStore {
   }
   async pqSummaries(account){
     if(!ACCOUNT.test(account??''))throw invalid();const state=await this.#read();
-    const active=(state.pqOriginals??[]).filter(x=>x.account===account).map(row=>{const pending=this.#pqTerminalResults.get(account+':'+row.hash);if(pending&&!pending.stored)return Object.freeze({hash:row.hash,account,kind:row.kind,operationId:row.operationId,status:'pq-finality-save-unknown',canRetryExact:false,resultStorageConfirmed:false,resultHeldInMemory:true,consensusFinality:false,nativeGrant:false});const original=parsePQOriginalRecord(row),local=this.#pqProgressResults.get(account+':'+row.hash),progress=state.pqProgress?.find(r=>r.account===account&&r.hash===row.hash),best=this.#pqEffectiveProgress(progress,local,original),stored=!!progress&&!local?.unparsedResult&&(!best||pqProgressCoreEqual(progress,best)),needsSave=!!best&&(!progress||canonicalJSON(progress)!==canonicalJSON(best));return Object.freeze({hash:original.hash,account,kind:original.kind,operationId:original.operationId,status:best?'pq-'+best.status:local?.beginAttempted?'pq-submission-unknown':'pq-signed-unsubmitted',canRetryExact:false,...(best||local?.beginAttempted?{resultStorageConfirmed:stored,resultHeldInMemory:!!local&&(!!local.unparsedResult||needsSave&&(!!local.latestResult||local.firstRawPresent||local.storageRawPresent))}:{})});});
+    const active=(state.pqOriginals??[]).filter(x=>x.account===account).map(row=>{const pending=this.#pqTerminalResults.get(account+':'+row.hash);if(pending&&!pending.stored)return Object.freeze({hash:row.hash,account,kind:row.kind,operationId:row.operationId,status:'pq-finality-save-unknown',canRetryExact:false,resultStorageConfirmed:false,resultHeldInMemory:true,consensusFinality:false,nativeGrant:false});const original=parsePQOriginalRecord(row),local=this.#pqProgressResults.get(account+':'+row.hash),progress=state.pqProgress?.find(r=>r.account===account&&r.hash===row.hash),best=this.#pqEffectiveProgress(progress,local,original),stored=!!progress&&!local?.unparsedResult&&!local?.unparsedPayQueryResult&&!local?.queryResponseUncaptured&&!local?.payQueryConflictPacket&&(!best||pqProgressCoreEqual(progress,best)),needsSave=!!best&&(!progress||canonicalJSON(progress)!==canonicalJSON(best));return Object.freeze({hash:original.hash,account,kind:original.kind,operationId:original.operationId,status:best?'pq-'+best.status:local?.beginAttempted?'pq-submission-unknown':'pq-signed-unsubmitted',canRetryExact:false,...(best||local?.beginAttempted?{resultStorageConfirmed:stored,resultHeldInMemory:!!local&&(!!local.unparsedResult||!!local.unparsedPayQueryResult||!!local.queryResponseUncaptured||needsSave&&(!!local.latestResult||!!local.latestPayQueryResult||local.firstRawPresent||local.storageRawPresent))}:{})});});
     return active.concat((state.pqHistory??[]).filter(h=>h.original.account===account).map(h=>{const p=pqHistoryProgress(h,this.#pqTerminalResults.get(account+':'+h.original.hash)?.stored!==false);return Object.freeze({hash:h.original.hash,account,kind:h.original.kind,operationId:h.original.operationId,status:'pq-'+p.status,canRetryExact:false,resultStorageConfirmed:p.storageConfirmed,resultHeldInMemory:p.localResultHeld,consensusFinality:p.consensusFinality,nativeGrant:false});}));
   }
   async reconcilePQOriginal(account,hash,guard){
@@ -733,7 +736,15 @@ export class FileTransactionIntentStore {
     if(!slot){if(this.#pqProgressResults.size>=ORIGINAL_OWNER_LIMIT)throw invalid();slot={beginAttempted:false,best:null,firstRawPresent:false,storageRawPresent:false};this.#pqProgressResults.set(key,slot);}return slot;
   }
   #pqProgressStorageFailure(slot,cause){if(!slot.storageRawPresent){slot.storageRawPresent=true;let descriptor;try{descriptor=cause&&typeof cause==='object'?Object.getOwnPropertyDescriptor(cause,'cause'):null;}catch{}slot.storageRaw=descriptor&&Object.hasOwn(descriptor,'value')?descriptor.value:cause;}if(slot.best&&!slot.best.storageCause)slot.best={...slot.best,storageCause:pqProgressCause(slot.storageRaw)};}
-  #pqEffectiveProgress(actual,slot,original){let base=slot?.best??actual;if(base&&actual?.result)try{base=mergePQProgressResult(base,actual.result,original);}catch(cause){if(slot&&!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}base=actual;}return base?{...base,firstCause:actual?.firstCause??base.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:actual?.storageCause??base.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null)}:null;}
+  #pqEffectiveProgress(actual,slot,original){
+    let base=slot?.best??actual;
+    if(base)try{
+      if(actual?.result)base=mergePQProgressResult(base,actual.result,original);
+      if(actual?.version===2&&Object.hasOwn(actual,'queryResult')&&!Object.hasOwn(base,'queryResult'))base={...base,queryResult:null};
+      if(actual?.queryResult)base=mergePQPayQueryPacket(base,actual.queryResult,original);
+    }catch(cause){if(slot&&!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}base=actual;}
+    return base?{...base,firstCause:actual?.firstCause??base.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:actual?.storageCause??base.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null)}:null;
+  }
   /** Bind only DATA to a retained member. Existing Core or UNKNOWN progress
    * is never retargeted. This operation grants no broadcast permission. */
   async bindPQPaySubmissionTarget(account,hash,reference,guard){
@@ -751,7 +762,7 @@ export class FileTransactionIntentStore {
       }
       if(slot.beginAttempted||slot.best)throw capabilityError('PQ_ORIGINAL_RECONCILE_REQUIRED','Reconcile retained progress before binding another target.');
       const progress=initialPQPayProgress(original,target),next=pqProgressSuccessor(state);next.pqProgress.push(progress);
-      if(Buffer.byteLength(JSON.stringify(next))+pqPayReservedBytes(state)+PQ_PAY_PROGRESS_RESERVE_BYTES>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the original; Pay response capacity is unavailable.');
+      if(Buffer.byteLength(JSON.stringify(next))+pqPayReservedBytes(state)+PQ_PAY_PROGRESS_RESERVE_BYTES+PQ_PAY_QUERY_RESERVE_BYTES>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the original; Pay response and recovery capacity are unavailable.');
       guard();slot.best=progress;
       try{await this.#write(next);guard();const check=await this.#read();guard();if(!check.pqProgress?.some(r=>canonicalJSON(r)===canonicalJSON(progress)))throw invalid();return Object.freeze({target:progress.target,status:progress.status,stored:true});}
       catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
@@ -789,7 +800,7 @@ export class FileTransactionIntentStore {
       const progress=prior?.version===2?enterPQPaySubmission(prior,original):initialPQProgress(original),next=pqProgressSuccessor(state);next.pqProgress=prior?next.pqProgress.map(r=>r===prior?progress:r):[...next.pqProgress,progress];
       // Reserve a bounded full response in the existing private journal before
       // any POST can start; never truncate another original to make it fit.
-      if(Buffer.byteLength(JSON.stringify(next))+pqPayReservedBytes(state)+(prior?.version===2?PQ_PAY_PROGRESS_RESERVE_BYTES:PQ_PROGRESS_RESPONSE_BYTES+4096)>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the original; there is insufficient private journal capacity for its response.');
+      if(Buffer.byteLength(JSON.stringify(next))+pqPayReservedBytes(state)+(prior?.version===2?PQ_PAY_PROGRESS_RESERVE_BYTES+PQ_PAY_QUERY_RESERVE_BYTES:PQ_PROGRESS_RESPONSE_BYTES+4096)>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the original; there is insufficient private journal capacity for its response and recovery.');
       guard();slot.beginAttempted=true;slot.best=progress;
       try{await this.#write(next);guard();const readback=await this.#read();guard();if(!readback.pqProgress?.some(r=>canonicalJSON(r)===canonicalJSON(progress)))throw invalid();if(this.#pqClosing)throw capabilityError('PQ_SUBMISSION_SHUTDOWN_ENTERED','Wallet is closing. No new submission may start.');slot.awaitingResult=true;return Object.freeze({created:true,status:'submission-unknown'});}
       catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
@@ -828,6 +839,53 @@ export class FileTransactionIntentStore {
     catch(cause){if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}
     return this.#savePQSubmissionResult(account,hash,captured,true);
   }
+  /** Main-only read of the acknowledged original packet. Decode only these
+   * stored bytes, never a still-mutable foreign response after awaiting IO. */
+  readPQPaySubmissionPacket(account,hash){return this.#readPQPayPacket(account,hash,false);}
+  readPQPayQueryPacket(account,hash){return this.#readPQPayPacket(account,hash,true);}
+  async #readPQPayPacket(account,hash,query){
+    if(!ACCOUNT.test(account??'')||!HASH.test(hash??''))throw invalid();
+    const state=await this.#read(),original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),row=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);
+    if(!original||row?.version!==2)throw invalid();const progress=parsePQProgress(row,original),r=query?progress.queryResult:progress.result;if(!r)throw invalid();
+    return Object.freeze({...Object.fromEntries(['method','requestPath','status','contentType','cacheControl'].map(k=>[k,r.undefinedFields.includes(k)?undefined:r[k]])),body:Buffer.from(r.bodyBase64url,'base64url')});
+  }
+  async beginPQPayQuery(account,hash,guard){
+    if(typeof guard!=='function'||this.#pqClosing)throw invalid();const slot=this.#pqProgressSlot(account,hash);
+    return this.#mutate(async()=>{
+      guard();const state=await this.#read();guard();
+      const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);
+      if(!original||prior?.version!==2)throw invalid();const request=pqPayQueryRequestDATA(prior,original);
+      if(slot.queryResponseUncaptured||slot.payQueryConflictPacket||slot.unparsedPayQueryResult||slot.best&&canonicalJSON(slot.best)!==canonicalJSON(prior))throw capabilityError('PQ_ORIGINAL_RECONCILE_REQUIRED','Save the same retained query before reading again.');
+      if(prior.queryResult)return Object.freeze({request,stored:true});
+      if(!Object.hasOwn(prior,'queryResult')){
+        const best=parsePQProgress({...prior,queryResult:null},original),next={...state,pqProgress:state.pqProgress.map(r=>r===prior?best:r)};guard();slot.best=best;
+        try{await this.#write(next);guard();const readback=await this.#read();guard();if(!readback.pqProgress?.some(r=>canonicalJSON(r)===canonicalJSON(best)))throw invalid();}
+        catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
+      }
+      slot.queryAwaitingResult=true;return Object.freeze({request,stored:false});
+    });
+  }
+  savePQPayQueryPacket(account,hash,response){
+    const slot=this.#pqProgressSlot(account,hash);
+    if(slot.queryResponseUncaptured||slot.payQueryConflictPacket)throw capabilityError('PQ_PAY_QUERY_CAPTURE_UNCONFIRMED','Retain the first unresolved query; a callback cannot replace it.');
+    if(!slot.firstPayQueryResponsePresent){slot.firstPayQueryResponsePresent=true;slot.firstPayQueryResponse=response;}
+    slot.queryAwaitingResult=false;slot.queryResponseUncaptured=true;let captured;
+    try{captured=capturePQPayQueryPacket(response);slot.queryResponseUncaptured=false;if(!slot.firstPayQueryCaptured){slot.firstPayQueryCaptured=captured;slot.firstPayQueryResponse=captured;}}
+    catch(cause){if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}
+    slot.latestPayQueryResult=captured;slot.unparsedPayQueryResult=captured;
+    return this.#mutate(async()=>{
+      let state;try{state=await this.#read();}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
+      const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);
+      if(!original||prior?.version!==2||!Object.hasOwn(prior,'queryResult'))throw invalid();
+      let best=this.#pqEffectiveProgress(prior,slot,original);
+      try{best=mergePQPayQueryPacket(best,captured,original);}catch(cause){if(!slot.payQueryConflictPacket)slot.payQueryConflictPacket=captured;if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}
+      if(slot.unparsedPayQueryResult===captured)slot.unparsedPayQueryResult=null;slot.best=best;
+      if(canonicalJSON(prior)===canonicalJSON(best))return Object.freeze({stored:true,status:best.status,changed:false});
+      try{await this.#write({...state,pqProgress:state.pqProgress.map(r=>r===prior?best:r)});return Object.freeze({stored:true,status:best.status,changed:true});}
+      catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
+    });
+  }
+  savePQPayQueryFailure(account,hash,cause){const slot=this.#pqProgressSlot(account,hash);slot.queryAwaitingResult=false;return this.savePQSubmissionFailure(account,hash,cause);}
   savePQAccountInitialSubmissionResult(account,hash,response){
     const slot=this.#pqProgressSlot(account,hash);if(slot.initialResponseSelected)throw capabilityError('PQ_INITIAL_RESPONSE_ALREADY_CAPTURED','Keep the first original response; duplicate callback cannot replace it.');slot.initialResponseSelected=true;slot.initialResponseUncaptured=true;
     // Raw PUBLIC response custody precedes UTF8/metadata parsing and late lock.
@@ -880,15 +938,17 @@ export class FileTransactionIntentStore {
     const pendingTerminal=this.#pqTerminalResults.get(account+':'+hash);if(pendingTerminal&&!pendingTerminal.stored)return pqHistoryProgress({original:pendingTerminal.original,finality:pendingTerminal.finality,progress:state.pqProgress?.find(r=>r.account===account&&r.hash===hash)??null},false);
     const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash);if(!original)throw invalid();
     const actual=state.pqProgress?.find(r=>r.account===account&&r.hash===hash),slot=this.#pqProgressResults.get(account+':'+hash),best=this.#pqEffectiveProgress(actual,slot,original);
-    return Object.freeze({account,hash,kind:original.kind,status:best?.status??(slot?.beginAttempted?'submission-unknown':'signed-unsubmitted'),...(best?.version===2?{submissionService:'pay'}:{}),storageConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.migrationResponseUncaptured&&!slot?.payResponseUncaptured&&!slot?.unparsedResult&&(!best||pqProgressCoreEqual(actual,best)),metadataConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.migrationResponseUncaptured&&!slot?.payResponseUncaptured&&!slot?.unparsedResult&&(!best||canonicalJSON(actual)===canonicalJSON(best)),localResultHeld:!!slot?.latestResult||!!slot?.initialResponseUncaptured||!!slot?.migrationResponseUncaptured||!!slot?.payResponseUncaptured,firstCause:best?.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:best?.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null),retryAuthorized:false,clearsOriginal:false,consensusFinality:false});
+    return Object.freeze({account,hash,kind:original.kind,status:best?.status??(slot?.beginAttempted?'submission-unknown':'signed-unsubmitted'),...(best?.version===2?{submissionService:'pay'}:{}),storageConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.migrationResponseUncaptured&&!slot?.payResponseUncaptured&&!slot?.queryResponseUncaptured&&!slot?.payQueryConflictPacket&&!slot?.unparsedPayQueryResult&&!slot?.unparsedResult&&(!best||pqProgressCoreEqual(actual,best)),metadataConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.migrationResponseUncaptured&&!slot?.payResponseUncaptured&&!slot?.queryResponseUncaptured&&!slot?.payQueryConflictPacket&&!slot?.unparsedPayQueryResult&&!slot?.unparsedResult&&(!best||canonicalJSON(actual)===canonicalJSON(best)),localResultHeld:!!slot?.latestResult||!!slot?.initialResponseUncaptured||!!slot?.migrationResponseUncaptured||!!slot?.payResponseUncaptured||!!slot?.latestPayQueryResult||!!slot?.queryResponseUncaptured,firstCause:best?.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:best?.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null),retryAuthorized:false,clearsOriginal:false,consensusFinality:false});
   }
   async flushPQProgressResult(account,hash,guard){
     if(typeof guard!=='function')throw invalid();const slot=this.#pqProgressSlot(account,hash);
+    if(slot.queryResponseUncaptured||slot.payQueryConflictPacket)throw capabilityError('PQ_PAY_QUERY_CAPTURE_UNCONFIRMED','Keep the original query response and its unresolved conflict.');
     if(slot.payResponseUncaptured)throw capabilityError('PQ_PAY_RESPONSE_CAPTURE_UNCONFIRMED','Keep the first raw Pay packet; do not replace or resend it.');
     if(slot.migrationResponseUncaptured)throw capabilityError('PQ_MIGRATION_RESPONSE_CAPTURE_UNCONFIRMED','Keep the original raw migration response; it cannot be reported stored, replaced or resent.');
     return this.#mutate(async()=>{
       guard();const state=await this.#read();guard();const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior&&!(original.kind==='pq-typed-action'&&slot.best&&slot.best.status!=='submission-unknown'))throw invalid();
       let best=slot.best??prior;if(slot.unparsedResult){best=mergePQProgressResult(best,slot.unparsedResult,original);slot.unparsedResult=null;}if(prior?.result)best=mergePQProgressResult(best,prior.result,original);
+      if(slot.unparsedPayQueryResult){best=mergePQPayQueryPacket(best,slot.unparsedPayQueryResult,original);slot.unparsedPayQueryResult=null;}if(prior?.queryResult)best=mergePQPayQueryPacket(best,prior.queryResult,original);
       best=parsePQProgress({...best,firstCause:prior?.firstCause??best.firstCause??(slot.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:prior?.storageCause??best.storageCause??(slot.storageRawPresent?pqProgressCause(slot.storageRaw):null)},original);slot.best=best;
       if(!prior||canonicalJSON(prior)!==canonicalJSON(best)){guard();try{const next=pqProgressSuccessor(state);next.pqProgress=prior?next.pqProgress.map(r=>r===prior?best:r):[...next.pqProgress,best];if(original.kind==='pq-typed-action'){const reserved=(state.preparations??[]).filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).reduce((sum,x)=>sum+(x.kind==='pq-typed-action'?(x.maxBytes??PRIVATE_FILE_MAX_BYTES):PQ_ORIGINAL_RESERVE_BYTES),0);if(Buffer.byteLength(JSON.stringify(next))+reserved>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the same result; protected progress capacity is unavailable.');}await this.#write(next);}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}}
       guard();return Object.freeze({account,hash,status:best.status,stored:true,retryAuthorized:false,clearsOriginal:false,consensusFinality:false});
@@ -965,7 +1025,7 @@ export class FileTransactionIntentStore {
           const progress=this.#pqEffectiveProgress(actualProgress,local,slot.original)??(local?.firstRawPresent||local?.storageRawPresent?{...initialPQProgress(slot.original),firstCause:local.firstRawPresent?pqProgressCause(local.firstRaw):null,storageCause:local.storageRawPresent?pqProgressCause(local.storageRaw):null}:null);
           if(!active||canonicalJSON(active)!==canonicalJSON(slot.original)||owner(this).has(original.account)||state.preparations?.some(r=>r.account===original.account))throw invalid();
           if(state.pqFinalityObservations.some(r=>r.account===original.account&&r.hash===original.hash&&r.observation.status==='verifier-result-data'&&r.observation.reportedOutcome!==finality.record.observation.reportedOutcome))throw capabilityError('PQ_FINALITY_TARGET_CONFLICT','Different execution occurrences disagree. Preserve every target and original; do not choose a terminal outcome automatically.');
-          if(local&&(local.payResponseUncaptured||local.migrationResponseUncaptured||local.awaitingResult||local.unparsedResult||local.readsInFlight>0))throw capabilityError('PQ_FINALITY_SUBMISSION_RESULT_UNCONFIRMED','First settle the original submission or readonly response capture; finality must not discard its pending metadata.');
+          if(local&&(local.queryResponseUncaptured||local.payQueryConflictPacket||local.unparsedPayQueryResult||local.queryAwaitingResult||local.payResponseUncaptured||local.migrationResponseUncaptured||local.awaitingResult||local.unparsedResult||local.readsInFlight>0))throw capabilityError('PQ_FINALITY_SUBMISSION_RESULT_UNCONFIRMED','First settle the original submission or readonly response capture; finality must not discard its pending metadata.');
           if((state.pqHistory?.length??0)>=64)throw capabilityError('PQ_FINALITY_STORAGE_CAPACITY','Preserve original history; the terminal archive is full.');
           if(!slot.history||slot.firstPresent&&slot.history.storageCause===null){const core={version:1,original:slot.original,progress,finality:effectiveFinality,storageCause:slot.firstPresent?pqTerminalStorageCause(slot.first):null,previousSeal:null};if(typeof this.finalityProtection?.seal!=='function'||typeof this.finalityProtection?.verify!=='function')throw capabilityError('PQ_FINALITY_HISTORY_PROTECTION_UNAVAILABLE','Original OS-protected terminal storage is unavailable.');slot.history=parsePQFinalityHistoryEntry({...core,seal:this.finalityProtection.seal(core)});}
           else if(canonicalJSON(slot.history.progress)!==canonicalJSON(progress))throw capabilityError('PQ_FINALITY_TARGET_CONFLICT','Pending progress changed; preserve the same terminal archive without replacement.');
@@ -1012,7 +1072,7 @@ export class FileTransactionIntentStore {
         const split=key.indexOf(':'),account=key.slice(0,split),hash=key.slice(split+1),original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),actual=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);
         if(!slot.best&&!slot.beginAttempted&&!slot.latestResult&&!slot.firstRawPresent&&!slot.storageRawPresent)continue;
         const best=original?this.#pqEffectiveProgress(actual,slot,original):null;
-        if(slot.payConflictPacket||slot.payResponseUncaptured||slot.initialResponseUncaptured||slot.migrationResponseUncaptured||slot.awaitingResult||slot.unparsedResult||!original||!actual||!best||canonicalJSON(actual)!==canonicalJSON(best))throw capabilityError('PQ_PROGRESS_CLOSE_UNCONFIRMED','Keep Wallet open. An original result or its storage record is not yet confirmed; save locally without resubmitting.');
+        if(slot.queryResponseUncaptured||slot.payQueryConflictPacket||slot.unparsedPayQueryResult||slot.queryAwaitingResult||slot.payConflictPacket||slot.payResponseUncaptured||slot.initialResponseUncaptured||slot.migrationResponseUncaptured||slot.awaitingResult||slot.unparsedResult||!original||!actual||!best||canonicalJSON(actual)!==canonicalJSON(best))throw capabilityError('PQ_PROGRESS_CLOSE_UNCONFIRMED','Keep Wallet open. An original result or its storage record is not yet confirmed; save locally without resubmitting.');
       }
       return Object.freeze({safe:true,retryAuthorized:false,clearsOriginal:false});
     });

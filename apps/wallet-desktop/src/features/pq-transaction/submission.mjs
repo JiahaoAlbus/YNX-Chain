@@ -2,6 +2,7 @@ import {bindPQMigrationBroadcastRequest,assertPQMigrationBroadcastPermission} fr
 import {exactData} from './transfer-binding.mjs';
 import {readPQSubmissionOriginal,bindPQTypedBroadcastRequest,assertPQTypedBroadcastPermission} from './typed-action-submission-binding.mjs';
 import {projectPQTransactionProgress} from './progress-view.mjs';
+import {types} from 'node:util';
 
 const failure = code => Object.assign(Error(code), {code});
 const transferFields = ['chainId','nativeChainId','from','to','amount','fee','nonce'];
@@ -26,6 +27,16 @@ function assertPermissionBinding(resource, expected, originalBinding = null) {
   }
   return actual;
 }
+function assertPaySourceBinding(resource,expected,prior=null){
+  if(resource.assertCurrent()!==undefined)throw failure('PQ_PAY_SOURCE_CURRENT');
+  const actual=resource.readOriginal();
+  if(types.isProxy(actual)||!Object.isFrozen(actual))throw failure('PQ_PAY_SOURCE_BINDING');
+  exactData(actual,['networkId','account','hash','memberHash','operationId','target'],'PQ_PAY_SOURCE_BINDING');
+  if(types.isProxy(actual.target)||!Object.isFrozen(actual.target))throw failure('PQ_PAY_SOURCE_BINDING');
+  exactData(actual.target,Object.keys(expected.target),'PQ_PAY_SOURCE_BINDING');
+  if(prior&&prior!==actual||Object.keys(expected).some(k=>k!=='target'&&actual[k]!==expected[k])||Object.keys(expected.target).some(k=>actual.target[k]!==expected.target[k]))throw failure('PQ_PAY_SOURCE_BINDING');
+  return actual;
+}
 
 /** Original-main consumer. The Auth owner supplies the real private factory
  * and recognizer; no renderer flag, identity proof, policy DATA, or local
@@ -42,7 +53,8 @@ export function createPQTransactionSubmission({intentStore, networkId,
   acquireOriginalWalletTransactionPermission = null,
   isOriginalWalletTransactionPermission = null,
   acquireOriginalWalletMigrationBroadcastPermission = null,
-  isOriginalWalletMigrationBroadcastPermission = null, transport = null, readTypedOriginal = null}) {
+  isOriginalWalletMigrationBroadcastPermission = null, transport = null, readTypedOriginal = null,
+  acquireOriginalPaySource = null, isOriginalPaySource = null, inspectPayResponse = null}) {
   const active = new Set(), resources = new Set();
   let closing = false;
   const requirePermission = () => {
@@ -73,8 +85,41 @@ export function createPQTransactionSubmission({intentStore, networkId,
     assert();
     return projectPQTransactionProgress(await intentStore.readPQProgress(guard.account, plan.binding.hash, assert), {account:guard.account, hash:plan.binding.hash, kind:plan.binding.kind});
   };
+  async function queryOriginalPay(plan,guard,prior){
+    if(resources.size)throw failure('PQ_TRANSACTION_CLEANUP_PENDING');
+    if(!plan.typed||typeof acquireOriginalPaySource!=='function'||typeof isOriginalPaySource!=='function'||['beginPQPayQuery','savePQPayQueryPacket','readPQPayQueryPacket','savePQPayQueryFailure','withPQReadObservation'].some(k=>typeof intentStore[k]!=='function'))throw failure('PQ_PAY_QUERY_SOURCE_NOT_SUPPLIED');
+    if(prior.status!=='submission-unknown')throw failure('PQ_TRANSACTION_NOT_ENTERED');
+    const hash=plan.binding.hash,target=await intentStore.readPQPaySubmissionTarget(guard.account,hash,()=>guard.assert());if(!target)throw failure('PQ_PAY_TARGET_REQUIRED');
+    return intentStore.withPQReadObservation(guard.account,hash,()=>guard.assert(),async()=>{
+      let source,binding,entered=false,failed=false,cause,result;
+      const expected={networkId,account:guard.account,hash,memberHash:plan.typed.local.memberHash,operationId:plan.binding.operationId,target};
+      const assertCurrent=()=>{if(closing)throw failure('PQ_TRANSACTION_CLOSING');guard.assert();binding=assertPaySourceBinding(source,expected,binding);};
+      try{
+        try{source=await acquireOriginalPaySource(Object.freeze({request:null,original:plan.original,target}));}
+        catch(error){const d=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'partial'):null;if(d&&Object.hasOwn(d,'value')&&d.value){source=d.value;resources.add(source);}throw error;}
+        if(source===null||!['object','function'].includes(typeof source))throw failure('PQ_PAY_QUERY_SOURCE_NOT_SUPPLIED');
+        resources.add(source);guard.assert();
+        if(isOriginalPaySource(source)!==true)throw failure('PQ_PAY_QUERY_SOURCE_NOT_SUPPLIED');
+        for(const k of ['readOriginal','assertCurrent','recheck','retire','join','close',target.kind==='invoice_terms'?'readInvoiceIntentPacket':'readInvoicePacket'])if(typeof source[k]!=='function')throw failure('PQ_PAY_QUERY_SOURCE_NOT_SUPPLIED');
+        assertCurrent();if(await source.recheck()!==undefined)throw failure('PQ_PAY_SOURCE_CURRENT');assertCurrent();
+        const query=await intentStore.beginPQPayQuery(guard.account,hash,assertCurrent);entered=true;
+        if(!query.stored){
+          assertCurrent();if(await source.recheck()!==undefined)throw failure('PQ_PAY_SOURCE_CURRENT');assertCurrent();
+          const response=await (target.kind==='invoice_terms'?source.readInvoiceIntentPacket(target.intentId,assertCurrent):source.readInvoicePacket(target.merchant,target.invoiceId,assertCurrent));
+          await intentStore.savePQPayQueryPacket(guard.account,hash,response);
+          // SDK's current parser is POST-only. GET remains original DATA and
+          // UNKNOWN; it cannot be cast to a POST/Core receipt or payment proof.
+        }
+        const saved=await intentStore.readPQPayQueryPacket(guard.account,hash);
+        if(saved.method!==query.request.method||saved.requestPath!==query.request.requestPath)throw failure('PQ_PAY_QUERY_RESPONSE_BINDING');
+        assertCurrent();result=await publicProgress(plan,guard);
+      }catch(error){failed=true;cause=error;if(entered)try{await intentStore.savePQPayQueryFailure(guard.account,hash,error);}catch{/* original query/storage causes retained */}}
+      finally{if(source)try{await closeResource(source);}catch(error){if(!failed){failed=true;cause=error;}}}
+      if(failed)throw cause;return result;
+    });
+  }
   return Object.freeze({
-    async broadcast(hash, guard, typedBroadcastRequest = null) {
+    async broadcast(hash, guard, typedBroadcastRequest = null, payTarget = null) {
       if(typeof acquireOriginalWalletMigrationBroadcastPermission!=='function'||typeof isOriginalWalletMigrationBroadcastPermission!=='function')requirePermission();
       if (resources.size) throw failure('PQ_TRANSACTION_CLEANUP_PENDING');
       if (typeof guard?.submit !== 'function' || typeof guard?.assertEffectCurrent !== 'function') throw failure('PQ_TRANSACTION_EFFECT_GUARD_REQUIRED');
@@ -86,10 +131,20 @@ export function createPQTransactionSubmission({intentStore, networkId,
         if(plan.migration)requireMigrationPermission();else requirePermission();
         const acquire=plan.migration?acquireOriginalWalletMigrationBroadcastPermission:acquireOriginalWalletTransactionPermission;
         const recognized=plan.migration?isOriginalWalletMigrationBroadcastPermission:isOriginalWalletTransactionPermission;
-        if (typeof transport?.[plan.typed?'submitTypedAction':plan.migration?'submitMigration':'submitTransfer'] !== 'function') throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
+        const pay=payTarget!==null;
+        if(pay&&(!plan.typed||typeof acquireOriginalPaySource!=='function'||typeof isOriginalPaySource!=='function'||typeof inspectPayResponse!=='function'||typeof intentStore.savePQPaySubmissionPacket!=='function'||typeof intentStore.readPQPaySubmissionPacket!=='function'))throw failure('PQ_PAY_DISPATCH_SOURCE_NOT_SUPPLIED');
+        if (!pay&&typeof transport?.[plan.typed?'submitTypedAction':plan.migration?'submitMigration':'submitTransfer'] !== 'function') throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
         if (!plan.typed && !plan.migration && typedBroadcastRequest !== null) throw failure('PQ_TRANSACTION_PERMISSION_BINDING');
         const before = await intentStore.readPQProgress(guard.account, hash, () => guard.assert());
-        if(before.submissionService==='pay')throw failure('PQ_PAY_DISPATCH_SOURCE_NOT_SUPPLIED');
+        if(before.submissionService==='pay'&&!pay)throw failure('PQ_PAY_DISPATCH_SOURCE_NOT_SUPPLIED');
+        let target=null;
+        if(pay){
+          if(before.submissionService!=='pay'||types.isProxy(payTarget)||!Object.isFrozen(payTarget))throw failure('PQ_PAY_TARGET_REQUIRED');
+          target=await intentStore.readPQPaySubmissionTarget(guard.account,hash,()=>guard.assert());
+          if(!target)throw failure('PQ_PAY_TARGET_CONFLICT');
+          exactData(payTarget,Object.keys(target),'PQ_PAY_TARGET_CONFLICT');
+          if(Object.keys(target).some(k=>target[k]!==payTarget[k]))throw failure('PQ_PAY_TARGET_CONFLICT');
+        }
         if (before.status !== 'signed-unsubmitted') throw failure('PQ_TRANSACTION_ALREADY_ENTERED');
         if(plan.migration&&typeof intentStore.savePQMigrationSubmissionResult!=='function')throw failure('PQ_MIGRATION_RESPONSE_CUSTODY_REQUIRED');
         const request = plan.typed?bindPQTypedBroadcastRequest(plan,typedBroadcastRequest):plan.migration?bindPQMigrationBroadcastRequest(plan,typedBroadcastRequest):pqBroadcastPermissionRequest(plan.binding);
@@ -100,7 +155,12 @@ export function createPQTransactionSubmission({intentStore, networkId,
         // a POST already started and its returned response/cleanup obligation.
         const assertOpen = () => {if (closing) throw failure('PQ_TRANSACTION_CLOSING');};
         const assertBeforeSubmit = () => {assertOpen(); guard.assert();};
-        let resource, permissionBinding, entered = false, submitted = false, returned = false, completed = false, failed = false, cause, result, transportCause, transportFailed = false;
+        let resource, permissionBinding, payResource, payBinding, entered = false, submitted = false, returned = false, completed = false, failed = false, cause, result, transportCause, transportFailed = false;
+        const assertPayBinding=()=>{
+          if(!pay)return;
+          const expected={networkId,account:guard.account,hash,memberHash:plan.typed.local.memberHash,operationId:plan.binding.operationId,target};
+          payBinding=assertPaySourceBinding(payResource,expected,payBinding);
+        };
         try {
           assertBeforeSubmit();
           try {resource = await acquire(request);} catch (error) {
@@ -116,11 +176,22 @@ export function createPQTransactionSubmission({intentStore, networkId,
           permissionBinding = assertBinding(resource, request);
           if (await resource.recheck() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
           assertBeforeSubmit(); assertBinding(resource, request, permissionBinding);
-          const marker = await intentStore.beginPQSubmission(guard.account, hash, () => {assertBeforeSubmit();resource.assertCurrent();});
+          if(pay){
+            try{payResource=await acquireOriginalPaySource(Object.freeze({request,original:plan.original,target}));}
+            catch(error){const partial=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'partial'):null;if(partial&&Object.hasOwn(partial,'value')&&partial.value){payResource=partial.value;resources.add(payResource);}throw error;}
+            if(payResource===null||!['object','function'].includes(typeof payResource))throw failure('PQ_PAY_DISPATCH_SOURCE_NOT_SUPPLIED');
+            resources.add(payResource);assertBeforeSubmit();
+            if(payResource===resource||isOriginalPaySource(payResource)!==true)throw failure('PQ_PAY_DISPATCH_SOURCE_NOT_SUPPLIED');
+            for(const name of ['readOriginal','assertCurrent','recheck','retire','join','close',target.kind==='invoice_terms'?'submitMerchantMemberPacket':target.kind==='invoice_settle'?'submitSettlementPacket':'submitRefundPacket'])if(typeof payResource?.[name]!=='function')throw failure('PQ_PAY_DISPATCH_SOURCE_NOT_SUPPLIED');
+            assertPayBinding();if(await payResource.recheck()!==undefined)throw failure('PQ_PAY_SOURCE_CURRENT');assertBeforeSubmit();assertPayBinding();
+          }
+          const marker = await intentStore.beginPQSubmission(guard.account, hash, () => {assertBeforeSubmit();resource.assertCurrent();assertPayBinding();},target);
           if (marker.created !== true) throw failure('PQ_TRANSACTION_ALREADY_ENTERED');
           entered = true;
           assertBeforeSubmit();
           if (await resource.recheck() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
+          if(pay&&await payResource.recheck()!==undefined)throw failure('PQ_PAY_SOURCE_CURRENT');
+          assertPayBinding();
           assertBeforeSubmit(); assertBinding(resource, request, permissionBinding);
           if (await resource.enterBroadcast() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_ENTRY_UNKNOWN');
           assertBeforeSubmit();
@@ -135,8 +206,10 @@ export function createPQTransactionSubmission({intentStore, networkId,
                 guard.assertEffectCurrent();
                 if (resource.assertCurrent() !== undefined) throw failure('PQ_TRANSACTION_PERMISSION_CURRENT');
                 assertBinding(resource, request, permissionBinding);
+                assertPayBinding();
               };
-              const received=await (plan.typed?transport.submitTypedAction(plan.typed.review,plan.typed.raw,plan.typed.original,assertCurrent):plan.migration?transport.submitMigration(plan.request,assertCurrent):transport.submitTransfer(plan.request,assertCurrent));
+              const received=await (pay?target.kind==='invoice_terms'?payResource.submitMerchantMemberPacket(target.intentId,plan.typed.local.member,assertCurrent):target.kind==='invoice_settle'?payResource.submitSettlementPacket(target.merchant,target.invoiceId,plan.typed.local.member,assertCurrent):payResource.submitRefundPacket(target.merchant,target.invoiceId,plan.typed.local.member,assertCurrent):plan.typed?transport.submitTypedAction(plan.typed.review,plan.typed.raw,plan.typed.original,assertCurrent):plan.migration?transport.submitMigration(plan.request,assertCurrent):transport.submitTransfer(plan.request,assertCurrent));
+              if(pay){returned=true;await intentStore.savePQPaySubmissionPacket(guard.account,hash,received);}
               if(plan.migration){returned=true;await intentStore.savePQMigrationSubmissionResult(guard.account,hash,received);}
               return received;
             } catch (error) {transportFailed = true; transportCause = error; throw error;}
@@ -144,7 +217,14 @@ export function createPQTransactionSubmission({intentStore, networkId,
           returned = true;
           // The journal captures the complete result before any late-lock,
           // current, completion, cleanup, or public-DTO check can reject it.
-          if(!plan.migration)await intentStore.savePQSubmissionResult(guard.account, hash, plan.typed?{phase:'submission',response}:{phase:'submission',statusCode:response?.status,text:response?.text});
+          if(!pay&&!plan.migration)await intentStore.savePQSubmissionResult(guard.account, hash, plan.typed?{phase:'submission',response}:{phase:'submission',statusCode:response?.status,text:response?.text});
+          if(pay){
+            const packet=await intentStore.readPQPaySubmissionPacket(guard.account,hash);
+            // This is SDK DATA math only, after acknowledged durable custody.
+            // Its service observation never changes UNKNOWN or grants a send.
+            const observation=inspectPayResponse(plan.typed.original.signingSnapshot,{member:plan.typed.local.member,originals:plan.typed.local.originals},target.kind==='invoice_terms'?{intentId:target.intentId}:{},packet);
+            if(!observation||types.isPromise(observation)||observation.outcome!=='UNKNOWN'||observation.observationOnly!==true||observation.dataOnly!==true||observation.memberHash!==plan.typed.local.memberHash||observation.envelopeHash!==hash||['paid','submitted','permission','consensusFinality','canRetry','clearsOriginal','SourceAdmission','NativeAdmission'].some(k=>observation[k]!==false))throw failure('PQ_PAY_RESPONSE_OBSERVATION_INVALID');
+          }
           completed = true;
           if (await resource.complete(completion('returned')) !== undefined) throw failure('PQ_TRANSACTION_COMPLETION_UNKNOWN');
           guard.assertEffectCurrent();
@@ -159,6 +239,7 @@ export function createPQTransactionSubmission({intentStore, networkId,
             try {await resource.complete(completion(returned?'returned':'unknown'));} catch { /* first cause wins; resource cleanup is still required */ }
           }
         } finally {
+          if(payResource&&payResource!==resource)try{await closeResource(payResource);}catch(error){if(!failed){failed=true;cause=error;}}
           if (resource) try {await closeResource(resource);} catch (error) {if (!failed) {failed = true; cause = error;}}
         }
         if (failed) {
@@ -172,10 +253,8 @@ export function createPQTransactionSubmission({intentStore, networkId,
       return exclusive(guard, async () => {
         const plan = await readPQSubmissionOriginal(intentStore,hash,{account:guard.account,networkId,guard});
         const prior = await intentStore.readPQProgress(guard.account,hash,()=>guard.assert());
-        // Core's POST/read parsers cannot consume a /v5 Pay response. Preserve
-        // this target until its original Pay query Source is available.
-        if(prior.submissionService==='pay')throw failure('PQ_PAY_QUERY_SOURCE_NOT_SUPPLIED');
         if(['finalized-succeeded','finalized-rejected'].includes(prior.status))return publicProgress(plan,guard);
+        if(prior.submissionService==='pay')return queryOriginalPay(plan,guard,prior);
         if(typeof (plan.typed?readTypedOriginal:transport?.readOriginal)!=='function')throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
         if (!plan.typed && prior.status === 'signed-unsubmitted') throw failure('PQ_TRANSACTION_NOT_ENTERED');
         if(typeof intentStore.withPQReadObservation!=='function')throw failure('PQ_TRANSACTION_JOURNAL_READ_GUARD_REQUIRED');
