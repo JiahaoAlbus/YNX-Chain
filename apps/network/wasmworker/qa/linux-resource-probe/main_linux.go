@@ -80,6 +80,10 @@ func main() {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		child := exec.CommandContext(ctx, "/worker")
+		// The empty sandbox deliberately has no /dev/null. Nil stdio would
+		// make Cmd.Start open that absent path before reaching fork/clone,
+		// so retain only the probe's existing descriptors for this challenge.
+		child.Stdin, child.Stdout, child.Stderr = os.Stdin, os.Stdout, os.Stderr
 		err := child.Start()
 		if err == nil {
 			_ = child.Process.Kill()
@@ -89,7 +93,7 @@ func main() {
 		}
 		cancel()
 		if !errors.Is(err, unix.EPERM) {
-			fail("FORK_WRONG_FAILURE")
+			fail(fmt.Sprintf("FORK_WRONG_FAILURE %T: %v", err, err))
 		}
 		scratch, _ := strconv.ParseUint(os.Getenv("YNX_NETWORK_SCRATCH_BYTES"), 10, 64)
 		if scratch == 0 {
