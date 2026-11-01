@@ -15,6 +15,7 @@ from pathlib import Path
 import shutil
 import signal
 import stat
+import subprocess
 import sys
 import tempfile
 import threading
@@ -125,17 +126,57 @@ class NormalBackend:
         for lane in ceremony.live:self.queue.put(lane)
         if ceremony.mode=="online":
             for owner in owners:self.sessions[owner["ownerIndex"]]=SenderSession(ceremony,owner["ownerIndex"])
+        # The original Go helper entry points do not spawn child processes.
+        # All transient calls share the remaining original owned-PID budget;
+        # four live lanes are retained, but cannot each launch a fourth helper.
+        slots=min(3,lab.guard.CAPS["ownedProcesses"]-5-len(self.sessions))
+        lab.require(slots>0,"no original process capacity for normal helpers")
+        self.helper_slots=threading.BoundedSemaphore(slots)
+        self.helper_limit=slots;self.helper_cleanup_debt=[]
         self.corpus={}
         for index,tx in enumerate(ceremony.workload["transactions"]):
             key=(tx["ownerIndex"],int(tx["firstNonce"]))
             lab.require(key not in self.corpus,"original corpus has duplicate account nonce")
             self.corpus[key]=index
-    def call(self,name,args,stdin=None):
-        p=self.w.launch(name,[str(self.c.bins/"ynx-consensus-pq-lab"),*args],stdin_path=stdin,thread_safe=True)
-        try:self.w.wait(p)
+    def helper(self,name,command,stdin=None):
+        acquired=False;proc=None;released=False
+        while not self.stop_event.is_set():
+            if self.helper_slots.acquire(timeout=.02):acquired=True;break
+        lab.require(acquired,"normal helper interrupted before launch; preserve UNKNOWN")
+        try:
+            lab.require(not self.stop_event.is_set(),"normal helper cancelled before launch; preserve UNKNOWN")
+            try:proc=self.w.launch(name,command,stdin_path=stdin,thread_safe=True)
+            except BaseException:
+                # Window may have registered the exact child before a later
+                # start-identity read failed; retain that original handle.
+                with self.w.lock:
+                    proc=next((c["process"] for c in self.w.children if c["name"]==name),None)
+                raise
+            self.w.wait(proc)
         finally:
-            if p.poll() is not None:self.w.retire_log(p)
+            # A failed resource sample/wait can leave the original process alive.
+            # Never release its slot until that exact Popen has exited/reaped.
+            # Cleanup errors cannot replace the original normal-call first cause.
+            try:
+                if proc is not None and proc.poll() is None:
+                    self.stop_event.set()
+                    try:proc.terminate()
+                    except ProcessLookupError:pass
+                    try:proc.wait(timeout=1)
+                    except subprocess.TimeoutExpired:
+                        proc.kill();proc.wait(timeout=1)
+                released=proc is None or proc.poll() is not None
+                if proc is not None and released:self.w.retire_log(proc)
+            except BaseException as error:
+                self.stop_event.set()
+                self.helper_cleanup_debt.append(dict(name=name,errorType=type(error).__name__,pid=None if proc is None else proc.pid,meaning="original helper cleanup unresolved; preserve UNKNOWN and first cause"))
+            finally:
+                if released:self.helper_slots.release()
+                else:self.stop_event.set()
+        lab.require(released and not any(d["name"]==name for d in self.helper_cleanup_debt),"normal helper cleanup unresolved; preserve UNKNOWN")
         return json.loads((self.w.work/"public"/(name+".log")).read_bytes())
+    def call(self,name,args,stdin=None):
+        return self.helper(name,[str(self.c.bins/"ynx-consensus-pq-lab"),*args],stdin)
     def checkpoint(self,stop):
         paths=[Path(n["statePath"]) for n in self.c.plan["nodes"]]
         while not stop.is_set():
@@ -237,11 +278,8 @@ class NormalBackend:
             request=normal.public_file(directory,context["request"]);trust=normal.public_file(directory,context["context"])
             lab.require(context["verifierArguments"]==["--trust-context",str(trust),"--trust-context-sha256",context["context"]["sha256"]],"normal original independent verifier invocation differs")
             notify(dict(kind="normal_stage",stage="verifier"))
-            proc=self.w.launch(prefix+"-normal-verifier",[str(self.c.bins/"ynx-consensus-proof-verify"),*context["verifierArguments"]],stdin_path=request,thread_safe=True)
-            try:self.w.wait(proc)
-            finally:
-                if proc.poll() is not None:self.w.retire_log(proc)
-            verified=json.loads((self.w.work/"public"/(prefix+"-normal-verifier.log")).read_bytes());normal.require_verified(verified,tx)
+            verified=self.helper(prefix+"-normal-verifier",[str(self.c.bins/"ynx-consensus-proof-verify"),*context["verifierArguments"]],request)
+            normal.require_verified(verified,tx)
             return result,verified
         except BaseException:
             lane["retired"]=True;raise
@@ -358,7 +396,9 @@ def run(args):
     except BaseException as error:result["firstCause"]=str(error)
     finally:
         stop.set()
-        if backend is not None:backend.stop()
+        if backend is not None:
+            backend.stop()
+            result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt)
         result["networkAccountingRequested"]=args.network_accounting
         if network is not None and network.start is not None:
             try:

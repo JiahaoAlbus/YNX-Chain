@@ -469,3 +469,20 @@ original cleanup error. The added `test_window_failure_cleanup.py` checks this
 error path only; the real Linux group check is distinct from successful load
 qualification. No original PID/RSS/CPU/storage cap or completed data is changed.
 
+The eight-account successor also limits the complete transient normal-helper
+lifecycle to three simultaneous children (or fewer if the original PID budget
+requires). The same gate covers presigned lookup, live request/result and the
+independent verifier; it does not remove any of the four original live lanes.
+The exact current75 helper entry points contain no subprocess launches. Slots
+remain occupied until their original Popen is known exited/reaped. On wait or
+sampling failure the exact child is terminated/reaped before reuse; unresolved
+cleanup retains a slot, sets cancellation, records debt and preserves the first
+cause/UNKNOWN rather than starting another helper. Original limits and all500
+requests remain unchanged. Existing stage intervals include helper backpressure.
+The added control group uses actual local child processes to reproduce four
+concurrent lanes, observes at most three live helpers, and covers cancellation
+and failed-wait cleanup without producing any business/finality fixture:
+
+```sh
+python3 -B -m unittest discover -s scripts/loadtest -p test_pq_helper_lifecycle.py -v
+```
