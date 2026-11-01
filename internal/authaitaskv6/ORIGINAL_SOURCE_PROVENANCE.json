@@ -1,0 +1,62 @@
+{
+  "source": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-native-action-source-successor/source/go",
+  "owner": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+  "status": "CONSUMER_PINNED_WORKING_SOURCE_CANDIDATE_NOT_SUPPLIER_RELEASE",
+  "files": [
+    {
+      "path": "internal/authaitaskv6/business_context.go",
+      "bytes": 2021,
+      "sha256": "9cda318ca5495cd55cd884a39440d1b18d070277ed7dc4f16be8fdc88e36379b"
+    },
+    {
+      "path": "internal/authaitaskv6/business_link_unix.go",
+      "bytes": 6597,
+      "sha256": "fae34dc6eaabcc28b048e1d1451505d2f79074774bec02dd8764b6e0f20ed785"
+    },
+    {
+      "path": "internal/authaitaskv6/business_session.go",
+      "bytes": 10520,
+      "sha256": "1c34b346a778e43641857280617c4dbd284acccff01a70a3cd2c7032a0c73c22"
+    },
+    {
+      "path": "internal/authaitaskv6/normal_server_other.go",
+      "bytes": 1430,
+      "sha256": "514b39b464e57ea4d54707d7a9b6a2eb678d663774bc07949a0c2b524aafe0c3"
+    },
+    {
+      "path": "internal/authaitaskv6/normal_server_unix.go",
+      "bytes": 12286,
+      "sha256": "760bb89d83d7f2c886cf3549d18e32f1ffefabe6587038af6951addb106b5b2a"
+    },
+    {
+      "path": "internal/authaitaskv6/private_carrier.go",
+      "bytes": 1179,
+      "sha256": "4bf7c13d3512bd8941bae4fdfb6ae1321aa1176a2ff9fc3b8f315ab4f3b41281"
+    },
+    {
+      "path": "internal/authaitaskv6/task_observation.go",
+      "bytes": 4019,
+      "sha256": "5bbc36cdb41a12ede6c2d8e266c56df813e6e0a6a007977879fc2dbb7b9ff2ef"
+    },
+    {
+      "path": "internal/authaitaskv6/task_outcome.go",
+      "bytes": 6846,
+      "sha256": "63dd33d34f382abed93ff2ea7c4cdb7aa5e5a9123ec325615f606ad71f25afad"
+    },
+    {
+      "path": "internal/authaitaskv6/task_projection.go",
+      "bytes": 1437,
+      "sha256": "b737e1e65b282adb0952c0a534f47903b3b7871637d203130f3343377036b40c"
+    },
+    {
+      "path": "internal/authaitaskv6/task_state.go",
+      "bytes": 7430,
+      "sha256": "47c8d68261fbdfd0dbcd2c6d5e7843dbee0011f45e9a23d1a5f872d460c7e272"
+    }
+  ],
+  "supplierFrozenRelease": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "normalRegistration": false,
+  "publicActivation": false
+}

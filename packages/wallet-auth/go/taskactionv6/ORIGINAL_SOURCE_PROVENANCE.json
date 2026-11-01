@@ -1,0 +1,36 @@
+{
+  "sourceCommit": "97e8f2e0b697863a8fbb543356cef1175dbb1f58",
+  "sourcePackage": "@ynx-chain/wallet-auth@1.3.0-pq.3.32-auth.49",
+  "role": "original SDK request digest DATA projection only",
+  "files": [
+    {
+      "file": "packages/wallet-auth/go/taskactionv6/bridge.go",
+      "bytes": 10894,
+      "sha256": "0454b707796e73c2c4f550156d28f0aa81f1ba167aee12bed2ff5b843bba6320"
+    },
+    {
+      "file": "packages/wallet-auth/go/taskactionv6/open_posix.go",
+      "bytes": 210,
+      "sha256": "f993bc53fcb8eb48ceb6709955d21a3a4753ad826b5821482887b4144d6d15fe"
+    },
+    {
+      "file": "packages/wallet-auth/go/taskactionv6/open_other.go",
+      "bytes": 346,
+      "sha256": "d6cecc249bd6911c3d0449a40188576c4ba9034e7cba91cff815b8892c69ea19"
+    },
+    {
+      "file": "packages/wallet-auth/go/taskactionv6/go.mod",
+      "bytes": 88,
+      "sha256": "f9968020567f166c0701611f7e17c41c59f105d66663291341281087144f0449"
+    },
+    {
+      "file": "packages/wallet-auth/go/taskactionv6/README.md",
+      "bytes": 4790,
+      "sha256": "be3d648dc358ae6865f790583ece55f86ebb4090d57591472f09deae804ebb71"
+    }
+  ],
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "signatureVerified": false,
+  "installedRuntime": false
+}

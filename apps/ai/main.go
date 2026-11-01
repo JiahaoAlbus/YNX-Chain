@@ -19,6 +19,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/aigateway/httpdrain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/aiproduct"
+	taskv6 "github.com/JiahaoAlbus/YNX-Chain/internal/authaitaskv6"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
@@ -113,9 +114,35 @@ func run() (runErr error) {
 	if err != nil {
 		return err
 	}
-	srv := &http.Server{Addr: *httpAddr, Handler: server.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
+	// Retain even a partial original owner: unavailable registration must fail
+	// V6 requests closed while the existing service remains accessible.
+	v6, v6Err := taskv6.OpenOriginalAITaskActionServerV6(server)
+	if v6 == nil {
+		return errors.Join(v6Err, errors.New("AI V6 normal factory returned no owner"))
+	}
+	if v6Err != nil {
+		log.Printf("YNX AI V6 runtime unavailable: %v", v6Err)
+	}
+	shutdownTimeout := envDuration("YNX_AI_CLIENT_SHUTDOWN_TIMEOUT", 60*time.Second)
+	defer func() { runErr = errors.Join(runErr, closeOriginalTaskV6(v6, shutdownTimeout)) }()
+	srv := &http.Server{Addr: *httpAddr, Handler: v6.Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX AI client listening on http://%s; provider responses remain Gateway-backed only", *httpAddr)
-	return httpdrain.ListenAndServe(srv, envDuration("YNX_AI_CLIENT_SHUTDOWN_TIMEOUT", 60*time.Second))
+	return httpdrain.ListenAndServe(srv, shutdownTimeout)
+}
+
+// HTTP draining returns before the original same-request sources are retired.
+// Cleanup has its own bounded lifetime and preserves every original failure.
+func closeOriginalTaskV6(owner *taskv6.OriginalAITaskActionServerV6, timeout time.Duration) error {
+	if owner == nil {
+		return nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	retireErr := owner.Retire()
+	joinErr := owner.Join(ctx)
+	closeErr := owner.Close()
+	drainErr := owner.DrainPartial(ctx)
+	return errors.Join(retireErr, joinErr, closeErr, drainErr)
 }
 
 func decodeKey(value string) ([]byte, error) {

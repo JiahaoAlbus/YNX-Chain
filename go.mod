@@ -99,6 +99,7 @@ require (
 	github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-history-client/go v0.0.0
 	github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go v0.0.0
 	github.com/JiahaoAlbus/YNX-Chain/packages/open-protocol/go v0.0.0
+	github.com/JiahaoAlbus/YNX-Chain/packages/wallet-auth/go/taskactionv6 v0.0.0
 	github.com/cloudflare/circl v1.6.5
 	golang.org/x/net v0.60.0
 	golang.org/x/sys v0.48.0
@@ -109,3 +110,5 @@ replace github.com/JiahaoAlbus/YNX-Chain/packages/open-protocol/go => ./packages
 replace github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go => ./packages/auth-grant-runtime/go
 
 replace github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-history-client/go => ./packages/auth-grant-history-client/go
+
+replace github.com/JiahaoAlbus/YNX-Chain/packages/wallet-auth/go/taskactionv6 => ./packages/wallet-auth/go/taskactionv6
