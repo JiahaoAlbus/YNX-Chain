@@ -600,11 +600,28 @@ def process_capacity(args):
         interpretation="original one-owner persistent sender process count; transient helpers/proof callees add demand; no multiplex, auto pool reduction or adaptive offered rate")
 
 
+def tool_identity():
+    root=Path(__file__).resolve().parents[2]
+    return dict(commit=lab.git(root,'rev-parse','HEAD'),tree=lab.git(root,'rev-parse','HEAD^{tree}'),
+        driverSHA256=lab.guard.digest(Path(__file__)),resourceGuardSHA256=lab.guard.digest(Path(__file__).with_name('consensus-linux-cohort.py')))
+
+
+def load_conditions(args):
+    # Rate increases are intentional. All other workload/observer settings
+    # must remain fixed across a source's 100 -> 500 -> 1000 progression.
+    # This does NOT assert equal random keys/canonical inputs across sources.
+    return dict(mode=args.mode,accounts=args.accounts,perAccountCapacity=args.per_account,
+        seconds=args.seconds,tailSeconds=args.tail_seconds,proofTimeout=args.proof_timeout,
+        **{key:bool(getattr(args,key,False)) for key in ('staged_publication','wire_observation','network_accounting','commit_observation','owned_storage_accounting','header_hop_capture')},
+        sameHost=True,physicalFaultDomains=1,cryptoOrAuthorityChanged=False,canonicalInputPairEquality='NOT_YET_QUALIFIED')
+
+
 def validate_escalation(args):
     if args.rate==100:return
     lab.require(args.prior_result and args.prior_result_sha256,"higher load requires the actual preceding level's pinned original result")
     path=Path(args.prior_result);lab.require(path.resolve()==path and lab.guard.digest(path)==args.prior_result_sha256,"preceding exact result pin differs")
     prior=json.loads(path.read_bytes());r=prior["loadResult"];n=r["configuredDemand"]
+    lab.require(prior.get('caps')==lab.CAPS and prior.get('toolIdentity')==tool_identity() and prior.get('loadConditions')==load_conditions(args),'preceding source tools/caps/workload conditions missing or changed; no escalation from a different measurement setup')
     lab.require(prior["source"]["commit"]==args.commit and prior["mode"]==args.mode and prior["cleanupComplete"] is True and prior["firstCause"] is None and r["firstCause"] is None and prior["normalLiveCalleeUsed"] is True,"matching actual original preceding run required")
     lab.require(r["requestedOfferedTPS"]==(100 if args.rate==500 else 500) and r["windowCompleted"] is True and r["notReleased"]==0 and r["releasedWithinWindow"]==n and r["notSubmitted"]==0 and r["lateSubmitted"]==0 and r["notQualified"]==0 and r["sourceAcceptanceOrInclusionWithinWindow"]*1000>=n*999 and r["backlogGrowing"] is False,"preceding level did not deliver full independent demand/final data without growing backlog")
     q=r["submitToQualifiedReceiptObserved"]
@@ -644,6 +661,8 @@ def run(args):
     stages=initialization.InitializationStages(on_event=initialization_journal.emit)
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout with actual DATA-ready and measured normal CLI; cold initialization retained outside offered clock, no pre-sign/reserved nonce; source703 includes other changes and is not a pure-cache A/B")
     lab.write_new(work/"public/fresh-resource-admission.json",admission)
+    result["toolIdentity"]=tool_identity()
+    result["loadConditions"]=load_conditions(args)
     result["freshResourceAdmission"]=admission
     result["initializationOnlyRequested"]=getattr(args,"initialization_only",False)
     if result["initializationOnlyRequested"]:result["initializationSourceFunctionalData"]=initialization.source_functional_data()
