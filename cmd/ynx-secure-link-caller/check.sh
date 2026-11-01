@@ -3,11 +3,15 @@ set -eu
 # Run from the repository root; no package install or dependency download here.
 node cmd/ynx-secure-link-caller/build.mjs
 if [ "${1:-outbound}" = inbound ]; then
-  node --test --test-timeout=15000 cmd/ynx-secure-link-caller/inbound-caller.test.mjs cmd/ynx-secure-link-caller/local-fence.test.mjs
+  node --test --test-timeout=15000 cmd/ynx-secure-link-caller/inbound-caller.test.mjs cmd/ynx-secure-link-caller/local-fence.test.mjs cmd/ynx-secure-link-caller/task-runtime.test.mjs
+  exit 0
+fi
+if [ "${1:-outbound}" = runtime ]; then
+  node --test --test-concurrency=1 --test-timeout=15000 cmd/ynx-secure-link-caller/task-runtime.test.mjs
   exit 0
 fi
 if [ "${1:-outbound}" != outbound ]; then
-  printf '%s\n' 'usage: sh cmd/ynx-secure-link-caller/check.sh [outbound|inbound]' >&2
+  printf '%s\n' 'usage: sh cmd/ynx-secure-link-caller/check.sh [outbound|inbound|runtime]' >&2
   exit 2
 fi
 node cmd/ynx-secure-link-caller/build.mjs --fork-test

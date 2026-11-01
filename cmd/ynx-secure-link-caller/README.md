@@ -124,3 +124,21 @@ older inbound groups:
 ```sh
 node --test --test-timeout=15000 cmd/ynx-secure-link-caller/local-fence.test.mjs
 ```
+
+The AI V6 ordinary-Go request runtime uses the separate
+`openInboundTaskRuntimeServer` factory and native runtime brand. Its fixed
+`ai-task-v6/effect` and `effect-query` routes are distinct from the existing TLS
+authority routes. `currentInboundTaskRuntimeCaller` performs asynchronous
+sideband Current; `assertCurrentInboundTaskRuntimeCaller` checks only observed
+local custody. `exchangeInboundTaskRuntime` accepts the eight fixed producer
+operations on the same request's exclusive control FD. No ordinary Go request
+is presented as a native TLS channel. The original Go factory keeps its actual
+business objects and context alive throughout the Node exchange.
+
+See [the exact Go/Node integration contract](../../internal/securelink/TASK_RUNTIME.md)
+for signatures, budgets, cancellation, UNKNOWN and drain. To build the matching
+normal native addon and run only this runtime's functional checks:
+
+```sh
+sh cmd/ynx-secure-link-caller/check.sh runtime
+```

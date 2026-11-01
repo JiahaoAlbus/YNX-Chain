@@ -352,6 +352,11 @@ response retains the original operation and first failure as UNKNOWN. Recovery
 queries that original operation through its independently admitted query path;
 it never automatically dispatches the mutation again.
 
+The dedicated ordinary-Go AI V6 request transport and its separate native
+runtime profile are documented in [TASK_RUNTIME.md](TASK_RUNTIME.md). They do
+not weaken this original native TLS caller profile or turn an ordinary HTTP
+request into a native TLS channel.
+
 Functional evidence separately covers Node outbound, Node inbound, Go material
 seals, and a composed real Native Node -> Unix caller -> native TLS -> restricted
 Unix/SCM -> Node original request pipeline. Synthetic credentials and opaque DATA

@@ -301,15 +301,19 @@ static napi_value retire(napi_env env, napi_callback_info info) {
 // request/metadata object cannot be unwrapped as a listener or accepted peer.
 static const napi_type_tag listener_tag = {0x2b7bcf6b15a34ef9ULL,0x8d4379f24a183e62ULL};
 static const napi_type_tag inbound_tag = {0xd1ee1a3735cc4b1cULL,0xa85a905862b794e6ULL};
+// Ordinary Go HTTP runtime custody is NOT a sealed TLS authority ingress.
+// Separate native tags and marker prevent either profile borrowing the other.
+static const napi_type_tag runtime_listener_tag = {0x9fb52e7cae417830ULL,0x4f0719a1da63bc25ULL};
+static const napi_type_tag runtime_peer_tag = {0x8320c479ae56d1f0ULL,0xa1638f205bc94d72ULL};
 typedef struct {
-    int fd, wake_read, wake_write, timeout_ms;
+    int fd, wake_read, wake_write, timeout_ms, runtime;
     pid_t owner_pid, peer_pid;
     uid_t peer_uid;
     atomic_int retired, busy;
 } inbound_listener;
 typedef struct {
     caller data;
-    int channel_fd, timeout_ms, max_frame, queries;
+    int channel_fd, timeout_ms, max_frame, queries, runtime, runtime_terminal;
     atomic_int retired, busy;
 } inbound_peer;
 typedef struct {
@@ -377,7 +381,7 @@ static int frame_io(int fd,unsigned char *buffer,size_t length,int writing,int64
 static uint32_t big_endian(const unsigned char *p){return ((uint32_t)p[0]<<24)|((uint32_t)p[1]<<16)|((uint32_t)p[2]<<8)|p[3];}
 static int peer_matches(int fd,uid_t uid,pid_t pid) {uid_t u;pid_t p;return peer_identity(fd,&u,&p)||u!=uid||p!=pid;}
 
-static napi_value listen_inbound(napi_env env,napi_callback_info info) {
+static napi_value listen_inbound_profile(napi_env env,napi_callback_info info,int runtime) {
     size_t count=1,length=0; napi_value args[1],field,object;
     if(napi_get_cb_info(env,info,&count,args,NULL,NULL)!=napi_ok||count!=1)return reject(env,"DENIED","inbound registration required");
     char path[sizeof(((struct sockaddr_un *)0)->sun_path)],parent[sizeof(path)];uint32_t uid,pid,node_uid,timeout;
@@ -387,17 +391,19 @@ static napi_value listen_inbound(napi_env env,napi_callback_info info) {
     struct stat directory,existing;
     if(lstat(parent,&directory)||!S_ISDIR(directory.st_mode)||directory.st_uid!=geteuid()||(directory.st_mode&077)||lstat(path,&existing)==0||errno!=ENOENT)return reject(env,"DENIED","private parent or unused endpoint required");
     inbound_listener *value=calloc(1,sizeof(*value));if(!value)return reject(env,"UNAVAILABLE","listener allocation failed");
-    value->fd=value->wake_read=value->wake_write=-1;value->owner_pid=getpid();value->peer_uid=uid;value->peer_pid=(pid_t)pid;value->timeout_ms=(int)timeout;
+    value->fd=value->wake_read=value->wake_write=-1;value->owner_pid=getpid();value->peer_uid=uid;value->peer_pid=(pid_t)pid;value->timeout_ms=(int)timeout;value->runtime=runtime;
     int pipefd[2];if(pipe(pipefd))goto failed;
     value->wake_read=pipefd[0];value->wake_write=pipefd[1];if(flagged(pipefd[0])||flagged(pipefd[1]))goto failed;
     value->fd=socket(AF_UNIX,SOCK_STREAM,0);if(value->fd<0||flagged(value->fd))goto failed;
     struct sockaddr_un address;memset(&address,0,sizeof(address));address.sun_family=AF_UNIX;memcpy(address.sun_path,path,length+1);
     if(bind(value->fd,(struct sockaddr *)&address,sizeof(address))||chmod(path,0600)||listen(value->fd,32))goto failed;
-    if(napi_create_object(env,&object)!=napi_ok||napi_type_tag_object(env,object,&listener_tag)!=napi_ok||napi_wrap(env,object,value,finalize_listener,NULL,NULL)!=napi_ok)goto failed;
+    if(napi_create_object(env,&object)!=napi_ok||napi_type_tag_object(env,object,runtime?&runtime_listener_tag:&listener_tag)!=napi_ok||napi_wrap(env,object,value,finalize_listener,NULL,NULL)!=napi_ok)goto failed;
     return object;
 failed:
     stop_listener(value);free(value);return reject(env,"UNAVAILABLE","native listener initialization failed (endpoint is never removed)");
 }
+static napi_value listen_inbound(napi_env env,napi_callback_info info){return listen_inbound_profile(env,info,0);}
+static napi_value listen_runtime(napi_env env,napi_callback_info info){return listen_inbound_profile(env,info,1);}
 
 static void execute_accept(napi_env env,void *data) {
     (void)env;inbound_job *job=data;inbound_listener *source=job->listener;
@@ -417,13 +423,13 @@ static void execute_accept(napi_env env,void *data) {
         size_t bytes=part->cmsg_len-CMSG_LEN(0);if(bytes%sizeof(int))unknown=1;
         for(size_t at=0;at+sizeof(int)<=bytes;at+=sizeof(int)){int received;memcpy(&received,(unsigned char *)CMSG_DATA(part)+at,sizeof(received));total++;if(total==1)control=received;else close(received);}
     }
-    if(got!=1||marker!='L'||total!=1||unknown||(message.msg_flags&MSG_CTRUNC)||flagged(control)||peer_matches(control,source->peer_uid,source->peer_pid)){job->failure="exact native L + one same-peer control descriptor required";goto done;}
+    if(got!=1||marker!=(source->runtime?'A':'L')||total!=1||unknown||(message.msg_flags&MSG_CTRUNC)||flagged(control)||peer_matches(control,source->peer_uid,source->peer_pid)){job->failure="exact native profile marker + one same-peer control descriptor required";goto done;}
     int kind=0; socklen_t kindlen=sizeof(kind);struct sockaddr_un local; socklen_t locallen=sizeof(local);
     if(getsockopt(control,SOL_SOCKET,SO_TYPE,&kind,&kindlen)||kind!=SOCK_STREAM||getsockname(control,(struct sockaddr *)&local,&locallen)||local.sun_family!=AF_UNIX){job->failure="private Unix stream control required";goto done;}
     inbound_peer *peer=calloc(1,sizeof(*peer));if(!peer){job->failure="inbound allocation failed";goto done;}
     peer->data.control_fd=fcntl(fd,F_DUPFD_CLOEXEC,0);if(peer->data.control_fd<0){free(peer);job->failure="owned data duplicate failed";goto done;}
     peer->data.transfer_fd=fd;fd=-1;peer->data.owner_pid=getpid();peer->data.peer_uid=source->peer_uid;peer->data.peer_pid=source->peer_pid;
-    peer->channel_fd=control;control=-1;job->peer=peer;
+    peer->channel_fd=control;peer->runtime=source->runtime;control=-1;job->peer=peer;
 done:
     job->error=errno;if(fd>=0)close(fd);if(control>=0)close(control);close(job->fd);close(job->auxiliary);
 }
@@ -435,15 +441,15 @@ static void complete_accept(napi_env env,napi_status status,void *data) {
     else if(!job->peer){napi_value null;napi_get_null(env,&null);napi_resolve_deferred(env,job->deferred,null);}
     else {
         napi_value object;
-        if(napi_create_object(env,&object)!=napi_ok||napi_type_tag_object(env,object,&inbound_tag)!=napi_ok||napi_wrap(env,object,job->peer,finalize_inbound,NULL,NULL)!=napi_ok){stop_inbound(job->peer);free(job->peer);napi_reject_deferred(env,job->deferred,failure_value(env,"UNAVAILABLE","inbound branding failed",0));}
+        if(napi_create_object(env,&object)!=napi_ok||napi_type_tag_object(env,object,job->peer->runtime?&runtime_peer_tag:&inbound_tag)!=napi_ok||napi_wrap(env,object,job->peer,finalize_inbound,NULL,NULL)!=napi_ok){stop_inbound(job->peer);free(job->peer);napi_reject_deferred(env,job->deferred,failure_value(env,"UNAVAILABLE","inbound branding failed",0));}
         else napi_resolve_deferred(env,job->deferred,object);
     }
     napi_delete_reference(env,job->reference);napi_delete_async_work(env,job->work);free(job);
 }
-static napi_value accept_inbound(napi_env env,napi_callback_info info) {
+static napi_value accept_inbound_profile(napi_env env,napi_callback_info info,int runtime) {
     size_t count=1;napi_value args[1],promise,resource;
     if(napi_get_cb_info(env,info,&count,args,NULL,NULL)!=napi_ok||count!=1)return reject(env,"DENIED","native listener required");
-    inbound_listener *value=tagged(env,args[0],&listener_tag);int idle=0;
+    inbound_listener *value=tagged(env,args[0],runtime?&runtime_listener_tag:&listener_tag);int idle=0;
     if(!value||value->owner_pid!=getpid()||atomic_load(&value->retired)||!atomic_compare_exchange_strong(&value->busy,&idle,1))return reject(env,"DENIED","listener retired or already accepting");
     inbound_job *job=calloc(1,sizeof(*job));if(!job){atomic_store(&value->busy,0);return reject(env,"UNAVAILABLE","accept allocation failed");}
     job->listener=value;job->fd=fcntl(value->fd,F_DUPFD_CLOEXEC,0);job->auxiliary=fcntl(value->wake_read,F_DUPFD_CLOEXEC,0);
@@ -452,20 +458,28 @@ static napi_value accept_inbound(napi_env env,napi_callback_info info) {
     if(napi_create_async_work(env,NULL,resource,execute_accept,complete_accept,job,&job->work)!=napi_ok||napi_queue_async_work(env,job->work)!=napi_ok){close(job->fd);close(job->auxiliary);atomic_store(&value->busy,0);napi_delete_reference(env,job->reference);if(job->work)napi_delete_async_work(env,job->work);napi_reject_deferred(env,job->deferred,failure_value(env,"UNAVAILABLE","accept queue failed",0));free(job);}
     return promise;
 }
-static napi_value retire_listener(napi_env env,napi_callback_info info) {
+static napi_value accept_inbound(napi_env env,napi_callback_info info){return accept_inbound_profile(env,info,0);}
+static napi_value accept_runtime(napi_env env,napi_callback_info info){return accept_inbound_profile(env,info,1);}
+static napi_value retire_listener_profile(napi_env env,napi_callback_info info,int runtime) {
     size_t count=1;napi_value args[1],result;
     if(napi_get_cb_info(env,info,&count,args,NULL,NULL)!=napi_ok||count!=1)return reject(env,"DENIED","listener required");
-    inbound_listener *value=tagged(env,args[0],&listener_tag);if(!value||value->owner_pid!=getpid())return reject(env,"DENIED","owned listener required");stop_listener(value);napi_get_undefined(env,&result);return result;
+    inbound_listener *value=tagged(env,args[0],runtime?&runtime_listener_tag:&listener_tag);if(!value||value->owner_pid!=getpid())return reject(env,"DENIED","owned listener required");stop_listener(value);napi_get_undefined(env,&result);return result;
 }
-static napi_value take_inbound(napi_env env,napi_callback_info info) {
+static napi_value retire_listener(napi_env env,napi_callback_info info){return retire_listener_profile(env,info,0);}
+static napi_value retire_runtime_listener(napi_env env,napi_callback_info info){return retire_listener_profile(env,info,1);}
+static napi_value take_inbound_profile(napi_env env,napi_callback_info info,int runtime) {
     size_t count=1;napi_value args[1],result;if(napi_get_cb_info(env,info,&count,args,NULL,NULL)!=napi_ok||count!=1)return reject(env,"DENIED","inbound required");
-    inbound_peer *value=tagged(env,args[0],&inbound_tag);if(!value||atomic_load(&value->retired)||current(&value->data)||value->data.transfer_fd<0)return reject(env,"DENIED","owned inbound descriptor required");
+    inbound_peer *value=tagged(env,args[0],runtime?&runtime_peer_tag:&inbound_tag);if(!value||atomic_load(&value->retired)||current(&value->data)||value->data.transfer_fd<0)return reject(env,"DENIED","owned inbound descriptor required");
     napi_create_int32(env,value->data.transfer_fd,&result);value->data.transfer_fd=-1;return result;
 }
-static napi_value retire_inbound(napi_env env,napi_callback_info info) {
+static napi_value take_inbound(napi_env env,napi_callback_info info){return take_inbound_profile(env,info,0);}
+static napi_value take_runtime(napi_env env,napi_callback_info info){return take_inbound_profile(env,info,1);}
+static napi_value retire_inbound_profile(napi_env env,napi_callback_info info,int runtime) {
     size_t count=1;napi_value args[1],result;if(napi_get_cb_info(env,info,&count,args,NULL,NULL)!=napi_ok||count!=1)return reject(env,"DENIED","inbound required");
-    inbound_peer *value=tagged(env,args[0],&inbound_tag);if(!value||value->data.owner_pid!=getpid())return reject(env,"DENIED","owned inbound required");stop_inbound(value);napi_get_undefined(env,&result);return result;
+    inbound_peer *value=tagged(env,args[0],runtime?&runtime_peer_tag:&inbound_tag);if(!value||value->data.owner_pid!=getpid())return reject(env,"DENIED","owned inbound required");stop_inbound(value);napi_get_undefined(env,&result);return result;
 }
+static napi_value retire_inbound(napi_env env,napi_callback_info info){return retire_inbound_profile(env,info,0);}
+static napi_value retire_runtime(napi_env env,napi_callback_info info){return retire_inbound_profile(env,info,1);}
 
 static void execute_inbound_current(napi_env env,void *data) {
     (void)env;inbound_job *job=data;inbound_peer *value=job->peer;int64_t now=monotonic_ms();
@@ -486,16 +500,115 @@ static void complete_inbound_current(napi_env env,napi_status status,void *data)
     else {uint32_t size=big_endian(job->payload);napi_value object,metadata,body;napi_create_object(env,&object);napi_create_buffer_copy(env,size,job->payload+4,NULL,&metadata);napi_create_buffer_copy(env,job->size-4-size,job->payload+4+size,NULL,&body);napi_set_named_property(env,object,"metadata",metadata);napi_set_named_property(env,object,"body",body);napi_resolve_deferred(env,job->deferred,object);}
     free(job->payload);napi_delete_reference(env,job->reference);napi_delete_async_work(env,job->work);free(job);
 }
-static napi_value inbound_current(napi_env env,napi_callback_info info) {
+static napi_value inbound_current_profile(napi_env env,napi_callback_info info,int runtime) {
     size_t count=2;napi_value args[2],promise,resource;uint32_t timeout,budget;
     if(napi_get_cb_info(env,info,&count,args,NULL,NULL)!=napi_ok||count!=2)return reject(env,"DENIED","inbound and current budget required");
-    inbound_peer *value=tagged(env,args[0],&inbound_tag);int idle=0;
-    if(!value||value->data.owner_pid!=getpid()||atomic_load(&value->retired)||value->queries>=64||current(&value->data)||number_field(env,args[1],"timeoutMs",&timeout,30000)||!timeout||number_field(env,args[1],"maxFrameBytes",&budget,(16<<20)+65536)||budget<4||!atomic_compare_exchange_strong(&value->busy,&idle,1))return reject(env,"DENIED","live bounded inbound current required");
+    inbound_peer *value=tagged(env,args[0],runtime?&runtime_peer_tag:&inbound_tag);int idle=0;
+    if(!value||value->data.owner_pid!=getpid()||atomic_load(&value->retired)||(runtime&&value->runtime_terminal)||value->queries>=64||current(&value->data)||number_field(env,args[1],"timeoutMs",&timeout,30000)||!timeout||number_field(env,args[1],"maxFrameBytes",&budget,(16<<20)+65536)||budget<4||!atomic_compare_exchange_strong(&value->busy,&idle,1))return reject(env,"DENIED","live bounded inbound current required");
     value->queries++;value->max_frame=(int)budget;inbound_job *job=calloc(1,sizeof(*job));if(!job){atomic_store(&value->busy,0);return reject(env,"UNAVAILABLE","current allocation failed");}
     job->peer=value;job->timeout=(int)timeout;job->fd=fcntl(value->data.control_fd,F_DUPFD_CLOEXEC,0);job->auxiliary=fcntl(value->channel_fd,F_DUPFD_CLOEXEC,0);
     if(job->fd<0||job->auxiliary<0){if(job->fd>=0)close(job->fd);if(job->auxiliary>=0)close(job->auxiliary);free(job);atomic_store(&value->busy,0);return reject(env,"UNAVAILABLE","current descriptor duplication failed");}
     napi_create_reference(env,args[0],1,&job->reference);napi_create_promise(env,&job->deferred,&promise);napi_create_string_utf8(env,"ynx-inbound-current",NAPI_AUTO_LENGTH,&resource);
     if(napi_create_async_work(env,NULL,resource,execute_inbound_current,complete_inbound_current,job,&job->work)!=napi_ok||napi_queue_async_work(env,job->work)!=napi_ok){close(job->fd);close(job->auxiliary);atomic_store(&value->busy,0);napi_delete_reference(env,job->reference);if(job->work)napi_delete_async_work(env,job->work);napi_reject_deferred(env,job->deferred,failure_value(env,"UNAVAILABLE","current queue failed",0));free(job);}
+    return promise;
+}
+static napi_value inbound_current(napi_env env,napi_callback_info info){return inbound_current_profile(env,info,0);}
+static napi_value runtime_current(napi_env env,napi_callback_info info){return inbound_current_profile(env,info,1);}
+
+typedef struct {
+    napi_async_work work;
+    napi_deferred deferred;
+    napi_ref reference;
+    inbound_peer *peer;
+    int fd, control, timeout, error, dispatched, valid_response, status, error_present;
+    uint32_t request_size, response_size, response_limit, operation;
+    size_t written, received;
+    unsigned char *request, *response;
+    const char *failure;
+} runtime_job;
+
+static int runtime_io(int fd,unsigned char *bytes,size_t length,int writing,int64_t end,size_t *progress) {
+#ifdef SO_NOSIGPIPE
+    if(writing){int no_signal=1;if(setsockopt(fd,SOL_SOCKET,SO_NOSIGPIPE,&no_signal,sizeof(no_signal)))return -1;}
+#endif
+    size_t at=0;
+    while(at<length){
+        if(wait_fd(fd,writing?POLLOUT:POLLIN,-1,end))return -1;
+        int flags=0;
+#ifdef MSG_NOSIGNAL
+        flags=MSG_NOSIGNAL;
+#endif
+        ssize_t n=writing?send(fd,bytes+at,length-at,flags):recv(fd,bytes+at,length-at,0);
+        if(n<0&&(errno==EINTR||errno==EAGAIN||errno==EWOULDBLOCK))continue;
+        if(n<=0){if(!n)errno=ENOTCONN;return -1;}
+        at+=(size_t)n;*progress+=(size_t)n;
+    }
+    return 0;
+}
+static void runtime_number(napi_env env,napi_value object,const char *name,double number) {
+    napi_value value;napi_create_double(env,number,&value);napi_set_named_property(env,object,name,value);
+}
+static void runtime_boolean(napi_env env,napi_value object,const char *name,int yes) {
+    napi_value value;napi_get_boolean(env,yes!=0,&value);napi_set_named_property(env,object,name,value);
+}
+static napi_value runtime_response(napi_env env,runtime_job *job,int complete) {
+    napi_value object,body;napi_create_object(env,&object);
+    runtime_number(env,object,"statusCode",job->status);
+    runtime_boolean(env,object,"errorPresent",job->error_present);
+    runtime_boolean(env,object,"complete",complete);
+    runtime_boolean(env,object,"dataOnly",1);
+    size_t size=job->received>3?job->received-3:0;
+    napi_create_buffer_copy(env,size,size?job->response+3:NULL,NULL,&body);
+    napi_set_named_property(env,object,"body",body);return object;
+}
+static void execute_runtime(napi_env env,void *data) {
+    (void)env;runtime_job *job=data;inbound_peer *value=job->peer;int64_t now=monotonic_ms();
+    caller actual={.control_fd=job->fd,.transfer_fd=-1,.owner_pid=value->data.owner_pid,.peer_uid=value->data.peer_uid,.peer_pid=value->data.peer_pid};
+    if(value->data.owner_pid!=getpid()||atomic_load(&value->retired)||now<0||current(&actual)||peer_matches(job->control,value->data.peer_uid,value->data.peer_pid)){job->failure="runtime original peer unavailable";goto done;}
+    int64_t end=now+job->timeout;unsigned char header[6]={'T',(unsigned char)job->operation,(unsigned char)(job->request_size>>24),(unsigned char)(job->request_size>>16),(unsigned char)(job->request_size>>8),(unsigned char)job->request_size},length[4];
+    job->dispatched=1; // Once a T write is attempted, no failure proves no effect.
+    if(runtime_io(job->control,header,sizeof(header),1,end,&job->written)||runtime_io(job->control,job->request,job->request_size,1,end,&job->written)){job->failure="runtime original request write failed";goto done;}
+    size_t prefix=0;
+    if(runtime_io(job->control,length,4,0,end,&prefix)){job->failure="runtime original acknowledgement unavailable";goto done;}
+    job->response_size=big_endian(length);
+    if(job->response_size<3||job->response_size>job->response_limit+3){job->failure="runtime response frame bounds refused";goto done;}
+    job->response=malloc(job->response_size);if(!job->response){job->failure="runtime response allocation failed";goto done;}
+    if(runtime_io(job->control,job->response,3,0,end,&job->received)){job->failure="runtime response header incomplete";goto done;}
+    job->status=((int)job->response[0]<<8)|job->response[1];job->error_present=job->response[2];
+    if(job->status<100||job->status>599||job->error_present>1){job->failure="runtime response status or error flag refused";goto done;}
+    job->valid_response=1;
+    if(runtime_io(job->control,job->response+3,job->response_size-3,0,end,&job->received)){job->failure="runtime response body incomplete";goto done;}
+    if(atomic_load(&value->retired)||current(&actual)||peer_matches(job->control,value->data.peer_uid,value->data.peer_pid)){job->failure="runtime original peer retired after exchange";goto done;}
+done:
+    job->error=errno;close(job->fd);close(job->control);
+}
+static void complete_runtime(napi_env env,napi_status status,void *data) {
+    runtime_job *job=data;atomic_store(&job->peer->busy,0);
+    if(job->failure||status!=napi_ok||atomic_load(&job->peer->retired)){
+        stop_inbound(job->peer);
+        napi_value error=failure_value(env,"RUNTIME_UNAVAILABLE",job->failure?job->failure:"runtime original request retired",job->error),progress;
+        runtime_boolean(env,error,"dispatchPossible",job->dispatched);
+        napi_create_object(env,&progress);runtime_number(env,progress,"requestBytesWritten",(double)job->written);runtime_number(env,progress,"bytesReceived",job->received>3?(double)(job->received-3):0);napi_set_named_property(env,error,"responseProgress",progress);
+        if(job->valid_response)napi_set_named_property(env,error,"responseData",runtime_response(env,job,0));
+        napi_reject_deferred(env,job->deferred,error);
+    }else{
+        if(job->operation==8)job->peer->runtime_terminal=1;
+        napi_resolve_deferred(env,job->deferred,runtime_response(env,job,1));
+    }
+    free(job->request);free(job->response);napi_delete_reference(env,job->reference);napi_delete_async_work(env,job->work);free(job);
+}
+static napi_value exchange_runtime(napi_env env,napi_callback_info info) {
+    size_t count=4,size=0;napi_value args[4],promise,resource;uint32_t operation,timeout,limit;double operation_number;void *bytes=NULL;bool buffer=false;
+    if(napi_get_cb_info(env,info,&count,args,NULL,NULL)!=napi_ok||count!=4||napi_get_value_double(env,args[1],&operation_number)!=napi_ok||operation_number<1||operation_number>8||napi_get_value_uint32(env,args[1],&operation)!=napi_ok||operation_number!=(double)operation||napi_is_buffer(env,args[2],&buffer)!=napi_ok||!buffer||napi_get_buffer_info(env,args[2],&bytes,&size)!=napi_ok||!size||size>(1<<20)||number_field(env,args[3],"timeoutMs",&timeout,30000)||!timeout||number_field(env,args[3],"maxResponseBytes",&limit,32<<20)||!limit)return reject(env,"DENIED","bounded closed runtime operation required");
+    inbound_peer *value=tagged(env,args[0],&runtime_peer_tag);int idle=0;
+    if(!value||value->data.owner_pid!=getpid()||atomic_load(&value->retired)||value->runtime_terminal||value->queries>=64||current(&value->data)||!atomic_compare_exchange_strong(&value->busy,&idle,1))return reject(env,"DENIED","same live runtime request required");
+    value->queries++;runtime_job *job=calloc(1,sizeof(*job));if(!job){atomic_store(&value->busy,0);return reject(env,"UNAVAILABLE","runtime allocation failed");}
+    job->peer=value;job->operation=operation;job->request_size=(uint32_t)size;job->timeout=(int)timeout;job->response_limit=limit;
+    job->request=malloc(size);job->fd=fcntl(value->data.control_fd,F_DUPFD_CLOEXEC,0);job->control=fcntl(value->channel_fd,F_DUPFD_CLOEXEC,0);
+    if(!job->request||job->fd<0||job->control<0){if(job->fd>=0)close(job->fd);if(job->control>=0)close(job->control);free(job->request);free(job);atomic_store(&value->busy,0);return reject(env,"UNAVAILABLE","runtime owned allocation failed");}
+    memcpy(job->request,bytes,size);
+    napi_create_reference(env,args[0],1,&job->reference);napi_create_promise(env,&job->deferred,&promise);napi_create_string_utf8(env,"ynx-original-task-runtime",NAPI_AUTO_LENGTH,&resource);
+    if(napi_create_async_work(env,NULL,resource,execute_runtime,complete_runtime,job,&job->work)!=napi_ok||napi_queue_async_work(env,job->work)!=napi_ok){close(job->fd);close(job->control);free(job->request);atomic_store(&value->busy,0);napi_delete_reference(env,job->reference);if(job->work)napi_delete_async_work(env,job->work);napi_reject_deferred(env,job->deferred,failure_value(env,"UNAVAILABLE","runtime worker queue failed",0));free(job);}
     return promise;
 }
 
@@ -534,6 +647,13 @@ static napi_value initialize(napi_env env, napi_value exports) {
         {"takeInboundFD",NULL,take_inbound,NULL,NULL,NULL,napi_default,NULL},
         {"currentInbound",NULL,inbound_current,NULL,NULL,NULL,napi_default,NULL},
         {"retireInbound",NULL,retire_inbound,NULL,NULL,NULL,napi_default,NULL},
+        {"listenTaskRuntime",NULL,listen_runtime,NULL,NULL,NULL,napi_default,NULL},
+        {"acceptTaskRuntime",NULL,accept_runtime,NULL,NULL,NULL,napi_default,NULL},
+        {"retireTaskRuntimeListener",NULL,retire_runtime_listener,NULL,NULL,NULL,napi_default,NULL},
+        {"takeTaskRuntimeFD",NULL,take_runtime,NULL,NULL,NULL,napi_default,NULL},
+        {"currentTaskRuntime",NULL,runtime_current,NULL,NULL,NULL,napi_default,NULL},
+        {"exchangeTaskRuntime",NULL,exchange_runtime,NULL,NULL,NULL,napi_default,NULL},
+        {"retireTaskRuntime",NULL,retire_runtime,NULL,NULL,NULL,napi_default,NULL},
 #ifdef YNX_CALLER_FORK_TESTS
         {"forkProbe", NULL, fork_probe, NULL, NULL, NULL, napi_default, NULL},
 #endif

@@ -39,8 +39,13 @@ const servers=new WeakMap(),requests=new WeakMap(),callers=new WeakMap();
 const headersGetter=Object.getOwnPropertyDescriptor(http.IncomingMessage.prototype,'headers').get;
 const headersSetter=Object.getOwnPropertyDescriptor(http.IncomingMessage.prototype,'headers').set;
 const routes=new Set(['/internal/auth/task-grants/effect','/internal/auth/task-grants/effect-query']);
+const taskRoutes=new Set(['/internal/auth/ai-task-v6/effect','/internal/auth/ai-task-v6/effect-query']);
+const taskOperations=Object.freeze(['capture','capture-conversation','execute-local','observe','outcome','observe-outcome','reconcile-observe','release']);
+const taskProfile='AUTH_AI_V6_PRIVATE_RUNTIME_TRANSPORT/v1';
 const decoder=new TextDecoder('utf-8',{fatal:true});
 const byteLength=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype),'byteLength').get;
+const bufferGetter=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype),'buffer').get;
+const offsetGetter=Object.getOwnPropertyDescriptor(Object.getPrototypeOf(Uint8Array.prototype),'byteOffset').get;
 function fail(message,cause){const e=new Error(message,{cause});e.code='INBOUND_DENIED';return e;}
 function exact(value,keys){
   if(!value||typeof value!=='object'||types.isProxy(value))throw fail('plain inbound registration/material required');
@@ -49,7 +54,7 @@ function exact(value,keys){
   return Object.fromEntries(keys.map(k=>[k,fields[k].value]));
 }
 function integer(value,min,max){if(!Number.isSafeInteger(value)||value<min||value>max)throw fail('bounded inbound integer required');return value;}
-function registration(input){
+function registration(input,runtime=false){
   const p=exact(input,['socketPath','nodeUID','bridgeUID','bridgePID','service','acceptTimeoutMs','currentTimeoutMs','maxConnections','routes']);
   if(typeof p.socketPath!=='string'||!path.isAbsolute(p.socketPath)||path.normalize(p.socketPath)!==p.socketPath||/[\0\r\n]/.test(p.socketPath)||Buffer.byteLength(p.socketPath)>=(process.platform==='darwin'?104:108))throw fail('private exact socket path required');
   if(p.nodeUID!==process.geteuid())throw fail('actual Node UID required');
@@ -61,8 +66,8 @@ function registration(input){
   const selected=new Map();
   for(const item of [list[0].value,list[1].value]){
     const r=exact(item,['method','path','maxRequestBytes','maxResponseBytes']);
-    if(r.method!=='POST'||typeof r.path!=='string'||!routes.has(r.path)||selected.has(r.path))throw fail('exact incoming method/path required');
-    integer(r.maxRequestBytes,1,16<<20);integer(r.maxResponseBytes,1,16<<20);selected.set(r.path,Object.freeze(r));
+    if(r.method!=='POST'||typeof r.path!=='string'||!(runtime?taskRoutes:routes).has(r.path)||selected.has(r.path))throw fail('exact incoming method/path required');
+    integer(r.maxRequestBytes,1,runtime?1835008:16<<20);integer(r.maxResponseBytes,1,runtime?2097152:16<<20);selected.set(r.path,Object.freeze(r));
   }
   return Object.freeze({...p,routes:selected});
 }
@@ -152,9 +157,16 @@ function material(record,frame){
   // the registered Service. Neither is a business audience/Source constructor.
   return Object.freeze({...meta,Channel:Object.freeze({Peer:peerView(channel.Peer),Exporter:exporter,LocalSAN:channel.LocalSAN}),Body:Buffer.from(frame.body)});
 }
+function runtimeMaterial(record,frame){
+  const meta=exact(JSON.parse(decoder.decode(frame.metadata)),['Profile','Service','Method','Path','Host','ContentType','ContentLength']);
+  if(meta.Profile!==taskProfile||meta.Service!==record.server.profile.service||meta.Host!==meta.Service||meta.Method!==record.identity.method||meta.Path!==record.identity.url||meta.ContentType!=='application/json'||meta.ContentLength!==record.identity.length||!Buffer.isBuffer(frame.body)||frame.body.length!==meta.ContentLength||frame.body.length>record.route.maxRequestBytes)throw fail('original runtime carrier material differs');
+  // Ordinary original Go HTTP/OS-peer custody, never a manufactured TLS
+  // Channel or an interpretation of the Auth/P08 business envelope.
+  return Object.freeze({...meta,Body:Buffer.from(frame.body),Peer:Object.freeze({uid:record.server.profile.bridgeUID,pid:record.server.profile.bridgePID}),dataOnly:true,sourceVerified:false,operationVerified:false});
+}
 function endRecord(record){
   if(record.closed)return;record.closed=true;
-  try{native.retireInbound(record.native);}catch(error){record.server.failure??=error;}
+  try{record.server.api.retire(record.native);}catch(error){record.server.failure??=error;}
 }
 function guardResponse(record,res){
   const write=res.write,end=res.end;let sent=0;
@@ -184,46 +196,49 @@ function listenRequest(state,req,res){
   }catch(error){state.failure??=error;if(record)endRecord(record);req.socket.destroy(error);}
 }
 
-export async function openInboundAuthorityServer(profile,handler){
-  const p=registration(profile);if(typeof handler!=='function')throw fail('original incoming handler required');
-  const listener=native.listenInbound({socketPath:p.socketPath,nodeUID:p.nodeUID,bridgeUID:p.bridgeUID,bridgePID:p.bridgePID,timeoutMs:p.acceptTimeoutMs});
+async function openInboundServer(profile,handler,runtime){
+  const p=registration(profile,runtime);if(typeof handler!=='function')throw fail('original incoming handler required');
+  const api=runtime?{listen:native.listenTaskRuntime,accept:native.acceptTaskRuntime,take:native.takeTaskRuntimeFD,retireListener:native.retireTaskRuntimeListener,retire:native.retireTaskRuntime,current:native.currentTaskRuntime}:{listen:native.listenInbound,accept:native.acceptInbound,take:native.takeInboundFD,retireListener:native.retireListener,retire:native.retireInbound,current:native.currentInbound};
+  const listener=api.listen({socketPath:p.socketPath,nodeUID:p.nodeUID,bridgeUID:p.bridgeUID,bridgePID:p.bridgePID,timeoutMs:p.acceptTimeoutMs});
   const server=http.createServer({maxHeaderSize:64<<10,requestTimeout:30000,headersTimeout:5000},(req,res)=>listenRequest(state,req,res));
   server.maxRequestsPerSocket=1;
   server.on('clientError',(_error,socket)=>socket.destroy());
-  const state={profile:p,listener,server,handler,pid:process.pid,retired:false,connections:new Map(),handlers:new Set(),currents:new Set(),failure:null,accept:null};
+  const state={profile:p,listener,server,handler,api,runtime,pid:process.pid,retired:false,connections:new Map(),handlers:new Set(),currents:new Set(),failure:null,accept:null};
   const opaque=Object.freeze(Object.create(null));servers.set(opaque,state);
   state.accept=(async()=>{
     while(!state.retired){
       let accepted;
-      try{accepted=await native.acceptInbound(listener);}catch(error){if(state.retired)break;if(error.code==='DENIED')continue;state.failure??=error;break;}
+      try{accepted=await api.accept(listener);}catch(error){if(state.retired)break;if(error.code==='DENIED')continue;state.failure??=error;break;}
       if(!accepted)continue;
-      if(state.retired||state.connections.size>=p.maxConnections){native.retireInbound(accepted);continue;}
+      if(state.retired||state.connections.size>=p.maxConnections){api.retire(accepted);continue;}
       let socket;
-      try{const fd=native.takeInboundFD(accepted);try{socket=new net.Socket({fd,readable:true,writable:true});}catch(error){try{closeSync(fd);}catch{}throw error;}
+      try{const fd=api.take(accepted);try{socket=new net.Socket({fd,readable:true,writable:true});}catch(error){try{closeSync(fd);}catch{}throw error;}
         const connection={native:accepted,socket,used:false,record:null};
-        connection.closed=new Promise(resolve=>socket.once('close',()=>{if(connection.record)endRecord(connection.record);else native.retireInbound(accepted);state.connections.delete(socket);resolve();}));
+        connection.closed=new Promise(resolve=>socket.once('close',()=>{if(connection.record)endRecord(connection.record);else api.retire(accepted);state.connections.delete(socket);resolve();}));
         socket.on('error',()=>{});state.connections.set(socket,connection);
         // The private server is never returned. Only a native accepted fd can
         // reach its connection event and mint a request binding.
         server.emit('connection',socket);
-      }catch(error){state.failure??=error;try{native.retireInbound(accepted);}catch{}socket?.destroy();}
+      }catch(error){state.failure??=error;try{api.retire(accepted);}catch{}socket?.destroy();}
     }
   })();
   state.accept.catch(error=>{state.failure??=error;});return opaque;
 }
+export async function openInboundAuthorityServer(profile,handler){return openInboundServer(profile,handler,false);}
+export async function openInboundTaskRuntimeServer(profile,handler){return openInboundServer(profile,handler,true);}
 export function acquireInboundCaller(req,registeredServer){
-  const record=req&&requests.get(req);if(!record)throw fail('original incoming request required');
+  const record=req&&requests.get(req);if(!record||record.server.runtime)throw fail('original authority incoming request required');
   if(arguments.length>=2&&record.server!==serverState(registeredServer))throw fail('original registered listener instance required');
   assertRequest(record,req);record.holds++;return record.handle;
 }
-export function releaseInboundCaller(handle){const record=handle&&callers.get(handle);if(!record)throw fail('inbound handle required');if(record.holds>0)record.holds--;}
+export function releaseInboundCaller(handle){const record=handle&&callers.get(handle);if(!record||record.server.runtime)throw fail('authority inbound handle required');if(record.holds>0)record.holds--;}
 export function assertCurrentInboundCaller(req,handle,registeredServer){
   const record=handle&&callers.get(handle),registered=registeredServer&&servers.get(registeredServer);
-  if(arguments.length!==3||!record||!registered||record.server!==registered||record.req!==req||requests.get(req)!==record||record.server.pid!==process.pid||record.holds<1||record.closed||record.server.retired)throw fail('same acquired original caller and registered listener required');
+  if(arguments.length!==3||!record||record.server.runtime||!registered||record.server!==registered||record.req!==req||requests.get(req)!==record||record.server.pid!==process.pid||record.holds<1||record.closed||record.server.retired)throw fail('same acquired original caller and registered listener required');
   assertLocalIdentity(record,req);
 }
 export function currentInboundCaller(req,handle,registeredServer){
-  const record=handle&&callers.get(handle);if(!record||requests.get(req)!==record||record.server.pid!==process.pid)return Promise.reject(fail('same original incoming request and handle required'));
+  const record=handle&&callers.get(handle);if(!record||record.server.runtime||requests.get(req)!==record||record.server.pid!==process.pid)return Promise.reject(fail('same original incoming request and handle required'));
   if(arguments.length>=3){try{if(record.server!==serverState(registeredServer))throw fail('original registered listener instance required');}catch(error){return Promise.reject(error);}}
   const run=record.currentTail.then(async()=>{
     if(record.holds<1)throw fail('acquired original caller hold required');
@@ -233,16 +248,82 @@ export function currentInboundCaller(req,handle,registeredServer){
   }).catch(error=>{endRecord(record);record.socket.destroy();throw error;});
   record.currentTail=run.catch(()=>{});record.server.currents.add(run);run.finally(()=>record.server.currents.delete(run)).catch(()=>{});return run;
 }
-function serverState(handle){const state=handle&&servers.get(handle);if(!state||state.pid!==process.pid)throw fail('owned incoming server required');return state;}
+function serverState(handle,runtime=false){const state=handle&&servers.get(handle);if(!state||state.runtime!==runtime||state.pid!==process.pid)throw fail('owned incoming server profile required');return state;}
 export function retireInboundAuthorityServer(handle){
-  const state=serverState(handle);if(state.retired)return;state.retired=true;native.retireListener(state.listener);
-  for(const connection of state.connections.values()){if(connection.record)endRecord(connection.record);else native.retireInbound(connection.native);connection.socket.destroy();}
+  retireServer(serverState(handle));
 }
-export async function joinInboundAuthorityServer(handle){
-  const state=serverState(handle);if(!state.retired)throw fail('retire incoming server before join');
+function retireServer(state){
+  if(state.retired)return;state.retired=true;state.api.retireListener(state.listener);
+  for(const connection of state.connections.values()){if(connection.record)endRecord(connection.record);else state.api.retire(connection.native);connection.socket.destroy();}
+}
+async function joinServer(state){
+  if(!state.retired)throw fail('retire incoming server before join');
   await state.accept;
   const results=await Promise.allSettled([...state.currents,...state.handlers,...[...state.connections.values()].map(c=>c.closed)]);
   if(state.failure)throw state.failure;
   const failed=results.find(r=>r.status==='rejected');if(failed)throw failed.reason;
 }
+export async function joinInboundAuthorityServer(handle){return joinServer(serverState(handle));}
 export async function closeInboundAuthorityServer(handle){retireInboundAuthorityServer(handle);await joinInboundAuthorityServer(handle);}
+export function retireInboundTaskRuntimeServer(handle){retireServer(serverState(handle,true));}
+export async function joinInboundTaskRuntimeServer(handle){return joinServer(serverState(handle,true));}
+export async function closeInboundTaskRuntimeServer(handle){retireInboundTaskRuntimeServer(handle);await joinInboundTaskRuntimeServer(handle);}
+
+function taskRecord(req,handle,registeredServer){
+  const record=handle&&callers.get(handle),state=serverState(registeredServer,true);
+  if(!record||record.server!==state||record.req!==req||requests.get(req)!==record||record.holds<1||record.closed||state.retired||record.runtimeTerminal)throw fail('same held original runtime caller required');
+  assertLocalIdentity(record,req);return record;
+}
+export function acquireInboundTaskRuntimeCaller(req,registeredServer){
+  const state=serverState(registeredServer,true),record=req&&requests.get(req);
+  if(!record||record.server!==state||record.runtimeTerminal)throw fail('same registered runtime request required');
+  assertRequest(record,req);record.holds++;return record.handle;
+}
+export function releaseInboundTaskRuntimeCaller(handle){
+  const record=handle&&callers.get(handle);if(!record||!record.server.runtime||record.server.pid!==process.pid)throw fail('owned runtime caller required');
+  if(record.holds>0)record.holds--;
+}
+export function assertCurrentInboundTaskRuntimeCaller(req,handle,registeredServer){taskRecord(req,handle,registeredServer);}
+function trackTask(record,run){record.currentTail=run.catch(()=>{});record.server.currents.add(run);run.finally(()=>record.server.currents.delete(run)).catch(()=>{});return run;}
+export function currentInboundTaskRuntimeCaller(req,handle,registeredServer){
+  let record;try{record=taskRecord(req,handle,registeredServer);}catch(error){return Promise.reject(error);}
+  const run=record.currentTail.then(async()=>{
+    taskRecord(req,handle,registeredServer);
+    const frame=await record.server.api.current(record.native,{timeoutMs:record.server.profile.currentTimeoutMs,maxFrameBytes:record.route.maxRequestBytes+65536});
+    taskRecord(req,handle,registeredServer);return runtimeMaterial(record,frame);
+  }).catch(error=>{record.server.failure??=error;endRecord(record);record.socket.destroy();throw error;});
+  return trackTask(record,run);
+}
+export class InboundTaskRuntimeError extends Error {
+  constructor(code,message,{cause,dispatchPossible=false,responseData,responseProgress}={}){
+    super(message,{cause});this.name='InboundTaskRuntimeError';this.code=code;this.dispatchPossible=dispatchPossible;
+    if(responseData!==undefined)this.responseData=responseData;
+    if(responseProgress!==undefined)this.responseProgress=Object.freeze({...responseProgress});
+  }
+}
+function runtimeBytes(input){
+  if(!types.isUint8Array(input)||types.isProxy(input))throw fail('owned runtime Uint8Array required');
+  const buffer=bufferGetter.call(input),offset=offsetGetter.call(input),length=byteLength.call(input);
+  if(types.isSharedArrayBuffer(buffer)||length<1||length>1048576)throw fail('runtime request bytes out of bounds');
+  return Buffer.from(new Uint8Array(buffer,offset,length));
+}
+export function exchangeInboundTaskRuntime(req,handle,registeredServer,operationID,ownedUint8){
+  let record,operation,body;
+  try{record=taskRecord(req,handle,registeredServer);operation=taskOperations.indexOf(operationID)+1;if(typeof operationID!=='string'||operation<1)throw fail('closed runtime operation required');body=runtimeBytes(ownedUint8);}
+  catch(cause){return Promise.reject(new InboundTaskRuntimeError('RUNTIME_DENIED','runtime dispatch refused',{cause}));}
+  const run=record.currentTail.then(async()=>{
+    try{taskRecord(req,handle,registeredServer);}catch(cause){throw new InboundTaskRuntimeError('RUNTIME_DENIED','queued runtime dispatch refused',{cause});}
+    let result;
+    try{result=await native.exchangeTaskRuntime(record.native,operation,body,{timeoutMs:record.server.profile.currentTimeoutMs,maxResponseBytes:33554432});}
+    catch(cause){throw new InboundTaskRuntimeError('RUNTIME_UNAVAILABLE','original runtime exchange failed',{cause,dispatchPossible:cause.dispatchPossible===true,responseData:cause.responseData,responseProgress:cause.responseProgress});}
+    const data=Object.freeze({...result,contentType:'application/json',sourceVerified:false,operationVerified:false});
+    try{taskRecord(req,handle,registeredServer);}catch(cause){throw new InboundTaskRuntimeError('RUNTIME_RETIRED','original runtime caller retired after dispatch',{cause,dispatchPossible:true,responseData:data});}
+    if(operation===8)record.runtimeTerminal=true;
+    if(data.errorPresent)throw new InboundTaskRuntimeError('RUNTIME_REMOTE_ERROR','runtime returned opaque original error DATA',{dispatchPossible:true,responseData:data});
+    return data;
+  }).catch(error=>{
+    if(error.code!=='RUNTIME_REMOTE_ERROR'){record.server.failure??=error;record.runtimeTerminal=true;endRecord(record);record.socket.destroy();}
+    throw error;
+  });
+  return trackTask(record,run);
+}
