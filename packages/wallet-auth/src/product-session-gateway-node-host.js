@@ -1,3 +1,4 @@
+import {withOriginalPendingQueryHTTPHeaderBudget} from './original-pending-query-http-header-budget-private.js';
 import{acquireOriginalBinaryV5AccountPolicyRunner,assertOriginalBinaryV5AccountPolicyOwner}from'./original-binary-http-account-policy-v5.js';
 import {assertProductSessionControlSessionAllowed,productSessionControlClockFloor} from './product-session-control-intent.js';
 import {verifyOriginalProductSessionHTTPProofV5,productSessionHTTPProofV5ReplayKey} from './product-session-device-v5.js';
@@ -545,13 +546,14 @@ export class ProductSessionGatewayNodeHost {
       if(this.#accountPolicy&&!request.url?.startsWith('/v2/product-sessions/'))fail('ACCOUNT_POLICY_LEGACY_ROUTE_NOT_SUPPORTED','Legacy daemon authority cannot bypass required account policy');
       return request.url?.startsWith('/v2/product-sessions/')?productHandler(request,response):legacyHandler(request,response);
     };
-    const listener=(request,response)=>{
+    const listener=withOriginalPendingQueryHTTPHeaderBudget((request,response)=>{
       const ticket=GatewayAdmissionController.prototype.enter.call(admission,forwardedClient(request));
       if(!ticket.ok){response.writeHead(ticket.status,{'cache-control':'no-store','content-type':'application/json; charset=utf-8','retry-after':'60'});response.end(canonicalJSON({error:{code:ticket.code,message:'Wallet Gateway admission policy rejected the request'},ok:false}));return;}
       response.once('finish',ticket.release);response.once('close',ticket.release);
       Promise.resolve(dispatch(request,response)).catch(error=>{ticket.release();if(!response.headersSent){response.writeHead(500,{'cache-control':'no-store','content-type':'application/json; charset=utf-8'});response.end(canonicalJSON({error:{code:'INTERNAL_ERROR',message:'Wallet Gateway request failed'},ok:false}));}emitEvent({at:new Date().toISOString(),error:error instanceof Error?error.message:'unknown',event:'handler_error',level:'error',service:'ynx-wallet-gatewayd'});});
-    };
-    const server=createServer(listener);
+    });
+    const server=createServer({maxHeaderSize:147456},listener);
+    server.maxHeadersCount=36864; // Preserve all raw headers inside the finite parser byte budget.
     this.#originalRuntimeListener=listener;this.#originalRuntimeServer=server;
     return server;
   }
