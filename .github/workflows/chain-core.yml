@@ -266,16 +266,21 @@ jobs:
             cat "$RUNNER_TEMP/pq-lab-command-tests.jsonl"
             exit 1
           fi
+          if ! go test -json -p 1 -count=1 -timeout=45s -run '^TestPQProofHistory' ./internal/consensus > "$RUNNER_TEMP/pq-proof-history-tests.jsonl"; then
+            cat "$RUNNER_TEMP/pq-proof-history-tests.jsonl"
+            exit 1
+          fi
           python3 -B - <<'PY'
           import json, os
           from pathlib import Path
           rows = []
-          for name in ('pq-lab-core-tests.jsonl', 'pq-lab-live-tests.jsonl', 'pq-lab-command-tests.jsonl'):
+          for name in ('pq-lab-core-tests.jsonl', 'pq-lab-live-tests.jsonl', 'pq-lab-command-tests.jsonl', 'pq-proof-history-tests.jsonl'):
               rows += [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / name).read_text().splitlines()]
           required = ['TestPQLabNetworkOriginalInputsExclusiveAndLoopback', 'TestPQLabNetworkActiveEngineDBRefusesCustodyCreation', 'TestPQLabNetworkRealRegistryStoppedSourcesAndColdCustody', 'TestPQLabNetworkMissingCheckpointPreservesFailedAttempt', 'TestPQLabWorkloadRealSourceCorpusExecutionAndRestart', 'TestPQLabWorkloadBoundsAliasesAndExactSource', 'TestPQLabWorkloadProofOriginalCLIInputsAndNegatives', 'TestPQLabWorkloadMaximumProtocolWhole', 'TestPQLabNormalCommandFreshIndependentProcessInputs', 'TestPQLabNormalCommandRefusesImplicitOrDuplicateInputs', 'TestPQLabWorkloadCommandInputsAndNoMutation', 'TestPQLabWorkloadCommandRealProofInputs']
           required += ['TestPQLabExportOriginalFourStoresNormalProofAndRefusals', 'TestPQLabMultiOwnerOriginalExecutionAndBounds', 'TestPQLabOnlineSenderRevocationAndPartialIntentPreserved', 'TestPQLabOnlineSenderOriginalRecoveryAndFullProof', 'TestPQLabOnlineSenderCommandOriginalLostAckAndUnknown', 'TestPQLabPreSignedCommandCurrentCheckpoint', 'TestPQLabExportCommandRejectsImplicitTrustAndUnknownInputs', 'TestPQLabNormalCommandOnlineIndependentOwnerFlags', 'TestPQLabExportCommandOriginalStoppedStoreFixture']
           required += ['TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm', 'TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority', 'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal', 'TestPQLabLiveMaterialsCommandStrictInputs', 'TestPQLabLiveMaterialsCommandOriginalSourceResultAndProofContext']
           required += ['TestPQLabLiveMaterialsCompleteStateOriginalRSetupAndColdRead', 'TestPQLabLiveMaterialsCompleteStateJSONSchemaAndDuplicates', 'TestPQLabLiveMaterialsCompleteStateJSONOriginalResourceBounds']
+          required += ['TestPQProofHistoryPersistentBranchesAndOwnedMaterialization', 'TestPQProofHistoryIndexMatchesOriginalQueriesAndFallsBack', 'TestPQProofHistoryIndexAdvanceIsPersistentAndCandidateBound', 'TestPQProofHistoryWholeFullStateEagerDifferentialAndColdRecovery', 'TestPQProofHistoryCurrentSourceTranscript', 'TestPQLabLiveMaterialsInvocationWitnessReusesHeldValidation', 'TestPQLabLiveMaterialsInvocationWitnessNormalSetupAndColdScope']
           for name in required:
               terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != ['pass']:
