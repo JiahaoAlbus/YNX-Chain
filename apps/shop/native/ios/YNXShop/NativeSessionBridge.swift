@@ -95,6 +95,7 @@ import AppKit
     static func scopes(_ method:String,_ path:String)throws->[String] {
         guard ["GET","POST","PUT","DELETE"].contains(method),NativeWire.matches(path,"^/api/[A-Za-z0-9._:/-]{1,251}$"),!path.contains("//"),!path.hasSuffix("/"),!path.contains("/../"),!path.contains("/./") else{throw ShopError.security}
         let route=String(path.dropFirst(4)),orders=["account:read","shop:orders:write"]
+		if NativeWire.matches(route,"^/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/native-pay-intent$") && method=="GET"{return orders}
         if (route=="/profile" && ["GET","PUT"].contains(method)) || (route=="/privacy/export" && method=="GET") || (route=="/privacy/delete" && method=="POST"){return ["account:read","shop:profile:write"]}
         if (route=="/orders" && method=="GET") || (NativeWire.matches(route,"^/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$") && method=="GET") || (NativeWire.matches(route,"^/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/(transition|transition-intent-lookup)$") && method=="POST"){return AppleNativeProductState.scopes}
         if (route=="/cart" && ["GET","PUT"].contains(method)) || (route=="/orders" && method=="POST") || (route=="/orders/intent-lookup" && method=="POST") || (NativeWire.matches(route,"^/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/pay-handoff$") && ["GET","POST"].contains(method)) || (NativeWire.matches(route,"^/orders/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}/confirm-payment$") && method=="POST"){return orders}

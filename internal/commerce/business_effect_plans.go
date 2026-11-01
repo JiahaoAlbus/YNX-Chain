@@ -218,6 +218,8 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 	var plan businessEffectPlan
 	var err error
 	switch pattern {
+	case "GET /api/orders/{id}/native-pay-intent":
+		plan, err = s.nativePayIntentObservation(r.PathValue("id"), verified.proof)
 	case "POST /api/orders/{id}/pay-handoff":
 		// Read the original bound invoice before preparing an external effect.
 		// An unbound order leaves the nonce untouched for durable admission.

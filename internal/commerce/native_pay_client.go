@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const nativePayProductLimit = 2 << 20
@@ -61,6 +62,9 @@ func NewOriginalNativeShopPayClient(origin string, original *http.Client) (*Nati
 		return nil, ErrInvalidState
 	}
 	owned := *original
+	if owned.Timeout == 0 {
+		owned.Timeout = 15 * time.Second
+	}
 	owned.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	return &NativeShopPayClient{origin: origin, client: owned}, nil
 }

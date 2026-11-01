@@ -15,11 +15,15 @@ var originalShopRuntimeInputs struct {
 	buyer, seller commerce.CommerceBrowserActorBinder
 	transport     http.RoundTripper
 	nativeFiles   *commerce.OriginalNativeBuyerFilesPair
+	// Borrowed qualified Pay caller supplied by the original hosting owner.
+	// Neither ENV nor a request can create/select its protected transport.
+	nativePay *commerce.NativeShopPayClient
 }
 
 type preparedOriginalShopRuntime struct {
-	prepared *commerce.PreparedOriginalShop
-	native   *commerce.PreparedOriginalNativeBuyers
+	prepared  *commerce.PreparedOriginalShop
+	native    *commerce.PreparedOriginalNativeBuyers
+	nativePay *commerce.NativeShopPayClient
 }
 
 func prepareOriginalShopRuntime(ctx context.Context, f originalShopFiles) (originalShopRuntime, error) {
@@ -45,9 +49,10 @@ func prepareOriginalShopRuntime(ctx context.Context, f originalShopFiles) (origi
 			return nil, err
 		}
 	}
-	return preparedOriginalShopRuntime{prepared: p, native: native}, nil
+	return preparedOriginalShopRuntime{prepared: p, native: native, nativePay: inputs.nativePay}, nil
 }
 func (p preparedOriginalShopRuntime) servers(ctx context.Context, store *commerce.Store, cfg commerce.ServerConfig) (http.Handler, http.Handler, http.Handler, *commerce.Server, *commerce.Server, error) {
+	cfg.NativePay = p.nativePay
 	buyer, seller, err := p.prepared.OpenOriginal(ctx, func() (*commerce.Store, error) { return store, nil }, cfg)
 	if err != nil {
 		return nil, nil, nil, nil, nil, err

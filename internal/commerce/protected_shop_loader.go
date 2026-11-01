@@ -29,7 +29,7 @@ func LoadOriginalShopProfile(ctx context.Context, files OriginalShopFiles, curre
 	if err := shopCurrent(ctx, current); err != nil {
 		return nil, err
 	}
-	seal, err := v2.LoadProtectedBrowserSeal(files.BrowserSealFile)
+	seal, err := loadOriginalShopBrowserSeal(files.BrowserSealFile)
 	if err != nil {
 		return nil, err
 	}

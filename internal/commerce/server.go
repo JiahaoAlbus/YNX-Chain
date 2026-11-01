@@ -28,10 +28,12 @@ type ServerConfig struct {
 	taskOrders originalTaskOrderReader
 	browserSSO browserIdentityRoutes
 	// Set only by the original combined Web constructor to its fixed issuer.
-	browserGatewayOrigin      string
-	businessV2                businessVerifier
-	Auth                      AuthGateway
-	Pay                       HTTPPayVerifier
+	browserGatewayOrigin string
+	businessV2           businessVerifier
+	Auth                 AuthGateway
+	Pay                  HTTPPayVerifier
+	// Borrowed original private transport; never selected from request or ENV.
+	NativePay                 *NativeShopPayClient
 	Trust                     TrustGateway
 	AI                        HTTPAIGateway
 	ProviderTester            ProviderTester
@@ -86,6 +88,10 @@ func (s *Server) routes() {
 	s.handleFunc("POST /api/orders/{id}/pay-handoff", s.payHandoff)
 	s.handleFunc("GET /api/orders/{id}/pay-handoff", s.invoiceReference)
 	s.handleFunc("POST /api/orders/{id}/confirm-payment", s.confirmPayment)
+	s.handleFunc("GET /api/orders/{id}/native-pay-intent", func(w http.ResponseWriter, r *http.Request) {
+		// Only the original V2 action path may admit this private observation.
+		failBusiness(w, ErrUnauthorized)
+	})
 	s.handleFunc("POST /api/orders/{id}/transition", s.orderTransition)
 	s.handleFunc("POST /api/orders/{id}/return-receipts", s.receiveReturn)
 	s.handleFunc("POST /api/orders/{id}/return-restock", s.restockReturn)

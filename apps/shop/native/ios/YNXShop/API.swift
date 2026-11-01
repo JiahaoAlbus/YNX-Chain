@@ -1,4 +1,5 @@
 import Foundation
+import CoreFoundation
 
 struct Product: Codable, Identifiable {
     let productID: String
@@ -161,4 +162,17 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
     func request<T:Decodable>(_ path:String,method:String="GET",body:Data?=nil)async throws->T{let data=try await transmit(path,method:method,body:body);return try JSONDecoder().decode(T.self,from:data)}
     func data(_ path:String,method:String="GET",body:Data?=nil)async throws->Data{try await transmit(path,method:method,body:body)}
     func raw(_ path:String,method:String="POST",json:[String:Any],beforeDispatch:(()throws->Void)?=nil)async throws->[String:Any]{let data=try await transmit(path,method:method,body:CanonicalJSON.data(json),beforeDispatch:beforeDispatch);guard let value=try JSONSerialization.jsonObject(with:data) as? [String:Any] else{throw ShopError.invalidResponse};return value}
+	func readOriginalNativeIntent(_ order:Order)async throws {
+		let check=try capture();guard let account=currentSession?.account else{throw ShopError.signedOut}
+		try AppleBuyerReceipt.validate(order,account:account)
+		guard let operation=order.payIntentID,NativeWire.matches(operation,"^npi_[a-f0-9]{48}$") else{throw ShopError.security}
+		let result=try await raw("orders/\(order.orderID)/native-pay-intent",method:"GET",json:[:]);try check()
+		guard result["orderId"] as? String==order.orderID,result["originalOperation"] as? String==operation,
+		      let query=result["queryOnly"] as? NSNumber,CFGetTypeID(query)==CFBooleanGetTypeID(),query.boolValue,
+		      let funds=result["fundsVerified"] as? NSNumber,CFGetTypeID(funds)==CFBooleanGetTypeID(),!funds.boolValue,
+		      let state=result["state"] as? String,["PREPARED","ISSUED"].contains(state),
+		      let phase=result["phase"] as? String,NativeWire.matches(phase,"^[A-Za-z0-9._:-]{1,96}$") else{throw ShopError.security}
+		// An observation never mutates the order or confirms funds. The model
+		// refreshes the original order through its independent normal read path.
+	}
 }

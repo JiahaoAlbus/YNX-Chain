@@ -15,6 +15,7 @@ import (
 
 func main() {
 	addr := flag.String("http", "127.0.0.1:8095", "HTTP listen address")
+	nativeAPI := flag.Bool("native-api", false, "serve the independent client's fixed shop-api origin without Web assets")
 	state := flag.String("state", "tmp/shop/state.json", "persistent state path")
 	buyer := flag.String("buyer-assets", "apps/shop/dist", "buyer web assets")
 	seller := flag.String("seller-assets", "apps/seller-console/dist", "seller web assets")
@@ -109,7 +110,13 @@ func main() {
 	if buyerDocuments == nil {
 		buyerDocuments = documents
 	}
-	mounted, mountErr := composeOriginalCommerceWeb(*buyer, *seller, *merchant, engine, buyerPrivate, sellerPrivate, nil, identity, buyerDocuments, sellerDocuments)
+	var mounted http.Handler
+	var mountErr error
+	if *nativeAPI {
+		mounted = composeOriginalNativeShopAPI(engine, buyerPrivate)
+	} else {
+		mounted, mountErr = composeOriginalCommerceWeb(*buyer, *seller, *merchant, engine, buyerPrivate, sellerPrivate, nil, identity, buyerDocuments, sellerDocuments)
+	}
 	if mountErr != nil {
 		log.Fatal(mountErr)
 	}
