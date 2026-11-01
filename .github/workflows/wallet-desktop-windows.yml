@@ -4534,6 +4534,7 @@ jobs:
           node-version: '26'
       - run: npm ci --ignore-scripts --prefix packages/wallet-auth
       - run: node apps/wallet-desktop/scripts/run-canonical-native-qa-profile-controls.mjs
+      - run: node --test apps/wallet-desktop/scripts/test/sdk49-canonical-product-profile.test.mjs
       - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
       - uses: actions/upload-artifact@v4
         with:

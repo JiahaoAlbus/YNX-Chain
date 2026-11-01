@@ -1,0 +1,811 @@
+{
+  "name": "@ynx-chain/wallet-auth",
+  "version": "1.3.0-pq.3.32-auth.49",
+  "packageManager": "npm@11.5.1",
+  "license": "UNLICENSED",
+  "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
+  "type": "module",
+  "exports": {
+    "./pq-wallet-contract": {
+      "types": "./src/pq-wallet-contract.d.ts",
+      "import": "./src/pq-wallet-contract.js",
+      "default": "./src/pq-wallet-contract.js"
+    },
+    "./pq-wallet-backup": {
+      "types": "./src/pq-wallet-backup.d.ts",
+      "import": "./src/pq-wallet-backup.js",
+      "default": "./src/pq-wallet-backup.js"
+    },
+    "./central-browser-session-contract": {
+      "types": "./src/central-browser-session-contract.d.ts",
+      "import": "./src/central-browser-session-contract.js",
+      "default": "./src/central-browser-session-contract.js"
+    },
+    "./central-browser-session-registry": {
+      "types": "./src/central-browser-session-registry.d.ts",
+      "import": "./src/central-browser-session-registry.js",
+      "default": "./src/central-browser-session-registry.js"
+    },
+    "./application-action-launcher": {
+      "types": "./src/application-action-launcher.d.ts",
+      "import": "./src/application-action-launcher.js",
+      "default": "./src/application-action-launcher.js"
+    },
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    },
+    "./gateway-node-host": {
+      "types": "./src/gateway-node-host.d.ts",
+      "import": "./src/gateway-node-host.js",
+      "default": "./src/gateway-node-host.js"
+    },
+    "./gateway-backup": {
+      "types": "./src/gateway-backup.d.ts",
+      "import": "./src/gateway-backup.js",
+      "default": "./src/gateway-backup.js"
+    },
+    "./standard-wallet-connection": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-connection.js",
+      "default": "./src/standard-wallet-connection.js"
+    },
+    "./wallet-provider-discovery": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-provider-discovery.js",
+      "default": "./src/wallet-provider-discovery.js"
+    },
+    "./evm-product-login": {
+      "types": "./src/index.d.ts",
+      "import": "./src/evm-product-login.js",
+      "default": "./src/evm-product-login.js"
+    },
+    "./evm-product-session": {
+      "types": "./src/index.d.ts",
+      "import": "./src/evm-product-session.js",
+      "default": "./src/evm-product-session.js"
+    },
+    "./finance-evm-subject": {
+      "types": "./src/index.d.ts",
+      "import": "./src/finance-evm-subject.js",
+      "default": "./src/finance-evm-subject.js"
+    },
+    "./finance-evm-order-approval": {
+      "types": "./src/index.d.ts",
+      "import": "./src/finance-evm-order-approval.js",
+      "default": "./src/finance-evm-order-approval.js"
+    },
+    "./finance-order-opaque-transport": {
+      "types": "./src/index.d.ts",
+      "import": "./src/finance-order-opaque-transport.js",
+      "default": "./src/finance-order-opaque-transport.js"
+    },
+    "./metamask-evm": {
+      "types": "./src/index.d.ts",
+      "import": "./src/metamask-evm-adapter.js",
+      "default": "./src/metamask-evm-adapter.js"
+    },
+    "./wallet-connection-coordinator": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-connection-coordinator.js",
+      "default": "./src/wallet-connection-coordinator.js"
+    },
+    "./product-session-browser": {
+      "types": "./src/index.d.ts",
+      "import": "./src/product-session-browser.js",
+      "default": "./src/product-session-browser.js"
+    },
+    "./product-session-gateway-node-host": {
+      "types": "./src/product-session-gateway-node-host.d.ts",
+      "import": "./src/product-session-gateway-node-host.js",
+      "default": "./src/product-session-gateway-node-host.js"
+    },
+    "./product-session-control-node-host": {
+      "types": "./src/product-session-control-node-host.d.ts",
+      "import": "./src/product-session-control-node-host.js",
+      "default": "./src/product-session-control-node-host.js"
+    },
+    "./hosted-adapter": {
+      "types": "./src/hosted-adapter.d.ts",
+      "import": "./src/hosted-adapter.js",
+      "default": "./src/hosted-adapter.js"
+    },
+    "./product-session-native": {
+      "types": "./src/product-session-native.d.ts",
+      "browser": "./src/product-session-native.js",
+      "node": "./src/product-session-native-node.js",
+      "default": "./src/product-session-native.js"
+    },
+    "./product-wallet-connection": {
+      "types": "./src/product-wallet-connection.d.ts",
+      "browser": "./src/product-wallet-connection.js",
+      "node": "./src/product-wallet-connection-node.js",
+      "default": "./src/product-wallet-connection.js"
+    },
+    "./pq-wallet-key-backup": {
+      "types": "./src/pq-wallet-key-backup.d.ts",
+      "import": "./src/pq-wallet-key-backup.js",
+      "default": "./src/pq-wallet-key-backup.js"
+    },
+    "./pq-wallet-authorization": {
+      "types": "./src/pq-wallet-authorization.d.ts",
+      "import": "./src/pq-wallet-authorization.js",
+      "default": "./src/pq-wallet-authorization.js"
+    },
+    "./pq-wallet-policy": {
+      "types": "./src/pq-wallet-policy.d.ts",
+      "import": "./src/pq-wallet-policy.js",
+      "default": "./src/pq-wallet-policy.js"
+    },
+    "./product-session-account-policy": {
+      "types": "./src/product-session-account-policy.d.ts",
+      "import": "./src/product-session-account-policy.js",
+      "default": "./src/product-session-account-policy.js"
+    },
+    "./product-session-pq-approval": {
+      "types": "./src/product-session-pq-approval.d.ts",
+      "browser": null,
+      "node": "./src/product-session-pq-approval.js",
+      "default": null
+    },
+    "./product-session-completion": {
+      "types": "./src/product-session-completion-record.d.ts",
+      "import": "./src/product-session-completion-record.js",
+      "default": "./src/product-session-completion-record.js"
+    },
+    "./walletconnect-dapp-connection": {
+      "types": "./src/walletconnect-dapp-connection.d.ts",
+      "import": "./src/walletconnect-dapp-connection.js",
+      "default": "./src/walletconnect-dapp-connection.js"
+    },
+    "./original-ide-admission": {
+      "types": "./src/original-ide-admission-parent-delivery.d.ts",
+      "browser": null,
+      "node": "./src/original-ide-admission-parent-delivery.js",
+      "default": null
+    },
+    "./pq-registered-member": {
+      "types": "./src/pq-registered-member.d.ts",
+      "browser": null,
+      "node": "./src/pq-registered-member.js",
+      "default": null
+    },
+    "./auth-identity-contract": {
+      "types": "./native/original-auth-identity-v2-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-identity-v2-contract.mjs",
+      "default": null
+    },
+    "./auth-identity-verification": {
+      "types": "./src/auth-identity-verification.d.ts",
+      "browser": null,
+      "node": "./src/auth-identity-verification.js",
+      "default": null
+    },
+    "./auth-source-verification": {
+      "types": "./native/original-auth-identity-source-v2-verifier.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-identity-source-v2-verifier.mjs",
+      "default": null
+    },
+    "./auth-native-contract": {
+      "types": "./src/auth-native-contract.d.ts",
+      "browser": null,
+      "node": null,
+      "default": null
+    },
+    "./pq-native-action": {
+      "types": "./src/pq-native-action.d.ts",
+      "import": "./src/pq-native-action.js",
+      "default": "./src/pq-native-action.js"
+    },
+    "./pq-action-transport": {
+      "types": "./src/pq-action-transport.d.ts",
+      "import": "./src/pq-action-transport.js",
+      "default": "./src/pq-action-transport.js"
+    },
+    "./pq-action-transport-node": {
+      "types": "./src/pq-action-transport-node.d.ts",
+      "browser": null,
+      "node": "./src/pq-action-transport-node.js",
+      "default": null
+    },
+    "./pq-contract-deployment-transport": {
+      "types": "./src/pq-contract-deployment-transport.d.ts",
+      "import": "./src/pq-contract-deployment-transport.js",
+      "default": "./src/pq-contract-deployment-transport.js"
+    },
+    "./pq-contract-deployment-transport-node": {
+      "types": "./src/pq-contract-deployment-transport-node.d.ts",
+      "browser": null,
+      "node": "./src/pq-contract-deployment-transport-node.js",
+      "default": null
+    },
+    "./ide-artifact-manifest": {
+      "types": "./src/ide-artifact-manifest.d.ts",
+      "import": "./src/ide-artifact-manifest.js",
+      "default": "./src/ide-artifact-manifest.js"
+    },
+    "./ide-artifact-signature": {
+      "types": "./src/ide-artifact-signature.d.ts",
+      "browser": null,
+      "node": "./src/ide-artifact-signature.js",
+      "default": null
+    },
+    "./original-ide-contract-relay-guard": {
+      "types": "./src/original-ide-contract-relay-guard-node.d.ts",
+      "browser": null,
+      "node": "./src/original-ide-contract-relay-guard-node.js",
+      "default": null
+    },
+    "./pq-contract-deployment-material": {
+      "types": "./src/pq-contract-deployment-material.d.ts",
+      "import": "./src/pq-contract-deployment-material.js",
+      "default": "./src/pq-contract-deployment-material.js"
+    },
+    "./ide-artifact-release-result": {
+      "types": "./src/ide-artifact-release-result.d.ts",
+      "import": "./src/ide-artifact-release-result.js",
+      "default": "./src/ide-artifact-release-result.js"
+    },
+    "./product-session-proof-v4": {
+      "types": "./src/product-session-proof-v4.d.ts",
+      "import": "./src/product-session-proof-v4.js",
+      "default": "./src/product-session-proof-v4.js"
+    },
+    "./product-session-device-registration-v4": {
+      "types": "./src/product-session-device-registration-v4.d.ts",
+      "import": "./src/product-session-device-registration-v4.js",
+      "default": "./src/product-session-device-registration-v4.js"
+    },
+    "./product-session-device-v4": {
+      "types": "./src/product-session-device-v4.d.ts",
+      "browser": null,
+      "node": "./src/product-session-device-v4.js",
+      "default": null
+    },
+    "./product-session-pq-v4-codec": {
+      "types": "./src/product-session-pq-v4-codec.d.ts",
+      "browser": null,
+      "node": "./src/product-session-pq-v4-codec.js",
+      "default": null
+    },
+    "./original-product-device-v4-source-stage": {
+      "types": "./src/original-product-device-v4-source-stage.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-source-stage.js",
+      "default": null
+    },
+    "./original-product-device-v4-pending-client": {
+      "types": "./src/original-product-device-v4-pending-client.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-pending-client.js",
+      "default": null
+    },
+    "./original-product-device-v4-pending-review-data": {
+      "types": "./src/original-product-device-v4-pending-review-data.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-pending-review-data.js",
+      "default": null
+    },
+    "./public-content-binding": {
+      "types": "./src/public-content-binding.d.ts",
+      "import": "./src/public-content-binding.js",
+      "default": "./src/public-content-binding.js"
+    },
+    "./original-device-create-intent": {
+      "types": "./src/original-device-create-intent.d.ts",
+      "browser": null,
+      "node": "./src/original-device-create-intent.js",
+      "default": null
+    },
+    "./original-product-device-v4-registration-client": {
+      "types": "./src/original-product-device-v4-registration-client.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-registration-client.js",
+      "default": null
+    },
+    "./original-ide-deployment-v2": {
+      "types": "./native/original-ide-deployment-v2.d.mts",
+      "browser": null,
+      "node": "./native/original-ide-deployment-v2.mjs",
+      "default": null
+    },
+    "./product-session-proof-v5": {
+      "types": "./src/product-session-proof-v5.d.ts",
+      "browser": null,
+      "node": "./src/product-session-proof-v5.js",
+      "default": null
+    },
+    "./product-session-device-v5": {
+      "types": "./src/product-session-device-v5.d.ts",
+      "browser": null,
+      "node": "./src/product-session-device-v5.js",
+      "default": null
+    },
+    "./original-http-binary-v5-client": {
+      "types": "./src/original-http-binary-v5-client.d.ts",
+      "browser": null,
+      "node": "./src/original-http-binary-v5-client.js",
+      "default": null
+    },
+    "./original-product-device-v4-registered-finalization": {
+      "types": "./src/original-product-device-v4-registered-finalization.d.ts",
+      "browser": null,
+      "node": "./src/original-product-device-v4-registered-finalization.js",
+      "default": null
+    },
+    "./product-pair-session-v4-source": {
+      "types": "./src/product-pair-session-v4-source.d.ts",
+      "browser": null,
+      "node": "./src/product-pair-session-v4-source.js"
+    },
+    "./auth-runtime-image-current": {
+      "types": "./native/original-auth-runtime-image-current-v1.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-runtime-image-current-v1.mjs"
+    },
+    "./auth-runtime-image-binding": {
+      "types": "./native/original-auth-runtime-image-binding-v1.d.mts",
+      "browser": null,
+      "node": "./native/original-auth-runtime-image-binding-v1.mjs"
+    },
+    "./auth-fixed-native-edge": {
+      "types": "./scripts/auth-fixed-native-edge.d.mts",
+      "browser": null,
+      "node": "./scripts/auth-fixed-native-edge.mjs"
+    },
+    "./social-platform-policy": {
+      "types": "./src/social-platform-policy-v3.d.ts",
+      "browser": "./src/social-platform-policy-unavailable.js",
+      "node": "./src/social-platform-policy-v3.js",
+      "default": "./src/social-platform-policy-unavailable.js"
+    },
+    "./social-platform-policy/types-v1.h": "./native/ynx_sdk_social_platform_policy_v1.h",
+    "./social-platform-policy/profile-v1.json": "./integration/SOCIAL_PLATFORM_POLICY_PROFILE_V1.json",
+    "./auth-runtime-image-source": {
+      "types": "./src/original-auth-runtime-image-source-v1.d.ts",
+      "browser": null,
+      "node": "./src/original-auth-runtime-image-source-v1.js"
+    },
+    "./pay-native-cloud-bill-source-data": {
+      "types": "./native/original-pay-cloud-bill-source-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-pay-cloud-bill-source-contract.mjs",
+      "default": null
+    },
+    "./social-local-signed-data": {
+      "types": "./src/social-local-signed-v2.d.ts",
+      "browser": null,
+      "node": "./src/social-local-signed-v2.js",
+      "default": null
+    },
+    "./pair-service-commissioning": {
+      "types": "./scripts/pair-service-commissioning/commission-sdk.d.mts",
+      "browser": null,
+      "node": "./scripts/pair-service-commissioning/commission-sdk.mjs",
+      "default": null
+    },
+    "./runtime-image-commissioning": {
+      "types": "./scripts/runtime-image-commissioning/commission-sdk.d.mts",
+      "browser": null,
+      "node": "./scripts/runtime-image-commissioning/commission-sdk.mjs",
+      "default": null
+    },
+    "./pair-current-commissioning": {
+      "types": "./scripts/pair-current-commissioning/commission-sdk.d.mts",
+      "browser": null,
+      "node": "./scripts/pair-current-commissioning/commission-sdk.mjs",
+      "default": null
+    },
+    "./product-session-task-action-v6": {
+      "types": "./src/product-session-task-action-v6.d.ts",
+      "browser": null,
+      "node": "./src/product-session-task-action-v6.js",
+      "default": null
+    },
+    "./ai-native-task-action-v6-source-data": {
+      "types": "./native/original-ai-task-action-v6-source-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-ai-task-action-v6-source-contract.mjs",
+      "default": null
+    },
+    "./original-ai-task-action-v6-client": {
+      "types": "./src/original-ai-task-action-v6-client.d.ts",
+      "browser": null,
+      "node": "./src/original-ai-task-action-v6-client.js",
+      "default": null
+    },
+    "./social-fd2-engine-init-data": {
+      "types": "./src/social-fd2-engine-init.d.ts",
+      "browser": null,
+      "node": "./src/social-fd2-engine-init.js",
+      "default": null
+    },
+    "./pq-native-pay-observation": {
+      "types": "./src/pq-native-pay-observation.d.ts",
+      "browser": null,
+      "node": "./src/pq-native-pay-observation.js",
+      "default": null
+    },
+    "./social-ordinary-enrollment-v2-data": {
+      "types": "./src/social-ordinary-enrollment-v2.d.ts",
+      "browser": null,
+      "node": "./src/social-ordinary-enrollment-v2.js",
+      "default": null
+    },
+    "./pq-native-pay-source": {
+      "types": "./src/pq-native-pay-source.d.ts",
+      "browser": null,
+      "node": "./src/pq-native-pay-source.js",
+      "default": null
+    },
+    "./wallet-pay-client-source-data": {
+      "types": "./native/original-wallet-pay-client-source-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-wallet-pay-client-source-contract.mjs",
+      "default": null
+    },
+    "./original-wallet-main-namespace-bootstrap": {
+      "types": "./src/original-wallet-main-namespace-bootstrap.d.ts",
+      "browser": null,
+      "node": "./src/original-wallet-main-namespace-bootstrap.js",
+      "default": null
+    }
+  },
+  "types": "./src/index.d.ts",
+  "files": [
+    "src",
+    "scripts",
+    "testdata",
+    "integration",
+    "proposals",
+    "central-registry.json",
+    "product-session-registry.json",
+    "registry-conflict-evidence.json",
+    "CENTRAL_INTEGRATION.md",
+    "EVM_PRODUCT_SESSION_V1.md",
+    "FINANCE_EVM_PRIVATE_ORDER_V1.md",
+    "FINANCE_ORDER_OPAQUE_V2.md",
+    "native/original-auth-identity-source-verifier.mjs",
+    "native/publication-readonly-source-r28-20261018/source",
+    "native/terminal-custody-recovery-r30a-20261018/source",
+    "native/policy-revocation-source-r35-20261018/source",
+    "native/original-auth-identity-v2-contract.mjs",
+    "native/original-auth-identity-v2-contract.d.mts",
+    "native/original-auth-identity-source-v2-verifier.mjs",
+    "native/original-auth-identity-source-v2-verifier.d.mts",
+    "native/original-pq-host-catalog-source-contract.mjs",
+    "native/original-pq-host-catalog-source.h",
+    "native/original-pq-host-catalog-source.mm",
+    "native/original-pq-host-catalog-source-state.h",
+    "native/original-pq-host-catalog-receipt.h",
+    "AUTH_RUNTIME_CLOSURE.md",
+    "native/original-ide-auth-proof-dispatch.mjs",
+    "native/original-auth-source-v2-dispatch.mjs",
+    "native/original-auth-identity-source-authority.mm",
+    "native/original-auth-source-v2-native-data.h",
+    "native/original-ide-identity-peer-wire.h",
+    "native/original-ide-identity-peer-endpoint.h",
+    "native/original-developer-principal-data.mjs",
+    "native/original-ide-project-control-contract.mjs",
+    "native/original-ide-approval-state-head-data.mjs",
+    "native/original-ide-publication-approval-contract.mjs",
+    "native/original-ide-project-control-source.inc.mm",
+    "native/original-ide-project-control-capture.mjs",
+    "native/original-ide-project-control-dispatch.mjs",
+    "native/original-ide-publication-approval-dispatch.mjs",
+    "native/original-ide-protected-publisher-contract.mjs",
+    "native/original-ide-protected-publisher-dispatch.mjs",
+    "native/original-ide-project-control-custody.h",
+    "native/original-ide-project-control-custody.mm",
+    "native/original-ide-project-control-key-record.h",
+    "native/original-ide-project-control-custody-source.inc.mm",
+    "native/original-ide-project-control-custody-data.mjs",
+    "scripts/normal-runtime-materialization.mjs",
+    "integration/WALLET_APP_RUNTIME_DEPENDENCIES_316.json",
+    "scripts/NORMAL_RUNTIME_MATERIALIZATION.md",
+    "native/original-pq-host-catalog-task-exit.h",
+    "native/original-ide-service-registration-data.h",
+    "native/original-ide-project-app-observer.h",
+    "native/original-ide-project-app-observer-data.h",
+    "native/original-product-device-v4-source-contract.mjs",
+    "native/product-session-device-v4-once.h",
+    "native/product-session-device-v4-once-binding.h",
+    "native/original-source-root-contract-v2.mjs",
+    "native/original-source-root-consumer-v2.mjs",
+    "native/original-source-root-dirfd-journal.h",
+    "native/original-source-root-dirfd-node.cpp",
+    "native/original-auth-identity-joint-owner.h",
+    "native/original-auth-identity-joint-owner.mm",
+    "native/original-auth-identity-source-authority.h",
+    "native/original-host-dirfd-journal.h",
+    "native/original-product-device-v4-pending-journal.h",
+    "native/original-product-device-v4-pending-source-contract.mjs",
+    "native/original-auth-identity-native-release.h",
+    "native/original-product-device-v4-provisioning-journal.h",
+    "native/original-product-device-v4-provisioning-source-contract.mjs",
+    "native/original-product-device-v4-query-source-contract.mjs",
+    "native/original-product-device-v4-query-source-contract.d.mts",
+    "native/original-product-device-v4-query-journal.h",
+    "native/original-product-device-v4-query-source.inc.mm",
+    "native/original-ide-deployment-v2-kernel.mjs",
+    "native/original-ide-deployment-v2-journal.mjs",
+    "native/original-ide-deployment-v2-contract.mjs",
+    "native/original-ide-deployment-v2.mjs",
+    "native/original-ide-deployment-v2.d.mts",
+    "native/original-ide-deployment-v2-key-loan.h",
+    "native/original-ide-deployment-v2-key-loan.cpp",
+    "native/original-ide-deployment-v2-call.cpp",
+    "native/original-ide-deployment-v2-addon.cpp",
+    "native/original-ide-deployment-v2-call.h",
+    "native/core-abi/ynx_artifact_release.h",
+    "native/core-abi/deployment_manifest_v2.h",
+    "src/original-ide-deployment-v2-source.js",
+    "src/product-session-proof-v5.js",
+    "src/product-session-proof-v5.d.ts",
+    "HTTP_PROOF_V5_DATA.md",
+    "docs/original-device-v4-completion.md",
+    "src/product-session-device-v5.js",
+    "src/product-session-device-v5.d.ts",
+    "src/original-http-binary-v5-client.js",
+    "src/original-http-binary-v5-client-private.js",
+    "src/original-http-binary-v5-client.d.ts",
+    "HTTP_V5_SERVER_CURRENT.md",
+    "scripts/original-cloud-deployment-execution-approval-v2.mjs",
+    "native/original-cloud-deployment-execute-approval-v2.mjs",
+    "native/original-cloud-deployment-execution-v2-contract.mjs",
+    "native/original-cloud-deployment-recovery-v2-contract.mjs",
+    "native/original-product-device-v4-registered-finalization-source-contract.mjs",
+    "native/original-product-session-http-v5-source-contract.mjs",
+    "native/original-product-device-v4-registered-finalization-source.inc.mm",
+    "native/original-registered-finalization-scope-private.h",
+    "native/original-http-v5-acquire.inc.mm",
+    "native/original-http-v5-registered-private.h",
+    "native/original-http-v5-registered-private.mm",
+    "native/original-http-v5-scope-private.h",
+    "native/original-http-v5-source.inc.mm",
+    "native/original-auth-runtime-image-binding-v1.mjs",
+    "native/original-auth-runtime-image-binding-v1.d.mts",
+    "native/original-auth-runtime-image-current-v1.mjs",
+    "native/original-auth-runtime-image-current-v1.d.mts",
+    "native/original-auth-runtime-image-source-internal.h",
+    "native/original-auth-runtime-image-private.mm",
+    "native/original-auth-runtime-image-private.h",
+    "native/ynx_sdk_social_platform_policy_v1.h",
+    "native/original-pay-cloud-bill-source-contract.mjs",
+    "native/original-pay-cloud-bill-source-contract.d.mts",
+    "ROOT_PAIR_CURRENT_NORMAL.md",
+    "native/original-ai-task-action-v6-source-contract.mjs",
+    "native/original-ai-task-action-v6-source-contract.d.mts",
+    "docs/task-action-v6.md",
+    "docs/ai-task-source-v6.md",
+    "docs/AI_TASK_V6_NATIVE_CLIENT.md",
+    "go/taskactionv6/go.mod",
+    "go/taskactionv6/bridge.go",
+    "go/taskactionv6/open_posix.go",
+    "go/taskactionv6/open_other.go",
+    "go/taskactionv6/README.md",
+    "docs/pay-native-source-getter.md",
+    "native/original-wallet-pay-client-source-contract.mjs",
+    "native/original-wallet-pay-client-source-contract.d.mts",
+    "native/WALLET_PAY_CLIENT_SOURCE_V1.md",
+    "native/original-wallet-main-namespace-private.h",
+    "native/original-wallet-main-namespace-private.cpp",
+    "docs/wallet-main-namespace-bootstrap-v1.md",
+    "docs/wallet-main-namespace-private-startup-v1.json",
+    "docs/wallet-main-namespace-import-provenance-v1.json",
+    "docs/wallet-pay-dispatch-matching.md",
+    "native/pay_native_source_code_marker_private.hpp",
+    "native/pay_root_transport_private.hpp",
+    "native/pay_native_namespace_bootstrap_private.hpp",
+    "native/pay_root_transport_loan.cpp",
+    "native/pay_root_postbuild_private.hpp",
+    "native/pay_root_main_code_private.hpp",
+    "native/pay_root_transport.mm",
+    "native/pay_root_qualification_private.hpp",
+    "native/pay_root_postbuild.mm",
+    "native/pay_root_main_code.mm",
+    "native/pay_root_transport_loan_private.hpp",
+    "native/pay_native_startup_epoch_private.hpp",
+    "native/pay_native_source_methods.inc",
+    "native/pay_root_public_hold_private.hpp",
+    "native/pay_root_transport_loan_private.h",
+    "native/pay_native_kernel.hpp",
+    "native/pay_root_transport_release.cpp",
+    "native/pay_root_public_hold.cpp",
+    "native/pay_root_transport_release_private.hpp",
+    "native/pay_native_source_math_completion.inc",
+    "native/pay_root_qualification.mm",
+    "native/pay_native_namespace_bootstrap.cpp",
+    "native/pay_native_permission_private.hpp",
+    "native/original-ide-cocoa-parent-producer.h",
+    "native/original-ide-cocoa-parent-producer.mm",
+    "native/original-auth-identity-public-limits.h",
+    "native/original-first-enter-selection.h",
+    "native/original-ide-artifact-result-data.h",
+    "native/original-ide-auth-proof-data.h",
+    "native/original-ide-auth-proof-source.inc.mm",
+    "native/original-ide-contract-relay-launch.h",
+    "native/original-ide-contract-relay-owner.h",
+    "native/original-ide-contract-relay-owner.mm",
+    "native/original-ide-contract-relay-peer.h",
+    "native/original-ide-contract-relay-runtime.inc.mm",
+    "native/original-ide-contract-relay-source.inc.mm",
+    "native/original-ide-helper-build-release.h",
+    "native/original-ide-helper-client.h",
+    "native/original-ide-helper-client.mm",
+    "native/original-ide-helper-service-contract.h",
+    "native/original-ide-helper-service-install.mm",
+    "native/original-ide-helper-xpc-peer.h",
+    "native/original-ide-helper-xpc-peer.mm",
+    "native/original-ide-identity-launch-holder.h",
+    "native/original-ide-identity-launch-holder.mm",
+    "native/original-ide-parent-joint.inc.mm",
+    "native/original-ide-parent-kernel.h",
+    "native/original-ide-parent-kernel.mm",
+    "native/original-ide-parent-lifetime.h",
+    "native/original-ide-parent-node.h",
+    "native/original-ide-parent-node.mm",
+    "native/original-ide-parent-observation.h",
+    "native/original-ide-parent-observation.mm",
+    "native/original-ide-parent-prelude.h",
+    "native/original-ide-parent-source-binding.h",
+    "native/original-ide-parent-source-binding.mm",
+    "native/original-ide-parent-transport.h",
+    "native/original-ide-private-client-custody.h",
+    "native/original-ide-project-authority-data.h",
+    "native/original-ide-project-authority-source.inc.mm",
+    "native/original-ide-public-originals.h",
+    "native/original-ide-publication-artifact.h",
+    "native/original-ide-publication-artifact.mm",
+    "native/original-ide-wallet-identity-source.h",
+    "native/original-ide-wallet-identity-source.mm",
+    "native/original-ide-wallet-peer-launch.h",
+    "native/original-ide-wallet-peer-launch.mm",
+    "native/original-source-provisioning-fence.h",
+    "native/original-source-public-installation.h",
+    "native/original-source-verifier-io.h",
+    "native/pay_native_actual_context.cpp",
+    "native/pay_native_actual_context_private.h",
+    "native/pay_native_actual_context_private.hpp",
+    "native/pay_native_channel_private.hpp",
+    "native/pay_native_kernel.cpp",
+    "native/pay_native_main_peer.cpp",
+    "native/pay_native_main_peer_private.hpp",
+    "native/pay_native_normal_capture.cpp",
+    "native/pay_native_producer_private.hpp",
+    "native/pay_native_runtime_private.hpp",
+    "native/pay_native_source_lease.cpp",
+    "native/pay_native_source_lease_private.h",
+    "native/pay_native_source_lease_private.hpp",
+    "native/pay_native_stage.cpp",
+    "native/vendor/link/include/account_initial.h",
+    "native/vendor/link/include/deployment_manifest_v2.h",
+    "native/vendor/link/include/libynx_artifact_release.h",
+    "native/vendor/link/include/pay_native_actual_context_private.h",
+    "native/vendor/link/include/pay_native_source_lease_private.h",
+    "native/vendor/link/include/pay_root_transport_loan_private.h",
+    "native/vendor/link/include/private_client_startup_v1.h",
+    "native/vendor/link/include/private_client_v1.h",
+    "native/vendor/link/include/product_device_challenge_v4.h",
+    "native/vendor/link/include/product_device_keypair_v4.h",
+    "native/vendor/link/include/product_device_registration_v4.h",
+    "native/vendor/link/include/product_session_http.h",
+    "native/vendor/link/include/product_session_http_v5.h",
+    "native/vendor/link/include/publisher_registration.h",
+    "native/vendor/link/include/registered_n1_verify.h",
+    "native/vendor/link/include/tx_batch.h",
+    "native/vendor/link/include/ynx_artifact_release.h",
+    "native/vendor/link/include/ynx_project_control.h",
+    "native/vendor/link/libynx_artifact_release.a"
+  ],
+  "bin": {
+    "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
+    "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs",
+    "ynx-wallet-control-migrate-v3": "scripts/ynx-wallet-control-migrate-v3.mjs",
+    "ynx-auth-source-issue": "scripts/ynx-auth-source-issue.mjs"
+  },
+  "scripts": {
+    "build:central-browser": "esbuild src/central-browser-session-browser.js --bundle --platform=browser --format=iife --legal-comments=none --outfile=src/central-browser-session-browser.bundle.js",
+    "test": "node --test test/*.test.mjs test-signed-manifest-selector.mjs native/test-pq-catalog-source-contract.mjs test-pq-catalog-source-n1.mjs test-pq-catalog-source-dispatch.mjs test-r226-normal-source-route.mjs && npm run test:types",
+    "test:types": "node test/check-type-closures.mjs",
+    "check": "npm test",
+    "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
+    "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
+    "proof:product-session": "node test/generate-product-session-visible-proof.mjs",
+    "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs",
+    "qa:pq-recovery": "node scripts/qa-pq-wallet-recovery.mjs",
+    "test:owned-interfaces": "npm run test:source-v2-acquisition && npm run test:auth-runtime-closure && node scripts/assert-pq-test-provider.mjs && node --test --test-concurrency=1 test/pq-wallet-native-action-signing.test.mjs test/pq-native-action-codec.test.mjs test/pq-native-action-go-interop.test.mjs test/auth-identity-proof-frame.test.mjs test/pq-wallet-auth-identity-signing.test.mjs test/original-identity-peer-runtime.test.mjs test/original-wallet-identity-source-binding.test.mjs test/original-ide-identity-peer-binding.test.mjs test/original-ide-native-auth-binding.test.mjs test/auth-native-type-only-export.test.mjs test/auth-source-acquisition-driver.test.mjs test/auth-source-transition.test.mjs test/auth-source-issued-observed-height.test.mjs test/auth-source-v2-public-consumer.test.mjs test/auth-identity-verification.test.mjs test/pq-registered-member.test.mjs test/original-ide-public-export.test.mjs test/original-ide-private-client-r33.test.mjs test/original-auth-identity-private-joint-registration.test.mjs test/pq-wallet-policy.test.mjs test/pq-wallet-policy-v2.test.mjs test/pq-wallet-revocation-wire.test.mjs test/pq-wallet-revocation-policy.test.mjs test/auth-policy-r35-projection.test.mjs test/auth-policy-r35-normal-source-transaction.test.mjs test/walletconnect-address-profile.test.mjs test/walletconnect-dependency-closure.test.mjs test/walletconnect-partial-initialization.test.mjs test/walletconnect-cleanup-observation.test.mjs test/central-browser-pair-cleanup.test.mjs test/original-ide-cold-terminal-custody.test.mjs test/original-host-terminal-journal-cleanup.test.mjs test/original-host-first-enter-r48.test.mjs && npm run test:types",
+    "test:types:browser": "node test/check-type-closures.mjs --only=browser",
+    "test:types:node-private": "node test/check-type-closures.mjs --only=node-private",
+    "test:auth-runtime-closure": "node --experimental-import-meta-resolve --test test/auth-runtime-closure.test.mjs",
+    "test:source-v2-acquisition": "node integration/source-acquisition-r101/tests/run.mjs",
+    "test:pq-action-transport": "node --test --test-concurrency=1 test/pq-action-transport.test.mjs && tsc -p test/tsconfig.pq-action-transport-browser.json && tsc -p test/tsconfig.pq-action-transport-node.json",
+    "test:pq-native-r140-compatibility": "node --test test/pq-native-r140-compatibility.test.mjs",
+    "test:joint-child-cleanup": "node --test --test-name-pattern=\"joint cleanup (retains|drains|waits)|R11 PUBLIC joint|R11 PUBLIC failed commit|R20 PUBLIC typed (partial|IDE selects)|R33 PUBLIC parent retire drains\" test/original-auth-identity-private-joint-registration.test.mjs && node --test test/pq-native-r140-compatibility.test.mjs",
+    "test:auth4-deploy-composition": "node --test test/auth4-deploy-composition.test.mjs test/pq-native-r140-compatibility.test.mjs && tsc -p test/tsconfig.pq-contract-deployment-transport-browser.json && tsc -p test/tsconfig.pq-contract-deployment-transport-node.json",
+    "test:r154-normal-paired": "node --test test/r154-normal-paired-build.test.mjs test/pq-native-r140-compatibility.test.mjs",
+    "test:developer-contract": "node --test test/developer-contract-connection.test.mjs test/walletconnect-address-profile.test.mjs test/walletconnect-dapp-lifecycle.test.mjs test/walletconnect-cleanup-observation.test.mjs && npm run test:types:browser",
+    "test:r159-normal-typed": "node --test test/r159-normal-publication-build.test.mjs test/r154-normal-paired-build.test.mjs test/pq-native-r140-compatibility.test.mjs",
+    "test:artifact-contract": "node --test --test-concurrency=1 test/ide-artifact-manifest.test.mjs test/ide-artifact-signature.test.mjs test/contract-relay-guard.test.mjs test/contract-relay-guard-node.test.mjs test/developer-contract-connection.test.mjs test/walletconnect-runtime-closure.test.mjs && npm run test:types",
+    "test:artifact-material-delta": "node --test --test-name-pattern=\"original Go catalog text rule\" test/ide-artifact-signature.test.mjs && node --test test/pq-contract-deployment-material.test.mjs && npm run test:types",
+    "test:r162-proof-observation": "node --test test/r162-proof-observation-source.test.mjs",
+    "test:contract-source-identity": "node --test test/contract-relay-source-identity.test.mjs test/contract-relay-guard-node.test.mjs test/contract-relay-guard.test.mjs test/developer-contract-connection.test.mjs && npm run test:types",
+    "test:contract-initiator-boundary": "node --test test/walletconnect-contract-initiator-boundary.test.mjs test/r164-contract-relay-source-intake.test.mjs && node --test --test-name-pattern=\"Normal Node recipe|Inherited R162 proof|Inherited proof keeps\" test/r154-normal-paired-build.test.mjs test/r162-proof-observation-source.test.mjs && node --test --test-name-pattern=\"normal Node and helper each compile|canonical SDK R159\" test/r159-normal-publication-build.test.mjs test/pq-native-r140-compatibility.test.mjs && npm run test:types",
+    "test:contract-public-current": "node --test test/contract-relay-public-current.test.mjs && npm run test:types",
+    "test:contract-autonomous-scope": "node --test --test-concurrency=1 test/contract-relay-autonomous-scope.test.mjs test/contract-relay-guard-node.test.mjs test/contract-relay-source-identity.test.mjs test/contract-relay-public-current.test.mjs test/r166-source-intake.test.mjs test/contract-relay-runtime-union.test.mjs && npm run test:types",
+    "test:r170-publication": "node --test --test-concurrency=1 test/original-ide-publication-binding.test.mjs test/r170-source-intake.test.mjs && npm run test:types",
+    "test:r172-main-thread": "node --test --test-concurrency=1 test/r172-source-intake.test.mjs",
+    "test:r171-project-authority": "node --test --test-concurrency=1 test/r171-source-intake.test.mjs && npm run test:types:node-private",
+    "test:r174-project-reader": "node --test --test-concurrency=1 test/original-ide-project-authority-binding.test.mjs test/r174-source-intake.test.mjs && npm run test:types:node-private",
+    "test:r177-workspace-selector": "node --test --test-concurrency=1 test/original-ide-workspace-project-selection-binding.test.mjs test/r177-source-intake.test.mjs && npm run test:types:node-private",
+    "test:r181-publication-result": "node --test --test-concurrency=1 test/original-publication-result-peer-runtime.test.mjs test/r181-source-intake.test.mjs && npm run test:types:node-private",
+    "test:r185-source-v2": "node --test --test-concurrency=1 test/r185-source-current-async-integration.test.mjs test/r185-source-current-v2-kernel.test.mjs test/r185-key-file-custody.test.mjs test/r185-source-intake.test.mjs",
+    "test:r186-sign-partial": "node --test --test-name-pattern='^failed signer attempt' test/r185-source-current-v2-kernel.test.mjs && node --test test/r186-source-intake.test.mjs",
+    "test:source8-r194-integration": "node --test test/source8-r194-js-integration.test.mjs test/source8-r194-source-intake.test.mjs && tsc -p test/tsconfig.source8-r194-types.json",
+    "test:source8-r194-ci": "npm run test:source8-r194-integration && node --test --test-concurrency=1 test/r191-developer-http-principal.test.mjs test/r194-project-control-canonical-member.test.mjs",
+    "test:r193-host-relay": "node --test test/r193-host-consumer-integration.test.mjs test/source8-r194-source-intake.test.mjs && tsc -p test/tsconfig.source8-r194-types.json && node --test --test-name-pattern=\"^original (recheck|relay)\" test/r191-developer-http-principal.test.mjs",
+    "test:r196-control-source": "node --test test/r196-canonical-source-intake.test.mjs test/r196-build-closure-guards.test.mjs test/r196-project-control-capture.test.mjs && tsc -p test/tsconfig.r196-source-types.json",
+    "test:publication-source-types": "tsc -p test/tsconfig.publication-source-types.json",
+    "test:r197-control-dispatch": "node --test --test-concurrency=1 test/r197-sdk-cli-consumer.test.mjs test/r197-canonical-source-intake.test.mjs test/r197-project-control-current-dispatch.test.mjs",
+    "test:r197-cli-head-closure": "node --test test/r197-cli-native-closure.test.mjs && node --test --test-name-pattern=\"Auth26 recipe selects\" test/r197-canonical-source-intake.test.mjs",
+    "test:original-native-control-interop": "node --test test/r199-native-control-interop.test.mjs",
+    "test:normal-native-compile-reuse": "node --test test/normal-native-compile-reuse.test.mjs",
+    "test:r200-protected-publisher": "node --test --test-concurrency=1 test/r200-protected-publisher-contract.test.mjs test/r200-recipe-closure.test.mjs",
+    "test:normal-native-actual-record": "node --test test/normal-native-compile-reuse-actual.test.mjs",
+    "test:normal-native-empty-runtime": "node --test --test-name-pattern=\"^runtime empty-file pins\" test/normal-native-compile-reuse.test.mjs",
+    "test:r201-control-custody": "node --test --test-name-pattern=\"new custody\" test/r201-project-control-capture.test.mjs && node --test test/r201-native-custody-recipe.test.mjs",
+    "test:main-c132-entry": "node --test test/main-c132-control-entry.test.mjs",
+    "test:r204-source-completion": "node --test test-r204-source-completion.mjs",
+    "test:r205-source-lifecycle": "node --test test-r205-source-lifecycle.mjs",
+    "test:r211-protected-publisher-current": "node --test test-protected-publisher-current.mjs",
+    "test:normal-runtime-materialization": "node --test test/normal-runtime-materialization.test.mjs",
+    "test:r218-publication-selector": "node --test --test-concurrency=1 test-signed-manifest-selector.mjs test/r218-signed-manifest-recipe.test.mjs",
+    "test:r222-pq-source": "node --test --test-concurrency=1 native/test-pq-catalog-source-contract.mjs test-pq-catalog-source-n1.mjs test/r222-pq-native-recipe.test.mjs test/r222-pq-source-intake.test.mjs",
+    "test:r225-pq-dispatcher": "node --test --test-concurrency=1 test-pq-catalog-source-dispatch.mjs test/r225-pq-dispatcher-intake.test.mjs",
+    "test:r226-normal-source-route": "node --test test-r226-normal-source-route.mjs",
+    "test:publication-result-decoder": "node --test test/ide-artifact-release-result.test.mjs",
+    "test:product-session-v4-codec-types": "tsc -p test/tsconfig.product-session-v4-codec-types.json",
+    "test:product-device-v4-pending-client-types": "tsc -p test/tsconfig.product-device-v4-pending-client-types.json",
+    "test:pay-source-family": "node --test test/pay-source-family.test.mjs test/pay-source-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pay-source-family.types.mts",
+    "test:social-local-signed-v2": "node --test test/social-local-signed-v2.test.mjs test/social-local-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/social-local-signed-v2.types.mts",
+    "commission:pair-service-sdk": "node scripts/commission-pair-service-sdk.mjs",
+    "test:pair-service-commissioning": "node --test test/pair-service-commissioning.test.mjs test/pair-postprocess-read.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pair-service-commissioning.types.mts",
+    "commission:runtime-image": "node scripts/commission-runtime-image-sdk.mjs",
+    "test:runtime-image-commissioning": "node --test test/runtime-image-commissioning-install.test.mjs test/runtime-image-commissioning-postprocess.test.mjs",
+    "commission:pair-current-sdk": "node ./scripts/commission-pair-current-sdk.mjs",
+    "test:ai-native-v6-composition": "node --test test/ai-native-v6-composition.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/ai-native-v6-composition.types.mts"
+  },
+  "dependencies": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0",
+    "@walletconnect/sign-client": "2.23.10",
+    "qrcode": "1.5.4",
+    "typescript": "5.9.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.9",
+    "@ynx/batch-v01-candidate": "file:testdata/ynx-batch-v01-candidate-0.1.0-candidate.3.tgz",
+    "@types/node": "24.13.3",
+    "@ynx-chain/open-protocol": "file:testdata/ynx-chain-open-protocol-0.0.0-dev.4.tgz"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "private": true,
+  "peerDependencies": {
+    "@ynx/batch-v01-candidate": "0.1.0-candidate.3",
+    "@types/node": ">=22.13.9",
+    "@ynx-chain/open-protocol": "0.0.0-dev.4"
+  },
+  "peerDependenciesMeta": {
+    "@ynx/batch-v01-candidate": {
+      "optional": true
+    },
+    "@types/node": {
+      "optional": true
+    }
+  }
+}
