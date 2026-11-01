@@ -105,6 +105,8 @@ func (s *Server) routes() {
 	s.handleFunc("POST /api/orders/{id}/return-restock", s.restockReturn)
 	s.handleFunc("POST /api/orders/{id}/transition-intent-lookup", s.buyerTransitionLookup)
 	s.handleFunc("POST /api/seller/mutations/lookup", s.sellerMutationLookup)
+	s.handleFunc("POST /api/seller/inventory/batch", s.inventoryBatch)
+	s.handleFunc("POST /api/seller/inventory/read", s.inventorySelection)
 	s.handleFunc("POST /api/seller/stores", s.createStore)
 	s.handleFunc("GET /api/seller/stores", s.sellerStores)
 	s.handleFunc("PUT /api/seller/stores/{id}", s.updateStore)

@@ -10,7 +10,7 @@ import (
 // The independent app's existing fixed API origin. This is the original Shop
 // Store and original complete Buyer handler, without a Web document dependency.
 // No request selects another role, host, Source, platform factory or fallback.
-func composeOriginalNativeShopAPI(public, buyer http.Handler) http.Handler {
+func composeOriginalNativeShopAPI(public, buyer, seller http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -26,6 +26,20 @@ func composeOriginalNativeShopAPI(public, buyer http.Handler) http.Handler {
 		}
 		if publicRead && public != nil {
 			public.ServeHTTP(w, r)
+			return
+		}
+		// Fixed inventory/warehouse CLI surface borrows the original complete
+		// Seller handler. Its own protected identity/current/action verification
+		// remains mandatory. Never retry a denial through Buyer or legacy auth.
+		sellerInventory := r.Method == http.MethodPost && (p == "/api/seller/inventory/batch" || p == "/api/seller/inventory/read" || p == "/api/seller/mutations/lookup")
+		if sellerInventory {
+			if seller != nil {
+				seller.ServeHTTP(w, r)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]string{"code": "SELLER_ORIGINAL_AUTHORITY_UNAVAILABLE"})
 			return
 		}
 		if strings.HasPrefix(p, "/api/") && !strings.HasPrefix(p, "/api/seller/") && !strings.HasPrefix(p, "/api/auth/") && !strings.HasPrefix(p, "/api/sso/") {

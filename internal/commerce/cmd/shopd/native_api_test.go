@@ -14,7 +14,7 @@ func TestShopNativeAPIOriginalCatalogWithoutWebOrPrivateAuthority(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := composeOriginalNativeShopAPI(commerce.NewServer(store, commerce.ServerConfig{}).Handler(), nil)
+	h := composeOriginalNativeShopAPI(commerce.NewServer(store, commerce.ServerConfig{}).Handler(), nil, nil)
 	for _, item := range []struct {
 		method, path string
 		status       int
@@ -36,7 +36,7 @@ func TestShopNativeAPIOnlyDispatchesExactOriginalBuyer(t *testing.T) {
 		}
 		w.WriteHeader(418)
 	})
-	h := composeOriginalNativeShopAPI(nil, buyer)
+	h := composeOriginalNativeShopAPI(nil, buyer, nil)
 	request := httptest.NewRequest("GET", "https://shop-api.ynxweb4.com/api/orders/original/native-pay-intent", nil)
 	request.Header.Set("X-Original-Proof", "held")
 	w := httptest.NewRecorder()
@@ -49,6 +49,39 @@ func TestShopNativeAPIOnlyDispatchesExactOriginalBuyer(t *testing.T) {
 		h.ServeHTTP(w, httptest.NewRequest("GET", u, strings.NewReader("")))
 		if w.Code != 400 || calls != 1 {
 			t.Fatal(u, w.Code, calls)
+		}
+	}
+}
+
+func TestShopNativeAPIFixedInventorySellerNeverFallsBackToBuyer(t *testing.T) {
+	buyerCalls, sellerCalls := 0, 0
+	buyer := http.HandlerFunc(func(http.ResponseWriter, *http.Request) { buyerCalls++ })
+	seller := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sellerCalls++
+		if r.Header.Get("X-Original-Proof") != "held" || r.Host != "shop-api.ynxweb4.com" {
+			t.Fatal("original protected request changed")
+		}
+		w.WriteHeader(403)
+	})
+	h := composeOriginalNativeShopAPI(nil, buyer, seller)
+	for _, p := range []string{"/api/seller/inventory/batch", "/api/seller/mutations/lookup", "/api/seller/inventory/read"} {
+		r := httptest.NewRequest("POST", "https://shop-api.ynxweb4.com"+p, strings.NewReader(`{"original":"DATA"}`))
+		r.Header.Set("X-Original-Proof", "held")
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		if w.Code != 403 || buyerCalls != 0 {
+			t.Fatal("seller denial fell through", w.Code, buyerCalls)
+		}
+	}
+	if sellerCalls != 3 {
+		t.Fatal(sellerCalls)
+	}
+	for _, p := range []string{"/api/seller/inventory/batch", "/api/seller/mutations/lookup", "/api/seller/inventory/read"} {
+		method := "POST"
+		w := httptest.NewRecorder()
+		composeOriginalNativeShopAPI(nil, buyer, nil).ServeHTTP(w, httptest.NewRequest(method, "https://shop-api.ynxweb4.com"+p, nil))
+		if w.Code != 503 || buyerCalls != 0 {
+			t.Fatal("absent Seller authority fallback", w.Code, buyerCalls)
 		}
 	}
 }

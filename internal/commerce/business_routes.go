@@ -60,6 +60,8 @@ var commerceBusinessRoutes = map[string]businessRoutePolicy{
 	"POST /api/seller/products/{id}/publish":                       {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"POST /api/seller/products/{id}/unpublish":                     {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"POST /api/seller/inventory":                                   {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
+	"POST /api/seller/inventory/batch":                             {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
+	"POST /api/seller/inventory/read":                              {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"GET /api/seller/audit":                                        {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"GET /api/seller/settlements":                                  {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"POST /api/ai/jobs":                                            {mode: "local", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write", "shop:profile:write"}, "seller": {"account:read", "shop:seller:operate"}}},

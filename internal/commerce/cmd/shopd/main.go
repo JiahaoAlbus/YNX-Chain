@@ -114,7 +114,7 @@ func main() {
 	var mounted http.Handler
 	var mountErr error
 	if *nativeAPI {
-		mounted = composeOriginalNativeShopAPI(engine, buyerPrivate)
+		mounted = composeOriginalNativeShopAPI(engine, buyerPrivate, sellerPrivate)
 	} else {
 		mounted, mountErr = composeOriginalCommerceWeb(*buyer, *seller, *merchant, engine, buyerPrivate, sellerPrivate, nil, identity, buyerDocuments, sellerDocuments)
 	}

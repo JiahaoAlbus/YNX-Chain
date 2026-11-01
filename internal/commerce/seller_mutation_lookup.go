@@ -54,6 +54,13 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 	var original any
 	decode := func(out any) bool { return decodeBusinessBody([]byte(in.OriginalBody), out) == nil }
 	switch {
+	case in.Method == "POST" && in.Path == "/seller/inventory/batch":
+		var input InventoryBatchInput
+		if !decode(&input) || len(input.Items) == 0 || len(input.Items) > 100 {
+			return nil, "", ErrConflict
+		}
+		route, key, storeID, target, original = "inventory.batch."+input.StoreID, input.IdempotencyKey, input.StoreID, input.StoreID, input
+		kind, permission = "inventory-batch", permissionInventoryWrite
 	case in.Method == "POST" && in.Path == "/seller/stores":
 		var input CreateStoreInput
 		if !decode(&input) {
@@ -236,6 +243,12 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 		return nil, "", ErrConflict
 	}
 	switch kind {
+	case "inventory-batch":
+		value, err := s.inventoryBatchReadbackLocked(original.(InventoryBatchInput), true)
+		if err != nil {
+			return nil, "", err
+		}
+		return detached(value)
 	case "store":
 		value, ok := s.s.Stores[rec.ObjectID]
 		if !ok || value.Owner != actor {
