@@ -693,6 +693,15 @@ jobs:
               if terminal != ['pass']:
                   raise RuntimeError('pending original query core did not execute and pass: ' + name)
           print('YNX_PENDING_ORIGINAL_QUERY_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=pending_query, suitePassed=True, exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False, sourceQualified=False, sessionAuthorized=False), sort_keys=True))
+          source_v2 = ['TestAuthSourceStatementV2PUBLICOriginalE8', 'TestAuthSourceStatementV2PUBLICCanonicalAndBounds', 'TestAuthSourceStatementV2CABIPUBLICANDAndBinding', 'TestAuthSourceStatementV2CABIPUBLICOriginalBoundsRemain']
+          for name in source_v2:
+              package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if name in source_v2[:2] else 'cmd/ynx-artifact-release-cabi')
+              terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != [(package, 'pass')]:
+                  raise RuntimeError('Source-v2 fixed DATA core did not execute and pass in its original package: ' + name)
+          if any(row.get('Action') == 'fail' for row in rows):
+              raise RuntimeError('original full Native core suite failed')
+          print('YNX_AUTH_SOURCE_V2_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=source_v2, suitePassed=True, sameRuntimeCHeaderToActualExport=True, externalArchiveInterop=False, sdkGoldenVerified=False, sourceQualified=False, accountAuthorized=False, mobileQualified=False), sort_keys=True))
           PY
       - name: Qualify device creator and invoice execution from the original full core suite
         run: |
@@ -836,7 +845,7 @@ jobs:
               'scripts/verify/account-initial-cabi-check.sh', 'scripts/fixtures/verify-publisher-registration-cabi',
               'scripts/verify/publisher-registration-cabi-check.sh', 'scripts/fixtures/verify-product-session-http-cabi',
               'scripts/verify/product-session-http-cabi-check.sh', 'scripts/fixtures/verify-pending-original-query-cabi',
-              'scripts/verify/pending-original-query-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',
+              'scripts/verify/pending-original-query-cabi-check.sh', 'scripts/verify/auth-source-statement-v2-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',
               'scripts/verify/product-device-keypair-v4-cabi-check.sh', 'scripts/fixtures/verify-invoice-tx-cabi',
               'scripts/fixtures/verify-deployment-manifest-v2-cabi',
               'scripts/fixtures/verify-product-session-http-v5-cabi',
