@@ -3,7 +3,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
-import {selectCoreSupplyProfile, verifyCoreSupplyBytes, verifyCombinedSupplyResult} from './combined-supply-profile.mjs';
+import {normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes, verifyCombinedSupplyResult, verifyCoreCommandDependencyClosure} from './combined-supply-profile.mjs';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const repository = path.resolve(directory, '../..');
@@ -32,6 +32,8 @@ const core = pinned(options.get('--core-handoff'), options.get('--core-sha256'))
 const auth = pinned(options.get('--auth-headers'), options.get('--auth-headers-sha256'));
 const undefinedInput = pinned(options.get('--native-undefined'), options.get('--native-undefined-sha256'));
 const supplyProfile = selectCoreSupplyProfile(core.value);
+const coreNormalization = normalizeCoreSupply(core.value);
+const coreSupply = coreNormalization.supply;
 const profileVerifier = describe(path.join(directory, 'combined-supply-profile.mjs'));
 if (auth.value.version !== 1 || !Array.isArray(auth.value.headers) ||
     !Array.isArray(undefinedInput.value.unresolvedCore)) throw Error('matching complete original supply contract required');
@@ -77,29 +79,35 @@ function goQuote(argument) {
   if (!argument.includes("'")) return "'" + argument + "'";
   throw Error('Go build argument contains both quote characters');
 }
-let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain, coreSourceVerification;
+let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain, coreSourceVerification, coreCommandDependencyClosure;
 try {
   run('git', ['merge-base', '--is-ancestor', baseLINKCommit, linkCommit], 'link-base-ancestry.log', repository);
   const sourceBytes = new Map(), descriptorBytes = new Map();
-  const corePaths = [...new Set([...core.value.sources.map(row => row.path), ...supplyProfile.modulePaths])];
-  const expectedTree = run('git', ['ls-tree', '-r', core.value.source.commit, '--', ...corePaths], 'core-git-tree.log', repository);
+  const corePaths = [...new Set([...coreSupply.sources.map(row => row.path), ...supplyProfile.modulePaths])];
+  const expectedTree = run('git', ['ls-tree', '-r', supplyProfile.commit, '--', ...corePaths], 'core-git-tree.log', repository);
   const blobs = new Map(expectedTree.trim().split('\n').map(row => {const [meta, name] = row.split('\t'); return [name, meta.split(' ')[2]];}));
-  for (const row of core.value.sources) {
-    const name = relative(row.path), original = path.join(core.value.delivery.sourceDirectory, name), bytes = fs.readFileSync(original);
-    if (bytes.length !== row.bytes || hash(bytes) !== row.sha256 || blobs.get(name) !== row.gitBlob) throw Error('Core source is not its original fixed Git bytes: ' + name);
+  for (const row of coreSupply.sources) {
+    const name = relative(row.path), original = path.join(coreSupply.delivery.sourceDirectory, name), bytes = fs.readFileSync(original);
+    if (bytes.length !== row.bytes || hash(bytes) !== row.sha256 || blobs.get(name) !== row.gitBlob || !bytes.equals(gitObject(supplyProfile.commit, name))) throw Error('Core source is not its original fixed Git bytes: ' + name);
     sourceBytes.set(name, bytes);
-    materialize(name, bytes, {owner: 'core', path: original, commit: core.value.source.commit, gitBlob: row.gitBlob});
+    materialize(name, bytes, {owner: 'core', path: original, commit: supplyProfile.commit, gitBlob: row.gitBlob,
+      ...(coreNormalization.provenance.derivedViewOnly ? {commitVerification: 'ACTUAL_FIXED_GIT_BYTE_READBACK',
+        supplierCandidateCommitClaimed: row.candidateCommitClaimed, supplierCandidateGitBlob: row.candidateGitBlob,
+        supplierSourceOrigin: row.sourceOrigin, supplierBaseGit: row.baseGit} : {})});
     if (name.startsWith(packagePath + '/') && name.endsWith('.h')) copyHeader(path.basename(name), bytes, 'core', original);
   }
-  for (const row of core.value.moduleContext.descriptors) {
+  for (const row of coreSupply.moduleContext.descriptors) {
     if (blobs.get(row.repositoryPath) !== row.gitBlob) throw Error('module descriptor is not its original fixed Git blob: ' + row.repositoryPath);
-    descriptorBytes.set(row.repositoryPath, fs.readFileSync(row.path));
+    const bytes = fs.readFileSync(row.path);
+    if (!bytes.equals(gitObject(supplyProfile.commit, row.repositoryPath))) throw Error('module descriptor bytes differ from actual fixed Git tree: ' + row.repositoryPath);
+    descriptorBytes.set(row.repositoryPath, bytes);
   }
   coreSourceVerification = verifyCoreSupplyBytes(core.value, supplyProfile, sourceBytes, descriptorBytes);
   // These are real replacement-module metadata from the SAME Core commit,
   // not fake modules or changes to its original go.mod/replaces.
   for (const name of ['third_party/cometbft/go.mod', 'third_party/cometbft/go.sum']) {
-    materialize(name, descriptorBytes.get(name), {owner: 'core-replacement-context', commit: core.value.source.commit});
+    materialize(name, descriptorBytes.get(name), {owner: 'core-replacement-context', commit: supplyProfile.commit,
+      ...(coreNormalization.provenance.derivedViewOnly ? {commitVerification: 'ACTUAL_FIXED_GIT_BYTE_READBACK'} : {})});
   }
   const linkNames = run('git', ['ls-tree', '-r', '--name-only', linkCommit, '--', 'internal/securelink'], 'link-source-paths.log', repository).trim().split('\n').filter(Boolean);
   for (const name of linkNames) materialize(name, gitObject(linkCommit, name), {owner: 'link', commit: linkCommit});
@@ -141,7 +149,9 @@ try {
   const goEnv = JSON.parse(run('go', ['env', '-json', 'GOVERSION', 'GOOS', 'GOARCH', 'CC', 'CXX', 'CGO_ENABLED', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS', 'GOWORK', 'GOFLAGS', 'GOCACHE', 'GOMODCACHE'], 'go-environment.json', source, env));
   if (goEnv.GOVERSION !== 'go1.26.10' || goEnv.GOOS !== 'darwin' || goEnv.GOARCH !== architecture) throw Error('original native Go toolchain/architecture required');
   const buildTags = 'securelink_openssl,securelink_pay_native_startup,securelink_product_pay_transport';
-  run('go', ['list', '-mod=readonly', '-p', '1', '-deps', '-json', '-tags=' + buildTags, './' + packagePath], 'go-packages.json', source, env);
+  const packageOutput = run('go', ['list', '-mod=readonly', '-p', '1', '-deps', '-json', '-tags=' + buildTags, './' + packagePath], 'go-packages.json', source, env);
+  coreCommandDependencyClosure = {...verifyCoreCommandDependencyClosure(supplyProfile, packageOutput),
+    originalOutput: describe(path.join(output, 'go-packages.json'))};
   archive = path.join(output, 'libynx_artifact_release.a');
   run('go', ['build', '-mod=readonly', '-p', '1', '-trimpath', '-tags=' + buildTags, '-buildmode=c-archive', '-o', archive, './' + packagePath], 'combined-build.log', source, env);
   const generated = archive.replace(/\.a$/, '.h');
@@ -170,7 +180,10 @@ const receipt = {version: 1, state: failure ? 'FAILED_OUTPUT_RETAINED' : 'COMBIN
   coreHandoff: core.descriptor, authHeaders: auth.descriptor, nativeUndefined: undefinedInput.descriptor,
   coreSupplyProfile: {id: supplyProfile.id, commit: supplyProfile.commit, tree: supplyProfile.tree, coreExports: supplyProfile.coreExports, totalExports: supplyProfile.totalExports},
   coreSourceVerification: coreSourceVerification ?? null, profileVerifier,
-  coreCommit: core.value.source.commit, linkCommit, baseLINKCommit, soleMain: packagePath + '/core.go',
+  coreSupplyNormalization: coreNormalization.provenance,
+  coreCommandDependencyClosure: coreCommandDependencyClosure ?? null,
+  normalResourceBinder: 'NOT_SUPPLIED', resourceBackendNormalReachabilityClaimed: false,
+  coreCommit: supplyProfile.commit, linkCommit, baseLINKCommit, soleMain: packagePath + '/core.go',
   source: sources, headers: headerRows, commands,
   archive: archive && fs.existsSync(archive) ? describe(archive) : null,
   symbols: checkResult ?? null, deployment: deploymentResult ?? null, deploymentTarget, buildEnvironment: buildEnvironment ?? null, toolchain: toolchain ?? null, failure: failure?.message ?? null,

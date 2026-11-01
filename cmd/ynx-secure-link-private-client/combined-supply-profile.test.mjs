@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {CORE_SUPPLY_PROFILES, selectCoreSupplyProfile, verifyCoreSupplyBytes, verifyCombinedSupplyResult} from './combined-supply-profile.mjs';
+import {CORE_SUPPLY_PROFILES, normalizeCoreSupply, selectCoreSupplyProfile, verifyCoreSupplyBytes,
+  verifyCombinedSupplyResult, verifyCoreCommandDependencyClosure, diagnoseSourceV2Golden} from './combined-supply-profile.mjs';
 
 const command = 'cmd/ynx-artifact-release-cabi';
 const pin = (name, bytes) => ({path: name, bytes: bytes.length,
@@ -14,9 +15,11 @@ function fixture(id = 'core17/47') {
   const selected = CORE_SUPPLY_PROFILES.find(row => row.id === id);
   const sourceBytes = new Map(selected.sourcePaths.map(name => {
     let text = name.endsWith('.go') ? 'package ' + (name.startsWith(command + '/') ? 'main' : name.split('/').at(-2)) + '\n' : 'PUBLIC original bytes\n';
+    if (selected.id === 'core18/48' && selected.cgoTranslationUnits.includes(name)) text += '/* static int public_control(void) { return 0; } */\nimport "C"\n';
     if (name === command + '/core.go') text += 'func main() {}\n';
     if (name.endsWith('.go')) for (const binding of selected.bindings.filter(row => row.bridge === name)) text += '//export ' + binding.symbol + '\nfunc ' + binding.symbol + '() {}\n';
     if (name.endsWith('.h')) text = selected.bindings.filter(row => row.header === name).map(row => 'int32_t ' + row.symbol + '(void);').join('\n') + '\n';
+    if (name === command + '/auth_source_statement_v2.h') text = sourceV2Header + text;
     return [name, Buffer.from(text)];
   }));
   const sources = [...sourceBytes].map(([name, bytes]) => pin(name, bytes));
@@ -43,6 +46,142 @@ function replace(f, name, text) {
   f.sourceBytes.set(name, bytes);
   Object.assign(f.core.sources.find(row => row.path === name), replacement);
   for (const row of f.core.exports) for (const kind of ['bridge', 'header', 'implementation']) if (row[kind].path === name) Object.assign(row[kind], replacement);
+}
+
+const sourceV2Header = `#ifndef YNX_AUTH_SOURCE_STATEMENT_V2_H
+#define YNX_AUTH_SOURCE_STATEMENT_V2_H
+#define YNX_AUTH_SOURCE_STATEMENT_ABI_V1 1u
+#define YNX_AUTH_SOURCE_STATEMENT_BODY_MAX_V2 65536u
+#define YNX_AUTH_SOURCE_STATEMENT_MEMBER_MAX_V2 262144u
+YNX_SOURCE_STATIC_ASSERT(sizeof(YNXAuthSourceStatementVerifyRequestV2)==176,"request176");
+YNX_SOURCE_STATIC_ASSERT(offsetof(YNXAuthSourceStatementVerifyRequestV2,member)==16,"member16");
+YNX_SOURCE_STATIC_ASSERT(offsetof(YNXAuthSourceStatementVerifyRequestV2,key_version)==128,"revision128");
+YNX_SOURCE_STATIC_ASSERT(offsetof(YNXAuthSourceStatementVerifyRequestV2,enabled)==168,"enabled168");
+#endif
+`;
+const core18Commit = 'f27e07df6dd96114135aceace20a9413bba94649';
+const core18Tree = '448397a08ab167647f970934891d1336b81d15e0';
+const foreignControls = command + '/source_statement_v2_foreign_controls.go';
+const sourceV2HeaderPath = command + '/auth_source_statement_v2.h';
+const core18Added = [sourceV2HeaderPath, command + '/source_statement_v2_bridge.go',
+  command + '/source_statement_v2_core.go', foreignControls, 'internal/ynxbatch/auth_source_statement_v2.go',
+  'internal/ynxbatch/resource_consent.go', 'internal/ynxresourceconsent/consent.go'];
+const core18Math = new Set([...core18Added.filter(name => !name.endsWith('/resource_consent.go') && !name.endsWith('/consent.go')),
+  command + '/registered_n1_verify_core.go']);
+const publicRecord = (path, bytes, sha256) => ({path: '/PUBLIC/in-memory/' + path, bytes, sha256});
+
+// This is the raw, numeric-v1 Core18 H shape, encoded locally. In particular it
+// claims only a base plus frozen deltas, never a candidate Git commit. No test
+// loads a supply, source, golden vector, or go-list output from an owner path.
+function core18Fixture() {
+  const f = fixture('core18/48');
+  const rawPin = row => {
+    const {gitBlob, ...rest} = row;
+    const changed = row.path === command + '/registered_n1_verify_core.go';
+    const previous = {bytes: 4188, gitBlob: 'c44f5850ab7b7afab142783c77dca522d55456c0',
+      sha256: '4238f3ec2e1e231635bf82863941ef04e4d23f52d2a936db567c5dc0814cb3fc', mode: '100644'};
+    const baseGit = core18Math.has(row.path) ? (changed ? previous : null) : {bytes: row.bytes, sha256: row.sha256, gitBlob};
+    return {...rest, candidateGitBlob: gitBlob, candidateCommitClaimed: false,
+      sourceOrigin: core18Math.has(row.path) ? 'FROZEN_CORE_MATH_DELTA' : 'BASE_GIT_OBJECT', baseGit};
+  };
+  const sources = f.core.sources.map(rawPin), byPath = new Map(sources.map(row => [row.path, row]));
+  const headers = byPath.get(sourceV2HeaderPath);
+  const raw = {version: 1, state: 'CORE18_PUBLIC_SOURCE_CARRIER_BASE_PLUS_FROZEN_DELTA_NO_ARCHIVE',
+    sourceIdentity: {baseCommit: '06c787b2545364875b6f4e3668a6dadb084ea01b', baseTree: 'c5355ef1c0a22c7ed979901b937b532f37478cf2',
+      candidateCommit: null, candidateTreeClaimed: false,
+      combinedIntegrationPatch: publicRecord('core18-combined-integration.patch', 34500, '96a0078b16f6c4b95578f21fcf4fc828b5e7169a723016dd160812bf8d2198bd'),
+      frozenMathH: publicRecord('math-H.json', 11628, 'fcb54edb382140c43795ae171a50de6bb6107722e65571db3e94cf772565f4c5'),
+      fullSourceRoot: '/PUBLIC/in-memory/source',
+      mathPatch: publicRecord('source-v2-portable-core.patch', 31445, '95a2209c64fb5b62221feabe498b25db406395873dc9080913131e34ff54cb65'),
+      normalCIDelta: publicRecord('source-v2-normal-ci.patch', 3055, '03811d635c41d4d45c8c26adfc0e092d1c275c70b4440f548628d5bb562b7ede')},
+    sources, exports: f.selected.bindings.map(row => ({symbol: row.symbol, machOSymbol: '_' + row.symbol,
+      ...Object.fromEntries(['bridge', 'header', 'implementation'].map(kind => [kind, structuredClone(byPath.get(row[kind]))]))})),
+    cgoTranslationUnits: [...f.selected.cgoTranslationUnits],
+    delivery: {sources: '/PUBLIC/in-memory/carrier/src', sourceLeaves: 83, productionGo: 65, handHeaders: 16, includeGuards: 16,
+      coreExports: 18, cgoExportBridgeUnits: 16, cgoTranslationUnits: 17, publicStaticCControlUnits: 1},
+    moduleContext: {originalReplace: 'github.com/cometbft/cometbft => ./third_party/cometbft', stubModule: false,
+      moduleChangedHere: false, changedSinceCore17: [], forkTree: '54e88e6aba735eaceeb2d00bb40731248c673bd7',
+      descriptors: f.core.moduleContext.descriptors.map(row => ({...rawPin(row),
+        carrierPath: '/PUBLIC/in-memory/carrier/module-context/' + row.repositoryPath}))},
+    predecessor: {addedSources: [...core18Added], changedPriorSources: [command + '/registered_n1_verify_core.go'],
+      removedSources: [], old15HeadersByteIdentical: true, old17ExportsRetained: true,
+      old75ByteIdentical: true, old76AllRetained: true, archiveEvidenceInherited: false},
+    singleRuntimeComposition: {doNotLinkTwoGoArchives: true, expectedCombinedCount: 48,
+      newCoreSourceExportsObserved: 18, noNewMain: true, originalCommandPackage: command,
+      unchangedLINKCountProvidedByRoot: 22, unchangedProductCountProvidedByRoot: 8,
+      combinedCountActuallyMeasuredHere: false, old47ArchiveMayRepresentNewEntry: false,
+      keepOriginalMain: {path: command + '/core.go', line: 1}},
+    sourceV2GoldenNotSupplied: true,
+    sourceV2Integration: {version: 1, domain: 'YNX/AUTH/SOURCE-ORIGINAL/V2', symbol: 'YNXAuthSourceStatementVerifyV2',
+      bodyMaximum: 65536, memberMaximum: 262144, messageMaximum: 66267, requestBytes64Bit: 176, resultBytes64Bit: 32,
+      fields8: ['domain UTF8', 'role UTF8', 'independently expected frame UTF8', 'network lowercase hex64 TEXT',
+        'owner lowercase0x42 TEXT', 'keyVersion u64 decimal TEXT', 'issuedHeight u64 decimal TEXT', 'canonical bodyOriginal UTF8'],
+      fixedPurposeByRole: {'1': 'AUTH-SOURCE-ENROLLMENT', '2': 'AUTH-SOURCE-PROFILE', '3': 'AUTH-SOURCE-CURRENT'},
+      header: {path: sourceV2HeaderPath, bytes: headers.bytes, sha256: headers.sha256}},
+    actualDependencyClosure: {CGO_ENABLED: 1, GOOS: 'darwin', GOARCH: 'arm64', compileOrTest: false,
+      command: ['go', 'list', '-deps', '-json', './' + command, './internal/ynxresourceconsent'],
+      coreCommandRecursivePackages: 4, unionPackages: 5, resourceConsentAlreadyImportedByCoreCommand: false,
+      resourceConsentSeparateExplicitRoot: true, packages: Object.fromEntries(f.selected.packagePaths.map(name => {
+        const paths = f.selected.sourcePaths.filter(path => path.startsWith(name + '/') && path.endsWith('.go'));
+        return [name, {GoFiles: paths.filter(path => !f.selected.cgoTranslationUnits.includes(path)),
+          CgoFiles: paths.filter(path => f.selected.cgoTranslationUnits.includes(path)), imports: []}];
+      }))},
+    effects: {GoCompiled: false, CryptoExecuted: false, archiveBuiltOrLinked: false, sourceAdmission: false,
+      accountAuthorized: false, publicActivation: false, sourceCopiedOnly: true}};
+  return {...f, core: raw};
+}
+
+function replaceRaw(f, name, text) {
+  const bytes = Buffer.from(text), replacement = pin(name, bytes);
+  f.sourceBytes.set(name, bytes);
+  const update = row => {
+    row.bytes = replacement.bytes; row.sha256 = replacement.sha256; row.candidateGitBlob = replacement.gitBlob;
+    if (row.sourceOrigin === 'BASE_GIT_OBJECT') row.baseGit = {bytes: row.bytes, sha256: row.sha256, gitBlob: row.candidateGitBlob};
+  };
+  update(f.core.sources.find(row => row.path === name));
+  for (const row of f.core.exports) for (const kind of ['bridge', 'header', 'implementation']) if (row[kind].path === name) update(row[kind]);
+  if (name === sourceV2HeaderPath) Object.assign(f.core.sourceV2Integration.header, {bytes: bytes.length, sha256: replacement.sha256});
+}
+
+const modulePath = 'github.com/JiahaoAlbus/YNX-Chain/';
+function dependencyRecords(selected) {
+  return selected.packagePaths.map(name => {
+    const sources = selected.sourcePaths.filter(path => path.startsWith(name + '/') && path.endsWith('.go'));
+    const imported = name === command ? ['internal/ynxauth', 'internal/ynxbatch', 'internal/accountaddress'] :
+      name === 'internal/ynxauth' || name === 'internal/ynxresourceconsent' ? ['internal/ynxbatch', 'internal/accountaddress'] : [];
+    return {ImportPath: modulePath + name, Name: name === command ? 'main' : name.split('/').at(-1),
+      GoFiles: [...sources.filter(path => !selected.cgoTranslationUnits.includes(path)).map(path => path.split('/').at(-1)),
+        ...(name === command ? ['link_transport_import.go'] : [])],
+      CgoFiles: sources.filter(path => selected.cgoTranslationUnits.includes(path)).map(path => path.split('/').at(-1)),
+      Imports: [...(name === command ? ['C'] : []), ...imported.map(path => modulePath + path)]};
+  });
+}
+const jsonSequence = records => records.map(row => JSON.stringify(row, null, 2)).join('\n\n');
+
+// Independent public E8 encoder: field count and byte lengths are BE32, and the
+// original UTF8 body is copied exactly. Member bytes are opaque public fixtures.
+function publicE8(fields, count = fields.length) {
+  const u32 = value => {const bytes = Buffer.alloc(4); bytes.writeUInt32BE(value); return bytes;};
+  return Buffer.concat([u32(count), ...fields.flatMap(value => {
+    const bytes = Buffer.from(value, 'utf8'); return [u32(bytes.length), bytes];
+  })]);
+}
+const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+function updateGoldenVector(vector, fields) {
+  const binding = vector.binding;
+  const message = publicE8(fields ?? ['YNX/AUTH/SOURCE-ORIGINAL/V2', vector.role, vector.frame,
+    binding.networkId, binding.owner, binding.keyVersion, binding.executionHeight, vector.bodyOriginal]);
+  Object.assign(vector, {messageBase64url: message.toString('base64url'), messageBytes: message.length, messageSHA256: digest(message)});
+}
+function goldenFixture() {
+  return {PUBLIC_ONLY: true, vectors: ['enrollment', 'profile', 'current'].map((role, i) => {
+    const member = Buffer.from('PUBLIC opaque member for ' + role);
+    const vector = {role, frame: 'PUBLIC independently admitted frame/' + role,
+      binding: {networkId: 'ab'.repeat(32), owner: '0x' + '12'.repeat(20), keyVersion: '1', executionHeight: String(i + 1)},
+      bodyOriginal: '{"public":true,"role":"' + role + '"}',
+      memberBase64url: member.toString('base64url'), memberBytes: member.length, memberSHA256: digest(member)};
+    updateGoldenVector(vector); return vector;
+  })};
 }
 
 test('only original Core15/45 and supplied Core17/47 select complete named profiles', () => {
@@ -176,7 +315,7 @@ test('read inventories must be complete and the sole original main cannot be dup
   assert.throws(() => verify(extra), /sole original Core main/);
 });
 
-test('post-symbol gate requires exact Core15/45 or Core17/47 and preserves LINK22/Product8 counts', () => {
+test('post-symbol gate requires every exact approved Core profile and preserves LINK22/Product8 counts', () => {
   for (const selected of CORE_SUPPLY_PROFILES) {
     const good = () => ({coreExports: [...selected.symbols], linkExports: Array(22), productExports: Array(8), symbols: Array(selected.totalExports)});
     verifyCombinedSupplyResult(selected, good());
@@ -185,4 +324,248 @@ test('post-symbol gate requires exact Core15/45 or Core17/47 and preserves LINK2
     }
   }
   assert.throws(() => verifyCombinedSupplyResult({...CORE_SUPPLY_PROFILES[1]}, {}), /approved named profile/);
+});
+
+test('Core18 raw base-plus-delta supply selects its fixed 83-leaf, 18-export profile', () => {
+  const f = core18Fixture(), old = fixture();
+  const result = verify(f);
+  assert.equal(f.selected.id, 'core18/48');
+  assert.equal(f.selected.commit, core18Commit); assert.equal(f.selected.tree, core18Tree);
+  assert.deepEqual(f.selected.sourcePaths.filter(name => !old.selected.sourcePaths.includes(name)), [...core18Added].sort());
+  assert.deepEqual(f.selected.symbols.filter(name => !old.selected.symbols.includes(name)), ['YNXAuthSourceStatementVerifyV2']);
+  for (const [key, value] of Object.entries({profile: 'core18/48', coreExports: 18, totalExports: 48,
+    sourceLeaves: 83, handHeaders: 16, descriptors: 4})) assert.equal(result[key], value);
+  assert.equal(f.selected.bridges.length, 16); assert.equal(f.selected.cgoTranslationUnits.length, 17);
+  assert.deepEqual(f.selected.nonExportCgoTranslationUnits, [foreignControls]);
+});
+
+test('normalization preserves the raw H identity and candidate pins without mutating them', () => {
+  for (const id of ['core15/45', 'core17/47']) {
+    const legacy = fixture(id); assert.equal(normalizeCoreSupply(legacy.core).supply, legacy.core);
+  }
+  const f = core18Fixture(), before = structuredClone(f.core);
+  const {supply, provenance} = normalizeCoreSupply(f.core);
+  assert.deepEqual(f.core, before); assert.notEqual(supply, f.core);
+  assert.equal(supply.source.commit, core18Commit); assert.equal(supply.source.tree, core18Tree);
+  assert.equal(provenance.rawSchemaVersion, 1); assert.equal(provenance.derivedViewOnly, true);
+  assert.equal(provenance.actualCommit, core18Commit); assert.equal(provenance.actualTree, core18Tree);
+  assert.equal(provenance.candidateCommitClaimed, false);
+  assert.deepEqual(provenance.rawSourceIdentity, before.sourceIdentity);
+  assert.notEqual(provenance.rawSourceIdentity, f.core.sourceIdentity);
+  assert.deepEqual(provenance.sourceRowProvenance, before.sources.map(({path, sourceOrigin, candidateGitBlob, candidateCommitClaimed, baseGit}) =>
+    ({path, sourceOrigin, candidateGitBlob, candidateCommitClaimed, baseGit})));
+  for (const row of supply.sources) {
+    const raw = before.sources.find(source => source.path === row.path);
+    assert.equal(row.gitBlob, raw.candidateGitBlob);
+    assert.equal(raw.gitBlob, undefined);
+  }
+});
+
+test('Core18 base identity, frozen patches and math-H provenance cannot drift', () => {
+  for (const mutation of [
+    c => {c.sourceIdentity.baseCommit = '0'.repeat(40);}, c => {c.sourceIdentity.baseTree = '0'.repeat(40);},
+    c => {c.sourceIdentity.candidateCommit = core18Commit;}, c => {c.sourceIdentity.candidateTreeClaimed = true;},
+    ...['combinedIntegrationPatch', 'mathPatch', 'normalCIDelta', 'frozenMathH'].flatMap(key => [
+      c => {c.sourceIdentity[key].sha256 = '0'.repeat(64);}, c => {c.sourceIdentity[key].bytes++;},
+    ]),
+  ]) {const f = core18Fixture(); mutation(f.core); assert.throws(() => normalizeCoreSupply(f.core));}
+});
+
+test('raw H cannot claim a post-commit dialect or resubmit a derived supply as original evidence', () => {
+  for (const mutation of [
+    c => {c.sourceIdentity.postCommit = core18Commit;}, c => {c.sourceIdentity.actualTree = core18Tree;},
+    c => {c.postCommit = {commit: core18Commit, tree: core18Tree};}, c => {c.actualCommit = core18Commit;},
+    c => {c.candidateCommit = core18Commit;}, c => {c.source = {commit: core18Commit, tree: core18Tree};},
+    c => {c.actualCounts = {sourceLeaves: 83};}, c => {c.productionPackageClosure = {};},
+  ]) {const f = core18Fixture(); mutation(f.core); assert.throws(() => selectCoreSupplyProfile(f.core));}
+  const {supply} = normalizeCoreSupply(core18Fixture().core);
+  assert.throws(() => selectCoreSupplyProfile(supply));
+  for (const key of ['commit', 'tree']) {
+    const forged = structuredClone(supply); forged.source[key] = '0'.repeat(40);
+    assert.throws(() => selectCoreSupplyProfile(forged));
+  }
+});
+
+test('Core18 raw row provenance and export-reference provenance remain bound to original pins', () => {
+  for (const mutation of [
+    c => {c.sources[0].candidateCommitClaimed = true;},
+    c => {c.sources[0].baseGit.sha256 = '0'.repeat(64);},
+    c => {c.sources.find(row => row.path === sourceV2HeaderPath).baseGit = {...c.sources[0].baseGit};},
+    c => {c.sources.find(row => row.path === sourceV2HeaderPath).sourceOrigin = 'BASE_GIT_OBJECT';},
+    c => {c.sources.find(row => row.path === command + '/registered_n1_verify_core.go').baseGit.gitBlob = '0'.repeat(40);},
+    c => {c.exports[0].bridge.candidateCommitClaimed = true;},
+    c => {c.exports[0].bridge.candidateGitBlob = '0'.repeat(40);},
+  ]) {const f = core18Fixture(); mutation(f.core); assert.throws(() => selectCoreSupplyProfile(f.core));}
+});
+
+test('Core18 retains the non-export static C unit and rejects same-count source and cgo substitutions', () => {
+  for (const mutation of [
+    c => {c.sources = c.sources.filter(row => row.path !== foreignControls);},
+    c => {c.sources.find(row => row.path === foreignControls).path = command + '/unlisted_foreign_controls.go';},
+    c => {c.cgoTranslationUnits = c.cgoTranslationUnits.filter(path => path !== foreignControls);},
+    c => {c.cgoTranslationUnits[c.cgoTranslationUnits.indexOf(foreignControls)] = command + '/source_statement_v2_core.go';},
+    c => {c.delivery.cgoTranslationUnits = 16;}, c => {c.delivery.cgoExportBridgeUnits = 17;},
+    c => {c.delivery.publicStaticCControlUnits = 0;},
+  ]) {const f = core18Fixture(); mutation(f.core); assert.throws(() => selectCoreSupplyProfile(f.core));}
+});
+
+test('Core18 requires import C in the exact 17 units even when a substituted unit keeps the count', () => {
+  for (const name of [foreignControls, command + '/source_statement_v2_bridge.go']) {
+    const f = core18Fixture(); replaceRaw(f, name, f.sourceBytes.get(name).toString().replace('import "C"\n', ''));
+    assert.throws(() => verify(f), /cgo|import C|translation/);
+  }
+  const swapped = core18Fixture();
+  replaceRaw(swapped, foreignControls, swapped.sourceBytes.get(foreignControls).toString().replace('import "C"\n', ''));
+  const replacement = command + '/source_statement_v2_core.go';
+  replaceRaw(swapped, replacement, swapped.sourceBytes.get(replacement) + '\nimport "C"\n');
+  assert.throws(() => verify(swapped), /cgo|import C|translation/);
+});
+
+test('Core18 rejects duplicate, extra and same-count replaced symbols including exports from static controls', () => {
+  for (const mutation of [
+    c => c.exports.pop(), c => c.exports.push({...c.exports[0], symbol: 'YNXUnlistedVerifyV2'}),
+    c => {c.exports[17] = structuredClone(c.exports[0]);}, c => {c.exports[17].symbol = 'YNXAuthSourceStatementVerifyV3';},
+  ]) {const f = core18Fixture(); mutation(f.core); assert.throws(() => selectCoreSupplyProfile(f.core));}
+  const f = core18Fixture();
+  replaceRaw(f, foreignControls, f.sourceBytes.get(foreignControls) + '\n//export YNXUnexpectedStaticControlV1\nfunc YNXUnexpectedStaticControlV1() {}\n');
+  assert.throws(() => verify(f), /actual source|export/);
+});
+
+test('Core18 Source-v2 capacity and ABI metadata are fixed independent of matching source counts', () => {
+  for (const [key, bad] of [['version', 2], ['domain', 'YNX/AUTH/SOURCE-ORIGINAL/V3'], ['bodyMaximum', 65535],
+    ['memberMaximum', 98304], ['messageMaximum', 65536], ['requestBytes64Bit', 168], ['resultBytes64Bit', 24],
+    ['symbol', 'YNXAuthSourceStatementVerifyV3']]) {
+    const f = core18Fixture(); f.core.sourceV2Integration[key] = bad;
+    assert.throws(() => selectCoreSupplyProfile(f.core));
+  }
+  for (const mutation of [c => c.sourceV2Integration.fields8.pop(),
+    c => {c.sourceV2Integration.fixedPurposeByRole['3'] = 'AUTH-SOURCE-PROFILE';}]) {
+    const f = core18Fixture(); mutation(f.core); assert.throws(() => selectCoreSupplyProfile(f.core));
+  }
+});
+
+test('Core18 header macros and 64-bit static assertions cannot drift behind updated pins', () => {
+  for (const [original, changed] of [['ABI_V1 1u', 'ABI_V1 2u'], ['BODY_MAX_V2 65536u', 'BODY_MAX_V2 65535u'],
+    ['MEMBER_MAX_V2 262144u', 'MEMBER_MAX_V2 98304u'], ['==176', '==168'], ['member)==16', 'member)==24'],
+    ['key_version)==128', 'key_version)==120'], ['enabled)==168', 'enabled)==160']]) {
+    const f = core18Fixture(), text = f.sourceBytes.get(sourceV2HeaderPath).toString();
+    assert.ok(text.includes(original)); replaceRaw(f, sourceV2HeaderPath, text.replace(original, changed));
+    assert.throws(() => verify(f), /header|ABI|capacity|layout|Source.v2/);
+  }
+});
+
+test('Core18 verifies the candidate Git blob bytes rather than trusting an updated SHA alone', () => {
+  const f = core18Fixture(), name = 'internal/ynxbatch/auth_source_statement_v2.go';
+  f.sourceBytes.set(name, Buffer.from('package ynxbatch\n// PUBLIC changed source\n'));
+  const row = f.core.sources.find(row => row.path === name), replacement = pin(name, f.sourceBytes.get(name));
+  row.bytes = replacement.bytes; row.sha256 = replacement.sha256;
+  assert.throws(() => verify(f), /original bytes\/hash\/Git mismatch/);
+});
+
+test('go-list traversal distinguishes four main-command packages from the separate resource root', () => {
+  const f = core18Fixture(), records = dependencyRecords(f.selected);
+  // Even a misleading union/Deps claim is not an Imports edge from main.
+  records.find(row => row.Name === 'main').Deps = records.filter(row => row.Name !== 'main').map(row => row.ImportPath);
+  const result = verifyCoreCommandDependencyClosure(f.selected, jsonSequence(records));
+  assert.equal(result.resourceConsentAlreadyImportedByCoreCommand, false);
+  assert.equal(result.resourceConsentPackageSuppliedSeparately, true);
+  assert.equal(result.normalResourceBinder, 'NOT_SUPPLIED');
+  assert.deepEqual([...result.coreCommandReachablePackages].sort(),
+    [command, 'internal/accountaddress', 'internal/ynxauth', 'internal/ynxbatch'].sort());
+});
+
+test('go-list union roots cannot manufacture a normal resource binder or omit a real main dependency', () => {
+  const f = core18Fixture();
+  for (const mutate of [
+    rows => rows.find(row => row.Name === 'main').Imports.push(modulePath + 'internal/ynxresourceconsent'),
+    rows => {rows.find(row => row.Name === 'main').Imports = [modulePath + 'internal/accountaddress'];},
+    rows => rows.splice(rows.findIndex(row => row.ImportPath === modulePath + 'internal/ynxauth'), 1),
+    rows => rows.push(structuredClone(rows[0])),
+  ]) {const rows = dependencyRecords(f.selected); mutate(rows); assert.throws(() => verifyCoreCommandDependencyClosure(f.selected, jsonSequence(rows)));}
+});
+
+test('go-list command names, original composition file and exact source/cgo inventories remain fixed', () => {
+  const f = core18Fixture();
+  for (const mutate of [
+    main => {main.Name = 'replacement';}, main => {main.GoFiles = main.GoFiles.filter(path => path !== 'link_transport_import.go');},
+    main => main.CgoFiles.pop(), main => {main.CgoFiles[0] = 'unlisted_bridge.go';},
+    main => main.GoFiles.push('unlisted_core.go'),
+  ]) {const rows = dependencyRecords(f.selected); mutate(rows.find(row => row.Name === 'main')); assert.throws(() => verifyCoreCommandDependencyClosure(f.selected, jsonSequence(rows)));}
+  assert.throws(() => verifyCoreCommandDependencyClosure(f.selected, '{"ImportPath":'));
+});
+
+test('Source-v2 golden diagnosis reconstructs all three PUBLIC E8 messages without a crypto claim', () => {
+  const golden = goldenFixture(), before = structuredClone(golden);
+  const result = diagnoseSourceV2Golden(golden);
+  assert.deepEqual(golden, before);
+  assert.equal(result.fullCompatibility, false); assert.equal(result.cryptographicVerification, false);
+  assert.equal(result.scope, 'PUBLIC_BYTE_FRAMING_AND_CAPACITY_ONLY');
+  assert.equal(result.allExpectedBytesMatch, true); assert.equal(result.vectors.length, 3);
+});
+
+test('Source-v2 public diagnostics require exactly one original vector for each textual role', () => {
+  for (const mutate of [
+    g => {g.PUBLIC_ONLY = false;}, g => {delete g.PUBLIC_ONLY;}, g => g.vectors.pop(),
+    g => g.vectors.push(structuredClone(g.vectors[0])),
+    g => {g.vectors[2].role = 'profile'; updateGoldenVector(g.vectors[2]);},
+    g => {g.vectors[0].role = '1'; updateGoldenVector(g.vectors[0]);},
+  ]) {const golden = goldenFixture(); mutate(golden); assert.throws(() => diagnoseSourceV2Golden(golden));}
+});
+
+test('Source-v2 E8 field count and field boundaries are checked after hashes are recomputed', () => {
+  for (const mutate of [
+    bytes => bytes.writeUInt32BE(7, 0), bytes => bytes.writeUInt32BE(9, 0),
+    bytes => bytes.writeUInt32BE(bytes.readUInt32BE(4) + 1, 4),
+  ]) {
+    const golden = goldenFixture(), vector = golden.vectors[0], bytes = Buffer.from(vector.messageBase64url, 'base64url');
+    mutate(bytes); vector.messageBase64url = bytes.toString('base64url'); vector.messageSHA256 = digest(bytes);
+    assert.throws(() => diagnoseSourceV2Golden(golden));
+  }
+  const golden = goldenFixture(), vector = golden.vectors[0];
+  updateGoldenVector(vector, ['YNX/AUTH/SOURCE-ORIGINAL/V2', vector.role, vector.frame, vector.binding.networkId,
+    vector.binding.owner, vector.binding.keyVersion, vector.binding.executionHeight]);
+  assert.throws(() => diagnoseSourceV2Golden(golden));
+});
+
+test('Source-v2 framing binds exact domain, original body, independent frame and text numeric fields', () => {
+  for (const mutate of [
+    v => {v.bodyOriginal += ' ';}, v => {v.frame += '/different';},
+    v => {v.binding.executionHeight = '99';}, v => {v.binding.keyVersion = '2';},
+    v => {const bytes = Buffer.from(v.messageBase64url, 'base64url'); bytes[8] ^= 1;
+      v.messageBase64url = bytes.toString('base64url'); v.messageSHA256 = digest(bytes);},
+  ]) {const golden = goldenFixture(); mutate(golden.vectors[0]); assert.throws(() => diagnoseSourceV2Golden(golden));}
+});
+
+test('Source-v2 binding text rejects noncanonical network, owner and uint64 spelling', () => {
+  for (const mutate of [
+    v => {v.binding.networkId = 'AB'.repeat(32);}, v => {v.binding.networkId = 'ab'.repeat(31);},
+    v => {v.binding.owner = '0x' + 'AB'.repeat(20);}, v => {v.binding.owner = '0X' + '12'.repeat(20);},
+    ...['0', '01', '-1', '1.0', '18446744073709551616'].map(value => v => {v.binding.keyVersion = value;}),
+    ...['01', '-1', '18446744073709551616'].map(value => v => {v.binding.executionHeight = value;}),
+    v => {v.frame = '';}, v => {v.frame = 'PUBLIC\0frame';},
+  ]) {const golden = goldenFixture(); mutate(golden.vectors[0]); updateGoldenVector(golden.vectors[0]); assert.throws(() => diagnoseSourceV2Golden(golden));}
+});
+
+test('Source-v2 base64url, declared byte counts and SHA metadata must agree for message and opaque member', () => {
+  for (const mutate of [
+    v => {v.messageBytes++;}, v => {v.messageSHA256 = '0'.repeat(64);},
+    v => {v.memberBytes++;}, v => {v.memberSHA256 = '0'.repeat(64);},
+    v => {v.messageBase64url += '=';}, v => {v.memberBase64url += '!';},
+  ]) {const golden = goldenFixture(); mutate(golden.vectors[0]); assert.throws(() => diagnoseSourceV2Golden(golden));}
+});
+
+test('Source-v2 accepts the exact public byte capacities and rejects their first overflowing bytes', () => {
+  const golden = goldenFixture(), vector = golden.vectors[0];
+  vector.frame = 'f'.repeat(512); vector.bodyOriginal = '"' + 'b'.repeat(65534) + '"';
+  vector.binding.keyVersion = '18446744073709551615'; vector.binding.executionHeight = '18446744073709551615';
+  const member = Buffer.alloc(262144, 0x50);
+  Object.assign(vector, {memberBase64url: member.toString('base64url'), memberBytes: member.length, memberSHA256: digest(member)});
+  updateGoldenVector(vector); assert.equal(vector.messageBytes, 66267);
+  assert.equal(diagnoseSourceV2Golden(golden).allExpectedBytesMatch, true);
+  for (const mutate of [
+    v => {v.frame += 'f'; updateGoldenVector(v);},
+    v => {v.bodyOriginal = '"' + 'b'.repeat(65535) + '"'; updateGoldenVector(v);},
+    v => {const bytes = Buffer.alloc(262145, 0x50); Object.assign(v,
+      {memberBase64url: bytes.toString('base64url'), memberBytes: bytes.length, memberSHA256: digest(bytes)});},
+  ]) {const overflowing = structuredClone(golden); mutate(overflowing.vectors[0]); assert.throws(() => diagnoseSourceV2Golden(overflowing));}
 });
