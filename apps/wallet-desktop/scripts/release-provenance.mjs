@@ -179,7 +179,12 @@ function selectedRelocationRules(sdkVersion,sourceVariant){
     ?{...rule,operands:rule.operands.filter(operand=>operand.kind==='from'&&operand.from==='../../../apps/wallet-desktop/src/password-wallet-vault.mjs')}:rule),
     {sourcePath:'packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',packedPath:'code/packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',operands:[
       {kind:'url',from:'../../../apps/wallet-desktop/native/original-auth-identity.node',to:'../../../apps/wallet-desktop/native/original-auth-identity.node',count:1}]}];
-  return [SDK49_DAEMON_VARIANT,SDK49_NORMAL_VARIANT].includes(sourceVariant)?[...sdk49,{sourcePath:'packages/wallet-auth/src/original-source-root-owner-v2.js',packedPath:'code/packages/wallet-auth/src/original-source-root-owner-v2.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-root-dirfd.node',operands:[{kind:'url',from:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',count:1}]}]:sdk49;
+  const mainDevice=[
+    ...['original-device-create-controller.mjs','original-device-query-controller.mjs','original-device-finalization-controller.mjs'].map(file=>({sourcePath:'apps/wallet-desktop/src/'+file,packedPath:'code/apps/wallet-desktop/src/'+file,operands:[{kind:'from',from:'../../../packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',to:'../../../packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',count:1},...(file==='original-device-create-controller.mjs'?[]:[{kind:'from',from:'../../../packages/wallet-auth/src/product-session-registry.js',to:'../../../packages/wallet-auth/src/product-session-registry.js',count:1}])]})),
+    {sourcePath:'apps/wallet-desktop/src/original-runtime-image-preload.mjs',packedPath:'code/apps/wallet-desktop/src/original-runtime-image-preload.mjs',operands:[{kind:'import',from:'../../../packages/wallet-auth/src/original-auth-runtime-image-source-v1.js',to:'../../../packages/wallet-auth/src/original-auth-runtime-image-source-v1.js',count:1}]}
+    ,{sourcePath:'packages/wallet-auth/src/original-cloud-deployment-execute-approval-v2-issuer.js',packedPath:'code/packages/wallet-auth/src/original-cloud-deployment-execute-approval-v2-issuer.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-current-dirfd.node',operands:[{kind:'url',from:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',count:1}]}
+  ];
+  return [SDK49_DAEMON_VARIANT,SDK49_NORMAL_VARIANT].includes(sourceVariant)?[...sdk49,...mainDevice,{sourcePath:'packages/wallet-auth/src/original-source-root-owner-v2.js',packedPath:'code/packages/wallet-auth/src/original-source-root-owner-v2.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-root-dirfd.node',operands:[{kind:'url',from:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',count:1}]}]:sdk49;
 }
 // Build/readback DATA only. The normal package caller MUST first obtain this
 // component from verifySDK13NativeComponent; it is never Source admission.
@@ -234,7 +239,7 @@ export function relocateDesktopRuntimeSource(name, source, sdkVersion='1.3.0-pq.
   }
   const operands=[];
   for (const operand of rule.operands) {
-    const prefix=operand.kind==="from"?"\\bfrom\\s*":"\\bnew\\s+URL\\s*\\(\\s*";
+    const prefix=operand.kind==="from"?"\\bfrom\\s*":operand.kind==='import'?"\\bimport\\s*\\(\\s*":"\\bnew\\s+URL\\s*\\(\\s*";
     const pattern=new RegExp(`(${prefix})(["'])${escapeRE(operand.from)}\\2`,"g");
     let count=0;
     text=text.replace(pattern,()=>{count++;return '';});
