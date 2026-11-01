@@ -37,6 +37,10 @@ type nativeInvoiceInput struct {
 func (s *Store) ReadOriginalShopNativeInvoiceRequestDATA(actor, role, orderID string) (NativeShopInvoiceRequestDATA, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.readOriginalShopNativeInvoiceRequestLocked(actor, role, orderID)
+}
+
+func (s *Store) readOriginalShopNativeInvoiceRequestLocked(actor, role, orderID string) (NativeShopInvoiceRequestDATA, error) {
 	// The original permission/object selection and captured request share one
 	// original Store lock; a role revocation cannot slip between two reads.
 	staged := &Store{s: s.s, now: s.now}
@@ -52,7 +56,7 @@ func (s *Store) ReadOriginalShopNativeInvoiceRequestDATA(actor, role, orderID st
 		if e := decodeEffect(record.Input, &saved); e != nil {
 			return NativeShopInvoiceRequestDATA{}, e
 		}
-		if !sameNativeInvoiceBill(order, saved.Order) {
+		if !sameNativeInvoiceBill(order, saved.Order) || saved.Request.ProductID != "shop.order" || saved.Request.SourceOrder != order.ID || saved.Request.StoreID != order.StoreID {
 			return NativeShopInvoiceRequestDATA{}, ErrConflict
 		}
 		saved.Request.DomainData = bytes.Clone(saved.Request.DomainData)

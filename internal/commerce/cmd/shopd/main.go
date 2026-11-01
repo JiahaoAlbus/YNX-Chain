@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"log"
 	"net/http"
@@ -108,6 +109,42 @@ func main() {
 	if privateErr != nil {
 		log.Fatal(privateErr)
 	}
+	// Dedicated Source read plane borrows this SAME Store. Its normal factory
+	// owns qualified Auth/SDK/LINK registration; no flags/ENV enroll a Source.
+	invoiceRead, invoiceReadErr := commerce.OpenOriginalShopInvoiceReadService(context.Background(), func() (*commerce.Store, error) { return store, nil })
+	closeInvoiceRead := func() error {
+		if invoiceRead == nil {
+			return nil
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return invoiceRead.Close(ctx)
+	}
+	if invoiceReadErr != nil {
+		if invoiceRead != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			closeErr := invoiceRead.Close(ctx)
+			cancel()
+			invoiceReadErr = errors.Join(invoiceReadErr, closeErr)
+		}
+		log.Printf("original invoice Source read unavailable: %v", invoiceReadErr)
+	} else {
+		defer func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := invoiceRead.Close(ctx); err != nil {
+				log.Printf("original invoice Source read close: %v", err)
+			}
+		}()
+		go func() {
+			if err := invoiceRead.Serve(); err != nil {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				closeErr := invoiceRead.Close(ctx)
+				log.Printf("original invoice Source read stopped: %v", errors.Join(err, closeErr))
+			}
+		}()
+	}
 	if buyerDocuments == nil {
 		buyerDocuments = documents
 	}
@@ -119,11 +156,12 @@ func main() {
 		mounted, mountErr = composeOriginalCommerceWeb(*buyer, *seller, *merchant, engine, buyerPrivate, sellerPrivate, nil, identity, buyerDocuments, sellerDocuments)
 	}
 	if mountErr != nil {
-		log.Fatal(mountErr)
+		log.Fatal(errors.Join(mountErr, closeInvoiceRead()))
 	}
 	srv := &http.Server{Addr: *addr, Handler: mounted, ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("ynx-shopd listening on %s", *addr)
-	log.Fatal(srv.ListenAndServe())
+	serveErr := srv.ListenAndServe()
+	log.Fatal(errors.Join(serveErr, closeInvoiceRead()))
 }
 
 // Each complete original canonical handler is fixed at composition, never chosen
