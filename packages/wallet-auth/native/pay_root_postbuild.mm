@@ -48,7 +48,7 @@ PostbuildAcquisition capture_pay_postbuild_impl(const RootPublicLocator&locator,
    if(rel==image)s.image_index=s.files.size()-1;s.selected.insert(rel);
    if(rel==s.main_relative){s.main.main_uri=[NSURL fileURLWithPath:[NSString stringWithUTF8String:full.c_str()]].absoluteString.UTF8String;s.main.module_bytes=n;s.main.module_sha256=text(pin[@"sha256"]);}
    if(rel=="packages/wallet-auth/src/original-wallet-main-namespace-node-loader-private.js"){
-    if(n!=5498||text(pin[@"sha256"])!="1da77024874d10a94f5845a5eeea0a8a3042ce6e9b1005e8e345f009754c1f68")throw Code::content;
+    if(n!=5763||text(pin[@"sha256"])!="916cd30637dbd25ff79080947c44211348c48b754425b89a9c8811f4e233f0da")throw Code::content;
     s.loader.main_uri=[NSURL fileURLWithPath:[NSString stringWithUTF8String:full.c_str()]].absoluteString.UTF8String;s.loader.module_bytes=n;s.loader.module_sha256=text(pin[@"sha256"]);
    }
   }

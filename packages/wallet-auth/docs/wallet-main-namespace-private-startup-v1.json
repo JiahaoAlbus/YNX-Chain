@@ -37,7 +37,7 @@
     "statusDATA": "false authority only"
   },
   "nativeInitializerInvoked": true,
-  "nativeMissingCode": "WALLET_MAIN_NATIVE_ATTEMPT_ABI_NOT_SUPPLIED",
+  "nativeMissingCode": "WALLET_MAIN_NATIVE_EXPORTS_NOT_SUPPLIED",
   "vtableStorage": "owner value snapshot; actual RootCtx retained independently until copied close callback",
   "lateAdmission": "retain actual owner before error/current, then retire/join/close if already retired",
   "privateNodeProducer": {

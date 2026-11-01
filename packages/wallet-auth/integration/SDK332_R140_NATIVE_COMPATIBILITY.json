@@ -1319,7 +1319,7 @@
     {
       "path": "packages/wallet-auth/native/pay_root_postbuild.mm",
       "bytes": 9410,
-      "sha256": "e4c65112772939e26946ea451fc035de2be5ad6e227da88984a11bd6630dd4da"
+      "sha256": "eb66002e63fd2e86c93f990868a0a5899b8f2cf00c3a9f781b3223c8a88d5b53"
     },
     {
       "path": "packages/wallet-auth/native/pay_root_postbuild_private.hpp",
@@ -3584,7 +3584,9 @@
     "nodeLoaderSameImageSnapshot": true,
     "RootAdmission": false,
     "NativeWhole": false,
-    "installed": false
+    "installed": false,
+    "rootLoaderPinMatchesActualProducer": true,
+    "originalRootRowApprovalInherited": false
   },
   "ideCocoaParentProducerV1": {
     "normalProducerSourceIncluded": true,
