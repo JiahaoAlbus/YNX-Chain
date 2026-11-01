@@ -122,6 +122,18 @@ class NormalBackend:
     def __init__(self,ceremony,owners,stop):
         self.c=ceremony;self.w=ceremony.w;self.stop_event=stop
         self.sessions={};self.attempted=set();self.submit_lock=threading.Lock();self.checkpoint_lock=threading.Lock();self.cached_checkpoint=None;self.fingerprint=None
+        # Online originals are signed only after an account claim; the normal
+        # Go producer serializes its absent pre-signed slice as JSON null.
+        # Validate mode-specific data before opening persistent sender handles.
+        self.corpus={};transactions=ceremony.workload["transactions"]
+        if ceremony.mode=="pre-signed":
+            lab.require(type(transactions) is list,"original pre-signed transaction list required")
+            for index,tx in enumerate(transactions):
+                key=(tx["ownerIndex"],int(tx["firstNonce"]))
+                lab.require(key not in self.corpus,"original corpus has duplicate account nonce")
+                self.corpus[key]=index
+        else:
+            lab.require(ceremony.mode=="online" and (transactions is None or transactions==[]),"online workload must not substitute a pre-signed corpus")
         self.queue=__import__('queue').Queue()
         for lane in ceremony.live:self.queue.put(lane)
         if ceremony.mode=="online":
@@ -133,11 +145,6 @@ class NormalBackend:
         lab.require(slots>0,"no original process capacity for normal helpers")
         self.helper_slots=threading.BoundedSemaphore(slots)
         self.helper_limit=slots;self.helper_cleanup_debt=[]
-        self.corpus={}
-        for index,tx in enumerate(ceremony.workload["transactions"]):
-            key=(tx["ownerIndex"],int(tx["firstNonce"]))
-            lab.require(key not in self.corpus,"original corpus has duplicate account nonce")
-            self.corpus[key]=index
     def helper(self,name,command,stdin=None):
         acquired=False;proc=None;released=False
         while not self.stop_event.is_set():

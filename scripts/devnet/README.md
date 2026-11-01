@@ -497,3 +497,14 @@ still requires real same-group RSS or the original conservative VmSize bound,
 otherwise it fails. No retry/cap expansion or live-R zero assumption is added.
 The new `test_linux_running_exit.py` isolates this delta, including an actual
 Linux kernel not-exited/exited pair while only displayed state is held at R.
+
+Run41267267458 completed all three builds and opened the original eight normal
+sender processes, then failed before the load clock: the online producer's
+public manifest has `transactions: null` (originals are signed after claims),
+while NormalBackend incorrectly tried to index it as a pre-signed corpus.
+Backend construction now builds the nonce index only in pre-signed mode and
+validates online null/empty metadata before opening sender handles. Online
+sign/confirm callees, four live lanes, helper limit and full500 demand remain
+unchanged. `test_pq_backend_modes.py` covers the original online-null/8-owner
+shape, exact pre-signed indices/duplicate rejection, and wrong-mode refusal;
+these are constructor controls, never business or finality receipts.
