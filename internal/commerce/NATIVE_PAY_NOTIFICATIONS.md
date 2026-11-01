@@ -98,3 +98,18 @@ A successful caller-to-actual-Pay original GET composition must be recorded
 separately; compile-only CI is not that composition. Original normal production
 receiver/source commit and additional test-driver source/binary pins remain
 separate. No standalone production server exposes these control commands.
+
+For an old, explicitly PUBLIC fixture whose retained native-create origin is
+loopback HTTP, `init` also reports `frozenPayOrigin`, `configuredPayOrigin` and
+`sameFrozenOrigin`. `read` reports the original binding preflight error and only
+bounded `code`/`error`/`message` error fields. This diagnoses a before-dispatch
+409 without exposing private successful order bodies.
+
+`originalPUBLICHTTP:true` is available only in this test driver and only when
+`origin` is byte-identical to that frozen loopback HTTP authority. It reuses the
+old explicit PUBLIC driver protocol: the P06 caller must restore the original
+HTTP peer at that exact authority. No URL rewrite, redirect, peer substitution,
+DB edit, migration grant or automatic HTTPS-to-HTTP fallback is performed. The
+notification listener still requires TLS1.3. The production HTTPS-only client
+constructor, original origin check and Source gate are unchanged. This PUBLIC
+fixture mode does not qualify any HTTP legacy fixture for production activation.

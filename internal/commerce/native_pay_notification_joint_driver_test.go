@@ -9,8 +9,10 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -27,20 +29,21 @@ func TestNativePayNotificationOriginalReadDriver(t *testing.T) {
 		t.Skip("explicit PUBLIC P06 notification TLS/Shop original-read driver only")
 	}
 	type command struct {
-		Command       string `json:"command"`
-		SourcePath    string `json:"sourcePath"`
-		SourceSHA256  string `json:"sourceSHA256"`
-		OrderID       string `json:"orderId"`
-		Origin        string `json:"origin"`
-		CAPEM         string `json:"caPEM"`
-		MerchantID    string `json:"merchantId"`
-		SecretHex     string `json:"secretHex"`
-		SecretVersion int    `json:"secretVersion"`
+		Command            string `json:"command"`
+		SourcePath         string `json:"sourcePath"`
+		SourceSHA256       string `json:"sourceSHA256"`
+		OrderID            string `json:"orderId"`
+		Origin             string `json:"origin"`
+		CAPEM              string `json:"caPEM"`
+		MerchantID         string `json:"merchantId"`
+		SecretHex          string `json:"secretHex"`
+		SecretVersion      int    `json:"secretVersion"`
+		OriginalPUBLICHTTP bool   `json:"originalPUBLICHTTP"`
 	}
 	input := bufio.NewScanner(os.Stdin)
 	input.Buffer(make([]byte, 4096), 1<<20)
 	var store *Store
-	var orderID, statePath string
+	var orderID, statePath, frozenPayOrigin string
 	var cfg ServerConfig
 	var tlsServer *httptest.Server
 	var transport *http.Transport
@@ -98,12 +101,30 @@ func TestNativePayNotificationOriginalReadDriver(t *testing.T) {
 				t.Fatal("original order missing")
 			}
 			orderID = order.ID
+			// Read original prepared metadata, never a callback or rewritten DB.
+			origins := map[string]bool{}
+			for _, effect := range store.s.BusinessEffects {
+				if effect.Kind == "pay.native-create" && effect.Target == orderID && effect.Phase == "completed" {
+					var original nativeInvoiceInput
+					if decodeEffect(effect.Input, &original) != nil {
+						t.Fatal("original native create metadata invalid")
+					}
+					origins[original.Origin] = true
+				}
+			}
+			if len(origins) != 1 {
+				t.Fatal("one retained completed native-create origin required")
+			}
+			for origin := range origins {
+				frozenPayOrigin = origin
+			}
+
 			secret, err := hex.DecodeString(c.SecretHex)
 			if err != nil || len(secret) < 32 {
 				t.Fatal("PUBLIC actual merchant notification key required")
 			}
 			ca := x509.NewCertPool()
-			if !ca.AppendCertsFromPEM([]byte(c.CAPEM)) {
+			if !c.OriginalPUBLICHTTP && !ca.AppendCertsFromPEM([]byte(c.CAPEM)) {
 				t.Fatal("PUBLIC Pay original TLS CA required")
 			}
 			transport = &http.Transport{TLSClientConfig: &tls.Config{RootCAs: ca, MinVersion: tls.VersionTLS13}}
@@ -116,10 +137,28 @@ func TestNativePayNotificationOriginalReadDriver(t *testing.T) {
 				traceMu.Unlock()
 				return transport.RoundTrip(r)
 			})
-			client, err := NewOriginalNativeShopPayClient(c.Origin, &http.Client{Transport: trace, Timeout: 20 * time.Second})
-			if err != nil {
-				t.Fatal(err)
+			var client *NativeShopPayClient
+			if c.OriginalPUBLICHTTP {
+				// Same explicit PUBLIC protocol used by the retained old driver.
+				// No URL rewrite/dial substitution, HTTP fallback or production
+				// constructor change. Caller must restore the exact old peer.
+				originalURL, parseErr := url.Parse(c.Origin)
+				if parseErr != nil || c.Origin != frozenPayOrigin || originalURL.Scheme != "http" || !net.ParseIP(originalURL.Hostname()).IsLoopback() || originalURL.User != nil || originalURL.Path != "" || originalURL.RawQuery != "" || originalURL.Fragment != "" {
+					t.Fatal("exact frozen PUBLIC loopback HTTP authority required")
+				}
+				client = &NativeShopPayClient{origin: c.Origin, client: http.Client{Transport: trace, Timeout: 20 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
+				result["PUBLICOriginalHTTPReader"] = true
+			} else {
+				client, err = NewOriginalNativeShopPayClient(c.Origin, &http.Client{Transport: trace, Timeout: 20 * time.Second})
+				if err != nil {
+					t.Fatal(err)
+				}
+				result["PUBLICOriginalHTTPReader"] = false
 			}
+			result["frozenPayOrigin"] = frozenPayOrigin
+			result["configuredPayOrigin"] = c.Origin
+			result["sameFrozenOrigin"] = c.Origin == frozenPayOrigin
+
 			cfg = ServerConfig{NativeInvoiceOnly: true, NativePay: client, businessV2: controlledBusinessVerifier{account: order.Buyer, role: "buyer"}, NativePayNotificationReceivers: []NativePayNotificationReceiver{{MerchantID: c.MerchantID, StoreID: order.StoreID, SecretVersion: c.SecretVersion, Secret: secret}}}
 			current = NewServer(store, cfg).Handler()
 			tlsServer = httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -140,9 +179,35 @@ func TestNativePayNotificationOriginalReadDriver(t *testing.T) {
 				t.Fatal("init required")
 			}
 			gate.Lock()
+			_, preflight := store.nativePaymentInput(store.s.Orders[orderID].Buyer, orderID, cfg.NativePay.origin)
+			if preflight != nil {
+				result["originalBindingPreflightError"] = preflight.Error()
+			} else {
+				result["originalBindingPreflightError"] = ""
+			}
+			result["frozenPayOrigin"] = frozenPayOrigin
+			result["configuredPayOrigin"] = cfg.NativePay.origin
+			result["sameFrozenOrigin"] = frozenPayOrigin == cfg.NativePay.origin
 			w := businessHTTPRequest(NewServer(store, cfg), "POST", "/api/orders/"+orderID+"/confirm-payment", fmt.Sprintf("n%042d", sequence), `{}`)
 			gate.Unlock()
 			result["httpStatus"] = w.Code
+			if w.Code >= 400 {
+				var failure map[string]any
+				if json.Unmarshal(w.Body.Bytes(), &failure) == nil {
+					safe := map[string]string{}
+					for _, key := range []string{"code", "error", "message"} {
+						if text, ok := failure[key].(string); ok {
+							runes := []rune(text)
+							if len(runes) > 256 {
+								text = string(runes[:256])
+							}
+							safe[key] = text
+						}
+					}
+					result["readError"] = safe
+				}
+			}
+
 		case "cold":
 			if store == nil {
 				t.Fatal("init required")
