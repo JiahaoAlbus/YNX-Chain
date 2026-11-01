@@ -43,7 +43,7 @@ struct Observation::Impl {
  NSData *__strong walletCode=nil,*ideCode=nil,*nodeCode=nil;
  NSError *__strong first=nil,*cleanup=nil;
  bool entered=false,invalid=false,childSelected=false,selected=false,completed=false;
- bool inheritedOwned=false,inheritedSelected=false,inheritedClosed=false;
+ bool inheritedOwned=false,inheritedSelected=false,inheritedClosed=false;bool fdSelected[5]={false,false,false,false,false};
  bool fail(NSString *why,NSError **e){invalid=true;if(!first)first=[NSError errorWithDomain:@"YNXOriginalIDEObservation" code:1 userInfo:@{NSLocalizedDescriptionKey:why}];if(e)*e=first;return false;}
  bool peer(int fd){
   int kind=0;socklen_t n=sizeof(kind);sockaddr_un address{};socklen_t length=sizeof(address);audit_token_t token{};socklen_t tokenLength=sizeof(token);
@@ -138,9 +138,10 @@ bool Observation::retireEndpoint(NSError **e){
 }
 bool Observation::takeInheritedEndpoint(NSError **e){auto&p=*p_;if(p.inheritedOwned||p.selected||!p.peer(4))return p.fail(@"IDE_OBSERVATION_INHERITED_TRANSFER_MISMATCH",e);struct stat current{};if(fstat(4,&current)||!same(current,p.files[4]))return p.fail(@"IDE_OBSERVATION_INHERITED_TRANSFER_CHANGED",e);p.inheritedOwned=true;return true;}
 bool Observation::closeOnce(NSError **e){
- auto&p=*p_;p.invalid=true;if(!p.selected){p.selected=true;bool done=true;for(unsigned index=0;index<5;index++){int&i=p.fds[index];if(i<0)continue;struct stat now{};bool matched=fstat(i,&now)==0&&same(now,p.files[index]);if(!matched||::close(i)){done=false;if(!p.cleanup)p.cleanup=[NSError errorWithDomain:@"YNXOriginalIDEObservation" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_OBSERVATION_CLOSE_UNKNOWN"}];}else i=-1;}
-  if(p.inheritedOwned&&!p.inheritedSelected){p.inheritedSelected=true;struct stat current{};p.inheritedClosed=fstat(4,&current)==0&&same(current,p.files[4])&&::close(4)==0;if(!p.inheritedClosed){done=false;if(!p.cleanup)p.cleanup=[NSError errorWithDomain:@"YNXOriginalIDEObservation" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_INHERITED_ENDPOINT_CLOSE_UNKNOWN"}];}}
-  p.completed=done;}
- if(!p.completed&&e)*e=p.cleanup;return p.completed;
+ auto&p=*p_;p.invalid=true;if(p.selected){if(!p.completed&&e)*e=p.cleanup;return p.completed;}p.selected=true;
+ auto unknown=[&](){if(!p.cleanup)p.cleanup=[NSError errorWithDomain:@"YNXOriginalIDEObservation" code:2 userInfo:@{NSLocalizedDescriptionKey:@"IDE_OBSERVATION_CLOSE_UNKNOWN"}];if(e)*e=p.cleanup;return false;};
+ if(p.inheritedOwned&&!p.inheritedSelected){p.inheritedSelected=true;struct stat current{};p.inheritedClosed=fstat(4,&current)==0&&same(current,p.files[4])&&::close(4)==0;if(!p.inheritedClosed)return unknown();}
+ for(int index=4;index>=0;--index){int&i=p.fds[index];if(i<0)continue;if(p.fdSelected[index])return unknown();p.fdSelected[index]=true;struct stat now{};if(fstat(i,&now)||!same(now,p.files[index])||::close(i))return unknown();i=-1;}
+ p.completed=true;return true;
 }
 }

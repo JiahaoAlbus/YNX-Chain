@@ -1,11 +1,11 @@
 {
   "version": 1,
-  "status": "SYNC_OWNED_ATTEMPT_SDK_CODE_NOT_NATIVE_ADMITTED",
+  "status": "ACTUAL_FORMAL_NATIVE_ADAPTER_COMPONENT_VERIFIED_NOT_ADMITTED",
   "startupImport": "src/original-wallet-main-namespace-bootstrap.js",
   "startupExport": "initializeOriginalWalletMainNamespaceV1",
   "startupArguments": [],
   "fixedNativeCallee": "initializeOriginalWalletMainNamespaceV1",
-  "fixedNativeCalleeSupplied": false,
+  "fixedNativeCalleeSupplied": true,
   "RootMainLoanSupplied": false,
   "NativeABIHeader": "native/original-wallet-main-namespace-private.h",
   "hold": "ynx_wallet_main_namespace_hold_v1(napi_env,SAME_completed_namespace,actualRootLoan,outOwner)",
@@ -24,7 +24,7 @@
   "joinNonzero": "retain SAME debt; do not acquire replacement",
   "rootCallbackPreRefs": "all-null, independently check SAME namespace before any property access",
   "rootCallbackPostRefs": "all four nonnull, independently compare exact refs/current",
-  "NativeResultJSABI": "NOT_SUPPLIED; never invoke naked Promise initializer or unknown methods",
+  "NativeResultJSABI": "formal synchronous tagged startup owner; Error own nonenumerable partial; six fixed exports",
   "scope": "Wallet necessary SDK only",
   "SourceAdmission": false,
   "RootAdmission": false,
@@ -36,7 +36,7 @@
     "close": "Promise<void>; sticky same cleanup; no replacement",
     "statusDATA": "false authority only"
   },
-  "nativeInitializerInvoked": false,
+  "nativeInitializerInvoked": true,
   "nativeMissingCode": "WALLET_MAIN_NATIVE_ATTEMPT_ABI_NOT_SUPPLIED",
   "vtableStorage": "owner value snapshot; actual RootCtx retained independently until copied close callback",
   "lateAdmission": "retain actual owner before error/current, then retire/join/close if already retired",
@@ -47,7 +47,7 @@
       "SAME actual tagged startupOwner"
     ],
     "returns": "synchronous owned load attempt; completion/retire/join/statusDATA",
-    "normalOuterAttemptWired": false
+    "normalOuterAttemptWired": true
   },
   "fixedNativeLoaderPort": "openOriginalWalletMainNamespaceLoaderV1(SAMEowner)",
   "loaderPortExact": {
@@ -63,5 +63,22 @@
   "privateImportEvidenceExports": [
     "isOriginalWalletMainNamespaceImportDATA",
     "consumeOriginalWalletMainNamespaceImportDATA"
-  ]
+  ],
+  "nativeExports": [
+    "initializeOriginalWalletMainNamespaceV1",
+    "isOriginalWalletMainNamespaceOwnerV1",
+    "retireOriginalWalletMainNamespaceV1",
+    "joinOriginalWalletMainNamespaceV1",
+    "closeOriginalWalletMainNamespaceV1",
+    "openOriginalWalletMainNamespaceLoaderV1"
+  ],
+  "normalOuterAttemptWired": true,
+  "formalNativeSupplierH": "37009f1113ab49c673aceeac5fbb22cdbc69988c8dfab18e7900474b37122da4",
+  "drainOrder": [
+    "private load retire/join",
+    "Native retire/join/close",
+    "image parent retire/join/close"
+  ],
+  "fixedCapturePrivateExport": "captureOriginalWalletMainNamespaceLoaderBindingV1()",
+  "runtimeWholeNativeAdmitted": false
 }

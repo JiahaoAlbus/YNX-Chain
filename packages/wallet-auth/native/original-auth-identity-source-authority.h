@@ -1,5 +1,7 @@
 #pragma once
 #include <cstdint>
+#include <memory>
+#include "pay_native_permission_private.hpp"
 namespace ynx_auth_private {
 // Retain an uncertain descriptor number as evidence, never close it again:
 // a failed close may already have released/recycled that number.
@@ -39,6 +41,15 @@ struct JointLifecycle {
 @class YNXAuthIdentityCurrentOwner;
 @class YNXIDEHelperMessagePeer;
 @interface YNXAuthIdentitySourceAuthority : NSObject
+
++ (instancetype)acquireOriginalWalletNativePayClientSource:(NSError**)error;
+- (BOOL)assertOriginalWalletNativePayClientCurrent:(NSError**)error;
+- (const void*)originalWalletNativePaySourceMarker:(NSError**)error;
+- (NSDictionary*)copyOriginalWalletNativePayClientContext:(NSError**)error;
+#ifdef __cplusplus
+- (std::shared_ptr<ynx_auth_private::PayObservedPermission>)borrowOriginalWalletNativePayPermission:(NSError**)error;
+#endif
+- (BOOL)closeOriginalWalletNativePaySource:(NSError**)error;
 + (instancetype)acquireOriginalSource:(NSError **)error;
 // Separate original protected Wallet PQ catalog Source. No Auth/IDE purpose,
 // input path/provider, ordinary signing permit or Go DATA may qualify this.

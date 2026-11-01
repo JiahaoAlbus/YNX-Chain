@@ -29,3 +29,6 @@ export declare function isOriginalWalletMainNamespaceImportDATA(actualStartupOwn
 /** One-shot, only during synchronous Native acceptCompleted boundary.
  * A successful consume does not invalidate subsequent non-consuming checks. */
 export declare function consumeOriginalWalletMainNamespaceImportDATA(actualStartupOwner:unknown,sameNamespace:unknown):boolean;
+
+/** PRIVATE immutable fixed-image/open snapshot; zero caller inputs, no authority. */
+export declare function captureOriginalWalletMainNamespaceLoaderBindingV1():Readonly<{image:object;open:(actualStartupOwner:unknown)=>unknown}>;
