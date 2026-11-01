@@ -416,6 +416,18 @@
       "browser": null,
       "node": "./src/original-ai-task-action-v6-client.js",
       "default": null
+    },
+    "./social-fd2-engine-init-data": {
+      "types": "./src/social-fd2-engine-init.d.ts",
+      "browser": null,
+      "node": "./src/social-fd2-engine-init.js",
+      "default": null
+    },
+    "./pq-native-pay-observation": {
+      "types": "./src/pq-native-pay-observation.d.ts",
+      "browser": null,
+      "node": "./src/pq-native-pay-observation.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",

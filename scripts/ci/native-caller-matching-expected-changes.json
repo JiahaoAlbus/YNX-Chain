@@ -1,0 +1,32 @@
+{
+  "paths": [
+    ".github/workflows/wallet-desktop-windows.yml",
+    "packages/wallet-auth/docs/AI_TASK_V6_NATIVE_CLIENT.md",
+    "packages/wallet-auth/docs/SOCIAL_FD2_ENGINE_INIT.md",
+    "packages/wallet-auth/docs/native-pay-observation.md",
+    "packages/wallet-auth/integration/SOCIAL_FD2_ENGINE_INIT_SCHEMA.json",
+    "packages/wallet-auth/package.json",
+    "packages/wallet-auth/src/original-ai-task-action-v6-client-private.d.ts",
+    "packages/wallet-auth/src/original-ai-task-action-v6-client-private.js",
+    "packages/wallet-auth/src/pq-native-pay-observation.d.ts",
+    "packages/wallet-auth/src/pq-native-pay-observation.js",
+    "packages/wallet-auth/src/social-fd2-engine-init.d.ts",
+    "packages/wallet-auth/src/social-fd2-engine-init.js",
+    "packages/wallet-auth/test/ai-task-v6-async-source-matching.test.mjs",
+    "packages/wallet-auth/test/ai-task-v6-async-source-matching.types.mts",
+    "packages/wallet-auth/test/ai-task-v6-outcome.test.mjs",
+    "packages/wallet-auth/test/fixtures/native-pay-observation.fixture.mjs",
+    "packages/wallet-auth/test/native-pay-observation.test.mjs",
+    "packages/wallet-auth/test/native-pay-observation.types.mts",
+    "packages/wallet-auth/test/social-fd2-engine-init.test.mjs",
+    "packages/wallet-auth/test/social-fd2-engine-init.types.mts",
+    "scripts/ci/ai-task-v6-async-source-matching.mjs",
+    "scripts/ci/native-caller-matching-base-members.json",
+    "scripts/ci/native-caller-matching-expected-changes.json",
+    "scripts/ci/native-caller-matching-package.mjs",
+    "scripts/ci/native-caller-matching.mjs",
+    "scripts/ci/native-caller-new-pay-controls.mjs",
+    "scripts/ci/native-pay-observation.mjs",
+    "scripts/ci/social-fd2-engine-init.mjs"
+  ]
+}
