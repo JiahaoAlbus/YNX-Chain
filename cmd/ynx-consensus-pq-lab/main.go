@@ -48,6 +48,9 @@ func run(args []string, out io.Writer) error {
 	if args[0] == "distributed-readback" {
 		return runPQLabDistributedReadback(args[1:], out)
 	}
+	if args[0] == "finalize-trace" {
+		return runPQLabFinalizeTrace(args[1:], out)
+	}
 	if args[0] == "proof-context" {
 		return runPQLabProofContext(args[1:], out)
 	}

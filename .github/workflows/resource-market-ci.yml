@@ -1797,8 +1797,24 @@ jobs:
           retention-days: 7
       - name: Verify native ledger and HTTP PQ integration
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
+        env:
+          YNX_ETHERS_MODULE: ${{ github.workspace }}/node_modules/ethers
         run: |
           set -euo pipefail
+          # Reuse the lockfile-installed dependency from the earlier contract
+          # fixture step; a missing client must fail here, never become a skip.
+          node <<'JS'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const modulePath = path.join(process.cwd(), 'node_modules', 'ethers');
+          const locked = JSON.parse(fs.readFileSync('package-lock.json', 'utf8')).packages['node_modules/ethers'];
+          assert.equal(process.env.YNX_ETHERS_MODULE, modulePath);
+          assert.match(locked.version, /^6\./);
+          assert.equal(JSON.parse(fs.readFileSync(path.join(modulePath, 'package.json'), 'utf8')).version, locked.version);
+          assert.equal(require(modulePath).version, locked.version);
+          console.log('YNX_ETHERS_LOCKED_CLIENT ' + locked.version);
+          JS
           if ! go test -json -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api > "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl" 2> "$RUNNER_TEMP/ynx-legacy-native-integration.stderr"; then
             cat "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl"
             cat "$RUNNER_TEMP/ynx-legacy-native-integration.stderr" >&2
@@ -1815,6 +1831,9 @@ jobs:
               terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != [('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'pass')]:
                   raise RuntimeError('legacy snapshot memory did not execute uniquely in original package: ' + name)
+          ethers = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == 'TestEthereumIndependentEthersLifecycle' and row['Action'] in ('pass', 'fail', 'skip')]
+          if ethers != [('github.com/JiahaoAlbus/YNX-Chain/internal/api', 'pass')]:
+              raise RuntimeError('independent ethers lifecycle did not execute uniquely in original API package')
           for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'github.com/JiahaoAlbus/YNX-Chain/internal/api'):
               terminal = [row['Action'] for row in rows if row.get('Package') == package and 'Test' not in row and row['Action'] in ('pass', 'fail', 'skip')]
               if terminal != ['pass']:

@@ -254,7 +254,7 @@ jobs:
           test ! -e "$YNX_PQ_LAB_PROOF_FIXTURE_OUT"
           test ! -e "$YNX_PQ_LAB_STOPPED_FIXTURE_ROOT"
           test ! -e "$YNX_PQ_LAB_LIVE_FIXTURE_ROOT"
-          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^(TestPQLabLiveMaterials|TestPQLabDistributed)' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^(TestPQLabLiveMaterials|TestPQLabDistributed|TestPQLabFinalizeTrace)' ./internal/consensus > "$RUNNER_TEMP/pq-lab-core-tests.jsonl"; then
             cat "$RUNNER_TEMP/pq-lab-core-tests.jsonl"
             exit 1
           fi
@@ -262,7 +262,7 @@ jobs:
             cat "$RUNNER_TEMP/pq-lab-live-tests.jsonl"
             exit 1
           fi
-          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^TestPQLabDistributed' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/pq-lab-command-tests.jsonl"; then
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab' -skip '^TestPQLab(Distributed|FinalizeTrace)' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/pq-lab-command-tests.jsonl"; then
             cat "$RUNNER_TEMP/pq-lab-command-tests.jsonl"
             exit 1
           fi
@@ -459,17 +459,21 @@ jobs:
           check-latest: false
           cache: true
       - name: Execute complete distributed source and readback cases without starting nodes
+        env:
+          YNX_PQ_LAB_FINALIZE_TRACE_FIXTURE_OUT: ${{ runner.temp }}/pq-lab-finalize-public-trace
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test ! -e "$YNX_PQ_LAB_FINALIZE_TRACE_FIXTURE_OUT"
+          test ! -L "$YNX_PQ_LAB_FINALIZE_TRACE_FIXTURE_OUT"
           # Same original per-package limits, isolated from the existing lab
           # and client budgets. No private fixture retention or publication.
-          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLabDistributed' ./internal/consensus > "$RUNNER_TEMP/distributed-pq-core.jsonl" 2> "$RUNNER_TEMP/distributed-pq-core.stderr.log"; then
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab(Distributed|FinalizeTrace)' ./internal/consensus > "$RUNNER_TEMP/distributed-pq-core.jsonl" 2> "$RUNNER_TEMP/distributed-pq-core.stderr.log"; then
             cat "$RUNNER_TEMP/distributed-pq-core.jsonl"
             cat "$RUNNER_TEMP/distributed-pq-core.stderr.log" >&2
             exit 1
           fi
-          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLabDistributed' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/distributed-pq-command.jsonl" 2> "$RUNNER_TEMP/distributed-pq-command.stderr.log"; then
+          if ! go test -json -p 1 -count=1 -timeout=120s -run '^TestPQLab(Distributed|FinalizeTrace)' ./cmd/ynx-consensus-pq-lab > "$RUNNER_TEMP/distributed-pq-command.jsonl" 2> "$RUNNER_TEMP/distributed-pq-command.stderr.log"; then
             cat "$RUNNER_TEMP/distributed-pq-command.jsonl"
             cat "$RUNNER_TEMP/distributed-pq-command.stderr.log" >&2
             exit 1
@@ -509,12 +513,16 @@ jobs:
                   'TestPQLabDistributedPartialImportNeverOverwritesUnknown',
                   'TestPQLabDistributedReadbackQuietRequiresOriginalCoordinates',
                   'TestPQLabDistributedReadbackBootstrapFullStateColdAndUnknown',
-                  'TestPQLabDistributedReadbackRealPQProofAndPublicTamper']),
+                  'TestPQLabDistributedReadbackRealPQProofAndPublicTamper',
+                  'TestPQLabFinalizeTraceOriginalCompleteRequestsColdReplayAndRefusals',
+                  'TestPQLabFinalizeTraceHeldStreamAndBoundedPartial']),
               ('distributed-pq-command', 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-consensus-pq-lab', [
                   'TestPQLabDistributedCommandPublicExchangeAndLocalUnknown',
                   'TestPQLabDistributedCommandRefusesUnpinnedAndForeignSource',
                   'TestPQLabDistributedReadbackCommandSnapshotAndPublicComparison',
-                  'TestPQLabDistributedReadbackCommandClosedFlags'])]
+                  'TestPQLabDistributedReadbackCommandClosedFlags',
+                  'TestPQLabFinalizeTraceCommandClosedInputs',
+                  'TestPQLabFinalizeTraceCommandOriginalPublicReplayAndLostOutput'])]
           passed, files = [], []
           for stem, package, required in groups:
               passed += qualify(root / (stem + '.jsonl'), package, required)
