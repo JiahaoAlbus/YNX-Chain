@@ -1,3 +1,4 @@
+import type{NetworkResourceOriginalsV1}from'./original-network-resource-source-v2-contract.mjs';
 import type{OriginalAITaskActionV6AgentPublic}from'./original-ai-task-action-v6-source-contract.mjs';
 import type {PQAuthorizationSnapshot} from '../src/pq-wallet-policy.js';
 export const AUTH_SOURCE_V2:'YNX-AUTH-SOURCE/v2';
@@ -45,8 +46,9 @@ export interface OriginalAuthSourceV2Root {
 }
 /** Signed enrollment DATA only. The original verifier binds the service and
  * exact operation tuple to the independently admitted purpose; types do not. */
-export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1'|'ai-native-task-action-source-v6'|'browser-selected-pages-source-v1'|'wallet-native-product-source-v1'|'wallet-native-pay-client-source-v1';
+export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1'|'ai-native-task-action-source-v6'|'browser-selected-pages-source-v1'|'wallet-native-product-source-v1'|'wallet-native-pay-client-source-v1'|'network-resource-source-v1';
 export type OriginalAuthSourceV2Operations=
+ readonly ['resource.public-block-histogram']|
  readonly ['read-selected-pages']|
  readonly import('./original-wallet-product-source-contract.mjs').WalletProductSourceOperationV1[]|
  readonly import('./original-wallet-pay-client-source-contract.mjs').WalletPayClientOperationV1[]|
@@ -116,8 +118,8 @@ export function selectOriginalAuthSourceAlgorithm(subject:PQAuthorizationSnapsho
 /** atMs is the original safe-integer clock observation, distinct from full U64
  * execution heights and key versions. Native provenance remains separate. */
 export function verifyOriginalAuthSourceEnrollmentV2(rootRaw:string,enrollmentRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<OriginalAuthSourceV2EnrollmentData>;
-export function verifyOriginalAuthSourceProfileV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<OriginalAuthSourceV2ProfileData>;
-export function verifyOriginalAuthSourceCurrentV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,currentRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,expectedNonce:string,previous:OriginalAuthSourceV2Previous,atMs:number):Readonly<OriginalAuthSourceV2CurrentData>;
+export function verifyOriginalAuthSourceProfileV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number,networkOriginals?:NetworkResourceOriginalsV1):Readonly<OriginalAuthSourceV2ProfileData>;
+export function verifyOriginalAuthSourceCurrentV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,currentRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,expectedNonce:string,previous:OriginalAuthSourceV2Previous,atMs:number,networkOriginals?:NetworkResourceOriginalsV1):Readonly<OriginalAuthSourceV2CurrentData>;
 
 /** Historical baseline DATA only; expired/terminal heads never grant current
  * admission. Native retains terminal status and must fetch fresh nonce current.
@@ -127,7 +129,7 @@ export interface OriginalAuthSourceV2TransitionData extends Omit<OriginalAuthSou
  readonly status:'active'|'revoked'|'retired';readonly historical:true;
  readonly statementExecutionHeight:string;
 }
-export function verifyOriginalAuthSourceTransitionV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,currentRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,expectedNonce:string,previous:OriginalAuthSourceV2Previous,atMs:number):Readonly<OriginalAuthSourceV2TransitionData>;
+export function verifyOriginalAuthSourceTransitionV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,currentRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,expectedNonce:string,previous:OriginalAuthSourceV2Previous,atMs:number,networkOriginals?:NetworkResourceOriginalsV1):Readonly<OriginalAuthSourceV2TransitionData>;
 
 /** Dedicated Pay body DATA under original SourceV2 frames, before role key use. */
 export function inspectOriginalPayCloudBillSourceIssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:import('./original-pay-cloud-bill-source-contract.mjs').OriginalPayCloudBillSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
@@ -142,3 +144,5 @@ export function inspectOriginalBrowserSelectedPagesSourceIssuanceBodyDATA(role:'
 
 /** Independent Product family; Browser and old family types preserved. */
 export function inspectOriginalWalletProductSourceIssuanceBodyDATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:import('./original-wallet-product-source-contract.mjs').OriginalWalletProductSourceV1Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
+
+export function inspectOriginalNetworkResourceSourceIssuanceBodyV2DATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number,networkOriginals?:NetworkResourceOriginalsV1):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;

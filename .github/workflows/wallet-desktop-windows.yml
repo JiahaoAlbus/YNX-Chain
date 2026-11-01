@@ -4773,3 +4773,24 @@ jobs:
             pending-query-http-budget-controls.log
             pending-query-http-budget-package.log
             canonical-common-source-package
+
+  network-resource-source-v2-normal:
+    name: Network Resource Source-v2 normal family and closed runtime package
+    if: github.event_name == 'push' && github.ref == 'refs/heads/codex/wallet-auth49-network-resource-source-v2-20261101'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts --prefix packages/wallet-auth
+      - run: node --test test/network-resource-source-v2-common.test.mjs
+        working-directory: packages/wallet-auth
+      - run: node scripts/ci/network-resource-source-v2-package.mjs
+      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wallet-auth49-network-resource-source-v2-normal
+          if-no-files-found: error
+          path: canonical-common-source-package
