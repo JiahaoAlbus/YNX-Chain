@@ -595,7 +595,8 @@
     "native/original-wallet-main-namespace-private.cpp",
     "docs/wallet-main-namespace-bootstrap-v1.md",
     "docs/wallet-main-namespace-private-startup-v1.json",
-    "docs/wallet-main-namespace-import-provenance-v1.json"
+    "docs/wallet-main-namespace-import-provenance-v1.json",
+    "docs/wallet-pay-dispatch-matching.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
