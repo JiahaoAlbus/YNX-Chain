@@ -1,9 +1,20 @@
 import test from'node:test';import assert from'node:assert/strict';import fs from'node:fs';import path from'node:path';import{tmpdir}from'node:os';import{fileURLToPath}from'node:url';import{createHash}from'node:crypto';import{spawnSync}from'node:child_process';
+import{generateAuthRuntimeClosure}from'../scripts/auth-runtime-closure.mjs';
 import{postprocessReviewedPairServiceSource as post}from'../scripts/pair-service-commissioning/postprocess-reviewed-source.mjs';import{commissionReviewedPairServiceSDK}from'../scripts/pair-service-commissioning/commission-sdk.mjs';
-const pkg=fileURLToPath(new URL('..',import.meta.url)),hash=b=>createHash('sha256').update(b).digest('hex'),canonical=v=>v===null||typeof v!=='object'?JSON.stringify(v):Array.isArray(v)?'['+v.map(canonical).join(',')+']':'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}';const root=fs.mkdtempSync(path.join(fs.realpathSync(process.env.RUNNER_TEMP??tmpdir()),'PUBLIC-pair-postprocess-'));const candidate=root+'/candidate';fs.mkdirSync(candidate);const src=candidate+'/source-package';fs.mkdirSync(src);const casPaths=['src/product-pair-session-v4-source.js','src/original-source-root-owner-v2.js'];const ref=(p)=>{const b=fs.readFileSync(p);return{bytes:b.length,sha256:hash(b)}};const cas=[];
+const pkg=fileURLToPath(new URL('..',import.meta.url)),hash=b=>createHash('sha256').update(b).digest('hex'),canonical=v=>v===null||typeof v!=='object'?JSON.stringify(v):Array.isArray(v)?'['+v.map(canonical).join(',')+']':'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}';const root=fs.mkdtempSync(path.join(fs.realpathSync(process.env.RUNNER_TEMP??tmpdir()),'PUBLIC-pair-postprocess-'));const candidate=root+'/candidate';fs.mkdirSync(candidate);const src=candidate+'/source-package';const casPaths=['src/product-pair-session-v4-source.js','src/original-source-root-owner-v2.js'];const ref=(p)=>{const b=fs.readFileSync(p);return{bytes:b.length,sha256:hash(b)}};const cas=[];
 // Explicit PUBLIC source-only fixture, NOT original reviewed row emission.
 // Retain output on all failures; no keys/Root/real service invocation.
-for(const name of fs.readdirSync(pkg)){if(name==='test'||name==='testdata')continue;const p=pkg+'/'+name;const actual=fs.realpathSync(p);fs.cpSync(actual,src+'/'+name,{recursive:true});}
+// PUBLIC fixture dependency selection only: npm's developer .bin aliases are
+// not normal prefix files. Copy the compiled recipe's regular dependency rows
+// plus actual install metadata; do not loosen production alias gates or claim
+// the separately pinned App316 materializer/Native/App is qualified here.
+const recipe=JSON.parse(fs.readFileSync(pkg+'/scripts/pair-service-commissioning/materialization-recipe.json'));
+const actualAuth=generateAuthRuntimeClosure(path.resolve(pkg),{entries:recipe.entries});
+const selected=new Set([...recipe.walletConnect.files,...actualAuth.manifest.files].filter(r=>r.path.startsWith('node_modules/')).map(r=>r.path));
+if(recipe.walletConnect.installedLock)selected.add(recipe.walletConnect.installedLock.path);
+fs.mkdirSync(src);
+for(const relative of selected){const from=path.resolve(pkg,relative),stat=fs.lstatSync(from);assert(stat.isFile()&&!stat.isSymbolicLink()&&stat.nlink===1);assert.equal(fs.realpathSync(from),from);const to=path.join(src,relative);fs.mkdirSync(path.dirname(to),{recursive:true});fs.copyFileSync(from,to,fs.constants.COPYFILE_EXCL);}
+for(const name of fs.readdirSync(pkg)){if(name==='node_modules'||name==='test'||name==='testdata')continue;const p=pkg+'/'+name;const actual=fs.realpathSync(p);fs.cpSync(actual,src+'/'+name,{recursive:true});}
 for(const relative of casPaths){const p=src+'/'+relative,before={path:relative,...ref(p)};fs.appendFileSync(p,'\n// PUBLIC source-only two-CAS fixture. No Root/row emitted.\n');cas.push({path:relative,before,after:ref(p)});}
 // Historical stale full2 are explicit fixture inputs, never accepted as fresh.
 for(const f of['original-ide-auth-runtime-manifest.json','original-ide-contract-relay-runtime-manifest.json'])fs.writeFileSync(src+'/native/'+f,'{\"stale\":true}');
