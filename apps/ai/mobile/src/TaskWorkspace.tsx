@@ -12,7 +12,7 @@ export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
  const credentials=session?.taskCredentials;
  const controller=useMemo(()=>credentials?new TaskWorkspaceController(credentials.identity,createTaskAPI(API_BASE,credentials),nativeTaskPersistence,()=>`taskop_${Crypto.randomUUID().replace(/-/g,"")}`,state=>setState(state),nativeRunCursorPersistence):null,[credentials]);
  const [state,setState]=useState<WorkspaceState|null>(null),[grantRef,setGrantRef]=useState(""),[prompt,setPrompt]=useState(""),[runId,setRunId]=useState(""),[localError,setLocalError]=useState(""),[shopTools,setShopTools]=useState(false),[newHolder,setNewHolder]=useState("");
- useEffect(()=>{setState(null);setGrantRef("");setPrompt("");setRunId("");setShopTools(false);setNewHolder("");if(controller){void controller.restore().then(()=>controller.discover())}return()=>controller?.dispose()},[controller]);
+ useEffect(()=>{setState(null);setGrantRef("");setPrompt("");setRunId("");setShopTools(false);setNewHolder("");if(controller){void controller.restoreOriginalTask()}return()=>controller?.dispose()},[controller]);
  const task=state?.projection,busy=state?.busy||false;
  const perform=(work:()=>Promise<unknown>)=>{setLocalError("");void work().catch(error=>setLocalError(error instanceof Error?error.message:"TASK_REQUEST_FAILED"))};
  const refresh=()=>{if(controller&&task)perform(()=>controller.select(task.id));else if(controller)perform(()=>controller.discover())};
