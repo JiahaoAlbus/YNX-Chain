@@ -35,8 +35,8 @@
     },
     {
       "relative": "apps/wallet-desktop/scripts/sdk13-native-component.mjs",
-      "bytes": 13022,
-      "sha256": "0787d21b0d3fb773bc2649be5e36626e1ffcd637e89d818da5979a444b0ffbfb"
+      "bytes": 13481,
+      "sha256": "20abc91cf02f022b23898821743186aaca4019393fee42a18f836751b194ff75"
     },
     {
       "relative": "apps/wallet-desktop/scripts/portable-package-consumer-role.mjs",
