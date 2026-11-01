@@ -1,4 +1,4 @@
-import test from 'node:test';
+import test,{before} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {createPQWalletKeyHandle,readPQWalletKeyPublic,destroyPQWalletKeyHandle} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
@@ -14,11 +14,12 @@ const clone=x=>JSON.parse(JSON.stringify(x));
 const raw=(body=new Uint8Array([0,255,123,0]),extra={})=>({method:'POST',requestPath:'/v5/actually-returned',status:503,contentType:undefined,cacheControl:'no-store',body,...extra});
 const captured=pay.capturePQPayPacket(raw());
 const intentId='npi_'+'ab'.repeat(24);
-// Ephemeral PUBLIC synthetic signer supplies only three new DATA fixtures.
+// One shared PUBLIC setup supplies three synthetic originals for the delta.
+// Query controls reuse those same signed records; no signing occurs per control.
 // This invokes the actual original parser/full AND checks, never real custody,
 // approval, Source, HTTP, funds or deployment. No legacy math matrix is run.
 const originals=[];
-test('PUBLIC composed Pay DATA: three actual typed originals, exact targets and immutable UNKNOWN response custody',async()=>{
+before(async()=>{
  const merchant=vectors.envelope.owner,payer='0x'+'22'.repeat(20),chainId=vectors.envelope.networkHex;
  const handles=[],contexts=[];
  for(const owner of [merchant,payer]){
@@ -44,6 +45,13 @@ test('PUBLIC composed Pay DATA: three actual typed originals, exact targets and 
    if(kind==='invoice_terms')termsMessage=encodePQNativeAction(action);
    if(kind==='invoice_settle')settlement={review,member,original:{reviewSnapshot:snapshot,signingSnapshot:snapshot,selectedBinding:{account:owner,networkId:chainId}}};
    originals.push(original);
+  }
+ }finally{for(const handle of handles)assert.equal(destroyPQWalletKeyHandle(handle),true);}
+});
+
+test('PUBLIC composed Pay DATA: three actual typed originals, exact targets and immutable UNKNOWN response custody',()=>{
+ for(const original of originals){
+  const action=original.typed.review.action,kind=action.kind;
    const ref=kind==='invoice_terms'?{hash:original.hash,kind,intentId}:{hash:original.hash,kind,merchant:kind==='invoice_settle'?action.payload.merchant:original.account,invoiceId:action.payload.invoiceID};
    const target=pay.normalizePQPayTargetDATA(original,ref);
    assert.deepEqual(Object.keys(target),['version','service','kind','intentId','merchant','invoiceId','requestPath']);
@@ -70,8 +78,7 @@ test('PUBLIC composed Pay DATA: three actual typed originals, exact targets and 
     assert.deepEqual(out.firstCause,firstCause);assert.deepEqual(out.storageCause,storageCause);
    }
    for(const change of [x=>{x.typed.memberHash=x.hash;},x=>{x.operationId='different';},x=>{x.typed.networkId='00'.repeat(32);},x=>{x.account='0x'+'00'.repeat(20);},x=>{x.typed.review.action.payload.invoiceID='changed';},x=>{x.wire=x.wire.slice(0,-3);}]){const bad=clone(original);change(bad);assert.throws(()=>pay.normalizePQPayTargetDATA(bad,ref));}
-  }
- }finally{for(const handle of handles)assert.equal(destroyPQWalletKeyHandle(handle),true);}
+ }
 });
 
 test('raw response is exact detached binary DATA even when HTTP framing disagrees; no body interpretation',()=>{
@@ -103,4 +110,65 @@ test('2MiB boundary, declared JSON reserve and unsafe input rejection without ex
  assert.throws(()=>pay.capturePQPayPacket(raw(undefined,{requestPath:'x'.repeat(8193)})));
  assert.throws(()=>pay.capturePQPayPacket({...raw(),extra:true}));
  assert.throws(()=>pay.normalizePQPayTargetDATA({kind:'invoice_terms',account:'0x'+'11'.repeat(20)},{intentId}));
+});
+
+test('Pay query capture preserves mismatched actual framing and detached binary bytes at the 2MiB bound',()=>{
+ const body=Buffer.alloc(pay.PQ_PAY_PACKET_BODY_MAX_BYTES,255);
+ const actual=raw(body,{method:'POST',requestPath:'/wrong-query-path',status:409,contentType:undefined,cacheControl:null});
+ const result=pay.capturePQPayQueryPacket(actual);body.fill(0);
+ assert.equal(result.method,'POST');assert.equal(result.requestPath,'/wrong-query-path');assert.equal(result.status,409);
+ assert.deepEqual(result.undefinedFields,['contentType']);assert.equal(result.cacheControl,null);
+ assert.equal(result.bodyBytes,2097152);assert.equal(Buffer.from(result.bodyBase64url,'base64url')[0],255);
+ assert.equal(result.bodySha256,createHash('sha256').update(Buffer.alloc(2097152,255)).digest('hex'));
+ assert.ok(Buffer.byteLength(JSON.stringify(result))+65536<pay.PQ_PAY_QUERY_RESERVE_BYTES);
+ assert.throws(()=>pay.capturePQPayQueryPacket(raw(Buffer.alloc(2097153))),{code:'PQ_PAY_PACKET_TOO_LARGE'});
+ assert.deepEqual(pay.capturePQPayQueryPacket(raw(new Uint8Array(),{status:0,contentType:'',cacheControl:false})),
+  pay.capturePQPayPacket(raw(new Uint8Array(),{status:0,contentType:'',cacheControl:false})));
+});
+
+function checkQueryOriginal(original){
+ const kind=original.typed.review.action.kind,payload=original.typed.review.action.payload;
+ const ref=kind==='invoice_terms'?{hash:original.hash,kind,intentId}:
+  {hash:original.hash,kind,merchant:kind==='invoice_settle'?payload.merchant:original.account,invoiceId:payload.invoiceID};
+ const target=pay.normalizePQPayTargetDATA(original,ref),initial=pay.initialPQPayProgress(original,target);
+ assert.equal(Object.hasOwn(initial,'queryResult'),false);
+ const query=pay.capturePQPayQueryPacket(raw(new Uint8Array([255,0,128]),{method:'GET',requestPath:'/actually-returned-query',status:503}));
+ assert.throws(()=>pay.pqPayQueryRequestDATA(initial,original),{code:'PQ_PAY_SUBMISSION_NOT_ENTERED'});
+ assert.throws(()=>pay.mergePQPayQueryPacket(initial,query,original),{code:'PQ_PAY_SUBMISSION_NOT_ENTERED'});
+ const entered=pay.enterPQPaySubmission(initial,original);
+ assert.deepEqual(pay.parsePQPayProgress(clone(entered),original),entered);
+ assert.equal(Object.hasOwn(pay.parsePQPayProgress(clone(entered),original),'queryResult'),false);
+ assert.deepEqual(pay.pqPayQueryRequestDATA(entered,original),{method:'GET',requestPath:kind==='invoice_terms'?`/v5/pay/invoice-intents/${intentId}`:`/v5/pay/invoices/${target.merchant}/${target.invoiceId}`});
+ const submission=pay.mergePQPayPacket(entered,captured,original),before=JSON.stringify(submission);
+ const saved=pay.mergePQPayQueryPacket(submission,query,original);
+ assert.equal(JSON.stringify(submission),before);assert.deepEqual(saved.result,submission.result);
+ assert.deepEqual(saved.queryResult,query);assert.equal(saved.status,'submission-unknown');assert.deepEqual(saved.target,target);
+ assert.equal(Object.isFrozen(saved.queryResult),true);assert.equal(Object.isFrozen(saved.queryResult.undefinedFields),true);
+ assert.deepEqual(pay.parsePQPayProgress(clone(saved),original),saved);
+ assert.deepEqual(pay.mergePQPayQueryPacket(saved,clone(query),original),saved);
+ assert.throws(()=>pay.mergePQPayQueryPacket(saved,pay.capturePQPayQueryPacket(raw(new Uint8Array([7]))),original),{code:'PQ_PAY_QUERY_RESPONSE_CONFLICT'});
+ assert.deepEqual(saved.queryResult,query);assert.deepEqual(saved.result,captured);
+ // A query after a lost submission response does not manufacture that response.
+ const queriedFirst=pay.mergePQPayQueryPacket(entered,query,original);
+ assert.equal(queriedFirst.result,null);assert.equal(queriedFirst.status,'submission-unknown');
+ assert.deepEqual(pay.mergePQPayPacket(queriedFirst,captured,original).queryResult,query);
+ assert.deepEqual(pay.mergePQPayQueryPacket({...submission,queryResult:null},query,original),saved);
+ for(const value of [false,0,'',undefined,null]){
+  const firstCause=pay.pqPayProgressCause(value),storageCause=pay.pqPayProgressCause(value);
+  const withCause=pay.mergePQPayQueryPacket({...submission,firstCause,storageCause},query,original);
+  assert.deepEqual(withCause.firstCause,firstCause);assert.deepEqual(withCause.storageCause,storageCause);
+ }
+ for(const edit of [x=>{x.version=1;},x=>{x.operationId='other';},x=>{x.target.merchant='0x'+'00'.repeat(20);},x=>{x.target.invoiceId='other';},x=>{x.target.requestPath='/transactions/pq/actions/broadcast';},x=>{x.status='signed-unsubmitted';}]){
+  const bad=clone(entered);edit(bad);assert.throws(()=>pay.pqPayQueryRequestDATA(bad,original));assert.throws(()=>pay.mergePQPayQueryPacket(bad,query,original));
+ }
+ const corrupted=clone(saved);corrupted.queryResult.bodySha256='00'.repeat(32);assert.throws(()=>pay.parsePQPayProgress(corrupted,original));
+ let calls=0;const getter={...saved};Object.defineProperty(getter,'queryResult',{enumerable:true,get(){calls++;throw Error('getter');}});
+ assert.throws(()=>pay.parsePQPayProgress(getter,original));assert.equal(calls,0);
+ assert.throws(()=>pay.parsePQPayProgress({...saved,queryResult:undefined},original));
+}
+
+
+test('Pay query reuses three shared PUBLIC originals: old v2, exact GET targets, first-query custody, conflicts and falsy causes',()=>{
+ assert.equal(originals.length,3);
+ for(const original of originals)checkQueryOriginal(original);
 });

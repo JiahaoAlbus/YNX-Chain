@@ -9,6 +9,8 @@ export const PQ_PAY_PACKET_BODY_MAX_BYTES=2*1024*1024;
 export const PQ_PAY_PACKET_BASE64_MAX_BYTES=4*Math.ceil(PQ_PAY_PACKET_BODY_MAX_BYTES/3);
 export const PQ_PAY_PACKET_METADATA_RESERVE_BYTES=192*1024;
 export const PQ_PAY_PROGRESS_RESERVE_BYTES=PQ_PAY_PACKET_BASE64_MAX_BYTES+PQ_PAY_PACKET_METADATA_RESERVE_BYTES+65536;
+// Additional reserve before the first read, on top of the existing journal.
+export const PQ_PAY_QUERY_RESERVE_BYTES=PQ_PAY_PROGRESS_RESERVE_BYTES;
 const metadata=['method','requestPath','status','contentType','cacheControl'];
 const limits={method:1024,requestPath:8192,status:64,contentType:8192,cacheControl:8192};
 const targetKeys=['version','service','kind','intentId','merchant','invoiceId','requestPath'];
@@ -111,11 +113,13 @@ function packet(input){
  return frozen({...r,undefinedFields:absent});
 }
 function parse(input,context){
- const p=exact(input,progressKeys);
+ const hasQuery=!!input&&!types.isProxy(input)&&Object.hasOwn(input,'queryResult');
+ const p=exact(input,hasQuery?[...progressKeys,'queryResult']:progressKeys);
  if(p.version!==2||identityKeys.some(k=>p[k]!==context.identity[k])||!['signed-unsubmitted','submission-unknown'].includes(p.status))fail();
  const t=target(p.target,context),result=p.result===null?null:packet(p.result);
- if(result!==null&&p.status!=='submission-unknown')fail();
- return frozen({...p,target:t,result,firstCause:cause(p.firstCause),storageCause:cause(p.storageCause)});
+ const queryResult=hasQuery?(p.queryResult===null?null:packet(p.queryResult)):null;
+ if((result!==null||queryResult!==null)&&p.status!=='submission-unknown')fail();
+ return frozen({...p,target:t,result,...(hasQuery?{queryResult}:{}),firstCause:cause(p.firstCause),storageCause:cause(p.storageCause)});
 }
 export function parsePQPayProgress(input,original){return parse(input,verified(original));}
 export function initialPQPayProgress(original,input){
@@ -134,4 +138,25 @@ export function mergePQPayPacket(input,captured,original){
   return prior;
  }
  return frozen({...prior,result});
+}
+
+/** Derived read DATA only; neither a request executor nor a reconcile POST. */
+export function pqPayQueryRequestDATA(input,original){
+ const prior=parsePQPayProgress(input,original);
+ if(prior.status!=='submission-unknown')fail('PQ_PAY_SUBMISSION_NOT_ENTERED');
+ const t=prior.target,requestPath=t.kind==='invoice_terms'?`/v5/pay/invoice-intents/${t.intentId}`:
+  `/v5/pay/invoices/${t.merchant}/${t.invoiceId}`;
+ return frozen({method:'GET',requestPath});
+}
+// Capture actual framing before any interpretation, even a wrong method/path.
+export function capturePQPayQueryPacket(input){return capturePQPayPacket(input);}
+export function mergePQPayQueryPacket(input,captured,original){
+ const prior=parsePQPayProgress(input,original),queryResult=packet(captured);
+ if(prior.status!=='submission-unknown')fail('PQ_PAY_SUBMISSION_NOT_ENTERED');
+ if(prior.queryResult!=null){
+  if(resultKeys.some(k=>JSON.stringify(prior.queryResult[k])!==JSON.stringify(queryResult[k])))fail('PQ_PAY_QUERY_RESPONSE_CONFLICT');
+  return prior;
+ }
+ // Keep the submission packet, target, identity, status and causes intact.
+ return frozen({...prior,queryResult});
 }
