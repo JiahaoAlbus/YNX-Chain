@@ -64,10 +64,11 @@ for (const pkg of packages) {
     if (mod?.Dir && inside(path.resolve(mod.Dir))) modules.add(mod.Dir);
     // An original supplier may require an explicit external composition
     // -modfile. Preserve the actual selected metadata, not just root go.mod.
-    if (mod?.GoMod && inside(path.resolve(mod.GoMod))) {
-      selected.set(path.relative(source, mod.GoMod), mod.GoMod);
-      const sum = mod.GoMod.replace(/\.mod$/, '.sum');
-      if (sum !== mod.GoMod && fs.existsSync(sum))
+    const goMod = mod?.GoMod && path.resolve(source, mod.GoMod);
+    if (goMod && inside(goMod)) {
+      selected.set(path.relative(source, goMod), goMod);
+      const sum = goMod.replace(/\.mod$/, '.sum');
+      if (sum !== goMod && fs.existsSync(sum))
         selected.set(path.relative(source, sum), sum);
     }
   }
