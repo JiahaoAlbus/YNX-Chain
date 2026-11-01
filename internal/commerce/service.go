@@ -729,7 +729,11 @@ func (s *Store) Orders(actor, role string) []Order {
 	return out
 }
 
-func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res *Resolution, review *Review, idempotencyKeys ...string) (result Order, resultErr error) {
+func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res *Resolution, review *Review, idempotencyKeys ...string) (Order, error) {
+	return s.transitionOriginalReturn(actor, role, id, next, shipment, res, review, "", idempotencyKeys...)
+}
+
+func (s *Store) transitionOriginalReturn(actor, role, id, next string, shipment *Shipment, res *Resolution, review *Review, originalReturnID string, idempotencyKeys ...string) (result Order, resultErr error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// Enrich private copies only: retry hashes must keep representing the
@@ -786,12 +790,22 @@ func (s *Store) transition(actor, role, id, next string, shipment *Shipment, res
 	if !authorized {
 		return Order{}, ErrInvalidState
 	}
-	request := struct {
-		OrderID, Next string
-		Shipment      *Shipment
-		Resolution    *Resolution
-		Review        *Review
-	}{id, next, shipment, res, review}
+	if originalReturnID != "" {
+		if (next != "return_approved" && next != "return_rejected") || !invoiceRecoveryID.MatchString(originalReturnID) {
+			return Order{}, ErrInvalidState
+		}
+		actual := ""
+		for i := len(o.Timeline) - 1; i >= 0; i-- {
+			if o.Timeline[i].Status == "return_requested" {
+				actual = o.Timeline[i].ID
+				break
+			}
+		}
+		if actual == "" || actual != originalReturnID {
+			return Order{}, ErrConflict
+		}
+	}
+	request := originalTransitionRequest(id, next, shipment, res, review, originalReturnID)
 	requestDigest := ""
 	if len(idempotencyKeys) > 0 {
 		var replay bool

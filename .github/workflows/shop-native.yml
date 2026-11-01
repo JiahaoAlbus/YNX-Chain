@@ -12,6 +12,7 @@ on:
       - "apps/seller-console/test/mutation-intents.test.mjs"
       - "apps/seller-console/test/warehouse-*.mjs"
       - "apps/seller-console/test/fulfillment-*.mjs"
+      - "apps/seller-console/test/return-decision-*.mjs"
       - "apps/seller-console/scripts/current-wallet-sdk.mjs"
       - "apps/seller-console/vendor/ynx-chain-wallet-auth-1.2.0-r9.tgz"
       - ".github/workflows/shop-native.yml"
@@ -27,6 +28,7 @@ on:
       - "apps/seller-console/test/mutation-intents.test.mjs"
       - "apps/seller-console/test/warehouse-*.mjs"
       - "apps/seller-console/test/fulfillment-*.mjs"
+      - "apps/seller-console/test/return-decision-*.mjs"
       - "apps/seller-console/scripts/current-wallet-sdk.mjs"
       - "apps/seller-console/vendor/ynx-chain-wallet-auth-1.2.0-r9.tgz"
       - ".github/workflows/shop-native.yml"
@@ -46,6 +48,8 @@ jobs:
       receipt-test-delta: ${{ steps.scope.outputs.receipt-test-delta }}
       fulfillment-only: ${{ steps.scope.outputs.fulfillment-only }}
       fulfillment-checks: ${{ steps.scope.outputs.fulfillment-checks }}
+      return-decision-only: ${{ steps.scope.outputs.return-decision-only }}
+      return-decision-checks: ${{ steps.scope.outputs.return-decision-checks }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -88,6 +92,9 @@ jobs:
           fulfillment_files = {"apps/seller-console/native/fulfillment-cli.mjs", "apps/seller-console/native/check-fulfillment-cli.mjs", "apps/seller-console/native/FULFILLMENT.md", "apps/seller-console/test/fulfillment-cli.test.mjs", "apps/seller-console/test/fulfillment-http.mjs", "internal/commerce/fulfillment_cli_test.go"}
           fulfillment_only = bool(changed) and any(p in fulfillment_files for p in changed) and all(p in fulfillment_files or p == ".github/workflows/shop-native.yml" for p in changed)
           fulfillment_checks = fulfillment_only or not changed or any(p in fulfillment_files or p in {".github/workflows/shop-native.yml", "internal/commerce/service.go", "internal/commerce/model.go", "internal/commerce/native_payment_receipt.go", "internal/commerce/business_order_transition.go"} for p in changed)
+          return_files = {"apps/seller-console/native/return-decision-cli.mjs", "apps/seller-console/native/check-return-decision-cli.mjs", "apps/seller-console/native/RETURN_DECISIONS.md", "apps/seller-console/test/return-decision-cli.test.mjs", "apps/seller-console/test/return-decision-http.mjs", "internal/commerce/original_return_decision_test.go", "internal/commerce/business_order_transition.go", "internal/commerce/service.go", "internal/commerce/server.go", "internal/commerce/seller_mutation_lookup.go"}
+          return_decision_only = bool(changed) and any(p in return_files for p in changed) and all(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed)
+          return_decision_checks = return_decision_only or not changed or any(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed)
           tests = []
           if not source_only or any(map(source_path, changed)):
               tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI"])
@@ -107,6 +114,8 @@ jobs:
                       receipt_test_delta = True
                       tests = new_tests
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("return-decision-only=" + str(return_decision_only).lower() + "\n")
+              output.write("return-decision-checks=" + str(return_decision_checks).lower() + "\n")
               output.write("fulfillment-only=" + str(fulfillment_only).lower() + "\n")
               output.write("fulfillment-checks=" + str(fulfillment_checks).lower() + "\n")
               output.write("receipt-test-delta=" + str(receipt_test_delta).lower() + "\n")
@@ -127,12 +136,12 @@ jobs:
       - name: Verify complete original Auth and LINK input packages
         run: python3 internal/commerce/verify_product_source_inputs.py
       - name: Verify original intent recovery and build the normal Shop service
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
+        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
           go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
       - name: Verify affected Source and Native Pay reads on original transports
-        if: needs.change-scope.outputs.native-client-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true'
+        if: needs.change-scope.outputs.native-client-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true'
         env:
           READ_TESTS: ${{ needs.change-scope.outputs.read-tests }}
         run: |
@@ -145,12 +154,12 @@ jobs:
             go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
           fi
       - uses: actions/setup-java@v4
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true'
+        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true'
         with:
           distribution: temurin
           java-version: "17"
       - name: Check actual Android intent consumer and narrow route policy
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true'
+        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true'
         run: |
           set -euo pipefail
           DEPS="$RUNNER_TEMP/shop-intent-deps"
@@ -176,13 +185,31 @@ jobs:
           YNX_SHOP_FULFILLMENT_EVIDENCE_DIR="$RUNNER_TEMP/shop-fulfillment-evidence" \
           YNX_SHOP_FULFILLMENT_CLI_FIXTURE="$RUNNER_TEMP/fulfillment-http-fixture.mjs" \
             go test -mod=readonly -race -tags commerce_v2 ./internal/commerce -run '^TestFulfillmentCLIActualHTTPNativePaidColdOriginalRecovery$' -count=1 -v
+      - name: Check original Native return decisions and exact legacy semantic compatibility
+        if: needs.change-scope.outputs.return-decision-checks == 'true'
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/ynx-shop-return-decision-tools" --no-package-lock --ignore-scripts \
+            esbuild@0.25.9 @noble/curves@2.2.0 @noble/hashes@2.2.0
+          node apps/seller-console/native/check-return-decision-cli.mjs "$RUNNER_TEMP/ynx-shop-return-decision-tools/node_modules" "$RUNNER_TEMP/return-decision-http-fixture.mjs"
+          YNX_SHOP_RETURN_DECISION_EVIDENCE_DIR="$RUNNER_TEMP/shop-return-decision-evidence" \
+          YNX_SHOP_RETURN_DECISION_CLI_FIXTURE="$RUNNER_TEMP/return-decision-http-fixture.mjs" \
+            go test -mod=readonly -race -tags commerce_v2 ./internal/commerce -run '^(TestOriginalReturnDecision|TestReturnDecisionCLIActualHTTP|TestSellerMutationLookupTransitionReadsLaterStateWithoutAnotherTransition)' -count=1 -v
+          go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd-return-decision" ./internal/commerce/cmd/shopd
+      - uses: actions/upload-artifact@v4
+        if: always() && needs.change-scope.outputs.return-decision-checks == 'true'
+        with:
+          name: ynx-shop-return-decision-service-evidence
+          path: |
+            ${{ runner.temp }}/shop-return-decision-evidence
+            ${{ runner.temp }}/ynx-shopd-return-decision
       - uses: actions/upload-artifact@v4
         if: always() && needs.change-scope.outputs.fulfillment-checks == 'true'
         with:
           name: ynx-shop-fulfillment-original-evidence
           path: ${{ runner.temp }}/shop-fulfillment-evidence
       - name: Check inventory CLI against the original official Native SDK input
-        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
+        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
           npm install --prefix "$RUNNER_TEMP/ynx-shop-inventory-tools" --no-package-lock --ignore-scripts \
@@ -195,7 +222,7 @@ jobs:
 
   android-app-candidate:
     needs: change-scope
-    if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true'
+    if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -230,7 +257,7 @@ jobs:
 
   language-regression:
     needs: change-scope
-    if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true'
+    if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.fulfillment-only != 'true' && needs.change-scope.outputs.return-decision-only != 'true'
     runs-on: macos-15
     timeout-minutes: 5
     steps:

@@ -611,7 +611,7 @@ func (s *Server) orderTransition(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ship, res, review := in.parts()
-	v, err := s.store.transition(sess.Account, sess.Role, r.PathValue("id"), in.Action, ship, res, review, in.IdempotencyKey)
+	v, err := s.store.transitionOriginalReturn(sess.Account, sess.Role, r.PathValue("id"), in.Action, ship, res, review, in.OriginalReturnID, in.IdempotencyKey)
 	if err != nil {
 		fail(w, status(err), err)
 		return

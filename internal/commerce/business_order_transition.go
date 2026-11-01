@@ -7,7 +7,22 @@ import (
 
 type orderTransitionInput struct {
 	Action, Carrier, TrackingNumber, Reason, Explanation, Body, IdempotencyKey string
+	OriginalReturnID                                                           string
 	Rating                                                                     int
+}
+
+// Preserve the exact legacy semantic request when no original return selector is
+// supplied. The optional selector only narrows the existing Seller transition.
+type orderTransitionRequest struct {
+	OrderID, Next    string
+	Shipment         *Shipment
+	Resolution       *Resolution
+	Review           *Review
+	OriginalReturnID string `json:",omitempty"`
+}
+
+func originalTransitionRequest(id, next string, ship *Shipment, res *Resolution, review *Review, returnID string) orderTransitionRequest {
+	return orderTransitionRequest{id, next, ship, res, review, returnID}
 }
 
 func (in orderTransitionInput) parts() (*Shipment, *Resolution, *Review) {
@@ -51,7 +66,7 @@ func (s *Server) runBusinessOrderTransition(ctx context.Context, verified *verif
 		}
 		ship, res, review := in.parts()
 		var err error
-		result, err = tx.transition(actor, verified.principal.Role, target, in.Action, ship, res, review, in.IdempotencyKey)
+		result, err = tx.transitionOriginalReturn(actor, verified.principal.Role, target, in.Action, ship, res, review, in.OriginalReturnID, in.IdempotencyKey)
 		return err
 	})
 	return result, err

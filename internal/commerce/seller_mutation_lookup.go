@@ -180,12 +180,7 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 			return nil, "", ErrConflict
 		}
 		ship, res, review := input.parts()
-		original = struct {
-			OrderID, Next string
-			Shipment      *Shipment
-			Resolution    *Resolution
-			Review        *Review
-		}{target, input.Action, ship, res, review}
+		original = originalTransitionRequest(target, input.Action, ship, res, review, input.OriginalReturnID)
 		route, key, kind = "order.transition."+target, input.IdempotencyKey, "order"
 	default:
 		parts := strings.Split(in.Path, "/")
