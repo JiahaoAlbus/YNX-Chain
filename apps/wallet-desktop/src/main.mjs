@@ -477,6 +477,18 @@ export function composeProtectedDesktopPay(integration,pqNative=null){
   void originalPQPayComposition.catch(cause=>{originalPQPayCompositionCause=cause;originalPQPaySupply=null;});
   return originalPQPayComposition;
 }
+async function composeNormalOriginalDesktopPay(){
+  if(originalPQPayComposition)return originalPQPayComposition;
+  try{
+    // Fixed SDK namespace only. Importing its getter grants no Native Source;
+    // each actual request still passes the admitted image and original lease.
+    const {acquireOriginalPaySource,isOriginalPaySource}=await import('@ynx-chain/wallet-auth/pq-native-pay-source');
+    return await composeProtectedDesktopPay(null,{acquireOriginalPaySource,isOriginalPaySource});
+  }catch(cause){
+    if(!originalPQPayComposition){originalPQPayCompositionCause=cause;originalPQPaySupply=null;originalPQPayComposition=Promise.reject(cause);void originalPQPayComposition.catch(()=>{});}
+    throw cause;
+  }
+}
 const startupProtocolUrls = [];
 let protocolRegistration = { platform: process.platform, attempted: false, registered: false };
 const initialProtocolUrl = extractYNXWalletProtocolUrl(process.argv);
@@ -1072,6 +1084,7 @@ app.on("second-instance", (_event, argv) => {
 });
 
 if (singleInstanceLock) app.whenReady().then(async () => {
+  try{await composeNormalOriginalDesktopPay();}catch{/* retained first Pay-only cause; ordinary Wallet continues */}
   originalPQPayBootEntered=true;
   // A missing Pay-only dependency must not prevent the ordinary Wallet from
   // starting, or change existing accounts and original Core UNKNOWN records.
