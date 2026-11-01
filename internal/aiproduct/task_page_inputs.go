@@ -63,7 +63,7 @@ func validateTaskPageReferences(refs []TaskPageReference) error {
 	seen := map[string]bool{}
 	for _, r := range refs {
 		h, err := hex.DecodeString(r.Version)
-		if r.SelectionID == "" || len(r.SelectionID) > 128 || len(h) != 64 || err != nil || strings.ToLower(r.Version) != r.Version || seen[r.SelectionID] {
+		if !utf8.ValidString(r.SelectionID) || r.SelectionID == "" || len(r.SelectionID) > 128 || len(h) != 64 || err != nil || strings.ToLower(r.Version) != r.Version || seen[r.SelectionID] {
 			return errToolInvalid
 		}
 		seen[r.SelectionID] = true

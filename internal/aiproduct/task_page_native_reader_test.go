@@ -254,9 +254,9 @@ func TestP08NativePagePartialOrLateRevokeDropsAllBytes(t *testing.T) {
 		})
 	}
 }
-func TestP08NativePageNormalMissingCalleeIsExplicit(t *testing.T) {
+func TestP08NativePageNormalMissingSourceIsExplicit(t *testing.T) {
 	owner := &nativeTaskRuntimeAuthority{}
-	if pages, err := owner.ReadOriginalTaskPages(context.Background(), OriginalTaskPagesRequest{}); len(pages) != 0 || !errors.Is(err, ErrTaskPagesSourceNotSupplied) || !errors.Is(err, errTaskEffectSourceUnavailable) {
+	if pages, err := owner.ReadOriginalTaskPages(context.Background(), OriginalTaskPagesRequest{}); len(pages) != 0 || !errors.Is(err, ErrTaskPagesSourceUnavailable) || !errors.Is(err, errTaskEffectSourceUnavailable) {
 		t.Fatalf("missing callee was not explicit: %+v %v", pages, err)
 	}
 	f := newP08ModelFixture(t)
@@ -269,7 +269,7 @@ func TestP08NativePageNormalMissingCalleeIsExplicit(t *testing.T) {
 	r.SetPathValue("id", f.task.ID)
 	w := httptest.NewRecorder()
 	f.server.handleTaskModelRun(w, r, f.session)
-	if w.Code != 503 || !strings.Contains(w.Body.String(), "AI_BROWSER_PROTECTED_PAGE_READER_NOT_SUPPLIED") || f.requests.Load() != 0 {
+	if w.Code != 503 || !strings.Contains(w.Body.String(), "AI_BROWSER_PROTECTED_SOURCE_NOT_SUPPLIED") || f.requests.Load() != 0 {
 		t.Fatalf("missing source reached model: %d %s", w.Code, w.Body.String())
 	}
 }

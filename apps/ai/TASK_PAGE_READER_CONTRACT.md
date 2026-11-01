@@ -2,10 +2,16 @@
 
 Current P08 normal consumer is `nativeTaskRuntimeAuthority.ReadOriginalTaskPages`
 in `internal/aiproduct/task_page_native_reader.go`. It uses the original retained
-`*grantruntime.Runtime`, whose current source does NOT implement the following
-optional callee. The absence is CODE, independently reported as
-`AI_BROWSER_PROTECTED_PAGE_READER_NOT_SUPPLIED`; this is not a model quota,
-privacy-certificate, Root0 success, or permanent external-material wait.
+`*grantruntime.Runtime`, whose original e56 dependency prefix predates this optional callee. Original Auth
+has now supplied the complete reader r2 module in
+`/Volumes/西部数据/YNX-large-work/auth-owned-r258/browser-page-runtime-successor-r2/HANDOFF.json`
+(SHA256 c445b19653864c26369919125afed36f32be31fac0b388ec8f2b957e285840ac).
+The isolated normal consumer composition verifies and uses that actual method;
+it does not claim the unmodified live dependency prefix was hot-updated. The
+independent genuine Browser capture/Source factory remains unconnected. Missing
+method CODE is `AI_BROWSER_PROTECTED_PAGE_READER_NOT_SUPPLIED`; nil/unavailable
+original Source is separately `AI_BROWSER_PROTECTED_SOURCE_NOT_SUPPLIED` (503),
+with the original supplier cause retained. Neither implies model availability.
 
 Required original Auth/SDK Runtime method (supplier owns implementation):
 
@@ -103,3 +109,22 @@ and release the exact original protected IPC/Native borrow; it must not create
 replacement scopes or replay model/tool actions. A late response after task
 handoff/cancellation is discarded. No new shared method, JSON key, signature
 purpose, codec or admission row is required for this caller-only delta.
+
+## Selected-pages finite SDK successor intake
+
+The original sole SDK has supplied a complete candidate prefix rooted at
+534c810569112a7f8f73b430ae3217be95bb180d plus its frozen 12-leaf delta:
+`/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-task-v6-selected-pages-successor-20261101/HANDOFF.json`
+(SHA256 e03a00459dfc16ed5b95450184ca036b0d115f3a29add9e3913828833ccb4850).
+It retains exact7 legacy run bodies and permits exact8 only by adding
+selectedPages (0..16 exact selectionId/version records, ordered, unique,
+well-formed UTF8 ID1..128bytes and lowercase SHA512hex128). Original35-field E5
+and raw body binding are unchanged; no selected-pages action/signing domain is
+invented. P08 verifies the original PUBLIC vector through its real Go decoder
+and original installed-CLI Bridge in the isolated matching prefix. The Go
+request-digest projection remains dataOnly=true/signatureVerified=false and
+SourceAdmission=false; actual PQ verification/genuine Source/Native review remain
+in the original layers. Changing refs under the unchanged proof is rejected.
+The full copied candidate, official780-file closure and retained original normal
+module wrappers/query leaves are pinned separately; this is not a published
+package, Auth-frozen union, Root admission or live SDK overwrite.

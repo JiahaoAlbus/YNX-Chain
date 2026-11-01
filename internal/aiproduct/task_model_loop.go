@@ -750,6 +750,8 @@ func (s *Server) handleTaskModelRun(w http.ResponseWriter, r *http.Request, sess
 		response := map[string]any{"error": "task model run did not complete", "run": view}
 		if errors.Is(err, ErrTaskPagesSourceNotSupplied) {
 			response["blocker"] = "AI_BROWSER_PROTECTED_PAGE_READER_NOT_SUPPLIED"
+		} else if errors.Is(err, ErrTaskPagesSourceUnavailable) {
+			response["blocker"] = "AI_BROWSER_PROTECTED_SOURCE_NOT_SUPPLIED"
 		}
 		writeJSON(w, status, response)
 		return

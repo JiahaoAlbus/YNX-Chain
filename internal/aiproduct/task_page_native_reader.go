@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	native "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go"
 	"unicode/utf8"
 )
 
@@ -16,6 +18,8 @@ var ErrTaskPagesSourceNotSupplied = fmt.Errorf("%w: AI_BROWSER_PROTECTED_PAGE_RE
 // so the supplier never imports AI or duplicates a Grant/portable codec.
 // Request is product selection DATA, response is the exact P05 batch DATA.
 // The producer must not return bytes on failed/partial authorization.
+var ErrTaskPagesSourceUnavailable = fmt.Errorf("%w: AI_BROWSER_PROTECTED_SOURCE_NOT_SUPPLIED", errTaskEffectSourceUnavailable)
+
 type originalNativeTaskPageReader interface {
 	Current(context.Context) error
 	ReadOriginalBrowserPageReadout(context.Context, []byte) ([]byte, error)
@@ -45,13 +49,17 @@ type originalTaskPageReadRequest struct {
 // configuration: a missing reader is not a claim about provider availability.
 func (a *nativeTaskRuntimeAuthority) ReadOriginalTaskPages(ctx context.Context, in OriginalTaskPagesRequest) ([]TaskPageSnapshot, error) {
 	if a == nil || a.owner == nil {
-		return nil, ErrTaskPagesSourceNotSupplied
+		return nil, ErrTaskPagesSourceUnavailable
 	}
 	reader, ok := any(a.owner).(originalNativeTaskPageReader)
 	if !ok {
 		return nil, ErrTaskPagesSourceNotSupplied
 	}
-	return readOriginalNativeTaskPages(ctx, reader, in)
+	pages, err := readOriginalNativeTaskPages(ctx, reader, in)
+	if errors.Is(err, native.ErrUnavailable) || errors.Is(err, native.ErrRetired) {
+		return nil, errors.Join(ErrTaskPagesSourceUnavailable, err)
+	}
+	return pages, err
 }
 func readOriginalNativeTaskPages(ctx context.Context, reader originalNativeTaskPageReader, in OriginalTaskPagesRequest) ([]TaskPageSnapshot, error) {
 	if ctx == nil || missingTaskRuntimeOperand(reader) {

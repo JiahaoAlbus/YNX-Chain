@@ -15,9 +15,11 @@ Browser/resource authority, check account, actual task/revision/generation,
 ordinary profile and current document, and return detached snapshots after
 releasing its borrows. It must not fetch a caller URL. The normal Native adapter now implements this consumer and invokes the optional
 `ReadOriginalBrowserPageReadout(context.Context, []byte) ([]byte,error)` method on
-the SAME original Auth Runtime. The current supplier module does not implement
-that callee: the branch returns `AI_BROWSER_PROTECTED_PAGE_READER_NOT_SUPPLIED`
-and HTTP503 without invoking a provider. The required exact signature/selection
+the SAME original Auth Runtime. The original dependency prefix predates the callee; original Auth has now
+supplied complete reader r2 for isolated normal composition. A missing API is
+reported separately from the existing API with an unavailable genuine Source
+(`AI_BROWSER_PROTECTED_SOURCE_NOT_SUPPLIED`, HTTP503), retaining original causes
+and never invoking a provider on either failure. The required exact signature/selection
 DATA schema is documented in `TASK_PAGE_READER_CONTRACT.md`. This is a concrete
 supplier CODE gap; no PUBLIC/file/socket fallback can fill it.
 
@@ -159,3 +161,11 @@ not call the model, replace the prompt/snapshot, or turn a blocked answer into a
 new run. Read-only history remains independent from a new Source/model call.
 These lifecycle changes do not widen the frozen seven-key NativeV6 record, add
 an E5 action, or supply the missing protected Source/Native approval.
+
+The sole SDK finite selectedPages successor is now source-supplied and consumed
+in the matching isolated prefix. Its exact7/exact8 raw-body contract and original
+E5 remain unchanged. Product reference validation preserves valid UTF8 bytes,
+including multi-byte IDs at the128-byte bound, without normalization. The PUBLIC
+SDK vector is checked by the actual product decoder in existing runtime CI;
+matching complete CLI build selection additionally exercises the original Go
+Bridge. A digest projection is DATA only, not PQ/Root/Source/human approval.
