@@ -43,6 +43,7 @@ type pqOptions struct {
 	checkpointAccess                                                  consensus.PQCheckpointAccess
 	checkpointAccessRequested                                         bool
 	wireObservationOutput, wireObservationScope                       string
+	wireObservationLiveControl                                        string
 	commitObservationOutput, commitObservationScope                   string
 	commitObservationBind                                             func(*consensus.Application, chain.ConsensusMigrationState) error
 }
@@ -425,6 +426,10 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	}
 	observation.started()
 	commitObservation.started()
+	wireLiveDone, wireLiveErr := observation.startLive(ctx)
+	if wireLiveErr != nil {
+		logger.Error("live wire DATA producer unavailable/UNKNOWN; normal consensus continues", "err", wireLiveErr)
+	}
 	defer func() { result = errors.Join(result, node.ProxyApp().Stop()) }()
 	var liveDone <-chan struct{}
 	if live != nil {
@@ -466,6 +471,9 @@ waitForStop:
 				logger.Info("live proof DATA capture completed or retired; no Native authority granted")
 			}
 			liveDone = nil
+		case <-wireLiveDone:
+			logger.Info("live wire DATA endpoint session completed or UNKNOWN; original evidence retained")
+			wireLiveDone = nil
 		}
 	}
 	// Retire and join the DATA reader before normal Node.Stop closes its DBs.
@@ -473,6 +481,7 @@ waitForStop:
 	if live != nil {
 		_ = live.Close()
 	}
+	_ = observation.closeLive()
 	if options.remote() {
 		_ = custody.Close()
 	} // unblock any pending remote call before node shutdown
@@ -495,6 +504,7 @@ func main() {
 	root.AddCommand(newExportProofHostSourceCommand())
 	root.AddCommand(newInspectProofHostTargetCommand())
 	root.AddCommand(newRequestProofHostSourceCommand())
+	root.AddCommand(newRequestWireObservationCommand())
 	root.AddCommand(newRegisterProofHostSourceCommand())
 	root.AddCommand(commands.GenValidatorCmd, commands.InitFilesCmd, commands.LightCmd, commands.ReplayCmd, commands.ReplayConsoleCmd, commands.ResetAllCmd, commands.ResetPrivValidatorCmd, commands.ResetStateCmd, commands.ShowValidatorCmd, commands.TestnetFilesCmd, commands.ShowNodeIDCmd, commands.ReIndexEventCmd, commands.GenNodeKeyCmd, commands.VersionCmd, commands.RollbackStateCmd, commands.CompactGoLevelDBCmd, commands.InspectCmd, debug.DebugCmd, cli.NewCompletionCmd(root, true))
 	start := commands.NewRunNodeCmd(nm.DefaultNewNode)

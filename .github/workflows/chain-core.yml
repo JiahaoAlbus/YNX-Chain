@@ -305,7 +305,7 @@ jobs:
             exit 1
           fi
           git diff --exit-code -- go.mod go.sum
-          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run '^TestOperatorWireObservation' ./cmd/ynx-comet > "$RUNNER_TEMP/wire-caller-tests.jsonl"; then
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run '^TestOperatorWire(Observation|Live)' ./cmd/ynx-comet > "$RUNNER_TEMP/wire-caller-tests.jsonl"; then
             cat "$RUNNER_TEMP/wire-caller-tests.jsonl"
             exit 1
           fi
@@ -316,12 +316,27 @@ jobs:
           for filename in ('wire-observer-tests.jsonl', 'wire-caller-tests.jsonl'):
               rows += [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / filename).read_text().splitlines()]
           required = ['TestMempoolWireObserverOriginalReceiveAndCheckTx', 'TestMempoolWireObserverOriginalSendRetryAndBytes', 'TestMempoolWireObserverLifecycleAndConcurrentSnapshot', 'TestMempoolWireObserverOverflowIsExplicit', 'TestOperatorWireObservationFlagsDefaultAndFailClosed', 'TestOperatorWireObservationActualPinnedConstructorAndReactor', 'TestOperatorWireObservationActualScopeAndLoopbackRefusals', 'TestOperatorWireObservationNormalStopOneOutputAndPublicSchema', 'TestOperatorWireObservationFailureAndUnknownPreserveOriginal', 'TestOperatorWireObservationPathAndEndpointBoundaries', 'TestOperatorWireObservationExactOutputReadback']
+          required += ['TestOperatorWireLivePrivateControlTwoEndpointsAndNoReplay', 'TestOperatorWireLiveUnknownPreservesOriginalAndRetires', 'TestOperatorWireLiveCloseJoinsOriginalCaptureWithoutNodeQuit', 'TestOperatorWireLivePermissionsIdentityAndResiduals', 'TestOperatorWireLiveRequesterUnknownAndProducerIdentity', 'TestOperatorWireLiveSelfProcParsingAndDefaultOff']
           for name in required:
               terminal = [r['Action'] for r in rows if r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')]
               if terminal != ['pass']:
                   raise RuntimeError('original observation adapter did not execute and pass: ' + name)
           print('YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, physicalBytesMeasured=False, nodeProcessesStarted=0), sort_keys=True))
           PY
+
+      - name: Verify exact optional live getter composition without enabling a carrier
+        run: python3 -B scripts/verify/wire-live-matching-source-ci.py
+      - name: Preserve only public optional live source evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: normal-live-wire-source-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/wire-live-source-*/SOURCE.json
+            ${{ runner.temp }}/wire-live-source-*/normal-live-caller.jsonl
+            ${{ runner.temp }}/wire-live-source-*/original-peer-budget.jsonl
+          if-no-files-found: warn
+          retention-days: 14
 
   commit-observation:
     name: Original Commit consumer named cases

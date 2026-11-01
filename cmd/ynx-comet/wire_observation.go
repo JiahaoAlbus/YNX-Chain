@@ -30,15 +30,21 @@ const operatorWireObservationVersion = "YNX-COMET-WIRE-OBSERVATION/v1"
 func registerWireObservationFlags(flags *pflag.FlagSet, options *pqOptions) {
 	flags.Var(&initializationStringFlag{target: &options.wireObservationOutput}, "wire-observation-output", "disabled by default; fresh absolute aggregate output written only after normal node stop")
 	flags.Var(&initializationStringFlag{target: &options.wireObservationScope}, "wire-observation-scope", "explicit synthetic-loopback-lab/v1 scope; not physical bytes, finality or authority")
+	flags.Var(&initializationStringFlag{target: &options.wireObservationLiveControl}, "wire-observation-live-control", "optional existing fresh private operator directory for exactly two running endpoints; requires matching live-getter build")
 }
 
 func (p pqOptions) wireObservationConfigured() bool {
-	return p.wireObservationOutput != "" || p.wireObservationScope != ""
+	return p.wireObservationOutput != "" || p.wireObservationScope != "" || p.wireObservationLiveControl != ""
 }
 
 func (p pqOptions) validateWireObservation() error {
 	if !p.wireObservationConfigured() {
 		return nil
+	}
+	if p.wireObservationLiveControl != "" {
+		if err := validateOperatorWireLiveCapability(p.wireObservationLiveControl); err != nil {
+			return err
+		}
 	}
 	path := p.wireObservationOutput
 	if p.wireObservationScope != operatorWireObservationScope || !utf8.ValidString(path) || len(path) > 4096 ||
@@ -143,6 +149,7 @@ type operatorWireObservation struct {
 	installed bool
 	ran       bool
 	attempted bool
+	live      *operatorWireLiveControl
 }
 
 func prepareOperatorWireObservation(config *cfg.Config, p pqOptions) (_ *operatorWireObservation, resultErr error) {
@@ -201,6 +208,11 @@ func prepareOperatorWireObservation(config *cfg.Config, p pqOptions) (_ *operato
 	if _, err = o.root.Lstat(filepath.Base(o.path)); !errors.Is(err, os.ErrNotExist) {
 		return nil, errors.New("wire observation output appeared during startup; retain original result")
 	}
+	if p.wireObservationLiveControl != "" {
+		if o.live, err = prepareOperatorWireLive(p.wireObservationLiveControl); err != nil {
+			return nil, err
+		}
+	}
 	return o, nil
 }
 
@@ -220,6 +232,15 @@ func (o *operatorWireObservation) install(node *nm.Node) error {
 	}
 	if err := reactor.SetWireObserver(o.observer); err != nil {
 		return err
+	}
+	if o.live != nil {
+		getter, err := newOperatorWireLiveGetter(reactor)
+		if err != nil {
+			return err
+		}
+		if err = o.live.bind(node, getter); err != nil {
+			return err
+		}
 	}
 	o.installed = true
 	return nil
@@ -345,9 +366,13 @@ func (o *operatorWireObservation) close() error {
 	if o == nil {
 		return nil
 	}
+	var liveErr error
+	if o.live != nil {
+		liveErr = o.live.Close()
+	}
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	var result error
+	result := liveErr
 	if o.root != nil {
 		result = errors.Join(result, o.root.Close())
 		o.root = nil
