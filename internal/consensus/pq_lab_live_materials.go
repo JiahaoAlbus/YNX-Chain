@@ -76,6 +76,8 @@ type PQLabLiveMaterialsResult struct {
 }
 
 type pqLabLiveMaterialsInputs struct {
+	metrics              *PQLabMetrics
+	cache                *PQLabStaticCache
 	policy               PQLabLiveMaterialsPolicy
 	path, pin, directory string
 	plan                 PQLabNetworkPlan
@@ -136,6 +138,10 @@ func IsPQLabLiveMaterialsPolicy(path, pin string) (bool, error) {
 }
 
 func loadPQLabLiveMaterialsPolicy(path, pin string) (in *pqLabLiveMaterialsInputs, err error) {
+	return loadPQLabLiveMaterialsPolicyMeasured(path, pin, nil)
+}
+func loadPQLabLiveMaterialsPolicyMeasured(path, pin string, metrics *PQLabMetrics) (in *pqLabLiveMaterialsInputs, err error) {
+	defer pqLabMeasure(metrics, "live.policyLoadTotal")()
 	if _, err = proofHostHash(pin); err != nil {
 		return nil, err
 	}
@@ -162,7 +168,7 @@ func loadPQLabLiveMaterialsPolicy(path, pin string) (in *pqLabLiveMaterialsInput
 	if path != filepath.Join(pqLabLiveMaterialsDirectory(p), "policy.json") {
 		return nil, errors.New("live policy must remain in its original lab node directory")
 	}
-	in, err = loadPQLabLiveMaterialsConfig(p)
+	in, err = loadPQLabLiveMaterialsConfigMeasured(p, metrics)
 	if err != nil {
 		return in, err
 	}
@@ -175,7 +181,8 @@ func loadPQLabLiveMaterialsPolicy(path, pin string) (in *pqLabLiveMaterialsInput
 	if err = pqLabDecode(ar.raw, &in.anchor); err != nil {
 		return in, err
 	}
-	if err = in.validateAnchor(); err != nil {
+	err = in.validateAnchor()
+	if err != nil {
 		return in, err
 	}
 	in.originals = append(in.originals, r)
@@ -183,10 +190,14 @@ func loadPQLabLiveMaterialsPolicy(path, pin string) (in *pqLabLiveMaterialsInput
 }
 
 func loadPQLabLiveMaterialsConfig(p PQLabLiveMaterialsPolicy) (in *pqLabLiveMaterialsInputs, err error) {
+	return loadPQLabLiveMaterialsConfigMeasured(p, nil)
+}
+func loadPQLabLiveMaterialsConfigMeasured(p PQLabLiveMaterialsPolicy, metrics *PQLabMetrics) (in *pqLabLiveMaterialsInputs, err error) {
+	defer pqLabMeasure(metrics, "live.configLoadTotal")()
 	if err = validatePQLabLivePolicy(p); err != nil {
 		return nil, err
 	}
-	in = &pqLabLiveMaterialsInputs{policy: p, directory: pqLabLiveMaterialsDirectory(p)}
+	in = &pqLabLiveMaterialsInputs{policy: p, directory: pqLabLiveMaterialsDirectory(p), metrics: metrics, cache: NewPQLabStaticCache()}
 	defer func() {
 		if err != nil {
 			err = errors.Join(err, in.close())
@@ -196,7 +207,11 @@ func loadPQLabLiveMaterialsConfig(p PQLabLiveMaterialsPolicy) (in *pqLabLiveMate
 	if err = proofHostLivePrivateDirectory(in.directory); err != nil {
 		return in, err
 	}
-	in.plan, in.migration, _, err = loadPQLab(in.policy.RootDir, in.policy.PlanSHA256)
+	entry, loadErr := in.cache.load(in.policy.RootDir, in.policy.PlanSHA256, in.metrics)
+	err = loadErr
+	if err == nil {
+		in.plan, in.migration = entry.plan, entry.witness.migration
+	}
 	if err != nil {
 		return in, err
 	}
@@ -249,6 +264,7 @@ func (in *pqLabLiveMaterialsInputs) close() error {
 		e = errors.Join(e, r.file.Close())
 	}
 	in.originals = nil
+	e = errors.Join(e, in.cache.Close())
 	return e
 }
 func (in *pqLabLiveMaterialsInputs) current() error {
@@ -260,20 +276,24 @@ func (in *pqLabLiveMaterialsInputs) current() error {
 	if e := proofHostLivePrivateDirectory(in.directory); e != nil {
 		return e
 	}
-	_, _, _, e := loadPQLab(in.policy.RootDir, in.policy.PlanSHA256)
+	_, e := in.cache.load(in.policy.RootDir, in.policy.PlanSHA256, in.metrics)
 	return e
 }
 
 // PreparePQLabLiveMaterials creates the bounded startup policy BEFORE the
 // normal node starts. No private material is read; no node is started here.
 func PreparePQLabLiveMaterials(p PQLabLiveMaterialsPolicy) (out PQLabLiveMaterialsSetup, err error) {
+	return PreparePQLabLiveMaterialsMeasured(p, nil)
+}
+func PreparePQLabLiveMaterialsMeasured(p PQLabLiveMaterialsPolicy, metrics *PQLabMetrics) (out PQLabLiveMaterialsSetup, err error) {
+	defer pqLabMeasure(metrics, "live.setupTotal")()
 	if p.AnchorSHA256 != "" {
 		return out, errors.New("setup captures the actual original R anchor; caller-supplied anchor is forbidden")
 	}
 	if err = validatePQLabLivePolicy(p); err != nil {
 		return out, err
 	}
-	if _, _, _, err = loadPQLab(p.RootDir, p.PlanSHA256); err != nil {
+	if _, _, _, err = loadPQLabMeasured(p.RootDir, p.PlanSHA256, metrics); err != nil {
 		return out, err
 	}
 	parent := filepath.Join(p.RootDir, "live-materials")
@@ -287,7 +307,7 @@ func PreparePQLabLiveMaterials(p PQLabLiveMaterialsPolicy) (out PQLabLiveMateria
 	if err = pqLabNetworkFreshDirectory(dir); err != nil {
 		return out, err
 	}
-	in, err := loadPQLabLiveMaterialsConfig(p)
+	in, err := loadPQLabLiveMaterialsConfigMeasured(p, metrics)
 	if err != nil {
 		return out, err
 	}
@@ -355,7 +375,11 @@ func (in *pqLabLiveMaterialsInputs) transaction(r PQLabLiveMaterialsRequest) (*p
 // Only one next operation can be queued; the preceding durable result is
 // required. Existing request/output/partial files are never overwritten.
 func PublishPQLabLiveMaterialsRequest(policyPath, pin string, r PQLabLiveMaterialsRequest) (path string, err error) {
-	in, err := loadPQLabLiveMaterialsPolicy(policyPath, pin)
+	return PublishPQLabLiveMaterialsRequestMeasured(policyPath, pin, r, nil)
+}
+func PublishPQLabLiveMaterialsRequestMeasured(policyPath, pin string, r PQLabLiveMaterialsRequest, metrics *PQLabMetrics) (path string, err error) {
+	defer pqLabMeasure(metrics, "live.publishTotal")()
+	in, err := loadPQLabLiveMaterialsPolicyMeasured(policyPath, pin, metrics)
 	if err != nil {
 		return "", err
 	}
@@ -388,7 +412,10 @@ func PublishPQLabLiveMaterialsRequest(policyPath, pin string, r PQLabLiveMateria
 	if err != nil {
 		return "", err
 	}
-	if err = publishProofHostLiveControl(path, raw); err != nil {
+	endPublish := pqLabMeasure(metrics, "live.controlDurablePublish")
+	err = publishProofHostLiveControl(path, raw)
+	endPublish()
+	if err != nil {
 		return "", err
 	}
 	return path, in.current()
@@ -404,7 +431,11 @@ func pqLabLiveCanonicalEqual(a, b any) bool {
 // nonce release. The normal sender Confirm still verifies these materials and
 // its exact pending operation. Missing/UNKNOWN results are errors, not success.
 func ReadPQLabLiveMaterialsResult(path, pin string, sequence uint32) (out PQLabLiveMaterialsResult, err error) {
-	in, err := loadPQLabLiveMaterialsPolicy(path, pin)
+	return ReadPQLabLiveMaterialsResultMeasured(path, pin, sequence, nil)
+}
+func ReadPQLabLiveMaterialsResultMeasured(path, pin string, sequence uint32, metrics *PQLabMetrics) (out PQLabLiveMaterialsResult, err error) {
+	defer pqLabMeasure(metrics, "live.resultReadTotal")()
+	in, err := loadPQLabLiveMaterialsPolicyMeasured(path, pin, metrics)
 	if err != nil {
 		return out, err
 	}

@@ -593,10 +593,21 @@ func loadPQLabCandidate(n PQLabNetworkNode) (*ynxconsensusauth.CandidateKey, ynx
 }
 
 func loadPQLab(root, pin string) (p PQLabNetworkPlan, m chain.ConsensusMigrationState, b *ConsensusBootstrap, err error) {
+	return loadPQLabMeasured(root, pin, nil)
+}
+func loadPQLabMeasured(root, pin string, metrics *PQLabMetrics) (p PQLabNetworkPlan, m chain.ConsensusMigrationState, b *ConsensusBootstrap, err error) {
+	return loadPQLabObserved(root, pin, metrics, nil)
+}
+func loadPQLabObserved(root, pin string, metrics *PQLabMetrics, originals *pqLabStaticReads) (p PQLabNetworkPlan, m chain.ConsensusMigrationState, b *ConsensusBootstrap, err error) {
+	defer pqLabMeasure(metrics, "lab.loadStaticTotal")()
+	read := pqLabRead
+	if originals != nil {
+		read = originals.read
+	}
 	if err = requireInspectionPath(root); err != nil {
 		return
 	}
-	raw, err := pqLabRead(filepath.Join(root, "network-plan.json"), 1<<20)
+	raw, err := read(filepath.Join(root, "network-plan.json"), 1<<20)
 	if err != nil {
 		return p, m, nil, err
 	}
@@ -632,19 +643,19 @@ func loadPQLab(root, pin string) (p PQLabNetworkPlan, m chain.ConsensusMigration
 		if !reflect.DeepEqual(expected, n.BootstrapArgs) {
 			return p, m, nil, errors.New("lab normal command metadata changed")
 		}
-		config, readErr := pqLabRead(filepath.Join(home, "config", "config.toml"), 1<<20)
+		config, readErr := read(filepath.Join(home, "config", "config.toml"), 1<<20)
 		if readErr != nil || pqLabSHA(config) != n.ConfigSHA256 {
 			return p, m, nil, errors.New("original loopback configuration changed")
 		}
 	}
-	identity, err := pqLabRead(p.IdentityFile, 1<<20)
+	identity, err := read(p.IdentityFile, 1<<20)
 	if err != nil {
 		return p, m, nil, err
 	}
 	if pqLabSHA(identity) != p.IdentitySHA256 {
 		return p, m, nil, errors.New("lab independent identity bytes changed")
 	}
-	migrationRaw, err := pqLabRead(p.MigrationFile, 1<<30)
+	migrationRaw, err := read(p.MigrationFile, 1<<30)
 	if err != nil {
 		return p, m, nil, err
 	}
@@ -654,11 +665,13 @@ func loadPQLab(root, pin string) (p PQLabNetworkPlan, m chain.ConsensusMigration
 	if m.Network.ChainID != PQLabNativeChainID || m.Network.IsPublicNet {
 		return p, m, nil, errors.New("public migration cannot enter lab custody")
 	}
-	genesis, err := pqLabRead(p.GenesisFile, 64<<20)
+	genesis, err := read(p.GenesisFile, 64<<20)
 	if err != nil {
 		return p, m, nil, err
 	}
+	endBootstrap := pqLabMeasure(metrics, "lab.bootstrapFullValidation")
 	b, err = NewConsensusBootstrap(genesis, p.pins(), m)
+	endBootstrap()
 	if err != nil {
 		return
 	}
@@ -669,7 +682,7 @@ func loadPQLab(root, pin string) (p PQLabNetworkPlan, m chain.ConsensusMigration
 		if _, ok := b.members[string(n.ValidatorAddress)]; !ok {
 			return p, m, nil, errors.New("lab node is not an original genesis member")
 		}
-		local, readErr := pqLabRead(filepath.Join(n.Home, "config", "genesis.json"), 64<<20)
+		local, readErr := read(filepath.Join(n.Home, "config", "genesis.json"), 64<<20)
 		if readErr != nil || !bytes.Equal(local, genesis) {
 			return p, m, nil, errors.New("node genesis differs from original common bytes")
 		}

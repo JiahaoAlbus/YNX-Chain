@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"math"
 	"time"
@@ -20,6 +21,7 @@ func runPQLabLiveMaterials(args []string, out io.Writer) error {
 	f := flag.NewFlagSet("ynx-consensus-pq-lab live-materials "+args[0], flag.ContinueOnError)
 	f.SetOutput(io.Discard)
 	synthetic := f.Bool("synthetic", false, "private independent loopback lab only; no Native/Root grant")
+	timings := f.Bool("timings", false, "actual nested callee elapsed stages; no qualification or latency inference")
 	var root, planPin, activationPin, policyPath, policyPin, txFile, txHash, nativeHash *string
 	var nodeIndex *int
 	var maxOps, sequence, num, den *uint64
@@ -51,6 +53,11 @@ func runPQLabLiveMaterials(args []string, out io.Writer) error {
 	if !*synthetic {
 		return errors.New("explicit synthetic scope required, never a substitute for original source pins")
 	}
+	calleeStarted := time.Now()
+	var metrics *consensus.PQLabMetrics
+	if *timings {
+		metrics = &consensus.PQLabMetrics{}
+	}
 	var value any
 	var err error
 	switch args[0] {
@@ -58,14 +65,14 @@ func runPQLabLiveMaterials(args []string, out io.Writer) error {
 		if *maxOps > consensus.MaxPQLabLiveMaterialOperations {
 			return errors.New("operation count exceeds fixed lab bound")
 		}
-		value, err = consensus.PreparePQLabLiveMaterials(consensus.PQLabLiveMaterialsPolicy{Version: consensus.PQLabLiveMaterialsPolicyVersion, RootDir: *root, PlanSHA256: *planPin, ActivationSHA256: *activationPin, NodeIndex: *nodeIndex, MaxOperations: uint32(*maxOps), CaptureTimeout: *timeout, TrustingPeriod: *period, MaxClockDrift: *drift, TrustNumerator: *num, TrustDenominator: *den})
+		value, err = consensus.PreparePQLabLiveMaterialsMeasured(consensus.PQLabLiveMaterialsPolicy{Version: consensus.PQLabLiveMaterialsPolicyVersion, RootDir: *root, PlanSHA256: *planPin, ActivationSHA256: *activationPin, NodeIndex: *nodeIndex, MaxOperations: uint32(*maxOps), CaptureTimeout: *timeout, TrustingPeriod: *period, MaxClockDrift: *drift, TrustNumerator: *num, TrustDenominator: *den}, metrics)
 	case "request":
 		if *sequence == 0 || *sequence > math.MaxUint32 {
 			return errors.New("invalid exact operation sequence")
 		}
 		request := consensus.PQLabLiveMaterialsRequest{Version: "YNX-PQ-LAB-LIVE-MATERIALS-REQUEST/v1", PolicySHA256: *policyPin, Sequence: uint32(*sequence), TransactionFile: *txFile, TransactionSHA256: *txHash, NativeWireHash: *nativeHash}
 		var path string
-		path, err = consensus.PublishPQLabLiveMaterialsRequest(*policyPath, *policyPin, request)
+		path, err = consensus.PublishPQLabLiveMaterialsRequestMeasured(*policyPath, *policyPin, request, metrics)
 		value = struct {
 			Version, Outcome, RequestPath   string
 			SyntheticOnly, AuthorityGranted bool
@@ -74,10 +81,37 @@ func runPQLabLiveMaterials(args []string, out io.Writer) error {
 		if *sequence == 0 || *sequence > math.MaxUint32 {
 			return errors.New("invalid exact operation sequence")
 		}
-		value, err = consensus.ReadPQLabLiveMaterialsResult(*policyPath, *policyPin, uint32(*sequence))
+		value, err = consensus.ReadPQLabLiveMaterialsResultMeasured(*policyPath, *policyPin, uint32(*sequence), metrics)
 	}
 	if err != nil {
+		if metrics != nil {
+			measured, _ := json.Marshal(struct {
+				Version, Outcome string
+				CalleeElapsedNS  int64
+				Timings          consensus.PQLabMetricsSnapshot
+			}{"YNX-PQ-LAB-CALLEE-FAILURE/v1", "REFUSED_OR_UNKNOWN_NO_RETRY", time.Since(calleeStarted).Nanoseconds(), metrics.Snapshot()})
+			return fmt.Errorf("%w; elapsed=%s", err, measured)
+		}
 		return err
+	}
+	if metrics != nil {
+		raw, e := json.Marshal(value)
+		if e != nil {
+			return e
+		}
+		var reply map[string]json.RawMessage
+		if e = json.Unmarshal(raw, &reply); e != nil {
+			return e
+		}
+		reply["calleeElapsedNs"], e = json.Marshal(time.Since(calleeStarted).Nanoseconds())
+		if e != nil {
+			return e
+		}
+		reply["timings"], e = json.Marshal(metrics.Snapshot())
+		if e != nil {
+			return e
+		}
+		return json.NewEncoder(out).Encode(reply)
 	}
 	return json.NewEncoder(out).Encode(value)
 }

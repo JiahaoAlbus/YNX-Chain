@@ -517,6 +517,9 @@ func (s *PQLabWorkloadSource) Destroy() {
 }
 
 func pqLabSignTransferGroup(key *ynxbatch.PrivateKey, policy *ynxauth.State, owner PQLabWorkloadOwner, first uint64, count int, height uint64) (string, []byte, []byte, error) {
+	return pqLabSignTransferGroupMeasured(key, policy, owner, first, count, height, nil)
+}
+func pqLabSignTransferGroupMeasured(key *ynxbatch.PrivateKey, policy *ynxauth.State, owner PQLabWorkloadOwner, first uint64, count int, height uint64, metrics *PQLabMetrics) (string, []byte, []byte, error) {
 	if policy == nil || count < 1 || count > 1024 || count&(count-1) != 0 || first == 0 || first > ^uint64(0)-uint64(count) {
 		return "", nil, nil, errors.New("invalid original lab transfer group")
 	}
@@ -528,7 +531,9 @@ func pqLabSignTransferGroup(key *ynxbatch.PrivateKey, policy *ynxauth.State, own
 			return "", nil, nil, err
 		}
 	}
+	endSign := pqLabMeasure(metrics, "sender.dualBatchSign")
 	b, err := ynxbatch.BatchSign(key, ynxbatch.Metadata{ChainID: policy.NetworkID, Owner: owner.Owner, Purpose: ynxauth.TransactionPurpose}, messages, ynxbatch.SignOptions{Optimized: true})
+	endSign()
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -555,11 +560,13 @@ func pqLabSignTransferGroup(key *ynxbatch.PrivateKey, policy *ynxauth.State, own
 	if err != nil {
 		return "", nil, nil, err
 	}
+	endVerify := pqLabMeasure(metrics, "sender.selfVerifyTrustedPair")
 	if count == 1 {
 		err = v.VerifyOne(wire, height)
 	} else {
 		err = v.VerifyWhole(wire, height)
 	}
+	endVerify()
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -655,6 +662,10 @@ func pqLabFreshDirectory(path string) error {
 }
 
 func pqLabWriteExclusive(path string, raw []byte) error {
+	return pqLabWriteExclusiveMeasured(path, raw, nil)
+}
+func pqLabWriteExclusiveMeasured(path string, raw []byte, metrics *PQLabMetrics) error {
+	defer pqLabMeasure(metrics, "sender.exclusivePersistenceTotal")()
 	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
 	if err != nil {
 		return err
@@ -664,7 +675,9 @@ func pqLabWriteExclusive(path string, raw []byte) error {
 		writeErr = errors.New("incomplete lab original write")
 	}
 	if writeErr == nil {
+		endSync := pqLabMeasure(metrics, "sender.fileFsync")
 		writeErr = f.Sync()
+		endSync()
 	}
 	closeErr := f.Close()
 	if writeErr != nil {
@@ -677,7 +690,10 @@ func pqLabWriteExclusive(path string, raw []byte) error {
 	if err != nil {
 		return err
 	}
-	return errors.Join(d.Sync(), d.Close())
+	endSync := pqLabMeasure(metrics, "sender.directoryFsync")
+	syncErr := d.Sync()
+	endSync()
+	return errors.Join(syncErr, d.Close())
 }
 
 const pqLabSenderVaultDomain = "YNX-SYNTHETIC-LAB-TX-CUSTODY/v1"
@@ -805,6 +821,11 @@ type PQLabSender struct {
 }
 
 func OpenPQLabSender(directory, pin string, index int, credential []byte) (*PQLabSender, error) {
+	return OpenPQLabSenderMeasured(directory, pin, index, credential, nil)
+}
+
+func OpenPQLabSenderMeasured(directory, pin string, index int, credential []byte, metrics *PQLabMetrics) (*PQLabSender, error) {
+	defer pqLabMeasure(metrics, "sender.openTotal")()
 	if err := requireInspectionPath(directory); err != nil {
 		return nil, err
 	}
@@ -842,11 +863,15 @@ func OpenPQLabSender(directory, pin string, index int, credential []byte) (*PQLa
 	if err != nil {
 		return nil, err
 	}
+	endKDF := pqLabMeasure(metrics, "sender.pbkdf2_600000")
 	aead, err := pqLabSenderAEAD(credential, f[5])
+	endKDF()
 	if err != nil {
 		return nil, err
 	}
+	endOpen := pqLabMeasure(metrics, "sender.aesGCMOpen")
 	plain, err := aead.Open(nil, f[6], f[7], aad)
+	endOpen()
 	if err != nil {
 		return nil, errors.New("synthetic sender credential or custody binding invalid")
 	}
@@ -869,7 +894,9 @@ func OpenPQLabSender(directory, pin string, index int, credential []byte) (*PQLa
 	if err != nil {
 		return nil, errors.New("synthetic owner material malformed")
 	}
+	endImport := pqLabMeasure(metrics, "sender.importFullPrivatePublicPair")
 	key, pub, err := ynxbatch.ImportKeyMaterial(ynxbatch.KeyMaterial{PKCS8A: material[0], PKCS8B: material[1], PKA: material[2], PKB: material[3]})
+	endImport()
 	if err != nil {
 		return nil, errors.New("synthetic independent private/full-public pair invalid")
 	}
@@ -953,11 +980,14 @@ func (s *PQLabSender) recordMAC(path string, body []byte) []byte {
 	return h.Sum(nil)
 }
 func (s *PQLabSender) writeRecord(path string, body []byte) error {
+	return s.writeRecordMeasured(path, body, nil)
+}
+func (s *PQLabSender) writeRecordMeasured(path string, body []byte, metrics *PQLabMetrics) error {
 	raw, err := json.Marshal(pqLabSenderRecord{Body: body, MAC: s.recordMAC(path, body)})
 	if err != nil {
 		return err
 	}
-	return pqLabWriteExclusive(path, raw)
+	return pqLabWriteExclusiveMeasured(path, raw, metrics)
 }
 func (s *PQLabSender) readRecord(path string) ([]byte, error) {
 	raw, err := pqLabRead(path, 2<<20)
@@ -981,7 +1011,30 @@ type PQLabSenderCheckpoint struct {
 }
 
 func LoadPQLabSenderCheckpoint(root, planPin, activationPin string, height int64, appHash string) (*PQLabSenderCheckpoint, error) {
-	p, m, b, err := loadPQLab(root, planPin)
+	return LoadPQLabSenderCheckpointMeasured(root, planPin, activationPin, height, appHash, nil)
+}
+
+func LoadPQLabSenderCheckpointMeasured(root, planPin, activationPin string, height int64, appHash string, metrics *PQLabMetrics) (*PQLabSenderCheckpoint, error) {
+	return LoadPQLabSenderCheckpointCached(root, planPin, activationPin, height, appHash, metrics, nil)
+}
+
+// Cached retains only immutable validated inputs. Every call and both Sign
+// checks still decode/verify all four ACTUAL committed states and exact H/hash.
+func LoadPQLabSenderCheckpointCached(root, planPin, activationPin string, height int64, appHash string, metrics *PQLabMetrics, cache *PQLabStaticCache) (*PQLabSenderCheckpoint, error) {
+	defer pqLabMeasure(metrics, "checkpoint.loadTotal")()
+	var entry *pqLabStaticEntry
+	var err error
+	var p PQLabNetworkPlan
+	var m chain.ConsensusMigrationState
+	var b *ConsensusBootstrap
+	if cache == nil {
+		p, m, b, err = loadPQLabMeasured(root, planPin, metrics)
+	} else {
+		entry, err = cache.load(root, planPin, metrics)
+		if err == nil {
+			p, m, b = entry.plan, entry.witness.migration, entry.witness.bootstrap
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -1009,8 +1062,24 @@ func LoadPQLabSenderCheckpoint(root, planPin, activationPin string, height int64
 	}
 	read := func() (CommittedState, error) {
 		var first CommittedState
+		if entry != nil {
+			done := pqLabMeasure(metrics, "checkpoint.staticOriginalReadback")
+			e := entry.current()
+			done()
+			if e != nil {
+				return first, e
+			}
+		}
 		for i, n := range p.Nodes {
-			state, e := readPQEngineCommittedState(n.StatePath, m, b, engine, nil)
+			endNode := pqLabMeasure(metrics, "checkpoint.nodeReadAndValidate")
+			var state CommittedState
+			var e error
+			if entry == nil {
+				state, e = readPQEngineCommittedState(n.StatePath, m, b, engine, nil)
+			} else {
+				state, e = readPQEngineCommittedStateOwned(n.StatePath, entry.witness, engine, nil, capturePQEngineState)
+			}
+			endNode()
 			if e != nil {
 				return CommittedState{}, e
 			}
@@ -1021,9 +1090,19 @@ func LoadPQLabSenderCheckpoint(root, planPin, activationPin string, height int64
 				first = state
 			}
 		}
+		if entry != nil {
+			done := pqLabMeasure(metrics, "checkpoint.staticOriginalReadback")
+			e := entry.current()
+			done()
+			if e != nil {
+				return CommittedState{}, e
+			}
+		}
 		return first, nil
 	}
+	endInitial := pqLabMeasure(metrics, "checkpoint.initialFourNodeRead")
 	state, err := read()
+	endInitial()
 	if err != nil {
 		return nil, err
 	}
@@ -1031,7 +1110,11 @@ func LoadPQLabSenderCheckpoint(root, planPin, activationPin string, height int64
 	if err != nil {
 		return nil, err
 	}
-	return &PQLabSenderCheckpoint{state: state, network: network, migrationHash: m.StateHash, current: func() error { _, err := read(); return err }}, nil
+	return &PQLabSenderCheckpoint{state: state, network: network, migrationHash: m.StateHash, current: func() error {
+		defer pqLabMeasure(metrics, "checkpoint.currentFourNodeRead")()
+		_, err := read()
+		return err
+	}}, nil
 }
 
 func (s *PQLabSender) operation(id string) (string, error) {
@@ -1175,6 +1258,11 @@ func (s *PQLabSender) Recover(r PQLabSenderRequest) (PQLabSenderResult, error) {
 }
 
 func (s *PQLabSender) Sign(r PQLabSenderRequest, checkpoint *PQLabSenderCheckpoint) (PQLabSenderResult, error) {
+	return s.SignMeasured(r, checkpoint, nil)
+}
+
+func (s *PQLabSender) SignMeasured(r PQLabSenderRequest, checkpoint *PQLabSenderCheckpoint, metrics *PQLabMetrics) (PQLabSenderResult, error) {
+	defer pqLabMeasure(metrics, "sender.signTotal")()
 	var out PQLabSenderResult
 	if s == nil {
 		return out, errors.New("missing sender")
@@ -1256,24 +1344,26 @@ func (s *PQLabSender) Sign(r PQLabSenderRequest, checkpoint *PQLabSenderCheckpoi
 	if err != nil {
 		return out, err
 	}
-	if err = pqLabWriteExclusive(filepath.Join(directory, "request.json"), raw); err != nil {
+	if err = pqLabWriteExclusiveMeasured(filepath.Join(directory, "request.json"), raw, metrics); err != nil {
 		return out, ErrPQLabSenderUnknown
 	}
 	intentRaw, err := json.Marshal(pqLabSenderIntent{Version: "YNX-PQ-LAB-SENDER-INTENT/v1", Request: r, CheckpointHeight: checkpoint.state.Height, CheckpointAppHash: checkpoint.state.AppHash, Registration: registration})
 	if err != nil {
 		return out, ErrPQLabSenderUnknown
 	}
-	if err = s.writeRecord(filepath.Join(directory, "INTENT.json"), intentRaw); err != nil {
+	if err = s.writeRecordMeasured(filepath.Join(directory, "INTENT.json"), intentRaw, metrics); err != nil {
 		return out, ErrPQLabSenderUnknown
 	}
-	kind, wire, envelope, err := pqLabSignTransferGroup(s.key, checkpoint.state.AccountPolicy, s.owner, r.FirstNonce, r.Members, uint64(checkpoint.state.Height+1))
+	endCrypto := pqLabMeasure(metrics, "sender.dualSignEncodeAndSelfVerify")
+	kind, wire, envelope, err := pqLabSignTransferGroupMeasured(s.key, checkpoint.state.AccountPolicy, s.owner, r.FirstNonce, r.Members, uint64(checkpoint.state.Height+1), metrics)
+	endCrypto()
 	if err != nil {
 		return out, ErrPQLabSenderUnknown
 	}
-	if err = pqLabWriteExclusive(filepath.Join(directory, "transaction.wire"), wire); err != nil {
+	if err = pqLabWriteExclusiveMeasured(filepath.Join(directory, "transaction.wire"), wire, metrics); err != nil {
 		return out, ErrPQLabSenderUnknown
 	}
-	if err = pqLabWriteExclusive(filepath.Join(directory, "transaction.abci"), envelope); err != nil {
+	if err = pqLabWriteExclusiveMeasured(filepath.Join(directory, "transaction.abci"), envelope, metrics); err != nil {
 		return out, ErrPQLabSenderUnknown
 	}
 	if err = checkpoint.current(); err != nil {
@@ -1284,7 +1374,7 @@ func (s *PQLabSender) Sign(r PQLabSenderRequest, checkpoint *PQLabSenderCheckpoi
 	if err != nil {
 		return PQLabSenderResult{}, ErrPQLabSenderUnknown
 	}
-	if err = s.writeRecord(filepath.Join(directory, "RESULT.json"), raw); err != nil {
+	if err = s.writeRecordMeasured(filepath.Join(directory, "RESULT.json"), raw, metrics); err != nil {
 		return PQLabSenderResult{}, ErrPQLabSenderUnknown
 	}
 	return out, nil

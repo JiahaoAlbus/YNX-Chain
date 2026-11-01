@@ -30,6 +30,7 @@ type PQLabLiveMaterialsAnchor struct {
 }
 
 func (in *pqLabLiveMaterialsInputs) validateAnchor() error {
+	defer pqLabMeasure(in.metrics, "live.anchorFullValidation")()
 	a := in.anchor
 	if a.Version != "YNX-PQ-LAB-ORIGINAL-R-ANCHOR/v1" || a.PlanSHA256 != in.policy.PlanSHA256 || a.ActivationSHA256 != in.policy.ActivationSHA256 || a.Height != in.activation.RegistryHeight || a.AppHash != in.activation.AppHash || a.RegistryRoot != in.activation.RegistryRoot {
 		return errors.New("independent original R anchor differs from activation")
@@ -41,18 +42,24 @@ func (in *pqLabLiveMaterialsInputs) validateAnchor() error {
 	if pqLightUniqueJSON(a.CommittedState) != nil || json.Unmarshal(a.CommittedState, &state) != nil {
 		return errors.New("invalid original R state")
 	}
-	_, _, b, err := loadPQLab(in.plan.RootDir, in.policy.PlanSHA256)
+	entry, err := in.cache.load(in.plan.RootDir, in.policy.PlanSHA256, in.metrics)
 	if err != nil {
 		return err
 	}
+	b := entry.witness.bootstrap
 	state.bootstrap = b
-	if err = state.Validate(in.migration); err != nil {
+	endState := pqLabMeasure(in.metrics, "live.anchorStateFullValidation")
+	err = state.validateOwned(entry.witness)
+	endState()
+	if err != nil {
 		return err
 	}
 	if !state.Initialized || state.Height != a.Height || state.AppHash != a.AppHash || state.ValidatorRegistry == nil || state.ValidatorRegistry.Root != a.RegistryRoot || state.PQEngineSchedule != nil {
 		return errors.New("anchor is not the original unscheduled complete registry checkpoint")
 	}
-	snapshot, err := newPQEngineSnapshot(b, state.ValidatorRegistry, nil, state.Height)
+	endRegistry := pqLabMeasure(in.metrics, "live.anchorRegistryFullReplay")
+	snapshot, err := newPQEngineSnapshotOwned(entry.witness, b, state.ValidatorRegistry, nil, state.Height)
+	endRegistry()
 	if err != nil {
 		return err
 	}
@@ -67,10 +74,14 @@ func (in *pqLabLiveMaterialsInputs) validateAnchor() error {
 	if err != nil {
 		return err
 	}
-	return block.ValidatorSet.VerifyCommit(in.plan.ChainID, block.Commit.BlockID, block.Height, block.Commit)
+	endCommit := pqLabMeasure(in.metrics, "live.anchorCommitFullVerification")
+	err = block.ValidatorSet.VerifyCommit(in.plan.ChainID, block.Commit.BlockID, block.Height, block.Commit)
+	endCommit()
+	return errors.Join(err, entry.current())
 }
 
 func (in *pqLabLiveMaterialsInputs) captureOriginalAnchor() (out PQLabLiveMaterialsAnchor, err error) {
+	defer pqLabMeasure(in.metrics, "live.stoppedAnchorCapture")()
 	var held []*pqLabStoppedSource
 	defer func() {
 		for i := len(held) - 1; i >= 0; i-- {
@@ -80,7 +91,7 @@ func (in *pqLabLiveMaterialsInputs) captureOriginalAnchor() (out PQLabLiveMateri
 			out = PQLabLiveMaterialsAnchor{}
 		}
 	}()
-	_, _, b, err := loadPQLab(in.plan.RootDir, in.policy.PlanSHA256)
+	entry, err := in.cache.load(in.plan.RootDir, in.policy.PlanSHA256, in.metrics)
 	if err != nil {
 		return out, err
 	}
@@ -97,7 +108,7 @@ func (in *pqLabLiveMaterialsInputs) captureOriginalAnchor() (out PQLabLiveMateri
 		if actual.ChainID != in.plan.ChainID || actual.LastBlockHeight != in.activation.RegistryHeight || hex.EncodeToString(actual.AppHash) != in.activation.AppHash {
 			return out, errors.New("setup requires all four original stopped exact R checkpoints, never a later self-selected header")
 		}
-		state, e := readPQEngineCommittedState(in.plan.Nodes[i].StatePath, in.migration, b, nil, nil)
+		state, e := readPQEngineCommittedStateOwned(in.plan.Nodes[i].StatePath, entry.witness, nil, nil, capturePQEngineState)
 		if e != nil {
 			return out, e
 		}

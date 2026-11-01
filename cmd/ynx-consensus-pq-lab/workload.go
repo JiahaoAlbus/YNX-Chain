@@ -68,6 +68,7 @@ func runPQLabPreSigned(args []string, out io.Writer) error {
 // One owner, one inherited credential FD, and a bounded synchronous JSONL
 // command stream. There is no background queue, batching timer or network.
 func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
+	startupStarted := time.Now()
 	f := flag.NewFlagSet("ynx-consensus-pq-lab sender", flag.ContinueOnError)
 	f.SetOutput(io.Discard)
 	synthetic := f.Bool("synthetic", false, "explicit synthetic-only online sender")
@@ -76,6 +77,8 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 	activation := f.String("activation-sha256", "", "independent original activation pin, empty only before scheduled activation")
 	workload := f.String("workload-sha256", "", "independent original online workload pin")
 	owner := f.Int("owner", -1, "independent owner index")
+	ready := f.Bool("ready", false, "emit real opened/imported custody handshake before reading commands; never signs or reserves nonce")
+	timings := f.Bool("timings", false, "report actual nested normal callee wall times; startup separate")
 	fd := f.Int("credential-fd", -1, "already open original lab credential descriptor; no secret in flags")
 	if err := parsePQLabFlags(f, args); err != nil {
 		return err
@@ -116,12 +119,41 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 		return err
 	}
 	defer clear(credential)
-	sender, err := consensus.OpenPQLabSender(directory, *workload, *owner, credential)
+	var startupMetrics *consensus.PQLabMetrics
+	if *timings {
+		startupMetrics = &consensus.PQLabMetrics{}
+	}
+	sender, err := consensus.OpenPQLabSenderMeasured(directory, *workload, *owner, credential, startupMetrics)
 	if err != nil {
 		return err
 	}
 	defer sender.Close()
 	clear(credential)
+	cache := consensus.NewPQLabStaticCache()
+	defer cache.Close()
+	startupElapsedNS := time.Since(startupStarted).Nanoseconds()
+	if *ready {
+		reply := struct {
+			Version          string                          `json:"version"`
+			Status           string                          `json:"status"`
+			OwnerIndex       int                             `json:"ownerIndex"`
+			PlanSHA256       string                          `json:"planSHA256"`
+			WorkloadSHA256   string                          `json:"workloadSHA256"`
+			StartupElapsedNS int64                           `json:"startupElapsedNs"`
+			Timings          *consensus.PQLabMetricsSnapshot `json:"timings,omitempty"`
+			SyntheticOnly    bool                            `json:"syntheticOnly"`
+			AuthorityGranted bool                            `json:"authorityGranted"`
+			Signed           bool                            `json:"signed"`
+			NonceReserved    bool                            `json:"nonceReserved"`
+		}{Version: "YNX-PQ-LAB-SENDER-READY/v1", Status: "original_custody_opened_imported_writer_lease_held", OwnerIndex: *owner, PlanSHA256: *plan, WorkloadSHA256: *workload, StartupElapsedNS: startupElapsedNS, SyntheticOnly: true}
+		if *timings {
+			snapshot := startupMetrics.Snapshot()
+			reply.Timings = &snapshot
+		}
+		if err = json.NewEncoder(out).Encode(reply); err != nil {
+			return err
+		}
+	}
 	scanner := bufio.NewScanner(input)
 	scanner.Buffer(make([]byte, 4096), 32<<10)
 	count := 0
@@ -141,16 +173,21 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 		if err != nil || !bytes.Equal(raw, canonical) || command.Version != "YNX-PQ-LAB-SENDER-COMMAND/v1" || command.Request.OwnerIndex != *owner {
 			return errors.New("exact canonical owner command required")
 		}
+		commandStarted := time.Now()
+		var metrics *consensus.PQLabMetrics
+		if *timings {
+			metrics = &consensus.PQLabMetrics{}
+		}
 		var result any
 		switch command.Operation {
 		case "sign":
 			if command.MaterialsFile != "" || command.MaterialsSHA256 != "" || command.ProofFile != "" {
 				return errors.New("sign cannot accept proof-selected authority")
 			}
-			checkpoint, e := consensus.LoadPQLabSenderCheckpoint(*root, *plan, *activation, command.CheckpointHeight, command.CheckpointAppHash)
+			checkpoint, e := consensus.LoadPQLabSenderCheckpointCached(*root, *plan, *activation, command.CheckpointHeight, command.CheckpointAppHash, metrics, cache)
 			err = e
 			if err == nil {
-				result, err = sender.Sign(command.Request, checkpoint)
+				result, err = sender.SignMeasured(command.Request, checkpoint, metrics)
 			}
 		case "recover":
 			if command.CheckpointHeight != 0 || command.CheckpointAppHash != "" || command.MaterialsFile != "" || command.MaterialsSHA256 != "" || command.ProofFile != "" {
@@ -188,9 +225,14 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 			return errors.New("unsupported sender operation")
 		}
 		response := struct {
-			Version string `json:"version"`
-			Code    string `json:"code"`
-			Result  any    `json:"result"`
+			Version          string                           `json:"version"`
+			Code             string                           `json:"code"`
+			Result           any                              `json:"result"`
+			Timings          *consensus.PQLabMetricsSnapshot  `json:"timings,omitempty"`
+			CalleeElapsedNS  int64                            `json:"calleeElapsedNs,omitempty"`
+			StaticCache      *consensus.PQLabStaticCacheStats `json:"staticCache,omitempty"`
+			StartupElapsedNS int64                            `json:"startupElapsedNs,omitempty"`
+			StartupTimings   *consensus.PQLabMetricsSnapshot  `json:"startupTimings,omitempty"`
 		}{Version: "YNX-PQ-LAB-SENDER-REPLY/v1", Code: "ORIGINAL_SAVED", Result: result}
 		if err != nil {
 			response.Result = nil
@@ -203,6 +245,18 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 		} else if command.Operation == "recover" {
 			response.Code = "ORIGINAL_RECOVERED"
 		}
+		if *timings {
+			snapshot := metrics.Snapshot()
+			response.Timings = &snapshot
+			if count == 1 {
+				response.StartupElapsedNS = startupElapsedNS
+				startup := startupMetrics.Snapshot()
+				response.StartupTimings = &startup
+			}
+			response.CalleeElapsedNS = time.Since(commandStarted).Nanoseconds()
+			stats := cache.Stats()
+			response.StaticCache = &stats
+		}
 		if err = json.NewEncoder(out).Encode(response); err != nil {
 			return err
 		}
@@ -210,7 +264,7 @@ func runPQLabSenderInput(args []string, input io.Reader, out io.Writer) error {
 	if err = scanner.Err(); err != nil {
 		return err
 	}
-	if count == 0 {
+	if count == 0 && !*ready {
 		return errors.New("at least one bounded sender command required")
 	}
 	return nil
