@@ -18,7 +18,7 @@ struct ContentView:View {
         VStack(alignment:.leading,spacing:18){
             Text("nav_orders").font(.title2);Text(link.orderID).font(.caption.monospaced());Text(OriginalOrderLink.chainID).font(.caption)
             if model.originalOrderLoading{ProgressView()}
-            else if let order=model.linkedOriginalOrder{Text(LocalizedStringKey(order.status));Text("\(order.totalYNXT.formatted()) YNXT");if let refund=order.refundStatus{Text(refund).font(.caption)}}
+            else if let order=model.linkedOriginalOrder{Text(LocalizedStringKey(order.status));Text("\(order.totalYNXT.formatted()) YNXT");if let refund=order.refundStatus{Text(refund).font(.caption)};NativeOrderAmounts(order:order)}
             else{Text("unavailable")}
             Text("payment_boundary").font(.caption)
             Button("retry"){Task{await model.refreshOriginalOrderLink()}}.disabled(model.originalOrderLoading)
@@ -86,6 +86,7 @@ struct OrdersView:View {
             if o.status=="payment_pending"{Button("pay_handoff"){model.pay(o)}}
             if o.status=="payment_pending" || (o.payIntentID ?? "").hasPrefix("npi_"){Button("check_payment"){model.checkPayment(o)}}
             if let refund=o.refundStatus,!refund.isEmpty{Text(refund).font(.caption)}
+            NativeOrderAmounts(order:o)
             Menu("order_actions"){
                 ForEach([("cancelled","cancel_order"),("delivered","confirm_delivery"),("reviewed","write_review"),("return_requested","return_request"),("refund_requested","refund_request"),("disputed","dispute")],id:\.0){action,title in
                     if BuyerOrderActionInput.allowed(o.status,action){Button(LocalizedStringKey(title)){model.beginOrderAction(o,action,title:title)}}
@@ -138,5 +139,23 @@ extension View {
 #else
         self
 #endif
+    }
+}
+
+// Exact accepted atom strings; never a conversion from the displayed checkout price.
+struct NativeOrderAmounts:View {
+    let order:Order
+    var body:some View {
+        if let payment=order.nativePayment {
+            if payment.ReconciliationRequired{Text("native_reconcile_required").font(.caption)}
+            else if ["paid","shipped","delivered","reviewed","return_requested","return_approved","refund_requested","refunded"].contains(order.status){
+                VStack(alignment:.leading,spacing:6){
+                    HStack{Text("native_paid_atoms");Spacer();Text(payment.PaidAtoms).monospacedDigit()}
+                    HStack{Text("native_refunded_atoms");Spacer();Text(payment.RefundedAtoms).monospacedDigit()}
+                    HStack{Text("native_net_atoms");Spacer();Text(payment.NetPaidAtoms).monospacedDigit()}
+                    if !payment.CompleteKnownOriginals || !(payment.PendingOriginals ?? []).isEmpty{Text("native_history_pending")}
+                }.font(.caption)
+            }
+        }
     }
 }

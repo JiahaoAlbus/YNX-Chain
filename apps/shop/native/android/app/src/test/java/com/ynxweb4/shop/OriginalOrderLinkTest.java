@@ -27,6 +27,10 @@ public class OriginalOrderLinkTest {
  @Test public void realBackendNativeProjectionIsReadWithoutInventingFunds()throws Exception{
   JSONObject actual=new JSONObject(new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(System.getenv("YNX_SHOP_NATIVE_RECEIPT_FIXTURE"))),java.nio.charset.StandardCharsets.UTF_8));actual.put("WalletBuyer",A);
   ProductSession current=session(A,1);OriginalOrderLink.Read read=OriginalOrderLink.parse(link(actual.getString("ID"),A)).begin(current);String before=actual.toString();read.validate(actual,current);assertEquals(before,actual.toString());
+  java.nio.file.Path fullPath=java.nio.file.Paths.get(System.getenv("YNX_SHOP_NATIVE_RECEIPT_FIXTURE")).resolveSibling("native-refunded-order.json");
+  JSONObject full=new JSONObject(new String(java.nio.file.Files.readAllBytes(fullPath),java.nio.charset.StandardCharsets.UTF_8));full.put("WalletBuyer",A);
+  OriginalOrderLink.parse(link(full.getString("ID"),A)).begin(current).validate(full,current);
+  assertEquals("refunded",full.getString("Status"));assertEquals("100",full.getJSONObject("NativePayment").getString("RefundedAtoms"));assertEquals("0",full.getJSONObject("NativePayment").getString("NetPaidAtoms"));
   actual.remove("NativePayment");assertThrows(Exception.class,()->read.validate(actual,current));
  }
 }

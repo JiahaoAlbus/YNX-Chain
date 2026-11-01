@@ -36,4 +36,9 @@
     <string name="invoice_reference_unconfirmed">原發票尚未確認。請重新整理此訂單，不會建立新發票。</string>
     <plurals name="catalog_count"><item quantity="other">%d 件商品</item></plurals>
     <string name="language_follow_system">跟隨系統</string>
+    <string name="native_paid_atoms">已付（YNXT 原子單位）</string>
+    <string name="native_refunded_atoms">已退（YNXT 原子單位）</string>
+    <string name="native_net_atoms">淨額（YNXT 原子單位）</string>
+    <string name="native_history_pending">原付款歷史尚未完整。請僅重新整理，不要重送。</string>
+    <string name="native_reconcile_required">原付款需要對帳。</string>
 </resources>

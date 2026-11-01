@@ -32,4 +32,9 @@
     <string name="invoice_reference_unconfirmed">Die ursprüngliche Rechnung ist noch nicht bestätigt. Aktualisiere diese Bestellung; es wird keine neue Rechnung erstellt.</string>
     <plurals name="catalog_count"><item quantity="one">%d Produkt</item><item quantity="other">%d Produkte</item></plurals>
     <string name="language_follow_system">Systemeinstellung verwenden</string>
+    <string name="native_paid_atoms">Bezahlt (YNXT-Atome)</string>
+    <string name="native_refunded_atoms">Erstattet (YNXT-Atome)</string>
+    <string name="native_net_atoms">Nettozahlung (YNXT-Atome)</string>
+    <string name="native_history_pending">Der ursprüngliche Verlauf ist unvollständig. Nur aktualisieren, nicht erneut senden.</string>
+    <string name="native_reconcile_required">Die ursprüngliche Zahlung muss abgeglichen werden.</string>
 </resources>

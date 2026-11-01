@@ -32,4 +32,9 @@
     <string name="invoice_reference_unconfirmed">Faktur asli belum dikonfirmasi. Segarkan pesanan ini; faktur baru tidak akan dibuat.</string>
     <plurals name="catalog_count"><item quantity="other">%d produk</item></plurals>
     <string name="language_follow_system">Ikuti sistem</string>
+    <string name="native_paid_atoms">Dibayar (atom YNXT)</string>
+    <string name="native_refunded_atoms">Dikembalikan (atom YNXT)</string>
+    <string name="native_net_atoms">Pembayaran bersih (atom YNXT)</string>
+    <string name="native_history_pending">Riwayat asli belum lengkap. Hanya muat ulang, jangan kirim ulang.</string>
+    <string name="native_reconcile_required">Pembayaran asli perlu rekonsiliasi.</string>
 </resources>

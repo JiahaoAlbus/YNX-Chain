@@ -32,4 +32,9 @@
     <string name="invoice_reference_unconfirmed">La factura original aún no está confirmada. Actualiza este pedido; no se creará otra factura.</string>
     <plurals name="catalog_count"><item quantity="one">%d producto</item><item quantity="other">%d productos</item></plurals>
     <string name="language_follow_system">Seguir el sistema</string>
+    <string name="native_paid_atoms">Pagado (átomos YNXT)</string>
+    <string name="native_refunded_atoms">Reembolsado (átomos YNXT)</string>
+    <string name="native_net_atoms">Pago neto (átomos YNXT)</string>
+    <string name="native_history_pending">El historial original está incompleto. Solo actualiza; no reenvíes.</string>
+    <string name="native_reconcile_required">El pago original requiere conciliación.</string>
 </resources>

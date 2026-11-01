@@ -71,4 +71,9 @@
     <string name="invoice_reference_unconfirmed">The original invoice is not confirmed yet. Refresh this order; a new invoice will not be created.</string>
     <plurals name="catalog_count"><item quantity="one">%d product</item><item quantity="other">%d products</item></plurals>
     <string name="language_follow_system">Follow system</string>
+    <string name="native_paid_atoms">Paid (YNXT atoms)</string>
+    <string name="native_refunded_atoms">Refunded (YNXT atoms)</string>
+    <string name="native_net_atoms">Net paid (YNXT atoms)</string>
+    <string name="native_history_pending">Original payment history is incomplete. Refresh only; do not resend.</string>
+    <string name="native_reconcile_required">The original payment needs reconciliation.</string>
 </resources>

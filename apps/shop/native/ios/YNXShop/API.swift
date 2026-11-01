@@ -116,6 +116,7 @@ struct NativePaymentProjection:Codable {
     let InvoiceID:String;let SessionID:String;let TermsHash:String;let SettlementNativeHash:String
     let PrincipalAtoms:String;let PaidAtoms:String;let RefundedAtoms:String;let NetPaidAtoms:String
     let ReconciliationRequired:Bool;let Receipts:[NativePaymentClaim]
+    let PendingOriginals:[String]?;let CompleteKnownOriginals:Bool
     func validate(_ order:Order)throws {
         func atoms(_ text:String)throws->UInt64 {guard let n=UInt64(text),String(n)==text else{throw ShopError.security};return n}
         let principal=try atoms(PrincipalAtoms),paid=try atoms(PaidAtoms),refunded=try atoms(RefundedAtoms),net=try atoms(NetPaidAtoms)

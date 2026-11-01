@@ -32,4 +32,9 @@
     <string name="invoice_reference_unconfirmed">元の請求書はまだ確認されていません。この注文を更新してください。新しい請求書は作成しません。</string>
     <plurals name="catalog_count"><item quantity="other">商品 %d 件</item></plurals>
     <string name="language_follow_system">システム設定に従う</string>
+    <string name="native_paid_atoms">支払済み（YNXT 原子単位）</string>
+    <string name="native_refunded_atoms">返金済み（YNXT 原子単位）</string>
+    <string name="native_net_atoms">差引支払額（YNXT 原子単位）</string>
+    <string name="native_history_pending">元の支払い履歴が未完了です。更新のみ行い、再送しないでください。</string>
+    <string name="native_reconcile_required">元の支払いの照合が必要です。</string>
 </resources>

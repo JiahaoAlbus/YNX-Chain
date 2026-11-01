@@ -78,3 +78,15 @@ Original Main/Wallet UI ownership stays with P01. Main may offer the supported
 Shop order URI as an explicit navigation action after its own normal selection;
 it must not treat navigation dispatch, the OS open confirmation, HTTP 200,
 PREPARED/ISSUED, local cache or product DATA as paid/finality/Root proof.
+
+
+The native order list and this original-order detail show accepted Native paid,
+refunded and net amounts as exact YNXT atom strings, including zero net after a
+full refund. These are not computed from the historical checkout display price.
+`CompleteKnownOriginals:false` or nonempty `PendingOriginals` is displayed as an
+incomplete original history with refresh-only guidance, never a resend offer.
+`ReconciliationRequired:true` has its own reconciliation notice instead of a
+paid/stock completion claim. These labels follow the existing 12 app languages.
+Both partial and full read fixtures are detached from the preserved actual
+Pay/Shop PUBLIC original Stores; no receipt or financial state is imported by a
+link or by the product UI.

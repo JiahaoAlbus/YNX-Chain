@@ -54,6 +54,11 @@ final class LinkHTTP:URLProtocol,@unchecked Sendable {
   cold.walletCallback(URL(string:link(id,account))!)
   try await wait{requests.count==6};requests[5].respond(body);try await wait{cold.linkedOriginalOrder != nil}
   try check(cold.linkedOriginalOrder?.orderID==id && rows==saved,"cold launch queues only navigation until original Native session restore then GETs original order")
+  let fullPath=URL(fileURLWithPath:ProcessInfo.processInfo.environment["YNX_SHOP_NATIVE_RECEIPT_FIXTURE"]!).deletingLastPathComponent().appendingPathComponent("native-refunded-order.json")
+  var full=try JSONSerialization.jsonObject(with:Data(contentsOf:fullPath)) as! [String:Any];full["WalletBuyer"]=account
+  let fullID=full["ID"] as! String
+  cold.walletCallback(URL(string:link(fullID,account))!);try await wait{requests.count==7};requests[6].respond(String(data:try JSONSerialization.data(withJSONObject:full),encoding:.utf8)!);try await wait{cold.linkedOriginalOrder != nil}
+  try check(cold.linkedOriginalOrder?.status=="refunded" && cold.linkedOriginalOrder?.nativePayment?.RefundedAtoms=="100" && cold.linkedOriginalOrder?.nativePayment?.NetPaidAtoms=="0" && cold.linkedOriginalOrder?.nativePayment?.CompleteKnownOriginals==true && rows==saved,"actual full-refund backend original reads100/100/0 through Model without another payment or UNKNOWN replay")
   cold.signOut()
   http.invalidateAndCancel();print("Original Shop link actual Model/API checks PASS; protected Native installation and Root admission not supplied")
  }

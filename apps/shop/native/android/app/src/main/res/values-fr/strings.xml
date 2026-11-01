@@ -32,4 +32,9 @@
     <string name="invoice_reference_unconfirmed">La facture initiale reste à confirmer. Actualisez cette commande ; aucune nouvelle facture ne sera créée.</string>
     <plurals name="catalog_count"><item quantity="one">%d produit</item><item quantity="other">%d produits</item></plurals>
     <string name="language_follow_system">Suivre le système</string>
+    <string name="native_paid_atoms">Payé (atomes YNXT)</string>
+    <string name="native_refunded_atoms">Remboursé (atomes YNXT)</string>
+    <string name="native_net_atoms">Paiement net (atomes YNXT)</string>
+    <string name="native_history_pending">L’historique initial est incomplet. Actualisez uniquement, sans renvoyer.</string>
+    <string name="native_reconcile_required">Le paiement initial doit être rapproché.</string>
 </resources>
