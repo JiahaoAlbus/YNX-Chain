@@ -627,6 +627,11 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #endif
 #include "original-product-device-v4-query-source.inc.mm"
 #endif
+#ifdef YNX_ORIGINAL_WALLET_NATIVE_PQ_CUSTODY
+#include "original-pq-transaction-binding.inc.mm"
+#endif
+extern "C" napi_value RegisterOriginalWalletPaySource(napi_env,napi_value);
+extern "C" napi_value RegisterOriginalWalletMainNamespaceV1(napi_env,napi_value);
 static napi_value Register(napi_env env,napi_value exports){
  // This original addon owns main-thread-only platform Source/UI/native
  // inventories. Worker environments cannot borrow them via DATA exports.
@@ -660,6 +665,10 @@ static napi_value Register(napi_env env,napi_value exports){
 #endif
 #ifdef YNX_ORIGINAL_PRODUCT_DEVICE_V4_QUERY_STAGE
  if(!RegisterOriginalProductDeviceV4QuerySourceStage(env,exports))return nullptr;
+#endif
+ if(!RegisterOriginalWalletMainNamespaceV1(env,exports)||!RegisterOriginalWalletPaySource(env,exports))return nullptr;
+#ifdef YNX_ORIGINAL_WALLET_NATIVE_PQ_CUSTODY
+ if(!RegisterOriginalPQTransaction(env,exports))return nullptr;
 #endif
  return RegisterOriginalIDEAuthIdentityBinding(env,exports,methods);
 }

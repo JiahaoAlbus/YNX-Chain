@@ -1,3 +1,4 @@
+import {canonicalCommonQAProfile,isCommonQARecord,isCommonQASourceAsset,selectCommonQAInputs,verifyCommonQAComponent} from './canonical-native-qa-profile.mjs';
 import {createHash} from 'node:crypto';
 import {httpV5NormalSourceAsset,isHTTPV5NormalSelection,selectHTTPV5NormalInputs,verifyHTTPV5NormalReceipt} from './wallet-http-v5-native-component.mjs';
 import {DEVICE_V4_QUERY_PQ_NODE,DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS,DEVICE_V4_PROVISIONING_PQ_NODE,DEVICE_V4_PQ_PROTOCOL_INPUTS,DEVICE_V4_PQ_NODE,DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS,DEVICE_V4_PENDING_PQ_NODE,isDeviceV4PQSelection,deviceV4PQSupplierInputs,deviceV4PQReceiptCommands} from './wallet-device-v4-pq-role.mjs';
@@ -17,11 +18,12 @@ export const CANONICAL_NATIVE_EVIDENCE_TESTS=Object.freeze([
  'packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs'
 ]);
 export const SDK332_NATIVE_INVENTORY='packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json';
-export function isCanonicalNativeSourceAsset(name){return typeof name==='string'&&(httpV5NormalSourceAsset(name)||/^(?:apps\/wallet-desktop|packages\/wallet-auth)\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name)||[CC7_NATIVE_SOURCE.path,WALLET_ARTIFACT_CABI_INPUTS[2].path,WALLET_PROJECT_CONTROL_CABI_INPUTS[2].path,...PQ_NATIVE_INPUTS.map(p=>p.path),...DEVICE_V4_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS.map(p=>p.path),'apps/wallet-desktop/native/product-device-v4-e5.c','packages/wallet-auth/native/original-product-device-v4-query-source-contract.d.mts'].includes(name));}
+export function isCanonicalNativeSourceAsset(name){return typeof name==='string'&&(isCommonQASourceAsset(name)||httpV5NormalSourceAsset(name)||/^(?:apps\/wallet-desktop|packages\/wallet-auth)\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name)||[CC7_NATIVE_SOURCE.path,WALLET_ARTIFACT_CABI_INPUTS[2].path,WALLET_PROJECT_CONTROL_CABI_INPUTS[2].path,...PQ_NATIVE_INPUTS.map(p=>p.path),...DEVICE_V4_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS.map(p=>p.path),'apps/wallet-desktop/native/product-device-v4-e5.c','packages/wallet-auth/native/original-product-device-v4-query-source-contract.d.mts'].includes(name));}
 /** Production compilation and source-inspection tests are distinct inputs.
  * Only the independently frozen auth3 inventory may select the 55 production
  * leaves. Never infer that set from the receipt currently being checked. */
 export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,receiptInputs){
+ if(canonicalCommonQAProfile(sdkVersion,inventoryBytes))return selectCommonQAInputs(sdkVersion,inventoryBytes);
  if(isHTTPV5NormalSelection(names))return selectHTTPV5NormalInputs(sdkVersion,names,inventoryBytes,receiptInputs);
  if(names.includes(CC7_NATIVE_SOURCE.path)&&sdkVersion!==CC7_NATIVE_ROLE.sdk.version)throw Error('Canonical Native source inventory differs');
  const evidenceAssets=CANONICAL_NATIVE_EVIDENCE_TESTS.filter(n=>names.includes(n));
@@ -95,6 +97,7 @@ export function canonicalPackedPath(name){
  return name;
 }
 export function canonicalSourcePath(name){
+ if(isCommonQASourceAsset(name))return 'code/'+name;
  if(name.startsWith('apps/wallet-desktop/')||name.startsWith('packages/wallet-auth/'))return 'code/'+name;
  throw Error('Unlisted canonical source path: '+name);
 }
@@ -174,6 +177,7 @@ export function canonicalArchivePlan(before,metadataBytes,dependencyRows=[],prod
  return {after:[...rows.values()].sort((a,b)=>a.path.localeCompare(b.path,'en')),metadata,appMetadata};
 }
 export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,readSource){
+ if(isCommonQARecord(receipt))return verifyCommonQAComponent({record:receipt,inventoryBytes:readSource('packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json'),moduleBytes,helperBytes:readSource('apps/wallet-desktop/native/YNXIdentityReceiver')},readSource);
  if(isHTTPV5NormalSelection(expectedInputs))return verifyHTTPV5NormalReceipt(receipt,moduleBytes,expectedInputs,readSource);
  const bad=()=>{throw Error('Native build receipt or input pins differ');};
  if(receipt?.schemaVersion!==1||receipt.kind!=='YNX_WALLET_ORIGINAL_NATIVE_BUILD'||receipt.napiVersion!==8||receipt.headerVersion!=='22.13.1'||receipt.minimumSystemVersion!=='13.0'||typeof receipt.readbackOnly!=='boolean'||receipt.appSigned!==false||receipt.nativeQualified!==false||receipt.registrationAccepted!==false)bad();

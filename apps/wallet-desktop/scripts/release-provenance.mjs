@@ -1,3 +1,4 @@
+import {COMMON_QA_INPUT_NAMES,isCommonQARecord} from './canonical-native-qa-profile.mjs';
 import { execFileSync } from "node:child_process";
 import {HTTP_V5_NORMAL_INPUT_NAMES} from './wallet-http-v5-native-component.mjs';
 import {openPhysicalCodeView} from './physical-code-layout.mjs';
@@ -195,6 +196,7 @@ export function auth26PackagedNativeSources(inventoryBytes,component,availableNa
  return matchedCustodyPackagedNativeSources(inventoryBytes,component,availableNames);
 }
 export function matchedCustodyPackagedNativeSources(inventoryBytes,component,availableNames){
+ if(component?.normalCommonImage){if(component.sourceBytesVerified!==true||COMMON_QA_INPUT_NAMES.some(p=>!availableNames.includes(p)))throw Error('COMMON_QA_GIT_SOURCE_MISSING');return [...COMMON_QA_INPUT_NAMES];}
  if(component?.httpV5NormalRole){if(component.sourceBytesVerified!==true||HTTP_V5_NORMAL_INPUT_NAMES.some(p=>!availableNames.includes(p)))throw Error('V5 normal Native source is missing from frozen Git');return [...HTTP_V5_NORMAL_INPUT_NAMES];}
  if(component?.sourceBytesVerified!==true||!Array.isArray(component.walletInputs)||!Array.isArray(availableNames))throw Error('Auth26 matched component must precede source selection');
  const inventory=JSON.parse(inventoryBytes);if(![SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION,SDK37_VERSION,SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION,SDK46_VERSION,SDK49_VERSION].includes(inventory.version))throw Error('Matched custody inventory required');
@@ -448,7 +450,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const sdkMetadata=JSON.parse(execFileSync('git',['show',`${expected.sourceCommit}:packages/wallet-auth/package.json`],{cwd:root,maxBuffer:16*1024*1024}));
   const sdkRuntimeDependencies=verifyPackagedWalletAuthDependencies(asar,archive,dependencies,sdkMetadata);
   const nativeReceiptBytes=asar.extractFile(archive,NATIVE_RECEIPT),nativeReceipt=JSON.parse(nativeReceiptBytes.toString('utf8'));
-  const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native',...(nativeReceipt.httpV5NormalRole?['apps/developer/helper']:[])).split('\n').filter(isCanonicalNativeSourceAsset);
+  const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native',...(isCommonQARecord(nativeReceipt)?['apps/developer/helper','apps/pay/native/producer','apps/wallet-desktop/scripts']:nativeReceipt.httpV5NormalRole?['apps/developer/helper']:[])).split('\n').filter(isCanonicalNativeSourceAsset);
   const sourceBytes=name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024});
   const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION,SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION,SDK_PUBLICATION_RESULT_VERSION,SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION,SDK37_VERSION,SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION,SDK46_VERSION,SDK49_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);

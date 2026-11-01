@@ -1,6 +1,6 @@
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {existsSync,readFileSync,lstatSync} from 'node:fs';
+import {existsSync,readFileSync,lstatSync,writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 const here=fileURLToPath(import.meta.url),app=path.resolve(path.dirname(here),'..'),repo=path.resolve(app,'../..');
@@ -18,7 +18,7 @@ export function validateOriginalMacMinimumSystemVersion(value){
  if(typeof value!=='string'||!/^[1-9][0-9]*\.(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*))?$/.test(value)||value.length>24)throw Error('AUTH_NATIVE_PACKAGE_MINIMUM_INVALID');
  const parts=value.split('.').map(Number);if(parts.some(n=>!Number.isSafeInteger(n))||parts[0]<11||parts[0]>99||parts.slice(1).some(n=>n>99))throw Error('AUTH_NATIVE_PACKAGE_MINIMUM_INVALID');return value;
 }
-export function originalAuthNativeBuildPlan(arch,headers){
+export function originalAuthLegacyNativeBuildPlan(arch,headers){
  if(!['arm64','x64','universal'].includes(arch)||typeof headers!=='string'||!path.isAbsolute(headers)||path.normalize(headers)!==headers)throw Error('AUTH_NATIVE_BUILD_INPUT_INVALID');
  const arches=arch==='universal'?['arm64','x64']:[arch],native=path.join(repo,'packages/wallet-auth/native');
  // Same original module: the complete R111 baseline is six translation units.
@@ -93,7 +93,7 @@ export function originalAuthDeviceV4BuildPlan(arch,headers,protocolRoot){
  for(let dir=protocolRoot;;dir=path.dirname(dir)){const stat=lstatSync(dir);if(!stat.isDirectory()||stat.isSymbolicLink())throw Error('AUTH_DEVICE_V4_PROTOCOL_ROOT_INVALID');if(path.dirname(dir)===dir)break;}
  const regular=file=>{const stat=lstatSync(file);if(!stat.isFile()||stat.isSymbolicLink())throw Error('AUTH_DEVICE_V4_SOURCE_NOT_REGULAR');return readFileSync(file);};
  const protocol=ORIGINAL_DEVICE_V4_PROTOCOL_PINS.map(pin=>{const file=path.join(protocolRoot,pin.name),raw=regular(file);if(raw.length!==pin.bytes||createHash('sha256').update(raw).digest('hex')!==pin.sha256)throw Error('AUTH_DEVICE_V4_PROTOCOL_PIN_DIFFERS');return {...pin,path:file};});
- const base=originalAuthNativeBuildPlan(arch,headers),native=path.join(repo,'packages/wallet-auth/native'),wallet=path.join(app,'native');
+ const base=originalAuthLegacyNativeBuildPlan(arch,headers),native=path.join(repo,'packages/wallet-auth/native'),wallet=path.join(app,'native');
  const names=['original-product-device-v4-source.inc.mm','original-product-device-v4-source-read.inc.mm','original-product-device-v4-http-producer.inc.mm','original-product-device-v4-factory.h','original-product-device-v4-factory.mm','original-product-device-v4-slot.h','original-product-device-v4-slot.mm','original-product-device-v4-slot-record.h','original-product-device-v4-http-call.h','ProductSessionDeviceV4.h','product-device-v4-e5.c','product_session_http.h'];
  const inputs=[...names.map(name=>path.join(wallet,name)),...['product-session-device-v4-once.h','product-session-device-v4-once-binding.h'].map(name=>path.join(native,name))];
  for(const file of inputs)regular(file);
@@ -119,7 +119,7 @@ export const ORIGINAL_PENDING_DEVICE_V4_LINK_PINS=Object.freeze([
 ]);
 export function originalAuthPendingDeviceV4CompilePlan(arch,headers){
  if(arch!=='arm64')throw Error('AUTH_PENDING_DEVICE_V4_ARCHITECTURE_NOT_SUPPLIED');
- const base=originalAuthNativeBuildPlan(arch,headers),wallet=path.join(app,'native'),native=path.join(repo,'packages/wallet-auth/native');
+ const base=originalAuthLegacyNativeBuildPlan(arch,headers),wallet=path.join(app,'native'),native=path.join(repo,'packages/wallet-auth/native');
  const regular=file=>{const s=lstatSync(file);if(!s.isFile()||s.isSymbolicLink())throw Error('AUTH_PENDING_DEVICE_V4_SOURCE_NOT_REGULAR');return readFileSync(file);};
  const closure=['original-product-device-v4-source.inc.mm','original-product-device-v4-source-read.inc.mm','original-product-device-v4-http-producer.inc.mm','original-product-device-v4-factory.h','original-product-device-v4-factory.mm','original-product-device-v4-slot.h','original-product-device-v4-slot.mm','original-product-device-v4-http-call.h','ProductSessionDeviceV4.h','product-device-v4-e5.c','product_session_http.h','original-product-device-v4-typed-producer.inc.mm','original-product-device-v4-typed-producer.h','original-product-device-v4-typed-producer.mm','original-product-device-v4-pending-custody.h','original-product-device-v4-pending-custody.mm','original-product-device-v4-pending-once.h','original-product-device-v4-slot-record.h'].map(n=>path.join(wallet,n));
  closure.push(...['original-product-device-v4-pending-journal.h','original-host-dirfd-journal.h','original-product-device-v4-pending-source-contract.mjs'].map(n=>path.join(native,n)));
@@ -143,7 +143,7 @@ export function originalAuthPendingDeviceV4BuildPlan(arch,headers,protocolRoot){
  const pins=ORIGINAL_PENDING_DEVICE_V4_LINK_PINS;if(!Array.isArray(pins)||pins.length!==2||pins[0].name!=='libynx_artifact_release.a'||pins[1].name!=='SOURCE.json')throw Error('AUTH_PENDING_DEVICE_V4_LINK_CONTRACT_INVALID');
  const protocolInputs=[...pins,...ORIGINAL_PENDING_DEVICE_V4_HEADER_PINS].map(pin=>{if(!Number.isSafeInteger(pin.bytes)||pin.bytes<1||!/^[a-f0-9]{64}$/.test(pin.sha256))throw Error('AUTH_PENDING_DEVICE_V4_LINK_CONTRACT_INVALID');const file=path.join(protocolRoot,pin.name),s=lstatSync(file);if(!s.isFile()||s.isSymbolicLink())throw Error('AUTH_PENDING_DEVICE_V4_PROTOCOL_NOT_REGULAR');const b=readFileSync(file);if(b.length!==pin.bytes||createHash('sha256').update(b).digest('hex')!==pin.sha256)throw Error('AUTH_PENDING_DEVICE_V4_PROTOCOL_PIN_DIFFERS');return{...pin,path:file};});
  const sourceManifest=JSON.parse(readFileSync(path.join(protocolRoot,'SOURCE.json'),'utf8')),httpSource=sourceManifest.sources?.['cmd/ynx-artifact-release-cabi/product_session_http.h'],httpPin=ORIGINAL_DEVICE_V4_PROTOCOL_PINS[1];if(httpSource?.bytes!==httpPin.bytes||httpSource?.sha256!==httpPin.sha256)throw Error('AUTH_PENDING_DEVICE_V4_OFFICIAL_HTTP_SOURCE_DIFFERS');
- const compile=originalAuthPendingDeviceV4CompilePlan(arch,headers),base=originalAuthNativeBuildPlan(arch,headers),argv=base.commands[0].argv,at=argv.indexOf(base.sources[0]);
+ const compile=originalAuthPendingDeviceV4CompilePlan(arch,headers),base=originalAuthLegacyNativeBuildPlan(arch,headers),argv=base.commands[0].argv,at=argv.indexOf(base.sources[0]);
  const link={tool:'/usr/bin/clang++',argv:[...argv.slice(0,at),...compile.objectOutputs,protocolInputs[0].path,'-lresolv','-o',base.output]};
  return{...compile,commands:[...compile.commands,link],outputs:[base.output],output:base.output,intermediateOutputs:compile.objectOutputs,protocolInputs,compileOnly:false,linkReady:true,ownedUndefinedScan:base.ownedUndefinedScan,ownedRequiredExportsScan:{tool:'/usr/bin/nm',argv:['-gU',base.output]},nativeAdmission:false,sourceAdmission:false};
 }
@@ -160,7 +160,7 @@ export function originalAuthProvisioningDeviceV4BuildPlan(arch,headers,typedRoot
  const b=readFileSync(path.join(wallet,pins.header.name));if(b.length!==pins.header.bytes||createHash('sha256').update(b).digest('hex')!==pins.header.sha256)throw Error('AUTH_PROVISIONING_CALLER_HEADER_DIFFERS');
  const macro='-DYNX_ORIGINAL_PRODUCT_DEVICE_V4_PROVISIONING_STAGE',commands=c.commands.map(x=>({tool:x.tool,argv:x.tool==='/usr/bin/clang++'?[macro,...x.argv]:x.argv})),flags=[macro,...c.commands.find(x=>x.tool==='/usr/bin/clang++').argv.slice(0,c.commands[0].argv.indexOf('-c'))];
  const objects=extra.map((_,i)=>path.join(wallet,'original-auth-provisioning-device-v4.arm64.'+i+'.o'));for(let i=0;i<extra.length;i++)commands.push({tool:'/usr/bin/clang++',argv:[...flags,'-I'+creatorRoot,'-c',extra[i],'-o',objects[i]]});
- const base=originalAuthNativeBuildPlan(arch,headers),linkArgv=base.commands[0].argv,at=linkArgv.indexOf(base.sources[0]);commands.push({tool:'/usr/bin/clang++',argv:[...linkArgv.slice(0,at),...c.objectOutputs,...objects,protocolInputs[0].path,'-lresolv','-o',base.output]});
+ const base=originalAuthLegacyNativeBuildPlan(arch,headers),linkArgv=base.commands[0].argv,at=linkArgv.indexOf(base.sources[0]);commands.push({tool:'/usr/bin/clang++',argv:[...linkArgv.slice(0,at),...c.objectOutputs,...objects,protocolInputs[0].path,'-lresolv','-o',base.output]});
  return{...c,commands,output:base.output,outputs:[base.output],sources:[...c.sources,...extra],intermediateOutputs:[...c.objectOutputs,...objects],compileOnly:false,linkReady:true,protocolInputs,archiveCount:1,deviceV4ProvisioningStage:true,ownedUndefinedScan:base.ownedUndefinedScan,ownedRequiredExportsScan:{tool:'/usr/bin/nm',argv:['-gU',base.output]},requiredOwnedExports:[...c.requiredOwnedExports,'YNXProductSessionDeviceKeypairGenerateV4'],sourceAdmission:false,nativeAdmission:false};
 }
 // Same ecdf single-archive image. Add only read-only query Source/reader TU;
@@ -181,17 +181,11 @@ export function originalAuthQueryDeviceV4BuildPlan(arch,headers,typedRoot,creato
 export function originalIDEHelperBuildPlan(arch){
  if(!['arm64','x64','universal'].includes(arch))throw Error('AUTH_NATIVE_HELPER_BUILD_INPUT_INVALID');
  const arches=arch==='universal'?['arm64','x64']:[arch],native=path.join(repo,'packages/wallet-auth/native');
- const sources=[path.join(repo,'apps/developer/helper/main.mm'),...['original-ide-helper-listener.mm','original-ide-helper-xpc-peer.mm','original-ide-helper-service-install.mm','original-auth-identity-source-authority.mm','original-auth-identity-joint-owner.mm','original-ide-parent-kernel.mm','original-ide-parent-source-binding.mm'].map(n=>path.join(native,n)),path.join(app,'native/original-ide-auth-request-source.inc.mm'),path.join(native,'original-ide-helper-client.mm'),path.join(native,'original-ide-publication-artifact.mm')];
+ const sources=[path.join(repo,'apps/developer/helper/main.mm'),...['original-ide-helper-listener.mm','original-ide-helper-xpc-peer.mm','original-ide-helper-service-install.mm','original-auth-identity-source-authority.mm','original-auth-identity-joint-owner.mm','original-ide-parent-kernel.mm','original-ide-parent-source-binding.mm'].map(n=>path.join(native,n)),path.join(app,'native/original-ide-auth-request-source.inc.mm'),path.join(native,'original-ide-helper-client.mm'),path.join(native,'original-ide-publication-artifact.mm'),path.join(native,'original-http-v5-registered-private.mm'),path.join(app,'native/original-product-device-v4-association-keychain.mm')];
  const headers=['original-ide-helper-listener.h','original-ide-helper-effect-contract.h','original-ide-helper-client.h','original-ide-helper-xpc-peer.h','original-ide-helper-service-contract.h','original-ide-helper-build-release.h','original-ide-publication-artifact.h','original-auth-identity-source-authority.h','original-auth-identity-source-v2-verifier.mjs','original-ide-contract-relay-source.inc.mm','original-ide-contract-relay-launch.h','original-ide-contract-relay-runtime.inc.mm','original-ide-project-authority-data.h','original-ide-project-authority-source.inc.mm','original-ide-service-registration-data.h','original-ide-project-app-observer.h','original-ide-project-app-observer-data.h',"original-ide-project-control-source.inc.mm","original-ide-project-control-capture.mjs","original-ide-project-control-contract.mjs","original-developer-principal-data.mjs","original-ide-publication-approval-contract.mjs","original-ide-project-control-dispatch.mjs","original-ide-publication-approval-dispatch.mjs","original-ide-approval-state-head-data.mjs","original-ide-protected-publisher-contract.mjs","original-ide-protected-publisher-dispatch.mjs","original-ide-project-control-custody-source.inc.mm","original-ide-project-control-custody-data.mjs"].map(n=>path.join(native,n));
  for(const file of [...sources,...headers]){let st;try{st=lstatSync(file);}catch{throw Error('AUTH_NATIVE_HELPER_EXECUTABLE_SOURCE_INCOMPLETE');}if(!st.isFile()||st.isSymbolicLink())throw Error('AUTH_NATIVE_HELPER_EXECUTABLE_SOURCE_INCOMPLETE');}
  const output=path.join(repo,'apps/developer/helper/YNXIdentityReceiver'),minimumSystemVersion='13.0';
- // The actual HTTP V5 private lease declaration uses the original Main
- // provisioning types. Its presence adds that real include root; old frozen
- // SDKs without the declaration retain their original helper command.
- const withHTTPV5=existsSync(path.join(native,'original-http-v5-registered-private.h'));
- const httpV5Includes=withHTTPV5?['-I'+path.join(app,'native')]:[];
- if(withHTTPV5)sources.push(path.join(native,'original-http-v5-registered-private.mm'),path.join(app,'native/original-product-device-v4-association-keychain.mm'));
- const commands=arches.map(a=>({tool:'/usr/bin/clang++',argv:['-std=c++17','-fobjc-arc','-mmacosx-version-min=13.0','-I'+native,...httpV5Includes,'-framework','Foundation','-framework','Security','-framework','ServiceManagement',...(withHTTPV5?['-framework','LocalAuthentication']:[]),'-lbsm','-arch',a==='x64'?'x86_64':a,...sources,'-o',arches.length===1?output:output+'.'+a]}));
+ const commands=arches.map(a=>({tool:'/usr/bin/clang++',argv:['-std=c++17','-fobjc-arc','-mmacosx-version-min=13.0','-I'+path.join(app,'native'),'-I'+native,'-framework','Foundation','-framework','Security','-framework','LocalAuthentication','-framework','ServiceManagement','-lbsm','-arch',a==='x64'?'x86_64':a,...sources,'-o',arches.length===1?output:output+'.'+a]}));
  if(arches.length===2)commands.push({tool:'/usr/bin/lipo',argv:['-create',output+'.arm64',output+'.x64','-output',output]});
  return {commands,output,outputs:[output],sources,minimumSystemVersion,ownedUndefinedScan:{tool:'/usr/bin/nm',argv:['-u',output],rejectPattern:'YNX|ynx'}};
 }
@@ -207,21 +201,56 @@ export function assertOriginalProvisioningDeviceV4Exports(text){
  assertOriginalPendingDeviceV4Exports(text);
  if(!text.split(/\r?\n/).some(line=>/\b[Tt]\s+_YNXProductSessionDeviceKeypairGenerateV4$/.test(line.trim())))throw Error('AUTH_PROVISIONING_DEVICE_V4_EXPORT_MISSING');
 }
-if(process.argv[1]&&path.resolve(process.argv[1])===here&&process.argv[2]==='device-http-v5'){
- execFileSync(process.execPath,[path.join(path.dirname(here),'build-original-http-v5-native.mjs'),...process.argv.slice(3)],{stdio:'inherit'});
+// SAME canonical normal entry. Legacy explicit device/helper recipes retain
+// their original builder below; none is a fallback for this complete image.
+export function originalAuthNativeBuildPlan(arch,headers){
+ if(arch!=='arm64'||typeof headers!=='string'||!path.isAbsolute(headers)||path.normalize(headers)!==headers)throw Error('AUTH_NATIVE_COMMON_MATCHING_INPUT_INVALID');
+ const manifestPath=path.join(app,'native/original-wallet-common-build-inputs.json');
+ const regular=file=>{const stat=lstatSync(file);if(!stat.isFile()||stat.isSymbolicLink())throw Error('AUTH_NATIVE_COMMON_INPUT_NOT_REGULAR');return readFileSync(file);};
+ const digest=raw=>createHash('sha256').update(raw).digest('hex');
+ const raw=regular(manifestPath);if(digest(raw)!=='9c6ec33318fb17bdd7d167ac65b0483634781152e83a6dd0cdcd2edf25d8fbd5')throw Error('AUTH_NATIVE_COMMON_MANIFEST_PIN');
+ const m=JSON.parse(raw);if(m.version!==1||m.arch!=='arm64'||m.translationUnits.length!==50||m.swiftSources.length!==2||m.archiveCount!==1)throw Error('AUTH_NATIVE_COMMON_MANIFEST_SHAPE');
+ const relative=value=>{if(typeof value!=='string'||!value.length||path.isAbsolute(value)||value.split('/').some(x=>x==='..'||x==='.'||x==='')||value.includes('\\'))throw Error('AUTH_NATIVE_COMMON_RELATIVE_INPUT');return path.join(repo,value);};
+ const inputs=m.files.map(row=>{const file=relative(row.path),b=regular(file);if(!Number.isSafeInteger(row.bytes)||b.length!==row.bytes||digest(b)!==row.sha256)throw Error('AUTH_NATIVE_COMMON_INPUT_PIN:'+row.path);return{...row,path:file};});
+ const selected=new Set(inputs.map(x=>x.path)),source=value=>{const file=relative(value);if(!selected.has(file))throw Error('AUTH_NATIVE_COMMON_SOURCE_UNPINNED');return file;};
+ for(const row of m.systemInputs){if(typeof row.path!=='string'||!path.isAbsolute(row.path))throw Error('AUTH_NATIVE_COMMON_SYSTEM_INPUT');const b=regular(row.path);if(b.length!==row.bytes||digest(b)!==row.sha256)throw Error('AUTH_NATIVE_COMMON_SYSTEM_PIN');}
+ if(process.version!==m.node.version||process.versions.uv!==m.node.uv||digest(regular(process.execPath))!==m.node.sha256)throw Error('AUTH_NATIVE_COMMON_NODE_PIN');
+ for(const row of m.node.headers){if(!/^[A-Za-z0-9_.-]+\.h$/.test(row.name))throw Error('AUTH_NATIVE_COMMON_NODE_HEADER');const b=regular(path.join(headers,row.name));if(b.length!==row.bytes||digest(b)!==row.sha256)throw Error('AUTH_NATIVE_COMMON_NODE_HEADER_PIN');}
+ const minimumSystemVersion=validateOriginalMacMinimumSystemVersion(m.minimumSystemVersion),wallet=path.join(app,'native'),native=path.join(repo,'packages/wallet-auth/native'),producer=path.join(repo,'apps/pay/native/producer'),vendor=path.join(native,'vendor/link/include');
+ const include=['-I',headers,'-I',wallet,'-I',native,'-I',vendor,'-I',producer];
+ if(!existsSync(path.join(headers,'node_api.h')))throw Error('AUTH_NATIVE_PINNED_HEADERS_REQUIRED');
+ const commands=[],objects=[],sources=[];
+ for(const [i,row]of m.translationUnits.entries()){
+  const file=source(row.path);sources.push(file);const c=file.endsWith('.c'),objc=file.endsWith('.mm');
+  if(!c&&!objc&&!file.endsWith('.cpp'))throw Error('AUTH_NATIVE_COMMON_TU_EXTENSION');
+  const output=path.join(wallet,'original-auth-common.arm64.'+i+'.o');objects.push(output);
+  const warnings=row.legacyBaseline?['-Wno-deprecated-declarations']:['-Wall','-Wextra','-Werror'];
+  commands.push({tool:c?'/usr/bin/clang':'/usr/bin/clang++',argv:[c?'-std=c11':'-std=c++17',...warnings,'-fPIC','-mmacosx-version-min='+minimumSystemVersion,'-DYNX_ORIGINAL_WALLET_NATIVE_PQ_CUSTODY=1',...include,...(objc?['-fobjc-arc']:[]),'-c',file,'-o',output]});
+ }
+ const swift=m.swiftSources.map(source),swiftObject=path.join(wallet,'original-auth-common.arm64.PQ.o');objects.push(swiftObject);sources.push(...swift);
+ commands.push({tool:'/usr/bin/swiftc',argv:['-parse-as-library','-whole-module-optimization','-emit-object','-module-name','YNXWalletPrivatePQ','-target','arm64-apple-macosx'+minimumSystemVersion,'-DYNX_ACCOUNT_INITIAL_NATIVE_V1','-Xcc','-DYNX_ACCOUNT_INITIAL_NATIVE_V1','-import-objc-header',source(m.swiftHeader),...swift,'-o',swiftObject]});
+ const archive=source(m.archive),output=path.join(wallet,'original-auth-identity.node');
+ if(inputs.filter(row=>row.path.endsWith('.a')).length!==1)throw Error('AUTH_NATIVE_COMMON_SINGLE_GO_REQUIRED');
+ commands.push({tool:'/usr/bin/swiftc',argv:['-emit-library','-o',output,...objects,archive,...['Foundation','Security','IOKit','AppKit','ServiceManagement'].flatMap(x=>['-framework',x]),'-lresolv','-Xlinker','-lbsm',...m.systemLibraries.flatMap(x=>['-Xlinker',x]),'-Xlinker','-undefined','-Xlinker','dynamic_lookup']});
+ const planFile=path.join(wallet,'original-auth-common-plan.json');
+ const postCommands=[{tool:process.execPath,argv:[source(m.strictGate),planFile]},{tool:process.execPath,argv:[source(m.readback),output]}];
+ return{commands,postCommands,output,outputs:[output],intermediateOutputs:objects,sources,minimumSystemVersion,normalCommonImage:true,normalManifest:manifestPath,matchingInputs:inputs,systemInputs:m.systemInputs,goArchives:inputs.filter(row=>row.path===archive),gatePlanFile:planFile,ownedUndefinedScan:{tool:'/usr/bin/nm',argv:['-u',output],rejectPattern:'YNX|ynx'},sourceAdmission:false,nativeAdmission:false};
 }
-if(process.argv[1]&&path.resolve(process.argv[1])===here&&process.argv[2]!=='device-http-v5'){
+
+if(process.argv[1]&&path.resolve(process.argv[1])===here){
  const queryV4=process.argv[2]==='device-v4-query',provisioningV4=process.argv[2]==='device-v4-provisioning',pendingV4=process.argv[2]==='device-v4-pending',deviceV4=process.argv[2]==='device-v4',helperOnly=process.argv[2]==='helper',ioOnly=process.argv[2]==='source-current-io',headers=ioOnly||deviceV4||pendingV4||provisioningV4||queryV4?process.argv[4]:process.argv[3];
  if(!ioOnly&&process.platform!=='darwin')throw Error('AUTH_NATIVE_MAC_ONLY');
  if(ioOnly&&process.platform==='linux'&&process.argv[3]!==process.arch)throw Error('AUTH_SOURCE_CURRENT_IO_CROSS_COMPILER_NOT_SUPPLIED');
  if(helperOnly&&process.argv.length!==4)throw Error('AUTH_NATIVE_HELPER_BUILD_INPUT_INVALID');
  if(deviceV4&&process.argv.length!==6)throw Error('AUTH_DEVICE_V4_BUILD_INPUT_INVALID');
  if(pendingV4&&process.argv.length!==6)throw Error('AUTH_PENDING_DEVICE_V4_BUILD_INPUT_INVALID');
- const planOnly=(provisioningV4||queryV4)&&process.argv.length===8&&process.argv[7]==='--plan';
+ const normalOnly=!(ioOnly||deviceV4||pendingV4||provisioningV4||queryV4||helperOnly);
+ const planOnly=((provisioningV4||queryV4)&&process.argv.length===8&&process.argv[7]==='--plan')||(normalOnly&&process.argv.length===5&&process.argv[4]==='--plan');
+ if(normalOnly&&process.argv.length!==4&&!planOnly)throw Error('AUTH_NATIVE_COMMON_ARGUMENTS');
  if((provisioningV4||queryV4)&&process.argv.length!==7&&!planOnly)throw Error(queryV4?'AUTH_QUERY_DEVICE_V4_BUILD_INPUT_INVALID':'AUTH_PROVISIONING_DEVICE_V4_BUILD_INPUT_INVALID');
  const plan=queryV4?originalAuthQueryDeviceV4BuildPlan(process.argv[3],headers,process.argv[5],process.argv[6]):provisioningV4?originalAuthProvisioningDeviceV4BuildPlan(process.argv[3],headers,process.argv[5],process.argv[6]):pendingV4?originalAuthPendingDeviceV4BuildPlan(process.argv[3],headers,process.argv[5]):deviceV4?originalAuthDeviceV4BuildPlan(process.argv[3],headers,process.argv[5]):helperOnly?originalIDEHelperBuildPlan(process.argv[3]):ioOnly?originalAuthSourceCurrentIOBuildPlan(process.platform,process.argv[3],headers):originalAuthNativeBuildPlan(process.argv[2]??'arm64',headers);
  if(!helperOnly&&!existsSync(path.join(headers,'node_api.h')))throw Error('AUTH_NATIVE_PINNED_HEADERS_REQUIRED');
- if(deviceV4||pendingV4||provisioningV4||queryV4)for(const file of [...plan.outputs,...plan.intermediateOutputs])if(existsSync(file))throw Error('AUTH_DEVICE_V4_OUTPUT_EXISTS');
+ if(deviceV4||pendingV4||provisioningV4||queryV4||plan.normalCommonImage)for(const file of [...plan.outputs,...plan.intermediateOutputs])if(existsSync(file))throw Error('AUTH_DEVICE_V4_OUTPUT_EXISTS');
  // Explicit local headers only; opt-in device-v4 also binds its supplied local
  // official archive. No download, fallback library or hidden build.
  if(planOnly){process.stdout.write(JSON.stringify(plan)+'\n');}else{
@@ -231,5 +260,10 @@ if(process.argv[1]&&path.resolve(process.argv[1])===here&&process.argv[2]!=='dev
  if(!ioOnly)assertOriginalAuthOwnedSymbols(execFileSync(plan.ownedUndefinedScan.tool,plan.ownedUndefinedScan.argv,{encoding:'utf8'}));
  if(pendingV4)assertOriginalPendingDeviceV4Exports(execFileSync(plan.ownedRequiredExportsScan.tool,plan.ownedRequiredExportsScan.argv,{encoding:'utf8'}));
  if(provisioningV4||queryV4)assertOriginalProvisioningDeviceV4Exports(execFileSync(plan.ownedRequiredExportsScan.tool,plan.ownedRequiredExportsScan.argv,{encoding:'utf8'}));
+ if(plan.normalCommonImage){
+  const b=readFileSync(plan.output);writeFileSync(plan.gatePlanFile,JSON.stringify({version:1,image:{path:plan.output,bytes:b.length,sha256:createHash('sha256').update(b).digest('hex')},goArchives:plan.goArchives})+'\n');
+  for(const {tool,argv}of plan.postCommands)execFileSync(tool,argv,{stdio:'inherit'});
+  for(const row of [...plan.matchingInputs,...plan.systemInputs]){const b=readFileSync(row.path);if(b.length!==row.bytes||createHash('sha256').update(b).digest('hex')!==row.sha256)throw Error('AUTH_NATIVE_COMMON_POST_INPUT_CHANGED');}
+ }
  }
 }

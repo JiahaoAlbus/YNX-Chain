@@ -1,3 +1,4 @@
+import {COMMON_QA_PROVENANCE_NAMES,isCommonQARecord} from './canonical-native-qa-profile.mjs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
@@ -15,7 +16,9 @@ export function inspectNativeComponentGitSourceClosure(root,commit,recordBytes){
  if(!bound.equals(recordBytes))fail('NATIVE_COMPONENT_GIT_RECORD_DIFFERS');
  let record;try{record=JSON.parse(recordBytes);}catch{fail('NATIVE_COMPONENT_GIT_RECORD_INVALID');}
  const rows=new Map(),counts={};
- for(const [role,input]of [['node',record.inputFiles],['helper',record.helperBuild?.inputFiles]]){
+ if(isCommonQARecord(record)){if(JSON.stringify(record.sourceProvenanceFiles?.map(x=>x.relative))!==JSON.stringify(COMMON_QA_PROVENANCE_NAMES))fail('COMMON_QA_GIT_PROVENANCE_ROWS_REQUIRED');}
+ const roles=[['node',record.inputFiles],['helper',record.helperBuild?.inputFiles],...(isCommonQARecord(record)?[['provenance',record.sourceProvenanceFiles],['inventory',[record.sourceInventory]]]:[])];
+ for(const [role,input]of roles){
   if(!Array.isArray(input)||input.length===0)fail('NATIVE_COMPONENT_GIT_RECORD_INVALID');const seen=new Set();counts[role]=input.length;
   for(const row of input){
    if(!row||Object.keys(row).sort().join('|')!=='bytes|relative|sha256'||!relative(row.relative)||seen.has(row.relative)||!Number.isSafeInteger(row.bytes)||row.bytes<1||row.bytes>(16<<20)||!/^[a-f0-9]{64}$/.test(row.sha256))fail('NATIVE_COMPONENT_GIT_RECORD_INVALID');

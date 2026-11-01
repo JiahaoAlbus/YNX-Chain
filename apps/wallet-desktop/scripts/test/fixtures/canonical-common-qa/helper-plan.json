@@ -1,0 +1,68 @@
+{
+  "commands": [
+    {
+      "tool": "/usr/bin/clang++",
+      "argv": [
+        "-std=c++17",
+        "-fobjc-arc",
+        "-mmacosx-version-min=13.0",
+        "-I@SOURCE_ROOT@/apps/wallet-desktop/native",
+        "-I@SOURCE_ROOT@/packages/wallet-auth/native",
+        "-framework",
+        "Foundation",
+        "-framework",
+        "Security",
+        "-framework",
+        "LocalAuthentication",
+        "-framework",
+        "ServiceManagement",
+        "-lbsm",
+        "-arch",
+        "arm64",
+        "@SOURCE_ROOT@/apps/developer/helper/main.mm",
+        "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-helper-listener.mm",
+        "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-helper-xpc-peer.mm",
+        "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-helper-service-install.mm",
+        "@SOURCE_ROOT@/packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+        "@SOURCE_ROOT@/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+        "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-parent-kernel.mm",
+        "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+        "@SOURCE_ROOT@/apps/wallet-desktop/native/original-ide-auth-request-source.inc.mm",
+        "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-helper-client.mm",
+        "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-publication-artifact.mm",
+        "@SOURCE_ROOT@/packages/wallet-auth/native/original-http-v5-registered-private.mm",
+        "@SOURCE_ROOT@/apps/wallet-desktop/native/original-product-device-v4-association-keychain.mm",
+        "-o",
+        "@SOURCE_ROOT@/apps/developer/helper/YNXIdentityReceiver"
+      ]
+    }
+  ],
+  "output": "@SOURCE_ROOT@/apps/developer/helper/YNXIdentityReceiver",
+  "outputs": [
+    "@SOURCE_ROOT@/apps/developer/helper/YNXIdentityReceiver"
+  ],
+  "sources": [
+    "@SOURCE_ROOT@/apps/developer/helper/main.mm",
+    "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-helper-listener.mm",
+    "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-helper-xpc-peer.mm",
+    "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-helper-service-install.mm",
+    "@SOURCE_ROOT@/packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+    "@SOURCE_ROOT@/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+    "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-parent-kernel.mm",
+    "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+    "@SOURCE_ROOT@/apps/wallet-desktop/native/original-ide-auth-request-source.inc.mm",
+    "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-helper-client.mm",
+    "@SOURCE_ROOT@/packages/wallet-auth/native/original-ide-publication-artifact.mm",
+    "@SOURCE_ROOT@/packages/wallet-auth/native/original-http-v5-registered-private.mm",
+    "@SOURCE_ROOT@/apps/wallet-desktop/native/original-product-device-v4-association-keychain.mm"
+  ],
+  "minimumSystemVersion": "13.0",
+  "ownedUndefinedScan": {
+    "tool": "/usr/bin/nm",
+    "argv": [
+      "-u",
+      "@SOURCE_ROOT@/apps/developer/helper/YNXIdentityReceiver"
+    ],
+    "rejectPattern": "YNX|ynx"
+  }
+}

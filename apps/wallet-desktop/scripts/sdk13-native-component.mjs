@@ -1,3 +1,4 @@
+import {isCommonQARecord,verifyCommonQAComponent} from './canonical-native-qa-profile.mjs';
 import {createHash} from 'node:crypto';
 import {verifyHTTPV5NormalComponent} from './wallet-http-v5-native-component.mjs';
 import {verifySDK48FullAuthRuntime,SDK48_FULL_AUTH_RUNTIME_SOURCE} from './sdk14-runtime-union.mjs';
@@ -38,6 +39,7 @@ export function sdk13HelperBuildCommands(sourceRoot,architectures){
  * The builder must separately attest the actual command execution.
  */
 export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource){
+ if(isCommonQARecord(record))return verifyCommonQAComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource);
  if(record?.httpV5NormalRole)return verifyHTTPV5NormalComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource);
  const profile=[...Object.values(WALLET_NATIVE_SOURCE_PROFILES),WALLET_SDK49_PENDING_SOURCE_PROFILE,WALLET_SDK49_PROVISIONING_SOURCE_PROFILE,WALLET_SDK49_QUERY_SOURCE_PROFILE].find(p=>inventoryBytes?.length===p.inventory.bytes&&hash(inventoryBytes)===p.inventory.sha256);if(!profile)fail();
  const inventory=JSON.parse(pinned(inventoryBytes,profile.inventory));

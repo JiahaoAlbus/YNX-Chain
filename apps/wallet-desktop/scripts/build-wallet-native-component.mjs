@@ -1,3 +1,4 @@
+import {canonicalCommonQAProfile,buildCanonicalCommonQAComponent} from './canonical-native-qa-profile.mjs';
 import {execFileSync} from 'node:child_process';
 import {verifySDK48FullAuthRuntime,SDK48_FULL_AUTH_RUNTIME_SOURCE} from './sdk14-runtime-union.mjs';
 import {verifySDK49FullRuntimeTables} from './sdk49-runtime-source.mjs';
@@ -27,6 +28,7 @@ function assertMatchedOriginalBuild(){
 }
 export function walletNativeComponentBuildPlan(arch,headers,artifactRelease=false,projectControl=false,controlCABI=false,pqNative=false,cc7=false,deviceV4=false,provisioning=false,query=false){
  const profile=assertMatchedOriginalBuild();
+ if(profile.normalCommonImage)throw Error('COMMON_QA_EXPLICIT_MODE_REQUIRED');
  if(typeof query!=='boolean'||query!==(profile.supplierNodeInputs===145)||query&&!provisioning)throw Error('WALLET_QUERY_EXPLICIT_FULL_ROLE_REQUIRED');
  if(typeof provisioning!=='boolean'||provisioning!==([137,145].includes(profile.supplierNodeInputs))||provisioning&&!deviceV4)throw Error('WALLET_PROVISIONING_EXPLICIT_FULL_ROLE_REQUIRED');
  if(typeof deviceV4!=='boolean'||deviceV4!==(profile.version==='1.3.0-pq.3.32-auth.49'&&[117,127,137,145].includes(profile.supplierNodeInputs))||deviceV4&&(cc7||arch!=='arm64'||!artifactRelease||!projectControl||!controlCABI||!pqNative))throw Error('WALLET_DEVICE_V4_EXPLICIT_FULL_ROLE_REQUIRED');
@@ -105,6 +107,8 @@ export function buildWalletNativeComponent(arch,headers,artifactRelease=false,pr
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===here){
  if(process.platform!=='darwin')throw Error('AUTH_NATIVE_MAC_ONLY');
+ if(process.argv[2]==='component-canonical-common-image'){if(process.argv.length!==5)throw Error('COMMON_QA_ARGUMENTS');const result=buildCanonicalCommonQAComponent({root:repo,arch:process.argv[3],headers:process.argv[4]});process.stdout.write(JSON.stringify(result)+'\n');}
+ else {
  assertMatchedOriginalBuild();
  if(process.argv[2]==='component-device-v4-query-pq-native-project-control-cabi-artifact-release'){if(process.argv.length!==5)throw Error('WALLET_NATIVE_BUILD_ARGUMENTS_INVALID');process.stdout.write(JSON.stringify(buildWalletNativeComponent(process.argv[3],process.argv[4],true,true,true,true,null,null,false,true,true,true))+'\n');}
  else if(process.argv[2]==='component-device-v4-provisioning-pq-native-project-control-cabi-artifact-release'){if(process.argv.length!==5)throw Error('WALLET_NATIVE_BUILD_ARGUMENTS_INVALID');process.stdout.write(JSON.stringify(buildWalletNativeComponent(process.argv[3],process.argv[4],true,true,true,true,null,null,false,true,true))+'\n');}
@@ -127,4 +131,7 @@ if(process.argv[1]&&path.resolve(process.argv[1])===here){
  if(!io)originalBuild.assertOriginalAuthOwnedSymbols(execFileSync(plan.ownedUndefinedScan.tool,plan.ownedUndefinedScan.argv,{encoding:'utf8'}));
  }
 }
+}
+
+
 }
