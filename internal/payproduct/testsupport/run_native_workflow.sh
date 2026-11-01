@@ -5,6 +5,12 @@ composition=${1:?isolated composition path required}
 fixture_dir=${2:?explicit temporary-chain public fixture output required}
 case "$composition" in */owners/P06/pq-core-composition-*) ;; *) echo 'isolated P06 composition required' >&2; exit 2;; esac
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-producer ]; then
+ : "${PAY_NATIVE_AUTH_BOUNDARY:?frozen original Auth Native boundary required}"
+ : "${PAY_NATIVE_PRODUCER_OUTPUT:?new external producer evidence directory required}"
+ /usr/bin/python3 "$source_dir/../../apps/pay/native/testsupport/run-native-producer.py" "$PAY_NATIVE_AUTH_BOUNDARY" "$PAY_NATIVE_PRODUCER_OUTPUT"
+ exit
+fi
 codec_hash=$(shasum -a 256 "$composition/internal/ynxauth/invoice_action.go" | awk '{print $1}')
 [ "$codec_hash" = bcd011e971ee69d844c989c70ca20fedad804f7bdf28595e35bb982f73af23f8 ] || { echo 'CORE codec pin differs' >&2; exit 2; }
 fixture_hash=$(shasum -a 256 "$composition/internal/ynxauth/testdata/invoice-action-v1.json" | awk '{print $1}')
