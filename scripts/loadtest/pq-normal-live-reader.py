@@ -400,7 +400,7 @@ def prepare_paired_candidate(off=None,on=None,replay_data=None,source_only_ci=Fa
         require(result['originalSourceOnlyCI']['supplierCommit']==PAIR_SUPPLIER['commit'] and result['originalSourceOnlyCI']['supplierTree']==PAIR_SUPPLIER['tree'],'original paired supplier source DATA differs')
         result['missing'].append('actual normal ON running window and kernel/private-control evidence remain required; original source-only constructor/budget/trace tests start no nodes')
     if complete_trace_data is not None:
-        require(complete_trace_data.get('schema')=='YNX-PERF-COMPLETE-FINALIZE-TRACE-READBACK/v1' and complete_trace_data.get('qualified') is False,'original complete trace readback DATA scope required')
+        require(complete_trace_data.get('schema')=='YNX-PERF-COMPLETE-FINALIZE-TRACE-READBACK/v1' and type(complete_trace_data.get('qualified')) is bool,'original complete trace readback DATA scope required')
         result['replayGate']=complete_trace_data
         result['missing'].extend(complete_trace_data['missing'])
     if replay_data is not None:

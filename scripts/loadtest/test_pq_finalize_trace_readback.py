@@ -52,4 +52,14 @@ class CompleteTraceControls(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             b=Path(tmp).resolve();pin=fixture(b/'trace');r=d.paired_candidate_main(['--finalize-trace',str(b/'trace'),'--trace-sha256',pin]);self.assertEqual(r['replayGate']['trace']['retainedHeights'],2);self.assertFalse(r['ready'] or r['pressureAuthorized'])
             with self.assertRaises(RuntimeError):d.paired_candidate_main(['--before-replay',str(b/'trace'),'--before-replay-sha256',pin])
+    def test_unapproved_execution_pin_refused_before_any_original_read(self):
+        from unittest import mock
+        with mock.patch.object(m.io,'read_original',side_effect=AssertionError('read')),self.assertRaisesRegex(RuntimeError,'independently selected'):m.read_execution(Path('/not-read'),'0'*64,{})
+    def test_selected_execution_file_tamper_refused_before_inventory(self):
+        from unittest import mock
+        with mock.patch.object(m.io,'read_original',return_value=b'changed'),self.assertRaisesRegex(RuntimeError,'execution H pin differs'):m.read_execution(Path('/not-read'),m.APPROVED_EXECUTION_SHA256,{})
+    def test_self_asserted_execution_json_cannot_qualify_semantic_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            b=Path(tmp).resolve();t=m.read_bundle(b/'trace',fixture(b/'trace'),'trace');before=replay(b/'before',t);after=replay(b/'after',t)
+            with self.assertRaisesRegex(RuntimeError,'only verified original'):m.compare(t,before,after,execution=dict(qualified=True,sourceBinaryBindingSupplied=True))
 if __name__=='__main__':unittest.main()

@@ -274,6 +274,8 @@ class Ceremony:
         for n in self.plan["nodes"]:
             observed=self.wire_arguments("bootstrap" if activation is None else "pq",n["index"])
             if getattr(self,"live_reader",None) is not None:
+                validate=getattr(self.live_reader,'validate_original_startup_arguments',None)
+                if validate is not None:validate(n['bootstrapArgs'] if activation is None else activation['nodes'][n['index']]['args'])
                 observed+=self.live_reader.startup_arguments("bootstrap" if activation is None else "pq",n["index"])
             if activation is None:
                 proc=self.w.launch("bootstrap-node-%d"%n["index"],[str(self.bins/"ynx-comet"),*n["bootstrapArgs"],*observed],True)
@@ -529,10 +531,13 @@ class Ceremony:
             if child["process"] in self.nodes:child["persistent"]=False
         full_hashes=[lab.guard.digest(Path(n["statePath"])) for n in self.plan["nodes"]]
         lab.require(len(set(full_hashes))==1,"four stopped full committed states differ; no fields projected away")
+        trace=None
+        if getattr(self,'stopped_trace_export',None) is not None:trace=self.stopped_trace_export()
         proofs=[]
         for row in functional:proofs.append(self.verify_stopped(row))
         baseline=getattr(self,"network_baseline",None)
         return dict(phaseComplete=network is None or baseline["status"]=="OBSERVED",functionalPhaseComplete=True,networkBaseline=baseline,
+                    **({'completeFinalizeTrace':trace} if trace is not None else {}),
                     activation=activation,signingMode=self.mode,functionalCohort=proofs,
                     preparationTrafficEnvelopes=self.next_workload-4,functionalEnvelopes=4,registrationEnvelopes=4,
                     measuredWindowEnvelopes=0,originalCorpusOwnerCount=8,independentFunctionalOwners=4,
@@ -720,7 +725,7 @@ def paired_candidate_main(argv):
     for side in ('off','on'):
         for suffix in ('public','receipt-sha256','tools-commit'):parser.add_argument('--'+side+'-'+suffix)
     parser.add_argument('--replay-data');parser.add_argument('--replay-sha256');parser.add_argument('--output');parser.add_argument('--source-only-ci',action='store_true')
-    for name in ('finalize-trace','trace-sha256','before-replay','before-replay-sha256','after-replay','after-replay-sha256'):parser.add_argument('--'+name)
+    for name in ('finalize-trace','trace-sha256','before-replay','before-replay-sha256','after-replay','after-replay-sha256','replay-execution','replay-execution-sha256'):parser.add_argument('--'+name)
     flags=[value for value in argv if value.startswith('--')]
     lab.require(len(flags)==len(set(flags)),'duplicate paired-candidate option')
     args=parser.parse_args(argv)
@@ -750,6 +755,8 @@ def paired_candidate_main(argv):
         lab.require(not any(values) or all(values),'original replay requires directory and result SHA')
         lab.require(not any(values) or args.finalize_trace,'original replay requires common complete trace')
     lab.require(not args.finalize_trace or replay is None,'legacy source fixture and complete original trace must remain separate candidate inputs')
+    lab.require(bool(args.replay_execution)==bool(args.replay_execution_sha256),'original execution H and external pin required together')
+    lab.require(not args.replay_execution or (args.finalize_trace and not args.before_replay and not args.after_replay),'verified execution requires common trace and owns its original replay paths')
     if args.finalize_trace:
         trace_spec=importlib.util.spec_from_file_location('pair_complete_finalize_reader',Path(__file__).with_name('pq-finalize-trace-readback.py'))
         trace_reader=importlib.util.module_from_spec(trace_spec);trace_spec.loader.exec_module(trace_reader)
@@ -757,7 +764,10 @@ def paired_candidate_main(argv):
         for side in ('before','after'):
             path=getattr(args,side+'_replay')
             replays[side]=None if path is None else trace_reader.read_bundle(Path(path),getattr(args,side+'_replay_sha256'),'replay')
-        complete_trace=trace_reader.compare(trace,replays['before'],replays['after'])
+        if args.replay_execution:
+            execution=trace_reader.read_execution(Path(args.replay_execution),args.replay_execution_sha256,trace)
+            complete_trace=trace_reader.compare(trace,execution.before,execution.after,execution=execution)
+        else:complete_trace=trace_reader.compare(trace,replays['before'],replays['after'])
     result=reader.prepare_paired_candidate(legs['off'],legs['on'],replay,source_only_ci=args.source_only_ci,complete_trace_data=complete_trace)
     result['entryScope']='read-only existing PUBLIC originals and new candidate DATA; no execution option'
     if args.output:
