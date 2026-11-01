@@ -20,6 +20,7 @@ import (
 
 func (s *NativeInvoiceIntents) Handler() http.Handler {
 	mux := http.NewServeMux()
+	s.mountOriginalArchiveReceipts(mux)
 	mux.HandleFunc("POST /v5/pay/invoice-intents", func(w http.ResponseWriter, r *http.Request) {
 		var input NativeInvoiceProductIntent
 		if !nativePayBody(w, r, &input) {

@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
@@ -132,7 +133,7 @@ func NewPrivateNativePayServer(parent *Service, cfg NativePayConfig, source Nati
 	server := NewClosedProductionServerWithLogger(parent, build, logger)
 	intentHandler, nativeHandler := intents.Handler(), native.Handler()
 	server.nativePay = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/v5/pay/invoice-intents" || len(r.URL.Path) > len("/v5/pay/invoice-intents/") && r.URL.Path[:len("/v5/pay/invoice-intents/")] == "/v5/pay/invoice-intents/" {
+		if strings.HasPrefix(r.URL.Path, "/v5/pay/products/") || r.URL.Path == "/v5/pay/invoice-intents" || len(r.URL.Path) > len("/v5/pay/invoice-intents/") && r.URL.Path[:len("/v5/pay/invoice-intents/")] == "/v5/pay/invoice-intents/" {
 			intentHandler.ServeHTTP(w, r)
 			return
 		}
