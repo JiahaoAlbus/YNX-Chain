@@ -31,6 +31,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/nativeconsent"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/ownednode"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/receipt"
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/resourceauthority"
 	networkweb "github.com/JiahaoAlbus/YNX-Chain/apps/network/web"
 	cmtjson "github.com/cometbft/cometbft/libs/json"
 )
@@ -520,6 +521,28 @@ func run() (runErr error) {
 	defer listener.Close()
 	serviceContext, stopService := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopService()
+	sourceContext, cancelSource := context.WithTimeout(serviceContext, 3*time.Second)
+	resourceSource := resourceauthority.Open(sourceContext)
+	cancelSource()
+	defer func() {
+		// Preserve this same Native owner until physical drain, including
+		// timeout/UNKNOWN. A later Close never reacquires Source or a nonce.
+		reported := false
+		for {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			complete, err := resourceSource.Close(ctx)
+			cancel()
+			if complete {
+				runErr = errors.Join(runErr, err)
+				break
+			}
+			if !reported {
+				log.Printf("Network resource Source physical drain pending; original owner retained")
+				reported = true
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+	}()
 	producer, err := openNativeConsent(*nativeLocale, *nativeTheme)
 	if err != nil {
 		log.Printf("Native visible consent unavailable; no node approval: %v", err)
@@ -529,7 +552,7 @@ func run() (runErr error) {
 		consent = append(consent, producer)
 		defer func() { runErr = errors.Join(runErr, producer.Close()) }()
 	}
-	native, err := startNativeService(serviceContext, ipcDir, participationService, node, resource, consent...)
+	native, err := startNativeServiceWithSource(serviceContext, ipcDir, participationService, node, resource, resourceSource, consent...)
 	if err != nil {
 		return fmt.Errorf("native Network service: %w", err)
 	}

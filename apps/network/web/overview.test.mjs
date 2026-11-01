@@ -482,3 +482,25 @@ test('native local activity rejects inherited claims and never retains mutable i
   assert.equal(out.native.activity.authority, false);
   assert.equal(out.native.activity.productionGrant, false);
 });
+
+test('actual resource OS DTO and normal Source partial stay readable without a grant', () => {
+  const activity = localActivity();
+  Object.assign(activity.resource, {containmentMode:'os-worker-sampler', osMeasuredChildren:'0',osUserMicros:'18446744073709551615',osSystemMicros:'0',osPeakRSSBytes:'0',source:{code:'NOT_ADMITTED',nativeLinked:true,current:false,partialAcquired:true,cleanupPending:false,physicalComplete:true,firstCauseCode:'NETWORK_RESOURCE_NATIVE_66',productionEnabled:false}});
+  const out = project(null,withActivity(activity));
+  assert.equal(out.native.activity.resource.verifiedJobs,activity.resource.verifiedJobs);
+  assert.equal(out.native.activity.resource.osUserMicros,'18446744073709551615');
+  assert.equal(out.native.activity.resource.source.code,'NOT_ADMITTED');
+  assert.equal(out.native.authority,false);
+  assert.equal(out.native.activity.resource.productionEnabled,false);
+});
+test('Source metadata and OS counters reject authority, contradictions and lossy numbers', () => {
+  const base={code:'NOT_ADMITTED',nativeLinked:true,current:false,partialAcquired:true,cleanupPending:false,physicalComplete:true,productionEnabled:false};
+  for(const edit of [s=>s.authority=true,s=>s.productionEnabled=true,s=>s.current=true,s=>s.nativeLinked=false,s=>s.cleanupPending=true,s=>s.firstCauseCode='private path or key text',s=>s.code='APPROVED']) {
+    const a=localActivity();a.resource.source={...base};edit(a.resource.source);
+    assert.equal(project(null,withActivity(a)).native.activity.resource,null);
+  }
+  for(const value of [123,'01','18446744073709551616',null]) {
+    const a=localActivity();a.resource.osUserMicros=value;
+    assert.equal(project(null,withActivity(a)).native.activity.resource,null);
+  }
+});

@@ -37,3 +37,10 @@ test('actual local module states clear on session reset and never fill absent co
  assert.match(s.$('participation-state').textContent,/已撤销/);assert.equal(s.$('participation-entry-count').textContent,'3');assert.equal(s.$('participation-unknown-count').textContent,'1');assert.equal(s.$('resource-verified-jobs').textContent,'0');assert.equal(s.$('local-node-bytes').textContent,'—');
  s.window.NetworkOverview.project=()=>({});s.window.NetworkUI.receive('reset');assert.equal(s.$('participation-entry-count').textContent,'—');assert.equal(s.$('resource-verified-jobs').textContent,'—');assert.equal(s.$('resource-code').textContent,'—');assert.equal(s.$('resource-state').textContent,'尚未读取');
 });
+
+test('resource Source readiness renders, localizes and clears without retaining a grant',()=>{
+ const s=shell();s.pair();let source={code:'NOT_ADMITTED',cleanupPending:false};s.window.NetworkOverview.project=()=>({native:{activity:{resource:{code:'DISABLED',state:'disabled',activeWorkers:'0',verifiedJobs:'0',verifiedBytes:'0',source}}}});
+ s.window.NetworkUI.receive('native',{});assert.equal(s.$('resource-source-state').textContent,'授权来源未就绪');source={code:'CURRENT',cleanupPending:false};s.window.NetworkUI.receive('native',{});assert.equal(s.$('resource-source-state').textContent,'授权来源可用');
+ s.window.NetworkI18n.setLocale('ar');assert.match(s.$('resource-source-state').textContent,/^ar:/);source={code:'RETIRED',cleanupPending:true};s.window.NetworkUI.receive('native',{});assert.match(s.$('resource-source-state').textContent,/正在释放/);
+ s.window.NetworkOverview.project=()=>({});s.window.NetworkUI.receive('reset');assert.match(s.$('resource-source-state').textContent,/尚未读取/);assert.equal(s.sent.length,0);
+});

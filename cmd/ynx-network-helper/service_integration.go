@@ -13,6 +13,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/nativeconsent"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/ownednode"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/participation"
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/resourceauthority"
 )
 
 // This channel authenticates its native caller using kernel peer credentials.
@@ -24,6 +25,10 @@ type nodeConsent interface {
 }
 
 func startNativeService(ctx context.Context, directory string, service *participation.Service, node *ownednode.Manager, resource *contribution.Runner, consent ...nodeConsent) (*localipc.Server, error) {
+	return startNativeServiceWithSource(ctx, directory, service, node, resource, nil, consent...)
+}
+
+func startNativeServiceWithSource(ctx context.Context, directory string, service *participation.Service, node *ownednode.Manager, resource *contribution.Runner, source *resourceauthority.Owner, consent ...nodeConsent) (*localipc.Server, error) {
 	if len(consent) > 1 {
 		return nil, errors.New("one trusted native visible consent producer required")
 	}
@@ -41,7 +46,12 @@ func startNativeService(ctx context.Context, directory string, service *particip
 			if resource == nil {
 				state = "unavailable"
 			}
-			return localipc.Result{Status: &localipc.Status{Service: "YNX Network", NodeControl: "unavailable", ResourceContribution: state, Activity: nativeActivity(peer, service, node, resource)}}, nil
+			activity := nativeActivity(peer, service, node, resource)
+			if source != nil {
+				s := source.Observe(ctx)
+				activity.Resource.Source = &localipc.ResourceSourceActivity{Code: s.Code, NativeLinked: s.NativeLinked, Current: s.Current, PartialAcquired: s.PartialAcquired, CleanupPending: s.CleanupPending, PhysicalComplete: s.PhysicalComplete, FirstCauseCode: s.FirstCauseCode}
+			}
+			return localipc.Result{Status: &localipc.Status{Service: "YNX Network", NodeControl: "unavailable", ResourceContribution: state, Activity: activity}}, nil
 		case "request_permission":
 			return localipc.Result{Permission: &localipc.PermissionResult{State: "unsupported"}}, nil
 		default:

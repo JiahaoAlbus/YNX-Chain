@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {authSourceInput,captureAuthLink} from './auth-source-input.mjs';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
 const root=path.resolve(here,'../../..');
@@ -12,7 +13,7 @@ const args=process.argv.slice(2);
 function option(name){const i=args.indexOf(name);return i<0?undefined:args[i+1];}
 const plan=args.includes('--plan'),out=option('--out-dir'),expected=option('--expect-head');
 const suppliedVerifier=option('--original-verifier'),suppliedPin=option('--original-verifier-sha256'),suppliedSource=option('--original-verifier-source');
-const allowed=new Set(['--plan','--out-dir','--expect-head','--original-verifier','--original-verifier-sha256','--original-verifier-source']);
+const allowed=new Set(['--plan','--out-dir','--expect-head','--original-verifier','--original-verifier-sha256','--original-verifier-source','--auth-source-handoff','--auth-source-handoff-sha256']);
 for(let i=0;i<args.length;i++){if(!allowed.has(args[i]))throw Error('Unknown QA builder option');if(args[i]!=='--plan'){if(!args[++i])throw Error('Option value required');}}
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 function originalVerifierInput(){
@@ -33,14 +34,16 @@ function jsonStream(raw){let start=-1,depth=0,quoted=false,escape=false;const va
 function snapshot(){
   const head=run('git',['rev-parse','HEAD']);if(!/^[0-9a-f]{40}$/.test(head)||expected&&head!==expected)throw Error('Exact source HEAD does not match');
   const status=run('git',['status','--porcelain=v1','--untracked-files=all']);
-  const files=new Set(['go.mod','go.sum','apps/network/qa/build.mjs','apps/network/qa/resource_monitor.c','apps/network/qa/launcher.m','apps/network/qa/proof_profile.h','apps/network/qa/proof_profile.m','apps/network/qa/native_consent.h','apps/network/qa/native_consent.m','apps/network/qa/native_consent_main.m','apps/network/qa/native_consent_info.plist']);
+  const files=new Set(['go.mod','go.sum','apps/network/qa/build.mjs','apps/network/qa/auth-source-input.mjs','apps/network/qa/resource_monitor.c','apps/network/qa/launcher.m','apps/network/qa/proof_profile.h','apps/network/qa/proof_profile.m','apps/network/qa/native_consent.h','apps/network/qa/native_consent.m','apps/network/qa/native_consent_main.m','apps/network/qa/native_consent_info.plist']);
   const workerRoot=path.join(root,'apps/network/wasmworker');
   const workerFiles=dir=>{for(const item of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,item.name);if(item.isDirectory())workerFiles(file);else if(/\.(go|wasm)$/.test(item.name)||['go.mod','go.sum'].includes(item.name))files.add(path.relative(root,file));}};workerFiles(workerRoot);
   const originalVerifier=originalVerifierInput();
-  const packages=jsonStream(run('go',['list','-mod=readonly','-deps','-json','./cmd/ynx-network-helper',...(originalVerifier?[]:['./cmd/ynx-consensus-proof-verify'])]));
+  const originalAuthSource=authSourceInput(root,option('--auth-source-handoff'),option('--auth-source-handoff-sha256'));
+  const packages=jsonStream(run('go',['list','-mod=readonly',...(originalAuthSource?['-tags','ynx_network_source_native']:[]),'-deps','-json','./cmd/ynx-network-helper',...(originalVerifier?[]:['./cmd/ynx-consensus-proof-verify'])],originalAuthSource?{env:{...process.env,CGO_ENABLED:'1',GOOS:'darwin',GOARCH:'arm64',GOMAXPROCS:'2',GOWORK:'off'}}:{}));
+  for(const name of ['SUPPLIER.json','source/network_resource_native.h'])files.add('apps/network/internal/authresourcesource/'+name);
   for(const p of packages){if(!p.Dir||!(p.Dir===root||p.Dir.startsWith(root+path.sep)))continue;for(const field of ['GoFiles','CgoFiles','CFiles','CXXFiles','MFiles','HFiles','SFiles','SysoFiles','EmbedFiles'])for(const name of p[field]??[]){const relative=path.relative(root,path.join(p.Dir,name));if(!relative.startsWith('..'))files.add(relative);}if(p.Module?.GoMod&&p.Module.GoMod.startsWith(root+path.sep))files.add(path.relative(root,p.Module.GoMod));}
   const inputs=[...files].sort().map(name=>({path:name,bytes:fs.statSync(path.join(root,name)).size,sha256:sha(fs.readFileSync(path.join(root,name)))}));
-  const identity={head,inputs,originalVerifier};return {head,branch:run('git',['branch','--show-current']),dirty:status!=='',dirtyPaths:status.split('\n').filter(Boolean),inputs,originalVerifier,inputSHA256:sha(JSON.stringify(identity)),goVersion:run('go',['version'])};
+  const identity={head,inputs,originalVerifier,originalAuthSource};return {head,branch:run('git',['branch','--show-current']),dirty:status!=='',dirtyPaths:status.split('\n').filter(Boolean),inputs,originalVerifier,originalAuthSource,inputSHA256:sha(JSON.stringify(identity)),goVersion:run('go',['version'])};
 }
 const source=snapshot();
 if(plan){await new Promise((resolve,reject)=>process.stdout.write(JSON.stringify({kind:'YNX-NETWORK-QA-BUILD-PLAN/v1',target:'darwin/arm64',source,publisherSigned:false,installed:false},null,2)+'\n',error=>error?reject(error):resolve()));process.exit(0);}
@@ -52,6 +55,7 @@ const identity=sha(JSON.stringify({head:source.head,input:source.inputSHA256}));
 const name=`ynx-network-qa-macos-arm64-${source.head.slice(0,12)}-${identity.slice(0,8)}`;
 const destination=path.join(out,name);if(fs.existsSync(destination))throw Error('Existing versioned QA output is preserved; choose a new output parent');
 const staging=fs.mkdtempSync(path.join(out,'.network-qa-build-'));
+const authLink=source.originalAuthSource?captureAuthLink(source.originalAuthSource,out):null;
 const app=path.join(staging,'YNX Network QA.app'),contents=path.join(app,'Contents');
 for(const dir of ['MacOS','Helpers','Resources'])fs.mkdirSync(path.join(contents,dir),{recursive:true,mode:0o755});
 const helper=path.join(contents,'Helpers','ynx-network-helper'),proof=path.join(contents,'Helpers','ynx-consensus-proof-verify');
@@ -78,7 +82,8 @@ const nativeConsentInfoSHA256=sha(Buffer.from(nativeInfoBytes));
 const nativeProducer=path.join(nativeBundle,'Contents','MacOS','ynx-network-native-consent');
 run('xcrun',['--sdk','macosx','clang','-arch','arm64','-mmacosx-version-min=12.0','-isysroot',sdk,'-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-framework','Cocoa',path.join(here,'native_consent_main.m'),'-o',nativeProducer],{env:process.env});
 const nativeConsentSHA256=sha(fs.readFileSync(nativeProducer));
-run('go',['build','-mod=readonly','-trimpath','-buildvcs=false','-p','1','-ldflags',`-X main.sourceRevision=${source.head} -X main.resourceWorkerSHA256=${workerSHA256} -X main.resourceMonitorSHA256=${resourceMonitorSHA256} -X main.nativeConsentSHA256=${nativeConsentSHA256} -X main.nativeConsentInfoSHA256=${nativeConsentInfoSHA256}`,'-o',helper,'./cmd/ynx-network-helper']);
+run('go',['build','-mod=readonly','-trimpath','-buildvcs=false','-p','1',...(authLink?['-tags','ynx_network_source_native']:[]),'-ldflags',`-X main.sourceRevision=${source.head} -X main.resourceWorkerSHA256=${workerSHA256} -X main.resourceMonitorSHA256=${resourceMonitorSHA256} -X main.nativeConsentSHA256=${nativeConsentSHA256} -X main.nativeConsentInfoSHA256=${nativeConsentInfoSHA256}`,'-o',helper,'./cmd/ynx-network-helper'],authLink?{env:authLink.env}:{});
+if(authLink&&/libcrypto.*\.dylib/.test(run('otool',['-L',helper],{env:process.env})))throw Error('Native Auth crypto must be statically linked in the QA helper');
 if(source.originalVerifier){
   fs.copyFileSync(source.originalVerifier.path,proof,fs.constants.COPYFILE_EXCL);
   if(sha(fs.readFileSync(proof))!==source.originalVerifier.sha256)throw Error('Copied original verifier differs from pinned supplier input');

@@ -68,6 +68,8 @@
   put('resource-state',localResource?localLabel(localResource):model.native?.resourceContribution==='disabled'?'已关闭':native?'不可用':'尚未读取');raw('resource-code',localResource?.code);
   put('resource-task-state',!localResource?localLabel(null):localResource.code==='UNKNOWN'?'结果未确定。':localResource.state==='running'?'本机隔离测试中。':localResource.state==='disabled'||localResource.state==='stopped'?'无运行任务':'不可用');
   raw('resource-verified-jobs',localResource?.verifiedJobs===null||localResource?.verifiedJobs===undefined?null:formatInteger(localResource.verifiedJobs));raw('resource-verified-bytes',localResource?.verifiedBytes===null||localResource?.verifiedBytes===undefined?null:formatInteger(localResource.verifiedBytes)+' B');raw('resource-active-workers',localResource?.activeWorkers===null||localResource?.activeWorkers===undefined?null:formatInteger(localResource.activeWorkers));
+  const resourceSource=localResource?.source;
+  put('resource-source-state',!resourceSource?'尚未读取':resourceSource.cleanupPending?'正在释放本机资源':resourceSource.code==='CURRENT'?'授权来源可用':resourceSource.code==='RETIRED'?'已停止':'授权来源未就绪');
 
   const body=$('latest-block-rows');body.replaceChildren();
   if(model.latestBlock){const b=model.latestBlock,row=document.createElement('tr');for(const value of [formatInteger(b.height),short(b.hash),short(b.validator),formatInteger(b.transactionCount),time(b.time)]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}body.append(row);}else{const row=document.createElement('tr');row.className='empty-table-row';const cell=document.createElement('td');cell.colSpan=5;cell.textContent=t(paired?'本次未取得可绑定的最新区块。':'连接本机后显示实际最新区块');row.append(cell);body.append(row);}

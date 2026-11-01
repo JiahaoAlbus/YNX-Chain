@@ -1,0 +1,86 @@
+{
+  "handoff": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/final-component-r2-8zGOYP/HANDOFF.json",
+    "bytes": 7048,
+    "sha256": "e78f7e43eb4bc271e759a09a36eef808f8f1c73e10136c22314b74083469a36d"
+  },
+  "sourceManifest": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/final-component-r2-8zGOYP/SOURCEFILES.json",
+    "bytes": 10032,
+    "sha256": "fa55c760cc2fab75e3de18b0dfd50c9524e269b6dbae837eea3f3132e333dd83",
+    "gitBlob": "960eb013fa8f34d8492fbcd71bff96d526f993d4"
+  },
+  "archive": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/go-native-link-KJHPp6/go/native/libynx_network_resource_source.a",
+    "bytes": 2742248,
+    "sha256": "704424095ca8477ed941c0e255653bdc1e115494694ebf0eab99ac7a4447cf9f",
+    "gitBlob": "65f2f0d945e5ef2ced927444014da2b57962c260"
+  },
+  "integration": {
+    "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/network-resource-source-normal-successor/final-component-r2-8zGOYP/INTEGRATION.md",
+    "bytes": 5557,
+    "sha256": "7c861baea0ada97bff32e49322b7239a5c90f8ed3d007f89d34ef7eab1942755",
+    "gitBlob": "c668c4e3dc4b52584719c42e721e6c77230e440c"
+  },
+  "vendored": [
+    {
+      "path": "apps/network/internal/authresourcesource/claim.go",
+      "supplierSHA256": "de6d44e3baf7747d81bb02b180f0865087db5f66bdfd32c64945fff765c4decf",
+      "sha256": "de6d44e3baf7747d81bb02b180f0865087db5f66bdfd32c64945fff765c4decf"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/claim_test.go",
+      "supplierSHA256": "bfe8f9cda7c957c3d191bb1323fc157650a90dae016fe41de701dcd3136f9888",
+      "sha256": "bfe8f9cda7c957c3d191bb1323fc157650a90dae016fe41de701dcd3136f9888"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/metadata.go",
+      "supplierSHA256": "39e7739fd1143705cab99b8f33bbcee6f785c17b92af5561973726cf6c896913",
+      "sha256": "39e7739fd1143705cab99b8f33bbcee6f785c17b92af5561973726cf6c896913"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/metadata_test.go",
+      "supplierSHA256": "6c0fa3c2f84f59aaa36e690c5d54982184fdefdcd49859aee354abf4164b8da2",
+      "sha256": "6c0fa3c2f84f59aaa36e690c5d54982184fdefdcd49859aee354abf4164b8da2"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/native_darwin.go",
+      "supplierSHA256": "8a692b43bc42158ec894d5bd4e60657a8a565563fa2a7f4e3faddcfa56c6d2ca",
+      "sha256": "549c2ac5c1191cc26c9f018579bc0ce7f97addac8b8c21326b56e898bc7c6afe"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/native_link_test.go",
+      "supplierSHA256": "a4b35f63351e7820efb5620bbb76f58250bf2c736ee32c3667a1dedda3387228",
+      "sha256": "a4b35f63351e7820efb5620bbb76f58250bf2c736ee32c3667a1dedda3387228"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/native_unavailable.go",
+      "supplierSHA256": "b2460059763bd480ffa88215f958fdd1ae43cbc46dd57c5ed32c0bf4b99b7b80",
+      "sha256": "b2460059763bd480ffa88215f958fdd1ae43cbc46dd57c5ed32c0bf4b99b7b80"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/source.go",
+      "supplierSHA256": "df2a3cd5387631713017c10fd40e7ea9fec82db3b7bfb9f05f344758a3c594a0",
+      "sha256": "df2a3cd5387631713017c10fd40e7ea9fec82db3b7bfb9f05f344758a3c594a0"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/source_test.go",
+      "supplierSHA256": "e3773828432694c090188704ed488f3e6329d2029ef194126e5d7d6e22d4f38e",
+      "sha256": "dbc754c036b5aadad6f71c95e759e9d5b4c3090f5cd28bb6e11e0d8c644e4d69"
+    },
+    {
+      "path": "apps/network/internal/authresourcesource/source/network_resource_native.h",
+      "supplierSHA256": "ff20e2aae706317f83d7055c972906641d7510005f7a64ad607ea4039efcc8da",
+      "sha256": "ff20e2aae706317f83d7055c972906641d7510005f7a64ad607ea4039efcc8da"
+    }
+  ],
+  "localChanges": [
+    "Cgo include relative to vendored package",
+    "static C-only archive resolved through build-time -L capture and -l, never runtime paths",
+    "Original no-archive fixture skips only when actual linked Root0 test applies",
+    "gofmt original Go source",
+    "Static libcrypto closure linked in the same helper"
+  ],
+  "secondGoRuntime": false,
+  "productionEnabled": false
+}

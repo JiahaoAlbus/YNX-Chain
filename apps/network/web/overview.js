@@ -130,8 +130,23 @@
     return ['NOT_SUPPLIED', 'UNAVAILABLE', 'REVOKED', 'UNSUPPORTED', 'CONFIGURED'].includes(model.code) &&
       model.configured !== null && model.walletPublisherConfigured !== null && model.stopped !== null ? model : null;
   }
+  function activityResourceSource(value) {
+    const keys = ['code', 'nativeLinked', 'current', 'partialAcquired', 'cleanupPending', 'physicalComplete', 'firstCauseCode', 'productionEnabled'];
+    if (!allowedFields(value, keys) || field(value, 'productionEnabled') !== false) return null;
+    const model = {code: code(field(value, 'code')), nativeLinked: boolean(field(value, 'nativeLinked')), current: boolean(field(value, 'current')), partialAcquired: boolean(field(value, 'partialAcquired')), cleanupPending: boolean(field(value, 'cleanupPending')), physicalComplete: boolean(field(value, 'physicalComplete')), productionEnabled: false};
+    if (!['NOT_SUPPLIED', 'NOT_ADMITTED', 'CURRENT', 'RETIRED'].includes(model.code) || Object.values(model).includes(null) ||
+        model.current !== (model.code === 'CURRENT') || model.current && (!model.nativeLinked || model.cleanupPending || model.physicalComplete) ||
+        model.cleanupPending && model.physicalComplete || !model.nativeLinked && (model.partialAcquired || model.code !== 'NOT_SUPPLIED')) return null;
+    if (field(value, 'firstCauseCode') !== undefined) {
+      const cause = field(value, 'firstCauseCode');
+      if (typeof cause !== 'string' || !/^(NOT_SUPPLIED|RETIRED|CANCELED|DEADLINE|SOURCE_ERROR|NETWORK_RESOURCE_NATIVE(_CLAIM)?_[0-9]{1,10})$/.test(cause)) return null;
+      model.firstCauseCode = cause;
+    }
+    return model;
+  }
   function activityResource(value) {
-    const keys = ['code', 'state', 'activeWorkers', 'verifiedJobs', 'verifiedBytes', 'rewards', 'productionEnabled'];
+    const counts = ['osMeasuredChildren', 'osUserMicros', 'osSystemMicros', 'osPeakRSSBytes'];
+    const keys = ['code', 'state', 'activeWorkers', 'verifiedJobs', 'verifiedBytes', 'rewards', 'productionEnabled', 'source', 'containmentMode', ...counts];
     if (!allowedFields(value, keys) || field(value, 'rewards') !== 'NOT_AUTHORIZED' || field(value, 'productionEnabled') !== false) return null;
     const model = {
       code: code(field(value, 'code')), state: field(value, 'state') === undefined ? null : field(value, 'state'), activeWorkers: activityCount(field(value, 'activeWorkers')),
@@ -143,6 +158,20 @@
       (model.state === 'running' || model.activeWorkers !== null && model.activeWorkers !== '0');
     if (!['UNAVAILABLE', 'DISABLED', 'CONTROLLED_SANDBOX', 'UNKNOWN'].includes(model.code) ||
       !['disabled', 'stopped', 'running'].includes(model.state) && !unavailableState || disabledContradiction) return null;
+    for (const key of counts) {
+      if (field(value, key) !== undefined) {
+        model[key] = activityCount(field(value, key));
+        if (model[key] === null) return null;
+      }
+    }
+    if (field(value, 'containmentMode') !== undefined) {
+      model.containmentMode = text(field(value, 'containmentMode'));
+      if (!model.containmentMode) return null;
+    }
+    if (field(value, 'source') !== undefined) {
+      model.source = activityResourceSource(field(value, 'source'));
+      if (!model.source) return null;
+    }
     return model;
   }
   function activityView(value) {

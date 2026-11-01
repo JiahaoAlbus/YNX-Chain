@@ -15,6 +15,11 @@
   }
   function rows(block) { block.trim().split('\n').forEach(line => { const [key, ...values] = line.split('|'); add(key, values); }); }
   rows(`
+已停止|Stopped|已停止|停止済み|중지됨|Detenido|Arrêté|Gestoppt|Parado|Остановлено|متوقف|Dihentikan
+任务授权来源|Task authorization source|任務授權來源|タスク認可元|작업 권한 출처|Origen de autorización de tareas|Source d’autorisation des tâches|Quelle der Aufgabenautorisierung|Origem da autorização de tarefas|Источник авторизации задач|مصدر تفويض المهام|Sumber otorisasi tugas
+授权来源可用|Authorization source available|授權來源可用|認可元を利用可能|권한 출처 사용 가능|Origen de autorización disponible|Source d’autorisation disponible|Autorisierungsquelle verfügbar|Origem de autorização disponível|Источник авторизации доступен|مصدر التفويض متاح|Sumber otorisasi tersedia
+授权来源未就绪|Authorization source not ready|授權來源未就緒|認可元の準備が未完了|권한 출처 준비 안 됨|Origen de autorización no disponible|Source d’autorisation non prête|Autorisierungsquelle nicht bereit|Origem de autorização não pronta|Источник авторизации не готов|مصدر التفويض غير جاهز|Sumber otorisasi belum siap
+正在释放本机资源|Releasing local resources|正在釋放本機資源|ローカルリソースを解放中|로컬 리소스 해제 중|Liberando recursos locales|Libération des ressources locales|Lokale Ressourcen werden freigegeben|Liberando recursos locais|Освобождение локальных ресурсов|جارٍ تحرير الموارد المحلية|Melepas sumber daya lokal
 概览|Overview|概覽|概要|개요|Resumen|Vue d’ensemble|Übersicht|Visão geral|Обзор|نظرة عامة|Ringkasan
 网络|Network|網路|ネットワーク|네트워크|Red|Réseau|Netzwerk|Rede|Сеть|الشبكة|Jaringan
 测试网|Testnet|測試網|テストネット|테스트넷|Red de pruebas|Réseau de test|Testnetz|Rede de testes|Тестовая сеть|شبكة الاختبار|Jaringan uji
