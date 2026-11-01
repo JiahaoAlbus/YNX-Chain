@@ -6,6 +6,7 @@ on:
       - codex/final-chain-core
       - codex/ynx-pq-perf-integration
       - codex/v5-link-native-ci
+      - codex/v5-link-protected-client
     paths:
       - ".github/workflows/chain-core.yml"
       - "Makefile"
