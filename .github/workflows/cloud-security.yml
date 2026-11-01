@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/oci-evidence" "$RUNNER_TEMP/oci-source"
-          printf '%s  %s\n' c33a0e608f3afc689d7fb3258f74e8383dfa611e5518b6bc84478c3ea9ad947e apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
+          printf '%s  %s\n' 45f1f3102ce623e88202445b144dfd8342a7e0f40857411a89d759f75ebe11e1 apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
           tar -xzf apps/cloud/tests/oci-focused-normal-source.tar.gz -C "$RUNNER_TEMP/oci-source"
           docker info --format '{{json .}}' > "$RUNNER_TEMP/oci-evidence/docker-info.json" 2> "$RUNNER_TEMP/oci-evidence/docker-info.stderr"
           df -Pk "$RUNNER_TEMP" > "$RUNNER_TEMP/oci-evidence/disk.txt"
@@ -197,7 +197,7 @@ jobs:
       - name: Independent object, deployment and usage-billing lifecycle
         run: |
           node --test apps/cloud/client/*.test.mjs
-          go test -race -count=1 -timeout=90s -run '^TestP04(Object|Blob|Deployment|Billing|OriginalBillProvenance|PrivateHost(Normal|ReadCold|Retain|Partial)|OCIReadiness)' ./internal/cloud
+          go test -race -count=1 -timeout=90s -run '^TestP04(Object|Blob|Deployment|Billing|OriginalBillProvenance|PrivateHost(Normal|ReadCold|Retain|Partial)|OCIReadiness|UsageDocker28Frame)' ./internal/cloud
           go test -race -count=1 -timeout=120s -run '^TestP04PrivateHostActualCLITwoTenantsVersionsRevocationCold$' ./internal/cloud
   # Full checks remain defined, but are NOT authorized for this narrow draft PR.
   # Their skipped status must not be represented as full Cloud acceptance.
