@@ -476,6 +476,12 @@
       "browser": null,
       "node": "./src/original-wallet-ide-v4-connection.js",
       "default": null
+    },
+    "./product-session-management-v4": {
+      "types": "./src/product-session-management-v4.d.ts",
+      "browser": null,
+      "node": "./src/product-session-management-v4.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -740,7 +746,9 @@
     "docs/AI_TASK_V6_MOBILE_SAFE_CORE.md",
     "docs/ai-task-v6-node-esm-bootstrap-abi.json",
     "docs/ai-task-v6-node-esm-bootstrap.md",
-    "docs/wallet-ide-v4-connection.md"
+    "docs/wallet-ide-v4-connection.md",
+    "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.md",
+    "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.json"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

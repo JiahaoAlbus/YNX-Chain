@@ -20,3 +20,9 @@ void c;void n;
 owner.reviewPair({});
 // @ts-expect-error finalization review is zero caller identity/provider input beyond original context
 owner.reviewFinalization({provider:()=>({})});
+
+void owner.closePairPhase();void owner.closeCompletionPhase();void owner.closeFinalizationPhase();
+// @ts-expect-error normal business factory never accepts clock/provider configuration
+owner.openBusinessRead({clock:()=>new Date(),provider:{}});
+// @ts-expect-error no caller Source/current/device injection
+owner.openBusinessRead({registry:{},productId:'developer',platform:'macos',storage:{},gatewayTimeoutMs:1000,deviceCurrent:{}});
