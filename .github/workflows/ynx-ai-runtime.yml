@@ -91,7 +91,7 @@ jobs:
           done
           test -s "$task_dav_root/wsgidav/connection.private.json"
           go build -mod=readonly -o "$task_dav_root/ynx-ai-task" ./cmd/ynx-ai-task
-          P08_WEBDAV_CONNECTION_FILE="$task_dav_root/wsgidav/connection.private.json" P08_WEBDAV_CLI_BINARY="$task_dav_root/ynx-ai-task" go test -mod=readonly -race -p 1 ./internal/aiproduct ./internal/aitaskclient -run '^TestP08WebDAV' -count=1 -timeout=90s -v | tee "$task_dav_root/evidence/normal-integration.log"
+          P08_WEBDAV_CONNECTION_FILE="$task_dav_root/wsgidav/connection.private.json" P08_WEBDAV_CLI_BINARY="$task_dav_root/ynx-ai-task" go test -mod=readonly -race -p 1 ./internal/aiproduct ./internal/aitaskclient -run '^(TestP08WebDAV|TestP08PagesOfficialExactReportDelivery$)' -count=1 -timeout=90s -v | tee "$task_dav_root/evidence/normal-integration.log"
       - name: Stop only the isolated owned upstream
         if: always()
         shell: bash

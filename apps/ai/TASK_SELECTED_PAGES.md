@@ -1,0 +1,115 @@
+# Selected Browser pages in the original AI task loop
+
+The P08 consumer uses the existing task service, fixed model gateway, encrypted
+Store, model disclosure admission, original handoff CAS, attachment API and
+WebDAV delivery journal. It adds no panel, issuer, Grant codec, Browser fetcher
+or remote-write authority. Ordinary browsing does not need this integration.
+
+## Normal composition and request
+
+The original in-process `OriginalTaskRuntimeAuthority` composition may also
+implement `OriginalTaskPagesAuthority.ReadOriginalTaskPages`. Installation in
+`PreparedOriginalTaskRuntime.install` captures that exact operand; a request,
+environment flag or model cannot install one. The method must borrow original
+Browser/resource authority, check account, actual task/revision/generation,
+ordinary profile and current document, and return detached snapshots after
+releasing its borrows. It must not fetch a caller URL. The original production
+Native factory currently supplies no qualified Browser operand: that branch
+remains unavailable until the original integrating owners supply it.
+
+The existing `POST /api/tasks/{id}/runs` / CLI `run-start` or `run-resume` body
+accepts optional `selectedPages`:
+
+```json
+{
+  "runId": "original-run-id",
+  "taskRevision": 2,
+  "generation": 1,
+  "prompt": "Compare the approved pages and state missing evidence.",
+  "authorizationRef": "original-protected-reference",
+  "selectedPages": [
+    {"selectionId": "original-browser-selection-id", "version": "128-lowercase-hex-original-SHA512"}
+  ]
+}
+```
+
+IDs/digests select snapshots; they are not approval. The original model service
+configuration fixes provider and model. `CheckTaskModelDisclosure` must admit
+the entire actual request (including decoded selected fields and every tool
+result), separately from page/resource approval. No provider credentials, page
+bytes, recipient, URL override, private-tab flag or approval is accepted in the
+request. Existing SDK/Auth NativeV6 action schema/qualification remains the
+original owner's responsibility; this field does not register a new action.
+
+`TaskPageSnapshot` copies the P05 selection metadata and original snapshot
+bytes. `Content []byte` is base64 only in the in-process JSON persistence
+projection. It is the exact P05 `YNX_BROWSER_SELECTED_PAGE_V1` JSON bytes,
+including schema/tabID/profileID/generation-as-string/origin/taskID/fields/content.
+The consumer uses standard-library SHA3-512 and SHA-512 and byte length against
+the original bindings and compares all payload metadata; it never reserializes
+the original bytes to create a replacement version. Only a separate model
+projection decodes its selected fields. Local preparation IDs cannot be relabeled
+to the real task: Browser must provide original snapshots bound to that task.
+This is product input validation, not a new cryptographic verifier.
+
+`AVAILABLE` includes only the selected url/title/text fields. `STALE` and
+`UNAVAILABLE` contain no content; those original missing-page labels are sent
+explicitly. At most sixteen references and a 256KiB serialized snapshot set
+are accepted. Snapshots are encrypted/authenticated in the existing run record.
+Every provider admission and final answer return checks the original snapshots
+again, before and after disclosure authorization. Navigation, content/version
+change, source loss, task handoff or revision change blocks the corresponding
+send/return. These are observed consumer checks, not an atomic remote resource
+fence. Already verified historical results are read-only observations.
+
+## Human continuation, report and delivery
+
+Use the original authorized task handoff (`POST /open/v1/tasks/{id}/handoffs`)
+for human takeover. Its CAS changes the holder/revision/generation and retains
+original operations. The new holder submits revised instructions as a new run
+of that same task under new original approval; old holder/late results cannot
+resume work. Model text is not approval. No replacement task or panel is created.
+
+The original run result now includes task revision/generation, exact admitted
+provider/model and source labels (without page bytes). These are provenance
+labels, not proof that the model's prose or citations are true. `GET
+/api/tasks/{id}/runs/{originalRunId}` / CLI `run-show` reopens the retained result
+without contacting Browser, model or DAV; existing handoff/history restrictions
+continue to apply.
+
+To store the exact verified current report, use the existing attachment route:
+
+```http
+POST /api/conversations/{conversationId}/attachments
+Content-Type: application/json
+
+{"taskId":"original-task-id","runId":"original-run-id"}
+```
+
+Do not mix this with name/mimeType/contentBase64. The handler uses the original
+current session/task/run and creates an encrypted `application/json` attachment
+from the canonical original result projection. Same-result retries return the
+same authenticated attachment; a changed holder/revision, blocked/UNKNOWN model
+run or another conversation cannot materialize a report. This is local storage,
+not human report approval. Existing bounded file attachment behavior remains.
+
+Now pass that attachment ID and its exact SHA256/length to the original protected
+review/WRITE Source. Use existing `webdav-deliver` with that resourceId, original
+operationId, current task revision/generation and the preconfigured destinationId.
+The Source independently binds the exact report bytes and fixed private directory;
+there is no target/path override. CONTENT_PRESENT requires independent exact GET,
+not authorship or business finality. Query UNKNOWN under its original operation
+and object only. `webdav-result` reads the original durable receipt without PUT.
+See `TASK_WEBDAV.md` for original-replay and remote-fence limits.
+
+## Verification boundary
+
+`TestP08Pages*` is part of the original runtime CI. The official-WebDAV job also
+runs `TestP08PagesOfficialExactReportDelivery` against the pinned unmodified
+WsgiDAV server. Tests cover original byte encodings, versions/missing pages,
+normal prepared-server consumption, human handoff/revision, late page and model
+results, quota429/no fabricated report, report materialization, exact destination
+receipt and read-only reopen. These use explicitly PUBLIC synthetic page,
+provider and approval operands. Only the isolated official DAV network effect
+is a real upstream observation. They do not qualify real Browser page consent,
+paid model quota, Native approval, production Source, installed UI or deployment.

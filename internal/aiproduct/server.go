@@ -45,6 +45,7 @@ type Server struct {
 	toolEffects       originalToolEffectSource
 	taskModel         *taskModelService
 	taskModelAdmit    originalTaskModelAdmission
+	taskPages         OriginalTaskPagesAuthority
 	taskActiveRuns    map[string]taskActiveModelRun
 	taskActiveEffects map[string]*taskActiveEffectRun
 	taskRuntimeOnce   sync.Once
@@ -576,8 +577,23 @@ func (s *Server) handleAttachmentCreate(w http.ResponseWriter, r *http.Request, 
 		Name          string `json:"name"`
 		MIMEType      string `json:"mimeType"`
 		ContentBase64 string `json:"contentBase64"`
+		TaskID        string `json:"taskId,omitempty"`
+		RunID         string `json:"runId,omitempty"`
 	}
 	if !decodeJSON(w, r, &in, 384<<10) {
+		return
+	}
+	if in.TaskID != "" || in.RunID != "" {
+		if !toolOperationID.MatchString(in.TaskID) || !toolOperationID.MatchString(in.RunID) || in.ContentBase64 != "" || in.Name != "" || in.MIMEType != "" {
+			writeError(w, http.StatusBadRequest, "report requires only original taskId and runId")
+			return
+		}
+		a, err := s.store.AddTaskModelReportAttachment(session, r.PathValue("id"), in.TaskID, in.RunID)
+		if err != nil {
+			writeError(w, http.StatusConflict, "current verified original report required")
+			return
+		}
+		writeJSON(w, http.StatusCreated, a)
 		return
 	}
 	data, err := base64.RawStdEncoding.DecodeString(in.ContentBase64)

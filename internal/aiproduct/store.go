@@ -391,6 +391,11 @@ func (s *Store) BranchConversation(account, id, throughMessageID, title string) 
 }
 
 func (s *Store) AddAttachment(account, conversationID, name, mimeType string, data []byte) (Attachment, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.addAttachmentLocked(account, conversationID, name, mimeType, data)
+}
+func (s *Store) addAttachmentLocked(account, conversationID, name, mimeType string, data []byte) (Attachment, error) {
 	if len(data) == 0 || len(data) > 256<<10 {
 		return Attachment{}, errors.New("attachment must contain 1 to 262144 bytes")
 	}
@@ -402,8 +407,6 @@ func (s *Store) AddAttachment(account, conversationID, name, mimeType string, da
 	if name == "" {
 		return Attachment{}, errors.New("attachment name is required")
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	c, ok := s.state.Conversations[conversationID]
 	if !ok || c.Account != account {
 		return Attachment{}, os.ErrNotExist
@@ -418,9 +421,16 @@ func (s *Store) AddAttachment(account, conversationID, name, mimeType string, da
 	}
 	hash := sha256.Sum256(data)
 	a := Attachment{ID: id, ConversationID: conversationID, Name: name, MIMEType: mimeType, Size: len(data), SHA256: hex.EncodeToString(hash[:]), CreatedAt: s.now().UTC()}
+	previous := s.state.Attachments[conversationID]
+	audits, sequence := s.state.Audits, s.state.AuditSequence
 	s.state.Attachments[conversationID] = append(s.state.Attachments[conversationID], storedAttachment{Attachment: a, Nonce: nonce, Cipher: cipherText})
 	s.auditLocked(account, "attachment_stored", id, "bounded encrypted attachment stored")
-	return a, s.saveLocked()
+	if err := s.saveLocked(); err != nil {
+		s.state.Attachments[conversationID] = previous
+		s.state.Audits, s.state.AuditSequence = audits, sequence
+		return Attachment{}, err
+	}
+	return a, nil
 }
 
 func (s *Store) Attachments(account, conversationID string) ([]Attachment, error) {

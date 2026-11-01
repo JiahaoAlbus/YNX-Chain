@@ -174,6 +174,7 @@ func (p *PreparedOriginalTaskRuntime) install(s *Server) error {
 		return errors.New("original task runtime cannot use fixture authentication")
 	}
 	s.taskModel = p.model
+	s.taskPages, _ = p.authority.(OriginalTaskPagesAuthority)
 	s.webDAV = p.webDAV
 	s.toolEffects = &originalRuntimeToolEffects{runtime: p, store: s.store}
 	s.taskModelAdmit = func(ctx context.Context, session ProductSession, task TaskRecord, url, model string, body []byte) error {
