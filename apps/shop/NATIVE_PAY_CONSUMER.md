@@ -158,12 +158,25 @@ their existing encrypted product stores. New creation needs an explicit click;
 cold opening/return only performs original lookup or GET. The reference is
 durable before calling the original typed Main navigation port. Missing Main
 bridge keeps it and reports unavailable; it never synthesizes a URL or capsule.
-The normal Main adapter consumes P06's fixed `intent`/`recover-intent` actions,
-validates returned original references and retains independent-finality=false.
-It never approves, signs, sends or invokes the planned Pay broadcast callee.
+The normal Main adapter consumes P06's fixed read-only `intent` action for both
+opening and cold/UNKNOWN navigation. P06's `recover-intent` action performs a
+reconcile POST, so navigation must not select it. The adapter validates returned
+original references, retains independent-finality=false and preserves the
+actual Source absence reason as its error cause. It never approves, signs,
+sends or invokes the Pay broadcast callee.
 The original Main owner supplies that real protected UI/IPC bridge and queue.
 
-The original Pay Source, actual Main navigation/broadcast implementation,
+Supplier successor `cc6514d8ab9747ba2232dee3bea4996f2034b9e4` was consumed
+from its SHA-verified source archive. Its actual entry/client and the Shop
+adapter were checked together: both navigation paths issue only the same
+original intent GET, and an absent or retired Source prevents further reads.
+P01's specific `requestPQPayBroadcast` implementation is supplied at
+`a437d525a7d35d31a9ef664629433bcaa1df4901`; the remaining owning CODE includes
+the actual Native Source getter/recognizer, joint Shop order/store/merchant/price
+Source and protected installed Main bridge. The existing Cloud-only family
+does not supply these Shop inputs.
+
+The original Pay Source, actual Main navigation/Native Source composition,
 matching installed images and real approval/funds acceptance remain distinct
 gates. Consumer tests use PUBLIC ports, actual product Store/journal and native
 models; the frozen actual P06 normal entry also verifies honest Source-absent
