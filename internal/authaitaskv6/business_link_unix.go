@@ -101,6 +101,20 @@ func (s *originalTaskBusinessSession) exchange(ctx context.Context, operation st
 	if command.Handle != nil {
 		selector = *command.Handle
 	}
+	// LINK release is terminal for the entire SAME request, not one child.
+	// Individual opaque children stay owned until this final drain.
+	if operation == "release" {
+		if command.Handle != nil || command.Original != nil {
+			return result, errTaskRuntimeResource
+		}
+		e := s.close()
+		raw, _ := json.Marshal(originalBusinessReply{Kind: "release"})
+		status := 200
+		if e != nil {
+			status = 503
+		}
+		return securelink.TaskRuntimeReply{StatusCode: status, Body: raw}, e
+	}
 	reply, e := s.dispatch(operation, selector)
 	encoded, encodingError := json.Marshal(reply)
 	result = securelink.TaskRuntimeReply{StatusCode: 200, Body: encoded}

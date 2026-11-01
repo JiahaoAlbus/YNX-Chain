@@ -44,15 +44,21 @@ type OriginalAITaskActionServerV6 struct {
 	forwarder             *securelink.OriginalTaskRuntimeForwarder
 	pending               sync.Map
 	retired               atomic.Bool
+	calls                 atomic.Int64
+	changed               chan struct{}
 	first                 error
 	retireOnce, closeOnce sync.Once
+	cleanupOnce           sync.Once
+	cleanupErr            error
+	lifecycleMu           sync.Mutex
+	closeSelected         bool
 	retireErr, closeErr   error
 }
 
 // Normal P08 main: same actual NewServer, then install owner.Handler(). The
 // original Server/Store are borrowed, not reconstructed or closed by Auth.
 func OpenOriginalAITaskActionServerV6(server *aiproduct.Server) (owner *OriginalAITaskActionServerV6, err error) {
-	owner = &OriginalAITaskActionServerV6{server: server}
+	owner = &OriginalAITaskActionServerV6{server: server, changed: make(chan struct{}, 1)}
 	defer func() {
 		if err != nil {
 			owner.first = err
@@ -120,6 +126,18 @@ func (o *OriginalAITaskActionServerV6) Handler() http.Handler {
 			http.Error(w, "AI_V6_NORMAL_RUNTIME_NOT_SUPPLIED", 503)
 			return
 		}
+		o.calls.Add(1)
+		defer func() {
+			o.calls.Add(-1)
+			select {
+			case o.changed <- struct{}{}:
+			default:
+			}
+		}()
+		if o.retired.Load() {
+			http.Error(w, "AI_V6_NORMAL_RUNTIME_NOT_SUPPLIED", 503)
+			return
+		}
 		o.serveOriginal(w, r)
 	})
 }
@@ -145,7 +163,13 @@ func (o *OriginalAITaskActionServerV6) serveOriginal(w http.ResponseWriter, r *h
 		deny("AI_V6_ORIGINAL_HEADERS_SIZE")
 		return
 	}
+	controller := http.NewResponseController(w)
+	if controller.SetReadDeadline(time.Now().Add(5*time.Second)) != nil {
+		deny("AI_V6_ORIGINAL_READ_DEADLINE_NOT_SUPPLIED")
+		return
+	}
 	body, err := io.ReadAll(io.LimitReader(r.Body, 1048577))
+	_ = controller.SetReadDeadline(time.Time{})
 	if err != nil || len(body) > 1048576 || r.ContentLength >= 0 && r.ContentLength != int64(len(body)) {
 		deny("AI_V6_ORIGINAL_BODY_INVALID")
 		return
@@ -318,6 +342,13 @@ func (o *OriginalAITaskActionServerV6) Join(ctx context.Context) error {
 			return e
 		}
 	}
+	for o.calls.Load() != 0 {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-o.changed:
+		}
+	}
 	if o.reader != nil && o.reader.children.Load() != 0 {
 		return ErrChildrenRetainedV6
 	}
@@ -330,37 +361,59 @@ func (o *OriginalAITaskActionServerV6) Close() error {
 	if o == nil {
 		return nil
 	}
+	o.lifecycleMu.Lock()
+	defer o.lifecycleMu.Unlock()
+	o.closeSelected = true
 	o.closeOnce.Do(func() {
 		if e := o.Retire(); e != nil {
 			o.closeErr = e
 		}
-		if o.forwarder != nil {
-			if e := o.forwarder.Close(); e != nil && o.closeErr == nil {
-				o.closeErr = e
+		if o.calls.Load() != 0 || o.reader != nil && o.reader.children.Load() != 0 {
+			if o.closeErr == nil {
+				o.closeErr = ErrChildrenRetainedV6
 			}
+			return
 		}
-		if o.reader != nil {
-			if e := o.reader.Close(); e != nil && o.closeErr == nil {
-				o.closeErr = e
-			}
-		}
-		if o.projector != nil {
-			if e := o.projector.Close(); e != nil && o.closeErr == nil {
-				o.closeErr = e
-			}
+		if e := o.cleanupOriginal(); e != nil && o.closeErr == nil {
+			o.closeErr = e
 		}
 	})
 	return o.closeErr
+}
+func (o *OriginalAITaskActionServerV6) cleanupOriginal() error {
+	o.cleanupOnce.Do(func() {
+		if o.forwarder != nil {
+			if e := o.forwarder.Close(); e != nil && o.cleanupErr == nil {
+				o.cleanupErr = e
+			}
+		}
+		if o.reader != nil {
+			if e := o.reader.Close(); e != nil && o.cleanupErr == nil {
+				o.cleanupErr = e
+			}
+		}
+		if o.projector != nil {
+			if e := o.projector.Close(); e != nil && o.cleanupErr == nil {
+				o.cleanupErr = e
+			}
+		}
+	})
+	return o.cleanupErr
 }
 func (o *OriginalAITaskActionServerV6) DrainPartial(ctx context.Context) error {
 	if o == nil {
 		return nil
 	}
+	o.lifecycleMu.Lock()
+	defer o.lifecycleMu.Unlock()
+	if !o.closeSelected {
+		return errors.New("AI_V6_RUNTIME_CLOSE_REQUIRED")
+	}
 	if e := o.Join(ctx); e != nil {
 		return e
 	}
-	if o.reader != nil {
-		_ = o.reader.DrainPartial()
+	if e := o.cleanupOriginal(); e != nil && o.closeErr == nil {
+		o.closeErr = e
 	}
 	return o.closeErr
 }

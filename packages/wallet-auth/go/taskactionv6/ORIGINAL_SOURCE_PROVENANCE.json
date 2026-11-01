@@ -32,5 +32,7 @@
   "RootAdmission": false,
   "SourceAdmission": false,
   "signatureVerified": false,
-  "installedRuntime": false
+  "installedRuntime": false,
+  "matchingSDKCommit": "5aa1a6596885c31138e7825c111b6ce1c81ed8ef",
+  "exactFiveProductionLeavesMatch5aa": true
 }

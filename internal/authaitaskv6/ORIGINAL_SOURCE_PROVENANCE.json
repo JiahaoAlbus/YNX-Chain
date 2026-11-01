@@ -10,8 +10,8 @@
     },
     {
       "path": "internal/authaitaskv6/business_link_unix.go",
-      "bytes": 6597,
-      "sha256": "fae34dc6eaabcc28b048e1d1451505d2f79074774bec02dd8764b6e0f20ed785"
+      "bytes": 7074,
+      "sha256": "63f28d2068ada150c2286ee3939a63810b9e0b9e1f8e14c1e1ecd683bfd991e5"
     },
     {
       "path": "internal/authaitaskv6/business_session.go",
@@ -25,8 +25,8 @@
     },
     {
       "path": "internal/authaitaskv6/normal_server_unix.go",
-      "bytes": 12286,
-      "sha256": "760bb89d83d7f2c886cf3549d18e32f1ffefabe6587038af6951addb106b5b2a"
+      "bytes": 13677,
+      "sha256": "1e47fc09ae95a59a49431cf93df48bae658f21730ea5ef061b8bc88d85593073"
     },
     {
       "path": "internal/authaitaskv6/private_carrier.go",
@@ -58,5 +58,6 @@
   "RootAdmission": false,
   "SourceAdmission": false,
   "normalRegistration": false,
-  "publicActivation": false
+  "publicActivation": false,
+  "consumerUpdate": "Original terminal SAME-request release and pre-forward active-call/body-read/partial-drain lifecycle update"
 }
