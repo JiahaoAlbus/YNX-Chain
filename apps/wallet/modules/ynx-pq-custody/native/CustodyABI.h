@@ -17,6 +17,7 @@ int32_t ynx_auth_pq_native_release_closed_v1(uint64_t);
  * Original owner must implement same-thread ordinary/current exact binding
  * comparison. A uint64 numeric ID alone never proves the opened identity. */
 int32_t ynx_auth_pq_native_assert_binding_v1(uint64_t,const uint8_t*,size_t);
+int32_t ynx_auth_pq_native_closed_witness_v1(uint64_t,uint32_t*);
 #ifdef __cplusplus
 }
 #endif

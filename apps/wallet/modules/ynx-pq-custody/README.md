@@ -24,9 +24,14 @@ with actual Darwin object and PUBLIC controls. Its platform scope does not
 establish Android/iOS admission. Declaration compatibility was checked against
 that exact header; neither declaration supplies the missing mobile bodies.
 The fixed strong linker dependencies prevent a build from silently substituting
-a JS signer, classic key, empty provider or birth factory. Android's decoder
-and both platforms' protected source/slot producer still need their original
-owner's same-version implementation and matching archive.
+a JS signer, classic key, empty provider or birth factory. Android's ordinary
+decoder now consumes Auth's frozen `android-ordinary/evidence-epx2cH` handoff
+(SHA256 `ac99b92b1ba72a7617241c623b41e8da5468b0797a534dcb512a3f98d1a40567`).
+Its eight production leaves retain the supplier bytes; supplier PUBLIC tests
+are excluded. The fixed JNI crypto class binds on the existing nativeInstall
+classloader thread. Both platforms still need one matching Auth/Core archive
+and genuine protected Source qualification. Original A must avoid duplicate
+ordinary implementations when assembling that one archive/link closure.
 
 The native worker owns partial captures, borrowed credential loans, the exact
 ordinary custody ID, retained signed bytes and first submission/query snapshot.
@@ -84,6 +89,50 @@ not permission to close the App over a failed save or unresolved native debt.
 Promise resolve/reject functions remain in the JS runtime's own Map. Only
 completion IDs and fixed public metadata reach the worker/JS invoker; no JSI
 function/value is destroyed on the custody thread after runtime teardown.
+
+## Protected original credential and OS recovery
+
+`MobileSecure43` consumes Auth r4's actual protected permits and revoke-only
+callee, not a JS approval DTO. The original capture owns the registered binding,
+vault revision, independent action and original OS journal. The descriptor is
+checked against SHA256 of `YNX-MOBILE-PQ-OS43/v1`, NUL, the u32BE byte length and
+original full binding, then u64BE revision. References are exactly
+`keychain:ynx-pq-v1:<64lowerhex>` or `keystore:ynx-pq-v1:<64lowerhex>`.
+Metadata hashes cannot supply Source or account authority.
+
+iOS uses service `com.ynx.wallet.pq.custody.v1`, account equal to that reference,
+WhenPasscodeSetThisDeviceOnly and actual userPresence ACL. Generic Keychain
+password storage reports protection level 1 only; it never claims Secure
+Enclave. Android wraps the original 43 bytes using real AES256-GCM Keystore
+keys and a Native authentication prompt. KeyInfo must meet the requested OS,
+TEE or StrongBox protection level; unavailable protection refuses without
+downgrade. The original app-owned 0700 directory is borrowed by exact dirfd
+identity. `<digest>.wrapped43` contains AAD88 + nonce12 + encrypted43/tag16,
+exactly 159 bytes. The mother directory FD is never closed by this module.
+
+Import accepts original credential input only in Native UIKit/Android secure
+fields. Auth validates those original43 bytes against the retained encrypted
+backup and full registered binding before create-if-absent. Import does not
+overwrite or rotate a key. Remove needs its independent exact receipt and no
+slot references; it never deletes a shared Keystore master key. Explicit owned
+buffers are wiped; no physical erasure claim is made for OS text/keyboard/JCA
+internals. No credential argument, response or callback reaches Hermes.
+
+OS entered/UNKNOWN/recorded receipt state is independent of the original Core
+sign/submit/restore flags. Cold flags0 recovery requires an actual same-operation
+OS journal. Query reads that original receipt without credential input, borrow,
+import, removal, nonce or signing. A same held sign/restore UNKNOWN may also
+query; signed-but-unsubmitted alone still grants no query admission. Native
+cancel and retire requests reach Auth's any-thread atomic revoke-only gate
+while its actor is blocked in UI. Only the worker calls Source or closes owners.
+Actual permits/current checks must still refuse any later effect.
+
+The matching Auth r4 handoff is `capture/kernel-os-query-cancel-r4/HANDOFF.json`,
+SHA256 `f57c156b372d91dc397071383110ca5d0c25330bfea5ef199483b561f60911a3`.
+Its immutable closure readback is `capture/r4-closed-matching-7d1oZp/HANDOFF.json`,
+SHA256 `8b2827d937defede7c65f10daba5c243ff8652a91ef68bd2381742b345e5258b`.
+These are source/control evidence; real Root, platform link, secure-store/UI,
+registered restoration and maintained Core signing remain separate gates.
 
 ## Integration and verification
 

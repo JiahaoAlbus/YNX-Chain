@@ -24,6 +24,12 @@ typedef struct {
  uint8_t account[20],network_id[32],request_digest[32],transaction_hash[32];
  uint32_t transaction_hash_present;
 } YNXMobilePQProjection;
+/* Independent original OS journal projection. Never transaction flags32 or a
+ * synthetic RESTORE_ENTERED. Phase3 only ACKs an OS receipt, not an account. */
+typedef struct {
+ uint32_t version,size,available,action,phase,effect_possible,ack_confirmed,first_present;
+ int32_t first_code;
+} YNXMobilePQOSOutcome;
 enum { YNX_MOBILE_PQ_TRANSACTION=1, YNX_MOBILE_PQ_REGISTERED_RESTORE=2, YNX_MOBILE_PQ_ORIGINAL_QUERY=3 };
 enum { YNX_MOBILE_PQ_CURRENT_CAPTURE=1, YNX_MOBILE_PQ_CURRENT_SIGN=2,
  YNX_MOBILE_PQ_CURRENT_BROADCAST=3, YNX_MOBILE_PQ_CURRENT_RESTORE=4,
@@ -39,6 +45,7 @@ int32_t ynx_auth_mobile_pq_inputs_v1(YNXMobilePQCapture*,YNXMobilePQInputs*);
 enum { YNX_MOBILE_PQ_SIGN_ENTERED=1,YNX_MOBILE_PQ_SIGNED_ACK=2,
  YNX_MOBILE_PQ_SUBMIT_ENTERED=4,YNX_MOBILE_PQ_RESTORE_ENTERED=8,YNX_MOBILE_PQ_RESTORED_ACK=16 };
 int32_t ynx_auth_mobile_pq_read_original_state_v1(YNXMobilePQCapture*,uint32_t*);
+int32_t ynx_auth_mobile_pq_copy_os_outcome_v1(YNXMobilePQCapture*,YNXMobilePQOSOutcome*);
 /* Exact 43-byte protected credential + existing encrypted original only.
  * No classic keys. A partial loan must be released even if acquisition fails.
  * Spans stay live until release; producer wipes its credential on release. */
@@ -48,6 +55,11 @@ int32_t ynx_auth_mobile_pq_release_loan_v1(YNXMobilePQLoan*);
  * durable SIGN_ENTERED before calling transaction_once. Lost ACK forbids sign,
  * cold recapture of the same reference may only query, never renew/re-sign. */
 int32_t ynx_auth_mobile_pq_begin_sign_once_v1(YNXMobilePQCapture*,uint64_t);
+/* Actual Auth kernel-witness-r2 private callee. Always retain actual same-owner
+ * selected/status/cleanup/member after primitive, even failure/no Member.
+ * A NOT_REQUIRED/no-entry failure needs native close + actual closed witness
+ * before ACK; cleanup3/unknown0 remain debt, never SIGNED_ACK. */
+int32_t ynx_auth_mobile_pq_retain_original_sign_outcome_v1(YNXMobilePQCapture*,uint64_t);
 /* Durable retained signed original ACK; never invokes transport. Idempotent
  * SAME bytes may be saved after UI lock/retire for the original journal only.
  * Different originals refuse; this is not signing or broadcast permission. */
@@ -59,6 +71,10 @@ int32_t ynx_auth_mobile_pq_dispatch_once_v1(YNXMobilePQCapture*);
 int32_t ynx_auth_mobile_pq_query_original_v1(YNXMobilePQCapture*);
 /* Cancels new effects, retains original query and public outcome custody. */
 int32_t ynx_auth_mobile_pq_cancel_v1(YNXMobilePQCapture*);
+/* Auth r4 actual inventory lookup + atomic revoke-only gate. Thread-safe;
+ * performs no Source/OS/close work. Unknown/closed tokens never grant authority.
+ * Native UI blocked on its worker must observe this before a later effect. */
+int32_t ynx_auth_mobile_pq_request_cancel_v1(YNXMobilePQCapture*);
 /* Registered account only: verify actual on-chain public binding and original
  * backup against it, CAS EMPTY protected slot. Nonempty always refuses. Does
  * not create keys, call open_initial, publish, register or change the account.

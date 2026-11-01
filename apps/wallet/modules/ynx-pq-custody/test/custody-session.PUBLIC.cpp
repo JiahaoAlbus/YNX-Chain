@@ -11,7 +11,7 @@
 #include <functional>
 #include <set>
 using namespace ynx::mobilepq;
-struct YNXMobilePQCapture {bool closed=false;};
+struct YNXMobilePQCapture {bool closed=false;std::atomic<bool> revoked{false};};
 struct YNXMobilePQLoan {};
 namespace {
 struct Config {
@@ -20,9 +20,11 @@ struct Config {
  int expectedCredential=43,failPhase=0,failCurrentAt=0,currentCalls=0;
  bool selected=true,occupied=false,retainPartial=false,submitPreviouslyEntered=true,closeCompleted=true;
  int bindingFailure=0,liveCaptures=0,liveLoans=0,signBegin=0,signBegins=0;
+ int cancelRequests=0;
  bool durableSignEntered=false;uint32_t coldFlags=7;
+ bool osAvailable=false;uint32_t osPhase=2;
  uint32_t cleanup=2;size_t memberLength=60000;
- std::function<void()> onSign;
+ std::function<void()> onSign,onBorrow;
 } f;
 const uint8_t binding[]={1,2},message[]={3,4},policy[]={5,6},version[]={'1'},height[]={'9'},backup[]={8};
 uint8_t credential[43];std::map<uint64_t,bool> owners;std::set<uint64_t> signedOwners;uint64_t nextOwner=1;
@@ -32,17 +34,20 @@ template<class F>void control(const char* name,F run){reset();run();assert(owner
 }
 extern "C" {
 int32_t ynx_auth_mobile_pq_capture_v1(const uint8_t*,size_t,uint32_t,YNXMobilePQCapture**out){f.captures++;if(!f.capture||f.retainPartial){*out=new YNXMobilePQCapture;f.liveCaptures++;}return f.capture;}
-int32_t ynx_auth_mobile_pq_current_v1(YNXMobilePQCapture*,uint32_t phase){f.currentCalls++;return (f.failPhase==int(phase)||f.failCurrentAt==f.currentCalls)?91:f.current;}
+int32_t ynx_auth_mobile_pq_current_v1(YNXMobilePQCapture*c,uint32_t phase){f.currentCalls++;return (c->revoked.load()&&phase!=YNX_MOBILE_PQ_CURRENT_QUERY)||f.failPhase==int(phase)||f.failCurrentAt==f.currentCalls?91:f.current;}
 int32_t ynx_auth_mobile_pq_inputs_v1(YNXMobilePQCapture*,YNXMobilePQInputs*out){out->binding=s(binding,2);out->message=s(message,2);out->policy=s(policy,2);out->key_version=s(version,1);out->execution_height=s(height,1);out->native_chain_id=6423;return 0;}
 int32_t ynx_auth_mobile_pq_read_original_state_v1(YNXMobilePQCapture*,uint32_t*out){*out=f.submitPreviouslyEntered?f.coldFlags:0;return 0;}
-int32_t ynx_auth_mobile_pq_borrow_backup43_v1(YNXMobilePQCapture*,YNXMobilePQLoan**out,YNXMobilePQSpan*b,YNXMobilePQSpan*c){f.borrows++;*out=new YNXMobilePQLoan;f.liveLoans++;*b=s(backup,1);*c=s(credential,f.expectedCredential);return f.borrow;}
+int32_t ynx_auth_mobile_pq_copy_os_outcome_v1(YNXMobilePQCapture*,YNXMobilePQOSOutcome*out){if(f.osAvailable){out->available=1;out->action=2;out->phase=f.osPhase;out->effect_possible=1;out->first_present=1;out->first_code=0;}return 0;}
+int32_t ynx_auth_mobile_pq_borrow_backup43_v1(YNXMobilePQCapture*,YNXMobilePQLoan**out,YNXMobilePQSpan*b,YNXMobilePQSpan*c){f.borrows++;*out=new YNXMobilePQLoan;f.liveLoans++;*b=s(backup,1);*c=s(credential,f.expectedCredential);if(f.onBorrow)f.onBorrow();return f.borrow;}
 int32_t ynx_auth_mobile_pq_release_loan_v1(YNXMobilePQLoan*l){if(f.releaseLoan)return f.releaseLoan;delete l;f.liveLoans--;return 0;}
 int32_t ynx_auth_mobile_pq_begin_sign_once_v1(YNXMobilePQCapture*,uint64_t id){assert(owners.count(id));f.signBegins++;if(f.durableSignEntered)return 97;f.durableSignEntered=true;return f.signBegin;}
+int32_t ynx_auth_mobile_pq_retain_original_sign_outcome_v1(YNXMobilePQCapture*,uint64_t id){assert(owners.count(id));f.saves++;if((!signedOwners.count(id)||f.cleanup==1)&&!owners[id])return 99;if(f.cleanup==3)return 99;return f.save;}
 int32_t ynx_auth_mobile_pq_retain_signed_v1(YNXMobilePQCapture*,const uint8_t*b,size_t n){f.saves++;assert(n==f.memberLength&&b[0]==17);return f.save;}
 int32_t ynx_auth_mobile_pq_begin_submit_once_v1(YNXMobilePQCapture*){f.begins++;return f.begin;}
 int32_t ynx_auth_mobile_pq_dispatch_once_v1(YNXMobilePQCapture*){f.dispatches++;return f.dispatch;}
 int32_t ynx_auth_mobile_pq_query_original_v1(YNXMobilePQCapture*){f.queries++;return f.query;}
 int32_t ynx_auth_mobile_pq_cancel_v1(YNXMobilePQCapture*){return 0;}
+int32_t ynx_auth_mobile_pq_request_cancel_v1(YNXMobilePQCapture*c){f.cancelRequests++;c->revoked.store(true);return 0;}
 int32_t ynx_auth_mobile_pq_restore_registered_empty_once_v1(YNXMobilePQCapture*,uint64_t id){assert(owners.count(id));f.restores++;return f.occupied?92:f.restore;}
 int32_t ynx_auth_mobile_pq_copy_public_v1(YNXMobilePQCapture*,uint32_t kind,uint8_t*b,size_t cap,size_t*n,uint32_t*selected){assert(cap>=2);b[0]=uint8_t(kind);b[1]=255;*n=2;*selected=1;return 0;}
 int32_t ynx_auth_mobile_pq_copy_projection_v1(YNXMobilePQCapture*,YNXMobilePQProjection*p){memset(p->account,1,20);memset(p->network_id,2,32);memset(p->request_digest,3,32);p->transaction_hash_present=f.saves?1:0;if(p->transaction_hash_present)memset(p->transaction_hash,4,32);return 0;}
@@ -52,6 +57,7 @@ int32_t ynx_auth_mobile_pq_release_closed_v1(YNXMobilePQCapture*c){if(!c->closed
 int32_t ynx_auth_pq_native_open_v1(const uint8_t*,size_t,const uint8_t*c,size_t n,const uint8_t*,size_t,uint32_t purpose,uint64_t*out){assert(n==43&&c==credential&&purpose==1&&*out==0);f.opens++;if(f.open)return f.open;*out=nextOwner++;owners[*out]=false;return 0;}
 int32_t ynx_auth_pq_native_current_v1(uint64_t id){assert(owners.count(id));return 0;}
 int32_t ynx_auth_pq_native_assert_binding_v1(uint64_t id,const uint8_t*b,size_t n){assert(owners.count(id)&&b==binding&&n==2);return f.bindingFailure;}
+int32_t ynx_auth_pq_native_closed_witness_v1(uint64_t id,uint32_t*out){assert(owners.count(id));*out=owners[id]?1:0;return 0;}
 int32_t ynx_auth_pq_native_transaction_once_v1(uint64_t id,const uint8_t*m,size_t n,const uint8_t*p,size_t pn,uint64_t chain,const uint8_t*,size_t,const uint8_t*,size_t){assert(owners.count(id)&&m==message&&n==2&&p==policy&&pn==2&&chain==6423);signedOwners.insert(id);f.signs++;if(f.onSign)f.onSign();return f.sign;}
 int32_t ynx_auth_pq_native_copy_outcome_v1(uint64_t id,uint8_t*b,size_t cap,size_t*n,int32_t*status,uint32_t*cleanup,uint32_t*selected){assert(owners.count(id)&&cap==98304);bool entered=signedOwners.count(id);*selected=entered&&f.selected?1:0;*status=entered?f.sign:-1;*cleanup=entered?f.cleanup:0;*n=*selected&&*status==0&&*cleanup==2?f.memberLength:0;if(*n<=cap)memset(b,17,*n);return 0;}
 int32_t ynx_auth_pq_native_retire_v1(uint64_t id){assert(owners.count(id));return 0;}
@@ -83,9 +89,16 @@ int main(){
  control("cold recovery only reads native journal entered state",[]{CustodySession x(3);assert(x.prepare("PUBLIC-original"));assert(!x.signOnce());assert(x.queryOriginal());assert(f.queries==1&&f.borrows==0&&f.dispatches==0);assert(x.close());});
  control("cold recovery missing entered record cannot create UNKNOWN",[]{f.submitPreviouslyEntered=false;CustodySession x(3);assert(!x.prepare("PUBLIC"));assert(!x.queryOriginal());assert(f.queries==0);assert(x.close());});
  control("lost durable SIGN_ENTERED ACK never calls crypto",[]{f.signBegin=98;CustodySession x(1);assert(x.prepare("PUBLIC"));assert(!x.signOnce());assert(f.signBegins==1&&f.signs==0);assert(x.close());});
+ control("same held lost sign ACK may query original without repeating sign",[]{f.signBegin=98;CustodySession x(1);assert(x.prepare("PUBLIC"));assert(!x.signOnce());assert(x.queryOriginal());assert(!x.signOnce());assert(f.queries==1&&f.signBegins==1&&f.signs==0&&f.dispatches==0);assert(x.close());});
+ control("same held restore UNKNOWN may query without retrying restore",[]{f.restore=98;CustodySession x(2);assert(x.prepare("PUBLIC"));assert(!x.restoreRegisteredEmptyOnce());assert(x.queryOriginal());assert(!x.restoreRegisteredEmptyOnce());assert(f.queries==1&&f.restores==1&&f.signs==0&&f.dispatches==0);assert(x.close());});
+ control("held OS UNKNOWN before sign admission queries its own receipt only",[]{f.borrow=98;CustodySession x(1);assert(x.prepare("PUBLIC"));assert(!x.signOnce());f.osAvailable=true;assert(x.queryOriginal());assert(f.signBegins==0&&f.signs==0&&f.dispatches==0&&f.queries==1);assert(x.close());});
  control("cold same-reference recapture cannot sign a second time",[]{CustodySession first(1);assert(first.prepare("PUBLIC"));assert(first.signOnce());assert(first.close());CustodySession second(1);assert(second.prepare("PUBLIC"));assert(!second.signOnce());assert(f.signs==1&&f.signBegins==2);assert(second.close());});
  control("cold signing uncertainty can query original without signing or sending",[]{f.coldFlags=1;CustodySession x(3);assert(x.prepare("PUBLIC"));assert(x.copyOriginalPublicOutcome().state=="signing-unknown");assert(x.queryOriginal());assert(f.signs==0&&f.dispatches==0&&f.queries==1);assert(x.close());});
+ control("OS import UNKNOWN cold recovery never invents transaction flags",[]{f.coldFlags=0;f.osAvailable=true;CustodySession x(3);assert(x.prepare("PUBLIC-os-original"));auto first=x.copyProjection();assert(first.state=="os-operation-retained"&&!first.signEntered&&!first.submitEntered&&!first.restoreEntered&&first.osOutcome.available);assert(first.firstCause.present&&first.firstCause.code==0);assert(x.queryOriginal());assert(!x.signOnce());assert(!x.restoreRegisteredEmptyOnce());assert(f.queries==1&&f.signs==0&&f.restores==0&&f.dispatches==0&&f.borrows==0);assert(x.close());});
+ control("OS recovery rejects malformed receipt projection instead of granting entry",[]{f.coldFlags=0;f.osAvailable=true;f.osPhase=0;CustodySession x(3);assert(!x.prepare("PUBLIC"));assert(!x.queryOriginal());assert(f.queries==0);assert(x.close());});
  control("cancel request closes queued signing before native credential borrow",[]{CustodySession x(1);assert(x.prepare("PUBLIC"));x.requestCancel();assert(!x.signOnce());assert(f.borrows==0&&f.signs==0);assert(x.cancel());assert(x.close());});
+ control("off-thread cancel while worker borrows reaches revoke gate before ordinary open",[]{CustodySession x(1);assert(x.prepare("PUBLIC"));f.onBorrow=[&]{std::thread peer([&]{x.requestCancel();});peer.join();};assert(!x.signOnce());assert(f.cancelRequests==1&&f.liveLoans==0&&f.opens==0&&f.signs==0);assert(x.close());});
+ control("request after release never forwards stale capture to Auth",[]{CustodySession x(1);assert(x.prepare("PUBLIC"));assert(x.close());x.requestCancel();x.requestRetire();assert(f.cancelRequests==0);});
  control("late retire request preserves signed bytes before refusing further effects",[]{CustodySession x(1);assert(x.prepare("PUBLIC"));f.onSign=[&]{x.requestRetire();};assert(!x.signOnce());auto out=x.copyOriginalPublicOutcome();assert(out.storageConfirmed&&out.memberRetained);assert(!x.submitSignedOnce());assert(f.dispatches==0);assert(x.close());});
  control("callback reentry cannot release native private owner mid-sign",[]{CustodySession x(1);assert(x.prepare("PUBLIC"));f.onSign=[&]{assert(!x.close());assert(!x.signOnce());};assert(!x.signOnce());assert(f.releases==0&&f.signs==1);assert(x.close());});
  control("worker keeps pthread identity across jobs and closes GC debt",[]{
@@ -93,5 +106,5 @@ int main(){
   worker.enqueue([&]{held->set_value(worker.prepare("PUBLIC",1));});auto session=future.get();
   auto signedDone=std::make_shared<std::promise<bool>>();auto signedFuture=signedDone->get_future();worker.enqueue([&]{signedDone->set_value(session->signOnce());});assert(signedFuture.get());session.reset();assert(worker.shutdown());assert(f.signs==1&&f.releases==1);
  });
- std::cout<<"30 PUBLIC native bridge controls passed; real Auth/custody/JSI/IO not executed\n";
+ std::cout<<"37 PUBLIC native bridge controls passed; real Auth/custody/JSI/IO not executed\n";
 }

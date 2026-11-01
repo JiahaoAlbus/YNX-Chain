@@ -16,6 +16,7 @@ struct Outcome {
  int32_t primitiveStatus=-1; uint32_t primitiveCleanup=0;
  Cause firstCause,cleanupCause;
  bool projectionAvailable=false;YNXMobilePQProjection projection{};
+ YNXMobilePQOSOutcome osOutcome{};
  // Native-only retained originals. JSI must never export these vectors.
  std::vector<uint8_t> member,review,submission,query;
 };
@@ -39,21 +40,25 @@ class CustodySession final {
   Outcome copyProjection() const;
   bool released() const { return released_; }
   // Revocation requests may arrive on JS while the worker is busy. These only
-  // close gates, never call Auth/crypto or publish an outcome off-thread.
-  void requestCancel(){cancelRequested_.store(true);}
-  void requestRetire(){retireRequested_.store(true);}
+  // close gates through Auth's thread-safe revoke-only inventory callee. No
+  // Source/OS/close or public outcome mutation is performed off-thread.
+  void requestCancel();
+  void requestRetire();
  private:
   bool thread() const;
   bool fail(int32_t code); bool cleanup(int32_t code);
   bool current(uint32_t phase);
   bool open(); bool releaseLoan(); bool captureMember();
+  int32_t retainOutcome();
   bool copyPublic(uint32_t kind,std::vector<uint8_t>& out,bool& selected);
   bool projection();
+  bool osProjection();
   bool retireOwned();
   std::thread::id thread_; uint32_t mode_;
   YNXMobilePQCapture* capture_=nullptr; YNXMobilePQLoan* loan_=nullptr;
   uint64_t owner_=0; bool prepared_=false,retired_=false,released_=false;
-  bool busy_=false,closeEntered_=false,ownerClosed_=false;
+  bool busy_=false,closeEntered_=false,ownerCloseAttempted_=false,signAdmissionAttempted_=false,restoreAdmissionAttempted_=false;
+  std::atomic<YNXMobilePQCapture*> cancellationCapture_{nullptr};
   std::atomic<bool> cancelRequested_{false},retireRequested_{false};
   std::shared_ptr<std::atomic<bool>> runtimeLive_;
   YNXMobilePQInputs inputs_{}; Outcome outcome_;

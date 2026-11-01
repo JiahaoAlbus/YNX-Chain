@@ -4,6 +4,7 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
     defaultConfig {
         minSdk 24
+        consumerProguardFiles 'consumer-rules.pro'
         externalNativeBuild { cmake { arguments '-DANDROID_STL=c++_shared', "-DYNX_AUTH_MOBILE_ARCHIVE=${project.findProperty('ynxAuthMobilePQArchive') ?: ''}" } }
     }
     buildFeatures { prefab true }

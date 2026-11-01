@@ -14,6 +14,7 @@ const require=createRequire(join(rn,'package.json')),ts=require.resolve('typescr
 const tsRoot=dirname(dirname(ts)),tsc=join(tsRoot,'bin/tsc');
 const call=(exe,args,extra={})=>execFileSync(exe,args,{stdio:'inherit',...extra});
 call(process.execPath,[join(root,'test/run-native-controls.mjs')]);
+call(process.execPath,[join(root,'test/run-os-controls.mjs')]);
 call(process.execPath,['--test',join(root,'test/hermes-client.PUBLIC.test.mjs')],{env:{...process.env,YNX_TYPESCRIPT_MODULE:tsRoot}});
 call('clang++',['-std=c++17','-Wall','-Wextra','-Werror','-fsyntax-only','-I',join(rn,'ReactCommon/jsi'),'-I',join(rn,'ReactCommon/callinvoker'),join(root,'native/CustodyJSI.cpp')]);
 const stage=mkdtempSync(join(tmpdir(),'ynx-mobile-pq-types-'));
@@ -21,6 +22,6 @@ try{
  mkdirSync(join(stage,'test'));writeFileSync(join(stage,'index.ts'),readFileSync(join(root,'index.ts')));
  writeFileSync(join(stage,'test/contract.typecheck.ts'),readFileSync(join(root,'test/contract.typecheck.ts')));
  symlinkSync(dirname(rn),join(stage,'node_modules'),'dir');
- call(process.execPath,[tsc,'--noEmit','--strict','--skipLibCheck','--target','ES2022','--module','preserve','--moduleResolution','bundler',join(stage,'index.ts'),join(stage,'test/contract.typecheck.ts')]);
+ call(process.execPath,[tsc,'--noEmit','--strict','--skipLibCheck','--target','ES2022','--module','preserve','--moduleResolution','bundler',join(stage,'index.ts'),join(stage,'test/contract.typecheck.ts')],{cwd:stage});
 }finally{rmSync(stage,{recursive:true,force:true});}
 console.log('Module host/native+Hermes/typed+actual JSI syntax checks complete. No platform link, real Source or signing is claimed.');

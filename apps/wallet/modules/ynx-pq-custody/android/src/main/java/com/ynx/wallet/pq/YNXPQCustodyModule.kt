@@ -16,6 +16,7 @@ class YNXPQCustodyModule(private val context: ReactApplicationContext) : ReactCo
     @ReactMethod(isBlockingSynchronousMethod = true)
     @Synchronized fun install(): Boolean {
         if (installed) return true
+        NativeSecure43.bind(context)
         // Run on the actual JS thread. RN0.86's original ReactContext exposes
         // these getters in both bridge and BridgelessReactContext. Never create
         // a second runtime or reach through a nonexistent CatalystInstance.

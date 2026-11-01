@@ -33,6 +33,10 @@ jsi::Object publicOutcome(jsi::Runtime& rt,const Outcome& out,bool succeeded){
  o.setProperty(rt,"transactionHash",hex(rt,out.projection.transaction_hash,32,out.projectionAvailable&&out.projection.transaction_hash_present));
  o.setProperty(rt,"memberRetained",out.memberRetained);o.setProperty(rt,"reviewAvailable",out.reviewSelected);
  o.setProperty(rt,"submissionObserved",out.submissionSelected);o.setProperty(rt,"queryObserved",out.querySelected);
+ if(out.osOutcome.available){jsi::Object os(rt);os.setProperty(rt,"action",out.osOutcome.action==2?"import-absent":"remove-exact");
+  os.setProperty(rt,"phase",out.osOutcome.phase==1?"entered":out.osOutcome.phase==2?"unknown":"recorded");os.setProperty(rt,"effectPossible",bool(out.osOutcome.effect_possible));os.setProperty(rt,"ackConfirmed",bool(out.osOutcome.ack_confirmed));
+  os.setProperty(rt,"firstCause",cause(rt,{bool(out.osOutcome.first_present),out.osOutcome.first_code}));o.setProperty(rt,"osOperation",std::move(os));
+ }else o.setProperty(rt,"osOperation",jsi::Value::null());
  o.setProperty(rt,"canRetry",false);o.setProperty(rt,"consensusFinality",false);o.setProperty(rt,"clearsOriginal",false);return o;
 }
 using Completion=std::function<jsi::Value(jsi::Runtime&)>;

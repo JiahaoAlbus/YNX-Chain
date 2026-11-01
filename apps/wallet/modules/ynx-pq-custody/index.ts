@@ -2,7 +2,7 @@ import {NativeModules} from 'react-native';
 
 export type PQNativeCause=Readonly<{kind:'native-code';code:number}>;
 export type PQPublicOutcome=Readonly<{
- version:1;state:'unprepared'|'prepared'|'signing-unknown'|'signed-unsubmitted'|'submission-unknown'|'restore-unknown'|'registered-slot-restored';
+ version:1;state:'unprepared'|'prepared'|'signing-unknown'|'signed-unsubmitted'|'submission-unknown'|'restore-unknown'|'registered-slot-restored'|'os-operation-retained';
  operationSucceeded:boolean;signEntered:boolean;submitEntered:boolean;restoreEntered:boolean;
  queryEntered:boolean;storageConfirmed:boolean;cancelled:boolean;closed:boolean;
  primitiveStatus:number;primitiveCleanup:number;
@@ -10,6 +10,7 @@ export type PQPublicOutcome=Readonly<{
  /** Projection only. Signed originals stay native and are never returned. */
  account:string|null;networkId:string|null;requestDigest:string|null;transactionHash:string|null;
  memberRetained:boolean;reviewAvailable:boolean;submissionObserved:boolean;queryObserved:boolean;
+ osOperation:Readonly<{action:'import-absent'|'remove-exact';phase:'entered'|'unknown'|'recorded';effectPossible:boolean;ackConfirmed:boolean;firstCause:PQNativeCause|null}>|null;
  canRetry:false;consensusFinality:false;clearsOriginal:false;
 }>;
 declare const nativeHeldOperation:unique symbol;
