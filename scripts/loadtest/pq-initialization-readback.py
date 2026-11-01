@@ -61,6 +61,29 @@ def journals(files,prefix,receipt):
         elif any(row.get(k)!=event.get(k) for k in row):errors.append(dict(index=row['index'],reason='original receipt and journal span differ'))
     return dict(status='COMPLETE_OBSERVED_BOUNDARIES' if not errors and not unfinished else 'PARTIAL_OR_FAILED',requested=len(requested),returned=len(returned),unfinished=unfinished,errors=errors,events=events,missingDurationsAreUnknown=True,noBackfill=True)
 
+def commit_original_copies(files,prefix,receipt):
+    """Verify receipt-to-file Commit copies; never upgrade producer coverage."""
+    original=receipt.get('normalCommitObservation')
+    if original is None:return dict(status='NOT_SUPPLIED',records=[],missingStagesAreUnknown=True)
+    rows=original.get('originalSnapshots');require(type(rows) is list and len(rows)<=4,'bounded original Commit node copies required')
+    seen=set();records=[]
+    for row in rows:
+        node=row.get('node');name=row.get('path')
+        require(type(node) is int and 0<=node<4 and node not in seen and name=='commit-observation-node-%d-original.json'%node,'unique original Commit node file required');seen.add(node)
+        raw=files.get(prefix+name)
+        require(raw is not None and len(raw)==row.get('bytes') and hashlib.sha256(raw).hexdigest()==row.get('sha256'),'original Commit file pin differs')
+        snapshot=strict(raw)
+        # Invalid original producer outputs can be retained by the runtime;
+        # their bytes remain useful without being promoted into valid timings.
+        if row.get('usable') is True:
+            require(snapshot==row.get('rawOriginalObservation'),'original Commit receipt/file copies differ')
+            matches=[p for p in receipt.get('processes',[]) if p.get('name')=='pq-node-%d'%node]
+            require(len(matches)==1 and matches[0].get('pid')==row.get('pid')==snapshot.get('processID') and matches[0].get('exited') is True and matches[0].get('rawReturnCode') is not None,'original Commit producer stopped identity differs')
+        records.append(dict(node=node,path=name,bytes=len(raw),sha256=row['sha256'],producerReportedUsable=row.get('usable') is True,originalSnapshot=snapshot,producerRetainedStageSummary=row.get('retainedPersistenceStages')))
+    return dict(status='ORIGINAL_COPIES_VERIFIED',records=records,originalReadback=original,missingStagesAreUnknown=True,
+        independentSourceOrGenesisValidation=False,businessTPS=None,inclusionLatency=None,finalConfirmationLatency=None,
+        meaning='Whole archive and original receipt bind these stopped producer copies. Producer usability/coverage and stage summaries are preserved, not independently upgraded to source, all-Commit or finality qualification.')
+
 def inspect(raw,pin,controller,source,source_tree,tools):
     require(type(raw) is bytes and 0<len(raw)<=128<<20 and re.fullmatch('[0-9a-f]{64}',pin) and hashlib.sha256(raw).hexdigest()==pin,'whole original ZIP digest or bound differs')
     files={};manifest={};seen=set();total=0
@@ -82,9 +105,10 @@ def inspect(raw,pin,controller,source,source_tree,tools):
     census=receipt.get('initializedAccountReadback')
     if census is not None:require(census==strict(files[prefix+'initialized-account-readback.json']),'original census copies differ')
     journal=journals(files,prefix,receipt)
+    commits=commit_original_copies(files,prefix,receipt)
     original_ok=receipt.get('initializationDataValidation',{}).get('completeNormalInitializationObserved') is True
     full=bool(original_ok and receipt.get('firstCause') is None and receipt.get('cleanupComplete') is True and census and census.get('configuredLoadAccounts')==500 and census.get('completeFourNodeAccountReadback') is True and len(census.get('nodes',[]))==4 and [n.get('node') for n in census['nodes']]==list(range(4)) and len({(n.get('height'),n.get('appHash')) for n in census['nodes']})==1 and all(n.get('matchingOriginalLoadAccounts')==500 for n in census['nodes']) and journal['status']=='COMPLETE_OBSERVED_BOUNDARIES')
-    return dict(schema='YNX-PERF-ORIGINAL-INITIALIZATION-READBACK/v1',archiveSHA256=pin,verifiedFiles=len(manifest),verifiedUncompressedBytes=total,receiptSHA256=manifest[name]['sha256'],controller=controller,source=source,sourceTree=source_tree,tools=tools,originalFirstCause=receipt.get('firstCause'),cleanupComplete=receipt.get('cleanupComplete'),originalInitializationValidation=receipt.get('initializationDataValidation'),completeInitializationDataObserved=full,originalCensus=census,originalStages=receipt.get('initializationStages'),originalReadinessObservations=receipt.get('originalReadinessObservations'),coldReadinessBudget=receipt.get('coldBootstrapReadinessBudget'),originalFailedCalleeMeasurements=receipt.get('failedCalleeMeasurements'),originalPreparationSenderMeasurements=receipt.get('preparationSenderMeasurements'),freshResourceAdmission=fresh,elapsedSeconds=receipt.get('elapsedSeconds'),peakObservedRSSBytes=receipt.get('peakRSSBytes'),peakNewBytes=receipt.get('peakNewBytes'),allBusinessDemand=receipt.get('preparationOnlyDemandAccounting'),journals=journal,files=manifest,businessLoadExecuted=False,businessTPS=None,inclusionLatency=None,finalConfirmationLatency=None,pressureAuthorized=False,sourceGrant=False,originalsModified=False,scope='Original artifact/readback DATA only; source normal initialization and normal verifier retain authority. No omitted/unfinished interval is filled or replayed.')
+    return dict(schema='YNX-PERF-ORIGINAL-INITIALIZATION-READBACK/v1',archiveSHA256=pin,verifiedFiles=len(manifest),verifiedUncompressedBytes=total,receiptSHA256=manifest[name]['sha256'],controller=controller,source=source,sourceTree=source_tree,tools=tools,originalFirstCause=receipt.get('firstCause'),cleanupComplete=receipt.get('cleanupComplete'),originalInitializationValidation=receipt.get('initializationDataValidation'),completeInitializationDataObserved=full,originalCensus=census,originalStages=receipt.get('initializationStages'),originalCommitCopies=commits,resourceGuardStageElapsed=receipt.get('resourceGuardStageElapsed'),normalCalleeMeasurements=receipt.get('normalCalleeMeasurements'),normalNodeCleanExit=receipt.get('normalNodeCleanExit'),originalReadinessObservations=receipt.get('originalReadinessObservations'),coldReadinessBudget=receipt.get('coldBootstrapReadinessBudget'),originalFailedCalleeMeasurements=receipt.get('failedCalleeMeasurements'),originalPreparationSenderMeasurements=receipt.get('preparationSenderMeasurements'),freshResourceAdmission=fresh,elapsedSeconds=receipt.get('elapsedSeconds'),peakObservedRSSBytes=receipt.get('peakRSSBytes'),peakNewBytes=receipt.get('peakNewBytes'),allBusinessDemand=receipt.get('preparationOnlyDemandAccounting'),journals=journal,files=manifest,businessLoadExecuted=False,businessTPS=None,inclusionLatency=None,finalConfirmationLatency=None,pressureAuthorized=False,sourceGrant=False,originalsModified=False,scope='Original artifact/readback DATA only; source normal initialization and normal verifier retain authority. No omitted/unfinished interval is filled or replayed.')
 
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__,allow_abbrev=False);p.add_argument('--read',action='store_true')

@@ -52,4 +52,30 @@ class InitializationArchiveControls(unittest.TestCase):
         raw,pin=packed(artifact())
         with self.assertRaises(RuntimeError):m.inspect(raw,pin,'0'*40,S,T,TOOLS)
 
+class CommitOriginalCopyControls(unittest.TestCase):
+    def fixture(self,usable=True):
+        f=artifact();r=json.loads(f['public/receipt.json']);snapshot=dict(processID=123,stagesNs={'json_encode':20});raw=json.dumps(snapshot).encode()
+        row=dict(node=0,path='commit-observation-node-0-original.json',pid=123,bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest(),usable=usable)
+        if usable:row['rawOriginalObservation']=snapshot
+        r['normalCommitObservation']=dict(originalSnapshots=[row],fourOriginalSnapshotsValid=False,errors=[dict(node=1,reason='missing')])
+        r['processes']=[dict(name='pq-node-0',pid=123,exited=True,rawReturnCode=0)];r['resourceGuardStageElapsed']={'original':42}
+        f['public/receipt.json']=json.dumps(r).encode();f['public/'+row['path']]=raw;return f,r
+    def test_original_copies_and_guard_timings_exposed_without_finality(self):
+        f,r=self.fixture();v=read(f);c=v['originalCommitCopies'];self.assertEqual(c['status'],'ORIGINAL_COPIES_VERIFIED');self.assertEqual(c['records'][0]['originalSnapshot'],{'processID':123,'stagesNs':{'json_encode':20}});self.assertFalse(c['originalReadback']['fourOriginalSnapshotsValid']);self.assertIsNone(c['finalConfirmationLatency']);self.assertEqual(v['resourceGuardStageElapsed'],{'original':42})
+    def test_tamper_missing_file_duplicate_node_and_live_pid_refused(self):
+        for mode in ('tamper','missing','duplicate','pid','live','receiptCopy'):
+            f,r=self.fixture()
+            if mode=='tamper':f['public/commit-observation-node-0-original.json']+=b' '
+            elif mode=='missing':del f['public/commit-observation-node-0-original.json']
+            elif mode=='duplicate':r['normalCommitObservation']['originalSnapshots']*=2
+            elif mode=='pid':r['processes'][0]['pid']=124
+            elif mode=='live':r['processes'][0]['rawReturnCode']=None
+            else:r['normalCommitObservation']['originalSnapshots'][0]['rawOriginalObservation']['stagesNs']['json_encode']=0
+            f['public/receipt.json']=json.dumps(r).encode()
+            with self.subTest(mode=mode),self.assertRaises(RuntimeError):read(f)
+    def test_invalid_producer_bytes_retained_without_promoting_timing(self):
+        f,r=self.fixture(False);v=read(f);self.assertFalse(v['originalCommitCopies']['records'][0]['producerReportedUsable']);self.assertIsNone(v['originalCommitCopies']['records'][0]['producerRetainedStageSummary'])
+    def test_absent_commit_or_guard_observation_unknown(self):
+        v=read(artifact());self.assertEqual(v['originalCommitCopies']['status'],'NOT_SUPPLIED');self.assertIsNone(v['resourceGuardStageElapsed']);self.assertIsNone(v['normalCalleeMeasurements'])
+
 if __name__=='__main__':unittest.main()

@@ -18,7 +18,7 @@ GROUPS=[
  ('test_pq_normal_live_build_source.py',None,4),
  ('test_pq_normal_network_baseline.py',None,5),
  ('test_pq_normal_live_reader.py',None,15),
- ('test_pq_initialization_readback.py',None,8),
+ ('test_pq_initialization_readback.py',None,12),
  ('test_pq_cold_readiness.py',None,10),
  ('test_pq_live_source_qualification.py',None,7),
  ('test_pq_initialization_measurements.py',None,30),
