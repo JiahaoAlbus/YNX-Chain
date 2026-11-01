@@ -70,6 +70,10 @@ jobs:
           node-version: "24"
       - name: Check actual object deployment parsing and rejection controls
         run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs cmd/ynx-secure-link-private-client/combined-archive-product-symbols.test.mjs cmd/ynx-secure-link-private-client/combined-supply-profile.test.mjs
+      - name: Check original resource-current native client and Darwin kernel peer lifecycle
+        env:
+          YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS: ${{ runner.temp }}/resource-current-native-evidence
+        run: node --test cmd/ynx-secure-link-caller/resource-current-native.test.mjs
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # original immutable setup-go
         with:
           go-version: "1.26.10"
@@ -85,6 +89,20 @@ jobs:
         run: |
           mkdir -p "$GOCACHE" "$GOTMPDIR" "$TMPDIR"
           go test -mod=readonly -race -p 1 -count=1 -timeout=90s -tags=securelink_product_pay_transport,securelink_product_pay_transport_fixture -run '^TestProductPrivate' ./internal/securelink
+
+  resource-current-native-linux:
+    name: LINK resource-current native client and Linux kernel peer controls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+      - name: Check same-socket native peer identity, original frame and physical drain
+        env:
+          YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS: ${{ runner.temp }}/resource-current-native-evidence
+        run: node --test cmd/ynx-secure-link-caller/resource-current-native.test.mjs
 
   contract-tooling-scope:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
