@@ -180,9 +180,12 @@ LINK dependency graph is built; this is not a build of the complete Chain tool.
 One additional `link_transport_import.go` imports the fixed securelink package.
 The old LINK carrier's main function is not copied, and Go files or C preambles
 are not concatenated. One CGO-enabled `go build -buildmode=c-archive` therefore
-produces one runtime containing all fourteen original Core ABI exports and
-twenty-two LINK exports. Signing algorithms and original Root/caller authority
-checks remain owned by their existing implementations.
+produces one runtime containing the supplied complete Core ABI and twenty-two
+LINK exports. The macOS 13 successor requires the new frozen fifteen-export
+Core supply, including `YNXAccountMigrationPossessionSignV1`, for thirty-seven
+strong exports in total. The earlier fourteen-export supplier and archive
+remain separate immutable candidates. Signing algorithms and original
+Root/caller authority checks remain owned by their existing implementations.
 
 The output keeps the normal `libynx_artifact_release.a` filename and supplies
 the complete Core/LINK/Auth headers plus Go's generated main export header.
@@ -198,6 +201,23 @@ evidence, and checks a single Go object/runtime entry. An undefined reference
 inside an archive member may resolve to another member's strong definition;
 the final normal image must resolve all owned symbols with its actual Native
 objects. Neither symbol check establishes Root admission.
+
+The combined builder now requires `--macos-deployment-target 13.0`. It resolves
+the installed Xcode SDK without inheriting `SDKROOT`, sets
+`MACOSX_DEPLOYMENT_TARGET`, and passes the same minimum version and SDK to cgo's
+C, C++ and link flags. Its private Go cache, Go temporary files and native
+temporary files remain under the new output directory. It preserves the
+original Core/LINK source pins, one build invocation and existing ABI check.
+The deployment checker additionally reads every archive member's actual Mach-O
+load commands and rejects an object above the target, an unexpected CPU or a
+missing/ambiguous macOS minimum version. It never edits load commands. Both
+checks and the explicit toolchain/environment are retained in the receipt.
+
+This is an archive build target, not an old-system runtime result. The final
+Native image, Node executable and all dynamic libraries have independent
+minimum versions and must be checked by their original owner. Loading on the
+current host does not verify execution on macOS 13. Keep the earlier archive
+and its observed 27.2 object targets intact; a rebuild is a separate candidate.
 
 The original caller runner's `combined-archive` selector takes pinned functional
 inputs through `YNX_COMBINED_FUNCTIONAL_INPUTS`, its `_SHA256`, and a new external

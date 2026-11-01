@@ -58,6 +58,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  combined-archive-deployment:
+    name: Combined archive Mach-O deployment controls
+    runs-on: macos-14
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+      - name: Check actual object deployment parsing and rejection controls
+        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs
+
   contract-tooling-scope:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
     runs-on: ubuntu-24.04

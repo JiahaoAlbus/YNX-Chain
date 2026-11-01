@@ -11,10 +11,13 @@ const packagePath = 'cmd/ynx-artifact-release-cabi';
 const options = new Map();
 for (let i = 2; i < process.argv.length; i += 2) {
   const key = process.argv[i], value = process.argv[i + 1];
-  if (!['--core-handoff', '--core-sha256', '--auth-headers', '--auth-headers-sha256', '--native-undefined', '--native-undefined-sha256', '--out'].includes(key) || !value || options.has(key)) throw Error('complete pinned Core/Auth/Native inputs and a new output directory required');
+  if (!['--core-handoff', '--core-sha256', '--auth-headers', '--auth-headers-sha256', '--native-undefined', '--native-undefined-sha256', '--macos-deployment-target', '--out'].includes(key) || !value || options.has(key)) throw Error('complete pinned Core/Auth/Native inputs, explicit macOS target and a new output directory required');
   options.set(key, value);
 }
-if (options.size !== 7 || process.platform !== 'darwin') throw Error('seven build arguments and a native Darwin host required');
+if (options.size !== 8 || process.platform !== 'darwin' || options.get('--macos-deployment-target') !== '13.0') throw Error('eight build arguments, explicit macOS 13.0 target and a native Darwin host required');
+const deploymentTarget = options.get('--macos-deployment-target');
+const architecture = ({arm64: 'arm64', x64: 'amd64'})[process.arch];
+if (!architecture) throw Error('supported native Go architecture required');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const describe = file => {const bytes = fs.readFileSync(file); return {path: file, bytes: bytes.length, sha256: hash(bytes)};};
 function pinned(file, sha256) {
@@ -29,8 +32,8 @@ const undefinedInput = pinned(options.get('--native-undefined'), options.get('--
 if (core.value.version !== 'YNX-CORE-MACOS-SINGLE-GO-IMAGE-PUBLIC-SOURCE-SUPPLY/v1' ||
     core.value.source?.module !== 'github.com/JiahaoAlbus/YNX-Chain' ||
     core.value.source?.go !== '1.26.10' || core.value.LINKReadOnlyComposition?.sourceCommit !== linkCommit ||
-    !Array.isArray(core.value.sources) || core.value.sources.length !== 65 ||
-    core.value.exports?.length !== 14 || auth.value.version !== 1 || !Array.isArray(auth.value.headers) ||
+    !Array.isArray(core.value.sources) || core.value.sources.length < 65 || core.value.sources.length > 256 ||
+    core.value.exports?.length !== 15 || !core.value.exports.some(row => row.symbol === 'YNXAccountMigrationPossessionSignV1') || auth.value.version !== 1 || !Array.isArray(auth.value.headers) ||
     !Array.isArray(undefinedInput.value.unresolvedCore)) throw Error('matching complete original supply contract required');
 const output = path.resolve(options.get('--out'));
 if (output === repository || output.startsWith(repository + path.sep)) throw Error('output must be outside the source worktree');
@@ -74,7 +77,7 @@ function goQuote(argument) {
   if (!argument.includes("'")) return "'" + argument + "'";
   throw Error('Go build argument contains both quote characters');
 }
-let archive, failure, checkResult;
+let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain;
 try {
   const expectedTree = run('git', ['ls-tree', '-r', core.value.source.commit, '--', ...core.value.sources.map(row => row.path)], 'core-git-tree.log', repository);
   const blobs = new Map(expectedTree.trim().split('\n').map(row => {const [meta, name] = row.split('\t'); return [name, meta.split(' ')[2]];}));
@@ -107,11 +110,27 @@ try {
     copyHeader(row.name, bytes, 'auth', row.path);
   }
   for (const required of ['pay_root_transport_loan_private.h', 'pay_native_actual_context_private.h', 'pay_native_source_lease_private.h']) if (!authNames.has(required)) throw Error('missing original Auth header: ' + required);
-  const goCache = path.join(output, 'go-cache'), goTmp = path.join(output, 'go-tmp');
-  fs.mkdirSync(goCache); fs.mkdirSync(goTmp);
-  const env = {...process.env, CGO_ENABLED: '1', GOMAXPROCS: '2', GOWORK: 'off', GOCACHE: goCache, GOTMPDIR: goTmp, CGO_CFLAGS: goQuote('-I' + include)};
-  const goEnv = JSON.parse(run('go', ['env', '-json', 'GOVERSION', 'GOOS', 'GOARCH', 'CC', 'CGO_ENABLED', 'GOWORK', 'GOCACHE', 'GOMODCACHE'], 'go-environment.json', source, env));
-  if (goEnv.GOVERSION !== 'go1.26.10' || goEnv.GOOS !== 'darwin' || goEnv.GOARCH !== ({arm64: 'arm64', x64: 'amd64'})[process.arch]) throw Error('original native Go toolchain/architecture required');
+  const goCache = path.join(output, 'go-cache'), goTmp = path.join(output, 'go-tmp'), nativeTmp = path.join(output, 'native-tmp');
+  fs.mkdirSync(goCache); fs.mkdirSync(goTmp); fs.mkdirSync(nativeTmp);
+  // Resolve the installed SDK rather than trusting an inherited SDKROOT. In
+  // particular, neither the host OS nor an SDK's version is a deployment target.
+  const discoveryEnv = {...process.env}; delete discoveryEnv.SDKROOT;
+  const sdk = run('xcrun', ['--sdk', 'macosx', '--show-sdk-path'], 'sdk-path.log', source, discoveryEnv).trim();
+  const cc = run('xcrun', ['--sdk', 'macosx', '--find', 'clang'], 'cc-path.log', source, discoveryEnv).trim();
+  const cxx = run('xcrun', ['--sdk', 'macosx', '--find', 'clang++'], 'cxx-path.log', source, discoveryEnv).trim();
+  if (![sdk, cc, cxx].every(path.isAbsolute) || !fs.statSync(sdk).isDirectory()) throw Error('actual installed SDK and compilers required');
+  toolchain = {sdk, sdkVersion: run('xcrun', ['--sdk', 'macosx', '--show-sdk-version'], 'sdk-version.log', source, discoveryEnv).trim(), cc: describe(cc), cxx: describe(cxx)};
+  toolchain.compilerVersion = run(cc, ['--version'], 'compiler-version.log', source, discoveryEnv).trim();
+  toolchain.opensslVersion = run('pkg-config', ['--modversion', 'openssl'], 'openssl-version.log', source, discoveryEnv).trim();
+  toolchain.opensslCompileAndLinkFlags = run('pkg-config', ['--cflags', '--libs', 'openssl'], 'openssl-flags.log', source, discoveryEnv).trim();
+  if (toolchain.opensslVersion !== '3.6.4') throw Error('original OpenSSL 3.6.4 compile dependency required');
+  const targetFlags = [ '-mmacosx-version-min=' + deploymentTarget, '-isysroot', sdk ].map(goQuote).join(' ');
+  const env = {...process.env, CGO_ENABLED: '1', GOMAXPROCS: '2', GOWORK: 'off', GOFLAGS: '', GOOS: 'darwin', GOARCH: architecture,
+    GOCACHE: goCache, GOTMPDIR: goTmp, TMPDIR: nativeTmp, SDKROOT: sdk, CC: cc, CXX: cxx, MACOSX_DEPLOYMENT_TARGET: deploymentTarget,
+    CGO_CFLAGS: goQuote('-I' + include) + ' ' + targetFlags, CGO_CPPFLAGS: '', CGO_CXXFLAGS: '-O2 -g ' + targetFlags, CGO_LDFLAGS: '-O2 -g ' + targetFlags};
+  buildEnvironment = Object.fromEntries(['CGO_ENABLED', 'GOMAXPROCS', 'GOWORK', 'GOFLAGS', 'GOOS', 'GOARCH', 'GOCACHE', 'GOTMPDIR', 'TMPDIR', 'SDKROOT', 'CC', 'CXX', 'MACOSX_DEPLOYMENT_TARGET', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS'].map(key => [key, env[key]]));
+  const goEnv = JSON.parse(run('go', ['env', '-json', 'GOVERSION', 'GOOS', 'GOARCH', 'CC', 'CXX', 'CGO_ENABLED', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS', 'GOWORK', 'GOFLAGS', 'GOCACHE', 'GOMODCACHE'], 'go-environment.json', source, env));
+  if (goEnv.GOVERSION !== 'go1.26.10' || goEnv.GOOS !== 'darwin' || goEnv.GOARCH !== architecture) throw Error('original native Go toolchain/architecture required');
   run('go', ['list', '-mod=readonly', '-p', '1', '-deps', '-json', '-tags=securelink_openssl,securelink_pay_native_startup', './' + packagePath], 'go-packages.json', source, env);
   archive = path.join(output, 'libynx_artifact_release.a');
   run('go', ['build', '-mod=readonly', '-p', '1', '-trimpath', '-tags=securelink_openssl,securelink_pay_native_startup', '-buildmode=c-archive', '-o', archive, './' + packagePath], 'combined-build.log', source, env);
@@ -126,7 +145,12 @@ try {
   fs.writeFileSync(planFile, JSON.stringify(checkerPlan, null, 2) + '\n', {flag: 'wx'});
   const checker = await import('./combined-archive-symbols.mjs');
   checkResult = checker.checkCombinedArchive(checkerPlan);
+  const declaredCore = core.value.exports.map(row => row.symbol).sort();
+  if (new Set(declaredCore).size !== 15 || JSON.stringify(declaredCore) !== JSON.stringify(checkResult.coreExports) || checkResult.linkExports.length !== 22 || checkResult.symbols.length !== 37) throw Error('complete declared Core15 and LINK22 strong ABI required');
   fs.writeFileSync(path.join(output, 'SYMBOL-RESULT.json'), JSON.stringify(checkResult, null, 2) + '\n', {flag: 'wx'});
+  const deploymentChecker = await import('./combined-archive-deployment.mjs');
+  try { deploymentResult = deploymentChecker.checkArchiveDeployment(describe(archive), {target: deploymentTarget, architecture: process.arch === 'x64' ? 'x86_64' : process.arch}); }
+  catch (error) { deploymentResult = error.report ?? null; throw error; }
   for (const row of [...sources, ...headerRows]) {
     if (describe(row.path).sha256 !== row.sha256) throw Error('materialized source/header changed during build');
   }
@@ -137,10 +161,11 @@ const receipt = {version: 1, state: failure ? 'FAILED_OUTPUT_RETAINED' : 'COMBIN
   coreCommit: core.value.source.commit, linkCommit, soleMain: packagePath + '/core.go',
   source: sources, headers: headerRows, commands,
   archive: archive && fs.existsSync(archive) ? describe(archive) : null,
-  symbols: checkResult ?? null, failure: failure?.message ?? null,
+  symbols: checkResult ?? null, deployment: deploymentResult ?? null, deploymentTarget, buildEnvironment: buildEnvironment ?? null, toolchain: toolchain ?? null, failure: failure?.message ?? null,
   builder: describe(fileURLToPath(import.meta.url)), template: describe(path.join(directory, 'combined-entry.go.in')),
   goBuildInvocations: commands.filter(row => row.command === 'go' && row.args[0] === 'build').length,
-  sameNormalNativeImageLinked: false, RootAdmission: false, SourceAdmission: false, installed: false, deployed: false};
+  sameNormalNativeImageLinked: false, actualMacOS13RuntimeTested: false, RootAdmission: false, SourceAdmission: false, installed: false, deployed: false};
+if (deploymentResult) fs.writeFileSync(path.join(output, 'DEPLOYMENT-RESULT.json'), JSON.stringify(deploymentResult, null, 2) + '\n', {flag: 'wx'});
 const receiptFile = path.join(output, 'BUILD-RECEIPT.json');
 fs.writeFileSync(receiptFile, JSON.stringify(receipt, null, 2) + '\n', {flag: 'wx'});
 if (failure) throw failure;
