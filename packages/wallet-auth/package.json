@@ -518,6 +518,12 @@
         "import": "./src/product-pair-pending-original-query-e13.js"
       },
       "default": null
+    },
+    "./original-product-device-v4-management-source-data": {
+      "types": "./native/management-source-contract.d.mts",
+      "browser": null,
+      "node": "./native/management-source-contract.mjs",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -788,7 +794,14 @@
     "docs/PRODUCTION_RUNTIME_PACKAGE.md",
     "docs/PENDING_PAIR_ORIGINAL_QUERY_INTAKE.md",
     "docs/PENDING_ORIGINAL_QUERY_E13.md",
-    "docs/PENDING_ORIGINAL_QUERY_E13.json"
+    "docs/PENDING_ORIGINAL_QUERY_E13.json",
+    "native/management-source-contract.mjs",
+    "native/management-source-contract.d.mts",
+    "native/management-originals.mjs",
+    "native/original-device-v4-management-originals-driver.mjs",
+    "native/inherited/canonical.js",
+    "native/inherited/canonical.d.ts",
+    "docs/DEVICE_V4_MANAGEMENT_SOURCE_V2.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
