@@ -1,0 +1,671 @@
+//go:build link_cloud_host_integration && (linux || darwin)
+
+// Root installs this text as an external securelink _test.go overlay, together
+// with the COMPLETE frozen P04 Cloud Go inventory. This is not a normal build
+// entry point and supplies no Source, Root, signer, ledger, or business handler.
+package securelink_test
+
+import (
+	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"syscall"
+	"testing"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/cloud"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/securelink"
+)
+
+const linkCloudService = "cloud-private-integration"
+const linkCloudBound = 1024
+const linkCloudWait = 5 * time.Second
+
+type linkCloudCapture struct {
+	caller   *securelink.LocalCaller
+	request  *http.Request
+	material securelink.LocalCallerMaterial
+}
+
+// Only Write is instrumented. The actual Cloud handler still generates its
+// headers, status and body through the original LINK ResponseWriter. In
+// particular neither a synthetic handler nor a synthetic ResponseRecorder can
+// stand in for a Cloud handler which is really active inside LINK's handler.
+type linkCloudWriteGate struct {
+	entered  chan linkCloudCapture
+	release  chan struct{}
+	finished chan struct{}
+	observed chan error
+	once     sync.Once
+	write    sync.Once
+}
+
+func newLinkCloudWriteGate() *linkCloudWriteGate {
+	return &linkCloudWriteGate{entered: make(chan linkCloudCapture, 1), release: make(chan struct{}), finished: make(chan struct{}), observed: make(chan error, 1)}
+}
+
+func (g *linkCloudWriteGate) unblock() { g.once.Do(func() { close(g.release) }) }
+
+type linkCloudBlockedWriter struct {
+	http.ResponseWriter
+	gate    *linkCloudWriteGate
+	capture linkCloudCapture
+}
+
+func (w *linkCloudBlockedWriter) Write(body []byte) (int, error) {
+	w.gate.write.Do(func() {
+		w.gate.entered <- w.capture
+		// This same real handler goroutine observes the ORIGINAL context; no
+		// detached observer goroutine or callback can survive a failed cleanup.
+		select {
+		case <-w.gate.release:
+		case <-w.capture.request.Context().Done():
+			w.gate.observed <- w.capture.request.Context().Err()
+			// Stay owned after cancellation until the test releases the real
+			// Write. Close/cancellation must not pretend to drain this handler.
+			<-w.gate.release
+		}
+	})
+	return w.ResponseWriter.Write(body)
+}
+
+type linkCloudResult struct {
+	response securelink.LocalCallerResponse
+	err      error
+	done     chan struct{}
+}
+
+type linkCloudGeneration struct {
+	host       *cloud.OriginalPrivateHost
+	handler    http.Handler
+	server     *securelink.LocalCallerServer
+	client     *securelink.LocalCallerClient
+	socket     string
+	socketDir  string
+	identity   os.FileInfo
+	serveDone  chan error
+	serveRead  bool
+	gates      []*linkCloudWriteGate
+	calls      []*linkCloudResult
+	armed      chan *linkCloudWriteGate
+	captures   chan linkCloudCapture
+	failures   chan error
+	fence      sync.Mutex
+	firstClose error
+}
+
+func linkCloudAwait(t *testing.T, done <-chan struct{}, label string) {
+	t.Helper()
+	select {
+	case <-done:
+	case <-time.After(linkCloudWait):
+		t.Fatal(label + " did not finish within its bounded wait")
+	}
+}
+
+func linkCloudArtifactRoot(t *testing.T) string {
+	t.Helper()
+	root := os.Getenv("YNX_LINK_CLOUD_HOST_ARTIFACT_ROOT")
+	if !filepath.IsAbs(root) || filepath.Clean(root) != root || !strings.HasPrefix(root, "/Volumes/") {
+		t.Fatal("explicit canonical existing external-volume YNX_LINK_CLOUD_HOST_ARTIFACT_ROOT required")
+	}
+	info, err := os.Lstat(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st, ok := info.Sys().(*syscall.Stat_t)
+	if !ok || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 || info.Mode().Perm() != 0700 || st.Uid != uint32(os.Geteuid()) || os.Geteuid() == 0 {
+		t.Fatal("explicit artifact root must be a current non-root user's original 0700 directory")
+	}
+	run, err := os.MkdirTemp(root, "unix-cloud-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// PUBLIC original state, telemetry and diagnostic evidence survive failure
+	// and success. Only separate, test-owned short Unix endpoint dirs are removed.
+	t.Logf("PUBLIC original Cloud state/evidence retained at %s", run)
+	return run
+}
+
+func linkCloudRecord(t *testing.T, root, phase string, data any) {
+	t.Helper()
+	raw, err := json.MarshalIndent(struct {
+		Phase string `json:"phase"`
+		DATA  any    `json:"DATA"`
+	}{phase, data}, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Every phase has its own exclusive file: no failing run's first cause is
+	// truncated or replaced by a later phase/re-run. These are diagnostics only.
+	f, err := os.OpenFile(filepath.Join(root, phase+".json"), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, writeErr := f.Write(append(raw, '\n'))
+	closeErr := errors.Join(f.Sync(), f.Close())
+	if err = errors.Join(writeErr, closeErr); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func linkCloudRoutes() []securelink.LocalCallerRoute {
+	return []securelink.LocalCallerRoute{
+		{Method: http.MethodGet, Path: "/health", MaxBodyBytes: linkCloudBound, Timeout: 30 * time.Second},
+		{Method: http.MethodPost, Path: "/api/v1/ide/deployments", MaxBodyBytes: linkCloudBound, Timeout: 30 * time.Second},
+	}
+}
+
+func openLinkCloudGeneration(t *testing.T, stateRoot string) *linkCloudGeneration {
+	t.Helper()
+	g := &linkCloudGeneration{armed: make(chan *linkCloudWriteGate, 1), captures: make(chan linkCloudCapture, 16), failures: make(chan error, 16)}
+	// Own the opening partial BEFORE testing err, and register cleanup before
+	// any listener/call goroutine can outlive a failed assertion.
+	var err error
+	g.host, err = cloud.OpenOriginalPrivateHost(context.Background(), cloud.OriginalPrivateHostConfig{Cloud: cloud.Config{StatePath: filepath.Join(stateRoot, "state.json"), ObjectDir: filepath.Join(stateRoot, "objects")}})
+	if err != nil {
+		g.firstClose = err
+	}
+	t.Cleanup(func() { g.cleanup(t) })
+	if err != nil || g.host == nil {
+		t.Fatalf("open actual original Cloud host: %v", err)
+	}
+	g.handler, err = g.host.Handler()
+	if err != nil {
+		t.Fatal(err)
+	}
+	g.socketDir, err = os.MkdirTemp("", "lch-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = os.Chmod(g.socketDir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	g.socket = filepath.Join(g.socketDir, "s")
+	listener, err := securelink.ListenPrivate(g.socket, uint32(os.Geteuid()))
+	if err != nil {
+		// In particular, retain a real platform Unix-path-limit failure. Do not
+		// select /tmp or another endpoint as a fallback after failure.
+		t.Fatal(err)
+	}
+	g.identity, err = os.Lstat(g.socket)
+	if err != nil {
+		_ = listener.Close()
+		t.Fatal(err)
+	}
+	wrapper := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		caller, captureErr := securelink.LocalCallerFromRequest(r)
+		if captureErr != nil {
+			g.failures <- captureErr
+			http.Error(w, "integration transport capture failed", 500)
+			return
+		}
+		// Full fresh OS/captured-body read remains OUTSIDE the retained wrapper
+		// mutex. This wrapper does not implement a business Store or Source.
+		material, captureErr := caller.Current(r.Context())
+		if captureErr == nil && (material.Service != linkCloudService || material.PeerUID != uint32(os.Geteuid()) || material.PeerPID != os.Getpid() || material.Method != r.Method || material.Path != r.RequestURI || material.ContentType != r.Header.Get("Content-Type") || material.ContentLength != r.ContentLength || int64(len(material.RequestBody)) != r.ContentLength) {
+			captureErr = errors.New("original private request material changed")
+		}
+		if captureErr != nil {
+			g.failures <- captureErr
+			http.Error(w, "integration transport material failed", 500)
+			return
+		}
+		g.fence.Lock()
+		captureErr = caller.CurrentOriginalCaller(r)
+		g.fence.Unlock()
+		if captureErr != nil {
+			g.failures <- captureErr
+			http.Error(w, "integration same-request fence failed", 500)
+			return
+		}
+		capture := linkCloudCapture{caller, r, material}
+		g.captures <- capture
+		select {
+		case gate := <-g.armed:
+			defer close(gate.finished)
+			g.handler.ServeHTTP(&linkCloudBlockedWriter{w, gate, capture}, r)
+		default:
+			g.handler.ServeHTTP(w, r)
+		}
+	})
+	g.server, err = securelink.NewLocalCallerServer(securelink.LocalCallerServerConfig{Service: linkCloudService, PeerUID: uint32(os.Geteuid()), PeerPID: os.Getpid(), Routes: linkCloudRoutes(), Handler: wrapper, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 30 * time.Second, WriteTimeout: 30 * time.Second, MaxHeaderBytes: 8192})
+	if err != nil {
+		_ = listener.Close()
+		t.Fatal(err)
+	}
+	g.serveDone = make(chan error, 1)
+	go func() { g.serveDone <- g.server.Serve(listener) }()
+	g.client, err = securelink.NewLocalCallerClient(securelink.LocalCallerClientConfig{SocketPath: g.socket, Service: linkCloudService, PeerUID: uint32(os.Geteuid()), PeerPID: os.Getpid(), Routes: linkCloudRoutes(), Timeout: 30 * time.Second, MaxHeaderBytes: 8192, MaxResponseBytes: 64 << 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return g
+}
+
+func (g *linkCloudGeneration) start(ctx context.Context, method, path, contentType string, body []byte) *linkCloudResult {
+	r := &linkCloudResult{done: make(chan struct{})}
+	g.calls = append(g.calls, r) // test thread only; never mutated by handler.
+	go func() {
+		defer close(r.done)
+		r.response, r.err = g.client.Call(ctx, method, path, contentType, body)
+	}()
+	return r
+}
+
+func (g *linkCloudGeneration) blockNext(t *testing.T) *linkCloudWriteGate {
+	t.Helper()
+	gate := newLinkCloudWriteGate()
+	g.gates = append(g.gates, gate)
+	select {
+	case g.armed <- gate:
+	default:
+		t.Fatal("another original Write is already armed")
+	}
+	return gate
+}
+
+func (g *linkCloudGeneration) checkFailures(t *testing.T) {
+	t.Helper()
+	select {
+	case err := <-g.failures:
+		t.Fatal("real private wrapper failed: ", err)
+	default:
+	}
+}
+
+func (g *linkCloudGeneration) waitServe(t *testing.T) bool {
+	t.Helper()
+	if g.serveRead || g.serveDone == nil {
+		return true
+	}
+	select {
+	case err := <-g.serveDone:
+		g.serveRead = true
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			t.Error("original LINK Serve first error: ", err)
+		}
+		return true
+	case <-time.After(linkCloudWait):
+		t.Error("original LINK accept loop still retained")
+		return false
+	}
+}
+
+func (g *linkCloudGeneration) cleanup(t *testing.T) {
+	// Always release real Writes first on assertion failure. Never wait for a
+	// cancelled client before releasing the handler that is intentionally held.
+	for _, gate := range g.gates {
+		gate.unblock()
+	}
+	childDrained := true
+	if g.server != nil {
+		if err := g.server.Retire(); err != nil {
+			t.Error("cleanup child retire: ", err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), linkCloudWait)
+		err := g.server.Join(ctx)
+		cancel()
+		if err != nil {
+			childDrained = false
+			t.Error("cleanup retains Cloud parents because child Join failed: ", err)
+		} else if err = g.server.Close(); err != nil {
+			childDrained = false
+			t.Error("cleanup child Close: ", err)
+		}
+		if !g.waitServe(t) {
+			childDrained = false
+		}
+	}
+	for _, call := range g.calls {
+		select {
+		case <-call.done:
+		case <-time.After(linkCloudWait):
+			childDrained = false
+			t.Error("cleanup client still retained")
+		}
+	}
+	if g.host != nil && childDrained {
+		g.host.Retire()
+		ctx, cancel := context.WithTimeout(context.Background(), linkCloudWait)
+		err := g.host.Join(ctx)
+		cancel()
+		if err != nil {
+			childDrained = false
+			t.Error("cleanup original Cloud Join: ", err)
+		} else if err = g.host.Close(); !errors.Is(err, g.firstClose) {
+			t.Errorf("cleanup replaced original Cloud close cause: got %v want %v", err, g.firstClose)
+		}
+	}
+	// Only these newly created test-owned socket directories can be removed,
+	// and only after their children drained. Public state/evidence are retained.
+	if childDrained && g.socketDir != "" {
+		if err := os.RemoveAll(g.socketDir); err != nil {
+			t.Error(err)
+		}
+	}
+}
+
+func linkCloudEntered(t *testing.T, gate *linkCloudWriteGate) linkCloudCapture {
+	t.Helper()
+	select {
+	case capture := <-gate.entered:
+		return capture
+	case <-time.After(linkCloudWait):
+		t.Fatal("actual original Cloud /health Write was not reached")
+		return linkCloudCapture{}
+	}
+}
+
+func linkCloudObservedCancel(t *testing.T, gate *linkCloudWriteGate, capture linkCloudCapture) {
+	t.Helper()
+	select {
+	case err := <-gate.observed:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatal("original server request did not observe disconnect/cancellation: ", err)
+		}
+	case <-time.After(linkCloudWait):
+		t.Fatal("original request ctx.Done did not observe cancellation/disconnect")
+	}
+	// Only after the ORIGINAL context has observed the close do we ask the
+	// no-I/O getter to see it; no unobserved-remote-close detection is claimed.
+	if err := capture.caller.CurrentOriginalCaller(capture.request); !errors.Is(err, context.Canceled) {
+		t.Fatal("observed original cancellation first cause changed: ", err)
+	}
+}
+
+func linkCloudNoJournal(t *testing.T, root string) {
+	t.Helper()
+	for _, path := range []string{filepath.Join(root, "state.json.ide-deployments"), filepath.Join(root, ".idejournal")} {
+		if _, err := os.Lstat(path); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("no-Source original request allocated IDE journal: %s: %v", path, err)
+		}
+	}
+}
+
+func linkCloudCall(t *testing.T, g *linkCloudGeneration, method, path string, body []byte, status int) linkCloudCapture {
+	t.Helper()
+	contentType := ""
+	if len(body) != 0 {
+		contentType = "application/json"
+	}
+	call := g.start(context.Background(), method, path, contentType, body)
+	linkCloudAwait(t, call.done, "original bounded client")
+	if call.err != nil || call.response.StatusCode != status {
+		t.Fatalf("original Cloud %s %s: status=%d err=%v body=%q", method, path, call.response.StatusCode, call.err, call.response.Body)
+	}
+	if method == http.MethodPost && path == "/api/v1/ide/deployments" && !bytes.Contains(call.response.Body, []byte("IDE_DEPLOYMENT_AUTHORITY_UNAVAILABLE")) {
+		t.Fatalf("missing Source did not reach the actual original Cloud gate: %q", call.response.Body)
+	}
+	if method == http.MethodGet && path == "/health" {
+		var liveness struct {
+			OK      bool   `json:"ok"`
+			Service string `json:"service"`
+			Mode    string `json:"mode"`
+		}
+		if err := json.Unmarshal(call.response.Body, &liveness); err != nil || !liveness.OK || liveness.Service != "ynx-cloudd" || liveness.Mode != "normal" {
+			t.Fatalf("response is not original normal Cloud liveness: %q: %v", call.response.Body, err)
+		}
+	}
+	select {
+	case capture := <-g.captures:
+		if !bytes.Equal(capture.material.RequestBody, body) {
+			t.Fatal("full Current did not retain exact original opaque request bytes")
+		}
+		g.checkFailures(t)
+		return capture
+	case <-time.After(linkCloudWait):
+		t.Fatal("original Cloud request did not pass full Current + same-request fence")
+		return linkCloudCapture{}
+	}
+}
+
+// One complete new case: transport -> original Cloud handler -> retained child
+// and parent -> real drain -> same original state and new endpoint generation.
+// No old getter suite, P04 constructor suite, P06 daemon, Source or funds path
+// is run or supplied by this test.
+func TestLINKCloudOriginalHostUnixLifecycleAndColdGeneration(t *testing.T) {
+	root := linkCloudArtifactRoot(t)
+	g := openLinkCloudGeneration(t, root)
+	service, server, reader, err := g.host.Parents()
+	if err != nil || service == nil || server == nil || reader == nil {
+		t.Fatal("missing actual original Cloud parents: ", err)
+	}
+	health := linkCloudCall(t, g, http.MethodGet, "/health", nil, 200)
+	opaque := []byte(`{"PUBLIC_transport_only":"no-source"}`)
+	effect := linkCloudCall(t, g, http.MethodPost, "/api/v1/ide/deployments", opaque, 503)
+	if health.caller == effect.caller {
+		t.Fatal("two actual requests shared a caller")
+	}
+	linkCloudNoJournal(t, root)
+	// A separately bounded client cannot enlarge the registered SERVER route.
+	wideRoutes := linkCloudRoutes()
+	wideRoutes[1].MaxBodyBytes = 2 * linkCloudBound
+	wide, err := securelink.NewLocalCallerClient(securelink.LocalCallerClientConfig{SocketPath: g.socket, Service: linkCloudService, PeerUID: uint32(os.Geteuid()), PeerPID: os.Getpid(), Routes: wideRoutes, Timeout: linkCloudWait, MaxResponseBytes: 64 << 10})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bounded, err := wide.Call(context.Background(), http.MethodPost, "/api/v1/ide/deployments", "application/json", bytes.Repeat([]byte("x"), linkCloudBound+1))
+	if err != nil || bounded.StatusCode != http.StatusRequestEntityTooLarge {
+		t.Fatalf("registered server route body bound enlarged: status=%d err=%v", bounded.StatusCode, err)
+	}
+	select {
+	case <-g.captures:
+		t.Fatal("oversized request reached Cloud/full caller wrapper")
+	default:
+	}
+	linkCloudRecord(t, root, "01-original-uds-handler", map[string]any{"health": 200, "noSourceEffect": 503, "registeredServerBodyBound": 413, "fullCurrentAndSameRequestFence": true, "ideJournalCreated": false, "businessSourceAdmitted": false})
+
+	// Client cancellation actually closes its socket. Keep the real Cloud Write
+	// alive and wait for the original server ctx.Done observation before checking
+	// the retained handle. No request/header/context substitution is involved.
+	cancelGate := g.blockNext(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	cancelCall := g.start(ctx, http.MethodGet, "/health", "", nil)
+	cancelCapture := linkCloudEntered(t, cancelGate)
+	<-g.captures
+	cancel()
+	linkCloudObservedCancel(t, cancelGate, cancelCapture)
+	linkCloudAwait(t, cancelCall.done, "cancelled original client")
+	var dispatched *securelink.DispatchError
+	if cancelCall.err == nil || !errors.As(cancelCall.err, &dispatched) || !dispatched.DispatchPossible {
+		t.Fatal("uncertain original dispatch was lost/retried: ", cancelCall.err)
+	}
+	cancelGate.unblock()
+	linkCloudAwait(t, cancelGate.finished, "cancelled original Cloud Write")
+
+	// Independent actual peer disconnect, without cancelling a supplied request
+	// context. Use original DialPrivate and Go's HTTP writer, not a fake parser.
+	disconnectGate := g.blockNext(t)
+	dialCtx, stopDial := context.WithTimeout(context.Background(), linkCloudWait)
+	conn, err := securelink.DialPrivate(dialCtx, g.socket, uint32(os.Geteuid()))
+	stopDial()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = conn.Close() })
+	if err = conn.SetDeadline(time.Now().Add(linkCloudWait)); err != nil {
+		t.Fatal(err)
+	}
+	request, err := http.NewRequest(http.MethodGet, "http://"+linkCloudService+"/health", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Close = true
+	if err = request.Write(conn); err != nil {
+		t.Fatal(err)
+	}
+	disconnectCapture := linkCloudEntered(t, disconnectGate)
+	<-g.captures
+	if err = conn.Close(); err != nil {
+		t.Fatal(err)
+	}
+	linkCloudObservedCancel(t, disconnectGate, disconnectCapture)
+	disconnectGate.unblock()
+	linkCloudAwait(t, disconnectGate.finished, "disconnected original Cloud Write")
+	linkCloudRecord(t, root, "02-observed-original-cancel", map[string]any{"clientCancelDispatchPossible": dispatched.DispatchPossible, "clientFirstError": fmt.Sprint(cancelCall.err), "actualPeerDisconnect": true, "originalContextObservedBeforeGetter": true, "unobservedCloseDetectionClaimed": false})
+
+	retireGate := g.blockNext(t)
+	retireCall := g.start(context.Background(), http.MethodGet, "/health", "", nil)
+	retained := linkCloudEntered(t, retireGate)
+	<-g.captures
+	if err = retained.caller.CurrentOriginalCaller(retained.request); err != nil {
+		t.Fatal("same original request not live inside actual Cloud Write: ", err)
+	}
+	if err = g.server.Retire(); err != nil {
+		t.Fatal(err)
+	}
+	linkCloudObservedCancel(t, retireGate, retained)
+	cancelled, stop := context.WithCancel(context.Background())
+	stop()
+	if err = g.server.Join(cancelled); !errors.Is(err, context.Canceled) {
+		t.Fatal("cancelled LINK Join fabricated a drain: ", err)
+	}
+	if err = g.server.Close(); !errors.Is(err, securelink.ErrLocalCallerDraining) {
+		t.Fatal("LINK Close discarded the original Cloud handler: ", err)
+	}
+	sameService, sameServer, sameReader, parentErr := g.host.Parents()
+	if parentErr != nil || sameService != service || sameServer != server || sameReader != reader {
+		t.Fatal("child retirement replaced/discarded actual Cloud parents: ", parentErr)
+	}
+	g.firstClose = g.host.Close()
+	if !errors.Is(g.firstClose, cloud.ErrOriginalPrivateHostChildrenRetained) {
+		t.Fatal("Cloud Close did not retain its actual blocked handler: ", g.firstClose)
+	}
+	if err = g.host.Join(cancelled); !errors.Is(err, context.Canceled) {
+		t.Fatal("cancelled Cloud Join fabricated a drain: ", err)
+	}
+	select {
+	case <-retireGate.finished:
+		t.Fatal("original Write was reported done without release")
+	default:
+	}
+	// Preserve the first actual failed Close before later successful drain.
+	linkCloudRecord(t, root, "03-FIRSTCAUSE-retained-original-write", map[string]any{"linkClose": securelink.ErrLocalCallerDraining.Error(), "cloudFirstClose": g.firstClose.Error(), "cancelledJoinsDrained": false, "sameCloudParentsAfterChildRetire": true})
+	retireGate.unblock()
+	linkCloudAwait(t, retireGate.finished, "retired original Cloud Write")
+	linkCloudAwait(t, retireCall.done, "retired original client")
+	if retireCall.err == nil || !errors.As(retireCall.err, &dispatched) || !dispatched.DispatchPossible {
+		t.Fatal("retired in-flight dispatch became success or certain non-dispatch: ", retireCall.err)
+	}
+	drain, stopDrain := context.WithTimeout(context.Background(), linkCloudWait)
+	defer stopDrain()
+	if err = g.server.Join(drain); err != nil {
+		t.Fatal("actual child drain: ", err)
+	}
+	if err = g.server.Close(); err != nil {
+		t.Fatal("child cleanup after real Join: ", err)
+	}
+	if !g.waitServe(t) {
+		t.Fatal("retired original accept loop did not drain")
+	}
+	g.host.Retire()
+	if err = g.host.Join(drain); err != nil {
+		t.Fatal("actual original Cloud handler/worker drain: ", err)
+	}
+	for i := 0; i < 2; i++ {
+		if err = g.host.Close(); !errors.Is(err, g.firstClose) {
+			t.Fatal("actual cleanup replaced sticky first cause: ", err)
+		}
+	}
+	if _, err = g.host.Handler(); !errors.Is(err, cloud.ErrOriginalPrivateHostUnavailable) {
+		t.Fatal("retired Cloud host minted another handler: ", err)
+	}
+	if retained.caller.CurrentOriginalCaller(retained.request) == nil {
+		t.Fatal("old caller survived actual drain")
+	}
+	if err = g.host.StorageRecoveryError(); err != nil {
+		t.Fatal("original Cloud worker first error: ", err)
+	}
+	g.checkFailures(t)
+	select {
+	case <-g.captures:
+		t.Fatal("unexpected duplicate original dispatch was admitted")
+	default:
+	}
+	linkCloudNoJournal(t, root)
+
+	before, err := os.ReadFile(filepath.Join(root, "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Explicit next generation: fresh listener AND fresh Cloud factory over the
+	// SAME normal public state, only after the old child and parents truly joined.
+	next := openLinkCloudGeneration(t, root)
+	if next.socket == g.socket || next.host == g.host {
+		t.Fatal("cold recovery silently reused a retired endpoint/host")
+	}
+	oldInfo, err := os.Lstat(g.socket)
+	if err != nil || !os.SameFile(g.identity, oldInfo) {
+		t.Fatal("retired original endpoint identity was deleted/replaced: ", err)
+	}
+	unexpected, err := securelink.ListenPrivate(g.socket, uint32(os.Geteuid()))
+	if unexpected != nil {
+		_ = unexpected.Close()
+	}
+	if err == nil {
+		t.Fatal("existing retired endpoint was overwritten")
+	}
+	stillOriginal, statErr := os.Lstat(g.socket)
+	if statErr != nil || !os.SameFile(g.identity, stillOriginal) {
+		t.Fatal("refused rebind changed the retired original endpoint: ", statErr)
+	}
+	oldCtx, stopOld := context.WithTimeout(context.Background(), linkCloudWait)
+	_, oldErr := g.client.Call(oldCtx, http.MethodGet, "/health", "", nil)
+	stopOld()
+	if oldErr == nil {
+		t.Fatal("old fixed client reconnected to a new generation")
+	}
+	fresh := linkCloudCall(t, next, http.MethodGet, "/health", nil, 200)
+	linkCloudCall(t, next, http.MethodPost, "/api/v1/ide/deployments", opaque, 503)
+	if fresh.caller == retained.caller || retained.caller.CurrentOriginalCaller(retained.request) == nil || retained.caller.CurrentOriginalCaller(fresh.request) == nil {
+		t.Fatal("retired caller crossed the explicit endpoint generation")
+	}
+	// A fresh endpoint is not a repair/retry of the original uncertain call.
+	// It performs a separate health observation and another denied effect only.
+	if _, err = retained.caller.Current(retained.request.Context()); err == nil {
+		t.Fatal("old full caller resurrected after a new generation opened")
+	}
+	nextDrain, stopNextDrain := context.WithTimeout(context.Background(), linkCloudWait)
+	defer stopNextDrain()
+	if err = next.server.Retire(); err != nil {
+		t.Fatal(err)
+	}
+	if err = next.server.Join(nextDrain); err != nil {
+		t.Fatal(err)
+	}
+	if err = next.server.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if !next.waitServe(t) {
+		t.Fatal("cold original accept loop did not drain")
+	}
+	next.host.Retire()
+	if err = next.host.Join(nextDrain); err != nil {
+		t.Fatal(err)
+	}
+	if err = next.host.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err = next.host.StorageRecoveryError(); err != nil {
+		t.Fatal("cold original Cloud worker first error: ", err)
+	}
+	next.checkFailures(t)
+	after, err := os.ReadFile(filepath.Join(root, "state.json"))
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("cold public original Cloud state changed or was replayed: ", err)
+	}
+	linkCloudNoJournal(t, root)
+	sum := sha256.Sum256(after)
+	linkCloudRecord(t, root, "04-drained-explicit-cold-generation", map[string]any{"sameOriginalStateSHA256": hex.EncodeToString(sum[:]), "oldEndpointIdentityPreserved": true, "oldCallerPermanentlyDenied": true, "newEndpointHealth": 200, "newNoSourceEffect": 503, "cloudStickyFirstCause": g.firstClose.Error(), "physicalFundsOrBusinessApproval": false, "productionDeployment": false})
+}
