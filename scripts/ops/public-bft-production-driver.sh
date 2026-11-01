@@ -46,11 +46,14 @@ public_bft_native_context() {
     approval_mode=(--prepare-native)
   fi
   [[ -f "$approved_path" && ! -L "$approved_path" ]] || { echo "original protected approval projection must be a regular non-symlink file" >&2; return 1; }
-  approved="$(node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$approved_path" "$commit" "ynx-bft-gateway-$commit" "${approval_mode[@]}")" || return $?
+  approved="$(node scripts/verify/validate-public-bft-cutover-approval-evidence.mjs "$approved_path" "$commit" "ynx-bft-gateway-$commit" ${approval_mode[@]+"${approval_mode[@]}"})" || return $?
   values="$(printf '%s' "$approved" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>{const a=JSON.parse(s);if(!a.authoritativeCommit)return;console.log([a.authoritativeCommit,a.authoritativeRelease,a.authoritativeBinarySha256,JSON.stringify(a.authoritativeSource),...Object.values(a.authoritativeSource),Object.hasOwn(a,"authoritativeSystemd")?JSON.stringify(a.authoritativeSystemd):"-"].join("\n"))})')" || return $?
   [[ -n "$values" ]] || return 0
-  local -a identity
-  mapfile -t identity <<<"$values"
+  local identity_line
+  local -a identity=()
+  while IFS= read -r identity_line; do
+    identity+=("$identity_line")
+  done <<<"$values"
   (( ${#identity[@]} == 9 )) || { echo "incomplete approved native source identity" >&2; return 1; }
   native_full_commit="${identity[0]}"; native_commit="${native_full_commit:0:12}"
   release="${identity[1]}"; native_binary_pin="${identity[2]}"; native_source_json="${identity[3]}"
@@ -82,8 +85,11 @@ const a=roleAuthoritativeIdentity(JSON.parse(fs.readFileSync(process.argv[2])),p
 console.log([a.authoritativeCommit,a.authoritativeRelease,a.authoritativeBinarySha256,...Object.values(a.authoritativeSource),Object.hasOwn(a,'authoritativeSystemd')?JSON.stringify(a.authoritativeSystemd):'-'].join('\n'));
 NODE
 )" || return $?
-  local -a identity
-  mapfile -t identity <<<"$values"
+  local identity_line
+  local -a identity=()
+  while IFS= read -r identity_line; do
+    identity+=("$identity_line")
+  done <<<"$values"
   (( ${#identity[@]} == 8 )) || { echo "incomplete approved original role identity" >&2; return 1; }
   role_native_full="${identity[0]}"; role_native_release="${identity[1]}"; role_native_binary="${identity[2]}"
   role_native_state="${identity[3]}"; role_native_integrity="${identity[4]}"; role_native_pause="${identity[5]}"; role_native_mutation="${identity[6]}"
@@ -208,7 +214,7 @@ public_bft_preflight_services() {
   [[ -n "${PUBLIC_BFT_CUTOVER_APPROVAL_FILE:-}" && -n "${PUBLIC_BFT_CUSTODY_REVIEW_FILE:-}" ]] || { echo "original protected approval and custody evidence are required for scoped preflight" >&2; return 1; }
   local -a approval_mode=()
   [[ "${native_approval_path:-}" != "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/preparation-approval.json" ]] || approval_mode=(--prepare-native)
-  approved="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "ynx-bft-gateway-$commit" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" "${approval_mode[@]}")" || return $?
+  approved="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$PUBLIC_BFT_CUTOVER_APPROVAL_FILE" "$commit" "ynx-bft-gateway-$commit" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" ${approval_mode[@]+"${approval_mode[@]}"})" || return $?
   printf '%s\n' "$approved" | cmp - "${native_approval_path:-$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/approval.json}" >/dev/null || { echo "preflight profile differs from the original protected approval projection" >&2; return 1; }
   profile="$(printf '%s' "$approved" | node -e 'let s="";process.stdin.on("data",x=>s+=x);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).custodyProfile || "legacy-full"))')" || return $?
   if [[ "$profile" == single-app-gateway/v1 ]]; then

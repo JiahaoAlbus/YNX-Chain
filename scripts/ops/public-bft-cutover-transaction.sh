@@ -113,7 +113,7 @@ else
     cmp -- "$approval_input" "${transaction_dir}/preparation-approval.original.json" >/dev/null
     approval_input="${transaction_dir}/preparation-approval.original.json"
   fi
-  approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$approval_input" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" "${approval_mode[@]}")"
+  approval_evidence="$(node scripts/verify/validate-public-bft-cutover-approval.mjs "$approval_input" "$commit" "$release" "$PUBLIC_BFT_CUSTODY_REVIEW_FILE" ${approval_mode[@]+"${approval_mode[@]}"})"
   if [[ "$mode" == prepare-native ]]; then
     (set -C; printf '%s\n' "$approval_evidence" >"${transaction_dir}/preparation-approval.json")
     preparation_plan_pin="$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1])).operatorPreparationPlanSha256)' "$transaction_dir/preparation-approval.json")"
