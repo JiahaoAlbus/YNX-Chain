@@ -20,7 +20,7 @@ def stat_line(state="S",ticks=100,threads=2,pid=42):
 
 class OwnedRSSControls(unittest.TestCase):
     def read(self,values):
-        with mock.patch.object(lab.guard,"bounded",side_effect=values), mock.patch.object(lab.time,"sleep"),mock.patch.object(lab,"same_process_rss_alternative",return_value=None):
+        with mock.patch.object(lab.guard,"bounded",side_effect=values), mock.patch.object(lab.time,"sleep"),mock.patch.object(lab,"same_process_rss_alternative",return_value=None),mock.patch.object(lab,'process_group_exit_probe',return_value=dict(state='not-exited')):
             return lab.owned_rss(42,dict(startTicks=100))
 
     def test_attempt2_esrch_then_proved_gone_is_not_a_fake_zero_live_sample(self):
@@ -46,7 +46,7 @@ class OwnedRSSControls(unittest.TestCase):
                 pid=43 if '/task/43/' in name else 42
                 return ('Tgid: %d\nPid: %d\n'%(tgid,pid)+('VmSize: %d kB\n'%vm if vm is not None else '')).encode()
             raise AssertionError(name)
-        with mock.patch.object(lab.guard,'bounded',side_effect=kernel),mock.patch.object(Path,'iterdir',return_value=iter([Path('/proc/42/task/43')])):
+        with mock.patch.object(lab.guard,'bounded',side_effect=kernel),mock.patch.object(Path,'iterdir',return_value=iter([Path('/proc/42/task/43')])),mock.patch.object(lab,'process_group_exit_probe',return_value=dict(state='not-exited')):
             value=lab.owned_rss(42,dict(startTicks=100),fallback=events.append)
         return value,events
 
@@ -54,6 +54,15 @@ class OwnedRSSControls(unittest.TestCase):
         value,events=self.alternative()
         self.assertEqual(value,13*1024);self.assertEqual(events[0]['tid'],43)
         self.assertEqual(events[0]['sampleKind'],'same-thread-group-smaps');self.assertFalse(events[0]['retired'])
+
+    def test_mocked_proc_rss_fixtures_never_open_a_real_pidfd(self):
+        # Exercise the Linux capability branch on every test host. These two
+        # helpers provide simulated /proc rows; only the separate real-owned
+        # lifecycle tests may invoke kernel pidfd/process-group probes.
+        with mock.patch.object(lab.os,'pidfd_open',side_effect=AssertionError('mock fixture touched real pidfd'),create=True) as opened,mock.patch.object(lab.select,'poll',create=True):
+            self.assertEqual(self.read([ProcessLookupError(errno.ESRCH,'transition'),stat_line('S'),b'Rss: 9 kB\n',stat_line()]),9216)
+            value,events=self.alternative();self.assertEqual(value,13*1024);self.assertTrue(events)
+            opened.assert_not_called()
 
     def test_live_mm_failure_uses_explicit_conservative_virtual_bound_not_zero(self):
         value,events=self.alternative(vm=8192)
