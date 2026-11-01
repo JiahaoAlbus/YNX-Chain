@@ -37,6 +37,8 @@ consensus_production_deploy_dry_run() {
 # Missing/mismatched pins fail before tests, fixtures, keys or staging writes.
 consensus_production_runtime_inputs
 
+python3 -B scripts/verify/test_consensus_overlay_public.py
+
 go test ./internal/consensus -run 'Test(GenerateProductionCandidatePackageAndVerifyHostKeys|ProductionValidatorManifestRejectsUnsafeInputs|ProductionPackageRefusesExistingOutputAndUnhashedPrivateFile)' -count=1
 go test ./cmd/ynx-consensus-package ./cmd/ynx-consensus-keycheck ./cmd/ynx-consensus-key-init
 bash -n scripts/deploy/deploy-consensus-candidate.sh scripts/deploy/deploy-consensus-overlay.sh scripts/ops/init-consensus-candidate-keys.sh scripts/ops/init-consensus-overlay-keys.sh scripts/ops/rollback-consensus-candidate.sh scripts/verify/consensus-candidate-deploy-gate.sh scripts/verify/verify-consensus-candidate.sh scripts/verify/verify-consensus-overlay.sh scripts/verify/consensus-candidate-fault-drill.sh scripts/verify/consensus-candidate-signed-tx-drill.sh

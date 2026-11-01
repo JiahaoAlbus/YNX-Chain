@@ -1305,14 +1305,14 @@ collect_role() {
     seoul) validator=ynx_validator_seoul ;;
   esac
   services="$(public_bft_preflight_services "$kind")"
-  candidate_port_pattern=':(27656|27757|27858)$'
+  candidate_port_pattern=':(27656|27660|27757|27858)$'
   if [[ "$kind" == "full" ]]; then
     if [[ "$services" == ynx-chaind ]]; then
       # A full host gets this exact service set only from the revalidated
       # protected single-App profile above; draft/env flags cannot select it.
-      candidate_port_pattern=':(27620|27656|27757|27858)$'
+      candidate_port_pattern=':(27620|27656|27660|27757|27858)$'
     else
-      candidate_port_pattern=':(27620|27626|27627|27628|27629|27630|27631|27632|27656|27757|27858)$'
+      candidate_port_pattern=':(27620|27626|27627|27628|27629|27630|27631|27632|27656|27660|27757|27858)$'
     fi
   fi
   [[ -z "${native_approval_path:-}" || "$native_approval_path" != "$PUBLIC_BFT_CUTOVER_TRANSACTION_DIR/preparation-approval.json" ]] || preflight_mode=prepare-native
@@ -1326,7 +1326,16 @@ collect_role() {
   ynx_ops_ssh "$role" "$user" "$host" "$key" "curl -fsS http://127.0.0.1:6420/status" >"$role_dir/status.json"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "set -eu
 $custody_command
-for service in $services; do systemctl is-active \"\$service\" >/dev/null; done; systemctl is-active ynx-consensus-overlay.service >/dev/null; ip link show ynxwg0 >/dev/null; sudo test ! -e /var/lib/ynx-chain/consensus-candidate; ! systemctl is-active --quiet ynx-consensus-comet-candidate.service; ! systemctl is-active --quiet ynx-consensus-abci-candidate.service; ! systemctl is-active --quiet ynx-consensus-operator-candidate.service; ! ss -ltn | awk '{print \$4}' | grep -Eq '$candidate_port_pattern'; sudo test ! -e /var/lib/ynx-chain/mutation-freeze.json; sudo test -d '${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}'; test \"\$(df -Pk /var/lib/ynx-chain | awk 'NR==2 {print \$4}')\" -gt 2097152; printf 'role=%s\\nvalidator=%s\\nrelease=%s\\nservices=active\\noverlay=active\\nkeys=restricted\\ncandidate=absent\\nfreeze=absent\\nports=free\\ndisk=ready\\nbackup=present\\n' '$role' '$validator' '$role_native_release'; $manifest_check" >"$role_dir/preflight.txt"
+for service in $services; do systemctl is-active \"\$service\" >/dev/null; done; systemctl is-active ynx-consensus-overlay.service >/dev/null; ip link show ynxwg0 >/dev/null; sudo test ! -e /var/lib/ynx-chain/consensus-candidate; ! systemctl is-active --quiet ynx-consensus-comet-candidate.service; ! systemctl is-active --quiet ynx-consensus-abci-candidate.service; ! systemctl is-active --quiet ynx-consensus-operator-candidate.service
+candidate_listen_output=\$(LC_ALL=C ss -H -ltn) || { printf '%s\\n' 'cannot read candidate listening ports' >&2; exit 1; }
+[ -n \"\$candidate_listen_output\" ] || { printf '%s\\n' 'candidate listening port output is empty' >&2; exit 1; }
+candidate_port_state=\$(printf '%s' \"\$candidate_listen_output\" | awk -v candidate_ports='$candidate_port_pattern' '
+  NF != 5 || \$1 != \"LISTEN\" || \$2 !~ /^[0-9]+$/ || \$3 !~ /^[0-9]+$/ || \$4 !~ /^[^[:space:]]+:[1-9][0-9]*$/ || \$5 !~ /^[^[:space:]]+:(\\*|[0-9]+)$/ { invalid=1; exit }
+  { port=\$4; sub(/^.*:/, \"\", port); if (port+0 < 1 || port+0 > 65535) { invalid=1; exit }; if (\$4 ~ candidate_ports) occupied=1 }
+  END { if (invalid) exit 2; if (occupied) print \"occupied\"; else print \"free\" }
+') || { printf '%s\\n' 'cannot parse candidate listening ports' >&2; exit 1; }
+[ \"\$candidate_port_state\" = free ] || { printf '%s\\n' 'candidate port already listening' >&2; exit 1; }
+sudo test ! -e /var/lib/ynx-chain/mutation-freeze.json; sudo test -d '${BACKUP_STORAGE_PATH:-/var/backups/ynx-chain}'; test \"\$(df -Pk /var/lib/ynx-chain | awk 'NR==2 {print \$4}')\" -gt 2097152; printf 'role=%s\\nvalidator=%s\\nrelease=%s\\nservices=active\\noverlay=active\\nkeys=restricted\\ncandidate=absent\\nfreeze=absent\\nports=free\\ndisk=ready\\nbackup=present\\n' '$role' '$validator' '$role_native_release'; $manifest_check" >"$role_dir/preflight.txt"
 }
 ynx_ops_each_node collect_role
 

@@ -62,6 +62,9 @@ on:
       - 'scripts/deploy/deploy-consensus-candidate.sh'
       - 'scripts/deploy/consensus-candidate-failure-retention.test.mjs'
       - 'scripts/verify/consensus-production-package-check*'
+      - 'scripts/verify/verify-consensus-overlay.sh'
+      - 'scripts/verify/consensus_overlay_public.py'
+      - 'scripts/verify/test_consensus_overlay_public.py'
       - 'scripts/verify/consensus-candidate-deploy-gate.sh'
       - 'scripts/verify/verify-consensus-candidate.sh'
       - 'scripts/ops/public-bft-production-driver.sh'
@@ -3748,6 +3751,7 @@ jobs:
           cat "$YNX_OLD_SNAPSHOT_LOG"
           test "$(grep -c 'PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED' "$YNX_OLD_SNAPSHOT_LOG")" -eq 1
           bash scripts/verify/public-bft-production-driver-check.sh --snapshot-only
+          bash scripts/verify/public-bft-production-driver-check.sh --preflight-ports-only
           # Check the original native process/config observer and unchanged
           # backup/freeze/pause helpers using isolated observation fixtures.
           # Keep these after the exact old snapshot RED so failures cannot

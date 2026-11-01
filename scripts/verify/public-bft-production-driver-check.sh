@@ -3,7 +3,77 @@ set -Eeuo pipefail
 
 cd "$(dirname "$0")/../.."
 
-[[ "$#" == 0 || ( "$#" == 1 && "$1" == --snapshot-only ) ]] || { echo 'usage: public-bft-production-driver-check.sh [--snapshot-only]' >&2; exit 1; }
+[[ "$#" == 0 || ( "$#" == 1 && ( "$1" == --snapshot-only || "$1" == --preflight-ports-only ) ) ]] || { echo 'usage: public-bft-production-driver-check.sh [--snapshot-only|--preflight-ports-only]' >&2; exit 1; }
+if [[ "${1:-}" != --snapshot-only ]]; then
+node --input-type=module <<'NODE'
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import http from 'node:http';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+const execute=promisify(execFile),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-preflight-ports-'));
+const source=fs.readFileSync('scripts/ops/public-bft-production-driver.sh','utf8');
+const collect=source.match(/^collect_role\(\) \{\n[\s\S]*?^\}/m)?.[0];
+assert.ok(collect,'normal preflight caller absent');
+const q=x=>"'"+x.replaceAll("'","'\\''")+"'";
+const server=http.createServer((req,res)=>res.end('PUBLIC fixture\n'));
+let metrics;
+try{
+  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+  const probe=path.join(tmp,'transport-probe.mjs');
+  fs.writeFileSync(probe,String.raw`
+import fs from 'node:fs';
+import {spawnSync} from 'node:child_process';
+const [command,data,mode,log]=process.argv.slice(2),q=x=>"'"+x.replaceAll("'","'\\''")+"'";
+fs.appendFileSync(log,JSON.stringify({command,mode})+'\n');
+if(command==='curl -fsS http://127.0.0.1:6420/status'){console.log('{"height":100}');process.exit(0);}
+let guard;
+const start=command.indexOf('candidate_listen_output='),end=command.indexOf('\nsudo test ! -e /var/lib/ynx-chain/mutation-freeze.json',start);
+if(start>=0){if(end<=start)throw Error('normal read-only guard boundary missing');guard=command.slice(start,end);}
+else{guard=command.match(/! ss -ltn \| awk '\{print \$4\}' \| grep -Eq '[^']+';/)?.[0];}
+if(!guard)throw Error('normal port guard missing');
+const rows=JSON.parse(data).map(port=>'LISTEN 0 128 127.0.0.1:'+port+' 0.0.0.0:*').join('\n')+'\n';
+const text=mode==='empty'?'':mode==='malformed'?'not an ss listener row\n':rows;
+const stub='ss(){ [[ "$*" == "-ltn" || "$*" == "-H -ltn" ]] || return 91; '+
+  'if [[ "$*" == "-ltn" ]]; then printf "State Recv-Q Send-Q Local Address:Port Peer Address:Port\\n"; fi; '+
+  "printf '%s' "+q(text)+'; return '+(mode==='ss-failure'?37:0)+'; }\n'+
+  (mode==='awk-failure'?'awk(){ return 73; }\n':'');
+const result=spawnSync('bash',['-c','set -eu\n'+stub+guard],{encoding:'utf8'});
+if(result.status===0)console.log('ports=free');
+else console.error('PUBLIC preflight probe rejected '+mode);
+process.exit(result.status??92);
+`,{flag:'wx',mode:0o600});
+  let sequence=0;
+  async function invoke(kind,services,ports,mode='valid'){
+    const root=path.join(tmp,'case-'+sequence++),script=path.join(root,'caller.sh'),log=path.join(root,'transport.jsonl');
+    fs.mkdirSync(root,{recursive:true});
+    fs.writeFileSync(script,`#!/bin/bash\nset -Eeuo pipefail\nroot=${q(root)}\ncandidate_operator_plan=PUBLIC\ncandidate_operator_pin=${q('1'.repeat(64))}\nPUBLIC_BFT_CUTOVER_TRANSACTION_DIR=${q(root)}\nnative_approval_path=''\nnative_full_commit=PUBLIC\nrole_native_binary=${q('2'.repeat(64))}\nrole_native_release=PUBLIC\npublic_bft_preflight_services(){ printf '%s' ${q(services)}; }\npublic_bft_native_qualify(){ :; }\nnode(){ printf 'true\\n'; }\nynx_ops_ssh(){ ${q(process.execPath)} ${q(probe)} "\${5}" ${q(JSON.stringify(ports))} ${q(mode)} ${q(log)}; }\n${collect}\ncollect_role primary PUBLIC PUBLIC PUBLIC ${q(kind)}\n`,{flag:'wx',mode:0o700});
+    let code=0;try{await execute('bash',[script]);}catch(error){code=error.code;}
+    assert.ok(fs.existsSync(log),'normal preflight did not reach the transport probe');
+    return {code,log:fs.readFileSync(log,'utf8')};
+  }
+  const profiles=[['validator','ynx-chaind'],['full','ynx-chaind'],['full','ynx-chaind ynx-faucetd']];
+  for(const [kind,services] of profiles)assert.equal((await invoke(kind,services,[server.address().port])).code,0,'unrelated real listener rejected');
+  metrics=http.createServer((req,res)=>res.end('PUBLIC metrics fixture\n'));
+  await new Promise((resolve,reject)=>{metrics.once('error',reject);metrics.listen(27660,'127.0.0.1',resolve);});
+  assert.equal(metrics.address().port,27660);
+  await new Promise((resolve,reject)=>{const req=http.get('http://127.0.0.1:27660/',res=>{res.resume();res.once('end',resolve);});req.once('error',reject);});
+  // Only transport/OS-listing fixture data is supplied. The actual caller,
+  // profile selection and generated shell guard execute unchanged; no formal
+  // approval, real host, signer or production state is used or authorized.
+  for(const [kind,services] of profiles)assert.notEqual((await invoke(kind,services,[server.address().port,metrics.address().port])).code,0,'PUBLIC_BFT_PREFLIGHT_METRICS_PORT_IGNORED');
+  for(const mode of ['ss-failure','empty','malformed','awk-failure'])assert.notEqual((await invoke('validator','ynx-chaind',[server.address().port],mode)).code,0,'PUBLIC_BFT_PREFLIGHT_PORT_PROBE_FAILURE_ACCEPTED: '+mode);
+  console.log('PUBLIC_BFT_PREFLIGHT_PORTS_PASS: real local 27660 listener with controlled ss data refused by the generated guard in all three profiles; ss and parse failures fail closed; unrelated real listener accepted; not a live Linux-host ss check');
+}finally{
+  if(metrics?.listening)await new Promise(resolve=>metrics.close(resolve));
+  if(server.listening)await new Promise(resolve=>server.close(resolve));
+  fs.rmSync(tmp,{recursive:true,force:true});
+}
+NODE
+fi
+[[ "${1:-}" != --preflight-ports-only ]] || exit 0
 # Real helper/caller controls with isolated public files and an offline tool
 # double. These exercise orchestration, not a claim of real ledger validity.
 # The normal Go exporter has its own persisted-checkpoint regression suite.
