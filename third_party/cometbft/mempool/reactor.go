@@ -58,6 +58,9 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 // InitPeer implements Reactor by creating a state for the peer.
 func (memR *Reactor) InitPeer(peer p2p.Peer) p2p.Peer {
 	memR.ids.ReserveForPeer(peer)
+	if t := memR.losslessHex.Load(); t != nil {
+		t.initPeer(peer)
+	}
 	return peer
 }
 
@@ -156,6 +159,9 @@ func (memR *Reactor) AddPeer(peer p2p.Peer) {
 
 // RemovePeer implements Reactor.
 func (memR *Reactor) RemovePeer(peer p2p.Peer, _ interface{}) {
+	if t := memR.losslessHex.Load(); t != nil {
+		t.closePeer(peer)
+	}
 	memR.ids.Reclaim(peer)
 	// broadcast routine checks if peer is gone and returns
 }
@@ -235,6 +241,30 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	var next *clist.CElement
 	var pendingTx *mempoolTx
 	var pendingEnvelope p2p.Envelope
+	var pendingBudget *losslessHexSendBudget
+	var pendingTimer *time.Timer
+	defer func() {
+		if pendingTimer != nil {
+			pendingTimer.Stop()
+		}
+	}()
+	retryWait := func() bool {
+		if pendingBudget == nil {
+			time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
+			return true
+		}
+		wait := time.NewTimer(PeerCatchupSleepIntervalMS * time.Millisecond)
+		defer wait.Stop()
+		select {
+		case <-wait.C:
+			return true
+		case <-pendingTimer.C:
+			memR.stopLosslessHexSend(peer, ErrLosslessHexPeerBudget)
+		case <-peer.Quit():
+		case <-memR.Quit():
+		}
+		return false
+	}
 
 	for {
 		// In case of both next.NextWaitChan() and peer.Quit() are variable at the same time
@@ -266,14 +296,18 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			// different every time due to us using a map. Sometimes other reactors
 			// will be initialized before the consensus reactor. We should wait a few
 			// milliseconds and retry.
-			time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
+			if !retryWait() {
+				return
+			}
 			continue
 		}
 
 		// Allow for a lag of 1 block.
 		memTx := next.Value.(*mempoolTx)
 		if peerState.GetHeight() < memTx.Height()-1 {
-			time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
+			if !retryWait() {
+				return
+			}
 			continue
 		}
 
@@ -286,24 +320,58 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				// Select one carrier for this logical send. A queue rejection
 				// retries the SAME envelope; it never guesses packed then raw.
 				pendingTx = memTx
-				pendingEnvelope = memR.losslessHexEnvelope(peer, msg)
+				var err error
+				pendingEnvelope, err = memR.losslessHexEnvelope(peer, msg)
+				if err != nil {
+					memR.stopLosslessHexSend(peer, err)
+					return
+				}
+				if pendingEnvelope.ChannelID == LosslessHexV1Channel {
+					t := memR.losslessHex.Load()
+					pendingBudget, err = t.newSendBudget(peer)
+					if err != nil {
+						memR.stopLosslessHexSend(peer, err)
+						return
+					}
+					pendingTimer = time.NewTimer(t.budget.maxSendDuration)
+				}
 			}
 			observer := memR.wireObserver.Load()
 			var started time.Time
 			if observer != nil {
 				started = time.Now()
 			}
-			success := peer.Send(pendingEnvelope)
+			var success bool
+			if pendingBudget != nil {
+				t := memR.losslessHex.Load()
+				frame := pendingEnvelope.Message.(*protomem.LosslessHexV1).Frame
+				if err := t.reserveSendAttempt(peer, pendingBudget, uint64(len(frame))); err != nil {
+					memR.stopLosslessHexSend(peer, err)
+					return
+				}
+				// Only the experimental branch uses the existing nonblocking queue
+				// API. It cannot inherit legacy Send's ten-second blocking tail.
+				success = peer.TrySend(pendingEnvelope)
+			} else {
+				success = peer.Send(pendingEnvelope)
+			}
 			if observer != nil {
 				observer.sent(msg, time.Since(started), success)
 			}
 			memR.recordLosslessHexSend(pendingEnvelope, success)
 			if !success {
-				time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
+				if !retryWait() {
+					return
+				}
 				continue
 			}
 		}
 		pendingTx = nil
+		pendingBudget = nil
+		if pendingTimer != nil {
+			pendingTimer.Stop()
+			pendingTimer = nil
+		}
 
 		select {
 		case <-next.NextWaitChan():

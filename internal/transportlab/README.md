@@ -125,3 +125,40 @@ separate real PQ/AND Application test. Core owns the minimal normal command
 call site; Perf owns the existing hook and sole actual measurement window.
 Until that window runs, physical bytes, gains, pressure and sustained TPS remain
 unmeasured; the carrier remains default off.
+
+## Finite experimental peer budget
+
+The same default-off carrier now has an immutable connection budget in addition
+to its original single-frame and per-codec-call limits. Only explicit experimental
+enable initializes a fixed-size private state in the existing peer storage.
+InitPeer does not reset that state; RemovePeer closes that connection's state.
+A new connection owns a separate state. No global peer map is added and the
+original Switch connection limits remain unchanged.
+
+Zero-valued experimental limits select finite defaults: 64 MiB cumulative peer
+resource bytes, 30 seconds from first experimental use, three total send attempts
+per selected frame, and two seconds per pending experimental send. Explicit
+limits are bounded (peer bytes at most 1 GiB, peer duration 1 ms to five minutes,
+one to sixteen send attempts, send duration 1 ms to thirty seconds). Budget clocks
+reject backwards time and expiration. Bytes are reserved without overflow and
+never refunded on failure. Pack reserves original plus frame size before frame
+allocation; receive validates fixed header dimensions and reserves frame plus
+restored size before allocating the restored C. Each queue attempt, including
+queue-false, charges frame bytes again. These debits are resource limits, never
+physical-byte or saving measurements.
+
+The experimental branch uses the original nonblocking TrySend queue API with
+finite attempts and a Quit-aware elapsed deadline. It retains one selected
+envelope. Exhaustion terminates that experimental send, retaining the original
+mempool transaction and without raw replay, next-transaction progress or queued
+success. Local exhaustion does not disconnect the peer or ask Switch to redial;
+other channels remain live. A later frame refused by that local resource budget
+is also dropped without asking Switch to redial; malformed/unnegotiated frames
+retain their original peer-error handling. These are connection-local budgets, not a global
+limit across independently initiated future connections. Pack errors are
+terminal, including local work/length failures; they never downgrade to raw.
+The original legacy Send path is unchanged. Noneligible original
+formats still select their original carrier before any send. Peer capability,
+canonical bytes/ID, original validators, AND, commitments and PartSet do not
+change. This isolated source delta does not enable the carrier or start a node,
+measurement window, business load, public activation or a new collector.

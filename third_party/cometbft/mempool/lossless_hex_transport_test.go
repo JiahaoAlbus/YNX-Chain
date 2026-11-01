@@ -3,6 +3,7 @@ package mempool
 import (
 	"bytes"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -51,6 +52,7 @@ func losslessTestC() types.Tx {
 
 func losslessTestPeer(r *Reactor, capable bool) *peerMock.Peer {
 	p := &peerMock.Peer{}
+	losslessTestPeerStorage(p)
 	p.On("ID").Return(p2p.ID("2222222222222222222222222222222222222222"))
 	channels := []byte{MempoolChannel}
 	if capable {
@@ -59,6 +61,17 @@ func losslessTestPeer(r *Reactor, capable bool) *peerMock.Peer {
 	p.On("NodeInfo").Return(p2p.DefaultNodeInfo{Channels: channels})
 	r.InitPeer(p)
 	return p
+}
+
+func losslessTestPeerStorage(p *peerMock.Peer) {
+	var data sync.Map
+	p.On("Get", losslessHexPeerBudgetKey).Return(func(key string) interface{} {
+		v, _ := data.Load(key)
+		return v
+	}).Maybe()
+	p.On("Set", losslessHexPeerBudgetKey, mock.Anything).Run(func(args mock.Arguments) {
+		data.Store(args.String(0), args.Get(1))
+	}).Maybe()
 }
 
 func TestLosslessHexTransportDefaultOffAndSingleCarrier(t *testing.T) {
@@ -70,7 +83,8 @@ func TestLosslessHexTransportDefaultOffAndSingleCarrier(t *testing.T) {
 	original := losslessTestC()
 	msg := &protomem.Txs{Txs: [][]byte{original}}
 	// Even a capable peer receives the original wrapper from a default reactor.
-	e := r.losslessHexEnvelope(capable, msg)
+	e, err := r.losslessHexEnvelope(capable, msg)
+	require.NoError(t, err)
 	require.Equal(t, MempoolChannel, e.ChannelID)
 	require.Same(t, msg, e.Message)
 	require.NoError(t, r.EnableExperimentalLosslessHex(LosslessHexLimits{}))
@@ -81,7 +95,8 @@ func TestLosslessHexTransportDefaultOffAndSingleCarrier(t *testing.T) {
 	require.IsType(t, &protomem.LosslessHexV1{}, ch[1].MessageType)
 	for _, cap := range []bool{false, true} {
 		peer := losslessTestPeer(r, cap)
-		e = r.losslessHexEnvelope(peer, msg)
+		e, err = r.losslessHexEnvelope(peer, msg)
+		require.NoError(t, err)
 		if !cap {
 			require.Equal(t, MempoolChannel, e.ChannelID)
 			require.Same(t, msg, e.Message)
@@ -100,13 +115,16 @@ func TestLosslessHexTransportDefaultOffAndSingleCarrier(t *testing.T) {
 	}
 	for _, tx := range [][]byte{[]byte("legacy=original"), []byte(`{"version":2,"type":"pq_transfer","wireHex":"aa"}`), nil} {
 		legacy := &protomem.Txs{Txs: [][]byte{tx}}
-		e = r.losslessHexEnvelope(capable, legacy)
+		e, err = r.losslessHexEnvelope(capable, legacy)
+		require.NoError(t, err)
 		require.Equal(t, MempoolChannel, e.ChannelID)
 		require.Same(t, legacy, e.Message)
 	}
 	unknown := &peerMock.Peer{}
 	unknown.On("NodeInfo").Return(nil)
-	require.Equal(t, MempoolChannel, r.losslessHexEnvelope(unknown, msg).ChannelID)
+	e, err = r.losslessHexEnvelope(unknown, msg)
+	require.NoError(t, err)
+	require.Equal(t, MempoolChannel, e.ChannelID)
 }
 
 func TestLosslessHexTransportRestoresBeforeOriginalPrecheckCacheAndTxKey(t *testing.T) {
@@ -198,6 +216,7 @@ func TestLosslessHexTransportQueuedRetryKeepsSelectedFormat(t *testing.T) {
 			require.NoError(t, r.EnableExperimentalLosslessHex(LosslessHexLimits{}))
 			require.NoError(t, r.Start())
 			peer := &peerMock.Peer{}
+			losslessTestPeerStorage(peer)
 			peer.On("ID").Return(p2p.ID("1111111111111111111111111111111111111111"))
 			peer.On("IsRunning").Return(true)
 			peer.On("Get", types.PeerStateKey).Return(peerState{height: 1})
@@ -236,8 +255,12 @@ func TestLosslessHexTransportQueuedRetryKeepsSelectedFormat(t *testing.T) {
 					require.Equal(t, MempoolChannel, e.ChannelID)
 				}
 			}
-			peer.On("Send", mock.Anything).Run(check).Return(false).Once()
-			peer.On("Send", mock.Anything).Run(check).Return(true).Once()
+			method := "Send"
+			if capable {
+				method = "TrySend"
+			}
+			peer.On(method, mock.Anything).Run(check).Return(false).Once()
+			peer.On(method, mock.Anything).Run(check).Return(true).Once()
 			require.NoError(t, r.mempool.CheckTx(losslessTestC(), nil, TxInfo{}))
 			done := make(chan struct{})
 			go func() { defer close(done); r.broadcastTxRoutine(peer) }()

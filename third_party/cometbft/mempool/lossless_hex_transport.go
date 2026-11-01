@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sync"
+	"time"
 
 	"github.com/cometbft/cometbft/p2p"
 	protomem "github.com/cometbft/cometbft/proto/tendermint/mempool"
@@ -19,6 +20,8 @@ type losslessHexTransport struct {
 	codec  *LosslessHexCodec
 	mu     sync.Mutex
 	totals LosslessHexSnapshot
+	budget losslessHexBudgetLimits
+	now    func() time.Time
 }
 
 // LosslessHexSnapshot counts this codec's bounded frames and restored original
@@ -69,7 +72,11 @@ func (memR *Reactor) EnableExperimentalLosslessHex(limits LosslessHexLimits) err
 	if err != nil {
 		return err
 	}
-	memR.losslessHex.Store(&losslessHexTransport{codec: codec})
+	budget, err := normalizeLosslessHexBudget(limits)
+	if err != nil {
+		return err
+	}
+	memR.losslessHex.Store(&losslessHexTransport{codec: codec, budget: budget, now: time.Now})
 	return nil
 }
 
@@ -93,20 +100,22 @@ func (t *losslessHexTransport) channel() *p2p.ChannelDescriptor {
 }
 
 func losslessHexPeerV1(peer p2p.Peer) bool {
-	if peer == nil {
+	if !losslessHexBudgetPeerPointer(peer) {
 		return false
 	}
 	info, ok := peer.NodeInfo().(p2p.DefaultNodeInfo)
 	return ok && info.HasChannel(LosslessHexV1Channel)
 }
 
-func (memR *Reactor) losslessHexEnvelope(peer p2p.Peer, msg *protomem.Txs) p2p.Envelope {
+func (memR *Reactor) losslessHexEnvelope(peer p2p.Peer, msg *protomem.Txs) (p2p.Envelope, error) {
 	legacy := p2p.Envelope{ChannelID: MempoolChannel, Message: msg}
 	t := memR.losslessHex.Load()
 	if t == nil || !losslessHexPeerV1(peer) || len(msg.GetTxs()) != 1 {
-		return legacy
+		return legacy, nil
 	}
-	frame, eligible, err := t.codec.Pack(msg.Txs[0])
+	frame, eligible, err := t.codec.pack(msg.Txs[0], func(cost uint64) error {
+		return t.reservePeer(peer, cost)
+	})
 	t.mu.Lock()
 	t.add(&t.totals.PackCalls, 1)
 	if err != nil {
@@ -115,12 +124,28 @@ func (memR *Reactor) losslessHexEnvelope(peer p2p.Peer, msg *protomem.Txs) p2p.E
 		t.add(&t.totals.PackEligible, 1)
 	}
 	t.mu.Unlock()
-	// No frame has been sent at this point. Non-canonical/legacy/unknown forms
-	// retain the original carrier and original validator, exactly one attempt.
-	if err != nil || !eligible {
-		return legacy
+	// Resource/work/format failures on a recognized experimental candidate
+	// terminate locally. Downgrading an error to raw would bypass the finite
+	// attempt/time budget through the blocking legacy send loop.
+	if err != nil {
+		return p2p.Envelope{}, err
 	}
-	return p2p.Envelope{ChannelID: LosslessHexV1Channel, Message: &protomem.LosslessHexV1{Frame: frame}}
+	// Ineligible legacy/unknown shapes select their original carrier before
+	// any send. No failed packed attempt is replayed in another representation.
+	if !eligible {
+		return legacy, nil
+	}
+	return p2p.Envelope{ChannelID: LosslessHexV1Channel, Message: &protomem.LosslessHexV1{Frame: frame}}, nil
+}
+
+func (memR *Reactor) stopLosslessHexSend(peer p2p.Peer, err error) {
+	if t := memR.losslessHex.Load(); t != nil {
+		t.closePeer(peer)
+	}
+	memR.Logger.Error("experimental mempool send stopped without replay", "err", err)
+	// End only this connection's experimental sender. Disconnecting here
+	// would make Switch automatically redial persistent peers and reopen a
+	// fresh budget for the same pending transaction. Other channels stay live.
 }
 
 func (memR *Reactor) recordLosslessHexSend(e p2p.Envelope, queued bool) {
@@ -149,8 +174,18 @@ func (memR *Reactor) rejectLosslessHex(e p2p.Envelope, err error) {
 		t.add(&t.totals.RestoreRejected, 1)
 		t.mu.Unlock()
 	}
+	if errors.Is(err, ErrLosslessHexPeerBudget) {
+		if t := memR.losslessHex.Load(); t != nil {
+			t.closePeer(e.Src)
+		}
+		// Local connection resource limits must not disconnect a persistent
+		// peer and thereby reopen its budget via automatic redial. Keep the
+		// fixed-size rejection counter; avoid per-frame error-log flooding.
+		memR.Logger.Debug("experimental mempool frame dropped at local peer budget", "err", err)
+		return
+	}
 	memR.Logger.Error("experimental mempool frame rejected", "err", err)
-	if memR.Switch != nil && e.Src != nil {
+	if memR.Switch != nil && losslessHexBudgetPeerPointer(e.Src) {
 		memR.Switch.StopPeerForError(e.Src, err)
 	}
 }
@@ -165,6 +200,14 @@ func (memR *Reactor) receiveLosslessHex(e p2p.Envelope, msg *protomem.LosslessHe
 	t.add(&t.totals.ReceivedFrames, 1)
 	t.add(&t.totals.ReceivedFrameBytes, uint64(len(msg.Frame)))
 	t.mu.Unlock()
+	originalLen, _, err := t.codec.inspectFrame(msg.Frame)
+	if err == nil {
+		err = t.reservePeer(e.Src, uint64(len(msg.Frame))+originalLen)
+	}
+	if err != nil {
+		memR.rejectLosslessHex(e, err)
+		return
+	}
 	original, err := t.codec.Restore(msg.Frame)
 	if err != nil {
 		memR.rejectLosslessHex(e, fmt.Errorf("mempool: restore before CheckTx: %w", err))

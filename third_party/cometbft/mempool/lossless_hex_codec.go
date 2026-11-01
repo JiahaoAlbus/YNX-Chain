@@ -37,6 +37,12 @@ var losslessHexKinds = [...]string{
 type LosslessHexLimits struct {
 	MaxFrameBytes int
 	MaxWork       time.Duration
+	// These finite, local limits apply only after explicit experimental enable.
+	// Zero selects the finite default; it never disables a budget.
+	MaxPeerBytes    uint64
+	MaxPeerDuration time.Duration
+	MaxSendAttempts int
+	MaxSendDuration time.Duration
 }
 
 // LosslessHexCodec is an opt-in, single-object transport transform. The caller
@@ -104,6 +110,12 @@ func (c *LosslessHexCodec) checkWork(deadline time.Time) error {
 // A recognized shape with invalid hex, or a resource/deadline failure, returns
 // no frame and an error. Neither outcome performs a send or triggers a retry.
 func (c *LosslessHexCodec) Pack(original []byte) ([]byte, bool, error) {
+	return c.pack(original, nil)
+}
+
+// beforeAlloc is a local resource reservation, never an input-provided grant.
+// Ineligible legacy shapes return before it; no packed frame exists on failure.
+func (c *LosslessHexCodec) pack(original []byte, beforeAlloc func(uint64) error) ([]byte, bool, error) {
 	deadline, err := c.deadline()
 	if err != nil {
 		return nil, false, err
@@ -164,6 +176,11 @@ func (c *LosslessHexCodec) Pack(original []byte) ([]byte, bool, error) {
 	if err := c.checkWork(deadline); err != nil {
 		return nil, false, err
 	}
+	if beforeAlloc != nil {
+		if err := beforeAlloc(uint64(len(original)) + uint64(frameLen)); err != nil {
+			return nil, false, err
+		}
+	}
 	frame := make([]byte, frameLen)
 	copy(frame[:4], "YNXP")
 	frame[4], frame[5], frame[6] = 1, 1, kindID
@@ -214,20 +231,9 @@ func (c *LosslessHexCodec) Restore(frame []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(frame) < losslessHexHeaderBytes || len(frame) > c.maxFrame {
-		return nil, ErrLosslessHexLimit
-	}
-	if !bytes.Equal(frame[:4], []byte("YNXP")) || frame[4] != 1 || frame[5] != 1 || frame[6] == 0 || int(frame[6]) > len(losslessHexKinds) || frame[7] != 0 {
-		return nil, ErrLosslessHexFormat
-	}
-	originalLen := uint64(binary.BigEndian.Uint32(frame[8:12]))
-	rawLen := uint64(binary.BigEndian.Uint32(frame[12:16]))
-	kind := losslessHexKinds[int(frame[6])-1]
-	prefix := losslessHexHead + kind + losslessHexMiddle
-	canonicalLen := uint64(len(prefix)+len(losslessHexTail)) + 2*rawLen
-	if rawLen == 0 || originalLen == 0 || rawLen+losslessHexHeaderBytes != uint64(len(frame)) ||
-		originalLen != canonicalLen || originalLen > uint64(c.maxOriginal) || originalLen > 2*uint64(len(frame)) {
-		return nil, ErrLosslessHexFormat
+	originalLen, prefix, err := c.inspectFrame(frame)
+	if err != nil {
+		return nil, err
 	}
 	if err := c.checkWork(deadline); err != nil {
 		return nil, err
@@ -259,6 +265,30 @@ func (c *LosslessHexCodec) Restore(frame []byte) ([]byte, error) {
 		return nil, err
 	}
 	return original, nil
+}
+
+// inspectFrame validates fixed dimensions without allocating restored payload.
+// The reactor uses the same checks before charging its connection budget.
+func (c *LosslessHexCodec) inspectFrame(frame []byte) (uint64, string, error) {
+	if c == nil {
+		return 0, "", ErrLosslessHexLimit
+	}
+	if len(frame) < losslessHexHeaderBytes || len(frame) > c.maxFrame {
+		return 0, "", ErrLosslessHexLimit
+	}
+	if !bytes.Equal(frame[:4], []byte("YNXP")) || frame[4] != 1 || frame[5] != 1 || frame[6] == 0 || int(frame[6]) > len(losslessHexKinds) || frame[7] != 0 {
+		return 0, "", ErrLosslessHexFormat
+	}
+	originalLen := uint64(binary.BigEndian.Uint32(frame[8:12]))
+	rawLen := uint64(binary.BigEndian.Uint32(frame[12:16]))
+	kind := losslessHexKinds[int(frame[6])-1]
+	prefix := losslessHexHead + kind + losslessHexMiddle
+	canonicalLen := uint64(len(prefix)+len(losslessHexTail)) + 2*rawLen
+	if rawLen == 0 || originalLen == 0 || rawLen+losslessHexHeaderBytes != uint64(len(frame)) ||
+		originalLen != canonicalLen || originalLen > uint64(c.maxOriginal) || originalLen > 2*uint64(len(frame)) {
+		return 0, "", ErrLosslessHexFormat
+	}
+	return originalLen, prefix, nil
 }
 
 func (c *LosslessHexCodec) originalHash(original []byte, deadline time.Time) ([32]byte, error) {

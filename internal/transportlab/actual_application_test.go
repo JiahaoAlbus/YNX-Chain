@@ -281,7 +281,18 @@ func (a *countedActualApplication) observations() (int, []byte, *abci.ResponseCh
 // Receive requires only connection capability/ID metadata in this isolated
 // fixture. No network/peer service is started or simulated. Unexpected calls to
 // any other embedded Peer method fail instead of manufacturing a live peer.
-type actualCarrierCapabilityPeer struct{ p2p.Peer }
+type actualCarrierCapabilityPeer struct {
+	p2p.Peer
+	data sync.Map
+}
+
+func (p *actualCarrierCapabilityPeer) Get(key string) interface{} {
+	v, _ := p.data.Load(key)
+	return v
+}
+func (p *actualCarrierCapabilityPeer) Set(key string, value interface{}) {
+	p.data.Store(key, value)
+}
 
 func (*actualCarrierCapabilityPeer) ID() p2p.ID {
 	return p2p.ID("1111111111111111111111111111111111111111")
