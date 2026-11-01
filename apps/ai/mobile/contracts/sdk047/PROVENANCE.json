@@ -1,0 +1,14 @@
+{
+  "commit": "0475514dd461a3adf0ea316b941888a4677a3a19",
+  "purpose": "Unmodified type-only consumer contracts. No Node runtime, codec, source or Native implementation vendored.",
+  "files": [
+    {
+      "path": "original-ai-task-action-v6-client.d.ts",
+      "sha256": "d3cccbe1f1cd5ad64662f3c711ec516eff4dc16cda3a7fdc814a4d1bde6b53af"
+    },
+    {
+      "path": "product-session-task-action-v6.d.ts",
+      "sha256": "55d31ddc4ed0e27a3474f7909e690f8212c16321a3306fe60a5cb50389b7084d"
+    }
+  ]
+}

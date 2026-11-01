@@ -1,0 +1,82 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {NativeTaskV6Adapter,createTaskV6API,validateV6Journal,type V6Journal,type NativeTaskV6} from './taskV6';
+import {createTaskAPI} from './tasks';
+import type {OriginalAITaskActionV6Intent as Intent,OriginalAITaskActionV6Client as Client,OriginalAITaskActionV6Observation as Observation} from '../contracts/sdk047/original-ai-task-action-v6-client';
+const t={id:'task_original',conversationId:'conversation_original',revision:2,generation:1,holder:'device_original',status:'READY'};
+const request=(action:Intent['action']='task.cancel')=>({action,method:'POST' as const,path:`/api/tasks/${t.id}/cancel`,bodyOriginal:new TextEncoder().encode(JSON.stringify({revision:2,generation:1})),taskId:t.id,taskRevision:'2',generation:'1',stepId:null,runId:null,creationBinding:null});
+function fixture(){
+ let saved:V6Journal|null=null,n=0;const calls:string[]=[],intents:Intent[]=[],writes:string[]=[];let failWrite=false;
+ const client={
+  prepare(i:Intent){calls.push('prepare');assert.ok(saved!.entries.some(e=>e.operationId===i.operationId&&e.state==='PENDING'));intents.push(i);return Object.freeze({})},
+  async prove(p:unknown){calls.push('prove');return p},
+  async send(){calls.push('send');const i=intents.at(-1)!;return {operationId:i.operationId,phase:'COMMITTED',unknown:false,responseOriginal:{status:200,complete:true,headers:[],bodyOriginal:new TextEncoder().encode(JSON.stringify({task:t,...t,tasks:[t],steps:[]}))},toolAuthorized:false,modelAuthorized:false,fundsAuthorized:false,dataOnly:true,RootAdmission:false,NativeAdmission:false,operationVerified:false} as unknown as Observation},
+  async lookupOriginal(op:string){calls.push('lookup:'+op);return {op}},readRecovery(token:{op:string}){calls.push('readRecovery');return {operationId:token.op,evidenceOriginal:new Uint8Array([1,2]),dataOnly:true,RootAdmission:false,NativeAdmission:false,operationVerified:false,replayAuthorized:false}},
+  async close(){calls.push('close')}
+ } as unknown as Client;
+ const original:NativeTaskV6={client,newOperationId:()=>`operation_${++n}`,journal:{async read(){return saved?structuredClone(saved):null},async write(_identity,j){writes.push(JSON.stringify(j));if(failWrite)throw Error('PUBLIC disk failed');saved=structuredClone(j)}}};
+ return {client,original,calls,intents,writes,get saved(){return saved},get failWrite(){return failWrite},set failWrite(v:boolean){failWrite=v}};
+}
+// These are PUBLIC orchestration seams, not signatures, Source or Native admission.
+test('V6 persists original metadata before SDK proof/send and never stores prompt or member',async()=>{
+ const f=fixture(),a=new NativeTaskV6Adapter('PUBLIC',f.original);const r=request();r.bodyOriginal=new TextEncoder().encode('PRIVATE input');const result=await a.execute(r,new AbortController().signal);
+ assert.deepEqual(f.calls,['prepare','prove','send']);assert.equal(result.toolAuthorized,false);assert.equal(f.saved!.entries[0]!.state,'COMMITTED');assert.ok(f.writes.every(w=>!w.includes('PRIVATE input')));assert.ok(Object.isFrozen(f.intents[0]!.abortContext));
+ await assert.rejects(a.execute(r,new AbortController().signal),/ORIGINAL_QUERY_REQUIRED/);assert.equal(f.intents.length,1);
+});
+test('lost SDK outcome survives cold restart; only original lookup, never prove/send/new operation',async()=>{
+ const f=fixture();f.client.send=async()=>{f.calls.push('send');throw Error('PUBLIC lost acknowledgement')};const a=new NativeTaskV6Adapter('PUBLIC',f.original);await assert.rejects(a.execute(request(),new AbortController().signal),/lost acknowledgement/);assert.equal(f.saved!.entries[0]!.state,'UNKNOWN');
+ const cold=new NativeTaskV6Adapter('PUBLIC',f.original);await assert.rejects(cold.execute(request('task.run-start'),new AbortController().signal),/ORIGINAL_QUERY_REQUIRED/);const result=await cold.lookupOriginal('operation_1',new AbortController().signal);assert.equal(result.operationId,'operation_1');assert.equal(result.replayAuthorized,false);assert.equal(f.intents.length,1);assert.equal(f.saved!.entries[0]!.state,'UNKNOWN');
+});
+test('lookup cannot invent operation or silently import old V2 journal',async()=>{
+ const f=fixture(),a=new NativeTaskV6Adapter('PUBLIC',f.original);await assert.rejects(a.lookupOriginal('foreign',new AbortController().signal),/NOT_RETAINED/);assert.equal(f.calls.length,0);assert.throws(()=>validateV6Journal({selectedTask:'old',runId:'old',deliveries:[]}),/JOURNAL_INVALID/);
+});
+test('cancel during held review prevents SDK send and preserves UNKNOWN original operation',async()=>{
+ const f=fixture();let entered!:()=>void,release!:()=>void;const started=new Promise<void>(r=>entered=r),wait=new Promise<void>(r=>release=r);f.client.prove=async p=>{entered();await wait;return p};const a=new NativeTaskV6Adapter('PUBLIC',f.original),abort=new AbortController();const p=a.execute(request(),abort.signal);await started;abort.abort();release();await assert.rejects(p,/CANCELLED/);assert.ok(!f.calls.includes('send'));assert.equal(f.saved!.entries[0]!.firstCause,'CANCELLED');
+});
+test('pre-dispatch storage failure never reaches SDK and retained in-memory original cannot retry',async()=>{
+ const f=fixture(),a=new NativeTaskV6Adapter('PUBLIC',f.original);f.failWrite=true;await assert.rejects(a.execute(request(),new AbortController().signal),/disk failed/);f.failWrite=false;await assert.rejects(a.execute(request(),new AbortController().signal),/ORIGINAL_QUERY_REQUIRED/);assert.equal(f.calls.length,0);
+});
+test('concurrent same binding reserves once and no new operation escapes UNKNOWN',async()=>{
+ const f=fixture(),a=new NativeTaskV6Adapter('PUBLIC',f.original);const results=await Promise.allSettled([a.execute(request(),new AbortController().signal),a.execute(request(),new AbortController().signal)]);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);assert.equal(f.intents.length,1);
+});
+test('wrong operation / unresolved outcome rejected without promoting local receipt',async()=>{
+ for(const result of [{operationId:'foreign',phase:'COMMITTED',unknown:false},{operationId:'operation_1',phase:'UNKNOWN',unknown:true}]){const f=fixture();f.client.send=async()=>result as Observation;const a=new NativeTaskV6Adapter('PUBLIC',f.original);await assert.rejects(a.execute(request(),new AbortController().signal),/UNRESOLVED/);assert.equal(f.saved!.entries[0]!.state,'UNKNOWN')}
+});
+test('normal credentials without genuine factory cannot mutate and never fall back to V2',async()=>{
+ let n=0;const api=createTaskAPI('http://127.0.0.1:6438',{identity:'PUBLIC',proof:async()=>{n++;return 'PUBLIC'}},async()=>{n++;return new Response('{}')});await assert.rejects(api.cancel(t,new AbortController().signal),/FACTORY_NOT_SUPPLIED_LEGACY_QUERY_ONLY/);assert.equal(n,0);
+});
+test('normal createTaskAPI selects V6 client; no legacy proof or fetch, unregistered handoff stays unavailable',async()=>{
+ const f=fixture();let legacy=0;const api=createTaskAPI('http://127.0.0.1:6438',{identity:'PUBLIC',v6:f.original,proof:async()=>{legacy++;throw Error('legacy')}},async()=>{legacy++;throw Error('legacy fetch')});const created=await api.create(t.conversationId,new AbortController().signal);assert.equal(created.id,t.id);assert.equal(f.intents[0]!.action,'task.create');assert.deepEqual(f.intents[0]!.creationBinding,{conversationId:t.conversationId});assert.equal(legacy,0);await assert.rejects(api.handoff(t,'next','ref',new AbortController().signal),/UNREGISTERED/);
+});
+test('V6 cancel and both model bodies consume exact frozen request operands',async()=>{
+ const f=fixture(),api=createTaskV6API('PUBLIC',f.original),signal=new AbortController().signal;await api.cancel(t,signal);await api.run(t,'run_original','PRIVATE prompt','PRIVATE ref',['shop.order.read'],false,signal);await api.run(t,'run_original','','PRIVATE ref',[],true,signal);
+ assert.deepEqual(f.intents.map(i=>i.action),['task.cancel','task.run-start','task.run-resume']);assert.equal(f.intents[1]!.taskRevision,'2');assert.deepEqual(JSON.parse(new TextDecoder().decode(f.intents[1]!.bodyOriginal)).toolIds,['shop.order.read']);assert.equal(JSON.parse(new TextDecoder().decode(f.intents[2]!.bodyOriginal)).resume,true);assert.ok(f.writes.every(w=>!w.includes('PRIVATE')));
+});
+test('V6 current task observations cache snapshots; missing snapshot refuses before SDK',async()=>{
+ const f=fixture(),api=createTaskV6API('PUBLIC',f.original),signal=new AbortController().signal;await assert.rejects(async()=>api.task(t.id,signal),/SNAPSHOT_REQUIRED/);assert.equal(f.calls.length,0);await api.list(signal);await api.task(t.id,signal);assert.equal(f.intents[1]!.action,'task.read');assert.equal(f.intents[1]!.taskRevision,'2');
+});
+test('close aborts in-flight review, drains original client, forbids further execution',async()=>{
+ const f=fixture();let enter!:()=>void;const started=new Promise<void>(r=>enter=r);f.client.prove=async p=>{enter();await new Promise<void>(r=>f.intents[0]!.abortContext.signal.addEventListener('abort',()=>r(),{once:true}));return p};const a=new NativeTaskV6Adapter('PUBLIC',f.original);const p=a.execute(request(),new AbortController().signal);await started;const closing=a.close();await assert.rejects(p,/CANCELLED/);await closing;assert.equal(f.calls.at(-1),'close');assert.ok(!f.calls.includes('send'));await assert.rejects(a.execute(request(),new AbortController().signal),/CLOSED/);
+});
+test('malformed or duplicated persisted V6 metadata cannot create a new request',()=>{
+ const entry={version:'6',operationId:'original',binding:'PUBLIC',action:'task.cancel',taskId:t.id,state:'UNKNOWN'};assert.throws(()=>validateV6Journal({version:'6',entries:[entry,entry]}),/JOURNAL_INVALID/);assert.throws(()=>validateV6Journal({version:'6',entries:[{...entry,member:'secret'}]}),/JOURNAL_INVALID/);
+});
+test('V6 snapshots body/task/creation fields before asynchronous journal read',async()=>{
+ const f=fixture();let release!:()=>void;const wait=new Promise<void>(r=>release=r);f.original.journal.read=async()=>{await wait;return null};const a=new NativeTaskV6Adapter('PUBLIC',f.original),r=request();const originalBytes=r.bodyOriginal.slice();const p=a.execute(r,new AbortController().signal);r.path='/api/tasks/foreign/cancel';r.taskRevision='999';r.bodyOriginal.fill(0);release();await p;assert.equal(f.intents[0]!.path,'/api/tasks/task_original/cancel');assert.equal(f.intents[0]!.taskRevision,'2');assert.deepEqual(f.intents[0]!.bodyOriginal,originalBytes);
+});
+test('close owns cold lookup cancellation and drains without new proof/send',async()=>{
+ const f=fixture(),a=new NativeTaskV6Adapter('PUBLIC',f.original);await a.execute(request(),new AbortController().signal);let enter!:()=>void;const entered=new Promise<void>(r=>enter=r);f.client.lookupOriginal=async(_op,c)=>{enter();await new Promise<void>(r=>c.signal.addEventListener('abort',()=>r(),{once:true}));throw Error('PUBLIC original lookup cancelled')};const lookup=a.lookupOriginal('operation_1',new AbortController().signal);await entered;const closing=a.close();await assert.rejects(lookup,/lookup cancelled/);await closing;assert.equal(f.calls.filter(c=>c==='prepare').length,1);assert.equal(f.calls.at(-1),'close');
+});
+test('old V2 task/delivery stays query-only under a V6 session; no migration or auto re-sign',async()=>{
+ const {TaskWorkspaceController}=await import('./tasks');const f=fixture();let proofs=0;
+ const api=createTaskAPI('http://127.0.0.1:6438',{identity:'PUBLIC',v6:f.original,proof:async()=>{proofs++;return 'PUBLIC-old-query'}},async()=>new Response(JSON.stringify({taskId:t.id,runId:'old_run',status:'UNKNOWN',recoveryOnly:true})));
+ const old={selectedTask:t.id,runId:'old_run',deliveries:[{id:'v2_delivery',binding:'old',action:'run',taskId:t.id,runId:'old_run',state:'UNKNOWN' as const}]};let saved=structuredClone(old);
+ const c=new TaskWorkspaceController('PUBLIC',api,{read:async()=>structuredClone(saved),write:async(_i,v)=>{saved=structuredClone(v) as typeof old}},()=> 'new_delivery');await c.restore();c.state.projection={...t,cursor:0,hasMore:false,events:[],steps:[]};
+ await c.prepare(t);assert.match(c.state.error,/LEGACY_V2_TASK_QUERY_ONLY/);await c.cancel(t);assert.match(c.state.error,/LEGACY_V2_TASK_QUERY_ONLY/);assert.equal(f.intents.length,0);
+ const oldResult=await c.recoverLegacyRun(t.id,'old_run',new AbortController().signal);assert.equal(oldResult.status,'UNKNOWN');assert.equal(proofs,1);assert.deepEqual(saved,old);assert.equal(f.intents.length,0);
+});
+test('vendored SDK047 types are byte-exact supplier contracts, with no executable codec',async()=>{
+ const {readFile}=await import('node:fs/promises');const {createHash}=await import('node:crypto');const provenance=JSON.parse(await readFile(new URL('../contracts/sdk047/PROVENANCE.json',import.meta.url),'utf8'));assert.equal(provenance.commit,'0475514dd461a3adf0ea316b941888a4677a3a19');for(const f of provenance.files){const b=await readFile(new URL('../contracts/sdk047/'+f.path,import.meta.url));assert.equal(createHash('sha256').update(b).digest('hex'),f.sha256);assert.ok(f.path.endsWith('.d.ts'))}
+});
+test('normal workspace disposal owns original SDK close exactly once and exposes cleanup failure',async()=>{
+ const {TaskWorkspaceController}=await import('./tasks');const f=fixture();let n=0;f.client.close=async()=>{n++;throw Error('PUBLIC close retained')};const api=createTaskAPI('http://127.0.0.1:6438',{identity:'PUBLIC',v6:f.original});const c=new TaskWorkspaceController('PUBLIC',api,{read:async()=>null,write:async()=>{}},()=> 'unused');c.dispose();c.dispose();await assert.rejects(c.whenClosed(),/close retained/);assert.equal(n,1);assert.equal(c.state.error,'V6_ORIGINAL_CLEANUP_UNRESOLVED');
+});
