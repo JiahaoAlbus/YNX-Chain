@@ -1,0 +1,37 @@
+{
+  "schema": "AUTH-PENDING-AND-MANAGEMENT-NORMAL-SERVER/v1",
+  "normalStartup": "openOriginalProductPairSessionV4HTTPRoutes -> openOriginalProductPairSessionV4Daemon",
+  "newFactorySuccess": "adopt nonnull partial first; own error:null AND private owner brand only",
+  "legacyCombinedFactorySuccess": "unchanged error:undefined convention; per-route status/failure presence are independent",
+  "roles": [
+    {"purpose":"product-device-pending-original-query-v1","factory":"acquireOriginalPendingPairQueryServerV1","operations":["original-pair-query"],"store":"existing namespace readonly"},
+    {"purpose":"product-session-registered-management-service-v4","factory":"acquireOriginalRegisteredManagementServerV4","allowlist":["active","cancel-challenge","revoke-registration","revoke-session"],"store":"existing namespace writer plus readonly current"},
+    {"purpose":"product-session-completion-query-service-v4","factory":"acquireOriginalCompletionQueryServerV4","allowlist":["completion-query-original"],"store":"existing namespace readonly"}
+  ],
+  "serviceSelection": {"closedFields":["manifest","registry","node","rootPlan","storage"],"independentRootCurrentPlanRequired":true,"oldIssuerOrClientRoleInherits":false,"rowCountEach":0},
+  "manifest": {
+    "closedFields":["version","purpose","networkId","registryId","productRegistrySHA256","nodeBindingSHA256","issuedAtMs","expiresAtMs","deviceBindings","serviceOrigin"],
+    "managementExtraField":"managementOperations",
+    "version":"4",
+    "serviceOrigin":"https://wallet-auth.ynxweb4.com",
+    "deviceBindingExactFields":["canonicalOwner","deviceId","globalDeviceId","generation","pkA","pkB","registrationDigest"],
+    "registrationDigest":"SHA256 complete original canonical registration20 bytes",
+    "trust":"existing release-selected Root-owned protected tuple and digest; not a caller-approved JSON file"
+  },
+  "transport": {
+    "pending":{"method":"POST","path":"/v4/product-pairs/original-query","header":"x-ynx-product-pair-original-query-proof-v1","proofHeaderChars":131072,"totalHeaderBytes":147456,"bodyBytes":1024,"body":"sole canonical query3","member":"sole registered E13/N1"},
+    "management":{"method":"POST","paths":["/v4/product-sessions/active","/v4/product-sessions/recover","/v4/product-sessions/revoke","/v4/product-session-challenges/cancel"],"header":"x-ynx-product-session-proof-v4","proofHeaderBytes":196608,"totalHeaderBytes":262144,"bodyBytes":393216,"body":"sole V4 management wire unchanged","member":"original HTTP21/E5/N1"},
+    "otherRoutesBudgetUnchanged":true,
+    "intermediaryTLSProxyBudgetVerified":false
+  },
+  "pendingSequence":["sole untrusted claim capture","independent Source/register/current","sole registered N1 stage","original SQLite snapshot","sole full original PAIR inspection when row exists","snapshot and Source current","DATA projection","same-child staged cleanup and late fence"],
+  "registeredEffectSequence":["independent role allowlist","original Source/current/register","actual HTTP21 math/body","original server Current/session-history math","target original/window","drain pre-active reader","independent Source current","original nonce consume","durable original reserve","exact target original CAS","original terminal/audit and target revoked/cancelled","independent Source current"],
+  "completionQuery":"only COMPLETE original and actual approval/challenge derive; never PAIR or active session grant",
+  "unknown":"no rePOST/re-sign/new nonce/op/ticket; observe only original durable state",
+  "RootAdmission":false,
+  "SourcePositiveActivation":false,
+  "NativeAdmission":false,
+  "realRootSign":false,
+  "realKeyRead":false,
+  "listenerStarted":false
+}

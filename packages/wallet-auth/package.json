@@ -524,6 +524,18 @@
       "browser": null,
       "node": "./native/management-source-contract.mjs",
       "default": null
+    },
+    "./product-pair-pending-query-server": {
+      "types": "./src/product-pair-pending-query-server.d.mts",
+      "browser": null,
+      "node": "./src/product-pair-pending-query-server.mjs",
+      "default": null
+    },
+    "./product-session-management-server": {
+      "types": "./src/product-session-management-server.d.mts",
+      "browser": null,
+      "node": "./src/product-session-management-server.mjs",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -801,7 +813,9 @@
     "native/original-device-v4-management-originals-driver.mjs",
     "native/inherited/canonical.js",
     "native/inherited/canonical.d.ts",
-    "docs/DEVICE_V4_MANAGEMENT_SOURCE_V2.md"
+    "docs/DEVICE_V4_MANAGEMENT_SOURCE_V2.md",
+    "docs/NORMAL_DEVICE_V4_HTTP_SERVER.md",
+    "docs/NORMAL_DEVICE_V4_HTTP_SERVER.json"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
