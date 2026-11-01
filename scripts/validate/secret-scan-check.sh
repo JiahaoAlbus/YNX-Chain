@@ -8,6 +8,8 @@ source_root=$(cd -- "$script_dir/../.." && pwd -P)
 scanner="$script_dir/secret-scan.sh"
 fixture_path='third_party/cometbft/rpc/jsonrpc/server/test.key'
 public_fixture="$source_root/$fixture_path"
+http_v5_fixture_path='internal/ynxbatch/testdata/product-session-proof-v5-public.json'
+http_v5_public_fixture="$source_root/$http_v5_fixture_path"
 bash_bin=$(command -v bash)
 git_bin=$(command -v git)
 original_path=$PATH
@@ -16,7 +18,8 @@ original_path=$PATH
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR
 unset GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES
 
-if [[ ! -f "$scanner" || ! -f "$public_fixture" || -L "$public_fixture" ]]; then
+if [[ ! -f "$scanner" || ! -f "$public_fixture" || -L "$public_fixture" ||
+      ! -f "$http_v5_public_fixture" || -L "$http_v5_public_fixture" ]]; then
   echo 'secret-scan-check: required production source or public fixture missing' >&2
   exit 1
 fi
@@ -50,6 +53,11 @@ public_fixture_copy() {
   cp -- "$public_fixture" "$repo/$fixture_path"
 }
 
+http_v5_fixture_copy() {
+  mkdir -p -- "$repo/$(dirname -- "$http_v5_fixture_path")"
+  cp -- "$http_v5_public_fixture" "$repo/$http_v5_fixture_path"
+}
+
 key_header() {
   # Split literals so this regression source is itself clean under the scanner.
   printf '%s%s%s\n' '-----BEGIN ' 'PRIVATE ' 'KEY-----'
@@ -76,6 +84,124 @@ stub_command() {
   printf '#!/bin/sh\nexit %s\n' "$status" >"$case_dir/bin/$name"
   chmod 0700 "$case_dir/bin/$name"
 }
+
+digest_then_mutate() {
+  local mutation=$1 hash_bin
+  mkdir -p -- "$case_dir/bin"
+  {
+    printf '#!%s\nset -euo pipefail\n' "$bash_bin"
+    if hash_bin=$(command -v sha256sum); then
+      printf '%q ' "$hash_bin"
+    else
+      hash_bin=$(command -v shasum)
+      printf '%q ' "$hash_bin" -a 256
+    fi
+    printf '"$@"\n'
+    case "$mutation" in
+      replacement)
+        printf 'mv -- %q %q\n' "$repo/$http_v5_fixture_path" "$case_dir/original.json"
+        printf 'cp -- %q %q\n' "$case_dir/original.json" "$repo/$http_v5_fixture_path"
+        ;;
+      leaf-symlink)
+        printf 'mv -- %q %q\n' "$repo/$http_v5_fixture_path" "$case_dir/original.json"
+        printf 'ln -s -- %q %q\n' "$case_dir/original.json" "$repo/$http_v5_fixture_path"
+        ;;
+      parent-symlink)
+        printf 'mv -- %q %q\n' "$repo/internal/ynxbatch/testdata" "$case_dir/original-testdata"
+        printf 'ln -s -- %q %q\n' "$case_dir/original-testdata" "$repo/internal/ynxbatch/testdata"
+        ;;
+      *) return 1 ;;
+    esac
+  } >"$case_dir/bin/sha256sum"
+  chmod 0700 "$case_dir/bin/sha256sum"
+}
+
+# These existing public member encodings contain accidental token-shaped
+# substrings. Only the exact source-pinned path/bytes and regular-file identity
+# qualify; none of the scanner's token patterns or other inputs are relaxed.
+new_case exact-public-http-v5-fixture
+http_v5_fixture_copy
+expect_exit 0
+
+new_case changed-public-http-v5-fixture
+http_v5_fixture_copy
+printf '\n' >>"$repo/$http_v5_fixture_path"
+expect_exit 2
+
+new_case same-size-changed-public-http-v5-fixture
+http_v5_fixture_copy
+printf 'X' | dd of="$repo/$http_v5_fixture_path" bs=1 count=1 conv=notrunc 2>>"$case_dir/setup.stderr"
+expect_exit 2
+
+new_case replaced-public-http-v5-fixture
+http_v5_fixture_copy
+rm -- "$repo/$http_v5_fixture_path"
+printf 'ordinary replacement without a token\n' >"$repo/$http_v5_fixture_path"
+expect_exit 2
+
+new_case public-http-v5-fixture-at-another-path
+cp -- "$http_v5_public_fixture" "$repo/unlisted-public.json"
+expect_exit 1
+
+new_case public-http-v5-fixture-symlink
+mkdir -p -- "$repo/$(dirname -- "$http_v5_fixture_path")"
+cp -- "$http_v5_public_fixture" "$case_dir/public.json"
+ln -s -- "$case_dir/public.json" "$repo/$http_v5_fixture_path"
+expect_exit 2
+
+new_case public-http-v5-fixture-parent-symlink
+http_v5_fixture_copy
+(cd -- "$repo" && "$git_bin" add -- "$http_v5_fixture_path")
+mv -- "$repo/internal/ynxbatch/testdata" "$case_dir/public-testdata"
+ln -s -- "$case_dir/public-testdata" "$repo/internal/ynxbatch/testdata"
+expect_exit 2
+
+new_case public-http-v5-fixture-hardlink-alias
+mkdir -p -- "$repo/$(dirname -- "$http_v5_fixture_path")"
+cp -- "$http_v5_public_fixture" "$case_dir/public.json"
+ln -- "$case_dir/public.json" "$repo/$http_v5_fixture_path"
+expect_exit 2
+
+new_case public-http-v5-fixture-executable-mode
+http_v5_fixture_copy
+chmod 0755 "$repo/$http_v5_fixture_path"
+expect_exit 2
+
+new_case missing-tracked-public-http-v5-fixture
+http_v5_fixture_copy
+(cd -- "$repo" && "$git_bin" add -- "$http_v5_fixture_path")
+rm -- "$repo/$http_v5_fixture_path"
+expect_exit 2
+
+new_case public-http-v5-fixture-does-not-hide-real-marker
+http_v5_fixture_copy
+printf '%s%s\n' 'sk-' 'AAAAAAAAAAAAAAAAAAAA' >"$repo/input.txt"
+expect_exit 1
+
+new_case public-http-v5-fixture-digest-command-error
+http_v5_fixture_copy
+stub_command sha256sum 1
+expect_exit 2 "$case_dir/bin:$original_path"
+
+new_case public-http-v5-fixture-metadata-command-error
+http_v5_fixture_copy
+stub_command stat 1
+expect_exit 2 "$case_dir/bin:$original_path"
+
+new_case public-http-v5-fixture-replaced-during-digest
+http_v5_fixture_copy
+digest_then_mutate replacement
+expect_exit 2 "$case_dir/bin:$original_path"
+
+new_case public-http-v5-fixture-leaf-symlink-during-digest
+http_v5_fixture_copy
+digest_then_mutate leaf-symlink
+expect_exit 2 "$case_dir/bin:$original_path"
+
+new_case public-http-v5-fixture-parent-symlink-during-digest
+http_v5_fixture_copy
+digest_then_mutate parent-symlink
+expect_exit 2 "$case_dir/bin:$original_path"
 
 new_case clean
 printf 'ordinary source input\n' >"$repo/clean.txt"
