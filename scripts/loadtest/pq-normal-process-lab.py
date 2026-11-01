@@ -77,6 +77,55 @@ def validate_wire_observation(record):
     return snapshot
 
 
+def network_baseline_result(network,accounting,reader,public):
+    """Qualify the explicit wire/TCP profile separately from business proofs."""
+    expected={n["name"]:n for n in network.binding["nodes"]}
+    wire_errors=[];retention_errors=[]
+    for side in ("start","end"):
+        checkpoint=getattr(network,side,None) or {}
+        rows=checkpoint.get("nodes",[])
+        if len(rows)!=4 or {r.get("name") for r in rows}!=set(expected):
+            wire_errors.append(side+":four_original_live_nodes_missing")
+        for row in rows:
+            if row.get("liveStatus")!="OBSERVED" or row.get("live") is None:
+                wire_errors.append(side+":"+str(row.get("name"))+":"+str(row.get("liveReason")))
+    rows=accounting.get("nodes",[])
+    if len(rows)!=4 or {r.get("name") for r in rows}!=set(expected):
+        wire_errors.append("four_original_wire_deltas_missing")
+    for row in rows:
+        window=row.get("liveWindow",{})
+        if row.get("logical",{}).get("status")!="OBSERVED" or window.get("clock")!="CLOCK_MONOTONIC" or any(
+            window.get("wireStatus",{}).get(side,{}).get("complete") is not True for side in ("start","end")):
+            wire_errors.append(str(row.get("name"))+":wire_or_lifetime_delta_unknown")
+    records=reader.evidence
+    identities={(r.get("node"),r.get("phase")) for r in records}
+    if len(records)!=8 or identities!={(name,phase) for name in expected for phase in ("before","after")}:
+        retention_errors.append("eight_original_read_records_missing_or_duplicated")
+    if set(reader.slots)!=set(expected) or any(slot["next"]!=2 or slot["retired"] or not slot["observed"] for slot in reader.slots.values()):
+        retention_errors.append("original_two_slot_sessions_not_closed")
+    for row in records:
+        node=expected.get(row.get("node"),{})
+        if row.get("status")!="OBSERVED" or row.get("pid")!=node.get("pid") or row.get("startTicks")!=node.get("startTicks"):
+            retention_errors.append(str(row.get("node"))+":original_read_unknown_or_identity_changed")
+        originals=row.get("originalFiles",[]);phase=row.get("phase");name=row.get("node")
+        paths={"network-live-originals/"+str(name)+"-"+str(phase)+"-"+slot for slot in
+               ("producer.json",str(phase)+".request",str(phase)+".raw.json",str(phase)+".result.json")}
+        if len(originals)!=4 or {f.get("path") for f in originals}!=paths:
+            retention_errors.append(str(name)+":four_original_files_not_retained")
+        for ref in originals:
+            try:public_file(public,ref)
+            except (OSError,ValueError,KeyError,RuntimeError) as error:
+                retention_errors.append(str(name)+":retained_original_file_invalid:"+type(error).__name__)
+    tcp=accounting.get("tcp",{})
+    tcp_observed=tcp.get("status")=="OBSERVED_ENDPOINT_DELTA" and tcp.get("complete") is True
+    wire=dict(status="UNKNOWN" if wire_errors else "OBSERVED",reasons=wire_errors)
+    retained=dict(status="UNKNOWN" if retention_errors else "OBSERVED",reasons=retention_errors,expectedReads=8,actualReads=len(records))
+    return dict(status="OBSERVED" if not wire_errors and not retention_errors and tcp_observed else "UNKNOWN",
+                wire=wire,originalReadClosure=retained,tcp=dict(status=tcp.get("status","UNKNOWN"),complete=tcp.get("complete",False),firstCause=tcp.get("firstCause"),reasons=tcp.get("reasons",[])),
+                tcpCoverage="matched endpoint sockets only; incomplete total traffic and physical coverage remain unmeasured",
+                losslessRequired=False,protoRequired=False,physicalBytesMeasured=False,qualifiedCount=None)
+
+
 def original_plan(created,root):
     p=created["plan"]
     lab.require(p["version"]=="YNX-PQ-LOOPBACK-NETWORK/v1" and p["syntheticOnly"] is True and p["publicNetwork"] is False,"original synthetic-only plan required")
@@ -386,7 +435,8 @@ class Ceremony:
             functional.append(self.traffic("functional-owner-%d"%request["owner"],request["owner"]))
         if network is not None:
             # Actual hot functional traffic plus drain only; never cold-first-packet.
-            network.finish(None)
+            accounting=network.finish(None)
+            self.network_baseline=network_baseline_result(network,accounting,self.live_reader,self.w.work/"public")
         node_pids=[p.pid for p in self.nodes]
         self.w.stopping=True
         for proc in self.nodes:proc.send_signal(signal.SIGTERM)
@@ -397,7 +447,9 @@ class Ceremony:
         lab.require(len(set(full_hashes))==1,"four stopped full committed states differ; no fields projected away")
         proofs=[]
         for row in functional:proofs.append(self.verify_stopped(row))
-        return dict(phaseComplete=True,activation=activation,signingMode=self.mode,functionalCohort=proofs,
+        baseline=getattr(self,"network_baseline",None)
+        return dict(phaseComplete=network is None or baseline["status"]=="OBSERVED",functionalPhaseComplete=True,networkBaseline=baseline,
+                    activation=activation,signingMode=self.mode,functionalCohort=proofs,
                     preparationTrafficEnvelopes=self.next_workload-4,functionalEnvelopes=4,registrationEnvelopes=4,
                     measuredWindowEnvelopes=0,originalCorpusOwnerCount=8,independentFunctionalOwners=4,
                     normalNodeProcessPIDs=node_pids,allFourStoppedStateSHA256=full_hashes[0],PQQuorumVerified=True,
@@ -494,7 +546,7 @@ def run(args):
     lab.require(ctypes.CDLL(None,use_errno=True).prctl(36,1,0,0,0)==0,"Linux subreaper required")
     work=Path(tempfile.mkdtemp(prefix="pq-normal-process-",dir=parent));work.chmod(0o700)
     (work/".private").mkdir(mode=0o700);(work/"public").mkdir(mode=0o700)
-    w=lab.Window(source,work,additional_storage=(source,));result=dict(schema="YNX-PQ-NORMAL-PROCESS-CEREMONY/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],signingMode=args.mode,firstCause=None,phaseComplete=False,sameHost=True,physicalFaultDomains=1,configuredFunctionalDenominator=4,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED")
+    w=lab.Window(source,work,additional_storage=(source,));result=dict(schema="YNX-PQ-NORMAL-PROCESS-CEREMONY/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],signingMode=args.mode,firstCause=None,phaseComplete=False,functionalPhaseComplete=False,sameHost=True,physicalFaultDomains=1,configuredFunctionalDenominator=4,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED")
     ceremony=None
     try:
         bins=work/".private/bin"
@@ -509,8 +561,11 @@ def run(args):
         if live_requested:
             ceremony.live_reader=live_module.NormalLiveReader(ceremony,lab)
             ceremony.network_profile=dict(source=args.commit,tools=lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"))
+            result["networkBaseline"]=dict(status="UNKNOWN",reason="explicit live baseline not completed")
             result["networkBaselineScope"]="hot functional four-owner traffic plus drain; cold/legacy/failure and physical bytes unmeasured"
         result.update(ceremony.execute())
+        if live_requested:
+            lab.require(result["networkBaseline"]["status"]=="OBSERVED","explicit live baseline incomplete; functional proofs do not qualify missing network observations")
         lab.check_source(source,args.commit)
     except BaseException as error:result["firstCause"]=str(error)
     finally:
@@ -520,6 +575,8 @@ def run(args):
         result["wireObservationRequested"]=observe_wire
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()
+            if getattr(ceremony,"network_baseline",None) is not None:
+                result["networkBaseline"]=ceremony.network_baseline
             if getattr(ceremony,"live_reader",None) is not None:
                 result["liveNetworkReads"]=ceremony.live_reader.evidence
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,

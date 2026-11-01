@@ -7,6 +7,7 @@ import sys
 import unittest
 
 GROUPS=[
+ ('test_pq_normal_network_baseline.py',None,5),
  ('test_pq_normal_live_reader.py',None,15),
  ('test_pq_initialization_readback.py',None,8),
  ('test_pq_cold_readiness.py',None,10),

@@ -230,7 +230,9 @@ class NormalLiveReaderControls(unittest.TestCase):
         c.begin_network_baseline = begin
         c.traffic = lambda name, owner: events.append('traffic') or dict(owner=owner)
         c.verify_stopped = lambda row: events.append('proof') or row
-        result = c.execute()
+        with mock.patch.object(normal, 'network_baseline_result', return_value=dict(status='OBSERVED')):
+            c.live_reader = None
+            result = c.execute()
         self.assertEqual(events[:2], ['prepared', 'network-before'])
         self.assertEqual(events[2:6], ['traffic'] * 4)
         self.assertEqual(events[6], ('network-after', None))
