@@ -247,7 +247,11 @@ class NormalLiveReaderControls(unittest.TestCase):
 
     def test_missing_source_qualification_blocks_before_build_or_key_actions(self):
         args = SimpleNamespace(source='/unused', commit='a' * 40, mode='online', live_network_baseline=True, execute=True)
-        with mock.patch.object(normal.lab, 'check_source', return_value={}), mock.patch.object(normal.lab, 'git'), \
+        loader = SimpleNamespace(exec_module=lambda value: None)
+        with mock.patch.object(reader, 'NORMAL_LIVE_SOURCE_QUALIFICATION', None), \
+             mock.patch.object(normal.lab, 'check_source', return_value={}), mock.patch.object(normal.lab, 'git'), \
+             mock.patch.object(normal.importlib.util, 'spec_from_file_location', return_value=SimpleNamespace(loader=loader)), \
+             mock.patch.object(normal.importlib.util, 'module_from_spec', return_value=reader), \
              mock.patch.object(normal.lab, 'Window') as window:
             with self.assertRaisesRegex(RuntimeError, 'qualification not supplied'): normal.run(args)
             window.assert_not_called()

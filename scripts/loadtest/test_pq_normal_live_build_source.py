@@ -47,7 +47,7 @@ class MatchingSourceControls(unittest.TestCase):
 
     def compose(self,source,dest,q,core,git):
         loader=SimpleNamespace(exec_module=lambda module:None)
-        with mock.patch.object(reader,'NORMAL_LIVE_SOURCE_QUALIFICATION',q), \
+        with mock.patch.object(reader,'NORMAL_LIVE_SOURCE_QUALIFICATION',q), mock.patch.object(reader,'verify_qualification_evidence'), \
              mock.patch.object(reader.subprocess,'check_output',side_effect=git), \
              mock.patch.object(reader.importlib.util,'spec_from_file_location',return_value=SimpleNamespace(loader=loader)), \
              mock.patch.object(reader.importlib.util,'module_from_spec',return_value=core):

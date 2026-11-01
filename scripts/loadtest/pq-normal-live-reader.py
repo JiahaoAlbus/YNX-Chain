@@ -1,7 +1,7 @@
 """Consume Core's original private two-slot live CLI; never a publisher.
 
-Source qualification is deliberately absent until Core freezes the matching
-normal source, module and tagged CI build. Contract controls are not live data.
+Source qualification pins the original matching normal source/module/tagged CI.
+It permits only the selected finite baseline; source tests are not live data.
 """
 import hashlib
 import importlib.util
@@ -16,7 +16,7 @@ import time
 
 VERSION = 'YNX-OPERATOR-LIVE-WIRE/v1'
 BUILD_TAG = 'ynx_live_wire_observation'
-NORMAL_LIVE_SOURCE_QUALIFICATION = None
+NORMAL_LIVE_SOURCE_QUALIFICATION = {'commit': 'd9038b9292f9c28d38decb9717282e50febffdb1', 'tree': '66d6f8f2ddce1a08202d5b32e0e216debfabbdeb', 'forkTree': '54e88e6aba735eaceeb2d00bb40731248c673bd7', 'optionalForkCommit': '54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076', 'optionalForkTree': 'b1e9a83ab11ed141fda90bc47521faa412176caa', 'buildTag': 'ynx_live_wire_observation', 'compositionScriptSHA256': 'f9c83d7a7d7dc1c2ccbbd15795ba22b1d54e28a81d9084a813a8fb71c4b55839', 'ciEvidenceSHA256': '3feeb37aa87da683ec30d80f14a6239a9721e346bc0c42bbfdfc89e8a7119dc4', 'sourceCI': {'run': 41317363794, 'job': 124880188598, 'artifact': 13088047288}, 'scope': 'original normal online finite wire/TCP baseline only', 'pressureAuthorized': False}
 LIMIT = 128 << 10
 
 
@@ -32,7 +32,14 @@ def qualify(identity):
     require(all(identity[k] == q[k] for k in ('commit', 'tree', 'forkTree')) and
             q['buildTag'] == BUILD_TAG and q['ciEvidenceSHA256'],
             'exact normal live source profile required')
+    verify_qualification_evidence(q)
     return dict(q)
+
+
+def verify_qualification_evidence(q):
+    spec=importlib.util.spec_from_file_location('original_normal_live_source_data',Path(__file__).with_name('pq-normal-live-source-data.py'))
+    original=importlib.util.module_from_spec(spec);spec.loader.exec_module(original)
+    require(original.qualification()==q,'original source-CI qualification differs')
 
 
 def prepare_matching_source(source, destination):
