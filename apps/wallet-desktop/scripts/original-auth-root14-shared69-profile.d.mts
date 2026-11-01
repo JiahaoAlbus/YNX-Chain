@@ -1,0 +1,13 @@
+export const ROOT14_PRODUCT45_ROLE: 'YNX_ROOT14_PRODUCT45_RESOURCE8_SHARED69_NORMAL_NATIVE/v1';
+export const ROOT14_PRODUCT45_MANIFEST: 'apps/wallet-desktop/native/original-wallet-root14-resource8-shared69-build-inputs.json';
+export type Pin = Readonly<{path:string;bytes:number;sha256:string}>;
+export type Command = Readonly<{tool:string;argv:readonly string[]}>;
+export type Shared69Plan = Readonly<{recipeRole:typeof ROOT14_PRODUCT45_ROLE;sourceRoot:string;normalManifest:string;commands:readonly Command[];postCommands:readonly Command[];output:string;linked:string;outputRoot:string;objectOutputs:readonly string[];matchingInputs:readonly Pin[];sourceProvenance:readonly Pin[];goArchives:readonly Pin[];recordPath:string;ledgerPath:string;normalFactoryComplete:false;RootAdmission:false;SourceAdmission:false}>;
+export function assertRoot14PinnedBytesDATA(row:unknown,bytes:unknown,maximum?:number):true;
+export function inspectRoot14ManifestDATA(original:unknown):Readonly<{recipeRole:typeof ROOT14_PRODUCT45_ROLE;translationUnits:68;swiftSources:2;objectCount:69;archiveCount:1;GoStrong:45;AuthStrong:5;currentHeaders:20;normalFactoryComplete:false;compilerExecuted:false;RootAdmission:false;SourceAdmission:false}>;
+export function originalAuthRoot14Product45BuildPlan(arch:'arm64',headers:string):Shared69Plan;
+export function inspectRoot14PlanDATA(plan:unknown):Readonly<{objectCount:69;commands:71;postCommands:5;newColdCompileObjects:69;GoArchive:1;RootAdmission:false}>;
+export function runOriginalAuthRoot14Product45(options:Readonly<{arch:'arm64';headers:string;planOnly:true}>):Shared69Plan;
+export function runOriginalAuthRoot14Product45(options:Readonly<{arch:'arm64';headers:string;planOnly?:false}>):Readonly<{recordPath:string;ledgerPath:string}>;
+export function inspectOriginalAuthShared69RecordDATA(original:unknown,plan:unknown,expectedSourceCommit:string,manifestDATA:unknown):Readonly<{objectCount:69;actualCommands:81;sourceCommit:string;RootAdmission:false;SourceAdmission:false}>;
+export function verifyOriginalAuthShared69NormalRecord():Readonly<{schema:'YNX_SHARED69_NORMAL_RECORD_READBACK/v1';objectCount:69;actualCommands:81;sourceCommit:string;record:Pin;image:Pin;runtime:readonly Pin[];NativeLoaded:false;actualAgentSigning:false;RootAdmission:false;SourceAdmission:false}>;

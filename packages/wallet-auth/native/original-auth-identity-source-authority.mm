@@ -1,3 +1,9 @@
+#include "ai_task_client_source_release_private.hpp"
+#import "ai_task_client_source_private.h"
+#include "ai_task_client_policy_data_private.hpp"
+#include "browser_page_source_release_private.hpp"
+#import "browser_page_source_private.h"
+#include "browser_page_policy_data_private.hpp"
 #include "product_source_release_private.hpp"
 #include "product_scope_objc_private.hpp"
 #include "product_source_permission_private.hpp"
@@ -78,6 +84,9 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  ynx_auth_private::DeviceAssociationIdentity _httpV5SameItem;
  uint64_t _httpV5Deadline,_httpV5MonoAnchor,_httpV5WallAnchor;
  unsigned _httpV5Loans;
+ BOOL _aiTaskClient;unsigned _aiTaskLoans;NSError*_aiTaskCloseCause;BOOL _aiTaskClosurePinned;NSData*_aiTaskAgentOriginal,*_aiTaskKernelOriginal,*_aiTaskOwnImageOriginal,*_aiTaskNodeLoaderOriginal;const ynx::ai::client::SourceRelease*_aiTaskPolicy;
+ BOOL _browserPages;unsigned _browserPagesLoans;NSError*_browserPagesCloseCause;
+ const ynx::browser::page::BrowserPageSourceRelease*_browserPagePolicy;
  BOOL _walletNativeProduct;
  const ynx::wallet::product::ProductSourceRelease*_productPolicy;
  std::shared_ptr<ynx_auth_private::ProductObservedState>_productObserved;
@@ -419,6 +428,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
     policy[@"applicationId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ApplicationId.c_str()];
     policy[@"productId"]=[NSString stringWithUTF8String:_policy->productDeviceV4ProductId.c_str()];
    }else if(_productDeviceV4||_productDeviceV4Pending||_productDeviceV4Provisioning||_productDeviceV4Query||_productDeviceV4RegisteredFinalization||_productHTTPV5)return [self fail:@"PRODUCT_DEVICE_V4_DEDICATED_SOURCE_PURPOSE_REQUIRED" error:error];
+   if(_policy->purpose=="ai-native-task-action-source-v6"){if(!_aiTaskClient||!_aiTaskPolicy||_policy!=&_aiTaskPolicy->source)return[self fail:@"AI_V6_CLIENT_DEDICATED_RELEASE_REQUIRED" error:error];NSDictionary*aiPolicy=YNXOriginalAITaskClientPolicyDATA(*_aiTaskPolicy);if(!aiPolicy)return[self fail:@"AI_V6_CLIENT_POLICY_REQUIRED" error:error];policy=[aiPolicy mutableCopy];}else if(_aiTaskClient)return[self fail:@"AI_V6_CLIENT_PURPOSE_REQUIRED" error:error];
+   if(_policy->purpose=="browser-selected-pages-source-v1"){
+    if(!_browserPages||!_browserPagePolicy||_policy!=&_browserPagePolicy->source)return [self fail:@"BROWSER_PAGE_DEDICATED_RELEASE_REQUIRED" error:error];
+    NSDictionary*browserPolicy=YNXOriginalBrowserSourcePolicyDATA(*_browserPagePolicy);if(!browserPolicy)return [self fail:@"BROWSER_PAGE_DEDICATED_POLICY_REQUIRED" error:error];policy=[browserPolicy mutableCopy];
+   }else if(_browserPages)return [self fail:@"BROWSER_PAGE_PURPOSE_REQUIRED" error:error];
    if(_policy->purpose=="wallet-native-product-source-v1"){
     if(!_walletNativeProduct||!_productPolicy||_productPolicy->uid!=getuid()||_productPolicy->product_id!="wallet"||_productPolicy->platform!="macos"||_productPolicy->application_id.empty())return [self fail:@"PRODUCT_SOURCE_DEDICATED_RELEASE_REQUIRED" error:error];
     policy[@"applicationId"]=[NSString stringWithUTF8String:_productPolicy->application_id.c_str()];policy[@"productId"]=[NSString stringWithUTF8String:_productPolicy->product_id.c_str()];policy[@"platform"]=[NSString stringWithUTF8String:_productPolicy->platform.c_str()];
@@ -716,9 +730,11 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
  }
 }
 - (void)retire {@synchronized(self){if(_walletNativeProduct)ynx_auth_private::OriginalProductSourceMathCompletion::retire(_productObserved);if(_walletNativePay)ynx_auth_private::OriginalPaySourceMathCompletion::retire(_payObserved);_retired=YES;[_helperClient retire];[_custody retire];}}
-- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_httpV5Loans||_runtimeImageLoans||(_productObserved&&ynx_auth_private::OriginalProductSourceMathCompletion::loans(_productObserved))||(_payObserved&&ynx_auth_private::OriginalPaySourceMathCompletion::loans(_payObserved)))return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
+- (BOOL)join:(NSError **)error {@synchronized(self){if(!_retired||_entered||_task.running||_controlKeyBorrowToken||_aiTaskLoans||_browserPagesLoans||_httpV5Loans||_runtimeImageLoans||(_productObserved&&ynx_auth_private::OriginalProductSourceMathCompletion::loans(_productObserved))||(_payObserved&&ynx_auth_private::OriginalPaySourceMathCompletion::loans(_payObserved)))return [self fail:@"AUTH_IDENTITY_SOURCE_JOIN_PENDING" error:error];if(_helperClient&&![_helperClient join:error])return NO;return !_custody||[_custody join:error];}}
 - (BOOL)close:(NSError **)error {
  if(_ideCocoaParentSource)return [self closeOriginalIDECocoaParentChildFirst:error];
+ if(_aiTaskClient)return[self closeOriginalAITaskActionV6ClientSource:error];
+ if(_browserPages)return [self closeOriginalBrowserSelectedPagesSource:error];
  if(_walletNativeProduct)return [self closeOriginalWalletProductSource:error];
  if(_walletNativePay)return [self closeOriginalWalletNativePaySource:error];
  @synchronized(self){[self retire];if(_runtimeImageLoans){if(!_runtimeImageCloseCause)_runtimeImageCloseCause=[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_RUNTIME_IMAGE_CHILDREN_RETAINED"}];if(error)*error=_runtimeImageCloseCause;return NO;}}
@@ -731,6 +747,8 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   for(auto &file:_files){if(file.selected){if(!file.complete)filesClosed=NO;continue;}file.selected=true;file.complete=::close(file.fd)==0;if(!file.complete)filesClosed=NO;}if(![self closeHeldPipes])filesClosed=NO;
   NSError *cause=nil;BOOL custodyClosed=!_custody||[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_runtimeImageCloseCause?:_httpV5CloseCause?:_cleanupCause;return _cleanupComplete&&!_httpV5CloseCause&&!_runtimeImageCloseCause;}
 }
+#include "browser_page_source_methods.inc.mm"
+#include "ai_task_client_source_methods.inc.mm"
 #include "product_source_methods.inc"
 #include "pay_native_source_methods.inc"
 - (BOOL)closeOriginalIDECocoaParentChildFirst:(NSError**)error {
