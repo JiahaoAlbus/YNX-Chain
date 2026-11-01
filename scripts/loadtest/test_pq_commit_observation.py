@@ -1,5 +1,6 @@
 """Declared ABI/transport controls, not real Go producer or Commit measurements."""
 import copy
+import hashlib
 import importlib.util
 import json
 import os
@@ -15,11 +16,26 @@ def module(name,file):
     spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(file));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 m=module('commit_declared_transport','pq-commit-observation.py');driver=module('commit_guard_driver','pq-independent-load.py')
 
+FIXTURE=Path(__file__).with_name('fixtures')/'commit-observation-public-schema.json'
+
 def declared(pid,height=19):
-    # Only the delegated declared JSON ABI. This is NOT captured Go output.
-    return dict(version=m.VERSION,processID=pid,chainID='ynx_642399-1',originalGenesisHash='b'*64,independentFinality=False,signerFsyncMeasured=False,allCommitAttemptsCovered=False,replayCoverageComplete=False,unreportedStagesAreUnknown=True,successNotifications=1,errorNotifications=0,droppedSuccessSamples=0,rejectedNotifications=0,lastFailure=None,unobservedLatest=None,heightGaps=[],samples=[dict(height=height,appHash='a'*64,persistence=dict(height=height,storage='atomic-json',durable=True,elapsedNs=12,payloadBytes=1,stagesNs={'encode':3,'sync':5}))])
+    # Exact Go-marshaled schema specimen, adapted identity/one sample only for
+    # transport unit controls. PUBLIC capture boundary is kept, never runtime.
+    raw=FIXTURE.read_bytes();assert hashlib.sha256(raw).hexdigest()=='9dc8dbf4820d04068b2272e4dd16f202d6fb106b82cecf8aef6d544517680c06'
+    value=copy.deepcopy(json.loads(raw)['cases']['gap-and-overflow']);value.update(processID=pid,originalGenesisHash='b'*64,successNotifications=1,droppedSuccessSamples=0,sampleOverflow=False,unobservedLatest=None)
+    value['coverage']['observedHeightGaps']=[];value['samples'][0].update(height=height);value['samples'][0]['persistence']['height']=height
+    return value
 
 class CommitObservationDeclaredControls(unittest.TestCase):
+    def test_actual_go_marshal_schema_cases_are_not_runtime_evidence(self):
+        original=json.loads(FIXTURE.read_bytes());self.assertEqual(original['classification'],'PUBLIC_TEST_FIXTURE');self.assertTrue(original['notRuntimeEvidence'])
+        for name,value in original['cases'].items():
+            with self.subTest(case=name):
+                self.assertIs(m.validate_declared_contract(value,value['processID'],value['chainID'],value['originalGenesisHash'],False),value)
+                with self.assertRaisesRegex(RuntimeError,'not normal runtime'):m.validate_declared_contract(value,value['processID'],value['chainID'],value['originalGenesisHash'])
+        missing=original['cases']['missing-failure-timing'];self.assertIsNone(missing['lastFailure']['timing']);self.assertIsNone(missing['lastFailure']['attemptAppHash'])
+        overflow=original['cases']['gap-and-overflow'];self.assertEqual(overflow['samples'][0]['persistence']['stagesNs']['json_encode'],20);self.assertEqual(overflow['droppedSuccessSamples'],2)
+
     def test_old703_and_unqualified_source_refused_before_source_check_or_start(self):
         args=SimpleNamespace(mode='online',rate=100,accounts=8,per_account=63,seconds=5,tail_seconds=30,proof_timeout=30,source='/NOT-READ',commit=driver.CALLEE_SOURCE,commit_observation=True)
         self.assertIsNone(driver.COMMIT_OBSERVATION_SOURCE)
@@ -33,24 +49,24 @@ class CommitObservationDeclaredControls(unittest.TestCase):
             output.write_bytes(b'original')
             with self.assertRaisesRegex(RuntimeError,'fresh'):m.arguments(output,root)
     def test_fixed128_overflow_unknowns_and_original_stages_not_summed(self):
-        snapshot=declared(123);sample=snapshot['samples'][0];snapshot['samples']=[dict(copy.deepcopy(sample),height=i,persistence=dict(copy.deepcopy(sample['persistence']),height=i)) for i in range(1,129)];snapshot.update(successNotifications=129,droppedSuccessSamples=1)
-        self.assertEqual(len(m.validate_declared_contract(snapshot,123,'ynx_642399-1','b'*64)['samples']),128)
-        self.assertFalse(snapshot['allCommitAttemptsCovered'] or snapshot['replayCoverageComplete'] or snapshot['independentFinality']);self.assertNotIn('missingStage',snapshot['samples'][0]['persistence']['stagesNs'])
+        snapshot=declared(123);sample=snapshot['samples'][0];snapshot['samples']=[dict(copy.deepcopy(sample),height=i,persistence=dict(copy.deepcopy(sample['persistence']),height=i)) for i in range(1,129)];snapshot.update(successNotifications=129,droppedSuccessSamples=1,sampleOverflow=True)
+        self.assertEqual(len(m.validate_declared_contract(snapshot,123,'ynx_642399-1','b'*64,False)['samples']),128)
+        self.assertFalse(snapshot['coverage']['allCommitAttemptsCovered'] or snapshot['coverage']['replayCoverageComplete'] or snapshot['independentFinality']);self.assertNotIn('missingStage',snapshot['samples'][0]['persistence']['stagesNs'])
         snapshot['samples'].append(dict(copy.deepcopy(sample),height=129))
-        with self.assertRaisesRegex(RuntimeError,'128'):m.validate_declared_contract(snapshot,123,'ynx_642399-1','b'*64)
+        with self.assertRaisesRegex(RuntimeError,'128'):m.validate_declared_contract(snapshot,123,'ynx_642399-1','b'*64,False)
     def test_missing_counter_false_coverage_or_wrong_identity_never_defaults_zero(self):
         for change in ('missingCounter','boolCounter','whole','pid','chain','genesis','aliasPID','heightMismatch','boolNs'):
             value=declared(123)
             if change=='missingCounter':del value['errorNotifications']
             elif change=='boolCounter':value['successNotifications']=True
-            elif change=='whole':value['allCommitAttemptsCovered']=True
+            elif change=='whole':value['coverage']['allCommitAttemptsCovered']=True
             elif change=='pid':value['processID']=124
             elif change=='chain':value['chainID']='public'
             elif change=='genesis':value['originalGenesisHash']='c'*64
             elif change=='aliasPID':value['processId']=value.pop('processID')
             elif change=='heightMismatch':value['samples'][0]['persistence']['height']=18
-            else:value['samples'][0]['persistence']['stagesNs']['encode']=True
-            with self.subTest(change=change),self.assertRaises(RuntimeError):m.validate_declared_contract(value,123,'ynx_642399-1','b'*64)
+            else:value['samples'][0]['persistence']['stagesNs']['json_encode']=True
+            with self.subTest(change=change),self.assertRaises(RuntimeError):m.validate_declared_contract(value,123,'ynx_642399-1','b'*64,False)
     def test_actual_stopped_child_identity_raw_bytes_retained_and_missing_node_unknown(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp).resolve();(root/'public').mkdir();private=root/'private';private.mkdir();children=[];descriptors=[];originals={}
@@ -60,7 +76,7 @@ class CommitObservationDeclaredControls(unittest.TestCase):
                 if i!=3:
                     raw=json.dumps(declared(proc.pid),indent=3).encode();path.write_bytes(raw);path.chmod(0o600);originals[i]=raw
             report=m.retain_after_stop(SimpleNamespace(work=root,children=children),descriptors,'ynx_642399-1','b'*64)
-            self.assertEqual(report['validOriginalNodes'],3);self.assertFalse(report['fourOriginalSnapshotsValid']);self.assertEqual(len(report['errors']),1)
+            self.assertEqual(report['validOriginalNodes'],0);self.assertFalse(report['fourOriginalSnapshotsValid']);self.assertEqual(len(report['errors']),4);self.assertEqual(len(report['originalSnapshots']),3)
             for i,raw in originals.items():self.assertEqual((root/'public'/('commit-observation-node-%d-original.json'%i)).read_bytes(),raw)
             self.assertFalse(report['allCommitAttemptsCovered'] or report['independentFinality'] or report['signerFsyncMeasured'])
     def test_permission_or_live_producer_never_read_as_stopped_success(self):

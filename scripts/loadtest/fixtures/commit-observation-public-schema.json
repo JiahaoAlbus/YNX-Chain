@@ -1,0 +1,138 @@
+{
+  "classification": "PUBLIC_TEST_FIXTURE",
+  "notRuntimeEvidence": true,
+  "cases": {
+    "empty": {
+      "version": "YNX-COMET-COMMIT-OBSERVATION/v1",
+      "scope": "synthetic-loopback-lab/v1",
+      "processID": 33793,
+      "chainID": "ynx_642399-1",
+      "originalGenesisHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "captureBoundary": "PUBLIC TEST FIXTURE ONLY; no runtime/authority/qualification evidence",
+      "independentFinality": false,
+      "signerFsyncMeasured": false,
+      "maxSamples": 128,
+      "samples": [],
+      "successNotifications": 0,
+      "errorNotifications": 0,
+      "droppedSuccessSamples": 0,
+      "rejectedNotifications": {},
+      "lastFailure": null,
+      "unobservedLatest": null,
+      "latestTimingAvailable": false,
+      "finalCheckpoint": null,
+      "sampleOverflow": false,
+      "coverage": {
+        "notificationCaptureComplete": false,
+        "allCommitAttemptsCovered": false,
+        "replayCoverageComplete": false,
+        "prePersistenceFailuresHaveNoTiming": true,
+        "unreportedStagesAreUnknown": true,
+        "observedHeightGaps": []
+      }
+    },
+    "gap-and-overflow": {
+      "version": "YNX-COMET-COMMIT-OBSERVATION/v1",
+      "scope": "synthetic-loopback-lab/v1",
+      "processID": 33793,
+      "chainID": "ynx_642399-1",
+      "originalGenesisHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "captureBoundary": "PUBLIC TEST FIXTURE ONLY; no runtime/authority/qualification evidence",
+      "independentFinality": false,
+      "signerFsyncMeasured": false,
+      "maxSamples": 128,
+      "samples": [
+        {
+          "height": 9,
+          "appHash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "persistence": {
+            "height": 9,
+            "storage": "atomic-json",
+            "durable": true,
+            "elapsedNs": 100,
+            "payloadBytes": 42,
+            "stagesNs": {
+              "file_sync": 30,
+              "json_encode": 20,
+              "validate": 15
+            }
+          }
+        }
+      ],
+      "successNotifications": 3,
+      "errorNotifications": 0,
+      "droppedSuccessSamples": 2,
+      "rejectedNotifications": {},
+      "lastFailure": null,
+      "unobservedLatest": {
+        "height": 11,
+        "appHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "persistence": {
+          "height": 11,
+          "storage": "atomic-json",
+          "durable": true,
+          "elapsedNs": 100,
+          "payloadBytes": 42,
+          "stagesNs": {
+            "file_sync": 30,
+            "json_encode": 20,
+            "validate": 15
+          }
+        }
+      },
+      "latestTimingAvailable": false,
+      "finalCheckpoint": null,
+      "sampleOverflow": true,
+      "coverage": {
+        "notificationCaptureComplete": false,
+        "allCommitAttemptsCovered": false,
+        "replayCoverageComplete": false,
+        "prePersistenceFailuresHaveNoTiming": true,
+        "unreportedStagesAreUnknown": true,
+        "observedHeightGaps": [
+          {
+            "afterHeight": 9,
+            "beforeHeight": 11
+          }
+        ]
+      }
+    },
+    "missing-failure-timing": {
+      "version": "YNX-COMET-COMMIT-OBSERVATION/v1",
+      "scope": "synthetic-loopback-lab/v1",
+      "processID": 33793,
+      "chainID": "ynx_642399-1",
+      "originalGenesisHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "captureBoundary": "PUBLIC TEST FIXTURE ONLY; no runtime/authority/qualification evidence",
+      "independentFinality": false,
+      "signerFsyncMeasured": false,
+      "maxSamples": 128,
+      "samples": [],
+      "successNotifications": 0,
+      "errorNotifications": 1,
+      "droppedSuccessSamples": 0,
+      "rejectedNotifications": {},
+      "lastFailure": {
+        "timing": null,
+        "committedCheckpoint": {
+          "height": 8,
+          "appHash": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "attemptAppHash": null,
+        "notificationObserved": true
+      },
+      "unobservedLatest": null,
+      "latestTimingAvailable": false,
+      "finalCheckpoint": null,
+      "sampleOverflow": false,
+      "coverage": {
+        "notificationCaptureComplete": false,
+        "allCommitAttemptsCovered": false,
+        "replayCoverageComplete": false,
+        "prePersistenceFailuresHaveNoTiming": true,
+        "unreportedStagesAreUnknown": true,
+        "observedHeightGaps": []
+      }
+    }
+  }
+}

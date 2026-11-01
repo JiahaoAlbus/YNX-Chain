@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import stat
 
@@ -25,23 +26,46 @@ def arguments(output,private_root):
     require(private_root.resolve(strict=True)==private_root and output.is_absolute() and output.parent==private_root and not output.exists() and not output.is_symlink(),'fresh canonical private Commit observation path required')
     return ['--commit-observation-output',str(output),'--commit-observation-scope',SCOPE]
 
-def validate_declared_contract(snapshot,pid,chain_id,genesis_hash):
-    # This exact declared ABI remains fail-closed until compared with CORE's
-    # final producer specimen/source pin; no aliases/defaults hide a mismatch.
-    require(type(snapshot) is dict and snapshot.get('version')==VERSION,'original Commit observation version differs')
+CAPTURE_BOUNDARY='synchronous-original-block-executor-Commit-return;normal-stop-output;replay-and-early-failures-not-covered'
+
+def validate_declared_contract(snapshot,pid,chain_id,genesis_hash,require_runtime_boundary=True):
+    # Fields checked against CORE actual Go-marshaled PUBLIC fixture/type source;
+    # the fixture is schema evidence ONLY and cannot pass runtime-boundary checks.
+    require(type(snapshot) is dict and snapshot.get('version')==VERSION and snapshot.get('scope')==SCOPE,'original Commit observation version/scope differs')
     require(type(snapshot.get('processID')) is int and snapshot['processID']==pid and snapshot.get('chainID')==chain_id and snapshot.get('originalGenesisHash')==genesis_hash,'original Commit process/chain/genesis identity differs')
-    for key,value in [('independentFinality',False),('signerFsyncMeasured',False),('allCommitAttemptsCovered',False),('replayCoverageComplete',False),('unreportedStagesAreUnknown',True)]:require(snapshot.get(key) is value,'original Commit coverage/meaning differs: '+key)
-    for key in ('successNotifications','errorNotifications','droppedSuccessSamples','rejectedNotifications'):require(integer(snapshot.get(key)),'original Commit counter missing/invalid: '+key)
-    require('lastFailure' in snapshot and 'unobservedLatest' in snapshot,'original Commit nullable failure/missing markers required')
-    for key in ('lastFailure','unobservedLatest'):require(snapshot[key] is None or type(snapshot[key]) is dict,'original Commit failure marker differs')
-    require('heightGaps' in snapshot,'original Commit height gap coverage missing')
+    require(type(snapshot.get('captureBoundary')) is str,'original capture boundary required')
+    if require_runtime_boundary:require(snapshot['captureBoundary']==CAPTURE_BOUNDARY,'PUBLIC schema fixture is not normal runtime evidence')
+    for key in ('independentFinality','signerFsyncMeasured'):require(snapshot.get(key) is False,'original Commit meaning differs: '+key)
+    require(type(snapshot.get('maxSamples')) is int and snapshot['maxSamples']==MAX_SAMPLES,'original fixed128 bound differs')
+    coverage=snapshot.get('coverage');require(type(coverage) is dict,'original nested Commit coverage missing')
+    for key,value in [('allCommitAttemptsCovered',False),('replayCoverageComplete',False),('unreportedStagesAreUnknown',True),('prePersistenceFailuresHaveNoTiming',True)]:require(coverage.get(key) is value,'original nested Commit coverage differs: '+key)
+    require(type(coverage.get('notificationCaptureComplete')) is bool,'original notification coverage marker missing')
+    gaps=coverage.get('observedHeightGaps');require(type(gaps) is list and len(gaps)<=MAX_SAMPLES,'original bounded height gaps missing')
+    for gap in gaps:require(type(gap) is dict and integer(gap.get('afterHeight')) and integer(gap.get('beforeHeight')) and gap['beforeHeight']>gap['afterHeight']+1,'original Commit height gap invalid')
+    uint=lambda value:type(value) is int and 0<=value<1<<64
+    for key in ('successNotifications','errorNotifications','droppedSuccessSamples'):require(uint(snapshot.get(key)),'original Commit counter missing/invalid: '+key)
+    rejected=snapshot.get('rejectedNotifications');require(type(rejected) is dict and len(rejected)<=64,'original rejectedNotifications map required')
+    for key,value in rejected.items():require(type(key) is str and 0<len(key)<=128 and uint(value),'original rejection counter invalid')
+    require(type(snapshot.get('sampleOverflow')) is bool and (snapshot['droppedSuccessSamples']==0 or snapshot['sampleOverflow'] is True),'original Commit overflow marker differs')
+    require(type(snapshot.get('latestTimingAvailable')) is bool,'original latest timing marker missing')
+    def point(value):require(type(value) is dict and integer(value.get('height')) and value['height']>0 and type(value.get('appHash')) is str and re.fullmatch('[0-9a-f]{64}',value['appHash']) is not None and value['appHash']!='0'*64,'original Commit checkpoint invalid')
+    def timing(value,height=None):
+        require(type(value) is dict and integer(value.get('height')) and value['height']>0 and (height is None or value['height']==height) and value.get('storage') in ('atomic-json','snapshot-journal-v1','block-journal-v2') and type(value.get('durable')) is bool and integer(value.get('elapsedNs')) and integer(value.get('payloadBytes')),'original CommitTimingSample differs')
+        stages=value.get('stagesNs');require(type(stages) is dict and len(stages)<=32,'original bounded Commit stages required')
+        for stage,ns in stages.items():require(type(stage) is str and re.fullmatch('[a-z0-9_]{1,64}',stage) is not None and integer(ns) and ns<=value['elapsedNs'],'original Commit stage value missing/invalid')
+        require(not value['durable'] or (value['elapsedNs']>0 and value['payloadBytes']>0 and bool(stages)),'durable original Commit timing cannot be empty')
+    def sample(value):point(value);timing(value.get('persistence'),value['height']);require(value['persistence']['durable'] is True,'successful original sample must be durable')
+    for key in ('lastFailure','unobservedLatest','finalCheckpoint'):require(key in snapshot,'original nullable failure/missing markers required')
+    if snapshot['lastFailure'] is not None:
+        failed=snapshot['lastFailure'];require(type(failed) is dict and failed.get('notificationObserved') is True and 'timing' in failed and 'committedCheckpoint' in failed and 'attemptAppHash' in failed,'original failure markers differ')
+        if failed['timing'] is not None:timing(failed['timing']);require(failed['timing']['durable'] is False,'failed attempt cannot inherit successful timing')
+        if failed['committedCheckpoint'] is not None:point(failed['committedCheckpoint'])
+        require(failed['attemptAppHash'] is None,'failed attempt AppHash is unavailable, not prior committed hash')
+    if snapshot['unobservedLatest'] is not None:sample(snapshot['unobservedLatest'])
+    if snapshot['finalCheckpoint'] is not None:point(snapshot['finalCheckpoint'])
     samples=snapshot.get('samples');require(type(samples) is list and len(samples)<=MAX_SAMPLES and len(samples)<=snapshot['successNotifications'],'original fixed128 Commit samples differ')
-    seen=set()
-    for sample in samples:
-        require(type(sample) is dict and integer(sample.get('height')) and sample['height']>0 and sample['height'] not in seen and type(sample.get('appHash')) is str and 0<len(sample['appHash'])<=256,'original Commit sample identity invalid/duplicate');seen.add(sample['height'])
-        persistence=sample.get('persistence');require(type(persistence) is dict and persistence.get('height')==sample['height'] and type(persistence.get('storage')) is str and 0<len(persistence['storage'])<=64 and type(persistence.get('durable')) is bool and integer(persistence.get('elapsedNs')) and integer(persistence.get('payloadBytes')),'original CommitTimingSample differs')
-        stages=persistence.get('stagesNs');require(type(stages) is dict and len(stages)<=64,'original bounded Commit stages required')
-        for stage,ns in stages.items():require(type(stage) is str and 0<len(stage)<=128 and integer(ns),'original Commit stage value missing/invalid')
+    previous=0
+    for value in samples:sample(value);require(value['height']>previous,'original Commit samples duplicate/regressed');previous=value['height']
     return snapshot
 
 def retain_after_stop(window,descriptors,chain_id,genesis_hash):
@@ -67,7 +91,7 @@ def retain_after_stop(window,descriptors,chain_id,genesis_hash):
             record=dict(node=node,processName=name,pid=child['process'].pid,path=str(public.relative_to(window.work/'public')),bytes=len(raw),sha256=hashlib.sha256(raw).hexdigest(),sourceStopped=True,usable=False)
             result['originalSnapshots'].append(record)
             snapshot=validate_declared_contract(strict(raw),child['process'].pid,chain_id,genesis_hash)
-            record.update(usable=True,sampleCount=len(snapshot['samples']),droppedSuccessSamples=snapshot['droppedSuccessSamples'],overflow=snapshot['droppedSuccessSamples']>0,rawOriginalObservation=snapshot)
+            record.update(usable=True,sampleCount=len(snapshot['samples']),droppedSuccessSamples=snapshot['droppedSuccessSamples'],overflow=snapshot['sampleOverflow'],rawOriginalObservation=snapshot)
         except (OSError,ValueError,RuntimeError,KeyError) as error:result['errors'].append(dict(node=node,errorType=type(error).__name__,reason=str(error),missingStagesAreUnknown=True))
     result['validOriginalNodes']=sum(x['usable'] for x in result['originalSnapshots']);result['fourOriginalSnapshotsValid']=result['validOriginalNodes']==4 and not result['errors']
     return result
