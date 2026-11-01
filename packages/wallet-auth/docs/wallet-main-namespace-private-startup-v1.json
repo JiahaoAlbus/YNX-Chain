@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "status": "SYNC_OWNED_ATTEMPT_SDK_CODE_NOT_NATIVE_ADMITTED",
+  "startupImport": "src/original-wallet-main-namespace-bootstrap.js",
+  "startupExport": "initializeOriginalWalletMainNamespaceV1",
+  "startupArguments": [],
+  "fixedNativeCallee": "initializeOriginalWalletMainNamespaceV1",
+  "fixedNativeCalleeSupplied": false,
+  "RootMainLoanSupplied": false,
+  "NativeABIHeader": "native/original-wallet-main-namespace-private.h",
+  "hold": "ynx_wallet_main_namespace_hold_v1(napi_env,SAME_completed_namespace,actualRootLoan,outOwner)",
+  "borrow": "ynx_wallet_main_namespace_borrow_v1(owner,SAME_env,outNamespace,outRefs4)",
+  "recheck": "ynx_wallet_main_namespace_recheck_v1(owner,SAME_env)",
+  "retire": "ynx_wallet_main_namespace_retire_v1(owner)",
+  "join": "ynx_wallet_main_namespace_join_v1(owner,SAME_env)",
+  "close": "ynx_wallet_main_namespace_close_v1(owner,SAME_env)",
+  "dispose": "ynx_wallet_main_namespace_dispose_v1(owner)",
+  "fourExports": [
+    "captureOriginalWalletPayContextForNative",
+    "isOriginalWalletPayContextForNative",
+    "associateOriginalWalletPayNativeRetirement",
+    "copyOriginalWalletPayNativeDeadline"
+  ],
+  "joinNonzero": "retain SAME debt; do not acquire replacement",
+  "rootCallbackPreRefs": "all-null, independently check SAME namespace before any property access",
+  "rootCallbackPostRefs": "all four nonnull, independently compare exact refs/current",
+  "NativeResultJSABI": "NOT_SUPPLIED; never invoke naked Promise initializer or unknown methods",
+  "scope": "Wallet necessary SDK only",
+  "SourceAdmission": false,
+  "RootAdmission": false,
+  "NativeAdmission": false,
+  "startupReturn": "synchronous immutable StartupAttempt; asynchronous .completion",
+  "startupMethods": {
+    "retire": "void; immediate attempt retirement; exact parent failure may throw",
+    "join": "Promise<void>; sticky original debt",
+    "close": "Promise<void>; sticky same cleanup; no replacement",
+    "statusDATA": "false authority only"
+  },
+  "nativeInitializerInvoked": false,
+  "nativeMissingCode": "WALLET_MAIN_NATIVE_ATTEMPT_ABI_NOT_SUPPLIED",
+  "vtableStorage": "owner value snapshot; actual RootCtx retained independently until copied close callback",
+  "lateAdmission": "retain actual owner before error/current, then retire/join/close if already retired",
+  "privateNodeProducer": {
+    "module": "src/original-wallet-main-namespace-node-loader-private.js",
+    "export": "startOriginalWalletMainNamespaceNodeLoadV1",
+    "arguments": [
+      "SAME actual tagged startupOwner"
+    ],
+    "returns": "synchronous owned load attempt; completion/retire/join/statusDATA",
+    "normalOuterAttemptWired": false
+  },
+  "fixedNativeLoaderPort": "openOriginalWalletMainNamespaceLoaderV1(SAMEowner)",
+  "loaderPortExact": {
+    "version": 1,
+    "mainURI": "Root fixed completed Main canonical file URI, no query/hash",
+    "assertCurrent": "sync ()=>undefined; Root/producer/completedboot/current independently checked",
+    "acceptCompleted": "sync (SAMEactualNamespace)=>undefined; once and independent source/identity gate"
+  },
+  "loaderPortSupplied": false,
+  "realNodeAlgorithm": "await import(RootNativePort.mainURI); pre/postcurrent, late namespace retained",
+  "qualificationByShape": false,
+  "importProvenanceContract": "docs/wallet-main-namespace-import-provenance-v1.json",
+  "privateImportEvidenceExports": [
+    "isOriginalWalletMainNamespaceImportDATA",
+    "consumeOriginalWalletMainNamespaceImportDATA"
+  ]
+}

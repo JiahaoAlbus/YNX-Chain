@@ -1255,6 +1255,16 @@
       "path": "packages/wallet-auth/native/original-wallet-pay-client-source-contract.d.mts",
       "bytes": 2282,
       "sha256": "456a02d5d14e23906d5f6d75fbfd1233a7f01fd5990c307649161a8ad12a5036"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-wallet-main-namespace-private.h",
+      "bytes": 2695,
+      "sha256": "e840f75050617569cd5744eaee748762daa109f72986febbdbacfd8b9fa897a2"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-wallet-main-namespace-private.cpp",
+      "bytes": 5248,
+      "sha256": "b9e75e4f5d3968abdd5c72477f715351eccd97443f99ec873c892cf68b9feee3"
     }
   ],
   "normalBuildTool": {
@@ -3431,5 +3441,15 @@
     "RootAdmission": false,
     "NativeAdmission": false,
     "actualRootGetter": "NOT_SUPPLIED"
+  },
+  "walletMainNamespacePrivateStartupV1": {
+    "normalEntry": "src/original-wallet-main-namespace-bootstrap.js",
+    "privateNodeProducer": "src/original-wallet-main-namespace-node-loader-private.js",
+    "privateNativeHeader": "native/original-wallet-main-namespace-private.h",
+    "actualNodeESMImport": true,
+    "importEvidenceOnly": true,
+    "RootAdmission": false,
+    "NativeAdmission": false,
+    "NativeAdapter": "NOT_SUPPLIED_UNTIL_FORMAL_AUTH_MATCHING"
   }
 }
