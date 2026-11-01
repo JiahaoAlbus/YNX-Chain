@@ -20,7 +20,7 @@ public class NativeIntentObservationTest {
   assertThrows(SecurityException.class,()->NativeBusinessPolicy.scopes("GET","/api/orders/ord_original/confirm-payment"));
  }
  @Test public void actualJointOriginalPartialRefundReadback()throws Exception{
-  JSONObject actual=new JSONObject(java.nio.file.Files.readString(java.nio.file.Path.of(System.getenv("YNX_SHOP_NATIVE_RECEIPT_FIXTURE"))));
+  JSONObject actual=new JSONObject(new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(System.getenv("YNX_SHOP_NATIVE_RECEIPT_FIXTURE"))),java.nio.charset.StandardCharsets.UTF_8));
   NativeIntentObservation.validatePayment(actual);
   assertEquals("30",actual.getJSONObject("NativePayment").getString("RefundedAtoms"));
   assertEquals("70",actual.getJSONObject("NativePayment").getString("NetPaidAtoms"));
