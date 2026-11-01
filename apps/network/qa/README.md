@@ -86,3 +86,47 @@ notification for an older operation, never that older receipt's saved result.
 Normal Quit during an approved write waits for that original operation, then
 continues the existing owned-helper shutdown. No automatic export retry is
 performed, and no Wallet/node authority comes from these lifecycle events.
+
+## Fixed WASM task QA
+
+The bundle also carries one fixed `ynx-network-task-worker`. Its executable digest
+is compiled into the helper and checked by the native launcher. The nested
+`apps/network/wasmworker` module pins its own dependencies without changing the
+shared root module. `TestP09FixedWASMModuleContract` integrates its actual runtime
+tests into the existing helper CI discovery; `TestP09TaskWorkerNativePackagePin`
+executes six native package checks without taking the desktop.
+
+The explicit controlled CLI accepts a signed manifest, a separately signed
+consent fixture, two independently supplied public-key digest pins and bounded
+public JSON bytes. It can only run the fixed import-free byte histogram module:
+no submitted code, shell, file path, host import, WASI or network capability is
+available to the guest. Input is at most 4 MiB, linear memory is fixed at 129
+pages, output is exactly 1024 bytes and execution is at most five seconds. CPU
+duty cycling and Go work-buffer admission are not OS CPU/RSS containment claims.
+The helper independently recounts original bytes in Go before granting a
+`CONTROLLED_SANDBOX` receipt, counts each receipt once, waits for its owned child
+on Stop, and never resumes a worker on restart. Historical receipts require fresh
+original signatures and independent recomputation before counting again.
+
+For a reproducible local QA packet, create an empty current-user 0700 directory
+and run `node apps/network/qa/controlled-wasm-fixture.mjs /absolute/private/qa`.
+This reads only fixed public RPC `/status` and `/blocks/<height>` endpoints,
+preserves original bytes and generates temporary Ed25519 fixture signatures.
+Private keys are not written. Its public readback gives the two fixture key pins.
+Run the exact packaged helper, using that directory and those pins:
+
+```sh
+"/absolute/YNX Network QA.app/Contents/Helpers/ynx-network-helper" \
+  --run-controlled-wasm /absolute/private/qa/packet.json \
+  --controlled-issuer-key-sha256 FIXTURE_ISSUER_PIN \
+  --controlled-consent-key-sha256 FIXTURE_CONSENT_PIN \
+  --data-dir /absolute/private/qa
+```
+
+The controlled CLI emits the original receipt, unique meter and actual worker
+start count. Repeating the same unexpired packet reaudits the historical receipt
+without starting another worker. It uses only its isolated `controlled-wasm`
+journal; the normal App and native/HTTP resource service remain disabled. Neither
+these signatures nor an RPC report establish production publisher authority,
+human consent, block validity, reward or funds. Actual canonical publisher,
+key epoch/revocation and visible native consent remain separate production gates.

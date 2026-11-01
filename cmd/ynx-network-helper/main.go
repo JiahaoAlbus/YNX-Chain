@@ -378,7 +378,27 @@ func run() (runErr error) {
 	participationConfig := flag.String("participation-config", "", "independently configured network identity for native participation")
 	participationPin := flag.String("participation-config-sha256", "", "exact independent network configuration digest")
 	governanceRPC := flag.String("governance-rpc", "", "fixed governance read source; defaults to configured chain RPC")
+	controlledPacket := flag.String("run-controlled-wasm", "", "explicit controlled public-block QA packet; never production authority")
+	controlledIssuerPin := flag.String("controlled-issuer-key-sha256", "", "independent controlled fixture issuer public-key pin")
+	controlledConsentPin := flag.String("controlled-consent-key-sha256", "", "independent controlled fixture consent public-key pin")
 	flag.Parse()
+	if *controlledPacket != "" || *controlledIssuerPin != "" || *controlledConsentPin != "" {
+		if *controlledPacket == "" || *controlledIssuerPin == "" || *controlledConsentPin == "" || *nativeStatus || *nativeCall || *showVersion || *anchorFile != "" || *pqExecutable != "" || *pqContext != "" || *participationConfig != "" {
+			return errors.New("controlled WASM QA requires its packet, two independent key pins and explicit data directory only")
+		}
+		allowedFlags := map[string]bool{"run-controlled-wasm": true, "controlled-issuer-key-sha256": true, "controlled-consent-key-sha256": true, "data-dir": true}
+		extra := false
+		flag.Visit(func(f *flag.Flag) {
+			if !allowedFlags[f.Name] {
+				extra = true
+			}
+		})
+		if extra || flag.NArg() != 0 {
+			return errors.New("unrelated helper option with controlled WASM QA")
+		}
+		return runControlledWASM(*controlledPacket, *dataDir, *controlledIssuerPin, *controlledConsentPin)
+	}
+
 	if *showVersion {
 		fmt.Printf("%s %s\n", serviceVersion, sourceRevision)
 		return nil

@@ -61,6 +61,10 @@ publisher signatures and ordinary-node release mode are still required before
 production install/start. A native request or JSON consent flag cannot create
 the opaque approval produced by the trusted visible-consent entry. Resource
 execution defaults disabled; status/stop do not enable it.
+An explicit local QA CLI also executes the fixed no-import WASM public-byte
+histogram through a pinned child, independent recount and deduplicated receipt.
+Its fixture signatures remain `CONTROLLED_SANDBOX`, without production publisher
+or human-consent authority; see [the QA procedure](qa/README.md#fixed-wasm-task-qa).
 The helper uses a numeric loopback listener, checks Host and Origin, accepts no
 arbitrary shell or request destination, and refuses upstream redirects.
 This is local-user code pairing for public receipt operations. The helper's OS

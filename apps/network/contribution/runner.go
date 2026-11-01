@@ -1,10 +1,11 @@
-// Package contribution implements a local, fixed verify_chunk executor. It has
+// Package contribution implements local fixed hash and WASM histogram tasks. It has
 // no host commands, network, filesystem job payloads, rewards or production
 // authority. Only the explicitly named controlled sandbox factory can execute
 // today; a canonical publisher/consent authority adapter is still required.
 package contribution
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
@@ -24,13 +25,17 @@ import (
 )
 
 const (
-	SandboxClass      = "CONTROLLED_SANDBOX"
-	MaxInputBytes     = 8 << 20
-	MaxMemoryBytes    = 24 << 20
-	MaxDurationMillis = 5000
-	chunkBytes        = 4096
-	fixedMemory       = 64 << 10
-	maxRecords        = 256
+	SandboxClass             = "CONTROLLED_SANDBOX"
+	PublicBlockHistogramKind = "public_block_histogram"
+	HistogramMemoryBytes     = 129 * 65536
+	HistogramMaxInputBytes   = 4 << 20
+	HistogramOutputBytes     = 1024
+	MaxInputBytes            = 8 << 20
+	MaxMemoryBytes           = 24 << 20
+	MaxDurationMillis        = 5000
+	chunkBytes               = 4096
+	fixedMemory              = 64 << 10
+	maxRecords               = 256
 )
 
 var (
@@ -93,10 +98,14 @@ type Authorizer interface {
 }
 
 func ManifestPayload(w Work) []byte {
+	domain := "YNX_NETWORK_VERIFY_CHUNK_SANDBOX_V1"
+	if w.Kind == PublicBlockHistogramKind {
+		domain = "YNX_NETWORK_PUBLIC_BLOCK_HISTOGRAM_SANDBOX_V1"
+	}
 	b, _ := json.Marshal(struct {
 		Domain string `json:"domain"`
 		Work   Work   `json:"work"`
-	}{"YNX_NETWORK_VERIFY_CHUNK_SANDBOX_V1", w})
+	}{domain, w})
 	return b
 }
 func ConsentPayload(c Consent) []byte {
@@ -153,6 +162,7 @@ type Runner struct {
 	path                    string
 	lock                    *localstore.Lock
 	authorizer              Authorizer
+	executor                *PinnedWASMExecutor
 	sandbox, sealed, closed bool
 	active                  *operation
 	data                    journal
@@ -173,6 +183,28 @@ func NewControlledSandbox(path string, authorizer Authorizer) (*Runner, error) {
 	return open(path, authorizer, true)
 }
 
+// NewControlledWASMSandbox adds one pinned, fixed no-import WASM worker. It
+// retains the original sandbox authorization and non-economic receipt class.
+// No production authority is inferred from the runtime's containment.
+func NewControlledWASMSandbox(path string, authority Authorizer, executor *PinnedWASMExecutor) (*Runner, error) {
+	if authority == nil || executor == nil {
+		return nil, ErrDenied
+	}
+	r, err := open(path, authority, true)
+	if err != nil {
+		return nil, err
+	}
+	r.executor = executor
+	return r, nil
+}
+func isFixedKind(kind string) bool        { return kind == "verify_chunk" || kind == PublicBlockHistogramKind }
+func histogramMemory(input uint64) uint64 { return HistogramMemoryBytes + 2*input + fixedMemory }
+func validResultForWork(w Work, result Result) bool {
+	if w.Kind == "verify_chunk" {
+		return result == resultFor(w, w.Input)
+	}
+	return w.Kind == PublicBlockHistogramKind && result.Job == w.Job && result.Manifest == Bind(ManifestPayload(w)) && result.Input == w.Input && validBinding(result.Output) && result.Output.Bytes == "1024"
+}
 func open(path string, authority Authorizer, sandbox bool) (*Runner, error) {
 	if !filepath.IsAbs(path) || filepath.Clean(path) != path {
 		return nil, ErrInvalid
@@ -253,7 +285,7 @@ func (r *Runner) persist() error {
 }
 
 func validateStoredRecord(id string, rec Record, nonces map[string]string) error {
-	if !boundedMetadata(rec.Work) || !validID(id) || id != rec.Work.Job || !validID(rec.Work.Issuer) || rec.Work.Kind != "verify_chunk" || !validBinding(rec.Work.Input) || rec.Manifest != Bind(ManifestPayload(rec.Work)) || nonces[rec.ConsentNonce] != id {
+	if !boundedMetadata(rec.Work) || !validID(id) || id != rec.Work.Job || !validID(rec.Work.Issuer) || !isFixedKind(rec.Work.Kind) || !validBinding(rec.Work.Input) || rec.Manifest != Bind(ManifestPayload(rec.Work)) || nonces[rec.ConsentNonce] != id {
 		return ErrInvalid
 	}
 	var key []string
@@ -273,18 +305,21 @@ func validateStoredRecord(id string, rec Record, nonces map[string]string) error
 	if e1 != nil || e2 != nil || e3 != nil || cpu == 0 || cpu > 1000 || mem < n+fixedMemory || mem > MaxMemoryBytes || ms == 0 || ms > MaxDurationMillis || rec.Work.Limits.StorageBytes != "0" || rec.Work.Limits.EgressBytes != "0" || rec.Usage.CPUServiceVerified {
 		return ErrInvalid
 	}
+	if rec.Work.Kind == PublicBlockHistogramKind && (n > HistogramMaxInputBytes || mem < histogramMemory(n)) {
+		return ErrInvalid
+	}
 	switch rec.State {
 	case "preparing", "running", "failed", "stopped", "interrupted", "unknown":
 		if rec.Receipt != nil {
 			return ErrInvalid
 		}
 	case "submitted":
-		if rec.Result != resultFor(rec.Work, rec.Work.Input) || rec.Receipt != nil {
+		if !validResultForWork(rec.Work, rec.Result) || rec.Receipt != nil {
 			return ErrInvalid
 		}
 	case "verified", "historical":
 		p := rec.Receipt
-		if p == nil || p.ID != "sandbox:"+id || p.Job != id || p.Class != SandboxClass || p.Result != rec.Result || rec.Result != resultFor(rec.Work, rec.Work.Input) || p.VerifiedBytes != n {
+		if p == nil || p.ID != "sandbox:"+id || p.Job != id || p.Class != SandboxClass || p.Result != rec.Result || !validResultForWork(rec.Work, rec.Result) || p.VerifiedBytes != n {
 			return ErrInvalid
 		}
 		if _, err := time.Parse(time.RFC3339Nano, p.VerifiedAt); err != nil {
@@ -362,7 +397,7 @@ func boundedMetadata(w Work) bool {
 }
 
 func checkWork(w Work, c Consent, inputLen int, now time.Time) (bounds, error) {
-	if w.Kind != "verify_chunk" {
+	if !isFixedKind(w.Kind) {
 		return bounds{}, ErrUnsupported
 	}
 	if !boundedMetadata(w) || len(c.ExpiresAt) > 64 {
@@ -394,6 +429,9 @@ func checkWork(w Work, c Consent, inputLen int, now time.Time) (bounds, error) {
 	if cpu == 0 || cpu > 1000 || mem < n+fixedMemory || mem > MaxMemoryBytes || storage != 0 || egress != 0 || ms == 0 || ms > MaxDurationMillis {
 		return bounds{}, ErrLimit
 	}
+	if w.Kind == PublicBlockHistogramKind && (n > HistogramMaxInputBytes || mem < histogramMemory(n)) {
+		return bounds{}, ErrLimit
+	}
 	deadline := now.Add(time.Duration(ms) * time.Millisecond)
 	if ce.Before(deadline) {
 		deadline = ce
@@ -416,6 +454,16 @@ func (r *Runner) StartContribution(ctx context.Context, w Work, c Consent, manif
 	b, err := checkWork(w, c, len(input), time.Now())
 	if err != nil {
 		return Record{}, err
+	}
+	if w.Kind == PublicBlockHistogramKind {
+		if r.executor == nil {
+			return Record{}, ErrUnsupported
+		}
+		// This task counts bounded JSON bytes; it does not establish consensus,
+		// transaction inclusion, authenticity of an RPC report or public service.
+		if !json.Valid(input) || len(bytes.TrimSpace(input)) == 0 || bytes.TrimSpace(input)[0] != '{' {
+			return Record{}, ErrInvalid
+		}
 	}
 	if len(manifestSig) == 0 || len(manifestSig) > 65536 || len(consentSig) == 0 || len(consentSig) > 65536 {
 		return Record{}, ErrInvalid
@@ -589,7 +637,25 @@ func resultFor(w Work, input Binding) Result {
 	return Result{w.Job, manifest, input, Bind(payload)}
 }
 func (r *Runner) run(ctx context.Context, op *operation, w Work, input []byte, cpu uint64) {
-	bound, usage, err := hashChunked(ctx, input, cpu)
+	var bound Binding
+	var usage Usage
+	var err error
+	var candidate Result
+	if w.Kind == PublicBlockHistogramKind {
+		var output []byte
+		output, usage, err = r.executor.Execute(ctx, input, w.Limits)
+		bound = w.Input
+		if err == nil {
+			if len(output) != HistogramOutputBytes {
+				err = ErrInvalid
+			} else {
+				candidate = Result{Job: w.Job, Manifest: Bind(ManifestPayload(w)), Input: w.Input, Output: Bind(output)}
+			}
+		}
+	} else {
+		bound, usage, err = hashChunked(ctx, input, cpu)
+		candidate = resultFor(w, bound)
+	}
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	defer close(op.done)
@@ -603,6 +669,9 @@ func (r *Runner) run(ctx context.Context, op *operation, w Work, input []byte, c
 	}
 	if err != nil || r.sealed {
 		rec.State = "stopped"
+		if err != nil && ctx.Err() == nil && !r.sealed {
+			rec.State = "failed"
+		}
 		if err != nil {
 			rec.Failure = err.Error()
 		} else {
@@ -613,7 +682,7 @@ func (r *Runner) run(ctx context.Context, op *operation, w Work, input []byte, c
 		rec.Failure = ErrInvalid.Error()
 	} else {
 		rec.State = "submitted"
-		rec.Result = resultFor(w, bound)
+		rec.Result = candidate
 	}
 	r.data.Jobs[w.Job] = rec
 	if err := r.persist(); err != nil {
@@ -708,6 +777,18 @@ func (r *Runner) VerifyWorkReceipt(ctx context.Context, job string, candidate Re
 	r.active = op
 	r.mu.Unlock()
 	bound, usage, recomputeErr := hashChunked(opCtx, input, cpu)
+	expected := resultFor(rec.Work, bound)
+	if recomputeErr == nil && rec.Work.Kind == PublicBlockHistogramKind {
+		var output []byte
+		var histogramUsage Usage
+		output, histogramUsage, recomputeErr = independentHistogram(opCtx, input, cpu)
+		usage.BytesRead += histogramUsage.BytesRead
+		usage.WallMicros += histogramUsage.WallMicros
+		if recomputeErr == nil {
+			expected = Result{Job: rec.Work.Job, Manifest: Bind(ManifestPayload(rec.Work)), Input: bound, Output: Bind(output)}
+		}
+	}
+
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	defer close(op.done)
@@ -730,7 +811,7 @@ func (r *Runner) VerifyWorkReceipt(ctx context.Context, job string, candidate Re
 	if r.sealed || r.closed {
 		return fail(ErrStopped)
 	}
-	if bound != rec.Work.Input || candidate != resultFor(rec.Work, bound) {
+	if bound != rec.Work.Input || candidate != expected {
 		return fail(ErrInvalid)
 	}
 	receipt := Receipt{ID: "sandbox:" + job, Job: job, Class: SandboxClass, Result: candidate, VerifiedBytes: n, VerifiedAt: time.Now().UTC().Format(time.RFC3339Nano)}
@@ -821,6 +902,11 @@ func (r *Runner) Close() error {
 	defer r.mu.Unlock()
 	if r.closed {
 		return nil
+	}
+	if r.executor != nil {
+		if err := r.executor.Close(); err != nil {
+			return err
+		}
 	}
 	r.closed = true
 	return r.lock.Close()

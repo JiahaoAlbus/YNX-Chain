@@ -115,7 +115,12 @@ static BOOL privateDirectory(NSString *dir) {
   return mkdir(dir.fileSystemRepresentation,0700)==0;
 }
 static int qaFailure(NSString *message,BOOL cli){fprintf(stderr,"%s\n",message.UTF8String);if(!cli){[NSApplication sharedApplication];NSAlert *alert=[NSAlert new];alert.messageText=@"YNX Network QA could not start";alert.informativeText=message;[alert runModal];}return 2;}
-static BOOL packagedFiles(NSString *helper,NSString *proof,NSDictionary *build){return [[digest(helper)description]isEqual:build[@"helperSHA256"]]&&[[digest(proof)description]isEqual:build[@"proofSHA256"]];}
+static BOOL packagedFiles(NSString *helper,NSString *proof,NSDictionary *build){
+ BOOL matched=[[digest(helper)description]isEqual:build[@"helperSHA256"]]&&[[digest(proof)description]isEqual:build[@"proofSHA256"]];
+ id pin=build[@"resourceWorkerSHA256"];if(!pin)return matched; // Older QA builds have no task worker.
+ NSString *worker=[[helper stringByDeletingLastPathComponent]stringByAppendingPathComponent:@"ynx-network-task-worker"];
+ return matched&&[pin isKindOfClass:NSString.class]&&[pin length]==64&&[[digest(worker)description]isEqual:pin];
+}
 static void installApplicationMenu(NSApplication *app) {
   NSMenu *bar=[NSMenu new];
   NSMenuItem *applicationItem=[[NSMenuItem alloc]initWithTitle:@"YNX Network QA" action:nil keyEquivalent:@""];
