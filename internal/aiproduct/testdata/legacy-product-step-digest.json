@@ -1,0 +1,28 @@
+{
+  "provenance": "original Go output frozen before digest helper extraction, consumer c645d11b9 / producer46de44afb",
+  "binding": {
+    "taskId": "task_ZJ9Od0fQhqTjmvTWAHVQog",
+    "taskRevision": 1,
+    "generation": 1,
+    "holder": "device",
+    "operationId": "original-read",
+    "toolId": "ai.conversation.read",
+    "toolVersion": "1",
+    "inputDigest": "523b0567d793a987b8d7c6f7c5c3f59ae34f3b3bd3354896a3b59cf830c950711ec64a7e274e652a3691731f6b86efb9461af25faa73b7cca7c97ffa8110407d",
+    "resultBinding": {
+      "bytes": 0,
+      "sha3_512": "",
+      "sha512": ""
+    },
+    "taskGrantRef": "isolated-grant-reference",
+    "approvedFields": [
+      "messages"
+    ]
+  },
+  "input": {
+    "conversationId": "conv_DEti3_Ud8_LGzVOOrRy_Jg"
+  },
+  "expectedInputDigest": "523b0567d793a987b8d7c6f7c5c3f59ae34f3b3bd3354896a3b59cf830c950711ec64a7e274e652a3691731f6b86efb9461af25faa73b7cca7c97ffa8110407d",
+  "PUBLICOnly": true,
+  "authority": false
+}

@@ -15,11 +15,12 @@ import (
 )
 
 const (
-	toolLoopRounds      = 8
-	toolLoopCalls       = 16
-	toolArgumentBytes   = 64 << 10
-	toolResultBytes     = 256 << 10
-	toolCheckpointBytes = 16 << 20
+	toolLoopRounds        = 8
+	toolLoopRuntimeBudget = 2 * time.Minute
+	toolLoopCalls         = 16
+	toolArgumentBytes     = 64 << 10
+	toolResultBytes       = 256 << 10
+	toolCheckpointBytes   = 16 << 20
 )
 
 var ErrToolLoopLimit = errors.New("model tool loop limit reached")
@@ -141,7 +142,7 @@ func (s *Service) CompleteWithTools(ctx context.Context, session, query, request
 	if len(query) > maxBodyBytes || len(session) > 256 || len(requestID) > 256 || len(tools) == 0 || len(tools) > toolLoopCalls {
 		return result, ErrToolLoopLimit
 	}
-	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, toolLoopRuntimeBudget)
 	defer cancel()
 	if err := ctx.Err(); err != nil {
 		return result, err
@@ -161,7 +162,7 @@ func (s *Service) CompleteWithTools(ctx context.Context, session, query, request
 	}}
 	checkpoint := toolLoopCheckpoint{Version: 1, ProviderURL: s.cfg.ProviderURL, ChainURL: s.cfg.ChainURL,
 		Model: s.cfg.Model, Session: session, RequestID: requestID, Payload: payload,
-		BatchStart: -1, RemainingNanos: int64(2 * time.Minute)}
+		BatchStart: -1, RemainingNanos: int64(toolLoopRuntimeBudget)}
 	return s.runToolLoop(ctx, &checkpoint, schemas, executor, admit)
 }
 
@@ -231,7 +232,7 @@ func (s *Service) validateToolCheckpoint(state *toolLoopCheckpoint, session, req
 	invalid := errors.New("invalid or mismatched private tool checkpoint")
 	if state.Version != 1 || strings.TrimSpace(session) == "" || strings.TrimSpace(requestID) == "" || len(session) > 256 || len(requestID) > 256 ||
 		state.Session != session || state.RequestID != requestID || state.ProviderURL != s.cfg.ProviderURL || state.Model != s.cfg.Model || state.ChainURL != s.cfg.ChainURL || state.Payload.Model != state.Model ||
-		state.Rounds < 0 || state.Rounds > toolLoopRounds || state.Calls < 0 || state.Calls > toolLoopCalls || state.RemainingNanos <= 0 || state.RemainingNanos > int64(2*time.Minute) ||
+		state.Rounds < 0 || state.Rounds > toolLoopRounds || state.Calls < 0 || state.Calls > toolLoopCalls || state.RemainingNanos <= 0 || state.RemainingNanos > int64(toolLoopRuntimeBudget) ||
 		len(state.Steps) > toolLoopCalls || len(state.SeenIDs) > toolLoopCalls {
 		return invalid
 	}

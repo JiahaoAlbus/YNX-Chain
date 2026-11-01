@@ -33,6 +33,7 @@ type TaskStoreView struct {
 
 // Concrete in-process read source. No JSON/callback/current setter or issuer.
 type TaskStoreSource struct {
+	server  *Server
 	store   *Store
 	retired atomic.Bool
 }
@@ -59,7 +60,11 @@ func (s *Server) OpenTaskStoreSource() (*TaskStoreSource, error) {
 	if s == nil || s.store == nil {
 		return nil, ErrTaskStoreSnapshotStale
 	}
-	return NewTaskStoreSource(s.store)
+	source, err := NewTaskStoreSource(s.store)
+	if source != nil {
+		source.server = s
+	}
+	return source, err
 }
 func (s *TaskStoreSource) Retire() {
 	if s != nil {

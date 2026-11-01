@@ -228,15 +228,12 @@ func (s *Store) reserveTaskProposalLocked(session ProductSession, taskID string,
 		return ActionRecord{}, false, errToolConflict
 	}
 	binding := ToolStepBinding{TaskID: task.ID, TaskRevision: task.Revision, Generation: task.Generation, Holder: task.Holder, OperationID: input.OperationID, ToolID: tool.id, ToolVersion: tool.version}
-	digestInput, err := json.Marshal(struct {
-		Binding ToolStepBinding `json:"binding"`
-		Input   json.RawMessage `json:"input"`
-	}{binding, canonical})
+	digest, err := originalToolStepInputDigest(binding, canonical)
 	if err != nil {
 		return ActionRecord{}, false, err
 	}
-	digest := sha512.Sum512(digestInput)
-	binding.InputDigest = hex.EncodeToString(digest[:])
+	binding.InputDigest = digest
+
 	slot := sha256.Sum256([]byte(session.Account + "\x00" + taskID + "\x00" + input.OperationID))
 	id := "toolstep_" + hex.EncodeToString(slot[:])
 	if old, exists := s.state.Actions[id]; exists {
@@ -275,4 +272,19 @@ func (s *Store) reserveTaskProposalLocked(session ProductSession, taskID string,
 		return ActionRecord{}, false, err
 	}
 	return record, true, nil
+}
+
+// The product's ORIGINAL step/input digest, shared by proposal persistence and
+// its read-only review. Mutable approval/result fields never enter this binding.
+func originalToolStepInputDigest(b ToolStepBinding, input []byte) (string, error) {
+	original := ToolStepBinding{TaskID: b.TaskID, TaskRevision: b.TaskRevision, Generation: b.Generation, Holder: b.Holder, OperationID: b.OperationID, ToolID: b.ToolID, ToolVersion: b.ToolVersion}
+	raw, err := json.Marshal(struct {
+		Binding ToolStepBinding `json:"binding"`
+		Input   json.RawMessage `json:"input"`
+	}{original, input})
+	if err != nil {
+		return "", err
+	}
+	sum := sha512.Sum512(raw)
+	return hex.EncodeToString(sum[:]), nil
 }
