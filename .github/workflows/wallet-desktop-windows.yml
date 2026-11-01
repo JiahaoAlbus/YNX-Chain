@@ -4434,6 +4434,7 @@ jobs:
           node-version: '24'
       - run: npm ci --ignore-scripts --prefix packages/wallet-auth
       - run: node scripts/ci/pay-native-source-getter.mjs
+      - run: node packages/wallet-auth/scripts/ci/wallet-pay-client-source.mjs
       - run: node scripts/ci/pay-native-source-normal.mjs
       - uses: actions/upload-artifact@v4
         with:

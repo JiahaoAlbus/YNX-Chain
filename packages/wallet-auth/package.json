@@ -440,6 +440,12 @@
       "browser": null,
       "node": "./src/pq-native-pay-source.js",
       "default": null
+    },
+    "./wallet-pay-client-source-data": {
+      "types": "./native/original-wallet-pay-client-source-contract.d.mts",
+      "browser": null,
+      "node": "./native/original-wallet-pay-client-source-contract.mjs",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -575,7 +581,10 @@
     "go/taskactionv6/open_posix.go",
     "go/taskactionv6/open_other.go",
     "go/taskactionv6/README.md",
-    "docs/pay-native-source-getter.md"
+    "docs/pay-native-source-getter.md",
+    "native/original-wallet-pay-client-source-contract.mjs",
+    "native/original-wallet-pay-client-source-contract.d.mts",
+    "native/WALLET_PAY_CLIENT_SOURCE_V1.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
