@@ -82,7 +82,27 @@ const productHostOptions=productSessionStateVersion==='2'?{
  ...buildOriginalHostPublisherOptions(productRegistry,{statePath:originalProductHostOptions.statePath,now:originalProductHostOptions.now,tokenFactory:originalProductHostOptions.tokenFactory}),
  ...originalDeviceV4ServerCurrentHostOptions(originalServerDeviceCurrent)
 }:originalProductHostOptions;
-const productHost=new ProductHost(productRegistry,productHostOptions);
+let productHost;
+try{productHost=new ProductHost(productRegistry,productHostOptions);}
+catch(cause){
+ // Server-current was acquired BEFORE Host construction. A state/schema or
+ // constructor failure must retain and drain that SAME owner; this point is
+ // earlier than the normal runtime/shutdown scope below. Never reacquire it.
+ let cleanupCause,cleanupCausePresent=false;
+ try{
+  if(originalServerDeviceCurrent)await closeOriginalDeviceV4ServerCurrentAfterHost(originalServerDeviceCurrent);
+  // A pending/failed child drain blocks parent release. Keep both opaque
+  // originals on the error, including falsy first/cleanup causes.
+  if(originalAuthSourceCurrent){
+   originalAuthSourceCurrent.retire();
+   await originalAuthSourceCurrent.join();
+   await originalAuthSourceCurrent.close();
+  }
+ }catch(error){cleanupCause=error;cleanupCausePresent=true;}
+ const failure=new Error('PRODUCT_SESSION_ORIGINAL_HOST_STARTUP_FAILED',{cause});
+ Object.assign(failure,{partial:originalServerDeviceCurrent,sourcePartial:originalAuthSourceCurrent,cleanupCausePresent,cleanupCause});
+ throw failure;
+}
 // This actual startup attempts only the dedicated fixed binary policy. Missing
 // admission leaves V5 unavailable without replacing the existing text runner.
 const originalBinaryV5Policy=productSessionStateVersion==='2'?await openOriginalBinaryV5PolicyAfterHost(productHost):null;

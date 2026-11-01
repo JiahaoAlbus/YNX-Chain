@@ -1,0 +1,99 @@
+{
+  "version": "4",
+  "status": "draft-management-wire-not-deployed",
+  "method": "POST",
+  "contentType": "application/json",
+  "proofHeader": "x-ynx-product-session-proof-v4",
+  "proofDomain": "YNX-PRODUCT-SESSION-HTTP-PROOF/v4",
+  "proofPurpose": "PRODUCT-SESSION-HTTP-PROOF",
+  "unsignedFieldCount": 21,
+  "preimage": "existing E5 unchanged",
+  "maxBodyBytes": 393216,
+  "routes": {
+    "active": {
+      "path": "/v4/product-sessions/active",
+      "bodyKeys": [
+        "request",
+        "registrationOriginal",
+        "account",
+        "sessionBinding"
+      ]
+    },
+    "recover": {
+      "path": "/v4/product-sessions/recover",
+      "bodyKeys": [
+        "request",
+        "registrationOriginal",
+        "account",
+        "operationId"
+      ]
+    },
+    "revoke": {
+      "path": "/v4/product-sessions/revoke",
+      "bodyKeys": [
+        "operationId",
+        "request",
+        "registrationOriginal",
+        "account",
+        "sessionBinding"
+      ]
+    },
+    "cancel": {
+      "path": "/v4/product-session-challenges/cancel",
+      "bodyKeys": [
+        "operationId",
+        "request",
+        "registrationOriginal",
+        "account",
+        "challengeId"
+      ]
+    }
+  },
+  "responseKeys": [
+    "version",
+    "operation",
+    "operationId",
+    "requestBodyDigest",
+    "originalRequestBodyDigest",
+    "state",
+    "original",
+    "code"
+  ],
+  "responseStates": [
+    "OBSERVED",
+    "UNKNOWN",
+    "REJECTED"
+  ],
+  "digestAlgorithm": "SHA256",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "current": false,
+  "authorized": false,
+  "httpMounted": false,
+  "managementSource": "NOT_SUPPLIED",
+  "recoverySource": "independent original pending/operation/key/current source NOT_SUPPLIED",
+  "publicExportSuggestion": "./product-session-management-v4",
+  "exports": [
+    "encodeProductSessionManagementV4RequestDATA",
+    "decodeProductSessionManagementV4RequestDATA",
+    "inspectProductSessionManagementV4ProofDATA",
+    "assertProductSessionManagementV4RecoveryDATA",
+    "encodeProductSessionManagementV4ResponseDATA",
+    "decodeProductSessionManagementV4ResponseDATA"
+  ],
+  "recoveryTarget": {
+    "wireField": false,
+    "exactFields": [
+      "kind",
+      "operationId",
+      "approvalOriginal",
+      "challengeOriginal"
+    ],
+    "kind": "completion",
+    "derive": "existing deriveProductSessionV4TargetData(registry,request,approval,challenge)",
+    "bindingMeaning": "INTENDED only, not active/current/read lease",
+    "PAIR": "UNSUPPORTED",
+    "missingTargetError": "PAIR_V4_RECOVERY_SESSION_BINDING_NOT_DERIVABLE"
+  }
+}
