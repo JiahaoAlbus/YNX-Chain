@@ -252,12 +252,34 @@ class NormalBackend:
                 lab.require(all(normal.comet_hash(r["hash"])==expected for r in rows),"normal included transaction identity differs")
                 lab.require(len({int(r["height"]) for r in rows})==1 and all(int(r["tx_result"].get("code",0))==0 for r in rows),"normal included execution/height differs")
                 notify(dict(kind="included"))
-                lab.write_new(case/"four-node-inclusion.json",dict(rows=rows,qualifiedFinal=False,interpretation="original hash-bound execution observations only"));return
+                lab.write_new(case/"four-node-inclusion.json",dict(rows=rows,qualifiedFinal=False,interpretation="original hash-bound execution observations only"));return int(rows[0]["height"])
             except (OSError,ValueError,KeyError):pass
             except RuntimeError as error:
                 if "identity differs" in str(error) or "execution/height differs" in str(error):raise
             stop.wait(.02)
         raise RuntimeError("original submitted hash unresolved at bounded inclusion cutoff; no replay")
+    def wait_successor(self,height,case,stop):
+        # The original live CLI fails once (and retires its lane) if H+1 is
+        # absent. Wait on original observations BEFORE publishing that request.
+        # This readiness record grants no finality; the normal proof still must
+        # authenticate exact H/H+1 and the original sender must confirm it.
+        until=time.monotonic()+self.c.proof_timeout
+        while time.monotonic()<until and not stop.is_set():
+            try:
+                observed=[]
+                for node in self.c.plan["nodes"]:
+                    status=self.w.rpc(node["rpcAddress"],"status")
+                    info=self.w.rpc(node["rpcAddress"],"abci_info")["response"]
+                    lab.require(status["node_info"]["network"]==self.c.plan["chainId"],"normal successor chain identity differs")
+                    observed.append(dict(node=node["index"],engineHeight=int(status["sync_info"]["latest_block_height"]),applicationHeight=int(info["last_block_height"])))
+                if all(min(o["engineHeight"],o["applicationHeight"])>=height+1 for o in observed):
+                    lab.write_new(case/"successor-availability.json",dict(transactionHeight=height,minimumSuccessorHeight=height+1,observations=observed,observedMonotonicNs=time.monotonic_ns(),qualifiedFinal=False))
+                    return
+            except (OSError,ValueError,KeyError):pass
+            except RuntimeError as error:
+                if "chain identity differs" in str(error):raise
+            stop.wait(.02)
+        raise RuntimeError("original H+1 not observed before bounded cutoff; preserve submitted original UNKNOWN, no proof publication or replay")
     def live_proof(self,row,tx,path,case,notify,stop):
         notify(dict(kind="normal_stage",stage="proof_queue"))
         lane=None
@@ -300,7 +322,9 @@ class NormalBackend:
         lab.write_new(case/"operation-intent.json",dict(logicalId=row["id"],operationId=row["operationId"],ownerIndex=account["ownerIndex"],nonce=str(row["nonce"]),mode=self.c.mode,kind="normal independent single transfer",sourceGrant=False))
         started=time.monotonic_ns();tx,path,raw,request=self.original(row,account,case,notify,stop)
         notify(dict(kind="signed",hash=normal.comet_hash(tx["abciHash"]),nativeHash=normal.comet_hash(tx["nativeHash"])))
-        self.broadcast_and_include(row,tx,raw,case,notify,stop)
+        height=self.broadcast_and_include(row,tx,raw,case,notify,stop)
+        notify(dict(kind="normal_stage",stage="successor_availability"))
+        self.wait_successor(height,case,stop)
         proof,verified=self.live_proof(row,tx,path,case,notify,stop)
         confirmed=None
         if self.c.mode=="online":

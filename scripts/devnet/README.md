@@ -508,3 +508,28 @@ sign/confirm callees, four live lanes, helper limit and full500 demand remain
 unchanged. `test_pq_backend_modes.py` covers the original online-null/8-owner
 shape, exact pre-signed indices/duplicate rejection, and wrong-mode refusal;
 these are constructor controls, never business or finality receipts.
+
+The complete independent normal call path is now:
+original online-null construction -> exact FD3 sender canonical sign command ->
+original public transaction bytes/hash checks -> one POST -> four original
+hash-bound successful execution observations at H -> original status+ABCI Info
+on all four nodes at least H+1 -> one serial live-materials request/result ->
+pinned original offline transaction verifier -> original sender confirm ->
+durable qualified receipt -> release that account's next nonce.
+
+The H+1 readiness wait is required by the actual `capture` callee: it immediately
+retires the lane UNKNOWN if H+1 is absent. It does not wait/retry that request.
+The driver therefore waits BEFORE publication and records a separate
+`successor_availability` stage and `successor-availability.json`. Readiness is
+only a nonfinal height observation; all original proof/trust/confirm checks
+remain mandatory. The bounded cutoff retains the submitted original UNKNOWN
+without publication/replay. It does not require a quiet common checkpoint
+while other accounts are executing. Signing still uses the original independent
+committed checkpoint, and actual checkpoint races retain the normal refusal.
+
+`test_pq_normal_callgraph.py` covers all-four engine/application readiness,
+cancellation/foreign chain refusal, full adapter order, exact normal confirm
+arguments, and rejection without qualified output. Proof checks are explicitly
+intercepted in adapter-only controls: CONTROL_ONLY/failed-execution values are
+ineligible for the business ledger and are never real business/finality proof.
+Real first-to-all500 outcomes still come only from the sole CORE normal job.
