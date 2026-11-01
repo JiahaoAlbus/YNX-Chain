@@ -915,8 +915,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-v2-verifier.mjs",
-      "bytes": 77241,
-      "sha256": "48b0c830629d637726666c3731efea4fe95f68464cbabb3b826f59f58903c950"
+      "bytes": 77256,
+      "sha256": "a92a90ec062fdceb90d8ce3b908b5ff4d13a98cfefcaab80ef4ba1e56f8f442a"
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
@@ -17022,17 +17022,17 @@
   ],
   "systemInputProvenance": [
     {
-      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libssl.3.dylib",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libssl.3.dylib",
       "bytes": 984944,
       "sha256": "f71b9ec34307e4e94f0fc7660ae41645014e3ebde593193383186f01ff4eb5ea"
     },
     {
-      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libcrypto.3.dylib",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/openssl/lib/libcrypto.3.dylib",
       "bytes": 5137392,
       "sha256": "9621b5d455ef3e9a08e98ce9aa095f8353aea98dd7ba1387df43e8aaa1874dfc"
     },
     {
-      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/libuv/lib/libuv.1.0.0.dylib",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/native-dependency-target13-successor-r1/build-KElueY/install/libuv/lib/libuv.1.0.0.dylib",
       "bytes": 202912,
       "sha256": "3b2cf896a443b663998cb7f7defd89931b2262c2a2408a0a5865a58dace1ac42"
     },
@@ -17075,7 +17075,7 @@
     ]
   },
   "targetNode": {
-    "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/source/apps/developer/.ynx-developer-candidates/portable-node24-original-input/node",
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P03/source/apps/developer/.ynx-developer-candidates/portable-node24-original-input/node",
     "bytes": 120582384,
     "sha256": "0f12fe7fbbaf1731081371967148b3de6e4bc585cabe23489599045e56954aea",
     "version": "v24.19.0",
@@ -17086,7 +17086,7 @@
   "targetHeaders": {
     "relativePrefix": "toolchain/node24-target-headers",
     "upstream": {
-      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P03/current-node24-target-inputs-20261101/HEADERS.json",
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P03/current-node24-target-inputs-20261101/HEADERS.json",
       "bytes": 811290,
       "sha256": "6173a992df5762b5984de5d122606a9fa81fd5ac4a784d58017e203b5f91d255"
     },
@@ -30887,26 +30887,26 @@
   "managementRoot0Script": "apps/wallet-desktop/scripts/original-auth-management-root0-readback.mjs",
   "single47ManagementSourceContract": {
     "AuthH": {
-      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/device-v4-management-native-source-successor/final-r1/HANDOFF.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/device-v4-management-native-source-successor/final-r1/HANDOFF.json",
       "bytes": 73075,
       "sha256": "cd20ed6bf93530aa221d00d4b2022c247dea44cc527ffe7846128301884290ee"
     },
     "LINKH": {
-      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/shared/LINK/core17-producer-r1/HANDOFF-FROZEN.json",
+      "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/core17-producer-r1/HANDOFF-FROZEN.json",
       "bytes": 110091,
       "sha256": "7b19cee1fef37ac9efa493bc425369d07c5f9573d76154e2a3a1579678764353"
     },
     "SwiftH": {
-      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/custody-binding/evidence/binding-04ZLDB/HANDOFF.json",
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/mobile-registered-custody-source-successor/custody-binding/evidence/binding-04ZLDB/HANDOFF.json",
       "bytes": 14204,
       "sha256": "f779efe3efb7a44ab137c7f590fc57d8c36086d18b18fb2aceeed99f95f5a723"
     },
     "parentIntake": {
-      "path": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-management-native-single47-parent-intake-20261101/READBACK.json",
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-auth-owned-ci-20261026/sdk49-management-native-single47-parent-intake-20261101/READBACK.json",
       "bytes": 124919,
       "sha256": "46344b2e451f4c1589800604371bcef4043b0dfc3540dd87919484abc935004b"
     },
-    "publicSDKGit": "4bdcfd4df1e5a3de617292fe4aa3d934147947da",
+    "publicSDKGit": "62ec93ca4efb19ac85ec31aad6790059950cd996",
     "MainCaller": "cad971137",
     "base69": "bc6c09c66a74c4f1ba0bb9c81e816dcc0a793bf4",
     "newC_CPP_ObjC": 8,

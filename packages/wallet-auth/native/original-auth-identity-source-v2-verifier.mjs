@@ -92,7 +92,7 @@ function envelope(raw,role,frame,snapshot,networkId,expectedOwner,historicalCurr
  if(role==='current'&&!historicalCurrent&&issued!==observed)fail('AUTH_SOURCE_V2_CURRENT_HEIGHT');
  const historic=inspectPQAuthorizationView(snapshot,e.executionHeight);
  if(!historic.activeRecord||historic.activeRecord.revision!==e.keyVersion||historic.authorizationStatus==='revoked')fail('AUTH_SOURCE_V2_ISSUANCE_KEY_REQUIRED');
- let bytes,wire,bodyRaw;try{bytes=pqDecodeBase64url(e.body,{max:65536});wire=pqDecodeBase64url(e.member,{max:262144});bodyRaw=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{fail('AUTH_SOURCE_V2_ENCODING');}
+ let bytes,wire,bodyRaw;try{bytes=pqDecodeBase64url(e.body,{max:65536});wire=pqDecodeBase64url(e.member,{max:262144});bodyRaw=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);}catch{fail('AUTH_SOURCE_V2_ENCODING');}
  const body=parse(bodyRaw,65536);
  const math=verifyPQRegisteredMemberData(snapshot,wire,{chainId:networkId,owner:expectedOwner,keyVersion:e.keyVersion,executionHeight:snapshot.executionHeight,purpose:purposes[role],message:encodeOriginalAuthSourceStatementV2(role,frame,binding,bodyRaw)});
  if(math.memberCount!==1||math.memberIndex!==0)fail('AUTH_SOURCE_V2_N1_REQUIRED');
