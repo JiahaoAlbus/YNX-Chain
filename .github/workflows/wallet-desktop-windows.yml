@@ -4762,6 +4762,7 @@ jobs:
           node-version: '24'
       - run: npm ci --ignore-scripts --prefix packages/wallet-auth
       - run: node scripts/ci/pending-query-http-header-budget.mjs 2>&1 | tee pending-query-http-budget-controls.log
+      - run: node scripts/ci/pending-query-http-budget-package.mjs 2>&1 | tee pending-query-http-budget-package.log
       - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs
       - uses: actions/upload-artifact@v4
         if: always()
@@ -4770,4 +4771,5 @@ jobs:
           if-no-files-found: error
           path: |
             pending-query-http-budget-controls.log
+            pending-query-http-budget-package.log
             canonical-common-source-package
