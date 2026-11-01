@@ -17,6 +17,14 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = main-pay-source-refusal ]; then
+ : "${PAY_CLIENT_MAIN_SOURCE:?fixed P01 Pay-entry source required}"
+ : "${PAY_MAIN_READONLY_DEPENDENCIES:?original owner read-only dependency root required}"
+ : "${PAY_MAIN_SDK_PREFIX:?complete verified original SDK prefix required}"
+ export PAY_CLIENT_QA_MANIFEST="$fixture_dir/manifest.json"
+ node "$client_root/testsupport/main-pay-source-refusal.mjs"
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = main-pay-refusal ]; then
  : "${PAY_CLIENT_MAIN_SOURCE:?fixed original Core-only P01 Main source required}"
  node "$client_root/testsupport/main-pay-missing-entry.mjs"

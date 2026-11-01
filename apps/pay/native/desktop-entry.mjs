@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {pathToFileURL} from 'node:url';
+import {nativePayFailureCode} from './pay-business-client.mjs';
 const write=value=>process.stdout.write(JSON.stringify(value)+'\n');
 // GUI sends DATA only. The optional original owner module is selected and
 // hashed at build time, never by user input, URL, IPC packet or environment.
@@ -22,4 +23,4 @@ try{
    const result=request.action==='status'?await entry.status():await entry.invoke(request);write(result);
   }finally{if(typeof entry.close==='function')await entry.close();}
  }
-}catch(error){write({phase:'unavailable',code:error.code??'NATIVE_PAY_NORMAL_MAIN_SOURCE_UNAVAILABLE',mainApproval:false,submission:false});process.exitCode=2;}
+}catch(error){write({phase:'unavailable',code:nativePayFailureCode(error,'NATIVE_PAY_NORMAL_MAIN_SOURCE_UNAVAILABLE'),mainApproval:false,submission:false});process.exitCode=2;}

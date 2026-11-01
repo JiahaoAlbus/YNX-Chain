@@ -35,3 +35,15 @@ test('normal dispatcher packets keep actual Pay path/status/body even after late
  await assert.rejects(pay.submitRefundPacket(merchant,id,Uint8Array.of(1),current),/LOCKED/);assert.equal(calls.length,1);
  live=true;await pay.submitMerchantMemberPacket(intent,Uint8Array.of(1),current);assert.equal(calls[1].path,`/v5/pay/invoice-intents/${intent}/merchant-member`);
 });
+test('original Main query packets keep actual GET bytes and refusal without parse or reconcile POST',async()=>{
+ const merchant='0x'+'1'.repeat(40),intent='npi_'+'2'.repeat(48),requests=[];let live=true;
+ const raw=Buffer.from('not JSON: original refusal');
+ const pay=createPrivateNativeInvoiceClient({origin:'https://pay.example',async requestPrivate(r){r.assertCurrent();requests.push(r);live=false;return{method:r.method,requestPath:r.path,status:503,contentType:'text/plain',body:raw};}});
+ const current=()=>{if(!live)throw Error('LATE_LOCK');};
+ const first=await pay.readInvoiceIntentPacket(intent,current);assert.equal(first.method,'GET');assert.equal(first.status,503);assert.equal(first.contentType,'text/plain');assert.equal(Buffer.from(first.body).toString(),raw.toString());
+ raw.fill(0);assert.equal(Buffer.from(first.body).toString(),'not JSON: original refusal');
+ live=true;const second=await pay.readInvoicePacket(merchant,'invoice-original',current);
+ assert.equal(second.requestPath,`/v5/pay/invoices/${merchant}/invoice-original`);
+ assert.deepEqual(requests.map(r=>r.method),['GET','GET']);assert.ok(requests.every(r=>r.body===undefined&&r.contentType===undefined));
+ await assert.rejects(pay.readInvoicePacket(merchant,'invoice-original',current),/LATE_LOCK/);assert.equal(requests.length,2);
+});

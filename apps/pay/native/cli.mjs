@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
-import {NativePayBusinessClient,nativePaySummary} from './pay-business-client.mjs';
+import {NativePayBusinessClient,nativePaySummary,nativePayFailureCode} from './pay-business-client.mjs';
 
 const usage=`YNX Native Pay QA client (no signing keys or default service authority)
 Usage: ynx-pay-native --runtime /absolute/original-source-runtime.mjs COMMAND ARGS
@@ -26,10 +26,10 @@ export async function runNativePayCLI(args,{write=value=>process.stdout.write(va
  const runtime=await module.openNativePayRuntime();
  try{
   const client=new NativePayBusinessClient(runtime),methods={invoice:'openInvoice',intent:'openIntent','create-intent':'createInvoiceIntent','lookup-intent':'lookupOriginalInvoiceIntent','terms-review':'reviewMerchantTerms','terms-submit':'submitMerchantTerms','pay-review':'reviewPayment','pay-submit':'submitPayment','refund-review':'reviewRefund','refund-submit':'submitRefund',events:'syncNotifications',recover:'recoverInvoice','recover-intent':'recoverIntent'};
-  try{const state=await client[methods[command]](...values);write(JSON.stringify(nativePaySummary(state)));return 0;}catch(error){const state=client.snapshot();write(JSON.stringify({...nativePaySummary(state),code:error.code??'NATIVE_PAY_OPERATION_UNAVAILABLE'}));return 2;}
+  try{const state=await client[methods[command]](...values);write(JSON.stringify(nativePaySummary(state)));return 0;}catch(error){const state=client.snapshot();write(JSON.stringify({...nativePaySummary(state),code:nativePayFailureCode(error)}));return 2;}
  }finally{if(typeof runtime?.close==='function')await runtime.close();}
 }
 if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){
  try{process.exitCode=await runNativePayCLI(process.argv.slice(2));}
- catch(error){process.stderr.write(JSON.stringify({phase:'unavailable',code:error.code??'NATIVE_PAY_OPERATION_UNAVAILABLE',recoveryOnly:false})+'\n');process.exitCode=2;}
+ catch(error){process.stderr.write(JSON.stringify({phase:'unavailable',code:nativePayFailureCode(error),recoveryOnly:false})+'\n');process.exitCode=2;}
 }

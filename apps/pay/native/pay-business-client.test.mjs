@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {NativePayBusinessClient,nativePaySummary} from './pay-business-client.mjs';
+import {NativePayBusinessClient,nativePaySummary,nativePayFailureCode} from './pay-business-client.mjs';
 import {runNativePayCLI} from './cli.mjs';
 
 test('late invoice and stale Source responses cannot replace current selection or expose stale private facts',async()=>{
@@ -28,6 +28,13 @@ test('generic Core review and a QA approval callback cannot dispatch Pay funds',
  const client=new NativePayBusinessClient({main,pay:{merchantTermsReview(){calls++;},readInvoiceIntent(){calls++;},submitSettlement(){calls++;}},current(){},withSubmissionApproval(_ref,send){calls++;return send();}});
  for(const work of [()=>client.submitMerchantTerms('intent','hash'),()=>client.submitPayment('merchant','invoice','hash'),()=>client.submitRefund('merchant','invoice','hash')])await assert.rejects(work(),{code:'NATIVE_PAY_MAIN_PAY_REVIEW_UNAVAILABLE'});
  assert.equal(calls,0);
+});
+test('Wallet provider Source refusal remains precise instead of numeric 4100',async()=>{
+ const error=Object.assign(Error('Source missing'),{code:4100,data:{code:'PQ_PAY_BROADCAST_SOURCE_NOT_SUPPLIED'}});
+ assert.equal(nativePayFailureCode(error),'PQ_PAY_BROADCAST_SOURCE_NOT_SUPPLIED');
+ const client=new NativePayBusinessClient({pay:{async readInvoice(){throw error;}},current(){}});
+ await assert.rejects(client.openInvoice('merchant','invoice'),e=>e===error);
+ assert.equal(client.snapshot().reason,'PQ_PAY_BROADCAST_SOURCE_NOT_SUPPLIED');
 });
 test('normal CLI has no approve/keys/default authority and diagnostics perform no runtime import',async()=>{
  const output=[];assert.equal(await runNativePayCLI(['--diagnose'],{write:s=>output.push(JSON.parse(s))}),0);assert.equal(output[0].submission,false);

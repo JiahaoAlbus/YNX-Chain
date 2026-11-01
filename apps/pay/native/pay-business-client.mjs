@@ -2,6 +2,12 @@ import {createNativeInvoiceMerchantApproval,createNativePayActionApproval,reject
 import {nativeInvoiceProductIntentData} from './invoice-product-intent.mjs';
 const failure=code=>Object.assign(Error(code),{code});
 const clone=value=>structuredClone(value);
+// Wallet provider errors keep their precise domain code in data.code; the
+// numeric outer provider code must not hide a missing production Source.
+export function nativePayFailureCode(error,fallback='NATIVE_PAY_OPERATION_UNAVAILABLE'){
+ for(const code of [error?.data?.code,error?.code])if(typeof code==='string'&&/^[A-Za-z0-9_:-]{1,128}$/.test(code))return code;
+ return fallback;
+}
 
 /** Client orchestration only. Pay owns invoice/funds/outbox state and Main owns
  * approvals, original Members and submission UNKNOWN. This client persists no
@@ -20,7 +26,7 @@ export class NativePayBusinessClient {
   const revision=++this.#revision,current=()=>this.#fence(revision);
   this.#state={phase,reason:null,reference:clone(reference),bill:null};
   try{current();const result=await work(current);current();this.#state={phase:'ready',reason:null,reference:clone(reference),...result};return this.snapshot();}
-  catch(error){if(revision===this.#revision){let recovery;try{this.#runtime.current();recovery=this.#state.recovery;}catch{}this.#state={phase:'unavailable',reason:error.code??'NATIVE_PAY_OPERATION_UNAVAILABLE',reference:clone(reference),bill:null,recoveryOnly:phase==='submitting'||phase==='creating-intent',...(recovery?{recovery}: {})};}throw error;}
+  catch(error){if(revision===this.#revision){let recovery;try{this.#runtime.current();recovery=this.#state.recovery;}catch{}this.#state={phase:'unavailable',reason:nativePayFailureCode(error),reference:clone(reference),bill:null,recoveryOnly:phase==='submitting'||phase==='creating-intent',...(recovery?{recovery}: {})};}throw error;}
  }
  async #originalProductIntent(productId,sourceOrder,current){
   if(typeof productId!=='string'||typeof sourceOrder!=='string'||![productId,sourceOrder].every(v=>/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(v)))throw failure('NATIVE_PAY_PRODUCT_REFERENCE_INVALID');

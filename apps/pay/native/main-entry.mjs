@@ -1,5 +1,5 @@
 import {types} from 'node:util';
-import {NativePayBusinessClient,nativePaySummary} from './pay-business-client.mjs';
+import {NativePayBusinessClient,nativePaySummary,nativePayFailureCode} from './pay-business-client.mjs';
 import {rejectNativePayPending} from './merchant-invoice-approval.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'create-intent':['productId','sourceOrder'],'lookup-intent':['productId','sourceOrder'],'terms-review':['intentId'],'pay-review':['merchant','invoiceId'],'refund-review':['merchant','invoiceId','refundId','amountAtoms'],events:['merchant','invoiceId'],recover:['merchant','invoiceId','nativeHash'],'recover-intent':['intentId'],'broadcast-review':['kind','merchant','invoiceId','intentId','originalHash']};
@@ -32,7 +32,7 @@ export function createNativePayMainEntry({getMain,getContext}){
    source=originalSource;
   },
   status(){let reason=source?null:'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE';
-   if(source)try{context()();if(source.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}catch(error){reason=error?.code??'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE';}
+   if(source)try{context()();if(source.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}catch(error){reason=nativePayFailureCode(error,'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}
    return {client:'YNX Pay',normalMainEntry:true,sourceSupplied:!!source,available:reason===null,reason,approvalInOriginalMain:true,paymentAuthorized:false};},
   cancel,
   async invoke(raw){

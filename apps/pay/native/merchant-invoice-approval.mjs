@@ -73,12 +73,12 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
  const id=value=>{if(typeof value!=='string'||!/^npi_[0-9a-f]{48}$/.test(value))fail('NATIVE_INVOICE_ORIGINAL_ID_REQUIRED');return value};
  async function packet(method,path,input,assertCurrent){
   if(typeof assertCurrent!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
-  const body=Buffer.from(JSON.stringify(input));if(body.length>2*1024*1024)fail('NATIVE_INVOICE_REQUEST_BOUNDS');
+  const body=input===undefined?undefined:Buffer.from(JSON.stringify(input));if(body&&body.length>2*1024*1024)fail('NATIVE_INVOICE_REQUEST_BOUNDS');
   assertCurrent();
   // Sole original Source/LINK transport; it also fences immediately before
   // its actual write. No post-response fence here: original Main must retain
   // the real response before late lock, parse, completion and cleanup.
-  const result=await requestPrivate(Object.freeze({origin,method,path,body,contentType:'application/json',assertCurrent}));
+  const result=await requestPrivate(Object.freeze({origin,method,path,body,contentType:input===undefined?undefined:'application/json',assertCurrent}));
   if(!(result?.body instanceof Uint8Array)||result.body.length>2*1024*1024)fail('NATIVE_INVOICE_RESPONSE_BOUNDS');
   return {method:result.method,requestPath:result.requestPath,status:result.status,contentType:result.contentType,cacheControl:result.cacheControl??'',body:Uint8Array.from(result.body)};
  }
@@ -115,6 +115,10 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
   submitMerchantMemberPacket:(intentId,member,current)=>packet('POST',`/v5/pay/invoice-intents/${id(intentId)}/merchant-member`,{member:memberBody(member)},current),
   submitSettlementPacket:(merchant,invoiceId,member,current)=>packet('POST',invoicePath(merchant,invoiceId)+'/settlements',{member:memberBody(member)},current),
   submitRefundPacket:(merchant,invoiceId,member,current)=>packet('POST',invoicePath(merchant,invoiceId)+'/refunds',{member:memberBody(member)},current),
+  // Original Main UNKNOWN query only. Preserve GET and raw DATA before any
+  // late current/parse; these methods cannot create, reconcile or submit.
+  readInvoiceIntentPacket:(intentId,current)=>packet('GET',`/v5/pay/invoice-intents/${id(intentId)}`,undefined,current),
+  readInvoicePacket:(merchant,invoiceId,current)=>packet('GET',invoicePath(merchant,invoiceId),undefined,current),
   async merchantTermsReview(intentId){const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/merchant-review`,{});if(value.intent?.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
   async readInvoiceIntent(intentId){const value=await call('GET',`/v5/pay/invoice-intents/${id(intentId)}`);if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
   async submitMerchantMember(intentId,member){
