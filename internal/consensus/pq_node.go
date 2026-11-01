@@ -21,7 +21,7 @@ import (
 // original legacy validator, original P2P identity and an already resumed PQ
 // signer. It generates no identities and starts no listener itself. The caller
 // retains ownership of signing-state locks and key custody for the node's life.
-func NewPQConsensusNode(config *cmtconfig.Config, app *Application, legacy cmttypes.PrivValidator, resumedPQSigner *ynxconsensusauth.Signer, nodeKey *p2p.NodeKey, logger log.Logger) (*node.Node, error) {
+func NewPQConsensusNode(config *cmtconfig.Config, app *Application, legacy cmttypes.PrivValidator, resumedPQSigner *ynxconsensusauth.Signer, nodeKey *p2p.NodeKey, logger log.Logger, options ...node.Option) (*node.Node, error) {
 	if config == nil || app == nil || legacy == nil || resumedPQSigner == nil || nodeKey == nil || nodeKey.PrivKey == nil || logger == nil {
 		return nil, errors.New("PQ node requires existing app, both validator identities, original node key and logger")
 	}
@@ -42,16 +42,16 @@ func NewPQConsensusNode(config *cmtconfig.Config, app *Application, legacy cmtty
 	if err != nil {
 		return nil, err
 	}
-	return newPQNodeWithValidator(config, app, transition, nodeKey, logger)
+	return newPQNodeWithValidator(config, app, transition, nodeKey, logger, options...)
 }
 
-func newPQNodeWithValidator(config *cmtconfig.Config, app *Application, validator cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger) (*node.Node, error) {
-	return newPQNodeWithDatabase(config, app, validator, nodeKey, logger, cmtconfig.DefaultDBProvider)
+func newPQNodeWithValidator(config *cmtconfig.Config, app *Application, validator cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger, options ...node.Option) (*node.Node, error) {
+	return newPQNodeWithDatabase(config, app, validator, nodeKey, logger, cmtconfig.DefaultDBProvider, options...)
 }
 
 // The same constructor accepts an explicit database provider for isolated
 // constructor/recovery tests. Production always supplies DefaultDBProvider.
-func newPQNodeWithDatabase(config *cmtconfig.Config, app *Application, validator cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger, database cmtconfig.DBProvider) (*node.Node, error) {
+func newPQNodeWithDatabase(config *cmtconfig.Config, app *Application, validator cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger, database cmtconfig.DBProvider, options ...node.Option) (*node.Node, error) {
 	if err := app.ValidateNormalRuntime(); err != nil {
 		return nil, err
 	}
@@ -78,5 +78,5 @@ func newPQNodeWithDatabase(config *cmtconfig.Config, app *Application, validator
 	}
 	return node.NewNodeWithConsensusAuthority(config, validator, nodeKey,
 		proxy.NewLocalClientCreator(app), genesisProvider, database,
-		node.DefaultMetricsProvider(config.Instrumentation), logger, app)
+		node.DefaultMetricsProvider(config.Instrumentation), logger, app, options...)
 }

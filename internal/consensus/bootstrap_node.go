@@ -35,7 +35,7 @@ func (b *ConsensusBootstrap) ValidateOriginalValidator(original cmttypes.PrivVal
 // it cannot replace a required runtime upgrade or continue a stored PQ profile.
 // The caller holds the application writer and original FilePV HRS leases for
 // the complete node lifetime. This constructor starts no node or listener.
-func NewBootstrapConsensusNode(config *cfg.Config, app *Application, original cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger) (*node.Node, error) {
+func NewBootstrapConsensusNode(config *cfg.Config, app *Application, original cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger, options ...node.Option) (*node.Node, error) {
 	if config == nil || app == nil || original == nil || nodeKey == nil || nodeKey.PrivKey == nil || logger == nil || config.PrivValidatorListenAddr != "" {
 		return nil, errors.New("bootstrap node requires its existing local node and validator identities")
 	}
@@ -51,5 +51,5 @@ func NewBootstrapConsensusNode(config *cfg.Config, app *Application, original cm
 	}
 	// The shared normal constructor preserves ValidateNormalRuntime, exact raw
 	// genesis identity, the real Handshake and engine checkpoint callbacks.
-	return newPQNodeWithValidator(config, app, original, nodeKey, logger)
+	return newPQNodeWithValidator(config, app, original, nodeKey, logger, options...)
 }

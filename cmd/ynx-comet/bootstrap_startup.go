@@ -22,6 +22,10 @@ func (p pqOptions) bootstrapOnly() bool {
 // Every identity/pin is checked before opening the application; no key or HRS
 // is generated, and old runtime domains still require their separate plan.
 func constructBootstrapNode(config *cfg.Config, logger log.Logger, options pqOptions) (*node.Node, io.Closer, error) {
+	losslessOptions, losslessErr := prepareOperatorLosslessHex(config, options)
+	if losslessErr != nil {
+		return nil, nil, losslessErr
+	}
 	if config == nil || logger == nil || !options.bootstrapOnly() || options.validate() != nil || config.PrivValidatorListenAddr != "" {
 		return nil, nil, errors.New("bootstrap-only construction requires complete independent pins and original local custody")
 	}
@@ -54,7 +58,7 @@ func constructBootstrapNode(config *cfg.Config, logger log.Logger, options pqOpt
 	if err != nil {
 		return nil, nil, errors.Join(err, custody.Close())
 	}
-	n, err := consensus.NewBootstrapConsensusNode(config, app, legacy, nodeKey, logger)
+	n, err := consensus.NewBootstrapConsensusNode(config, app, legacy, nodeKey, logger, losslessOptions...)
 	if err != nil {
 		return nil, nil, errors.Join(err, custody.Close())
 	}

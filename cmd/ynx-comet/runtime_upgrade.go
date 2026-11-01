@@ -112,6 +112,10 @@ func (c *runtimeLegacyCustody) Close() error { clear(c.key); return nil }
 // This path does not generate a key, reset HRS, consume a PQ credential, or
 // treat the application's file as an engine checkpoint.
 func constructRuntimeNode(config *cfg.Config, logger log.Logger, options pqOptions) (*node.Node, io.Closer, error) {
+	losslessOptions, losslessErr := prepareOperatorLosslessHex(config, options)
+	if losslessErr != nil {
+		return nil, nil, losslessErr
+	}
 	if config == nil || logger == nil || !options.runtimeOnly() || options.validate() != nil || config.PrivValidatorListenAddr != "" {
 		return nil, nil, errors.New("runtime-only construction requires complete independent operator configuration")
 	}
@@ -140,7 +144,7 @@ func constructRuntimeNode(config *cfg.Config, logger log.Logger, options pqOptio
 		return nil, nil, err
 	}
 	custody := &runtimeLegacyCustody{key: legacy.Key.PrivKey.Bytes()}
-	n, err := consensus.NewRuntimeUpgradeConsensusNode(config, app, legacy, nodeKey, logger)
+	n, err := consensus.NewRuntimeUpgradeConsensusNode(config, app, legacy, nodeKey, logger, losslessOptions...)
 	if err != nil {
 		return nil, nil, errors.Join(err, custody.Close())
 	}

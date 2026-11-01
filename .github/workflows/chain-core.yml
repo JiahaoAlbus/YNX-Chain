@@ -389,6 +389,55 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  lossless-default-source:
+    name: Default OFF and exact original state pair controls
+    needs: contract-tooling-scope
+    if: needs.contract-tooling-scope.outputs.client_changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: 1536MiB
+      CGO_ENABLED: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+      - name: Execute the three new normal default source cases without Node.Start
+        run: |
+          python3 -B - <<'PYTHON'
+          import importlib.util, os
+          from pathlib import Path
+          root = Path.cwd().resolve()
+          output = Path(os.environ['RUNNER_TEMP']) / 'lossless-default-source'
+          output.mkdir(mode=0o700)
+          spec = importlib.util.spec_from_file_location('wire_source', root / 'scripts/verify/wire-live-matching-source-ci.py')
+          source = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(source)
+          required = ['TestOperatorLosslessHexDefaultOffAndClosedFlags', 'TestOperatorLosslessHexUnsupportedSourceRefusesBeforeState', 'TestOperatorLosslessPairOriginalPQTimeIsConsensusState']
+          source.run_go(root, output, 'normal-lossless-default-caller',
+              ['-mod=readonly', '-json', '-p', '1', '-count=1', '-timeout=120s',
+               '-run', '^(' + '|'.join(required) + ')$', './cmd/ynx-comet'], required, os.environ.copy())
+          PYTHON
+      - name: Preserve original default source test streams
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lossless-default-source-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/lossless-default-source/normal-lossless-default-caller.jsonl
+            ${{ runner.temp }}/lossless-default-source/normal-lossless-default-caller.stderr.log
+            ${{ runner.temp }}/lossless-default-source/normal-lossless-default-caller.result.json
+          if-no-files-found: warn
+          retention-days: 14
+
   distributed-pq-source:
     name: Distributed PQ host-local source and PUBLIC readback
     needs: contract-tooling-scope
@@ -492,6 +541,76 @@ jobs:
             ${{ runner.temp }}/distributed-pq-command.jsonl
             ${{ runner.temp }}/distributed-pq-command.stderr.log
             ${{ runner.temp }}/distributed-pq-source-result.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  lossless-matching-source:
+    name: Fixed successor normal lossless constructor and readiness budget
+    needs: contract-tooling-scope
+    if: needs.contract-tooling-scope.outputs.client_changed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: 1536MiB
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          check-latest: false
+          cache: true
+      - name: Acquire only the fixed corrected lossless supplier
+        env:
+          WIRE_SUPPLIER_READ_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B - <<'PYTHON'
+          import base64, os, subprocess
+          commit = 'ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d'
+          tree = 'f1a8837079178469bc57ede955c55973f8b7d8ba'
+          environment = os.environ.copy()
+          token = environment.pop('WIRE_SUPPLIER_READ_TOKEN')
+          if not token:
+              raise RuntimeError('read-only supplier acquisition credential missing')
+          environment.update(GIT_CONFIG_COUNT='1',
+              GIT_CONFIG_KEY_0='http.https://github.com/.extraheader',
+              GIT_CONFIG_VALUE_0='AUTHORIZATION: basic ' + base64.b64encode(('x-access-token:' + token).encode()).decode(),
+              GIT_TERMINAL_PROMPT='0', GIT_TRACE='0', GIT_TRACE_CURL='0', GIT_CURL_VERBOSE='0')
+          subprocess.run(['git', 'fetch', '--quiet', '--no-tags', '--no-recurse-submodules',
+              '--depth=1', '--no-write-fetch-head', 'origin', commit], env=environment, check=True, timeout=60)
+          actual_commit = subprocess.check_output(['git', 'rev-parse', '--verify', commit + '^{commit}'], text=True).strip()
+          actual_tree = subprocess.check_output(['git', 'rev-parse', '--verify', commit + ':third_party/cometbft'], text=True).strip()
+          if actual_commit != commit or actual_tree != tree:
+              raise RuntimeError('received fixed successor identity differs')
+          if subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip() != os.environ['GITHUB_SHA']:
+              raise RuntimeError('supplier acquisition changed original HEAD')
+          if subprocess.check_output(['git', 'status', '--porcelain']).strip():
+              raise RuntimeError('supplier acquisition changed original checkout')
+          print('YNX_LOSSLESS_SUPPLIER_OBJECT_RECEIVED commit=' + commit + ' forkTree=' + tree)
+          PYTHON
+      - name: Verify the normal constructor and all 24 fixed readiness budget cases without Node.Start
+        run: >-
+          python3 -B scripts/verify/wire-live-matching-source-ci.py
+          --lossless-supplier-commit ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d
+          --lossless-supplier-tree f1a8837079178469bc57ede955c55973f8b7d8ba
+      - name: Preserve only public corrected lossless source evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: normal-lossless-wire-source-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/wire-lossless-source-*/SOURCE.json
+            ${{ runner.temp }}/wire-lossless-source-*/normal-lossless-caller.jsonl
+            ${{ runner.temp }}/wire-lossless-source-*/normal-lossless-caller.stderr.log
+            ${{ runner.temp }}/wire-lossless-source-*/normal-lossless-caller.result.json
+            ${{ runner.temp }}/wire-lossless-source-*/corrected-peer-budget.jsonl
+            ${{ runner.temp }}/wire-lossless-source-*/corrected-peer-budget.stderr.log
+            ${{ runner.temp }}/wire-lossless-source-*/corrected-peer-budget.result.json
+            ${{ runner.temp }}/wire-lossless-source-*/composition/SOURCE-SELECTION.json
           if-no-files-found: warn
           retention-days: 14
 

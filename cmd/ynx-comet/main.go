@@ -29,6 +29,7 @@ import (
 )
 
 type pqOptions struct {
+	mempoolLosslessHex                                                string
 	migration, state, genesisHash, originalGenesisHash, migrationHash string
 	schedule, scheduleHash, binding, vault                            string
 	recoveryFD                                                        int
@@ -49,7 +50,7 @@ type pqOptions struct {
 }
 
 func (p pqOptions) enabled() bool {
-	return p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured() || p.wireObservationConfigured() || p.commitObservationConfigured()
+	return p.losslessConfigured() || p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured() || p.wireObservationConfigured() || p.commitObservationConfigured()
 }
 
 func (p pqOptions) remote() bool {
@@ -67,6 +68,9 @@ func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
 }
 
 func (p pqOptions) validate() error {
+	if err := p.validateLosslessHex(); err != nil {
+		return err
+	}
 	if err := p.validateCommitObservation(); err != nil {
 		return err
 	}
@@ -179,6 +183,10 @@ func existingPrivateFile(path string) error {
 }
 
 func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (*nm.Node, *ynxconsensusauth.HostSigner, error) {
+	losslessOptions, losslessErr := prepareOperatorLosslessHex(config, options)
+	if losslessErr != nil {
+		return nil, nil, losslessErr
+	}
 	if config == nil || logger == nil {
 		return nil, nil, errors.New("node configuration and logger are required")
 	}
@@ -266,7 +274,7 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 	if err != nil {
 		return nil, nil, errors.Join(err, host.Close())
 	}
-	node, err := consensus.NewPQConsensusNode(config, app, legacy, signer, nodeKey, logger)
+	node, err := consensus.NewPQConsensusNode(config, app, legacy, signer, nodeKey, logger, losslessOptions...)
 	if err != nil {
 		return nil, nil, errors.Join(err, host.Close())
 	}
@@ -274,6 +282,10 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 }
 
 func constructRemotePQNode(ctx context.Context, config *cfg.Config, logger log.Logger, options pqOptions) (*nm.Node, io.Closer, error) {
+	losslessOptions, losslessErr := prepareOperatorLosslessHex(config, options)
+	if losslessErr != nil {
+		return nil, nil, losslessErr
+	}
 	if config == nil || logger == nil || !options.remote() {
 		return nil, nil, errors.New("explicit remote node configuration is required")
 	}
@@ -316,7 +328,7 @@ func constructRemotePQNode(ctx context.Context, config *cfg.Config, logger log.L
 	if err != nil {
 		return nil, nil, err
 	}
-	n, session, err := consensus.NewPQRemoteConsensusNodeSession(config, app, conn, pin, options.transport().Timeout, inputs.Binding, nodeKey, logger)
+	n, session, err := consensus.NewPQRemoteConsensusNodeSession(config, app, conn, pin, options.transport().Timeout, inputs.Binding, nodeKey, logger, losslessOptions...)
 	if err != nil {
 		return nil, nil, errors.Join(err, conn.Close())
 	}
@@ -519,6 +531,7 @@ func main() {
 	registerProofHostLiveFlags(f, &options)
 	registerCheckpointAccessFlags(f, &options)
 	registerWireObservationFlags(f, &options)
+	registerLosslessHexFlags(f, &options)
 	registerCommitObservationFlags(f, &options)
 	f.StringVar(&options.runtimePlan, "runtime-upgrade-plan", "", "canonical independently pinned old-runtime upgrade plan")
 	f.StringVar(&options.runtimePlanHash, "runtime-upgrade-plan-hash", "", "independent exact runtime upgrade plan hash")

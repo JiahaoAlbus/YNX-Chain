@@ -15,7 +15,7 @@ import (
 // NewRuntimeUpgradeConsensusNode uses the normal engine and original Ed signer
 // when upgrading application execution alone. A PQ schedule requires the
 // separately authorized transition/remote factory, never a legacy fallback.
-func NewRuntimeUpgradeConsensusNode(config *cfg.Config, app *Application, original cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger) (*node.Node, error) {
+func NewRuntimeUpgradeConsensusNode(config *cfg.Config, app *Application, original cmttypes.PrivValidator, nodeKey *p2p.NodeKey, logger log.Logger, options ...node.Option) (*node.Node, error) {
 	if config == nil || app == nil || original == nil || nodeKey == nil || logger == nil || config.PrivValidatorListenAddr != "" {
 		return nil, errors.New("runtime upgrade requires the original local node and validator identities")
 	}
@@ -33,5 +33,5 @@ func NewRuntimeUpgradeConsensusNode(config *cfg.Config, app *Application, origin
 	if !ok || !bytes.Equal(member.Ed25519, key.Bytes()) {
 		return nil, errors.New("runtime-only signer differs from pinned original membership")
 	}
-	return newPQNodeWithValidator(config, app, original, nodeKey, logger)
+	return newPQNodeWithValidator(config, app, original, nodeKey, logger, options...)
 }

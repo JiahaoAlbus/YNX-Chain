@@ -21,6 +21,210 @@ spec.loader.exec_module(ci)
 
 
 class WireLiveSourceControls(unittest.TestCase):
+    def test_corrected_successor_requires_both_readiness_fixes_and_every_named_pass(self):
+        self.assertEqual(len(ci.BUDGET), 22)
+        self.assertEqual(len(ci.LOSSLESS_BUDGET), 24)
+        required_new = ["TestLosslessHexBudgetInitialPeerReadinessDeadline",
+                        "TestLosslessHexBudgetReadyTransitionKeepsSelectedCarrier"]
+        self.assertEqual(ci.LOSSLESS_BUDGET[-2:], required_new)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            source = root / "third_party/cometbft/mempool"
+            source.mkdir(parents=True)
+            file = source / "lossless_hex_retry_budget_test.go"
+            budget = [name for name in ci.LOSSLESS_BUDGET if name.startswith("TestLosslessHexBudget")]
+            def write(names):
+                file.write_text("\n".join("func " + name + "(t *testing.T) {}" for name in names) + "\n")
+            for omitted in required_new:
+                write([name for name in budget if name != omitted])
+                with self.assertRaisesRegex(RuntimeError, "mandatory readiness"):
+                    ci.lossless_budget_tests(root)
+            write(budget + [budget[0]])
+            with self.assertRaisesRegex(RuntimeError, "duplicated"):
+                ci.lossless_budget_tests(root)
+            write(budget)
+            actual = ci.lossless_budget_tests(root)
+            self.assertEqual(set(actual), set(ci.LOSSLESS_BUDGET))
+            original_log = root / "budget.jsonl"
+            events = [dict(Action=action, Test=name) for name in actual for action in ("run", "pass")]
+            original_log.write_text("\n".join(json.dumps(row) for row in events) + "\n")
+            ci.validate_go_jsonl(original_log, actual)
+            for failed in required_new:
+                rejected = [dict(row, Action="skip") if row["Test"] == failed and row["Action"] == "pass" else row for row in events]
+                original_log.write_text("\n".join(json.dumps(row) for row in rejected) + "\n")
+                with self.assertRaises(RuntimeError):
+                    ci.validate_go_jsonl(original_log, actual)
+
+    def test_lossless_requires_independent_successor_and_preserves_off_api(self):
+        signature = inspect.signature(ci.prepare_wire_lossless_source)
+        for name in ("supplier_commit", "supplier_tree"):
+            self.assertEqual(signature.parameters[name].kind, inspect.Parameter.KEYWORD_ONLY)
+            self.assertEqual(signature.parameters[name].default, inspect.Parameter.empty)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            destination = root / "not-created"
+            variants = [(None, "b" * 40), ("a" * 40, None), ("0" * 40, "b" * 40),
+                        ("A" * 40, "b" * 40), ("a" * 40, "b" * 39),
+                        (ci.FORK_COMMIT, "b" * 40), ("a" * 40, ci.FORK_TREE),
+                        ("a" * 40, ci.PRODUCTION_TREE)]
+            with patch.object(ci, "git") as git, patch.object(ci, "extract") as extract:
+                for commit, tree in variants:
+                    with self.subTest(commit=commit, tree=tree), self.assertRaises(RuntimeError):
+                        ci.prepare_wire_lossless_source(root, destination, "source", "tree",
+                                                       supplier_commit=commit, supplier_tree=tree)
+                git.assert_not_called()
+                extract.assert_not_called()
+            self.assertFalse(destination.exists())
+
+    def test_exact_off_and_successor_compositions_keep_original_sources_and_false_run_claims(self):
+        for lossless in (False, True):
+            with self.subTest(lossless=lossless), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                original = root / "original-source"
+                original.write_bytes(b"original source and UNKNOWN are retained")
+                commit, tree = "c" * 40, "d" * 40
+                supplier = "a" * 40 if lossless else ci.FORK_COMMIT
+                supplier_tree = "b" * 40 if lossless else ci.FORK_TREE
+                destination = root / "composition"
+                calls = []
+                def original_git(_, *args):
+                    calls.append(args)
+                    if args == ("rev-parse", "HEAD"): return commit.encode()
+                    if args == ("rev-parse", "HEAD^{tree}"): return tree.encode()
+                    if args[0] == "status": return b""
+                    if args == ("rev-parse", "HEAD:third_party/cometbft"): return ci.PRODUCTION_TREE.encode()
+                    if args == ("rev-parse", "--verify", supplier + "^{commit}"): return supplier.encode()
+                    if args == ("rev-parse", "--verify", supplier + ":third_party/cometbft"): return supplier_tree.encode()
+                    if args == ("diff", "--name-only", ci.PRODUCTION_TREE, supplier_tree): return "\n".join(sorted(ci.DIFF)).encode()
+                    if args == ("diff", "--diff-filter=D", "--name-only", ci.PRODUCTION_TREE, supplier_tree): return b""
+                    if args == ("show", commit + ":go.mod"): return b"original go.mod"
+                    if args == ("show", commit + ":go.sum"): return b"original go.sum"
+                    self.fail("unexpected git operation: " + str(args))
+                def original_extract(_, revision, target, paths=()):
+                    if revision == commit:
+                        self.assertEqual(paths, ("go.mod", "go.sum", "cmd", "internal", "contracts", "third_party"))
+                        (target / "go.mod").write_bytes(b"original go.mod")
+                        (target / "go.sum").write_bytes(b"original go.sum")
+                        (target / "third_party/cometbft").mkdir(parents=True)
+                    else:
+                        self.assertEqual(revision, supplier + ":third_party/cometbft")
+                        self.assertEqual(paths, ())
+                        (target / "selected-source").write_bytes(supplier_tree.encode())
+                with patch.object(ci, "git", side_effect=original_git), patch.object(ci, "extract", side_effect=original_extract):
+                    if lossless:
+                        result = ci.prepare_wire_lossless_source(root, destination, commit, tree,
+                            supplier_commit=supplier, supplier_tree=supplier_tree)
+                    else:
+                        result = ci.prepare_wire_live_source(root, destination, commit, tree)
+                selection = result["sourceSelection"]
+                self.assertEqual(selection["selectedOptionalForkCommit"], supplier)
+                self.assertEqual(selection["selectedOptionalForkTree"], supplier_tree)
+                self.assertEqual(selection["exactOptionalDifference"], sorted(ci.DIFF))
+                self.assertEqual(selection["buildTags"], ["ynx_live_wire_observation", "ynx_lossless_hex"] if lossless else ["ynx_live_wire_observation"])
+                for claim in ("nodeStarted", "carrierEnabled", "publicActivation", "fakeVCSIdentity", "originalCheckoutWritten", "originalModuleDescriptorsChanged"):
+                    self.assertIs(selection[claim], False)
+                self.assertIs(selection["sourceOnly"], True)
+                if lossless:
+                    self.assertIs(selection["losslessOptInSupported"], True)
+                    self.assertIs(selection["actualOnExecution"], False)
+                else:
+                    self.assertNotIn("losslessOptInSupported", selection)
+                    self.assertNotIn("actualOnExecution", selection)
+                self.assertFalse((Path(result["sourceDirectory"]) / ".git").exists())
+                self.assertEqual(original.read_bytes(), b"original source and UNKNOWN are retained")
+                receipt = Path(result["receiptPath"]).read_bytes()
+                self.assertEqual(hashlib.sha256(receipt).hexdigest(), result["receiptSHA256"])
+                self.assertNotIn("fetch", [word for call in calls for word in call])
+                with patch.object(ci, "git") as git, self.assertRaisesRegex(RuntimeError, "no retry overwrite"):
+                    ci.prepare_wire_live_source(root, destination, commit, tree)
+                git.assert_not_called()
+                self.assertEqual(Path(result["receiptPath"]).read_bytes(), receipt)
+
+    def test_successor_extra_or_deleted_leaf_rejects_before_archive(self):
+        for changed, deleted in ((ci.DIFF | {"types/tx.go"}, b""), (ci.DIFF, b"mempool/reactor.go\n")):
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory).resolve()
+                destination = root / "fresh"
+                def original_git(_, *args):
+                    if args == ("rev-parse", "HEAD"): return b"source"
+                    if args == ("rev-parse", "HEAD^{tree}"): return b"tree"
+                    if args[0] == "status": return b""
+                    if args == ("rev-parse", "HEAD:third_party/cometbft"): return ci.PRODUCTION_TREE.encode()
+                    if args == ("diff", "--name-only", ci.PRODUCTION_TREE, "b" * 40): return "\n".join(sorted(changed)).encode()
+                    if args == ("diff", "--diff-filter=D", "--name-only", ci.PRODUCTION_TREE, "b" * 40): return deleted
+                    self.fail(str(args))
+                with patch.object(ci, "git", side_effect=original_git), patch.object(ci, "require_supplier_source"), patch.object(ci, "extract") as extract:
+                    with self.assertRaisesRegex(RuntimeError, "unapproved delta|cannot remove"):
+                        ci.prepare_wire_lossless_source(root, destination, "source", "tree", supplier_commit="a" * 40, supplier_tree="b" * 40)
+                    extract.assert_not_called()
+                self.assertFalse(destination.exists())
+
+    def test_fullheight_equality_keeps_every_byte_and_never_claims_execution(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            before, after = root / "off.full.json", root / "on.full.json"
+            # Controls only: the real Application Time/PQ history counterexample
+            # is exercised by TestOperatorLosslessPairOriginalPQTimeIsConsensusState.
+            raw = b'{"height":"5","time":"original","history":[1],"errors":[],"balance":"70"}\n'
+            before.write_bytes(raw)
+            after.write_bytes(raw)
+            pin = hashlib.sha256(raw).hexdigest()
+            result = ci.require_lossless_pair_fullheight_equal(before, pin, after, pin)
+            self.assertEqual(result, dict(completeOriginalBytesEqual=True, bytes=len(raw), sha256=pin,
+                normalizationApplied=False, networkExecutionQualified=False, independentFinalityVerified=False, authorityGranted=False))
+            for changed in (raw.replace(b'original', b'different'), raw.replace(b'[1]', b'[]'),
+                            raw.replace(b'"errors":[]', b'"errors":["UNKNOWN"]'), raw + b' ', raw[:-1]):
+                after.write_bytes(changed)
+                with self.assertRaisesRegex(RuntimeError, "LOSSLESS_PAIR_EQUALITY_FAIL_CLOSED"):
+                    ci.require_lossless_pair_fullheight_equal(before, pin, after, hashlib.sha256(changed).hexdigest())
+                self.assertEqual(before.read_bytes(), raw)
+                self.assertEqual(after.read_bytes(), changed)
+
+    def test_fullheight_pin_alias_empty_symlink_and_oversize_reject(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            before, after = root / "off", root / "on"
+            raw = b"original UNKNOWN full readback"
+            pin = hashlib.sha256(raw).hexdigest()
+            before.write_bytes(raw)
+            after.write_bytes(raw)
+            with self.assertRaisesRegex(RuntimeError, "pin differs"):
+                ci.require_lossless_pair_fullheight_equal(before, "a" * 64, after, pin)
+            with self.assertRaisesRegex(RuntimeError, "distinct"):
+                ci.require_lossless_pair_fullheight_equal(before, pin, before, pin)
+            link = root / "symlink"
+            link.symlink_to(after)
+            with self.assertRaisesRegex(RuntimeError, "canonical"):
+                ci.require_lossless_pair_fullheight_equal(before, pin, link, pin)
+            for size in (0, (256 << 20) + 1):
+                with after.open("wb") as handle: handle.truncate(size)
+                with self.assertRaisesRegex(RuntimeError, "bounded complete"):
+                    ci.require_lossless_pair_fullheight_equal(before, pin, after, pin)
+            self.assertEqual(before.read_bytes(), raw)
+            self.assertEqual(after.stat().st_size, (256 << 20) + 1)
+
+    def test_fullheight_change_during_read_is_not_laundered_by_matching_pin(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            before, after = root / "off", root / "on"
+            raw = b"original retained full-height result"
+            pin = hashlib.sha256(raw).hexdigest()
+            before.write_bytes(raw)
+            after.write_bytes(raw)
+            real_fstat = os.fstat
+            calls = 0
+            def changed_at_final_identity(fd):
+                nonlocal calls
+                calls += 1
+                if calls == 3:
+                    before.write_bytes(raw + b"UNKNOWN")
+                return real_fstat(fd)
+            with patch.object(ci.os, "fstat", side_effect=changed_at_final_identity):
+                with self.assertRaisesRegex(RuntimeError, "changed during"):
+                    ci.require_lossless_pair_fullheight_equal(before, pin, after, pin)
+            self.assertEqual(before.read_bytes(), raw + b"UNKNOWN")
+            self.assertEqual(after.read_bytes(), raw)
+
     def run_control(self, stdout, stderr=b"", code=0, timeout=False):
         temporary = tempfile.TemporaryDirectory(prefix="wire-live-pure-")
         self.addCleanup(temporary.cleanup)

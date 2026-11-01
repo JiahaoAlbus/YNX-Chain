@@ -216,17 +216,17 @@ func (p *PQRemotePrivValidator) SignProposal(chain string, proposal *cmtproto.Pr
 // NewPQRemoteConsensusNode is the explicit remote branch of the normal node
 // factory. It uses the same local Application, authority, databases and fork
 // constructor as local custody; no remote ABCI state or parallel ledger exists.
-func NewPQRemoteConsensusNode(config *cfg.Config, app *Application, conn *p2pconn.SecretConnection, peerPin crypto.PubKey, timeout time.Duration, binding ynxconsensusauth.HostKeyBinding, nodeKey *p2p.NodeKey, logger log.Logger) (*node.Node, error) {
-	n, _, err := NewPQRemoteConsensusNodeSession(config, app, conn, peerPin, timeout, binding, nodeKey, logger)
+func NewPQRemoteConsensusNode(config *cfg.Config, app *Application, conn *p2pconn.SecretConnection, peerPin crypto.PubKey, timeout time.Duration, binding ynxconsensusauth.HostKeyBinding, nodeKey *p2p.NodeKey, logger log.Logger, options ...node.Option) (*node.Node, error) {
+	n, _, err := NewPQRemoteConsensusNodeSession(config, app, conn, peerPin, timeout, binding, nodeKey, logger, options...)
 	return n, err
 }
 
 // The normal CLI retains this exact session to terminate on its first failure.
-func NewPQRemoteConsensusNodeSession(config *cfg.Config, app *Application, conn *p2pconn.SecretConnection, peerPin crypto.PubKey, timeout time.Duration, binding ynxconsensusauth.HostKeyBinding, nodeKey *p2p.NodeKey, logger log.Logger) (*node.Node, *PQRemotePrivValidator, error) {
-	return newPQRemoteConsensusNode(config, app, conn, peerPin, timeout, binding, nodeKey, logger, cfg.DefaultDBProvider)
+func NewPQRemoteConsensusNodeSession(config *cfg.Config, app *Application, conn *p2pconn.SecretConnection, peerPin crypto.PubKey, timeout time.Duration, binding ynxconsensusauth.HostKeyBinding, nodeKey *p2p.NodeKey, logger log.Logger, options ...node.Option) (*node.Node, *PQRemotePrivValidator, error) {
+	return newPQRemoteConsensusNode(config, app, conn, peerPin, timeout, binding, nodeKey, logger, cfg.DefaultDBProvider, options...)
 }
 
-func newPQRemoteConsensusNode(config *cfg.Config, app *Application, conn *p2pconn.SecretConnection, peerPin crypto.PubKey, timeout time.Duration, binding ynxconsensusauth.HostKeyBinding, nodeKey *p2p.NodeKey, logger log.Logger, database cfg.DBProvider) (*node.Node, *PQRemotePrivValidator, error) {
+func newPQRemoteConsensusNode(config *cfg.Config, app *Application, conn *p2pconn.SecretConnection, peerPin crypto.PubKey, timeout time.Duration, binding ynxconsensusauth.HostKeyBinding, nodeKey *p2p.NodeKey, logger log.Logger, database cfg.DBProvider, options ...node.Option) (*node.Node, *PQRemotePrivValidator, error) {
 	if config == nil || app == nil || conn == nil || peerPin == nil || nodeKey == nil || nodeKey.PrivKey == nil || logger == nil {
 		return nil, nil, errors.New("remote node requires original config, app, node identity and authenticated pinned connection")
 	}
@@ -240,7 +240,7 @@ func newPQRemoteConsensusNode(config *cfg.Config, app *Application, conn *p2pcon
 	if err != nil {
 		return nil, nil, err
 	}
-	n, err := newPQNodeWithDatabase(config, app, remote, nodeKey, logger, database)
+	n, err := newPQNodeWithDatabase(config, app, remote, nodeKey, logger, database, options...)
 	if err != nil {
 		_ = remote.Close()
 		return nil, nil, err
