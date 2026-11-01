@@ -61,6 +61,7 @@ final class JourneyHTTP:URLProtocol,@unchecked Sendable {
  else if path=="/api/profile"{if method=="PUT"{let savedProfile:[String:Any]=["Account":buyer,"DisplayName":"Original","Addresses":body["Addresses"] ?? []];request.respond(savedProfile)}else{let address:[String:Any]=["Recipient":"Original recipient","Line1":"Private original address","City":"Original city","Country":"QA"];let profile:[String:Any]=["DisplayName":"Original","Addresses":[address]];request.respond(["profile":profile])}}
  else if path=="/api/orders/intent-lookup"{guard body["IdempotencyKey"] as? String==expectedBuyerLookupKey else{request.respond(["error":"foreign original key"],status:409);return};var recovered=bound;recovered["ID"]="ord_b_original";recovered["WalletBuyer"]=b;recovered["CartConsumption"]=["PreviousRevision":"buyer_original","Revision":"buyer_consumed"];request.respond(recovered)}
  else if path=="/api/orders/ord_original"{request.respond(bound)}
+ else if path=="/api/orders/ord_native/confirm-payment"{precondition(method=="POST");request.respond(["status":"payment_pending"])}
  else if path=="/api/orders/ord_native/native-pay-intent"{request.respond(["orderId":"ord_native","originalOperation":"npi_"+String(repeating:"ab",count:24),"state":"PREPARED","phase":"awaiting_merchant_approval","queryOnly":true,"fundsVerified":false])}
  else{request.respond(["error":"unconfigured"],status:404)} }
  let model=ShopModel(api:api,queue:oq,invoiceHandoffs:ij,journey:mj)
@@ -72,8 +73,13 @@ final class JourneyHTTP:URLProtocol,@unchecked Sendable {
  model.pay(model.orders[0]);try await wait{model.invoicePresentation != nil};try check(try mj.load(a).review?.key==originalReview.key && paths.filter{$0=="POST /api/orders/ord_original/pay-handoff"}.count==1 && paths.filter{$0=="GET /api/orders/ord_original/pay-handoff"}.count==beforeRead+1,"explicit invoice retry reads original unknown key with only one creation");try check(authority.openings==0,"normal pay button presents invoice before any Wallet opening");model.openReviewedInvoice();try await wait{authority.openings==1};try await wait{(try? mj.load(a).review?.phase)=="wallet_opened"};await model.resumeOriginalOrder();try check(paths.contains("GET /api/orders/ord_original") && posts==1,"resume reads original target without another checkout")
  let nativeOriginal=try order(["ID":"ord_native","PayIntentID":"npi_"+String(repeating:"ab",count:24)])
  let beforeNativeRead=paths.filter{$0=="GET /api/orders"}.count,beforeNativeLegacy=paths.filter{$0.hasSuffix("/pay-handoff")}.count
- model.pay(nativeOriginal);try await wait{paths.contains("GET /api/orders/ord_native/native-pay-intent") && paths.filter{$0=="GET /api/orders"}.count>beforeNativeRead}
- try check(authority.openings==1 && model.invoicePresentation==nil && paths.filter{$0.hasSuffix("/pay-handoff")}.count==beforeNativeLegacy,"actual Native pay action reads original intent without a legacy approval URI or another invoice")
+ model.pay(nativeOriginal);try await wait{paths.contains("POST /api/orders/ord_native/confirm-payment") && paths.filter{$0=="GET /api/orders"}.count>beforeNativeRead}
+ try check(authority.openings==1 && model.invoicePresentation==nil && paths.filter{$0.hasSuffix("/pay-handoff")}.count==beforeNativeLegacy,"actual Native pay action reads server-verified original receipt without opening Wallet or creating another invoice")
+ let nativeFixture=URL(fileURLWithPath:ProcessInfo.processInfo.environment["YNX_SHOP_NATIVE_RECEIPT_FIXTURE"]!)
+ var paidNative=try JSONSerialization.jsonObject(with:Data(contentsOf:nativeFixture)) as! [String:Any];paidNative["WalletBuyer"]=a
+ serverOrders=[paidNative];await model.loadOrders()
+ try check(model.orders.count==1 && model.orders[0].status=="return_approved" && model.orders[0].nativePayment?.RefundedAtoms=="30" && model.orders[0].nativePayment?.NetPaidAtoms=="70","actual Model normal read presents original Native return and partial refund")
+ serverOrders=[bound];await model.loadOrders()
  model.loadProfile();try await wait{model.profileRecipient=="Original recipient"};model.saveProfile();try await wait{model.state=="profile_saved"};try check(paths.contains("PUT /api/profile"),"normal profile save uses original protected route and current context")
 
  try rejects("review requires deliberate rating",{_ = try BuyerOrderActionInput.build(status:"delivered",action:"reviewed",rating:0,reason:"",detail:"")})
