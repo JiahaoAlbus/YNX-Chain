@@ -7,6 +7,7 @@ import sys
 import unittest
 
 GROUPS=[
+ ('test_pq_normal_parent_measurements.py',None,7),
  ('test_pq_normal_live_source_data.py',None,4),
  ('test_pq_normal_live_build_source.py',None,4),
  ('test_pq_normal_network_baseline.py',None,5),

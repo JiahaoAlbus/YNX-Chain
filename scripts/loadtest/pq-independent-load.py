@@ -50,13 +50,7 @@ STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no ne
 
 
 def callee_snapshot(value):
-    lab.require(type(value) is dict and value.get("version")=="YNX-PQ-LAB-CALLEE-ELAPSED/v1" and value.get("clock")=="monotonic_elapsed_wall_ns" and value.get("intervalsOverlap") is True,"exact original callee elapsed schema required")
-    stages=value.get("stages")
-    lab.require(type(stages) is dict and len(stages)<=128,"bounded original callee stages required")
-    for name,stage in stages.items():
-        lab.require(type(name) is str and 0<len(name)<=128 and type(stage) is dict and type(stage.get("calls")) is int and 0<stage["calls"]<1<<64 and type(stage.get("elapsedNs")) is int and 0<=stage["elapsedNs"]<1<<63,"invalid original callee stage timing")
-    return value
-
+    return normal.callee_snapshot(value)
 
 def original_failed_callee_timing(raw):
     # Original normal CLI failure telemetry is stderr text followed by one

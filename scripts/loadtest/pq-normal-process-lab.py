@@ -30,6 +30,16 @@ WIRE_OBSERVER_COMMIT="e3a7319267b4c48d3f9164d702a38a3c3ac51713"
 def digest(raw):return hashlib.sha256(raw).hexdigest()
 
 
+def callee_snapshot(value):
+    lab.require(type(value) is dict and value.get("version")=="YNX-PQ-LAB-CALLEE-ELAPSED/v1" and value.get("clock")=="monotonic_elapsed_wall_ns" and value.get("intervalsOverlap") is True,"exact original callee elapsed schema required")
+    stages=value.get("stages")
+    lab.require(type(stages) is dict and len(stages)<=128,"bounded original callee stages required")
+    for name,stage in stages.items():
+        lab.require(type(name) is str and 0<len(name)<=128 and type(stage) is dict and type(stage.get("calls")) is int and 0<stage["calls"]<1<<64 and type(stage.get("elapsedNs")) is int and 0<=stage["elapsedNs"]<1<<63,"invalid original callee stage timing")
+    return value
+
+
+
 def comet_hash(value):
     lab.require(isinstance(value,str) and re.fullmatch(r"(?:0x)?[0-9a-fA-F]{64}",value),"exact original hash representation required")
     return value.removeprefix("0x").lower()
@@ -124,6 +134,40 @@ def network_baseline_result(network,accounting,reader,public):
                 wire=wire,originalReadClosure=retained,tcp=dict(status=tcp.get("status","UNKNOWN"),complete=tcp.get("complete",False),firstCause=tcp.get("firstCause"),reasons=tcp.get("reasons",[])),
                 tcpCoverage="matched endpoint sockets only; incomplete total traffic and physical coverage remain unmeasured",
                 losslessRequired=False,protoRequired=False,physicalBytesMeasured=False,qualifiedCount=None)
+
+
+def observe_parent_sampling(window):
+    """Time the original guard without changing its checks or return/exception."""
+    import threading
+    lock=threading.Lock();original=window.sample
+    totals=dict(calls=0,failedCalls=0,timedCalls=0,clockErrors=0,totalNs=0,minNs=None,maxNs=None)
+    def tick():
+        try:return time.monotonic_ns()
+        except Exception:return None
+    def sample():
+        begin=tick();failed=False
+        try:return original()
+        except BaseException:
+            failed=True;raise
+        finally:
+            end=tick()
+            with lock:
+                totals["calls"]+=1;totals["failedCalls"]+=int(failed)
+                if begin is None or end is None or end<begin:totals["clockErrors"]+=1
+                else:
+                    elapsed=end-begin;totals["timedCalls"]+=1;totals["totalNs"]+=elapsed
+                    totals["minNs"]=elapsed if totals["minNs"] is None else min(totals["minNs"],elapsed)
+                    totals["maxNs"]=elapsed if totals["maxNs"] is None else max(totals["maxNs"],elapsed)
+    window.sample=sample
+    def report():
+        with lock:
+            values=dict(totals)
+            if not values["timedCalls"]:values["totalNs"]=None
+        return dict(schema="YNX-PERF-ORIGINAL-PARENT-SAMPLER-ELAPSED/v1",
+            status="NOT_OBSERVED" if not values["calls"] else "UNKNOWN" if values["clockErrors"] else "OBSERVED",
+            clock="parent_monotonic_ns",**values,
+            meaning="original sampled resource guard wall time, including lock wait; may overlap child work; not Go CPU or an amount to subtract from child elapsed; original exceptions unchanged")
+    return report
 
 
 def original_plan(created,root):
@@ -336,6 +380,13 @@ class Ceremony:
         raise RuntimeError("UNKNOWN original submission retained by hash; never re-sign or rebroadcast")
 
     def sender_command(self,name,owner,command):
+        metric=None
+        if "--timings" in getattr(self,"preparation_sender_arguments",()):
+            records=getattr(self,"original_sender_timer_records",None)
+            if records is None:self.original_sender_timer_records=[];records=self.original_sender_timer_records
+            lab.require(len(records)<64,"bounded original sender timing records exhausted before dispatch")
+            metric=dict(name=name,owner=owner,operation=command["operation"],status="RETURN_NOT_OBSERVED",calleeElapsedNs=None)
+            records.append(metric)
         path=self.w.work/".private"/(name+"-command.jsonl")
         lab.write_new(path,command)
         credential=self.root/"workload/private-senders/recovery.raw"
@@ -345,7 +396,17 @@ class Ceremony:
             args=[str(self.bins/"ynx-consensus-pq-lab"),"sender","--synthetic","--root",str(self.root),"--plan-sha256",self.pin,"--activation-sha256",self.activation_pin,"--workload-sha256",self.workload_pin,"--owner",str(owner),*getattr(self,"preparation_sender_arguments",()),"--credential-fd","3"]
             proc=self.w.launch(name,fd3_command(args,fd),pass_fds=(fd,),stdin_path=path);self.w.wait(proc)
         finally:os.close(fd)
-        return json.loads((self.w.work/"public"/(name+".log")).read_bytes())
+        log=self.w.work/"public"/(name+".log")
+        if metric is not None:
+            metric.update(status="RETURN_RECEIVED_TIMING_UNQUALIFIED_NO_RETRY",originalLogSHA256=lab.guard.digest(log))
+        reply=json.loads(log.read_bytes())
+        if metric is not None:
+            stages=callee_snapshot(reply.get("timings"));startup=callee_snapshot(reply.get("startupTimings"))
+            elapsed,cold=reply.get("calleeElapsedNs"),reply.get("startupElapsedNs")
+            lab.require(type(elapsed) is int and 0<=elapsed<1<<63 and type(cold) is int and 0<=cold<1<<63,"original sender cold/callee timing missing")
+            metric.update(status="OBSERVED",calleeElapsedNs=elapsed,startupElapsedNs=cold,timings=stages,startupTimings=startup,
+                intervalsOverlap=True,startupEchoNotAddedToCallee=True)
+        return reply
 
     def transfer(self,name,owner):
         offered=time.monotonic_ns();checkpoint=self.quiet();checkpoint_ready=time.monotonic_ns()
@@ -537,16 +598,28 @@ def run(args):
         live_module=importlib.util.module_from_spec(spec);spec.loader.exec_module(live_module)
         live_module.qualify(identity)  # Before any build, key creation or node startup.
         lab.require(args.mode=="online","normal live baseline requires original online finite functional fixture")
+    callee_timings=getattr(args,"callee_timings",False)
+    lab.require(not callee_timings or (live_requested and args.mode=="online"),"original sender timing requires exact qualified normal online live profile")
     observe_wire=getattr(args,"wire_observation",False) or live_requested
     if observe_wire:lab.git(source,"merge-base","--is-ancestor",WIRE_OBSERVER_COMMIT,args.commit)
     if not args.execute:return dict(status="prepared-only",source=identity,helper=HELPER_COMMIT,mode=args.mode,scope="four normal process functional cohort and original stopped proof; sustained window withheld")
     lab.require(sys.platform=="linux" and os.environ.get("GITHUB_ACTIONS")=="true" and os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted","dedicated hosted Linux job required")
-    parent=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True);rows,_=lab.guard.proc_inventory()
-    lab.admit(lab.guard.memory_available(),shutil.disk_usage(parent).free,lab.heavy_processes(rows));lab.ports_available()
-    lab.require(ctypes.CDLL(None,use_errno=True).prctl(36,1,0,0,0)==0,"Linux subreaper required")
+    parent=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+    # Public admission DATA is retained even if the original guard refuses.
+    # Only empty owned directories exist here; no Window, key or node yet.
     work=Path(tempfile.mkdtemp(prefix="pq-normal-process-",dir=parent));work.chmod(0o700)
     (work/".private").mkdir(mode=0o700);(work/"public").mkdir(mode=0o700)
+    rows,_=lab.guard.proc_inventory()
+    fresh=dict(observedMonotonicNs=time.monotonic_ns(),availableMemoryBytes=lab.guard.memory_available(),
+        freeDiskBytes=shutil.disk_usage(parent).free,conflictingHeavyProcesses=lab.heavy_processes(rows),
+        caps=dict(lab.CAPS),ownedPIDLimit=lab.guard.CAPS["ownedProcesses"],scope="before original Window/key/node creation")
+    lab.write_new(work/"public/fresh-resource-admission.json",fresh)
+    lab.admit(fresh["availableMemoryBytes"],fresh["freeDiskBytes"],fresh["conflictingHeavyProcesses"]);lab.ports_available()
+    lab.require(ctypes.CDLL(None,use_errno=True).prctl(36,1,0,0,0)==0,"Linux subreaper required")
     w=lab.Window(source,work,additional_storage=(source,));result=dict(schema="YNX-PQ-NORMAL-PROCESS-CEREMONY/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],signingMode=args.mode,firstCause=None,phaseComplete=False,functionalPhaseComplete=False,sameHost=True,physicalFaultDomains=1,configuredFunctionalDenominator=4,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED")
+    sampling_report=observe_parent_sampling(w)
+    result["freshResourceAdmission"]=fresh
+    result["originalSenderTimingsRequested"]=callee_timings
     ceremony=None
     try:
         bins=work/".private/bin"
@@ -583,6 +656,7 @@ def run(args):
         created=json.loads((work/"public/create-original.log").read_bytes())
         result["originalPlanSHA256"]=created["planSHA256"]
         ceremony=Ceremony(w,root,created,bins,observe_wire)
+        if callee_timings:ceremony.preparation_sender_arguments=("--timings",)
         if live_requested:
             ceremony.live_reader=live_module.NormalLiveReader(ceremony,lab)
             ceremony.network_profile=dict(source=args.commit,tools=lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"))
@@ -600,10 +674,13 @@ def run(args):
         result["wireObservationRequested"]=observe_wire
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()
+            result["originalReadinessObservations"]=ceremony.readiness_report()
+            result["originalSenderTimingReadback"]=getattr(ceremony,"original_sender_timer_records",[])
             if getattr(ceremony,"network_baseline",None) is not None:
                 result["networkBaseline"]=ceremony.network_baseline
             if getattr(ceremony,"live_reader",None) is not None:
                 result["liveNetworkReads"]=ceremony.live_reader.evidence
+        result["parentResourceSamplingElapsed"]=sampling_report()
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,
                       processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples,
                       completedFunctionalProofs=[p.name for p in (work/"public").glob("functional-owner-*-final-proof.json")])
@@ -613,7 +690,7 @@ def run(args):
 
 
 if __name__=="__main__":
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--source",required=True);parser.add_argument("--commit",required=True);parser.add_argument("--mode",choices=["pre-signed","online"],required=True);parser.add_argument("--wire-observation",action="store_true");parser.add_argument("--live-network-baseline",action="store_true");parser.add_argument("--execute",action="store_true");args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--source",required=True);parser.add_argument("--commit",required=True);parser.add_argument("--mode",choices=["pre-signed","online"],required=True);parser.add_argument("--wire-observation",action="store_true");parser.add_argument("--live-network-baseline",action="store_true");parser.add_argument("--callee-timings",action="store_true");parser.add_argument("--execute",action="store_true");args=parser.parse_args()
     def interrupted(signum,frame):raise RuntimeError("normal PQ lab received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
     print(json.dumps(run(args)))
