@@ -4,7 +4,7 @@ import {createOriginalWalletPayContextBridge} from '../src/original-policy-suppl
 function fixture({query=false,current=()=>{},recheck=async()=>{},onCaptured}={}){
  let ctx;const bridge=createOriginalWalletPayContextBridge(()=>ctx),parent={retire:0,close:0};
  const permission=Object.freeze({retire(){parent.retire++;},close(){parent.close++;}}),capsule=Object.freeze(Object.create(null)),borrow=Object.freeze({});
- ctx={captureOpen:true,captureSelected:false,request:query?null:Object.freeze({action:'broadcast'}),permission:query?null:permission,capsule:query?null:capsule,borrow:query?null:borrow,original:Object.freeze({hash:'PUBLIC-original'}),target:Object.freeze({service:'pay'}),signedMember:Buffer.from([1,2,3]),assertCurrent:current,recheck,onCaptured};
+ ctx={expiresAtMs:Date.now()+10000,captureOpen:true,captureSelected:false,request:query?null:Object.freeze({action:'broadcast'}),permission:query?null:permission,capsule:query?null:capsule,borrow:query?null:borrow,original:Object.freeze({hash:'PUBLIC-original'}),target:Object.freeze({service:'pay'}),signedMember:Buffer.from([1,2,3]),assertCurrent:current,recheck,onCaptured};
  return {bridge,ctx,parent};
 }
 test('capture has zero input, no caller-created approval/context and no out-of-scope lookup',()=>{

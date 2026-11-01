@@ -65,10 +65,12 @@ export class DesktopWalletAuthority {
   #pqTxSource; #pqTxRecognized; #pqTxOwners=new Set();
   #pqBroadcastSource;
   #pqPayBroadcastSource;
+  #onPQReviewInvalidated;
   #pqInitialReviews=new WeakMap(); #pqInitialAcquiring=false;
   #pqInitialSource; #pqInitialSourceRecognized; #pqInitialPermission; #pqInitialPermissionRecognized; #pqInitialOwners=new Set();
   #pqInitialBroadcast;
-  constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null, pqSessionSource = null, pqSessionRecognized = null, sessionReturnClient = null, pqTransactionPermissionSource=null, pqTransactionPermissionRecognized=null, pqBroadcastSource=null,pqPayBroadcastSource=null,pqAccountInitialSource=null,pqAccountInitialSourceRecognized=null,pqAccountInitialPermissionSource=null,pqAccountInitialPermissionRecognized=null,pqAccountInitialBroadcastSource=null }) {
+  constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null, pqSessionSource = null, pqSessionRecognized = null, sessionReturnClient = null, pqTransactionPermissionSource=null, pqTransactionPermissionRecognized=null, pqBroadcastSource=null,pqPayBroadcastSource=null,onPQReviewInvalidated=()=>{},pqAccountInitialSource=null,pqAccountInitialSourceRecognized=null,pqAccountInitialPermissionSource=null,pqAccountInitialPermissionRecognized=null,pqAccountInitialBroadcastSource=null }) {
+    if(typeof onPQReviewInvalidated!=='function')throw Error('Invalid review retirement hook');this.#onPQReviewInvalidated=onPQReviewInvalidated;
     this.vault = vault;
     this.permissions = permissions;
     this.transactionSender = transactionSender;
@@ -326,7 +328,7 @@ export class DesktopWalletAuthority {
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
 
-  cancelAll() {for(const pending of [...this.pending.values(),...this.#activeReviews.values()])this.#reviewLeases.get(pending)?.cancel();this.pending.clear();}
+  cancelAll() {for(const pending of [...this.pending.values(),...this.#activeReviews.values()]){this.#onPQReviewInvalidated(pending.id);this.#reviewLeases.get(pending)?.cancel();}this.pending.clear();}
   async accountStatus() { return this.vault.status(); }
   async createAccount() { return this.vault.createAccount(); }
   async importAccount(input) { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.importAccount(input); }
@@ -876,14 +878,14 @@ export class DesktopWalletAuthority {
   }
 
   reject(id) {
-    const pending=this.#take(id);this.#reviewLeases.get(pending)?.cancel();
+    const pending=this.#take(id);this.#onPQReviewInvalidated(pending.id);this.#reviewLeases.get(pending)?.cancel();
     throw providerError(4001, "USER_REJECTED_REQUEST", "User rejected the request");
   }
 
   expire(id) {
     if(typeof id!=="string")return false;
     const pending=this.pending.get(id)??this.#activeReviews.get(id);if(!pending)return false;
-    const cancelled=this.#reviewLeases.get(pending)?.cancel()??false;return this.pending.delete(id)||cancelled;
+    this.#onPQReviewInvalidated(pending.id);const cancelled=this.#reviewLeases.get(pending)?.cancel()??false;return this.pending.delete(id)||cancelled;
   }
 
   pendingRequests() { return Object.freeze([...this.pending.values()]); }
@@ -901,7 +903,7 @@ export class DesktopWalletAuthority {
   }
 
   async #undoGrant(origin,permission) {try{permission.assert();}catch{return;}await this.permissions.revoke(origin);}
-  #clearOriginPending(origin) { for (const [id, request] of this.pending) if (request.origin === origin) this.expire(id);for(const request of this.#activeReviews.values())if(request.origin===origin)this.#reviewLeases.get(request)?.cancel(); }
+  #clearOriginPending(origin) { for (const [id, request] of this.pending) if (request.origin === origin) this.expire(id);for(const request of this.#activeReviews.values())if(request.origin===origin){this.#onPQReviewInvalidated(request.id);this.#reviewLeases.get(request)?.cancel();} }
   #pruneExpired() { const now = this.clock().getTime(); for (const [id, request] of this.pending) if (now - Date.parse(request.createdAt) > APPROVAL_TTL_MS) this.expire(id); }
 }
 

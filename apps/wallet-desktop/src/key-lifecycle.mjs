@@ -19,20 +19,23 @@ export class DesktopKeyLifecycle {
   #generation = 0; #locked = true; #account = null; #focused = false;
   #authenticating = false; #ownedDialog = false; #active = null; #listeners = new Set(); #expiry = null; #unlockDeadline = 0;
   #lockReason = "initial"; #lockedAt = null;
-  constructor({ authorizer = nativeDesktopAuthorizer(), now = Date.now, focused = () => this.#focused, ttlMs = 120_000, unlockTtlMs = 120_000, schedule = setTimeout, unschedule = clearTimeout } = {}) {
+  constructor({ authorizer = nativeDesktopAuthorizer(), now = Date.now, focused = () => this.#focused, ttlMs = 120_000, unlockTtlMs = 120_000, schedule = setTimeout, unschedule = clearTimeout, beforeInvalidate=()=>{} } = {}) {
     this.authorizer = authorizer; this.now = now; this.focused = focused; this.ttlMs = ttlMs;
     this.unlockTtlMs = unlockTtlMs; this.schedule = schedule; this.unschedule = unschedule;
+    if(typeof beforeInvalidate!=='function')throw Error('Invalid private retirement hook');this.beforeInvalidate=beforeInvalidate;
   }
   status() {
     let available = false; try { available = this.authorizer.available() === true; } catch {}
     return Object.freeze({ locked: this.#locked, revision: this.#generation, authenticating: this.#authenticating, account: this.#account, unlockAvailable: available, unlockMethod: this.authorizer.method, hardwareBound: false, lockReason: this.#lockReason, lockedAt: this.#lockedAt, unlockExpiresAt: this.#locked ? null : this.#unlockDeadline });
   }
   subscribe(listener) { this.#listeners.add(listener); return () => this.#listeners.delete(listener); }
-  #notify() { for (const listener of this.#listeners) listener(this.status()); }
-  lock(reason = "manual") { this.#lockReason = ["initial","manual","account-changed","focus-lost","unlock-expired","unlock-failed","custody","minimized","closed","suspend","lock-screen","unlock-replaced"].includes(reason) ? reason : "manual"; this.#lockedAt = this.now(); this.#locked = true; this.#generation++; this.#unlockDeadline = 0; this.unschedule(this.#expiry); this.#expiry = null; this.authorizer.invalidate?.(); this.#notify(); }
-  cancelOperations() { this.#generation++; this.#notify(); }
-  setAccount(account) { if (this.#account !== account) { this.#account = account; this.lock("account-changed"); } }
-  setFocused(value) { this.#focused = value === true; if (!value && !(this.#authenticating && this.authorizer.inProcess !== true) && !this.#ownedDialog) this.lock("focus-lost"); }
+  #notify() {let failed=false,cause;for(const listener of this.#listeners)try{listener(this.status());}catch(e){if(!failed){failed=true;cause=e;}}if(failed)throw cause;}
+  #invalidate(reason,actions){let failed=false,cause;const attempt=f=>{try{f();}catch(e){if(!failed){failed=true;cause=e;}}};attempt(()=>this.beforeInvalidate(reason));for(const action of actions)attempt(action);attempt(()=>this.#notify());if(failed)throw cause;}
+  #lock(reason,account,changeAccount=false){this.#invalidate(reason,[()=>{this.#locked=true;this.#generation++;this.#unlockDeadline=0;if(changeAccount)this.#account=account;this.#lockReason=["initial","manual","account-changed","focus-lost","unlock-expired","unlock-failed","custody","minimized","closed","suspend","lock-screen","unlock-replaced"].includes(reason)?reason:"manual";this.#lockedAt=this.now();},()=>{const old=this.#expiry;this.#expiry=null;this.unschedule(old);},()=>this.authorizer.invalidate?.()]);}
+  lock(reason="manual"){this.#lock(reason);}
+  cancelOperations(){this.#invalidate('operation-cancelled',[()=>{this.#generation++;}]);}
+  setAccount(account){if(this.#account!==account)this.#lock('account-changed',account,true);}
+  setFocused(value){if(value===true){this.#focused=true;return;}let failed=false,cause;try{this.beforeInvalidate('focus-lost');}catch(e){failed=true;cause=e;}this.#focused=false;try{if(!(this.#authenticating&&this.authorizer.inProcess!==true)&&!this.#ownedDialog)this.lock('focus-lost');}catch(e){if(!failed){failed=true;cause=e;}}if(failed)throw cause;}
   async unlock(credentials) {
     if (this.#authenticating || this.#active) throw keyAccessError("WALLET_OPERATION_BUSY");
     if (!this.status().unlockAvailable) throw keyAccessError("SECURE_UNLOCK_UNAVAILABLE");
@@ -77,8 +80,9 @@ export class DesktopKeyLifecycle {
       if (this.#active !== guard || this.#generation !== generation || !this.#locked || !this.focused() || this.now() >= deadline) throw keyAccessError("WALLET_OPERATION_CANCELLED");
     }, step: async action => { guard.assert(); const value = await action(); guard.assert(); return value; } });
     this.#active = guard;
-    try { guard.assert(); const value = await operation(guard); guard.assert(); return value; }
-    finally { if (this.#active === guard) this.#active = null; }
+    let failed=false;
+    try { guard.assert(); const value = await operation(guard); guard.assert(); return value; }catch(e){failed=true;throw e;}
+    finally { if (this.#active === guard)try{this.#invalidate('custody-ended',[()=>{this.#active=null;}]);}catch(e){if(!failed)throw e;} }
   }
   current() { const lease = this.#context.getStore(); if (!lease) throw keyAccessError(); lease.assert(); return lease; }
   async run(operation, { assertCurrent = () => {} } = {}) {
@@ -103,6 +107,7 @@ export class DesktopKeyLifecycle {
     };
     const lease = Object.freeze({
       account,
+      expiresAtMs:Math.min(deadline,this.#unlockDeadline),
       // Recheck an already-started outward effect without reopening key access.
       // Signing steps still use assert(), which rejects after submit/deliver.
       assertEffectCurrent: assertLive,
@@ -112,8 +117,9 @@ export class DesktopKeyLifecycle {
       deliver: action => external("deliver", action),
     });
     this.#active = lease;
-    try { return await this.#context.run(lease, async () => { lease.assert(); const result = await operation(lease); if (!submitted && !delivered) lease.assert(); return result; }); }
-    finally { if (this.#active === lease) { this.#active = null; this.#notify(); } }
+    let failed=false;
+    try { return await this.#context.run(lease, async () => { lease.assert(); const result = await operation(lease); if (!submitted && !delivered) lease.assert(); return result; }); }catch(e){failed=true;throw e;}
+    finally { if (this.#active === lease)try{this.#invalidate('operation-ended',[()=>{this.#active=null;}]);}catch(e){if(!failed)throw e;} }
   }
   // Only the app's own file dialog may transiently take focus. No secret work
   // occurs while it is unfocused, and a screen lock always invalidates the lease.

@@ -54,7 +54,7 @@ export function createPQTransactionSubmission({intentStore, networkId,
   isOriginalWalletTransactionPermission = null,
   acquireOriginalWalletMigrationBroadcastPermission = null,
   isOriginalWalletMigrationBroadcastPermission = null, transport = null, readTypedOriginal = null,
-  acquireOriginalPaySource = null, isOriginalPaySource = null, inspectPayResponse = null}) {
+  acquireOriginalPaySource = null, isOriginalPaySource = null, inspectPayResponse = null,onOriginalPayOwnerJoined=null}) {
   const active = new Set(), resources = new Set();
   let closing = false;
   const requirePermission = () => {
@@ -75,7 +75,7 @@ export function createPQTransactionSubmission({intentStore, networkId,
     let failed = false, cause, joined = false;
     const attempt = async action => {try {if (await action() !== undefined) throw failure('PQ_TRANSACTION_CLEANUP_UNKNOWN');} catch (error) {if (!failed) {failed = true; cause = error;}}};
     await attempt(() => resource.retire());
-    await attempt(async () => {if (await resource.join() !== undefined) throw failure('PQ_TRANSACTION_CLEANUP_UNKNOWN'); joined = true;});
+    await attempt(async () => {if (await resource.join() !== undefined) throw failure('PQ_TRANSACTION_CLEANUP_UNKNOWN'); joined = true;if(onOriginalPayOwnerJoined&&onOriginalPayOwnerJoined(resource)!==undefined)throw failure('PQ_PAY_JOIN_OBSERVER_RESULT');});
     if (joined) await attempt(() => resource.close());
     if (failed) throw cause;
     resources.delete(resource);

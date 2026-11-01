@@ -78,9 +78,10 @@ async function setup(t,row,options={}){
    armed=!!(options.querySaveACKLost||options.queryMutateAfterSave);if(options.queryLateLock)current=false;return received;
   }
   const source={readInvoiceIntentPacket:(...a)=>readPacket('intent',a),readInvoicePacket:(...a)=>readPacket('invoice',a),readOriginal:()=>bound,assertCurrent(){},async recheck(){},retire(){calls.cleanup.push('source-retire');},async join(){calls.cleanup.push('source-join');},async close(){calls.cleanup.push('source-close');if(options.closeFails)throw Error('PUBLIC_SOURCE_CLOSE');},submitMerchantMemberPacket:(...a)=>send('invoice_terms',a),submitSettlementPacket:(...a)=>send('invoice_settle',a),submitRefundPacket:(...a)=>send('invoice_refund',a)};
+  if(options.sourceJoin)source.join=async()=>{calls.cleanup.push('source-join');await options.sourceJoin();};
   sources.add(source);if(options.partialSource)throw Object.assign(Error('PUBLIC_PARTIAL_SOURCE'),{partial:source});return source;
  };
- const makeController=intentStore=>createPQTransactionSubmission({intentStore,networkId:original.typed.networkId,acquireOriginalWalletTransactionPermission:acquire,isOriginalWalletTransactionPermission:x=>recognized.has(x),transport:{submitTypedAction(){calls.core++;throw Error('CORE_MUST_NOT_RUN');}},acquireOriginalPaySource:acquireSource,isOriginalPaySource:x=>sources.has(x),inspectPayResponse(...args){calls.parses++;if(options.throwParser)throw false;return inspectPQNativePayResponseDATA(...args);}});
+ const makeController=intentStore=>createPQTransactionSubmission({intentStore,networkId:original.typed.networkId,acquireOriginalWalletTransactionPermission:acquire,isOriginalWalletTransactionPermission:x=>recognized.has(x),transport:{submitTypedAction(){calls.core++;throw Error('CORE_MUST_NOT_RUN');}},acquireOriginalPaySource:acquireSource,isOriginalPaySource:x=>sources.has(x),onOriginalPayOwnerJoined:options.onJoined??null,inspectPayResponse(...args){calls.parses++;if(options.throwParser)throw false;return inspectPQNativePayResponseDATA(...args);}});
  const controller=makeController(store);
  const request=()=>{const at=Date.now();return pqTypedBroadcastPermissionRequest(original,row.snapshot,{at,expiresAt:new Date(at+25000).toISOString()});};
  return {store,controller,target,guard,calls,filePath,request,queryStarted,releaseQuery(){releaseQuery();},coldController:()=>makeController(new FileTransactionIntentStore({filePath})),unlock(){current=true;},cold:()=>new FileTransactionIntentStore({filePath})};
@@ -151,4 +152,15 @@ test('Pay query in-flight close fences new work while returned bytes still reach
  await assert.rejects(f.store.assertPQProgressSafeToClose(),e=>e.data?.code==='PQ_PROGRESS_CLOSE_UNCONFIRMED');
  f.releaseQuery();await assert.rejects(pending,{code:'PQ_TRANSACTION_CLOSING'});
  assert.equal((await f.cold().readPQPayQueryPacket(row.original.account,row.original.hash)).method,'GET');assert.equal(f.calls.posts,1);assert.equal((await f.store.assertPQProgressSafeToClose()).safe,true);
+});
+
+test('Native join witness occurs only after actual controller join and before Source close',async t=>{
+ let enter,release;const entered=new Promise(r=>enter=r),gate=new Promise(r=>release=r);let observed=0,f;
+ f=await setup(t,rows[0],{sourceJoin:async()=>{enter();await gate;},onJoined:owner=>{if(typeof owner.submitMerchantMemberPacket==='function'){observed++;assert.equal(f.calls.cleanup.includes('source-close'),false);}}});
+ const pending=f.controller.broadcast(rows[0].original.hash,f.guard,f.request(),f.target);await entered;
+ assert.equal(observed,0);assert.equal(f.calls.cleanup.includes('source-close'),false);release();await pending;assert.equal(observed,1);assert.equal(f.calls.cleanup.includes('source-close'),true);
+});
+test('failed Native join preserves cleanup debt and never notifies join witness or closes Source',async t=>{
+ let observed=0;const f=await setup(t,rows[0],{sourceJoin:async()=>{throw false;},onJoined:owner=>{if(typeof owner.submitMerchantMemberPacket==='function')observed++;}});
+ await assert.rejects(f.controller.broadcast(rows[0].original.hash,f.guard,f.request(),f.target),e=>e===false);assert.equal(observed,0);assert.equal(f.calls.cleanup.includes('source-close'),false);assert.throws(()=>f.controller.assertSafeToClose(),{code:'PQ_TRANSACTION_CLEANUP_PENDING'});
 });

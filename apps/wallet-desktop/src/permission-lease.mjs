@@ -3,6 +3,8 @@ const revoked = () => Object.assign(Error("The DApp account permission was revok
 // Process-local cancellation, not authenticated storage or cross-process CAS.
 export class PermissionEpoch {
   #all = 0; #pendingAll = 0; #origins = new Map();
+  #beforeRevoke=new Set();
+  addBeforeRevoke(listener){if(typeof listener!=='function')throw Error('Invalid retirement listener');this.#beforeRevoke.add(listener);return()=>this.#beforeRevoke.delete(listener);}
   #state(origin) {
     if (!this.#origins.has(origin)) {
       if (this.#origins.size >= 2048) { this.#all++; this.#origins.clear(); }
@@ -17,10 +19,12 @@ export class PermissionEpoch {
   }
   async revoke(origin, action) {
     const state = origin === null ? null : this.#state(origin);
+    let failed=false,cause,result;for(const listener of this.#beforeRevoke)try{if(listener(origin)!==undefined)throw Error('Invalid retirement result');}catch(e){if(!failed){failed=true;cause=e;}}
     this.#pendingAll++;
     if(state) {state.revision++;state.pending++;} else this.#all++;
-    try {return await action();}
+    try {result=await action();}catch(e){if(!failed){failed=true;cause=e;}}
     finally {if(state)state.pending--;this.#pendingAll--;}
+    if(failed)throw cause;return result;
   }
 }
 

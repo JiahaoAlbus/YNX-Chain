@@ -33,11 +33,12 @@ function serialize(filePath,action){
   current.then(release,release);return current;
 }
 export class FilePermissionStore {
-  constructor(filePath,{io=fs,filePolicy=new PrivateFilePolicy({io})}={}){
+  constructor(filePath,{io=fs,filePolicy=new PrivateFilePolicy({io}),beforeRevoke=null}={}){
     if(!path.isAbsolute(filePath??""))throw refusal();
     this.filePath=path.resolve(filePath);this.io=io;this.filePolicy=filePolicy;
     if(!epochs.has(this.filePath))epochs.set(this.filePath,new PermissionEpoch());
     this.epoch=epochs.get(this.filePath);
+    if(beforeRevoke!==null)this.epoch.addBeforeRevoke(beforeRevoke);
   }
   authorizationLease(originInput){return this.epoch.lease(origin(originInput))}
   async grantAccount(originInput,accountInput,approvedAt,guard){

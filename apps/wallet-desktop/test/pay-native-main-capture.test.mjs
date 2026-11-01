@@ -5,16 +5,16 @@ const code=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),
 // predicates, keyAccess and already-verified journal reader are PUBLIC seams.
 function fixture({query=false}={}){
  let locked=false,changed=false,calls=0;const original=Object.freeze({account:'0x'+'11'.repeat(20),hash:'0x'+'aa'.repeat(32)}),target=Object.freeze({service:'pay',kind:'invoice_terms',intentId:'npi_public'}),member=Buffer.from([1,2,3]);
- const guard={account:original.account,assert(){if(locked)throw Error('PUBLIC_LOCK');},assertEffectCurrent(){if(locked)throw Error('PUBLIC_LOCK');}},request=Object.freeze({action:'broadcast'}),permission=Object.freeze({assertCurrent:()=>guard.assertEffectCurrent(),async recheck(){guard.assertEffectCurrent();}}),borrow=Object.freeze({assertCurrent:()=>guard.assertEffectCurrent()}),capsule=Object.freeze(Object.create(null));
- const broadcast=new AsyncLocalStorage(),native=new AsyncLocalStorage(),bridge=createOriginalWalletPayContextBridge(()=>native.getStore());
+ const guard={account:original.account,expiresAtMs:Date.now()+10000,assert(){if(locked)throw Error('PUBLIC_LOCK');},assertEffectCurrent(){if(locked)throw Error('PUBLIC_LOCK');}},request=Object.freeze({action:'broadcast'}),permission=Object.freeze({readOriginal:()=>({expiresAt:new Date(Date.now()+8000).toISOString()}),assertCurrent:()=>guard.assertEffectCurrent(),async recheck(){guard.assertEffectCurrent();}}),borrow=Object.freeze({readApprovalIdentity:()=>({reviewId:'PUBLIC-review'}),assertCurrent:()=>guard.assertEffectCurrent()}),capsule=Object.freeze(Object.create(null));
+ const broadcast=new AsyncLocalStorage(),native=new AsyncLocalStorage(),owners=new WeakSet(),bridge=createOriginalWalletPayContextBridge(()=>native.getStore(),{isOriginalNativeOwner:x=>owners.has(x)});
  const sandbox={pqBroadcastApprovalContext:broadcast,pqPayNativeContext:native,originalPayContextBridge:bridge,keyAccess:{current:()=>guard},isOriginalWalletTransactionPermission:x=>x===permission,isOriginalPQTransactionReviewBorrow:x=>x===borrow,PQ_CANONICAL_NETWORK_ID:'aa'.repeat(32),canonicalJSON,
  async readPQSubmissionOriginal(_store,hash,{account,guard:g}){g.assert();assert.equal(hash,original.hash);assert.equal(account,original.account);return {binding:{hash:original.hash},original:changed?Object.freeze({...original,hash:'0x'+'bb'.repeat(32)}):original,typed:{local:{member}}};},
  originalPQPaySupply:{async acquireOriginalPaySource(){calls++;return sandbox.invoke();}},
  };
- const compiled=vm.compileFunction(code.slice(start,end).replaceAll('export function','function')+';return {captureOriginalWalletPayContextForNative,isOriginalWalletPayContextForNative,acquireOriginalMainPaySource};',[],{contextExtensions:[sandbox]})();
+ const compiled=vm.compileFunction(code.slice(start,end).replaceAll('export function','function')+';return {captureOriginalWalletPayContextForNative,isOriginalWalletPayContextForNative,associateOriginalWalletPayNativeRetirement,copyOriginalWalletPayNativeDeadline,acquireOriginalMainPaySource};',[],{contextExtensions:[sandbox]})();
  const store={async readPQPaySubmissionTarget(account,hash,current){current();assert.equal(account,original.account);assert.equal(hash,original.hash);return target;}},parent={request,permission,borrow,capsule,hash:original.hash,payTarget:target,selected:true,closed:false};
  const input={request:query?null:request,original,target};
- return {compiled,parent,bridge,sandbox,member,original,target,permission,borrow,capsule,lock(){locked=true;},change(){changed=true;},calls:()=>calls,run:()=>query?compiled.acquireOriginalMainPaySource(input,store):broadcast.run(parent,()=>compiled.acquireOriginalMainPaySource(input,store)),outside:()=>compiled.acquireOriginalMainPaySource(input,store)};
+ return {compiled,parent,bridge,sandbox,member,original,target,permission,borrow,capsule,guard,owners,lock(){locked=true;},change(){changed=true;},calls:()=>calls,run:()=>query?compiled.acquireOriginalMainPaySource(input,store):broadcast.run(parent,()=>compiled.acquireOriginalMainPaySource(input,store)),outside:()=>compiled.acquireOriginalMainPaySource(input,store)};
 }
 test('actual Main fixed zero-input capture returns same approved refs only inside its source-acquisition ALS',async()=>{
  const f=fixture();assert.throws(()=>f.compiled.captureOriginalWalletPayContextForNative(),{code:'PAY_NATIVE_CONTEXT_NOT_ACTIVE'});
@@ -31,4 +31,10 @@ test('missing original approved ALS or changed original fails before calling Nat
 test('factory falsy failure drains Main-only peer; actual nonnull partial retains it for Native/controller cleanup',async()=>{
  const f=fixture();let peer;f.sandbox.invoke=()=>{peer=f.compiled.captureOriginalWalletPayContextForNative();throw false;};await assert.rejects(f.run(),x=>x===false);assert.throws(()=>peer.assertCurrent(),{code:'PAY_NATIVE_CONTEXT_RETIRED'});f.bridge.assertSafeToClose();
  const p=fixture();let held;p.sandbox.invoke=()=>{held=p.compiled.captureOriginalWalletPayContextForNative();throw Object.assign(Error('PUBLIC_PARTIAL'),{partial:{PUBLIC:'native-owner'}});};await assert.rejects(p.run(),/PUBLIC_PARTIAL/);held.assertCurrent();assert.throws(()=>p.bridge.assertSafeToClose(),{code:'PAY_NATIVE_CONTEXT_CLOSE_UNCONFIRMED'});await held.close();p.bridge.assertSafeToClose();
+});
+
+test('actual Main fixed association exports bind same recognized owner and copy actual guard deadline',async()=>{
+ const f=fixture({query:true});let peer,calls=0;const owner=Object.freeze(Object.defineProperty({},'retire',{value(){calls++;}}));f.owners.add(owner);
+ f.sandbox.invoke=()=>{peer=f.compiled.captureOriginalWalletPayContextForNative();assert.equal(f.compiled.copyOriginalWalletPayNativeDeadline(peer).expiresAtMs,f.guard.expiresAtMs);assert.equal(f.compiled.associateOriginalWalletPayNativeRetirement(peer,owner),undefined);return owner;};
+ assert.equal(await f.run(),owner);f.bridge.invalidateAll();assert.equal(calls,1);await assert.rejects(peer.close(),{code:'PAY_NATIVE_CONTEXT_NATIVE_JOIN_REQUIRED'});f.bridge.observedNativeJoin(owner);await peer.close();f.bridge.assertSafeToClose();
 });
