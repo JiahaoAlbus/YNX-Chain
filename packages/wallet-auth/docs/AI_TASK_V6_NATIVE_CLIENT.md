@@ -42,3 +42,12 @@ The normal client checks effect current before dispatch, then uses a separate fi
 Formal methods assertOriginalAITaskActionV6OutcomeCurrent, acquireOriginalAITaskActionV6Outcome and assertOriginalAITaskActionV6LookupCurrent are proposed and **not yet supplied by the formal Auth handoff**. Missing methods reject AI_V6_OUTCOME_SOURCE_NOT_SUPPLIED and retain UNKNOWN/raw response. Held outcome must independently validate original once/ref and actual business producer/durability/phase; a caller record, Auth admission, nonempty bytes or codec semantic DATA cannot satisfy this Source obligation. Actual approve/read ports are also not supplied. Source must provide the real qualified owner; no public provider/callback/receipt setter exists.
 
 A held outcome returns readOriginalOutcomeDATA() with state/action/businessAction/completionScope/requestRef, readOriginalBusinessReceipt() with original opaque bytes or null, assertCurrent and retire/join/close. Acquisition uses the existing explicit owner/errorPresent/error outcome and preserves partial/falsy causes. Pending async outcome capture retains late owners on cancel/timeout, drains them before Source, and retains original op/nonce/response/receipt without replay. Expired/revoked responses stay UNKNOWN. All SDK observations remain DATA with Root/Native/operation/tool/model/funds/replay qualification false. No actual mobile bridge, Main approval, registry/key access or deployment is claimed.
+
+
+## Normal asynchronous Source ABI matching
+
+The fixed zero-input Native acquisition may complete asynchronously. The original factory outcome is awaited and its owner is adopted before any explicit errorPresent failure is inspected. No provider, key, endpoint or unsigned setter is introduced.
+
+Original operation outcome-current and lookup-current acknowledge void or Promise<void>. The caller retains each original asynchronous current flight through cancellation and waits for it before parent Source disposal. These checks preserve original identity/Root/account/time fences and do not reuse the obsolete task writer epoch.
+
+Original lookup returns the formal explicit {owner,errorPresent,error?} acquisition. The actual held lookup owner is adopted before false/null/undefined errors. An aborted lookup keeps a late returned owner and drains it before Source close. The returned token permits original evidence reads only, never a new nonce, signature, send or UNKNOWN replacement.
