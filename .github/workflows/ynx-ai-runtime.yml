@@ -9,12 +9,15 @@ on:
       - "internal/aigateway/**"
       - "internal/aitaskclient/**"
       - "internal/authtasklocal/**"
+      - "internal/authaitaskv6/**"
       - "cmd/ynx-ai-task/**"
       - "apps/ai/main.go"
+      - "apps/ai/main_v6_test.go"
       - "packages/auth-grant-policy/go/**"
       - "packages/auth-grant-runtime/go/**"
       - "packages/auth-grant-history-client/go/**"
       - "packages/open-protocol/go/**"
+      - "packages/wallet-auth/go/taskactionv6/**"
       - "internal/ynxbatch/**"
       - "internal/accountaddress/**"
       - "internal/securelink/**"
@@ -43,4 +46,4 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Verify normal task, model and startup packages
-        run: go test -mod=readonly -race -p 2 ./internal/aiproduct ./internal/aigateway ./internal/aitaskclient ./cmd/ynx-ai-task ./apps/ai
+        run: go test -mod=readonly -race -p 2 ./internal/aiproduct ./internal/aigateway ./internal/aitaskclient ./internal/authaitaskv6 ./cmd/ynx-ai-task ./apps/ai
