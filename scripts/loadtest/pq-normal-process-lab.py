@@ -494,7 +494,7 @@ class Ceremony:
         activation=self.call("activate-original",["activate","--synthetic","--root",str(self.root),"--plan-sha256",self.pin])
         self.activation_pin=lab.guard.digest(self.root/"activation/activation.json")
         lab.require(int(activation["registryHeight"])==target and int(activation["activationHeight"])==target+4,"original activation R/A differs")
-        self.start(self.activation_startup(activation));checkpoint=self.quiet(target)
+        self.start(self.activation_startup(activation));checkpoint=self.quiet(target,timeout=getattr(self,"activation_quiet_timeout",60))
         while checkpoint["height"]<int(activation["activationHeight"]):
             lab.require(self.next_workload<4,"bounded original activation traffic exceeded reserved owners")
             self.traffic("activation-traffic-%d"%self.next_workload,self.next_workload);checkpoint=self.quiet()

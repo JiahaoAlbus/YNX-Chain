@@ -105,4 +105,25 @@ class ColdReadinessControls(unittest.TestCase):
             c.quiet=quiet
             with self.assertRaises(StopBeforeOtherPreparation):normal.Ceremony.prepare_network(c)
 
+    def test_second_cold_start_allocation_does_not_change_registration_or_steady_waits(self):
+        import base64
+        for configured,expected in [(None,60),(180,180)]:
+            calls=[];phase={'starts':0}
+            c=SimpleNamespace(plan={'initialHeight':'4'},root=Path('/not-read'),pin='original',nodes=[],next_workload=0)
+            c.w=SimpleNamespace(stopping=False,children=[],wait=mock.Mock())
+            def start(*args):phase['starts']+=1
+            def quiet(minimum=0,timeout=60):
+                calls.append((phase['starts'],minimum,timeout));return dict(height=10 if phase['starts']==2 else 4,appHash='original')
+            def call(name,args):return dict(registryHeight=6,activationHeight=10) if name=='activate-original' else dict(transaction=base64.b64encode(b'original').decode(),transactionHash='original')
+            c.start=start;c.quiet=quiet;c.call=call;c.post_once=mock.Mock();c.halt_post=mock.Mock();c.activation_startup=lambda a:a;c.transfer=lambda *a:({'transaction':{'abciHash':'original'}},b'original')
+            if configured:c.activation_quiet_timeout=configured
+            with mock.patch.object(normal.lab.guard,'digest',return_value='original'):normal.Ceremony.prepare_network(c)
+            self.assertEqual(calls[-1],(2,6,expected));self.assertTrue(all(timeout==60 for phase,minimum,timeout in calls[:-1]))
+    def test_second_cold_wait_still_stops_at_remaining_active_budget(self):
+        clock=Clock();clock.now=850
+        with tempfile.TemporaryDirectory() as tmp,mock.patch.object(normal,'time',clock):
+            c=self.setup_case(Path(tmp),clock,rpc_at=900,height_at=900)
+            with self.assertRaises(RuntimeError):c.quiet(6,timeout=180)
+            row=c.readiness_report()['records'][-1];self.assertEqual(row['requestedTimeoutSeconds'],180);self.assertEqual(row['allocatedTimeoutSeconds'],35);self.assertLess(clock.now,886);self.assertIsNone(row['quietConfirmedMonotonicNs'])
+
 if __name__=='__main__':unittest.main()

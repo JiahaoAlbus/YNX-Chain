@@ -689,6 +689,10 @@ def run(args):
         if staged:
             result['coldBootstrapReadinessBudget']=initialization.cold_readiness_budget(w)
             ceremony.initial_quiet_timeout=result['coldBootstrapReadinessBudget']['grantedColdPhaseSeconds']
+            # The independently reopened PQ nodes are a second cold start.
+            # quiet() re-clamps this request to the same remaining885s active
+            # budget; all steady-state quiet/POST/finality defaults stay60s.
+            ceremony.activation_quiet_timeout=result['coldBootstrapReadinessBudget']['requestedColdPhaseSeconds']
         owners=[dict(ownerIndex=o["index"],address=o["owner"],nextNonce=int(o["initialNonce"])+1,capacity=int(o["memberCapacity"])) for o in ceremony.workload["owners"][4:]]
         lab.require(ceremony.workload["batchSize"]=="1" and ceremony.workload["outstandingPerOwner"]=="1" and ceremony.workload["batchWaitNanoseconds"]=="0","original independent single transfers and one pending required")
         plan=scheduler.make_plan(ceremony.pin,ceremony.workload_pin,args.mode,owners,args.rate,args.seconds*1_000_000_000,args.tail_seconds*1_000_000_000)
