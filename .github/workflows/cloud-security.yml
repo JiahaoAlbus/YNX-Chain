@@ -2,7 +2,7 @@ name: Cloud security and recovery gates
 
 on:
   push:
-    branches: [codex/final-cloud]
+    branches: [codex/final-cloud, 'codex/cloud-oci-runtime-*']
     paths:
       - 'apps/cloud/**'
       - 'apps/docs/**'
@@ -35,8 +35,71 @@ permissions:
   contents: read
 
 jobs:
+  actual-oci-runtime:
+    name: Actual isolated OCI lifecycle only
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/codex/cloud-oci-runtime-') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Verify frozen own source and existing Docker capacity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/oci-evidence" "$RUNNER_TEMP/oci-source"
+          printf '%s  %s\n' d1b8f3291ff043d382561477c8b007bef887120dc6a2da33194a95b69a3194c1 apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
+          tar -xzf apps/cloud/tests/oci-focused-normal-source.tar.gz -C "$RUNNER_TEMP/oci-source"
+          docker info --format '{{json .}}' > "$RUNNER_TEMP/oci-evidence/docker-info.json" 2> "$RUNNER_TEMP/oci-evidence/docker-info.stderr"
+          df -Pk "$RUNNER_TEMP" > "$RUNNER_TEMP/oci-evidence/disk.txt"
+          python3 - <<'PY'
+          import os,json,shutil,hashlib
+          root=os.path.join(os.environ['RUNNER_TEMP'],'oci-source')
+          data=json.load(open(os.path.join(os.environ['RUNNER_TEMP'],'oci-evidence/docker-info.json')))
+          assert data.get('ServerVersion') and data.get('Driver') and data.get('MemTotal',0)>=1024**3, 'Docker daemon/memory not available'
+          assert shutil.disk_usage(root).free>=5*1024**3, 'insufficient existing runner disk'
+          for row in json.load(open(os.path.join(root,'SOURCE.json')))['files']:
+            raw=open(os.path.join(root,row['relative']),'rb').read()
+            assert hashlib.sha256(raw).hexdigest()==row['sha256'],row['relative']
+          PY
+      - name: Pull only the locked official Node Linux image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull --platform linux/amd64 docker.io/library/node@sha256:9f0dde62d10e7ff7a310ecaebd66225f6b46c17e6cb778449a77b05d3541bea2 2>&1 | tee "$RUNNER_TEMP/oci-evidence/image-pull.txt"
+          image_id="$(docker image inspect --format '{{.Id}}' docker.io/library/node@sha256:9f0dde62d10e7ff7a310ecaebd66225f6b46c17e6cb778449a77b05d3541bea2)"
+          docker image inspect "$image_id" > "$RUNNER_TEMP/oci-evidence/image-inspect.json"
+          printf 'YNX_ACTUAL_OCI_IMAGE=%s\n' "$image_id" >> "$GITHUB_ENV"
+          printf 'YNX_ACTUAL_OCI_BINARY=%s\n' "$(command -v docker)" >> "$GITHUB_ENV"
+          printf 'YNX_ACTUAL_OCI_SOCKET=/var/run/docker.sock\n' >> "$GITHUB_ENV"
+      - name: Run the sole new actual-container case
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/oci-source"
+          go test -mod=readonly -tags cloud_oci_actual -count=1 -timeout=180s -json -run '^TestP04ActualOCIIsolatedLifecycle$' ./internal/cloud | tee "$RUNNER_TEMP/oci-evidence/actual-lifecycle.jsonl"
+      - name: Preserve actual results and scoped cleanup
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/oci-evidence"
+          docker ps -a --no-trunc --filter label=ynx.ide.runtime=bounded-node-job > "$RUNNER_TEMP/oci-evidence/final-containers.txt" 2>&1 || true
+          ids="$(docker ps -aq --filter label=ynx.ide.runtime=bounded-node-job --filter label=ynx.ide.resource=PUBLIC_CI_http)"
+          if [ -n "$ids" ]; then docker rm -f $ids; fi
+          ids="$(docker ps -aq --filter label=ynx.ide.runtime=bounded-node-job --filter label=ynx.ide.resource=PUBLIC_CI_timeout)"
+          if [ -n "$ids" ]; then docker rm -f $ids; fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: p04-actual-oci-${{ github.sha }}
+          path: ${{ runner.temp }}/oci-evidence
+          if-no-files-found: error
+          retention-days: 30
   ide-consumer-source:
-    name: IDE consumer source integration only
+    name: Cloud object workflow and IDE consumer source integration
     if: >-
       ${{ github.event_name == 'pull_request' &&
           github.event.pull_request.head.repo.full_name == github.repository &&
@@ -50,7 +113,7 @@ jobs:
           # The fixed authorized baseline must remain available as this branch
           # accumulates repairs; a shallow window cannot prove its ancestry.
           fetch-depth: 0
-      - name: Enforce the authorized source-only delta
+      - name: Enforce the authorized Cloud and IDE source delta
         shell: bash
         run: |
           set -euo pipefail
@@ -60,15 +123,23 @@ jobs:
           while IFS= read -r -d '' file; do
             case "$file" in
               internal/cloud/ide_deployment*.go|internal/cloud/server.go) ;;
+              internal/cloud/private_host*.go) ;;
+              internal/cloud/service.go|internal/cloud/types.go|internal/cloud/store.go|internal/cloud/adapters.go|internal/cloud/lifecycle.go) ;;
+              internal/cloud/object_versions*.go|internal/cloud/object_commit_fence*.go|internal/cloud/object_durability_test.go|internal/cloud/object_operations.go|internal/cloud/object_workflow_test.go) ;;
+              apps/cloud/client/*.mjs|apps/cloud/client/README.md) ;;
+              apps/cloud/client/package.json|apps/cloud/client/package-lock.json|apps/cloud/client/deployment-v2-supplier.json|apps/cloud/client/vendor/ynx-chain-open-protocol-0.0.0-dev.4.tgz) ;;
               internal/developerauthority/*.go|internal/developerauthority/schema.sql) ;;
               internal/developerauthority/original_ide_source_schema.sql) ;;
               apps/cloud/cmd/ynx-cloudd/main.go|apps/cloud/cmd/ynx-cloudd/ide_runtime*.go) ;;
+              apps/cloud/cmd/ynx-cloud-runtime-check/main.go) ;;
               apps/cloud/sdk/index.js|apps/cloud/sdk/index.d.ts|apps/cloud/sdk/package.json) ;;
               apps/cloud/sdk/observe-ide-deployment.mjs|apps/cloud/sdk/observe-ide-deployment.d.ts) ;;
-              apps/cloud/tests/ide-deployment*.test.mjs|apps/cloud/IDE_DEPLOYMENT_SOURCE_INPUTS.json) ;;
+              apps/cloud/tests/ide-deployment*.test.mjs|apps/cloud/IDE_DEPLOYMENT_SOURCE_INPUTS.json|apps/cloud/IDE_USAGE_BILL_PROVENANCE.md|apps/cloud/ORIGINAL_PRIVATE_HOST.md|apps/cloud/OCI_RESOURCE_PREFLIGHT.md) ;;
+              apps/cloud/scripts/compose-native-pay.mjs|apps/cloud/scripts/compose-deployment-v2-auth.mjs|apps/cloud/tests/native-pay-composition.integration.go.txt) ;;
+              apps/cloud/tests/private-host-normal-consumer.go.txt) ;;
               infra/docker/ynx-cloudd.Dockerfile|infra/docker/ynx-cloudd.Dockerfile.dockerignore) ;;
               .github/workflows/cloud-security.yml|.github/workflows/ci.yml|.github/workflows/cloud-docs-ios-simulator.yml) ;;
-              *) printf 'Outside authorized IDE consumer scope: %s\n' "$file" >&2; exit 1 ;;
+              *) printf 'Outside authorized Cloud/IDE source scope: %s\n' "$file" >&2; exit 1 ;;
             esac
           done < "$RUNNER_TEMP/ide-consumer-paths"
       - uses: actions/setup-go@v5
@@ -78,6 +149,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install the pinned Cloud V2 DATA supplier offline
+        run: npm ci --prefix apps/cloud/client --offline --ignore-scripts --no-audit --no-fund
       - name: Bind bridge test to the selected Node runtime
         shell: bash
         run: |
@@ -121,11 +194,16 @@ jobs:
         run: node apps/cloud/tests/ide-deployment-race-evidence.test.mjs --verify "$RUNNER_TEMP/ide-source-race.jsonl" "$RUNNER_TEMP/ide-source-normal.jsonl"
       - name: Original SDK transport and observation integration
         run: node --test apps/cloud/tests/ide-deployment*.test.mjs
+      - name: Independent object, deployment and usage-billing lifecycle
+        run: |
+          node --test apps/cloud/client/*.test.mjs
+          go test -race -count=1 -timeout=90s -run '^TestP04(Object|Blob|Deployment|Billing|OriginalBillProvenance|PrivateHost(Normal|ReadCold|Retain|Partial)|OCIReadiness)' ./internal/cloud
+          go test -race -count=1 -timeout=120s -run '^TestP04PrivateHostActualCLITwoTenantsVersionsRevocationCold$' ./internal/cloud
   # Full checks remain defined, but are NOT authorized for this narrow draft PR.
   # Their skipped status must not be represented as full Cloud acceptance.
   security-recovery:
     if: >-
-      ${{ !(github.event_name == 'pull_request' &&
+      ${{ !startsWith(github.ref, 'refs/heads/codex/cloud-oci-runtime-') && !(github.event_name == 'pull_request' &&
             github.event.pull_request.head.repo.full_name == github.repository &&
             github.head_ref == 'codex/cloud-key-recovery-rotation') }}
     runs-on: ubuntu-latest
@@ -145,8 +223,12 @@ jobs:
           cache-dependency-path: package-lock.json
       - name: Static security, dependency, SBOM, script, and artifact gate
         run: node apps/cloud/scripts/security-gate.mjs
+      - name: Install the pinned Cloud V2 DATA supplier offline
+        run: npm ci --prefix apps/cloud/client --offline --ignore-scripts --no-audit --no-fund
       - name: Cloud control-plane tests
-        run: go test ./internal/cloud ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd
+        run: |
+          node --test apps/cloud/client/*.test.mjs
+          go test ./internal/cloud ./internal/developerauthority ./apps/cloud/cmd/ynx-cloudd
       - name: Cloud Web, SDK, accessibility, and product-boundary gates
         run: |
           npm --prefix apps/cloud test
