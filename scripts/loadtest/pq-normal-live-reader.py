@@ -35,6 +35,44 @@ def qualify(identity):
     return dict(q)
 
 
+def prepare_matching_source(source, destination):
+    """Reuse Core's exact source composer in a supervised private helper."""
+    def git(*args):
+        return subprocess.check_output(['git','-C',str(source),*args],timeout=5).decode().strip()
+    require(source.resolve(strict=True)==source and not git('status','--porcelain','--untracked-files=normal'),
+            'original source must remain clean and canonical')
+    identity=dict(commit=git('rev-parse','HEAD'),tree=git('rev-parse','HEAD^{tree}'),
+                  forkTree=git('rev-parse','HEAD:third_party/cometbft'))
+    q=qualify(identity)
+    path=source/'scripts/verify/wire-live-matching-source-ci.py'
+    require(not path.is_symlink() and hashlib.sha256(path.read_bytes()).hexdigest()==q['compositionScriptSHA256'],
+            'exact original Core composition callee required')
+    spec=importlib.util.spec_from_file_location('original_core_live_composer',path)
+    core=importlib.util.module_from_spec(spec);spec.loader.exec_module(core)
+    require(core.PRODUCTION_TREE==identity['forkTree'] and core.FORK_COMMIT==q['optionalForkCommit'] and
+            core.FORK_TREE==q['optionalForkTree'] and
+            git('rev-parse',core.FORK_COMMIT+':third_party/cometbft')==core.FORK_TREE,
+            'original source and selected matching module identities differ')
+    require(set(git('diff','--name-only',core.PRODUCTION_TREE,core.FORK_TREE).splitlines())==core.DIFF and
+            not git('diff','--diff-filter=D','--name-only',core.PRODUCTION_TREE,core.FORK_TREE),
+            'exact Core-approved optional module difference required')
+    require(destination.parent.resolve(strict=True)==destination.parent and not destination.exists(),
+            'fresh private matching source destination required')
+    destination.mkdir(mode=0o700)
+    paths=('go.mod','go.sum','cmd','internal','pkg','contracts','third_party')
+    core.extract(source,identity['commit'],destination,paths)
+    core.extract(source,core.FORK_COMMIT+':third_party/cometbft',destination/'third_party/cometbft')
+    for name in ('go.mod','go.sum'):
+        require((destination/name).read_bytes()==(source/name).read_bytes(),'original module descriptor changed')
+    require(not git('status','--porcelain','--untracked-files=normal') and git('rev-parse','HEAD')==identity['commit'],
+            'original source changed during composition')
+    return dict(schema='YNX-PERF-NORMAL-LIVE-BUILD-SOURCE/v1',source=identity,
+                optionalForkCommit=core.FORK_COMMIT,optionalForkTree=core.FORK_TREE,
+                compositionScriptSHA256=q['compositionScriptSHA256'],ciEvidenceSHA256=q['ciEvidenceSHA256'],
+                buildTag=BUILD_TAG,buildSource=str(destination),originalSourceUnchanged=True,
+                carrierEnabled=False,actualNetworkWindow=False)
+
+
 def fingerprint(info):
     return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_nlink,
             info.st_size, info.st_mtime_ns, info.st_ctime_ns)
@@ -235,3 +273,12 @@ class NormalLiveReader:
                 event.update(status='UNKNOWN', retentionErrorType=type(error).__name__)
                 if active_error is None:
                     raise
+
+
+if __name__ == '__main__':
+    import argparse
+    parser=argparse.ArgumentParser(description=__doc__,allow_abbrev=False)
+    parser.add_argument('--prepare-source',required=True)
+    parser.add_argument('--destination',required=True)
+    args=parser.parse_args()
+    print(json.dumps(prepare_matching_source(Path(args.prepare_source),Path(args.destination)),sort_keys=True))

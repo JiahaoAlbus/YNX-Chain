@@ -550,6 +550,17 @@ def run(args):
     ceremony=None
     try:
         bins=work/".private/bin"
+        if live_requested:
+            composed=work/".private/live-matching-source"
+            proc=w.launch("prepare-normal-live-source",[sys.executable,"-I",str(Path(__file__).with_name("pq-normal-live-reader.py")),
+                "--prepare-source",str(source),"--destination",str(composed)],thread_safe=True)
+            w.wait(proc)
+            composition=json.loads((work/"public/prepare-normal-live-source.log").read_bytes())
+            lab.require(composition["source"]==identity and composition["buildSource"]==str(composed) and
+                        composition["originalSourceUnchanged"] is True,"original matching source composition differs")
+            result["normalLiveBuildSource"]=composition
+            # Only build cwd changes. Source identity and postcheck stay original.
+            w.source=composed
         for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify"):
             w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1",*(["-tags",live_module.BUILD_TAG] if live_requested and name=="ynx-comet" else []),"-o",str(bins/name),"./cmd/"+name]))
         result["binaries"]={name:lab.guard.digest(bins/name) for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify")}
