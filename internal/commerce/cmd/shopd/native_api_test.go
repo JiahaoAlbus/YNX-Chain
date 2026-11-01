@@ -107,7 +107,7 @@ func TestShopNativeAPIFixedInventorySellerNeverFallsBackToBuyer(t *testing.T) {
 		w.WriteHeader(403)
 	})
 	h := composeOriginalNativeShopAPI(nil, buyer, seller)
-	for _, p := range []string{"/api/seller/inventory/batch", "/api/seller/mutations/lookup", "/api/seller/inventory/read", "/api/orders/order_original/return-receipts", "/api/orders/order_original/return-restock", "/api/seller/orders/order_original/warehouse"} {
+	for _, p := range []string{"/api/seller/products/product_original/native-listing", "/api/seller/listing/read", "/api/seller/inventory/batch", "/api/seller/mutations/lookup", "/api/seller/inventory/read", "/api/orders/order_original/return-receipts", "/api/orders/order_original/return-restock", "/api/seller/orders/order_original/warehouse"} {
 		r := httptest.NewRequest("POST", "https://shop-api.ynxweb4.com"+p, strings.NewReader(`{"original":"DATA"}`))
 		r.Header.Set("X-Original-Proof", "held")
 		w := httptest.NewRecorder()
@@ -116,10 +116,10 @@ func TestShopNativeAPIFixedInventorySellerNeverFallsBackToBuyer(t *testing.T) {
 			t.Fatal("seller denial fell through", w.Code, buyerCalls)
 		}
 	}
-	if sellerCalls != 6 {
+	if sellerCalls != 8 {
 		t.Fatal(sellerCalls)
 	}
-	for _, p := range []string{"/api/seller/inventory/batch", "/api/seller/mutations/lookup", "/api/seller/inventory/read", "/api/orders/order_original/return-receipts", "/api/orders/order_original/return-restock", "/api/seller/orders/order_original/warehouse"} {
+	for _, p := range []string{"/api/seller/products/product_original/native-listing", "/api/seller/listing/read", "/api/seller/inventory/batch", "/api/seller/mutations/lookup", "/api/seller/inventory/read", "/api/orders/order_original/return-receipts", "/api/orders/order_original/return-restock", "/api/seller/orders/order_original/warehouse"} {
 		method := "POST"
 		w := httptest.NewRecorder()
 		composeOriginalNativeShopAPI(nil, buyer, nil).ServeHTTP(w, httptest.NewRequest(method, "https://shop-api.ynxweb4.com"+p, nil))

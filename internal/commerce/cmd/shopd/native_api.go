@@ -40,7 +40,8 @@ func composeOriginalNativeShopAPI(public, buyer, seller http.Handler) http.Handl
 		// Fixed inventory/warehouse CLI surface borrows the original complete
 		// Seller handler. Its own protected identity/current/action verification
 		// remains mandatory. Never retry a denial through Buyer or legacy auth.
-		sellerInventory := r.Method == http.MethodPost && (p == "/api/seller/inventory/batch" || p == "/api/seller/inventory/read" || p == "/api/seller/mutations/lookup" || warehouseMutation || warehouseRead)
+		nativeListing := len(parts) == 6 && parts[1] == "api" && parts[2] == "seller" && parts[3] == "products" && parts[4] != "" && parts[5] == "native-listing"
+		sellerInventory := r.Method == http.MethodPost && (nativeListing || p == "/api/seller/listing/read" || p == "/api/seller/inventory/batch" || p == "/api/seller/inventory/read" || p == "/api/seller/mutations/lookup" || warehouseMutation || warehouseRead)
 		if sellerInventory {
 			if seller != nil {
 				seller.ServeHTTP(w, r)

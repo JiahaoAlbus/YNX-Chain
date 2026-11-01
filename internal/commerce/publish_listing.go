@@ -2,6 +2,7 @@ package commerce
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 )
@@ -9,6 +10,7 @@ import (
 type PublishListingInput struct {
 	ExpectedRevision string
 	Product          UpdateProductInput
+	ExpectedStoreID  string `json:",omitempty"`
 }
 
 // PublishListing applies pricing/stock and publication in one original Store
@@ -24,6 +26,9 @@ func (s *Store) PublishListing(actor, id string, in PublishListingInput) (Produc
 	if err := s.requireSellerPermissionLocked(p.StoreID, actor, permissionCatalogWrite); err != nil {
 		return Product{}, err
 	}
+	if in.ExpectedStoreID != "" && in.ExpectedStoreID != p.StoreID {
+		return Product{}, ErrConflict
+	}
 	route := "listing.publish." + id
 	h, replay, err := s.idempotencyLocked(actor, route, in.Product.IdempotencyKey, in)
 	if err != nil {
@@ -37,6 +42,9 @@ func (s *Store) PublishListing(actor, id string, in PublishListingInput) (Produc
 	}
 	if in.ExpectedRevision == "" || in.ExpectedRevision != strconv.FormatInt(p.Revision, 10) {
 		return Product{}, fmt.Errorf("%w: listing revision changed", ErrConflict)
+	}
+	if p.Revision < 1 || p.Revision > math.MaxInt64-2 {
+		return Product{}, fmt.Errorf("%w: listing revision exhausted", ErrConflict)
 	}
 	staged, err := cloneSnapshot(s.s)
 	if err != nil {

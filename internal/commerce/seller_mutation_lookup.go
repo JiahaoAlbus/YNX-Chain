@@ -61,6 +61,26 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 		}
 		route, key, storeID, target, original = "inventory.batch."+input.StoreID, input.IdempotencyKey, input.StoreID, input.StoreID, input
 		kind, permission = "inventory-batch", permissionInventoryWrite
+	case in.Method == "POST" && strings.HasPrefix(in.Path, "/seller/products/") && strings.HasSuffix(in.Path, "/native-listing"):
+		parts := strings.Split(in.Path, "/")
+		if len(parts) != 5 || !invoiceRecoveryID.MatchString(parts[3]) {
+			return nil, "", ErrConflict
+		}
+		target = parts[3]
+		p, ok := s.s.Products[target]
+		if !ok {
+			return nil, "", ErrNotFound
+		}
+		var input NativeListingInput
+		if !decode(&input) {
+			return nil, "", ErrConflict
+		}
+		converted, e := nativeListingOriginal(input)
+		if e != nil || converted.ExpectedStoreID != p.StoreID {
+			return nil, "", ErrConflict
+		}
+		route, key, storeID, original = "listing.publish."+target, input.IdempotencyKey, p.StoreID, converted
+		kind, permission = "native-listing", permissionCatalogWrite
 	case in.Method == "POST" && in.Path == "/seller/stores":
 		var input CreateStoreInput
 		if !decode(&input) {
@@ -238,6 +258,12 @@ func (s *Store) lookupSellerMutation(actor string, in sellerMutationLookupInput)
 		return nil, "", ErrConflict
 	}
 	switch kind {
+	case "native-listing":
+		p, ok := s.s.Products[rec.ObjectID]
+		if !ok || p.StoreID != storeID {
+			return nil, "", ErrConflict
+		}
+		return detached(nativeListingView(p, true, true))
 	case "inventory-batch":
 		value, err := s.inventoryBatchReadbackLocked(original.(InventoryBatchInput), true)
 		if err != nil {

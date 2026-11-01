@@ -1,0 +1,15 @@
+import {createRequire} from 'node:module';
+import {mkdtemp} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {dirname,join,resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {execFileSync} from 'node:child_process';
+import {prepareCurrentWalletSDK} from '../scripts/current-wallet-sdk.mjs';
+const dependencies=resolve(process.argv[2]),require=createRequire(join(dependencies,'listing-check.cjs')),esbuild=require('esbuild');
+if(esbuild.version!=='0.25.9')throw Error('Original Native compiler mismatch');
+const supplier=await prepareCurrentWalletSDK({dependencies}),root=resolve(dirname(fileURLToPath(import.meta.url)),'..'),out=await mkdtemp(join(tmpdir(),'ynx-shop-listing-cli-'));
+const test=join(out,'listing-cli.test.mjs');
+await esbuild.build({entryPoints:[join(root,'test','listing-cli.test.mjs')],outfile:test,bundle:true,format:'esm',platform:'node',target:'node22',...supplier.buildOptions});
+console.log('Listing CLI original SDK pin',supplier.provenance.sha256);
+execFileSync(process.execPath,['--test',test],{stdio:'inherit'});
+if(process.argv[3])await esbuild.build({entryPoints:[join(root,'test','listing-http.mjs')],outfile:resolve(process.argv[3]),bundle:true,format:'esm',platform:'node',target:'node22',...supplier.buildOptions});

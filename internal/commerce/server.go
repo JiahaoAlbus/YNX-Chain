@@ -131,6 +131,8 @@ func (s *Server) routes() {
 	s.handleFunc("POST /api/seller/stores/{id}/invitations/{invitation}/cancel", s.cancelSellerInvitation)
 	s.handleFunc("POST /api/seller/products", s.createProduct)
 	s.handleFunc("POST /api/seller/products/{id}/listing", s.publishListing)
+	s.handleFunc("POST /api/seller/products/{id}/native-listing", s.publishNativeListing)
+	s.handleFunc("POST /api/seller/listing/read", s.readNativeListing)
 	s.handleFunc("GET /api/seller/products", s.sellerProducts)
 	s.handleFunc("PUT /api/seller/products/{id}", s.updateProduct)
 	s.handleFunc("POST /api/seller/products/{id}/publish", s.publishProduct)

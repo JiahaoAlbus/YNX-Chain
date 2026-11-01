@@ -9,6 +9,8 @@ var commerceBusinessRoutes = map[string]businessRoutePolicy{
 	"GET /api/orders/{id}/native-pay-intent":                       {mode: "external", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write"}}},
 	"POST /api/orders/{id}/return-receipts":                        {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"POST /api/orders/{id}/return-restock":                         {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
+	"POST /api/seller/products/{id}/native-listing":                {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
+	"POST /api/seller/listing/read":                                {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"POST /api/seller/products/{id}/listing":                       {mode: "local", scopes: map[string][]string{"seller": {"account:read", "shop:seller:operate"}}},
 	"GET /api/catalog/search":                                      {mode: "public", scopes: map[string][]string{}},
 	"POST /api/orders/{id}/projection":                             {mode: "local", scopes: map[string][]string{"buyer": {"account:read", "shop:orders:write", "shop:profile:write"}, "seller": {"account:read", "shop:seller:operate"}}},
