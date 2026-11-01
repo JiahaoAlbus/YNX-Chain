@@ -12,16 +12,12 @@ function input(v){const i=record(v,['request','original','target']);if(i.request
  return Object.freeze(i);}
 function fixed(){const image=loadOriginalAuthIdentityNativeImage();if(!image||types.isProxy(image))fail('PAY_NATIVE_FIXED_IMAGE_EXPORTS_NOT_SUPPLIED');if(selected&&selected.image!==image)fail('PAY_NATIVE_FIXED_IMAGE_CHANGED');const a=Object.getOwnPropertyDescriptor(image,'acquireOriginalPaySource'),r=Object.getOwnPropertyDescriptor(image,'isOriginalPaySource');if(!a||!r||!Object.hasOwn(a,'value')||!Object.hasOwn(r,'value')||typeof a.value!=='function'||typeof r.value!=='function'||types.isProxy(a.value)||types.isProxy(r.value))fail('PAY_NATIVE_FIXED_IMAGE_EXPORTS_NOT_SUPPLIED');if(!selected)selected=Object.freeze({image,acquire:a.value,recognize:r.value});return selected;}
 function recognized(native,value){if(value===null||typeof value!=='object'||types.isProxy(value))return false;const result=Reflect.apply(native.recognize,native.image,[value]);if(typeof result!=='boolean')fail('PAY_NATIVE_RECOGNIZER_RESULT_INVALID');return result;}
-export function acquireOriginalPaySource(...args){if(args.length!==1)fail('PAY_NATIVE_SOURCE_ARGUMENTS');const captured=input(args[0]),native=fixed();let out;
- try{out=Reflect.apply(native.acquire,native.image,[captured]);}
- catch(cause){
-  // Actual NAPI has already adopted its native out before pending exceptions.
-  // Inspect only an own DATA partial, before anything else about this error.
-  // Do not wrap, truth-test or clean an upstream owner/parent permission here.
-  if(cause!==null&&['object','function'].includes(typeof cause)&&!types.isProxy(cause)){const d=Object.getOwnPropertyDescriptor(cause,'partial');if(d&&Object.hasOwn(d,'value')&&d.value!==null&&d.value!==undefined){try{recognized(native,d.value);}catch{ /* Identity failure never replaces SAME first error/partial. */ }}}
-  throw cause;
- }
- if(!recognized(native,out))fail('PAY_NATIVE_SOURCE_RESULT_INVALID');return out;
+export function acquireOriginalPaySource(...args){if(args.length!==1)fail('PAY_NATIVE_SOURCE_ARGUMENTS');const captured=input(args[0]),native=fixed();
+ // Custody transfer precedes identity/admission. Never call recognizer here:
+ // false or a thrown falsy value must not hide an already returned Native out.
+ // Native already adopted its loan before pending exceptions. Forward its
+ // SAME raw result/error/partial; Main owns it before independent recognition.
+ return Reflect.apply(native.acquire,native.image,[captured]);
 }
 /** Native identity recognition is also available for a previously adopted
  * partial after current admission is lost, solely to drain that SAME owner.
