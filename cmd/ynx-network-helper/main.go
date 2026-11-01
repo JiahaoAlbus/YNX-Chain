@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/contribution"
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/governanceview"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/localipc"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/nativeconsent"
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/ownednode"
@@ -59,6 +60,7 @@ type helper struct {
 	resourceState                                  string
 	rpc                                            string
 	client                                         *http.Client
+	governance                                     *governanceview.Reader
 	now                                            func() time.Time
 }
 
@@ -164,7 +166,7 @@ func (h *helper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.ticket = randomToken()
 		h.ticketUntil = h.now().Add(ticketLife)
 		h.ticketContext, h.ticketCancel = context.WithDeadline(context.Background(), h.ticketUntil)
-		sendJSON(w, 200, map[string]any{"ticket": h.ticket, "expires": h.ticketUntil.UTC().Format(time.RFC3339), "origin": h.origin, "scope": []string{"receipt.read", "receipt.verify", "node.read", "native.status"}})
+		sendJSON(w, 200, map[string]any{"ticket": h.ticket, "expires": h.ticketUntil.UTC().Format(time.RFC3339), "origin": h.origin, "scope": []string{"receipt.read", "receipt.verify", "node.read", "native.status", "governance.read"}})
 	default:
 		ctx, release, ok := h.authorizedContext(r)
 		if !ok {
@@ -198,6 +200,10 @@ func (h *helper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			h.getReceipt(w, r)
 		case "/api/native-status":
 			h.nativeStatus(w, r)
+		case "/api/governance-proposals":
+			h.governanceProposals(w, r)
+		case "/api/governance-proposal":
+			h.governanceProposal(w, r)
 		case "/api/history":
 			if h.history == nil {
 				denied(w, 503, "HISTORY_NOT_CONFIGURED")
@@ -568,12 +574,13 @@ func run() (runErr error) {
 	h.history = history
 	h.receipts = receipts
 	h.ipcDirectory = ipcDir
+	h.configureGovernanceRead(*governanceRPC)
 	if resource == nil {
 		h.resourceState = "unavailable"
 	}
 	configDigest := sha256.Sum256([]byte(*anchorPin + ":" + *pqContextPin + ":" + *pqExecutablePin))
 	h.historyContextPin = hex.EncodeToString(configDigest[:])
-	fmt.Printf("YNX Network local helper\nOpen: %s\nOne-use pairing code: %s\nScope: receipt read/verify, node read, native status; expires after 15 minutes. Revoke in the app. Restart helper to pair again.\n", origin, code)
+	fmt.Printf("YNX Network local helper\nOpen: %s\nOne-use pairing code: %s\nScope: receipt read/verify, node read, native status, public governance read; expires after 15 minutes. Revoke in the app. Restart helper to pair again.\n", origin, code)
 	server := &http.Server{Handler: h, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 20 * time.Second, WriteTimeout: 20 * time.Second, IdleTimeout: 45 * time.Second, MaxHeaderBytes: 16 << 10}
 	shutdownDone := make(chan struct{})
 	var shutdownErr error

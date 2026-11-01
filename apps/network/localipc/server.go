@@ -15,10 +15,12 @@ import (
 )
 
 type Config struct {
-	Directory string
-	Handler   Handler
+	Directory       string
+	Handler         Handler
+	ResourceCurrent *ResourceCurrentConfig
 }
 type peerKey struct{}
+type resourceConnKey struct{}
 type Server struct {
 	directory, path, lockPath, recordPath     string
 	uid                                       uint32
@@ -35,16 +37,57 @@ type Server struct {
 	closeDone                                 chan struct{}
 	closeErr                                  error
 	handler                                   Handler
+	resourceCurrent                           *resourceCurrentService
 }
 
 type peerConn struct {
 	*net.UnixConn
-	peer    Peer
-	release func()
-	once    sync.Once
+	peer         Peer
+	release      func()
+	once         sync.Once
+	resourceMu   sync.Mutex
+	resource     *resourceCurrentSession
+	resourceIdle bool
 }
 
-func (c *peerConn) Close() error { err := c.UnixConn.Close(); c.once.Do(c.release); return err }
+func (c *peerConn) invalidateResource(err error) {
+	c.resourceMu.Lock()
+	lease := c.resource
+	c.resourceMu.Unlock()
+	if lease != nil {
+		lease.fail(err)
+		lease.disconnect()
+	}
+}
+
+func (c *peerConn) Close() error {
+	err := c.UnixConn.Close()
+	c.resourceMu.Lock()
+	lease := c.resource
+	c.resourceMu.Unlock()
+	if lease != nil {
+		lease.disconnect()
+	}
+	c.once.Do(c.release)
+	return err
+}
+func (c *peerConn) SetReadDeadline(deadline time.Time) error {
+	c.resourceMu.Lock()
+	lease, idle := c.resource, c.resourceIdle
+	c.resourceMu.Unlock()
+	held := false
+	if lease != nil && idle {
+		lease.mu.Lock()
+		held = lease.life.PartialAcquired && !lease.life.PhysicalComplete
+		lease.mu.Unlock()
+	}
+	// Only an actual protected typed borrow may outlive the normal three-second
+	// HTTP keepalive. Same FD, max60s idle; every next read rechecks its OS peer.
+	if held && !deadline.IsZero() {
+		deadline = time.Now().Add(60 * time.Second)
+	}
+	return c.UnixConn.SetReadDeadline(deadline)
+}
 
 type guardedListener struct {
 	*net.UnixListener
@@ -87,6 +130,11 @@ func Start(ctx context.Context, cfg Config) (*Server, error) {
 		return nil, ErrUnsupported
 	}
 	s := &Server{directory: cfg.Directory, uid: uint32(uid), handler: cfg.Handler, closeDone: make(chan struct{})}
+	var sourceErr error
+	s.resourceCurrent, sourceErr = newResourceCurrentService(ctx, cfg.ResourceCurrent)
+	if sourceErr != nil {
+		return nil, sourceErr
+	}
 	if err := validatePath(cfg.Directory, true); err != nil {
 		return nil, err
 	}
@@ -156,7 +204,13 @@ func Start(ctx context.Context, cfg Config) (*Server, error) {
 		if !ok {
 			return ctx
 		}
-		return context.WithValue(ctx, peerKey{}, p.peer)
+		return context.WithValue(context.WithValue(ctx, peerKey{}, p.peer), resourceConnKey{}, p)
+	}, ConnState: func(c net.Conn, state http.ConnState) {
+		if peer, ok := c.(*peerConn); ok {
+			peer.resourceMu.Lock()
+			peer.resourceIdle = state == http.StateIdle
+			peer.resourceMu.Unlock()
+		}
 	}}
 	go func() {
 		_ = s.http.Serve(&guardedListener{UnixListener: s.listener, owner: s.uid, slots: make(chan struct{}, 16)})
@@ -184,8 +238,9 @@ func (s *Server) beginClose() {
 		s.closing = true
 		s.mu.Unlock()
 		s.cancel()
+		s.resourceCurrent.retireAll()
 		_ = s.http.Close()
-		go func() { s.handlers.Wait(); s.closeErr = s.cleanup(); close(s.closeDone) }()
+		go func() { s.handlers.Wait(); s.resourceCurrent.wait(); s.closeErr = s.cleanup(); close(s.closeDone) }()
 	})
 }
 func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
@@ -218,10 +273,16 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	request, err := decodeRequest(raw)
 	if err != nil {
+		if c, ok := r.Context().Value(resourceConnKey{}).(*peerConn); ok {
+			c.invalidateResource(err)
+		}
 		writeResponse(w, protocolError("INVALID", "", peer))
 		return
 	}
 	if s.directoryUnchanged() != nil || !samePath(s.path, s.socketInfo) || !samePath(s.lockPath, s.lockInfo) || !samePath(s.recordPath, s.recordInfo) || s.lease.Check() != nil {
+		if c, ok := r.Context().Value(resourceConnKey{}).(*peerConn); ok {
+			c.invalidateResource(ErrEndpointChanged)
+		}
 		writeResponse(w, protocolError("ENDPOINT_CHANGED", request.ID, peer))
 		return
 	}
@@ -231,7 +292,24 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	result, err := s.dispatch(r.Context(), peer, request)
+	var result Result
+	connection, _ := r.Context().Value(resourceConnKey{}).(*peerConn)
+	if s.resourceCurrent != nil && resourceCurrentFamily(request.Operation) && connection != nil {
+		result, err = s.resourceCurrent.dispatch(r.Context(), connection, request)
+	} else if request.Operation != "resource_current" && resourceCurrentFamily(request.Operation) {
+		err = ErrResourceHeld
+	} else {
+		if connection != nil {
+			connection.resourceMu.Lock()
+			held := connection.resource != nil
+			connection.resourceMu.Unlock()
+			if held {
+				writeResponse(w, protocolError("DENIED", request.ID, peer))
+				return
+			}
+		}
+		result, err = s.dispatch(r.Context(), peer, request)
+	}
 	if r.Context().Err() != nil {
 		writeResponse(w, protocolError("CANCELLED", request.ID, peer))
 		return

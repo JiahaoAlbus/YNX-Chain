@@ -251,3 +251,22 @@ input[type=range]:disabled{opacity:.65}
 #native-part-resolve{margin-block:12px}
 .native-history-heading .button-row{display:flex;flex:0 0 auto;gap:16px}
 .native-history-heading .button-row button{flex:0 0 auto;white-space:nowrap}
+
+/* Public governance reports share the existing flat section rhythm. */
+.governance-list{display:grid;margin-block:16px;border-top:1px solid var(--line)}
+.governance-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(88px,.2fr) minmax(140px,.3fr) auto;align-items:center;gap:12px;width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:16px 0;text-align:start;background:transparent;color:var(--text)}
+.governance-row:hover,.governance-row:focus-visible{background:var(--accent-soft)}
+.governance-row>span{min-width:0;overflow-wrap:anywhere}
+.governance-row .proposal-status,.governance-row time{color:var(--muted);font-size:12px}
+.governance-row .proposal-open{color:var(--accent);font-size:12px}
+.governance-meta{font-size:12px;line-height:1.7;color:var(--muted);overflow-wrap:anywhere;white-space:pre-line}
+#governance-detail{border-top:1px solid var(--line);margin-top:20px;padding-top:20px}
+#governance-detail .info-list{margin-block:18px}
+#governance-detail dd{min-width:0;overflow-wrap:anywhere}
+@media(max-width:900px){
+ .governance-row{grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding-block:16px}
+ .governance-row>span:first-child{grid-column:1/-1}
+ .governance-row .proposal-status{grid-column:1}
+ .governance-row time{grid-column:1;font-size:11px}
+ .governance-row .proposal-open{grid-column:2;grid-row:2/4}
+}

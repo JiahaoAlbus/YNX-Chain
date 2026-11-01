@@ -2,6 +2,7 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 
 export const appSource=readFileSync(new URL('./app.js',import.meta.url),'utf8');
+const governanceSource=readFileSync(new URL('./governance.js',import.meta.url),'utf8');
 const html=readFileSync(new URL('./index.html',import.meta.url),'utf8');
 export const htmlIDs=new Set([...html.matchAll(/\bid="([^"]+)"/g)].map(match=>match[1]));
 export function environment(options={}){
@@ -38,10 +39,10 @@ export function environment(options={}){
  const uiEvents=[], windowObject={NetworkNative:options.native,crypto:options.crypto,addEventListener:(type,fn)=>windowHandlers.set(type,fn),NetworkUI:{receive:(channel,value)=>uiEvents.push({channel,value})}};
  if(options.intervals)windowObject.setInterval=(fn,ms)=>{intervals.push({fn,ms});return intervals.length;};
  const timerSet=(fn,ms)=>{const id=++timerID;timers.set(id,{fn,ms});return id;};
- runInNewContext(options.source||appSource,{
+ runInNewContext((options.governance?governanceSource+'\n':'')+(options.source||appSource),{
   document:documentObject,
   sessionStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,String(value)),removeItem:key=>storage.delete(key)},
-  navigator:{},window:windowObject,fetch,console,AbortController,setTimeout:timerSet,clearTimeout:id=>timers.delete(id)
+  navigator:{},window:windowObject,fetch,console,AbortController,URL,TextEncoder,Date:options.clockDate||Date,setTimeout:timerSet,clearTimeout:id=>timers.delete(id)
  });
  return {window:windowObject,nativeState:()=>windowHandlers.get('network:native-state')?.({detail:{authority:false}}),intervals,tick:()=>intervals.forEach(timer=>timer.fn()),visibility:value=>{documentObject.visibilityState=value;documentHandlers.get("visibilitychange")?.();},uiEvents,client:windowObject.NetworkClient,node:id=>{const n=nodes.get(id);if(!n)throw Error('Missing actual HTML id '+id);return n;},rows,storage,requests,pending:requests,timers,
   emit:(id,type)=>nodes.get(id).emit(type),

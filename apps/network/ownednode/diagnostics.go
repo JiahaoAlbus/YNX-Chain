@@ -11,10 +11,19 @@ type Diagnostics struct {
 	Recovery        Recovery        `json:"recovery"`
 }
 type Synchronization struct {
-	Code         string  `json:"code"`
-	LocalHeight  *string `json:"localHeight"`
-	TargetHeight *string `json:"targetHeight"`
-	CatchingUp   *bool   `json:"catchingUp"`
+	Code                string               `json:"code"`
+	LocalHeight         *string              `json:"localHeight"`
+	TargetHeight        *string              `json:"targetHeight"`
+	CatchingUp          *bool                `json:"catchingUp"`
+	Source              *string              `json:"source"`
+	UpdatedAt           *string              `json:"updatedAt"`
+	ExpiresAt           *string              `json:"expiresAt"`
+	RunID               *string              `json:"runId"`
+	Generation          *string              `json:"generation"`
+	NetworkIdentity     *SyncNetworkIdentity `json:"networkIdentity"`
+	NetworkID32Observed bool                 `json:"networkId32Observed"`
+	Authority           bool                 `json:"authority"`
+	IsolatedFixture     bool                 `json:"isolatedFixture"`
 }
 type Recovery struct {
 	Code                     string `json:"code"`
@@ -25,9 +34,7 @@ type Recovery struct {
 }
 
 func (m *Manager) diagnostics() Diagnostics {
-	out := Diagnostics{Code: "LOCAL_OBSERVATION_ONLY", Synchronization: Synchronization{Code: "NOT_SUPPLIED"}, Recovery: Recovery{Code: "IDLE", ProcessOwned: m.process != nil}}
-	// No original ordinary-runtime sync endpoint, network identity or height
-	// contract has been supplied. Logs, elapsed time and public RPC cannot fill it.
+	out := Diagnostics{Code: "LOCAL_OBSERVATION_ONLY", Synchronization: m.synchronization(), Recovery: Recovery{Code: "IDLE", ProcessOwned: m.process != nil}}
 	if err := m.rootUnchanged(); err != nil {
 		out.Code = "UNAVAILABLE"
 		out.Logs = LogReadback{Code: "UNAVAILABLE", RunID: m.state.RunID}

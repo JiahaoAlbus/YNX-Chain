@@ -3,6 +3,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {environment,settle} from './test-support.mjs';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
 const ID='1'.repeat(24),OTHER='2'.repeat(24),HASH='a'.repeat(64);
 const nodeCaps={install:false,start:true,stop:false,restart:false,visibleConsent:true,read:true,logs:true};
 const partCaps={prepare:true,read:true,review:true,cancel:true,reconcile:true,submit:false,revoke:true,list:true};
@@ -148,8 +150,10 @@ const actualBfaGUINodeResponse=()=>JSON.parse("{\"version\":\"YNX-NETWORK-LOCAL-
 test('native business UI accepts the actual bfa GUI-service node response without a production grant',async()=>{
  const actual=actualBfaGUINodeResponse(),s=setup(op=>op==='node_status'?actual:undefined);
  await settle();await s.load();
- assert.equal(s.node('native-node-stage').textContent,'not_installed');
- assert.equal(s.node('native-node-mode').textContent,'production');
+ assert.equal(s.node('native-node-stage').textContent,'尚未安装');
+ assert.match(s.node('native-node-status-original').textContent,/not_installed/);
+ assert.equal(s.node('native-node-mode').textContent,'正式节点模式（未开放）');
+ assert.match(s.node('native-node-status-original').textContent,/production/);
  assert.match(s.node('native-node-operation').textContent,/OK/);
  assert.doesNotMatch(s.node('native-node-operation').textContent,/NATIVE_RESPONSE_INVALID/);
  assert.match(s.node('native-node-notice').textContent,/原发布方工件/);
@@ -178,4 +182,31 @@ test('native business UI keeps strict node parsing around the actual bfa GUI-ser
  }
  const incomplete=actualBfaGUINodeResponse();delete incomplete.result.payload.capabilities.logs;const s=setup(op=>op==='node_status'?incomplete:undefined);await settle();await s.load();
  for(const action of ['install','start','stop','restart','confirm'])assert.equal(s.node('native-node-'+action).disabled,true,action);
+});
+
+function attachSynchronization(s,clock){const sandbox={window:{},URL,Date:class extends Date{static now(){return clock.now;}}};runInNewContext(readFileSync(new URL('./overview.js',import.meta.url),'utf8'),sandbox);s.window.NetworkOverview=sandbox.window.NetworkOverview;}
+function nativeSyncNode(clock){const start=new Date(clock.now).toISOString(),end=new Date(clock.now+3000).toISOString();return {...node(),stage:'running',mode:'isolated-lifecycle-fixture',processOwned:true,productionSupported:false,runId:'owned-fixture-run',diagnostics:{code:'LOCAL_OBSERVATION_ONLY',authority:false,logs:{runId:'owned-fixture-run',stdout:null,stderr:null},recovery:{priorEffectUnknown:false},synchronization:{code:'ISOLATED_PROCESS_REPORTED',localHeight:'9007199254740993',targetHeight:null,catchingUp:false,source:'owned-process-unix-comet',updatedAt:start,expiresAt:end,runId:'owned-fixture-run',generation:'7',networkIdentity:{nativeChainId:'6423',nativeGenesisSHA256:HASH,cometChainId:'isolated-fixture',cometGenesisSHA256:'b'.repeat(64)},networkId32Observed:false,authority:false,isolatedFixture:true}}};}
+const syncFields=['height','target','catching','source','updated','expires','run','generation'];
+function assertSyncCleared(s){for(const field of syncFields)assert.equal(s.node('local-node-sync-'+field).textContent,'—',field);}
+test('owned synchronization UI displays an isolated observation then expires locally without another native call',async()=>{
+ const clock={now:Date.now()},n=nativeSyncNode(clock);const s=setup(op=>op==='node_status'?response({code:'OK',node:n,productionGrant:false,capabilities:{...nodeCaps,start:false,stop:false,restart:false}}):undefined);attachSynchronization(s,clock);await settle();await s.load();
+ assert.equal(s.node('local-node-sync').textContent,'本机隔离进程报告');assert.equal(s.node('local-node-sync-height').textContent,'9007199254740993');assert.equal(s.node('local-node-sync-target').textContent,'—');assert.equal(s.node('local-node-sync-updated').textContent,n.diagnostics.synchronization.updatedAt);assert.match(s.node('local-node-sync-catching').textContent,/进程报告未在追赶/);assert.match(s.node('local-node-sync-original').textContent,/"networkId32Observed": false/);assert.equal(s.node('native-node-mode').textContent,'隔离生命周期测试模式');
+ const count=s.calls.length;clock.now+=3001;s.fireTimers();assert.equal(s.node('local-node-sync').textContent,'同步观测已过期');assertSyncCleared(s);assert.equal(s.calls.length,count);for(const action of ['install','start','stop','restart','confirm'])assert.equal(s.node('native-node-'+action).disabled,true,action);
+});
+test('owned synchronization UI clears on pending read, unavailable result, transport failure and native reset',async()=>{
+ const clock={now:Date.now()};let value=nativeSyncNode(clock),pending=null,fail=false;const s=setup(op=>op==='node_status'?fail?Promise.reject(Object.assign(new Error('original native unavailable'),{code:'NATIVE_UNAVAILABLE',outcome:'NOT_SENT'})):pending?new Promise(resolve=>{pending.resolve=resolve;}):response({code:'OK',node:value,productionGrant:false,capabilities:{...nodeCaps,start:false}}):undefined);attachSynchronization(s,clock);await settle();await s.load();assert.equal(s.node('local-node-sync-height').textContent,'9007199254740993');
+ pending={};const loading=s.load();await settle();assertSyncCleared(s);assert.equal(s.node('local-node-sync').textContent,'正在读取');pending.resolve(response({code:'UNAVAILABLE',node:null,productionGrant:false,capabilities:Object.fromEntries(Object.keys(nodeCaps).map(key=>[key,false]))}));await loading;pending=null;assertSyncCleared(s);assert.equal(s.node('local-node-sync').textContent,'同步观测不可用');
+ await s.load();assert.equal(s.node('local-node-sync-height').textContent,'9007199254740993');fail=true;await s.load();assertSyncCleared(s);assert.match(s.node('native-node-operation').textContent,/NATIVE_UNAVAILABLE/);fail=false;await s.load();s.native.ready=false;s.nativeState();clock.now+=3001;s.fireTimers();assertSyncCleared(s);assert.equal(s.node('local-node-sync').textContent,'尚未读取');assert.equal(s.calls.some(call=>/^node_(prepare|install|start|stop|restart)$/.test(call.operation)),false);
+});
+test('owned synchronization UI gives each unavailable code a clear state and never derives sync from logs',async()=>{
+ const clock={now:Date.now()};for(const [code,label]of [['NOT_SUPPLIED','当前接口未提供'],['NOT_RUNNING','本机节点未运行'],['EXPIRED','同步观测已过期'],['UNAVAILABLE','同步观测不可用']]){const n=nativeSyncNode(clock);n.diagnostics.logs.stdout={text:'synced=true height=99999999999999'};Object.assign(n.diagnostics.synchronization,{code,localHeight:null,targetHeight:null,catchingUp:null,source:null,updatedAt:null,expiresAt:null,runId:null,generation:null,networkIdentity:null,isolatedFixture:false});const s=setup(op=>op==='node_status'?response({code:'OK',node:n,productionGrant:false,capabilities:{...nodeCaps,start:false}}):undefined);attachSynchronization(s,clock);await settle();await s.load();assert.equal(s.node('local-node-sync').textContent,label);assertSyncCleared(s);assert.match(s.node('local-node-stdout').textContent,/synced=true/);}
+});
+
+test('governance proposal prefill preserves UNKNOWN Wallet records and lost preparation correlation',async()=>{
+ for(const state of ['UNKNOWN','AWAITING_WALLET']){
+  const s=setup(op=>op==='participation_get'?response({code:'OK',entry:entry(state),walletApproval:false,capabilities:{...partCaps}}):undefined);await s.load();fields(s);await select(s);const calls=s.calls.length,target=s.node('native-part-target').value;
+  assert.equal(s.window.NetworkOperations.selectProposal(HASH),false);assert.equal(s.node('native-part-target').value,target);assert.match(s.node('native-part-operation').textContent,/OK/);assert.equal(s.node('native-part-original-action').textContent,'delegate');assert.equal(s.calls.length,calls);assert.equal(s.node('native-part-submit').disabled,true);
+ }
+ const s=setup(op=>op==='participation_prepare'?Promise.reject(Object.assign(new Error('preparation acknowledgement lost'),{code:'NATIVE_TIMEOUT',outcome:'UNKNOWN'})):undefined);await s.load();fields(s);await s.emit('native-part-form','submit');await settle();const request=s.node('native-part-request').value,target=s.node('native-part-target').value;
+ assert.equal(s.window.NetworkOperations.selectProposal(HASH),false);assert.equal(s.node('native-part-request').value,request);assert.equal(s.node('native-part-target').value,target);assert.equal(s.node('native-part-recovery').hidden,false);assert.equal(s.calls.filter(c=>c.operation==='participation_prepare').length,1);assert.equal(s.node('native-part-draft').disabled,true);
 });

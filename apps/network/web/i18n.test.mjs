@@ -196,3 +196,8 @@ test('actual receipt client rerenders locale without refetching or changing raw 
   assert.equal(env.node('evidence-meta').hidden, false);
   assert.equal(env.node('native-state').textContent.includes('NATIVE_UNAVAILABLE'), true);
 });
+
+test('owned synchronization and node lifecycle messages are explicit in all twelve locales without translating observed data',()=>{
+ const {I,document}=load();const keys=['本机隔离进程报告','同步观测已过期','同步观测不可用','本机节点未运行','隔离进程报告不证明生产同步、网络域、最终确认或批准。','本机节点能力详情','尚未安装','正式节点模式（未开放）'];
+ for(const locale of locales){I.setLocale(locale);for(const key of keys){const value=I.t(key);assert.equal(typeof value,'string');assert.ok(value.length>0);if(!locale.startsWith('zh-'))assert.notEqual(value,key,locale+':'+key);if(!locale.startsWith('zh-')&&locale!=='ja')assert.doesNotMatch(value,/[\u3400-\u9fff]/u,locale+':'+key);}assert.equal(document.documentElement.dir,locale==='ar'?'rtl':'ltr');assert.equal(I.t('owned-process-unix-comet'),'owned-process-unix-comet');assert.equal(I.t('9007199254740993'),'9007199254740993');}
+});

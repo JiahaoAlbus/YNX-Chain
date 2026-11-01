@@ -144,11 +144,52 @@
     // safe Number is a different wire shape; an absent count is never zero.
     return typeof value === 'string' ? uint(value) : null;
   }
-  function nodeDiagnostics(value) {
+  function synchronization(value, context, now = Date.now()) {
+    const base = ['code','localHeight','targetHeight','catchingUp'];
+    const nullable = ['source','updatedAt','expiresAt','runId','generation','networkIdentity'];
+    const keys = [...base,...nullable,'networkId32Observed','authority','isolatedFixture'];
+    const empty = state => ({code:state,localHeight:null,targetHeight:null,catchingUp:null,source:null,
+      updatedAt:null,expiresAt:null,runId:null,generation:null,networkIdentity:null,
+      networkId32Observed:false,authority:false,isolatedFixture:false});
+    if (!object(value)) return null;
+    // The original four-field NOT_SUPPLIED shape remains readable. It cannot
+    // carry any sample, identity, permission or successful synchronization.
+    if (Object.keys(value).length === 4 && base.every(key=>owns(value,key)) &&
+        value.code==='NOT_SUPPLIED' && value.localHeight===null && value.targetHeight===null && value.catchingUp===null) return empty('NOT_SUPPLIED');
+    if (!allowedFields(value,keys) || keys.some(key=>!owns(value,key)) || value.authority!==false ||
+        value.networkId32Observed!==false || typeof value.isolatedFixture!=='boolean') return null;
+    if (['NOT_SUPPLIED','NOT_RUNNING','UNAVAILABLE','EXPIRED'].includes(value.code)) {
+      return value.localHeight===null && value.targetHeight===null && value.catchingUp===null &&
+        nullable.every(key=>value[key]===null) && value.isolatedFixture===false ? empty(value.code) : null;
+    }
+    if (value.code!=='ISOLATED_PROCESS_REPORTED' || value.isolatedFixture!==true ||
+        value.source!=='owned-process-unix-comet' || typeof value.localHeight!=='string' ||
+        uint(value.localHeight,'9223372036854775807')===null || value.localHeight==='0' || value.targetHeight!==null ||
+        typeof value.catchingUp!=='boolean' || !token(value.runId) ||
+        typeof value.generation!=='string' || uint(value.generation)===null ||
+        field(context,'mode')!=='isolated-lifecycle-fixture' || field(context,'stage')!=='running' ||
+        field(context,'processOwned')!==true || field(context,'runId')!==value.runId ||
+        owns(context,'generation') && context.generation!==value.generation) return null;
+    const updated=timestamp(value.updatedAt),expires=timestamp(value.expiresAt),identity=value.networkIdentity;
+    const identityKeys=['nativeChainId','nativeGenesisSHA256','cometChainId','cometGenesisSHA256'];
+    if (!updated?.endsWith('Z') || !expires?.endsWith('Z') || !Number.isFinite(now) ||
+        !allowedFields(identity,identityKeys) || identityKeys.some(key=>!owns(identity,key)) ||
+        typeof identity.nativeChainId!=='string' || uint(identity.nativeChainId,'9223372036854775807')===null || identity.nativeChainId==='0' ||
+        !/^[a-f0-9]{64}$/.test(identity.nativeGenesisSHA256) || !/^[a-f0-9]{64}$/.test(identity.cometGenesisSHA256) ||
+        !text(identity.cometChainId,128)) return null;
+    const start=Date.parse(updated),end=Date.parse(expires);
+    if (end<=start || end-start>3000 || start>now+1000) return null;
+    if (end<=now) return empty('EXPIRED');
+    return {code:value.code,localHeight:value.localHeight,targetHeight:null,catchingUp:value.catchingUp,
+      source:value.source,updatedAt:updated,expiresAt:expires,runId:value.runId,generation:value.generation,
+      networkIdentity:Object.fromEntries(identityKeys.map(key=>[key,identity[key]])),
+      networkId32Observed:false,authority:false,isolatedFixture:true};
+  }
+  function nodeDiagnostics(value, context) {
     if (!allowedFields(value,['code','authority','logs','synchronization','recovery']) || value.authority!==false || !['LOCAL_OBSERVATION_ONLY','UNAVAILABLE'].includes(value.code)) return null;
     const logs=value.logs, sync=value.synchronization, recovery=value.recovery;
     if(!allowedFields(logs,['code','runId','authority','stdout','stderr']) || logs.authority!==false || !['NOT_SUPPLIED','UNAVAILABLE','CAPTURING','CAPTURED','INCOMPLETE'].includes(logs.code) || typeof logs.runId!=='string' || logs.runId.length>128) return null;
-    if(!allowedFields(sync,['code','localHeight','targetHeight','catchingUp']) || sync.code!=='NOT_SUPPLIED' || sync.localHeight!==null || sync.targetHeight!==null || sync.catchingUp!==null) return null;
+    const syncModel=synchronization(sync,{...context,runId:logs.runId});if(!syncModel)return null;
     if(!allowedFields(recovery,['code','autoRestart','storedPIDIsControlHandle','processOwned','priorEffectUnknown']) || !['IDLE','OWNED_RUNNING','RECONCILING'].includes(recovery.code) || recovery.autoRestart!==false || recovery.storedPIDIsControlHandle!==false || typeof recovery.processOwned!=='boolean' || typeof recovery.priorEffectUnknown!=='boolean') return null;
     function stream(v){
       if(v===null)return null;
@@ -158,7 +199,7 @@
       return {text:v.text,encoding:v.encoding,capturedBytes:v.capturedBytes,observedBytes:v.observedBytes,droppedBytes:v.droppedBytes,truncated:v.truncated,wireTruncated:v.wireTruncated,complete:v.complete,sha256:v.sha256||null};
     }
     const stdout=stream(logs.stdout),stderr=stream(logs.stderr);if(stdout===undefined||stderr===undefined)return null;
-    return {code:value.code,authority:false,logs:{code:logs.code,runId:token(logs.runId),authority:false,stdout,stderr},synchronization:{code:'NOT_SUPPLIED',localHeight:null,targetHeight:null,catchingUp:null},recovery:{code:recovery.code,autoRestart:false,storedPIDIsControlHandle:false,processOwned:recovery.processOwned,priorEffectUnknown:recovery.priorEffectUnknown}};
+    return {code:value.code,authority:false,logs:{code:logs.code,runId:token(logs.runId),authority:false,stdout,stderr},synchronization:syncModel,recovery:{code:recovery.code,autoRestart:false,storedPIDIsControlHandle:false,processOwned:recovery.processOwned,priorEffectUnknown:recovery.priorEffectUnknown}};
   }
   function activityNode(value) {
     const keys = ['code', 'stage', 'mode', 'processOwned', 'capacityComplete', 'usedBytes', 'limitBytes', 'freeBytes', 'diagnostics'];
@@ -171,7 +212,7 @@
     };
     if (!['UNSUPPORTED', 'NOT_SUPPLIED', 'UNAVAILABLE'].includes(model.code) || model.processOwned === null || model.capacityComplete === null) return null;
     if (model.capacityComplete && [model.usedBytes, model.limitBytes, model.freeBytes].includes(null)) model.capacityComplete = null;
-    if (owns(value,'diagnostics')) model.diagnostics=nodeDiagnostics(value.diagnostics);
+    if (owns(value,'diagnostics')) model.diagnostics=nodeDiagnostics(value.diagnostics,model);
     return model;
   }
   function activityParticipation(value) {
@@ -282,5 +323,5 @@
       validators: validatorsView(validators.data), native: nativeView(nativeStatus)
     };
   }
-  if (typeof window !== 'undefined') window.NetworkOverview = Object.freeze({ project });
+  if (typeof window !== 'undefined') window.NetworkOverview = Object.freeze({ project, synchronization });
 }());

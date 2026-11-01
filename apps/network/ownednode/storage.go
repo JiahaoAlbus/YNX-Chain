@@ -267,7 +267,7 @@ func (m *Manager) capacity(extra uint64) (Capacity, error) {
 				return ErrCapacity
 			}
 			result.UsedBytes += size
-		} else if !info.IsDir() {
+		} else if !info.IsDir() && !m.fixtureSynchronizationSocket(path, info) {
 			return ErrUnsafePath
 		}
 		return nil

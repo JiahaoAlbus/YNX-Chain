@@ -23,7 +23,7 @@ function text(id, value, params) { paint($(id), value, params); }
 function notice(value, error = false, params) { text('notice', value, params); $('notice').classList.toggle('error', error); publish('notice',{key:value,error,params}); }
 function controls() {
   for (const id of ['proof-file']) $(id).disabled = !paired;
-  for (const [id,channel] of [['lookup-button','receipt'],['history-open','receipt'],['node-refresh','node'],['overview-refresh','node'],['native-refresh','native'],['participation-refresh','native'],['resource-refresh','native'],['history-refresh','history']]) $(id).disabled = !paired || pending.has(channel);
+  for (const [id,channel] of [['lookup-button','receipt'],['history-open','receipt'],['node-refresh','node'],['overview-refresh','node'],['native-refresh','native'],['participation-refresh','native'],['resource-refresh','native'],['history-refresh','history'],['governance-refresh','governance']]) $(id).disabled = !paired || pending.has(channel);
   $('pair-form').hidden = paired;
   $('revoke').hidden = !paired;
   $('history-prev').disabled = !paired || historyPage === 0;
@@ -62,6 +62,7 @@ function invalidateEvidence(message) {
   controls();
 }
 function clearPanels() {
+  clearGovernance();
   window.NetworkOperations?.reset();
   publish('reset',null);
   receiptRows = []; historyPage = 0;
@@ -235,6 +236,47 @@ async function openHistorical(id, expectedTx) {
   } catch (error) { if (current(op)) { invalidateEvidence(); notice('历史回执未取得：{error}',true,{error:error.message}); } }
   finally { finish(op); }
 }
+let governanceListModel=null,governanceDetailModel=null,governanceSelected=null,governanceListPhase='idle',governanceDetailPhase='idle',governanceTimer;
+const governanceMessages={idle:'读取治理提案',loading:'正在读取',EMPTY:'暂无治理提案',UNSUPPORTED:'治理接口未开放',UNAVAILABLE:'治理服务暂时不可用',INVALID_RESPONSE:'治理响应无效',NOT_FOUND:'未找到该提案',NOT_CONFIGURED:'治理来源未配置',stale:'报告已过期，请刷新。'};
+function clearGovernance(){clearTimeout(governanceTimer);governanceListModel=null;governanceDetailModel=null;governanceSelected=null;governanceListPhase='idle';governanceDetailPhase='idle';renderGovernance();}
+function governanceMeta(model){return model?[[tr('数据来源'),model.endpoint],[tr('报告时间'),model.asOf?readableTime(model.asOf):tr('未提供')],[tr('读取时间'),readableTime(model.observedAt)],[tr('响应摘要（非信任锚）'),model.responseSHA256||tr('未提供')]].map(([key,value])=>key+' · '+value).join('\n'):'';}
+function renderGovernance(){
+  const list=$('governance-list'),panel=$('governance-detail');if(!list||!panel)return;
+  clearTimeout(governanceTimer);const now=Date.now();
+  if(governanceListModel&&now-Date.parse(governanceListModel.observedAt)>=60000){governanceListModel=null;governanceDetailModel=null;governanceSelected=null;governanceListPhase='stale';governanceDetailPhase='idle';abort('governance-detail');}
+  if(governanceDetailModel&&now-Date.parse(governanceDetailModel.observedAt)>=60000){governanceDetailModel=null;governanceDetailPhase='stale';}
+  const next=[governanceListModel,governanceDetailModel].filter(Boolean).map(v=>Date.parse(v.observedAt)+60000-now);if(next.length)governanceTimer=setTimeout(renderGovernance,Math.max(1,Math.min(...next)));
+  const model=governanceListModel;
+  text('governance-state',governanceMessages[governanceListPhase]||governanceMessages[model?.code]||'只读登记报告，不证明链上最终确认或投票资格。');
+  $('governance-meta').textContent=governanceMeta(model);
+  list.replaceChildren();
+  for(const row of model?.proposals||[]){const button=document.createElement('button');button.type='button';button.className='governance-row';button.disabled=!paired;button.setAttribute('aria-label',row.summary+' · '+tr('治理提案详情'));const summary=document.createElement('span');summary.textContent=row.summary||row.id;const state=document.createElement('span');state.className='proposal-status';state.textContent=row.status;const time=document.createElement('time');time.dateTime=row.updatedAt;time.textContent=readableTime(row.updatedAt);const open=document.createElement('span');open.className='proposal-open';open.textContent=tr('治理提案详情');button.append(summary,state,time,open);button.addEventListener('click',()=>loadGovernanceDetail(row.id));list.append(button);}
+  text('governance-count',model?.truncated?'仅显示本次取回的 {shown} / {total} 项。':'',model?{shown:model.returnedCount,total:model.reportedCount}:undefined);
+  panel.hidden=governanceDetailPhase==='idle'&&!governanceDetailModel;
+  const detail=governanceDetailModel;
+  text('governance-detail-state',governanceMessages[governanceDetailPhase]||governanceMessages[detail?.code]||'只读登记报告，不证明链上最终确认或投票资格。');
+  $('governance-detail-meta').textContent=governanceMeta(detail);
+  const fields=$('governance-fields');fields.replaceChildren();$('governance-use-proposal').disabled=!paired||!detail?.proposal||window.NetworkOperations?.canSelectProposal()!==true;
+  if(detail?.proposal){const p=detail.proposal;for(const [key,value]of [['提案标识',p.id],['发起者',p.proposer],['提案类型',p.proposalType],['范围',p.scope],['状态',p.status],['登记保证金',p.deposit],['登记合格投票权',p.eligiblePower],['投票截止',p.votingEndsAt?readableTime(p.votingEndsAt):tr('未提供')]]){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=tr(key);dd.textContent=value;fields.append(dt,dd);}}
+  $('governance-raw').textContent=detail?.rawJSON||'';
+  $('governance-raw-panel').hidden=!detail?.rawJSON;
+  if(!detail?.rawJSON)$('governance-raw-panel').open=false;
+}
+async function loadGovernance(){
+  if(!paired||!window.NetworkGovernance)return;
+  const op=begin('governance',{requiresPair:true});abort('governance-detail');governanceListModel=null;governanceDetailModel=null;governanceSelected=null;governanceListPhase='loading';governanceDetailPhase='idle';renderGovernance();
+  try{const raw=await api('/api/governance-proposals',{},op);if(!current(op))return;const model=window.NetworkGovernance.projectList(raw);if(!model||Date.parse(model.observedAt)>Date.now()+5000)throw new Error('INVALID_RESPONSE');governanceListModel=model;governanceListPhase=model.code;}
+  catch(error){if(current(op)){governanceListModel=null;governanceListPhase=error.message==='INVALID_RESPONSE'?'INVALID_RESPONSE':'UNAVAILABLE';}}
+  finally{if(current(op))renderGovernance();finish(op);}
+}
+async function loadGovernanceDetail(id){
+  if(!paired||!governanceListModel?.proposals.some(row=>row.id===id)||!window.NetworkGovernance)return;
+  const op=begin('governance-detail',{requiresPair:true});governanceSelected=id;governanceDetailModel=null;governanceDetailPhase='loading';$('governance-raw-panel').open=false;renderGovernance();if(!current(op)||governanceSelected!==id){finish(op);return;}
+  try{const raw=await api('/api/governance-proposal',{id},op);if(!current(op)||governanceSelected!==id)return;const model=window.NetworkGovernance.projectDetail(raw,id);if(!model||Date.parse(model.observedAt)>Date.now()+5000)throw new Error('INVALID_RESPONSE');governanceDetailModel=model;governanceDetailPhase=model.code;}
+  catch(error){if(current(op)&&governanceSelected===id){governanceDetailModel=null;governanceDetailPhase=error.message==='INVALID_RESPONSE'?'INVALID_RESPONSE':'UNAVAILABLE';}}
+  finally{if(current(op)&&governanceSelected===id)renderGovernance();finish(op);}
+}
+
 async function status(refresh = true, announcePair = false) {
   const op = begin('status');
   try {
@@ -246,7 +288,7 @@ async function status(refresh = true, announcePair = false) {
     text('pair-state','已配对本机 helper · 网页只读查证权限 · 浏览器 OS 身份未验证{version}',{version:value.version?' · '+value.version:''});
     const expiry = sessionStorage.getItem('ynxNetworkTicketExpires'); if (expiry) scheduleExpiry(expiry);
     if (announcePair) notice('配对完成。节点来源、原生自检和本机历史分别读取；查询交易将取回实际证明并显示本次层级。');
-    if (refresh) await Promise.allSettled([nodeReport(), nativeStatus(), refreshHistory()]);
+    if (refresh) await Promise.allSettled([nodeReport(), nativeStatus(), refreshHistory(), ...(window.NetworkGovernance?[loadGovernance()]:[])]);
     return current(op) && paired;
   } catch (error) {
     if (current(op)) { paired = false; controls(); invalidateEvidence(); clearPanels(); text('pair-state', 'helper 连接尚未确认，请重开当前入口或使用新的配对码。'); notice('连接未确认：{error}',true,{error:error.message}); }
@@ -301,12 +343,14 @@ $('proof-file').addEventListener('change', async event => {
   finally { finish(op); event.target.value = ''; }
 });
 $('node-refresh').addEventListener('click', nodeReport);
+$('governance-refresh').addEventListener('click', loadGovernance);
+$('governance-use-proposal').addEventListener('click',()=>{renderGovernance();if(paired&&governanceDetailModel?.proposal)window.NetworkOperations?.selectProposal(governanceDetailModel.proposal.id);});
 for(const id of ['native-refresh','participation-refresh','resource-refresh'])$(id).addEventListener('click', nativeStatus);
 $('history-refresh').addEventListener('click', refreshHistory);
 $('history-form').addEventListener('submit', event => { event.preventDefault(); return openHistorical($('receipt-id').value.trim()); });
 $('history-prev').addEventListener('click', () => { if (paired && historyPage > 0) { historyPage--; renderHistoryPage(); } });
 $('history-next').addEventListener('click', () => { if (paired && (historyPage + 1) * PAGE_SIZE < receiptRows.filter(row=>historyFilter==='all'||historyFilter==='verified'&&row.reportedLevel!=='RPC_ONLY'||row.reportedLevel===historyFilter).length) { historyPage++; renderHistoryPage(); } });
-if(typeof window!=='undefined')window.NetworkClient=Object.freeze({setHistoryFilter(value){if(!['all','RPC_ONLY','verified'].includes(value))return;historyFilter=value;historyPage=0;renderHistoryPage();},rerenderLocale(){for(const [el,render]of textBindings)el.textContent=render();renderHistoryPage();}});
+if(typeof window!=='undefined')window.NetworkClient=Object.freeze({setHistoryFilter(value){if(!['all','RPC_ONLY','verified'].includes(value))return;historyFilter=value;historyPage=0;renderHistoryPage();},rerenderLocale(){for(const [el,render]of textBindings)el.textContent=render();renderHistoryPage();renderGovernance();}});
 invalidateEvidence();
 controls();
 if (typeof window !== 'undefined') window.addEventListener('pageshow', event => {
@@ -343,6 +387,26 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   function caps(value,keys){if(!object(value)||Object.keys(value).some(k=>!keys.includes(k))||keys.some(k=>typeof value[k]!=='boolean'))return {};return {...value};}
   const raw=(id,value)=>text(id,value===undefined||value===null?'—':String(value));
   const original=(id,value)=>raw(id,value?JSON.stringify(value,null,2):null);
+  const nodeStageKey=stage=>({not_installed:'尚未安装',installed:'已安装',installing:'正在安装',starting:'正在启动',running:'运行中',stopping:'正在停止',stopped:'已停止',exited:'进程已退出',reconcile_required:'需核对原运行'})[stage]||'不可用';
+  let syncTimer=null, syncSequence=0;
+  function showSynchronization(value,context,emptyKey='尚未读取'){
+    if(syncTimer!==null)clearTimeout(syncTimer);syncTimer=null;const sequence=++syncSequence;
+    const binding=object(context)?{mode:context.mode,stage:context.stage,processOwned:context.processOwned,
+      runId:Object.hasOwn(context,'runId')?context.runId:context.diagnostics?.logs?.runId}:null;
+    if(binding&&Object.hasOwn(context,'generation'))binding.generation=context.generation;
+    const sample=window.NetworkOverview?.synchronization?.(value,binding)||null;
+    const labels={ISOLATED_PROCESS_REPORTED:'本机隔离进程报告',NOT_SUPPLIED:'当前接口未提供',NOT_RUNNING:'本机节点未运行',EXPIRED:'同步观测已过期',UNAVAILABLE:'同步观测不可用'};
+    text('local-node-sync',sample?labels[sample.code]||'同步观测不可用':emptyKey);
+    raw('local-node-sync-code',sample?.code);
+    for(const [name,key]of [['height','localHeight'],['target','targetHeight'],['source','source'],['updated','updatedAt'],['expires','expiresAt'],['run','runId'],['generation','generation']])raw('local-node-sync-'+name,sample?.[key]);
+    text('local-node-sync-catching',sample?.catchingUp===true?'进程报告仍在追赶':sample?.catchingUp===false?'进程报告未在追赶':'—');
+    original('local-node-sync-original',sample);
+    // A local timer only expires this read-only observation. It never refreshes
+    // a request or changes node capabilities, approval or process ownership.
+    if(sample?.code==='ISOLATED_PROCESS_REPORTED')syncTimer=setTimeout(()=>{
+      if(sequence===syncSequence)showSynchronization(sample,binding,'同步观测不可用');
+    },Math.max(1,Math.min(3000,Date.parse(sample.expiresAt)-Date.now())));
+  }
   function state(id,code){text(id,()=>tr('本机返回：{code}',{code})+(code==='UNKNOWN'?' · '+tr('原结果未确定。先读取原状态，不要重复操作。'):code==='CANCELLED'?' · '+tr('本机操作已取消。'):''));}
   function disabled(id,enabled){$(id).disabled=!ready()||!!busy||!enabled;}
   function authority(value,field){if(!object(value)||value[field]!==false||typeof value.code!=='string'||!/^([A-Z][A-Z_]{0,63})$/.test(value.code))throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID',outcome:'UNKNOWN'});}
@@ -367,6 +431,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   async function load(channel='node'){
     return run(channel,async current=>{
       nodeIntent=null;review=null;node=null;resource=null;nodeCaps={};partCaps={};resourceCaps={};
+      render();
       const read=async(kind,fn)=>{try{await fn();}catch(error){if(!current())return;if(kind==='node'){nodeCaps={};node=null;}if(kind==='part')partCaps={};if(kind==='resource'){resourceCaps={};resource=null;}state('native-'+kind+'-operation',error?.code||'NATIVE_UNAVAILABLE');}};
       await read('node',async()=>{const n=(await request('node_status',{})).payload;if(current())state('native-node-operation',nodeStatus(n));});if(!current())return;
       await read('resource',async()=>{const res=(await request('resource_status',{})).payload;if(current())state('native-resource-operation',resourceStatus(res));});if(!current())return;
@@ -376,13 +441,15 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   function render(){
     const connected=ready(), note=connected?'能力只表示可尝试，仍须原生确认或 Wallet 批准。':'请在 Network 原生 App 中操作。浏览器不具备本机操作入口。';
     for(const channel of ['node','part','resource']){text('native-'+channel+'-notice',channel==='node'&&connected&&node?.mode==='production'&&node.productionSupported!==true?'正式节点安装仍须原发布方工件与独立可见批准。':channel==='part'&&connected&&partCode&&partCode!=='OK'?()=>tr('本机返回：{code}',{code:partCode})+' · '+tr(partCode==='NOT_SUPPLIED'?'当前接口未提供':partCode==='UNAVAILABLE'?'不可用':partCode==='UNKNOWN'?'原结果未确定。先读取原状态，不要重复操作。':'能力只表示可尝试，仍须原生确认或 Wallet 批准。'):note);disabled('native-'+channel+'-read',true);}
-    raw('native-node-stage',node?.stage);raw('native-node-mode',node?.mode);raw('native-node-run',node?.runId||null);
+    text('native-node-stage',node?nodeStageKey(node.stage):'—');text('native-node-mode',!node?'—':node.mode==='isolated-lifecycle-fixture'?'隔离生命周期测试模式':node.productionSupported?'正式节点模式':'正式节点模式（未开放）');raw('native-node-run',node?.runId||null);
+    original('native-node-status-original',node?{node,productionGrant:false,capabilities:nodeCaps}:null);
     if(node){
-      raw('managed-node-state',node.stage);raw('local-node-code',node.productionSupported?'OK':'UNSUPPORTED');raw('local-node-bytes',node.capacity?.complete===true&&uint(node.capacity.usedBytes)?node.capacity.usedBytes+' B':null);
+      text('managed-node-state',nodeStageKey(node.stage));raw('local-node-code',node.productionSupported?'OK':'UNSUPPORTED');raw('local-node-bytes',node.capacity?.complete===true&&uint(node.capacity.usedBytes)?node.capacity.usedBytes+' B':null);
       const diagnostic=object(node.diagnostics)&&node.diagnostics.authority===false?node.diagnostics:null;
       const logs=diagnostic?.logs;raw('local-node-logs-state',logs?.code);for(const stream of ['stdout','stderr']){const value=logs?.[stream]?.text;raw('local-node-'+stream,typeof value==='string'&&value.length<=16384?value:null);}
-      text('local-node-sync','当前接口未提供');text('local-node-recovery',diagnostic?.recovery?.priorEffectUnknown===true?'结果未确定。':node.processOwned?'本软件持有当前运行进程':'无运行任务');
+      text('local-node-recovery',diagnostic?.recovery?.priorEffectUnknown===true?'结果未确定。':node.processOwned?'本软件持有当前运行进程':'无运行任务');
     }
+    if(connected)showSynchronization(node?.diagnostics?.authority===false?node.diagnostics.synchronization:null,node,busy?.channel==='node'?'正在读取':'同步观测不可用');
     if(resource?.meter){const meter=resource.meter;const count=value=>typeof value==='number'&&Number.isSafeInteger(value)&&value>=0?String(value):uint(value)?value:null;
       text('resource-state',meter.state==='disabled'||meter.state==='stopped'?'已关闭':meter.class==='CONTROLLED_SANDBOX'&&meter.state==='running'?'本机隔离测试中。':'不可用');raw('resource-code',resource.code);raw('resource-verified-jobs',count(meter.verifiedJobs));raw('resource-verified-bytes',count(meter.verifiedBytes)===null?null:count(meter.verifiedBytes)+' B');raw('resource-active-workers',count(meter.activeWorkers));
     }
@@ -394,6 +461,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
     $('native-node-intent-panel').hidden=!nodeIntent;original('native-node-intent',nodeIntent);disabled('native-node-confirm',!!nodeIntent&&nodeCaps[nodeIntent.action]===true&&nodeCaps.visibleConsent===true);disabled('native-node-cancel',!!nodeIntent);
     const action=$('native-part-action').value||'delegate';$('native-part-amount-field').hidden=action==='withdraw'||action==='vote';$('native-part-amount').required=action!=='withdraw'&&action!=='vote';$('native-part-choice-field').hidden=action!=='vote';
     text('native-part-target-note',action==='delegate'?'填写原验证者标识。':action==='unbond'?'填写原委托标识。':action==='withdraw'?'填写原解押标识。':'填写原提案标识；不会在网页生成投票编码。');
+    $('governance-use-proposal').disabled=!paired||!governanceDetailModel?.proposal||!canSelectProposal();
     disabled('native-part-prepare',partCaps.prepare===true&&unresolved.size===0&&!knownRequests.has($('native-part-request').value.trim()));$('native-part-draft').disabled=!!busy||unresolved.size>0||entry?.state==='UNKNOWN'||entry?.state==='AWAITING_WALLET';disabled('native-part-resolve',partCaps.read===true&&(unresolved.size>0||ref($('native-part-request').value.trim())));disabled('native-part-list',partCaps.list===true);disabled('native-part-next',partCaps.list===true&&!!cursor);disabled('native-part-get',partCaps.read===true);disabled('native-part-revoke',partCaps.revoke===true);
     $('native-part-entry-panel').hidden=!entry;raw('native-part-entry-id',entry?.id);raw('native-part-entry-state',entry&&uncertain.has(entry.id)?'UNKNOWN':entry?.state);raw('native-part-blocked',entry?.blockedReason||entry?.lastError||null);
     const reviewed=unresolved.size===0&&review&&review.entry?.id===entry?.id&&review.authority===false&&review.requiresWalletApproval===true&&review.walletAdapterConfigured===true&&review.originalEffectMayExist===false&&review.conditionStatus==='CURRENT_RPC_REPORTED';
@@ -404,12 +472,13 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
     const history=$('native-part-records');history.replaceChildren();for(const row of entries.values()){const button=document.createElement('button');button.type='button';button.className='native-entry-row';button.disabled=!connected||!!busy||partCaps.read!==true;button.textContent=[row.action,row.state,row.requestId,row.id,row.updatedAt||row.createdAt||'—'].join(' · ');button.addEventListener('click',()=>get(row.id));history.append(button);}
     disabled('native-resource-meter',resourceCaps.meter===true);disabled('native-resource-stop',resourceCaps.stop===true);disabled('native-resource-review',resourceCaps.review===true);disabled('native-resource-cancel',resourceCaps.cancelReview===true);
   }
-  function reset(){partCode=null;recoveredDifference=false;if(preparingRequest)unresolved.set(preparingRequest.requestId,{request:preparingRequest});if(busy?.effect&&busy.channel==='part'&&entry)uncertain.add(entry.id);generation++;busy=null;node=null;nodeCaps={};nodeIntent=null;partCaps={};resourceCaps={};resource=null;review=null;entry=null;cursor='';entries.clear();for(const id of ['native-node-operation','native-part-operation','native-resource-operation'])text(id,'');for(const id of ['native-resource-original','native-resource-code','native-resource-preview-bytes','native-resource-preview-sha'])raw(id,null);render();}
+  function reset(){partCode=null;recoveredDifference=false;if(preparingRequest)unresolved.set(preparingRequest.requestId,{request:preparingRequest});if(busy?.effect&&busy.channel==='part'&&entry)uncertain.add(entry.id);generation++;busy=null;node=null;nodeCaps={};nodeIntent=null;partCaps={};resourceCaps={};resource=null;review=null;entry=null;cursor='';entries.clear();for(const id of ['native-node-operation','native-part-operation','native-resource-operation'])text(id,'');for(const id of ['native-resource-original','native-resource-code','native-resource-preview-bytes','native-resource-preview-sha'])raw(id,null);showSynchronization(null,null);render();}
   for(const id of ['native-node-read','native-part-read','native-resource-read'])$(id).addEventListener('click',()=>load(id.includes('resource')?'resource':id.includes('part')?'part':'node'));
   for(const action of ['install','start','stop'])$('native-node-'+action).addEventListener('click',()=>{if($('native-node-'+action).disabled)return;return run('node',async current=>{if(nodeCaps[action]!==true||nodeCaps.visibleConsent!==true)throw Object.assign(new Error('UNSUPPORTED'),{code:'UNSUPPORTED',outcome:'NOT_SENT'});const hash=action==='install'?$('native-node-artifact').value.trim():'';if(action==='install'&&!/^[a-f0-9]{64}$/.test(hash))throw Object.assign(new Error('INVALID_ARTIFACT_SHA256'),{code:'INVALID_ARTIFACT_SHA256',outcome:'NOT_SENT'});const value=(await request('node_prepare',{action,artifactSHA256:hash})).payload;if(!current())return;authority(value,'productionGrant');const intent=value.node;if(value.code==='PREPARED'&&object(intent)&&Object.keys(intent).length===5&&ref(intent.managerId)&&intent.nodeId==='ordinary-node'&&intent.action===action&&intent.generation===node?.generation&&intent.artifactSHA256===(hash||node?.artifactSHA256)){nodeIntent=intent;}else{nodeIntent=null;if(value.code==='PREPARED')throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});}state('native-node-operation',value.code);});});
   $('native-node-cancel').addEventListener('click',()=>{nodeIntent=null;state('native-node-operation','CANCELLED');render();});
   $('native-node-confirm').addEventListener('click',()=>{const intent=nodeIntent;if(!intent||nodeCaps[intent.action]!==true||nodeCaps.visibleConsent!==true)return;nodeIntent=null;run('node',async current=>{const value=(await request('node_'+intent.action,intent)).payload;if(!current())return;authority(value,'productionGrant');state('native-node-operation',value.code);nodeCaps={};},true);});
   $('native-node-restart').addEventListener('click',()=>{if(nodeCaps.restart!==true||nodeCaps.visibleConsent!==true||node?.processOwned!==true)return;run('node',async current=>{const value=(await request('node_restart',{})).payload;if(!current())return;authority(value,'productionGrant');nodeIntent=null;nodeCaps={};state('native-node-operation',value.code);},true);});
+  function canSelectProposal(){return !busy&&unresolved.size===0&&!['UNKNOWN','AWAITING_WALLET'].includes(entry?.state);}
   function draftChanged(){formVersion++;review=null;entry=null;recoveredDifference=false;render();}
   for(const name of ['action','request','owner','target','amount','fee','expires','choice'])$('native-part-'+name).addEventListener(name==='action'||name==='choice'?'change':'input',draftChanged);
   $('native-part-draft').addEventListener('click',()=>{if(busy||unresolved.size)return;const bytes=new Uint8Array(16);if(!window.crypto?.getRandomValues){state('native-part-operation','LOCAL_ID_UNAVAILABLE');return;}window.crypto.getRandomValues(bytes);$('native-part-request').value='local-'+Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');$('native-part-expires').value=new Date(Date.now()+5*60*1000).toISOString();draftChanged();});
@@ -427,7 +496,7 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
   for(const action of ['meter','stop','review','cancel'])$('native-resource-'+action).addEventListener('click',()=>{const key=action==='cancel'?'cancelReview':action;if(resourceCaps[key]!==true)return;run('resource',async current=>{raw('native-resource-preview-bytes',null);raw('native-resource-preview-sha',null);const value=(await request(action==='cancel'?'resource_review_cancel':'resource_'+action,{})).payload;if(!current())return;if(action==='review'||action==='cancel'){authority(value,'authority');if(value.productionEnabled!==false||value.consentProduced!==false)throw Object.assign(new Error('NATIVE_RESPONSE_INVALID'),{code:'NATIVE_RESPONSE_INVALID'});raw('native-resource-code',value.code);raw('native-resource-preview-bytes',uint(value.previewBytes)?value.previewBytes:null);raw('native-resource-preview-sha',typeof value.previewSHA256==='string'&&/^[a-f0-9]{64}$/.test(value.previewSHA256)?value.previewSHA256:null);original('native-resource-original',value);resourceCaps=caps(value.capabilities,resourceKeys);}else resourceStatus(value);state('native-resource-operation',value.code);},action==='stop');});
   window.addEventListener('network:native-state',()=>{reset();if(ready())load('node');});
   window.addEventListener('pagehide',reset);
-  window.NetworkOperations=Object.freeze({reset,refresh:load,rerenderLocale:render});
+  window.NetworkOperations=Object.freeze({reset,refresh:load,rerenderLocale:render,showSynchronization,nodeStageKey,canSelectProposal,selectProposal(id){if(typeof id!=='string'||!/^[a-f0-9]{64}$/.test(id)||!canSelectProposal())return false;$('native-part-action').value='vote';$('native-part-target').value=id;draftChanged();$('native-part-form').scrollIntoView?.({block:'start'});return true;}});
   window.NetworkI18n?.subscribe(render);
   if(!$('native-part-action').value)$('native-part-action').value='delegate';
   render();if(ready())load('node');

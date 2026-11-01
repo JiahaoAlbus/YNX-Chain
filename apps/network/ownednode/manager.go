@@ -38,6 +38,9 @@ type Config struct {
 	StopGrace              time.Duration
 	RuntimeCandidate       *RuntimeCandidate
 	ExpectedRuntimeNetwork *RuntimeNetwork
+	// FixtureSynchronizationNetwork enables only the isolated transport fixture.
+	// It is not an original ordinary-runtime launch or admission contract.
+	FixtureSynchronizationNetwork *RuntimeNetwork
 }
 type Capacity struct {
 	Complete    bool   `json:"complete"`
@@ -88,6 +91,13 @@ type child struct {
 	stopRequested bool
 	capture       *runtimeCapture
 	logs          *runLogs
+	exited        chan struct{}
+	readContext   context.Context
+	cancelReads   context.CancelFunc
+	syncBusy      bool
+	syncReadback  Synchronization
+	syncSocket    os.FileInfo
+	syncExpires   time.Time
 }
 type Manager struct {
 	mu                                    sync.Mutex
@@ -104,6 +114,7 @@ type Manager struct {
 	approvals                             map[string]*Approval
 	process                               *child
 	runtime                               *RuntimeCandidate
+	syncNetwork                           *RuntimeNetwork
 	closed, released                      bool
 }
 
@@ -133,11 +144,18 @@ func New(cfg Config) (*Manager, error) {
 	if cfg.MaxArtifactBytes > 64<<20 || cfg.StorageQuotaBytes < 4096 || cfg.StorageQuotaBytes > 1<<40 || cfg.StopGrace < 0 || cfg.StopGrace > 2*time.Second {
 		return nil, ErrCapacity
 	}
+	if cfg.FixtureSynchronizationNetwork != nil && (!cfg.IsolatedFixture || !validSynchronizationNetwork(*cfg.FixtureSynchronizationNetwork) || len(filepath.Join(cfg.Directory, "data", fixtureSyncSocket)) > 103) {
+		return nil, ErrOriginalReleaseMissing
+	}
 	root, err := privateDir(cfg.Directory, uint32(uid), true)
 	if err != nil {
 		return nil, err
 	}
 	m := &Manager{directory: cfg.Directory, uid: uint32(uid), fixture: cfg.IsolatedFixture, rootInfo: root, maxArtifact: cfg.MaxArtifactBytes, quotaBytes: cfg.StorageQuotaBytes, minFreeBytes: cfg.MinimumFreeBytes, stopGrace: cfg.StopGrace, approvals: make(map[string]*Approval)}
+	if cfg.FixtureSynchronizationNetwork != nil {
+		network := *cfg.FixtureSynchronizationNetwork
+		m.syncNetwork = &network
+	}
 	mode := "production"
 	if cfg.IsolatedFixture {
 		mode = "isolated-lifecycle-fixture"

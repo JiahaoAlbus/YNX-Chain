@@ -122,7 +122,8 @@ func (m *Manager) Start(ctx context.Context, peer localipc.Peer, intent Intent, 
 		}
 		return "", m.reconcile(err)
 	}
-	running := &child{cmd: command, done: make(chan struct{}), runID: runID, capture: capture, logs: logs}
+	readContext, cancelReads := context.WithCancel(context.Background())
+	running := &child{cmd: command, done: make(chan struct{}), exited: make(chan struct{}), runID: runID, capture: capture, logs: logs, readContext: readContext, cancelReads: cancelReads}
 	m.process = running
 	m.state.Stage = "running"
 	m.state.Generation++
@@ -130,6 +131,7 @@ func (m *Manager) Start(ctx context.Context, peer localipc.Peer, intent Intent, 
 	m.state.LastPID = command.Process.Pid
 	m.state.LastExit = ""
 	if err = m.save(); err != nil {
+		cancelReads()
 		_ = command.Process.Kill()
 		_ = command.Wait()
 		if logErr := m.finishRunLogs(logs); logErr != nil {
@@ -148,6 +150,10 @@ func (m *Manager) Start(ctx context.Context, peer localipc.Peer, intent Intent, 
 }
 func (m *Manager) wait(running *child) {
 	err := running.cmd.Wait()
+	// Seal reads before acquiring the manager mutex. A completed Wait must never
+	// leave a window in which a recycled PID can satisfy a new observation.
+	close(running.exited)
+	running.cancelReads()
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.process == running {
@@ -201,6 +207,8 @@ func (m *Manager) monitorCapacity(running *child) {
 			if err != nil {
 				m.firstCause(err)
 				running.stopRequested = true
+				running.cancelReads()
+				running.syncReadback = Synchronization{}
 				m.state.Stage = "stopping"
 				_ = m.save()
 				_ = running.cmd.Process.Kill()
@@ -242,6 +250,8 @@ func (m *Manager) Stop(ctx context.Context, peer localipc.Peer, intent Intent, a
 		return nil
 	}
 	running.stopRequested = true
+	running.cancelReads()
+	running.syncReadback = Synchronization{}
 	m.state.Stage = "stopping"
 	m.state.Generation++
 	if err = m.save(); err != nil {
@@ -296,6 +306,8 @@ func (m *Manager) Close(ctx context.Context) error {
 	running := m.process
 	if running != nil {
 		running.stopRequested = true
+		running.cancelReads()
+		running.syncReadback = Synchronization{}
 		m.state.Stage = "stopping"
 		m.state.Generation++
 		if err := m.save(); err != nil {

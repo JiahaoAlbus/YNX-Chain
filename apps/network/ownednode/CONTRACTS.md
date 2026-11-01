@@ -1,5 +1,72 @@
 # Ordinary runtime intake and local diagnostics
 
+## Owned synchronization consumer (2026-11-02)
+
+`Manager.RefreshSynchronization(ctx, peer)` is the owning read-only entry;
+`Status.Diagnostics.Synchronization` returns its bounded, short-lived observation
+without network I/O or journal changes. The normal production constructor has
+no configured ordinary sync transport and returns `NOT_SUPPLIED`. No URL,
+executable, arguments, PID, transport provider or new launch flags are accepted
+from a request, and this consumer does not change `ProductionSupported`.
+
+The current original CORE source locator is
+`/Volumes/西部数据/YNX-large-work/protocol/pq-storage-f8-20261031` at
+`f27e07df6dd96114135aceace20a9413bba94649`. Its actual callees are:
+
+* `third_party/cometbft/rpc/core/status.go:Environment.Status` reads the original
+  `BlockStore.Height()` and `ConsensusReactor.WaitSync()`; the original result
+  has `latest_block_height` and `catching_up`, **no target height**.
+* `third_party/cometbft/rpc/jsonrpc/server/http_server.go:Listen` supports the
+  original `unix://` transport. This is not an ordinary-node launch descriptor.
+* `internal/consensus/pq_identity_query.go:queryPQIdentity` serves the existing
+  ABCI path `/pq-wallet/identity`. Network consumes its exact canonical
+  `PQWalletIdentityView` using `ValidatePQWalletIdentityView`; it checks native
+  chain ID, native genesis, Comet chain ID and exact Comet genesis digest against
+  independent host pins. That original view **does not report networkId32**.
+
+Only `Config{IsolatedFixture:true, FixtureSynchronizationNetwork:&pins}` may
+currently assemble the fixed `data/comet-sync.sock` test transport. The pins are
+copied, never obtained from RPC, and the public intake tuple must match if one
+is configured. This setting is rejected in production before creating a data
+directory. It is a Network controlled transport fixture, not a newly supplied
+CORE ABI, a qualified ordinary executable or an unsigned production fallback.
+
+Each actual Unix connection requires current-UID/private socket provenance and
+kernel peer PID equal to the actual held `exec.Cmd.Process` handle. Same UID and
+a caller-supplied/stored PID are insufficient. The manager checks the same child,
+run ID, generation, stage, root/data/capture and socket identity before and after
+each dial and before publishing a result. Stop, Close, monitor failure and Wait
+cancel outstanding reads; Wait seals reads before acquiring the manager mutex.
+One attempt per run is allowed, with a two-second bound, fixed GETs only, no
+redirects/proxies, bounded headers/body, duplicate/deep JSON rejection, canonical
+decimal height and the original identity validator. Cancellation or failure
+clears the preceding sample. A three-second monotonic deadline expires cached
+results, and stop/restart/reopen never restore an old sample. Unknown socket
+replacements or crash residue are preserved, never deleted/adopted.
+
+The JSON retains `code,localHeight,targetHeight,catchingUp` and adds nullable
+`source,updatedAt,expiresAt,runId,generation,networkIdentity`. Valid isolated
+observations use `code:ISOLATED_PROCESS_REPORTED`,
+`source:owned-process-unix-comet`, `isolatedFixture:true`, `authority:false` and
+`networkId32Observed:false`. `networkIdentity` contains only the four actually
+reported identity fields. Heights remain canonical decimal **strings** including
+values beyond JavaScript's safe integer range. `targetHeight` remains null;
+neither a target, network domain, synchronized flag, ordinary-node role nor
+consensus finality is inferred from logs, wall time, browser pairing, public RPC
+or `catching_up:false`. Noncurrent reports (`NOT_SUPPLIED`, `NOT_RUNNING`,
+`UNAVAILABLE`, `EXPIRED`) clear every observation field rather than displaying
+stale values as current.
+
+For normal CORE consumption, the missing original owner contract must bind the
+qualified ordinary runtime/launch to its fixed private endpoint, identify whether
+the peer is the held foreground process or an independently qualified child,
+provide independently configured chain/genesis/network-domain identity and the
+real target/checkpoint semantics if one exists, and preserve parent-loss/stop
+lifetime. The raw networkId32 observation remains missing; it cannot be derived
+from native genesis merely because a deployment currently uses equal bytes.
+Once supplied, integrate that original fixed transport here without enabling
+the fixture flag in the production service or exposing a generic provider/URL.
+
 Source binding: Network candidate `7ba74a97ea00969a16f6103c7deda3d494b23d6c`.
 This is the Network consumer's missing-callee record, not a newly issued release
 format, trust root, registration, launch permission or request to another owner.

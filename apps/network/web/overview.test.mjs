@@ -524,3 +524,40 @@ test('owned node diagnostics preserve literal bounded logs and cannot create syn
  const activity=localActivity();activity.node.diagnostics=diagnosticsFixture();let out=project(null,withActivity(activity)).native.activity.node.diagnostics;assert.equal(out.logs.stdout.text,'<script>synced=true</script>\n');assert.equal(out.logs.stdout.observedBytes,null);assert.equal(out.logs.stdout.truncated,null);assert.equal(out.synchronization.localHeight,null);assert.equal(out.authority,false);assert.equal(out.recovery.storedPIDIsControlHandle,false);
  for(const change of [d=>d.authority=true,d=>d.recovery.autoRestart=true,d=>d.recovery.storedPIDIsControlHandle=true,d=>d.synchronization.localHeight='99',d=>d.logs.stdout.text='x'.repeat(1537),d=>d.logs.stdout.observedBytes=0,d=>d.logs.permission=true]){const d=diagnosticsFixture();change(d);activity.node.diagnostics=d;assert.equal(project(null,withActivity(activity)).native.activity.node.diagnostics,null);}
 });
+
+// Read-only controlled lifecycle DTOs, not an original production runtime or
+// proof of node role, networkId32, finality, permission, or real App acceptance.
+const SYNC_NOW=Date.parse('2026-11-02T02:00:00Z');
+const syncContext=()=>({mode:'isolated-lifecycle-fixture',stage:'running',processOwned:true,runId:'run-1',generation:'7'});
+function syncSample(){return {code:'ISOLATED_PROCESS_REPORTED',localHeight:'9007199254740993',targetHeight:null,catchingUp:false,source:'owned-process-unix-comet',updatedAt:'2026-11-02T02:00:00.000000001Z',expiresAt:'2026-11-02T02:00:03.000000001Z',runId:'run-1',generation:'7',networkIdentity:{nativeChainId:'6423',nativeGenesisSHA256:'a'.repeat(64),cometChainId:'ynx-isolated-fixture',cometGenesisSHA256:'b'.repeat(64)},networkId32Observed:false,authority:false,isolatedFixture:true};}
+function syncAPI(clock=()=>SYNC_NOW){const sandbox={window:{},URL,Date:class extends Date{static now(){return clock();}},fetch(){throw Error('synchronization projection must not fetch');}};vm.runInNewContext(script,sandbox);return sandbox.window.NetworkOverview;}
+function missingSync(code='NOT_SUPPLIED'){return {code,localHeight:null,targetHeight:null,catchingUp:null,source:null,updatedAt:null,expiresAt:null,runId:null,generation:null,networkIdentity:null,networkId32Observed:false,authority:false,isolatedFixture:false};}
+test('owned synchronization preserves only a bound isolated sample and exact int64 strings',()=>{
+ const api=syncAPI(),sample=syncSample(),out=api.synchronization(sample,syncContext());
+ assert.equal(out.code,'ISOLATED_PROCESS_REPORTED');assert.equal(out.localHeight,'9007199254740993');assert.equal(out.targetHeight,null);assert.equal(out.catchingUp,false);assert.equal(out.updatedAt,sample.updatedAt);assert.equal(out.expiresAt,sample.expiresAt);assert.equal(out.source,'owned-process-unix-comet');assert.equal(out.authority,false);assert.equal(out.networkId32Observed,false);assert.equal(out.isolatedFixture,true);assert.notStrictEqual(out.networkIdentity,sample.networkIdentity);
+ out.networkIdentity.cometChainId='changed-output';assert.equal(sample.networkIdentity.cometChainId,'ynx-isolated-fixture');sample.localHeight='3';assert.equal(out.localHeight,'9007199254740993');
+ const activity=localActivity();Object.assign(activity.node,syncContext());delete activity.node.runId;delete activity.node.generation;activity.node.diagnostics=diagnosticsFixture();activity.node.diagnostics.synchronization=syncSample();const projected=api.project(null,withActivity(activity));assert.equal(projected.native.activity.node.diagnostics.synchronization.localHeight,'9007199254740993');assert.equal(projected.native.authority,false);
+});
+test('owned synchronization clears every sample field for expiry and all unavailable states',()=>{
+ const api=syncAPI(),emptyKeys=['localHeight','targetHeight','catchingUp','source','updatedAt','expiresAt','runId','generation','networkIdentity'];
+ for(const code of ['NOT_SUPPLIED','NOT_RUNNING','EXPIRED','UNAVAILABLE']){const out=api.synchronization(missingSync(code),syncContext());assert.equal(out.code,code);for(const key of emptyKeys)assert.equal(out[key],null,key);assert.equal(out.isolatedFixture,false);}
+ const expired=syncAPI(()=>SYNC_NOW+3001).synchronization(syncSample(),syncContext());assert.equal(expired.code,'EXPIRED');for(const key of emptyKeys)assert.equal(expired[key],null,key);
+ const legacy=api.synchronization({code:'NOT_SUPPLIED',localHeight:null,targetHeight:null,catchingUp:null});assert.equal(legacy.code,'NOT_SUPPLIED');assert.equal(legacy.authority,false);
+});
+test('owned synchronization rejects forged authority, production bindings, targets and malformed material',()=>{
+ const api=syncAPI();for(const edit of [
+  s=>s.authority=true,s=>delete s.authority,s=>s.networkId32Observed=true,s=>s.isolatedFixture=false,
+  s=>s.localHeight=9007199254740993,s=>s.localHeight='0',s=>s.localHeight='01',s=>s.localHeight='9223372036854775808',s=>s.targetHeight='9007199254740994',s=>s.catchingUp=0,
+  s=>s.source='https://rpc.ynxweb4.com',s=>s.runId='foreign-run',s=>s.generation='8',s=>s.generation=7,
+  s=>s.updatedAt='2026-11-02T02:00:02Z',s=>s.expiresAt='2026-11-02T02:00:04Z',s=>s.updatedAt='2026-02-30T02:00:00Z',s=>s.expiresAt='2026-11-02T02:00:03+00:00',
+  s=>s.networkIdentity.networkId32='a'.repeat(64),s=>s.networkIdentity.nativeChainId=6423,s=>s.networkIdentity.nativeGenesisSHA256='A'.repeat(64),s=>s.networkIdentity.cometChainId='<script>',s=>s.approved=true
+ ]){const sample=syncSample();edit(sample);assert.equal(api.synchronization(sample,syncContext()),null,edit.toString());}
+ for(const edit of [c=>c.mode='production',c=>c.stage='stopped',c=>c.processOwned=false,c=>c.runId='other',c=>c.generation='8']){const context=syncContext();edit(context);assert.equal(api.synchronization(syncSample(),context),null,edit.toString());}
+ for(const sample of [null,{},Object.create(syncSample()),{...missingSync('EXPIRED'),localHeight:'9'},{...missingSync(),approved:true}])assert.equal(api.synchronization(sample,syncContext()),null);
+});
+test('owned synchronization is never projected from RPC, wrapper claims or an ungated helper',()=>{
+ const api=syncAPI(),a=localActivity();Object.assign(a.node,{mode:'isolated-lifecycle-fixture',stage:'running',processOwned:true});a.node.diagnostics=diagnosticsFixture();a.node.diagnostics.synchronization=syncSample();const input=withActivity(a);
+ const rpc=node({synchronization:syncSample()});rpc.synchronization=syncSample();assert.equal(api.project(rpc,null).native,null);
+ for(const edit of [n=>n.browserIdentityVerified=true,n=>n.native.peer.nativeIPCVerified=false,n=>n.native.peer.browserIdentityVerified=true,n=>n.native.result={payload:{activity:a}}]){const v=structuredClone(input);edit(v);assert.equal(api.project(null,v).native,null);}
+ const out=api.project(null,freeze(input));assert.equal(out.native.activity.node.diagnostics.synchronization.networkId32Observed,false);
+});

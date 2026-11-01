@@ -71,11 +71,12 @@
   const localNode=activity?.node, localParticipation=activity?.participation, localResource=activity?.resource;
   const localLabels={NOT_SUPPLIED:'未配置',UNAVAILABLE:'不可用',UNSUPPORTED:'当前版本不支持此操作。',REVOKED:'已撤销本机参与会话。',CONFIGURED:'已装配，仍需 Wallet 批准。',DISABLED:'已关闭',CONTROLLED_SANDBOX:'本机隔离测试中。',UNKNOWN:'结果未确定。'};
   const localLabel=value=>localLabels[value?.code]||(native?'不可用':'尚未读取');
-  put('managed-node-state',localNode?localLabel(localNode):model.native?.nodeControl==='unavailable'?'正式节点控制尚未开放':native?'不可用':'尚未读取');
+  put('managed-node-state',localNode&&window.NetworkOperations?.nodeStageKey?window.NetworkOperations.nodeStageKey(localNode.stage):localNode?localLabel(localNode):model.native?.nodeControl==='unavailable'?'正式节点控制尚未开放':native?'不可用':'尚未读取');
   raw('local-node-code',localNode?.code);raw('local-node-bytes',localNode?.capacityComplete===true&&localNode?.usedBytes!==null?formatInteger(localNode.usedBytes)+' B':null);
   const diagnostic=localNode?.diagnostics;
   raw('local-node-logs-state',diagnostic?.logs?.code);raw('local-node-stdout',diagnostic?.logs?.stdout?.text);raw('local-node-stderr',diagnostic?.logs?.stderr?.text);
-  put('local-node-sync',diagnostic?'当前接口未提供':'尚未读取');
+  if(window.NetworkOperations?.showSynchronization)window.NetworkOperations.showSynchronization(diagnostic?.synchronization,localNode,native?'同步观测不可用':'尚未读取');
+  else put('local-node-sync',diagnostic?'当前接口未提供':'尚未读取');
   put('local-node-recovery',diagnostic?.recovery?.priorEffectUnknown?'结果未确定。':diagnostic?.recovery?.processOwned?'本软件持有当前运行进程':'无运行任务');
   put('participation-state',localLabel(localParticipation));raw('participation-code',localParticipation?.code);raw('participation-entry-count',localParticipation?.entries===null||localParticipation?.entries===undefined?null:formatInteger(localParticipation.entries));raw('participation-unknown-count',localParticipation?.unknownEntries===null||localParticipation?.unknownEntries===undefined?null:formatInteger(localParticipation.unknownEntries));
   put('resource-state',localResource?localLabel(localResource):model.native?.resourceContribution==='disabled'?'已关闭':native?'不可用':'尚未读取');raw('resource-code',localResource?.code);
