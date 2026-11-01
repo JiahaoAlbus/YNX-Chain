@@ -47,7 +47,13 @@ export function readTaskRun(value:unknown,task:Task,runId:string):TaskRun{
  return run;
 }
 export function readTaskReceipt(value:unknown,stepId:string):TaskReceipt{
- const v=object(value);if(v.effectRef!==stepId||v.state!=='COMMITTED'||!Object.hasOwn(v,'result'))fail();
+ const v=object(value);
+ if(v.scope==='external-content-observation-only'){
+  if(v.operationId!==stepId||v.state!=='CONTENT_PRESENT'||v.contentState!=='CONTENT_PRESENT'||v.authorshipProven!==false||typeof v.writeAcknowledged!=='boolean'||typeof v.sha256!=='string'||!/^[a-f0-9]{64}$/.test(v.sha256))fail();
+  identifier(v.resourceId);identifier(v.destinationId);text(v.remoteId,2048);integer(v.bytes,true);text(v.observedAt,64);
+  return {state:'CONTENT_PRESENT',effectRef:stepId,scope:'external-content-observation-only',result:{...v}};
+ }
+ if(v.effectRef!==stepId||v.state!=='COMMITTED'||!Object.hasOwn(v,'result'))fail();
  const receipt:TaskReceipt={state:'COMMITTED',effectRef:stepId,result:v.result};
  for(const k of ['originalOperationId','authorityOperationId','remoteRef','authScope'] as const)if(v[k]!==undefined)receipt[k]=text(v[k],1024,true);
  // Preserve the business result as display DATA; never replace it with model

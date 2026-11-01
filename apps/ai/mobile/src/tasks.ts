@@ -13,7 +13,7 @@ export type TaskStep={id:string;status:string;toolStep:{taskId:string;taskRevisi
 export type TaskEvent={sequence:number;type:string;objectId:string;at:string};
 export type TaskProjection=Task&{cursor:number;hasMore:boolean;recoveryOnly?:boolean;events:TaskEvent[];steps:TaskStep[]};
 export type TaskRun={id:string;runId:string;taskId:string;status:string;steps:string[];content?:string;firstCause?:string;recoveryOnly:boolean};
-export type TaskReceipt={state:string;effectRef:string;originalOperationId?:string;authorityOperationId?:string;remoteRef?:string;result:unknown;authScope?:string};
+export type TaskReceipt={scope?:string;state:string;effectRef:string;originalOperationId?:string;authorityOperationId?:string;remoteRef?:string;result:unknown;authScope?:string};
 export type Delivery={version?:"2"|"6";id:string;binding:string;action:string;taskId:string;conversationId?:string;stepId?:string;runId?:string;revision?:number;generation?:number;state:"PENDING"|"UNKNOWN"|"RESPONSE_RECEIVED"|"REJECTED_RESPONSE"|"ORIGINAL_OBSERVED"};
 export type WorkspaceRecord={selectedTask:string;runId:string;deliveries:Delivery[]};
 export type TaskPersistence={read:(identity:string)=>Promise<WorkspaceRecord|null>;write:(identity:string,value:WorkspaceRecord)=>Promise<void>};

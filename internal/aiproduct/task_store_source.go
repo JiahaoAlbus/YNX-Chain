@@ -137,6 +137,17 @@ func (s *TaskStoreSource) Capture(ctx context.Context, input TaskStoreCapture) (
 	switch {
 	case input.StepID != "":
 		r, ok := s.store.state.Actions[input.StepID]
+		delivery, external := s.store.state.WebDAVDeliveries[taskWebDAVKey(input.Principal.Account, task.ID, input.StepID)]
+		if external {
+			if ok || delivery.Account != input.Principal.Account || delivery.TaskID != task.ID || delivery.Input.OperationID != input.StepID || delivery.Holder != input.Principal.DeviceID || task.Holder != input.Principal.DeviceID {
+				return nil, os.ErrNotExist
+			}
+			if err := s.store.verifyWebDAVRecord(delivery); err != nil {
+				return nil, err
+			}
+			v.Operation = TaskStoreOperation{ID: delivery.Input.OperationID, Holder: delivery.Holder, Status: delivery.Receipt.State, ToolID: taskWebDAVToolID, ToolVersion: "1", Revision: delivery.Revision, Generation: delivery.Generation}
+			return s.snapshot(ctx, v)
+		}
 		if !ok || r.Account != task.Account || r.ToolStep == nil || r.ToolStep.TaskID != task.ID || (task.Holder != input.Principal.DeviceID && r.ToolStep.Holder != input.Principal.DeviceID) {
 			return nil, os.ErrNotExist
 		}

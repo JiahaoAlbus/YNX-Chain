@@ -203,6 +203,27 @@ func (s *Server) handleTaskToolResult(w http.ResponseWriter, r *http.Request, se
 		return
 	}
 	record, exists := s.store.state.Actions[r.PathValue("stepId")]
+	// Model runs retain the original WebDAV operation ID as a step reference.
+	// Read the SAME existing authenticated observation, never convert it into a
+	// same-resource COMMITTED receipt or query/write the remote object again.
+	delivery, external := s.store.state.WebDAVDeliveries[taskWebDAVKey(session.Account, task.ID, r.PathValue("stepId"))]
+	if external {
+		if exists || task.Holder != session.DeviceID || delivery.Holder != session.DeviceID || delivery.Account != session.Account || delivery.TaskID != task.ID || delivery.Input.OperationID != r.PathValue("stepId") {
+			s.store.mu.Unlock()
+			writeError(w, http.StatusNotFound, "task result not found")
+			return
+		}
+		if err := s.store.verifyWebDAVRecord(delivery); err != nil {
+			s.store.mu.Unlock()
+			writeError(w, http.StatusConflict, "original external observation is unavailable")
+			return
+		}
+		receipt := delivery.Receipt
+		s.store.mu.Unlock()
+		w.Header().Set("Cache-Control", "no-store")
+		writeJSON(w, http.StatusOK, receipt)
+		return
+	}
 	if !exists || record.Account != session.Account || record.ToolStep == nil || record.ToolStep.TaskID != task.ID || task.Holder != session.DeviceID {
 		s.store.mu.Unlock()
 		writeError(w, http.StatusNotFound, "task result not found")

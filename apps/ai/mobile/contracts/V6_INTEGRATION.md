@@ -90,3 +90,20 @@ compaction similarly retains every effect, PENDING and UNKNOWN; only terminal
 read observations older than the latest 32 may be compacted. `task.reconcile` is
 an original query and remains available while a prior effect is UNKNOWN. No
 opaque original-operation evidence is treated as terminal business success.
+
+## Original WebDAV result references
+
+A model-run WebDAV step is the original WebDAV operation ID, not an Action-table
+step. The existing `task.step-result` route now reads that same stored,
+authenticated WebDAV receipt verbatim when no Action shares the ID. The original
+Store snapshot captures its operation/holder/revision/generation metadata; the
+outer Auth response remains a read-only OBSERVED response. No shared V6 field,
+operation, Source factory or codec is added. Current-holder, account, original ID,
+AEAD receipt integrity and ambiguity checks still reject invalid reads.
+
+Mobile result/reconnect consumers preserve `CONTENT_PRESENT`,
+`scope:external-content-observation-only` and `authorshipProven:false` in the
+user-facing result. They do not relabel it COMMITTED, assert who wrote the object,
+or infer current remote presence from a historical receipt. Reading this local
+original result never sends a PUT or a new remote GET; UNKNOWN remains UNKNOWN
+and requires the separately authorized original query path.
