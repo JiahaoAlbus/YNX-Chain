@@ -79,6 +79,9 @@ type pqLabLiveMaterialsInputs struct {
 	metrics              *PQLabMetrics
 	cache                *PQLabStaticCache
 	uncached             *pqLabLiveUncachedReads
+	heldStatic           *pqLabLiveStaticSnapshot
+	heldStaticRoot       string
+	heldStaticPin        string
 	closed               bool
 	closeErr             error
 	policy               PQLabLiveMaterialsPolicy
@@ -93,8 +96,10 @@ type pqLabLiveMaterialsInputs struct {
 
 // The explicit uncached path holds original public inputs for this operation's
 // lifetime, under the original per-file input limits. It is NOT a larger static
-// mathematical cache: every load reruns the full original validator and creates
-// a new fully validated migration. No current checkpoint/permission is cached.
+// mathematical cache. The owning inputs may retain its first fully validated,
+// immutable result only while these exact original descriptors remain current.
+// Every use rechecks their complete bytes/identity/change epoch. No current
+// checkpoint/permission is cached, and no witness crosses input lifetimes.
 type pqLabLiveUncachedReads struct {
 	originals []*proofHostOriginal
 	closed    bool
@@ -191,6 +196,23 @@ func (in *pqLabLiveMaterialsInputs) loadStatic() (*pqLabLiveStaticSnapshot, erro
 		}
 		in.uncached = &pqLabLiveUncachedReads{}
 	}
+	if in.heldStatic != nil {
+		if in.heldStaticRoot != in.policy.RootDir || in.heldStaticPin != in.policy.PlanSHA256 || in.heldStatic.uncached != in.uncached || in.heldStatic.cached != nil {
+			return nil, errors.New("held live static witness scope changed")
+		}
+		if err := in.heldStatic.witness.valid(); err != nil {
+			return nil, err
+		}
+		// The private witness owns detached, immutable static mathematics. Its
+		// reuse never replaces current source checks with cached eligibility.
+		done := pqLabMeasure(in.metrics, "live.heldStaticWitnessCurrent")
+		err := in.heldStatic.current()
+		done()
+		if err != nil {
+			return nil, err
+		}
+		return in.heldStatic, nil
+	}
 	p, m, b, err := loadPQLabObservedWithRead(in.policy.RootDir, in.policy.PlanSHA256, in.metrics, in.uncached.read)
 	if err != nil {
 		return nil, err
@@ -204,7 +226,11 @@ func (in *pqLabLiveMaterialsInputs) loadStatic() (*pqLabLiveStaticSnapshot, erro
 	if err = in.uncached.current(); err != nil {
 		return nil, err
 	}
-	return &pqLabLiveStaticSnapshot{plan: p, witness: witness, uncached: in.uncached}, nil
+	// Publish only after all original validation and final FD/hash/ctime checks
+	// succeed. This is invocation-owned state, not an entry in the 32 MiB cache.
+	in.heldStatic = &pqLabLiveStaticSnapshot{plan: p, witness: witness, uncached: in.uncached}
+	in.heldStaticRoot, in.heldStaticPin = in.policy.RootDir, in.policy.PlanSHA256
+	return in.heldStatic, nil
 }
 
 func pqLabLiveMaterialsDirectory(p PQLabLiveMaterialsPolicy) string {
@@ -382,6 +408,8 @@ func (in *pqLabLiveMaterialsInputs) close() error {
 		return in.closeErr
 	}
 	in.closed = true
+	in.heldStatic = nil
+	in.heldStaticRoot, in.heldStaticPin = "", ""
 	var e error
 	for _, r := range in.originals {
 		e = errors.Join(e, r.file.Close())

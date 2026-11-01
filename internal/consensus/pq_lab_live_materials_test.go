@@ -475,8 +475,8 @@ func TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose(t *testing.T) {
 		t.Fatal("valid original current", err)
 	}
 	second, err := in.loadStatic()
-	if err != nil || second.witness == first.witness || validatedMigrationFullChecks.Load() < checks+2 || in.cache.Stats().Bypasses != 1 {
-		t.Fatal("uncached current reused a mathematical witness or retried the optional cache", err)
+	if err != nil || second.witness != first.witness || validatedMigrationFullChecks.Load() != checks || in.cache.Stats().Bypasses != 1 {
+		t.Fatal("same held invocation rebuilt static mathematics or retried the optional cache", err)
 	}
 	// The original typed-nil private entry point remains the original no-cache
 	// loader; no interface conversion may turn it into a dereferenced nil reader.
