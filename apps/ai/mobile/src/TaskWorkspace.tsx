@@ -3,14 +3,14 @@ import {ActivityIndicator,Alert,Pressable,ScrollView,StyleSheet,Text,TextInput,V
 import * as Crypto from "expo-crypto";
 import {API_BASE,type Session} from "./api";
 import {createTaskAPI,TaskWorkspaceController,type Task,type TaskStep,type WorkspaceState} from "./tasks";
-import {nativeTaskPersistence} from "./taskStorage";
+import {nativeTaskPersistence,nativeRunCursorPersistence} from "./taskStorage";
 
 type Props={session:Session|null;conversationId?:string;locale:string;onBack:()=>void};
 function Action({label,disabled,onPress,danger=false}:{label:string;disabled?:boolean;onPress:()=>void;danger?:boolean}){return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled:!!disabled}} disabled={disabled} onPress={onPress} style={[s.button,danger&&s.danger,disabled&&s.disabled]}><Text style={s.buttonText}>{label}</Text></Pressable>}
 export function TaskWorkspace({session,conversationId,locale,onBack}:Props){
  const zh=locale.startsWith("zh");const label=(a:string,b:string)=>zh?a:b;
  const credentials=session?.taskCredentials;
- const controller=useMemo(()=>credentials?new TaskWorkspaceController(credentials.identity,createTaskAPI(API_BASE,credentials),nativeTaskPersistence,()=>`taskop_${Crypto.randomUUID().replace(/-/g,"")}`,state=>setState(state)):null,[credentials]);
+ const controller=useMemo(()=>credentials?new TaskWorkspaceController(credentials.identity,createTaskAPI(API_BASE,credentials),nativeTaskPersistence,()=>`taskop_${Crypto.randomUUID().replace(/-/g,"")}`,state=>setState(state),nativeRunCursorPersistence):null,[credentials]);
  const [state,setState]=useState<WorkspaceState|null>(null),[grantRef,setGrantRef]=useState(""),[prompt,setPrompt]=useState(""),[runId,setRunId]=useState(""),[localError,setLocalError]=useState(""),[shopTools,setShopTools]=useState(false),[newHolder,setNewHolder]=useState("");
  useEffect(()=>{setState(null);setGrantRef("");setPrompt("");setRunId("");setShopTools(false);setNewHolder("");if(controller){void controller.restore().then(()=>controller.discover())}return()=>controller?.dispose()},[controller]);
  const task=state?.projection,busy=state?.busy||false;

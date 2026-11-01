@@ -38,8 +38,8 @@ export function readTaskRun(value:unknown,task:Task,runId:string):TaskRun{
  // Historical recovery responses intentionally omit revision/generation.
  // When supplied, they must match this current task snapshot exactly.
  const recoveryOnly=bool(v.recoveryOnly);
- for(const [key,expected] of [['taskRevision',task.revision],['generation',task.generation]] as const){if(v[key]===undefined)continue;if(recoveryOnly&&v[key]===0)continue;if(integer(v[key])!==expected)fail()}
  const cancelled=v.cancelled===undefined?false:bool(v.cancelled);
+ for(const [key,expected] of [['taskRevision',task.revision],['generation',task.generation]] as const){if(v[key]===undefined)continue;if(recoveryOnly&&v[key]===0)continue;const original=integer(v[key]);if(original!==expected&&!((recoveryOnly||cancelled)&&!v.content))fail()}
  const steps=v.steps===null?[]:array(v.steps,64).map(identifier);if(new Set(steps).size!==steps.length)fail();
  const run:TaskRun={id:identifier(v.id),runId,taskId:task.id,status,steps,recoveryOnly};
  if(v.firstCause!==undefined)run.firstCause=text(v.firstCause,256,true);

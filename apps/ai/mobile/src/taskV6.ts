@@ -30,8 +30,13 @@ export class NativeTaskV6Adapter{
   const entry=await this.locked(async()=>{const record=await this.load();if(this.closed||signal.aborted)throw Error('V6_CANCELLED');
    // Read-only fresh observations may be repeated. Effects never reuse a new
    // nonce/op to escape a retained original delivery, including DENIED.
-   const read=['task.list','task.read','task.step-result','task.run-read'].includes(request.action);
+   const read=['task.list','task.read','task.step-result','task.run-read','task.reconcile'].includes(request.action);
    if(!read&&record.entries.some(e=>e.binding===binding||(request.action!=='task.cancel'&&request.taskId!==null&&e.taskId===request.taskId&&['PENDING','UNKNOWN'].includes(e.state))))throw Error('V6_ORIGINAL_QUERY_REQUIRED');
+   // Compact only terminal read observations. Never discard effects or any
+   // uncertain original operation to make room for a reconnect.
+   const terminalReads=record.entries.filter(e=>['task.list','task.read','task.step-result','task.run-read','task.reconcile'].includes(e.action)&&['OBSERVED','COMMITTED','DENIED'].includes(e.state));
+   const remove=new Set(terminalReads.slice(0,Math.max(0,terminalReads.length-32)).map(e=>e.operationId));
+   if(remove.size)record.entries=record.entries.filter(e=>!remove.has(e.operationId));
    if(record.entries.length>=128)throw Error('V6_JOURNAL_FULL');
    const operationId=id(this.original.newOperationId());if(record.entries.some(e=>e.operationId===operationId))throw Error('V6_ORIGINAL_QUERY_REQUIRED');
    const e:V6Entry={version:'6',operationId,binding,action:request.action,taskId:request.taskId,state:'PENDING'};record.entries.push(e);await this.save();return e;
@@ -91,7 +96,7 @@ export function createTaskV6API(identity:string,original:NativeTaskV6){
  }
  return {
   list:(s:AbortSignal,after='')=>call<{tasks:Task[];nextId?:string;hasMore:boolean}>('task.list',`/api/tasks?afterId=${after?id(after):''}`,s),
-  task:(key:string,s:AbortSignal)=>call<TaskProjection>('task.read',`/api/tasks/${id(key)}`,s,undefined,snapshot(key)),
+  task:(key:string,s:AbortSignal,afterCursor=0)=>{if(!Number.isSafeInteger(afterCursor)||afterCursor<0)throw Error('TASK_CURSOR_INVALID');return call<TaskProjection>('task.read',`/api/tasks/${id(key)}?afterCursor=${afterCursor}`,s,undefined,snapshot(key))},
   create:(conversationId:string,s:AbortSignal)=>call<Task>('task.create','/api/tasks',s,{conversationId:id(conversationId)},undefined,null,null,conversationId),
   prepare:(t:Task,s:AbortSignal)=>call<{task:Task}>('task.prepare',`/api/tasks/${id(t.id)}/prepare`,s,{revision:t.revision,generation:t.generation},t),
   cancel:(t:Task,s:AbortSignal)=>call<{task:Task;remoteRollback:false}>('task.cancel',`/api/tasks/${id(t.id)}/cancel`,s,{revision:t.revision,generation:t.generation},t),

@@ -16,3 +16,11 @@ export const nativeTaskV6Persistence:V6Persistence={
  async read(identity){const raw=await SecureStore.getItemAsync((await key(identity))+".v6");if(raw===null)return null;if(raw.length>128<<10)throw Error("V6_JOURNAL_INVALID");return validateV6Journal(JSON.parse(raw))},
  async write(identity,journal){validateV6Journal(journal);const raw=JSON.stringify(journal);if(raw.length>128<<10)throw Error("V6_JOURNAL_FULL");await SecureStore.setItemAsync((await key(identity))+".v6",raw,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY})}
 };
+
+import {readRunCursor,type RunCursorPersistence} from "./taskReconnect";
+// Independent selected-run metadata only; never overwrite V2/V6 deliveries.
+async function cursorKey(identity:string,taskId:string,runId:string){return (await key(identity))+".run."+await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256,JSON.stringify([taskId,runId]))}
+export const nativeRunCursorPersistence:RunCursorPersistence={
+ async read(identity,taskId,runId){const raw=await SecureStore.getItemAsync(await cursorKey(identity,taskId,runId));if(raw===null)return null;if(raw.length>1024)throw Error("ORIGINAL_RUN_CURSOR_INVALID");return readRunCursor(JSON.parse(raw),taskId,runId)},
+ async write(identity,value){readRunCursor(value,value.taskId,value.runId);await SecureStore.setItemAsync(await cursorKey(identity,value.taskId,value.runId),JSON.stringify(value),{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY})}
+};

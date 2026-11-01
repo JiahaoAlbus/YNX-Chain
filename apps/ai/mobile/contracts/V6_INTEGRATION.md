@@ -64,3 +64,29 @@ The frozen PUBLIC Go-generated fixture/provenance under src/testdata was emitted
 from the original local tool/model implementation. Client flow tests use an
 explicit PUBLIC SDK seam to consume those actual result bodies; they do not
 claim a real installed Native signing/source factory.
+
+## Bounded event reconnect on existing contracts
+
+Normal `TaskWorkspaceController.readRun` now uses `OriginalRunReconnect` when
+constructed with `nativeRunCursorPersistence` (the existing native component
+provides it). It uses only existing `task.read?afterCursor=N`, `task.run-read`
+and `task.step-result` routes. The page is the original task sequence qualified
+by one explicit run ID and its immutable record ID; no public event schema or
+Auth action is added. The fixed SDK requires `?afterCursor=0` even for first read.
+
+One request consumes at most one original 100-event page and at most 64 same-run
+receipt reads. It filters delivered events to that run/its steps/task lifecycle.
+After actual current run/result reads and consumer delivery succeed, the cursor
+is persisted under a separate hashed identity/task/run key. Failure before cursor
+save retains the previous cursor. Cold reconnect rereads original run/results
+without starting/resuming a model or dispatching a tool. Local cancellation
+aborts and joins reads before closing their original SDK client. A cancelled or
+historical run may supply metadata from an older revision, never answer content.
+
+Delta pages merge earlier unresolved steps; at 256 unresolved cached steps the
+consumer refuses rather than silently dropping them. Only unrelated terminal
+step metadata may be discarded to bound this in-memory cache. V6 request journal
+compaction similarly retains every effect, PENDING and UNKNOWN; only terminal
+read observations older than the latest 32 may be compacted. `task.reconcile` is
+an original query and remains available while a prior effect is UNKNOWN. No
+opaque original-operation evidence is treated as terminal business success.
