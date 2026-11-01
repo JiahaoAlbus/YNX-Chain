@@ -87,6 +87,27 @@ def prepare_matching_source(source, destination):
                 originalCoreSelection=prepared,carrierEnabled=False,actualNetworkWindow=False)
 
 
+def prepare_lossless_matching_source(source,destination):
+    """Call the actual qualified Core composer, no build/node/carrier enable."""
+    source,destination=Path(source),Path(destination)
+    spec=importlib.util.spec_from_file_location('paired_original_component_source',Path(__file__).with_name('pq-lossless-source-data.py'))
+    evidence=importlib.util.module_from_spec(spec);spec.loader.exec_module(evidence);q=evidence.component_qualification()
+    def git(*args):return subprocess.check_output(['git','-C',str(source),*args],timeout=5).decode().strip()
+    require(source.resolve(strict=True)==source and not git('status','--porcelain','--untracked-files=normal'),'original new paired source must stay canonical and clean')
+    identity=dict(commit=git('rev-parse','HEAD'),tree=git('rev-parse','HEAD^{tree}'),forkTree=git('rev-parse','HEAD:third_party/cometbft'))
+    require(identity==dict(commit=q['source'],tree=q['sourceTree'],forkTree='54e88e6aba735eaceeb2d00bb40731248c673bd7'),'exact independently qualified new paired source required; no old grant migration')
+    path=source/'scripts/verify/wire-live-matching-source-ci.py'
+    require(not path.is_symlink() and hashlib.sha256(path.read_bytes()).hexdigest()=='3ce49141da75daeb996611f5ea7697445f73eb3ca02e1e8d78e75a5287a0a972','exact new Core lossless composer required')
+    spec=importlib.util.spec_from_file_location('paired_original_core_source_composer',path);core=importlib.util.module_from_spec(spec);spec.loader.exec_module(core)
+    require(core.PRODUCTION_TREE==identity['forkTree'] and git('rev-parse',q['supplierCommit']+':third_party/cometbft')==q['supplierTree'],'actual selected supplier object differs')
+    prepared=core.prepare_wire_lossless_source(source,destination,identity['commit'],identity['tree'],supplier_commit=q['supplierCommit'],supplier_tree=q['supplierTree'])
+    receipt=destination/'SOURCE-SELECTION.json';raw=receipt.read_bytes();selection=json.loads(raw);build_source=destination/'source'
+    require(prepared['receiptPath']==str(receipt) and prepared['sourceDirectory']==str(build_source) and prepared['receiptBytes']==len(raw) and prepared['receiptSHA256']==hashlib.sha256(raw).hexdigest() and prepared['sourceSelection']==selection,'original paired source-selection bytes differ')
+    require(selection['originalSourceCommit']==identity['commit'] and selection['originalSourceTree']==identity['tree'] and selection['originalProductionForkTree']==identity['forkTree'] and selection['selectedOptionalForkCommit']==q['supplierCommit'] and selection['selectedOptionalForkTree']==q['supplierTree'] and selection['buildTags']==[BUILD_TAG,'ynx_lossless_hex'] and selection['losslessOptInSupported'] is True and selection['sourceOnly'] is True and all(selection[k] is False for k in ('fakeVCSIdentity','originalCheckoutWritten','originalModuleDescriptorsChanged','nodeStarted','carrierEnabled','publicActivation','actualOnExecution')),'actual paired source composition scope/identity differs')
+    for name in ('go.mod','go.sum'):require((build_source/name).read_bytes()==(source/name).read_bytes(),'original paired module descriptors changed')
+    require(not (build_source/'.git').exists() and not git('status','--porcelain','--untracked-files=normal') and git('rev-parse','HEAD')==identity['commit'],'original paired source changed or fake VCS created')
+    return dict(schema='YNX-PERF-PAIRED-MATCHING-BUILD-SOURCE/v1',source=identity,originalSourceOnlyCI=q,originalCoreSelection=prepared,buildSource=str(build_source),originalSourceUnchanged=True,binaryBuilt=False,nodeStarted=False,carrierEnabled=False,runtimeAuthorized=False,pressureAuthorized=False)
+
 def fingerprint(info):
     return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_nlink,
             info.st_size, info.st_mtime_ns, info.st_ctime_ns)

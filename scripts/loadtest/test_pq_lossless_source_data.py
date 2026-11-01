@@ -23,4 +23,28 @@ class SourceOnlyControls(unittest.TestCase):
         read=Path.read_bytes
         def corrupt(path):return read(path)+b' ' if path.name=='6cc-lossless-source-original.zip' else read(path)
         with mock.patch.object(Path,'read_bytes',corrupt),self.assertRaisesRegex(RuntimeError,'new6cc original artifact pin'):m.component_qualification()
+    def test_paired_composer_old_source_rejected_before_destination_created(self):
+        from unittest import mock
+        import tempfile
+        sp=importlib.util.spec_from_file_location('pair_composer_old_source',Path(__file__).with_name('pq-normal-live-reader.py'));r=importlib.util.module_from_spec(sp);sp.loader.exec_module(r)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();dest=root/'not-created'
+            def git(args,**kwargs):
+                tail=args[3:]
+                if tail[0]=='status':return b''
+                return ('9081f14654a48f4fe14e57696ec33527869da353' if tail[-1]=='HEAD' else m.COMPONENT_TREE if tail[-1]=='HEAD^{tree}' else '54e88e6aba735eaceeb2d00bb40731248c673bd7').encode()
+            with mock.patch.object(r.subprocess,'check_output',side_effect=git),self.assertRaisesRegex(RuntimeError,'exact independently qualified'):r.prepare_lossless_matching_source(root,dest)
+            self.assertFalse(dest.exists())
+    def test_paired_composer_changed_callee_not_executed(self):
+        from unittest import mock
+        import tempfile
+        sp=importlib.util.spec_from_file_location('pair_composer_changed_source',Path(__file__).with_name('pq-normal-live-reader.py'));r=importlib.util.module_from_spec(sp);sp.loader.exec_module(r)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();dest=root/'not-created';path=root/'scripts/verify/wire-live-matching-source-ci.py';path.parent.mkdir(parents=True);path.write_text("raise AssertionError('must not execute')")
+            def git(args,**kwargs):
+                tail=args[3:]
+                if tail[0]=='status':return b''
+                return (m.COMPONENT_SOURCE if tail[-1]=='HEAD' else m.COMPONENT_TREE if tail[-1]=='HEAD^{tree}' else '54e88e6aba735eaceeb2d00bb40731248c673bd7').encode()
+            with mock.patch.object(r.subprocess,'check_output',side_effect=git),self.assertRaisesRegex(RuntimeError,'exact new Core lossless composer'):r.prepare_lossless_matching_source(root,dest)
+            self.assertFalse(dest.exists())
 if __name__=='__main__':unittest.main()
