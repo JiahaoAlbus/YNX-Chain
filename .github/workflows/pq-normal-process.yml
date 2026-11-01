@@ -8,10 +8,10 @@ on:
   workflow_dispatch:
     inputs:
       load_profile:
-        description: Source703 ready/timings profile; fixed source-only joint qualification; no pure-cache A/B claim
+        description: C06 diagnostic ready/timings profile; fixed source-only joint qualification; no pure-cache A/B claim
         type: choice
         default: functional
-        options: [functional, current703-online-100x5-readytimings]
+        options: [functional, currentc06-online-100x5-commitstages]
       signing_mode:
         description: Fresh independent functional window; never replay original UNKNOWN
         type: choice
@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   functional:
-    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'current703-online-100x5-readytimings')
+    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'currentc06-online-100x5-commitstages')
     name: Normal original PQ processes (${{ matrix.mode }})
     runs-on: ubuntu-24.04
     timeout-minutes: 18
@@ -93,9 +93,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  current703-independent-readytimings:
-    name: Source703 normal DATA-ready online 100 offered TPS with all 500 requests
-    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.load_profile == 'current703-online-100x5-readytimings'))
+  currentc06-independent-readytimings:
+    name: C06 diagnostic normal DATA-ready online 100 offered TPS with all 500 requests
+    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.load_profile == 'currentc06-online-100x5-commitstages'))
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     env:
@@ -119,10 +119,10 @@ jobs:
             /scripts/loadtest/test_pq_current75_baseline_ci.py
       - name: Validate only the new fixed-profile source qualification and invocation controls
         run: python3 -I -B controller/scripts/loadtest/test_pq_current75_baseline_ci.py -v
-      - name: Receive the exact joint-qualified source703 Go graph and original helper ancestry
+      - name: Receive the exact joint-qualified sourcec06 Go graph and original helper ancestry
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 7037966eb2ce7a7167f02a09ee1f3bc0eebd1026
+          ref: c06b4607247a1fdf7e485337ab03206984baa71c
           path: source
           fetch-depth: 0
           filter: blob:none
@@ -141,29 +141,31 @@ jobs:
       - name: Receive the exact existing independent-load driver without modifying its methods
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 5f8ce5afb17364f5db10b8b17fa375ac23653174
+          ref: 36d937f45fa9a144aa0d7520633a5654755b454c
           path: tools
           fetch-depth: 1
           filter: blob:none
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/
-      - name: Run only the actual cache-schema failure regressions and reuse other completed controls
+      - name: Validate new c06 finite receiver and original owned store metadata
         run: |
           set -euo pipefail
-          test "$(git -C tools rev-parse HEAD)" = "5f8ce5afb17364f5db10b8b17fa375ac23653174"
-          python3 -I -B tools/scripts/loadtest/test_pq_ready_metrics.py Captured703CacheRegression ReadyMetricsAdapterControls.test_invalid_timings_or_static_cache_claims_are_refused -v
-          echo 'Completed control evidence reused; no39/41/old8 groups rerun; actual500 outcomes remain required'
+          test "$(git -C tools rev-parse HEAD)" = "36d937f45fa9a144aa0d7520633a5654755b454c"
+          python3 -I -B tools/scripts/loadtest/test_pq_c06_source_qualification.py -v
+          python3 -I -B tools/scripts/loadtest/test_pq_owned_storage_window.py -v
+          python3 -I -B tools/scripts/loadtest/test_pq_commit_observation.py CommitObservationDeclaredControls.test_c06_original_output_ceiling_rejects_oversize_before_parse_or_copy CommitObservationDeclaredControls.test_old703_and_unqualified_source_refused_before_source_check_or_start -v
+          echo 'Completed proof/Commit/header controls reused; no39/41/old8 groups rerun; actual500 outcomes remain required'
       - name: Install the original pinned normal toolchain without shared build caches
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version: '1.26.10'
           cache: false
-      - name: Verify finite source703 joint qualification DATA then execute the sole original bounded load window
+      - name: Verify finite sourcec06 joint qualification DATA then execute the sole original bounded load window
         id: load
         env:
           GH_TOKEN: ${{ github.token }}
-          PQ_BASELINE_PROFILE: current703-online-100x5-readytimings
+          PQ_BASELINE_PROFILE: currentc06-online-100x5-commitstages
         run: |
           python3 -I -B controller/scripts/loadtest/pq-current75-baseline-ci.py \
             --source "$GITHUB_WORKSPACE/source" --tools "$GITHUB_WORKSPACE/tools" --execute
@@ -171,9 +173,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pq-current703-online-100x5-readytimings-${{ github.run_id }}-${{ github.run_attempt }}
+          name: pq-currentc06-online-100x5-commitstages-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
-            ${{ runner.temp }}/pq-current703-source-qualification-*.json
+            ${{ runner.temp }}/pq-currentc06-source-qualification-*.json
             ${{ runner.temp }}/pq-independent-load-*/public/
           if-no-files-found: warn
           include-hidden-files: false

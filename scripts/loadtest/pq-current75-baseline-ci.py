@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""One fixed source703 ready/timings synthetic cohort using the original Perf executor.
+"""One fixed c06 diagnostic synthetic cohort using the original Perf executor.
 
-Source703 includes other production changes. It is not a pure-cache A/B or fdc
+C06 diagnostic includes other production changes. It is not a pure-cache A/B or fdc
 before. Qualification here is previous-source DATA, not remote/current-run or
 Root authorization. No protocol, signing or proof implementation is replaced.
 """
@@ -22,33 +22,24 @@ import subprocess
 import sys
 import types
 
-PROFILE = "current703-online-100x5-readytimings"
+PROFILE = "currentc06-online-100x5-commitstages"
 REF = "refs/heads/codex/ynx-pq-current75-baseline-20261101"
 WORKFLOW = ".github/workflows/pq-normal-process.yml"
-GO_SOURCE = "7037966eb2ce7a7167f02a09ee1f3bc0eebd1026"
-GO_TREE = "d15f6dc63ee4c69460273d348637e135c8005922"
+GO_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
+GO_TREE = "4fdb9def5256e30108a0f29396eef1e67618fee1"
 FORK_TREE = "54e88e6aba735eaceeb2d00bb40731248c673bd7"
-NORMAL_RUN = "41272858949"
-TOOLS = "5f8ce5afb17364f5db10b8b17fa375ac23653174"
-TOOLS_TREE = "a8bf35958b6d2d56831f3f8dbb388426b836dd2f"
+NORMAL_RUN = "41285983813"
+TOOLS = "36d937f45fa9a144aa0d7520633a5654755b454c"
+TOOLS_TREE = "a19a4dd0e29af18b9ca566329b00ecc5d5b19926"
+# Exact final consumer source/normal qualification and paired per-height state evidence pending CORE.
+SOURCE_EQUIVALENCE_QUALIFICATION = dict(before='01a2fcb6c727f8842327f2f4883d17fdbfaf0b3b',after=GO_SOURCE,scope='diagnostic-N1-only',freezeSHA256='6329ead63e498324d0ba25021c7fd7c616f84f2717c3273a6f3b5c30ea51dd8f')
+MEASUREMENT_SCOPE = 'current-c06-diagnostic-baseline'
+PERFORMANCE_SOURCE_PAIR_QUALIFICATION = None
 CAPS = dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4 << 30,
             newBytes=8 << 30, initialMemoryBytes=6 << 30,
             initialDiskBytes=16 << 30, logBytes=4 << 20, cpus=2)
-SOURCE_PINS = {
-    ".github/workflows/resource-market-ci.yml": "381b8e30f93c7087af8a911037fb9d45afa85f7ee756bdfeba7ccf0097ee5e70",
-    "go.mod": "2892248959ac73f0aaf16197ba18c78594ad956a2e9b9617404c2ebb50818858",
-    "go.sum": "cfa98a228afc945aa54730a821b80cfc31cb1b8c0aa57aa0bd1e7cf3827d23ad",
-    "scripts/ops/validate-pq-remote-normal-ci.py": "6d617c4ba97f82d59db512962873df1202fabfc6f5422c1b56452f020fbb8475",
-    "scripts/loadtest/pq-source-artifact-intake.py": "ab75f9748a05523f5719ee42a8a99b576d3444a30481b0e07253956e3e5943ef",
-}
-TOOL_PINS = {
-    "test_pq_ready_metrics.py": "c963092242dc7a63fb50e973949e18f35fb362be9dc78c37ca51fd0b9c155e1e",
-    "pq-independent-load.py": "0a886ad1377235ee5d82aa0ba39c6cf23040424bba7507d9140a342674ee9c5b",
-    "pq-independent-scheduler.py": "6a4aa31dd4198f152d748b4441edbfb50a078e64c51233fd165f87d4557faef1",
-    "pq-normal-process-lab.py": "6810b02608e54fe0dfde05555073c8f01463ac182f4dea76a9dfb6a2af4e1195",
-    "consensus-linux-cohort.py": "ffc7e02e1d37adc28f4d94c262d30a45e91eb594307931b482dcdd39ccc82591",
-    "pq-paired-linux-window.py": "b87a895d7c625ae15834a73b19196310dfbba13335707b9fdb4a3e50d9ad69e2",
-}
+SOURCE_PINS = {'.github/workflows/resource-market-ci.yml': '97ec73238d4774a5729a9bd8c88bd22d3a5854e8045064832bc701964f51ed76', 'go.mod': '2892248959ac73f0aaf16197ba18c78594ad956a2e9b9617404c2ebb50818858', 'go.sum': 'cfa98a228afc945aa54730a821b80cfc31cb1b8c0aa57aa0bd1e7cf3827d23ad', 'scripts/ops/validate-pq-remote-normal-ci.py': '6d617c4ba97f82d59db512962873df1202fabfc6f5422c1b56452f020fbb8475', 'scripts/loadtest/pq-source-artifact-intake.py': 'ab75f9748a05523f5719ee42a8a99b576d3444a30481b0e07253956e3e5943ef'}
+TOOL_PINS = {'pq-network-window.py': 'd415e10ba6df19e03280ea8fcfe44f7c5dedb943a16ca8c537fe4cbbceb9b273', 'owned-tcp-accounting.py': '612da9404e0ec52b77e6160aa29d39e020fed96695be4b6633f8d1dffc9ac440', 'network-layer-accounting.py': '1b9d16539b711ca7e490c8c4bc01984beba5efa474caeca187dee2f19a5e7635', 'pq-hop-byte-accounting.py': '663c072e11f777d5119f87fa9e200548c117f937427c46295277e722c7d3744b', 'test_pq_hop_byte_accounting.py': '2116cdb12f52f2e8f6500d5e54e3d20248b0d29eef88081962b3ce6ff1984e67', 'pq-owned-header-capture.py': '56c7e0766f771db49d547f98b5e571c654ba8db568153c35d35f9ab2f0c5a070', 'test_pq_owned_header_capture.py': '03417bc6881e4e7f2e9cfb8493f51352f2064d5a6821b5688fdef053a72c19dd', 'fixtures/commit-observation-public-schema.json': '9dc8dbf4820d04068b2272e4dd16f202d6fb106b82cecf8aef6d544517680c06', 'test_pq_commit_observation.py': 'f959a619f163b8af46081aa9c8629da4db4930e356a8bec3b722de7266bca1e8', 'pq-commit-observation.py': 'dc0c830f8e8281a15de2c5c77a278e68419909843af90fde93230e919c9e2ff0', 'test_pq_independent_load.py': '2ed9461c1eb2cf9dd2cd060dde7c68d63b196b65590fa6e7945dee722690ab1f', 'test_pq_public_proof_readback.py': '4b412446c26186ce925a2cfc5896901a58df64067c15e36e9b3d07a3b33ad019', 'pq-public-proof-readback.py': '50ad1dbb6eadb494cfac180f84fd9deb13051abae58f3acfb055d32541decc53', 'test_pq_helper_lifecycle.py': '00774fc00404074d59f7eb09839b1bf25830ab60771ed2fac83884da37a37629', 'test_pq_ready_metrics.py': 'c963092242dc7a63fb50e973949e18f35fb362be9dc78c37ca51fd0b9c155e1e', 'pq-independent-load.py': 'cf7d6cd53458a0ead3fc32a1c206a81cf85a6994ad75ccb3887bf20d7e38e265', 'pq-independent-scheduler.py': 'd0ceb2bfee4d64cd49818afb2a2bec995b9a7e3d8fe32124e79478a1c0d4bfa1', 'pq-normal-process-lab.py': '6810b02608e54fe0dfde05555073c8f01463ac182f4dea76a9dfb6a2af4e1195', 'consensus-linux-cohort.py': 'ffc7e02e1d37adc28f4d94c262d30a45e91eb594307931b482dcdd39ccc82591', 'pq-paired-linux-window.py': 'b87a895d7c625ae15834a73b19196310dfbba13335707b9fdb4a3e50d9ad69e2', 'pq-c06-source-qualification.py': '385b34200486ede3045bea1e37d2cc0ea057481c0294257da4e825126975d37c', 'test_pq_c06_source_qualification.py': 'f112c861af7ffeaa966c24fd516ed84be308e6af64c9ce913a963eb7c3a582a3', 'fixtures/c06-functional-readback.json': '23c0639ababad3e041810ba9d21e96e754c618da7a14ee546aa9bf2ddabd7146', 'fixtures/c06-named-cases-original.zip': '65df3771ab668be1b6a8c044dbcc3cc0a024bea416b08547ba0d8eb9cb51d1fe', 'pq-owned-storage-window.py': '67e96cda53201b32b0ab1ca10707abb5e885645b51cbceaf2f3c8c77ac81f7c3', 'test_pq_owned_storage_window.py': '1dc1419b69361cbd604aef8c9b055b42b96567d181c3315ed1ce56395865cf33'}
 
 
 def require(ok, message):
@@ -62,25 +53,19 @@ def fixed_options(source):
     return argparse.Namespace(source=str(source), commit=GO_SOURCE, mode="online",
                               rate=100, seconds=5, accounts=8, per_account=63,
                               tail_seconds=30, proof_timeout=30,
-                              wire_observation=False, network_accounting=False,
+                              wire_observation=False, network_accounting=True, header_hop_capture=True, owned_storage_accounting=True, commit_observation=True,
                               prior_result=None, prior_result_sha256=None, execute=True)
 
 
 def prepared_data():
-    return dict(profile=PROFILE, controllerRef=REF, goSource=GO_SOURCE, goTree=GO_TREE, tools=TOOLS,
-                sourceQualificationRun=NORMAL_RUN, sourceQualificationContinuation=CONTINUATION_RUN, configuredDemand=500,
-                offeredTPS=100, seconds=5, measuredAccounts=8, capacityPerAccount=63,
-                preparationAccounts=4, sameSourceBinaryCount=3, caps=CAPS,
-                label="source703 normal ready/timings cohort; includes other production changes, not pure-cache A/B or old75 ratio",
-                untouchedFdcBefore=False, combinedABBaseline=False, executed=False,
-                previous16SenderRun="41264965296", previous16SenderLoadExecuted=False,
-                previous8RSSExitRun="41266674073", previous8RSSExitLoadExecuted=False,
-                previous8OnlineCorpusRun="41267267458", previous8OnlineCorpusLoadExecuted=False,
-                previousActual500Run="41268140726", previousActual500Unknown=8,
-                coldInitializationRetainedSeparately=True, noOld75Qualification=True,
-                accountSelection="Root fixed eight independent accounts, each at most one pending; all500 demand retained",
-                helperMaximumLive=3, originalOwnedPIDLimit=16,
-                nodeStartAuthorized=False, publicNetwork=False, authorityGranted=False)
+    return dict(profile=PROFILE,controllerRef=REF,goSource=GO_SOURCE,goTree=GO_TREE,tools=TOOLS,
+                sourceQualificationRun=41285983813,sourceNamedSupplementRun=41288482948,configuredDemand=500,
+                offeredTPS=100,seconds=5,measuredAccounts=8,capacityPerAccount=63,preparationAccounts=4,
+                sameSourceBinaryCount=3,caps=CAPS,label='current c06 diagnostic baseline only',
+                measurementScope=MEASUREMENT_SCOPE,comparisonEligible=False,performanceSourcePairQualified=False,
+                untouchedFdcBefore=False,combinedABBaseline=False,executed=False,sameHost=True,physicalFaultDomains=1,
+                coldInitializationRetainedSeparately=True,noOld75Qualification=True,
+                helperMaximumLive=3,originalOwnedPIDLimit=16,nodeStartAuthorized=False,publicNetwork=False,authorityGranted=False)
 
 
 def git(root, *args):
@@ -114,92 +99,17 @@ def pinned_module(name, path, pin):
     return module
 
 
-JOINT_SPEC = {'resourceSHA256': '381b8e30f93c7087af8a911037fb9d45afa85f7ee756bdfeba7ccf0097ee5e70', 'priorPrefix': [[1, 'Set up job', 'success'], [2, 'Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1', 'success'], [3, 'Run actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e', 'success'], [4, 'Verify exact public TLS fixture and fail-closed secret scanning', 'success'], [5, 'Record exact candidate identity', 'success'], [6, 'Check reachable vulnerabilities in the eight production runtime commands', 'success'], [7, 'Verify same-source completed normal CI before remote network execution', 'skipped'], [8, 'Verify original-copy observation controls without touching the original case', 'success'], [9, 'Verify Linux window controls without starting a node', 'success'], [10, 'Verify pure dual-PQ protocol and account authorization', 'success'], [11, 'Upload only actual Go public artifact-purpose vectors', 'success'], [12, 'Upload public canonical action vectors from the actual Go codec', 'success'], [13, 'Verify forked engine keys and actual consensus objects', 'success'], [14, 'Compile forked state and consensus engine without starting nodes', 'success'], [15, 'Verify exact-height maintenance stop with real engine commit and cold stores', 'success'], [16, 'Reproduce and repair same-directory database ownership without starting nodes', 'success'], [17, 'Verify real profile state transition and historical store without starting nodes', 'success'], [18, 'Reproduce and repair real Commit and engine checkpoint read ordering', 'success'], [19, 'Verify bounded remote signer transport and unchanged legacy protobuf vectors', 'success'], [20, 'Verify actual engine signing caller uses committed height key and round context', 'success'], [21, 'Measure fresh single and bounded concurrent dual signature paths', 'success'], [22, 'Measure actual policy certificate cache consumer cold and warm paths', 'success'], [23, 'Install pinned contract build runtime', 'success'], [24, 'Verify failed candidate deployment preserves services and signing history', 'success'], [25, 'Verify original-state operator transition preserves custody and uncertain attempts', 'success'], [26, 'Verify original key ceremony retains partial custody and never creates during resume', 'success'], [27, 'Compile frozen measured production overlay without executing cases', 'success'], [28, 'Generate canonical IDE contract fixture', 'success'], [29, 'Verify actual IDE compiler materials with original Go deployment callees', 'success'], [30, 'Verify existing Wallet inbox materials with original Go deployment callees', 'success'], [31, 'Upload only public contract deployment registry from the actual Go caller', 'success'], [32, 'Verify native ledger and HTTP PQ integration', 'success'], [33, 'Compile production entry points', 'success'], [34, 'Exercise original lab callee readiness and actual cold costs', 'success'], [35, 'Reproduce opaque classic staking refusal with original successful transactions', 'success'], [36, 'Reproduce the original missing PQ validator staking entry', 'success'], [37, 'Reproduce source log response budget overrun before later records', 'success'], [38, 'Verify complete state bridge and sponsor continuity', 'success'], [39, 'Reproduce signed-history overwrite and unsafe rollback callers', 'success'], [40, 'Reproduce source-authority initialization coupling and verify independent execution', 'success'], [41, 'Reproduce JSON-only signing source and verify real journal recovery', 'success'], [42, 'Reproduce atomic-only Comet operator startup and verify normal journal selection', 'success'], [43, 'Reproduce Ethereum mutable-lot provenance counterexamples and verify cold recovery', 'success'], [44, 'Reproduce historical AA policy counterexamples against the original state validator', 'success'], [45, 'Reproduce source evidence rehash counterexamples and verify original-label coverage', 'success'], [46, 'Reproduce history pagination movement across real application commits', 'success'], [47, 'Reproduce the existing Wallet health refusal with the complete original Gateway', 'success']], 'dependency': {'index': 26, 'name': 'Generate canonical IDE contract fixture', 'bodySHA256': '2da64f78d08e69a92e3432e7a38775d5d4520951a9d47fa762ea3c73476d1404', 'env': {'NODE_OPTIONS': '--max-old-space-size=1536'}}, 'steps': [{'index': 46, 'name': 'Verify Whole BFT gateway and native container readback', 'bodySHA256': '12c80eec149efe88637f02c42e368ce94df84d0a61bbd1512e25ce54ba124e85', 'env': {'YNX_PQ_STAKING_ORIGINALS_FIXTURE_OUT': '${{ runner.temp }}/ynx-pq-staking-originals-public-interop.json', 'YNX_PQ_CONTRACT_DEPLOY_FIXTURE_OUT': '${{ runner.temp }}/ynx-pq-contract-deploy-public-interop.json'}}, {'index': 49, 'name': 'Verify existing Chain readback and recovery after protocol integration', 'bodySHA256': '6df8ea01f41f88ab8f7baf49adcab457ffc1b49b4fc4db7daa932cb1dc9e0841', 'env': {}}, {'index': 50, 'name': 'Verify existing Chain SDK after protocol integration', 'bodySHA256': 'efc51916ac5bda49f2376f02acb54e7a361dc5952152f1df5d2f505a58e792ca', 'env': {}}, {'index': 51, 'name': 'Emit application-backed public Wallet HTTP fixture', 'bodySHA256': 'f363ab0e424107e3b13c6efc6e458f1075bc68b71532a105c92f836a67995d53', 'env': {'YNX_PQ_WALLET_FIXTURE_OUT': '${{ runner.temp }}/ynx-pq-wallet-public-http-fixture.json'}}, {'index': 53, 'name': 'Verify shared Wallet policy and Chain payment authorization regressions', 'bodySHA256': '3baa35ffc144ee79a40ee8b245619fcab6d9922fa7595338685ebb2562360b2c', 'env': {}}, {'index': 54, 'name': 'Reproduce private verifier process-exit telemetry counterexample', 'bodySHA256': '375c437b4adba9b882b90b9f079023d85d9632f9d63e4d80b7beeca8eda1e519', 'env': {}}, {'index': 55, 'name': 'Verify operator checkpoint format and original read-lock admission', 'bodySHA256': '20701caa5e7308adea90dc5f097dd46881b2bd7c1997fbd6591239da1e040224', 'env': {}}]}
-CONTINUATION_CONTROLLER = "8558fb95d96a98815361385bc18dadcc4c99abb7"
-CONTINUATION_TREE = "526aa6ae4909b4a40f857f6c89f89ebcd6118979"
-CONTINUATION_RUN = 41278568036
-CONTINUATION_JOB = 124765630747
-CONTINUATION_BRANCH = "codex/ynx-pq-source703-continuation-20261101"
-ARTIFACT = 13072721720
-ARTIFACT_BYTES = 6255
-ARTIFACT_SHA256 = "bec0fd10444606034fb1e338751fe01fd6e456bb936cd4f8a47ca76a579d3fa1"
-REPO = "JiahaoAlbus/YNX-Chain"
+def c06_qualification():
+    path=Path(os.environ['GITHUB_WORKSPACE'])/'tools/scripts/loadtest/pq-c06-source-qualification.py'
+    return pinned_module('original_c06_source_data',path,TOOL_PINS['pq-c06-source-qualification.py'])
 
 
 def api_reader():
-    allowed = {"actions/runs/41272858949", "actions/jobs/124749016396",
-        "check-runs/124749016396/annotations?per_page=100", "actions/runs/41272858825",
-        "actions/runs/41278568036", "actions/jobs/124765630747", "git/commits/"+GO_SOURCE,
-        "git/commits/"+CONTINUATION_CONTROLLER, "actions/artifacts/13072721720",
-        "actions/runs/41278568036/attempts/1/jobs?per_page=100&page=1"}
-    deadline=time.monotonic()+60
-    def fetch(path,binary=False):
-        require(path in allowed or binary and path=="actions/artifacts/13072721720/zip", "fixed read-only API path required")
-        remaining=deadline-time.monotonic();require(remaining>0,"finite qualification API deadline exceeded")
-        result=subprocess.run(["gh","api","--hostname","github.com","--method","GET","repos/"+REPO+"/"+path],stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=min(20,remaining))
-        require(result.returncode==0 and len(result.stdout)<=(ARTIFACT_BYTES if binary else 2<<20),"fixed qualification read unavailable or oversized")
-        return result.stdout if binary else json.loads(result.stdout)
-    return fetch
-
-
-def run_identity(value,identity,head,conclusion,path,branch):
-    require(type(value.get("id")) is int and value["id"]==identity and value.get("head_sha")==head and type(value.get("run_attempt")) is int and value["run_attempt"]==1 and value.get("event")=="push" and value.get("status")=="completed" and value.get("conclusion")==conclusion and value.get("path")==path and value.get("head_branch")==branch,"fixed original run/source/attempt/terminal differs")
+    return c06_qualification().api_reader()
 
 
 def prior_source_data(fetch):
-    # Finite DATA closure: real original successful prefix plus exactly seven
-    # missing steps, preserving cancellation. This is not whole-CI success.
-    prior=fetch("actions/runs/41272858949");job=fetch("actions/jobs/124749016396")
-    chain=fetch("actions/runs/41272858825");tailrun=fetch("actions/runs/41278568036");tailjob=fetch("actions/jobs/124765630747")
-    run_identity(prior,41272858949,GO_SOURCE,"cancelled",".github/workflows/resource-market-ci.yml","codex/ynx-pq-perf-integration")
-    run_identity(chain,41272858825,GO_SOURCE,"success",".github/workflows/chain-core.yml","codex/ynx-pq-perf-integration")
-    run_identity(tailrun,CONTINUATION_RUN,CONTINUATION_CONTROLLER,"success",WORKFLOW,CONTINUATION_BRANCH)
-    require(tailrun.get("workflow_id")==402774607,"original continuation workflow identity differs")
-    for value,identity,run,head,name,end in [(job,124749016396,41272858949,GO_SOURCE,"focused-go","cancelled"),(tailjob,CONTINUATION_JOB,CONTINUATION_RUN,CONTINUATION_CONTROLLER,"source703-continuation","success")]:
-        require(type(value.get("id")) is int and value["id"]==identity and value.get("run_id")==run and value.get("head_sha")==head and type(value.get("run_attempt")) is int and value["run_attempt"]==1 and value.get("name")==name and value.get("status")=="completed" and value.get("conclusion")==end,"fixed original job scope differs")
-    prefix=[[s["number"],s["name"],s.get("conclusion")] for s in job["steps"] if s["number"]<48]
-    require(prefix==JOINT_SPEC["priorPrefix"],"original source703 prefix changed; no inherited qualification")
-    cancelled=[s for s in job["steps"] if s["number"]==48]
-    require(len(cancelled)==1 and cancelled[0]["name"]==JOINT_SPEC["steps"][0]["name"] and cancelled[0]["conclusion"]=="cancelled","original cancellation must remain")
-    annotations=fetch("check-runs/124749016396/annotations?per_page=100")
-    require(any(a.get("annotation_level")=="failure" and a.get("message")=="The job has exceeded the maximum execution time of 15m0s" for a in annotations),"original official timeout evidence absent")
-    parse=lambda v:datetime.datetime.strptime(v,"%Y-%m-%dT%H:%M:%SZ")
-    require(900<=(parse(job["completed_at"])-parse(job["started_at"])).total_seconds()<=930,"original source timeout interval differs")
-    for commit,tree,parent in [(GO_SOURCE,GO_TREE,None),(CONTINUATION_CONTROLLER,CONTINUATION_TREE,GO_SOURCE)]:
-        value=fetch("git/commits/"+commit)
-        require(value.get("sha")==commit and value.get("tree",{}).get("sha")==tree,"official Git graph differs")
-        if parent:require([v["sha"] for v in value["parents"]]==[parent],"continuation is not sole original703 child")
-    jobs=fetch("actions/runs/41278568036/attempts/1/jobs?per_page=100&page=1")
-    require(jobs.get("total_count")==1 and [v.get("id") for v in jobs.get("jobs",[])]==[CONTINUATION_JOB],"continuation job graph changed")
-    artifact=fetch("actions/artifacts/13072721720")
-    require(artifact.get("id")==ARTIFACT and artifact.get("name")=="ynx-source703-continuation-"+CONTINUATION_CONTROLLER+"-"+str(CONTINUATION_RUN) and artifact.get("size_in_bytes")==ARTIFACT_BYTES and artifact.get("expired") is False and artifact.get("digest")=="sha256:"+ARTIFACT_SHA256,"original continuation artifact identity differs")
-    link=artifact.get("workflow_run",{})
-    require(link.get("id")==CONTINUATION_RUN and link.get("head_sha")==CONTINUATION_CONTROLLER and link.get("head_branch")==CONTINUATION_BRANCH and link.get("repository_id")==1285041796 and link.get("head_repository_id")==1285041796,"artifact original run/source binding differs")
-    raw=fetch("actions/artifacts/13072721720/zip",binary=True)
-    require(len(raw)==ARTIFACT_BYTES and hashlib.sha256(raw).hexdigest()==ARTIFACT_SHA256,"complete original continuation archive SHA256 differs")
-    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-        names=archive.namelist();require(len(names)==3 and set(names)=={"CONTINUATION-RECEIPT.json","PRIOR-SCOPE.json","SOURCE-STEPS.json"},"closed continuation archive changed")
-        require(all(i.file_size<=1<<20 for i in archive.infolist()) and archive.testzip() is None,"bounded original archive CRC failure")
-        documents={name:json.loads(archive.read(name)) for name in names}
-    receipt=documents["CONTINUATION-RECEIPT.json"]
-    require(receipt.get("version")=="YNX-SOURCE703-CONTINUATION-RESULT/v1" and receipt.get("actualCalleeSHA")==GO_SOURCE and receipt.get("actualCalleeTree")==GO_TREE and receipt.get("controllerSHA")==CONTINUATION_CONTROLLER and receipt.get("currentRunId")==CONTINUATION_RUN and receipt.get("currentJobId")==CONTINUATION_JOB and receipt.get("currentRunAttempt")==1,"original continuation receipt source/controller differs")
-    for flag in ["continuationScopePassed","sevenTailActualPassed","sourceUnchanged","controllerUnchanged"]:require(receipt.get(flag) is True,"continuation scope incomplete")
-    for flag in ["originalResourceWholeSuccess","actual500Window","newNetworkWindow","authorityGranted","deploymentQualified","realFunds"]:require(receipt.get(flag) is False,"source-only DATA cannot grant execution or rewrite original cancellation")
-    require(receipt.get("sourceWorkflowSHA256")==JOINT_SPEC["resourceSHA256"] and receipt.get("prior",{}).get("resourceConclusion")=="cancelled" and receipt["prior"].get("resourceRunId")==41272858949 and receipt["prior"].get("prefix")==prefix,"original source prefix/archive differs")
-    require(documents["SOURCE-STEPS.json"].get("requiredNewTail")==JOINT_SPEC["steps"] and documents["SOURCE-STEPS.json"].get("oldSuccessfulVerificationGroupsRerun") is False,"finite original seven-body/env catalog differs")
-    scope=documents["PRIOR-SCOPE.json"]
-    require(scope.get("actualCalleeSHA")==GO_SOURCE and scope.get("controllerSHA")==CONTINUATION_CONTROLLER and scope.get("prior")==receipt["prior"],"original prior-scope binding differs")
-    require(len(receipt.get("tailSteps",[]))==7,"complete seven-step receipt required")
-    for actual,spec in zip(receipt["tailSteps"],JOINT_SPEC["steps"]):
-        require({k:actual[k] for k in ("index","name","bodySHA256","env")}==spec,"original source body/env catalog changed")
-        found=[s for s in tailjob["steps"] if s["name"]==spec["name"]]
-        require(len(found)==1 and found[0].get("status")=="completed" and found[0].get("conclusion")=="success" and actual.get("actual")==found[0],"actual original tail missing/skipped/changed")
-    dependency=[s for s in tailjob["steps"] if s["name"]==JOINT_SPEC["dependency"]["name"]]
-    require(len(dependency)==1 and dependency[0].get("conclusion")=="success" and receipt.get("dependencyActual")==dependency[0] and receipt.get("dependencyMaterialRebuildOnly")==JOINT_SPEC["dependency"],"original dependency material scope incomplete")
-    # Reconcile the original operation again, never replace it with a rerun.
-    for identity,head,end,path,branch in [(41272858949,GO_SOURCE,"cancelled",".github/workflows/resource-market-ci.yml","codex/ynx-pq-perf-integration"),(41272858825,GO_SOURCE,"success",".github/workflows/chain-core.yml","codex/ynx-pq-perf-integration"),(CONTINUATION_RUN,CONTINUATION_CONTROLLER,"success",WORKFLOW,CONTINUATION_BRANCH)]:
-        run_identity(fetch("actions/runs/"+str(identity)),identity,head,end,path,branch)
-    return dict(version="YNX-CURRENT703-JOINT-SOURCE-QUALIFICATION-DATA/v1",classification="data",sourceCommit=GO_SOURCE,sourceTree=GO_TREE,priorResourceRunId=41272858949,priorResourceConclusion="cancelled",originalResourceWholeSuccess=False,chainRunId=41272858825,continuationRunId=CONTINUATION_RUN,continuationJobId=CONTINUATION_JOB,continuationController=CONTINUATION_CONTROLLER,continuationArtifact=ARTIFACT,continuationArtifactSHA256=ARTIFACT_SHA256,source703PrefixAndSevenTailScopePassed=True,actual500Window=False,currentControllerRemoteGatePassed=False,nodeStartAuthorized=False,authorityGranted=False,publicNetwork=False)
+    return c06_qualification().qualify(fetch)
 
 
 def validate_host(environment):
@@ -239,10 +149,41 @@ def install_counted_window(driver, intake, additional_roots, adapter):
     return original, calls
 
 
+def intake_original_public_closures(driver, result, public):
+    load=result.get("loadResult",{});rows=load.get("rows",[])
+    require(load.get("configuredDemand")==500 and len(rows)==500,"all500 original ledger rows required for public proof intake")
+    qualified=[row for row in rows if row.get("status")=="qualified"]
+    require(len(qualified)==load.get("qualified"),"original qualified ledger count differs")
+    retained=[];required_commit_heights=set();expected_commit_hashes={}
+    for row in qualified:
+        case=public/"load-operations"/("%05d"%row["index"])
+        expected="load-operations/%05d/qualified-receipt.json"%row["index"]
+        require(row.get("proofReference")==expected,"original qualified receipt location differs")
+        original=driver.proof_readback.strict(driver.proof_readback.read_original(case/"qualified-receipt.json",1<<20))
+        require(original["operationId"]==row["operationId"] and original["transaction"]["ownerIndex"]==row["ownerIndex"] and original["transaction"]["firstNonce"]==str(row["nonce"]),"original operation identity differs")
+        ref=original["originalPublicProofClosure"]
+        require(ref["path"]=="load-operations/%05d/original-public-proof-manifest.json"%row["index"],"original public closure location differs")
+        first,_,_=driver.proof_readback.read_original_closure(public/ref["path"],ref["sha256"])
+        path=case/"normal-portable-originals.json";pin=hashlib.sha256(driver.proof_readback.read_original(path,256<<10)).hexdigest()
+        portable,_,_=driver.proof_readback.read_portable_archive(path,pin)
+        require(portable["sourceCommit"]==first["sourceCommit"]==GO_SOURCE and portable["verifierBinarySHA256"]==first["verifierBinarySHA256"]==result["binaries"]["ynx-consensus-proof-verify"],"original public source/binary pins differ")
+        require(portable["actualOwnerIndex"]==row["ownerIndex"] and portable["actualOperationId"]==row["operationId"] and portable["actualNonce"]==str(row["nonce"]),"legacy carrier label cannot replace actual original owner")
+        require(portable["originalContextSHA256"]==original["normalLiveResult"]["verified"]["context"]["sha256"] and portable["originalRequestSHA256"]==original["normalLiveResult"]["verified"]["request"]["sha256"],"original verifier context/request pins differ")
+        verified=original["normalVerifier"]["result"]
+        height=int(verified["block"]["headerHeight"]);successor=int(verified["successor"]["headerHeight"])
+        require(height>0 and successor==height+1 and int(verified["successor"]["stateHeight"])==height,"original proof adjacent heights differ")
+        app_hash=verified["successor"]["stateAppHash"]
+        require(type(app_hash) is str and re.fullmatch("[0-9a-f]{64}",app_hash) is not None,"original committed proof AppHash differs")
+        require(height not in expected_commit_hashes or expected_commit_hashes[height]==app_hash,"same-height qualified transaction state AppHash conflicts")
+        expected_commit_hashes[height]=app_hash;required_commit_heights.update((height,successor))
+        retained.append(dict(index=row["index"],ownerIndex=row["ownerIndex"],operationId=row["operationId"],manifest=str(path.relative_to(public)),sha256=pin,catalogSHA256=portable["catalogSHA256"]))
+    return dict(schema="YNX-PERF-NORMAL-PUBLIC-CLOSURE-INTAKE/v1",configuredDemand=500,qualifiedOriginalRows=len(qualified),retainedCompletePortableClosures=len(retained),closures=retained,requiredCommitHeights=sorted(required_commit_heights),expectedCommitAppHashByHeight={str(k):v for k,v in sorted(expected_commit_hashes.items())},independentCryptographicReverification=False,sourceGrant=False,nativeRootAuthorized=False,meaning="Original bytes/catalog preserved only. Use the same normal portable-import then normal verifier with its actual clock; no original authority or full500 success inferred.")
+
+
 def require_complete(result):
     ready=result.get("senderPoolPreparation",{})
     measures=result.get("normalCalleeMeasurements",{})
-    require(result.get("source",{}).get("commit")==GO_SOURCE and result.get("caps")==CAPS and ready.get("readyCount")==8 and ready.get("signed") is False and ready.get("nonceReserved") is False and ready.get("sourceGrant") is False and ready.get("loadClockStarted") is False and measures.get("source")==GO_SOURCE,"exact source703 DATA-ready and original metrics required")
+    require(result.get("source",{}).get("commit")==GO_SOURCE and result.get("caps")==CAPS and ready.get("readyCount")==8 and ready.get("signed") is False and ready.get("nonceReserved") is False and ready.get("sourceGrant") is False and ready.get("loadClockStarted") is False and measures.get("source")==GO_SOURCE,"exact sourcec06 DATA-ready and original metrics required")
     for kind,n in [("startup",8),("live_setup",4),("sign",500),("confirm",500),("live_publish",500),("live_result",500)]:
         value=measures.get("groups",{}).get(kind,{}).get("calleeElapsed",{})
         require(value.get("denominator")==n and value.get("observed")==n and value.get("censoredOrNotReached")==0,"full original callee timing denominator incomplete")
@@ -252,6 +193,20 @@ def require_complete(result):
             result.get("loadResult", {}).get("windowCompleted") is True and
             result["loadResult"]["configuredDemand"] == 500 and result["loadResult"]["notQualified"] == 0,
             "original fixed load incomplete or UNKNOWN; preserve partial and never replay")
+    observed=result.get("normalCommitObservation",{})
+    require(observed.get("fourOriginalSnapshotsValid") is True and observed.get("expectedNodes")==4 and observed.get("validOriginalNodes")==4 and len(observed.get("originalSnapshots",[]))==4,"four stopped normal Commit snapshots required; signer fsync cannot substitute")
+    require(observed.get("independentFinality") is False and observed.get("signerFsyncMeasured") is False and observed.get("allCommitAttemptsCovered") is False and observed.get("replayCoverageComplete") is False and observed.get("unreportedStagesAreUnknown") is True,"Commit scope/coverage cannot become whole replay or finality")
+    proof_intake=result.get("publicProofClosureIntake",{})
+    heights=proof_intake.get("requiredCommitHeights",[]);hashes=proof_intake.get("expectedCommitAppHashByHeight",{})
+    require(proof_intake.get("qualifiedOriginalRows")==500 and proof_intake.get("retainedCompletePortableClosures")==500 and heights and hashes,"all500 original proof heights/AppHash required for Commit sample linkage")
+    for node in observed["originalSnapshots"]:
+        raw=node.get("rawOriginalObservation",{})
+        require(node.get("usable") is True and raw.get("sampleOverflow") is False and raw.get("latestTimingAvailable") is True and raw.get("droppedSuccessSamples")==0 and raw.get("rejectedNotifications")=={} and raw.get("errorNotifications")==0 and raw.get("lastFailure") is None and raw.get("unobservedLatest") is None,"partial/overflow/failed Commit observations cannot imply complete requested stages")
+        points={sample["height"]:sample for sample in raw.get("samples",[])}
+        require(all(height in points for height in heights),"requested business H/H+1 Commit sample missing; never fill zero or infer from other height")
+        require(all(points[int(height)]["appHash"]==app_hash for height,app_hash in hashes.items()),"original Commit AppHash differs from successful transaction H/H+1 proof state")
+
+
 
 
 def execute(source, tools):
@@ -274,7 +229,7 @@ def execute(source, tools):
         pinned_bytes(tools / "scripts/loadtest" / name, pin)
     # Normal imports must not read an ignored replacement bytecode cache.
     require(not any((tools / "scripts/loadtest").rglob("*.pyc")), "original tools must not contain bytecode substitutes")
-    data_path = parent / ("pq-current703-source-qualification-" + os.environ["GITHUB_RUN_ID"] + "-1.json")
+    data_path = parent / ("pq-currentc06-source-qualification-" + os.environ["GITHUB_RUN_ID"] + "-1.json")
     require(not data_path.exists() and not data_path.is_symlink(), "original source DATA must be fresh and exclusive")
     data = prior_source_data(api_reader())
     with open(data_path, "x", opener=lambda p, f: os.open(p, f, 0o600)) as out:
@@ -283,11 +238,14 @@ def execute(source, tools):
     # processes or copied into public original operation receipts.
     os.environ.pop("GH_TOKEN", None)
     os.environ.pop("GITHUB_TOKEN", None)
-    driver = pinned_module("current703_original_load", tools / "scripts/loadtest/pq-independent-load.py",
+    driver = pinned_module("currentc06_original_load", tools / "scripts/loadtest/pq-independent-load.py",
                            TOOL_PINS["pq-independent-load.py"])
-    intake = pinned_module("current703_original_storage", source / "scripts/loadtest/pq-source-artifact-intake.py",
+    intake = pinned_module("currentc06_original_storage", source / "scripts/loadtest/pq-source-artifact-intake.py",
                            SOURCE_PINS["scripts/loadtest/pq-source-artifact-intake.py"])
-    require(driver.CALLEE_SOURCE == GO_SOURCE,"fixed703 exact ready/timings source must remain703")
+    require(driver.CALLEE_SOURCE == GO_SOURCE,"explicit exact normal consumer source pin differs")
+    require(driver.COMMIT_OBSERVATION_SOURCE is not None and driver.COMMIT_OBSERVATION_SOURCE==GO_SOURCE,"final exact Commit consumer source/producer ABI/normal CI NOT_SUPPLIED; no703 continuation substitution")
+    require(MEASUREMENT_SCOPE=='current-c06-diagnostic-baseline' and data['functionalDiagnostic']['before']==SOURCE_EQUIVALENCE_QUALIFICATION['before'] and data['functionalDiagnostic']['after']==GO_SOURCE,'exact diagnostic source pair differs; no unrelated performance comparison')
+    require(PERFORMANCE_SOURCE_PAIR_QUALIFICATION is None,'diagnostic entry cannot become a before/after performance experiment')
     require(driver.lab.CAPS == CAPS and driver.lab.RSS_OBSERVER_VERSION == "same-process-rss-v4-pidfd-any-state",
             "original Window caps or pidfd guard differ")
     go = shutil.which("go")
@@ -305,6 +263,11 @@ def execute(source, tools):
     finally:
         driver.lab.Window = original
     require(len(calls) == 1, "one actual original Window is required")
+    if result.get("loadExecuted") is True:
+        public=calls[0].work/"public"
+        closure_intake=intake_original_public_closures(driver,result,public)
+        result["publicProofClosureIntake"]=closure_intake
+        driver.lab.write_new(public/"PUBLIC-PROOF-CLOSURE-INTAKE.json",closure_intake)
     require_complete(result)
     return result
 
