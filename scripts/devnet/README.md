@@ -486,3 +486,14 @@ and failed-wait cleanup without producing any business/finality fixture:
 ```sh
 python3 -B -m unittest discover -s scripts/loadtest -p test_pq_helper_lifecycle.py -v
 ```
+
+Run41266674073 reached only the first build, not its load clock. A descendant
+had six same-identity R/one-thread/ESRCH RSS failures. Its original500 requests
+remain unsubmitted; cleanup completed with original build parent SIGTERM.
+The v4 observer calls the existing process-wide, flags0, non-consuming pidfd
+exit probe for any state after RSS failure, instead of restricting it to Z.
+Only a real kernel exit event permits retirement; an unready/unavailable probe
+still requires real same-group RSS or the original conservative VmSize bound,
+otherwise it fails. No retry/cap expansion or live-R zero assumption is added.
+The new `test_linux_running_exit.py` isolates this delta, including an actual
+Linux kernel not-exited/exited pair while only displayed state is held at R.

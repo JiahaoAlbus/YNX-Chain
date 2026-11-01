@@ -34,7 +34,7 @@ _spec.loader.exec_module(guard)
 CAPS = dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4 << 30,
             newBytes=8 << 30, initialMemoryBytes=6 << 30,
             initialDiskBytes=16 << 30, logBytes=4 << 20, cpus=2)
-RSS_OBSERVER_VERSION = "same-process-rss-v3-pidfd"
+RSS_OBSERVER_VERSION = "same-process-rss-v4-pidfd-any-state"
 PROCESS_EVIDENCE_VERSION = "same-identity-first-last-count-v1"
 PROFILES = {"smoke": dict(count=4, rounds=2, rate=4, window="2s", timeout="20s"),
             "cohort": dict(count=64, rounds=2, rate=32, window="4s", timeout="30s")}
@@ -218,12 +218,13 @@ def owned_rss(pid, before, retired=None, fallback=None):
                 if retired is not None:
                     retired(dict(pid=pid, startTicks=before["startTicks"], reason="same-identity-zombie", rssError=error.errno, sampleAttempts=attempt))
                 return 0
-            group=None
-            if current['state']=='Z':
-                group=process_group_exit_probe(pid,before)
-                if group['state']=='group-exited':
-                    if retired is not None:retired(dict(pid=pid,startTicks=before['startTicks'],reason='same-identity-pidfd-group-exited',rssError=error.errno,sampleAttempts=attempt,groupExitProof=group))
-                    return 0
+            # A kernel task can release its mm before /proc/stat reports Z.
+            # State R/S is not proof of life or death. Only the existing exact
+            # process-wide pidfd exit event permits retirement here.
+            group=process_group_exit_probe(pid,before)
+            if group['state']=='group-exited':
+                if retired is not None:retired(dict(pid=pid,startTicks=before['startTicks'],reason='same-identity-pidfd-group-exited',rssError=error.errno,sampleAttempts=attempt,groupExitProof=group))
+                return 0
             alternate=same_process_rss_alternative(pid,before)
             if alternate is not None:
                 size,event=alternate;event.update(originalRSSKernelError=error.errno,sampleAttempts=attempt)
