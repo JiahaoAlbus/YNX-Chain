@@ -430,7 +430,9 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if wireLiveErr != nil {
 		logger.Error("live wire DATA producer unavailable/UNKNOWN; normal consensus continues", "err", wireLiveErr)
 	}
-	defer func() { result = errors.Join(result, node.ProxyApp().Stop()) }()
+	// After Start succeeds the original Node.OnStop owns the proxy shutdown.
+	// Calling Stop again here returns ErrAlreadyStopped after every clean exit.
+	// Pre-Start failure paths above still release their constructed resources.
 	var liveDone <-chan struct{}
 	if live != nil {
 		if err = live.Start(ctx); err != nil {

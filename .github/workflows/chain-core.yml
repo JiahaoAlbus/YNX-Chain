@@ -317,7 +317,7 @@ jobs:
             exit 1
           fi
           git diff --exit-code -- go.mod go.sum
-          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run '^TestOperatorWire(Observation|Live)' ./cmd/ynx-comet > "$RUNNER_TEMP/wire-caller-tests.jsonl"; then
+          if ! go test -mod=readonly -json -p 1 -count=1 -timeout=120s -run '^(TestOperatorWire(Observation|Live)|TestPQNodeNormalCancellation)' ./cmd/ynx-comet > "$RUNNER_TEMP/wire-caller-tests.jsonl"; then
             cat "$RUNNER_TEMP/wire-caller-tests.jsonl"
             exit 1
           fi
@@ -329,11 +329,12 @@ jobs:
               rows += [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / filename).read_text().splitlines()]
           required = ['TestMempoolWireObserverOriginalReceiveAndCheckTx', 'TestMempoolWireObserverOriginalSendRetryAndBytes', 'TestMempoolWireObserverLifecycleAndConcurrentSnapshot', 'TestMempoolWireObserverOverflowIsExplicit', 'TestOperatorWireObservationFlagsDefaultAndFailClosed', 'TestOperatorWireObservationActualPinnedConstructorAndReactor', 'TestOperatorWireObservationActualScopeAndLoopbackRefusals', 'TestOperatorWireObservationNormalStopOneOutputAndPublicSchema', 'TestOperatorWireObservationFailureAndUnknownPreserveOriginal', 'TestOperatorWireObservationPathAndEndpointBoundaries', 'TestOperatorWireObservationExactOutputReadback']
           required += ['TestOperatorWireLivePrivateControlTwoEndpointsAndNoReplay', 'TestOperatorWireLiveUnknownPreservesOriginalAndRetires', 'TestOperatorWireLiveCloseJoinsOriginalCaptureWithoutNodeQuit', 'TestOperatorWireLivePermissionsIdentityAndResiduals', 'TestOperatorWireLiveRequesterUnknownAndProducerIdentity', 'TestOperatorWireLiveSelfProcParsingAndDefaultOff']
+          required += ['TestPQNodeNormalCancellationReturnsAfterOwnedStop']
           for name in required:
               terminal = [r['Action'] for r in rows if r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')]
               if terminal != ['pass']:
                   raise RuntimeError('original observation adapter did not execute and pass: ' + name)
-          print('YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, physicalBytesMeasured=False, nodeProcessesStarted=0), sort_keys=True))
+          print('YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED ' + json.dumps(dict(commit=os.environ['GITHUB_SHA'], requiredPassed=required, physicalBytesMeasured=False, nodeProcessesStarted=0, normalEphemeralInProcessStartStop=True), sort_keys=True))
           PY
 
       - name: Verify strict source availability and separated Go stream controls
