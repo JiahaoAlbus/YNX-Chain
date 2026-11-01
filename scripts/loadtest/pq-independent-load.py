@@ -670,6 +670,9 @@ def run(args):
         staged=getattr(args,'staged_publication',False)
         ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),sender_pool=staged,consumer_source=args.commit)
         ceremony.sender_arguments=STAGED_SENDER_ARGUMENTS if staged else ()
+        if staged:
+            result['coldBootstrapReadinessBudget']=initialization.cold_readiness_budget(w)
+            ceremony.initial_quiet_timeout=result['coldBootstrapReadinessBudget']['grantedColdPhaseSeconds']
         owners=[dict(ownerIndex=o["index"],address=o["owner"],nextNonce=int(o["initialNonce"])+1,capacity=int(o["memberCapacity"])) for o in ceremony.workload["owners"][4:]]
         lab.require(ceremony.workload["batchSize"]=="1" and ceremony.workload["outstandingPerOwner"]=="1" and ceremony.workload["batchWaitNanoseconds"]=="0","original independent single transfers and one pending required")
         plan=scheduler.make_plan(ceremony.pin,ceremony.workload_pin,args.mode,owners,args.rate,args.seconds*1_000_000_000,args.tail_seconds*1_000_000_000)
@@ -763,6 +766,7 @@ def run(args):
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()
+            if callable(getattr(ceremony,'readiness_report',None)):result['originalReadinessObservations']=ceremony.readiness_report()
             result["normalCalleeMeasurements"]=ceremony.measurements.report()
             result["preparationSenderMeasurements"]=copy.deepcopy(getattr(ceremony,"preparation_sender_measurements",[]))
             result['failedCalleeMeasurements']=dict(attempted=getattr(ceremony,'failed_callee_attempts',0),retained=len(getattr(ceremony,'failed_callee_measurements',[])),recordLimit=64,records=copy.deepcopy(getattr(ceremony,'failed_callee_measurements',[])),successfulReplyCoverageUnchanged=True,authorityGranted=False)

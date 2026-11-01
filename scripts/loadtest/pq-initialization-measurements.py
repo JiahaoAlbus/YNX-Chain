@@ -156,3 +156,11 @@ def require_complete_initialization(result):
     stages=[v['stage'] for v in records]
     require(stages.count('build')==3 and stages.count('create_original')==1 and stages.count('prepare_network')==1 and stages.count('complete_account_readback')==1,'original build/create/prepare/full account stages required')
     return dict(schema='YNX-PERF-COMPLETE-NORMAL-INITIALIZATION-DATA/v1',source=result['source'],configuredLoadAccounts=500,completeNormalInitializationObserved=True,cleanupComplete=True,loadExecuted=False,pressureAuthorized=False,sourceGrant=False,meaning='Original normal initialization and full-account DATA receipt contract only. A new business pressure window and same-condition source comparison require separate Root selection; no TPS/finality inferred.')
+
+
+def cold_readiness_budget(window,now=None):
+    now=time.monotonic() if now is None else now
+    active=900-15
+    remaining=window.started+active-now
+    if remaining<=0:raise RuntimeError('original active initialization budget exhausted before cold readiness')
+    return dict(requestedColdPhaseSeconds=180,grantedColdPhaseSeconds=min(180,remaining),originalGlobalTotalSeconds=900,originalCleanupSeconds=15,remainingOriginalActiveSeconds=remaining,globalBudgetIncreased=False,reason='Actual full504 cold nodes reached RPC around the former60s phase deadline; allow cold readiness within the original global budget, with identical owners/nonce/validation.')

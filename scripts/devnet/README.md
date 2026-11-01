@@ -846,3 +846,21 @@ unfinished journals retain UNKNOWN/null elapsed times and the original first
 cause. Duplicate node identities cannot represent all four nodes. This reader
 never changes the original receipt, supplies missing intervals, retries an
 operation, starts a node or grants pressure/finality qualification.
+
+The original 41308648716 cold start hit its inherited 60-second phase deadline:
+RPC listeners appeared around that cutoff, before the first common committed
+checkpoint could stabilize. Staged large-owner initialization now allocates up
+to 180 seconds for only the initial cold readiness phase, capped by the remaining
+original 885-second active budget. The global 900/cleanup15, CPU2/RSS4GiB/PID16/
+new8GiB limits, complete500 cohort, consensus timeouts, proof timeout, ordinary
+60-second defaults and three stable disk/status/ABCI checks remain unchanged.
+No ready state is inferred from process liveness, listening RPC or manifest size.
+
+Readiness observations retain first successful RPC observations, first observed
+initial-height-or-later heights, first common checkpoint and quiet confirmation
+as different timestamps. Original node logs retain actual service/commit times.
+Registered Popen PID/startTicks and exit codes are observed before cleanup to
+distinguish slow initialization from a dead child. Per-call snapshot read/decode
+and RPC elapsed totals include failed calls; original resource errors propagate
+rather than becoming not-ready. Full snapshot JSON is decoded, but only the
+checkpoint fields are retained, instead of holding four account snapshots.

@@ -172,28 +172,79 @@ class Ceremony:
                 finally:os.close(fd)
             self.nodes.append(proc)
 
-    def quiet(self,minimum=0,timeout=60):
-        until=time.monotonic()+timeout;last=None;stable=0
-        while time.monotonic()<until:
-            self.w.sample()
+    def readiness_process_observations(self):
+        result=[]
+        for node,proc in enumerate(getattr(self,'nodes',[])):
+            value=dict(node=node,pid=proc.pid,scope='original registered Popen, before cleanup')
             try:
-                states=[json.loads(lab.guard.bounded(Path(n["statePath"]),128<<20)) for n in self.plan["nodes"]]
-                h={s["height"] for s in states};app={s["appHash"] for s in states}
-                lab.require(len(h)==1 and len(app)==1 and next(iter(h))>=minimum and all(s["initialized"] for s in states),"four applications not at common initialized checkpoint")
-                height=next(iter(h));apphash=next(iter(app))
-                for n in self.plan["nodes"]:
-                    status=self.w.rpc(n["rpcAddress"],"status")
-                    info=self.w.rpc(n["rpcAddress"],"abci_info")["response"]
-                    # Status.LatestAppHash belongs to the latest HEADER (H-1).
-                    # Compare the current App hash with original ABCI Info.
-                    lab.require(status["node_info"]["network"]==self.plan["chainId"] and int(status["sync_info"]["latest_block_height"])==height,"normal RPC height/chain differs")
-                    lab.require(int(info["last_block_height"])==height and decoded_hash(info["last_block_app_hash"])==apphash.lower(),"normal ABCI Info differs from actual disk checkpoint")
-                current=(height,apphash)
-                stable=stable+1 if current==last else 1;last=current
-                if stable>=3:return dict(height=height,appHash=apphash)
-            except (OSError,ValueError,KeyError,RuntimeError):stable=0
-            time.sleep(.2)
-        raise RuntimeError("four normal applications/RPCs did not reach a quiet common checkpoint")
+                with self.w.lock:
+                    child=next(c for c in self.w.children if c['process'] is proc)
+                    value.update(name=child['name'],startTicks=child.get('startTicks'),rawReturnCode=proc.poll())
+            except BaseException as error:value['observationErrorType']=type(error).__name__
+            result.append(value)
+        return result
+
+    def quiet(self,minimum=0,timeout=60):
+        # The caller allocates a cold phase inside the unchanged global guard.
+        # RPC startup, first observed height and stable disk/RPC readiness are
+        # separate observations; none is authority or transaction finality.
+        started=time.monotonic_ns();remaining=self.w.started+lab.CAPS['totalSeconds']-lab.CAPS['cleanupSeconds']-time.monotonic()
+        allocated=max(0,min(timeout,remaining));until=time.monotonic()+allocated;last=None;stable=0;attempts=0;errors={};last_error=None;last_nodes=[];last_rpc_errors=[];last_rpc_metadata=[];first_rpc={};first_height={};first_common=None;confirmed=None;terminal_error=None;outcome='FAILED';totals=dict(snapshotReadNs=0,snapshotDecodeNs=0,rpcStatusNs=0,rpcABCIInfoNs=0)
+        def timed(name,operation):
+            begin=time.monotonic_ns()
+            try:return operation()
+            finally:totals[name]+=time.monotonic_ns()-begin
+        try:
+            while time.monotonic()<until:
+                self.w.sample();attempts+=1;observed=[];answer=None;rpc={};rpc_errors=[]
+                # Probe all four original endpoints, even while another node
+                # still has no application snapshot. Never declare readiness
+                # until every original disk/status/ABCI condition below passes.
+                for node in self.plan['nodes']:
+                    try:
+                        status=timed('rpcStatusNs',lambda:self.w.rpc(node['rpcAddress'],'status'))
+                        status_at=time.monotonic_ns()
+                        info=timed('rpcABCIInfoNs',lambda:self.w.rpc(node['rpcAddress'],'abci_info'))['response']
+                        info_at=time.monotonic_ns();height_observed=status['sync_info']['latest_block_height'];network_observed=status['node_info']['network'];int(height_observed);int(info['last_block_height']);info['last_block_app_hash']
+                        rpc[node['index']]=(status,info)
+                        first_rpc.setdefault(node['index'],dict(statusObservedMonotonicNs=status_at,abciInfoObservedMonotonicNs=info_at,height=height_observed,chainId=network_observed))
+                        if int(height_observed)>=int(self.plan['initialHeight']):first_height.setdefault(node['index'],dict(observedMonotonicNs=status_at,height=height_observed))
+                    except (OSError,ValueError,KeyError,RuntimeError) as error:
+                        kind=type(error).__name__;errors[kind]=errors.get(kind,0)+1;rpc_errors.append(dict(node=node['index'],errorType=kind,reason=str(error)[:512]))
+                last_rpc_errors=rpc_errors;last_rpc_metadata=[dict(node=index,chainId=pair[0]['node_info']['network'],height=pair[0]['sync_info']['latest_block_height'],abciHeight=pair[1]['last_block_height']) for index,pair in rpc.items()]
+                try:
+                    for node in self.plan['nodes']:
+                        raw=timed('snapshotReadNs',lambda:lab.guard.bounded(Path(node['statePath']),128<<20))
+                        state=timed('snapshotDecodeNs',lambda:json.loads(raw))
+                        observed.append(dict(node=node['index'],height=state['height'],appHash=state['appHash'],initialized=state['initialized']));del raw,state
+                    last_nodes=observed;heights={v['height'] for v in observed};hashes={v['appHash'] for v in observed}
+                    lab.require(len(heights)==1 and len(hashes)==1 and next(iter(heights))>=minimum and all(v['initialized'] for v in observed),'four applications not at common initialized checkpoint')
+                    lab.require(not rpc_errors and len(rpc)==4,'all four original RPC observations required: '+json.dumps(rpc_errors,separators=(',',':')))
+                    height=next(iter(heights));app_hash=next(iter(hashes))
+                    for node in self.plan['nodes']:
+                        status,info=rpc[node['index']]
+                        lab.require(status['node_info']['network']==self.plan['chainId'] and int(status['sync_info']['latest_block_height'])==height,'normal RPC height/chain differs')
+                        lab.require(int(info['last_block_height'])==height and decoded_hash(info['last_block_app_hash'])==app_hash.lower(),'normal ABCI Info differs from actual disk checkpoint')
+                    now=time.monotonic_ns()
+                    if first_common is None:first_common=dict(observedMonotonicNs=now,height=height,appHash=app_hash)
+                    current=(height,app_hash);stable=stable+1 if current==last else 1;last=current
+                    if stable>=3:answer=dict(height=height,appHash=app_hash);confirmed=now
+                except (OSError,ValueError,KeyError,RuntimeError) as error:
+                    stable=0;kind=type(error).__name__;errors[kind]=errors.get(kind,0)+1;last_error=dict(errorType=kind,reason=str(error)[:512]);last_nodes=observed
+                self.w.sample() # Critical resource/owner failure is never not-ready.
+                if answer is not None:outcome='RETURNED';return answer
+                time.sleep(.2)
+            raise RuntimeError('four normal applications/RPCs did not reach a quiet common checkpoint; last observation='+json.dumps(last_error,separators=(',',':')))
+        except BaseException as error:terminal_error=dict(errorType=type(error).__name__,reason=str(error)[:512]);raise
+        finally:
+            processes=self.readiness_process_observations()
+            with self.w.lock:
+                if not hasattr(self,'quiet_observations'):self.quiet_observations=[]
+                self.quiet_calls=getattr(self,'quiet_calls',0)+1
+                if len(self.quiet_observations)<128:self.quiet_observations.append(dict(index=self.quiet_calls-1,minimumHeight=minimum,requestedTimeoutSeconds=timeout,allocatedTimeoutSeconds=allocated,globalActiveLimitSeconds=lab.CAPS['totalSeconds']-lab.CAPS['cleanupSeconds'],startedMonotonicNs=started,returnedMonotonicNs=time.monotonic_ns(),attempts=attempts,outcome=outcome,stableObservations=stable,lastCheckpoint=None if last is None else dict(height=last[0],appHash=last[1]),firstSuccessfulRPCObservationByNode=first_rpc,firstInitialHeightOrLaterObservedByNode=first_height,firstCommonInitializedObservation=first_common,quietConfirmedMonotonicNs=confirmed,lastError=last_error,terminalError=terminal_error,errorCounts=errors,lastOriginalNodeMetadata=last_nodes,lastRPCErrors=last_rpc_errors,lastRPCMetadata=last_rpc_metadata,originalProcessObservations=processes,spansNs=totals,intervalsAreParentElapsed=True,authorityGranted=False))
+
+    def readiness_report(self):
+        with self.w.lock:return dict(schema='YNX-PERF-ORIGINAL-READINESS-OBSERVATIONS/v1',calls=getattr(self,'quiet_calls',0),retained=len(getattr(self,'quiet_observations',[])),omitted=max(0,getattr(self,'quiet_calls',0)-len(getattr(self,'quiet_observations',[]))),recordLimit=128,records=__import__('copy').deepcopy(getattr(self,'quiet_observations',[])),meaning='Original disk/RPC readiness only. RPC/height timestamps are first observations, not exact service/commit times; original node logs retain those. Full original JSON decoded, only checkpoint metadata retained. Parent spans include failures/transport; never Go CPU or business finality.')
 
     def post_once(self,name,raw,expected):
         original_hash=expected;expected=comet_hash(expected)
@@ -284,7 +335,7 @@ class Ceremony:
         return activation
 
     def prepare_network(self):
-        self.start();self.quiet(int(self.plan["initialHeight"]))
+        self.start();self.quiet(int(self.plan["initialHeight"]),timeout=getattr(self,"initial_quiet_timeout",60))
         for i in range(4):
             before=self.quiet();registration=self.call("registration-%d"%i,["registration","--synthetic","--root",str(self.root),"--plan-sha256",self.pin,"--node",str(i),"--approved-at",str(before["height"]+1)])
             after=self.quiet();lab.require(after==before,"checkpoint advanced during one-shot approval; preserve originals")
