@@ -1,5 +1,5 @@
 import {types} from 'node:util';
-import {NativePayBusinessClient,nativePaySummary,nativePayFailureCode} from './pay-business-client.mjs';
+import {NativePayBusinessClient,nativePaySummary,nativePayFailureCode,nativePayFailureResultDATA} from './pay-business-client.mjs';
 import {rejectNativePayPending} from './merchant-invoice-approval.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'create-intent':['productId','sourceOrder'],'lookup-intent':['productId','sourceOrder'],'terms-review':['intentId'],'pay-review':['merchant','invoiceId'],'refund-review':['merchant','invoiceId','refundId','amountAtoms'],events:['merchant','invoiceId'],recover:['merchant','invoiceId','nativeHash'],'recover-archive':['productId','sourceOrder','merchant','invoiceId','nativeHash'],'reconcile-archive':['productId','sourceOrder','merchant','invoiceId'],'recover-intent':['intentId'],'broadcast-review':['kind','merchant','invoiceId','intentId','originalHash']};
@@ -57,24 +57,11 @@ export function createNativePayMainEntry({getMain,getContext}){
   return ()=>{const now=getContext();if(epoch!==e||!now||now.account!==c.account||now.revision!==c.revision||now.locked||now.changing||!now.focused)fail('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');};
  };
  function cancel(){epoch++;client?.invalidate('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');return pending.cancel();}
- return Object.freeze({
-  compose(originalSource){
-   if(source||active)fail('NATIVE_PAY_MAIN_ALREADY_COMPOSED');
-   if(!originalSource?.pay||typeof originalSource.current!=='function')fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');
-   source=originalSource;
-  },
-  status(){let reason=source?null:'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE';
-   if(source)try{context()();if(source.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}catch(error){reason=nativePayFailureCode(error,'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}
-   return {client:'YNX Pay',normalMainEntry:true,sourceSupplied:!!source,available:reason===null,reason,approvalInOriginalMain:true,paymentAuthorized:false};},
-  cancel,
-  // Main-only completion notification; never install as an IPC action. Main
-  // calls it only after the original review/cleanup actually settles.
-  settleOriginalReview:(id,owner)=>pending.settled(id,owner),
-  async invoke(raw){
+ async function invoke(raw,onFailure){
    const request=input(raw);if(!source)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');if(active)fail('NATIVE_PAY_MAIN_BUSY');
    const assertContext=context(),originalSource=source,main=getMain();
    const current=()=>{assertContext();if(originalSource.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');};
-   current();active=true;
+   current();active=true;let operationClient=null;
    try{
     const runtime={main,pay:originalSource.pay,current,
      ...(typeof originalSource.readOriginalInvoiceIntent==='function'?{readOriginalInvoiceIntent:(...args)=>originalSource.readOriginalInvoiceIntent(...args)}:{}),
@@ -84,7 +71,7 @@ export function createNativePayMainEntry({getMain,getContext}){
      ...(originalSource.notificationInbox?{notificationInbox:originalSource.notificationInbox}:{}),
      ...(typeof originalSource.readNotificationScope==='function'?{readNotificationScope:()=>originalSource.readNotificationScope()}:{}),
      ...(typeof originalSource.refreshOriginalProduct==='function'?{refreshOriginalProduct:(...args)=>originalSource.refreshOriginalProduct(...args)}:{})};
-    client=new NativePayBusinessClient(runtime);let state;
+    client=operationClient=new NativePayBusinessClient(runtime);let state;
     const {action,merchant,invoiceId,intentId}=request;
     if(action==='invoice')state=await client.openInvoice(merchant,invoiceId);
     else if(action==='intent')state=await client.openIntent(intentId);
@@ -101,7 +88,31 @@ export function createNativePayMainEntry({getMain,getContext}){
     else if(action==='broadcast-review'){const {action:_,...ref}=request;state=await client.reviewOriginalBroadcast(ref);}
     current();if(state.walletRequest?.id)pending.remember(state.walletRequest.id,main);
     return nativePaySummary(state);
+   }catch(error){
+    // Error DATA is captured only while the same account and Source remain
+    // current. invoke itself preserves the exact original thrown cause.
+    if(onFailure&&operationClient)try{current();onFailure(operationClient.snapshot(),current);}catch{}
+    throw error;
    }finally{active=false;}
+  }
+ return Object.freeze({
+  compose(originalSource){
+   if(source||active)fail('NATIVE_PAY_MAIN_ALREADY_COMPOSED');
+   if(!originalSource?.pay||typeof originalSource.current!=='function')fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');
+   source=originalSource;
+  },
+  status(){let reason=source?null:'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE';
+   if(source)try{context()();if(source.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}catch(error){reason=nativePayFailureCode(error,'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');}
+   return {client:'YNX Pay',normalMainEntry:true,sourceSupplied:!!source,available:reason===null,reason,approvalInOriginalMain:true,paymentAuthorized:false};},
+  cancel,
+  // Main-only completion notification; never install as an IPC action. Main
+  // calls it only after the original review/cleanup actually settles.
+  settleOriginalReview:(id,owner)=>pending.settled(id,owner),
+  invoke:raw=>invoke(raw),
+  async invokeResult(raw){
+   let failureState=null,failureCurrent=null;
+   try{return {version:'ynx.pay.main-result/v1',ok:true,...await invoke(raw,(state,current)=>{failureState=state;failureCurrent=current;})};}
+   catch(error){if(failureCurrent)try{failureCurrent();}catch{failureState=null;}return nativePayFailureResultDATA(error,failureState);}
   }
  });
 }

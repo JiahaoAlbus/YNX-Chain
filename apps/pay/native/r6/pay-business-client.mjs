@@ -1,3 +1,4 @@
+import {types} from 'node:util';
 import {createNativeInvoiceMerchantApproval,createNativePayActionApproval,rejectNativePayPending} from './merchant-invoice-approval.mjs';
 import {nativeInvoiceProductIntentData} from './invoice-product-intent.mjs';
 import {nativeArchiveReceiptData,nativeArchiveReconciliationData} from './archive-receipt.mjs';
@@ -5,9 +6,48 @@ const failure=code=>Object.assign(Error(code),{code});
 const clone=value=>structuredClone(value);
 // Wallet provider errors keep their precise domain code in data.code; the
 // numeric outer provider code must not hide a missing production Source.
+function own(value,key){
+ if(!value||typeof value!=='object'||types.isProxy(value))return undefined;
+ const field=Object.getOwnPropertyDescriptor(value,key);
+ return field&&Object.hasOwn(field,'value')?field.value:undefined;
+}
 export function nativePayFailureCode(error,fallback='NATIVE_PAY_OPERATION_UNAVAILABLE'){
- for(const code of [error?.data?.code,error?.code])if(typeof code==='string'&&/^[A-Za-z0-9_:-]{1,128}$/.test(code))return code;
+ for(const code of [own(own(error,'data'),'code'),own(error,'code')])if(typeof code==='string'&&/^[A-Za-z0-9_:-]{1,128}$/.test(code))return code;
  return fallback;
+}
+const referenceFields=['productId','sourceOrder','merchant','invoiceId','intentId','nativeHash','originalHash','kind','refundId'];
+function readReference(value){
+ if(!value||typeof value!=='object'||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)return null;
+ const out={};
+ for(const key of referenceFields){const v=own(value,key);if(typeof v==='string'&&v.length<=256)out[key]=v;}
+ return Object.keys(out).length?out:null;
+}
+// Same-reference query DATA only. An ABCI originalHash is never relabelled as
+// a nativeHash, and no returned action creates, signs, approves or resends.
+export function nativePayRecoveryActions(reference){
+ const r=readReference(reference);if(!r)return [];
+ const id=v=>typeof v==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(v),merchant=/^0x[0-9a-f]{40}$/.test(r.merchant??''),hash=/^0x[0-9a-f]{64}$/.test(r.nativeHash??'');
+ if(id(r.productId)&&id(r.sourceOrder)){
+  if(merchant&&id(r.invoiceId))return [{action:hash?'recover-archive':'reconcile-archive',productId:r.productId,sourceOrder:r.sourceOrder,merchant:r.merchant,invoiceId:r.invoiceId,...(hash?{nativeHash:r.nativeHash}:{})}];
+  return [{action:'lookup-intent',productId:r.productId,sourceOrder:r.sourceOrder}];
+ }
+ if(/^npi_[0-9a-f]{48}$/.test(r.intentId??''))return [{action:'intent',intentId:r.intentId}];
+ if(merchant&&id(r.invoiceId))return [{action:hash?'recover':'invoice',merchant:r.merchant,invoiceId:r.invoiceId,...(hash?{nativeHash:r.nativeHash}:{})}];
+ return [];
+}
+// Private diagnostic association only. Structured-cloned renderer DATA has
+// no entry; this is neither a new transaction journal nor an authorization.
+const failureCauses=new WeakMap();
+export function readNativePayFailureCause(result){
+ return failureCauses.has(result)?{present:true,cause:failureCauses.get(result)}:{present:false};
+}
+export function nativePayFailureResultDATA(error,state=null){
+ const code=nativePayFailureCode(error),reference=readReference(own(state,'reference')),status=own(error,'status');
+ const result={version:'ynx.pay.main-result/v1',ok:false,phase:'unavailable',reason:code,code,reference,
+  recoveryOnly:own(state,'recoveryOnly')===true,recoveryActions:nativePayRecoveryActions(reference),canRetry:false,
+  clientIndependentFinality:false,paymentAuthorized:false,outcome:'UNKNOWN',
+  ...(Number.isInteger(status)&&status>=100&&status<=599?{httpStatus:status}:{})};
+ failureCauses.set(result,error);return result;
 }
 
 /** Client orchestration only. Pay owns invoice/funds/outbox state and Main owns
@@ -141,9 +181,10 @@ export class NativePayBusinessClient {
 // original authenticated Pay projection, never a locally invented paid receipt.
 export function nativePaySummary(state){
  const bill=state.bill;
- const summary={phase:state.phase,reason:state.reason??null,reference:state.reference,approvalRequired:state.approvalRequired===true,queryOnly:state.queryOnly===true,recoveryOnly:state.recoveryOnly===true,clientIndependentFinality:false};
+ const summary={phase:state.phase,reason:state.reason??null,reference:state.reference,approvalRequired:state.approvalRequired===true,queryOnly:state.queryOnly===true,recoveryOnly:state.recoveryOnly===true,clientIndependentFinality:false,canRetry:false,recoveryActions:nativePayRecoveryActions(state.reference)};
  if(bill)summary.bill=Object.fromEntries(['genesis','nativeChainId','merchant','invoiceId','sessionId','sourceOrder','status','refundStatus','assetId','unitVersion','principalAtoms','paidAtoms','refundedAtoms','netPaidAtoms','termsFeeAtoms','paymentFeeAtoms','refundFeeAtoms','feeRule','maxFeeAtoms','expiresAtHeight','termsNativeHash','settlementNativeHash'].map(k=>[k,bill[k]]));
  if(bill?.operations)summary.operations=Object.values(bill.operations).map(op=>({nativeHash:op.nativeHash,abciHash:op.abciHash,kind:op.kind,status:op.status,failure:op.failure??null}));
+ if(summary.operations){summary.pendingOriginals=summary.operations.filter(op=>['unknown','submitted'].includes(op.status)).map(op=>op.nativeHash);summary.outcomeUnknown=summary.pendingOriginals.length>0||bill.status==='unknown'||bill.refundStatus==='unknown';}
  if(state.intent)summary.intent={intentId:state.intent.intentId,originalOperation:state.intent.originalOperation,state:state.intent.state,phase:state.intent.phase,termsNativeHash:state.intent.termsNativeHash};
  if(state.walletRequest)summary.walletRequest={id:state.walletRequest.id,method:state.walletRequest.method,review:state.walletRequest.review.invoice??{title:state.walletRequest.review.title},approvalRequired:true};
  if(state.recovery)summary.recovery=state.recovery;

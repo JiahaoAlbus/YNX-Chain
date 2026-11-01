@@ -117,3 +117,39 @@ refund get archived. Shop rereads Pay, cold-opens its own Store and checks that
 partial refund, duplicate receipts and warehouse operations remain independent.
 These tests use explicit PUBLIC Source/temporary Member fixtures, not genuine
 Root commissioning or real-funds approval.
+
+Normal Main result DATA is available through the optional Main-boot
+`entry.invokeResult(request)` using the existing exact request shapes. Original
+`entry.invoke(request)` still throws the identical original cause. Result DATA
+uses `version:ynx.pay.main-result/v1` and an explicit `ok` field. On success the
+existing bill, intent, operations, approval request and archive projections
+remain flat. `pendingOriginals` and `outcomeUnknown` retain known pending
+operation hashes beside the original decimal-string totals. `canRetry:false`
+applies throughout; a successful read or approval request does not authorize
+signing, submission or client finality.
+
+Failures expose only bounded code, observed HTTP status when available, and
+same-current original references. `outcome:UNKNOWN` does not assert a failed
+payment. `recoveryActions` contains only the same original intent lookup/GET,
+invoice GET or original archive read; it cannot offer create, approval, signing,
+new quote or dispatch. The original ABCI `originalHash` is never relabelled as
+`nativeHash`. Late Source/account invalidation strips failure references and
+recovery actions. Busy/invalid requests cannot borrow another request's state.
+
+Original P01 may select `{...entry,invoke:entry.invokeResult}` at its existing
+normal Main boot caller; no extra renderer channel or input action is added.
+The existing Main guard and publication of the same actual pending review
+remain required. Check both the IPC envelope and result `ok`; neither is a
+funds receipt. `readNativePayFailureCause(result)` is a Main-only diagnostic
+read of a private weak association. It preserves even false/null/undefined
+causes; structured-cloned renderer DATA has no association. Main reads this
+before serialization if it records diagnostics. No stack, response body,
+Member, envelope, credentials or original exception crosses into result DATA.
+
+`PAY_NATIVE_WORKFLOW_SUITE=main-result-client` checks this new module with the
+frozen original P01 product wrapper and the actual normal Go private factory /
+HTTP / durable Store. Creation happens once, its response is lost, then a new
+Node process and cold Go Store execute only the returned original lookup and
+GET. Original disk bytes remain unchanged; actual Source denial stays503.
+This delta performs no Core money POST or review/sign/dispatch and reuses the
+existing five-original partial/full-refund evidence without rerunning it.

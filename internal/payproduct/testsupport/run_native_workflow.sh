@@ -85,6 +85,15 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = main-result-client ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"
+ : "${PAY_MAIN_PRODUCT_SHA256:?exact original Main wrapper SHA256 required}"
+ export PAY_MAIN_RESULT_DRIVER="$client_root/testsupport/main-result-consumer.mjs"
+ "$PAY_NODE_BINARY" --test "$client_root/r6/main-result.test.mjs"
+ go test -race -p 1 -tags 'pay_pq pay_main_result_client pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeMainResultLostCreateColdOriginalLookupNoRetry$' -count=1 -timeout=1m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = multi-refund ]; then
  export PAY_MULTI_REFUND_WORKFLOW_DIR="$fixture_dir"
  go test -race -p 1 -tags 'pay_pq pay_multi_refund pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativePaySameBlockPartialRefundsThenFullColdReceipt$' -count=1 -timeout=5m -v
