@@ -189,7 +189,7 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
     private func transmit(_ path:String,method:String,body:Data?,beforeDispatch:(()throws->Void)?=nil)async throws->Data{
         guard base.scheme=="https",!path.hasPrefix("/"),let url=URL(string:path,relativeTo:base.appendingPathComponent("/"))?.absoluteURL,
               url.scheme==base.scheme,url.host==base.host,url.port==base.port,url.path.hasPrefix(base.path+"/"),url.user==nil,url.password==nil,url.fragment==nil else{throw ShopError.unavailable}
-        let publicRead=method=="GET" && url.path==base.path+"/products"
+        let publicRead=method=="GET" && (url.path==base.path+"/products" || NativeWire.matches(path,"^products/[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"))
         let at=revision,active=currentSession
         if !publicRead && active==nil{throw ShopError.signedOut}
         let assertCurrent={guard at==self.revision,publicRead || self.currentSession==active else{throw ShopError.contextChanged}}
@@ -200,6 +200,23 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
         do{let(data,response)=try await session.data(for:req);try assertCurrent();guard let http=response as? HTTPURLResponse,data.count<=1_048_576 else{throw ShopError.invalidResponse};if http.statusCode==401{if !publicRead{try authority?.disconnect();onSessionChanged?()};throw ShopError.signedOut};guard (200..<300).contains(http.statusCode) else{throw ShopError.invalidResponse};return data}catch{try assertCurrent();throw error}
     }
     func request<T:Decodable>(_ path:String,method:String="GET",body:Data?=nil)async throws->T{let data=try await transmit(path,method:method,body:body);return try JSONDecoder().decode(T.self,from:data)}
+    // Resolve the whole original cart independently of the current catalog filter.
+    // Public listing facts are preflight only; the Store still atomically freezes
+    // current prices and reserves all rows under the original cart revision.
+    func checkoutStore(_ items:[CartItem],current:()throws->Void)async throws->String {
+        guard !items.isEmpty,items.count<=100,Set(items.map(\.id)).count==items.count else{throw ShopError.security}
+        var resolved:[String:Product]=[:],store:String?
+        for item in items {
+            try current()
+            guard NativeWire.matches(item.productID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),NativeWire.matches(item.variantID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),(1...20).contains(item.quantity) else{throw ShopError.security}
+            let product:Product
+            if let prior=resolved[item.productID]{product=prior}else{product=try await request("products/\(item.productID)");try current();resolved[item.productID]=product}
+            let variants=product.variants.filter{$0.variantID==item.variantID}
+            guard product.productID==item.productID,NativeWire.matches(product.storeID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),variants.count==1,let variant=variants.first,variant.priceYNXT>0,variant.reserved>=0,variant.inventory>=variant.reserved,variant.available>=item.quantity,store==nil || store==product.storeID else{throw ShopError.security}
+            store=product.storeID
+        }
+        try current();guard let store else{throw ShopError.security};return store
+    }
     func data(_ path:String,method:String="GET",body:Data?=nil)async throws->Data{try await transmit(path,method:method,body:body)}
     func raw(_ path:String,method:String="POST",json:[String:Any],beforeDispatch:(()throws->Void)?=nil)async throws->[String:Any]{let data=try await transmit(path,method:method,body:CanonicalJSON.data(json),beforeDispatch:beforeDispatch);guard let value=try JSONSerialization.jsonObject(with:data) as? [String:Any] else{throw ShopError.invalidResponse};return value}
     // Signed Shop action reads verified original Pay receipts; no funds dispatch.

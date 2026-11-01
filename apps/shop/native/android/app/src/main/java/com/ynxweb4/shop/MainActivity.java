@@ -222,15 +222,15 @@ public final class MainActivity extends Activity {
         if(cartWork!=null)return;
         if(!hasSession()){signIn();return;}if(recipient.getText().toString().isBlank()||address.getText().toString().isBlank()||country.getText().toString().isBlank()){status.setText(getString(R.string.address));return;}
         try{
-            final CheckoutIntent.Prepared prepared;
-            synchronized(secure){
-                syncCartContext();if(cart.length()==0){showCart();return;}
-                JSONObject shipping=new JSONObject().put("Recipient",recipient.getText().toString()).put("Line1",address.getText().toString()).put("City",city.getText().toString()).put("Country",country.getText().toString());
-                prepared=CheckoutIntent.prepareSyncedCart(secure,api.session(),shipping,id->findProduct(id).getString("StoreID"));
-            }
-            ProductSession session=prepared.session;JSONObject body=prepared.body;
             if(!isOnline()){status.setText(getString(R.string.cart_sync_unconfirmed));return;}
-            runCartTask((sender,current,generation)->{if(!session.same(current))throw new SecurityException("Original checkout session changed");JSONObject value=api.requestForSession("POST","/orders",body,current,generation,()->CheckoutIntent.markDispatched(secure,current,body));synchronized(secure){if(!isCurrent(current,generation))throw new SecurityException("Original checkout changed");BuyerOrderReadback.validate(value,current);CheckoutIntent.confirmedReceipt(secure,current.account,body,value);}},()->{restoreCart();status.setText(getString(R.string.payment_pending));showOrders();});
+            final JSONObject shipping=new JSONObject().put("Recipient",recipient.getText().toString()).put("Line1",address.getText().toString()).put("City",city.getText().toString()).put("Country",country.getText().toString());
+            final long shownView=viewRevision;
+            runCartTask((sender,current,generation)->{
+                if(shownView!=viewRevision)throw new SecurityException("Checkout view changed");
+                CheckoutIntent.Prepared prepared=CheckoutIntent.prepareQueriedCart(secure,sender,current,generation,shipping);JSONObject body=prepared.body;
+                JSONObject value=api.requestForSession("POST","/orders",body,current,generation,()->{if(shownView!=viewRevision)throw new SecurityException("Checkout view changed");CheckoutIntent.markDispatched(secure,current,body);},()->shownView==viewRevision);
+                synchronized(secure){if(!isCurrent(current,generation))throw new SecurityException("Original checkout changed");BuyerOrderReadback.validate(value,current);CheckoutIntent.confirmedReceipt(secure,current.account,body,value);}
+            },()->{restoreCart();status.setText(getString(R.string.payment_pending));showOrders();});
         }catch(Exception error){status.setText(cartError(error));}
     }
 

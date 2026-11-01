@@ -17,6 +17,36 @@ final class CheckoutIntent {
     }
     static final class EmptyCartException extends IllegalStateException {}
     static final class UnresolvedException extends IllegalStateException { UnresolvedException(){super("CHECKOUT_UNRESOLVED");} }
+    // No dependency on the Activity's filtered/possibly not-yet-loaded catalog.
+    // Reads cannot reserve inventory; the original server checkout remains atomic.
+    static Prepared prepareQueriedCart(NativeCart.Storage store,NativeCart.Sender sender,ProductSession expected,long generation,JSONObject address)throws Exception{
+        final String cartText,metadata,previous;
+        synchronized(store){
+            requireCurrent(store,sender,expected,generation);
+            cartText=store.get("cart:"+expected.account);metadata=store.get(NativeCart.key(expected.account));previous=store.get("checkout:"+expected.account);
+            NativeCart.checkoutRevision(store,expected.account);
+            if(!previous.isEmpty()&&!"prepared".equals(new JSONObject(previous).optString("phase")))throw new UnresolvedException();
+        }
+        JSONArray items=new JSONArray(cartText);if(items.length()==0)throw new EmptyCartException();if(items.length()>100)throw new SecurityException("Cart too large");
+        java.util.Map<String,String> stores=new java.util.HashMap<>();java.util.Map<String,JSONObject> products=new java.util.HashMap<>();java.util.Set<String> pairs=new java.util.HashSet<>();String selected=null;
+        for(int i=0;i<items.length();i++){
+            requireCurrent(store,sender,expected,generation);JSONObject item=items.getJSONObject(i);String id=item.getString("ProductID"),variantID=item.getString("VariantID");long qty=cartInteger(item,"Quantity");
+            if(!id.matches("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")||!variantID.matches("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")||qty<1||qty>20||!pairs.add(id.length()+":"+id+variantID.length()+":"+variantID))throw new SecurityException("Invalid cart row");
+            JSONObject product=products.get(id);if(product==null){product=sender.request("GET","/products/"+id,null,expected,generation);requireCurrent(store,sender,expected,generation);products.put(id,product);}
+            String merchant=product.getString("StoreID");if(!id.equals(product.getString("ID"))||!merchant.matches("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")||(selected!=null&&!selected.equals(merchant)))throw new SecurityException("One original store required");
+            JSONArray variants=product.getJSONArray("Variants");int matches=0;for(int j=0;j<variants.length();j++){JSONObject v=variants.getJSONObject(j);if(variantID.equals(v.getString("ID"))){matches++;long inventory=cartInteger(v,"Inventory"),reserved=v.has("Reserved")?cartInteger(v,"Reserved"):0;if(cartInteger(v,"PriceYNXT")<=0||reserved<0||inventory<reserved||inventory-reserved<qty)throw new SecurityException("Original SKU unavailable");}}
+            if(matches!=1)throw new SecurityException("Original SKU missing or ambiguous");selected=merchant;stores.put(id,merchant);
+        }
+        synchronized(store){
+            requireCurrent(store,sender,expected,generation);
+            if(!cartText.equals(store.get("cart:"+expected.account))||!metadata.equals(store.get(NativeCart.key(expected.account)))||!previous.equals(store.get("checkout:"+expected.account)))throw new SecurityException("Cart changed during listing read");
+            return prepareSyncedCart(store,expected,address,stores::get);
+        }
+    }
+    private static void requireCurrent(NativeCart.Storage store,NativeCart.Sender sender,ProductSession expected,long generation)throws Exception{
+        if(expected==null||!expected.nativeV2||!expected.same(sender.session())||!PrivacyLifecycle.writableGeneration(store,expected.account,generation))throw new SecurityException("Original Native checkout context changed");
+    }
+    private static long cartInteger(JSONObject value,String key)throws Exception{Object n=value.get(key);if(!(n instanceof Integer)&&!(n instanceof Long))throw new SecurityException("Exact original integer required");return ((Number)n).longValue();}
     static Prepared prepareSyncedCart(NativeCart.Storage store,JSONObject address,StoreResolver catalog)throws Exception{
  return prepareSyncedCartInternal(store,ProductSession.parse(store.get("commerce_session"),Instant.now()),address,catalog,false);
  }
@@ -28,7 +58,8 @@ final class CheckoutIntent {
       synchronized(store){
         if(session==null)throw new SecurityException("Active Shop account required");PrivacyLifecycle.requireWritable(store,session.account);
         JSONArray items=new JSONArray(store.get("cart:"+session.account));if(items.length()==0)throw new EmptyCartException();
-        String key="checkout:"+session.account,previous=store.get(key);JSONObject body=new JSONObject().put("StoreID",catalog.storeFor(items.getJSONObject(0).getString("ProductID"))).put("Items",items).put("Address",new JSONObject(address.toString()));
+        String merchant=catalog.storeFor(items.getJSONObject(0).getString("ProductID"));if(merchant==null||merchant.isEmpty())throw new SecurityException("Missing original store");for(int i=1;i<items.length();i++)if(!merchant.equals(catalog.storeFor(items.getJSONObject(i).getString("ProductID"))))throw new SecurityException("One original store required");
+        String key="checkout:"+session.account,previous=store.get(key);JSONObject body=new JSONObject().put("StoreID",merchant).put("Items",items).put("Address",new JSONObject(address.toString()));
         if(previous.isEmpty())body.put("CartRevision",NativeCart.checkoutRevision(store,session.account));
         else{JSONObject saved=new JSONObject(previous);if(nativeOnly&&!"prepared".equals(saved.optString("phase")))throw new UnresolvedException();JSONObject original=new JSONObject(saved.getString("fingerprint"));if(!original.has("CartRevision"))throw new UnresolvedException();body.put("CartRevision",original.getString("CartRevision"));if(!WalletAuth.canonical(body).equals(saved.getString("fingerprint")))throw new UnresolvedException();}
         CheckoutIntent intent=prepare(session.account,body,previous);JSONObject saved=new JSONObject(intent.serialized);if(previous.isEmpty())saved.put("cartStamp",new JSONObject(store.get(NativeCart.key(session.account))).getString("stamp"));else if(new JSONObject(previous).has("cartStamp"))saved.put("cartStamp",new JSONObject(previous).getString("cartStamp"));

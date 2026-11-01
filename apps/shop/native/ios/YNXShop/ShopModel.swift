@@ -141,7 +141,36 @@ import SwiftUI
             Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let json=try JSONSerialization.jsonObject(with:item.body) as? [String:Any];guard let json else{throw ShopError.security};try check();let result=try await api.raw(item.path,method:item.method,json:json,beforeDispatch:{try check();try self.queue.beginDispatch(item)});try check();_ = try AppleBuyerReceipt.decode(result,account:account);try receipt(result);try queue.confirmedTracked(item);await loadOrders()}catch{do{try queue.markUnknown(item)}catch{failure(error);return};if let err=error as? ShopError,err == .contextChanged || err == .signedOut{failure(error)}else{state="queued_offline"}}}
         }catch{failure(error)}
     }
-    func checkout(recipient:String,address:String,city:String,country:String){guard signedIn else{signIn();return};guard !mutationBusy,!checkoutRecoveryRequired else{return};do{let check=try api.capture();guard let session=api.currentSession else{throw ShopError.signedOut};let draft=try journey.load(session.account);guard !draft.dirty,draft.cartIntent==nil,let cartRevision=draft.revision,!draft.items.isEmpty,!recipient.isEmpty,!address.isEmpty,!country.isEmpty else{throw ShopError.unresolvedMutation};let stores=Set(draft.items.compactMap{item in products.first(where:{$0.productID==item.productID})?.storeID});guard stores.count==1,let store=stores.first,draft.items.allSatisfy({item in products.contains{$0.productID==item.productID}}) else{throw ShopError.security};let old=try queue.load(account:session.account).contains{$0.path=="orders"};let body:[String:Any]=["StoreID":store,"Items":draft.items.map{["ProductID":$0.productID,"VariantID":$0.variantID,"Quantity":$0.quantity] as [String:Any]},"CartRevision":cartRevision,"Address":["Recipient":recipient,"Line1":address,"City":city,"Country":country]];let item=try queue.prepare(account:session.account,path:"orders",input:body);try journey.checkoutPrepared(session.account,item:item,existing:old);mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{guard let input=try JSONSerialization.jsonObject(with:item.body) as? [String:Any] else{throw ShopError.security};let result=try await api.raw("orders",json:input,beforeDispatch:{try check();try self.journey.checkoutDispatch(session.account,item:item)});try check();let order=try AppleBuyerReceipt.decode(result,account:session.account);try journey.checkoutConfirmed(session.account,item:item,order:order);try queue.confirmed(item);cart=try journey.load(session.account).items;await loadOrders()}catch{failure(error)}}}catch{failure(error)}}
+    func checkout(recipient:String,address:String,city:String,country:String){
+        guard signedIn else{signIn();return};guard !mutationBusy,!checkoutRecoveryRequired else{return}
+        do{
+            let check=try api.capture();guard let session=api.currentSession else{throw ShopError.signedOut}
+            let draft=try journey.load(session.account)
+            guard !draft.dirty,draft.cartIntent==nil,let cartRevision=draft.revision,!draft.items.isEmpty,!recipient.isEmpty,!address.isEmpty,!country.isEmpty else{throw ShopError.unresolvedMutation}
+            let revision=operationRevision
+            let current:()throws->Void={
+                try check();guard revision==self.operationRevision else{throw ShopError.contextChanged}
+                let now=try self.journey.load(session.account)
+                guard !now.dirty,now.cartIntent==nil,now.revision==cartRevision,now.items.count==draft.items.count,zip(now.items,draft.items).allSatisfy({$0.productID==$1.productID && $0.variantID==$1.variantID && $0.quantity==$1.quantity}) else{throw ShopError.contextChanged}
+            }
+            mutationBusy=true
+            Task{
+                defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}}
+                do{
+                    let store=try await api.checkoutStore(draft.items,current:current);try current()
+                    let old=try queue.load(account:session.account).contains{$0.path=="orders"}
+                    let body:[String:Any]=["StoreID":store,"Items":draft.items.map{["ProductID":$0.productID,"VariantID":$0.variantID,"Quantity":$0.quantity] as [String:Any]},"CartRevision":cartRevision,"Address":["Recipient":recipient,"Line1":address,"City":city,"Country":country]]
+                    let item=try queue.prepare(account:session.account,path:"orders",input:body)
+                    try journey.checkoutPrepared(session.account,item:item,existing:old)
+                    guard let input=try JSONSerialization.jsonObject(with:item.body) as? [String:Any] else{throw ShopError.security}
+                    let result=try await api.raw("orders",json:input,beforeDispatch:{try current();try self.journey.checkoutDispatch(session.account,item:item)})
+                    try check();let order=try AppleBuyerReceipt.decode(result,account:session.account)
+                    try journey.checkoutConfirmed(session.account,item:item,order:order);try queue.confirmed(item)
+                    cart=try journey.load(session.account).items;await loadOrders()
+                }catch{failure(error)}
+            }
+        }catch{failure(error)}
+    }
     func recoverCheckout(){guard signedIn,!mutationBusy else{return};mutationBusy=true;let revision=operationRevision;Task{defer{if revision==operationRevision{mutationBusy=false;refreshCheckoutRecovery()}};do{let check=try api.capture();guard let account=api.currentSession?.account,let item=try queue.load(account:account).first(where:{$0.path=="orders"}),let body=try JSONSerialization.jsonObject(with:item.body) as? [String:Any],let key=body["IdempotencyKey"] as? String else{throw ShopError.unresolvedMutation};let result=try await api.raw("orders/intent-lookup",json:["IdempotencyKey":key]);try check();let order=try AppleBuyerReceipt.decode(result,account:account);try journey.checkoutConfirmed(account,item:item,order:order);try queue.confirmed(item);cart=try journey.load(account).items;await loadOrders()}catch{failure(error)}}}
     func beginOrderAction(_ order:Order,_ action:String,title:String){
         guard signedIn,!mutationBusy,let session=api.currentSession else{return}

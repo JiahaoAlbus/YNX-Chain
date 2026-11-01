@@ -91,10 +91,10 @@ jobs:
               source_only = all(line in permitted for line in lines)
           fulfillment_files = {"apps/seller-console/native/fulfillment-cli.mjs", "apps/seller-console/native/check-fulfillment-cli.mjs", "apps/seller-console/native/FULFILLMENT.md", "apps/seller-console/test/fulfillment-cli.test.mjs", "apps/seller-console/test/fulfillment-http.mjs", "internal/commerce/fulfillment_cli_test.go"}
           fulfillment_only = bool(changed) and any(p in fulfillment_files for p in changed) and all(p in fulfillment_files or p == ".github/workflows/shop-native.yml" for p in changed)
-          fulfillment_checks = fulfillment_only or not changed or any(p in fulfillment_files or p in {".github/workflows/shop-native.yml", "internal/commerce/service.go", "internal/commerce/model.go", "internal/commerce/native_payment_receipt.go", "internal/commerce/business_order_transition.go"} for p in changed)
+          fulfillment_checks = not native_client_only and (fulfillment_only or not changed or any(p in fulfillment_files or p in {".github/workflows/shop-native.yml", "internal/commerce/service.go", "internal/commerce/model.go", "internal/commerce/native_payment_receipt.go", "internal/commerce/business_order_transition.go"} for p in changed))
           return_files = {"apps/seller-console/native/return-decision-cli.mjs", "apps/seller-console/native/check-return-decision-cli.mjs", "apps/seller-console/native/RETURN_DECISIONS.md", "apps/seller-console/test/return-decision-cli.test.mjs", "apps/seller-console/test/return-decision-http.mjs", "internal/commerce/original_return_decision_test.go", "internal/commerce/business_order_transition.go", "internal/commerce/service.go", "internal/commerce/server.go", "internal/commerce/seller_mutation_lookup.go"}
           return_decision_only = bool(changed) and any(p in return_files for p in changed) and all(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed)
-          return_decision_checks = return_decision_only or not changed or any(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed)
+          return_decision_checks = not native_client_only and (return_decision_only or not changed or any(p in return_files or p == ".github/workflows/shop-native.yml" for p in changed))
           tests = []
           if not source_only or any(map(source_path, changed)):
               tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI"])
@@ -325,6 +325,9 @@ jobs:
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/OriginalOrderLinkChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-original-order-link-checks"
           "$RUNNER_TEMP/ynx-shop-original-order-link-checks"
+          xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/CartCheckoutChecks.swift \
+            -o "$RUNNER_TEMP/ynx-shop-cart-checkout-checks"
+          "$RUNNER_TEMP/ynx-shop-cart-checkout-checks"
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/BuyerJourneyChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-buyer-journey-checks"
           "$RUNNER_TEMP/ynx-shop-buyer-journey-checks"
