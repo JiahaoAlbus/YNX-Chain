@@ -289,6 +289,81 @@ class NormalLiveReader:
                     raise
 
 
+def compare_normal_business_data(off, on):
+    """Readback DATA only: independent real clocks need no cross-leg AppHash equality.
+
+    Bundles contain original receipt/state/envelope/Verifier/Confirm bytes or
+    objects, retained by the original reader. This helper starts no node and
+    does not qualify ON, a complete normal per-height trace or crypto itself.
+    The owning source CI, common fixture and full trace contracts remain gates.
+    """
+    result=dict(schema='YNX-PERF-INDEPENDENT-NORMAL-LEG-BUSINESS-COMPARISON/v1',
+        comparisonGate='independent-normal-business-data',status='NOT_COMPARABLE',firstCause=None,
+        deterministicReplayRequiredSeparately=True,normalWirePairQualified=False,
+        normalPerHeightTraceQualification='NOT_ASSESSED; original Core trace required',
+        onSourceCIQualification='NOT_ASSESSED; separate owning original ON qualification required',
+        independentCryptographicReverification=False,physicalBytesMeasured=False,perTxPhysicalBytes=None,
+        crossLegAppHashEqualityRequired=False,fullStateFieldsRemoved=False,heightsRemapped=False,
+        meaning='Normal legs retain their independent full state and real clock inputs. Match canonical signed user bytes and business ledger/results. This DATA comparison never substitutes for deterministic replay, full per-leg chain trace or original ON/network qualification.')
+    spec=importlib.util.spec_from_file_location('normal_pair_original_checks',Path(__file__).with_name('pq-normal-process-lab.py'))
+    normal=importlib.util.module_from_spec(spec);spec.loader.exec_module(normal)
+    def leg(bundle):
+        receipt=bundle['receipt'];cohort=receipt['functionalCohort']
+        require(receipt.get('firstCause') is None and receipt.get('phaseComplete') is True and receipt.get('functionalPhaseComplete') is True and receipt.get('cleanupComplete') is True and receipt.get('qualifiedFinalCount')==4 and receipt.get('configuredFunctionalDenominator')==4 and len(cohort)==4,'complete original finite4 leg required')
+        require(normal.normal_node_clean_exit(receipt['processes'])['allEightExitZero'],'all original eight normal exit0 required')
+        require(receipt.get('networkBaseline',{}).get('status')=='OBSERVED','original normal network evidence missing')
+        raw=bundle['stoppedStateBytes'];require(type(raw) is bytes and 0<len(raw)<=64<<20,'bounded original complete state bytes required')
+        state_pin=hashlib.sha256(raw).hexdigest();require(state_pin==receipt['allFourStoppedStateSHA256'],'original full stopped state SHA differs')
+        def pairs(items):
+            obj={}
+            for key,value in items:
+                require(key not in obj,'duplicate original full state field');obj[key]=value
+            return obj
+        state=json.loads(raw,object_pairs_hook=pairs)
+        require(type(state['height']) is int and state['height']>0 and type(state['appHash']) is str and len(state['appHash'])==64 and all(c in '0123456789abcdef' for c in state['appHash']),'original independent full AppHash/height invalid')
+        accounts={}
+        for account in state['accounts']:
+            address=account['address'];require(type(address) is str and address and address not in accounts,'duplicate/missing original ledger account')
+            require(type(account['balance']) is int and account['balance']>=0 and type(account['nonce']) is int and account['nonce']>=0,'complete original balance/nonce required')
+            accounts[address]=(account['balance'],account['nonce'])
+        envelopes=bundle['canonicalTransactions'];verifiers=bundle['originalVerifiers'];confirms=bundle['originalConfirms'];exports=bundle['originalExports']
+        require(len(envelopes)==len(verifiers)==len(confirms)==len(exports)==4,'all original canonical requests and fullproof4 required')
+        requests=[];business=[]
+        for row,envelope,verified,confirmed,exported in zip(cohort,envelopes,verifiers,confirms,exports):
+            require(type(envelope) is bytes and hashlib.sha256(envelope).hexdigest()==normal.comet_hash(row['transactionHash']),'original canonical transaction bytes differ')
+            normal.require_verified(verified,dict(abciHash=row['transactionHash'],nativeHash=row['nativeHash']))
+            require(confirmed.get('code')=='PROOF_CONFIRMED_DATA' and confirmed['result']['result']==verified['result'],'original Confirm/full verifier result differs')
+            require(exported.get('sourceReadOnly') is True and exported.get('stoppedNodes')==4 and str(exported['engineHeight'])==str(state['height']) and exported['engineAppHash']==state['appHash'],'original independent final ledger/engine binding differs')
+            require(normal.comet_hash(exported['transactionHash'])==normal.comet_hash(row['transactionHash']) and normal.comet_hash(exported['nativeWireHash'])==normal.comet_hash(row['nativeHash']),'original independent export transaction binding differs')
+            for key in ('block','successor'):
+                proof=verified['result'][key]
+                require(proof.get('commitVerified') is True and proof.get('lightTransitionVerified') is True,'original per-leg H/H+1 verification missing')
+            requests.append(envelope)
+            # Block/header/history/time/AppHash stay in the original artifacts.
+            # Compare business outputs, not timestamps from independent clocks.
+            business.append({key:verified['result'].get(key) for key in ('transactionType','transactionHash','nativeWireHash','executionCode','gasWanted','gasUsed','executionData','included','finalized','executionSuccessful','outcome','nativeGrant')})
+        return dict(receipt=receipt,requests=requests,accounts=accounts,business=business,
+            stateSHA256=state_pin,finalHeight=state['height'],finalAppHash=state['appHash'],tools=bundle['toolsCommit'])
+    try:
+        result['originalFirstCauses']={label:bundle.get('receipt',{}).get('firstCause') for label,bundle in [('OFF',off),('ON',on)]}
+        a,b=leg(off),leg(on)
+        for key in ('source','caps','binaries','signingMode','configuredFunctionalDenominator','sameHost','physicalFaultDomains'):
+            require(a['receipt'][key]==b['receipt'][key],'normal leg same source/binary/caps/conditions differ: '+key)
+        require(type(a['tools']) is str and len(a['tools'])==40 and a['tools']==b['tools'],'normal leg tool commit differs')
+        require(set(a['receipt']['binaries'])=={'ynx-comet','ynx-consensus-pq-lab','ynx-consensus-proof-verify'},'all original normal binary identities required')
+        require(a['requests']==b['requests'],'normal legs do not share exact canonical signed user fixture')
+        require(a['accounts']==b['accounts'],'normal final complete balances/nonces differ')
+        require(a['business']==b['business'],'normal original business execution results differ')
+        result.update(status='MATCHED_BUSINESS_DATA_ONLY',canonicalSignedUserBytesEqual=True,
+            allBusinessResultsAndBalancesAndNoncesEqual=True,
+            originalLegStates=dict(OFF=dict(sha256=a['stateSHA256'],height=a['finalHeight'],appHash=a['finalAppHash']),ON=dict(sha256=b['stateSHA256'],height=b['finalHeight'],appHash=b['finalAppHash'])),
+            independentAppHashesDiffer=a['finalAppHash']!=b['finalAppHash'],
+            originalInclusionPositions={label:[dict(height=row['height'],index=proof['result'].get('index')) for row,proof in zip(bundle['receipt']['functionalCohort'],bundle['originalVerifiers'])] for label,bundle in [('OFF',off),('ON',on)]})
+    except (RuntimeError,KeyError,ValueError,TypeError) as error:
+        result['firstCause']=str(error);result['errorType']=type(error).__name__
+    return result
+
+
 if __name__ == '__main__':
     import argparse
     parser=argparse.ArgumentParser(description=__doc__,allow_abbrev=False)
