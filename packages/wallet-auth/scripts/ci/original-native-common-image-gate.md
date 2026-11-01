@@ -1,27 +1,9 @@
-# Normal common-image gate
+# Original Native common-image gate R2
 
-Run `node check.mjs exact-build-plan.json` against the **final** normal Native
-image, never its object file or a PUBLIC producer. Plan version 1 supplies
-`image` and exactly one `goArchives` entry, each with absolute `path`, `bytes`
-and lowercase `sha256`. The caller's real linker input receipt must independently
-bind this complete archive: the plan alone cannot establish linker provenance.
+Run this gate after the canonical original Native builder links the actual final Wallet Native image. Supply the exact final image and exactly one complete Go archive, with path/bytes/SHA256, independently bound by the original linker input receipt. The plan does not establish link provenance.
 
-This gate invokes actual Darwin `otool` and `nm`: it requires a linked
-BUNDLE/DYLIB/EXECUTE, strong definitions of the normal capture/context/startup
-callees, no weak or unresolved owned `ynx_` symbols, and the actual strong startup
-in the unique complete Go archive. It rechecks input identity after inspection.
-No dynamic-lookup, weak implementation, second runtime or fixture library may be
-used to make the normal build pass. Node's own N-API imports are not owned `ynx_`
-symbols and remain the host's responsibility.
+This exact original Auth checker requires Core14 plus LINK22 in that archive, all 42 fixed callee definitions in the final image, no owned uppercase or lowercase weak/undefined names, and explicit bsm/libuv dependencies when referenced. Node host imports remain separate. Real Node registration, Root-empty refusal, same-owner partial drain and subsequent Root/source admission are independent checks.
 
-`node check.test.mjs` runs eight actual compiler/nm controls: strict-linked
-positive, no archive, two archives, weak capture, missing callee, relocatable
-object, changed bytes and symlink. Each run retains compiler sources and objects
-under a unique local `evidence-*` directory. These PUBLIC gate fixtures do not
-prove production build, registration, actor lifecycle, Root, Source, account
-approval, signing or installation. A production PASS must still be followed by
-actual Node registration checks and the owner's normal matching build.
+The frozen supplier R2 records five new actual compiler controls and actual matched system image PASS. No old nine/eight controls are rerun. Do not substitute a PUBLIC fixture, .o, second runtime or the separate IDE Cocoa executable. Preserve the earlier failed images and the c14/d911 predecessors.
 
-Parent owns this directory only. Native source/registration/CAS and actual
-common-image build remain the original Native owner's sole write set. Official
-build/release remains original A's responsibility.
+The matched local image links Homebrew OpenSSL/libuv paths. Formal A must package and validate appropriate target-runtime libraries and full closure for ordinary installations; local link/load is not portable packaging or admission. The original canonical builder is receiving its own normal-entry CAS; this SDK helper does not replace it.
