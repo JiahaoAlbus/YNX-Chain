@@ -60,7 +60,10 @@ func OpenPrivate(products *Products, cfg PrivateConfig) (*Private, error) {
 			cloud.ServeHTTP(w, r)
 		}
 	})
-	p.server, err = securelink.NewLocalCallerServer(securelink.LocalCallerServerConfig{Service: cfg.Service, PeerUID: cfg.PeerUID, PeerPID: cfg.PeerPID, Routes: cfg.Routes, Handler: actual})
+	// Product-specific registration preserves ordinary route policy and adds
+	// only the two fixed archive GET spellings, including canonical %3A. The
+	// generic LINK server and Wallet Member5 policy remain unchanged.
+	p.server, err = securelink.NewProductLocalCallerServer(securelink.LocalCallerServerConfig{Service: cfg.Service, PeerUID: cfg.PeerUID, PeerPID: cfg.PeerPID, Routes: cfg.Routes, Handler: actual})
 	if err != nil {
 		return fail(err)
 	}

@@ -109,11 +109,12 @@ func TestNativePayR6ActualArchiveClientNormalHTTPColdAndMerchantReceipt(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	original := NativeInvoiceProductIntent{ProductID: "shop.order", StoreID: "registered-original-store", SourceOrder: "order-100", Merchant: f.Merchant, Recipient: f.Terms.Recipient, Genesis: hex.EncodeToString(f.Network), NativeChainID: strconv.FormatUint(f.NativeChainID, 10), AssetID: f.Terms.AssetID, UnitVersion: f.Terms.UnitVersion, AmountAtoms: "100", DomainData: json.RawMessage(`{"orderId":"order-100","storeId":"registered-original-store","approvalRef":"original-order-approval"}`)}
+	original := NativeInvoiceProductIntent{ProductID: "shop.order", StoreID: "registered-original-store", SourceOrder: "order:100", Merchant: f.Merchant, Recipient: f.Terms.Recipient, Genesis: hex.EncodeToString(f.Network), NativeChainID: strconv.FormatUint(f.NativeChainID, 10), AssetID: f.Terms.AssetID, UnitVersion: f.Terms.UnitVersion, AmountAtoms: "100", DomainData: json.RawMessage(`{"orderId":"order:100","storeId":"registered-original-store","approvalRef":"original-order-approval"}`)}
 	intentSource, reader := nativeIntentTestSource(t, parent, original, f.Terms)
 	reader.snapshot.Caller = f.Merchant
 	var endpoint *httptest.Server
 	var client *NativeInvoiceIntentClient
+	var normalHandler http.Handler
 	var recovery atomic.Bool
 	var lost atomic.Bool
 	var getCount, postCount, lostCount atomic.Int32
@@ -123,6 +124,7 @@ func TestNativePayR6ActualArchiveClientNormalHTTPColdAndMerchantReceipt(t *testi
 			t.Fatal(e)
 		}
 		handler := server.Handler()
+		normalHandler = handler
 		endpoint = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if recovery.Load() {
 				if r.Method != "GET" {
@@ -270,7 +272,7 @@ func TestNativePayR6ActualArchiveClientNormalHTTPColdAndMerchantReceipt(t *testi
 		var failure error
 		switch message.Type {
 		case "private-read":
-			prefix := "/v5/pay/products/" + original.ProductID + "/" + original.SourceOrder + "/invoices/" + f.Merchant + "/" + f.Terms.InvoiceID
+			prefix := "/v5/pay/products/" + original.ProductID + "/" + strings.ReplaceAll(original.SourceOrder, ":", "%3A") + "/invoices/" + f.Merchant + "/" + f.Terms.InvoiceID
 			allowed := ref.Path == prefix+"/archive-reconciliation"
 			if strings.HasPrefix(ref.Path, prefix+"/originals/") && strings.HasSuffix(ref.Path, "/receipt") {
 				hash := strings.TrimSuffix(strings.TrimPrefix(ref.Path, prefix+"/originals/"), "/receipt")
@@ -342,6 +344,10 @@ func TestNativePayR6ActualArchiveClientNormalHTTPColdAndMerchantReceipt(t *testi
 	waited = true
 	if err != nil {
 		t.Fatal("actual r6 consumer", err, stderr.String())
+	}
+	if socketRoot := os.Getenv("PAY_ARCHIVE_UNIX_SOCKET_ROOT"); socketRoot != "" {
+		source.denied = false
+		verifyNativeArchiveUnixNormalRead(t, socketRoot, normalHandler, original, f.Terms.InvoiceID, refundHash)
 	}
 	diskAfter, _ := os.ReadFile(parent.store.path)
 	if !done || restarts != 1 || lostCount.Load() != 1 || postCount.Load() != 0 || corePosts.Load() != 3 || !bytes.Equal(diskBefore, diskAfter) {

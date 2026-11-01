@@ -92,3 +92,28 @@ join/close promises before invoking original ports. Failed/UNKNOWN cleanup is
 never retried. `PAY_NATIVE_WORKFLOW_SUITE=r6-private-client` checks these new
 custody cases and exact paths against Auth's compiled archive DATA contract;
 it neither repeats the archive E2E suite nor admits a Root/Source.
+
+Refund receipt details now retain the original Core effect's `refundId`,
+`payer`, `recipient`, `assetId` and `unitVersion`, plus independently verified
+`executionHeight`, `executionIndex`, `executionMember` and `executionEvent`.
+Reconciliation follows those coordinates and refuses duplicate coordinates or
+refund IDs. Transaction hashes cannot order two actions in the same block.
+Old compact DATA without details remains readable; a new detailed projection
+must be complete. A refund ID is the original signed refund's identity, not a
+new Shop return ID or permission to perform another refund.
+
+The normal private listener uses LINK's Product-specific exact-route server.
+Only the two fixed archive GETs accept canonical `%3A` inside the original order
+or invoice identifiers. Double encoding, lowercase escape aliases, encoded
+slashes, extra queries and arbitrary escaped routes remain refused. The generic
+listener and Wallet's Member5 transport keep their original policy. Actual
+Unix reception is checked separately from HTTP proof/Store/Shop acceptance.
+
+`refund-receipt` selects the detail/order controls and related normal archive
+regression. `shop-refund-journey` drives the original Shop test subprocess against
+the real staged Pay service: merchant terms and payment are archived first;
+only after the original paid order and return flow does the temporary original
+refund get archived. Shop rereads Pay, cold-opens its own Store and checks that
+partial refund, duplicate receipts and warehouse operations remain independent.
+These tests use explicit PUBLIC Source/temporary Member fixtures, not genuine
+Root commissioning or real-funds approval.

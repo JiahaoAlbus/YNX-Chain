@@ -93,7 +93,9 @@ func (s *NativeInvoiceIntents) Handler() http.Handler {
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
-		if r.URL.RawQuery != "" || r.URL.RawPath != "" || r.URL.Fragment != "" {
+		archive := strings.HasPrefix(r.URL.Path, "/v5/pay/products/")
+		if r.URL.RawQuery != "" || r.URL.ForceQuery || r.URL.Fragment != "" || r.URL.RawFragment != "" ||
+			archive && (!IsNativePayOriginalArchiveWireRoute(r.Method, r.URL.EscapedPath()) || r.URL.RawPath != "" && r.URL.RawPath != r.URL.EscapedPath()) || !archive && r.URL.RawPath != "" {
 			nativePayError(w, errors.New("exact private native intent route required"))
 			return
 		}

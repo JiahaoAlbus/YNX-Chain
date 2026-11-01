@@ -13,6 +13,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
 )
 
 // Compact public reconciliation DATA for the original product. It is not a
@@ -34,8 +35,16 @@ type NativePayArchiveReceipt struct {
 	ArchiveDigest        string `json:"archiveDigest"`
 	TermsHash            string `json:"termsHash"`
 	SettlementNativeHash string `json:"settlementNativeHash,omitempty"`
+	RefundID             string `json:"refundId,omitempty"`
+	Payer                string `json:"payer,omitempty"`
+	Recipient            string `json:"recipient,omitempty"`
+	AssetID              string `json:"assetId"`
+	UnitVersion          string `json:"unitVersion"`
 	EventClaim           string `json:"eventClaim,omitempty"`
 	ExecutionHeight      string `json:"executionHeight"`
+	ExecutionIndex       string `json:"executionIndex"`
+	ExecutionMember      string `json:"executionMember"`
+	ExecutionEvent       string `json:"executionEvent"`
 	PrincipalAtoms       string `json:"principalAtoms"`
 	PaidAtoms            string `json:"paidAtoms"`
 	RefundedAtoms        string `json:"refundedAtoms"`
@@ -151,7 +160,11 @@ func nativeArchiveReceiptForIntent(ctx context.Context, original NativeInvoicePr
 	if err = current(); err != nil {
 		return receipt, err
 	}
-	receipt = NativePayArchiveReceipt{Version: "ynx.pay.native.archive-receipt/v1", ProductID: original.ProductID, StoreID: original.StoreID, SourceOrder: original.SourceOrder, Merchant: original.Merchant, InvoiceID: intent.Terms.InvoiceID, SessionID: a.SessionID, Genesis: a.Genesis, NativeChainID: original.NativeChainID, NativeHash: nativeHash, ABCIHash: a.Original.ABCIHash, Kind: a.Kind, Status: a.Status, ArchiveDigest: a.Digest, TermsHash: a.TermsHash, ExecutionHeight: strconv.FormatInt(verified.Height, 10), PrincipalAtoms: "0", PaidAtoms: "0", RefundedAtoms: "0", NetPaidAtoms: "0", ProofVerification: "original-independent-core-verifier", DataOnly: true, QueryOnly: true}
+	member, err := ynxbatch.DecodeMember(a.Original.Member)
+	if err != nil {
+		return receipt, err
+	}
+	receipt = NativePayArchiveReceipt{Version: "ynx.pay.native.archive-receipt/v1", ProductID: original.ProductID, StoreID: original.StoreID, SourceOrder: original.SourceOrder, Merchant: original.Merchant, InvoiceID: intent.Terms.InvoiceID, SessionID: a.SessionID, Genesis: a.Genesis, NativeChainID: original.NativeChainID, NativeHash: nativeHash, ABCIHash: a.Original.ABCIHash, Kind: a.Kind, Status: a.Status, ArchiveDigest: a.Digest, TermsHash: a.TermsHash, AssetID: original.AssetID, UnitVersion: original.UnitVersion, ExecutionHeight: strconv.FormatInt(verified.Height, 10), ExecutionIndex: strconv.FormatInt(verified.Index, 10), ExecutionMember: strconv.FormatUint(uint64(member.Index), 10), ExecutionEvent: "0", PrincipalAtoms: "0", PaidAtoms: "0", RefundedAtoms: "0", NetPaidAtoms: "0", ProofVerification: "original-independent-core-verifier", DataOnly: true, QueryOnly: true}
 	if verified.ExecutionSuccessful {
 		effect, e := consensus.ValidatePQInvoiceEffectData(a.Original.Member, a.Original.Envelope, uint64(verified.Height), verified.ExecutionData)
 		if e != nil || a.Status != "confirmed" || a.Effect == nil || effect.Kind != a.Kind || hashJSON(effect) != hashJSON(*a.Effect) || a.EventClaim != nativeEventClaim(effect) || effect.Merchant != original.Merchant || effect.InvoiceID != intent.Terms.InvoiceID || effect.SessionID != a.SessionID || effect.TermsHash != a.TermsHash || effect.NativeHash != nativeHash || effect.ABCIHash != a.Original.ABCIHash {
@@ -159,6 +172,11 @@ func nativeArchiveReceiptForIntent(ctx context.Context, original NativeInvoicePr
 		}
 		receipt.EventClaim = a.EventClaim
 		receipt.SettlementNativeHash = effect.SettlementNativeHash
+		receipt.RefundID = effect.RefundID
+		receipt.Payer = effect.Payer
+		receipt.Recipient = effect.Recipient
+		receipt.ExecutionMember = strconv.FormatUint(uint64(effect.Member), 10)
+		receipt.ExecutionEvent = strconv.FormatUint(uint64(effect.Event), 10)
 		receipt.PrincipalAtoms = strconv.FormatUint(effect.Principal, 10)
 		receipt.PaidAtoms = strconv.FormatUint(effect.Paid, 10)
 		receipt.RefundedAtoms = strconv.FormatUint(effect.Refunded, 10)
@@ -235,17 +253,37 @@ func nativeArchiveReconciliationForIntent(original NativeInvoiceProductIntent, i
 		}
 		out.Receipts = append(out.Receipts, receipt)
 	}
-	sort.Slice(out.Receipts, func(i, j int) bool {
-		a, _ := strconv.ParseUint(out.Receipts[i].ExecutionHeight, 10, 64)
-		b, _ := strconv.ParseUint(out.Receipts[j].ExecutionHeight, 10, 64)
-		if a != b {
-			return a < b
+	// Core execution order, never a transaction-hash ordering. Independent
+	// proofs authenticate the block transaction index and original Member.
+	coordinates := make(map[string][4]uint64, len(out.Receipts))
+	used := make(map[[4]uint64]bool, len(out.Receipts))
+	for _, receipt := range out.Receipts {
+		var coordinate [4]uint64
+		for i, field := range []string{receipt.ExecutionHeight, receipt.ExecutionIndex, receipt.ExecutionMember, receipt.ExecutionEvent} {
+			n, e := strconv.ParseUint(field, 10, 64)
+			if e != nil || strconv.FormatUint(n, 10) != field || i == 0 && n == 0 || i > 0 && n > 1<<32-1 {
+				return NativePayArchiveReconciliation{}, errors.New("archive execution coordinate invalid")
+			}
+			coordinate[i] = n
 		}
-		return out.Receipts[i].NativeHash < out.Receipts[j].NativeHash
+		if used[coordinate] {
+			return NativePayArchiveReconciliation{}, errors.New("archive execution coordinate repeated")
+		}
+		used[coordinate], coordinates[receipt.NativeHash] = true, coordinate
+	}
+	sort.Slice(out.Receipts, func(i, j int) bool {
+		a, b := coordinates[out.Receipts[i].NativeHash], coordinates[out.Receipts[j].NativeHash]
+		for k := range a {
+			if a[k] != b[k] {
+				return a[k] < b[k]
+			}
+		}
+		return false
 	})
 	sort.Strings(out.PendingOriginals)
 	var paid, refunded uint64
 	settlement := ""
+	refundIDs := make(map[string]bool)
 	for _, receipt := range out.Receipts {
 		if receipt.Status != "confirmed" {
 			continue
@@ -258,9 +296,10 @@ func nativeArchiveReconciliationForIntent(original NativeInvoiceProductIntent, i
 			settlement = receipt.NativeHash
 			paid = amount
 		} else {
-			if settlement == "" || receipt.SettlementNativeHash != settlement || amount > paid-refunded {
+			if settlement == "" || receipt.SettlementNativeHash != settlement || amount > paid-refunded || receipt.RefundID == "" || refundIDs[receipt.RefundID] {
 				return NativePayArchiveReconciliation{}, errors.New("refund receipt original settlement/principal mismatch")
 			}
+			refundIDs[receipt.RefundID] = true
 			refunded += amount
 			if receipt.RefundedAtoms != strconv.FormatUint(refunded, 10) || receipt.NetPaidAtoms != strconv.FormatUint(paid-refunded, 10) {
 				return NativePayArchiveReconciliation{}, errors.New("archived refund history incomplete or cumulative amount changed")

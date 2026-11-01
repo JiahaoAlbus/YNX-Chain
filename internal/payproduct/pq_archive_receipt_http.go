@@ -7,9 +7,44 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"net/url"
+	"strings"
 )
 
 const nativeArchiveProductPrefix = "/v5/pay/products/{product}/{sourceOrder}/invoices/{merchant}/{invoice}"
+
+// IsNativePayOriginalArchiveWireRoute checks only the two finite read routes.
+// It grants no transport/Root/Source permission. Only the exact canonical %3A
+// encoding is accepted inside identifiers; no general escaped-path proxy.
+func IsNativePayOriginalArchiveWireRoute(method, path string) bool {
+	if method != http.MethodGet {
+		return false
+	}
+	p := strings.Split(path, "/")
+	if len(p) != 10 && len(p) != 12 {
+		return false
+	}
+	if p[0] != "" || p[1] != "v5" || p[2] != "pay" || p[3] != "products" || (p[4] != "shop.order" && p[4] != "cloud.ide-usage") || p[6] != "invoices" {
+		return false
+	}
+	for _, value := range []string{p[5], p[8]} {
+		decoded, err := url.PathUnescape(value)
+		if err != nil || !identifierRE.MatchString(decoded) || strings.ReplaceAll(decoded, ":", "%3A") != value {
+			return false
+		}
+	}
+	if len(p[7]) != 42 || !strings.HasPrefix(p[7], "0x") {
+		return false
+	}
+	merchant, err := hex.DecodeString(p[7][2:])
+	if err != nil || hex.EncodeToString(merchant) != p[7][2:] {
+		return false
+	}
+	if len(p) == 10 {
+		return p[9] == "archive-reconciliation"
+	}
+	return p[9] == "originals" && nativePayHTTPHash(p[10]) && p[11] == "receipt"
+}
 
 func (s *NativeInvoiceIntents) originalArchiveProduct(ctx context.Context, product, order, merchant, id string) (nativeInvoiceIntentRecord, NativeInvoiceIntentView, NativeInvoiceIntentBinding, error) {
 	var empty nativeInvoiceIntentRecord

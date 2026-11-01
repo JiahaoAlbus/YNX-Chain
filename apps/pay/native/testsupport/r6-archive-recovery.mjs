@@ -30,6 +30,10 @@ try{
  assert.equal(paid.archiveReceipt.paidAtoms,'100');assert.equal(paid.archiveReceipt.refundedAtoms,'0');assert.equal(paid.queryOnly,true);assert.equal(paid.clientIndependentFinality,false);
  const restarted=await call('restart',ref);origin=restarted.origin;await runtime.close();runtime=await boot();
  const refund=await runtime.entry.invoke({action:'recover-archive',...ref,nativeHash:refundHash});assert.equal(refund.archiveReceipt.principalAtoms,'30');assert.equal(refund.archiveReceipt.netPaidAtoms,'70');
+ assert.equal(refund.archiveReceipt.assetId,original.assetId);assert.equal(refund.archiveReceipt.unitVersion,original.unitVersion);
+ assert.equal(typeof refund.archiveReceipt.refundId,'string');assert.equal(refund.archiveReceipt.recipient,refund.archiveReceipt.payer);
+ assert.equal(refund.archiveReceipt.settlementNativeHash,settlementHash);
+ for(const row of [paid.archiveReceipt,refund.archiveReceipt])for(const k of ['executionIndex','executionMember','executionEvent'])assert.match(row[k],/^(0|[1-9][0-9]*)$/);
  const reconciled=await runtime.entry.invoke({action:'reconcile-archive',...ref});
  assert.equal(reconciled.reconciliation.receipts.length,2);assert.equal(reconciled.reconciliation.completeKnownOriginals,true);assert.equal(reconciled.reconciliation.paidAtoms,'100');assert.equal(reconciled.reconciliation.refundedAtoms,'30');assert.equal(reconciled.reconciliation.netPaidAtoms,'70');
  assert.equal(reconciled.reconciliation.SourceAdmission,false);assert.equal(reconciled.reconciliation.nativeGrant,false);

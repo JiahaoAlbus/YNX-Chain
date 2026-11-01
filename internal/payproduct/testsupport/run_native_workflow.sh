@@ -77,6 +77,32 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = archive-unix-host ]; then
+ : "${PAY_ARCHIVE_UNIX_SOCKET_ROOT:?owned short external Unix socket root required}"
+ cp -R "$source_dir/nativehost" "$composition/internal/payproduct/"
+ go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl' ./internal/payproduct/nativehost -run '^TestPrivateNormalArchiveRegistrationKeepsMissingEngineClosed$' -count=1 -timeout=1m -v
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = archive-unix ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ : "${PAY_ARCHIVE_UNIX_SOCKET_ROOT:?owned short external Unix socket root required}"
+ export PAY_R6_ARCHIVE_CLIENT_DRIVER="$client_root/testsupport/r6-archive-recovery.mjs"
+ go test -race -p 1 -tags 'pay_pq pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativePayR6ActualArchiveClientNormalHTTPColdAndMerchantReceipt$|^TestNativeArchiveFiniteCanonicalWirePaths$|^TestNativeArchiveHandlerRejectsAliasesBeforeSourceCapture$' -count=1 -timeout=5m -v
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = shop-refund-journey ]; then
+ : "${PAY_SHOP_REFUND_DRIVER_BINARY:?exact original Shop test driver binary required}"
+ : "${PAY_SHOP_REFUND_DRIVER_SHA256:?immutable original Shop driver hash required}"
+ go test -race -p 1 -tags 'pay_pq pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativePayActualShopReceiptReturnPartialRefundCold$' -count=1 -timeout=5m -v
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = refund-receipt ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ "$PAY_NODE_BINARY" --test "$client_root/r6/archive-details.test.mjs"
+ export PAY_R6_ARCHIVE_CLIENT_DRIVER="$client_root/testsupport/r6-archive-recovery.mjs"
+ go test -race -p 1 -tags 'pay_pq pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativeArchiveSameBlockRefundsUseExecutionCoordinates$|^TestNativeArchiveRejectsAmbiguousCoordinatesOrRefundIdentity$|^TestNativePayR6ActualArchiveClientNormalHTTPColdAndMerchantReceipt$' -count=1 -timeout=5m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = r6-archive ]; then
  : "${PAY_NODE_BINARY:?exact original Node executable required}"
  "$PAY_NODE_BINARY" --test "$client_root/r6/archived-recovery.test.mjs"
