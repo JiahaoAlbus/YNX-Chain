@@ -3,6 +3,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
+import {selectCoreSupplyProfile, verifyCoreSupplyBytes, verifyCombinedSupplyResult} from './combined-supply-profile.mjs';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const repository = path.resolve(directory, '../..');
@@ -30,11 +31,9 @@ function pinned(file, sha256) {
 const core = pinned(options.get('--core-handoff'), options.get('--core-sha256'));
 const auth = pinned(options.get('--auth-headers'), options.get('--auth-headers-sha256'));
 const undefinedInput = pinned(options.get('--native-undefined'), options.get('--native-undefined-sha256'));
-if (core.value.version !== 'YNX-CORE-MACOS-SINGLE-GO-IMAGE-PUBLIC-SOURCE-SUPPLY/v1' ||
-    core.value.source?.module !== 'github.com/JiahaoAlbus/YNX-Chain' ||
-    core.value.source?.go !== '1.26.10' || core.value.LINKReadOnlyComposition?.sourceCommit !== baseLINKCommit ||
-    !Array.isArray(core.value.sources) || core.value.sources.length < 65 || core.value.sources.length > 256 ||
-    core.value.exports?.length !== 15 || !core.value.exports.some(row => row.symbol === 'YNXAccountMigrationPossessionSignV1') || auth.value.version !== 1 || !Array.isArray(auth.value.headers) ||
+const supplyProfile = selectCoreSupplyProfile(core.value);
+const profileVerifier = describe(path.join(directory, 'combined-supply-profile.mjs'));
+if (auth.value.version !== 1 || !Array.isArray(auth.value.headers) ||
     !Array.isArray(undefinedInput.value.unresolvedCore)) throw Error('matching complete original supply contract required');
 const output = path.resolve(options.get('--out'));
 if (output === repository || output.startsWith(repository + path.sep)) throw Error('output must be outside the source worktree');
@@ -78,21 +77,29 @@ function goQuote(argument) {
   if (!argument.includes("'")) return "'" + argument + "'";
   throw Error('Go build argument contains both quote characters');
 }
-let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain;
+let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain, coreSourceVerification;
 try {
   run('git', ['merge-base', '--is-ancestor', baseLINKCommit, linkCommit], 'link-base-ancestry.log', repository);
-  const expectedTree = run('git', ['ls-tree', '-r', core.value.source.commit, '--', ...core.value.sources.map(row => row.path)], 'core-git-tree.log', repository);
+  const sourceBytes = new Map(), descriptorBytes = new Map();
+  const corePaths = [...new Set([...core.value.sources.map(row => row.path), ...supplyProfile.modulePaths])];
+  const expectedTree = run('git', ['ls-tree', '-r', core.value.source.commit, '--', ...corePaths], 'core-git-tree.log', repository);
   const blobs = new Map(expectedTree.trim().split('\n').map(row => {const [meta, name] = row.split('\t'); return [name, meta.split(' ')[2]];}));
   for (const row of core.value.sources) {
     const name = relative(row.path), original = path.join(core.value.delivery.sourceDirectory, name), bytes = fs.readFileSync(original);
     if (bytes.length !== row.bytes || hash(bytes) !== row.sha256 || blobs.get(name) !== row.gitBlob) throw Error('Core source is not its original fixed Git bytes: ' + name);
+    sourceBytes.set(name, bytes);
     materialize(name, bytes, {owner: 'core', path: original, commit: core.value.source.commit, gitBlob: row.gitBlob});
     if (name.startsWith(packagePath + '/') && name.endsWith('.h')) copyHeader(path.basename(name), bytes, 'core', original);
   }
+  for (const row of core.value.moduleContext.descriptors) {
+    if (blobs.get(row.repositoryPath) !== row.gitBlob) throw Error('module descriptor is not its original fixed Git blob: ' + row.repositoryPath);
+    descriptorBytes.set(row.repositoryPath, fs.readFileSync(row.path));
+  }
+  coreSourceVerification = verifyCoreSupplyBytes(core.value, supplyProfile, sourceBytes, descriptorBytes);
   // These are real replacement-module metadata from the SAME Core commit,
   // not fake modules or changes to its original go.mod/replaces.
   for (const name of ['third_party/cometbft/go.mod', 'third_party/cometbft/go.sum']) {
-    materialize(name, gitObject(core.value.source.commit, name), {owner: 'core-replacement-context', commit: core.value.source.commit});
+    materialize(name, descriptorBytes.get(name), {owner: 'core-replacement-context', commit: core.value.source.commit});
   }
   const linkNames = run('git', ['ls-tree', '-r', '--name-only', linkCommit, '--', 'internal/securelink'], 'link-source-paths.log', repository).trim().split('\n').filter(Boolean);
   for (const name of linkNames) materialize(name, gitObject(linkCommit, name), {owner: 'link', commit: linkCommit});
@@ -148,8 +155,7 @@ try {
   fs.writeFileSync(planFile, JSON.stringify(checkerPlan, null, 2) + '\n', {flag: 'wx'});
   const checker = await import('./combined-archive-symbols.mjs');
   checkResult = checker.checkCombinedArchive(checkerPlan);
-  const declaredCore = core.value.exports.map(row => row.symbol).sort();
-  if (new Set(declaredCore).size !== 15 || JSON.stringify(declaredCore) !== JSON.stringify(checkResult.coreExports) || checkResult.linkExports.length !== 22 || checkResult.productExports.length !== 8 || checkResult.symbols.length !== 45) throw Error('complete declared Core15, LINK22 and dedicated Product8 strong ABI required');
+  verifyCombinedSupplyResult(supplyProfile, checkResult);
   fs.writeFileSync(path.join(output, 'SYMBOL-RESULT.json'), JSON.stringify(checkResult, null, 2) + '\n', {flag: 'wx'});
   const deploymentChecker = await import('./combined-archive-deployment.mjs');
   try { deploymentResult = deploymentChecker.checkArchiveDeployment(describe(archive), {target: deploymentTarget, architecture: process.arch === 'x64' ? 'x86_64' : process.arch}); }
@@ -158,9 +164,12 @@ try {
     if (describe(row.path).sha256 !== row.sha256) throw Error('materialized source/header changed during build');
   }
   for (const dependency of [core, auth, undefinedInput]) if (describe(dependency.descriptor.path).sha256 !== dependency.descriptor.sha256) throw Error('handoff changed during build');
+  if (describe(profileVerifier.path).sha256 !== profileVerifier.sha256) throw Error('supply profile verifier changed during build');
 } catch (error) { failure = error; }
 const receipt = {version: 1, state: failure ? 'FAILED_OUTPUT_RETAINED' : 'COMBINED_CORE_LINK_ARCHIVE_VERIFIED_NOT_DEPLOYED',
   coreHandoff: core.descriptor, authHeaders: auth.descriptor, nativeUndefined: undefinedInput.descriptor,
+  coreSupplyProfile: {id: supplyProfile.id, commit: supplyProfile.commit, tree: supplyProfile.tree, coreExports: supplyProfile.coreExports, totalExports: supplyProfile.totalExports},
+  coreSourceVerification: coreSourceVerification ?? null, profileVerifier,
   coreCommit: core.value.source.commit, linkCommit, baseLINKCommit, soleMain: packagePath + '/core.go',
   source: sources, headers: headerRows, commands,
   archive: archive && fs.existsSync(archive) ? describe(archive) : null,

@@ -68,7 +68,7 @@ jobs:
         with:
           node-version: "24"
       - name: Check actual object deployment parsing and rejection controls
-        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs cmd/ynx-secure-link-private-client/combined-archive-product-symbols.test.mjs
+        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs cmd/ynx-secure-link-private-client/combined-archive-product-symbols.test.mjs cmd/ynx-secure-link-private-client/combined-supply-profile.test.mjs
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # original immutable setup-go
         with:
           go-version: "1.26.10"
