@@ -510,6 +510,14 @@
       "browser": null,
       "node": "./src/original-product-device-v4-management-client.js",
       "default": null
+    },
+    "./product-pair-pending-original-query-e13": {
+      "types": "./src/product-pair-pending-original-query-e13.d.ts",
+      "browser": null,
+      "node": {
+        "import": "./src/product-pair-pending-original-query-e13.js"
+      },
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -778,7 +786,9 @@
     "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.md",
     "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.json",
     "docs/PRODUCTION_RUNTIME_PACKAGE.md",
-    "docs/PENDING_PAIR_ORIGINAL_QUERY_INTAKE.md"
+    "docs/PENDING_PAIR_ORIGINAL_QUERY_INTAKE.md",
+    "docs/PENDING_ORIGINAL_QUERY_E13.md",
+    "docs/PENDING_ORIGINAL_QUERY_E13.json"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
