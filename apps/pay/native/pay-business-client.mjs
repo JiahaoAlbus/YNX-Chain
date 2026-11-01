@@ -48,8 +48,8 @@ export class NativePayBusinessClient {
   const intent=await this.#pay.lookupInvoiceIntent(original,current);current();
   return {intent,bill:intent.invoice??null,queryOnly:true,clientIndependentFinality:false};
  });}
- async openInvoice(merchant,invoiceId){return this.#run({merchant,invoiceId},'reading',async current=>{const bill=await this.#pay.readInvoice(merchant,invoiceId);current();return {bill,clientIndependentFinality:false};});}
- async openIntent(intentId){return this.#run({intentId},'reading',async current=>{const intent=await this.#pay.readInvoiceIntent(intentId);current();return {intent,bill:intent.invoice??null,clientIndependentFinality:false};});}
+ async openInvoice(merchant,invoiceId){return this.#run({merchant,invoiceId},'reading',async current=>{const bill=await this.#pay.readInvoice(merchant,invoiceId,current);current();return {bill,clientIndependentFinality:false};});}
+ async openIntent(intentId){return this.#run({intentId},'reading',async current=>{const intent=await this.#pay.readInvoiceIntent(intentId,current);current();return {intent,bill:intent.invoice??null,clientIndependentFinality:false};});}
  async reviewMerchantTerms(intentId){return this.#run({intentId},'reviewing',async current=>{if(!this.#merchant)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');const pending=await this.#merchant.requestMerchantTerms(intentId,current);return {walletRequest:pending.request,approvalRequired:true,bill:null};});}
  async reviewPayment(merchant,invoiceId){return this.#run({merchant,invoiceId},'reviewing',async current=>{if(!this.#actions)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');const pending=await this.#actions.requestSettlement(merchant,invoiceId,current);return {walletRequest:pending.request,approvalRequired:true,bill:null};});}
  async reviewRefund(merchant,invoiceId,refundId,amountAtoms){return this.#run({merchant,invoiceId,refundId},'reviewing',async current=>{if(!this.#actions)throw failure('NATIVE_INVOICE_MAIN_SOURCE_UNAVAILABLE');const pending=await this.#actions.requestRefund(merchant,invoiceId,refundId,amountAtoms,current);return {walletRequest:pending.request,approvalRequired:true,bill:null};});}
@@ -83,13 +83,13 @@ export class NativePayBusinessClient {
  async submitPayment(merchant,invoiceId,originalHash){return this.reviewOriginalBroadcast({kind:'invoice_settle',merchant,invoiceId,intentId:'',originalHash});}
  async submitRefund(merchant,invoiceId,originalHash){return this.reviewOriginalBroadcast({kind:'invoice_refund',merchant,invoiceId,intentId:'',originalHash});}
  async recoverInvoice(merchant,invoiceId,nativeHash){return this.#run({merchant,invoiceId,nativeHash},'recovering',async current=>{
-  const before=await this.#pay.readInvoice(merchant,invoiceId);current();
-  if(nativeHash){if(!before.operations?.[nativeHash])throw failure('NATIVE_PAY_ORIGINAL_HASH_REQUIRED');await this.#pay.reconcileOperation(merchant,invoiceId,nativeHash);current();}
-  const bill=await this.#pay.readInvoice(merchant,invoiceId);current();return {bill,queryOnly:true,clientIndependentFinality:false};
+  const before=await this.#pay.readInvoice(merchant,invoiceId,current);current();
+  if(nativeHash){if(!before.operations?.[nativeHash])throw failure('NATIVE_PAY_ORIGINAL_HASH_REQUIRED');await this.#pay.reconcileOperation(merchant,invoiceId,nativeHash,current);current();}
+  const bill=await this.#pay.readInvoice(merchant,invoiceId,current);current();return {bill,queryOnly:true,clientIndependentFinality:false};
  });}
- async recoverIntent(intentId){return this.#run({intentId},'recovering',async current=>{await this.#pay.reconcileInvoiceIntent(intentId);current();const intent=await this.#pay.readInvoiceIntent(intentId);current();return {intent,bill:intent.invoice??null,queryOnly:true,clientIndependentFinality:false};});}
+ async recoverIntent(intentId){return this.#run({intentId},'recovering',async current=>{await this.#pay.reconcileInvoiceIntent(intentId,current);current();const intent=await this.#pay.readInvoiceIntent(intentId,current);current();return {intent,bill:intent.invoice??null,queryOnly:true,clientIndependentFinality:false};});}
  async syncNotifications(merchant,invoiceId){return this.#run({merchant,invoiceId},'recovering',async current=>{
-  let bill=await this.#pay.readInvoice(merchant,invoiceId);current();
+  let bill=await this.#pay.readInvoice(merchant,invoiceId,current);current();
   const inbox=this.#runtime.notificationInbox,readScope=this.#runtime.readNotificationScope;
   if(!inbox||typeof readScope!=='function')return {bill,notifications:{phase:'unavailable',reason:'NATIVE_PAY_NOTIFICATION_SCOPE_UNAVAILABLE'},queryOnly:true,clientIndependentFinality:false};
   let scope;
@@ -97,7 +97,7 @@ export class NativePayBusinessClient {
   catch(error){current();return {bill,notifications:{phase:'unavailable',reason:error.code??'NATIVE_PAY_NOTIFICATION_SCOPE_UNAVAILABLE'},queryOnly:true,clientIndependentFinality:false};}
   const scopeCurrent=()=>{current();if(scope.current()!==undefined)throw failure('NATIVE_PAY_NOTIFICATION_SCOPE_UNAVAILABLE');};
   let feed;
-  try{feed=await this.#pay.readInvoiceEvents(merchant,invoiceId);scopeCurrent();
+  try{feed=await this.#pay.readInvoiceEvents(merchant,invoiceId,scopeCurrent);scopeCurrent();
   if(feed.events.some(e=>e.merchant!==merchant||e.invoiceId!==invoiceId||e.genesis!==bill.genesis||e.sourceOrder!==bill.sourceOrder||e.sessionId!==bill.sessionId))throw failure('NATIVE_PAY_EVENT_REFERENCE_MISMATCH');
   inbox.stage(scope,feed.events,scopeCurrent);
   }catch(error){scopeCurrent();return {bill,notifications:{phase:'unavailable',reason:error.code??'NATIVE_PAY_EVENT_READ_UNAVAILABLE'},queryOnly:true,clientIndependentFinality:false};}
@@ -114,7 +114,7 @@ export class NativePayBusinessClient {
     inbox.refreshed(scope,event,scopeCurrent);refreshed++;
    }catch(error){scopeCurrent();reason=error.code??'NATIVE_PAY_NOTIFICATION_REFRESH_PENDING';break;}
   }
-  bill=await this.#pay.readInvoice(merchant,invoiceId);scopeCurrent();
+  bill=await this.#pay.readInvoice(merchant,invoiceId,scopeCurrent);scopeCurrent();
   return {bill,notifications:{phase:reason?'pending':'refreshed',refreshed,pending:inbox.pending(scope,merchant,invoiceId,scopeCurrent).length,reason},queryOnly:true,clientIndependentFinality:false};
  });}
 

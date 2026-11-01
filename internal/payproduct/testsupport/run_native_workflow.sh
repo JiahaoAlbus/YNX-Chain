@@ -5,6 +5,25 @@ composition=${1:?isolated composition path required}
 fixture_dir=${2:?explicit temporary-chain public fixture output required}
 case "$composition" in */owners/P06/pq-core-composition-*) ;; *) echo 'isolated P06 composition required' >&2; exit 2;; esac
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = product-source ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ "$PAY_NODE_BINARY" --test "$source_dir/../../apps/pay/native/product-source.test.mjs"
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = product-source-cloud ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ : "${PAY_CLOUD_SOURCE_ROOT:?complete verified frozen Cloud source closure required}"
+ "$PAY_NODE_BINARY" --test "$source_dir/../../apps/pay/native/testsupport/product-source-cloud.mjs"
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = product-source-cloud-service ]; then
+ : "${PAY_GO_BINARY:?exact original Go executable required}"
+ : "${PAY_CLOUD_SOURCE_ROOT:?prepared complete verified original Cloud closure required}"
+ export PAY_PRODUCT_SOURCE_CLOUD_DRIVER="$source_dir/../../apps/pay/native/testsupport/product-source-cloud-service.mjs"
+ cd "$PAY_CLOUD_SOURCE_ROOT"
+ "$PAY_GO_BINARY" test -mod=readonly -race -p 1 ./internal/cloud -run '^TestP06ProductSourceActualCloudColdAndRevoke$' -count=1 -timeout=60s -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-producer-link ]; then
  : "${PAY_NATIVE_AUTH_BOUNDARY:?frozen original Auth Native boundary required}"
  : "${PAY_NATIVE_LINK_BOUNDARY:?frozen original LINK component required}"
@@ -116,7 +135,7 @@ if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = merchant-fence ]; then
  go test -race -p 1 -tags pay_pq ./internal/payproduct -run '^TestNativeMerchantFence|^TestNativeInvoiceIntentBindingChecksOriginalMemberAtFinalStoreCommit$' -count=1 -timeout=4m -v
  exit
 fi
-node --test "$client_root/merchant-invoice-approval.test.mjs" "$client_root/pay-business-client.test.mjs" "$client_root/notification-inbox.test.mjs" "$client_root/main-entry.test.mjs"
+node --test "$client_root/product-source.test.mjs" "$client_root/merchant-invoice-approval.test.mjs" "$client_root/pay-business-client.test.mjs" "$client_root/notification-inbox.test.mjs" "$client_root/main-entry.test.mjs"
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = main-entry ]; then
  export PAY_CLIENT_QA_MANIFEST="$fixture_dir/manifest.json"
  node "$client_root/testsupport/main-normal-review.mjs"

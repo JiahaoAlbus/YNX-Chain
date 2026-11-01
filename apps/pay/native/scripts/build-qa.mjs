@@ -11,7 +11,7 @@ if(!output||!path.isAbsolute(output))throw Error('Explicit absolute QA output re
 await fs.mkdir(path.join(output,'bin'),{recursive:true});await fs.mkdir(path.join(output,'lib'),{recursive:true});
 const head=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
 const files=[];
-for(const name of ['cli.mjs','pay-business-client.mjs','merchant-invoice-approval.mjs','invoice-product-intent.mjs','notification-inbox.mjs','main-entry.mjs','desktop-entry.mjs']){const raw=await fs.readFile(path.join(root,name));await fs.writeFile(path.join(output,'lib',name),raw);files.push({path:'lib/'+name,sha256:createHash('sha256').update(raw).digest('hex')});}
+for(const name of ['cli.mjs','pay-business-client.mjs','merchant-invoice-approval.mjs','invoice-product-intent.mjs','notification-inbox.mjs','main-entry.mjs','desktop-entry.mjs','product-source.mjs']){const raw=await fs.readFile(path.join(root,name));await fs.writeFile(path.join(output,'lib',name),raw);files.push({path:'lib/'+name,sha256:createHash('sha256').update(raw).digest('hex')});}
 let runtimeConfig={runtime:null,reason:'NATIVE_PAY_NORMAL_MAIN_SOURCE_NOT_SUPPLIED'};
 if(runtimeManifest){
  if(!path.isAbsolute(runtimeManifest))throw Error('Explicit absolute original owner bridge manifest required.');

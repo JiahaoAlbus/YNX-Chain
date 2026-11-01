@@ -41,3 +41,12 @@ test('normal CLI has no approve/keys/default authority and diagnostics perform n
  await assert.rejects(runNativePayCLI(['pay-submit','m','i','h']),{code:'NATIVE_PAY_SOURCE_UNAVAILABLE'});
  await assert.rejects(runNativePayCLI(['--runtime','/not-loaded','approve','yes']),{code:'NATIVE_PAY_COMMAND_INVALID'});
 });
+test('notification final read carries original notification current to the actual dispatch fence',async()=>{
+ let reads=0,writes=0,scopeLive=true;
+ const client=new NativePayBusinessClient({current(){},
+  pay:{async readInvoice(_m,_i,current){reads++;if(reads===2)scopeLive=false;current();writes++;return{merchant:'merchant',invoiceId:'invoice'};},async readInvoiceEvents(_m,_i,current){current();return{events:[]};}},
+  readNotificationScope:async()=>({current(){if(!scopeLive)throw Error('NOTIFICATION_SOURCE_RETIRED');}}),
+  notificationInbox:{stage(){},pending(){return[];}}});
+ await assert.rejects(client.syncNotifications('merchant','invoice'),/NOTIFICATION_SOURCE_RETIRED/);
+ assert.equal(reads,2);assert.equal(writes,1);
+});

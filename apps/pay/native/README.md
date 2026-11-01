@@ -2,7 +2,7 @@
 
 This client consumes the original private Pay service and P01 Wallet Main. It owns no signer, approval, second transaction journal or balance. P01 owns actual signing/broadcast review, Native custody, original journal, fixed submission target and UNKNOWN. P03 IDE has no Pay handoff at its checked `7ff73199` source.
 
-Current P01 `a437d525a7d35d31a9ef664629433bcaa1df4901` supplies `requestPQPayBroadcast(reference)`: terms exactly `{hash,kind:'invoice_terms',intentId}`; settlement/refund exactly `{hash,kind,merchant,invoiceId}`. `hash` is the retained ABCI envelope hash. No URL, amount, nonce, capsule or approval input is accepted. The existing separate Wallet broadcast approval remains required. This entry currently refuses `PQ_PAY_BROADCAST_SOURCE_NOT_SUPPLIED` before custody/queue/journal mutation because its genuine Native Source is not supplied. A callable review method is not executable payment. The older deae evidence had three queued reviews and zero dispatches only.
+Historical P01 `a437d525a7d35d31a9ef664629433bcaa1df4901` first supplies `requestPQPayBroadcast(reference)`: terms exactly `{hash,kind:'invoice_terms',intentId}`; settlement/refund exactly `{hash,kind,merchant,invoiceId}`. `hash` is the retained ABCI envelope hash. No URL, amount, nonce, capsule or approval input is accepted. The existing separate Wallet broadcast approval remains required. That frozen control refuses `PQ_PAY_BROADCAST_SOURCE_NOT_SUPPLIED` before custody/queue/journal mutation because its genuine Native Source is not supplied. A callable review method is not executable payment. The older deae evidence had three queued reviews and zero dispatches only.
 
 `createNativePayMainEntry({getMain,getContext})` is boot-only composition; its Source is never supplied through IPC or environment. Connect only `invoke/status/cancel` to the original safe live-frame IPC. Strict DATA inputs include invoice/intent lookup, terms/payment/refund review, events, original recovery and broadcast-review. The controller reads original retained Members, checks both hashes/account/operation/kind and calls only P01's Pay-specific review. It never falls back to Core's `requestPQBroadcast`. `terms-submit`, `pay-submit` and `refund-submit` compatibility commands also request this review only: the client has no approve/send operation and no `withSubmissionApproval` callback.
 
@@ -16,12 +16,36 @@ not repeated or silently cleared because an id vanished. A later actual Main
 completion notification can release that local debt. No transaction, original,
 UNKNOWN, approval, payment outcome or Native resource is removed by bookkeeping.
 
-The actual normal ProductSource producer is a separate owning-code dependency:
-`current()`, `readOriginalInvoiceIntent(ref,current)`, `readInvoiceOriginals(ref,current)`
-and the original qualified Pay preparation/review/read client must come from
-the genuine Auth/SDK/product resource owner. Existing adapters are consumers.
-Wallet7a's fixed three Member POST/two GET scope cannot authorize product
+`product-source.mjs` is the complete normal-boot consumer. Main imports
+`composeNativePayProductSource(entry, {acquireOriginalProductSource,isOriginalProductSource})`
+with factories from its admitted original namespace, or adopts the result of
+`openNativePayProductSource` before calling `entry.compose`. Main retains any
+thrown `error.partial` before interpreting the cause. A recognizer/factory is
+an actual Auth/SDK owning-code dependency, never an IPC/ENV callback or boolean
+grant. Wallet's three Member POST/two GET scope cannot authorize product
 create/lookup/review routes or manufacture historical invoice originals.
+
+The consumer holds the original loan across every read and preparation call,
+checks both its original current fence and the caller's fence before/after the
+await, and passes the combined guard to the actual private transport. Parent
+retirement calls `retire`, awaits `join`, then `close` and `assertSafeToClose`.
+Active reads are cancelled and drained first. An uncertain close retains the
+same loan and first cause and is never repeated. An unrecognized partial is
+retained without invoking its methods. `status().SourceAdmission` is always
+false; ready ports alone cannot grant authority.
+
+The `pay` facade exposes only original preparation/review/read/reconcile
+methods; all signed-Member dispatch stays in original Main. For `shop.order`,
+`readOriginalShopNativeInvoiceRequestDATA(orderID,current)` borrows the actual
+Shop supplier; actor/role remain internal to it. For `cloud.ide-usage`, the
+original `readOriginalCloudBillLocator(ref,current)` supplies the known
+`{selection,utcDay}` to the actual Cloud client's `nativeInvoiceIntentOriginal`.
+The consumer checks the original reference and retains its complete bill,
+manifest and full project Ref envelope, available through
+`readOriginalProductEvidence(ref,current)`. It never derives a locator by
+parsing/scanning BillID, computes a new price, or promotes DATA to Source.
+Missing product getters block only that product read; original invoice reads
+remain available under their own current Source.
 
 The existing authenticated invoice GET now supplies `termsMessage` as original
 stored signing bytes with its stored hash checked, preserving UNKNOWN and all
@@ -57,6 +81,6 @@ Auth's BFT Go `Owner.InvoiceReader()` already implements `payproduct.NativeInvoi
 
 Notifications use `NativePayNotificationInbox` with an explicit owned private SQLite path. `readNotificationScope()` returns the real Source/principal/genesis/binding/current; `refreshOriginalProduct(event,current)` performs original Cloud/Shop lookup only and returns `{sourceOrder,queryOnly:true}`. Missing readers retain pending references. Events never create/reprice/pay/refund, grant authority, confirm money or replay UNKNOWN. Confirmed effects and paid/refund/net projections remain the original Pay service's independently verified Core H/H+1 responsibility, with `clientIndependentFinality:false` in this client.
 
-`node scripts/build-qa.mjs /absolute/new-output` packages seven source modules and the exact Node/libnode inputs. `--mac-app` uses the existing SwiftUI shell; `--main-runtime-manifest` accepts only a complete original owner-pinned JavaScript IPC bridge. Defaults remain accurately unavailable. These builds are not Source admission, a matching Main/SDK/Native whole image, installation, deployment or merchant acceptance. Preserve prior installed candidates and UNKNOWN; never hot-update a frozen app.
+`node scripts/build-qa.mjs /absolute/new-output` packages eight source modules and the exact Node/libnode inputs. `--mac-app` uses the existing SwiftUI shell; `--main-runtime-manifest` accepts only a complete original owner-pinned JavaScript IPC bridge. Defaults remain accurately unavailable. These builds are not Source admission, a matching Main/SDK/Native whole image, installation, deployment or merchant acceptance. Preserve prior installed candidates and UNKNOWN; never hot-update a frozen app.
 
 New focused evidence covers actual original Go private factory/Store with the Node consumer: one creation lost acknowledgement, actual HTTP drain before cold Store reopen, cold lookup/read only, and Source503. The P06→actual P01 a437 case reaches the genuine missing-Source refusal for all three kinds, with zero custody/dispatch and unchanged signed-unsubmitted originals. SDK data/member evidence is reused rather than rerunning old math matrices. Older funds workflow controls use explicit PUBLIC backend fixture dispatch and cannot stand in for real Main approval or Native custody. Full dispatch contract: `internal/payproduct/V5_MAIN_PAY_DISPATCH_CONTRACT.md`.
