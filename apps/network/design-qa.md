@@ -91,3 +91,13 @@ three-entry duplicate protection, generation-safe completion and normal Quit
 deferral until the approved write ends. Original CI's56 client cases and75
 native contract assertions plus6 bootstrap contexts pass. Successor GUI
 lifecycle observations must be recorded against its exact build separately.
+
+Local activity integration: node/participation/resource screens now consume
+actual helper self-status observations, with missing counters left unavailable.
+Legacy status remains compatible. Eight new strict projection cases reject
+forged authority, unsafe counters and sandbox promotion; the actual kernel IPC
+and paired HTTP self-read flow plus65client cases passed the affected Go CI
+-race target. Participation's six new read-only journal groups passed-race
+with zero publisher/signature/lookup calls and unchanged journal bytes/inode.
+The new native status UI delta remains pending the shared GUI window; current
+Mac locked state is handled once by Root and is not retried here.

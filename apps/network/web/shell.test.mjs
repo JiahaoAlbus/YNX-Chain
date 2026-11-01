@@ -31,3 +31,9 @@ test('session reset clears receipt authority while original export completion is
 test('old native operation completion releases activity without calling the current receipt saved',()=>{
  const s=shell();s.pair();s.receipt(record());s.click(buttons[0]);s.event({status:'failed',code:'EXPORT_BUSY'});disabled(s,true);s.event({status:'idle',code:'EXPORT_PRIOR_FINISHED'});disabled(s,false);assert.match(s.$('shell-notice').textContent,/先前导出/);assert.doesNotMatch(s.$('shell-notice').textContent,/回执已保存/);assert.equal(s.sent.length,1);
 });
+
+test('actual local module states clear on session reset and never fill absent counters with zero',()=>{
+ const s=shell();s.pair();s.window.NetworkOverview.project=()=>({native:{activity:{node:{code:'UNSUPPORTED',capacityComplete:false,usedBytes:null},participation:{code:'REVOKED',entries:'3',unknownEntries:'1'},resource:{code:'DISABLED',state:'stopped',verifiedJobs:'0',verifiedBytes:'0',activeWorkers:'0'}}}});s.window.NetworkUI.receive('native',{});
+ assert.match(s.$('participation-state').textContent,/已撤销/);assert.equal(s.$('participation-entry-count').textContent,'3');assert.equal(s.$('participation-unknown-count').textContent,'1');assert.equal(s.$('resource-verified-jobs').textContent,'0');assert.equal(s.$('local-node-bytes').textContent,'—');
+ s.window.NetworkOverview.project=()=>({});s.window.NetworkUI.receive('reset');assert.equal(s.$('participation-entry-count').textContent,'—');assert.equal(s.$('resource-verified-jobs').textContent,'—');assert.equal(s.$('resource-code').textContent,'—');assert.equal(s.$('resource-state').textContent,'尚未读取');
+});

@@ -23,7 +23,7 @@ function text(id, value, params) { paint($(id), value, params); }
 function notice(value, error = false, params) { text('notice', value, params); $('notice').classList.toggle('error', error); }
 function controls() {
   for (const id of ['proof-file']) $(id).disabled = !paired;
-  for (const [id,channel] of [['lookup-button','receipt'],['history-open','receipt'],['node-refresh','node'],['overview-refresh','node'],['native-refresh','native'],['history-refresh','history']]) $(id).disabled = !paired || pending.has(channel);
+  for (const [id,channel] of [['lookup-button','receipt'],['history-open','receipt'],['node-refresh','node'],['overview-refresh','node'],['native-refresh','native'],['participation-refresh','native'],['resource-refresh','native'],['history-refresh','history']]) $(id).disabled = !paired || pending.has(channel);
   $('pair-form').hidden = paired;
   $('revoke').hidden = !paired;
   $('history-prev').disabled = !paired || historyPage === 0;
@@ -300,7 +300,7 @@ $('proof-file').addEventListener('change', async event => {
   finally { finish(op); event.target.value = ''; }
 });
 $('node-refresh').addEventListener('click', nodeReport);
-$('native-refresh').addEventListener('click', nativeStatus);
+for(const id of ['native-refresh','participation-refresh','resource-refresh'])$(id).addEventListener('click', nativeStatus);
 $('history-refresh').addEventListener('click', refreshHistory);
 $('history-form').addEventListener('submit', event => { event.preventDefault(); return openHistorical($('receipt-id').value.trim()); });
 $('history-prev').addEventListener('click', () => { if (paired && historyPage > 0) { historyPage--; renderHistoryPage(); } });

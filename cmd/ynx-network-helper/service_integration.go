@@ -28,7 +28,7 @@ func startNativeService(ctx context.Context, directory string, service *particip
 			if resource == nil {
 				state = "unavailable"
 			}
-			return localipc.Result{Status: &localipc.Status{Service: "YNX Network", NodeControl: "unavailable", ResourceContribution: state}}, nil
+			return localipc.Result{Status: &localipc.Status{Service: "YNX Network", NodeControl: "unavailable", ResourceContribution: state, Activity: nativeActivity(peer, service, node, resource)}}, nil
 		case "request_permission":
 			return localipc.Result{Permission: &localipc.PermissionResult{State: "unsupported"}}, nil
 		default:

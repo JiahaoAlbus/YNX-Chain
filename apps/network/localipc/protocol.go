@@ -59,9 +59,10 @@ type Request struct {
 	Payload    json.RawMessage   `json:"payload,omitempty"`
 }
 type Status struct {
-	Service              string `json:"service"`
-	NodeControl          string `json:"nodeControl"`
-	ResourceContribution string `json:"resourceContribution"`
+	Activity             *Activity `json:"activity,omitempty"`
+	Service              string    `json:"service"`
+	NodeControl          string    `json:"nodeControl"`
+	ResourceContribution string    `json:"resourceContribution"`
 }
 type PermissionResult struct {
 	State     string `json:"state"`

@@ -226,3 +226,259 @@ test('projection neither mutates input nor retains mutable input objects or inhe
   const primitive = { toString() { throw Error('must not coerce arbitrary objects'); } };
   assert.equal(project(node({ network: primitive, height: primitive })).status.height, null);
 });
+
+const ACTIVITY_VERSION = 'YNX-NETWORK-LOCAL-ACTIVITY/v1';
+function localActivity() {
+  return {
+    version: ACTIVITY_VERSION, authority: false, productionGrant: false,
+    node: { code: 'UNSUPPORTED', stage: 'not_installed', mode: 'production', processOwned: false,
+      capacityComplete: true, usedBytes: '0', limitBytes: '67108864', freeBytes: '9007199254740993' },
+    participation: { code: 'UNSUPPORTED', configured: true, walletPublisherConfigured: false,
+      stopped: false, entries: '0', unknownEntries: '0' },
+    resource: { code: 'DISABLED', state: 'disabled', activeWorkers: '0', verifiedJobs: '0',
+      verifiedBytes: '0', rewards: 'NOT_AUTHORIZED', productionEnabled: false }
+  };
+}
+function withActivity(activity = localActivity()) {
+  const self = native();
+  self.native.result.status.activity = activity;
+  return self;
+}
+
+test('native local activity projects real default-disabled observations without granting authority', () => {
+  const activity = localActivity();
+  const out = project(null, withActivity(activity));
+  assert.deepEqual(out.native.activity, activity);
+  assert.equal(out.native.scope, 'helper-self-diagnostic');
+  assert.equal(out.native.authority, false);
+  assert.equal(out.native.browserIdentityVerified, false);
+  assert.equal(out.native.activity.authority, false);
+  assert.equal(out.native.activity.productionGrant, false);
+  assert.equal(out.native.activity.node.processOwned, false);
+  assert.equal(out.native.activity.node.usedBytes, '0');
+  assert.equal(out.native.activity.node.freeBytes, '9007199254740993');
+  assert.equal(out.native.activity.participation.walletPublisherConfigured, false);
+  assert.equal(out.native.activity.resource.activeWorkers, '0');
+  assert.equal(out.native.activity.resource.rewards, 'NOT_AUTHORIZED');
+  assert.equal(out.native.activity.resource.productionEnabled, false);
+  assert.equal(out.classification, 'RPC_ONLY');
+  assert.equal(out.authority, false);
+  assert.equal(out.native.participation, null); // Legacy field is not a Wallet grant.
+});
+
+test('native local activity preserves omitted unavailable measurements as null and legacy status still works', () => {
+  const activity = {
+    version: ACTIVITY_VERSION, authority: false, productionGrant: false,
+    node: { code: 'NOT_SUPPLIED', processOwned: false, capacityComplete: false },
+    participation: { code: 'UNAVAILABLE', configured: false, walletPublisherConfigured: false, stopped: false },
+    resource: { code: 'UNAVAILABLE', rewards: 'NOT_AUTHORIZED', productionEnabled: false }
+  };
+  const out = project(null, withActivity(activity)).native;
+  assert.deepEqual(out.activity.node, { code: 'NOT_SUPPLIED', stage: null, mode: null, processOwned: false,
+    capacityComplete: false, usedBytes: null, limitBytes: null, freeBytes: null });
+  assert.deepEqual(out.activity.participation, { code: 'UNAVAILABLE', configured: false,
+    walletPublisherConfigured: false, stopped: false, entries: null, unknownEntries: null });
+  assert.deepEqual(out.activity.resource, { code: 'UNAVAILABLE', state: null, activeWorkers: null,
+    verifiedJobs: null, verifiedBytes: null, rewards: 'NOT_AUTHORIZED', productionEnabled: false });
+  for (const missing of [null, false, [], 'activity', 0]) {
+    const legacy = project(null, withActivity(missing)).native;
+    assert.equal(legacy.activity, null);
+    assert.equal(legacy.nodeControl, 'unavailable');
+    assert.equal(legacy.resourceContribution, 'disabled');
+  }
+  const legacy = native();
+  assert.equal(project(null, legacy).native.activity, null);
+  assert.equal('activity' in legacy.native.result.status, false);
+  const incomplete = localActivity();
+  incomplete.node.capacityComplete = false;
+  delete incomplete.node.usedBytes; delete incomplete.node.limitBytes; delete incomplete.node.freeBytes;
+  const nodeOut = project(null, withActivity(incomplete)).native.activity.node;
+  assert.equal(nodeOut.capacityComplete, false);
+  assert.equal(nodeOut.usedBytes, null);
+});
+
+test('native local activity remains an observed sandbox or UNKNOWN state without rewards or production promotion', () => {
+  const sandbox = localActivity();
+  Object.assign(sandbox.node, { stage: 'running', mode: 'isolated-lifecycle-fixture', processOwned: true });
+  Object.assign(sandbox.resource, { code: 'CONTROLLED_SANDBOX', state: 'running', activeWorkers: '1',
+    verifiedJobs: '2', verifiedBytes: '18446744073709551615' });
+  sandbox.participation.walletPublisherConfigured = true;
+  sandbox.participation.code = 'CONFIGURED';
+  const out = project(node({ height: 7 }), withActivity(sandbox));
+  assert.equal(out.native.activity.node.processOwned, true);
+  assert.equal(out.native.activity.node.mode, 'isolated-lifecycle-fixture');
+  assert.equal(out.native.activity.resource.code, 'CONTROLLED_SANDBOX');
+  assert.equal(out.native.activity.resource.verifiedBytes, '18446744073709551615');
+  assert.equal(out.native.activity.participation.walletPublisherConfigured, true);
+  assert.equal(out.native.activity.productionGrant, false);
+  assert.equal(out.native.activity.authority, false);
+  assert.equal(out.native.activity.resource.productionEnabled, false);
+  assert.equal(out.native.activity.resource.rewards, 'NOT_AUTHORIZED');
+  assert.equal(out.authority, false);
+  for (const key of ['walletApproval', 'canStart', 'canVote', 'canStake', 'fundsVerified']) {
+    assert.equal(key in out.native, false);
+    assert.equal(key in out.native.activity, false);
+  }
+  Object.assign(sandbox.resource, { code: 'UNKNOWN', state: 'stopped', activeWorkers: '0' });
+  Object.assign(sandbox.participation, { code: 'REVOKED', stopped: true, entries: '7', unknownEntries: '2' });
+  const unknown = project(null, withActivity(sandbox)).native.activity;
+  assert.equal(unknown.resource.code, 'UNKNOWN');
+  assert.equal(unknown.resource.state, 'stopped');
+  assert.equal(unknown.participation.code, 'REVOKED');
+  assert.equal(unknown.participation.unknownEntries, '2');
+  assert.equal(unknown.productionGrant, false);
+});
+
+test('native local activity rejects absent or escalated trust flags without discarding legacy diagnostic fields', () => {
+  const edits = [
+    value => { delete value.version; },
+    value => { value.version = 'YNX-NETWORK-LOCAL-ACTIVITY/v2'; },
+    value => { delete value.authority; },
+    value => { value.authority = true; },
+    value => { value.authority = 'false'; },
+    value => { delete value.productionGrant; },
+    value => { value.productionGrant = true; },
+    value => { value.productionGrant = null; },
+    value => { value.walletApproval = true; },
+    value => { value.canStart = true; },
+    value => { value.productionGrant = 0; },
+    value => { value.Authority = false; }
+  ];
+  for (const edit of edits) {
+    const activity = localActivity(); edit(activity);
+    const out = project(null, withActivity(activity)).native;
+    assert.equal(out.activity, null, edit.toString());
+    assert.equal(out.nodeControl, 'unavailable');
+    assert.equal(out.resourceContribution, 'disabled');
+    assert.equal(out.authority, false);
+  }
+});
+
+test('native local activity submodels fail independently for invalid codes, states and escalation fields', () => {
+  const edits = [
+    ['node', value => { value.code = 'RUNNING'; }],
+    ['node', value => { value.processOwned = 'true'; }],
+    ['node', value => { delete value.processOwned; }],
+    ['node', value => { value.capacityComplete = 0; }],
+    ['node', value => { value.productionGrant = true; }],
+    ['participation', value => { value.code = 'APPROVED'; }],
+    ['participation', value => { value.walletPublisherConfigured = 'true'; }],
+    ['participation', value => { delete value.stopped; }],
+    ['participation', value => { value.walletApproval = true; }],
+    ['resource', value => { value.code = 'PRODUCTION'; }],
+    ['resource', value => { value.state = 'enabled'; }],
+    ['resource', value => { value.state = 'RUNNING'; }],
+    ['resource', value => { value.state = { toString() { throw Error('never coerce'); } }; }],
+    ['resource', value => { value.state = null; }],
+    ['resource', value => { value.rewards = '100'; }],
+    ['resource', value => { value.productionEnabled = true; }],
+    ['resource', value => { delete value.productionEnabled; }],
+    ['resource', value => { value.authority = false; }],
+    ['resource', value => { value.state = 'running'; }],
+    ['resource', value => { value.activeWorkers = '1'; }]
+  ];
+  for (const [bad, edit] of edits) {
+    const activity = localActivity(); edit(activity[bad]);
+    const out = project(null, withActivity(activity)).native.activity;
+    assert.equal(out[bad], null, bad + ': ' + edit.toString());
+    for (const sibling of ['node', 'participation', 'resource'].filter(key => key !== bad)) {
+      assert.deepEqual(out[sibling], localActivity()[sibling], sibling + ' must remain independent');
+    }
+  }
+  for (const bad of ['node', 'participation', 'resource']) {
+    for (const value of [null, undefined, [], false, 'claimed']) {
+      const activity = localActivity(); activity[bad] = value;
+      const out = project(null, withActivity(activity)).native.activity;
+      assert.equal(out[bad], null);
+      assert.equal(out.authority, false);
+    }
+  }
+});
+
+test('native local activity never rounds or substitutes missing and malformed counters', () => {
+  const bad = [undefined, null, true, false, {}, [], -0, -1, 0, 1, Number.MAX_SAFE_INTEGER,
+    JSON.parse('9007199254740993'), NaN, Infinity, '', ' ', '00', '01', '+1', '-1', '1e3', '1.0',
+    '１２', '18446744073709551616', '9'.repeat(10000), { toString() { throw Error('never coerce'); } }];
+  for (const [section, keys] of [
+    ['node', ['usedBytes', 'limitBytes', 'freeBytes']],
+    ['participation', ['entries', 'unknownEntries']],
+    ['resource', ['activeWorkers', 'verifiedJobs', 'verifiedBytes']]
+  ]) {
+    for (const key of keys) for (const value of bad) {
+      const activity = localActivity(); activity[section][key] = value;
+      const out = project(null, withActivity(activity)).native.activity;
+      assert.equal(out[section][key], null, section + '.' + key + ': ' + typeof value);
+      if (section === 'node') assert.equal(out.node.capacityComplete, null);
+      assert.equal(out.authority, false);
+      assert.equal(out.productionGrant, false);
+    }
+  }
+  const activity = localActivity();
+  for (const section of ['node', 'participation', 'resource']) {
+    for (const key of Object.keys(activity[section]).filter(key => /Bytes$|Jobs$|Workers$|^[a-z]*Entries$|^entries$/.test(key))) activity[section][key] = '18446744073709551615';
+  }
+  // DISABLED with active workers contradicts its own state; use the actual sandbox classification.
+  Object.assign(activity.resource, { code: 'CONTROLLED_SANDBOX', state: 'running' });
+  const out = project(null, withActivity(activity)).native.activity;
+  for (const section of ['node', 'participation', 'resource']) {
+    for (const key of Object.keys(activity[section]).filter(key => /Bytes$|Jobs$|Workers$|^[a-z]*Entries$|^entries$/.test(key))) {
+      assert.equal(out[section][key], '18446744073709551615');
+    }
+  }
+});
+
+test('native local activity is consumed only from gated helper status, never RPC or wrapper claims', () => {
+  const rpc = node();
+  rpc.activity = localActivity();
+  rpc.native = withActivity().native;
+  rpc.reports.status.data.activity = localActivity();
+  const wrapper = { ...native(), activity: localActivity() };
+  assert.equal(project(rpc, wrapper).native.activity, null);
+  assert.equal('activity' in project(rpc, null), false);
+  const payload = native(); payload.native.result.payload = { activity: localActivity() };
+  assert.equal(project(rpc, payload).native.activity, null);
+  const cases = [
+    value => { value.browserIdentityVerified = true; },
+    value => { delete value.browserIdentityVerified; },
+    value => { value.native.peer.nativeIPCVerified = false; },
+    value => { value.native.peer.browserIdentityVerified = true; },
+    value => { value.native.version = 'YNX-NETWORK-LOCAL-IPC/v2'; },
+    value => { value.native.code = 'UNAVAILABLE'; },
+    value => { delete value.native.result.status; }
+  ];
+  for (const edit of cases) {
+    const self = withActivity(); edit(self);
+    assert.equal(project(rpc, self).native, null, edit.toString());
+  }
+});
+
+test('native local activity rejects inherited claims and never retains mutable input references', () => {
+  const inherited = Object.create(localActivity());
+  assert.equal(project(null, withActivity(inherited)).native.activity, null);
+  for (const section of ['node', 'participation', 'resource']) {
+    const activity = localActivity();
+    activity[section] = Object.create(activity[section]);
+    assert.equal(project(null, withActivity(activity)).native.activity[section], null);
+  }
+  const malicious = localActivity();
+  malicious.node.stage = '<img src=x onerror=alert(1)>';
+  malicious.node.mode = 'mode\u202eexe';
+  const sanitized = project(null, withActivity(malicious)).native.activity;
+  assert.equal(sanitized.node.stage, null);
+  assert.equal(sanitized.node.mode, null);
+  const sandbox = { window: {}, URL };
+  vm.runInNewContext(script, sandbox, { timeout: 1000 });
+  const input = freeze(withActivity());
+  const before = JSON.stringify(input);
+  const out = sandbox.window.NetworkOverview.project(null, input);
+  assert.notStrictEqual(out.native.activity, input.native.result.status.activity);
+  for (const section of ['node', 'participation', 'resource']) {
+    assert.notStrictEqual(out.native.activity[section], input.native.result.status.activity[section]);
+  }
+  out.native.activity.node.usedBytes = '123';
+  out.native.activity.participation.entries = '123';
+  out.native.activity.resource.verifiedJobs = '123';
+  assert.equal(JSON.stringify(input), before);
+  assert.equal(out.native.activity.authority, false);
+  assert.equal(out.native.activity.productionGrant, false);
+});

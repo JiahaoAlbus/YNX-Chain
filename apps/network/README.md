@@ -198,3 +198,13 @@ public deployment and real-chain execution remain separate evidence gates.
 This product follows the YNX execution policy and the current P09 V5 scope.
 Its current source identity, writer ownership, evidence and remaining external
 contracts are recorded in the P09 coordination CURRENT and Handoff files.
+
+The existing native self-status read now includes a bounded local activity
+snapshot from the actual managed-node, participation journal and resource
+runner instances. Node capacity is labeled as the managed directory, not
+chain size; participation counts preserve UNKNOWN; resource totals are only
+locally reverified tasks/bytes, never public contribution or rewards. Missing,
+unsupported, revoked, unavailable and disabled states remain distinct. The
+participation/resource refresh entries use the same paired read-only native
+status request and busy state. No browser management, signing, submission or
+worker-start route is added, and these observations never enable such actions.

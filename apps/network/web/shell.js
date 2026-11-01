@@ -58,8 +58,17 @@
   raw('dash-source',model.source||status?.rpc||null);put('dash-sync',model.status?.catchingUp===false?'来源报告已同步':model.status?.catchingUp===true?'来源报告同步中':'尚未读取');
   put('side-height',model.status?.height?'RPC 报告高度 {height}':'连接后读取真实网络报告',{height:formatInteger(model.status?.height)});
   put('mobile-source-state',nodes?'固定 RPC 来源 · 尚非独立验证':'连接本机后读取 Testnet 数据');$('mobile-source-state').parentElement.classList.toggle('has-report',!!model.status);
-  put('managed-node-state',model.native?.nodeControl==='unavailable'?'正式节点控制尚未开放':'尚未读取');
-  put('resource-state',model.native?.resourceContribution==='disabled'?'已关闭':model.native?.resourceContribution==='unavailable'?'不可用':'默认关闭');
+  const activity=model.native?.activity;
+  const localNode=activity?.node, localParticipation=activity?.participation, localResource=activity?.resource;
+  const localLabels={NOT_SUPPLIED:'未配置',UNAVAILABLE:'不可用',UNSUPPORTED:'当前版本不支持此操作。',REVOKED:'已撤销本机参与会话。',CONFIGURED:'已装配，仍需 Wallet 批准。',DISABLED:'已关闭',CONTROLLED_SANDBOX:'本机隔离测试中。',UNKNOWN:'结果未确定。'};
+  const localLabel=value=>localLabels[value?.code]||(native?'不可用':'尚未读取');
+  put('managed-node-state',localNode?localLabel(localNode):model.native?.nodeControl==='unavailable'?'正式节点控制尚未开放':native?'不可用':'尚未读取');
+  raw('local-node-code',localNode?.code);raw('local-node-bytes',localNode?.capacityComplete===true&&localNode?.usedBytes!==null?formatInteger(localNode.usedBytes)+' B':null);
+  put('participation-state',localLabel(localParticipation));raw('participation-code',localParticipation?.code);raw('participation-entry-count',localParticipation?.entries===null||localParticipation?.entries===undefined?null:formatInteger(localParticipation.entries));raw('participation-unknown-count',localParticipation?.unknownEntries===null||localParticipation?.unknownEntries===undefined?null:formatInteger(localParticipation.unknownEntries));
+  put('resource-state',localResource?localLabel(localResource):model.native?.resourceContribution==='disabled'?'已关闭':native?'不可用':'尚未读取');raw('resource-code',localResource?.code);
+  put('resource-task-state',!localResource?localLabel(null):localResource.code==='UNKNOWN'?'结果未确定。':localResource.state==='running'?'本机隔离测试中。':localResource.state==='disabled'||localResource.state==='stopped'?'无运行任务':'不可用');
+  raw('resource-verified-jobs',localResource?.verifiedJobs===null||localResource?.verifiedJobs===undefined?null:formatInteger(localResource.verifiedJobs));raw('resource-verified-bytes',localResource?.verifiedBytes===null||localResource?.verifiedBytes===undefined?null:formatInteger(localResource.verifiedBytes)+' B');raw('resource-active-workers',localResource?.activeWorkers===null||localResource?.activeWorkers===undefined?null:formatInteger(localResource.activeWorkers));
+
   const body=$('latest-block-rows');body.replaceChildren();
   if(model.latestBlock){const b=model.latestBlock,row=document.createElement('tr');for(const value of [formatInteger(b.height),short(b.hash),short(b.validator),formatInteger(b.transactionCount),time(b.time)]){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}body.append(row);}else{const row=document.createElement('tr');row.className='empty-table-row';const cell=document.createElement('td');cell.colSpan=5;cell.textContent=t(paired?'本次未取得可绑定的最新区块。':'连接本机后显示实际最新区块');row.append(cell);body.append(row);}
   const list=$('validator-list');list.replaceChildren();const validators=model.validators;
