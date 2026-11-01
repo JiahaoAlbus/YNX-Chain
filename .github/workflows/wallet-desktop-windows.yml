@@ -4891,9 +4891,12 @@ jobs:
         with:
           node-version: '26.7.0'
       - run: npm ci --ignore-scripts --prefix packages/wallet-auth
-      - run: node packages/wallet-auth/scripts/ci/device-v4-normal-http-server.mjs 2>&1 | tee normal-http-server-controls.log
-      - run: node scripts/ci/device-v4-normal-http-server-package.mjs 2>&1 | tee normal-http-server-package.log
-      - run: node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs 2>&1 | tee normal-http-server-canonical-package.log
+      - shell: bash
+        run: set -euo pipefail; node packages/wallet-auth/scripts/ci/device-v4-normal-http-server.mjs 2>&1 | tee normal-http-server-controls.log
+      - shell: bash
+        run: set -euo pipefail; node scripts/ci/device-v4-normal-http-server-package.mjs 2>&1 | tee normal-http-server-package.log
+      - shell: bash
+        run: set -euo pipefail; node packages/wallet-auth/scripts/ci/canonical-common-source-package.mjs 2>&1 | tee normal-http-server-canonical-package.log
       - uses: actions/upload-artifact@v4
         if: always()
         with:
