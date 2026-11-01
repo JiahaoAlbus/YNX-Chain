@@ -670,6 +670,12 @@ jobs:
               if terminal != ['pass']:
                   raise RuntimeError('fixed product device core did not execute and pass: ' + name)
           print('YNX_PRODUCT_DEVICE_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=device, suitePassed=True, accountAuthorized=False, nativeCustodyVerified=False), sort_keys=True))
+          migration = ['TestAccountMigrationCABIPUBLICOriginalWholeAndBothSignatures', 'TestAccountMigrationCABIPUBLICPreflightNoPrivateInput', 'TestAccountMigrationCABIPUBLICCurrentPQNoLegacyFallback', 'TestAccountMigrationCABIPUBLICOwnedPlanAndWrongPrivatePair', 'TestAccountMigrationCABIPUBLICBridgeLayoutAndCall', 'TestAccountMigrationCABIPUBLICSecretPublicAliasBoundary']
+          for name in migration:
+              terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('account migration core did not execute and pass: ' + name)
+          print('YNX_ACCOUNT_MIGRATION_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=migration, suitePassed=True, exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False), sort_keys=True))
           PY
       - name: Qualify device creator and invoice execution from the original full core suite
         run: |
@@ -828,6 +834,7 @@ jobs:
               shutil.copyfile('cmd/ynx-artifact-release-cabi/ynx_artifact_release.h', out / 'ynx_artifact_release.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/tx_batch.h', out / 'tx_batch.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/account_initial.h', out / 'account_initial.h')
+              shutil.copyfile('cmd/ynx-artifact-release-cabi/account_migration.h', out / 'account_migration.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/product_session_http.h', out / 'product_session_http.h')
               for name in public_names:
                   shutil.copyfile(case / 'output' / name, out / name)
@@ -856,6 +863,11 @@ jobs:
                   initialAccountHeader=pin(out / 'account_initial.h'), initialAccountPublicEvidence=initial_public_pins,
                   actualInitialAccountCABIExecuted=executed, initialAccountIndependentGoDualANDVerified=executed,
                   initialAccountCallerRecipe='scripts/verify/account-initial-cabi-check.sh', initialAccountAuthorized=False,
+                  accountMigrationPossessionABI='YNXAccountMigrationPossessionSignV1', accountMigrationPossessionABIVersion=1,
+                  accountMigrationHeader=pin(out / 'account_migration.h'),
+                  accountMigrationCoreTests=['TestAccountMigrationCABIPUBLICOriginalWholeAndBothSignatures', 'TestAccountMigrationCABIPUBLICPreflightNoPrivateInput', 'TestAccountMigrationCABIPUBLICCurrentPQNoLegacyFallback', 'TestAccountMigrationCABIPUBLICOwnedPlanAndWrongPrivatePair', 'TestAccountMigrationCABIPUBLICBridgeLayoutAndCall', 'TestAccountMigrationCABIPUBLICSecretPublicAliasBoundary'],
+                  accountMigrationExportedBridgeGoVerified=True, accountMigrationExternalCInterop=False,
+                  accountMigrationAccountAuthorized=False,
                   deviceHTTPABI='YNXProductSessionHTTPProofSignV4', deviceHTTPABIVersion=4,
                   deviceHTTPHeader=pin(out / 'product_session_http.h'), deviceHTTPPublicEvidence=device_http_public_pins,
                   actualDeviceHTTPCABIExecuted=executed, deviceHTTPIndependentGoDualANDVerified=executed,
@@ -1134,6 +1146,7 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/ynx_artifact_release.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/tx_batch.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/account_initial.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/account_migration.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/product_session_http.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/SOURCE.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PUBLIC-RECEIPT.json
@@ -1156,6 +1169,7 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/ynx_artifact_release.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/tx_batch.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/account_initial.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/account_migration.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/product_session_http.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/SOURCE.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/TX-PUBLIC-RECEIPT.json

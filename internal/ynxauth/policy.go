@@ -261,34 +261,36 @@ func VerifyClassicMigration(owner string, message, pub, sig []byte) error {
 	return nil
 }
 
-// AdmitMigration returns a new detached state only after both the CURRENT
-// lawful account authorization and BOTH proposed-key proofs pass. It does not
-// change a balance/nonce or persist anything; the ledger must commit the state,
-// consumed nonce, fee and audit transaction atomically under the same lock.
-func (s State) AdmitMigration(m Migration, height, currentNonce uint64) (State, error) {
+// ValidateMigrationAuthorization checks the complete intent, exact nonce,
+// schedule/revision and CURRENT lawful account proof using the same boundary as
+// AdmitMigration. NewKeyProof may be absent while the new pair is still held by
+// protected custody. Success does not validate that new pair, grant authority,
+// consume nonce, change policy, or authorize broadcast. AdmitMigration must still
+// verify BOTH new-key possession signatures and return a detached new state.
+func (s State) ValidateMigrationAuthorization(m Migration, height, currentNonce uint64) error {
 	if len(m.ClassicPublicKey) > 33 || len(m.ClassicSignature) > 72 || len(m.CurrentPQProof) > 128<<10 || len(m.NewKeyProof) > 128<<10 {
-		return State{}, errors.New("migration proof bounds")
+		return errors.New("migration proof bounds")
 	}
 	if _, err := m.Encode(); err != nil {
-		return State{}, err
+		return err
 	}
 	if err := s.Validate(s.NetworkID); err != nil {
-		return State{}, err
+		return err
 	}
 	if !supportedPolicyVersion(s.Version) || height < s.EnableAt || !bytes.Equal(m.Intent.ChainID, s.NetworkID) {
-		return State{}, ErrPolicy
+		return ErrPolicy
 	}
 	// A terminal revocation also freezes any already admitted pending pair.
 	// Its future effective height never opens a window for another registration.
 	if _, exists := s.revocationFor(m.Intent.Owner); exists {
-		return State{}, ErrPolicy
+		return ErrPolicy
 	}
 	msg, err := m.Intent.SigningBytes()
 	if err != nil {
-		return State{}, err
+		return err
 	}
 	if currentNonce == math.MaxUint64 || m.Intent.LedgerNonce != currentNonce+1 || m.Intent.ActivateAt <= height {
-		return State{}, errors.New("migration nonce or activation invalid")
+		return errors.New("migration nonce or activation invalid")
 	}
 	var latest Record
 	for _, r := range s.Records {
@@ -297,22 +299,37 @@ func (s State) AdmitMigration(m Migration, height, currentNonce uint64) (State, 
 		}
 	}
 	if latest.Revision != m.Intent.PriorRevision || (latest.Revision > 0 && height < latest.ActiveFrom) {
-		return State{}, errors.New("migration revision mismatch or pending activation")
+		return errors.New("migration revision mismatch or pending activation")
 	}
 	if _, active := s.PolicyAt(m.Intent.Owner, height); active {
 		if len(m.ClassicPublicKey) > 0 || len(m.ClassicSignature) > 0 {
-			return State{}, ErrPolicy
+			return ErrPolicy
 		}
 		if err = s.VerifyMember(m.Intent.Owner, MigrationPurpose, msg, m.CurrentPQProof, height); err != nil {
-			return State{}, err
+			return err
 		}
 	} else {
 		if len(m.CurrentPQProof) > 0 {
-			return State{}, errors.New("unexpected current PQ proof")
+			return errors.New("unexpected current PQ proof")
 		}
 		if err = VerifyClassicMigration(m.Intent.Owner, msg, m.ClassicPublicKey, m.ClassicSignature); err != nil {
-			return State{}, err
+			return err
 		}
+	}
+	return nil
+}
+
+// AdmitMigration returns a new detached state only after both the CURRENT
+// lawful account authorization and BOTH proposed-key proofs pass. It does not
+// change a balance/nonce or persist anything; the ledger must commit the state,
+// consumed nonce, fee and audit transaction atomically under the same lock.
+func (s State) AdmitMigration(m Migration, height, currentNonce uint64) (State, error) {
+	if err := s.ValidateMigrationAuthorization(m, height, currentNonce); err != nil {
+		return State{}, err
+	}
+	msg, err := m.Intent.SigningBytes()
+	if err != nil {
+		return State{}, err
 	}
 	whole, err := ynxbatch.DecodeWhole(m.NewKeyProof)
 	if err != nil {
