@@ -22,6 +22,6 @@ try{
  mkdirSync(join(stage,'test'));writeFileSync(join(stage,'index.ts'),readFileSync(join(root,'index.ts')));
  writeFileSync(join(stage,'test/contract.typecheck.ts'),readFileSync(join(root,'test/contract.typecheck.ts')));
  symlinkSync(dirname(rn),join(stage,'node_modules'),'dir');
- call(process.execPath,[tsc,'--noEmit','--strict','--skipLibCheck','--target','ES2022','--module','preserve','--moduleResolution','bundler',join(stage,'index.ts'),join(stage,'test/contract.typecheck.ts')],{cwd:stage});
+ call(process.execPath,[tsc,'--noEmit','--strict','--noUncheckedIndexedAccess','--skipLibCheck','--target','ES2022','--module','preserve','--moduleResolution','bundler',join(stage,'index.ts'),join(stage,'test/contract.typecheck.ts')],{cwd:stage});
 }finally{rmSync(stage,{recursive:true,force:true});}
 console.log('Module host/native+Hermes/typed+actual JSI syntax checks complete. No platform link, real Source or signing is claimed.');

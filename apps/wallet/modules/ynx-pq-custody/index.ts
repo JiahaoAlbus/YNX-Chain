@@ -49,6 +49,8 @@ const passiveStatus=Object.freeze({version:1 as const,inventoryScope:'current-pr
  durableInventory:'not-inspected' as const,authority:'not-inspected' as const,osProtection:'not-inspected' as const,keyHealth:'not-inspected' as const,
  protectedSelection:'not-supplied' as const,canSign:false as const,canRestore:false as const,canSubmit:false as const});
 const unavailableStatus=(statusReason:PQPublicStatus['statusReason']):PQPublicStatus=>Object.freeze({...passiveStatus,nativeLink:'not-observed',runtime:'not-observed',held:null,statusReason});
+const isPublicRuntime=(value:unknown):value is PQPublicRuntime=>value==='not-installed'||value==='initializing'||value==='ready'||value==='retaining';
+const isHeldCount=(value:unknown):value is number=>typeof value==='number'&&Number.isSafeInteger(value)&&value>=0&&value<=64;
 /** Passive Native report only. Never calls install/prepare or probes a reference.
  * Counts cover held process state at the last completed worker job, not cold
  * records. Ready/link/counts never establish Source, protection or permission. */
@@ -59,15 +61,21 @@ export function readPQPublicStatus():PQPublicStatus{
   const raw=module.readPublicStatus();
   if(!raw||typeof raw!=='object'||Array.isArray(raw))return unavailableStatus('native-status-invalid');
   const ds=Object.getOwnPropertyDescriptors(raw),fields=['version','runtime','heldOperations','heldCoreUncertain','heldOSUncertain','heldOSRecorded','heldCleanupFaults','workerBusy'];
-  if(Reflect.ownKeys(ds).length!==fields.length||fields.some(key=>!ds[key]?.enumerable||!Object.prototype.hasOwnProperty.call(ds[key],'value'))||ds.version.value!==1||
-     !['not-installed','initializing','ready','retaining'].includes(ds.runtime.value)||typeof ds.workerBusy.value!=='boolean')return unavailableStatus('native-status-invalid');
-  for(const key of fields.slice(2,7))if(!Number.isSafeInteger(ds[key].value)||ds[key].value<0||ds[key].value>64)return unavailableStatus('native-status-invalid');
-  const operations=ds.heldOperations.value as number;
-  if(ds.heldCoreUncertain.value>operations||ds.heldOSUncertain.value+ds.heldOSRecorded.value>operations||ds.heldCleanupFaults.value>operations||
-     (ds.runtime.value==='not-installed'||ds.runtime.value==='initializing')&&(operations!==0||ds.workerBusy.value))return unavailableStatus('native-status-invalid');
-  return Object.freeze({...passiveStatus,nativeLink:'native-reported',runtime:ds.runtime.value as PQPublicRuntime,
-   held:Object.freeze({operations,coreUncertain:ds.heldCoreUncertain.value as number,osUncertain:ds.heldOSUncertain.value as number,
-    osRecorded:ds.heldOSRecorded.value as number,cleanupFaults:ds.heldCleanupFaults.value as number,workerBusy:ds.workerBusy.value as boolean}),statusReason:null});
+  if(Reflect.ownKeys(ds).length!==fields.length)return unavailableStatus('native-status-invalid');
+  const data:Record<string,unknown>={};
+  for(const key of fields){
+   const descriptor=ds[key];
+   if(!descriptor||!descriptor.enumerable||!Object.prototype.hasOwnProperty.call(descriptor,'value'))return unavailableStatus('native-status-invalid');
+   data[key]=descriptor.value;
+  }
+  const {version,runtime,heldOperations:operations,heldCoreUncertain:coreUncertain,heldOSUncertain:osUncertain,
+   heldOSRecorded:osRecorded,heldCleanupFaults:cleanupFaults,workerBusy}=data;
+  if(version!==1||!isPublicRuntime(runtime)||typeof workerBusy!=='boolean'||!isHeldCount(operations)||!isHeldCount(coreUncertain)||
+     !isHeldCount(osUncertain)||!isHeldCount(osRecorded)||!isHeldCount(cleanupFaults))return unavailableStatus('native-status-invalid');
+  if(coreUncertain>operations||osUncertain+osRecorded>operations||cleanupFaults>operations||
+     (runtime==='not-installed'||runtime==='initializing')&&(operations!==0||workerBusy))return unavailableStatus('native-status-invalid');
+  return Object.freeze({...passiveStatus,nativeLink:'native-reported',runtime,
+   held:Object.freeze({operations,coreUncertain,osUncertain,osRecorded,cleanupFaults,workerBusy}),statusReason:null});
  }catch{return unavailableStatus('native-status-read-failed');}
 }
 /** Normal platform native module only, no injected provider or Node SDK.
