@@ -188,8 +188,8 @@ func (s *Store) encrypt(account, conversationID, messageID, content string) (str
 
 func (s *Store) decrypt(account string, m storedMessage) (string, error) {
 	nonce, err := base64.RawStdEncoding.DecodeString(m.Nonce)
-	if err != nil {
-		return "", err
+	if err != nil || len(nonce) != s.aead.NonceSize() {
+		return "", errors.New("encrypted conversation nonce is invalid")
 	}
 	ciphertext, err := base64.RawStdEncoding.DecodeString(m.Cipher)
 	if err != nil {

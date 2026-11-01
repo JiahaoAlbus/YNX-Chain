@@ -717,6 +717,11 @@ func (s *Server) cancelTaskModelRuns(account, taskID string) {
 			cancels = append(cancels, run.cancel)
 		}
 	}
+	for read := range s.taskPageReads {
+		if read.account == account && read.taskID == taskID {
+			cancels = append(cancels, read.cancel)
+		}
+	}
 	for _, run := range s.taskActiveEffects {
 		if run.account == account && run.taskID == taskID {
 			cancels = append(cancels, run.cancel)

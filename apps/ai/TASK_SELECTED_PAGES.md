@@ -130,3 +130,32 @@ answer and exact run task revision/generation/holder. Task-level UNKNOWN or a
 tampered external record blocks new scheduling/closure, even if a different
 ordinary tool completed. Only original query recovery proceeds; an observation
 can close local orchestration without becoming authorship or remote finality.
+
+## Source read cancellation and cold recovery
+
+The first selected-page read now joins the original task's cancellation boundary
+before any model run exists. Each admitted read has its own private handle,
+including concurrent calls for the same original run. Registration precedes a
+fresh Store fence; cancellation either finds that read or the Store fence rejects
+it. The original task cancellation handler interrupts its Source context. Foreign
+accounts cannot cancel it. Read contexts are bounded to 30 seconds and retain any earlier
+caller deadline; the supplier must honor cancellation. A final task/revision/generation/holder/configuration fence
+rejects late bytes after handoff, cancellation or a changed task, even if a
+producer did not respect its cancelled context. The original protected supplier
+must honor that context and release its original IPC/native borrow.
+
+Loading an encrypted page checkpoint rechecks its bounded closed JSON shape,
+original task/preparation, selected references, both hashes, byte counts, field
+scope, trust labels and duplicate identity. Unknown fields, missing ciphertext
+with a retained binding and malformed nonces fail without returning partial page
+DATA. A generic encrypted Store read now rejects malformed nonce lengths before
+AEAD.Open instead of allowing a panic. Existing valid encrypted formats and
+legacy labels are retained.
+
+A final answer blocked only because the original Source is temporarily unavailable
+remains encrypted under the original run. Cold recovery rechecks those original
+snapshots and the original disclosure, then releases that same answer. It does
+not call the model, replace the prompt/snapshot, or turn a blocked answer into a
+new run. Read-only history remains independent from a new Source/model call.
+These lifecycle changes do not widen the frozen seven-key NativeV6 record, add
+an E5 action, or supply the missing protected Source/Native approval.

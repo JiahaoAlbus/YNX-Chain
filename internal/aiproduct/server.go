@@ -46,6 +46,7 @@ type Server struct {
 	taskModel         *taskModelService
 	taskModelAdmit    originalTaskModelAdmission
 	taskPages         OriginalTaskPagesAuthority
+	taskPageReads     map[*taskActivePageRead]struct{}
 	taskActiveRuns    map[string]taskActiveModelRun
 	taskActiveEffects map[string]*taskActiveEffectRun
 	taskRuntimeOnce   sync.Once

@@ -35,3 +35,23 @@ the full Goal; use the P08 packet and necessary owner interface contracts.
 - Coordinate only real heavy/GUI conflicts. Keep original builder/publisher,
   SDK/Auth and service authority ownership. Production keys, funds, irreversible
   migration and public activation require their own specific authorization.
+
+## Direct V5 scope reaffirmation received 2026-11-01
+
+The sole controller `01a19136-8605-7773-9d79-99c6f91c3a36` forwarded the actual
+human answer to scope question `call_a0d12a485254472aa443269552281f11`:
+“以本轮 V5 为准，九产品及必要共享依赖全部继续”. This reaffirms the existing
+V5 authorization for Wallet, Social, IDE, Cloud, Browser/Search, Pay, Shop, AI,
+Network and necessary Chain/Protocol/Perf/Auth/SDK/LINK/original-A dependencies.
+The retained October 18 limits are historical, not a reason to refuse an already
+authorized shared contract. Finance/Card/Media/Docs/Mail/Calendar and old
+controllers/automations stay preserved and paused. Keep the original owners,
+worktrees, dirty state, accounts and UNKNOWN; no substitute or second controller.
+Funds, production keys, irreversible migrations and public activation retain
+their separate gates. Code availability, genuine Source qualification, Native
+approval and real model configuration remain distinct facts.
+
+P08's original children are completed/closed; none is restarted just to acknowledge
+policy. Pass this reaffirmation with any actual continuation of those original
+children, preserving their models and no-fast settings. This live instruction
+append does not alter already frozen source/provenance or transfer shared writes.

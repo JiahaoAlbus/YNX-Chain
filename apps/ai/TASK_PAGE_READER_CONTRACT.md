@@ -92,3 +92,14 @@ external-WRITE loan. Those remain independent CODE/qualification resources.
 The product-selection DATA above is a downstream resource read request, not a
 replacement E5 proof or a new verifier. The original Auth supplier must bind it
 to its actual approved E5 action/session and same running TaskStoreSource.
+
+## Caller lifetime delta (same method and DATA schema)
+
+P08 registers each Source read in the original task cancellation boundary before
+checking the current Store scope, including the initial capture before a model
+run is persisted. All calls receive a context bounded to at most 30 seconds,
+never beyond the original caller deadline. The supplier must honor cancellation
+and release the exact original protected IPC/Native borrow; it must not create
+replacement scopes or replay model/tool actions. A late response after task
+handoff/cancellation is discarded. No new shared method, JSON key, signature
+purpose, codec or admission row is required for this caller-only delta.

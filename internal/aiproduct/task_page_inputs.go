@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 const taskBrowserPageSourceClass = "SELECTED_BROWSER_PAGE"
@@ -80,6 +81,15 @@ func (s *Server) readTaskPages(ctx context.Context, session ProductSession, task
 	if missingTaskRuntimeOperand(s.taskPages) {
 		return nil, errTaskEffectSourceUnavailable
 	}
+	if !toolOperationID.MatchString(runID) || validateTaskPageReferences(refs) != nil {
+		return nil, errToolInvalid
+	}
+	callCtx, finish, err := s.beginTaskPageRead(ctx, session, task)
+	if err != nil {
+		return nil, err
+	}
+	defer finish()
+	ctx = callCtx
 	owned := append([]TaskPageReference(nil), refs...)
 	pages, err := s.taskPages.ReadOriginalTaskPages(ctx, OriginalTaskPagesRequest{Session: cloneTaskModelSession(session), Task: task, References: owned, RunID: runID, AuthorizationRef: auth, QueryOriginal: auth == ""})
 	if err != nil {
@@ -107,11 +117,14 @@ func (s *Server) readTaskPages(ctx context.Context, session ProductSession, task
 		}
 	}
 
+	if err := s.taskPageReadFence(ctx, session, task); err != nil {
+		return nil, err
+	}
 	return pages, nil
 }
 func (s *Store) taskRunPagesLocked(run taskModelRun) ([]TaskPageSnapshot, error) {
 	if run.PagesCipher == "" {
-		if run.PagesNonce != "" {
+		if run.PagesNonce != "" || run.PagesBinding != (taskBytesBinding{}) {
 			return nil, errToolConflict
 		}
 		return nil, nil
@@ -121,17 +134,34 @@ func (s *Store) taskRunPagesLocked(run taskModelRun) ([]TaskPageSnapshot, error)
 		return nil, err
 	}
 	var pages []TaskPageSnapshot
-	err = json.Unmarshal([]byte(raw), &pages)
+	if len(raw) == 0 || len(raw) > 256<<10 || !utf8.ValidString(raw) || rejectDuplicateShopJSON([]byte(raw)) != nil {
+		return nil, errToolConflict
+	}
+	err = strictToolJSON(strings.NewReader(raw), &pages)
 	if err == nil {
+		if len(pages) == 0 || len(pages) > 16 {
+			return nil, errToolConflict
+		}
 		refs := make([]TaskPageReference, len(pages))
-		for i := range pages {
-			refs[i] = pages[i].Reference
+		tabs := map[string]bool{}
+		for i, p := range pages {
+			refs[i] = p.Reference
+			if tabs[p.TabID] || p.SourceClass != "" && p.SourceClass != taskBrowserPageSourceClass || p.ContentTrust != "" && p.ContentTrust != taskPageContentTrust {
+				return nil, errToolConflict
+			}
+			tabs[p.TabID] = true
+			if err := validateTaskPageSnapshot(run.TaskID, p.Reference, p); err != nil {
+				return nil, err
+			}
 		}
 		if validateTaskPageReferences(refs) != nil || taskPageReferenceBinding(refs) != run.PagesBinding {
 			return nil, errToolConflict
 		}
 	}
-	return pages, err
+	if err != nil {
+		return nil, err
+	}
+	return pages, nil
 }
 func (s *Server) checkTaskRunPages(ctx context.Context, session ProductSession, run taskModelRun, auth string) error {
 	s.store.mu.Lock()
@@ -228,11 +258,15 @@ func taskPageContent(p TaskPageSnapshot) (map[string]string, error) {
 }
 
 func validateTaskPageSnapshot(taskID string, ref TaskPageReference, p TaskPageSnapshot) error {
-	if p.TaskID != taskID || p.Reference != ref || p.TabID == "" || p.ProfileID == "" || p.Generation == 0 {
+	if p.TaskID != taskID || p.Reference != ref || p.TabID == "" || len(p.TabID) > 128 || p.ProfileID == "" || len(p.ProfileID) > 1024 || len(p.PreparationID) > 1024 || len(p.Origin) > 8192 || p.Generation == 0 {
+		return errToolConflict
+	}
+	sha3Binding, hashErr := hex.DecodeString(p.SHA3_512)
+	if p.Bytes < 1 || p.Bytes > 1<<20 || hashErr != nil || len(sha3Binding) != 64 || strings.ToLower(p.SHA3_512) != p.SHA3_512 {
 		return errToolConflict
 	}
 	origin, e := url.Parse(p.Origin)
-	if e != nil || origin.Scheme != "https" && origin.Scheme != "http" || origin.Host == "" || origin.User != nil || origin.RawQuery != "" || origin.Fragment != "" || origin.Path != "" {
+	if e != nil || origin.Scheme != "https" && origin.Scheme != "http" || origin.Host == "" || origin.User != nil || origin.RawQuery != "" || origin.ForceQuery || origin.Fragment != "" || origin.RawFragment != "" || origin.Opaque != "" || origin.Path != "" {
 		return errToolInvalid
 	}
 	seen := map[string]bool{}
@@ -242,11 +276,14 @@ func validateTaskPageSnapshot(taskID string, ref TaskPageReference, p TaskPageSn
 		}
 		seen[f] = true
 	}
-	if len(p.Fields) == 0 {
+	if len(p.Fields) == 0 || len(p.Fields) > 3 {
 		return errToolInvalid
 	}
 	switch p.State {
 	case "AVAILABLE":
+		if !utf8.Valid(p.Content) {
+			return errToolInvalid
+		}
 		if p.TaskID != taskID {
 			return errToolConflict
 		}
