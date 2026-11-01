@@ -60,6 +60,43 @@ its normal registration factory from its actual Source-owned resource getter.
 An empty library main and PUBLIC fixture registration do not satisfy that
 normal startup requirement.
 
+The normal startup composition must acquire the original Root's independently
+verified transport resource before constructing the client. The original
+binding and query mode constrain that resource; they cannot select a socket,
+service, peer identity, or registration. P06's fixed route constraints are
+intersected with that original resource. The actual Main retirement epoch is
+retained separately and cannot be synthesized from the transport profile.
+
+The startup owner and the exported registration borrow have separate custody.
+The SourceLease constructor adopts a nonnull borrow into a nonnull Source
+partial even when it reports a later error. Adopt that Source partial before
+checking the error. A constructor returning no Source must leave the borrow
+with the startup owner. Neither branch may repeat the constructor, release an
+already transferred borrow, or treat an unknown transfer as a failed transfer.
+
+The normal owner must remain reachable through native drain. Retiring it
+cancels its registration; the actual Source and channel children then drain
+and return their original borrows before the owner joins and closes the
+registration. Dropping a registration borrow alone does not close its Go
+parent or release the parent's cgo handle. The normal Native composition must
+own that final cleanup as well as the SourceLease's borrow.
+
+`OpenNativeLocalCallerStartup` combines the real client construction,
+registration, and initial borrow for a normal Go owner. Its nonnull owner is
+adopted before its error. `TransferBorrowToNativeSource` runs the normal
+Go/native bridge's exact Auth constructor once, outside owner and registration
+locks. Its opaque output records custody only. A panic leaves transfer custody
+UNKNOWN, retains the original owner and borrow, and prevents another transfer
+or release. `FirstCause` remains diagnostic data when a partial later drains.
+Concurrent joins share one context-bounded registration wait and wake every
+waiting caller after actual drain. If that wait is cancelled, another live
+caller can continue draining without extending the cancelled caller's context.
+
+This Go startup owner does not define or implement Auth's pre-Source resource
+getter or a Native entry accepting configuration. The actual Root-owned getter
+and normal Native call into the startup owner must still be supplied and
+verified as one composition before normal startup is complete.
+
 ## Actual Native Source fence
 
 Native capture takes the original registration, an actual Source fence, query

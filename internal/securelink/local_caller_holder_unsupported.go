@@ -9,6 +9,9 @@ import (
 
 type NativeLocalCallerRegistration struct{}
 
+func nativeLocalCallerStartupBorrowCurrent(unsafe.Pointer) error { return ErrUnavailable }
+func nativeLocalCallerStartupReleaseBorrow(unsafe.Pointer) error { return ErrUnavailable }
+
 func RegisterNativeLocalCallerClient(context.Context, *LocalCallerClient, [5]NativeLocalCallerBinding) (*NativeLocalCallerRegistration, error) {
 	return nil, ErrUnavailable
 }

@@ -74,6 +74,25 @@ type nativeLocalCallerHolder struct {
 
 type nativeCallerCurrentError struct{ code int32 }
 
+func nativeLocalCallerStartupBorrowCurrent(p unsafe.Pointer) error {
+	if p == nil {
+		return ErrDenied
+	}
+	if rc := C.ynx_link_private_client_registration_borrow_current_v1((*C.ynx_link_private_client_registration_borrow_v1)(p)); rc != 0 {
+		return fmt.Errorf("native registration borrow current (%d): %w", int32(rc), ErrDenied)
+	}
+	return nil
+}
+func nativeLocalCallerStartupReleaseBorrow(p unsafe.Pointer) error {
+	if p == nil {
+		return ErrDenied
+	}
+	if rc := C.ynx_link_private_client_registration_borrow_release_v1((*C.ynx_link_private_client_registration_borrow_v1)(p)); rc != 0 {
+		return fmt.Errorf("native registration borrow release (%d): %w", int32(rc), ErrLocalCallerDraining)
+	}
+	return nil
+}
+
 func (e nativeCallerCurrentError) Error() string {
 	return fmt.Sprintf("original native source current rejected (%d)", e.code)
 }
