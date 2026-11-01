@@ -3,6 +3,7 @@ import './i18n.test.mjs';
 import './overview.test.mjs';
 import './governance.test.mjs';
 import './governance-ui.test.mjs';
+import './offline-shell.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {environment,settle,A,B,R1,R2,view,record,htmlIDs} from './test-support.mjs';

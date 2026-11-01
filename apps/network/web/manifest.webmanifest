@@ -4,8 +4,8 @@
   "lang": "zh-Hans",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f5fa",
-  "theme_color": "#f4f5fa",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "icons": [
     {
       "src": "/app-icon.png",
