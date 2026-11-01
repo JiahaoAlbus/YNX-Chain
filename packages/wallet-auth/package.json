@@ -434,6 +434,12 @@
       "browser": null,
       "node": "./src/social-ordinary-enrollment-v2.js",
       "default": null
+    },
+    "./pq-native-pay-source": {
+      "types": "./src/pq-native-pay-source.d.ts",
+      "browser": null,
+      "node": "./src/pq-native-pay-source.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -568,7 +574,8 @@
     "go/taskactionv6/bridge.go",
     "go/taskactionv6/open_posix.go",
     "go/taskactionv6/open_other.go",
-    "go/taskactionv6/README.md"
+    "go/taskactionv6/README.md",
+    "docs/pay-native-source-getter.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
