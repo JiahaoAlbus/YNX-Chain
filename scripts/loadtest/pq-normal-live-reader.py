@@ -53,24 +53,31 @@ def prepare_matching_source(source, destination):
             core.FORK_TREE==q['optionalForkTree'] and
             git('rev-parse',core.FORK_COMMIT+':third_party/cometbft')==core.FORK_TREE,
             'original source and selected matching module identities differ')
-    require(set(git('diff','--name-only',core.PRODUCTION_TREE,core.FORK_TREE).splitlines())==core.DIFF and
-            not git('diff','--diff-filter=D','--name-only',core.PRODUCTION_TREE,core.FORK_TREE),
-            'exact Core-approved optional module difference required')
-    require(destination.parent.resolve(strict=True)==destination.parent and not destination.exists(),
-            'fresh private matching source destination required')
-    destination.mkdir(mode=0o700)
-    paths=('go.mod','go.sum','cmd','internal','pkg','contracts','third_party')
-    core.extract(source,identity['commit'],destination,paths)
-    core.extract(source,core.FORK_COMMIT+':third_party/cometbft',destination/'third_party/cometbft')
+    prepared=core.prepare_wire_live_source(source,destination,identity['commit'],identity['tree'])
+    build_source=destination/'source'
+    receipt_path=destination/'SOURCE-SELECTION.json'
+    require(prepared['sourceDirectory']==str(build_source) and prepared['receiptPath']==str(receipt_path),
+            'original Core prepared source path differs')
+    raw=receipt_path.read_bytes()
+    selection=json.loads(raw)
+    require(len(raw)<=64<<10 and len(raw)==prepared['receiptBytes'] and
+            hashlib.sha256(raw).hexdigest()==prepared['receiptSHA256'] and selection==prepared['sourceSelection'],
+            'original Core source-selection receipt changed')
+    require(selection['originalSourceCommit']==identity['commit'] and selection['originalSourceTree']==identity['tree'] and
+            selection['originalProductionForkTree']==identity['forkTree'] and
+            selection['selectedOptionalForkCommit']==q['optionalForkCommit'] and selection['selectedOptionalForkTree']==q['optionalForkTree'] and
+            selection['buildTags']==[BUILD_TAG] and all(selection[k] is False for k in
+                ('fakeVCSIdentity','originalCheckoutWritten','originalModuleDescriptorsChanged','nodeStarted','carrierEnabled','publicActivation')),
+            'original Core source-selection identity or scope differs')
     for name in ('go.mod','go.sum'):
-        require((destination/name).read_bytes()==(source/name).read_bytes(),'original module descriptor changed')
+        require((build_source/name).read_bytes()==(source/name).read_bytes(),'original module descriptor changed')
     require(not git('status','--porcelain','--untracked-files=normal') and git('rev-parse','HEAD')==identity['commit'],
             'original source changed during composition')
     return dict(schema='YNX-PERF-NORMAL-LIVE-BUILD-SOURCE/v1',source=identity,
                 optionalForkCommit=core.FORK_COMMIT,optionalForkTree=core.FORK_TREE,
                 compositionScriptSHA256=q['compositionScriptSHA256'],ciEvidenceSHA256=q['ciEvidenceSHA256'],
-                buildTag=BUILD_TAG,buildSource=str(destination),originalSourceUnchanged=True,
-                carrierEnabled=False,actualNetworkWindow=False)
+                buildTag=BUILD_TAG,buildSource=str(build_source),originalSourceUnchanged=True,
+                originalCoreSelection=prepared,carrierEnabled=False,actualNetworkWindow=False)
 
 
 def fingerprint(info):

@@ -1,6 +1,7 @@
 """Contract controls with fake process/file returns; no live network evidence."""
 import hashlib
 import importlib.util
+import itertools
 import json
 import os
 from pathlib import Path
@@ -140,7 +141,10 @@ class NormalLiveReaderControls(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'receipt'): f.r(f.node)
 
     def test_outer_getter_clock_strictly_encloses_inner_raw_sample(self):
-        f = self.fixture(); raw = json.loads(f.r(f.node))
+        f = self.fixture(); ticks = itertools.count(1_000_000_000, 1000)
+        # Deliberately unequal contract times; host clock granularity may return equal ticks.
+        with mock.patch.object(reader.time, 'clock_gettime_ns', side_effect=lambda clock: next(ticks)):
+            raw = json.loads(f.r(f.node))
         receipt = json.loads((f.directory / 'before.result.json').read_bytes())
         self.assertLess(int(receipt['startMonotonicNs']), int(raw['startMonotonicNs']))
         self.assertGreater(int(receipt['endMonotonicNs']), int(raw['endMonotonicNs']))

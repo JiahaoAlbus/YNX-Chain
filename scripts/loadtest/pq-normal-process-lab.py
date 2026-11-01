@@ -556,14 +556,28 @@ def run(args):
                 "--prepare-source",str(source),"--destination",str(composed)],thread_safe=True)
             w.wait(proc)
             composition=json.loads((work/"public/prepare-normal-live-source.log").read_bytes())
-            lab.require(composition["source"]==identity and composition["buildSource"]==str(composed) and
+            lab.require(composition["source"]==identity and composition["buildSource"]==str(composed/"source") and
                         composition["originalSourceUnchanged"] is True,"original matching source composition differs")
+            selection=composition["originalCoreSelection"]
+            raw_selection=lab.guard.bounded(Path(selection["receiptPath"]),64<<10)
+            lab.require(digest(raw_selection)==selection["receiptSHA256"] and len(raw_selection)==selection["receiptBytes"],"original source-selection receipt pin differs")
+            with (work/"public/normal-live-source-selection.json").open("xb") as out:out.write(raw_selection)
             result["normalLiveBuildSource"]=composition
             # Only build cwd changes. Source identity and postcheck stay original.
-            w.source=composed
+            w.source=composed/"source"
         for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify"):
-            w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1",*(["-tags",live_module.BUILD_TAG] if live_requested and name=="ynx-comet" else []),"-o",str(bins/name),"./cmd/"+name]))
+            w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1",*(["-trimpath","-buildvcs=false"] if live_requested else []),*(["-tags",live_module.BUILD_TAG] if live_requested and name=="ynx-comet" else []),"-o",str(bins/name),"./cmd/"+name]))
         result["binaries"]={name:lab.guard.digest(bins/name) for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify")}
+        if live_requested:
+            result["normalLiveBuildProvenance"]={}
+            for name,pin in result["binaries"].items():
+                w.wait(w.launch("buildinfo-"+name,["go","version","-m",str(bins/name)]))
+                info=work/"public"/("buildinfo-"+name+".log")
+                build=next(child for child in w.children if child["name"]=="build-"+name)
+                result["normalLiveBuildProvenance"][name]=dict(binarySHA256=pin,buildArgv=build["command"],buildCwd=str(w.source),
+                    sourceSelectionSHA256=selection["receiptSHA256"],buildInfoFile=info.name,buildInfoSHA256=lab.guard.digest(info),
+                    originalSource=identity,selectedOptionalForkTree=composition["optionalForkTree"])
+
         root=work/".private/network"
         proc=w.launch("create-original",[str(bins/"ynx-consensus-pq-lab"),"create","--synthetic","--root",str(root),"--transactions","32","--batch-size","1","--owners","8",*(["--online"] if args.mode=="online" else []),"--base-p2p-port","31656","--base-rpc-port","31757"]);w.wait(proc)
         created=json.loads((work/"public/create-original.log").read_bytes())
