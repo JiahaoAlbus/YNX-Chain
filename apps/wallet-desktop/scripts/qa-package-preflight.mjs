@@ -25,7 +25,7 @@ console.log(JSON.stringify({node:process.versions.node,electron:process.versions
  fs.writeFileSync(script,child,{flag:'wx',mode:0o600});
  const r=spawnSync(contents+'/MacOS/'+name,[script],{encoding:'utf8',env:{...process.env,ELECTRON_RUN_AS_NODE:'1'},timeout:30000,maxBuffer:1<<20});
  fs.writeFileSync(outputDirectory+'/actual-package-preflight.stdout',r.stdout??'');fs.writeFileSync(outputDirectory+'/actual-package-preflight.stderr',r.stderr??'');
- const result={appPath,sourceCommit:identity.sourceCommit,bundle,exit:r.status,signal:r.signal,actualPackagedRuntime:true,GUI:false,installed:false,officialRelease:false,...(r.status===0?{observed:JSON.parse(r.stdout)}:{firstFailure:r.stderr})};
+ const result={appPath,sourceCommit:identity.sourceCommit,bundle,exit:r.status,signal:r.signal,actualPackagedRuntime:true,GUI:false,installed:false,officialRelease:false,...(r.status===0?{observed:JSON.parse(r.stdout)}:{firstFailure:r.stderr,processError:r.error?{code:r.error.code,message:r.error.message}:null})};
  const bytes=fs.readFileSync(native);result.native={bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')};fs.writeFileSync(outputDirectory+'/ACTUAL_PACKAGE_PREFLIGHT.json',JSON.stringify(result,null,2)+'\n');if(r.status!==0)fail('QA_PACKAGE_PREFLIGHT_FAILED');return result;
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===here){if(process.argv.length!==4)fail('QA_PREFLIGHT_EXACT_INPUTS_REQUIRED');console.log(JSON.stringify(inspectPhysicalQAApp(process.argv[2],process.argv[3])));}
