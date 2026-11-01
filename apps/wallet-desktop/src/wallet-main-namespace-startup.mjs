@@ -61,10 +61,11 @@ export function createWalletMainNamespaceStartup({initialize}){
             const d=Object.getOwnPropertyDescriptors(rawCompletion);
             if(!Object.hasOwn(d.errorPresent??{},'value')||typeof d.errorPresent.value!=='boolean'||!Object.hasOwn(d.error??{},'value'))throw failure('WALLET_MAIN_STARTUP_COMPLETION_INVALID');
             if(d.errorPresent.value)throw d.error.value;
-            // This matching SDK explicitly supplies no formal Native owner.
-            // A future admitted-owner ABI needs its matching consumer, never
-            // a fabricated success inferred from result/status DATA.
-            throw failure('WALLET_MAIN_NATIVE_REGISTRATION_NOT_SUPPLIED');
+            // Keep the fixed SDK's SAME completed attempt alive. Completion
+            // is lifecycle DATA, never a Source/Root or payment permission.
+            // Operational getters must independently borrow the actual Native
+            // namespace and their separate original operation Source.
+            return rawCompletion;
           }catch(cause){
             rememberStartup(cause);
             try{await selectDrain();}catch{/* separate cleanup cause retained */}
