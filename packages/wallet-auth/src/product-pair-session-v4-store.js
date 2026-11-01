@@ -1,5 +1,6 @@
 // Private issuer storage. Persistence is NOT Source/account authority.
 import {DatabaseSync} from 'node:sqlite';
+import {decodePendingPairOriginalQueryDATA,projectPendingPairOriginalQueryDATA} from './product-pair-pending-original-query-data.mjs';
 import {constants as F,openSync,closeSync,lstatSync,fstatSync,readFileSync,realpathSync,fsyncSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 import {createHash} from 'node:crypto';
@@ -53,6 +54,18 @@ export function openProductPairSessionV4Store({path,namespace}){
   readPair({actor,registrationId,at}){return transaction(at,()=>Object.freeze({...readPair(hex(actor),registrationId,at)}));},
   readSession({actor,sessionBinding,at}){return transaction(at,()=>{const s=get('SELECT * FROM issuer_v4_sessions WHERE namespace=? AND session_binding=?',namespace,hex(sessionBinding));if(!s||s.actor_digest!==hex(actor)||s.status!=='ACTIVE'||s.expires_ms<=at)fail('PAIR_V4_SESSION_INACTIVE');readPair(actor,s.registration_id,at);return Object.freeze({...s});});},
   consumeHTTPNonce({actor,sessionBinding,replayKey,expiresMs,at}){hex(actor);hex(sessionBinding);hex(replayKey);instant(expiresMs);return transaction(at,()=>{const s=get("SELECT * FROM issuer_v4_sessions WHERE namespace=? AND session_binding=? AND status='ACTIVE'",namespace,sessionBinding);if(!s||s.actor_digest!==actor||s.expires_ms<=at||expiresMs<=at||expiresMs>s.expires_ms)fail('PAIR_V4_SESSION_INACTIVE');readPair(actor,s.registration_id,at);run('INSERT INTO issuer_v4_http_nonces VALUES(?,?,?,?,?)',namespace,replayKey,actor,sessionBinding,expiresMs);});},
+  readPendingPairOriginalQueryDATA({queryOriginal,originalPairPost,actor}){
+   identity();hex(actor);const q=decodePendingPairOriginalQueryDATA(queryOriginal);let reader;
+   try{reader=new DatabaseSync(path,{readOnly:true});
+    const row=reader.prepare('SELECT operation_id,actor_digest,kind,input_sha256,input_original,phase,result_original FROM issuer_v4_operations WHERE namespace=? AND operation_id=?').get(namespace,q.operationId);
+    identity();
+    if(row?.phase==='COMMITTED'){
+     const audits=reader.prepare('SELECT actor_digest,kind,result_sha256 FROM issuer_v4_audit WHERE namespace=? AND operation_id=?').all(namespace,q.operationId);
+     if(audits.length!==1||audits[0].actor_digest!==actor||audits[0].kind!=='PAIR'||typeof row.result_original!=='string'||audits[0].result_sha256!==pairV4Digest(row.result_original))fail('PAIR_V4_PENDING_QUERY_AUDIT');
+    }
+    const result=projectPendingPairOriginalQueryDATA(queryOriginal,originalPairPost,actor,row??null);identity();return result;
+   }finally{reader?.close();}
+  },
   recover({actor,operation}){identity();hex(actor);hex(operation);let reader;try{reader=new DatabaseSync(path,{readOnly:true});const row=reader.prepare('SELECT * FROM issuer_v4_operations WHERE namespace=? AND operation_id=?').get(namespace,operation);identity();if(row&&row.actor_digest!==actor)fail('PAIR_V4_ACTOR_MISMATCH');return row?Object.freeze({phase:row.phase==='ENTERED'?'UNKNOWN':row.phase,input:row.input_original,original:row.result_original??null}):null;}finally{reader?.close();}},
   close(){if(!closed){closed=true;try{db.close();}catch(e){closeError=e;}try{closeSync(fd);}catch(e){closeError=closeError?new AggregateError([closeError,e],'PAIR_V4_CLOSE'):e;}}if(closeError)throw closeError;}
  });return api;

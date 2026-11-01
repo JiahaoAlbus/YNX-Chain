@@ -488,6 +488,22 @@
       "browser": null,
       "node": "./src/ide-held-session-root.js",
       "default": null
+    },
+    "./product-pair-pending-original-query-data": {
+      "types": "./src/product-pair-pending-original-query-data.d.mts",
+      "browser": null,
+      "node": {
+        "import": "./src/product-pair-pending-original-query-data.mjs"
+      },
+      "default": null
+    },
+    "./product-pair-pending-query-transport-data": {
+      "types": "./src/product-pair-pending-query-transport-data.d.mts",
+      "browser": null,
+      "node": {
+        "import": "./src/product-pair-pending-query-transport-data.mjs"
+      },
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -755,7 +771,8 @@
     "docs/wallet-ide-v4-connection.md",
     "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.md",
     "docs/PRODUCT_SESSION_MANAGEMENT_V4_WIRE.json",
-    "docs/PRODUCTION_RUNTIME_PACKAGE.md"
+    "docs/PRODUCTION_RUNTIME_PACKAGE.md",
+    "docs/PENDING_PAIR_ORIGINAL_QUERY_INTAKE.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
