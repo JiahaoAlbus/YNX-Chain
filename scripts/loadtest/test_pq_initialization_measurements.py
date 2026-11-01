@@ -89,6 +89,11 @@ class OriginalDriverInitializationControls(unittest.TestCase):
         for key,value in [('accounts',499),('per_account',2),('seconds',1),('mode','pre-signed'),('staged_publication',False)]:
             bad=copy.copy(a);setattr(bad,key,value)
             with self.subTest(key=key),self.assertRaises(RuntimeError):d.validate_options(bad)
+    def test_old_c4b_cannot_reuse_new_live_source_or_previous_initialization_data(self):
+        d=self.driver;a=self.args();a.commit='c4b39c73ec3a43c2ba32f7071bb735b0c0447f5e'
+        with mock.patch.object(d.lab,'check_source') as checked,self.assertRaisesRegex(RuntimeError,'exact staged normal consumer'):d.run(a)
+        checked.assert_not_called()
+        with mock.patch.object(d.initialization,'SOURCE_FUNCTIONAL_SHA256',None),self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):d.initialization.source_functional_data()
     def test_source_receipt_pin_is_checked_before_source_or_runtime(self):
         d=self.driver
         with mock.patch.object(d.initialization,'source_functional_data',side_effect=RuntimeError('receipt differs')),mock.patch.object(d.lab,'check_source') as checked,mock.patch.object(d.lab,'Window') as window:

@@ -12,6 +12,11 @@ import stat
 import time
 
 
+LIVE_SOURCE='896ea094c985cd4b9e90681e436285a9bba0a979'
+LIVE_TREE='b99d095d2783da95c64583e81084f0b928ec3532'
+SOURCE_FUNCTIONAL_SHA256='4ff5e4d1a301e4b8c636baadcfde1459f35107f2e2b5dedc456a3817f3e7deae' # Exact original three-Linux-group DATA, not full500.
+
+
 class InitializationStages:
     def __init__(self,clock=time.monotonic_ns,limit=2048,on_event=None):
         self.clock=clock;self.limit=limit;self.records=[];self.attempted=0;self.enabled=True;self.on_event=on_event;self.journal_errors=[]
@@ -107,16 +112,15 @@ def complete_account_readback(nodes,manifest_owners,checkpoint,root,read_limit=1
 
 
 def source_functional_data():
-    # Exact original CORE normal-workflow named-case receipt, independently
-    # read and pinned by PERF. Only a prerequisite for initialization, never
-    # proof that 500 owners/Node initialization/load already succeeded.
-    path=Path(__file__).with_name('fixtures')/'c4b-source-functional-original.json'
+    # Source-functional DATA only; actual full500 initialization remains a
+    # separate normal run, and business pressure retains its absent hard gate.
+    if type(SOURCE_FUNCTIONAL_SHA256) is not str or len(SOURCE_FUNCTIONAL_SHA256)!=64:raise RuntimeError('exact new live-source Linux qualification NOT_SUPPLIED')
+    path=Path(__file__).with_name('fixtures')/'896-live-functional-original.json'
     with path.open('rb') as source:raw=source.read((64<<10)+1)
-    pin='2daaf7e71840e15dc27dba9ff8883e285c5f3bacd88b7df655c6330a025e3664'
-    if hashlib.sha256(raw).hexdigest()!=pin:raise RuntimeError('exact c4b original source-functional receipt pin differs')
+    if hashlib.sha256(raw).hexdigest()!=SOURCE_FUNCTIONAL_SHA256:raise RuntimeError('exact new original source-functional receipt pin differs')
     data=json.loads(raw)
-    if not (data['sourceSHA']=='c4b39c73ec3a43c2ba32f7071bb735b0c0447f5e' and data['runId']==41297681663 and data['jobId']==124821886065 and data['jobConclusion']=='success' and data['originalCLIAssertion']['suitePassed'] is True and data['originalInternalAssertion']['suitePassed'] is True):raise RuntimeError('original source-functional scope differs')
-    return dict(receiptSHA256=pin,source=data['sourceSHA'],runId=data['runId'],jobId=data['jobId'],scope='original c4b named source-functional cases only',actual500OwnerInputPreviouslyQualified=False,pressureAuthorized=False,wholeResourceCIConclusionAtReceipt=data['wholeConclusionAtReceipt'])
+    if not (data['schema']=='YNX-PERF-LIVE-SOURCE-FUNCTIONAL-DATA/v1' and data['sourceSHA']==LIVE_SOURCE and data['sourceTree']==LIVE_TREE and data['sourceFunctionalQualified'] is True and set(data['officialLinuxGroups'])=={'resource','commit','client'} and data['actual500InitializedOwnersQualified'] is False and data['pressureAuthorized'] is False and data['sourceGrant'] is False):raise RuntimeError('original live-source functional scope differs')
+    return dict(receiptSHA256=SOURCE_FUNCTIONAL_SHA256,source=LIVE_SOURCE,runId=41306177925,jobId=124846905898,scope='three original Linux source-functional groups only',actual500OwnerInputPreviouslyQualified=False,pressureAuthorized=False,wholeResourceCIConclusionAtReceipt=data['workflowObservations']['resource']['conclusion'])
 
 
 def require_complete_initialization(result):
@@ -127,14 +131,14 @@ def require_complete_initialization(result):
     def require(value,message):
         if not value:raise RuntimeError(message)
     caps=dict(totalSeconds=900,cleanupSeconds=15,rssBytes=4<<30,newBytes=8<<30,initialMemoryBytes=6<<30,initialDiskBytes=16<<30,logBytes=4<<20,cpus=2)
-    require(result.get('source',{}).get('commit')=='c4b39c73ec3a43c2ba32f7071bb735b0c0447f5e' and result.get('source',{}).get('tree')=='2fd621242e73e1cb4901413c03f7d48336801d11','exact original c4b source and tree required')
+    require(result.get('source',{}).get('commit')==LIVE_SOURCE and result.get('source',{}).get('tree')==LIVE_TREE,'exact original qualified live source and tree required')
     require(result.get('caps')==caps and result.get('configuredDemand')==500 and result.get('mode')=='online','unchanged original caps and full500 cohort required')
     require(result.get('initializationOnlyRequested') is True and result.get('initializationOnlyComplete') is True and result.get('cleanupComplete') is True and result.get('firstCause') is None and result.get('normalLiveCalleeUsed') is True,'normal initialization incomplete or cleanup debt; preserve first cause')
     require(result.get('loadExecuted') is False and 'loadResult' not in result,'initialization receipt cannot contain a business load result')
     demand=result.get('preparationOnlyDemandAccounting',{})
     require(all(demand.get(k)==500 for k in ('configuredDemand','notReleased','notSubmitted','notQualified')),'full unreleased500 demand must remain visible')
     prerequisite=result.get('initializationSourceFunctionalData',{})
-    require(prerequisite.get('receiptSHA256')=='2daaf7e71840e15dc27dba9ff8883e285c5f3bacd88b7df655c6330a025e3664' and prerequisite.get('pressureAuthorized') is False and prerequisite.get('actual500OwnerInputPreviouslyQualified') is False,'original source-functional prerequisite cannot become prior500 or pressure qualification')
+    require(type(SOURCE_FUNCTIONAL_SHA256) is str and prerequisite.get('receiptSHA256')==SOURCE_FUNCTIONAL_SHA256 and prerequisite.get('pressureAuthorized') is False and prerequisite.get('actual500OwnerInputPreviouslyQualified') is False,'original source-functional prerequisite cannot become prior500 or pressure qualification')
     census=result.get('initializedAccountReadback',{})
     require(census.get('completeFourNodeAccountReadback') is True and census.get('configuredLoadAccounts')==500 and census.get('normalGoStaticOrCryptoQualification') is False,'four-node full500 original account census required')
     nodes=census.get('nodes',[])

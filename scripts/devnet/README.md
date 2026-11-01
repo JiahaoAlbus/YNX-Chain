@@ -773,8 +773,9 @@ partial outcomes and first operational failure are preserved outside Git.
 
 The staged driver also has `--initialization-only`, fixed to online 500 business
 accounts plus the original four preparation accounts (`--rate 100 --seconds 5
---accounts 500 --per-account 1 --staged-publication`). It uses the exact c4b
-source/tree and the pinned original source-functional named-case receipt. That
+--accounts 500 --per-account 1 --staged-publication`). Its current consumer uses the exact 896ea094
+source/tree and three original Linux source-functional job groups. The previous
+c4b initialization failure remains a separate immutable receipt. That
 receipt is a prerequisite, not proof that 500 owners already initialized.
 The normal create/bootstrap/registration/halt/activation/live-policy flow remains
 unchanged, including the original reserved-account preparation traffic. After all
@@ -823,3 +824,15 @@ never increment successful reply coverage, grant authority or permit retry.
 Missing, duplicate or relabelled failure metrics remain NOT_SUPPLIED, and any
 telemetry-read error leaves the original Go/Python exception unchanged. The
 frozen original receipt is never backfilled from successor measurement code.
+
+
+The live-source DATA receiver validates the exact first-attempt source graph,
+three successful Linux jobs, executed stdout assertions and unique named coverage.
+Printed workflow source is not an executed marker. Required steps/cases cannot be
+skipped. Unrelated protocol-delivery work is recorded with its real workflow
+status and does not become a source-functional failure or whole-workflow success.
+`fixtures/896-live-functional-original.json` is the pinned result of reading the
+original resource, Commit-consumer and original-client logs. It does not qualify
+full500 Node initialization, business pressure, physical bytes or BFT finality.
+The source-only receiver's seven mock controls are separate from those real CI
+observations; completed61 harness evidence is reused.

@@ -43,8 +43,8 @@ CALLEE_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
 # not qualify an unrelated before/after performance source pair or a load run.
 COMMIT_OBSERVATION_SOURCE = CALLEE_SOURCE
 # A new large-owner normal callee/ABI must be explicitly qualified by CORE.
-STAGED_CALLEE_SOURCE = 'c4b39c73ec3a43c2ba32f7071bb735b0c0447f5e'
-STAGED_CALLEE_TREE = '2fd621242e73e1cb4901413c03f7d48336801d11'
+STAGED_CALLEE_SOURCE = initialization.LIVE_SOURCE
+STAGED_CALLEE_TREE = initialization.LIVE_TREE
 STAGED_SOURCE_QUALIFICATION = None # New normal CI and actual500 initialized-owner input still required.
 STAGED_SENDER_ARGUMENTS = () # CORE normal cache-bound-only fallback needs no new flag.
 
