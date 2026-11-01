@@ -47,7 +47,7 @@ class OwnedStorageWindow:
             # Original plan paths were already validated by original_plan().
             home=Path(n['home']);paths=dict(blockstore=home/'data/blockstore.db',stateDB=home/'data/state.db',applicationState=Path(n['statePath']))
             rows.append(dict(node=n['index'],stores={name:sample_path(self.c.root,p,deadline) for name,p in paths.items()}))
-        value=dict(startMonotonicNs=str(lo),endMonotonicNs=str(time.monotonic_ns()),nodes=rows,phase='pre-load original nodes live' if side=='before' else 'post-drain and original owned cleanup; original nodes stopped',planSHA256=self.c.pin)
+        value=dict(startMonotonicNs=str(lo),endMonotonicNs=str(time.monotonic_ns()),nodes=rows,phase='pre-load metadata checkpoint' if side=='before' else 'after original owned cleanup attempt; producer stop status remains in original process receipt',planSHA256=self.c.pin)
         setattr(self,side,value);return value
     def finish(self,commit_readback=None):
         if self.after is None:self.capture('after')
