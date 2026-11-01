@@ -343,5 +343,6 @@ func TestLinuxContainedRuntime(t *testing.T) {
 			}
 		})
 	}
+	t.Run("parent-death", linuxRuntimeParentDeath)
 
 }

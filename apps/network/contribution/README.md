@@ -85,6 +85,15 @@ skip is not runtime hard-containment acceptance. Local policy/negative tests
 run normally. The QA-only probe is a separate explicit artifact, with no probe
 branch in the product fixed worker or arbitrary-code task selection.
 
+The surface probe requires child `Start` to fail with `EPERM`, rather than
+accepting any nonzero child exit. The scratch probe fills two separate files,
+each below its file-size rlimit, and requires aggregate `ENOSPC` at the tmpfs
+size. The parent-death case kills and waits only its original test-subprocess
+handle after FD3 input admission, then observes its original read-only cgroup
+handle become unpopulated within one second (before the five-second deadline).
+These stronger witnesses require their own scheduled actual runtime result;
+compilation and earlier weaker probes do not establish them.
+
 Official interfaces: https://docs.kernel.org/admin-guide/cgroup-v2.html,
 https://systemd.io/CGROUP_DELEGATION/,
 https://github.com/containers/bubblewrap/blob/main/bwrap.xml and

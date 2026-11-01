@@ -7,6 +7,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -69,45 +70,74 @@ func main() {
 				fail("SOCKET_WRONG_FAILURE")
 			}
 		}
-		if err := os.WriteFile("/forbidden-host-write", []byte("x"), 0600); err == nil {
-			fail("ROOT_WRITE_ALLOWED")
+		if err := os.WriteFile("/forbidden-host-write", []byte("x"), 0600); !errors.Is(err, unix.EROFS) {
+			fail("ROOT_NOT_READ_ONLY")
 		}
 		for _, p := range []string{"/etc/passwd", "/home", "/root", "/sys"} {
 			if _, err := os.Stat(p); err == nil {
 				fail("HOST_PATH_VISIBLE")
 			}
 		}
-		if err := exec.CommandContext(context.Background(), "/worker").Run(); err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		child := exec.CommandContext(ctx, "/worker")
+		err := child.Start()
+		if err == nil {
+			_ = child.Process.Kill()
+			_ = child.Wait()
+			cancel()
 			fail("FORK_ALLOWED")
 		}
+		cancel()
+		if !errors.Is(err, unix.EPERM) {
+			fail("FORK_WRONG_FAILURE")
+		}
 		scratch, _ := strconv.ParseUint(os.Getenv("YNX_NETWORK_SCRATCH_BYTES"), 10, 64)
-		f, err := os.OpenFile("/scratch/bounded", os.O_CREATE|os.O_WRONLY, 0600)
 		if scratch == 0 {
+			f, err := os.OpenFile("/scratch/bounded", os.O_CREATE|os.O_WRONLY, 0600)
 			if err == nil {
 				f.Close()
 				fail("ZERO_SCRATCH_WRITABLE")
 			}
+			if !errors.Is(err, unix.EROFS) {
+				fail("ZERO_SCRATCH_WRONG_FAILURE")
+			}
 		} else {
-			if err != nil {
-				fail("SCRATCH_UNAVAILABLE")
-			}
-			block := make([]byte, 4096)
-			var written uint64
-			for written < scratch+4096 {
-				n, e := f.Write(block)
-				written += uint64(n)
-				if e != nil {
-					break
+			// Neither file reaches RLIMIT_FSIZE. Only aggregate tmpfs space
+			// can reject the second file after the total reaches its size.
+			each := scratch * 3 / 4
+			var total uint64
+			full := false
+			for _, name := range []string{"a", "b"} {
+				f, err := os.OpenFile("/scratch/"+name, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+				if err != nil {
+					fail("SCRATCH_CREATE")
 				}
+				var count uint64
+				block := make([]byte, 4096)
+				for count < each {
+					nwant := each - count
+					if nwant > uint64(len(block)) {
+						nwant = uint64(len(block))
+					}
+					n, err := f.Write(block[:nwant])
+					count += uint64(n)
+					total += uint64(n)
+					if err != nil {
+						if !errors.Is(err, unix.ENOSPC) {
+							f.Close()
+							fail("SCRATCH_WRONG_FAILURE")
+						}
+						full = true
+						break
+					}
+				}
+				f.Close()
 			}
-			f.Close()
-			if written > scratch {
-				fail("SCRATCH_GREW_PAST_LIMIT")
-			}
-			if written != scratch {
-				fail("SCRATCH_NOT_EXPECTED_BOUND")
+			if !full || total != scratch {
+				fail("SCRATCH_AGGREGATE_BOUND_FAILED")
 			}
 		}
+
 	case "stop":
 		time.Sleep(10 * time.Second)
 	default:
