@@ -248,6 +248,34 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			pendingTimer.Stop()
 		}
 	}()
+	selectPending := func(memTx *mempoolTx) bool {
+		if pendingTx == memTx {
+			return true
+		}
+		if pendingTimer != nil {
+			pendingTimer.Stop()
+			pendingTimer = nil
+		}
+		pendingTx, pendingBudget = memTx, nil
+		var err error
+		// The original selector performs the one capability/format decision.
+		// Queue retries and readiness transitions reuse this exact envelope.
+		pendingEnvelope, err = memR.losslessHexEnvelope(peer, &protomem.Txs{Txs: [][]byte{memTx.tx}})
+		if err != nil {
+			memR.stopLosslessHexSend(peer, err)
+			return false
+		}
+		if pendingEnvelope.ChannelID == LosslessHexV1Channel {
+			t := memR.losslessHex.Load()
+			pendingBudget, err = t.newSendBudget(peer)
+			if err != nil {
+				memR.stopLosslessHexSend(peer, err)
+				return false
+			}
+			pendingTimer = time.NewTimer(t.budget.maxSendDuration)
+		}
+		return true
+	}
 	retryWait := func() bool {
 		if pendingBudget == nil {
 			time.Sleep(PeerCatchupSleepIntervalMS * time.Millisecond)
@@ -288,6 +316,17 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			}
 		}
 
+		memTx := next.Value.(*mempoolTx)
+		if memR.losslessHex.Load() != nil && losslessHexBudgetPeerPointer(peer) && !memTx.isSender(peerID) {
+			// Only explicit enable probes the original selector before waiting
+			// for initial peer state/height. Only a confirmed, eligible 0x31
+			// envelope gets the finite deadline. Unconfirmed/noneligible legacy
+			// classification performs no I/O and keeps original ready/Send rules.
+			if !selectPending(memTx) {
+				return
+			}
+		}
+
 		// Make sure the peer is up to date.
 		peerState, ok := peer.Get(types.PeerStateKey).(PeerState)
 		if !ok {
@@ -303,7 +342,6 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		}
 
 		// Allow for a lag of 1 block.
-		memTx := next.Value.(*mempoolTx)
 		if peerState.GetHeight() < memTx.Height()-1 {
 			if !retryWait() {
 				return
@@ -316,25 +354,8 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 
 		if !memTx.isSender(peerID) {
 			msg := &protomem.Txs{Txs: [][]byte{memTx.tx}}
-			if pendingTx != memTx {
-				// Select one carrier for this logical send. A queue rejection
-				// retries the SAME envelope; it never guesses packed then raw.
-				pendingTx = memTx
-				var err error
-				pendingEnvelope, err = memR.losslessHexEnvelope(peer, msg)
-				if err != nil {
-					memR.stopLosslessHexSend(peer, err)
-					return
-				}
-				if pendingEnvelope.ChannelID == LosslessHexV1Channel {
-					t := memR.losslessHex.Load()
-					pendingBudget, err = t.newSendBudget(peer)
-					if err != nil {
-						memR.stopLosslessHexSend(peer, err)
-						return
-					}
-					pendingTimer = time.NewTimer(t.budget.maxSendDuration)
-				}
+			if !selectPending(memTx) {
+				return
 			}
 			observer := memR.wireObserver.Load()
 			var started time.Time

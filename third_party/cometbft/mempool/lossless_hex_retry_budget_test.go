@@ -46,6 +46,169 @@ func (p *losslessBudgetQueuePeer) IsRunning() bool {
 func (p *losslessBudgetQueuePeer) Send(p2p.Envelope) bool    { p.sends.Add(1); return false }
 func (p *losslessBudgetQueuePeer) TrySend(p2p.Envelope) bool { p.tries.Add(1); return false }
 
+// A real broadcast routine with bounded PUBLIC connection-local controls only.
+// No socket, handshake, Source, signature admission or running-node claim.
+type losslessPreReadyPeer struct {
+	*losslessBudgetQueuePeer
+	statePresent atomic.Bool
+	height       atomic.Int64
+	stateRead    chan struct{}
+	readOnce     sync.Once
+	attempts     chan p2p.Envelope
+	queueSecond  bool
+}
+
+func (p *losslessPreReadyPeer) Get(key string) interface{} {
+	if key != types.PeerStateKey {
+		return p.losslessBudgetQueuePeer.Get(key)
+	}
+	// Capture before notifying so a ready transition cannot erase the first
+	// missing/lagging observation that caused the original routine to wait.
+	present, height := p.statePresent.Load(), p.height.Load()
+	p.readOnce.Do(func() { close(p.stateRead) })
+	if !present {
+		return nil
+	}
+	return peerState{height: height}
+}
+
+func (p *losslessPreReadyPeer) TrySend(envelope p2p.Envelope) bool {
+	n := p.tries.Add(1)
+	if p.attempts != nil {
+		p.attempts <- envelope
+	}
+	return p.queueSecond && n == 2
+}
+
+func TestLosslessHexBudgetInitialPeerReadinessDeadline(t *testing.T) {
+	for _, mode := range []string{"missing-peer-state", "lagging-height"} {
+		t.Run(mode, func(t *testing.T) {
+			r := newLosslessTransportReactor(t, nil)
+			require.NoError(t, r.EnableExperimentalLosslessHex(LosslessHexLimits{MaxSendDuration: 20 * time.Millisecond}))
+			require.NoError(t, r.Start())
+			p := &losslessPreReadyPeer{losslessBudgetQueuePeer: &losslessBudgetQueuePeer{quit: make(chan struct{})}, stateRead: make(chan struct{})}
+			if mode == "lagging-height" {
+				p.statePresent.Store(true)
+				p.height.Store(-2) // original mempool height is zero: more than one block behind
+			}
+			r.InitPeer(p)
+			original := losslessTestC()
+			require.NoError(t, r.mempool.CheckTx(original, nil, TxInfo{}))
+			done := make(chan struct{})
+			go func() { defer close(done); r.broadcastTxRoutine(p) }()
+			var quitOnce sync.Once
+			t.Cleanup(func() {
+				quitOnce.Do(func() { close(p.quit) })
+				select {
+				case <-done:
+				case <-time.After(time.Second):
+					t.Error("original broadcast routine did not join after peer Quit")
+				}
+			})
+			select {
+			case <-p.stateRead:
+			case <-time.After(time.Second):
+				t.Fatal("broadcast routine did not inspect the actual pending peer state")
+			}
+			stopped := false
+			select {
+			case <-done:
+				stopped = true
+			case <-time.After(250 * time.Millisecond):
+			}
+			require.True(t, stopped, "initial ready/lag wait must share the finite experimental send deadline")
+			require.True(t, p.IsRunning(), "local budget stop must not disconnect and reopen a persistent peer")
+			require.Zero(t, p.sends.Load())
+			require.Zero(t, p.tries.Load(), "a stalled peer must receive neither an experimental attempt nor legacy fallback")
+			require.Equal(t, types.Txs{original}, r.mempool.ReapMaxTxs(-1))
+			stats := r.ExperimentalLosslessHexSnapshot()
+			require.Equal(t, uint64(1), stats.PackCalls)
+			require.Equal(t, uint64(1), stats.PackEligible)
+			require.Zero(t, stats.SendAttempts)
+			transport := r.losslessHex.Load()
+			state, err := transport.peerBudget(p)
+			require.NoError(t, err)
+			r.InitPeer(p)
+			again, err := transport.peerBudget(p)
+			require.NoError(t, err)
+			require.Same(t, state, again)
+			require.ErrorIs(t, transport.reservePeer(p, 1), ErrLosslessHexPeerBudget, "repeated InitPeer cannot refresh the spent connection")
+		})
+	}
+}
+
+func TestLosslessHexBudgetReadyTransitionKeepsSelectedCarrier(t *testing.T) {
+	r := newLosslessTransportReactor(t, nil)
+	require.NoError(t, r.EnableExperimentalLosslessHex(LosslessHexLimits{MaxSendAttempts: 2}))
+	require.NoError(t, r.Start())
+	p := &losslessPreReadyPeer{losslessBudgetQueuePeer: &losslessBudgetQueuePeer{quit: make(chan struct{})}, stateRead: make(chan struct{}), attempts: make(chan p2p.Envelope, 2), queueSecond: true}
+	r.InitPeer(p)
+	original := losslessTestC()
+	require.NoError(t, r.mempool.CheckTx(original, nil, TxInfo{}))
+	done := make(chan struct{})
+	go func() { defer close(done); r.broadcastTxRoutine(p) }()
+	t.Cleanup(func() {
+		close(p.quit)
+		select {
+		case <-done:
+		case <-time.After(time.Second):
+			t.Error("original broadcast did not join after peer Quit")
+		}
+	})
+	select {
+	case <-p.stateRead:
+	case <-time.After(time.Second):
+		t.Fatal("original routine did not reach its first not-ready peer state")
+	}
+	stats := r.ExperimentalLosslessHexSnapshot()
+	require.Equal(t, uint64(1), stats.PackCalls, "select and charge once before the initial readiness wait")
+	require.Zero(t, stats.SendAttempts)
+	state, err := r.losslessHex.Load().peerBudget(p)
+	require.NoError(t, err)
+	state.mu.Lock()
+	firstUse, initialCost := state.firstUse, state.used
+	state.mu.Unlock()
+	p.height.Store(1)
+	p.statePresent.Store(true)
+	var attempts [2]p2p.Envelope
+	for i := range attempts {
+		select {
+		case attempts[i] = <-p.attempts:
+		case <-done:
+			t.Fatal("initial readiness transition abandoned the original selected carrier")
+		case <-time.After(time.Second):
+			t.Fatal("original selected carrier did not reach the queue")
+		}
+	}
+	require.Equal(t, LosslessHexV1Channel, attempts[0].ChannelID)
+	require.Equal(t, attempts[0].ChannelID, attempts[1].ChannelID)
+	require.Same(t, attempts[0].Message, attempts[1].Message, "ready transition/queue false must not select or allocate another carrier")
+	frame := attempts[0].Message.(*protomem.LosslessHexV1).Frame
+	restored, err := r.losslessHex.Load().codec.Restore(frame)
+	require.NoError(t, err)
+	require.Equal(t, []byte(original), restored)
+	require.Equal(t, original.Hash(), types.Tx(restored).Hash())
+	require.NoError(t, r.Stop())
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("queued original broadcast did not stop")
+	}
+	stats = r.ExperimentalLosslessHexSnapshot()
+	require.Equal(t, uint64(1), stats.PackCalls)
+	require.Equal(t, uint64(2), stats.SendAttempts)
+	require.Equal(t, uint64(1), stats.SendNotQueued)
+	require.Equal(t, uint64(1), stats.SendQueued)
+	require.Equal(t, uint32(2), p.tries.Load())
+	require.Zero(t, p.sends.Load())
+	state.mu.Lock()
+	defer state.mu.Unlock()
+	require.Equal(t, firstUse, state.firstUse, "readiness cannot refresh the original connection budget")
+	require.Equal(t, uint64(len(original)+len(frame)), initialCost)
+	require.Equal(t, initialCost+2*uint64(len(frame)), state.used)
+	require.Equal(t, types.Txs{original}, r.mempool.ReapMaxTxs(-1))
+}
+
 func TestLosslessHexBudgetFullQueueStopsWithoutRawReplay(t *testing.T) {
 	r := newLosslessTransportReactor(t, nil)
 	require.NoError(t, r.EnableExperimentalLosslessHex(LosslessHexLimits{}))
