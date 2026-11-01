@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/spf13/cobra"
 )
@@ -85,22 +83,21 @@ func runInitializeApplication(output io.Writer, options initializeApplicationFla
 	if err != nil {
 		return fmt.Errorf("read original consensus genesis: %w", err)
 	}
-	rawMigration, err := readInitializationInput(options.migration, 1<<30)
+	migration, err := readInitializationMigration(options.migration, 1<<30, nil)
 	if err != nil {
 		return fmt.Errorf("read complete original migration: %w", err)
 	}
-	var migration chain.ConsensusMigrationState
-	var compactMigration bytes.Buffer
-	if err = json.Compact(&compactMigration, rawMigration); err != nil {
-		return fmt.Errorf("decode complete migration JSON: %w", err)
-	}
-	if err = decodeStrict(compactMigration.Bytes(), &migration); err != nil {
-		return fmt.Errorf("decode canonical complete migration: %w", err)
-	}
 	pins := consensus.ConsensusBootstrapPins{CometGenesisSHA256: options.genesisHash, OriginalGenesisHash: options.originalGenesisHash, MigrationStateHash: options.migrationHash}
-	bootstrap, err := consensus.NewConsensusBootstrap(rawGenesis, pins, migration)
-	if err != nil {
-		return err
+	// The normal initializer below always constructs and completely validates
+	// the bootstrap before reserving any destination. A historical plan needs
+	// that same binding while it is read; absent a plan, do not build and hash
+	// the identical complete migration a second time merely to return nil.
+	var bootstrap *consensus.ConsensusBootstrap
+	if options.runtimePlan != "" || options.runtimePlanHash != "" {
+		bootstrap, err = consensus.NewConsensusBootstrap(rawGenesis, pins, migration)
+		if err != nil {
+			return err
+		}
 	}
 	runtime, err := consensus.LoadRuntimeUpgradeAuthorization(options.runtimePlan, options.runtimePlanHash, bootstrap, migration)
 	if err != nil {

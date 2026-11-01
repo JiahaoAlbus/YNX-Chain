@@ -122,11 +122,7 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 	if !bytes.Equal(doc.AppHash, appHash) {
 		return nil, errors.New("pinned genesis AppHash differs from bound migration")
 	}
-	canonical, err := migration.CanonicalJSON()
-	if err != nil {
-		return nil, err
-	}
-	appState, referenced, err := validateCometMigrationAppState(doc.AppState, migration, canonical)
+	appState, migrationReference, err := validateBootstrapMigrationAppState(doc.AppState, migration)
 	if err != nil {
 		return nil, fmt.Errorf("pinned genesis AppState: %w", err)
 	}
@@ -145,11 +141,7 @@ func NewConsensusBootstrap(rawGenesis []byte, pins ConsensusBootstrapPins, migra
 	}
 	b := &ConsensusBootstrap{
 		record:     ValidatorBootstrapRecord{CometGenesisSHA256: pins.CometGenesisSHA256, OriginalGenesisHash: pins.OriginalGenesisHash, MigrationStateHash: pins.MigrationStateHash, ChainID: doc.ChainID, InitialHeight: doc.InitialHeight, GenesisTime: doc.GenesisTime.UTC(), Params: doc.ConsensusParams.ToProto()},
-		rawGenesis: rawGenesis, appState: appState, genesisID: bytes.Clone(genesisID), members: make(map[string]ValidatorBootstrapMember),
-	}
-	if referenced {
-		ref := newCometMigrationReference(migration, canonical)
-		b.migrationReference = &ref
+		rawGenesis: rawGenesis, appState: appState, migrationReference: migrationReference, genesisID: bytes.Clone(genesisID), members: make(map[string]ValidatorBootstrapMember),
 	}
 	var totalPower int64
 	for _, validator := range doc.Validators {

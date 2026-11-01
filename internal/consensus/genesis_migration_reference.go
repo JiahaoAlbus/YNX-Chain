@@ -37,11 +37,56 @@ type cometMigrationReference struct {
 
 func newCometMigrationReference(m chain.ConsensusMigrationState, canonical []byte) cometMigrationReference {
 	h := sha256.Sum256(canonical)
+	return newCometMigrationReferenceDigest(m, h, len(canonical))
+}
+
+func newCometMigrationReferenceDigest(m chain.ConsensusMigrationState, digest [sha256.Size]byte, count int) cometMigrationReference {
 	return cometMigrationReference{
-		Version: cometMigrationReferenceVersion, MigrationCanonicalSHA256: hex.EncodeToString(h[:]), MigrationCanonicalBytes: strconv.Itoa(len(canonical)),
+		Version: cometMigrationReferenceVersion, MigrationCanonicalSHA256: hex.EncodeToString(digest[:]), MigrationCanonicalBytes: strconv.Itoa(count),
 		MigrationVersion: strconv.Itoa(m.Version), MigrationSourceFormat: m.SourceFormat, NativeChainID: strconv.FormatInt(m.Network.ChainID, 10),
 		OriginalGenesisHash: m.OriginalGenesisHash, MigrationStateHash: m.StateHash, MigrationHeight: strconv.FormatUint(m.Height, 10), MigrationLastBlockHash: m.LastBlockHash,
 	}
+}
+
+// Reference Genesis contains no history bytes. Hash/count the exact same
+// original canonical stream, retaining only the bounded reference. This is not
+// a caller-provided digest witness: complete typed validation and every byte
+// of the independently supplied migration still go through the existing writer.
+// Embedded Genesis retains its original complete byte-for-byte validation.
+func validateBootstrapMigrationAppState(raw []byte, migration chain.ConsensusMigrationState) ([]byte, *cometMigrationReference, error) {
+	var discriminator struct {
+		Version json.RawMessage `json:"version"`
+	}
+	if err := json.Unmarshal(raw, &discriminator); err != nil {
+		return nil, nil, err
+	}
+	var version string
+	if json.Unmarshal(discriminator.Version, &version) == nil {
+		ref, err := decodeCometMigrationReference(raw)
+		if err != nil {
+			return nil, nil, err
+		}
+		stream := validatedMigrationCanonicalWriter{digest: sha256.New(), binding: newCanonicalMigrationStreamBinding(nil)}
+		if err := migration.WriteCanonicalJSON(&stream); err != nil {
+			return nil, nil, err
+		}
+		if stream.count == 0 || stream.count > maxCometMigrationBytes {
+			return nil, nil, errors.New("complete migration exceeds the existing input bound")
+		}
+		var digest [sha256.Size]byte
+		copy(digest[:], stream.digest.Sum(nil))
+		if ref != newCometMigrationReferenceDigest(migration, digest, stream.count) {
+			return nil, nil, errors.New("genesis migration reference differs from the complete independently supplied migration")
+		}
+		normalized, err := json.Marshal(ref)
+		return normalized, &ref, err
+	}
+	canonical, err := migration.CanonicalJSON()
+	if err != nil {
+		return nil, nil, err
+	}
+	appState, _, err := validateCometMigrationAppState(raw, migration, canonical)
+	return appState, nil, err
 }
 
 func decodeCometMigrationReference(raw []byte) (cometMigrationReference, error) {
