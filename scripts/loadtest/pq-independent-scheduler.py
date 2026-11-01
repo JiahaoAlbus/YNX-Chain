@@ -148,7 +148,10 @@ class Ledger:
         submitted=[r for r in self.rows if r["submittedNs"] is not None];final=[r for r in self.rows if r["finalNs"] is not None]
         def quantiles(start,end):
             values=sorted(r[end]-r[start] for r in self.rows if r[start] is not None and r[end] is not None)
-            return dict(denominator=n,observed=len(values),censored=n-len(values),**{f"p{p}Ms":values[(n*p+99)//100-1]/1e6 if len(values)>=(n*p+99)//100 else None for p in (50,95,99)})
+            # Missing/unreached intervals have different start clocks and may
+            # fall anywhere in the distribution. Even499/500 cannot supply a
+            # full-cohort quantile; retained observations are not its survivors.
+            return dict(denominator=n,observed=len(values),censored=n-len(values),**{f"p{p}Ms":values[(n*p+99)//100-1]/1e6 if len(values)==n else None for p in (50,95,99)})
         inside=[r for r in final if r["finalNs"]<window]
         releases_inside=sum(r["releasedNs"] is not None and r["releasedNs"]<window for r in self.rows)
         submissions_inside=sum(r["submittedNs"]<window for r in submitted)

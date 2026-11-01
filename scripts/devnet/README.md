@@ -682,3 +682,12 @@ counts stay separate from the exact load-window Commit count, which remains
 UNKNOWN without a matching before notification checkpoint. This adds no PID,
 thread, namespace, privilege or separate window; all output remains inside the
 original 8 GiB budget.
+
+Full-cohort latency percentiles require all configured requests to supply that
+interval. This includes the nearly complete 475/500 and 499/500 cases: their
+P50/P95/P99 stay null with the original denominator and censored count retained.
+The different interval start times make an observed-subset percentile insufficient
+to identify the full-cohort percentile. The pure control
+`IndependentLoadControls.test_nearly_complete500_still_censors_every_full_cohort_percentile`
+checks both partial boundaries and the complete500 case without running a node.
+This reporting fix does not alter or rerun an already frozen load window.

@@ -40,6 +40,17 @@ def qualified(ledger,row,at):
 
 
 class IndependentLoadControls(unittest.TestCase):
+    def test_nearly_complete500_still_censors_every_full_cohort_percentile(self):
+        for completed in (475,499,500):
+            ledger=s.Ledger(plan(count=500,accounts=500),lambda e:None);ledger.release(5_000_000_000)
+            for i in range(completed):row,_=ledger.reserve(5_000_000_000);qualified(ledger,row,5_000_000_010+i*10)
+            report=ledger.report(5_050_000_000)
+            for name in ('endToEndLogicalArrivalToQualified','submitToInclusionObserved','submitToQualifiedReceiptObserved','releaseToAccountClaim'):
+                value=report[name];self.assertEqual(value['denominator'],500)
+                for p in (50,95,99):
+                    with self.subTest(completed=completed,name=name,p=p):
+                        if completed<500:self.assertIsNone(value['p%dMs'%p])
+                        else:self.assertIsNotNone(value['p%dMs'%p])
     def test_fixed_arrival_full_denominator_and_no_mode_mixing(self):
         p=plan();self.assertEqual(len(p["rows"]),10);self.assertEqual(p["rows"][-1]["logicalArrivalOffsetNs"],90_000_000)
         self.assertEqual(len({r["id"] for r in p["rows"]}),10)
