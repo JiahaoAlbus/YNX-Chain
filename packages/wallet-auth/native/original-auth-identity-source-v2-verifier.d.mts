@@ -47,8 +47,9 @@ export interface OriginalAuthSourceV2Root {
 }
 /** Signed enrollment DATA only. The original verifier binds the service and
  * exact operation tuple to the independently admitted purpose; types do not. */
-export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1'|'ai-native-task-action-source-v6'|'browser-selected-pages-source-v1'|'wallet-native-product-source-v1'|'wallet-native-pay-client-source-v1'|'network-resource-source-v1'|'network-resource-pending-consent-source-v1';
+export type OriginalAuthSourceV2Service='wallet-mobile-qualified-source-v1'|'wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1'|'ai-native-task-action-source-v6'|'browser-selected-pages-source-v1'|'wallet-native-product-source-v1'|'wallet-native-pay-client-source-v1'|'network-resource-source-v1'|'network-resource-pending-consent-source-v1'|'network-resource-current-publisher-source-v1';
 export type OriginalAuthSourceV2Operations=
+ readonly ['resource.current.publish']|
  readonly ['resource.public-block-histogram']|
  readonly ['read-selected-pages']|
  readonly import('./original-wallet-product-source-contract.mjs').WalletProductSourceOperationV1[]|
@@ -80,7 +81,7 @@ export interface OriginalAuthSourceV2Enrollment {
 export interface OriginalAuthSourceV2Profile {
  readonly version:2;readonly purpose:string;readonly sourceId:string;readonly enrollmentDigest:string;readonly instanceId:string;
  readonly generation:number;readonly minimumSequence:number;readonly minimumFloor:number;readonly subjectOwner:string;
- readonly selection:OriginalAuthSourceV2Selection;readonly issuedAtMs:number;readonly expiresAtMs:number;
+ readonly selection:OriginalAuthSourceV2Selection|OriginalWalletMobileQualifiedSourceV1Selection;readonly issuedAtMs:number;readonly expiresAtMs:number;
 }
 /** Verified enrollment DATA only. No profile, subject permission, issuer or
  * Native admission is created by this independently framed verification. */
@@ -105,7 +106,7 @@ export interface OriginalAuthSourceV2Previous {
 }
 export interface OriginalAuthSourceV2CurrentData extends OriginalAuthSourceV2Previous {
  /** Present only on independently bound AI client profiles; no authority. */readonly agentPublic?:OriginalAITaskActionV6AgentPublic;
- readonly selection:OriginalAuthSourceV2Selection;readonly principalId:string;readonly subjectOwner:string;readonly subjectKeyVersion:string;
+ readonly selection:OriginalAuthSourceV2Selection|OriginalWalletMobileQualifiedSourceV1Selection;readonly principalId:string;readonly subjectOwner:string;readonly subjectKeyVersion:string;
  readonly generation:number;readonly status:'active';readonly expiresAtMs:number;
  readonly profileDigest:string;readonly sourceId:string;readonly instanceId:string;readonly executionHeight:string;
  readonly dataOnly:true;readonly nativeAdmission:false;
@@ -149,3 +150,9 @@ export function inspectOriginalWalletProductSourceIssuanceBodyDATA(role:'enrollm
 export function inspectOriginalNetworkResourceSourceIssuanceBodyV2DATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number,networkOriginals?:NetworkResourceOriginalsV1|NetworkPendingConsentOriginalsV1):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
 
 export function inspectOriginalNetworkPendingConsentSourceIssuanceBodyV1DATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number,pendingOriginals?:NetworkPendingConsentOriginalsV1):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
+
+export function inspectOriginalNetworkCurrentPublisherIssuanceBodyV1DATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
+
+export function inspectWalletMobileQualifiedSourceIssuanceBodyV1DATA(role:'enrollment'|'profile',rootRaw:string,enrollmentRaw:string,bodyRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<{role:'enrollment'|'profile';bodySHA256:string;effectExpiresAtMs:number;dataOnly:true;authorized:false;nativeAdmission:false}>;
+
+export interface OriginalWalletMobileQualifiedSourceV1Selection { readonly walletMobileQualifiedV1:import('./original-wallet-mobile-qualified-source-contract.mjs').MobileScope; }

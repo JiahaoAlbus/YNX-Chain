@@ -29,3 +29,6 @@ export function decodeOriginalNetworkResourceOriginalsTransportV1DATA(value:unkn
 export function readOriginalNetworkResourceUnsignedConsentV1DATA(value:NetworkResourceSourceScopeV2,association:NetworkResourceSourceAssociationV1,networkId:string,subjectOwner:string,sourceId:string,instanceId:string,issuedAtMs:number,expiresAtMs:number,atMs:number,actualOriginals:NetworkResourceOriginalsV1):Uint8Array;
 /** Fixed same-owner Native adapter slot. Requests cannot supply this interface. */
 export interface NetworkResourceOriginalsNativeIOV1 {readNetworkResourceOriginalsV1():NetworkResourceOriginalsV1;}
+
+/** Pure exact nine-field syntax only; retired/revoked evidence is not live permission. */
+export function inspectOriginalNetworkResourceCurrent9V1DATA(value:NetworkResourceSourceCurrentV1):Readonly<NetworkResourceSourceCurrentV1>;
