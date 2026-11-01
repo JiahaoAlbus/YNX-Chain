@@ -90,3 +90,12 @@ paid/stock completion claim. These labels follow the existing 12 app languages.
 Both partial and full read fixtures are detached from the preserved actual
 Pay/Shop PUBLIC original Stores; no receipt or financial state is imported by a
 link or by the product UI.
+
+
+The original order detail offers an explicit **Check payment** action after a
+successful owned read. It uses the existing signed Shop confirmation endpoint
+and then independently re-GETs this same original order; the confirmation
+response cannot replace the displayed order. Closing the view or replacing
+account/generation before proof completion prevents dispatch/adoption. This is
+an intentional user status check, not an automatic deep-link effect or a Pay
+sign/broadcast/refund call.

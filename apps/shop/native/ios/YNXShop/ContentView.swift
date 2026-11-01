@@ -21,6 +21,7 @@ struct ContentView:View {
             else if let order=model.linkedOriginalOrder{Text(LocalizedStringKey(order.status));Text("\(order.totalYNXT.formatted()) YNXT");if let refund=order.refundStatus{Text(refund).font(.caption)};NativeOrderAmounts(order:order)}
             else{Text("unavailable")}
             Text("payment_boundary").font(.caption)
+            if model.linkedOriginalOrder != nil{Button("check_payment"){Task{await model.checkLinkedOriginalPayment()}}.disabled(model.originalOrderLoading)}
             Button("retry"){Task{await model.refreshOriginalOrderLink()}}.disabled(model.originalOrderLoading)
             Button("close"){model.closeOriginalOrderLink()}
         }.padding(24).frame(minWidth:300)

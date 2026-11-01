@@ -199,13 +199,13 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
     func data(_ path:String,method:String="GET",body:Data?=nil)async throws->Data{try await transmit(path,method:method,body:body)}
     func raw(_ path:String,method:String="POST",json:[String:Any],beforeDispatch:(()throws->Void)?=nil)async throws->[String:Any]{let data=try await transmit(path,method:method,body:CanonicalJSON.data(json),beforeDispatch:beforeDispatch);guard let value=try JSONSerialization.jsonObject(with:data) as? [String:Any] else{throw ShopError.invalidResponse};return value}
     // Signed Shop action reads verified original Pay receipts; no funds dispatch.
-    func confirmOriginalPayment(_ order:Order)async throws {
+    func confirmOriginalPayment(_ order:Order,beforeDispatch:(()throws->Void)?=nil)async throws {
         let check=try capture();guard let account=currentSession?.account else{throw ShopError.signedOut}
         try AppleBuyerReceipt.validate(order,account:account)
         if let operation=order.payIntentID,operation.hasPrefix("npi_") {
             guard NativeWire.matches(operation,"^npi_[a-f0-9]{48}$") else{throw ShopError.security}
         }
-        _ = try await raw("orders/\(order.orderID)/confirm-payment",json:[:]);try check()
+        _ = try await raw("orders/\(order.orderID)/confirm-payment",json:[:],beforeDispatch:beforeDispatch);try check()
         // The model refreshes the order independently rather than trusting this response.
     }
 	func readOriginalNativeIntent(_ order:Order)async throws {

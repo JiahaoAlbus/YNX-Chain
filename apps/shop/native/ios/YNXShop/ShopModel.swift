@@ -116,6 +116,21 @@ import SwiftUI
             failure(error)
         }
     }
+    func checkLinkedOriginalPayment()async {
+        guard !originalOrderLoading,let link=originalOrderLink,let order=linkedOriginalOrder,link.orderID==order.orderID else{return}
+        let revision=originalOrderRevision
+        originalOrderLoading=true
+        do {
+            let check=try api.capture()
+            let fence:()throws->Void={try check();guard self.originalOrderRevision==revision,self.originalOrderLink==link else{throw ShopError.contextChanged}}
+            try await api.confirmOriginalPayment(order,beforeDispatch:fence)
+            try fence()
+            await refreshOriginalOrderLink()
+        }catch{
+            guard originalOrderRevision==revision,originalOrderLink==link else{return}
+            originalOrderLoading=false;linkedOriginalOrder=nil;failure(error)
+        }
+    }
     private func mutation(path:String,input:[String:Any],receipt:@escaping ([String:Any])throws->Void){
         guard signedIn,!mutationBusy else{return}
         do{let authorization=try api.capture(),view=handoffPresentationRevision;let check:()throws->Void={try authorization();guard view==self.handoffPresentationRevision else{throw ShopError.contextChanged}};guard let account=api.currentSession?.account else{throw ShopError.signedOut};guard try !queue.load(account:account).contains(where:{$0.path==path}) else{throw ShopError.unresolvedMutation};let item=try queue.prepareUnsent(account:account,path:path,input:input);mutationBusy=true;let revision=operationRevision
