@@ -640,7 +640,7 @@ def run(args):
         result["activation"]=ceremony.prepare_network();result["preparationUnconfirmedOwners"]=sorted(ceremony.pending_owners);result["livePolicies"]=[dict(node=l["node"],policy=str(l["policy"]),sha256=l["pin"]) for l in ceremony.live]
         if staged:
             checkpoint=ceremony.quiet()
-            result['initializedAccountReadback']=stages.run('complete_account_readback','all-four-nodes',lambda:initialization.complete_account_readback(ceremony.plan['nodes'],ceremony.workload['owners'][4:],checkpoint,ceremony.root))
+            result['initializedAccountReadback']=stages.run('complete_account_readback','all-four-nodes',lambda:initialization.complete_account_readback(ceremony.plan['nodes'],ceremony.workload['owners'][4:],checkpoint,ceremony.root,check=w.sample))
             lab.write_new(work/'public/initialized-account-readback.json',result['initializedAccountReadback'])
         result["normalLiveCalleeUsed"]=True
         if getattr(args,'initialization_only',False):

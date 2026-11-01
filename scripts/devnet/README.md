@@ -809,3 +809,8 @@ The original reserved-account preparation sender now opts into the existing Go
 separately in `preparationSenderMeasurements`; the original FD3 command, key
 opening time, request, nonce and result remain unchanged. The ordinary functional
 Ceremony keeps its original default arguments.
+The account census calls the existing original resource guard before each read,
+while raw snapshot bytes are resident, after decoding while both representations
+are resident, and before release. It uses no background thread or extra process,
+so initialization's original fork/FD3 lifecycle stays intact. Reported RSS peaks
+remain observed samples; they do not become continuous hardware measurements.

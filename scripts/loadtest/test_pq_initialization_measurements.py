@@ -114,7 +114,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 for i in range(4):
                     p=c.root/str(i)/'application.json';p.parent.mkdir();p.write_text(json.dumps(state));nodes.append(dict(index=i,statePath=str(p)))
                 c.plan=dict(nodes=nodes)
-                w=SimpleNamespace(storage_roots=[],started=d.time.monotonic(),peak_rss=1,peak_bytes=1,samples=[dict(processes=1,rssBytes=1,newBytes=1)],retired_samples=[],rss_fallback_samples=[],process_receipt=lambda:[],stop=mock.Mock(return_value=cleanup),wait=mock.Mock())
+                w=SimpleNamespace(storage_roots=[],started=d.time.monotonic(),peak_rss=1,peak_bytes=1,samples=[dict(processes=1,rssBytes=1,newBytes=1)],retired_samples=[],rss_fallback_samples=[],process_receipt=lambda:[],sample=mock.Mock(),stop=mock.Mock(return_value=cleanup),wait=mock.Mock())
                 def launch(name,*a,**k):
                     if name=='create-original':(work/'public/create-original.log').write_text('{}')
                     return object()
@@ -154,6 +154,18 @@ class OriginalDriverInitializationControls(unittest.TestCase):
         for i,mutate in enumerate(mutations):
             bad=copy.deepcopy(good);mutate(bad)
             with self.subTest(i=i),self.assertRaises(RuntimeError):m.require_complete_initialization(bad)
+
+class CensusResourceBoundaryControls(unittest.TestCase):
+    def test_original_guard_observes_live_raw_and_decoded_snapshots(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();owners,cp,state,nodes=CompleteAccountCensusControls().fixture(root);check=mock.Mock()
+            m.complete_account_readback(nodes,owners,cp,root,check=check)
+            self.assertEqual(check.call_count,16)
+    def test_guard_failure_preserves_original_error_and_stops_before_next_node(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();owners,cp,state,nodes=CompleteAccountCensusControls().fixture(root);failure=RuntimeError('original RSS cap');check=mock.Mock(side_effect=[None,None,failure])
+            with self.assertRaises(RuntimeError) as caught:m.complete_account_readback(nodes,owners,cp,root,check=check)
+            self.assertIs(caught.exception,failure);self.assertEqual(check.call_count,3)
 
 class InitializationJournalControls(unittest.TestCase):
     def test_requested_and_returned_events_separate_fsync_cost_and_original_span(self):

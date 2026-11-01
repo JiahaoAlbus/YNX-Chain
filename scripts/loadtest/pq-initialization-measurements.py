@@ -60,7 +60,7 @@ def instrumented_ceremony_class(Base):
     return MeasuredCeremony
 
 
-def complete_account_readback(nodes,manifest_owners,checkpoint,root,read_limit=128<<20):
+def complete_account_readback(nodes,manifest_owners,checkpoint,root,read_limit=128<<20,check=lambda:None):
     """Read each ORIGINAL stopped/quiet application once, no retries or writes.
 
     Normal Go nodes must have independently initialized and validated first.
@@ -78,16 +78,18 @@ def complete_account_readback(nodes,manifest_owners,checkpoint,root,read_limit=1
         expected[owner['owner']]=(int(nonce),int(balance))
     observations=[];root=Path(root)
     for node in nodes:
+        check()
         path=Path(node['statePath']);require(path.resolve()==path and root in path.parents,'original state snapshot escaped owned root')
         fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
         try:
             before=os.fstat(fd);require(stat.S_ISREG(before.st_mode) and 0<before.st_size<=read_limit,'bounded regular original state required')
             with os.fdopen(fd,'rb',closefd=False) as handle:raw=handle.read(read_limit+1)
+            check() # Account for the live raw snapshot, before releasing it.
             after=os.fstat(fd);current=os.stat(path,follow_symlinks=False)
             signature=lambda s:(s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns)
             require(len(raw)==before.st_size and signature(before)==signature(after)==signature(current),'original quiet snapshot changed during account census; no retry')
         finally:os.close(fd)
-        state=json.loads(raw)
+        state=json.loads(raw);check() # Both raw bytes and parsed state are still resident.
         require(state.get('initialized') is True and state.get('height')==checkpoint['height'] and state.get('appHash')==checkpoint['appHash'],'account snapshot differs from original common initialized checkpoint')
         rows=state.get('accounts');require(type(rows) is list,'original state account array required')
         found={}
@@ -98,6 +100,7 @@ def complete_account_readback(nodes,manifest_owners,checkpoint,root,read_limit=1
             require(type(account.get('nonce')) is int and type(account.get('balance')) is int and (account['nonce'],account['balance'])==expected[address],'load account original nonce/balance differs; no sign or replay')
             found[address]=True
         require(len(found)==len(expected),'full original independent load account cohort not initialized')
+        check()
         observations.append(dict(node=node['index'],height=checkpoint['height'],appHash=checkpoint['appHash'],snapshotBytes=len(raw),snapshotSHA256=hashlib.sha256(raw).hexdigest(),matchingOriginalLoadAccounts=len(found)))
         del raw,state,rows,found
     return dict(schema='YNX-PERF-ORIGINAL-INITIALIZED-ACCOUNT-CENSUS/v1',configuredLoadAccounts=len(expected),completeFourNodeAccountReadback=True,nodes=observations,normalGoStaticOrCryptoQualification=False,signCommandsIssued=0,businessPOSTsIssued=0,sourceGrant=False,meaning='All configured business accounts matched original manifest nonce/balance at the common four-node initialized checkpoint. This census alone is not normal Go full-history validation, sender readiness, signing, inclusion, finality, or performance qualification.')
