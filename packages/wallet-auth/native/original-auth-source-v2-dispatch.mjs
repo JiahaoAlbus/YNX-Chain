@@ -1,3 +1,4 @@
+import{NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_PURPOSE as NPR_PURPOSE,NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_SELECTION_KEY as NPR_KEY,inspectOriginalNetworkPendingConsentSourceScopeV1DATA,captureOriginalNetworkPendingConsentOriginalsV1DATA,assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA}from'./original-network-resource-pending-source-contract.mjs';
 import{NETWORK_RESOURCE_SOURCE_PURPOSE as NR_PURPOSE,NETWORK_RESOURCE_SOURCE_SELECTION_KEY as NR_KEY,NETWORK_RESOURCE_SOURCE_OPERATIONS as NR_OPS,inspectOriginalNetworkResourceSourceScopeV2DATA,captureOriginalNetworkResourceOriginalsV1DATA,assertOriginalNetworkResourceOriginalsCurrentV1DATA}from'./original-network-resource-source-v2-contract.mjs';
 import{WALLET_NATIVE_PRODUCT_SOURCE_PURPOSE as WPR_PURPOSE}from'./original-wallet-product-source-contract.mjs';
 import{BROWSER_SELECTED_PAGES_SOURCE_PURPOSE as BROWSER_PURPOSE}from'./original-browser-selected-pages-source-contract.mjs';
@@ -46,7 +47,7 @@ async function registrations(node,owners,networkId,get){
 // Optional getters are explicit PUBLIC DATA test seams only. The stdin branch
 // NEVER accepts a function/module/provider/clock selector and passes neither.
 export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuthorization,getCurrent=fetchSourceCurrentV2,networkOriginals){
- const nr=input?.policy?.signatureContract?.purpose===NR_PURPOSE;const held=nr?captureOriginalNetworkResourceOriginalsV1DATA(networkOriginals):undefined;const fence=()=>{if(nr)assertOriginalNetworkResourceOriginalsCurrentV1DATA(held);};
+ const pending=input?.policy?.signatureContract?.purpose===NPR_PURPOSE,nr=pending||input?.policy?.signatureContract?.purpose===NR_PURPOSE;const held=nr?(pending?captureOriginalNetworkPendingConsentOriginalsV1DATA:captureOriginalNetworkResourceOriginalsV1DATA)(networkOriginals):undefined;const fence=()=>{if(nr)(pending?assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA:assertOriginalNetworkResourceOriginalsCurrentV1DATA)(held);};
  exact(input,['operation','node','rootRaw','enrollmentRaw','profileRaw','headRaw','policy','previous']);
  if(input.operation!=='auth-source-v2-native-node/v1')fail('AUTH_SOURCE_V2_DISPATCH_OPERATION');
  exact(input.node,['origin','spki','nativeChainId']);
@@ -56,7 +57,7 @@ export async function dispatchOriginalSourceV2(input,get=fetchOriginalNativeAuth
  // purposes keep their exact five-field schema. The original N1 verifier
  // still checks the application against signed enrollment/profile originals.
  const ai=input.policy.signatureContract.purpose===AI_PURPOSE;
- const pay=[NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(input.policy.signatureContract.purpose);
+ const pay=[NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(input.policy.signatureContract.purpose);
  const pqCatalog=input.policy.signatureContract.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const device=devicePurposes.includes(input.policy.signatureContract.purpose);
  exact(input.policy,ai?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform','sourceRole']:pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
