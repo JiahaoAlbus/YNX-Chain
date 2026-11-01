@@ -54,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/oci-evidence" "$RUNNER_TEMP/oci-source"
-          printf '%s  %s\n' 1ca3094ca613c84f43e5050c072d06bd2a8d8b24887c1af12a363c85084374bd apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
+          printf '%s  %s\n' 98119bc96e58dd8788254fc3b6f555b759592bc414412a97a488183f75c51b72 apps/cloud/tests/oci-focused-normal-source.tar.gz | sha256sum --check
           tar -xzf apps/cloud/tests/oci-focused-normal-source.tar.gz -C "$RUNNER_TEMP/oci-source"
           docker info --format '{{json .}}' > "$RUNNER_TEMP/oci-evidence/docker-info.json" 2> "$RUNNER_TEMP/oci-evidence/docker-info.stderr"
           df -Pk "$RUNNER_TEMP" > "$RUNNER_TEMP/oci-evidence/disk.txt"
@@ -75,6 +75,14 @@ jobs:
           docker pull --platform linux/amd64 docker.io/library/node@sha256:9f0dde62d10e7ff7a310ecaebd66225f6b46c17e6cb778449a77b05d3541bea2 2>&1 | tee "$RUNNER_TEMP/oci-evidence/image-pull.txt"
           image_id="$(docker image inspect --format '{{.Id}}' docker.io/library/node@sha256:9f0dde62d10e7ff7a310ecaebd66225f6b46c17e6cb778449a77b05d3541bea2)"
           docker image inspect "$image_id" > "$RUNNER_TEMP/oci-evidence/image-inspect.json"
+          python3 - <<'PYIMAGE'
+          import os,json,re
+          image=json.load(open(os.path.join(os.environ['RUNNER_TEMP'],'oci-evidence/image-inspect.json')))[0]
+          digest='sha256:9f0dde62d10e7ff7a310ecaebd66225f6b46c17e6cb778449a77b05d3541bea2'
+          assert image.get('Os')=='linux' and image.get('Architecture')=='amd64', 'locked Linux/amd64 image required'
+          assert re.fullmatch(r'sha256:[0-9a-f]{64}',image.get('Id','')), 'exact image ID required'
+          assert any(x.endswith('@'+digest) and x.split('@')[0] in ['node','docker.io/library/node'] for x in image.get('RepoDigests',[])), 'locked official repository digest required'
+          PYIMAGE
           printf 'YNX_ACTUAL_OCI_IMAGE=%s\n' "$image_id" >> "$GITHUB_ENV"
           printf 'YNX_ACTUAL_OCI_BINARY=%s\n' "$(command -v docker)" >> "$GITHUB_ENV"
           printf 'YNX_ACTUAL_OCI_SOCKET=/var/run/docker.sock\n' >> "$GITHUB_ENV"
@@ -83,16 +91,15 @@ jobs:
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/oci-source"
-          go test -mod=readonly -tags cloud_oci_recovery -count=1 -timeout=180s -json -run '^TestP04ActualOCIRollbackReconcileNormalServiceAndCLI$' ./internal/cloud | tee "$RUNNER_TEMP/oci-evidence/actual-lifecycle.jsonl"
+          node --check apps/cloud/client/deployment-observation-cli.fixture.mjs
+          GOMAXPROCS=1 go test -mod=readonly -tags cloud_oci_recovery -count=1 -timeout=180s -json -run '^TestP04ActualOCIOriginalRuntimeReadbackAndMissingInstance$' ./internal/cloud | tee "$RUNNER_TEMP/oci-evidence/actual-lifecycle.jsonl"
       - name: Preserve actual results and scoped cleanup
         if: always()
         shell: bash
         run: |
           mkdir -p "$RUNNER_TEMP/oci-evidence"
           docker ps -a --no-trunc --filter label=ynx.ide.runtime=bounded-node-job > "$RUNNER_TEMP/oci-evidence/final-containers.txt" 2>&1 || true
-          ids="$(docker ps -aq --filter label=ynx.ide.runtime=bounded-node-job --filter label=ynx.ide.resource=PUBLIC_CI_http)"
-          if [ -n "$ids" ]; then docker rm -f $ids; fi
-          ids="$(docker ps -aq --filter label=ynx.ide.runtime=bounded-node-job --filter label=ynx.ide.resource=PUBLIC_CI_timeout)"
+          ids="$(docker ps -aq --filter label=ynx.ide.runtime=bounded-node-job --filter label=ynx.ide.resource=PUBLIC_J23_QA_RESOURCE)"
           if [ -n "$ids" ]; then docker rm -f $ids; fi
       - uses: actions/upload-artifact@v4
         if: always()
