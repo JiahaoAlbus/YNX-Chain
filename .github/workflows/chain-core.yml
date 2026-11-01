@@ -61,7 +61,7 @@ concurrency:
 jobs:
   combined-archive-deployment:
     name: LINK Product transport and archive deployment controls
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
