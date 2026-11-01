@@ -51,3 +51,11 @@ production objects with Werror and runs request framing/route constraints agains
 the complete hash-checked frozen Auth/LINK input. It rejects incomplete inputs.
 The direct script's explicit `--request-only` mode accepts the older request-only
 boundary. Controls remain PUBLIC DATA, without Source admission/network dispatch.
+
+The `native-producer-link` suite consumes three complete pinned manifests and
+uses the actual LINK normal c-archive with all production C++ sources for a
+strong-link/missing-Source check. A separate executable uses the explicitly
+PUBLIC fixture library to exercise real private Unix traffic, late partial
+response retention, query limits, native retirement and registration borrow debt.
+The normal executable must contain no fixture exports. This component check
+does not qualify the actual Main namespace, Root profile producer or installation.

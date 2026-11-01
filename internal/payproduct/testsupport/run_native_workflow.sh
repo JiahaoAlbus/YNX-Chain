@@ -5,6 +5,17 @@ composition=${1:?isolated composition path required}
 fixture_dir=${2:?explicit temporary-chain public fixture output required}
 case "$composition" in */owners/P06/pq-core-composition-*) ;; *) echo 'isolated P06 composition required' >&2; exit 2;; esac
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-producer-link ]; then
+ : "${PAY_NATIVE_AUTH_BOUNDARY:?frozen original Auth Native boundary required}"
+ : "${PAY_NATIVE_LINK_BOUNDARY:?frozen original LINK component required}"
+ : "${PAY_NATIVE_PRODUCER_BOUNDARY:?frozen original P06 producer required}"
+ : "${PAY_NATIVE_PRODUCER_OUTPUT:?new external producer evidence directory required}"
+ : "${PAY_NATIVE_AUTH_SHA256:?original Auth manifest SHA256 required}"
+ : "${PAY_NATIVE_LINK_SHA256:?original LINK manifest SHA256 required}"
+ : "${PAY_NATIVE_PRODUCER_SHA256:?original P06 manifest SHA256 required}"
+ /usr/bin/python3 "$source_dir/../../apps/pay/native/testsupport/run-native-producer-link.py" "$PAY_NATIVE_AUTH_BOUNDARY" "$PAY_NATIVE_LINK_BOUNDARY" "$PAY_NATIVE_PRODUCER_BOUNDARY" "$PAY_NATIVE_PRODUCER_OUTPUT" --auth-sha256 "$PAY_NATIVE_AUTH_SHA256" --link-sha256 "$PAY_NATIVE_LINK_SHA256" --producer-sha256 "$PAY_NATIVE_PRODUCER_SHA256"
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-producer ]; then
  : "${PAY_NATIVE_AUTH_BOUNDARY:?frozen original Auth Native boundary required}"
  : "${PAY_NATIVE_PRODUCER_OUTPUT:?new external producer evidence directory required}"
