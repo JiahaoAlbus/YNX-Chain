@@ -183,6 +183,7 @@ function selectedRelocationRules(sdkVersion,sourceVariant){
     {sourcePath:'packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',packedPath:'code/packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',operands:[
       {kind:'url',from:'../../../apps/wallet-desktop/native/original-auth-identity.node',to:'../../../apps/wallet-desktop/native/original-auth-identity.node',count:1}]}];
   const mainDevice=[
+    ...(sourceVariant===SDK49_NORMAL_VARIANT?[{sourcePath:'packages/wallet-auth/src/root-current-v3/original-sdk.mjs',packedPath:'code/packages/wallet-auth/src/root-current-v3/original-sdk.mjs',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-root-dirfd.node',operands:[{kind:'url',from:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-root-dirfd.node',count:1}]}]:[]),
     ...['original-device-create-controller.mjs','original-device-query-controller.mjs','original-device-finalization-controller.mjs'].map(file=>({sourcePath:'apps/wallet-desktop/src/'+file,packedPath:'code/apps/wallet-desktop/src/'+file,operands:[{kind:'from',from:'../../../packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',to:'../../../packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',count:1},...(file==='original-device-create-controller.mjs'?[]:[{kind:'from',from:'../../../packages/wallet-auth/src/product-session-registry.js',to:'../../../packages/wallet-auth/src/product-session-registry.js',count:1}])]})),
     {sourcePath:'apps/wallet-desktop/src/original-runtime-image-preload.mjs',packedPath:'code/apps/wallet-desktop/src/original-runtime-image-preload.mjs',operands:[{kind:'import',from:'../../../packages/wallet-auth/src/original-auth-runtime-image-source-v1.js',to:'../../../packages/wallet-auth/src/original-auth-runtime-image-source-v1.js',count:1}]},
     {sourcePath:'apps/wallet-desktop/src/wallet-pq-original-source.mjs',packedPath:'code/apps/wallet-desktop/src/wallet-pq-original-source.mjs',operands:[{kind:'import',from:'../../../packages/wallet-auth/src/original-pq-host-catalog-source.js',to:'../../../packages/wallet-auth/src/original-pq-host-catalog-source.js',count:1}]}
@@ -267,9 +268,30 @@ function relocationPlan(cwd, expected) {
   });
 }
 const publicRelocationRows = plan => plan.map(({source,output,...row})=>row);
+function runtimeSourceVerificationInputs(root,sourceCommit,product,nativeInputs,nativeBuildEvidenceAssets){
+  const requiredRuntimeAssets=['packages/wallet-auth/package.json','packages/wallet-auth/product-session-registry.json',...fixedSDKRuntimeManifestSources(root,sourceCommit)];
+  const declaredSDKRuntimeAssets=declaredSDKRuntimeSources(root,sourceCommit);
+  const names=[...new Set([...git(root,'ls-tree','-r','--name-only',sourceCommit,'apps/wallet-desktop/src','packages/wallet-auth/src',...requiredRuntimeAssets).split('\n'),...declaredSDKRuntimeAssets,...nativeInputs.filter(name=>name.startsWith('packages/wallet-auth/')&&name.endsWith('.mjs')&&!name.endsWith('.test.mjs')),...nativeBuildEvidenceAssets])];
+  for(const name of requiredRuntimeAssets)if(!names.includes(name))throw Error(`Required runtime asset is missing from the selected commit: ${name}`);
+  const excludedTypeDeclarations=names.filter(name=>name.endsWith('.d.ts')&&!product?.selected.has(name.replace(/^packages\/wallet-auth\//,'')));
+  return {names,excludedTypeDeclarations};
+}
+function expectedRuntimeSourceBytes(name,source,sdkVersion,product,nativeBuildEvidenceAssets){
+  return product?.contents.get(packedRuntimePath(name))??(nativeBuildEvidenceAssets.includes(name)?source:relocateDesktopRuntimeSource(name,source,sdkVersion,product?.public.sourceVariant).bytes);
+}
 // Read-only preflight of the same closed recipe used by the actual packer.
 export function inspectDesktopRuntimeRelocationInputs(cwd,version){
-  return publicRelocationRows(relocationPlan(cwd,desktopReleaseIdentity(cwd,version)));
+  const expected=desktopReleaseIdentity(cwd,version),root=git(cwd,'rev-parse','--show-toplevel'),sdk=JSON.parse(git(root,'show',`${expected.sourceCommit}:packages/wallet-auth/package.json`)),product=readSDKProductRuntime(root,expected.sourceCommit);
+  if(sdk.version!==SDK49_VERSION||product?.public.sourceVariant!==SDK49_NORMAL_VARIANT)throw Error('Normal SDK49 source preflight required');
+  const inventory=execFileSync('git',['show',`${expected.sourceCommit}:${SDK332_NATIVE_INVENTORY}`],{cwd:root,maxBuffer:16<<20}),selection=canonicalNativeInputSelection(sdk.version,[],inventory,[]);
+  const evidence=NATIVE_BUILD_EVIDENCE_TESTS.filter(name=>selection.evidenceAssets.includes(name)&&!product?.excluded.has(name.replace(/^packages\/wallet-auth\//,'')));
+  const {names,excludedTypeDeclarations}=runtimeSourceVerificationInputs(root,expected.sourceCommit,product,selection.inputs,evidence),rows=new Map(publicRelocationRows(relocationPlan(cwd,expected)).map(row=>[row.sourcePath,row]));
+  for(const name of names){
+    if(excludedTypeDeclarations.includes(name))continue;
+    const source=execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16<<20}),output=expectedRuntimeSourceBytes(name,source,sdk.version,product,evidence);
+    rows.set(name,{...(rows.get(name)??{}),sourcePath:name,packedPath:packedRuntimePath(name),inputBytes:source.length,inputSHA256:digest(source),emittedBytes:output.length,emittedSHA256:digest(output),fixedProductProjection:product.contents.has(packedRuntimePath(name))});
+  }
+  return [...rows.values()];
 }
 
 export function desktopAsarHeaderIntegrity(resources,cwd=projectDir) {
@@ -505,18 +527,11 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   // wallet-auth-contract.mjs reads this registry from the SDK root at runtime.
   // Require it in the commit as well as the archive: ls-tree alone can silently
   // omit a named path that no longer exists in the selected commit.
-  const requiredRuntimeAssets = ["packages/wallet-auth/package.json", "packages/wallet-auth/product-session-registry.json",...fixedSDKRuntimeManifestSources(root,expected.sourceCommit)];
-  const declaredSDKRuntimeAssets=declaredSDKRuntimeSources(root,expected.sourceCommit);
-  const names = [...new Set([...git(root, "ls-tree", "-r", "--name-only", expected.sourceCommit, "apps/wallet-desktop/src", "packages/wallet-auth/src", ...requiredRuntimeAssets).split("\n"),...declaredSDKRuntimeAssets,
-    ...nativeInputs.filter(name=>name.startsWith('packages/wallet-auth/')&&name.endsWith('.mjs')&&!name.endsWith('.test.mjs')),...nativeBuildEvidenceAssets])];
-  for (const name of requiredRuntimeAssets) {
-    if (!names.includes(name)) throw new Error(`Required runtime asset is missing from the selected commit: ${name}`);
-  }
+  const {names,excludedTypeDeclarations}=runtimeSourceVerificationInputs(root,expected.sourceCommit,product,nativeInputs,nativeBuildEvidenceAssets);
   // electron-builder excludes TypeScript declarations from an executable package.
   // Keep that exclusion explicit; all runtime logic binds to the selected
   // checkout. Canonical packaging validates the seven closed operand inventories
   // but never rewrites any source operand or executes the packaged entrypoint.
-  const excludedTypeDeclarations = names.filter(name => name.endsWith(".d.ts")&&!product?.selected.has(name.replace(/^packages\/wallet-auth\//,'')));
   const verified = [];
   for (const name of names) {
     if (excludedTypeDeclarations.includes(name)) continue;
@@ -526,7 +541,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     const packed = asar.extractFile(archive, path.normalize(packedName));
     // Evidence data is never interpreted as runtime or relocated. This exact
     // closed subset can contain source-inspection operands in its test body.
-    const emitted=product?.contents.get(packedName)??(nativeBuildEvidenceAssets.includes(name)?source:relocateDesktopRuntimeSource(name,source,sdkMetadata.version,product?.public.sourceVariant).bytes);
+    const emitted=expectedRuntimeSourceBytes(name,source,sdkMetadata.version,product,nativeBuildEvidenceAssets);
     if (!emitted.equals(packed)) throw new Error(`Packaged source differs: ${name}`);
     verified.push({ path: packedName, bytes: packed.length, sha256: digest(packed) });
   }
