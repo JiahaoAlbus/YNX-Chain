@@ -76,3 +76,13 @@ in its own bundle preferences domain. A main-frame, exact-origin document-start
 bootstrap restores them across helper port changes; browser pairing tickets,
 trust and approvals are never stored or restored by this bridge. Appearance
 changes affect this App only, and other QA versions retain their own domain.
+
+Public receipt export is a single in-flight operation. The client displays
+panel selection and saving separately and disables all three export entries
+until the native result returns. Filesystem work stays off AppKit's main
+thread. Cancel preserves the original record; a durability error is UNKNOWN,
+not a saved or safely retryable result. A new document receives only an idle
+notification for an older operation, never that older receipt's saved result.
+Normal Quit during an approved write waits for that original operation, then
+continues the existing owned-helper shutdown. No automatic export retry is
+performed, and no Wallet/node authority comes from these lifecycle events.

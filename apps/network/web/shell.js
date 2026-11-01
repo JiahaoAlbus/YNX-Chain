@@ -4,7 +4,7 @@
  const $ = id => document.getElementById(id), I = window.NetworkI18n;
  const t = (key,params) => I ? I.t(key,params) : key;
  const routes = Object.freeze({overview:'网络总览',verify:'交易查证',history:'核验历史',node:'我的节点',participation:'质押与治理',contribution:'资源贡献',settings:'设置',account:'我的'});
- let activeRoute='overview', status=null, nodes=null, native=null, exported=null, theme='light', lastNotice=null;
+ let activeRoute='overview', status=null, nodes=null, native=null, exported=null, theme='light', lastNotice=null, exportBusy=false;
  const media=window.matchMedia('(prefers-color-scheme: dark)');
  function put(id,key,params){const el=$(id);if(!el)return;el.removeAttribute('data-i18n');el.textContent=t(key,params);}
  function raw(id,value){const el=$(id);if(!el)return;el.removeAttribute('data-i18n');el.textContent=value===null||value===undefined?'—':String(value);}
@@ -33,9 +33,19 @@
  $('show-raw').addEventListener('click',()=>{if($('raw-panel').hidden){say('本次尚无原始报告。');return;}$('raw-panel').open=true;$('raw-panel').scrollIntoView({block:'start'});});
  $('paste-tx').addEventListener('click',async()=>{try{if(!navigator.clipboard?.readText)throw Error('UNAVAILABLE');const value=(await navigator.clipboard.readText()).trim();if(!/^(0x)?[a-fA-F0-9]{64}$/.test(value)){say('剪贴板中没有完整交易哈希。',true);return;}$('tx-id').value=value;$('tx-id').dispatchEvent(new Event('input',{bubbles:true}));}catch{say('请在交易哈希输入框中手动粘贴。');$('tx-id').focus();}});
  for(const button of document.querySelectorAll('[data-history-filter]'))button.addEventListener('click',()=>{const value=button.dataset.historyFilter;document.querySelectorAll('[data-history-filter]').forEach(el=>el.classList.toggle('selected',el===button));window.NetworkClient?.setHistoryFilter(value);});
- function exportReceipt(){if(!exported)return;const record=structuredClone(exported);if(window.webkit?.messageHandlers?.networkExport){window.webkit.messageHandlers.networkExport.postMessage({version:'YNX-NETWORK-RECEIPT-EXPORT/v1',record});return;}const blob=new Blob([JSON.stringify({version:'YNX-NETWORK-LOCAL-RECEIPT-EXPORT/v1',historical:true,authority:false,receipt:record},null,2)+'\n'],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ynx-network-receipt-'+record.receiptId+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);say('已请求下载回执；导出记录不授予当前权限。');}
+ function exportReceipt(){if(!exported||exportBusy||status?.paired!==true)return;const record=structuredClone(exported);if(window.webkit?.messageHandlers?.networkExport){exportBusy=true;say('请选择保存位置或取消；当前导出尚未完成。');render();try{window.webkit.messageHandlers.networkExport.postMessage({version:'YNX-NETWORK-RECEIPT-EXPORT/v1',record});}catch{exportBusy=false;say('回执导出失败，原记录保留。',true);render();}return;}const blob=new Blob([JSON.stringify({version:'YNX-NETWORK-LOCAL-RECEIPT-EXPORT/v1',historical:true,authority:false,receipt:record},null,2)+'\n'],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ynx-network-receipt-'+record.receiptId+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);say('已请求下载回执；导出记录不授予当前权限。');}
  for(const id of ['export-receipt','settings-export','account-export'])$(id).addEventListener('click',exportReceipt);
- window.addEventListener('network:export-result',event=>{const result=event.detail;if(result?.status==='saved')say('回执已保存；导出记录不授予当前权限。');else if(result?.status==='cancelled')say('已取消导出，原记录保留。');else if(result?.status==='failed')say('回执导出失败，原记录保留。',true);});
+ window.addEventListener('network:export-result',event=>{const result=event.detail;if(!exportBusy)return;
+  if(result?.status==='writing'){say('正在保存回执，请等待；当前导出尚未完成。');return;}
+  if(result?.code==='EXPORT_BUSY')return;
+  if(!['saved','cancelled','failed','unknown','idle'].includes(result?.status))return;
+  exportBusy=false;
+  if(result.status==='saved')say('回执已保存；导出记录不授予当前权限。');
+  else if(result.status==='cancelled')say('已取消导出，原记录保留。');
+  else if(result.status==='unknown')say('文件已写入，但持久化结果未确定；请核对原文件，勿重复导出。',true);
+  else if(result.status==='idle')say('先前导出已结束；请核对原文件与记录。');
+  else say('回执导出失败，原记录保留。',true);render();
+ });
  function render(){
   const paired=status?.paired===true;
   put('connect-label',paired?'本机已连接':'连接本机');put('side-status',paired?'本机已连接':'本机未连接');$('side-dot').classList.toggle('good',paired);put('dash-connection',paired?'已连接':'未连接');$('dash-connection').classList.toggle('good-text',paired);put('dash-connection-note',paired?'本机查证服务':'等待本机配对');
@@ -56,7 +66,7 @@
   if(validators?.items?.length){for(const item of validators.items.slice(0,4)){const row=document.createElement('div');row.className='validator-item';const caption=document.createElement('div');caption.className='validator-caption';const name=document.createElement('strong');name.textContent=item.moniker||short(item.address);const share=document.createElement('small');const part=validators.distribution?.find(d=>d.address===item.address);share.textContent=part?new Intl.NumberFormat(I.locale,{maximumFractionDigits:2}).format(part.shareBps/100)+'%':'—';caption.append(name,share);const address=document.createElement('span');address.className='validator-address';address.textContent=item.address||'—';row.append(caption,address);if(part){const bar=document.createElement('progress');bar.max=10000;bar.value=part.shareBps;bar.setAttribute('aria-label',t('报告投票权占比'));row.append(bar);}list.append(row);}}else{const empty=document.createElement('p');empty.className='empty-state';empty.textContent=t(paired?'本次未取得验证者报告。':'尚未读取验证者');list.append(empty);}
   const mobile=$('validator-mobile');mobile.replaceChildren();
   if(validators?.distribution?.length){const strip=document.createElement('div');strip.className='distribution-strip';strip.setAttribute('aria-hidden','true');const legend=document.createElement('div');legend.className='distribution-legend';for(const part of validators.distribution.slice(0,4)){const segment=document.createElement('span');segment.style.flexGrow=String(part.shareBps);strip.append(segment);const name=document.createElement('span');name.textContent=(part.moniker||short(part.address,4))+' '+new Intl.NumberFormat(I.locale,{maximumFractionDigits:2}).format(part.shareBps/100)+'%';legend.append(name);}mobile.append(strip,legend);}else{const empty=document.createElement('p');empty.className='muted';empty.textContent=t('尚未读取验证者');mobile.append(empty);}
-  for(const id of ['export-receipt','settings-export','account-export'])$(id).disabled=!paired||!exported;
+  for(const id of ['export-receipt','settings-export','account-export'])$(id).disabled=!paired||!exported||exportBusy;
  }
  window.NetworkUI=Object.freeze({receive(channel,value){if(channel==='status')status=value;else if(channel==='node')nodes=value;else if(channel==='native')native=value;else if(channel==='receipt'){exported=value?.record||null;if(value?.historical)navigate('verify',true);}else if(channel==='reset'){status=null;nodes=null;native=null;exported=null;}render();},navigate});
  I.subscribe(()=>{$('language-select').value=I.locale;put('screen-title',routes[activeRoute]);render();if(lastNotice)say(lastNotice.key,lastNotice.error);persistNativePreferences();window.NetworkClient?.rerenderLocale();});

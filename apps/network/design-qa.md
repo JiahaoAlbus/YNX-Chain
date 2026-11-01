@@ -82,3 +82,12 @@ native contract passed69 assertions and6 bootstrap contexts, including real
 asynchronous file bytes, main-thread completion and overlap rejection. These GUI results apply to01426; the successor's GUI
 delta must be recorded separately. Evidence: owners/P09/artifacts/design-20261101/
 native-01426-acceptance.json and native-save-timeout-sample.txt.
+
+Export lifecycle follow-up: the original ddc Documents file eventually appeared
+and was reconciled against the same receipt ID and public envelope,0600,
+authority:false. Its prior UNKNOWN is preserved in the record history. The
+successor adds explicit panel/saving/uncertain states in all12 languages,
+three-entry duplicate protection, generation-safe completion and normal Quit
+deferral until the approved write ends. Original CI's56 client cases and75
+native contract assertions plus6 bootstrap contexts pass. Successor GUI
+lifecycle observations must be recorded against its exact build separately.

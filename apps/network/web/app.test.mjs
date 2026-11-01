@@ -1,3 +1,4 @@
+import './shell.test.mjs';
 import './i18n.test.mjs';
 import './overview.test.mjs';
 import test from 'node:test';

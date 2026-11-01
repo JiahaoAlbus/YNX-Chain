@@ -135,7 +135,10 @@ static NSArray<NSString*> *helperArguments(NSString *data,NSString *rpc,NSString
 @interface QAApp:NSObject<NSApplicationDelegate,WKNavigationDelegate,WKScriptMessageHandler,NSOpenSavePanelDelegate>
 @property NSTask *task;@property NSWindow *window;@property WKWebView *web;@property NSTextField *label;@property NSTextField *proofLabel;@property NSButton *configureButton;@property NSString *origin;@property NSString *code;@property NSMutableString *pending;
 @property NSString *helper;@property NSString *proof;@property NSString *data;@property NSString *rpc;@property NSDictionary *build;@property QAProofProfile *profiles;@property NSUInteger generation;@property BOOL changing;@property BOOL quitting;
-@property BOOL exportWriting;@property NSSavePanel *exportPanel;@property NSString *exportToken;@property NSUInteger documentGeneration;@property BOOL documentReady;
+@property BOOL terminationPending;@property BOOL exportWriting;@property NSSavePanel *exportPanel;@property NSString *exportToken;@property NSUInteger documentGeneration;@property BOOL documentReady;
+-(NSApplicationTerminateReply)finishTermination;
+-(void)completeExport:(NSString*)code token:(NSString*)token helper:(NSUInteger)helper document:(NSUInteger)document origin:(NSString*)origin;
+-(void)finishDeferredTerminationIfNeeded;
 @property NSUserDefaults *preferences;@property NSString *preferenceDomain;@property WKUserScript *preferenceScript;
 @end
 @implementation QAApp
@@ -161,6 +164,19 @@ static NSArray<NSString*> *helperArguments(NSString *data,NSString *rpc,NSString
   // source text and error messages are never interpolated into JavaScript.
   [self.web callAsyncJavaScript:@"if (window.location.origin === expectedOrigin) window.dispatchEvent(new CustomEvent('network:export-result', {detail: result}));" arguments:@{@"expectedOrigin":origin,@"result":@{@"status":status,@"code":code}} inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:nil];
 }
+-(void)completeExport:(NSString*)code token:(NSString*)token helper:(NSUInteger)helper document:(NSUInteger)document origin:(NSString*)origin {
+  self.exportWriting=NO;BOOL current=[self exportCurrent:token helper:helper document:document origin:origin];
+  if([self.exportToken isEqual:token])self.exportToken=nil;
+  if(current){
+    NSString *status=[code isEqual:@"EXPORT_CANCELLED"]?@"cancelled":[code isEqual:@"EXPORT_SAVED"]?@"saved":[code isEqual:@"EXPORT_DURABILITY_UNKNOWN"]?@"unknown":@"failed";
+    [self exportResult:status code:code helper:helper document:document origin:origin];
+  }else{
+    // A new document may have encountered the old write's busy guard. Clear
+    // only activity; never attach the old receipt's outcome to its new view.
+    [self exportResult:@"idle" code:@"EXPORT_PRIOR_FINISHED" helper:self.generation document:self.documentGeneration origin:self.origin];
+  }
+  [self finishDeferredTerminationIfNeeded];
+}
 -(void)invalidateExport {
   self.exportToken=nil;NSSavePanel *panel=self.exportPanel;if(panel)[panel cancel:nil];
 }
@@ -183,13 +199,9 @@ static NSArray<NSString*> *helperArguments(NSString *data,NSString *rpc,NSString
     if(!current)return;
     // One explicit panel approval starts one write, never an automatic retry.
     app.exportWriting=YES;
+    if(response==NSModalResponseOK)[app exportResult:@"writing" code:@"EXPORT_WRITING" helper:helper document:document origin:origin];
     QAExportAsync(response,data,panel.URL,^(NSString *code){
-      QAApp *owner=weak;if(!owner)return;owner.exportWriting=NO;
-      BOOL stillCurrent=[owner exportCurrent:token helper:helper document:document origin:origin];
-      if([owner.exportToken isEqual:token])owner.exportToken=nil;
-      if(!stillCurrent)return;
-      NSString *status=[code isEqual:@"EXPORT_CANCELLED"]?@"cancelled":[code isEqual:@"EXPORT_SAVED"]?@"saved":@"failed";
-      [owner exportResult:status code:code helper:helper document:document origin:origin];
+      QAApp *owner=weak;if(owner)[owner completeExport:code token:token helper:helper document:document origin:origin];
     });
   }];
 }
@@ -246,7 +258,15 @@ static NSArray<NSString*> *helperArguments(NSString *data,NSString *rpc,NSString
 -(void)webViewWebContentProcessDidTerminate:(WKWebView*)web {
   if(web==self.web){self.documentReady=NO;self.documentGeneration++;[self invalidateExport];}
 }
+-(void)finishDeferredTerminationIfNeeded {
+  if(!self.terminationPending||self.exportWriting)return;self.terminationPending=NO;
+  if([self finishTermination]==NSTerminateNow)[NSApp replyToApplicationShouldTerminate:YES];
+}
 -(NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)app{
+  if(self.exportWriting){self.terminationPending=YES;return NSTerminateLater;}
+  return [self finishTermination];
+}
+-(NSApplicationTerminateReply)finishTermination{
   self.quitting=YES;[self invalidateExport];[self.web.configuration.userContentController removeScriptMessageHandlerForName:@"networkExport"];[self.web.configuration.userContentController removeScriptMessageHandlerForName:@"networkPreferences"];if(!self.task.running)return NSTerminateNow;[self stopOwnedThen:^{[NSApp replyToApplicationShouldTerminate:YES];}];return NSTerminateLater;
 }
 @end
