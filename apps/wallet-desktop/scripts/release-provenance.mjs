@@ -177,7 +177,9 @@ function selectedRelocationRules(sdkVersion,sourceVariant){
   // the source/Git/runtime pins still bind both files byte-for-byte. Old SDK
   // rules, unknown paths and duplicate/missing operands remain refusals.
   const sdk49=[...qualified.map(rule=>rule.sourcePath===`packages/wallet-auth/src/${joint}`
-    ?{...rule,operands:rule.operands.filter(operand=>operand.kind==='from'&&operand.from==='../../../apps/wallet-desktop/src/password-wallet-vault.mjs')}:rule),
+    ?{...rule,operands:rule.operands.filter(operand=>operand.kind==='from'&&operand.from==='../../../apps/wallet-desktop/src/password-wallet-vault.mjs')}
+    :rule.sourcePath==='apps/wallet-desktop/src/original-auth-identity-startup.mjs'&&sourceVariant===SDK49_NORMAL_VARIANT
+      ?{...rule,operands:[...rule.operands,{kind:'from',from:sdkPrefix+'original-auth-identity-fixed-native-image.js',to:sdkPackedPrefix+'original-auth-identity-fixed-native-image.js',count:1}]}:rule),
     {sourcePath:'packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',packedPath:'code/packages/wallet-auth/src/original-auth-identity-fixed-native-image.js',operands:[
       {kind:'url',from:'../../../apps/wallet-desktop/native/original-auth-identity.node',to:'../../../apps/wallet-desktop/native/original-auth-identity.node',count:1}]}];
   const mainDevice=[
@@ -227,7 +229,7 @@ export function declaredSDKRuntimeSources(root,sourceCommit){
   // Existing package documentation is not JavaScript. Still require its
   // declaration to exist in the immutable selected commit above; this never
   // makes a missing JS file, unknown asset or arbitrary scope acceptable.
-  const nonRuntime=name=>/\.d\.(?:ts|mts|cts)$/.test(name)||/\.(?:h|hpp|c|cc|cpp|mm|m|md)$/.test(name);
+  const nonRuntime=name=>/\.d\.(?:ts|mts|cts)$/.test(name)||/\.(?:h|hpp|c|cc|cpp|mm|m|md)$/.test(name)||sdk.version===SDK49_VERSION&&COMMON_QA_INPUT_NAMES.includes(name);
   if(!found.length&&!declared.every(nonRuntime))throw Error(`SDK declared runtime source is missing: ${scope}`);
   for(const name of found)names.add(name);
  }
@@ -265,6 +267,10 @@ function relocationPlan(cwd, expected) {
   });
 }
 const publicRelocationRows = plan => plan.map(({source,output,...row})=>row);
+// Read-only preflight of the same closed recipe used by the actual packer.
+export function inspectDesktopRuntimeRelocationInputs(cwd,version){
+  return publicRelocationRows(relocationPlan(cwd,desktopReleaseIdentity(cwd,version)));
+}
 
 export function desktopAsarHeaderIntegrity(resources,cwd=projectDir) {
   const asar=createRequire(path.join(cwd,"package.json"))("@electron/asar"),archive=path.join(resources,"app.asar");
