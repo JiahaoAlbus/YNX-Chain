@@ -261,36 +261,33 @@ func VerifyClassicMigration(owner string, message, pub, sig []byte) error {
 	return nil
 }
 
-// ValidateMigrationAuthorization checks the complete intent, exact nonce,
-// schedule/revision and CURRENT lawful account proof using the same boundary as
-// AdmitMigration. NewKeyProof may be absent while the new pair is still held by
-// protected custody. Success does not validate that new pair, grant authority,
-// consume nonce, change policy, or authorize broadcast. AdmitMigration must still
-// verify BOTH new-key possession signatures and return a detached new state.
-func (s State) ValidateMigrationAuthorization(m Migration, height, currentNonce uint64) error {
+// validateMigrationIntent is the original admission preflight shared by the
+// lawful-proof verifier and the closed CURRENT-pair migration signer. It never
+// substitutes an intent or a public registration for an authorization proof.
+func (s State) validateMigrationIntent(m Migration, height, currentNonce uint64) ([]byte, error) {
 	if len(m.ClassicPublicKey) > 33 || len(m.ClassicSignature) > 72 || len(m.CurrentPQProof) > 128<<10 || len(m.NewKeyProof) > 128<<10 {
-		return errors.New("migration proof bounds")
+		return nil, errors.New("migration proof bounds")
 	}
 	if _, err := m.Encode(); err != nil {
-		return err
+		return nil, err
 	}
 	if err := s.Validate(s.NetworkID); err != nil {
-		return err
+		return nil, err
 	}
 	if !supportedPolicyVersion(s.Version) || height < s.EnableAt || !bytes.Equal(m.Intent.ChainID, s.NetworkID) {
-		return ErrPolicy
+		return nil, ErrPolicy
 	}
 	// A terminal revocation also freezes any already admitted pending pair.
 	// Its future effective height never opens a window for another registration.
 	if _, exists := s.revocationFor(m.Intent.Owner); exists {
-		return ErrPolicy
+		return nil, ErrPolicy
 	}
 	msg, err := m.Intent.SigningBytes()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if currentNonce == math.MaxUint64 || m.Intent.LedgerNonce != currentNonce+1 || m.Intent.ActivateAt <= height {
-		return errors.New("migration nonce or activation invalid")
+		return nil, errors.New("migration nonce or activation invalid")
 	}
 	var latest Record
 	for _, r := range s.Records {
@@ -299,7 +296,21 @@ func (s State) ValidateMigrationAuthorization(m Migration, height, currentNonce 
 		}
 	}
 	if latest.Revision != m.Intent.PriorRevision || (latest.Revision > 0 && height < latest.ActiveFrom) {
-		return errors.New("migration revision mismatch or pending activation")
+		return nil, errors.New("migration revision mismatch or pending activation")
+	}
+	return msg, nil
+}
+
+// ValidateMigrationAuthorization checks the complete intent, exact nonce,
+// schedule/revision and CURRENT lawful account proof using the same boundary as
+// AdmitMigration. NewKeyProof may be absent while the new pair is still held by
+// protected custody. Success does not validate that new pair, grant authority,
+// consume nonce, change policy, or authorize broadcast. AdmitMigration must still
+// verify BOTH new-key possession signatures and return a detached new state.
+func (s State) ValidateMigrationAuthorization(m Migration, height, currentNonce uint64) error {
+	msg, err := s.validateMigrationIntent(m, height, currentNonce)
+	if err != nil {
+		return err
 	}
 	if _, active := s.PolicyAt(m.Intent.Owner, height); active {
 		if len(m.ClassicPublicKey) > 0 || len(m.ClassicSignature) > 0 {

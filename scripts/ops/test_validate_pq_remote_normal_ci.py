@@ -541,6 +541,14 @@ ACCOUNT_MIGRATION_CORE_TESTS = (
     "TestAccountMigrationCABIPUBLICSecretPublicAliasBoundary",
 )
 
+CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS = (
+    'TestCurrentMigrationCABIPUBLICDualAuthorizationAndIndependentPossession',
+    'TestCurrentMigrationCABIPUBLICPreflightBeforePrivateRead',
+    'TestCurrentMigrationCABIPUBLICOwnedPlanCleanupAndKeySeparation',
+    'TestCurrentMigrationCABIPUBLICActualCGOBridge',
+    'TestCurrentMigrationCABIPUBLICSecretPublicAliasBoundary',
+)
+
 PRODUCT_DEVICE_CODEC_TESTS = (
     "TestProductSessionDeviceV4FixedE5AndDistinctAccountPair",
     "TestProductSessionDeviceV4CanonicalOriginalsRejectAliases",
@@ -859,6 +867,12 @@ def assert_native_cabi_workflow_contract(raw):
               if terminal != ['pass']:
                   raise RuntimeError('account migration core did not execute and pass: ' + name)
           print('YNX_ACCOUNT_MIGRATION_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=migration, suitePassed=True, exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False), sort_keys=True))
+          current_migration = ['TestCurrentMigrationCABIPUBLICDualAuthorizationAndIndependentPossession', 'TestCurrentMigrationCABIPUBLICPreflightBeforePrivateRead', 'TestCurrentMigrationCABIPUBLICOwnedPlanCleanupAndKeySeparation', 'TestCurrentMigrationCABIPUBLICActualCGOBridge', 'TestCurrentMigrationCABIPUBLICSecretPublicAliasBoundary']
+          for name in current_migration:
+              terminal = [row['Action'] for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('current migration authorization core did not execute and pass: ' + name)
+          print('YNX_CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=current_migration, suitePassed=True, exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False), sort_keys=True))
           PY"""))
     need(lines(steps[3]) == ["      - name: " + names[3], "        run: |", "          set -euo pipefail",
         '          bash scripts/verify/artifact-release-cabi-check.sh "$RUNNER_TEMP/ynx-artifact-release-cabi"'])
@@ -927,6 +941,7 @@ def assert_native_cabi_workflow_contract(raw):
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/tx_batch.h', out / 'tx_batch.h')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/account_initial.h', out / 'account_initial.h')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/account_migration.h', out / 'account_migration.h')",
+        "shutil.copyfile('cmd/ynx-artifact-release-cabi/account_migration_authorization.h', out / 'account_migration_authorization.h')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/product_session_http.h', out / 'product_session_http.h')",
         "shutil.copyfile(transaction_case / 'input' / name, out / ('TX-'+name))",
         "shutil.copyfile(initial_case / 'input' / name, out / ('INITIAL-'+name))",
@@ -952,6 +967,11 @@ def assert_native_cabi_workflow_contract(raw):
         "accountMigrationCoreTests=" + repr(list(ACCOUNT_MIGRATION_CORE_TESTS)) + ",",
         "accountMigrationExportedBridgeGoVerified=True, accountMigrationExternalCInterop=False,",
         "accountMigrationAccountAuthorized=False,",
+        "accountMigrationAuthorizationABI='YNXAccountMigrationAuthorizationSignV1', accountMigrationAuthorizationABIVersion=1,",
+        "accountMigrationAuthorizationHeader=pin(out / 'account_migration_authorization.h'),",
+        "accountMigrationAuthorizationCoreTests=" + repr(list(CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS)) + ",",
+        "accountMigrationAuthorizationExportedBridgeGoVerified=True, accountMigrationAuthorizationExternalCInterop=False,",
+        "accountMigrationAuthorizationAccountAuthorized=False,",
         "deviceHTTPABI='YNXProductSessionHTTPProofSignV4', deviceHTTPABIVersion=4,",
         "deviceHTTPHeader=pin(out / 'product_session_http.h'), deviceHTTPPublicEvidence=device_http_public_pins,",
         "actualDeviceHTTPCABIExecuted=executed, deviceHTTPIndependentGoDualANDVerified=executed,",
@@ -969,9 +989,9 @@ def assert_native_cabi_workflow_contract(raw):
     # directory, caller binary or a recursive wildcard. Missing output fails.
     for step, name, label, artifact, leaves, mac_only in (
         (steps[9], names[9], "native-host", "native-${{ matrix.runner }}",
-         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "product_session_http.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json"), False),
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "account_migration_authorization.h", "product_session_http.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json"), False),
         (steps[10], names[10], "darwin-arm64", "darwin-arm64",
-         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "product_session_http.h", "SOURCE.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json"), True)):
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "account_migration_authorization.h", "product_session_http.h", "SOURCE.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json"), True)):
         expected = ["      - name: " + name]
         if mac_only:
             expected.append("        if: runner.os == 'macOS'")
@@ -2476,6 +2496,68 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             mutations.append(change(step, leaf, ""))
             mutations.append(change(step, leaf, leaf.replace("/account_migration.h", "/account_initial.h")))
             mutations.append(change(step, leaf, leaf.replace("/account_migration.h", "/*")))
+        for index, changed in enumerate(mutations):
+            self.assertNotEqual(changed, raw)
+            with self.subTest(account_migration=index), self.assertRaises(AssertionError):
+                assert_native_cabi_workflow_contract(changed)
+
+    def test_current_migration_native_supply_requires_exact_header_bridge_truth_and_fullsuite(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "artifact-release-cabi")
+
+        def named(name):
+            found = [step for step in steps if step.startswith("      - name: " + name + "\n")]
+            self.assertEqual(len(found), 1)
+            return found[0]
+
+        core = named("Verify fixed Native key and output cleanup behavior")
+        seal = named("Seal only native library public outputs and exact compile inputs")
+        upload = named("Upload only public native host archive header and evidence")
+        arm_upload = named("Upload only public Main arm64 archive header and executed target evidence")
+
+        def change(step, before, after):
+            self.assertIn(before, step)
+            return raw.replace(step, step.replace(before, after, 1), 1)
+
+        copy_line = "shutil.copyfile('cmd/ynx-artifact-release-cabi/account_migration_authorization.h', out / 'account_migration_authorization.h')"
+        header_pin = "accountMigrationAuthorizationHeader=pin(out / 'account_migration_authorization.h'),"
+        tests_line = "accountMigrationAuthorizationCoreTests=" + repr(list(CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS)) + ","
+        mutations = [
+            change(core, "          for name in current_migration:", "          current_migration = []\n          for name in current_migration:"),
+            change(core, "current migration authorization core did not execute and pass: ", "unqualified migration case: "),
+            change(core, "YNX_CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS", "UNQUALIFIED_CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS"),
+            change(core, "exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False",
+                   "exportedBridgeGoVerified=False, externalCInterop=True, accountAuthorized=True"),
+            change(core, "go test -json -p 1 ./cmd/ynx-artifact-release-cabi -count=1",
+                   "go test -json -p 1 ./cmd/ynx-artifact-release-cabi -run '^TestCurrentMigration' -count=1"),
+            change(seal, copy_line, ""),
+            change(seal, copy_line, copy_line + "\n              " + copy_line),
+            change(seal, copy_line, copy_line.replace("out / 'account_migration_authorization.h'", "out / 'tx_batch.h'")),
+            change(seal, "accountMigrationAuthorizationABI='YNXAccountMigrationAuthorizationSignV1'", "accountMigrationAuthorizationABI='YNXAccountInitialSignV1'"),
+            change(seal, "accountMigrationAuthorizationABIVersion=1", "accountMigrationAuthorizationABIVersion=True"),
+            change(seal, header_pin, "accountMigrationAuthorizationHeader=pin(out / 'account_initial.h'),"),
+            change(seal, tests_line, "accountMigrationAuthorizationCoreTests=[],"),
+            change(seal, "accountMigrationAuthorizationExportedBridgeGoVerified=True", "accountMigrationAuthorizationExportedBridgeGoVerified=False"),
+            change(seal, "accountMigrationAuthorizationExportedBridgeGoVerified=True", "accountMigrationAuthorizationExportedBridgeGoVerified=1"),
+            change(seal, "accountMigrationAuthorizationExternalCInterop=False", "accountMigrationAuthorizationExternalCInterop=True"),
+            change(seal, "accountMigrationAuthorizationAccountAuthorized=False", "accountMigrationAuthorizationAccountAuthorized=True"),
+        ]
+        for required in (
+            "accountMigrationAuthorizationABI='YNXAccountMigrationAuthorizationSignV1', accountMigrationAuthorizationABIVersion=1,",
+            header_pin, tests_line,
+            "accountMigrationAuthorizationExportedBridgeGoVerified=True, accountMigrationAuthorizationExternalCInterop=False,",
+            "accountMigrationAuthorizationAccountAuthorized=False,",
+        ):
+            mutations.append(change(seal, required, ""))
+        for name in CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS:
+            mutations.append(change(core, "'" + name + "'", "'UnrelatedNativeTest'"))
+            mutations.append(change(seal, "'" + name + "'", "'UnrelatedNativeTest'"))
+        for step, target in ((upload, "native-host"), (arm_upload, "darwin-arm64")):
+            leaf = "            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/" + target + "/account_migration_authorization.h\n"
+            mutations.append(change(step, leaf, ""))
+            mutations.append(change(step, leaf, leaf.replace("/account_migration_authorization.h", "/account_initial.h")))
+            mutations.append(change(step, leaf, leaf.replace("/account_migration_authorization.h", "/*")))
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)
             with self.subTest(account_migration=index), self.assertRaises(AssertionError):

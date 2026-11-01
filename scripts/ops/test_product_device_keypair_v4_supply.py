@@ -20,6 +20,13 @@ assert RAW.count(START) == 1 and RAW.endswith('PY\n')
 BODY = RAW.split(START, 1)[1][:-3]
 DATA = {'__name__': 'product_device_keypair_supply_controls'}
 exec(compile(BODY, str(SCRIPT), 'exec'), DATA)
+CURRENT_MIGRATION_CORE_TESTS = (
+    'TestCurrentMigrationCABIPUBLICDualAuthorizationAndIndependentPossession',
+    'TestCurrentMigrationCABIPUBLICPreflightBeforePrivateRead',
+    'TestCurrentMigrationCABIPUBLICOwnedPlanCleanupAndKeySeparation',
+    'TestCurrentMigrationCABIPUBLICActualCGOBridge',
+    'TestCurrentMigrationCABIPUBLICSecretPublicAliasBoundary',
+)
 
 
 class DeviceCreatorSupplyControls(unittest.TestCase):
@@ -53,18 +60,22 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
         for name in ('actualCABIExecuted', 'nativeHostCoreTestsPassed', 'independentGoDualANDVerified', 'typedN1Inspected', 'targetCompiled',
                      'targetCallerLinked', 'actualTransactionCABIExecuted', 'transactionIndependentGoDualANDVerified', 'actualInitialAccountCABIExecuted',
                      'initialAccountIndependentGoDualANDVerified', 'actualDeviceHTTPCABIExecuted', 'deviceHTTPIndependentGoDualANDVerified',
-                     'accountMigrationExportedBridgeGoVerified'):
+                     'accountMigrationExportedBridgeGoVerified', 'accountMigrationAuthorizationExportedBridgeGoVerified'):
             parent[name] = True
         for name in ('crossCompiled', 'privateMaterialIncluded', 'publisherAuthorized', 'nativeRootAuthorized', 'mainCustodyVerified',
                      'productInstalled', 'publicDeployment', 'pqActivation', 'transactionAccountAuthorized', 'initialAccountAuthorized',
-                     'deviceHTTPSourceQualified', 'deviceHTTPSessionAuthorized', 'accountMigrationExternalCInterop', 'accountMigrationAccountAuthorized'):
+                     'deviceHTTPSourceQualified', 'deviceHTTPSessionAuthorized', 'accountMigrationExternalCInterop', 'accountMigrationAccountAuthorized',
+                     'accountMigrationAuthorizationExternalCInterop', 'accountMigrationAuthorizationAccountAuthorized'):
             parent[name] = False
         parent.update(abi='YNXArtifactPublicationSignV1', abiVersion=1, transactionABI='YNXTransactionBatchSignV1', transactionABIVersion=1,
                       initialAccountABI='YNXAccountInitialSignV1', initialAccountABIVersion=1, deviceHTTPABI='YNXProductSessionHTTPProofSignV4', deviceHTTPABIVersion=4,
                       accountMigrationPossessionABI='YNXAccountMigrationPossessionSignV1', accountMigrationPossessionABIVersion=1,
-                      accountMigrationCoreTests=list(DATA['MIGRATION_CORE_TESTS']))
+                      accountMigrationCoreTests=list(DATA['MIGRATION_CORE_TESTS']),
+                      accountMigrationAuthorizationABI='YNXAccountMigrationAuthorizationSignV1', accountMigrationAuthorizationABIVersion=1,
+                      accountMigrationAuthorizationCoreTests=list(CURRENT_MIGRATION_CORE_TESTS))
         for field, name in (('header', 'ynx_artifact_release.h'), ('transactionHeader', 'tx_batch.h'),
                             ('initialAccountHeader', 'account_initial.h'), ('accountMigrationHeader', 'account_migration.h'),
+                            ('accountMigrationAuthorizationHeader', 'account_migration_authorization.h'),
                             ('deviceHTTPHeader', 'product_session_http.h')):
             parent[field] = pins[name]
         for field, prefix in (('publicEvidence', ''), ('transactionPublicEvidence', 'TX-'),
@@ -188,6 +199,60 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             DATA['validate_parent'](*changed)
 
+    def test_current_migration_fields_bind_exact_abi_tests_and_no_external_c_or_authority(self):
+        args = self.parent()
+        DATA['validate_parent'](*args)
+        fields = ('accountMigrationAuthorizationABI', 'accountMigrationAuthorizationABIVersion',
+                  'accountMigrationAuthorizationHeader', 'accountMigrationAuthorizationCoreTests',
+                  'accountMigrationAuthorizationExportedBridgeGoVerified',
+                  'accountMigrationAuthorizationExternalCInterop', 'accountMigrationAuthorizationAccountAuthorized')
+        for field in fields:
+            changed = copy.deepcopy(args)
+            del changed[0][field]
+            with self.subTest(missing=field), self.assertRaises(RuntimeError):
+                DATA['validate_parent'](*changed)
+        for field, values in (
+            ('accountMigrationAuthorizationABI', ('YNXAccountMigrationPossessionSignV1', 'YNXTransactionBatchSignV1', '', None, 1)),
+            ('accountMigrationAuthorizationABIVersion', (True, '1', 1.0, 0, 2, None)),
+            ('accountMigrationAuthorizationHeader', ({}, None, [], dict(bytes=1, sha256='0' * 64), args[0]['accountMigrationHeader'])),
+            ('accountMigrationAuthorizationCoreTests', (None, {}, [], list(CURRENT_MIGRATION_CORE_TESTS)[:-1],
+                                                       list(reversed(CURRENT_MIGRATION_CORE_TESTS)),
+                                                       list(CURRENT_MIGRATION_CORE_TESTS) + [CURRENT_MIGRATION_CORE_TESTS[0]],
+                                                       list(DATA['MIGRATION_CORE_TESTS']))),
+            ('accountMigrationAuthorizationExportedBridgeGoVerified', (False, 1, 'true', None)),
+            ('accountMigrationAuthorizationExternalCInterop', (True, 0, 'false', None)),
+            ('accountMigrationAuthorizationAccountAuthorized', (True, 0, 'false', None)),
+        ):
+            for value in values:
+                changed = copy.deepcopy(args)
+                changed[0][field] = value
+                with self.subTest(field=field, value=value), self.assertRaises(RuntimeError):
+                    DATA['validate_parent'](*changed)
+
+    def test_current_migration_header_missing_changed_or_wrong_pin_type_refuses(self):
+        args = self.parent()
+        header = self.root / 'account_migration_authorization.h'
+        self.write(header, b'synthetic public CURRENT header bytes only\n')
+        actual = DATA['pin'](header, private=True)
+        args[0]['accountMigrationAuthorizationHeader'] = actual
+        args[-1][header.name] = actual
+        DATA['validate_parent'](*args)
+        changed = copy.deepcopy(args)
+        del changed[-1][header.name]
+        with self.assertRaises(RuntimeError):
+            DATA['validate_parent'](*changed)
+        header.write_bytes(b'changed public CURRENT header bytes\n')
+        changed = copy.deepcopy(args)
+        changed[-1][header.name] = DATA['pin'](header, private=True)
+        with self.assertRaises(RuntimeError):
+            DATA['validate_parent'](*changed)
+        for field, value in (('bytes', str(actual['bytes'])), ('bytes', True), ('bytes', actual['bytes'] + 1),
+                             ('sha256', actual['sha256'].upper()), ('sha256', 'e' * 64), ('unexpected', False)):
+            changed = copy.deepcopy(args)
+            changed[0]['accountMigrationAuthorizationHeader'] = dict(actual, **{field: value})
+            with self.subTest(field=field, value=value), self.assertRaises(RuntimeError):
+                DATA['validate_parent'](*changed)
+
     def test_actual_core_tests_and_complete_suite_cannot_be_skipped(self):
         package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi'
         rows = [dict(Package=package, Test=name, Action='pass') for name in DATA['CORE_TESTS']] + [dict(Package=package, Action='pass')]
@@ -195,6 +260,13 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
         self.assertEqual(DATA['validate_core_tests'](encode(rows)), list(DATA['CORE_TESTS']))
         self.assertEqual(len(DATA['MIGRATION_CORE_TESTS']), 6)
         self.assertTrue(set(DATA['MIGRATION_CORE_TESTS']) <= set(DATA['CORE_TESTS']))
+        self.assertEqual(DATA['MIGRATION_AUTHORIZATION_CORE_TESTS'], CURRENT_MIGRATION_CORE_TESTS)
+        self.assertEqual(DATA['CORE_TESTS'], (
+            'TestProductDeviceKeypairV4FreshActualImportAndAND',
+            'TestProductDeviceKeypairV4FullPairAndDERCorruptionRejected',
+            'TestProductDeviceKeypairV4PreTransferFailureClearsAndPreservesFirstCause',
+            'TestProductDeviceKeypairV4LatePrivateOutcomeStaysUnknown',
+        ) + DATA['MIGRATION_CORE_TESTS'] + CURRENT_MIGRATION_CORE_TESTS)
         for index, name in enumerate(DATA['CORE_TESTS']):
             for action in ('missing', 'fail', 'skip', 'duplicate', 'foreign-package'):
                 bad = copy.deepcopy(rows)
@@ -316,7 +388,10 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
         DATA['validate_source_pins'](sources, parent)
         migration = ('cmd/ynx-artifact-release-cabi/account_migration.h', 'cmd/ynx-artifact-release-cabi/migration_core.go',
                      'cmd/ynx-artifact-release-cabi/migration_bridge.go', 'cmd/ynx-artifact-release-cabi/migration_core_test.go',
-                     'internal/ynxauth/policy.go')
+                     'internal/ynxauth/policy.go', 'cmd/ynx-artifact-release-cabi/account_migration_authorization.h',
+                     'cmd/ynx-artifact-release-cabi/migration_authorization_core.go',
+                     'cmd/ynx-artifact-release-cabi/migration_authorization_bridge.go',
+                     'cmd/ynx-artifact-release-cabi/migration_authorization_core_test.go', 'internal/ynxauth/migration_signing.go')
         self.assertTrue(set(migration) <= set(DATA['REQUIRED_SOURCES']))
         for name in ('cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go', 'internal/ynxbatch/key_material.go', 'go.mod') + migration:
             changed = copy.deepcopy(parent)
@@ -347,8 +422,8 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                     'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json',
                     'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json',
                     'DEVICE-HTTP-PUBLIC-INTEROP.json', 'SOURCE.json'}
-        self.assertEqual(len(DATA['PARENT_NAMES']), 15)
-        self.assertEqual(set(DATA['PARENT_NAMES']), original | {'account_migration.h'})
+        self.assertEqual(len(DATA['PARENT_NAMES']), 16)
+        self.assertEqual(set(DATA['PARENT_NAMES']), original | {'account_migration.h', 'account_migration_authorization.h'})
         self.assertEqual(len(DATA['MATERIAL_NAMES']), 6)
         self.assertEqual(set(DATA['DELIVERY_NAMES']), {'libynx_artifact_release.a', 'product_device_keypair_v4.h', 'PUBLIC-RESULT.json', 'ORIGINAL-ARCHIVE-SOURCE.json', 'SOURCE.json'})
         for forbidden in ('-buildmode=c-archive', 'shell=True', 'os.environ.update', 'shutil.rmtree', '.unlink('):
