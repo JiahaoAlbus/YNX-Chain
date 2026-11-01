@@ -1,0 +1,4 @@
+/** Build-time complete original emitter receipt. No Root or grant authority. */
+export interface PairSourceCAS {readonly path:string;readonly before:Readonly<{path:string;bytes:number;sha256:string}>;readonly after:Readonly<{bytes:number;sha256:string}>}
+export interface ReviewedPairServiceSourceReceipt {readonly candidate:string;readonly sourceFiles:number;readonly cas:readonly PairSourceCAS[];readonly sourceCandidateSHA256:string;readonly status:'SOURCE_CANDIDATE_ONLY_NOT_RELEASED';readonly RootAdmission:false;readonly SourceAdmission:false}
+export function postprocessReviewedPairServiceSource(receipt:ReviewedPairServiceSourceReceipt):Readonly<{status:'SDK_PAIR_POSTPROCESS_REVIEW_ONLY';output:string;sourcePackageRoot:string;sourceFiles:number;normalPackageMembers:number;RootAdmission:false;SourceAdmission:false;NativeAdmission:false;runtimeImageProfile:'POSTBUILD_INDEPENDENT_ROOT_PENDING'}>;
