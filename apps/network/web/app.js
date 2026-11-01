@@ -195,7 +195,7 @@ async function nativeStatus() {
     text('native-peer',()=>verified?tr('原生调用方 UID {uid} · PID {pid} · {source}',{uid:peer.uid,pid:Number.isInteger(peer.pid)&&peer.pid>0?peer.pid:tr('未提供'),source:peer.credentialSource||tr('来源未提供')}):tr('没有可显示的已核对原生凭据'));
     text('native-note','浏览器 OS 身份：未验证。以上只描述 helper 的原生自连接；不构成网页管理权限或 Wallet 批准。');
     text('native-raw', JSON.stringify(value, null, 2));
-  } catch (error) { if (current(op)) { text('native-state','原生状态未取得 · {error}',{error:error.message}); text('native-peer', '没有本次已核对原生凭据'); } }
+  } catch (error) { if (current(op)) { publish('native',{native:null,browserIdentityVerified:false,code:'NATIVE_UNAVAILABLE'}); text('native-state','原生状态未取得 · {error}',{error:error.message}); text('native-peer', '没有本次已核对原生凭据'); } }
   finally { finish(op); }
 }
 function renderHistoryPage() {

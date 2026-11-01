@@ -151,3 +151,7 @@ test('manual native refresh controls disable only during the current read',async
 test('manual node refresh controls disable only during the current read',async()=>{
  const e=environment();await settle();e.manual('/api/node-report');const job=e.emit('node-refresh','click');const busy=e.node('node-refresh').disabled;assert.equal(e.node('overview-refresh').disabled,true);e.take('/api/node-report').resolve({classification:'RPC_ONLY',reports:{status:{status:'unavailable'},latestBlock:{status:'unavailable'},validators:{status:'unavailable'}}});await job;assert.equal(busy,true);assert.equal(e.node('node-refresh').disabled,false);assert.equal(e.node('overview-refresh').disabled,false);
 });
+
+test('native read failure publishes unavailable rather than leaving local module displays unread',async()=>{
+ const e=environment();await settle();e.manual('/api/native-status');const job=e.emit('resource-refresh','click');assert.equal(e.node('participation-refresh').disabled,true);e.take('/api/native-status').resolve({error:'NATIVE_UNAVAILABLE'},503);await job;const event=e.uiEvents.filter(event=>event.channel==='native').at(-1);assert.equal(event.value.code,'NATIVE_UNAVAILABLE');assert.equal(event.value.native,null);assert.equal(event.value.browserIdentityVerified,false);assert.equal(e.node('resource-refresh').disabled,false);
+});
