@@ -6,7 +6,7 @@ import { providerError } from "./desktop-wallet-vault.mjs";
 import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn, signCentralSignIn } from "./central-browser-sign-in.mjs";
 import {PermissionEpoch,bindPermissionGuard} from "./permission-lease.mjs";
-import {inspectPQWalletActionPolicy,planPQNativeTransfer,assertPQAuthorizationCurrent,pqRegisteredPublicBinding,planPQAccountMigration,preparePQClassicMigrationAuthorization,preparePQClassicMigrationProof,preparePQReviewedMigrationTransport,planPQAccountRevocation} from '@ynx-chain/wallet-auth/pq-wallet-policy';
+import {inspectPQWalletActionPolicy,inspectPQAuthorizationView,planPQNativeTransfer,assertPQAuthorizationCurrent,pqRegisteredPublicBinding,planPQAccountMigration,preparePQClassicMigrationAuthorization,preparePQClassicMigrationProof,preparePQReviewedMigrationTransport,planPQAccountRevocation} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {createPQWalletMigrationPossession,signPQWalletProductSessionApproval,signPQWalletProductSessionApprovalV4,signPQWalletAccountRevocation} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
 import {captureProductSessionAccountPolicy,readProductSessionAccountPolicy,pqProductSessionRegisteredPublicBinding} from '@ynx-chain/wallet-auth/product-session-account-policy';
 import {preparePQProductSessionApproval,verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
@@ -113,6 +113,36 @@ export class DesktopWalletAuthority {
   }
   requestPQTransfer(input){return this.#trackPQ(()=>this.#preparePQTransfer(input));}
   previewTransfer(input){return this.requestPQTransfer(input);}
+  readPQAccountAuthorization(){return this.#trackPQ(()=>this.#readPQAccountAuthorization());}
+  async #readPQAccountAuthorization(){
+    if(!this.#pqPolicySource||!this.#pqPolicyRecognized)throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original account authorization Source is unavailable.');
+    if(this.#pqAcquiring||this.#pqOwners.size)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the current original policy operation first.');
+    const guard=this.vault.authorization.current(),status=await this.vault.status();guard.assert();
+    if(!status.initialized||status.account!==guard.account)throw providerError(4100,'ACCOUNT_CHANGED','Select the original account.');
+    if(this.#pqAcquiring||this.#pqOwners.size)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the current original policy operation first.');
+    let resource,owner,result,failed=false,cause;
+    try{
+      this.#pqAcquiring=true;
+      try{resource=await this.#pqPolicySource({networkId:this.#pqNetworkId,nativeChainId:'6423',owner:status.account,operation:'transfer',at:this.clock().toISOString()});}
+      catch(error){const d=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'partial'):null;if(d&&Object.hasOwn(d,'value'))resource=d.value;throw error;}
+      finally{this.#pqAcquiring=false;}
+      if(resource===null||resource===undefined)throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original account authorization Source is unavailable.');
+      owner=retainPQPolicyResource(resource,{networkId:this.#pqNetworkId,account:status.account,now:this.clock});this.#pqOwners.add(owner);guard.assert();
+      if(this.#pqPolicyRecognized(resource)!==true)throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original account authorization Source is not recognized.');
+      const {snapshot}=owner.read();const {snapshot:current}=await owner.recheck();guard.assert();assertPQAuthorizationCurrent(snapshot,current);
+      const original=resource.readOriginal(),view=inspectPQAuthorizationView(current);guard.assert();owner.assert();
+      result=deepFreeze({account:status.account,ynxAccount:ynxAddressFromEVM(status.account),networkId:this.#pqNetworkId,
+        authorizationStatus:view.authorizationStatus,pqSigningEnabled:view.pqSigningEnabled,ledgerNonce:current.ledgerNonce,
+        committedHeight:original.observation?.committedHeight??null,executionHeight:current.executionHeight,policyRevision:current.activeRevision??null,
+        policy:JSON.parse(JSON.stringify(current)),observedAt:original.observedAt,expiresAt:original.expiresAt,
+        readOnly:true,signingAuthorized:false,consensusFinality:false,SourceAdmission:false});
+    }catch(error){failed=true;cause=error;}
+    finally{
+      if(resource!==null&&resource!==undefined&&!owner){owner=retainPQPolicyResource(resource,{networkId:this.#pqNetworkId,account:status.account,now:this.clock});this.#pqOwners.add(owner);}
+      if(owner)try{await this.#closePQ(owner,...(failed?[cause]:[]));}catch(error){if(!failed){failed=true;cause=error;}}
+    }
+    if(failed)throw cause;guard.assert();return result;
+  }
   requestPQTypedAction(input){return this.#trackPQ(()=>this.#preparePQTypedAction(input));}
   requestPQMigration(input){return this.#trackPQ(()=>this.#preparePQTransfer(input,'migration'));}
   requestPQRevocation(input){return this.#trackPQ(()=>this.#preparePQTransfer(input,'revocation'));}

@@ -635,9 +635,13 @@ handleWalletIPC("wallet:invoice-reference-qr",(_event,input)=>safeIPC(()=>{
 handleWalletIPC("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
 // The custody controller owns its lifecycle.run; do not nest sensitiveIPC.
 handleWalletIPC('wallet:pq-keys-status',()=>safeIPC(()=>pqKeyPreparation.status()));
+handleWalletIPC('wallet:pq-account-authorization',(_event,...args)=>sensitiveIPC(()=>{
+  if(args.length)throw Object.assign(Error('PQ_ACCOUNT_POLICY_ARGUMENTS_FORBIDDEN'),{code:'PQ_ACCOUNT_POLICY_ARGUMENTS_FORBIDDEN'});
+  return walletAuthority.readPQAccountAuthorization();
+}));
 handleWalletIPC('wallet:pq-public-proposal',(_event,...args)=>sensitiveIPC(async()=>{
   if(args.length)throw Object.assign(Error('PQ_PUBLIC_PROPOSAL_ARGUMENTS_FORBIDDEN'),{code:'PQ_PUBLIC_PROPOSAL_ARGUMENTS_FORBIDDEN'});
-  return readPQPublicProposal({vault:passwordVault,networkId:PQ_CANONICAL_NETWORK_ID,guard:keyAccess.current()});
+  return readPQPublicProposal({vault:walletAuthority.vault,networkId:PQ_CANONICAL_NETWORK_ID,guard:keyAccess.current()});
 }));
 handleWalletIPC('wallet:pq-keys-recover',()=>safeIPC(()=>pqKeyPreparation.recover()));
 handleWalletIPC('wallet:pq-keys-generate',()=>safeIPC(()=>pqKeyPreparation.generate()));
