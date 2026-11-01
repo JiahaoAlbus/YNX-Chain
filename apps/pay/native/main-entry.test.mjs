@@ -1,7 +1,30 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createNativePayMainEntry} from './main-entry.mjs';
+import {createNativePayMainEntry,createOriginalPayReviewTracker} from './main-entry.mjs';
 import {createPrivateNativeInvoiceClient} from './merchant-invoice-approval.mjs';
+test('settled original reviews are not rejected again; live reviews keep the same Main owner',()=>{
+ for(const completion of ['approved','rejected']){
+  const live=new Map([['done',{id:'done'}],['live',{id:'live'}]]),rejected=[];
+  const owner={pendingRequests:()=>[...live.values()],reject(id){assert.ok(live.has(id));live.delete(id);rejected.push(id);throw Object.assign(Error(),{code:4001,data:{code:'USER_REJECTED_REQUEST'}});}};
+  const tracker=createOriginalPayReviewTracker();tracker.remember('done',owner);tracker.remember('live',owner);
+  live.delete('done'); // actual Main completion; no payment/finality assertion
+  if(completion==='approved')assert.deepEqual(tracker.settled('done',owner),{settled:true,originalRetained:true});
+  assert.equal(tracker.cancel().cancelled,true);assert.deepEqual(rejected,['live']);
+  assert.equal(tracker.cancel().cancelled,true);assert.deepEqual(rejected,['live']);
+ }
+});
+test('review completion cannot remove a still-live or another Main review; cleanup first cause stays held',()=>{
+ const live=new Map([['held',{id:'held'}]]);let calls=0,cleanup=false;
+ const owner={pendingRequests:()=>[...live.values()],reject(){calls++;live.delete('held');throw cleanup;}};
+ const tracker=createOriginalPayReviewTracker();tracker.remember('held',owner);
+ assert.throws(()=>tracker.settled('held',{}),{code:'NATIVE_PAY_MAIN_REVIEW_OWNER_CHANGED'});
+ assert.throws(()=>tracker.settled('held',owner),{code:'NATIVE_PAY_MAIN_REVIEW_STILL_PENDING'});
+ for(let i=0;i<2;i++){let threw=false;try{tracker.cancel();}catch(cause){threw=true;assert.equal(cause,false);}assert.equal(threw,true);}
+ assert.equal(calls,1); // UNKNOWN cleanup is not repeated because the id vanished
+ // Only the same Main's actual completed-cleanup notification releases this
+ // local bookkeeping debt; it does not grant approval or undo business state.
+ assert.equal(tracker.settled('held',owner).settled,true);assert.equal(tracker.cancel().cancelled,true);
+});
 test('normal Main boot entry is closed without Source; renderer cannot compose or approve',async()=>{
  const entry=createNativePayMainEntry({getMain:()=>null,getContext:()=>({})});
  assert.equal(entry.status().available,false);
