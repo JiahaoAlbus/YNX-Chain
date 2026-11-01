@@ -12,6 +12,10 @@ import (
 func (s *Store) CancelTask(account, id string, expectedRev, expectedGen uint64, holder string) (TaskRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.cancelTaskLocked(account, id, expectedRev, expectedGen, holder)
+}
+
+func (s *Store) cancelTaskLocked(account, id string, expectedRev, expectedGen uint64, holder string) (TaskRecord, error) {
 	task, err := s.ownedTaskLocked(account, id)
 	if err != nil {
 		return TaskRecord{}, err
@@ -38,7 +42,7 @@ func (s *Store) CancelTask(account, id string, expectedRev, expectedGen uint64, 
 			previous[actionID] = record
 			record.Status = "CANCELLED"
 			s.state.Actions[actionID] = record
-		case "DISPATCHING", "SENT", "UNKNOWN", "RECONCILING":
+		case "PENDING", "DISPATCHING", "SENT", "UNKNOWN", "RECONCILING":
 			needsReconciliation = true
 		}
 	}

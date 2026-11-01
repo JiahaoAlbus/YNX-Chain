@@ -24,6 +24,10 @@ func (s *Store) taskHasUnresolvedEffectLocked(taskID string) bool {
 func (s *Store) CompleteTask(account, id string, revision, generation uint64, holder, runID string) (TaskRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.completeTaskLocked(account, id, revision, generation, holder, runID)
+}
+
+func (s *Store) completeTaskLocked(account, id string, revision, generation uint64, holder, runID string) (TaskRecord, error) {
 	task, err := s.ownedTaskLocked(account, id)
 	if err != nil {
 		return TaskRecord{}, err

@@ -12,7 +12,7 @@ import (
 )
 
 func TestP08CancelTask(t *testing.T) {
-	for _, remoteStatus := range []string{"", "UNKNOWN", "SENT", "DISPATCHING", "RECONCILING"} {
+	for _, remoteStatus := range []string{"", "PENDING", "UNKNOWN", "SENT", "DISPATCHING", "RECONCILING"} {
 		t.Run("remote_"+remoteStatus, func(t *testing.T) {
 			store, conversation, key := p08TaskStore(t)
 			task, err := store.CreateTask("tenant-a", conversation.ID, "device")

@@ -46,6 +46,10 @@ var (
 func (s *Store) CreateTask(account, conversationID, holder string) (TaskRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.createTaskLocked(account, conversationID, holder)
+}
+
+func (s *Store) createTaskLocked(account, conversationID, holder string) (TaskRecord, error) {
 	if strings.TrimSpace(account) == "" || strings.TrimSpace(conversationID) == "" {
 		return TaskRecord{}, os.ErrNotExist
 	}
@@ -84,6 +88,10 @@ func (s *Store) ReadTaskProjection(account, id string, afterCursor uint64) (Task
 func (s *Store) HandoffTask(account, id string, expectedRev, expectedGen uint64, currentHolder, newHolder string) (TaskRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.handoffTaskLocked(account, id, expectedRev, expectedGen, currentHolder, newHolder)
+}
+
+func (s *Store) handoffTaskLocked(account, id string, expectedRev, expectedGen uint64, currentHolder, newHolder string) (TaskRecord, error) {
 	task, err := s.ownedTaskLocked(account, id)
 	if err != nil {
 		return TaskRecord{}, err

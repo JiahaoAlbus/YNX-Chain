@@ -182,16 +182,30 @@ func publicToolStep(record ActionRecord) ActionRecord {
 }
 
 func (s *Store) reserveToolStep(session ProductSession, taskID string, input toolStepRequest) (ActionRecord, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.reserveToolStepLocked(session, taskID, input)
+}
+
+func (s *Store) reserveToolStepLocked(session ProductSession, taskID string, input toolStepRequest) (ActionRecord, bool, error) {
 	tool, found := lookupTool(input.ToolID)
 	if !found || input.ToolVersion != tool.version || !toolOperationID.MatchString(input.OperationID) || !hasScope(session.Scopes, tool.scope) {
+		return ActionRecord{}, false, errToolInvalid
+	}
+	return s.reserveTaskProposalLocked(session, taskID, input)
+}
+
+// Called only after either the legacy scoped boundary or original Auth action
+// admission. It does not manufacture session scopes or an execution Grant.
+func (s *Store) reserveTaskProposalLocked(session ProductSession, taskID string, input toolStepRequest) (ActionRecord, bool, error) {
+	tool, found := lookupTool(input.ToolID)
+	if !found || input.ToolVersion != tool.version || !toolOperationID.MatchString(input.OperationID) {
 		return ActionRecord{}, false, errToolInvalid
 	}
 	canonical, selectedConversation, err := canonicalTaskToolInput(tool.id, input.Input)
 	if err != nil {
 		return ActionRecord{}, false, err
 	}
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	task, exists := s.state.Tasks[taskID]
 	conversation, owns := s.state.Conversations[task.ConversationID]
 	if !exists || task.Account != session.Account || !owns || conversation.Account != session.Account {

@@ -11,6 +11,10 @@ import (
 func (s *Store) PrepareTask(account, id string, revision, generation uint64, holder string) (TaskRecord, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.prepareTaskLocked(account, id, revision, generation, holder)
+}
+
+func (s *Store) prepareTaskLocked(account, id string, revision, generation uint64, holder string) (TaskRecord, error) {
 	task, err := s.ownedTaskLocked(account, id)
 	if err != nil {
 		return TaskRecord{}, err

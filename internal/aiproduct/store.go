@@ -35,6 +35,7 @@ type storedAttachment struct {
 }
 
 type persistentState struct {
+	TaskActionOutcomes  map[string]storedTaskActionOutcome             `json:"taskActionOutcomes,omitempty"`
 	Tasks               map[string]TaskRecord                          `json:"tasks,omitempty"`
 	TaskEvents          map[string][]TaskEvent                         `json:"taskEvents,omitempty"`
 	TaskRuns            map[string]taskModelRun                        `json:"taskRuns,omitempty"`
@@ -58,13 +59,15 @@ type persistentState struct {
 }
 
 type Store struct {
-	mu               sync.Mutex
-	authorityEpoch   atomic.Pointer[taskStoreEpoch]
-	path             string
-	aead             cipher.AEAD
-	browserCookieKey []byte
-	now              func() time.Time
-	state            persistentState
+	mu                sync.Mutex
+	authorityEpoch    atomic.Pointer[taskStoreEpoch]
+	taskOutcomeIndex  atomic.Pointer[taskActionOutcomeIndex]
+	taskActionStaging bool
+	path              string
+	aead              cipher.AEAD
+	browserCookieKey  []byte
+	now               func() time.Time
+	state             persistentState
 }
 
 func NewStore(path string, key []byte) (*Store, error) {
@@ -89,6 +92,7 @@ func NewStore(path string, key []byte) (*Store, error) {
 	if err := s.load(); err != nil {
 		return nil, err
 	}
+	s.refreshTaskOutcomeIndexLocked()
 	return s, nil
 }
 
@@ -112,9 +116,16 @@ func (s *Store) load() error {
 }
 
 func (s *Store) saveLocked() error {
+	if s.taskActionStaging {
+		return nil // only the closed local action executor holds mu here
+	}
 	// Invalidate held read snapshots before any persistence attempt, including
 	// failures. Current() can now be checked under mu without re-locking or IO.
 	s.authorityEpoch.Store(&taskStoreEpoch{})
+	return s.persistStateLocked()
+}
+
+func (s *Store) persistStateLocked() error {
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
 		return err
 	}
@@ -143,7 +154,19 @@ func (s *Store) saveLocked() error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	return os.Rename(tmpName, s.path)
+	if err := os.Rename(tmpName, s.path); err != nil {
+		return err
+	}
+	dir, err := os.Open(filepath.Dir(s.path))
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+	if err := dir.Sync(); err != nil {
+		return err
+	}
+	s.refreshTaskOutcomeIndexLocked()
+	return nil
 }
 
 func randomID(prefix string) string {
