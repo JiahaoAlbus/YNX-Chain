@@ -186,19 +186,32 @@ class NormalLiveReader:
                     'original producer changed during read')
             require(self.lab.guard.bounded(self.w.work / 'public' / (name + '.log'), LIMIT) == raw,
                     'normal CLI output differs from original raw bytes')
+            parent_end = time.clock_gettime_ns(time.CLOCK_MONOTONIC)
             checked = self.layers.original_live_node_capture(node=node, raw=raw.decode('utf-8'),
                 sha256=hashlib.sha256(raw).hexdigest(), start_monotonic_ns=int(event['readStartMonotonicNs']),
-                end_monotonic_ns=time.clock_gettime_ns(time.CLOCK_MONOTONIC))
+                end_monotonic_ns=parent_end)
             require(checked['liveStatus'] == 'OBSERVED', 'original live raw validation failed: ' + str(checked['liveReason']))
             value = json.loads(raw)
-            require(receipt.get('startMonotonicNs') == value['startMonotonicNs'] and
-                    receipt.get('endMonotonicNs') == value['endMonotonicNs'], 'original receipt clock differs from raw')
+            def decimal_ns(v):
+                require(type(v) is str and v.isascii() and v.isdecimal() and
+                        str(int(v)) == v and 0 < int(v) < 1 << 64,
+                        'original receipt clock must be canonical uint64 decimal string')
+                return int(v)
+            receipt_start = decimal_ns(receipt.get('startMonotonicNs'))
+            receipt_end = decimal_ns(receipt.get('endMonotonicNs'))
+            # Core records the getter's OUTER call bracket; raw contains its
+            # INNER sample. Preserve both original clocks without equating them.
+            require(int(event['readStartMonotonicNs']) <= receipt_start <= int(value['startMonotonicNs']) <=
+                    int(value['endMonotonicNs']) <= receipt_end <= parent_end and
+                    receipt_end - receipt_start <= 2_000_000_000,
+                    'original receipt clock does not contain raw inside parent bounded read')
             slot['observed'] = True
             event.update(status='OBSERVED', rawSHA256=hashlib.sha256(raw).hexdigest())
             return raw
         except BaseException as error:
             slot['retired'] = True
             event['errorType'] = type(error).__name__
+            event['errorReason'] = str(error)[:512]
             raise
         finally:
             active_error = sys.exc_info()[0]

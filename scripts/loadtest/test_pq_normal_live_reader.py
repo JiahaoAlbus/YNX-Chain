@@ -67,11 +67,12 @@ class Fixture:
 
     def launch(self, name, command, **kwargs):
         phase = command[-1]
+        getter_start = str(time.clock_gettime_ns(time.CLOCK_MONOTONIC))
         value = raw_sample(1234); self.mutate(value)
         raw = json.dumps(value, separators=(',', ':')).encode()
         receipt = dict(version=reader.VERSION, phase=phase, status='OBSERVED', reason='',
                        identity=self.identity, rawSHA256=hashlib.sha256(raw).hexdigest(),
-                       startMonotonicNs=value['startMonotonicNs'], endMonotonicNs=value['endMonotonicNs'],
+                       startMonotonicNs=getter_start, endMonotonicNs=str(time.clock_gettime_ns(time.CLOCK_MONOTONIC)),
                        syntheticOnly=True, authorityGranted=False)
         self.receipt_mutate(receipt)
         self.write(phase + '.request', (reader.VERSION + ' ' + phase + '\n').encode())
@@ -137,6 +138,29 @@ class NormalLiveReaderControls(unittest.TestCase):
             with self.subTest(change=change):
                 f = self.fixture(); f.receipt_mutate = lambda v: v.update(change)
                 with self.assertRaisesRegex(RuntimeError, 'receipt'): f.r(f.node)
+
+    def test_outer_getter_clock_strictly_encloses_inner_raw_sample(self):
+        f = self.fixture(); raw = json.loads(f.r(f.node))
+        receipt = json.loads((f.directory / 'before.result.json').read_bytes())
+        self.assertLess(int(receipt['startMonotonicNs']), int(raw['startMonotonicNs']))
+        self.assertGreater(int(receipt['endMonotonicNs']), int(raw['endMonotonicNs']))
+        self.assertEqual(f.r.evidence[-1]['status'], 'OBSERVED')
+
+    def test_receipt_clock_reverse_outside_and_noncanonical_retire_read(self):
+        for kind in ('reverse', 'raw-outside', 'parent-outside', 'over2s', 'integer', 'leadingzero', 'overflow'):
+            with self.subTest(kind=kind):
+                f = self.fixture()
+                def change(v):
+                    if kind == 'reverse': v['endMonotonicNs'] = str(int(v['startMonotonicNs']) - 1)
+                    if kind == 'raw-outside': v['startMonotonicNs'] = str(int(v['endMonotonicNs']) + 1)
+                    if kind == 'parent-outside': v['endMonotonicNs'] = str(time.clock_gettime_ns(time.CLOCK_MONOTONIC) + 10_000_000_000)
+                    if kind == 'over2s': v['startMonotonicNs'] = str(int(v['startMonotonicNs']) - 2_000_000_001)
+                    if kind == 'integer': v['startMonotonicNs'] = int(v['startMonotonicNs'])
+                    if kind == 'leadingzero': v['startMonotonicNs'] = '0' + v['startMonotonicNs']
+                    if kind == 'overflow': v['endMonotonicNs'] = str(1 << 64)
+                f.receipt_mutate = change
+                with self.assertRaisesRegex(RuntimeError, 'receipt clock'): f.r(f.node)
+                with self.assertRaisesRegex(RuntimeError, 'never retried'): f.r(f.node)
 
     def test_stale_unknown_and_overflow_raw_never_permit_after(self):
         for change in (dict(startMonotonicNs='1', endMonotonicNs='1'), dict(status='UNKNOWN', reason='busy'),
