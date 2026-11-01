@@ -1,0 +1,13 @@
+export type ManagementOperation='session.active'|'session.revoke'|'challenge.cancel'|'completion.recover';
+export interface OriginalRef {ref:string;sha256:string;bytes:number}
+export interface DeviceExpected17 {networkId:string;canonicalOwner:string;account:string;sessionBinding:string;productId:string;clientId:string;platform:string;applicationId:string;bundleId:string|null;packageId:string|null;origin:string;callback:string;deviceId:string;generation:string;registrationId:string;revision:string;registrationDigest:string}
+export interface DeviceContext12 {version:'4';algorithm:string;securityLevel:'os-protected';networkId:string;account:string;deviceId:string;generation:string;registrationId:string;revision:string;registrationDigest:string;scopes:readonly string[];purpose:'PRODUCT-SESSION-HTTP-PROOF'}
+export interface ManagementScope {version:'4';mode:'registered-session'|'completion-query-original';operations:readonly ManagementOperation[];expected:DeviceExpected17;context:DeviceContext12;currentSelector:{sourceId:string;instanceId:string;resourceKey:string};originals:{request:OriginalRef;registration:OriginalRef;body:OriginalRef;session:OriginalRef|null;approval:OriginalRef|null;challenge:OriginalRef|null;targetOperation:OriginalRef|null};expiresAtMs:number}
+export interface Association6 {account:string;clientId:string;productId:string;platform:string;applicationId:string;deviceId:string}
+export interface ManagementInspectionDATA {readonly scopeOriginal:string;readonly scope:ManagementScope;readonly operations:readonly ManagementOperation[];readonly mode:ManagementScope['mode'];readonly effectExpiresAtMs:number;readonly originalsVerified:false;readonly dataOnly:true;readonly RootAdmission:false;readonly SourceAdmission:false;readonly NativeAdmission:false;readonly authorized:false;readonly current:false}
+export const PRODUCT_DEVICE_MANAGEMENT_V4_SOURCE_PURPOSE:'product-device-management-source-v4';
+export const PRODUCT_DEVICE_MANAGEMENT_V4_SELECTION_KEY:'productDeviceManagementV4';
+export const PRODUCT_DEVICE_MANAGEMENT_V4_FACTORY:'acquireOriginalProductSessionDeviceV4ManagementSource';
+export const PRODUCT_DEVICE_MANAGEMENT_V4_OPERATIONS:readonly ManagementOperation[];
+/** Metadata inspection only. Four original Root/Source math/current and protected ref resolution are NOT replaced by this DATA result. */
+export function inspectOriginalProductDeviceV4ManagementScopeDATA(scope:unknown,association:unknown,networkId:string,subjectOwner:string,sourceId:string,instanceId:string,profileIssuedAtMs:number,profileExpiresAtMs:number,atMs:number):ManagementInspectionDATA;

@@ -45,8 +45,9 @@ export interface OriginalAuthSourceV2Root {
 }
 /** Signed enrollment DATA only. The original verifier binds the service and
  * exact operation tuple to the independently admitted purpose; types do not. */
-export type OriginalAuthSourceV2Service='wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1'|'ai-native-task-action-source-v6'|'browser-selected-pages-source-v1'|'wallet-native-product-source-v1'|'wallet-native-pay-client-source-v1';
+export type OriginalAuthSourceV2Service='product-device-management-source-v4'|'wallet-product-session-v2'|'ide-contract-relay-v1'|'ide-project-authority-v1'|'ide-project-control-authority-v1'|'ide-publication-approval-authority-v1'|'wallet-pq-host-catalog-source-v1'|'product-session-device-source-v4'|'ide-deployment-authority-v2'|'cloud-deployment-execution-authority-v2'|'cloud-deployment-recovery-authority-v2'|'product-session-device-registered-finalization-source-v4'|'product-session-device-http-binary-source-v5'|'pay-native-cloud-bill-source-v1'|'ai-native-task-action-source-v6'|'browser-selected-pages-source-v1'|'wallet-native-product-source-v1'|'wallet-native-pay-client-source-v1';
 export type OriginalAuthSourceV2Operations=
+ readonly import('./management-source-contract.mjs').ManagementOperation[]|
  readonly ['read-selected-pages']|
  readonly import('./original-wallet-product-source-contract.mjs').WalletProductSourceOperationV1[]|
  readonly import('./original-wallet-pay-client-source-contract.mjs').WalletPayClientOperationV1[]|
