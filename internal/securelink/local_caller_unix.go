@@ -423,6 +423,13 @@ func NewLocalCallerClient(cfg LocalCallerClientConfig) (*LocalCallerClient, erro
 }
 
 func (c *LocalCallerClient) Call(ctx context.Context, method, path, contentType string, body []byte) (out LocalCallerResponse, err error) {
+	return c.call(ctx, method, path, contentType, body, nil)
+}
+
+// beforeWrite is private to the same-process native holder. Its native-only
+// Source fence runs at the actual write, after peer evidence and immediately
+// before the dispatch-possible marker. Ordinary Call does not gain authority.
+func (c *LocalCallerClient) call(ctx context.Context, method, path, contentType string, body []byte, beforeWrite func() error) (out LocalCallerResponse, err error) {
 	var dispatched bool
 	var partialBytes int64
 	defer func() {
@@ -476,6 +483,11 @@ func (c *LocalCallerClient) Call(ctx context.Context, method, path, contentType 
 	if err = localPeer(u, c.cfg.PeerUID, c.cfg.PeerPID); err != nil {
 		return out, err
 	}
+	if beforeWrite != nil {
+		if err = beforeWrite(); err != nil {
+			return out, err
+		}
+	}
 	dispatched = true
 	if err = req.Write(conn); err != nil {
 		return out, err
@@ -489,12 +501,14 @@ func (c *LocalCallerClient) Call(ctx context.Context, method, path, contentType 
 		return out, err
 	}
 	defer resp.Body.Close()
+	out = LocalCallerResponse{PacketPresent: true, Method: req.Method, RequestPath: req.URL.RequestURI(), StatusCode: resp.StatusCode, Header: resp.Header.Clone()}
 	budget.remaining = c.cfg.MaxResponseBytes + int64(c.cfg.MaxHeaderBytes) - int64(reader.Buffered())
 	if resp.ContentLength > c.cfg.MaxResponseBytes {
 		return out, ErrBounds
 	}
 	b, err := io.ReadAll(io.LimitReader(resp.Body, c.cfg.MaxResponseBytes+1))
 	partialBytes = int64(len(b))
+	out.Body = b // adopt exact partial DATA before examining any late failure
 	if err != nil {
 		return out, err
 	}
@@ -504,5 +518,5 @@ func (c *LocalCallerClient) Call(ctx context.Context, method, path, contentType 
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}
-	return LocalCallerResponse{StatusCode: resp.StatusCode, Header: resp.Header.Clone(), Body: b}, nil
+	return out, nil
 }

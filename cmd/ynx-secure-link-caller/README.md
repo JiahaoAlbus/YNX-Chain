@@ -142,3 +142,19 @@ normal native addon and run only this runtime's functional checks:
 ```sh
 sh cmd/ynx-secure-link-caller/check.sh runtime
 ```
+
+The separate native private-client C ABI holds an original same-process Go
+`LocalCallerClient` registration, a real registration borrow, and an actual
+native Source fence. It accepts only registered operation indices, invokes the
+native current fence at the actual write, and retains response DATA together
+with late errors. See [NATIVE_PRIVATE_CLIENT.md](../../internal/securelink/NATIVE_PRIVATE_CLIENT.md)
+for ownership and normal startup requirements. Run only this component's strict
+C/C++ and actual private Unix integration controls with:
+
+```sh
+sh cmd/ynx-secure-link-caller/check.sh private-client
+```
+
+This entry does not rebuild the unrelated Node addon. Its test-only shared
+library requires the explicit `securelink_private_client_fixture` tag; the
+normal shared library and archive export no fixture registration installer.

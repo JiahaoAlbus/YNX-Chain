@@ -120,7 +120,11 @@ type LocalCallerClientConfig struct {
 // LocalCallerResponse carries opaque original bytes. No response body is
 // interpreted as authorization, a receipt or an authenticated LocalCaller.
 type LocalCallerResponse struct {
-	StatusCode int
-	Header     http.Header
-	Body       []byte
+	// These are read from the actual emitted request, only once a response
+	// header has been received. They are transport DATA, not a receipt.
+	PacketPresent       bool
+	Method, RequestPath string
+	StatusCode          int
+	Header              http.Header
+	Body                []byte
 }
