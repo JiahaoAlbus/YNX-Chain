@@ -1,0 +1,29 @@
+{
+  "helperPath": "packages/wallet-auth/src/original-ai-task-action-v6-node-loader-private.js",
+  "helperPin": {
+    "bytes": 5043,
+    "sha256": "ee24e9a9d9e8508a16f071c5ecc845e471e2f71078d2457017926d18ff8c6c07"
+  },
+  "exports": {
+    "isOriginalAITaskActionClientV6ModuleImportDATA": "(SAMEtaggedNativeOwner,SAMEactualESMNamespace)->bool, only synchronous accept window",
+    "consumeOriginalAITaskActionClientV6ModuleImportDATA": "same arguments; true once only during acceptance",
+    "startOriginalAITaskActionClientV6NodeLoadV1": "(SAMEtaggedNativeOwner)->retained attempt; zero caller URI/provider",
+    "captureOriginalAITaskActionClientV6LoaderBindingV1": "zeroarg fixedNative {image,open,waitReady}"
+  },
+  "nativeABI": {
+    "acquireOriginalAITaskActionClientV6Source": "sync explicit{owner,errorPresent,error?}; SDK adopts before flags",
+    "openOriginalAITaskActionClientV6LoaderV1": "(SAMEowner)->exact{version:1,clientURI,assertCurrent,acceptCompleted}; Root current only before bodyready",
+    "waitOriginalAITaskActionClientV6Ready": "(SAMEowner)->same actual Promise<void>",
+    "isOriginalAITaskClientRootV6": "(SAMEactualowner)->boolean; custody only, actual export observed in Auth WIP"
+  },
+  "acceptance": "Native retain NS FIRST; then same owner+NS is AND consume, Rootcurrent, exactly one bodyfactory. No body require or napiRunScript/globalprovider. Helper itself has no TLA.",
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "RootAdmission": false,
+  "mobileGetterSupplied": false,
+  "status": "SDK_CODE_PUBLIC_ESM_CONTROLS_AND_TYPES_READY_NATIVE_MATCHING_PENDING",
+  "normalOpener": "fixed-image -> sync adopt -> Native recognize -> actualESM -> sameReadyPromise -> fullCurrent/scope/fullCurrent",
+  "failure": "explicit errorPresent and SAME native partial plus retained bootstrap cleanup controller; never reacquire/reimport",
+  "newControls": 12,
+  "actualNativeHandshakePositive": false
+}

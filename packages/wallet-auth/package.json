@@ -731,7 +731,9 @@
     "docs/network-resource-source-v1.md",
     "docs/network-resource-source-v1.contract.json",
     "docs/AI_TASK_V6_AGENT_REGISTRATION.md",
-    "docs/AI_TASK_V6_MOBILE_SAFE_CORE.md"
+    "docs/AI_TASK_V6_MOBILE_SAFE_CORE.md",
+    "docs/ai-task-v6-node-esm-bootstrap-abi.json",
+    "docs/ai-task-v6-node-esm-bootstrap.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
