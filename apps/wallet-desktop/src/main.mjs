@@ -61,7 +61,8 @@ import {CANONICAL_NETWORK_ID as PQ_CANONICAL_NETWORK_ID} from './original-policy
 import {initializeOriginalAuthIdentityStartup} from './original-auth-identity-startup.mjs';
 import {originalAuthIdentityStartupUnresolved} from '../../../packages/wallet-auth/src/original-auth-identity-private-joint-registration.js';
 import { assertWalletIPC } from "./wallet-ipc-policy.mjs";
-import { DesktopWalletAuthority } from "./desktop-wallet-authority.mjs";
+import { DesktopWalletAuthority,isOriginalPQTransactionReviewBorrow } from "./desktop-wallet-authority.mjs";
+import {canonicalJSON} from '@ynx-chain/wallet-auth';
 import { FilePermissionStore } from "./desktop-permission-store.mjs";
 import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
 import { FileTransactionIntentStore } from "./transaction-intent-store.mjs";
@@ -72,6 +73,8 @@ import {captureOriginalWalletAccountInitialApprovalIPC,retireUnusedOriginalWalle
 import {createPQAccountInitialBroadcast} from './wallet-pq-account-initial-broadcast.mjs';
 import {acquireOriginalWalletAccountInitialSource,isOriginalWalletAccountInitialSource} from './original-policy-supplier/account-initial-source.mjs';
 import {createPQTransactionSubmission} from './features/pq-transaction/submission.mjs';
+import {readPQSubmissionOriginal} from './features/pq-transaction/typed-action-submission-binding.mjs';
+import {createOriginalWalletPayContextBridge} from './original-policy-supplier/pay-native-context.mjs';
 import {PQFinalityEvidence} from './wallet-pq-finality-evidence.mjs';
 import {createPQFinalityCollection} from './wallet-pq-finality-collection.mjs';
 import {createPQTypedActionFinalityNodeReader} from './features/pq-transaction/typed-action-finality-node.mjs';
@@ -156,12 +159,37 @@ let originalPQHostCatalogReceiver;
 // normal ingress. Its consumer derives the exact six fields from the journal,
 // receives/persists the original DATA pair, then selects under that same owner.
 const pqBroadcastApprovalContext=new AsyncLocalStorage();
+const pqPayNativeContext=new AsyncLocalStorage();
+const originalPayContextBridge=createOriginalWalletPayContextBridge(()=>pqPayNativeContext.getStore());
+// Fixed Main exports for the original SDK/Native getter. No caller-provided
+// approval, context, member, target, guard, secret or module path is accepted.
+export function captureOriginalWalletPayContextForNative(...args){return originalPayContextBridge.capture(...args);}
+export function isOriginalWalletPayContextForNative(peer){return originalPayContextBridge.isPeer(peer);}
+async function acquireOriginalMainPaySource(input,store){
+  if(!originalPQPaySupply)throw Object.assign(Error('Original Pay Source is not supplied.'),{code:'PQ_PAY_DISPATCH_SOURCE_NOT_SUPPLIED'});
+  const parent=pqBroadcastApprovalContext.getStore(),query=input.request===null,guard=keyAccess.current();
+  guard.assertEffectCurrent();
+  const publicGuard=Object.freeze({account:guard.account,assert:()=>guard.assertEffectCurrent()});
+  if(!query&&(!parent||parent.closed||!parent.selected||parent.request!==input.request||!isOriginalWalletTransactionPermission(parent.permission)||!isOriginalPQTransactionReviewBorrow(parent.borrow)))throw Object.assign(Error('Same original approval is required.'),{code:'PAY_NATIVE_CONTEXT_APPROVAL_REQUIRED'});
+  const plan=await readPQSubmissionOriginal(store,input.original.hash,{account:guard.account,networkId:PQ_CANONICAL_NETWORK_ID,guard:publicGuard});
+  const target=await store.readPQPaySubmissionTarget(guard.account,plan.binding.hash,()=>guard.assertEffectCurrent());
+  if(!plan.typed||!target||canonicalJSON(plan.original)!==canonicalJSON(input.original)||canonicalJSON(target)!==canonicalJSON(input.target)||!query&&(parent.hash!==plan.binding.hash||canonicalJSON(parent.payTarget)!==canonicalJSON(target)))throw Object.assign(Error('Original journal binding changed.'),{code:'PAY_NATIVE_CONTEXT_ORIGINAL_REQUIRED'});
+  const ctx={request:query?null:parent.request,permission:query?null:parent.permission,capsule:query?null:parent.capsule,borrow:query?null:parent.borrow,original:plan.original,target,signedMember:plan.typed.local.member,captureOpen:true,captureSelected:false,
+    assertCurrent(){if(query)guard.assert();else{if(parent.closed||isOriginalWalletTransactionPermission(parent.permission)!==true)throw Error('PAY_NATIVE_CONTEXT_RETIRED');if(parent.permission.assertCurrent()!==undefined||parent.borrow.assertCurrent()!==undefined)throw Error('PAY_NATIVE_CONTEXT_CURRENT_RESULT');guard.assertEffectCurrent();}},
+    async recheck(){this.assertCurrent();if(!query&&await parent.permission.recheck()!==undefined)throw Error('PAY_NATIVE_CONTEXT_PERMISSION_RECHECK_RESULT');const original=await readPQSubmissionOriginal(store,plan.binding.hash,{account:guard.account,networkId:PQ_CANONICAL_NETWORK_ID,guard:publicGuard});const selected=await store.readPQPaySubmissionTarget(guard.account,plan.binding.hash,()=>guard.assertEffectCurrent());if(canonicalJSON(original.original)!==canonicalJSON(plan.original)||canonicalJSON(selected)!==canonicalJSON(target))throw Error('PAY_NATIVE_CONTEXT_ORIGINAL_CHANGED');this.assertCurrent();},
+  };
+  if(!query)(parent.payContexts??=[]).push(ctx);
+  try{return await pqPayNativeContext.run(ctx,()=>originalPQPaySupply.acquireOriginalPaySource(input));}
+  catch(cause){const d=cause&&typeof cause==='object'?Object.getOwnPropertyDescriptor(cause,'partial'):null;if(!d||!Object.hasOwn(d,'value')||!d.value)await originalPayContextBridge.closeContext(ctx);throw cause;}
+  finally{ctx.captureOpen=false;}
+}
 async function executeOriginalPQBroadcast({hash,request,capsule,borrow,guard,payTarget=null}){
-  const context={request,capsule,borrow,guard,selected:false,closed:false};let failed=false,cause,result;
+  const context={hash,request,capsule,borrow,guard,payTarget,selected:false,closed:false};let failed=false,cause,result;
   try{result=await pqBroadcastApprovalContext.run(context,()=>Object.hasOwn(request,'typedAction')||request.purpose==='ACCOUNT-MIGRATION'?pqTransactionSubmission.broadcast(hash,guard,request,payTarget):pqTransactionSubmission.broadcast(hash,guard));}
   catch(error){failed=true;cause=error;}
   finally{
     context.closed=true;
+    for(const ctx of context.payContexts??[])try{await originalPayContextBridge.closeContext(ctx);}catch(error){if(!failed){failed=true;cause=error;}}
     // Factory selection is not proof of borrow adoption: it can fail before
     // recognition. Our local borrow owns no foreign resources and its cleanup
     // is idempotent; always retire it after the controller settles. Foreign
@@ -323,7 +351,7 @@ async function shutdownOriginalPQWallet(){
   const others=await Promise.allSettled([walletAuthority?.shutdownPQReviews(),originalDeviceCreation?.close(),originalDeviceQuery?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
   const failed=[...registration,...others].find(r=>r.status==='rejected');if(failed)throw failed.reason;
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
@@ -1078,13 +1106,13 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   originalPQHostCatalogReceiver=createOriginalPQHostCatalogReceiver({directory:path.join(userData,'pq-host-registrations-v1')});
   const originalPQFinalityVerification=createPQFinalityVerification({evidence:originalPQFinalityEvidence,verifierReceipt:originalPQVerifierReceipt,createSource:(original,binding)=>createOriginalPQHostSource({original,binding,receiver:originalPQHostCatalogReceiver}),createSelection:(original,binding,sourceCatalog)=>createPQHostSelectionCapture({original,binding,evidence:originalPQFinalityEvidence,sourceCatalog,selector:createOriginalPQHostSelector()}),createProducer:createOriginalPQHostProducer,createVerifier:createOriginalPQFinalityVerifier,persistObservation:(original,record)=>originalTransactionIntentStore.savePQFinalityObservation(original,record),flushObservation:(original,record,guard)=>originalTransactionIntentStore.flushPQFinalityObservation(original.account,original.hash,pqFinalityRecordGeneration(record),()=>guard.assert()),adoptTerminal:(original,token,guard)=>originalTransactionIntentStore.adoptPQFinalityTerminal(original,token,()=>guard.assert())});
   pqFinalityCollection=createPQFinalityCollection({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,evidence:originalPQFinalityEvidence,transport:originalPQNodeTransport,typedTransport:createPQTypedActionFinalityNodeReader(),verification:originalPQFinalityVerification});
-  pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,isOriginalWalletMigrationBroadcastPermission,...(originalPQPaySupply??{}),
+  pqTransactionSubmission=createPQTransactionSubmission({intentStore:originalTransactionIntentStore,networkId:PQ_CANONICAL_NETWORK_ID,transport:originalPQNodeTransport,isOriginalWalletTransactionPermission,isOriginalWalletMigrationBroadcastPermission,...(originalPQPaySupply?{...originalPQPaySupply,acquireOriginalPaySource:input=>acquireOriginalMainPaySource(input,originalTransactionIntentStore)}:{}),
     readTypedOriginal:createPQTypedActionNodeReader().readOriginal,
-    acquireOriginalWalletTransactionPermission:request=>{
+    acquireOriginalWalletTransactionPermission:async request=>{
       const context=pqBroadcastApprovalContext.getStore();
       if(!context||context.closed||context.selected||JSON.stringify(request)!==JSON.stringify(context.request))throw Object.assign(Error('Original broadcast approval is required.'),{code:'PQ_BROADCAST_APPROVAL_REQUIRED'});
       context.guard.assert();context.borrow.assertCurrent();context.selected=true;
-      return acquireOriginalWalletTransactionPermission(request,context.capsule,context.borrow);
+      const permission=await acquireOriginalWalletTransactionPermission(request,context.capsule,context.borrow);context.permission=permission;return permission;
     },
     acquireOriginalWalletMigrationBroadcastPermission:request=>{
       const context=pqBroadcastApprovalContext.getStore();
