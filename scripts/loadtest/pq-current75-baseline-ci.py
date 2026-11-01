@@ -220,7 +220,7 @@ def execute(source, tools):
     data_path = parent / ("pq-current75-source-qualification-" + os.environ["GITHUB_RUN_ID"] + "-1.json")
     require(not data_path.exists() and not data_path.is_symlink(), "original source DATA must be fresh and exclusive")
     data = prior_source_data(lib, lib.github_fetcher(os.environ.get("GH_TOKEN", "")))
-    with data_path.open("x", opener=lambda p, f: os.open(p, f, 0o600)) as out:
+    with open(data_path, "x", opener=lambda p, f: os.open(p, f, 0o600)) as out:
         json.dump(data, out, sort_keys=True); out.write("\n"); out.flush(); os.fsync(out.fileno())
     # Read-only qualification credentials are never inherited by Go/node/key
     # processes or copied into public original operation receipts.

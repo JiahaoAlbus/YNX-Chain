@@ -159,6 +159,45 @@ class FixedCurrent75Controls(unittest.TestCase):
             bad = copy.deepcopy(result); bad["loadResult"][key] = value
             with self.assertRaises(RuntimeError): entry.require_complete(bad)
 
+    def test_execute_writes_private_exclusive_source_data_before_loading_driver(self):
+        class StopBeforeDriver(RuntimeError):
+            pass
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve(); workspace = root / "workspace"; runner_temp = root / "runner-temp"
+            controller = workspace / "controller"; source = workspace / "source"; tools = workspace / "tools"
+            script = controller / "scripts/loadtest/pq-current75-baseline-ci.py"
+            script.parent.mkdir(parents=True)
+            for directory in (source, tools, runner_temp): directory.mkdir(parents=True)
+            script.write_text("# control only\n")
+            environment = dict(GITHUB_ACTIONS="true", RUNNER_ENVIRONMENT="github-hosted",
+                               GITHUB_REPOSITORY="JiahaoAlbus/YNX-Chain", GITHUB_EVENT_NAME="push",
+                               GITHUB_REF=entry.REF, GITHUB_RUN_ATTEMPT="1", PQ_BASELINE_PROFILE=entry.PROFILE,
+                               GITHUB_WORKFLOW_REF="JiahaoAlbus/YNX-Chain/" + entry.WORKFLOW + "@" + entry.REF,
+                               GITHUB_SHA="a"*40, GITHUB_RUN_ID="123", GITHUB_WORKSPACE=str(workspace),
+                               RUNNER_TEMP=str(runner_temp), GH_TOKEN="read-only-control-token")
+            data = dict(classification="data", sourceCommit=entry.GO_SOURCE)
+            lib = types.SimpleNamespace(github_fetcher=mock.Mock(return_value=object()))
+            def git(root, *arguments):
+                return "" if arguments[0] == "status" else (entry.FORK_TREE if "HEAD:third_party/cometbft" in arguments else "a"*40)
+            with mock.patch.dict(entry.os.environ, environment, clear=True), \
+                 mock.patch.object(entry.sys, "platform", "linux"), mock.patch.object(entry, "__file__", str(script)), \
+                 mock.patch.object(entry, "git", side_effect=git), mock.patch.object(entry, "checked_source"), \
+                 mock.patch.object(entry, "pinned_bytes"), mock.patch.object(entry, "prior_source_data", return_value=data), \
+                 mock.patch.object(entry, "pinned_module", side_effect=[lib, StopBeforeDriver("no Go or signing"), lib]) as modules:
+                with self.assertRaisesRegex(StopBeforeDriver, "no Go or signing"):
+                    entry.execute(source, tools)
+                destination = runner_temp / "pq-current75-source-qualification-123-1.json"
+                self.assertEqual(json.loads(destination.read_bytes()), data)
+                self.assertEqual(destination.stat().st_mode & 0o777, 0o600)
+                before = destination.read_bytes()
+                self.assertNotIn("GH_TOKEN", entry.os.environ)
+                self.assertEqual(modules.call_count, 2)
+                # The same original result may never be truncated or overwritten.
+                with self.assertRaisesRegex(RuntimeError, "fresh and exclusive"):
+                    entry.execute(source, tools)
+                self.assertEqual(destination.read_bytes(), before)
+                self.assertEqual(modules.call_count, 3)
+
     def test_cli_never_accepts_rate_capacity_or_alternate_signing_overrides(self):
         for args in (["--rate", "500"], ["--mode", "pre-signed"], ["--accounts", "99"],
                      ["--source", "a", "--source", "b"]):
