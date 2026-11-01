@@ -170,6 +170,8 @@ class LoadCeremony(normal.Ceremony):
     def __init__(self,*args,operations,proof_timeout,**kwargs):
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
         self.measurements=CalleeMeasurements(operations,len(self.workload["owners"])-4 if self.mode=="online" else 0)
+        verifier=self.bins/"ynx-consensus-proof-verify";self.verifier_binary_pin=lab.guard.digest(verifier)
+        info=verifier.stat();self.verifier_binary_identity=(info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns)
     def activation_startup(self,activation):
         resumed=copy.deepcopy(activation)
         for node in range(4):
@@ -406,7 +408,9 @@ class NormalBackend:
             request=normal.public_file(directory,context["request"]);trust=normal.public_file(directory,context["context"])
             lab.require(context["verifierArguments"]==["--trust-context",str(trust),"--trust-context-sha256",context["context"]["sha256"]],"normal original independent verifier invocation differs")
             notify(dict(kind="normal_stage",stage="proof_public_export"))
-            public_closure=proof_readback.export_original_public_proof(self.w.work/"public",case,directory,context,result["proof"],CALLEE_SOURCE,lab.guard.digest(self.c.bins/"ynx-consensus-proof-verify"))
+            info=(self.c.bins/"ynx-consensus-proof-verify").stat()
+            lab.require((info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns)==self.c.verifier_binary_identity,"original normal verifier binary identity changed")
+            public_closure=proof_readback.export_original_public_proof(self.w.work/"public",case,directory,context,result["proof"],CALLEE_SOURCE,self.c.verifier_binary_pin)
             notify(dict(kind="normal_stage",stage="verifier"))
             verified=self.helper(prefix+"-normal-verifier",[str(self.c.bins/"ynx-consensus-proof-verify"),*context["verifierArguments"]],request)
             normal.require_verified(verified,tx)
@@ -436,6 +440,9 @@ class NormalBackend:
         notify(dict(kind="normal_stage",stage="receipt"))
         final=dict(id=row["id"],operationId=row["operationId"],mode=self.c.mode,transaction=tx,normalLiveResult=proof,normalVerifier=verified,normalConfirm=confirmed,originalPublicProofClosure=public_closure,parentPipelineNs=time.monotonic_ns()-started,physicalCommitMeasured=False,sourceGrant=False)
         lab.write_new(case/"qualified-receipt.json",final)
+        if self.c.mode=="online":
+            notify(dict(kind="normal_stage",stage="proof_portable_export"))
+            proof_readback.finalize_portable_catalog(self.w.work/"public",case,public_closure,row)
         notify(dict(kind="qualified",hash=normal.comet_hash(tx["abciHash"]),nativeHash=normal.comet_hash(tx["nativeHash"]),normalVerifierCode=verified["code"],executionSuccessful=verified["result"]["executionSuccessful"],executionCode=verified["result"]["executionCode"],transactionType=verified["result"]["transactionType"],members=int(tx["members"]),nativeGrant=verified["result"]["nativeGrant"],normalConfirmCode=None if confirmed is None else confirmed["code"],proofReference=str((case/"qualified-receipt.json").relative_to(self.w.work/"public"))))
     def stop(self):
         self.stop_event.set();self.w.stopping=True

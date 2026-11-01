@@ -4,7 +4,6 @@
 No consensus/transaction codec, signer, source authority or replacement verifier.
 """
 import argparse
-import copy
 import hashlib
 import importlib.util
 import json
@@ -17,10 +16,10 @@ import threading
 import time
 
 SCHEMA='YNX-PERF-ORIGINAL-PUBLIC-PROOF-CLOSURE/v1'
-FILES={'migration':'migration.json','genesis':'genesis.json','state':'committed-state.json','schedule':'schedule.json','trustedLightBlock':'trusted-light-block.json','request':'request.json','context':'trust-context.json','proof':'proof.json'}
+FILES={'migration':'migration.json','genesis':'genesis.json','state':'committed-state.json','schedule':'schedule.json','trustedLightBlock':'trusted-light-block.json','request':'request.json','context':'trust-context.json','proof':'proof.json','publicProofInputs':'PUBLIC-PROOF-INPUTS.json'}
 FIELDS={'migration':'migrationFile','genesis':'genesisFile','state':'stateFile','schedule':'scheduleFile','trustedLightBlock':'trustedLightBlockFile'}
-FILE_LIMIT=128<<20
-TOTAL_LIMIT=1<<30
+FILE_LIMIT=64<<20
+TOTAL_LIMIT=256<<20
 _export_lock=threading.Lock()
 
 def require(ok,message):
@@ -49,24 +48,20 @@ def write_new(path,raw):
     finally:os.close(fd)
 def json_bytes(value):return (json.dumps(value,sort_keys=True,separators=(',',':'))+'\n').encode()
 
-def export_original_public_proof(public,case,directory,context,proof,source_commit,verifier_sha256):
-    """Exact 8-file allowlist only. Shared blobs are bytes, never cached trust."""
-    public,case,directory=map(Path,(public,case,directory))
-    require(public.resolve(strict=True)==public and case.resolve(strict=True)==case and case.parent.parent==public and case.parent.name=='load-operations','original public case location required')
-    require(directory.resolve(strict=True)==directory and directory.name=='verifier','original normal verifier directory required')
-    require(context.get('syntheticOnly') is True and context.get('authorityGranted') is False,'original synthetic public export scope required')
-    require(context['request']['path']==FILES['request'] and context['context']['path']==FILES['context'],'fixed original public proof filenames required')
-    originals={role:directory/name for role,name in FILES.items() if role!='proof'}
-    originals['proof']=directory.parent/'proof.json'
-    require(Path(proof['path'])==originals['proof'],'fixed original proof path required')
-    values={role:read_original(path) for role,path in originals.items()}
-    require(sum(map(len,values.values()))<=TOTAL_LIMIT,'public proof closure exceeds transport bound')
-    for role,ref in [('request',context['request']),('context',context['context']),('proof',proof)]:
-        require(sha(values[role])==ref['sha256'] and len(values[role])==int(ref['bytes']),'original public proof external pin differs')
-    original_context=strict(values['context']);light=original_context['lightTrust']
-    require(original_context.get('version')=='YNX-CONSENSUS-TRANSACTION-PROOF-TRUST/v1' and light.get('runtimePlanFile')=='' and light.get('runtimePlanHash')=='','unsupported public context/source profile; no recursive discovery')
-    for role,field in FIELDS.items():require(light.get(field)==str(originals[role]),'original public context path outside fixed allowlist')
-    require(sha(values['trustedLightBlock'])==light['trustedLightBlockSHA256'],'original trusted LightBlock pin differs')
+# These legacy carrier labels are the existing normal importer's CLOSED
+# transport names. They never assert that an actual operation belongs to owner4.
+LEGACY_RESULTS={
+    'finalReceipt':'functional-owner-4-final-proof.json',
+    'normalVerifier':'functional-owner-4-normal-verifier.log',
+    'observation':'functional-owner-4-observation.json',
+    'originalConfirm':'functional-owner-4-original-confirm.log',
+    'originalExport':'functional-owner-4-original-export.log',
+    'originalSign':'functional-owner-4-original-sign.log',
+}
+
+def store_originals(public,originals,values=None):
+    if values is None:values={role:read_original(path) for role,path in originals.items()}
+    require(sum(map(len,values.values()))<=TOTAL_LIMIT,'original public DATA exceeds existing portable total bound')
     entries={}
     with _export_lock:
         blobs=public/'proof-public-blobs';blobs.mkdir(mode=0o700,exist_ok=True)
@@ -76,63 +71,123 @@ def export_original_public_proof(public,case,directory,context,proof,source_comm
             if target.exists():require(read_original(target)==raw,'existing public blob differs; never overwrite')
             else:write_new(target,raw)
             entries[role]=dict(originalAbsolutePath=str(originals[role]),publicRelativePath=str(target.relative_to(public)),sha256=pin,bytes=len(raw))
-        manifest=dict(schema=SCHEMA,sourceCommit=source_commit,verifierBinarySHA256=verifier_sha256,entries=entries,originalContextSHA256=sha(values['context']),originalRequestSHA256=sha(values['request']),syntheticOnly=True,authorityGranted=False,actualNetworkExecutionClaim=False,independentReverification=False,meaning='Original bytes and separate path map only; not proof verification or authority. No keys, custody, HRS or directory traversal exported.')
-        path=case/'original-public-proof-manifest.json';raw=json_bytes(manifest);write_new(path,raw)
+    return entries,values
+
+def export_original_public_proof(public,case,directory,context,proof,source_commit,verifier_sha256):
+    """Original bytes only; normal portable-import owns all context mapping."""
+    public,case,directory=map(Path,(public,case,directory))
+    require(public.resolve(strict=True)==public and case.resolve(strict=True)==case and case.parent.parent==public and case.parent.name=='load-operations','original public case location required')
+    require(directory.resolve(strict=True)==directory and directory.name=='verifier','original normal verifier directory required')
+    require(context.get('syntheticOnly') is True and context.get('authorityGranted') is False,'original synthetic public export scope required')
+    require(context['request']['path']==FILES['request'] and context['context']['path']==FILES['context'],'fixed original public proof filenames required')
+    originals={role:directory/name for role,name in FILES.items() if role!='proof'};originals['proof']=directory.parent/'proof.json'
+    require(Path(proof['path'])==originals['proof'],'fixed original proof path required')
+    # Only inspect the existing optional path selector, never patch/decode proof.
+    context_raw=read_original(originals['context']);light=strict(context_raw)['lightTrust']
+    for role,field in FIELDS.items():require(light.get(field)==str(originals[role]),'original public context path outside fixed allowlist')
+    if light.get('runtimePlanFile'):
+        require(light['runtimePlanFile']==str(directory/'runtime-plan.json'),'runtime plan outside closed original path')
+        originals['runtimePlan']=directory/'runtime-plan.json'
+    values={role:read_original(path) for role,path in originals.items()}
+    for role,ref in [('request',context['request']),('context',context['context']),('proof',proof)]:
+        require(sha(values[role])==ref['sha256'] and len(values[role])==int(ref['bytes']),'original public proof external pin differs')
+    require(sha(values['trustedLightBlock'])==light['trustedLightBlockSHA256'],'original trusted LightBlock pin differs')
+    entries,values=store_originals(public,originals,values)
+    manifest=dict(schema=SCHEMA,sourceCommit=source_commit,verifierBinarySHA256=verifier_sha256,entries=entries,originalContextSHA256=sha(values['context']),originalRequestSHA256=sha(values['request']),syntheticOnly=True,authorityGranted=False,actualNetworkExecutionClaim=False,independentReverification=False,meaning='Original public bytes only. Missing original result files cannot be invented. Only the normal portable-import may map context paths; no keys/custody/HRS are selected.')
+    path=case/'original-public-proof-manifest.json';raw=json_bytes(manifest);write_new(path,raw)
     return dict(path=str(path.relative_to(public)),sha256=sha(raw),bytes=len(raw),independentReverification=False,authorityGranted=False)
 
 def read_original_closure(manifest_path,manifest_sha256):
     manifest_path=Path(manifest_path);raw=read_original(manifest_path,256<<10);require(sha(raw)==manifest_sha256,'external original manifest pin differs')
     manifest=strict(raw);require(manifest.get('schema')==SCHEMA and manifest.get('syntheticOnly') is True and manifest.get('authorityGranted') is False and manifest.get('actualNetworkExecutionClaim') is False,'public closure scope differs')
     require(manifest_path.name=='original-public-proof-manifest.json' and manifest_path.parent.parent.name=='load-operations','fixed public manifest location required')
-    public=manifest_path.parent.parent.parent;entries=manifest['entries'];require(set(entries)==set(FILES),'exact public proof closure allowlist required')
+    public=manifest_path.parent.parent.parent;entries=manifest['entries'];require(set(entries) in (set(FILES),set(FILES)|{'runtimePlan'}),'exact original public allowlist required')
     values={};paths={}
     for role,entry in entries.items():
         pin=entry['sha256'];require(type(pin) is str and re.fullmatch('[0-9a-f]{64}',pin) and entry['publicRelativePath']=='proof-public-blobs/'+pin+'.json','public blob path differs from exact hash')
         path=public/entry['publicRelativePath'];value=read_original(path);require(sha(value)==pin and type(entry['bytes']) is int and len(value)==entry['bytes'],'original public blob pin/size differs')
         values[role]=value;paths[role]=path
     require(sum(map(len,values.values()))<=TOTAL_LIMIT and sha(values['context'])==manifest['originalContextSHA256'] and sha(values['request'])==manifest['originalRequestSHA256'],'original closure/context/request differs')
-    original=strict(values['context']);require(original.get('version')=='YNX-CONSENSUS-TRANSACTION-PROOF-TRUST/v1' and original['lightTrust'].get('runtimePlanFile')=='' and original['lightTrust'].get('runtimePlanHash')=='','unsupported public context/source profile')
-    return manifest,values,paths,original
+    return manifest,values,paths
 
-def prepare_reverification(manifest_path,manifest_sha256,output):
-    manifest,values,paths,original=read_original_closure(manifest_path,manifest_sha256)
-    entries=manifest["entries"]
-    derived=copy.deepcopy(original)
-    for role,field in FIELDS.items():
-        require(original['lightTrust'][field]==entries[role]['originalAbsolutePath'],'original context path map differs')
-        derived['lightTrust'][field]=str(paths[role])
-    require(sha(values['trustedLightBlock'])==original['lightTrust']['trustedLightBlockSHA256'],'original trusted LightBlock pin differs')
-    output=Path(output);require(output.is_absolute() and not output.exists() and output.parent.resolve(strict=True)==output.parent,'fresh canonical independent output directory required');output.mkdir(mode=0o700)
-    context_raw=json_bytes(derived);context_path=output/'derived-context.json';write_new(context_path,context_raw)
-    mapping=dict(schema='YNX-PERF-PUBLIC-PROOF-RELOCATION/v1',originalManifestSHA256=manifest_sha256,originalContextSHA256=sha(values['context']),derivedContextSHA256=sha(context_raw),originalRequestSHA256=sha(values['request']),pathChanges={field:dict(original=original['lightTrust'][field],derived=derived['lightTrust'][field]) for field in FIELDS.values()},originalContextBytesPreserved=True,originalRequestBytesPreserved=True,derivedContextIsOriginal=False,authorityGranted=False,meaning='New-environment public DATA verification only; relocation grants no original authority or production activation.')
-    write_new(output/'path-map.json',json_bytes(mapping))
-    return manifest,context_path,sha(context_raw),paths['request'],mapping
+def finalize_portable_catalog(public,case,closure_ref,row):
+    public,case=Path(public),Path(case)
+    initial,_,_=read_original_closure(public/closure_ref['path'],closure_ref['sha256'])
+    require(case==public/'load-operations'/('%05d'%row['index']),'original operation case differs')
+    originals={
+        'finalReceipt':case/'qualified-receipt.json',
+        'normalVerifier':public/('load-%05d-normal-verifier.log'%row['index']),
+        'observation':case/'four-node-inclusion.json',
+        'originalConfirm':case/'original-confirm-reply.json',
+        'originalExport':public/('load-%05d-live-result.log'%row['index']),
+        'originalSign':case/'original-sign-reply.json',
+    }
+    # All six must already exist as original files. No alias body is synthesized.
+    entries,values=store_originals(public,originals)
+    final=strict(values['finalReceipt']);require(final['operationId']==row['operationId'] and final['transaction']['ownerIndex']==row['ownerIndex'] and final['transaction']['firstNonce']==str(row['nonce']),'legacy carrier label cannot replace actual operation identity')
+    payload={}
+    for role,entry in initial['entries'].items():
+        if role=='proof':continue # retained as raw original in initial closure
+        payload['context/'+('runtime-plan.json' if role=='runtimePlan' else FILES[role])]=entry
+    for role,entry in entries.items():payload['original-results/'+LEGACY_RESULTS[role]]=entry
+    require(len(payload) in (14,15) and sum(x['bytes'] for x in payload.values())<=TOTAL_LIMIT,'normal closed portable DATA payload differs')
+    catalog=dict(version='YNX-CONSENSUS-PROOF-PORTABLE-FILES/v1',files=[dict(path=name,bytes=str(entry['bytes']),sha256=entry['sha256']) for name,entry in sorted(payload.items())])
+    catalog_path=case/'portable-file-catalog.json';catalog_raw=json_bytes(catalog);write_new(catalog_path,catalog_raw)
+    manifest=dict(schema='YNX-PERF-NORMAL-PORTABLE-ORIGINALS/v1',sourceCommit=initial['sourceCommit'],verifierBinarySHA256=initial['verifierBinarySHA256'],originalContextSHA256=initial['originalContextSHA256'],originalRequestSHA256=initial['originalRequestSHA256'],originalClosure=closure_ref,actualOwnerIndex=row['ownerIndex'],actualOperationId=row['operationId'],actualNonce=str(row['nonce']),catalogSHA256=sha(catalog_raw),payload=payload,sourceGrant=False,nativeRootAuthorized=False,proofVerified=False,legacyOwner4LabelsAreTransportNamesOnly=True,meaning='Every payload byte is copied from an existing original; legacy filename labels do not assert owner4. Normal portable-import and normal verifier must run separately.')
+    path=case/'normal-portable-originals.json';raw=json_bytes(manifest);write_new(path,raw)
+    return dict(path=str(path.relative_to(public)),sha256=sha(raw),bytes=len(raw))
+
+def read_portable_archive(manifest_path,manifest_sha256):
+    manifest_path=Path(manifest_path);raw=read_original(manifest_path,256<<10);require(sha(raw)==manifest_sha256,'external portable manifest pin differs');m=strict(raw)
+    require(m.get('schema')=='YNX-PERF-NORMAL-PORTABLE-ORIGINALS/v1' and m.get('sourceGrant') is False and m.get('nativeRootAuthorized') is False and m.get('proofVerified') is False and m.get('legacyOwner4LabelsAreTransportNamesOnly') is True,'normal portable DATA scope differs')
+    require(manifest_path.name=='normal-portable-originals.json' and manifest_path.parent.parent.name=='load-operations','fixed portable manifest location required');public=manifest_path.parent.parent.parent
+    catalog_path=manifest_path.parent/'portable-file-catalog.json';catalog_raw=read_original(catalog_path,32<<10);require(sha(catalog_raw)==m['catalogSHA256'],'original catalog pin differs');catalog=strict(catalog_raw)
+    want={'context/'+name for role,name in FILES.items() if role!='proof'}|{'original-results/'+name for name in LEGACY_RESULTS.values()}
+    if 'context/runtime-plan.json' in m['payload']:want.add('context/runtime-plan.json')
+    require(set(m['payload'])==want and catalog==dict(version='YNX-CONSENSUS-PROOF-PORTABLE-FILES/v1',files=[dict(path=name,bytes=str(entry['bytes']),sha256=entry['sha256']) for name,entry in sorted(m['payload'].items())]),'exact existing normal portable catalog required')
+    total=0
+    for entry in m['payload'].values():
+        pin=entry['sha256'];require(re.fullmatch('[0-9a-f]{64}',pin) and entry['publicRelativePath']=='proof-public-blobs/'+pin+'.json','portable public blob path differs');value=read_original(public/entry['publicRelativePath']);require(sha(value)==pin and len(value)==entry['bytes'],'portable original blob differs');total+=len(value)
+    require(total<=TOTAL_LIMIT,'normal portable total bound exceeded')
+    require(m['payload']['context/trust-context.json']['sha256']==m['originalContextSHA256'] and m['payload']['context/request.json']['sha256']==m['originalRequestSHA256'],'original context/request pins differ')
+    return m,public,catalog_path
 
 def reverify(manifest_path,manifest_sha256,verifier,verifier_sha256,output,execute=False):
-    manifest,context,context_pin,request,mapping=prepare_reverification(manifest_path,manifest_sha256,output)
-    require(manifest['verifierBinarySHA256']==verifier_sha256 and sha(read_original(Path(verifier),128<<20))==verifier_sha256,'exact original normal verifier binary pin differs')
-    command=[str(verifier),'--trust-context',str(context),'--trust-context-sha256',context_pin]
-    report=dict(schema='YNX-PERF-INDEPENDENT-PUBLIC-PROOF-REVERIFY/v1',sourceCommit=manifest['sourceCommit'],verifierBinarySHA256=verifier_sha256,originalManifestSHA256=manifest_sha256,originalRequestSHA256=mapping['originalRequestSHA256'],derivedContextSHA256=context_pin,executed=False,independentCryptographicReverification=False,authorityGranted=False,actualNetworkExecutionClaim=False,originalAuthorityClaim=False,command=command)
-    if execute:
-        started=time.monotonic_ns();log=Path(output)/'normal-verifier.log'
+    m,public,catalog=read_portable_archive(manifest_path,manifest_sha256)
+    require(m['verifierBinarySHA256']==verifier_sha256 and sha(read_original(Path(verifier),128<<20))==verifier_sha256,'exact original normal verifier binary pin differs')
+    output=Path(output);require(output.is_absolute() and not output.exists() and output.parent.resolve(strict=True)==output.parent,'fresh canonical independent output required');output.mkdir(mode=0o700)
+    source=output/'original-source';source.mkdir(mode=0o700)
+    for name,entry in m['payload'].items():
+        path=source/name;path.parent.mkdir(mode=0o700,exist_ok=True);write_new(path,read_original(public/entry['publicRelativePath']))
+    catalog_copy=output/'original-file-catalog.json';write_new(catalog_copy,read_original(catalog,32<<10))
+    imported=output/'normal-portable-import'
+    command=[str(verifier),'portable-import','--trust-context',str(source/'context/trust-context.json'),'--trust-context-sha256',m['originalContextSHA256'],'--file-catalog',str(catalog_copy),'--file-catalog-sha256',m['catalogSHA256'],'--source-dir',str(source),'--output-dir',str(imported)]
+    report=dict(schema='YNX-PERF-INDEPENDENT-NORMAL-PORTABLE-REVERIFY/v1',sourceCommit=m['sourceCommit'],verifierBinarySHA256=verifier_sha256,originalManifestSHA256=manifest_sha256,originalRequestSHA256=m['originalRequestSHA256'],originalContextSHA256=m['originalContextSHA256'],actualOwnerIndex=m['actualOwnerIndex'],actualOperationId=m['actualOperationId'],executed=False,independentCryptographicReverification=False,sourceGrant=False,nativeRootAuthorized=False,originalAuthorityClaim=False,normalImportCommand=command)
+    def call(command,name,stdin=None):
+        log=output/(name+'.log');row=dict(command=command)
         with open(log,'xb') as stream:
-            try:process=subprocess.run(command,input=read_original(request),stdout=stream,stderr=subprocess.STDOUT,timeout=30,check=False);report['returnCode']=process.returncode
-            except subprocess.TimeoutExpired:report['timeout']=True;report['returnCode']=None
-        report.update(executed=True,parentElapsedNs=time.monotonic_ns()-started,originalVerifierLogSHA256=sha(read_original(log,4<<20,allow_empty=True)))
-        try:result=strict(read_original(log,4<<20,allow_empty=True))
-        except (ValueError,RuntimeError):result=None
-        report['originalVerifierResult']=result
-        # The existing normal verifier alone establishes cryptographic success.
-        valid=False
-        if report['returnCode']==0 and type(result) is dict:
-            spec=importlib.util.spec_from_file_location('original_proof_readback_normal',Path(__file__).with_name('pq-normal-process-lab.py'));normal=importlib.util.module_from_spec(spec);spec.loader.exec_module(normal)
-            expected=strict(read_original(context))['expectedTransaction']
-            try:
-                normal.require_verified(result,dict(abciHash=expected['transactionHash'],nativeHash=expected['nativeWireHash']))
-                valid=True
-            except RuntimeError:pass
-        report['independentCryptographicReverification']=valid
-    write_new(Path(output)/'reverification.json',json_bytes(report))
+            try:process=subprocess.run(command,input=stdin,stdout=stream,stderr=subprocess.STDOUT,timeout=30,check=False);row['returnCode']=process.returncode
+            except subprocess.TimeoutExpired:row.update(timeout=True,returnCode=None)
+        raw=read_original(log,4<<20,allow_empty=True);row['logSHA256']=sha(raw)
+        try:row['originalResult']=strict(raw)
+        except ValueError:row['originalResult']=None
+        return row
+    if execute:
+        report['executed']=True;report['normalImport']=call(command,'normal-portable-import')
+        entry=report['normalImport'];result=entry.get('originalResult')
+        if entry['returnCode']==0 and type(result) is dict and result.get('code')=='IMPORTED_DATA':
+            require(result.get('version')=='YNX-CONSENSUS-PROOF-PORTABLE-IMPORT/v1' and result.get('classification')=='data' and result.get('originalContextSHA256')==m['originalContextSHA256'] and result.get('catalogSHA256')==m['catalogSHA256'],'normal portable import identity differs')
+            require(all(result.get(k) is False for k in ('sourceGrant','nativeRootAuthorized','sourceDeploymentQualified','proofVerified')),'normal portable DATA must not claim authority or proof verification')
+            context=Path(result['contextPath']);require(context==imported/'portable-trust-context.json' and sha(read_original(context))==result['contextSHA256'],'normal imported context differs')
+            request=imported/'original/context/request.json';raw_request=read_original(request);require(sha(raw_request)==m['originalRequestSHA256'],'normal importer changed original request')
+            require(sha(read_original(imported/'original/context/trust-context.json'))==m['originalContextSHA256'],'normal importer changed original context')
+            verified=call([str(verifier),'--trust-context',str(context),'--trust-context-sha256',result['contextSHA256']],'normal-verifier',raw_request);report['normalVerifier']=verified
+            if verified['returnCode']==0 and type(verified.get('originalResult')) is dict:
+                spec=importlib.util.spec_from_file_location('original_portable_normal',Path(__file__).with_name('pq-normal-process-lab.py'));normal=importlib.util.module_from_spec(spec);spec.loader.exec_module(normal)
+                expected=strict(read_original(imported/'original/context/trust-context.json'))['expectedTransaction']
+                try:normal.require_verified(verified['originalResult'],dict(abciHash=expected['transactionHash'],nativeHash=expected['nativeWireHash']));report['independentCryptographicReverification']=True
+                except RuntimeError:pass
+    write_new(output/'reverification.json',json_bytes(report))
     return report
 
 if __name__=='__main__':

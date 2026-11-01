@@ -24,17 +24,27 @@ class PublicProofClosureControls(unittest.TestCase):
         export=dict(syntheticOnly=True,authorityGranted=False,**refs);proof=directory.parent/'proof.json';proofref=dict(path=str(proof),sha256=p.sha(proof.read_bytes()),bytes=str(proof.stat().st_size))
         return public,case,directory,export,proofref
     def export(self,f,verifier='f'*64):return p.export_original_public_proof(*f,'7'*40,verifier)
-    def test_exact_eight_originals_and_separate_mapping_preserve_bytes(self):
+    def completed_fixture(self,base,verifier='f'*64):
+        f=self.fixture(base);ref=self.export(f,verifier);public,case,directory,_,_=f
+        row=dict(index=0,ownerIndex=11,operationId='PUBLIC-unit-operation',nonce=2)
+        (case/'qualified-receipt.json').write_text(json.dumps(dict(operationId=row['operationId'],transaction=dict(ownerIndex=11,firstNonce='2'),meaning='transport unit marker; no verified business claim')))
+        for path in (public/'load-00000-normal-verifier.log',case/'four-node-inclusion.json',case/'original-confirm-reply.json',public/'load-00000-live-result.log',case/'original-sign-reply.json'):path.write_bytes(b'PUBLIC original transport unit marker; not proof success')
+        portable=p.finalize_portable_catalog(public,case,ref,row)
+        return f,ref,portable
+    def test_exact_original_bytes_and_existing_normal_closed_catalog(self):
         with tempfile.TemporaryDirectory() as temp:
-            base=Path(temp).resolve();f=self.fixture(base);original=(f[2]/'trust-context.json').read_bytes();ref=self.export(f);manifest=f[0]/ref['path'];m=p.strict(manifest.read_bytes())
+            base=Path(temp).resolve();f,ref,portable=self.completed_fixture(base);original=(f[2]/'trust-context.json').read_bytes();manifest=f[0]/ref['path'];m=p.strict(manifest.read_bytes())
             self.assertEqual(set(m['entries']),set(p.FILES));self.assertFalse(m['authorityGranted'] or m['independentReverification'])
             self.assertEqual((f[0]/m['entries']['context']['publicRelativePath']).read_bytes(),original)
-            _,derived,pin,request,mapping=p.prepare_reverification(manifest,ref['sha256'],base/'independent')
-            new=p.strict(derived.read_bytes());old=p.strict(original)
-            for field in p.FIELDS.values():new['lightTrust'][field]=old['lightTrust'][field]
-            self.assertEqual(new,old);self.assertEqual((f[2]/'trust-context.json').read_bytes(),original)
-            self.assertEqual(request.read_bytes(),(f[2]/'request.json').read_bytes());self.assertFalse(mapping['authorityGranted'] or mapping['derivedContextIsOriginal'])
-            self.assertEqual(pin,p.sha(derived.read_bytes()))
+            archive,_,catalog=p.read_portable_archive(f[0]/portable['path'],portable['sha256']);self.assertEqual(len(p.strict(catalog.read_bytes())['files']),14)
+            self.assertEqual(archive['actualOwnerIndex'],11);self.assertTrue(archive['legacyOwner4LabelsAreTransportNamesOnly'])
+            self.assertEqual((f[2]/'trust-context.json').read_bytes(),original)
+            self.assertFalse(any('derived' in x.name for x in base.rglob('*')))
+    def test_missing_one_original_result_cannot_be_invented(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base=Path(temp).resolve();f=self.fixture(base);ref=self.export(f)
+            with self.assertRaises((RuntimeError,OSError)):p.finalize_portable_catalog(f[0],f[1],ref,dict(index=0,ownerIndex=11,operationId='PUBLIC-unit-operation',nonce=2))
+            self.assertFalse((f[1]/'normal-portable-originals.json').exists());self.assertFalse((f[1]/'portable-file-catalog.json').exists())
     def test_scope_arbitrary_context_path_and_symlink_never_export(self):
         for mode in ('authority','privatePath','symlink','hardlink','wrongPin'):
             with self.subTest(mode=mode),tempfile.TemporaryDirectory() as temp:
@@ -64,15 +74,17 @@ class PublicProofClosureControls(unittest.TestCase):
                     raw=p.json_bytes(manifest)
                     if mode=='duplicate':raw=raw[:-2]+b',"schema":"duplicate"}\n'
                     path.write_bytes(raw);pin=p.sha(raw)
-                with self.assertRaises((RuntimeError,ValueError,OSError)):p.prepare_reverification(path,pin,base/'independent')
+                with self.assertRaises((RuntimeError,ValueError,OSError)):p.read_original_closure(path,pin)
                 self.assertFalse((base/'independent').exists())
-    def test_actual_child_rejection_never_becomes_success(self):
+    def test_actual_child_import_rejection_never_invokes_verifier_or_becomes_success(self):
         with tempfile.TemporaryDirectory() as temp:
             base=Path(temp).resolve();verifier=Path(sys.executable).resolve()
-            # Existing interpreter rejects the normal verifier's flags; no fake
-            # successful verifier, valid proof fixture or newly executable file.
-            f=self.fixture(base);ref=self.export(f,p.sha(verifier.read_bytes()));report=p.reverify(f[0]/ref['path'],ref['sha256'],verifier,p.sha(verifier.read_bytes()),base/'independent',True)
-            self.assertNotEqual(report['returnCode'],0);self.assertIsNone(report['originalVerifierResult']);self.assertFalse(report['independentCryptographicReverification'] or report['authorityGranted'] or report['originalAuthorityClaim']);self.assertTrue((base/'independent/reverification.json').exists())
+            f,ref,portable=self.completed_fixture(base,p.sha(verifier.read_bytes()))
+            report=p.reverify(f[0]/portable['path'],portable['sha256'],verifier,p.sha(verifier.read_bytes()),base/'independent',True)
+            self.assertNotEqual(report['normalImport']['returnCode'],0);self.assertNotIn('normalVerifier',report)
+            self.assertFalse(report['independentCryptographicReverification'] or report['sourceGrant'] or report['nativeRootAuthorized'] or report['originalAuthorityClaim'])
+            command=report['normalImportCommand'];self.assertEqual(command[1],'portable-import');self.assertEqual(set(command[2::2]),{'--trust-context','--trust-context-sha256','--file-catalog','--file-catalog-sha256','--source-dir','--output-dir'})
+            self.assertEqual((base/'independent/original-source/context/trust-context.json').read_bytes(),(f[2]/'trust-context.json').read_bytes())
     def test_existing_blob_corruption_refused_and_original_manifest_not_overwritten(self):
         with tempfile.TemporaryDirectory() as temp:
             base=Path(temp).resolve();f=self.fixture(base);ref=self.export(f);manifest=f[0]/ref['path'];before=manifest.read_bytes();m=p.strict(before);blob=f[0]/m['entries']['migration']['publicRelativePath'];blob.write_bytes(b'corrupt')

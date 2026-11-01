@@ -216,4 +216,17 @@ class IndependentLoadControls(unittest.TestCase):
                 finally:self.assertTrue(window.stop())
 
 
+class ProofExportStageControls(unittest.TestCase):
+    def test_public_and_portable_exports_keep_real_intervals_and_full_denominator(self):
+        ledger=s.Ledger(plan(),lambda e:None);ledger.release(100_000_000);row,_=ledger.reserve(120_000_000)
+        event(ledger,row,"normal_stage",130_000_000,stage="proof_public_export")
+        event(ledger,row,"normal_stage",150_000_000,stage="verifier")
+        event(ledger,row,"normal_stage",180_000_000,stage="proof_portable_export")
+        event(ledger,row,"unknown",190_000_000,error="transport control incomplete; no proof business claim")
+        report=ledger.report(200_000_000)
+        self.assertEqual(report["completedStageIntervals"]["proof_public_export"]["totalNs"],20_000_000)
+        self.assertNotIn("proof_portable_export",report["completedStageIntervals"])
+        self.assertIsNone(report["completedStageIntervals"]["proof_public_export"]["fullDemandPercentilesMs"]["p95"])
+        self.assertEqual(report["configuredDemand"],10);self.assertEqual(report["notQualified"],10)
+
 if __name__=="__main__":unittest.main()
