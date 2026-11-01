@@ -599,10 +599,19 @@ func loadPQLabMeasured(root, pin string, metrics *PQLabMetrics) (p PQLabNetworkP
 	return loadPQLabObserved(root, pin, metrics, nil)
 }
 func loadPQLabObserved(root, pin string, metrics *PQLabMetrics, originals *pqLabStaticReads) (p PQLabNetworkPlan, m chain.ConsensusMigrationState, b *ConsensusBootstrap, err error) {
-	defer pqLabMeasure(metrics, "lab.loadStaticTotal")()
-	read := pqLabRead
+	var read func(string, int64) ([]byte, error)
 	if originals != nil {
 		read = originals.read
+	}
+	return loadPQLabObservedWithRead(root, pin, metrics, read)
+}
+
+// Keep the original typed-nil entry point and the complete validation body.
+// A caller-owned held reader changes only file lifetime, never validation.
+func loadPQLabObservedWithRead(root, pin string, metrics *PQLabMetrics, read func(string, int64) ([]byte, error)) (p PQLabNetworkPlan, m chain.ConsensusMigrationState, b *ConsensusBootstrap, err error) {
+	defer pqLabMeasure(metrics, "lab.loadStaticTotal")()
+	if read == nil {
+		read = pqLabRead
 	}
 	if err = requireInspectionPath(root); err != nil {
 		return

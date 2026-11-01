@@ -78,6 +78,9 @@ type PQLabLiveMaterialsResult struct {
 type pqLabLiveMaterialsInputs struct {
 	metrics              *PQLabMetrics
 	cache                *PQLabStaticCache
+	uncached             *pqLabLiveUncachedReads
+	closed               bool
+	closeErr             error
 	policy               PQLabLiveMaterialsPolicy
 	path, pin, directory string
 	plan                 PQLabNetworkPlan
@@ -86,6 +89,122 @@ type pqLabLiveMaterialsInputs struct {
 	schedule             []byte
 	anchor               PQLabLiveMaterialsAnchor
 	originals            []*proofHostOriginal
+}
+
+// The explicit uncached path holds original public inputs for this operation's
+// lifetime, under the original per-file input limits. It is NOT a larger static
+// mathematical cache: every load reruns the full original validator and creates
+// a new fully validated migration. No current checkpoint/permission is cached.
+type pqLabLiveUncachedReads struct {
+	originals []*proofHostOriginal
+	closed    bool
+}
+
+func (r *pqLabLiveUncachedReads) read(path string, maximum int64) ([]byte, error) {
+	if r.closed {
+		return nil, errors.New("original uncached live source is closed")
+	}
+	if err := requireInspectionPath(path); err != nil {
+		return nil, err
+	}
+	for _, f := range r.originals {
+		if f.path == path {
+			if int64(len(f.raw)) > maximum {
+				return nil, errors.New("original live source exceeds its input bound")
+			}
+			if err := f.unchanged(); err != nil {
+				return nil, err
+			}
+			return f.raw, nil
+		}
+	}
+	// The fixed normal loader reads twelve originals. This guard prevents a
+	// future call site from turning the operation owner into an open file set.
+	if len(r.originals) >= pqLabStaticMaxFiles {
+		return nil, errors.New("too many original live source files")
+	}
+	f, err := readProofHostOriginal(path, "", maximum)
+	if err != nil {
+		return nil, err
+	}
+	if f.info.Mode().Perm() != 0600 {
+		return nil, errors.Join(errors.New("private operator file must be original single-link 0600 file"), f.file.Close())
+	}
+	r.originals = append(r.originals, f)
+	return f.raw, nil
+}
+
+func (r *pqLabLiveUncachedReads) current() error {
+	if r.closed {
+		return errors.New("original uncached live source is closed")
+	}
+	for _, f := range r.originals {
+		if err := requireInspectionPath(f.path); err != nil {
+			return err
+		}
+		if err := f.unchanged(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *pqLabLiveUncachedReads) close() error {
+	r.closed = true
+	var err error
+	for _, f := range r.originals {
+		err = errors.Join(err, f.file.Close())
+	}
+	r.originals = nil
+	return err
+}
+
+type pqLabLiveStaticSnapshot struct {
+	plan     PQLabNetworkPlan
+	witness  *validatedMigration
+	cached   *pqLabStaticEntry
+	uncached *pqLabLiveUncachedReads
+}
+
+func (s *pqLabLiveStaticSnapshot) current() error {
+	if s.cached != nil {
+		return s.cached.current()
+	}
+	return s.uncached.current()
+}
+
+func pqLabLiveCacheBoundOnly(err error) bool { return err == ErrPQLabStaticCacheBound }
+
+func (in *pqLabLiveMaterialsInputs) loadStatic() (*pqLabLiveStaticSnapshot, error) {
+	if in.closed || in.cache == nil || in.cache.Stats().Closed {
+		return nil, errors.New("original live source owner is closed or missing")
+	}
+	if in.uncached == nil {
+		entry, err := in.cache.load(in.policy.RootDir, in.policy.PlanSHA256, in.metrics)
+		if err == nil {
+			return &pqLabLiveStaticSnapshot{plan: entry.plan, witness: entry.witness, cached: entry}, nil
+		}
+		// A wrapped/joined bound includes a validation or Close failure. Never
+		// retry it through a different reader or reinterpret it as eligibility.
+		if !pqLabLiveCacheBoundOnly(err) {
+			return nil, err
+		}
+		in.uncached = &pqLabLiveUncachedReads{}
+	}
+	p, m, b, err := loadPQLabObservedWithRead(in.policy.RootDir, in.policy.PlanSHA256, in.metrics, in.uncached.read)
+	if err != nil {
+		return nil, err
+	}
+	end := pqLabMeasure(in.metrics, "lab.validatedMigrationOwnerBuild")
+	witness, err := newValidatedMigration(m, b)
+	end()
+	if err != nil {
+		return nil, err
+	}
+	if err = in.uncached.current(); err != nil {
+		return nil, err
+	}
+	return &pqLabLiveStaticSnapshot{plan: p, witness: witness, uncached: in.uncached}, nil
 }
 
 func pqLabLiveMaterialsDirectory(p PQLabLiveMaterialsPolicy) string {
@@ -207,7 +326,7 @@ func loadPQLabLiveMaterialsConfigMeasured(p PQLabLiveMaterialsPolicy, metrics *P
 	if err = proofHostLivePrivateDirectory(in.directory); err != nil {
 		return in, err
 	}
-	entry, loadErr := in.cache.load(in.policy.RootDir, in.policy.PlanSHA256, in.metrics)
+	entry, loadErr := in.loadStatic()
 	err = loadErr
 	if err == nil {
 		in.plan, in.migration = entry.plan, entry.witness.migration
@@ -259,12 +378,20 @@ func loadPQLabLiveMaterialsConfigMeasured(p PQLabLiveMaterialsPolicy, metrics *P
 	return in, in.current()
 }
 func (in *pqLabLiveMaterialsInputs) close() error {
+	if in.closed {
+		return in.closeErr
+	}
+	in.closed = true
 	var e error
 	for _, r := range in.originals {
 		e = errors.Join(e, r.file.Close())
 	}
 	in.originals = nil
+	if in.uncached != nil {
+		e = errors.Join(e, in.uncached.close())
+	}
 	e = errors.Join(e, in.cache.Close())
+	in.closeErr = e
 	return e
 }
 func (in *pqLabLiveMaterialsInputs) current() error {
@@ -276,7 +403,7 @@ func (in *pqLabLiveMaterialsInputs) current() error {
 	if e := proofHostLivePrivateDirectory(in.directory); e != nil {
 		return e
 	}
-	_, e := in.cache.load(in.policy.RootDir, in.policy.PlanSHA256, in.metrics)
+	_, e := in.loadStatic()
 	return e
 }
 

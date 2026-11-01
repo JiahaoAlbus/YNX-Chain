@@ -42,7 +42,7 @@ func (in *pqLabLiveMaterialsInputs) validateAnchor() error {
 	if pqLightUniqueJSON(a.CommittedState) != nil || json.Unmarshal(a.CommittedState, &state) != nil {
 		return errors.New("invalid original R state")
 	}
-	entry, err := in.cache.load(in.plan.RootDir, in.policy.PlanSHA256, in.metrics)
+	entry, err := in.loadStatic()
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (in *pqLabLiveMaterialsInputs) captureOriginalAnchor() (out PQLabLiveMateri
 			out = PQLabLiveMaterialsAnchor{}
 		}
 	}()
-	entry, err := in.cache.load(in.plan.RootDir, in.policy.PlanSHA256, in.metrics)
+	entry, err := in.loadStatic()
 	if err != nil {
 		return out, err
 	}

@@ -1114,17 +1114,22 @@ def assert_state_math_required_workflow_contract(step):
     merge = ('          cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> '
              '"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n')
     live = ("          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s "
-            "-run '^TestPQLab' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n")
+            "-run '^TestPQLab' -skip '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > \"$RUNNER_TEMP/ynx-lab-state-tests.jsonl\"; then\n")
     live_merge = ('          cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >> '
                   '"$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n')
     live_required = "          required += ['TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm', 'TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority', 'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal']\n"
+    live_fallback_required = "          required += ['TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult', 'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound', 'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose']\n"
+    large_live = '          if ! YNX_PQ_NETWORK_E2E=\'\' go test -json -p 1 -count=1 -timeout=180s -run \'^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$\' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl"; then\n'
+    large_live_merge = '          cat "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"\n'
     terminal = ("              matches = [event for event in events if event.get('Test') == name and "
                 "event['Action'] in ('pass', 'fail', 'skip')]\n"
                 "              assert len(matches) == 1 and matches[0]['Action'] == 'pass', (name, matches)\n")
     if (step.count(command) != 1 or step.count(production) != 1 or step.count(merge) != 1 or
             step.count(live) != 1 or step.count(live_merge) != 1 or step.count(live_required) != 1 or
-            step.count("./internal/consensus") != 3 or
-            step.count(terminal) != 2 or step.count("            exit 1\n") != 4 or
+            step.count(live_fallback_required) != 1 or
+            step.count(large_live) != 1 or step.count(large_live_merge) != 1 or
+            step.count("./internal/consensus") != 4 or
+            step.count(terminal) != 2 or step.count("            exit 1\n") != 5 or
             "          required = []" in step or "          for name in required:\n" not in step):
         raise AssertionError("state40 must run once with exact unique PASS events and retained failures")
 
@@ -2879,6 +2884,12 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("-run '^TestPQLab'", "-run '^TestPQLabMissing'"),
             ('          cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >>', '          echo "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >>'),
             ("'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal']", "'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusalMissing']"),
+            ("'TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult'", "'TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultMissing'"),
+            ("'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound'", "'TestPQLabLiveMaterialsCacheFallbackOnlyExactBoundMissing'"),
+            ("-skip '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'", "-skip '^TestPQLab'"),
+            ("-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$'", "-run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResultMissing$'"),
+            ('          cat "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >>', '          echo "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >>'),
+            ("'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose'", "'TestPQLabLiveMaterialsUncachedOriginalCurrentAndCloseMissing'"),
             ("-run '^TestTransactionProofInitialPreparedFundingOriginalCLI$'", "-run '^TestTransactionProofInitialPreparedFundingOriginalCLIMissing$'"),
             ("YNX_PQ_INITIAL_FUNDED_FIXTURE_OUT: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json", "UNUSED_INITIAL_FUNDED_FIXTURE: ${{ runner.temp }}/ynx-pq-initial-prepared-funding-public.json"),
             ("      - name: Verify complete large original migration through normal package and cold recovery\n", "      - name: Silently omitted large migration recovery\n"),

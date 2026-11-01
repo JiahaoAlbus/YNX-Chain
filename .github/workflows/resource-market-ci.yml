@@ -1796,11 +1796,18 @@ jobs:
           cat "$RUNNER_TEMP/ynx-production-operator-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           # Normal PQ lab producers and continuous capture run together in
           # their own bounded process. The original complete union is retained.
-          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"; then
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLab' -skip '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl"
             exit 1
           fi
           cat "$RUNNER_TEMP/ynx-lab-state-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
+          # Preserve the full union while this large original-source case
+          # receives its own unchanged 180-second process budget.
+          if ! YNX_PQ_NETWORK_E2E='' go test -json -p 1 -count=1 -timeout=180s -run '^TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult$' ./internal/consensus > "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl"; then
+            cat "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-lab-large-source-tests.jsonl" >> "$RUNNER_TEMP/ynx-initial-cache-state-tests.jsonl"
           python3 -B - <<'PY'
           import json, os
           from pathlib import Path
@@ -1809,6 +1816,7 @@ jobs:
           required += ['TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm', 'TestPQLabLiveMaterialsBoundedPolicyNoSyntheticAuthority', 'TestPQLabLiveMaterialsIndependentAnchorAndEitherBranchRefusal']
           required += ['TestPQLabStaticOwnerPUBLICExactInputsBoundedAndClosed', 'TestPQLabStaticOwnerPUBLICReplacedSourceAndForeignScopeRefused', 'TestPQLabStaticOwnerPUBLICFileBoundFallsBackWithoutRetention', 'TestPQLabStaticOwnerPUBLICLivePublishMeasuresAndRetainsOriginalState', 'TestPQLabStaticOwnerPUBLICPrivateReadContract', 'TestPQLabStaticOwnerPUBLICOverByteBoundNeverIssuesUnheldOwner']
           required += ['TestPQLabStaticCacheBoundCleanRefusalIsExact', 'TestPQLabStaticCacheBoundCleanupFailureIsNotOnlyBound']
+          required += ['TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult', 'TestPQLabLiveMaterialsCacheFallbackOnlyExactBound', 'TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose']
           required += ['TestInitializeApplicationPUBLICSingleOwnedWitness', 'TestInitializeApplicationPUBLICDetachedCallerAfterReservation', 'TestInitializeApplicationPUBLICOwnedJournalColdGuards', 'TestBootstrapMatchesMigrationStreamReferenceCompleteBinding', 'TestBootstrapMatchesMigrationStreamInlineEveryByteAndNil', 'TestBootstrapMatchesMigrationStreamLargeOriginalHistory']
           for name in required:
               matches = [event for event in events if event.get('Test') == name and event['Action'] in ('pass', 'fail', 'skip')]

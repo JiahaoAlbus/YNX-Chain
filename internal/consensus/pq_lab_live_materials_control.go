@@ -350,9 +350,16 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err != nil {
 		return out, err
 	}
+	// The source plan identifies the actual held original, which may contain
+	// legal JSON whitespace. Its raw SHA is not the derived canonical SHA.
+	migrationOriginal, err := readProofHostOriginal(p.MigrationFile, "", 1<<30)
+	if err != nil {
+		return out, err
+	}
+	defer func() { err = errors.Join(err, migrationOriginal.unchanged(), migrationOriginal.file.Close()) }()
 	n := p.Nodes[c.in.policy.NodeIndex]
 	policy := c.in.policy
-	plan := ProofHostSourcePlan{Version: ProofHostSourcePlanVersion, SourceID: "pq-lab-" + p.SessionID, Epoch: "1", OperationID: r.TransactionSHA256, Account: owner, NetworkID: p.OriginalGenesisHash, OriginalHash: "0x" + r.NativeWireHash, MigrationFile: p.MigrationFile, MigrationSHA256: pqLabSHA(migrationRaw), GenesisFile: p.GenesisFile, ConsensusGenesisSHA256: p.CometGenesisSHA256, OriginalGenesisHash: p.OriginalGenesisHash, MigrationStateHash: p.MigrationStateHash, StateFile: n.StatePath, StateLayout: "atomic-json", CometDataDirectory: filepath.Join(n.Home, "data"), SigningStatePath: n.SignerStateFile, SigningLockKind: "pq-signer", ScheduleFile: a.ScheduleFile, ScheduleHash: a.ScheduleHash, ScheduleSHA256: pqLabSHA(c.in.schedule), EngineHeight: strconv.FormatInt(actual.LastBlockHeight, 10), EngineAppHash: hex.EncodeToString(actual.AppHash), TrustedHeight: strconv.FormatInt(trusted.Height, 10), TrustedBlockHash: hex.EncodeToString(trusted.Hash()), TrustingPeriodNanoseconds: strconv.FormatInt(int64(policy.TrustingPeriod), 10), MaxClockDriftNanoseconds: strconv.FormatInt(int64(policy.MaxClockDrift), 10), TrustLevelNumerator: strconv.FormatUint(policy.TrustNumerator, 10), TrustLevelDenominator: strconv.FormatUint(policy.TrustDenominator, 10), ExpectedTransaction: expected}
+	plan := ProofHostSourcePlan{Version: ProofHostSourcePlanVersion, SourceID: "pq-lab-" + p.SessionID, Epoch: "1", OperationID: r.TransactionSHA256, Account: owner, NetworkID: p.OriginalGenesisHash, OriginalHash: "0x" + r.NativeWireHash, MigrationFile: p.MigrationFile, MigrationSHA256: pqLabSHA(migrationOriginal.raw), GenesisFile: p.GenesisFile, ConsensusGenesisSHA256: p.CometGenesisSHA256, OriginalGenesisHash: p.OriginalGenesisHash, MigrationStateHash: p.MigrationStateHash, StateFile: n.StatePath, StateLayout: "atomic-json", CometDataDirectory: filepath.Join(n.Home, "data"), SigningStatePath: n.SignerStateFile, SigningLockKind: "pq-signer", ScheduleFile: a.ScheduleFile, ScheduleHash: a.ScheduleHash, ScheduleSHA256: pqLabSHA(c.in.schedule), EngineHeight: strconv.FormatInt(actual.LastBlockHeight, 10), EngineAppHash: hex.EncodeToString(actual.AppHash), TrustedHeight: strconv.FormatInt(trusted.Height, 10), TrustedBlockHash: hex.EncodeToString(trusted.Hash()), TrustingPeriodNanoseconds: strconv.FormatInt(int64(policy.TrustingPeriod), 10), MaxClockDriftNanoseconds: strconv.FormatInt(int64(policy.MaxClockDrift), 10), TrustLevelNumerator: strconv.FormatUint(policy.TrustNumerator, 10), TrustLevelDenominator: strconv.FormatUint(policy.TrustDenominator, 10), ExpectedTransaction: expected}
 	planRaw, err := json.Marshal(plan)
 	if err != nil {
 		return out, err
@@ -365,6 +372,13 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 		return out, err
 	}
 	defer func() { err = errors.Join(err, in.close()) }()
+	canonicalMigration, err := in.migration.CanonicalJSON()
+	if err != nil {
+		return out, err
+	}
+	if !bytes.Equal(canonicalMigration, migrationRaw) {
+		return out, errors.New("held source migration differs from original live migration")
+	}
 	in.ctx = ctx
 	// These bytes were captured from the SAME original Node/App above. The
 	// final real read and original continuation validator authenticate any
@@ -395,7 +409,9 @@ func (c *PQLabLiveMaterialsControl) capture(ctx context.Context, r PQLabLiveMate
 	if err != nil {
 		return out, err
 	}
-	m := PQLabProofMaterials{Version: PQLabProofMaterialsVersion, Migration: files["migration"], Genesis: files["genesis"], CommittedState: files["state"], Schedule: files["schedule"], TrustedLightBlock: files["trustedLightBlock"], Pins: p.pins(), ScheduleHash: a.ScheduleHash, EngineHeight: actual.LastBlockHeight, EngineAppHash: bytes.Clone(actual.AppHash), TrustingPeriod: policy.TrustingPeriod, MaxClockDrift: policy.MaxClockDrift, TrustNumerator: policy.TrustNumerator, TrustDenominator: policy.TrustDenominator, Expected: e}
+	// captured.Files/Source retain the exact raw source. Only this separate
+	// verifier input is canonicalized after full original-source validation.
+	m := PQLabProofMaterials{Version: PQLabProofMaterialsVersion, Migration: canonicalMigration, Genesis: files["genesis"], CommittedState: files["state"], Schedule: files["schedule"], TrustedLightBlock: files["trustedLightBlock"], Pins: p.pins(), ScheduleHash: a.ScheduleHash, EngineHeight: actual.LastBlockHeight, EngineAppHash: bytes.Clone(actual.AppHash), TrustingPeriod: policy.TrustingPeriod, MaxClockDrift: policy.MaxClockDrift, TrustNumerator: policy.TrustNumerator, TrustDenominator: policy.TrustDenominator, Expected: e}
 	materialRaw, err := json.Marshal(m)
 	if err != nil {
 		return out, err

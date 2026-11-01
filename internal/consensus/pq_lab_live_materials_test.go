@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ import (
 	dbm "github.com/cometbft/cometbft-db"
 	cmtconfig "github.com/cometbft/cometbft/config"
 	cmted "github.com/cometbft/cometbft/crypto/ed25519"
+	cmtjson "github.com/cometbft/cometbft/libs/json"
 	"github.com/cometbft/cometbft/libs/log"
 	"github.com/cometbft/cometbft/mempool"
 	"github.com/cometbft/cometbft/node"
@@ -34,6 +36,10 @@ import (
 // / PrivValidator / BlockExecutor. It opens no TCP port and never Node.Start.
 // Its commits are synthetic test executions, not a four-process network claim.
 func pqLabLiveMaterialsFixture(t *testing.T, root string) (PQLabNetworkPlan, PQLabExportOptions, PQLabLiveMaterialsSetup) {
+	return pqLabLiveMaterialsFixtureWithPadding(t, root, false)
+}
+
+func pqLabLiveMaterialsFixtureWithPadding(t *testing.T, root string, largeOriginal bool) (PQLabNetworkPlan, PQLabExportOptions, PQLabLiveMaterialsSetup) {
 	t.Helper()
 	source, err := NewPQLabWorkloadSource(PQLabWorkloadOptions{Transfers: 4, BatchSize: 2, Owners: 2, Online: true})
 	if err != nil {
@@ -49,6 +55,18 @@ func pqLabLiveMaterialsFixture(t *testing.T, root string) (PQLabNetworkPlan, PQL
 		t.Fatal(err)
 	}
 	pin := pqLabSHA(planRaw)
+	if largeOriginal {
+		// The original migration decoder accepts JSON whitespace. Preserve the
+		// exact semantic migration/genesis pins while exceeding only the optional
+		// 32 MiB cache, using the same two-owner counterexample as the sender.
+		raw, e := os.ReadFile(p.MigrationFile)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if e = os.WriteFile(p.MigrationFile, append(bytes.Repeat([]byte(" "), 33<<20), raw...), 0600); e != nil {
+			t.Fatal(e)
+		}
+	}
 	_, m, b, err := loadPQLab(root, pin)
 	if err != nil {
 		t.Fatal(err)
@@ -326,6 +344,195 @@ func TestPQLabLiveMaterialsOriginalAnchorContinuousProofAndSenderConfirm(t *test
 		root = filepath.Join(pqLabWorkloadTemp(t), "lab")
 	}
 	p, o, setup := pqLabLiveMaterialsFixture(t, root)
+	pqLabLiveMaterialsAssertContinuousProof(t, root, p, o, setup)
+}
+
+func TestPQLabLiveMaterialsCacheBoundOriginalSetupRequestResult(t *testing.T) {
+	root := filepath.Join(pqLabWorkloadTemp(t), "lab")
+	p, o, setup := pqLabLiveMaterialsFixtureWithPadding(t, root, true)
+	in, err := loadPQLabLiveMaterialsPolicy(setup.Policy.Path, setup.Policy.SHA256)
+	if err != nil {
+		t.Fatal("large original policy/anchor", err)
+	}
+	if in.uncached == nil || in.cache.Stats().Entries != 0 || in.cache.Stats().Bypasses != 1 {
+		t.Fatal("large inputs became a larger mathematical cache", in.cache.Stats())
+	}
+	// Even after the exact cache bound, the real original R signature is still
+	// authenticated. No selected current header replaces this independent pin.
+	anchorRaw := bytes.Clone(in.anchor.LightBlock)
+	block, err := DecodePQTrustedLightBlock(anchorRaw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block.Commit.Signatures[0].Signature[0] ^= 1
+	in.anchor.LightBlock, err = cmtjson.Marshal(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = in.validateAnchor(); err == nil {
+		t.Fatal("cache fallback bypassed the original anchor signature")
+	}
+	in.anchor.LightBlock = anchorRaw
+	if err = in.validateAnchor(); err != nil {
+		t.Fatal("original anchor no longer validates", err)
+	}
+	if err = in.close(); err != nil {
+		t.Fatal(err)
+	}
+	pqLabLiveMaterialsAssertContinuousProof(t, root, p, o, setup)
+	// The source plan pins the actual original bytes, whereas the independent
+	// normal verifier consumes an explicitly derived canonical migration. Never
+	// attach the latter's SHA to a different original file or rewrite that file.
+	original, err := os.ReadFile(p.MigrationFile)
+	if err != nil || len(original) <= pqLabStaticMaxBytes || original[0] != ' ' {
+		t.Fatal("large original migration was rewritten", err)
+	}
+	for seq := uint32(1); seq <= 2; seq++ {
+		dir := pqLabLiveOutputPath(filepath.Dir(setup.Policy.Path), seq)
+		planRaw, e := os.ReadFile(filepath.Join(dir, "derived-source-plan.json"))
+		if e != nil {
+			t.Fatal(e)
+		}
+		plan, e := DecodeProofHostSourcePlan(planRaw, pqLabSHA(planRaw))
+		if e != nil || plan.MigrationFile != p.MigrationFile || plan.MigrationSHA256 != pqLabSHA(original) {
+			t.Fatal("source plan lost the exact original migration bytes", e)
+		}
+		materialRaw, e := os.ReadFile(filepath.Join(dir, "materials.json"))
+		if e != nil {
+			t.Fatal(e)
+		}
+		materials, e := DecodePQLabProofMaterials(materialRaw, pqLabSHA(materialRaw))
+		if e != nil || bytes.Equal(materials.Migration, original) || !bytes.Equal(bytes.TrimSpace(original), materials.Migration) {
+			t.Fatal("canonical verifier material does not derive from the original migration", e)
+		}
+	}
+}
+
+func TestPQLabLiveMaterialsCacheFallbackOnlyExactBound(t *testing.T) {
+	if !pqLabLiveCacheBoundOnly(ErrPQLabStaticCacheBound) {
+		t.Fatal("clean optional cache bound must use full uncached validation")
+	}
+	for _, err := range []error{nil, errors.New("signature or current checkpoint invalid"), fmt.Errorf("wrapped: %w", ErrPQLabStaticCacheBound), errors.Join(ErrPQLabStaticCacheBound), errors.Join(ErrPQLabStaticCacheBound, errors.New("source changed"))} {
+		if pqLabLiveCacheBoundOnly(err) {
+			t.Fatal("non-exact cache error selected a different validation path", err)
+		}
+	}
+	// Exercise an actual descriptor close error from the original bounded
+	// reader, not only synthetic errors whose text mentions Close.
+	path := filepath.Join(pqLabWorkloadTemp(t), "public")
+	if err := os.WriteFile(path, []byte("x"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reads := &pqLabStaticReads{cacheable: true, bytes: pqLabStaticMaxBytes, originals: []*proofHostOriginal{{file: f}}}
+	_, err = reads.read(path, 1)
+	if !errors.Is(err, ErrPQLabStaticCacheBound) || pqLabLiveCacheBoundOnly(err) {
+		t.Fatal("cache bound plus real close error was reduced to eligibility", err)
+	}
+}
+
+func TestPQLabLiveMaterialsUncachedOriginalCurrentAndClose(t *testing.T) {
+	source, err := NewPQLabWorkloadSource(PQLabWorkloadOptions{Transfers: 2, BatchSize: 1, Owners: 2, Online: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer source.Destroy()
+	root := filepath.Join(pqLabWorkloadTemp(t), "lab")
+	p, err := GeneratePQLabNetwork(source.Migration, PQLabNetworkOptions{RootDir: root, BaseP2P: 31656, BaseRPC: 31757})
+	if err != nil {
+		t.Fatal(err)
+	}
+	planRaw, err := os.ReadFile(filepath.Join(root, "network-plan.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(p.MigrationFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	large := append(bytes.Repeat([]byte(" "), 33<<20), raw...)
+	if err = os.WriteFile(p.MigrationFile, large, 0600); err != nil {
+		t.Fatal(err)
+	}
+	policy := PQLabLiveMaterialsPolicy{RootDir: root, PlanSHA256: pqLabSHA(planRaw)}
+	in := &pqLabLiveMaterialsInputs{policy: policy, directory: root, cache: NewPQLabStaticCache()}
+	t.Cleanup(func() { _ = in.close() })
+	first, err := in.loadStatic()
+	if err != nil {
+		t.Fatal("original large static validator", err)
+	}
+	if in.uncached == nil || len(in.uncached.originals) != 12 || in.cache.Stats().Entries != 0 || in.cache.Stats().OriginalBytes != 0 {
+		t.Fatal("uncached owner did not hold the exact bounded original file set", in.cache.Stats())
+	}
+	checks := validatedMigrationFullChecks.Load()
+	if err = in.current(); err != nil {
+		t.Fatal("valid original current", err)
+	}
+	second, err := in.loadStatic()
+	if err != nil || second.witness == first.witness || validatedMigrationFullChecks.Load() < checks+2 || in.cache.Stats().Bypasses != 1 {
+		t.Fatal("uncached current reused a mathematical witness or retried the optional cache", err)
+	}
+	// The original typed-nil private entry point remains the original no-cache
+	// loader; no interface conversion may turn it into a dereferenced nil reader.
+	var typedNil *pqLabStaticReads
+	plan, migration, bootstrap, err := loadPQLabObserved(root, policy.PlanSHA256, nil, typedNil)
+	if err != nil || plan.ChainID != p.ChainID || migration.StateHash != first.witness.migration.StateHash || bootstrap == nil {
+		t.Fatal("typed-nil original loader changed", err)
+	}
+	bad := &pqLabLiveMaterialsInputs{policy: policy, directory: root, cache: NewPQLabStaticCache()}
+	bad.policy.PlanSHA256 = strings.Repeat("0", 64)
+	if _, err = bad.loadStatic(); err == nil || bad.uncached != nil || bad.cache.Stats().Bypasses != 0 {
+		t.Fatal("wrong independent pin reached uncached fallback", err)
+	}
+	if err = bad.close(); err != nil {
+		t.Fatal(err)
+	}
+	// Rewriting a still valid, same semantic migration must not rebase the
+	// original held operation onto new file identity/content.
+	if err = os.WriteFile(p.MigrationFile, append(large, '\n'), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err = in.current(); err == nil {
+		t.Fatal("uncached current silently replaced the original migration")
+	}
+	if err = first.current(); err == nil {
+		t.Fatal("issued snapshot lost its original held-source binding")
+	}
+	if err = os.WriteFile(p.MigrationFile, append(large, '!'), 0600); err != nil {
+		t.Fatal(err)
+	}
+	malformed := &pqLabLiveMaterialsInputs{policy: policy, directory: root, cache: NewPQLabStaticCache()}
+	if snapshot, e := malformed.loadStatic(); e == nil || snapshot != nil || pqLabLiveCacheBoundOnly(e) || malformed.cache.Stats().Entries != 0 {
+		t.Fatal("cache refusal concealed invalid original migration", e)
+	}
+	if err = malformed.close(); err != nil {
+		t.Fatal(err)
+	}
+	// Force a real Close failure; all other held FDs must still close, the
+	// failure remains observable, and an uncached owner cannot resume afterward.
+	held := append([]*proofHostOriginal(nil), in.uncached.originals...)
+	if err = held[0].file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	closeErr := in.close()
+	if closeErr == nil || in.close() != closeErr || in.current() == nil || first.current() == nil {
+		t.Fatal("uncached owner swallowed Close failure or resumed", closeErr)
+	}
+	for _, f := range held {
+		if _, err = f.file.Stat(); err == nil {
+			t.Fatal("failure prevented remaining original descriptors from closing")
+		}
+	}
+}
+
+func pqLabLiveMaterialsAssertContinuousProof(t *testing.T, root string, p PQLabNetworkPlan, o PQLabExportOptions, setup PQLabLiveMaterialsSetup) {
+	t.Helper()
 	if setup.AuthorityGranted || setup.NodeStarted || !setup.SyntheticOnly {
 		t.Fatal("setup claimed authority or execution")
 	}
