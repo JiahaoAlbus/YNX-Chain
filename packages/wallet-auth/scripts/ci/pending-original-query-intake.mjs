@@ -1,0 +1,4 @@
+// Only the new normal composition and types. Original Auth 15 groups reused.
+import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+const cwd=fileURLToPath(new URL('../../',import.meta.url));
+for(const [step,args]of [['normal-pending-query-import',['--test','test/pending-original-query-intake.test.mjs']],['normal-pending-query-types',['node_modules/typescript/bin/tsc','--noEmit','--strict','--target','ES2022','--module','NodeNext','--moduleResolution','NodeNext','test/pending-original-query-intake.types.mts']]]){const r=spawnSync(process.execPath,args,{cwd,encoding:'utf8',maxBuffer:1048576});if(r.stdout)process.stdout.write(r.stdout);if(r.stderr)process.stderr.write(r.stderr);console.log(JSON.stringify({step,status:r.status,signal:r.signal,error:r.error?.code??null}));if(r.status!==0)process.exit(r.status??1);}

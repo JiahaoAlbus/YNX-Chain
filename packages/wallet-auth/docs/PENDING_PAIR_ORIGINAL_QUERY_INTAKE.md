@@ -1,0 +1,24 @@
+# Pending PAIR original query — normal SDK source intake
+
+Formal source is Auth `pending-original-query-successor/evidence/pending-query-O2vtnk/HANDOFF.json`, 9935 bytes SHA256 714965596ba292cf8189c7b2c012fca6d064f5c763752864caa7f827ea598902. Its original DATA/SQLite15 plus transport4 =19 groups are pinned/reused, not rerun here. The earlier 8160/66138 source H is retained as exact unchanged query/store provenance, not mislabelled latest.
+
+Four fixed constants remain POST `/v4/product-pairs/original-query`, domain `YNX/PRODUCT-PAIR/PENDING-ORIGINAL-QUERY/V1`, purpose `product-device-pending-original-query-v1`. Pending ID is SAME original PAIR body.operationId. `originalRequestBodyDigest` is SHA256 of the FULL original PAIR POST UTF8 bytes (`issuer_v4_operations.input_sha256`), not product requestDigest, registration digest, header/member hash or query body hash. Query raw is exact canonical three-key `{version:'1',operationId,originalRequestBodyDigest}` Buffer; operationId and digest are lowercase hex64. queryBodyDigest separately hashes this exact new query body, max1024. Original PAIR post max393216.
+
+DATA module `src/product-pair-pending-original-query-data.mjs` is byte-identical supplier source. Exports `PENDING_ORIGINAL_QUERY_CONTRACT`, `decodePendingPairOriginalQueryDATA`, `projectPendingPairOriginalQueryDATA`; types are its normal `.d.mts`. Buffer-only capture matches producer ABI; no new public encoder, signer, sessionBinding, Core frame or authority.
+
+Original `src/product-pair-session-v4-store.js` changes by EXACT one import and one method `readPendingPairOriginalQueryDATA({queryOriginal,originalPairPost,actor})`. Removing those two additions reconstructs be49 source byte-for-byte. It reads the original namespace+operation through independent read-only SQLite handle, validates actor/kind/input and original audit for COMMITTED, checks original identity, and closes that handle. No new store/DB/schema, writes, WAL mutation or existing-method rewrites. Existing schema is byte-identical. Selected DB row/raw input/actor is not projected over HTTP. DATA API types do not turn a row or caller actor into trusted Source.
+
+Absent row produces NOT_FOUND DATA, ENTERED produces UNKNOWN, COMMITTED returns exact historical result as OBSERVED DATA. NOT_FOUND does not establish effect absence; OBSERVED does not establish registration/current/connected/new session/finality; every projection keeps retryAuthorized:false. Preserve original operations/unknowns. No replacement ID/nonce, replay PAIR, expiry rewrite, direct DB injection or active-session fallback.
+
+Formal transport module `src/product-pair-pending-query-transport-data.mjs`, also exact supplier bytes, exports `PENDING_QUERY_TRANSPORT_RULES` and `inspectPendingPairQueryTransportDATA(value,independentlyExpectedServiceOrigin,explicitAuthorityTimeMs)`. Exact four data fields nonce/issuedAt/expiresAt/serviceOrigin; nonce is base64url lexical32..64, timestamps exact ISO24 milliseconds and valid Date roundtrip, 0<TTL<=30000, issued<=at<expires. serviceOrigin is canonical HTTPS authority origin equal to separately selected genuine server Source origin, never product origin. The normal value is https://wallet-auth.ynxweb4.com, not a caller endpoint setter. Its result is DATA only/sourceAdmission:false/sessionGranted:false. Core owns actual independent E13 typed proof and final order; existing HTTP21 remains unchanged and must not be substituted.
+
+Independent Core typed proof, real pending-query Source/current/actor/registration windows, Native producer and normal authenticated route remain NOT_SUPPLIED by this intake. No Root/service activation/native qualification/actual HTTP/account/funds was attempted.
+
+Normal CI entry, package-root relative:
+`node scripts/ci/pending-original-query-intake.mjs`
+It runs only new normal same-package module/store import, exact source/schema readback, transport same-package integration and strict types. It does not create a SQLite DB or rerun original 19/Core/Native/legacy groups. Original Auth results remain referenced by verified raw stdout/stderr pins in BASE.json and TRANSPORT_INTAKE.json.
+
+Suggested normal Node-only subpaths (parent owns package/exports/lock merging):
+- `./product-pair-pending-original-query-data`: types ./src/product-pair-pending-original-query-data.d.mts, node ./src/product-pair-pending-original-query-data.mjs, browser/default null.
+- `./product-pair-pending-query-transport-data`: types ./src/product-pair-pending-query-transport-data.d.mts, node ./src/product-pair-pending-query-transport-data.mjs, browser/default null.
+Existing package files `src` and `scripts` already include source/type/CI additions; only this documentation path needs files-add if desired. No package.json/package-lock was changed, and no subpath is claimed published by this source-only result.
