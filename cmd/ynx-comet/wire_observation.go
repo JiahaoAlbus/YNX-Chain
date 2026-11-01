@@ -242,16 +242,20 @@ type observedNodeStop interface {
 // Keep the original stop order and errors. Disabled observation does not read
 // a snapshot, touch the filesystem or wait on any additional lifecycle handle.
 func stopPQNodeWithObservation(node observedNodeStop, o *operatorWireObservation) error {
+	return stopPQNodeWithObservations(node, o, nil)
+}
+
+func stopPQNodeWithObservations(node observedNodeStop, o *operatorWireObservation, commit *operatorCommitObservation) error {
 	var stopErr error
 	if node.IsRunning() {
 		stopErr = node.Stop()
 	}
-	if o == nil || stopErr != nil {
+	if o == nil && commit == nil || stopErr != nil {
 		return stopErr
 	}
 	select {
 	case <-node.Quit(): // BaseService closes this only AFTER Node.OnStop returns.
-		return o.writeAfterStop()
+		return errors.Join(o.writeAfterStopIfConfigured(), commit.writeAfterStop())
 	default:
 		return errors.New("wire observation has no completed normal Node.Stop; no output written")
 	}
@@ -353,4 +357,11 @@ func (o *operatorWireObservation) close() error {
 		o.directory = nil
 	}
 	return result
+}
+
+func (o *operatorWireObservation) writeAfterStopIfConfigured() error {
+	if o == nil {
+		return nil
+	}
+	return o.writeAfterStop()
 }

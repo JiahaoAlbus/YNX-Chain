@@ -36,6 +36,9 @@ func (p pqOptions) validateApplicationLayout() error {
 }
 
 func newOperatorApplication(migration chain.ConsensusMigrationState, path string, bootstrap *consensus.ConsensusBootstrap, pq *consensus.PQEngineAuthorization, options pqOptions) (*consensus.Application, error) {
+	if err := options.validateCommitObservationMigration(migration); err != nil {
+		return nil, err
+	}
 	if err := options.validateInvoiceOptions(); err != nil {
 		return nil, err
 	}
@@ -89,6 +92,14 @@ func newOperatorApplication(migration chain.ConsensusMigrationState, path string
 	}
 	if err != nil {
 		return nil, err
+	}
+	if options.commitObservationConfigured() {
+		if options.commitObservationBind == nil {
+			return nil, errors.New("Commit observation requires the normal original application consumer")
+		}
+		if err := options.commitObservationBind(app, migration); err != nil {
+			return nil, err
+		}
 	}
 	return app, nil
 }

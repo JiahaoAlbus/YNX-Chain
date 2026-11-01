@@ -43,10 +43,12 @@ type pqOptions struct {
 	checkpointAccess                                                  consensus.PQCheckpointAccess
 	checkpointAccessRequested                                         bool
 	wireObservationOutput, wireObservationScope                       string
+	commitObservationOutput, commitObservationScope                   string
+	commitObservationBind                                             func(*consensus.Application, chain.ConsensusMigrationState) error
 }
 
 func (p pqOptions) enabled() bool {
-	return p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured() || p.wireObservationConfigured()
+	return p.invoiceConfigured() || p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured() || p.checkpointAccessConfigured() || p.wireObservationConfigured() || p.commitObservationConfigured()
 }
 
 func (p pqOptions) remote() bool {
@@ -64,6 +66,9 @@ func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
 }
 
 func (p pqOptions) validate() error {
+	if err := p.validateCommitObservation(); err != nil {
+		return err
+	}
 	if err := p.validateWireObservation(); err != nil {
 		return err
 	}
@@ -339,6 +344,14 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 		return err
 	}
 	defer func() { result = errors.Join(result, observation.close()) }()
+	commitObservation, err := prepareOperatorCommitObservation(config, options)
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, commitObservation.close()) }()
+	if commitObservation != nil {
+		options.commitObservationBind = commitObservation.bind
+	}
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 	if config.LogFormat == cfg.LogFormatJSON {
 		logger = log.NewTMJSONLogger(log.NewSyncWriter(os.Stdout))
@@ -347,6 +360,7 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if err != nil {
 		return err
 	}
+	logger = wrapOperatorCommitLogger(logger, commitObservation)
 	ctx, stop := signal.NotifyContext(command.Context(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	var node *nm.Node
@@ -410,12 +424,13 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 		return err
 	}
 	observation.started()
+	commitObservation.started()
 	defer func() { result = errors.Join(result, node.ProxyApp().Stop()) }()
 	var liveDone <-chan struct{}
 	if live != nil {
 		if err = live.Start(ctx); err != nil {
 			_ = live.Close()
-			return errors.Join(err, stopPQNodeWithObservation(node, observation))
+			return errors.Join(err, stopPQNodeWithObservations(node, observation, commitObservation))
 		}
 		liveDone = live.Done()
 	}
@@ -461,7 +476,7 @@ waitForStop:
 	if options.remote() {
 		_ = custody.Close()
 	} // unblock any pending remote call before node shutdown
-	return errors.Join(result, stopPQNodeWithObservation(node, observation))
+	return errors.Join(result, stopPQNodeWithObservations(node, observation, commitObservation))
 }
 
 func closePQCustody(custody io.Closer) error {
@@ -492,6 +507,7 @@ func main() {
 	registerProofHostLiveFlags(f, &options)
 	registerCheckpointAccessFlags(f, &options)
 	registerWireObservationFlags(f, &options)
+	registerCommitObservationFlags(f, &options)
 	f.StringVar(&options.runtimePlan, "runtime-upgrade-plan", "", "canonical independently pinned old-runtime upgrade plan")
 	f.StringVar(&options.runtimePlanHash, "runtime-upgrade-plan-hash", "", "independent exact runtime upgrade plan hash")
 	f.StringVar(&options.invoiceSchedule, "pq-invoice-schedule", "", "canonical independently pinned invoice activation schedule (default disabled)")
