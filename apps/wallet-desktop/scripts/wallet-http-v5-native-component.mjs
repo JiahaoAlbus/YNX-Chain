@@ -3,16 +3,23 @@
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
+import {types} from 'node:util';
 import {PINNED_NODE_HEADER_PINS} from './canonical-package.mjs';
 import {verifySDK49FullRuntimeTables} from './sdk49-runtime-source.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex');
-export const HTTP_V5_NORMAL_INPUT=Object.freeze({path:'apps/wallet-desktop/native/http-v5-normal-build-inputs.json',bytes:101964,sha256:'ffcec448f7710ce1e6599695e807ce3885e7cc02f36fcc4a09b534cb454cb4e8'});
+export const HTTP_V5_NORMAL_INPUT=Object.freeze({path:'apps/wallet-desktop/native/http-v5-normal-build-inputs.json',bytes:101964,sha256:'dd46d03a07336ceb709292a80f963841abe105eba949f1dde641b2dbc53e5e23'});
 const raw=readFileSync(new URL('../native/http-v5-normal-build-inputs.json',import.meta.url));
 const fail=()=>{throw Error('WALLET_HTTP_V5_MATCHED_NORMAL_COMPONENT_REQUIRED');};
 if(raw.length!==HTTP_V5_NORMAL_INPUT.bytes||hash(raw)!==HTTP_V5_NORMAL_INPUT.sha256)fail();
 const manifest=JSON.parse(raw),output='apps/wallet-desktop/native/original-auth-identity.node';
 if(manifest.kind!=='YNX_WALLET_HTTP_V5_NORMAL_BUILD_INPUTS/v1'||manifest.sdkSource!=='98467012696ad5b0f51425c5f6c48e20fe4f9b4e'||manifest.translationUnits!==33||manifest.files.filter(p=>p.path.endsWith('.a')).length!==1||manifest.files.find(p=>p.path.endsWith('.a')).sha256!=='f078524c371648a284343d69496e4d37276f3a90bea220af7ef99e568e883c6a')fail();
 export const HTTP_V5_NORMAL_ROLE=Object.freeze({kind:'YNX_WALLET_HTTP_V5_NORMAL_SINGLE_CORE/v1',sdkSource:manifest.sdkSource,input:HTTP_V5_NORMAL_INPUT,SourceAdmission:false,RootAdmission:false});
+export const HTTP_V5_REQUIRED_NAPI_EXPORTS=Object.freeze(['originalPQOpen','originalPQOpenInitial','originalPQTransactionOnce','acquireOriginalProductSessionHTTPProofV5Source','acquireOriginalProductSessionDeviceV4RegisteredFinalizationSource','acquireOriginalPQHostCatalogSource','isOriginalPQHostCatalogSource','readOriginalPQHostCatalogHandoff','assertOriginalPQHostCatalogSourceCurrent','observeOriginalPQHostCatalogSourceRevocation','retireOriginalPQHostCatalogSource','joinOriginalPQHostCatalogSource','closeOriginalPQHostCatalogSource','readOriginalPQHostCatalogSourceStatus']);
+export function assertHTTPV5NormalNativeExports(image){
+ if(!image||types.isProxy(image))fail();
+ for(const key of HTTP_V5_REQUIRED_NAPI_EXPORTS){const d=Object.getOwnPropertyDescriptor(image,key);if(!d||!Object.hasOwn(d,'value')||typeof d.value!=='function')throw Error('WALLET_HTTP_V5_NORMAL_EXPORT_MISSING:'+key);}
+ return Object.freeze({required:HTTP_V5_REQUIRED_NAPI_EXPORTS.length,SourceInvoked:false,SourceAdmission:false});
+}
 const table=[...manifest.files,HTTP_V5_NORMAL_INPUT],names=table.map(p=>p.path);
 if(new Set(names).size!==names.length)fail();
 export const HTTP_V5_NORMAL_INPUT_NAMES=Object.freeze(names);

@@ -80,8 +80,8 @@
     },
     {
       "path": "apps/wallet-desktop/native/original-auth-identity-node.mm",
-      "bytes": 64249,
-      "sha256": "731f57f948a6007640b5e611ca229de83935e682f1d006cf48e59840c93711af"
+      "bytes": 64587,
+      "sha256": "bea837a58395567ee77a8919aaaa1ad4892e1e3909700c98e43c6e7bb9f07276"
     },
     {
       "path": "apps/wallet-desktop/native/original-device-finalization-storage-correlation.inc",

@@ -4,12 +4,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
-import {HTTP_V5_NORMAL_ROLE,HTTP_V5_NORMAL_INPUT,HTTP_V5_NORMAL_INPUT_NAMES,verifyHTTPV5NormalComponent} from '../scripts/wallet-http-v5-native-component.mjs';
+import {HTTP_V5_NORMAL_ROLE,HTTP_V5_NORMAL_INPUT,HTTP_V5_NORMAL_INPUT_NAMES,verifyHTTPV5NormalComponent,HTTP_V5_REQUIRED_NAPI_EXPORTS,assertHTTPV5NormalNativeExports} from '../scripts/wallet-http-v5-native-component.mjs';
 import {canonicalNativeInputSelection,PINNED_NODE_HEADER_PINS,verifyCanonicalNativeReceipt} from '../scripts/canonical-package.mjs';
 import {verifySDK13NativeComponent} from '../scripts/sdk13-native-component.mjs';
 // Actual frozen source bytes, PUBLIC output/receipt DATA. These tests do not
 // create a Native image, perform Source admission, or attest compilation.
 const root=fileURLToPath(new URL('../../..',import.meta.url)),read=n=>fs.readFileSync(path.join(root,n)),m=JSON.parse(read(HTTP_V5_NORMAL_INPUT.path)),hash=b=>createHash('sha256').update(b).digest('hex');
+test('normal ABI requires all original Host Catalog entries before a candidate can be called complete',()=>{
+ let calls=0;const image=Object.fromEntries(HTTP_V5_REQUIRED_NAPI_EXPORTS.map(k=>[k,()=>{calls++;}]));assert.equal(assertHTTPV5NormalNativeExports(image).SourceInvoked,false);assert.equal(calls,0);
+ for(const key of HTTP_V5_REQUIRED_NAPI_EXPORTS.slice(5)){const absent={...image};delete absent[key];assert.throws(()=>assertHTTPV5NormalNativeExports(absent),/NORMAL_EXPORT_MISSING/);}
+ let getters=0;Object.defineProperty(image,'acquireOriginalPQHostCatalogSource',{get(){getters++;throw false;}});assert.throws(()=>assertHTTPV5NormalNativeExports(image),/NORMAL_EXPORT_MISSING/);assert.equal(getters,0);
+});
 function fixture(){
  const native=Buffer.from('PUBLIC addon DATA'),helper=Buffer.from('PUBLIC helper DATA'),sourceRoot='/PUBLIC/repo',headerRoot='/PUBLIC/headers',pin=(relative,b)=>({relative,bytes:b.length,sha256:hash(b)}),commands=rows=>rows.map(c=>({tool:c.tool,argv:c.argv.map(a=>a.replaceAll('${SOURCE_ROOT}',sourceRoot).replaceAll('${HEADER_ROOT}',headerRoot))})),inputs=[...m.files,HTTP_V5_NORMAL_INPUT].map(p=>({relative:p.path,bytes:p.bytes,sha256:p.sha256})).sort((a,b)=>a.relative.localeCompare(b.relative,'en')),scan=relative=>({tool:'/usr/bin/nm',argv:['-u',sourceRoot+'/'+relative],exit:0,stdoutSHA256:hash(Buffer.from('PUBLIC scan')),ownedUndefined:[]});
  const record={schemaVersion:1,kind:'YNX_WALLET_ORIGINAL_NATIVE_BUILD',napiVersion:8,headerVersion:'22.13.1',minimumSystemVersion:'13.0',readbackOnly:false,commandsKind:'executed-normal-build',appSigned:false,nativeQualified:false,registrationAccepted:false,relativeBases:{inputFiles:'repository-root',output:'repository-root',headers:'pinned-header-root'},sourceRoot,headerRoot,sourceInventory:{relative:m.sdkInventory.path,bytes:m.sdkInventory.bytes,sha256:m.sdkInventory.sha256},inputFiles:inputs,headers:PINNED_NODE_HEADER_PINS,architectures:['arm64'],httpV5NormalRole:HTTP_V5_NORMAL_ROLE,commands:commands(m.commands),exitCodes:m.commands.map(()=>0),output:pin('apps/wallet-desktop/native/original-auth-identity.node',native),ownedUndefinedScan:scan('apps/wallet-desktop/native/original-auth-identity.node')};

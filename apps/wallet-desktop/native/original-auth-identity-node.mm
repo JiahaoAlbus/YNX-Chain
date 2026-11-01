@@ -418,6 +418,10 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #include "../../../packages/wallet-auth/native/original-ide-parent-joint.inc.mm"
 #include "original-private-service-owner.inc.mm"
 #include "original-ide-private-client.inc.mm"
+// Original Host Catalog binding uses the existing ProjectText/ProjectData DATA
+// converters from this same normal addon, never a caller-supplied Source.
+#include "original-ide-project-authority-binding.inc.mm"
+#include "original-pq-host-catalog-source-owner.inc.mm"
 #ifdef YNX_ORIGINAL_WALLET_NATIVE_PQ_CUSTODY
 #include "original-pq-transaction-binding.inc.mm"
 #endif
@@ -452,6 +456,7 @@ static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullpt
 #include "original-product-device-v5-source-stage.inc.mm"
 #endif
 static napi_value Register(napi_env env,napi_value exports){
+ if(!RegisterOriginalPQHostCatalogSource(env,exports))return nullptr;
  struct Method {const char *name;napi_callback callback;void *data;};
  Method methods[]={{"captureOriginalIDEPrivateClient",IDEClientCapture,nullptr},{"assertOriginalIDEPrivateClientReady",IDEClientReady,nullptr},{"captureOriginalIDEPrivateClientResult",IDEClientResult,nullptr},{"acquireOriginalNativePrivateServiceOwner",ServiceAcquire,nullptr},{"assertOriginalNativePrivateServiceOwnerReady",ServiceReady,nullptr},{"readOriginalNativePrivateServiceRequest",ServiceRead,nullptr},{"writeOriginalNativePrivateServiceResponse",ServiceWrite,nullptr},{"retireOriginalNativePrivateServiceOwner",ServiceLifecycle,(void*)0},{"joinOriginalNativePrivateServiceOwner",ServiceLifecycle,(void*)1},{"closeOriginalNativePrivateServiceOwner",ServiceLifecycle,(void*)2},{"acquireOriginalIDEAdministrationProfile",IDEAcquireAdministration,nullptr},{"readOriginalIDEParentInstalledFrame",IDEInstalledFrame,nullptr},{"assertOriginalIDEParentAcknowledgement",IDEAcknowledge,nullptr},{"beginOriginalIDEParentPrelude",IDEBeginPrelude,nullptr},{"takeOriginalIDEParentSenderDescriptor",IDETakeSender,nullptr},{"acquireOriginalIDEAdmissionParentDelivery",IDENodeAcquire,nullptr},{"reserveOriginalIDEParentIntent",IDEReserve,nullptr},{"readOriginalIDEParentIntent",IDEIntentRead,nullptr},{"assertOriginalIDEParentIntentCurrent",IDEIntentLifecycle,(void *)ideIntentCurrent},{"retireOriginalIDEParentIntent",IDEIntentLifecycle,(void *)ideIntentRetire},{"joinOriginalIDEParentIntent",IDEIntentLifecycle,(void *)ideIntentJoin},{"closeOriginalIDEParentIntent",IDEIntentLifecycle,(void *)ideIntentClose},{"acquireOriginalAdministrationProfile",Acquire,nullptr},{"readOriginalAdministrationProfile",ReadAdministration,nullptr},{"assertOriginalAdministrationProfileCurrent",Lifecycle,(void *)adminCurrent},{"retireOriginalAdministrationProfile",Lifecycle,(void *)adminRetire},{"joinOriginalAdministrationProfile",Lifecycle,(void *)adminJoin},{"closeOriginalAdministrationProfile",Lifecycle,(void *)adminClose},{"reserveOriginalJointRegistration",Reserve,nullptr},{"commitOriginalJointRegistration",Commit,nullptr},{"readOriginalJointRegistration",ReadJoint,nullptr},{"assertOriginalJointCurrent",Lifecycle,(void *)jointCurrent},{"assertOriginalJointExecutorChild",Lifecycle,(void *)jointChild},{"assertOriginalJointSuccession",Lifecycle,(void *)jointSuccession},{"retireOriginalJoint",Lifecycle,(void *)jointRetire},{"joinOriginalJoint",Lifecycle,(void *)jointJoin},{"closeOriginalJoint",Lifecycle,(void *)jointClose},
  {"acquireOriginalIDEColdTerminalCustody",HostJournalAcquireCold,nullptr},{"openOriginalHostRetainedTerminalJournal",HostJournalOpenRetained,nullptr},{"readOriginalHostRetainedTerminalCustody",HostJournalRetainedResult,nullptr},
