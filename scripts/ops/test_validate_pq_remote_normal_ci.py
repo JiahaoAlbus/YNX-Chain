@@ -1592,7 +1592,7 @@ def assert_workflow_contract(raw):
     need("    needs: focused-go\n" in paired_job)
     need("    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha && inputs.paired_n1\n" in paired_job)
     need("    timeout-minutes: 5\n" in paired_job)
-    need("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || 15 }}\n" in job)
+    need("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || 25 }}\n" in job)
     need("permissions:\n  contents: read\n  actions: read\n" in raw)
     need("      normal_ci_run_id:\n" in raw)
     for leaf in ("scripts/ops/validate-pq-remote-normal-ci.py", "scripts/ops/test_validate_pq_remote_normal_ci.py"):
@@ -2117,8 +2117,8 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             raw.replace(network, network.replace("--consensus-fresh-paired-business", "--consensus-signed-business", 1), 1),
             raw.replace(network, network.replace("if started > now or remaining < 150:", "if remaining < 120:", 1), 1),
             raw.replace(prepare, "", 1).replace(network, network + prepare, 1),
-            raw.replace("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || 15 }}\n",
-                "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 15 || 15 }}\n", 1)]
+            raw.replace("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || 25 }}\n",
+                "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 15 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || 25 }}\n", 1)]
         for index, changed in enumerate(mutations):
             self.assertNotEqual(changed, raw)
             with self.subTest(index=index), self.assertRaises(AssertionError):
@@ -2740,6 +2740,29 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             with self.subTest(index=index), self.assertRaises(AssertionError):
                 assert_workflow_contract(changed)
 
+    def test_source_only_budget_never_extends_any_actual_window(self):
+        # Check the closed Actions source expression and each mode separately;
+        # this does not assert that a runner admitted or executed any window.
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        job, _ = workflow_steps(raw)
+        line = next(line for line in job.splitlines() if line.startswith("    timeout-minutes:"))
+        modes = ("paired_n1", "consensus_e2e", "consensus_e2e_retained_history",
+                 "consensus_remote_e2e_retained_history", "remote_signer_process",
+                 "consensus_fresh_paired_business")
+        mutations = []
+        for mode in modes:
+            changed = re.sub(re.escape("inputs." + mode) + r"(?![a-z0-9_])", "false", line)
+            self.assertNotEqual(changed, line)
+            mutations.append(changed)
+        mutations.extend((line.replace("&& 12 ||", "&& 15 ||", 1),
+                          line.replace(") && 15 ||", ") && 25 ||", 1),
+                          line.replace("|| 25 }}", "|| 26 }}", 1),
+                          "    timeout-minutes: 25"))
+        assert_workflow_contract(raw)
+        for index, changed in enumerate(mutations):
+            with self.subTest(index=index), self.assertRaises(AssertionError):
+                assert_workflow_contract(raw.replace(line, changed, 1))
+
     def test_contract_deploy_fixture_reuses_gateway_execution_and_uploads_only_real_public_output(self):
         # Source controls do not manufacture the fixture or claim Go passed.
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
@@ -2779,7 +2802,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             ("-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecovery$'", "-run '^TestCometMigrationReferenceLargeCanonicalPackageBootstrapRecoveryMissing$'"),
             ("steps.normalci.outcome == 'success' && steps.pqnetworkcontracts.outcome == 'success'", "true"),
             ('--normal-run-id "$YNX_NORMAL_CI_RUN_ID"', "--normal-run-id '${{ inputs.normal_ci_run_id }}'"),
-            ("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || 15 }}\n", "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || 18 }}\n"),
+            ("    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 15 || 25 }}\n", "    timeout-minutes: ${{ inputs.consensus_fresh_paired_business && 12 || (inputs.paired_n1 || inputs.consensus_e2e || inputs.consensus_e2e_retained_history || inputs.consensus_remote_e2e_retained_history || inputs.remote_signer_process) && 18 || 25 }}\n"),
             ("activeMs=105000, cleanupMs=15000, totalMs=120000", "activeMs=120000, cleanupMs=15000, totalMs=135000"),
             ("if started > now or remaining < 150:", "if remaining < 120:"),
             ("remaining = started + 12*60 - now", "remaining = started + 15*60 - now"),
