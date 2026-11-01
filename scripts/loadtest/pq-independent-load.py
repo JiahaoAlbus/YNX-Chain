@@ -558,7 +558,7 @@ def run(args):
         if network is not None and network.start is not None:
             try:
                 original_load=result.get("loadResult",{})
-                result["networkAccounting"]=network.finish(original_load.get("qualified"),{key:original_load.get(key) for key in ("originMonotonicNs","offeredWindowEndMonotonicNs","windowNs","observationCutoffNs")})
+                result["networkAccounting"]=network.finish(original_load.get("qualified"),{key:original_load.get(key) for key in ("originMonotonicNs","offeredWindowEndMonotonicNs","windowNs","observationCutoffNs")},load_result=original_load)
                 if monitor is not None:monitor.check()
             except Exception as error:
                 result["networkAccounting"]=dict(status="UNKNOWN",reason="original network checkpoint or accounting failed",errorType=type(error).__name__,physicalBytesMeasured=False,gainsQualified=False)

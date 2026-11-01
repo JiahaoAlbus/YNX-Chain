@@ -575,3 +575,38 @@ These are public protocol/metrics adapter fixtures, not real custody, signature,
 proof or business evidence. New source Go validation and actual500 outcomes
 remain separate original CORE CI jobs. Existing39/41/cleanup/scheduler groups
 are not repeated merely for the new handoff.
+
+Directional hop readback reuses the frozen LINK TCP sampler and layer validator;
+`--network-accounting` also retains `network-hop-accounting.json`. Each directed
+owned P2P connection keeps its original PID/startTicks/netns, exact tuple,
+socket inode/cookie, endpoint timestamps and counter source hashes. Hop totals
+use **sender `bytesSent` only**. Reverse endpoint `bytesReceived` is a separate
+cross-check, and retransmission counters are neither added nor subtracted.
+These are whole-connection, matched-endpoint TCP counters across all P2P channels,
+including any consensus/background work. Handshakes, sockets born and closed
+between checkpoints, TCP/IP headers, link framing and exact transaction attribution
+remain missing; loopback data is not physical wire or four physical hosts.
+
+The full configured demand is retained. Only a completely qualified cohort with
+its original offered+tail clock inside the capture bracket can expose a clearly
+labelled matched-endpoint cohort ratio. It never becomes actual per-transaction
+physical bytes. Missing/reset/reused/spliced counters stay UNKNOWN. In particular,
+the57839-byte logical wire object is never used as a physical byte measurement.
+No listener, packet capture, namespace change, privilege request or traffic is
+started by the hop accountant. Controlled packet capture remains the original
+network owner's separate permission/scope/evidence dependency.
+
+Offline original artifacts can be read with `pq-hop-byte-accounting.py --account`:
+pass `--binding`, `--start`, `--end`, `--receipt` as the original
+`network-binding.json`, `network-start.json`, `network-end.json`, `receipt.json`,
+the external SHA256 for each via its matching `--*-sha256`, and a fresh absolute
+`--output`. Default mode is inert. New isolated controls only:
+
+```sh
+python3 -I -B scripts/loadtest/test_pq_hop_byte_accounting.py -v
+```
+
+These use UNIT counter vectors, not observed packet/business measurements.
+Original proof/Commit groups need not be rerun for this independent accounting
+change. Actual network snapshots still require the original owned Linux nodes;
+absence of permissions/publishers never enables a fallback capture.

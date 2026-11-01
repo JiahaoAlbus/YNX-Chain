@@ -77,7 +77,7 @@ class NetworkWindow:
         setattr(self,side,checkpoint)
         return checkpoint
 
-    def finish(self,qualified_count,load_clock=None):
+    def finish(self,qualified_count,load_clock=None,load_result=None):
         self.lab.require(self.start is not None and self.end is None,"original start checkpoint required before finish")
         self.capture("end")
         result=self.layers.account_layers(binding=self.binding,start=self.start,end=self.end)
@@ -86,5 +86,9 @@ class NetworkWindow:
             captureScope="brackets load plus all drain/consumer overhead; neither atomic nor the exact offered-rate window",
             samplingOverheadNs=dict(start=str(int(self.start["endMonotonicNs"])-int(self.start["startMonotonicNs"])),end=str(int(self.end["endMonotonicNs"])-int(self.end["startMonotonicNs"]))),
             originalCheckpoints=[dict(path="network-%s.json"%side,sha256=self.lab.guard.digest(self.c.w.work/("public/network-%s.json"%side))) for side in ("start","end")])
+        path=Path(__file__).with_name("pq-hop-byte-accounting.py")
+        spec=importlib.util.spec_from_file_location("original_hop_byte_accounting",path);hops=importlib.util.module_from_spec(spec);spec.loader.exec_module(hops)
+        result["perHopTCPAccounting"]=hops.directional_hops(self.binding,self.start,self.end,load_result)
+        self.lab.write_new(self.c.w.work/"public/network-hop-accounting.json",result["perHopTCPAccounting"])
         self.lab.write_new(self.c.w.work/"public/network-accounting.json",result)
         return result
