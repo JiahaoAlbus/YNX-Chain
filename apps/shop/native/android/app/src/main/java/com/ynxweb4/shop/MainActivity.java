@@ -469,7 +469,7 @@ public final class MainActivity extends Activity {
         try{
             ProductSession expected=api.session();if(expected==null){showAccount();pendingAfterOrderSignIn=link;pendingAfterOrderView=viewRevision;pendingOrderSignInDispatched=false;status.setText(R.string.wallet_sign_in);return;}
             OriginalOrderLink.Read read=link.begin(expected);retireOriginalOrderRead();cancelOrderAction();cancelPayPresentation();clearAI();viewRevision++;final long view=viewRevision;originalOrderRead=read;
-            content.removeAllViews();content.addView(text(getString(R.string.nav_orders),24,true));content.addView(text(link.orderID,14,true));content.addView(text(OriginalOrderLink.CHAIN,12,false));
+            content.removeAllViews();content.addView(text(getString(R.string.nav_orders),24,true));content.addView(text(link.orderID,14,true));content.addView(text(link.account,12,false));content.addView(text(OriginalOrderLink.CHAIN,12,false));
             LinearLayout result=column();content.addView(result);content.addView(action(getString(R.string.retry),()->openOriginalOrderLink(link)));status.setText(R.string.loading);
             api.request("GET",read.path(),null,()->originalOrderRead==read&&view==viewRevision&&read.current(api.session()),(order,error)->{
                 if(originalOrderRead!=read||view!=viewRevision)return;

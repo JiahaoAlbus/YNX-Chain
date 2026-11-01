@@ -24,11 +24,12 @@ final class NativeIntentObservation {
    JSONObject r=receipts.getJSONObject(i);
    if(!"shop.order".equals(r.getString("productId"))||!order.getString("StoreID").equals(r.getString("storeId"))||!order.getString("ID").equals(r.getString("sourceOrder"))||!order.getString("PayMerchant").equals(r.getString("merchant"))||!p.getString("InvoiceID").equals(r.getString("invoiceId"))||!p.getString("SessionID").equals(r.getString("sessionId"))||!p.getString("TermsHash").equals(r.getString("termsHash"))||!p.getString("SettlementNativeHash").equals(r.getString("settlementNativeHash")))throw new SecurityException("Rebound Native payment");
    if("invoice_settle".equals(r.getString("kind"))&&"confirmed".equals(r.getString("status"))){
-    if(!p.getString("SettlementNativeHash").equals(r.getString("nativeHash"))||!order.getString("Buyer").equals(r.getString("payer"))||!order.getString("PayPayoutAddress").equals(r.getString("recipient")))throw new SecurityException("Settlement party differs");settlements++;
+    if(!p.getString("SettlementNativeHash").equals(r.getString("nativeHash"))||!sameHexBuyer(order.getString("Buyer"),r.getString("payer"))||!order.getString("PayPayoutAddress").equals(r.getString("recipient")))throw new SecurityException("Settlement party differs");settlements++;
    }
   }
   if(settlements!=1)throw new SecurityException("Original settlement required");
  }
+ private static boolean sameHexBuyer(String a,String b){return a.equals(b)||(a.matches("0x[a-fA-F0-9]{40}")&&b.matches("0x[a-fA-F0-9]{40}")&&a.equalsIgnoreCase(b));}
  private static java.math.BigInteger atoms(String value){
   if(!value.matches("0|[1-9][0-9]{0,19}"))throw new SecurityException("Exact atoms required");
   java.math.BigInteger n=new java.math.BigInteger(value);if(n.bitLength()>64)throw new SecurityException("Atoms overflow");return n;

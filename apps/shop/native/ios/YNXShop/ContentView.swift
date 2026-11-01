@@ -16,7 +16,7 @@ struct ContentView:View {
         NavigationStack{AccountView().id(model.privacyRevision)}.tabItem{Label("nav_account",systemImage:"person.crop.circle")}.tag(3)
     }.sheet(item:$model.originalOrderLink,onDismiss:{model.originalOrderSheetDismissed()}){link in
         VStack(alignment:.leading,spacing:18){
-            Text("nav_orders").font(.title2);Text(link.orderID).font(.caption.monospaced());Text(OriginalOrderLink.chainID).font(.caption)
+            Text("nav_orders").font(.title2);Text(link.orderID).font(.caption.monospaced());Text(link.account).font(.caption.monospaced());Text(OriginalOrderLink.chainID).font(.caption)
             if !model.signedIn{Button("wallet_sign_in"){model.signIn()}}
             else if model.originalOrderLoading{ProgressView()}
             else if let order=model.linkedOriginalOrder{Text(LocalizedStringKey(order.status));Text("\(order.totalYNXT.formatted()) YNXT");if let refund=order.refundStatus{Text(refund).font(.caption)};NativeOrderAmounts(order:order)}

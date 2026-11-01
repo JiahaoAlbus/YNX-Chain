@@ -117,6 +117,10 @@ struct NativePaymentProjection:Codable {
     let PrincipalAtoms:String;let PaidAtoms:String;let RefundedAtoms:String;let NetPaidAtoms:String
     let ReconciliationRequired:Bool;let Receipts:[NativePaymentClaim]
     let PendingOriginals:[String]?;let CompleteKnownOriginals:Bool
+    private static func sameHexBuyer(_ a:String?,_ b:String?)->Bool {
+        guard let a,let b else{return false}
+        return a==b || (NativeWire.matches(a,"^0x[a-fA-F0-9]{40}$") && NativeWire.matches(b,"^0x[a-fA-F0-9]{40}$") && a.lowercased()==b.lowercased())
+    }
     func validate(_ order:Order)throws {
         func atoms(_ text:String)throws->UInt64 {guard let n=UInt64(text),String(n)==text else{throw ShopError.security};return n}
         let principal=try atoms(PrincipalAtoms),paid=try atoms(PaidAtoms),refunded=try atoms(RefundedAtoms),net=try atoms(NetPaidAtoms)
@@ -125,7 +129,7 @@ struct NativePaymentProjection:Codable {
         for receipt in Receipts {
             guard receipt.productId=="shop.order",receipt.storeId==order.storeID,receipt.sourceOrder==order.orderID,receipt.invoiceId==InvoiceID,receipt.sessionId==SessionID,receipt.termsHash==TermsHash,receipt.merchant==order.payMerchant,receipt.settlementNativeHash==SettlementNativeHash else{throw ShopError.security}
             if receipt.kind=="invoice_settle" && receipt.status=="confirmed" {
-                guard receipt.nativeHash==SettlementNativeHash,receipt.payer==order.buyer,receipt.recipient==order.payPayoutAddress else{throw ShopError.security};settlementCount+=1
+                guard receipt.nativeHash==SettlementNativeHash,Self.sameHexBuyer(receipt.payer,order.buyer),receipt.recipient==order.payPayoutAddress else{throw ShopError.security};settlementCount+=1
             }
         }
         guard settlementCount==1 else{throw ShopError.security}

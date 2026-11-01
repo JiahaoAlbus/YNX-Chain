@@ -20,7 +20,9 @@ This entry adds no Wallet UI, session issuer, signing, payment or authorization.
   Order ID is `[A-Za-z0-9][A-Za-z0-9._:-]{0,127}`. Account is the canonical
   `ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}` public account selector. Literal
   colon is supported in the order ID; `%3A` is not this client's canonical URI.
-  Total URI is bounded to 512 bytes. The URI is navigation DATA, never authority.
+  Total URI is bounded to 512 bytes. This is syntax validation only; checksum,
+  account and network authority stay with the original SDK and actual current
+  session. The URI is navigation DATA, never authority.
 
 Example shape (not a supplied customer account or paid-order assertion):
 `ynxshop://orders/order_original?account=ynx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq&chainId=ynx_6423-1`.
@@ -107,3 +109,10 @@ connects through the existing Wallet flow. Only the matching actual Native
 account can continue its authorized original GET after return; a different
 account drops the selector without fetching another account's order. No private
 queue/session or URL-supplied receipt is persisted by this navigation flow.
+
+
+The Native payer consistency check preserves original stored Buyer spelling.
+Two syntactically valid 20-byte `0x` representations may differ only in hex
+letter casing, matching the normal backend's account comparison. A different
+payload is rejected; no account alias, signed receipt or stored Buyer is
+rewritten by the UI.

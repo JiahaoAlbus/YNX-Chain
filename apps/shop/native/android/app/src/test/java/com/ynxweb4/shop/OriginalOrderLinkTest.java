@@ -31,6 +31,8 @@ public class OriginalOrderLinkTest {
   JSONObject full=new JSONObject(new String(java.nio.file.Files.readAllBytes(fullPath),java.nio.charset.StandardCharsets.UTF_8));full.put("WalletBuyer",A);
   OriginalOrderLink.parse(link(full.getString("ID"),A)).begin(current).validate(full,current);
   assertEquals("refunded",full.getString("Status"));assertEquals("100",full.getJSONObject("NativePayment").getString("RefundedAtoms"));assertEquals("0",full.getJSONObject("NativePayment").getString("NetPaidAtoms"));
+  JSONObject cased=new JSONObject(actual.toString());cased.put("Buyer","0x"+actual.getString("Buyer").substring(2).toUpperCase(java.util.Locale.ROOT));read.validate(cased,current);
+  JSONObject foreign=new JSONObject(actual.toString());foreign.put("Buyer","0x"+"f".repeat(40));assertThrows(SecurityException.class,()->read.validate(foreign,current));
   actual.remove("NativePayment");assertThrows(Exception.class,()->read.validate(actual,current));
  }
 }
