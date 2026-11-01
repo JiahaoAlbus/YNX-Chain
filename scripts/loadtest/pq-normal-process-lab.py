@@ -704,6 +704,7 @@ def run(args):
             if getattr(ceremony,"live_reader",None) is not None:
                 result["liveNetworkReads"]=ceremony.live_reader.evidence
         result["parentResourceSamplingElapsed"]=sampling_report()
+        result["resourceGuardStageElapsed"]=w.sample_stage_report()
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,
                       processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples,
                       completedFunctionalProofs=[p.name for p in (work/"public").glob("functional-owner-*-final-proof.json")])

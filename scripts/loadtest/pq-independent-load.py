@@ -757,6 +757,7 @@ def run(args):
             except Exception as error:
                 result["ownedStorageAccounting"]=dict(status="UNKNOWN",reason=str(error),actualLoadWindowCommitCount=None)
                 result["firstCause"]=result["firstCause"] or "original store accounting failed"
+        result["resourceGuardStageElapsed"]=w.sample_stage_report()
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()
@@ -766,6 +767,7 @@ def run(args):
             result['failedCalleeMeasurements']=dict(attempted=getattr(ceremony,'failed_callee_attempts',0),retained=len(getattr(ceremony,'failed_callee_measurements',[])),recordLimit=64,records=copy.deepcopy(getattr(ceremony,'failed_callee_measurements',[])),successfulReplyCoverageUnchanged=True,authorityGranted=False)
         if "loadResult" not in result:
             result["preparationOnlyDemandAccounting"]=dict(configuredDemand=demand,notReleased=demand,notSubmitted=demand,notQualified=demand,meaning="normal preparation never opened the requested load window; no achieved offered rate or business TPS")
+        if getattr(args,'staged_publication',False):normal.apply_normal_clean_exit(result)
         if getattr(args,'initialization_only',False):
             try:result['initializationDataValidation']=initialization.require_complete_initialization(result)
             except BaseException as error:

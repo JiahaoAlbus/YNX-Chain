@@ -488,7 +488,7 @@ class BoundedSenderBackendControls(unittest.TestCase):
         self.assertEqual(available_slots(original_slots), 2)
 
     def test_execute_flag_fails_before_source_check_or_node_when_qualification_absent(self):
-        self.assertEqual(driver.STAGED_CALLEE_SOURCE,'896ea094c985cd4b9e90681e436285a9bba0a979')
+        self.assertEqual(driver.STAGED_CALLEE_SOURCE,'9081f14654a48f4fe14e57696ec33527869da353')
         self.assertIsNone(driver.STAGED_SOURCE_QUALIFICATION)
         args = SimpleNamespace(mode="online", rate=100, accounts=500, per_account=1, seconds=5, tail_seconds=30, proof_timeout=30, staged_publication=True, execute=True, commit=driver.STAGED_CALLEE_SOURCE, source="/UNIT-SOURCE-NEVER-READ", network_accounting=False, wire_observation=False)
         with mock.patch.object(driver.lab, "check_source") as checked, mock.patch.object(driver.lab, "Window") as window, mock.patch.object(driver.lab, "git") as git, mock.patch.object(driver.lab, "ports_available") as ports:

@@ -16,13 +16,13 @@ def inputs():
     commit=dict(actualCalleeSHA=m.SOURCE,actualCalleeTree=m.TREE,controllerSHA=m.SOURCE,runId=str(m.CHAIN_RUN),runAttempt='1',skipped=0,actualFourNodeWindow=False,dualPQ500CrossSourceEquality=False,authorityGranted=False,workflowOnlyContinuation=False,publicActivation=False,testJSONBytes=100,testJSONSHA256='a'*64,requiredPassed=sorted(m.COMMIT_CASES))
     client=dict(commit=m.SOURCE,nodeProcessesStarted=0,publicActivation=False,requiredPassed=sorted(m.CLIENT_CASES));wire=dict(commit=m.SOURCE,physicalBytesMeasured=False,nodeProcessesStarted=0,requiredPassed=sorted(m.WIRE_CASES))
     logs={'resource':log(('YNX_LAB_CALLEE_TESTS',cli),('YNX_INITIAL_CACHE_STATE_TESTS',state)),'commit':log(('YNX_NORMAL_COMMIT_CONSUMER_CASES_EXECUTED',commit)),'client':log(('YNX_PQ_LAB_CALLEES_EXECUTED',client),('YNX_ORIGINAL_WIRE_OBSERVATION_CALLEES_EXECUTED',wire))}
-    facts=dict(runs=runs,jobs=jobs,sourceGraph=dict(sha=m.SOURCE,tree={'sha':m.TREE},parents=[{'sha':'84a57203f2ea10dfa51c9c4cef817ea3cc411b9c'}]));return facts,logs
+    facts=dict(runs=runs,jobs=jobs,sourceGraph=dict(sha=m.SOURCE,tree={'sha':m.TREE},parents=[{'sha':m.SOURCE_PARENT}]));return facts,logs
 
 class OriginalLiveSourceIntakeControls(unittest.TestCase):
     def test_three_groups_qualify_only_source_not_full500_or_pressure(self):
         facts,logs=inputs();d=m.qualify(facts,logs);self.assertTrue(d['sourceFunctionalQualified']);self.assertFalse(d['actual500InitializedOwnersQualified'] or d['pressureAuthorized'] or d['sourceGrant']);self.assertEqual(set(d['officialLinuxGroups']),set(m.JOBS))
     def test_old_source_wrong_tree_attempt_or_incomplete_job_refused(self):
-        for mutate in [lambda f:f['runs'][str(m.RESOURCE_RUN)].update(head_sha='c4b39c73ec3a43c2ba32f7071bb735b0c0447f5e'),lambda f:f['sourceGraph']['tree'].update(sha='0'*40),lambda f:f['runs'][str(m.CHAIN_RUN)].update(run_attempt=2),lambda f:f['jobs']['resource'].update(status='in_progress'),lambda f:f['jobs']['resource'].update(conclusion='failure')]:
+        for mutate in [lambda f:f['sourceGraph'].update(parents=[{'sha':'0'*40}]),lambda f:f['runs'][str(m.RESOURCE_RUN)].update(head_sha='896ea094c985cd4b9e90681e436285a9bba0a979'),lambda f:f['runs'][str(m.RESOURCE_RUN)].update(head_sha='c4b39c73ec3a43c2ba32f7071bb735b0c0447f5e'),lambda f:f['sourceGraph']['tree'].update(sha='0'*40),lambda f:f['runs'][str(m.CHAIN_RUN)].update(run_attempt=2),lambda f:f['jobs']['resource'].update(status='in_progress'),lambda f:f['jobs']['resource'].update(conclusion='failure')]:
             facts,logs=inputs();mutate(facts)
             with self.assertRaises(RuntimeError):m.qualify(facts,logs)
     def test_executed_marker_not_echoed_script_and_no_duplicate_marker(self):

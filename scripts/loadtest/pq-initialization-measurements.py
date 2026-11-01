@@ -12,9 +12,9 @@ import stat
 import time
 
 
-LIVE_SOURCE='896ea094c985cd4b9e90681e436285a9bba0a979'
-LIVE_TREE='b99d095d2783da95c64583e81084f0b928ec3532'
-SOURCE_FUNCTIONAL_SHA256='4ff5e4d1a301e4b8c636baadcfde1459f35107f2e2b5dedc456a3817f3e7deae' # Exact original three-Linux-group DATA, not full500.
+LIVE_SOURCE='9081f14654a48f4fe14e57696ec33527869da353'
+LIVE_TREE='8c12ec07479bf6664cf279adb6395c704ead33e1'
+SOURCE_FUNCTIONAL_SHA256='9744b10e2d40d4674ffc3dfaa2273349e9d7a8b13e22aa268724ce69c9386a22' # Exact original three-Linux-group DATA, not full500.
 
 
 class InitializationStages:
@@ -115,12 +115,12 @@ def source_functional_data():
     # Source-functional DATA only; actual full500 initialization remains a
     # separate normal run, and business pressure retains its absent hard gate.
     if type(SOURCE_FUNCTIONAL_SHA256) is not str or len(SOURCE_FUNCTIONAL_SHA256)!=64:raise RuntimeError('exact new live-source Linux qualification NOT_SUPPLIED')
-    path=Path(__file__).with_name('fixtures')/'896-live-functional-original.json'
+    path=Path(__file__).with_name('fixtures')/'9081-live-functional-original.json'
     with path.open('rb') as source:raw=source.read((64<<10)+1)
     if hashlib.sha256(raw).hexdigest()!=SOURCE_FUNCTIONAL_SHA256:raise RuntimeError('exact new original source-functional receipt pin differs')
     data=json.loads(raw)
     if not (data['schema']=='YNX-PERF-LIVE-SOURCE-FUNCTIONAL-DATA/v1' and data['sourceSHA']==LIVE_SOURCE and data['sourceTree']==LIVE_TREE and data['sourceFunctionalQualified'] is True and set(data['officialLinuxGroups'])=={'resource','commit','client'} and data['actual500InitializedOwnersQualified'] is False and data['pressureAuthorized'] is False and data['sourceGrant'] is False):raise RuntimeError('original live-source functional scope differs')
-    return dict(receiptSHA256=SOURCE_FUNCTIONAL_SHA256,source=LIVE_SOURCE,runId=41306177925,jobId=124846905898,scope='three original Linux source-functional groups only',actual500OwnerInputPreviouslyQualified=False,pressureAuthorized=False,wholeResourceCIConclusionAtReceipt=data['workflowObservations']['resource']['conclusion'])
+    return dict(receiptSHA256=SOURCE_FUNCTIONAL_SHA256,source=LIVE_SOURCE,runId=41323073613,jobId=124897211801,scope='three original Linux source-functional groups only',actual500OwnerInputPreviouslyQualified=False,pressureAuthorized=False,wholeResourceCIConclusionAtReceipt=data['workflowObservations']['resource']['conclusion'])
 
 
 def require_complete_initialization(result):
@@ -134,6 +134,7 @@ def require_complete_initialization(result):
     require(result.get('source',{}).get('commit')==LIVE_SOURCE and result.get('source',{}).get('tree')==LIVE_TREE,'exact original qualified live source and tree required')
     require(result.get('caps')==caps and result.get('configuredDemand')==500 and result.get('mode')=='online','unchanged original caps and full500 cohort required')
     require(result.get('initializationOnlyRequested') is True and result.get('initializationOnlyComplete') is True and result.get('cleanupComplete') is True and result.get('firstCause') is None and result.get('normalLiveCalleeUsed') is True,'normal initialization incomplete or cleanup debt; preserve first cause')
+    require(result.get('normalNodeCleanExit',{}).get('allEightExitZero') is True and result['normalNodeCleanExit'].get('operationalCleanExit') is True,'all eight original normal node exit0 required independently from cleanup')
     require(result.get('loadExecuted') is False and 'loadResult' not in result,'initialization receipt cannot contain a business load result')
     demand=result.get('preparationOnlyDemandAccounting',{})
     require(all(demand.get(k)==500 for k in ('configuredDemand','notReleased','notSubmitted','notQualified')),'full unreleased500 demand must remain visible')

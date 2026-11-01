@@ -7,6 +7,7 @@ The presently available producer/client profile is explicitly legacy-native;
 PQ requires the owning normal producer/client integration, never a relabel.
 """
 import argparse
+import contextlib
 import ctypes
 import errno
 import hashlib
@@ -80,14 +81,22 @@ def private_bytes(root):
     # Module download/extraction also belongs to this operation. Bound its
     # inventory separately from the older tiny paired-fixture profile.
     total = count = 0
-    for directory, names, files in os.walk(root, followlinks=False):
-        require(len(Path(directory).relative_to(root).parts) <= 40, "artifact depth bound")
-        for name in names + files:
-            count += 1; require(count <= 200000, "artifact inventory bound")
-            try: info = (Path(directory) / name).lstat()
-            except FileNotFoundError: continue
-            require(stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode), "nonregular private artifact")
-            if stat.S_ISREG(info.st_mode): total += max(info.st_size, info.st_blocks * 512)
+    pending = [(os.fspath(root), 0)]
+    while pending:
+        directory, depth = pending.pop()
+        require(depth <= 40, "artifact depth bound")
+        try:
+            entries = os.scandir(directory)
+        except FileNotFoundError:
+            continue  # Same original concurrently removed-directory handling.
+        with entries:
+            for entry in entries:
+                count += 1; require(count <= 200000, "artifact inventory bound")
+                try: info = entry.stat(follow_symlinks=False)
+                except FileNotFoundError: continue
+                require(stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode), "nonregular private artifact")
+                if stat.S_ISDIR(info.st_mode): pending.append((entry.path, depth + 1))
+                else: total += max(info.st_size, info.st_blocks * 512)
     return total
 
 
@@ -317,6 +326,7 @@ class ProcessEvidence:
 class Window:
     def __init__(self, source, work, additional_storage=()):
         self.lock = threading.RLock()
+        self.sample_stage_totals = {}
         self.source, self.work = source, work
         self.storage_roots = [work, *additional_storage]
         self.started = time.monotonic()
@@ -326,7 +336,7 @@ class Window:
         self.retired_evidence=ProcessEvidence(self.retired_samples,("pid","startTicks","reason","rssError","statError"))
         self.fallback_evidence=ProcessEvidence(self.rss_fallback_samples,("pid","startTicks","tid","threadStartTicks","sampleKind","reason","originalRSSKernelError","retired"))
         self.peak_rss = self.peak_bytes = 0
-        self.last_storage_sample = 0
+        self.last_storage_sample = None
         self.storage_bytes = 0
         self.logs = []
         self.closed_log_identity = {}
@@ -345,43 +355,84 @@ class Window:
         require(len(self.cpus) > 0, "no usable CPU affinity")
         os.sched_setaffinity(0, self.cpus)
 
-    def sample(self):
+    @contextlib.contextmanager
+    def sample_stage(self, name):
+        # Observation only: original checks, exceptions, cadence and ownership
+        # inventory remain authoritative. No RSS or PID snapshot is cached.
+        def tick():
+            try: return time.monotonic_ns()
+            except Exception: return None
+        before=tick();failed=False
+        try: yield
+        except BaseException:
+            failed=True;raise
+        finally:
+            after=tick()
+            with self.lock:
+                row=self.sample_stage_totals.setdefault(name,dict(calls=0,failedCalls=0,timedCalls=0,clockErrors=0,totalNs=0,minNs=None,maxNs=None))
+                row['calls']+=1;row['failedCalls']+=int(failed)
+                if before is None or after is None or after<before:row['clockErrors']+=1
+                else:
+                    ns=after-before;row['timedCalls']+=1;row['totalNs']+=ns
+                    row['minNs']=ns if row['minNs'] is None else min(row['minNs'],ns)
+                    row['maxNs']=ns if row['maxNs'] is None else max(row['maxNs'],ns)
+
+    def sample_stage_report(self):
         with self.lock:
-            return self._sample()
+            values={name:dict(row) for name,row in self.sample_stage_totals.items()}
+        for row in values.values():
+            if not row['timedCalls']:row['totalNs']=None
+        return dict(schema='YNX-PERF-ORIGINAL-RESOURCE-GUARD-STAGES/v1',
+            status='NOT_OBSERVED' if not values else 'UNKNOWN' if any(r['clockErrors'] for r in values.values()) else 'OBSERVED',
+            clock='parent_monotonic_ns',stages=values,intervalsOverlap=True,
+            guardChecksPreserved=True,byteAccountingChanged=False,cadenceChanged=False,firstStorageSampleGuaranteed=True,pidOrRSSCached=False,
+            meaning='sampleIncludingLockWait encloses component spans and child work may overlap; no sum across nesting or subtraction from Go CPU; failed original guard and clock errors retained')
+
+    def sample(self):
+        with self.sample_stage('sampleIncludingLockWait'):
+            with self.lock:
+                return self._sample()
 
     def _sample(self):
         require(time.monotonic() - self.started < CAPS["totalSeconds"] - CAPS["cleanupSeconds"], "total operation deadline exceeded")
-        rows, _ = guard.proc_inventory()
-        ids = guard.owned_set(rows, os.getpid(), known=self.known)
-        rss = 0
-        for pid in ids:
-            before = rows[pid]
-            self.known[pid] = before["startTicks"]
-            def retain_retired(event):
-                self.retired_evidence.retain(event)
-            def retain_fallback(event):
-                self.fallback_evidence.retain(event)
-            size = owned_rss(pid, before, retain_retired, retain_fallback)
-            if size is not None:
-                rss += size
-        if time.monotonic() - self.last_storage_sample >= 1:
-            self.storage_bytes = sum(private_bytes(root) for root in self.storage_roots)
+        with self.sample_stage('procInventory'):
+            rows, _ = guard.proc_inventory()
+        with self.sample_stage('ownedPIDClosure'):
+            ids = guard.owned_set(rows, os.getpid(), known=self.known)
+        with self.sample_stage('ownedRSS'):
+            rss = 0
+            for pid in ids:
+                before = rows[pid]
+                self.known[pid] = before["startTicks"]
+                def retain_retired(event):
+                    self.retired_evidence.retain(event)
+                def retain_fallback(event):
+                    self.fallback_evidence.retain(event)
+                size = owned_rss(pid, before, retain_retired, retain_fallback)
+                if size is not None:
+                    rss += size
+        if self.last_storage_sample is None or time.monotonic() - self.last_storage_sample >= 1:
+            with self.sample_stage('storageInventory'):
+                self.storage_bytes = sum(private_bytes(root) for root in self.storage_roots)
             self.last_storage_sample = time.monotonic()
-        size = self.storage_bytes
-        self.peak_rss, self.peak_bytes = max(self.peak_rss, rss), max(self.peak_bytes, size)
-        require(rss <= CAPS["rssBytes"], "owned RSS exceeded 4GiB")
-        require(size <= CAPS["newBytes"], "new artifacts exceeded 8GiB")
-        require(shutil.disk_usage(self.work).free >= 1 << 30, "runtime disk reserve below 1GiB")
-        for _, log in self.logs:
-            if log.closed:
-                current=os.stat(log.name,follow_symlinks=False)
-                require(stat.S_ISREG(current.st_mode) and (current.st_dev,current.st_ino)==self.closed_log_identity.get(log.name),"retired original process log identity changed")
-                length=current.st_size
-            else:length=os.fstat(log.fileno()).st_size
-            require(length <= CAPS["logBytes"], "bounded process log exceeded")
-        for c in self.children:
-            if c["persistent"] and c["process"].poll() is not None and not self.stopping:
-                raise RuntimeError("normal node exited early: " + c["name"])
+        with self.sample_stage('resourceCapsAndDiskReserve'):
+            size = self.storage_bytes
+            self.peak_rss, self.peak_bytes = max(self.peak_rss, rss), max(self.peak_bytes, size)
+            require(rss <= CAPS["rssBytes"], "owned RSS exceeded 4GiB")
+            require(size <= CAPS["newBytes"], "new artifacts exceeded 8GiB")
+            require(shutil.disk_usage(self.work).free >= 1 << 30, "runtime disk reserve below 1GiB")
+        with self.sample_stage('processLogBounds'):
+            for _, log in self.logs:
+                if log.closed:
+                    current=os.stat(log.name,follow_symlinks=False)
+                    require(stat.S_ISREG(current.st_mode) and (current.st_dev,current.st_ino)==self.closed_log_identity.get(log.name),"retired original process log identity changed")
+                    length=current.st_size
+                else:length=os.fstat(log.fileno()).st_size
+                require(length <= CAPS["logBytes"], "bounded process log exceeded")
+        with self.sample_stage('persistentNodeLiveness'):
+            for c in self.children:
+                if c["persistent"] and c["process"].poll() is not None and not self.stopping:
+                    raise RuntimeError("normal node exited early: " + c["name"])
         if len(self.samples) < 1800 and (not self.samples or time.monotonic() - self.samples[-1]["at"] >= 1):
             self.samples.append(dict(at=time.monotonic(), rssBytes=rss, newBytes=size, processes=len(ids)))
 
@@ -677,6 +728,7 @@ def run(args):
                       cpuAffinity=window.cpus, physicalCommitMeasured=False,
                       resourceSemantics="sampled owned RSS; explicit same-process VmSize conservative upper bounds if present; artifacts 1s; not atomic or hard cgroup ceilings",
                       resourceObserverVersion=RSS_OBSERVER_VERSION,processEvidenceVersion=PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=window.rss_fallback_samples,
+                      resourceGuardStageElapsed=window.sample_stage_report(),
                       processPhaseMeaning="parent monotonic launch-to-observed-exit durations; includes polling; concurrent node lifetimes overlap and are not additive",
                       processPhases=[dict(name=c["name"], elapsedNs=c.get("elapsedNs"), exitCode=c["process"].returncode) for c in window.children])
         write_new(work / "public/receipt.json", result)

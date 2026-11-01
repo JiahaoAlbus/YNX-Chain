@@ -7,6 +7,7 @@ import sys
 import unittest
 
 GROUPS=[
+ ('test_resource_guard_sampling.py',None,9),
  ('test_pq_normal_clean_exit.py',None,4),
  ('test_pq_normal_parent_measurements.py',None,7),
  ('test_pq_normal_live_source_data.py',None,5),

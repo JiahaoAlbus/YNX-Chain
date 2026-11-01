@@ -119,10 +119,11 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                 for i in range(4):
                     p=c.root/str(i)/'application.json';p.parent.mkdir();p.write_text(json.dumps(state));nodes.append(dict(index=i,statePath=str(p)))
                 c.plan=dict(nodes=nodes)
-                w=SimpleNamespace(storage_roots=[],started=d.time.monotonic(),peak_rss=1,peak_bytes=1,samples=[dict(processes=1,rssBytes=1,newBytes=1)],retired_samples=[],rss_fallback_samples=[],process_receipt=lambda:[],sample=mock.Mock(),stop=mock.Mock(return_value=cleanup),wait=mock.Mock())
+                w=SimpleNamespace(storage_roots=[],started=d.time.monotonic(),peak_rss=1,peak_bytes=1,samples=[dict(processes=1,rssBytes=1,newBytes=1)],retired_samples=[],rss_fallback_samples=[],process_receipt=lambda:[dict(name=phase+'-node-'+str(i),pid=100+4*j+i,startTicks=1,rawReturnCode=0,exitCode=0,signal=None,exited=True) for j,phase in enumerate(('bootstrap','pq')) for i in range(4)],sample=mock.Mock(),stop=mock.Mock(return_value=cleanup),wait=mock.Mock())
                 def launch(name,*a,**k):
                     if name=='create-original':(work/'public/create-original.log').write_text('{}')
                     return object()
+                w.sample_stage_report=lambda:dict(status='NOT_OBSERVED',stages={},runtimeMeasured=False)
                 w.launch=launch;work_holder['window']=w;return w
             def instrumented(base):
                 def construct(*args,**kwargs):
@@ -155,7 +156,7 @@ class OriginalDriverInitializationControls(unittest.TestCase):
 
     def test_finite_receipt_rejects_partial_accounts_caps_missing_spans_and_business_load(self):
         good=self.mocked_initialization();self.assertTrue(m.require_complete_initialization(good)['completeNormalInitializationObserved'])
-        mutations=[lambda r:r['initializedAccountReadback']['nodes'][3].update(matchingOriginalLoadAccounts=499),lambda r:r.update(cleanupComplete=False),lambda r:r.update(loadExecuted=True),lambda r:r['preparationOnlyDemandAccounting'].update(notReleased=499),lambda r:r.update(resourceSamples=[]),lambda r:r['freshResourceAdmission'].update(availableMemoryBytes=1),lambda r:r['initializationStages'].update(omitted=1),lambda r:r['initializationStages']['records'][0].update(outcome='FAILED'),lambda r:r['caps'].update(cpus=3),lambda r:r['source'].update(commit='0'*40)]
+        mutations=[lambda r:r.pop('normalNodeCleanExit'),lambda r:r['normalNodeCleanExit'].update(allEightExitZero=False),lambda r:r['initializedAccountReadback']['nodes'][3].update(matchingOriginalLoadAccounts=499),lambda r:r.update(cleanupComplete=False),lambda r:r.update(loadExecuted=True),lambda r:r['preparationOnlyDemandAccounting'].update(notReleased=499),lambda r:r.update(resourceSamples=[]),lambda r:r['freshResourceAdmission'].update(availableMemoryBytes=1),lambda r:r['initializationStages'].update(omitted=1),lambda r:r['initializationStages']['records'][0].update(outcome='FAILED'),lambda r:r['caps'].update(cpus=3),lambda r:r['source'].update(commit='0'*40)]
         for i,mutate in enumerate(mutations):
             bad=copy.deepcopy(good);mutate(bad)
             with self.subTest(i=i),self.assertRaises(RuntimeError):m.require_complete_initialization(bad)
