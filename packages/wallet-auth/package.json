@@ -380,6 +380,12 @@
       "browser": null,
       "node": "./src/social-local-signed-v2.js",
       "default": null
+    },
+    "./pair-service-commissioning": {
+      "types": "./scripts/pair-service-commissioning/commission-sdk.d.mts",
+      "browser": null,
+      "node": "./scripts/pair-service-commissioning/commission-sdk.mjs",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -574,17 +580,19 @@
     "test:product-session-v4-codec-types": "tsc -p test/tsconfig.product-session-v4-codec-types.json",
     "test:product-device-v4-pending-client-types": "tsc -p test/tsconfig.product-device-v4-pending-client-types.json",
     "test:pay-source-family": "node --test test/pay-source-family.test.mjs test/pay-source-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pay-source-family.types.mts",
-    "test:social-local-signed-v2": "node --test test/social-local-signed-v2.test.mjs test/social-local-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/social-local-signed-v2.types.mts"
+    "test:social-local-signed-v2": "node --test test/social-local-signed-v2.test.mjs test/social-local-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/social-local-signed-v2.types.mts",
+    "commission:pair-service-sdk": "node scripts/commission-pair-service-sdk.mjs",
+    "test:pair-service-commissioning": "node --test test/pair-service-commissioning.test.mjs test/pair-postprocess-read.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pair-service-commissioning.types.mts"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
     "@walletconnect/sign-client": "2.23.10",
-    "qrcode": "1.5.4"
+    "qrcode": "1.5.4",
+    "typescript": "5.9.3"
   },
   "devDependencies": {
     "esbuild": "0.25.9",
-    "typescript": "^5.9.3",
     "@ynx/batch-v01-candidate": "file:testdata/ynx-batch-v01-candidate-0.1.0-candidate.3.tgz",
     "@types/node": "24.13.3",
     "@ynx-chain/open-protocol": "file:testdata/ynx-chain-open-protocol-0.0.0-dev.4.tgz"
