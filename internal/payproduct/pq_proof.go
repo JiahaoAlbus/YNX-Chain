@@ -43,7 +43,14 @@ func (n *NativePayService) Reconcile(ctx context.Context, merchant, id, nativeHa
 	if finality.Proof == nil || n.cfg.ProofSource == nil {
 		return op, ErrNativePayUnavailable
 	}
-	trust, expected, err := n.cfg.ProofSource.Trust(ctx, op.NativePayOriginal)
+	original := op.NativePayOriginal
+	original.Member = bytes.Clone(original.Member)
+	original.Envelope = bytes.Clone(original.Envelope)
+	trust, expected, err := n.cfg.ProofSource.Trust(ctx, original)
+	if err != nil {
+		return op, err
+	}
+	trust, expected, proof, err := freezeNativeArchiveVerificationInput(trust, expected, *finality.Proof)
 	if err != nil {
 		return op, err
 	}
@@ -58,7 +65,7 @@ func (n *NativePayService) Reconcile(ctx context.Context, merchant, id, nativeHa
 	if expected.TransactionType != consensus.PQActionType || !bytes.Equal(expected.NativeWire, op.Member) || !bytes.Equal(expected.Envelope, op.Envelope) || !bytes.Equal(expected.NativeWireHash, nativeBytes) || !bytes.Equal(expected.TransactionHash, abciBytes) {
 		return op, errors.New("independent proof expectation differs from original native operation")
 	}
-	verified, err := consensus.VerifyPQTransactionProof(trust, expected, *finality.Proof)
+	verified, err := consensus.VerifyPQTransactionProof(trust, expected, proof)
 	if err != nil {
 		return op, err
 	}
@@ -105,7 +112,14 @@ func (n *NativePayService) Reconcile(ctx context.Context, merchant, id, nativeHa
 	} else {
 		op.Failure = "INDEPENDENTLY_PROVEN_EXECUTION_FAILED"
 	}
+	archive, err := n.captureOriginalArchive(state, op, trust, expected, proof, verified)
+	if err != nil {
+		return op, err
+	}
 	err = n.parent.store.Update(func(data *Snapshot) error {
+		if e := n.fence(ctx, grant); e != nil {
+			return e
+		}
 		current, found, e := n.load(*data, merchant, id)
 		if e != nil {
 			return e
@@ -123,6 +137,9 @@ func (n *NativePayService) Reconcile(ctx context.Context, merchant, id, nativeHa
 			}
 			op = old
 			return nil
+		}
+		if _, exists := current.OriginalArchives[nativeHash]; exists {
+			return errors.New("native original archive already present before finality transition")
 		}
 		if op.Effect != nil {
 			if err = n.bindEffect(current, op, *op.Effect); err != nil {
@@ -155,6 +172,9 @@ func (n *NativePayService) Reconcile(ctx context.Context, merchant, id, nativeHa
 			}
 		}
 		current.Operations[nativeHash] = op
+		if err = n.appendOriginalArchive(data, &current, op, archive); err != nil {
+			return err
+		}
 		if err = n.save(data, current); err != nil {
 			return err
 		}

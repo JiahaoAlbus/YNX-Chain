@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	"io"
 	"mime"
@@ -115,6 +116,9 @@ func NewNativeInvoiceIntentClient(origin string, client *http.Client) (*NativeIn
 	return &NativeInvoiceIntentClient{caller}, nil
 }
 func (c *NativeInvoiceIntentClient) call(ctx context.Context, method, path string, in, out any) error {
+	return c.callBounded(ctx, method, path, in, out, 2<<20)
+}
+func (c *NativeInvoiceIntentClient) callBounded(ctx context.Context, method, path string, in, out any, limit int64) error {
 	if c == nil || c.http == nil {
 		return ErrNativePayUnavailable
 	}
@@ -145,15 +149,24 @@ func (c *NativeInvoiceIntentClient) call(ctx context.Context, method, path strin
 	}
 	defer response.Body.Close()
 	media, _, e := mime.ParseMediaType(response.Header.Get("Content-Type"))
-	if e != nil || media != "application/json" || response.ContentLength > 2<<20 {
+	if e != nil || media != "application/json" || response.ContentLength > limit {
 		return nativePayHTTPFailure(method, path, response.StatusCode, errors.New("bounded private invoice JSON response required"))
 	}
-	raw, err = io.ReadAll(io.LimitReader(response.Body, (2<<20)+1))
-	if err != nil || len(raw) > 2<<20 {
+	raw, err = io.ReadAll(io.LimitReader(response.Body, limit+1))
+	if err != nil || int64(len(raw)) > limit {
 		return nativePayHTTPFailure(method, path, response.StatusCode, errors.New("private invoice response unavailable"))
 	}
 	if response.StatusCode == 503 {
 		return nativePayHTTPFailure(method, path, 503, ErrNativePayUnavailable)
+	}
+	if response.StatusCode == 409 {
+		var failure struct {
+			Code  string `json:"code"`
+			Error string `json:"error"`
+		}
+		if json.Unmarshal(raw, &failure) == nil && failure.Code == "NATIVE_PAY_SETTLEMENT_ARCHIVE_UNAVAILABLE" {
+			return nativePayHTTPFailure(method, path, 409, ErrNativePayOriginalArchiveUnavailable)
+		}
 	}
 	if err = nativePayHTTPStatus(method, path, response.StatusCode); err != nil {
 		return err
@@ -162,6 +175,30 @@ func (c *NativeInvoiceIntentClient) call(ctx context.Context, method, path strin
 		return nativePayHTTPFailure(method, path, response.StatusCode, err)
 	}
 	return nil
+}
+
+// Public retained verification DATA only; the caller's real transport/Source
+// owns this exact GET grant. No Wallet Member5 scope, approve, retry or current
+// account snapshot can create a historical record or independent trust.
+func (c *NativeInvoiceIntentClient) ReadOriginalArchive(ctx context.Context, merchant, id, nativeHash string, current func() error) (NativePayOriginalArchive, error) {
+	var a NativePayOriginalArchive
+	canonical, err := accountaddress.Normalize(merchant)
+	if err != nil || canonical != merchant || !identifierRE.MatchString(id) || !nativePayHTTPHash(nativeHash) || current == nil {
+		return a, errors.New("exact current original archive reference required")
+	}
+	if err = current(); err != nil {
+		return a, err
+	}
+	if err = c.callBounded(ctx, "GET", "/v5/pay/invoices/"+merchant+"/"+id+"/originals/"+nativeHash, nil, &a, NativePayOriginalArchiveMaxBytes); err != nil {
+		return NativePayOriginalArchive{}, err
+	}
+	if err = current(); err != nil {
+		return NativePayOriginalArchive{}, err
+	}
+	if a.Version != "ynx.pay.native.originals/v1" || a.Digest != nativeArchiveDigest(a) || a.Original.Merchant != merchant || a.Original.InvoiceID != id || a.Original.NativeHash != nativeHash || a.Verified.NativeGrant {
+		return NativePayOriginalArchive{}, errors.New("different original archive DATA returned")
+	}
+	return a, nil
 }
 func (c *NativeInvoiceIntentClient) CreateInvoiceIntent(ctx context.Context, input NativeInvoiceProductIntent, current func() error) (NativeInvoiceIntentView, error) {
 	var view NativeInvoiceIntentView

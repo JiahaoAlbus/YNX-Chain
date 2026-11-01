@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -75,6 +76,12 @@ func (s *nativeWorkflowProofSource) Trust(_ context.Context, original NativePayO
 // commits at H/H+1 and a separately loaded pinned engine snapshot. The fixture
 // exporter never writes a Pay status or supplies a substitute successful verifier.
 func TestNativePayCoreWorkflow100Refund30ColdRecovery(t *testing.T) {
+	runNativePayCoreWorkflow(t, false)
+}
+func TestNativePayVerifiedOriginalArchiveColdHTTPAndAtomicRecovery(t *testing.T) {
+	runNativePayCoreWorkflow(t, true)
+}
+func runNativePayCoreWorkflow(t *testing.T, archiveMode bool) {
 	dir := os.Getenv("PAY_CORE_WORKFLOW_DIR")
 	if dir == "" {
 		t.Skip("requires isolated CORE BlockExecutor fixture; run testsupport native workflow command")
@@ -110,8 +117,10 @@ func TestNativePayCoreWorkflow100Refund30ColdRecovery(t *testing.T) {
 	now := time.Now().UTC()
 	parent, _ := testService(t, &fakePay{}, func() time.Time { return now })
 	source := &nativeSourceFixture{}
+	productMerchantID := ""
 	activate := func(row nativeCoreWorkflowRow) {
 		source.grant = NativePayAuthorization{BoundInvoiceID: f.Terms.InvoiceID, BoundOrderID: "order-100", BoundSessionID: f.Terms.SessionID, Principal: row.Registration.Owner, Registration: row.Registration, Height: row.Height, KeyEpoch: 1, LedgerNonce: row.Nonce, Until: now.Add(time.Hour), Current: func() error { return nil }}
+		source.grant.ProductMerchantID = productMerchantID
 	}
 	writes, current := 0, 0
 	loseRefund := true
@@ -166,6 +175,18 @@ func TestNativePayCoreWorkflow100Refund30ColdRecovery(t *testing.T) {
 	ctx := context.Background()
 	intentRequest := NativeInvoiceProductIntent{ProductID: "shop.order", StoreID: "registered-original-store", SourceOrder: "order-100", Merchant: f.Merchant, Recipient: f.Terms.Recipient, Genesis: hex.EncodeToString(f.Network), NativeChainID: strconv.FormatUint(f.NativeChainID, 10), AssetID: f.Terms.AssetID, UnitVersion: f.Terms.UnitVersion, AmountAtoms: "100", DomainData: json.RawMessage(`{"orderId":"order-100","storeId":"registered-original-store","approvalRef":"original-order-approval"}`)}
 	intentSource, intentReader := nativeIntentTestSource(t, parent, intentRequest, f.Terms)
+	if archiveMode {
+		productMerchantID = intentReader.snapshot.ProductMerchantID
+		if err = parent.store.Update(func(data *Snapshot) error {
+			m := data.Merchants[productMerchantID]
+			m.WebhookURL = "https://public-archive.invalid/original"
+			m.WebhookSecretCipher = parent.seal("PUBLIC-outbox-fixture")
+			data.Merchants[m.ID] = m
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
 	privateServer, intents, err := NewPrivateNativePayServer(parent, service.cfg, intentSource, buildinfo.Info{}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -253,12 +274,32 @@ func TestNativePayCoreWorkflow100Refund30ColdRecovery(t *testing.T) {
 				t.Fatal("unknown original refund was replayed at new nonce", err, writes)
 			}
 		}
+		if archiveMode {
+			if _, e := service.ReadOriginalArchive(ctx, f.Merchant, f.Terms.InvoiceID, op.NativeHash); !errors.Is(e, ErrNativePayOriginalArchiveUnavailable) {
+				t.Fatal("unverified/UNKNOWN created historical archive", e)
+			}
+			if step == 1 {
+				path := parent.store.path
+				parent.store.path = path + "/cannot-write-under-file"
+				_, e := service.Reconcile(ctx, f.Merchant, f.Terms.InvoiceID, op.NativeHash)
+				parent.store.path = path
+				if e == nil {
+					t.Fatal("failed durable store write committed proof/archive")
+				}
+				if _, e = service.ReadOriginalArchive(ctx, f.Merchant, f.Terms.InvoiceID, op.NativeHash); !errors.Is(e, ErrNativePayOriginalArchiveUnavailable) {
+					t.Fatal("failed commit exposed archive", e)
+				}
+			}
+		}
 		confirmed, err := service.Reconcile(ctx, f.Merchant, f.Terms.InvoiceID, op.NativeHash)
 		if err != nil || confirmed.Status != "confirmed" || confirmed.Effect == nil {
 			t.Fatal("actual independently anchored CORE proof not admitted", step, err, confirmed.Status)
 		}
 		if _, err = service.Reconcile(ctx, f.Merchant, f.Terms.InvoiceID, op.NativeHash); err != nil || writes != step+1 {
 			t.Fatal("finality replay changed original dispatch", err, writes)
+		}
+		if archiveMode {
+			assertNativeArchiveStep(t, service, privateClient, source, f, step, confirmed)
 		}
 	}
 	intentResult, e := intents.ReadInvoiceIntent(ctx, originalIntent.IntentID)
@@ -275,6 +316,11 @@ func TestNativePayCoreWorkflow100Refund30ColdRecovery(t *testing.T) {
 	}
 	if _, err = service.PrepareRefund(ctx, f.Merchant, f.Terms.InvoiceID, "refund-excess", 71); err == nil {
 		t.Fatal("refund above remaining original principal authorized")
+	}
+	if archiveMode {
+		backend.Close() // Existing Core/network is absent for all cold archive reads.
+		assertNativeArchiveColdRecovery(t, service, privateClient, source, proofSource, f)
+		assertNativeArchiveMovementReservations(t, service, source, f)
 	}
 	endpoint := "/v5/pay/invoices/" + f.Merchant + "/" + f.Terms.InvoiceID
 	response := httptest.NewRecorder()

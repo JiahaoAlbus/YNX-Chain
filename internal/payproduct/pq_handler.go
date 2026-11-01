@@ -27,6 +27,18 @@ func (s *Server) MountNativePay(service *NativePayService) error {
 // No JSON request can supply a registration, grant, proof anchor or private key.
 func (n *NativePayService) Handler() http.Handler {
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /v5/pay/invoices/{merchant}/{invoice}/originals/{nativeHash}", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.RawQuery != "" || r.ContentLength != 0 {
+			nativePayError(w, errors.New("exact original archive GET without body/query required"))
+			return
+		}
+		archive, err := n.ReadOriginalArchive(r.Context(), r.PathValue("merchant"), r.PathValue("invoice"), r.PathValue("nativeHash"))
+		if err != nil {
+			nativePayError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, archive)
+	})
 	mux.HandleFunc("GET /v5/pay/invoices/{merchant}/{invoice}/events", func(w http.ResponseWriter, r *http.Request) {
 		feed, err := n.InvoiceEvents(r.Context(), r.PathValue("merchant"), r.PathValue("invoice"))
 		if err != nil {
@@ -206,6 +218,9 @@ func nativePayBody(w http.ResponseWriter, r *http.Request, out any) bool {
 }
 func nativePayError(w http.ResponseWriter, err error) {
 	code, status := "NATIVE_PAY_REQUEST_REJECTED", http.StatusConflict
+	if errors.Is(err, ErrNativePayOriginalArchiveUnavailable) {
+		code = "NATIVE_PAY_SETTLEMENT_ARCHIVE_UNAVAILABLE"
+	}
 	if errors.Is(err, ErrNativePayUnavailable) || errors.Is(err, ErrNativeMerchantFenceUnavailable) {
 		code, status = "NATIVE_PAY_AUTHORITY_UNAVAILABLE", http.StatusServiceUnavailable
 	}

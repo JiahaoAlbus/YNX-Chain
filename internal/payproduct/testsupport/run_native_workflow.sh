@@ -63,6 +63,10 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-archive ]; then
+ go test -race -p 1 -tags 'pay_pq pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNativePayVerifiedOriginalArchiveColdHTTPAndAtomicRecovery$|^TestNativePayOriginalArchiveLegacyMissingNeverBackfills$' -count=1 -timeout=3m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = retained-terms ]; then
  : "${PAY_NODE_BINARY:?exact original Node executable required}"
  "$PAY_NODE_BINARY" --test --test-name-pattern='original terms archive' "$client_root/merchant-invoice-approval.test.mjs"

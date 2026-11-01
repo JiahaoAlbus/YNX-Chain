@@ -87,6 +87,9 @@ type NativePayInvoice struct {
 	SettlementOperation                                    string
 	RefundOperations                                       map[string]string
 	Operations                                             map[string]NativePayOperation
+	// Append-only verified public originals. Absent on old journals; never
+	// reconstructed from current account state or another payer's private journal.
+	OriginalArchives map[string]string `json:",omitempty"`
 }
 type NativePaySigningRequest struct {
 	Kind    string
