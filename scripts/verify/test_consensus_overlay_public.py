@@ -27,7 +27,7 @@ class OverlayPublicTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.work=tempfile.TemporaryDirectory(prefix='ynx-overlay-public-controls-')
-        cls.root=Path(cls.work.name);records=cls.root/'records';records.mkdir()
+        cls.root=Path(cls.work.name).resolve();records=cls.root/'records';records.mkdir();cls.records=records
         for i,role in enumerate(m.ROLES):
             value={'version':1,'purpose':'ynx-consensus-private-overlay-public-keys-only','role':role,
                    'publicEndpoint':'198.51.100.'+str(i+1),'overlayAddress':m.ADDRESSES[role],
@@ -128,5 +128,50 @@ class OverlayPublicTests(unittest.TestCase):
         for peer in self.expected()['peers']:self.assertNotIn(peer['wireGuardPublicKey'].encode(),value.stdout)
     def test_normal_shell_foreign_public_pin_refuses_before_transport(self):
         value=self.shell_entry('1'*64);self.assertNotEqual(value.returncode,0);self.assertNotIn(b'DRY RUN [',value.stdout)
+    def deploy_environment(self):
+        directory=Path(self.case.name);envfile=directory/'deploy.env';rows=[]
+        for prefix in ('PRIMARY','SG','SILICON_VALLEY','SEOUL'):
+            rows.extend([prefix+'_NODE_HOST=198.51.100.1',prefix+'_NODE_USER=root',prefix+'_NODE_SSH_KEY=/dev/null'])
+        envfile.write_text('\n'.join(rows)+'\n');bin_dir=directory/'deploy-bin';bin_dir.mkdir()
+        shim=bin_dir/'python3';shim.write_text('#!/bin/sh\nexec '+shlex.quote(sys.executable)+' "$@"\n');shim.chmod(0o700)
+        env=os.environ.copy();env.update({'PATH':str(bin_dir)+os.pathsep+env['PATH'],'ENV_FILE':str(envfile),'DEPLOY_DRY_RUN':'1',
+            'CONSENSUS_OVERLAY_PUBLIC_RECORDS':str(self.records),'CONSENSUS_OVERLAY_WORK_ROOT':str(directory/'deploy-work')})
+        return env
+    def run_deploy(self,pin,existing=False):
+        env=self.deploy_environment();env['CONSENSUS_OVERLAY_PACKAGE_MANIFEST_SHA256']=pin
+        work=Path(env['CONSENSUS_OVERLAY_WORK_ROOT'])
+        if existing:
+            work.mkdir();(work/'original.UNKNOWN').write_bytes(b'PUBLIC original unknown, retain unchanged\n')
+        result=subprocess.run(['bash',str(ROOT/'scripts/deploy/deploy-consensus-overlay.sh')],env=env,capture_output=True,timeout=15)
+        return result,work
+    def test_normal_deployment_producer_passes_independent_public_tuple_to_verifier(self):
+        result,work=self.run_deploy(self.pin())
+        self.assertEqual(result.returncode,0,result.stderr.decode())
+        self.assertEqual(hashlib.sha256((work/'package/package-manifest.json').read_bytes()).hexdigest(),self.pin())
+        self.assertIn(b'no interface was created and no reachability is claimed',result.stdout)
+    def test_normal_deployment_missing_pin_refuses_before_work_or_transport(self):
+        result,work=self.run_deploy('')
+        self.assertNotEqual(result.returncode,0);self.assertFalse(work.exists());self.assertNotIn(b'DRY RUN [',result.stdout)
+    def test_normal_deployment_foreign_pin_refuses_before_transport_and_keeps_case(self):
+        result,work=self.run_deploy('1'*64)
+        self.assertNotEqual(result.returncode,0);self.assertTrue((work/'package/package-manifest.json').exists())
+        self.assertNotIn(b'DRY RUN [',result.stdout)
+    def test_normal_deployment_preserves_original_unknown_work(self):
+        result,work=self.run_deploy(self.pin(),existing=True)
+        self.assertNotEqual(result.returncode,0);self.assertNotIn(b'DRY RUN [',result.stdout)
+        self.assertEqual((work/'original.UNKNOWN').read_bytes(),b'PUBLIC original unknown, retain unchanged\n')
+        self.assertEqual(list(work.iterdir()),[work/'original.UNKNOWN'])
+    def test_original_package_check_overlay_producer_and_caller_fragment(self):
+        env=self.deploy_environment();directory=Path(self.case.name)
+        # Execute the unchanged normal producer/caller statements themselves;
+        # the full package check retains its separate Linux/ELF/Go gates.
+        source=(ROOT/'scripts/verify/consensus-production-package-check.sh').read_text()
+        start=source.index('mkdir -p "$tmp/overlay-records"')
+        end=source.index('\nmkdir -p "$tmp/validator-records"',start)
+        program='set -eu\ntmp='+shlex.quote(str(directory))+'\n'+source[start:end]+'\n'
+        result=subprocess.run(['bash','-c',program],cwd=ROOT,env=env,capture_output=True,timeout=15)
+        self.assertEqual(result.returncode,0,result.stderr.decode())
+        output=(directory/'overlay-deploy.out').read_bytes()
+        self.assertIn(b'no interface was created and no reachability is claimed',output)
 
 if __name__=='__main__':unittest.main(verbosity=2)

@@ -99,8 +99,10 @@ const roles = ["primary", "singapore", "silicon-valley", "seoul"];
 roles.forEach((role, index) => fs.writeFileSync(path.join(root, `${role}.json`), JSON.stringify({version:1,purpose:"ynx-consensus-private-overlay-public-keys-only",role,publicEndpoint:`198.51.100.${index+1}`,overlayAddress:`10.77.42.${index+1}`,listenPort:51820,wireGuardPublicKey:Buffer.alloc(32,index+1).toString("base64"),custodyBoundary:"owner-controlled-host-local"},null,2)+"\n",{mode:0o600}));
 NODE
 node scripts/deploy/build-consensus-overlay-package.mjs "$tmp/overlay-records" "$tmp/overlay-package" >/dev/null
+overlay_package_manifest_sha="$(node -e 'const fs=require("fs"),c=require("crypto");process.stdout.write(c.createHash("sha256").update(fs.readFileSync(process.argv[1])).digest("hex"))' "$tmp/overlay-package/package-manifest.json")"
 bash -n "$tmp"/overlay-package/roles/*/ynx-consensus-overlay-up
 DEPLOY_DRY_RUN=1 ENV_FILE="$tmp/deploy.env" CONSENSUS_OVERLAY_PUBLIC_RECORDS="$tmp/overlay-records" CONSENSUS_OVERLAY_WORK_ROOT="$tmp/overlay-work" \
+  CONSENSUS_OVERLAY_PACKAGE_MANIFEST_SHA256="$overlay_package_manifest_sha" \
   bash scripts/deploy/deploy-consensus-overlay.sh >"$tmp/overlay-deploy.out"
 grep -Fq "no interface was created and no reachability is claimed" "$tmp/overlay-deploy.out" || { echo "overlay deploy dry-run boundary missing" >&2; exit 1; }
 
@@ -113,7 +115,8 @@ node scripts/ops/build-production-validator-manifest.mjs "$tmp/validator-records
 "$package_verifier" -migration-state "$tmp/lab/bound-migration.json" -validator-manifest "$tmp/merged-validator-manifest.json" -genesis-time 2026-08-02T00:00:00Z -output "$tmp/merged-package" >/dev/null
 "$package_verifier" -verify-migration-state "$tmp/lab/bound-migration.json" >/dev/null
 
-consensus_production_deploy_dry_run "$tmp/deploy.env" "$tmp/package" "$tmp/deploy-work" >"$tmp/deploy.out"
+CONSENSUS_OVERLAY_PACKAGE="$tmp/overlay-package" CONSENSUS_OVERLAY_PACKAGE_MANIFEST_SHA256="$overlay_package_manifest_sha" \
+  consensus_production_deploy_dry_run "$tmp/deploy.env" "$tmp/package" "$tmp/deploy-work" >"$tmp/deploy.out"
 for role in primary singapore silicon-valley seoul; do
   grep -Fq "DRY RUN [$role]" "$tmp/deploy.out" || { echo "candidate deploy dry-run missing role $role" >&2; exit 1; }
 done

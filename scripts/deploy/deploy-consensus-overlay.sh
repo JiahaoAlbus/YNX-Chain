@@ -13,10 +13,18 @@ if [[ "${DEPLOY_DRY_RUN:-0}" != "1" && "${CONSENSUS_OVERLAY_DEPLOY_APPROVED:-}" 
   exit 1
 fi
 
+manifest_pin="${CONSENSUS_OVERLAY_PACKAGE_MANIFEST_SHA256:-}"
+[[ "$manifest_pin" =~ ^[0-9a-f]{64}$ && "$manifest_pin" != "$(printf '0%.0s' {1..64})" ]] || {
+  echo "independent CONSENSUS_OVERLAY_PACKAGE_MANIFEST_SHA256 is required before overlay preparation" >&2; exit 1;
+}
 commit="$(git rev-parse --short=12 HEAD)"
 work="${CONSENSUS_OVERLAY_WORK_ROOT:-tmp/consensus-overlay-deploy}"
-rm -rf "$work"
+[[ ! -e "$work" && ! -L "$work" ]] || { echo "existing overlay work/partial/UNKNOWN must be retained; select a fresh work root" >&2; exit 1; }
 node scripts/deploy/build-consensus-overlay-package.mjs "$records" "$work/package" >/dev/null
+package_output="$(cd "$work/package" && pwd -P)"
+# Compare this producer against the independently selected public package pin
+# before any host transport or interface mutation. Never infer a live peer set.
+python3 -B scripts/verify/consensus_overlay_public.py emit "$package_output" "$manifest_pin" primary >/dev/null
 
 overlay_mutation_started=0
 deployment_complete=0
@@ -52,7 +60,7 @@ deploy_overlay_role() {
 [[ "${DEPLOY_DRY_RUN:-0}" == "1" ]] || overlay_mutation_started=1
 ynx_ops_each_node deploy_overlay_role
 
-if ! CONSENSUS_OVERLAY_PACKAGE="$work/package" ENV_FILE="${ENV_FILE:-}" bash scripts/verify/verify-consensus-overlay.sh; then
+if ! CONSENSUS_OVERLAY_PACKAGE="$package_output" CONSENSUS_OVERLAY_PACKAGE_MANIFEST_SHA256="$manifest_pin" ENV_FILE="${ENV_FILE:-}" bash scripts/verify/verify-consensus-overlay.sh; then
   ynx_ops_each_node stop_overlay_role
   overlay_mutation_started=0
   echo "overlay verification failed; candidate overlay stopped on all roles" >&2

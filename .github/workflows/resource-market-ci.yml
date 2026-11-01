@@ -60,6 +60,8 @@ on:
       - 'scripts/ops/test_validate_pq_remote_normal_ci.py'
       - 'scripts/ops/ynx-consensus-pq-remote-signer*'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
+      - 'scripts/deploy/deploy-consensus-overlay.sh'
+      - 'scripts/deploy/build-consensus-overlay-package.mjs'
       - 'scripts/deploy/consensus-candidate-failure-retention.test.mjs'
       - 'scripts/verify/consensus-production-package-check*'
       - 'scripts/verify/verify-consensus-overlay.sh'

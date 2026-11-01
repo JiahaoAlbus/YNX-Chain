@@ -8,6 +8,9 @@ ynx_ops_init
 
 package="${CONSENSUS_OVERLAY_PACKAGE:-}"
 [[ -d "$package/roles" ]] || { echo "CONSENSUS_OVERLAY_PACKAGE is required" >&2; exit 1; }
+# Preserve the normal relative package selector. abspath removes only relative
+# spelling; the public reader still refuses every symlink/canonical mismatch.
+package="$(python3 -B -c 'import os,sys; print(os.path.abspath(sys.argv[1]))' "$package")"
 manifest_pin="${CONSENSUS_OVERLAY_PACKAGE_MANIFEST_SHA256:-}"
 [[ "$manifest_pin" =~ ^[0-9a-f]{64}$ && "$manifest_pin" != "$(printf '0%.0s' {1..64})" ]] || {
   echo "independent CONSENSUS_OVERLAY_PACKAGE_MANIFEST_SHA256 is required" >&2; exit 1;

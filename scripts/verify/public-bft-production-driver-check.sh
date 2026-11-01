@@ -17,6 +17,9 @@ const execute=promisify(execFile),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'ynx-
 const source=fs.readFileSync('scripts/ops/public-bft-production-driver.sh','utf8');
 const collect=source.match(/^collect_role\(\) \{\n[\s\S]*?^\}/m)?.[0];
 assert.ok(collect,'normal preflight caller absent');
+const gateSource=fs.readFileSync('scripts/verify/consensus-candidate-deploy-gate.sh','utf8');
+const gate=gateSource.match(/^preflight_candidate_role\(\) \{\n[\s\S]*?^\}/m)?.[0];
+assert.ok(gate,'normal candidate deploy gate absent');
 const q=x=>"'"+x.replaceAll("'","'\\''")+"'";
 const server=http.createServer((req,res)=>res.end('PUBLIC fixture\n'));
 let metrics;
@@ -30,7 +33,9 @@ const [command,data,mode,log]=process.argv.slice(2),q=x=>"'"+x.replaceAll("'","'
 fs.appendFileSync(log,JSON.stringify({command,mode})+'\n');
 if(command==='curl -fsS http://127.0.0.1:6420/status'){console.log('{"height":100}');process.exit(0);}
 let guard;
-const start=command.indexOf('candidate_listen_output='),end=command.indexOf('\nsudo test ! -e /var/lib/ynx-chain/mutation-freeze.json',start);
+const start=command.indexOf('candidate_listen_output=');
+let end=command.indexOf('\nsudo test ! -e /var/lib/ynx-chain/mutation-freeze.json',start);
+if(end<0)end=command.indexOf('\ntest "',start);
 if(start>=0){if(end<=start)throw Error('normal read-only guard boundary missing');guard=command.slice(start,end);}
 else{guard=command.match(/! ss -ltn \| awk '\{print \$4\}' \| grep -Eq '[^']+';/)?.[0];}
 if(!guard)throw Error('normal port guard missing');
@@ -54,6 +59,14 @@ process.exit(result.status??92);
     assert.ok(fs.existsSync(log),'normal preflight did not reach the transport probe');
     return {code,log:fs.readFileSync(log,'utf8')};
   }
+  async function invokeGate(operator,role,ports,mode='valid'){
+    const root=path.join(tmp,'case-'+sequence++),script=path.join(root,'caller.sh'),log=path.join(root,'transport.jsonl');
+    fs.mkdirSync(root,{recursive:true});
+    fs.writeFileSync(script,`#!/bin/bash\nset -Eeuo pipefail\nCONSENSUS_CANDIDATE_OPERATOR_PLAN_SHA256=${q(operator?'1'.repeat(64):'')}\nynx_ops_ssh(){ ${q(process.execPath)} ${q(probe)} "\${5}" ${q(JSON.stringify(ports))} ${q(mode)} ${q(log)}; }\n${gate}\npreflight_candidate_role ${q(role)} PUBLIC PUBLIC PUBLIC validator\n`,{flag:'wx',mode:0o700});
+    let code=0;try{await execute('bash',[script]);}catch(error){code=error.code;}
+    assert.ok(fs.existsSync(log),'normal candidate gate did not reach the transport probe');
+    return {code,log:fs.readFileSync(log,'utf8')};
+  }
   const profiles=[['validator','ynx-chaind'],['full','ynx-chaind'],['full','ynx-chaind ynx-faucetd']];
   for(const [kind,services] of profiles)assert.equal((await invoke(kind,services,[server.address().port])).code,0,'unrelated real listener rejected');
   metrics=http.createServer((req,res)=>res.end('PUBLIC metrics fixture\n'));
@@ -65,7 +78,14 @@ process.exit(result.status??92);
   // approval, real host, signer or production state is used or authorized.
   for(const [kind,services] of profiles)assert.notEqual((await invoke(kind,services,[server.address().port,metrics.address().port])).code,0,'PUBLIC_BFT_PREFLIGHT_METRICS_PORT_IGNORED');
   for(const mode of ['ss-failure','empty','malformed','awk-failure'])assert.notEqual((await invoke('validator','ynx-chaind',[server.address().port],mode)).code,0,'PUBLIC_BFT_PREFLIGHT_PORT_PROBE_FAILURE_ACCEPTED: '+mode);
+  for(const operator of [false,true])for(const role of ['primary','singapore']){
+    assert.equal((await invokeGate(operator,role,[server.address().port])).code,0,'candidate gate rejected unrelated listener');
+    assert.notEqual((await invokeGate(operator,role,[server.address().port,metrics.address().port])).code,0,'PUBLIC_CANDIDATE_GATE_METRICS_PORT_IGNORED');
+    for(const mode of ['ss-failure','empty','malformed','awk-failure'])assert.notEqual((await invokeGate(operator,role,[server.address().port],mode)).code,0,'PUBLIC_CANDIDATE_GATE_PORT_PROBE_FAILURE_ACCEPTED: '+mode);
+    if(role==='primary')assert.notEqual((await invokeGate(operator,role,[server.address().port,27620])).code,0,'PUBLIC_CANDIDATE_GATE_GATEWAY_PORT_IGNORED');
+  }
   console.log('PUBLIC_BFT_PREFLIGHT_PORTS_PASS: real local 27660 listener with controlled ss data refused by the generated guard in all three profiles; ss and parse failures fail closed; unrelated real listener accepted; not a live Linux-host ss check');
+  console.log('PUBLIC_CANDIDATE_GATE_PORTS_PASS: operator and legacy primary/validator guards reject 27660 and command/parse failures; primary gateway 27620 also protected');
 }finally{
   if(metrics?.listening)await new Promise(resolve=>metrics.close(resolve));
   if(server.listening)await new Promise(resolve=>server.close(resolve));
