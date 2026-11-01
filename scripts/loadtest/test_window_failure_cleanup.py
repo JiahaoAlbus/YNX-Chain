@@ -28,14 +28,19 @@ class FailedInventoryCleanupControls(unittest.TestCase):
     def test_real_direct_child_is_stopped_after_exact_owned_inventory_bound(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary);(root/'.private').mkdir();(root/'public').mkdir();w=lab.Window(Path(__file__).resolve().parents[2],root)
+            # Separate test-owned process is deliberately NOT registered with
+            # this Window. Cleanup must never select it from PID inventory.
+            foreign=lab.subprocess.Popen([sys.executable,'-I','-c','import time;time.sleep(20)'],start_new_session=True)
             proc=w.launch('original-direct-child',[sys.executable,'-I','-c','import time;time.sleep(20)'])
             try:
                 with mock.patch.object(lab.guard,'owned_set',side_effect=RuntimeError('owned PID bound; inventory not truncated')):
                     with self.assertRaisesRegex(RuntimeError,'owned PID bound'):w.stop()
                 self.assertIsNotNone(proc.poll());self.assertEqual(proc.returncode,-signal.SIGTERM)
                 self.assertTrue(w.direct_cleanup_after_failure[0]['exited'])
+                self.assertIsNone(foreign.poll())
             finally:
                 if proc.poll() is None:proc.kill();proc.wait(timeout=2)
+                foreign.terminate();foreign.wait(timeout=2)
 
 
 if __name__=='__main__':unittest.main()
