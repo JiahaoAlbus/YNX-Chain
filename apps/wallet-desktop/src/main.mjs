@@ -98,6 +98,8 @@ import { decodeInvoiceReferenceQR } from "./wallet-invoice-reference-qr.mjs";
 import {createDesktopPayService,installDesktopPayIPC} from "./wallet-pay-service.mjs";
 import {createNativePayMainEntry} from './native-pay-client/main-entry.mjs';
 import {createWalletNativePayProduct,installWalletNativePayProductIPC} from './wallet-native-pay-product.mjs';
+import {initializeOriginalWalletMainNamespaceV1} from '@ynx-chain/wallet-auth/original-wallet-main-namespace-bootstrap';
+import {createWalletMainNamespaceStartup} from './wallet-main-namespace-startup.mjs';
 import {DesktopNativePayChain} from "./native-pay-chain.mjs";
 import { parsePaymentRecipient, decodePaymentRecipientQR, decodeEVMRecipientQR, decodeFamilyRecipientQR } from "./payment-recipient.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
@@ -142,6 +144,7 @@ let originalDeviceRegistration;
 let pqTransactionSubmission;
 let originalPQPaySupply=null,originalPQPayComposition=null,originalPQPayCompositionCause,originalPQPayBootEntered=false;
 let nativePayMainEntry=null,nativePayProduct=null;
+const originalMainNamespaceStartup=createWalletMainNamespaceStartup({initialize:initializeOriginalWalletMainNamespaceV1});
 let pqFinalityCollection;
 let originalIDEIdentityPeer;
 let originalIDEIdentityPeerLoading;
@@ -355,16 +358,25 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
   return Object.freeze({close(event,window){if(allowed)return;event.preventDefault();if(closingWindows.has(window))return;closingWindows.add(window);void request().then(()=>window.destroy(),()=>{closingWindows.delete(window);});},beforeQuit(event){if(allowed)return;event.preventDefault();void request().then(quitOnce,()=>{});},allClosed(){void request().then(quitOnce,()=>{});},request});
 }
 async function shutdownOriginalPQWallet(){
-  let retireFailed=false,retireCause;try{originalPayContextBridge.invalidateAll();}catch(cause){retireFailed=true;retireCause=cause;}
+  let retireFailed=false,retireCause;try{originalMainNamespaceStartup.retire();}catch(cause){retireFailed=true;retireCause=cause;}
+  try{originalPayContextBridge.invalidateAll();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   try{nativePayMainEntry?.cancel();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   pqFinalityCollection?.retire();
   // The registration client must settle its child/callback custody before the
   // original creation parent closes. Other owners still drain after a failure.
   const registration=await Promise.allSettled([originalDeviceRegistration?.close(),originalDeviceFinalization?.close()]);
   const others=await Promise.allSettled([walletAuthority?.shutdownPQReviews(),originalDeviceCreation?.close(),originalDeviceQuery?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
-  const failed=[...registration,...others].find(r=>r.status==='rejected');if(retireFailed)throw retireCause;if(failed)throw failed.reason;
+  const failed=[...registration,...others].find(r=>r.status==='rejected');
+  // Child owners must drain before releasing the namespace admission parent.
+  if(!failed)try{
+    nativePayProduct?.assertSafeToClose();
+    if(pqTransactionSubmission?.hasUnresolvedCleanup())throw Error('PQ_TRANSACTION_CLEANUP_PENDING');
+    originalPayContextBridge.assertSafeToClose();
+    await originalMainNamespaceStartup.shutdown();
+  }catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
+  if(retireFailed)throw retireCause;if(failed)throw failed.reason;
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{nativePayProduct?.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{nativePayProduct?.assertSafeToClose();originalMainNamespaceStartup.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
@@ -1100,6 +1112,11 @@ app.on("second-instance", (_event, argv) => {
 });
 
 if (singleInstanceLock) app.whenReady().then(async () => {
+  try{
+    const attempt=originalMainNamespaceStartup.start();
+    await originalMainNamespaceStartup.settle(attempt);
+  }catch{/* exact startup/cleanup causes retained; ordinary Wallet continues */}
+  if(originalMainNamespaceStartup.isClosing())return;
   try{await composeNormalOriginalDesktopPay();}catch{/* retained first Pay-only cause; ordinary Wallet continues */}
   originalPQPayBootEntered=true;
   // A missing Pay-only dependency must not prevent the ordinary Wallet from

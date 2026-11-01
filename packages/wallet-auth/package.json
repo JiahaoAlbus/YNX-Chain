@@ -446,6 +446,12 @@
       "browser": null,
       "node": "./native/original-wallet-pay-client-source-contract.mjs",
       "default": null
+    },
+    "./original-wallet-main-namespace-bootstrap": {
+      "types": "./src/original-wallet-main-namespace-bootstrap.d.ts",
+      "browser": null,
+      "node": "./src/original-wallet-main-namespace-bootstrap.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -584,7 +590,12 @@
     "docs/pay-native-source-getter.md",
     "native/original-wallet-pay-client-source-contract.mjs",
     "native/original-wallet-pay-client-source-contract.d.mts",
-    "native/WALLET_PAY_CLIENT_SOURCE_V1.md"
+    "native/WALLET_PAY_CLIENT_SOURCE_V1.md",
+    "native/original-wallet-main-namespace-private.h",
+    "native/original-wallet-main-namespace-private.cpp",
+    "docs/wallet-main-namespace-bootstrap-v1.md",
+    "docs/wallet-main-namespace-private-startup-v1.json",
+    "docs/wallet-main-namespace-import-provenance-v1.json"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
