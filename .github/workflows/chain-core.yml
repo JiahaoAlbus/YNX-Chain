@@ -73,7 +73,7 @@ jobs:
       - name: Check original resource-current native client and Darwin kernel peer lifecycle
         env:
           YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS: ${{ runner.temp }}/resource-current-native-evidence
-        run: node --test cmd/ynx-secure-link-caller/resource-current-native.test.mjs
+        run: node --test cmd/ynx-secure-link-caller/resource-current-native.test.mjs cmd/ynx-secure-link-caller/resource-current-held-native.test.mjs
       - name: Preserve original PUBLIC native client inputs, binaries and first-cause evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -109,7 +109,7 @@ jobs:
       - name: Check same-socket native peer identity, original frame and physical drain
         env:
           YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS: ${{ runner.temp }}/resource-current-native-evidence
-        run: node --test cmd/ynx-secure-link-caller/resource-current-native.test.mjs
+        run: node --test cmd/ynx-secure-link-caller/resource-current-native.test.mjs cmd/ynx-secure-link-caller/resource-current-held-native.test.mjs
       - name: Preserve original PUBLIC native client inputs, binaries and first-cause evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
