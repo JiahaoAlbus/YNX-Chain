@@ -1,30 +1,40 @@
-"""Normal initialization controller pure controls. No Go/nodes/network."""
-import contextlib,hashlib,importlib.util,io,json,tempfile,unittest
+"""Fixed finite profile controls only; never starts the runtime."""
+import contextlib,importlib.util,io,json,os
 from pathlib import Path
+import unittest
 from unittest import mock
-spec=importlib.util.spec_from_file_location('initialization_ci',Path(__file__).with_name('pq-current75-baseline-ci.py'));entry=importlib.util.module_from_spec(spec);spec.loader.exec_module(entry)
-class InitializationControllerControls(unittest.TestCase):
-    def test_default_inert_and_full500_not_assumed(self):
-        with mock.patch.object(entry,'execute',side_effect=AssertionError('execute')),mock.patch.object(entry,'git',side_effect=AssertionError('git')),contextlib.redirect_stdout(io.StringIO()) as out:self.assertEqual(entry.main([]),0)
-        d=json.loads(out.getvalue());self.assertFalse(d['executed'] or d['pressureAuthorized'] or d['actual500InitializationQualified']);self.assertEqual(d['configuredBusinessDemand'],500)
-    def test_fixed_source_caps_exact500_and_no_business_load(self):
-        a=entry.fixed_options(Path('/source'));self.assertEqual((a.accounts,a.per_account,a.rate,a.seconds),(500,1,100,5));self.assertTrue(a.initialization_only and a.staged_publication);self.assertFalse(a.network_accounting or a.header_hop_capture);self.assertEqual(entry.GO_SOURCE,'896ea094c985cd4b9e90681e436285a9bba0a979');self.assertEqual(entry.CAPS['totalSeconds'],900);self.assertEqual(entry.CAPS['cpus'],2)
-    def test_workflow_uses_only_exact_init_profile_and_pinned_tools(self):
-        raw=(Path(__file__).parents[2]/'.github/workflows/pq-normal-process.yml').read_text();self.assertIn('ref: '+entry.TOOLS,raw);self.assertIn('ref: '+entry.GO_SOURCE,raw);self.assertIn('id: initialization',raw);self.assertNotIn('id: load',raw);self.assertNotIn('currentc06-online',raw);self.assertIn('test_pq_initialization_measurements.py -v',raw);self.assertIn('Original61 pure controls reused',raw)
-    def test_nonhosted_or_wrong_profile_ref_attempt_refused_before_runtime(self):
-        with mock.patch.object(entry.sys,'platform','darwin'),mock.patch.object(entry,'git') as git:
-            with self.assertRaises(RuntimeError):entry.execute(Path('/source'),Path('/tools'))
-            git.assert_not_called()
-        env=dict(GITHUB_ACTIONS='true',RUNNER_ENVIRONMENT='github-hosted',GITHUB_REPOSITORY='JiahaoAlbus/YNX-Chain',GITHUB_EVENT_NAME='push',GITHUB_REF=entry.REF,GITHUB_RUN_ATTEMPT='1',PQ_BASELINE_PROFILE=entry.PROFILE,GITHUB_WORKFLOW_REF='JiahaoAlbus/YNX-Chain/'+entry.WORKFLOW+'@'+entry.REF,GITHUB_SHA='a'*40,GITHUB_RUN_ID='123')
-        with mock.patch.object(entry.sys,'platform','linux'):
-            entry.validate_host(env)
-            for k,v in [('PQ_BASELINE_PROFILE','currentc06-online-100x5-commitstages'),('GITHUB_REF','refs/heads/main'),('GITHUB_RUN_ATTEMPT','2')]:
-                with self.subTest(k=k),self.assertRaises(RuntimeError):entry.validate_host(dict(env,**{k:v}))
-    def test_modified_pinned_python_not_imported(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            p=Path(tmp)/'bad.py';p.write_text("raise AssertionError('must not execute')")
-            with self.assertRaises(RuntimeError):entry.pinned_module('bad',p,'0'*64)
-    def test_no_rate_account_or_duplicate_cli_override(self):
-        for args in [['--rate','1000'],['--accounts','8'],['--source','a','--source','b']]:
-            with contextlib.redirect_stderr(io.StringIO()),self.assertRaises((RuntimeError,SystemExit)):entry.main(args)
+spec=importlib.util.spec_from_file_location('fixed_live_controller',Path(__file__).with_name('pq-current75-baseline-ci.py'))
+c=importlib.util.module_from_spec(spec);spec.loader.exec_module(c)
+class FixedLiveProfileControls(unittest.TestCase):
+ def environment(self):
+  return dict(GITHUB_ACTIONS='true',RUNNER_ENVIRONMENT='github-hosted',GITHUB_REPOSITORY='JiahaoAlbus/YNX-Chain',GITHUB_EVENT_NAME='push',GITHUB_REF=c.REF,GITHUB_RUN_ATTEMPT='1',PQ_BASELINE_PROFILE=c.PROFILE,GITHUB_WORKFLOW_REF='JiahaoAlbus/YNX-Chain/'+c.WORKFLOW+'@'+c.REF,GITHUB_SHA='a'*40,GITHUB_RUN_ID='123')
+ def test_fixed_online_normal_fixture_cannot_select_pressure(self):
+  options=c.fixed_options(Path('/source'))
+  self.assertEqual(vars(options),dict(source='/source',commit=c.GO_SOURCE,mode='online',wire_observation=True,live_network_baseline=True,execute=True))
+  self.assertFalse(hasattr(options,'rate'));self.assertFalse(hasattr(options,'seconds'));self.assertFalse(hasattr(options,'staged_publication'))
+ def test_prepared_data_never_grants_runtime_physical_or_pressure(self):
+  value=c.prepared_data();self.assertFalse(value['executed']);self.assertFalse(value['nodeStartAuthorized']);self.assertFalse(value['pressureAuthorized']);self.assertFalse(value['sourceGrant']);self.assertEqual(value['sourceQualification']['scope'],'SOURCE_ONLY_FINITE_BASELINE');self.assertFalse(value['sourceQualification']['pressureAuthorized'])
+  self.assertEqual((value['originalOwnerCount'],value['functionalOwners'],value['perOwnerCapacity'],value['batchSize']),(8,4,32,1));self.assertEqual(value['physicalFaultDomains'],1);self.assertFalse(value['physicalBytesMeasured']);self.assertEqual(value['caps']['totalSeconds'],900);self.assertEqual(value['caps']['cleanupSeconds'],15)
+ def test_fixed_first_attempt_host_identity_and_ref_are_required(self):
+  with mock.patch.object(c.sys,'platform','linux'):
+   c.validate_host(self.environment())
+   for key,value in [('GITHUB_REF','refs/heads/main'),('GITHUB_RUN_ATTEMPT','2'),('RUNNER_ENVIRONMENT','self-hosted'),('GITHUB_WORKFLOW_REF','wrong'),('PQ_BASELINE_PROFILE','functional'),('GITHUB_SHA','0'*40)]:
+    with self.subTest(key=key),self.assertRaises(RuntimeError):c.validate_host(dict(self.environment(),**{key:value}))
+ def test_execute_without_selected_environment_fails_before_source_or_runtime(self):
+  with mock.patch.dict(os.environ,{},clear=True),mock.patch.object(c,'checked_source') as checked,mock.patch.object(c,'pinned_module') as load:
+   with self.assertRaises(RuntimeError):c.execute(Path('/source'),Path('/tools'))
+   checked.assert_not_called();load.assert_not_called()
+ def test_default_and_duplicate_arguments_never_execute(self):
+  with mock.patch.object(c,'execute') as execute,contextlib.redirect_stdout(io.StringIO()) as output:
+   self.assertEqual(c.main([]),0);self.assertFalse(json.loads(output.getvalue())['executed'])
+   with self.assertRaisesRegex(RuntimeError,'duplicate'):c.main(['--source','a','--source','b','--execute'])
+   execute.assert_not_called()
+ def test_workflow_has_one_selected_live_job_and_explicit_supplier_reception(self):
+  raw=(Path(__file__).resolve().parents[2]/'.github/workflows/pq-normal-process.yml').read_text()
+  self.assertIn("if: github.ref != '"+c.REF+"'",raw)
+  self.assertEqual(raw.count('  '+c.PROFILE+':\n'),1)
+  self.assertNotIn('  current896-coldready-initialize500-only:',raw)
+  self.assertIn('github.run_attempt == 1',raw)
+  self.assertIn('fetch --no-tags --depth=1 origin 54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076',raw)
+  self.assertIn(c.GO_SOURCE,raw);self.assertIn(c.TOOLS,raw)
 if __name__=='__main__':unittest.main()
