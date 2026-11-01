@@ -76,5 +76,12 @@
     "UNKNOWN": true,
     "commonGitIndex": true,
     "unrelatedSources": true
+  },
+  "rootLoaderPinSuccessor": {
+    "bytes": 5763,
+    "sha256": "916cd30637dbd25ff79080947c44211348c48b754425b89a9c8811f4e233f0da",
+    "sourceRootCAS": "eb66002e63fd2e86c93f990868a0a5899b8f2cf00c3a9f781b3223c8a88d5b53",
+    "independentPostbuildApprovalRequired": true,
+    "RootAdmission": false
   }
 }
