@@ -113,3 +113,12 @@ single regular-file link and unchanged inode/size. It does not generate a seal,
 load an account, register a backend or replace the independent Source.Current
 guard. Tests use explicitly PUBLIC temporary seal bytes; no production material
 is read. Auth's original PKCS8 signing-key loader is unchanged.
+
+Native API mode also sets `NativeInvoiceOnly`: an unbound order cannot fall
+through to the old invoice creator. The actual Native bill/merchant/terms Source
+and original Main approval path must be connected first. Refusal leaves the
+original nonce/effect admission untouched. Existing bound invoice references
+remain recoverable without creating another operation. The 2026-11-01 P06 normal
+host inventory explicitly reports `PAY_HOST_ORIGINAL_ENGINE_SOURCE_CONTRACT_NOT_LINKED`;
+this is a real supplier composition gap, separate from Root registration, and
+must not be hidden by a legacy service key or a replacement Shop Source.

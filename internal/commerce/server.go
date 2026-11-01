@@ -33,7 +33,10 @@ type ServerConfig struct {
 	Auth                 AuthGateway
 	Pay                  HTTPPayVerifier
 	// Borrowed original private transport; never selected from request or ENV.
-	NativePay                 *NativeShopPayClient
+	NativePay *NativeShopPayClient
+	// Independent Native mode may recover historical references, but cannot
+	// fall through to the retired invoice creator while its Native Source is absent.
+	NativeInvoiceOnly         bool
 	Trust                     TrustGateway
 	AI                        HTTPAIGateway
 	ProviderTester            ProviderTester

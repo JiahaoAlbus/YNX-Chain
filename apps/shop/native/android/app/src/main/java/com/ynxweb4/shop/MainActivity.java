@@ -253,6 +253,7 @@ public final class MainActivity extends Activity {
     }
 
     private void pay(JSONObject order){
+		if(NativeIntentObservation.isNative(order)){checkPayment(order);return;}
         if(payHandoffWork!=null)return;final ProductSession expected;final long generation;final BuyerPaymentReview.Pending pending;final Object work=new Object();final long view=viewRevision,presentation=payPresentationRevision;
         try{expected=api.session();if(expected==null){signIn();return;}generation=PrivacyLifecycle.requireWritable(secure,expected.account);BuyerOrderReadback.validate(order,expected);pending=BuyerPaymentReview.prepare(secure,expected,order);}catch(Exception error){status.setText(message(error));return;}
         payHandoffWork=work;status.setText(getString(R.string.loading));

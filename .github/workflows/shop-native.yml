@@ -30,7 +30,7 @@ jobs:
       - name: Verify original intent recovery and build the normal Shop service
         run: |
           set -euo pipefail
-          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestBusinessNativeIntent|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI)' -count=1
+          go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI)' -count=1
           go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
       - uses: actions/setup-java@v4
         with:
@@ -48,6 +48,39 @@ jobs:
             apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/{NativeProductState,NativeBusinessPolicy,BuyerReceipt,NativeIntentObservation}.java \
             apps/shop/native/android/app/src/test/java/com/ynxweb4/shop/NativeIntentObservationTest.java
           java -cp "$CLASSES:$DEPS/*" org.junit.runner.JUnitCore com.ynxweb4.shop.NativeIntentObservationTest
+
+  android-app-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Supply the original pinned Native compiler dependencies
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/ynx-shop-native-tools" --no-package-lock --ignore-scripts \
+            esbuild@0.25.9 @noble/curves@2.2.0 @noble/hashes@2.2.0
+          ln -s "$RUNNER_TEMP/ynx-shop-native-tools/node_modules" apps/shop/node_modules
+      - name: Build the actual Android app and check original intent recovery
+        env:
+          YNX_SHOP_API_URL: https://shop-api.ynxweb4.com
+        run: |
+          set -euo pipefail
+          bash apps/shop/native/android/gradlew -p apps/shop/native/android --no-daemon \
+            :app:assembleDebug :app:testDebugUnitTest --tests com.ynxweb4.shop.NativeIntentObservationTest
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-shop-android-debug
+          path: |
+            apps/shop/native/android/app/build/outputs/apk/debug/*.apk
+            apps/shop/native/android/app/build/test-results/testDebugUnitTest/*.xml
+            apps/shop/native/android/app/build/generated/commerce-native-r9/assets/native-session/sdk-manifest.json
 
   language-regression:
     runs-on: macos-15
@@ -112,6 +145,9 @@ jobs:
           xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/NativeAPIChecks.swift \
             -o "$RUNNER_TEMP/ynx-shop-native-api-checks"
           "$RUNNER_TEMP/ynx-shop-native-api-checks"
+          xcrun swiftc "${SOURCES[@]}" "$SDK_PIN" tests/BuyerJourneyChecks.swift \
+            -o "$RUNNER_TEMP/ynx-shop-buyer-journey-checks"
+          "$RUNNER_TEMP/ynx-shop-buyer-journey-checks"
       - name: Boot, install, launch, and exercise deep link
         run: |
           DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for runtime in d.values() for x in runtime if x["name"].startswith("iPhone") and x["isAvailable"]))')"

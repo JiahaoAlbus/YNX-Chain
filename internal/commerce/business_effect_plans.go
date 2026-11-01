@@ -236,6 +236,10 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 			failBusiness(w, recoveryErr)
 			return
 		}
+		if s.cfg.NativeInvoiceOnly {
+			failBusiness(w, &businessHTTPError{"NATIVE_INVOICE_SOURCE_REQUIRED", http.StatusServiceUnavailable})
+			return
+		}
 		plan, err = s.payInvoiceEffect(r.PathValue("id"), body)
 	case "POST /api/orders/{id}/confirm-payment":
 		plan, err = s.settlementEffect(r.PathValue("id"), body, verified.proof)

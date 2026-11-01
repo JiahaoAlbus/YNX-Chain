@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"strings"
 )
 
 var errInvoiceNotBound = errors.New("original invoice not yet bound")
@@ -18,6 +19,11 @@ func hasInvoiceBinding(order Order) bool {
 func boundInvoiceHandoff(order Order) (PayInvoiceHandoff, error) {
 	if !hasInvoiceBinding(order) {
 		return PayInvoiceHandoff{}, errInvoiceNotBound
+	}
+	// A native CORE invoice locator cannot be converted into a legacy Wallet
+	// URI. Its retained npi operation must use the original Native review path.
+	if strings.HasPrefix(order.PayIntentID, "npi_") {
+		return PayInvoiceHandoff{}, ErrInvalidState
 	}
 	// Partial historical bindings are not fresh orders. Keep them readable,
 	// but never create a second Pay intent by guessing the missing invoice.

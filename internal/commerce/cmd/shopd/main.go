@@ -101,6 +101,7 @@ func main() {
 	// The original engine remains the sole public catalog/store. Static pages and
 	// legacy gateway configuration cannot silently become private authority.
 	// Actual role factories need independent protected profile/actor inputs.
+	cfg.NativeInvoiceOnly = *nativeAPI
 	documents := commerce.NewServer(store, cfg)
 	engine := documents.Handler()
 	buyerPrivate, sellerPrivate, identity, buyerDocuments, sellerDocuments, privateErr := runtime.servers(context.Background(), store, cfg)
