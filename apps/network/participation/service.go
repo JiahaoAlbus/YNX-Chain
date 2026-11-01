@@ -104,6 +104,15 @@ func New(path string, reader Reader, wallet Wallet) (*Service, error) {
 		if entry.PublishAttemptedAt != "" && (entry.State == Prepared || entry.State == Unsupported) {
 			return nil, ErrInvalid
 		}
+		if entry.CancelRequestedAt != "" {
+			at, e := time.Parse(time.RFC3339Nano, entry.CancelRequestedAt)
+			if e != nil || at.UTC().Format(time.RFC3339Nano) != entry.CancelRequestedAt || entry.State == Prepared || entry.State == Unsupported {
+				return nil, ErrInvalid
+			}
+		}
+		if entry.State == Cancelled && (entry.CancelRequestedAt == "" || entry.PublishAttemptedAt != "") {
+			return nil, ErrInvalid
+		}
 		if n, e := integer(entry.Intent.Generation); e != nil || n == 0 || n > s.data.Generation {
 			return nil, ErrInvalid
 		}
@@ -232,7 +241,7 @@ func validateRequest(r Request) error {
 }
 func entryState(v string) bool {
 	switch v {
-	case Prepared, Unsupported, Unknown, AwaitingWallet, ReportedCommitted, ReportedRejected, Denied, Revoked:
+	case Prepared, Unsupported, Unknown, AwaitingWallet, ReportedCommitted, ReportedRejected, Denied, Revoked, Cancelled:
 		return true
 	}
 	return false
@@ -426,6 +435,9 @@ func (s *Service) Prepare(ctx context.Context, req Request) (Entry, error) {
 	return cloneEntry(entry), resultError(entry)
 }
 func resultError(e Entry) error {
+	if e.State == Cancelled {
+		return ErrCancelled
+	}
 	if e.State == Unsupported {
 		return ErrUnsupported
 	}
@@ -456,6 +468,9 @@ func (s *Service) List() []Entry {
 // Submit persists UNKNOWN before the first publisher call. OperationID never
 // changes. Subsequent calls use Reconcile, including response loss and restart.
 func (s *Service) Submit(ctx context.Context, id string) (Entry, error) {
+	if ctx == nil {
+		return Entry{}, ErrInvalid
+	}
 	s.mu.Lock()
 	entry, ok := s.data.Entries[id]
 	if !ok {
@@ -505,6 +520,16 @@ func (s *Service) Submit(ctx context.Context, id string) (Entry, error) {
 		s.mu.Unlock()
 		return s.Reconcile(ctx, id)
 	}
+	// Cancel may have retired this exact entry while the reader/capability
+	// preflight was in flight. A fresh preflight is not a new local decision.
+	if entry.CancelRequestedAt != "" || (entry.State != Prepared && entry.State != Unsupported) {
+		s.mu.Unlock()
+		return cloneEntry(entry), resultError(entry)
+	}
+	if err := ctx.Err(); err != nil {
+		s.mu.Unlock()
+		return cloneEntry(entry), err
+	}
 	for _, old := range s.data.Entries {
 		if old.ID != id && old.Guard == entry.Guard && (old.State == Unknown || old.State == AwaitingWallet) {
 			s.mu.Unlock()
@@ -538,6 +563,9 @@ func (s *Service) finish(id string, cancel context.CancelFunc) {
 	s.wg.Done()
 }
 func (s *Service) Reconcile(ctx context.Context, id string) (Entry, error) {
+	if ctx == nil {
+		return Entry{}, ErrInvalid
+	}
 	s.mu.Lock()
 	entry, ok := s.data.Entries[id]
 	if !ok || s.closed {
@@ -617,6 +645,9 @@ func (s *Service) consume(ctx context.Context, entry Entry, result WalletResult,
 	entry.UpdatedAt = timestamp()
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	// A callback owns only its original result, never the cancellation metadata
+	// recorded while it was awaiting Wallet or the original chain result.
+	entry.CancelRequestedAt = s.data.Entries[entry.ID].CancelRequestedAt
 	s.data.Entries[entry.ID] = entry
 	if e := s.save(); e != nil {
 		return cloneEntry(entry), e

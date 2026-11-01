@@ -318,7 +318,7 @@ func TestNetworkLocalIPCFixedTypedPayloadOperationsAndBoundaries(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer ipcClose(t, server)
-	operations := []string{"participation_prepare", "participation_reconcile", "participation_revoke", "participation_get", "participation_submit", "node_prepare", "node_install", "node_start", "node_status", "node_stop", "resource_status", "resource_meter", "resource_stop"}
+	operations := []string{"participation_prepare", "participation_review", "participation_cancel", "participation_reconcile", "participation_revoke", "participation_get", "participation_submit", "node_prepare", "node_install", "node_start", "node_status", "node_stop", "resource_status", "resource_meter", "resource_stop"}
 	for _, operation := range operations {
 		request := localipc.Request{Version: localipc.Version, ID: "typed_1", Operation: operation, Payload: json.RawMessage(`{"id":"local_reference"}`)}
 		response, err := localipc.Call(context.Background(), dir, request)

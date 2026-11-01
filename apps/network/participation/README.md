@@ -15,3 +15,35 @@ A known persistent marker plus Unix flock admits only one live writer and releas
 Actual chain readback must match the original native hash, complete canonical Member/action, owner, network domain, payload, nonce and fee. Effects are retained by digest rather than copying balances into a second authority. The result is explicitly `RPC_REPORTED_COMMITTED` or `RPC_REPORTED_REJECTED`, with independent finality false. Parent receipt verification is a separate gate; an RPC report is not independently verified funds state.
 
 The normal parent-owned kernel-credential IPC service calls `Prepare`, `Get`, `Reconcile` and `Revoke`. HTTP receipt tickets gain no authority here. Shared minimum contracts are recorded in `owners/P09/CONTRACTS/P09-05-06.json`; no shared SDK/Auth/Chain schema is changed. The canonical cmd tests use real HTTP fixture services, existing canonical PQ codecs and temporary library signatures only. They do not execute public business or prove a real Wallet publisher.
+
+`Review` and native `participation_review` expose a read-only local summary even
+without Wallet: the retained complete intent/bindings, exact original
+`ynxauth.Action.SigningBytes()` ACTION/v1 bytes and their SHA256, a fresh comparison
+of the original RPC conditions, and the original Main's three DATA input keys
+`kind`, `fee`, `payload`. Amounts/fees stay decimal strings, including values above
+JavaScript's safe-integer range. Main derives owner/network/nonce from its own
+original policy and creates its own UUID; the P09 ID is a local correlation only.
+Neither the summary digest, prepared DATA nor kernel UID supplies approval or
+independent finality. Review does not write, sign, publish, look up Wallet or
+silently replace stale intent/nonce bytes. Expired/cancelled/cold records remain
+readable as historical local metadata.
+
+`Cancel` and native `participation_cancel` retire one local entry without revoking
+unrelated work. Cancellation during preflight blocks dispatch. Once publication
+may have been entered, cancellation preserves UNKNOWN/original ID/first cause,
+cancels the local wait, and allows only original-operation reconciliation. Late
+results cannot erase the cancellation marker or make that slot available for a
+replacement signature. Cold reopen preserves cancellation; a new normal metadata
+session can prepare a fresh unsubmitted intent while the old record stays retired.
+Cancelling a pending original does not claim to cancel a transaction on-chain.
+
+The original P01 handoff `network-participation-publisher-current-20261101`
+clarifies that source `412ed1be` implements internal Native typed custody, not an
+external P09 publisher. Current Main refuses stake delegate/unbond/withdraw with
+`PQ_TYPED_CLASSIC_ORIGINALS_NOT_SUPPLIED` before review/ID/signing. Its connected
+contract prepare/lookup APIs accept only contract deploy/execute. The required
+protected staking witness, trusted Network admission and stable original-operation
+publisher/lookup ABI remain original Wallet-owned CODE. Normal assembly therefore
+keeps `wallet=nil` and `walletHandoffState:NOT_SUPPLIED`; no IPC transport or Main
+UUID is guessed. Native PQ vote kind/executor remains a separate original Core
+gap; Ed25519 registry data never supplies that operation.

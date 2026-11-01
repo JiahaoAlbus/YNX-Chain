@@ -23,6 +23,7 @@ var (
 	ErrStale       = errors.New("STALE: authoritative conditions changed")
 	ErrUnknown     = errors.New("UNKNOWN: reconcile original operation only")
 	ErrUnavailable = errors.New("UNAVAILABLE: configured read authority unavailable")
+	ErrCancelled   = errors.New("CANCELLED: local participation dispatch cancelled")
 )
 
 const (
@@ -37,6 +38,7 @@ const (
 	ReportedRejected  = "RPC_REPORTED_REJECTED"
 	Denied            = "DENIED"
 	Revoked           = "REVOKED"
+	Cancelled         = "CANCELLED"
 )
 
 type Binding struct {
@@ -117,6 +119,9 @@ type WalletCapabilities struct {
 	LookupOriginalOperation     bool
 }
 type WalletResult struct {
+	// OperationID is the stable local P09 correlation, not a caller-selected
+	// original Main review UUID. A future genuine adapter must retain its exact
+	// original Main correlation; today's internal Main has no such external ABI.
 	OperationID string  `json:"operationId"`
 	Intent      Binding `json:"intent"`
 	State       string  `json:"state"`
@@ -167,6 +172,7 @@ type Entry struct {
 	State              string        `json:"state"`
 	BlockedReason      string        `json:"blockedReason,omitempty"`
 	PublishAttemptedAt string        `json:"publishAttemptedAt,omitempty"`
+	CancelRequestedAt  string        `json:"cancelRequestedAt,omitempty"`
 	WalletResult       *WalletResult `json:"walletResult,omitempty"`
 	Observation        *Observation  `json:"observation,omitempty"`
 	LastError          string        `json:"lastError,omitempty"`

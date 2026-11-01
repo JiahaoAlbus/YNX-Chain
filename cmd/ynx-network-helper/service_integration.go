@@ -235,6 +235,8 @@ func nativeParticipation(ctx context.Context, service *participation.Service, r 
 			return "STALE"
 		case errors.Is(err, participation.ErrUnavailable):
 			return "UNAVAILABLE"
+		case errors.Is(err, participation.ErrCancelled):
+			return "CANCELLED"
 		case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
 			return "CANCELLED"
 		default:
@@ -264,6 +266,13 @@ func nativeParticipation(ctx context.Context, service *participation.Service, r 
 		return localipc.Result{}, errors.New("participation request ID required")
 	}
 	switch r.Operation {
+	case "participation_review":
+		review, err := service.Review(ctx, req.ID)
+		raw, encodeErr := json.Marshal(map[string]any{"code": codeFor(err), "review": review, "walletApproval": false})
+		return localipc.Result{Payload: raw}, encodeErr
+	case "participation_cancel":
+		entry, err := service.Cancel(req.ID)
+		return pack(entry, codeFor(err))
 	case "participation_get":
 		entry, ok := service.Get(req.ID)
 		if !ok {
