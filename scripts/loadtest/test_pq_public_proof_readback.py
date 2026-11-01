@@ -85,6 +85,15 @@ class PublicProofClosureControls(unittest.TestCase):
             self.assertFalse(report['independentCryptographicReverification'] or report['sourceGrant'] or report['nativeRootAuthorized'] or report['originalAuthorityClaim'])
             command=report['normalImportCommand'];self.assertEqual(command[1],'portable-import');self.assertEqual(set(command[2::2]),{'--trust-context','--trust-context-sha256','--file-catalog','--file-catalog-sha256','--source-dir','--output-dir'})
             self.assertEqual((base/'independent/original-source/context/trust-context.json').read_bytes(),(f[2]/'trust-context.json').read_bytes())
+    def test_portable_catalog_tamper_missing_original_or_extra_path_fail_closed(self):
+        for mode in ('catalog','missingOriginal','extraPath'):
+            with self.subTest(mode=mode),tempfile.TemporaryDirectory() as temp:
+                base=Path(temp).resolve();f,ref,portable=self.completed_fixture(base);path=f[0]/portable['path'];m=p.strict(path.read_bytes());pin=portable['sha256']
+                if mode=='catalog':(f[1]/'portable-file-catalog.json').write_bytes(b'changed original catalog')
+                elif mode=='missingOriginal':(f[0]/m['payload']['original-results/functional-owner-4-original-sign.log']['publicRelativePath']).unlink()
+                else:
+                    m['payload']['custody/NOT_ALLOWED']=copy.deepcopy(next(iter(m['payload'].values())));raw=p.json_bytes(m);path.write_bytes(raw);pin=p.sha(raw)
+                with self.assertRaises((RuntimeError,ValueError,OSError)):p.read_portable_archive(path,pin)
     def test_existing_blob_corruption_refused_and_original_manifest_not_overwritten(self):
         with tempfile.TemporaryDirectory() as temp:
             base=Path(temp).resolve();f=self.fixture(base);ref=self.export(f);manifest=f[0]/ref['path'];before=manifest.read_bytes();m=p.strict(before);blob=f[0]/m['entries']['migration']['publicRelativePath'];blob.write_bytes(b'corrupt')
