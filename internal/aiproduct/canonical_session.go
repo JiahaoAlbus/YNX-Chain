@@ -42,6 +42,12 @@ func (s *Server) handleWalletConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) authenticateRequest(r *http.Request, scope string) (ProductSession, error) {
+	// The original V6 forwarder owns native task admission and the actual
+	// business reply. If a V6 request reaches this legacy boundary, never let
+	// another version or fixture credential silently authorize it instead.
+	if len(r.Header.Values("X-YNX-Product-Session-Proof-V6")) != 0 {
+		return ProductSession{}, &productsessionv2.Error{Code: "AI_TASK_V6_RUNTIME_REQUIRED", Status: http.StatusServiceUnavailable}
+	}
 	if s.wallet != nil {
 		// Canonical mode must never fall back to a fixture token, even when the
 		// same state file contains historical development sessions.

@@ -127,3 +127,8 @@ uses that signed-body bound even though private transport can carry 32 MiB.
 An oversized actual normal writer body returns
 `AI_TASK_V6_OBSERVATION_BODY_LIMIT`, produces no OBSERVED object and leaves the
 original stored result intact. Bytes and digest are never truncated/reused.
+
+A V6 proof header reaching the legacy authorizer is rejected with
+`AI_TASK_V6_RUNTIME_REQUIRED`, including an explicitly empty V6 header. The
+normal original V6 forwarder must handle the request before the legacy product
+handler; it cannot fall back to V2 or fixture credentials after V6 admission.

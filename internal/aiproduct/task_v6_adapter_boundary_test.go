@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -65,5 +67,22 @@ func TestP08V6AdapterGetterAndActualObservationBodyBound(t *testing.T) {
 	var absent *Server
 	if source, err := absent.OpenTaskStoreSource(); source != nil || err == nil {
 		t.Fatal("nil Server produced a Store")
+	}
+}
+
+func TestP08V6CannotFallThroughLegacyAuthorizer(t *testing.T) {
+	server, _, verifier := canonicalTestServer(t)
+	for _, value := range []string{"PUBLIC-native-task-proof", ""} {
+		request := httptest.NewRequest(http.MethodPost, "/api/tasks", strings.NewReader(`{"conversationId":"PUBLIC-conversation"}`))
+		request.Header.Add("X-YNX-Product-Session-Proof-V6", value)
+		request.Header.Set(productsessionv2.ProofHeader, "PUBLIC-legacy-V2-proof")
+		_, err := server.authenticateRequest(request, "ai:conversations")
+		var authority *productsessionv2.Error
+		if !errors.As(err, &authority) || authority.Code != "AI_TASK_V6_RUNTIME_REQUIRED" || authority.Status != http.StatusServiceUnavailable {
+			t.Fatalf("V6 fell through legacy boundary: %v", err)
+		}
+	}
+	if len(verifier.calls) != 0 {
+		t.Fatal("legacy authorizer received native task request")
 	}
 }
