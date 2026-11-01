@@ -125,9 +125,13 @@ class OriginalDriverInitializationControls(unittest.TestCase):
                     c.prepare_network=lambda:stages.run('prepare_network',None,original)
                     return c
                 return construct
+            original_journal=d.Journal
+            def only_initialization_journal(path):
+                if Path(path).stem!='initialization-events':raise AssertionError('business journal')
+                return original_journal(path)
             env=dict(GITHUB_ACTIONS='true',RUNNER_ENVIRONMENT='github-hosted',RUNNER_TEMP=str(parent))
             with contextlib.ExitStack() as stack:
-                for obj,name,value in [(d.lab,'check_source',mock.Mock(return_value=dict(commit=args.commit,tree=d.STAGED_CALLEE_TREE))),(d.lab,'git',mock.Mock(return_value='')),(d.subprocess,'check_output',mock.Mock(return_value=b'live-materials')),(d.lab.guard,'proc_inventory',mock.Mock(return_value=({},None))),(d.lab.guard,'memory_available',mock.Mock(return_value=7<<30)),(d.shutil,'disk_usage',mock.Mock(return_value=SimpleNamespace(free=20<<30))),(d.lab,'heavy_processes',mock.Mock(return_value=[])),(d.lab,'admit',mock.Mock()),(d.lab,'ports_available',mock.Mock()),(d.ctypes,'CDLL',mock.Mock(return_value=SimpleNamespace(prctl=lambda *a:0))),(d.lab,'Window',window),(d.lab.guard,'digest',mock.Mock(return_value='a'*64)),(d.initialization,'instrumented_ceremony_class',instrumented),(d,'NormalBackend',mock.Mock(side_effect=AssertionError('business backend'))),(d,'Journal',mock.Mock(side_effect=AssertionError('business journal'))),(d,'Monitor',mock.Mock(side_effect=AssertionError('business monitor')))]:stack.enter_context(mock.patch.object(obj,name,value))
+                for obj,name,value in [(d.lab,'check_source',mock.Mock(return_value=dict(commit=args.commit,tree=d.STAGED_CALLEE_TREE))),(d.lab,'git',mock.Mock(return_value='')),(d.subprocess,'check_output',mock.Mock(return_value=b'live-materials')),(d.lab.guard,'proc_inventory',mock.Mock(return_value=({},None))),(d.lab.guard,'memory_available',mock.Mock(return_value=7<<30)),(d.shutil,'disk_usage',mock.Mock(return_value=SimpleNamespace(free=20<<30))),(d.lab,'heavy_processes',mock.Mock(return_value=[])),(d.lab,'admit',mock.Mock()),(d.lab,'ports_available',mock.Mock()),(d.ctypes,'CDLL',mock.Mock(return_value=SimpleNamespace(prctl=lambda *a:0))),(d.lab,'Window',window),(d.lab.guard,'digest',mock.Mock(return_value='a'*64)),(d.initialization,'instrumented_ceremony_class',instrumented),(d,'NormalBackend',mock.Mock(side_effect=AssertionError('business backend'))),(d,'Journal',only_initialization_journal),(d,'Monitor',mock.Mock(side_effect=AssertionError('business monitor')))]:stack.enter_context(mock.patch.object(obj,name,value))
                 if census_error is not None:stack.enter_context(mock.patch.object(d.initialization,'complete_account_readback',side_effect=census_error))
                 stack.enter_context(mock.patch.object(d.sys,'platform','linux'));stack.enter_context(mock.patch.dict(d.os.environ,env));stack.enter_context(contextlib.redirect_stdout(io.StringIO()));r=d.run(args)
             result=copy.deepcopy(r)
@@ -150,5 +154,57 @@ class OriginalDriverInitializationControls(unittest.TestCase):
         for i,mutate in enumerate(mutations):
             bad=copy.deepcopy(good);mutate(bad)
             with self.subTest(i=i),self.assertRaises(RuntimeError):m.require_complete_initialization(bad)
+
+class InitializationJournalControls(unittest.TestCase):
+    def test_requested_and_returned_events_separate_fsync_cost_and_original_span(self):
+        clock=iter([10,13,23]);events=[];s=m.InitializationStages(clock=lambda:next(clock),on_event=events.append)
+        self.assertEqual(s.run('create_original','all504',lambda:42),42)
+        self.assertEqual([e['kind'] for e in events],['initialization_stage_requested','initialization_stage_returned']);self.assertIsNone(events[0]['elapsedNs']);self.assertTrue(events[0]['missingReturnIsUnknown']);self.assertEqual((events[1]['requestJournalElapsedNs'],events[1]['elapsedNs']),(3,10));self.assertEqual(s.report()['journalErrors'],[])
+    def test_request_journal_failure_never_starts_original_operation(self):
+        operation=mock.Mock();error=OSError('journal')
+        def sink(event):
+            if event['kind']=='initialization_stage_requested':raise error
+        s=m.InitializationStages(on_event=sink)
+        with self.assertRaises(OSError) as caught:s.run('create_original',None,operation)
+        self.assertIs(caught.exception,error);operation.assert_not_called();row=s.report()['records'][0];self.assertIsNone(row['elapsedNs']);self.assertEqual(row['outcome'],'NOT_STARTED');self.assertEqual(s.report()['journalErrors'][0]['phase'],'request')
+    def test_original_failure_not_replaced_by_return_journal_failure(self):
+        original=RuntimeError('original-first-cause')
+        def operation():raise original
+        def sink(event):
+            if event['kind']=='initialization_stage_returned':raise OSError('journal-second')
+        s=m.InitializationStages(on_event=sink)
+        with self.assertRaises(RuntimeError) as caught:s.run('call',None,operation)
+        self.assertIs(caught.exception,original);self.assertEqual(s.report()['records'][0]['outcome'],'FAILED');self.assertEqual(s.report()['journalErrors'][0]['phase'],'return')
+    def test_successful_original_with_failed_return_journal_cannot_qualify(self):
+        def sink(event):
+            if event['kind']=='initialization_stage_returned':raise OSError('return-journal')
+        s=m.InitializationStages(on_event=sink)
+        with self.assertRaisesRegex(OSError,'return-journal'):s.run('call',None,lambda:42)
+        self.assertEqual(s.report()['records'][0]['outcome'],'RETURNED');self.assertEqual(len(s.report()['journalErrors']),1)
+
+class PreparationCalleeControls(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.driver=OriginalDriverInitializationControls.driver if hasattr(OriginalDriverInitializationControls,'driver') else None
+        if cls.driver is None:OriginalDriverInitializationControls.setUpClass();cls.driver=OriginalDriverInitializationControls.driver
+    def test_original_fd3_command_includes_only_existing_timings_flag_and_retains_cold_cost(self):
+        from types import SimpleNamespace
+        import os
+        d=self.driver
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();(root/'.private').mkdir();(root/'public').mkdir();private=root/'network/workload/private-senders';private.mkdir(parents=True);credential=private/'recovery.raw';credential.write_bytes(bytes(32));credential.chmod(0o600)
+            obj=object.__new__(d.LoadCeremony);obj.root=root/'network';obj.bins=root/'bin';obj.pin='a'*64;obj.activation_pin='b'*64;obj.workload_pin='c'*64;obj.consumer_source=d.STAGED_CALLEE_SOURCE;obj.preparation_sender_arguments=('--timings',);obj.preparation_sender_measurements=[]
+            snapshot=dict(version='YNX-PQ-LAB-CALLEE-ELAPSED/v1',clock='monotonic_elapsed_wall_ns',intervalsOverlap=True,stages={'checkpoint.loadTotal':dict(calls=1,elapsedNs=11)})
+            reply=dict(version='YNX-PQ-LAB-SENDER-REPLY/v1',code='ORIGINAL_SAVED',calleeElapsedNs=20,startupElapsedNs=30,timings=snapshot,startupTimings=snapshot,result={'unchanged':'original'})
+            commands=[]
+            def launch(name,argv,**kwargs):
+                commands.append(argv);self.assertEqual(len(kwargs['pass_fds']),1);self.assertEqual(os.fstat(kwargs['pass_fds'][0]).st_size,32);(root/'public'/(name+'.log')).write_text(json.dumps(reply));return object()
+            obj.w=SimpleNamespace(work=root,launch=launch,wait=lambda proc:None)
+            returned=obj.sender_command('halt-traffic-original-sign',0,{'operation':'sign'})
+            self.assertEqual(returned,reply);self.assertEqual(commands[0].count('--timings'),1);self.assertEqual(commands[0][-2:],['--credential-fd','3']);self.assertNotIn(str(credential),commands[0]);row=obj.preparation_sender_measurements[0];self.assertEqual((row['calleeElapsedNs'],row['startupElapsedNs']),(20,30));self.assertTrue(row['startupNotAddedToCallee']);self.assertNotIn('result',row)
+    def test_missing_original_preparation_timing_is_rejected_without_synthetic_spans(self):
+        d=self.driver;obj=object.__new__(d.LoadCeremony);obj.preparation_sender_measurements=[]
+        with mock.patch.object(d.normal.Ceremony,'sender_command',return_value={'code':'ORIGINAL_SAVED'}),self.assertRaisesRegex(RuntimeError,'callee elapsed schema'):obj.sender_command('original',0,{'operation':'sign'})
+        self.assertEqual(obj.preparation_sender_measurements,[])
 
 if __name__=='__main__':unittest.main()

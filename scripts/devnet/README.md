@@ -796,3 +796,16 @@ The original finally block stops/reaps owned processes and retains the complete
 unreleased500 denominator. `test_pq_initialization_measurements.py` contains 16 pure
 controls including the full mocked driver path; no Go, real nodes, signing or
 performance execution is inferred from these controls.
+
+Subsequent measurement tools preserve `initialization-events-*.jsonl` with the
+original bounded, fsynced Journal. A request event has no fabricated elapsed time;
+a missing return remains UNKNOWN. The request journal cost is retained separately
+from the original method span, and containing parent spans still include nested
+telemetry costs. A failed event write prevents initialization qualification; a
+second journal failure cannot replace an earlier original operation failure.
+This is a successor tool change and does not alter the frozen 1f4996d50 run.
+The original reserved-account preparation sender now opts into the existing Go
+`--timings` reply, retaining startup and nested checkpoint/static/sign spans
+separately in `preparationSenderMeasurements`; the original FD3 command, key
+opening time, request, nonce and result remain unchanged. The ordinary functional
+Ceremony keeps its original default arguments.

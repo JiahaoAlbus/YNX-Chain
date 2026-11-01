@@ -240,7 +240,7 @@ class Ceremony:
         fd=os.open(credential,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
         try:
             info=os.fstat(fd);lab.require(stat.S_ISREG(info.st_mode) and info.st_size==32 and info.st_mode&0o077==0 and info.st_nlink==1,"original private sender credential required")
-            args=[str(self.bins/"ynx-consensus-pq-lab"),"sender","--synthetic","--root",str(self.root),"--plan-sha256",self.pin,"--activation-sha256",self.activation_pin,"--workload-sha256",self.workload_pin,"--owner",str(owner),"--credential-fd","3"]
+            args=[str(self.bins/"ynx-consensus-pq-lab"),"sender","--synthetic","--root",str(self.root),"--plan-sha256",self.pin,"--activation-sha256",self.activation_pin,"--workload-sha256",self.workload_pin,"--owner",str(owner),*getattr(self,"preparation_sender_arguments",()),"--credential-fd","3"]
             proc=self.w.launch(name,fd3_command(args,fd),pass_fds=(fd,),stdin_path=path);self.w.wait(proc)
         finally:os.close(fd)
         return json.loads((self.w.work/"public"/(name+".log")).read_bytes())

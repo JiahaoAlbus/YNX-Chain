@@ -13,22 +13,33 @@ import time
 
 
 class InitializationStages:
-    def __init__(self,clock=time.monotonic_ns,limit=2048):
-        self.clock=clock;self.limit=limit;self.records=[];self.attempted=0;self.enabled=True
+    def __init__(self,clock=time.monotonic_ns,limit=2048,on_event=None):
+        self.clock=clock;self.limit=limit;self.records=[];self.attempted=0;self.enabled=True;self.on_event=on_event;self.journal_errors=[]
     def run(self,stage,identity,operation):
         if not self.enabled:return operation()
-        index=self.attempted;self.attempted+=1;start=self.clock();outcome='FAILED';error_type=None
+        index=self.attempted;self.attempted+=1;requested=self.clock();start=None;outcome='NOT_STARTED';error_type=None;original_error=None
         try:
+            if self.on_event is not None:
+                self.on_event(dict(kind='initialization_stage_requested',index=index,stage=stage,identity=identity,requestedMonotonicNs=requested,elapsedNs=None,completed=False,missingReturnIsUnknown=True))
+            start=self.clock() if self.on_event is not None else requested
+            outcome='FAILED'
             result=operation();outcome='RETURNED';return result
         except BaseException as error:
-            error_type=type(error).__name__;raise
+            original_error=error;error_type=type(error).__name__
+            if start is None and self.on_event is not None:self.journal_errors.append(dict(index=index,phase='request',errorType=error_type))
+            raise
         finally:
             end=self.clock()
-            if len(self.records)<self.limit:
-                self.records.append(dict(index=index,stage=stage,identity=identity,startedMonotonicNs=start,returnedMonotonicNs=end,elapsedNs=end-start,outcome=outcome,errorType=error_type))
+            record=dict(index=index,stage=stage,identity=identity,requestedMonotonicNs=requested,startedMonotonicNs=start,returnedMonotonicNs=end,elapsedNs=end-start if start is not None else None,requestJournalElapsedNs=start-requested if start is not None else None,outcome=outcome,errorType=error_type)
+            if len(self.records)<self.limit:self.records.append(record)
+            if self.on_event is not None:
+                try:self.on_event(dict(record,kind='initialization_stage_returned',completed=start is not None))
+                except BaseException as error:
+                    self.journal_errors.append(dict(index=index,phase='return',errorType=type(error).__name__))
+                    if original_error is None:raise
     def seal(self):self.enabled=False
     def report(self):
-        return dict(schema='YNX-PERF-ORIGINAL-INITIALIZATION-STAGES/v1',clock='parent_monotonic_ns',attempted=self.attempted,retained=len(self.records),omitted=self.attempted-len(self.records),recordLimit=self.limit,sealed=not self.enabled,records=[dict(v) for v in sorted(self.records,key=lambda v:v['index'])],intervalsOverlap=True,unreachedStagesAreUnknown=True,cryptographyOrFinalityQualified=False,meaning='Nested parent wall spans, including normal resource guards and process dispatch/wait; never add nested spans or infer Go callee CPU time. RETURNED means the original method returned, not business/finality success.')
+        return dict(schema='YNX-PERF-ORIGINAL-INITIALIZATION-STAGES/v1',clock='parent_monotonic_ns',attempted=self.attempted,retained=len(self.records),omitted=self.attempted-len(self.records),recordLimit=self.limit,sealed=not self.enabled,journalErrors=[dict(v) for v in self.journal_errors],records=[dict(v) for v in sorted(self.records,key=lambda v:v['index'])],intervalsOverlap=True,unreachedStagesAreUnknown=True,cryptographyOrFinalityQualified=False,meaning='Nested parent wall spans, including normal resource guards and process dispatch/wait; request-journal fsync overhead recorded separately; containing parent spans include nested telemetry overhead; never add nested spans or infer Go callee CPU time. RETURNED means the original method returned, not business/finality success.')
 
 
 def instrumented_ceremony_class(Base):
@@ -133,7 +144,7 @@ def require_complete_initialization(result):
     require(samples and all(type(v.get('processes')) is int and 0<v['processes']<=16 and type(v.get('rssBytes')) is int and 0<=v['rssBytes']<=caps['rssBytes'] and type(v.get('newBytes')) is int and 0<=v['newBytes']<=caps['newBytes'] for v in samples),'actual bounded original resource samples required')
     require(type(result.get('elapsedSeconds')) in (int,float) and 0<=result['elapsedSeconds']<=900 and type(result.get('peakRSSBytes')) is int and 0<=result['peakRSSBytes']<=caps['rssBytes'] and type(result.get('peakNewBytes')) is int and 0<=result['peakNewBytes']<=caps['newBytes'],'original resource/deadline cap exceeded')
     measured=result.get('initializationStages',{});records=measured.get('records',[])
-    require(measured.get('sealed') is True and measured.get('omitted')==0 and measured.get('retained')==measured.get('attempted')==len(records),'complete sealed initialization spans required')
+    require(measured.get('sealed') is True and measured.get('journalErrors',[])==[] and measured.get('omitted')==0 and measured.get('retained')==measured.get('attempted')==len(records),'complete sealed initialization spans required')
     require(records and all(v.get('outcome')=='RETURNED' and v.get('errorType') is None and type(v.get('elapsedNs')) is int and 0<=v['elapsedNs']==v['returnedMonotonicNs']-v['startedMonotonicNs'] for v in records),'failed/missing initialization stage cannot be qualified')
     stages=[v['stage'] for v in records]
     require(stages.count('build')==3 and stages.count('create_original')==1 and stages.count('prepare_network')==1 and stages.count('complete_account_readback')==1,'original build/create/prepare/full account stages required')

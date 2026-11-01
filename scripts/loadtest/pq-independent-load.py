@@ -214,9 +214,21 @@ class LoadCeremony(normal.Ceremony):
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
         self.commit_observation_enabled=commit_observation;self.commit_observation_descriptors=[]
         self.consumer_source=CALLEE_SOURCE if consumer_source is None else consumer_source
+        self.preparation_sender_arguments=("--timings",);self.preparation_sender_measurements=[]
         self.measurements=CalleeMeasurements(operations,len(self.workload["owners"])-4 if self.mode=="online" else 0,sender_pool=sender_pool,source=self.consumer_source)
         verifier=self.bins/"ynx-consensus-proof-verify";self.verifier_binary_pin=lab.guard.digest(verifier)
         info=verifier.stat();self.verifier_binary_identity=(info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns)
+    def sender_command(self,name,owner,command):
+        # Same original one-shot FD3 sender and command; opt into its existing
+        # measured JSON reply, without pre-opening custody or changing timing.
+        lab.require(len(self.preparation_sender_measurements)<8,'bounded original preparation command measurements required')
+        reply=super().sender_command(name,owner,command)
+        stages=callee_snapshot(reply.get('timings'));startup=callee_snapshot(reply.get('startupTimings'))
+        elapsed=reply.get('calleeElapsedNs');cold=reply.get('startupElapsedNs')
+        lab.require(type(elapsed) is int and elapsed>=0 and type(cold) is int and cold>=0,'original preparation callee/startup timing missing')
+        self.preparation_sender_measurements.append(dict(name=name,ownerIndex=owner,operation=command['operation'],outcome=reply.get('code'),calleeElapsedNs=elapsed,startupElapsedNs=cold,timings=copy.deepcopy(stages),startupTimings=copy.deepcopy(startup),source=self.consumer_source,intervalsOverlap=True,startupNotAddedToCallee=True))
+        return reply
+
     def activation_startup(self,activation):
         resumed=copy.deepcopy(activation)
         for node in range(4):
@@ -595,7 +607,8 @@ def run(args):
         if any(existing==root or existing in root.parents for existing in roots):continue
         roots=[existing for existing in roots if root not in existing.parents];roots.append(root)
     w=lab.Window(source,work,additional_storage=tuple(roots));stop=threading.Event();backend=monitor=journal=ceremony=network=storage=None
-    stages=initialization.InitializationStages()
+    initialization_journal=Journal(work/"public/initialization-events.jsonl")
+    stages=initialization.InitializationStages(on_event=initialization_journal.emit)
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout with actual DATA-ready and measured normal CLI; cold initialization retained outside offered clock, no pre-sign/reserved nonce; source703 includes other changes and is not a pure-cache A/B")
     lab.write_new(work/"public/fresh-resource-admission.json",admission)
     result["freshResourceAdmission"]=admission
@@ -664,6 +677,13 @@ def run(args):
             result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt,parentTiming=backend.helper_timing_report())
             if hasattr(backend,'cold_sender_report'):result['boundedColdSenderLifecycle']=backend.cold_sender_report()
         stages.seal();result['initializationStages']=stages.report()
+        try:
+            initialization_journal.close()
+            result['initializationJournalSegments']=[dict(path=str(p.relative_to(work/'public')),bytes=p.stat().st_size,sha256=lab.guard.digest(p)) for p in initialization_journal.paths]
+        except BaseException as error:
+            result['initializationJournalError']=dict(errorType=type(error).__name__)
+            result['firstCause']=result['firstCause'] or 'original initialization journal close/pin failed'
+
         result["networkAccountingRequested"]=args.network_accounting
         if network is not None and network.start is not None:
             try:
@@ -705,14 +725,15 @@ def run(args):
         if ceremony is not None:
             result["wireObservation"]=ceremony.wire_readback()
             result["normalCalleeMeasurements"]=ceremony.measurements.report()
+            result["preparationSenderMeasurements"]=copy.deepcopy(getattr(ceremony,"preparation_sender_measurements",[]))
         if "loadResult" not in result:
             result["preparationOnlyDemandAccounting"]=dict(configuredDemand=demand,notReleased=demand,notSubmitted=demand,notQualified=demand,meaning="normal preparation never opened the requested load window; no achieved offered rate or business TPS")
-        result['loadCompletionDiagnostics']=completion_diagnostics(result)
         if getattr(args,'initialization_only',False):
             try:result['initializationDataValidation']=initialization.require_complete_initialization(result)
             except BaseException as error:
                 result['initializationDataValidation']=dict(completeNormalInitializationObserved=False,reason=str(error),pressureAuthorized=False)
                 result['firstCause']=result['firstCause'] or str(error)
+        result['loadCompletionDiagnostics']=completion_diagnostics(result)
         lab.write_new(work/"public/receipt.json",result);print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],loadExecuted=result["loadExecuted"])))
     return result
 
