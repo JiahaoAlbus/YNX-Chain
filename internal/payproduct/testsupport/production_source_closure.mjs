@@ -60,8 +60,17 @@ for (const pkg of packages) {
     assert.ok(fs.lstatSync(file).isFile(), 'regular production input required: ' + relative);
     selected.set(relative, file);
   }
-  for (const mod of [pkg.Module, pkg.Module?.Replace])
+  for (const mod of [pkg.Module, pkg.Module?.Replace]) {
     if (mod?.Dir && inside(path.resolve(mod.Dir))) modules.add(mod.Dir);
+    // An original supplier may require an explicit external composition
+    // -modfile. Preserve the actual selected metadata, not just root go.mod.
+    if (mod?.GoMod && inside(path.resolve(mod.GoMod))) {
+      selected.set(path.relative(source, mod.GoMod), mod.GoMod);
+      const sum = mod.GoMod.replace(/\.mod$/, '.sum');
+      if (sum !== mod.GoMod && fs.existsSync(sum))
+        selected.set(path.relative(source, sum), sum);
+    }
+  }
 }
 assert.ok(inventory.length, 'no local production packages');
 for (const dir of modules) for (const name of ['go.mod', 'go.sum']) {

@@ -17,6 +17,29 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = private-process ]; then
+ : "${PAY_PRIVATE_HOST_BINARY:?exact already compiled private host required}"
+ : "${PAY_PRIVATE_HOST_SHA256:?exact private host hash required}"
+ : "${PAY_PRIVATE_SOCKET_ROOT:?owned external short socket root required}"
+ cp -R "$source_dir/nativehost" "$composition/internal/payproduct/"
+ go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl pay_product_private' ./internal/payproduct/nativehost -run '^TestPrivateNormalProcessColdRecoveryAndSIGTERM$' -count=1 -timeout=1m -v
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = product-parents ]; then
+ cp -R "$source_dir/nativehost" "$composition/internal/payproduct/"
+ go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl' ./internal/payproduct/nativehost -run '^TestProducts' -count=1 -timeout=2m -v
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = normal-daemon ]; then
+ : "${PAY_NORMAL_PARENT_DAEMON_BINARY:?exact already compiled normal daemon required}"
+ : "${PAY_NORMAL_PARENT_DAEMON_SHA256:?exact normal daemon hash required}"
+ go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl pay_normal_daemon' ./internal/payproduct -run '^TestNormalHostedDaemonStartupAndShutdown$' -count=1 -timeout=1m -v
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = normal-parent ]; then
+ go test -race -p 1 -tags 'pay_pq pay_securelink securelink_openssl' ./internal/payproduct -run '^TestNormalProduct' -count=1 -timeout=2m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = native-drain ]; then
  cp "$source_dir/cmd/ynx-pay-productd"/*.go "$composition/internal/payproduct/cmd/ynx-pay-productd/"
  go test -race -p 1 -tags 'pay_pq pay_cloud pay_auth_source pay_securelink securelink_openssl' ./internal/payproduct/cmd/ynx-pay-productd -run '^TestNativeSourceSurvivesActualHTTPDrainTimeout$' -count=1 -timeout=1m -v

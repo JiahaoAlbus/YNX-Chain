@@ -46,10 +46,6 @@ func run() (exitCode int) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	pay, err := payproduct.NewProductionHTTPPayAPI(required("YNX_PAY_PRODUCT_CENTRAL_URL"), required("YNX_PAY_PRODUCT_CENTRAL_KEY"), strings.TrimSpace(os.Getenv("YNX_PAY_PRODUCT_LINK_CONFIG")))
-	if err != nil {
-		log.Fatal(err)
-	}
 	var ai payproduct.AIProvider
 	if base := strings.TrimSpace(os.Getenv("YNX_PAY_PRODUCT_AI_URL")); base != "" {
 		ai = &payproduct.HTTPAIProvider{BaseURL: base, APIKey: required("YNX_PAY_PRODUCT_AI_KEY"), Model: required("YNX_PAY_PRODUCT_AI_MODEL"), Client: &http.Client{Timeout: 60 * time.Second}}
@@ -78,13 +74,27 @@ func run() (exitCode int) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	service, err := payproduct.New(payproduct.Config{StorePath: env("YNX_PAY_PRODUCT_STORE", "tmp/pay-product/state.json"), IntegrityKey: key, GatewayKey: gatewayKey, BootstrapKey: required("YNX_PAY_PRODUCT_BOOTSTRAP_KEY"), PublicBaseURL: required("YNX_PAY_PRODUCT_PUBLIC_URL"), CentralMerchantID: required("YNX_PAY_PRODUCT_CENTRAL_MERCHANT_ID"), PayAPI: pay, AI: ai, Sponsorship: sponsorship, SponsorPolicy: sponsorPolicy, Bridge: bridge, QuantEvidenceKeys: quantEvidenceKeys, QuantEvidenceMaxAge: quantEvidenceMaxAge})
+	product, err := payproduct.OpenNormalProduct(payproduct.Config{StorePath: env("YNX_PAY_PRODUCT_STORE", "tmp/pay-product/state.json"), IntegrityKey: key, GatewayKey: gatewayKey, BootstrapKey: required("YNX_PAY_PRODUCT_BOOTSTRAP_KEY"), PublicBaseURL: required("YNX_PAY_PRODUCT_PUBLIC_URL"), CentralMerchantID: required("YNX_PAY_PRODUCT_CENTRAL_MERCHANT_ID"), AI: ai, Sponsorship: sponsorship, SponsorPolicy: sponsorPolicy, Bridge: bridge, QuantEvidenceKeys: quantEvidenceKeys, QuantEvidenceMaxAge: quantEvidenceMaxAge}, payproduct.NormalCentralPayEndpoint{Origin: required("YNX_PAY_PRODUCT_CENTRAL_URL"), APIKey: required("YNX_PAY_PRODUCT_CENTRAL_KEY"), LINKConfigPath: strings.TrimSpace(os.Getenv("YNX_PAY_PRODUCT_LINK_CONFIG"))})
+	parentCanClose := true
+	defer func() {
+		if !parentCanClose {
+			return
+		}
+		if closeErr := product.Close(); closeErr != nil {
+			log.Print("normal Pay parent cleanup pending")
+			exitCode = 1
+		}
+	}()
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return 1
 	}
+	service := product.Service()
 	stopContext, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stopSignals()
+	retryDone := make(chan struct{})
 	go func() {
+		defer close(retryDone)
 		ticker := time.NewTicker(15 * time.Second)
 		defer ticker.Stop()
 		for {
@@ -101,11 +111,16 @@ func run() (exitCode int) {
 	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})
 	productHandler, retireNativeSource, closeNativeSource := normalNativePayHandler(service, build, logger)
 	var nativeDrainErr error
+	parentCanClose = false
 	defer func() {
+		stopSignals()
+		<-retryDone
 		if err := closeNativePayAfterDrain(nativeDrainErr, closeNativeSource); err != nil {
 			logger.Error("native_source_cleanup_pending", "source_ready", false)
 			exitCode = 1
+			return
 		}
+		parentCanClose = true
 	}()
 	server := &http.Server{Addr: addr, Handler: productHandler, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 75 * time.Second, IdleTimeout: 60 * time.Second, ErrorLog: slog.NewLogLogger(logger.Handler(), slog.LevelError)}
 	shutdownDone := make(chan error, 1)
