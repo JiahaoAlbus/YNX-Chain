@@ -53,6 +53,38 @@ test('typed Host selection binds the complete original transport separately from
  assert.throws(()=>preparePQHostSelectionRequest(record,{...binding,networkId:'ff'.repeat(32)}));
 });
 async function setup(t){const dir=await fs.mkdtemp(path.join(tmpdir(),'ynx-main-typed-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));const filePath=path.join(dir,'original-journal.json');return{filePath,store:new FileTransactionIntentStore({filePath})}}
+test('durable typed original summary explicitly confirms fresh and cold custody without submission',async t=>{
+ const f=await setup(t);await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);
+ assert.deepEqual(await f.store.pqSummaries(record.account),[]);
+ await f.store.saveOriginal(record.account,record.hash,()=>{});
+ const before=await fs.readFile(f.filePath,'utf8');assert.equal(JSON.parse(before).pqProgress?.length??0,0);
+ for(const store of [f.store,new FileTransactionIntentStore({filePath:f.filePath})]){
+  const rows=await store.pqSummaries(record.account);assert.equal(rows.length,1);
+  assert.equal(rows[0].hash,record.hash);assert.equal(rows[0].operationId,record.operationId);
+  assert.equal(rows[0].status,'pq-signed-unsubmitted');assert.equal(rows[0].resultStorageConfirmed,true);
+  assert.equal(rows[0].resultHeldInMemory,false);assert.equal(rows[0].canRetryExact,false);
+ }
+ assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+});
+test('durable typed original summary never confirms an unsaved captured result after failed publication',async t=>{
+ const f=await setup(t);let failWrite=false;const store=new FileTransactionIntentStore({filePath:f.filePath,io:{...fs,rename:async(...args)=>{if(failWrite)throw Error('PUBLIC_SAVE_ACK_MISSING');return fs.rename(...args);}}});
+ await store.reserveOriginal(record.account,record.kind);store.captureOriginal(record.account,record,record.kind);failWrite=true;
+ await assert.rejects(store.saveOriginal(record.account,record.hash,()=>{}));
+ assert.deepEqual(await store.pqSummaries(record.account),[]);
+ const cold=new FileTransactionIntentStore({filePath:f.filePath});assert.deepEqual(await cold.pqSummaries(record.account),[]);
+});
+test('durable typed original summary refuses corrupted stored originals instead of projecting custody success',async t=>{
+ const f=await setup(t);await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);await f.store.saveOriginal(record.account,record.hash,()=>{});
+ const data=JSON.parse(await fs.readFile(f.filePath,'utf8'));data.pqOriginals[0].hash='0x'+'ff'.repeat(32);await fs.writeFile(f.filePath,JSON.stringify(data));
+ await assert.rejects(new FileTransactionIntentStore({filePath:f.filePath}).pqSummaries(record.account));
+});
+test('durable typed original summary preserves an unparsed readonly response instead of presenting a clean broadcast candidate',async t=>{
+ const f=await setup(t);await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);await f.store.saveOriginal(record.account,record.hash,()=>{});
+ await assert.rejects(f.store.savePQTypedReadResult(record.account,record.hash,{...nodeResponse(),body:Buffer.from([0xff])}));
+ const row=(await f.store.pqSummaries(record.account))[0];assert.equal(row.status,'pq-signed-unsubmitted');
+ assert.equal(row.resultStorageConfirmed,false);assert.equal(row.resultHeldInMemory,true);
+ assert.equal(row.canRetryExact,false);
+});
 test('typed finality raw evidence uses exact dual-hash identity and survives cold recovery without grant',async t=>{
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-typed-proof-custody-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
  const evidence=new PQFinalityEvidence({directory}),binding={account:record.account,networkId:record.typed.networkId};
@@ -370,7 +402,7 @@ test('typed node observation storage failure retains the exact response and flus
  const query=new TransactionSubmissions({intentStore:store,pqReadTypedOriginal:capturingRead(async()=>{reads++;return nodeResponse('committed')})});
  await assert.rejects(query.checkPQ(record.hash,record.account,{account:record.account,assert(){}}));
  const held=await store.readPQProgress(record.account,record.hash,()=>{});assert.equal(held.status,'inclusion-observed');assert.equal(held.storageConfirmed,false);assert.equal(held.localResultHeld,true);
- const summary=(await store.pqSummaries(record.account))[0];assert.equal(summary.status,'pq-inclusion-observed');assert.equal(summary.resultHeldInMemory,true);
+ const summary=(await store.pqSummaries(record.account))[0];assert.equal(summary.status,'pq-inclusion-observed');assert.equal(summary.resultHeldInMemory,true);assert.equal(summary.resultStorageConfirmed,false);
  await assert.rejects(store.assertPQProgressSafeToClose(),e=>e.data?.code==='PQ_PROGRESS_CLOSE_UNCONFIRMED');
  armed=false;assert.equal((await store.flushPQProgressResult(record.account,record.hash,()=>{})).stored,true);assert.equal(reads,1);
  assert.equal((await new FileTransactionIntentStore({filePath:f.filePath}).readPQProgress(record.account,record.hash,()=>{})).status,'inclusion-observed');
