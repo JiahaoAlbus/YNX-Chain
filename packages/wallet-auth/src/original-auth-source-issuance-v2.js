@@ -1,3 +1,7 @@
+import{inspectWalletMobileQualifiedSourceIssuanceBodyV1DATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
+import{WALLET_MOBILE_QUALIFIED_SOURCE_PURPOSE as WM_PURPOSE,WALLET_MOBILE_QUALIFIED_SOURCE_SELECTION_KEY as WM_KEY,WALLET_MOBILE_QUALIFIED_SOURCE_OPERATIONS as WM_OPS,inspectWalletMobileQualifiedSourceScopeV1DATA}from'../native/original-wallet-mobile-qualified-source-contract.mjs';
+import{inspectOriginalNetworkCurrentPublisherIssuanceBodyV1DATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
+import{NETWORK_CURRENT_PUBLISHER_SOURCE_PURPOSE as NCP_PURPOSE,NETWORK_CURRENT_PUBLISHER_SELECTION_KEY as NCP_KEY,NETWORK_CURRENT_PUBLISHER_OPERATIONS as NCP_OPS,inspectOriginalNetworkCurrentPublisherScopeV1DATA}from'../native/original-network-current-publisher-source-contract.mjs';
 import{inspectOriginalNetworkPendingConsentSourceIssuanceBodyV1DATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
 import{NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_PURPOSE as NPR_PURPOSE,NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_SELECTION_KEY as NPR_KEY,inspectOriginalNetworkPendingConsentSourceScopeV1DATA,captureOriginalNetworkPendingConsentOriginalsV1DATA,assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA}from'../native/original-network-resource-pending-source-contract.mjs';
 import{inspectOriginalNetworkResourceSourceIssuanceBodyV2DATA}from'../native/original-auth-identity-source-v2-verifier.mjs';
@@ -42,7 +46,7 @@ const roles=Object.freeze({enrollment:'AUTH-SOURCE-ENROLLMENT',profile:'AUTH-SOU
 // Existing separately admitted families plus the dedicated device-v4 CODE
 // contract. This creates no admitted row/approval/key/Root. RECEIVE remains the
 // normal AdministrationProfile/private-daemon + IDE-parent Source family.
-const PURPOSES=Object.freeze([NPR_PURPOSE,NR_PURPOSE,WPR_PURPOSE,BROWSER_PURPOSE,WPC_PURPOSE,AI_PURPOSE,PAY_PURPOSE,'wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE]);
+const PURPOSES=Object.freeze([WM_PURPOSE,NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,WPR_PURPOSE,BROWSER_PURPOSE,WPC_PURPOSE,AI_PURPOSE,PAY_PURPOSE,'wallet-pq-host-catalog-source-v1','AUTH-IDENTITY-RECEIVE',PRODUCT_DEVICE_V4_SOURCE_PURPOSE,PRODUCT_DEVICE_V4_PENDING_PURPOSE,PRODUCT_DEVICE_V4_PROVISIONING_PURPOSE,PRODUCT_DEVICE_V4_QUERY_PURPOSE,PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE,PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE,IDE_DEPLOYMENT_V2_SOURCE_PURPOSE,CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE]);
 function document(raw){let v;try{v=JSON.parse(raw);}catch{fail('AUTH_ISSUANCE_CANONICAL');}if(typeof raw!=='string'||Buffer.byteLength(raw)>393216||canonical(v)!==raw)fail('AUTH_ISSUANCE_CANONICAL');return v;}
 function exact(v,names){if(!v||Object.getPrototypeOf(v)!==Object.prototype||Reflect.ownKeys(v).sort().join('|')!==names.slice().sort().join('|')||Object.values(Object.getOwnPropertyDescriptors(v)).some(d=>!Object.hasOwn(d,'value')))fail('AUTH_ISSUANCE_SCHEMA');}
 function window(v,now){if(!Number.isSafeInteger(v.issuedAtMs)||!Number.isSafeInteger(v.expiresAtMs)||v.issuedAtMs<0||v.expiresAtMs<=v.issuedAtMs||v.expiresAtMs-v.issuedAtMs>86400000||now<v.issuedAtMs||now>=v.expiresAtMs)fail('AUTH_ISSUANCE_EXPIRED');}
@@ -67,7 +71,9 @@ export class OriginalSourceIssuanceV2Kernel {
   exact(p,['role','rootRaw','enrollmentRaw','bodyRaw','policy','binding','approvalDigest','journalPath']);
   if(!Object.hasOwn(roles,p.role)||!PURPOSES.includes(p.policy.signatureContract.purpose))fail('AUTH_ISSUANCE_DEDICATED_ROLE_REQUIRED');
   const root=document(p.rootRaw),body=document(p.bodyRaw),binding=p.binding;let effectExpiresAtMs=body.expiresAtMs;
-  if(p.policy.signatureContract.purpose===NPR_PURPOSE)effectExpiresAtMs=inspectOriginalNetworkPendingConsentSourceIssuanceBodyV1DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now(),this.#networkOriginals()).effectExpiresAtMs;
+  if(p.policy.signatureContract.purpose===WM_PURPOSE)effectExpiresAtMs=inspectWalletMobileQualifiedSourceIssuanceBodyV1DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
+  else if(p.policy.signatureContract.purpose===NCP_PURPOSE)effectExpiresAtMs=inspectOriginalNetworkCurrentPublisherIssuanceBodyV1DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
+  else if(p.policy.signatureContract.purpose===NPR_PURPOSE)effectExpiresAtMs=inspectOriginalNetworkPendingConsentSourceIssuanceBodyV1DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now(),this.#networkOriginals()).effectExpiresAtMs;
   else if(p.policy.signatureContract.purpose===NR_PURPOSE)effectExpiresAtMs=inspectOriginalNetworkResourceSourceIssuanceBodyV2DATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now(),this.#networkOriginals()).effectExpiresAtMs;
   else if(p.policy.signatureContract.purpose===AI_PURPOSE)effectExpiresAtMs=inspectOriginalAITaskActionV6SourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
   else if(p.policy.signatureContract.purpose===WPR_PURPOSE)effectExpiresAtMs=inspectOriginalWalletProductSourceIssuanceBodyDATA(p.role,p.rootRaw,p.enrollmentRaw,p.bodyRaw,p.policy,views,this.#now()).effectExpiresAtMs;
@@ -142,6 +148,7 @@ class ProtectedApprovalOriginal {
 // Internal release loader. Callers cannot pass a signer callback, role keys,
 // approval string or HTTP body to the normal administrative entrypoint.
 export async function loadReleaseSelectedOriginalSourceIssuanceV2(entry){
+ if(entry?.plan?.policy?.signatureContract?.purpose===WM_PURPOSE)fail('MOBILE_SOURCE_NATIVE_LOADER_REQUIRED');
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4')fail('AUTH_ISSUANCE_NATIVE_RUNTIME_REQUIRED');
  let approval,a,b,keys,kernel,closed=false,first,present=false;
  const close=()=>{if(closed){if(present)throw first;return;}closed=true;for(const work of [()=>{if(keys&&!destroyKey(keys.privateKey))fail('AUTH_ISSUANCE_KEY_CLOSE_UNKNOWN');},()=>b?.close(),()=>a?.close()])try{work();}catch(e){if(!present){present=true;first=e;}}if(present)throw first;};

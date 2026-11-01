@@ -1,3 +1,5 @@
+import{WALLET_MOBILE_QUALIFIED_SOURCE_PURPOSE as WM_PURPOSE,WALLET_MOBILE_QUALIFIED_SOURCE_SELECTION_KEY as WM_KEY,WALLET_MOBILE_QUALIFIED_SOURCE_OPERATIONS as WM_OPS,inspectWalletMobileQualifiedSourceScopeV1DATA}from'./original-wallet-mobile-qualified-source-contract.mjs';
+import{NETWORK_CURRENT_PUBLISHER_SOURCE_PURPOSE as NCP_PURPOSE,NETWORK_CURRENT_PUBLISHER_SELECTION_KEY as NCP_KEY,NETWORK_CURRENT_PUBLISHER_OPERATIONS as NCP_OPS,inspectOriginalNetworkCurrentPublisherScopeV1DATA}from'./original-network-current-publisher-source-contract.mjs';
 import{NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_PURPOSE as NPR_PURPOSE,NETWORK_RESOURCE_PENDING_CONSENT_SOURCE_SELECTION_KEY as NPR_KEY,inspectOriginalNetworkPendingConsentSourceScopeV1DATA,captureOriginalNetworkPendingConsentOriginalsV1DATA,assertOriginalNetworkPendingConsentOriginalsCurrentV1DATA}from'./original-network-resource-pending-source-contract.mjs';
 import{NETWORK_RESOURCE_SOURCE_PURPOSE as NR_PURPOSE,NETWORK_RESOURCE_SOURCE_SELECTION_KEY as NR_KEY,NETWORK_RESOURCE_SOURCE_OPERATIONS as NR_OPS,inspectOriginalNetworkResourceSourceScopeV2DATA,captureOriginalNetworkResourceOriginalsV1DATA,assertOriginalNetworkResourceOriginalsCurrentV1DATA}from'./original-network-resource-source-v2-contract.mjs';
 import{WALLET_NATIVE_PRODUCT_SOURCE_PURPOSE as WPR_PURPOSE,WALLET_NATIVE_PRODUCT_SELECTION_KEY as WPR_KEY,WALLET_NATIVE_PRODUCT_OPERATIONS as WPR_OPS,WALLET_NATIVE_PRODUCT_LEGACY_OPERATIONS as WPR_LEGACY_OPS,inspectOriginalWalletProductScopeV1DATA}from'./original-wallet-product-source-contract.mjs';
@@ -102,8 +104,10 @@ function envelope(raw,role,frame,snapshot,networkId,expectedOwner,historicalCurr
 function sourcePolicy(policy){
  const pqCatalog=policy?.signatureContract?.purpose===PQ_HOST_CATALOG_SOURCE_PURPOSE;
  const ai=policy?.signatureContract?.purpose===AI_PURPOSE;
- const device=deviceFamily(policy?.signatureContract?.purpose),pay=[NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(policy?.signatureContract?.purpose);
- exact(policy,ai?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform','sourceRole']:pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
+ const mobile=policy?.signatureContract?.purpose===WM_PURPOSE;
+ const device=deviceFamily(policy?.signatureContract?.purpose),pay=[NCP_PURPOSE,NPR_PURPOSE,NR_PURPOSE,PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(policy?.signatureContract?.purpose);
+ exact(policy,mobile?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:ai?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform','sourceRole']:pay?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId','platform']:device?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId','productId']:pqCatalog?['rootDigest','enrollmentDigest','endpoint','spki','signatureContract','applicationId']:['rootDigest','enrollmentDigest','endpoint','spki','signatureContract']);
+ if(mobile&&(policy.productId!=='wallet'||!['ios','android'].includes(policy.platform)||typeof policy.applicationId!=='string'||!/^[A-Za-z][A-Za-z0-9.-]{2,131}$/.test(policy.applicationId)))fail('MOBILE_SOURCE_POLICY');
  if(ai&&(!['client','server'].includes(policy.sourceRole)||!(policy.sourceRole==='client'?['ios','android']:['linux','macos','windows']).includes(policy.platform)||policy.productId!=='ai'||policy.sourceRole==='client'&&policy.applicationId!=='com.ynxweb4.ai'||typeof policy.applicationId!=='string'||!/^[A-Za-z][A-Za-z0-9.-]{2,131}$/.test(policy.applicationId)))fail('AI_TASK_SOURCE_POLICY');
  if(pay&&(!['linux','macos','windows'].includes(policy.platform)||typeof policy.applicationId!=='string'||!/^[A-Za-z][A-Za-z0-9.-]{2,131}$/.test(policy.applicationId)||typeof policy.productId!=='string'||!/^[a-z][a-z0-9-]{1,31}$/.test(policy.productId)))fail('PAY_SOURCE_POLICY');
  if(policy?.signatureContract?.purpose===WPR_PURPOSE&&policy.productId!=='wallet')fail('WALLET_PRODUCT_SOURCE_POLICY');
@@ -160,6 +164,8 @@ export function inspectOriginalProductDeviceV4IssuanceBodyDATA(role,rootRaw,enro
  return Object.freeze({role,bodySHA256:sha(bodyRaw),dataOnly:true,authorized:false,nativeAdmission:false});
 }
 function originalSourceEnrollmentBodyDATA(root,e,policy,registrations,atMs){
+ if(policy.signatureContract.purpose===WM_PURPOSE)return mobileEnrollmentBodyDATA(root,e,policy,registrations,atMs);
+ if(policy.signatureContract.purpose===NCP_PURPOSE)return publisherEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  if([NR_PURPOSE,NPR_PURPOSE].includes(policy.signatureContract.purpose))return networkEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  if(policy.signatureContract.purpose===AI_PURPOSE)return aiEnrollmentBodyDATA(root,e,policy,registrations,atMs);
  if([PAY_PURPOSE,WPC_PURPOSE,BROWSER_PURPOSE,WPR_PURPOSE].includes(policy.signatureContract.purpose))return payEnrollmentBodyDATA(root,e,policy,registrations,atMs,policy.signatureContract.purpose===WPC_PURPOSE);
@@ -175,6 +181,10 @@ function originalSourceEnrollmentBodyDATA(root,e,policy,registrations,atMs){
  for(let i=0;i<roleKeys.length;i++)for(let j=0;j<i;j++)if(roleKeys[i].pkA===roleKeys[j].pkA||roleKeys[i].pkB===roleKeys[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
 }
 function originalSourceProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs,networkOriginals){
+ if(policy.signatureContract.purpose===WM_PURPOSE)return mobileProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs);
+ if(Object.hasOwn(p.selection??{},WM_KEY))fail('MOBILE_SOURCE_DEDICATED_PURPOSE_REQUIRED');
+ if(policy.signatureContract.purpose===NCP_PURPOSE)return publisherProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs);
+ if(Object.hasOwn(p.selection??{},NCP_KEY))fail("NETWORK_PUBLISHER_DEDICATED_PURPOSE_REQUIRED");
  if([NR_PURPOSE,NPR_PURPOSE].includes(policy.signatureContract.purpose))return networkProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs,networkOriginals);
  if(Object.hasOwn(p.selection??{},NPR_KEY))fail('NETWORK_PENDING_DEDICATED_PURPOSE_REQUIRED');
  if(Object.hasOwn(p.selection??{},NR_KEY))fail("NETWORK_RESOURCE_DEDICATED_PURPOSE_REQUIRED");
@@ -269,7 +279,7 @@ export function verifyOriginalAuthSourceProfileV2(rootRaw,enrollmentRaw,profileR
  const {root,enrollment:e,enrollmentBinding}=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);
  const profile=envelope(profileRaw,'profile',contract.profileFrame,registrations.profile,root.networkId,e.profileOwner),p=profile.body;
  const {subjectKeyVersion,agentPublic,effectExpiresAtMs}=originalSourceProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs,networkOriginals);
- return Object.freeze({root,enrollment:e,profile:p,executionHeight:registrations.root.executionHeight,credentialIssuedHeights:Object.freeze({enrollment:enrollmentBinding.executionHeight,profile:profile.binding.executionHeight}),subjectKeyVersion,...([NR_PURPOSE,NPR_PURPOSE].includes(contract.purpose)?{effectExpiresAtMs}:{}),...(contract.purpose===AI_PURPOSE&&agentPublic?{agentPublic}:{}),dataOnly:true,nativeAdmission:false});
+ return Object.freeze({root,enrollment:e,profile:p,executionHeight:registrations.root.executionHeight,credentialIssuedHeights:Object.freeze({enrollment:enrollmentBinding.executionHeight,profile:profile.binding.executionHeight}),subjectKeyVersion,...([WM_PURPOSE,NR_PURPOSE,NPR_PURPOSE].includes(contract.purpose)?{effectExpiresAtMs}:{}),...(contract.purpose===AI_PURPOSE&&agentPublic?{agentPublic}:{}),dataOnly:true,nativeAdmission:false});
 }
 function verifyPublicationAuthority(s,p,e,root,registrations,at){
  const a=s.publicationApprovalAuthority;exact(a,['scopeOriginal','principal','publisherOriginal','callerIdentity']);
@@ -332,6 +342,8 @@ function verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,polic
  window(c,historical?c.issuedAtMs:atMs,30000);if(c.expiresAtMs>Math.min(p.expiresAtMs,verified.enrollment.expiresAtMs))fail('AUTH_SOURCE_V2_EXPIRED');
  if([CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE,CLOUD_DEPLOYMENT_RECOVERY_V2_PURPOSE].includes(contract.purpose)&&c.head!==sha(canonical(p.selection[contract.purpose===CLOUD_DEPLOYMENT_EXECUTION_V2_PURPOSE?'cloudDeploymentExecutionV2':'cloudDeploymentRecoveryV2'])))fail('DEPLOYMENT_EXECUTION_V2_CURRENT_HEAD');
  if([NR_PURPOSE,NPR_PURPOSE].includes(contract.purpose)&&(c.head!==sha(canonical(p.selection[contract.purpose===NPR_PURPOSE?NPR_KEY:NR_KEY]))||c.expiresAtMs>verified.effectExpiresAtMs))fail('NETWORK_RESOURCE_SOURCE_CURRENT_HEAD_OR_WINDOW');
+ if(contract.purpose===WM_PURPOSE&&(c.head!==sha(canonical(p.selection[WM_KEY]))||c.expiresAtMs>verified.effectExpiresAtMs))fail('MOBILE_SOURCE_CURRENT_HEAD_OR_WINDOW');
+ if(contract.purpose===NCP_PURPOSE&&c.head!==sha(canonical(p.selection[NCP_KEY])))fail('NETWORK_PUBLISHER_SOURCE_CURRENT_HEAD');
  if(contract.purpose===IDE_DEPLOYMENT_V2_SOURCE_PURPOSE&&c.head!==sha(canonical(p.selection.ideDeploymentV2)))fail('IDE_DEPLOYMENT_V2_CURRENT_HEAD');
  if(contract.purpose===AI_PURPOSE){const data=inspectOriginalAITaskActionV6SourceScopeDATA(p.selection[AI_KEY],p.selection.association,verified.root.networkId,p.subjectOwner,p.sourceId,p.instanceId,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==sha(canonical(p.selection[AI_KEY])))fail('AI_TASK_SOURCE_CURRENT_HEAD');if(c.expiresAtMs>data.effectExpiresAtMs)fail('AI_TASK_SOURCE_CURRENT_WINDOW');}
  if(contract.purpose===WPR_PURPOSE){const data=inspectOriginalWalletProductScopeV1DATA(p.selection[WPR_KEY],verified.root.networkId,p.subjectOwner,p.issuedAtMs,p.expiresAtMs,atMs);if(c.head!==sha(data.scopeOriginal))fail('WALLET_PRODUCT_SOURCE_CURRENT_HEAD');if(c.expiresAtMs>data.effectExpiresAtMs)fail('WALLET_PRODUCT_SOURCE_CURRENT_WINDOW');}
@@ -347,7 +359,7 @@ function verifySourceCurrentV2(rootRaw,enrollmentRaw,profileRaw,currentRaw,polic
  if(contract.purpose===PRODUCT_DEVICE_V4_REGISTERED_FINALIZATION_PURPOSE&&c.head!==sha(canonical(p.selection.productSessionDeviceV4RegisteredFinalization)))fail('AUTH_SOURCE_V2_DEVICE_REGISTERED_FINALIZATION_HEAD');
  if(contract.purpose===PRODUCT_SESSION_HTTP_PROOF_V5_SOURCE_PURPOSE&&c.head!==sha(canonical(p.selection.productSessionHTTPProofV5)))fail('AUTH_SOURCE_V2_HTTP_V5_HEAD');
  if(!historical&&c.status!=='active')fail('AUTH_SOURCE_V2_REVOKED');
- return seal({...(Object.hasOwn(p.selection,'runtimeImageBindingV1')?{runtimeImageBindingV1DATA:inspectOriginalAuthRuntimeImageBindingV1DATA(p.selection.runtimeImageBindingV1,p.purpose).runtimeImageBindingV1}:{}),...(contract.purpose===AI_PURPOSE&&verified.agentPublic?{agentPublic:verified.agentPublic}:{}),selection:p.selection,principalId:p.selection.association.account,subjectOwner:p.subjectOwner,subjectKeyVersion:c.subjectKeyVersion,generation:p.generation,sequence:c.sequence,floor:c.floor,head:c.head,status:c.status,timeFloor:atMs,expiresAtMs:Math.min(p.expiresAtMs,c.expiresAtMs,verified.enrollment.expiresAtMs),profileDigest:sha(profileRaw),sourceId:p.sourceId,instanceId:p.instanceId,executionHeight:verified.executionHeight,...(historical?{statementExecutionHeight:current.binding.executionHeight,historical:true}:{}),dataOnly:true,nativeAdmission:false});
+ return seal({...(Object.hasOwn(p.selection,'runtimeImageBindingV1')?{runtimeImageBindingV1DATA:inspectOriginalAuthRuntimeImageBindingV1DATA(p.selection.runtimeImageBindingV1,p.purpose).runtimeImageBindingV1}:{}),...(contract.purpose===AI_PURPOSE&&verified.agentPublic?{agentPublic:verified.agentPublic}:{}),selection:p.selection,principalId:contract.purpose===WM_PURPOSE?p.selection[WM_KEY].context.account:p.selection.association.account,subjectOwner:p.subjectOwner,subjectKeyVersion:c.subjectKeyVersion,generation:p.generation,sequence:c.sequence,floor:c.floor,head:c.head,status:c.status,timeFloor:atMs,expiresAtMs:Math.min(p.expiresAtMs,c.expiresAtMs,verified.enrollment.expiresAtMs),profileDigest:sha(profileRaw),sourceId:p.sourceId,instanceId:p.instanceId,executionHeight:verified.executionHeight,...(historical?{statementExecutionHeight:current.binding.executionHeight,historical:true}:{}),dataOnly:true,nativeAdmission:false});
 }
 
 /** Fresh nonce/current admission DATA. Historical heads never satisfy this API. */
@@ -467,4 +479,56 @@ export function inspectOriginalNetworkPendingConsentSourceIssuanceBodyV1DATA(rol
  const contract=sourcePolicy(policy);if(contract.purpose!==NPR_PURPOSE||!['enrollment','profile'].includes(role))fail('NETWORK_RESOURCE_SOURCE_ISSUANCE_ROLE');exact(registrations,['root','profile','current','subject']);
  const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);if(sha(rootRaw)!==policy.rootDigest||root.version!==2||root.algorithmVersion!==suite||root.purpose!==NPR_PURPOSE||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');const body=parse(bodyRaw,65536);let effectExpiresAtMs=body.expiresAtMs;
  if(role==='enrollment')networkEnrollmentBodyDATA(root,body,policy,registrations,atMs);else{const v=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);effectExpiresAtMs=networkProfileBodyDATA(root,v.enrollment,body,enrollmentRaw,policy,registrations,atMs,networkOriginals).effectExpiresAtMs;}return Object.freeze({role,bodySHA256:sha(bodyRaw),effectExpiresAtMs,dataOnly:true,authorized:false,nativeAdmission:false});
+}
+
+// Independent publisher-only delegation. No consumer originals/current9 input.
+function publisherEnrollmentBodyDATA(root,e,policy,registrations,atMs){
+ sourcePolicy(policy);exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
+ if(e.version!==2||e.purpose!==NCP_PURPOSE||root.purpose!==NCP_PURPOSE||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==NCP_PURPOSE||e.productId!=='network'||policy.productId!==e.productId||e.platform!==policy.platform||e.applicationId!==policy.applicationId||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||!absolute(e.currentStatePath)||canonical(e.operations)!==canonical(NCP_OPS))fail('NETWORK_PUBLISHER_SOURCE_ENROLLMENT');
+ window(e,atMs,86400000);const h=registrations.root.executionHeight,roles=[[registrations.root,root.rootOwner],[registrations.profile,e.profileOwner],[registrations.current,e.currentOwner]].map(([v,id])=>active(v,root.networkId,id,h));
+ for(let i=0;i<roles.length;i++)for(let j=0;j<i;j++)if(roles[i].pkA===roles[j].pkA||roles[i].pkB===roles[j].pkB)fail('AUTH_SOURCE_V2_KEYS_NOT_DISTINCT');
+}
+function publisherProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs){
+ exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
+ if(p.version!==2||p.purpose!==NCP_PURPOSE||p.sourceId!==e.sourceId||p.enrollmentDigest!==sha(enrollmentRaw)||!token(p.instanceId)||!integer(p.generation)||p.generation<1||!integer(p.minimumSequence)||p.minimumSequence<1||!integer(p.minimumFloor)||p.minimumFloor<0||p.minimumFloor>p.minimumSequence||p.subjectOwner!==e.currentOwner)fail('NETWORK_PUBLISHER_SOURCE_PROFILE');
+ window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');
+ const s=p.selection;exact(s,['association','expectedRequest','originalHostStatePath','originalHostTerminalDirectory',NCP_KEY]);const a=s.association;
+ const data=inspectOriginalNetworkCurrentPublisherScopeV1DATA(s[NCP_KEY],a,root.networkId,p.subjectOwner,p.sourceId,p.instanceId,e.currentOwner);
+ if(data.descriptor.resourceCurrentFrame===policy.signatureContract.currentFrame)fail('NETWORK_PUBLISHER_DISTINCT_CURRENT_FRAME_REQUIRED');
+ if(a.platform!==e.platform||a.applicationId!==e.applicationId)fail('NETWORK_PUBLISHER_ASSOCIATION');
+ const r=s.expectedRequest;exact(r,['service','productId','platform','applicationId','gatewayOrigin','registryDigest','operations','instanceId']);
+ if(r.service!==e.service||r.productId!==e.productId||r.platform!==e.platform||r.applicationId!==e.applicationId||r.gatewayOrigin!==e.gatewayOrigin||r.registryDigest!==e.registryDigest||canonical(r.operations)!==canonical(NCP_OPS)||r.instanceId!==p.instanceId||!absolute(s.originalHostStatePath)||s.originalHostTerminalDirectory!==s.originalHostStatePath+'.private-terminal')fail('NETWORK_PUBLISHER_REQUEST');
+ const h=registrations.root.executionHeight;active(registrations.subject,root.networkId,p.subjectOwner,h);active(registrations.current,root.networkId,e.currentOwner,h);assertPQAuthorizationCurrent(registrations.current,registrations.subject);
+ return Object.freeze({subjectKeyVersion:selectOriginalAuthSourceAlgorithm(registrations.subject,2).keyVersion,effectExpiresAtMs:p.expiresAtMs,descriptor:data.descriptor});
+}
+export function inspectOriginalNetworkCurrentPublisherIssuanceBodyV1DATA(role,rootRaw,enrollmentRaw,bodyRaw,policy,registrations,atMs){
+ const contract=sourcePolicy(policy);if(contract.purpose!==NCP_PURPOSE||!['enrollment','profile'].includes(role))fail('NETWORK_PUBLISHER_ISSUANCE_ROLE');exact(registrations,['root','profile','current','subject']);
+ const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);if(sha(rootRaw)!==policy.rootDigest||root.version!==2||root.algorithmVersion!==suite||root.purpose!==NCP_PURPOSE||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
+ const body=parse(bodyRaw,65536);if(role==='enrollment')publisherEnrollmentBodyDATA(root,body,policy,registrations,atMs);else{const v=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);publisherProfileBodyDATA(root,v.enrollment,body,enrollmentRaw,policy,registrations,atMs);}
+ return Object.freeze({role,bodySHA256:sha(bodyRaw),effectExpiresAtMs:body.expiresAtMs,dataOnly:true,authorized:false,nativeAdmission:false});
+}
+
+// Mobile qualification DATA shares the sole E8/N1 role verifier. Native must
+// independently qualify review/binding/backup/current/once; scope hashes do not.
+function mobileEnrollmentBodyDATA(root,e,policy,registrations,atMs){
+ sourcePolicy(policy);exact(e,['version','purpose','rootId','rootOwner','sourceId','service','productId','platform','applicationId','gatewayOrigin','registryDigest','profileOwner','currentOwner','endpoint','spki','currentStatePath','operations','issuedAtMs','expiresAtMs']);
+ // Opaque locator syntax only: never resolved by Node or treated as a grant.
+ if(e.version!==2||e.purpose!==WM_PURPOSE||root.purpose!==WM_PURPOSE||e.rootId!==root.rootId||e.rootOwner!==root.rootOwner||!token(e.sourceId)||!owner(e.profileOwner)||!owner(e.currentOwner)||new Set([root.rootOwner,e.profileOwner,e.currentOwner]).size!==3||e.service!==WM_PURPOSE||e.productId!=='wallet'||e.platform!==policy.platform||e.applicationId!==policy.applicationId||e.gatewayOrigin!=='https://wallet-auth.ynxweb4.com'||!hex(e.registryDigest)||e.endpoint!==policy.endpoint||e.spki!==policy.spki||typeof e.currentStatePath!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(e.currentStatePath)||canonical(e.operations)!==canonical(WM_OPS))fail('MOBILE_SOURCE_ENROLLMENT');
+ window(e,atMs,86400000);const h=registrations.root.executionHeight;active(registrations.root,root.networkId,root.rootOwner,h);active(registrations.profile,root.networkId,e.profileOwner,h);active(registrations.current,root.networkId,e.currentOwner,h);
+}
+function mobileProfileBodyDATA(root,e,p,enrollmentRaw,policy,registrations,atMs){
+ exact(p,['version','purpose','sourceId','enrollmentDigest','instanceId','generation','minimumSequence','minimumFloor','subjectOwner','selection','issuedAtMs','expiresAtMs']);
+ if(p.version!==2||p.purpose!==WM_PURPOSE||p.sourceId!==e.sourceId||p.enrollmentDigest!==sha(enrollmentRaw)||!token(p.instanceId)||!integer(p.generation)||p.generation<1||!integer(p.minimumSequence)||p.minimumSequence<1||!integer(p.minimumFloor)||p.minimumFloor>p.minimumSequence||!owner(p.subjectOwner))fail('MOBILE_SOURCE_PROFILE');
+ window(p,atMs,86400000);if(p.issuedAtMs<e.issuedAtMs||p.expiresAtMs>e.expiresAtMs)fail('AUTH_SOURCE_V2_EXPIRED');exact(p.selection,[WM_KEY]);const s=inspectWalletMobileQualifiedSourceScopeV1DATA(p.selection[WM_KEY]),c=s.context;
+ if(c.networkId!==root.networkId||c.account!==p.subjectOwner||c.platform!==e.platform||c.applicationId!==e.applicationId)fail('MOBILE_SOURCE_SCOPE_BINDING');
+ if(s.issuedAtMs<p.issuedAtMs||s.expiresAtMs>p.expiresAtMs||atMs<s.issuedAtMs||atMs>=s.expiresAtMs)fail('MOBILE_SOURCE_SCOPE_WINDOW');
+ const h=registrations.root.executionHeight;active(registrations.subject,root.networkId,p.subjectOwner,h);const selected=selectOriginalAuthSourceAlgorithm(registrations.subject,2);
+ if(s.mode!==3&&c.keyVersion!==selected.keyVersion)fail('MOBILE_SOURCE_REGISTERED_PAIR_REVISION');
+ return Object.freeze({subjectKeyVersion:selected.keyVersion,effectExpiresAtMs:s.expiresAtMs});
+}
+export function inspectWalletMobileQualifiedSourceIssuanceBodyV1DATA(role,rootRaw,enrollmentRaw,bodyRaw,policy,registrations,atMs){
+ const contract=sourcePolicy(policy);if(contract.purpose!==WM_PURPOSE||!['enrollment','profile'].includes(role))fail('MOBILE_SOURCE_ISSUANCE_ROLE');exact(registrations,['root','profile','current','subject']);
+ const root=parse(rootRaw,16384);exact(root,['version','algorithmVersion','purpose','rootId','networkId','rootOwner']);if(sha(rootRaw)!==policy.rootDigest||root.version!==2||root.algorithmVersion!==suite||root.purpose!==WM_PURPOSE||!token(root.rootId)||!hex(root.networkId)||!owner(root.rootOwner))fail('AUTH_SOURCE_V2_ROOT');
+ const body=parse(bodyRaw,65536);let effectExpiresAtMs=body.expiresAtMs;if(role==='enrollment')mobileEnrollmentBodyDATA(root,body,policy,registrations,atMs);else{const v=verifyOriginalAuthSourceEnrollmentV2(rootRaw,enrollmentRaw,policy,registrations,atMs);effectExpiresAtMs=mobileProfileBodyDATA(root,v.enrollment,body,enrollmentRaw,policy,registrations,atMs).effectExpiresAtMs;}
+ return Object.freeze({role,bodySHA256:sha(bodyRaw),effectExpiresAtMs,dataOnly:true,authorized:false,nativeAdmission:false});
 }

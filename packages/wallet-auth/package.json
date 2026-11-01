@@ -522,6 +522,12 @@
       "browser": null,
       "node": "./native/original-network-resource-pending-source-contract.mjs",
       "default": null
+    },
+    "./network-resource-current-publisher": {
+      "types": "./native/original-network-current-publisher-adapter.d.mts",
+      "browser": null,
+      "node": "./native/original-network-current-publisher-adapter.mjs",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -798,7 +804,27 @@
     "native/original-network-resource-pending-source-contract.mjs",
     "native/original-network-resource-pending-source-contract.d.mts",
     "native/original-network-resource-pending-source-factory.mjs",
-    "native/original-network-resource-pending-source-factory.d.mts"
+    "native/original-network-resource-pending-source-factory.d.mts",
+    "native/original-network-current-publisher-loader-private.d.mts",
+    "native/original-network-current-publisher-loader-private.mjs",
+    "native/original-network-current-publisher-reference-private.d.mts",
+    "native/original-network-current-publisher-reference-private.mjs",
+    "native/original-network-current-publisher-selection-private.mjs",
+    "native/original-network-current-publisher-source-contract.d.mts",
+    "native/original-network-current-publisher-source-contract.mjs",
+    "native/original-network-resource-current-witness-v1.mjs",
+    "native/original-network-resource-current-witness-v1.d.mts",
+    "native/network-current/NetworkCurrentPairStore.h",
+    "native/network-current/NetworkCurrentPairStore.cpp",
+    "docs/NETWORK_CURRENT_PUBLISHER_SOURCE_V1.md",
+    "native/original-network-current-publisher-views-private.mjs",
+    "native/original-network-current-publisher-adapter.d.mts",
+    "native/original-network-current-publisher-adapter.mjs",
+    "native/original-p09-current-snapshot-continuation.mjs",
+    "native/original-wallet-mobile-qualified-source-contract.mjs",
+    "native/original-wallet-mobile-qualified-source-contract.d.mts",
+    "native/wallet-mobile-qualified-source-v1.schema.json",
+    "docs/WALLET_MOBILE_QUALIFIED_SOURCE_V1.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",

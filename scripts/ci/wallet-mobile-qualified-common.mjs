@@ -1,0 +1,3 @@
+import {spawnSync} from 'node:child_process';import path from 'node:path';import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..'),pkg=path.join(root,'packages/wallet-auth');
+for(const args of [['--test',path.join(pkg,'test/wallet-mobile-qualified-common.test.mjs')],[path.join(pkg,'node_modules/typescript/bin/tsc'),'--noEmit','--strict','--target','ES2022','--module','NodeNext','--moduleResolution','NodeNext',path.join(pkg,'test/wallet-mobile-qualified-common.types.mts'),path.join(pkg,'test/network-current-publisher.types.mts')]]){const r=spawnSync(process.execPath,args,{cwd:root,stdio:'inherit',env:process.env});if(r.status!==0)process.exit(r.status??1)}
