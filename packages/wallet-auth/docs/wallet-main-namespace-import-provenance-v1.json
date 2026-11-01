@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "kind": "IMPORT_PROVENANCE_DATA_ONLY",
+  "fixedModuleRelativePath": "packages/wallet-auth/src/original-wallet-main-namespace-node-loader-private.js",
+  "canonicalURI": "actual independently Root-admitted normal package URI; no query/hash/copy/re-export namespace",
+  "privateExports": {
+    "isOriginalWalletMainNamespaceImportDATA": {
+      "arguments": [
+        "SAME actual tagged startupOwner napi_value",
+        "SAME actual Node import namespace napi_value"
+      ],
+      "return": "strict boolean; non-consuming"
+    },
+    "consumeOriginalWalletMainNamespaceImportDATA": {
+      "arguments": [
+        "SAME actual tagged startupOwner napi_value",
+        "SAME actual Node import namespace napi_value"
+      ],
+      "return": "strict boolean; true only once during synchronous acceptCompleted"
+    }
+  },
+  "nativeCall": "napi_call_function(env,SAME_fixed_module_namespace,fixed_function,2,SAME_tuple,&result); require napi_boolean true",
+  "inventoryWrite": "actual Root-port-approved Node import retained + successful late current; accept boundary only",
+  "afterConsumeIsValid": true,
+  "invalidatedBy": [
+    "loader retirement",
+    "accept/current failure"
+  ],
+  "NativeCurrentMustUse": "isOriginalWalletMainNamespaceImportDATA, not consume",
+  "sourcePermission": "NEVER; independent Root/producer/fullclosure/ownimage/Source/current required",
+  "newRootDomain": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}
