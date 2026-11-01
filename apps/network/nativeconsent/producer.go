@@ -61,6 +61,7 @@ type Producer struct {
 	closed                                   bool
 	cancel                                   context.CancelFunc
 	done                                     chan struct{}
+	bundle                                   *bundleCapture
 }
 
 func Locale(value string) bool {
@@ -77,8 +78,11 @@ func digest(value string) bool {
 	return err == nil && len(b) == 32 && hex.EncodeToString(b) == value
 }
 func inspect(path string, expected *identity, pin [32]byte) ([]byte, os.FileInfo, error) {
+	return inspectBound(path, expected, pin, true, 64<<20)
+}
+func inspectBound(path string, expected *identity, pin [32]byte, executable bool, limit int64) ([]byte, os.FileInfo, error) {
 	before, err := os.Lstat(path)
-	if err != nil || !before.Mode().IsRegular() || before.Mode().Perm()&0022 != 0 || before.Mode().Perm()&0111 == 0 || before.Mode()&(os.ModeSetuid|os.ModeSetgid) != 0 || before.Size() <= 0 || before.Size() > 64<<20 || !owned(before) {
+	if err != nil || !before.Mode().IsRegular() || before.Mode().Perm()&0022 != 0 || (executable && before.Mode().Perm()&0111 == 0) || before.Mode()&(os.ModeSetuid|os.ModeSetgid) != 0 || before.Size() <= 0 || before.Size() > limit || !owned(before) {
 		return nil, nil, ErrInvalid
 	}
 	same := func(a, b os.FileInfo) bool {
@@ -96,7 +100,7 @@ func inspect(path string, expected *identity, pin [32]byte) ([]byte, os.FileInfo
 	if err != nil || !same(before, opened) {
 		return nil, nil, ErrInvalid
 	}
-	raw, err := io.ReadAll(io.LimitReader(f, 64<<20+1))
+	raw, err := io.ReadAll(io.LimitReader(f, limit+1))
 	after, e := f.Stat()
 	named, n := os.Lstat(path)
 	if err != nil || e != nil || n != nil || !same(opened, after) || !same(after, named) || int64(len(raw)) != before.Size() || sha256.Sum256(raw) != pin {
@@ -164,11 +168,14 @@ func New(path, pin, locale, theme string) (*Producer, error) {
 }
 
 type capped struct {
-	bytes.Buffer
+	buffer   bytes.Buffer
 	limit    int
 	cancel   context.CancelFunc
 	exceeded bool
 }
+
+func (w *capped) Len() int      { return w.buffer.Len() }
+func (w *capped) Bytes() []byte { return w.buffer.Bytes() }
 
 func (w *capped) Write(b []byte) (int, error) {
 	if len(b) > w.limit-w.Len() {
@@ -176,7 +183,7 @@ func (w *capped) Write(b []byte) (int, error) {
 		w.cancel()
 		return 0, ErrInvalid
 	}
-	return w.Buffer.Write(b)
+	return w.buffer.Write(b)
 }
 
 // Confirm returns nil only after the exact pinned child reports an approved
@@ -215,6 +222,9 @@ func (p *Producer) Confirm(ctx context.Context, intent ownednode.Intent, mode st
 	done := p.done
 	p.mu.Unlock()
 	defer func() { p.mu.Lock(); p.active = false; p.cancel = nil; close(done); p.mu.Unlock() }()
+	if err := p.verifyBundle(true); err != nil {
+		return err
+	}
 	if _, _, err := inspect(p.path, &p.source, p.source.pin); err != nil {
 		return err
 	}
@@ -237,16 +247,22 @@ func (p *Producer) Confirm(ctx context.Context, intent ownednode.Intent, mode st
 	command.Stderr = stderr
 	command.WaitDelay = 250 * time.Millisecond
 	err := command.Run() // Run always waits for the owned child and its pipes.
+	if e := p.verifyBundle(true); e != nil {
+		return e
+	}
 	if _, _, e := inspect(p.path, &p.source, p.source.pin); e != nil {
 		return e
 	}
 	if _, _, e := inspect(p.captured, &p.capture, p.capture.pin); e != nil {
 		return e
 	}
+	if output.exceeded || stderr.exceeded {
+		return ErrInvalid
+	}
 	if call.Err() != nil {
 		return call.Err()
 	}
-	if err != nil || stderr.Len() != 0 || output.exceeded || stderr.exceeded {
+	if err != nil || stderr.Len() != 0 {
 		return ErrInvalid
 	}
 	var result response
@@ -287,6 +303,9 @@ func (p *Producer) Close() error {
 	defer p.mu.Unlock()
 	if p.directory == "" {
 		return nil
+	}
+	if p.bundle != nil {
+		return p.closeBundle()
 	}
 	info, err := os.Lstat(p.directory)
 	if err != nil || !os.SameFile(info, p.dirInfo) || !info.IsDir() || info.Mode() != p.dirInfo.Mode() || info.Mode().Perm() != 0700 || !owned(info) {

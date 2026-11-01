@@ -120,7 +120,8 @@ static BOOL packagedFiles(NSString *helper,NSString *proof,NSDictionary *build){
  id pin=build[@"resourceWorkerSHA256"]; // Older QA builds have no task worker.
  if(pin){NSString *worker=[[helper stringByDeletingLastPathComponent]stringByAppendingPathComponent:@"ynx-network-task-worker"];matched=matched&&[pin isKindOfClass:NSString.class]&&[pin length]==64&&[[digest(worker)description]isEqual:pin];}
  id consent=build[@"nativeConsentSHA256"];
- if(consent){NSString *producer=[[helper stringByDeletingLastPathComponent]stringByAppendingPathComponent:@"ynx-network-native-consent"];matched=matched&&[consent isKindOfClass:NSString.class]&&[consent length]==64&&[[digest(producer)description]isEqual:consent];}
+ if(build[@"nativeConsentInfoSHA256"]&&!consent)return NO;
+ if(consent){id infoPin=build[@"nativeConsentInfoSHA256"];NSString *base=[[helper stringByDeletingLastPathComponent]stringByAppendingPathComponent:@"YNX Network Consent.app/Contents"];NSString *producer=infoPin?[base stringByAppendingPathComponent:@"MacOS/ynx-network-native-consent"]:[[helper stringByDeletingLastPathComponent]stringByAppendingPathComponent:@"ynx-network-native-consent"];matched=matched&&[consent isKindOfClass:NSString.class]&&[consent length]==64&&[[digest(producer)description]isEqual:consent];if(infoPin)matched=matched&&[infoPin isKindOfClass:NSString.class]&&[infoPin length]==64&&[[digest([base stringByAppendingPathComponent:@"Info.plist"])description]isEqual:infoPin];}
  return matched;
 }
 static void installApplicationMenu(NSApplication *app) {

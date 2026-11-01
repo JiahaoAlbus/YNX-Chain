@@ -33,7 +33,7 @@ function jsonStream(raw){let start=-1,depth=0,quoted=false,escape=false;const va
 function snapshot(){
   const head=run('git',['rev-parse','HEAD']);if(!/^[0-9a-f]{40}$/.test(head)||expected&&head!==expected)throw Error('Exact source HEAD does not match');
   const status=run('git',['status','--porcelain=v1','--untracked-files=all']);
-  const files=new Set(['go.mod','go.sum','apps/network/qa/build.mjs','apps/network/qa/launcher.m','apps/network/qa/proof_profile.h','apps/network/qa/proof_profile.m','apps/network/qa/native_consent.h','apps/network/qa/native_consent.m','apps/network/qa/native_consent_main.m']);
+  const files=new Set(['go.mod','go.sum','apps/network/qa/build.mjs','apps/network/qa/launcher.m','apps/network/qa/proof_profile.h','apps/network/qa/proof_profile.m','apps/network/qa/native_consent.h','apps/network/qa/native_consent.m','apps/network/qa/native_consent_main.m','apps/network/qa/native_consent_info.plist']);
   const workerRoot=path.join(root,'apps/network/wasmworker');
   const workerFiles=dir=>{for(const item of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,item.name);if(item.isDirectory())workerFiles(file);else if(/\.(go|wasm)$/.test(item.name)||['go.mod','go.sum'].includes(item.name))files.add(path.relative(root,file));}};workerFiles(workerRoot);
   const originalVerifier=originalVerifierInput();
@@ -64,10 +64,18 @@ run(workerGo,['build','-mod=readonly','-trimpath','-buildvcs=false','-p','1','-o
 const workerSHA256=sha(fs.readFileSync(worker));
 
 const sdk=run('xcrun',['--sdk','macosx','--show-sdk-path']);
-const nativeProducer=path.join(contents,'Helpers','ynx-network-native-consent');
+const nativeBundle=path.join(contents,'Helpers','YNX Network Consent.app');
+fs.mkdirSync(path.join(nativeBundle,'Contents','MacOS'),{recursive:true,mode:0o755});
+const nativeConsentBundleID=`dev.ynx.network.consent.qa.h${identity.slice(0,16)}`;
+const nativeInfo=path.join(nativeBundle,'Contents','Info.plist');
+const nativeInfoBytes=fs.readFileSync(path.join(here,'native_consent_info.plist'),'utf8').replace('__YNX_CONSENT_BUNDLE_ID__',nativeConsentBundleID);
+if(nativeInfoBytes.includes('__YNX_'))throw Error('Unresolved fixed native identity');
+fs.writeFileSync(nativeInfo,nativeInfoBytes,{flag:'wx'});
+const nativeConsentInfoSHA256=sha(Buffer.from(nativeInfoBytes));
+const nativeProducer=path.join(nativeBundle,'Contents','MacOS','ynx-network-native-consent');
 run('xcrun',['--sdk','macosx','clang','-arch','arm64','-mmacosx-version-min=12.0','-isysroot',sdk,'-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-framework','Cocoa',path.join(here,'native_consent_main.m'),'-o',nativeProducer],{env:process.env});
 const nativeConsentSHA256=sha(fs.readFileSync(nativeProducer));
-run('go',['build','-mod=readonly','-trimpath','-buildvcs=false','-p','1','-ldflags',`-X main.sourceRevision=${source.head} -X main.resourceWorkerSHA256=${workerSHA256} -X main.nativeConsentSHA256=${nativeConsentSHA256}`,'-o',helper,'./cmd/ynx-network-helper']);
+run('go',['build','-mod=readonly','-trimpath','-buildvcs=false','-p','1','-ldflags',`-X main.sourceRevision=${source.head} -X main.resourceWorkerSHA256=${workerSHA256} -X main.nativeConsentSHA256=${nativeConsentSHA256} -X main.nativeConsentInfoSHA256=${nativeConsentInfoSHA256}`,'-o',helper,'./cmd/ynx-network-helper']);
 if(source.originalVerifier){
   fs.copyFileSync(source.originalVerifier.path,proof,fs.constants.COPYFILE_EXCL);
   if(sha(fs.readFileSync(proof))!==source.originalVerifier.sha256)throw Error('Copied original verifier differs from pinned supplier input');
@@ -84,7 +92,7 @@ for(const executable of [launcher,helper,proof,worker,nativeProducer]){
   for(const [,version]of versions)if(compareVersion(version,minimumMacOS)>0)minimumMacOS=version;
 }
 if(compareVersion(run('sw_vers',['-productVersion'],{env:process.env}),minimumMacOS)<0)throw Error('Original verifier requires a newer macOS than this QA host');
-const config={version:'YNX-NETWORK-LOCAL-QA/v1',buildID:`qa-${identity.slice(0,16)}`,sourceRevision:source.head,sourceInputSHA256:source.inputSHA256,helperSHA256:sha(fs.readFileSync(helper)),proofSHA256:sha(fs.readFileSync(proof)),resourceWorkerSHA256:workerSHA256,nativeConsentSHA256,minimumMacOS,defaultRPC:'https://rpc.ynxweb4.com',publisherSigned:false,notarized:false,installed:false};
+const config={version:'YNX-NETWORK-LOCAL-QA/v1',buildID:`qa-${identity.slice(0,16)}`,sourceRevision:source.head,sourceInputSHA256:source.inputSHA256,helperSHA256:sha(fs.readFileSync(helper)),proofSHA256:sha(fs.readFileSync(proof)),resourceWorkerSHA256:workerSHA256,nativeConsentSHA256,nativeConsentInfoSHA256,nativeConsentBundleID,minimumMacOS,defaultRPC:'https://rpc.ynxweb4.com',publisherSigned:false,notarized:false,installed:false};
 if(source.originalVerifier)config.proofSourceRevision=source.originalVerifier.sourceRevision;
 fs.writeFileSync(path.join(contents,'Resources','qa-build.json'),JSON.stringify(config,null,2)+'\n');
 fs.copyFileSync(path.join(root,'apps/network/web/app-icon.png'),path.join(contents,'Resources','Network.png'),fs.constants.COPYFILE_EXCL);

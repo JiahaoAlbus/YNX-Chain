@@ -165,3 +165,19 @@ contract to helper CI without opening a window. Its injected decisions and the
 separate Go process transport fixtures do not establish a human click. Actual
 dialog acceptance, original signed runtime intake and production release are
 reported separately from this code and contract validation.
+
+The producer is a fixed nested `YNX Network Consent.app`, with its own original
+`Info.plist`, executable and build-specific bundle identifier. Both executable
+and metadata digests are compiled into the helper. The private capture retains
+that exact minimal App hierarchy and metadata; it does not turn the GUI producer
+back into a bare command-line file. A fixed, read-only `--identity` mode reports
+the actual Cocoa main bundle without creating `NSApplication`. Missing, replaced
+or malformed metadata fails closed. Capture cleanup removes only its known files
+and empty original directories; unknown or replaced contents are preserved.
+
+This corrects an actual c08 GUI intake failure: CUA could not identify the bare
+helper by name or path. Its original expiry response was retained as a process
+result, not a clicked Cancel or observed GUI pass. The successor still requires
+actual Cancel/confirm/expiry window acceptance; metadata and contract checks alone
+do not establish that result. Native producer signing can remain independent of
+the helper and outer App, preserving the original release owner's ordering.

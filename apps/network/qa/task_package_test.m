@@ -20,5 +20,15 @@ int main(int argc,const char **argv){@autoreleasepool{
  build[@"nativeConsentSHA256"]=@YES;check(!packagedFiles(helper,proof,build),"non-string native producer pin denied");
  build[@"nativeConsentSHA256"]=@"short";check(!packagedFiles(helper,proof,build),"malformed native producer pin denied");
  [build removeObjectForKey:@"nativeConsentSHA256"];check(packagedFiles(helper,proof,build),"prior worker-only QA remains compatible");
+ NSString *nativeContents=[dir stringByAppendingPathComponent:@"YNX Network Consent.app/Contents"],*nativeMacOS=[nativeContents stringByAppendingPathComponent:@"MacOS"];
+ [[NSFileManager defaultManager]createDirectoryAtPath:nativeMacOS withIntermediateDirectories:YES attributes:nil error:nil];
+ NSString *bundleExecutable=[nativeMacOS stringByAppendingPathComponent:@"ynx-network-native-consent"],*info=[nativeContents stringByAppendingPathComponent:@"Info.plist"];
+ [@"bound-bundled-producer"writeToFile:bundleExecutable atomically:YES encoding:NSUTF8StringEncoding error:nil];[@"fixed-bundle-info"writeToFile:info atomically:YES encoding:NSUTF8StringEncoding error:nil];
+ build[@"nativeConsentSHA256"]=digest(bundleExecutable);build[@"nativeConsentInfoSHA256"]=digest(info);check(packagedFiles(helper,proof,build),"exact bundled producer and metadata accepted");
+ [@"changed-info"writeToFile:info atomically:YES encoding:NSUTF8StringEncoding error:nil];check(!packagedFiles(helper,proof,build),"changed bundle metadata denied");
+ [[NSFileManager defaultManager]removeItemAtPath:info error:nil];check(!packagedFiles(helper,proof,build),"missing bundle metadata denied");
+ build[@"nativeConsentInfoSHA256"]=@YES;check(!packagedFiles(helper,proof,build),"non-string metadata pin denied");
+ build[@"nativeConsentInfoSHA256"]=@"short";check(!packagedFiles(helper,proof,build),"malformed metadata pin denied");
+ [build removeObjectForKey:@"nativeConsentSHA256"];check(!packagedFiles(helper,proof,build),"partial bundled pins denied");
  return 0;
 }}
