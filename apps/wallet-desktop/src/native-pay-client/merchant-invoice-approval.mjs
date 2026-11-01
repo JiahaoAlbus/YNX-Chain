@@ -127,6 +127,19 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
   },
   async reconcileInvoiceIntent(intentId){const value=await call('POST',`/v5/pay/invoice-intents/${id(intentId)}/reconcile`,{});if(value.intentId!==intentId)fail('NATIVE_INVOICE_ORIGINAL_BINDING');return value;},
   async readInvoice(merchant,invoiceId){const value=await call('GET',invoicePath(merchant,invoiceId));if(value.merchant!==merchant||value.invoiceId!==invoiceId)fail('NATIVE_PAY_ACTION_BILL_MISMATCH');return value;},
+  async readInvoiceOriginals(reference,current){
+   if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
+   if(!reference||!['invoice_settle','invoice_refund'].includes(reference.kind))fail('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');
+   const value=await call('GET',invoicePath(reference.merchant,reference.invoiceId),undefined,current);current();
+   if(value.merchant!==reference.merchant||value.invoiceId!==reference.invoiceId||value.termsNativeHash!==reference.termsNativeHash||value.settlementNativeHash!==reference.settlementNativeHash)fail('NATIVE_PAY_INVOICE_ORIGINALS_MISMATCH');
+   if(typeof value.termsMessage!=='string'||value.termsMessage.length>10924)fail('NATIVE_PAY_TERMS_ORIGINAL_UNAVAILABLE');
+   const termsMessage=Buffer.from(value.termsMessage,'base64');
+   if(!termsMessage.length||termsMessage.length>8192||termsMessage.toString('base64')!==value.termsMessage||digest(termsMessage)!==value.termsHash)fail('NATIVE_PAY_TERMS_ORIGINAL_MISMATCH');
+   // The remote payer's original Main review/snapshots are NOT derivable from
+   // its Member or today's account. The genuine archive owns that next port.
+   if(reference.kind==='invoice_refund')fail('NATIVE_PAY_SETTLEMENT_ARCHIVE_UNAVAILABLE');
+   return Object.freeze({termsMessage:Uint8Array.from(termsMessage),settlement:null});
+  },
   async readInvoiceEvents(merchant,invoiceId){const value=await call('GET',invoicePath(merchant,invoiceId)+'/events');if(value.merchant!==merchant||value.invoiceId!==invoiceId||!Array.isArray(value.events))fail('NATIVE_PAY_EVENT_REFERENCE_MISMATCH');return value;},
   reviewSettlement:(merchant,invoiceId)=>call('POST',invoicePath(merchant,invoiceId)+'/review',{}),
   reviewRefund:(merchant,invoiceId,refundId,amountAtoms)=>call('POST',invoicePath(merchant,invoiceId)+'/refund-review',{refundId,amountAtoms}),

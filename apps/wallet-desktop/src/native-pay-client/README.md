@@ -23,6 +23,15 @@ the genuine Auth/SDK/product resource owner. Existing adapters are consumers.
 Wallet7a's fixed three Member POST/two GET scope cannot authorize product
 create/lookup/review routes or manufacture historical invoice originals.
 
+The existing authenticated invoice GET now supplies `termsMessage` as original
+stored signing bytes with its stored hash checked, preserving UNKNOWN and all
+existing money status. The private client `readInvoiceOriginals(ref,current)`
+can read these original terms for payment review. This remains a consumer of
+the genuine ProductSource's qualified transport/current. Refunds still require
+the remote payer's actual retained review/original context from its real archive;
+the client returns `NATIVE_PAY_SETTLEMENT_ARCHIVE_UNAVAILABLE` rather than
+inventing a review, operation ID or historical snapshot from the Member.
+
 The original runtime supplies:
 
 - `pay`: the fixed `createPrivateNativeInvoiceClient({origin,requestPrivate})` consumer over the original qualified Source/LINK transport, with no default fetch, target override, redirect or dispatched-POST retry.

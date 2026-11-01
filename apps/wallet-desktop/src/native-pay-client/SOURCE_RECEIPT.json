@@ -1,8 +1,8 @@
 {
   "owner": "P06 original; P01 immutable consumer projection",
-  "sourceCommit": "5c160b0b2936f7a64413198f23cbca7dcefdcb2c",
-  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/client-consumer-work/product-source-settlement-r2/HANDOFF.json",
-  "handoffSha256": "c3f9b2a079592eabc04ab2653ab803c7e9414a9f09840e62fd2d9c82c57623c3",
+  "sourceCommit": "df86b045dd9e8bd207af559beb4e765ad35c9a55",
+  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/client-consumer-work/product-source-original-terms-r3/HANDOFF.json",
+  "handoffSha256": "b80392ce863fc687612ed3f2cdb7e0953d13a5b4a713494b15a0ba6068a0fecb",
   "files": [
     {
       "path": "cli.mjs",
@@ -16,8 +16,8 @@
     },
     {
       "path": "merchant-invoice-approval.mjs",
-      "bytes": 19716,
-      "sha256": "c2b04825a9f91592ca1f390b0052e50e06ecd2f36151f255bb9687588a09f81a"
+      "bytes": 21045,
+      "sha256": "1fac0c0fcdf851aedcb4e4a574cf8edfadaaefab7d887b142897050bf4e8b4b2"
     },
     {
       "path": "invoice-product-intent.mjs",
@@ -41,8 +41,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 9123,
-      "sha256": "be2138904319e3dbfed1cd2dcd7bba877f448019101726979789f94f25d25b24"
+      "bytes": 9745,
+      "sha256": "adec994f32671205003bfca35298bd05d4ba8dd463b73bedb501463218bcf085"
     },
     {
       "path": "MAIN_PAY_CONTRACT.md",
