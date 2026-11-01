@@ -75,6 +75,11 @@ func initializeApplication(migration chain.ConsensusMigrationState, rawGenesis [
 	if err = expected.ValidateNormalRuntime(); err != nil {
 		return result, err
 	}
+	// This is the original complete normal validation/detachment boundary.
+	// Reuse that SAME private immutable source through first persistence and
+	// cold reopen; do not clone the complete history for each temporary App.
+	witness := expected.validatedMigration
+	migration, bootstrap = witness.migration, witness.bootstrap
 	want, err := json.Marshal(expected.committed)
 	if err != nil {
 		return result, err
@@ -133,14 +138,14 @@ func initializeApplication(migration chain.ConsensusMigrationState, rawGenesis [
 		// its first snapshot must advance migration.Height. The block journal
 		// constructor writes its complete initial checkpoint. Do not manufacture
 		// a first block or relax either format's original height rule.
-		if _, err = openInitializedApplication(migration, options, bootstrap); err != nil {
+		if _, err = openInitializedApplicationOwned(witness, options); err != nil {
 			return result, err
 		}
 	}
 	if err = syncInitializationDirectory(directory); err != nil {
 		return result, err
 	}
-	cold, err := openInitializedApplication(migration, options, bootstrap)
+	cold, err := openInitializedApplicationOwned(witness, options)
 	if err != nil {
 		return result, fmt.Errorf("cold read initialized application: %w", err)
 	}
@@ -181,15 +186,35 @@ func validateInitializationRuntime(bootstrap *ConsensusBootstrap, migration chai
 }
 
 func openInitializedApplication(migration chain.ConsensusMigrationState, options ApplicationInitializationOptions, bootstrap *ConsensusBootstrap) (*Application, error) {
+	if bootstrap == nil {
+		return nil, errors.New("explicit consensus bootstrap is required")
+	}
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return nil, err
+	}
+	return openInitializedApplicationOwned(witness, options)
+}
+
+// This private entry accepts no caller state, digest, authority shortcut or
+// new source. Every actual recovered state still passes the normal validator.
+func openInitializedApplicationOwned(witness *validatedMigration, options ApplicationInitializationOptions) (*Application, error) {
+	if err := witness.valid(); err != nil {
+		return nil, err
+	}
+	if witness.bootstrap == nil {
+		return nil, errors.New("explicit consensus bootstrap is required")
+	}
+
 	var app *Application
 	var err error
 	switch options.StateLayout {
 	case "atomic-json":
-		app, err = NewPersistentApplicationWithBootstrap(migration, options.StatePath, bootstrap)
+		app, err = newPersistentApplicationOwned(witness, options.StatePath, nil, nil)
 	case "snapshot-journal":
-		app, err = NewJournaledApplicationWithBootstrap(migration, options.StatePath, bootstrap)
+		app, err = newJournaledApplicationOwned(witness, options.StatePath, nil, nil, false)
 	case "block-journal":
-		app, err = NewBlockJournaledApplicationWithBootstrap(migration, options.StatePath, bootstrap)
+		app, err = newJournaledApplicationOwned(witness, options.StatePath, nil, nil, true)
 	default:
 		return nil, errors.New("unsupported initialization layout")
 	}

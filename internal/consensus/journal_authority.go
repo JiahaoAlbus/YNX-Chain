@@ -57,10 +57,12 @@ func NewBlockJournaledApplicationWithRuntimeUpgrade(migration chain.ConsensusMig
 	return newJournaledApplicationWithRuntimeAuthority(migration, path, bootstrap, pq, authorization, true)
 }
 
-func newJournaledApplicationWithRuntimeAuthority(state chain.ConsensusMigrationState, path string, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, block bool, invoiceOption ...*PQInvoiceAuthorization) (*Application, error) {
+// Parse before slow ownership construction, retaining the original immutable
+// authorization copy and original failure precedence for duplicate options.
+func journalAuthorityOptions(path string, bootstrap *ConsensusBootstrap, block bool, invoiceOption ...*PQInvoiceAuthorization) (string, *PQInvoiceAuthorization, error) {
 	var invoice *PQInvoiceAuthorization
 	if len(invoiceOption) > 1 {
-		return nil, errors.New("duplicate invoice authorization")
+		return "", nil, errors.New("duplicate invoice authorization")
 	}
 	if len(invoiceOption) == 1 {
 		invoice = invoiceOption[0]
@@ -70,31 +72,57 @@ func newJournaledApplicationWithRuntimeAuthority(state chain.ConsensusMigrationS
 		invoice = &owned
 	}
 	if block && invoice != nil {
-		return nil, errors.New("invoice authorization does not support block-journal replay")
+		return "", nil, errors.New("invoice authorization does not support block-journal replay")
 	}
 	path = strings.TrimSpace(path)
 	if path == "" || bootstrap == nil {
-		return nil, errors.New("authorized journal requires an explicit durable path and independent bootstrap")
+		return "", nil, errors.New("authorized journal requires an explicit durable path and independent bootstrap")
 	}
-	// Reuse migration closure/clone/fee-recipient construction. The independent
-	// schedule is checked against the recovered registry, not this initial view.
-	a, err := newPersistentApplicationWithAuthorization(state, "", bootstrap, nil, nil)
+	return path, invoice, nil
+}
+
+func newJournaledApplicationWithRuntimeAuthority(state chain.ConsensusMigrationState, path string, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, block bool, invoiceOption ...*PQInvoiceAuthorization) (*Application, error) {
+	path, invoice, err := journalAuthorityOptions(path, bootstrap, block, invoiceOption...)
 	if err != nil {
 		return nil, err
 	}
-	// Use the same detached bootstrap as the owning Application/witness.
-	bootstrap = a.bootstrap
+	// Public constructors still perform the COMPLETE original validation and
+	// detachment. The owned entry below is not recoverable from caller hashes.
+	witness, err := newValidatedMigration(state, bootstrap)
+	if err != nil {
+		return nil, fmt.Errorf("invalid YNX consensus migration state: %w", err)
+	}
+	return newJournaledApplicationOwnedPrepared(witness, path, authorization, runtime, block, invoice)
+}
+
+func newJournaledApplicationOwned(witness *validatedMigration, path string, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, block bool, invoiceOption ...*PQInvoiceAuthorization) (*Application, error) {
+	if err := witness.valid(); err != nil {
+		return nil, err
+	}
+	path, invoice, err := journalAuthorityOptions(path, witness.bootstrap, block, invoiceOption...)
+	if err != nil {
+		return nil, err
+	}
+	return newJournaledApplicationOwnedPrepared(witness, path, authorization, runtime, block, invoice)
+}
+
+func newJournaledApplicationOwnedPrepared(witness *validatedMigration, path string, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, block bool, invoice *PQInvoiceAuthorization) (*Application, error) {
+	a, err := newPersistentApplicationOwned(witness, "", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	bootstrap := a.bootstrap
 	var committed CommittedState
 	if block {
-		a.blockJournal, committed, err = openBlockJournalWithRuntimeAuthority(path, a.migration, bootstrap, authorization, runtime)
+		a.blockJournal, committed, err = openBlockJournalOwned(path, witness, authorization, runtime)
 	} else {
-		a.journal, committed, err = openSnapshotJournalWithRuntimeAuthority(path, a.migration, bootstrap, authorization, runtime, invoice)
+		a.journal, committed, err = openSnapshotJournalOwned(path, witness, authorization, runtime, invoice)
 	}
 	if err != nil {
 		return nil, err
 	}
-	// The writer opener validates before recovery Sync. Do not return a live
-	// Application whose committed view has dropped its private trusted source.
+	// The same normal writer validates before recovery Sync. No saved view or
+	// checkpoint can replace the privately owned complete source/bootstrap.
 	committed.bootstrap = bootstrap
 	a.committed, a.statePath, a.pqEngineAuthorization = committed, path, authorization
 	a.runtimeUpgradeAuthorization = runtime
@@ -199,4 +227,44 @@ func validateJournalAuthority(state CommittedState, migration chain.ConsensusMig
 		}
 	}
 	return nil
+}
+
+// Full state, schedule, registry and runtime checks remain per invocation.
+// Only the immutable original migration comparison is supplied by its actual
+// original owner, which already validated every canonical byte and binding.
+func validateJournalAuthorityOwned(state CommittedState, witness *validatedMigration, authorization *PQEngineAuthorization) error {
+	if err := witness.valid(); err != nil {
+		return err
+	}
+	bootstrap := witness.bootstrap
+	if bootstrap == nil {
+		return errors.New("independent journal bootstrap is required")
+	}
+	if err := witness.binds(bootstrap); err != nil {
+		return err
+	}
+	state.bootstrap = bootstrap
+	if err := state.validateOwned(witness); err != nil {
+		return fmt.Errorf("validate complete authorized journal state: %w", err)
+	}
+	if err := authorization.ValidateCommittedSchedule(state.PQEngineSchedule, state.Height); err != nil {
+		return err
+	}
+	if authorization != nil && state.PQEngineSchedule == nil {
+		if authorization.schedule.RegistryHeight != state.Height {
+			return errors.New("journal operator schedule must bind the actual committed registry height")
+		}
+		if _, err := newPQEngineSnapshotOwned(witness, bootstrap, state.ValidatorRegistry, authorization.schedule, authorization.schedule.AuthorizedAt); err != nil {
+			return fmt.Errorf("validate independently authorized journal engine candidate: %w", err)
+		}
+	}
+	return nil
+}
+func validateJournalRuntimeAuthorityOwned(state CommittedState, witness *validatedMigration, pq *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization) error {
+	if err := validateJournalAuthorityOwned(state, witness, pq); err != nil {
+		return err
+	}
+	state.bootstrap = witness.bootstrap
+	_, err := runtimeStateApplicationVersion(state, runtime)
+	return err
 }

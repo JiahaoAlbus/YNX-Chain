@@ -268,6 +268,18 @@ func openBlockJournalWithAuthority(path string, migration chain.ConsensusMigrati
 }
 
 func openBlockJournalWithRuntimeAuthority(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization) (*blockJournal, CommittedState, error) {
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return nil, CommittedState{}, err
+	}
+	return openBlockJournalOwned(path, witness, authorization, runtime)
+}
+func openBlockJournalOwned(path string, witness *validatedMigration, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization) (*blockJournal, CommittedState, error) {
+	if err := witness.valid(); err != nil {
+		return nil, CommittedState{}, err
+	}
+	migration, bootstrap := witness.migration, witness.bootstrap
+
 	var preflight os.FileInfo
 	if runtime != nil {
 		var err error
@@ -281,7 +293,7 @@ func openBlockJournalWithRuntimeAuthority(path string, migration chain.Consensus
 	initial.bootstrap = bootstrap
 	if bootstrap != nil {
 		if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
-			if err := validateJournalAuthority(initial, migration, bootstrap, authorization); err != nil {
+			if err := validateJournalAuthorityOwned(initial, witness, authorization); err != nil {
 				return nil, CommittedState{}, err
 			}
 		} else if err != nil {
@@ -302,7 +314,7 @@ func openBlockJournalWithRuntimeAuthority(path string, migration chain.Consensus
 		f, err = os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
 	}
 	if err == nil {
-		if err := initial.Validate(migration); err != nil {
+		if err := initial.validateOwned(witness); err != nil {
 			_ = f.Close()
 			return nil, CommittedState{}, err
 		}
@@ -348,7 +360,7 @@ func openBlockJournalWithRuntimeAuthority(path string, migration chain.Consensus
 	if bootstrap != nil {
 		authority = &blockJournalReplayAuthority{bootstrap: bootstrap, engine: authorization, runtime: runtime}
 	}
-	state, err := replayBlockJournalWithAuthority(context.Background(), io.NewSectionReader(f, 0, info.Size()), migration, j, nil, authority)
+	state, err := replayBlockJournalOwned(context.Background(), io.NewSectionReader(f, 0, info.Size()), witness, j, nil, authority)
 	if err != nil {
 		return nil, CommittedState{}, err
 	}
@@ -360,7 +372,7 @@ func openBlockJournalWithRuntimeAuthority(path string, migration chain.Consensus
 			return nil, CommittedState{}, errors.New("authorized block journal has an incomplete tail; original bytes retained")
 		}
 		state.bootstrap = bootstrap
-		if err := validateJournalRuntimeAuthority(state, migration, bootstrap, authorization, runtime); err != nil {
+		if err := validateJournalRuntimeAuthorityOwned(state, witness, authorization, runtime); err != nil {
 			return nil, CommittedState{}, err
 		}
 	}

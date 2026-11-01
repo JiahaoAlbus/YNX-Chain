@@ -192,11 +192,19 @@ func (b *ConsensusBootstrap) matchesMigration(m chain.ConsensusMigrationState) e
 	if b == nil || b.record.MigrationStateHash != m.StateHash || b.record.OriginalGenesisHash != m.OriginalGenesisHash {
 		return errors.New("missing or mismatched independent consensus bootstrap")
 	}
-	canonical, err := m.CanonicalJSON()
-	if err != nil {
+	// Feed the same complete validated canonical bytes through the original
+	// private binding. A referenced migration can contain the entire retained
+	// history; keeping an additional history-sized byte slice here defeats the
+	// normal reader's bounded streaming path. Embedded Genesis still compares
+	// every byte, and references still bind the full digest, count and metadata.
+	binding := newCanonicalMigrationStreamBinding(b)
+	stream := validatedMigrationCanonicalWriter{digest: sha256.New(), binding: binding}
+	if err := m.WriteCanonicalJSON(&stream); err != nil {
 		return err
 	}
-	return b.matchesCanonicalMigration(m, canonical)
+	var digest [sha256.Size]byte
+	copy(digest[:], stream.digest.Sum(nil))
+	return binding.matches(m, digest, stream.count)
 }
 
 // Only complete CanonicalJSON output is accepted. The normal private witness

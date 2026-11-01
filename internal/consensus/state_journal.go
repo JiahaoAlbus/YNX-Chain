@@ -128,6 +128,18 @@ func openSnapshotJournalWithAuthority(path string, migration chain.ConsensusMigr
 }
 
 func openSnapshotJournalWithRuntimeAuthority(path string, migration chain.ConsensusMigrationState, bootstrap *ConsensusBootstrap, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, invoiceOption ...*PQInvoiceAuthorization) (*snapshotJournal, CommittedState, error) {
+	witness, err := newValidatedMigration(migration, bootstrap)
+	if err != nil {
+		return nil, CommittedState{}, err
+	}
+	return openSnapshotJournalOwned(path, witness, authorization, runtime, invoiceOption...)
+}
+func openSnapshotJournalOwned(path string, witness *validatedMigration, authorization *PQEngineAuthorization, runtime *RuntimeUpgradeAuthorization, invoiceOption ...*PQInvoiceAuthorization) (*snapshotJournal, CommittedState, error) {
+	if err := witness.valid(); err != nil {
+		return nil, CommittedState{}, err
+	}
+	migration, bootstrap := witness.migration, witness.bootstrap
+
 	var invoice *PQInvoiceAuthorization
 	if len(invoiceOption) > 1 {
 		return nil, CommittedState{}, errors.New("duplicate invoice authorization")
@@ -161,7 +173,7 @@ func openSnapshotJournalWithRuntimeAuthority(path string, migration chain.Consen
 		if _, err := os.Lstat(path); errors.Is(err, os.ErrNotExist) {
 			// A schedule pin for a later registry must not create an empty
 			// substitute for the operator's original journal.
-			if err := validateJournalAuthority(initial, migration, bootstrap, authorization); err != nil {
+			if err := validateJournalAuthorityOwned(initial, witness, authorization); err != nil {
 				return nil, CommittedState{}, err
 			}
 		} else if err != nil {
@@ -267,7 +279,7 @@ func openSnapshotJournalWithRuntimeAuthority(path string, migration chain.Consen
 			return nil, CommittedState{}, err
 		}
 		if bootstrap != nil {
-			if err := validateJournalAuthority(initial, migration, bootstrap, authorization); err != nil {
+			if err := validateJournalAuthorityOwned(initial, witness, authorization); err != nil {
 				return nil, CommittedState{}, err
 			}
 		}
@@ -278,11 +290,11 @@ func openSnapshotJournalWithRuntimeAuthority(path string, migration chain.Consen
 		return nil, CommittedState{}, err
 	}
 	state.bootstrap = bootstrap
-	if err := state.Validate(migration); err != nil {
+	if err := state.validateOwned(witness); err != nil {
 		return nil, CommittedState{}, fmt.Errorf("validate journal state: %w", err)
 	}
 	if bootstrap != nil {
-		if err := validateJournalRuntimeAuthority(state, migration, bootstrap, authorization, runtime); err != nil {
+		if err := validateJournalRuntimeAuthorityOwned(state, witness, authorization, runtime); err != nil {
 			return nil, CommittedState{}, err
 		}
 	}
