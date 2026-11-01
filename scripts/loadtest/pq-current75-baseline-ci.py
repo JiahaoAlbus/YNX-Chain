@@ -29,8 +29,8 @@ GO_SOURCE = "7037966eb2ce7a7167f02a09ee1f3bc0eebd1026"
 GO_TREE = "d15f6dc63ee4c69460273d348637e135c8005922"
 FORK_TREE = "54e88e6aba735eaceeb2d00bb40731248c673bd7"
 NORMAL_RUN = "41272858949"
-TOOLS = "11acbc96202dd5885e4bbdc0ac34318bcfd8567e"
-TOOLS_TREE = "dcafad8d35eacc47837ef867d05995371590759d"
+TOOLS = "5f8ce5afb17364f5db10b8b17fa375ac23653174"
+TOOLS_TREE = "a8bf35958b6d2d56831f3f8dbb388426b836dd2f"
 CAPS = dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4 << 30,
             newBytes=8 << 30, initialMemoryBytes=6 << 30,
             initialDiskBytes=16 << 30, logBytes=4 << 20, cpus=2)
@@ -42,7 +42,8 @@ SOURCE_PINS = {
     "scripts/loadtest/pq-source-artifact-intake.py": "ab75f9748a05523f5719ee42a8a99b576d3444a30481b0e07253956e3e5943ef",
 }
 TOOL_PINS = {
-    "pq-independent-load.py": "c0d4c777b5b00215e28250f08ef729e3cb02ab2c15a776920dc6424a179cf922",
+    "test_pq_ready_metrics.py": "c963092242dc7a63fb50e973949e18f35fb362be9dc78c37ca51fd0b9c155e1e",
+    "pq-independent-load.py": "0a886ad1377235ee5d82aa0ba39c6cf23040424bba7507d9140a342674ee9c5b",
     "pq-independent-scheduler.py": "6a4aa31dd4198f152d748b4441edbfb50a078e64c51233fd165f87d4557faef1",
     "pq-normal-process-lab.py": "6810b02608e54fe0dfde05555073c8f01463ac182f4dea76a9dfb6a2af4e1195",
     "consensus-linux-cohort.py": "ffc7e02e1d37adc28f4d94c262d30a45e91eb594307931b482dcdd39ccc82591",
@@ -286,7 +287,7 @@ def execute(source, tools):
                            TOOL_PINS["pq-independent-load.py"])
     intake = pinned_module("current703_original_storage", source / "scripts/loadtest/pq-source-artifact-intake.py",
                            SOURCE_PINS["scripts/loadtest/pq-source-artifact-intake.py"])
-    require(driver.CALLEE_SOURCE == GO_SOURCE,"frozen11ac exact ready/timings source must remain703")
+    require(driver.CALLEE_SOURCE == GO_SOURCE,"fixed703 exact ready/timings source must remain703")
     require(driver.lab.CAPS == CAPS and driver.lab.RSS_OBSERVER_VERSION == "same-process-rss-v4-pidfd-any-state",
             "original Window caps or pidfd guard differ")
     go = shutil.which("go")

@@ -25,7 +25,7 @@ class Fixed703Controls(unittest.TestCase):
         v=json.loads(out.getvalue());self.assertEqual(v['goSource'],entry.GO_SOURCE);self.assertEqual(v['sourceQualificationContinuation'],41278568036);self.assertFalse(v['executed'] or v['authorityGranted'] or v['nodeStartAuthorized']);self.assertTrue(v['noOld75Qualification'])
     def test_fixed_source_tools_caps_and_all500_do_not_change(self):
         o=entry.fixed_options(Path('/owned/source'));self.assertEqual((o.commit,o.mode,o.rate,o.seconds,o.accounts,o.per_account,o.tail_seconds,o.proof_timeout),(entry.GO_SOURCE,'online',100,5,8,63,30,30))
-        self.assertEqual(entry.GO_SOURCE,'7037966eb2ce7a7167f02a09ee1f3bc0eebd1026');self.assertEqual(entry.TOOLS,'11acbc96202dd5885e4bbdc0ac34318bcfd8567e');self.assertFalse(o.wire_observation or o.network_accounting)
+        self.assertEqual(entry.GO_SOURCE,'7037966eb2ce7a7167f02a09ee1f3bc0eebd1026');self.assertEqual(entry.TOOLS,'5f8ce5afb17364f5db10b8b17fa375ac23653174');self.assertFalse(o.wire_observation or o.network_accounting)
         self.assertEqual(entry.CAPS,dict(totalSeconds=900,cleanupSeconds=15,rssBytes=4<<30,newBytes=8<<30,initialMemoryBytes=6<<30,initialDiskBytes=16<<30,logBytes=4<<20,cpus=2));self.assertGreaterEqual(o.accounts*o.per_account,500)
     def test_finite_joint_prefix_plus7_is_data_not_whole_green_or_authority(self):
         v=self.qualify(self.qualification());self.assertEqual(v['sourceCommit'],entry.GO_SOURCE);self.assertTrue(v['source703PrefixAndSevenTailScopePassed']);self.assertEqual(v['priorResourceConclusion'],'cancelled')

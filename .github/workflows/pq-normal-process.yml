@@ -141,17 +141,18 @@ jobs:
       - name: Receive the exact existing independent-load driver without modifying its methods
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 11acbc96202dd5885e4bbdc0ac34318bcfd8567e
+          ref: 5f8ce5afb17364f5db10b8b17fa375ac23653174
           path: tools
           fetch-depth: 1
           filter: blob:none
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/
-      - name: Reuse completed controls and keep frozen tools unchanged
+      - name: Run only the actual cache-schema failure regressions and reuse other completed controls
         run: |
           set -euo pipefail
-          test "$(git -C tools rev-parse HEAD)" = "11acbc96202dd5885e4bbdc0ac34318bcfd8567e"
+          test "$(git -C tools rev-parse HEAD)" = "5f8ce5afb17364f5db10b8b17fa375ac23653174"
+          python3 -I -B tools/scripts/loadtest/test_pq_ready_metrics.py Captured703CacheRegression ReadyMetricsAdapterControls.test_invalid_timings_or_static_cache_claims_are_refused -v
           echo 'Completed control evidence reused; no39/41/old8 groups rerun; actual500 outcomes remain required'
       - name: Install the original pinned normal toolchain without shared build caches
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
