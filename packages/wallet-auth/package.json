@@ -386,6 +386,18 @@
       "browser": null,
       "node": "./scripts/pair-service-commissioning/commission-sdk.mjs",
       "default": null
+    },
+    "./runtime-image-commissioning": {
+      "types": "./scripts/runtime-image-commissioning/commission-sdk.d.mts",
+      "browser": null,
+      "node": "./scripts/runtime-image-commissioning/commission-sdk.mjs",
+      "default": null
+    },
+    "./pair-current-commissioning": {
+      "types": "./scripts/pair-current-commissioning/commission-sdk.d.mts",
+      "browser": null,
+      "node": "./scripts/pair-current-commissioning/commission-sdk.mjs",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -509,7 +521,8 @@
     "native/original-auth-runtime-image-private.h",
     "native/ynx_sdk_social_platform_policy_v1.h",
     "native/original-pay-cloud-bill-source-contract.mjs",
-    "native/original-pay-cloud-bill-source-contract.d.mts"
+    "native/original-pay-cloud-bill-source-contract.d.mts",
+    "ROOT_PAIR_CURRENT_NORMAL.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
@@ -582,7 +595,10 @@
     "test:pay-source-family": "node --test test/pay-source-family.test.mjs test/pay-source-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pay-source-family.types.mts",
     "test:social-local-signed-v2": "node --test test/social-local-signed-v2.test.mjs test/social-local-boundary.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/social-local-signed-v2.types.mts",
     "commission:pair-service-sdk": "node scripts/commission-pair-service-sdk.mjs",
-    "test:pair-service-commissioning": "node --test test/pair-service-commissioning.test.mjs test/pair-postprocess-read.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pair-service-commissioning.types.mts"
+    "test:pair-service-commissioning": "node --test test/pair-service-commissioning.test.mjs test/pair-postprocess-read.test.mjs && tsc --strict --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --skipLibCheck test/pair-service-commissioning.types.mts",
+    "commission:runtime-image": "node scripts/commission-runtime-image-sdk.mjs",
+    "test:runtime-image-commissioning": "node --test test/runtime-image-commissioning-install.test.mjs test/runtime-image-commissioning-postprocess.test.mjs",
+    "commission:pair-current-sdk": "node ./scripts/commission-pair-current-sdk.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",

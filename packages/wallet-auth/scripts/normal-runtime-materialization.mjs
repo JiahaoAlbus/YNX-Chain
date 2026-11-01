@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 
 const appPath = fileURLToPath(new URL('../integration/WALLET_APP_RUNTIME_DEPENDENCIES_316.json', import.meta.url));
-const appPin = Object.freeze({path: appPath, bytes: 52657, sha256: '403467d07349bbaddab122f9e6e5ca600c2df5965ee96013fc5c5ab94d345106'});
+const appPin = Object.freeze({path: appPath, bytes: 52668, sha256: 'c12d1ce9a0aa9f4423e5f3d789f529c826266423e6b9c9b65da02cca9dcf331f'});
 const digest = raw => createHash('sha256').update(raw).digest('hex');
 const fail = (code, detail) => { throw Object.assign(new Error(code + (detail ? ':' + detail : '')), {code, ...(detail ? {detail} : {})}); };
 const exactKeys = (value, keys) => {

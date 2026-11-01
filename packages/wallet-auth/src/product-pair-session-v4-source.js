@@ -6,7 +6,7 @@ import{types}from'node:util';
 import {canonicalJSON} from './canonical.js';
 import {evmAddressFromYNX} from './crypto.js';
 import {inspectProductSessionDeviceRegistrationOriginalV4Data} from './product-session-device-registration-v4.js';
-import {loadReleaseSelectedOriginalRootV2,assertOriginalRootReadOwnerV2} from './original-source-root-owner-v2.js';
+import {loadReleaseSelectedOriginalRootCurrentV3,assertOriginalRootReadCurrentOwnerV3,assertReleaseSelectedRootReadCurrentPlanV3} from './root-current-v3/root-read-current-owner-v3.mjs';
 import {acquireOriginalNativeCommittedProductPolicyV4} from './product-pair-session-v4-account-source.js';
 import {openProductPairSessionV4Store,openProductPairSessionV4CurrentStore,pairV4Digest} from './product-pair-session-v4-store.js';
 import {ProductPairSessionV4IssuerKernel} from './product-pair-session-v4-issuer.js';
@@ -33,44 +33,63 @@ class OriginalPairIssuerOwnerV4 {
  pair(raw){return this.#kernel.pair(raw);}complete(raw){return this.#kernel.complete(raw);}challenge(raw){return this.#kernel.challenge(raw);}
  revoke(raw){return this.#kernel.revoke(raw);}cancel(raw){return this.#kernel.cancel(raw);}
  active(raw){return this.#kernel.active(raw);}recover(raw){return this.#kernel.recover(raw);}
- retire(){this.#kernel.retire();}join(){this.#kernel.join();}close(){this.#kernel.close();}
+ retire(){this.#kernel.retire();}join(){this.#kernel.join();}close(){return this.#kernel.close();}
 }
 Object.freeze(OriginalPairIssuerOwnerV4.prototype);
 export function assertOriginalProductPairIssuerOwnerV4(owner){if(!owners.has(owner))fail('PAIR_V4_ORIGINAL_SOURCE_REQUIRED');return owner;}
 async function acquireOriginalPairServiceResources(readOnlyStore){
  if(admittedServiceEntries.length!==1)fail('PAIR_V4_SOURCE_NOT_CONFIGURED');
  if(process.versions.node!=='26.7.0'||process.versions.openssl!=='3.6.4'||!['darwin','linux'].includes(process.platform))fail('PAIR_V4_PHYSICAL_RUNTIME');
- const e=structuredClone(admittedServiceEntries[0]);let manifest,root,store,kernel,owner,source;let closed=false,closeError,readOnlyClose,readOnlyParents;const currentRootPartials=new Map(),currentPolicyPartials=new Map(),currentRootPending=new Set();
- const drainReadOnly=async()=>{while(currentRootPending.size)await Promise.allSettled([...currentRootPending]);for(const map of[currentPolicyPartials,currentRootPartials])for(const[held,debt]of map){try{await debt.drain()}finally{if(debt.closed)map.delete(held)}}readOnlyParents??=[new OriginalReadOnlyChildDebtV4(root),new OriginalReadOnlyChildDebtV4(store),new OriginalReadOnlyChildDebtV4(manifest)];for(const debt of readOnlyParents)await debt.drain();};
- const drainPartial=async()=>{if(!readOnlyStore||!readOnlyClose)fail('PAIR_V4_SOURCE_NOT_CLOSING');await drainReadOnly();};
- const close=()=>{if(readOnlyStore){if(!readOnlyClose){closed=true;readOnlyClose=drainReadOnly().catch(cause=>{closeError??={cause};throw cause})}return readOnlyClose;}if(!closed){closed=true;for(const f of [()=>store?.close(),()=>root?.close(),()=>manifest?.close()])try{f();}catch(error){closeError??={cause:error};}}if(closeError)throw closeError.cause;};
+ const e=structuredClone(admittedServiceEntries[0]);let manifest,store,owner,source,closed=false,closing,firstClose,parents;
+ const roots=new Map(),policies=new Map(),pending=new Set();
+ const drainMap=async map=>{for(const[held,debt]of map){try{await debt.drain();}finally{if(debt.closed)map.delete(held);}}};
+ const drainAll=async()=>{while(pending.size)await Promise.allSettled([...pending]);await drainMap(policies);await drainMap(roots);parents??=[new OriginalReadOnlyChildDebtV4({close:()=>store?.close()}),new OriginalReadOnlyChildDebtV4({close:()=>manifest?.close()})];for(const p of parents)await p.drain();};
+ const close=()=>{if(!closing){closed=true;closing=drainAll().catch(cause=>{firstClose??={cause};throw firstClose.cause;});}return closing;};
+ const drainPartial=async()=>{if(!closing)fail('PAIR_V4_SOURCE_NOT_CLOSING');await drainAll();};
+ const track=work=>{if(closed||pending.size>=32||roots.size>=32||policies.size>=32)fail('PAIR_V4_SOURCE_CHILD_CAPACITY_OR_CLOSED');const p=Promise.resolve().then(work);pending.add(p);const done=()=>pending.delete(p);p.then(done,done);return p;};
  try{
   exact(e,['manifest','registry','node','rootPlan','storage']);manifest=new ProtectedServiceManifest(e.manifest);manifest.open();const m=JSON.parse(manifest.raw);
   exact(m,['version','purpose','networkId','registryId','productRegistrySHA256','nodeBindingSHA256','issuedAtMs','expiresAtMs','deviceBindings']);
   if(canonicalJSON(m)!==manifest.raw||m.version!=='4'||m.purpose!=='AUTH-PRODUCT-PAIR-SESSION-ISSUER/v4'||m.productRegistrySHA256!==pairV4Digest(canonicalJSON(e.registry))||m.nodeBindingSHA256!==pairV4Digest(canonicalJSON(e.node))||!Array.isArray(m.deviceBindings)||m.deviceBindings.length<1||m.deviceBindings.length>4096||!Number.isSafeInteger(m.issuedAtMs)||!Number.isSafeInteger(m.expiresAtMs)||m.issuedAtMs<0||m.expiresAtMs<=m.issuedAtMs||m.expiresAtMs-m.issuedAtMs>86400000)fail('PAIR_V4_COMMISSIONING_MANIFEST');
   const seen=new Set();for(const b of m.deviceBindings){exact(b,['canonicalOwner','deviceId','globalDeviceId','generation','pkA','pkB']);if(!/^0x[0-9a-f]{40}$/.test(b.canonicalOwner)||!/^[A-Za-z0-9._:-]{8,128}$/.test(b.deviceId)||!/^[A-Za-z0-9._:-]{8,128}$/.test(b.globalDeviceId)||!/^[1-9][0-9]{0,19}$/.test(b.generation)||BigInt(b.generation)>(1n<<64n)-1n||!/^[0-9a-f]{5184}$/.test(b.pkA)||!/^[0-9a-f]{128}$/.test(b.pkB))fail('PAIR_V4_COMMISSIONED_DEVICE');const k=b.canonicalOwner+':'+b.deviceId;if(seen.has(k))fail('PAIR_V4_COMMISSIONED_DUPLICATE');seen.add(k);}
   let floor=0;const current=()=>{if(closed)fail('PAIR_V4_SOURCE_CLOSED');manifest.current();const n=Date.now();if(!Number.isSafeInteger(n)||n<floor||n<m.issuedAtMs||n>=m.expiresAtMs)fail('PAIR_V4_SOURCE_WINDOW');floor=n;return n;};current();
-  const opened=await loadReleaseSelectedOriginalRootV2(e.rootPlan,true);root=opened.owner;if(opened.error!==undefined)throw opened.error;assertOriginalRootReadOwnerV2(root);current();
+
+  // Stable independent release qualification only. No finite Root checkpoint is
+  // opened at service startup or compiled into this plan/source/npm/image.
+  assertReleaseSelectedRootReadCurrentPlanV3(e.rootPlan);current();
   source=Object.freeze({async acquire({registrationOriginal,account,at}){
-   current();const record=inspectProductSessionDeviceRegistrationOriginalV4Data(Buffer.from(registrationOriginal)).record;
-   const binding=m.deviceBindings.find(b=>b.canonicalOwner===record.canonicalOwner&&b.deviceId===record.deviceId);
-   if(!binding||record.networkId!==m.networkId||record.canonicalOwner!==evmAddressFromYNX(account)||record.generation!==binding.generation||record.pkA!==binding.pkA||record.pkB!==binding.pkB||record.revokedAt!==null||Date.parse(record.registeredAt)>at||Date.parse(record.expiresAt)<=at)fail('PAIR_V4_ORIGINAL_DEVICE_NOT_COMMISSIONED');
-   let policy;const global=()=>{current();const negative=root.queryNegative(binding.canonicalOwner,binding.globalDeviceId,binding.generation);if(negative.networkId!==m.networkId||negative.registryId!==m.registryId||negative.revoked)fail('PAIR_V4_GLOBAL_DEVICE_REVOKED');return negative;};const initial=global(),rootPartials=[];
-   // A read-only server lease must not treat the startup Root cache as fresh
-   // registered-root/current/revoke evidence. Reopen the SAME independently
-   // trusted original read owner; no new plan, Root key or signer is supplied.
-   const freshGlobal=()=>{if(!readOnlyStore)return Promise.resolve();const flight=Promise.resolve().then(async()=>{if(rootPartials.length>=16)fail('PAIR_V4_ROOT_CURRENT_CAPACITY');let held,debt,first;try{const opened=await loadReleaseSelectedOriginalRootV2(e.rootPlan,true);held=opened.owner;if(held){debt=new OriginalReadOnlyChildDebtV4(held);currentRootPartials.set(held,debt)}rootPartials.push(opened);if(opened.error!==undefined)throw opened.error;assertOriginalRootReadOwnerV2(held);current();const n=held.queryNegative(binding.canonicalOwner,binding.globalDeviceId,binding.generation);if(n.networkId!==m.networkId||n.registryId!==m.registryId||n.revoked||n.sequence!==initial.sequence||n.head!==initial.head)fail('PAIR_V4_GLOBAL_CHECKPOINT_CHANGED');current();}catch(cause){first={cause}}finally{if(debt)try{await debt.drain()}catch(cause){first??={cause}}finally{if(debt.closed)currentRootPartials.delete(held)}}if(first)throw first.cause;});currentRootPending.add(flight);flight.then(()=>currentRootPending.delete(flight),()=>currentRootPending.delete(flight));return flight;};
-   try{await freshGlobal();policy=await acquireOriginalNativeCommittedProductPolicyV4(e.node,{chainId:m.networkId,nativeChainId:e.node.nativeChainId,owner:record.canonicalOwner},account);const expiresAtMs=Math.min(m.expiresAtMs,policy.expiresAtMs,Date.parse(record.expiresAt));let retired=false;
-    const check=n=>{if(retired||n>=expiresAtMs)fail('PAIR_V4_SOURCE_LEASE_EXPIRED');const after=global();if(after.sequence!==initial.sequence||after.head!==initial.head)fail('PAIR_V4_GLOBAL_CHECKPOINT_CHANGED');policy.resource.assertCurrent();current();if(Date.now()>=expiresAtMs)fail('PAIR_V4_SOURCE_POST_EXPIRED');};check(current());
-    return Object.freeze({policyRef:policy.policyRef,expiresAtMs,assertCurrent:check,async recheck(n){check(n);await freshGlobal();await policy.resource.recheck();await freshGlobal();check(current());},
-     // Account/device PoP authorizes issuance only. Until distinct management
-     // proof domains are admitted, HTTP cannot cancel/revoke by naming IDs.
-     assertRevocationAllowed(){fail('PAIR_V4_MANAGEMENT_PROOF_NOT_SUPPLIED');},assertCancellationAllowed(){fail('PAIR_V4_MANAGEMENT_PROOF_NOT_SUPPLIED');},
-     retire(){retired=true;policy.resource.retire();},join(){policy.resource.join();},close(){policy.resource.close();}});
-   }catch(error){if(policy){if(readOnlyStore){const debt=new OriginalReadOnlyChildDebtV4(policy.resource);currentPolicyPartials.set(policy.resource,debt);try{await debt.drain()}catch{}finally{if(debt.closed)currentPolicyPartials.delete(policy.resource)}}else{policy.resource.retire();policy.resource.close();}}throw error;}
-  },close,...(readOnlyStore?{drainPartial}:{})});
-  current();store=(readOnlyStore?openProductPairSessionV4CurrentStore:openProductPairSessionV4Store)(e.storage);current();owner=Object.freeze({store,source,registry:structuredClone(e.registry),retire(){},join(){},close,...(readOnlyStore?{drainPartial}:{})});return Object.freeze({owner,error:undefined});
- }catch(error){return Object.freeze({owner:owner??Object.freeze({retire(){kernel?.retire();},join(){kernel?.join();},close,...(readOnlyStore?{drainPartial}:{}),status:()=>Object.freeze({unknown:true,configured:false})}),error:originalSourceFailure(error)});}
+   return track(async()=>{
+    current();const record=inspectProductSessionDeviceRegistrationOriginalV4Data(Buffer.from(registrationOriginal)).record;
+    const b=m.deviceBindings.find(v=>v.canonicalOwner===record.canonicalOwner&&v.deviceId===record.deviceId);
+    if(!b||record.networkId!==m.networkId||record.canonicalOwner!==evmAddressFromYNX(account)||record.generation!==b.generation||record.pkA!==b.pkA||record.pkB!==b.pkB||record.revokedAt!==null||Date.parse(record.registeredAt)>at||Date.parse(record.expiresAt)<=at)fail('PAIR_V4_ORIGINAL_DEVICE_NOT_COMMISSIONED');
+    let root,rootDebt,policy,policyDebt;
+    const dispose=async()=>{if(policyDebt){await policyDebt.drain();if(policyDebt.closed)policies.delete(policy.resource);}if(rootDebt){await rootDebt.drain();if(rootDebt.closed)roots.delete(root);}};
+    try{
+     const captured=await loadReleaseSelectedOriginalRootCurrentV3(e.rootPlan);
+     // Adopt original root even on failure before examining its error.
+     root=captured.owner;if(root){rootDebt=new OriginalReadOnlyChildDebtV4(root);roots.set(root,rootDebt);}
+     if(captured.error!==null)throw captured.error;assertOriginalRootReadCurrentOwnerV3(root);current();
+     const global=()=>{current();root.assertCurrent();const n=root.queryNegative(b.canonicalOwner,b.globalDeviceId,b.generation);if(n.networkId!==m.networkId||n.registryId!==m.registryId||n.revoked)fail('PAIR_V4_GLOBAL_DEVICE_REVOKED');return n;};
+     const initial=global();
+     policy=await acquireOriginalNativeCommittedProductPolicyV4(e.node,{chainId:m.networkId,nativeChainId:e.node.nativeChainId,owner:record.canonicalOwner},account);
+     if(policy?.resource){policyDebt=new OriginalReadOnlyChildDebtV4(policy.resource);policies.set(policy.resource,policyDebt);}
+     current();const expiresAtMs=Math.min(m.expiresAtMs,root.expiresAtMs,policy.expiresAtMs,Date.parse(record.expiresAt));
+     let retired=false;const flights=new Set();
+     const check=n=>{if(retired||closed||!Number.isSafeInteger(n)||n>=expiresAtMs)fail('PAIR_V4_SOURCE_LEASE_EXPIRED');const next=global();if(next.sequence!==initial.sequence||next.head!==initial.head)fail('PAIR_V4_GLOBAL_CHECKPOINT_CHANGED');policy.resource.assertCurrent();const end=current();if(end>=expiresAtMs)fail('PAIR_V4_SOURCE_POST_EXPIRED');};
+     check(current());
+     return Object.freeze({policyRef:policy.policyRef,expiresAtMs,assertCurrent:check,
+      recheck(n){check(n);const p=(async()=>{await root.recheck();check(current());await policy.resource.recheck();check(current());await root.recheck();check(current());})();flights.add(p);const done=()=>flights.delete(p);p.then(done,done);return p;},
+      assertRevocationAllowed(){fail('PAIR_V4_MANAGEMENT_PROOF_NOT_SUPPLIED');},assertCancellationAllowed(){fail('PAIR_V4_MANAGEMENT_PROOF_NOT_SUPPLIED');},
+      retire(){retired=true;},async join(){if(!retired)fail('PAIR_V4_SOURCE_NOT_RETIRED');while(flights.size)await Promise.allSettled([...flights]);},
+      async close(){if(!retired||flights.size)fail('PAIR_V4_SOURCE_CHILD_DEBT');await dispose();}
+     });
+    }catch(cause){try{await dispose();}catch{}throw cause;}
+   });
+  },close,drainPartial});
+  current();store=(readOnlyStore?openProductPairSessionV4CurrentStore:openProductPairSessionV4Store)(e.storage);current();
+  owner=Object.freeze({store,source,registry:structuredClone(e.registry),retire(){closed=true;},async join(){while(pending.size)await Promise.allSettled([...pending]);},close,drainPartial});return Object.freeze({owner,error:undefined});
+ }catch(error){return Object.freeze({owner:owner??Object.freeze({retire(){closed=true;},async join(){while(pending.size)await Promise.allSettled([...pending]);},close,drainPartial,status:()=>Object.freeze({unknown:true,configured:false,rootChildren:roots.size,policyChildren:policies.size})}),error:originalSourceFailure(error)});}
+
 }
 
 const deviceCurrentOwners=new WeakSet();
