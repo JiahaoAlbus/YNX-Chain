@@ -770,3 +770,29 @@ samples H15–21, including preparation/nonbusiness commits. The endpoint TCP su
 single-host four-process diagnostic is neither a before/after improvement nor
 four physical fault-domain validation. Its original ZIP and all 192 file hashes,
 partial outcomes and first operational failure are preserved outside Git.
+
+The staged driver also has `--initialization-only`, fixed to online 500 business
+accounts plus the original four preparation accounts (`--rate 100 --seconds 5
+--accounts 500 --per-account 1 --staged-publication`). It uses the exact c4b
+source/tree and the pinned original source-functional named-case receipt. That
+receipt is a prerequisite, not proof that 500 owners already initialized.
+The normal create/bootstrap/registration/halt/activation/live-policy flow remains
+unchanged, including the original reserved-account preparation traffic. After all
+four normal nodes reach the original common initialized checkpoint, the driver
+reads each original application snapshot once and matches every business account's
+original address, nonce and balance. A missing account, changed snapshot, different
+checkpoint, resource limit or cleanup debt fails the initialization DATA contract.
+It never enters the 500-request business scheduler, sign/POST or proof queues.
+The separate business-pressure qualification remains absent until actual complete
+initialization evidence is reviewed; this flag does not authorize a pressure run.
+
+`initializationStages` retains parent monotonic spans for the three builds, complete
+owner creation, bootstrap/PQ starts, quiet waits, original command calls, reserved
+preparation transfers, activation/live setup and full account census. Nested spans
+are not additive and do not replace Go callee timings. `freshResourceAdmission`
+records actual available memory/disk and conflicting heavy processes immediately
+before the original admission guard; CPU2/RSS4GiB/900s/PID16/new8GiB remain fixed.
+The original finally block stops/reaps owned processes and retains the complete
+unreleased500 denominator. `test_pq_initialization_measurements.py` contains 16 pure
+controls including the full mocked driver path; no Go, real nodes, signing or
+performance execution is inferred from these controls.

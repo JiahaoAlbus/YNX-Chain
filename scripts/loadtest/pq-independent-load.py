@@ -33,6 +33,7 @@ scheduler=module("independent_pq_load","pq-independent-scheduler.py")
 lab=normal.lab
 proof_readback=module("original_public_proof_readback","pq-public-proof-readback.py")
 commit_readback=module("original_normal_commit_readback","pq-commit-observation.py")
+initialization=module("original_initialization_measurements","pq-initialization-measurements.py")
 
 
 CALLEE_SOURCE = "c06b4607247a1fdf7e485337ab03206984baa71c"
@@ -531,6 +532,8 @@ class NormalBackend:
 
 def validate_options(args):
     lab.require(args.mode in ("online","pre-signed") and args.rate in (100,500,1000) and 1<=args.accounts<=996 and 1<=args.per_account<=1024 and 1<=args.seconds<=60 and 1<=args.tail_seconds<=120 and 1<=args.proof_timeout<=120,"bounded explicit original load configuration required")
+    if getattr(args,'initialization_only',False):
+        lab.require(getattr(args,'staged_publication',False) and (args.mode,args.rate,args.seconds,args.accounts,args.per_account)==('online',100,5,500,1),'initialization-only requires exact original staged online500 plus4 reserved owners; no reduced-account qualification')
     demand=args.rate*args.seconds
     lab.require(demand<=10000 and args.accounts*args.per_account>=demand,"complete original account capacity must cover fixed demand")
     lab.require((args.accounts+4)*args.per_account<=(10000 if args.mode=="online" else 1024),"current normal original corpus aggregate capacity exceeded")
@@ -569,7 +572,8 @@ def run(args):
     expected_source=STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else CALLEE_SOURCE
     lab.require(args.commit==expected_source,('exact staged normal consumer source required; c06 diagnostic qualification cannot be transferred' if getattr(args,'staged_publication',False) else 'exact c06 Commit consumer source required; old703 qualification cannot be reused'))
     if getattr(args,'staged_publication',False) and args.execute:
-        lab.require(STAGED_SOURCE_QUALIFICATION is not None and args.commit==STAGED_CALLEE_SOURCE,'normal staged large-owner callee/source/new normal CI/actual500 initialized-owner qualification NOT_SUPPLIED; no Python fallback or source monkeypatch')
+        if getattr(args,'initialization_only',False):initialization.source_functional_data()
+        else:lab.require(STAGED_SOURCE_QUALIFICATION is not None and args.commit==STAGED_CALLEE_SOURCE,'normal staged large-owner callee/source/new normal CI/actual500 initialized-owner qualification NOT_SUPPLIED; no Python fallback or source monkeypatch')
     if getattr(args,"commit_observation",False):
         observed_source=STAGED_CALLEE_SOURCE if getattr(args,'staged_publication',False) else COMMIT_OBSERVATION_SOURCE
         lab.require(observed_source is not None and args.commit==observed_source,"final exact CORE Commit consumer source/normal CI/same-input equivalence NOT_SUPPLIED; old703 continuation cannot qualify it")
@@ -581,7 +585,9 @@ def run(args):
     if not args.execute:return dict(status="prepared-only",source=identity,mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,accountCount=args.accounts,actualLoadExecuted=False,fullFinalityCallee="original CORE live-materials policy/startup and original signer/verifier/confirm required")
     validate_escalation(args)
     lab.require(sys.platform=="linux" and os.environ.get("GITHUB_ACTIONS")=="true" and os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted","original isolated hosted Linux job required")
-    parent=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True);rows,_=lab.guard.proc_inventory();lab.admit(lab.guard.memory_available(),shutil.disk_usage(parent).free,lab.heavy_processes(rows));lab.ports_available()
+    parent=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True);rows,_=lab.guard.proc_inventory()
+    admission=dict(observedMonotonicNs=time.monotonic_ns(),availableMemoryBytes=lab.guard.memory_available(),freeDiskBytes=shutil.disk_usage(parent).free,conflictingHeavyProcesses=lab.heavy_processes(rows),caps=dict(lab.CAPS),ownedPIDLimit=lab.guard.CAPS['ownedProcesses'])
+    lab.admit(admission['availableMemoryBytes'],admission['freeDiskBytes'],admission['conflictingHeavyProcesses']);lab.ports_available()
     lab.require(ctypes.CDLL(None,use_errno=True).prctl(36,1,0,0,0)==0,"original Linux subreaper required")
     work=Path(tempfile.mkdtemp(prefix="pq-independent-load-",dir=parent));work.chmod(0o700);(work/".private").mkdir(mode=0o700);(work/"public").mkdir(mode=0o700);(work/"public/load-operations").mkdir(mode=0o700)
     roots=[]
@@ -589,18 +595,28 @@ def run(args):
         if any(existing==root or existing in root.parents for existing in roots):continue
         roots=[existing for existing in roots if root not in existing.parents];roots.append(root)
     w=lab.Window(source,work,additional_storage=tuple(roots));stop=threading.Event();backend=monitor=journal=ceremony=network=storage=None
+    stages=initialization.InitializationStages()
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout with actual DATA-ready and measured normal CLI; cold initialization retained outside offered clock, no pre-sign/reserved nonce; source703 includes other changes and is not a pure-cache A/B")
+    lab.write_new(work/"public/fresh-resource-admission.json",admission)
+    result["freshResourceAdmission"]=admission
+    result["initializationOnlyRequested"]=getattr(args,"initialization_only",False)
+    if result["initializationOnlyRequested"]:result["initializationSourceFunctionalData"]=initialization.source_functional_data()
     lab.write_new(work/"public/requested-load.json",dict(source=identity,mode=args.mode,rate=args.rate,seconds=args.seconds,tailSeconds=args.tail_seconds,accounts=args.accounts,perAccountCapacity=args.per_account,configuredDemand=demand,sourceGrant=False))
     try:
         result["processCapacity"]=process_capacity(args)
         lab.require(result["processCapacity"]["canFitNecessaryLowerBound"],"normal per-owner sender pool cannot fit original owned PID limit; original multiplex callee required or explicit different workload; full configured demand retained, no rate reduction")
         bins=work/".private/bin"
-        for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify"):w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1","-o",str(bins/name),"./cmd/"+name]))
+        for name in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify"):
+            stages.run("build",name,lambda name=name:w.wait(w.launch("build-"+name,["go","build","-mod=readonly","-p","1","-o",str(bins/name),"./cmd/"+name])))
         result["binaries"]={n:lab.guard.digest(bins/n) for n in ("ynx-consensus-pq-lab","ynx-comet","ynx-consensus-proof-verify")}
-        root=work/".private/network";p=w.launch("create-original",[str(bins/"ynx-consensus-pq-lab"),"create","--synthetic","--root",str(root),"--transactions",str(args.per_account),"--batch-size","1","--owners",str(args.accounts+4),*(["--online"] if args.mode=="online" else []),"--base-p2p-port","31656","--base-rpc-port","31757"]);w.wait(p)
+        root=work/".private/network"
+        def create_original():
+            p=w.launch("create-original",[str(bins/"ynx-consensus-pq-lab"),"create","--synthetic","--root",str(root),"--transactions",str(args.per_account),"--batch-size","1","--owners",str(args.accounts+4),*(["--online"] if args.mode=="online" else []),"--base-p2p-port","31656","--base-rpc-port","31757"])
+            w.wait(p)
+        stages.run("create_original","all-configured-owners",create_original)
         created=json.loads((work/"public/create-original.log").read_bytes())
         staged=getattr(args,'staged_publication',False)
-        ceremony=LoadCeremony(w,root,created,bins,args.wire_observation,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),sender_pool=staged,consumer_source=args.commit)
+        ceremony=initialization.instrumented_ceremony_class(LoadCeremony)(w,root,created,bins,args.wire_observation,initialization_stages=stages,expected_owners=args.accounts+4,operations=demand,proof_timeout=args.proof_timeout,commit_observation=getattr(args,"commit_observation",False),sender_pool=staged,consumer_source=args.commit)
         ceremony.sender_arguments=STAGED_SENDER_ARGUMENTS if staged else ()
         owners=[dict(ownerIndex=o["index"],address=o["owner"],nextNonce=int(o["initialNonce"])+1,capacity=int(o["memberCapacity"])) for o in ceremony.workload["owners"][4:]]
         lab.require(ceremony.workload["batchSize"]=="1" and ceremony.workload["outstandingPerOwner"]=="1" and ceremony.workload["batchWaitNanoseconds"]=="0","original independent single transfers and one pending required")
@@ -609,7 +625,16 @@ def run(args):
         if staged:plan=staged_scheduler.configure(plan)
         lab.write_new(work/"public/load-plan.json",plan);result["planSHA256"]=lab.guard.digest(work/"public/load-plan.json")
         result["activation"]=ceremony.prepare_network();result["preparationUnconfirmedOwners"]=sorted(ceremony.pending_owners);result["livePolicies"]=[dict(node=l["node"],policy=str(l["policy"]),sha256=l["pin"]) for l in ceremony.live]
+        if staged:
+            checkpoint=ceremony.quiet()
+            result['initializedAccountReadback']=stages.run('complete_account_readback','all-four-nodes',lambda:initialization.complete_account_readback(ceremony.plan['nodes'],ceremony.workload['owners'][4:],checkpoint,ceremony.root))
+            lab.write_new(work/'public/initialized-account-readback.json',result['initializedAccountReadback'])
         result["normalLiveCalleeUsed"]=True
+        if getattr(args,'initialization_only',False):
+            stages.seal()
+            result['initializationOnlyComplete']=True
+            result['initializationScope']='normal create504, four-node bootstrap/activation/live policies, full500 original account census; original reserved preparation traffic only; no business load release, signing, POST, or finality claim'
+            return result # Existing finally performs the same bounded stop and preserves all originals.
         if staged:
             pool_module=module('original_bounded_sender_backend','pq-bounded-sender-backend.py')
             backend=pool_module.backend_class(NormalBackend,SenderSession,normal,lab)(ceremony,owners,stop)
@@ -617,7 +642,7 @@ def run(args):
         else:backend=NormalBackend(ceremony,owners,stop)
         journal=Journal(work/"public/load-events.jsonl")
         monitor=Monitor(w,stop);monitor.thread.start()
-        result["senderPoolPreparation"]=backend.prepare(monitor.check)
+        result["senderPoolPreparation"]=stages.run("sender_pool_preparation",None,lambda:backend.prepare(monitor.check))
         if getattr(args,"owned_storage_accounting",False):
             store_module=module("original_pq_store_window","pq-owned-storage-window.py")
             storage=store_module.OwnedStorageWindow(ceremony)
@@ -626,6 +651,7 @@ def run(args):
             hook=module("original_pq_network_window","pq-network-window.py")
             network=hook.NetworkWindow(ceremony,lab,args.commit,lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),result["planSHA256"],demand,header_capture=getattr(args,"header_hop_capture",False),header_capture_seconds=min(120,args.seconds+args.tail_seconds+10))
             network.capture("start");monitor.check()
+        stages.seal()
         result["loadExecuted"]=True
         result["loadResult"]=(staged_scheduler.run(plan,backend,journal.emit,monitor.check,stop,ledger_module=scheduler) if staged else scheduler.run(plan,backend,journal.emit,monitor.check,stop))
         monitor.check();lab.check_source(source,args.commit)
@@ -637,6 +663,7 @@ def run(args):
             backend.stop()
             result["normalHelperLifecycle"]=dict(maxConcurrent=backend.helper_limit,cleanupDebt=backend.helper_cleanup_debt,parentTiming=backend.helper_timing_report())
             if hasattr(backend,'cold_sender_report'):result['boundedColdSenderLifecycle']=backend.cold_sender_report()
+        stages.seal();result['initializationStages']=stages.report()
         result["networkAccountingRequested"]=args.network_accounting
         if network is not None and network.start is not None:
             try:
@@ -681,6 +708,11 @@ def run(args):
         if "loadResult" not in result:
             result["preparationOnlyDemandAccounting"]=dict(configuredDemand=demand,notReleased=demand,notSubmitted=demand,notQualified=demand,meaning="normal preparation never opened the requested load window; no achieved offered rate or business TPS")
         result['loadCompletionDiagnostics']=completion_diagnostics(result)
+        if getattr(args,'initialization_only',False):
+            try:result['initializationDataValidation']=initialization.require_complete_initialization(result)
+            except BaseException as error:
+                result['initializationDataValidation']=dict(completeNormalInitializationObserved=False,reason=str(error),pressureAuthorized=False)
+                result['firstCause']=result['firstCause'] or str(error)
         lab.write_new(work/"public/receipt.json",result);print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],loadExecuted=result["loadExecuted"])))
     return result
 
@@ -692,8 +724,10 @@ if __name__=="__main__":
     p.add_argument("--header-hop-capture",action="store_true",help="explicit owned controlled-netns exact-tuple IPv4 header-only capture; no physical-wire claim or permission escalation")
     p.add_argument("--network-accounting",action="store_true",help="explicit frozen LINK owned TCP pre-load/post-drain checkpoints; absent live metrics remain unmeasured")
     p.add_argument("--owned-storage-accounting",action="store_true",help="metadata-only exact original lab blockstore/stateDB/application paths; allocation is not disk writes or per-transaction bytes")
+    p.add_argument('--initialization-only',action='store_true',help='exact staged500+4 normal functional initialization and cleanup only; no business load; separate from pressure qualification')
     p.add_argument('--staged-publication',action='store_true',help='separate bounded normal sign/POST, inclusion and original final-proof lanes; exact qualified large-owner normal callee required; not a new pressure authorization')
     def interrupted(signum,frame):raise RuntimeError("normal independent load received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
     args=p.parse_args();result=run(args);print(json.dumps(result))
-    if args.execute:lab.require(result["firstCause"] is None and result["cleanupComplete"] and result.get("loadResult",{}).get("windowCompleted") is True and result["loadResult"]["notQualified"]==0,"original finite load incomplete or unresolved; retain full demand and originals, do not escalate")
+    if args.execute and args.initialization_only:lab.require(result["firstCause"] is None and result["cleanupComplete"] is True and result.get("initializationOnlyComplete") is True and result.get("loadExecuted") is False,"full500 normal initialization incomplete; preserve first cause and original inputs")
+    elif args.execute:lab.require(result["firstCause"] is None and result["cleanupComplete"] and result.get("loadResult",{}).get("windowCompleted") is True and result["loadResult"]["notQualified"]==0,"original finite load incomplete or unresolved; retain full demand and originals, do not escalate")

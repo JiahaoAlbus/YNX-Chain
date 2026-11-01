@@ -7,6 +7,7 @@ import sys
 import unittest
 
 GROUPS=[
+ ('test_pq_initialization_measurements.py',None,16),
  ('test_pq_completion_diagnostics.py',None,20),
  ('test_pq_staged_independent_scheduler.py',None,16),
  ('test_pq_bounded_sender_backend.py',None,19),
