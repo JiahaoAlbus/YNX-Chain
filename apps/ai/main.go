@@ -89,9 +89,9 @@ func run() (runErr error) {
 	var taskErr error
 	if !fixtureAuth {
 		taskRuntime, taskErr = aiproduct.OpenOriginalTaskRuntime(context.Background(), aiproduct.TaskModelConfig{
-			ChainURL:       env("YNX_AI_GATEWAY_CHAIN_URL", "http://127.0.0.1:6420"),
-			ProviderURL:    env("YNX_AI_PROVIDER_URL", "https://api.openai.com/v1"),
-			ProviderAPIKey: os.Getenv("OPENAI_API_KEY"), Model: os.Getenv("AI_MODEL_NAME"),
+			ChainURL:     env("YNX_AI_GATEWAY_CHAIN_URL", "http://127.0.0.1:6420"),
+			ProviderURL:  env("YNX_AI_PROVIDER_URL", "https://api.openai.com/v1"),
+			ProviderAuth: env("YNX_AI_PROVIDER_AUTH", "bearer"), ProviderAPIKey: os.Getenv("OPENAI_API_KEY"), Model: os.Getenv("AI_MODEL_NAME"),
 			AccessAPIKey: os.Getenv("YNX_AI_GATEWAY_API_KEY"), UpstreamKey: os.Getenv("YNX_AI_GATEWAY_UPSTREAM_KEY"),
 			UpstreamMode: env("YNX_AI_GATEWAY_UPSTREAM_MODE", "authoritative"),
 			AuditLog:     env("YNX_AI_GATEWAY_AUDIT_LOG", "tmp/ai-gateway/audit.jsonl"),

@@ -11,6 +11,7 @@ on:
       - "internal/authtasklocal/**"
       - "internal/authaitaskv6/**"
       - "cmd/ynx-ai-task/**"
+      - "cmd/ynx-ai-gatewayd/**"
       - "apps/ai/main.go"
       - "apps/ai/main_v6_test.go"
       - "apps/ai/scripts/webdav-interop-*"
@@ -47,7 +48,7 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Verify normal task, model and startup packages
-        run: go test -mod=readonly -race -p 2 ./internal/aiproduct ./internal/aigateway ./internal/aitaskclient ./internal/authaitaskv6 ./cmd/ynx-ai-task ./apps/ai
+        run: go test -mod=readonly -race -p 2 ./internal/aiproduct ./internal/aigateway ./internal/aitaskclient ./internal/authaitaskv6 ./cmd/ynx-ai-task ./cmd/ynx-ai-gatewayd ./apps/ai
 
   official-webdav:
     runs-on: ubuntu-latest

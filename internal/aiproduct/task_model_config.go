@@ -16,6 +16,7 @@ import (
 type TaskModelConfig struct {
 	ChainURL       string
 	ProviderURL    string
+	ProviderAuth   string
 	ProviderAPIKey string `json:"-"`
 	Model          string
 	AccessAPIKey   string `json:"-"`
@@ -56,7 +57,7 @@ func NewTaskModelService(cfg TaskModelConfig) (*aigateway.Service, error) {
 	}
 	return aigateway.New(aigateway.Config{
 		ChainURL: cfg.ChainURL, ProviderURL: cfg.ProviderURL,
-		ProviderAPIKey: cfg.ProviderAPIKey, Model: cfg.Model,
+		ProviderAuth: cfg.ProviderAuth, ProviderAPIKey: cfg.ProviderAPIKey, Model: cfg.Model,
 		AccessAPIKey: cfg.AccessAPIKey, UpstreamKey: cfg.UpstreamKey,
 		UpstreamMode: mode, AuditLog: cfg.AuditLog,
 		Window: cfg.Window, MaxRequests: cfg.MaxRequests,

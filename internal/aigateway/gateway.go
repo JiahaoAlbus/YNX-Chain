@@ -29,8 +29,10 @@ import (
 
 const maxBodyBytes = 2 << 20
 const (
-	UpstreamAuthoritative = "authoritative"
-	UpstreamBFT           = "bft"
+	UpstreamAuthoritative    = "authoritative"
+	UpstreamBFT              = "bft"
+	ProviderAuthBearer       = "bearer"
+	ProviderAuthNoneLoopback = "none-loopback"
 )
 
 type Config struct {
@@ -38,6 +40,7 @@ type Config struct {
 	BYOKAccessAPIKey string
 	ChainURL         string
 	ProviderURL      string
+	ProviderAuth     string
 	ProviderAPIKey   string
 	Model            string
 	AccessAPIKey     string
@@ -70,8 +73,26 @@ func (c Config) normalized() (Config, error) {
 	if err := validServiceURL(c.ProviderURL, false); err != nil {
 		return Config{}, fmt.Errorf("invalid YNX_AI_PROVIDER_URL: %w", err)
 	}
-	if strings.TrimSpace(c.ProviderAPIKey) == "" {
-		return Config{}, fmt.Errorf("OPENAI_API_KEY is required for ynx-ai-gatewayd")
+	c.ProviderAuth = strings.ToLower(strings.TrimSpace(c.ProviderAuth))
+	if c.ProviderAuth == "" {
+		c.ProviderAuth = ProviderAuthBearer
+	}
+	switch c.ProviderAuth {
+	case ProviderAuthBearer:
+		if strings.TrimSpace(c.ProviderAPIKey) == "" {
+			return Config{}, fmt.Errorf("OPENAI_API_KEY is required for bearer AI provider")
+		}
+	case ProviderAuthNoneLoopback:
+		u, e := url.Parse(c.ProviderURL)
+		var ip net.IP
+		if e == nil {
+			ip = net.ParseIP(u.Hostname())
+		}
+		if e != nil || ip == nil || !ip.IsLoopback() || u.Scheme != "http" || u.User != nil || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || strings.Contains(c.ProviderURL, "#") || u.Opaque != "" || c.ProviderAPIKey != "" {
+			return Config{}, errors.New("none-loopback provider auth requires a numeric HTTP loopback URL and no provider credential")
+		}
+	default:
+		return Config{}, errors.New("unsupported AI provider auth mode")
 	}
 	if strings.TrimSpace(c.AccessAPIKey) == "" {
 		return Config{}, fmt.Errorf("YNX_AI_GATEWAY_API_KEY is required for ynx-ai-gatewayd")
@@ -262,7 +283,7 @@ func (s *Service) snapshotHealth(build buildinfo.Info) Health {
 	return Health{
 		Service:            "ynx-ai-gatewayd",
 		NativeSymbol:       "YNXT",
-		ProviderConfigured: s.cfg.ProviderAPIKey != "" && s.cfg.ProviderURL != "" && s.cfg.Model != "",
+		ProviderConfigured: (s.cfg.ProviderAuth == ProviderAuthNoneLoopback || s.cfg.ProviderAPIKey != "") && s.cfg.ProviderURL != "" && s.cfg.Model != "",
 		Model:              s.cfg.Model,
 		RateLimit:          fmt.Sprintf("%d per %s per api-key/ip", s.cfg.MaxRequests, s.cfg.Window),
 		AuditLog:           s.cfg.AuditLog,
@@ -362,7 +383,9 @@ func (s *Service) completeWithProvider(ctx context.Context, session, query, requ
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Authorization", "Bearer "+apiKey)
+	if selection != nil || s.cfg.ProviderAuth != ProviderAuthNoneLoopback {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Request-ID", requestID)
 	client := *s.httpClient

@@ -507,7 +507,7 @@ func (s *Server) persistTaskModelResult(session ProductSession, run taskModelRun
 		if modelErr != nil {
 			current.Status = "UNKNOWN"
 			if current.FirstCause == "" {
-				current.FirstCause = "MODEL_OR_TOOL_RUN_UNRESOLVED"
+				current.FirstCause = taskModelFailureCause(modelErr)
 			}
 		}
 	}

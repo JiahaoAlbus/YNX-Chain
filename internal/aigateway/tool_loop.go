@@ -471,7 +471,9 @@ func (s *Service) toolModelCall(ctx context.Context, body []byte, requestID stri
 	if err != nil {
 		return result, err
 	}
-	req.Header.Set("Authorization", "Bearer "+s.cfg.ProviderAPIKey)
+	if s.cfg.ProviderAuth != ProviderAuthNoneLoopback {
+		req.Header.Set("Authorization", "Bearer "+s.cfg.ProviderAPIKey)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Request-ID", requestID)
 	client := *s.httpClient
