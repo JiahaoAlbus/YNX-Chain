@@ -2002,6 +2002,48 @@ def assert_workflow_contract(raw):
 
 
 class NormalCIWorkflowSourceControls(unittest.TestCase):
+    def test_native_codec_and_bridge_events_keep_original_file_and_package(self):
+        # Execute the actual two collector preludes, with the same duplicated
+        # codec events caused by the new complete two-package native suite.
+        # This checks evidence selection only, never cryptographic authority.
+        import ast
+        import os
+        import textwrap
+        import tempfile
+        from unittest.mock import patch
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        _, steps = workflow_steps(raw, "artifact-release-cabi")
+        for label, codec, count, stop in (
+            ("Execute fixed E11 V2 from the same native archive and seal its own supply", "ynx-e11-v2-codec-tests.jsonl", 5, "          base = root /"),
+            ("Execute fixed binary HTTP V5 from the same native archive", "ynx-http-v5-codec-tests.jsonl", 3, "          original = root /"),
+        ):
+            step = next(x for x in steps if x.startswith("      - name: " + label + "\n"))
+            prelude = textwrap.dedent(step.split("          python3 -B - <<'PY'\n", 1)[1].split(stop, 1)[0])
+            required = ast.literal_eval(re.search(r"(?m)^required = (.+)$", prelude).group(1))
+            prefix = "github.com/JiahaoAlbus/YNX-Chain/"
+            codec_rows = [dict(Action="pass", Package=prefix+"internal/ynxbatch", Test=n) for n in required[:count]]
+            bridge_rows = [dict(Action="pass", Package=prefix+"cmd/ynx-artifact-release-cabi", Test=n) for n in required[count:]]
+            original = {codec: codec_rows, "ynx-native-cabi-core-tests.jsonl": codec_rows + bridge_rows}
+            def exercise(data):
+                with tempfile.TemporaryDirectory(prefix="native-evidence-domains-") as directory:
+                    for name, rows in data.items():
+                        Path(directory, name).write_text("".join(json.dumps(r)+"\n" for r in rows))
+                    with patch.dict(os.environ, {"RUNNER_TEMP":directory}):
+                        exec(compile(prelude, "actual-native-collector", "exec"), {})
+            with self.subTest(domain=codec, case="original-two-package-duplicate-codec-pass"):
+                exercise(original)
+            for case in ("missing-codec", "wrong-codec-package", "missing-bridge", "wrong-bridge-package", "duplicate-selected", "skip-selected", "failed-event"):
+                data = json.loads(json.dumps(original))
+                if case == "missing-codec": data[codec] = []
+                if case == "wrong-codec-package": data[codec][0]["Package"] = prefix+"cmd/ynx-artifact-release-cabi"
+                if case == "missing-bridge": data["ynx-native-cabi-core-tests.jsonl"] = codec_rows
+                if case == "wrong-bridge-package": data["ynx-native-cabi-core-tests.jsonl"][-1]["Package"] = prefix+"internal/ynxbatch"
+                if case == "duplicate-selected": data[codec].append(dict(codec_rows[0]))
+                if case == "skip-selected": data[codec][0]["Action"] = "skip"
+                if case == "failed-event": data["ynx-native-cabi-core-tests.jsonl"][0]["Action"] = "fail"
+                with self.subTest(domain=codec, case=case), self.assertRaises(RuntimeError):
+                    exercise(data)
+
     def test_e11_v2_native_supply_keeps_actual_typed_calls_and_no_authority(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
         assert_native_cabi_workflow_contract(raw)

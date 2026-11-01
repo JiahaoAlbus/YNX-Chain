@@ -973,10 +973,18 @@ jobs:
           root = Path(os.environ['RUNNER_TEMP'])
           rows = []
           for filename in ('ynx-e11-v2-codec-tests.jsonl', 'ynx-native-cabi-core-tests.jsonl'):
-              rows += [json.loads(line) for line in (root / filename).read_text().splitlines()]
+              rows += [dict(json.loads(line), _ynxNativeEvidenceFile=filename) for line in (root / filename).read_text().splitlines()]
           required = ['TestDeploymentManifestV2SDKFrozenGolden', 'TestDeploymentManifestV2ExactFieldsWidthsAndOriginalBytes', 'TestDeploymentManifestV2SDKScopeEpochAndTextRules', 'TestDeploymentManifestV2IndependentBindingsRejectSameShapeSwaps', 'TestDeploymentManifestV2OriginalDualANDAndN1', 'TestDeploymentManifestV2CorePublicPreflight', 'TestDeploymentManifestV2CoreActualDualANDAndPrivateBorrow', 'TestDeploymentManifestV2CoreCleanupFailureAndUnknownRemainClosed']
+          # The complete native suite now also includes the codec package.
+          # Keep both original executions; qualify each name from its own file
+          # and package, never merge duplicate runs into one terminal result.
+          if any(r.get('Action') == 'fail' for r in rows):
+              raise RuntimeError('original native evidence contains a failed event')
           for name in required:
-              terminal = [r['Action'] for r in rows if r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')]
+              codec_test = name in required[:5]
+              evidence_file = 'ynx-e11-v2-codec-tests.jsonl' if codec_test else 'ynx-native-cabi-core-tests.jsonl'
+              package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if codec_test else 'cmd/ynx-artifact-release-cabi')
+              terminal = [r['Action'] for r in rows if r.get('_ynxNativeEvidenceFile') == evidence_file and r.get('Package') == package and r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')]
               if terminal != ['pass']:
                   raise RuntimeError('fixed E11 V2 test did not execute and pass: ' + name)
           base = root / 'ynx-artifact-release-cabi' / 'delivery' / 'native-host'
@@ -1044,10 +1052,18 @@ jobs:
           root = Path(os.environ['RUNNER_TEMP'])
           rows = []
           for filename in ('ynx-http-v5-codec-tests.jsonl', 'ynx-native-cabi-core-tests.jsonl'):
-              rows += [json.loads(line) for line in (root / filename).read_text().splitlines()]
+              rows += [dict(json.loads(line), _ynxNativeEvidenceFile=filename) for line in (root / filename).read_text().splitlines()]
           required = ['TestProductSessionHTTPV5FinalSDKOriginalAND', 'TestProductSessionHTTPV5ActualBinaryAndStrict23', 'TestProductSessionHTTPV5BinaryBodyCapAndSharedE3', 'TestDeviceHTTPV5ActualANDAndIndependentOriginal', 'TestDeviceHTTPV5PublicAndPrivateRefusals', 'TestDeviceHTTPV5UnknownRetainsOriginalAndCleanup']
+          # The complete native suite now also includes the codec package.
+          # Keep both original executions; qualify each name from its own file
+          # and package, never merge duplicate runs into one terminal result.
+          if any(r.get('Action') == 'fail' for r in rows):
+              raise RuntimeError('original native evidence contains a failed event')
           for name in required:
-              terminal = [r['Action'] for r in rows if r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')]
+              codec_test = name in required[:3]
+              evidence_file = 'ynx-http-v5-codec-tests.jsonl' if codec_test else 'ynx-native-cabi-core-tests.jsonl'
+              package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if codec_test else 'cmd/ynx-artifact-release-cabi')
+              terminal = [r['Action'] for r in rows if r.get('_ynxNativeEvidenceFile') == evidence_file and r.get('Package') == package and r.get('Test') == name and r['Action'] in ('pass', 'skip', 'fail')]
               if terminal != ['pass']:
                   raise RuntimeError('binary HTTP V5 test did not execute and pass: ' + name)
           original = root / 'ynx-artifact-release-cabi' / 'libynx_artifact_release.a'
