@@ -1,5 +1,6 @@
 #include "CustodyJSI.h"
 #include "SerialCustodyWorker.h"
+#include "RuntimeBinding.h"
 #include <atomic>
 #include <mutex>
 namespace ynx::mobilepq {
@@ -10,9 +11,11 @@ struct RuntimeOwner {
  std::shared_ptr<facebook::react::CallInvoker> invoker;
  jsi::Runtime* runtime=nullptr;
  std::atomic<bool> alive{true};
+ std::atomic<bool> ready{false};
+ uint64_t binding=0;
  uint64_t nextCompletion=1; // JS-thread completion ID, never a custody ID
 };
-std::mutex bootMutex;std::shared_ptr<RuntimeOwner> boot;
+std::mutex bootMutex;std::shared_ptr<RuntimeOwner> boot;RuntimeBinding bindings;
 jsi::Value cause(jsi::Runtime& rt,Cause c){
  if(!c.present)return jsi::Value::null();jsi::Object o(rt);o.setProperty(rt,"kind","native-code");o.setProperty(rt,"code",double(c.code));return o;
 }
@@ -97,9 +100,18 @@ class Held final:public jsi::HostObject {
  }
 };
 }
-bool install(jsi::Runtime& rt,std::shared_ptr<facebook::react::CallInvoker> invoker){
- std::lock_guard<std::mutex> lock(bootMutex);if(boot||!invoker)return false;
- auto owner=std::make_shared<RuntimeOwner>();owner->runtime=&rt;owner->invoker=std::move(invoker);boot=owner;
+PublicStatus readPublicStatus(){
+ std::shared_ptr<RuntimeOwner> owner;{std::lock_guard<std::mutex> lock(bootMutex);owner=boot;}
+ if(!owner)return {};
+ PublicStatus result;result.runtime=!owner->alive.load()?PublicRuntimeState::Retaining:
+  owner->ready.load()?PublicRuntimeState::Ready:PublicRuntimeState::Initializing;
+ result.held=owner->worker->readPublicInventory();return result;
+}
+bool install(jsi::Runtime& rt,std::shared_ptr<facebook::react::CallInvoker> invoker,uint64_t* binding){
+ std::lock_guard<std::mutex> lock(bootMutex);if(boot||!invoker||!binding||*binding)return false;
+ const auto selected=bindings.acquire();if(!selected)return false;
+ std::shared_ptr<RuntimeOwner> owner;try{owner=std::make_shared<RuntimeOwner>();}catch(...){bindings.release(selected);throw;}
+ owner->runtime=&rt;owner->invoker=std::move(invoker);owner->binding=selected;boot=owner;*binding=selected;
  rt.global().setProperty(rt,"__ynxPQPendingV1",rt.global().getPropertyAsFunction(rt,"Map").callAsConstructor(rt));
  jsi::Object api(rt);
  api.setProperty(rt,"prepare",jsi::Function::createFromHostFunction(rt,jsi::PropNameID::forAscii(rt,"prepare"),2,
@@ -112,13 +124,23 @@ bool install(jsi::Runtime& rt,std::shared_ptr<facebook::react::CallInvoker> invo
    return [owner,session](jsi::Runtime& rt)->jsi::Value{return jsi::Object::createFromHostObject(rt,std::make_shared<Held>(owner,session));};
   });
  }));
- rt.global().setProperty(rt,"__ynxPQCustodyV1",std::move(api));return true;
+ rt.global().setProperty(rt,"__ynxPQCustodyV1",std::move(api));owner->ready.store(true);return true;
 }
-bool invalidate(){
- std::shared_ptr<RuntimeOwner> owner;{std::lock_guard<std::mutex> lock(bootMutex);owner=boot;if(!owner)return true;owner->alive=false;}
+bool requestInvalidate(uint64_t binding){
+ std::shared_ptr<RuntimeOwner> owner;{std::lock_guard<std::mutex> lock(bootMutex);
+  if(bindings.alreadyClosed(binding))return true;
+  if(!bindings.selected(binding)||!boot||boot->binding!=binding)return false;
+  owner=boot;owner->alive=false;}
+ owner->worker->requestRetire();return true;
+}
+bool invalidate(uint64_t binding){
+ if(!requestInvalidate(binding))return false;
+ std::shared_ptr<RuntimeOwner> owner;{std::lock_guard<std::mutex> lock(bootMutex);
+  if(bindings.alreadyClosed(binding))return true;
+  if(!bindings.selected(binding)||!boot||boot->binding!=binding)return false;owner=boot;}
  // If cleanup fails keep boot + worker alive with all original debt. A second
  // native invalidation can drain it; a replacement JS runtime cannot steal it.
  if(!owner->worker->shutdown())return false;
- std::lock_guard<std::mutex> lock(bootMutex);if(boot==owner)boot.reset();return true;
+ std::lock_guard<std::mutex> lock(bootMutex);if(boot==owner){boot.reset();bindings.release(binding);}return true;
 }
 }

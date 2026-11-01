@@ -75,6 +75,43 @@ pointer, DER, entropy or secret crosses JSI/JNI/Swift UI. Those native originals
 remain retained for original journal/dispatch and are not reusable UI packets.
 There is no Node SDK import in the Hermes client.
 
+`readPQPublicStatus()` takes no input and never calls `install`, `prepare`, a
+reference selector, Auth, Source, OS inventory, a credential reader or a worker
+job. It consumes the fixed Native `readPublicStatus` report. Missing, throwing
+or malformed reports return `nativeLink: not-observed`, not a ready fallback.
+`native-reported` describes that report; it is not image/Root admission.
+Runtime states are `not-installed`, `initializing`, `ready` and `retaining`.
+The held counts cover only this process's unreleased operations at the last
+completed worker job; `workerBusy` is a separate immediate observation. Zero
+held counts do not prove an empty cold journal. OS entered/unknown and recorded
+receipt counts are separate; recorded is an ACK, never finality. The snapshot
+does not contain references, accounts, keys, raw causes or lifecycle identities.
+Cold durable inventory, Root/authority, actual OS protection and key health
+remain `not-inspected`, and all signing/restoration/submission permissions stay
+false. These fields must not enable effect buttons.
+
+Reading status may resolve the normal registered Native module. iOS's RN JSI
+hook now only retains its original runtime/invoker binding; it does not start a
+custody worker. Explicit `install` remains separate. A Native-only monotonic
+lifecycle binding is adopted before install result/error handling, including
+partials. Passive instances have no binding to close; old teardown cannot
+invalidate a successor. Android preallocates its private adoption slot before
+install and retains it in `finally`; no lifecycle identity reaches JS.
+Both platforms synchronously revoke completion/effect gates for their OWN
+binding before asynchronous drain. The worker propagates Auth's revoke-only
+gate while a credential UI is blocked. Unconfirmed cleanup retains the same
+worker and prevents replacement; no GC or runtime reset discards its debt.
+
+The normal protected account/original-operation selector is not yet supplied.
+`preparePQOperation` still accepts only a lookup constraint and must never be
+used with a fabricated reference for availability detection. Auth owns the
+actual mobile QualifiedOriginal producer and independent registered review/op
+inventory. Its old empty release loop is not a completed selector. Original
+Native will consume that real private inventory/selection contract; no JS
+reference, approval bool, classic account or decrypted public binding supplies
+Root qualification. UI keeps protected effects disabled until that actual
+normal selector and platform/Auth qualification are integrated.
+
 `cancel` closes new effects but keeps same-owner original query custody.
 `retire` ends the capture; `join` is a worker queue fence, not proof of closure.
 `close` retains first/cleanup cause and uses actual `release_closed` gates even

@@ -3,6 +3,7 @@
 #include "CustodySession.h"
 #include "SerialCustodyWorker.h"
 #include "CustodyABI.h"
+#include "RuntimeBinding.h"
 #include <cassert>
 #include <cstring>
 #include <future>
@@ -20,7 +21,7 @@ struct Config {
  int expectedCredential=43,failPhase=0,failCurrentAt=0,currentCalls=0;
  bool selected=true,occupied=false,retainPartial=false,submitPreviouslyEntered=true,closeCompleted=true;
  int bindingFailure=0,liveCaptures=0,liveLoans=0,signBegin=0,signBegins=0;
- int cancelRequests=0;
+ int cancelRequests=0,osCopies=0;
  bool durableSignEntered=false;uint32_t coldFlags=7;
  bool osAvailable=false;uint32_t osPhase=2;
  uint32_t cleanup=2;size_t memberLength=60000;
@@ -37,7 +38,7 @@ int32_t ynx_auth_mobile_pq_capture_v1(const uint8_t*,size_t,uint32_t,YNXMobilePQ
 int32_t ynx_auth_mobile_pq_current_v1(YNXMobilePQCapture*c,uint32_t phase){f.currentCalls++;return (c->revoked.load()&&phase!=YNX_MOBILE_PQ_CURRENT_QUERY)||f.failPhase==int(phase)||f.failCurrentAt==f.currentCalls?91:f.current;}
 int32_t ynx_auth_mobile_pq_inputs_v1(YNXMobilePQCapture*,YNXMobilePQInputs*out){out->binding=s(binding,2);out->message=s(message,2);out->policy=s(policy,2);out->key_version=s(version,1);out->execution_height=s(height,1);out->native_chain_id=6423;return 0;}
 int32_t ynx_auth_mobile_pq_read_original_state_v1(YNXMobilePQCapture*,uint32_t*out){*out=f.submitPreviouslyEntered?f.coldFlags:0;return 0;}
-int32_t ynx_auth_mobile_pq_copy_os_outcome_v1(YNXMobilePQCapture*,YNXMobilePQOSOutcome*out){if(f.osAvailable){out->available=1;out->action=2;out->phase=f.osPhase;out->effect_possible=1;out->first_present=1;out->first_code=0;}return 0;}
+int32_t ynx_auth_mobile_pq_copy_os_outcome_v1(YNXMobilePQCapture*,YNXMobilePQOSOutcome*out){f.osCopies++;if(f.osAvailable){out->available=1;out->action=2;out->phase=f.osPhase;out->effect_possible=1;out->first_present=1;out->first_code=0;}return 0;}
 int32_t ynx_auth_mobile_pq_borrow_backup43_v1(YNXMobilePQCapture*,YNXMobilePQLoan**out,YNXMobilePQSpan*b,YNXMobilePQSpan*c){f.borrows++;*out=new YNXMobilePQLoan;f.liveLoans++;*b=s(backup,1);*c=s(credential,f.expectedCredential);if(f.onBorrow)f.onBorrow();return f.borrow;}
 int32_t ynx_auth_mobile_pq_release_loan_v1(YNXMobilePQLoan*l){if(f.releaseLoan)return f.releaseLoan;delete l;f.liveLoans--;return 0;}
 int32_t ynx_auth_mobile_pq_begin_sign_once_v1(YNXMobilePQCapture*,uint64_t id){assert(owners.count(id));f.signBegins++;if(f.durableSignEntered)return 97;f.durableSignEntered=true;return f.signBegin;}
@@ -106,5 +107,40 @@ int main(){
   worker.enqueue([&]{held->set_value(worker.prepare("PUBLIC",1));});auto session=future.get();
   auto signedDone=std::make_shared<std::promise<bool>>();auto signedFuture=signedDone->get_future();worker.enqueue([&]{signedDone->set_value(session->signOnce());});assert(signedFuture.get());session.reset();assert(worker.shutdown());assert(f.signs==1&&f.releases==1);
  });
- std::cout<<"37 PUBLIC native bridge controls passed; real Auth/custody/JSI/IO not executed\n";
+ control("passive empty inventory never captures Source or reads OS metadata",[]{SerialCustodyWorker worker;for(int i=0;i<8;++i){auto value=worker.readPublicInventory();assert(value.heldOperations==0&&!value.workerBusy);}assert(f.captures==0&&f.borrows==0&&f.osCopies==0);assert(worker.shutdown());});
+ control("passive snapshot remains readable while worker is blocked without queuing work",[]{
+  SerialCustodyWorker worker;std::promise<void> entered,release;auto ready=entered.get_future();auto released=release.get_future().share();
+  worker.enqueue([&]{entered.set_value();released.wait();});ready.get();
+  auto value=worker.readPublicInventory();assert(value.workerBusy&&value.heldOperations==0);assert(f.captures==0&&f.borrows==0&&f.osCopies==0);
+  release.set_value();assert(worker.shutdown());
+ });
+ control("held uncertainty snapshot copies metadata without querying or repeating effects",[]{
+  SerialCustodyWorker worker;std::promise<PublicInventory> done;auto snapshot=done.get_future();f.borrow=98;f.osAvailable=true;
+  worker.enqueue([&]{auto owner=worker.prepare("PUBLIC",1);assert(!owner->signOnce());});
+  worker.enqueue([&]{done.set_value(worker.readPublicInventory());});auto value=snapshot.get();
+  assert(value.heldOperations==1&&value.heldCoreUncertain==1&&value.heldOSUncertain==1&&value.heldOSRecorded==0);
+  auto copies=f.osCopies;for(int i=0;i<8;++i)assert(worker.readPublicInventory().heldOperations==1);
+  assert(f.osCopies==copies&&f.captures==1&&f.borrows==1&&f.opens==0&&f.signs==0&&f.queries==0&&f.dispatches==0);assert(worker.shutdown());
+ });
+ control("passive module teardown has no lifecycle binding to invalidate an owner",[]{RuntimeBinding bindings;auto owner=bindings.acquire();assert(owner&&bindings.selected(owner));assert(!bindings.selected(0)&&!bindings.alreadyClosed(0)&&!bindings.release(0));assert(!bindings.release(owner+1)&&bindings.selected(owner));assert(bindings.release(owner));});
+ control("old teardown after runtime replacement cannot select or release successor",[]{RuntimeBinding bindings;auto first=bindings.acquire();assert(bindings.release(first));auto second=bindings.acquire();assert(second!=first&&bindings.alreadyClosed(first));assert(!bindings.selected(first)&&!bindings.release(first)&&bindings.selected(second));assert(!bindings.alreadyClosed(second+1));assert(bindings.release(second));});
+ control("failed real worker cleanup retains the same lifecycle and prevents replacement",[]{
+  RuntimeBinding bindings;auto selected=bindings.acquire();SerialCustodyWorker worker;std::promise<void> prepared;auto ready=prepared.get_future();
+  worker.enqueue([&]{worker.prepare("PUBLIC",1);prepared.set_value();});ready.get();f.closeCompleted=false;assert(!worker.shutdown());
+  assert(bindings.selected(selected)&&bindings.acquire()==0&&!bindings.release(selected+1));assert(f.liveCaptures==1);
+  f.closeCompleted=true;assert(worker.shutdown());assert(bindings.release(selected));auto successor=bindings.acquire();assert(successor!=selected&&bindings.alreadyClosed(selected));assert(bindings.release(successor));
+ });
+ control("runtime retirement before prepare cannot acquire a new capture",[]{
+  SerialCustodyWorker worker;worker.requestRetire();std::promise<bool> result;auto done=result.get_future();
+  worker.enqueue([&]{try{worker.prepare("PUBLIC",1);result.set_value(false);}catch(...){result.set_value(true);}});
+  assert(done.get());assert(f.captures==0&&f.borrows==0);assert(worker.shutdown());
+ });
+ control("synchronous runtime retirement revokes blocked borrow before async cleanup",[]{
+  SerialCustodyWorker worker;std::promise<void> entered,release,finished;auto ready=entered.get_future(),done=finished.get_future();auto resumed=release.get_future().share();
+  f.onBorrow=[&]{entered.set_value();resumed.wait();};
+  worker.enqueue([&]{auto owner=worker.prepare("PUBLIC",1);assert(!owner->signOnce());finished.set_value();});ready.get();
+  worker.requestRetire();assert(f.cancelRequests==1&&worker.readPublicInventory().workerBusy);
+  release.set_value();done.get();assert(f.opens==0&&f.signs==0&&f.dispatches==0);assert(worker.shutdown());
+ });
+ std::cout<<"45 PUBLIC native bridge controls passed; real Auth/custody/JSI/IO not executed\n";
 }

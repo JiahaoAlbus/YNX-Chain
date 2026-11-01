@@ -63,6 +63,7 @@ bool CustodySession::prepare(const std::string& reference){
  if(busy_)return fail(Invalid);Busy busy(busy_);
  if(prepared_||capture_||retired_)return fail(Duplicate);
  prepared_=true;
+ if(cancelRequested_.load()||retireRequested_.load()||(runtimeLive_&&!runtimeLive_->load()))return fail(Closed);
  if((mode_!=YNX_MOBILE_PQ_TRANSACTION&&mode_!=YNX_MOBILE_PQ_REGISTERED_RESTORE&&mode_!=YNX_MOBILE_PQ_ORIGINAL_QUERY)||reference.empty()||reference.size()>128||
   !std::all_of(reference.begin(),reference.end(),[](unsigned char c){return c>=33&&c<=126;}))return fail(Invalid);
  // Adopt partial before inspecting status; never publish or reconstruct it.
@@ -93,7 +94,10 @@ bool CustodySession::releaseLoan(){
 bool CustodySession::open(){
  YNXMobilePQSpan backup{},credential{};
  auto code=ynx_auth_mobile_pq_borrow_backup43_v1(capture_,&loan_,&backup,&credential);
- if(code){fail(code);releaseLoan();return false;}
+ if(code){fail(code);osProjection();releaseLoan();return false;}
+ // Snapshot the original OS receipt during the actual operation, not during a
+ // passive UI read. Never let a newly retained failure enable ordinary open.
+ if(!osProjection()||outcome_.firstCause.present){releaseLoan();return false;}
  if(!loan_||!span(backup,196608)||!span(credential,43)||credential.length!=43){fail(Invalid);releaseLoan();return false;}
  if(!current(mode_==YNX_MOBILE_PQ_REGISTERED_RESTORE?YNX_MOBILE_PQ_CURRENT_RESTORE:YNX_MOBILE_PQ_CURRENT_SIGN)){releaseLoan();return false;}
  // Actual ordinary custody, fixed purpose1. Never open_initial for restore.
