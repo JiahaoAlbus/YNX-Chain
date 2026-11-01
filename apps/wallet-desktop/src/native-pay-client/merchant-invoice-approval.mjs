@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {nativeInvoiceProductIntentData,assertNativeInvoiceIntentView} from './invoice-product-intent.mjs';
+import {types} from 'node:util';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
@@ -71,6 +72,15 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
  const invoicePath=(merchant,invoiceId)=>{if(!/^0x[0-9a-f]{40}$/.test(merchant??'')||! /^[a-z0-9][a-z0-9._:-]{0,63}$/.test(invoiceId??''))fail('NATIVE_PAY_ACTION_REFERENCE_REQUIRED');return `/v5/pay/invoices/${merchant}/${invoiceId}`;};
  const memberBody=member=>{if(!(member instanceof Uint8Array)||!member.length||member.length>98304)fail('NATIVE_INVOICE_MEMBER_BOUNDS');return Buffer.from(member).toString('base64');};
  const id=value=>{if(typeof value!=='string'||!/^npi_[0-9a-f]{48}$/.test(value))fail('NATIVE_INVOICE_ORIGINAL_ID_REQUIRED');return value};
+ const archivePath=(value,withHash)=>{
+  if(!value||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)fail('NATIVE_PAY_PRODUCT_REFERENCE_INVALID');
+  const keys=['productId','sourceOrder','merchant','invoiceId',...(withHash?['nativeHash']:[])],d=Object.getOwnPropertyDescriptors(value);
+  if(Reflect.ownKeys(d).length!==keys.length||keys.some(k=>!d[k]?.enumerable||!Object.hasOwn(d[k],'value')||typeof d[k].value!=='string'))fail('NATIVE_PAY_PRODUCT_REFERENCE_INVALID');
+  const r=Object.fromEntries(keys.map(k=>[k,d[k].value]));
+  if(!['shop.order','cloud.ide-usage'].includes(r.productId)||![r.productId,r.sourceOrder,r.invoiceId].every(k=>/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(k))||!/^0x[0-9a-f]{40}$/.test(r.merchant)||withHash&&!/^0x[0-9a-f]{64}$/.test(r.nativeHash))fail('NATIVE_PAY_PRODUCT_REFERENCE_INVALID');
+  const base=`/v5/pay/products/${encodeURIComponent(r.productId)}/${encodeURIComponent(r.sourceOrder)}/invoices/${r.merchant}/${encodeURIComponent(r.invoiceId)}`;
+  return withHash?`${base}/originals/${r.nativeHash}/receipt`:`${base}/archive-reconciliation`;
+ };
  async function packet(method,path,input,assertCurrent){
   if(typeof assertCurrent!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
   const body=input===undefined?undefined:Buffer.from(JSON.stringify(input));if(body&&body.length>2*1024*1024)fail('NATIVE_INVOICE_REQUEST_BOUNDS');
@@ -99,6 +109,8 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
   return value;
  }
  return Object.freeze({
+  readOriginalArchiveReceipt:(ref,current)=>{if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');return call('GET',archivePath(ref,true),undefined,current);},
+  readOriginalArchiveReconciliation:(ref,current)=>{if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');return call('GET',archivePath(ref,false),undefined,current);},
   async createInvoiceIntent(original,current){
    if(typeof current!=='function')fail('NATIVE_INVOICE_CURRENT_SOURCE_REQUIRED');
    const request=nativeInvoiceProductIntentData(original);
@@ -148,6 +160,16 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
   reconcileOperation:(merchant,invoiceId,nativeHash,current)=>{if(!/^0x[0-9a-f]{64}$/.test(nativeHash??''))fail('NATIVE_PAY_ORIGINAL_HASH_REQUIRED');return call('POST',invoicePath(merchant,invoiceId)+'/operations/'+nativeHash+'/reconcile',{},current);}
 
  });
+}
+
+// Normal private Main/ProductSource construction only. The supplied origin and
+// requestPrivate must be the SAME original Root-selected Product resource; this
+// constructor neither installs a provider nor grants Source/transport authority.
+// Member dispatch stays with Wallet's separately qualified original pipeline.
+export function createPrivateNativeProductPayClient(originalProductTransport){
+ const client=createPrivateNativeInvoiceClient(originalProductTransport);
+ const names=['createInvoiceIntent','lookupInvoiceIntent','merchantTermsReview','readInvoiceIntent','readInvoice','readInvoiceEvents','reviewSettlement','reviewRefund','reconcileInvoiceIntent','reconcileOperation','readInvoiceOriginals','readOriginalArchiveReceipt','readOriginalArchiveReconciliation'];
+ return Object.freeze(Object.fromEntries(names.map(name=>[name,(...args)=>client[name](...args)])));
 }
 
 /** All three invoice kinds use Main's one original typed-action review and

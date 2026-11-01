@@ -1,40 +1,20 @@
 {
-  "owner": "P06 original; P01 immutable consumer projection",
-  "sourceCommit": "23ae3efc5e9f46dd7bd06f20679e1edd647ac270",
-  "handoff": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/client-consumer-work/product-source-consumer-whole-r5/HANDOFF.json",
-  "handoffSha256": "fdccbe14a4435750a726a17ba34ae04a5000038f919f2fb65c7084ee2baf9f80",
-  "productionModules": 8,
-  "productionDocuments": 2,
+  "owner": "P06 original; P01 exact whole9 consumer projection",
+  "sourceCommit": "22e250a0575531f321f9e375ebfa502cced6f58b",
+  "handoff": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P06/main-result-work/final-r1/HANDOFF.json",
+  "handoffSha256": "322967f1f42cecc19b80df799d245fd8b2bd36e0aaaad2105e385439f3b27108",
+  "productionModules": 9,
+  "productionDocumentsPreservedFromR5": true,
   "files": [
     {
+      "path": "archive-receipt.mjs",
+      "bytes": 5963,
+      "sha256": "062cac857abc0cdb6dcffa738996ff8fb3f80a88c388c2301bc2c26c2237bdc3"
+    },
+    {
       "path": "cli.mjs",
-      "bytes": 3482,
-      "sha256": "7393424682bd74b856c6e1facef0a13f20080a99a3d38f64fe67703a72b420ab"
-    },
-    {
-      "path": "pay-business-client.mjs",
-      "bytes": 14649,
-      "sha256": "abc693b155f48a309b521f04b856b44fb94e4e9f2b39dde4d2be74d0339bcf6e"
-    },
-    {
-      "path": "merchant-invoice-approval.mjs",
-      "bytes": 21251,
-      "sha256": "3ae900e3acd5a1204adb35b5ef28366d712dbfbbe0db5554103f73e8adbffed7"
-    },
-    {
-      "path": "invoice-product-intent.mjs",
-      "bytes": 3460,
-      "sha256": "f039425797e7c2f1c4b9bfbf2ca0882156ede210ffa40e77e8f2c57feda03916"
-    },
-    {
-      "path": "notification-inbox.mjs",
-      "bytes": 6267,
-      "sha256": "f49d99f8079142f84c11836d1e0134df67c8a6d714685ab6dc1e2edb258546aa"
-    },
-    {
-      "path": "main-entry.mjs",
-      "bytes": 7491,
-      "sha256": "d87257a1ba457a18d73949445587d3ffea90a9d3eb03402d1b6f52a565bfa8c2"
+      "bytes": 3753,
+      "sha256": "23d56e5a698cb30e0a2875d8a298dbd553da3e98734536dbd4658f5f7a9599a9"
     },
     {
       "path": "desktop-entry.mjs",
@@ -42,23 +22,49 @@
       "sha256": "7cbc2c1c580456026d4400e2a0c47710c214dd608bdc99ff67136a480fda03ec"
     },
     {
+      "path": "invoice-product-intent.mjs",
+      "bytes": 3460,
+      "sha256": "f039425797e7c2f1c4b9bfbf2ca0882156ede210ffa40e77e8f2c57feda03916"
+    },
+    {
+      "path": "main-entry.mjs",
+      "bytes": 9058,
+      "sha256": "2d87b5c3f1fad35334051b2d74889b00bceaabc0f67dc052d2990cdd14560c54"
+    },
+    {
+      "path": "merchant-invoice-approval.mjs",
+      "bytes": 23651,
+      "sha256": "382792ec958ac4880128b30b8c8cca09271b37e76dacef8995a1f05a70c5d95f"
+    },
+    {
+      "path": "notification-inbox.mjs",
+      "bytes": 6267,
+      "sha256": "f49d99f8079142f84c11836d1e0134df67c8a6d714685ab6dc1e2edb258546aa"
+    },
+    {
+      "path": "pay-business-client.mjs",
+      "bytes": 19513,
+      "sha256": "d3a078419dc986967e465e0259145dd884a24d5be7ace95fb16e5ac8ccddc0a5"
+    },
+    {
       "path": "product-source.mjs",
-      "bytes": 9415,
-      "sha256": "8bc8114d0f2f2dc6328bc8a26378275ebae38725a31a9a3ad0abee5a76e42881"
-    },
-    {
-      "path": "README.md",
-      "bytes": 11366,
-      "sha256": "fbb2fc3cfd0dea0a730e8e6a9d4964e026bdcf24e21ee515a46aedc70d4860d4"
-    },
-    {
-      "path": "MAIN_PAY_CONTRACT.md",
-      "bytes": 15326,
-      "sha256": "91d6768e26e8525c85d104a227ff66169a9882f11dfee4aeda74e6a62e3e4bbd"
+      "bytes": 11994,
+      "sha256": "b01157ea9fcde317f9d1b00283844a32618a22dd7d1e4b283becad852c167fa0"
     }
   ],
-  "modified": false,
-  "RootAdmission": false,
+  "rootAdmission": false,
   "SourceAdmission": false,
-  "installed": false
+  "NativeAdmission": false,
+  "mainProducerOwnLifecycle": true,
+  "installed": false,
+  "handoffBytes": 6887,
+  "whole9PredecessorCASVerified": true,
+  "sourceProjection": "apps/pay/native/r6 whole9 -> existing sole apps/wallet-desktop/src/native-pay-client projection; no second runtime",
+  "RootAdmission": false,
+  "predecessor": {
+    "sourceCommit": "54cd08506a56fadd0bac672b14d910786ba4daac",
+    "handoff": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P06/shop-refund-receipt-work/final-r1/HANDOFF.json",
+    "handoffSha256": "e3712bf16a4c534f8024ed089f282468e0b0abbb6ea61d465063bf424a4b22ec",
+    "handoffBytes": 20344
+  }
 }

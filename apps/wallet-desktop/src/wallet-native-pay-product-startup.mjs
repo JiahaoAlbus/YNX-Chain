@@ -1,5 +1,6 @@
 import {types} from 'node:util';
 import {createNativePayMainEntry} from './native-pay-client/main-entry.mjs';
+import {readNativePayFailureCause} from './native-pay-client/pay-business-client.mjs';
 import {composeNativePayProductSource} from './native-pay-client/product-source.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
 const partial=cause=>{if(!cause||typeof cause!=='object'||types.isProxy(cause))return null;const d=Object.getOwnPropertyDescriptor(cause,'partial');return d&&Object.hasOwn(d,'value')?d.value:null;};
@@ -32,6 +33,8 @@ export function createWalletNativePayProductStartup({captureFactories,getMain,ge
  }
  const controller=Object.freeze({
   configure,
+  // Main-only weak diagnostic association; never a renderer action or retry token.
+  readOriginalFailureCause:readNativePayFailureCause,
   status(){const ctx=getContext();return {client:'YNX Pay',normalMainEntry:true,sourceSupplied:false,available:false,
    reason:closing?'NATIVE_PAY_MAIN_CLOSING':configurationCause?.code??'NATIVE_PAY_PRODUCT_SOURCE_REQUIRES_CURRENT_REQUEST',
    canRequest:!closing&&!ctx.locked&&!ctx.changing&&ctx.focused===true,approvalInOriginalMain:true,paymentAuthorized:false};},
@@ -50,7 +53,7 @@ export function createWalletNativePayProductStartup({captureFactories,getMain,ge
      if(!factories)configure();guard.assert();composing=true;
      try{row.runtime=await composeNativePayProductSource(entry,factories);}catch(error){row.runtime=partial(error);throw error;}
      if(row.cancelled||closing)fail('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');guard.assert();
-     result=await entry.invoke(input);guard.assert();
+     result=await entry.invokeResult(input);guard.assert();
     }catch(error){failed=true;cause=error;}
     finally{
      // The outer P06 constructor always supplies its own runtime partial;

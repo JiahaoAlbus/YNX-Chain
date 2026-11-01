@@ -12,6 +12,8 @@ Usage: ynx-pay-native --runtime /absolute/original-source-runtime.mjs COMMAND AR
   refund-review MERCHANT INVOICE REFUND_ID ATOMS
   refund-submit MERCHANT INVOICE ORIGINAL_MAIN_HASH
   events MERCHANT INVOICE        recover MERCHANT INVOICE [ORIGINAL_NATIVE_HASH]   recover-intent INTENT
+  recover-archive PRODUCT SOURCE_ORDER MERCHANT INVOICE ORIGINAL_NATIVE_HASH
+  reconcile-archive PRODUCT SOURCE_ORDER MERCHANT INVOICE
 The *-submit commands request Wallet Pay broadcast review only; they never send.
 Wallet's existing UI/Auth approves reviews; this client has no approve command.
 Runtime must export openNativePayRuntime() using original qualified Main/Source.
@@ -20,12 +22,12 @@ export async function runNativePayCLI(args,{write=value=>process.stdout.write(va
  if(args.length===0||args[0]==='--help'){write(usage);return 0;}
  if(args[0]==='--diagnose'){write(JSON.stringify({client:'YNX Native Pay',runtime:'not-supplied',privateSource:false,mainApproval:false,signing:false,submission:false,installed:false,deployed:false}));return 0;}
  if(args[0]!=='--runtime'||!path.isAbsolute(args[1]??''))throw Object.assign(Error('Original private runtime module is required.'),{code:'NATIVE_PAY_SOURCE_UNAVAILABLE'});
- const [,,command,...values]=args,required={invoice:[2],intent:[1],'create-intent':[2],'lookup-intent':[2],'terms-review':[1],'terms-submit':[2],'pay-review':[2],'pay-submit':[3],'refund-review':[4],'refund-submit':[3],events:[2],recover:[2,3],'recover-intent':[1]};
+ const [,,command,...values]=args,required={invoice:[2],intent:[1],'create-intent':[2],'lookup-intent':[2],'terms-review':[1],'terms-submit':[2],'pay-review':[2],'pay-submit':[3],'refund-review':[4],'refund-submit':[3],events:[2],recover:[2,3],'recover-intent':[1],'recover-archive':[5],'reconcile-archive':[4]};
  if(!required[command]?.includes(values.length))throw Object.assign(Error(usage),{code:'NATIVE_PAY_COMMAND_INVALID'});
  const module=await import(pathToFileURL(args[1]).href);if(typeof module.openNativePayRuntime!=='function')throw Object.assign(Error('Original Source runtime entry unavailable.'),{code:'NATIVE_PAY_SOURCE_UNAVAILABLE'});
  const runtime=await module.openNativePayRuntime();
  try{
-  const client=new NativePayBusinessClient(runtime),methods={invoice:'openInvoice',intent:'openIntent','create-intent':'createInvoiceIntent','lookup-intent':'lookupOriginalInvoiceIntent','terms-review':'reviewMerchantTerms','terms-submit':'submitMerchantTerms','pay-review':'reviewPayment','pay-submit':'submitPayment','refund-review':'reviewRefund','refund-submit':'submitRefund',events:'syncNotifications',recover:'recoverInvoice','recover-intent':'recoverIntent'};
+  const client=new NativePayBusinessClient(runtime),methods={invoice:'openInvoice',intent:'openIntent','create-intent':'createInvoiceIntent','lookup-intent':'lookupOriginalInvoiceIntent','terms-review':'reviewMerchantTerms','terms-submit':'submitMerchantTerms','pay-review':'reviewPayment','pay-submit':'submitPayment','refund-review':'reviewRefund','refund-submit':'submitRefund',events:'syncNotifications',recover:'recoverInvoice','recover-intent':'recoverIntent','recover-archive':'recoverArchivedInvoice','reconcile-archive':'reconcileArchivedInvoice'};
   try{const state=await client[methods[command]](...values);write(JSON.stringify(nativePaySummary(state)));return 0;}catch(error){const state=client.snapshot();write(JSON.stringify({...nativePaySummary(state),code:nativePayFailureCode(error)}));return 2;}
  }finally{if(typeof runtime?.close==='function')await runtime.close();}
 }

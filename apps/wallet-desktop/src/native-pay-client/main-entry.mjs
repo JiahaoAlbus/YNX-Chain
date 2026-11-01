@@ -1,8 +1,8 @@
 import {types} from 'node:util';
-import {NativePayBusinessClient,nativePaySummary,nativePayFailureCode} from './pay-business-client.mjs';
+import {NativePayBusinessClient,nativePaySummary,nativePayFailureCode,nativePayFailureResultDATA} from './pay-business-client.mjs';
 import {rejectNativePayPending} from './merchant-invoice-approval.mjs';
 const fail=code=>{throw Object.assign(Error(code),{code});};
-const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'create-intent':['productId','sourceOrder'],'lookup-intent':['productId','sourceOrder'],'terms-review':['intentId'],'pay-review':['merchant','invoiceId'],'refund-review':['merchant','invoiceId','refundId','amountAtoms'],events:['merchant','invoiceId'],recover:['merchant','invoiceId','nativeHash'],'recover-intent':['intentId'],'broadcast-review':['kind','merchant','invoiceId','intentId','originalHash']};
+const shapes={invoice:['merchant','invoiceId'],intent:['intentId'],'create-intent':['productId','sourceOrder'],'lookup-intent':['productId','sourceOrder'],'terms-review':['intentId'],'pay-review':['merchant','invoiceId'],'refund-review':['merchant','invoiceId','refundId','amountAtoms'],events:['merchant','invoiceId'],recover:['merchant','invoiceId','nativeHash'],'recover-archive':['productId','sourceOrder','merchant','invoiceId','nativeHash'],'reconcile-archive':['productId','sourceOrder','merchant','invoiceId'],'recover-intent':['intentId'],'broadcast-review':['kind','merchant','invoiceId','intentId','originalHash']};
 // Bookkeeping only. Main remains the sole review/cleanup owner. Completion is
 // notified by that same Main after its real approval/rejection has settled;
 // neither deleting this entry nor observing an absent id is a payment result.
@@ -57,6 +57,44 @@ export function createNativePayMainEntry({getMain,getContext}){
   return ()=>{const now=getContext();if(epoch!==e||!now||now.account!==c.account||now.revision!==c.revision||now.locked||now.changing||!now.focused)fail('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');};
  };
  function cancel(){epoch++;client?.invalidate('NATIVE_PAY_MAIN_CURRENT_UNAVAILABLE');return pending.cancel();}
+ async function invoke(raw,onFailure){
+   const request=input(raw);if(!source)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');if(active)fail('NATIVE_PAY_MAIN_BUSY');
+   const assertContext=context(),originalSource=source,main=getMain();
+   const current=()=>{assertContext();if(originalSource.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');};
+   current();active=true;let operationClient=null;
+   try{
+    const runtime={main,pay:originalSource.pay,current,
+     ...(typeof originalSource.readOriginalInvoiceIntent==='function'?{readOriginalInvoiceIntent:(...args)=>originalSource.readOriginalInvoiceIntent(...args)}:{}),
+     ...(typeof originalSource.readInvoiceOriginals==='function'?{readInvoiceOriginals:(...args)=>originalSource.readInvoiceOriginals(...args)}:{}),
+     ...(typeof originalSource.readOriginalArchiveReceipt==='function'?{readOriginalArchiveReceipt:(...args)=>originalSource.readOriginalArchiveReceipt(...args)}:{}),
+     ...(typeof originalSource.readOriginalArchiveReconciliation==='function'?{readOriginalArchiveReconciliation:(...args)=>originalSource.readOriginalArchiveReconciliation(...args)}:{}),
+     ...(originalSource.notificationInbox?{notificationInbox:originalSource.notificationInbox}:{}),
+     ...(typeof originalSource.readNotificationScope==='function'?{readNotificationScope:()=>originalSource.readNotificationScope()}:{}),
+     ...(typeof originalSource.refreshOriginalProduct==='function'?{refreshOriginalProduct:(...args)=>originalSource.refreshOriginalProduct(...args)}:{})};
+    client=operationClient=new NativePayBusinessClient(runtime);let state;
+    const {action,merchant,invoiceId,intentId}=request;
+    if(action==='invoice')state=await client.openInvoice(merchant,invoiceId);
+    else if(action==='intent')state=await client.openIntent(intentId);
+    else if(action==='create-intent')state=await client.createInvoiceIntent(request.productId,request.sourceOrder);
+    else if(action==='lookup-intent')state=await client.lookupOriginalInvoiceIntent(request.productId,request.sourceOrder);
+    else if(action==='terms-review')state=await client.reviewMerchantTerms(intentId);
+    else if(action==='pay-review')state=await client.reviewPayment(merchant,invoiceId);
+    else if(action==='refund-review')state=await client.reviewRefund(merchant,invoiceId,request.refundId,request.amountAtoms);
+    else if(action==='events')state=await client.syncNotifications(merchant,invoiceId);
+    else if(action==='recover')state=await client.recoverInvoice(merchant,invoiceId,request.nativeHash||undefined);
+    else if(action==='recover-archive')state=await client.recoverArchivedInvoice(request.productId,request.sourceOrder,merchant,invoiceId,request.nativeHash);
+    else if(action==='reconcile-archive')state=await client.reconcileArchivedInvoice(request.productId,request.sourceOrder,merchant,invoiceId);
+    else if(action==='recover-intent')state=await client.recoverIntent(intentId);
+    else if(action==='broadcast-review'){const {action:_,...ref}=request;state=await client.reviewOriginalBroadcast(ref);}
+    current();if(state.walletRequest?.id)pending.remember(state.walletRequest.id,main);
+    return nativePaySummary(state);
+   }catch(error){
+    // Error DATA is captured only while the same account and Source remain
+    // current. invoke itself preserves the exact original thrown cause.
+    if(onFailure&&operationClient)try{current();onFailure(operationClient.snapshot(),current);}catch{}
+    throw error;
+   }finally{active=false;}
+  }
  return Object.freeze({
   compose(originalSource){
    if(source||active)fail('NATIVE_PAY_MAIN_ALREADY_COMPOSED');
@@ -70,34 +108,11 @@ export function createNativePayMainEntry({getMain,getContext}){
   // Main-only completion notification; never install as an IPC action. Main
   // calls it only after the original review/cleanup actually settles.
   settleOriginalReview:(id,owner)=>pending.settled(id,owner),
-  async invoke(raw){
-   const request=input(raw);if(!source)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');if(active)fail('NATIVE_PAY_MAIN_BUSY');
-   const assertContext=context(),originalSource=source,main=getMain();
-   const current=()=>{assertContext();if(originalSource.current()!==undefined)fail('NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');};
-   current();active=true;
-   try{
-    const runtime={main,pay:originalSource.pay,current,
-     ...(typeof originalSource.readOriginalInvoiceIntent==='function'?{readOriginalInvoiceIntent:(...args)=>originalSource.readOriginalInvoiceIntent(...args)}:{}),
-     ...(typeof originalSource.readInvoiceOriginals==='function'?{readInvoiceOriginals:(...args)=>originalSource.readInvoiceOriginals(...args)}:{}),
-     ...(originalSource.notificationInbox?{notificationInbox:originalSource.notificationInbox}:{}),
-     ...(typeof originalSource.readNotificationScope==='function'?{readNotificationScope:()=>originalSource.readNotificationScope()}:{}),
-     ...(typeof originalSource.refreshOriginalProduct==='function'?{refreshOriginalProduct:(...args)=>originalSource.refreshOriginalProduct(...args)}:{})};
-    client=new NativePayBusinessClient(runtime);let state;
-    const {action,merchant,invoiceId,intentId}=request;
-    if(action==='invoice')state=await client.openInvoice(merchant,invoiceId);
-    else if(action==='intent')state=await client.openIntent(intentId);
-    else if(action==='create-intent')state=await client.createInvoiceIntent(request.productId,request.sourceOrder);
-    else if(action==='lookup-intent')state=await client.lookupOriginalInvoiceIntent(request.productId,request.sourceOrder);
-    else if(action==='terms-review')state=await client.reviewMerchantTerms(intentId);
-    else if(action==='pay-review')state=await client.reviewPayment(merchant,invoiceId);
-    else if(action==='refund-review')state=await client.reviewRefund(merchant,invoiceId,request.refundId,request.amountAtoms);
-    else if(action==='events')state=await client.syncNotifications(merchant,invoiceId);
-    else if(action==='recover')state=await client.recoverInvoice(merchant,invoiceId,request.nativeHash||undefined);
-    else if(action==='recover-intent')state=await client.recoverIntent(intentId);
-    else if(action==='broadcast-review'){const {action:_,...ref}=request;state=await client.reviewOriginalBroadcast(ref);}
-    current();if(state.walletRequest?.id)pending.remember(state.walletRequest.id,main);
-    return nativePaySummary(state);
-   }finally{active=false;}
+  invoke:raw=>invoke(raw),
+  async invokeResult(raw){
+   let failureState=null,failureCurrent=null;
+   try{return {version:'ynx.pay.main-result/v1',ok:true,...await invoke(raw,(state,current)=>{failureState=state;failureCurrent=current;})};}
+   catch(error){if(failureCurrent)try{failureCurrent();}catch{failureState=null;}return nativePayFailureResultDATA(error,failureState);}
   }
  });
 }

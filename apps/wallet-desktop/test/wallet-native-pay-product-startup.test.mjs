@@ -35,3 +35,12 @@ test('lock during actual read prevents late result while original read drains be
  const f=fixture({async read(){entered();await gate;return {merchant:account,invoiceId:'PUBLIC',status:'unpaid'};}});
  const pending=f.service.invoke(input);await ready;f.lock();const shutdown=f.service.shutdown();assert.equal(f.calls.includes('close'),false);release();await assert.rejects(pending);await shutdown;assert.equal(f.calls.filter(x=>x==='close').length,1);
 });
+
+test('normal Main startup returns UNKNOWN DATA and retains falsy first cause privately without retry',async()=>{
+ const f=fixture({read(){throw false;}});
+ const result=await f.service.invoke(input);assert.equal(result.ok,false);assert.equal(result.outcome,'UNKNOWN');assert.equal(result.canRetry,false);
+ assert.deepEqual(f.service.readOriginalFailureCause(result),{present:true,cause:false});
+ assert.deepEqual(f.service.readOriginalFailureCause(structuredClone(result)),{present:false});
+ assert.equal(f.calls.filter(x=>x==='read').length,1);assert.equal(f.calls.filter(x=>x==='close').length,1);
+ await f.service.shutdown();f.service.assertSafeToClose();
+});
