@@ -71,13 +71,17 @@ func runProvisionRecoveryCredential(args []string, output, diagnostics io.Writer
 			return errors.New("credential process could not disable private core dumps")
 		}
 	}
-	return provisionRecoveryCredential(args, output, recoveryCredentialIO{
+	return provisionRecoveryCredential(args, output, realRecoveryCredentialIO())
+}
+
+func realRecoveryCredentialIO() recoveryCredentialIO {
+	return recoveryCredentialIO{
 		target: recoveryCredentialPath, hostKey: "/var/lib/systemd/credential.secret",
 		machineID: "/etc/machine-id", boundary: "/", owner: 0, linux: runtime.GOOS == "linux",
 		tools:    []string{"/usr/bin/unshare", "/usr/bin/mount", "/bin/sh", "/usr/bin/systemd-creds"},
 		generate: ynxconsensusauth.GenerateHostRecoveryCredential,
 		process:  runRecoveryCredentialProcess, write: writeRecoveryCredentialExclusive,
-	})
+	}
 }
 
 func recoveryCredentialIdentity(info os.FileInfo) string {
@@ -328,7 +332,10 @@ func recoveryCredentialCommand(operation string) ([]string, error) {
 	// in this child's private mount namespace, rather than lowering auto or
 	// allowing hidden host setup. No host mount or service is changed.
 	script := `set -eu; ulimit -c 0; /usr/bin/mount --bind /var/lib/systemd /var/lib/systemd; /usr/bin/mount -o remount,bind,ro /var/lib/systemd; exec /usr/bin/systemd-creds "$@"`
-	args := []string{"/usr/bin/unshare", "--mount", "--propagation", "private", "--", "/bin/sh", "-c", script, "ynx-pq-credential", "--no-ask-password", "--name=ynx-pq-recovery"}
+	// systemd 255 rejects --no-ask-password. The fixed auto profile has no
+	// password/PIN option, uses only the owned anonymous stdin pipe and clean
+	// environment, and runs without a controlling terminal in its own session.
+	args := []string{"/usr/bin/unshare", "--mount", "--propagation", "private", "--", "/bin/sh", "-c", script, "ynx-pq-credential", "--name=ynx-pq-recovery"}
 	if operation == "decrypt" {
 		args = append(args, "--newline=no")
 	}
@@ -381,7 +388,9 @@ func executeRecoveryCredentialProcess(parent context.Context, args []string, inp
 	}
 	cmd.Stdout, cmd.Stderr = stdout, stderr
 	cmd.Env = []string{"PATH=/usr/bin:/bin", "LANG=C", "TZ=UTC", "SYSTEMD_LOG_TARGET=console", "SYSTEMD_LOG_LEVEL=err"}
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// Setsid also makes PGID equal PID, preserving the original whole-group
+	// cleanup while detaching any operator controlling terminal.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 	cmd.WaitDelay = time.Second
 	cmd.Cancel = func() error {
 		if cmd.Process == nil {

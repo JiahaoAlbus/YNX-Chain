@@ -11,10 +11,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 type recoveryProvisionFixture struct {
@@ -268,7 +271,7 @@ func TestProvisionRecoveryCredentialFixedDefaultProfileAndPrivateMounts(t *testi
 	for _, operation := range []string{"encrypt", "decrypt"} {
 		args, err := recoveryCredentialCommand(operation)
 		joined := strings.Join(args, " ")
-		if err != nil || args[0] != "/usr/bin/unshare" || !strings.Contains(joined, "--mount --propagation private") || !strings.Contains(joined, "mount --bind /var/lib/systemd /var/lib/systemd") || !strings.Contains(joined, "remount,bind,ro") || !strings.Contains(joined, "exec /usr/bin/systemd-creds") || !strings.Contains(joined, "--name=ynx-pq-recovery") || strings.Contains(joined, "--with-key") || strings.Contains(joined, "setup") || strings.Contains(joined, "--user") || strings.Contains(joined, "--allow-null") {
+		if err != nil || args[0] != "/usr/bin/unshare" || !strings.Contains(joined, "--mount --propagation private") || !strings.Contains(joined, "mount --bind /var/lib/systemd /var/lib/systemd") || !strings.Contains(joined, "remount,bind,ro") || !strings.Contains(joined, "exec /usr/bin/systemd-creds") || !strings.Contains(joined, "--name=ynx-pq-recovery") || strings.Contains(joined, "--with-key") || strings.Contains(joined, "setup") || strings.Contains(joined, "--user") || strings.Contains(joined, "--allow-null") || strings.Contains(joined, "--no-ask-password") {
 			t.Fatal("fixed child changed encryption or original host write scope", args, err)
 		}
 		if strings.Join(args[len(args)-3:], " ") != operation+" - -" {
@@ -277,6 +280,44 @@ func TestProvisionRecoveryCredentialFixedDefaultProfileAndPrivateMounts(t *testi
 	}
 	if _, err := recoveryCredentialCommand("setup"); err == nil {
 		t.Fatal("OS setup silently entered credential provisioning")
+	}
+}
+
+// The real target's systemd 255 rejected the old option before encryption.
+// Exercise the installed Linux provider parser, without a host key, credential,
+// namespace or encryption invocation. Non-Linux does not claim this acceptance.
+func TestProvisionRecoveryCredentialActualSystemdCLICompatibility(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("actual installed Linux systemd provider parser only")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+	version, err := exec.CommandContext(ctx, "/usr/bin/systemd-creds", "--version").Output()
+	if err != nil {
+		t.Fatal("required original Linux provider unavailable", err)
+	}
+	t.Log(strings.SplitN(string(version), "\n", 2)[0])
+	for _, operation := range []string{"encrypt", "decrypt"} {
+		args, err := recoveryCredentialCommand(operation)
+		if err != nil {
+			t.Fatal(err)
+		}
+		index := -1
+		for i, arg := range args {
+			if arg == "ynx-pq-credential" {
+				index = i
+				break
+			}
+		}
+		if index < 0 {
+			t.Fatal("missing original child argv boundary")
+		}
+		providerArgs := append(append([]string(nil), args[index+1:len(args)-3]...), "--help")
+		cmd := exec.CommandContext(ctx, "/usr/bin/systemd-creds", providerArgs...)
+		cmd.Env = []string{"PATH=/usr/bin:/bin", "LANG=C"}
+		if raw, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("actual %s parser rejected fixed provider flags: %v %s", operation, err, raw)
+		}
 	}
 }
 
@@ -313,6 +354,16 @@ func TestRecoveryCredentialProcessHelper(t *testing.T) {
 		return
 	}
 	mode := args[len(args)-1]
+	if mode == "session" {
+		sid, err := unix.Getsid(0)
+		if err != nil || sid != os.Getpid() || unix.Getpgrp() != os.Getpid() || os.Getenv("SYSTEMD_ASK_PASSWORD_AGENT") != "" {
+			os.Exit(9)
+		}
+		if tty, err := os.Open("/dev/tty"); err == nil {
+			tty.Close()
+			os.Exit(10)
+		}
+	}
 	if mode == "sleep" {
 		time.Sleep(5 * time.Second)
 		os.Exit(0)
@@ -340,9 +391,10 @@ func TestRecoveryCredentialProcessHelper(t *testing.T) {
 }
 
 func TestProvisionRecoveryCredentialProcessBoundsAnonymousPipeAndDiagnosticRedaction(t *testing.T) {
+	t.Setenv("SYSTEMD_ASK_PASSWORD_AGENT", "public-parent-marker-must-not-be-forwarded")
 	secret := bytes.Repeat([]byte{0x53}, 32)
 	defer clear(secret)
-	for _, mode := range []string{"success", "overflow", "private-error", "sleep"} {
+	for _, mode := range []string{"success", "session", "overflow", "private-error", "sleep"} {
 		budget := 2 * time.Second
 		if mode == "sleep" {
 			budget = 100 * time.Millisecond
@@ -351,7 +403,7 @@ func TestProvisionRecoveryCredentialProcessBoundsAnonymousPipeAndDiagnosticRedac
 		args := []string{os.Args[0], "-test.run=^TestRecoveryCredentialProcessHelper$", "--", "credential-process-control", mode}
 		raw, err := executeRecoveryCredentialProcess(ctx, args, secret, 32)
 		cancel()
-		if mode == "success" {
+		if mode == "success" || mode == "session" {
 			if err != nil || string(raw) != "public-control" {
 				t.Fatal("real anonymous pipe process failed", err)
 			}

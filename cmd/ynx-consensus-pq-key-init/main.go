@@ -58,6 +58,14 @@ func run(args []string, output, diagnostics io.Writer, disk ceremonyIO) error {
 			return runPrepareEpochRequest(args[1:], output, diagnostics)
 		case "provision-recovery-credential":
 			return runProvisionRecoveryCredential(args[1:], output, diagnostics)
+		case "install-recovery-credential":
+			return runInstallRecoveryCredential(args[1:], output, diagnostics)
+		case "inspect-recovery-credential":
+			return runInspectRecoveryCredential(args[1:], output, diagnostics)
+		case "export-recovery-capsule":
+			return runExportRecoveryCapsule(args[1:], output, diagnostics)
+		case "verify-recovery-capsule":
+			return runVerifyRecoveryCapsule(args[1:], output, diagnostics)
 		}
 	}
 	if err := rejectDuplicateOptions(args); err != nil {
