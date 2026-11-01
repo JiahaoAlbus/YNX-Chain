@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {parsePQPayProgress,mergePQPayPacket} from './wallet-pq-pay-progress.mjs';
 import {canonicalJSON} from '@ynx-chain/wallet-auth';
 import {parsePQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {pqBFTOriginalIdentity,parsePQBFTOriginalResponse,parsePQBFTSubmissionResponse} from './wallet-pq-bft-evidence.mjs';
@@ -46,6 +47,7 @@ export function capturePQProgressResult(input){
  return Object.freeze({...input,bodySha256:digest(input.text)});
 }
 export function parsePQProgress(input,original){
+ if(input?.version===2)return parsePQPayProgress(input,original);
  exact(input,['version','account','hash','kind','operationId','nativeTransactionHash','abciTransactionHash','status','result','firstCause','storageCause']);
  const identity=pqSubmissionIdentity(original);if(input.version!==1||Object.keys(identity).some(k=>input[k]!==identity[k])||!statuses.includes(input.status))fail();
  cause(input.firstCause);cause(input.storageCause);
@@ -65,6 +67,7 @@ function observationComparison(text){
  }));
 }
 export function mergePQProgressResult(current,result,original){
+ if(current?.version===2)return mergePQPayPacket(current,result,original);
  const prior=parsePQProgress(current,original),next=parsePQProgressResult(result,original);
  const rank=statuses.indexOf(next.status)-statuses.indexOf(prior.status);
  if(rank<0)return prior; // A later UNKNOWN never erases a known observation.
@@ -74,5 +77,5 @@ export function mergePQProgressResult(current,result,original){
  }
  return parsePQProgress({...prior,status:next.status,result:next.result},original);
 }
-export function pqProgressCoreEqual(left,right){return canonicalJSON({status:left.status,result:left.result})===canonicalJSON({status:right.status,result:right.result});}
-export function pqSavedCustodyResult(account,hash,progress){return Object.freeze({account,hash,savedLocally:true,submitted:progress?(progress.status==='inclusion-observed'?true:null):false,confirmed:false,...(progress?{submissionStatus:progress.status}:{})});}
+export function pqProgressCoreEqual(left,right){return canonicalJSON({version:left.version,target:left.target??null,status:left.status,result:left.result})===canonicalJSON({version:right.version,target:right.target??null,status:right.status,result:right.result});}
+export function pqSavedCustodyResult(account,hash,progress){return Object.freeze({account,hash,savedLocally:true,submitted:progress?(progress.status==='inclusion-observed'?true:progress.status==='signed-unsubmitted'?false:null):false,confirmed:false,...(progress?{submissionStatus:progress.status}:{})});}

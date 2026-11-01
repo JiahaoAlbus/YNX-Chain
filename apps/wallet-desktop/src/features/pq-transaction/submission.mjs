@@ -89,6 +89,7 @@ export function createPQTransactionSubmission({intentStore, networkId,
         if (typeof transport?.[plan.typed?'submitTypedAction':plan.migration?'submitMigration':'submitTransfer'] !== 'function') throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
         if (!plan.typed && !plan.migration && typedBroadcastRequest !== null) throw failure('PQ_TRANSACTION_PERMISSION_BINDING');
         const before = await intentStore.readPQProgress(guard.account, hash, () => guard.assert());
+        if(before.submissionService==='pay')throw failure('PQ_PAY_DISPATCH_SOURCE_NOT_SUPPLIED');
         if (before.status !== 'signed-unsubmitted') throw failure('PQ_TRANSACTION_ALREADY_ENTERED');
         if(plan.migration&&typeof intentStore.savePQMigrationSubmissionResult!=='function')throw failure('PQ_MIGRATION_RESPONSE_CUSTODY_REQUIRED');
         const request = plan.typed?bindPQTypedBroadcastRequest(plan,typedBroadcastRequest):plan.migration?bindPQMigrationBroadcastRequest(plan,typedBroadcastRequest):pqBroadcastPermissionRequest(plan.binding);
@@ -171,6 +172,9 @@ export function createPQTransactionSubmission({intentStore, networkId,
       return exclusive(guard, async () => {
         const plan = await readPQSubmissionOriginal(intentStore,hash,{account:guard.account,networkId,guard});
         const prior = await intentStore.readPQProgress(guard.account,hash,()=>guard.assert());
+        // Core's POST/read parsers cannot consume a /v5 Pay response. Preserve
+        // this target until its original Pay query Source is available.
+        if(prior.submissionService==='pay')throw failure('PQ_PAY_QUERY_SOURCE_NOT_SUPPLIED');
         if(['finalized-succeeded','finalized-rejected'].includes(prior.status))return publicProgress(plan,guard);
         if(typeof (plan.typed?readTypedOriginal:transport?.readOriginal)!=='function')throw failure('PQ_TRANSACTION_TRANSPORT_NOT_SUPPLIED');
         if (!plan.typed && prior.status === 'signed-unsubmitted') throw failure('PQ_TRANSACTION_NOT_ENTERED');

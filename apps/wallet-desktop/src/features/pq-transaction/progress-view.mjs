@@ -56,17 +56,19 @@ function view(binding, status, source, storage = {}) {
     consensusFinality: terminal(status), ...(terminal(status)?{nativeGrant:false}:{}), canRetry: false, clearsOriginal: false,
     storageConfirmed: storage.storageConfirmed ?? null,
     metadataConfirmed: storage.metadataConfirmed ?? null,
-    localResultHeld: storage.localResultHeld ?? null});
+    localResultHeld: storage.localResultHeld ?? null,
+    ...(storage.submissionService?{submissionService:storage.submissionService}:{})});
 }
 
 function journalView(input, binding) {
   const value = record(input, ['account', 'hash', 'kind', 'status', 'storageConfirmed', 'metadataConfirmed',
-    'localResultHeld', 'firstCause', 'storageCause', 'retryAuthorized', 'clearsOriginal', 'consensusFinality']);
+    'localResultHeld', 'firstCause', 'storageCause', 'retryAuthorized', 'clearsOriginal', 'consensusFinality'],['submissionService']);
   sameOriginal(value, binding);
+  if(Object.hasOwn(value,'submissionService')&&(value.submissionService!=='pay'||binding.kind!=='pq-typed-action'))invalid();
   if(binding.kind==='pq-account-initial'&&['finality-save-unknown','finalized-succeeded','finalized-rejected'].includes(value.status))invalid();
   if (!statuses.includes(value.status) || ['storageConfirmed', 'metadataConfirmed', 'localResultHeld'].some(key => typeof value[key] !== 'boolean') ||
       value.metadataConfirmed && !value.storageConfirmed || value.status === 'signed-unsubmitted' &&
-      (value.storageConfirmed || value.metadataConfirmed || value.localResultHeld)||terminal(value.status)&&(!value.storageConfirmed||!value.metadataConfirmed||value.localResultHeld)) invalid();
+      (value.submissionService!=='pay'&&(value.storageConfirmed || value.metadataConfirmed)||value.localResultHeld)||terminal(value.status)&&(!value.storageConfirmed||!value.metadataConfirmed||value.localResultHeld)) invalid();
   cause(value.firstCause); cause(value.storageCause);
   return view(binding, value.status, 'local-journal', value);
 }

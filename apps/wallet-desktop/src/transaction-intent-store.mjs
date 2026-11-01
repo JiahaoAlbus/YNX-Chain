@@ -1,10 +1,11 @@
 import * as filesystem from "node:fs/promises";
+import {normalizePQPayTargetDATA,initialPQPayProgress,enterPQPaySubmission,capturePQPayPacket,PQ_PAY_PROGRESS_RESERVE_BYTES} from './wallet-pq-pay-progress.mjs';
 import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
 import {types as nativeTypes} from 'node:util';
 import path from "node:path";
 import { PrivateFilePolicy } from "./platform-private-file.mjs";
-import {readBoundedPrivateFile,PRIVATE_FILE_MAX_BYTES} from "./bounded-private-file-read.mjs";
+import {readBoundedTransactionJournal as readBoundedPrivateFile,TRANSACTION_JOURNAL_MAX_BYTES as PRIVATE_FILE_MAX_BYTES} from "./bounded-private-file-read.mjs";
 import { Transaction, toQuantity } from "ethers";
 import { parseFeeModel, capabilityFingerprint, capabilityError, assertCompatibleIntentCapabilities } from "./rpc-capabilities.mjs";
 import { validateDurableReceipt, uint64, UINT64_MAX } from "./transaction-durability.mjs";
@@ -25,6 +26,7 @@ import {retainPQTypedHTTPResponse} from './wallet-pq-typed-progress.mjs';
 import {readPQVerifiedFinalityTerminal,parsePQFinalityTerminalData,parsePQFinalityHistoryEntry,pqFinalityHistoryCore} from './wallet-pq-finality-terminal.mjs';
 
 const isV4Session=row=>row?.version===2||row?.version===3;
+const pqPayReservedBytes=state=>(state.pqProgress??[]).filter(row=>row.version===2&&row.status==='submission-unknown'&&row.result===null).length*PQ_PAY_PROGRESS_RESERVE_BYTES;
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
 const invalid = () => capabilityError("TRANSACTION_JOURNAL_INVALID", "The local transaction journal cannot be verified. New transactions are blocked; preserve the journal and check any known transaction hashes.");
@@ -732,9 +734,40 @@ export class FileTransactionIntentStore {
   }
   #pqProgressStorageFailure(slot,cause){if(!slot.storageRawPresent){slot.storageRawPresent=true;let descriptor;try{descriptor=cause&&typeof cause==='object'?Object.getOwnPropertyDescriptor(cause,'cause'):null;}catch{}slot.storageRaw=descriptor&&Object.hasOwn(descriptor,'value')?descriptor.value:cause;}if(slot.best&&!slot.best.storageCause)slot.best={...slot.best,storageCause:pqProgressCause(slot.storageRaw)};}
   #pqEffectiveProgress(actual,slot,original){let base=slot?.best??actual;if(base&&actual?.result)try{base=mergePQProgressResult(base,actual.result,original);}catch(cause){if(slot&&!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}base=actual;}return base?{...base,firstCause:actual?.firstCause??base.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:actual?.storageCause??base.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null)}:null;}
+  /** Bind only DATA to a retained member. Existing Core or UNKNOWN progress
+   * is never retargeted. This operation grants no broadcast permission. */
+  async bindPQPaySubmissionTarget(account,hash,reference,guard){
+    if(typeof guard!=='function'||this.#pqClosing)throw invalid();
+    this.#assertPQTerminalStored(account);const slot=this.#pqProgressSlot(account,hash);
+    return this.#mutate(async()=>{
+      guard();if(this.#pqClosing)throw invalid();const state=await this.#read();guard();
+      const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash&&r.kind==='pq-typed-action');
+      if(!original||owner(this).has(account)||state.preparations?.some(r=>r.account===account))throw invalid();
+      const target=normalizePQPayTargetDATA(original,reference),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);
+      if(prior){
+        if(prior.version!==2||canonicalJSON(prior.target)!==canonicalJSON(target))throw capabilityError('PQ_PAY_TARGET_CONFLICT','Keep the existing submission target; never retarget or resend.');
+        if(slot.best&&canonicalJSON(slot.best)!==canonicalJSON(prior))throw capabilityError('PQ_ORIGINAL_RECONCILE_REQUIRED','Save retained progress before another review.');
+        return Object.freeze({target:parsePQProgress(prior,original).target,status:prior.status,stored:true});
+      }
+      if(slot.beginAttempted||slot.best)throw capabilityError('PQ_ORIGINAL_RECONCILE_REQUIRED','Reconcile retained progress before binding another target.');
+      const progress=initialPQPayProgress(original,target),next=pqProgressSuccessor(state);next.pqProgress.push(progress);
+      if(Buffer.byteLength(JSON.stringify(next))+pqPayReservedBytes(state)+PQ_PAY_PROGRESS_RESERVE_BYTES>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the original; Pay response capacity is unavailable.');
+      guard();slot.best=progress;
+      try{await this.#write(next);guard();const check=await this.#read();guard();if(!check.pqProgress?.some(r=>canonicalJSON(r)===canonicalJSON(progress)))throw invalid();return Object.freeze({target:progress.target,status:progress.status,stored:true});}
+      catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
+    });
+  }
+  /** Main-only target DATA read; no raw response is exposed to renderer. */
+  async readPQPaySubmissionTarget(account,hash,guard){
+    if(typeof guard!=='function')throw invalid();guard();const state=await this.#read();guard();
+    const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash);if(!original)throw invalid();
+    const prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash),slot=this.#pqProgressResults.get(account+':'+hash);
+    if(slot?.best?.version===2&&(!prior||canonicalJSON(slot.best)!==canonicalJSON(prior)))throw capabilityError('PQ_ORIGINAL_RECONCILE_REQUIRED','Original Pay progress has not been acknowledged.');
+    return prior?.version===2?parsePQProgress(prior,original).target:null;
+  }
   /** Durable uncertainty marker BEFORE one separately approved outward call.
    * created=true is storage acknowledgement, never permission to broadcast. */
-  async beginPQSubmission(account,hash,guard){
+  async beginPQSubmission(account,hash,guard,payTarget=null){
     this.#assertPQTerminalStored(account);
     if(this.#pqClosing)throw capabilityError('PQ_SUBMISSION_SHUTDOWN_ENTERED','Wallet is closing. No new submission may start.');
     if(typeof guard!=='function')throw invalid();const slot=this.#pqProgressSlot(account,hash);
@@ -743,12 +776,20 @@ export class FileTransactionIntentStore {
       this.#assertPQTerminalStored(account);
       guard();const state=await this.#read();guard();const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash);if(!original)throw invalid();
       if(owner(this).has(account)||state.preparations?.some(r=>r.account===account))throw capabilityError('PQ_ORIGINAL_RECONCILE_REQUIRED','Reconcile the original signing/save result before entering submission.');
-      const prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(prior)return Object.freeze({created:false,status:prior.status});
+      const prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);
+      if(prior?.version===2){
+        if(!payTarget||canonicalJSON(prior.target)!==canonicalJSON(payTarget))throw capabilityError('PQ_PAY_TARGET_REQUIRED','A Pay original cannot enter the Core submission path.');
+        if(prior.status!=='signed-unsubmitted')return Object.freeze({created:false,status:prior.status});
+        if(slot.best&&canonicalJSON(slot.best)!==canonicalJSON(prior))throw capabilityError('PQ_ORIGINAL_RECONCILE_REQUIRED','Persist original progress before entering submission.');
+      }else{
+        if(payTarget!==null)throw capabilityError('PQ_PAY_TARGET_REQUIRED','A durable original Pay target is required before submission.');
+        if(prior)return Object.freeze({created:false,status:prior.status});
+      }
       if(slot.beginAttempted)throw capabilityError('PQ_SUBMISSION_RECONCILE_REQUIRED','The original admission write is unconfirmed. Do not start another outward call.');
-      const progress=initialPQProgress(original),next=pqProgressSuccessor(state);next.pqProgress=[...next.pqProgress,progress];
+      const progress=prior?.version===2?enterPQPaySubmission(prior,original):initialPQProgress(original),next=pqProgressSuccessor(state);next.pqProgress=prior?next.pqProgress.map(r=>r===prior?progress:r):[...next.pqProgress,progress];
       // Reserve a bounded full response in the existing private journal before
       // any POST can start; never truncate another original to make it fit.
-      if(Buffer.byteLength(JSON.stringify(next))+PQ_PROGRESS_RESPONSE_BYTES+4096>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the original; there is insufficient private journal capacity for its response.');
+      if(Buffer.byteLength(JSON.stringify(next))+pqPayReservedBytes(state)+(prior?.version===2?PQ_PAY_PROGRESS_RESERVE_BYTES:PQ_PROGRESS_RESPONSE_BYTES+4096)>PRIVATE_FILE_MAX_BYTES)throw capabilityError('PQ_SUBMISSION_STORAGE_CAPACITY','Keep the original; there is insufficient private journal capacity for its response.');
       guard();slot.beginAttempted=true;slot.best=progress;
       try{await this.#write(next);guard();const readback=await this.#read();guard();if(!readback.pqProgress?.some(r=>canonicalJSON(r)===canonicalJSON(progress)))throw invalid();if(this.#pqClosing)throw capabilityError('PQ_SUBMISSION_SHUTDOWN_ENTERED','Wallet is closing. No new submission may start.');slot.awaitingResult=true;return Object.freeze({created:true,status:'submission-unknown'});}
       catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
@@ -756,9 +797,10 @@ export class FileTransactionIntentStore {
   }
   /** Capture before parsing/queued IO/post-response lock checks. Storage only;
    * fixed main supplies these bytes, never a renderer DTO or callback grant. */
-  async savePQSubmissionResult(account,hash,input){
+  savePQSubmissionResult(account,hash,input){return this.#savePQSubmissionResult(account,hash,input,false);}
+  async #savePQSubmissionResult(account,hash,input,pay){
     const slot=this.#pqProgressSlot(account,hash);let raw;
-    if(input&&Object.hasOwn(input,'response')){
+    if(pay){raw=input;}else if(input&&Object.hasOwn(input,'response')){
       const first=!slot.firstTypedResponsePresent,submission=input.phase==='submission',firstSubmission=submission&&!slot.firstTypedSubmissionResponsePresent;
       if(first){slot.firstTypedResponsePresent=true;slot.firstTypedResponse=input.response;}
       if(firstSubmission){slot.firstTypedSubmissionResponsePresent=true;slot.firstTypedSubmissionResponse=input.response;}
@@ -767,14 +809,24 @@ export class FileTransactionIntentStore {
     }else raw=capturePQProgressResult(input);
     slot.awaitingResult=false;if(!slot.firstResult)slot.firstResult=raw;slot.latestResult=raw;slot.unparsedResult=raw;
     return this.#mutate(async()=>{
-      let state;try{state=await this.#read();}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior)throw invalid();
+      let state;try{state=await this.#read();}catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior||pay!==(prior.version===2))throw invalid();
       let next;
-      try{let baseline=slot.best??prior;if(prior.result)baseline=mergePQProgressResult(baseline,prior.result,original);next=mergePQProgressResult(baseline,raw,original);}catch(cause){if(!['pq-typed-action','pq-account-initial','pq-migration'].includes(original.kind)&&slot.unparsedResult===raw)slot.unparsedResult=null;if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}if(slot.unparsedResult===raw)slot.unparsedResult=null;
+      try{let baseline=slot.best??prior;if(prior.result)baseline=mergePQProgressResult(baseline,prior.result,original);next=mergePQProgressResult(baseline,raw,original);}catch(cause){if(pay&&!slot.payConflictPacket)slot.payConflictPacket=raw;if(!['pq-typed-action','pq-account-initial','pq-migration'].includes(original.kind)&&slot.unparsedResult===raw)slot.unparsedResult=null;if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}if(slot.unparsedResult===raw)slot.unparsedResult=null;
       slot.best=parsePQProgress({...next,firstCause:prior.firstCause??next.firstCause??(slot.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:prior.storageCause??next.storageCause??(slot.storageRawPresent?pqProgressCause(slot.storageRaw):null)},original);
       if(pqProgressCoreEqual(prior,slot.best))return Object.freeze({stored:true,status:prior.status,changed:false});
       try{await this.#write({...state,pqProgress:state.pqProgress.map(r=>r===prior?slot.best:r)});return Object.freeze({stored:true,status:slot.best.status,changed:true});}
       catch(cause){this.#pqProgressStorageFailure(slot,cause);throw cause;}
     });
+  }
+  savePQPaySubmissionPacket(account,hash,response){
+    const slot=this.#pqProgressSlot(account,hash);
+    if(slot.payResponseUncaptured||slot.payConflictPacket)throw capabilityError('PQ_PAY_RESPONSE_CAPTURE_UNCONFIRMED','Retain the first unresolved Pay packet; a callback cannot replace it.');
+    // Custody first, including packets the bounded serializer cannot accept.
+    if(!slot.firstPayResponsePresent){slot.firstPayResponsePresent=true;slot.firstPayResponse=response;}
+    slot.payResponseUncaptured=true;let captured;
+    try{captured=capturePQPayPacket(response);slot.payResponseUncaptured=false;if(!slot.firstPayCaptured){slot.firstPayCaptured=captured;slot.firstPayResponse=captured;}}
+    catch(cause){if(!slot.firstRawPresent){slot.firstRawPresent=true;slot.firstRaw=cause;}throw cause;}
+    return this.#savePQSubmissionResult(account,hash,captured,true);
   }
   savePQAccountInitialSubmissionResult(account,hash,response){
     const slot=this.#pqProgressSlot(account,hash);if(slot.initialResponseSelected)throw capabilityError('PQ_INITIAL_RESPONSE_ALREADY_CAPTURED','Keep the first original response; duplicate callback cannot replace it.');slot.initialResponseSelected=true;slot.initialResponseUncaptured=true;
@@ -828,10 +880,11 @@ export class FileTransactionIntentStore {
     const pendingTerminal=this.#pqTerminalResults.get(account+':'+hash);if(pendingTerminal&&!pendingTerminal.stored)return pqHistoryProgress({original:pendingTerminal.original,finality:pendingTerminal.finality,progress:state.pqProgress?.find(r=>r.account===account&&r.hash===hash)??null},false);
     const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash);if(!original)throw invalid();
     const actual=state.pqProgress?.find(r=>r.account===account&&r.hash===hash),slot=this.#pqProgressResults.get(account+':'+hash),best=this.#pqEffectiveProgress(actual,slot,original);
-    return Object.freeze({account,hash,kind:original.kind,status:best?.status??(slot?.beginAttempted?'submission-unknown':'signed-unsubmitted'),storageConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.migrationResponseUncaptured&&!slot?.unparsedResult&&(!best||pqProgressCoreEqual(actual,best)),metadataConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.migrationResponseUncaptured&&!slot?.unparsedResult&&(!best||canonicalJSON(actual)===canonicalJSON(best)),localResultHeld:!!slot?.latestResult||!!slot?.initialResponseUncaptured||!!slot?.migrationResponseUncaptured,firstCause:best?.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:best?.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null),retryAuthorized:false,clearsOriginal:false,consensusFinality:false});
+    return Object.freeze({account,hash,kind:original.kind,status:best?.status??(slot?.beginAttempted?'submission-unknown':'signed-unsubmitted'),...(best?.version===2?{submissionService:'pay'}:{}),storageConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.migrationResponseUncaptured&&!slot?.payResponseUncaptured&&!slot?.unparsedResult&&(!best||pqProgressCoreEqual(actual,best)),metadataConfirmed:!!actual&&!slot?.initialResponseUncaptured&&!slot?.migrationResponseUncaptured&&!slot?.payResponseUncaptured&&!slot?.unparsedResult&&(!best||canonicalJSON(actual)===canonicalJSON(best)),localResultHeld:!!slot?.latestResult||!!slot?.initialResponseUncaptured||!!slot?.migrationResponseUncaptured||!!slot?.payResponseUncaptured,firstCause:best?.firstCause??(slot?.firstRawPresent?pqProgressCause(slot.firstRaw):null),storageCause:best?.storageCause??(slot?.storageRawPresent?pqProgressCause(slot.storageRaw):null),retryAuthorized:false,clearsOriginal:false,consensusFinality:false});
   }
   async flushPQProgressResult(account,hash,guard){
     if(typeof guard!=='function')throw invalid();const slot=this.#pqProgressSlot(account,hash);
+    if(slot.payResponseUncaptured)throw capabilityError('PQ_PAY_RESPONSE_CAPTURE_UNCONFIRMED','Keep the first raw Pay packet; do not replace or resend it.');
     if(slot.migrationResponseUncaptured)throw capabilityError('PQ_MIGRATION_RESPONSE_CAPTURE_UNCONFIRMED','Keep the original raw migration response; it cannot be reported stored, replaced or resent.');
     return this.#mutate(async()=>{
       guard();const state=await this.#read();guard();const original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),prior=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);if(!original||!prior&&!(original.kind==='pq-typed-action'&&slot.best&&slot.best.status!=='submission-unknown'))throw invalid();
@@ -912,7 +965,7 @@ export class FileTransactionIntentStore {
           const progress=this.#pqEffectiveProgress(actualProgress,local,slot.original)??(local?.firstRawPresent||local?.storageRawPresent?{...initialPQProgress(slot.original),firstCause:local.firstRawPresent?pqProgressCause(local.firstRaw):null,storageCause:local.storageRawPresent?pqProgressCause(local.storageRaw):null}:null);
           if(!active||canonicalJSON(active)!==canonicalJSON(slot.original)||owner(this).has(original.account)||state.preparations?.some(r=>r.account===original.account))throw invalid();
           if(state.pqFinalityObservations.some(r=>r.account===original.account&&r.hash===original.hash&&r.observation.status==='verifier-result-data'&&r.observation.reportedOutcome!==finality.record.observation.reportedOutcome))throw capabilityError('PQ_FINALITY_TARGET_CONFLICT','Different execution occurrences disagree. Preserve every target and original; do not choose a terminal outcome automatically.');
-          if(local&&(local.migrationResponseUncaptured||local.awaitingResult||local.unparsedResult||local.readsInFlight>0))throw capabilityError('PQ_FINALITY_SUBMISSION_RESULT_UNCONFIRMED','First settle the original submission or readonly response capture; finality must not discard its pending metadata.');
+          if(local&&(local.payResponseUncaptured||local.migrationResponseUncaptured||local.awaitingResult||local.unparsedResult||local.readsInFlight>0))throw capabilityError('PQ_FINALITY_SUBMISSION_RESULT_UNCONFIRMED','First settle the original submission or readonly response capture; finality must not discard its pending metadata.');
           if((state.pqHistory?.length??0)>=64)throw capabilityError('PQ_FINALITY_STORAGE_CAPACITY','Preserve original history; the terminal archive is full.');
           if(!slot.history||slot.firstPresent&&slot.history.storageCause===null){const core={version:1,original:slot.original,progress,finality:effectiveFinality,storageCause:slot.firstPresent?pqTerminalStorageCause(slot.first):null,previousSeal:null};if(typeof this.finalityProtection?.seal!=='function'||typeof this.finalityProtection?.verify!=='function')throw capabilityError('PQ_FINALITY_HISTORY_PROTECTION_UNAVAILABLE','Original OS-protected terminal storage is unavailable.');slot.history=parsePQFinalityHistoryEntry({...core,seal:this.finalityProtection.seal(core)});}
           else if(canonicalJSON(slot.history.progress)!==canonicalJSON(progress))throw capabilityError('PQ_FINALITY_TARGET_CONFLICT','Pending progress changed; preserve the same terminal archive without replacement.');
@@ -957,9 +1010,9 @@ export class FileTransactionIntentStore {
       for(const [key,slot] of this.#pqProgressResults){
         if(slot.readsInFlight>0)throw capabilityError('PQ_PROGRESS_CLOSE_UNCONFIRMED','An original readonly response has not finished capture; preserve its owner before closing.');
         const split=key.indexOf(':'),account=key.slice(0,split),hash=key.slice(split+1),original=state.pqOriginals?.find(r=>r.account===account&&r.hash===hash),actual=state.pqProgress?.find(r=>r.account===account&&r.hash===hash);
-        if(!slot.beginAttempted&&!slot.latestResult&&!slot.firstRawPresent)continue;
+        if(!slot.best&&!slot.beginAttempted&&!slot.latestResult&&!slot.firstRawPresent&&!slot.storageRawPresent)continue;
         const best=original?this.#pqEffectiveProgress(actual,slot,original):null;
-        if(slot.initialResponseUncaptured||slot.migrationResponseUncaptured||slot.awaitingResult||slot.unparsedResult||!original||!actual||!best||canonicalJSON(actual)!==canonicalJSON(best))throw capabilityError('PQ_PROGRESS_CLOSE_UNCONFIRMED','Keep Wallet open. An original result or its storage record is not yet confirmed; save locally without resubmitting.');
+        if(slot.payConflictPacket||slot.payResponseUncaptured||slot.initialResponseUncaptured||slot.migrationResponseUncaptured||slot.awaitingResult||slot.unparsedResult||!original||!actual||!best||canonicalJSON(actual)!==canonicalJSON(best))throw capabilityError('PQ_PROGRESS_CLOSE_UNCONFIRMED','Keep Wallet open. An original result or its storage record is not yet confirmed; save locally without resubmitting.');
       }
       return Object.freeze({safe:true,retryAuthorized:false,clearsOriginal:false});
     });
@@ -1112,7 +1165,7 @@ export class FileTransactionIntentStore {
     let file;
     try {
       parseState(state); const encoded = `${JSON.stringify(state)}\n`;
-      if (Buffer.byteLength(encoded)+sessionV4ReservedBytes(state) > PRIVATE_FILE_MAX_BYTES) throw capabilityError('SESSION_ORIGINAL_STORAGE_CAPACITY','Keep every original and its reserved result space. No new effect may start.');
+      if (Buffer.byteLength(encoded)+sessionV4ReservedBytes(state)+pqPayReservedBytes(state) > PRIVATE_FILE_MAX_BYTES) throw capabilityError('SESSION_ORIGINAL_STORAGE_CAPACITY','Keep every original and its reserved result space. No new effect may start.');
       await this.filePolicy.directory(directory);
       file = await this.io.open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL, 0o600);
       await this.filePolicy.protect(temporary);

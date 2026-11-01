@@ -1,4 +1,7 @@
 export const PRIVATE_FILE_MAX_BYTES=1_048_576;
+// The journal must retain a complete 2 MiB Pay response as base64, the signed
+// original and existing history. Vault/backup readers keep their old 1 MiB cap.
+export const TRANSACTION_JOURNAL_MAX_BYTES=8_388_608;
 export class PrivateFileReadTooLarge extends Error{
   constructor(){super('Private Wallet file exceeds its read budget');this.code='PRIVATE_FILE_READ_TOO_LARGE'}
 }
@@ -8,6 +11,12 @@ export class PrivateFileReadTooLarge extends Error{
  */
 export async function readBoundedPrivateFile(handle,maxBytes=PRIVATE_FILE_MAX_BYTES){
   if(!Number.isSafeInteger(maxBytes)||maxBytes<0||maxBytes>PRIVATE_FILE_MAX_BYTES)throw Error('Invalid private file read budget');
+  return readBounded(handle,maxBytes);
+}
+export async function readBoundedTransactionJournal(handle){
+  return readBounded(handle,TRANSACTION_JOURNAL_MAX_BYTES);
+}
+async function readBounded(handle,maxBytes){
   const buffer=Buffer.alloc(maxBytes+1);let used=0;
   while(used<buffer.length){
     const length=Math.min(65_536,buffer.length-used);

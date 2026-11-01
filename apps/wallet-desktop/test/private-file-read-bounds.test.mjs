@@ -5,7 +5,7 @@ import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
 import * as fs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {readBoundedPrivateFile} from '../src/bounded-private-file-read.mjs';
+import {readBoundedPrivateFile,TRANSACTION_JOURNAL_MAX_BYTES} from '../src/bounded-private-file-read.mjs';
 const limit=1_048_576;
 const emptyJournal=JSON.stringify({schemaVersion:2,records:[],rejections:[],resolutions:[]});
 function fixture(content,{size=Buffer.byteLength(content),chunk=8192}={}){
@@ -16,7 +16,7 @@ function fixture(content,{size=Buffer.byteLength(content),chunk=8192}={}){
   return{bytes,calls,vault:new PasswordVaultFile('/controlled/vault.json',{io,filePolicy:policy}),journal:new FileTransactionIntentStore({filePath:'/controlled/journal.json',io,filePolicy:policy})};
 }
 test('journal growing beyond the stat budget is rejected without accepting or rewriting its original',async()=>{
-  const f=fixture(emptyJournal+' '.repeat(limit),{size:emptyJournal.length});const before=Buffer.from(f.bytes);
+  const f=fixture(emptyJournal+' '.repeat(TRANSACTION_JOURNAL_MAX_BYTES),{size:emptyJournal.length});const before=Buffer.from(f.bytes);
   await assert.rejects(f.journal.snapshot(),error=>error.data?.code==='TRANSACTION_JOURNAL_INVALID');
   assert.equal(f.calls.bulk,0);assert.equal(f.calls.closed,1);assert.equal(f.calls.writes,0);assert.deepEqual(f.bytes,before);
 });
@@ -39,18 +39,19 @@ test('initial oversize still refuses before content reads and exactly-at-limit r
 test('real private file growth after fstat remains byte-bounded and preserves both original files',async t=>{
   const directory=await fs.mkdtemp(join(tmpdir(),'ynx-private-read-bounds-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
   for(const kind of ['vault','journal']){
+    const activeLimit=kind==='journal'?TRANSACTION_JOURNAL_MAX_BYTES:limit;
     const filePath=join(directory,kind+'.json'),original=kind==='journal'?emptyJournal:'controlled-encrypted-metadata';
     await fs.writeFile(filePath,original,{mode:0o600});let bulk=0,closed=0,requested=0;
     const io={...fs,open:async(...args)=>{
       const handle=await fs.open(...args);
-      return{stat:async()=>{const stat=await handle.stat();await fs.appendFile(filePath,' '.repeat(limit));return stat},
+      return{stat:async()=>{const stat=await handle.stat();await fs.appendFile(filePath,' '.repeat(activeLimit));return stat},
         read:async options=>{requested+=options.length;return handle.read(options)},
         readFile:async(...args)=>{bulk++;return handle.readFile(...args)},close:async()=>{closed++;return handle.close()}};
     }};
     if(kind==='vault')await assert.rejects(new PasswordVaultFile(filePath,{io}).read(),error=>error.data?.code==='PASSWORD_VAULT_FILE_INVALID');
     else await assert.rejects(new FileTransactionIntentStore({filePath,io}).snapshot(),error=>error.data?.code==='TRANSACTION_JOURNAL_INVALID');
-    assert.equal(bulk,0);assert.equal(closed,1);assert.equal(requested,limit+1);
-    assert.equal(await fs.readFile(filePath,'utf8'),original+' '.repeat(limit));
+    assert.equal(bulk,0);assert.equal(closed,1);assert.equal(requested,activeLimit+1);
+    assert.equal(await fs.readFile(filePath,'utf8'),original+' '.repeat(activeLimit));
   }
 });
 test('malformed read results and actual I/O failures cannot loop indefinitely or become partial records',async()=>{
