@@ -1,3 +1,4 @@
+import {readPortableRecordProducerSource,assertPortablePackageConsumerComponent} from './portable-package-consumer-role.mjs';
 // Closed QA source/build receipt profile. Never Root, Native admission or A.
 import {readFileSync,lstatSync,openSync,writeFileSync,fsyncSync,closeSync,constants,fstatSync,readSync,realpathSync} from 'node:fs';
 import {createHash} from 'node:crypto';
@@ -69,8 +70,10 @@ export function inspectCanonicalPortableQAPlanDATA(plan,root,headers){
  same(plan.goArchives.length,1);same(plan.systemInputs,data.manifest.systemInputs);same(plan.nativeAdmission,false);same(plan.sourceAdmission,false);
  return Object.freeze({commands:plan.commands.length,objects:plan.intermediateOutputs.filter(x=>x.endsWith('.o')).length,postCommands:plan.postCommands.length,dataOnly:true,compilerExecuted:false,helperExecuted:false,NativeAdmission:false});
 }
-export function verifyPortableQAComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource){
+export function verifyPortableQAComponent({record,inventoryBytes,moduleBytes,helperBytes,packageConsumerRole},readSource){
  record=captureRecordDATA(record);
+ if(packageConsumerRole)assertPortablePackageConsumerComponent(packageConsumerRole,record);
+ const readProducer=packageConsumerRole?relative=>readPortableRecordProducerSource(packageConsumerRole,record,relative):readSource;
  if(!isPortableQARecord(record)||!inventorySelected(data.version,inventoryBytes))fail('PORTABLE_QA_PROFILE_NOT_SELECTED');
  abs(record.sourceRoot);abs(record.headerRoot);const root=record.sourceRoot,r=record.normalPortableImageRole;
  exact(record,['schemaVersion','kind','napiVersion','headerVersion','minimumSystemVersion','readbackOnly','commandsKind','appSigned','nativeQualified','registrationAccepted','relativeBases','sourceRoot','headerRoot','sourceInventory','inputFiles','headers','architectures','commands','exitCodes','ownedUndefinedScan','output','sourceProvenanceFiles','normalPortableImageRole','portableRuntime','helperBuild']);exact(r,['kind','profileId','manifest','runtime','systemInputs','nodeExecutable','postCommands','postExitCodes',...(Object.hasOwn(r,'postBuildContinuation')?['postBuildContinuation']:[])]);same(r.kind,PORTABLE_QA_ROLE);same(r.profileId,data.id);same(r.manifest,data.manifestPin);same(r.runtime,data.manifest.node);same(r.systemInputs,data.manifest.systemInputs);
@@ -82,14 +85,14 @@ export function verifyPortableQAComponent({record,inventoryBytes,moduleBytes,hel
  const post=[{tool:r.nodeExecutable,argv:[path.join(root,data.manifest.strictGate),path.join(root,'apps/wallet-desktop/native/original-auth-common-plan.json')]},{tool:r.nodeExecutable,argv:[path.join(root,data.manifest.readback),path.join(root,'apps/wallet-desktop/native/original-auth-identity.node')]}];abs(r.nodeExecutable);same(r.postCommands,post);same(r.postExitCodes,[0,0]);
  for(const x of data.helperInputs)check(readSource(x.path),x);check(inventoryBytes,data.inventory);
  verifyPortableRuntimeRecordDATA(record,moduleBytes,readSource);
- same(record.sourceProvenanceFiles.map(x=>x.relative),PORTABLE_QA_PROVENANCE_NAMES);for(const x of record.sourceProvenanceFiles){exact(x,['relative','bytes','sha256']);check(readSource(x.relative),x);}
+ same(record.sourceProvenanceFiles.map(x=>x.relative),PORTABLE_QA_PROVENANCE_NAMES);for(const x of record.sourceProvenanceFiles){exact(x,['relative','bytes','sha256']);check(readProducer(x.relative),x);}
  const helper=record.helperBuild;
  if(!helper)fail('PORTABLE_QA_HELPER_NOT_EXECUTED');exact(helper,['kind','sourceRoot','architectures','readbackOnly','commandsKind','executed','serviceRegistered','installed','nativeQualified','appSigned','inputFiles','commands','exitCodes','ownedUndefinedScan','output','packagedOutput','plist']);same(helper.kind,'YNX_WALLET_ORIGINAL_HELPER_BUILD/v1');same(helper.sourceRoot,root);same(helper.architectures,['arm64']);same(helper.commands,helperCommands(root));same(helper.exitCodes,[0]);same(helper.inputFiles,rows(data.helperInputs));same(helper.commandsKind,'executed-normal-build');same(helper.executed,true);
  for(const k of ['readbackOnly','serviceRegistered','installed','nativeQualified','appSigned'])same(helper[k],false);
  same(record.output.relative,'apps/wallet-desktop/native/original-auth-identity.node');check(moduleBytes,record.output);same(helper.output.relative,'apps/developer/helper/YNXIdentityReceiver');check(helperBytes,helper.output);same(helper.packagedOutput,'apps/wallet-desktop/native/YNXIdentityReceiver');same(helper.plist,{relative:data.helperPlist.path,bytes:data.helperPlist.bytes,sha256:data.helperPlist.sha256});
  for(const [owner,output]of [[record,record.output.relative],[helper,helper.output.relative]]){const s=owner.ownedUndefinedScan;exact(s,['tool','argv','exit','stdoutSHA256','ownedUndefined']);same(s?.tool,'/usr/bin/nm');same(s.argv,['-u',path.join(root,output)]);same(s.exit,0);same(s.ownedUndefined,[]);if(!/^[a-f0-9]{64}$/.test(s.stdoutSHA256))fail('PORTABLE_QA_SCAN_MISSING');}
- if(Object.hasOwn(r,'postBuildContinuation')){const role=verifyPortableQAContinuationRoleDATA(record);for(const x of role.producerFiles)check(readSource(x.relative),x);}
- return {normalCommonImage:true,normalPortableImageRole:r,sourceBytesVerified:true,artifactBytesVerified:true,walletInputs:[],selectedNativeInputs:data.nodeInputs,supplierNodeInputCount:262,portableRuntime:true,runtimeLibraryOutputs:record.portableRuntime.libraryOutputs,licenseOutputs:record.portableRuntime.licenseOutputs,helper:{output:helper.output,packagedOutput:helper.packagedOutput,translationUnits:data.helperTranslationUnits.length,sourceInputs:data.helperInputs.length},installed:false,serviceRegistered:false,nativeQualified:false,SourceAdmission:false};
+ if(Object.hasOwn(r,'postBuildContinuation')){const role=verifyPortableQAContinuationRoleDATA(record);for(const x of role.producerFiles)check(readProducer(x.relative),x);}
+ return {...(packageConsumerRole?{packageConsumerSourceRole:assertPortablePackageConsumerComponent(packageConsumerRole,record)}:{}),normalCommonImage:true,normalPortableImageRole:r,sourceBytesVerified:true,artifactBytesVerified:true,walletInputs:[],selectedNativeInputs:data.nodeInputs,supplierNodeInputCount:262,portableRuntime:true,runtimeLibraryOutputs:record.portableRuntime.libraryOutputs,licenseOutputs:record.portableRuntime.licenseOutputs,helper:{output:helper.output,packagedOutput:helper.packagedOutput,translationUnits:data.helperTranslationUnits.length,sourceInputs:data.helperInputs.length},installed:false,serviceRegistered:false,nativeQualified:false,SourceAdmission:false};
 }
 /** Project the original fixed nm scan plan into the closed five-field receipt.
  * DATA only: preserves the actual owned-symbol check; never runs a process. */
