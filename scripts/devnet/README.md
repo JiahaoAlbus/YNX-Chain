@@ -418,3 +418,22 @@ when a percentile is unknown. Completing an early stage does not qualify a
 failed transaction or supply a final-confirmation latency. This reporting-only
 change does not alter the 4c14 guard or its pending Linux/height qualification.
 
+Frozen LINK live adapter `0d0490055c57191f20ca2d3813bf6d4b6b5f37aa`
+replaces the earlier layer-accounting copy byte-for-byte (SHA256
+`1b9d16539b711ca7e490c8c4bc01984beba5efa474caeca187dee2f19a5e7635`).
+The owned TCP module remains the unchanged 055 copy. The existing NetworkWindow
+accepts an explicit `live_reader(node)->raw bytes` from the owning normal
+private producer. Its call is bracketed with Python
+`clock_gettime_ns(CLOCK_MONOTONIC)` and the exact original raw SHA; the frozen
+`original_live_node_capture` performs schema/lifetime/generation/clock checks.
+Same-kernel clock bounds are used for both outer checkpoints. No cached file,
+after-stop lifetime value or alternative private transport is invented here.
+
+CORE still owns the normal producer read transport and exact operator argv.
+Until that callee is supplied and explicitly connected by the normal driver,
+`originalLiveReadCalleeSupplied=false` and the missing layer reason remains
+`normal_private_producer_read_callee_not_supplied`. Hook adapter checks are
+not a live node/window test. Invalid bytes, oversize, read failure, stale clock,
+changed lifetime or generation stay UNKNOWN. Disabled lossless and missing
+proto remain null; the hook never enables either transport or metrics.
+

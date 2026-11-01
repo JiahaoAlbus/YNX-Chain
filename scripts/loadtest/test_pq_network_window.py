@@ -88,5 +88,42 @@ class NetworkHookControls(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,"loopback"):
                     hook.NetworkWindow(c,driver.lab,"a"*40,"b"*40,"c"*64,500)
 
+    def test_live_reader_uses_kernel_clock_raw_identity_and_disabled_layers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);window=self.create(root);seen=[];count=[0]
+            def read_original(node):
+                seen.append(node);at=time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+                fields=dict(messages=count[0],transactions=count[0],transactionBytes=count[0]*100,reencodedProtoBytes=count[0]*110)
+                wire=dict(schema="YNX-MEMPOOL-WIRE-OBSERVATION/v1",attached=True,overflow=False,physicalBytesMeasured=False,sendAttempts=fields,sendQueued=fields,sendNotQueued={key:0 for key in fields},received=fields)
+                value=dict(schema="YNX-MEMPOOL-LIVE-WIRE-OBSERVATION/v1",producerPID=str(node['pid']),reactorLifetimeID=str(node['pid']+10),observerLifetimeID=str(node['pid']+20),lifecycleGeneration="1",clock="CLOCK_MONOTONIC",clockStatus="OBSERVED",clockError="",startMonotonicNs=str(at),endMonotonicNs=str(at),status="OBSERVED",reason="",complete=True,reactorRunningAtStart=True,reactorRunningAtEnd=True,nonAtomic=True,completedCallsOnly=True,inFlightExcluded=True,endpointOnly=True,physicalBytesMeasured=False,wire=wire,wireStatus=dict(status="OBSERVED",complete=True,attached=True,overflow=False),lossless=None,losslessStatus=dict(status="DISABLED",reason="not_enabled",complete=False),proto=None,protoStatus=dict(status="UNKNOWN",reason="not_supplied",complete=False))
+                return json.dumps(value,separators=(',',':')).encode()
+            window.live_reader=read_original
+            def no_tcp(**args):
+                at=time.clock_gettime_ns(time.CLOCK_MONOTONIC);return dict(schema="YNX-OWNED-TCP/1",startMonotonicNs=str(at),endMonotonicNs=str(at),nodes=args['nodes'],complete=False,reasons=['CONTROL_ONLY_NOT_SAMPLED'])
+            with mock.patch.object(window.tcp,'sample_owned_tcp',side_effect=no_tcp):
+                window.capture('start');count[0]=1;result=window.finish(0)
+            self.assertEqual(len(seen),8);self.assertTrue(window.start['originalLiveReadCalleeSupplied'])
+            for row in result['nodes']:
+                self.assertEqual(row['logical']['status'],'OBSERVED')
+                self.assertEqual(row['logical']['counters']['sendAttempts.transactionBytes'],'100')
+                self.assertEqual(row['attempted']['reason'],'live_lossless_disabled')
+                self.assertEqual(row['serializedProto']['status'],'UNKNOWN')
+                self.assertEqual(row['liveWindow']['clock'],'CLOCK_MONOTONIC')
+            self.assertFalse(result['physicalBytesMeasured']);self.assertFalse(result['gainsQualified'])
+            # A cached raw read cannot be reused as a fresh endpoint.
+            original=window.start['nodes'][0]['live']['raw'].encode()
+            window.live_reader=lambda node:original
+            cached=window.capture_live_node(window.binding['nodes'][0])
+            self.assertEqual(cached['liveStatus'],'UNKNOWN')
+            self.assertEqual(cached['liveReason'],'live_snapshot_stale_or_outside_capture')
+
+    def test_live_reader_failure_and_invalid_bytes_remain_unknown(self):
+        with tempfile.TemporaryDirectory() as directory:
+            window=self.create(Path(directory));node=window.binding['nodes'][0]
+            for reader in (lambda n:b'\xff',lambda n:'text-not-raw-bytes',lambda n:b'x'*(128*1024+1)):
+                window.live_reader=reader;row=window.capture_live_node(node)
+                self.assertEqual(row['liveStatus'],'UNKNOWN');self.assertIsNone(row['wire'])
+                self.assertEqual(row['liveReason'],'normal_private_producer_read_failed')
+
 
 if __name__=="__main__":unittest.main()

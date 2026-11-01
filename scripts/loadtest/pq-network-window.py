@@ -12,9 +12,9 @@ from pathlib import Path
 import time
 from urllib.parse import urlsplit
 
-LINK_COMMIT="05500bd907375884a727161e73ba634f1c6e1a27"
+LINK_COMMIT="0d0490055c57191f20ca2d3813bf6d4b6b5f37aa"
 FROZEN={"owned-tcp-accounting.py":"612da9404e0ec52b77e6160aa29d39e020fed96695be4b6633f8d1dffc9ac440",
-        "network-layer-accounting.py":"1d4f4dc9fe8bf5227312f1c5f995d289d4a2c4cfd1b8a4dd210cba7248fc3626"}
+        "network-layer-accounting.py":"1b9d16539b711ca7e490c8c4bc01984beba5efa474caeca187dee2f19a5e7635"}
 
 
 def frozen_module(name):
@@ -26,8 +26,9 @@ def frozen_module(name):
 
 
 class NetworkWindow:
-    def __init__(self,ceremony,lab,source,tools,input_sha,demand):
+    def __init__(self,ceremony,lab,source,tools,input_sha,demand,live_reader=None):
         self.c,self.lab=ceremony,lab;self.start=None;self.end=None
+        self.live_reader=live_reader
         self.tcp=frozen_module("owned-tcp-accounting.py");self.layers=frozen_module("network-layer-accounting.py")
         nodes=[]
         for planned in ceremony.plan["nodes"]:
@@ -45,16 +46,32 @@ class NetworkWindow:
         self.pin=self.layers.digest(self.binding)
         lab.write_new(ceremony.w.work/"public/network-binding.json",self.binding)
 
+    def capture_live_node(self,node):
+        # The owner of the normal private producer supplies this explicit
+        # read callback. No cache/file/publisher or transport is invented here.
+        if self.live_reader is None:
+            return dict(name=node["name"],pid=node["pid"],startTicks=node["startTicks"],wire=None,lossless=None,proto=None,liveStatus="UNKNOWN",liveReason="normal_private_producer_read_callee_not_supplied")
+        lo=time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+        try:
+            raw=self.live_reader(dict(node))
+            hi=time.clock_gettime_ns(time.CLOCK_MONOTONIC)
+            self.lab.require(type(raw) is bytes and len(raw)<=128<<10,"bounded original live publisher bytes required")
+            text=raw.decode("utf-8",errors="strict")
+            return self.layers.original_live_node_capture(node=node,raw=text,sha256=hashlib.sha256(raw).hexdigest(),start_monotonic_ns=lo,end_monotonic_ns=hi)
+        except Exception as error:
+            return dict(name=node["name"],pid=node["pid"],startTicks=node["startTicks"],wire=None,lossless=None,proto=None,liveStatus="UNKNOWN",liveReason="normal_private_producer_read_failed",readErrorType=type(error).__name__,readStartMonotonicNs=str(lo),readEndMonotonicNs=str(time.clock_gettime_ns(time.CLOCK_MONOTONIC)))
+
     def capture(self,side):
         self.lab.require(side in ("start","end") and getattr(self,side) is None,"one original network checkpoint per side")
-        lo=time.monotonic_ns()
+        lo=time.clock_gettime_ns(time.CLOCK_MONOTONIC)
         # The immutable node identity/endpoint list is the SAME in outer binding
         # and sampler. The sampler itself rechecks the original live guard.
         sample=self.tcp.sample_owned_tcp(launcher_pid=os.getpid(),nodes=self.binding["nodes"],previous=self.start.get("tcp") if self.start is not None else None)
-        rows=[dict(name=n["name"],pid=n["pid"],startTicks=n["startTicks"],wire=None,lossless=None,proto=None) for n in self.binding["nodes"]]
-        checkpoint=dict(bindingSHA256=self.pin,startMonotonicNs=str(lo),endMonotonicNs=str(time.monotonic_ns()),nodes=rows,tcp=sample,
-            missingPublishers=dict(wire="original publisher is after-stop lifetime only; cannot supply live window endpoints",
-                lossless="no original live publisher supplied; experimental transport is not enabled by hook",
+        rows=[self.capture_live_node(n) for n in self.binding["nodes"]]
+        checkpoint=dict(bindingSHA256=self.pin,startMonotonicNs=str(lo),endMonotonicNs=str(time.clock_gettime_ns(time.CLOCK_MONOTONIC)),nodes=rows,tcp=sample,
+            originalLiveReadCalleeSupplied=self.live_reader is not None,
+            missingPublishers=dict(wire="normal private callee required; missing/stale/invalid remains UNKNOWN, after-stop data not substituted",
+                lossless="disabled or absent remains UNKNOWN; experimental transport is not enabled by hook",
                 proto="no original owned metrics endpoint supplied; no endpoint enabled or size inferred"))
         self.lab.write_new(self.c.w.work/("public/network-%s.json"%side),checkpoint)
         setattr(self,side,checkpoint)
