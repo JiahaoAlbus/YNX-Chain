@@ -25,8 +25,8 @@ GO_SOURCE = "7593d691bafa6e7e5bb40511464aed27a41b416d"
 GO_TREE = "eb3eda31c0b59cb14d6db62f0deaa4940c3d41c6"
 FORK_TREE = "54e88e6aba735eaceeb2d00bb40731248c673bd7"
 NORMAL_RUN = "41228262522"
-TOOLS = "b2e324848a8cb4b18c3552989441406c5d87889d"
-TOOLS_TREE = "e26d1889babc20f6535feadf66bb6bc95dc1275f"
+TOOLS = "3d6f0fdbf752ccd0927c04e489c3c44d858e4c7b"
+TOOLS_TREE = "daeb14865bb6a0510c885b1738baa3a3f845d511"
 CAPS = dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4 << 30,
             newBytes=8 << 30, initialMemoryBytes=6 << 30,
             initialDiskBytes=16 << 30, logBytes=4 << 20, cpus=2)
@@ -40,7 +40,7 @@ TOOL_PINS = {
     "pq-independent-load.py": "e5377710db23d681fe4a94c51086af0f81d269775aa27742548a14c26cc0ccb1",
     "pq-independent-scheduler.py": "8f4bdd7ad66e75a02c0e4f54b96b18862e87939957090ef82de3888a0dd1d234",
     "pq-normal-process-lab.py": "6810b02608e54fe0dfde05555073c8f01463ac182f4dea76a9dfb6a2af4e1195",
-    "consensus-linux-cohort.py": "9b033a251833e046ea50e795f56fce5b52013693df9f0ee432aa6190063f5b42",
+    "consensus-linux-cohort.py": "ffc7e02e1d37adc28f4d94c262d30a45e91eb594307931b482dcdd39ccc82591",
     "pq-paired-linux-window.py": "b87a895d7c625ae15834a73b19196310dfbba13335707b9fdb4a3e50d9ad69e2",
 }
 
@@ -68,6 +68,7 @@ def prepared_data():
                 label="current75 nonexperimental baseline; contains previous production improvements",
                 untouchedFdcBefore=False, combinedABBaseline=False, executed=False,
                 previous16SenderRun="41264965296", previous16SenderLoadExecuted=False,
+                previous8RSSExitRun="41266674073", previous8RSSExitLoadExecuted=False,
                 accountSelection="Root fixed eight independent accounts, each at most one pending; all500 demand retained",
                 helperMaximumLive=3, originalOwnedPIDLimit=16,
                 nodeStartAuthorized=False, publicNetwork=False, authorityGranted=False)
@@ -233,7 +234,7 @@ def execute(source, tools):
                            TOOL_PINS["pq-independent-load.py"])
     intake = pinned_module("current75_original_storage", source / "scripts/loadtest/pq-source-artifact-intake.py",
                            SOURCE_PINS["scripts/loadtest/pq-source-artifact-intake.py"])
-    require(driver.lab.CAPS == CAPS and driver.lab.RSS_OBSERVER_VERSION == "same-process-rss-v3-pidfd",
+    require(driver.lab.CAPS == CAPS and driver.lab.RSS_OBSERVER_VERSION == "same-process-rss-v4-pidfd-any-state",
             "original Window caps or pidfd guard differ")
     go = shutil.which("go")
     require(go is not None, "pinned original Go toolchain is required")
