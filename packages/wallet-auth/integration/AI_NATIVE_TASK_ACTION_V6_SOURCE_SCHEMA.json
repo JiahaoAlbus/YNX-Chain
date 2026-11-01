@@ -1,0 +1,151 @@
+{
+  "purpose": "ai-native-task-action-source-v6",
+  "selectionKey": "aiNativeTaskActionV6",
+  "sourceVersion": 2,
+  "scopeVersion": "6",
+  "roles": [
+    "client",
+    "server"
+  ],
+  "signature": {
+    "unchanged": [
+      "AUTH-SOURCE-ENROLLMENT",
+      "AUTH-SOURCE-PROFILE",
+      "AUTH-SOURCE-CURRENT",
+      "original Source-v2 frames/E/body signature construction"
+    ],
+    "fourIndependentCurrentRegistrations": [
+      "root",
+      "profile",
+      "current",
+      "subject"
+    ]
+  },
+  "policyKeys": [
+    "rootDigest",
+    "enrollmentDigest",
+    "endpoint",
+    "spki",
+    "signatureContract",
+    "applicationId",
+    "productId",
+    "platform",
+    "sourceRole"
+  ],
+  "enrollment": "same existing exact19 enrollment keys plus sourceRole = exact20; signed sourceRole must equal policy.sourceRole; platform/productId/applicationId pinned to policy",
+  "selectionKeys": [
+    "association",
+    "expectedRequest",
+    "originalHostStatePath",
+    "originalHostTerminalDirectory",
+    "aiNativeTaskActionV6"
+  ],
+  "scopeKeysCommon": [
+    "version",
+    "role",
+    "nativeIdentity",
+    "operations",
+    "currentSelector",
+    "imagePins"
+  ],
+  "clientOnly": "deviceScope exact original V4 registered-source DATA scope, independent V6 enrollment purpose; scope.role=client",
+  "serverOnly": "serverIssuer exact canonicalOwner/pkA/pkB/revision/endpoint/spki; subject snapshot actual fullpair/revision comparison; scope.role=server",
+  "nativeIdentityKeys": [
+    "networkId",
+    "productId",
+    "clientId",
+    "platform",
+    "applicationId",
+    "bundleId",
+    "packageId",
+    "origin",
+    "callback",
+    "installedAppIdentityDigest",
+    "registryId",
+    "policyRevision"
+  ],
+  "nativeIdentityFixed": {
+    "productId": "ai",
+    "clientId": "ynx-ai-v1",
+    "platform": [
+      "ios",
+      "android"
+    ],
+    "applicationId": "com.ynxweb4.ai",
+    "callback": "ynxai://wallet-auth/callback"
+  },
+  "serverReleasePlatform": [
+    "linux",
+    "macos",
+    "windows"
+  ],
+  "currentSelectorKeys": [
+    "sourceId",
+    "instanceId",
+    "resourceKey"
+  ],
+  "selectorMeaning": "opaque nonempty stable original resource key; actual protected owner interprets; no FS/current hash/FD trust",
+  "imagePinsKeys": [
+    "manifest",
+    "implementingImage",
+    "privateModule"
+  ],
+  "pinKeys": [
+    "path",
+    "bytes",
+    "sha256"
+  ],
+  "imageMeaning": "original release actual facts DATA, no Root/load identity qualification",
+  "operations": [
+    "task.create",
+    "task.prepare",
+    "task.approve",
+    "task.cancel",
+    "task.dispatch",
+    "task.run-start",
+    "task.run-resume",
+    "task.propose-tool-step",
+    "task.complete",
+    "task.list",
+    "task.read",
+    "task.step-result",
+    "task.run-read",
+    "task.reconcile"
+  ],
+  "unregistered": [
+    "task.handoff"
+  ],
+  "current": {
+    "head": "SHA256(canonical(scope))",
+    "profileDigest": "same whole signed Source profile digest",
+    "fresh": "actual current nonce+four role views checked per use; no changing-current original in profile",
+    "expiry": "min(profile/current/enrollment and registered client registration/session)"
+  },
+  "exports": {
+    "contract": [
+      "AI_NATIVE_TASK_ACTION_V6_SOURCE_PURPOSE",
+      "AI_NATIVE_TASK_ACTION_V6_SELECTION_KEY",
+      "AI_NATIVE_TASK_ACTION_V6_OPERATIONS",
+      "AI_NATIVE_TASK_ACTION_V6_UNREGISTERED_OPERATIONS",
+      "inspectOriginalAITaskActionV6SourceScopeDATA"
+    ],
+    "preissuer": "inspectOriginalAITaskActionV6SourceIssuanceBodyDATA(role,rootRaw,enrollmentRaw,bodyRaw,policy,registrations,atMs)",
+    "existing": [
+      "verifyOriginalAuthSourceEnrollmentV2",
+      "verifyOriginalAuthSourceProfileV2",
+      "verifyOriginalAuthSourceCurrentV2",
+      "dispatchOriginalSourceV2",
+      "OriginalSourceIssuanceV2Kernel",
+      "OriginalAuthSourceCurrentV2Kernel"
+    ]
+  },
+  "falseAuthority": [
+    "RootAdmission",
+    "SourceAdmission",
+    "NativeAdmission",
+    "registered",
+    "current",
+    "preLoadQualified"
+  ],
+  "parentDecision": "sole parent confirmed stable selector/imagePins exact shape in this task; never claimed old deployed protocol"
+}
