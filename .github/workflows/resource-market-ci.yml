@@ -654,7 +654,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git diff --exit-code
-          if ! go test -json -p 1 ./internal/ynxbatch ./cmd/ynx-artifact-release-cabi -count=1 > "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"; then
+          if ! go test -json -p 1 ./internal/ynxbatch ./internal/ynxresourceconsent ./cmd/ynx-artifact-release-cabi -count=1 > "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"
             exit 1
           fi
@@ -703,9 +703,25 @@ jobs:
           source_v2_sdk_terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == source_v2_sdk and row['Action'] in ('pass', 'fail', 'skip')]
           if source_v2_sdk_terminal != [('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi', 'pass')]:
               raise RuntimeError('sole SDK Source-v2 public golden did not execute through actual C AND verifier')
-          if any(row.get('Action') == 'fail' for row in rows):
+          resource_consent = ['TestNetworkResourceMaterialPUBLICCurrentAndBorrowLifecycle', 'TestNetworkResourceConsentCABIPUBLICActualFixedLifecycle', 'TestNetworkResourceConsentCABIPUBLICRegistryCapacityAndDebt']
+          for name in resource_consent:
+              package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxresourceconsent' if name == resource_consent[0] else 'cmd/ynx-artifact-release-cabi')
+              terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != [(package, 'pass')]:
+                  raise RuntimeError('fixed resource consent did not execute uniquely in its original package: ' + name)
+          for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch', 'github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourceconsent', 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi'):
+              terminal = [row['Action'] for row in rows if row.get('Package') == package and 'Test' not in row and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('complete original Native package did not pass: ' + package)
+          source_v2_capacity = ['TestAuthSourceStatementV2CapacitySoleUnsignedE8', 'TestAuthSourceStatementV2CapacitySignedSoleActualCAND', 'TestAuthSourceStatementV2CapacitySignedRejectsSubstitution']
+          for name in source_v2_capacity:
+              terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != [('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi', 'pass')]:
+                  raise RuntimeError('Source-v2 capacity original test did not execute uniquely: ' + name)
+          if any(row.get('Action') in ('fail', 'build-fail') for row in rows):
               raise RuntimeError('original full Native core suite failed')
-          print('YNX_AUTH_SOURCE_V2_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=source_v2 + [source_v2_sdk], suitePassed=True, sameRuntimeCHeaderToActualExport=True, externalArchiveInterop=False, sdkGoldenVerified=True, sourceQualified=False, accountAuthorized=False, mobileQualified=False), sort_keys=True))
+          print('YNX_NETWORK_RESOURCE_CONSENT_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=resource_consent, suitePassed=True, sameRuntimeCHeaderToActualExport=True, externalArchiveInterop=False, sourceGrant=False, nativeAuthorized=False, resourceExecutionAuthorized=False, protectedPrincipalConnected=False, durableOnceVerified=False), sort_keys=True))
+          print('YNX_AUTH_SOURCE_V2_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=source_v2 + [source_v2_sdk] + source_v2_capacity, suitePassed=True, sameRuntimeCHeaderToActualExport=True, externalArchiveInterop=False, sdkGoldenVerified=True, sourceQualified=False, accountAuthorized=False, mobileQualified=False), sort_keys=True))
           PY
       - name: Qualify device creator and invoice execution from the original full core suite
         run: |
@@ -849,7 +865,7 @@ jobs:
               'scripts/verify/account-initial-cabi-check.sh', 'scripts/fixtures/verify-publisher-registration-cabi',
               'scripts/verify/publisher-registration-cabi-check.sh', 'scripts/fixtures/verify-product-session-http-cabi',
               'scripts/verify/product-session-http-cabi-check.sh', 'scripts/fixtures/verify-pending-original-query-cabi',
-              'scripts/verify/pending-original-query-cabi-check.sh', 'scripts/verify/auth-source-statement-v2-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',
+              'scripts/verify/pending-original-query-cabi-check.sh', 'scripts/verify/auth-source-statement-v2-cabi-check.sh', 'scripts/verify/network-resource-consent-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',
               'scripts/verify/product-device-keypair-v4-cabi-check.sh', 'scripts/fixtures/verify-invoice-tx-cabi',
               'scripts/fixtures/verify-deployment-manifest-v2-cabi',
               'scripts/fixtures/verify-product-session-http-v5-cabi',
@@ -862,7 +878,7 @@ jobs:
                   raise RuntimeError('original Main requires actual arm64 native execution')
               targets.append(('darwin-arm64', case / 'libynx_artifact_release.a', 'darwin', 'arm64', True))
           public_names = ('PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json')
-          native_public_catalog = ('libynx_artifact_release.a', 'ynx_artifact_release.h', 'tx_batch.h', 'account_initial.h', 'account_migration.h', 'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'auth_source_statement_v2.h', 'registered_n1_verify.h', 'product_session_http.h', 'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json', 'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json', 'DEVICE-HTTP-PUBLIC-INTEROP.json', 'PENDING-QUERY-PUBLIC-RECEIPT.json', 'PENDING-QUERY-PUBLIC-INTEROP.json', 'SOURCE.json')
+          native_public_catalog = ('libynx_artifact_release.a', 'ynx_artifact_release.h', 'tx_batch.h', 'account_initial.h', 'account_migration.h', 'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'auth_source_statement_v2.h', 'registered_n1_verify.h', 'network_resource_consent.h', 'product_session_http.h', 'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json', 'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json', 'DEVICE-HTTP-PUBLIC-INTEROP.json', 'PENDING-QUERY-PUBLIC-RECEIPT.json', 'PENDING-QUERY-PUBLIC-INTEROP.json', 'SOURCE.json')
           public_pins = {name:pin(case / 'output' / name) for name in public_names}
           transaction_public_pins = {'TX-'+name:pin(transaction_case / 'input' / name) for name in public_names}
           initial_public_pins = {'INITIAL-'+name:pin(initial_case / 'input' / name) for name in public_names}
@@ -880,6 +896,7 @@ jobs:
               shutil.copyfile('cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h', out / 'product_pair_pending_original_query.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h', out / 'auth_source_statement_v2.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/registered_n1_verify.h', out / 'registered_n1_verify.h')
+              shutil.copyfile('cmd/ynx-artifact-release-cabi/network_resource_consent.h', out / 'network_resource_consent.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/product_session_http.h', out / 'product_session_http.h')
               for name in public_names:
                   shutil.copyfile(case / 'output' / name, out / name)
@@ -931,6 +948,20 @@ jobs:
                   authSourceStatementV2SameRuntimeCHeaderToActualExport=True, authSourceStatementV2DataOnly=True,
                   authSourceStatementV2ExternalArchiveInterop=False, authSourceStatementV2SDKGoldenVerified=True,
                   authSourceStatementV2SourceQualified=False, authSourceStatementV2AccountAuthorized=False, authSourceStatementV2MobileQualified=False,
+                  networkResourceConsentABI='YNXNetworkResourceConsentAttemptV1', networkResourceConsentABIVersion=1,
+                  networkResourceConsentHeader=pin(out / 'network_resource_consent.h'),
+                  networkResourceConsentCoreTests=['TestNetworkResourceMaterialPUBLICCurrentAndBorrowLifecycle', 'TestNetworkResourceConsentCABIPUBLICActualFixedLifecycle', 'TestNetworkResourceConsentCABIPUBLICRegistryCapacityAndDebt'],
+                  networkResourceConsentRequestBytes=264, networkResourceConsentResultBytes=40, networkResourceConsentMemberCapacity=262144,
+                  networkResourceConsentActions=['PREPARE', 'CURRENT', 'SIGN_ONCE', 'CONFIRM_CURRENT', 'ORIGINAL', 'RETIRE', 'DRAIN', 'CLOSE', 'RELEASE'],
+                  networkResourceConsentDomain='YNX-NETWORK-RESOURCE-CONSENT/v1', networkResourceConsentPurpose='NETWORK-RESOURCE-CONSENT',
+                  networkResourceConsentSameRuntimeCHeaderToActualExport=True, networkResourceConsentExternalArchiveInterop=False,
+                  networkResourceConsentSourceGrant=False, networkResourceConsentNativeAuthorized=False, networkResourceConsentResourceExecutionAuthorized=False,
+                  networkResourceConsentProtectedPrincipalConnected=False, networkResourceConsentDurableOnceVerified=False,
+                  authSourceStatementV2CapacityCoreTests=['TestAuthSourceStatementV2CapacitySoleUnsignedE8', 'TestAuthSourceStatementV2CapacitySignedSoleActualCAND', 'TestAuthSourceStatementV2CapacitySignedRejectsSubstitution'],
+                  authSourceStatementV2CapacityContract=pin(Path('cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/CONTRACT.json')),
+                  authSourceStatementV2RoleMessageMaximum=dict(enrollment=66267, profile=66264, current=66264),
+                  authSourceStatementV2OuterEnvelopeMaximum=393216, authSourceStatementV2GenericMemberMaximum=98304, authSourceStatementV2GenericMessageMaximum=65536,
+                  authSourceStatementV2CapacityPublicFixtureVerified=True,
                   nativePublicCatalog=list(native_public_catalog),
                   pendingOriginalQueryABI='YNXProductPairPendingOriginalQuerySignV1', pendingOriginalQueryABIVersion=1,
                   pendingOriginalQueryHeader=pin(out / 'product_pair_pending_original_query.h'),
@@ -958,7 +989,7 @@ jobs:
               with (out / 'SOURCE.json').open('x') as sink:
                   sink.write(json.dumps(record, sort_keys=True, separators=(',', ':'))+'\n')
               if {p.name for p in out.iterdir()} != set(native_public_catalog):
-                  raise RuntimeError('closed21 native public artifact catalog differs')
+                  raise RuntimeError('closed22 native public artifact catalog differs')
               print('YNX_ARTIFACT_CABI_CANDIDATE '+json.dumps(dict(target=record['target'],actualCABIExecuted=executed,archive=record['archive'],header=record['header']),sort_keys=True))
           if command('git','status','--porcelain','--untracked-files=normal'):
               raise RuntimeError('Native CI modified source checkout')
@@ -1242,6 +1273,7 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/product_pair_pending_original_query.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/auth_source_statement_v2.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/registered_n1_verify.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/network_resource_consent.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/product_session_http.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/SOURCE.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PUBLIC-RECEIPT.json
@@ -1271,6 +1303,7 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/product_pair_pending_original_query.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/auth_source_statement_v2.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/registered_n1_verify.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/network_resource_consent.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/product_session_http.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/SOURCE.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/PUBLIC-RECEIPT.json
@@ -1764,7 +1797,32 @@ jobs:
           retention-days: 7
       - name: Verify native ledger and HTTP PQ integration
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
-        run: go test -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api
+        run: |
+          set -euo pipefail
+          if ! go test -json -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api > "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl" 2> "$RUNNER_TEMP/ynx-legacy-native-integration.stderr"; then
+            cat "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl"
+            cat "$RUNNER_TEMP/ynx-legacy-native-integration.stderr" >&2
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl"
+          cat "$RUNNER_TEMP/ynx-legacy-native-integration.stderr" >&2
+          python3 -B - <<'PY'
+          import json, os
+          from pathlib import Path
+          rows = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'ynx-legacy-native-integration.jsonl').read_text().splitlines()]
+          legacy_snapshot = ['TestLegacySnapshotMemoryCanonicalBatchAndBlock', 'TestLegacySnapshotMemoryDenseBlockBoundedWrites', 'TestLegacySnapshotMemoryFullHistoryColdAndReplication', 'TestLegacySnapshotMemoryLateFailureAndUnknown', 'TestLegacySnapshotMemorySameInputAllocation', 'TestLegacySnapshotMemoryValidHistoryAllocation']
+          for name in legacy_snapshot:
+              terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != [('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'pass')]:
+                  raise RuntimeError('legacy snapshot memory did not execute uniquely in original package: ' + name)
+          for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'github.com/JiahaoAlbus/YNX-Chain/internal/api'):
+              terminal = [row['Action'] for row in rows if row.get('Package') == package and 'Test' not in row and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('complete original ledger/API package did not pass: ' + package)
+          if any(row.get('Action') in ('fail', 'skip', 'build-fail') for row in rows):
+              raise RuntimeError('original ledger/API stream failed or skipped')
+          print('YNX_LEGACY_SNAPSHOT_MEMORY_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], requiredPassed=legacy_snapshot, suitePassed=True, productionOOMResolved=False, rootAuthorized=False), sort_keys=True))
+          PY
       - name: Compile production entry points
         if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}
         env:

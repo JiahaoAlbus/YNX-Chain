@@ -395,14 +395,14 @@ func validReplicationHash(value string) bool {
 
 func replicationBatchIntegrity(batch replicationBatch) (string, error) {
 	batch.Integrity = ""
-	payload, err := json.Marshal(batch)
-	if err != nil {
-		return "", fmt.Errorf("encode replication batch integrity document: %w", err)
-	}
 	digest := sha256.New()
 	_, _ = digest.Write([]byte(replicationBatchHashDomain))
 	_, _ = digest.Write([]byte{0})
-	_, _ = digest.Write(payload)
+	// The caller may still own the received JSON and decoded state. Do not
+	// allocate another complete batch solely to hash the same canonical bytes.
+	if err := writeCanonicalStateJSON(digest, batch, false); err != nil {
+		return "", fmt.Errorf("encode replication batch integrity document: %w", err)
+	}
 	return hex.EncodeToString(digest.Sum(nil)), nil
 }
 

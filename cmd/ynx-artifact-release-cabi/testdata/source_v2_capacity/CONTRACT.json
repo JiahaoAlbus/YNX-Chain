@@ -1,0 +1,72 @@
+{
+  "schema": "SOLE_SOURCE_V2_FIXED_CAPACITY_SUCCESSOR_V1",
+  "soleFunction": "encodeOriginalAuthSourceStatementV2",
+  "domain": "YNX/AUTH/SOURCE-ORIGINAL/V2",
+  "framing": {
+    "count": 8,
+    "countPrefixBytes": 4,
+    "lengthPrefixBytes": 4,
+    "totalFramingBytes": 36
+  },
+  "maxFieldUTF8Bytes": {
+    "domain": 27,
+    "frame": 512,
+    "network": 64,
+    "owner": 42,
+    "keyVersion": 20,
+    "executionHeight": 20,
+    "body": 65536
+  },
+  "roleMaxEncodedBytes": {
+    "enrollment": 66267,
+    "profile": 66264,
+    "current": 66264
+  },
+  "memberRawMaxBytes": 262144,
+  "outerCanonicalEnvelopeMaxBytes": 393216,
+  "outerEnvelopeIsAdditionalJointBound": true,
+  "genericABIUnchanged": {
+    "member": 98304,
+    "message": 65536
+  },
+  "rows": [
+    {
+      "role": "enrollment",
+      "frameUTF8Bytes": 512,
+      "bodyUTF8Bytes": 65536,
+      "encodedBytes": 66267,
+      "path": "enrollment-max-message.bin",
+      "sha256": "c4b51f492cfe0309e9328ba6be2a2e16f27947d31b483750714a499591fc79db",
+      "purpose": "AUTH-SOURCE-ENROLLMENT",
+      "messageOnly": true,
+      "registrationAndN1NotSupplied": true
+    },
+    {
+      "role": "profile",
+      "frameUTF8Bytes": 512,
+      "bodyUTF8Bytes": 65536,
+      "encodedBytes": 66264,
+      "path": "profile-max-message.bin",
+      "sha256": "a29609366b25c14823f3893ae43c13c5eefd5f871c61edee9179f09c30154130",
+      "purpose": "AUTH-SOURCE-PROFILE",
+      "messageOnly": true,
+      "registrationAndN1NotSupplied": true
+    },
+    {
+      "role": "current",
+      "frameUTF8Bytes": 512,
+      "bodyUTF8Bytes": 65536,
+      "encodedBytes": 66264,
+      "path": "current-max-message.bin",
+      "sha256": "b1bf9cb274425b38ef90ec2f90c736c956a5302707754c917bc898bf9f7c65ad",
+      "purpose": "AUTH-SOURCE-CURRENT",
+      "messageOnly": true,
+      "registrationAndN1NotSupplied": true
+    }
+  ],
+  "callerSuppliedMaxAllowed": false,
+  "newAlgorithms": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}

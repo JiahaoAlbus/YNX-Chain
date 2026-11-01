@@ -21,10 +21,10 @@ func (s ConsensusMigrationState) WriteCanonicalJSON(w io.Writer) error {
 }
 
 // writeCanonicalStateJSON preserves encoding/json's existing field order,
-// escaping, omission, map ordering and indentation. Only the three closed state
-// boundary structs are expanded here. Ordinary records (including custom JSON
-// marshalers) continue to use encoding/json. This is a memory optimization, not
-// a new state format or a change to any hash domain.
+// escaping, omission, map ordering and indentation. Only the closed state,
+// replication and block boundary structs are expanded here. Ordinary records
+// (including custom JSON marshalers) continue to use encoding/json. This is a
+// memory optimization, not a new state format or a change to any hash domain.
 func writeCanonicalStateJSON(w io.Writer, value any, pretty bool) error {
 	if w == nil {
 		return fmt.Errorf("canonical state JSON writer is nil")
@@ -46,6 +46,8 @@ var (
 	canonicalMigrationType = reflect.TypeOf(ConsensusMigrationState{})
 	canonicalRuntimeType   = reflect.TypeOf(ConsensusRuntimeState{})
 	canonicalSnapshotType  = reflect.TypeOf(devnetSnapshot{})
+	canonicalBlockType     = reflect.TypeOf(Block{})
+	canonicalBatchType     = reflect.TypeOf(replicationBatch{})
 )
 
 func (e *canonicalStateJSONWriter) text(s string) error {
@@ -98,7 +100,15 @@ func (e *canonicalStateJSONWriter) value(v reflect.Value, depth int) error {
 		return e.value(v.Elem(), depth)
 	case reflect.Struct:
 		switch v.Type() {
-		case canonicalMigrationType, canonicalRuntimeType, canonicalSnapshotType:
+		case canonicalBlockType:
+			// Empty and single-transaction blocks are already one small record
+			// (or one indivisible transaction). Preserve their original leaf
+			// path, especially long public histories dominated by empty blocks.
+			if len(v.Interface().(Block).Transactions) < 2 {
+				return e.leaf(v, depth)
+			}
+			return e.state(v, depth)
+		case canonicalMigrationType, canonicalRuntimeType, canonicalSnapshotType, canonicalBatchType:
 			return e.state(v, depth)
 		default:
 			return e.leaf(v, depth)

@@ -101,6 +101,18 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                       authSourceStatementV2ExternalArchiveInterop=False, authSourceStatementV2SDKGoldenVerified=True,
                       authSourceStatementV2SourceQualified=False, authSourceStatementV2AccountAuthorized=False, authSourceStatementV2MobileQualified=False,
                       authSourceStatementV2SDKGolden={'bytes': 596364, 'sha256': '919afe400d5ac8279ed330d00c9da0d8a5aeca77885008bb799f08b7ee4a8392'}, authSourceStatementV2SDKGoldenTest=DATA['SOURCE_V2_SDK_TEST'], nativePublicCatalog=list(DATA['PARENT_NAMES']))
+        parent.update(networkResourceConsentABI='YNXNetworkResourceConsentAttemptV1', networkResourceConsentABIVersion=1,
+                      networkResourceConsentHeader=pins['network_resource_consent.h'], networkResourceConsentCoreTests=list(DATA['NETWORK_RESOURCE_CORE_TESTS']),
+                      networkResourceConsentRequestBytes=264, networkResourceConsentResultBytes=40, networkResourceConsentMemberCapacity=262144,
+                      networkResourceConsentActions=copy.deepcopy(DATA['NETWORK_RESOURCE_ACTIONS']), networkResourceConsentDomain='YNX-NETWORK-RESOURCE-CONSENT/v1', networkResourceConsentPurpose='NETWORK-RESOURCE-CONSENT',
+                      networkResourceConsentSameRuntimeCHeaderToActualExport=True, networkResourceConsentExternalArchiveInterop=False,
+                      networkResourceConsentSourceGrant=False, networkResourceConsentNativeAuthorized=False, networkResourceConsentResourceExecutionAuthorized=False,
+                      networkResourceConsentProtectedPrincipalConnected=False, networkResourceConsentDurableOnceVerified=False,
+                      authSourceStatementV2CapacityCoreTests=list(DATA['SOURCE_V2_CAPACITY_TESTS']),
+                      authSourceStatementV2CapacityContract={'bytes': 1998, 'sha256': 'd6782befdf221a9fe93d57055272b3d57907b06f9d584a7f590f2859f31b2931'},
+                      authSourceStatementV2RoleMessageMaximum=dict(enrollment=66267, profile=66264, current=66264),
+                      authSourceStatementV2OuterEnvelopeMaximum=393216, authSourceStatementV2GenericMemberMaximum=98304, authSourceStatementV2GenericMessageMaximum=65536,
+                      authSourceStatementV2CapacityPublicFixtureVerified=True)
         return parent, env, host, 'b' * 40, pins['libynx_artifact_release.a'], pins
 
     def public_material(self):
@@ -352,7 +364,7 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
             'TestProductDeviceKeypairV4FullPairAndDERCorruptionRejected',
             'TestProductDeviceKeypairV4PreTransferFailureClearsAndPreservesFirstCause',
             'TestProductDeviceKeypairV4LatePrivateOutcomeStaysUnknown',
-        ) + DATA['MIGRATION_CORE_TESTS'] + CURRENT_MIGRATION_CORE_TESTS + PENDING_QUERY_CORE_TESTS + DATA['SOURCE_V2_CORE_TESTS'] + (DATA['SOURCE_V2_SDK_TEST'],))
+        ) + DATA['MIGRATION_CORE_TESTS'] + CURRENT_MIGRATION_CORE_TESTS + PENDING_QUERY_CORE_TESTS + DATA['SOURCE_V2_CORE_TESTS'] + (DATA['SOURCE_V2_SDK_TEST'],) + DATA['NETWORK_RESOURCE_CORE_TESTS'] + DATA['SOURCE_V2_CAPACITY_TESTS'])
         for index, name in enumerate(DATA['CORE_TESTS']):
             for action in ('missing', 'fail', 'skip', 'duplicate', 'foreign-package'):
                 bad = copy.deepcopy(rows)
@@ -530,14 +542,15 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                     DATA['validate_parent'](*bad)
 
     def test_source_v2_real_public_header_closed21_directory_and_changed_pin(self):
+        # Preserve this original test identity while extending its catalog to 22.
         args = self.parent()
-        directory = self.root / 'public21'
+        directory = self.root / 'public22'
         directory.mkdir(mode=0o700)
         for name in DATA['PARENT_NAMES']:
             original = SCRIPT.parents[2] / 'cmd/ynx-artifact-release-cabi' / name
             raw = original.read_bytes() if name in DATA['SOURCE_V2_HEADERS'] else ('PUBLIC-CONTROL-NOT-A-RUNTIME:' + name).encode()
             self.write(directory / name, raw)
-        self.assertEqual(len(list(directory.iterdir())), 21)
+        self.assertEqual(len(list(directory.iterdir())), 22)
         for field, name in (('authSourceStatementV2Header', 'auth_source_statement_v2.h'), ('authSourceStatementV2RegisteredN1Header', 'registered_n1_verify.h')):
             actual = DATA['pin'](directory/name, private=True)
             args[0][field] = actual; args[-1][name] = actual
@@ -558,7 +571,7 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
         parent = dict(sources=copy.deepcopy(sources))
         DATA['validate_source_pins'](sources,parent)
         required = [name for name in sources if 'source_statement_v2' in name or 'auth-source-statement' in name or name.endswith('registered_n1_verify.h') or name == DATA['SOURCE_V2_SDK_GOLDEN']]
-        self.assertEqual(len(required), 11)
+        self.assertEqual(len(required), 12)
         for name in required:
             bad = copy.deepcopy(parent); del bad['sources'][name]
             with self.subTest(missing=name), self.assertRaises(RuntimeError): DATA['validate_source_pins'](sources,bad)
@@ -566,13 +579,66 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
             with self.subTest(changed=name), self.assertRaises(RuntimeError): DATA['validate_source_pins'](sources,bad)
         self.assertEqual(len(DATA['SOURCE_V2_CORE_TESTS']),4)
 
+
+    def test_resource_consent_fixed_metadata_and_nine_operations_cannot_mint_grants(self):
+        args=self.parent();DATA['validate_parent'](*args)
+        for name,value in args[0].items():
+            if not name.startswith('networkResourceConsent'):continue
+            bad=copy.deepcopy(args);del bad[0][name]
+            with self.subTest(missing=name),self.assertRaises(RuntimeError):DATA['validate_parent'](*bad)
+            replacements=[None,{},[],'wrong',True,1]
+            if type(value) is bool:replacements=[None,1,0,not value]
+            if type(value) is list:replacements += [value[:-1],value+value[:1],list(reversed(value))]
+            for replacement in replacements:
+                if DATA['same'](replacement,value):continue
+                bad=copy.deepcopy(args);bad[0][name]=replacement
+                with self.subTest(field=name,value=replacement),self.assertRaises(RuntimeError):DATA['validate_parent'](*bad)
+
+    def test_resource_consent_real_header_closed22_missing_changed_or_extra_private(self):
+        args=self.parent();directory=self.root/'resource22';directory.mkdir(mode=0o700)
+        for name in DATA['PARENT_NAMES']:
+            original=SCRIPT.parents[2]/'cmd/ynx-artifact-release-cabi'/name
+            raw=original.read_bytes() if name=='network_resource_consent.h' else ('PUBLIC-CONTROL-NOT-A-RUNTIME:'+name).encode()
+            self.write(directory/name,raw)
+        self.assertEqual(len(list(directory.iterdir())),22)
+        name='network_resource_consent.h';pin=DATA['pin'](directory/name,private=True)
+        args[0]['networkResourceConsentHeader']=pin;args[-1][name]=pin;DATA['validate_parent'](*args)
+        bad=copy.deepcopy(args);del bad[-1][name]
+        with self.assertRaises(RuntimeError):DATA['validate_parent'](*bad)
+        (directory/name).write_bytes((directory/name).read_bytes()+b'changed')
+        bad=copy.deepcopy(args);bad[-1][name]=DATA['pin'](directory/name,private=True)
+        with self.assertRaises(RuntimeError):DATA['validate_parent'](*bad)
+        bad=copy.deepcopy(args);bad[-1]['private.der']=dict(bytes=1,sha256='0'*64)
+        with self.assertRaises(RuntimeError):DATA['validate_parent'](*bad)
+
+    def test_resource_and_capacity_sources_and_unique_package_stream_are_mandatory(self):
+        required=DATA['NETWORK_RESOURCE_SOURCES']+DATA['SOURCE_V2_CAPACITY_SOURCES']
+        self.assertEqual(len(DATA['NETWORK_RESOURCE_SOURCES']),10)
+        self.assertEqual(len(DATA['SOURCE_V2_CAPACITY_SOURCES']),18)
+        sources={name:dict(bytes=100,sha256='c'*64,gitBlob='d'*40) for name in DATA['REQUIRED_SOURCES']}
+        parent=dict(sources=copy.deepcopy(sources));DATA['validate_source_pins'](sources,parent)
+        for name in required:
+            bad=copy.deepcopy(parent);del bad['sources'][name]
+            with self.subTest(missing=name),self.assertRaises(RuntimeError):DATA['validate_source_pins'](sources,bad)
+            for field,value in (('sha256','e'*64),('bytes',True),('gitBlob','e'*40)):
+                bad=copy.deepcopy(parent);bad['sources'][name][field]=value
+                with self.subTest(name=name,field=field),self.assertRaises(RuntimeError):DATA['validate_source_pins'](sources,bad)
+        rows=[dict(Package=DATA['CORE_TEST_PACKAGES'][name],Test=name,Action='pass') for name in DATA['CORE_TESTS']]+[dict(Package=p,Action='pass') for p in set(DATA['CORE_TEST_PACKAGES'].values())]
+        encode=lambda v:b'\n'.join(json.dumps(x).encode() for x in v)+b'\n'
+        DATA['validate_core_tests'](encode(rows))
+        for name in DATA['NETWORK_RESOURCE_CORE_TESTS']+DATA['SOURCE_V2_CAPACITY_TESTS']:
+            extra=dict(Package='foreign',Test=name,Action='pass')
+            with self.subTest(duplicate=name),self.assertRaises(RuntimeError):DATA['validate_core_tests'](encode(rows+[extra]))
+        for action in ('fail','build-fail'):
+            with self.subTest(globalFailure=action),self.assertRaises(RuntimeError):DATA['validate_core_tests'](encode(rows+[dict(Package='foreign',Action=action)]))
+
     def test_recipe_is_the_fixed_single_archive_five_leaf_normal_supplier(self):
         original = {'libynx_artifact_release.a', 'ynx_artifact_release.h', 'tx_batch.h', 'account_initial.h', 'product_session_http.h',
                     'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json',
                     'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json',
                     'DEVICE-HTTP-PUBLIC-INTEROP.json', 'SOURCE.json'}
-        self.assertEqual(len(DATA['PARENT_NAMES']), 21)
-        self.assertEqual(set(DATA['PARENT_NAMES']), original | {'auth_source_statement_v2.h', 'registered_n1_verify.h', 'account_migration.h', 'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'PENDING-QUERY-PUBLIC-RECEIPT.json', 'PENDING-QUERY-PUBLIC-INTEROP.json'})
+        self.assertEqual(len(DATA['PARENT_NAMES']), 22)
+        self.assertEqual(set(DATA['PARENT_NAMES']), original | {'network_resource_consent.h', 'auth_source_statement_v2.h', 'registered_n1_verify.h', 'account_migration.h', 'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'PENDING-QUERY-PUBLIC-RECEIPT.json', 'PENDING-QUERY-PUBLIC-INTEROP.json'})
         self.assertEqual(len(DATA['MATERIAL_NAMES']), 6)
         self.assertEqual(set(DATA['DELIVERY_NAMES']), {'libynx_artifact_release.a', 'product_device_keypair_v4.h', 'PUBLIC-RESULT.json', 'ORIGINAL-ARCHIVE-SOURCE.json', 'SOURCE.json'})
         for forbidden in ('-buildmode=c-archive', 'shell=True', 'os.environ.update', 'shutil.rmtree', '.unlink('):

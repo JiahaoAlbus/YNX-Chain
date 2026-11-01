@@ -41,9 +41,16 @@ SOURCE_V2_SDK_TEST = 'TestAuthSourceStatementV2SDKSoleGoldenActualCAND'
 SOURCE_V2_SDK_GOLDEN = 'cmd/ynx-artifact-release-cabi/testdata/source_v2_sdk_public_golden.json'
 SOURCE_V2_HEADERS = ('auth_source_statement_v2.h', 'registered_n1_verify.h')
 SOURCE_V2_RECIPE = 'scripts/verify/auth-source-statement-v2-cabi-check.sh'
-SOURCE_SCOPES = ('go.mod', 'go.sum', 'internal/ynxbatch', 'internal/ynxauth', 'internal/accountaddress',
+NETWORK_RESOURCE_CORE_TESTS = ('TestNetworkResourceMaterialPUBLICCurrentAndBorrowLifecycle', 'TestNetworkResourceConsentCABIPUBLICActualFixedLifecycle', 'TestNetworkResourceConsentCABIPUBLICRegistryCapacityAndDebt')
+NETWORK_RESOURCE_ACTIONS = ['PREPARE', 'CURRENT', 'SIGN_ONCE', 'CONFIRM_CURRENT', 'ORIGINAL', 'RETIRE', 'DRAIN', 'CLOSE', 'RELEASE']
+NETWORK_RESOURCE_RECIPE = 'scripts/verify/network-resource-consent-cabi-check.sh'
+NETWORK_RESOURCE_SOURCES = ('internal/ynxresourceconsent/consent.go', 'internal/ynxresourceconsent/material_attempt.go', 'internal/ynxresourceconsent/material_attempt_test.go', 'internal/ynxbatch/resource_consent.go', 'cmd/ynx-artifact-release-cabi/network_resource_consent.h', 'cmd/ynx-artifact-release-cabi/network_resource_consent_core.go', 'cmd/ynx-artifact-release-cabi/network_resource_consent_bridge.go', 'cmd/ynx-artifact-release-cabi/network_resource_consent_core_test.go', 'cmd/ynx-artifact-release-cabi/network_resource_consent_foreign_controls.go', 'scripts/verify/network-resource-consent-cabi-check.sh')
+SOURCE_V2_CAPACITY_TESTS = ('TestAuthSourceStatementV2CapacitySoleUnsignedE8', 'TestAuthSourceStatementV2CapacitySignedSoleActualCAND', 'TestAuthSourceStatementV2CapacitySignedRejectsSubstitution')
+SOURCE_V2_CAPACITY_CONTRACT = 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/CONTRACT.json'
+SOURCE_V2_CAPACITY_SOURCES = ('cmd/ynx-artifact-release-cabi/source_statement_v2_capacity_contract_test.go', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/CONTRACT.json', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/current-max-message.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/enrollment-max-message.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/profile-max-message.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/PUBLIC-GOLDEN.json', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/current.body.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/current.envelope.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/current.member.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/current.message.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/enrollment.body.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/enrollment.envelope.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/enrollment.member.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/enrollment.message.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/profile.body.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/profile.envelope.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/profile.member.bin', 'cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/signed-public/profile.message.bin')
+SOURCE_SCOPES = ('go.mod', 'go.sum', 'internal/ynxbatch', 'internal/ynxauth', 'internal/ynxresourceconsent', 'internal/accountaddress',
                  'cmd/ynx-artifact-release-cabi', 'scripts/fixtures/verify-product-device-keypair-v4', 'scripts/fixtures/verify-pending-original-query-cabi',
-                 'scripts/verify/pending-original-query-cabi-check.sh', SOURCE_V2_RECIPE, RECIPE, CONTROL,
+                 'scripts/verify/pending-original-query-cabi-check.sh', SOURCE_V2_RECIPE, NETWORK_RESOURCE_RECIPE, RECIPE, CONTROL,
                  '.github/workflows/resource-market-ci.yml')
 REQUIRED_SOURCES = (HEADER, 'cmd/ynx-artifact-release-cabi/product_device_keypair_v4_core.go',
                     'cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go',
@@ -64,11 +71,12 @@ REQUIRED_SOURCES = (HEADER, 'cmd/ynx-artifact-release-cabi/product_device_keypai
                     'scripts/fixtures/verify-product-device-keypair-v4/c/driver.c', CHECK, RECIPE, CONTROL)
 REQUIRED_SOURCES += ('cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h', 'cmd/ynx-artifact-release-cabi/registered_n1_verify.h', 'cmd/ynx-artifact-release-cabi/source_statement_v2_core.go', 'cmd/ynx-artifact-release-cabi/source_statement_v2_bridge.go', 'cmd/ynx-artifact-release-cabi/source_statement_v2_core_test.go', 'cmd/ynx-artifact-release-cabi/source_statement_v2_foreign_controls.go', 'cmd/ynx-artifact-release-cabi/registered_n1_verify_core.go', 'internal/ynxbatch/auth_source_statement_v2.go', 'internal/ynxbatch/auth_source_statement_v2_test.go', 'scripts/verify/auth-source-statement-v2-cabi-check.sh')
 REQUIRED_SOURCES += (SOURCE_V2_SDK_GOLDEN, 'cmd/ynx-artifact-release-cabi/source_statement_v2_sdk_test.go')
+REQUIRED_SOURCES += NETWORK_RESOURCE_SOURCES + SOURCE_V2_CAPACITY_SOURCES
 CORE_TESTS = ('TestProductDeviceKeypairV4FreshActualImportAndAND', 'TestProductDeviceKeypairV4FullPairAndDERCorruptionRejected',
-              'TestProductDeviceKeypairV4PreTransferFailureClearsAndPreservesFirstCause', 'TestProductDeviceKeypairV4LatePrivateOutcomeStaysUnknown') + MIGRATION_CORE_TESTS + MIGRATION_AUTHORIZATION_CORE_TESTS + PENDING_QUERY_CORE_TESTS + SOURCE_V2_CORE_TESTS + (SOURCE_V2_SDK_TEST,)
-CORE_TEST_PACKAGES = {name: 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if name in PENDING_QUERY_CORE_TESTS[:2] + SOURCE_V2_CORE_TESTS[:2] else 'cmd/ynx-artifact-release-cabi') for name in CORE_TESTS}
+              'TestProductDeviceKeypairV4PreTransferFailureClearsAndPreservesFirstCause', 'TestProductDeviceKeypairV4LatePrivateOutcomeStaysUnknown') + MIGRATION_CORE_TESTS + MIGRATION_AUTHORIZATION_CORE_TESTS + PENDING_QUERY_CORE_TESTS + SOURCE_V2_CORE_TESTS + (SOURCE_V2_SDK_TEST,) + NETWORK_RESOURCE_CORE_TESTS + SOURCE_V2_CAPACITY_TESTS
+CORE_TEST_PACKAGES = {name: 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxresourceconsent' if name == NETWORK_RESOURCE_CORE_TESTS[0] else 'internal/ynxbatch' if name in PENDING_QUERY_CORE_TESTS[:2] + SOURCE_V2_CORE_TESTS[:2] else 'cmd/ynx-artifact-release-cabi') for name in CORE_TESTS}
 PARENT_NAMES = ('libynx_artifact_release.a', 'ynx_artifact_release.h', 'tx_batch.h', 'account_initial.h', 'account_migration.h',
-                'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'auth_source_statement_v2.h', 'registered_n1_verify.h', 'product_session_http.h',
+                'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'auth_source_statement_v2.h', 'registered_n1_verify.h', 'network_resource_consent.h', 'product_session_http.h',
                 'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json',
                 'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json',
                 'DEVICE-HTTP-PUBLIC-INTEROP.json', 'PENDING-QUERY-PUBLIC-RECEIPT.json', 'PENDING-QUERY-PUBLIC-INTEROP.json', 'SOURCE.json')
@@ -194,7 +202,7 @@ def validate_environment(env, host):
 
 def validate_parent(parent, env, host, tree, archive_pin, original_pins):
     require(type(parent) is dict and parent.get('version') == 'YNX-ARTIFACT-RELEASE-CABI-CANDIDATE/v1', 'original archive SOURCE required')
-    require(type(original_pins) is dict and set(original_pins) == set(PARENT_NAMES), 'complete original21 native catalog required')
+    require(type(original_pins) is dict and set(original_pins) == set(PARENT_NAMES), 'complete original22 native catalog required')
     for key, name in (('commit', 'GITHUB_SHA'), ('runId', 'GITHUB_RUN_ID'), ('runAttempt', 'GITHUB_RUN_ATTEMPT'),
                       ('job', 'GITHUB_JOB'), ('matrixRunner', 'YNX_NATIVE_MATRIX_RUNNER'), ('runnerOS', 'RUNNER_OS')):
         require(parent.get(key) == env[name], 'same-job original archive identity required')
@@ -231,7 +239,7 @@ def validate_parent(parent, env, host, tree, archive_pin, original_pins):
             'complete original pending query core tests required')
     require(same(parent.get('authSourceStatementV2SDKGolden'), {'bytes': 596364, 'sha256': '919afe400d5ac8279ed330d00c9da0d8a5aeca77885008bb799f08b7ee4a8392'}), 'sole SDK original public golden pin required')
     require(parent.get('authSourceStatementV2SDKGoldenTest') == SOURCE_V2_SDK_TEST, 'sole SDK actual C AND test required')
-    require(same(parent.get('nativePublicCatalog'), list(PARENT_NAMES)), 'exact closed21 native public catalog required')
+    require(same(parent.get('nativePublicCatalog'), list(PARENT_NAMES)), 'exact closed22 native public catalog required')
     require(same(parent.get('authSourceStatementV2CoreTests'), list(SOURCE_V2_CORE_TESTS)), 'complete fixed Source-v2 core tests required')
     for field in ('authSourceStatementV2SameRuntimeCHeaderToActualExport', 'authSourceStatementV2DataOnly', 'authSourceStatementV2SDKGoldenVerified'):
         require(parent.get(field) is True, 'fixed Source-v2 DATA/math execution required')
@@ -239,6 +247,20 @@ def validate_parent(parent, env, host, tree, archive_pin, original_pins):
         require(parent.get(field) is False, 'Source-v2 cannot claim archive interop or authorization')
     for field, value in (('authSourceStatementV2ABI', 'YNXAuthSourceStatementVerifyV2'), ('authSourceStatementV2ABIVersion', 1), ('authSourceStatementV2ProtocolVersion', 2), ('authSourceStatementV2RequestBytes', 176), ('authSourceStatementV2ResultBytes', 32), ('authSourceStatementV2BodyMaximum', 65536), ('authSourceStatementV2MemberMaximum', 262144), ('authSourceStatementV2Domain', 'YNX/AUTH/SOURCE-ORIGINAL/V2')):
         require(same(parent.get(field), value), 'fixed Source-v2 ABI differs')
+    require(same(parent.get('networkResourceConsentCoreTests'), list(NETWORK_RESOURCE_CORE_TESTS)), 'complete fixed resource consent core tests required')
+    require(same(parent.get('networkResourceConsentActions'), NETWORK_RESOURCE_ACTIONS), 'exact nine fixed lifecycle operations required')
+    for field, value in (('networkResourceConsentABI', 'YNXNetworkResourceConsentAttemptV1'), ('networkResourceConsentABIVersion', 1), ('networkResourceConsentRequestBytes', 264), ('networkResourceConsentResultBytes', 40), ('networkResourceConsentMemberCapacity', 262144), ('networkResourceConsentDomain', 'YNX-NETWORK-RESOURCE-CONSENT/v1'), ('networkResourceConsentPurpose', 'NETWORK-RESOURCE-CONSENT')):
+        require(same(parent.get(field), value), 'fixed resource consent ABI differs')
+    require(parent.get('networkResourceConsentSameRuntimeCHeaderToActualExport') is True, 'actual same-runtime resource C call required')
+    for field in ('networkResourceConsentExternalArchiveInterop', 'networkResourceConsentSourceGrant', 'networkResourceConsentNativeAuthorized', 'networkResourceConsentResourceExecutionAuthorized', 'networkResourceConsentProtectedPrincipalConnected', 'networkResourceConsentDurableOnceVerified'):
+        require(parent.get(field) is False, 'resource math cannot supply Native/Source/once authority or archive interop')
+    require(same(parent.get('networkResourceConsentHeader'), original_pins['network_resource_consent.h']), 'actual resource header differs')
+    require(same(parent.get('authSourceStatementV2CapacityCoreTests'), list(SOURCE_V2_CAPACITY_TESTS)), 'all original capacity tests required')
+    require(same(parent.get('authSourceStatementV2CapacityContract'), {'bytes': 1998, 'sha256': 'd6782befdf221a9fe93d57055272b3d57907b06f9d584a7f590f2859f31b2931'}), 'original sole capacity contract pin required')
+    require(same(parent.get('authSourceStatementV2RoleMessageMaximum'), dict(enrollment=66267, profile=66264, current=66264)), 'exact typed role capacities required')
+    for field, value in (('authSourceStatementV2OuterEnvelopeMaximum', 393216), ('authSourceStatementV2GenericMemberMaximum', 98304), ('authSourceStatementV2GenericMessageMaximum', 65536)):
+        require(same(parent.get(field), value), 'original typed/generic capacity boundary differs')
+    require(parent.get('authSourceStatementV2CapacityPublicFixtureVerified') is True, 'sole signed capacity fixture verification required')
     require(parent.get('suite') == SUITE and type(parent.get('circl')) is dict
             and parent['circl'].get('Path') == 'github.com/cloudflare/circl' and parent['circl'].get('Version') == 'v1.6.5'
             and 'Replace' not in parent['circl'], 'fixed original full AND provider required')
@@ -266,13 +288,14 @@ def validate_core_tests(raw):
     require(rows and all(type(row) is dict for row in rows), 'actual original Go JSONL required')
     for name in CORE_TESTS:
         package = CORE_TEST_PACKAGES[name]
-        terminal = [row.get('Action') for row in rows if row.get('Package') == package and row.get('Test') == name
+        terminal = [(row.get('Package'), row.get('Action')) for row in rows if row.get('Test') == name
                     and row.get('Action') in ('pass', 'fail', 'skip')]
-        require(terminal == ['pass'], 'actual device creator or migration core test missing/failed/skipped: ' + name)
+        require(terminal == [(package, 'pass')], 'actual device creator or migration core test missing/failed/skipped: ' + name)
     for package in set(CORE_TEST_PACKAGES.values()):
         terminal = [row.get('Action') for row in rows if row.get('Package') == package and 'Test' not in row
                     and row.get('Action') in ('pass', 'fail', 'skip')]
         require(terminal == ['pass'], 'actual complete original core suite must pass')
+    require(not any(row.get('Action') in ('fail', 'build-fail') for row in rows), 'original complete stream contains a failure')
     return list(CORE_TESTS)
 
 
@@ -334,7 +357,7 @@ def validate_source_pins(sources, parent):
     require(set(REQUIRED_SOURCES) <= set(sources), 'complete tracked creator implementation and caller required')
     require(type(parent.get('sources')) is dict, 'original complete archive compile sources required')
     for name, row in sources.items():
-        compiled = name in ('go.mod', 'go.sum', SOURCE_V2_RECIPE, 'scripts/verify/pending-original-query-cabi-check.sh') or name.startswith('scripts/fixtures/verify-pending-original-query-cabi/') or name.startswith(('internal/ynxbatch/', 'internal/ynxauth/', 'internal/accountaddress/', 'cmd/ynx-artifact-release-cabi/'))
+        compiled = name in ('go.mod', 'go.sum', SOURCE_V2_RECIPE, NETWORK_RESOURCE_RECIPE, 'scripts/verify/pending-original-query-cabi-check.sh') or name.startswith('scripts/fixtures/verify-pending-original-query-cabi/') or name.startswith(('internal/ynxbatch/', 'internal/ynxauth/', 'internal/ynxresourceconsent/', 'internal/accountaddress/', 'cmd/ynx-artifact-release-cabi/'))
         if compiled:
             require(name in parent['sources'] and same(row, parent['sources'][name]), 'original archive complete compile source pin differs')
         elif name in parent['sources']:
@@ -358,7 +381,7 @@ def main():
     commit = command(['git', 'rev-parse', 'HEAD']).decode().strip()
     tree = command(['git', 'rev-parse', 'HEAD^{tree}']).decode().strip()
     require(commit == os.environ['GITHUB_SHA'] and not command(['git', 'status', '--porcelain', '--untracked-files=normal']), 'clean actual selected commit required; no local dirty seal')
-    require({p.name for p in original.iterdir()} == set(PARENT_NAMES), 'complete original21 native catalog required')
+    require({p.name for p in original.iterdir()} == set(PARENT_NAMES), 'complete original22 native catalog required')
     original_pins = {name: pin(original / name, private=True) for name in PARENT_NAMES}
     original_id = directory(original, private=True)
     identities = {name: identity((original / name).lstat()) for name in PARENT_NAMES}

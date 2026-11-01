@@ -851,7 +851,7 @@ def assert_native_cabi_workflow_contract(raw):
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git diff --exit-code
-          if ! go test -json -p 1 ./internal/ynxbatch ./cmd/ynx-artifact-release-cabi -count=1 > "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"; then
+          if ! go test -json -p 1 ./internal/ynxbatch ./internal/ynxresourceconsent ./cmd/ynx-artifact-release-cabi -count=1 > "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"
             exit 1
           fi
@@ -900,9 +900,25 @@ def assert_native_cabi_workflow_contract(raw):
           source_v2_sdk_terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == source_v2_sdk and row['Action'] in ('pass', 'fail', 'skip')]
           if source_v2_sdk_terminal != [('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi', 'pass')]:
               raise RuntimeError('sole SDK Source-v2 public golden did not execute through actual C AND verifier')
-          if any(row.get('Action') == 'fail' for row in rows):
+          resource_consent = ['TestNetworkResourceMaterialPUBLICCurrentAndBorrowLifecycle', 'TestNetworkResourceConsentCABIPUBLICActualFixedLifecycle', 'TestNetworkResourceConsentCABIPUBLICRegistryCapacityAndDebt']
+          for name in resource_consent:
+              package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxresourceconsent' if name == resource_consent[0] else 'cmd/ynx-artifact-release-cabi')
+              terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != [(package, 'pass')]:
+                  raise RuntimeError('fixed resource consent did not execute uniquely in its original package: ' + name)
+          for package in ('github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch', 'github.com/JiahaoAlbus/YNX-Chain/internal/ynxresourceconsent', 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi'):
+              terminal = [row['Action'] for row in rows if row.get('Package') == package and 'Test' not in row and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('complete original Native package did not pass: ' + package)
+          source_v2_capacity = ['TestAuthSourceStatementV2CapacitySoleUnsignedE8', 'TestAuthSourceStatementV2CapacitySignedSoleActualCAND', 'TestAuthSourceStatementV2CapacitySignedRejectsSubstitution']
+          for name in source_v2_capacity:
+              terminal = [(row.get('Package'), row['Action']) for row in rows if row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != [('github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi', 'pass')]:
+                  raise RuntimeError('Source-v2 capacity original test did not execute uniquely: ' + name)
+          if any(row.get('Action') in ('fail', 'build-fail') for row in rows):
               raise RuntimeError('original full Native core suite failed')
-          print('YNX_AUTH_SOURCE_V2_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=source_v2 + [source_v2_sdk], suitePassed=True, sameRuntimeCHeaderToActualExport=True, externalArchiveInterop=False, sdkGoldenVerified=True, sourceQualified=False, accountAuthorized=False, mobileQualified=False), sort_keys=True))
+          print('YNX_NETWORK_RESOURCE_CONSENT_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=resource_consent, suitePassed=True, sameRuntimeCHeaderToActualExport=True, externalArchiveInterop=False, sourceGrant=False, nativeAuthorized=False, resourceExecutionAuthorized=False, protectedPrincipalConnected=False, durableOnceVerified=False), sort_keys=True))
+          print('YNX_AUTH_SOURCE_V2_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=source_v2 + [source_v2_sdk] + source_v2_capacity, suitePassed=True, sameRuntimeCHeaderToActualExport=True, externalArchiveInterop=False, sdkGoldenVerified=True, sourceQualified=False, accountAuthorized=False, mobileQualified=False), sort_keys=True))
           PY"""))
     need(lines(steps[3]) == ["      - name: " + names[3], "        run: |", "          set -euo pipefail",
         '          bash scripts/verify/artifact-release-cabi-check.sh "$RUNNER_TEMP/ynx-artifact-release-cabi"'])
@@ -955,7 +971,7 @@ def assert_native_cabi_workflow_contract(raw):
         "'scripts/verify/account-initial-cabi-check.sh', 'scripts/fixtures/verify-publisher-registration-cabi',",
         "'scripts/verify/publisher-registration-cabi-check.sh', 'scripts/fixtures/verify-product-session-http-cabi',",
         "'scripts/verify/product-session-http-cabi-check.sh', 'scripts/fixtures/verify-pending-original-query-cabi',",
-        "'scripts/verify/pending-original-query-cabi-check.sh', 'scripts/verify/auth-source-statement-v2-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',",
+        "'scripts/verify/pending-original-query-cabi-check.sh', 'scripts/verify/auth-source-statement-v2-cabi-check.sh', 'scripts/verify/network-resource-consent-cabi-check.sh', 'scripts/fixtures/verify-product-device-keypair-v4',",
         "'scripts/verify/product-device-keypair-v4-cabi-check.sh', 'scripts/fixtures/verify-invoice-tx-cabi',",
         "'.github/workflows/resource-market-ci.yml').splitlines()",
         "sources = {name:dict(**pin(Path(name)), gitBlob=command('git','rev-parse','HEAD:'+name)) for name in source_names}",
@@ -964,7 +980,7 @@ def assert_native_cabi_workflow_contract(raw):
         "if native_os == 'darwin':", "if native_arch != 'arm64':",
         "targets.append(('darwin-arm64', case / 'libynx_artifact_release.a', 'darwin', 'arm64', True))",
         "public_names = ('PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json')",
-        "native_public_catalog = ('libynx_artifact_release.a', 'ynx_artifact_release.h', 'tx_batch.h', 'account_initial.h', 'account_migration.h', 'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'auth_source_statement_v2.h', 'registered_n1_verify.h', 'product_session_http.h', 'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json', 'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json', 'DEVICE-HTTP-PUBLIC-INTEROP.json', 'PENDING-QUERY-PUBLIC-RECEIPT.json', 'PENDING-QUERY-PUBLIC-INTEROP.json', 'SOURCE.json')",
+        "native_public_catalog = ('libynx_artifact_release.a', 'ynx_artifact_release.h', 'tx_batch.h', 'account_initial.h', 'account_migration.h', 'account_migration_authorization.h', 'product_pair_pending_original_query.h', 'auth_source_statement_v2.h', 'registered_n1_verify.h', 'network_resource_consent.h', 'product_session_http.h', 'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json', 'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json', 'DEVICE-HTTP-PUBLIC-INTEROP.json', 'PENDING-QUERY-PUBLIC-RECEIPT.json', 'PENDING-QUERY-PUBLIC-INTEROP.json', 'SOURCE.json')",
         "public_pins = {name:pin(case / 'output' / name) for name in public_names}",
         "transaction_public_pins = {'TX-'+name:pin(transaction_case / 'input' / name) for name in public_names}",
         "initial_public_pins = {'INITIAL-'+name:pin(initial_case / 'input' / name) for name in public_names}",
@@ -980,6 +996,7 @@ def assert_native_cabi_workflow_contract(raw):
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h', out / 'product_pair_pending_original_query.h')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/auth_source_statement_v2.h', out / 'auth_source_statement_v2.h')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/registered_n1_verify.h', out / 'registered_n1_verify.h')",
+        "shutil.copyfile('cmd/ynx-artifact-release-cabi/network_resource_consent.h', out / 'network_resource_consent.h')",
         "shutil.copyfile('cmd/ynx-artifact-release-cabi/product_session_http.h', out / 'product_session_http.h')",
         "shutil.copyfile(transaction_case / 'input' / name, out / ('TX-'+name))",
         "shutil.copyfile(initial_case / 'input' / name, out / ('INITIAL-'+name))",
@@ -1023,6 +1040,20 @@ def assert_native_cabi_workflow_contract(raw):
         'authSourceStatementV2SameRuntimeCHeaderToActualExport=True, authSourceStatementV2DataOnly=True,',
         'authSourceStatementV2ExternalArchiveInterop=False, authSourceStatementV2SDKGoldenVerified=True,',
         'authSourceStatementV2SourceQualified=False, authSourceStatementV2AccountAuthorized=False, authSourceStatementV2MobileQualified=False,',
+        "networkResourceConsentABI='YNXNetworkResourceConsentAttemptV1', networkResourceConsentABIVersion=1,",
+        "networkResourceConsentHeader=pin(out / 'network_resource_consent.h'),",
+        "networkResourceConsentCoreTests=['TestNetworkResourceMaterialPUBLICCurrentAndBorrowLifecycle', 'TestNetworkResourceConsentCABIPUBLICActualFixedLifecycle', 'TestNetworkResourceConsentCABIPUBLICRegistryCapacityAndDebt'],",
+        'networkResourceConsentRequestBytes=264, networkResourceConsentResultBytes=40, networkResourceConsentMemberCapacity=262144,',
+        "networkResourceConsentActions=['PREPARE', 'CURRENT', 'SIGN_ONCE', 'CONFIRM_CURRENT', 'ORIGINAL', 'RETIRE', 'DRAIN', 'CLOSE', 'RELEASE'],",
+        "networkResourceConsentDomain='YNX-NETWORK-RESOURCE-CONSENT/v1', networkResourceConsentPurpose='NETWORK-RESOURCE-CONSENT',",
+        'networkResourceConsentSameRuntimeCHeaderToActualExport=True, networkResourceConsentExternalArchiveInterop=False,',
+        'networkResourceConsentSourceGrant=False, networkResourceConsentNativeAuthorized=False, networkResourceConsentResourceExecutionAuthorized=False,',
+        'networkResourceConsentProtectedPrincipalConnected=False, networkResourceConsentDurableOnceVerified=False,',
+        "authSourceStatementV2CapacityCoreTests=['TestAuthSourceStatementV2CapacitySoleUnsignedE8', 'TestAuthSourceStatementV2CapacitySignedSoleActualCAND', 'TestAuthSourceStatementV2CapacitySignedRejectsSubstitution'],",
+        "authSourceStatementV2CapacityContract=pin(Path('cmd/ynx-artifact-release-cabi/testdata/source_v2_capacity/CONTRACT.json')),",
+        'authSourceStatementV2RoleMessageMaximum=dict(enrollment=66267, profile=66264, current=66264),',
+        'authSourceStatementV2OuterEnvelopeMaximum=393216, authSourceStatementV2GenericMemberMaximum=98304, authSourceStatementV2GenericMessageMaximum=65536,',
+        'authSourceStatementV2CapacityPublicFixtureVerified=True,',
         'nativePublicCatalog=list(native_public_catalog),',
         "pendingOriginalQueryABI='YNXProductPairPendingOriginalQuerySignV1', pendingOriginalQueryABIVersion=1,",
         "pendingOriginalQueryHeader=pin(out / 'product_pair_pending_original_query.h'),",
@@ -1051,9 +1082,9 @@ def assert_native_cabi_workflow_contract(raw):
     # directory, caller binary or a recursive wildcard. Missing output fails.
     for step, name, label, artifact, leaves, mac_only in (
         (steps[9], names[9], "native-host", "native-${{ matrix.runner }}",
-         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "account_migration_authorization.h", "product_pair_pending_original_query.h", "auth_source_statement_v2.h", "registered_n1_verify.h", "product_session_http.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json", "PENDING-QUERY-PUBLIC-RECEIPT.json", "PENDING-QUERY-PUBLIC-INTEROP.json"), False),
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "account_migration_authorization.h", "product_pair_pending_original_query.h", "auth_source_statement_v2.h", "registered_n1_verify.h", "network_resource_consent.h", "product_session_http.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json", "PENDING-QUERY-PUBLIC-RECEIPT.json", "PENDING-QUERY-PUBLIC-INTEROP.json"), False),
         (steps[10], names[10], "darwin-arm64", "darwin-arm64",
-         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "account_migration_authorization.h", "product_pair_pending_original_query.h", "auth_source_statement_v2.h", "registered_n1_verify.h", "product_session_http.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json", "PENDING-QUERY-PUBLIC-RECEIPT.json", "PENDING-QUERY-PUBLIC-INTEROP.json"), True)):
+         ("libynx_artifact_release.a", "ynx_artifact_release.h", "tx_batch.h", "account_initial.h", "account_migration.h", "account_migration_authorization.h", "product_pair_pending_original_query.h", "auth_source_statement_v2.h", "registered_n1_verify.h", "network_resource_consent.h", "product_session_http.h", "SOURCE.json", "PUBLIC-RECEIPT.json", "PUBLIC-INTEROP.json", "TX-PUBLIC-RECEIPT.json", "TX-PUBLIC-INTEROP.json", "INITIAL-PUBLIC-RECEIPT.json", "INITIAL-PUBLIC-INTEROP.json", "DEVICE-HTTP-PUBLIC-RECEIPT.json", "DEVICE-HTTP-PUBLIC-INTEROP.json", "PENDING-QUERY-PUBLIC-RECEIPT.json", "PENDING-QUERY-PUBLIC-INTEROP.json"), True)):
         expected = ["      - name: " + name]
         if mac_only:
             expected.append("        if: runner.os == 'macOS'")
@@ -2055,6 +2086,17 @@ def assert_workflow_contract(raw):
     need("          python3 -B -m unittest discover -s scripts/ops -p 'test_prepare_testnet_assets.py' -v\n" in controls[0])
 
 
+
+def assert_legacy_snapshot_stream_contract(raw):
+    def need(condition):
+        if not condition:
+            raise AssertionError("original full legacy snapshot stream contract differs")
+    name = "      - name: Verify native ledger and HTTP PQ integration\n"
+    found = [name + x.split("      - name:", 1)[0] for x in raw.split(name)[1:]]
+    need(len(found) == 1)
+    expected = name + "        if: ${{ !(inputs.consensus_remote_e2e_retained_history || inputs.consensus_fresh_paired_business) && (!cancelled() && steps.identity.outcome == 'success') }}\n" + '        run: |\n          set -euo pipefail\n          if ! go test -json -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api > "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl" 2> "$RUNNER_TEMP/ynx-legacy-native-integration.stderr"; then\n            cat "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl"\n            cat "$RUNNER_TEMP/ynx-legacy-native-integration.stderr" >&2\n            exit 1\n          fi\n          cat "$RUNNER_TEMP/ynx-legacy-native-integration.jsonl"\n          cat "$RUNNER_TEMP/ynx-legacy-native-integration.stderr" >&2\n          python3 -B - <<\'PY\'\n          import json, os\n          from pathlib import Path\n          rows = [json.loads(line) for line in (Path(os.environ[\'RUNNER_TEMP\']) / \'ynx-legacy-native-integration.jsonl\').read_text().splitlines()]\n          legacy_snapshot = [\'TestLegacySnapshotMemoryCanonicalBatchAndBlock\', \'TestLegacySnapshotMemoryDenseBlockBoundedWrites\', \'TestLegacySnapshotMemoryFullHistoryColdAndReplication\', \'TestLegacySnapshotMemoryLateFailureAndUnknown\', \'TestLegacySnapshotMemorySameInputAllocation\', \'TestLegacySnapshotMemoryValidHistoryAllocation\']\n          for name in legacy_snapshot:\n              terminal = [(row.get(\'Package\'), row[\'Action\']) for row in rows if row.get(\'Test\') == name and row[\'Action\'] in (\'pass\', \'fail\', \'skip\')]\n              if terminal != [(\'github.com/JiahaoAlbus/YNX-Chain/internal/chain\', \'pass\')]:\n                  raise RuntimeError(\'legacy snapshot memory did not execute uniquely in original package: \' + name)\n          for package in (\'github.com/JiahaoAlbus/YNX-Chain/internal/chain\', \'github.com/JiahaoAlbus/YNX-Chain/internal/api\'):\n              terminal = [row[\'Action\'] for row in rows if row.get(\'Package\') == package and \'Test\' not in row and row[\'Action\'] in (\'pass\', \'fail\', \'skip\')]\n              if terminal != [\'pass\']:\n                  raise RuntimeError(\'complete original ledger/API package did not pass: \' + package)\n          if any(row.get(\'Action\') in (\'fail\', \'skip\', \'build-fail\') for row in rows):\n              raise RuntimeError(\'original ledger/API stream failed or skipped\')\n          print(\'YNX_LEGACY_SNAPSHOT_MEMORY_CORE_TESTS \' + json.dumps(dict(sourceCommit=os.environ[\'GITHUB_SHA\'], requiredPassed=legacy_snapshot, suitePassed=True, productionOOMResolved=False, rootAuthorized=False), sort_keys=True))\n          PY\n'
+    need(found[0] == expected)
+
 class NormalCIWorkflowSourceControls(unittest.TestCase):
     def test_native_codec_and_bridge_events_keep_original_file_and_package(self):
         # Execute the actual two collector preludes, with the same duplicated
@@ -2474,7 +2516,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change("      CGO_ENABLED: '1'", "      CGO_ENABLED: '0'"),
             change("      MACOSX_DEPLOYMENT_TARGET: '13.0'", "      MACOSX_DEPLOYMENT_TARGET: '15.0'"),
             change("          git diff --exit-code", "          git diff --exit-code || true"),
-            change("go test -json -p 1 ./internal/ynxbatch ./cmd/ynx-artifact-release-cabi -count=1", "true # skipped native core tests"),
+            change("go test -json -p 1 ./internal/ynxbatch ./internal/ynxresourceconsent ./cmd/ynx-artifact-release-cabi -count=1", "true # skipped native core tests"),
             change(darwin, darwin.replace("if: runner.os == 'macOS'", "if: false", 1)),
             change("go test -p 1 -count=1 -timeout=90s ./cmd/ynx-consensus-package", "true # skipped actual Darwin migration caller"),
             change(runtime, ""), change(contracts, ""), change(darwin, ""),
@@ -2580,7 +2622,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change(core, "YNX_ACCOUNT_MIGRATION_CORE_TESTS", "UNQUALIFIED_ACCOUNT_MIGRATION_CORE_TESTS"),
             change(core, "exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False",
                    "exportedBridgeGoVerified=False, externalCInterop=True, accountAuthorized=True"),
-            change(core, "go test -json -p 1 ./internal/ynxbatch ./cmd/ynx-artifact-release-cabi -count=1",
+            change(core, "go test -json -p 1 ./internal/ynxbatch ./internal/ynxresourceconsent ./cmd/ynx-artifact-release-cabi -count=1",
                    "go test -json -p 1 ./internal/ynxbatch ./cmd/ynx-artifact-release-cabi -run '^TestAccountMigration' -count=1"),
             change(seal, copy_line, ""),
             change(seal, copy_line, copy_line + "\n              " + copy_line),
@@ -2642,7 +2684,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change(core, "YNX_CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS", "UNQUALIFIED_CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS"),
             change(core, "exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False",
                    "exportedBridgeGoVerified=False, externalCInterop=True, accountAuthorized=True"),
-            change(core, "go test -json -p 1 ./internal/ynxbatch ./cmd/ynx-artifact-release-cabi -count=1",
+            change(core, "go test -json -p 1 ./internal/ynxbatch ./internal/ynxresourceconsent ./cmd/ynx-artifact-release-cabi -count=1",
                    "go test -json -p 1 ./internal/ynxbatch ./cmd/ynx-artifact-release-cabi -run '^TestCurrentMigration' -count=1"),
             change(seal, copy_line, ""),
             change(seal, copy_line, copy_line + "\n              " + copy_line),
@@ -2704,7 +2746,7 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             change(core, "YNX_PENDING_ORIGINAL_QUERY_CORE_TESTS", "UNQUALIFIED_PENDING_ORIGINAL_QUERY_CORE_TESTS"),
             change(core, "exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False",
                    "exportedBridgeGoVerified=False, externalCInterop=True, accountAuthorized=True"),
-            change(core, "go test -json -p 1 ./internal/ynxbatch ./cmd/ynx-artifact-release-cabi -count=1",
+            change(core, "go test -json -p 1 ./internal/ynxbatch ./internal/ynxresourceconsent ./cmd/ynx-artifact-release-cabi -count=1",
                    "go test -json -p 1 ./internal/ynxbatch ./cmd/ynx-artifact-release-cabi -run '^TestPendingOriginalQuery' -count=1"),
             change(seal, copy_line, ""),
             change(seal, copy_line, copy_line + "\n              " + copy_line),
@@ -2743,6 +2785,89 @@ class NormalCIWorkflowSourceControls(unittest.TestCase):
             self.assertNotEqual(changed, raw)
             with self.subTest(account_migration=index), self.assertRaises(AssertionError):
                 assert_native_cabi_workflow_contract(changed)
+
+
+    def test_resource_consent_native_supply_keeps_fixed_no_grant_header_and_source(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        _, steps = workflow_steps(raw, "artifact-release-cabi")
+        seal = next(x for x in steps if x.startswith("      - name: Seal only native library public outputs and exact compile inputs\n"))
+        selected = [line for line in seal.splitlines() if 'networkResourceConsent' in line or 'network_resource_consent.h' in line or 'network-resource-consent-cabi-check.sh' in line]
+        self.assertGreaterEqual(len(selected), 12)
+        mutations=[]
+        for line in selected:
+            mutations.append(raw.replace(line+'\n','',1))
+            if '=True' in line: mutations.append(raw.replace(line,line.replace('=True','=1'),1))
+            if '=False' in line: mutations.append(raw.replace(line,line.replace('=False','=True'),1))
+        for target in ('native-host','darwin-arm64'):
+            leaf='            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/'+target+'/network_resource_consent.h\n'
+            self.assertEqual(raw.count(leaf),1)
+            mutations += [raw.replace(leaf,'',1),raw.replace(leaf,leaf+leaf,1),raw.replace(leaf,leaf.replace('network_resource_consent.h','*'),1),raw.replace(leaf,leaf.replace('network_resource_consent.h','private.der'),1)]
+        for changed in mutations:
+            with self.subTest(change=mutations.index(changed)), self.assertRaises(AssertionError): assert_native_cabi_workflow_contract(changed)
+
+    def test_actual_native_and_legacy_collectors_reject_missing_duplicate_wrong_package_and_failure(self):
+        import ast, builtins, types
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_native_cabi_workflow_contract(raw)
+        assert_legacy_snapshot_stream_contract(raw)
+        names = ('Verify fixed Native key and output cleanup behavior', 'Verify native ledger and HTTP PQ integration')
+        for name in names:
+            step = raw.split('      - name: '+name+'\n',1)[1].split('      - name:',1)[0]
+            body = step.split("<<'PY'\n",1)[1].split('          PY',1)[0]
+            body='\n'.join(line[10:] for line in body.splitlines())+'\n'
+            lists={node.targets[0].id:ast.literal_eval(node.value) for node in ast.parse(body).body if isinstance(node,ast.Assign) and len(node.targets)==1 and isinstance(node.targets[0],ast.Name) and isinstance(node.value,ast.List)}
+            rows=[]
+            for label, tests in lists.items():
+                for index,test in enumerate(tests):
+                    pkg='cmd/ynx-artifact-release-cabi'
+                    if label in ('pending_query','source_v2') and index<2: pkg='internal/ynxbatch'
+                    if label=='resource_consent' and index==0: pkg='internal/ynxresourceconsent'
+                    if label=='legacy_snapshot':pkg='internal/chain'
+                    rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/'+pkg,Test=test,Action='pass'))
+            if 'legacy_snapshot' not in lists:
+                rows.append(dict(Package='github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi',Test='TestAuthSourceStatementV2SDKSoleGoldenActualCAND',Action='pass'))
+            packages={'github.com/JiahaoAlbus/YNX-Chain/'+x for x in (('internal/chain','internal/api') if 'legacy_snapshot' in lists else ('internal/ynxbatch','internal/ynxresourceconsent','cmd/ynx-artifact-release-cabi'))}
+            rows += [dict(Package=p,Action='pass') for p in sorted(packages)]
+            def run(data):
+                class PublicPath:
+                    def __init__(self,*args):pass
+                    def __truediv__(self,other):return self
+                    def read_text(self):return '\n'.join(json.dumps(row) for row in data)
+                def control_import(module,*args,**kwargs):
+                    if module=='os':return types.SimpleNamespace(environ={'RUNNER_TEMP':'PUBLIC-ONLY','GITHUB_SHA':'a'*40,'YNX_NATIVE_MATRIX_RUNNER':'macos-15'})
+                    if module=='pathlib':return types.SimpleNamespace(Path=PublicPath)
+                    return builtins.__import__(module,*args,**kwargs)
+                with contextlib.redirect_stdout(io.StringIO()):
+                    exec(compile(body,'actual-workflow-collector','exec'),{'__builtins__':dict(vars(builtins),__import__=control_import)})
+            run(rows)
+            selected=set(lists.get('resource_consent',[])+lists.get('source_v2_capacity',[])+lists.get('legacy_snapshot',[]))
+            for index,row in enumerate(rows):
+                if row.get('Test') not in selected and 'Test' in row:continue
+                for action in ('missing','fail','skip','duplicate','foreign-package','foreign-duplicate'):
+                    bad=copy.deepcopy(rows)
+                    if action=='missing':bad.pop(index)
+                    elif action=='duplicate':bad.append(copy.deepcopy(bad[index]))
+                    elif action=='foreign-duplicate':bad.append(dict(bad[index],Package='foreign'))
+                    elif action=='foreign-package':bad[index]['Package']='foreign'
+                    else:bad[index]['Action']=action
+                    # Foreign duplicate of an unrelated package terminal is not
+                    # evidence for a required test and is deliberately ignored.
+                    if 'Test' not in row and action=='foreign-duplicate':continue
+                    with self.subTest(collector=name,test=row.get('Test'),action=action),self.assertRaises(RuntimeError):run(bad)
+            for action in ('fail','build-fail'):
+                with self.subTest(globalFailure=action),self.assertRaises(RuntimeError):run(rows+[dict(Package='foreign',Action=action)])
+
+    def test_legacy_snapshot_full_original_stream_command_and_unique_qualification(self):
+        raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
+        assert_legacy_snapshot_stream_contract(raw)
+        head='      - name: Verify native ledger and HTTP PQ integration\n'
+        step=head+raw.split(head,1)[1].split('      - name:',1)[0]
+        for before,after in [('go test -json -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api','go test -run Snapshot ./internal/chain'),('timeout=180s','timeout=360s'),("terminal != [('github.com/JiahaoAlbus/YNX-Chain/internal/chain', 'pass')]",'False'),("('fail', 'skip', 'build-fail')","('fail',)"),('rootAuthorized=False','rootAuthorized=True')]:
+            self.assertIn(before,step)
+            with self.subTest(before=before),self.assertRaises(AssertionError):assert_legacy_snapshot_stream_contract(raw.replace(step,step.replace(before,after,1),1))
+        for test in ['TestLegacySnapshotMemoryCanonicalBatchAndBlock', 'TestLegacySnapshotMemoryDenseBlockBoundedWrites', 'TestLegacySnapshotMemoryFullHistoryColdAndReplication', 'TestLegacySnapshotMemoryLateFailureAndUnknown', 'TestLegacySnapshotMemorySameInputAllocation', 'TestLegacySnapshotMemoryValidHistoryAllocation']:
+            with self.subTest(name=test),self.assertRaises(AssertionError):assert_legacy_snapshot_stream_contract(raw.replace(step,step.replace(test,'WrongTest',1),1))
 
     def test_source_v2_native_supply_closed_headers_metadata_and_uploads(self):
         raw = (Path(__file__).resolve().parents[2]/".github/workflows/resource-market-ci.yml").read_text()
