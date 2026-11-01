@@ -63,7 +63,9 @@
       }
     ],
     "asar": true,
-    "asarUnpack": ["native/original-auth-identity.node"],
+    "asarUnpack": [
+      "native/original-auth-identity.node"
+    ],
     "afterPack": "scripts/after-pack.mjs",
     "files": [
       "src/**",
@@ -76,7 +78,8 @@
       "node_modules/@ynx-chain/wallet-auth/**",
       "!node_modules/@ynx-chain/wallet-auth/native/tests/**",
       "!node_modules/@ynx-chain/wallet-auth/native/test-pq-catalog-source-contract.mjs",
-      "node_modules/@noble/**"
+      "node_modules/@noble/**",
+      "native/http-v5-normal-build-inputs.json"
     ],
     "linux": {
       "artifactName": "ynx-wallet-desktop-${version}-${arch}.${ext}",
@@ -101,7 +104,9 @@
       ]
     },
     "mac": {
-      "signIgnore": ["/Contents/Resources/consensus-proof-verifier/darwin-arm64/ynx-consensus-proof-verify$"],
+      "signIgnore": [
+        "/Contents/Resources/consensus-proof-verifier/darwin-arm64/ynx-consensus-proof-verify$"
+      ],
       "extendInfo": {
         "NSCameraUsageDescription": "Scan a YNX receiving QR code locally. Camera frames are not uploaded, and scanning never authorizes a payment."
       },

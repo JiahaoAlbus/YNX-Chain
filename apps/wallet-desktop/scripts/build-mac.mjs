@@ -15,7 +15,7 @@ if (!["arm64", "x64", "universal"].includes(arch)) throw new Error("Choose arm64
 const root = fileURLToPath(new URL("..", import.meta.url));
 // Narrow normal-entry overrides for an already pinned local distribution.
 // Never silently drop flags or pass arbitrary builder configuration through.
-const extra=process.argv.slice(3),builderOptions=[];let electronDist=null,noRebuild=false,proofVerifierStage=null;
+const extra=process.argv.slice(3),builderOptions=[];let electronDist=null,noRebuild=false,proofVerifierStage=null,physicalQA=false;
 for(const option of extra){
   if(option.startsWith('--config.electronDist=')&&electronDist===null){
     electronDist=option.slice('--config.electronDist='.length);
@@ -24,9 +24,11 @@ for(const option of extra){
     proofVerifierStage=option.slice('--proof-verifier-stage='.length);
     if(arch!=='arm64'||!path.isAbsolute(proofVerifierStage)||path.normalize(proofVerifierStage)!==proofVerifierStage||proofVerifierStage.includes('\0'))throw Error('PQ_VERIFIER_BUILD_STAGE_INVALID');
   }else if(option==='--config.npmRebuild=false'&&!noRebuild)noRebuild=true;
+  else if(option==='--qa-physical-layout'&&!physicalQA)physicalQA=true;
   else throw Error('UNSUPPORTED_MAC_BUILD_OPTION');
 }
 if((electronDist!==null)!==noRebuild)throw Error('LOCAL_ELECTRON_DIST_AND_NO_REBUILD_REQUIRED');
+if(physicalQA){if(arch!=='arm64'||!path.isAbsolute(process.env.YNX_WALLET_QA_PROFILE_PATH??''))throw Error('LOCAL_PHYSICAL_QA_PROFILE_REQUIRED');builderOptions.push('--config.afterPack=scripts/qa-physical-after-pack.mjs');}
 if(arch==='arm64'&&proofVerifierStage===null)throw Error('PQ_VERIFIER_BUILD_STAGE_REQUIRED');
 const matchedSDK=JSON.parse(await readFile(new URL('../../../packages/wallet-auth/package.json',import.meta.url),'utf8'));
 assertSelectedProofVerifierForSDK(matchedSDK.version,originalPQVerifierReceipt);
@@ -47,8 +49,10 @@ if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(matchedSDK.version
   const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
   assertNativeComponentGitSourceClosure(sourceRoot,sourceCommit,await readFile(path.join(root,'native/original-auth-identity-build.json')));
 }
+const buildEnvironment={...process.env,YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE:proofVerifierStage??''};
+if(physicalQA){buildEnvironment.CSC_IDENTITY_AUTO_DISCOVERY='false';for(const key of ['CSC_LINK','CSC_KEY_PASSWORD','CSC_NAME','CSC_IDENTITY_NAME'])delete buildEnvironment[key];}
 const result = spawnSync(process.execPath, [fileURLToPath(new URL("../node_modules/electron-builder/cli.js", import.meta.url)), "--mac", "--dir", `--${arch}`, "--publish", "never", ...builderOptions], {
-  stdio: "inherit", cwd: root, env: {...process.env,YNX_WALLET_PROOF_VERIFIER_RESOURCES_STAGE:proofVerifierStage??''}
+  stdio: "inherit", cwd: root, env: buildEnvironment
 });
 if (result.error) throw result.error;
 if (result.status !== 0) process.exit(result.status ?? 1);
@@ -60,6 +64,7 @@ if(['1.3.0-pq.3.32-auth.46','1.3.0-pq.3.32-auth.49'].includes(matchedSDK.version
   await readFile(path.resolve(root,'../..',SDK13_HELPER_ASSET)),
   await readFile(path.resolve(root,'../..',SDK13_HELPER_PLIST))
 );
+if(physicalQA){process.stdout.write(JSON.stringify({qaApp:appDir,officialRelease:false,installed:false,SourceAdmission:false,RootAdmission:false})+'\n');process.exit(0);}
 // Verify again AFTER builder signing. The exact nested binary is signIgnored;
 // any unexpected re-sign/rewrite is a failed build, not a replacement receipt.
 if(proofVerifierStage!==null)await verifyPackagedPQVerifierAssets(path.join(appDir,'Contents','Resources'),originalPQVerifierReceipt);

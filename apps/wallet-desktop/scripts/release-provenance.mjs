@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import {HTTP_V5_NORMAL_INPUT_NAMES} from './wallet-http-v5-native-component.mjs';
+import {openPhysicalCodeView} from './physical-code-layout.mjs';
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync, writeFileSync, lstatSync, mkdtempSync, renameSync, rmSync, mkdirSync } from "node:fs";
 import path from "node:path";
@@ -186,6 +188,7 @@ export function auth26PackagedNativeSources(inventoryBytes,component,availableNa
  return matchedCustodyPackagedNativeSources(inventoryBytes,component,availableNames);
 }
 export function matchedCustodyPackagedNativeSources(inventoryBytes,component,availableNames){
+ if(component?.httpV5NormalRole){if(component.sourceBytesVerified!==true||HTTP_V5_NORMAL_INPUT_NAMES.some(p=>!availableNames.includes(p)))throw Error('V5 normal Native source is missing from frozen Git');return [...HTTP_V5_NORMAL_INPUT_NAMES];}
  if(component?.sourceBytesVerified!==true||!Array.isArray(component.walletInputs)||!Array.isArray(availableNames))throw Error('Auth26 matched component must precede source selection');
  const inventory=JSON.parse(inventoryBytes);if(![SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION,SDK37_VERSION,SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION,SDK46_VERSION,SDK49_VERSION].includes(inventory.version))throw Error('Matched custody inventory required');
  const names=[...inventory.NativeInputs.map(p=>p.path),...component.walletInputs.map(p=>p.path),...inventory.HelperInputs.filter(p=>p.path.startsWith('packages/wallet-auth/native/')).map(p=>p.path),...CANONICAL_NATIVE_EVIDENCE_TESTS];
@@ -399,7 +402,8 @@ export function desktopReleaseIdentity(cwd = projectDir, version) {
 
 export function verifyDesktopPackage(resources, cwd = projectDir) {
   const require = createRequire(path.join(cwd, "package.json"));
-  const asar = require("@electron/asar");
+  const physical=openPhysicalCodeView(resources,cwd);
+  const asar = physical?.asar??require("@electron/asar");
   const archive = path.join(resources, "app.asar");
   // Verification must read the current archive, including after an in-process rebuild.
   asar.uncache(archive);
@@ -419,7 +423,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   if(!isDeepStrictEqual(receipt.sdkProductRuntime??null,product?.public??null))throw Error('Packaged SDK product projection receipt differs from fixed source inputs');
   ensureUnchangedMembers(receipt.before,receipt.after,plan,Buffer.from(receipt.metadataInputBase64,'base64'),dependencies,evidence,productRuntime);
   assertSDKProductArchive(product,receipt.after);
-  if(!isDeepStrictEqual(archiveInventory(asar,archive),receipt.after)) throw new Error("Packaged archive differs from relocation receipt");
+  if(!isDeepStrictEqual(physical?.sourceInventory??archiveInventory(asar,archive),receipt.after)) throw new Error("Packaged archive differs from relocation receipt");
   const unavailableOptionalRuntimeAssets=plan.filter(row=>row.unavailableNativeAsset).map(row=>{
     if(receipt.after.some(member=>member.path===row.unavailableNativeAsset))throw Error('Unreviewed optional source-current Native module');
     return {declaredBy:row.sourcePath,path:row.unavailableNativeAsset,packaged:false,capability:'NOT_SUPPLIED'};
@@ -429,15 +433,15 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   if(path.basename(resources)==="Resources"&&path.basename(path.dirname(resources))==="Contents"){
     const plist=path.join(path.dirname(resources),"Info.plist");
     const entry=JSON.parse(execFileSync("plutil",["-extract","ElectronAsarIntegrity","json","-o","-",plist],{encoding:"utf8"}))["Resources/app.asar"];
-    if(!isDeepStrictEqual(entry,receipt.asarHeaderIntegrity)) throw new Error("Mac ASAR integrity metadata differs from relocated header");
+    if(!isDeepStrictEqual(entry,physical?.actualAsarHeaderIntegrity??receipt.asarHeaderIntegrity)) throw new Error("Mac ASAR integrity metadata differs from relocated header");
     macAsarIntegrityVerified=true;
   }
   const root = git(cwd, "rev-parse", "--show-toplevel");
   const sourceMetadata=JSON.parse(execFileSync("git",["show",`${expected.sourceCommit}:apps/wallet-desktop/package.json`],{cwd:root,encoding:"utf8",maxBuffer:16*1024*1024}));
   const sdkMetadata=JSON.parse(execFileSync('git',['show',`${expected.sourceCommit}:packages/wallet-auth/package.json`],{cwd:root,maxBuffer:16*1024*1024}));
   const sdkRuntimeDependencies=verifyPackagedWalletAuthDependencies(asar,archive,dependencies,sdkMetadata);
-  const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native').split('\n').filter(isCanonicalNativeSourceAsset);
   const nativeReceiptBytes=asar.extractFile(archive,NATIVE_RECEIPT),nativeReceipt=JSON.parse(nativeReceiptBytes.toString('utf8'));
+  const nativeSourceNames=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native',...(nativeReceipt.httpV5NormalRole?['apps/developer/helper']:[])).split('\n').filter(isCanonicalNativeSourceAsset);
   const sourceBytes=name=>execFileSync('git',['show',`${expected.sourceCommit}:${name}`],{cwd:root,maxBuffer:16*1024*1024});
   const inventoryBytes=[SDK332_CLEANUP_VERSION,SDK332_DEPLOYMENT_VERSION,SDK_R154_VERSION,SDK_CONTRACT_CLIENT_VERSION,SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION,SDK_PUBLICATION_RESULT_VERSION,SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION,SDK37_VERSION,SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION,SDK46_VERSION,SDK49_VERSION].includes(sdkMetadata.version)?sourceBytes(SDK332_NATIVE_INVENTORY):null;
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);
@@ -514,7 +518,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const allowed=new Set(names.filter(name=>!excludedTypeDeclarations.includes(name)).map(packedRuntimePath));
   if(product)for(const name of product.selected.keys())allowed.add('code/packages/wallet-auth/'+name);
   assertCanonicalRuntimeMembers(receipt.after,allowed);
-  return { ...expected, packagedSourceVerified: true, sourceVerificationScope: "every runtime Wallet and SDK source", runtimePackageMetadataVerified:true,verifiedRuntimePackageFields:[...RUNTIME_PACKAGE_FIELDS], excludedTypeDeclarations,
+  return { ...expected, packagedSourceVerified: true, sourceVerificationScope: physical?"every physical runtime Wallet and SDK source plus the fixed bootstrap archive":"every runtime Wallet and SDK source",...(physical?{physicalCodeLayout:{root:physical.root,files:physical.receipt.files.length,bootstrapAsarVerified:true,singlePhysicalSDK:true,runtimeExtraction:false,SourceAdmission:false}}:{}),runtimePackageMetadataVerified:true,verifiedRuntimePackageFields:[...RUNTIME_PACKAGE_FIELDS], excludedTypeDeclarations,
     canonicalLayoutVerified:true,sourceOperandsUnchanged:true,nativeModuleBuild,declaredSDKRuntimeAssets,nativeBuildEvidenceAssets,
     unavailableOptionalRuntimeAssets,sdkProductRuntime:product?.public??null,
     sdkRuntimeDependenciesVerified:true,sdkRuntimeDependencies,

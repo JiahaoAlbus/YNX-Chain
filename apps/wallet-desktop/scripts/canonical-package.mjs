@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {httpV5NormalSourceAsset,isHTTPV5NormalSelection,selectHTTPV5NormalInputs,verifyHTTPV5NormalReceipt} from './wallet-http-v5-native-component.mjs';
 import {DEVICE_V4_QUERY_PQ_NODE,DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS,DEVICE_V4_PROVISIONING_PQ_NODE,DEVICE_V4_PQ_PROTOCOL_INPUTS,DEVICE_V4_PQ_NODE,DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS,DEVICE_V4_PENDING_PQ_NODE,isDeviceV4PQSelection,deviceV4PQSupplierInputs,deviceV4PQReceiptCommands} from './wallet-device-v4-pq-role.mjs';
 import path from 'node:path';
 import {verifyNativeContinuationReceipt} from './wallet-native-continuation.mjs';
@@ -16,11 +17,12 @@ export const CANONICAL_NATIVE_EVIDENCE_TESTS=Object.freeze([
  'packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs'
 ]);
 export const SDK332_NATIVE_INVENTORY='packages/wallet-auth/integration/SDK332_R140_NATIVE_COMPATIBILITY.json';
-export function isCanonicalNativeSourceAsset(name){return typeof name==='string'&&(/^(?:apps\/wallet-desktop|packages\/wallet-auth)\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name)||[CC7_NATIVE_SOURCE.path,WALLET_ARTIFACT_CABI_INPUTS[2].path,WALLET_PROJECT_CONTROL_CABI_INPUTS[2].path,...PQ_NATIVE_INPUTS.map(p=>p.path),...DEVICE_V4_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS.map(p=>p.path),'apps/wallet-desktop/native/product-device-v4-e5.c','packages/wallet-auth/native/original-product-device-v4-query-source-contract.d.mts'].includes(name));}
+export function isCanonicalNativeSourceAsset(name){return typeof name==='string'&&(httpV5NormalSourceAsset(name)||/^(?:apps\/wallet-desktop|packages\/wallet-auth)\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name)||[CC7_NATIVE_SOURCE.path,WALLET_ARTIFACT_CABI_INPUTS[2].path,WALLET_PROJECT_CONTROL_CABI_INPUTS[2].path,...PQ_NATIVE_INPUTS.map(p=>p.path),...DEVICE_V4_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PENDING_PQ_PROTOCOL_INPUTS.map(p=>p.path),...DEVICE_V4_PROVISIONING_PQ_PROTOCOL_INPUTS.map(p=>p.path),'apps/wallet-desktop/native/product-device-v4-e5.c','packages/wallet-auth/native/original-product-device-v4-query-source-contract.d.mts'].includes(name));}
 /** Production compilation and source-inspection tests are distinct inputs.
  * Only the independently frozen auth3 inventory may select the 55 production
  * leaves. Never infer that set from the receipt currently being checked. */
 export function canonicalNativeInputSelection(sdkVersion,names,inventoryBytes,receiptInputs){
+ if(isHTTPV5NormalSelection(names))return selectHTTPV5NormalInputs(sdkVersion,names,inventoryBytes,receiptInputs);
  if(names.includes(CC7_NATIVE_SOURCE.path)&&sdkVersion!==CC7_NATIVE_ROLE.sdk.version)throw Error('Canonical Native source inventory differs');
  const evidenceAssets=CANONICAL_NATIVE_EVIDENCE_TESTS.filter(n=>names.includes(n));
  const fixed={'1.3.0-pq.3.32-auth.3':{bytes:19696,sha256:'3600874dc48acc5032540ad8b8df39f34381cf85bd6b96f9fbe000e2da4da0ee'},'1.3.0-pq.3.32-auth.4':{bytes:21347,sha256:'e1955ad13cd5187ef4672c34619a48c94bc12120dda393ed950ba19adcb47bf7'},'1.3.0-pq.3.32-auth.5':{bytes:24580,sha256:'f74b7e805eebb86b1adff2f5865641d8c6cade0159bcf8f1baf214ae34d81b92'}};
@@ -172,6 +174,7 @@ export function canonicalArchivePlan(before,metadataBytes,dependencyRows=[],prod
  return {after:[...rows.values()].sort((a,b)=>a.path.localeCompare(b.path,'en')),metadata,appMetadata};
 }
 export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,readSource){
+ if(isHTTPV5NormalSelection(expectedInputs))return verifyHTTPV5NormalReceipt(receipt,moduleBytes,expectedInputs,readSource);
  const bad=()=>{throw Error('Native build receipt or input pins differ');};
  if(receipt?.schemaVersion!==1||receipt.kind!=='YNX_WALLET_ORIGINAL_NATIVE_BUILD'||receipt.napiVersion!==8||receipt.headerVersion!=='22.13.1'||receipt.minimumSystemVersion!=='13.0'||typeof receipt.readbackOnly!=='boolean'||receipt.appSigned!==false||receipt.nativeQualified!==false||receipt.registrationAccepted!==false)bad();
  if(receipt.commandsKind!==(receipt.readbackOnly?'normal-build-plan':'executed-normal-build'))bad();

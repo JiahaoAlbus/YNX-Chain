@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {verifyHTTPV5NormalComponent} from './wallet-http-v5-native-component.mjs';
 import {verifySDK48FullAuthRuntime,SDK48_FULL_AUTH_RUNTIME_SOURCE} from './sdk14-runtime-union.mjs';
 import {verifySDK49FullRuntimeTables} from './sdk49-runtime-source.mjs';
 import path from 'node:path';
@@ -37,6 +38,7 @@ export function sdk13HelperBuildCommands(sourceRoot,architectures){
  * The builder must separately attest the actual command execution.
  */
 export function verifySDK13NativeComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource){
+ if(record?.httpV5NormalRole)return verifyHTTPV5NormalComponent({record,inventoryBytes,moduleBytes,helperBytes},readSource);
  const profile=[...Object.values(WALLET_NATIVE_SOURCE_PROFILES),WALLET_SDK49_PENDING_SOURCE_PROFILE,WALLET_SDK49_PROVISIONING_SOURCE_PROFILE,WALLET_SDK49_QUERY_SOURCE_PROFILE].find(p=>inventoryBytes?.length===p.inventory.bytes&&hash(inventoryBytes)===p.inventory.sha256);if(!profile)fail();
  const inventory=JSON.parse(pinned(inventoryBytes,profile.inventory));
  if(inventory.version!==profile.version||record?.readbackOnly!==false||record?.commandsKind!=='executed-normal-build'||typeof readSource!=='function')fail();
