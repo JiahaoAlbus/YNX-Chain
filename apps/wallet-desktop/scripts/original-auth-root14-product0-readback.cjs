@@ -1,0 +1,3 @@
+// Original Auth Root14 component's actual Root0 denial/partial-drain control.
+// No Root material, keys or business effect is supplied.
+const a=require(process.argv[2]);if(typeof a.acquireOriginalProductSource!=='function')throw Error('PRODUCT_REGISTRATION');let p;try{a.acquireOriginalProductSource();throw Error('ROOT0_FALSE_SUCCESS');}catch(e){p=e.partial;if(!p||!a.isOriginalProductSource(p))throw e;}p.retire();Promise.resolve(p.join()).then(()=>p.close()).then(()=>{p.assertSafeToClose();console.log('actual-root14-factory Root0 refused and drained');}).catch(e=>{console.error(e);process.exitCode=1});

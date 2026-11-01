@@ -1,0 +1,67 @@
+#pragma once
+#include <string>
+#include <vector>
+#include <cstdint>
+namespace ynx_auth_private {
+// PRIVATE release admission, not a runtime JSON/ENV allowlist. Root must bind
+// actual independently approved public enrollment and exact verifier images.
+// No QA/SSO/IDE project root is enrolled by this implementation delivery.
+struct NativeSourceRelease {
+ std::string sourceId,rootDigest,enrollmentDigest,verifierImageDigest,nodeImageDigest,verifierImagePath,nodeImagePath,endpoint,spki;
+ // Exact EXISTING Auth signature contract, independently accepted with the
+ // same registration. Never assigned defaults by the verifier or producer.
+ std::string purpose,enrollmentFrame,profileFrame,currentFrame;
+ // Explicit optional versioned extension. Empty old rows remain unsupported;
+ // these fields MUST be bound by the original independent release process.
+ std::string persistentVersion,persistentContractDigest,persistentFrame,persistentNamespace;
+ std::string firstEnterVerifierDigest,persistentModuleDigest;
+ // Independent exact runtime closure and canonical NativeNode binding. Empty
+ // historical rows are NOT proof consumers; no endpoint/TOFU/ENV defaults.
+ std::string proofContract,proofDispatchDigest,proofRuntimeManifestDigest;
+ std::string nativeNodeOrigin,nativeNodeSPKI,nativeChainId;
+ // Dedicated independently admitted initiator runtime. Empty historical rows
+ // do not qualify it. Paths/digests are compile-time release inputs, NOT ENV,
+ // caller JSON, a project owner boolean or a public signature projection.
+ std::string contractRelayRuntimeDirectory,contractRelayRuntimeManifestDigest,contractRelayExecutorDigest;
+ // Original independently admitted project authority endpoint. Never supplied
+ // by renderer/HTTP request or inferred from Relay/login source selections.
+ std::string projectAuthorityEndpoint,projectAuthoritySPKI;
+ // Dedicated Wallet catalog Source ONLY. Old entries stay unsupported. These
+ // independent Root/release inputs must identify the normal registrar build
+ // with the journal-six contract; a filename/old proof receipt is insufficient.
+ std::string walletPQApplicationId,walletPQProtocolImagePath,walletPQProtocolImageDigest,walletPQProtocolSourceRevision,walletPQProtocolContract;
+ std::string walletPQProtocolReconcileContract;
+ // Separate device Source identity, not a PQ transaction/catalog/BIRTH row.
+ // Empty old rows cannot acquire device Source. Original release process must
+ // independently bind both values; never renderer/ENV/current-response input.
+ std::string productDeviceV4ApplicationId,productDeviceV4ProductId;
+ // Provisioning only: independently frozen original Main private approval
+ // module. Never a path/function supplied by peer, renderer or HTTP DATA.
+ std::string productDeviceV4ApprovalModulePath,productDeviceV4ApprovalModuleDigest;
+ // Dedicated Pay client release qualification. Never DeviceV4/catalog aliases.
+ std::string walletNativePayApplicationId,walletNativePayProductId,walletNativePayPlatform,walletNativePayResourceDirectory;
+ uint64_t walletNativePayUID=0;
+ uint64_t productDeviceV4ApprovalModuleBytes=0;
+ // Independent read-only query Main module. Never a creation approval alias.
+ std::string productDeviceV4QueryModulePath,productDeviceV4QueryModuleDigest;
+ uint64_t productDeviceV4QueryModuleBytes=0;
+ // Independent registered-local finalization Main peer, never creation/query.
+ std::string productHTTPV5TransportModulePath,productHTTPV5TransportModuleDigest;
+ uint64_t productHTTPV5TransportModuleBytes=0;
+ std::string productDeviceV4RegisteredFinalizationModulePath,productDeviceV4RegisteredFinalizationModuleDigest;
+ uint64_t productDeviceV4RegisteredFinalizationModuleBytes=0;
+};
+inline const std::vector<NativeSourceRelease>& originalNativeSourceReleases(){
+ // An independently approved App build may supply typed ROWS via its frozen
+ // private compile input. No runtime ENV/JSON/provider/setter is consulted.
+ // Keep those values OUTSIDE the packaged SDK runtime inventory, avoiding a
+ // digest self-reference through this public generic header. Macro presence
+ // is not authority: all original protected registry/Root/current checks run.
+#ifdef YNX_ORIGINAL_NATIVE_SOURCE_RELEASE_ROWS
+ static const std::vector<NativeSourceRelease> admitted={YNX_ORIGINAL_NATIVE_SOURCE_RELEASE_ROWS};
+#else
+ static const std::vector<NativeSourceRelease> admitted;
+#endif
+ return admitted;
+}
+}
