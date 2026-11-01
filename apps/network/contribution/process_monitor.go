@@ -74,7 +74,7 @@ func (m *processMonitor) readEvent(reader *bufio.Reader, challenge string, pid i
 
 // Only the direct worker's live handle is passed here. The native sampler has
 // no signal authority; a terminal event cancels the original owned command.
-func (e *PinnedWASMExecutor) startMonitor(ctx context.Context, pid int, cpu, millis uint64, challenge string, stopWorker context.CancelFunc) (*processMonitor, error) {
+func (e *PinnedWASMExecutor) startMonitor(ctx context.Context, pid int, cpu, millis uint64, challenge string, workerDone <-chan struct{}, stopWorker context.CancelFunc) (*processMonitor, error) {
 	if e.monitor == nil {
 		return nil, ErrOSLimits
 	}
@@ -136,6 +136,16 @@ func (e *PinnedWASMExecutor) startMonitor(ctx context.Context, pid int, cpu, mil
 					m.limited.Store(true)
 					stopWorker()
 				case "exited":
+					// proc_pid_rusage failure alone is not proof of worker exit.
+					// Allow the owner's concurrent Wait to confirm it; otherwise
+					// fail closed rather than leave a live worker unmonitored.
+					select {
+					case <-workerDone:
+					case <-ctx.Done():
+					case <-time.After(20 * time.Millisecond):
+						m.fault.Store(true)
+						stopWorker()
+					}
 				default:
 					m.fault.Store(true)
 					stopWorker()

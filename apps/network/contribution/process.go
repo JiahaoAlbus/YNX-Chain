@@ -373,6 +373,7 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 	started := time.Now()
 	// Always call Wait after a successful Start, including cancellation. Keep the
 	// sole active admission slot until the actual process and I/O have returned.
+	workerDone := make(chan struct{})
 	runErr := command.Start()
 	var controls *OSControls
 	var limitErr error
@@ -388,7 +389,7 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 			_ = limitPipe.write.Close()
 			controls, limitErr = limitPipe.verify(opCtx, cpu, millis)
 			if limitErr == nil {
-				monitor, limitErr = e.startMonitor(opCtx, command.Process.Pid, cpu, millis, limitPipe.challenge, cancel)
+				monitor, limitErr = e.startMonitor(opCtx, command.Process.Pid, cpu, millis, limitPipe.challenge, workerDone, cancel)
 			}
 			if limitErr == nil {
 				close(limitPipe.ready)
@@ -402,6 +403,7 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 		}
 		runErr = command.Wait()
 	}
+	close(workerDone)
 	monitorUsage := monitor.finish()
 	usage.Process = measureProcess(command.ProcessState, controls, killed.Load())
 	if usage.Process != nil {
@@ -415,13 +417,13 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 			limitErr = ErrOSLimits
 		}
 	}
+	usage.BytesRead = stdin.read
+	usage.WallMicros = uint64(time.Since(started).Microseconds())
 	if e.monitor != nil {
 		if err := e.monitor.checkPins(); err != nil {
 			return nil, usage, err
 		}
 	}
-	usage.BytesRead = stdin.read
-	usage.WallMicros = uint64(time.Since(started).Microseconds())
 	if _, _, err = inspectProcessFile(e.source.path, &e.source, e.source.pin); err != nil {
 		return nil, usage, err
 	}

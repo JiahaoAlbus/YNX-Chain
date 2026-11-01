@@ -269,6 +269,62 @@ func TestP09OSMonitorStopsUncooperativeChild(t *testing.T) {
 	}
 }
 
+func TestP09OSMonitorChangedSourcePreservesUsage(t *testing.T) {
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	monitor, mpin := resourceMonitorBinary(t, dir)
+	source := filepath.Join(dir, "hostile.c")
+	if err = os.WriteFile(source, []byte(hostileOSWorker), 0600); err != nil {
+		t.Fatal(err)
+	}
+	worker := filepath.Join(dir, "ynx-network-task-worker")
+	if out, err := exec.Command("xcrun", "clang", source, "-o", worker).CombinedOutput(); err != nil {
+		t.Fatalf("fixture: %v %s", err, out)
+	}
+	raw, _ := os.ReadFile(worker)
+	sum := sha256.Sum256(raw)
+	e, err := contribution.NewOSLimitedWASMExecutor(worker, hex.EncodeToString(sum[:]), monitor, mpin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer e.Close()
+	type result struct {
+		u   contribution.Usage
+		err error
+	}
+	done := make(chan result, 1)
+	go func() {
+		_, u, err := e.Execute(context.Background(), []byte("account-even-when-code-changes"), contribution.Limits{CPUMilli: "1000", MemoryBytes: "9000000", StorageBytes: "0", EgressBytes: "0", DurationMillis: "5000"})
+		done <- result{u, err}
+	}()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		_, started, read := e.LocalProcess()
+		if started && read > 0 {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("worker never admitted")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	if err = os.WriteFile(monitor, []byte("changed test-owned monitor source; captured running code remains original"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err = e.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
+	r := <-done
+	if !errors.Is(r.err, contribution.ErrInvalid) || r.u.BytesRead == 0 || r.u.WallMicros == 0 || r.u.Process == nil || r.u.Process.Monitor == nil || !r.u.Process.Monitor.Waited {
+		t.Fatalf("code-change failure lost actual usage: %v %+v", r.err, r.u)
+	}
+	t.Logf("changed source rejected with bytes=%d wallMicros=%d and both wait4 observations preserved", r.u.BytesRead, r.u.WallMicros)
+}
+
 // The parent probe is test-only. The real fixed worker must exit after its
 // original parent dies while stdin remains open and no input has been released.
 func TestP09OSWorkerParentProbe(t *testing.T) {
@@ -344,4 +400,45 @@ func TestP09OSWorkerExitsAfterParentDeath(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 	t.Logf("actual fixed worker stopped after original parent death in %s; stdin kept open", time.Since(began))
+}
+
+func TestP09OSMonitorCannotClaimLiveChildExited(t *testing.T) {
+	dir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	monitorSource, err := os.ReadFile("../../apps/network/qa/resource_monitor.c")
+	if err != nil {
+		t.Fatal(err)
+	}
+	changed := strings.Replace(string(monitorSource), "if(getppid()!=parent)return 0;", `if(getppid()!=parent)return 0; emit("exited",argv[10],pid,parent,&u);return 0;`, 1)
+	src := filepath.Join(dir, "false-exit.c")
+	if err = os.WriteFile(src, []byte(changed), 0600); err != nil {
+		t.Fatal(err)
+	}
+	monitor := filepath.Join(dir, "ynx-network-resource-monitor")
+	if out, err := exec.Command("xcrun", "clang", src, "-o", monitor).CombinedOutput(); err != nil {
+		t.Fatalf("fixture monitor: %v %s", err, out)
+	}
+	b, _ := os.ReadFile(monitor)
+	mh := sha256.Sum256(b)
+	worker := filepath.Join(dir, "ynx-network-task-worker")
+	src = filepath.Join(dir, "hostile.c")
+	os.WriteFile(src, []byte(hostileOSWorker), 0600)
+	if out, err := exec.Command("xcrun", "clang", src, "-o", worker).CombinedOutput(); err != nil {
+		t.Fatalf("fixture worker: %v %s", err, out)
+	}
+	b, _ = os.ReadFile(worker)
+	wh := sha256.Sum256(b)
+	e, err := contribution.NewOSLimitedWASMExecutor(worker, hex.EncodeToString(wh[:]), monitor, hex.EncodeToString(mh[:]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer e.Close()
+	began := time.Now()
+	_, u, err := e.Execute(context.Background(), []byte("fixture"), contribution.Limits{CPUMilli: "1000", MemoryBytes: "9000000", StorageBytes: "0", EgressBytes: "0", DurationMillis: "5000"})
+	if !errors.Is(err, contribution.ErrOSLimits) || u.Process == nil || u.Process.Monitor == nil || !u.Process.HostKillRequested || !u.Process.Waited || !u.Process.Monitor.Waited || time.Since(began) > time.Second {
+		t.Fatalf("live child left unmonitored: %v %+v", err, u)
+	}
+	t.Logf("false exit fails closed and waits both children in %s", time.Since(began))
 }

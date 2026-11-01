@@ -43,4 +43,4 @@ key-epoch/current revocation and resource-specific native consent are still
 missing owning CODE; node/TX/AI approvals cannot substitute for them.
 
 Darwin delta CI: `go test -p 1 ./cmd/ynx-network-helper -run
-'TestP09(OSLimitedFixedWorkerLifecycle|OSMonitorStopsUncooperativeChild|DarwinWorkerOSLimitModule)$'`.
+'TestP09(OSLimitedFixedWorkerLifecycle|OSMonitorStopsUncooperativeChild|DarwinWorkerOSLimitModule|OSWorkerExitsAfterParentDeath|OSMonitorChangedSourcePreservesUsage|OSMonitorCannotClaimLiveChildExited)$'`.
