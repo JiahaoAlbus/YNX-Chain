@@ -25,8 +25,8 @@ GO_SOURCE = "7593d691bafa6e7e5bb40511464aed27a41b416d"
 GO_TREE = "eb3eda31c0b59cb14d6db62f0deaa4940c3d41c6"
 FORK_TREE = "54e88e6aba735eaceeb2d00bb40731248c673bd7"
 NORMAL_RUN = "41228262522"
-TOOLS = "3d6f0fdbf752ccd0927c04e489c3c44d858e4c7b"
-TOOLS_TREE = "daeb14865bb6a0510c885b1738baa3a3f845d511"
+TOOLS = "205365e14cc106f4cb6feb38d494abb7cfc2f5cb"
+TOOLS_TREE = "1533d25c7c42c53e903405d4ab2ec518b16030ec"
 CAPS = dict(totalSeconds=900, cleanupSeconds=15, rssBytes=4 << 30,
             newBytes=8 << 30, initialMemoryBytes=6 << 30,
             initialDiskBytes=16 << 30, logBytes=4 << 20, cpus=2)
@@ -37,7 +37,7 @@ SOURCE_PINS = {
     "scripts/loadtest/pq-source-artifact-intake.py": "ab75f9748a05523f5719ee42a8a99b576d3444a30481b0e07253956e3e5943ef",
 }
 TOOL_PINS = {
-    "pq-independent-load.py": "e5377710db23d681fe4a94c51086af0f81d269775aa27742548a14c26cc0ccb1",
+    "pq-independent-load.py": "98bb178b17434e3a62c6c6ae81fec55049cda12ae46dd92b1744d721cd0135c0",
     "pq-independent-scheduler.py": "8f4bdd7ad66e75a02c0e4f54b96b18862e87939957090ef82de3888a0dd1d234",
     "pq-normal-process-lab.py": "6810b02608e54fe0dfde05555073c8f01463ac182f4dea76a9dfb6a2af4e1195",
     "consensus-linux-cohort.py": "ffc7e02e1d37adc28f4d94c262d30a45e91eb594307931b482dcdd39ccc82591",
@@ -69,6 +69,7 @@ def prepared_data():
                 untouchedFdcBefore=False, combinedABBaseline=False, executed=False,
                 previous16SenderRun="41264965296", previous16SenderLoadExecuted=False,
                 previous8RSSExitRun="41266674073", previous8RSSExitLoadExecuted=False,
+                previous8OnlineCorpusRun="41267267458", previous8OnlineCorpusLoadExecuted=False,
                 accountSelection="Root fixed eight independent accounts, each at most one pending; all500 demand retained",
                 helperMaximumLive=3, originalOwnedPIDLimit=16,
                 nodeStartAuthorized=False, publicNetwork=False, authorityGranted=False)

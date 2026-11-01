@@ -140,17 +140,17 @@ jobs:
       - name: Receive the exact existing independent-load driver without modifying its methods
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 3d6f0fdbf752ccd0927c04e489c3c44d858e4c7b
+          ref: 205365e14cc106f4cb6feb38d494abb7cfc2f5cb
           path: tools
           fetch-depth: 1
           filter: blob:none
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/
-      - name: Execute only the four new real same-process running-exit regressions
+      - name: Execute only the three new original online and presigned mode regressions
         run: |
           set -euo pipefail
-          python3 -I -B tools/scripts/loadtest/test_linux_running_exit.py -v
+          python3 -I -B tools/scripts/loadtest/test_pq_backend_modes.py -v
       - name: Install the original pinned normal toolchain without shared build caches
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
