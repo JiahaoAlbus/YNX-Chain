@@ -158,6 +158,10 @@ enum AppleBuyerReceipt {
     static func validate(_ order:Order,account:String)throws {
         guard owned(order,account),NativeWire.matches(order.orderID,"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),order.totalYNXT>0,order.currency=="YNXT" else{throw ShopError.security}
         if ["paid","shipped","delivered","reviewed","return_requested","return_approved","refund_requested","refunded"].contains(order.status) {
+            if (order.payIntentID ?? "").hasPrefix("npi_") {
+                guard NativeWire.matches(order.payIntentID ?? "","^npi_[a-f0-9]{48}$"),let payment=order.nativePayment else{throw ShopError.security}
+                try payment.validate(order);return
+            }
             guard let r=order.settlement,NativeWire.matches(order.invoiceID ?? "","^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),NativeWire.matches(order.payIntentID ?? "","^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"),!(order.payMerchant ?? "").isEmpty,!(order.payPayoutAddress ?? "").isEmpty,r.Status=="paid",r.InvoiceID==order.invoiceID,r.IntentID==order.payIntentID,r.Merchant==order.payMerchant,r.PayoutAddress==order.payPayoutAddress,r.Payer==account,r.Currency=="YNXT",r.AmountYNXT==order.totalYNXT,r.BlockHeight>0,NativeWire.matches(r.TransactionHash,"^0x[a-fA-F0-9]{64}$") else{throw ShopError.security}
         }
     }

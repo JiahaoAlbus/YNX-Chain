@@ -73,7 +73,9 @@ struct OrdersView:View {
         else if model.orders.isEmpty{ContentUnavailableView("no_orders",systemImage:"shippingbox")}
         else{ForEach(model.orders){o in Section{
             Text(o.orderID).font(.caption.monospaced());Text(LocalizedStringKey(o.status));Text("\(o.totalYNXT.formatted()) YNXT")
-            if o.status=="payment_pending"{Button("pay_handoff"){model.pay(o)};Button("check_payment"){model.checkPayment(o)}}
+            if o.status=="payment_pending"{Button("pay_handoff"){model.pay(o)}}
+            if o.status=="payment_pending" || (o.payIntentID ?? "").hasPrefix("npi_"){Button("check_payment"){model.checkPayment(o)}}
+            if let refund=o.refundStatus,!refund.isEmpty{Text(refund).font(.caption)}
             Menu("order_actions"){
                 ForEach([("cancelled","cancel_order"),("delivered","confirm_delivery"),("reviewed","write_review"),("return_requested","return_request"),("refund_requested","refund_request"),("disputed","dispute")],id:\.0){action,title in
                     if BuyerOrderActionInput.allowed(o.status,action){Button(LocalizedStringKey(title)){model.beginOrderAction(o,action,title:title)}}

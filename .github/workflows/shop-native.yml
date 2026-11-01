@@ -30,12 +30,16 @@ on:
       - ".github/workflows/shop-native.yml"
   workflow_dispatch:
 
+env:
+  YNX_SHOP_NATIVE_RECEIPT_FIXTURE: ${{ github.workspace }}/apps/shop/native/testdata/native-paid-order.json
+
 jobs:
   change-scope:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
       source-only: ${{ steps.scope.outputs.source-only }}
+      native-client-only: ${{ steps.scope.outputs.native-client-only }}
       read-tests: ${{ steps.scope.outputs.read-tests }}
     steps:
       - uses: actions/checkout@v4
@@ -68,6 +72,7 @@ jobs:
               return path in receipt_files or path.startswith("internal/commerce/native_payment_")
           read_path = lambda p: source_path(p) or native_client_path(p) or receipt_path(p)
           allowed = lambda p: read_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", "internal/commerce/NATIVE_PAYMENT_RECEIPT.md", ".github/workflows/shop-native.yml", "go.mod"}
+          native_client_only = bool(changed) and any(p.startswith("apps/shop/native/") for p in changed) and all(p.startswith("apps/shop/native/") or p == ".github/workflows/shop-native.yml" for p in changed)
           source_only = bool(changed) and any(map(read_path, changed)) and all(map(allowed, changed))
           if source_only and "go.mod" in changed:
               module = "github.com/JiahaoAlbus/YNX-Chain/authowned/productreadsource"
@@ -83,6 +88,7 @@ jobs:
           if source_only and any(map(receipt_path, changed)):
               tests.extend(["TestNativePaymentReceipt", "TestBusinessNativeInvoice", "TestBusinessSettlement", "TestBusinessPayPerDispatch", "TestPaidSettlement", "TestReturnReceipt", "TestOrderTransition", "TestOrderLifecycle", "TestSnapshot", "TestBuyerData", "TestNativeInvoicePrivacy", "TestShopRuntime", "TestShopNativeAPI"])
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("native-client-only=" + str(native_client_only).lower() + "\n")
               output.write("source-only=" + str(source_only).lower() + "\n")
               output.write("read-tests=^(" + "|".join(tests) + ")\n")
           print("Read-plane-only checks:", source_only, "actual changed files:", len(changed))
@@ -99,11 +105,12 @@ jobs:
       - name: Verify complete original Auth and LINK input packages
         run: python3 internal/commerce/verify_product_source_inputs.py
       - name: Verify original intent recovery and build the normal Shop service
-        if: needs.change-scope.outputs.source-only != 'true'
+        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
           go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
       - name: Verify affected Source and Native Pay reads on original transports
+        if: needs.change-scope.outputs.native-client-only != 'true'
         env:
           READ_TESTS: ${{ needs.change-scope.outputs.read-tests }}
         run: |
@@ -136,7 +143,7 @@ jobs:
         with:
           node-version: "22"
       - name: Check inventory CLI against the original official Native SDK input
-        if: needs.change-scope.outputs.source-only != 'true'
+        if: needs.change-scope.outputs.source-only != 'true' && needs.change-scope.outputs.native-client-only != 'true'
         run: |
           set -euo pipefail
           npm install --prefix "$RUNNER_TEMP/ynx-shop-inventory-tools" --no-package-lock --ignore-scripts \

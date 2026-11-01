@@ -70,6 +70,26 @@ final class StubProtocol:URLProtocol,@unchecked Sendable {
         try await api.readOriginalNativeIntent(nativeOrder);try check(intentCalls==1,"actual API reads retained intent without payment POST")
         StubProtocol.handler={request in request.respond(200,"{\"orderId\":\"ord_original\",\"originalOperation\":\"foreign\",\"state\":\"ISSUED\",\"phase\":\"terms_registered\",\"queryOnly\":true,\"fundsVerified\":false}")}
         do{try await api.readOriginalNativeIntent(nativeOrder);throw NSError(domain:"intent rebound",code:1)}catch ShopError.security{print("PASS foreign original operation cannot be adopted")}
+        let fixtureURL=URL(fileURLWithPath:ProcessInfo.processInfo.environment["YNX_SHOP_NATIVE_RECEIPT_FIXTURE"]!)
+        let originalNative=try JSONSerialization.jsonObject(with:Data(contentsOf:fixtureURL)) as! [String:Any]
+        let nativeBuyer=originalNative["Buyer"] as! String
+        let acceptedNative=try AppleBuyerReceipt.decode(originalNative,account:nativeBuyer)
+        try check(acceptedNative.nativePayment?.RefundedAtoms=="30" && acceptedNative.nativePayment?.NetPaidAtoms=="70","actual dual-process Native return receipt renders exact partial refund")
+        for key in ["InvoiceID","NetPaidAtoms","PaidAtoms","TermsHash"] {
+            var changed=originalNative;var payment=changed["NativePayment"] as! [String:Any];payment[key]="foreign";changed["NativePayment"]=payment
+            do{_ = try AppleBuyerReceipt.decode(changed,account:nativeBuyer);throw NSError(domain:"rebound Native projection",code:1)}catch ShopError.security{print("PASS Native projection rejects "+key)}
+        }
+        var missingNative=originalNative;missingNative.removeValue(forKey:"NativePayment")
+        do{_ = try AppleBuyerReceipt.decode(missingNative,account:nativeBuyer);throw NSError(domain:"missing Native receipt",code:1)}catch ShopError.security{print("PASS Native paid state requires original projection")}
+        var receiptCalls=0
+        StubProtocol.handler={request in receiptCalls+=1;precondition(request.request.httpMethod=="POST" && request.request.url?.path=="/api/orders/ord_original/confirm-payment");precondition(request.request.value(forHTTPHeaderField:"X-YNX-Product-Session-Action-Proof-V2") != nil);request.respond()}
+        try await api.confirmOriginalPayment(nativeOrder)
+        try check(receiptCalls==1 && nativeOrder.status=="payment_pending","signed original receipt action awaits independent order refresh")
+        authority.current=ShopSession.parse(try metadata(other))
+        do{try await api.confirmOriginalPayment(nativeOrder);throw NSError(domain:"foreign receipt read",code:1)}catch ShopError.security{try check(receiptCalls==1,"foreign buyer cannot dispatch receipt confirmation")}
+        authority.current=ShopSession.parse(try metadata(account))
+        StubProtocol.handler={request in receiptCalls+=1;request.respond(409)}
+        do{try await api.confirmOriginalPayment(nativeOrder);throw NSError(domain:"missing receipt accepted",code:1)}catch ShopError.invalidResponse{try check(nativeOrder.status=="payment_pending","missing receipt cannot confirm payment")}
         authority.current=ShopSession.parse(try metadata(account));let dispatchBaseline=dispatched
         do{_ = try await api.raw("orders",json:["IdempotencyKey":"original-admission"],beforeDispatch:{throw ShopError.security});throw NSError(domain:"admission dispatched",code:1)}catch ShopError.security{try check(dispatched==dispatchBaseline,"durable dispatch admission failure cannot send HTTP")}
         do{_ = try await api.raw("orders",json:["IdempotencyKey":"original-admission"],beforeDispatch:{api.invalidate()});throw NSError(domain:"late admission dispatched",code:1)}catch ShopError.contextChanged{try check(dispatched==dispatchBaseline,"context change in dispatch admission prevents HTTP")}

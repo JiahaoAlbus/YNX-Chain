@@ -93,6 +93,7 @@ struct Order: Codable, Identifiable {
     var payIntentID:String? = nil
     var payMerchant:String? = nil
     var payPayoutAddress:String? = nil
+    var nativePayment:NativePaymentProjection? = nil
     var settlement:SettlementReceipt? = nil
     var cartConsumption:CartReceipt? = nil
     var id: String { orderID }
@@ -107,8 +108,31 @@ struct Order: Codable, Identifiable {
         case buyer = "Buyer"
         case storeID = "StoreID"
         case currency = "Currency"
-        case walletBuyer="WalletBuyer",invoiceID="InvoiceID",payIntentID="PayIntentID",payMerchant="PayMerchant",payPayoutAddress="PayPayoutAddress",settlement="Settlement",cartConsumption="CartConsumption"
+        case walletBuyer="WalletBuyer",invoiceID="InvoiceID",payIntentID="PayIntentID",payMerchant="PayMerchant",payPayoutAddress="PayPayoutAddress",nativePayment="NativePayment",settlement="Settlement",cartConsumption="CartConsumption"
     }
+}
+// Display consistency on the authenticated Shop response; proof verification stays on the server.
+struct NativePaymentProjection:Codable {
+    let InvoiceID:String;let SessionID:String;let TermsHash:String;let SettlementNativeHash:String
+    let PrincipalAtoms:String;let PaidAtoms:String;let RefundedAtoms:String;let NetPaidAtoms:String
+    let ReconciliationRequired:Bool;let Receipts:[NativePaymentClaim]
+    func validate(_ order:Order)throws {
+        func atoms(_ text:String)throws->UInt64 {guard let n=UInt64(text),String(n)==text else{throw ShopError.security};return n}
+        let principal=try atoms(PrincipalAtoms),paid=try atoms(PaidAtoms),refunded=try atoms(RefundedAtoms),net=try atoms(NetPaidAtoms)
+        guard !ReconciliationRequired,InvoiceID==order.invoiceID,!SessionID.isEmpty,NativeWire.matches(TermsHash,"^[a-f0-9]{64}$"),NativeWire.matches(SettlementNativeHash,"^0x[a-f0-9]{64}$"),principal>0,paid==principal,refunded<=paid,net==paid-refunded,!Receipts.isEmpty else{throw ShopError.security}
+        var settlementCount=0
+        for receipt in Receipts {
+            guard receipt.productId=="shop.order",receipt.storeId==order.storeID,receipt.sourceOrder==order.orderID,receipt.invoiceId==InvoiceID,receipt.sessionId==SessionID,receipt.termsHash==TermsHash,receipt.merchant==order.payMerchant,receipt.settlementNativeHash==SettlementNativeHash else{throw ShopError.security}
+            if receipt.kind=="invoice_settle" && receipt.status=="confirmed" {
+                guard receipt.nativeHash==SettlementNativeHash,receipt.payer==order.buyer,receipt.recipient==order.payPayoutAddress else{throw ShopError.security};settlementCount+=1
+            }
+        }
+        guard settlementCount==1 else{throw ShopError.security}
+    }
+}
+struct NativePaymentClaim:Codable {
+    let productId:String;let storeId:String;let sourceOrder:String;let merchant:String;let invoiceId:String;let sessionId:String;let termsHash:String
+    let nativeHash:String;let settlementNativeHash:String;let kind:String;let status:String;let payer:String?;let recipient:String?
 }
 struct CartReceipt:Codable {let PreviousRevision:String;let Revision:String}
 struct SettlementReceipt:Codable {let Status:String;let InvoiceID:String;let IntentID:String;let Merchant:String;let PayoutAddress:String;let Payer:String;let Currency:String;let AmountYNXT:Int64;let BlockHeight:UInt64;let TransactionHash:String}
@@ -173,6 +197,16 @@ extension AppleNativeAuthority {func openInvoice(_ url:URL,expected:ShopSession)
     func request<T:Decodable>(_ path:String,method:String="GET",body:Data?=nil)async throws->T{let data=try await transmit(path,method:method,body:body);return try JSONDecoder().decode(T.self,from:data)}
     func data(_ path:String,method:String="GET",body:Data?=nil)async throws->Data{try await transmit(path,method:method,body:body)}
     func raw(_ path:String,method:String="POST",json:[String:Any],beforeDispatch:(()throws->Void)?=nil)async throws->[String:Any]{let data=try await transmit(path,method:method,body:CanonicalJSON.data(json),beforeDispatch:beforeDispatch);guard let value=try JSONSerialization.jsonObject(with:data) as? [String:Any] else{throw ShopError.invalidResponse};return value}
+    // Signed Shop action reads verified original Pay receipts; no funds dispatch.
+    func confirmOriginalPayment(_ order:Order)async throws {
+        let check=try capture();guard let account=currentSession?.account else{throw ShopError.signedOut}
+        try AppleBuyerReceipt.validate(order,account:account)
+        if let operation=order.payIntentID,operation.hasPrefix("npi_") {
+            guard NativeWire.matches(operation,"^npi_[a-f0-9]{48}$") else{throw ShopError.security}
+        }
+        _ = try await raw("orders/\(order.orderID)/confirm-payment",json:[:]);try check()
+        // The model refreshes the order independently rather than trusting this response.
+    }
 	func readOriginalNativeIntent(_ order:Order)async throws {
 		let check=try capture();guard let account=currentSession?.account else{throw ShopError.signedOut}
 		try AppleBuyerReceipt.validate(order,account:account)

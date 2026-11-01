@@ -12,6 +12,23 @@ public class NativeIntentObservationTest {
   assertEquals("[\"account:read\",\"shop:orders:write\"]",NativeProductState.canonical(NativeBusinessPolicy.scopes("GET","/api/orders/ord_original/native-pay-intent")));
   assertThrows(SecurityException.class,()->NativeBusinessPolicy.scopes("DELETE","/api/orders/ord_original/native-pay-intent"));
  }
+ @Test public void confirmationReadsOnlyOriginalOwnedShopReceipt()throws Exception{
+  assertEquals("/orders/ord_original/confirm-payment",NativeIntentObservation.confirmationPath(order(),"original_account"));
+  assertThrows(SecurityException.class,()->NativeIntentObservation.confirmationPath(order(),"foreign"));
+  assertThrows(SecurityException.class,()->NativeIntentObservation.confirmationPath(order().put("PayIntentID","npi_invalid"),"original_account"));
+  assertEquals("[\"account:read\",\"shop:orders:write\"]",NativeProductState.canonical(NativeBusinessPolicy.scopes("POST","/api/orders/ord_original/confirm-payment")));
+  assertThrows(SecurityException.class,()->NativeBusinessPolicy.scopes("GET","/api/orders/ord_original/confirm-payment"));
+ }
+ @Test public void actualJointOriginalPartialRefundReadback()throws Exception{
+  JSONObject actual=new JSONObject(java.nio.file.Files.readString(java.nio.file.Path.of(System.getenv("YNX_SHOP_NATIVE_RECEIPT_FIXTURE"))));
+  NativeIntentObservation.validatePayment(actual);
+  assertEquals("30",actual.getJSONObject("NativePayment").getString("RefundedAtoms"));
+  assertEquals("70",actual.getJSONObject("NativePayment").getString("NetPaidAtoms"));
+  for(String key:new String[]{"InvoiceID","NetPaidAtoms","PaidAtoms","TermsHash"}){
+   JSONObject changed=new JSONObject(actual.toString());changed.getJSONObject("NativePayment").put(key,"foreign");assertThrows(SecurityException.class,()->NativeIntentObservation.validatePayment(changed));
+  }
+  JSONObject wrong=new JSONObject(actual.toString());wrong.getJSONObject("NativePayment").getJSONArray("Receipts").getJSONObject(0).put("sourceOrder","foreign");assertThrows(SecurityException.class,()->NativeIntentObservation.validatePayment(wrong));
+ }
  @Test public void reboundOriginalAndInventedFundsAreRejected()throws Exception{
   for(String key:new String[]{"orderId","originalOperation","state","phase","queryOnly","fundsVerified"}){JSONObject invalid=observation();invalid.put(key,key.equals("phase")?"invalid/phase":"foreign");assertThrows(SecurityException.class,()->NativeIntentObservation.validate(order(),invalid));}
   assertThrows(SecurityException.class,()->NativeIntentObservation.validate(order(),observation().put("fundsVerified",true)));
