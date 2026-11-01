@@ -1245,6 +1245,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
         },
         onSessionRequest: event => void handleWalletConnectRequest(event),
         onSessionDelete: async event => {
+          retirePayContextsForEvent();
           for (const entry of walletConnectInbox.pending()) if (entry.event.topic === event.topic) { walletConnectInbox.finish(entry.key); await terminateWalletConnectReview(entry, "WALLETCONNECT_SESSION_DELETED", false); }
           if (event.origin) await walletAuthority.revokeOrigin(event.origin);
           window.webContents.send("wallet:walletconnect-session-changed", { type: "deleted", topic: event.topic, origin: event.origin, localPermissionRevoked: Boolean(event.origin) });

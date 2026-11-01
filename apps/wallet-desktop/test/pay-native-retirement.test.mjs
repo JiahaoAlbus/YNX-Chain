@@ -44,3 +44,11 @@ test('deadline is immutable protected lease minimum, never a fresh default or ca
  let now=1000;const f=fixture(),life=new DesktopKeyLifecycle({authorizer:{available:()=>true,authenticate:async()=>({account:'PUBLIC'})},focused:()=>true,now:()=>now,ttlMs:100,unlockTtlMs:20,schedule:()=>null,unschedule:()=>{}});await life.unlock();
  await life.run(async guard=>{const p=f.capture(()=>guard.assertEffectCurrent(),guard.expiresAtMs);assert.equal(f.bridge.copyDeadline(p).expiresAtMs,1020);f.context().expiresAtMs=999999;assert.equal(f.bridge.copyDeadline(p).expiresAtMs,1020);await p.close();});f.bridge.assertSafeToClose();
 });
+test('actual session-delete handler retires before asynchronous review termination or permission persistence',async()=>{
+ const {default:vm}=await import('node:vm'),source=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8');
+ const start=source.indexOf('onSessionDelete: async event => {'),end=source.indexOf('\n        onSessionRestore:',start);assert.ok(start>0&&end>start);
+ const body=source.slice(start+'onSessionDelete: async event => {'.length,end).replace(/},\s*$/,'');
+ const f=fixture(),p=f.capture(),o=f.owner();f.bridge.associate(p,o.obj);let release,entered,revoke=0;const ready=new Promise(r=>entered=r),gate=new Promise(r=>release=r);
+ const sandbox={retirePayContextsForEvent:()=>f.bridge.invalidateAll(),walletConnectInbox:{pending:()=>[{key:'PUBLIC',event:{topic:'PUBLIC-topic'}}],finish(){}},async terminateWalletConnectReview(){assert.equal(o.valid(),false);entered();await gate;},walletAuthority:{async revokeOrigin(){revoke++;assert.equal(o.valid(),false);}},window:{webContents:{send(){}}}};
+ const handler=vm.compileFunction('return async event=>{'+body+'}',[],{contextExtensions:[sandbox]})();const pending=handler({topic:'PUBLIC-topic',origin:'https://public.example'});assert.equal(o.valid(),false);await ready;assert.equal(revoke,0);release();await pending;assert.equal(revoke,1);await finish(f,p,o);
+});
