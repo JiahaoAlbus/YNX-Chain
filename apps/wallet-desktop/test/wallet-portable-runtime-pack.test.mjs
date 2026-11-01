@@ -9,7 +9,7 @@ import {createRequire} from 'node:module';
 import data from '../scripts/canonical-native-portable-qa-profile-data.json' with {type:'json'};
 import {PORTABLE_QA_ROLE,PORTABLE_QA_INPUT_NAMES} from '../scripts/canonical-native-portable-qa-profile.mjs';
 import {COMMON_QA_INPUT_NAMES} from '../scripts/canonical-native-qa-profile.mjs';
-import {portableRuntimeAssets,verifyPortableRuntimeFiles,verifyPortableRuntimePackage,beginNativeRuntimeRelocation,preservePortableNestedSignatures,PORTABLE_NESTED_SIGN_IGNORE,recoverFailedNativePackage,NativePackageRecoveryError} from '../scripts/portable-runtime-pack.mjs';
+import {createPortablePackageAssetReader,portableRuntimeAssets,verifyPortableRuntimeFiles,verifyPortableRuntimePackage,beginNativeRuntimeRelocation,preservePortableNestedSignatures,PORTABLE_NESTED_SIGN_IGNORE,recoverFailedNativePackage,NativePackageRecoveryError} from '../scripts/portable-runtime-pack.mjs';
 import {matchedCustodyPackagedNativeSources} from '../scripts/release-provenance.mjs';
 import {writeCanonicalArchiveInputs} from '../scripts/release-provenance.mjs';
 import {canonicalArchivePlan,SDK_ALIAS,NATIVE_CANONICAL,CANONICAL_MAIN} from '../scripts/canonical-package.mjs';
@@ -104,4 +104,17 @@ test('actual Electron builder preserves exactly four nested signatures for only 
  const actual=await MacTargetHelper.prototype.buildSignOptions.call({packager:{config:{electronVersion:'42.10.0'}},getOptionsForFile:async()=>()=>({})},'/PUBLIC/App.app',null,'development',false,options,null,3);
  for(const layout of ['app.asar.unpacked','app.code'])for(const row of portableRuntimeAssets(f.record))assert.equal(actual.ignore('/PUBLIC/App.app/Contents/Resources/'+layout+'/code/apps/wallet-desktop/'+row.unpackedRelative),/\.(?:node|dylib)$/.test(row.unpackedRelative));
  assert.equal(actual.ignore('/PUBLIC/App.app/Contents/Resources/app.code/code/apps/wallet-desktop/native/foreign.node'),false);
+});
+
+test('portable package reader separates fixed generated outputs from Git operands',t=>{
+ const f=fixture(t);beginNativeRuntimeRelocation(f.record,f.raw);
+ const calls=[],source=relative=>{calls.push(relative);if(relative==='SOURCE')return Buffer.from('PUBLIC SOURCE');throw Error('GIT_OPERAND_ABSENT');};
+ const read=createPortablePackageAssetReader(f.record,source,f.raw);
+ for(const row of portableRuntimeAssets(f.record))assert.deepEqual(read(row.sourceRelative),f.bodies.get(row.sourceRelative));
+ assert.deepEqual(calls,[]);assert.equal(read('SOURCE').toString(),'PUBLIC SOURCE');assert.throws(()=>read('apps/wallet-desktop/native/foreign.dylib'),/GIT_OPERAND_ABSENT/);
+ const row=portableRuntimeAssets(f.record)[1],file=path.join(f.raw,'code/apps/wallet-desktop',row.unpackedRelative);fs.writeFileSync(file,'TAMPERED');
+ assert.throws(()=>createPortablePackageAssetReader(f.record,source,f.raw));
+ assert.deepEqual(read(row.sourceRelative),f.bodies.get(row.sourceRelative));
+ fs.rmSync(file);fs.symlinkSync(path.join(f.dir,'missing'),file);assert.throws(()=>createPortablePackageAssetReader(f.record,source,f.raw),/REGULAR_FILE/);
+ assert.equal(createPortablePackageAssetReader(null,source,f.raw),source);
 });

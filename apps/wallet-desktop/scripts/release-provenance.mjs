@@ -1,6 +1,6 @@
 import {COMMON_QA_INPUT_NAMES,isCommonQARecord} from './canonical-native-qa-profile.mjs';
 import {PORTABLE_QA_INPUT_NAMES,isPortableQARecord,isPortableQASourceAsset} from './canonical-native-portable-qa-profile.mjs';
-import {beginNativeRuntimeRelocation,verifyPortableRuntimeFiles,recoverFailedNativePackage} from './portable-runtime-pack.mjs';
+import {createPortablePackageAssetReader,beginNativeRuntimeRelocation,verifyPortableRuntimeFiles,recoverFailedNativePackage} from './portable-runtime-pack.mjs';
 import { execFileSync } from "node:child_process";
 import {HTTP_V5_NORMAL_INPUT_NAMES} from './wallet-http-v5-native-component.mjs';
 import {openPhysicalCodeView} from './physical-code-layout.mjs';
@@ -500,7 +500,8 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   if([SDK_CONTRACT_CURRENT_VERSION,SDK_AUTONOMOUS_SCOPE_VERSION,SDK_PROJECT_READER_VERSION,SDK_WORKSPACE_SELECTION_VERSION,SDK_PUBLICATION_RESULT_VERSION,SDK_CONTROL_CUSTODY_VERSION,SDK_PRINCIPAL_CURRENT_VERSION,SDK31_VERSION,SDK32_VERSION,SDK33_VERSION,SDK34_VERSION,SDK35_VERSION,SDK36_VERSION,SDK37_VERSION,SDK38_VERSION,SDK39_VERSION,SDK40_VERSION,SDK41_VERSION,SDK42_VERSION,SDK46_VERSION,SDK49_VERSION].includes(sdkMetadata.version)){
     const helperBytes=asar.extractFile(archive,canonicalSourcePath(SDK13_HELPER_ASSET)),localHelper=path.join(root,SDK13_HELPER_ASSET);
     if(!lstatSync(localHelper).isFile()||lstatSync(localHelper).isSymbolicLink()||!helperBytes.equals(readFileSync(localHelper)))throw Error('SDK13 packaged helper differs from matching build');
-    originalSDK13=verifySDK13NativeComponent({record:nativeReceipt,inventoryBytes,moduleBytes:nativeBytes,helperBytes},sourceBytes);
+    const componentReadSource=createPortablePackageAssetReader(nativeReceipt,sourceBytes,path.join(resources,physical?'app.code':'app.asar.unpacked'));
+    originalSDK13=verifySDK13NativeComponent({record:nativeReceipt,inventoryBytes,moduleBytes:nativeBytes,helperBytes},componentReadSource);
     if(originalSDK13.portableRuntime===true)originalSDK13.portablePackagedBytes=verifyPortableRuntimeFiles(nativeReceipt,path.join(resources,physical?'app.code':'app.asar.unpacked'),{canonical:true});
     if(!macAsarIntegrityVerified)throw Error('SDK13 paired component requires matching Mac bundle');
     originalSDK13.helperBundle=verifySDK13HelperBundle(path.dirname(resources),helperBytes,sourceBytes(SDK13_HELPER_PLIST));

@@ -41,6 +41,17 @@ export function verifyPortableRuntimeFiles(record,root,{canonical=false}={}){
  return assertPortableRuntimePackagedBytesDATA(record,relative=>regularBytes(root,(canonical?'code/apps/wallet-desktop/':'')+relative));
 }
 
+// Only fixed generated outputs come from the package. Every other requested
+// operand retains the original Git source reader and its failures.
+export function createPortablePackageAssetReader(record,readSource,root){
+ if(!isPortableQARecord(record))return readSource;
+ const assets=portableRuntimeAssets(record),captured=new Map();
+ for(const row of assets)captured.set(row.unpackedRelative,regularBytes(root,'code/apps/wallet-desktop/'+row.unpackedRelative));
+ assertPortableRuntimePackagedBytesDATA(record,relative=>captured.get(relative));
+ const bySource=new Map(assets.map(row=>[row.sourceRelative,captured.get(row.unpackedRelative)]));
+ return relative=>bySource.has(relative)?Buffer.from(bySource.get(relative)):readSource(relative);
+}
+
 export function beginNativeRuntimeRelocation(record,unpacked){
  if(!path.isAbsolute(unpacked)||path.normalize(unpacked)!==unpacked)throw Error('PORTABLE_PACK_ABSOLUTE_ROOT_REQUIRED');
  const assets=portableRuntimeAssets(record);
