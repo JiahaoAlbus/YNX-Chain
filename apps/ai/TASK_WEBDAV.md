@@ -23,6 +23,8 @@ original object. An independently authorized original query can recover after
 task cancellation/handoff without acquiring the new holder's authority.
 Current is checked before each new request and after network waits. These
 client checks cannot provide atomic revocation at the remote server.
+A replacement operation ID cannot bypass an unresolved operation for the same
+fixed destination. Resolve the retained original before requesting another write.
 
 Only an independent exact byte comparison returns `CONTENT_PRESENT`.
 `authorshipProven` remains false; HTTP success, ETag and equal bytes do not

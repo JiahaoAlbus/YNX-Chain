@@ -283,6 +283,24 @@ func (s *Server) executeTaskWebDAV(ctx context.Context, session ProductSession, 
 		original = stored
 		exists = true
 	} else {
+		// A different operation ID is not a way to replay an unresolved write
+		// to this same fixed destination. Recover its original object first.
+		for _, prior := range s.store.state.WebDAVDeliveries {
+			if prior.DestinationBinding == destinationBinding {
+				if err := s.store.verifyWebDAVRecord(prior); err != nil {
+					s.store.mu.Unlock()
+					return receipt, err
+				}
+				if prior.Receipt.State == "CONTENT_PRESENT" {
+					continue
+				}
+				s.store.mu.Unlock()
+				if prior.Account == session.Account && prior.TaskID == taskID && prior.Holder == session.DeviceID {
+					return prior.Receipt, ErrTaskWebDAVUnknown
+				}
+				return receipt, ErrTaskWebDAVUnknown
+			}
+		}
 		nonce, cipher, e := s.store.encrypt(session.Account, taskID, "webdav:"+input.OperationID, string(content))
 		if e != nil {
 			s.store.mu.Unlock()

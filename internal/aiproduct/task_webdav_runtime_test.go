@@ -286,6 +286,37 @@ func TestP08WebDAVServiceRejectsAmbiguityAndMissingSource(t *testing.T) {
 	}
 }
 
+func TestP08WebDAVNewOperationCannotReplayUnknownDestination(t *testing.T) {
+	f := newP08WebDAVRuntime(t)
+	f.dav.lostACK = true
+	if _, err := f.deliver(); err == nil {
+		t.Fatal("lost ACK not UNKNOWN")
+	}
+	other := f.input
+	other.OperationID = "PUBLIC-replacement-operation"
+	r, err := f.s.executeTaskWebDAV(context.Background(), f.session, f.task.ID, other, "PUBLIC-explicit-egress", false)
+	if !errors.Is(err, ErrTaskWebDAVUnknown) || r.OperationID != f.input.OperationID || f.dav.requests() != "PUT" || len(f.store.state.WebDAVDeliveries) != 1 {
+		t.Fatal("replacement operation replayed unresolved write")
+	}
+	key := taskWebDAVKey(f.session.Account, f.task.ID, f.input.OperationID)
+	f.store.mu.Lock()
+	original := f.store.state.WebDAVDeliveries[key]
+	altered := original
+	altered.Receipt.State = "CONTENT_PRESENT"
+	f.store.state.WebDAVDeliveries[key] = altered
+	f.store.mu.Unlock()
+	if _, err := f.s.executeTaskWebDAV(context.Background(), f.session, f.task.ID, other, "PUBLIC-explicit-egress", false); err == nil || f.dav.requests() != "PUT" {
+		t.Fatal("tampered prior receipt bypassed original-only recovery")
+	}
+	f.store.mu.Lock()
+	f.store.state.WebDAVDeliveries[key] = original
+	f.store.mu.Unlock()
+	r, err = f.s.executeTaskWebDAV(context.Background(), f.session, f.task.ID, TaskWebDAVInput{OperationID: f.input.OperationID}, "PUBLIC-explicit-egress", true)
+	if err != nil || r.State != "CONTENT_PRESENT" || f.dav.requests() != "PUT,GET" {
+		t.Fatal("original query did not recover without PUT")
+	}
+}
+
 func TestP08WebDAVModelAndNormalClientResult(t *testing.T) {
 	f := newP08WebDAVRuntime(t)
 	args, _ := json.Marshal(map[string]string{"resourceId": f.input.ResourceID, "destinationId": f.input.DestinationID})
