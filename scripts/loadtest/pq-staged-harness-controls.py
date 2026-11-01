@@ -20,7 +20,7 @@ GROUPS=[
  ('test_pq_initialization_readback.py',None,8),
  ('test_pq_cold_readiness.py',None,10),
  ('test_pq_live_source_qualification.py',None,7),
- ('test_pq_initialization_measurements.py',None,29),
+ ('test_pq_initialization_measurements.py',None,30),
  ('test_pq_completion_diagnostics.py',None,20),
  ('test_pq_staged_independent_scheduler.py',None,16),
  ('test_pq_bounded_sender_backend.py',None,19),

@@ -647,11 +647,15 @@ def run(args):
     if not args.execute:return dict(status="prepared-only",source=identity,mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,accountCount=args.accounts,actualLoadExecuted=False,fullFinalityCallee="original CORE live-materials policy/startup and original signer/verifier/confirm required")
     validate_escalation(args)
     lab.require(sys.platform=="linux" and os.environ.get("GITHUB_ACTIONS")=="true" and os.environ.get("RUNNER_ENVIRONMENT")=="github-hosted","original isolated hosted Linux job required")
-    parent=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True);rows,_=lab.guard.proc_inventory()
-    admission=dict(observedMonotonicNs=time.monotonic_ns(),availableMemoryBytes=lab.guard.memory_available(),freeDiskBytes=shutil.disk_usage(parent).free,conflictingHeavyProcesses=lab.heavy_processes(rows),caps=dict(lab.CAPS),ownedPIDLimit=lab.guard.CAPS['ownedProcesses'])
+    parent=Path(os.environ["RUNNER_TEMP"]).resolve(strict=True)
+    # Retain actual admission values even when the original floor refuses.
+    # No Window, port, build, key or node exists in this owned case yet.
+    work=Path(tempfile.mkdtemp(prefix="pq-independent-load-",dir=parent));work.chmod(0o700);(work/".private").mkdir(mode=0o700);(work/"public").mkdir(mode=0o700);(work/"public/load-operations").mkdir(mode=0o700)
+    rows,_=lab.guard.proc_inventory()
+    admission=dict(observedMonotonicNs=time.monotonic_ns(),availableMemoryBytes=lab.guard.memory_available(),freeDiskBytes=shutil.disk_usage(parent).free,conflictingHeavyProcesses=lab.heavy_processes(rows),caps=dict(lab.CAPS),ownedPIDLimit=lab.guard.CAPS['ownedProcesses'],scope="before original Window/port/build/key/node creation")
+    lab.write_new(work/"public/fresh-resource-admission.json",admission)
     lab.admit(admission['availableMemoryBytes'],admission['freeDiskBytes'],admission['conflictingHeavyProcesses']);lab.ports_available()
     lab.require(ctypes.CDLL(None,use_errno=True).prctl(36,1,0,0,0)==0,"original Linux subreaper required")
-    work=Path(tempfile.mkdtemp(prefix="pq-independent-load-",dir=parent));work.chmod(0o700);(work/".private").mkdir(mode=0o700);(work/"public").mkdir(mode=0o700);(work/"public/load-operations").mkdir(mode=0o700)
     roots=[]
     for root in (source,Path(__file__).resolve().parents[2]):
         if any(existing==root or existing in root.parents for existing in roots):continue
@@ -660,7 +664,6 @@ def run(args):
     initialization_journal=Journal(work/"public/initialization-events.jsonl")
     stages=initialization.InitializationStages(on_event=initialization_journal.emit)
     result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout with actual DATA-ready and measured normal CLI; cold initialization retained outside offered clock, no pre-sign/reserved nonce; source703 includes other changes and is not a pure-cache A/B")
-    lab.write_new(work/"public/fresh-resource-admission.json",admission)
     result["toolIdentity"]=tool_identity()
     result["loadConditions"]=load_conditions(args)
     result["freshResourceAdmission"]=admission

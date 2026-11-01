@@ -104,6 +104,21 @@ class OriginalDriverInitializationControls(unittest.TestCase):
         a=self.args();a.initialization_only=False
         with mock.patch.object(d.lab,'check_source') as checked,self.assertRaisesRegex(RuntimeError,'NOT_SUPPLIED'):d.run(a)
         checked.assert_not_called()
+    def test_refused_disk_admission_keeps_exact_bytes_before_window_or_ports(self):
+        from types import SimpleNamespace
+        import contextlib
+        d=self.driver
+        with tempfile.TemporaryDirectory() as tmp:
+            parent=Path(tmp).resolve();args=self.args();args.source=str(parent)
+            env=dict(GITHUB_ACTIONS='true',RUNNER_ENVIRONMENT='github-hosted',RUNNER_TEMP=str(parent))
+            with contextlib.ExitStack() as stack:
+                stack.enter_context(mock.patch.dict(d.os.environ,env));stack.enter_context(mock.patch.object(d.sys,'platform','linux'))
+                for obj,name,value in [(d.lab,'check_source',dict(commit=args.commit,tree=d.STAGED_CALLEE_TREE)),(d.lab,'git',''),(d.subprocess,'check_output',b'live-materials'),(d.lab.guard,'proc_inventory',({},None)),(d.lab.guard,'memory_available',7<<30),(d.lab,'heavy_processes',[]),(d.shutil,'disk_usage',SimpleNamespace(free=15<<30))]:stack.enter_context(mock.patch.object(obj,name,return_value=value))
+                window=stack.enter_context(mock.patch.object(d.lab,'Window'));ports=stack.enter_context(mock.patch.object(d.lab,'ports_available'))
+                with self.assertRaisesRegex(RuntimeError,'fresh disk below 16GiB'):d.run(args)
+                window.assert_not_called();ports.assert_not_called()
+            files=list(parent.glob('pq-independent-load-*/public/fresh-resource-admission.json'));self.assertEqual(len(files),1);record=json.loads(files[0].read_bytes());self.assertEqual(record['freeDiskBytes'],15<<30);self.assertEqual(record['availableMemoryBytes'],7<<30);self.assertEqual(record['caps']['initialDiskBytes'],16<<30);self.assertEqual(record['ownedPIDLimit'],16)
+
     def mocked_initialization(self,census_error=None,cleanup=True):
         from types import SimpleNamespace
         import contextlib,io
