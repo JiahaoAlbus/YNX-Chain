@@ -14,7 +14,9 @@ import * as backup from '@ynx-chain/wallet-auth/pq-wallet-backup';
 import * as contract from '@ynx-chain/wallet-auth/pq-wallet-contract';
 import {pqPublicBindingToRegistrationKeys} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
-import {encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
+import {encodePQNativeAction,decodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
+import {captureCometPolicyObservation} from '../src/original-policy-supplier/comet-projection.mjs';
+import {encodeObservedPolicyOriginal} from '../src/original-policy-supplier/operator-policy-original.mjs';
 import {registerHooks} from 'node:module';
 import {createPUBLICPeer} from './wallet-pq-typed-auth-peer.fixture.mjs';
 import {AsyncLocalStorage} from 'node:async_hooks';
@@ -31,7 +33,7 @@ const SDK=Object.freeze({...keys,...backup,...contract}),PASSWORD='synthetic-typ
 const input=JSON.parse(readFileSync(new URL('../src/features/pq-transaction/fixtures/typed-action-public-inputs.json',import.meta.url))).rows.find(row=>row.kind==='resource_delegation_create');
 // These resources model Auth boundaries, NOT real IPC/Root approval. Real SDK,
 // Main private borrow, encrypted synthetic vault and protected journal execute.
-async function fixture(t,{permission=true,afterComplete,actualFactory=false,broadcast=false,wireController=false,latePostLock=false,onSettled=()=>{},onPolicyClose}={}){
+async function fixture(t,{permission=true,afterComplete,actualFactory=false,broadcast=false,wireController=false,latePostLock=false,onSettled=()=>{},onPolicyClose,nativeAvailable=true,legacyPolicy=false}={}){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-typed-authority-')),lifecycle=new DesktopKeyLifecycle();lifecycle.setFocused(true);
  const filePath=path.join(directory,'vault.json'),vault=new PasswordWalletVault({filePath,authorization:lifecycle,pqSDK:SDK,randomSecret:()=> '1'.padStart(64,'0')});lifecycle.authorizer=vault.authorizer();
  t.after(async()=>{lifecycle.lock();await fs.rm(directory,{recursive:true,force:true});});
@@ -40,10 +42,20 @@ async function fixture(t,{permission=true,afterComplete,actualFactory=false,broa
  const handle=await keys.createPQWalletKeyHandle({chainId:input.chainId,owner:status.account}),binding=keys.readPQWalletKeyPublic(handle);t.after(()=>keys.destroyPQWalletKeyHandle(handle));
  await lifecycle.run(()=>vault.savePQKeys({handle,publicBinding:binding,operationId:'synthetic-existing-pair'}));
  const pair=pqPublicBindingToRegistrationKeys(binding),authorization=parsePQAccountAuthorization({owner:status.account,executionHeight:'9007199254740993',ledgerNonce:'9007199254740993',algorithmVersion:'YNX-BATCH/v0.1',enabled:true,policyVersion:'YNX-ACCOUNT-POLICY/v1',networkId:input.chainId,enableAt:'10',activeRevision:'1',records:[{algorithmVersion:pair.algorithmVersion,owner:status.account,pkA:pair.pkA,pkB:pair.pkB,revision:'1',registeredAt:'10',activeFrom:'11',ledgerNonce:'1'}]},{chainId:input.chainId,nativeChainId:'6423',owner:status.account});
- const view=Object.freeze({version:'YNX-WALLET-TRANSACTION-POLICY/v1',networkId:input.chainId,nativeChainId:'6423',canonicalOwner:status.account,authorization,observedAt:new Date(Date.now()-1000).toISOString(),expiresAt:new Date(Date.now()+60000).toISOString()});
- const counts={source:0,sign:0,close:0,permission:0,complete:0,posts:0};let request,completion;const policyResources=new WeakSet();
- const source=async r=>{counts.source++;assert.equal(r.operation,'typed-action');assert.equal(r.owner,status.account);let retired=false;const resource={assertCurrent(){if(retired)throw Error('QA_RETIRED');},readOriginal(){return view;},async recheck(){},retire(){retired=true;},async join(){},async close(){counts.close++;await onPolicyClose?.();}};policyResources.add(resource);return resource;};
- const originalWithKeys=vault.withPQKeys.bind(vault);vault.withPQKeys=(binding,action,lease)=>originalWithKeys(binding,(...args)=>{counts.sign++;return action(...args);},lease);
+ const policyText=JSON.stringify({version:'YNX-ACCOUNT-POLICY/v1',networkId:input.chainId,enableAt:'10',records:authorization.records}),policyBytes=Buffer.from(policyText);
+ const observation=captureCometPolicyObservation({kind:'comet-node-observed-app-state/v1',source:'comet-rpc',recordsView:'committed',committedHeight:(BigInt(authorization.executionHeight)-1n).toString(),committedAppHash:'ab'.repeat(32),independentFinality:false},authorization);
+ const view=Object.freeze({version:legacyPolicy?'YNX-WALLET-TRANSACTION-POLICY/v1':'YNX-WALLET-TRANSACTION-POLICY/v3',networkId:input.chainId,nativeChainId:'6423',canonicalOwner:status.account,authorization,observedAt:new Date(Date.now()-1000).toISOString(),expiresAt:new Date(Date.now()+60000).toISOString(),...(legacyPolicy?{}:{observation,originalPolicy:encodeObservedPolicyOriginal(policyText,authorization)})});
+ const counts={source:0,sign:0,close:0,permission:0,complete:0,posts:0,portable:0,native:0};let request,completion;const policyResources=new WeakSet();
+ const source=async r=>{counts.source++;assert.equal(r.operation,'typed-action');assert.equal(r.owner,status.account);let retired=false;const resource={assertCurrent(){if(retired)throw Error('QA_RETIRED');},readOriginal(){return view;},copyOriginalPolicyBytes(){return Buffer.from(policyBytes);},async recheck(){},retire(){retired=true;},async join(){},async close(){counts.close++;await onPolicyClose?.();}};policyResources.add(resource);return resource;};
+ // PUBLIC Native boundary double only: the real Main never requests a JS
+ // handle. Ephemeral SDK keys produce verifiable member bytes for this test.
+ vault.withPQKeys=()=>{counts.portable++;throw Error('PORTABLE_TYPED_SIGNER_MUST_NOT_RUN');};
+ vault.assertPQNativeTransactionAvailable=()=>{if(!nativeAvailable)throw Object.assign(Error('PQ_NATIVE_MATCHED_BINDING_REQUIRED'),{code:'PQ_NATIVE_MATCHED_BINDING_REQUIRED'});};
+ vault.withPQNativeTransaction=async(expected,operands,capture,permission)=>{
+  permission.assert();counts.native++;assert.equal(expected.owner,status.account);assert.deepEqual(operands.policyOriginal,policyBytes);assert.equal(operands.keyVersion,authorization.activeRevision);assert.equal(operands.executionHeight,authorization.executionHeight);
+  const action=decodePQNativeAction(operands.messageOriginal);counts.sign++;const member=keys.signPQWalletNativeAction(handle,action,authorization);capture(Object.freeze({member}));permission.assert();return {member};
+ };
+
  const capsule=Object.freeze({testOnly:true}),recognized=new WeakSet();
  const permissionSource=async(r,c,borrow)=>{
   counts.permission++;assert.equal(c,capsule);assert.equal(isOriginalPQTransactionReviewBorrow(borrow),true);assert.deepEqual(borrow.readOriginal().request,r);request=r;
@@ -279,4 +291,14 @@ test('settlement delta actual Authority reject notifies SAME owner only after re
 });
 test('settlement delta actual Authority refused approval preserves error and notifies completed cleanup without signing',{timeout:15000},async t=>{
  let f,count=0;f=await fixture(t,{permission:false,onSettled:(id,owner)=>{assert.equal(owner,f.authority);assert.equal(f.authority.pendingRequests().some(p=>p.id===id),false);count++;}});const review=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action));await assert.rejects(f.lifecycle.run(()=>f.authority.approve(review.request.id,f.capsule)),e=>e.data?.code==='PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED');assert.equal(count,1);assert.equal(f.counts.sign,0);
+});
+
+test('native typed delta missing matched Native binding cannot fall back to portable keys',async t=>{
+ const f=await fixture(t,{nativeAvailable:false}),review=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action));await assert.rejects(f.lifecycle.run(()=>f.authority.approve(review.request.id,f.capsule)),e=>e.code==='PQ_NATIVE_MATCHED_BINDING_REQUIRED'||e.data?.code==='PQ_NATIVE_MATCHED_BINDING_REQUIRED');assert.equal(f.counts.native,0);assert.equal(f.counts.portable,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);
+});
+test('native typed delta legacy policy without original bytes is refused before Native entry',async t=>{
+ const f=await fixture(t,{legacyPolicy:true}),review=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action));await assert.rejects(f.lifecycle.run(()=>f.authority.approve(review.request.id,f.capsule)),{code:'PQ_NATIVE_POLICY_ORIGINAL_NOT_SUPPLIED'});assert.equal(f.counts.native,0);assert.equal(f.counts.portable,0);
+});
+test('native typed delta same reviewed ACTION Member uses Native boundary once and keeps original journal',async t=>{
+ const f=await fixture(t),review=await f.lifecycle.run(()=>f.authority.requestPQTypedAction(f.action)),result=await f.lifecycle.run(()=>f.authority.approve(review.request.id,f.capsule));assert.equal(result.result.submitted,false);assert.equal(f.counts.native,1);assert.equal(f.counts.portable,0);const [saved]=await f.store.readPQOriginals(f.account,()=>{});assert.equal(saved.hash,f.completion.transportHash);assert.equal(saved.typed.memberHash,f.completion.memberHash);await assert.rejects(f.lifecycle.run(()=>f.authority.approve(review.request.id,f.capsule)));assert.equal(f.counts.native,1);
 });

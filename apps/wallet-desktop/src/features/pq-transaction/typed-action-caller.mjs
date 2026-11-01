@@ -165,12 +165,22 @@ export function recheckPQTypedActionReview(review, refreshed, selectedBinding, a
  * Main must then assert its guard and finish original permission/cleanup.
  * There is deliberately no post-sign guard that could discard returned bytes.
  * An entered call is never reset by an exception, timeout or UI cancellation. */
-export function signPQReviewedTypedAction(review, refreshed, handle, selectedBinding, at = Date.now()) {
+function enterReviewedTypedAction(review,refreshed,selectedBinding,at){
   const entry = state(review);
   if (entry.entered) fail('PQ_TYPED_ACTION_SIGNER_ALREADY_ENTERED');
   const plan = recheckPQTypedActionReview(review, refreshed, selectedBinding, at);
   entry.signingSnapshot = refreshed;
   entry.entered = true;
+  return plan;
+}
+/** Normal Main enters once before the existing Native custody call. Only
+ * original public operands leave this module; no key handle is requested. */
+export function enterPQReviewedNativeTypedAction(review,refreshed,selectedBinding,at=Date.now()){
+  const plan=enterReviewedTypedAction(review,refreshed,selectedBinding,at);
+  return Object.freeze({messageOriginal:Buffer.from(encodePQNativeAction(plan.action)),nativeChainId:plan.action.nativeChainId,keyVersion:refreshed.activeRevision,executionHeight:refreshed.executionHeight});
+}
+export function signPQReviewedTypedAction(review, refreshed, handle, selectedBinding, at = Date.now()) {
+  const plan=enterReviewedTypedAction(review,refreshed,selectedBinding,at);
   return signPQWalletNativeAction(handle, plan.action, refreshed);
 }
 

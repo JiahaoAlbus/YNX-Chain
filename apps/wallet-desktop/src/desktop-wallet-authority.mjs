@@ -18,7 +18,7 @@ import {assertPQMigrationRequestPolicy} from '@ynx-chain/wallet-auth/pq-wallet-p
 import {pqMigrationBroadcastPermissionRequest} from './features/pq-transaction/migration-permission-binding.mjs';
 import {pqBroadcastPermissionRequest} from './features/pq-transaction/submission.mjs';
 import {encodePQNativeAction} from '@ynx-chain/wallet-auth/pq-native-action';
-import {preparePQTypedActionReview,signPQReviewedTypedAction,readPQTypedActionInvoiceReviewData,cancelPQTypedActionReview} from './features/pq-transaction/typed-action-caller.mjs';
+import {preparePQTypedActionReview,enterPQReviewedNativeTypedAction,readPQTypedActionInvoiceReviewData,cancelPQTypedActionReview} from './features/pq-transaction/typed-action-caller.mjs';
 import {capturePQContractDeploymentMaterialData} from '@ynx-chain/wallet-auth/pq-contract-deployment-transport';
 import {inspectPQGoValidatedContractMaterial} from './features/pq-transaction/contract-deployment-material.mjs';
 import {pqTypedSignPermissionRequest,pqTypedBroadcastPermissionRequest} from './wallet-pq-typed-permission.mjs';
@@ -733,8 +733,11 @@ export class DesktopWalletAuthority {
       }
       case 'ynx_signPQNativeAction': {
         const reviewed=this.#pqReviews.get(pending),store=this.transactionSender?.submissions?.intentStore;
-        if(!reviewed?.typedReview||!store||typeof store.capturePQTypedMember!=='function'||typeof this.vault.withPQKeys!=='function'||!this.#pqTxSource||!this.#pqTxRecognized||!capsule)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','A separate original typed approval is required; no fallback signer is available.');
+        if(!reviewed?.typedReview||!store||typeof store.capturePQTypedMember!=='function'||!this.#pqTxSource||!this.#pqTxRecognized||!capsule)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','A separate original typed approval is required; no fallback signer is available.');
+        if(typeof this.vault.withPQNativeTransaction!=='function'||typeof this.vault.assertPQNativeTransactionAvailable!=='function')throw providerError(4100,'PQ_NATIVE_MATCHED_BINDING_REQUIRED','Original Native typed transaction custody is required.');
+        this.vault.assertPQNativeTransactionAvailable();
         const {snapshot:refreshed}=await reviewed.owner.recheck();guard.assert();assertPQAuthorizationCurrent(reviewed.snapshot,refreshed);
+        const nativePolicy=reviewed.owner.copyOriginalPolicyBytes();guard.assert();
         const request=pqTypedSignPermissionRequest(reviewed.typedReview,refreshed,this.clock().getTime());
         const archive={...reviewed.archive,signingSnapshot:JSON.parse(JSON.stringify(refreshed))};
         let auth,borrowed,hash,memberHash,failed=false;
@@ -746,12 +749,12 @@ export class DesktopWalletAuthority {
           if(this.#pqTxRecognized(auth)!==true)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Typed transaction permission is not recognized.');
           if(await auth.recheck()!==undefined||auth.assertCurrent()!==undefined)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Typed permission current check failed.');guard.assert();
           await store.reserveOriginal(status.account,'pq-typed-action',{reserveBytes:reviewed.reserveBytes});guard.assert();
-          await this.vault.withPQKeys(pqRegisteredPublicBinding(refreshed),handle=>{
-            guard.assert();if(auth.assertCurrent()!==undefined||auth.enterSign()!==undefined)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Typed sign entry must be exact.');
-            const member=signPQReviewedTypedAction(reviewed.typedReview,refreshed,handle,{account:status.account,networkId:this.#pqNetworkId},this.clock().getTime());
+          guard.assert();if(auth.assertCurrent()!==undefined||auth.enterSign()!==undefined)throw providerError(4100,'PQ_TRANSACTION_PERMISSION_NOT_SUPPLIED','Typed sign entry must be exact.');
+          const operands=enterPQReviewedNativeTypedAction(reviewed.typedReview,refreshed,{account:status.account,networkId:this.#pqNetworkId},this.clock().getTime());
+          await this.vault.withPQNativeTransaction(pqRegisteredPublicBinding(refreshed),{...operands,policyOriginal:nativePolicy},outcome=>{
             // Original Main adopts the Member before encoding/hash/math,
             // completion callbacks or a late focus/currentness check.
-            const captured=store.capturePQTypedMember(status.account,member,archive);hash=captured.transportHash;memberHash=captured.memberHash;
+            const captured=store.capturePQTypedMember(status.account,outcome.member,archive);hash=captured.transportHash;memberHash=captured.memberHash;
             borrowed.captureProduced(hash,captured.memberHash);if(auth.complete({outcome:'returned',transportHash:hash,memberHash:captured.memberHash})!==undefined)throw providerError(4100,'PQ_TRANSACTION_RESULT_BINDING','Keep the original typed result.');guard.assert();
           },Object.freeze({assert:()=>{permission.assert();guard.assert();auth.assertCurrent();}}));
           const current=()=>{guard.assert();auth.assertCurrent();};current();
