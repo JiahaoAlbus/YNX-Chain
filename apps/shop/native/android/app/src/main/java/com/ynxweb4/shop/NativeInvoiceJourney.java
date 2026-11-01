@@ -20,7 +20,7 @@ final class NativeInvoiceJourney {
  }
  private static String hash(String value)throws Exception{byte[] raw=MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));StringBuilder b=new StringBuilder();for(byte n:raw)b.append(String.format(java.util.Locale.ROOT,"%02x",n&255));return b.toString();}
  private static String namespace(String account)throws Exception{return "native_invoice_journey_v1_"+hash(account);}
- static JSONObject records(PayHandoffRecovery.Storage store,String account)throws Exception{String raw=store.get(namespace(account));JSONObject rows=raw.isEmpty()?new JSONObject():new JSONObject(raw);for(String id:rows.keySet()){Record v=new Record(rows.getJSONObject(id));if(!v.account.equals(account)||!id.equals(v.orderID))throw new SecurityException("Foreign Native recovery namespace");}return rows;}
+ static JSONObject records(PayHandoffRecovery.Storage store,String account)throws Exception{String raw=store.get(namespace(account));JSONObject rows=raw.isEmpty()?new JSONObject():new JSONObject(raw);for(String id:NativeInvoiceJourney.originalKeys(rows)){Record v=new Record(rows.getJSONObject(id));if(!v.account.equals(account)||!id.equals(v.orderID))throw new SecurityException("Foreign Native recovery namespace");}return rows;}
  private static void save(PayHandoffRecovery.Storage store,String account,JSONObject rows)throws Exception{String encoded=rows.toString();store.put(namespace(account),encoded);if(!encoded.equals(store.get(namespace(account))))throw new SecurityException("Native recovery storage outcome unconfirmed");}
  static Record prepare(PayHandoffRecovery.Storage store,ProductSession session,JSONObject order)throws Exception{synchronized(store){
   if(session==null||!BuyerReceipt.owned(order,session.account))throw new SecurityException("Original owned order required");String id=order.getString("ID"),digest=PayHandoffRecovery.orderDigest(order);JSONObject rows=records(store,session.account);
@@ -36,5 +36,6 @@ final class NativeInvoiceJourney {
   if(!(result.opt("queryOnly") instanceof Boolean)||!original.mayCreate()&&!Boolean.TRUE.equals(result.opt("queryOnly")))throw new SecurityException("Original query-only recovery required");
   Record retained=new Record(old.json().put("phase","reference").put("operation",operation));rows.put(old.orderID,retained.json());save(store,old.account,rows);return retained;
  }}
+ static java.util.List<String> originalKeys(JSONObject object){java.util.ArrayList<String> values=new java.util.ArrayList<>();java.util.Iterator<String> keys=object.keys();while(keys.hasNext())values.add(keys.next());java.util.Collections.sort(values);return values;}
  private NativeInvoiceJourney(){}
 }

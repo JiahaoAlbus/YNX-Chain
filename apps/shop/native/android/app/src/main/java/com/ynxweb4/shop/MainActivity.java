@@ -292,7 +292,7 @@ public final class MainActivity extends Activity {
     private void resumeNativeInvoiceReferences(){
         try{ProductSession expected=api.session();if(expected==null)return;long view=viewRevision;
             JSONObject rows=NativeInvoiceJourney.records(secure,expected.account);
-            for(String id:rows.keySet()){
+            for(String id:NativeInvoiceJourney.originalKeys(rows)){
                 NativeInvoiceJourney.Record original=new NativeInvoiceJourney.Record(rows.getJSONObject(id));if(original.mayCreate())continue;
                 api.request(original.method(),original.path(),original.method().equals("GET")?null:original.body(),()->view==viewRevision,(result,error)->{
                     if(error!=null){status.setText(message(error));return;}
