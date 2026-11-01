@@ -182,9 +182,12 @@ The old LINK carrier's main function is not copied, and Go files or C preambles
 are not concatenated. One CGO-enabled `go build -buildmode=c-archive` therefore
 produces one runtime containing the supplied complete Core ABI and twenty-two
 LINK exports. The macOS 13 successor requires the new frozen fifteen-export
-Core supply, including `YNXAccountMigrationPossessionSignV1`, for thirty-seven
-strong exports in total. The earlier fourteen-export supplier and archive
-remain separate immutable candidates. Signing algorithms and original
+Core supply, including `YNXAccountMigrationPossessionSignV1`. The Product
+successor additionally supplies eight distinct `ynx_product_pay_transport_*`
+exports, making forty-five strong exports with the original LINK twenty-two.
+It uses its dedicated Auth-owned `product_pay_transport_private.h`; it does
+not expand the earlier five-slot transport. The earlier fourteen-export
+supplier and archive remain separate immutable candidates. Signing algorithms and original
 Root/caller authority checks remain owned by their existing implementations.
 
 The output keeps the normal `libynx_artifact_release.a` filename and supplies
@@ -202,7 +205,14 @@ inside an archive member may resolve to another member's strong definition;
 the final normal image must resolve all owned symbols with its actual Native
 objects. Neither symbol check establishes Root admission.
 
-The combined builder now requires `--macos-deployment-target 13.0`. It resolves
+The combined builder now requires `--macos-deployment-target 13.0` and an exact
+`--link-commit` descended from the frozen original LINK supplier. It copies
+only that commit's selected LINK package and original private headers, and
+includes the new Product tag in the same Go build. The pinned Auth header
+inventory must contain the original dedicated Product header. Its five
+Auth-owned source-loan callees must also exist in the matching Native closure;
+an older header or the prior fifty-three-object Native image is not evidence
+of that new closure. It resolves
 the installed Xcode SDK without inheriting `SDKROOT`, sets
 `MACOSX_DEPLOYMENT_TARGET`, and passes the same minimum version and SDK to cgo's
 C, C++ and link flags. Its private Go cache, Go temporary files and native
@@ -226,6 +236,48 @@ N=1 valid/corrupt inputs and LINK refusal/drain in the same combined runtime.
 Actual empty-Root refusal is reported only when the genuine Native Root module
 is linked and executed; a null transport context is not a substitute. No key
 generation, signing, account enrollment or deployment is implied.
+
+## Dedicated Product transport
+
+The `securelink_product_pay_transport` tag adds the separate
+`ynx_product_pay_transport_*` eight-function ABI from Auth's frozen
+`transport-contract-r2`. It opens only from a retained original Auth Product
+source loan; the original Member five-slot registration is unchanged. The
+fourteen operation slots contain thirteen fixed HTTP templates and one LOCAL
+slot which never enters HTTP. A concrete request must match the exact P06
+parameter spelling, method and body limits before a singleton exact-route
+client is created. Only the two archive routes admit canonical uppercase
+`%3A`; other escapes, queries and fragments are rejected. The private client
+still checks the actual Unix peer and invokes the same original loan and
+per-call native current fence immediately before writing, outside owner locks.
+
+`NewProductLocalCallerServer` returns the original `*LocalCallerServer` with
+its normal UID/PID, original-request capability and physical drain. It retains
+ordinary route validation and adds only those fixed canonical archive GETs.
+The original constructor continues to reject escaped routes. P06 owns normal
+listener registration, its actual handler and independent business permission.
+
+A response owner is reserved before dispatch. It retains exact response DATA
+and normalized original `http.Header` multi-values until explicit release;
+these are not raw header wire casing, whitespace or order. `BodyComplete`
+records a bounded body that finished reading, independently of a late error or
+revocation. Original partial bytes, dispatch possibility and native first
+cause are preserved. Go retains received DATA through a failed C copy.
+Neither complete bytes nor a successful transport call grants permission.
+
+Cancel/retire cancels the original request. Nonblocking join/close waits for
+actual in-flight work and response owners before releasing the original loan.
+Completed state is separate from sticky first failure. Known Auth release
+code 2 retains the same active debt for later drain; unknown cleanup outcomes
+remain held. Closed identities are bounded non-reused tombstones. There is no
+free API, reconnect, automatic retry, new nonce or operation replacement.
+
+Only the additional `securelink_product_pay_transport_fixture` test tag uses
+the PUBLIC synthetic loan. Its pinned header is byte-identical to the frozen
+Auth contract. The normal builder never selects that tag, and its symbol gate
+rejects any Auth source-loan definition or unlisted Product transport export
+inside the Go archive. The new targeted Unix/C ABI controls do not establish
+Root registration, real authorization or normal service deployment.
 
 ## Actual Native Source fence
 

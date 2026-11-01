@@ -200,6 +200,15 @@ func NewLocalCallerServer(cfg LocalCallerServerConfig) (*LocalCallerServer, erro
 	if err != nil {
 		return nil, err
 	}
+	return newLocalCallerServer(cfg, routes)
+}
+
+// Only owning constructors call this after validating their closed route set.
+// The ordinary constructor above keeps its original canonical-path policy.
+func newLocalCallerServer(cfg LocalCallerServerConfig, routes map[string]LocalCallerRoute) (*LocalCallerServer, error) {
+	if !localService(cfg.Service) || cfg.PeerUID == 0 || cfg.PeerPID <= 0 || cfg.Handler == nil {
+		return nil, ErrDenied
+	}
 	if cfg.MaxHeaderBytes == 0 {
 		cfg.MaxHeaderBytes = 16 << 10
 	}
@@ -515,6 +524,7 @@ func (c *LocalCallerClient) call(ctx context.Context, method, path, contentType 
 	if int64(len(b)) > c.cfg.MaxResponseBytes {
 		return out, ErrBounds
 	}
+	out.BodyComplete = true
 	if err = ctx.Err(); err != nil {
 		return out, err
 	}

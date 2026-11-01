@@ -23,6 +23,9 @@ export const linkRequiredSymbols=Object.freeze([
   'ynx_link_private_client_join_v1','ynx_link_private_client_close_v1','ynx_link_private_client_free_v1',
   ...['open','adopt_source','retire','join','close','closed','free','error'].map(name=>'ynx_link_pay_native_startup_'+name+'_v1'),
 ]);
+export const productTransportRequiredSymbols=Object.freeze([
+  'open','request','response_diagnostics','release_response','cancel','retire','join','close',
+].map(name=>'ynx_product_pay_transport_'+name+'_v1'));
 
 function bound(entry){
   requireValue(entry&&path.isAbsolute(entry.path??'')&&Number.isSafeInteger(entry.bytes)&&entry.bytes>0&&entry.bytes<=512*1024*1024&&/^[a-f0-9]{64}$/.test(entry.sha256??''),'exact bounded input identity required');
@@ -41,7 +44,7 @@ function headerExports(raw){
   const text=uncomment(raw.toString('utf8'));
   // Exported prototypes only: exclude typedef/function-pointer declarations,
   // static inline bodies, static asserts and function-like macros.
-  const pattern=/(?:^|\n)\s*(?:extern\s+)?(?:int32_t|uint32_t|int64_t|uint64_t|void|int)\s+((?:YNX|ynx_link_)[A-Za-z0-9_]+)\s*\([^;{}]*\)\s*;/g;
+  const pattern=/(?:^|\n)\s*(?:extern\s+)?(?:int32_t|uint32_t|int64_t|uint64_t|void|int)\s+((?:YNX|ynx_link_|ynx_product_pay_transport_)[A-Za-z0-9_]+)\s*\([^;{}]*\)\s*;/g;
   return [...text.matchAll(pattern)].map(match=>match[1]);
 }
 function plainSymbols(text){
@@ -124,7 +127,7 @@ export function checkCombinedArchive(plan){
   }
   requireValue(coreExportMap.size>0,'original Core //export closure is empty');
   for(const header of boundedRows(plan.headers,'complete Core/LINK headers',64)){
-    requireValue(['core','link'].includes(header.owner)&&/^[A-Za-z0-9_.-]+\.h$/.test(header.name??'')&&path.basename(header.path??'')===header.name&&!headerMap.has(header.name),'unique named Core/LINK header required');
+    requireValue(['core','link','product'].includes(header.owner)&&/^[A-Za-z0-9_.-]+\.h$/.test(header.name??'')&&path.basename(header.path??'')===header.name&&!headerMap.has(header.name),'unique named Core/LINK/Product header required');
     const raw=bound(header);allInputs.push(header);headerMap.set(header.name,header);
     for(const symbol of headerExports(raw)){
       requireValue(identifier.test(symbol)&&!symbolHeaders.has(symbol),'duplicate header export: '+symbol);
@@ -138,7 +141,11 @@ export function checkCombinedArchive(plan){
   for(const [symbol,header] of symbolHeaders)if(header.owner==='core')requireValue(coreExportMap.has(symbol),'Core header has no original //export: '+symbol);
   const links=[...symbolHeaders].filter(([,header])=>header.owner==='link').map(([symbol])=>symbol);
   requireValue(JSON.stringify(sort(links))===JSON.stringify(sort(linkRequiredSymbols)),'complete original LINK 22-function ABI required');
-  const required=sort([...coreExportMap.keys(),...links]);
+  const productHeaders=[...headerMap.values()].filter(row=>row.owner==='product');
+  const products=[...symbolHeaders].filter(([,header])=>header.owner==='product').map(([symbol])=>symbol);
+  if(productHeaders.length)requireValue(productHeaders.length===1&&productHeaders[0].name==='product_pay_transport_private.h'&&
+    JSON.stringify(sort(products))===JSON.stringify(sort(productTransportRequiredSymbols)),'complete dedicated Product eight-function ABI required');
+  const required=sort([...coreExportMap.keys(),...links,...products]);
   const requiredSet=new Set(required),observed=new Set(),ignoredNative=new Set(),nativeEvidence=[];
   for(const log of boundedRows(plan.nativeUndefined,'actual Native undefined evidence',32)){
     const text=bound(log).toString('utf8');allInputs.push(log);
@@ -159,10 +166,10 @@ export function checkCombinedArchive(plan){
     }
     const references=new Set();
     for(const line of text.split('\n')){
-      const symbol=line.trim().split(/\s+/).at(-1)?.match(/^_((?:YNX|ynx_link_)[A-Za-z0-9_]+)$/)?.[1];
+      const symbol=line.trim().split(/\s+/).at(-1)?.match(/^_((?:YNX|ynx_link_|ynx_product_pay_transport_)[A-Za-z0-9_]+)$/)?.[1];
       if(!symbol)continue;
       if(requiredSet.has(symbol)){observed.add(symbol);references.add(symbol);}
-      else if(symbol.startsWith('ynx_link_'))throw Error('actual Native LINK reference has no ABI header: '+symbol);
+      else if(symbol.startsWith('ynx_link_')||symbol.startsWith('ynx_product_pay_transport_'))throw Error('actual Native LINK/Product reference has no ABI header: '+symbol);
       else ignoredNative.add(symbol); // e.g. Native's YNXIDEIdentityHelperService.
     }
     nativeEvidence.push({path:log.path,format:'actual-native-nm-undefined-text',references:sort(references)});
@@ -191,7 +198,12 @@ export function checkCombinedArchive(plan){
     'one go.o and no nested/second Go archive required');
   const globals=plainSymbols(run('/usr/bin/nm',['-g',archive.path]));
   const macho=run('/usr/bin/nm',['-m',archive.path]);
+  const actualProduct=globals.filter(row=>row.type!=='U'&&row.name.startsWith('_ynx_product_pay_transport_')).map(row=>row.name.slice(1));
   const matrix=required.map(name=>({...strongFunction(name,globals,macho),header:symbolHeaders.get(name),source:coreExportMap.get(name)??'original LINK ABI'}));
+  requireValue(JSON.stringify(sort(actualProduct))===JSON.stringify(sort(products)),
+    'unlisted Product transport archive export or missing dedicated header');
+  requireValue(!globals.some(row=>row.type!=='U'&&row.name.startsWith('_ynx_product_pay_source_')),
+    'Auth-owned Product Source definition in LINK archive');
   for(const name of ['crosscall2','_cgo_topofstack'])strongFunction(name,globals,macho);
   const full=plainSymbols(run('/usr/bin/nm',[archive.path]));
   const runtimeEntries=full.filter(row=>/^__rt0_(?:arm64|amd64)_darwin_lib$/.test(row.name)&&row.type!=='U');
@@ -199,7 +211,7 @@ export function checkCombinedArchive(plan){
   requireValue(!globals.some(row=>row.type!=='U'&&/^_ynx_link_private_fixture_/.test(row.name)),'fixture installer in normal combined archive');
   for(const input of allInputs)bound(input);
   return {version:1,status:'COMBINED_GO_ARCHIVE_STRONG_SYMBOLS_VERIFIED',goArchives:plan.goArchives,
-    coreExports:sort(coreExportMap.keys()),linkExports:sort(links),headers:[...headerMap.values()],
+    coreExports:sort(coreExportMap.keys()),linkExports:sort(links),productExports:sort(products),headers:[...headerMap.values()],
     nativeObservedGoReferences:sort(observed),nativeOtherOwnedReferences:sort(ignoredNative),nativeEvidence,
     symbols:matrix,runtimeEntry:runtimeEntries[0].name,archiveMembers:members.length,commands,
     finalNativeImageVerified:false,RootAdmission:false,SourceAdmission:false,installed:false,deployed:false,

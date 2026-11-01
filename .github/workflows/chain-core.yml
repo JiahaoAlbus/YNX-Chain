@@ -59,16 +59,31 @@ concurrency:
 
 jobs:
   combined-archive-deployment:
-    name: Combined archive Mach-O deployment controls
+    name: LINK Product transport and archive deployment controls
     runs-on: macos-14
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "24"
       - name: Check actual object deployment parsing and rejection controls
-        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs
+        run: node --test cmd/ynx-secure-link-private-client/combined-archive-deployment.test.mjs cmd/ynx-secure-link-private-client/combined-archive-product-symbols.test.mjs
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # original immutable setup-go
+        with:
+          go-version: "1.26.10"
+          cache: false
+      - name: Check new Product Unix transport and C ABI lifecycle with PUBLIC fixture loan
+        env:
+          CGO_ENABLED: "1"
+          GOMAXPROCS: "2"
+          GOWORK: "off"
+          GOCACHE: ${{ runner.temp }}/product-transport-go-cache
+          GOTMPDIR: ${{ runner.temp }}/product-transport-go-tmp
+          TMPDIR: ${{ runner.temp }}/product-transport-native-tmp
+        run: |
+          mkdir -p "$GOCACHE" "$GOTMPDIR" "$TMPDIR"
+          go test -mod=readonly -race -p 1 -count=1 -timeout=90s -tags=securelink_product_pay_transport,securelink_product_pay_transport_fixture -run '^TestProductPrivate' ./internal/securelink
 
   contract-tooling-scope:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'

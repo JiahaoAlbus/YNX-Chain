@@ -6,15 +6,16 @@ import {fileURLToPath} from 'node:url';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const repository = path.resolve(directory, '../..');
-const linkCommit = '8df4139adb14c68d93e0a55a56851399d46059ac';
+const baseLINKCommit = '8df4139adb14c68d93e0a55a56851399d46059ac';
 const packagePath = 'cmd/ynx-artifact-release-cabi';
 const options = new Map();
 for (let i = 2; i < process.argv.length; i += 2) {
   const key = process.argv[i], value = process.argv[i + 1];
-  if (!['--core-handoff', '--core-sha256', '--auth-headers', '--auth-headers-sha256', '--native-undefined', '--native-undefined-sha256', '--macos-deployment-target', '--out'].includes(key) || !value || options.has(key)) throw Error('complete pinned Core/Auth/Native inputs, explicit macOS target and a new output directory required');
+  if (!['--core-handoff', '--core-sha256', '--auth-headers', '--auth-headers-sha256', '--native-undefined', '--native-undefined-sha256', '--link-commit', '--macos-deployment-target', '--out'].includes(key) || !value || options.has(key)) throw Error('complete pinned Core/Auth/Native inputs, fixed LINK commit, explicit macOS target and a new output directory required');
   options.set(key, value);
 }
-if (options.size !== 8 || process.platform !== 'darwin' || options.get('--macos-deployment-target') !== '13.0') throw Error('eight build arguments, explicit macOS 13.0 target and a native Darwin host required');
+if (options.size !== 9 || !/^[a-f0-9]{40}$/.test(options.get('--link-commit')??'') || process.platform !== 'darwin' || options.get('--macos-deployment-target') !== '13.0') throw Error('nine build arguments, fixed LINK commit, explicit macOS 13.0 target and a native Darwin host required');
+const linkCommit = options.get('--link-commit');
 const deploymentTarget = options.get('--macos-deployment-target');
 const architecture = ({arm64: 'arm64', x64: 'amd64'})[process.arch];
 if (!architecture) throw Error('supported native Go architecture required');
@@ -31,7 +32,7 @@ const auth = pinned(options.get('--auth-headers'), options.get('--auth-headers-s
 const undefinedInput = pinned(options.get('--native-undefined'), options.get('--native-undefined-sha256'));
 if (core.value.version !== 'YNX-CORE-MACOS-SINGLE-GO-IMAGE-PUBLIC-SOURCE-SUPPLY/v1' ||
     core.value.source?.module !== 'github.com/JiahaoAlbus/YNX-Chain' ||
-    core.value.source?.go !== '1.26.10' || core.value.LINKReadOnlyComposition?.sourceCommit !== linkCommit ||
+    core.value.source?.go !== '1.26.10' || core.value.LINKReadOnlyComposition?.sourceCommit !== baseLINKCommit ||
     !Array.isArray(core.value.sources) || core.value.sources.length < 65 || core.value.sources.length > 256 ||
     core.value.exports?.length !== 15 || !core.value.exports.some(row => row.symbol === 'YNXAccountMigrationPossessionSignV1') || auth.value.version !== 1 || !Array.isArray(auth.value.headers) ||
     !Array.isArray(undefinedInput.value.unresolvedCore)) throw Error('matching complete original supply contract required');
@@ -79,6 +80,7 @@ function goQuote(argument) {
 }
 let archive, failure, checkResult, deploymentResult, buildEnvironment, toolchain;
 try {
+  run('git', ['merge-base', '--is-ancestor', baseLINKCommit, linkCommit], 'link-base-ancestry.log', repository);
   const expectedTree = run('git', ['ls-tree', '-r', core.value.source.commit, '--', ...core.value.sources.map(row => row.path)], 'core-git-tree.log', repository);
   const blobs = new Map(expectedTree.trim().split('\n').map(row => {const [meta, name] = row.split('\t'); return [name, meta.split(' ')[2]];}));
   for (const row of core.value.sources) {
@@ -107,9 +109,9 @@ try {
     authNames.add(row.name);
     const bytes = fs.readFileSync(row.path);
     if (bytes.length !== row.bytes || hash(bytes) !== row.sha256) throw Error('Auth header changed: ' + row.name);
-    copyHeader(row.name, bytes, 'auth', row.path);
+    copyHeader(row.name, bytes, row.name === 'product_pay_transport_private.h' ? 'product' : 'auth', row.path);
   }
-  for (const required of ['pay_root_transport_loan_private.h', 'pay_native_actual_context_private.h', 'pay_native_source_lease_private.h']) if (!authNames.has(required)) throw Error('missing original Auth header: ' + required);
+  for (const required of ['pay_root_transport_loan_private.h', 'pay_native_actual_context_private.h', 'pay_native_source_lease_private.h', 'product_pay_transport_private.h']) if (!authNames.has(required)) throw Error('missing original Auth header: ' + required);
   const goCache = path.join(output, 'go-cache'), goTmp = path.join(output, 'go-tmp'), nativeTmp = path.join(output, 'native-tmp');
   fs.mkdirSync(goCache); fs.mkdirSync(goTmp); fs.mkdirSync(nativeTmp);
   // Resolve the installed SDK rather than trusting an inherited SDKROOT. In
@@ -125,28 +127,29 @@ try {
   toolchain.opensslCompileAndLinkFlags = run('pkg-config', ['--cflags', '--libs', 'openssl'], 'openssl-flags.log', source, discoveryEnv).trim();
   if (toolchain.opensslVersion !== '3.6.4') throw Error('original OpenSSL 3.6.4 compile dependency required');
   const targetFlags = [ '-mmacosx-version-min=' + deploymentTarget, '-isysroot', sdk ].map(goQuote).join(' ');
-  const env = {...process.env, CGO_ENABLED: '1', GOMAXPROCS: '2', GOWORK: 'off', GOFLAGS: '', GOOS: 'darwin', GOARCH: architecture,
+  const env = {...process.env, CGO_ENABLED: '1', GOMAXPROCS: '2', GOMEMLIMIT: '1536MiB', GOWORK: 'off', GOFLAGS: '', GOOS: 'darwin', GOARCH: architecture,
     GOCACHE: goCache, GOTMPDIR: goTmp, TMPDIR: nativeTmp, SDKROOT: sdk, CC: cc, CXX: cxx, MACOSX_DEPLOYMENT_TARGET: deploymentTarget,
     CGO_CFLAGS: goQuote('-I' + include) + ' ' + targetFlags, CGO_CPPFLAGS: '', CGO_CXXFLAGS: '-O2 -g ' + targetFlags, CGO_LDFLAGS: '-O2 -g ' + targetFlags};
-  buildEnvironment = Object.fromEntries(['CGO_ENABLED', 'GOMAXPROCS', 'GOWORK', 'GOFLAGS', 'GOOS', 'GOARCH', 'GOCACHE', 'GOTMPDIR', 'TMPDIR', 'SDKROOT', 'CC', 'CXX', 'MACOSX_DEPLOYMENT_TARGET', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS'].map(key => [key, env[key]]));
+  buildEnvironment = Object.fromEntries(['CGO_ENABLED', 'GOMAXPROCS', 'GOMEMLIMIT', 'GOWORK', 'GOFLAGS', 'GOOS', 'GOARCH', 'GOCACHE', 'GOTMPDIR', 'TMPDIR', 'SDKROOT', 'CC', 'CXX', 'MACOSX_DEPLOYMENT_TARGET', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS'].map(key => [key, env[key]]));
   const goEnv = JSON.parse(run('go', ['env', '-json', 'GOVERSION', 'GOOS', 'GOARCH', 'CC', 'CXX', 'CGO_ENABLED', 'CGO_CFLAGS', 'CGO_CPPFLAGS', 'CGO_CXXFLAGS', 'CGO_LDFLAGS', 'GOWORK', 'GOFLAGS', 'GOCACHE', 'GOMODCACHE'], 'go-environment.json', source, env));
   if (goEnv.GOVERSION !== 'go1.26.10' || goEnv.GOOS !== 'darwin' || goEnv.GOARCH !== architecture) throw Error('original native Go toolchain/architecture required');
-  run('go', ['list', '-mod=readonly', '-p', '1', '-deps', '-json', '-tags=securelink_openssl,securelink_pay_native_startup', './' + packagePath], 'go-packages.json', source, env);
+  const buildTags = 'securelink_openssl,securelink_pay_native_startup,securelink_product_pay_transport';
+  run('go', ['list', '-mod=readonly', '-p', '1', '-deps', '-json', '-tags=' + buildTags, './' + packagePath], 'go-packages.json', source, env);
   archive = path.join(output, 'libynx_artifact_release.a');
-  run('go', ['build', '-mod=readonly', '-p', '1', '-trimpath', '-tags=securelink_openssl,securelink_pay_native_startup', '-buildmode=c-archive', '-o', archive, './' + packagePath], 'combined-build.log', source, env);
+  run('go', ['build', '-mod=readonly', '-p', '1', '-trimpath', '-tags=' + buildTags, '-buildmode=c-archive', '-o', archive, './' + packagePath], 'combined-build.log', source, env);
   const generated = archive.replace(/\.a$/, '.h');
   if (!fs.existsSync(generated)) throw Error('original Core export generated header missing');
   copyHeader(path.basename(generated), fs.readFileSync(generated), 'generated', generated);
   const checkerPlan = {version: 1, goArchives: [describe(archive)],
     coreSources: sources.filter(row => row.repositoryPath.startsWith(packagePath + '/') && row.repositoryPath.endsWith('.go') && row.path !== importLeaf),
-    headers: headerRows.filter(row => ['core', 'link'].includes(row.owner)),
+    headers: headerRows.filter(row => ['core', 'link', 'product'].includes(row.owner)),
     nativeUndefined: [undefinedInput.descriptor], linkerInputs: [describe(archive)]};
   const planFile = path.join(output, 'SYMBOL-PLAN.json');
   fs.writeFileSync(planFile, JSON.stringify(checkerPlan, null, 2) + '\n', {flag: 'wx'});
   const checker = await import('./combined-archive-symbols.mjs');
   checkResult = checker.checkCombinedArchive(checkerPlan);
   const declaredCore = core.value.exports.map(row => row.symbol).sort();
-  if (new Set(declaredCore).size !== 15 || JSON.stringify(declaredCore) !== JSON.stringify(checkResult.coreExports) || checkResult.linkExports.length !== 22 || checkResult.symbols.length !== 37) throw Error('complete declared Core15 and LINK22 strong ABI required');
+  if (new Set(declaredCore).size !== 15 || JSON.stringify(declaredCore) !== JSON.stringify(checkResult.coreExports) || checkResult.linkExports.length !== 22 || checkResult.productExports.length !== 8 || checkResult.symbols.length !== 45) throw Error('complete declared Core15, LINK22 and dedicated Product8 strong ABI required');
   fs.writeFileSync(path.join(output, 'SYMBOL-RESULT.json'), JSON.stringify(checkResult, null, 2) + '\n', {flag: 'wx'});
   const deploymentChecker = await import('./combined-archive-deployment.mjs');
   try { deploymentResult = deploymentChecker.checkArchiveDeployment(describe(archive), {target: deploymentTarget, architecture: process.arch === 'x64' ? 'x86_64' : process.arch}); }
@@ -158,7 +161,7 @@ try {
 } catch (error) { failure = error; }
 const receipt = {version: 1, state: failure ? 'FAILED_OUTPUT_RETAINED' : 'COMBINED_CORE_LINK_ARCHIVE_VERIFIED_NOT_DEPLOYED',
   coreHandoff: core.descriptor, authHeaders: auth.descriptor, nativeUndefined: undefinedInput.descriptor,
-  coreCommit: core.value.source.commit, linkCommit, soleMain: packagePath + '/core.go',
+  coreCommit: core.value.source.commit, linkCommit, baseLINKCommit, soleMain: packagePath + '/core.go',
   source: sources, headers: headerRows, commands,
   archive: archive && fs.existsSync(archive) ? describe(archive) : null,
   symbols: checkResult ?? null, deployment: deploymentResult ?? null, deploymentTarget, buildEnvironment: buildEnvironment ?? null, toolchain: toolchain ?? null, failure: failure?.message ?? null,
