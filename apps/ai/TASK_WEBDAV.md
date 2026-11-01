@@ -58,6 +58,11 @@ but an actual Nextcloud deployment was not accepted. The official upstream
 exhibited concurrent conditional-write and interrupted-upload limitations.
 Never describe ordinary WebDAV as a target-side strong fence.
 
+The isolated official-server launcher maps Ctrl-C to SIGTERM of its own child
+and waits for that child. Only an explicitly requested shutdown is normalized
+to success; unexpected upstream failure retains its original exit status. This
+was checked against the original resumed object using GET only, without PUT.
+
 Keep `webdavDeliveries`, original audit history and UNKNOWN across upgrades and
 rollback. An older binary must not writable-open a Store containing these new
 records. No production migration, deployment or rollback was performed.

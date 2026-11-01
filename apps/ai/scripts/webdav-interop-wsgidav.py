@@ -89,8 +89,19 @@ public.update(command=cmd, startedAt=datetime.datetime.now(datetime.timezone.utc
 with open(root / 'evidence/upstream-lifecycle.jsonl', 'a') as history:
     history.write(json.dumps(public) + '\n')
 print(json.dumps(dict(ready=True, url=url, pid=child.pid, privateConnection=str(private))), flush=True)
+stop_signal = None
+def stop_owned_upstream(signum, frame):
+    global stop_signal
+    stop_signal = signum
+    # The official server has no controlling terminal. Forwarding SIGINT can
+    # leave it running; terminate only this already-owned child with SIGTERM.
+    if child.poll() is None:
+        child.terminate()
+
 for sig in (signal.SIGTERM, signal.SIGINT):
-    signal.signal(sig, lambda signum, frame: child.send_signal(signum))
+    signal.signal(sig, stop_owned_upstream)
 code = child.wait()
-(root / 'evidence/upstream-exit.json').write_text(json.dumps({'code': code, 'at': datetime.datetime.now(datetime.timezone.utc).isoformat()}))
-sys.exit(code)
+(root / 'evidence/upstream-exit.json').write_text(json.dumps({'code': code, 'requestedSignal': stop_signal, 'at': datetime.datetime.now(datetime.timezone.utc).isoformat()}))
+# Normalize only the explicitly requested SIGTERM of this synthetic child;
+# unexpected server failure keeps its original status and evidence.
+sys.exit(0 if stop_signal is not None and code == -signal.SIGTERM else code)
