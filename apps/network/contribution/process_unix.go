@@ -17,3 +17,8 @@ func processCurrentOwner(info os.FileInfo) bool {
 func processUnlinkCapture(directory *os.File, name string) error {
 	return unix.Unlinkat(int(directory.Fd()), name, 0)
 }
+
+func processSystemOwner(info os.FileInfo) bool {
+	st, ok := info.Sys().(*syscall.Stat_t)
+	return ok && st.Uid == 0
+}

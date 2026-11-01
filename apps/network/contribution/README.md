@@ -44,3 +44,48 @@ missing owning CODE; node/TX/AI approvals cannot substitute for them.
 
 Darwin delta CI: `go test -p 1 ./cmd/ynx-network-helper -run
 'TestP09(OSLimitedFixedWorkerLifecycle|OSMonitorStopsUncooperativeChild|DarwinWorkerOSLimitModule|OSWorkerExitsAfterParentDeath|OSMonitorChangedSourcePreservesUsage|OSMonitorCannotClaimLiveChildExited)$'`.
+
+Linux containment uses an existing, explicitly delegated cgroup-v2 subtree in
+this process's own `ynx-network-resource-<32 lower hex>.service/supervisor`.
+The normal installer/operator must supply systemd `Delegate=cpu memory pids`
+and `DelegateSubgroup=supervisor` in a separately budgeted unit; the product
+never creates a system service, enables an ancestor controller, changes a user
+namespace sysctl, elevates privileges or installs a sandbox. Only the live
+self-derived delegate is accepted. No job or IPC field can select a unit, PID,
+cgroup, shell command, executable or host path.
+
+The backend creates a fresh owned leaf, sets and reads back `memory.max`,
+`memory.swap.max=0`, `memory.oom.group=1`, `cpu.max`, `cpu.max.burst=0` and
+`pids.max=32`, and uses Go's clone3 cgroup FD so the wrapper starts inside the
+limits. Existing root-owned non-setuid `/usr/bin/bwrap` is independently pinned
+and privately captured; a static fixed worker gets an empty read-only root,
+read-only access only to its own cgroup limits, private user/PID/mount/network
+namespaces, no capabilities, no new privileges, and a seccomp socket/fork/
+namespace/tracing/io_uring deny policy. Threads remain possible within pids.max.
+The worker confirms these controls and denied socket creation before writing
+its challenge-bound FD3 readback. Only then does the original parent release
+read-only input through stdin. Scratch is either read-only (`storageBytes=0`)
+or a private tmpfs bounded to at most 1MiB, charged to the same memory cgroup.
+Scratch has no host disk backing; metadata also remains memory-cgroup bounded.
+This optional scratch applies only to the fixed histogram kind; other platforms
+and legacy `verify_chunk` refuse nonzero scratch.
+
+Stop kills only the original live leaf using `cgroup.kill` and waits for the
+owned wrapper plus `populated=0`; normal completion also drains descendants.
+Unknown/replaced/populated leaves are preserved, scheduling sealed and errors
+reported instead of importing saved PID authority. Per-leaf kernel CPU,
+throttling, OOM/pids-denial and memory peak are separate from wrapper wait4;
+they are not added together or treated as economic service. No production
+factory is enabled by source availability or a successful controlled fixture.
+
+`apps/network/qa/build-linux.mjs` makes a clean-source Linux QA candidate with
+compiled worker/bwrap pins. `TestLinuxContainedRuntime` is opt-in only after the
+original controller schedules a dedicated resource stage; absence, compile or
+skip is not runtime hard-containment acceptance. Local policy/negative tests
+run normally. The QA-only probe is a separate explicit artifact, with no probe
+branch in the product fixed worker or arbitrary-code task selection.
+
+Official interfaces: https://docs.kernel.org/admin-guide/cgroup-v2.html,
+https://systemd.io/CGROUP_DELEGATION/,
+https://github.com/containers/bubblewrap/blob/main/bwrap.xml and
+https://docs.kernel.org/userspace-api/seccomp_filter.html.

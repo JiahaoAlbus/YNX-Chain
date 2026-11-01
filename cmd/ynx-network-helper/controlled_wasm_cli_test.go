@@ -61,6 +61,16 @@ func TestP09ControlledWASMPackagedCLI(t *testing.T) {
 		defer cancel()
 		return exec.CommandContext(ctx, helper, arguments...).CombinedOutput()
 	}
+	if runtime.GOOS == "linux" {
+		// This ordinary CI binary has no admitted delegate/bwrap pin. The new
+		// production-facing CLI must refuse it; scheduled contained positive tests
+		// run the same fixed CLI with a pinned existing sandbox in a dedicated unit.
+		out, err := run(args)
+		if err == nil || !strings.Contains(string(out), "UNSUPPORTED") {
+			t.Fatalf("Linux ordinary CLI failed to close: %v %s", err, out)
+		}
+		return
+	}
 	var original string
 	for _, starts := range []uint64{1, 0} {
 		out, err := run(args)

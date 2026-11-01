@@ -318,7 +318,7 @@ func validateStoredRecord(id string, rec Record, nonces map[string]string) error
 	cpu, e1 := strictUint(rec.Work.Limits.CPUMilli)
 	mem, e2 := strictUint(rec.Work.Limits.MemoryBytes)
 	ms, e3 := strictUint(rec.Work.Limits.DurationMillis)
-	if e1 != nil || e2 != nil || e3 != nil || cpu == 0 || cpu > 1000 || mem < n+fixedMemory || mem > MaxMemoryBytes || ms == 0 || ms > MaxDurationMillis || rec.Work.Limits.StorageBytes != "0" || rec.Work.Limits.EgressBytes != "0" || rec.Usage.CPUServiceVerified {
+	if e1 != nil || e2 != nil || e3 != nil || cpu == 0 || cpu > 1000 || mem < n+fixedMemory || mem > MaxMemoryBytes || ms == 0 || ms > MaxDurationMillis || !validScratch(rec.Work.Kind, rec.Work.Limits.StorageBytes) || rec.Work.Limits.EgressBytes != "0" || rec.Usage.CPUServiceVerified {
 		return ErrInvalid
 	}
 	if !validProcessUsage(rec.Usage.Process) {
@@ -439,13 +439,13 @@ func checkWork(w Work, c Consent, inputLen int, now time.Time) (bounds, error) {
 	}
 	cpu, e1 := strictUint(w.Limits.CPUMilli)
 	mem, e2 := strictUint(w.Limits.MemoryBytes)
-	storage, e3 := strictUint(w.Limits.StorageBytes)
+	_, e3 := strictUint(w.Limits.StorageBytes)
 	egress, e4 := strictUint(w.Limits.EgressBytes)
 	ms, e5 := strictUint(w.Limits.DurationMillis)
 	if e1 != nil || e2 != nil || e3 != nil || e4 != nil || e5 != nil {
 		return bounds{}, ErrInvalid
 	}
-	if cpu == 0 || cpu > 1000 || mem < n+fixedMemory || mem > MaxMemoryBytes || storage != 0 || egress != 0 || ms == 0 || ms > MaxDurationMillis {
+	if cpu == 0 || cpu > 1000 || mem < n+fixedMemory || mem > MaxMemoryBytes || !validScratch(w.Kind, w.Limits.StorageBytes) || egress != 0 || ms == 0 || ms > MaxDurationMillis {
 		return bounds{}, ErrLimit
 	}
 	if w.Kind == PublicBlockHistogramKind && (n > HistogramMaxInputBytes || mem < histogramMemory(n)) {
@@ -475,7 +475,7 @@ func (r *Runner) StartContribution(ctx context.Context, w Work, c Consent, manif
 		return Record{}, err
 	}
 	if w.Kind == PublicBlockHistogramKind {
-		if r.executor == nil {
+		if r.executor == nil || w.Limits.StorageBytes != "0" && r.executor.linux == nil {
 			return Record{}, ErrUnsupported
 		}
 		// This task counts bounded JSON bytes; it does not establish consensus,
@@ -875,22 +875,29 @@ func (r *Runner) StopContribution(ctx context.Context) error {
 }
 
 type Meter struct {
-	Class               string `json:"class"`
-	State               string `json:"state"`
-	ActiveWorkers       uint64 `json:"activeWorkers"`
-	ReservedMemoryBytes uint64 `json:"reservedMemoryBytes"`
-	MeasuredBytesRead   uint64 `json:"measuredBytesRead"`
-	MeasuredWallMicros  uint64 `json:"measuredWallMicros"`
-	VerifiedJobs        uint64 `json:"verifiedJobs"`
-	VerifiedBytes       uint64 `json:"verifiedBytes"`
-	CPUServiceVerified  bool   `json:"cpuServiceVerified"`
-	Rewards             string `json:"rewards"`
-	Accounting          string `json:"accounting"`
-	OSUserMicros        uint64 `json:"osUserMicros"`
-	OSSystemMicros      uint64 `json:"osSystemMicros"`
-	OSPeakRSSBytes      uint64 `json:"osPeakRSSBytes"`
-	OSMeasuredChildren  uint64 `json:"osMeasuredChildren"`
-	OSAccounting        string `json:"osAccounting"`
+	Class                     string `json:"class"`
+	State                     string `json:"state"`
+	ActiveWorkers             uint64 `json:"activeWorkers"`
+	ReservedMemoryBytes       uint64 `json:"reservedMemoryBytes"`
+	MeasuredBytesRead         uint64 `json:"measuredBytesRead"`
+	MeasuredWallMicros        uint64 `json:"measuredWallMicros"`
+	VerifiedJobs              uint64 `json:"verifiedJobs"`
+	VerifiedBytes             uint64 `json:"verifiedBytes"`
+	CPUServiceVerified        bool   `json:"cpuServiceVerified"`
+	Rewards                   string `json:"rewards"`
+	Accounting                string `json:"accounting"`
+	OSUserMicros              uint64 `json:"osUserMicros"`
+	OSSystemMicros            uint64 `json:"osSystemMicros"`
+	OSPeakRSSBytes            uint64 `json:"osPeakRSSBytes"`
+	OSMeasuredChildren        uint64 `json:"osMeasuredChildren"`
+	OSAccounting              string `json:"osAccounting"`
+	LinuxMeasuredGroups       uint64 `json:"linuxMeasuredGroups"`
+	LinuxGroupUserMicros      uint64 `json:"linuxGroupUserMicros"`
+	LinuxGroupSystemMicros    uint64 `json:"linuxGroupSystemMicros"`
+	LinuxGroupMemoryPeakBytes uint64 `json:"linuxGroupMemoryPeakBytes"`
+	LinuxGroupOOMKills        uint64 `json:"linuxGroupOOMKills"`
+	LinuxGroupThrottledMicros uint64 `json:"linuxGroupThrottledMicros"`
+	LinuxGroupAccounting      string `json:"linuxGroupAccounting"`
 }
 
 // VerifyResourceMeter derives unique locally reverified jobs from stored
@@ -898,7 +905,7 @@ type Meter struct {
 func (r *Runner) VerifyResourceMeter() Meter {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	m := Meter{Class: SandboxClass, State: "disabled", Rewards: "NOT_AUTHORIZED", Accounting: "LOCAL_MEASUREMENTS_NOT_CPU_SERVICE", OSAccounting: "LOCAL_WORKER_AND_MONITOR_WAIT4_CPU_SUM_MAX_SINGLE_PID_RSS_INCLUDES_HISTORY_NOT_SERVICE"}
+	m := Meter{Class: SandboxClass, State: "disabled", Rewards: "NOT_AUTHORIZED", Accounting: "LOCAL_MEASUREMENTS_NOT_CPU_SERVICE", OSAccounting: "LOCAL_WORKER_AND_MONITOR_WAIT4_CPU_SUM_MAX_SINGLE_PID_RSS_INCLUDES_HISTORY_NOT_SERVICE", LinuxGroupAccounting: "INDEPENDENT_CGROUP_TOTALS_NOT_ADDED_TO_WRAPPER_WAIT4_NOT_SERVICE"}
 	if r.persistenceErr != nil {
 		m.Accounting = "UNKNOWN_LOCAL_PERSISTENCE"
 	}
@@ -920,6 +927,16 @@ func (r *Runner) VerifyResourceMeter() Meter {
 				m.OSPeakRSSBytes = u.PeakRSSBytes
 			}
 			m.OSMeasuredChildren++
+			if g := u.Group; g != nil {
+				m.LinuxMeasuredGroups++
+				m.LinuxGroupUserMicros += g.UserMicros
+				m.LinuxGroupSystemMicros += g.SystemMicros
+				m.LinuxGroupOOMKills += g.OOMKills
+				m.LinuxGroupThrottledMicros += g.ThrottledMicros
+				if g.MemoryPeakBytes > m.LinuxGroupMemoryPeakBytes {
+					m.LinuxGroupMemoryPeakBytes = g.MemoryPeakBytes
+				}
+			}
 			if v := u.Monitor; v != nil {
 				m.OSUserMicros += v.UserMicros
 				m.OSSystemMicros += v.SystemMicros

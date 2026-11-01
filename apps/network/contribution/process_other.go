@@ -9,3 +9,5 @@ import "os"
 func processCurrentOwner(os.FileInfo) bool { return false }
 
 func processUnlinkCapture(*os.File, string) error { return ErrUnsupported }
+
+func processSystemOwner(os.FileInfo) bool { return false }

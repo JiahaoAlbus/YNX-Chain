@@ -21,14 +21,16 @@ import (
 const (
 	processWorkerName  = "ynx-network-task-worker"
 	processMonitorName = "ynx-network-resource-monitor"
+	processSandboxName = "bwrap"
 	processCodeLimit   = 128 << 20
 	processStderrMax   = 4096
 )
 
 type processFile struct {
-	path string
-	info os.FileInfo
-	pin  [sha256.Size]byte
+	path       string
+	info       os.FileInfo
+	pin        [sha256.Size]byte
+	systemRoot bool
 }
 
 // PinnedWASMExecutor runs only a locally pinned, fixed interpreter executable.
@@ -36,18 +38,21 @@ type processFile struct {
 // authority. The original worker owns its import-free fixed WASM execution;
 // this host owns child lifetime, bounded I/O, and the executable byte binding.
 type PinnedWASMExecutor struct {
-	mu          sync.Mutex
-	source      processFile
-	capture     processFile
-	dir         string
-	dirInfo     os.FileInfo
-	active      *processOperation
-	stopped     bool
-	starts      uint64
-	closed      bool
-	requireOS   bool
-	monitor     *PinnedWASMExecutor
-	captureName string
+	mu           sync.Mutex
+	source       processFile
+	capture      processFile
+	dir          string
+	dirInfo      os.FileInfo
+	active       *processOperation
+	stopped      bool
+	starts       uint64
+	closed       bool
+	requireOS    bool
+	monitor      *PinnedWASMExecutor
+	captureName  string
+	linux        *linuxBackend
+	linuxPending *linuxOperation
+	lifecycleErr error
 }
 
 type processOperation struct {
@@ -57,16 +62,17 @@ type processOperation struct {
 	read   uint64
 }
 
-func inspectProcessFile(path string, expected *processFile, pin [sha256.Size]byte) ([]byte, os.FileInfo, error) {
+func inspectProcessFile(path string, expected *processFile, pin [sha256.Size]byte, system ...bool) ([]byte, os.FileInfo, error) {
+	systemRoot := len(system) == 1 && system[0] || expected != nil && expected.systemRoot
 	info, err := os.Lstat(path)
 	if err != nil {
 		return nil, nil, fmt.Errorf("%w: fixed worker unavailable", ErrInvalid)
 	}
 	if !info.Mode().IsRegular() || info.Mode().Perm()&0022 != 0 || info.Mode().Perm()&0111 == 0 ||
-		info.Mode()&(os.ModeSetuid|os.ModeSetgid) != 0 || info.Size() <= 0 || info.Size() > processCodeLimit || !processCurrentOwner(info) {
+		info.Mode()&(os.ModeSetuid|os.ModeSetgid) != 0 || info.Size() <= 0 || info.Size() > processCodeLimit || (!systemRoot && !processCurrentOwner(info) || systemRoot && !processSystemOwner(info)) {
 		return nil, nil, fmt.Errorf("%w: unsafe fixed worker identity", ErrInvalid)
 	}
-	if expected != nil && (!os.SameFile(info, expected.info) || info.Mode() != expected.info.Mode() ||
+	if expected != nil && expected.info != nil && (!os.SameFile(info, expected.info) || info.Mode() != expected.info.Mode() ||
 		info.Size() != expected.info.Size() || !info.ModTime().Equal(expected.info.ModTime())) {
 		return nil, nil, fmt.Errorf("%w: fixed worker identity changed", ErrInvalid)
 	}
@@ -104,7 +110,13 @@ func NewPinnedWASMExecutor(path, independentSHA256 string) (result *PinnedWASMEx
 }
 
 func capturePinnedProcess(path, independentSHA256, name string) (result *PinnedWASMExecutor, err error) {
-	if (name != processWorkerName && name != processMonitorName) || !filepath.IsAbs(path) || filepath.Clean(path) != path || filepath.Base(path) != name ||
+	return capturePinnedExecutable(path, independentSHA256, name, false)
+}
+func captureSystemSandbox(pin string) (*PinnedWASMExecutor, error) {
+	return capturePinnedExecutable("/usr/bin/bwrap", pin, processSandboxName, true)
+}
+func capturePinnedExecutable(path, independentSHA256, name string, systemRoot bool) (result *PinnedWASMExecutor, err error) {
+	if (name != processWorkerName && name != processMonitorName && !(systemRoot && name == processSandboxName && path == "/usr/bin/bwrap")) || !filepath.IsAbs(path) || filepath.Clean(path) != path || filepath.Base(path) != name ||
 		len(independentSHA256) != sha256.Size*2 || strings.ToLower(independentSHA256) != independentSHA256 {
 		return nil, ErrInvalid
 	}
@@ -118,7 +130,7 @@ func capturePinnedProcess(path, independentSHA256, name string) (result *PinnedW
 	}
 	var pin [sha256.Size]byte
 	copy(pin[:], decoded)
-	raw, info, err := inspectProcessFile(path, nil, pin)
+	raw, info, err := inspectProcessFile(path, nil, pin, systemRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +183,7 @@ func capturePinnedProcess(path, independentSHA256, name string) (result *PinnedW
 	if err != nil {
 		return nil, err
 	}
-	source := processFile{path: path, info: info, pin: pin}
+	source := processFile{path: path, info: info, pin: pin, systemRoot: systemRoot}
 	if _, _, err = inspectProcessFile(path, &source, pin); err != nil {
 		return nil, err
 	}
@@ -251,14 +263,14 @@ func processLimits(input int, limits Limits) (cpu, memory, millis uint64, err er
 	}
 	cpu, e1 := strictUint(limits.CPUMilli)
 	memory, e2 := strictUint(limits.MemoryBytes)
-	storage, e3 := strictUint(limits.StorageBytes)
+	_, e3 := strictUint(limits.StorageBytes)
 	egress, e4 := strictUint(limits.EgressBytes)
 	millis, e5 := strictUint(limits.DurationMillis)
 	if e1 != nil || e2 != nil || e3 != nil || e4 != nil || e5 != nil {
 		return 0, 0, 0, ErrInvalid
 	}
 	if input <= 0 || input > HistogramMaxInputBytes || cpu == 0 || cpu > 1000 || memory < HistogramMemoryBytes ||
-		memory > MaxMemoryBytes || millis == 0 || millis > MaxDurationMillis || storage != 0 || egress != 0 {
+		memory > MaxMemoryBytes || millis == 0 || millis > MaxDurationMillis || !validScratch(PublicBlockHistogramKind, limits.StorageBytes) || egress != 0 {
 		return 0, 0, 0, ErrLimit
 	}
 	return cpu, memory, millis, nil
@@ -312,6 +324,9 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 	if err = ctx.Err(); err != nil {
 		return nil, usage, err
 	}
+	if e.linux == nil && limits.StorageBytes != "0" {
+		return nil, usage, ErrUnsupported
+	}
 	opCtx, cancel := context.WithTimeout(ctx, time.Duration(millis)*time.Millisecond)
 	defer cancel()
 	e.mu.Lock()
@@ -351,7 +366,19 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 	command.Env = []string{"GOMAXPROCS=1", "GOMEMLIMIT=" + strconv.FormatUint(memory, 10) + "B", "LC_ALL=C"}
 	command.Stdin, command.Stdout, command.Stderr = stdin, stdout, stderr
 	var limitPipe *processLimitPipe
-	if e.requireOS {
+	var linuxOp *linuxOperation
+	if e.linux != nil {
+		linuxOp, err = e.linux.prepare(limits)
+		if err != nil {
+			return nil, usage, err
+		}
+		defer func() {
+			if linuxOp != nil {
+				_ = linuxOp.cleanup()
+			}
+		}()
+	}
+	if e.requireOS || linuxOp != nil {
 		limitPipe, err = newProcessLimitPipe()
 		if err != nil {
 			return nil, usage, err
@@ -360,11 +387,20 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 		command.ExtraFiles = []*os.File{limitPipe.write}
 		command.Env = append(command.Env, "YNX_NETWORK_OS_LIMITS=1", "YNX_NETWORK_PARENT_PID="+strconv.Itoa(os.Getpid()), "YNX_NETWORK_LIMITS_CHALLENGE="+limitPipe.challenge)
 		command.Stdin = gatedProcessInput{ctx: opCtx, ready: limitPipe.ready, input: stdin}
+		if linuxOp != nil {
+			if err = linuxOp.configure(command, limitPipe, e.capture.path); err != nil {
+				return nil, usage, err
+			}
+		}
 	}
 	var killed atomic.Bool
 	command.Cancel = func() error {
+		var groupErr error
+		if linuxOp != nil {
+			groupErr = linuxOp.kill()
+		}
 		err := command.Process.Kill()
-		if err == nil {
+		if err == nil || linuxOp != nil && groupErr == nil {
 			killed.Store(true)
 		}
 		return err
@@ -388,8 +424,11 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 		if limitPipe != nil {
 			_ = limitPipe.write.Close()
 			controls, limitErr = limitPipe.verify(opCtx, cpu, millis)
-			if limitErr == nil {
+			if limitErr == nil && linuxOp == nil {
 				monitor, limitErr = e.startMonitor(opCtx, command.Process.Pid, cpu, millis, limitPipe.challenge, workerDone, cancel)
+			}
+			if limitErr == nil && linuxOp != nil {
+				limitErr = linuxOp.verify(controls)
 			}
 			if limitErr == nil {
 				close(limitPipe.ready)
@@ -417,8 +456,34 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 			limitErr = ErrOSLimits
 		}
 	}
+	if linuxOp != nil {
+		group, gerr := linuxOp.finish()
+		if usage.Process != nil {
+			usage.Process.Group = group
+		}
+		if group != nil && (group.OOMKills > 0 || group.PidsDenied > 0) && limitErr == nil {
+			limitErr = ErrLimit
+		}
+		if gerr == nil {
+			gerr = linuxOp.cleanup()
+		}
+		if gerr != nil {
+			limitErr = errors.Join(ErrOSLimits, gerr)
+			e.mu.Lock()
+			e.stopped = true
+			e.lifecycleErr = limitErr
+			e.linuxPending = linuxOp
+			e.mu.Unlock()
+		}
+		linuxOp = nil
+	}
 	usage.BytesRead = stdin.read
 	usage.WallMicros = uint64(time.Since(started).Microseconds())
+	if e.linux != nil {
+		if err := e.linux.checkPins(); err != nil {
+			return nil, usage, err
+		}
+	}
 	if e.monitor != nil {
 		if err := e.monitor.checkPins(); err != nil {
 			return nil, usage, err
@@ -493,7 +558,10 @@ func (e *PinnedWASMExecutor) Stop(ctx context.Context) error {
 			return ctx.Err()
 		}
 	}
-	return nil
+	e.mu.Lock()
+	err := e.lifecycleErr
+	e.mu.Unlock()
+	return err
 }
 
 // Close releases only this constructor's private captured executable after no
@@ -509,6 +577,12 @@ func (e *PinnedWASMExecutor) Close() error {
 	defer e.mu.Unlock()
 	if e.closed {
 		return nil
+	}
+	if e.linux != nil {
+		if err := e.linux.close(); err != nil {
+			return err
+		}
+		e.linux = nil
 	}
 	if e.monitor != nil {
 		if err := e.monitor.Close(); err != nil {

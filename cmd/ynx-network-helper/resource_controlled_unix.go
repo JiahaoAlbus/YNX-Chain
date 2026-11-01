@@ -24,6 +24,7 @@ import (
 // packet, HTTP ticket, job argument or runtime executable selector.
 var resourceWorkerSHA256 string
 var resourceMonitorSHA256 string
+var resourceSandboxSHA256 string
 
 type controlledWASMPacket struct {
 	Version           string               `json:"version"`
@@ -136,6 +137,8 @@ func runControlledWASM(path, dataDir, issuerPin, consentPin string) error {
 	var executor *contribution.PinnedWASMExecutor
 	if runtime.GOOS == "darwin" {
 		executor, err = contribution.NewOSLimitedWASMExecutor(workerPath, resourceWorkerSHA256, filepath.Join(filepath.Dir(executable), "ynx-network-resource-monitor"), resourceMonitorSHA256)
+	} else if runtime.GOOS == "linux" {
+		executor, err = contribution.NewLinuxContainedWASMExecutor(workerPath, resourceWorkerSHA256, resourceSandboxSHA256)
 	} else {
 		executor, err = contribution.NewPinnedWASMExecutor(workerPath, resourceWorkerSHA256)
 	}
