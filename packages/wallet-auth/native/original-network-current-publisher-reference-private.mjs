@@ -56,7 +56,7 @@ export async function acquireOriginalNetworkResourceCurrentPublisherReferenceV1(
  if(arguments.length)fail('NETWORK_PUBLISHER_ZERO_INPUT');
  if(originalNetworkCurrentPublisherRows.length!==1)fail('NETWORK_CURRENT_NO_ROOT_SELECTION');
  const row=originalNetworkCurrentPublisherRows[0];
- const native=createRequire(import.meta.url)('../../../apps/wallet-desktop/native/original-source-current-dirfd.node');
+ const native=createRequire(import.meta.url)('../../../apps/wallet-desktop/native/original-auth-identity.node');
  if(typeof native.acquireOriginalNetworkCurrentPublisherCaptureV1!=='function')fail('NETWORK_PUBLISHER_NATIVE_CAPTURE_NOT_SUPPLIED');
  let reference,s;
  try{
