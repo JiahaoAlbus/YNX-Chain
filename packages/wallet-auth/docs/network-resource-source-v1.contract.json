@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "purpose": "network-resource-source-v1",
+  "selectionKey": "networkResourceV1",
+  "operations": [
+    "resource.public-block-histogram"
+  ],
+  "kind": "public_block_histogram",
+  "workFields": [
+    "job",
+    "kind",
+    "issuer",
+    "input",
+    "limits",
+    "expiresAt"
+  ],
+  "consentFields": [
+    "principal",
+    "job",
+    "manifest",
+    "limits",
+    "expiresAt",
+    "nonce",
+    "allow"
+  ],
+  "scopeFields": [
+    "version",
+    "protectedResourceRef",
+    "issuer",
+    "manifestOriginal",
+    "consentOriginal",
+    "request"
+  ],
+  "signature": {
+    "codec": "existing encodeFields/E5",
+    "fields": [
+      "domainUTF8",
+      "u32BE(1)",
+      "networkRaw32",
+      "canonicalSignerOwnerUTF8",
+      "keyEpochUTF8",
+      "issuedHeightUTF8",
+      "canonicalBodyUTF8"
+    ],
+    "manifest": {
+      "domain": "YNX-NETWORK-RESOURCE-MANIFEST/v1",
+      "purpose": "NETWORK-RESOURCE-MANIFEST"
+    },
+    "consent": {
+      "domain": "YNX-NETWORK-RESOURCE-CONSENT/v1",
+      "purpose": "NETWORK-RESOURCE-CONSENT"
+    },
+    "member": "YNX-BATCH/v0.1 dual ML-DSA-87 AND SLH-DSA-SHA2-256f; N1 index0 emptyPaths",
+    "expectedKeys": "independent protected issuer/principal Source -> registered branded snapshot; never from member or Work",
+    "RootApproval": false
+  },
+  "privateABIStatus": "REQUIRED_CONTRACT_NOT_IMPLEMENTED",
+  "productionDisabled": true,
+  "rewards": "NOT_AUTHORIZED",
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "NativeAdmission": false
+}

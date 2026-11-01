@@ -464,6 +464,12 @@
       "browser": null,
       "node": "./native/original-wallet-product-source-contract.mjs",
       "default": null
+    },
+    "./network-resource-source-data": {
+      "types": "./src/network-resource-source-v1.d.ts",
+      "browser": null,
+      "node": "./src/network-resource-source-v1.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -715,7 +721,15 @@
     "native/original-browser-selected-pages-source-contract.mjs",
     "native/original-browser-selected-pages-source-contract.d.mts",
     "native/original-wallet-product-source-contract.mjs",
-    "native/original-wallet-product-source-contract.d.mts"
+    "native/original-wallet-product-source-contract.d.mts",
+    "native/original-network-resource-source-contract.mjs",
+    "native/original-network-resource-source-contract.d.mts",
+    "native/original-network-resource-signature-v1.mjs",
+    "native/original-network-resource-signature-v1.d.mts",
+    "src/network-resource-source-v1.js",
+    "src/network-resource-source-v1.d.ts",
+    "docs/network-resource-source-v1.md",
+    "docs/network-resource-source-v1.contract.json"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
