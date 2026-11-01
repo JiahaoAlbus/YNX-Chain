@@ -107,7 +107,7 @@ class HeightVectorControls(unittest.TestCase):
             a,b=Path(directory).resolve()/"a",Path(directory).resolve()/"b";fixture(a);fixture(b)
             result=h.compare(a,b)
             self.assertEqual(result["recordsCompared"],41);self.assertTrue(result["perHeightFunctionalEqual"])
-            self.assertFalse(result["optimizedPressureAuthorized"]);self.assertFalse(result["proofMathReverifiedHere"]);self.assertFalse(result["normalNetworkTransportPairQualified"]);self.assertTrue(result["completeResultsAndStateBytesEqual"])
+            self.assertFalse(result["optimizedPressureAuthorized"]);self.assertFalse(result["proofMathReverifiedHere"]);self.assertFalse(result["normalNetworkTransportPairQualified"]);self.assertTrue(result["completeResultsAndStateBytesEqual"]);self.assertFalse(result["commonOriginalFinalizeTrajectoryQualified"]);self.assertEqual(result["finalizeInputMode"],"legacy-height-derived-source-fixture")
 
     def test_missing_intermediate_height_is_not_hidden_by_equal_last_state(self):
         with tempfile.TemporaryDirectory() as directory:
