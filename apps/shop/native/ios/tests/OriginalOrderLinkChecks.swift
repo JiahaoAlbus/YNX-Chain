@@ -47,24 +47,28 @@ final class LinkHTTP:URLProtocol,@unchecked Sendable {
   model.walletCallback(URL(string:link("old",account))!);try await wait{requests.count==3};model.walletCallback(URL(string:link(id,account))!);try await wait{requests.count==4};requests[3].respond(body);try await wait{model.linkedOriginalOrder != nil};requests[2].respond(body);try await Task.sleep(for:.milliseconds(20));try check(model.linkedOriginalOrder?.orderID==id,"late previous link cannot replace current original target")
   model.walletCallback(URL(string:link(id,account))!);try await wait{requests.count==5};authority.current=ShopSession(account:other,token:String(repeating:"b",count:43),expiresAt:ISO8601DateFormatter().string(from:Date().addingTimeInterval(3600)),nativeGeneration:2);api.onSessionChanged?();requests[4].respond(body);try await Task.sleep(for:.milliseconds(20));try check(model.originalOrderLink==nil && model.linkedOriginalOrder==nil && rows==saved,"account replacement drops late private read while original UNKNOWN bytes survive")
   authority.current=ShopSession(account:account,token:String(repeating:"a",count:43),expiresAt:ISO8601DateFormatter().string(from:Date().addingTimeInterval(3600)),nativeGeneration:3);api.onSessionChanged?();authority.beforeProof={model.closeOriginalOrderLink()};model.walletCallback(URL(string:link(id,account))!);try await Task.sleep(for:.milliseconds(30));try check(requests.count==5 && model.originalOrderLink==nil,"dismissal during original proof prevents HTTP dispatch")
-  authority.beforeProof=nil;model.signOut();model.walletCallback(URL(string:link(id,account))!);try await Task.sleep(for:.milliseconds(20));try check(requests.count==5 && model.originalOrderLink==nil,"signed-out link cannot establish session or fetch order")
+  authority.beforeProof=nil;model.signOut();model.walletCallback(URL(string:link(id,account))!);try await Task.sleep(for:.milliseconds(20));try check(requests.count==5 && model.originalOrderLink?.orderID==id && model.linkedOriginalOrder==nil,"signed-out link shows only reference and normal connection action without fetching order")
+  model.signIn();try await Task.sleep(for:.milliseconds(20));model.suspendOriginalOrderLink();model.originalOrderSheetDismissed();try check(requests.count==5 && model.linkedOriginalOrder==nil,"explicit Wallet connection preserves only original navigation selector across background, never private order data")
+  authority.current=ShopSession(account:account,token:String(repeating:"d",count:43),expiresAt:ISO8601DateFormatter().string(from:Date().addingTimeInterval(3600)),nativeGeneration:4);api.onSessionChanged?()
+  try await wait{requests.count==6};requests[5].respond(body);try await wait{model.linkedOriginalOrder != nil};try check(model.linkedOriginalOrder?.orderID==id && rows==saved,"matching normal Native sign-in continues retained original reference with GET only")
+  model.signOut()
   let coldAuthority=LinkAuthority();coldAuthority.current=ShopSession(account:account,token:String(repeating:"c",count:43),expiresAt:ISO8601DateFormatter().string(from:Date().addingTimeInterval(3600)),nativeGeneration:4)
   let coldAPI=APIClient(base:URL(string:"https://shop.ynxweb4.com/api")!,session:http,authority:coldAuthority)
   let cold=ShopModel(api:coldAPI,queue:queue,invoiceHandoffs:journal,journey:journey)
   cold.walletCallback(URL(string:link(id,account))!)
-  try await wait{requests.count==6};requests[5].respond(body);try await wait{cold.linkedOriginalOrder != nil}
+  try await wait{requests.count==7};requests[6].respond(body);try await wait{cold.linkedOriginalOrder != nil}
   try check(cold.linkedOriginalOrder?.orderID==id && rows==saved,"cold launch queues only navigation until original Native session restore then GETs original order")
   let fullPath=URL(fileURLWithPath:ProcessInfo.processInfo.environment["YNX_SHOP_NATIVE_RECEIPT_FIXTURE"]!).deletingLastPathComponent().appendingPathComponent("native-refunded-order.json")
   var full=try JSONSerialization.jsonObject(with:Data(contentsOf:fullPath)) as! [String:Any];full["WalletBuyer"]=account
   let fullID=full["ID"] as! String
-  cold.walletCallback(URL(string:link(fullID,account))!);try await wait{requests.count==7};requests[6].respond(String(data:try JSONSerialization.data(withJSONObject:full),encoding:.utf8)!);try await wait{cold.linkedOriginalOrder != nil}
+  cold.walletCallback(URL(string:link(fullID,account))!);try await wait{requests.count==8};requests[7].respond(String(data:try JSONSerialization.data(withJSONObject:full),encoding:.utf8)!);try await wait{cold.linkedOriginalOrder != nil}
   try check(cold.linkedOriginalOrder?.status=="refunded" && cold.linkedOriginalOrder?.nativePayment?.RefundedAtoms=="100" && cold.linkedOriginalOrder?.nativePayment?.NetPaidAtoms=="0" && cold.linkedOriginalOrder?.nativePayment?.CompleteKnownOriginals==true && rows==saved,"actual full-refund backend original reads100/100/0 through Model without another payment or UNKNOWN replay")
-  let checked=Task{await cold.checkLinkedOriginalPayment()};try await wait{requests.count==8}
-  try check(requests[7].request.httpMethod=="POST" && requests[7].request.url!.path=="/api/orders/\(fullID)/confirm-payment","deliberate check uses only existing signed Shop original receipt action")
-  requests[7].respond("{}");try await wait{requests.count==9};try check(requests[8].request.httpMethod=="GET" && requests[8].request.url!.path=="/api/orders/\(fullID)","status check response cannot substitute for independent original order GET")
-  requests[8].respond(String(data:try JSONSerialization.data(withJSONObject:full),encoding:.utf8)!);await checked.value
+  let checked=Task{await cold.checkLinkedOriginalPayment()};try await wait{requests.count==9}
+  try check(requests[8].request.httpMethod=="POST" && requests[8].request.url!.path=="/api/orders/\(fullID)/confirm-payment","deliberate check uses only existing signed Shop original receipt action")
+  requests[8].respond("{}");try await wait{requests.count==10};try check(requests[9].request.httpMethod=="GET" && requests[9].request.url!.path=="/api/orders/\(fullID)","status check response cannot substitute for independent original order GET")
+  requests[9].respond(String(data:try JSONSerialization.data(withJSONObject:full),encoding:.utf8)!);await checked.value
   try check(cold.linkedOriginalOrder?.nativePayment?.NetPaidAtoms=="0" && rows==saved,"explicit check refreshes same full-refund original and preserves UNKNOWN without money dispatch")
-  coldAuthority.beforeProof={cold.closeOriginalOrderLink()};await cold.checkLinkedOriginalPayment();try check(requests.count==9 && rows==saved,"closing linked detail during status-check proof sends no confirmation and preserves original journals")
+  coldAuthority.beforeProof={cold.closeOriginalOrderLink()};await cold.checkLinkedOriginalPayment();try check(requests.count==10 && rows==saved,"closing linked detail during status-check proof sends no confirmation and preserves original journals")
   cold.signOut()
   http.invalidateAndCancel();print("Original Shop link actual Model/API checks PASS; protected Native installation and Root admission not supplied")
  }

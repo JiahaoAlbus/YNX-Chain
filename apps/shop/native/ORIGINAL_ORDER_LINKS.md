@@ -99,3 +99,11 @@ response cannot replace the displayed order. Closing the view or replacing
 account/generation before proof completion prevents dispatch/adoption. This is
 an intentional user status check, not an automatic deep-link effect or a Pay
 sign/broadcast/refund call.
+
+
+When initially signed out, only the public reference and normal connection
+control are shown. The order selector stays in memory while the user deliberately
+connects through the existing Wallet flow. Only the matching actual Native
+account can continue its authorized original GET after return; a different
+account drops the selector without fetching another account's order. No private
+queue/session or URL-supplied receipt is persisted by this navigation flow.

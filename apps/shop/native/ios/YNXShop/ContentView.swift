@@ -14,15 +14,16 @@ struct ContentView:View {
         NavigationStack{CartView().id(model.privacyRevision)}.tabItem{Label("nav_cart",systemImage:"cart")}.tag(1).badge(model.cart.count)
         NavigationStack{OrdersView()}.tabItem{Label("nav_orders",systemImage:"shippingbox")}.tag(2)
         NavigationStack{AccountView().id(model.privacyRevision)}.tabItem{Label("nav_account",systemImage:"person.crop.circle")}.tag(3)
-    }.sheet(item:$model.originalOrderLink,onDismiss:{if model.originalOrderLink==nil{model.closeOriginalOrderLink()}}){link in
+    }.sheet(item:$model.originalOrderLink,onDismiss:{model.originalOrderSheetDismissed()}){link in
         VStack(alignment:.leading,spacing:18){
             Text("nav_orders").font(.title2);Text(link.orderID).font(.caption.monospaced());Text(OriginalOrderLink.chainID).font(.caption)
-            if model.originalOrderLoading{ProgressView()}
+            if !model.signedIn{Button("wallet_sign_in"){model.signIn()}}
+            else if model.originalOrderLoading{ProgressView()}
             else if let order=model.linkedOriginalOrder{Text(LocalizedStringKey(order.status));Text("\(order.totalYNXT.formatted()) YNXT");if let refund=order.refundStatus{Text(refund).font(.caption)};NativeOrderAmounts(order:order)}
             else{Text("unavailable")}
             Text("payment_boundary").font(.caption)
             if model.linkedOriginalOrder != nil{Button("check_payment"){Task{await model.checkLinkedOriginalPayment()}}.disabled(model.originalOrderLoading)}
-            Button("retry"){Task{await model.refreshOriginalOrderLink()}}.disabled(model.originalOrderLoading)
+            if model.signedIn{Button("retry"){Task{await model.refreshOriginalOrderLink()}}.disabled(model.originalOrderLoading)}
             Button("close"){model.closeOriginalOrderLink()}
         }.padding(24).frame(minWidth:300)
     }.sheet(item:$model.invoicePresentation){presentation in VStack(alignment:.leading,spacing:18){Text("order_review").font(.title2);Text(presentation.review.original.orderID).font(.caption.monospaced());Text("\(presentation.review.original.totalYNXT.formatted()) YNXT").font(.title);Text(presentation.review.invoiceID ?? "").font(.caption.monospaced());Text("payment_boundary");Button("pay_handoff"){model.openReviewedInvoice()}.buttonStyle(.borderedProminent);Button("close"){model.cancelInvoicePresentation()}}.padding(24).frame(minWidth:300)}.onChange(of:selectedTab){model.cancelInvoicePresentation()}.onChange(of:scenePhase){if scenePhase != .active{model.cancelInvoicePresentation();if scenePhase == .background{model.suspendOriginalOrderLink()}}else{model.sceneActive()}}.font(.system(size:bodySize*textScale)).tint(Color(red:0,green:47/255,blue:167/255)).safeAreaInset(edge:.top){VStack(spacing:0){
