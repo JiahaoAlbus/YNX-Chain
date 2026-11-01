@@ -28,6 +28,8 @@ CURRENT_MIGRATION_CORE_TESTS = (
     'TestCurrentMigrationCABIPUBLICSecretPublicAliasBoundary',
 )
 
+PENDING_QUERY_CORE_TESTS = ('TestPendingOriginalQueryPUBLICExactFrameAndBodyDigest', 'TestPendingOriginalQueryPUBLICRejectsSubstitutionAndSessionFields', 'TestPendingOriginalQueryCABIPUBLICPreflightBeforePrivateRead', 'TestPendingOriginalQueryCABIPUBLICActualANDAndTypedBridge', 'TestPendingOriginalQueryCABIPUBLICSecretPublicAliasBoundary')
+
 
 class DeviceCreatorSupplyControls(unittest.TestCase):
     def setUp(self):
@@ -60,22 +62,30 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
         for name in ('actualCABIExecuted', 'nativeHostCoreTestsPassed', 'independentGoDualANDVerified', 'typedN1Inspected', 'targetCompiled',
                      'targetCallerLinked', 'actualTransactionCABIExecuted', 'transactionIndependentGoDualANDVerified', 'actualInitialAccountCABIExecuted',
                      'initialAccountIndependentGoDualANDVerified', 'actualDeviceHTTPCABIExecuted', 'deviceHTTPIndependentGoDualANDVerified',
-                     'accountMigrationExportedBridgeGoVerified', 'accountMigrationAuthorizationExportedBridgeGoVerified'):
+                     'accountMigrationExportedBridgeGoVerified', 'accountMigrationAuthorizationExportedBridgeGoVerified',
+                     'pendingOriginalQueryExportedBridgeGoVerified'):
             parent[name] = True
         for name in ('crossCompiled', 'privateMaterialIncluded', 'publisherAuthorized', 'nativeRootAuthorized', 'mainCustodyVerified',
                      'productInstalled', 'publicDeployment', 'pqActivation', 'transactionAccountAuthorized', 'initialAccountAuthorized',
                      'deviceHTTPSourceQualified', 'deviceHTTPSessionAuthorized', 'accountMigrationExternalCInterop', 'accountMigrationAccountAuthorized',
-                     'accountMigrationAuthorizationExternalCInterop', 'accountMigrationAuthorizationAccountAuthorized'):
+                     'accountMigrationAuthorizationExternalCInterop', 'accountMigrationAuthorizationAccountAuthorized',
+                     'pendingOriginalQueryExternalCInterop', 'pendingOriginalQueryAccountAuthorized',
+                     'pendingOriginalQuerySourceQualified', 'pendingOriginalQuerySessionAuthorized'):
             parent[name] = False
         parent.update(abi='YNXArtifactPublicationSignV1', abiVersion=1, transactionABI='YNXTransactionBatchSignV1', transactionABIVersion=1,
                       initialAccountABI='YNXAccountInitialSignV1', initialAccountABIVersion=1, deviceHTTPABI='YNXProductSessionHTTPProofSignV4', deviceHTTPABIVersion=4,
                       accountMigrationPossessionABI='YNXAccountMigrationPossessionSignV1', accountMigrationPossessionABIVersion=1,
                       accountMigrationCoreTests=list(DATA['MIGRATION_CORE_TESTS']),
                       accountMigrationAuthorizationABI='YNXAccountMigrationAuthorizationSignV1', accountMigrationAuthorizationABIVersion=1,
-                      accountMigrationAuthorizationCoreTests=list(CURRENT_MIGRATION_CORE_TESTS))
+                      accountMigrationAuthorizationCoreTests=list(CURRENT_MIGRATION_CORE_TESTS),
+                      pendingOriginalQueryABI='YNXProductPairPendingOriginalQuerySignV1', pendingOriginalQueryABIVersion=1,
+                      pendingOriginalQueryCoreTests=list(PENDING_QUERY_CORE_TESTS),
+                      pendingOriginalQueryPurpose='product-device-pending-original-query-v1',
+                      pendingOriginalQueryMethod='POST', pendingOriginalQueryPath='/v4/product-pairs/original-query')
         for field, name in (('header', 'ynx_artifact_release.h'), ('transactionHeader', 'tx_batch.h'),
                             ('initialAccountHeader', 'account_initial.h'), ('accountMigrationHeader', 'account_migration.h'),
                             ('accountMigrationAuthorizationHeader', 'account_migration_authorization.h'),
+                            ('pendingOriginalQueryHeader', 'product_pair_pending_original_query.h'),
                             ('deviceHTTPHeader', 'product_session_http.h')):
             parent[field] = pins[name]
         for field, prefix in (('publicEvidence', ''), ('transactionPublicEvidence', 'TX-'),
@@ -253,9 +263,70 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
             with self.subTest(field=field, value=value), self.assertRaises(RuntimeError):
                 DATA['validate_parent'](*changed)
 
+    def test_pending_query_fields_bind_exact_abi_tests_and_no_external_c_or_authority(self):
+        args = self.parent()
+        DATA['validate_parent'](*args)
+        fields = ('pendingOriginalQueryABI', 'pendingOriginalQueryABIVersion',
+                  'pendingOriginalQueryHeader', 'pendingOriginalQueryCoreTests',
+                  'pendingOriginalQueryExportedBridgeGoVerified',
+                  'pendingOriginalQueryExternalCInterop', 'pendingOriginalQueryAccountAuthorized',
+                  'pendingOriginalQuerySourceQualified', 'pendingOriginalQuerySessionAuthorized',
+                  'pendingOriginalQueryPurpose', 'pendingOriginalQueryMethod', 'pendingOriginalQueryPath')
+        for field in fields:
+            changed = copy.deepcopy(args)
+            del changed[0][field]
+            with self.subTest(missing=field), self.assertRaises(RuntimeError):
+                DATA['validate_parent'](*changed)
+        for field, values in (
+            ('pendingOriginalQueryABI', ('YNXAccountMigrationPossessionSignV1', 'YNXTransactionBatchSignV1', '', None, 1)),
+            ('pendingOriginalQueryABIVersion', (True, '1', 1.0, 0, 2, None)),
+            ('pendingOriginalQueryHeader', ({}, None, [], dict(bytes=1, sha256='0' * 64), args[0]['accountMigrationHeader'])),
+            ('pendingOriginalQueryCoreTests', (None, {}, [], list(PENDING_QUERY_CORE_TESTS)[:-1],
+                                                       list(reversed(PENDING_QUERY_CORE_TESTS)),
+                                                       list(PENDING_QUERY_CORE_TESTS) + [PENDING_QUERY_CORE_TESTS[0]],
+                                                       list(DATA['MIGRATION_CORE_TESTS']))),
+            ('pendingOriginalQueryExportedBridgeGoVerified', (False, 1, 'true', None)),
+            ('pendingOriginalQueryExternalCInterop', (True, 0, 'false', None)),
+            ('pendingOriginalQueryAccountAuthorized', (True, 0, 'false', None)),
+            ('pendingOriginalQuerySourceQualified', (True, 0, 'false', None)),
+            ('pendingOriginalQuerySessionAuthorized', (True, 0, 'false', None)),
+            ('pendingOriginalQueryPurpose', ('product-session-device-v4', '', None)),
+            ('pendingOriginalQueryMethod', ('GET', '', None)),
+            ('pendingOriginalQueryPath', ('/v4/product-pairs', '', None)),
+        ):
+            for value in values:
+                changed = copy.deepcopy(args)
+                changed[0][field] = value
+                with self.subTest(field=field, value=value), self.assertRaises(RuntimeError):
+                    DATA['validate_parent'](*changed)
+
+    def test_pending_query_header_missing_changed_or_wrong_pin_type_refuses(self):
+        args = self.parent()
+        header = self.root / 'product_pair_pending_original_query.h'
+        self.write(header, b'synthetic public CURRENT header bytes only\n')
+        actual = DATA['pin'](header, private=True)
+        args[0]['pendingOriginalQueryHeader'] = actual
+        args[-1][header.name] = actual
+        DATA['validate_parent'](*args)
+        changed = copy.deepcopy(args)
+        del changed[-1][header.name]
+        with self.assertRaises(RuntimeError):
+            DATA['validate_parent'](*changed)
+        header.write_bytes(b'changed public CURRENT header bytes\n')
+        changed = copy.deepcopy(args)
+        changed[-1][header.name] = DATA['pin'](header, private=True)
+        with self.assertRaises(RuntimeError):
+            DATA['validate_parent'](*changed)
+        for field, value in (('bytes', str(actual['bytes'])), ('bytes', True), ('bytes', actual['bytes'] + 1),
+                             ('sha256', actual['sha256'].upper()), ('sha256', 'e' * 64), ('unexpected', False)):
+            changed = copy.deepcopy(args)
+            changed[0]['pendingOriginalQueryHeader'] = dict(actual, **{field: value})
+            with self.subTest(field=field, value=value), self.assertRaises(RuntimeError):
+                DATA['validate_parent'](*changed)
+
     def test_actual_core_tests_and_complete_suite_cannot_be_skipped(self):
         package = 'github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-artifact-release-cabi'
-        rows = [dict(Package=package, Test=name, Action='pass') for name in DATA['CORE_TESTS']] + [dict(Package=package, Action='pass')]
+        rows = [dict(Package=DATA['CORE_TEST_PACKAGES'][name], Test=name, Action='pass') for name in DATA['CORE_TESTS']] + [dict(Package=value, Action='pass') for value in sorted(set(DATA['CORE_TEST_PACKAGES'].values()))]
         encode = lambda value: b'\n'.join(json.dumps(row).encode() for row in value) + b'\n'
         self.assertEqual(DATA['validate_core_tests'](encode(rows)), list(DATA['CORE_TESTS']))
         self.assertEqual(len(DATA['MIGRATION_CORE_TESTS']), 6)
@@ -266,7 +337,7 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
             'TestProductDeviceKeypairV4FullPairAndDERCorruptionRejected',
             'TestProductDeviceKeypairV4PreTransferFailureClearsAndPreservesFirstCause',
             'TestProductDeviceKeypairV4LatePrivateOutcomeStaysUnknown',
-        ) + DATA['MIGRATION_CORE_TESTS'] + CURRENT_MIGRATION_CORE_TESTS)
+        ) + DATA['MIGRATION_CORE_TESTS'] + CURRENT_MIGRATION_CORE_TESTS + PENDING_QUERY_CORE_TESTS)
         for index, name in enumerate(DATA['CORE_TESTS']):
             for action in ('missing', 'fail', 'skip', 'duplicate', 'foreign-package'):
                 bad = copy.deepcopy(rows)
@@ -391,7 +462,11 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                      'internal/ynxauth/policy.go', 'cmd/ynx-artifact-release-cabi/account_migration_authorization.h',
                      'cmd/ynx-artifact-release-cabi/migration_authorization_core.go',
                      'cmd/ynx-artifact-release-cabi/migration_authorization_bridge.go',
-                     'cmd/ynx-artifact-release-cabi/migration_authorization_core_test.go', 'internal/ynxauth/migration_signing.go')
+                     'cmd/ynx-artifact-release-cabi/migration_authorization_core_test.go', 'internal/ynxauth/migration_signing.go',
+                     'cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h',
+                     'cmd/ynx-artifact-release-cabi/pending_query_core.go', 'cmd/ynx-artifact-release-cabi/pending_query_bridge.go',
+                     'cmd/ynx-artifact-release-cabi/pending_query_core_test.go',
+                     'internal/ynxbatch/product_pair_pending_original_query.go', 'internal/ynxbatch/product_pair_pending_original_query_test.go')
         self.assertTrue(set(migration) <= set(DATA['REQUIRED_SOURCES']))
         for name in ('cmd/ynx-artifact-release-cabi/product_device_keypair_v4_bridge.go', 'internal/ynxbatch/key_material.go', 'go.mod') + migration:
             changed = copy.deepcopy(parent)
@@ -422,8 +497,8 @@ class DeviceCreatorSupplyControls(unittest.TestCase):
                     'PUBLIC-RECEIPT.json', 'PUBLIC-INTEROP.json', 'TX-PUBLIC-RECEIPT.json', 'TX-PUBLIC-INTEROP.json',
                     'INITIAL-PUBLIC-RECEIPT.json', 'INITIAL-PUBLIC-INTEROP.json', 'DEVICE-HTTP-PUBLIC-RECEIPT.json',
                     'DEVICE-HTTP-PUBLIC-INTEROP.json', 'SOURCE.json'}
-        self.assertEqual(len(DATA['PARENT_NAMES']), 16)
-        self.assertEqual(set(DATA['PARENT_NAMES']), original | {'account_migration.h', 'account_migration_authorization.h'})
+        self.assertEqual(len(DATA['PARENT_NAMES']), 17)
+        self.assertEqual(set(DATA['PARENT_NAMES']), original | {'account_migration.h', 'account_migration_authorization.h', 'product_pair_pending_original_query.h'})
         self.assertEqual(len(DATA['MATERIAL_NAMES']), 6)
         self.assertEqual(set(DATA['DELIVERY_NAMES']), {'libynx_artifact_release.a', 'product_device_keypair_v4.h', 'PUBLIC-RESULT.json', 'ORIGINAL-ARCHIVE-SOURCE.json', 'SOURCE.json'})
         for forbidden in ('-buildmode=c-archive', 'shell=True', 'os.environ.update', 'shutil.rmtree', '.unlink('):

@@ -650,7 +650,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git diff --exit-code
-          if ! go test -json -p 1 ./cmd/ynx-artifact-release-cabi -count=1 > "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"; then
+          if ! go test -json -p 1 ./internal/ynxbatch ./cmd/ynx-artifact-release-cabi -count=1 > "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"; then
             cat "$RUNNER_TEMP/ynx-native-cabi-core-tests.jsonl"
             exit 1
           fi
@@ -682,6 +682,13 @@ jobs:
               if terminal != ['pass']:
                   raise RuntimeError('current migration authorization core did not execute and pass: ' + name)
           print('YNX_CURRENT_MIGRATION_AUTHORIZATION_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=current_migration, suitePassed=True, exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False), sort_keys=True))
+          pending_query = ['TestPendingOriginalQueryPUBLICExactFrameAndBodyDigest', 'TestPendingOriginalQueryPUBLICRejectsSubstitutionAndSessionFields', 'TestPendingOriginalQueryCABIPUBLICPreflightBeforePrivateRead', 'TestPendingOriginalQueryCABIPUBLICActualANDAndTypedBridge', 'TestPendingOriginalQueryCABIPUBLICSecretPublicAliasBoundary']
+          for name in pending_query:
+              package = 'github.com/JiahaoAlbus/YNX-Chain/' + ('internal/ynxbatch' if name in pending_query[:2] else 'cmd/ynx-artifact-release-cabi')
+              terminal = [row['Action'] for row in rows if row.get('Package') == package and row.get('Test') == name and row['Action'] in ('pass', 'fail', 'skip')]
+              if terminal != ['pass']:
+                  raise RuntimeError('pending original query core did not execute and pass: ' + name)
+          print('YNX_PENDING_ORIGINAL_QUERY_CORE_TESTS ' + json.dumps(dict(sourceCommit=os.environ['GITHUB_SHA'], matrixRunner=os.environ['YNX_NATIVE_MATRIX_RUNNER'], requiredPassed=pending_query, suitePassed=True, exportedBridgeGoVerified=True, externalCInterop=False, accountAuthorized=False, sourceQualified=False, sessionAuthorized=False), sort_keys=True))
           PY
       - name: Qualify device creator and invoice execution from the original full core suite
         run: |
@@ -842,6 +849,7 @@ jobs:
               shutil.copyfile('cmd/ynx-artifact-release-cabi/account_initial.h', out / 'account_initial.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/account_migration.h', out / 'account_migration.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/account_migration_authorization.h', out / 'account_migration_authorization.h')
+              shutil.copyfile('cmd/ynx-artifact-release-cabi/product_pair_pending_original_query.h', out / 'product_pair_pending_original_query.h')
               shutil.copyfile('cmd/ynx-artifact-release-cabi/product_session_http.h', out / 'product_session_http.h')
               for name in public_names:
                   shutil.copyfile(case / 'output' / name, out / name)
@@ -880,6 +888,13 @@ jobs:
                   accountMigrationAuthorizationCoreTests=['TestCurrentMigrationCABIPUBLICDualAuthorizationAndIndependentPossession', 'TestCurrentMigrationCABIPUBLICPreflightBeforePrivateRead', 'TestCurrentMigrationCABIPUBLICOwnedPlanCleanupAndKeySeparation', 'TestCurrentMigrationCABIPUBLICActualCGOBridge', 'TestCurrentMigrationCABIPUBLICSecretPublicAliasBoundary'],
                   accountMigrationAuthorizationExportedBridgeGoVerified=True, accountMigrationAuthorizationExternalCInterop=False,
                   accountMigrationAuthorizationAccountAuthorized=False,
+                  pendingOriginalQueryABI='YNXProductPairPendingOriginalQuerySignV1', pendingOriginalQueryABIVersion=1,
+                  pendingOriginalQueryHeader=pin(out / 'product_pair_pending_original_query.h'),
+                  pendingOriginalQueryCoreTests=['TestPendingOriginalQueryPUBLICExactFrameAndBodyDigest', 'TestPendingOriginalQueryPUBLICRejectsSubstitutionAndSessionFields', 'TestPendingOriginalQueryCABIPUBLICPreflightBeforePrivateRead', 'TestPendingOriginalQueryCABIPUBLICActualANDAndTypedBridge', 'TestPendingOriginalQueryCABIPUBLICSecretPublicAliasBoundary'],
+                  pendingOriginalQueryExportedBridgeGoVerified=True, pendingOriginalQueryExternalCInterop=False,
+                  pendingOriginalQueryAccountAuthorized=False, pendingOriginalQuerySourceQualified=False, pendingOriginalQuerySessionAuthorized=False,
+                  pendingOriginalQueryPurpose='product-device-pending-original-query-v1',
+                  pendingOriginalQueryMethod='POST', pendingOriginalQueryPath='/v4/product-pairs/original-query',
                   deviceHTTPABI='YNXProductSessionHTTPProofSignV4', deviceHTTPABIVersion=4,
                   deviceHTTPHeader=pin(out / 'product_session_http.h'), deviceHTTPPublicEvidence=device_http_public_pins,
                   actualDeviceHTTPCABIExecuted=executed, deviceHTTPIndependentGoDualANDVerified=executed,
@@ -1160,6 +1175,7 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/account_initial.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/account_migration.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/account_migration_authorization.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/product_pair_pending_original_query.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/product_session_http.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/SOURCE.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/native-host/PUBLIC-RECEIPT.json
@@ -1184,6 +1200,7 @@ jobs:
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/account_initial.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/account_migration.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/account_migration_authorization.h
+            ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/product_pair_pending_original_query.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/product_session_http.h
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/SOURCE.json
             ${{ runner.temp }}/ynx-artifact-release-cabi/delivery/darwin-arm64/TX-PUBLIC-RECEIPT.json
