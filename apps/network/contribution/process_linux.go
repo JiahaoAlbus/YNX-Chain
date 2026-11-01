@@ -335,7 +335,10 @@ func (b *linuxBackend) prepare(limits Limits) (*linuxOperation, error) {
 	return op, nil
 }
 func (o *linuxOperation) configure(cmd *exec.Cmd, pipe *processLimitPipe, worker string) error {
-	args := []string{"--unshare-all", "--disable-userns", "--die-with-parent", "--new-session", "--cap-drop", "ALL", "--clearenv", "--setenv", "GOMAXPROCS", "1", "--setenv", "GOMEMLIMIT", strconv.FormatUint(o.limits.MemoryMax, 10) + "B", "--setenv", "LC_ALL", "C", "--setenv", "YNX_NETWORK_OS_LIMITS", "1", "--setenv", "YNX_NETWORK_LIMITS_CHALLENGE", pipe.challenge, "--setenv", "YNX_NETWORK_SCRATCH_BYTES", strconv.FormatUint(o.limits.ScratchBytes, 10)}
+	// Bubblewrap0.9 --unshare-all uses the user/cgroup TRY variants. Its
+	// --disable-userns preflight instead requires explicit --unshare-user.
+	// Require every namespace here: missing kernel support must fail closed.
+	args := []string{"--unshare-user", "--unshare-pid", "--unshare-net", "--unshare-ipc", "--unshare-uts", "--unshare-cgroup", "--disable-userns", "--die-with-parent", "--new-session", "--cap-drop", "ALL", "--clearenv", "--setenv", "GOMAXPROCS", "1", "--setenv", "GOMEMLIMIT", strconv.FormatUint(o.limits.MemoryMax, 10) + "B", "--setenv", "LC_ALL", "C", "--setenv", "YNX_NETWORK_OS_LIMITS", "1", "--setenv", "YNX_NETWORK_LIMITS_CHALLENGE", pipe.challenge, "--setenv", "YNX_NETWORK_SCRATCH_BYTES", strconv.FormatUint(o.limits.ScratchBytes, 10)}
 	for _, kind := range []string{"net", "mnt", "pid", "user"} {
 		value, e := os.Readlink("/proc/self/ns/" + kind)
 		if e != nil {

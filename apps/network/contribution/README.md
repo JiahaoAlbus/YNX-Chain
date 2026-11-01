@@ -60,7 +60,7 @@ After checking an empty, current-user owned dedicated delegate root and all thre
 limits. Existing root-owned non-setuid `/usr/bin/bwrap` is independently pinned
 and privately captured; a static fixed worker gets an empty read-only root,
 read-only access only to its own cgroup limits, private user/PID/mount/network
-namespaces, no capabilities, no new privileges, and a seccomp socket/fork/
+namespaces (all explicitly required; no --unshare-all/--try fallback), no capabilities, no new privileges, and a seccomp socket/fork/
 namespace/tracing/io_uring deny policy. Threads remain possible within pids.max.
 The worker confirms these controls and denied socket creation before writing
 its challenge-bound FD3 readback. Only then does the original parent release
