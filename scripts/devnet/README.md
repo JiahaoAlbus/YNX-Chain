@@ -836,3 +836,13 @@ original resource, Commit-consumer and original-client logs. It does not qualify
 full500 Node initialization, business pressure, physical bytes or BFT finality.
 The source-only receiver's seven mock controls are separate from those real CI
 observations; completed61 harness evidence is reused.
+
+`pq-initialization-readback.py` is an inert-by-default offline reader for the
+original public initialization ZIP. Explicit archive digest, controller, Go
+source/tree and tools identity are required. It validates every ZIP entry CRC,
+length and SHA; matches admission/census copies; and reconciles original durable
+request/return journal boundaries with the original receipt spans. Truncated or
+unfinished journals retain UNKNOWN/null elapsed times and the original first
+cause. Duplicate node identities cannot represent all four nodes. This reader
+never changes the original receipt, supplies missing intervals, retries an
+operation, starts a node or grants pressure/finality qualification.
