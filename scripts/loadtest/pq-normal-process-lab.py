@@ -720,6 +720,7 @@ def paired_candidate_main(argv):
     for side in ('off','on'):
         for suffix in ('public','receipt-sha256','tools-commit'):parser.add_argument('--'+side+'-'+suffix)
     parser.add_argument('--replay-data');parser.add_argument('--replay-sha256');parser.add_argument('--output');parser.add_argument('--source-only-ci',action='store_true')
+    for name in ('finalize-trace','trace-sha256','before-replay','before-replay-sha256','after-replay','after-replay-sha256'):parser.add_argument('--'+name)
     flags=[value for value in argv if value.startswith('--')]
     lab.require(len(flags)==len(set(flags)),'duplicate paired-candidate option')
     args=parser.parse_args(argv)
@@ -741,7 +742,23 @@ def paired_candidate_main(argv):
         raw=proof.read_original(Path(args.replay_data),256<<10)
         lab.require(proof.sha(raw)==args.replay_sha256,'external original replay DATA SHA differs')
         replay=proof.strict(raw);lab.require(replay.get('schema')=='YNX-PQ-PER-HEIGHT-DIFFERENTIAL/v1','only original per-height differential DATA accepted; new full-trace format awaits owning Core callee')
-    result=reader.prepare_paired_candidate(legs['off'],legs['on'],replay,source_only_ci=args.source_only_ci)
+    complete_trace=None
+    trace_options=[args.finalize_trace,args.trace_sha256]
+    lab.require(not any(trace_options) or all(trace_options),'original complete trace requires directory and result SHA')
+    for side in ('before','after'):
+        values=[getattr(args,side+'_replay'),getattr(args,side+'_replay_sha256')]
+        lab.require(not any(values) or all(values),'original replay requires directory and result SHA')
+        lab.require(not any(values) or args.finalize_trace,'original replay requires common complete trace')
+    lab.require(not args.finalize_trace or replay is None,'legacy source fixture and complete original trace must remain separate candidate inputs')
+    if args.finalize_trace:
+        trace_spec=importlib.util.spec_from_file_location('pair_complete_finalize_reader',Path(__file__).with_name('pq-finalize-trace-readback.py'))
+        trace_reader=importlib.util.module_from_spec(trace_spec);trace_spec.loader.exec_module(trace_reader)
+        trace=trace_reader.read_bundle(Path(args.finalize_trace),args.trace_sha256,'trace');replays={}
+        for side in ('before','after'):
+            path=getattr(args,side+'_replay')
+            replays[side]=None if path is None else trace_reader.read_bundle(Path(path),getattr(args,side+'_replay_sha256'),'replay')
+        complete_trace=trace_reader.compare(trace,replays['before'],replays['after'])
+    result=reader.prepare_paired_candidate(legs['off'],legs['on'],replay,source_only_ci=args.source_only_ci,complete_trace_data=complete_trace)
     result['entryScope']='read-only existing PUBLIC originals and new candidate DATA; no execution option'
     if args.output:
         output=Path(args.output);lab.require(output.is_absolute() and output.parent.resolve(strict=True)==output.parent,'new canonical candidate output required')

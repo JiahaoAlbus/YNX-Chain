@@ -366,7 +366,7 @@ def read_normal_business_leg(public, receipt_sha256, tools_commit, check=None):
     return bundle
 
 
-def prepare_paired_candidate(off=None,on=None,replay_data=None,source_only_ci=False):
+def prepare_paired_candidate(off=None,on=None,replay_data=None,source_only_ci=False,complete_trace_data=None):
     """Inert paired candidate DATA. No ON/trace qualification is guessed."""
     result=dict(schema='YNX-PERF-NORMAL-PAIRED-CANDIDATE/v1',status='NOT_READY',ready=False,
         requiredSupplier=dict(PAIR_SUPPLIER),runtimeAuthorized=False,pressureAuthorized=False,
@@ -378,6 +378,10 @@ def prepare_paired_candidate(off=None,on=None,replay_data=None,source_only_ci=Fa
         result['originalSourceOnlyCI']=source_data.qualification()
         require(result['originalSourceOnlyCI']['supplierCommit']==PAIR_SUPPLIER['commit'] and result['originalSourceOnlyCI']['supplierTree']==PAIR_SUPPLIER['tree'],'original paired supplier source DATA differs')
         result['missing'].append('actual normal ON running window and kernel/private-control evidence remain required; original28 source tests start no nodes')
+    if complete_trace_data is not None:
+        require(complete_trace_data.get('schema')=='YNX-PERF-COMPLETE-FINALIZE-TRACE-READBACK/v1' and complete_trace_data.get('qualified') is False,'original complete trace readback DATA scope required')
+        result['replayGate']=complete_trace_data
+        result['missing'].extend(complete_trace_data['missing'])
     if replay_data is not None:
         # Legacy height-derived source fixtures cannot satisfy the actual
         # complete original Finalize request gate, even if every state matches.
@@ -389,7 +393,7 @@ def prepare_paired_candidate(off=None,on=None,replay_data=None,source_only_ci=Fa
         result['missing'].append('Core exact new normal guarded ON source CI qualification for ed628/f1a; old9081/b1e OFF qualification is not transferable')
     else:
         result['missing'].append('new ON qualification parser must consume actual matching CI originals before this report can qualify any source')
-    result['missing'].append('Core original complete immutable Finalize trajectory export/reader and deterministic before/after replay qualification')
+    if complete_trace_data is None:result['missing'].append('Original complete immutable Finalize trajectory and deterministic before/after normal replay DATA not supplied; Core stopped-store ABI now has a dedicated original reader')
     result['missing'].append('Core original independently verified per-leg full-height normal trace; this data report is not chain/ON qualification')
     for label,bundle in [('OFF',off),('ON',on)]:
         if bundle is None:
