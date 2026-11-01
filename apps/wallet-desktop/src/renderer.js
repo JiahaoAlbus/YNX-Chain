@@ -887,6 +887,7 @@ async function providerAction(action) {
   try {
     const result = await window.ynxWallet.providerAction(item.review.id, action);
     if(!current())return;
+    void nativePayProductUI?.observeOriginalDecision(item.review,action,result);
     walletConnectDetail.textContent = result.ok ? (result.value?.responseDelivered === false ? "Wallet locked before the response could be delivered. Check the app and any submitted transaction before trying again." : result.value?.status === "success" ? "Your response was delivered to the app." : result.value?.message ?? "Request declined.") : errorText(result);
   } catch { if(current())walletConnectDetail.textContent = "The response was interrupted. Check the app before requesting another signature."; }
   finally { if(approvalQueue.current === item && approvalQueue.busy)approvalQueue.finish(item.key); void refreshTransactions();void refreshDeviceCreationStatus();void deviceRegistrationUI.refresh(); }
