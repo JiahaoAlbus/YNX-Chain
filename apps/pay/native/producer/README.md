@@ -46,6 +46,8 @@ Do not mix an old library with a new header or use the PUBLIC fixture library in
 a normal package. Root/Source qualification, normal installation, and actual
 merchant business acceptance remain separate from compile/control evidence.
 
-The original Pay workflow runner's `native-producer` suite runs the request
-framing/route constraints against a hash-checked frozen Auth input. Its output is
-explicitly PUBLIC DATA controls, without Source admission or network dispatch.
+The original Pay workflow runner's `native-producer` suite compiles all three
+production objects with Werror and runs request framing/route constraints against
+the complete hash-checked frozen Auth/LINK input. It rejects incomplete inputs.
+The direct script's explicit `--request-only` mode accepts the older request-only
+boundary. Controls remain PUBLIC DATA, without Source admission/network dispatch.
