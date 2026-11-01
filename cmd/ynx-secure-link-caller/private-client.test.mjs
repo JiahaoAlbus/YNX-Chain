@@ -4,12 +4,14 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdir,mkdtemp,writeFile,readFile,realpath} from 'node:fs/promises';
 import path from 'node:path';
+import os from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const directory=path.join(root,'cmd/ynx-secure-link-caller');
-const artifacts='/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/shared/LINK/native-private-client-next';
+// Test evidence destination only; never a Source/transport registration input.
+const artifacts=process.env.YNX_LINK_PRIVATE_TEST_ARTIFACTS??path.join(os.tmpdir(),'ynx-link-private-client-evidence');
 let buildRoot,sequence=0;
 before(async()=>{await mkdir(artifacts,{recursive:true});buildRoot=await mkdtemp(path.join(artifacts,'private-client-'));});
 after(()=>{/* Retain exact compiler logs, native binary and PUBLIC evidence. */});
