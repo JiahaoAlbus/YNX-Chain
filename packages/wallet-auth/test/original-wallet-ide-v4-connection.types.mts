@@ -1,0 +1,17 @@
+import {openOriginalWalletIDEV4Connection} from '../src/original-wallet-ide-v4-connection.js';
+const owner=openOriginalWalletIDEV4Connection();
+const c:false=owner.statusDATA().connected;
+const n:false=owner.statusDATA().newSession;
+// @ts-expect-error zero-argument fixed normal factory
+openOriginalWalletIDEV4Connection({provider:()=>({})});
+// @ts-expect-error same original context is mandatory
+owner.submitPair();
+// @ts-expect-error old login DTO is not registration selection
+owner.preparePair({account:'x'},{});
+// @ts-expect-error caller endpoint is not a session Source
+owner.openSession({endpoint:'https://invalid'});
+// @ts-expect-error readonly result cannot be promoted into connected
+owner.statusDATA().connected=true;
+// @ts-expect-error finalization also requires same original context
+owner.finalizeOriginalAssociation({});
+void c;void n;

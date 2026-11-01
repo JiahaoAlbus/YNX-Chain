@@ -470,6 +470,12 @@
       "browser": null,
       "node": "./src/network-resource-source-v1.js",
       "default": null
+    },
+    "./original-wallet-ide-v4-connection": {
+      "types": "./src/original-wallet-ide-v4-connection.d.ts",
+      "browser": null,
+      "node": "./src/original-wallet-ide-v4-connection.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",
@@ -733,7 +739,8 @@
     "docs/AI_TASK_V6_AGENT_REGISTRATION.md",
     "docs/AI_TASK_V6_MOBILE_SAFE_CORE.md",
     "docs/ai-task-v6-node-esm-bootstrap-abi.json",
-    "docs/ai-task-v6-node-esm-bootstrap.md"
+    "docs/ai-task-v6-node-esm-bootstrap.md",
+    "docs/wallet-ide-v4-connection.md"
   ],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
