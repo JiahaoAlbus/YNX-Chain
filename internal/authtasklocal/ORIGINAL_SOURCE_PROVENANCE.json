@@ -1,0 +1,23 @@
+{
+  "schema": "ynx-p08-auth-local-normal-intake/v1",
+  "originalH": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/HANDOFF.md",
+  "sourcepins": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/SOURCEPINS.json",
+  "rows": [
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/source/history.go",
+      "bytes": 2356,
+      "sha256": "09ad8e5cc4c0361a0459b10e6a02061999caa90b5caebd406a1ade2a780ef725",
+      "target": "internal/authtasklocal/history.go"
+    },
+    {
+      "path": "/Volumes/西部数据/YNX-large-work/auth-owned-r258/task-local-normal-source/source/local.go",
+      "bytes": 9343,
+      "sha256": "cf5fc39cde2e2a3eac971783098cb585699dff8cf214328547e22c75e94a3330",
+      "target": "internal/authtasklocal/local.go"
+    }
+  ],
+  "supplierModuleNotCopied": true,
+  "existingRootNormalDependencies": true,
+  "scope": "conversation read only, no egress/model/funds/file handler",
+  "Root": false
+}

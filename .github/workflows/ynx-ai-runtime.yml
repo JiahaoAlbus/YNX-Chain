@@ -8,6 +8,7 @@ on:
       - "internal/aiproduct/**"
       - "internal/aigateway/**"
       - "internal/aitaskclient/**"
+      - "internal/authtasklocal/**"
       - "cmd/ynx-ai-task/**"
       - "apps/ai/main.go"
       - "packages/auth-grant-policy/go/**"

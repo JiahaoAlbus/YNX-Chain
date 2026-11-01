@@ -41,3 +41,23 @@ func TestP08NormalTaskRuntimeCancellationBeforeAcquisition(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestP08NormalLocalCustodyRetainsBothFailedOriginalAcquisitions(t *testing.T) {
+	owner, err := OpenOriginalTaskRuntime(context.Background(), TaskModelConfig{})
+	if !errors.Is(err, native.ErrUnavailable) || owner == nil || owner.owners.native == nil {
+		t.Fatalf("empty normal acquisition changed: %v", err)
+	}
+	local := owner.owners.native
+	if local.localOwner == nil || local.localHistory == nil || !errors.Is(local.localAcquireError, native.ErrUnavailable) || !errors.Is(local.localHistoryAcquireError, native.ErrUnavailable) {
+		t.Fatal("normal local effect/history partial or original failure lost")
+	}
+	if err := local.localOwner.Current(context.Background()); !errors.Is(err, native.ErrUnavailable) {
+		t.Fatal("local OS accessibility became TaskGrant", err)
+	}
+	if err := owner.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := owner.Close(); err != nil {
+		t.Fatal(err)
+	}
+}

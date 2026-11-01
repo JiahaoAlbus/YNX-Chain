@@ -3,6 +3,7 @@ package aiproduct
 import (
 	"context"
 	"errors"
+	tasklocal "github.com/JiahaoAlbus/YNX-Chain/internal/authtasklocal"
 	"sync"
 
 	originalclient "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-history-client/go"
@@ -27,6 +28,14 @@ func OpenOriginalTaskRuntime(ctx context.Context, cfg TaskModelConfig) (*Prepare
 		authority = &nativeTaskRuntimeAuthority{}
 	}
 	p.owners.native = authority
+	// Capture each narrow local custody owner even on failure, independently
+	// of Shop/transport. Absence blocks its local tool, not another tool.
+	localOwner, localError := tasklocal.OpenOriginalLocalTaskGrantSource()
+	authority.localOwner = localOwner
+	authority.localAcquireError = localError
+	localHistory, localHistoryError := tasklocal.OpenOriginalLocalTaskHistorySource()
+	authority.localHistory = localHistory
+	authority.localHistoryAcquireError = localHistoryError
 	queryOwner, queryErr := native.OpenOriginalGrantQueryRuntime()
 	authority.queryOwner = queryOwner
 	client, clientErr := originalclient.OpenOriginalTaskAuthorityClient()

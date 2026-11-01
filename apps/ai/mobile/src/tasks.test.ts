@@ -1,0 +1,57 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {createTaskAPI,TaskAPIError,TaskWorkspaceController,type Task,type TaskAPI,type TaskPersistence,type WorkspaceRecord,type TaskProjection,type TaskStep} from "./tasks";
+
+const task:Task={id:"task_original",conversationId:"conv_original",holder:"holder_original",revision:2,generation:1,status:"READY"};
+const step:TaskStep={id:"step_original",status:"UNKNOWN",toolStep:{taskId:task.id,taskRevision:2,generation:1,holder:task.holder,toolId:"ai.conversation.read",toolVersion:"1",authorityOperationId:"original-node-op"}};
+const projection:TaskProjection={...task,cursor:2,hasMore:false,events:[],steps:[step]};
+function storage(){let saved:WorkspaceRecord|null=null;const values:string[]=[];const api:TaskPersistence={read:async()=>saved?JSON.parse(JSON.stringify(saved)):null,write:async(_id,value)=>{values.push(JSON.stringify(value));saved=JSON.parse(JSON.stringify(value))}};return {api,values,get saved(){return saved}}}
+function mockAPI(changes:Partial<TaskAPI>={}):TaskAPI{return {list:async()=>({tasks:[task],hasMore:false}),task:async()=>JSON.parse(JSON.stringify(projection)),create:async()=>task,prepare:async()=>({task:{...task,revision:3}}),cancel:async()=>({task:{...task,status:"RECONCILING",revision:3},remoteRollback:false}),approve:async()=>({}),reconcile:async()=>({}),result:async()=>({state:"COMMITTED",effectRef:step.id,result:{actual:"PUBLIC controlled result"}}),run:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[step.id],recoveryOnly:false}),runView:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"UNKNOWN",steps:[step.id],recoveryOnly:true}),...changes}}
+test("native task requests use fresh original scope proof and fixed route, no legacy bearer",async()=>{
+ const scopes:string[]=[],requests:{url:string;init:RequestInit}[]=[];
+ const api=createTaskAPI("http://127.0.0.1:6438",{identity:"PUBLIC-session",proof:async scope=>{scopes.push(scope);return `PUBLIC-${scopes.length}`}},async(input,init)=>{requests.push({url:String(input),init:init!});return new Response(JSON.stringify({tasks:[],hasMore:false}),{status:200})});
+ await api.list(new AbortController().signal);await api.cancel(task,new AbortController().signal);
+ assert.deepEqual(scopes,["ai:conversations","ai:permissions"]);assert.equal(requests[0]!.url,"http://127.0.0.1:6438/api/tasks?afterId=");assert.equal(requests[1]!.init.headers&&new Headers(requests[1]!.init.headers).get("Authorization"),null);assert.equal(new Headers(requests[1]!.init.headers).get("X-YNX-Product-Session-Proof-V2"),"PUBLIC-2");assert.deepEqual(JSON.parse(requests[1]!.init.body as string),{revision:2,generation:1});assert.equal(requests[1]!.init.redirect,"error");assert.equal(requests[1]!.init.credentials,"omit");
+});
+test("missing task scope proof refuses without network and service unavailable remains refusal",async()=>{
+ let calls=0;const missing=createTaskAPI("http://127.0.0.1:6438",{identity:"PUBLIC",proof:async()=>""},async()=>{calls++;return new Response("{}")});await assert.rejects(missing.list(new AbortController().signal),/CANONICAL_TASK_PROOF_UNAVAILABLE/);assert.equal(calls,0);
+ const unavailable=createTaskAPI("http://127.0.0.1:6438",{identity:"PUBLIC",proof:async()=>"PUBLIC-not-authority"},async()=>new Response('{"code":"AUTHORITY_UNAVAILABLE"}',{status:503}));await assert.rejects(unavailable.list(new AbortController().signal),error=>error instanceof TaskAPIError&&error.status===503);
+});
+test("pending create is durable before network, response loss survives restart without new task",async()=>{
+ const saved=storage();let calls=0;
+ const api=mockAPI({create:async()=>{assert.equal(saved.saved!.deliveries[0]!.state,"PENDING");calls++;throw new Error("PUBLIC lost response")}});
+ const c=new TaskWorkspaceController("PUBLIC-account",api,saved.api,()=>"delivery_original");await c.create("conv_original");assert.equal(calls,1);assert.equal(saved.saved!.deliveries[0]!.state,"UNKNOWN");assert.equal(saved.saved!.deliveries[0]!.taskId,"");assert.equal(saved.saved!.deliveries[0]!.conversationId,"conv_original");
+ c.dispose();const next=new TaskWorkspaceController("PUBLIC-account",api,saved.api,()=>"different-delivery");await next.restore();await next.create("conv_original");assert.equal(calls,1);assert.match(next.state.error,/ORIGINAL_DELIVERY_RETAINED/);await next.discover();assert.equal(next.state.tasks[0]!.id,task.id);
+});
+test("manual cancellation binds actual revision/generation, changed task confirmation rejects",async()=>{
+ const saved=storage();let calls=0;const c=new TaskWorkspaceController("PUBLIC",mockAPI({cancel:async actual=>{calls++;assert.equal(actual.revision,2);assert.equal(actual.generation,1);return {task:{...actual,status:"RECONCILING",revision:3},remoteRollback:false}}}),saved.api,()=>"cancel_original");await c.select(task.id);await assert.rejects(c.cancel({...task,revision:1}),/TASK_CHANGED/);assert.equal(calls,0);await c.cancel(task);assert.equal(calls,1);assert.equal(c.state.projection!.status,"RECONCILING");assert.equal(c.state.projection!.revision,3);
+});
+test("UNKNOWN queries keep original task/step and may explicitly query again, never NEW",async()=>{
+ const saved=storage();let queries=0,runs=0;const c=new TaskWorkspaceController("PUBLIC",mockAPI({reconcile:async(taskID,stepID)=>{assert.equal(taskID,task.id);assert.equal(stepID,step.id);queries++;return {}},run:async()=>{runs++;throw Error("unexpected NEW")}}),saved.api,()=>`query_${queries}`);await c.select(task.id);await c.reconcile(task,step,"PUBLIC-secret-ref");await c.reconcile(task,step,"PUBLIC-secret-ref");assert.equal(queries,2);await c.readRun("run_original");await assert.rejects(c.model(task,"new_run","PRIVATE prompt","PUBLIC-secret-ref",["ai.conversation.read"]),/UNKNOWN_ORIGINAL_QUERY/);assert.equal(runs,0);assert.ok(saved.values.every(raw=>!raw.includes("PUBLIC-secret-ref")&&!raw.includes("PRIVATE prompt")));
+});
+test("closing workspace cancels actual request, keeps unresolved journal and ignores late screen return",async()=>{
+ const saved=storage();let started!:()=>void,release!:()=>void;const entered=new Promise<void>(resolve=>started=resolve),blocked=new Promise<void>(resolve=>release=resolve);let changes=0;
+ const c=new TaskWorkspaceController("PUBLIC",mockAPI({create:async(_conversation,signal)=>{started();await blocked;assert.equal(signal.aborted,true);throw Error("PUBLIC cancelled after possible dispatch")}}),saved.api,()=>"pending_create",()=>changes++);
+ const work=c.create("conv_original");await entered;c.dispose();const atClose=changes;release();await work;assert.equal(changes,atClose);assert.equal(saved.saved!.deliveries[0]!.state,"UNKNOWN");
+});
+test("storage failure prevents request and retained final result is not stored in delivery metadata",async()=>{
+ let calls=0;const broken:TaskPersistence={read:async()=>null,write:async()=>{throw Error("PUBLIC disk unavailable")}};const c=new TaskWorkspaceController("PUBLIC",mockAPI({create:async()=>{calls++;return task}}),broken,()=>"create_original");await c.create("conv_original");assert.equal(calls,0);assert.match(c.state.error,/disk unavailable/);
+ const saved=storage();const ready=new TaskWorkspaceController("PUBLIC",mockAPI(),saved.api,()=>"read_original");await ready.select(task.id);await ready.readResult(step);assert.equal(ready.state.receipt!.state,"COMMITTED");assert.ok(saved.values.every(raw=>!raw.includes("controlled result")));
+});
+test("manual cancel remains available during a model request and ignores its late success",async()=>{
+ const saved=storage();let entered!:()=>void,release!:()=>void;const started=new Promise<void>(r=>entered=r),waiting=new Promise<void>(r=>release=r);let signal:AbortSignal|undefined;let ids=0;
+ const c=new TaskWorkspaceController("PUBLIC",mockAPI({task:async()=>({...projection,steps:[]}),run:async(_task,_run,_prompt,_ref,_tools,_resume,s)=>{signal=s;entered();await waiting;return {id:"old_internal",runId:"run_original",taskId:task.id,status:"COMPLETED",steps:[],content:"PUBLIC late unapproved return",recoveryOnly:false}}}),saved.api,()=>`delivery_${++ids}`);
+ await c.select(task.id);const running=c.model(task,"run_original","PRIVATE prompt","PRIVATE ref",["ai.conversation.read"]);await started;await c.cancel(task);assert.equal(signal!.aborted,true);assert.equal(c.state.projection!.status,"RECONCILING");assert.equal(c.state.busy,false);release();await running;assert.equal(c.state.run,null);assert.equal(c.state.projection!.status,"RECONCILING");assert.equal(saved.saved!.deliveries.length,2);assert.ok(saved.values.every(value=>!value.includes("PRIVATE prompt")&&!value.includes("PRIVATE ref")));
+});
+test("failed cancel leaves the original in-flight model request running",async()=>{
+ const saved=storage();let entered!:()=>void,release!:()=>void;const started=new Promise<void>(r=>entered=r),waiting=new Promise<void>(r=>release=r);let signal:AbortSignal|undefined;let ids=0;
+ const c=new TaskWorkspaceController("PUBLIC",mockAPI({task:async()=>({...projection,steps:[]}),cancel:async()=>{throw new TaskAPIError(409,"TASK_CHANGED")},run:async(_t,_r,_p,_a,_tools,_resume,s)=>{signal=s;entered();await waiting;return {id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[step.id],recoveryOnly:false}}}),saved.api,()=>`delivery_${++ids}`);await c.select(task.id);const running=c.model(task,"run_original","private","ref",["ai.conversation.read"]);await started;await assert.rejects(c.cancel(task),/TASK_CHANGED/);assert.equal(signal!.aborted,false);release();await running;assert.equal(c.state.run!.status,"NEEDS_APPROVAL");assert.equal(saved.saved!.deliveries.find(d=>d.action==="cancel")!.state,"REJECTED_RESPONSE");
+});
+test("lost model response resumes only after readback of its exact original run",async()=>{
+ const saved=storage();let modelCalls=0,ids=0;
+ const api=mockAPI({task:async()=>({...projection,steps:[]}),run:async(_t,runId,_p,_r,_tools,resume)=>{modelCalls++;if(!resume)throw Error("PUBLIC response lost");assert.equal(runId,"run_original");return {id:"run_internal",runId,taskId:task.id,status:"NEEDS_APPROVAL",steps:[],recoveryOnly:false}},runView:async()=>({id:"run_internal",runId:"run_original",taskId:task.id,status:"NEEDS_APPROVAL",steps:[],recoveryOnly:false})});
+ const c=new TaskWorkspaceController("PUBLIC",api,saved.api,()=>`delivery_${++ids}`);await c.select(task.id);await c.model(task,"run_original","prompt","ref",["ai.conversation.read"]);await assert.rejects(c.model(task,"replacement_run","prompt","ref",["ai.conversation.read"]),/UNKNOWN_ORIGINAL_QUERY/);assert.equal(modelCalls,1);await c.readRun("run_original");assert.equal(saved.saved!.deliveries[0]!.state,"ORIGINAL_OBSERVED");await c.model(task,"run_original","","ref",["ai.conversation.read"],true);assert.equal(modelCalls,2);
+});
+test("unreadable prior journal cannot be overwritten or bypassed by task creation",async()=>{
+ let creates=0,writes=0;const persistence:TaskPersistence={read:async()=>{throw Error("PUBLIC original journal unavailable")},write:async()=>{writes++}};const c=new TaskWorkspaceController("PUBLIC",mockAPI({create:async()=>{creates++;return task}}),persistence,()=>"replacement_id");await c.restore();await c.create("conv_original");assert.equal(creates,0);assert.equal(writes,0);assert.match(c.state.error,/original journal unavailable/);
+});

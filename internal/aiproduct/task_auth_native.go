@@ -3,6 +3,7 @@ package aiproduct
 import (
 	"context"
 	"errors"
+	tasklocal "github.com/JiahaoAlbus/YNX-Chain/internal/authtasklocal"
 	originalclient "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-history-client/go"
 	native "github.com/JiahaoAlbus/YNX-Chain/packages/auth-grant-runtime/go"
 )
@@ -10,8 +11,12 @@ import (
 // Actual native callee adapter. No Source, realm, tenant, issuer, key or clock
 // is selected by caller input. The original zero-input factory owns admission.
 type nativeTaskRuntimeAuthority struct {
-	owner      *native.Runtime
-	queryOwner *native.QueryRuntime
+	owner                    *native.Runtime
+	queryOwner               *native.QueryRuntime
+	localOwner               *tasklocal.Owner
+	localHistory             *tasklocal.History
+	localAcquireError        error
+	localHistoryAcquireError error
 }
 
 func OpenOriginalTaskAuthority() (*nativeTaskRuntimeAuthority, error) {
@@ -43,7 +48,12 @@ func (a *nativeTaskRuntimeAuthority) request(ctx context.Context, input Original
 	if err != nil {
 		return zero, err
 	}
-	scope, err := a.owner.TaskAuthorityProfile(ctx)
+	var scope native.TaskAuthorityProfile
+	if input.Step.ToolStep != nil && input.Step.ToolStep.ToolID == "ai.conversation.read" && a.localOwner != nil {
+		scope, err = a.localOwner.TaskAuthorityProfile(ctx)
+	} else {
+		scope, err = a.owner.TaskAuthorityProfile(ctx)
+	}
 	if err != nil {
 		return zero, err
 	}
@@ -58,7 +68,18 @@ func (a *nativeTaskRuntimeAuthority) ResolveTaskGrant(ctx context.Context, input
 	if err != nil {
 		return zero, err
 	}
-	original, err := a.owner.ResolveTaskGrant(ctx, request)
+	var original native.TaskAuthorization
+	if input.Step.ToolStep != nil && input.Step.ToolStep.ToolID == "ai.conversation.read" {
+		if a.localAcquireError != nil {
+			return zero, a.localAcquireError
+		}
+		if a.localOwner == nil {
+			return zero, errTaskEffectSourceUnavailable
+		}
+		original, err = a.localOwner.ResolveTaskGrant(ctx, request)
+	} else {
+		original, err = a.owner.ResolveTaskGrant(ctx, request)
+	}
 	if err != nil {
 		return zero, err
 	}
@@ -72,7 +93,18 @@ func (a *nativeTaskRuntimeAuthority) queryOriginalTaskOperation(ctx context.Cont
 	if err != nil {
 		return originalTaskOperationReference{}, err
 	}
-	original, err := a.queryOwner.QueryOriginalTaskRequest(ctx, request)
+	var original native.OriginalOperationReference
+	if input.Step.ToolStep != nil && input.Step.ToolStep.ToolID == "ai.conversation.read" {
+		if a.localHistoryAcquireError != nil {
+			return originalTaskOperationReference{}, a.localHistoryAcquireError
+		}
+		if a.localHistory == nil {
+			return originalTaskOperationReference{}, errTaskEffectSourceUnavailable
+		}
+		original, err = a.localHistory.QueryOriginalTaskRequest(ctx, request)
+	} else {
+		original, err = a.queryOwner.QueryOriginalTaskRequest(ctx, request)
+	}
 	// Keep a nonzero partial even when the original late current/close check fails.
 	return originalTaskOperationReference{State: original.State, OperationID: original.OperationID}, err
 }
@@ -137,6 +169,12 @@ func (a *nativeTaskRuntimeAuthority) Retire() error {
 	if a.queryOwner != nil {
 		err = errors.Join(err, a.queryOwner.Retire())
 	}
+	if a.localOwner != nil {
+		err = errors.Join(err, a.localOwner.Retire())
+	}
+	if a.localHistory != nil {
+		err = errors.Join(err, a.localHistory.Retire())
+	}
 	return err
 }
 func (a *nativeTaskRuntimeAuthority) Close() error {
@@ -144,6 +182,12 @@ func (a *nativeTaskRuntimeAuthority) Close() error {
 		return nil
 	}
 	var err error
+	if a.localOwner != nil {
+		err = errors.Join(err, a.localOwner.Join(), a.localOwner.Close())
+	}
+	if a.localHistory != nil {
+		err = errors.Join(err, a.localHistory.Close())
+	}
 	if a.queryOwner != nil {
 		err = errors.Join(err, a.queryOwner.Join(), a.queryOwner.Close())
 	}

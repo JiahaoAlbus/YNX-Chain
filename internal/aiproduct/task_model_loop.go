@@ -661,7 +661,17 @@ func (s *Server) handleTaskModelRunRead(w http.ResponseWriter, r *http.Request, 
 		writeError(w, http.StatusNotFound, "task run not found")
 		return
 	}
-	run, ok := s.store.state.TaskRuns[r.PathValue("runId")]
+	originalID := r.PathValue("runId")
+	run, ok := s.store.state.TaskRuns[originalID]
+	if !ok {
+		// Native/CLI clients retain the original public run ID before send.
+		// Resolve it only within this authenticated account+task, so response
+		// loss does not force a new run or expose another task's internal key.
+		run, ok = s.store.state.TaskRuns[modelRunKey(session.Account, r.PathValue("id"), originalID)]
+		if ok && run.RunID != originalID {
+			ok = false
+		}
+	}
 	if !ok || run.TaskID != r.PathValue("id") || run.Account != session.Account {
 		writeError(w, http.StatusNotFound, "task run not found")
 		return
