@@ -76,7 +76,7 @@ func newP08DAVFixture(t *testing.T) *p08DAVFixture {
 			if r.Header.Get("If-None-Match") != "*" || r.Header.Get("Content-Type") != "application/octet-stream" {
 				t.Error("PUT lost conditional exact bytes")
 			}
-			raw, err := io.ReadAll(io.LimitReader(r.Body, 2048))
+			raw, err := io.ReadAll(io.LimitReader(r.Body, f.cfg.MaxBytes+1))
 			if err != nil {
 				t.Error(err)
 				return

@@ -7,6 +7,12 @@ import (
 )
 
 func (s *Store) taskHasUnresolvedEffectLocked(taskID string) bool {
+	for _, delivery := range s.state.WebDAVDeliveries {
+		if delivery.TaskID == taskID && (s.verifyWebDAVRecord(delivery) != nil || delivery.Receipt.State != "CONTENT_PRESENT") {
+			return true
+		}
+	}
+
 	for _, record := range s.state.Actions {
 		if record.ToolStep != nil && record.ToolStep.TaskID == taskID {
 			switch record.Status {
@@ -39,7 +45,12 @@ func (s *Store) completeTaskLocked(account, id string, revision, generation uint
 		return TaskRecord{}, ErrTaskState
 	}
 	run, ok := s.state.TaskRuns[runID]
-	if !ok || run.Account != account || run.TaskID != id || run.Generation != generation || run.Holder != holder || run.Status != "COMPLETED" || run.Cancelled || run.Active || len(run.Steps) == 0 {
+	if !ok || run.Account != account || run.TaskID != id || run.Generation != generation || run.Holder != holder || run.Status != "COMPLETED" || run.TaskRevision != revision || run.ReturnState != taskModelReturnVerified || run.Cancelled || run.Active || len(run.Steps) == 0 {
+		return TaskRecord{}, ErrTaskState
+	}
+	if view, err := s.taskRunViewLocked(run); err != nil {
+		return TaskRecord{}, err
+	} else if view.Content == "" {
 		return TaskRecord{}, ErrTaskState
 	}
 	if s.taskHasUnresolvedEffectLocked(id) {
@@ -51,6 +62,18 @@ func (s *Store) completeTaskLocked(account, id string, revision, generation uint
 		}
 	}
 	for _, stepID := range run.Steps {
+		if delivery, ok := s.state.WebDAVDeliveries[taskWebDAVKey(account, id, stepID)]; ok {
+			if delivery.Account != account || delivery.TaskID != id || delivery.Holder != holder || delivery.Revision != revision || delivery.Generation != generation || delivery.Input.OperationID != stepID {
+				return TaskRecord{}, errToolConflict
+			}
+			if err := s.verifyWebDAVRecord(delivery); err != nil {
+				return TaskRecord{}, err
+			}
+			if delivery.Receipt.State != "CONTENT_PRESENT" || delivery.Receipt.ContentState != "CONTENT_PRESENT" || delivery.Receipt.AuthorshipProven || delivery.Receipt.Scope != "external-content-observation-only" {
+				return TaskRecord{}, errTaskEffectUnresolved
+			}
+			continue
+		}
 		record, ok := s.state.Actions[stepID]
 		if !ok || record.Account != account || record.ToolStep == nil || record.ToolStep.TaskID != id {
 			return TaskRecord{}, errToolNotFound

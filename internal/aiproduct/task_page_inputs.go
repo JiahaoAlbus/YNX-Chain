@@ -13,25 +13,32 @@ import (
 	"strings"
 )
 
+const taskBrowserPageSourceClass = "SELECTED_BROWSER_PAGE"
+const taskPageContentTrust = "UNTRUSTED"
+
 // References select original Browser snapshots, never arbitrary URLs or bytes.
 type TaskPageReference struct {
 	SelectionID string `json:"selectionId"`
 	Version     string `json:"version"` // Original Browser SHA-512, not a Grant.
 }
 type TaskPageSnapshot struct {
-	Reference  TaskPageReference `json:"reference"`
-	TaskID     string            `json:"taskId"`
-	TabID      string            `json:"tabId"`
-	ProfileID  string            `json:"profileId"`
-	Generation uint64            `json:"generation"`
-	Origin     string            `json:"origin"`
-	Fields     []string          `json:"fields"`
-	Bytes      int               `json:"bytes"`
-	SHA3_512   string            `json:"sha3_512"`
-	State      string            `json:"state"` // AVAILABLE, STALE or UNAVAILABLE; never replacement bytes.
-	Content    []byte            `json:"content,omitempty"`
+	PreparationID string            `json:"preparationId,omitempty"`
+	SourceClass   string            `json:"sourceClass,omitempty"`
+	ContentTrust  string            `json:"contentTrust,omitempty"`
+	Reference     TaskPageReference `json:"reference"`
+	TaskID        string            `json:"taskId"`
+	TabID         string            `json:"tabId"`
+	ProfileID     string            `json:"profileId"`
+	Generation    uint64            `json:"generation"`
+	Origin        string            `json:"origin"`
+	Fields        []string          `json:"fields"`
+	Bytes         int               `json:"bytes"`
+	SHA3_512      string            `json:"sha3_512"`
+	State         string            `json:"state"` // AVAILABLE, STALE or UNAVAILABLE; never replacement bytes.
+	Content       []byte            `json:"content,omitempty"`
 }
 type OriginalTaskPagesRequest struct {
+	RunID            string
 	Session          ProductSession
 	Task             TaskRecord
 	References       []TaskPageReference
@@ -66,7 +73,7 @@ func taskPageReferenceBinding(refs []TaskPageReference) taskBytesBinding {
 	raw, _ := json.Marshal(refs)
 	return bindTaskBytes(raw)
 }
-func (s *Server) readTaskPages(ctx context.Context, session ProductSession, task TaskRecord, refs []TaskPageReference, auth string) ([]TaskPageSnapshot, error) {
+func (s *Server) readTaskPages(ctx context.Context, session ProductSession, task TaskRecord, refs []TaskPageReference, auth, runID string) ([]TaskPageSnapshot, error) {
 	if len(refs) == 0 {
 		return nil, nil
 	}
@@ -74,7 +81,7 @@ func (s *Server) readTaskPages(ctx context.Context, session ProductSession, task
 		return nil, errTaskEffectSourceUnavailable
 	}
 	owned := append([]TaskPageReference(nil), refs...)
-	pages, err := s.taskPages.ReadOriginalTaskPages(ctx, OriginalTaskPagesRequest{Session: cloneTaskModelSession(session), Task: task, References: owned, AuthorizationRef: auth, QueryOriginal: auth == ""})
+	pages, err := s.taskPages.ReadOriginalTaskPages(ctx, OriginalTaskPagesRequest{Session: cloneTaskModelSession(session), Task: task, References: owned, RunID: runID, AuthorizationRef: auth, QueryOriginal: auth == ""})
 	if err != nil {
 		return nil, err
 	}
@@ -89,45 +96,17 @@ func (s *Server) readTaskPages(ctx context.Context, session ProductSession, task
 	if err = json.Unmarshal(raw, &pages); err != nil {
 		return nil, err
 	}
-	for i, p := range pages {
-		if p.TaskID != task.ID || p.Reference != refs[i] || p.TabID == "" || p.ProfileID == "" || p.Generation == 0 {
-			return nil, errToolConflict
-		}
-		origin, e := url.Parse(p.Origin)
-		if e != nil || origin.Scheme != "https" && origin.Scheme != "http" || origin.Host == "" || origin.User != nil || origin.RawQuery != "" || origin.Fragment != "" || origin.Path != "" {
+	for i := range pages {
+		if pages[i].SourceClass != "" && pages[i].SourceClass != taskBrowserPageSourceClass || pages[i].ContentTrust != "" && pages[i].ContentTrust != taskPageContentTrust {
 			return nil, errToolInvalid
 		}
-		seen := map[string]bool{}
-		for _, f := range p.Fields {
-			if f != "url" && f != "title" && f != "text" || seen[f] {
-				return nil, errToolInvalid
-			}
-			seen[f] = true
-		}
-		if len(p.Fields) == 0 {
-			return nil, errToolInvalid
-		}
-		switch p.State {
-		case "AVAILABLE":
-			if p.TaskID != task.ID {
-				return nil, errToolConflict
-			}
-			if _, err := taskPageContent(p); err != nil {
-				return nil, err
-			}
-			sum := sha512.Sum512(p.Content)
-			sha3sum := sha3.Sum512(p.Content)
-			if len(p.Content) != p.Bytes || hex.EncodeToString(sha3sum[:]) != p.SHA3_512 || hex.EncodeToString(sum[:]) != p.Reference.Version {
-				return nil, errToolConflict
-			}
-		case "STALE", "UNAVAILABLE":
-			if len(p.Content) != 0 {
-				return nil, errToolInvalid
-			}
-		default:
-			return nil, errToolInvalid
+		pages[i].SourceClass = taskBrowserPageSourceClass
+		pages[i].ContentTrust = taskPageContentTrust
+		if err := validateTaskPageSnapshot(task.ID, refs[i], pages[i]); err != nil {
+			return nil, err
 		}
 	}
+
 	return pages, nil
 }
 func (s *Store) taskRunPagesLocked(run taskModelRun) ([]TaskPageSnapshot, error) {
@@ -175,9 +154,23 @@ func (s *Server) checkTaskRunPages(ctx context.Context, session ProductSession, 
 	for i := range pages {
 		refs[i] = pages[i].Reference
 	}
-	fresh, err := s.readTaskPages(ctx, session, task, refs, auth)
+	fresh, err := s.readTaskPages(ctx, session, task, refs, auth, run.RunID)
 	if err != nil {
 		return err
+	}
+	// Legacy encrypted snapshots did not have classification/preparation labels.
+	// Compare their identical scope without rewriting the original checkpoint or
+	// changing an already materialized report's canonical bytes on upgrade.
+	for i := range pages {
+		if pages[i].SourceClass == "" {
+			fresh[i].SourceClass = ""
+		}
+		if pages[i].ContentTrust == "" {
+			fresh[i].ContentTrust = ""
+		}
+		if pages[i].PreparationID == "" && fresh[i].PreparationID == pages[i].TaskID {
+			fresh[i].PreparationID = ""
+		}
 	}
 	a, _ := json.Marshal(pages)
 	b, _ := json.Marshal(fresh)
@@ -223,7 +216,7 @@ func taskPageContent(p TaskPageSnapshot) (map[string]string, error) {
 		Fields     []string          `json:"fields"`
 		Content    map[string]string `json:"content"`
 	}
-	if rejectDuplicateShopJSON(p.Content) != nil || strictToolJSON(bytes.NewReader(p.Content), &payload) != nil || payload.Schema != "YNX_BROWSER_SELECTED_PAGE_V1" || payload.TabID != p.TabID || payload.ProfileID != p.ProfileID || payload.Generation != strconv.FormatUint(p.Generation, 10) || payload.Origin != p.Origin || payload.TaskID != p.TaskID || !slices.Equal(payload.Fields, p.Fields) || len(payload.Content) != len(p.Fields) {
+	if rejectDuplicateShopJSON(p.Content) != nil || strictToolJSON(bytes.NewReader(p.Content), &payload) != nil || payload.Schema != "YNX_BROWSER_SELECTED_PAGE_V1" || payload.TabID != p.TabID || payload.ProfileID != p.ProfileID || payload.Generation != strconv.FormatUint(p.Generation, 10) || payload.Origin != p.Origin || payload.TaskID != taskPagePreparationID(p) || !slices.Equal(payload.Fields, p.Fields) || len(payload.Content) != len(p.Fields) {
 		return nil, errToolConflict
 	}
 	for _, field := range p.Fields {
@@ -232,4 +225,52 @@ func taskPageContent(p TaskPageSnapshot) (map[string]string, error) {
 		}
 	}
 	return payload.Content, nil
+}
+
+func validateTaskPageSnapshot(taskID string, ref TaskPageReference, p TaskPageSnapshot) error {
+	if p.TaskID != taskID || p.Reference != ref || p.TabID == "" || p.ProfileID == "" || p.Generation == 0 {
+		return errToolConflict
+	}
+	origin, e := url.Parse(p.Origin)
+	if e != nil || origin.Scheme != "https" && origin.Scheme != "http" || origin.Host == "" || origin.User != nil || origin.RawQuery != "" || origin.Fragment != "" || origin.Path != "" {
+		return errToolInvalid
+	}
+	seen := map[string]bool{}
+	for _, f := range p.Fields {
+		if f != "url" && f != "title" && f != "text" || seen[f] {
+			return errToolInvalid
+		}
+		seen[f] = true
+	}
+	if len(p.Fields) == 0 {
+		return errToolInvalid
+	}
+	switch p.State {
+	case "AVAILABLE":
+		if p.TaskID != taskID {
+			return errToolConflict
+		}
+		if _, err := taskPageContent(p); err != nil {
+			return err
+		}
+		sum := sha512.Sum512(p.Content)
+		sha3sum := sha3.Sum512(p.Content)
+		if len(p.Content) != p.Bytes || hex.EncodeToString(sha3sum[:]) != p.SHA3_512 || hex.EncodeToString(sum[:]) != p.Reference.Version {
+			return errToolConflict
+		}
+	case "STALE", "UNAVAILABLE":
+		if len(p.Content) != 0 {
+			return errToolInvalid
+		}
+	default:
+		return errToolInvalid
+	}
+	return nil
+}
+
+func taskPagePreparationID(p TaskPageSnapshot) string {
+	if p.PreparationID != "" {
+		return p.PreparationID
+	}
+	return p.TaskID
 }

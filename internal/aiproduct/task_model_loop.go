@@ -402,16 +402,20 @@ func (s *Server) runTaskModel(ctx context.Context, session ProductSession, taskI
 	s.store.mu.Lock()
 	prior := s.store.state.TaskRuns[modelRunKey(session.Account, taskID, input.RunID)]
 	originalTask, taskErr := s.store.ownedTaskLocked(session.Account, taskID)
+	blockedNewRun := taskErr == nil && prior.ID == "" && s.store.taskHasUnresolvedEffectLocked(taskID)
 	s.store.mu.Unlock()
 	if taskErr != nil {
 		return taskRunView{}, taskErr
+	}
+	if blockedNewRun {
+		return taskRunView{}, errTaskEffectUnresolved
 	}
 	if prior.ID == "" && len(input.SelectedPages) > 0 {
 		if originalTask.Revision != input.TaskRevision || originalTask.Generation != input.Generation || originalTask.Holder != session.DeviceID {
 			return taskRunView{}, errToolConflict
 		}
 		var pageErr error
-		input.preparedPages, pageErr = s.readTaskPages(ctx, session, originalTask, input.SelectedPages, input.AuthorizationRef)
+		input.preparedPages, pageErr = s.readTaskPages(ctx, session, originalTask, input.SelectedPages, input.AuthorizationRef, input.RunID)
 		if pageErr != nil {
 			return taskRunView{}, pageErr
 		}
@@ -738,7 +742,11 @@ func (s *Server) handleTaskModelRun(w http.ResponseWriter, r *http.Request, sess
 		} else if errors.As(err, &provider) && provider.StatusCode == http.StatusTooManyRequests {
 			status = http.StatusTooManyRequests
 		}
-		writeJSON(w, status, map[string]any{"error": "task model run did not complete", "run": view})
+		response := map[string]any{"error": "task model run did not complete", "run": view}
+		if errors.Is(err, ErrTaskPagesSourceNotSupplied) {
+			response["blocker"] = "AI_BROWSER_PROTECTED_PAGE_READER_NOT_SUPPLIED"
+		}
+		writeJSON(w, status, response)
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")

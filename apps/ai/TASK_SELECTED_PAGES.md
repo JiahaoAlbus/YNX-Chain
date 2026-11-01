@@ -13,9 +13,13 @@ implement `OriginalTaskPagesAuthority.ReadOriginalTaskPages`. Installation in
 environment flag or model cannot install one. The method must borrow original
 Browser/resource authority, check account, actual task/revision/generation,
 ordinary profile and current document, and return detached snapshots after
-releasing its borrows. It must not fetch a caller URL. The original production
-Native factory currently supplies no qualified Browser operand: that branch
-remains unavailable until the original integrating owners supply it.
+releasing its borrows. It must not fetch a caller URL. The normal Native adapter now implements this consumer and invokes the optional
+`ReadOriginalBrowserPageReadout(context.Context, []byte) ([]byte,error)` method on
+the SAME original Auth Runtime. The current supplier module does not implement
+that callee: the branch returns `AI_BROWSER_PROTECTED_PAGE_READER_NOT_SUPPLIED`
+and HTTP503 without invoking a provider. The required exact signature/selection
+DATA schema is documented in `TASK_PAGE_READER_CONTRACT.md`. This is a concrete
+supplier CODE gap; no PUBLIC/file/socket fallback can fill it.
 
 The existing `POST /api/tasks/{id}/runs` / CLI `run-start` or `run-resume` body
 accepts optional `selectedPages`:
@@ -48,8 +52,14 @@ including schema/tabID/profileID/generation-as-string/origin/taskID/fields/conte
 The consumer uses standard-library SHA3-512 and SHA-512 and byte length against
 the original bindings and compares all payload metadata; it never reserializes
 the original bytes to create a replacement version. Only a separate model
-projection decodes its selected fields. Local preparation IDs cannot be relabeled
-to the real task: Browser must provide original snapshots bound to that task.
+projection decodes its selected fields. Local preparation IDs cannot be relabeled or rehashed. `preparationId` retains
+the original envelope identity, separately from the outer actual AI `taskId`.
+Only the qualified original Source may bind that unchanged preparation to the
+actual task/revision/generation/holder; HTTP/model input cannot supply that map.
+The Browser may also create fresh individual snapshots after choosing an actual
+task reference. SourceClass SELECTED_BROWSER_PAGE and ContentTrust UNTRUSTED
+are fixed consumer classifications, not resource/disclosure authority. Legacy
+encrypted snapshots and canonical report fields remain unchanged on upgrade.
 This is product input validation, not a new cryptographic verifier.
 
 `AVAILABLE` includes only the selected url/title/text fields. `STALE` and
@@ -113,3 +123,10 @@ receipt and read-only reopen. These use explicitly PUBLIC synthetic page,
 provider and approval operands. Only the isolated official DAV network effect
 is a real upstream observation. They do not qualify real Browser page consent,
 paid model quota, Native approval, production Source, installed UI or deployment.
+
+Task completion now consumes authenticated original WebDAV tool observations as
+well as existing tool receipts. It requires a returned/decryptable current model
+answer and exact run task revision/generation/holder. Task-level UNKNOWN or a
+tampered external record blocks new scheduling/closure, even if a different
+ordinary tool completed. Only original query recovery proceeds; an observation
+can close local orchestration without becoming authorship or remote finality.
