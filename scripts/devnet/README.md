@@ -691,3 +691,82 @@ to identify the full-cohort percentile. The pure control
 `IndependentLoadControls.test_nearly_complete500_still_censors_every_full_cohort_percentile`
 checks both partial boundaries and the complete500 case without running a node.
 This reporting fix does not alter or rerun an already frozen load window.
+
+### Bounded staged normal-sender harness (execution qualification pending)
+
+`--staged-publication` explicitly selects separate publication (2 workers),
+inclusion/H+1 observation (2 workers), and normal final-proof/Confirm (4 workers)
+queues. Publication admits a bounded four-entry queue; observation and proof
+queues are bounded by the complete configured demand. The original Ledger still
+owns one pending operation per account and advances its nonce only after the
+original same-identity normal verifier and Confirm have succeeded. Different
+accounts may continue publishing while proof workers wait. A blocked queue,
+queued/unsent demand, inclusion alone or elapsed time cannot manufacture success.
+
+The existing normal sender command opens one owner per process. The bounded
+backend opens at most two cold signing processes, closes them by normal EOF after
+the original reply, and reopens that same owner only to Confirm that original
+operation. Closing a process does not release its logical pending operation or
+remove its outbox. Confirm shares the original three proof-helper process slots;
+parent + four nodes + two signers + three helpers is at most 10 of the unchanged
+16 owned-PID cap. Cold custody import/DATA-ready, slot wait, launch, command and
+normal-close elapsed times remain inside the reported operation. No warmed
+ready replies are fabricated during preparation; no automatic re-sign or retry
+is implemented. Source checkpoint movement can still produce the normal
+rejection/UNKNOWN, which remains preserved.
+
+Normal returned replies are counted before their timing/echo validation. Reports
+separate actual missing timing on returned replies from unsubmitted or unfinished
+demand and retain rejected outcomes and original causes. Full-demand requirements
+remain unchanged. Events observed at/after the configured window+tail are retained
+as `pipeline.lateEvidence`; they do not complete the cutoff cohort or release
+its nonce. Source-side effects must later be reconciled against that same
+operation. Actual parent cleanup cutoff time remains separately reported.
+
+The staged source is explicitly pinned to
+`c4b39c73ec3a43c2ba32f7071bb735b0c0447f5e`, tree
+`2fd621242e73e1cb4901413c03f7d48336801d11`. CORE's normal sender now handles a pure
+32 MiB cache-capacity refusal through the existing complete uncached loader,
+without new flags or a larger cache. The new source's full normal CI and actual
+500 independent initialized-owner input are still required:
+`STAGED_SOURCE_QUALIFICATION=None` blocks staged `--execute` before source
+probing, builds, nodes or keys. The older c06 diagnostic qualification is separate.
+The qualified two-owner + 33 MiB control is not a 500-owner result. c06's intact
+504-owner migration signature memo alone has a 54,918,864-byte lower bound, so
+its 33,554,432-byte cached loader cannot supply that input. No Python codec,
+truncated history, implicit smaller account pool or privilege change is used.
+
+The original CI can invoke the new pure-control hook:
+
+```
+python3 -I -B scripts/loadtest/pq-staged-harness-controls.py --run
+```
+
+It declares 61 controls: completion/reporting 20, staged scheduler 16, bounded
+normal sender transport/lease 19, owned namespace identity 4, and two affected
+full-cohort/export-stage controls. These are pure transport/scheduling controls,
+not Go cryptographic, node, pressure or performance evidence. In particular a
+16-account case blocks all four final-proof workers while accounts 9–16 still
+publish/observe, with zero qualified and all 16 pending/nonces retained. The
+execution flag stays closed until the genuine new-source prerequisites arrive.
+
+Header capture now derives namespace identity only from the actual original
+launcher and registered PID/startTicks, never init PID1. It does not read foreign
+process namespace links. If foreign visible processes prevent proving exclusive
+controlled scope it refuses capture, retains the positive owned identities and
+reports scope unproven. It does not infer their namespaces, switch namespaces,
+raise privilege or capture an unrelated scope. The original run's EACCES remains
+unchanged evidence.
+
+The immutable c06 diagnostic run 41293628942 used 500 total demand: eight POSTs,
+eight four-node execution observations, one original verified+Confirm qualified
+receipt in tail, eight UNKNOWN rows (including the next sign with no reply), and
+491 queued. Effective qualified business TPS in the five-second offered window
+was zero. The eight POST→inclusion samples ranged 3.980934183–8.012486377 seconds;
+the single POST→qualified receipt sample was 29.521133448 seconds. Full500
+percentiles are censored. Four stopped Commit snapshots each retained seven
+samples H15–21, including preparation/nonbusiness commits. The endpoint TCP sum
+31,238,620 bytes is not a physical-wire or per-transaction measurement. This
+single-host four-process diagnostic is neither a before/after improvement nor
+four physical fault-domain validation. Its original ZIP and all 192 file hashes,
+partial outcomes and first operational failure are preserved outside Git.

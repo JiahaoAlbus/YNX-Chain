@@ -106,7 +106,7 @@ class Ledger:
         require(type(at) is int and at>=row["releasedNs"],"parent monotonic event required")
         if stage=="normal_stage":
             name=event["stage"]
-            require(name in ("checkpoint","signer","presigned","durable_original","post","inclusion","successor_availability","proof_queue","live_publish","live_capture","live_read","proof_public_export","verifier","confirm","receipt","proof_portable_export") and row["status"] not in ("qualified","failed","unknown"),"normal stage point differs")
+            require(name in ("checkpoint","signer","presigned","durable_original","post","inclusion","successor_availability","proof_queue","live_publish","live_capture","live_read","proof_public_export","verifier","confirm","receipt","proof_portable_export","publication_queue","inclusion_queue","proof_worker_queue","publish_worker","observe_worker","finalize_worker","sender_open_sign","sender_open_confirm") and row["status"] not in ("qualified","failed","unknown"),"normal stage point differs")
             require(not row["stageTimes"] or at>=row["stageTimes"][-1][1],"normal stage clock regressed")
             row["activeStage"]=name;row["stageTimes"].append([name,at])
         elif stage=="signed":

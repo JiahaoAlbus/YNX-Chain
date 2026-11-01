@@ -67,7 +67,7 @@ class OwnedHeaderCaptureControls(unittest.TestCase):
   with tempfile.TemporaryDirectory() as tmp,mock.patch.object(p.sys,'platform','darwin'),mock.patch.object(p.socket,'socket',side_effect=AssertionError('no capture socket')):
    out=Path(tmp).resolve();capture=p.OwnedHeaderCapture({},out,45);state=capture.start();report=capture.stop();self.assertEqual(report['status'],'NOT_SUPPLIED');self.assertEqual(report['reason'],'LINUX_AF_PACKET_NOT_AVAILABLE');self.assertFalse(report['packetCaptureExecuted']);self.assertIsNone(report['kernelIpBytes']);self.assertIsNone(report['actualPerTransactionBytes']);self.assertEqual(list(out.iterdir()),[])
  def test_unknown_namespace_fails_before_socket_creation(self):
-  with tempfile.TemporaryDirectory() as tmp,mock.patch.object(p.sys,'platform','linux'),mock.patch.object(p.socket,'AF_PACKET',17,create=True),mock.patch.object(p,'frozen_tcp',return_value=v.tcp),mock.patch.object(p,'exclusive_current_namespace',side_effect=ValueError('DEDICATED_CONTROLLED_TEST_NAMESPACE_NOT_SUPPLIED')),mock.patch.object(p.socket,'socket',side_effect=AssertionError('must not bind shared namespace')):
+  with tempfile.TemporaryDirectory() as tmp,mock.patch.object(p.sys,'platform','linux'),mock.patch.object(p.socket,'AF_PACKET',17,create=True),mock.patch.object(p,'frozen_tcp',return_value=v.tcp),mock.patch.object(p,'owned_namespace_identity',return_value={'classification':'UNIT-OWNED-IDENTITY'}),mock.patch.object(p,'exclusive_current_namespace',side_effect=ValueError('DEDICATED_CONTROLLED_TEST_NAMESPACE_NOT_SUPPLIED')),mock.patch.object(p.socket,'socket',side_effect=AssertionError('must not bind shared namespace')):
    _,start,_=v.fixture();capture=p.OwnedHeaderCapture(start['tcp'],Path(tmp).resolve(),45);report=capture.start();self.assertEqual(report['reason'],'DEDICATED_CONTROLLED_TEST_NAMESPACE_NOT_SUPPLIED');self.assertFalse(report['packetCaptureExecuted'])
 
 class HeaderLifecycleControls(unittest.TestCase):
@@ -103,5 +103,32 @@ class HeaderLifecycleControls(unittest.TestCase):
  def test_unsupported_stop_is_idempotent_and_first_cause_is_preserved(self):
   with tempfile.TemporaryDirectory() as tmp,mock.patch.object(p.sys,'platform','darwin'):
    c=p.OwnedHeaderCapture({},Path(tmp).resolve(),45);c.start();first=c.stop();self.assertIs(c.stop(),first);self.assertEqual(first['firstCause'],'LINUX_AF_PACKET_NOT_AVAILABLE');self.assertTrue(first['readerJoined']);self.assertFalse(first['matchedFlowCaptureComplete'])
+
+class OwnedNamespaceIdentityControls(unittest.TestCase):
+ def setup_scope(self,foreign=False,wrong=False,reused=False):
+  _,start,_=v.fixture();sample=start['tcp'];owned={100,101,102};rows={n['pid']:{'startTicks':int(n['startTicks'])} for n in [sample['launcher'],*sample['nodes']]}
+  if foreign:rows[1]={'startTicks':1}
+  if reused:rows[101]['startTicks']+=1
+  expected={n['pid']:{k:n[k] for k in ('uid','processUIDs','netns','userns')} for n in [sample['launcher'],*sample['nodes']]}
+  if wrong:expected[101]=dict(expected[101],netns='net:[999]')
+  guard=SimpleNamespace(owned_set=lambda *a:owned)
+  def identity(pid):
+   self.assertIn(pid,owned);return expected[pid]
+  return sample,rows,guard,identity
+ def test_foreign_init_is_not_namespace_source_and_scope_stays_unproven(self):
+  sample,rows,guard,identity=self.setup_scope(foreign=True)
+  with mock.patch.object(p.os,'getpid',return_value=100),mock.patch.object(v.tcp,'_guard',return_value=guard),mock.patch.object(v.tcp,'_inventory',return_value=(rows,{})),mock.patch.object(v.tcp,'_process_identity',side_effect=identity) as reads:
+   proof=p.owned_namespace_identity(v.tcp,sample);self.assertEqual(proof['netns'],'net:[10]');self.assertEqual(proof['foreignVisibleProcessCount'],1);self.assertFalse(proof['foreignNamespacesRead'])
+   with self.assertRaisesRegex(ValueError,'scope unproven'):p.exclusive_current_namespace(v.tcp,sample)
+   self.assertNotIn(mock.call(1),reads.call_args_list)
+ def test_actual_owned_namespace_mismatch_or_pid_reuse_is_rejected(self):
+  for wrong,reused in ((True,False),(False,True)):
+   sample,rows,guard,identity=self.setup_scope(wrong=wrong,reused=reused)
+   with mock.patch.object(p.os,'getpid',return_value=100),mock.patch.object(v.tcp,'_guard',return_value=guard),mock.patch.object(v.tcp,'_inventory',return_value=(rows,{})),mock.patch.object(v.tcp,'_process_identity',side_effect=identity):
+    with self.assertRaises((ValueError,v.tcp.Unknown)):p.owned_namespace_identity(v.tcp,sample)
+ def test_visible_scope_proof_checks_only_actual_registered_processes(self):
+  sample,rows,guard,identity=self.setup_scope()
+  with mock.patch.object(p.os,'getpid',return_value=100),mock.patch.object(v.tcp,'_guard',return_value=guard),mock.patch.object(v.tcp,'_inventory',return_value=(rows,{})),mock.patch.object(v.tcp,'_process_identity',side_effect=identity) as reads:
+   proof=p.exclusive_current_namespace(v.tcp,sample);self.assertTrue(proof['exclusiveToOriginalSupervisor']);self.assertEqual([c.args[0] for c in reads.call_args_list],[100,101,102])
 
 if __name__=='__main__':unittest.main()

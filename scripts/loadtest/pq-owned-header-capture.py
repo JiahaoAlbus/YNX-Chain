@@ -44,22 +44,29 @@ def original_flow_scope(tcp,sample):
         reverse=flows.get((key[2],key[3],key[0],key[1]));require(reverse is not None and reverse['source']==row['target'] and reverse['target']==row['source'],'original reverse owned tuple required')
     return flows,identities
 
-def exclusive_current_namespace(tcp,sample):
+def owned_namespace_identity(tcp,sample):
     require(sample['launcher']['pid']==os.getpid(),'capture must stay in the original supervisor')
     guard=tcp._guard();deadline=time.monotonic()+3;rows,_=tcp._inventory(guard,deadline)
     receipts=[dict(name=n['name'],pid=n['pid'],startTicks=n['startTicks']) for n in sample['nodes']]
     tcp.validate_owned_receipts(rows,os.getpid(),receipts,guard)
-    owned=set(guard.owned_set(rows,os.getpid()));own=tcp._process_identity(os.getpid())
-    require(own['netns']==sample['launcher']['netns'] and own['userns']==sample['launcher']['userns'],'original namespace changed')
-    members=[]
-    for pid in rows:
-        require(time.monotonic()<deadline,'capture namespace membership bound exceeded')
-        try:netns=os.readlink(Path('/proc')/str(pid)/'ns/net')
-        except FileNotFoundError:continue
-        if netns==own['netns']:
-            require(pid in owned,'DEDICATED_CONTROLLED_TEST_NAMESPACE_NOT_SUPPLIED')
-            members.append(pid)
-    return dict(netns=own['netns'],userns=own['userns'],originalOwnedMembers=sorted(members),exclusiveToOriginalSupervisor=True)
+    owned=set(guard.owned_set(rows,os.getpid()));identities=[]
+    for expected in [sample['launcher'],*sample['nodes']]:
+        pid=expected['pid'];require(pid in owned and str(rows[pid]['startTicks'])==str(expected['startTicks']),'original PID/startTicks identity changed')
+        # Read ONLY the actual launcher/registered original node namespaces.
+        # PID1 is never a default namespace source or an extra candidate.
+        actual=tcp._process_identity(pid)
+        require(all(actual[key]==expected[key] for key in ('uid','processUIDs','netns','userns')),'original owned process namespace/UID identity changed')
+        require(actual['netns']==sample['launcher']['netns'] and actual['userns']==sample['launcher']['userns'],'original owned nodes are not in supervisor namespace')
+        identities.append(dict(pid=pid,startTicks=expected['startTicks'],netns=actual['netns'],userns=actual['userns']))
+    return dict(netns=sample['launcher']['netns'],userns=sample['launcher']['userns'],originalOwnedIdentities=identities,namespaceIdentitySource='actual launcher and registered owned PID/startTicks only',foreignVisibleProcessCount=len(set(rows)-owned),foreignNamespacesRead=False)
+
+def exclusive_current_namespace(tcp,sample):
+    proof=owned_namespace_identity(tcp,sample)
+    # Stronger than trying to inspect init/foreign namespaces: if the visible
+    # inventory is not exclusively ours, dedicated scope is unproven. Do not
+    # replace an EACCES with a guessed shared namespace or a broader capture.
+    require(proof['foreignVisibleProcessCount']==0,'DEDICATED_CONTROLLED_TEST_NAMESPACE_NOT_SUPPLIED: foreign visible process scope unproven; no foreign namespace read')
+    return dict(**proof,exclusiveToOriginalSupervisor=True,exclusivityEvidence='original visible PID inventory all owned; external scope remains operator responsibility')
 
 def bpf_program(flows):
     require(0<len(flows)<=MAX_FLOWS,'bounded exact tuples required')
@@ -103,6 +110,7 @@ class OwnedHeaderCapture:
         try:
             require(sys.platform=='linux' and hasattr(socket,'AF_PACKET'),'LINUX_AF_PACKET_NOT_AVAILABLE')
             tcp=frozen_tcp();self.tcp=tcp;self.flows,self.identities=original_flow_scope(tcp,self.sample)
+            self.result['ownedNamespaceIdentity']=owned_namespace_identity(tcp,self.sample)
             self.result['controlledNamespace']=exclusive_current_namespace(tcp,self.sample)
             self.sock=socket.socket(socket.AF_PACKET,socket.SOCK_DGRAM,0) # protocol0 receives NOTHING
             self.sock.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,256<<10);self.sock.settimeout(.05)

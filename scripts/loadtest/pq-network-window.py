@@ -80,7 +80,7 @@ class NetworkWindow:
             path=Path(__file__).with_name("pq-owned-header-capture.py");spec=importlib.util.spec_from_file_location("original_owned_header_capture",path);capture=importlib.util.module_from_spec(spec);spec.loader.exec_module(capture)
             self.header_capture=capture.OwnedHeaderCapture(sample,self.c.w.work/"public",self.header_capture_seconds)
             state=self.header_capture.start()
-            self.lab.write_new(self.c.w.work/"public/network-header-capture-start.json",{key:state.get(key) for key in ("schema","status","reason","packetCaptureExecuted","captureStartedMonotonicNs","controlledNamespace","filterSHA256","filterAttachedBeforeBind","filterLocked","maxPackets","maxIpBytes","maxSeconds")})
+            self.lab.write_new(self.c.w.work/"public/network-header-capture-start.json",{key:state.get(key) for key in ("schema","status","reason","packetCaptureExecuted","captureStartedMonotonicNs","ownedNamespaceIdentity","controlledNamespace","filterSHA256","filterAttachedBeforeBind","filterLocked","maxPackets","maxIpBytes","maxSeconds")})
         return checkpoint
 
     def finish(self,qualified_count,load_clock=None,load_result=None):
