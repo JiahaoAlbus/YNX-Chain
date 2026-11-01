@@ -219,4 +219,32 @@ class PreparationCalleeControls(unittest.TestCase):
         with mock.patch.object(d.normal.Ceremony,'sender_command',return_value={'code':'ORIGINAL_SAVED'}),self.assertRaisesRegex(RuntimeError,'callee elapsed schema'):obj.sender_command('original',0,{'operation':'sign'})
         self.assertEqual(obj.preparation_sender_measurements,[])
 
+class OriginalFailedCalleeControls(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        OriginalDriverInitializationControls.setUpClass();cls.driver=OriginalDriverInitializationControls.driver
+        cls.raw=(Path(__file__).with_name('fixtures')/'init500-live-setup0-original-failure.log').read_bytes()
+    def test_actual_retained_failed_go_metrics_are_not_successful_reply_or_zero(self):
+        r=self.driver.original_failed_callee_timing(self.raw)
+        self.assertEqual(r['calleeElapsedNs'],5448072916);self.assertEqual(r['timings']['stages']['live.configLoadTotal']['elapsedNs'],873289);self.assertFalse(r['businessSuccess'] or r['sourceGrant']);self.assertEqual(r['outcome'],'REFUSED_OR_UNKNOWN_NO_RETRY')
+    def test_missing_duplicate_or_relabelled_failed_metrics_are_refused(self):
+        encoded=json.loads(self.raw.rsplit(b'; elapsed=',1)[1]);duplicate=self.raw.replace(b'"CalleeElapsedNS":5448072916',b'"CalleeElapsedNS":1,"CalleeElapsedNS":5448072916')
+        for raw in [b'ordinary error without timing',duplicate,self.raw.replace(b'REFUSED_OR_UNKNOWN_NO_RETRY',b'ORIGINAL_SAVED')]:
+            with self.subTest(raw=raw[:40]),self.assertRaises((RuntimeError,ValueError)):self.driver.original_failed_callee_timing(raw)
+    def test_original_call_failure_is_preserved_when_original_failure_metric_is_retained(self):
+        from types import SimpleNamespace
+        d=self.driver
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp).resolve();(root/'public').mkdir();(root/'public/live-setup-0.log').write_bytes(self.raw)
+            obj=object.__new__(d.LoadCeremony);obj.w=SimpleNamespace(work=root);obj.consumer_source=d.STAGED_CALLEE_SOURCE;obj.failed_callee_attempts=0;obj.failed_callee_measurements=[];original=RuntimeError('original live-setup error')
+            with mock.patch.object(d.normal.Ceremony,'call',side_effect=original),self.assertRaises(RuntimeError) as caught:obj.call('live-setup-0',[])
+            self.assertIs(caught.exception,original);self.assertEqual(obj.failed_callee_measurements[0]['status'],'ORIGINAL_FAILURE_TIMING_OBSERVED');self.assertFalse(obj.failed_callee_measurements[0]['successfulReply']);self.assertEqual(obj.failed_callee_measurements[0]['originalFailureTiming']['calleeElapsedNs'],5448072916)
+    def test_missing_original_log_never_replaces_original_error_or_invents_timing(self):
+        from types import SimpleNamespace
+        d=self.driver
+        with tempfile.TemporaryDirectory() as tmp:
+            obj=object.__new__(d.LoadCeremony);obj.w=SimpleNamespace(work=Path(tmp));obj.consumer_source=d.STAGED_CALLEE_SOURCE;obj.failed_callee_attempts=0;obj.failed_callee_measurements=[];original=RuntimeError('first')
+            with mock.patch.object(d.normal.Ceremony,'call',side_effect=original),self.assertRaises(RuntimeError) as caught:obj.call('live-setup-0',[])
+            self.assertIs(caught.exception,original);row=obj.failed_callee_measurements[0];self.assertEqual(row['status'],'NOT_SUPPLIED');self.assertNotIn('originalFailureTiming',row)
+
 if __name__=='__main__':unittest.main()

@@ -8,6 +8,7 @@ import argparse
 import base64
 import copy
 import ctypes
+import hashlib
 import importlib.util
 import json
 import os
@@ -55,6 +56,23 @@ def callee_snapshot(value):
     for name,stage in stages.items():
         lab.require(type(name) is str and 0<len(name)<=128 and type(stage) is dict and type(stage.get("calls")) is int and 0<stage["calls"]<1<<64 and type(stage.get("elapsedNs")) is int and 0<=stage["elapsedNs"]<1<<63,"invalid original callee stage timing")
     return value
+
+
+def original_failed_callee_timing(raw):
+    # Original normal CLI failure telemetry is stderr text followed by one
+    # closed JSON metric object. It is not a successful sender/material reply.
+    marker=b'; elapsed='
+    lab.require(type(raw) is bytes and len(raw)<=lab.CAPS['logBytes'] and marker in raw,'original failed-callee elapsed payload NOT_SUPPLIED')
+    encoded=raw.rsplit(marker,1)[1].strip()
+    def fields(items):
+        result={}
+        for key,value in items:
+            lab.require(key not in result,'duplicate original failed-callee metric field');result[key]=value
+        return result
+    value=json.loads(encoded,object_pairs_hook=fields)
+    lab.require(type(value) is dict and set(value)=={'Version','Outcome','CalleeElapsedNS','Timings'} and value['Version']=='YNX-PQ-LAB-CALLEE-FAILURE/v1' and value['Outcome']=='REFUSED_OR_UNKNOWN_NO_RETRY' and type(value['CalleeElapsedNS']) is int and value['CalleeElapsedNS']>=0,'original failure metric schema differs')
+    callee_snapshot(value['Timings'])
+    return dict(version=value['Version'],outcome=value['Outcome'],calleeElapsedNs=value['CalleeElapsedNS'],timings=copy.deepcopy(value['Timings']),originalLogSHA256=hashlib.sha256(raw).hexdigest(),businessSuccess=False,sourceGrant=False,meaning='Original failed CLI elapsed spans only; not a normal successful reply, DATA-ready, complete demand, authority, or retry permission.')
 
 
 class CalleeMeasurements:
@@ -215,14 +233,35 @@ class LoadCeremony(normal.Ceremony):
         self.commit_observation_enabled=commit_observation;self.commit_observation_descriptors=[]
         self.consumer_source=CALLEE_SOURCE if consumer_source is None else consumer_source
         self.preparation_sender_arguments=("--timings",);self.preparation_sender_measurements=[]
+        self.failed_callee_measurements=[];self.failed_callee_attempts=0
         self.measurements=CalleeMeasurements(operations,len(self.workload["owners"])-4 if self.mode=="online" else 0,sender_pool=sender_pool,source=self.consumer_source)
         verifier=self.bins/"ynx-consensus-proof-verify";self.verifier_binary_pin=lab.guard.digest(verifier)
         info=verifier.stat();self.verifier_binary_identity=(info.st_dev,info.st_ino,info.st_size,info.st_mtime_ns)
+    def retain_failed_callee(self,name):
+        self.failed_callee_attempts+=1
+        if len(self.failed_callee_measurements)>=64:return
+        record=dict(name=name,source=self.consumer_source,status='NOT_SUPPLIED',successfulReply=False,sourceGrant=False)
+        try:
+            lab.require(type(name) is str and name and all(c.isalnum() or c in '-_' for c in name),'original bounded public callee label required')
+            raw=lab.guard.bounded(self.w.work/'public'/(name+'.log'),lab.CAPS['logBytes'])
+            record.update(status='ORIGINAL_FAILURE_TIMING_OBSERVED',originalFailureTiming=original_failed_callee_timing(raw))
+        except BaseException as error:record['measurementErrorType']=type(error).__name__
+        self.failed_callee_measurements.append(record)
+
+    def call(self,name,args):
+        try:return super().call(name,args)
+        except BaseException:
+            self.retain_failed_callee(name)
+            raise # Original failure is never replaced by a telemetry failure.
+
     def sender_command(self,name,owner,command):
         # Same original one-shot FD3 sender and command; opt into its existing
         # measured JSON reply, without pre-opening custody or changing timing.
         lab.require(len(self.preparation_sender_measurements)<8,'bounded original preparation command measurements required')
-        reply=super().sender_command(name,owner,command)
+        try:reply=super().sender_command(name,owner,command)
+        except BaseException:
+            self.retain_failed_callee(name)
+            raise
         stages=callee_snapshot(reply.get('timings'));startup=callee_snapshot(reply.get('startupTimings'))
         elapsed=reply.get('calleeElapsedNs');cold=reply.get('startupElapsedNs')
         lab.require(type(elapsed) is int and elapsed>=0 and type(cold) is int and cold>=0,'original preparation callee/startup timing missing')
@@ -726,6 +765,7 @@ def run(args):
             result["wireObservation"]=ceremony.wire_readback()
             result["normalCalleeMeasurements"]=ceremony.measurements.report()
             result["preparationSenderMeasurements"]=copy.deepcopy(getattr(ceremony,"preparation_sender_measurements",[]))
+            result['failedCalleeMeasurements']=dict(attempted=getattr(ceremony,'failed_callee_attempts',0),retained=len(getattr(ceremony,'failed_callee_measurements',[])),recordLimit=64,records=copy.deepcopy(getattr(ceremony,'failed_callee_measurements',[])),successfulReplyCoverageUnchanged=True,authorityGranted=False)
         if "loadResult" not in result:
             result["preparationOnlyDemandAccounting"]=dict(configuredDemand=demand,notReleased=demand,notSubmitted=demand,notQualified=demand,meaning="normal preparation never opened the requested load window; no achieved offered rate or business TPS")
         if getattr(args,'initialization_only',False):

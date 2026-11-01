@@ -814,3 +814,12 @@ while raw snapshot bytes are resident, after decoding while both representations
 are resident, and before release. It uses no background thread or extra process,
 so initialization's original fork/FD3 lifecycle stays intact. Reported RSS peaks
 remain observed samples; they do not become continuous hardware measurements.
+
+The failed 41303023201 initialization's exact public `live-setup-0` stderr is a
+small regression fixture. The driver retains a separate closed failure-metric
+record when the normal CLI exits with its original `YNX-PQ-LAB-CALLEE-FAILURE/v1`
+telemetry. These nested elapsed spans remain failed/UNKNOWN observations; they
+never increment successful reply coverage, grant authority or permit retry.
+Missing, duplicate or relabelled failure metrics remain NOT_SUPPLIED, and any
+telemetry-read error leaves the original Go/Python exception unchanged. The
+frozen original receipt is never backfilled from successor measurement code.
