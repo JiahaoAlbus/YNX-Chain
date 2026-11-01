@@ -428,6 +428,12 @@
       "browser": null,
       "node": "./src/pq-native-pay-observation.js",
       "default": null
+    },
+    "./social-ordinary-enrollment-v2-data": {
+      "types": "./src/social-ordinary-enrollment-v2.d.ts",
+      "browser": null,
+      "node": "./src/social-ordinary-enrollment-v2.js",
+      "default": null
     }
   },
   "types": "./src/index.d.ts",

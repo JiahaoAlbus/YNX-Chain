@@ -1,0 +1,17 @@
+{
+  "paths": [
+    ".github/workflows/wallet-desktop-windows.yml",
+    "packages/wallet-auth/docs/SOCIAL_ORDINARY_ENROLLMENT_V2.md",
+    "packages/wallet-auth/integration/SOCIAL_ORDINARY_ENROLLMENT_V2_SCHEMA.json",
+    "packages/wallet-auth/package.json",
+    "packages/wallet-auth/src/social-ordinary-enrollment-v2.d.ts",
+    "packages/wallet-auth/src/social-ordinary-enrollment-v2.js",
+    "packages/wallet-auth/test/social-ordinary-enrollment-v2.test.mjs",
+    "packages/wallet-auth/test/social-ordinary-enrollment-v2.types.mts",
+    "scripts/ci/ordinary-enrollment-v2-base-members.json",
+    "scripts/ci/ordinary-enrollment-v2-expected-changes.json",
+    "scripts/ci/ordinary-enrollment-v2-normal.mjs",
+    "scripts/ci/ordinary-enrollment-v2-package.mjs",
+    "scripts/ci/social-ordinary-enrollment-v2.mjs"
+  ]
+}
