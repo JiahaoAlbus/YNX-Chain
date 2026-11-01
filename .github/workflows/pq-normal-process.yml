@@ -8,10 +8,10 @@ on:
   workflow_dispatch:
     inputs:
       load_profile:
-        description: Exact normal finite online live wire and TCP baseline; no business pressure
+        description: Exact qualified live-fix full500 normal initialization only; no business pressure
         type: choice
         default: functional
-        options: [functional, normal-live-9081-finite]
+        options: [functional, current9081-measured-initialize500-only]
       signing_mode:
         description: Fresh independent functional window; never replay original UNKNOWN
         type: choice
@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   functional:
-    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'normal-live-9081-finite')
+    if: github.ref != 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && (github.event_name != 'workflow_dispatch' || inputs.load_profile != 'current9081-measured-initialize500-only')
     name: Normal original PQ processes (${{ matrix.mode }})
     runs-on: ubuntu-24.04
     timeout-minutes: 18
@@ -93,9 +93,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  normal-live-9081-finite:
-    name: Normal live wire and endpoint TCP finite baseline - no pressure
-    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.load_profile == 'normal-live-9081-finite'))
+  current9081-measured-initialize500-only:
+    name: Cold-ready full500 initialization only - no business pressure
+    if: github.ref == 'refs/heads/codex/ynx-pq-current75-baseline-20261101' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.load_profile == 'current9081-measured-initialize500-only'))
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     env:
@@ -105,7 +105,7 @@ jobs:
       GOTELEMETRY: 'off'
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
-      - name: Receive exact sole controller and pure invocation controls
+      - name: Receive only this fixed profile controller and its pure controls
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
@@ -117,9 +117,9 @@ jobs:
             /.github/workflows/pq-normal-process.yml
             /scripts/loadtest/pq-current75-baseline-ci.py
             /scripts/loadtest/test_pq_current75_baseline_ci.py
-      - name: Verify exact finite live profile invocation guards
+      - name: Validate only the new fixed-profile source qualification and invocation controls
         run: python3 -I -B controller/scripts/loadtest/test_pq_current75_baseline_ci.py -v
-      - name: Receive fixed original normal source
+      - name: Receive exact qualified live-fix source graph for full500 initialization
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: 9081f14654a48f4fe14e57696ec33527869da353
@@ -129,56 +129,55 @@ jobs:
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: |
+            /.github/workflows/resource-market-ci.yml
             /go.mod
             /go.sum
             /cmd/
             /internal/
             /pkg/
-            /contracts/
             /third_party/cometbft/
-            /scripts/verify/wire-live-matching-source-ci.py
+            /scripts/ops/validate-pq-remote-normal-ci.py
             /scripts/loadtest/pq-source-artifact-intake.py
-      - name: Receive and verify only the independently pinned matching supplier object
-        run: |
-          git -C source fetch --no-tags origin 54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076
-          test "$(git -C source rev-parse HEAD)" = "9081f14654a48f4fe14e57696ec33527869da353"
-          test "$(git -C source rev-parse 54b104fb1cdf3d7d2e89e3bc40eafc6d61f8f076:third_party/cometbft)" = "b1e9a83ab11ed141fda90bc47521faa412176caa"
-          test -z "$(git -C source status --porcelain)"
-      - name: Receive fixed original supervisor and live consumer
+      - name: Receive exact measured normal initializer and original lifecycle guards
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: f5941aadde4f09d938a2146c54abad8c79a29301
+          ref: 7d1e93b90ff386685c050b330cd093957b1ddadf
           path: tools
           fetch-depth: 1
           filter: blob:none
           persist-credentials: false
           sparse-checkout-cone-mode: false
           sparse-checkout: /scripts/loadtest/
-      - name: Execute source pins timing controls clean-exit negatives and original Linux FD controls
+      - name: Execute all168 pure controls and original Linux RSS lifecycle before initialization
         run: |
+          python3 -B tools/scripts/loadtest/pq-staged-harness-controls.py --run
           python3 -B - <<'PYCONTROLS'
           import unittest
-          for pattern,count in [('test_pq_normal_live_source_data.py',5),('test_pq_normal_live_reader.py',15),('test_pq_normal_live_build_source.py',4),('test_pq_normal_parent_measurements.py',7),('test_pq_normal_clean_exit.py',4),('test_pq_normal_process_lab.py',9)]:
+          for pattern,count in [('test_consensus_linux_cohort.py',8),('test_linux_owned_rss.py',15),('test_window_failure_cleanup.py',3)]:
               suite=unittest.defaultTestLoader.discover('tools/scripts/loadtest',pattern=pattern)
               result=unittest.TextTestRunner(verbosity=2).run(suite)
-              if result.testsRun!=count or result.skipped or not result.wasSuccessful():raise SystemExit('all actual controls required: '+pattern)
+              if result.testsRun!=count or result.skipped or not result.wasSuccessful():raise SystemExit('all original actual Linux controls required: '+pattern)
           PYCONTROLS
-      - name: Install pinned original normal toolchain without shared caches
+      - name: Install the original pinned normal toolchain without shared build caches
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
           go-version: '1.26.10'
           cache: false
-      - name: Execute one original online four-node finite live baseline and cleanup
+      - name: Execute sole normal full500 initialization and cleanup only
+        id: initialization
         env:
-          PQ_BASELINE_PROFILE: normal-live-9081-finite
+          PQ_BASELINE_PROFILE: current9081-measured-initialize500-only
         run: |
-          python3 -I -B controller/scripts/loadtest/pq-current75-baseline-ci.py --source "$GITHUB_WORKSPACE/source" --tools "$GITHUB_WORKSPACE/tools" --execute
-      - name: Preserve original raw live observations endpoint counters business proof and first failure
+          python3 -I -B controller/scripts/loadtest/pq-current75-baseline-ci.py \
+            --source "$GITHUB_WORKSPACE/source" --tools "$GITHUB_WORKSPACE/tools" --execute
+      - name: Preserve original initialization stages account census resource samples and failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: pq-normal-live-9081-finite-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/pq-normal-process-*/public/
+          name: pq-current9081-measured-initialize500-only-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/pq-current9081-source-functional-*.json
+            ${{ runner.temp }}/pq-independent-load-*/public/
           if-no-files-found: warn
           include-hidden-files: false
           retention-days: 14
