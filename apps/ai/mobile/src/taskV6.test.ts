@@ -9,7 +9,7 @@ function fixture(){
  const client={
   prepare(i:Intent){calls.push('prepare');assert.ok(saved!.entries.some(e=>e.operationId===i.operationId&&e.state==='PENDING'));intents.push(i);return Object.freeze({})},
   async prove(p:unknown){calls.push('prove');return p},
-  async send(){calls.push('send');const i=intents.at(-1)!;return {operationId:i.operationId,phase:'COMMITTED',unknown:false,responseOriginal:{status:200,complete:true,headers:[],bodyOriginal:new TextEncoder().encode(JSON.stringify({task:t,...t,tasks:[t],steps:[]}))},toolAuthorized:false,modelAuthorized:false,fundsAuthorized:false,dataOnly:true,RootAdmission:false,NativeAdmission:false,operationVerified:false} as unknown as Observation},
+  async send(){calls.push('send');const i=intents.at(-1)!;return {operationId:i.operationId,phase:'COMMITTED',unknown:false,responseOriginal:{status:200,complete:true,headers:[],bodyOriginal:new TextEncoder().encode(JSON.stringify(i.action==='task.list'?{tasks:[t],hasMore:false}:i.action==='task.read'?{...t,cursor:2,hasMore:false,events:[],steps:[]}:['task.run-start','task.run-resume','task.run-read'].includes(i.action)?{id:'run_internal',runId:i.runId,taskId:t.id,taskRevision:t.revision,generation:t.generation,status:'NEEDS_APPROVAL',steps:null,recoveryOnly:false}:['task.prepare','task.cancel','task.complete'].includes(i.action)?{task:t,remoteRollback:false}:t))},toolAuthorized:false,modelAuthorized:false,fundsAuthorized:false,dataOnly:true,RootAdmission:false,NativeAdmission:false,operationVerified:false} as unknown as Observation},
   async lookupOriginal(op:string){calls.push('lookup:'+op);return {op}},readRecovery(token:{op:string}){calls.push('readRecovery');return {operationId:token.op,evidenceOriginal:new Uint8Array([1,2]),dataOnly:true,RootAdmission:false,NativeAdmission:false,operationVerified:false,replayAuthorized:false}},
   async close(){calls.push('close')}
  } as unknown as Client;
@@ -79,4 +79,13 @@ test('vendored SDK047 types are byte-exact supplier contracts, with no executabl
 });
 test('normal workspace disposal owns original SDK close exactly once and exposes cleanup failure',async()=>{
  const {TaskWorkspaceController}=await import('./tasks');const f=fixture();let n=0;f.client.close=async()=>{n++;throw Error('PUBLIC close retained')};const api=createTaskAPI('http://127.0.0.1:6438',{identity:'PUBLIC',v6:f.original});const c=new TaskWorkspaceController('PUBLIC',api,{read:async()=>null,write:async()=>{}},()=> 'unused');c.dispose();c.dispose();await assert.rejects(c.whenClosed(),/close retained/);assert.equal(n,1);assert.equal(c.state.error,'V6_ORIGINAL_CLEANUP_UNRESOLVED');
+});
+test('corrupt falsy cold journal is not mistaken for absent storage',async()=>{const f=fixture();f.original.journal.read=async()=>false as never;const a=new NativeTaskV6Adapter('PUBLIC',f.original);await assert.rejects(a.execute(request(),new AbortController().signal),/JOURNAL_INVALID/);assert.equal(f.calls.length,0);assert.equal(f.writes.length,0)});
+test('cached task DATA cannot be mutated through a caller-owned list result',async()=>{const f=fixture(),api=createTaskV6API('PUBLIC',f.original),s=new AbortController().signal;const list=await api.list(s);list.tasks[0]!.revision=999;await api.task(t.id,s);assert.equal(f.intents[1]!.taskRevision,'2')});
+test('foreign conversation or current-task response is never cached as this task',async()=>{
+ const f=fixture(),api=createTaskV6API('PUBLIC',f.original),signal=new AbortController().signal;await api.list(signal);const send=f.client.send.bind(f.client);
+ f.client.send=async p=>{const result=await send(p);return {...result,responseOriginal:{...result.responseOriginal!,bodyOriginal:new TextEncoder().encode(JSON.stringify({...t,id:'foreign',cursor:2,hasMore:false,events:[],steps:[]}))}}};
+ await assert.rejects(api.task(t.id,signal),/RESULT_INVALID/);
+ f.client.send=async p=>{const result=await send(p);return {...result,responseOriginal:{...result.responseOriginal!,bodyOriginal:new TextEncoder().encode(JSON.stringify({...t,conversationId:'foreign'}))}}};
+ await assert.rejects(api.create('different_conversation',signal),/RESULT_INVALID/);
 });

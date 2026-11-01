@@ -1,0 +1,274 @@
+{
+  "NativeAdmission": false,
+  "PUBLICOnly": true,
+  "SourceAdmission": false,
+  "actualControlledModelHTTP": true,
+  "actualProductToolRead": true,
+  "completedRun": {
+    "providerURL": "http://127.0.0.1:61643",
+    "model": "isolated-fixed-model",
+    "taskRevision": 1,
+    "generation": 1,
+    "id": "run_89da05d6411d5d7ed15e0b3c3eeea1074e509ab66d89f32080addd403cab8aa3",
+    "runId": "stable-user-run",
+    "taskId": "task_ZJ9Od0fQhqTjmvTWAHVQog",
+    "status": "COMPLETED",
+    "steps": [
+      "toolstep_599879df49adf17c53af6264635bc812bfe2bc6dabc4a7fe0afc6512c82fd067"
+    ],
+    "content": "Final answer from the isolated HTTP provider.",
+    "cancelled": false,
+    "recoveryOnly": false
+  },
+  "pendingRun": {
+    "taskRevision": 1,
+    "generation": 1,
+    "id": "run_89da05d6411d5d7ed15e0b3c3eeea1074e509ab66d89f32080addd403cab8aa3",
+    "runId": "stable-user-run",
+    "taskId": "task_ZJ9Od0fQhqTjmvTWAHVQog",
+    "status": "NEEDS_APPROVAL",
+    "steps": [
+      "toolstep_599879df49adf17c53af6264635bc812bfe2bc6dabc4a7fe0afc6512c82fd067"
+    ],
+    "cancelled": false,
+    "recoveryOnly": false
+  },
+  "projection": {
+    "id": "task_ZJ9Od0fQhqTjmvTWAHVQog",
+    "account": "tenant-a",
+    "conversationId": "conv_DEti3_Ud8_LGzVOOrRy_Jg",
+    "holder": "device",
+    "revision": 1,
+    "generation": 1,
+    "status": "WORKING",
+    "createdAt": "2026-11-01T11:34:03.492087Z",
+    "updatedAt": "2026-11-01T11:34:03.550094Z",
+    "cancelledAt": "0001-01-01T00:00:00Z",
+    "cursor": 16,
+    "changed": true,
+    "latestCursor": 16,
+    "hasMore": false,
+    "events": [
+      {
+        "sequence": 1,
+        "type": "task_created",
+        "objectId": "task_ZJ9Od0fQhqTjmvTWAHVQog",
+        "at": "2026-11-01T11:34:03.492111Z"
+      },
+      {
+        "sequence": 2,
+        "type": "isolated_fixture_ready",
+        "objectId": "task_ZJ9Od0fQhqTjmvTWAHVQog",
+        "at": "2026-11-01T11:34:03.498975Z"
+      },
+      {
+        "sequence": 3,
+        "type": "tool_step_requested",
+        "objectId": "toolstep_cb3474687513f0b1333e0abad29fe4cea1ed3f5f3e85270d1e163446cd7dd353",
+        "at": "2026-11-01T11:34:03.505995Z"
+      },
+      {
+        "sequence": 4,
+        "type": "task_step_approved_by_original_authority",
+        "objectId": "toolstep_cb3474687513f0b1333e0abad29fe4cea1ed3f5f3e85270d1e163446cd7dd353",
+        "at": "2026-11-01T11:34:03.51266Z"
+      },
+      {
+        "sequence": 5,
+        "type": "task_model_run_claimed",
+        "objectId": "run_89da05d6411d5d7ed15e0b3c3eeea1074e509ab66d89f32080addd403cab8aa3",
+        "at": "2026-11-01T11:34:03.519619Z"
+      },
+      {
+        "sequence": 6,
+        "type": "task_model_request_admitted_private_snapshot",
+        "objectId": "run_89da05d6411d5d7ed15e0b3c3eeea1074e509ab66d89f32080addd403cab8aa3",
+        "at": "2026-11-01T11:34:03.528377Z"
+      },
+      {
+        "sequence": 7,
+        "type": "tool_step_requested",
+        "objectId": "toolstep_599879df49adf17c53af6264635bc812bfe2bc6dabc4a7fe0afc6512c82fd067",
+        "at": "2026-11-01T11:34:03.535658Z"
+      },
+      {
+        "sequence": 8,
+        "type": "task_model_run_checkpointed",
+        "objectId": "run_89da05d6411d5d7ed15e0b3c3eeea1074e509ab66d89f32080addd403cab8aa3",
+        "at": "2026-11-01T11:34:03.542819Z"
+      },
+      {
+        "sequence": 9,
+        "type": "task_step_approved_by_original_authority",
+        "objectId": "toolstep_599879df49adf17c53af6264635bc812bfe2bc6dabc4a7fe0afc6512c82fd067",
+        "at": "2026-11-01T11:34:03.550094Z"
+      },
+      {
+        "sequence": 10,
+        "type": "task_model_run_claimed",
+        "objectId": "run_89da05d6411d5d7ed15e0b3c3eeea1074e509ab66d89f32080addd403cab8aa3",
+        "at": "2026-11-01T11:34:03.55681Z"
+      },
+      {
+        "sequence": 11,
+        "type": "tool_effect_reserved",
+        "objectId": "toolstep_599879df49adf17c53af6264635bc812bfe2bc6dabc4a7fe0afc6512c82fd067",
+        "at": "2026-11-01T11:34:03.567597Z"
+      },
+      {
+        "sequence": 12,
+        "type": "tool_result_committed",
+        "objectId": "toolstep_599879df49adf17c53af6264635bc812bfe2bc6dabc4a7fe0afc6512c82fd067",
+        "at": "2026-11-01T11:34:03.580561Z"
+      },
+      {
+        "sequence": 13,
+        "type": "task_model_request_admitted_private_snapshot",
+        "objectId": "run_89da05d6411d5d7ed15e0b3c3eeea1074e509ab66d89f32080addd403cab8aa3",
+        "at": "2026-11-01T11:34:03.599512Z"
+      },
+      {
+        "sequence": 14,
+        "type": "task_model_run_checkpointed",
+        "objectId": "run_89da05d6411d5d7ed15e0b3c3eeea1074e509ab66d89f32080addd403cab8aa3",
+        "at": "2026-11-01T11:34:03.606543Z"
+      },
+      {
+        "sequence": 15,
+        "type": "task_model_return_check_claimed",
+        "objectId": "run_89da05d6411d5d7ed15e0b3c3eeea1074e509ab66d89f32080addd403cab8aa3",
+        "at": "2026-11-01T11:34:03.619669Z"
+      },
+      {
+        "sequence": 16,
+        "type": "task_model_return_authorization_checked",
+        "objectId": "run_89da05d6411d5d7ed15e0b3c3eeea1074e509ab66d89f32080addd403cab8aa3",
+        "at": "2026-11-01T11:34:03.626793Z"
+      }
+    ],
+    "steps": [
+      {
+        "toolStep": {
+          "taskId": "task_ZJ9Od0fQhqTjmvTWAHVQog",
+          "taskRevision": 1,
+          "generation": 1,
+          "holder": "device",
+          "operationId": "original-read",
+          "toolId": "ai.conversation.read",
+          "toolVersion": "1",
+          "inputDigest": "523b0567d793a987b8d7c6f7c5c3f59ae34f3b3bd3354896a3b59cf830c950711ec64a7e274e652a3691731f6b86efb9461af25faa73b7cca7c97ffa8110407d",
+          "resultBinding": {
+            "bytes": 0,
+            "sha3_512": "",
+            "sha512": ""
+          },
+          "taskGrantRef": "isolated-grant-reference",
+          "approvedFields": [
+            "messages"
+          ]
+        },
+        "id": "toolstep_cb3474687513f0b1333e0abad29fe4cea1ed3f5f3e85270d1e163446cd7dd353",
+        "account": "tenant-a",
+        "conversationId": "conv_DEti3_Ud8_LGzVOOrRy_Jg",
+        "kind": "tool",
+        "scope": "ai:conversations",
+        "description": "read the selected task conversation",
+        "payloadPreview": "input-sha512:523b0567d793a987b8d7c6f7c5c3f59ae34f3b3bd3354896a3b59cf830c950711ec64a7e274e652a3691731f6b86efb9461af25faa73b7cca7c97ffa8110407d",
+        "target": "conv_DEti3_Ud8_LGzVOOrRy_Jg",
+        "risk": "low",
+        "evidence": null,
+        "provider": "YNX AI task tool directory",
+        "status": "approved_not_executed",
+        "walletStillNeeded": false,
+        "createdAt": "2026-11-01T11:34:03.505994Z",
+        "reviewedAt": "2026-11-01T11:34:03.512659Z"
+      },
+      {
+        "toolStep": {
+          "taskId": "task_ZJ9Od0fQhqTjmvTWAHVQog",
+          "taskRevision": 1,
+          "generation": 1,
+          "holder": "device",
+          "operationId": "f727305f22eefa74776a2c06e154c05773109f036516ca427440307d6af33d2b",
+          "toolId": "ai.conversation.read",
+          "toolVersion": "1",
+          "inputDigest": "0d2b64414846b06ea106ca0c30fbe8aa7bab8e575cd7a26a2ce7e39190f6fd19e6dd96ecf29cef9d6d6669c66ef6800e464e46009c930e3c194e8acc59aa41e5",
+          "resultBinding": {
+            "bytes": 376,
+            "sha3_512": "3feb2c8e7e0e2c3ad21e0400b7c5c2df618b623f55deff76f23b392cc49651e4b458d43139029d44b26fc79302d8c489ef5c9feaa4e00176aa083be73a1867ae",
+            "sha512": "9c2036a4e3ac4cdad7c1d3bf6e87b6b2cfbd0057f4727a5a16f61f1b2d306ddaae093d84761693e41223c3c4772cfa4f4f69fc035a008f87f48c191e1bcae119"
+          },
+          "resultFields": [
+            "messages"
+          ],
+          "remoteOperationId": "toolstep_599879df49adf17c53af6264635bc812bfe2bc6dabc4a7fe0afc6512c82fd067",
+          "taskGrantRef": "isolated-grant-reference",
+          "approvedFields": [
+            "messages"
+          ]
+        },
+        "id": "toolstep_599879df49adf17c53af6264635bc812bfe2bc6dabc4a7fe0afc6512c82fd067",
+        "account": "tenant-a",
+        "conversationId": "conv_DEti3_Ud8_LGzVOOrRy_Jg",
+        "kind": "tool",
+        "scope": "ai:conversations",
+        "description": "read the selected task conversation",
+        "payloadPreview": "input-sha512:0d2b64414846b06ea106ca0c30fbe8aa7bab8e575cd7a26a2ce7e39190f6fd19e6dd96ecf29cef9d6d6669c66ef6800e464e46009c930e3c194e8acc59aa41e5",
+        "target": "conv_DEti3_Ud8_LGzVOOrRy_Jg",
+        "risk": "low",
+        "evidence": null,
+        "provider": "YNX AI task tool directory",
+        "status": "COMPLETED",
+        "walletStillNeeded": false,
+        "createdAt": "2026-11-01T11:34:03.535657Z",
+        "reviewedAt": "2026-11-01T11:34:03.550094Z"
+      }
+    ]
+  },
+  "realLLM": false,
+  "receipt": {
+    "effectRef": "toolstep_599879df49adf17c53af6264635bc812bfe2bc6dabc4a7fe0afc6512c82fd067",
+    "state": "COMMITTED",
+    "scope": "same-resource-transaction",
+    "binding": {
+      "bytes": 376,
+      "sha3_512": "3feb2c8e7e0e2c3ad21e0400b7c5c2df618b623f55deff76f23b392cc49651e4b458d43139029d44b26fc79302d8c489ef5c9feaa4e00176aa083be73a1867ae",
+      "sha512": "9c2036a4e3ac4cdad7c1d3bf6e87b6b2cfbd0057f4727a5a16f61f1b2d306ddaae093d84761693e41223c3c4772cfa4f4f69fc035a008f87f48c191e1bcae119"
+    },
+    "result": {
+      "messages": [
+        {
+          "id": "msg_08FxQGjOXZ3oQBb5kx1c2w",
+          "conversationId": "conv_DEti3_Ud8_LGzVOOrRy_Jg",
+          "role": "user",
+          "content": "actual selected source body",
+          "status": "complete",
+          "cost": {
+            "inputTokensEstimate": 0,
+            "outputTokensEstimate": 0,
+            "resourceUnitsEstimate": 0,
+            "moneyUsdEstimate": 0,
+            "moneyKnown": false,
+            "actualUsageReported": false,
+            "basis": ""
+          },
+          "createdAt": "2026-11-01T11:34:03.485303Z"
+        }
+      ]
+    }
+  },
+  "requestRunID": "stable-user-run",
+  "requestStepID": "toolstep_599879df49adf17c53af6264635bc812bfe2bc6dabc4a7fe0afc6512c82fd067",
+  "task": {
+    "id": "task_ZJ9Od0fQhqTjmvTWAHVQog",
+    "account": "tenant-a",
+    "conversationId": "conv_DEti3_Ud8_LGzVOOrRy_Jg",
+    "holder": "device",
+    "revision": 1,
+    "generation": 1,
+    "status": "NEEDS_APPROVAL",
+    "createdAt": "2026-11-01T11:34:03.492087Z",
+    "updatedAt": "2026-11-01T11:34:03.512659Z",
+    "cancelledAt": "0001-01-01T00:00:00Z"
+  }
+}

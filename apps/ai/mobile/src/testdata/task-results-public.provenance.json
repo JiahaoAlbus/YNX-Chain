@@ -1,0 +1,13 @@
+{
+  "sourceCommit": "46de44afb1c70a41805e44588e97d13ca27487f3",
+  "sha256": "109136a108bb9469c97efd59bca8b1d89ea8e4469ab5be8b1a0e552061f45330",
+  "generator": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P08/mobile-results-recovery-20261101/mobile_result_contract_test.go",
+  "overlay": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P08/mobile-results-recovery-20261101/result-overlay.json",
+  "actualLog": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P08/mobile-results-recovery-20261101/actual-go-result.log",
+  "method": "original runTaskModel -> actual Store tool read -> controlled HTTP model tool result -> actual durable answer; original Go JSON marshal unchanged",
+  "PUBLICOnly": true,
+  "SourceAdmission": false,
+  "NativeAdmission": false,
+  "realLLM": false,
+  "producerErrorRetained": "/Volumes/\u897f\u90e8\u6570\u636e/YNX-large-work/coordination-v5-20261031/owners/P08/mobile-results-recovery-20261101/actual-go-first-red.log"
+}

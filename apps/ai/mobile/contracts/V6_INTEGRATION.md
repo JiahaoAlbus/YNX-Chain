@@ -40,3 +40,27 @@ The PUBLIC client seams in consumer tests prove orchestration/failure handling,
 not cryptography or Native/Source qualification. Actual installed-client approval,
 server release registration and real tools remain separate acceptance gates.
 Existing mobile CI already runs src/*.test.ts, typecheck and native builds.
+
+## Original result and recovery consumption
+
+`taskResults.ts` checks the normal Go product JSON after SDK verification. It
+rejects cross-task/run/step results, unsafe integer revisions, stale generations,
+wrong conversation/CAS holder, cancellation rollback claims and noncommitted tool
+receipts. Go nil run steps normalize to an empty list. The unavailable-runtime
+Go query's zero version fields are allowed only in recovery-only metadata; an
+answer is never accepted in recovery/cancelled/blocked/UNKNOWN states.
+
+Before a new run/result read the controller clears the formerly visible result;
+a failed current check cannot leave an earlier answer presented as current. The
+cache keeps independent task copies. Falsy corrupt V6 journals do not become new
+empty journals. Retained original operation metadata is available through
+`retainedOriginalOperations`; `recoverOriginalOperation` remains opaque DATA and
+does not unblock UNKNOWN automatically. The present SDK `readRecovery` supplies
+opaque evidence, not a terminal business-outcome contract: any future unlocking
+requires a sole-SDK/Auth typed original-operation outcome with its normal custody
+checks, never product-side parsing/assumption of COMMITTED.
+
+The frozen PUBLIC Go-generated fixture/provenance under src/testdata was emitted
+from the original local tool/model implementation. Client flow tests use an
+explicit PUBLIC SDK seam to consume those actual result bodies; they do not
+claim a real installed Native signing/source factory.

@@ -1,3 +1,4 @@
+import {readTask,readTaskList,readTaskProjection,readTaskRun,readTaskReceipt,readTaskAction} from './taskResults';
 // Product orchestration only. SDK owns canonical bytes, SAME held review,
 // signatures, transport, Source-current and verified original outcome custody.
 import type {OriginalAITaskActionV6Client as Client,OriginalAITaskActionV6Intent as Intent,OriginalAITaskActionV6Observation as Observation} from '../contracts/sdk047/original-ai-task-action-v6-client';
@@ -16,7 +17,7 @@ export class NativeTaskV6Adapter{
  private record:V6Journal|null=null;private active=new Map<string,AbortController>();private queue=Promise.resolve();private closed=false;private closing:Promise<void>|null=null;private flights=new Set<Promise<unknown>>();
  constructor(private identity:string,private original:NativeTaskV6){if(!identity)throw Error('V6_IDENTITY_REQUIRED')}
  private async locked<T>(fn:()=>Promise<T>){const before=this.queue;let release!:()=>void;this.queue=new Promise<void>(r=>release=r);await before;try{return await fn()}finally{release()}}
- private async load(){if(!this.record)this.record=validateV6Journal(await this.original.journal.read(this.identity)||{version:'6',entries:[]});return this.record}
+ private async load(){if(!this.record){const original=await this.original.journal.read(this.identity);this.record=validateV6Journal(original===null?{version:'6',entries:[]}:original);}return this.record}
  private async save(){await this.original.journal.write(this.identity,JSON.parse(JSON.stringify(this.record)) as V6Journal)}
  private track<T>(p:Promise<T>){this.flights.add(p);void p.then(()=>this.flights.delete(p),()=>this.flights.delete(p));return p}
  execute(request:Request,signal:AbortSignal):Promise<Observation>{
@@ -66,15 +67,27 @@ export class NativeTaskV6Adapter{
 const utf8=new TextEncoder();
 export function createTaskV6API(identity:string,original:NativeTaskV6){
  const adapter=new NativeTaskV6Adapter(identity,original),tasks=new Map<string,Task>();
- const snapshot=(key:string)=>{const t=tasks.get(id(key));if(!t)throw Error('V6_TASK_SNAPSHOT_REQUIRED');return t};
- const remember=<T>(value:T):T=>{const v=value as unknown as {id?:string;tasks?:Task[];task?:Task};if(v.task)tasks.set(v.task.id,v.task);if(Array.isArray(v.tasks))for(const t of v.tasks)tasks.set(t.id,t);if(v.id&&typeof (v as Task).revision==='number')tasks.set(v.id,v as Task);return value};
+ const snapshot=(key:string)=>{const t=tasks.get(id(key));if(!t)throw Error('V6_TASK_SNAPSHOT_REQUIRED');return {...t}};
+ const remember=<T>(value:T):T=>{const v=value as unknown as {id?:string;tasks?:Task[];task?:Task};if(v.task)tasks.set(v.task.id,{...v.task});if(Array.isArray(v.tasks))for(const t of v.tasks)tasks.set(t.id,{...t});if(v.id&&typeof (v as Task).revision==='number')tasks.set(v.id,{...(v as Task)});return value};
  async function call<T>(action:Intent['action'],path:string,signal:AbortSignal,body?:unknown,task?:Task,stepId:string|null=null,runId:string|null=null,conversationId?:string):Promise<T>{
+  if(task)task=readTask(task);
   const request:Request={action,path,method:body===undefined?'GET':'POST',bodyOriginal:utf8.encode(body===undefined?'':JSON.stringify(body)),taskId:task?.id??null,taskRevision:task?String(task.revision):null,generation:task?String(task.generation):null,stepId,runId,creationBinding:conversationId?{conversationId}:null} as Request;
   const observed=await adapter.execute(request,signal);const response=observed.responseOriginal;
   if(observed.phase==='DENIED'||!response||!response.complete||response.status<200||response.status>=300)throw Error('V6_ORIGINAL_RESPONSE_REJECTED');
   // This JSON is only product display DATA after the original SDK send/outcome
   // fences. Never decode a member, build a header, or infer Source from JSON.
-  return remember(JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(response.bodyOriginal)) as T);
+  if(response.bodyOriginal.byteLength>1<<20)throw Error('TASK_ORIGINAL_RESULT_TOO_LARGE');
+  const data:unknown=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(response.bodyOriginal));
+  let value:unknown=data;
+  switch(action){
+   case 'task.list':value=readTaskList(data);break;
+   case 'task.create':value=readTask(data,undefined,conversationId);break;
+   case 'task.read':value=readTaskProjection(data,task!.id);break;
+   case 'task.prepare':case 'task.cancel':case 'task.complete':value=readTaskAction(data,task!,action.slice(5) as 'prepare'|'cancel'|'complete');break;
+   case 'task.run-start':case 'task.run-resume':case 'task.run-read':value=readTaskRun(data,task!,runId!);break;
+   case 'task.dispatch':case 'task.step-result':value=readTaskReceipt(data,stepId!);break;
+  }
+  return remember(value as T);
  }
  return {
   list:(s:AbortSignal,after='')=>call<{tasks:Task[];nextId?:string;hasMore:boolean}>('task.list',`/api/tasks?afterId=${after?id(after):''}`,s),
