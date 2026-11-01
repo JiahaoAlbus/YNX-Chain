@@ -5,9 +5,9 @@ assert.ok(start>0&&end>start);
 // Execute the actual boot-composition function under PUBLIC Main globals.
 // No Electron startup, Source constructor, native runtime or wallet is created.
 function fixture(){
- let legacy=0;const sandbox={desktopPayService:{compose(){legacy++;}},walletAuthority:null,originalPQPaySupply:null,originalPQPayComposition:null,originalPQPayCompositionCause:undefined,originalPQPayBootEntered:false};
+ let legacy=0,product=null;const sandbox={nativePayMainEntry:{compose(value){product=value;}},desktopPayService:{compose(){legacy++;}},walletAuthority:null,originalPQPaySupply:null,originalPQPayComposition:null,originalPQPayCompositionCause:undefined,originalPQPayBootEntered:false};
  const fn=vm.compileFunction(source.slice(start,end).replace('export function','function')+';composeProtectedDesktopPay.normal=composeNormalOriginalDesktopPay;return composeProtectedDesktopPay;',[],{filename:new URL('../src/main.mjs',import.meta.url).pathname,contextExtensions:[sandbox],importModuleDynamically:vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER})();
- return {fn,sandbox,legacy:()=>legacy};
+ return {fn,sandbox,legacy:()=>legacy,product:()=>product};
 }
 test('existing legacy boot composition retains its synchronous behavior and supplies no Pay authority',()=>{
  const f=fixture();assert.equal(f.fn({PUBLIC:true}),undefined);assert.equal(f.legacy(),1);assert.equal(f.sandbox.originalPQPaySupply,null);
@@ -41,4 +41,8 @@ test('normal startup composes fixed SDK namespace once without loading or granti
 });
 test('normal startup preserves an existing composition failure rather than retrying the factory',async()=>{
  const f=fixture();await assert.rejects(f.fn(null,{}));const cause=f.sandbox.originalPQPayCompositionCause;await assert.rejects(f.fn.normal(),e=>e===cause);assert.equal(f.sandbox.originalPQPaySupply,null);
+});
+
+test('P06 ProductSource composition is separate from dispatcher and barred after actual boot entry',()=>{
+ const f=fixture(),source=Object.freeze({PUBLIC:'separate product source'});assert.equal(f.fn(null,null,source),undefined);assert.equal(f.product(),source);assert.equal(f.sandbox.originalPQPaySupply,null);assert.equal(f.legacy(),0);const late=fixture();late.sandbox.originalPQPayBootEntered=true;assert.throws(()=>late.fn(null,null,source),{code:'NATIVE_PAY_MAIN_BOOT_COMPOSITION_REQUIRED'});assert.equal(late.product(),null);
 });

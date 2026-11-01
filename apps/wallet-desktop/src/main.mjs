@@ -96,6 +96,8 @@ import { WalletPayInvoiceClient } from "./wallet-pay-invoice-reference.mjs";
 import { createInvoiceReferenceService } from "./wallet-invoice-reference-service.mjs";
 import { decodeInvoiceReferenceQR } from "./wallet-invoice-reference-qr.mjs";
 import {createDesktopPayService,installDesktopPayIPC} from "./wallet-pay-service.mjs";
+import {createNativePayMainEntry} from './native-pay-client/main-entry.mjs';
+import {createWalletNativePayProduct,installWalletNativePayProductIPC} from './wallet-native-pay-product.mjs';
 import {DesktopNativePayChain} from "./native-pay-chain.mjs";
 import { parsePaymentRecipient, decodePaymentRecipientQR, decodeEVMRecipientQR, decodeFamilyRecipientQR } from "./payment-recipient.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
@@ -139,6 +141,7 @@ let originalDeviceFinalization;
 let originalDeviceRegistration;
 let pqTransactionSubmission;
 let originalPQPaySupply=null,originalPQPayComposition=null,originalPQPayCompositionCause,originalPQPayBootEntered=false;
+let nativePayMainEntry=null,nativePayProduct=null;
 let pqFinalityCollection;
 let originalIDEIdentityPeer;
 let originalIDEIdentityPeerLoading;
@@ -353,6 +356,7 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=
 }
 async function shutdownOriginalPQWallet(){
   let retireFailed=false,retireCause;try{originalPayContextBridge.invalidateAll();}catch(cause){retireFailed=true;retireCause=cause;}
+  try{nativePayMainEntry?.cancel();}catch(cause){if(!retireFailed){retireFailed=true;retireCause=cause;}}
   pqFinalityCollection?.retire();
   // The registration client must settle its child/callback custody before the
   // original creation parent closes. Other owners still drain after a failure.
@@ -360,7 +364,7 @@ async function shutdownOriginalPQWallet(){
   const others=await Promise.allSettled([walletAuthority?.shutdownPQReviews(),originalDeviceCreation?.close(),originalDeviceQuery?.close(),pqFinalityCollection?.join(),originalIDEIdentityPeer?.shutdown(),originalProjectControl.shutdown()]);
   const failed=[...registration,...others].find(r=>r.status==='rejected');if(retireFailed)throw retireCause;if(failed)throw failed.reason;
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:shutdownOriginalPQWallet,assertCloseSafe:()=>{nativePayProduct?.assertSafeToClose();pqTransactionSubmission?.assertSafeToClose();originalPayContextBridge.assertSafeToClose();pqFinalityCollection?.assertSafeToClose();originalPQHostCatalogReceiver?.assertSafeToClose();originalIDEIdentityPeer?.assertSafeToClose();return walletAuthority?.transactionSender.submissions.intentStore.assertPQProgressSafeToClose();},lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup or storage incomplete','Wallet remains open because original cleanup or result storage is unconfirmed. Unlock and save a held result locally, then close again. No signing or submission is retried. 原操作清理或结果保存未确认，钱包保持打开。请解锁后仅在本地保存已有结果，再关闭；不会重新签名或发送。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
@@ -374,7 +378,7 @@ let lastReviewAccount = null;
 let originalAdmissionSecurityStamp = null;
 keyAccess.subscribe(state => {
   const admissionStamp=[state.revision,state.locked,state.account,state.authenticating].join(':');
-  if(admissionStamp!==originalAdmissionSecurityStamp){originalAdmissionSecurityStamp=admissionStamp;originalAdmissionEntry.securityChanged();}
+  if(admissionStamp!==originalAdmissionSecurityStamp){originalAdmissionSecurityStamp=admissionStamp;try{nativePayMainEntry?.cancel();}catch(cause){preservePayInvalidationFailure(cause);}originalAdmissionEntry.securityChanged();}
   const context=[state.revision,state.locked,state.account,state.authenticating].join(':');
   if(context!==multichainSecurityContext){multichainSecurityContext=context;multichain?.invalidate();familyBitcoinTransfer?.invalidate();familyBitcoinSubmission?.invalidate();familyTronTransfer?.invalidate();familyTronSubmission?.invalidate();}
   recipientCameraPermission.invalidate();
@@ -454,10 +458,22 @@ const desktopPayService=createDesktopPayService({
   getRuntime:()=>({vault:walletAuthority.vault,lifecycle:keyAccess,store:walletAuthority.transactionSender.submissions.intentStore,client:new DesktopNativePayChain({fetchImpl:net.fetch.bind(net)})}),
 });
 installDesktopPayIPC({handleWalletIPC,safeIPC,service:desktopPayService});
+nativePayMainEntry=createNativePayMainEntry({getMain:()=>walletAuthority,getContext:()=>({...keyAccess.status(),focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress})});
+nativePayProduct=createWalletNativePayProduct({entry:nativePayMainEntry,getMain:()=>walletAuthority,getGuard:()=>keyAccess.current(),publishReview:request=>{
+  if(!mainWindow||mainWindow.isDestroyed())throw Error('Wallet review window is unavailable.');
+  mainWindow.webContents.send('wallet:provider-request',request);
+}});
+installWalletNativePayProductIPC({handleWalletIPC,safeIPC,sensitiveIPC,service:nativePayProduct});
 // Main-process boot composition only. Sole issuer A supplies its admitted real
 // policy, quote/current-authority/business and authenticated settlement ports.
 // This function is NOT an IPC, renderer, CLI or environment activation path.
-export function composeProtectedDesktopPay(integration,pqNative=null){
+export function composeProtectedDesktopPay(integration,pqNative=null,nativeProductSource=null){
+  if(nativeProductSource!==null){
+    if(originalPQPayBootEntered)throw Object.assign(Error('Pay product must be composed before Wallet startup.'),{code:'NATIVE_PAY_MAIN_BOOT_COMPOSITION_REQUIRED'});
+    // Separate original P06 ProductSource. The SDK three-POST/two-GET Source
+    // never supplies product intent/current/readers or earns this capability.
+    nativePayMainEntry.compose(nativeProductSource);
+  }
   if(integration!==null)desktopPayService.compose(integration);
   if(pqNative===null)return;
   // Original issuer boot composition only. This has no IPC/env/CLI setter;

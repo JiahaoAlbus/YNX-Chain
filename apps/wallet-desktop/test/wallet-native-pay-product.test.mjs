@@ -1,0 +1,34 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createNativePayMainEntry} from '../src/native-pay-client/main-entry.mjs';
+import {createWalletNativePayProduct,installWalletNativePayProductIPC} from '../src/wallet-native-pay-product.mjs';
+const account='0x'+'11'.repeat(20);
+function fixture(entry){let live=true;const requests=[],published=[],expired=[],main={pendingRequests:()=>requests,expire:id=>expired.push(id)},guard={account,assert(){if(!live)throw Error('PUBLIC_LOCK');}};return {service:createWalletNativePayProduct({entry,getMain:()=>main,getGuard:()=>guard,publishReview:r=>published.push(r)}),requests,published,expired,lock(){live=false;}};}
+test('actual P06 controller stays precisely unavailable without ProductSource, independent of Wallet dispatcher',async()=>{
+ const entry=createNativePayMainEntry({getMain:()=>({}),getContext:()=>({account,locked:false,focused:true,changing:false,revision:1})}),f=fixture(entry);
+ assert.equal(f.service.status().reason,'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE');await assert.rejects(f.service.invoke({action:'invoice',merchant:account,invoiceId:'PUBLIC'}),{code:'NATIVE_PAY_MAIN_SOURCE_UNAVAILABLE'});assert.equal(f.published.length,0);
+});
+test('actual P06 invoice read reaches supplied original product method through Main bridge with no approval',async()=>{
+ const context={account,locked:false,focused:true,changing:false,revision:1};let reads=0;const unused=()=>{throw Error('READ_MUST_NOT_APPROVE');},main={requestPQTypedAction:unused,reject:unused,transactionSender:{submissions:{intentStore:{readPQOriginals:unused,unresolvedPreparation:unused}}}};const entry=createNativePayMainEntry({getMain:()=>main,getContext:()=>context});entry.compose({current(){},pay:{merchantTermsReview:unused,readInvoiceIntent:unused,async readInvoice(m,id){reads++;assert.equal(m,account);assert.equal(id,'PUBLIC');return {merchant:m,invoiceId:id,status:'unpaid'};}}});const f=fixture(entry),result=await f.service.invoke({action:'invoice',merchant:account,invoiceId:'PUBLIC'});assert.equal(reads,1);assert.equal(result.bill.status,'unpaid');assert.equal(result.clientIndependentFinality,false);assert.equal(f.published.length,0);
+});
+test('Main publishes SAME pending original, never redacted P06 summary or a generated approval',async()=>{
+ const summary={walletRequest:{id:'PUBLIC-review',method:'ynx_signPQNativeAction'}},f=fixture({invoke:async()=>summary}),original={id:'PUBLIC-review',method:'ynx_signPQNativeAction',review:{account,original:'PUBLIC'}};f.requests.push(original);assert.equal(await f.service.invoke({}),summary);assert.equal(f.published[0],original);assert.notEqual(f.published[0],summary.walletRequest);
+});
+test('substituted account or method cannot publish or cancel another existing review',async()=>{
+ for(const mismatch of ['account','method']){const f=fixture({invoke:async()=>({walletRequest:{id:'PUBLIC-review',method:'ynx_signPQNativeAction'}})});f.requests.push({id:'PUBLIC-review',method:mismatch==='method'?'eth_sign':'ynx_signPQNativeAction',review:{account:mismatch==='account'?'0x'+'22'.repeat(20):account}});await assert.rejects(f.service.invoke({}),{code:'NATIVE_PAY_MAIN_REVIEW_CHANGED'});assert.equal(f.published.length,0);assert.equal(f.expired.length,0);}
+});
+test('lock while product read is pending cannot publish a late review',async()=>{
+ let release,enter;const gate=new Promise(r=>release=r),entered=new Promise(r=>enter=r);const f=fixture({async invoke(){enter();await gate;return {walletRequest:{id:'PUBLIC-review',method:'ynx_signPQNativeAction'}};}});const pending=f.service.invoke({});await entered;f.lock();release();await assert.rejects(pending,/PUBLIC_LOCK/);assert.equal(f.published.length,0);
+});
+test('product IPC preserves exact Main handler gate and sensitive boundary; status/cancel have no submit path',async()=>{
+ const handlers=new Map();let sensitive=0,safe=0,invoked;installWalletNativePayProductIPC({handleWalletIPC:(name,fn)=>handlers.set(name,fn),safeIPC:fn=>{safe++;return fn();},sensitiveIPC:fn=>{sensitive++;return fn();},service:{status:()=>({available:false}),cancel:()=>({cancelled:true}),invoke:input=>{invoked=input;return {};}}});await handlers.get('wallet:native-pay-status')();await handlers.get('wallet:native-pay-cancel')();const input={action:'PUBLIC'};await handlers.get('wallet:native-pay-invoke')({},input);assert.equal(sensitive,1);assert.equal(safe,2);assert.equal(invoked,input);assert.equal(handlers.size,3);
+});
+test('failed display expires only the same Main review and preserves original falsy cause',async()=>{
+ const request={id:'PUBLIC-review',method:'ynx_broadcastPQNativeAction',review:{account}},expired=[],service=createWalletNativePayProduct({entry:{invoke:async()=>({walletRequest:{id:request.id,method:request.method}})},getGuard:()=>({account,assert(){}}),getMain:()=>({pendingRequests:()=>[request],expire:id=>expired.push(id)}),publishReview(){throw false;}});await assert.rejects(service.invoke({}),e=>e===false);assert.deepEqual(expired,[request.id]);
+});
+test('pending original product operation blocks actual close and new work until its original completion',async()=>{
+ let release,enter;const gate=new Promise(r=>release=r),ready=new Promise(r=>enter=r);const f=fixture({async invoke(){enter();await gate;return {phase:'ready'};}}),pending=f.service.invoke({});await ready;assert.throws(()=>f.service.assertSafeToClose(),{code:'NATIVE_PAY_MAIN_OPERATION_PENDING'});await assert.rejects(f.service.invoke({}),{code:'NATIVE_PAY_MAIN_CLOSING'});release();await pending;assert.doesNotThrow(()=>f.service.assertSafeToClose());
+});
+test('complete P06 immutable consumer is inside existing Mac package selection and uses original close gate',async()=>{
+ const fs=await import('node:fs/promises'),{createHash}=await import('node:crypto'),base=new URL('../src/native-pay-client/',import.meta.url),receipt=JSON.parse(await fs.readFile(new URL('SOURCE_RECEIPT.json',base),'utf8'));
+ assert.equal(receipt.files.length,9);for(const ref of receipt.files){const b=await fs.readFile(new URL(ref.path,base));assert.equal(b.length,ref.bytes);assert.equal(createHash('sha256').update(b).digest('hex'),ref.sha256);}
+ const pkg=JSON.parse(await fs.readFile(new URL('../package.json',import.meta.url),'utf8')),main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8');assert.ok(pkg.build.files.includes('src/**'));assert.ok(main.includes("from './native-pay-client/main-entry.mjs'"));assert.ok(main.includes('assertCloseSafe:()=>{nativePayProduct?.assertSafeToClose();'));
+});

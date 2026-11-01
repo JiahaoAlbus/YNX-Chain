@@ -1,0 +1,60 @@
+{
+  "owner": "P06 original; P01 immutable consumer projection",
+  "sourceCommit": "cc6514d8ab9747ba2232dee3bea4996f2034b9e4",
+  "sourceArchive": {
+    "path": "/Volumes/西部数据/YNX-large-work/coordination-v5-20261031/owners/P06/artifacts/v5-pay-client-consumer-cc6514d8a-source.tar.gz",
+    "bytes": 24600,
+    "sha256": "fc97e1ece9b321bbc0b5d51d9b673827a96f09640fc4e821e392de5b9bc7485e"
+  },
+  "files": [
+    {
+      "path": "main-entry.mjs",
+      "bytes": 5811,
+      "sha256": "cf33542ddc12826ea4791088eda96d35a5b30e8cb456f6dfe9ebffc76de161f8"
+    },
+    {
+      "path": "pay-business-client.mjs",
+      "bytes": 14559,
+      "sha256": "4691dd2c0ab5633d7de436f6ceb295b03844795399736425b88a2727dde47c32"
+    },
+    {
+      "path": "merchant-invoice-approval.mjs",
+      "bytes": 19716,
+      "sha256": "c2b04825a9f91592ca1f390b0052e50e06ecd2f36151f255bb9687588a09f81a"
+    },
+    {
+      "path": "invoice-product-intent.mjs",
+      "bytes": 3460,
+      "sha256": "f039425797e7c2f1c4b9bfbf2ca0882156ede210ffa40e77e8f2c57feda03916"
+    },
+    {
+      "path": "notification-inbox.mjs",
+      "bytes": 6267,
+      "sha256": "f49d99f8079142f84c11836d1e0134df67c8a6d714685ab6dc1e2edb258546aa"
+    },
+    {
+      "path": "cli.mjs",
+      "bytes": 3482,
+      "sha256": "7393424682bd74b856c6e1facef0a13f20080a99a3d38f64fe67703a72b420ab"
+    },
+    {
+      "path": "desktop-entry.mjs",
+      "bytes": 2227,
+      "sha256": "7cbc2c1c580456026d4400e2a0c47710c214dd608bdc99ff67136a480fda03ec"
+    },
+    {
+      "path": "README.md",
+      "bytes": 7935,
+      "sha256": "1e60ae7135a6be3cf8b092729006ece64a3751cea202e2ae8e267109d42565d8"
+    },
+    {
+      "path": "MAIN_PAY_CONTRACT.md",
+      "bytes": 11460,
+      "sha256": "d668f34497ca972ae40577fe26e164241816a40bf95e18e7d2f4b66a3e80116f"
+    }
+  ],
+  "modified": false,
+  "RootAdmission": false,
+  "SourceAdmission": false,
+  "installed": false
+}
