@@ -8,4 +8,4 @@ import "os"
 // platform whose original owner validation adapter has not been supplied.
 func processCurrentOwner(os.FileInfo) bool { return false }
 
-func processUnlinkCapture(*os.File) error { return ErrUnsupported }
+func processUnlinkCapture(*os.File, string) error { return ErrUnsupported }

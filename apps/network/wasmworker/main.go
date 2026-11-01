@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/apps/network/wasmworker/internal/oslimits"
+
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
 )
@@ -194,6 +196,12 @@ func main() {
 	// This fixed worker has one interpreter thread. GOMAXPROCS is not an OS
 	// CPU-service guarantee and does not make memoryBytes a Go RSS hard limit.
 	runtime.GOMAXPROCS(1)
+	_, closeLimits, limitErr := oslimits.Apply(l.cpuMilli, l.durationMS)
+	if limitErr != nil {
+		fmt.Fprintln(os.Stderr, "OS_LIMITS")
+		os.Exit(7)
+	}
+	defer closeLimits()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(l.durationMS)*time.Millisecond)
 	defer cancel()
 	var report sync.Once

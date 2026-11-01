@@ -14,6 +14,6 @@ func processCurrentOwner(info os.FileInfo) bool {
 	return ok && stat.Uid == uint32(os.Geteuid())
 }
 
-func processUnlinkCapture(directory *os.File) error {
-	return unix.Unlinkat(int(directory.Fd()), processWorkerName, 0)
+func processUnlinkCapture(directory *os.File, name string) error {
+	return unix.Unlinkat(int(directory.Fd()), name, 0)
 }

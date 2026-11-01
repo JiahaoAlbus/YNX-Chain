@@ -74,7 +74,7 @@ func nativeResource(ctx context.Context, runner *contribution.Runner, r localipc
 	default:
 		return localipc.Result{}, errors.New("unsupported resource operation")
 	}
-	raw, err := json.Marshal(map[string]any{"code": code, "productionEnabled": false, "meter": runner.VerifyResourceMeter()})
+	raw, err := json.Marshal(map[string]any{"code": code, "productionEnabled": false, "containment": contribution.ProcessContainmentSupport(), "meter": runner.VerifyResourceMeter()})
 	return localipc.Result{Payload: raw}, err
 }
 

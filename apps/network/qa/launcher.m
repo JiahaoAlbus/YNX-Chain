@@ -117,6 +117,9 @@ static BOOL privateDirectory(NSString *dir) {
 static int qaFailure(NSString *message,BOOL cli){fprintf(stderr,"%s\n",message.UTF8String);if(!cli){[NSApplication sharedApplication];NSAlert *alert=[NSAlert new];alert.messageText=@"YNX Network QA could not start";alert.informativeText=message;[alert runModal];}return 2;}
 static BOOL packagedFiles(NSString *helper,NSString *proof,NSDictionary *build){
  BOOL matched=[[digest(helper)description]isEqual:build[@"helperSHA256"]]&&[[digest(proof)description]isEqual:build[@"proofSHA256"]];
+ id monitorPin=build[@"resourceMonitorSHA256"];
+ NSString *monitor=[[helper stringByDeletingLastPathComponent]stringByAppendingPathComponent:@"ynx-network-resource-monitor"];
+ matched=matched&&[monitorPin isKindOfClass:NSString.class]&&[monitorPin length]==64&&[[digest(monitor)description]isEqual:monitorPin];
  id pin=build[@"resourceWorkerSHA256"]; // Older QA builds have no task worker.
  if(pin){NSString *worker=[[helper stringByDeletingLastPathComponent]stringByAppendingPathComponent:@"ynx-network-task-worker"];matched=matched&&[pin isKindOfClass:NSString.class]&&[pin length]==64&&[[digest(worker)description]isEqual:pin];}
  id consent=build[@"nativeConsentSHA256"];

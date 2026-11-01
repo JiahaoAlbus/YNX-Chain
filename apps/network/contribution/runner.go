@@ -120,7 +120,8 @@ type Usage struct {
 	BytesRead  uint64 `json:"bytesRead"`
 	WallMicros uint64 `json:"wallMicros"`
 	// Wall time and read bytes are measured locally, not verified CPU service.
-	CPUServiceVerified bool `json:"cpuServiceVerified"`
+	CPUServiceVerified bool          `json:"cpuServiceVerified"`
+	Process            *ProcessUsage `json:"process,omitempty"`
 }
 
 type Result struct {
@@ -247,6 +248,7 @@ func open(path string, authority Authorizer, sandbox bool) (*Runner, error) {
 		return nil, ErrInvalid
 	}
 	var measuredBytes, measuredMicros uint64
+	var measuredUser, measuredSystem uint64
 	for id, rec := range r.data.Jobs {
 		if err := validateStoredRecord(id, rec, r.data.Nonces); err != nil {
 			return nil, ErrInvalid
@@ -256,6 +258,20 @@ func open(path string, authority Authorizer, sandbox bool) (*Runner, error) {
 		}
 		measuredBytes += rec.Usage.BytesRead
 		measuredMicros += rec.Usage.WallMicros
+		if u := rec.Usage.Process; u != nil {
+			if u.UserMicros > ^uint64(0)-measuredUser || u.SystemMicros > ^uint64(0)-measuredSystem {
+				return nil, ErrInvalid
+			}
+			measuredUser += u.UserMicros
+			measuredSystem += u.SystemMicros
+			if v := u.Monitor; v != nil {
+				if v.UserMicros > ^uint64(0)-measuredUser || v.SystemMicros > ^uint64(0)-measuredSystem {
+					return nil, ErrInvalid
+				}
+				measuredUser += v.UserMicros
+				measuredSystem += v.SystemMicros
+			}
+		}
 		if rec.State == "preparing" || rec.State == "running" || rec.State == "verifying" {
 			rec.State, rec.Failure = "interrupted", "prior process stopped; usage is a lower bound, no automatic replay"
 			r.data.Jobs[id] = rec
@@ -303,6 +319,9 @@ func validateStoredRecord(id string, rec Record, nonces map[string]string) error
 	mem, e2 := strictUint(rec.Work.Limits.MemoryBytes)
 	ms, e3 := strictUint(rec.Work.Limits.DurationMillis)
 	if e1 != nil || e2 != nil || e3 != nil || cpu == 0 || cpu > 1000 || mem < n+fixedMemory || mem > MaxMemoryBytes || ms == 0 || ms > MaxDurationMillis || rec.Work.Limits.StorageBytes != "0" || rec.Work.Limits.EgressBytes != "0" || rec.Usage.CPUServiceVerified {
+		return ErrInvalid
+	}
+	if !validProcessUsage(rec.Usage.Process) {
 		return ErrInvalid
 	}
 	if rec.Work.Kind == PublicBlockHistogramKind && (n > HistogramMaxInputBytes || mem < histogramMemory(n)) {
@@ -664,6 +683,7 @@ func (r *Runner) run(ctx context.Context, op *operation, w Work, input []byte, c
 	rec := r.data.Jobs[w.Job]
 	rec.Usage.BytesRead += usage.BytesRead
 	rec.Usage.WallMicros += usage.WallMicros
+	rec.Usage.Process = cloneProcessUsage(usage.Process)
 	if err == nil {
 		err = ctx.Err()
 	}
@@ -695,6 +715,7 @@ func (r *Runner) run(ctx context.Context, op *operation, w Work, input []byte, c
 }
 
 func cloneRecord(v Record) Record {
+	v.Usage.Process = cloneProcessUsage(v.Usage.Process)
 	if v.Receipt != nil {
 		copy := *v.Receipt
 		v.Receipt = &copy
@@ -865,6 +886,11 @@ type Meter struct {
 	CPUServiceVerified  bool   `json:"cpuServiceVerified"`
 	Rewards             string `json:"rewards"`
 	Accounting          string `json:"accounting"`
+	OSUserMicros        uint64 `json:"osUserMicros"`
+	OSSystemMicros      uint64 `json:"osSystemMicros"`
+	OSPeakRSSBytes      uint64 `json:"osPeakRSSBytes"`
+	OSMeasuredChildren  uint64 `json:"osMeasuredChildren"`
+	OSAccounting        string `json:"osAccounting"`
 }
 
 // VerifyResourceMeter derives unique locally reverified jobs from stored
@@ -872,7 +898,7 @@ type Meter struct {
 func (r *Runner) VerifyResourceMeter() Meter {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	m := Meter{Class: SandboxClass, State: "disabled", Rewards: "NOT_AUTHORIZED", Accounting: "LOCAL_MEASUREMENTS_NOT_CPU_SERVICE"}
+	m := Meter{Class: SandboxClass, State: "disabled", Rewards: "NOT_AUTHORIZED", Accounting: "LOCAL_MEASUREMENTS_NOT_CPU_SERVICE", OSAccounting: "LOCAL_WORKER_AND_MONITOR_WAIT4_CPU_SUM_MAX_SINGLE_PID_RSS_INCLUDES_HISTORY_NOT_SERVICE"}
 	if r.persistenceErr != nil {
 		m.Accounting = "UNKNOWN_LOCAL_PERSISTENCE"
 	}
@@ -887,6 +913,22 @@ func (r *Runner) VerifyResourceMeter() Meter {
 	for _, rec := range r.data.Jobs {
 		m.MeasuredBytesRead += rec.Usage.BytesRead
 		m.MeasuredWallMicros += rec.Usage.WallMicros
+		if u := rec.Usage.Process; u != nil {
+			m.OSUserMicros += u.UserMicros
+			m.OSSystemMicros += u.SystemMicros
+			if u.PeakRSSBytes > m.OSPeakRSSBytes {
+				m.OSPeakRSSBytes = u.PeakRSSBytes
+			}
+			m.OSMeasuredChildren++
+			if v := u.Monitor; v != nil {
+				m.OSUserMicros += v.UserMicros
+				m.OSSystemMicros += v.SystemMicros
+				if v.PeakRSSBytes > m.OSPeakRSSBytes {
+					m.OSPeakRSSBytes = v.PeakRSSBytes
+				}
+				m.OSMeasuredChildren++
+			}
+		}
 		if rec.Receipt != nil && rec.State == "verified" {
 			m.VerifiedJobs++
 			m.VerifiedBytes += rec.Receipt.VerifiedBytes

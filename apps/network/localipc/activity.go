@@ -29,11 +29,16 @@ type ParticipationActivity struct {
 	UnknownEntries            string `json:"unknownEntries,omitempty"`
 }
 type ResourceActivity struct {
-	Code              string `json:"code"`
-	State             string `json:"state,omitempty"`
-	ActiveWorkers     string `json:"activeWorkers,omitempty"`
-	VerifiedJobs      string `json:"verifiedJobs,omitempty"`
-	VerifiedBytes     string `json:"verifiedBytes,omitempty"`
-	Rewards           string `json:"rewards"`
-	ProductionEnabled bool   `json:"productionEnabled"`
+	Code               string `json:"code"`
+	State              string `json:"state,omitempty"`
+	ActiveWorkers      string `json:"activeWorkers,omitempty"`
+	VerifiedJobs       string `json:"verifiedJobs,omitempty"`
+	VerifiedBytes      string `json:"verifiedBytes,omitempty"`
+	Rewards            string `json:"rewards"`
+	ProductionEnabled  bool   `json:"productionEnabled"`
+	ContainmentMode    string `json:"containmentMode,omitempty"`
+	OSMeasuredChildren string `json:"osMeasuredChildren,omitempty"`
+	OSUserMicros       string `json:"osUserMicros,omitempty"`
+	OSSystemMicros     string `json:"osSystemMicros,omitempty"`
+	OSPeakRSSBytes     string `json:"osPeakRSSBytes,omitempty"`
 }

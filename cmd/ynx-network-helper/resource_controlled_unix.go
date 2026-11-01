@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"syscall"
 
 	"github.com/JiahaoAlbus/YNX-Chain/apps/network/contribution"
@@ -22,6 +23,7 @@ import (
 // Bound by the QA builder to the one fixed sibling, never accepted from a
 // packet, HTTP ticket, job argument or runtime executable selector.
 var resourceWorkerSHA256 string
+var resourceMonitorSHA256 string
 
 type controlledWASMPacket struct {
 	Version           string               `json:"version"`
@@ -131,7 +133,12 @@ func runControlledWASM(path, dataDir, issuerPin, consentPin string) error {
 	if len(resourceWorkerSHA256) != 64 {
 		return errors.New("fixed WASM worker not bound into this helper build")
 	}
-	executor, err := contribution.NewPinnedWASMExecutor(workerPath, resourceWorkerSHA256)
+	var executor *contribution.PinnedWASMExecutor
+	if runtime.GOOS == "darwin" {
+		executor, err = contribution.NewOSLimitedWASMExecutor(workerPath, resourceWorkerSHA256, filepath.Join(filepath.Dir(executable), "ynx-network-resource-monitor"), resourceMonitorSHA256)
+	} else {
+		executor, err = contribution.NewPinnedWASMExecutor(workerPath, resourceWorkerSHA256)
+	}
 	if err != nil {
 		return err
 	}

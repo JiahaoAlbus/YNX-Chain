@@ -41,6 +41,11 @@ func nativeActivity(peer localipc.Peer, service *participation.Service, node *ow
 			code = "UNKNOWN"
 		}
 		a.Resource = localipc.ResourceActivity{Code: code, State: m.State, ActiveWorkers: strconv.FormatUint(m.ActiveWorkers, 10), VerifiedJobs: strconv.FormatUint(m.VerifiedJobs, 10), VerifiedBytes: strconv.FormatUint(m.VerifiedBytes, 10), Rewards: "NOT_AUTHORIZED"}
+		a.Resource.ContainmentMode = contribution.ProcessContainmentSupport().Mode
+		a.Resource.OSMeasuredChildren = strconv.FormatUint(m.OSMeasuredChildren, 10)
+		a.Resource.OSUserMicros = strconv.FormatUint(m.OSUserMicros, 10)
+		a.Resource.OSSystemMicros = strconv.FormatUint(m.OSSystemMicros, 10)
+		a.Resource.OSPeakRSSBytes = strconv.FormatUint(m.OSPeakRSSBytes, 10)
 	}
 	return a
 }

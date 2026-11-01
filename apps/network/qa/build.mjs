@@ -33,7 +33,7 @@ function jsonStream(raw){let start=-1,depth=0,quoted=false,escape=false;const va
 function snapshot(){
   const head=run('git',['rev-parse','HEAD']);if(!/^[0-9a-f]{40}$/.test(head)||expected&&head!==expected)throw Error('Exact source HEAD does not match');
   const status=run('git',['status','--porcelain=v1','--untracked-files=all']);
-  const files=new Set(['go.mod','go.sum','apps/network/qa/build.mjs','apps/network/qa/launcher.m','apps/network/qa/proof_profile.h','apps/network/qa/proof_profile.m','apps/network/qa/native_consent.h','apps/network/qa/native_consent.m','apps/network/qa/native_consent_main.m','apps/network/qa/native_consent_info.plist']);
+  const files=new Set(['go.mod','go.sum','apps/network/qa/build.mjs','apps/network/qa/resource_monitor.c','apps/network/qa/launcher.m','apps/network/qa/proof_profile.h','apps/network/qa/proof_profile.m','apps/network/qa/native_consent.h','apps/network/qa/native_consent.m','apps/network/qa/native_consent_main.m','apps/network/qa/native_consent_info.plist']);
   const workerRoot=path.join(root,'apps/network/wasmworker');
   const workerFiles=dir=>{for(const item of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,item.name);if(item.isDirectory())workerFiles(file);else if(/\.(go|wasm)$/.test(item.name)||['go.mod','go.sum'].includes(item.name))files.add(path.relative(root,file));}};workerFiles(workerRoot);
   const originalVerifier=originalVerifierInput();
@@ -64,6 +64,9 @@ run(workerGo,['build','-mod=readonly','-trimpath','-buildvcs=false','-p','1','-o
 const workerSHA256=sha(fs.readFileSync(worker));
 
 const sdk=run('xcrun',['--sdk','macosx','--show-sdk-path']);
+const monitor=path.join(contents,'Helpers','ynx-network-resource-monitor');
+run('xcrun',['--sdk','macosx','clang','-arch','arm64','-mmacosx-version-min=12.0','-isysroot',sdk,'-Wall','-Wextra','-Werror',path.join(here,'resource_monitor.c'),'-o',monitor],{env:process.env});
+const resourceMonitorSHA256=sha(fs.readFileSync(monitor));
 const nativeBundle=path.join(contents,'Helpers','YNX Network Consent.app');
 fs.mkdirSync(path.join(nativeBundle,'Contents','MacOS'),{recursive:true,mode:0o755});
 const nativeConsentBundleID=`dev.ynx.network.consent.qa.h${identity.slice(0,16)}`;
@@ -75,7 +78,7 @@ const nativeConsentInfoSHA256=sha(Buffer.from(nativeInfoBytes));
 const nativeProducer=path.join(nativeBundle,'Contents','MacOS','ynx-network-native-consent');
 run('xcrun',['--sdk','macosx','clang','-arch','arm64','-mmacosx-version-min=12.0','-isysroot',sdk,'-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-framework','Cocoa',path.join(here,'native_consent_main.m'),'-o',nativeProducer],{env:process.env});
 const nativeConsentSHA256=sha(fs.readFileSync(nativeProducer));
-run('go',['build','-mod=readonly','-trimpath','-buildvcs=false','-p','1','-ldflags',`-X main.sourceRevision=${source.head} -X main.resourceWorkerSHA256=${workerSHA256} -X main.nativeConsentSHA256=${nativeConsentSHA256} -X main.nativeConsentInfoSHA256=${nativeConsentInfoSHA256}`,'-o',helper,'./cmd/ynx-network-helper']);
+run('go',['build','-mod=readonly','-trimpath','-buildvcs=false','-p','1','-ldflags',`-X main.sourceRevision=${source.head} -X main.resourceWorkerSHA256=${workerSHA256} -X main.resourceMonitorSHA256=${resourceMonitorSHA256} -X main.nativeConsentSHA256=${nativeConsentSHA256} -X main.nativeConsentInfoSHA256=${nativeConsentInfoSHA256}`,'-o',helper,'./cmd/ynx-network-helper']);
 if(source.originalVerifier){
   fs.copyFileSync(source.originalVerifier.path,proof,fs.constants.COPYFILE_EXCL);
   if(sha(fs.readFileSync(proof))!==source.originalVerifier.sha256)throw Error('Copied original verifier differs from pinned supplier input');
@@ -85,14 +88,14 @@ run('xcrun',['--sdk','macosx','clang','-arch','arm64','-mmacosx-version-min=12.0
 const version=run(helper,['--version']);if(!version.includes(source.head))throw Error('Helper build identity does not match source');
 let minimumMacOS='12.0';
 const compareVersion=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]??0)-(y[i]??0);if(d)return d;}return 0;};
-for(const executable of [launcher,helper,proof,worker,nativeProducer]){
+for(const executable of [launcher,helper,proof,worker,monitor,nativeProducer]){
   fs.chmodSync(executable,0o755);if(!run('lipo',['-archs',executable],{env:process.env}).split(/\s+/).includes('arm64'))throw Error('QA executable architecture mismatch');
   const loadCommands=run('xcrun',['vtool','-show-build',executable],{env:process.env}),platforms=[...loadCommands.matchAll(/^\s*platform\s+(\S+)\s*$/gm)],versions=[...loadCommands.matchAll(/^\s*minos\s+(\d+\.\d+(?:\.\d+)?)\s*$/gm)];
   if(!platforms.length||platforms.some(m=>m[1]!=='MACOS')||platforms.length!==versions.length)throw Error('QA executable macOS deployment target unavailable');
   for(const [,version]of versions)if(compareVersion(version,minimumMacOS)>0)minimumMacOS=version;
 }
 if(compareVersion(run('sw_vers',['-productVersion'],{env:process.env}),minimumMacOS)<0)throw Error('Original verifier requires a newer macOS than this QA host');
-const config={version:'YNX-NETWORK-LOCAL-QA/v1',buildID:`qa-${identity.slice(0,16)}`,sourceRevision:source.head,sourceInputSHA256:source.inputSHA256,helperSHA256:sha(fs.readFileSync(helper)),proofSHA256:sha(fs.readFileSync(proof)),resourceWorkerSHA256:workerSHA256,nativeConsentSHA256,nativeConsentInfoSHA256,nativeConsentBundleID,minimumMacOS,defaultRPC:'https://rpc.ynxweb4.com',publisherSigned:false,notarized:false,installed:false};
+const config={version:'YNX-NETWORK-LOCAL-QA/v1',buildID:`qa-${identity.slice(0,16)}`,sourceRevision:source.head,sourceInputSHA256:source.inputSHA256,helperSHA256:sha(fs.readFileSync(helper)),proofSHA256:sha(fs.readFileSync(proof)),resourceWorkerSHA256:workerSHA256,resourceMonitorSHA256,nativeConsentSHA256,nativeConsentInfoSHA256,nativeConsentBundleID,minimumMacOS,defaultRPC:'https://rpc.ynxweb4.com',publisherSigned:false,notarized:false,installed:false};
 if(source.originalVerifier)config.proofSourceRevision=source.originalVerifier.sourceRevision;
 fs.writeFileSync(path.join(contents,'Resources','qa-build.json'),JSON.stringify(config,null,2)+'\n');
 fs.copyFileSync(path.join(root,'apps/network/web/app-icon.png'),path.join(contents,'Resources','Network.png'),fs.constants.COPYFILE_EXCL);
@@ -101,7 +104,7 @@ fs.writeFileSync(path.join(contents,'Info.plist'),plist);run('plutil',['-lint',p
 fs.writeFileSync(path.join(staging,'START.command'),'#!/bin/sh\nset -eu\nqa_bundle_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexec "$qa_bundle_dir/YNX Network QA.app/Contents/MacOS/ynx-network-qa" "$@"\n',{mode:0o755});
 fs.writeFileSync(path.join(staging,'START_HERE.txt'),`YNX Network local QA candidate\nSource: ${source.head}\nNormal entry: open YNX Network QA.app, or double-click START.command.\nCLI service: ./START.command --headless\nNative readback: ./START.command --native-status\nVersion: ./START.command --version\nThe displayed one-use code pairs receipt.read/receipt.verify, node.read and read-only native.status. Quit stops only the helper launched by this app.\nPrivate version-specific data: ~/.ynx-network-qa/${config.buildID}/\nOptional isolated QA root: YNX_NETWORK_QA_DIRECTORY must be an existing current-user 0700 directory; it changes only the QA root, never HOME.\nNo original source/trust context is supplied by this package. Use the native Configure independent proof materials button: choose the original public context and manually enter its independent 64-hex SHA256. Headless uses the same version-private profile; configure while this version is stopped: ./START.command --configure-proof-context /absolute/original-context.json --context-sha256 INDEPENDENT_64HEX. Inspect public configuration: ./START.command --proof-profile. The App never generates the independent input or selects an external executable. Configuration grants no verification or Wallet/node authority. Receipt queries remain RPC_ONLY without independently configured original context. The original proof executable is included under Contents/Helpers.\nThis is an independent QA bundle, not formally publisher signed, notarized or installed. It does not replace an installed app, formal download or existing user directory.\n`);
 const final=snapshot();if(final.head!==source.head||final.inputSHA256!==source.inputSHA256||final.dirty)throw Error('Source changed during build; staging preserved, no candidate published');
-const signatureObservations=[launcher,helper,proof,worker,nativeProducer].map(file=>{const r=spawnSync('codesign',['--display','--verbose=4',file],{encoding:'utf8'});return {path:path.relative(staging,file),exit:r.status,display:(r.stderr??'').trim()};});
+const signatureObservations=[launcher,helper,proof,worker,monitor,nativeProducer].map(file=>{const r=spawnSync('codesign',['--display','--verbose=4',file],{encoding:'utf8'});return {path:path.relative(staging,file),exit:r.status,display:(r.stderr??'').trim()};});
 const outputFiles=[];function walk(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,entry.name);if(entry.isDirectory())walk(file);else outputFiles.push({path:path.relative(staging,file),bytes:fs.statSync(file).size,sha256:sha(fs.readFileSync(file))});}}walk(staging);
 fs.writeFileSync(path.join(staging,'source-manifest.json'),JSON.stringify({kind:'YNX-NETWORK-QA-PROVENANCE/v1',builtAt:new Date().toISOString(),target:'darwin/arm64',source,helperVersion:version,resourceWorker:{sha256:workerSHA256,kind:'fixed-no-import-public-block-histogram',wasmSHA256:sha(fs.readFileSync(path.join(root,'apps/network/wasmworker/histogram.wasm'))),moduleGoModSHA256:sha(fs.readFileSync(path.join(root,'apps/network/wasmworker/go.mod'))),moduleGoSumSHA256:sha(fs.readFileSync(path.join(root,'apps/network/wasmworker/go.sum'))),productionEnabled:false},toolchain:{go:source.goVersion,clang:run('xcrun',['clang','--version'],{env:process.env}),macOSSDK:sdk},buildArguments:{go:'-mod=readonly -trimpath -buildvcs=false -p1; sourceRevision exact HEAD',native:'system clang, Cocoa/WebKit, arm64, launcher target12; effective bundle minimum macOS'+minimumMacOS},embeddedWeb:source.inputs.filter(x=>x.path.startsWith('apps/network/web/')),dataDirectory:`~/.ynx-network-qa/${config.buildID}`,publisherSigned:false,notarized:false,installed:false,signatureObservations,outputs:outputFiles},null,2)+'\n');
 fs.renameSync(staging,destination);process.stdout.write(JSON.stringify({bundle:destination,app:path.join(destination,'YNX Network QA.app'),source:source.head,buildID:config.buildID,publisherSigned:false,installed:false})+'\n');

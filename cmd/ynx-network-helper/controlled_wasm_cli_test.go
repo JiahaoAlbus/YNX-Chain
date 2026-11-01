@@ -23,7 +23,12 @@ import (
 func TestP09ControlledWASMPackagedCLI(t *testing.T) {
 	worker, pin := wasmRunnerBinary(t)
 	helper := filepath.Join(filepath.Dir(worker), "ynx-network-helper")
-	build := exec.Command(filepath.Join(runtime.GOROOT(), "bin/go"), "build", "-mod=readonly", "-p", "1", "-ldflags", "-X main.resourceWorkerSHA256="+pin, "-o", helper, ".")
+	flags := "-X main.resourceWorkerSHA256=" + pin
+	if runtime.GOOS == "darwin" {
+		_, mpin := resourceMonitorBinary(t, filepath.Dir(worker))
+		flags += " -X main.resourceMonitorSHA256=" + mpin
+	}
+	build := exec.Command(filepath.Join(runtime.GOROOT(), "bin/go"), "build", "-mod=readonly", "-p", "1", "-ldflags", flags, "-o", helper, ".")
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("actual helper build: %v %s", err, out)
 	}
