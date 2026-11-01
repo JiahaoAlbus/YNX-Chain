@@ -22,9 +22,16 @@ func effectSendContext(ctx context.Context, store *Store, id string, verified *v
 	return context.WithValue(ctx, effectDispatchKey{}, effectDispatch{store, id, verified, actor, check})
 }
 
-type effectHTTPTransport struct{ base http.RoundTripper }
+type effectHTTPTransport struct {
+	base          http.RoundTripper
+	responseLimit int64
+}
 
 func guardedEffectHTTPClient(original *http.Client, timeout time.Duration) *http.Client {
+	return guardedEffectHTTPClientWithResponseLimit(original, timeout, 1<<20)
+}
+
+func guardedEffectHTTPClientWithResponseLimit(original *http.Client, timeout time.Duration, limit int64) *http.Client {
 	client := http.Client{Timeout: timeout}
 	if original != nil {
 		client = *original
@@ -33,7 +40,7 @@ func guardedEffectHTTPClient(original *http.Client, timeout time.Duration) *http
 	if base == nil {
 		base = http.DefaultTransport
 	}
-	client.Transport = effectHTTPTransport{base}
+	client.Transport = effectHTTPTransport{base: base, responseLimit: limit}
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	return &client
 }
@@ -90,9 +97,13 @@ func (t effectHTTPTransport) RoundTrip(r *http.Request) (*http.Response, error) 
 		}
 		return nil, err
 	}
-	raw, readErr := io.ReadAll(io.LimitReader(response.Body, (1<<20)+1))
+	limit := t.responseLimit
+	if limit <= 0 || limit > nativePayProductLimit {
+		limit = 1 << 20
+	}
+	raw, readErr := io.ReadAll(io.LimitReader(response.Body, limit+1))
 	response.Body.Close()
-	if readErr != nil || len(raw) > 1<<20 || !json.Valid(raw) {
+	if readErr != nil || int64(len(raw)) > limit || !json.Valid(raw) {
 		if saveErr := d.store.finishEffectStep(d.id, index, "response_unusable", response.StatusCode, nil); saveErr != nil {
 			return nil, saveErr
 		}

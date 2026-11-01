@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -244,7 +245,16 @@ func (s *Server) serveBusinessExternal(w http.ResponseWriter, r *http.Request, p
 		}
 		plan, err = s.payInvoiceEffect(r.PathValue("id"), body)
 	case "POST /api/orders/{id}/confirm-payment":
-		plan, err = s.settlementEffect(r.PathValue("id"), body, verified.proof)
+		target := r.PathValue("id")
+		s.store.mu.Lock()
+		original := s.store.s.Orders[target]
+		native := strings.HasPrefix(original.PayIntentID, "npi_")
+		s.store.mu.Unlock()
+		if native {
+			plan, err = s.nativePaymentReceiptEffect(target, body, verified.proof)
+		} else {
+			plan, err = s.settlementEffect(target, body, verified.proof)
+		}
 	case "POST /api/orders/{id}/transition":
 		var in orderTransitionInput
 		if err := decodeBusinessBody(body, &in); err != nil {

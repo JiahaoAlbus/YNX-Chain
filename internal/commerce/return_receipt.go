@@ -116,7 +116,7 @@ func (s *Store) ReceiveReturn(actor, id string, in ReceiveReturnInput) (Order, e
 		}
 		return cloneOrder(o), nil
 	}
-	if !approvedReturn(o, in.ReturnID) || o.Shipment == nil || o.Settlement == nil || !settlementMatchesOrder(o, *o.Settlement) {
+	if !approvedReturn(o, in.ReturnID) || o.Shipment == nil || !originalOrderWasPaid(o) {
 		return Order{}, fmt.Errorf("%w: original approved fulfilled return required", ErrInvalidState)
 	}
 	if !invoiceRecoveryID.MatchString(in.EvidenceReference) || len(in.Items) == 0 || len(in.Items) > 50 || len(o.ReturnReceipts) >= 1000 {
@@ -190,7 +190,7 @@ func (s *Store) RestockReturn(actor, id string, in RestockReturnInput) (Order, e
 	// A retained goods receipt does not replace the original fulfilled sale.
 	// Missing/mismatched original settlement blocks a NEW stock effect only;
 	// exact existing operation readback above remains available without replay.
-	if o.Shipment == nil || o.Settlement == nil || !settlementMatchesOrder(o, *o.Settlement) {
+	if o.Shipment == nil || !originalOrderWasPaid(o) {
 		return Order{}, fmt.Errorf("%w: original fulfilled settlement required before restock", ErrInvalidState)
 	}
 	if _, err := returnRemaining(o); err != nil {

@@ -84,7 +84,7 @@ type businessEffectPlan struct {
 // This list is owner-defined, never caller supplied. A fresh signed settlement
 // observation may repeat its GET after an unavailable or pending response.
 func readBusinessEffect(kind string) bool {
-	return kind == "pay.settlement" || kind == "pay.native-intent" || kind == "pay.native-lookup"
+	return kind == "pay.settlement" || kind == "pay.native-intent" || kind == "pay.native-lookup" || kind == "pay.native-receipt"
 }
 
 func readBusinessEffectStep(kind, method, path string) bool {

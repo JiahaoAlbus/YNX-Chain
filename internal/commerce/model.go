@@ -181,6 +181,7 @@ type Order struct {
 	TaxStatus, LogisticsStatus, RefundStatus, TrustStatus                                       string
 	ReservationExpiresAt                                                                        time.Time
 	Settlement                                                                                  *SettlementEvidence
+	NativePayment                                                                               *NativeShopPaymentRecord `json:",omitempty"`
 	Refund                                                                                      *RefundEvidence
 	Shipment                                                                                    *Shipment
 	Resolution                                                                                  *Resolution
@@ -297,6 +298,12 @@ func cloneProduct(product Product) Product {
 // Orders contain mutable evidence pointers as well as line and timeline slices.
 // Keep stored records and response snapshots independent after releasing the lock.
 func cloneOrder(order Order) Order {
+	if order.NativePayment != nil {
+		p := *order.NativePayment
+		p.Receipts = append([]nativeShopArchiveReceipt(nil), p.Receipts...)
+		p.PendingOriginals = append([]string(nil), p.PendingOriginals...)
+		order.NativePayment = &p
+	}
 	order.ReturnReceipts = append([]ReturnReceipt(nil), order.ReturnReceipts...)
 	for i := range order.ReturnReceipts {
 		order.ReturnReceipts[i].Items = append([]ReturnItem(nil), order.ReturnReceipts[i].Items...)

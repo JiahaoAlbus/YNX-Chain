@@ -439,7 +439,7 @@ func TestReturnReceiptSchema15MigrationKeepsOriginalOrder(t *testing.T) {
 		t.Fatal(err)
 	}
 	read, err := reopened.Order(buyer, "buyer", o.ID)
-	if err != nil || !reflect.DeepEqual(read, o) || reopened.s.Version != 16 {
+	if err != nil || !reflect.DeepEqual(read, o) || reopened.s.Version != CurrentPersistenceSchemaVersion {
 		t.Fatal("legacy order migration changed business data", err)
 	}
 	// No new warehouse fact appears merely because the schema was upgraded.

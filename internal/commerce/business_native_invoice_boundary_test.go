@@ -54,7 +54,7 @@ func TestBusinessNativeInvoiceCannotSettleThroughLegacyPayEvidence(t *testing.T)
 	defer legacy.Close()
 	cfg := ServerConfig{businessV2: controlledBusinessVerifier{account: buyer, role: "buyer"}, Pay: HTTPPayVerifier{BaseURL: legacy.URL, APIKey: "PUBLIC-old-pay"}}
 	w := businessHTTPRequest(NewServer(s, cfg), "POST", "/api/orders/"+order.ID+"/confirm-payment", strings.Repeat("z", 43), `{}`)
-	if w.Code != 409 || calls != 0 {
+	if w.Code != 503 || calls != 0 {
 		t.Fatal("Native confirmation reached legacy provider", w.Code, w.Body.String(), calls)
 	}
 	// Normal HTTP middleware retains its abuse counter even on a rejection.

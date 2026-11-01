@@ -20,7 +20,7 @@ import (
 
 const (
 	PersistenceSchemaVersionV1      = 1
-	CurrentPersistenceSchemaVersion = 16
+	CurrentPersistenceSchemaVersion = 17
 	persistenceEnvelopeVersion      = 1
 	persistenceRollbackSuffix       = ".schema-rollback"
 )
@@ -258,6 +258,9 @@ func (s *Store) normalize() (bool, error) {
 	}
 	if s.s.RequestWindow == nil {
 		s.s.RequestWindow = map[string][]time.Time{}
+	}
+	if err := validateNativePaymentRecords(s.s); err != nil {
+		return false, err
 	}
 	return migrated, nil
 }
@@ -587,7 +590,7 @@ func hasPrivacyProtection(snapshot Snapshot) bool {
 
 func hasBusinessProtection(snapshot Snapshot) bool {
 	for _, order := range snapshot.Orders {
-		if len(order.ReturnReceipts) != 0 {
+		if len(order.ReturnReceipts) != 0 || order.NativePayment != nil {
 			return true
 		}
 	}

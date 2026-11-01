@@ -63,8 +63,11 @@ jobs:
               return (path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")) or path.startswith("internal/securelink/") or path.startswith("cmd/ynx-secure-link-caller/") or path.startswith("internal/commerce/third_party/productreadsource/") or path in {"internal/commerce/PRODUCT_SOURCE_DEPENDENCIES.json", "internal/commerce/verify_product_source_inputs.py"}
           def native_client_path(path):
               return path in {"internal/commerce/native_pay_client.go", "internal/commerce/native_pay_archive_client_test.go"}
-          read_path = lambda p: source_path(p) or native_client_path(p)
-          allowed = lambda p: read_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", ".github/workflows/shop-native.yml", "go.mod"}
+          receipt_files = {"internal/commerce/business_effect.go", "internal/commerce/business_effect_http.go", "internal/commerce/business_effect_plans.go", "internal/commerce/business_native_invoice_boundary_test.go", "internal/commerce/model.go", "internal/commerce/return_receipt.go", "internal/commerce/return_receipt_test.go", "internal/commerce/service.go", "internal/commerce/store.go"}
+          def receipt_path(path):
+              return path in receipt_files or path.startswith("internal/commerce/native_payment_")
+          read_path = lambda p: source_path(p) or native_client_path(p) or receipt_path(p)
+          allowed = lambda p: read_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", "internal/commerce/NATIVE_PAYMENT_RECEIPT.md", ".github/workflows/shop-native.yml", "go.mod"}
           source_only = bool(changed) and any(map(read_path, changed)) and all(map(allowed, changed))
           if source_only and "go.mod" in changed:
               module = "github.com/JiahaoAlbus/YNX-Chain/authowned/productreadsource"
@@ -77,6 +80,8 @@ jobs:
               tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI"])
           if source_only and any(map(native_client_path, changed)):
               tests.extend(["TestNativeShopPay", "TestBusinessNativeInvoice", "TestNativeInvoice"])
+          if source_only and any(map(receipt_path, changed)):
+              tests.extend(["TestNativePaymentReceipt", "TestBusinessNativeInvoice", "TestBusinessSettlement", "TestBusinessPayPerDispatch", "TestPaidSettlement", "TestReturnReceipt", "TestOrderTransition", "TestOrderLifecycle", "TestSnapshot", "TestBuyerData", "TestNativeInvoicePrivacy", "TestShopRuntime", "TestShopNativeAPI"])
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write("source-only=" + str(source_only).lower() + "\n")
               output.write("read-tests=^(" + "|".join(tests) + ")\n")
