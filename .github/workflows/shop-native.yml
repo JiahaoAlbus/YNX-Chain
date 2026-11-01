@@ -36,6 +36,7 @@ jobs:
     timeout-minutes: 3
     outputs:
       source-only: ${{ steps.scope.outputs.source-only }}
+      read-tests: ${{ steps.scope.outputs.read-tests }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -60,11 +61,20 @@ jobs:
                   changed = []  # uncertain comparison keeps the full checks
           def source_path(path):
               return path.startswith("internal/commerce/native_invoice_source_") and path.endswith(".go")
-          allowed = lambda p: source_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", ".github/workflows/shop-native.yml"}
-          source_only = bool(changed) and any(map(source_path, changed)) and all(map(allowed, changed))
+          def native_client_path(path):
+              return path in {"internal/commerce/native_pay_client.go", "internal/commerce/native_pay_archive_client_test.go"}
+          read_path = lambda p: source_path(p) or native_client_path(p)
+          allowed = lambda p: read_path(p) or p in {"internal/commerce/NATIVE_INVOICE_SOURCE_READ.md", ".github/workflows/shop-native.yml"}
+          source_only = bool(changed) and any(map(read_path, changed)) and all(map(allowed, changed))
+          tests = []
+          if not source_only or any(map(source_path, changed)):
+              tests.extend(["TestShopInvoiceSource", "TestShopRuntime", "TestShopNativeAPI"])
+          if source_only and any(map(native_client_path, changed)):
+              tests.extend(["TestNativeShopPay", "TestBusinessNativeInvoice", "TestNativeInvoice"])
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write("source-only=" + str(source_only).lower() + "\n")
-          print("Source-only checks:", source_only, "actual changed files:", len(changed))
+              output.write("read-tests=^(" + "|".join(tests) + ")\n")
+          print("Read-plane-only checks:", source_only, "actual changed files:", len(changed))
           PY
   order-recovery:
     needs: change-scope
@@ -80,13 +90,15 @@ jobs:
         run: |
           set -euo pipefail
           go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestNativeInvoice|TestBusinessNativeIntent|TestBusinessNativeInvoice|TestNativeShopPay|TestOriginalShopBrowserSeal|TestShopRuntime|TestShopNativeAPI|TestBuyerData|TestPrivacy|TestInventoryBatch|TestCheckout|TestCartRevision|TestWarehouse|TestReturnReceipt|TestBusinessTransition|TestOrderTransition|TestOrderLifecycle)' -count=1
-      - name: Verify original Source read on real private Unix transport
+      - name: Verify affected Source and Native Pay reads on original transports
+        env:
+          READ_TESTS: ${{ needs.change-scope.outputs.read-tests }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/shop-original-source-read"
           chmod 700 "$RUNNER_TEMP/shop-original-source-read"
           SHOP_SOURCE_READ_SOCKET_ROOT="$RUNNER_TEMP/shop-original-source-read" \
-            go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run '^(TestShopInvoiceSource|TestShopRuntime|TestShopNativeAPI)' -count=1 -v
+            go test -mod=readonly -race -tags commerce_v2 ./internal/commerce ./internal/commerce/cmd/shopd -run "$READ_TESTS" -count=1 -v
           go build -mod=readonly -tags commerce_v2 -o "$RUNNER_TEMP/ynx-shopd" ./internal/commerce/cmd/shopd
       - uses: actions/setup-java@v4
         if: needs.change-scope.outputs.source-only != 'true'

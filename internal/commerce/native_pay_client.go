@@ -12,9 +12,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 )
 
 const nativePayProductLimit = 2 << 20
+
+// Existing P06 NativePayOriginalArchiveMaxBytes contract: Core proof80MiB +
+// archive overhead16MiB. This bound applies ONLY to original archive reads.
+const nativePayOriginalArchiveLimit = 96 << 20
+
+var ErrNativeShopPayOriginalArchiveUnavailable = errors.New("NATIVE_PAY_SETTLEMENT_ARCHIVE_UNAVAILABLE")
 
 // P06 product DATA only. Its real joint Source independently checks every
 // field against the registered merchant, original order and approved price.
@@ -115,6 +123,10 @@ func nativeShopPayInvoicePath(merchant, invoice string) (string, error) {
 }
 
 func (c *NativeShopPayClient) exchange(ctx context.Context, method, path string, input any, mutation bool) (out NativeShopPayExchange, err error) {
+	return c.exchangeBounded(ctx, method, path, input, mutation, nativePayProductLimit)
+}
+
+func (c *NativeShopPayClient) exchangeBounded(ctx context.Context, method, path string, input any, mutation bool, responseLimit int64) (out NativeShopPayExchange, err error) {
 	out.Method, out.Path = method, path
 	if c == nil || c.client.Transport == nil || ctx == nil {
 		return out, ErrUnavailable
@@ -145,8 +157,11 @@ func (c *NativeShopPayClient) exchange(ctx context.Context, method, path string,
 	}
 	defer resp.Body.Close()
 	out.Status = resp.StatusCode
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, nativePayProductLimit+1))
-	if err != nil || len(raw) > nativePayProductLimit {
+	if responseLimit <= 0 || resp.ContentLength > responseLimit {
+		return out, ErrUnavailable
+	}
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, responseLimit+1))
+	if err != nil || int64(len(raw)) > responseLimit {
 		return out, errors.Join(err, ErrUnavailable)
 	}
 	// Retain original bounded bytes even when unusable. They must not be
@@ -157,6 +172,47 @@ func (c *NativeShopPayClient) exchange(ctx context.Context, method, path string,
 	}
 	out.Uncertain = false
 	return out, nil
+}
+
+// ReadOriginalArchiveDATA consumes P06's existing retained-public-archive GET.
+// It preserves original response bytes even on late current failure, so the
+// owning caller can retain/reconcile them. Neither JSON finalized/authority
+// fields nor a successful transport grant Source/funds authority. Use P06's
+// actual normal typed archive client/validator for the historical DATA; only a
+// genuine qualified receipt consumer may subsequently apply a financial claim.
+// There is no lookup/create/reconcile POST or current-account backfill here.
+func (c *NativeShopPayClient) ReadOriginalArchiveDATA(ctx context.Context, merchant, invoice, nativeHash string, current func() error) (out NativeShopPayExchange, err error) {
+	canonical, e := accountaddress.Normalize(merchant)
+	hash, he := hex.DecodeString(vPrefix(nativeHash, "0x"))
+	path, pe := nativeShopPayInvoicePath(merchant, invoice)
+	if e != nil || canonical != merchant || he != nil || len(hash) != 32 || "0x"+hex.EncodeToString(hash) != nativeHash || pe != nil {
+		return out, ErrInvalidState
+	}
+	if ctx == nil || current == nil {
+		return out, ErrUnavailable
+	}
+	if err = ctx.Err(); err != nil {
+		return out, err
+	}
+	if err = current(); err != nil {
+		return out, err
+	}
+	out, err = c.exchangeBounded(ctx, "GET", path+"/originals/"+nativeHash, nil, false, nativePayOriginalArchiveLimit)
+	if out.Status == http.StatusConflict {
+		var failure struct {
+			Code string `json:"code"`
+		}
+		if json.Unmarshal(out.Response, &failure) == nil && failure.Code == ErrNativeShopPayOriginalArchiveUnavailable.Error() {
+			return out, errors.Join(err, ErrNativeShopPayOriginalArchiveUnavailable)
+		}
+	}
+	if err != nil {
+		return out, err
+	}
+	if err = current(); err != nil {
+		return out, err
+	}
+	return out, ctx.Err()
 }
 
 func (c *NativeShopPayClient) ReviewTerms(ctx context.Context, order string, terms NativeShopPayTerms) (NativeShopPayExchange, error) {
