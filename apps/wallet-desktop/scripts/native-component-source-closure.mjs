@@ -1,4 +1,4 @@
-import {isPortableQARecord,PORTABLE_QA_PROVENANCE_NAMES} from './canonical-native-portable-qa-profile.mjs';
+import {isPortableQARecord,PORTABLE_QA_PROVENANCE_NAMES,verifyPortableQAContinuationRoleDATA} from './canonical-native-portable-qa-profile.mjs';
 import {COMMON_QA_PROVENANCE_NAMES,isCommonQARecord} from './canonical-native-qa-profile.mjs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
@@ -16,6 +16,7 @@ export function inspectNativeComponentGitSourceClosure(root,commit,recordBytes){
  let bound;try{bound=git('show',commit+':'+RECORD);}catch{fail('NATIVE_COMPONENT_GIT_RECORD_MISSING');}
  if(!bound.equals(recordBytes))fail('NATIVE_COMPONENT_GIT_RECORD_DIFFERS');
  let record;try{record=JSON.parse(recordBytes);}catch{fail('NATIVE_COMPONENT_GIT_RECORD_INVALID');}
+ if(isPortableQARecord(record)&&Object.hasOwn(record.normalPortableImageRole,'postBuildContinuation'))return inspectPortableContinuationGitClosure(root,commit,bound,record,git);
  const rows=new Map(),counts={};
  if(isCommonQARecord(record)||isPortableQARecord(record)){if(JSON.stringify(record.sourceProvenanceFiles?.map(x=>x.relative))!==JSON.stringify(isPortableQARecord(record)?PORTABLE_QA_PROVENANCE_NAMES:COMMON_QA_PROVENANCE_NAMES))fail('COMMON_QA_GIT_PROVENANCE_ROWS_REQUIRED');}
  const roles=[['node',record.inputFiles],['helper',record.helperBuild?.inputFiles],...((isCommonQARecord(record)||isPortableQARecord(record))?[['provenance',record.sourceProvenanceFiles],['inventory',[record.sourceInventory]]]:[])];
@@ -40,4 +41,12 @@ export function assertNativeComponentGitSourceClosure(root,commit,recordBytes){
  const result=inspectNativeComponentGitSourceClosure(root,commit,recordBytes);
  if(!result.complete)throw Object.assign(Error('NATIVE_COMPONENT_GIT_SOURCE_CLOSURE_DIFFERS'),{code:'NATIVE_COMPONENT_GIT_SOURCE_CLOSURE_DIFFERS',closure:result});
  return result;
+}
+
+function inspectPortableContinuationGitClosure(root,commit,bound,record,git){
+ const role=verifyPortableQAContinuationRoleDATA(record),producerCommit=role.recordProducerCommit,compileCommit=role.compileSourceCommit;
+ try{git('merge-base','--is-ancestor',producerCommit,commit);}catch{fail('PORTABLE_QA_CONTINUATION_PRODUCER_NOT_ANCESTOR');}
+ const rows=[...role.compileInputs.map(x=>({relative:x.path,bytes:x.bytes,sha256:x.sha256,role:'compile',commits:[compileCommit,commit]})),...role.compileProvenance.map(x=>({...x,role:'originalCompileProvenance',commits:[compileCommit]})),...role.producerFiles.map(x=>({...x,role:'recordProducer',commits:[producerCommit,commit]}))],defects=[];
+ for(const row of rows){if(!relative(row.relative)||!Number.isSafeInteger(row.bytes)||row.bytes<1||row.bytes>(16<<20)||!/^[a-f0-9]{64}$/.test(row.sha256))fail('NATIVE_COMPONENT_GIT_RECORD_INVALID');for(const sourceCommit of row.commits){let bytes,entry;try{entry=git('ls-tree',sourceCommit,'--',row.relative).toString();bytes=git('show',sourceCommit+':'+row.relative);}catch{defects.push({role:row.role,sourceCommit,relative:row.relative,reason:'GIT_SOURCE_MISSING'});continue;}const actual=pin(bytes);if(!/^(100644|100755) blob [a-f0-9]{40}\t/.test(entry)||actual.bytes!==row.bytes||actual.sha256!==row.sha256)defects.push({role:row.role,sourceCommit,relative:row.relative,reason:'GIT_SOURCE_DIFFERS',actual});}}
+ return {kind:'YNX_NATIVE_COMPONENT_DUAL_ROLE_GIT_SOURCE_CLOSURE/v1',sourceCommit:commit,compileSourceCommit:compileCommit,recordProducerCommit:producerCommit,record:{path:RECORD,...pin(bound)},counts:{compileInputs:role.compileInputs.length,originalCompileProvenance:role.compileProvenance.length,recordProducer:role.producerFiles.length},unique:new Set(rows.map(x=>x.relative)).size,complete:defects.length===0,defects,NativeCompiled:false,SourceQualified:false};
 }
