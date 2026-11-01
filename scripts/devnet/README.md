@@ -533,3 +533,45 @@ arguments, and rejection without qualified output. Proof checks are explicitly
 intercepted in adapter-only controls: CONTROL_ONLY/failed-execution values are
 ineligible for the business ledger and are never real business/finality proof.
 Real first-to-all500 outcomes still come only from the sole CORE normal job.
+
+The ready/timings adapter requires exact Go source
+`7037966eb2ce7a7167f02a09ee1f3bc0eebd1026`. Its normal source qualification,
+Go tree/fork graph and focused semantic checks must be supplied by CORE for
+that source. An old7593 qualification cannot authorize it. Source703 includes
+other production changes; these runs are not a pure static-cache A/B or an
+old75 throughput ratio. Old eight UNKNOWN originals remain unchanged.
+
+Measured sender processes now use the ORIGINAL `sender --ready --timings`.
+The resource observer runs while all eight real opened/imported/leased DATA
+handshakes are awaited, BEFORE the offered arrival clock. No sign/recover/
+confirm command is sent to obtain readiness. Owner, plan/workload pins,
+synthetic scope, no authority, no signature and no reserved nonce are checked;
+raw ready JSON and parent/source initialization costs are retained. Initialization
+has one bounded pool deadline; failure preserves full500 unstarted demand.
+Moving initialization out of the clock is a measurement profile change, never
+an asserted cryptographic speedup or a substitute for end-to-end confirmation.
+
+Each sign/confirm reply and original live-materials setup/request/result uses
+its actual703 timing fields. The original source `timings.stages` spans include
+cold opening/KDF/import, checkpoint initial/current reads, dynamic node
+validation, dual signing/self-verification/fsync, and policy/proof work where
+supplied. Independent verifier elapsed remains the original parent stage.
+`normalCalleeMeasurements` groups startup(8), setup(4), and each business phase
+(500) separately, retains outcomes and cumulative cache snapshots per owner,
+and never sums nested stages or startup echoes into business latency. Missing
+or failed replies remain censored; a stage percentile is emitted only when
+that stage is observed for the entire applicable denominator. Actual fixed
+window TPS/inclusion/normal H/H+1/confirm accounting stays unchanged, including
+the separate nonfinal H+1 availability gate from0e6. No PID/RSS/cap/crypto
+parameters are changed.
+
+Only the new adapter difference needs this control group:
+
+```sh
+python3 -I -B scripts/loadtest/test_pq_ready_metrics.py -v
+```
+
+These are public protocol/metrics adapter fixtures, not real custody, signature,
+proof or business evidence. New source Go validation and actual500 outcomes
+remain separate original CORE CI jobs. Existing39/41/cleanup/scheduler groups
+are not repeated merely for the new handoff.

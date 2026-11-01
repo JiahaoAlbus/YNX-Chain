@@ -33,6 +33,54 @@ scheduler=module("independent_pq_load","pq-independent-scheduler.py")
 lab=normal.lab
 
 
+CALLEE_SOURCE = "7037966eb2ce7a7167f02a09ee1f3bc0eebd1026"
+
+
+def callee_snapshot(value):
+    lab.require(type(value) is dict and value.get("version")=="YNX-PQ-LAB-CALLEE-ELAPSED/v1" and value.get("clock")=="monotonic_elapsed_wall_ns" and value.get("intervalsOverlap") is True,"exact original callee elapsed schema required")
+    stages=value.get("stages")
+    lab.require(type(stages) is dict and len(stages)<=128,"bounded original callee stages required")
+    for name,stage in stages.items():
+        lab.require(type(name) is str and 0<len(name)<=128 and type(stage) is dict and type(stage.get("calls")) is int and 0<stage["calls"]<1<<64 and type(stage.get("elapsedNs")) is int and 0<=stage["elapsedNs"]<1<<63,"invalid original callee stage timing")
+    return value
+
+
+class CalleeMeasurements:
+    """Original elapsed spans, separate denominators; never sum nested stages."""
+    def __init__(self,demand,accounts):
+        self.denominators=dict(startup=accounts,live_setup=4,sign=demand,confirm=demand,live_publish=demand,live_result=demand)
+        self.groups={};self.lock=threading.Lock()
+    def record(self,kind,identity,reply,owner=None):
+        metrics=callee_snapshot(reply.get("timings"));elapsed=reply.get("startupElapsedNs" if kind=="startup" else "calleeElapsedNs")
+        lab.require(type(elapsed) is int and 0<=elapsed<1<<63,"original callee elapsed value missing")
+        if "startupTimings" in reply:callee_snapshot(reply["startupTimings"])
+        cache=reply.get("staticCache")
+        if cache is not None:
+            lab.require(type(cache) is dict and cache.get("Scope")=="YNX-PQ-LAB-PUBLIC-STATIC-MATH/v1" and type(cache.get("Closed")) is bool,"original static cache scope differs")
+            for field,limit in (("Entries",1),("HeldFiles",16),("OriginalBytes",32<<20),("Hits",(1<<64)-1),("Misses",(1<<64)-1),("Bypasses",(1<<64)-1)):
+                lab.require(type(cache.get(field)) is int and 0<=cache[field]<=limit,"original static cache bound differs")
+        outcome=reply.get("code",reply.get("outcome",reply.get("Outcome",reply.get("status","observed"))));lab.require(type(outcome) is str and len(outcome)<=128,"invalid original callee outcome")
+        with self.lock:
+            lab.require(kind in self.denominators,"unknown callee measurement group")
+            g=self.groups.setdefault(kind,dict(seen=set(),elapsed=[],stages={},outcomes={},cacheByOwner={}))
+            lab.require(identity not in g["seen"] and len(g["seen"])<self.denominators[kind],"duplicate or over-denominator original callee observation")
+            g["seen"].add(identity);g["elapsed"].append(elapsed)
+            g["outcomes"][outcome]=g["outcomes"].get(outcome,0)+1
+            for name,stage in metrics["stages"].items():g["stages"].setdefault(name,[]).append(dict(stage))
+            if cache is not None:g["cacheByOwner"][str(owner)]=dict(cache)
+    def report(self):
+        def spans(values,n):
+            values=sorted(values)
+            return dict(observed=len(values),denominator=n,censoredOrNotReached=n-len(values),totalNs=sum(values),observedMinNs=min(values) if values else None,observedMaxNs=max(values) if values else None,
+                fullDemandPercentilesMs={"p%d"%p:values[(n*p+99)//100-1]/1e6 if n>0 and len(values)==n else None for p in (50,95,99)})
+        with self.lock:
+            result={}
+            for kind,n in self.denominators.items():
+                g=self.groups.get(kind,dict(elapsed=[],stages={},outcomes={},cacheByOwner={}))
+                result[kind]=dict(calleeElapsed=spans(g["elapsed"],n),outcomes=dict(g["outcomes"]),stages={name:dict(spans([v["elapsedNs"] for v in values],n),calls=sum(v["calls"] for v in values)) for name,values in g["stages"].items()},lastCumulativeCacheSnapshotByOwner=dict(g["cacheByOwner"]))
+        return dict(schema="YNX-PERF-ORIGINAL-CALLEE-MEASUREMENTS/v1",source=CALLEE_SOURCE,groups=result,intervalsOverlap=True,startupSeparate=True,startupEchoInFirstCommandNotAdded=True,cacheSnapshotsCumulativeNeverSummed=True,meaning="original monotonic elapsed wall spans; nested stages and concurrent processes are not additive; no authority or business/finality qualification")
+
+
 class Journal:
     def __init__(self,path):
         self.path=path;self.paths=[];self.file=None;self.bytes=0;self.open_next()
@@ -69,46 +117,64 @@ class Monitor:
 class SenderSession:
     """One leased normal sender stdin/stdout stream, not a new signing API."""
     def __init__(self,ceremony,owner):
-        self.c=ceremony;self.owner=owner;self.offset=0;self.partial=b""
+        self.c=ceremony;self.owner=owner;self.offset=0;self.partial=b"";self.ready=None
+        self.launched_ns=time.monotonic_ns()
         path=ceremony.root/"workload/private-senders/recovery.raw"
         fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_CLOEXEC)
         try:
             st=os.fstat(fd);lab.require(stat.S_ISREG(st.st_mode) and st.st_size==32 and st.st_mode&0o077==0 and st.st_nlink==1,"original private credential required")
-            args=[str(ceremony.bins/"ynx-consensus-pq-lab"),"sender","--synthetic","--root",str(ceremony.root),"--plan-sha256",ceremony.pin,"--activation-sha256",ceremony.activation_pin,"--workload-sha256",ceremony.workload_pin,"--owner",str(owner),"--credential-fd","3"]
+            args=[str(ceremony.bins/"ynx-consensus-pq-lab"),"sender","--synthetic","--root",str(ceremony.root),"--plan-sha256",ceremony.pin,"--activation-sha256",ceremony.activation_pin,"--workload-sha256",ceremony.workload_pin,"--owner",str(owner),"--ready","--timings","--credential-fd","3"]
             self.name="load-sender-%d"%owner
             self.proc=ceremony.w.launch(self.name,normal.fd3_command(args,fd),True,pass_fds=(fd,),stdin_pipe=True,thread_safe=True)
         finally:os.close(fd)
         self.path=ceremony.w.work/"public"/(self.name+".log")
-    def exchange(self,command,path,stop):
-        lab.require(not stop.is_set(),"original sender interrupted before new command; preserve pending original")
-        raw=json.dumps(command,separators=(",",":")).encode()+b"\n"
-        lab.require(len(raw)<=32<<10,"original canonical command bound")
-        # Original one-pending-account ownership makes a single bounded write
-        # possible. A broken/uncertain stream is never reopened or retried.
-        lab.require(self.proc.poll() is None,"original sender exited; preserve UNKNOWN")
-        self.proc.stdin.write(raw);self.proc.stdin.flush()
-        while not stop.is_set():
+    def receive(self,path,stop,version,deadline=None,check=lambda:None):
+        while not stop.is_set() and (deadline is None or time.monotonic()<deadline):
+            check()
             with open(self.path,"rb") as source:
                 source.seek(self.offset);chunk=source.read(65536);self.offset+=len(chunk)
             self.partial+=chunk;lab.require(len(self.partial)<=2<<20,"original sender reply bound")
             if b"\n" in self.partial:
                 line,self.partial=self.partial.split(b"\n",1)
                 with open(path,"xb") as output:output.write(line+b"\n");output.flush();os.fsync(output.fileno())
-                reply=json.loads(line);lab.require(reply["version"]=="YNX-PQ-LAB-SENDER-REPLY/v1","original sender reply version differs")
+                reply=json.loads(line);lab.require(reply["version"]==version,"original sender reply version differs")
                 return reply
             lab.require(self.proc.poll() is None,"original sender exited without one exact reply; preserve UNKNOWN")
             stop.wait(.01)
-        raise RuntimeError("original pending sender interrupted; never re-sign or replay")
+        raise RuntimeError("original sender reply not supplied before cancellation/cutoff; preserve UNKNOWN, never re-sign or replay")
+    def wait_ready(self,stop,deadline,check):
+        lab.require(self.ready is None,"original sender ready already consumed")
+        path=self.c.w.work/"public"/(self.name+"-ready.json")
+        reply=self.receive(path,stop,"YNX-PQ-LAB-SENDER-READY/v1",deadline,check)
+        lab.require(reply.get("status")=="original_custody_opened_imported_writer_lease_held" and reply.get("ownerIndex")==self.owner and reply.get("planSHA256")==self.c.pin and reply.get("workloadSHA256")==self.c.workload_pin and reply.get("syntheticOnly") is True and reply.get("authorityGranted") is False and reply.get("signed") is False and reply.get("nonceReserved") is False,"original DATA-ready scope/identity differs; no command issued")
+        self.c.measurements.record("startup",self.owner,reply,owner=self.owner)
+        self.startup_snapshot=reply["timings"]
+        self.ready=dict(ownerIndex=self.owner,pid=self.proc.pid,sourceReply=str(path.relative_to(self.c.w.work/"public")),sha256=lab.guard.digest(path),parentLaunchToReadyObservedNs=time.monotonic_ns()-self.launched_ns,sourceStartupElapsedNs=reply["startupElapsedNs"],signed=False,nonceReserved=False,authorityGranted=False)
+        return dict(self.ready)
+    def exchange(self,command,path,stop):
+        lab.require(self.ready is not None,"original DATA-ready required before any sign/confirm command")
+        lab.require(not stop.is_set(),"original sender interrupted before new command; preserve pending original")
+        raw=json.dumps(command,separators=(",",":")).encode()+b"\n"
+        lab.require(len(raw)<=32<<10,"original canonical command bound")
+        lab.require(self.proc.poll() is None,"original sender exited; preserve UNKNOWN")
+        self.proc.stdin.write(raw);self.proc.stdin.flush()
+        reply=self.receive(path,stop,"YNX-PQ-LAB-SENDER-REPLY/v1")
+        if "startupTimings" in reply:
+            lab.require(reply.get("startupElapsedNs")==self.ready["sourceStartupElapsedNs"] and reply["startupTimings"]==self.startup_snapshot,"original startup echo differs from DATA-ready; no performance relabelling")
+        self.c.measurements.record(command["operation"],command["request"]["operationId"],reply,owner=self.owner)
+        return reply
 
 
 class LoadCeremony(normal.Ceremony):
     def __init__(self,*args,operations,proof_timeout,**kwargs):
         super().__init__(*args,**kwargs);self.operations=operations;self.proof_timeout=proof_timeout;self.live=[]
+        self.measurements=CalleeMeasurements(operations,len(self.workload["owners"])-4 if self.mode=="online" else 0)
     def activation_startup(self,activation):
         resumed=copy.deepcopy(activation)
         for node in range(4):
-            result=self.call("live-setup-%d"%node,["live-materials","setup","--synthetic","--root",str(self.root),"--plan-sha256",self.pin,"--activation-sha256",self.activation_pin,"--node",str(node),"--max-operations",str(self.operations),"--trusting-period","10m","--max-clock-drift","5s","--capture-timeout",str(self.proof_timeout)+"s","--trust-numerator","1","--trust-denominator","3"])
+            result=self.call("live-setup-%d"%node,["live-materials","setup","--synthetic","--timings","--root",str(self.root),"--plan-sha256",self.pin,"--activation-sha256",self.activation_pin,"--node",str(node),"--max-operations",str(self.operations),"--trusting-period","10m","--max-clock-drift","5s","--capture-timeout",str(self.proof_timeout)+"s","--trust-numerator","1","--trust-denominator","3"])
             lab.require(result["version"]=="YNX-PQ-LAB-LIVE-MATERIALS-SETUP/v1" and result["syntheticOnly"] is True and result["nodeStarted"] is False and result["authorityGranted"] is False,"normal independent live setup required")
+            self.measurements.record("live_setup",node,result)
             original=activation["nodes"][node]["args"]
             lab.require(result["nodeArguments"][:len(original)]==original,"normal live setup changed original activation arguments")
             policy=Path(result["policy"]["path"]);lab.require(policy.resolve()==policy and self.root in policy.parents and lab.guard.digest(policy)==result["policy"]["sha256"],"normal startup policy pin differs")
@@ -121,6 +187,7 @@ class LoadCeremony(normal.Ceremony):
 class NormalBackend:
     def __init__(self,ceremony,owners,stop):
         self.c=ceremony;self.w=ceremony.w;self.stop_event=stop
+        self.pool_started_ns=time.monotonic_ns();self.pool_ready=None
         self.sessions={};self.attempted=set();self.submit_lock=threading.Lock();self.checkpoint_lock=threading.Lock();self.cached_checkpoint=None;self.fingerprint=None
         # Online originals are signed only after an account claim; the normal
         # Go producer serializes its absent pre-signed slice as JSON null.
@@ -145,6 +212,11 @@ class NormalBackend:
         lab.require(slots>0,"no original process capacity for normal helpers")
         self.helper_slots=threading.BoundedSemaphore(slots)
         self.helper_limit=slots;self.helper_cleanup_debt=[]
+    def prepare(self,check):
+        deadline=time.monotonic()+self.c.proof_timeout
+        ready=[session.wait_ready(self.stop_event,deadline,check) for session in self.sessions.values()]
+        check();self.pool_ready=dict(startedMonotonicNs=str(self.pool_started_ns),readyObservedMonotonicNs=str(time.monotonic_ns()),parentPoolPreparationNs=time.monotonic_ns()-self.pool_started_ns,readyCount=len(ready),senders=ready,sourceGrant=False,signed=False,nonceReserved=False,loadClockStarted=False)
+        return self.pool_ready
     def helper(self,name,command,stdin=None):
         acquired=False;proc=None;released=False
         while not self.stop_event.is_set():
@@ -183,7 +255,10 @@ class NormalBackend:
         lab.require(released and not any(d["name"]==name for d in self.helper_cleanup_debt),"normal helper cleanup unresolved; preserve UNKNOWN")
         return json.loads((self.w.work/"public"/(name+".log")).read_bytes())
     def call(self,name,args,stdin=None):
-        return self.helper(name,[str(self.c.bins/"ynx-consensus-pq-lab"),*args],stdin)
+        measured=args[:2] in (["live-materials","request"],["live-materials","result"])
+        reply=self.helper(name,[str(self.c.bins/"ynx-consensus-pq-lab"),*args,*( ["--timings"] if measured else [])],stdin)
+        if measured:self.c.measurements.record("live_publish" if args[1]=="request" else "live_result",name,reply)
+        return reply
     def checkpoint(self,stop):
         paths=[Path(n["statePath"]) for n in self.c.plan["nodes"]]
         while not stop.is_set():
@@ -382,7 +457,9 @@ def validate_escalation(args):
 
 
 def run(args):
-    demand=validate_options(args);source=Path(args.source);identity=lab.check_source(source,args.commit)
+    demand=validate_options(args)
+    lab.require(args.commit==CALLEE_SOURCE,"exact new703 ready/timings source qualification required; old75 qualification cannot be reused")
+    source=Path(args.source);identity=lab.check_source(source,args.commit)
     lab.git(source,"merge-base","--is-ancestor",normal.HELPER_COMMIT,args.commit)
     if args.wire_observation:lab.git(source,"merge-base","--is-ancestor",normal.WIRE_OBSERVER_COMMIT,args.commit)
     lab.require(b"live-materials" in __import__('subprocess').check_output(["git","-C",str(source),"show",args.commit+":cmd/ynx-consensus-pq-lab/main.go"]),"matching original CORE continuous materials callee NOT_SUPPLIED")
@@ -397,7 +474,7 @@ def run(args):
         if any(existing==root or existing in root.parents for existing in roots):continue
         roots=[existing for existing in roots if root not in existing.parents];roots.append(root)
     w=lab.Window(source,work,additional_storage=tuple(roots));stop=threading.Event();backend=monitor=journal=ceremony=network=None
-    result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout; explicit process count; initialization has no separate ready acknowledgment and may remain in signing time")
+    result=dict(schema="YNX-PQ-INDEPENDENT-NORMAL-RUN/v1",source=identity,caps=lab.CAPS,storageRoots=[str(p) for p in w.storage_roots],mode=args.mode,requestedOfferedTPS=args.rate,configuredDemand=demand,firstCause=None,loadExecuted=False,normalLiveCalleeUsed=False,stableFinalTPS="UNMEASURED",P95FinalConfirmation="UNMEASURED",actualHopBytesPerTx="UNMEASURED",firstSaturatedChainStage="UNMEASURED",sameHost=True,physicalFaultDomains=1,signerTransport="original per-account persistent stdin/stdout with actual DATA-ready and measured normal CLI; cold initialization retained outside offered clock, no pre-sign/reserved nonce; source703 includes other changes and is not a pure-cache A/B")
     lab.write_new(work/"public/requested-load.json",dict(source=identity,mode=args.mode,rate=args.rate,seconds=args.seconds,tailSeconds=args.tail_seconds,accounts=args.accounts,perAccountCapacity=args.per_account,configuredDemand=demand,sourceGrant=False))
     try:
         result["processCapacity"]=process_capacity(args)
@@ -416,6 +493,7 @@ def run(args):
         result["normalLiveCalleeUsed"]=True
         backend=NormalBackend(ceremony,owners,stop);journal=Journal(work/"public/load-events.jsonl")
         monitor=Monitor(w,stop);monitor.thread.start()
+        result["senderPoolPreparation"]=backend.prepare(monitor.check)
         if args.network_accounting:
             hook=module("original_pq_network_window","pq-network-window.py")
             network=hook.NetworkWindow(ceremony,lab,args.commit,lab.git(Path(__file__).resolve().parents[2],"rev-parse","HEAD"),result["planSHA256"],demand)
@@ -448,7 +526,9 @@ def run(args):
         try:result["cleanupComplete"]=w.stop()
         except BaseException as error:result["cleanupComplete"]=False;result["cleanupError"]=str(error);result["directOwnedCleanupAfterFailure"]=getattr(w,"direct_cleanup_after_failure",[])
         result.update(elapsedSeconds=time.monotonic()-w.started,peakRSSBytes=w.peak_rss,peakNewBytes=w.peak_bytes,resourceSamples=w.samples,processes=w.process_receipt(),retiredSamplingEvidence=w.retired_samples,resourceObserverVersion=lab.RSS_OBSERVER_VERSION,processEvidenceVersion=lab.PROCESS_EVIDENCE_VERSION,rssSamplingFallbackEvidence=w.rss_fallback_samples)
-        if ceremony is not None:result["wireObservation"]=ceremony.wire_readback()
+        if ceremony is not None:
+            result["wireObservation"]=ceremony.wire_readback()
+            result["normalCalleeMeasurements"]=ceremony.measurements.report()
         if "loadResult" not in result:
             result["preparationOnlyDemandAccounting"]=dict(configuredDemand=demand,notReleased=demand,notSubmitted=demand,notQualified=demand,meaning="normal preparation never opened the requested load window; no achieved offered rate or business TPS")
         lab.write_new(work/"public/receipt.json",result);print(json.dumps(dict(publicArtifacts=str(work/"public"),firstCause=result["firstCause"],loadExecuted=result["loadExecuted"])))
