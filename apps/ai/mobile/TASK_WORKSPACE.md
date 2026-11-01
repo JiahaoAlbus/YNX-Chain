@@ -41,6 +41,17 @@ its task workspace accurately renders authorization unavailable, preserves data
 and disables private actions. Root/SDK/Auth own the actual mobile registration,
 key custody and getter contract. No invented NativeModules hook is shipped.
 
+Auth's 2026-11-01 clarification makes the compatibility gate explicit: native
+V4 currently supplies session-read only. It cannot authorize task create,
+approval, model disclosure or tool effects. The existing daemon's Web/V2 route
+is not a native action contract; fresh P256/V2 support in historical fixtures is
+not production authority. The IDE-specific V5 deployment path cannot be reused
+for AI. The fixed V2 request adapter here is therefore inactive until the sole
+SDK and Auth/Wallet owners supply a single matching AI native action contract
+and the daemon consumes it. Do not attach a V4 read getter to `TaskCredentials`
+or promote session-read into mutations. No matching native action callee is
+claimed by this source, its tests or the exported bundles.
+
 The original Auth local adapter is separately imported byte-for-byte at
 `internal/authtasklocal`; normal composition retains its effect/history partial
 owners and first errors, uses its verifier only in the conversation-read branch
