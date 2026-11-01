@@ -77,8 +77,8 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
   const keys=['productId','sourceOrder','merchant','invoiceId',...(withHash?['nativeHash']:[])],d=Object.getOwnPropertyDescriptors(value);
   if(Reflect.ownKeys(d).length!==keys.length||keys.some(k=>!d[k]?.enumerable||!Object.hasOwn(d[k],'value')||typeof d[k].value!=='string'))fail('NATIVE_PAY_PRODUCT_REFERENCE_INVALID');
   const r=Object.fromEntries(keys.map(k=>[k,d[k].value]));
-  if(![r.productId,r.sourceOrder,r.invoiceId].every(k=>/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(k))||!/^0x[0-9a-f]{40}$/.test(r.merchant)||withHash&&!/^0x[0-9a-f]{64}$/.test(r.nativeHash))fail('NATIVE_PAY_PRODUCT_REFERENCE_INVALID');
-  const base=`/v5/pay/products/${r.productId}/${r.sourceOrder}/invoices/${r.merchant}/${r.invoiceId}`;
+  if(!['shop.order','cloud.ide-usage'].includes(r.productId)||![r.productId,r.sourceOrder,r.invoiceId].every(k=>/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(k))||!/^0x[0-9a-f]{40}$/.test(r.merchant)||withHash&&!/^0x[0-9a-f]{64}$/.test(r.nativeHash))fail('NATIVE_PAY_PRODUCT_REFERENCE_INVALID');
+  const base=`/v5/pay/products/${encodeURIComponent(r.productId)}/${encodeURIComponent(r.sourceOrder)}/invoices/${r.merchant}/${encodeURIComponent(r.invoiceId)}`;
   return withHash?`${base}/originals/${r.nativeHash}/receipt`:`${base}/archive-reconciliation`;
  };
  async function packet(method,path,input,assertCurrent){
@@ -160,6 +160,16 @@ export function createPrivateNativeInvoiceClient({origin,requestPrivate}){
   reconcileOperation:(merchant,invoiceId,nativeHash,current)=>{if(!/^0x[0-9a-f]{64}$/.test(nativeHash??''))fail('NATIVE_PAY_ORIGINAL_HASH_REQUIRED');return call('POST',invoicePath(merchant,invoiceId)+'/operations/'+nativeHash+'/reconcile',{},current);}
 
  });
+}
+
+// Normal private Main/ProductSource construction only. The supplied origin and
+// requestPrivate must be the SAME original Root-selected Product resource; this
+// constructor neither installs a provider nor grants Source/transport authority.
+// Member dispatch stays with Wallet's separately qualified original pipeline.
+export function createPrivateNativeProductPayClient(originalProductTransport){
+ const client=createPrivateNativeInvoiceClient(originalProductTransport);
+ const names=['createInvoiceIntent','lookupInvoiceIntent','merchantTermsReview','readInvoiceIntent','readInvoice','readInvoiceEvents','reviewSettlement','reviewRefund','reconcileInvoiceIntent','reconcileOperation','readInvoiceOriginals','readOriginalArchiveReceipt','readOriginalArchiveReconciliation'];
+ return Object.freeze(Object.fromEntries(names.map(name=>[name,(...args)=>client[name](...args)])));
 }
 
 /** All three invoice kinds use Main's one original typed-action review and

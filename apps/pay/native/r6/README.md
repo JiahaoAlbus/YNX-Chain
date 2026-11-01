@@ -80,3 +80,15 @@ Store bytes unchanged, wrong independent anchor refusal,409/503 and zero
 POST. The resulting original-bound compact reconciliation is supplied as Shop
 consumable DATA. No real Root, merchant signing, App install, deployment or
 funds acceptance is claimed. Old webhook and unrelated green groups are reused.
+
+The normal Main producer may construct `createPrivateNativeProductPayClient`
+from its original Auth-selected `{origin,requestPrivate}` resource. This fixed
+13-method facade exposes preparation/read/reconciliation only; signed Member
+POSTs and packet/raw transport methods remain with the original Wallet path.
+Main's `createMainProductPeerPayProducer` owns that resource's lifecycle. There
+is no extra Pay namespace wrapper or public provider installation. The consumer
+forwards caller cancellation, retains in-flight reads until drain, and reserves
+join/close promises before invoking original ports. Failed/UNKNOWN cleanup is
+never retried. `PAY_NATIVE_WORKFLOW_SUITE=r6-private-client` checks these new
+custody cases and exact paths against Auth's compiled archive DATA contract;
+it neither repeats the archive E2E suite nor admits a Root/Source.

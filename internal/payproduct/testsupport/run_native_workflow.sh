@@ -5,6 +5,20 @@ composition=${1:?isolated composition path required}
 fixture_dir=${2:?explicit temporary-chain public fixture output required}
 case "$composition" in */owners/P06/pq-core-composition-*) ;; *) echo 'isolated P06 composition required' >&2; exit 2;; esac
 source_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = r6-native-caller ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ : "${PAY_NATIVE_CALLER_INTAKE:?verified original Native component intake required}"
+ : "${PAY_NATIVE_CALLER_RESULT:?external owned caller result required}"
+ "$PAY_NODE_BINARY" "$source_dir/../../apps/pay/native/testsupport/r6-actual-native-caller.mjs" "$PAY_NATIVE_CALLER_INTAKE" "$PAY_NATIVE_CALLER_RESULT"
+ exit
+fi
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = r6-private-client ]; then
+ : "${PAY_NODE_BINARY:?exact original Node executable required}"
+ : "${PAY_ARCHIVE_CONTRACT_PROJECTOR:?compiled exact original Auth archive DATA path projector required}"
+ "$PAY_NODE_BINARY" --test "$source_dir/../../apps/pay/native/r6/product-source-lifetime.test.mjs"
+ "$PAY_NODE_BINARY" "$source_dir/../../apps/pay/native/testsupport/r6-archive-contract-path.mjs" "$PAY_ARCHIVE_CONTRACT_PROJECTOR"
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = product-source ]; then
  : "${PAY_NODE_BINARY:?exact original Node executable required}"
  "$PAY_NODE_BINARY" --test "$source_dir/../../apps/pay/native/product-source.test.mjs"
