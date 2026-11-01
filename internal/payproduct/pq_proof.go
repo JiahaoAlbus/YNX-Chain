@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"math"
+	"strconv"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
@@ -166,7 +167,8 @@ func (n *NativePayService) Reconcile(ctx context.Context, merchant, id, nativeHa
 				if !exists {
 					return errors.New("original product merchant binding unavailable")
 				}
-				if err = n.parent.enqueueWebhook(data, registered, "native.invoice."+op.Kind, nativeHash); err != nil {
+				ref := nativeInvoiceWebhookReference(current, *op.Effect)
+				if err = n.parent.enqueueWebhookReference(data, registered, "native.invoice."+op.Kind, nativeHash, ref); err != nil {
 					return err
 				}
 			}
@@ -273,4 +275,10 @@ func (n *NativePayService) PrepareRefund(ctx context.Context, merchant, id, refu
 		return NativePaySigningRequest{}, err
 	}
 	return NativePaySigningRequest{Kind: action.Kind, Action: action, Message: message, Status: "awaiting_original_native_signature"}, nil
+}
+
+// This projection is called only after the original independent finality/effect
+// checks above. Callback recipients must still use their own qualified reader.
+func nativeInvoiceWebhookReference(state NativePayInvoice, e consensus.PQInvoiceEffect) *NativeWebhookReference {
+	return &NativeWebhookReference{Version: "ynx.pay.native.webhook-reference/v1", Genesis: e.Genesis, NativeChainID: strconv.FormatUint(e.NativeChainID, 10), Merchant: e.Merchant, InvoiceID: e.InvoiceID, SessionID: e.SessionID, SourceOrder: state.SourceOrder, NativeHash: e.NativeHash, ABCIHash: e.ABCIHash, EventClaim: nativeEventClaim(e)}
 }

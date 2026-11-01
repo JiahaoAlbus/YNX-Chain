@@ -168,25 +168,47 @@ type Dispute struct {
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`
 }
+
+// NativeWebhookReference locates the exact original private invoice read.
+// It is notification DATA, never a receipt, Source grant, price or approval.
+type NativeWebhookReference struct {
+	Version       string `json:"version"`
+	Genesis       string `json:"genesis"`
+	NativeChainID string `json:"nativeChainId"`
+	Merchant      string `json:"merchant"`
+	InvoiceID     string `json:"invoiceId"`
+	SessionID     string `json:"sessionId"`
+	SourceOrder   string `json:"sourceOrder"`
+	NativeHash    string `json:"nativeHash"`
+	ABCIHash      string `json:"abciHash"`
+	EventClaim    string `json:"eventClaim"`
+}
+
 type WebhookDelivery struct {
-	ID                 string     `json:"id"`
-	MerchantID         string     `json:"merchantId"`
-	EventType          string     `json:"eventType"`
-	ObjectID           string     `json:"objectId"`
-	Endpoint           string     `json:"endpoint"`
-	PayloadHash        string     `json:"payloadHash"`
-	Signature          string     `json:"signature"`
-	SecretVersion      int        `json:"secretVersion"`
-	Attempt            int        `json:"attempt"`
-	Status             string     `json:"status"`
-	HTTPStatus         int        `json:"httpStatus,omitempty"`
-	NextAttemptAt      time.Time  `json:"nextAttemptAt,omitempty"`
-	DeadLetteredAt     *time.Time `json:"deadLetteredAt,omitempty"`
-	ParentDeliveryID   string     `json:"parentDeliveryId,omitempty"`
-	ManualReplayReason string     `json:"manualReplayReason,omitempty"`
-	ReplayedBy         string     `json:"replayedBy,omitempty"`
-	CreatedAt          time.Time  `json:"createdAt"`
-	UpdatedAt          time.Time  `json:"updatedAt"`
+	ID            string                  `json:"id"`
+	MerchantID    string                  `json:"merchantId"`
+	EventType     string                  `json:"eventType"`
+	ObjectID      string                  `json:"objectId"`
+	Endpoint      string                  `json:"endpoint"`
+	NativeInvoice *NativeWebhookReference `json:"nativeInvoice,omitempty"`
+	PayloadHash   string                  `json:"payloadHash"`
+	Signature     string                  `json:"signature"`
+	SecretVersion int                     `json:"secretVersion"`
+	// Original event signature/CreatedAt remain immutable. Each attempted
+	// delivery has its own durable freshness proof over that same event/body.
+	AttemptSignedAt      *time.Time `json:"attemptSignedAt,omitempty"`
+	AttemptSignature     string     `json:"attemptSignature,omitempty"`
+	AttemptSecretVersion int        `json:"attemptSecretVersion,omitempty"`
+	Attempt              int        `json:"attempt"`
+	Status               string     `json:"status"`
+	HTTPStatus           int        `json:"httpStatus,omitempty"`
+	NextAttemptAt        time.Time  `json:"nextAttemptAt,omitempty"`
+	DeadLetteredAt       *time.Time `json:"deadLetteredAt,omitempty"`
+	ParentDeliveryID     string     `json:"parentDeliveryId,omitempty"`
+	ManualReplayReason   string     `json:"manualReplayReason,omitempty"`
+	ReplayedBy           string     `json:"replayedBy,omitempty"`
+	CreatedAt            time.Time  `json:"createdAt"`
+	UpdatedAt            time.Time  `json:"updatedAt"`
 }
 type AuditEntry struct {
 	ID         string    `json:"id"`

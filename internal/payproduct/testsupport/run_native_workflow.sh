@@ -85,6 +85,11 @@ native_tags="pay_pq pay_securelink securelink_openssl ${YNX_PAY_NATIVE_OPTIONAL_
 export YNX_PAY_TEST_DAEMON_BUILD_TAGS="$native_tags"
 export GOMAXPROCS=${GOMAXPROCS:-2}
 client_root="$source_dir/../../apps/pay/native"
+if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = webhook-attempts ]; then
+ export PAY_MULTI_REFUND_WORKFLOW_DIR="$fixture_dir"
+ go test -race -p 1 -tags 'pay_pq pay_webhook_original pay_securelink securelink_openssl' ./internal/payproduct -run '^TestWebhook(DelayedRetryFreshSignatureSameOriginalAfterCold|AttemptProofRotationAndLostAckRemainOriginal|SigningRotationBeforeReservationSendsNothing|NativeReferenceDeadLetterReplayKeepsOriginal|ReplayCannotSpliceNativeReference|DeadLetterAndAuditedManualReplay|RetryBudgetSurvivesColdStoreAndDirectCalls|PersistsAttemptBeforeSending|ManualReplayKeepsOriginalSignedEvent|OutboxAtomicAndRotationRetainsEvent)$|^TestNativeWebhookReferenceUsesRetainedCoreOriginalsOnly$' -count=1 -timeout=2m -v
+ exit
+fi
 if [ "${PAY_NATIVE_WORKFLOW_SUITE:-full}" = main-result-client ]; then
  : "${PAY_NODE_BINARY:?exact original Node executable required}"
  : "${PAY_MAIN_PRODUCT_MODULE:?frozen original Main product wrapper required}"
