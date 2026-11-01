@@ -111,3 +111,42 @@ test('resource_current pure JSON closed DATA controls enter the original native 
     controls, RootAdmission: false, SourceAdmission: false, actualKernelExecuted: false}, null, 2) + '\n', {flag: 'wx'});
   t.diagnostic('Exact owned pure JSON CI evidence retained: ' + owned);
 });
+
+test('PUBLIC same-source Go fixture caller compiles only with its test guard and refuses missing pins', {timeout: 20000}, async t => {
+  const destination = process.env.YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS;
+  assert.ok(destination && path.isAbsolute(destination));
+  await mkdir(destination, {recursive: true, mode: 0o700});
+  const owned = await mkdtemp(path.join(await realpath(destination), 'g-'));
+  await chmod(owned, 0o700);
+  let sequence = 0;
+  async function run(label, command, args, expectedStatus) {
+    const result = spawnSync(command, args, {cwd: repository, encoding: 'utf8', timeout: 15000, maxBuffer: 2 << 20});
+    const prefix = path.join(owned, `${++sequence}-${label}`);
+    await writeFile(prefix + '.stdout', result.stdout ?? '', {flag: 'wx'});
+    await writeFile(prefix + '.stderr', result.stderr ?? '', {flag: 'wx'});
+    await writeFile(prefix + '.json', JSON.stringify({command, args, status: result.status, signal: result.signal,
+      error: result.error?.code ?? null}, null, 2) + '\n', {flag: 'wx'});
+    assert.equal(result.error, undefined, `${label}: ${result.error?.message}`);
+    assert.equal(result.status, expectedStatus, `${label}: ${result.stderr}\n${result.stdout}`);
+    return result;
+  }
+  const caller = path.join(source, 'resource-current-go-fixture-call.cpp');
+  const denied = await run('production-guard', 'clang++', ['-std=c++17', '-fsyntax-only', caller], 1);
+  assert.ok(denied.stderr.includes('Compile this PUBLIC caller only with YNX_LINK_RESOURCE_CURRENT_TEST_CALLER'));
+  let flags = ['-lbsm'];
+  if (process.platform === 'linux') {
+    const result = await run('openssl-flags', 'pkg-config', ['--cflags', '--libs', 'openssl'], 0);
+    flags = result.stdout.trim().split(/\s+/).filter(Boolean);
+    assert.ok(flags.every(flag => /^[-A-Za-z0-9_./+=,:]+$/.test(flag)));
+  }
+  const binary = path.join(owned, 'public-go-fixture-caller');
+  await run('test-only-compile', 'clang++', ['-std=c++17', '-Wall', '-Wextra', '-Werror', '-pedantic', '-pthread',
+    '-DYNX_LINK_RESOURCE_CURRENT_TEST_CALLER', path.join(source, 'resource-current-client.cpp'),
+    path.join(source, 'resource-current-peer.cpp'), caller, ...flags, '-o', binary], 0);
+  await run('missing-fixture-pins', binary, [], 2);
+  const bytes = await readFile(caller), image = await readFile(binary);
+  await writeFile(path.join(owned, 'RESULT.json'), JSON.stringify({caller: {path: caller, bytes: bytes.length, sha256: sha(bytes)},
+    binary: {path: binary, bytes: image.length, sha256: sha(image)}, productionCompileRefused: true,
+    unpinnedExecutionRefused: true, actualGoExecuted: false, RootAdmission: false, SourceAdmission: false}, null, 2) + '\n', {flag: 'wx'});
+  t.diagnostic('Exact guarded caller build evidence retained: ' + owned);
+});

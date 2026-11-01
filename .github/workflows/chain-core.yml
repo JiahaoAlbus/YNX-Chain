@@ -74,6 +74,13 @@ jobs:
         env:
           YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS: ${{ runner.temp }}/resource-current-native-evidence
         run: node --test cmd/ynx-secure-link-caller/resource-current-native.test.mjs
+      - name: Preserve original PUBLIC native client inputs, binaries and first-cause evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: resource-current-native-darwin-${{ github.sha }}
+          path: ${{ runner.temp }}/resource-current-native-evidence
+          if-no-files-found: error
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # original immutable setup-go
         with:
           go-version: "1.26.10"
@@ -103,6 +110,13 @@ jobs:
         env:
           YNX_LINK_RESOURCE_CURRENT_TEST_ARTIFACTS: ${{ runner.temp }}/resource-current-native-evidence
         run: node --test cmd/ynx-secure-link-caller/resource-current-native.test.mjs
+      - name: Preserve original PUBLIC native client inputs, binaries and first-cause evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: resource-current-native-linux-${{ github.sha }}
+          path: ${{ runner.temp }}/resource-current-native-evidence
+          if-no-files-found: error
 
   contract-tooling-scope:
     if: github.event_name == 'push' && github.ref == 'refs/heads/codex/ynx-pq-perf-integration'
