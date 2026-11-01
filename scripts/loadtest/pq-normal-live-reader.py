@@ -289,6 +289,116 @@ class NormalLiveReader:
                     raise
 
 
+PAIR_SUPPLIER = dict(commit='ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d',
+    tree='f1a8837079178469bc57ede955c55973f8b7d8ba',tag=BUILD_TAG,
+    mandatoryNewCases=['TestLosslessHexBudgetInitialPeerReadinessDeadline','TestLosslessHexBudgetReadyTransitionKeepsSelectedCarrier'])
+# Only populated after the actual new normal ON/source CI is consumed by the
+# original qualification parser. The completed9081 OFF grant stays separate.
+PAIR_SOURCE_QUALIFICATION = None
+
+
+def read_normal_business_leg(public, receipt_sha256, tools_commit, check=None):
+    """Consume existing PUBLIC originals only. No process/getter/collector call."""
+    public=Path(public)
+    require(public.is_absolute() and public.resolve(strict=True)==public,'canonical original public directory required')
+    spec=importlib.util.spec_from_file_location('pair_original_public_io',Path(__file__).with_name('pq-public-proof-readback.py'))
+    io=importlib.util.module_from_spec(spec);spec.loader.exec_module(io)
+    pins=[]
+    def original(name,limit=64<<20):
+        path=Path(name);require(not path.is_absolute() and '..' not in path.parts,'original public path escaped')
+        if check is not None:check()
+        raw=io.read_original(public/path,limit)
+        pins.append(dict(path=str(path),bytes=len(raw),sha256=io.sha(raw)))
+        return raw
+    def data(name,limit=64<<20):return io.strict(original(name,limit))
+    receipt=data('receipt.json');require(pins[-1]['sha256']==receipt_sha256,'externally pinned original receipt differs')
+    ci=data('NORMAL-LIVE-BASELINE-CI.json',256<<10)
+    require(ci['tools']==tools_commit and ci['goSource']==receipt['source']['commit'] and ci['goTree']==receipt['source']['tree'] and ci['caps']==receipt['caps'],'original controller/source/tool/caps binding differs')
+    bundle=dict(receipt=receipt,toolsCommit=tools_commit,canonicalTransactions=[],originalVerifiers=[],originalConfirms=[],originalExports=[])
+    import base64
+    for row in receipt['functionalCohort']:
+        name='functional-owner-'+str(row['owner'])
+        intent=data(name+'-intent.json');bundle['canonicalTransactions'].append(base64.b64decode(intent['transaction'],validate=True))
+        bundle['originalVerifiers'].append(data(name+'-normal-verifier.log'))
+        bundle['originalConfirms'].append(data(name+'-original-confirm.log'))
+        exported=data(name+'-original-export.log');bundle['originalExports'].append(exported)
+        state=original(name+'-public-proof/export/committed-state.json')
+        require(io.sha(state)==receipt['allFourStoppedStateSHA256'] and io.sha(state)==exported['checkpoint']['sha256'],'original complete independent stopped state differs')
+        if 'stoppedStateBytes' in bundle:require(bundle['stoppedStateBytes']==state,'original four proof exports use different final states')
+        else:bundle['stoppedStateBytes']=state
+    network=data('network-accounting.json');binding=data('network-binding.json');start=data('network-start.json');end=data('network-end.json');hop=data('network-hop-accounting.json')
+    require(binding==network['binding'] and binding['tools']==tools_commit and binding['source']==receipt['source']['commit'],'original network binding differs')
+    modules={}
+    for key,file in [('layers','network-layer-accounting.py'),('hops','pq-hop-byte-accounting.py')]:
+        spec=importlib.util.spec_from_file_location('pair_original_'+key,Path(__file__).with_name(file));m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);modules[key]=m
+    for key,value in modules['layers'].account_layers(binding=binding,start=start,end=end).items():require(network[key]==value,'original frozen network accounting differs: '+key)
+    for key,value in modules['hops'].directional_hops(binding,start,end).items():require(hop[key]==value,'original directional endpoint accounting differs: '+key)
+    reads=receipt['liveNetworkReads'];require(len(reads)==8,'all8 original live reads required')
+    slots=set()
+    for entry in reads:
+        require(entry['status']=='OBSERVED' and entry['noRetry'] is True and len(entry['originalFiles'])==4,'original live read missing/unknown')
+        key=(entry['node'],entry['phase']);require(key not in slots,'duplicate original read slot');slots.add(key)
+        contents={}
+        for ref in entry['originalFiles']:
+            require(ref['path'].startswith('network-live-originals/'),'original live read path outside closed subtree')
+            raw=original(ref['path'],128<<10);require(len(raw)==ref['bytes'] and io.sha(raw)==ref['sha256'],'original live slot SHA/size differs')
+            contents[ref['path']]=raw
+        raw=next(v for k,v in contents.items() if k.endswith('.raw.json'));ret=io.strict(next(v for k,v in contents.items() if k.endswith('.result.json')));sample=io.strict(raw)
+        require(io.sha(raw)==entry['rawSHA256']==ret['rawSHA256'] and ret['status']==sample['status']=='OBSERVED' and ret['identity']==dict(pid=str(entry['pid']),startTicks=entry['startTicks']),'original raw producer/result identity differs')
+        checkpoint=start if entry['phase']=='before' else end
+        captured=next(n['live'] for n in checkpoint['nodes'] if n['name']==entry['node'])
+        require(captured['raw'].encode()==raw,'original live raw and checkpoint bytes differ')
+        require(data(entry['node']+'-live-'+entry['phase']+'-read.json',128<<10)==entry,'original live event and receipt differ')
+        proc=next(p for p in receipt['processes'] if p['name']==entry['node'])
+        require(proc['pid']==entry['pid'] and str(proc['startTicks'])==entry['startTicks'] and sample['producerPID']==str(entry['pid']),'original registered node identity differs')
+        require(int(entry['readStartMonotonicNs'])<=int(ret['startMonotonicNs'])<=int(sample['startMonotonicNs'])<=int(sample['endMonotonicNs'])<=int(ret['endMonotonicNs'])<=int(entry['readEndMonotonicNs']),'original same-kernel clock enclosure differs')
+    require(slots=={('pq-node-'+str(i),phase) for i in range(4) for phase in ('before','after')},'exact original4node x2slots required')
+    build=receipt['normalLiveBuildSource']
+    bundle['provenance']=dict(public=str(public),receiptSHA256=receipt_sha256,controller=ci['controllerCommit'],runID=binding['runID'],
+        selectedSupplierCommit=build['optionalForkCommit'],selectedSupplierTree=build['optionalForkTree'],binaryHashesOriginalRuntimeReportedOnly=True,
+        allOriginal8RawSlotsAndFrozenAccountingRead=True,files=pins)
+    bundle['networkData']=dict(losslessStatuses=[row['liveWindow']['losslessStatus'] for row in network['nodes']],
+        senderEndpointBytes=hop['sourceSocketEndpointBytesSentSum'],retransmittedEndpointBytesSeparate=hop['sourceSocketEndpointRetransmittedBytesSum'],
+        directedHops=len(hop['directedHops']),physicalBytesMeasured=False,perTxPhysicalBytes=None,receiverBytesNotAdded=True)
+    own=compare_normal_business_data(bundle,bundle)
+    require(own['status']=='MATCHED_BUSINESS_DATA_ONLY','original independent leg verifier/Confirm/ledger DATA failed: '+str(own.get('firstCause')))
+    bundle['provenance'].update(originalVerifierAndConfirm4DataMatched=True,ownLedgerFullStatePinned=True,independentCryptoReverified=False,selfCheckDoesNotRepresentTwoRuns=True)
+    return bundle
+
+
+def prepare_paired_candidate(off=None,on=None,replay_data=None):
+    """Inert paired candidate DATA. No ON/trace qualification is guessed."""
+    result=dict(schema='YNX-PERF-NORMAL-PAIRED-CANDIDATE/v1',status='NOT_READY',ready=False,
+        requiredSupplier=dict(PAIR_SUPPLIER),runtimeAuthorized=False,pressureAuthorized=False,
+        normalWirePairQualified=False,normalONSourceQualified=False,physicalBytesMeasured=False,perTxPhysicalBytes=None,
+        replayGate=dict(status='NOT_SUPPLIED',qualified=False),normalBusinessGate=dict(status='NOT_SUPPLIED'),missing=[])
+    if replay_data is not None:
+        # Legacy height-derived source fixtures cannot satisfy the actual
+        # complete original Finalize request gate, even if every state matches.
+        result['replayGate']=dict(status='ORIGINAL_COMPLETE_TRACE_READER_NOT_SUPPLIED',qualified=False,
+            suppliedData=replay_data,legacySourceFixture=replay_data.get('commonOriginalFinalizeTrajectoryQualified') is not True)
+    if PAIR_SOURCE_QUALIFICATION is None:
+        result['missing'].append('Core exact new normal guarded ON source CI qualification for ed628/f1a; old9081/b1e OFF qualification is not transferable')
+    else:
+        result['missing'].append('new ON qualification parser must consume actual matching CI originals before this report can qualify any source')
+    result['missing'].append('Core original complete immutable Finalize trajectory export/reader and deterministic before/after replay qualification')
+    result['missing'].append('Core original independently verified per-leg full-height normal trace; this data report is not chain/ON qualification')
+    for label,bundle in [('OFF',off),('ON',on)]:
+        if bundle is None:
+            result['missing'].append(label+' original normal PUBLIC leg with exact receipt/tool pins and common canonical signed user fixture not supplied')
+            continue
+        evidence=bundle.get('provenance',{});result[label]=dict(originals=evidence,network=bundle.get('networkData'))
+        if (evidence.get('selectedSupplierCommit'),evidence.get('selectedSupplierTree'))!=(PAIR_SUPPLIER['commit'],PAIR_SUPPLIER['tree']):result['missing'].append(label+' actual selected supplier differs from ed628/f1a')
+        statuses=[phase['status'] for row in bundle.get('networkData',{}).get('losslessStatuses',[]) for phase in row.values()]
+        expected='DISABLED' if label=='OFF' else 'OBSERVED'
+        if len(statuses)!=8 or any(value!=expected for value in statuses):result['missing'].append(label+' original lossless counters do not establish '+expected+' at all8 endpoints')
+    if off is None or on is None:return result
+    result['normalBusinessGate']=compare_normal_business_data(off,on)
+    if off.get('provenance',{}).get('runID')==on.get('provenance',{}).get('runID'):result['missing'].append('same original run cannot be two independent normal legs')
+    if result['normalBusinessGate']['status']!='MATCHED_BUSINESS_DATA_ONLY':result['missing'].append('normal business/canonical/ledger data not comparable; original first cause retained')
+    return result
+
+
 def compare_normal_business_data(off, on):
     """Readback DATA only: independent real clocks need no cross-leg AppHash equality.
 
@@ -310,6 +420,7 @@ def compare_normal_business_data(off, on):
     def leg(bundle):
         receipt=bundle['receipt'];cohort=receipt['functionalCohort']
         require(receipt.get('firstCause') is None and receipt.get('phaseComplete') is True and receipt.get('functionalPhaseComplete') is True and receipt.get('cleanupComplete') is True and receipt.get('qualifiedFinalCount')==4 and receipt.get('configuredFunctionalDenominator')==4 and len(cohort)==4,'complete original finite4 leg required')
+        require([row['owner'] for row in cohort]==list(range(4,8)) and len({row['transactionHash'] for row in cohort})==4 and all(row.get('qualifiedFinal') is True for row in cohort),'original4 distinct functional business requests required')
         require(normal.normal_node_clean_exit(receipt['processes'])['allEightExitZero'],'all original eight normal exit0 required')
         require(receipt.get('networkBaseline',{}).get('status')=='OBSERVED','original normal network evidence missing')
         raw=bundle['stoppedStateBytes'];require(type(raw) is bytes and 0<len(raw)<=64<<20,'bounded original complete state bytes required')

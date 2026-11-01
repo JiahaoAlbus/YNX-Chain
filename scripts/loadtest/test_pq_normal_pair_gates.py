@@ -29,4 +29,45 @@ class SeparatePairGateControls(unittest.TestCase):
  def test_source_binary_or_caps_change_is_not_a_transport_only_pair(self):
   for mutate in [lambda b:b['receipt']['source'].update(commit='0'*40),lambda b:b['receipt']['binaries'].update({'ynx-comet':'0'*64}),lambda b:b['receipt']['caps'].update(cpus=4)]:
    on=bundle('b'*64);mutate(on);self.assertEqual(r.compare_normal_business_data(bundle(),on)['status'],'NOT_COMPARABLE')
+
+class PairedCandidateEntryControls(unittest.TestCase):
+ @classmethod
+ def setUpClass(cls):
+  spec=importlib.util.spec_from_file_location('paired_candidate_driver',Path(__file__).with_name('pq-normal-process-lab.py'));cls.driver=importlib.util.module_from_spec(spec);spec.loader.exec_module(cls.driver)
+ def test_default_entry_is_inert_before_any_source_or_window(self):
+  from unittest import mock
+  with mock.patch.object(self.driver.lab,'Window',side_effect=AssertionError('runtime')),mock.patch.object(self.driver.lab,'check_source',side_effect=AssertionError('source')),mock.patch.object(Path,'read_bytes',side_effect=AssertionError('originals')):
+   report=self.driver.paired_candidate_main([])
+  self.assertFalse(report['ready'] or report['runtimeAuthorized'] or report['pressureAuthorized']);self.assertEqual(report['requiredSupplier']['commit'],'ed628e5cdd00c4496de5b2587bf2e9585aaf3d2d')
+ def test_execute_duplicate_and_partial_leg_arguments_are_refused(self):
+  import contextlib,io
+  for args in [['--execute'],['--off-public','/one','--off-public','/two'],['--off-public','/incomplete']]:
+   with contextlib.redirect_stderr(io.StringIO()),self.assertRaises((RuntimeError,SystemExit)):self.driver.paired_candidate_main(args)
+ def test_old_off_qualification_cannot_be_a_new_on_qualification(self):
+  from unittest import mock
+  with mock.patch.object(r,'PAIR_SOURCE_QUALIFICATION',r.NORMAL_LIVE_SOURCE_QUALIFICATION):report=r.prepare_paired_candidate()
+  self.assertFalse(report['normalONSourceQualified']);self.assertTrue(any('qualification parser' in reason for reason in report['missing']))
+ def test_legacy_or_self_asserted_replay_success_is_not_original_trace(self):
+  for flag in (False,True):
+   data=dict(schema='YNX-PQ-PER-HEIGHT-DIFFERENTIAL/v1',perHeightFunctionalEqual=True,commonOriginalFinalizeTrajectoryQualified=flag);before=copy.deepcopy(data);report=r.prepare_paired_candidate(replay_data=data)
+   self.assertFalse(report['replayGate']['qualified']);self.assertEqual(report['replayGate']['status'],'ORIGINAL_COMPLETE_TRACE_READER_NOT_SUPPLIED');self.assertEqual(data,before)
+ def test_data_match_with_current_supplier_still_needs_source_and_full_trace(self):
+  off,on=bundle(),bundle('b'*64,position=1)
+  for label,leg in [('OFF',off),('ON',on)]:
+   leg['provenance']=dict(runID=label,selectedSupplierCommit=r.PAIR_SUPPLIER['commit'],selectedSupplierTree=r.PAIR_SUPPLIER['tree'])
+   status='DISABLED' if label=='OFF' else 'OBSERVED';leg['networkData']=dict(losslessStatuses=[dict(start=dict(status=status),end=dict(status=status)) for _ in range(4)])
+  report=r.prepare_paired_candidate(off,on);self.assertEqual(report['normalBusinessGate']['status'],'MATCHED_BUSINESS_DATA_ONLY');self.assertFalse(report['ready'] or report['normalWirePairQualified']);self.assertTrue(report['missing'])
+  on['provenance']['runID']='OFF';self.assertTrue(any('same original run' in x for x in r.prepare_paired_candidate(off,on)['missing']))
+ def test_public_loader_rejects_wrong_receipt_pin_before_other_originals(self):
+  import tempfile
+  with tempfile.TemporaryDirectory() as tmp:
+   public=Path(tmp).resolve();(public/'receipt.json').write_bytes(b'{}')
+   with self.assertRaisesRegex(RuntimeError,'externally pinned'):r.read_normal_business_leg(public,'0'*64,'1'*40)
+ def test_candidate_output_never_overwrites_original(self):
+  import tempfile
+  with tempfile.TemporaryDirectory() as tmp:
+   target=Path(tmp).resolve()/'candidate.json';target.write_text('original firstcause')
+   with self.assertRaises(FileExistsError):self.driver.paired_candidate_main(['--output',str(target)])
+   self.assertEqual(target.read_text(),'original firstcause')
+
 if __name__=='__main__':unittest.main()

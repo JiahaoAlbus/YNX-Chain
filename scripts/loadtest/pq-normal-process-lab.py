@@ -714,7 +714,44 @@ def run(args):
     return result
 
 
+def paired_candidate_main(argv):
+    """Read-only actual-originals candidate entry; never build/start/POST."""
+    parser=argparse.ArgumentParser(description='Prepare normal OFF/ON candidate DATA without execution',allow_abbrev=False)
+    for side in ('off','on'):
+        for suffix in ('public','receipt-sha256','tools-commit'):parser.add_argument('--'+side+'-'+suffix)
+    parser.add_argument('--replay-data');parser.add_argument('--replay-sha256');parser.add_argument('--output')
+    flags=[value for value in argv if value.startswith('--')]
+    lab.require(len(flags)==len(set(flags)),'duplicate paired-candidate option')
+    args=parser.parse_args(argv)
+    for side in ('off','on'):
+        values=[getattr(args,side+'_'+suffix) for suffix in ('public','receipt_sha256','tools_commit')]
+        lab.require(not any(values) or all(values),'each original leg requires public directory, receipt SHA and tools commit together')
+        if all(values):lab.require(re.fullmatch('[0-9a-f]{64}',values[1]) and re.fullmatch('[0-9a-f]{40}',values[2]),'exact original leg receipt/tool pins required')
+    lab.require(bool(args.replay_data)==bool(args.replay_sha256),'original replay DATA requires an external SHA')
+    spec=importlib.util.spec_from_file_location('original_normal_pair_candidate_reader',Path(__file__).with_name('pq-normal-live-reader.py'))
+    reader=importlib.util.module_from_spec(spec);spec.loader.exec_module(reader)
+    legs={}
+    for side in ('off','on'):
+        path=getattr(args,side+'_public')
+        legs[side]=None if path is None else reader.read_normal_business_leg(Path(path),getattr(args,side+'_receipt_sha256'),getattr(args,side+'_tools_commit'))
+    replay=None
+    if args.replay_data:
+        proof_spec=importlib.util.spec_from_file_location('pair_original_replay_io',Path(__file__).with_name('pq-public-proof-readback.py'))
+        proof=importlib.util.module_from_spec(proof_spec);proof_spec.loader.exec_module(proof)
+        raw=proof.read_original(Path(args.replay_data),256<<10)
+        lab.require(proof.sha(raw)==args.replay_sha256,'external original replay DATA SHA differs')
+        replay=proof.strict(raw);lab.require(replay.get('schema')=='YNX-PQ-PER-HEIGHT-DIFFERENTIAL/v1','only original per-height differential DATA accepted; new full-trace format awaits owning Core callee')
+    result=reader.prepare_paired_candidate(legs['off'],legs['on'],replay)
+    result['entryScope']='read-only existing PUBLIC originals and new candidate DATA; no execution option'
+    if args.output:
+        output=Path(args.output);lab.require(output.is_absolute() and output.parent.resolve(strict=True)==output.parent,'new canonical candidate output required')
+        lab.write_new(output,result)
+    return result
+
+
 if __name__=="__main__":
+    if sys.argv[1:2]==["--prepare-paired-candidate"]:
+        print(json.dumps(paired_candidate_main(sys.argv[2:]),sort_keys=True));raise SystemExit(0)
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument("--source",required=True);parser.add_argument("--commit",required=True);parser.add_argument("--mode",choices=["pre-signed","online"],required=True);parser.add_argument("--wire-observation",action="store_true");parser.add_argument("--live-network-baseline",action="store_true");parser.add_argument("--callee-timings",action="store_true");parser.add_argument("--execute",action="store_true");args=parser.parse_args()
     def interrupted(signum,frame):raise RuntimeError("normal PQ lab received signal "+str(signum))
     signal.signal(signal.SIGINT,interrupted);signal.signal(signal.SIGTERM,interrupted)
