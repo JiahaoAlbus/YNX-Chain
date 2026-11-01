@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -367,6 +368,14 @@ func (e *PinnedWASMExecutor) Execute(ctx context.Context, input []byte, limits L
 	}
 	if err = opCtx.Err(); err != nil {
 		return nil, usage, err
+	}
+	// Linux Pdeathsig is bound to the creating OS thread, not merely the
+	// Go process. Keep that thread alive through the original child's Wait
+	// and group drain; removing the signal or switching entry points is not
+	// an acceptable way to avoid an early parent-death termination.
+	if e.linux != nil {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
 	}
 	stdin := &processInput{reader: bytes.NewReader(input), progress: func(read uint64) { e.mu.Lock(); op.read = read; e.mu.Unlock() }}
 	stdout := &processOutput{limit: HistogramOutputBytes, cancel: cancel}

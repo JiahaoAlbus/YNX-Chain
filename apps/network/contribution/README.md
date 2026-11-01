@@ -70,7 +70,7 @@ Scratch has no host disk backing; metadata also remains memory-cgroup bounded.
 This optional scratch applies only to the fixed histogram kind; other platforms
 and legacy `verify_chunk` refuse nonzero scratch.
 
-Stop kills only the original live leaf using `cgroup.kill` and waits for the
+The original Go creator thread stays locked alive through child Wait and group drain, because Linux Pdeathsig is thread-lifetime bound; the parent-death signal and bwrap death chain remain enabled. Before launch the parent only opens its own CLOEXEC `cgroup.kill` handle; it never writes the destructive kill command as a capability probe. Stop kills only the original live leaf using that held `cgroup.kill` handle and waits for the
 owned wrapper plus `populated=0`; normal completion also drains descendants.
 Unknown/replaced/populated leaves are preserved, scheduling sealed and errors
 reported instead of importing saved PID authority. Per-leaf kernel CPU,

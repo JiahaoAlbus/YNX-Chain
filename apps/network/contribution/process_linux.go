@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -37,6 +38,8 @@ type linuxOperation struct {
 	backend    *linuxBackend
 	limits     LinuxLimits
 	filter     *os.File
+	killFile   *os.File
+	killMu     sync.Mutex
 }
 
 func linuxUnitParent(raw string) (string, error) {
@@ -323,10 +326,15 @@ func (b *linuxBackend) prepare(limits Limits) (*linuxOperation, error) {
 			return fail(fmt.Errorf("%w: required accounting missing", ErrUnsupported))
 		}
 	}
-	// Open kill before starting so cancellation can never depend on a saved PID.
-	if e = linuxWrite(d, "cgroup.kill", "1"); e != nil {
-		return fail(fmt.Errorf("%w: cgroup.kill unavailable", ErrUnsupported))
+	// Acquire the original kill handle before starting. Do NOT invoke the
+	// destructive cgroup.kill operation as a capability probe: kill is reserved
+	// for stopping/draining this exact live leaf after a child was admitted.
+	// CLOEXEC and exclusion from ExtraFiles keep it out of the sandbox.
+	killFD, err := unix.Openat(int(d.Fd()), "cgroup.kill", unix.O_NOFOLLOW|unix.O_CLOEXEC|unix.O_WRONLY, 0)
+	if err != nil {
+		return fail(fmt.Errorf("%w: cgroup.kill handle unavailable", ErrUnsupported))
 	}
+	op.killFile = os.NewFile(uintptr(killFD), "owned-cgroup-kill")
 	filter, e := linuxSeccompFile()
 	if e != nil {
 		return fail(e)
@@ -385,7 +393,21 @@ func (o *linuxOperation) verify(c *OSControls) error {
 	}
 	return nil
 }
-func (o *linuxOperation) kill() error { return linuxWrite(o.directory, "cgroup.kill", "1") }
+func (o *linuxOperation) kill() error {
+	o.killMu.Lock()
+	defer o.killMu.Unlock()
+	if o.killFile == nil {
+		return ErrOSLimits
+	}
+	n, e := o.killFile.WriteString("1")
+	if e != nil {
+		return e
+	}
+	if n != 1 {
+		return io.ErrShortWrite
+	}
+	return nil
+}
 func linuxNumbers(raw string) (map[string]uint64, error) {
 	m := map[string]uint64{}
 	for _, line := range strings.Split(raw, "\n") {
@@ -496,7 +518,11 @@ func (o *linuxOperation) cleanup() error {
 	if e = unix.Unlinkat(int(o.backend.delegate.Fd()), o.name, unix.AT_REMOVEDIR); e != nil {
 		return fmt.Errorf("%w: cgroup cleanup incomplete", ErrOSLimits)
 	}
-	return o.directory.Close()
+	var killErr error
+	if o.killFile != nil {
+		killErr = o.killFile.Close()
+	}
+	return errors.Join(killErr, o.directory.Close())
 }
 
 // Bubblewrap applies the filter after namespace construction, before exec.
