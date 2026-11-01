@@ -30,7 +30,7 @@ func main() {
 func run(ctx context.Context, args []string, out, diagnostics io.Writer) error {
 	flags := flag.NewFlagSet("ynx-ai-task", flag.ContinueOnError)
 	flags.SetOutput(diagnostics)
-	action := flags.String("action", "health", "version, health, session, conversation-create, task-list/create/show/prepare/cancel/complete, step-propose/approve/dispatch/reconcile/result, run-start/resume/show, operation-show, inspect-file")
+	action := flags.String("action", "health", "version, health, session, conversation-create, task-list/create/show/prepare/cancel/complete/handoff, step-propose/approve/dispatch/reconcile/result, run-start/resume/show, operation-show, inspect-file")
 	endpoint := flags.String("daemon", "http://127.0.0.1:6438", "original AI loopback daemon origin")
 	proofPath := flags.String("proof-file", "", "private file containing a fresh original Wallet V2 proof; not a task Grant")
 	dataPath := flags.String("data-file", "", "private JSON request file; prompts and Grant refs are never CLI arguments")

@@ -10,7 +10,7 @@ func (s *Store) taskHasUnresolvedEffectLocked(taskID string) bool {
 	for _, record := range s.state.Actions {
 		if record.ToolStep != nil && record.ToolStep.TaskID == taskID {
 			switch record.Status {
-			case "UNKNOWN", "DISPATCHING", "SENT", "RECONCILING":
+			case "PENDING", "UNKNOWN", "DISPATCHING", "SENT", "RECONCILING":
 				return true
 			}
 		}

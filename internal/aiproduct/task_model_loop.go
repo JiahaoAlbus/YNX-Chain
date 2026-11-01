@@ -189,6 +189,11 @@ func (s *Server) beginTaskRun(session ProductSession, taskID string, input taskR
 		return taskModelRun{}, TaskRecord{}, "", nil, false, err
 	}
 	prior := s.store.state.TaskRuns[modelRunKey(session.Account, taskID, input.RunID)]
+	// Even a retained final answer cannot turn an old holder's POST into
+	// current scheduling authority after handoff. Original history uses GET.
+	if task.Holder != session.DeviceID || task.Generation != input.Generation {
+		return taskModelRun{}, TaskRecord{}, "", nil, false, errToolConflict
+	}
 	if prior.Account == session.Account && prior.TaskID == taskID && taskRunHasUndeliveredAnswer(prior) {
 		if prior.SessionID != session.ID || prior.Holder != session.DeviceID || input.TaskRevision != prior.TaskRevision || input.Generation != prior.Generation || (input.Prompt != "" && bindTaskBytes([]byte(input.Prompt)) != prior.PromptBinding) || validateTaskModelRequestedTools(prior, input.ToolIDs) != nil {
 			return taskModelRun{}, TaskRecord{}, "", nil, false, errToolConflict
@@ -657,7 +662,8 @@ func (s *Server) handleTaskModelRun(w http.ResponseWriter, r *http.Request, sess
 func (s *Server) handleTaskModelRunRead(w http.ResponseWriter, r *http.Request, session ProductSession) {
 	s.store.mu.Lock()
 	defer s.store.mu.Unlock()
-	if _, err := s.store.ownedTaskLocked(session.Account, r.PathValue("id")); err != nil {
+	task, err := s.store.ownedTaskLocked(session.Account, r.PathValue("id"))
+	if err != nil {
 		writeError(w, http.StatusNotFound, "task run not found")
 		return
 	}
@@ -674,6 +680,15 @@ func (s *Server) handleTaskModelRunRead(w http.ResponseWriter, r *http.Request, 
 	}
 	if !ok || run.TaskID != r.PathValue("id") || run.Account != session.Account {
 		writeError(w, http.StatusNotFound, "task run not found")
+		return
+	}
+	if task.Holder != session.DeviceID && run.Holder != session.DeviceID {
+		writeError(w, http.StatusNotFound, "task run not found")
+		return
+	}
+	if task.Holder != session.DeviceID || run.Generation != task.Generation || run.Holder != task.Holder {
+		w.Header().Set("Cache-Control", "no-store")
+		writeJSON(w, http.StatusOK, taskRunView{ID: run.ID, RunID: run.RunID, TaskID: run.TaskID, Status: run.Status, Steps: append([]string(nil), run.Steps...), FirstCause: run.FirstCause, Cancelled: run.Cancelled, RecoveryOnly: true})
 		return
 	}
 	view, err := s.taskModelRunViewLocked(run)

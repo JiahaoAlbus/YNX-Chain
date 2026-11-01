@@ -127,7 +127,7 @@ func (s *Server) handleTaskProjection(w http.ResponseWriter, r *http.Request, se
 			return
 		}
 	}
-	task, err := s.store.ReadTaskProjection(session.Account, r.PathValue("id"), cursor)
+	task, err := s.store.readTaskProjectionForSession(session, r.PathValue("id"), cursor)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "task not found")
 		return

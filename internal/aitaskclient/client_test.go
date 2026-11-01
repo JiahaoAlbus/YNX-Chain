@@ -145,3 +145,13 @@ func TestExplicitLocalFileInspectionRealBytes(t *testing.T) {
 		t.Fatal(e)
 	}
 }
+
+func TestTaskClientCanonicalHandoffRoute(t *testing.T) {
+	route, err := Resolve(Request{Action: "task-handoff", TaskID: "task_original"})
+	if err != nil || route.Method != "POST" || route.Path != "/open/v1/tasks/task_original/handoffs" || !route.Private {
+		t.Fatalf("wrong original route %+v %v", route, err)
+	}
+	if _, err := Resolve(Request{Action: "task-handoff", TaskID: "../foreign"}); err == nil {
+		t.Fatal("path injection accepted")
+	}
+}

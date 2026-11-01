@@ -38,7 +38,7 @@ a private request file. Then:
   -proof-file /private/fresh-proof
 ```
 
-`conversation-create`, `task-prepare`, `task-cancel`, `task-complete`,
+`conversation-create`, `task-prepare`, `task-cancel`, `task-complete`, `task-handoff`,
 `step-propose`, `step-approve`, `step-dispatch`, `step-reconcile`, `run-start`,
 and `run-resume` accept the original daemon's JSON request body via `-data-file`.
 `step-*` actions need `-task`/`-step`; `run-show` needs `-task`/`-run`.
@@ -80,3 +80,11 @@ Current acceptance boundaries: client/daemon compilation, local process
 startup, actual file read, PUBLIC-controlled session/Store regressions, genuine
 Wallet login, actual authorized tool execution, installation and public release
 are separate. Missing Source/issuer admission keeps affected execution closed.
+
+`task-handoff` uses the canonical POST `/open/v1/tasks/{id}/handoffs` with the
+original version, distinct new holder and authorization reference from a private
+JSON file. It remains UNREGISTERED until the matching original Auth Source and
+V6 action verifier are installed. A local session or CLI flag cannot transfer a
+Grant. Keep the original delivery ID after any lost response; query its original
+record rather than issue another handoff. The API alias has no separate handler
+or authorization capability.

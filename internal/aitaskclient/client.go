@@ -91,6 +91,10 @@ func Resolve(r Request) (Route, error) {
 			suffix := strings.TrimPrefix(r.Action, "task-")
 			return Route{"POST", "/api/tasks/" + r.TaskID + "/" + suffix, true}, nil
 		}
+	case "task-handoff":
+		if task() {
+			return Route{"POST", "/open/v1/tasks/" + r.TaskID + "/handoffs", true}, nil
+		}
 	case "step-propose":
 		if task() {
 			return Route{"POST", "/api/tasks/" + r.TaskID + "/tool-steps", true}, nil

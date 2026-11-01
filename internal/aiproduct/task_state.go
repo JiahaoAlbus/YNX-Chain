@@ -32,6 +32,7 @@ type TaskProjection struct {
 	Changed      bool           `json:"changed"`
 	LatestCursor uint64         `json:"latestCursor"`
 	HasMore      bool           `json:"hasMore"`
+	RecoveryOnly bool           `json:"recoveryOnly,omitempty"`
 	Events       []TaskEvent    `json:"events"`
 	Steps        []ActionRecord `json:"steps"`
 }
@@ -90,6 +91,9 @@ func (s *Store) HandoffTask(account, id string, expectedRev, expectedGen uint64,
 	if strings.TrimSpace(currentHolder) == "" || strings.TrimSpace(newHolder) == "" {
 		return TaskRecord{}, errors.New("explicit current and new task holders are required")
 	}
+	if currentHolder == newHolder || len(newHolder) > 256 || !task.CancelledAt.IsZero() {
+		return TaskRecord{}, ErrTaskConflict
+	}
 	switch task.Status {
 	case "DRAFT", "READY", "WORKING", "NEEDS_APPROVAL", "RECONCILING":
 	default:
@@ -101,11 +105,43 @@ func (s *Store) HandoffTask(account, id string, expectedRev, expectedGen uint64,
 	if task.Revision == ^uint64(0) || task.Generation == ^uint64(0) {
 		return TaskRecord{}, ErrTaskConflict
 	}
+	// Close the old queue in the same durable commit as the holder CAS. Sent
+	// effects keep their original IDs, status, evidence and first cause.
+	previousActions := map[string]ActionRecord{}
+	for id, record := range s.state.Actions {
+		if record.Account == account && record.ToolStep != nil && record.ToolStep.TaskID == task.ID && (record.Status == "NEEDS_APPROVAL" || record.Status == "approved_not_executed") {
+			previousActions[id] = record
+			record.Status = "CANCELLED"
+			s.state.Actions[id] = record
+		}
+	}
+	previousRuns := map[string]taskModelRun{}
+	for id, run := range s.state.TaskRuns {
+		if run.Account != account || run.TaskID != task.ID || run.Holder != currentHolder || run.Status == "COMPLETED" {
+			continue
+		}
+		previousRuns[id] = run
+		run.Cancelled = true
+		run.Status = "STOPPED"
+		if s.taskHasUnresolvedEffectLocked(task.ID) {
+			run.Status = "UNKNOWN"
+		}
+		s.state.TaskRuns[id] = run
+	}
+	if task.Status != "DRAFT" {
+		task.Status = "READY"
+	}
 	task.Holder = newHolder
 	task.Revision++
 	task.Generation++
 	task.UpdatedAt = s.now().UTC()
 	if err := s.saveTaskLocked(task, "task_handed_off"); err != nil {
+		for id, record := range previousActions {
+			s.state.Actions[id] = record
+		}
+		for id, run := range previousRuns {
+			s.state.TaskRuns[id] = run
+		}
 		return TaskRecord{}, err
 	}
 	return task, nil

@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -58,6 +59,7 @@ type persistentState struct {
 
 type Store struct {
 	mu               sync.Mutex
+	authorityEpoch   atomic.Pointer[taskStoreEpoch]
 	path             string
 	aead             cipher.AEAD
 	browserCookieKey []byte
@@ -83,6 +85,7 @@ func NewStore(path string, key []byte) (*Store, error) {
 	mac := hmac.New(sha256.New, key)
 	_, _ = mac.Write([]byte("YNX AI browser SSO cookie key v1"))
 	s := &Store{path: path, aead: aead, now: time.Now, browserCookieKey: mac.Sum(nil)}
+	s.authorityEpoch.Store(&taskStoreEpoch{})
 	if err := s.load(); err != nil {
 		return nil, err
 	}
@@ -109,6 +112,9 @@ func (s *Store) load() error {
 }
 
 func (s *Store) saveLocked() error {
+	// Invalidate held read snapshots before any persistence attempt, including
+	// failures. Current() can now be checked under mu without re-locking or IO.
+	s.authorityEpoch.Store(&taskStoreEpoch{})
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
 		return err
 	}

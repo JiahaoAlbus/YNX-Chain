@@ -127,6 +127,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /api/tasks", s.authed("ai:conversations", s.handleTaskCreate))
 	s.mux.HandleFunc("GET /api/tasks", s.authed("ai:conversations", s.handleTaskList))
 	s.mux.HandleFunc("POST /api/tasks/{id}/prepare", s.authed("ai:permissions", s.handleTaskPrepare))
+	s.mux.HandleFunc("POST /open/v1/tasks/{id}/handoffs", s.authed("ai:permissions", s.handleTaskHandoff))
+	s.mux.HandleFunc("POST /api/tasks/{id}/handoffs", s.authed("ai:permissions", s.handleTaskHandoff))
 	s.mux.HandleFunc("GET /api/agents", s.authed("ai:permissions", s.handleAgentConfigurationList))
 	s.mux.HandleFunc("POST /api/agents", s.authed("ai:permissions", s.handleAgentConfigurationWrite))
 	s.mux.HandleFunc("PATCH /api/agents/{agentId}", s.authed("ai:permissions", s.handleAgentConfigurationWrite))

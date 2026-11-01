@@ -87,3 +87,32 @@ proof grammar and version; the inactive historical adapter is not V6 support.
 The new snapshot and dispatch regressions are PUBLIC transport/controller
 controls. Matching SDK/Auth native action authorization, actual protected Source
 and real order lifecycle remain required before business acceptance.
+
+## Holder handoff and completion
+
+Native handoff is a separate action from stopping scheduling. It submits the
+actual task revision/generation, distinct registered holder and original Auth
+reference to `/open/v1/tasks/{id}/handoffs`. The API alias shares one handler.
+This route currently returns `AI_TASK_HANDOFF_UNREGISTERED` and changes nothing:
+matching Auth prepare/once/minimum Grant/revocation and CAS readback must be
+consumed before enablement. No session-only call reaches Store.HandoffTask.
+
+The existing Store CAS now invalidates old unsent queues and stops old model
+runs atomically with the holder/generation update. Sent/PENDING/UNKNOWN original
+effects retain their IDs, status and first cause. Failed persistence restores
+the old task, queue and runs. Old holder POSTs cannot retrieve retained model
+answers; historical reads are restricted to original metadata, not the new
+queue or answer plaintext. Original query still requires independent Auth
+history permission. Native successful-handoff readback becomes recovery-only.
+
+Completion calls existing original verified workflow rules using the actual
+internal run key. PENDING/SENT/UNKNOWN/unreconciled effects block completion.
+Propose and complete have distinct fixed transport routes; shared V6 action
+registration remains solely owned by SDK/Auth.
+
+`TaskStoreSource` is a concrete read source for Auth composition. Its opaque
+captures expose actual Store task/operation state and conversation ownership.
+Current checks a live atomic Store epoch, cancellation, retirement and release,
+with no IO or mutex acquisition. Every persistence attempt invalidates captures,
+including failed writes. Auth must independently AND its registered session,
+tenant and policy current: these are not owned or invented by the product Store.

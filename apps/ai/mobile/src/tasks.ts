@@ -7,7 +7,7 @@ export type TaskRequestSnapshot=Readonly<{method:"GET"|"POST";path:string;bodyOr
 export type TaskCredentials={identity:string;proof:(scope:TaskScope,request:TaskRequestSnapshot)=>Promise<string>};
 export type Task={id:string;conversationId:string;holder:string;revision:number;generation:number;status:string;cancelledAt?:string};
 export type TaskStep={id:string;status:string;toolStep:{taskId:string;taskRevision:number;generation:number;holder:string;toolId:string;toolVersion:string;inputDigest?:string;approvedFields?:string[];authorityOperationId?:string;remoteOperationId?:string;remoteRef?:string;effectFirstCause?:string}};
-export type TaskProjection=Task&{cursor:number;hasMore:boolean;events:unknown[];steps:TaskStep[]};
+export type TaskProjection=Task&{cursor:number;hasMore:boolean;recoveryOnly?:boolean;events:unknown[];steps:TaskStep[]};
 export type TaskRun={id:string;runId:string;taskId:string;status:string;steps:string[];content?:string;firstCause?:string;recoveryOnly:boolean};
 export type TaskReceipt={state:string;effectRef:string;originalOperationId?:string;authorityOperationId?:string;remoteRef?:string;result:unknown;authScope?:string};
 export type Delivery={id:string;binding:string;action:string;taskId:string;conversationId?:string;stepId?:string;runId?:string;revision?:number;generation?:number;state:"PENDING"|"UNKNOWN"|"RESPONSE_RECEIVED"|"REJECTED_RESPONSE"|"ORIGINAL_OBSERVED"};
@@ -33,6 +33,9 @@ export function createTaskAPI(base:string,credentials:TaskCredentials,fetcher:ty
   create:(conversationId:string,signal:AbortSignal)=>request<Task>("/api/tasks","ai:conversations",signal,{conversationId:segment(conversationId)}),
   prepare:(task:Task,signal:AbortSignal)=>request<{task:Task}>(`/api/tasks/${segment(task.id)}/prepare`,"ai:permissions",signal,{revision:task.revision,generation:task.generation}),
   cancel:(task:Task,signal:AbortSignal)=>request<{task:Task;remoteRollback:false}>(`/api/tasks/${segment(task.id)}/cancel`,"ai:permissions",signal,{revision:task.revision,generation:task.generation}),
+  handoff:(task:Task,newHolder:string,authorizationRef:string,signal:AbortSignal)=>request<{task:Task}>(`/open/v1/tasks/${segment(task.id)}/handoffs`,"ai:permissions",signal,{revision:task.revision,generation:task.generation,newHolder,authorizationRef}),
+  complete:(task:Task,runId:string,signal:AbortSignal)=>request<{task:Task}>(`/api/tasks/${segment(task.id)}/complete`,"ai:permissions",signal,{revision:task.revision,generation:task.generation,runId:segment(runId)}),
+  propose:(task:Task,operationId:string,toolId:string,input:unknown,signal:AbortSignal)=>request<unknown>(`/api/tasks/${segment(task.id)}/tool-steps`,"ai:permissions",signal,{operationId:segment(operationId),taskRevision:task.revision,generation:task.generation,toolId,toolVersion:"1",input}),
   approve:(task:string,step:string,authorizationRef:string,signal:AbortSignal)=>request<unknown>(`/api/tasks/${segment(task)}/tool-steps/${segment(step)}/approve`,"ai:permissions",signal,{authorizationRef}),
   dispatch:(task:string,step:string,authorizationRef:string,signal:AbortSignal)=>request<TaskReceipt>(`/api/tasks/${segment(task)}/tool-steps/${segment(step)}/dispatch`,"ai:permissions",signal,{authorizationRef}),
   reconcile:(task:string,step:string,authorizationRef:string,signal:AbortSignal)=>request<unknown>(`/api/tasks/${segment(task)}/tool-steps/${segment(step)}/reconcile`,"ai:permissions",signal,{authorizationRef}),
@@ -71,7 +74,7 @@ export class TaskWorkspaceController{
    await this.persist(this.state.record);if(cause)throw cause;return result;
   },apply)
  }
- private current(expected:Task){const current=this.state.projection;if(!current||current.id!==expected.id||current.revision!==expected.revision||current.generation!==expected.generation||current.holder!==expected.holder)throw new Error("TASK_CHANGED_REFRESH_REQUIRED");return current}
+ private current(expected:Task,write=true){const current=this.state.projection;if(write&&current?.recoveryOnly)throw new Error("OLD_HOLDER_RECOVERY_ONLY");if(!current||current.id!==expected.id||current.revision!==expected.revision||current.generation!==expected.generation||current.holder!==expected.holder)throw new Error("TASK_CHANGED_REFRESH_REQUIRED");return current}
  async create(conversationId:string){segment(conversationId);await this.mutate("create",null,"","",s=>this.api.create(conversationId,s),value=>{const task=value as Task;this.state.tasks=[task,...this.state.tasks]},conversationId)}
  async prepare(expected:Task){const task=this.current(expected);await this.mutate("prepare",task,"","",s=>this.api.prepare(task,s),value=>{this.state.projection={...this.state.projection!,...(value as {task:Task}).task}})}
  async cancel(expected:Task){const task=this.current(expected);if(this.state.busy){await this.cancelInFlight(task);return}await this.mutate("cancel",task,"","",s=>this.api.cancel(task,s),value=>{this.state.projection={...this.state.projection!,...(value as {task:Task}).task};this.state.run=null})}
@@ -86,6 +89,11 @@ export class TaskWorkspaceController{
   if(!step||step.status!==status||expected.status!==status||step.toolStep.taskId!==task.id||step.toolStep.taskRevision!==task.revision||step.toolStep.generation!==task.generation||step.toolStep.holder!==task.holder||JSON.stringify(step.toolStep)!==JSON.stringify(expected.toolStep))throw new Error("ORIGINAL_STEP_CHANGED_REFRESH_REQUIRED");
   return step;
  }
+ async handoff(expected:Task,newHolder:string,ref:string){
+  const task=this.current(expected);if(!newHolder||newHolder!==newHolder.trim()||newHolder===task.holder||newHolder.length>256||!ref||ref.length>256)throw new Error("EXACT_REGISTERED_NEW_HOLDER_AND_AUTHORIZATION_REQUIRED");
+  await this.mutate("handoff",task,"","",s=>this.api.handoff(task,newHolder,ref,s),value=>{this.state.projection={...this.state.projection!,...(value as {task:Task}).task,recoveryOnly:true};this.state.run=null;this.state.receipt=null});
+ }
+ async complete(expected:Task){const task=this.current(expected),run=this.state.run;if(!run||run.taskId!==task.id||run.status!=="COMPLETED"||run.recoveryOnly||task.steps.some(step=>["PENDING","SENT","DISPATCHING","UNKNOWN","RECONCILING"].includes(step.status)))throw new Error("VERIFIED_COMPLETED_ORIGINAL_WORKFLOW_REQUIRED");await this.mutate("complete",task,"",run.id,s=>this.api.complete(task,run.id,s),value=>{this.state.projection={...this.state.projection!,...(value as {task:Task}).task}})}
  async approve(expected:Task,step:TaskStep,ref:string){const task=this.current(expected);const original=this.currentStep(task,step,"NEEDS_APPROVAL");await this.mutate("approve",task,original.id,"",s=>this.api.approve(task.id,original.id,ref,s),()=>{})}
  async dispatch(expected:Task,step:TaskStep,ref:string){
   const task=this.current(expected);const original=this.currentStep(task,step,"approved_not_executed");
@@ -93,7 +101,7 @@ export class TaskWorkspaceController{
   if(!ref||ref.length>256)throw new Error("ORIGINAL_AUTHORIZATION_REFERENCE_REQUIRED");
   await this.mutate("dispatch",task,original.id,"",s=>this.api.dispatch(task.id,original.id,ref,s),value=>{this.state.receipt=value as TaskReceipt});
  }
- async reconcile(expected:Task,step:TaskStep,ref:string){const task=this.current(expected);if(!["UNKNOWN","DISPATCHING","RECONCILING"].includes(step.status))throw new Error("ORIGINAL_QUERY_ONLY");await this.mutate("query",task,step.id,"",s=>this.api.reconcile(task.id,step.id,ref,s),()=>{})}
+ async reconcile(expected:Task,step:TaskStep,ref:string){const task=this.current(expected,false);if(!["UNKNOWN","DISPATCHING","RECONCILING"].includes(step.status))throw new Error("ORIGINAL_QUERY_ONLY");await this.mutate("query",task,step.id,"",s=>this.api.reconcile(task.id,step.id,ref,s),()=>{})}
  async readResult(step:TaskStep){const task=this.state.projection;if(!task)return;await this.work(signal=>this.api.result(task.id,step.id,signal),receipt=>{this.state.receipt=receipt})}
  async readRun(runId:string){const task=this.state.projection;if(!task)return;await this.work(async signal=>{const run=await this.api.runView(task.id,runId,signal);if(run.taskId!==task.id||(run.runId!==runId&&run.id!==runId))throw new Error("ORIGINAL_RUN_BINDING_MISMATCH");if(!run.recoveryOnly&&run.status!=="UNKNOWN"){this.state.record={...this.state.record,deliveries:this.state.record.deliveries.map(delivery=>delivery.taskId===task.id&&delivery.runId===run.runId&&["run","resume"].includes(delivery.action)&&["PENDING","UNKNOWN"].includes(delivery.state)?{...delivery,state:"ORIGINAL_OBSERVED" as const}:delivery)};await this.persist(this.state.record)}return run},run=>{this.state.run=run})}
  async model(expected:Task,runId:string,prompt:string,ref:string,tools:string[],resume=false){const task=this.current(expected);if(this.state.run?.recoveryOnly||this.state.run?.status==="UNKNOWN"||task.steps.some(step=>["UNKNOWN","DISPATCHING","RECONCILING"].includes(step.status))||this.state.record.deliveries.some(delivery=>delivery.taskId===task.id&&["run","resume"].includes(delivery.action)&&["UNKNOWN","PENDING","REJECTED_RESPONSE"].includes(delivery.state)))throw new Error("UNKNOWN_ORIGINAL_QUERY_REQUIRED");await this.mutate(resume?"resume":"run",task,"",runId,s=>this.api.run(task,runId,prompt,ref,tools,resume,s),value=>{this.state.run=value as TaskRun;this.state.record.runId=runId})}

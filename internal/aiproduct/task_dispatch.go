@@ -41,6 +41,9 @@ func (s *Store) effectCallLocked(session ProductSession, taskID, stepID string, 
 		return taskEffectCall{}, errToolNotFound
 	}
 	binding := *record.ToolStep
+	if !dispatch && task.Holder != session.DeviceID && binding.Holder != session.DeviceID {
+		return taskEffectCall{}, errToolNotFound
+	}
 	if dispatch {
 		if err := s.assertTaskAgentConfigurationLocked(task, binding.ToolID); err != nil {
 			return taskEffectCall{}, err
@@ -222,6 +225,19 @@ func (s *Server) taskEffectHTTP(w http.ResponseWriter, r *http.Request, session 
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
+	if reconcile {
+		s.store.mu.Lock()
+		task, taskErr := s.store.ownedTaskLocked(session.Account, r.PathValue("id"))
+		s.store.mu.Unlock()
+		if taskErr != nil {
+			writeError(w, http.StatusNotFound, "original task not found")
+			return
+		}
+		if task.Holder != session.DeviceID {
+			writeJSON(w, http.StatusOK, map[string]any{"state": receipt.State, "effectRef": receipt.EffectRef, "recoveryOnly": true})
+			return
+		}
+	}
 	writeJSON(w, http.StatusOK, receipt)
 }
 

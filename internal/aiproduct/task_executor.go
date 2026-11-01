@@ -203,7 +203,7 @@ func (s *Server) handleTaskToolResult(w http.ResponseWriter, r *http.Request, se
 		return
 	}
 	record, exists := s.store.state.Actions[r.PathValue("stepId")]
-	if !exists || record.Account != session.Account || record.ToolStep == nil || record.ToolStep.TaskID != task.ID {
+	if !exists || record.Account != session.Account || record.ToolStep == nil || record.ToolStep.TaskID != task.ID || task.Holder != session.DeviceID {
 		s.store.mu.Unlock()
 		writeError(w, http.StatusNotFound, "task result not found")
 		return
